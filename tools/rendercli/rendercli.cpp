@@ -13,6 +13,7 @@
 #include "world/import/LDrawSceneImporter.h"
 #include "world/objects/Group.h"
 #include "world/objects/LDrawSceneImporter.h"
+#include "world/objects/LDrawModel.h"
 #include "world/objects/Material.h"
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/StepVisibilityEvaluator.h"
@@ -751,6 +752,7 @@ private:
 
   std::unique_ptr<Scene> loadScene() const;
   std::unique_ptr<Scene> loadLDrawScene() const;
+  void applyLDrawLibraryRoot(Element* root) const;
   std::vector<double> renderScene(const Scene& scene, const QString& output) const;
   void renderAnimation(const Scene& scene) const;
   void renderStepSequence(const Scene& scene) const;
@@ -901,6 +903,7 @@ std::unique_ptr<Scene> Renderer::loadScene() const {
   if (!scene->load(m_filename, m_ldrawLibraryRoot))
     throw std::runtime_error(
       QString("Unable to load input scene: %1").arg(m_filename).toStdString());
+  applyLDrawLibraryRoot(scene.get());
   for (const auto& diagnostic : scene->importDiagnostics())
     std::cerr << diagnostic.toString() << '\n';
   return scene;
@@ -938,29 +941,34 @@ std::unique_ptr<Scene> Renderer::loadLDrawScene() const {
     scene->setImportDiagnostics(std::move(result.diagnostics));
     scene->addChild(std::move(result.root));
   } else {
-    auto model = std::make_unique<Group>();
+    auto model = std::make_unique<LDrawModel>();
     model->setId("ldraw-model");
-    model->setName("LDraw Import");
+    model->setName("LDraw Model");
+    model->setFilePath(m_filename);
+    model->setLibraryPath(m_ldrawLibraryRoot);
     model->setScale(Vector3d(1, 1, 1));
-    QJsonObject metadata;
-    metadata["sourceFormat"] = "LDraw";
-    metadata["sourcePath"] = m_filename;
-    metadata["normalMode"] = "flat";
-    if (!m_ldrawLibraryRoot.isEmpty()) {
-      metadata["libraryPath"] = m_ldrawLibraryRoot;
-    }
-    model->setMetadata(metadata);
     scene->addChild(std::move(model));
-
-    std::vector<LDrawDiagnostic> diagnostics;
-    world::imports::resolveLDrawAuthoringImports(scene.get(), m_ldrawLibraryRoot, QString(),
-                                                 &diagnostics);
-    scene->setImportDiagnostics(std::move(diagnostics));
   }
   for (const auto& diagnostic : scene->importDiagnostics())
     std::cerr << diagnostic.toString() << '\n';
 
   return scene;
+}
+
+void Renderer::applyLDrawLibraryRoot(Element* root) const {
+  if (m_ldrawLibraryRoot.isEmpty()) {
+    return;
+  }
+
+  if (auto* model = qobject_cast<LDrawModel*>(root)) {
+    if (model->libraryPath().isEmpty()) {
+      model->setLibraryPath(m_ldrawLibraryRoot);
+    }
+  }
+
+  for (Element* child : root->childElements()) {
+    applyLDrawLibraryRoot(child);
+  }
 }
 
 engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
@@ -1663,7 +1671,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"height", "Output image height", "height"},
      {"depth", "Maximum recursion depth", "depth"},
      {"ldraw_library_root",
-      "LDraw parts library root used for LDraw authoring imports and direct LDraw input",
+      "LDraw parts library root used for LDraw scene objects and direct LDraw input",
       "directory"},
      {"ldraw_input", "Treat the input file as an LDraw .ldr/.dat/.mpd model and build a scene"},
      {"ldraw_preserve_hierarchy",
