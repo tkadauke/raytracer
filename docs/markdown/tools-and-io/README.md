@@ -13,6 +13,9 @@ codebase, not just understand it.
 - [LDraw import](ldraw-import.md) — the supported `.dat` / `.ldr` /
     `.mpd` subset, tiny validation fixtures, and how to point
     `rendercli` at an LDraw parts library.
+- [OpenSCAD import](openscad-import.md) — the external compiler workflow,
+    generated mesh cache behavior, native-subset fixtures, and render smoke
+    expectations.
 - [STL import](stl-import.md) — ASCII and binary triangle-mesh import,
     binary count validation, and explicit unit/material assumptions.
 - [Importer lifecycle](importer-lifecycle.md) — shared scene-importer
