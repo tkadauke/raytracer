@@ -576,8 +576,10 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   #210.
   ~~World scene and rendercli integration.~~ ✅ **Done.** `Collection`
   authoring metadata references LDraw source files; rendercli resolves those
-  references through the import pipeline into ordinary primitive geometry and
-  accepts scene-level library roots plus direct LDraw input for #210.
+  references through the import pipeline into ordinary primitive geometry,
+  `LDrawModel` exposes LDraw file/library-root/scale/smoothing/visibility
+  scene JSON, and rendercli accepts scene-level library roots plus direct
+  LDraw input for #210.
   ~~Preserve `0 STEP` and MPD authoring structure as scene groups.~~ ✅
   **Done.** `LDrawSceneImporter` maps build steps and submodel references onto
   generic `Group` metadata nodes while keeping flattened import available for
