@@ -717,7 +717,7 @@ void MainWindow::createActions() {
   p->renderAct->setStatusTip(tr("Render current scene"));
   connect(p->renderAct, SIGNAL(triggered()), this, SLOT(render()));
 
-  p->previewUseSceneIntentAct = new QAction(tr("Use Scene Render &Intent"), this);
+  p->previewUseSceneIntentAct = new QAction(tr("Use Scene Render &Settings"), this);
   p->previewUseSceneIntentAct->setStatusTip(
     tr("Compile the live preview directly from the scene's saved render intent"));
   p->previewUseSceneIntentAct->setCheckable(true);

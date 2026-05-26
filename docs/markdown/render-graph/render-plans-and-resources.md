@@ -613,9 +613,11 @@ size into a `RenderPlan`, then shows the result as a left-to-right graph plus
 supporting tables:
 
 The scene's durable render intent is editable from the Elements tree as a
-generated `Render Intent` item. Preview controls and the final Render window do
+generated `Render Settings` item. Preview controls and the final Render window do
 not mutate that object by default; they build temporary request overrides and
-then ask the compiler for an effective plan. The final Render window also owns
+then ask the compiler for an effective plan. Render settings are grouped in the
+property editor, enumerated choices use dropdowns, and backend-specific fields
+only appear when that backend is selected. The final Render window also owns
 its own Graph tab, so users can inspect the exact graph that will be executed
 before starting the render.
 

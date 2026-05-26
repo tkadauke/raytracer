@@ -71,7 +71,7 @@ namespace SceneModelTest {
     ASSERT_TRUE(intent.isValid());
     EXPECT_NE(nullptr,
               qobject_cast<RenderIntentElement*>(static_cast<Element*>(intent.internalPointer())));
-    EXPECT_EQ(QString("Render Intent"), model.data(intent, Qt::DisplayRole).toString());
+    EXPECT_EQ(QString("Render Settings"), model.data(intent, Qt::DisplayRole).toString());
   }
 
   TEST_F(SceneModelTest, ShouldReturnInvalidParentForTopLevelIndex) {

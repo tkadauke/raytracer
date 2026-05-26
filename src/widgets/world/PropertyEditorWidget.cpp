@@ -5,6 +5,7 @@
 
 #include "widgets/world/VectorParameterWidget.h"
 #include "widgets/world/AngleParameterWidget.h"
+#include "widgets/world/ChoiceParameterWidget.h"
 #include "widgets/world/ColorParameterWidget.h"
 #include "widgets/world/StringParameterWidget.h"
 #include "widgets/world/IntParameterWidget.h"
@@ -13,14 +14,17 @@
 #include "widgets/world/ReferenceParameterWidget.h"
 
 #include <QFont>
+#include <QGroupBox>
 #include <QHeaderView>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QLabel>
-#include <QVBoxLayout>
+#include <QMap>
 #include <QMetaProperty>
+#include <QTimer>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
+#include <QVBoxLayout>
 
 Q_DECLARE_METATYPE(Vector3d)
 
@@ -46,14 +50,18 @@ struct PropertyEditorWidget::Private {
   inline Private()
       : root(nullptr),
         element(nullptr),
-        verticalLayout(nullptr) {
+        verticalLayout(nullptr),
+        rebuildQueued(false) {
   }
 
   Element* root;
   Element* element;
   QVBoxLayout* verticalLayout;
   QList<AbstractParameterWidget*> parameterWidgets;
+  QList<QGroupBox*> groupBoxes;
+  QMap<QString, QVBoxLayout*> groupLayouts;
   QList<QWidget*> readOnlyWidgets;
+  bool rebuildQueued;
 };
 
 PropertyEditorWidget::PropertyEditorWidget(Element* root, QWidget* parent)
@@ -72,8 +80,8 @@ void PropertyEditorWidget::initLayout() {
     delete p->verticalLayout;
   }
   p->verticalLayout = new QVBoxLayout(this);
-  p->verticalLayout->setContentsMargins(0, 0, 0, 0);
-  p->verticalLayout->setSpacing(0);
+  p->verticalLayout->setContentsMargins(8, 8, 8, 8);
+  p->verticalLayout->setSpacing(8);
 }
 
 QSize PropertyEditorWidget::sizeHint() const {
@@ -143,6 +151,8 @@ void PropertyEditorWidget::addParameterWidgets() {
   addParametersForClass(p->element->metaObject());
 
   for (const auto& name : p->element->dynamicPropertyNames()) {
+    if (!p->element->isPropertyVisible(name))
+      continue;
     addParameter(name);
   }
 
@@ -179,11 +189,11 @@ void PropertyEditorWidget::addParametersForClass(const QMetaObject* klass) {
     addParametersForClass(klass->superClass());
   }
 
-  // TODO: add header
-
   for (int i = klass->propertyOffset(); i != klass->propertyCount(); ++i) {
     auto metaProp = klass->property(i);
     if (metaProp.name() == QString("id"))
+      continue;
+    if (!p->element->isPropertyVisible(metaProp.name()))
       continue;
 
     addParameter(metaProp.name());
@@ -195,8 +205,11 @@ void PropertyEditorWidget::addParameter(const QString& name) {
   auto type = QString(value.typeName());
 
   AbstractParameterWidget* widget = nullptr;
+  const QStringList choices = p->element->propertyChoices(name);
 
-  if (isType(type, "Vector3d", "Vector3<double>")) {
+  if (!choices.isEmpty() && type == "QString") {
+    widget = new ChoiceParameterWidget(choices, this);
+  } else if (isType(type, "Vector3d", "Vector3<double>")) {
     widget = new VectorParameterWidget(this);
   } else if (isType(type, "Angled", "Angle<double>")) {
     widget = new AngleParameterWidget(this);
@@ -227,7 +240,7 @@ void PropertyEditorWidget::addParameter(const QString& name) {
 
 void PropertyEditorWidget::addParameterWidget(AbstractParameterWidget* widget) {
   p->parameterWidgets << widget;
-  p->verticalLayout->addWidget(widget);
+  layoutForGroup(p->element->propertyGroup(widget->parameterName()))->addWidget(widget);
   widget->setElement(p->element);
 
   connect(widget, SIGNAL(changed(const QString&, const QVariant&)), this,
@@ -235,10 +248,9 @@ void PropertyEditorWidget::addParameterWidget(AbstractParameterWidget* widget) {
 }
 
 void PropertyEditorWidget::clearParameterWidgets() {
-  for (const auto& widget : p->parameterWidgets) {
-    delete widget;
-  }
-
+  qDeleteAll(p->groupBoxes);
+  p->groupBoxes.clear();
+  p->groupLayouts.clear();
   p->parameterWidgets.clear();
 }
 
@@ -253,4 +265,41 @@ void PropertyEditorWidget::clearReadOnlyWidgets() {
 void PropertyEditorWidget::elementChanged(const QString& propertyName, const QVariant& value) {
   p->element->setProperty(propertyName.toStdString().c_str(), value);
   emit changed(p->element);
+  if (p->element->rebuildPropertyEditorAfterChange(propertyName)) {
+    rebuildEditorLater();
+  }
+}
+
+void PropertyEditorWidget::rebuildEditorLater() {
+  if (p->rebuildQueued)
+    return;
+
+  p->rebuildQueued = true;
+  QTimer::singleShot(0, this, [this] {
+    p->rebuildQueued = false;
+    if (p->element)
+      setElement(p->element);
+  });
+}
+
+QVBoxLayout* PropertyEditorWidget::layoutForGroup(const QString& groupName) {
+  const QString title = groupName.trimmed().isEmpty() ? QStringLiteral("Properties") : groupName;
+  if (p->groupLayouts.contains(title))
+    return p->groupLayouts.value(title);
+
+  auto* groupBox = new QGroupBox(title, this);
+  groupBox->setObjectName(QStringLiteral("propertyGroup%1").arg(title.simplified().remove(' ')));
+  auto* layout = new QVBoxLayout(groupBox);
+  layout->setContentsMargins(8, 6, 8, 8);
+  layout->setSpacing(4);
+
+  p->groupBoxes << groupBox;
+  p->groupLayouts.insert(title, layout);
+  p->verticalLayout->addWidget(groupBox);
+  return layout;
+}
+
+bool PropertyEditorWidget::isType(const QString& actual, const char* qt5Name,
+                                  const char* qt6Name) const {
+  return actual == qt5Name || actual == qt6Name;
 }

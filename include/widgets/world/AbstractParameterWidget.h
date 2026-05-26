@@ -28,6 +28,11 @@ protected slots:
   void parameterChanged();
   QVariant lastValue() const;
 
+protected:
+  Element* element() const;
+  QString displayNameForParameter(const QString& name) const;
+  QString displayNameForChoice(const QString& choice) const;
+
 private:
   struct Private;
   std::unique_ptr<Private> p;

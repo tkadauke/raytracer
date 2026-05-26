@@ -8,6 +8,7 @@
 
 class Element;
 class AbstractParameterWidget;
+class QVBoxLayout;
 
 class PropertyEditorWidget : public QWidget {
   Q_OBJECT
@@ -38,6 +39,9 @@ private:
   void clearReadOnlyWidgets();
 
   void addParameter(const QString& name);
+  void rebuildEditorLater();
+  QVBoxLayout* layoutForGroup(const QString& groupName);
+  bool isType(const QString& actual, const char* qt5Name, const char* qt6Name) const;
 
   struct Private;
   std::unique_ptr<Private> p;

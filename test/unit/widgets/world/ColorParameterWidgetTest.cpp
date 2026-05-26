@@ -5,6 +5,8 @@
 
 #include "test/helpers/GuiTestHelper.h"
 
+#include <QDoubleSpinBox>
+
 // Mirror Q_DECLARE_METATYPE(Colord) from the widget's TU so QVariant
 // round-tripping via .value<Colord>() works in the test TU.
 Q_DECLARE_METATYPE(Colord);
@@ -52,5 +54,10 @@ namespace ColorParameterWidgetTest {
     ColorParameterWidget widget;
     widget.setParameterName("specularColor");
     EXPECT_EQ(QString("specularColor"), widget.parameterName());
+  }
+
+  TEST_F(ColorParameterWidgetTest, ShouldUseNumericChannelEditors) {
+    ColorParameterWidget widget;
+    EXPECT_EQ(3, widget.findChildren<QDoubleSpinBox*>().size());
   }
 }

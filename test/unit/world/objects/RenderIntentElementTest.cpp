@@ -22,6 +22,7 @@ namespace RenderIntentElementTest {
     ASSERT_NE(nullptr, intent);
     EXPECT_TRUE(intent->isGenerated());
     EXPECT_TRUE(intent->displayInSceneModel());
+    EXPECT_EQ(QString("Render Settings"), intent->displayName());
     EXPECT_FALSE(scene.hasRenderIntent());
   }
 
@@ -69,5 +70,35 @@ namespace RenderIntentElementTest {
 
     ASSERT_TRUE(json["renderIntent"].isObject());
     EXPECT_FALSE(json.contains("children"));
+  }
+
+  TEST(RenderIntentElement, ExposesChoicesAndHumanReadableLabels) {
+    Scene scene;
+    auto* intent = renderIntentElement(scene);
+    ASSERT_NE(nullptr, intent);
+
+    EXPECT_EQ(QString("Default Engine"), intent->propertyDisplayName("defaultEngine"));
+    EXPECT_TRUE(intent->propertyChoices("defaultEngine").contains("rasterizer"));
+    EXPECT_TRUE(intent->propertyChoices("viewMode").contains("stencil_composite"));
+    EXPECT_EQ(QString("Stencil Composite"),
+              intent->propertyChoiceDisplayName("viewMode", "stencil_composite"));
+  }
+
+  TEST(RenderIntentElement, FiltersEngineSpecificProperties) {
+    Scene scene;
+    auto* intent = renderIntentElement(scene);
+    ASSERT_NE(nullptr, intent);
+
+    EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
+    EXPECT_FALSE(intent->isPropertyVisible("rasterizerLod"));
+
+    intent->setDefaultEngine("rasterizer");
+    EXPECT_FALSE(intent->isPropertyVisible("raytracerSampler"));
+    EXPECT_TRUE(intent->isPropertyVisible("rasterizerLod"));
+    EXPECT_TRUE(intent->isPropertyVisible("previewShadows"));
+    EXPECT_FALSE(intent->isPropertyVisible("rasterizerShadowMapSize"));
+
+    intent->setPreviewShadows(true);
+    EXPECT_TRUE(intent->isPropertyVisible("rasterizerShadowMapSize"));
   }
 }

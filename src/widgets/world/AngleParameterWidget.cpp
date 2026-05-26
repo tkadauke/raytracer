@@ -24,7 +24,7 @@ AngleParameterWidget::~AngleParameterWidget() {
 
 void AngleParameterWidget::setParameterName(const QString& name) {
   AbstractParameterWidget::setParameterName(name);
-  p->ui.label->setText(name);
+  p->ui.label->setText(displayNameForParameter(name));
 }
 
 const QVariant AngleParameterWidget::value() const {

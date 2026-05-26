@@ -1106,6 +1106,9 @@ The Modeler render view should grow a graph inspector:
 - expose the scene's saved render intent as a generated scene item in the
   Elements dock so the property editor can update durable intent without
   treating intent as a renderable graph pass;
+- present that generated scene item as `Render Settings` in the UI, with
+  grouped fields, dropdowns for enumerated choices, and backend-specific
+  properties hidden unless their backend is selected;
 - keep preview controls and final-render controls as temporary request
   overrides layered over the saved intent;
 - show the final render graph in the Render window before execution starts and

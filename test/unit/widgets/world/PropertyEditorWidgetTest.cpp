@@ -2,9 +2,11 @@
 
 #include "widgets/world/PropertyEditorWidget.h"
 #include "widgets/world/AbstractParameterWidget.h"
+#include "widgets/world/ChoiceParameterWidget.h"
 #include "world/objects/Scene.h"
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/Group.h"
+#include "world/objects/RenderIntentElement.h"
 #include "core/math/Vector.h"
 #include "core/math/Angle.h"
 #include "core/Color.h"
@@ -12,6 +14,9 @@
 #include "test/helpers/GuiTestHelper.h"
 
 #include <QLabel>
+#include <QComboBox>
+#include <QCoreApplication>
+#include <QGroupBox>
 #include <QTreeWidget>
 
 Q_DECLARE_METATYPE(Vector3d);
@@ -35,6 +40,14 @@ namespace PropertyEditorWidgetTest {
     for (auto* widget : widgets) {
       if (widget->parameterName() == name)
         return widget;
+    }
+    return nullptr;
+  }
+
+  RenderIntentElement* renderSettingsElement(Scene& scene) {
+    for (Element* child : scene.childElements()) {
+      if (auto* settings = qobject_cast<RenderIntentElement*>(child))
+        return settings;
     }
     return nullptr;
   }
@@ -105,6 +118,65 @@ namespace PropertyEditorWidgetTest {
     ASSERT_NE(nullptr, target);
     EXPECT_TRUE(position->isEnabled());
     EXPECT_TRUE(target->isEnabled());
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldHumanizePropertyNames) {
+    Scene root;
+    auto* camera = new PinholeCamera;
+    root.addChild(camera);
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(camera);
+
+    auto* position = parameterWidget(editor, "position");
+    ASSERT_NE(nullptr, position);
+    const auto labels = position->findChildren<QLabel*>();
+    bool foundHumanName = false;
+    for (const auto* label : labels) {
+      foundHumanName = foundHumanName || label->text() == QStringLiteral("Position");
+    }
+    EXPECT_TRUE(foundHumanName);
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldUseChoicesForRenderSettingsEnums) {
+    Scene root;
+    auto* settings = renderSettingsElement(root);
+    ASSERT_NE(nullptr, settings);
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(settings);
+
+    auto* defaultEngine = parameterWidget(editor, "defaultEngine");
+    ASSERT_NE(nullptr, qobject_cast<ChoiceParameterWidget*>(defaultEngine));
+    auto* comboBox = defaultEngine->findChild<QComboBox*>("choiceComboBox");
+    ASSERT_NE(nullptr, comboBox);
+    EXPECT_GE(comboBox->count(), 3);
+    EXPECT_NE(-1, comboBox->findData(QString("rasterizer")));
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldGroupAndFilterRenderSettingsBySelectedEngine) {
+    Scene root;
+    auto* settings = renderSettingsElement(root);
+    ASSERT_NE(nullptr, settings);
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(settings);
+
+    EXPECT_NE(nullptr, editor.findChild<QGroupBox*>("propertyGroupGeneral"));
+    EXPECT_NE(nullptr, editor.findChild<QGroupBox*>("propertyGroupRaytracer"));
+    EXPECT_EQ(nullptr, parameterWidget(editor, "rasterizerLod"));
+
+    auto* defaultEngine = parameterWidget(editor, "defaultEngine");
+    ASSERT_NE(nullptr, defaultEngine);
+    auto* comboBox = defaultEngine->findChild<QComboBox*>("choiceComboBox");
+    ASSERT_NE(nullptr, comboBox);
+    comboBox->setCurrentIndex(comboBox->findData(QString("rasterizer")));
+    QCoreApplication::processEvents();
+    QCoreApplication::processEvents();
+
+    EXPECT_EQ(nullptr, parameterWidget(editor, "raytracerSampler"));
+    EXPECT_NE(nullptr, parameterWidget(editor, "rasterizerLod"));
+    EXPECT_NE(nullptr, editor.findChild<QGroupBox*>("propertyGroupRasterizer"));
   }
 
   TEST_F(PropertyEditorWidgetTest, ShouldShowReadOnlyProperties) {

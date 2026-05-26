@@ -10,6 +10,7 @@
 #include "world/objects/ElementFactory.h"
 
 #include <QMetaProperty>
+#include <QRegularExpression>
 #include <QVariant>
 #include <QJsonObject>
 #include <QJsonValue>
@@ -33,6 +34,50 @@ Element::~Element() {
 
 bool Element::displayInSceneModel() const {
   return !isGenerated();
+}
+
+bool Element::isPropertyVisible(const QString&) const {
+  return true;
+}
+
+QString Element::propertyDisplayName(const QString& propertyName) const {
+  return humanizePropertyName(propertyName);
+}
+
+QString Element::propertyGroup(const QString&) const {
+  return QStringLiteral("Properties");
+}
+
+QStringList Element::propertyChoices(const QString&) const {
+  return {};
+}
+
+QString Element::propertyChoiceDisplayName(const QString&, const QString& choice) const {
+  return humanizePropertyName(choice);
+}
+
+bool Element::rebuildPropertyEditorAfterChange(const QString&) const {
+  return false;
+}
+
+QString Element::humanizePropertyName(const QString& propertyName) const {
+  QString text = propertyName;
+  text.replace(QChar('_'), QChar(' '));
+  text.replace(QChar('-'), QChar(' '));
+  text.replace(QRegularExpression(QStringLiteral("([a-z0-9])([A-Z])")), QStringLiteral("\\1 \\2"));
+
+  const auto words = text.split(QChar(' '), Qt::SkipEmptyParts);
+  QStringList titleWords;
+  for (QString word : words) {
+    if (word.size() <= 3 && word == word.toUpper()) {
+      titleWords << word;
+      continue;
+    }
+    word = word.toLower();
+    word[0] = word[0].toUpper();
+    titleWords << word;
+  }
+  return titleWords.join(QChar(' '));
 }
 
 int Element::row() const {

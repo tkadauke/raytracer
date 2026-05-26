@@ -4,6 +4,8 @@
 
 #include "test/helpers/GuiTestHelper.h"
 
+#include <QDoubleSpinBox>
+
 namespace DoubleParameterWidgetTest {
   class DoubleParameterWidgetTest : public ::testing::GuiTest {};
 
@@ -36,5 +38,10 @@ namespace DoubleParameterWidgetTest {
     DoubleParameterWidget widget;
     widget.setParameterName("intensity");
     EXPECT_EQ(QString("intensity"), widget.parameterName());
+  }
+
+  TEST_F(DoubleParameterWidgetTest, ShouldUseNumericEditor) {
+    DoubleParameterWidget widget;
+    EXPECT_NE(nullptr, widget.findChild<QDoubleSpinBox*>());
   }
 }

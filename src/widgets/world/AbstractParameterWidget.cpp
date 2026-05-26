@@ -35,10 +35,26 @@ void AbstractParameterWidget::setElement(Element* element) {
   p->element = element;
 }
 
+Element* AbstractParameterWidget::element() const {
+  return p->element;
+}
+
 const QString& AbstractParameterWidget::parameterName() const {
   return p->parameterName;
 }
 
 void AbstractParameterWidget::setParameterName(const QString& name) {
   p->parameterName = name;
+}
+
+QString AbstractParameterWidget::displayNameForParameter(const QString& name) const {
+  if (!p->element)
+    return name;
+  return p->element->propertyDisplayName(name);
+}
+
+QString AbstractParameterWidget::displayNameForChoice(const QString& choice) const {
+  if (!p->element)
+    return choice;
+  return p->element->propertyChoiceDisplayName(p->parameterName, choice);
 }

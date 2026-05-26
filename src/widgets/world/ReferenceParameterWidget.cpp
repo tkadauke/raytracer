@@ -7,6 +7,8 @@
 #include "world/objects/Material.h"
 #include "world/objects/Texture.h"
 
+#include <QSignalBlocker>
+
 Q_DECLARE_METATYPE(Material*);
 Q_DECLARE_METATYPE(Texture*);
 
@@ -36,7 +38,7 @@ ReferenceParameterWidget::~ReferenceParameterWidget() {
 
 void ReferenceParameterWidget::setParameterName(const QString& name) {
   AbstractParameterWidget::setParameterName(name);
-  p->ui.label->setText(name);
+  p->ui.label->setText(displayNameForParameter(name));
 }
 
 const QVariant ReferenceParameterWidget::value() const {
@@ -45,6 +47,7 @@ const QVariant ReferenceParameterWidget::value() const {
 }
 
 void ReferenceParameterWidget::setValue(const QVariant& value) {
+  const QSignalBlocker blocker(p->ui.comboBox);
   auto index = p->ui.comboBox->findData(value);
   p->ui.comboBox->setCurrentIndex(index);
 }

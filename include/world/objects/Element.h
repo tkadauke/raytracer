@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QObject>
+#include <QStringList>
 
 namespace engine::graph {
   class RenderSceneAnalysis;
@@ -43,6 +44,13 @@ public:
   }
 
   virtual bool displayInSceneModel() const;
+  virtual bool isPropertyVisible(const QString& propertyName) const;
+  virtual QString propertyDisplayName(const QString& propertyName) const;
+  virtual QString propertyGroup(const QString& propertyName) const;
+  virtual QStringList propertyChoices(const QString& propertyName) const;
+  virtual QString propertyChoiceDisplayName(const QString& propertyName,
+                                            const QString& choice) const;
+  virtual bool rebuildPropertyEditorAfterChange(const QString& propertyName) const;
 
   inline QString displayName() const {
     if (m_name.isEmpty()) {
@@ -165,6 +173,8 @@ protected:
   void resolveReferences(const QMap<QString, Element*>& elements);
 
 private:
+  QString humanizePropertyName(const QString& propertyName) const;
+
   void writeForClass(const QMetaObject* klass, QJsonObject& json);
   void writeProperty(const QString& name, QJsonObject& json);
 

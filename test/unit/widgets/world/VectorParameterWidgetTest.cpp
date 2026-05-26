@@ -6,6 +6,8 @@
 #include "test/helpers/GuiTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
+#include <QDoubleSpinBox>
+
 Q_DECLARE_METATYPE(Vector3d);
 
 namespace VectorParameterWidgetTest {
@@ -41,5 +43,10 @@ namespace VectorParameterWidgetTest {
     VectorParameterWidget widget;
     widget.setParameterName("position");
     EXPECT_EQ(QString("position"), widget.parameterName());
+  }
+
+  TEST_F(VectorParameterWidgetTest, ShouldUseNumericCoordinateEditors) {
+    VectorParameterWidget widget;
+    EXPECT_EQ(3, widget.findChildren<QDoubleSpinBox*>().size());
   }
 }

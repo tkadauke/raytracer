@@ -1,6 +1,8 @@
 #include "world/objects/RenderIntentElement.h"
 
 #include "engine/graph/RenderGraphTypes.h"
+#include "render/samplers/SamplerFactory.h"
+#include "render/viewplanes/ViewPlaneFactory.h"
 #include "world/objects/Scene.h"
 
 #include <optional>
@@ -8,12 +10,144 @@
 
 RenderIntentElement::RenderIntentElement(Scene* parent)
     : Element(parent) {
-  setName(QStringLiteral("Render Intent"));
+  setName(QStringLiteral("Render Settings"));
   setGenerated(true);
 }
 
 bool RenderIntentElement::displayInSceneModel() const {
   return true;
+}
+
+bool RenderIntentElement::isPropertyVisible(const QString& propertyName) const {
+  if (propertyName == QStringLiteral("name"))
+    return false;
+
+  const auto executor = intent().defaultExecutorKind();
+  if (isRaytracerProperty(propertyName))
+    return executor == engine::graph::RenderExecutorKind::Raytracer;
+  if (isRasterizerShadowProperty(propertyName))
+    return executor == engine::graph::RenderExecutorKind::Rasterizer && previewShadows();
+  if (isRasterizerProperty(propertyName))
+    return executor == engine::graph::RenderExecutorKind::Rasterizer;
+  if (isWireframeProperty(propertyName))
+    return executor == engine::graph::RenderExecutorKind::Wireframe;
+
+  return true;
+}
+
+QString RenderIntentElement::propertyDisplayName(const QString& propertyName) const {
+  if (propertyName == QStringLiteral("saveIntent"))
+    return QStringLiteral("Save Render Settings");
+  if (propertyName == QStringLiteral("defaultEngine"))
+    return QStringLiteral("Default Engine");
+  if (propertyName == QStringLiteral("viewMode"))
+    return QStringLiteral("View Mode");
+  if (propertyName == QStringLiteral("cameraId"))
+    return QStringLiteral("Camera ID");
+  if (propertyName == QStringLiteral("shadingProfile"))
+    return QStringLiteral("Shading Profile");
+  if (propertyName == QStringLiteral("automaticFeatures"))
+    return QStringLiteral("Automatic Features");
+  if (propertyName == QStringLiteral("wireframeOverlay"))
+    return QStringLiteral("Wireframe Overlay");
+  if (propertyName == QStringLiteral("curveOverlay"))
+    return QStringLiteral("Curve Overlay");
+  if (propertyName == QStringLiteral("previewShadows"))
+    return QStringLiteral("Shadow Maps");
+  if (propertyName == QStringLiteral("postProcessAA"))
+    return QStringLiteral("Postprocess AA");
+  if (propertyName == QStringLiteral("raytracerSampler"))
+    return QStringLiteral("Sampler");
+  if (propertyName == QStringLiteral("raytracerSamplesPerPixel"))
+    return QStringLiteral("Samples Per Pixel");
+  if (propertyName == QStringLiteral("raytracerMaxRecursionDepth"))
+    return QStringLiteral("Max Recursion Depth");
+  if (propertyName == QStringLiteral("raytracerViewPlane"))
+    return QStringLiteral("View Plane");
+  if (propertyName == QStringLiteral("raytracerThreads"))
+    return QStringLiteral("Threads");
+  if (propertyName == QStringLiteral("raytracerQueueSize"))
+    return QStringLiteral("Queue Size");
+  if (propertyName == QStringLiteral("rasterizerLod"))
+    return QStringLiteral("LOD");
+  if (propertyName == QStringLiteral("rasterizerMSAASamples"))
+    return QStringLiteral("MSAA Samples");
+  if (propertyName == QStringLiteral("rasterizerMSAAShading"))
+    return QStringLiteral("MSAA Shading");
+  if (propertyName == QStringLiteral("rasterizerShadowMapSize"))
+    return QStringLiteral("Map Size");
+  if (propertyName == QStringLiteral("rasterizerShadowCascades"))
+    return QStringLiteral("Cascades");
+  if (propertyName == QStringLiteral("rasterizerShadowBias"))
+    return QStringLiteral("Bias");
+  if (propertyName == QStringLiteral("rasterizerShadowFilterRadius"))
+    return QStringLiteral("Filter Radius");
+  if (propertyName == QStringLiteral("rasterizerShadowFilter"))
+    return QStringLiteral("Filter");
+  if (propertyName == QStringLiteral("wireframeLod"))
+    return QStringLiteral("LOD");
+
+  return Element::propertyDisplayName(propertyName);
+}
+
+QString RenderIntentElement::propertyGroup(const QString& propertyName) const {
+  if (isRaytracerProperty(propertyName))
+    return QStringLiteral("Raytracer");
+  if (isRasterizerShadowProperty(propertyName))
+    return QStringLiteral("Shadow Maps");
+  if (isRasterizerProperty(propertyName))
+    return QStringLiteral("Rasterizer");
+  if (isWireframeProperty(propertyName))
+    return QStringLiteral("Wireframe");
+  if (propertyName == QStringLiteral("postProcessAA"))
+    return QStringLiteral("Postprocess");
+  if (propertyName == QStringLiteral("wireframeOverlay") ||
+      propertyName == QStringLiteral("curveOverlay"))
+    return QStringLiteral("Overlays");
+  return QStringLiteral("General");
+}
+
+QStringList RenderIntentElement::propertyChoices(const QString& propertyName) const {
+  if (propertyName == QStringLiteral("defaultEngine"))
+    return {QStringLiteral("raytracer"), QStringLiteral("rasterizer"), QStringLiteral("wireframe")};
+  if (propertyName == QStringLiteral("viewMode"))
+    return {QStringLiteral("default"),     QStringLiteral("beauty"),
+            QStringLiteral("wireframe"),   QStringLiteral("depth"),
+            QStringLiteral("stencil"),     QStringLiteral("stencil_composite"),
+            QStringLiteral("normal"),      QStringLiteral("object_id"),
+            QStringLiteral("material_id"), QStringLiteral("world_position")};
+  if (propertyName == QStringLiteral("postProcessAA"))
+    return {QStringLiteral("none"), QStringLiteral("fxaa"), QStringLiteral("smaa"),
+            QStringLiteral("taa")};
+  if (propertyName == QStringLiteral("raytracerSampler"))
+    return raytracerSamplerChoices();
+  if (propertyName == QStringLiteral("raytracerViewPlane"))
+    return raytracerViewPlaneChoices();
+  if (propertyName == QStringLiteral("rasterizerMSAAShading"))
+    return {QStringLiteral("per_sample"), QStringLiteral("per_fragment")};
+  if (propertyName == QStringLiteral("rasterizerShadowFilter"))
+    return {QStringLiteral("pcf"), QStringLiteral("pcss")};
+  return {};
+}
+
+QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyName,
+                                                       const QString& choice) const {
+  if (propertyName == QStringLiteral("postProcessAA"))
+    return choice == QStringLiteral("none") ? QStringLiteral("None") : choice.toUpper();
+  if (propertyName == QStringLiteral("rasterizerMSAAShading")) {
+    if (choice == QStringLiteral("per_sample"))
+      return QStringLiteral("Per Sample");
+    if (choice == QStringLiteral("per_fragment"))
+      return QStringLiteral("Per Fragment");
+  }
+  if (propertyName == QStringLiteral("rasterizerShadowFilter"))
+    return choice.toUpper();
+  return Element::propertyChoiceDisplayName(propertyName, choice);
+}
+
+bool RenderIntentElement::rebuildPropertyEditorAfterChange(const QString& propertyName) const {
+  return propertyName == QStringLiteral("defaultEngine") ||
+         propertyName == QStringLiteral("previewShadows");
 }
 
 bool RenderIntentElement::saveIntent() const {
@@ -356,4 +490,39 @@ QString RenderIntentElement::normalizedText(const QString& text) const {
   result.replace(QChar('-'), QChar('_'));
   result.replace(QChar(' '), QChar('_'));
   return result;
+}
+
+bool RenderIntentElement::isRaytracerProperty(const QString& propertyName) const {
+  return propertyName.startsWith(QStringLiteral("raytracer"));
+}
+
+bool RenderIntentElement::isRasterizerProperty(const QString& propertyName) const {
+  return propertyName == QStringLiteral("previewShadows") ||
+         propertyName.startsWith(QStringLiteral("rasterizer"));
+}
+
+bool RenderIntentElement::isRasterizerShadowProperty(const QString& propertyName) const {
+  return propertyName.startsWith(QStringLiteral("rasterizerShadow"));
+}
+
+bool RenderIntentElement::isWireframeProperty(const QString& propertyName) const {
+  return propertyName.startsWith(QStringLiteral("wireframe")) &&
+         propertyName != QStringLiteral("wireframeOverlay");
+}
+
+QStringList RenderIntentElement::raytracerSamplerChoices() const {
+  QStringList choices;
+  for (const auto& id : render::SamplerFactory::self().identifiers()) {
+    QString choice = QString::fromStdString(id);
+    choices << choice.replace(QStringLiteral("Sampler"), QString());
+  }
+  return choices;
+}
+
+QStringList RenderIntentElement::raytracerViewPlaneChoices() const {
+  QStringList choices;
+  for (const auto& id : render::ViewPlaneFactory::self().identifiers()) {
+    choices << QString::fromStdString(id);
+  }
+  return choices;
 }

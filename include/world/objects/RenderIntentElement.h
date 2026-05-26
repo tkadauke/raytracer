@@ -53,6 +53,13 @@ public:
   explicit RenderIntentElement(Scene* parent = nullptr);
 
   bool displayInSceneModel() const override;
+  bool isPropertyVisible(const QString& propertyName) const override;
+  QString propertyDisplayName(const QString& propertyName) const override;
+  QString propertyGroup(const QString& propertyName) const override;
+  QStringList propertyChoices(const QString& propertyName) const override;
+  QString propertyChoiceDisplayName(const QString& propertyName,
+                                    const QString& choice) const override;
+  bool rebuildPropertyEditorAfterChange(const QString& propertyName) const override;
 
   bool saveIntent() const;
   void setSaveIntent(bool enabled);
@@ -137,6 +144,12 @@ private:
   engine::graph::RenderExecutorPreference executorFromText(const QString& text) const;
   engine::graph::RenderViewMode viewModeFromText(const QString& text) const;
   engine::graph::RenderPostProcessAA postProcessAAFromText(const QString& text) const;
+  bool isRaytracerProperty(const QString& propertyName) const;
+  bool isRasterizerProperty(const QString& propertyName) const;
+  bool isRasterizerShadowProperty(const QString& propertyName) const;
+  bool isWireframeProperty(const QString& propertyName) const;
+  QStringList raytracerSamplerChoices() const;
+  QStringList raytracerViewPlaneChoices() const;
   QString toQString(const std::string& value) const;
   QString toQString(const char* value) const;
   QString normalizedText(const QString& text) const;

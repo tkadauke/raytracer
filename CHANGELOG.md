@@ -101,10 +101,13 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   references with matching resolved file, color context, and winding state,
   while instances preserve per-reference transforms, bounds, and materials for
   #210. — GPT-5
-- **Modeler render intent editor.** The Modeler Elements tree now exposes the
-  scene's saved render intent as a generated item, preview controls can either
-  use that saved intent or layer temporary overrides, and the Render window
-  shows the final compiled graph before executing that same graph. — GPT-5
+- **Modeler render settings editor.** The Modeler Elements tree now exposes the
+  scene's saved render settings as a generated item, preview controls can
+  either use that saved intent or layer temporary overrides, and the Render
+  window shows the final compiled graph before executing that same graph. The
+  property editor now displays grouped, human-readable render settings with
+  dropdowns for enumerated choices and backend-specific fields filtered by the
+  selected engine. — GPT-5
 - **Render graph engine options.** `RenderIntent` now carries typed raytracer,
   rasterizer, and wireframe engine options, rendercli and the Modeler final
   render window compile those options into graph pass state, and subview
