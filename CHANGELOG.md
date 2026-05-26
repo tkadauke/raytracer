@@ -16,6 +16,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   color, BFC, and MPD import, with rendercli smoke coverage and textbook docs
   for library-path configuration and supported importer limits for #210. —
   GPT-5
+- **Explicit LDraw import options.** World scene LDraw metadata and direct
+  `rendercli --ldraw_input` now expose library root, import scale, coordinate
+  conversion, hierarchy preservation, normal mode, edge-overlay inclusion,
+  recursion limit, and missing-part policy for #210. — GPT-5
 - **rendercli grouped step rendering.** `rendercli --step` now renders grouped
   scene step selections in single, cumulative, and sequence modes for Epic
   #232. — GPT-5

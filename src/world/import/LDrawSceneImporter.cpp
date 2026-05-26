@@ -4,7 +4,9 @@
 #include "core/formats/ldraw/LDrawColorTable.h"
 #include "core/formats/ldraw/LDrawFileResolver.h"
 #include "core/formats/ldraw/LDrawGeometryCompiler.h"
+#include "core/math/Matrix.h"
 #include "render/primitives/Composite.h"
+#include "render/primitives/Instance.h"
 #include "world/objects/CompiledPrimitive.h"
 #include "world/objects/Element.h"
 #include "world/objects/Group.h"
@@ -14,6 +16,7 @@
 #include <QJsonObject>
 #include <QJsonValue>
 
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -58,22 +61,100 @@ namespace {
     return metadata.value("sourceFormat").toString().compare("LDraw", Qt::CaseInsensitive) == 0;
   }
 
+  bool boolValue(const QJsonObject& metadata, const QString& key, bool fallback) {
+    const QJsonValue value = metadata.value(key);
+    return value.isBool() ? value.toBool() : fallback;
+  }
+
+  int intValue(const QJsonObject& metadata, const QString& key, int fallback) {
+    const QJsonValue value = metadata.value(key);
+    if (!value.isDouble())
+      return fallback;
+    const double number = value.toDouble();
+    if (!std::isfinite(number) || std::floor(number) != number)
+      return fallback;
+    return static_cast<int>(number);
+  }
+
+  double doubleValue(const QJsonObject& metadata, const QString& key, double fallback) {
+    const QJsonValue value = metadata.value(key);
+    return value.isDouble() && std::isfinite(value.toDouble()) ? value.toDouble() : fallback;
+  }
+
+  QString stringValue(const QJsonObject& metadata, const QString& primary,
+                      const QString& secondary = QString()) {
+    const QJsonValue primaryValue = metadata.value(primary);
+    if (primaryValue.isString())
+      return primaryValue.toString();
+    if (!secondary.isEmpty()) {
+      const QJsonValue secondaryValue = metadata.value(secondary);
+      if (secondaryValue.isString())
+        return secondaryValue.toString();
+    }
+    return QString();
+  }
+
+  world::imports::LDrawImportOptions::CoordinateConversion
+  coordinateConversionFromString(QString value) {
+    value = value.trimmed().toLower();
+    value.remove('_');
+    value.remove('-');
+    if (value == "ldrawtoraytracer" || value == "raytracer" || value == "yup")
+      return world::imports::LDrawImportOptions::CoordinateConversion::LDrawToRaytracer;
+    return world::imports::LDrawImportOptions::CoordinateConversion::None;
+  }
+
+  world::imports::LDrawImportOptions::MissingPartPolicy
+  missingPartPolicyFromString(QString value) {
+    value = value.trimmed().toLower();
+    if (value == "skip" || value == "ignore")
+      return world::imports::LDrawImportOptions::MissingPartPolicy::Skip;
+    return world::imports::LDrawImportOptions::MissingPartPolicy::Error;
+  }
+
+  Matrix4d importTransformFor(const world::imports::LDrawImportOptions& options) {
+    Matrix4d transform;
+    if (options.coordinateConversion ==
+        world::imports::LDrawImportOptions::CoordinateConversion::LDrawToRaytracer) {
+      transform.setCell(0, 0, options.scale);
+      transform.setCell(1, 1, 0.0);
+      transform.setCell(1, 2, -options.scale);
+      transform.setCell(2, 1, options.scale);
+      transform.setCell(2, 2, 0.0);
+    } else {
+      transform = Matrix4d(Matrix3d::scale(options.scale, options.scale, options.scale));
+    }
+    return transform;
+  }
+
   world::imports::LDrawImportOptions optionsFromMetadata(const QJsonObject& metadata,
                                                         const QString& libraryRootOverride,
                                                         const QString& sourceDirectory) {
     world::imports::LDrawImportOptions options;
     options.filePath =
-      resolvedPath(metadata.value("sourcePath").toString(metadata.value("filePath").toString()),
-                   sourceDirectory);
+      resolvedPath(stringValue(metadata, "sourcePath", "filePath"), sourceDirectory);
 
     const QString libraryPath = libraryRootOverride.isEmpty()
-                                  ? metadata.value("libraryPath").toString()
+                                  ? stringValue(metadata, "libraryRoot", "libraryPath")
                                   : libraryRootOverride;
     options.libraryPath = resolvedPath(libraryPath, sourceDirectory);
+    options.scale = doubleValue(metadata, "scale", options.scale);
+    if (options.scale <= 0.0)
+      options.scale = 1.0;
+    options.coordinateConversion =
+      coordinateConversionFromString(stringValue(metadata, "coordinateConversion"));
+    options.preserveHierarchy = boolValue(metadata, "preserveHierarchy", options.preserveHierarchy);
 
-    const QString normalMode = metadata.value("normalMode").toString();
+    const QString normalMode = stringValue(metadata, "normalMode");
     options.smoothNormals = normalMode.compare("smooth", Qt::CaseInsensitive) == 0 ||
                             metadata.value("smoothNormals").toBool(false);
+    options.includeEdgeOverlays =
+      boolValue(metadata, "includeEdgeOverlays", options.includeEdgeOverlays);
+    options.maxRecursion = intValue(metadata, "maxRecursion", options.maxRecursion);
+    if (options.maxRecursion <= 0)
+      options.maxRecursion = 64;
+    options.missingPartPolicy =
+      missingPartPolicyFromString(stringValue(metadata, "missingPartPolicy"));
     return options;
   }
 
@@ -96,17 +177,36 @@ namespace {
       searchDirectoriesFor(options.filePath, options.libraryPath));
     const auto normalMode = options.smoothNormals ? LDrawGeometryCompiler::NormalMode::Smooth
                                                   : LDrawGeometryCompiler::NormalMode::Flat;
-    LDrawGeometryCompiler compiler(resolver, 64, normalMode);
+    LDrawGeometryCompiler::Options compilerOptions;
+    compilerOptions.recursionLimit = options.maxRecursion;
+    compilerOptions.normalMode = normalMode;
+    compilerOptions.includeEdgeOverlays = options.includeEdgeOverlays;
+    compilerOptions.preserveHierarchy = options.preserveHierarchy;
+    compilerOptions.missingPartPolicy =
+      options.missingPartPolicy == world::imports::LDrawImportOptions::MissingPartPolicy::Skip
+        ? LDrawGeometryCompiler::MissingPartPolicy::Skip
+        : LDrawGeometryCompiler::MissingPartPolicy::Error;
+    LDrawGeometryCompiler compiler(resolver, compilerOptions);
 
+    std::shared_ptr<render::Primitive> primitive;
     if (diagnostics) {
       LDrawDiagnostics localDiagnostics;
-      auto primitive = compiler.compile(input, colors, localDiagnostics);
+      primitive = compiler.compile(input, colors, localDiagnostics);
       diagnostics->insert(diagnostics->end(), localDiagnostics.entries().begin(),
                           localDiagnostics.entries().end());
+    } else {
+      primitive = compiler.compile(input, colors);
+    }
+
+    if (options.scale == 1.0 &&
+        options.coordinateConversion ==
+          world::imports::LDrawImportOptions::CoordinateConversion::None) {
       return primitive;
     }
 
-    return compiler.compile(input, colors);
+    auto transformed = std::make_shared<render::Instance>(primitive);
+    transformed->setMatrix(importTransformFor(options));
+    return transformed;
   }
 
   void removeGeneratedChildren(Element* element) {

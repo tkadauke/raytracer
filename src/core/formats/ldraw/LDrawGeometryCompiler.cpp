@@ -393,8 +393,13 @@ LDrawGeometryCompiler::LDrawGeometryCompiler(shared_ptr<const LDrawFileResolver>
                                              int recursionLimit,
                                              NormalMode normalMode)
     : m_resolver(std::move(resolver)),
-      m_recursionLimit(recursionLimit),
-      m_normalMode(normalMode) {
+      m_options{recursionLimit, normalMode, true, true, MissingPartPolicy::Error} {
+}
+
+LDrawGeometryCompiler::LDrawGeometryCompiler(shared_ptr<const LDrawFileResolver> resolver,
+                                             Options options)
+    : m_resolver(std::move(resolver)),
+      m_options(options) {
 }
 
 shared_ptr<render::Composite>
@@ -433,7 +438,7 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
         result->add(meshPrimitiveForTriangle(
           get<LDrawTriangle>(command), colors, context, bfc, currentTexmap, inheritedInverted,
           m_resolver.get(), state.textures, state.diagnostics, state.currentFile,
-          state.currentMpdBlock, buildStep, m_normalMode));
+          state.currentMpdBlock, buildStep, m_options.normalMode));
       }
       texmap.next.reset();
     } else if (holds_alternative<LDrawQuad>(command)) {
@@ -442,7 +447,7 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
         result->add(meshPrimitiveForQuad(
           get<LDrawQuad>(command), colors, context, bfc, currentTexmap, inheritedInverted,
           m_resolver.get(), state.textures, state.diagnostics, state.currentFile,
-          state.currentMpdBlock, buildStep, m_normalMode));
+          state.currentMpdBlock, buildStep, m_options.normalMode));
       }
       texmap.next.reset();
     } else if (holds_alternative<LDrawSubfileReference>(command)) {
@@ -453,13 +458,20 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
       const auto& reference = get<LDrawSubfileReference>(command);
       const bool subfileInverted =
         (inheritedInverted != bfc.invertNext) != (determinantForSubfileReference(reference) < 0.0);
-      auto instance = make_shared<render::Instance>(
-        compileSubfile(reference, colors, colors.contextForSubfile(reference.color, context), state,
-                       subfileInverted));
-      instance->setMatrix(transformForSubfileReference(reference));
-      attachReferenceProvenance(*instance, reference, state.currentFile, state.currentMpdBlock,
-                                buildStep);
-      result->add(instance);
+      auto subfile = compileSubfile(reference, colors, colors.contextForSubfile(reference.color, context),
+                                    state, subfileInverted);
+      const Matrix4d transform = transformForSubfileReference(reference);
+      if (!m_options.preserveHierarchy && transform == Matrix4d()) {
+        for (const auto& primitive : subfile->primitives()) {
+          result->add(primitive);
+        }
+      } else {
+        auto instance = make_shared<render::Instance>(subfile);
+        instance->setMatrix(transform);
+        attachReferenceProvenance(*instance, reference, state.currentFile, state.currentMpdBlock,
+                                  buildStep);
+        result->add(instance);
+      }
       bfc.invertNext = false;
       texmap.next.reset();
     } else if (holds_alternative<LDrawMetaCommand>(command)) {
@@ -478,7 +490,9 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
       applyTexmapMeta(get<LDrawTexmap>(command), texmap, state.diagnostics, state.currentFile);
     } else if (holds_alternative<LDrawEdgeLine>(command)) {
       const auto& edge = get<LDrawEdgeLine>(command);
-      result->add(curveForEdgeLine(edge, colors, context, state.diagnostics, state.currentFile));
+      if (m_options.includeEdgeOverlays) {
+        result->add(curveForEdgeLine(edge, colors, context, state.diagnostics, state.currentFile));
+      }
     } else if (holds_alternative<LDrawOptionalLine>(command)) {
       const auto& optional = get<LDrawOptionalLine>(command);
       if (state.diagnostics) {
@@ -516,11 +530,14 @@ LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
       diagnostic.reference = reference.filename;
       state.diagnostics->add(std::move(diagnostic));
     }
+    if (m_options.missingPartPolicy == MissingPartPolicy::Skip) {
+      return make_shared<render::Composite>();
+    }
     throw Exception("LDraw subfile reference requires an LDrawFileResolver: " + reference.filename,
                     __FILE__, __LINE__);
   }
 
-  if (state.depth >= m_recursionLimit) {
+  if (state.depth >= m_options.recursionLimit) {
     if (state.diagnostics) {
       state.diagnostics->error(LDrawDiagnosticCode::MissingSubfile, state.currentFile,
                                reference.lineNumber,
@@ -568,6 +585,9 @@ LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
         diagnostic.searchedRoots = m_resolver->searchRoots(reference.filename);
         state.diagnostics->add(std::move(diagnostic));
       }
+      if (m_options.missingPartPolicy == MissingPartPolicy::Skip) {
+        return make_shared<render::Composite>();
+      }
       throw Exception("LDraw resolver could not open subfile: " + reference.filename,
                       __FILE__, __LINE__);
     }
@@ -598,7 +618,7 @@ shared_ptr<render::Composite> LDrawGeometryCompiler::compile(istream& input,
     return compile(document.mainFile().commands, colors, context);
 
   auto resolver = make_shared<LDrawMpdFileResolver>(document, m_resolver);
-  LDrawGeometryCompiler compiler(resolver, m_recursionLimit, m_normalMode);
+  LDrawGeometryCompiler compiler(resolver, m_options);
   CompileState state;
   state.currentFile = "<input>";
   state.currentMpdBlock = document.mainFile().filename;
@@ -615,7 +635,7 @@ LDrawGeometryCompiler::compile(istream& input, const LDrawColorTable& colors,
       return compile(document.mainFile().commands, colors, diagnostics, context);
 
     auto resolver = make_shared<LDrawMpdFileResolver>(document, m_resolver);
-    LDrawGeometryCompiler compiler(resolver, m_recursionLimit, m_normalMode);
+    LDrawGeometryCompiler compiler(resolver, m_options);
     CompileState state;
     state.currentFile = "<input>";
     state.currentMpdBlock = document.mainFile().filename;
