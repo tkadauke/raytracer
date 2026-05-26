@@ -39,6 +39,8 @@ namespace molecule {
     Vector3d position;
     std::optional<double> occupancy;
     std::optional<double> temperatureFactor;
+    std::string sourceRecord;
+    int sourceLine{-1};
   };
 
   struct Residue {

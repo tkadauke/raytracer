@@ -246,6 +246,8 @@ namespace molecule {
           if (atom.element.empty())
             atom.element = inferElementFromAtomName(atom.name);
           atom.modelId = currentModel;
+          atom.sourceRecord = record + " " + to_string(atom.serialNumber);
+          atom.sourceLine = lineNumber;
           result.molecule().addAtom(atom);
         } catch (const invalid_argument&) {
           addWarning(result, "ATOM/HETATM record has invalid numeric coordinate data", lineNumber);
@@ -328,6 +330,9 @@ namespace molecule {
                   parseOptionalDouble(valueFor(row, "_atom_site.B_iso_or_equiv"));
                 atom.modelId =
                   parseOptionalInt(valueFor(row, "_atom_site.pdbx_PDB_model_num")).value_or(1);
+                atom.sourceRecord =
+                  valueFor(row, "_atom_site.group_PDB") + " " + to_string(atom.serialNumber);
+                atom.sourceLine = rowLine;
                 result.molecule().addAtom(atom);
               }
             } catch (const invalid_argument&) {
