@@ -8,7 +8,6 @@
 #include "render/primitives/Instance.h"
 #include "render/primitives/MeshPrimitive.h"
 
-#include <algorithm>
 #include <iomanip>
 #include <memory>
 #include <sstream>
@@ -27,12 +26,6 @@ namespace {
 
   bool shouldReverseFace(bool counterClockwise, bool inheritedInverted) {
     return !counterClockwise != inheritedInverted;
-  }
-
-  void addFace(Mesh& mesh, Mesh::Face face, bool reverse) {
-    if (reverse)
-      std::reverse(face.begin() + 1, face.end());
-    mesh.addFace(face);
   }
 
   std::shared_ptr<render::Material> materialForPolygon(const LDrawColorTable& colors,
@@ -55,7 +48,7 @@ namespace {
     Mesh mesh;
     for (const auto& point : triangle.points)
       mesh.addVertex(point, Vector3d::null);
-    addFace(mesh, {0, 1, 2}, shouldReverseFace(bfc.counterClockwise, inheritedInverted));
+    mesh.addFace({0, 1, 2}, shouldReverseFace(bfc.counterClockwise, inheritedInverted));
     mesh.computeNormals();
 
     auto primitive = make_shared<render::MeshPrimitive>(std::move(mesh),
@@ -72,7 +65,7 @@ namespace {
     Mesh mesh;
     for (const auto& point : quad.points)
       mesh.addVertex(point, Vector3d::null);
-    addFace(mesh, {0, 1, 2, 3}, shouldReverseFace(bfc.counterClockwise, inheritedInverted));
+    mesh.addFace({0, 1, 2, 3}, shouldReverseFace(bfc.counterClockwise, inheritedInverted));
     mesh.computeNormals();
 
     auto primitive = make_shared<render::MeshPrimitive>(std::move(mesh),

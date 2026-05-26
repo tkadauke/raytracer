@@ -3,11 +3,11 @@
 #include "core/math/Vector.h"
 #include "core/Color.h"
 #include "core/Exception.h"
+#include <algorithm>
 #include <optional>
 #include <vector>
 #include <array>
 #include <string>
-#include <vector>
 
 /**
   * This exception type is used to signal that a mesh received a face with an
@@ -190,6 +190,21 @@ public:
     }
     m_faces.push_back(face);
     m_faceColors.push_back(std::nullopt);
+  }
+
+  /**
+    * Adds the given @p face, optionally reversing its winding while preserving
+    * the first vertex as the triangle-fan anchor.
+    */
+  inline void addFace(const Face& face, bool reverseWinding) {
+    if (!reverseWinding || face.size() < 3) {
+      addFace(face);
+      return;
+    }
+
+    Face reversed = face;
+    std::reverse(reversed.begin() + 1, reversed.end());
+    addFace(reversed);
   }
 
   /**
