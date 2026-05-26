@@ -2,19 +2,17 @@
 //
 // These tests assert *ratios*, not absolute timings — the absolute
 // numbers vary 10× between debug and release builds and again between
-// dev hardware and CI runners, but the ratios between the three
-// Composite-derived containers (Composite linear scan, Grid DDA, BVH
-// SAH tree) hold across all of those environments because the
-// primitive-intersection cost dominates similarly in each case.
+// dev hardware and CI runners, but the ratios between Composite linear
+// scan and the BVH SAH tree hold across all of those environments because
+// the primitive-intersection cost dominates similarly in each case.
 //
 // What this catches: a regression that makes BVH fall back to a
 // linear-scan equivalent (e.g. someone rips out the AABB cull in
 // `intersectNode`, or `setup()` silently no-ops). The test thresholds
 // are well below the observed ratios on dev hardware (Apple Silicon,
 // release build): intersect ≈37× and shadow ≈113× faster than
-// Composite at 512 primitives, ≈1.2-4.5× faster than Grid. The
-// thresholds use a fraction of those margins (~13-30%) so noisy CI
-// runners don't flap.
+// Composite at 512 primitives. The thresholds use a fraction of those
+// margins so noisy CI runners don't flap.
 //
 // What this doesn't catch: subtle slowdowns within the BVH that don't
 // kill the AABB cull (e.g. a 2× regression from a worse SAH split
@@ -27,7 +25,6 @@
 #include "render/State.h"
 #include "render/primitives/BVH.h"
 #include "render/primitives/Composite.h"
-#include "render/primitives/Grid.h"
 #include "render/primitives/Sphere.h"
 
 #include <chrono>
@@ -55,7 +52,7 @@ namespace BVHPerformanceTest {
         }
       }
     }
-    if constexpr (std::is_same_v<Container, BVH> || std::is_same_v<Container, Grid>) {
+    if constexpr (std::is_same_v<Container, BVH>) {
       container->setup();
     }
     return container;
@@ -129,7 +126,6 @@ namespace BVHPerformanceTest {
   // accepted).
   constexpr double kMinIntersectRatioVsComposite = 5.0; // observed ≈37×
   constexpr double kMinShadowRatioVsComposite = 10.0;   // observed ≈113×
-  constexpr double kMinShadowRatioVsGrid = 1.5;         // observed ≈4.5×
 
   TEST(BVHPerformance, IntersectIsAtLeast5xFasterThanComposite) {
     constexpr int kSide = 8; // 512 primitives
@@ -159,20 +155,4 @@ namespace BVHPerformanceTest {
       << "expected at least " << kMinShadowRatioVsComposite << "×.";
   }
 
-  TEST(BVHPerformance, ShadowRayIsFasterThanGrid) {
-    constexpr int kSide = 8;
-    const auto rays = generateRays(256, kSide);
-
-    const auto bvh = timeShadowRay<BVH>(kSide, rays);
-    const auto grid = timeShadowRay<Grid>(kSide, rays);
-
-    const double ratio = static_cast<double>(grid.count()) / bvh.count();
-    EXPECT_GT(ratio, kMinShadowRatioVsGrid)
-      << "BVH shadow-ray was only " << ratio << "× faster than Grid "
-      << "(BVH=" << bvh.count() << "ns, Grid=" << grid.count() << "ns); "
-      << "expected at least " << kMinShadowRatioVsGrid << "×. "
-      << "BVH should outperform Grid for shadow rays because BVH "
-      << "short-circuits at the first leaf hit while Grid walks every "
-      << "DDA cell along the ray path.";
-  }
 }
