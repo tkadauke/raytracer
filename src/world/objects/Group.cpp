@@ -55,6 +55,8 @@ namespace {
   StepVisibilitySelection stepPlaybackSelection(const StepPlaybackStyle& style) {
     if (!style.enabled())
       return StepVisibilitySelection::all();
+    if (style.activeTime && !style.activeStep)
+      return StepVisibilitySelection::atTime(*style.activeTime);
     if (style.ghostPrevious)
       return StepVisibilitySelection::cumulativeThrough(*style.activeStep);
     return StepVisibilitySelection::onlyStep(*style.activeStep);

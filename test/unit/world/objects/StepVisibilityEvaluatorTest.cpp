@@ -139,6 +139,61 @@ namespace StepVisibilityEvaluatorTest {
     EXPECT_EQ(malformedStep, visibleGroups[1]);
   }
 
+  TEST(StepVisibilityEvaluator, ShouldUseLayerIndexWhenStepIndexIsMissing) {
+    Scene scene;
+
+    auto* layerTwo = new Group;
+    layerTwo->setLayerIndex(2);
+    scene.addChild(layerTwo);
+
+    auto* layerFive = new Group;
+    layerFive->setLayerIndex(5);
+    scene.addChild(layerFive);
+
+    const StepVisibilityEvaluator evaluator(StepVisibilitySelection::onlyStep(5));
+
+    EXPECT_FALSE(evaluator.visible(*layerTwo));
+    EXPECT_TRUE(evaluator.visible(*layerFive));
+    EXPECT_EQ(std::vector<int>{}, effectivelyVisibleSteps(scene, evaluator));
+  }
+
+  TEST(StepVisibilityEvaluator, ShouldUseTimeIntervalsWhenIndexMetadataIsMissing) {
+    Scene scene;
+
+    auto* early = new Group;
+    early->setTimeRange(1.0, 3.0);
+    scene.addChild(early);
+
+    auto* active = new Group;
+    active->setTimeRange(4.0, 6.0);
+    scene.addChild(active);
+
+    auto* openEnded = new Group;
+    openEnded->setTimeRange(7.0, std::nullopt);
+    scene.addChild(openEnded);
+
+    const StepVisibilityEvaluator evaluator(StepVisibilitySelection::onlyStep(5));
+
+    EXPECT_FALSE(evaluator.visible(*early));
+    EXPECT_TRUE(evaluator.visible(*active));
+    EXPECT_FALSE(evaluator.visible(*openEnded));
+  }
+
+  TEST(StepVisibilityEvaluator, ShouldMatchOpenEndedTimeIntervalsAtTime) {
+    Group startsAtFive;
+    startsAtFive.setTimeRange(5.0, std::nullopt);
+    Group endsAtFive;
+    endsAtFive.setTimeRange(std::nullopt, 5.0);
+
+    const StepVisibilityEvaluator atFour(StepVisibilitySelection::atTime(4.0));
+    const StepVisibilityEvaluator atSix(StepVisibilitySelection::atTime(6.0));
+
+    EXPECT_FALSE(atFour.visible(startsAtFive));
+    EXPECT_TRUE(atSix.visible(startsAtFive));
+    EXPECT_TRUE(atFour.visible(endsAtFive));
+    EXPECT_FALSE(atSix.visible(endsAtFive));
+  }
+
   TEST(StepVisibilityEvaluator, ShouldComposeNestedGroupVisibility) {
     Scene scene;
 
@@ -207,6 +262,26 @@ namespace StepVisibilityEvaluatorTest {
     EXPECT_EQ(StepVisualRole::Active, evaluator.visualRole(active, style));
     EXPECT_EQ(StepVisualRole::Hidden, evaluator.visualRole(future, style));
     EXPECT_EQ(StepVisualRole::Normal, evaluator.visualRole(staticGroup, style));
+  }
+
+  TEST(StepVisibilityEvaluator, ShouldClassifyActiveAndPreviousTimePlaybackRoles) {
+    Group previous;
+    previous.setTimeRange(1.0, 2.0);
+    Group active;
+    active.setTimeRange(4.0, 6.0);
+    Group future;
+    future.setTimeRange(8.0, 9.0);
+
+    StepPlaybackStyle style;
+    style.activeTime = 5.0;
+    style.highlightActive = true;
+    style.ghostPrevious = true;
+
+    const StepVisibilityEvaluator evaluator(StepVisibilitySelection::atTime(5.0));
+
+    EXPECT_EQ(StepVisualRole::Previous, evaluator.visualRole(previous, style));
+    EXPECT_EQ(StepVisualRole::Active, evaluator.visualRole(active, style));
+    EXPECT_EQ(StepVisualRole::Hidden, evaluator.visualRole(future, style));
   }
 
   TEST(StepVisibilityEvaluator, ShouldLeaveRolesNormalWhenPlaybackStyleIsDisabled) {

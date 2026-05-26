@@ -29,8 +29,11 @@
 #include <QTabWidget>
 
 #include <algorithm>
+#include <cmath>
 #include <exception>
+#include <limits>
 #include <optional>
+#include <set>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -65,6 +68,7 @@
 #include "world/objects/Torus.h"
 #include "world/objects/ScriptedSurface.h"
 #include "world/objects/Group.h"
+#include "world/objects/StepVisibilityEvaluator.h"
 
 #include "world/objects/Intersection.h"
 #include "world/objects/Union.h"
@@ -93,6 +97,13 @@
 
 namespace {
   using PropertyRows = QVector<QPair<QString, QString>>;
+
+  struct PlaybackIndexRange {
+    bool enabled{false};
+    int first{0};
+    int last{0};
+    int count{0};
+  };
 
   QString qstr(const std::string& value) {
     return QString::fromStdString(value);
@@ -276,6 +287,44 @@ namespace {
     rows.push_back({name, dashIfEmpty(value)});
   }
 
+  void collectPlaybackIndices(const Element& root, std::set<int>& indices) {
+    if (const auto* group = qobject_cast<const Group*>(&root)) {
+      if (const auto stepIndex = group->stepIndex()) {
+        indices.insert(*stepIndex);
+      } else if (const auto layerIndex = group->layerIndex()) {
+        indices.insert(*layerIndex);
+      } else if (group->startTime() || group->endTime()) {
+        const double start = group->startTime().value_or(group->endTime().value_or(0.0));
+        const double end = group->endTime().value_or(start);
+        if (std::isfinite(start) && std::isfinite(end)) {
+          const double first = std::floor(std::min(start, end));
+          const double last = std::ceil(std::max(start, end));
+          if (first >= std::numeric_limits<int>::min() &&
+              last <= std::numeric_limits<int>::max()) {
+            indices.insert(static_cast<int>(first));
+            indices.insert(static_cast<int>(last));
+          }
+        }
+      }
+    }
+
+    for (const auto* child : root.childElements())
+      collectPlaybackIndices(*child, indices);
+  }
+
+  PlaybackIndexRange playbackIndexRange(const Scene* scene) {
+    if (!scene)
+      return {};
+
+    std::set<int> indices;
+    collectPlaybackIndices(*scene, indices);
+    if (indices.empty())
+      return {};
+
+    return PlaybackIndexRange{true, *indices.begin(), *indices.rbegin(),
+                              static_cast<int>(indices.size())};
+  }
+
 }
 
 struct MainWindow::Private {
@@ -284,9 +333,14 @@ struct MainWindow::Private {
         timelineFrameSlider(nullptr),
         timelineFrameSpinBox(nullptr),
         timelineSummaryLabel(nullptr),
+        playbackIndexSlider(nullptr),
+        playbackIndexSpinBox(nullptr),
+        playbackSummaryLabel(nullptr),
         renderGraphDockWidget(nullptr),
         renderGraphInspectorWidget(nullptr),
         currentFrame(0),
+        currentPlaybackIndex(0),
+        hasPlaybackIndex(false),
         currentElement(nullptr) {
   }
 
@@ -302,6 +356,9 @@ struct MainWindow::Private {
   QSlider* timelineFrameSlider;
   QSpinBox* timelineFrameSpinBox;
   QLabel* timelineSummaryLabel;
+  QSlider* playbackIndexSlider;
+  QSpinBox* playbackIndexSpinBox;
+  QLabel* playbackSummaryLabel;
   QDockWidget* renderGraphDockWidget;
   RenderGraphInspectorWidget* renderGraphInspectorWidget;
 
@@ -309,6 +366,8 @@ struct MainWindow::Private {
 
   Scene* scene;
   int currentFrame;
+  int currentPlaybackIndex;
+  bool hasPlaybackIndex;
 
   Element* currentElement;
   QModelIndex currentIndex;
@@ -461,6 +520,7 @@ MainWindow::MainWindow()
 
   p->renderWindow = new RenderWindow(nullptr);
   resetTimelineFrame();
+  resetPlaybackIndex();
   updateRenderGraphInspector();
   p->display->setScene(p->scene);
 }
@@ -991,6 +1051,7 @@ void MainWindow::newFile() {
 
     p->elementModel->setElement(p->scene);
     resetTimelineFrame();
+    resetPlaybackIndex();
     redraw();
   }
 }
@@ -1014,6 +1075,7 @@ void MainWindow::openFile() {
     p->elementModel->setElement(p->scene);
 
     resetTimelineFrame();
+    resetPlaybackIndex();
     redraw();
   }
 }
@@ -1397,8 +1459,9 @@ QDockWidget* MainWindow::createPreviewDisplay() {
 
 QDockWidget* MainWindow::createTimelineControls() {
   auto widget = new QWidget(this);
-  auto layout = new QHBoxLayout(widget);
+  auto layout = new QVBoxLayout(widget);
 
+  auto frameLayout = new QHBoxLayout;
   auto frameLabel = new QLabel(tr("Frame"), widget);
   p->timelineFrameSlider = new QSlider(Qt::Horizontal, widget);
   p->timelineFrameSpinBox = new QSpinBox(widget);
@@ -1407,16 +1470,36 @@ QDockWidget* MainWindow::createTimelineControls() {
   p->timelineFrameSpinBox->setKeyboardTracking(false);
   p->timelineFrameSpinBox->setFixedWidth(90);
 
-  layout->addWidget(frameLabel);
-  layout->addWidget(p->timelineFrameSlider, 1);
-  layout->addWidget(p->timelineFrameSpinBox);
-  layout->addWidget(p->timelineSummaryLabel);
+  frameLayout->addWidget(frameLabel);
+  frameLayout->addWidget(p->timelineFrameSlider, 1);
+  frameLayout->addWidget(p->timelineFrameSpinBox);
+  frameLayout->addWidget(p->timelineSummaryLabel);
+  layout->addLayout(frameLayout);
+
+  auto indexLayout = new QHBoxLayout;
+  auto indexLabel = new QLabel(tr("Index"), widget);
+  p->playbackIndexSlider = new QSlider(Qt::Horizontal, widget);
+  p->playbackIndexSpinBox = new QSpinBox(widget);
+  p->playbackSummaryLabel = new QLabel(widget);
+
+  p->playbackIndexSpinBox->setKeyboardTracking(false);
+  p->playbackIndexSpinBox->setFixedWidth(90);
+
+  indexLayout->addWidget(indexLabel);
+  indexLayout->addWidget(p->playbackIndexSlider, 1);
+  indexLayout->addWidget(p->playbackIndexSpinBox);
+  indexLayout->addWidget(p->playbackSummaryLabel);
+  layout->addLayout(indexLayout);
   widget->setLayout(layout);
 
   connect(p->timelineFrameSlider, SIGNAL(valueChanged(int)), this, SLOT(setCurrentFrame(int)));
   connect(p->timelineFrameSpinBox, SIGNAL(valueChanged(int)), this, SLOT(setCurrentFrame(int)));
+  connect(p->playbackIndexSlider, SIGNAL(valueChanged(int)), this,
+          SLOT(setCurrentPlaybackIndex(int)));
+  connect(p->playbackIndexSpinBox, SIGNAL(valueChanged(int)), this,
+          SLOT(setCurrentPlaybackIndex(int)));
 
-  auto dockWidget = new QDockWidget("Timeline", this);
+  auto dockWidget = new QDockWidget("Preview Controls", this);
   dockWidget->setWidget(widget);
   p->timelineDockWidget = dockWidget;
 
@@ -1436,6 +1519,7 @@ QDockWidget* MainWindow::createRenderGraphInspector() {
 void MainWindow::elementChanged(Element*) {
   p->scene->setChanged(true);
   p->propertyEditorWidget->update();
+  syncPlaybackControls();
   updateWindowModified();
   redraw();
   emit currentElementChanged();
@@ -1663,7 +1747,19 @@ void MainWindow::setCurrentFrame(int frame) {
   redraw();
 }
 
+void MainWindow::setCurrentPlaybackIndex(int index) {
+  const auto range = playbackIndexRange(p->scene);
+  if (!range.enabled)
+    return;
+
+  p->currentPlaybackIndex = std::clamp(index, range.first, range.last);
+  p->hasPlaybackIndex = true;
+  syncPlaybackControls();
+  redraw();
+}
+
 void MainWindow::reorder() {
+  syncPlaybackControls();
   redraw();
   p->scene->setChanged(true);
 
@@ -1677,10 +1773,14 @@ void MainWindow::redraw() {
   try {
     auto evaluatedScene = evaluatedSceneForCurrentFrame();
     updateRenderGraphInspector();
-    p->display->setScene(evaluatedScene ? evaluatedScene.get() : p->scene);
+    StepPlaybackStyle playbackStyle;
+    if (p->hasPlaybackIndex) {
+      playbackStyle.activeStep = p->currentPlaybackIndex;
+    }
+    p->display->setScene(evaluatedScene ? evaluatedScene.get() : p->scene, playbackStyle);
     statusBar()->clearMessage();
   } catch (const std::exception& error) {
-    statusBar()->showMessage(tr("Animation preview failed: %1").arg(error.what()));
+    statusBar()->showMessage(tr("Preview update failed: %1").arg(error.what()));
     p->display->setScene(p->scene);
   }
 }
@@ -1754,6 +1854,51 @@ void MainWindow::syncTimelineControls() {
                                        .arg(timeline->fps()));
   } else {
     p->timelineSummaryLabel->setText(tr("No animation"));
+  }
+}
+
+void MainWindow::resetPlaybackIndex() {
+  const auto range = playbackIndexRange(p->scene);
+  p->hasPlaybackIndex = range.enabled;
+  p->currentPlaybackIndex = range.enabled ? range.first : 0;
+  syncPlaybackControls();
+}
+
+void MainWindow::syncPlaybackControls() {
+  const auto range = playbackIndexRange(p->scene);
+  p->hasPlaybackIndex = range.enabled;
+
+  p->timelineDockWidget->setEnabled(p->scene->hasAnimation() || range.enabled);
+  {
+    const QSignalBlocker sliderBlocker(p->playbackIndexSlider);
+    const QSignalBlocker spinBoxBlocker(p->playbackIndexSpinBox);
+
+    p->playbackIndexSlider->setEnabled(range.enabled);
+    p->playbackIndexSpinBox->setEnabled(range.enabled);
+
+    if (range.enabled) {
+      p->currentPlaybackIndex =
+        std::clamp(p->currentPlaybackIndex, range.first, range.last);
+      p->playbackIndexSlider->setRange(range.first, range.last);
+      p->playbackIndexSpinBox->setRange(range.first, range.last);
+      p->playbackIndexSlider->setValue(p->currentPlaybackIndex);
+      p->playbackIndexSpinBox->setValue(p->currentPlaybackIndex);
+    } else {
+      p->currentPlaybackIndex = 0;
+      p->playbackIndexSlider->setRange(0, 0);
+      p->playbackIndexSpinBox->setRange(0, 0);
+      p->playbackIndexSlider->setValue(0);
+      p->playbackIndexSpinBox->setValue(0);
+    }
+  }
+
+  if (range.enabled) {
+    p->playbackSummaryLabel->setText(tr("%1-%2, %3 indexed group(s)")
+                                       .arg(range.first)
+                                       .arg(range.last)
+                                       .arg(range.count));
+  } else {
+    p->playbackSummaryLabel->setText(tr("No indexed groups"));
   }
 }
 

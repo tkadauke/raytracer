@@ -34,6 +34,7 @@ enum class StepVisualRole {
   */
 struct StepPlaybackStyle {
   std::optional<int> activeStep;
+  std::optional<double> activeTime;
   bool highlightActive{false};
   bool ghostPrevious{false};
   Colord activeColor{1.0, 0.86, 0.08};
@@ -45,29 +46,33 @@ struct StepPlaybackStyle {
 /**
   * Immutable step-selection request used by StepVisibilityEvaluator.
   *
-  * Groups with no valid stepIndex metadata are treated as static hierarchy and
-  * remain eligible in step-filtered modes. A group's explicit visible flag is
-  * still composed with the evaluated step visibility.
+  * Groups with no valid step, layer, or time metadata are treated as static
+  * hierarchy and remain eligible in step-filtered modes. A group's explicit
+  * visible flag is still composed with the evaluated step visibility.
   */
 class StepVisibilitySelection {
 public:
   static StepVisibilitySelection onlyStep(int step);
   static StepVisibilitySelection cumulativeThrough(int step);
+  static StepVisibilitySelection atTime(double time);
   static StepVisibilitySelection all();
   static StepVisibilitySelection range(int firstStep, int lastStep);
 
   StepVisibilityMode mode() const;
   std::optional<int> firstStep() const;
   std::optional<int> lastStep() const;
+  std::optional<double> time() const;
 
 private:
   StepVisibilitySelection(StepVisibilityMode mode,
                           std::optional<int> firstStep,
-                          std::optional<int> lastStep);
+                          std::optional<int> lastStep,
+                          std::optional<double> time = std::nullopt);
 
   StepVisibilityMode m_mode;
   std::optional<int> m_firstStep;
   std::optional<int> m_lastStep;
+  std::optional<double> m_time;
 };
 
 /**
@@ -113,6 +118,8 @@ public:
 private:
   bool stepMatches(const Group& group) const;
   bool stepIndexMatches(int stepIndex) const;
+  bool timeRangeMatches(const Group& group) const;
+  bool timeRangeContains(const Group& group, double time) const;
   void forEachGroup(const Element& root,
                     bool ancestorsVisible,
                     const GroupCallback& callback) const;
