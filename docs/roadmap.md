@@ -575,9 +575,9 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   type-5 conditional-line visibility remains a deferred importer follow-up for
   #210.
   ~~World scene and rendercli integration.~~ ✅ **Done.** `Collection`
-  authoring metadata references LDraw source files; rendercli resolves those
-  references through the import pipeline into ordinary primitive geometry and
-  accepts scene-level library roots plus direct LDraw input for #210.
+  authoring metadata and `LDrawModel` scene objects reference LDraw source
+  files; rendercli resolves those references into ordinary primitive geometry
+  and accepts scene-level library roots plus direct LDraw input for #210.
   ~~Shared sidecar asset resolver for importer search paths and cache keys.~~ ✅
   **Done.** `core::AssetResolver` resolves current-file-relative and configured
   search-root assets with explicit case-sensitivity behavior for Epic #230.

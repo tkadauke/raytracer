@@ -27,8 +27,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   subfiles, unsupported commands, skipped line geometry, color fallbacks, BFC
   sidedness/winding treatment, and fatal parse failures for #210. — GPT-5
 - **World and rendercli LDraw imports.** Scene JSON can now contain
-  `Collection` authoring metadata for LDraw source files; rendercli resolves
-  that metadata through the import pipeline into ordinary compiled primitive
+  `Collection` authoring metadata and `LDrawModel` surfaces for LDraw source
+  files; rendercli resolves those inputs into ordinary compiled primitive
   geometry, and direct LDraw input remains available with
   `--ldraw_library_root` for #210. — GPT-5
 - **Shared import provenance metadata.** World scene elements now carry
