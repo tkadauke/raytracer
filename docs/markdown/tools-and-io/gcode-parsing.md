@@ -23,17 +23,28 @@ them as geometry. Unknown and unsupported commands are ignored with
 diagnostics instead of aborting the parse; printer dialects routinely
 add firmware-specific commands that are irrelevant to a path preview.
 
-The parser intentionally stops at the core format layer. Turning the
-program into `Group` layers and `core::Polyline` / `render::Curve`
-objects is the next importer step.
+`GCodePathCompiler` turns the parsed motion stream into visible path
+curves. Non-zero travel and extrusion moves become distinct
+`core::Polyline` / `render::Curve` categories with per-segment
+attributes for `move_type`, `speed` / `feed_rate`, extrusion amount,
+tool, layer, feature type, and source line. The world importer wraps
+those curves in `Group` hierarchy: a top-level G-code import group,
+layer groups with step/layer metadata, then tool and slicer feature
+groups where that metadata is available.
 
 ## Source anchors
 
 <!-- source-anchors -->
 - `include/core/formats/gcode/GCodeDiagnostic.h`
+- `include/core/formats/gcode/GCodePathCompiler.h`
 - `include/core/formats/gcode/GCodeParser.h`
 - `include/core/formats/gcode/GCodeProgram.h`
+- `include/world/import/GCodeSceneImporter.h`
+- `src/core/formats/gcode/GCodePathCompiler.cpp`
 - `src/core/formats/gcode/GCodeParser.cpp`
+- `src/world/import/GCodeSceneImporter.cpp`
+- `test/unit/core/formats/gcode/GCodePathCompilerTest.cpp`
 - `test/unit/core/formats/gcode/GCodeParserTest.cpp`
+- `test/unit/world/import/GCodeSceneImporterTest.cpp`
 - `test/fixtures/gcode/`
 <!-- /source-anchors -->

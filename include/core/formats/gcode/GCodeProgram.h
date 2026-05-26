@@ -23,6 +23,7 @@ struct GCodeMotion {
   double extrusionDelta = 0.0;
   double feedRate = 0.0;
   int layerIndex = -1;
+  int tool = 0;
   std::string featureType;
   std::string comment;
 

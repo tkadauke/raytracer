@@ -20,6 +20,7 @@
 | `include/core/formats/AssetResolver.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/core/formats/gcode/GCodeDiagnostic.h` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `include/core/formats/gcode/GCodeParser.h` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
+| `include/core/formats/gcode/GCodePathCompiler.h` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `include/core/formats/gcode/GCodeProgram.h` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `include/core/formats/ldraw/LDrawColorTable.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/core/formats/ldraw/LDrawCommand.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
@@ -158,6 +159,7 @@
 | `include/widgets/world/RenderGraphTracePreviewWidget.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `include/world/animation/AnimationTrack.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `include/world/animation/Timeline.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
+| `include/world/import/GCodeSceneImporter.h` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `include/world/import/ImportDiagnostic.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/world/import/ImportOptions.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/world/import/ImportResult.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
@@ -178,6 +180,7 @@
 | `scenes/render_graph_stencil_composite_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/core/formats/AssetResolver.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/gcode/GCodeParser.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
+| `src/core/formats/gcode/GCodePathCompiler.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `src/core/formats/ldraw/LDrawColorTable.cpp` | [LDraw import](../tools-and-io/ldraw-import.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ldraw/LDrawCommand.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/core/formats/ldraw/LDrawFileResolver.cpp` | [LDraw import](../tools-and-io/ldraw-import.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
@@ -209,6 +212,7 @@
 | `src/modeler/MainWindow.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[LDraw import](../tools-and-io/ldraw-import.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/widgets/world/RenderGraphInspectorWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/widgets/world/RenderGraphTracePreviewWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
+| `src/world/import/GCodeSceneImporter.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `src/world/import/ImportedSceneDefaults.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `src/world/import/LDrawFileSceneImporter.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/import/LDrawSceneImporter.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
@@ -246,6 +250,7 @@
 | `test/rendercli/StepOptionTest.cmake` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `test/unit/core/animation/AnimationTrackTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/unit/core/formats/gcode/GCodeParserTest.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
+| `test/unit/core/formats/gcode/GCodePathCompilerTest.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `test/unit/core/formats/ldraw/LDrawColorTableTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/core/formats/ldraw/LDrawFileResolverTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/core/formats/ldraw/LDrawGeometryCompilerTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
@@ -268,6 +273,7 @@
 | `test/unit/widgets/world/RenderGraphTracePreviewWidgetTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/world/animation/AnimationTrackTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/unit/world/animation/TimelineTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
+| `test/unit/world/import/GCodeSceneImporterTest.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `test/unit/world/import/ImporterFixtureHarnessTest.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/unit/world/import/LDrawFileSceneImporterTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/world/import/OpenScadSceneImporterTest.cpp` | [OpenSCAD import](../tools-and-io/openscad-import.md) |
