@@ -210,6 +210,7 @@ namespace {
     motion.extrusionDelta = state.position.e - previous.e;
     motion.feedRate = state.feedRate;
     motion.layerIndex = state.layerIndex;
+    motion.tool = state.activeTool;
     motion.featureType = state.featureType;
     motion.comment = comment;
     program.motions.push_back(std::move(motion));
