@@ -64,6 +64,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `SourceAsset` objects with source path, importer format, import options,
   generated-output cache key, and non-fatal import diagnostics for Epic #234.
   — GPT-5
+- **STL mesh import.** ASCII and binary STL files now import through the
+  shared scene importer pipeline as flat `MeshPrimitive` geometry, with binary
+  triangle-count validation and diagnostics for STL's unitless/no-material
+  assumptions for Epic #235. — GPT-5
 - **LDraw validation fixtures and docs.** Tiny checked-in LDraw fixtures now
   cover inline geometry, library part resolution, nested subfiles, inherited
   color, BFC, and MPD import, with rendercli smoke coverage and textbook docs

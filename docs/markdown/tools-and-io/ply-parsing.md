@@ -240,7 +240,8 @@ Additional file-format topics are queued under
   type-rich than PLY, but more widely supported by
   third-party tools. Not yet implemented.
 - **STL.** The stereo-lithography format used by 3D printers.
-  Triangle-only, no UVs or normals. Trivial to implement.
+  ASCII and binary import are implemented in the shared scene-importer
+  pipeline; write support remains future work.
 - **LDraw.** The LEGO part-library format. The codebase now has
   a command-record parser for `.dat` and `.ldr` files plus inline
   type 3/4 polygon conversion to renderable mesh primitives. Type-1
