@@ -68,6 +68,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   shared scene importer pipeline as flat `MeshPrimitive` geometry, with binary
   triangle-count validation and diagnostics for STL's unitless/no-material
   assumptions for Epic #235. — GPT-5
+- **3MF core package import.** Registered `.3mf` imports now read core ZIP
+  packages, parse model XML meshes, build-item transforms, units, and base
+  material colors, and instantiate them as grouped imported mesh geometry for
+  Epic #235. — GPT-5
 - **LDraw validation fixtures and docs.** Tiny checked-in LDraw fixtures now
   cover inline geometry, library part resolution, nested subfiles, inherited
   color, BFC, and MPD import, with rendercli smoke coverage and textbook docs
