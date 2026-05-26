@@ -14,6 +14,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **rendercli grouped step rendering.** `rendercli --step` now renders grouped
   scene step selections in single, cumulative, and sequence modes for Epic
   #232. — GPT-5
+- **Modeler indexed preview scrubbing.** The Modeler now detects grouped scenes
+  with generic step/layer/time metadata and enables a preview Index scrubber
+  that filters group visibility without mutating saved explicit visibility. —
+  GPT-5
 - **Step playback highlight and ghost modes.** Group `stepIndex` metadata can
   now drive optional render-time active-step highlighting and previous-step
   ghosting through `rendercli --step`, `--step_highlight`, and

@@ -9,6 +9,7 @@
 class Scene;
 class Element;
 class QResizeEvent;
+struct StepPlaybackStyle;
 
 namespace render {
   class Camera;
@@ -48,6 +49,7 @@ public:
   ~RenderDisplay();
 
   void setScene(Scene* scene);
+  void setScene(Scene* scene, const StepPlaybackStyle& playbackStyle);
   void notifyRenderGraphExecutionStarted(std::uint64_t generation);
   void notifyRenderGraphPassStarted(const QString& passId, std::uint64_t generation);
   void notifyRenderGraphPassFinished(const QString& passId, std::uint64_t generation);

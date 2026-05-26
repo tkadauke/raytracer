@@ -25,6 +25,7 @@
 #include "world/objects/Scene.h"
 #include "world/objects/Camera.h"
 #include "world/objects/Sphere.h"
+#include "world/objects/StepVisibilityEvaluator.h"
 
 using namespace std;
 
@@ -177,10 +178,14 @@ bool RenderDisplay::wireframeOverlayEnabled() const {
 }
 
 void RenderDisplay::setScene(Scene* scene) {
+  setScene(scene, StepPlaybackStyle());
+}
+
+void RenderDisplay::setScene(Scene* scene, const StepPlaybackStyle& playbackStyle) {
   // In-flight preview renders use an engine snapshot, so replacing
   // the control engine's scene does not tear the scene out from
   // under the worker that is finishing the previous frame.
-  m_engine->setScene(scene->toRaytracerScene());
+  m_engine->setScene(scene->toRaytracerScene(playbackStyle));
   if (auto* camera = scene->activeCamera()) {
     m_engine->setCamera(camera->toRaytracer());
     setInteractiveCameraPose(camera->position(), camera->target());

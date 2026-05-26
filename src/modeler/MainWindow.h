@@ -47,6 +47,7 @@ private slots:
   void renderGraphResourceTraceChanged(const QString& resourceId);
   void exportRenderGraph(const QString& format, const QByteArray& data);
   void setCurrentFrame(int frame);
+  void setCurrentPlaybackIndex(int index);
 
   void newFile();
   void openFile();
@@ -148,6 +149,8 @@ private:
   void setPreviewTonemap(const std::string& name);
   void resetTimelineFrame();
   void syncTimelineControls();
+  void resetPlaybackIndex();
+  void syncPlaybackControls();
   engine::graph::RenderIntent previewRenderIntent() const;
   std::unique_ptr<Scene> evaluatedSceneForCurrentFrame() const;
 

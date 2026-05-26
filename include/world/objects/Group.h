@@ -158,6 +158,7 @@ public:
     */
   void setLabel(const std::optional<QString>& label);
 
+  /**
     * Converts visible child geometry into a transformed runtime composite.
     * Hidden groups return null and do not register descendant lights.
     */
