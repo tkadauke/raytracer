@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Cached LDraw filesystem resolution.** Repeated LDraw part/subfile lookups now
+  reuse resolver results instead of rescanning the library roots for every
+  cache-key/open call, making large MPD imports much faster. — GPT-5
 - **LDraw product-view scene defaults.** Direct LDraw file imports now use the
   shared scene importer for front-camera framing, white background, stronger
   ambient fill, native-coordinate default orientation, summarized import

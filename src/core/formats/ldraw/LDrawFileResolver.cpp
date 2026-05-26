@@ -39,50 +39,81 @@ LDrawFilesystemResolver::LDrawFilesystemResolver(vector<string> searchDirectorie
 
 void LDrawFilesystemResolver::addSearchDirectory(const string& directory) {
   m_searchDirectories.push_back(directory);
+  clearCaches();
 }
 
 unique_ptr<istream> LDrawFilesystemResolver::open(const string& filename) const {
-  try {
-    auto input = make_unique<ifstream>(assetResolver().resolve(filename).path);
-    if (*input)
-      return input;
-  } catch (const core::AssetResolutionError&) {
-  }
+  const auto& resolved = resolvedAssetFor(filename);
+  if (!resolved)
+    return nullptr;
+
+  auto input = make_unique<ifstream>(resolved->path);
+  if (*input)
+    return input;
   return nullptr;
 }
 
 string LDrawFilesystemResolver::resolvePath(const string& filename) const {
-  try {
-    return assetResolver().resolve(filename).path.string();
-  } catch (const core::AssetResolutionError&) {
-    return "";
-  }
+  const auto& resolved = resolvedAssetFor(filename);
+  return resolved ? resolved->path.string() : string();
 }
 
 string LDrawFilesystemResolver::cacheKey(const string& filename) const {
-  try {
-    return assetResolver().resolve(filename).identity;
-  } catch (const core::AssetResolutionError&) {
-    return normalizedFilename(filename);
-  }
+  const auto& resolved = resolvedAssetFor(filename);
+  if (resolved)
+    return resolved->identity;
+  return normalizedFilename(filename);
 }
 
 vector<string> LDrawFilesystemResolver::searchRoots(const string&) const {
   vector<string> roots;
-  const auto resolver = assetResolver();
-  for (const auto& root : resolver.searchRoots())
+  for (const auto& root : assetResolver().searchRoots())
     roots.push_back(root.string());
   return roots;
 }
 
-core::AssetResolver LDrawFilesystemResolver::assetResolver() const {
-  namespace fs = std::filesystem;
+const core::AssetResolver& LDrawFilesystemResolver::assetResolver() const {
+  if (!m_assetResolver) {
+    namespace fs = std::filesystem;
 
-  vector<fs::path> roots;
-  roots.emplace_back(".");
-  for (const auto& directory : m_searchDirectories)
-    roots.emplace_back(directory);
-  return core::AssetResolver(std::move(roots), core::AssetCaseSensitivity::CaseInsensitive);
+    vector<fs::path> roots;
+    roots.emplace_back(".");
+    for (const auto& directory : m_searchDirectories)
+      roots.emplace_back(directory);
+    m_assetResolver.emplace(std::move(roots), core::AssetCaseSensitivity::CaseInsensitive);
+  }
+
+  return *m_assetResolver;
+}
+
+const optional<core::ResolvedAsset>&
+LDrawFilesystemResolver::resolvedAssetFor(const string& filename) const {
+  ++m_cacheStats.resolutionRequests;
+  const string key = normalizedFilename(filename);
+  auto cached = m_resolvedAssets.find(key);
+  if (cached != m_resolvedAssets.end())
+    return cached->second;
+
+  ++m_cacheStats.resolutionMisses;
+  try {
+    cached = m_resolvedAssets.emplace(key, assetResolver().resolve(filename)).first;
+  } catch (const core::AssetResolutionError&) {
+    cached = m_resolvedAssets.emplace(key, nullopt).first;
+  }
+  return cached->second;
+}
+
+LDrawFilesystemResolver::CacheStats LDrawFilesystemResolver::cacheStats() const {
+  return m_cacheStats;
+}
+
+void LDrawFilesystemResolver::resetCacheStats() const {
+  m_cacheStats = CacheStats();
+}
+
+void LDrawFilesystemResolver::clearCaches() {
+  m_assetResolver.reset();
+  m_resolvedAssets.clear();
 }
 
 LDrawMpdFileResolver::LDrawMpdFileResolver(const LDrawDocument& document,

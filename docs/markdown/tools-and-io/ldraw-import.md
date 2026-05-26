@@ -69,6 +69,11 @@ own directory. That makes a project-local mini-library enough for validation:
 [`test/fixtures/ldraw/smoke/`](../../../test/fixtures/ldraw/smoke/) renders
 through CTest without the official parts library installed.
 
+The filesystem resolver caches both successful and failed part-path resolutions
+during an import. Large MPD files often reference the same small primitive files
+many times; caching keeps those repeated references from walking the LDraw
+library directories again for each cache-key or open request.
+
 World scene JSON can also keep an editable `Collection` with metadata:
 
 ```json
