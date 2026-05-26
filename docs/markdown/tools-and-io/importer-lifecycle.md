@@ -112,7 +112,12 @@ Other importers preserve hierarchy before geometry support is complete.
 glTF scenes and nodes to `Group` roots, using node transforms for the local
 group transform and attaching source IDs plus `ImportProvenance`. Its
 `preserve_hierarchy` option keeps parent-child relationships by default; tests
-can disable it to check the flattened global-transform path.
+can disable it to check the flattened global-transform path. When glTF
+animations contain simple node translation, rotation, or scale channels, the
+importer preserves sampler/channel metadata on the node groups and creates
+world timeline tracks for supported channels. Unsupported target paths or
+interpolation modes continue as warnings so the imported hierarchy remains
+inspectable.
 
 ## Diagnostics
 
@@ -225,6 +230,8 @@ visible with the ghost material. The flags do not edit the saved scene.
 - `include/world/import/ImportDiagnostic.h`
 - `include/world/import/ImportedSceneDefaults.h`
 - `include/world/import/GltfSceneImporter.h`
+- `include/world/animation/AnimationTrack.h`
+- `include/world/animation/Timeline.h`
 - `include/world/objects/Group.h`
 - `include/world/objects/StepVisibilityEvaluator.h`
 - `include/core/formats/AssetResolver.h`
@@ -232,6 +239,8 @@ visible with the ghost material. The flags do not edit the saved scene.
 - `include/core/formats/gltf/GltfReader.h`
 - `include/core/formats/stl/StlFile.h`
 - `src/world/import/GltfSceneImporter.cpp`
+- `src/world/animation/AnimationTrack.cpp`
+- `src/world/animation/Timeline.cpp`
 - `include/world/import/OpenScadCompiler.h`
 - `include/world/import/OpenScadSceneImporter.h`
 - `src/core/formats/AssetResolver.cpp`
