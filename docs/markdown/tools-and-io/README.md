@@ -10,6 +10,9 @@ codebase, not just understand it.
     element / property declarations, why this is the project's only
     untrusted-input surface, and how the LibFuzzer harness keeps it
     honest.
+- [LDraw import](ldraw-import.md) — the supported `.dat` / `.ldr` /
+    `.mpd` subset, tiny validation fixtures, and how to point
+    `rendercli` at an LDraw parts library.
 - [Importer lifecycle](importer-lifecycle.md) — shared scene-importer
     contract, options, sidecar asset resolution, diagnostics, provenance,
     fixtures, and render smoke patterns for new formats.

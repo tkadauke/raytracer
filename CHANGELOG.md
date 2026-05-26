@@ -11,6 +11,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **LDraw validation fixtures and docs.** Tiny checked-in LDraw fixtures now
+  cover inline geometry, library part resolution, nested subfiles, inherited
+  color, BFC, and MPD import, with rendercli smoke coverage and textbook docs
+  for library-path configuration and supported importer limits for #210. —
+  GPT-5
 - **rendercli grouped step rendering.** `rendercli --step` now renders grouped
   scene step selections in single, cumulative, and sequence modes for Epic
   #232. — GPT-5

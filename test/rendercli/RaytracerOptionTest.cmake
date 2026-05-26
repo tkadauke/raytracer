@@ -187,7 +187,7 @@ rendercli_assert_image_dimensions("${ldraw_scene_output}" 24 24
 rendercli_assert_image_nonempty("${ldraw_scene_output}"
                                 NAME "LDraw authoring import pixels")
 
-set(ldraw_direct_output "${TEST_OUTPUT_DIR}/ldraw-direct.png")
+set(ldraw_direct_output "${TEST_OUTPUT_DIR}/ldraw-direct-hierarchy.png")
 rendercli_run(
   NAME "rendercli raytracer renders direct LDraw input with preserved hierarchy"
   COMMAND
@@ -199,9 +199,24 @@ rendercli_run(
     "${ldraw_direct_output}"
 )
 rendercli_assert_image_dimensions("${ldraw_direct_output}" 24 24
-                                  NAME "direct LDraw dimensions")
+                                  NAME "direct LDraw hierarchy dimensions")
 rendercli_assert_image_nonempty("${ldraw_direct_output}"
-                                NAME "direct LDraw pixels")
+                                NAME "direct LDraw hierarchy pixels")
+
+set(ldraw_direct_mpd_output "${TEST_OUTPUT_DIR}/ldraw-direct-mpd.png")
+rendercli_run(
+  NAME "rendercli raytracer renders direct LDraw MPD input"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine raytracer --width 24 --height 24
+    --ldraw_input
+    --ldraw_library_root "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/smoke/library"
+    "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/smoke/model.mpd"
+    "${ldraw_direct_mpd_output}"
+)
+rendercli_assert_image_dimensions("${ldraw_direct_mpd_output}" 24 24
+                                  NAME "direct LDraw MPD dimensions")
+rendercli_assert_image_nonempty("${ldraw_direct_mpd_output}"
+                                NAME "direct LDraw MPD pixels")
 
 set(threaded_output "${TEST_OUTPUT_DIR}/threads-and-queue.png")
 rendercli_run(

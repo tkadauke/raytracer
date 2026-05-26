@@ -98,6 +98,7 @@ The supporting cast around the rendering core.
 
 - [Volume index](tools-and-io/README.md)
 - [PLY parsing](tools-and-io/ply-parsing.md)
+- [LDraw import](tools-and-io/ldraw-import.md)
 - [Importer lifecycle](tools-and-io/importer-lifecycle.md)
 - [Tools and the Modeler](tools-and-io/tools-and-modeler.md)
 
