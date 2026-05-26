@@ -573,8 +573,6 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   authoring metadata references LDraw source files; rendercli resolves those
   references through the import pipeline into ordinary primitive geometry and
   accepts scene-level library roots plus direct LDraw input for #210.
-  `LDrawModel` also exposes LDraw file, library root, inherited transform
-  scale, normal smoothing, and visibility through scene JSON.
   ~~Shared sidecar asset resolver for importer search paths and cache keys.~~ ✅
   **Done.** `core::AssetResolver` resolves current-file-relative and configured
   search-root assets with explicit case-sensitivity behavior for Epic #230.
