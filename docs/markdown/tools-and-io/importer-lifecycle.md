@@ -67,6 +67,17 @@ for caches and provenance. If resolution fails, convert `AssetResolutionError`
 into an import error diagnostic that includes the requested path and searched
 roots instead of letting the exception escape without context.
 
+## Generated Outputs
+
+Some importers call external authoring tools before they can return renderer
+geometry. [`OpenScadSceneImporter`](../../../include/world/import/OpenScadSceneImporter.h)
+is the template: it asks
+[`OpenScadCompiler`](../../../include/world/import/OpenScadCompiler.h) to locate
+the optional `openscad` executable, compile the source into a generated STL
+mesh, and cache that output by source contents plus import options. Missing
+executables are reported as warnings with an empty imported group so a scene can
+still load; failed tool runs or malformed generated meshes are errors.
+
 ## Diagnostics
 
 [`ImportDiagnostic`](../../../include/world/import/ImportDiagnostic.h) is for
@@ -179,7 +190,13 @@ visible with the ghost material. The flags do not edit the saved scene.
 - `include/world/objects/Group.h`
 - `include/world/objects/StepVisibilityEvaluator.h`
 - `include/core/formats/AssetResolver.h`
+- `include/core/formats/stl/StlFile.h`
+- `include/world/import/OpenScadCompiler.h`
+- `include/world/import/OpenScadSceneImporter.h`
 - `src/core/formats/AssetResolver.cpp`
+- `src/core/formats/stl/StlFile.cpp`
+- `src/world/import/OpenScadCompiler.cpp`
+- `src/world/import/OpenScadSceneImporter.cpp`
 - `test/helpers/ImporterTestHelper.h`
 - `test/helpers/ImporterTestHelper.cpp`
 - `test/fixtures/groups/`

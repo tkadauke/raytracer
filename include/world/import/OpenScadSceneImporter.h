@@ -6,8 +6,10 @@ namespace world {
 
   /**
     * Imports a deliberately small native OpenSCAD subset into editable world
-    * primitives and CSG nodes. Supported constructs are translate, rotate,
-    * scale, union, difference, intersection, cube, sphere, and cylinder.
+    * primitives and CSG nodes by default, or compiles through OpenSCAD when
+    * compile import options are supplied. Supported native constructs are
+    * translate, rotate, scale, union, difference, intersection, cube, sphere,
+    * and cylinder.
     */
   class OpenScadSceneImporter : public SceneImporter {
   public:

@@ -29,6 +29,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `cube`, `sphere`, and `cylinder` directly into editable primitives and CSG
   objects with source-located diagnostics for unsupported syntax for Epic #234.
   — GPT-5
+- **OpenSCAD source asset import.** Registered `.scad` imports now use an
+  optional external OpenSCAD executable to compile cached STL mesh output,
+  report missing-tool diagnostics without throwing, and attach generated mesh
+  primitives for Epic #234. — GPT-5
 - **Source-backed asset scene objects.** Scene JSON can now persist
   `SourceAsset` objects with source path, importer format, import options,
   generated-output cache key, and non-fatal import diagnostics for Epic #234.

@@ -538,7 +538,11 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
 - **OpenVDB** — volumetric grids, once §4.3 volumetrics land. Read-only initially.
 - **EXR** — float HDR output from the framebuffer (R1) and environment map input. Read + write via OpenEXR or tinyexr.
 - **HDR (Radiance `.hdr`)** — environment maps. Read.
-- **OpenSCAD `.scad`** — see §4.6 scripted objects.
+- **OpenSCAD `.scad`** — ~~external CLI compile adapter with missing-tool
+  diagnostics and generated mesh caching~~ ✅ **Done.** `OpenScadSceneImporter`
+  compiles `.scad` sources through an optional OpenSCAD executable into cached
+  STL mesh output for Epic #234; native scripted-object authoring remains in
+  §4.6.
 - **LDraw `.dat` / `.ldr`** — LEGO part and model text format. ~~Core line
   parser for command types 0 through 5.~~ ✅ **Done.** `core/formats/ldraw`
   preserves meta commands, subfile filenames, and geometry records for #210;
