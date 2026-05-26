@@ -112,7 +112,8 @@ private:
   void updateValidationStatus();
   void selectPass(const engine::graph::RenderPassId& passId);
   void selectResource(const engine::graph::RenderResourceId& resourceId);
-  void setPassEnabledOverride(const engine::graph::RenderPassId& passId, bool enabled);
+  void setPassEnabledOverride(const engine::graph::RenderPassId& passId, bool enabled,
+                              bool rebuildPassRows = true);
 
   struct Private;
   std::unique_ptr<Private> p;

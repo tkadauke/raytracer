@@ -533,7 +533,10 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
   updateValidationStatus();
 }
 
-RenderGraphInspectorWidget::~RenderGraphInspectorWidget() = default;
+RenderGraphInspectorWidget::~RenderGraphInspectorWidget() {
+  p->liveExecutionTimer->stop();
+  p->graphScene->removeEventFilter(this);
+}
 
 QSize RenderGraphInspectorWidget::sizeHint() const {
   return QSize(720, 220);
@@ -670,17 +673,7 @@ void RenderGraphInspectorWidget::passItemChanged(QTreeWidgetItem* item, int colu
     return;
 
   const auto passId = item->data(0, Qt::UserRole).toString().toStdString();
-  const bool enabled = item->checkState(0) == Qt::Checked;
-  if (enabled) {
-    p->overrides.disabledPasses.erase(passId);
-  } else {
-    p->overrides.disabledPasses.insert(passId);
-  }
-  if (p->trace && !p->trace->matchesPlan(effectivePlan()))
-    p->trace.reset();
-
-  QMetaObject::invokeMethod(this, [this] { rebuildAllViews(); }, Qt::QueuedConnection);
-  emit overridesChanged();
+  setPassEnabledOverride(passId, item->checkState(0) == Qt::Checked, false);
 }
 
 void RenderGraphInspectorWidget::groupItemChanged(QTreeWidgetItem* item, int column) {
@@ -714,7 +707,10 @@ void RenderGraphInspectorWidget::groupItemChanged(QTreeWidgetItem* item, int col
 
   if (p->trace && !p->trace->matchesPlan(effectivePlan()))
     p->trace.reset();
-  QMetaObject::invokeMethod(this, [this] { rebuildAllViews(); }, Qt::QueuedConnection);
+  rebuildGraph();
+  rebuildPasses();
+  rebuildResources();
+  updateValidationStatus();
   emit overridesChanged();
 }
 
@@ -854,7 +850,8 @@ void RenderGraphInspectorWidget::selectResource(const RenderResourceId& resource
   emit resourceSelected(qstr(resourceId));
 }
 
-void RenderGraphInspectorWidget::setPassEnabledOverride(const RenderPassId& passId, bool enabled) {
+void RenderGraphInspectorWidget::setPassEnabledOverride(const RenderPassId& passId, bool enabled,
+                                                        bool rebuildPassRows) {
   p->liveExecutionTimer->stop();
   p->pendingExecutionStarts.clear();
   p->executionStates.clear();
@@ -867,7 +864,12 @@ void RenderGraphInspectorWidget::setPassEnabledOverride(const RenderPassId& pass
   if (p->trace && !p->trace->matchesPlan(effectivePlan()))
     p->trace.reset();
 
-  rebuildAllViews();
+  rebuildGraph();
+  if (rebuildPassRows)
+    rebuildPasses();
+  rebuildGroups();
+  rebuildResources();
+  updateValidationStatus();
   emit overridesChanged();
 }
 
