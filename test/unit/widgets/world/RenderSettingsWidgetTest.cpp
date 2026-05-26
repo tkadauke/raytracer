@@ -46,6 +46,20 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(QThread::idealThreadCount() * 8, widget.queueSize());
   }
 
+  TEST_F(RenderSettingsWidgetTest, ShouldHideInternalExecutionControls) {
+    RenderSettingsWidget widget;
+
+    auto* viewPlane = widget.findChild<QComboBox*>("viewPlaneType");
+    auto* threads = widget.findChild<QSpinBox*>("renderThreads");
+    auto* queueSize = widget.findChild<QSpinBox*>("queueSize");
+    ASSERT_NE(nullptr, viewPlane);
+    ASSERT_NE(nullptr, threads);
+    ASSERT_NE(nullptr, queueSize);
+    EXPECT_TRUE(viewPlane->isHidden());
+    EXPECT_TRUE(threads->isHidden());
+    EXPECT_TRUE(queueSize->isHidden());
+  }
+
   TEST_F(RenderSettingsWidgetTest, ShouldReturnPositiveSamplesPerPixel) {
     RenderSettingsWidget widget;
     EXPECT_GT(widget.samplesPerPixel(), 0);

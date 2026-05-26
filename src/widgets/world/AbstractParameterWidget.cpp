@@ -33,6 +33,7 @@ QVariant AbstractParameterWidget::lastValue() const {
 
 void AbstractParameterWidget::setElement(Element* element) {
   p->element = element;
+  updatePropertyConfiguration();
 }
 
 Element* AbstractParameterWidget::element() const {
@@ -45,6 +46,7 @@ const QString& AbstractParameterWidget::parameterName() const {
 
 void AbstractParameterWidget::setParameterName(const QString& name) {
   p->parameterName = name;
+  updatePropertyConfiguration();
 }
 
 QString AbstractParameterWidget::displayNameForParameter(const QString& name) const {
@@ -57,4 +59,7 @@ QString AbstractParameterWidget::displayNameForChoice(const QString& choice) con
   if (!p->element)
     return choice;
   return p->element->propertyChoiceDisplayName(p->parameterName, choice);
+}
+
+void AbstractParameterWidget::updatePropertyConfiguration() {
 }

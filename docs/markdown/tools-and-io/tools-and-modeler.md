@@ -217,9 +217,14 @@ thing across the swap. The Elements dock exposes a generated `Render Settings`
 item under the scene; selecting it opens the saved scene intent in the property
 editor. Those properties write the scene's top-level `renderIntent` block, not
 normal child geometry. The editor groups the settings by role, uses dropdowns
-for enumerated choices such as engine, view mode, sampler, view plane, and
+for enumerated choices such as engine, view mode, sampler, and
 postprocess AA, and only shows engine-specific fields for the selected default
-engine. `Render -> Preview Engine -> Use Scene Render Settings`
+engine. Internal execution controls such as view-plane type, worker thread
+count, and queue size stay hidden in Modeler; Modeler's own preview/final
+controls keep using the point-interlaced view plane and automatic execution
+defaults, while lower-level values can still be authored through scene JSON or
+rendercli.
+`Render -> Preview Engine -> Use Scene Render Settings`
 compiles the live preview from that saved intent. Choosing a preview engine,
 preview view, overlay, shadows, or preview FXAA/SMAA switches the preview into
 an explicit override mode, layering temporary request overrides without

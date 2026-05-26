@@ -32,6 +32,7 @@ protected:
   Element* element() const;
   QString displayNameForParameter(const QString& name) const;
   QString displayNameForChoice(const QString& choice) const;
+  virtual void updatePropertyConfiguration();
 
 private:
   struct Private;

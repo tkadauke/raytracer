@@ -1,9 +1,12 @@
 #pragma once
 #include <memory>
+#include <optional>
 
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QObject>
+#include <QList>
+#include <QPair>
 #include <QStringList>
 
 namespace engine::graph {
@@ -48,6 +51,10 @@ public:
   virtual QString propertyDisplayName(const QString& propertyName) const;
   virtual QString propertyGroup(const QString& propertyName) const;
   virtual QStringList propertyChoices(const QString& propertyName) const;
+  virtual QList<int> propertyIntChoices(const QString& propertyName) const;
+  virtual std::optional<QPair<int, int>> propertyIntRange(const QString& propertyName) const;
+  virtual std::optional<QPair<double, double>>
+  propertyDoubleRange(const QString& propertyName) const;
   virtual QString propertyChoiceDisplayName(const QString& propertyName,
                                             const QString& choice) const;
   virtual bool rebuildPropertyEditorAfterChange(const QString& propertyName) const;

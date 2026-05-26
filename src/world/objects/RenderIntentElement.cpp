@@ -5,7 +5,6 @@
 #include "render/viewplanes/ViewPlaneFactory.h"
 #include "world/objects/Scene.h"
 
-#include <optional>
 #include <utility>
 
 RenderIntentElement::RenderIntentElement(Scene* parent)
@@ -20,6 +19,10 @@ bool RenderIntentElement::displayInSceneModel() const {
 
 bool RenderIntentElement::isPropertyVisible(const QString& propertyName) const {
   if (propertyName == QStringLiteral("name"))
+    return false;
+  if (propertyName == QStringLiteral("raytracerViewPlane") ||
+      propertyName == QStringLiteral("raytracerThreads") ||
+      propertyName == QStringLiteral("raytracerQueueSize"))
     return false;
 
   const auto executor = intent().defaultExecutorKind();
@@ -128,6 +131,40 @@ QStringList RenderIntentElement::propertyChoices(const QString& propertyName) co
   if (propertyName == QStringLiteral("rasterizerShadowFilter"))
     return {QStringLiteral("pcf"), QStringLiteral("pcss")};
   return {};
+}
+
+QList<int> RenderIntentElement::propertyIntChoices(const QString& propertyName) const {
+  if (propertyName == QStringLiteral("rasterizerMSAASamples"))
+    return {1, 2, 4, 8};
+  return {};
+}
+
+std::optional<QPair<int, int>>
+RenderIntentElement::propertyIntRange(const QString& propertyName) const {
+  if (propertyName == QStringLiteral("raytracerSamplesPerPixel") ||
+      propertyName == QStringLiteral("raytracerMaxRecursionDepth"))
+    return QPair<int, int>(1, 1024);
+  if (propertyName == QStringLiteral("raytracerThreads"))
+    return QPair<int, int>(1, 1024);
+  if (propertyName == QStringLiteral("raytracerQueueSize"))
+    return QPair<int, int>(1, 16777216);
+  if (propertyName == QStringLiteral("rasterizerLod") ||
+      propertyName == QStringLiteral("wireframeLod"))
+    return QPair<int, int>(0, 10);
+  if (propertyName == QStringLiteral("rasterizerShadowMapSize"))
+    return QPair<int, int>(1, 8192);
+  if (propertyName == QStringLiteral("rasterizerShadowCascades"))
+    return QPair<int, int>(1, 4);
+  if (propertyName == QStringLiteral("rasterizerShadowFilterRadius"))
+    return QPair<int, int>(0, 16);
+  return std::nullopt;
+}
+
+std::optional<QPair<double, double>>
+RenderIntentElement::propertyDoubleRange(const QString& propertyName) const {
+  if (propertyName == QStringLiteral("rasterizerShadowBias"))
+    return QPair<double, double>(0.0, 100.0);
+  return std::nullopt;
 }
 
 QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyName,

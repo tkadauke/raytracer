@@ -1,4 +1,5 @@
 #include "widgets/world/DoubleParameterWidget.h"
+#include "world/objects/Element.h"
 
 #include <QDoubleSpinBox>
 #include <QLabel>
@@ -52,4 +53,15 @@ void DoubleParameterWidget::setValue(const QVariant& value) {
     return;
   const QSignalBlocker blocker(p->doubleEdit);
   p->doubleEdit->setValue(value.toDouble());
+}
+
+void DoubleParameterWidget::updatePropertyConfiguration() {
+  if (!element())
+    return;
+
+  const auto range = element()->propertyDoubleRange(parameterName());
+  if (!range)
+    return;
+
+  p->doubleEdit->setRange(range->first, range->second);
 }

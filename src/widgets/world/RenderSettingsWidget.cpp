@@ -34,6 +34,12 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
 
   p->ui.renderThreads->setValue(QThread::idealThreadCount());
   p->ui.queueSize->setValue(QThread::idealThreadCount() * 8);
+  p->ui.label_5->setVisible(false);
+  p->ui.viewPlaneType->setVisible(false);
+  p->ui.label_6->setVisible(false);
+  p->ui.renderThreads->setVisible(false);
+  p->ui.label_7->setVisible(false);
+  p->ui.queueSize->setVisible(false);
 
   connect(p->ui.renderButton, SIGNAL(clicked()), this, SLOT(render()));
   connect(p->ui.stopButton, SIGNAL(clicked()), this, SLOT(stop()));

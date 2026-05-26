@@ -4,12 +4,14 @@
 #include "widgets/world/AbstractParameterWidget.h"
 
 #include <QStringList>
+#include <QVariantList>
 
 class ChoiceParameterWidget : public AbstractParameterWidget {
   Q_OBJECT
 
 public:
   explicit ChoiceParameterWidget(QStringList choices, QWidget* parent = nullptr);
+  explicit ChoiceParameterWidget(QVariantList choices, QWidget* parent = nullptr);
   ~ChoiceParameterWidget();
 
   void setParameterName(const QString& name) override;

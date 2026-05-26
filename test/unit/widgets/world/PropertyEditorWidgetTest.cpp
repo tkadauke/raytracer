@@ -19,6 +19,7 @@
 #include <QGroupBox>
 #include <QScrollArea>
 #include <QSizePolicy>
+#include <QSpinBox>
 #include <QTreeWidget>
 
 Q_DECLARE_METATYPE(Vector3d);
@@ -176,6 +177,39 @@ namespace PropertyEditorWidgetTest {
     ASSERT_NE(nullptr, comboBox);
     EXPECT_GE(comboBox->count(), 3);
     EXPECT_NE(-1, comboBox->findData(QString("rasterizer")));
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldUseChoicesForDiscreteIntegerRenderSettings) {
+    Scene root;
+    auto* settings = renderSettingsElement(root);
+    ASSERT_NE(nullptr, settings);
+    settings->setDefaultEngine("rasterizer");
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(settings);
+
+    auto* msaaSamples = parameterWidget(editor, "rasterizerMSAASamples");
+    ASSERT_NE(nullptr, qobject_cast<ChoiceParameterWidget*>(msaaSamples));
+    auto* comboBox = msaaSamples->findChild<QComboBox*>("choiceComboBox");
+    ASSERT_NE(nullptr, comboBox);
+    ASSERT_EQ(4, comboBox->count());
+    EXPECT_EQ(1, comboBox->itemData(0).toInt());
+    EXPECT_EQ(8, comboBox->itemData(3).toInt());
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldApplyNumericRangesFromSelectedElement) {
+    Scene root;
+    auto* settings = renderSettingsElement(root);
+    ASSERT_NE(nullptr, settings);
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(settings);
+
+    auto* samples = parameterWidget(editor, "raytracerSamplesPerPixel");
+    ASSERT_NE(nullptr, samples);
+    auto* spinBox = samples->findChild<QSpinBox*>("intEdit");
+    ASSERT_NE(nullptr, spinBox);
+    EXPECT_EQ(1, spinBox->minimum());
   }
 
   TEST_F(PropertyEditorWidgetTest, ShouldGroupAndFilterRenderSettingsBySelectedEngine) {

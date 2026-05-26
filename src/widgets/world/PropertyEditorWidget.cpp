@@ -231,8 +231,16 @@ void PropertyEditorWidget::addParameter(const QString& name) {
 
   AbstractParameterWidget* widget = nullptr;
   const QStringList choices = p->element->propertyChoices(name);
+  const QList<int> intChoices = p->element->propertyIntChoices(name);
 
-  if (!choices.isEmpty() && type == "QString") {
+  if (!intChoices.isEmpty() && type == "int") {
+    QVariantList choiceValues;
+    choiceValues.reserve(intChoices.size());
+    for (int choice : intChoices) {
+      choiceValues << choice;
+    }
+    widget = new ChoiceParameterWidget(choiceValues, this);
+  } else if (!choices.isEmpty() && type == "QString") {
     widget = new ChoiceParameterWidget(choices, this);
   } else if (isType(type, "Vector3d", "Vector3<double>")) {
     widget = new VectorParameterWidget(this);

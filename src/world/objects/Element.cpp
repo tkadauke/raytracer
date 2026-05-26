@@ -52,6 +52,18 @@ QStringList Element::propertyChoices(const QString&) const {
   return {};
 }
 
+QList<int> Element::propertyIntChoices(const QString&) const {
+  return {};
+}
+
+std::optional<QPair<int, int>> Element::propertyIntRange(const QString&) const {
+  return std::nullopt;
+}
+
+std::optional<QPair<double, double>> Element::propertyDoubleRange(const QString&) const {
+  return std::nullopt;
+}
+
 QString Element::propertyChoiceDisplayName(const QString&, const QString& choice) const {
   return humanizePropertyName(choice);
 }

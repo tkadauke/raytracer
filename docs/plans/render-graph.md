@@ -1109,6 +1109,10 @@ The Modeler render view should grow a graph inspector:
 - present that generated scene item as `Render Settings` in the UI, with
   grouped fields, dropdowns for enumerated choices, and backend-specific
   properties hidden unless their backend is selected;
+- keep Modeler-facing intent controls focused on user-visible render quality:
+  constrain numeric values in the editor, use discrete controls for discrete
+  choices, and keep low-level view-plane/thread/queue controls out of the
+  Modeler UI while preserving those fields for JSON/rendercli paths;
 - keep preview controls and final-render controls as temporary request
   overrides layered over the saved intent;
 - show the final render graph in the Render window before execution starts and

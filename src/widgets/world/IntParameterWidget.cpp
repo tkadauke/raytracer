@@ -1,4 +1,5 @@
 #include "widgets/world/IntParameterWidget.h"
+#include "world/objects/Element.h"
 #include "ui_IntParameterWidget.h"
 
 #include <QSignalBlocker>
@@ -37,4 +38,15 @@ void IntParameterWidget::setValue(const QVariant& value) {
     return;
   const QSignalBlocker blocker(p->ui.intEdit);
   p->ui.intEdit->setValue(value.toInt());
+}
+
+void IntParameterWidget::updatePropertyConfiguration() {
+  if (!element())
+    return;
+
+  const auto range = element()->propertyIntRange(parameterName());
+  if (!range)
+    return;
+
+  p->ui.intEdit->setRange(range->first, range->second);
 }

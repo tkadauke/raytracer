@@ -57,6 +57,10 @@ public:
   QString propertyDisplayName(const QString& propertyName) const override;
   QString propertyGroup(const QString& propertyName) const override;
   QStringList propertyChoices(const QString& propertyName) const override;
+  QList<int> propertyIntChoices(const QString& propertyName) const override;
+  std::optional<QPair<int, int>> propertyIntRange(const QString& propertyName) const override;
+  std::optional<QPair<double, double>>
+  propertyDoubleRange(const QString& propertyName) const override;
   QString propertyChoiceDisplayName(const QString& propertyName,
                                     const QString& choice) const override;
   bool rebuildPropertyEditorAfterChange(const QString& propertyName) const override;

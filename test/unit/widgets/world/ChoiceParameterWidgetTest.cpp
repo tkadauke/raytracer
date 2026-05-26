@@ -10,11 +10,11 @@ namespace ChoiceParameterWidgetTest {
   class ChoiceParameterWidgetTest : public ::testing::GuiTest {};
 
   TEST_F(ChoiceParameterWidgetTest, ShouldInitialize) {
-    ChoiceParameterWidget widget({"raytracer", "rasterizer"});
+    ChoiceParameterWidget widget(QStringList{"raytracer", "rasterizer"});
   }
 
   TEST_F(ChoiceParameterWidgetTest, ShouldRoundtripChoiceViaSetValue) {
-    ChoiceParameterWidget widget({"raytracer", "rasterizer"});
+    ChoiceParameterWidget widget(QStringList{"raytracer", "rasterizer"});
     widget.setParameterName("defaultEngine");
 
     widget.setValue(QVariant::fromValue(QString("rasterizer")));
@@ -23,7 +23,7 @@ namespace ChoiceParameterWidgetTest {
   }
 
   TEST_F(ChoiceParameterWidgetTest, ShouldExposeChoicesInComboBox) {
-    ChoiceParameterWidget widget({"raytracer", "rasterizer"});
+    ChoiceParameterWidget widget(QStringList{"raytracer", "rasterizer"});
     widget.setParameterName("defaultEngine");
 
     auto* comboBox = widget.findChild<QComboBox*>("choiceComboBox");

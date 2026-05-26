@@ -82,6 +82,20 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("stencil_composite"));
     EXPECT_EQ(QString("Stencil Composite"),
               intent->propertyChoiceDisplayName("viewMode", "stencil_composite"));
+    EXPECT_EQ((QList<int>{1, 2, 4, 8}), intent->propertyIntChoices("rasterizerMSAASamples"));
+  }
+
+  TEST(RenderIntentElement, ExposesNumericRangesForEditorControls) {
+    Scene scene;
+    auto* intent = renderIntentElement(scene);
+    ASSERT_NE(nullptr, intent);
+
+    ASSERT_TRUE(intent->propertyIntRange("raytracerSamplesPerPixel").has_value());
+    EXPECT_EQ(1, intent->propertyIntRange("raytracerSamplesPerPixel")->first);
+    ASSERT_TRUE(intent->propertyIntRange("rasterizerShadowMapSize").has_value());
+    EXPECT_EQ(8192, intent->propertyIntRange("rasterizerShadowMapSize")->second);
+    ASSERT_TRUE(intent->propertyDoubleRange("rasterizerShadowBias").has_value());
+    EXPECT_DOUBLE_EQ(0.0, intent->propertyDoubleRange("rasterizerShadowBias")->first);
   }
 
   TEST(RenderIntentElement, FiltersEngineSpecificProperties) {
@@ -90,6 +104,9 @@ namespace RenderIntentElementTest {
     ASSERT_NE(nullptr, intent);
 
     EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
+    EXPECT_FALSE(intent->isPropertyVisible("raytracerViewPlane"));
+    EXPECT_FALSE(intent->isPropertyVisible("raytracerThreads"));
+    EXPECT_FALSE(intent->isPropertyVisible("raytracerQueueSize"));
     EXPECT_FALSE(intent->isPropertyVisible("rasterizerLod"));
 
     intent->setDefaultEngine("rasterizer");

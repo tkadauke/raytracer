@@ -4,6 +4,7 @@
 #include <QLabel>
 #include <QSignalBlocker>
 #include <QSizePolicy>
+#include <QVariant>
 #include <QVBoxLayout>
 
 #include <utility>
@@ -11,10 +12,18 @@
 struct ChoiceParameterWidget::Private {
   QLabel* label{nullptr};
   QComboBox* comboBox{nullptr};
-  QStringList choices;
+  QVariantList choices;
 };
 
 ChoiceParameterWidget::ChoiceParameterWidget(QStringList choices, QWidget* parent)
+    : ChoiceParameterWidget(QVariantList{}, parent) {
+  p->choices.reserve(choices.size());
+  for (const QString& choice : choices) {
+    p->choices << choice;
+  }
+}
+
+ChoiceParameterWidget::ChoiceParameterWidget(QVariantList choices, QWidget* parent)
     : AbstractParameterWidget(parent),
       p(std::make_unique<Private>()) {
   p->choices = std::move(choices);
@@ -68,7 +77,7 @@ void ChoiceParameterWidget::setValue(const QVariant& value) {
 void ChoiceParameterWidget::populateChoices() {
   const QSignalBlocker blocker(p->comboBox);
   p->comboBox->clear();
-  for (const QString& choice : p->choices) {
-    p->comboBox->addItem(displayNameForChoice(choice), choice);
+  for (const QVariant& choice : p->choices) {
+    p->comboBox->addItem(displayNameForChoice(choice.toString()), choice);
   }
 }
