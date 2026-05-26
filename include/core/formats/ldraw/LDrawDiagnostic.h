@@ -18,7 +18,9 @@ enum class LDrawDiagnosticCode {
   ColorFallback,
   DirectColorParseFailure,
   FatalParseError,
-  BfcAmbiguity
+  BfcAmbiguity,
+  MissingTexture,
+  UnsupportedTexmap
 };
 
 struct LDrawDiagnostic {

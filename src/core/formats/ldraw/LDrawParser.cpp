@@ -135,6 +135,60 @@ namespace {
         ++existingLines;
     }
   }
+
+  LDrawTexmapProjection parseTexmapProjection(const string& value) {
+    if (value == "PLANAR")
+      return LDrawTexmapProjection::Planar;
+    if (value == "CYLINDRICAL")
+      return LDrawTexmapProjection::Cylindrical;
+    if (value == "SPHERICAL")
+      return LDrawTexmapProjection::Spherical;
+    return LDrawTexmapProjection::Unknown;
+  }
+
+  LDrawCommand parseTexmap(const string& line, int lineNumber, const vector<Token>& tokens) {
+    if (tokens.size() < 3)
+      throwParseError(lineNumber, "!TEXMAP missing command");
+
+    LDrawTexmap command;
+    command.lineNumber = lineNumber;
+    command.text = lineRemainderAfterToken(line, tokens.front());
+
+    const string& texmapCommand = tokens[2].text;
+    if (texmapCommand == "START" || texmapCommand == "NEXT") {
+      command.command =
+        texmapCommand == "START" ? LDrawTexmapCommand::Start : LDrawTexmapCommand::Next;
+      if (tokens.size() < 4)
+        throwParseError(lineNumber, "!TEXMAP " + texmapCommand + " missing projection");
+      command.projection = parseTexmapProjection(tokens[3].text);
+      if (command.projection == LDrawTexmapProjection::Planar) {
+        if (tokens.size() < 14)
+          throwParseError(lineNumber, "!TEXMAP " + texmapCommand +
+                                        " PLANAR expects 3 points and a texture file");
+        command.points[0] = parsePoint(tokens, lineNumber, 4, "texmap.point1");
+        command.points[1] = parsePoint(tokens, lineNumber, 7, "texmap.point2");
+        command.points[2] = parsePoint(tokens, lineNumber, 10, "texmap.point3");
+        command.textureFile = lineRemainderAfterToken(line, tokens[12]);
+        if (command.textureFile.empty())
+          throwParseError(lineNumber, "!TEXMAP " + texmapCommand + " missing texture file");
+      } else {
+        command.textureFile = tokens.size() > 4 ? tokens.back().text : "";
+      }
+      return command;
+    }
+
+    if (texmapCommand == "FALLBACK") {
+      command.command = LDrawTexmapCommand::Fallback;
+      return command;
+    }
+
+    if (texmapCommand == "END") {
+      command.command = LDrawTexmapCommand::End;
+      return command;
+    }
+
+    throwParseError(lineNumber, "unknown !TEXMAP command '" + texmapCommand + "'");
+  }
 }
 
 LDrawParser::Commands LDrawParser::parse(istream& input) const {
@@ -217,6 +271,9 @@ LDrawCommand LDrawParser::parseLine(const string& line, int lineNumber) const {
 
   const string& lineType = tokens.front().text;
   if (lineType == "0") {
+    if (tokens.size() > 1 && tokens[1].text == "!TEXMAP")
+      return parseTexmap(line, lineNumber, tokens);
+
     LDrawMetaCommand command;
     command.lineNumber = lineNumber;
     command.text = lineRemainderAfterToken(line, tokens.front());

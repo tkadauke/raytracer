@@ -65,7 +65,11 @@ const Primitive* FlatMeshTriangle::intersect(const Rayd& ray, HitPointInterval& 
   }
 
   Vector3d hitPoint = ray.at(t);
-  hitPoints.add(HitPoint(this, t, hitPoint, m_normal));
+  const double alpha = 1.0 - beta - gamma;
+  const Vector2d uv = m_mesh->vertices()[m_index0].uv * alpha +
+                      m_mesh->vertices()[m_index1].uv * beta +
+                      m_mesh->vertices()[m_index2].uv * gamma;
+  hitPoints.add(HitPoint(this, t, hitPoint, m_normal, uv));
   state.hit(this, "FlatMeshTriangle");
   return this;
 }

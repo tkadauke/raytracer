@@ -20,6 +20,10 @@ vector<string> LDrawFileResolver::searchRoots(const string&) const {
   return {};
 }
 
+string LDrawFileResolver::resolvePath(const string&) const {
+  return "";
+}
+
 string LDrawFileResolver::normalizedFilename(string filename) {
   replace(filename.begin(), filename.end(), '\\', '/');
   transform(filename.begin(), filename.end(), filename.begin(), [](unsigned char c) {
@@ -53,6 +57,28 @@ unique_ptr<istream> LDrawFilesystemResolver::open(const string& filename) const 
   }
 
   return nullptr;
+}
+
+string LDrawFilesystemResolver::resolvePath(const string& filename) const {
+  namespace fs = std::filesystem;
+
+  auto existingPath = [](const fs::path& path) -> string {
+    std::error_code error;
+    if (!fs::exists(path, error))
+      return "";
+    const auto canonical = fs::weakly_canonical(path, error);
+    return error ? path.lexically_normal().string() : canonical.string();
+  };
+
+  if (auto path = existingPath(filename); !path.empty())
+    return path;
+
+  for (const auto& directory : m_searchDirectories) {
+    if (auto path = existingPath(fs::path(directory) / filename); !path.empty())
+      return path;
+  }
+
+  return "";
 }
 
 string LDrawFilesystemResolver::cacheKey(const string& filename) const {
@@ -114,4 +140,10 @@ string LDrawMpdFileResolver::cacheKey(const string& filename) const {
   if (m_fallback)
     return m_fallback->cacheKey(filename);
   return localKey;
+}
+
+string LDrawMpdFileResolver::resolvePath(const string& filename) const {
+  if (m_fallback)
+    return m_fallback->resolvePath(filename);
+  return "";
 }

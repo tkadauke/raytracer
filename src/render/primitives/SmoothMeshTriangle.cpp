@@ -88,7 +88,11 @@ const Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval
     return nullptr;
   }
 
-  hitPoints.add(HitPoint(this, t, ray.at(t), interpolateNormal(beta, gamma)));
+  const double alpha = 1.0 - beta - gamma;
+  const Vector2d uv = m_mesh->vertices()[m_index0].uv * alpha +
+                      m_mesh->vertices()[m_index1].uv * beta +
+                      m_mesh->vertices()[m_index2].uv * gamma;
+  hitPoints.add(HitPoint(this, t, ray.at(t), interpolateNormal(beta, gamma), uv));
   state.hit(this, "SmoothMeshTriangle");
   return this;
 }

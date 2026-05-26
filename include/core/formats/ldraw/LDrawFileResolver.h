@@ -15,6 +15,7 @@ public:
   [[nodiscard]] virtual std::unique_ptr<std::istream> open(const std::string& filename) const = 0;
 
   [[nodiscard]] virtual std::string cacheKey(const std::string& filename) const;
+  [[nodiscard]] virtual std::string resolvePath(const std::string& filename) const;
   [[nodiscard]] virtual std::vector<std::string> searchRoots(const std::string& filename) const;
 
 protected:
@@ -29,6 +30,7 @@ public:
 
   [[nodiscard]] std::unique_ptr<std::istream> open(const std::string& filename) const override;
   [[nodiscard]] std::string cacheKey(const std::string& filename) const override;
+  [[nodiscard]] std::string resolvePath(const std::string& filename) const override;
   [[nodiscard]] std::vector<std::string> searchRoots(const std::string& filename) const override;
 
 private:
@@ -42,6 +44,7 @@ public:
 
   [[nodiscard]] std::unique_ptr<std::istream> open(const std::string& filename) const override;
   [[nodiscard]] std::string cacheKey(const std::string& filename) const override;
+  [[nodiscard]] std::string resolvePath(const std::string& filename) const override;
 
 private:
   std::map<std::string, std::string> m_files;

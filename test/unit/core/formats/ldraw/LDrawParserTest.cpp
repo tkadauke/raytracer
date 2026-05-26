@@ -47,6 +47,36 @@ namespace LDrawParserTest {
     ASSERT_EQ("BFC CERTIFY CCW", meta.text);
   }
 
+  TEST(LDrawParser, ShouldParseTexmapPlanarStart) {
+    const auto command = LDrawParser().parseLine(
+      "0 !TEXMAP START PLANAR 0 0 0 10 0 0 0 20 0 textures/sticker.png", 12);
+    const auto& texmap = getCommand<LDrawTexmap>(command);
+
+    ASSERT_EQ(12, texmap.lineNumber);
+    ASSERT_EQ(LDrawTexmapCommand::Start, texmap.command);
+    ASSERT_EQ(LDrawTexmapProjection::Planar, texmap.projection);
+    ASSERT_EQ(Vector3d(0, 0, 0), texmap.points[0]);
+    ASSERT_EQ(Vector3d(10, 0, 0), texmap.points[1]);
+    ASSERT_EQ(Vector3d(0, 20, 0), texmap.points[2]);
+    ASSERT_EQ("textures/sticker.png", texmap.textureFile);
+    ASSERT_EQ("!TEXMAP START PLANAR 0 0 0 10 0 0 0 20 0 textures/sticker.png",
+              texmap.text);
+  }
+
+  TEST(LDrawParser, ShouldParseTexmapNextFallbackAndEnd) {
+    const auto next = LDrawParser().parseLine(
+      "0 !TEXMAP NEXT PLANAR 0 0 0 1 0 0 0 1 0 next.ppm", 3);
+    const auto fallback = LDrawParser().parseLine("0 !TEXMAP FALLBACK", 4);
+    const auto end = LDrawParser().parseLine("0 !TEXMAP END", 5);
+
+    EXPECT_EQ(LDrawTexmapCommand::Next, getCommand<LDrawTexmap>(next).command);
+    EXPECT_EQ("next.ppm", getCommand<LDrawTexmap>(next).textureFile);
+    EXPECT_EQ(LDrawTexmapCommand::Fallback, getCommand<LDrawTexmap>(fallback).command);
+    EXPECT_EQ(4, getCommand<LDrawTexmap>(fallback).lineNumber);
+    EXPECT_EQ(LDrawTexmapCommand::End, getCommand<LDrawTexmap>(end).command);
+    EXPECT_EQ(5, getCommand<LDrawTexmap>(end).lineNumber);
+  }
+
   TEST(LDrawParser, ShouldPreserveUnknownLineTypes) {
     const auto command = LDrawParser().parseLine("9 extension data", 4);
     const auto& unknown = getCommand<LDrawUnknownCommand>(command);
