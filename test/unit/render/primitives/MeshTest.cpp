@@ -48,6 +48,18 @@ namespace MeshTest {
     EXPECT_FALSE(this->mesh.faceColor(after - 1).has_value());
   }
 
+  TEST_F(MeshTest, ShouldAddFaceWithPreservedWinding) {
+    this->mesh.addFace(makeStdVector(0, 1, 2, 3), false);
+
+    EXPECT_EQ(makeStdVector(0, 1, 2, 3), this->mesh.faces().back());
+  }
+
+  TEST_F(MeshTest, ShouldAddFaceWithReversedWinding) {
+    this->mesh.addFace(makeStdVector(0, 1, 2, 3), true);
+
+    EXPECT_EQ(makeStdVector(0, 3, 2, 1), this->mesh.faces().back());
+  }
+
   TEST_F(MeshTest, ShouldAddFaceColorOverride) {
     this->mesh.addFace(makeStdVector(2, 1, 0), Colord::red());
 
@@ -58,6 +70,10 @@ namespace MeshTest {
 
   TEST_F(MeshTest, ShouldThrowExceptionIfFaceHasLessThanThreeVertices) {
     ASSERT_THROW(this->mesh.addFace(makeStdVector(1)), InvalidMeshFaceException);
+  }
+
+  TEST_F(MeshTest, ShouldThrowExceptionIfReversedFaceHasLessThanThreeVertices) {
+    ASSERT_THROW(this->mesh.addFace(makeStdVector(1), true), InvalidMeshFaceException);
   }
 
   TEST_F(MeshTest, ShouldIterateOverEmptyMesh) {
