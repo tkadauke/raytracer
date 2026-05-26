@@ -6,6 +6,7 @@
 #include <QJsonDocument>
 #include <QJsonParseError>
 
+#include "world/import/LDrawFileSceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/Scene.h"
 #include "world/objects/Camera.h"
@@ -662,8 +663,22 @@ namespace {
   }
 
   void printImportDiagnostics(const world::ImportResult& result) {
+    struct WarningSummary {
+      world::ImportDiagnostic first;
+      int count = 0;
+    };
+
+    std::map<QString, WarningSummary> warnings;
     for (const auto& diagnostic : result.diagnostics()) {
-      std::cerr << "import " << (diagnostic.isError() ? "error" : "warning");
+      if (!diagnostic.isError()) {
+        auto& summary = warnings[diagnostic.message];
+        if (summary.count == 0)
+          summary.first = diagnostic;
+        ++summary.count;
+        continue;
+      }
+
+      std::cerr << "import error";
       if (!diagnostic.source.isEmpty()) {
         std::cerr << " " << diagnostic.source.toStdString();
         if (diagnostic.line > 0) {
@@ -674,6 +689,25 @@ namespace {
         }
       }
       std::cerr << ": " << diagnostic.message.toStdString() << '\n';
+    }
+
+    for (const auto& entry : warnings) {
+      const auto& summary = entry.second;
+      const auto& diagnostic = summary.first;
+      std::cerr << "import warning";
+      if (!diagnostic.source.isEmpty()) {
+        std::cerr << " " << diagnostic.source.toStdString();
+        if (diagnostic.line > 0) {
+          std::cerr << ":" << diagnostic.line;
+          if (diagnostic.column > 0) {
+            std::cerr << ":" << diagnostic.column;
+          }
+        }
+      }
+      std::cerr << ": " << diagnostic.message.toStdString();
+      if (summary.count > 1)
+        std::cerr << " (" << (summary.count - 1) << " similar warnings suppressed)";
+      std::cerr << '\n';
     }
   }
 
@@ -894,6 +928,7 @@ private:
   bool m_ldrawIncludeEdgeOverlays;
   int m_ldrawMaxRecursion;
   QString m_ldrawMissingPartPolicy;
+  QString m_ldrawBackgroundColor;
 
   int m_maximumRecursionDepth;
   bool m_maximumRecursionDepthSet;
@@ -984,6 +1019,7 @@ private:
 
   std::unique_ptr<Scene> loadScene() const;
   std::unique_ptr<Scene> loadLDrawScene() const;
+  world::ImportOptions ldrawImportOptions() const;
   void printLDrawDiagnostics(const std::vector<LDrawDiagnostic>& diagnostics) const;
   std::vector<double> renderScene(const Scene& scene, const QString& output) const;
   void renderAnimation(const Scene& scene) const;
@@ -1031,12 +1067,12 @@ Renderer::Renderer()
     : m_ldrawInput(false),
       m_ldrawPreserveAuthoringHierarchy(false),
       m_ldrawScale(1.0),
-      m_ldrawCoordinateConversion("ldraw_to_raytracer"),
+      m_ldrawCoordinateConversion("none"),
       m_ldrawPreserveHierarchy(true),
       m_ldrawNormalMode("flat"),
       m_ldrawIncludeEdgeOverlays(true),
       m_ldrawMaxRecursion(64),
-      m_ldrawMissingPartPolicy("error"),
+      m_ldrawMissingPartPolicy("skip"),
       m_maximumRecursionDepth(10),
       m_maximumRecursionDepthSet(false),
       m_width(640),
@@ -1138,10 +1174,8 @@ std::unique_ptr<Scene> Renderer::loadScene() const {
   }
 
   if (importer) {
-    world::ImportOptions importOptions = m_importOptions;
-    if (!m_ldrawLibraryRoot.isEmpty() && !importOptions.contains("library_root")) {
-      importOptions.setValue("library_root", m_ldrawLibraryRoot);
-    }
+    world::ImportOptions importOptions =
+      importer->name() == "ldraw" ? ldrawImportOptions() : m_importOptions;
     world::ImportResult result = importer->importFile(m_filename, importOptions);
     printImportDiagnostics(result);
     if (result.failed()) {
@@ -1165,10 +1199,48 @@ std::unique_ptr<Scene> Renderer::loadScene() const {
   return scene;
 }
 
+world::ImportOptions Renderer::ldrawImportOptions() const {
+  world::ImportOptions options = m_importOptions;
+  if (!m_ldrawLibraryRoot.isEmpty() && !options.contains("library_root")) {
+    options.setValue("library_root", m_ldrawLibraryRoot);
+  }
+  options.setValue("scale", m_ldrawScale);
+  options.setValue("coordinate_conversion", m_ldrawCoordinateConversion);
+  options.setValue("preserve_hierarchy", m_ldrawPreserveHierarchy);
+  options.setValue("normal_mode", m_ldrawNormalMode);
+  options.setValue("include_edge_overlays", m_ldrawIncludeEdgeOverlays);
+  options.setValue("max_recursion", m_ldrawMaxRecursion);
+  options.setValue("missing_part_policy", m_ldrawMissingPartPolicy);
+  if (!m_ldrawBackgroundColor.isEmpty()) {
+    options.setValue("background_color", m_ldrawBackgroundColor);
+  }
+  return options;
+}
+
 std::unique_ptr<Scene> Renderer::loadLDrawScene() const {
+  if (!m_ldrawPreserveAuthoringHierarchy) {
+    world::LDrawFileSceneImporter importer;
+    world::ImportResult result = importer.importFile(m_filename, ldrawImportOptions());
+    printImportDiagnostics(result);
+    if (result.failed()) {
+      throw std::runtime_error(
+        QString("Unable to import LDraw input: %1").arg(m_filename).toStdString());
+    }
+
+    auto root = result.takeRoot();
+    if (auto* sceneRoot = qobject_cast<Scene*>(root.get())) {
+      root.release();
+      return std::unique_ptr<Scene>(sceneRoot);
+    }
+
+    throw std::runtime_error(
+      QString("LDraw importer did not return a scene root: %1").arg(m_filename).toStdString());
+  }
+
   auto scene = std::make_unique<Scene>(nullptr);
   scene->setName("LDraw Import");
-  scene->setBackground(Colord(0.02, 0.04, 0.08));
+  scene->setAmbient(Colord(0.8, 0.8, 0.8));
+  scene->setBackground(Colord::white());
 
   auto camera = std::make_unique<PinholeCamera>();
   camera->setId("camera");
@@ -1178,7 +1250,7 @@ std::unique_ptr<Scene> Renderer::loadLDrawScene() const {
   auto light = std::make_unique<DirectionalLight>();
   light->setId("light");
   light->setName("Light");
-  light->setDirection(Vector3d(-0.5, -1.0, -0.5));
+  light->setDirection(Vector3d(-0.35, 0.7, -1.0));
   scene->addChild(std::move(light));
 
   std::vector<LDrawDiagnostic> diagnostics;
@@ -1222,7 +1294,7 @@ std::unique_ptr<Scene> Renderer::loadLDrawScene() const {
   scene->setImportDiagnostics(std::move(diagnostics));
   printLDrawDiagnostics(scene->importDiagnostics());
 
-  if (!scene->frameActivePinholeCameraToContents(m_stepPlaybackStyle, Vector3d(0.75, 0.45, -1.0))) {
+  if (!scene->frameActivePinholeCameraToContents(m_stepPlaybackStyle, Vector3d(0.0, 0.0, -1.0))) {
     std::cerr << "LDraw warning: imported model bounds did not produce a camera frame\n";
   }
 
@@ -2141,14 +2213,14 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "Preserve LDraw STEP and MPD submodel structure as generic scene groups"},
      {"ldraw_scale", "Scale applied to direct LDraw input geometry", "scale"},
      {"ldraw_coordinate_conversion",
-      "Coordinate conversion for direct LDraw input (none, ldraw_to_raytracer; default "
-      "ldraw_to_raytracer)",
+      "Coordinate conversion for direct LDraw input (none, ldraw_to_raytracer; default none)",
       "mode"},
      {"ldraw_flatten_hierarchy", "Flatten direct LDraw subfile hierarchy where supported"},
      {"ldraw_normals", "Normal mode for direct LDraw input (flat, smooth)", "mode"},
      {"ldraw_no_edge_overlays", "Do not import LDraw type-2 edge overlay lines"},
      {"ldraw_max_recursion", "Maximum LDraw subfile recursion depth", "depth"},
      {"ldraw_missing_part_policy", "Policy for unresolved LDraw subfiles (error, skip)", "policy"},
+     {"ldraw-background-color", "Background color for direct LDraw imports (name or hex)", "color"},
      {"sampler", "Sampler type", "sampler"},
      {"samples_per_pixel", "Samples per pixel", "samples"},
      {{"j", "threads"}, "Number of threads", "threads"},
@@ -2335,6 +2407,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       *errorMessage = "LDraw coordinate conversion must be 'none' or 'ldraw_to_raytracer'";
       return CommandLineError;
     }
+    m_ldrawCoordinateConversion =
+      normalized == "none" ? QString("none") : QString("ldraw_to_raytracer");
   }
 
   if (parser.isSet("ldraw_flatten_hierarchy")) {
@@ -2366,6 +2440,14 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     m_ldrawMissingPartPolicy = parser.value("ldraw_missing_part_policy").trimmed().toLower();
     if (m_ldrawMissingPartPolicy != "error" && m_ldrawMissingPartPolicy != "skip") {
       *errorMessage = "LDraw missing part policy must be 'error' or 'skip'";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("ldraw-background-color")) {
+    m_ldrawBackgroundColor = parser.value("ldraw-background-color").trimmed();
+    if (m_ldrawBackgroundColor.isEmpty()) {
+      *errorMessage = "LDraw background color must not be empty";
       return CommandLineError;
     }
   }

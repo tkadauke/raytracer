@@ -320,9 +320,10 @@ The Modeler does not bake scene catalogs into C++; it opens scene JSON files
 directly and routes external model formats through registered
 `world::SceneImporter` implementations. LDraw `.ldr`, `.dat`, and `.mpd`
 imports build a new scene shell on a worker thread, use the importer's default
-library-root lookup, and frame the generated camera around the compiled model.
-New reusable demos should be added as scene files unless they need a new runtime
-feature, a new world wrapper type, or a dedicated importer.
+library-root lookup, and frame a front-facing camera around the compiled model
+on a white product-view background. New reusable demos should be added as scene
+files unless they need a new runtime feature, a new world wrapper type, or a
+dedicated importer.
 
 ## <a id="the-wireup"></a>The wireup
 ```text

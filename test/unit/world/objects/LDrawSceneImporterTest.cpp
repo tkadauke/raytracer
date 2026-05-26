@@ -237,11 +237,11 @@ namespace LDrawSceneImporterTest {
     ASSERT_NE(nullptr, std::dynamic_pointer_cast<render::Instance>(primitive));
     const auto& box = primitive->boundingBox();
     EXPECT_NEAR(-2.0, box.min().x(), 1e-9);
-    EXPECT_NEAR(0.0, box.min().y(), 1e-9);
-    EXPECT_NEAR(-2.0, box.min().z(), 1e-9);
+    EXPECT_NEAR(-2.0, box.min().y(), 1e-9);
+    EXPECT_NEAR(0.0, box.min().z(), 1e-9);
     EXPECT_NEAR(2.0, box.max().x(), 1e-9);
-    EXPECT_NEAR(0.0, box.max().y(), 1e-9);
-    EXPECT_NEAR(2.0, box.max().z(), 1e-9);
+    EXPECT_NEAR(2.0, box.max().y(), 1e-9);
+    EXPECT_NEAR(0.0, box.max().z(), 1e-9);
   }
 
   TEST(LDrawSceneImporter, PreservedHierarchyMetadataDoesNotTriggerAuthoringImport) {

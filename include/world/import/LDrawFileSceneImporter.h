@@ -1,6 +1,8 @@
 #pragma once
 
+#include "core/Color.h"
 #include "core/formats/ldraw/LDrawDiagnostic.h"
+#include "core/math/Vector.h"
 #include "world/import/SceneImporter.h"
 
 #include <memory>
@@ -34,14 +36,22 @@ namespace world {
       double scale{1.0};
       QString coordinateConversion;
       bool includeEdgeOverlays{true};
+      bool preserveHierarchy{true};
       int maxRecursion{64};
       QString missingPartPolicy;
+      Colord backgroundColor{Colord::white()};
+      Colord ambientColor{0.8, 0.8, 0.8};
     };
 
     [[nodiscard]] ResolvedOptions resolvedOptions(const QString& filename,
                                                   const ImportOptions& options) const;
     [[nodiscard]] QString defaultLibraryRoot() const;
     [[nodiscard]] std::unique_ptr<Scene> makeScene(const ResolvedOptions& options) const;
+    [[nodiscard]] Colord colorOption(const ImportOptions& options, const QString& name,
+                                     const Colord& fallback) const;
+    [[nodiscard]] Colord parseColor(const QString& value, const QString& optionName) const;
+    [[nodiscard]] Vector3d defaultCameraDirection() const;
+    [[nodiscard]] Vector3d defaultLightDirection() const;
     [[nodiscard]] ImportSourceMetadata sourceMetadataFor(const QString& filename) const;
     [[nodiscard]] ImportDiagnostic importDiagnosticFor(const LDrawDiagnostic& diagnostic) const;
     void appendDiagnostics(ImportResult& result,

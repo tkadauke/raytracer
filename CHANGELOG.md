@@ -11,6 +11,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **LDraw product-view scene defaults.** Direct LDraw file imports now use the
+  shared scene importer for front-camera framing, white background, stronger
+  ambient fill, native-coordinate default orientation, summarized import
+  warnings, and `rendercli --ldraw-background-color <color-name|hexvalue>`. —
+  GPT-5
 - **Modeler LDraw file import.** `.ldr`, `.dat`, and `.mpd` files now have a
   registered scene importer that creates a world scene shell, resolves LDraw
   geometry in the background, frames the active pinhole camera, and is available

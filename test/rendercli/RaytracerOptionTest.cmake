@@ -242,6 +242,23 @@ rendercli_assert_image_nonempty("${ldraw_direct_mpd_output}"
 rendercli_assert_image_varied("${ldraw_direct_mpd_output}"
                               NAME "direct LDraw MPD varied pixels")
 
+set(ldraw_background_output "${TEST_OUTPUT_DIR}/ldraw-background-color.png")
+rendercli_run(
+  NAME "rendercli applies direct LDraw background color"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine raytracer --width 24 --height 24
+    --ldraw_input
+    --ldraw_library_root "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/smoke/library"
+    --ldraw_coordinate_conversion none
+    --ldraw-background-color "#ff00ff"
+    "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/smoke/model.mpd"
+    "${ldraw_background_output}"
+)
+rendercli_assert_image_dimensions("${ldraw_background_output}" 24 24
+                                  NAME "LDraw background color dimensions")
+rendercli_assert_image_hash_differs("${ldraw_direct_mpd_output}" "${ldraw_background_output}"
+                                    NAME "LDraw background color changes output")
+
 set(ldraw_offset_model "${TEST_OUTPUT_DIR}/ldraw-offset.ldr")
 set(ldraw_offset_output "${TEST_OUTPUT_DIR}/ldraw-offset.png")
 file(WRITE "${ldraw_offset_model}" [=[
@@ -270,6 +287,16 @@ rendercli_expect_failure(
     --ldraw_input --ldraw_missing_part_policy maybe
     "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/rendercli/model.ldr"
     "${TEST_OUTPUT_DIR}/ldraw-invalid.png"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli validates direct LDraw background color"
+  STDERR_MATCHES "LDraw background_color must be a color name or hex color"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine raytracer --width 24 --height 24
+    --ldraw_input --ldraw-background-color definitely-not-a-color
+    "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/rendercli/model.ldr"
+    "${TEST_OUTPUT_DIR}/ldraw-invalid-background.png"
 )
 
 set(threaded_output "${TEST_OUTPUT_DIR}/threads-and-queue.png")

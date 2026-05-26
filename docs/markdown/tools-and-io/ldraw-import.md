@@ -34,15 +34,17 @@ tools/rendercli/rendercli --ldraw_input \
   model.mpd out.png
 ```
 
-Direct LDraw input applies `ldraw_to_raytracer` coordinate conversion by
-default so standard LDraw Y-down models arrive in the renderer's Y-up scene
-space. Use `--ldraw_coordinate_conversion none` for hand-authored fixtures that
-already use renderer coordinates.
+Direct LDraw input keeps the model's native coordinates by default. Use
+`--ldraw_coordinate_conversion ldraw_to_raytracer` for hand-authored fixtures
+that need the importer to flip LDraw-style axes into the renderer's Y-up scene
+space.
 
-Direct LDraw input also frames the generated scene's pinhole camera around the
-compiled model bounds from a three-quarter view. The fit calculation is shared
-by `Scene` and `PinholeCamera`, so UI import paths can reuse the same camera
-placement instead of carrying a rendercli-only heuristic.
+Direct LDraw input also builds a simple product-view scene around the imported
+model: a front-facing pinhole camera is framed to the compiled bounds, ambient
+fill light is raised, and the background defaults to white. `rendercli`
+forwards `--ldraw-background-color <color-name|hexvalue>` to the shared importer
+for command-line overrides; the same importer defaults are used when Modeler
+opens an LDraw file.
 
 `rendercli` can also import LDraw by filename extension through the generic
 scene importer path:

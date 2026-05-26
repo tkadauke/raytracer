@@ -8,9 +8,11 @@
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/Scene.h"
 
+#include <QColor>
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonObject>
+#include <QRegularExpression>
 
 #include <algorithm>
 #include <cstdlib>
@@ -54,7 +56,7 @@ namespace world {
        ImportOptionType::Choice,
        "Coordinate conversion",
        "Coordinate conversion applied before rendering.",
-       "ldraw_to_raytracer",
+       "none",
        false,
        {"ldraw_to_raytracer", "none"}},
       {"scale",
@@ -71,6 +73,27 @@ namespace world {
        true,
        false,
        {}},
+      {"preserve_hierarchy",
+       ImportOptionType::Boolean,
+       "Preserve hierarchy",
+       "Keep LDraw subfile hierarchy in the compiled primitive where supported.",
+       true,
+       false,
+       {}},
+      {"background_color",
+       ImportOptionType::String,
+       "Background color",
+       "Scene background as a CSS color name or hex color.",
+       "white",
+       false,
+       {}},
+      {"ambient_color",
+       ImportOptionType::String,
+       "Ambient color",
+       "Scene ambient fill light as a CSS color name or hex color.",
+       "#cccccc",
+       false,
+       {}},
     };
   }
 
@@ -84,7 +107,7 @@ namespace world {
       auto scene = makeScene(resolved);
       world::imports::resolveLDrawAuthoringImports(
         scene.get(), resolved.libraryRoot, QFileInfo(filename).absolutePath(), &ldrawDiagnostics);
-      if (!scene->frameActivePinholeCameraToContents(Vector3d(0.75, 0.45, -1.0))) {
+      if (!scene->frameActivePinholeCameraToContents(defaultCameraDirection())) {
         ldrawDiagnostics.push_back({LDrawDiagnosticSeverity::Warning,
                                     LDrawDiagnosticCode::SkippedGeometry,
                                     filename.toStdString(),
@@ -123,10 +146,13 @@ namespace world {
     result.missingPartPolicy =
       options.value("missing_part_policy", "skip").toString().trimmed().toLower();
     result.coordinateConversion =
-      options.value("coordinate_conversion", "ldraw_to_raytracer").toString().trimmed().toLower();
+      options.value("coordinate_conversion", "none").toString().trimmed().toLower();
     result.scale = options.value("scale", 1.0).toDouble();
     result.includeEdgeOverlays = options.value("include_edge_overlays", true).toBool();
+    result.preserveHierarchy = options.value("preserve_hierarchy", true).toBool();
     result.maxRecursion = options.value("max_recursion", 64).toInt();
+    result.backgroundColor = colorOption(options, "background_color", Colord::white());
+    result.ambientColor = colorOption(options, "ambient_color", Colord(0.8, 0.8, 0.8));
 
     if (result.normalMode != "flat" && result.normalMode != "smooth")
       throw std::invalid_argument("LDraw normal_mode must be 'flat' or 'smooth'");
@@ -162,7 +188,8 @@ namespace world {
     auto scene = std::make_unique<Scene>();
     scene->setName(fileInfo.completeBaseName().isEmpty() ? QString("LDraw Import")
                                                          : fileInfo.completeBaseName());
-    scene->setBackground(Colord(0.02, 0.04, 0.08));
+    scene->setAmbient(options.ambientColor);
+    scene->setBackground(options.backgroundColor);
 
     auto camera = std::make_unique<PinholeCamera>();
     camera->setId("camera");
@@ -172,7 +199,7 @@ namespace world {
     auto light = std::make_unique<DirectionalLight>();
     light->setId("light");
     light->setName("Light");
-    light->setDirection(Vector3d(-0.5, -1.0, -0.5));
+    light->setDirection(defaultLightDirection());
     scene->addChild(std::move(light));
 
     auto model = std::make_unique<Group>();
@@ -185,7 +212,7 @@ namespace world {
     metadata["normalMode"] = options.normalMode;
     metadata["scale"] = options.scale;
     metadata["coordinateConversion"] = options.coordinateConversion;
-    metadata["preserveHierarchy"] = true;
+    metadata["preserveHierarchy"] = options.preserveHierarchy;
     metadata["includeEdgeOverlays"] = options.includeEdgeOverlays;
     metadata["maxRecursion"] = options.maxRecursion;
     metadata["missingPartPolicy"] = options.missingPartPolicy;
@@ -195,6 +222,45 @@ namespace world {
     scene->addChild(std::move(model));
 
     return scene;
+  }
+
+  Colord LDrawFileSceneImporter::colorOption(const ImportOptions& options, const QString& name,
+                                             const Colord& fallback) const {
+    const QVariant value = options.value(name);
+    if (!value.isValid())
+      return fallback;
+    return parseColor(value.toString(), name);
+  }
+
+  Colord LDrawFileSceneImporter::parseColor(const QString& value, const QString& optionName) const {
+    QString text = value.trimmed();
+    if (text.isEmpty()) {
+      throw std::invalid_argument(
+        QString("LDraw %1 must be a color name or hex color").arg(optionName).toStdString());
+    }
+
+    if (text.startsWith("0x", Qt::CaseInsensitive))
+      text = "#" + text.mid(2);
+
+    static const QRegularExpression bareHex("^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$");
+    if (bareHex.match(text).hasMatch())
+      text = "#" + text;
+
+    const QColor color(text);
+    if (!color.isValid()) {
+      throw std::invalid_argument(
+        QString("LDraw %1 must be a color name or hex color").arg(optionName).toStdString());
+    }
+
+    return Colord(color.redF(), color.greenF(), color.blueF());
+  }
+
+  Vector3d LDrawFileSceneImporter::defaultCameraDirection() const {
+    return Vector3d(0.0, 0.0, -1.0);
+  }
+
+  Vector3d LDrawFileSceneImporter::defaultLightDirection() const {
+    return Vector3d(-0.35, 0.7, -1.0);
   }
 
   ImportSourceMetadata LDrawFileSceneImporter::sourceMetadataFor(const QString& filename) const {

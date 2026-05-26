@@ -124,10 +124,8 @@ namespace {
     if (options.coordinateConversion ==
         world::imports::LDrawImportOptions::CoordinateConversion::LDrawToRaytracer) {
       transform.setCell(0, 0, options.scale);
-      transform.setCell(1, 1, 0.0);
-      transform.setCell(1, 2, -options.scale);
-      transform.setCell(2, 1, options.scale);
-      transform.setCell(2, 2, 0.0);
+      transform.setCell(1, 1, -options.scale);
+      transform.setCell(2, 2, -options.scale);
     } else {
       transform = Matrix4d(Matrix3d::scale(options.scale, options.scale, options.scale));
     }
