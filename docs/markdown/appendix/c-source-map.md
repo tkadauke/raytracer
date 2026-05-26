@@ -17,7 +17,7 @@
 | `include/core/animation/AnimationTrack.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `include/core/animation/Timeline.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `include/core/color/sse3/` | [Color and buffers](../foundations/color-and-buffers.md) |
-| `include/core/formats/AssetResolver.h` | [PLY parsing](../tools-and-io/ply-parsing.md) |
+| `include/core/formats/AssetResolver.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/core/geometry/AttributeColorMap.h` | [Tessellation](../rasterization/tessellation.md) |
 | `include/core/geometry/Bresenham.h` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `include/core/geometry/Curve.h` | [Tessellation](../rasterization/tessellation.md) |
@@ -146,15 +146,15 @@
 | `include/widgets/world/RenderGraphTracePreviewWidget.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `include/world/animation/AnimationTrack.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `include/world/animation/Timeline.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
-| `include/world/import/ImportDiagnostic.h` | [PLY parsing](../tools-and-io/ply-parsing.md) |
-| `include/world/import/ImportOptions.h` | [PLY parsing](../tools-and-io/ply-parsing.md) |
-| `include/world/import/ImportResult.h` | [PLY parsing](../tools-and-io/ply-parsing.md) |
-| `include/world/import/SceneImporter.h` | [PLY parsing](../tools-and-io/ply-parsing.md) |
+| `include/world/import/ImportDiagnostic.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
+| `include/world/import/ImportOptions.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
+| `include/world/import/ImportResult.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
+| `include/world/import/SceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/world/objects/Group.h` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md) |
 | `include/world/objects/Scene.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `scenes/` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `scenes/animation_frame_demo.json` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
-| `src/core/formats/AssetResolver.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
+| `src/core/formats/AssetResolver.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ldraw/LDrawColorTable.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ldraw/LDrawFileResolver.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ldraw/LDrawGeometryCompiler.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
@@ -182,6 +182,7 @@
 | `src/modeler/MainWindow.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `src/widgets/world/RenderGraphInspectorWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/widgets/world/RenderGraphTracePreviewWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
+| `test/fixtures/importers/` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/functional/engine/wireframe/WireframeTest.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `test/functional/render/cameras/ThinLensCameraTest.cpp` | [Cameras](../ray-rendering/cameras.md) |
 | `test/functional/render/lights/PointLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
@@ -192,6 +193,8 @@
 | `test/functional/steps/WireframeSteps.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `test/helpers/Blob.cpp` | [Blob analysis and silhouettes](../image-and-vision/blob-analysis-and-silhouettes.md) |
 | `test/helpers/Blob.h` | [Blob analysis and silhouettes](../image-and-vision/blob-analysis-and-silhouettes.md)<br>[Image buffers and pixel formats](../image-and-vision/image-buffers-and-pixel-formats.md) |
+| `test/helpers/ImporterTestHelper.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `test/helpers/ImporterTestHelper.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/helpers/ShapeClassifier.cpp` | [Shape classification](../image-and-vision/shape-classification.md) |
 | `test/helpers/ShapeClassifier.h` | [Shape classification](../image-and-vision/shape-classification.md) |
 | `test/helpers/Silhouette.cpp` | [Blob analysis and silhouettes](../image-and-vision/blob-analysis-and-silhouettes.md) |
@@ -217,6 +220,7 @@
 | `test/unit/widgets/world/RenderGraphTracePreviewWidgetTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/world/animation/AnimationTrackTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/unit/world/animation/TimelineTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
+| `test/unit/world/import/ImporterFixtureHarnessTest.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/unit/world/objects/SceneTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `tools/rendercli/` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `tools/rendercli/rendercli.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
