@@ -582,6 +582,9 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   **Done.** `LDrawSceneImporter` maps build steps and submodel references onto
   generic `Group` metadata nodes while keeping flattened import available for
   #210.
+  `LDrawModel` scene surfaces also expose LDraw file, library root, inherited
+  transform scale, normal smoothing, and visibility through scene JSON, with
+  `rendercli --ldraw_library_root` support for #210.
   ~~Shared sidecar asset resolver for importer search paths and cache keys.~~ ✅
   **Done.** `core::AssetResolver` resolves current-file-relative and configured
   search-root assets with explicit case-sensitivity behavior for Epic #230.
