@@ -117,7 +117,12 @@ animations contain simple node translation, rotation, or scale channels, the
 importer preserves sampler/channel metadata on the node groups and creates
 world timeline tracks for supported channels. Unsupported target paths or
 interpolation modes continue as warnings so the imported hierarchy remains
-inspectable.
+inspectable. Mesh primitives
+compile to shared `MeshPrimitive` geometry, and glTF PBR base-color factors or
+base-color textures become renderer `MatteMaterial` diffuse textures. The
+importer reports warnings when material features such as metallic/roughness,
+alpha modes, double-sided rendering, or extensions cannot be represented by the
+current renderer material model.
 
 ## Diagnostics
 

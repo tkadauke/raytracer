@@ -65,6 +65,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   primitives as shared `MeshPrimitive` geometry with positions, indices,
   normals, UVs, computed-normal/zero-UV fallbacks, and material color
   references for Epic #233. — GPT-5
+- **glTF material texture import.** glTF PBR base-color factors and
+  base-color textures now map to renderer `MatteMaterial` diffuse textures,
+  external texture images resolve through the glTF asset resolver, and
+  unsupported metallic/roughness, alpha, double-sided, and extension features
+  emit import warnings for Epic #233. — GPT-5
 - **Cached LDraw filesystem resolution.** Repeated LDraw part/subfile lookups now
   reuse resolver results instead of rescanning the library roots for every
   cache-key/open call, making large MPD imports much faster. — GPT-5

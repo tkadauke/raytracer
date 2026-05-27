@@ -555,9 +555,13 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   for Epic #233. ~~Triangle mesh primitives with POSITION, indices, NORMAL,
   TEXCOORD_0, computed-normal/zero-UV fallbacks, and base-color material
   references.~~ ✅ **Done.** `GltfSceneImporter` compiles node mesh primitives
-  into shared `MeshPrimitive` geometry for Epic #233. Full materials +
-  textures + skeletal animation and write support remain TODO; the natural
-  default for web interop (feeds the §4.1 WebGL viewer directly).
+  into shared `MeshPrimitive` geometry for Epic #233. ~~PBR base-color factors
+  and base-color textures map to diffuse renderer materials with diagnostics
+  for unsupported metallic/roughness, alpha, double-sided, and extension
+  features.~~ ✅ **Done.** `GltfSceneImporter` builds `MatteMaterial` diffuse
+  textures from glTF material data for Epic #233. Remaining material features,
+  skeletal animation, and write support remain TODO; the natural default for
+  web interop (feeds the §4.1 WebGL viewer directly).
 - **USD / OpenUSD** — Pixar's industry-standard scene description. Heavy dependency but the right long-term home for everything (geometry, materials, animation, layered overrides, references). Read-only first; write is aspirational.
 - **FBX** — Autodesk; via OpenFBX. Read + limited write.
 - **OpenVDB** — volumetric grids, once §4.3 volumetrics land. Read-only initially.

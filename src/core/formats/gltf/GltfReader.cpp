@@ -225,6 +225,67 @@ namespace core::gltf {
       return result;
     }
 
+    std::optional<double> numberProperty(const QJsonObject& object, const char* name,
+                                         const std::string& path, Diagnostics& diagnostics,
+                                         bool required = false) {
+      const QJsonValue value = object.value(name);
+      if (value.isUndefined()) {
+        if (required)
+          diagnostics.error(DiagnosticCode::MissingRequiredProperty, path + "." + name,
+                            "Missing required property");
+        return std::nullopt;
+      }
+      if (!value.isDouble()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, path + "." + name,
+                          "Expected a number");
+        return std::nullopt;
+      }
+      return value.toDouble();
+    }
+
+    std::optional<bool> boolProperty(const QJsonObject& object, const char* name,
+                                     const std::string& path, Diagnostics& diagnostics,
+                                     bool required = false) {
+      const QJsonValue value = object.value(name);
+      if (value.isUndefined()) {
+        if (required)
+          diagnostics.error(DiagnosticCode::MissingRequiredProperty, path + "." + name,
+                            "Missing required property");
+        return std::nullopt;
+      }
+      if (!value.isBool()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, path + "." + name,
+                          "Expected a boolean");
+        return std::nullopt;
+      }
+      return value.toBool();
+    }
+
+    std::optional<TextureInfo> textureInfoProperty(const QJsonObject& object, const char* name,
+                                                   const std::string& path,
+                                                   Diagnostics& diagnostics) {
+      const QJsonValue value = object.value(name);
+      if (value.isUndefined())
+        return std::nullopt;
+      if (!value.isObject()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, path + "." + name,
+                          "Expected an object");
+        return std::nullopt;
+      }
+
+      const std::string texturePath = path + "." + name;
+      const QJsonObject textureObject = value.toObject();
+      const auto index = unsignedInteger(textureObject, "index", texturePath, diagnostics, true);
+      if (!index)
+        return std::nullopt;
+
+      TextureInfo info;
+      info.index = *index;
+      if (auto texCoord = integer(textureObject, "texCoord", texturePath, diagnostics, false))
+        info.texCoord = *texCoord;
+      return info;
+    }
+
     std::optional<ComponentType> componentTypeFromInt(int value) {
       switch (value) {
       case 5120:
@@ -416,6 +477,37 @@ namespace core::gltf {
       }
     }
 
+    void validateTexturesAndMaterials(const Asset& asset, Diagnostics& diagnostics) {
+      for (std::size_t i = 0; i < asset.textures.size(); ++i) {
+        const Texture& texture = asset.textures[i];
+        const std::string path = jsonPath("textures", i);
+        if (texture.sampler && *texture.sampler >= asset.samplers.size()) {
+          diagnostics.error(DiagnosticCode::InvalidReference, path + ".sampler",
+                            "texture references a missing sampler");
+        }
+        if (texture.source && *texture.source >= asset.images.size()) {
+          diagnostics.error(DiagnosticCode::InvalidReference, path + ".source",
+                            "texture references a missing image");
+        }
+      }
+
+      for (std::size_t i = 0; i < asset.materials.size(); ++i) {
+        const Material& material = asset.materials[i];
+        const std::string path = jsonPath("materials", i) + ".pbrMetallicRoughness";
+        if (material.baseColorTexture &&
+            material.baseColorTexture->index >= asset.textures.size()) {
+          diagnostics.error(DiagnosticCode::InvalidReference, path + ".baseColorTexture.index",
+                            "material references a missing texture");
+        }
+        if (material.metallicRoughnessTexture &&
+            material.metallicRoughnessTexture->index >= asset.textures.size()) {
+          diagnostics.error(DiagnosticCode::InvalidReference,
+                            path + ".metallicRoughnessTexture.index",
+                            "material references a missing texture");
+        }
+      }
+    }
+
     std::vector<std::uint8_t> bytesFromBufferView(const Asset& asset, std::size_t bufferView) {
       const BufferView& view = asset.bufferViews[bufferView];
       const Buffer& buffer = asset.buffers[view.buffer];
@@ -578,6 +670,62 @@ namespace core::gltf {
       }
     }
 
+    void parseSamplers(const QJsonObject& root, Asset& asset, Diagnostics& diagnostics) {
+      const QJsonValue value = root.value("samplers");
+      if (value.isUndefined())
+        return;
+      if (!value.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, "samplers", "Expected an array");
+        return;
+      }
+
+      const QJsonArray samplers = value.toArray();
+      asset.samplers.reserve(static_cast<std::size_t>(samplers.size()));
+      for (int i = 0; i < samplers.size(); ++i) {
+        const std::string path = jsonPath("samplers", static_cast<std::size_t>(i));
+        if (!samplers.at(i).isObject()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path, "Expected an object");
+          continue;
+        }
+
+        const QJsonObject object = samplers.at(i).toObject();
+        Sampler sampler;
+        sampler.magFilter = integer(object, "magFilter", path, diagnostics, false);
+        sampler.minFilter = integer(object, "minFilter", path, diagnostics, false);
+        if (auto wrapS = integer(object, "wrapS", path, diagnostics, false))
+          sampler.wrapS = *wrapS;
+        if (auto wrapT = integer(object, "wrapT", path, diagnostics, false))
+          sampler.wrapT = *wrapT;
+        asset.samplers.push_back(sampler);
+      }
+    }
+
+    void parseTextures(const QJsonObject& root, Asset& asset, Diagnostics& diagnostics) {
+      const QJsonValue value = root.value("textures");
+      if (value.isUndefined())
+        return;
+      if (!value.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, "textures", "Expected an array");
+        return;
+      }
+
+      const QJsonArray textures = value.toArray();
+      asset.textures.reserve(static_cast<std::size_t>(textures.size()));
+      for (int i = 0; i < textures.size(); ++i) {
+        const std::string path = jsonPath("textures", static_cast<std::size_t>(i));
+        if (!textures.at(i).isObject()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path, "Expected an object");
+          continue;
+        }
+
+        const QJsonObject object = textures.at(i).toObject();
+        Texture texture;
+        texture.sampler = unsignedInteger(object, "sampler", path, diagnostics, false);
+        texture.source = unsignedInteger(object, "source", path, diagnostics, false);
+        asset.textures.push_back(texture);
+      }
+    }
+
     void parseMaterials(const QJsonObject& root, Asset& asset, Diagnostics& diagnostics) {
       const QJsonValue value = root.value("materials");
       if (value.isUndefined())
@@ -600,12 +748,34 @@ namespace core::gltf {
         Material material;
         if (auto name = stringProperty(object, "name", path, diagnostics))
           material.name = *name;
+        if (auto alphaMode = stringProperty(object, "alphaMode", path, diagnostics))
+          material.alphaMode = *alphaMode;
+        if (auto alphaCutoff = numberProperty(object, "alphaCutoff", path, diagnostics))
+          material.alphaCutoff = *alphaCutoff;
+        if (auto doubleSided = boolProperty(object, "doubleSided", path, diagnostics))
+          material.doubleSided = *doubleSided;
+        if (object.contains("normalTexture"))
+          material.unsupportedFeatures.push_back("normalTexture");
+        if (object.contains("occlusionTexture"))
+          material.unsupportedFeatures.push_back("occlusionTexture");
+        if (object.contains("emissiveTexture") || object.contains("emissiveFactor"))
+          material.unsupportedFeatures.push_back("emissive");
+        if (object.contains("extensions"))
+          material.unsupportedFeatures.push_back("material extensions");
 
         const QJsonValue pbrValue = object.value("pbrMetallicRoughness");
         if (pbrValue.isObject()) {
           const QJsonObject pbr = pbrValue.toObject();
           numberArray(pbr, "baseColorFactor", path + ".pbrMetallicRoughness", diagnostics,
                       &material.baseColorFactor);
+          material.baseColorTexture = textureInfoProperty(
+            pbr, "baseColorTexture", path + ".pbrMetallicRoughness", diagnostics);
+          material.metallicRoughnessTexture = textureInfoProperty(
+            pbr, "metallicRoughnessTexture", path + ".pbrMetallicRoughness", diagnostics);
+          material.metallicFactor =
+            numberProperty(pbr, "metallicFactor", path + ".pbrMetallicRoughness", diagnostics);
+          material.roughnessFactor =
+            numberProperty(pbr, "roughnessFactor", path + ".pbrMetallicRoughness", diagnostics);
         } else if (!pbrValue.isUndefined()) {
           diagnostics.error(DiagnosticCode::InvalidPropertyType, path + ".pbrMetallicRoughness",
                             "Expected an object");
@@ -970,6 +1140,8 @@ namespace core::gltf {
       parseBufferViews(root, asset, result.diagnostics);
       parseAccessors(root, asset, result.diagnostics);
       parseImages(root, asset, currentFile, resolver, result.diagnostics);
+      parseSamplers(root, asset, result.diagnostics);
+      parseTextures(root, asset, result.diagnostics);
       parseMaterials(root, asset, result.diagnostics);
       parseMeshes(root, asset, result.diagnostics);
       parseNodes(root, asset, result.diagnostics);
@@ -978,6 +1150,7 @@ namespace core::gltf {
       validateBufferViews(asset, result.diagnostics);
       validateAccessors(asset, result.diagnostics);
       validateImages(asset, result.diagnostics);
+      validateTexturesAndMaterials(asset, result.diagnostics);
       validateNodesAndScenes(asset, result.diagnostics);
       resolveBufferViewImages(asset);
 
