@@ -6,8 +6,6 @@
 #include <utility>
 
 #include <QJsonArray>
-#include <QMetaProperty>
-
 #include "core/Color.h"
 #include "core/animation/AnimationTrack.h"
 #include "core/math/Vector.h"
@@ -103,6 +101,17 @@ namespace {
     return value.toDouble();
   }
 
+  int intFromJson(const world::AnimationTrack& track, const QJsonValue& value) {
+    if (!value.isDouble())
+      throw evaluationError(track, "integer key values must be integers");
+
+    const auto number = value.toDouble();
+    if (std::floor(number) != number)
+      throw evaluationError(track, "integer key values must be integers");
+
+    return static_cast<int>(number);
+  }
+
   Vector3d vectorFromJson(const world::AnimationTrack& track, const QJsonValue& value) {
     const auto array = requireTriple(track, value, "Vector3d");
     return Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble());
@@ -117,6 +126,12 @@ namespace {
     if (!value.isBool())
       throw evaluationError(track, "bool key values must be booleans");
     return value.toBool();
+  }
+
+  QString stringFromJson(const world::AnimationTrack& track, const QJsonValue& value) {
+    if (!value.isString())
+      throw evaluationError(track, "string key values must be strings");
+    return value.toString();
   }
 
   template<class Value>
@@ -144,6 +159,16 @@ namespace {
 
     core::animation::AnimationTrack<Value> typedTrack(keyframes, track.interpolationMode());
     return variantFromValue(typedTrack.sample(frame));
+  }
+
+  template<class Value, class Converter>
+  QVariant sampleStepOnlyTrack(const world::AnimationTrack& track, int frame,
+                               const QString& typeName, Converter&& converter) {
+    if (track.interpolationMode() != InterpolationMode::Step)
+      throw evaluationError(track,
+                            QString("%1 properties support only step interpolation").arg(typeName));
+
+    return sampleTypedTrack<Value>(track, frame, std::forward<Converter>(converter));
   }
 
 } // namespace
@@ -217,29 +242,32 @@ namespace world {
   }
 
   QVariant AnimationTrack::sample(const Element& target, int frame) const {
-    const auto propertyIndex =
-      target.metaObject()->indexOfProperty(m_propertyName.toLatin1().constData());
-    if (propertyIndex < 0)
+    const auto propertyInfo = target.animationPropertyInfo(m_propertyName);
+    if (!propertyInfo)
       throw evaluationError(*this, "target property does not exist");
 
-    const auto property = target.metaObject()->property(propertyIndex);
-    if (!property.isWritable())
+    if (!propertyInfo->writable)
       throw evaluationError(*this, "target property is not writable");
 
-    const QString type = property.typeName();
-    if (type == "double")
+    switch (propertyInfo->type) {
+    case Element::AnimationPropertyType::Double:
       return sampleTypedTrack<double>(*this, frame, doubleFromJson);
-    if (type == "Vector3<double>")
+    case Element::AnimationPropertyType::Integer:
+      return sampleTypedTrack<int>(*this, frame, intFromJson);
+    case Element::AnimationPropertyType::Vector3:
       return sampleTypedTrack<Vector3d>(*this, frame, vectorFromJson);
-    if (type == "Color<double>")
+    case Element::AnimationPropertyType::Color:
       return sampleTypedTrack<Colord>(*this, frame, colorFromJson);
-    if (type == "bool") {
-      if (m_interpolationMode != InterpolationMode::Step)
-        throw evaluationError(*this, "bool properties support only step interpolation");
-      return sampleTypedTrack<bool>(*this, frame, boolFromJson);
+    case Element::AnimationPropertyType::Boolean:
+      return sampleStepOnlyTrack<bool>(*this, frame, QStringLiteral("bool"), boolFromJson);
+    case Element::AnimationPropertyType::String:
+      return sampleStepOnlyTrack<QString>(*this, frame, QStringLiteral("string"), stringFromJson);
+    case Element::AnimationPropertyType::Unsupported:
+      break;
     }
 
-    throw evaluationError(*this, QString("unsupported property type '%1'").arg(type));
+    throw evaluationError(*this,
+                          QString("unsupported property type '%1'").arg(propertyInfo->typeName));
   }
 
   void AnimationTrack::apply(Element& root, int frame) const {
@@ -248,7 +276,7 @@ namespace world {
       throw evaluationError(*this, "target element was not found");
 
     const auto value = sample(*target, frame);
-    if (!target->setProperty(m_propertyName.toLatin1().constData(), value))
+    if (!target->setAnimatedProperty(m_propertyName, value))
       throw evaluationError(*this, "sampled value could not be applied");
   }
 

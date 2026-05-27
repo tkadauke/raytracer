@@ -16,6 +16,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   rotation, and scale channels into world timeline tracks where possible, and
   report diagnostics for unsupported interpolation or target paths for Epic
   #233. — GPT-5
+- **Source asset animation.** Scene animation tracks can now target editable
+  source/import parameters such as OpenSCAD Customizer values; numeric
+  parameters interpolate, boolean/string-like parameters are step-only, and
+  `SourceAsset` rebuilds generated output when animated values are applied. —
+  GPT-5
 - **Modeler Open Recent.** The File menu now includes an Open Recent submenu
   backed by the ten most recent scene/import files, so frequently used scenes
   and source assets can be reopened without returning to the file dialog. —

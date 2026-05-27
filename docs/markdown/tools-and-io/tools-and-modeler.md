@@ -340,7 +340,9 @@ lights, render settings, or timeline. Direct
 OpenSCAD opens and imports remain source-backed as `SourceAsset` objects;
 Customizer-style sections, comments, numeric values, booleans, string choices,
 and vector expressions appear in the property inspector and rebuild the
-generated mesh when edited. The same source asset exposes a normal material
+generated mesh when edited. Scene animation tracks can target the same editable
+source parameters, so evaluated frames rebuild the source-backed output with the
+sampled Customizer values. The same source asset exposes a normal material
 reference, so assigning a scene material to the asset overrides the generated
 OpenSCAD mesh without exposing transient importer children in the Elements tree.
 New reusable demos should be added as scene files unless they need a new runtime

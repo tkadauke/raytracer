@@ -97,6 +97,9 @@ public:
   QString propertyChoiceDisplayName(const QString& propertyName,
                                     const QString& choice) const override;
   void propertyEdited(const QString& propertyName) override;
+  std::optional<AnimationPropertyInfo>
+  animationPropertyInfo(const QString& propertyName) const override;
+  bool setAnimatedProperty(const QString& propertyName, const QVariant& value) override;
 
 protected:
   void applyMaterialOverride(std::shared_ptr<render::Primitive> primitive) const override;
@@ -116,6 +119,8 @@ private:
   void removeEditableImportProperties();
   void setEditableImportDefine(const QString& propertyName, const QVariant& value);
   void applyEditableImportPropertyChange(const QString& propertyName);
+  [[nodiscard]] AnimationPropertyType
+  animationPropertyTypeForSchema(const world::ImportOptionSchema& schema) const;
 
   QString m_sourcePath;
   QString m_format;

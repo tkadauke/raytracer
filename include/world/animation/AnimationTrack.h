@@ -32,9 +32,11 @@ namespace world {
   };
 
   /**
-  * Animation track targeting one direct `Q_PROPERTY` on one world element.
+  * Animation track targeting one editable property on one world element.
   *
-  * The target is addressed by stable element id and a direct property name.
+  * The target is addressed by stable element id and a direct property name. Most
+  * tracks target direct `Q_PROPERTY`s; source-backed assets can also expose
+  * importer-defined dynamic properties through `Element::animationPropertyInfo`.
   * Nested property paths are intentionally not accepted by this first world
   * timeline layer.
   */
@@ -44,7 +46,7 @@ namespace world {
     * Creates a world animation track.
     *
     * @param targetId id of the world element whose property is animated.
-    * @param propertyName direct `Q_PROPERTY` name to animate.
+    * @param propertyName direct animatable property name.
     * @param keyframes keyed JSON values, sorted by frame during construction.
     * @param interpolationMode mode used between adjacent keyframes.
     * @throws std::invalid_argument if the target, property, or keyframes are
@@ -89,9 +91,10 @@ namespace world {
     /**
     * Samples this track for @p target at @p frame.
     *
-    * The target property's `Q_PROPERTY` type selects the supported value
-    * decoder. Linear and smoothstep sampling are supported for `double`,
-    * `Vector3d`, and `Colord`. `bool` properties are step-only.
+    * The target property's animation metadata selects the supported value
+    * decoder. Linear and smoothstep sampling are supported for `double`, `int`,
+    * `Vector3d`, and `Colord`. `bool` and string-like source parameters are
+    * step-only.
     *
     * @throws std::runtime_error if the property is missing, unsupported, or
     *   cannot be sampled with this track's interpolation mode.

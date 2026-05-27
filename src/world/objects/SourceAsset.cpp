@@ -15,6 +15,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonValue>
+#include <QByteArray>
 
 #include <memory>
 #include <stdexcept>
@@ -385,6 +386,30 @@ void SourceAsset::propertyEdited(const QString& propertyName) {
   applyEditableImportPropertyChange(propertyName);
 }
 
+std::optional<Element::AnimationPropertyInfo>
+SourceAsset::animationPropertyInfo(const QString& propertyName) const {
+  if (const auto* schema = editableImportPropertySchema(propertyName)) {
+    const QByteArray propertyKey = propertyName.toUtf8();
+    const QVariant value = property(propertyKey.constData());
+    const QString typeName = value.typeName() != nullptr ? QString::fromLatin1(value.typeName())
+                                                         : QStringLiteral("dynamic");
+    return AnimationPropertyInfo{animationPropertyTypeForSchema(*schema), typeName, true};
+  }
+
+  return Group::animationPropertyInfo(propertyName);
+}
+
+bool SourceAsset::setAnimatedProperty(const QString& propertyName, const QVariant& value) {
+  const auto* schema = editableImportPropertySchema(propertyName);
+  if (!schema)
+    return Group::setAnimatedProperty(propertyName, value);
+
+  const QByteArray propertyKey = propertyName.toUtf8();
+  setProperty(propertyKey.constData(), coerceEditableImportPropertyValue(*schema, value));
+  applyEditableImportPropertyChange(propertyName);
+  return true;
+}
+
 void SourceAsset::applyMaterialOverride(std::shared_ptr<render::Primitive> primitive) const {
   if (primitive && material())
     primitive->setMaterial(material()->toRaytracerMaterial());
@@ -396,6 +421,25 @@ void SourceAsset::applyEditableImportPropertyChange(const QString& propertyName)
 
   setEditableImportDefine(propertyName, property(propertyName.toUtf8().constData()));
   rebuildGeneratedChildren();
+}
+
+Element::AnimationPropertyType
+SourceAsset::animationPropertyTypeForSchema(const world::ImportOptionSchema& schema) const {
+  switch (schema.type) {
+  case world::ImportOptionType::Boolean:
+    return AnimationPropertyType::Boolean;
+  case world::ImportOptionType::Integer:
+    return AnimationPropertyType::Integer;
+  case world::ImportOptionType::Double:
+    return AnimationPropertyType::Double;
+  case world::ImportOptionType::String:
+  case world::ImportOptionType::FilePath:
+  case world::ImportOptionType::DirectoryPath:
+  case world::ImportOptionType::Choice:
+    return AnimationPropertyType::String;
+  }
+
+  return AnimationPropertyType::Unsupported;
 }
 
 static bool dummy = ElementFactory::self().registerClass<SourceAsset>("SourceAsset");

@@ -133,23 +133,35 @@ objects. `Scene` reads and writes these tracks through a top-level
 }
 ```
 
-World tracks target one element id and one direct `Q_PROPERTY` name. During
-evaluation, the track finds the target element, reads the property's Qt type,
-decodes the keyed JSON values, samples the core typed track, and writes the
-sampled value back through `QObject::setProperty()`.
+World tracks target one element id and one direct animatable property name.
+Most tracks point at writable `Q_PROPERTY`s, but elements can also expose
+dynamic properties through their animation metadata. During evaluation, the
+track finds the target element, reads that animation metadata, decodes the
+keyed JSON values, samples the core typed track, and writes the sampled value
+back through the element's edit hook.
 
 The supported world property types are:
 
 - `double`
+- `int`
 - `Vector3d`
 - `Colord`
 - `bool`, with step interpolation only
 
+Source-backed assets use the same path for editable importer parameters. For
+example, OpenSCAD Customizer values exposed on a `SourceAsset` can be targeted
+by scene animation tracks. Numeric parameters interpolate, integer parameters
+sample to integer values, and boolean or string-like parameters such as choices
+and vector expressions are step-only. Applying one of those tracks updates the
+source asset import options and rebuilds the generated output for the evaluated
+frame.
+
 `Scene::evaluateAnimationAtFrame(frame)` applies the scene's tracks in place.
 `Scene::evaluatedAtFrame(frame)` returns a deep-copied scene with the tracks
 applied, leaving the authoring scene unchanged. Missing targets, missing
-properties, unsupported property types, and non-step bool interpolation fail
-with explicit runtime errors.
+properties, unsupported property types, non-step bool interpolation, and
+non-step string-like source-parameter interpolation fail with explicit runtime
+errors.
 
 ## <a id="rendering-one-frame"></a>Rendering one frame
 `rendercli --frame N` loads a JSON scene, evaluates its world timeline at

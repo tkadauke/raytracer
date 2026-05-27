@@ -83,6 +83,41 @@ bool Element::rebuildPropertyEditorAfterChange(const QString&) const {
 void Element::propertyEdited(const QString&) {
 }
 
+std::optional<Element::AnimationPropertyInfo>
+Element::animationPropertyInfo(const QString& propertyName) const {
+  const int propertyIndex = metaObject()->indexOfProperty(propertyName.toLatin1().constData());
+  if (propertyIndex < 0)
+    return std::nullopt;
+
+  const auto property = metaObject()->property(propertyIndex);
+  const QString typeName = property.typeName();
+  return AnimationPropertyInfo{animationPropertyTypeForTypeName(typeName), typeName,
+                               property.isWritable()};
+}
+
+bool Element::setAnimatedProperty(const QString& propertyName, const QVariant& value) {
+  const bool applied = setProperty(propertyName.toLatin1().constData(), value);
+  if (applied)
+    propertyEdited(propertyName);
+  return applied;
+}
+
+Element::AnimationPropertyType
+Element::animationPropertyTypeForTypeName(const QString& typeName) const {
+  if (typeName == QStringLiteral("double"))
+    return AnimationPropertyType::Double;
+  if (typeName == QStringLiteral("int"))
+    return AnimationPropertyType::Integer;
+  if (typeName == QStringLiteral("Vector3<double>"))
+    return AnimationPropertyType::Vector3;
+  if (typeName == QStringLiteral("Color<double>"))
+    return AnimationPropertyType::Color;
+  if (typeName == QStringLiteral("bool"))
+    return AnimationPropertyType::Boolean;
+
+  return AnimationPropertyType::Unsupported;
+}
+
 QString Element::humanizePropertyName(const QString& propertyName) const {
   QString text = propertyName;
   text.replace(QChar('_'), QChar(' '));

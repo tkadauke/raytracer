@@ -11,15 +11,24 @@
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 
+#include "world/animation/AnimationTrack.h"
+
 #include <QFile>
 #include <QDir>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QTemporaryFile>
 
+#include <functional>
+#include <stdexcept>
+
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 namespace SourceAssetTest {
+  using core::math::interpolation::InterpolationMode;
+  using ::testing::HasSubstr;
+
   class StubSourceAssetImporter : public world::SceneImporter {
   public:
     QString name() const override {
@@ -92,11 +101,25 @@ namespace SourceAssetTest {
          true,
          false,
          {}},
+        {"segments",
+         world::ImportOptionType::Integer,
+         "Segments",
+         "Editable source segment count.",
+         8,
+         false,
+         {}},
         {"wall_thickness",
          world::ImportOptionType::Double,
          "",
          "Editable wall thickness.",
          0.0,
+         false,
+         {}},
+        {"size",
+         world::ImportOptionType::String,
+         "Size",
+         "Editable vector expression.",
+         QStringLiteral("[2, 0]"),
          false,
          {}},
       };
@@ -134,6 +157,16 @@ namespace SourceAssetTest {
     const QString filename = file.fileName();
     file.setAutoRemove(false);
     return filename;
+  }
+
+  void expectRuntimeErrorWithSubstring(const std::function<void()>& action,
+                                       const std::string& message) {
+    try {
+      action();
+      FAIL() << "expected std::runtime_error";
+    } catch (const std::runtime_error& error) {
+      EXPECT_THAT(error.what(), HasSubstr(message));
+    }
   }
 
   TEST(SourceAsset, ShouldBeRegisteredWithElementFactory) {
@@ -292,6 +325,7 @@ namespace SourceAssetTest {
     EXPECT_EQ(QStringLiteral("Editable source length."), asset.propertyDescription("length"));
     EXPECT_DOUBLE_EQ(2.5, asset.property("length").toDouble());
     EXPECT_TRUE(asset.property("enabled").toBool());
+    EXPECT_EQ(8, asset.property("segments").toInt());
     ASSERT_EQ(1, asset.childElements().size());
     EXPECT_EQ(QString("length=2.5 enabled=1"), asset.childElements().front()->name());
 
@@ -308,5 +342,110 @@ namespace SourceAssetTest {
     EXPECT_FALSE(json.contains("length"));
     EXPECT_DOUBLE_EQ(4.0,
                      json["importOptions"].toObject()["define"].toObject()["length"].toDouble());
+  }
+
+  TEST(SourceAsset, AnimatesEditableImporterDoubleParametersAndRebuildsGeneratedOutput) {
+    registerEditableImporter();
+    const QString source = writeTemporarySource(QStringLiteral("editableasset"));
+
+    Scene scene;
+    auto* asset = new SourceAsset;
+    asset->setId(QStringLiteral("animated-source-asset"));
+    asset->setSourcePath(source);
+    asset->setFormat("editable-source-asset-stub");
+    scene.addChild(asset);
+    asset->rebuildGeneratedChildren();
+
+    const world::AnimationTrack track(asset->id(), "length",
+                                      {
+                                        {1, QJsonValue(1.0)},
+                                        {11, QJsonValue(11.0)},
+                                      });
+    track.apply(scene, 6);
+
+    EXPECT_DOUBLE_EQ(6.0, asset->property("length").toDouble());
+    EXPECT_DOUBLE_EQ(6.0, asset->importOptions()["define"].toObject()["length"].toDouble());
+    ASSERT_EQ(1, asset->childElements().size());
+    EXPECT_EQ(QString("length=6 enabled=1"), asset->childElements().front()->name());
+  }
+
+  TEST(SourceAsset, AnimatesEditableImporterIntegerParameters) {
+    registerEditableImporter();
+    const QString source = writeTemporarySource(QStringLiteral("editableasset"));
+
+    Scene scene;
+    auto* asset = new SourceAsset;
+    asset->setId(QStringLiteral("animated-source-asset"));
+    asset->setSourcePath(source);
+    asset->setFormat("editable-source-asset-stub");
+    scene.addChild(asset);
+    asset->rebuildGeneratedChildren();
+
+    const world::AnimationTrack track(asset->id(), "segments",
+                                      {
+                                        {1, QJsonValue(8)},
+                                        {11, QJsonValue(18)},
+                                      });
+    track.apply(scene, 6);
+
+    EXPECT_EQ(13, asset->property("segments").toInt());
+    EXPECT_EQ(13, asset->importOptions()["define"].toObject()["segments"].toInt());
+  }
+
+  TEST(SourceAsset, AnimatesEditableImporterDiscreteParametersWithStepInterpolation) {
+    registerEditableImporter();
+    const QString source = writeTemporarySource(QStringLiteral("editableasset"));
+
+    Scene scene;
+    auto* asset = new SourceAsset;
+    asset->setId(QStringLiteral("animated-source-asset"));
+    asset->setSourcePath(source);
+    asset->setFormat("editable-source-asset-stub");
+    scene.addChild(asset);
+    asset->rebuildGeneratedChildren();
+
+    const world::AnimationTrack enabledTrack(asset->id(), "enabled",
+                                             {
+                                               {1, QJsonValue(true)},
+                                               {11, QJsonValue(false)},
+                                             },
+                                             InterpolationMode::Step);
+    enabledTrack.apply(scene, 11);
+
+    EXPECT_FALSE(asset->property("enabled").toBool());
+    EXPECT_FALSE(asset->importOptions()["define"].toObject()["enabled"].toBool());
+    ASSERT_EQ(1, asset->childElements().size());
+    EXPECT_EQ(QString("length=2.5 enabled=0"), asset->childElements().front()->name());
+
+    const world::AnimationTrack sizeTrack(asset->id(), "size",
+                                          {
+                                            {1, QJsonValue(QStringLiteral("[2, 0]"))},
+                                            {11, QJsonValue(QStringLiteral("[3, 0]"))},
+                                          },
+                                          InterpolationMode::Step);
+    sizeTrack.apply(scene, 11);
+
+    EXPECT_EQ(QStringLiteral("[3, 0]"), asset->property("size").toString());
+    EXPECT_EQ(QStringLiteral("[3, 0]"),
+              asset->importOptions()["define"].toObject()["size"].toString());
+  }
+
+  TEST(SourceAsset, RejectsLinearAnimationForEditableImporterStringParameters) {
+    registerEditableImporter();
+    const QString source = writeTemporarySource(QStringLiteral("editableasset"));
+
+    SourceAsset asset;
+    asset.setSourcePath(source);
+    asset.setFormat("editable-source-asset-stub");
+    asset.rebuildGeneratedChildren();
+
+    const world::AnimationTrack track(asset.id(), "size",
+                                      {
+                                        {1, QJsonValue(QStringLiteral("[2, 0]"))},
+                                        {11, QJsonValue(QStringLiteral("[3, 0]"))},
+                                      });
+
+    expectRuntimeErrorWithSubstring([&] { static_cast<void>(track.sample(asset, 6)); },
+                                    "string properties support only step interpolation");
   }
 }

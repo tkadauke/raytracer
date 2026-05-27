@@ -8,6 +8,7 @@
 #include <QList>
 #include <QPair>
 #include <QStringList>
+#include <QVariant>
 
 namespace engine::graph {
   class RenderSceneAnalysis;
@@ -19,6 +20,22 @@ class Element : public QObject {
   Q_PROPERTY(QString name READ name WRITE setName)
 
 public:
+  enum class AnimationPropertyType {
+    Unsupported,
+    Double,
+    Integer,
+    Vector3,
+    Color,
+    Boolean,
+    String
+  };
+
+  struct AnimationPropertyInfo {
+    AnimationPropertyType type{AnimationPropertyType::Unsupported};
+    QString typeName;
+    bool writable{false};
+  };
+
   explicit Element(Element* parent = nullptr);
   virtual ~Element();
 
@@ -61,6 +78,25 @@ public:
                                             const QString& choice) const;
   virtual bool rebuildPropertyEditorAfterChange(const QString& propertyName) const;
   virtual void propertyEdited(const QString& propertyName);
+  /**
+    * Describes how @p propertyName participates in world animation.
+    *
+    * The default implementation exposes writable direct `Q_PROPERTY`s whose
+    * value types are understood by `world::AnimationTrack`. Subclasses can
+    * override this to expose dynamic properties, such as importer-defined
+    * source parameters.
+    */
+  virtual std::optional<AnimationPropertyInfo>
+  animationPropertyInfo(const QString& propertyName) const;
+
+  /**
+    * Applies a sampled animation value.
+    *
+    * The default implementation writes through `QObject::setProperty()` and
+    * then calls `propertyEdited()` so element-specific side effects stay in
+    * one place.
+    */
+  virtual bool setAnimatedProperty(const QString& propertyName, const QVariant& value);
 
   inline QString displayName() const {
     if (m_name.isEmpty()) {
@@ -183,6 +219,7 @@ protected:
   void resolveReferences(const QMap<QString, Element*>& elements);
 
 private:
+  AnimationPropertyType animationPropertyTypeForTypeName(const QString& typeName) const;
   QString humanizePropertyName(const QString& propertyName) const;
 
   void writeForClass(const QMetaObject* klass, QJsonObject& json);
