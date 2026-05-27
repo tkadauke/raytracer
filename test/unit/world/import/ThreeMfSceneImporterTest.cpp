@@ -21,10 +21,11 @@ namespace ThreeMfSceneImporterTest {
   }
 
   TEST(ThreeMfSceneImporter, RegistersForThreeMfExtension) {
-    auto importer = world::SceneImporterRegistry::self().createForFile("part.3mf");
+    auto importer = world::SceneImporterRegistry::self().createByFormat("3mf");
 
     ASSERT_NE(nullptr, importer);
     EXPECT_EQ(QString("3mf"), importer->name());
+    EXPECT_TRUE(world::SceneImporterRegistry::self().hasExtension("3mf"));
   }
 
   TEST(ThreeMfSceneImporter, ImportsMinimalCorePackageAsTransformedMeshGroup) {

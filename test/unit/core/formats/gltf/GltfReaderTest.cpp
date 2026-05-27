@@ -194,7 +194,6 @@ namespace GltfReaderTest {
     const fs::path fixture = "test/fixtures/gltf/animated_node.gltf";
 
     const core::gltf::ReadResult result = Reader::readFile(fixture);
-
     ASSERT_TRUE(result.ok()) << (result.diagnostics.empty()
                                    ? ""
                                    : result.diagnostics.entries().front().toString());
@@ -212,6 +211,52 @@ namespace GltfReaderTest {
     EXPECT_EQ(0u, *animation.channels[0].target.node);
     EXPECT_EQ("translation", animation.channels[0].target.path);
     EXPECT_EQ("weights", animation.channels[1].target.path);
+  }
+
+  TEST(GltfReader, ParsesCamerasAndPunctualLightExtension) {
+    const string json = R"JSON({
+      "asset": {"version": "2.0"},
+      "extensions": {
+        "KHR_lights_punctual": {
+          "lights": [
+            {"name": "Sun", "type": "directional", "color": [1.0, 0.8, 0.6], "intensity": 2.5},
+            {"name": "Lamp", "type": "point", "range": 12.0}
+          ]
+        }
+      },
+      "cameras": [
+        {"name": "Hero", "type": "perspective",
+         "perspective": {"yfov": 0.7, "aspectRatio": 1.5, "znear": 0.1, "zfar": 100.0}},
+        {"name": "Plan", "type": "orthographic",
+         "orthographic": {"xmag": 8.0, "ymag": 4.0, "znear": 0.1, "zfar": 50.0}}
+      ],
+      "nodes": [
+        {"name": "Camera Node", "camera": 0},
+        {"name": "Light Node", "extensions": {"KHR_lights_punctual": {"light": 1}}}
+      ]
+    })JSON";
+
+    const core::gltf::ReadResult result = Reader::readJson(json);
+
+    ASSERT_TRUE(result.ok()) << (result.diagnostics.empty()
+                                   ? ""
+                                   : result.diagnostics.entries().front().toString());
+    ASSERT_TRUE(result.asset);
+    ASSERT_EQ(2u, result.asset->cameras.size());
+    EXPECT_EQ("Hero", result.asset->cameras[0].name);
+    EXPECT_EQ(core::gltf::CameraType::Perspective, result.asset->cameras[0].type);
+    EXPECT_EQ(0.7, result.asset->cameras[0].perspective.yfov);
+    EXPECT_EQ(1.5, result.asset->cameras[0].perspective.aspectRatio.value());
+    EXPECT_EQ(core::gltf::CameraType::Orthographic, result.asset->cameras[1].type);
+    EXPECT_EQ(8.0, result.asset->cameras[1].orthographic.xmag);
+    ASSERT_EQ(2u, result.asset->punctualLights.size());
+    EXPECT_EQ("Sun", result.asset->punctualLights[0].name);
+    EXPECT_EQ(core::gltf::PunctualLightType::Directional, result.asset->punctualLights[0].type);
+    EXPECT_EQ(0.8, result.asset->punctualLights[0].color[1]);
+    EXPECT_EQ(core::gltf::PunctualLightType::Point, result.asset->punctualLights[1].type);
+    EXPECT_EQ(12.0, result.asset->punctualLights[1].range.value());
+    EXPECT_EQ(0u, result.asset->nodes[0].camera.value());
+    EXPECT_EQ(1u, result.asset->nodes[1].punctualLight.value());
   }
 
   TEST(GltfReader, ParsesGlbJsonAndBinaryChunks) {

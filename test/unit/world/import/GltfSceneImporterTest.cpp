@@ -8,7 +8,11 @@
 #include "world/import/GltfSceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/CompiledPrimitive.h"
+#include "world/objects/DirectionalLight.h"
 #include "world/objects/Group.h"
+#include "world/objects/OrthographicCamera.h"
+#include "world/objects/PinholeCamera.h"
+#include "world/objects/PointLight.h"
 #include "world/objects/Scene.h"
 
 #include <QFile>
@@ -215,6 +219,109 @@ namespace GltfSceneImporterTest {
 
     scene->evaluateAnimationAtFrame(24);
     expectVectorNear(animatedNode->position(), Vector3d(1.0, 2.0, 3.0));
+  }
+
+  TEST(GltfSceneImporter, ImportsPerspectiveAndOrthographicCamerasFromNodes) {
+    const QString path = writeGltf(R"JSON({
+      "asset": {"version": "2.0"},
+      "scenes": [{"nodes": [0, 1]}],
+      "cameras": [
+        {"name": "Hero Perspective", "type": "perspective",
+         "perspective": {"yfov": 0.927295218, "aspectRatio": 1.5, "znear": 0.1, "zfar": 200.0}},
+        {"name": "Plan Orthographic", "type": "orthographic",
+         "orthographic": {"xmag": 8.0, "ymag": 4.0, "znear": 0.5, "zfar": 50.0}}
+      ],
+      "nodes": [
+        {"name": "Perspective Node", "camera": 0, "translation": [1, 2, 3]},
+        {"name": "Orthographic Node", "camera": 1, "translation": [4, 5, 6]}
+      ]
+    })JSON");
+
+    world::GltfSceneImporter importer;
+    const auto result = importer.importFile(path);
+
+    ASSERT_TRUE(result.succeeded());
+    auto* scene = qobject_cast<Group*>(result.groupRoot()->childElements()[0]);
+    ASSERT_NE(nullptr, scene);
+    ASSERT_EQ(2, scene->childElements().size());
+
+    auto* perspectiveNode = qobject_cast<Group*>(scene->childElements()[0]);
+    ASSERT_NE(nullptr, perspectiveNode);
+    ASSERT_EQ(1, perspectiveNode->childElements().size());
+    auto* perspective = qobject_cast<PinholeCamera*>(perspectiveNode->childElements()[0]);
+    ASSERT_NE(nullptr, perspective);
+    EXPECT_EQ(QString("Hero Perspective"), perspective->name());
+    expectVectorNear(perspective->position(), Vector3d(1.0, 2.0, 3.0));
+    expectVectorNear(perspective->target(), Vector3d(1.0, 2.0, 2.0));
+    EXPECT_NEAR(1.2, perspective->zoom(), 0.0001);
+    EXPECT_EQ(QString("perspective"), perspective->metadataValue("gltfCameraType").toString());
+    EXPECT_EQ(1.5, perspective->metadataValue("gltfAspectRatio").toDouble());
+
+    auto* orthographicNode = qobject_cast<Group*>(scene->childElements()[1]);
+    ASSERT_NE(nullptr, orthographicNode);
+    ASSERT_EQ(1, orthographicNode->childElements().size());
+    auto* orthographic = qobject_cast<OrthographicCamera*>(orthographicNode->childElements()[0]);
+    ASSERT_NE(nullptr, orthographic);
+    EXPECT_EQ(QString("Plan Orthographic"), orthographic->name());
+    expectVectorNear(orthographic->position(), Vector3d(4.0, 5.0, 6.0));
+    expectVectorNear(orthographic->target(), Vector3d(4.0, 5.0, 5.0));
+    EXPECT_NEAR(1.5, orthographic->zoom(), 0.0001);
+    EXPECT_EQ(8.0, orthographic->metadataValue("gltfXmag").toDouble());
+  }
+
+  TEST(GltfSceneImporter, ImportsSupportedPunctualLightsAndWarnsForUnsupportedData) {
+    const QString path = writeGltf(R"JSON({
+      "asset": {"version": "2.0"},
+      "extensions": {
+        "KHR_lights_punctual": {
+          "lights": [
+            {"name": "Sun", "type": "directional", "color": [1.0, 0.8, 0.6], "intensity": 2.5},
+            {"name": "Bulb", "type": "point", "range": 10.0},
+            {"name": "Cone", "type": "spot", "spot": {"outerConeAngle": 0.5}}
+          ]
+        }
+      },
+      "scenes": [{"nodes": [0, 1, 2]}],
+      "nodes": [
+        {"name": "Sun Node", "extensions": {"KHR_lights_punctual": {"light": 0}}},
+        {"name": "Bulb Node", "translation": [1, 2, 3],
+         "extensions": {"KHR_lights_punctual": {"light": 1}}},
+        {"name": "Cone Node", "extensions": {"KHR_lights_punctual": {"light": 2}}}
+      ]
+    })JSON");
+
+    world::GltfSceneImporter importer;
+    const auto result = importer.importFile(path);
+
+    ASSERT_TRUE(result.succeeded());
+    auto* scene = qobject_cast<Group*>(result.groupRoot()->childElements()[0]);
+    ASSERT_NE(nullptr, scene);
+
+    auto* sunNode = qobject_cast<Group*>(scene->childElements()[0]);
+    ASSERT_NE(nullptr, sunNode);
+    ASSERT_EQ(1, sunNode->childElements().size());
+    auto* sun = qobject_cast<DirectionalLight*>(sunNode->childElements()[0]);
+    ASSERT_NE(nullptr, sun);
+    EXPECT_EQ(QString("Sun"), sun->name());
+    EXPECT_EQ(Colord(1.0, 0.8, 0.6), sun->color());
+    EXPECT_EQ(2.5, sun->intensity());
+    expectVectorNear(sun->direction(), Vector3d(0.0, 0.0, -1.0));
+
+    auto* bulbNode = qobject_cast<Group*>(scene->childElements()[1]);
+    ASSERT_NE(nullptr, bulbNode);
+    ASSERT_EQ(1, bulbNode->childElements().size());
+    auto* bulb = qobject_cast<PointLight*>(bulbNode->childElements()[0]);
+    ASSERT_NE(nullptr, bulb);
+    EXPECT_EQ(QString("Bulb"), bulb->name());
+    EXPECT_EQ(10.0, bulb->metadataValue("gltfRange").toDouble());
+
+    auto* coneNode = qobject_cast<Group*>(scene->childElements()[2]);
+    ASSERT_NE(nullptr, coneNode);
+    EXPECT_TRUE(coneNode->childElements().empty());
+    ASSERT_EQ(2u, result.diagnostics().size());
+    EXPECT_TRUE(result.diagnostics()[0].isWarning());
+    EXPECT_TRUE(result.diagnostics()[0].message.contains("range"));
+    EXPECT_TRUE(result.diagnostics()[1].message.contains("spot light"));
   }
 
   TEST(GltfSceneImporter, ImportsIndexedTrianglePrimitiveAttributesAndMaterialReference) {

@@ -323,6 +323,24 @@ namespace core::gltf {
       return std::nullopt;
     }
 
+    std::optional<CameraType> cameraTypeFromString(const std::string& value) {
+      if (value == "perspective")
+        return CameraType::Perspective;
+      if (value == "orthographic")
+        return CameraType::Orthographic;
+      return std::nullopt;
+    }
+
+    std::optional<PunctualLightType> punctualLightTypeFromString(const std::string& value) {
+      if (value == "directional")
+        return PunctualLightType::Directional;
+      if (value == "point")
+        return PunctualLightType::Point;
+      if (value == "spot")
+        return PunctualLightType::Spot;
+      return std::nullopt;
+    }
+
     bool startsWith(const std::string& value, const std::string& prefix) {
       return value.size() >= prefix.size() &&
              std::equal(prefix.begin(), prefix.end(), value.begin());
@@ -842,6 +860,137 @@ namespace core::gltf {
       }
     }
 
+    void parseCameras(const QJsonObject& root, Asset& asset, Diagnostics& diagnostics) {
+      const QJsonValue value = root.value("cameras");
+      if (value.isUndefined())
+        return;
+      if (!value.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, "cameras", "Expected an array");
+        return;
+      }
+
+      const QJsonArray cameras = value.toArray();
+      asset.cameras.reserve(static_cast<std::size_t>(cameras.size()));
+      for (int i = 0; i < cameras.size(); ++i) {
+        const std::string path = jsonPath("cameras", static_cast<std::size_t>(i));
+        if (!cameras.at(i).isObject()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path, "Expected an object");
+          continue;
+        }
+
+        const QJsonObject object = cameras.at(i).toObject();
+        Camera camera;
+        if (auto name = stringProperty(object, "name", path, diagnostics))
+          camera.name = *name;
+        if (auto typeName = stringProperty(object, "type", path, diagnostics, true)) {
+          if (auto type = cameraTypeFromString(*typeName)) {
+            camera.type = *type;
+          } else {
+            diagnostics.error(DiagnosticCode::UnsupportedValue, path + ".type",
+                              "Unsupported camera type", *typeName);
+          }
+        }
+
+        if (camera.type == CameraType::Perspective) {
+          const QJsonValue perspectiveValue = object.value("perspective");
+          if (!perspectiveValue.isObject()) {
+            diagnostics.error(DiagnosticCode::MissingRequiredProperty, path + ".perspective",
+                              "perspective camera requires a perspective object");
+          } else {
+            const QJsonObject perspective = perspectiveValue.toObject();
+            const std::string perspectivePath = path + ".perspective";
+            camera.perspective.aspectRatio =
+              numberProperty(perspective, "aspectRatio", perspectivePath, diagnostics, false);
+            if (auto yfov = numberProperty(perspective, "yfov", perspectivePath, diagnostics))
+              camera.perspective.yfov = *yfov;
+            if (auto znear = numberProperty(perspective, "znear", perspectivePath, diagnostics))
+              camera.perspective.znear = *znear;
+            camera.perspective.zfar =
+              numberProperty(perspective, "zfar", perspectivePath, diagnostics, false);
+          }
+        } else {
+          const QJsonValue orthographicValue = object.value("orthographic");
+          if (!orthographicValue.isObject()) {
+            diagnostics.error(DiagnosticCode::MissingRequiredProperty, path + ".orthographic",
+                              "orthographic camera requires an orthographic object");
+          } else {
+            const QJsonObject orthographic = orthographicValue.toObject();
+            const std::string orthographicPath = path + ".orthographic";
+            if (auto xmag = numberProperty(orthographic, "xmag", orthographicPath, diagnostics))
+              camera.orthographic.xmag = *xmag;
+            if (auto ymag = numberProperty(orthographic, "ymag", orthographicPath, diagnostics))
+              camera.orthographic.ymag = *ymag;
+            if (auto znear = numberProperty(orthographic, "znear", orthographicPath, diagnostics))
+              camera.orthographic.znear = *znear;
+            if (auto zfar = numberProperty(orthographic, "zfar", orthographicPath, diagnostics))
+              camera.orthographic.zfar = *zfar;
+          }
+        }
+
+        asset.cameras.push_back(camera);
+      }
+    }
+
+    void parsePunctualLights(const QJsonObject& root, Asset& asset, Diagnostics& diagnostics) {
+      const QJsonValue extensionsValue = root.value("extensions");
+      if (!extensionsValue.isObject())
+        return;
+      const QJsonValue punctualValue = extensionsValue.toObject().value("KHR_lights_punctual");
+      if (!punctualValue.isObject())
+        return;
+      const QJsonValue lightsValue = punctualValue.toObject().value("lights");
+      if (lightsValue.isUndefined())
+        return;
+      if (!lightsValue.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType,
+                          "extensions.KHR_lights_punctual.lights", "Expected an array");
+        return;
+      }
+
+      const QJsonArray lights = lightsValue.toArray();
+      asset.punctualLights.reserve(static_cast<std::size_t>(lights.size()));
+      for (int i = 0; i < lights.size(); ++i) {
+        const std::string path =
+          "extensions.KHR_lights_punctual." + jsonPath("lights", static_cast<std::size_t>(i));
+        if (!lights.at(i).isObject()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path, "Expected an object");
+          continue;
+        }
+
+        const QJsonObject object = lights.at(i).toObject();
+        PunctualLight light;
+        if (auto name = stringProperty(object, "name", path, diagnostics))
+          light.name = *name;
+        if (auto typeName = stringProperty(object, "type", path, diagnostics, true)) {
+          if (auto type = punctualLightTypeFromString(*typeName)) {
+            light.type = *type;
+          } else {
+            diagnostics.error(DiagnosticCode::UnsupportedValue, path + ".type",
+                              "Unsupported KHR_lights_punctual light type", *typeName);
+          }
+        }
+        numberArray(object, "color", path, diagnostics, &light.color);
+        if (auto intensity = numberProperty(object, "intensity", path, diagnostics, false))
+          light.intensity = *intensity;
+        light.range = numberProperty(object, "range", path, diagnostics, false);
+
+        const QJsonValue spotValue = object.value("spot");
+        if (spotValue.isObject()) {
+          const QJsonObject spot = spotValue.toObject();
+          const std::string spotPath = path + ".spot";
+          if (auto inner = numberProperty(spot, "innerConeAngle", spotPath, diagnostics, false))
+            light.spot.innerConeAngle = *inner;
+          if (auto outer = numberProperty(spot, "outerConeAngle", spotPath, diagnostics, false))
+            light.spot.outerConeAngle = *outer;
+        } else if (!spotValue.isUndefined()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path + ".spot",
+                            "Expected an object");
+        }
+
+        asset.punctualLights.push_back(light);
+      }
+    }
+
     void parseNodes(const QJsonObject& root, Asset& asset, Diagnostics& diagnostics) {
       const QJsonValue value = root.value("nodes");
       if (value.isUndefined())
@@ -866,6 +1015,20 @@ namespace core::gltf {
           node.name = *name;
         node.children = indexArray(object, "children", path, diagnostics);
         node.mesh = unsignedInteger(object, "mesh", path, diagnostics, false);
+        node.camera = unsignedInteger(object, "camera", path, diagnostics, false);
+
+        const QJsonValue extensionsValue = object.value("extensions");
+        if (extensionsValue.isObject()) {
+          const QJsonValue punctualValue = extensionsValue.toObject().value("KHR_lights_punctual");
+          if (punctualValue.isObject()) {
+            node.punctualLight =
+              unsignedInteger(punctualValue.toObject(), "light",
+                              path + ".extensions.KHR_lights_punctual", diagnostics, false);
+          }
+        } else if (!extensionsValue.isUndefined()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path + ".extensions",
+                            "Expected an object");
+        }
 
         std::array<double, 16> matrix{};
         if (numberArray(object, "matrix", path, diagnostics, &matrix))
@@ -1050,6 +1213,16 @@ namespace core::gltf {
           diagnostics.error(DiagnosticCode::InvalidReference, jsonPath("nodes", i, "mesh"),
                             "node references a missing mesh");
         }
+        if (asset.nodes[i].camera && *asset.nodes[i].camera >= asset.cameras.size()) {
+          diagnostics.error(DiagnosticCode::InvalidReference, jsonPath("nodes", i, "camera"),
+                            "node references a missing camera");
+        }
+        if (asset.nodes[i].punctualLight &&
+            *asset.nodes[i].punctualLight >= asset.punctualLights.size()) {
+          diagnostics.error(DiagnosticCode::InvalidReference,
+                            jsonPath("nodes", i, "extensions.KHR_lights_punctual.light"),
+                            "node references a missing KHR_lights_punctual light");
+        }
         for (const std::size_t child : asset.nodes[i].children) {
           if (child >= asset.nodes.size()) {
             diagnostics.error(DiagnosticCode::InvalidReference, jsonPath("nodes", i, "children"),
@@ -1144,6 +1317,8 @@ namespace core::gltf {
       parseTextures(root, asset, result.diagnostics);
       parseMaterials(root, asset, result.diagnostics);
       parseMeshes(root, asset, result.diagnostics);
+      parseCameras(root, asset, result.diagnostics);
+      parsePunctualLights(root, asset, result.diagnostics);
       parseNodes(root, asset, result.diagnostics);
       parseScenes(root, asset, result.diagnostics);
       parseAnimations(root, asset, result.diagnostics);

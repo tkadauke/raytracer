@@ -21,6 +21,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   rotation, and scale channels into world timeline tracks where possible, and
   report diagnostics for unsupported interpolation or target paths for Epic
   #233. — GPT-5
+- **glTF cameras and punctual lights.** glTF imports now parse camera records
+  and `KHR_lights_punctual`, mapping perspective cameras to `PinholeCamera`,
+  orthographic cameras to `OrthographicCamera`, directional/point lights to
+  world lights, and warning when spot lights or range attenuation cannot be
+  represented directly for Epic #233. — GPT-5
 - **Source asset animation.** Scene animation tracks can now target editable
   source/import parameters such as OpenSCAD Customizer values; numeric
   parameters interpolate, boolean/string-like parameters are step-only, and
