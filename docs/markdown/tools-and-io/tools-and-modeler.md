@@ -219,7 +219,9 @@ editor. Those properties write the scene's top-level `renderIntent` block, not
 normal child geometry. The editor groups the settings by role, uses dropdowns
 for enumerated choices such as engine, view mode, sampler, and
 postprocess AA, and only shows engine-specific fields for the selected default
-engine. Internal execution controls such as view-plane type, worker thread
+engine. The same property editor has a search field for filtering long property
+sets and collapsible groups so advanced scene/import settings can stay out of
+the way. Internal execution controls such as view-plane type, worker thread
 count, and queue size stay hidden in Modeler; Modeler's own preview/final
 controls keep using the point-interlaced view plane and automatic execution
 defaults, while lower-level values can still be authored through scene JSON or

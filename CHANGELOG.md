@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Property editor search and collapsible groups.** The Modeler property editor
+  now filters properties as you type, supports collapsible sections, and keeps
+  property controls compact when there is extra vertical space. — GPT-5
 - **Editable OpenSCAD source parameters.** Direct `.scad` opens in Modeler now
   stay source-backed, expose OpenSCAD Customizer sections, tooltips, numeric,
   boolean, string-choice, vector-expression assignments, human-readable labels,

@@ -8,6 +8,7 @@
 
 class Element;
 class AbstractParameterWidget;
+class QTreeWidgetItem;
 class QVBoxLayout;
 
 class PropertyEditorWidget : public QWidget {
@@ -41,6 +42,11 @@ private:
   void addParameter(const QString& name);
   void rebuildEditorLater();
   QVBoxLayout* layoutForGroup(const QString& groupName);
+  void addContentStretch();
+  void applyFilter();
+  bool parameterMatchesFilter(const AbstractParameterWidget* widget) const;
+  bool readOnlyItemMatchesFilter(const QTreeWidgetItem* item) const;
+  QString currentFilterText() const;
   bool isType(const QString& actual, const char* qt5Name, const char* qt6Name) const;
 
   struct Private;

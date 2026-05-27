@@ -17,6 +17,7 @@
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QGroupBox>
+#include <QLineEdit>
 #include <QScrollArea>
 #include <QSizePolicy>
 #include <QSpinBox>
@@ -105,6 +106,20 @@ namespace PropertyEditorWidgetTest {
     EXPECT_EQ(QStringLiteral("propertyEditorContent"), scrollArea->widget()->objectName());
   }
 
+  TEST_F(PropertyEditorWidgetTest, ShouldCreateSearchField) {
+    Scene root;
+    auto* camera = new PinholeCamera;
+    root.addChild(camera);
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(camera);
+
+    auto* search = editor.findChild<QLineEdit*>("propertyEditorSearchField");
+    ASSERT_NE(nullptr, search);
+    EXPECT_EQ(QStringLiteral("Search properties"), search->placeholderText());
+    EXPECT_TRUE(search->isClearButtonEnabled());
+  }
+
   TEST_F(PropertyEditorWidgetTest, ShouldAvoidEagerVerticalExpansion) {
     Scene root;
     PropertyEditorWidget editor(&root);
@@ -175,6 +190,60 @@ namespace PropertyEditorWidgetTest {
       foundHumanName = foundHumanName || label->text() == QStringLiteral("Position");
     }
     EXPECT_TRUE(foundHumanName);
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldFilterPropertiesAsUserTypes) {
+    Scene root;
+    auto* camera = new PinholeCamera;
+    root.addChild(camera);
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(camera);
+
+    auto* search = editor.findChild<QLineEdit*>("propertyEditorSearchField");
+    ASSERT_NE(nullptr, search);
+    auto* zoom = parameterWidget(editor, "zoom");
+    auto* distance = parameterWidget(editor, "distance");
+    ASSERT_NE(nullptr, zoom);
+    ASSERT_NE(nullptr, distance);
+
+    search->setText("zoom");
+    QCoreApplication::processEvents();
+
+    EXPECT_FALSE(zoom->isHidden());
+    EXPECT_TRUE(distance->isHidden());
+
+    search->clear();
+    QCoreApplication::processEvents();
+
+    EXPECT_FALSE(zoom->isHidden());
+    EXPECT_FALSE(distance->isHidden());
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldCollapsePropertyGroups) {
+    Scene root;
+    auto* camera = new PinholeCamera;
+    root.addChild(camera);
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(camera);
+
+    auto* group = editor.findChild<QGroupBox*>("propertyGroupProperties");
+    ASSERT_NE(nullptr, group);
+    EXPECT_TRUE(group->isCheckable());
+    EXPECT_TRUE(group->isChecked());
+    EXPECT_EQ(QSizePolicy::Maximum, group->sizePolicy().verticalPolicy());
+
+    auto* zoom = parameterWidget(editor, "zoom");
+    ASSERT_NE(nullptr, zoom);
+
+    group->setChecked(false);
+    QCoreApplication::processEvents();
+    EXPECT_TRUE(zoom->isHidden());
+
+    group->setChecked(true);
+    QCoreApplication::processEvents();
+    EXPECT_FALSE(zoom->isHidden());
   }
 
   TEST_F(PropertyEditorWidgetTest, ShouldUseChoicesForRenderSettingsEnums) {

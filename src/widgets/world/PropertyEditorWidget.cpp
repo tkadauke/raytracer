@@ -20,6 +20,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMap>
 #include <QMetaProperty>
 #include <QScrollArea>
@@ -50,6 +51,7 @@ struct PropertyEditorWidget::Private {
       : root(nullptr),
         element(nullptr),
         outerLayout(nullptr),
+        searchEdit(nullptr),
         scrollArea(nullptr),
         contentWidget(nullptr),
         verticalLayout(nullptr),
@@ -59,6 +61,7 @@ struct PropertyEditorWidget::Private {
   Element* root;
   Element* element;
   QVBoxLayout* outerLayout;
+  QLineEdit* searchEdit;
   QScrollArea* scrollArea;
   QWidget* contentWidget;
   QVBoxLayout* verticalLayout;
@@ -85,7 +88,16 @@ void PropertyEditorWidget::initLayout() {
   if (!p->outerLayout) {
     p->outerLayout = new QVBoxLayout(this);
     p->outerLayout->setContentsMargins(0, 0, 0, 0);
-    p->outerLayout->setSpacing(0);
+    p->outerLayout->setSpacing(4);
+
+    p->searchEdit = new QLineEdit(this);
+    p->searchEdit->setObjectName(QStringLiteral("propertyEditorSearchField"));
+    p->searchEdit->setPlaceholderText(tr("Search properties"));
+    p->searchEdit->setClearButtonEnabled(true);
+    p->searchEdit->setMinimumWidth(0);
+    p->searchEdit->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    p->outerLayout->addWidget(p->searchEdit);
+    connect(p->searchEdit, &QLineEdit::textChanged, this, [this] { applyFilter(); });
 
     p->scrollArea = new QScrollArea(this);
     p->scrollArea->setObjectName(QStringLiteral("propertyEditorScrollArea"));
@@ -149,6 +161,8 @@ void PropertyEditorWidget::setReadOnlyProperties(const QString& title,
   p->readOnlyWidgets << titleLabel << tree;
   p->verticalLayout->addWidget(titleLabel);
   p->verticalLayout->addWidget(tree);
+  addContentStretch();
+  applyFilter();
 }
 
 void PropertyEditorWidget::setElement(Element* element) {
@@ -206,6 +220,8 @@ void PropertyEditorWidget::addParameterWidgets() {
     p->verticalLayout->addWidget(tree);
   }
 
+  addContentStretch();
+  applyFilter();
   p->contentWidget->adjustSize();
 }
 
@@ -321,8 +337,13 @@ QVBoxLayout* PropertyEditorWidget::layoutForGroup(const QString& groupName) {
   if (p->groupLayouts.contains(title))
     return p->groupLayouts.value(title);
 
-  auto* groupBox = new QGroupBox(title, this);
+  auto* groupBox = new QGroupBox(title, p->contentWidget);
   groupBox->setObjectName(QStringLiteral("propertyGroup%1").arg(title.simplified().remove(' ')));
+  groupBox->setCheckable(true);
+  groupBox->setChecked(true);
+  groupBox->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+  connect(groupBox, &QGroupBox::toggled, this, [this] { applyFilter(); });
+
   auto* layout = new QVBoxLayout(groupBox);
   layout->setContentsMargins(4, 4, 4, 4);
   layout->setSpacing(2);
@@ -331,6 +352,71 @@ QVBoxLayout* PropertyEditorWidget::layoutForGroup(const QString& groupName) {
   p->groupLayouts.insert(title, layout);
   p->verticalLayout->addWidget(groupBox);
   return layout;
+}
+
+void PropertyEditorWidget::addContentStretch() {
+  if (p->verticalLayout)
+    p->verticalLayout->addStretch(1);
+}
+
+void PropertyEditorWidget::applyFilter() {
+  const bool hasFilter = !currentFilterText().isEmpty();
+
+  for (auto* groupBox : p->groupBoxes) {
+    bool groupHasMatch = false;
+    for (auto* widget : p->parameterWidgets) {
+      if (widget->parentWidget() != groupBox)
+        continue;
+
+      const bool matches = parameterMatchesFilter(widget);
+      groupHasMatch = groupHasMatch || matches;
+      widget->setVisible(matches && groupBox->isChecked());
+    }
+    groupBox->setVisible(!hasFilter || groupHasMatch);
+  }
+
+  for (auto* widget : p->readOnlyWidgets) {
+    if (auto* tree = qobject_cast<QTreeWidget*>(widget)) {
+      bool treeHasMatch = false;
+      for (int i = 0; i != tree->topLevelItemCount(); ++i) {
+        auto* item = tree->topLevelItem(i);
+        const bool matches = readOnlyItemMatchesFilter(item);
+        item->setHidden(!matches);
+        treeHasMatch = treeHasMatch || matches;
+      }
+      tree->setVisible(!hasFilter || treeHasMatch);
+    } else {
+      widget->setVisible(true);
+    }
+  }
+}
+
+bool PropertyEditorWidget::parameterMatchesFilter(const AbstractParameterWidget* widget) const {
+  const QString filter = currentFilterText();
+  if (filter.isEmpty() || !p->element)
+    return true;
+
+  const QString parameterName = widget->parameterName();
+  return parameterName.contains(filter, Qt::CaseInsensitive) ||
+         p->element->propertyDisplayName(parameterName).contains(filter, Qt::CaseInsensitive) ||
+         p->element->propertyDescription(parameterName).contains(filter, Qt::CaseInsensitive) ||
+         p->element->propertyGroup(parameterName).contains(filter, Qt::CaseInsensitive);
+}
+
+bool PropertyEditorWidget::readOnlyItemMatchesFilter(const QTreeWidgetItem* item) const {
+  const QString filter = currentFilterText();
+  if (filter.isEmpty())
+    return true;
+
+  for (int column = 0; column != item->columnCount(); ++column) {
+    if (item->text(column).contains(filter, Qt::CaseInsensitive))
+      return true;
+  }
+  return false;
+}
+
+QString PropertyEditorWidget::currentFilterText() const {
+  return p->searchEdit ? p->searchEdit->text().trimmed() : QString();
 }
 
 bool PropertyEditorWidget::isType(const QString& actual, const char* qt5Name,
