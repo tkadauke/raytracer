@@ -61,6 +61,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   now map glTF scenes and nodes to editable `Group` hierarchy with node names,
   local transforms, optional hierarchy flattening, and source provenance
   metadata for Epic #233. — GPT-5
+- **glTF mesh primitive import.** glTF node meshes now import triangle
+  primitives as shared `MeshPrimitive` geometry with positions, indices,
+  normals, UVs, computed-normal/zero-UV fallbacks, and material color
+  references for Epic #233. — GPT-5
 - **Cached LDraw filesystem resolution.** Repeated LDraw part/subfile lookups now
   reuse resolver results instead of rescanning the library roots for every
   cache-key/open call, making large MPD imports much faster. — GPT-5

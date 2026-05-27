@@ -552,9 +552,12 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   #233. ~~Initial animation sampler/channel import for node transform
   timelines.~~ ✅ **Done.** Simple translation, rotation, and scale channels
   become world timeline tracks while unsupported targets produce diagnostics
-  for Epic #233. Meshes + materials + textures + skeletal animation and write
-  support remain TODO; the natural default for web interop (feeds the §4.1
-  WebGL viewer directly).
+  for Epic #233. ~~Triangle mesh primitives with POSITION, indices, NORMAL,
+  TEXCOORD_0, computed-normal/zero-UV fallbacks, and base-color material
+  references.~~ ✅ **Done.** `GltfSceneImporter` compiles node mesh primitives
+  into shared `MeshPrimitive` geometry for Epic #233. Full materials +
+  textures + skeletal animation and write support remain TODO; the natural
+  default for web interop (feeds the §4.1 WebGL viewer directly).
 - **USD / OpenUSD** — Pixar's industry-standard scene description. Heavy dependency but the right long-term home for everything (geometry, materials, animation, layered overrides, references). Read-only first; write is aspirational.
 - **FBX** — Autodesk; via OpenFBX. Read + limited write.
 - **OpenVDB** — volumetric grids, once §4.3 volumetrics land. Read-only initially.

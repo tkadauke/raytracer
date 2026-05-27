@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -63,9 +64,27 @@ namespace core::gltf {
     }
   };
 
+  struct Material {
+    std::string name;
+    std::array<double, 4> baseColorFactor{1.0, 1.0, 1.0, 1.0};
+  };
+
+  struct MeshPrimitive {
+    std::map<std::string, std::size_t> attributes;
+    std::optional<std::size_t> indices;
+    std::optional<std::size_t> material;
+    int mode = 4;
+  };
+
+  struct Mesh {
+    std::string name;
+    std::vector<MeshPrimitive> primitives;
+  };
+
   struct Node {
     std::string name;
     std::vector<std::size_t> children;
+    std::optional<std::size_t> mesh;
     std::optional<std::array<double, 16>> matrix;
     std::array<double, 3> translation{0.0, 0.0, 0.0};
     std::array<double, 4> rotation{0.0, 0.0, 0.0, 1.0};
@@ -106,6 +125,8 @@ namespace core::gltf {
     std::vector<BufferView> bufferViews;
     std::vector<Accessor> accessors;
     std::vector<Image> images;
+    std::vector<Material> materials;
+    std::vector<Mesh> meshes;
     std::vector<Node> nodes;
     std::vector<Scene> scenes;
     std::vector<Animation> animations;

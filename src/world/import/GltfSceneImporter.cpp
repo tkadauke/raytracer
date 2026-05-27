@@ -1,12 +1,17 @@
 #include "world/import/GltfSceneImporter.h"
 
+#include "core/geometry/Mesh.h"
 #include "core/formats/gltf/GltfReader.h"
 #include "core/math/Matrix.h"
 #include "core/math/Quaternion.h"
+#include "render/materials/MatteMaterial.h"
+#include "render/primitives/MeshPrimitive.h"
+#include "render/textures/ConstantColorTexture.h"
 #include "world/animation/Timeline.h"
 #include "world/import/SceneImporterRegistry.h"
-#include "world/objects/Scene.h"
+#include "world/objects/CompiledPrimitive.h"
 #include "world/objects/Group.h"
+#include "world/objects/Scene.h"
 
 #include <QFileInfo>
 #include <QJsonArray>
@@ -15,6 +20,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -190,6 +196,207 @@ namespace world {
         result.addDiagnostic(importDiagnosticFor(diagnostic, source));
     }
 
+    std::size_t accessorStride(const core::gltf::Asset& asset,
+                               const core::gltf::Accessor& accessor) {
+      if (!accessor.bufferView)
+        return core::gltf::accessorElementByteSize(accessor);
+      return asset.bufferViews[*accessor.bufferView].byteStride.value_or(
+        core::gltf::accessorElementByteSize(accessor));
+    }
+
+    const std::uint8_t* accessorElementData(const core::gltf::Asset& asset,
+                                            const core::gltf::Accessor& accessor,
+                                            std::size_t element) {
+      if (!accessor.bufferView)
+        return nullptr;
+      const auto& view = asset.bufferViews[*accessor.bufferView];
+      const auto& buffer = asset.buffers[view.buffer];
+      const std::size_t offset =
+        view.byteOffset + accessor.byteOffset + element * accessorStride(asset, accessor);
+      if (offset >= buffer.data.size())
+        return nullptr;
+      return buffer.data.data() + offset;
+    }
+
+    float readFloat32Le(const std::uint8_t* data) {
+      std::uint32_t bits =
+        static_cast<std::uint32_t>(data[0]) | (static_cast<std::uint32_t>(data[1]) << 8u) |
+        (static_cast<std::uint32_t>(data[2]) << 16u) | (static_cast<std::uint32_t>(data[3]) << 24u);
+      float value = 0.0f;
+      std::memcpy(&value, &bits, sizeof(value));
+      return value;
+    }
+
+    std::uint32_t readUint16Le(const std::uint8_t* data) {
+      return static_cast<std::uint32_t>(data[0]) | (static_cast<std::uint32_t>(data[1]) << 8u);
+    }
+
+    std::uint32_t readUint32Le(const std::uint8_t* data) {
+      return static_cast<std::uint32_t>(data[0]) | (static_cast<std::uint32_t>(data[1]) << 8u) |
+             (static_cast<std::uint32_t>(data[2]) << 16u) |
+             (static_cast<std::uint32_t>(data[3]) << 24u);
+    }
+
+    std::vector<Vector3d> readVec3Accessor(const core::gltf::Asset& asset,
+                                           std::size_t accessorIndex, const char* semantic) {
+      if (accessorIndex >= asset.accessors.size())
+        throw std::runtime_error(
+          QString("glTF %1 accessor is missing").arg(semantic).toStdString());
+      const auto& accessor = asset.accessors[accessorIndex];
+      if (accessor.componentType != core::gltf::ComponentType::Float32 ||
+          accessor.type != core::gltf::AccessorType::Vec3) {
+        throw std::runtime_error(
+          QString("glTF %1 accessor must be FLOAT VEC3").arg(semantic).toStdString());
+      }
+
+      std::vector<Vector3d> values;
+      values.reserve(accessor.count);
+      for (std::size_t i = 0; i < accessor.count; ++i) {
+        const std::uint8_t* data = accessorElementData(asset, accessor, i);
+        if (!data)
+          throw std::runtime_error(
+            QString("glTF %1 accessor data is unavailable").arg(semantic).toStdString());
+        values.emplace_back(readFloat32Le(data), readFloat32Le(data + 4), readFloat32Le(data + 8));
+      }
+      return values;
+    }
+
+    std::vector<Vector2d> readVec2Accessor(const core::gltf::Asset& asset,
+                                           std::size_t accessorIndex, const char* semantic) {
+      if (accessorIndex >= asset.accessors.size())
+        throw std::runtime_error(
+          QString("glTF %1 accessor is missing").arg(semantic).toStdString());
+      const auto& accessor = asset.accessors[accessorIndex];
+      if (accessor.componentType != core::gltf::ComponentType::Float32 ||
+          accessor.type != core::gltf::AccessorType::Vec2) {
+        throw std::runtime_error(
+          QString("glTF %1 accessor must be FLOAT VEC2").arg(semantic).toStdString());
+      }
+
+      std::vector<Vector2d> values;
+      values.reserve(accessor.count);
+      for (std::size_t i = 0; i < accessor.count; ++i) {
+        const std::uint8_t* data = accessorElementData(asset, accessor, i);
+        if (!data)
+          throw std::runtime_error(
+            QString("glTF %1 accessor data is unavailable").arg(semantic).toStdString());
+        values.emplace_back(readFloat32Le(data), readFloat32Le(data + 4));
+      }
+      return values;
+    }
+
+    std::vector<int> readIndexAccessor(const core::gltf::Asset& asset, std::size_t accessorIndex) {
+      if (accessorIndex >= asset.accessors.size())
+        throw std::runtime_error("glTF index accessor is missing");
+      const auto& accessor = asset.accessors[accessorIndex];
+      if (accessor.type != core::gltf::AccessorType::Scalar) {
+        throw std::runtime_error("glTF index accessor must be SCALAR");
+      }
+
+      std::vector<int> values;
+      values.reserve(accessor.count);
+      for (std::size_t i = 0; i < accessor.count; ++i) {
+        const std::uint8_t* data = accessorElementData(asset, accessor, i);
+        if (!data)
+          throw std::runtime_error("glTF index accessor data is unavailable");
+
+        std::uint32_t value = 0;
+        switch (accessor.componentType) {
+        case core::gltf::ComponentType::Uint8:
+          value = data[0];
+          break;
+        case core::gltf::ComponentType::Uint16:
+          value = readUint16Le(data);
+          break;
+        case core::gltf::ComponentType::Uint32:
+          value = readUint32Le(data);
+          break;
+        default:
+          throw std::runtime_error(
+            "glTF index accessor must use an unsigned integer component type");
+        }
+        if (value > static_cast<std::uint32_t>(std::numeric_limits<int>::max()))
+          throw std::runtime_error("glTF index value is too large for Mesh");
+        values.push_back(static_cast<int>(value));
+      }
+      return values;
+    }
+
+    std::shared_ptr<render::Material> materialFor(const core::gltf::Asset& asset,
+                                                  std::optional<std::size_t> materialIndex) {
+      if (!materialIndex || *materialIndex >= asset.materials.size())
+        return nullptr;
+
+      const auto& source = asset.materials[*materialIndex];
+      auto material =
+        std::make_shared<render::MatteMaterial>(std::make_shared<render::ConstantColorTexture>(
+          Colord(source.baseColorFactor[0], source.baseColorFactor[1], source.baseColorFactor[2])));
+      material->setAmbientCoefficient(0.65);
+      material->setDiffuseCoefficient(0.8);
+      return material;
+    }
+
+    std::shared_ptr<render::Primitive> primitiveFor(const core::gltf::Asset& asset,
+                                                    const core::gltf::MeshPrimitive& primitive) {
+      if (primitive.mode != 4)
+        return nullptr;
+
+      const auto position = primitive.attributes.find("POSITION");
+      if (position == primitive.attributes.end())
+        throw std::runtime_error("glTF mesh primitive is missing POSITION");
+
+      const std::vector<Vector3d> positions = readVec3Accessor(asset, position->second, "POSITION");
+
+      std::vector<Vector3d> normals(positions.size(), Vector3d::null);
+      if (const auto normal = primitive.attributes.find("NORMAL");
+          normal != primitive.attributes.end()) {
+        normals = readVec3Accessor(asset, normal->second, "NORMAL");
+        if (normals.size() != positions.size())
+          throw std::runtime_error("glTF NORMAL accessor count must match POSITION");
+      }
+
+      std::vector<Vector2d> texcoords(positions.size(), Vector2d::null);
+      if (const auto uv = primitive.attributes.find("TEXCOORD_0");
+          uv != primitive.attributes.end()) {
+        texcoords = readVec2Accessor(asset, uv->second, "TEXCOORD_0");
+        if (texcoords.size() != positions.size())
+          throw std::runtime_error("glTF TEXCOORD_0 accessor count must match POSITION");
+      }
+
+      ::Mesh mesh;
+      for (std::size_t i = 0; i < positions.size(); ++i)
+        mesh.addVertex(positions[i], normals[i], texcoords[i]);
+
+      std::vector<int> indices;
+      if (primitive.indices) {
+        indices = readIndexAccessor(asset, *primitive.indices);
+      } else {
+        indices.reserve(positions.size());
+        for (std::size_t i = 0; i < positions.size(); ++i) {
+          if (i > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+            throw std::runtime_error("glTF vertex index is too large for Mesh");
+          indices.push_back(static_cast<int>(i));
+        }
+      }
+
+      for (std::size_t i = 0; i + 2 < indices.size(); i += 3)
+        mesh.addFace({indices[i], indices[i + 1], indices[i + 2]});
+
+      const bool hasNormals = primitive.attributes.find("NORMAL") != primitive.attributes.end();
+      if (!hasNormals)
+        mesh.computeNormals();
+
+      auto material = materialFor(asset, primitive.material);
+      if (material) {
+        render::MeshPrimitive::FaceMaterials faceMaterials(mesh.faces().size(), material);
+        return std::make_shared<render::MeshPrimitive>(std::move(mesh), std::move(faceMaterials),
+                                                       render::MeshPrimitive::NormalMode::Smooth);
+      }
+
+      return std::make_shared<render::MeshPrimitive>(std::move(mesh),
+                                                     render::MeshPrimitive::NormalMode::Smooth);
+    }
+
     class GroupCompiler {
     public:
       GroupCompiler(const core::gltf::Asset& asset, QString sourcePath, bool preserveHierarchy)
@@ -258,6 +465,9 @@ namespace world {
         rawGroup->setMatrix(m_preserveHierarchy ? local : global);
         m_nodeTargetIds[nodeIndex].push_back(targetId);
 
+        if (node.mesh && *node.mesh < m_asset.meshes.size())
+          addMesh(*rawGroup, *node.mesh);
+
         m_active[nodeIndex] = true;
         for (const std::size_t child : node.children) {
           if (child >= m_asset.nodes.size())
@@ -268,6 +478,25 @@ namespace world {
             addNode(parent, child, global, parentTargetId);
         }
         m_active[nodeIndex] = false;
+      }
+
+      void addMesh(Group& parent, std::size_t meshIndex) {
+        const auto& mesh = m_asset.meshes[meshIndex];
+        for (std::size_t i = 0; i < mesh.primitives.size(); ++i) {
+          auto primitive = primitiveFor(m_asset, mesh.primitives[i]);
+          if (!primitive)
+            continue;
+
+          auto compiled = std::make_unique<CompiledPrimitive>(std::move(primitive));
+          compiled->setId(QString("gltf-mesh-%1-primitive-%2").arg(meshIndex).arg(i));
+          compiled->setName(mesh.name.empty()
+                              ? QString("glTF Mesh %1 Primitive %2").arg(meshIndex).arg(i)
+                              : QString::fromStdString(mesh.name));
+          compiled->setMetadata(baseMetadata(m_sourcePath, sourceId("meshes", meshIndex), "mesh",
+                                             static_cast<int>(meshIndex)));
+          compiled->setMetadataValue("gltfPrimitiveIndex", static_cast<int>(i));
+          parent.addChild(std::move(compiled));
+        }
       }
 
       const core::gltf::Asset& m_asset;

@@ -190,6 +190,41 @@ namespace core::gltf {
       return result;
     }
 
+    std::map<std::string, std::size_t> attributeMap(const QJsonObject& object, const char* name,
+                                                    const std::string& path,
+                                                    Diagnostics& diagnostics) {
+      std::map<std::string, std::size_t> result;
+      const QJsonValue value = object.value(name);
+      if (value.isUndefined())
+        return result;
+      if (!value.isObject()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, path + "." + name,
+                          "Expected an object");
+        return result;
+      }
+
+      const QJsonObject attributes = value.toObject();
+      for (auto it = attributes.begin(); it != attributes.end(); ++it) {
+        if (!it.value().isDouble()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType,
+                            path + "." + name + "." + it.key().toStdString(),
+                            "Expected an unsigned integer");
+          continue;
+        }
+        const double number = it.value().toDouble();
+        const auto integer = static_cast<unsigned long long>(number);
+        if (number < 0.0 || number != static_cast<double>(integer) ||
+            integer > static_cast<unsigned long long>(std::numeric_limits<std::size_t>::max())) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType,
+                            path + "." + name + "." + it.key().toStdString(),
+                            "Expected an unsigned integer");
+          continue;
+        }
+        result[it.key().toStdString()] = static_cast<std::size_t>(integer);
+      }
+      return result;
+    }
+
     std::optional<ComponentType> componentTypeFromInt(int value) {
       switch (value) {
       case 5120:
@@ -543,6 +578,100 @@ namespace core::gltf {
       }
     }
 
+    void parseMaterials(const QJsonObject& root, Asset& asset, Diagnostics& diagnostics) {
+      const QJsonValue value = root.value("materials");
+      if (value.isUndefined())
+        return;
+      if (!value.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, "materials", "Expected an array");
+        return;
+      }
+
+      const QJsonArray materials = value.toArray();
+      asset.materials.reserve(static_cast<std::size_t>(materials.size()));
+      for (int i = 0; i < materials.size(); ++i) {
+        const std::string path = jsonPath("materials", static_cast<std::size_t>(i));
+        if (!materials.at(i).isObject()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path, "Expected an object");
+          continue;
+        }
+
+        const QJsonObject object = materials.at(i).toObject();
+        Material material;
+        if (auto name = stringProperty(object, "name", path, diagnostics))
+          material.name = *name;
+
+        const QJsonValue pbrValue = object.value("pbrMetallicRoughness");
+        if (pbrValue.isObject()) {
+          const QJsonObject pbr = pbrValue.toObject();
+          numberArray(pbr, "baseColorFactor", path + ".pbrMetallicRoughness", diagnostics,
+                      &material.baseColorFactor);
+        } else if (!pbrValue.isUndefined()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path + ".pbrMetallicRoughness",
+                            "Expected an object");
+        }
+        asset.materials.push_back(std::move(material));
+      }
+    }
+
+    void parseMeshes(const QJsonObject& root, Asset& asset, Diagnostics& diagnostics) {
+      const QJsonValue value = root.value("meshes");
+      if (value.isUndefined())
+        return;
+      if (!value.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, "meshes", "Expected an array");
+        return;
+      }
+
+      const QJsonArray meshes = value.toArray();
+      asset.meshes.reserve(static_cast<std::size_t>(meshes.size()));
+      for (int i = 0; i < meshes.size(); ++i) {
+        const std::string path = jsonPath("meshes", static_cast<std::size_t>(i));
+        if (!meshes.at(i).isObject()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path, "Expected an object");
+          continue;
+        }
+
+        const QJsonObject object = meshes.at(i).toObject();
+        Mesh mesh;
+        if (auto name = stringProperty(object, "name", path, diagnostics))
+          mesh.name = *name;
+
+        const QJsonValue primitivesValue = object.value("primitives");
+        if (!primitivesValue.isArray()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path + ".primitives",
+                            "Expected an array");
+          asset.meshes.push_back(std::move(mesh));
+          continue;
+        }
+
+        const QJsonArray primitives = primitivesValue.toArray();
+        mesh.primitives.reserve(static_cast<std::size_t>(primitives.size()));
+        for (int j = 0; j < primitives.size(); ++j) {
+          const std::string primitivePath =
+            path + ".primitives[" + std::to_string(static_cast<std::size_t>(j)) + "]";
+          if (!primitives.at(j).isObject()) {
+            diagnostics.error(DiagnosticCode::InvalidPropertyType, primitivePath,
+                              "Expected an object");
+            continue;
+          }
+
+          const QJsonObject primitiveObject = primitives.at(j).toObject();
+          MeshPrimitive primitive;
+          primitive.attributes =
+            attributeMap(primitiveObject, "attributes", primitivePath, diagnostics);
+          primitive.indices =
+            unsignedInteger(primitiveObject, "indices", primitivePath, diagnostics, false);
+          primitive.material =
+            unsignedInteger(primitiveObject, "material", primitivePath, diagnostics, false);
+          if (auto mode = integer(primitiveObject, "mode", primitivePath, diagnostics, false))
+            primitive.mode = *mode;
+          mesh.primitives.push_back(std::move(primitive));
+        }
+        asset.meshes.push_back(std::move(mesh));
+      }
+    }
+
     void parseNodes(const QJsonObject& root, Asset& asset, Diagnostics& diagnostics) {
       const QJsonValue value = root.value("nodes");
       if (value.isUndefined())
@@ -566,6 +695,7 @@ namespace core::gltf {
         if (auto name = stringProperty(object, "name", path, diagnostics))
           node.name = *name;
         node.children = indexArray(object, "children", path, diagnostics);
+        node.mesh = unsignedInteger(object, "mesh", path, diagnostics, false);
 
         std::array<double, 16> matrix{};
         if (numberArray(object, "matrix", path, diagnostics, &matrix))
@@ -724,7 +854,32 @@ namespace core::gltf {
     }
 
     void validateNodesAndScenes(const Asset& asset, Diagnostics& diagnostics) {
+      for (std::size_t i = 0; i < asset.meshes.size(); ++i) {
+        for (std::size_t j = 0; j < asset.meshes[i].primitives.size(); ++j) {
+          const MeshPrimitive& primitive = asset.meshes[i].primitives[j];
+          const std::string path = jsonPath("meshes", i) + ".primitives[" + std::to_string(j) + "]";
+          for (const auto& [name, accessor] : primitive.attributes) {
+            if (accessor >= asset.accessors.size()) {
+              diagnostics.error(DiagnosticCode::InvalidReference, path + ".attributes." + name,
+                                "mesh primitive attribute references a missing accessor");
+            }
+          }
+          if (primitive.indices && *primitive.indices >= asset.accessors.size()) {
+            diagnostics.error(DiagnosticCode::InvalidReference, path + ".indices",
+                              "mesh primitive indices reference a missing accessor");
+          }
+          if (primitive.material && *primitive.material >= asset.materials.size()) {
+            diagnostics.error(DiagnosticCode::InvalidReference, path + ".material",
+                              "mesh primitive references a missing material");
+          }
+        }
+      }
+
       for (std::size_t i = 0; i < asset.nodes.size(); ++i) {
+        if (asset.nodes[i].mesh && *asset.nodes[i].mesh >= asset.meshes.size()) {
+          diagnostics.error(DiagnosticCode::InvalidReference, jsonPath("nodes", i, "mesh"),
+                            "node references a missing mesh");
+        }
         for (const std::size_t child : asset.nodes[i].children) {
           if (child >= asset.nodes.size()) {
             diagnostics.error(DiagnosticCode::InvalidReference, jsonPath("nodes", i, "children"),
@@ -815,6 +970,8 @@ namespace core::gltf {
       parseBufferViews(root, asset, result.diagnostics);
       parseAccessors(root, asset, result.diagnostics);
       parseImages(root, asset, currentFile, resolver, result.diagnostics);
+      parseMaterials(root, asset, result.diagnostics);
+      parseMeshes(root, asset, result.diagnostics);
       parseNodes(root, asset, result.diagnostics);
       parseScenes(root, asset, result.diagnostics);
       parseAnimations(root, asset, result.diagnostics);
