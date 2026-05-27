@@ -1,5 +1,8 @@
 #include "world/import/SceneImporter.h"
 
+#include "world/import/ImportedSceneDefaults.h"
+#include "world/objects/Scene.h"
+
 namespace world {
 
   SceneImporter::~SceneImporter() = default;
@@ -22,9 +25,11 @@ namespace world {
 
   bool SceneImporter::configureImportedScene(Scene& scene, Element& importedRoot,
                                              const ImportOptions& options) const {
-    (void)scene;
     (void)importedRoot;
     (void)options;
-    return false;
+    ImportedSceneDefaults defaults;
+    defaults.applyTo(scene);
+    (void)defaults.frameCamera(scene);
+    return true;
   }
 }
