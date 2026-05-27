@@ -7,13 +7,17 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/MeshPrimitive.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "render/textures/ImageTexture.h"
+#include "render/textures/mappings/UVMapping2D.h"
 #include "world/animation/Timeline.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/CompiledPrimitive.h"
 #include "world/objects/Group.h"
 #include "world/objects/Scene.h"
 
+#include <QColor>
 #include <QFileInfo>
+#include <QImage>
 #include <QJsonArray>
 #include <QJsonObject>
 
@@ -196,6 +200,156 @@ namespace world {
         result.addDiagnostic(importDiagnosticFor(diagnostic, source));
     }
 
+    class TintedTexture : public render::Texturec {
+    public:
+      TintedTexture(std::shared_ptr<render::Texturec> texture, Colord tint)
+          : m_texture(std::move(texture)),
+            m_tint(tint) {
+      }
+
+      Colord evaluate(const Rayd& ray, const HitPoint& hitPoint) const override {
+        return m_texture->evaluate(ray, hitPoint) * m_tint;
+      }
+
+    private:
+      std::shared_ptr<render::Texturec> m_texture;
+      Colord m_tint;
+    };
+
+    bool isWhite(const Colord& color) {
+      return color.r() == 1.0 && color.g() == 1.0 && color.b() == 1.0;
+    }
+
+    render::ImageTextureFilter imageFilterFor(const core::gltf::Asset& asset,
+                                              const core::gltf::Texture& texture) {
+      if (!texture.sampler || *texture.sampler >= asset.samplers.size())
+        return render::ImageTextureFilter::Bilinear;
+
+      const auto& sampler = asset.samplers[*texture.sampler];
+      if (sampler.minFilter) {
+        switch (*sampler.minFilter) {
+        case 9728:
+        case 9984:
+          return render::ImageTextureFilter::Nearest;
+        case 9985:
+        case 9986:
+        case 9987:
+          return render::ImageTextureFilter::Mipmap;
+        default:
+          break;
+        }
+      }
+      if (sampler.magFilter && *sampler.magFilter == 9728)
+        return render::ImageTextureFilter::Nearest;
+      return render::ImageTextureFilter::Bilinear;
+    }
+
+    render::ImageTextureWrap imageWrapFor(const core::gltf::Asset& asset,
+                                          const core::gltf::Texture& texture) {
+      if (!texture.sampler || *texture.sampler >= asset.samplers.size())
+        return render::ImageTextureWrap::Repeat;
+
+      const auto& sampler = asset.samplers[*texture.sampler];
+      if (sampler.wrapS == 33071 || sampler.wrapT == 33071)
+        return render::ImageTextureWrap::Clamp;
+      return render::ImageTextureWrap::Repeat;
+    }
+
+    std::shared_ptr<render::Texturec> imageTextureFor(const core::gltf::Asset& asset,
+                                                      const core::gltf::TextureInfo& info) {
+      if (info.index >= asset.textures.size())
+        return nullptr;
+      const auto& texture = asset.textures[info.index];
+      if (!texture.source || *texture.source >= asset.images.size())
+        return nullptr;
+
+      const auto& image = asset.images[*texture.source];
+      const auto filter = imageFilterFor(asset, texture);
+      const auto wrap = imageWrapFor(asset, texture);
+      if (!image.resolvedPath.empty()) {
+        return render::ImageTexture::fromFile(new render::UVMapping2D, image.resolvedPath.string(),
+                                              filter, wrap);
+      }
+
+      QImage decoded;
+      if (!image.data.empty()) {
+        decoded.loadFromData(image.data.data(), static_cast<int>(image.data.size()));
+      }
+      if (decoded.isNull())
+        return nullptr;
+
+      const QImage converted = decoded.convertToFormat(QImage::Format_RGBA8888);
+      std::vector<Colord> pixels;
+      pixels.reserve(static_cast<std::size_t>(converted.width() * converted.height()));
+      for (int y = 0; y != converted.height(); ++y) {
+        for (int x = 0; x != converted.width(); ++x) {
+          const QColor color = QColor::fromRgba(converted.pixel(x, y));
+          pixels.emplace_back(color.redF(), color.greenF(), color.blueF());
+        }
+      }
+      return std::make_shared<render::ImageTexture>(new render::UVMapping2D, converted.width(),
+                                                    converted.height(), pixels, filter, wrap);
+    }
+
+    std::shared_ptr<render::Texturec> baseColorTextureFor(const core::gltf::Asset& asset,
+                                                          const core::gltf::Material& source) {
+      const Colord baseColor(source.baseColorFactor[0], source.baseColorFactor[1],
+                             source.baseColorFactor[2]);
+      if (!source.baseColorTexture)
+        return std::make_shared<render::ConstantColorTexture>(baseColor);
+
+      auto texture = imageTextureFor(asset, *source.baseColorTexture);
+      if (!texture)
+        return std::make_shared<render::ConstantColorTexture>(baseColor);
+      if (isWhite(baseColor))
+        return texture;
+      return std::make_shared<TintedTexture>(std::move(texture), baseColor);
+    }
+
+    void appendMaterialDiagnostics(ImportResult& result, const core::gltf::Asset& asset,
+                                   const QString& sourcePath) {
+      for (std::size_t i = 0; i < asset.materials.size(); ++i) {
+        const auto& material = asset.materials[i];
+        const QString where = QString("%1 materials[%2]").arg(sourcePath).arg(i);
+        if (material.metallicFactor && *material.metallicFactor > 0.0) {
+          result.addDiagnostic(ImportDiagnostic::warning(
+            QString("glTF metallicFactor %1 is approximated as matte diffuse shading")
+              .arg(*material.metallicFactor),
+            where));
+        }
+        if (material.roughnessFactor) {
+          result.addDiagnostic(ImportDiagnostic::warning(
+            QString("glTF roughnessFactor %1 is approximated as matte diffuse shading")
+              .arg(*material.roughnessFactor),
+            where));
+        }
+        if (material.metallicRoughnessTexture) {
+          result.addDiagnostic(ImportDiagnostic::warning(
+            QStringLiteral("glTF metallicRoughnessTexture is not supported"), where));
+        }
+        if (material.alphaMode != "OPAQUE") {
+          result.addDiagnostic(
+            ImportDiagnostic::warning(QString("glTF alphaMode '%1' is not supported")
+                                        .arg(QString::fromStdString(material.alphaMode)),
+                                      where));
+        }
+        if (material.doubleSided) {
+          result.addDiagnostic(ImportDiagnostic::warning(
+            QStringLiteral("glTF doubleSided rendering is not supported"), where));
+        }
+        if (material.baseColorTexture && material.baseColorTexture->texCoord != 0) {
+          result.addDiagnostic(ImportDiagnostic::warning(
+            QString("glTF baseColorTexture texCoord %1 is not supported; TEXCOORD_0 is used")
+              .arg(material.baseColorTexture->texCoord),
+            where));
+        }
+        for (const std::string& feature : material.unsupportedFeatures) {
+          result.addDiagnostic(ImportDiagnostic::warning(
+            QString("glTF %1 is not supported").arg(QString::fromStdString(feature)), where));
+        }
+      }
+    }
+
     std::size_t accessorStride(const core::gltf::Asset& asset,
                                const core::gltf::Accessor& accessor) {
       if (!accessor.bufferView)
@@ -328,9 +482,7 @@ namespace world {
         return nullptr;
 
       const auto& source = asset.materials[*materialIndex];
-      auto material =
-        std::make_shared<render::MatteMaterial>(std::make_shared<render::ConstantColorTexture>(
-          Colord(source.baseColorFactor[0], source.baseColorFactor[1], source.baseColorFactor[2])));
+      auto material = std::make_shared<render::MatteMaterial>(baseColorTextureFor(asset, source));
       material->setAmbientCoefficient(0.65);
       material->setDiffuseCoefficient(0.8);
       return material;
@@ -719,6 +871,7 @@ namespace world {
       result.setRoot(std::move(root));
     }
     appendDiagnostics(result, readResult.diagnostics, filename);
+    appendMaterialDiagnostics(result, *readResult.asset, filename);
     return result;
   }
 

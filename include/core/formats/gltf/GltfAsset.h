@@ -64,9 +64,34 @@ namespace core::gltf {
     }
   };
 
+  struct Sampler {
+    std::optional<int> magFilter;
+    std::optional<int> minFilter;
+    int wrapS = 10497;
+    int wrapT = 10497;
+  };
+
+  struct Texture {
+    std::optional<std::size_t> sampler;
+    std::optional<std::size_t> source;
+  };
+
+  struct TextureInfo {
+    std::size_t index = 0;
+    int texCoord = 0;
+  };
+
   struct Material {
     std::string name;
     std::array<double, 4> baseColorFactor{1.0, 1.0, 1.0, 1.0};
+    std::optional<TextureInfo> baseColorTexture;
+    std::optional<TextureInfo> metallicRoughnessTexture;
+    std::optional<double> metallicFactor;
+    std::optional<double> roughnessFactor;
+    std::string alphaMode = "OPAQUE";
+    double alphaCutoff = 0.5;
+    bool doubleSided = false;
+    std::vector<std::string> unsupportedFeatures;
   };
 
   struct MeshPrimitive {
@@ -125,6 +150,8 @@ namespace core::gltf {
     std::vector<BufferView> bufferViews;
     std::vector<Accessor> accessors;
     std::vector<Image> images;
+    std::vector<Sampler> samplers;
+    std::vector<Texture> textures;
     std::vector<Material> materials;
     std::vector<Mesh> meshes;
     std::vector<Node> nodes;

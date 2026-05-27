@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
 
 #include "core/geometry/Mesh.h"
+#include "core/math/HitPoint.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/primitives/MeshPrimitive.h"
+#include "render/textures/ImageTexture.h"
 #include "world/import/GltfSceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/CompiledPrimitive.h"
@@ -9,8 +12,10 @@
 #include "world/objects/Scene.h"
 
 #include <QFile>
+#include <QImage>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QTemporaryDir>
 #include <QTemporaryFile>
 
 namespace GltfSceneImporterTest {
@@ -44,6 +49,19 @@ namespace GltfSceneImporterTest {
       if (!compiled)
         return nullptr;
       return dynamic_cast<render::MeshPrimitive*>(compiled->toRaytracerPrimitive().get());
+    }
+
+    std::shared_ptr<render::Material> importedMaterial(const world::ImportResult& result) {
+      auto* meshPrimitive = importedMeshPrimitive(result);
+      if (!meshPrimitive || meshPrimitive->leaves().empty())
+        return nullptr;
+      return meshPrimitive->leaves()[0]->material();
+    }
+
+    void expectColorNear(const Colord& actual, const Colord& expected) {
+      EXPECT_NEAR(expected.r(), actual.r(), 0.0001);
+      EXPECT_NEAR(expected.g(), actual.g(), 0.0001);
+      EXPECT_NEAR(expected.b(), actual.b(), 0.0001);
     }
   }
 
@@ -251,6 +269,98 @@ namespace GltfSceneImporterTest {
     ASSERT_EQ(2u, meshPrimitive->leaves().size());
     EXPECT_NE(nullptr, meshPrimitive->leaves()[0]->material());
     EXPECT_NE(nullptr, meshPrimitive->leaves()[1]->material());
+  }
+
+  TEST(GltfSceneImporter, MapsPbrBaseColorFactorToMatteDiffuseTexture) {
+    const QString path = writeGltf(R"JSON({
+      "asset": {"version": "2.0"},
+      "buffers": [{
+        "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAA",
+        "byteLength": 36
+      }],
+      "bufferViews": [{"buffer": 0, "byteLength": 36}],
+      "accessors": [{"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3"}],
+      "materials": [{
+        "pbrMetallicRoughness": {
+          "baseColorFactor": [0.2, 0.4, 0.6, 1],
+          "metallicFactor": 0.5,
+          "roughnessFactor": 0.25
+        },
+        "alphaMode": "MASK",
+        "doubleSided": true
+      }],
+      "meshes": [{
+        "primitives": [{"attributes": {"POSITION": 0}, "material": 0}]
+      }],
+      "scenes": [{"nodes": [0]}],
+      "nodes": [{"mesh": 0}]
+    })JSON");
+
+    world::GltfSceneImporter importer;
+    const auto result = importer.importFile(path);
+
+    ASSERT_TRUE(result.succeeded());
+    auto material = std::dynamic_pointer_cast<render::MatteMaterial>(importedMaterial(result));
+    ASSERT_NE(nullptr, material);
+    ASSERT_NE(nullptr, material->diffuseTexture());
+    expectColorNear(material->diffuseTexture()->evaluate(Rayd::undefined, HitPoint::undefined()),
+                    Colord(0.2, 0.4, 0.6));
+    EXPECT_TRUE(result.hasWarnings());
+  }
+
+  TEST(GltfSceneImporter, MapsExternalBaseColorTextureResolvedBesideGltfFile) {
+    QTemporaryDir directory;
+    ASSERT_TRUE(directory.isValid());
+
+    QImage image(2, 2, QImage::Format_RGBA8888);
+    image.fill(Qt::black);
+    image.setPixelColor(0, 0, QColor(255, 0, 0));
+    image.setPixelColor(1, 0, QColor(0, 255, 0));
+    image.setPixelColor(0, 1, QColor(0, 0, 255));
+    image.setPixelColor(1, 1, QColor(255, 255, 255));
+    ASSERT_TRUE(image.save(directory.filePath("base_color.png")));
+
+    QFile file(directory.filePath("textured.gltf"));
+    ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+    file.write(R"JSON({
+      "asset": {"version": "2.0"},
+      "buffers": [{
+        "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAA",
+        "byteLength": 36
+      }],
+      "bufferViews": [{"buffer": 0, "byteLength": 36}],
+      "accessors": [{"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3"}],
+      "images": [{"uri": "base_color.png", "mimeType": "image/png"}],
+      "samplers": [{"magFilter": 9728, "minFilter": 9728, "wrapS": 33071, "wrapT": 33071}],
+      "textures": [{"sampler": 0, "source": 0}],
+      "materials": [{
+        "pbrMetallicRoughness": {
+          "baseColorFactor": [1, 1, 1, 1],
+          "baseColorTexture": {"index": 0}
+        }
+      }],
+      "meshes": [{
+        "primitives": [{"attributes": {"POSITION": 0}, "material": 0}]
+      }],
+      "scenes": [{"nodes": [0]}],
+      "nodes": [{"mesh": 0}]
+    })JSON");
+    file.close();
+
+    world::GltfSceneImporter importer;
+    const auto result = importer.importFile(file.fileName());
+
+    ASSERT_TRUE(result.succeeded())
+      << (result.diagnostics().empty() ? std::string()
+                                       : result.diagnostics().front().message.toStdString());
+    auto material = std::dynamic_pointer_cast<render::MatteMaterial>(importedMaterial(result));
+    ASSERT_NE(nullptr, material);
+    auto texture = std::dynamic_pointer_cast<render::ImageTexture>(material->diffuseTexture());
+    ASSERT_NE(nullptr, texture);
+    EXPECT_EQ(render::ImageTextureFilter::Nearest, texture->filter());
+    EXPECT_EQ(render::ImageTextureWrap::Clamp, texture->wrap());
+    expectColorNear(texture->sample(0.1, 0.1), Colord::red());
+    expectColorNear(texture->sample(0.75, 0.75), Colord::white());
   }
 
   TEST(GltfSceneImporter, ImportsNonIndexedTrianglesWithDeterministicFallbackAttributes) {

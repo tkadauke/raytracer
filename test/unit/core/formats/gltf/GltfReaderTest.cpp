@@ -96,6 +96,58 @@ namespace GltfReaderTest {
     EXPECT_EQ((vector<uint8_t>{'p', 'n', 'g'}), result.asset->images[0].data);
   }
 
+  TEST(GltfReader, ParsesPbrMaterialTextureAndSamplerMetadata) {
+    const string json = R"JSON({
+      "asset": {"version": "2.0"},
+      "images": [{"uri": "data:image/png;base64,cG5n", "mimeType": "image/png"}],
+      "samplers": [{"magFilter": 9728, "minFilter": 9987, "wrapS": 33071, "wrapT": 10497}],
+      "textures": [{"sampler": 0, "source": 0}],
+      "materials": [{
+        "name": "Paint",
+        "pbrMetallicRoughness": {
+          "baseColorFactor": [0.25, 0.5, 0.75, 0.8],
+          "baseColorTexture": {"index": 0, "texCoord": 0},
+          "metallicFactor": 0.2,
+          "roughnessFactor": 0.7,
+          "metallicRoughnessTexture": {"index": 0}
+        },
+        "alphaMode": "BLEND",
+        "alphaCutoff": 0.4,
+        "doubleSided": true,
+        "normalTexture": {"index": 0},
+        "extensions": {"KHR_materials_unlit": {}}
+      }]
+    })JSON";
+
+    const core::gltf::ReadResult result = Reader::readJson(json);
+
+    ASSERT_TRUE(result.ok()) << (result.diagnostics.empty()
+                                   ? ""
+                                   : result.diagnostics.entries().front().toString());
+    ASSERT_TRUE(result.asset);
+    ASSERT_EQ(1u, result.asset->samplers.size());
+    EXPECT_EQ(9728, result.asset->samplers[0].magFilter.value());
+    EXPECT_EQ(9987, result.asset->samplers[0].minFilter.value());
+    EXPECT_EQ(33071, result.asset->samplers[0].wrapS);
+    ASSERT_EQ(1u, result.asset->textures.size());
+    EXPECT_EQ(0u, result.asset->textures[0].source.value());
+    EXPECT_EQ(0u, result.asset->textures[0].sampler.value());
+    ASSERT_EQ(1u, result.asset->materials.size());
+    const auto& material = result.asset->materials[0];
+    EXPECT_EQ("Paint", material.name);
+    EXPECT_EQ(0.25, material.baseColorFactor[0]);
+    ASSERT_TRUE(material.baseColorTexture.has_value());
+    EXPECT_EQ(0u, material.baseColorTexture->index);
+    EXPECT_EQ(0, material.baseColorTexture->texCoord);
+    EXPECT_EQ(0.2, material.metallicFactor.value());
+    EXPECT_EQ(0.7, material.roughnessFactor.value());
+    ASSERT_TRUE(material.metallicRoughnessTexture.has_value());
+    EXPECT_EQ("BLEND", material.alphaMode);
+    EXPECT_EQ(0.4, material.alphaCutoff);
+    EXPECT_TRUE(material.doubleSided);
+    EXPECT_FALSE(material.unsupportedFeatures.empty());
+  }
+
   TEST(GltfReader, ParsesScenesNodesNamesAndTransforms) {
     const string json = R"JSON({
       "asset": {"version": "2.0"},
