@@ -221,15 +221,15 @@
 | `src/world/animation/Timeline.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `src/world/import/AdditiveManufacturingSceneImporter.cpp` | [Additive manufacturing import](../tools-and-io/additive-manufacturing-import.md) |
 | `src/world/import/GCodeSceneImporter.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
-| `src/world/import/ImportedSceneDefaults.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `src/world/import/GltfSceneImporter.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `src/world/import/ImportedSceneDefaults.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `src/world/import/LDrawFileSceneImporter.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/import/LDrawSceneImporter.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/import/OpenScadCompiler.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `src/world/import/OpenScadSceneImporter.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
+| `src/world/import/StlSceneImporter.cpp` | [STL import](../tools-and-io/stl-import.md) |
 | `src/world/objects/PinholeCamera.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/objects/Scene.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
-| `src/world/import/StlSceneImporter.cpp` | [STL import](../tools-and-io/stl-import.md) |
 | `test/fixtures/additive/` | [Additive manufacturing import](../tools-and-io/additive-manufacturing-import.md) |
 | `test/fixtures/gcode/` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `test/fixtures/groups/` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
