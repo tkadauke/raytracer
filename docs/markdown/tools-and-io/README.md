@@ -18,6 +18,9 @@ codebase, not just understand it.
     expectations.
 - [STL import](stl-import.md) — ASCII and binary triangle-mesh import,
     binary count validation, and explicit unit/material assumptions.
+- [Additive manufacturing import](additive-manufacturing-import.md) —
+    STL/3MF mesh preview fixtures, rendercli smoke coverage, and importer
+    limits for delivery-format print geometry.
 - [G-code parsing](gcode-parsing.md) — visualization-oriented 3D-printer
     movement, extrusion, layer comments, temperatures, and tool-change
     metadata.
