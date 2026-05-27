@@ -297,6 +297,7 @@ void PropertyEditorWidget::clearReadOnlyWidgets() {
 
 void PropertyEditorWidget::elementChanged(const QString& propertyName, const QVariant& value) {
   p->element->setProperty(propertyName.toStdString().c_str(), value);
+  p->element->propertyEdited(propertyName);
   emit changed(p->element);
   if (p->element->rebuildPropertyEditorAfterChange(propertyName)) {
     rebuildEditorLater();

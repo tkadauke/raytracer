@@ -56,13 +56,74 @@ namespace SourceAssetTest {
     }
   };
 
+  class EditableSourceAssetImporter : public world::SceneImporter {
+  public:
+    QString name() const override {
+      return QStringLiteral("Editable Source Asset Stub");
+    }
+
+    QStringList supportedExtensions() const override {
+      return {"editableasset"};
+    }
+
+    world::ImportOptionSchemas optionSchema() const override {
+      return {};
+    }
+
+    world::ImportOptionSchemas
+    editableSourceParameters(const QString&, const world::ImportOptions&) const override {
+      return {
+        {"length",
+         world::ImportOptionType::Double,
+         "Length",
+         "Editable source length.",
+         2.5,
+         false,
+         {}},
+        {"enabled",
+         world::ImportOptionType::Boolean,
+         "Enabled",
+         "Editable source enabled flag.",
+         true,
+         false,
+         {}},
+        {"wall_thickness",
+         world::ImportOptionType::Double,
+         "",
+         "Editable wall thickness.",
+         0.0,
+         false,
+         {}},
+      };
+    }
+
+    world::ImportResult importFile(const QString& filename,
+                                   const world::ImportOptions& options) const override {
+      auto group = std::make_unique<Group>();
+      const auto defines = options.value("define").toJsonObject();
+      group->setName(QString("length=%1 enabled=%2")
+                       .arg(defines.value("length").toDouble(2.5))
+                       .arg(defines.value("enabled").toBool(true)));
+
+      world::ImportSourceMetadata source;
+      source.importerName = name();
+      source.sourcePath = filename;
+      return world::ImportResult(std::move(group), source);
+    }
+  };
+
   void registerStubImporter() {
     world::SceneImporterRegistry::self().registerClass<StubSourceAssetImporter>(
       "source-asset-stub");
   }
 
-  QString writeTemporarySource() {
-    QTemporaryFile file(QDir::temp().filePath("source-asset-XXXXXX.assetstub"));
+  void registerEditableImporter() {
+    world::SceneImporterRegistry::self().registerClass<EditableSourceAssetImporter>(
+      "editable-source-asset-stub");
+  }
+
+  QString writeTemporarySource(const QString& extension = QStringLiteral("assetstub")) {
+    QTemporaryFile file(QDir::temp().filePath(QString("source-asset-XXXXXX.%1").arg(extension)));
     EXPECT_TRUE(file.open());
     file.write("stub");
     const QString filename = file.fileName();
@@ -152,5 +213,38 @@ namespace SourceAssetTest {
     EXPECT_EQ(QString("Compiled Sphere"), importedRoot->childElements().front()->name());
     ASSERT_EQ(1, asset.diagnostics().size());
     EXPECT_TRUE(asset.diagnostics()[0].isWarning());
+  }
+
+  TEST(SourceAsset, ExposesEditableImporterParametersAndRebuildsWhenTheyChange) {
+    registerEditableImporter();
+    const QString source = writeTemporarySource(QStringLiteral("editableasset"));
+
+    SourceAsset asset;
+    asset.setSourcePath(source);
+    asset.setFormat("editable-source-asset-stub");
+    asset.rebuildGeneratedChildren();
+
+    EXPECT_EQ(QStringLiteral("Source Parameters"), asset.propertyGroup("length"));
+    EXPECT_EQ(QStringLiteral("Length"), asset.propertyDisplayName("length"));
+    EXPECT_EQ(QStringLiteral("Wall Thickness"), asset.propertyDisplayName("wall_thickness"));
+    EXPECT_EQ(QStringLiteral("Editable source length."), asset.propertyDescription("length"));
+    EXPECT_DOUBLE_EQ(2.5, asset.property("length").toDouble());
+    EXPECT_TRUE(asset.property("enabled").toBool());
+    ASSERT_EQ(1, asset.childElements().size());
+    EXPECT_EQ(QString("length=2.5 enabled=1"), asset.childElements().front()->name());
+
+    asset.setProperty("length", 4.0);
+    asset.propertyEdited("length");
+
+    const auto defines = asset.importOptions().value("define").toObject();
+    EXPECT_DOUBLE_EQ(4.0, defines.value("length").toDouble());
+    ASSERT_EQ(1, asset.childElements().size());
+    EXPECT_EQ(QString("length=4 enabled=1"), asset.childElements().front()->name());
+
+    QJsonObject json;
+    asset.write(json);
+    EXPECT_FALSE(json.contains("length"));
+    EXPECT_DOUBLE_EQ(4.0,
+                     json["importOptions"].toObject()["define"].toObject()["length"].toDouble());
   }
 }

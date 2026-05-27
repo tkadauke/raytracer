@@ -49,6 +49,7 @@ namespace {
     Comma,
     Semicolon,
     Equal,
+    String,
     End,
     Invalid
   };
@@ -128,6 +129,9 @@ namespace {
         case '=':
           tokens.push_back(simple(TokenKind::Equal, location));
           advance();
+          break;
+        case '"':
+          tokens.push_back(string(location, diagnostics, filename));
           break;
         default:
           if (ch.isDigit() || ch == QChar('-') || ch == QChar('+') || ch == QChar('.')) {
@@ -214,6 +218,27 @@ namespace {
       return {TokenKind::Identifier, text, 0.0, location};
     }
 
+    Token string(SourceLocation location, std::vector<world::ImportDiagnostic>& diagnostics,
+                 const QString& filename) {
+      QString text;
+      advance();
+      while (!atEnd() && peek() != QChar('"')) {
+        QChar ch = advance();
+        if (ch == QChar('\\') && !atEnd()) {
+          ch = advance();
+        }
+        text.append(ch);
+      }
+
+      if (atEnd()) {
+        diagnostics.push_back(world::ImportDiagnostic::error(
+          "Unterminated string literal", filename, location.line, location.column));
+      } else {
+        advance();
+      }
+      return {TokenKind::String, text, 0.0, location};
+    }
+
     Token number(SourceLocation location, std::vector<world::ImportDiagnostic>& diagnostics,
                  const QString& filename) {
       QString text;
@@ -248,6 +273,391 @@ namespace {
     int m_line{1};
     int m_column{1};
   };
+
+  class EditableParameterScanner {
+  public:
+    explicit EditableParameterScanner(QString source)
+        : m_source(std::move(source)) {
+    }
+
+    world::ImportOptionSchemas scan() {
+      const bool hasCustomizerBlock = m_source.contains(QStringLiteral("/*<!!start"));
+      bool active = !hasCustomizerBlock;
+      QStringList pendingDescription;
+
+      for (const QString& line : m_source.split(QChar('\n'))) {
+        if (line.contains(QStringLiteral("/*<!!start"))) {
+          active = true;
+          pendingDescription.clear();
+          continue;
+        }
+        if (line.contains(QStringLiteral("/*<!!end"))) {
+          active = false;
+          pendingDescription.clear();
+          continue;
+        }
+        if (!active)
+          continue;
+
+        if (const auto section = sectionName(line); !section.isEmpty()) {
+          m_group = section;
+          pendingDescription.clear();
+          continue;
+        }
+
+        QString lineComment;
+        const QString code = codeBeforeLineComment(line, &lineComment);
+        if (auto schema = parameterFor(code, lineComment, pendingDescription)) {
+          if (!hasParameter(schema->name))
+            m_parameters.push_back(*schema);
+          pendingDescription.clear();
+          continue;
+        }
+
+        const QString commentText = standaloneLineComment(line);
+        if (!commentText.isEmpty()) {
+          pendingDescription << commentText;
+        } else if (!code.trimmed().isEmpty()) {
+          pendingDescription.clear();
+        }
+      }
+
+      return m_parameters;
+    }
+
+  private:
+    std::optional<world::ImportOptionSchema>
+    parameterFor(const QString& code, const QString& lineComment,
+                 const QStringList& pendingDescription) const {
+      if (m_group.compare(QStringLiteral("Hidden"), Qt::CaseInsensitive) == 0)
+        return std::nullopt;
+
+      const QString trimmed = code.trimmed();
+      if (trimmed.isEmpty())
+        return std::nullopt;
+
+      int index = 0;
+      const QString name = identifierAt(trimmed, &index);
+      if (name.isEmpty())
+        return std::nullopt;
+
+      skipSpaces(trimmed, &index);
+      if (index >= trimmed.size() || trimmed[index] != QChar('='))
+        return std::nullopt;
+      ++index;
+
+      const int semicolon = topLevelSemicolon(trimmed, index);
+      if (semicolon < 0)
+        return std::nullopt;
+
+      const QString value = trimmed.mid(index, semicolon - index).trimmed();
+      world::ImportOptionSchema schema;
+      schema.name = name;
+      schema.group = m_group;
+      schema.description = pendingDescription.join(QChar('\n'));
+      if (schema.description.trimmed().isEmpty()) {
+        schema.description =
+          QString("OpenSCAD definition passed as -D %1=value when rebuilding this source asset.")
+            .arg(name);
+      }
+
+      if (!parseLiteral(schema, value))
+        return std::nullopt;
+
+      applyHint(schema, lineComment);
+      return schema;
+    }
+
+    bool parseLiteral(world::ImportOptionSchema& schema, const QString& value) const {
+      if (value.startsWith(QChar('[')) && value.endsWith(QChar(']'))) {
+        schema.type = world::ImportOptionType::String;
+        schema.defaultValue = normalizedExpression(value);
+        return true;
+      }
+
+      if (value.startsWith(QChar('"')) && value.endsWith(QChar('"'))) {
+        schema.type = world::ImportOptionType::String;
+        schema.defaultValue = normalizedExpression(value);
+        return true;
+      }
+
+      if (value == QStringLiteral("true") || value == QStringLiteral("false")) {
+        schema.type = world::ImportOptionType::Boolean;
+        schema.defaultValue = value == QStringLiteral("true");
+        return true;
+      }
+
+      bool ok = false;
+      const double number = value.toDouble(&ok);
+      if (ok) {
+        schema.type = world::ImportOptionType::Double;
+        schema.defaultValue = number;
+        return true;
+      }
+
+      return false;
+    }
+
+    void applyHint(world::ImportOptionSchema& schema, const QString& lineComment) const {
+      const QString hint = lineComment.trimmed();
+      if (hint.isEmpty())
+        return;
+
+      if (hint.startsWith(QChar('[')) && hint.endsWith(QChar(']'))) {
+        const QString content = hint.mid(1, hint.size() - 2).trimmed();
+        if (content.contains(QChar(','))) {
+          schema.choices = choicesFromHint(content, isStringExpression(schema.defaultValue));
+          if (!schema.choices.isEmpty()) {
+            schema.type = world::ImportOptionType::Choice;
+            schema.defaultValue = expressionTextForValue(schema.defaultValue);
+          }
+          return;
+        }
+
+        applyRangeHint(schema, content);
+        return;
+      }
+
+      bool ok = false;
+      const double step = hint.toDouble(&ok);
+      if (ok && step > 0.0)
+        schema.step = step;
+    }
+
+    void applyRangeHint(world::ImportOptionSchema& schema, const QString& content) const {
+      const auto parts = content.split(QChar(':'), Qt::SkipEmptyParts);
+      if (parts.size() != 2 && parts.size() != 3)
+        return;
+
+      bool minOk = false;
+      bool maxOk = false;
+      bool stepOk = false;
+      const double minimum = parts[0].trimmed().toDouble(&minOk);
+      const double maximum = parts.last().trimmed().toDouble(&maxOk);
+      const double step = parts.size() == 3 ? parts[1].trimmed().toDouble(&stepOk) : 0.0;
+      if (!minOk || !maxOk)
+        return;
+
+      schema.minimum = minimum;
+      schema.maximum = maximum;
+      if (parts.size() == 3 && stepOk && step > 0.0)
+        schema.step = step;
+    }
+
+    QStringList choicesFromHint(const QString& content, bool quoteStringChoices) const {
+      QStringList choices;
+      for (QString choice : splitTopLevel(content, QChar(','))) {
+        choice = choice.trimmed();
+        const int labelSeparator = topLevelLabelSeparator(choice);
+        if (labelSeparator >= 0)
+          choice = choice.left(labelSeparator).trimmed();
+        if (choice.isEmpty())
+          continue;
+        if (quoteStringChoices && !choice.startsWith(QChar('"')))
+          choice = quoteOpenScadString(choice);
+        choices << normalizedExpression(choice);
+      }
+      choices.removeDuplicates();
+      return choices;
+    }
+
+    static QString sectionName(const QString& line) {
+      const int open = line.indexOf(QStringLiteral("/*"));
+      const int close = line.indexOf(QStringLiteral("*/"), open + 2);
+      if (open < 0 || close < 0)
+        return {};
+
+      const QString text = line.mid(open + 2, close - open - 2).trimmed();
+      if (!text.startsWith(QChar('[')) || !text.endsWith(QChar(']')))
+        return {};
+      return text.mid(1, text.size() - 2).trimmed();
+    }
+
+    static QString codeBeforeLineComment(const QString& line, QString* lineComment) {
+      const int comment = lineCommentIndex(line);
+      if (comment < 0) {
+        if (lineComment)
+          *lineComment = {};
+        return line;
+      }
+
+      if (lineComment)
+        *lineComment = line.mid(comment + 2).trimmed();
+      return line.left(comment);
+    }
+
+    static QString standaloneLineComment(const QString& line) {
+      const QString trimmed = line.trimmed();
+      if (!trimmed.startsWith(QStringLiteral("//")))
+        return {};
+      return trimmed.mid(2).trimmed();
+    }
+
+    static int lineCommentIndex(const QString& line) {
+      bool inString = false;
+      bool escaped = false;
+      for (int i = 0; i + 1 < line.size(); ++i) {
+        const QChar ch = line[i];
+        if (inString) {
+          if (escaped) {
+            escaped = false;
+          } else if (ch == QChar('\\')) {
+            escaped = true;
+          } else if (ch == QChar('"')) {
+            inString = false;
+          }
+          continue;
+        }
+        if (ch == QChar('"')) {
+          inString = true;
+        } else if (ch == QChar('/') && line[i + 1] == QChar('/')) {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    static QString identifierAt(const QString& text, int* index) {
+      skipSpaces(text, index);
+      if (*index >= text.size() || !isIdentifierStart(text[*index]))
+        return {};
+
+      QString result;
+      while (*index < text.size() && isIdentifierContinue(text[*index])) {
+        result.append(text[*index]);
+        ++(*index);
+      }
+      return result;
+    }
+
+    static int topLevelSemicolon(const QString& text, int start) {
+      bool inString = false;
+      bool escaped = false;
+      int depth = 0;
+      for (int i = start; i < text.size(); ++i) {
+        const QChar ch = text[i];
+        if (inString) {
+          if (escaped) {
+            escaped = false;
+          } else if (ch == QChar('\\')) {
+            escaped = true;
+          } else if (ch == QChar('"')) {
+            inString = false;
+          }
+          continue;
+        }
+        if (ch == QChar('"')) {
+          inString = true;
+        } else if (ch == QChar('[') || ch == QChar('(')) {
+          ++depth;
+        } else if (ch == QChar(']') || ch == QChar(')')) {
+          if (depth > 0)
+            --depth;
+        } else if (ch == QChar(';') && depth == 0) {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    static int topLevelLabelSeparator(const QString& text) {
+      bool inString = false;
+      for (int i = 0; i < text.size(); ++i) {
+        const QChar ch = text[i];
+        if (ch == QChar('"')) {
+          inString = !inString;
+        } else if (ch == QChar(':') && !inString) {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    static QStringList splitTopLevel(const QString& text, QChar delimiter) {
+      QStringList result;
+      bool inString = false;
+      bool escaped = false;
+      int start = 0;
+      for (int i = 0; i < text.size(); ++i) {
+        const QChar ch = text[i];
+        if (inString) {
+          if (escaped) {
+            escaped = false;
+          } else if (ch == QChar('\\')) {
+            escaped = true;
+          } else if (ch == QChar('"')) {
+            inString = false;
+          }
+          continue;
+        }
+        if (ch == QChar('"')) {
+          inString = true;
+        } else if (ch == delimiter) {
+          result << text.mid(start, i - start);
+          start = i + 1;
+        }
+      }
+      result << text.mid(start);
+      return result;
+    }
+
+    static bool isStringExpression(const QVariant& value) {
+      const QString text = value.toString().trimmed();
+      return text.startsWith('"') && text.endsWith('"');
+    }
+
+    static QString normalizedExpression(QString text) {
+      return text.trimmed();
+    }
+
+    static QString expressionTextForValue(const QVariant& value) {
+      if (value.typeName() == QStringLiteral("bool"))
+        return value.toBool() ? QStringLiteral("true") : QStringLiteral("false");
+      if (QString(value.typeName()) == QStringLiteral("QString"))
+        return value.toString().trimmed();
+      bool ok = false;
+      const double number = value.toDouble(&ok);
+      if (ok)
+        return QString::number(number, 'g', 15);
+      return value.toString().trimmed();
+    }
+
+    static QString quoteOpenScadString(QString text) {
+      text.replace(QChar('\\'), QStringLiteral("\\\\"));
+      text.replace(QChar('"'), QStringLiteral("\\\""));
+      return QStringLiteral("\"%1\"").arg(text);
+    }
+
+    static void skipSpaces(const QString& text, int* index) {
+      while (*index < text.size() && text[*index].isSpace())
+        ++(*index);
+    }
+
+    static bool isIdentifierStart(QChar ch) {
+      return ch.isLetter() || ch == QChar('_') || ch == QChar('$');
+    }
+
+    static bool isIdentifierContinue(QChar ch) {
+      return isIdentifierStart(ch) || ch.isDigit();
+    }
+
+    bool hasParameter(const QString& name) const {
+      return std::any_of(m_parameters.begin(), m_parameters.end(),
+                         [&](const auto& parameter) { return parameter.name == name; });
+    }
+
+    QString m_source;
+    QString m_group{QStringLiteral("OpenSCAD Parameters")};
+    world::ImportOptionSchemas m_parameters;
+  };
+
+  world::ImportOptionSchemas scanEditableOpenScadParameters(const QString& filename) {
+    QFile file(filename);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+      return {};
+
+    return EditableParameterScanner(QString::fromUtf8(file.readAll())).scan();
+  }
 
   class Parser {
   public:
@@ -762,6 +1172,15 @@ namespace world {
        false,
        {}},
     };
+  }
+
+  ImportOptionSchemas OpenScadSceneImporter::editableSourceParameters(const QString& filename,
+                                                                      const ImportOptions&) const {
+    return scanEditableOpenScadParameters(filename);
+  }
+
+  bool OpenScadSceneImporter::wrapDirectImportInSourceAsset() const {
+    return true;
   }
 
   ImportResult OpenScadSceneImporter::importFile(const QString& filename,

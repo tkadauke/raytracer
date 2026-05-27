@@ -11,6 +11,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Editable OpenSCAD source parameters.** Direct `.scad` opens in Modeler now
+  stay source-backed, expose OpenSCAD Customizer sections, tooltips, numeric,
+  boolean, string-choice, vector-expression assignments, human-readable labels,
+  and numeric precision hints in the property inspector, and rebuild the
+  generated mesh when those values change. — GPT-5
 - **Modeler importer open filter.** The Modeler Open dialog now builds its
   default scene/import filter from registered importer extensions, so `.scad`
   files are selectable without switching to “All Files”. — GPT-5

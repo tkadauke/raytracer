@@ -38,6 +38,20 @@ namespace PropertyEditorWidgetTest {
 
   class PropertyEditorWidgetTest : public ::testing::GuiTest {};
 
+  class EditedGroup : public Group {
+  public:
+    QString propertyDescription(const QString& propertyName) const override {
+      return propertyName == QStringLiteral("name") ? QStringLiteral("Editable display name")
+                                                    : Group::propertyDescription(propertyName);
+    }
+
+    void propertyEdited(const QString& propertyName) override {
+      lastEditedProperty = propertyName;
+    }
+
+    QString lastEditedProperty;
+  };
+
   AbstractParameterWidget* parameterWidget(PropertyEditorWidget& editor, const QString& name) {
     const auto widgets = editor.findChildren<AbstractParameterWidget*>();
     for (auto* widget : widgets) {
@@ -261,6 +275,22 @@ namespace PropertyEditorWidgetTest {
     ASSERT_EQ(2, rows->topLevelItemCount());
     EXPECT_EQ(QString("Pass"), rows->topLevelItem(0)->text(0));
     EXPECT_EQ(QString("tonemap"), rows->topLevelItem(0)->text(1));
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldNotifyElementAfterPropertyEdit) {
+    Scene root;
+    auto* group = new EditedGroup;
+    root.addChild(group);
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(group);
+    auto* name = parameterWidget(editor, "name");
+    ASSERT_NE(nullptr, name);
+    EXPECT_EQ(QString("Editable display name"), name->toolTip());
+    editor.elementChanged("name", QString("Edited Group"));
+
+    EXPECT_EQ(QString("Edited Group"), group->name());
+    EXPECT_EQ(QString("name"), group->lastEditedProperty);
   }
 
   TEST_F(PropertyEditorWidgetTest, ShouldShowGroupPropertiesAndMetadata) {

@@ -2,6 +2,7 @@
 
 #include "world/import/ImportOptions.h"
 #include "world/import/ImportResult.h"
+#include "world/import/SceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/ElementFactory.h"
 #include "world/objects/Scene.h"
@@ -62,6 +63,11 @@ SourceAsset::SourceAsset(Element* parent)
   setName("Source Asset");
 }
 
+void SourceAsset::setImportOptions(const QJsonObject& options) {
+  m_importOptions = options;
+  refreshEditableImportProperties();
+}
+
 void SourceAsset::clearDiagnostics() {
   m_diagnostics.clear();
 }
@@ -85,6 +91,109 @@ QString SourceAsset::resolvedSourcePath() const {
   return baseDir.filePath(m_sourcePath);
 }
 
+std::unique_ptr<world::SceneImporter> SourceAsset::createImporter(const QString& source) const {
+  const QString importerFormat = m_format.trimmed();
+  if (importerFormat.isEmpty())
+    return world::SceneImporterRegistry::self().createForFile(source);
+
+  return world::SceneImporterRegistry::self().createByFormat(importerFormat);
+}
+
+void SourceAsset::refreshEditableImportProperties() {
+  removeEditableImportProperties();
+
+  const QString source = resolvedSourcePath().trimmed();
+  if (source.isEmpty())
+    return;
+
+  auto importer = createImporter(source);
+  if (!importer)
+    return;
+
+  const auto parameters =
+    importer->editableSourceParameters(source, world::ImportOptions(m_importOptions));
+  QJsonObject defines = m_importOptions.value("define").toObject();
+
+  m_blockEditableImportPropertySync = true;
+  for (const auto& parameter : parameters) {
+    if (parameter.name.trimmed().isEmpty())
+      continue;
+    if (metaObject()->indexOfProperty(parameter.name.toUtf8().constData()) >= 0)
+      continue;
+
+    m_editableImportProperties.push_back(parameter);
+    setProperty(parameter.name.toUtf8().constData(),
+                editableImportPropertyValue(parameter, defines));
+  }
+  m_blockEditableImportPropertySync = false;
+}
+
+void SourceAsset::removeEditableImportProperties() {
+  m_blockEditableImportPropertySync = true;
+  for (const auto& parameter : m_editableImportProperties) {
+    setProperty(parameter.name.toUtf8().constData(), QVariant());
+  }
+  m_editableImportProperties.clear();
+  m_blockEditableImportPropertySync = false;
+}
+
+bool SourceAsset::isEditableImportProperty(const QString& propertyName) const {
+  return editableImportPropertySchema(propertyName) != nullptr;
+}
+
+const world::ImportOptionSchema*
+SourceAsset::editableImportPropertySchema(const QString& propertyName) const {
+  for (const auto& parameter : m_editableImportProperties) {
+    if (parameter.name == propertyName)
+      return &parameter;
+  }
+  return nullptr;
+}
+
+QVariant SourceAsset::editableImportPropertyValue(const world::ImportOptionSchema& schema,
+                                                  const QJsonObject& defines) const {
+  if (defines.contains(schema.name))
+    return coerceEditableImportPropertyValue(schema, defines.value(schema.name).toVariant());
+
+  return coerceEditableImportPropertyValue(schema, schema.defaultValue);
+}
+
+QVariant SourceAsset::coerceEditableImportPropertyValue(const world::ImportOptionSchema& schema,
+                                                        const QVariant& value) const {
+  switch (schema.type) {
+  case world::ImportOptionType::Boolean:
+    return QVariant::fromValue(value.toBool());
+  case world::ImportOptionType::Integer:
+    return QVariant::fromValue(value.toInt());
+  case world::ImportOptionType::Double:
+    return QVariant::fromValue(value.toDouble());
+  case world::ImportOptionType::String:
+  case world::ImportOptionType::FilePath:
+  case world::ImportOptionType::DirectoryPath:
+  case world::ImportOptionType::Choice:
+    return QVariant::fromValue(value.toString());
+  }
+
+  return value;
+}
+
+void SourceAsset::setEditableImportDefine(const QString& propertyName, const QVariant& value) {
+  const auto* schema = editableImportPropertySchema(propertyName);
+  if (!schema)
+    return;
+
+  QJsonObject defines = m_importOptions.value("define").toObject();
+  defines.insert(propertyName,
+                 QJsonValue::fromVariant(coerceEditableImportPropertyValue(*schema, value)));
+  m_importOptions.insert("define", defines);
+}
+
+QString SourceAsset::editableImportPropertyGroupName() const {
+  return m_format.compare(QStringLiteral("openscad"), Qt::CaseInsensitive) == 0
+           ? QStringLiteral("OpenSCAD Parameters")
+           : QStringLiteral("Source Parameters");
+}
+
 void SourceAsset::rebuildGeneratedChildren() {
   for (int i = childElements().size() - 1; i >= 0; --i) {
     if (childElements()[i]->isGenerated()) {
@@ -102,15 +211,11 @@ void SourceAsset::rebuildGeneratedChildren() {
     return;
   }
 
-  std::unique_ptr<world::SceneImporter> importer;
-  const QString importerFormat = m_format.trimmed();
-  if (importerFormat.isEmpty()) {
-    importer = world::SceneImporterRegistry::self().createForFile(source);
-  } else {
-    importer = world::SceneImporterRegistry::self().createByFormat(importerFormat);
-  }
+  refreshEditableImportProperties();
 
+  std::unique_ptr<world::SceneImporter> importer = createImporter(source);
   if (!importer) {
+    const QString importerFormat = m_format.trimmed();
     const QString key = importerFormat.isEmpty() ? QFileInfo(source).suffix() : importerFormat;
     addDiagnostic(world::ImportDiagnostic::error(
       QString("No scene importer registered for source asset format: %1").arg(key), source));
@@ -133,10 +238,10 @@ void SourceAsset::rebuildGeneratedChildren() {
     return;
   }
 
-  adoptImportedRoot(result.takeRoot());
+  adoptGeneratedRoot(result.takeRoot());
 }
 
-void SourceAsset::adoptImportedRoot(std::unique_ptr<Element> root) {
+void SourceAsset::adoptGeneratedRoot(std::unique_ptr<Element> root) {
   if (!root)
     return;
 
@@ -185,6 +290,9 @@ void SourceAsset::read(const QJsonObject& json) {
 
 void SourceAsset::write(QJsonObject& json) {
   Group::write(json);
+  for (const auto& parameter : m_editableImportProperties) {
+    json.remove(parameter.name);
+  }
 
   if (!m_importOptions.isEmpty())
     json["importOptions"] = m_importOptions;
@@ -198,13 +306,79 @@ void SourceAsset::write(QJsonObject& json) {
   }
 }
 
+QString SourceAsset::propertyDisplayName(const QString& propertyName) const {
+  if (const auto* schema = editableImportPropertySchema(propertyName)) {
+    if (!schema->label.trimmed().isEmpty())
+      return schema->label;
+  }
+
+  return Group::propertyDisplayName(propertyName);
+}
+
+QString SourceAsset::propertyDescription(const QString& propertyName) const {
+  if (const auto* schema = editableImportPropertySchema(propertyName))
+    return schema->description;
+
+  return Group::propertyDescription(propertyName);
+}
+
 QString SourceAsset::propertyGroup(const QString& propertyName) const {
+  if (const auto* schema = editableImportPropertySchema(propertyName)) {
+    if (!schema->group.trimmed().isEmpty())
+      return schema->group;
+    return editableImportPropertyGroupName();
+  }
+
   if (propertyName == QStringLiteral("sourcePath") || propertyName == QStringLiteral("format") ||
       propertyName == QStringLiteral("generatedOutputCacheKey")) {
     return QStringLiteral("Source");
   }
 
   return Group::propertyGroup(propertyName);
+}
+
+QStringList SourceAsset::propertyChoices(const QString& propertyName) const {
+  if (const auto* schema = editableImportPropertySchema(propertyName))
+    return schema->choices;
+
+  return Group::propertyChoices(propertyName);
+}
+
+std::optional<QPair<double, double>>
+SourceAsset::propertyDoubleRange(const QString& propertyName) const {
+  const auto* schema = editableImportPropertySchema(propertyName);
+  if (!schema || !schema->minimum.isValid() || !schema->maximum.isValid())
+    return Group::propertyDoubleRange(propertyName);
+
+  return QPair<double, double>(schema->minimum.toDouble(), schema->maximum.toDouble());
+}
+
+std::optional<double> SourceAsset::propertyDoubleStep(const QString& propertyName) const {
+  const auto* schema = editableImportPropertySchema(propertyName);
+  if (!schema || !schema->step.isValid())
+    return Group::propertyDoubleStep(propertyName);
+
+  return schema->step.toDouble();
+}
+
+QString SourceAsset::propertyChoiceDisplayName(const QString& propertyName,
+                                               const QString& choice) const {
+  QString text = choice.trimmed();
+  if (text.startsWith(QChar('"')) && text.endsWith(QChar('"')) && text.size() >= 2)
+    text = text.mid(1, text.size() - 2);
+  return Group::propertyChoiceDisplayName(propertyName, text);
+}
+
+void SourceAsset::propertyEdited(const QString& propertyName) {
+  applyEditableImportPropertyChange(propertyName);
+}
+
+void SourceAsset::applyEditableImportPropertyChange(const QString& propertyName) {
+  if (m_blockEditableImportPropertySync || !isEditableImportProperty(propertyName))
+    return;
+
+  setEditableImportDefine(propertyName, property(propertyName.toUtf8().constData()));
+  rebuildGeneratedChildren();
 }
 
 static bool dummy = ElementFactory::self().registerClass<SourceAsset>("SourceAsset");

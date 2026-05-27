@@ -33,6 +33,11 @@ const QVariant StringParameterWidget::value() const {
 }
 
 void StringParameterWidget::setValue(const QVariant& value) {
+  const QString text = value.toString();
+  if (p->ui.stringEdit->text() == text)
+    return;
+  if (p->ui.stringEdit->hasFocus())
+    return;
   const QSignalBlocker blocker(p->ui.stringEdit);
-  p->ui.stringEdit->setText(value.toString());
+  p->ui.stringEdit->setText(text);
 }

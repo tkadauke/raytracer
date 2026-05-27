@@ -49,15 +49,18 @@ public:
   virtual bool displayInSceneModel() const;
   virtual bool isPropertyVisible(const QString& propertyName) const;
   virtual QString propertyDisplayName(const QString& propertyName) const;
+  virtual QString propertyDescription(const QString& propertyName) const;
   virtual QString propertyGroup(const QString& propertyName) const;
   virtual QStringList propertyChoices(const QString& propertyName) const;
   virtual QList<int> propertyIntChoices(const QString& propertyName) const;
   virtual std::optional<QPair<int, int>> propertyIntRange(const QString& propertyName) const;
   virtual std::optional<QPair<double, double>>
   propertyDoubleRange(const QString& propertyName) const;
+  virtual std::optional<double> propertyDoubleStep(const QString& propertyName) const;
   virtual QString propertyChoiceDisplayName(const QString& propertyName,
                                             const QString& choice) const;
   virtual bool rebuildPropertyEditorAfterChange(const QString& propertyName) const;
+  virtual void propertyEdited(const QString& propertyName);
 
   inline QString displayName() const {
     if (m_name.isEmpty()) {

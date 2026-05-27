@@ -4,6 +4,8 @@
 
 #include "test/helpers/GuiTestHelper.h"
 
+#include <QLineEdit>
+
 namespace StringParameterWidgetTest {
   class StringParameterWidgetTest : public ::testing::GuiTest {};
 
@@ -28,5 +30,23 @@ namespace StringParameterWidgetTest {
     StringParameterWidget widget;
     widget.setParameterName("label");
     EXPECT_EQ(QString("label"), widget.parameterName());
+  }
+
+  TEST_F(StringParameterWidgetTest, ShouldNotResetTextOrCursorWhileEditing) {
+    StringParameterWidget widget;
+    widget.setValue(QVariant::fromValue(QString("[2, 0]")));
+
+    auto* edit = widget.findChild<QLineEdit*>("stringEdit");
+    ASSERT_NE(nullptr, edit);
+    edit->setFocus();
+    edit->setCursorPosition(2);
+    edit->backspace();
+    ASSERT_EQ(QString("[, 0]"), edit->text());
+    ASSERT_EQ(1, edit->cursorPosition());
+
+    widget.setValue(QVariant::fromValue(QString("[, 0]")));
+
+    EXPECT_EQ(QString("[, 0]"), edit->text());
+    EXPECT_EQ(1, edit->cursorPosition());
   }
 }

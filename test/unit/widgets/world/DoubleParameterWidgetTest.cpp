@@ -1,13 +1,25 @@
 #include <gtest/gtest.h>
 
 #include "widgets/world/DoubleParameterWidget.h"
+#include "world/objects/Element.h"
 
 #include "test/helpers/GuiTestHelper.h"
 
 #include <QDoubleSpinBox>
 
+#include <optional>
+
 namespace DoubleParameterWidgetTest {
   class DoubleParameterWidgetTest : public ::testing::GuiTest {};
+
+  class StepElement : public Element {
+  public:
+    std::optional<double> propertyDoubleStep(const QString& propertyName) const override {
+      if (propertyName == QStringLiteral("fine"))
+        return 0.01;
+      return std::nullopt;
+    }
+  };
 
   TEST_F(DoubleParameterWidgetTest, ShouldInitialize) {
     DoubleParameterWidget widget;
@@ -43,5 +55,18 @@ namespace DoubleParameterWidgetTest {
   TEST_F(DoubleParameterWidgetTest, ShouldUseNumericEditor) {
     DoubleParameterWidget widget;
     EXPECT_NE(nullptr, widget.findChild<QDoubleSpinBox*>());
+  }
+
+  TEST_F(DoubleParameterWidgetTest, ShouldApplyStepPrecisionFromElement) {
+    StepElement element;
+    DoubleParameterWidget widget;
+
+    widget.setElement(&element);
+    widget.setParameterName("fine");
+
+    auto* spinBox = widget.findChild<QDoubleSpinBox*>();
+    ASSERT_NE(nullptr, spinBox);
+    EXPECT_EQ(2, spinBox->decimals());
+    EXPECT_DOUBLE_EQ(0.01, spinBox->singleStep());
   }
 }

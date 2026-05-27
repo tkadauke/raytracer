@@ -65,6 +65,7 @@
 
 #include "world/objects/Scene.h"
 #include "world/objects/Camera.h"
+#include "world/objects/SourceAsset.h"
 #include "world/objects/Sphere.h"
 #include "world/objects/Box.h"
 #include "world/objects/Cylinder.h"
@@ -207,8 +208,20 @@ namespace {
       }
 
       auto scene = std::make_unique<::Scene>(nullptr);
-      Element* importedRoot = root.get();
-      scene->addChild(std::move(root));
+      Element* importedRoot = nullptr;
+      if (importer->wrapDirectImportInSourceAsset()) {
+        auto asset = std::make_unique<SourceAsset>();
+        asset->setName(QFileInfo(m_fileName).completeBaseName());
+        asset->setSourcePath(m_fileName);
+        asset->setFormat(importer->name());
+        asset->setImportOptions(importOptions.values());
+        asset->adoptGeneratedRoot(std::move(root));
+        importedRoot = asset.get();
+        scene->addChild(std::move(asset));
+      } else {
+        importedRoot = root.get();
+        scene->addChild(std::move(root));
+      }
       if (importedRoot)
         importer->configureImportedScene(*scene, *importedRoot, importOptions);
       scene->resolveElementReferences();

@@ -162,6 +162,59 @@ exit 0
     EXPECT_EQ(QString("openscad"), importer->name());
   }
 
+  TEST(OpenScadSceneImporter, ListsTopLevelAssignmentsAsEditableSourceParameters) {
+    QTemporaryFile source(QDir::temp().filePath("openscad-params-XXXXXX.scad"));
+    ASSERT_TRUE(source.open());
+    source.write(R"(
+      width = 999;
+      /*<!!start test_model!!>*/
+      /* [General Cup] */
+      // X dimension. grid units or mm.
+      width = [2, 0]; //0.1
+      mode = "normal"; //[normal, reduced, none:not stackable]
+      sides = 6; //[4:square, 6:Hex, 64:circle]
+      wall_thickness = 0; // .01
+      /* [Subdivisions] */
+      enabled = true;
+      /* [Hidden] */
+      hidden_value = 99;
+      /*<!!end test_model!!>*/
+      after = 123;
+    )");
+    source.close();
+
+    world::OpenScadSceneImporter importer;
+    const auto parameters = importer.editableSourceParameters(source.fileName(), {});
+
+    ASSERT_EQ(5u, parameters.size());
+    EXPECT_EQ(QString("width"), parameters[0].name);
+    EXPECT_EQ(QString("General Cup"), parameters[0].group);
+    EXPECT_EQ(world::ImportOptionType::String, parameters[0].type);
+    EXPECT_EQ(QString("[2, 0]"), parameters[0].defaultValue.toString());
+    EXPECT_EQ(QString("X dimension. grid units or mm."), parameters[0].description);
+    EXPECT_DOUBLE_EQ(0.1, parameters[0].step.toDouble());
+
+    EXPECT_EQ(QString("mode"), parameters[1].name);
+    EXPECT_EQ(world::ImportOptionType::Choice, parameters[1].type);
+    EXPECT_EQ(QString("\"normal\""), parameters[1].defaultValue.toString());
+    EXPECT_EQ((QStringList{QStringLiteral("\"normal\""), QStringLiteral("\"reduced\""),
+                           QStringLiteral("\"none\"")}),
+              parameters[1].choices);
+
+    EXPECT_EQ(QString("sides"), parameters[2].name);
+    EXPECT_EQ(world::ImportOptionType::Choice, parameters[2].type);
+    EXPECT_EQ((QStringList{QStringLiteral("4"), QStringLiteral("6"), QStringLiteral("64")}),
+              parameters[2].choices);
+
+    EXPECT_EQ(QString("wall_thickness"), parameters[3].name);
+    EXPECT_DOUBLE_EQ(0.01, parameters[3].step.toDouble());
+
+    EXPECT_EQ(QString("enabled"), parameters[4].name);
+    EXPECT_EQ(QString("Subdivisions"), parameters[4].group);
+    EXPECT_EQ(world::ImportOptionType::Boolean, parameters[4].type);
+    EXPECT_TRUE(parameters[4].defaultValue.toBool());
+  }
+
   TEST(OpenScadSceneImporter, ImportsSupportedPrimitivesAndTransforms) {
     const auto file = writeScad(R"(
       translate([1, 2, 3]) rotate([0, 0, 90]) scale([2, 3, 4])

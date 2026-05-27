@@ -326,9 +326,12 @@ library-root lookup, and frame a front-facing camera around the compiled model
 on a white product-view background. OpenSCAD `.scad` imports use the same
 standalone-scene defaults when opened directly: the imported Z-up asset is
 oriented upright for the product-view camera, lit with ambient fill, and framed
-with a pinhole camera before the preview starts. New reusable demos should be
-added as scene files unless they need a new runtime feature, a new world wrapper
-type, or a dedicated importer.
+with a pinhole camera before the preview starts. Direct OpenSCAD opens remain
+source-backed as `SourceAsset` objects; Customizer-style sections, comments,
+numeric values, booleans, string choices, and vector expressions appear in the
+property inspector and rebuild the generated mesh when edited. New reusable
+demos should be added as scene files unless they need a new runtime feature, a
+new world wrapper type, or a dedicated importer.
 
 ## <a id="the-wireup"></a>The wireup
 ```text

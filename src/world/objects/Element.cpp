@@ -44,6 +44,10 @@ QString Element::propertyDisplayName(const QString& propertyName) const {
   return humanizePropertyName(propertyName);
 }
 
+QString Element::propertyDescription(const QString&) const {
+  return {};
+}
+
 QString Element::propertyGroup(const QString&) const {
   return QStringLiteral("Properties");
 }
@@ -64,12 +68,19 @@ std::optional<QPair<double, double>> Element::propertyDoubleRange(const QString&
   return std::nullopt;
 }
 
+std::optional<double> Element::propertyDoubleStep(const QString&) const {
+  return std::nullopt;
+}
+
 QString Element::propertyChoiceDisplayName(const QString&, const QString& choice) const {
   return humanizePropertyName(choice);
 }
 
 bool Element::rebuildPropertyEditorAfterChange(const QString&) const {
   return false;
+}
+
+void Element::propertyEdited(const QString&) {
 }
 
 QString Element::humanizePropertyName(const QString& propertyName) const {

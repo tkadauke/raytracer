@@ -25,8 +25,11 @@ namespace world {
       */
     [[nodiscard]] virtual QStringList supportedExtensions() const = 0;
     [[nodiscard]] virtual ImportOptionSchemas optionSchema() const = 0;
+    [[nodiscard]] virtual ImportOptionSchemas
+    editableSourceParameters(const QString& filename, const ImportOptions& options) const;
     [[nodiscard]] virtual ImportResult
     importFile(const QString& filename, const ImportOptions& options = ImportOptions()) const = 0;
+    [[nodiscard]] virtual bool wrapDirectImportInSourceAsset() const;
     /**
       * Lets an importer configure the wrapper scene used when a direct file
       * import returns an asset/group root rather than a full Scene root.

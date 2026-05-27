@@ -17,9 +17,12 @@ namespace world {
     [[nodiscard]] QString name() const override;
     [[nodiscard]] QStringList supportedExtensions() const override;
     [[nodiscard]] ImportOptionSchemas optionSchema() const override;
+    [[nodiscard]] ImportOptionSchemas
+    editableSourceParameters(const QString& filename, const ImportOptions& options) const override;
     [[nodiscard]] ImportResult
     importFile(const QString& filename,
                const ImportOptions& options = ImportOptions()) const override;
+    [[nodiscard]] bool wrapDirectImportInSourceAsset() const override;
     bool configureImportedScene(Scene& scene, Element& importedRoot,
                                 const ImportOptions& options) const override;
 

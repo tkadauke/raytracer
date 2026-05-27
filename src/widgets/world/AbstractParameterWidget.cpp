@@ -33,6 +33,8 @@ QVariant AbstractParameterWidget::lastValue() const {
 
 void AbstractParameterWidget::setElement(Element* element) {
   p->element = element;
+  if (!p->parameterName.isEmpty())
+    setToolTip(p->element ? p->element->propertyDescription(p->parameterName) : QString());
   updatePropertyConfiguration();
 }
 
@@ -46,6 +48,9 @@ const QString& AbstractParameterWidget::parameterName() const {
 
 void AbstractParameterWidget::setParameterName(const QString& name) {
   p->parameterName = name;
+  if (p->element) {
+    setToolTip(p->element->propertyDescription(name));
+  }
   updatePropertyConfiguration();
 }
 

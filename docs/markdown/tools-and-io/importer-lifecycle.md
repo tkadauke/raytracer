@@ -87,6 +87,19 @@ mesh, and cache that output by source contents plus import options. Missing
 executables are reported as warnings with an empty imported group so a scene can
 still load; failed tool runs or malformed generated meshes are errors.
 
+Importers can expose source-specific controls through
+`SceneImporter::editableSourceParameters(...)`. OpenSCAD uses this to scan
+the Customizer block between `/*<!!start ...!!>*/` and `/*<!!end ...!!>*/`,
+map `/* [Section] */` comments to property groups, copy the contiguous `//`
+comments above an assignment into the property tooltip, and surface simple
+numeric, boolean, string-choice, and vector-expression assignments on
+[`SourceAsset`](../../../include/world/objects/SourceAsset.h) as dynamic
+property-editor fields. Numeric trailing comments such as `// 0.01` become the
+spinbox step and displayed precision. Editing one of those fields updates the
+asset's `importOptions.define` object and rebuilds the generated children, so
+the scene stores the source path plus overrides instead of baking the generated
+mesh into JSON.
+
 ## Diagnostics
 
 [`ImportDiagnostic`](../../../include/world/import/ImportDiagnostic.h) is for

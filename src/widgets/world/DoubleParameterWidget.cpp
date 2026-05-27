@@ -7,6 +7,22 @@
 #include <QSizePolicy>
 #include <QVBoxLayout>
 
+#include <algorithm>
+#include <cmath>
+
+namespace {
+  int decimalsForStep(double step) {
+    if (!std::isfinite(step) || step <= 0.0)
+      return 6;
+
+    QString text = QString::number(std::abs(step), 'f', 12);
+    while (text.contains(QChar('.')) && text.endsWith(QChar('0')))
+      text.chop(1);
+    const int dot = text.indexOf(QChar('.'));
+    return dot < 0 ? 0 : std::max(0, static_cast<int>(text.size() - dot - 1));
+  }
+}
+
 struct DoubleParameterWidget::Private {
   QLabel* label{nullptr};
   QDoubleSpinBox* doubleEdit{nullptr};
@@ -60,8 +76,12 @@ void DoubleParameterWidget::updatePropertyConfiguration() {
     return;
 
   const auto range = element()->propertyDoubleRange(parameterName());
-  if (!range)
-    return;
+  if (range)
+    p->doubleEdit->setRange(range->first, range->second);
 
-  p->doubleEdit->setRange(range->first, range->second);
+  const auto step = element()->propertyDoubleStep(parameterName());
+  if (step && *step > 0.0) {
+    p->doubleEdit->setDecimals(decimalsForStep(*step));
+    p->doubleEdit->setSingleStep(*step);
+  }
 }
