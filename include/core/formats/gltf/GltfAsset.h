@@ -110,10 +110,51 @@ namespace core::gltf {
     std::string name;
     std::vector<std::size_t> children;
     std::optional<std::size_t> mesh;
+    std::optional<std::size_t> camera;
+    std::optional<std::size_t> punctualLight;
     std::optional<std::array<double, 16>> matrix;
     std::array<double, 3> translation{0.0, 0.0, 0.0};
     std::array<double, 4> rotation{0.0, 0.0, 0.0, 1.0};
     std::array<double, 3> scale{1.0, 1.0, 1.0};
+  };
+
+  enum class CameraType { Perspective, Orthographic };
+
+  struct PerspectiveCamera {
+    std::optional<double> aspectRatio;
+    double yfov = 0.0;
+    double znear = 0.0;
+    std::optional<double> zfar;
+  };
+
+  struct OrthographicCamera {
+    double xmag = 0.0;
+    double ymag = 0.0;
+    double znear = 0.0;
+    double zfar = 0.0;
+  };
+
+  struct Camera {
+    std::string name;
+    CameraType type = CameraType::Perspective;
+    PerspectiveCamera perspective;
+    OrthographicCamera orthographic;
+  };
+
+  enum class PunctualLightType { Directional, Point, Spot };
+
+  struct SpotLight {
+    double innerConeAngle = 0.0;
+    double outerConeAngle = 0.7853981633974483;
+  };
+
+  struct PunctualLight {
+    std::string name;
+    PunctualLightType type = PunctualLightType::Point;
+    std::array<double, 3> color{1.0, 1.0, 1.0};
+    double intensity = 1.0;
+    std::optional<double> range;
+    SpotLight spot;
   };
 
   struct Scene {
@@ -154,6 +195,8 @@ namespace core::gltf {
     std::vector<Texture> textures;
     std::vector<Material> materials;
     std::vector<Mesh> meshes;
+    std::vector<Camera> cameras;
+    std::vector<PunctualLight> punctualLights;
     std::vector<Node> nodes;
     std::vector<Scene> scenes;
     std::vector<Animation> animations;

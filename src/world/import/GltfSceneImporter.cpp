@@ -12,7 +12,11 @@
 #include "world/animation/Timeline.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/CompiledPrimitive.h"
+#include "world/objects/DirectionalLight.h"
 #include "world/objects/Group.h"
+#include "world/objects/OrthographicCamera.h"
+#include "world/objects/PinholeCamera.h"
+#include "world/objects/PointLight.h"
 #include "world/objects/Scene.h"
 
 #include <QColor>
@@ -350,6 +354,26 @@ namespace world {
       }
     }
 
+    void attachElementProvenance(Element& element, const QString& sourcePath,
+                                 const QString& sourceIdValue, const QString& kind) {
+      ImportProvenance provenance;
+      provenance.sourceFile = sourcePath;
+      provenance.sourceId = sourceIdValue;
+      provenance.category = QJsonObject{{"gltfKind", kind}};
+      setImportProvenance(element, provenance);
+    }
+
+    QJsonArray jsonArrayFor(const std::array<double, 3>& values) {
+      return QJsonArray{values[0], values[1], values[2]};
+    }
+
+    Vector3d normalizedDirectionOrDefault(const Matrix4d& transform, const Vector3d& local) {
+      const Vector3d direction = transform.transformDirection(local);
+      if (direction.length() <= 1e-9 || direction.isUndefined())
+        return Vector3d(0.0, 0.0, 1.0);
+      return direction.normalized();
+    }
+
     std::size_t accessorStride(const core::gltf::Asset& asset,
                                const core::gltf::Accessor& accessor) {
       if (!accessor.bufferView)
@@ -592,6 +616,10 @@ namespace world {
         return m_nodeTargetIds;
       }
 
+      [[nodiscard]] const std::vector<ImportDiagnostic>& diagnostics() const {
+        return m_diagnostics;
+      }
+
     private:
       void addNode(Group& parent, std::size_t nodeIndex, const Matrix4d& parentTransform,
                    const QString& parentTargetId) {
@@ -617,8 +645,7 @@ namespace world {
         rawGroup->setMatrix(m_preserveHierarchy ? local : global);
         m_nodeTargetIds[nodeIndex].push_back(targetId);
 
-        if (node.mesh && *node.mesh < m_asset.meshes.size())
-          addMesh(*rawGroup, *node.mesh);
+        addNodePayload(*rawGroup, nodeIndex, global);
 
         m_active[nodeIndex] = true;
         for (const std::size_t child : node.children) {
@@ -630,6 +657,16 @@ namespace world {
             addNode(parent, child, global, parentTargetId);
         }
         m_active[nodeIndex] = false;
+      }
+
+      void addNodePayload(Group& group, std::size_t nodeIndex, const Matrix4d& global) {
+        const auto& node = m_asset.nodes[nodeIndex];
+        if (node.mesh && *node.mesh < m_asset.meshes.size())
+          addMesh(group, *node.mesh);
+        if (node.camera && *node.camera < m_asset.cameras.size())
+          addCamera(group, nodeIndex, *node.camera, global);
+        if (node.punctualLight && *node.punctualLight < m_asset.punctualLights.size())
+          addPunctualLight(group, *node.punctualLight);
       }
 
       void addMesh(Group& parent, std::size_t meshIndex) {
@@ -651,11 +688,109 @@ namespace world {
         }
       }
 
+      void addCamera(Group& group, std::size_t nodeIndex, std::size_t cameraIndex,
+                     const Matrix4d& global) {
+        const auto& camera = m_asset.cameras[cameraIndex];
+        const Vector3d position = global.translationVector();
+        const Vector3d forward = normalizedDirectionOrDefault(global, Vector3d(0.0, 0.0, -1.0));
+        const Vector3d target = position + forward;
+        const QString fallbackName = QString("glTF Camera %1").arg(cameraIndex);
+        const QString name =
+          camera.name.empty() ? fallbackName : QString::fromStdString(camera.name);
+        const QString id = sourceId("cameras", cameraIndex);
+
+        std::unique_ptr<Camera> worldCamera;
+        if (camera.type == core::gltf::CameraType::Perspective) {
+          auto pinhole = std::make_unique<PinholeCamera>();
+          pinhole->setDistance(5.0);
+          if (camera.perspective.yfov > 0.0 && std::isfinite(camera.perspective.yfov)) {
+            pinhole->setZoom(3.0 / (pinhole->distance() * std::tan(camera.perspective.yfov / 2.0)));
+          }
+          worldCamera = std::move(pinhole);
+        } else {
+          auto orthographic = std::make_unique<OrthographicCamera>();
+          if (camera.orthographic.ymag > 0.0 && std::isfinite(camera.orthographic.ymag)) {
+            orthographic->setZoom(6.0 / camera.orthographic.ymag);
+          }
+          worldCamera = std::move(orthographic);
+        }
+
+        worldCamera->setId(QString("%1/camera").arg(sourceId("nodes", nodeIndex)));
+        worldCamera->setName(name);
+        worldCamera->setPosition(position);
+        worldCamera->setTarget(target);
+        worldCamera->setMetadata(
+          baseMetadata(m_sourcePath, id, "camera", static_cast<int>(cameraIndex)));
+        if (camera.type == core::gltf::CameraType::Perspective) {
+          worldCamera->setMetadataValue("gltfCameraType", QStringLiteral("perspective"));
+          worldCamera->setMetadataValue("gltfYfov", camera.perspective.yfov);
+          worldCamera->setMetadataValue("gltfZNear", camera.perspective.znear);
+          if (camera.perspective.aspectRatio)
+            worldCamera->setMetadataValue("gltfAspectRatio", *camera.perspective.aspectRatio);
+          if (camera.perspective.zfar)
+            worldCamera->setMetadataValue("gltfZFar", *camera.perspective.zfar);
+        } else {
+          worldCamera->setMetadataValue("gltfCameraType", QStringLiteral("orthographic"));
+          worldCamera->setMetadataValue("gltfXmag", camera.orthographic.xmag);
+          worldCamera->setMetadataValue("gltfYmag", camera.orthographic.ymag);
+          worldCamera->setMetadataValue("gltfZNear", camera.orthographic.znear);
+          worldCamera->setMetadataValue("gltfZFar", camera.orthographic.zfar);
+        }
+        attachElementProvenance(*worldCamera, m_sourcePath, id, "camera");
+        group.addChild(std::move(worldCamera));
+      }
+
+      void addPunctualLight(Group& group, std::size_t lightIndex) {
+        const auto& light = m_asset.punctualLights[lightIndex];
+        if (light.type == core::gltf::PunctualLightType::Spot) {
+          m_diagnostics.push_back(ImportDiagnostic::warning(
+            QString("glTF KHR_lights_punctual spot light %1 is unsupported").arg(lightIndex),
+            m_sourcePath));
+          return;
+        }
+
+        const QString fallbackName = QString("glTF Light %1").arg(lightIndex);
+        const QString name = light.name.empty() ? fallbackName : QString::fromStdString(light.name);
+        const QString id = sourceId("extensions/KHR_lights_punctual/lights", lightIndex);
+
+        std::unique_ptr<Light> worldLight;
+        if (light.type == core::gltf::PunctualLightType::Directional) {
+          auto directional = std::make_unique<DirectionalLight>();
+          directional->setDirection(Vector3d(0.0, 0.0, -1.0));
+          worldLight = std::move(directional);
+        } else {
+          auto point = std::make_unique<PointLight>();
+          worldLight = std::move(point);
+        }
+
+        worldLight->setId(id);
+        worldLight->setName(name);
+        worldLight->setColor(Colord(light.color[0], light.color[1], light.color[2]));
+        worldLight->setIntensity(light.intensity);
+        worldLight->setMetadata(
+          baseMetadata(m_sourcePath, id, "light", static_cast<int>(lightIndex)));
+        worldLight->setMetadataValue("gltfLightType",
+                                     light.type == core::gltf::PunctualLightType::Directional
+                                       ? QStringLiteral("directional")
+                                       : QStringLiteral("point"));
+        worldLight->setMetadataValue("gltfColor", jsonArrayFor(light.color));
+        if (light.range) {
+          worldLight->setMetadataValue("gltfRange", *light.range);
+          m_diagnostics.push_back(ImportDiagnostic::warning(
+            QString("glTF KHR_lights_punctual light %1 range is preserved as metadata only")
+              .arg(lightIndex),
+            m_sourcePath));
+        }
+        attachElementProvenance(*worldLight, m_sourcePath, id, "light");
+        group.addChild(std::move(worldLight));
+      }
+
       const core::gltf::Asset& m_asset;
       QString m_sourcePath;
       bool m_preserveHierarchy;
       std::vector<bool> m_active;
       std::vector<std::vector<QString>> m_nodeTargetIds;
+      std::vector<ImportDiagnostic> m_diagnostics;
     };
 
     class AnimationCompiler {
@@ -839,6 +974,7 @@ namespace world {
     attachProvenance(*root, filename, rootSourceId, "asset");
 
     std::unique_ptr<world::Timeline> timeline;
+    std::vector<ImportDiagnostic> compilerDiagnostics;
     ImportResult result;
     result.setSource(source);
     try {
@@ -856,6 +992,7 @@ namespace world {
         AnimationCompiler animationCompiler(*readResult.asset, compiler.nodeTargetIds());
         timeline = animationCompiler.compile(result, *root, filename);
       }
+      compilerDiagnostics = compiler.diagnostics();
     } catch (const std::exception& error) {
       return ImportResult::failed({ImportDiagnostic::error(error.what(), filename)}, source);
     }
@@ -872,6 +1009,8 @@ namespace world {
     }
     appendDiagnostics(result, readResult.diagnostics, filename);
     appendMaterialDiagnostics(result, *readResult.asset, filename);
+    for (const ImportDiagnostic& diagnostic : compilerDiagnostics)
+      result.addDiagnostic(diagnostic);
     return result;
   }
 
