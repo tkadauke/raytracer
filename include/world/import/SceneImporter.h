@@ -31,6 +31,11 @@ namespace world {
     importFile(const QString& filename, const ImportOptions& options = ImportOptions()) const = 0;
     [[nodiscard]] virtual bool wrapDirectImportInSourceAsset() const;
     /**
+      * Lets an importer normalize the imported root before it is inserted into
+      * an existing scene. This must not edit the destination scene.
+      */
+    virtual bool configureImportedRoot(Element& importedRoot, const ImportOptions& options) const;
+    /**
       * Lets an importer configure the wrapper scene used when a direct file
       * import returns an asset/group root rather than a full Scene root.
       */

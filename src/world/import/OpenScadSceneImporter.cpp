@@ -1273,11 +1273,18 @@ namespace world {
     return result;
   }
 
+  bool OpenScadSceneImporter::configureImportedRoot(Element& importedRoot,
+                                                    const ImportOptions& options) const {
+    (void)options;
+    orientImportedRoot(importedRoot);
+    return true;
+  }
+
   bool OpenScadSceneImporter::configureImportedScene(Scene& scene, Element& importedRoot,
                                                      const ImportOptions& options) const {
     const ImportedSceneDefaults defaults = importedSceneDefaults(options);
     defaults.applyTo(scene);
-    orientImportedRoot(importedRoot);
+    configureImportedRoot(importedRoot, options);
     (void)defaults.frameCamera(scene);
     return true;
   }

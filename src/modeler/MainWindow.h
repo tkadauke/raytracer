@@ -56,6 +56,7 @@ private slots:
 
   void newFile();
   void openFile();
+  void importFile();
   void saveFile();
   void saveFileAs();
 
@@ -141,6 +142,7 @@ private slots:
 private:
   void reportImportDiagnostics(const world::ImportResult& result);
   [[nodiscard]] QString openFileFilter() const;
+  [[nodiscard]] QString importFileFilter() const;
 
   QDockWidget* createPropertyEditor();
   QDockWidget* createElementSelector();

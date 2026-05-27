@@ -129,7 +129,43 @@ namespace {
     QString errorMessage;
   };
 
-  class SceneOpenThread : public QThread {
+  struct ImportedElement {
+    std::unique_ptr<Element> root;
+    world::ImportResult importResult;
+    QString errorMessage;
+  };
+
+  class SceneImporterThreadSupport {
+  protected:
+    world::ImportOptions defaultImportOptionsFor(world::SceneImporter& importer) const {
+      world::ImportOptions options;
+      for (const auto& option : importer.optionSchema()) {
+        if (option.defaultValue.isValid())
+          options.setValue(option.name, option.defaultValue);
+      }
+      return options;
+    }
+
+    void moveElementTreeToGuiThread(Element* element) const {
+      if (element && qApp)
+        element->moveToThread(qApp->thread());
+    }
+
+    std::unique_ptr<Element> wrapDirectImportRoot(const QString& fileName,
+                                                  const world::SceneImporter& importer,
+                                                  const world::ImportOptions& importOptions,
+                                                  std::unique_ptr<Element> root) const {
+      auto asset = std::make_unique<SourceAsset>();
+      asset->setName(QFileInfo(fileName).completeBaseName());
+      asset->setSourcePath(fileName);
+      asset->setFormat(importer.name());
+      asset->setImportOptions(importOptions.values());
+      asset->adoptGeneratedRoot(std::move(root));
+      return asset;
+    }
+  };
+
+  class SceneOpenThread : public QThread, private SceneImporterThreadSupport {
   public:
     explicit SceneOpenThread(QString fileName, QObject* parent = nullptr)
         : QThread(parent),
@@ -146,20 +182,6 @@ namespace {
     }
 
   private:
-    world::ImportOptions defaultImportOptionsFor(world::SceneImporter& importer) const {
-      world::ImportOptions options;
-      for (const auto& option : importer.optionSchema()) {
-        if (option.defaultValue.isValid())
-          options.setValue(option.name, option.defaultValue);
-      }
-      return options;
-    }
-
-    void moveSceneTreeToGuiThread(::Scene* scene) const {
-      if (scene && qApp)
-        scene->moveToThread(qApp->thread());
-    }
-
     OpenedScene loadScene() const {
       OpenedScene opened;
       const QString suffix = QFileInfo(m_fileName).suffix();
@@ -180,7 +202,7 @@ namespace {
           opened.errorMessage = QString("Could not load %1: %2").arg(m_fileName, error.what());
           return opened;
         }
-        moveSceneTreeToGuiThread(scene.get());
+        moveElementTreeToGuiThread(scene.get());
         opened.scene = std::move(scene);
         return opened;
       }
@@ -202,7 +224,7 @@ namespace {
       auto root = opened.importResult.takeRoot();
       if (auto* sceneRoot = qobject_cast<::Scene*>(root.get())) {
         root.release();
-        moveSceneTreeToGuiThread(sceneRoot);
+        moveElementTreeToGuiThread(sceneRoot);
         opened.scene = std::unique_ptr<::Scene>(sceneRoot);
         return opened;
       }
@@ -210,14 +232,9 @@ namespace {
       auto scene = std::make_unique<::Scene>(nullptr);
       Element* importedRoot = nullptr;
       if (importer->wrapDirectImportInSourceAsset()) {
-        auto asset = std::make_unique<SourceAsset>();
-        asset->setName(QFileInfo(m_fileName).completeBaseName());
-        asset->setSourcePath(m_fileName);
-        asset->setFormat(importer->name());
-        asset->setImportOptions(importOptions.values());
-        asset->adoptGeneratedRoot(std::move(root));
-        importedRoot = asset.get();
-        scene->addChild(std::move(asset));
+        root = wrapDirectImportRoot(m_fileName, *importer, importOptions, std::move(root));
+        importedRoot = root.get();
+        scene->addChild(std::move(root));
       } else {
         importedRoot = root.get();
         scene->addChild(std::move(root));
@@ -225,13 +242,72 @@ namespace {
       if (importedRoot)
         importer->configureImportedScene(*scene, *importedRoot, importOptions);
       scene->resolveElementReferences();
-      moveSceneTreeToGuiThread(scene.get());
+      moveElementTreeToGuiThread(scene.get());
       opened.scene = std::move(scene);
       return opened;
     }
 
     QString m_fileName;
     OpenedScene m_openedScene;
+  };
+
+  class SceneImportThread : public QThread, private SceneImporterThreadSupport {
+  public:
+    explicit SceneImportThread(QString fileName, QObject* parent = nullptr)
+        : QThread(parent),
+          m_fileName(std::move(fileName)) {
+    }
+
+    ImportedElement takeImportedElement() {
+      return std::move(m_importedElement);
+    }
+
+  protected:
+    void run() override {
+      m_importedElement = loadElement();
+    }
+
+  private:
+    ImportedElement loadElement() const {
+      ImportedElement imported;
+      auto importer = world::SceneImporterRegistry::self().createForFile(m_fileName);
+      if (!importer) {
+        imported.errorMessage = QString("No scene importer registered for %1").arg(m_fileName);
+        return imported;
+      }
+
+      world::ImportOptions importOptions = defaultImportOptionsFor(*importer);
+      imported.importResult = importer->importFile(m_fileName, importOptions);
+      if (imported.importResult.failed()) {
+        imported.errorMessage = QString("Could not import %1").arg(m_fileName);
+        for (const auto& diagnostic : imported.importResult.diagnostics()) {
+          if (diagnostic.isError()) {
+            imported.errorMessage += QString(": %1").arg(diagnostic.message);
+            break;
+          }
+        }
+        return imported;
+      }
+
+      auto root = imported.importResult.takeRoot();
+      if (!root) {
+        imported.errorMessage =
+          QString("Importer did not return a root object for %1").arg(m_fileName);
+        return imported;
+      }
+
+      if (importer->wrapDirectImportInSourceAsset()) {
+        root = wrapDirectImportRoot(m_fileName, *importer, importOptions, std::move(root));
+      }
+
+      importer->configureImportedRoot(*root, importOptions);
+      moveElementTreeToGuiThread(root.get());
+      imported.root = std::move(root);
+      return imported;
+    }
+
+    QString m_fileName;
+    ImportedElement m_importedElement;
   };
 
   QString resourceReadsText(const std::vector<engine::graph::ResourceRead>& reads) {
@@ -499,6 +575,7 @@ struct MainWindow::Private {
 
   QAction* newAct;
   QAction* openAct;
+  QAction* importAct;
   QAction* saveAct;
   QAction* saveAsAct;
 
@@ -658,6 +735,10 @@ void MainWindow::createActions() {
   p->openAct->setShortcuts(QKeySequence::Open);
   p->openAct->setStatusTip(tr("Open a file from disk"));
   connect(p->openAct, SIGNAL(triggered()), this, SLOT(openFile()));
+
+  p->importAct = new QAction(tr("&Import"), this);
+  p->importAct->setStatusTip(tr("Import a model into the current scene"));
+  connect(p->importAct, SIGNAL(triggered()), this, SLOT(importFile()));
 
   p->saveAct = new QAction(tr("&Save"), this);
   p->saveAct->setShortcuts(QKeySequence::Save);
@@ -1044,6 +1125,7 @@ void MainWindow::createMenus() {
   p->fileMenu = menuBar()->addMenu(tr("&File"));
   p->fileMenu->addAction(p->newAct);
   p->fileMenu->addAction(p->openAct);
+  p->fileMenu->addAction(p->importAct);
   p->fileMenu->addAction(p->saveAct);
   p->fileMenu->addAction(p->saveAsAct);
 
@@ -1241,6 +1323,25 @@ QString MainWindow::openFileFilter() const {
     .arg(importPatterns.join(QStringLiteral(" ")));
 }
 
+QString MainWindow::importFileFilter() const {
+  QStringList importPatterns;
+  for (const QString& extension : world::SceneImporterRegistry::self().supportedExtensions()) {
+    if (extension.compare(QStringLiteral("json"), Qt::CaseInsensitive) == 0 ||
+        extension.compare(QStringLiteral("rtjson"), Qt::CaseInsensitive) == 0)
+      continue;
+    importPatterns << QStringLiteral("*.%1").arg(extension);
+  }
+  importPatterns.removeDuplicates();
+  importPatterns.sort();
+
+  if (importPatterns.isEmpty())
+    return tr("All files (*)");
+
+  return tr("Importable models (%1);;LDraw models (*.ldr *.dat *.mpd);;OpenSCAD models "
+            "(*.scad);;All files (*)")
+    .arg(importPatterns.join(QStringLiteral(" ")));
+}
+
 void MainWindow::openFile() {
   QString fileName =
     QFileDialog::getOpenFileName(this, tr("Open File"), QString(), openFileFilter());
@@ -1289,6 +1390,52 @@ void MainWindow::openFile() {
     resetPlaybackIndex();
     redraw();
     reportImportDiagnostics(opened.importResult);
+  });
+  thread->start();
+}
+
+void MainWindow::importFile() {
+  QString fileName =
+    QFileDialog::getOpenFileName(this, tr("Import File"), QString(), importFileFilter());
+
+  if (fileName.isNull())
+    return;
+
+  auto* progress = new QProgressDialog(tr("Importing %1...").arg(QFileInfo(fileName).fileName()),
+                                       QString(), 0, 0, this);
+  progress->setCancelButton(nullptr);
+  progress->setMinimumDuration(0);
+  progress->setWindowModality(Qt::WindowModal);
+  progress->show();
+
+  auto* thread = new SceneImportThread(fileName, this);
+  connect(thread, &QThread::finished, this, [this, fileName, progress, thread]() {
+    ImportedElement imported = thread->takeImportedElement();
+    thread->deleteLater();
+    progress->deleteLater();
+
+    if (!imported.errorMessage.isEmpty()) {
+      QMessageBox::warning(this, tr("Import File"), imported.errorMessage);
+      return;
+    }
+
+    if (!imported.root) {
+      QMessageBox::warning(this, tr("Import File"), tr("Could not import %1").arg(fileName));
+      return;
+    }
+
+    if (auto* importedScene = qobject_cast<::Scene*>(imported.root.get())) {
+      while (!importedScene->childElements().empty()) {
+        p->elementModel->addElement(p->currentIndex, importedScene->childElements().front());
+      }
+    } else {
+      p->elementModel->addElement(p->currentIndex, imported.root.release());
+    }
+
+    p->scene->resolveElementReferences();
+    resetPlaybackIndex();
+    elementChanged(nullptr);
+    reportImportDiagnostics(imported.importResult);
   });
   thread->start();
 }

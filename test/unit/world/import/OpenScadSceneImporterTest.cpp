@@ -448,6 +448,23 @@ exit 0
     EXPECT_TRUE(runtime->boundingBox().isValid());
   }
 
+  TEST(OpenScadSceneImporter, ConfiguresImportedRootWithoutChangingScene) {
+    world::OpenScadSceneImporter importer;
+    SourceAsset asset;
+    Scene scene;
+    const Colord originalBackground = scene.background();
+    const Colord originalAmbient = scene.ambient();
+
+    EXPECT_TRUE(importer.configureImportedRoot(asset, world::ImportOptions()));
+
+    EXPECT_EQ(originalBackground, scene.background());
+    EXPECT_EQ(originalAmbient, scene.ambient());
+    EXPECT_EQ(nullptr, scene.activeCamera());
+    EXPECT_NEAR(std::acos(-1.0) / 2.0, asset.rotation().x(), 1e-9);
+    EXPECT_EQ(QString("openscad_z_up_to_product_view_up"),
+              asset.metadataValue("coordinateConversion").toString());
+  }
+
   TEST(OpenScadSceneImporter, SelectsPlyReaderForGeneratedMeshOutput) {
     QTemporaryDir dir;
     const QString executable = writeExecutable(dir);

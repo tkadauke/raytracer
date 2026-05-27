@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Modeler Import action.** Modeler now has `File -> Import` for adding a
+  supported external model, including `.scad`, to the current scene without
+  replacing the scene or applying standalone-open camera, lighting, background,
+  or render-setting defaults. — GPT-5
 - **Source asset material overrides.** Source-backed imports such as direct
   OpenSCAD `.scad` assets now expose a material reference in Modeler and scene
   JSON, applying it as a whole-asset override to generated geometry while

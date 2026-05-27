@@ -101,6 +101,11 @@ the scene stores the source path plus overrides instead of baking the generated
 mesh into JSON. `SourceAsset` also carries an optional material reference that
 is applied as a whole-asset override during runtime scene conversion; generated
 children stay transient and replaceable when source parameters change.
+Standalone Open operations may call `SceneImporter::configureImportedScene(...)`
+to apply product-view camera, lighting, and background defaults. Additive Modeler
+imports call `SceneImporter::configureImportedRoot(...)` instead, so importer
+root normalization such as OpenSCAD's Z-up orientation can still happen without
+editing the destination scene.
 
 ## Diagnostics
 

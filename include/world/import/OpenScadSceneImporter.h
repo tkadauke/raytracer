@@ -23,6 +23,7 @@ namespace world {
     importFile(const QString& filename,
                const ImportOptions& options = ImportOptions()) const override;
     [[nodiscard]] bool wrapDirectImportInSourceAsset() const override;
+    bool configureImportedRoot(Element& importedRoot, const ImportOptions& options) const override;
     bool configureImportedScene(Scene& scene, Element& importedRoot,
                                 const ImportOptions& options) const override;
 

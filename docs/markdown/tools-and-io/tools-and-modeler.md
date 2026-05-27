@@ -328,15 +328,18 @@ library-root lookup, and frame a front-facing camera around the compiled model
 on a white product-view background. OpenSCAD `.scad` imports use the same
 standalone-scene defaults when opened directly: the imported Z-up asset is
 oriented upright for the product-view camera, lit with ambient fill, and framed
-with a pinhole camera before the preview starts. Direct OpenSCAD opens remain
-source-backed as `SourceAsset` objects; Customizer-style sections, comments,
-numeric values, booleans, string choices, and vector expressions appear in the
-property inspector and rebuild the generated mesh when edited. The same source
-asset exposes a normal material reference, so assigning a scene material to the
-asset overrides the generated OpenSCAD mesh without exposing transient importer
-children in the Elements tree. New reusable demos should be added as scene files
-unless they need a new runtime feature, a new world wrapper type, or a dedicated
-importer.
+with a pinhole camera before the preview starts. `File -> Import` is the
+same importer path used as an additive scene operation: it inserts the imported
+root into the current Elements tree without replacing the scene or changing the
+current camera, background, lights, render settings, or timeline. Direct
+OpenSCAD opens and imports remain source-backed as `SourceAsset` objects;
+Customizer-style sections, comments, numeric values, booleans, string choices,
+and vector expressions appear in the property inspector and rebuild the
+generated mesh when edited. The same source asset exposes a normal material
+reference, so assigning a scene material to the asset overrides the generated
+OpenSCAD mesh without exposing transient importer children in the Elements tree.
+New reusable demos should be added as scene files unless they need a new runtime
+feature, a new world wrapper type, or a dedicated importer.
 
 ## <a id="the-wireup"></a>The wireup
 ```text

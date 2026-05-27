@@ -13,6 +13,13 @@ namespace world {
     return false;
   }
 
+  bool SceneImporter::configureImportedRoot(Element& importedRoot,
+                                            const ImportOptions& options) const {
+    (void)importedRoot;
+    (void)options;
+    return false;
+  }
+
   bool SceneImporter::configureImportedScene(Scene& scene, Element& importedRoot,
                                              const ImportOptions& options) const {
     (void)scene;
