@@ -56,6 +56,7 @@ private slots:
 
   void newFile();
   void openFile();
+  void openRecentFile();
   void importFile();
   void saveFile();
   void saveFileAs();
@@ -156,6 +157,12 @@ private:
   void createMenus();
 
   bool maybeSave();
+  void openFile(const QString& fileName);
+  void loadRecentFiles();
+  void addRecentFile(const QString& fileName);
+  void removeRecentFile(const QString& fileName);
+  void updateRecentFileActions();
+  [[nodiscard]] QString recentFileActionText(int index, const QString& fileName) const;
 
   void redraw();
   void redraw(PreviewCameraPolicy cameraPolicy);

@@ -325,16 +325,18 @@ The Modeler does not bake scene catalogs into C++; it opens scene JSON files
 directly and routes external model formats through registered
 `world::SceneImporter` implementations. Its Open dialog builds the default
 scene/import filter from registered importer extensions, so new importers become
-selectable without hand-editing the dialog. LDraw `.ldr`, `.dat`, and `.mpd`
-imports build a new scene shell on a worker thread, use the importer's default
-library-root lookup, and frame a front-facing camera around the compiled model
-on a white product-view background. OpenSCAD `.scad` imports use the same
-standalone-scene defaults when opened directly: the imported Z-up asset is
-oriented upright for the product-view camera, lit with ambient fill, and framed
-with a pinhole camera before the preview starts. `File -> Import` is the
-same importer path used as an additive scene operation: it inserts the imported
-root into the current Elements tree without replacing the scene or changing the
-current camera, background, lights, render settings, or timeline. Direct
+selectable without hand-editing the dialog. Successful opens and scene saves are
+remembered in `File -> Open Recent`, capped to the ten most recent scene/import
+files. LDraw `.ldr`, `.dat`, and `.mpd` imports build a new scene shell on a
+worker thread, use the importer's default library-root lookup, and frame a
+front-facing camera around the compiled model on a white product-view
+background. OpenSCAD `.scad` imports use the same standalone-scene defaults when
+opened directly: the imported Z-up asset is oriented upright for the
+product-view camera, lit with ambient fill, and framed with a pinhole camera
+before the preview starts. `File -> Import` is the same importer path used as an
+additive scene operation: it inserts the imported root into the current Elements
+tree without replacing the scene or changing the current camera, background,
+lights, render settings, or timeline. Direct
 OpenSCAD opens and imports remain source-backed as `SourceAsset` objects;
 Customizer-style sections, comments, numeric values, booleans, string choices,
 and vector expressions appear in the property inspector and rebuild the

@@ -44,6 +44,7 @@
 
 #include "MainWindow.h"
 #include "Display.h"
+#include "RecentFileList.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderGraphRequest.h"
 #include "engine/graph/RenderPassState.h"
@@ -534,13 +535,18 @@ struct MainWindow::Private {
         playbackSummaryLabel(nullptr),
         renderGraphDockWidget(nullptr),
         renderGraphInspectorWidget(nullptr),
+        renderWindow(nullptr),
+        scene(nullptr),
         currentFrame(0),
         currentPlaybackIndex(0),
         hasPlaybackIndex(false),
-        currentElement(nullptr) {
+        currentElement(nullptr),
+        fileMenu(nullptr),
+        openRecentMenu(nullptr) {
   }
 
   QString fileName;
+  RecentFileList recentFiles;
 
   RenderDisplay* display;
   QTabWidget* centralTabs;
@@ -569,12 +575,14 @@ struct MainWindow::Private {
   QModelIndex currentIndex;
 
   QMenu* fileMenu;
+  QMenu* openRecentMenu;
   QMenu* editMenu;
   QMenu* renderMenu;
   QMenu* helpMenu;
 
   QAction* newAct;
   QAction* openAct;
+  std::vector<QAction*> recentFileActs;
   QAction* importAct;
   QAction* saveAct;
   QAction* saveAsAct;
@@ -716,6 +724,7 @@ MainWindow::MainWindow()
           SLOT(exportRenderGraph(QString, QByteArray)));
 
   createActions();
+  loadRecentFiles();
   createMenus();
 
   p->renderWindow = new RenderWindow(nullptr);
@@ -735,6 +744,15 @@ void MainWindow::createActions() {
   p->openAct->setShortcuts(QKeySequence::Open);
   p->openAct->setStatusTip(tr("Open a file from disk"));
   connect(p->openAct, SIGNAL(triggered()), this, SLOT(openFile()));
+
+  p->recentFileActs.reserve(RecentFileList::limit);
+  for (int i = 0; i != RecentFileList::limit; ++i) {
+    auto* action = new QAction(this);
+    action->setObjectName(QStringLiteral("recentFileAction%1").arg(i));
+    action->setVisible(false);
+    connect(action, SIGNAL(triggered()), this, SLOT(openRecentFile()));
+    p->recentFileActs.push_back(action);
+  }
 
   p->importAct = new QAction(tr("&Import"), this);
   p->importAct->setStatusTip(tr("Import a model into the current scene"));
@@ -1125,7 +1143,13 @@ void MainWindow::createMenus() {
   p->fileMenu = menuBar()->addMenu(tr("&File"));
   p->fileMenu->addAction(p->newAct);
   p->fileMenu->addAction(p->openAct);
+  p->openRecentMenu = p->fileMenu->addMenu(tr("Open &Recent"));
+  p->openRecentMenu->setObjectName(QStringLiteral("openRecentMenu"));
+  for (auto* action : p->recentFileActs)
+    p->openRecentMenu->addAction(action);
+  updateRecentFileActions();
   p->fileMenu->addAction(p->importAct);
+  p->fileMenu->addSeparator();
   p->fileMenu->addAction(p->saveAct);
   p->fileMenu->addAction(p->saveAsAct);
 
@@ -1342,15 +1366,72 @@ QString MainWindow::importFileFilter() const {
     .arg(importPatterns.join(QStringLiteral(" ")));
 }
 
-void MainWindow::openFile() {
-  QString fileName =
-    QFileDialog::getOpenFileName(this, tr("Open File"), QString(), openFileFilter());
+void MainWindow::loadRecentFiles() {
+  p->recentFiles.load();
+  updateRecentFileActions();
+}
 
+void MainWindow::addRecentFile(const QString& fileName) {
+  p->recentFiles.add(fileName);
+  updateRecentFileActions();
+}
+
+void MainWindow::removeRecentFile(const QString& fileName) {
+  p->recentFiles.remove(fileName);
+  updateRecentFileActions();
+}
+
+QString MainWindow::recentFileActionText(int index, const QString& fileName) const {
+  QString displayName = QFileInfo(fileName).fileName();
+  if (displayName.isEmpty())
+    displayName = fileName;
+  return QStringLiteral("&%1 %2").arg(index + 1).arg(displayName);
+}
+
+void MainWindow::updateRecentFileActions() {
+  const int recentFileCount =
+    std::min(static_cast<int>(p->recentFiles.files().size()), RecentFileList::limit);
+  for (int i = 0; i != static_cast<int>(p->recentFileActs.size()); ++i) {
+    QAction* action = p->recentFileActs[i];
+    if (i < recentFileCount) {
+      const QString fileName = p->recentFiles.files()[i];
+      action->setText(recentFileActionText(i, fileName));
+      action->setData(fileName);
+      action->setStatusTip(QFileInfo(fileName).absoluteFilePath());
+      action->setToolTip(QFileInfo(fileName).absoluteFilePath());
+      action->setVisible(true);
+    } else {
+      action->setVisible(false);
+      action->setData(QVariant());
+    }
+  }
+
+  if (p->openRecentMenu)
+    p->openRecentMenu->setEnabled(recentFileCount > 0);
+}
+
+void MainWindow::openFile() {
+  const QString fileName =
+    QFileDialog::getOpenFileName(this, tr("Open File"), QString(), openFileFilter());
+  openFile(fileName);
+}
+
+void MainWindow::openRecentFile() {
+  auto* action = qobject_cast<QAction*>(sender());
+  if (!action)
+    return;
+
+  const QString fileName = action->data().toString();
+  if (!fileName.isEmpty())
+    openFile(fileName);
+}
+
+void MainWindow::openFile(const QString& fileName) {
   if (fileName.isNull() || !maybeSave())
     return;
 
-  auto* progress = new QProgressDialog(tr("Opening %1...").arg(QFileInfo(fileName).fileName()),
-                                       QString(), 0, 0, this);
+  const QString displayName = QFileInfo(fileName).fileName();
+  auto* progress = new QProgressDialog(tr("Opening %1...").arg(displayName), QString(), 0, 0, this);
   progress->setCancelButton(nullptr);
   progress->setMinimumDuration(0);
   progress->setWindowModality(Qt::WindowModal);
@@ -1363,11 +1444,13 @@ void MainWindow::openFile() {
     progress->deleteLater();
 
     if (!opened.errorMessage.isEmpty()) {
+      removeRecentFile(fileName);
       QMessageBox::warning(this, tr("Open File"), opened.errorMessage);
       return;
     }
 
     if (!opened.scene) {
+      removeRecentFile(fileName);
       QMessageBox::warning(this, tr("Open File"), tr("Could not load %1").arg(fileName));
       return;
     }
@@ -1381,6 +1464,7 @@ void MainWindow::openFile() {
 
     p->scene = opened.scene.release();
     p->fileName = opened.nativeSceneFile ? fileName : QString();
+    addRecentFile(fileName);
     p->propertyEditorWidget->setRoot(p->scene);
     p->elementModel->setElement(p->scene);
     p->previewUseSceneIntentAct->setChecked(true);
@@ -1444,7 +1528,8 @@ void MainWindow::saveFile() {
   if (p->fileName.isNull()) {
     saveFileAs();
   } else {
-    p->scene->save(p->fileName);
+    if (p->scene->save(p->fileName))
+      addRecentFile(p->fileName);
   }
 }
 
@@ -1454,7 +1539,8 @@ void MainWindow::saveFileAs() {
 
   if (!fileName.isNull()) {
     p->fileName = fileName;
-    p->scene->save(p->fileName);
+    if (p->scene->save(p->fileName))
+      addRecentFile(p->fileName);
   }
 }
 

@@ -32,6 +32,8 @@ add_executable(unit_tests ${UNIT_TEST_SOURCES})
 target_sources(unit_tests PRIVATE
   "${PROJECT_SOURCE_DIR}/src/modeler/Display.cpp"
   "${PROJECT_SOURCE_DIR}/src/modeler/Display.h"
+  "${PROJECT_SOURCE_DIR}/src/modeler/RecentFileList.cpp"
+  "${PROJECT_SOURCE_DIR}/src/modeler/RecentFileList.h"
 )
 set_target_properties(unit_tests PROPERTIES
   AUTOMOC ON
