@@ -107,7 +107,7 @@ scene-partitioning and composition passes.
 When compiling a plan, `--render_graph_executor raytracer|rasterizer|wireframe`
 overrides the graph intent's default executor, and
 `--render_graph_view
-default|beauty|wireframe|depth|stencil|stencil_composite|normal|object_id|material_id|world_position`
+default|beauty|wireframe|depth|stencil|stencil_composite|normal|object_id|material_id|world_position|raster_coverage_count|raster_depth_test_count|raster_depth_pass_count|raster_shade_count|raster_color_write_count`
 overrides the graph intent's structural view mode. `--render_graph_camera
 camera_id` overrides the intent's default scene-camera reference; current
 executors still render with the active runtime camera, but the compiled graph
@@ -122,11 +122,17 @@ changing the default frame intent; selector-specific values such as
 `tag:debug,view=wireframe` are accepted as render intent but currently fail
 compilation until the graph compiler can split and composite selected scene
 subsets. The
-depth, stencil, normal, object-id, material-id, and world-position views
+depth, stencil, normal, object-id, material-id, world-position, and raster
+counter views
 compile graph-visible AOV passes and visualization passes that write the final
 color image. When the selected graph executor is the rasterizer, those AOV
 passes use rasterizer diagnostic buffers, so they reflect tessellated raster
 geometry and raster pass state rather than analytic primary-ray intersections.
+The raster counter views are rasterizer-only heatmaps for coverage, depth tests,
+depth passes, shaded fragments, and color writes, useful for spotting overdraw
+or wasted shading in complex imported models. They use an absolute color scale:
+black is zero work, cool colors are low counts, and red marks high repeated
+work.
 `--render_graph_aov_out depth=depth.png` writes an additional graph AOV preview
 image while preserving the main render output; repeat the option for multiple
 AOV files such as `stencil=mask.png`, `normal=normal.png`, or
@@ -240,10 +246,12 @@ does not name a default camera, Modeler annotates scene-rendering passes with
 the active scene camera id from the editable scene.
 `Render -> Preview
 View` can also switch the live graph preview from beauty to depth, stencil,
-normal, object-id, material-id, or world-position AOVs; the graph recompiles to
-show the corresponding AOV producer and visualization nodes. Raster preview
-AOVs are backed by rasterizer diagnostics or a raster stencil-marking pass, so
-their images match raster tessellation, sampling, and clipping. `Render -> Preview
+normal, object-id, material-id, world-position, or raster counter AOVs; the
+graph recompiles to show the corresponding AOV producer and visualization
+nodes. Raster preview AOVs are backed by rasterizer diagnostics or a raster
+stencil-marking pass, so their images match raster tessellation, sampling, and
+clipping. Selecting a raster counter preview switches the preview executor to
+Rasterizer because those diagnostics measure raster work. `Render -> Preview
 Tonemap` selects the operator used by the graph's tonemap node.
 
 `Render -> Render` opens the final render window. Its Graph tab compiles the

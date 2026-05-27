@@ -114,6 +114,26 @@ namespace engine::raster::detail {
     return rect.width() <= 0 || rect.height() <= 0;
   }
 
+  void RasterDiagnosticBufferViews::recordCoverage(int x, int y) const {
+    increment(coverageCount, x, y);
+  }
+
+  void RasterDiagnosticBufferViews::recordDepthTest(int x, int y) const {
+    increment(depthTestCount, x, y);
+  }
+
+  void RasterDiagnosticBufferViews::recordDepthPass(int x, int y) const {
+    increment(depthPassCount, x, y);
+  }
+
+  void RasterDiagnosticBufferViews::recordShade(int x, int y) const {
+    increment(shadeCount, x, y);
+  }
+
+  void RasterDiagnosticBufferViews::recordColorWrite(int x, int y) const {
+    increment(colorWriteCount, x, y);
+  }
+
   void RasterDiagnosticBufferViews::writeStencil(int x, int y, std::uint8_t value) const {
     if (stencil.isValid()) {
       stencil.at(x, y) = value;
@@ -140,6 +160,13 @@ namespace engine::raster::detail {
     }
     if (face.isValid()) {
       face.at(x, y) = triangle.faceIdx;
+    }
+  }
+
+  void RasterDiagnosticBufferViews::increment(RasterFullBufferView<std::uint32_t> counter, int x,
+                                              int y) {
+    if (counter.isValid()) {
+      ++counter.at(x, y);
     }
   }
 

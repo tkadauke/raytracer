@@ -11,6 +11,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Raster counter AOVs.** The rasterizer and render graph now expose
+  graph-visible heatmap views for per-pixel coverage, depth tests, depth passes,
+  shading calls, and color writes through rendercli and the Modeler Preview
+  View menu, using an absolute color scale so red marks high repeated raster
+  work rather than the image-local maximum. — GPT-5
 - **glTF animation import smoke path.** glTF imports now preserve animation
   sampler/channel metadata on node groups, convert simple translation,
   rotation, and scale channels into world timeline tracks where possible, and

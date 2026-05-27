@@ -591,12 +591,18 @@ namespace engine::raster {
     * value after stencil operations. Buffers are cleared at the start of every
     * render using the rasterizer's clear values (`Vector3d::undefined` for
     * vector attributes, `nullptr` for pointer IDs and the largest
-    * `std::uint64_t` value for face IDs).
+    * `std::uint64_t` value for face IDs, and zero for per-pixel counters).
     *
-    * With MSAA enabled, a pixel can have several passing subpixel
-    * samples. These diagnostics store the last passing sample processed
-    * for that pixel; use 1x rendering when inspecting exact per-pixel
-    * pass state.
+    * The counter buffers expose rasterizer work before final visibility:
+    * coverage increments for every covered triangle sample, depthTest after
+    * stencil passes, depthPass after the depth comparison passes, shade when
+    * the fragment shader/material evaluator runs, and colorWrite when the
+    * resolved fragment commits to the color buffer.
+    *
+    * With MSAA enabled, a pixel can have several passing subpixel samples.
+    * Non-counter diagnostics store the last passing sample processed for that
+    * pixel; counter diagnostics accumulate the work from every covered sample.
+    * Use 1x rendering when inspecting exact final per-pixel pass state.
     *
     * `cloneForRender()` does not copy these borrowed pointers. GUI code
     * that renders isolated snapshots should attach outputs to the snapshot
@@ -611,6 +617,11 @@ namespace engine::raster {
       Buffer<const render::Material*>* material = nullptr;
       Buffer<std::uint64_t>* face = nullptr;
       Buffer<std::uint8_t>* stencil = nullptr;
+      Buffer<std::uint32_t>* coverageCount = nullptr;
+      Buffer<std::uint32_t>* depthTestCount = nullptr;
+      Buffer<std::uint32_t>* depthPassCount = nullptr;
+      Buffer<std::uint32_t>* shadeCount = nullptr;
+      Buffer<std::uint32_t>* colorWriteCount = nullptr;
     };
 
     /**

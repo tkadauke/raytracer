@@ -244,6 +244,7 @@ namespace engine::raster::detail {
       v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, clipRect.left(), clipRect.top(), clipRect.right(),
       clipRect.bottom(), sampleOffset.x(), sampleOffset.y(),
       [&](int x, int y, double w0b, double w1b, double w2b) {
+        diagnostics.recordCoverage(x, y);
         if (!stencil.pass(x, y)) {
           stencil.onStencilFail(x, y);
           diagnostics.writeStencil(x, y, stencil.value(x, y));
@@ -251,13 +252,16 @@ namespace engine::raster::detail {
         }
 
         const InterpolatedFragment fragment(v0, v1, v2, w0b, w1b, w2b);
+        diagnostics.recordDepthTest(x, y);
         if (!depth.pass(x, y, fragment.depth)) {
           stencil.onDepthFail(x, y);
           diagnostics.writeStencil(x, y, stencil.value(x, y));
           return;
         }
+        diagnostics.recordDepthPass(x, y);
 
         const double committedDepth = depth.biasedDepth(fragment.depth);
+        diagnostics.recordShade(x, y);
         const RasterFragment shaded = fragmentPolicy.shade(triangle, x, y, w0b, w1b, w2b, fragment);
         if (!alphaTest.pass(shaded.alpha)) {
           return;
@@ -267,6 +271,7 @@ namespace engine::raster::detail {
         diagnostics.writeStencil(x, y, stencil.value(x, y));
         depth.write(x, y, fragment.depth);
         colorBuffer.write(x, y, shaded);
+        diagnostics.recordColorWrite(x, y);
         diagnostics.writeFragment(triangle, x, y, fragment, committedDepth);
       });
   }

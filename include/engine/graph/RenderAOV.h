@@ -25,6 +25,7 @@ namespace engine::graph {
     virtual RenderResourceType resourceType() const = 0;
     virtual RenderResourceFormat resourceFormat() const = 0;
     virtual bool usesRasterTargetSampling() const = 0;
+    virtual bool supportsExecutor(RenderExecutorKind executor) const = 0;
 
     RenderResourceId resourceId() const;
     RenderResourceId previewColorResourceId() const;

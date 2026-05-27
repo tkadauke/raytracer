@@ -176,11 +176,29 @@ namespace engine::raster::detail {
     RasterFullBufferView<const render::Material*> material;
     RasterFullBufferView<std::uint64_t> face;
     RasterFullBufferView<std::uint8_t> stencil;
+    RasterFullBufferView<std::uint32_t> coverageCount;
+    RasterFullBufferView<std::uint32_t> depthTestCount;
+    RasterFullBufferView<std::uint32_t> depthPassCount;
+    RasterFullBufferView<std::uint32_t> shadeCount;
+    RasterFullBufferView<std::uint32_t> colorWriteCount;
+
+    void recordCoverage(int x, int y) const;
+
+    void recordDepthTest(int x, int y) const;
+
+    void recordDepthPass(int x, int y) const;
+
+    void recordShade(int x, int y) const;
+
+    void recordColorWrite(int x, int y) const;
 
     void writeStencil(int x, int y, std::uint8_t value) const;
 
     void writeFragment(const RasterTriangle& triangle, int x, int y,
                        const InterpolatedFragment& fragment, double committedDepth) const;
+
+  private:
+    static void increment(RasterFullBufferView<std::uint32_t> counter, int x, int y);
   };
 
   // Per-frame tile binning structure. The tile plan defines disjoint pixel

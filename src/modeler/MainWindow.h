@@ -120,6 +120,11 @@ private slots:
   void setPreviewViewObjectId();
   void setPreviewViewMaterialId();
   void setPreviewViewWorldPosition();
+  void setPreviewViewRasterCoverageCount();
+  void setPreviewViewRasterDepthTestCount();
+  void setPreviewViewRasterDepthPassCount();
+  void setPreviewViewRasterShadeCount();
+  void setPreviewViewRasterColorWriteCount();
   void setPreviewWireframeOverlay(bool enabled);
   void setPreviewTonemapLinear();
   void setPreviewTonemapReinhard();
@@ -170,6 +175,7 @@ private:
   void showRenderGraphPassDetails(const QString& passId, bool activateTracePreview);
   void showRenderGraphResourceDetails(const QString& resourceId, bool activateTracePreview);
   void setPreviewTonemap(const std::string& name);
+  void setPreviewRasterCounterView(engine::graph::RenderViewMode viewMode);
   void setPreviewOverrideMode();
   void applySceneRenderIntentToPreviewControls();
   void resetTimelineFrame();

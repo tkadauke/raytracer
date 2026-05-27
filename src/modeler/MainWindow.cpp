@@ -646,6 +646,11 @@ struct MainWindow::Private {
   QAction* previewViewObjectIdAct;
   QAction* previewViewMaterialIdAct;
   QAction* previewViewWorldPositionAct;
+  QAction* previewViewRasterCoverageCountAct;
+  QAction* previewViewRasterDepthTestCountAct;
+  QAction* previewViewRasterDepthPassCountAct;
+  QAction* previewViewRasterShadeCountAct;
+  QAction* previewViewRasterColorWriteCountAct;
   QAction* previewWireframeOverlayAct;
   QAction* previewTonemapLinearAct;
   QAction* previewTonemapReinhardAct;
@@ -1038,6 +1043,41 @@ void MainWindow::createActions() {
   connect(p->previewViewWorldPositionAct, SIGNAL(triggered()), this,
           SLOT(setPreviewViewWorldPosition()));
 
+  p->previewViewRasterCoverageCountAct = new QAction(tr("Raster &Coverage Count"), this);
+  p->previewViewRasterCoverageCountAct->setStatusTip(
+    tr("Show covered raster samples per preview pixel"));
+  p->previewViewRasterCoverageCountAct->setCheckable(true);
+  connect(p->previewViewRasterCoverageCountAct, SIGNAL(triggered()), this,
+          SLOT(setPreviewViewRasterCoverageCount()));
+
+  p->previewViewRasterDepthTestCountAct = new QAction(tr("Raster Depth-&Test Count"), this);
+  p->previewViewRasterDepthTestCountAct->setStatusTip(
+    tr("Show depth-tested raster samples per preview pixel"));
+  p->previewViewRasterDepthTestCountAct->setCheckable(true);
+  connect(p->previewViewRasterDepthTestCountAct, SIGNAL(triggered()), this,
+          SLOT(setPreviewViewRasterDepthTestCount()));
+
+  p->previewViewRasterDepthPassCountAct = new QAction(tr("Raster Depth-&Pass Count"), this);
+  p->previewViewRasterDepthPassCountAct->setStatusTip(
+    tr("Show depth-passing raster samples per preview pixel"));
+  p->previewViewRasterDepthPassCountAct->setCheckable(true);
+  connect(p->previewViewRasterDepthPassCountAct, SIGNAL(triggered()), this,
+          SLOT(setPreviewViewRasterDepthPassCount()));
+
+  p->previewViewRasterShadeCountAct = new QAction(tr("Raster &Shade Count"), this);
+  p->previewViewRasterShadeCountAct->setStatusTip(
+    tr("Show shaded raster fragments per preview pixel"));
+  p->previewViewRasterShadeCountAct->setCheckable(true);
+  connect(p->previewViewRasterShadeCountAct, SIGNAL(triggered()), this,
+          SLOT(setPreviewViewRasterShadeCount()));
+
+  p->previewViewRasterColorWriteCountAct = new QAction(tr("Raster Color-&Write Count"), this);
+  p->previewViewRasterColorWriteCountAct->setStatusTip(
+    tr("Show raster color writes per preview pixel"));
+  p->previewViewRasterColorWriteCountAct->setCheckable(true);
+  connect(p->previewViewRasterColorWriteCountAct, SIGNAL(triggered()), this,
+          SLOT(setPreviewViewRasterColorWriteCount()));
+
   auto previewViewGroup = new QActionGroup(this);
   previewViewGroup->addAction(p->previewViewBeautyAct);
   previewViewGroup->addAction(p->previewViewDepthAct);
@@ -1047,6 +1087,11 @@ void MainWindow::createActions() {
   previewViewGroup->addAction(p->previewViewObjectIdAct);
   previewViewGroup->addAction(p->previewViewMaterialIdAct);
   previewViewGroup->addAction(p->previewViewWorldPositionAct);
+  previewViewGroup->addAction(p->previewViewRasterCoverageCountAct);
+  previewViewGroup->addAction(p->previewViewRasterDepthTestCountAct);
+  previewViewGroup->addAction(p->previewViewRasterDepthPassCountAct);
+  previewViewGroup->addAction(p->previewViewRasterShadeCountAct);
+  previewViewGroup->addAction(p->previewViewRasterColorWriteCountAct);
 
   p->previewWireframeOverlayAct = new QAction(tr("Wireframe &Overlay"), this);
   p->previewWireframeOverlayAct->setStatusTip(
@@ -1233,6 +1278,12 @@ void MainWindow::createMenus() {
   previewViewMenu->addAction(p->previewViewObjectIdAct);
   previewViewMenu->addAction(p->previewViewMaterialIdAct);
   previewViewMenu->addAction(p->previewViewWorldPositionAct);
+  previewViewMenu->addSeparator();
+  previewViewMenu->addAction(p->previewViewRasterCoverageCountAct);
+  previewViewMenu->addAction(p->previewViewRasterDepthTestCountAct);
+  previewViewMenu->addAction(p->previewViewRasterDepthPassCountAct);
+  previewViewMenu->addAction(p->previewViewRasterShadeCountAct);
+  previewViewMenu->addAction(p->previewViewRasterColorWriteCountAct);
 
   auto previewTonemapMenu = p->renderMenu->addMenu(tr("Preview &Tonemap"));
   previewTonemapMenu->addAction(p->previewTonemapLinearAct);
@@ -1810,6 +1861,26 @@ void MainWindow::setPreviewViewWorldPosition() {
   p->display->setPreviewViewMode(engine::graph::RenderViewMode::WorldPosition);
 }
 
+void MainWindow::setPreviewViewRasterCoverageCount() {
+  setPreviewRasterCounterView(engine::graph::RenderViewMode::RasterCoverageCount);
+}
+
+void MainWindow::setPreviewViewRasterDepthTestCount() {
+  setPreviewRasterCounterView(engine::graph::RenderViewMode::RasterDepthTestCount);
+}
+
+void MainWindow::setPreviewViewRasterDepthPassCount() {
+  setPreviewRasterCounterView(engine::graph::RenderViewMode::RasterDepthPassCount);
+}
+
+void MainWindow::setPreviewViewRasterShadeCount() {
+  setPreviewRasterCounterView(engine::graph::RenderViewMode::RasterShadeCount);
+}
+
+void MainWindow::setPreviewViewRasterColorWriteCount() {
+  setPreviewRasterCounterView(engine::graph::RenderViewMode::RasterColorWriteCount);
+}
+
 void MainWindow::setPreviewWireframeOverlay(bool enabled) {
   setPreviewOverrideMode();
   p->display->setWireframeOverlayEnabled(enabled);
@@ -2327,6 +2398,13 @@ void MainWindow::setPreviewTonemap(const std::string& name) {
   p->display->setPreviewTonemap(std::move(tonemap));
 }
 
+void MainWindow::setPreviewRasterCounterView(engine::graph::RenderViewMode viewMode) {
+  setPreviewOverrideMode();
+  p->previewRasterizerAct->setChecked(true);
+  p->display->setEngineKind(RenderDisplay::EngineKind::Rasterizer);
+  p->display->setPreviewViewMode(viewMode);
+}
+
 void MainWindow::setPreviewOverrideMode() {
   if (p->previewUseSceneIntentAct)
     p->previewUseSceneIntentAct->setChecked(false);
@@ -2373,6 +2451,11 @@ void MainWindow::applySceneRenderIntentToPreviewControls() {
     {engine::graph::RenderViewMode::ObjectId, p->previewViewObjectIdAct},
     {engine::graph::RenderViewMode::MaterialId, p->previewViewMaterialIdAct},
     {engine::graph::RenderViewMode::WorldPosition, p->previewViewWorldPositionAct},
+    {engine::graph::RenderViewMode::RasterCoverageCount, p->previewViewRasterCoverageCountAct},
+    {engine::graph::RenderViewMode::RasterDepthTestCount, p->previewViewRasterDepthTestCountAct},
+    {engine::graph::RenderViewMode::RasterDepthPassCount, p->previewViewRasterDepthPassCountAct},
+    {engine::graph::RenderViewMode::RasterShadeCount, p->previewViewRasterShadeCountAct},
+    {engine::graph::RenderViewMode::RasterColorWriteCount, p->previewViewRasterColorWriteCountAct},
   };
   const auto view = std::find_if(views.begin(), views.end(), [&](const ViewChoice& choice) {
     return choice.viewMode == intent.defaultViewMode;

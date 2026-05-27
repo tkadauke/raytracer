@@ -1004,6 +1004,11 @@ namespace RasterizerTest {
     Buffer<const Material*> material(64, 64);
     Buffer<std::uint64_t> face(64, 64);
     Buffer<std::uint8_t> stencil(64, 64);
+    Buffer<std::uint32_t> coverageCount(64, 64);
+    Buffer<std::uint32_t> depthTestCount(64, 64);
+    Buffer<std::uint32_t> depthPassCount(64, 64);
+    Buffer<std::uint32_t> shadeCount(64, 64);
+    Buffer<std::uint32_t> colorWriteCount(64, 64);
 
     Rasterizer::DiagnosticOutputBuffers outputs;
     outputs.depth = &depth;
@@ -1013,6 +1018,11 @@ namespace RasterizerTest {
     outputs.material = &material;
     outputs.face = &face;
     outputs.stencil = &stencil;
+    outputs.coverageCount = &coverageCount;
+    outputs.depthTestCount = &depthTestCount;
+    outputs.depthPassCount = &depthPassCount;
+    outputs.shadeCount = &shadeCount;
+    outputs.colorWriteCount = &colorWriteCount;
     engine.setDiagnosticOutputBuffers(outputs);
 
     engine.render(color);
@@ -1024,6 +1034,11 @@ namespace RasterizerTest {
     EXPECT_EQ(nullptr, material[0][0]);
     EXPECT_EQ(std::numeric_limits<std::uint64_t>::max(), face[0][0]);
     EXPECT_EQ(0, stencil[0][0]);
+    EXPECT_EQ(0u, coverageCount[0][0]);
+    EXPECT_EQ(0u, depthTestCount[0][0]);
+    EXPECT_EQ(0u, depthPassCount[0][0]);
+    EXPECT_EQ(0u, shadeCount[0][0]);
+    EXPECT_EQ(0u, colorWriteCount[0][0]);
 
     EXPECT_TRUE(std::isfinite(depth[32][32]));
     EXPECT_GT(depth[32][32], 0.0);
@@ -1034,6 +1049,45 @@ namespace RasterizerTest {
     EXPECT_EQ(tracked.material.get(), material[32][32]);
     EXPECT_EQ(0u, face[32][32]);
     EXPECT_EQ(7, stencil[32][32]);
+    EXPECT_EQ(1u, coverageCount[32][32]);
+    EXPECT_EQ(1u, depthTestCount[32][32]);
+    EXPECT_EQ(1u, depthPassCount[32][32]);
+    EXPECT_EQ(1u, shadeCount[32][32]);
+    EXPECT_EQ(1u, colorWriteCount[32][32]);
+  }
+
+  TEST(Rasterizer, DiagnosticCounterBuffersCaptureRasterWorkBeforeVisibility) {
+    Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
+    engine.setQueueSize(1);
+
+    Buffer<Colord> color(64, 64);
+    Buffer<std::uint32_t> coverageCount(64, 64);
+    Buffer<std::uint32_t> depthTestCount(64, 64);
+    Buffer<std::uint32_t> depthPassCount(64, 64);
+    Buffer<std::uint32_t> shadeCount(64, 64);
+    Buffer<std::uint32_t> colorWriteCount(64, 64);
+
+    Rasterizer::DiagnosticOutputBuffers outputs;
+    outputs.coverageCount = &coverageCount;
+    outputs.depthTestCount = &depthTestCount;
+    outputs.depthPassCount = &depthPassCount;
+    outputs.shadeCount = &shadeCount;
+    outputs.colorWriteCount = &colorWriteCount;
+    engine.setDiagnosticOutputBuffers(outputs);
+
+    engine.render(color);
+
+    EXPECT_EQ(0u, coverageCount[0][0]);
+    EXPECT_EQ(0u, depthTestCount[0][0]);
+    EXPECT_EQ(0u, depthPassCount[0][0]);
+    EXPECT_EQ(0u, shadeCount[0][0]);
+    EXPECT_EQ(0u, colorWriteCount[0][0]);
+
+    EXPECT_EQ(2u, coverageCount[32][32]);
+    EXPECT_EQ(2u, depthTestCount[32][32]);
+    EXPECT_EQ(1u, depthPassCount[32][32]);
+    EXPECT_EQ(1u, shadeCount[32][32]);
+    EXPECT_EQ(1u, colorWriteCount[32][32]);
   }
 
   TEST(Rasterizer, DiagnosticOutputBuffersIgnoreMismatchedBuffers) {

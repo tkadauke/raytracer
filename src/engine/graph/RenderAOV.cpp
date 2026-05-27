@@ -17,13 +17,15 @@ namespace engine::graph {
     public:
       BasicRenderAOVDefinition(RenderViewMode viewMode, std::string feature, std::string title,
                                RenderResourceType resourceType, RenderResourceFormat resourceFormat,
-                               bool usesRasterTargetSampling = true)
+                               bool usesRasterTargetSampling = true,
+                               std::vector<RenderExecutorKind> supportedExecutors = {})
           : m_viewMode(viewMode),
             m_feature(std::move(feature)),
             m_title(std::move(title)),
             m_resourceType(resourceType),
             m_resourceFormat(resourceFormat),
-            m_usesRasterTargetSampling(usesRasterTargetSampling) {
+            m_usesRasterTargetSampling(usesRasterTargetSampling),
+            m_supportedExecutors(std::move(supportedExecutors)) {
       }
 
       RenderViewMode viewMode() const override {
@@ -50,6 +52,12 @@ namespace engine::graph {
         return m_usesRasterTargetSampling;
       }
 
+      bool supportsExecutor(RenderExecutorKind executor) const override {
+        return m_supportedExecutors.empty() ||
+               std::find(m_supportedExecutors.begin(), m_supportedExecutors.end(), executor) !=
+                 m_supportedExecutors.end();
+      }
+
     private:
       RenderViewMode m_viewMode;
       std::string m_feature;
@@ -57,6 +65,7 @@ namespace engine::graph {
       RenderResourceType m_resourceType;
       RenderResourceFormat m_resourceFormat;
       bool m_usesRasterTargetSampling;
+      std::vector<RenderExecutorKind> m_supportedExecutors;
     };
 
     const std::vector<const RenderAOVDefinition*>& definitions() {
@@ -78,8 +87,37 @@ namespace engine::graph {
       static const BasicRenderAOVDefinition worldPosition(
         RenderViewMode::WorldPosition, "world_position", "World position",
         RenderResourceType::WorldPosition, RenderResourceFormat::RGBDouble);
-      static const std::vector<const RenderAOVDefinition*> result = {
-        &depth, &stencil, &normal, &objectId, &materialId, &worldPosition};
+      static const BasicRenderAOVDefinition rasterCoverageCount(
+        RenderViewMode::RasterCoverageCount, "raster_coverage_count", "Raster coverage count",
+        RenderResourceType::CustomTexture, RenderResourceFormat::RGBDouble, true,
+        {RenderExecutorKind::Rasterizer});
+      static const BasicRenderAOVDefinition rasterDepthTestCount(
+        RenderViewMode::RasterDepthTestCount, "raster_depth_test_count", "Raster depth-test count",
+        RenderResourceType::CustomTexture, RenderResourceFormat::RGBDouble, true,
+        {RenderExecutorKind::Rasterizer});
+      static const BasicRenderAOVDefinition rasterDepthPassCount(
+        RenderViewMode::RasterDepthPassCount, "raster_depth_pass_count", "Raster depth-pass count",
+        RenderResourceType::CustomTexture, RenderResourceFormat::RGBDouble, true,
+        {RenderExecutorKind::Rasterizer});
+      static const BasicRenderAOVDefinition rasterShadeCount(
+        RenderViewMode::RasterShadeCount, "raster_shade_count", "Raster shade count",
+        RenderResourceType::CustomTexture, RenderResourceFormat::RGBDouble, true,
+        {RenderExecutorKind::Rasterizer});
+      static const BasicRenderAOVDefinition rasterColorWriteCount(
+        RenderViewMode::RasterColorWriteCount, "raster_color_write_count",
+        "Raster color-write count", RenderResourceType::CustomTexture,
+        RenderResourceFormat::RGBDouble, true, {RenderExecutorKind::Rasterizer});
+      static const std::vector<const RenderAOVDefinition*> result = {&depth,
+                                                                     &stencil,
+                                                                     &normal,
+                                                                     &objectId,
+                                                                     &materialId,
+                                                                     &worldPosition,
+                                                                     &rasterCoverageCount,
+                                                                     &rasterDepthTestCount,
+                                                                     &rasterDepthPassCount,
+                                                                     &rasterShadeCount,
+                                                                     &rasterColorWriteCount};
       return result;
     }
   }

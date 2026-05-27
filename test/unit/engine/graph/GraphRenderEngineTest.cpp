@@ -264,6 +264,16 @@ namespace GraphRenderEngineTest {
     return scene;
   }
 
+  std::shared_ptr<render::Scene> singleRectangleScene() {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord::black());
+    auto rectangle = std::make_shared<render::Rectangle>(
+      Vector3d(-1.0, -1.0, 0.0), Vector3d(0.0, 2.0, 0.0), Vector3d(2.0, 0.0, 0.0));
+    rectangle->setMaterial(matte(Colord::white()));
+    scene->add(rectangle);
+    return scene;
+  }
+
   std::shared_ptr<render::Scene> directionalShadowScene() {
     auto scene = std::make_shared<render::Scene>();
     scene->setAmbient(Colord(0.1, 0.1, 0.1));
@@ -558,6 +568,11 @@ namespace GraphRenderEngineTest {
       {RenderViewMode::ObjectId, "object_id_aov"},
       {RenderViewMode::MaterialId, "material_id_aov"},
       {RenderViewMode::WorldPosition, "world_position_aov"},
+      {RenderViewMode::RasterCoverageCount, "raster_coverage_count_aov"},
+      {RenderViewMode::RasterDepthTestCount, "raster_depth_test_count_aov"},
+      {RenderViewMode::RasterDepthPassCount, "raster_depth_pass_count_aov"},
+      {RenderViewMode::RasterShadeCount, "raster_shade_count_aov"},
+      {RenderViewMode::RasterColorWriteCount, "raster_color_write_count_aov"},
     };
 
     RenderGraphCompiler compiler;
@@ -580,6 +595,37 @@ namespace GraphRenderEngineTest {
       ASSERT_EQ(1u, outputs.size());
       ASSERT_TRUE(outputs.front()->hasColorPreview());
       EXPECT_GT(countNonBlackPixels(outputs.front()->colorPreview()), 0);
+    }
+  }
+
+  TEST(GraphRenderEngine, RasterCounterAOVUsesAbsoluteCoolColorForLowCounts) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.defaultViewMode = RenderViewMode::RasterColorWriteCount;
+
+    GraphRenderEngine engine(camera(), singleRectangleScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> output(32, 32);
+    engine.render(output);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const auto outputs = trace->outputSnapshotsForResource("raster_color_write_count_aov");
+    ASSERT_EQ(1u, outputs.size());
+    ASSERT_TRUE(outputs.front()->hasColorPreview());
+    const Buffer<Colord>& preview = outputs.front()->colorPreview();
+    EXPECT_GT(countNonBlackPixels(preview), 0);
+
+    for (int y = 0; y != preview.height(); ++y) {
+      for (int x = 0; x != preview.width(); ++x) {
+        if (preview[y][x] == Colord::black()) {
+          continue;
+        }
+        EXPECT_LT(preview[y][x].r(), preview[y][x].b());
+      }
     }
   }
 

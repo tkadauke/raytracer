@@ -388,6 +388,56 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, RasterCounterViewModeCompilesRasterDiagnosticAOVPlan) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.defaultViewMode = RenderViewMode::RasterDepthTestCount;
+
+    const RenderPlan plan = compiler.compile({64, 32, 4}, intent);
+
+    ASSERT_EQ(2u, plan.resources().size());
+    ASSERT_NE(nullptr, plan.findResource("raster_depth_test_count_aov"));
+    EXPECT_EQ(RenderResourceType::CustomTexture,
+              plan.findResource("raster_depth_test_count_aov")->type);
+    EXPECT_EQ(RenderResourceFormat::RGBDouble,
+              plan.findResource("raster_depth_test_count_aov")->format);
+    EXPECT_EQ(RenderResourceLifetime::Transient,
+              plan.findResource("raster_depth_test_count_aov")->lifetime);
+    ASSERT_NE(nullptr, plan.findResource("main_color"));
+    EXPECT_EQ(RenderResourceType::Color, plan.findResource("main_color")->type);
+    EXPECT_EQ(RenderResourceLifetime::Exported, plan.findResource("main_color")->lifetime);
+
+    ASSERT_EQ(2u, plan.passes().size());
+    EXPECT_EQ("raster_depth_test_count_aov", plan.passes()[0].id);
+    EXPECT_EQ(RenderPassKind::AOV, plan.passes()[0].kind);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, plan.passes()[0].executor);
+    ASSERT_NE(nullptr, plan.passes()[0].state);
+    EXPECT_EQ(4, RasterBeautyPassState::fromPass(plan.passes()[0])->sampling().msaaSamples());
+    EXPECT_TRUE(hasFeature(plan.passes()[0], "raster_depth_test_count"));
+    ASSERT_EQ(1u, plan.passes()[0].writes.size());
+    EXPECT_EQ("raster_depth_test_count_aov", plan.passes()[0].writes[0].resource);
+
+    EXPECT_EQ("visualize_raster_depth_test_count_aov", plan.passes()[1].id);
+    EXPECT_EQ(RenderPassKind::AOV, plan.passes()[1].kind);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, plan.passes()[1].executor);
+    EXPECT_TRUE(hasFeature(plan.passes()[1], "visualization"));
+    ASSERT_EQ(1u, plan.passes()[1].reads.size());
+    ASSERT_EQ(1u, plan.passes()[1].writes.size());
+    EXPECT_EQ("raster_depth_test_count_aov", plan.passes()[1].reads[0].resource);
+    EXPECT_EQ("main_color", plan.passes()[1].writes[0].resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, RasterCounterViewModeRejectsNonRasterExecutor) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Raytracer;
+    intent.defaultViewMode = RenderViewMode::RasterCoverageCount;
+
+    EXPECT_THROW(compiler.compile({64, 32, 1}, intent), std::runtime_error);
+  }
+
   TEST(RenderGraphCompiler, AddsRequestedAOVExportsAsSideBranches) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

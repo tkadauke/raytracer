@@ -148,6 +148,7 @@ private:
   engine::graph::RenderExecutorPreference executorFromText(const QString& text) const;
   engine::graph::RenderViewMode viewModeFromText(const QString& text) const;
   engine::graph::RenderPostProcessAA postProcessAAFromText(const QString& text) const;
+  bool isRasterCounterView(engine::graph::RenderViewMode viewMode) const;
   bool isRaytracerProperty(const QString& propertyName) const;
   bool isRasterizerProperty(const QString& propertyName) const;
   bool isRasterizerShadowProperty(const QString& propertyName) const;

@@ -369,7 +369,10 @@ scene-partitioning planners exist. The `depth`, `stencil`, `normal`,
 `object_id`, `material_id`, and `world_position` views compile real
 resource-producing AOV nodes followed by visualization passes, so the exported
 plan and the Modeler inspector can show AOVs as graph resources rather than
-hiding them inside a direct engine. The `stencil_composite` view mode is also
+hiding them inside a direct engine. Raster diagnostics add raster-only heatmap
+views for `raster_coverage_count`, `raster_depth_test_count`,
+`raster_depth_pass_count`, `raster_shade_count`, and
+`raster_color_write_count`. The `stencil_composite` view mode is also
 synthesized from intent: it compiles raster beauty, wireframe beauty, stencil
 AOV, composite, and tonemap passes without requiring the scene to name any graph
 nodes. `--render_graph_aov_out view=file` requests
@@ -381,7 +384,12 @@ Raytracer AOV payloads use primary intersections against the analytic scene.
 Rasterizer AOV payloads instead attach diagnostic output buffers or synthesize
 a raster stencil-marking pass, so depth, stencil masks, normals, ids, and world
 positions come from the same tessellated fragments, clipping, sampling, and
-pass state as the raster beauty path.
+pass state as the raster beauty path. Raster counter AOVs attach the same
+diagnostic buffer path earlier in the fragment loop, exposing how often pixels
+are covered, depth-tested, depth-passed, shaded, and written before final
+visibility hides that work. Their heatmap uses an absolute scale: black means
+zero work, cool colors mean low counts, and red starts at high repeated work
+rather than simply marking the maximum pixel in the current image.
 
 The same raster scene rendered as beauty and as the graph stencil AOV makes the
 resource boundary concrete. Open
@@ -570,9 +578,10 @@ replayed by `RasterBeautyPass`. Exported graph JSON still shows that state
 under the pass's `parameters` object, making settings such as `--msaa`,
 `--msaa_shading`, `--viewport`, and color-output controls visible instead of
 living only in the direct raster engine setup path. Raster AOV producer passes
-use the same state object, so `--render_graph_view depth` and exported raster
-AOV side branches see the requested tessellation and sampling settings. The
-stencil AOV is a graph-synthesized coverage mask: raytracer and wireframe
+use the same state object, so `--render_graph_view depth`,
+`--render_graph_view raster_depth_test_count`, and exported raster AOV side
+branches see the requested tessellation and sampling settings. The stencil AOV
+is a graph-synthesized coverage mask: raytracer and wireframe
 executors mark primary-hit pixels, while the rasterizer path runs a dedicated
 single-sample stencil-marking pass that writes an 8-bit graph stencil resource
 and visualizes it as grayscale. The

@@ -111,18 +111,24 @@ namespace engine::graph {
     }
 
     RenderViewMode viewModeFromJson(const std::string& value, const std::string& path) {
-      return enumValue<RenderViewMode>(value,
-                                       {{"default", RenderViewMode::Default},
-                                        {"beauty", RenderViewMode::Beauty},
-                                        {"wireframe", RenderViewMode::Wireframe},
-                                        {"depth", RenderViewMode::Depth},
-                                        {"stencil", RenderViewMode::Stencil},
-                                        {"stencil_composite", RenderViewMode::StencilComposite},
-                                        {"normal", RenderViewMode::Normal},
-                                        {"object_id", RenderViewMode::ObjectId},
-                                        {"material_id", RenderViewMode::MaterialId},
-                                        {"world_position", RenderViewMode::WorldPosition}},
-                                       path);
+      return enumValue<RenderViewMode>(
+        value,
+        {{"default", RenderViewMode::Default},
+         {"beauty", RenderViewMode::Beauty},
+         {"wireframe", RenderViewMode::Wireframe},
+         {"depth", RenderViewMode::Depth},
+         {"stencil", RenderViewMode::Stencil},
+         {"stencil_composite", RenderViewMode::StencilComposite},
+         {"normal", RenderViewMode::Normal},
+         {"object_id", RenderViewMode::ObjectId},
+         {"material_id", RenderViewMode::MaterialId},
+         {"world_position", RenderViewMode::WorldPosition},
+         {"raster_coverage_count", RenderViewMode::RasterCoverageCount},
+         {"raster_depth_test_count", RenderViewMode::RasterDepthTestCount},
+         {"raster_depth_pass_count", RenderViewMode::RasterDepthPassCount},
+         {"raster_shade_count", RenderViewMode::RasterShadeCount},
+         {"raster_color_write_count", RenderViewMode::RasterColorWriteCount}},
+        path);
     }
 
     RenderPostProcessAA postProcessAAFromJson(const std::string& value, const std::string& path) {
@@ -707,16 +713,22 @@ namespace engine::graph {
   }
 
   const char* toString(RenderViewMode value) {
-    return enumName<RenderViewMode>(value, {{RenderViewMode::Default, "default"},
-                                            {RenderViewMode::Beauty, "beauty"},
-                                            {RenderViewMode::Wireframe, "wireframe"},
-                                            {RenderViewMode::Depth, "depth"},
-                                            {RenderViewMode::Stencil, "stencil"},
-                                            {RenderViewMode::StencilComposite, "stencil_composite"},
-                                            {RenderViewMode::Normal, "normal"},
-                                            {RenderViewMode::ObjectId, "object_id"},
-                                            {RenderViewMode::MaterialId, "material_id"},
-                                            {RenderViewMode::WorldPosition, "world_position"}});
+    return enumName<RenderViewMode>(
+      value, {{RenderViewMode::Default, "default"},
+              {RenderViewMode::Beauty, "beauty"},
+              {RenderViewMode::Wireframe, "wireframe"},
+              {RenderViewMode::Depth, "depth"},
+              {RenderViewMode::Stencil, "stencil"},
+              {RenderViewMode::StencilComposite, "stencil_composite"},
+              {RenderViewMode::Normal, "normal"},
+              {RenderViewMode::ObjectId, "object_id"},
+              {RenderViewMode::MaterialId, "material_id"},
+              {RenderViewMode::WorldPosition, "world_position"},
+              {RenderViewMode::RasterCoverageCount, "raster_coverage_count"},
+              {RenderViewMode::RasterDepthTestCount, "raster_depth_test_count"},
+              {RenderViewMode::RasterDepthPassCount, "raster_depth_pass_count"},
+              {RenderViewMode::RasterShadeCount, "raster_shade_count"},
+              {RenderViewMode::RasterColorWriteCount, "raster_color_write_count"}});
   }
 
   const char* toString(RenderPostProcessAA value) {

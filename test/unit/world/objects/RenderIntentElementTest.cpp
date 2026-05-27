@@ -80,8 +80,13 @@ namespace RenderIntentElementTest {
     EXPECT_EQ(QString("Default Engine"), intent->propertyDisplayName("defaultEngine"));
     EXPECT_TRUE(intent->propertyChoices("defaultEngine").contains("rasterizer"));
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("stencil_composite"));
+    EXPECT_FALSE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
+    intent->setDefaultEngine("rasterizer");
+    EXPECT_TRUE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
     EXPECT_EQ(QString("Stencil Composite"),
               intent->propertyChoiceDisplayName("viewMode", "stencil_composite"));
+    EXPECT_EQ(QString("Raster Depth-Test Count"),
+              intent->propertyChoiceDisplayName("viewMode", "raster_depth_test_count"));
     EXPECT_EQ((QList<int>{1, 2, 4, 8}), intent->propertyIntChoices("rasterizerMSAASamples"));
   }
 

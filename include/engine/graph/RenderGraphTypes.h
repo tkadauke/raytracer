@@ -50,7 +50,12 @@ namespace engine::graph {
     Normal,
     ObjectId,
     MaterialId,
-    WorldPosition
+    WorldPosition,
+    RasterCoverageCount,
+    RasterDepthTestCount,
+    RasterDepthPassCount,
+    RasterShadeCount,
+    RasterColorWriteCount
   };
 
   /**

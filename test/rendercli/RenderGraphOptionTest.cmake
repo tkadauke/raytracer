@@ -1122,6 +1122,23 @@ if(NOT raster_depth_view_graph MATCHES "msaaSamples")
   message(FATAL_ERROR "raster depth AOV graph did not contain raster sampling state: ${raster_depth_view_graph}")
 endif()
 
+set(raster_counter_view_render "${TEST_OUTPUT_DIR}/raster-depth-test-count-view.png")
+set(raster_counter_view_plan "${TEST_OUTPUT_DIR}/raster-depth-test-count-view.json")
+rendercli_run(
+  NAME "rendercli renders raster counter AOV view through graph"
+  COMMAND
+    "${RENDERCLI}" --engine raster --render_graph_view raster_depth_test_count
+    --render_graph_format json --render_graph_out "${raster_counter_view_plan}"
+    --width 32 --height 24
+    "${static_scene}" "${raster_counter_view_render}"
+)
+rendercli_assert_nonempty("${raster_counter_view_render}" NAME "raster counter AOV graph render output")
+rendercli_assert_nonempty("${raster_counter_view_plan}" NAME "raster counter AOV graph plan")
+file(READ "${raster_counter_view_plan}" raster_counter_view_graph)
+if(NOT raster_counter_view_graph MATCHES "raster_depth_test_count_aov")
+  message(FATAL_ERROR "raster counter AOV graph did not contain raster_depth_test_count_aov: ${raster_counter_view_graph}")
+endif()
+
 rendercli_run(
   NAME "rendercli exports stencil AOV render graph"
   STDOUT_MATCHES

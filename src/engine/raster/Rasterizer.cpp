@@ -143,7 +143,12 @@ namespace {
             diagnosticView(outputs.primitive, width, height),
             diagnosticView(outputs.material, width, height),
             diagnosticView(outputs.face, width, height),
-            diagnosticView(outputs.stencil, width, height)};
+            diagnosticView(outputs.stencil, width, height),
+            diagnosticView(outputs.coverageCount, width, height),
+            diagnosticView(outputs.depthTestCount, width, height),
+            diagnosticView(outputs.depthPassCount, width, height),
+            diagnosticView(outputs.shadeCount, width, height),
+            diagnosticView(outputs.colorWriteCount, width, height)};
   }
 
   template<class T>
@@ -164,6 +169,11 @@ namespace {
                           static_cast<const render::Material*>(nullptr));
     clearDiagnosticBuffer(outputs.face, width, height, std::numeric_limits<std::uint64_t>::max());
     clearDiagnosticBuffer(outputs.stencil, width, height, rasterizer.stencilClearValue());
+    clearDiagnosticBuffer(outputs.coverageCount, width, height, 0u);
+    clearDiagnosticBuffer(outputs.depthTestCount, width, height, 0u);
+    clearDiagnosticBuffer(outputs.depthPassCount, width, height, 0u);
+    clearDiagnosticBuffer(outputs.shadeCount, width, height, 0u);
+    clearDiagnosticBuffer(outputs.colorWriteCount, width, height, 0u);
   }
 
   void loadColorAttachment(const Rasterizer& rasterizer, Buffer<Colord>& target,

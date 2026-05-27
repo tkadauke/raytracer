@@ -113,12 +113,20 @@ QString RenderIntentElement::propertyGroup(const QString& propertyName) const {
 QStringList RenderIntentElement::propertyChoices(const QString& propertyName) const {
   if (propertyName == QStringLiteral("defaultEngine"))
     return {QStringLiteral("raytracer"), QStringLiteral("rasterizer"), QStringLiteral("wireframe")};
-  if (propertyName == QStringLiteral("viewMode"))
-    return {QStringLiteral("default"),     QStringLiteral("beauty"),
-            QStringLiteral("wireframe"),   QStringLiteral("depth"),
-            QStringLiteral("stencil"),     QStringLiteral("stencil_composite"),
-            QStringLiteral("normal"),      QStringLiteral("object_id"),
-            QStringLiteral("material_id"), QStringLiteral("world_position")};
+  if (propertyName == QStringLiteral("viewMode")) {
+    QStringList choices{QStringLiteral("default"),     QStringLiteral("beauty"),
+                        QStringLiteral("wireframe"),   QStringLiteral("depth"),
+                        QStringLiteral("stencil"),     QStringLiteral("stencil_composite"),
+                        QStringLiteral("normal"),      QStringLiteral("object_id"),
+                        QStringLiteral("material_id"), QStringLiteral("world_position")};
+    if (intent().defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer) {
+      choices << QStringLiteral("raster_coverage_count")
+              << QStringLiteral("raster_depth_test_count")
+              << QStringLiteral("raster_depth_pass_count") << QStringLiteral("raster_shade_count")
+              << QStringLiteral("raster_color_write_count");
+    }
+    return choices;
+  }
   if (propertyName == QStringLiteral("postProcessAA"))
     return {QStringLiteral("none"), QStringLiteral("fxaa"), QStringLiteral("smaa"),
             QStringLiteral("taa")};
@@ -171,6 +179,22 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
                                                        const QString& choice) const {
   if (propertyName == QStringLiteral("postProcessAA"))
     return choice == QStringLiteral("none") ? QStringLiteral("None") : choice.toUpper();
+  if (propertyName == QStringLiteral("viewMode")) {
+    if (choice == QStringLiteral("object_id"))
+      return QStringLiteral("Object ID");
+    if (choice == QStringLiteral("material_id"))
+      return QStringLiteral("Material ID");
+    if (choice == QStringLiteral("raster_coverage_count"))
+      return QStringLiteral("Raster Coverage Count");
+    if (choice == QStringLiteral("raster_depth_test_count"))
+      return QStringLiteral("Raster Depth-Test Count");
+    if (choice == QStringLiteral("raster_depth_pass_count"))
+      return QStringLiteral("Raster Depth-Pass Count");
+    if (choice == QStringLiteral("raster_shade_count"))
+      return QStringLiteral("Raster Shade Count");
+    if (choice == QStringLiteral("raster_color_write_count"))
+      return QStringLiteral("Raster Color-Write Count");
+  }
   if (propertyName == QStringLiteral("rasterizerMSAAShading")) {
     if (choice == QStringLiteral("per_sample"))
       return QStringLiteral("Per Sample");
@@ -209,6 +233,10 @@ QString RenderIntentElement::defaultEngine() const {
 void RenderIntentElement::setDefaultEngine(const QString& engine) {
   auto value = intent();
   value.defaultExecutor = executorFromText(engine);
+  if (value.defaultExecutor != engine::graph::RenderExecutorPreference::Rasterizer &&
+      isRasterCounterView(value.defaultViewMode)) {
+    value.defaultViewMode = engine::graph::RenderViewMode::Beauty;
+  }
   setIntent(value);
 }
 
@@ -219,6 +247,9 @@ QString RenderIntentElement::viewMode() const {
 void RenderIntentElement::setViewMode(const QString& mode) {
   auto value = intent();
   value.defaultViewMode = viewModeFromText(mode);
+  if (isRasterCounterView(value.defaultViewMode)) {
+    value.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
+  }
   setIntent(value);
 }
 
@@ -499,6 +530,16 @@ engine::graph::RenderViewMode RenderIntentElement::viewModeFromText(const QStrin
     return engine::graph::RenderViewMode::MaterialId;
   if (value == QStringLiteral("world_position"))
     return engine::graph::RenderViewMode::WorldPosition;
+  if (value == QStringLiteral("raster_coverage_count"))
+    return engine::graph::RenderViewMode::RasterCoverageCount;
+  if (value == QStringLiteral("raster_depth_test_count"))
+    return engine::graph::RenderViewMode::RasterDepthTestCount;
+  if (value == QStringLiteral("raster_depth_pass_count"))
+    return engine::graph::RenderViewMode::RasterDepthPassCount;
+  if (value == QStringLiteral("raster_shade_count"))
+    return engine::graph::RenderViewMode::RasterShadeCount;
+  if (value == QStringLiteral("raster_color_write_count"))
+    return engine::graph::RenderViewMode::RasterColorWriteCount;
   return engine::graph::RenderViewMode::Beauty;
 }
 
@@ -512,6 +553,14 @@ RenderIntentElement::postProcessAAFromText(const QString& text) const {
   if (value == QStringLiteral("taa"))
     return engine::graph::RenderPostProcessAA::TAA;
   return engine::graph::RenderPostProcessAA::None;
+}
+
+bool RenderIntentElement::isRasterCounterView(engine::graph::RenderViewMode viewMode) const {
+  return viewMode == engine::graph::RenderViewMode::RasterCoverageCount ||
+         viewMode == engine::graph::RenderViewMode::RasterDepthTestCount ||
+         viewMode == engine::graph::RenderViewMode::RasterDepthPassCount ||
+         viewMode == engine::graph::RenderViewMode::RasterShadeCount ||
+         viewMode == engine::graph::RenderViewMode::RasterColorWriteCount;
 }
 
 QString RenderIntentElement::toQString(const std::string& value) const {

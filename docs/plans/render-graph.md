@@ -1358,7 +1358,8 @@ Implement the smallest graph that proves the architecture:
    filters, serialize graph-backed raster
    beauty pass state for MSAA/post-AA/fixed-function/shadow controls,
    serialize graph-backed wireframe pass state for LOD, compile graph-visible
-   depth, stencil, normal, object-id, material-id, and world-position AOV views, and
+   depth, stencil, normal, object-id, material-id, world-position, and raster
+   counter AOV views, and
    validate the manipulated plan.
    Selector-specific scene and command-line intent now fail compilation clearly
    instead of being silently ignored until scene-partitioning planners exist.
@@ -1374,7 +1375,7 @@ Implement the smallest graph that proves the architecture:
    the dock exports the effective graph as text, DOT, or JSON. The Groups tab
    can disable all passes matching a present kind, executor, or feature. The
    Preview View menu can compile the live preview as beauty, depth, stencil,
-   normal, object-id, material-id, or world-position AOV graphs. Per-selector intent
+   normal, object-id, material-id, world-position, or raster counter AOV graphs. Per-selector intent
    controls remain TODO.
 10. Ship one hybrid demo: raytraced room containing a rasterized or wireframe
    render-texture screen.
@@ -1494,8 +1495,11 @@ Add `depth`, `stencil`, `normal`, `world_position`, `object_id`,
 `world_position_aov` resources with visualization passes, and rendercli accepts
 `--render_graph_view depth`, `--render_graph_view stencil`,
 `--render_graph_view stencil_composite`, `--render_graph_view normal`,
-`--render_graph_view object_id`, `--render_graph_view material_id`, and
-`--render_graph_view world_position`.
+`--render_graph_view object_id`, `--render_graph_view material_id`,
+`--render_graph_view world_position`, `--render_graph_view
+raster_coverage_count`, `--render_graph_view raster_depth_test_count`,
+`--render_graph_view raster_depth_pass_count`, `--render_graph_view
+raster_shade_count`, and `--render_graph_view raster_color_write_count`.
 Render intents now carry an `exportedAOVs` list, the compiler adds requested
 AOV side branches through `RenderAOVDefinition` objects, and rendercli writes
 multiple opt-in AOV preview files with repeated `--render_graph_aov_out
@@ -1503,6 +1507,9 @@ view=file` options. Rasterizer-backed depth, stencil, normal, object-id,
 material-id, and world-position AOV payloads now use rasterizer diagnostic
 buffers or a raster stencil-marking pass, so they reflect tessellated raster
 geometry and raster pass state instead of analytic primary-ray intersections.
+Raster counter AOV payloads extend that diagnostic path with graph-visible
+heatmaps for per-pixel coverage, depth tests, depth passes, shading calls, and
+color writes.
 rendercli can also provide imported/history color, depth, stencil, object-id,
 and material-id resources to replayed graph JSON with
 `--render_graph_color_in`, `--render_graph_depth_in`,

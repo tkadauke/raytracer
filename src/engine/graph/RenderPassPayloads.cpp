@@ -730,6 +730,83 @@ namespace engine::graph {
       }
     };
 
+    class RasterCounterAOVPass : public RasterDiagnosticAOVPass {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), write.resource, pass);
+
+        Buffer<Colord>& color = context.storage().color(write.resource);
+        Buffer<std::uint32_t> counts(color.width(), color.height());
+        ::engine::raster::Rasterizer::DiagnosticOutputBuffers outputs;
+        attachCounter(outputs, counts);
+        renderRasterDiagnostics(context, outputs);
+
+        for (int y = 0; y != color.height(); ++y) {
+          for (int x = 0; x != color.width(); ++x) {
+            color[y][x] = colorForCounter(counts[y][x]);
+          }
+        }
+      }
+
+    private:
+      static Colord colorForCounter(std::uint32_t value) {
+        if (value == 0) {
+          return Colord::black();
+        }
+
+        constexpr double redThreshold = 16.0;
+        const double normalized =
+          std::min(1.0, std::log1p(static_cast<double>(value)) / std::log1p(redThreshold));
+        const double green = std::max(0.0, 1.0 - std::abs(normalized * 2.0 - 1.0));
+        return Colord(normalized, green, 1.0 - normalized);
+      }
+
+      virtual void attachCounter(::engine::raster::Rasterizer::DiagnosticOutputBuffers& outputs,
+                                 Buffer<std::uint32_t>& counts) const = 0;
+    };
+
+    class RasterCoverageCountAOVPass : public RasterCounterAOVPass {
+    private:
+      void attachCounter(::engine::raster::Rasterizer::DiagnosticOutputBuffers& outputs,
+                         Buffer<std::uint32_t>& counts) const override {
+        outputs.coverageCount = &counts;
+      }
+    };
+
+    class RasterDepthTestCountAOVPass : public RasterCounterAOVPass {
+    private:
+      void attachCounter(::engine::raster::Rasterizer::DiagnosticOutputBuffers& outputs,
+                         Buffer<std::uint32_t>& counts) const override {
+        outputs.depthTestCount = &counts;
+      }
+    };
+
+    class RasterDepthPassCountAOVPass : public RasterCounterAOVPass {
+    private:
+      void attachCounter(::engine::raster::Rasterizer::DiagnosticOutputBuffers& outputs,
+                         Buffer<std::uint32_t>& counts) const override {
+        outputs.depthPassCount = &counts;
+      }
+    };
+
+    class RasterShadeCountAOVPass : public RasterCounterAOVPass {
+    private:
+      void attachCounter(::engine::raster::Rasterizer::DiagnosticOutputBuffers& outputs,
+                         Buffer<std::uint32_t>& counts) const override {
+        outputs.shadeCount = &counts;
+      }
+    };
+
+    class RasterColorWriteCountAOVPass : public RasterCounterAOVPass {
+    private:
+      void attachCounter(::engine::raster::Rasterizer::DiagnosticOutputBuffers& outputs,
+                         Buffer<std::uint32_t>& counts) const override {
+        outputs.colorWriteCount = &counts;
+      }
+    };
+
     class DepthVisualizationPass : public RenderPassPayload {
     public:
       void execute(RenderExecutionContext& context) override {
@@ -1281,6 +1358,31 @@ namespace engine::graph {
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"world_position"});
       static const FeaturePassPayloadFactory<WorldPositionAOVPass> worldPositionAOVWireframe(
         RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"world_position"});
+      static const FeaturePassPayloadFactory<RasterCoverageCountAOVPass> rasterCoverageCountAOV(
+        RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"raster_coverage_count"});
+      static const FeaturePassPayloadFactory<RasterDepthTestCountAOVPass> rasterDepthTestCountAOV(
+        RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"raster_depth_test_count"});
+      static const FeaturePassPayloadFactory<RasterDepthPassCountAOVPass> rasterDepthPassCountAOV(
+        RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"raster_depth_pass_count"});
+      static const FeaturePassPayloadFactory<RasterShadeCountAOVPass> rasterShadeCountAOV(
+        RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"raster_shade_count"});
+      static const FeaturePassPayloadFactory<RasterColorWriteCountAOVPass> rasterColorWriteCountAOV(
+        RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"raster_color_write_count"});
+      static const FeaturePassPayloadFactory<ColorCopyPass> rasterCoverageCountVisualization(
+        RenderPassKind::AOV, RenderExecutorKind::PostProcess,
+        {"raster_coverage_count", "visualization"});
+      static const FeaturePassPayloadFactory<ColorCopyPass> rasterDepthTestCountVisualization(
+        RenderPassKind::AOV, RenderExecutorKind::PostProcess,
+        {"raster_depth_test_count", "visualization"});
+      static const FeaturePassPayloadFactory<ColorCopyPass> rasterDepthPassCountVisualization(
+        RenderPassKind::AOV, RenderExecutorKind::PostProcess,
+        {"raster_depth_pass_count", "visualization"});
+      static const FeaturePassPayloadFactory<ColorCopyPass> rasterShadeCountVisualization(
+        RenderPassKind::AOV, RenderExecutorKind::PostProcess,
+        {"raster_shade_count", "visualization"});
+      static const FeaturePassPayloadFactory<ColorCopyPass> rasterColorWriteCountVisualization(
+        RenderPassKind::AOV, RenderExecutorKind::PostProcess,
+        {"raster_color_write_count", "visualization"});
       static const PostProcessAAPayloadFactory postProcessAA;
       static const WireframeOverlayPayloadFactory wireframeOverlay;
       static const DepthStencilCompositePayloadFactory depthStencilComposite;
@@ -1316,6 +1418,16 @@ namespace engine::graph {
         &worldPositionAOVRaytracer,
         &worldPositionAOVRasterizer,
         &worldPositionAOVWireframe,
+        &rasterCoverageCountVisualization,
+        &rasterCoverageCountAOV,
+        &rasterDepthTestCountVisualization,
+        &rasterDepthTestCountAOV,
+        &rasterDepthPassCountVisualization,
+        &rasterDepthPassCountAOV,
+        &rasterShadeCountVisualization,
+        &rasterShadeCountAOV,
+        &rasterColorWriteCountVisualization,
+        &rasterColorWriteCountAOV,
         &postProcessAA,
         &wireframeOverlay,
         &depthStencilComposite,

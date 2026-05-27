@@ -44,6 +44,11 @@ namespace engine::graph {
       if (!executorDefinition) {
         throw std::runtime_error("executor cannot produce AOV pass");
       }
+      if (!aov.supportsExecutor(executor)) {
+        throw std::runtime_error("view mode '" + std::string(toString(aov.viewMode())) +
+                                 "' is not supported by executor '" +
+                                 std::string(toString(executor)) + "'");
+      }
       RenderPassNode pass;
       pass.id = aov.resourceId();
       pass.name = aov.title() + " AOV";

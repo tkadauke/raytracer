@@ -414,6 +414,16 @@ namespace {
       *viewMode = RenderViewMode::MaterialId;
     } else if (normalized == "worldposition") {
       *viewMode = RenderViewMode::WorldPosition;
+    } else if (normalized == "rastercoveragecount") {
+      *viewMode = RenderViewMode::RasterCoverageCount;
+    } else if (normalized == "rasterdepthtestcount") {
+      *viewMode = RenderViewMode::RasterDepthTestCount;
+    } else if (normalized == "rasterdepthpasscount") {
+      *viewMode = RenderViewMode::RasterDepthPassCount;
+    } else if (normalized == "rastershadecount") {
+      *viewMode = RenderViewMode::RasterShadeCount;
+    } else if (normalized == "rastercolorwritecount") {
+      *viewMode = RenderViewMode::RasterColorWriteCount;
     } else {
       return false;
     }
@@ -538,7 +548,9 @@ namespace {
           *errorMessage =
             "Render graph view override view must be 'default', 'beauty', 'wireframe', "
             "'depth', 'stencil', 'stencil_composite', 'normal', 'object_id', "
-            "'material_id', or 'world_position'";
+            "'material_id', 'world_position', 'raster_coverage_count', "
+            "'raster_depth_test_count', 'raster_depth_pass_count', 'raster_shade_count', "
+            "or 'raster_color_write_count'";
           return false;
         }
         viewOverride.viewMode = viewMode;
@@ -602,7 +614,9 @@ namespace {
     if (separator <= 0 || separator == value.size() - 1) {
       *errorMessage =
         "Render graph AOV output must use view=file syntax with view 'depth', 'stencil', "
-        "'normal', 'object_id', 'material_id', or 'world_position'";
+        "'normal', 'object_id', 'material_id', 'world_position', 'raster_coverage_count', "
+        "'raster_depth_test_count', 'raster_depth_pass_count', 'raster_shade_count', or "
+        "'raster_color_write_count'";
       return false;
     }
 
@@ -611,7 +625,9 @@ namespace {
     if (!aov) {
       *errorMessage =
         "Render graph AOV output view must be 'depth', 'stencil', 'normal', 'object_id', "
-        "'material_id', or 'world_position'";
+        "'material_id', 'world_position', 'raster_coverage_count', "
+        "'raster_depth_test_count', 'raster_depth_pass_count', 'raster_shade_count', or "
+        "'raster_color_write_count'";
       return false;
     }
 
@@ -2280,7 +2296,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "executor"},
      {"render_graph_view",
       "Override graph intent view mode (default, beauty, wireframe, depth, stencil, normal, "
-      "stencil_composite, object_id, material_id, world_position)",
+      "stencil_composite, object_id, material_id, world_position, raster_*_count)",
       "mode"},
      {"render_graph_camera", "Override graph intent camera with a scene camera id", "camera_id"},
      {"render_graph_shading_profile", "Override graph intent shading profile", "profile"},
@@ -2711,7 +2727,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
                                         &m_renderGraphViewMode)) {
       *errorMessage =
         "Render graph view mode must be 'default', 'beauty', 'wireframe', 'depth', 'stencil', "
-        "'stencil_composite', 'normal', 'object_id', 'material_id', or 'world_position'";
+        "'stencil_composite', 'normal', 'object_id', 'material_id', 'world_position', "
+        "'raster_coverage_count', 'raster_depth_test_count', 'raster_depth_pass_count', "
+        "'raster_shade_count', or 'raster_color_write_count'";
       return CommandLineError;
     }
     m_renderGraphViewModeSet = true;
