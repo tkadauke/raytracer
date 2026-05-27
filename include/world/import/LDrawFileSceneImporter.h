@@ -3,6 +3,7 @@
 #include "core/Color.h"
 #include "core/formats/ldraw/LDrawDiagnostic.h"
 #include "core/math/Vector.h"
+#include "world/import/ImportedSceneDefaults.h"
 #include "world/import/SceneImporter.h"
 
 #include <memory>
@@ -47,11 +48,7 @@ namespace world {
                                                   const ImportOptions& options) const;
     [[nodiscard]] QString defaultLibraryRoot() const;
     [[nodiscard]] std::unique_ptr<Scene> makeScene(const ResolvedOptions& options) const;
-    [[nodiscard]] Colord colorOption(const ImportOptions& options, const QString& name,
-                                     const Colord& fallback) const;
-    [[nodiscard]] Colord parseColor(const QString& value, const QString& optionName) const;
-    [[nodiscard]] Vector3d defaultCameraDirection() const;
-    [[nodiscard]] Vector3d defaultLightDirection() const;
+    [[nodiscard]] ImportedSceneDefaults importedSceneDefaults(const ResolvedOptions& options) const;
     [[nodiscard]] ImportSourceMetadata sourceMetadataFor(const QString& filename) const;
     [[nodiscard]] ImportDiagnostic importDiagnosticFor(const LDrawDiagnostic& diagnostic) const;
     void appendDiagnostics(ImportResult& result,

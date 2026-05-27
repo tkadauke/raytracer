@@ -14,10 +14,9 @@ namespace world {
 
   bool SceneImporterRegistry::registerImporter(const QString& formatName, Creator creator) {
     const QString normalized = normalizeFormat(formatName);
-    auto existing = std::find_if(m_entries.begin(), m_entries.end(),
-                                 [&](const Entry& entry) {
-                                   return entry.formatName == normalized;
-                                 });
+    auto existing = std::find_if(m_entries.begin(), m_entries.end(), [&](const Entry& entry) {
+      return entry.formatName == normalized;
+    });
     if (existing != m_entries.end()) {
       existing->creator = std::move(creator);
       return true;
@@ -33,7 +32,8 @@ namespace world {
     return entry ? entry->creator() : nullptr;
   }
 
-  std::unique_ptr<SceneImporter> SceneImporterRegistry::createForFile(const QString& filename) const {
+  std::unique_ptr<SceneImporter>
+  SceneImporterRegistry::createForFile(const QString& filename) const {
     const Entry* entry = findByExtension(extensionForFile(filename));
     return entry ? entry->creator() : nullptr;
   }
@@ -51,6 +51,21 @@ namespace world {
     for (const auto& entry : m_entries) {
       result.push_back(entry.formatName);
     }
+    return result;
+  }
+
+  QStringList SceneImporterRegistry::supportedExtensions() const {
+    QStringList result;
+    for (const auto& entry : m_entries) {
+      const auto importer = entry.creator();
+      for (const QString& supported : importer->supportedExtensions()) {
+        const QString normalized = normalizeFormat(supported);
+        if (!normalized.isEmpty() && !result.contains(normalized)) {
+          result.push_back(normalized);
+        }
+      }
+    }
+    result.sort();
     return result;
   }
 

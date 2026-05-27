@@ -31,6 +31,7 @@ namespace world {
     [[nodiscard]] bool hasFormat(const QString& formatName) const;
     [[nodiscard]] bool hasExtension(const QString& extension) const;
     [[nodiscard]] QStringList formats() const;
+    [[nodiscard]] QStringList supportedExtensions() const;
 
   private:
     struct Entry {

@@ -3,16 +3,12 @@
 #include "core/Exception.h"
 #include "world/import/LDrawSceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
-#include "world/objects/DirectionalLight.h"
 #include "world/objects/Group.h"
-#include "world/objects/PinholeCamera.h"
 #include "world/objects/Scene.h"
 
-#include <QColor>
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonObject>
-#include <QRegularExpression>
 
 #include <algorithm>
 #include <cstdlib>
@@ -107,7 +103,7 @@ namespace world {
       auto scene = makeScene(resolved);
       world::imports::resolveLDrawAuthoringImports(
         scene.get(), resolved.libraryRoot, QFileInfo(filename).absolutePath(), &ldrawDiagnostics);
-      if (!scene->frameActivePinholeCameraToContents(defaultCameraDirection())) {
+      if (!importedSceneDefaults(resolved).frameCamera(*scene)) {
         ldrawDiagnostics.push_back({LDrawDiagnosticSeverity::Warning,
                                     LDrawDiagnosticCode::SkippedGeometry,
                                     filename.toStdString(),
@@ -151,8 +147,12 @@ namespace world {
     result.includeEdgeOverlays = options.value("include_edge_overlays", true).toBool();
     result.preserveHierarchy = options.value("preserve_hierarchy", true).toBool();
     result.maxRecursion = options.value("max_recursion", 64).toInt();
-    result.backgroundColor = colorOption(options, "background_color", Colord::white());
-    result.ambientColor = colorOption(options, "ambient_color", Colord(0.8, 0.8, 0.8));
+    ImportedSceneDefaults sceneDefaults;
+    sceneDefaults.setBackgroundColorFromOption(options, "background_color",
+                                               "LDraw background_color");
+    sceneDefaults.setAmbientColorFromOption(options, "ambient_color", "LDraw ambient_color");
+    result.backgroundColor = sceneDefaults.backgroundColor();
+    result.ambientColor = sceneDefaults.ambientColor();
 
     if (result.normalMode != "flat" && result.normalMode != "smooth")
       throw std::invalid_argument("LDraw normal_mode must be 'flat' or 'smooth'");
@@ -185,22 +185,9 @@ namespace world {
 
   std::unique_ptr<Scene> LDrawFileSceneImporter::makeScene(const ResolvedOptions& options) const {
     const QFileInfo fileInfo(options.filePath);
-    auto scene = std::make_unique<Scene>();
-    scene->setName(fileInfo.completeBaseName().isEmpty() ? QString("LDraw Import")
-                                                         : fileInfo.completeBaseName());
-    scene->setAmbient(options.ambientColor);
-    scene->setBackground(options.backgroundColor);
-
-    auto camera = std::make_unique<PinholeCamera>();
-    camera->setId("camera");
-    camera->setName("Camera");
-    scene->addChild(std::move(camera));
-
-    auto light = std::make_unique<DirectionalLight>();
-    light->setId("light");
-    light->setName("Light");
-    light->setDirection(defaultLightDirection());
-    scene->addChild(std::move(light));
+    auto scene = importedSceneDefaults(options).createScene(fileInfo.completeBaseName().isEmpty()
+                                                              ? QString("LDraw Import")
+                                                              : fileInfo.completeBaseName());
 
     auto model = std::make_unique<Group>();
     model->setId("ldraw-model");
@@ -224,43 +211,12 @@ namespace world {
     return scene;
   }
 
-  Colord LDrawFileSceneImporter::colorOption(const ImportOptions& options, const QString& name,
-                                             const Colord& fallback) const {
-    const QVariant value = options.value(name);
-    if (!value.isValid())
-      return fallback;
-    return parseColor(value.toString(), name);
-  }
-
-  Colord LDrawFileSceneImporter::parseColor(const QString& value, const QString& optionName) const {
-    QString text = value.trimmed();
-    if (text.isEmpty()) {
-      throw std::invalid_argument(
-        QString("LDraw %1 must be a color name or hex color").arg(optionName).toStdString());
-    }
-
-    if (text.startsWith("0x", Qt::CaseInsensitive))
-      text = "#" + text.mid(2);
-
-    static const QRegularExpression bareHex("^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$");
-    if (bareHex.match(text).hasMatch())
-      text = "#" + text;
-
-    const QColor color(text);
-    if (!color.isValid()) {
-      throw std::invalid_argument(
-        QString("LDraw %1 must be a color name or hex color").arg(optionName).toStdString());
-    }
-
-    return Colord(color.redF(), color.greenF(), color.blueF());
-  }
-
-  Vector3d LDrawFileSceneImporter::defaultCameraDirection() const {
-    return Vector3d(0.0, 0.0, -1.0);
-  }
-
-  Vector3d LDrawFileSceneImporter::defaultLightDirection() const {
-    return Vector3d(-0.35, 0.7, -1.0);
+  ImportedSceneDefaults
+  LDrawFileSceneImporter::importedSceneDefaults(const ResolvedOptions& options) const {
+    ImportedSceneDefaults defaults;
+    defaults.setAmbientColor(options.ambientColor);
+    defaults.setBackgroundColor(options.backgroundColor);
+    return defaults;
   }
 
   ImportSourceMetadata LDrawFileSceneImporter::sourceMetadataFor(const QString& filename) const {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "world/import/ImportedSceneDefaults.h"
 #include "world/import/SceneImporter.h"
 
 namespace world {
@@ -19,6 +20,12 @@ namespace world {
     [[nodiscard]] ImportResult
     importFile(const QString& filename,
                const ImportOptions& options = ImportOptions()) const override;
+    bool configureImportedScene(Scene& scene, Element& importedRoot,
+                                const ImportOptions& options) const override;
+
+  private:
+    [[nodiscard]] ImportedSceneDefaults importedSceneDefaults(const ImportOptions& options) const;
+    void orientImportedRoot(Element& importedRoot) const;
   };
 
 }

@@ -157,6 +157,7 @@
 | `include/world/import/ImportDiagnostic.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/world/import/ImportOptions.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/world/import/ImportResult.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
+| `include/world/import/ImportedSceneDefaults.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/world/import/LDrawFileSceneImporter.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/world/import/LDrawSceneImporter.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/world/import/OpenScadCompiler.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
@@ -202,6 +203,7 @@
 | `src/modeler/MainWindow.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[LDraw import](../tools-and-io/ldraw-import.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/widgets/world/RenderGraphInspectorWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/widgets/world/RenderGraphTracePreviewWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
+| `src/world/import/ImportedSceneDefaults.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `src/world/import/LDrawFileSceneImporter.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/import/LDrawSceneImporter.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/import/OpenScadCompiler.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |

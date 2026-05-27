@@ -1187,6 +1187,13 @@ std::unique_ptr<Scene> Renderer::loadScene() const {
       root.release();
       return std::unique_ptr<Scene>(sceneRoot);
     }
+    auto scene = std::make_unique<Scene>(nullptr);
+    Element* importedRoot = root.get();
+    scene->addChild(std::move(root));
+    if (importedRoot && importer->configureImportedScene(*scene, *importedRoot, importOptions)) {
+      scene->resolveElementReferences();
+      return scene;
+    }
     throw std::runtime_error(
       QString("Importer did not return a scene root: %1").arg(m_filename).toStdString());
   }

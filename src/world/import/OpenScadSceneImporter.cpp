@@ -17,7 +17,9 @@
 #include "world/objects/Difference.h"
 #include "world/objects/Group.h"
 #include "world/objects/Intersection.h"
+#include "world/objects/Scene.h"
 #include "world/objects/Sphere.h"
+#include "world/objects/Transformable.h"
 #include "world/objects/Union.h"
 
 #include <QFile>
@@ -743,6 +745,22 @@ namespace world {
        "stl",
        false,
        {"stl", "ply"}},
+      {"background_color",
+       ImportOptionType::String,
+       "Background color",
+       "Scene background as a CSS color name or hex color when importing a standalone .scad file.",
+       "white",
+       false,
+       {}},
+      {"ambient_color",
+       ImportOptionType::String,
+       "Ambient color",
+       "Scene ambient fill light as a CSS color name or hex color when importing a standalone "
+       ".scad "
+       "file.",
+       "#cccccc",
+       false,
+       {}},
     };
   }
 
@@ -836,6 +854,32 @@ namespace world {
     return result;
   }
 
+  bool OpenScadSceneImporter::configureImportedScene(Scene& scene, Element& importedRoot,
+                                                     const ImportOptions& options) const {
+    const ImportedSceneDefaults defaults = importedSceneDefaults(options);
+    defaults.applyTo(scene);
+    orientImportedRoot(importedRoot);
+    (void)defaults.frameCamera(scene);
+    return true;
+  }
+
+  ImportedSceneDefaults
+  OpenScadSceneImporter::importedSceneDefaults(const ImportOptions& options) const {
+    ImportedSceneDefaults defaults;
+    defaults.setBackgroundColorFromOption(options, "background_color");
+    defaults.setAmbientColorFromOption(options, "ambient_color");
+    return defaults;
+  }
+
+  void OpenScadSceneImporter::orientImportedRoot(Element& importedRoot) const {
+    auto* transformable = qobject_cast<Transformable*>(&importedRoot);
+    if (!transformable)
+      return;
+
+    const double halfPi = std::acos(-1.0) / 2.0;
+    transformable->setRotation(transformable->rotation() + Vector3d(halfPi, 0.0, 0.0));
+    transformable->setMetadataValue("coordinateConversion", "openscad_z_up_to_product_view_up");
+  }
 }
 
 static bool dummy =

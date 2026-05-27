@@ -29,6 +29,15 @@ Group `metadata` is the right place for source object IDs, collection names,
 layer names, source categories, and other data useful to inspectors or later
 exporters. It is intentionally opaque to the renderer.
 
+When a standalone file import returns a `Group`, tools can still build a useful
+scene around it. `SceneImporter::configureImportedScene(...)` is the importer
+hook for that wrapper scene: add or tune the camera, lights, background, and
+format-level orientation there instead of duplicating those choices in
+rendercli, Modeler, or ad hoc import callers. Shared product-view defaults live
+in [`ImportedSceneDefaults`](../../../include/world/import/ImportedSceneDefaults.h);
+LDraw and OpenSCAD both use those defaults for white backgrounds, ambient fill,
+directional light, and pinhole camera framing.
+
 ## Options
 
 [`ImportOptions`](../../../include/world/import/ImportOptions.h) stores
@@ -187,6 +196,7 @@ visible with the ghost material. The flags do not edit the saved scene.
 - `include/world/import/ImportOptions.h`
 - `include/world/import/ImportResult.h`
 - `include/world/import/ImportDiagnostic.h`
+- `include/world/import/ImportedSceneDefaults.h`
 - `include/world/objects/Group.h`
 - `include/world/objects/StepVisibilityEvaluator.h`
 - `include/core/formats/AssetResolver.h`
@@ -197,6 +207,7 @@ visible with the ghost material. The flags do not edit the saved scene.
 - `src/core/formats/stl/StlFile.cpp`
 - `src/world/import/OpenScadCompiler.cpp`
 - `src/world/import/OpenScadSceneImporter.cpp`
+- `src/world/import/ImportedSceneDefaults.cpp`
 - `test/helpers/ImporterTestHelper.h`
 - `test/helpers/ImporterTestHelper.cpp`
 - `test/fixtures/groups/`

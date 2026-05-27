@@ -16,6 +16,7 @@ set(explicit_import_scene "${TEST_OUTPUT_DIR}/imported.scene")
 set(extension_render "${TEST_OUTPUT_DIR}/extension.png")
 set(explicit_render "${TEST_OUTPUT_DIR}/explicit.png")
 set(openscad_render "${TEST_OUTPUT_DIR}/openscad-source-asset.png")
+set(openscad_direct_render "${TEST_OUTPUT_DIR}/openscad-direct.png")
 set(missing_render "${TEST_OUTPUT_DIR}/missing.png")
 set(fake_openscad "${TEST_OUTPUT_DIR}/openscad-fake.sh")
 set(openscad_scene "${TEST_OUTPUT_DIR}/openscad-source-asset.rtjson")
@@ -152,6 +153,20 @@ rendercli_assert_image_dimensions("${openscad_render}" 8 8
                                   NAME "rendercli OpenSCAD source asset dimensions")
 rendercli_assert_image_nonempty("${openscad_render}"
                                 NAME "rendercli OpenSCAD source asset pixels")
+
+rendercli_run(
+  NAME "rendercli renders direct OpenSCAD import as product-view scene"
+  COMMAND
+    "${RENDERCLI}" --width 8 --height 8
+    --import_option "executable=${fake_openscad}"
+    --import_option "cacheDirectory=${openscad_cache}"
+    --import_option "outputFormat=stl"
+    "${openscad_source}" "${openscad_direct_render}"
+)
+rendercli_assert_image_dimensions("${openscad_direct_render}" 8 8
+                                  NAME "rendercli direct OpenSCAD dimensions")
+rendercli_assert_image_nonempty("${openscad_direct_render}"
+                                NAME "rendercli direct OpenSCAD pixels")
 
 rendercli_expect_failure(
   NAME "rendercli reports unknown importer"

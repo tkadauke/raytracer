@@ -17,9 +17,12 @@
 #include "world/objects/Difference.h"
 #include "world/objects/Group.h"
 #include "world/objects/Intersection.h"
+#include "world/objects/PinholeCamera.h"
+#include "world/objects/Scene.h"
 #include "world/objects/SourceAsset.h"
 #include "world/objects/Sphere.h"
 #include "world/objects/Union.h"
+#include "test/helpers/VectorTestHelper.h"
 
 #include <QDir>
 #include <QFile>
@@ -350,6 +353,46 @@ exit 0
     EXPECT_EQ(sourceFixture(), meshProvenance->sourceFile);
     EXPECT_EQ(QString("generated-output"), meshProvenance->sourceId);
     EXPECT_EQ(QString("stl"), meshProvenance->category["generatedOutputFormat"].toString());
+  }
+
+  TEST(OpenScadSceneImporter, ConfiguresStandaloneSceneForProductView) {
+    QTemporaryDir dir;
+    const QString executable = writeExecutable(dir);
+    const QString cacheDirectory = dir.filePath("cache");
+    qputenv("OPENSCAD_FAKE_LOG", dir.filePath("openscad.log").toLocal8Bit());
+    const world::ImportOptions options(optionsFor(executable, cacheDirectory));
+
+    world::OpenScadSceneImporter importer;
+    auto result = importer.importFile(sourceFixture(), options);
+
+    ASSERT_TRUE(result.succeeded());
+    auto root = result.takeRoot();
+    ASSERT_NE(nullptr, root);
+    Element* importedRoot = root.get();
+    Scene scene;
+    scene.addChild(std::move(root));
+
+    EXPECT_TRUE(importer.configureImportedScene(scene, *importedRoot, options));
+
+    EXPECT_EQ(Colord::white(), scene.background());
+    EXPECT_EQ(Colord(0.8, 0.8, 0.8), scene.ambient());
+    auto* camera = qobject_cast<PinholeCamera*>(scene.activeCamera());
+    ASSERT_NE(nullptr, camera);
+    EXPECT_NEAR(camera->target().x(), camera->position().x(), 1e-9);
+    EXPECT_NEAR(camera->target().y(), camera->position().y(), 1e-9);
+    EXPECT_LT(camera->position().z(), camera->target().z());
+
+    auto* group = qobject_cast<Group*>(importedRoot);
+    ASSERT_NE(nullptr, group);
+    EXPECT_NEAR(std::acos(-1.0) / 2.0, group->rotation().x(), 1e-9);
+    const Vector3d mappedSourceUp = group->localTransform() * Vector4d(0, 0, 1);
+    ASSERT_VECTOR_NEAR(Vector3d(0, -1, 0), mappedSourceUp, 1e-9);
+    EXPECT_EQ(QString("openscad_z_up_to_product_view_up"),
+              group->metadataValue("coordinateConversion").toString());
+
+    const auto runtime = scene.toRaytracerScene();
+    EXPECT_EQ(1u, runtime->lights().size());
+    EXPECT_TRUE(runtime->boundingBox().isValid());
   }
 
   TEST(OpenScadSceneImporter, SelectsPlyReaderForGeneratedMeshOutput) {

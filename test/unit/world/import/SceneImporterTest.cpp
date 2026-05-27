@@ -294,6 +294,13 @@ namespace SceneImporterTest {
     EXPECT_EQ(nullptr, world::SceneImporterRegistry::self().createByFormat("missing"));
   }
 
+  TEST(SceneImporterRegistry, ListsSupportedExtensions) {
+    world::SceneImporterRegistry registry;
+    registry.registerClass<FakeImporter>("fake");
+
+    EXPECT_EQ(QStringList({"fake", "fakez"}), registry.supportedExtensions());
+  }
+
   TEST(JsonSceneImporter, ImportsNativeSceneJson) {
     QTemporaryFile temp("raytracer-import-XXXXXX.rtjson");
     ASSERT_TRUE(temp.open());

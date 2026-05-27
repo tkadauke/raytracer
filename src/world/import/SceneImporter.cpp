@@ -4,4 +4,11 @@ namespace world {
 
   SceneImporter::~SceneImporter() = default;
 
+  bool SceneImporter::configureImportedScene(Scene& scene, Element& importedRoot,
+                                             const ImportOptions& options) const {
+    (void)scene;
+    (void)importedRoot;
+    (void)options;
+    return false;
+  }
 }

@@ -11,6 +11,13 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Modeler importer open filter.** The Modeler Open dialog now builds its
+  default scene/import filter from registered importer extensions, so `.scad`
+  files are selectable without switching to “All Files”. — GPT-5
+- **OpenSCAD product-view scene defaults.** Direct OpenSCAD file imports now use
+  shared importer scene defaults for white background, ambient fill, directional
+  light, product-view upright orientation, and pinhole camera framing in Modeler
+  and rendercli. — GPT-5
 - **Cached LDraw filesystem resolution.** Repeated LDraw part/subfile lookups now
   reuse resolver results instead of rescanning the library roots for every
   cache-key/open call, making large MPD imports much faster. — GPT-5

@@ -6,6 +6,9 @@
 #include <QString>
 #include <QStringList>
 
+class Element;
+class Scene;
+
 namespace world {
 
   /**
@@ -22,9 +25,14 @@ namespace world {
       */
     [[nodiscard]] virtual QStringList supportedExtensions() const = 0;
     [[nodiscard]] virtual ImportOptionSchemas optionSchema() const = 0;
-    [[nodiscard]] virtual ImportResult importFile(const QString& filename,
-                                                  const ImportOptions& options = ImportOptions())
-      const = 0;
+    [[nodiscard]] virtual ImportResult
+    importFile(const QString& filename, const ImportOptions& options = ImportOptions()) const = 0;
+    /**
+      * Lets an importer configure the wrapper scene used when a direct file
+      * import returns an asset/group root rather than a full Scene root.
+      */
+    virtual bool configureImportedScene(Scene& scene, Element& importedRoot,
+                                        const ImportOptions& options) const;
   };
 
 }

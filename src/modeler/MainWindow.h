@@ -4,6 +4,7 @@
 #include "engine/graph/RenderGraphTypes.h"
 #include <QByteArray>
 #include <QMainWindow>
+#include <QString>
 #include <memory>
 #include <string>
 
@@ -139,6 +140,7 @@ private slots:
 
 private:
   void reportImportDiagnostics(const world::ImportResult& result);
+  [[nodiscard]] QString openFileFilter() const;
 
   QDockWidget* createPropertyEditor();
   QDockWidget* createElementSelector();

@@ -185,7 +185,8 @@ namespace {
       }
 
       opened.nativeSceneFile = false;
-      opened.importResult = importer->importFile(m_fileName, defaultImportOptionsFor(*importer));
+      world::ImportOptions importOptions = defaultImportOptionsFor(*importer);
+      opened.importResult = importer->importFile(m_fileName, importOptions);
       if (opened.importResult.failed()) {
         opened.errorMessage = QString("Could not import %1").arg(m_fileName);
         for (const auto& diagnostic : opened.importResult.diagnostics()) {
@@ -206,7 +207,10 @@ namespace {
       }
 
       auto scene = std::make_unique<::Scene>(nullptr);
+      Element* importedRoot = root.get();
       scene->addChild(std::move(root));
+      if (importedRoot)
+        importer->configureImportedScene(*scene, *importedRoot, importOptions);
       scene->resolveElementReferences();
       moveSceneTreeToGuiThread(scene.get());
       opened.scene = std::move(scene);
@@ -1209,11 +1213,24 @@ void MainWindow::reportImportDiagnostics(const world::ImportResult& result) {
   }
 }
 
+QString MainWindow::openFileFilter() const {
+  QStringList importPatterns = {QStringLiteral("*.json")};
+  for (const QString& extension : world::SceneImporterRegistry::self().supportedExtensions()) {
+    importPatterns << QStringLiteral("*.%1").arg(extension);
+  }
+  importPatterns.removeDuplicates();
+  importPatterns.sort();
+  importPatterns.removeAll(QStringLiteral("*.json"));
+  importPatterns.prepend(QStringLiteral("*.json"));
+
+  return tr("Scenes and imports (%1);;Scenes (*.json);;LDraw models (*.ldr *.dat "
+            "*.mpd);;OpenSCAD models (*.scad);;All files (*)")
+    .arg(importPatterns.join(QStringLiteral(" ")));
+}
+
 void MainWindow::openFile() {
-  QString fileName = QFileDialog::getOpenFileName(
-    this, tr("Open File"), QString(),
-    tr("Scenes and imports (*.json *.ldr *.dat *.mpd);;Scenes (*.json);;LDraw models (*.ldr "
-       "*.dat *.mpd);;All files (*)"));
+  QString fileName =
+    QFileDialog::getOpenFileName(this, tr("Open File"), QString(), openFileFilter());
 
   if (fileName.isNull() || !maybeSave())
     return;
