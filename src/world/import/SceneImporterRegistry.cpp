@@ -93,12 +93,12 @@ namespace world {
   const SceneImporterRegistry::Entry*
   SceneImporterRegistry::findByExtension(const QString& extension) const {
     const QString normalized = normalizeFormat(extension);
-    for (const auto& entry : m_entries) {
-      auto importer = entry.creator();
+    for (auto entry = m_entries.rbegin(); entry != m_entries.rend(); ++entry) {
+      auto importer = entry->creator();
       const QStringList extensions = importer->supportedExtensions();
       for (const QString& supported : extensions) {
         if (normalizeFormat(supported) == normalized) {
-          return &entry;
+          return &*entry;
         }
       }
     }

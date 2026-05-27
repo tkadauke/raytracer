@@ -99,6 +99,17 @@ namespace SceneImporterTest {
         return world::ImportResult(std::move(group));
       }
     };
+
+    class DuplicateExtensionImporter : public FakeImporter {
+    public:
+      QString name() const override {
+        return "duplicate";
+      }
+
+      QStringList supportedExtensions() const override {
+        return {"fake"};
+      }
+    };
   }
 
   TEST(SceneImporter, ReportsSupportedExtensionsAndOptionSchema) {
@@ -299,6 +310,17 @@ namespace SceneImporterTest {
     registry.registerClass<FakeImporter>("fake");
 
     EXPECT_EQ(QStringList({"fake", "fakez"}), registry.supportedExtensions());
+  }
+
+  TEST(SceneImporterRegistry, ExtensionLookupPrefersMostRecentRegistration) {
+    world::SceneImporterRegistry registry;
+    registry.registerClass<FakeImporter>("fake");
+    registry.registerClass<DuplicateExtensionImporter>("duplicate");
+
+    auto importer = registry.createForFile("fixture.fake");
+
+    ASSERT_NE(nullptr, importer);
+    EXPECT_EQ(QString("duplicate"), importer->name());
   }
 
   TEST(JsonSceneImporter, ImportsNativeSceneJson) {
