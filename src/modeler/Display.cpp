@@ -196,7 +196,8 @@ void RenderDisplay::setScene(Scene* scene) {
   setScene(scene, StepPlaybackStyle());
 }
 
-void RenderDisplay::setScene(Scene* scene, const StepPlaybackStyle& playbackStyle) {
+void RenderDisplay::setScene(Scene* scene, const StepPlaybackStyle& playbackStyle,
+                             CameraPolicy cameraPolicy) {
   // In-flight preview renders use an engine snapshot, so replacing
   // the control engine's scene does not tear the scene out from
   // under the worker that is finishing the previous frame.
@@ -204,9 +205,13 @@ void RenderDisplay::setScene(Scene* scene, const StepPlaybackStyle& playbackStyl
   if (m_graphEngine) {
     m_graphEngine->setSceneAnalysis(scene->renderGraphAnalysis());
   }
-  if (auto* camera = scene->activeCamera()) {
-    m_engine->setCamera(camera->toRaytracer());
-    setInteractiveCameraPose(camera->position(), camera->target());
+  const bool needsSceneCamera =
+    cameraPolicy == CameraPolicy::ResetToSceneCamera || !m_engine->camera();
+  if (needsSceneCamera) {
+    if (auto* camera = scene->activeCamera()) {
+      m_engine->setCamera(camera->toRaytracer());
+      setInteractiveCameraPose(camera->position(), camera->target());
+    }
   }
   setInteractive(true);
   render();

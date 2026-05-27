@@ -29,6 +29,10 @@ file(GLOB_RECURSE FUNCTIONAL_TEST_SOURCES CONFIGURE_DEPENDS
 )
 
 add_executable(unit_tests ${UNIT_TEST_SOURCES})
+target_sources(unit_tests PRIVATE
+  "${PROJECT_SOURCE_DIR}/src/modeler/Display.cpp"
+  "${PROJECT_SOURCE_DIR}/src/modeler/Display.h"
+)
 set_target_properties(unit_tests PROPERTIES
   AUTOMOC ON
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/unit"

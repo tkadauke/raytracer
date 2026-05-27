@@ -1285,7 +1285,7 @@ void MainWindow::newFile() {
     applySceneRenderIntentToPreviewControls();
     resetTimelineFrame();
     resetPlaybackIndex();
-    redraw();
+    redraw(PreviewCameraPolicy::ResetToSceneCamera);
   }
 }
 
@@ -1388,7 +1388,7 @@ void MainWindow::openFile() {
 
     resetTimelineFrame();
     resetPlaybackIndex();
-    redraw();
+    redraw(PreviewCameraPolicy::ResetToSceneCamera);
     reportImportDiagnostics(opened.importResult);
   });
   thread->start();
@@ -2188,6 +2188,13 @@ void MainWindow::reorder() {
 }
 
 void MainWindow::redraw() {
+  redraw(PreviewCameraPolicy::PreserveCurrent);
+}
+
+void MainWindow::redraw(PreviewCameraPolicy cameraPolicy) {
+  const auto displayCameraPolicy = cameraPolicy == PreviewCameraPolicy::ResetToSceneCamera
+                                     ? RenderDisplay::CameraPolicy::ResetToSceneCamera
+                                     : RenderDisplay::CameraPolicy::PreserveCurrent;
   try {
     auto evaluatedScene = evaluatedSceneForCurrentFrame();
     updateRenderGraphInspector();
@@ -2195,11 +2202,12 @@ void MainWindow::redraw() {
     if (p->hasPlaybackIndex) {
       playbackStyle.activeStep = p->currentPlaybackIndex;
     }
-    p->display->setScene(evaluatedScene ? evaluatedScene.get() : p->scene, playbackStyle);
+    p->display->setScene(evaluatedScene ? evaluatedScene.get() : p->scene, playbackStyle,
+                         displayCameraPolicy);
     statusBar()->clearMessage();
   } catch (const std::exception& error) {
     statusBar()->showMessage(tr("Preview update failed: %1").arg(error.what()));
-    p->display->setScene(p->scene);
+    p->display->setScene(p->scene, StepPlaybackStyle(), displayCameraPolicy);
   }
 }
 

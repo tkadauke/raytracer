@@ -213,9 +213,12 @@ The editor can swap the live preview intent between Raytracer, Rasterizer, and
 [Wireframe](../appendix/a-glossary.md#w). The preview itself is graph-backed:
 the selected kind becomes the default executor in the compiled render graph,
 while the scene and camera stay shared so the preview keeps looking at the same
-thing across the swap. The Elements dock exposes a generated `Render Settings`
-item under the scene; selecting it opens the saved scene intent in the property
-editor. Those properties write the scene's top-level `renderIntent` block, not
+thing across the swap. Property edits refresh preview geometry and materials
+without resetting the live preview camera; opening a different scene still
+starts from that scene's saved camera. The Elements dock exposes a generated
+`Render Settings` item under the scene; selecting it opens the saved scene
+intent in the property editor. Those properties write the scene's top-level
+`renderIntent` block, not
 normal child geometry. The editor groups the settings by role, uses dropdowns
 for enumerated choices such as engine, view mode, sampler, and
 postprocess AA, and only shows engine-specific fields for the selected default

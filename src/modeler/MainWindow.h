@@ -140,6 +140,8 @@ private slots:
   void reorder();
 
 private:
+  enum class PreviewCameraPolicy { ResetToSceneCamera, PreserveCurrent };
+
   void reportImportDiagnostics(const world::ImportResult& result);
   [[nodiscard]] QString openFileFilter() const;
   [[nodiscard]] QString importFileFilter() const;
@@ -156,6 +158,7 @@ private:
   bool maybeSave();
 
   void redraw();
+  void redraw(PreviewCameraPolicy cameraPolicy);
   bool applyRenderGraphPreviewPlan();
   void showRenderGraphPassDetails(const QString& passId, bool activateTracePreview);
   void showRenderGraphResourceDetails(const QString& resourceId, bool activateTracePreview);

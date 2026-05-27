@@ -48,8 +48,11 @@ public:
   RenderDisplay(QWidget* parent);
   ~RenderDisplay();
 
+  enum class CameraPolicy { ResetToSceneCamera, PreserveCurrent };
+
   void setScene(Scene* scene);
-  void setScene(Scene* scene, const StepPlaybackStyle& playbackStyle);
+  void setScene(Scene* scene, const StepPlaybackStyle& playbackStyle,
+                CameraPolicy cameraPolicy = CameraPolicy::ResetToSceneCamera);
   void notifyRenderGraphExecutionStarted(std::uint64_t generation);
   void notifyRenderGraphPassStarted(const QString& passId, std::uint64_t generation);
   void notifyRenderGraphPassFinished(const QString& passId, std::uint64_t generation);

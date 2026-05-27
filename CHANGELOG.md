@@ -602,6 +602,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Modeler preview camera preservation.** Editing scene properties now refreshes
+  preview geometry and materials without snapping the live preview camera back
+  to the saved scene camera; opening a new scene still resets to that scene's
+  camera. — GPT-5
 - **Generated mesh degenerate triangles.** Imported/generated mesh primitives now
   skip zero-area triangles and fall back to geometric flat normals when source
   normals are zero, preventing OpenSCAD-generated STL imports from crashing
