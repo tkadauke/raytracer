@@ -1,10 +1,15 @@
 #include "world/import/SceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/ElementFactory.h"
+#include "world/objects/ConstantColorTexture.h"
 #include "world/objects/Group.h"
+#include "world/objects/MatteMaterial.h"
 #include "world/objects/Scene.h"
 #include "world/objects/SourceAsset.h"
 #include "world/objects/Sphere.h"
+
+#include "render/primitives/Primitive.h"
+#include "render/primitives/Scene.h"
 
 #include <QFile>
 #include <QDir>
@@ -213,6 +218,63 @@ namespace SourceAssetTest {
     EXPECT_EQ(QString("Compiled Sphere"), importedRoot->childElements().front()->name());
     ASSERT_EQ(1, asset.diagnostics().size());
     EXPECT_TRUE(asset.diagnostics()[0].isWarning());
+  }
+
+  TEST(SourceAsset, AppliesMaterialOverrideToGeneratedOutput) {
+    registerStubImporter();
+    const QString source = writeTemporarySource();
+
+    Scene scene;
+    auto* texture = new ConstantColorTexture;
+    texture->setColor(Colord(0.1, 0.6, 0.9));
+    scene.addChild(texture);
+
+    auto* material = new MatteMaterial;
+    material->setDiffuseTexture(texture);
+    scene.addChild(material);
+
+    auto* asset = new SourceAsset;
+    asset->setSourcePath(source);
+    asset->setFormat("source-asset-stub");
+    asset->setMaterial(material);
+    scene.addChild(asset);
+    asset->rebuildGeneratedChildren();
+
+    int leavesWithMaterial = 0;
+    scene.toRaytracerScene()->forEachLeaf(
+      [&](const render::Primitive*, std::shared_ptr<render::Material> runtimeMaterial) {
+        if (runtimeMaterial)
+          ++leavesWithMaterial;
+      });
+
+    EXPECT_EQ(1, leavesWithMaterial);
+  }
+
+  TEST(SourceAsset, RoundTripsMaterialReferenceThroughSceneJson) {
+    registerStubImporter();
+    const QString source = writeTemporarySource();
+
+    Scene scene;
+    auto* material = new MatteMaterial;
+    scene.addChild(material);
+    auto* asset = new SourceAsset;
+    asset->setSourcePath(source);
+    asset->setFormat("source-asset-stub");
+    asset->setMaterial(material);
+    scene.addChild(asset);
+
+    QJsonObject json;
+    scene.write(json);
+
+    Scene decoded;
+    decoded.read(json);
+    decoded.resolveElementReferences();
+
+    auto* decodedMaterial = qobject_cast<MatteMaterial*>(decoded.childElements()[1]);
+    auto* decodedAsset = qobject_cast<SourceAsset*>(decoded.childElements()[2]);
+    ASSERT_NE(nullptr, decodedMaterial);
+    ASSERT_NE(nullptr, decodedAsset);
+    EXPECT_EQ(decodedMaterial, decodedAsset->material());
   }
 
   TEST(SourceAsset, ExposesEditableImporterParametersAndRebuildsWhenTheyChange) {

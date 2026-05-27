@@ -22,8 +22,7 @@ namespace {
     const auto number = value.toDouble();
     if (!std::isfinite(number) || std::floor(number) != number)
       return std::nullopt;
-    if (number < std::numeric_limits<int>::min() ||
-        number > std::numeric_limits<int>::max())
+    if (number < std::numeric_limits<int>::min() || number > std::numeric_limits<int>::max())
       return std::nullopt;
 
     return static_cast<int>(number);
@@ -46,8 +45,8 @@ namespace {
   }
 
   std::shared_ptr<render::Material> stepPlaybackMaterial(const Colord& color) {
-    auto material =
-      std::make_shared<render::MatteMaterial>(std::make_shared<render::ConstantColorTexture>(color));
+    auto material = std::make_shared<render::MatteMaterial>(
+      std::make_shared<render::ConstantColorTexture>(color));
     material->setAmbientCoefficient(1.0);
     material->setDiffuseCoefficient(0.65);
     return material;
@@ -101,8 +100,7 @@ std::optional<double> Group::endTime() const {
   return metadataDouble(metadata(), GroupMetadata::endTimeKey());
 }
 
-void Group::setTimeRange(std::optional<double> startTime,
-                         std::optional<double> endTime) {
+void Group::setTimeRange(std::optional<double> startTime, std::optional<double> endTime) {
   if (startTime) {
     setMetadataValue(GroupMetadata::startTimeKey(), *startTime);
   } else {
@@ -140,7 +138,7 @@ std::shared_ptr<render::Primitive> Group::toRaytracer(render::Scene* scene) cons
 }
 
 std::shared_ptr<render::Primitive> Group::toRaytracer(render::Scene* scene,
-                                                     const StepPlaybackStyle& style) const {
+                                                      const StepPlaybackStyle& style) const {
   const StepVisibilityEvaluator evaluator(stepPlaybackSelection(style));
   const StepVisualRole role = evaluator.visualRole(*this, style);
   if (role == StepVisualRole::Hidden)
@@ -170,11 +168,15 @@ std::shared_ptr<render::Primitive> Group::toRaytracer(render::Scene* scene,
     return nullptr;
 
   auto result = applyTransform(composite);
+  applyMaterialOverride(result);
   if (role == StepVisualRole::Active)
     result->setMaterial(stepPlaybackMaterial(style.activeColor));
   else if (role == StepVisualRole::Previous)
     result->setMaterial(stepPlaybackMaterial(style.ghostColor));
   return result;
+}
+
+void Group::applyMaterialOverride(std::shared_ptr<render::Primitive>) const {
 }
 
 bool Group::canHaveChild(Element* child) const {

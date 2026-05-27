@@ -155,8 +155,7 @@ public:
     * Sets or removes the generic time interval metadata. Units are defined by
     * the importer, but start and end use the same unit.
     */
-  void setTimeRange(std::optional<double> startTime,
-                    std::optional<double> endTime);
+  void setTimeRange(std::optional<double> startTime, std::optional<double> endTime);
 
   /**
     * @returns a display label for the step/layer/frame, or empty when absent or
@@ -175,7 +174,7 @@ public:
     */
   std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene) const;
   std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene,
-                                                const StepPlaybackStyle& style) const;
+                                                 const StepPlaybackStyle& style) const;
   void contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const override;
 
   /**
@@ -184,6 +183,9 @@ public:
     *   belong at scene scope or on a specific surface.
     */
   bool canHaveChild(Element* child) const override;
+
+protected:
+  virtual void applyMaterialOverride(std::shared_ptr<render::Primitive> primitive) const;
 
 private:
   std::shared_ptr<render::Primitive>

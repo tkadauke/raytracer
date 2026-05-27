@@ -14,6 +14,8 @@ namespace world {
   class SceneImporter;
 }
 
+class Material;
+
 /**
   * Durable authoring object for source-backed generated assets.
   *
@@ -26,6 +28,7 @@ namespace world {
   */
 class SourceAsset : public Group {
   Q_OBJECT
+  Q_PROPERTY(Material* material READ material WRITE setMaterial)
   Q_PROPERTY(QString sourcePath READ sourcePath WRITE setSourcePath)
   Q_PROPERTY(QString format READ format WRITE setFormat)
   Q_PROPERTY(
@@ -33,6 +36,14 @@ class SourceAsset : public Group {
 
 public:
   explicit SourceAsset(Element* parent = nullptr);
+
+  [[nodiscard]] Material* material() const {
+    return m_material;
+  }
+
+  void setMaterial(Material* material) {
+    m_material = material;
+  }
 
   [[nodiscard]] const QString& sourcePath() const {
     return m_sourcePath;
@@ -87,6 +98,9 @@ public:
                                     const QString& choice) const override;
   void propertyEdited(const QString& propertyName) override;
 
+protected:
+  void applyMaterialOverride(std::shared_ptr<render::Primitive> primitive) const override;
+
 private:
   [[nodiscard]] std::unique_ptr<world::SceneImporter> createImporter(const QString& source) const;
   [[nodiscard]] QString resolvedSourcePath() const;
@@ -106,6 +120,7 @@ private:
   QString m_sourcePath;
   QString m_format;
   QString m_generatedOutputCacheKey;
+  Material* m_material;
   QJsonObject m_importOptions;
   std::vector<world::ImportDiagnostic> m_diagnostics;
   world::ImportOptionSchemas m_editableImportProperties;

@@ -5,7 +5,10 @@
 #include "world/import/SceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/ElementFactory.h"
+#include "world/objects/Material.h"
 #include "world/objects/Scene.h"
+
+#include "render/primitives/Primitive.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -59,7 +62,8 @@ namespace {
 }
 
 SourceAsset::SourceAsset(Element* parent)
-    : Group(parent) {
+    : Group(parent),
+      m_material(nullptr) {
   setName("Source Asset");
 }
 
@@ -307,6 +311,9 @@ void SourceAsset::write(QJsonObject& json) {
 }
 
 QString SourceAsset::propertyDisplayName(const QString& propertyName) const {
+  if (propertyName == QStringLiteral("material"))
+    return QStringLiteral("Material");
+
   if (const auto* schema = editableImportPropertySchema(propertyName)) {
     if (!schema->label.trimmed().isEmpty())
       return schema->label;
@@ -316,6 +323,9 @@ QString SourceAsset::propertyDisplayName(const QString& propertyName) const {
 }
 
 QString SourceAsset::propertyDescription(const QString& propertyName) const {
+  if (propertyName == QStringLiteral("material"))
+    return QStringLiteral("Material override applied to generated source geometry.");
+
   if (const auto* schema = editableImportPropertySchema(propertyName))
     return schema->description;
 
@@ -333,6 +343,8 @@ QString SourceAsset::propertyGroup(const QString& propertyName) const {
       propertyName == QStringLiteral("generatedOutputCacheKey")) {
     return QStringLiteral("Source");
   }
+  if (propertyName == QStringLiteral("material"))
+    return QStringLiteral("Material");
 
   return Group::propertyGroup(propertyName);
 }
@@ -371,6 +383,11 @@ QString SourceAsset::propertyChoiceDisplayName(const QString& propertyName,
 
 void SourceAsset::propertyEdited(const QString& propertyName) {
   applyEditableImportPropertyChange(propertyName);
+}
+
+void SourceAsset::applyMaterialOverride(std::shared_ptr<render::Primitive> primitive) const {
+  if (primitive && material())
+    primitive->setMaterial(material()->toRaytracerMaterial());
 }
 
 void SourceAsset::applyEditableImportPropertyChange(const QString& propertyName) {

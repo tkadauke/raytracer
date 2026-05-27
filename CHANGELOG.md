@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Source asset material overrides.** Source-backed imports such as direct
+  OpenSCAD `.scad` assets now expose a material reference in Modeler and scene
+  JSON, applying it as a whole-asset override to generated geometry while
+  keeping importer-generated children transient. — GPT-5
 - **Property editor search and collapsible groups.** The Modeler property editor
   now filters properties as you type, supports collapsible sections, and keeps
   property controls compact when there is extra vertical space. — GPT-5

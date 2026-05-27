@@ -98,7 +98,9 @@ property-editor fields. Numeric trailing comments such as `// 0.01` become the
 spinbox step and displayed precision. Editing one of those fields updates the
 asset's `importOptions.define` object and rebuilds the generated children, so
 the scene stores the source path plus overrides instead of baking the generated
-mesh into JSON.
+mesh into JSON. `SourceAsset` also carries an optional material reference that
+is applied as a whole-asset override during runtime scene conversion; generated
+children stay transient and replaceable when source parameters change.
 
 ## Diagnostics
 
