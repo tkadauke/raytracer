@@ -602,6 +602,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Modeler material selector visibility.** Reference properties such as surface
+  and source-asset materials now keep their combo-box selector visible in the
+  compact property editor instead of collapsing to an empty searchable row. —
+  GPT-5
 - **Modeler preview camera preservation.** Editing scene properties now refreshes
   preview geometry and materials without snapping the live preview camera back
   to the saved scene camera; opening a new scene still resets to that scene's

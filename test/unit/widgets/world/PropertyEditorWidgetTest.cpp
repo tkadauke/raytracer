@@ -3,10 +3,13 @@
 #include "widgets/world/PropertyEditorWidget.h"
 #include "widgets/world/AbstractParameterWidget.h"
 #include "widgets/world/ChoiceParameterWidget.h"
+#include "widgets/world/ReferenceParameterWidget.h"
 #include "world/objects/Scene.h"
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/Group.h"
+#include "world/objects/MatteMaterial.h"
 #include "world/objects/RenderIntentElement.h"
+#include "world/objects/Sphere.h"
 #include "core/math/Vector.h"
 #include "core/math/Angle.h"
 #include "core/Color.h"
@@ -18,6 +21,7 @@
 #include <QCoreApplication>
 #include <QGroupBox>
 #include <QLineEdit>
+#include <QLayout>
 #include <QScrollArea>
 #include <QSizePolicy>
 #include <QSpinBox>
@@ -278,6 +282,35 @@ namespace PropertyEditorWidgetTest {
     ASSERT_EQ(4, comboBox->count());
     EXPECT_EQ(1, comboBox->itemData(0).toInt());
     EXPECT_EQ(8, comboBox->itemData(3).toInt());
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldShowReferenceParameterSelectorsInCompactEditor) {
+    Scene root;
+    auto* material = new MatteMaterial;
+    material->setName("brushed steel");
+    root.addChild(material);
+    auto* sphere = new Sphere;
+    sphere->setMaterial(material);
+    root.addChild(sphere);
+
+    PropertyEditorWidget editor(&root);
+    editor.resize(180, 300);
+    editor.setElement(sphere);
+    ASSERT_NE(nullptr, editor.layout());
+    editor.layout()->activate();
+    QCoreApplication::processEvents();
+
+    auto* materialWidget = parameterWidget(editor, "material");
+    ASSERT_NE(nullptr, qobject_cast<ReferenceParameterWidget*>(materialWidget));
+    auto* label = materialWidget->findChild<QLabel*>();
+    ASSERT_NE(nullptr, label);
+    auto* comboBox = materialWidget->findChild<QComboBox*>();
+    ASSERT_NE(nullptr, comboBox);
+    EXPECT_FALSE(materialWidget->isHidden());
+    EXPECT_EQ(QStringLiteral("Material"), label->text());
+    EXPECT_GT(label->width(), 40);
+    EXPECT_GT(comboBox->width(), 40);
+    EXPECT_NE(-1, comboBox->findText("brushed steel"));
   }
 
   TEST_F(PropertyEditorWidgetTest, ShouldApplyNumericRangesFromSelectedElement) {
