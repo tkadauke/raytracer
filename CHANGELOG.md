@@ -579,6 +579,17 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Generated mesh degenerate triangles.** Imported/generated mesh primitives now
+  skip zero-area triangles and fall back to geometric flat normals when source
+  normals are zero, preventing OpenSCAD-generated STL imports from crashing
+  Modeler on load. — GPT-5
+- **OpenSCAD crash diagnostics.** Failed OpenSCAD subprocesses now report that
+  the tool crashed or failed to start instead of presenting an opaque exit code
+  `-1`. — GPT-5
+- **Qt autogen after pulls.** The `raytracer` target now makes automoc depend
+  on the expanded source/header/UI glob lists, so existing build trees regenerate
+  moc sources for newly pulled `Q_OBJECT` headers such as `SourceAsset`. —
+  GPT-5
 - **Rasterized LDraw instance materials.** The rasterizer now preserves nested
   materials while traversing instanced imported geometry, so LDraw subfile
   instances render with LEGO colors instead of diagnostic fallback face colors;

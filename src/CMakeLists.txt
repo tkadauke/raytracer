@@ -49,8 +49,12 @@ if(RAYTRACER_ENABLE_STATS)
   target_compile_definitions(raytracer PUBLIC RAYTRACER_ENABLE_STATS)
 endif()
 
+# Make autogen depend on the expanded glob lists too. Otherwise an existing
+# build tree can reconfigure after a pull but keep a stale automoc depfile that
+# never parses newly added Q_OBJECT headers.
 set_target_properties(raytracer PROPERTIES
   AUTOMOC ON
+  AUTOGEN_TARGET_DEPENDS "${RAYTRACER_SOURCES};${RAYTRACER_HEADERS};${RAYTRACER_UIS}"
   AUTOUIC ON
   AUTOUIC_SEARCH_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/widgets;${CMAKE_CURRENT_SOURCE_DIR}/widgets/world"
 )

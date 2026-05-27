@@ -100,11 +100,11 @@ namespace world {
     if (exitCode != 0) {
       const QString detail =
         standardError.trimmed().isEmpty() ? standardOutput.trimmed() : standardError.trimmed();
+      const QString summary = exitCode < 0
+                                ? QStringLiteral("OpenSCAD crashed or failed to start")
+                                : QString("OpenSCAD failed with exit code %1").arg(exitCode);
       result.diagnostics.push_back(ImportDiagnostic::error(
-        detail.isEmpty()
-          ? QString("OpenSCAD failed with exit code %1").arg(exitCode)
-          : QString("OpenSCAD failed with exit code %1: %2").arg(exitCode).arg(detail),
-        request.sourcePath));
+        detail.isEmpty() ? summary : QString("%1: %2").arg(summary, detail), request.sourcePath));
       QFile::remove(result.outputPath);
       return result;
     }

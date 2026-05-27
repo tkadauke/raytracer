@@ -89,6 +89,8 @@ namespace render {
 
   private:
     void buildLeaves();
+    [[nodiscard]] bool isBuildableTriangle(int index0, int index1, int index2) const;
+    [[nodiscard]] bool hasValidVertexIndex(int index) const;
     std::shared_ptr<Primitive> buildLeaf(int index0, int index1, int index2) const;
     std::shared_ptr<render::Material> materialForFace(std::size_t faceIndex) const;
 

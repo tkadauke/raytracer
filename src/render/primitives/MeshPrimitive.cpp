@@ -9,6 +9,7 @@
 #include "render/primitives/FlatMeshTriangle.h"
 #include "render/primitives/SmoothMeshTriangle.h"
 
+#include <algorithm>
 #include <limits>
 #include <utility>
 
@@ -58,12 +59,41 @@ void MeshPrimitive::buildLeaves() {
   for (std::size_t faceIndex = 0; faceIndex != m_mesh->faces().size(); ++faceIndex) {
     const auto& face = m_mesh->faces()[faceIndex];
     for (std::size_t vertexIndex = 2; vertexIndex < face.size(); ++vertexIndex) {
+      if (!isBuildableTriangle(face[0], face[vertexIndex - 1], face[vertexIndex]))
+        continue;
+
       auto primitive = buildLeaf(face[0], face[vertexIndex - 1], face[vertexIndex]);
       if (auto material = materialForFace(faceIndex))
         primitive->setMaterial(std::move(material));
       m_leaves.push_back(std::move(primitive));
     }
   }
+}
+
+bool MeshPrimitive::isBuildableTriangle(int index0, int index1, int index2) const {
+  if (!hasValidVertexIndex(index0) || !hasValidVertexIndex(index1) ||
+      !hasValidVertexIndex(index2)) {
+    return false;
+  }
+
+  const Vector3d& p0 = m_mesh->vertices()[index0].point;
+  const Vector3d& p1 = m_mesh->vertices()[index1].point;
+  const Vector3d& p2 = m_mesh->vertices()[index2].point;
+  const Vector3d edge01 = p1 - p0;
+  const Vector3d edge02 = p2 - p0;
+  const Vector3d edge12 = p2 - p1;
+  const double maxEdgeSquared =
+    std::max({edge01.squaredLength(), edge02.squaredLength(), edge12.squaredLength()});
+  if (maxEdgeSquared == 0.0)
+    return false;
+
+  constexpr double relativeAreaTolerance = 1.0e-24;
+  return (edge01 ^ edge02).squaredLength() >
+         maxEdgeSquared * maxEdgeSquared * relativeAreaTolerance;
+}
+
+bool MeshPrimitive::hasValidVertexIndex(int index) const {
+  return m_mesh && index >= 0 && static_cast<std::size_t>(index) < m_mesh->vertices().size();
 }
 
 std::shared_ptr<Primitive> MeshPrimitive::buildLeaf(int index0, int index1, int index2) const {

@@ -90,6 +90,12 @@ Vector3d FlatMeshTriangle::computeNormal() const {
   Vector3d n0(m_mesh->vertices()[m_index0].normal);
   Vector3d n1(m_mesh->vertices()[m_index1].normal);
   Vector3d n2(m_mesh->vertices()[m_index2].normal);
+  const Vector3d sourceNormal = (n0 + n1 + n2).normalizedOrZero(1.0e-12);
+  if (sourceNormal != Vector3d::null)
+    return sourceNormal;
 
-  return (n0 + n1 + n2).normalized();
+  const Vector3d& p0 = m_mesh->vertices()[m_index0].point;
+  const Vector3d& p1 = m_mesh->vertices()[m_index1].point;
+  const Vector3d& p2 = m_mesh->vertices()[m_index2].point;
+  return ((p1 - p0) ^ (p2 - p0)).normalizedOrZero(1.0e-12);
 }

@@ -48,6 +48,26 @@ namespace MeshPrimitiveTest {
     return mesh;
   }
 
+  Mesh makeTriangleMeshWithZeroNormals() {
+    Mesh mesh;
+    mesh.addVertex(Vector3d(0, 0, 0), Vector3d::null);
+    mesh.addVertex(Vector3d(1, 0, 0), Vector3d::null);
+    mesh.addVertex(Vector3d(0, 1, 0), Vector3d::null);
+    mesh.addFace({0, 1, 2});
+    return mesh;
+  }
+
+  Mesh makeMeshWithDegenerateAndValidTriangles() {
+    Mesh mesh;
+    mesh.addVertex(Vector3d(0, 0, 0), Vector3d::null);
+    mesh.addVertex(Vector3d(1, 0, 0), Vector3d::null);
+    mesh.addVertex(Vector3d(2, 0, 0), Vector3d::null);
+    mesh.addVertex(Vector3d(0, 1, 0), Vector3d::null);
+    mesh.addFace({0, 1, 2});
+    mesh.addFace({0, 1, 3});
+    return mesh;
+  }
+
   std::shared_ptr<MatteMaterial> matte(const Colord& color) {
     return std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(color));
   }
@@ -109,6 +129,34 @@ namespace MeshPrimitiveTest {
     for (const auto& leaf : primitive.leaves()) {
       ASSERT_NE(nullptr, std::dynamic_pointer_cast<FlatMeshTriangle>(leaf));
     }
+  }
+
+  TEST(MeshPrimitive, BuildsFlatLeavesForTrianglesWithZeroSourceNormals) {
+    MeshPrimitive primitive(makeTriangleMeshWithZeroNormals(), MeshPrimitive::NormalMode::Flat);
+
+    ASSERT_EQ(1u, primitive.leaves().size());
+    auto mesh = primitive.tessellate();
+    ASSERT_EQ(3u, mesh->vertices().size());
+    EXPECT_DOUBLE_EQ(1.0, mesh->vertices()[0].normal.squaredLength());
+  }
+
+  TEST(MeshPrimitive, SkipsDegenerateTriangles) {
+    MeshPrimitive primitive(makeMeshWithDegenerateAndValidTriangles(),
+                            MeshPrimitive::NormalMode::Flat);
+
+    EXPECT_EQ(1u, primitive.leaves().size());
+  }
+
+  TEST(MeshPrimitive, SkipsDegenerateSmoothTrianglesBeforePrecomputation) {
+    Mesh mesh;
+    mesh.addVertex(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
+    mesh.addVertex(Vector3d(1, 0, 0), Vector3d(0, 0, 1));
+    mesh.addVertex(Vector3d(2, 0, 0), Vector3d(0, 0, 1));
+    mesh.addFace({0, 1, 2});
+
+    MeshPrimitive primitive(std::move(mesh), MeshPrimitive::NormalMode::Smooth);
+
+    EXPECT_TRUE(primitive.leaves().empty());
   }
 
   TEST(MeshPrimitive, BuildsSmoothTriangleLeavesByDefault) {

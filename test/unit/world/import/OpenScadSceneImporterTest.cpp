@@ -8,6 +8,7 @@
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 #include "world/import/ImportResult.h"
+#include "world/import/OpenScadCompiler.h"
 #include "world/import/OpenScadSceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/Box.h"
@@ -93,7 +94,7 @@ PLY
 *)
 cat > "$out" <<'STL'
 solid openscad
-  facet normal 0 0 1
+  facet normal 0 0 0
     outer loop
       vertex 0 0 0
       vertex 1 0 0
@@ -122,6 +123,22 @@ exit 0
     QString sourceFixture() {
       return QStringLiteral("test/fixtures/importers/openscad/simple.scad");
     }
+
+    class CrashingOpenScadProcess : public world::OpenScadProcess {
+    public:
+      int run(const QString& executable, const QStringList& arguments,
+              const QString& workingDirectory, QString* standardOutput,
+              QString* standardError) const override {
+        (void)executable;
+        (void)arguments;
+        (void)workingDirectory;
+        if (standardOutput)
+          standardOutput->clear();
+        if (standardError)
+          *standardError = "Abort trap: 6";
+        return -1;
+      }
+    };
 
     QJsonObject optionsFor(const QString& executable, const QString& cacheDirectory) {
       return QJsonObject{{"executable", executable}, {"cacheDirectory", cacheDirectory}};
@@ -272,6 +289,29 @@ exit 0
     ASSERT_EQ(1u, result.diagnostics().size());
     EXPECT_TRUE(result.diagnostics()[0].isWarning());
     EXPECT_TRUE(result.diagnostics()[0].message.contains("OpenSCAD executable was not found"));
+  }
+
+  TEST(OpenScadCompiler, ReportsCrashedProcessAsFailure) {
+    QTemporaryDir dir;
+    const QString executable = writeExecutable(dir);
+
+    world::OpenScadCompileRequest request;
+    request.sourcePath = sourceFixture();
+    request.executablePath = executable;
+    request.cacheDirectory = dir.filePath("cache");
+    request.outputFormat = "stl";
+    request.options = optionsFor(executable, request.cacheDirectory);
+
+    const CrashingOpenScadProcess process;
+    const world::OpenScadCompiler compiler(&process);
+    const auto result = compiler.compile(request);
+
+    EXPECT_FALSE(result.succeeded);
+    ASSERT_EQ(1u, result.diagnostics.size());
+    EXPECT_TRUE(result.diagnostics[0].isError());
+    EXPECT_TRUE(result.diagnostics[0].message.contains("OpenSCAD crashed or failed to start"));
+    EXPECT_TRUE(result.diagnostics[0].message.contains("Abort trap: 6"));
+    EXPECT_FALSE(QFileInfo::exists(result.outputPath));
   }
 
   TEST(OpenScadSceneImporter, CompilesScadFixtureIntoMeshPrimitive) {
