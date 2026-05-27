@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
 
+#include "core/geometry/Mesh.h"
+#include "render/primitives/MeshPrimitive.h"
 #include "world/import/GltfSceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
+#include "world/objects/CompiledPrimitive.h"
 #include "world/objects/Group.h"
 #include "world/objects/Scene.h"
 
@@ -27,6 +30,20 @@ namespace GltfSceneImporterTest {
       EXPECT_NEAR(expected.x(), actual.x(), 0.0001);
       EXPECT_NEAR(expected.y(), actual.y(), 0.0001);
       EXPECT_NEAR(expected.z(), actual.z(), 0.0001);
+    }
+
+    void expectVectorNear(const Vector2d& actual, const Vector2d& expected) {
+      EXPECT_NEAR(expected.x(), actual.x(), 0.0001);
+      EXPECT_NEAR(expected.y(), actual.y(), 0.0001);
+    }
+
+    render::MeshPrimitive* importedMeshPrimitive(const world::ImportResult& result) {
+      auto* scene = qobject_cast<Group*>(result.groupRoot()->childElements()[0]);
+      auto* node = qobject_cast<Group*>(scene->childElements()[0]);
+      auto* compiled = qobject_cast<CompiledPrimitive*>(node->childElements()[0]);
+      if (!compiled)
+        return nullptr;
+      return dynamic_cast<render::MeshPrimitive*>(compiled->toRaytracerPrimitive().get());
     }
   }
 
@@ -180,6 +197,97 @@ namespace GltfSceneImporterTest {
 
     scene->evaluateAnimationAtFrame(24);
     expectVectorNear(animatedNode->position(), Vector3d(1.0, 2.0, 3.0));
+  }
+
+  TEST(GltfSceneImporter, ImportsIndexedTrianglePrimitiveAttributesAndMaterialReference) {
+    const QString path = writeGltf(R"JSON({
+      "asset": {"version": "2.0"},
+      "buffers": [{
+        "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAgD8AAAEAAgAAAAIAAwA=",
+        "byteLength": 140
+      }],
+      "bufferViews": [
+        {"buffer": 0, "byteOffset": 0, "byteLength": 48},
+        {"buffer": 0, "byteOffset": 48, "byteLength": 48},
+        {"buffer": 0, "byteOffset": 96, "byteLength": 32},
+        {"buffer": 0, "byteOffset": 128, "byteLength": 12}
+      ],
+      "accessors": [
+        {"bufferView": 0, "componentType": 5126, "count": 4, "type": "VEC3"},
+        {"bufferView": 1, "componentType": 5126, "count": 4, "type": "VEC3"},
+        {"bufferView": 2, "componentType": 5126, "count": 4, "type": "VEC2"},
+        {"bufferView": 3, "componentType": 5123, "count": 6, "type": "SCALAR"}
+      ],
+      "materials": [{
+        "name": "Red",
+        "pbrMetallicRoughness": {"baseColorFactor": [1, 0, 0, 1]}
+      }],
+      "meshes": [{
+        "name": "Quad",
+        "primitives": [{
+          "attributes": {"POSITION": 0, "NORMAL": 1, "TEXCOORD_0": 2},
+          "indices": 3,
+          "material": 0
+        }]
+      }],
+      "scenes": [{"nodes": [0]}],
+      "nodes": [{"name": "Mesh Node", "mesh": 0}]
+    })JSON");
+
+    world::GltfSceneImporter importer;
+    const auto result = importer.importFile(path);
+
+    ASSERT_TRUE(result.succeeded());
+    auto* meshPrimitive = importedMeshPrimitive(result);
+    ASSERT_NE(nullptr, meshPrimitive);
+    ASSERT_NE(nullptr, meshPrimitive->asset());
+    ASSERT_EQ(4u, meshPrimitive->mesh()->vertices().size());
+    ASSERT_EQ(2u, meshPrimitive->mesh()->faces().size());
+    EXPECT_EQ((Mesh::Face{0, 1, 2}), meshPrimitive->mesh()->faces()[0]);
+    EXPECT_EQ((Mesh::Face{0, 2, 3}), meshPrimitive->mesh()->faces()[1]);
+    expectVectorNear(meshPrimitive->mesh()->vertices()[2].point, Vector3d(1.0, 1.0, 0.0));
+    expectVectorNear(meshPrimitive->mesh()->vertices()[2].normal, Vector3d(0.0, 0.0, 1.0));
+    expectVectorNear(meshPrimitive->mesh()->vertices()[2].uv, Vector2d(1.0, 1.0));
+    ASSERT_EQ(2u, meshPrimitive->leaves().size());
+    EXPECT_NE(nullptr, meshPrimitive->leaves()[0]->material());
+    EXPECT_NE(nullptr, meshPrimitive->leaves()[1]->material());
+  }
+
+  TEST(GltfSceneImporter, ImportsNonIndexedTrianglesWithDeterministicFallbackAttributes) {
+    const QString path = writeGltf(R"JSON({
+      "asset": {"version": "2.0"},
+      "buffers": [{
+        "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAA",
+        "byteLength": 36
+      }],
+      "bufferViews": [{"buffer": 0, "byteOffset": 0, "byteLength": 36}],
+      "accessors": [
+        {"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3"}
+      ],
+      "meshes": [{
+        "primitives": [{
+          "attributes": {"POSITION": 0}
+        }]
+      }],
+      "scenes": [{"nodes": [0]}],
+      "nodes": [{"mesh": 0}]
+    })JSON");
+
+    world::GltfSceneImporter importer;
+    const auto result = importer.importFile(path);
+
+    ASSERT_TRUE(result.succeeded());
+    auto* meshPrimitive = importedMeshPrimitive(result);
+    ASSERT_NE(nullptr, meshPrimitive);
+    ASSERT_EQ(3u, meshPrimitive->mesh()->vertices().size());
+    ASSERT_EQ(1u, meshPrimitive->mesh()->faces().size());
+    EXPECT_EQ((Mesh::Face{0, 1, 2}), meshPrimitive->mesh()->faces()[0]);
+    expectVectorNear(meshPrimitive->mesh()->vertices()[0].point, Vector3d(0.0, 0.0, 0.0));
+    expectVectorNear(meshPrimitive->mesh()->vertices()[1].point, Vector3d(0.0, 1.0, 0.0));
+    expectVectorNear(meshPrimitive->mesh()->vertices()[2].point, Vector3d(1.0, 0.0, 0.0));
+    expectVectorNear(meshPrimitive->mesh()->vertices()[0].uv, Vector2d(0.0, 0.0));
+    expectVectorNear(meshPrimitive->mesh()->vertices()[0].normal, Vector3d(0.0, 0.0, 1.0));
+    ASSERT_EQ(1u, meshPrimitive->leaves().size());
   }
 
 }
