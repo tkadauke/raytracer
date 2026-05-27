@@ -648,6 +648,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Direct group-root imports in rendercli.** Importers that return a grouped
+  asset root now receive shared scene defaults and camera framing in direct
+  rendercli/modeler opens, so STL, 3MF, and glTF group imports render without a
+  separate scene wrapper. — GPT-5
 - **Modeler material selector visibility.** Reference properties such as surface
   and source-asset materials now keep their combo-box selector visible in the
   compact property editor instead of collapsing to an empty searchable row. —
