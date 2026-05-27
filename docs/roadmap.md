@@ -533,14 +533,14 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
 - **STL** — 3D printing. ~~Read ASCII and binary variants.~~ ✅ **Done.**
   `core/formats/stl` parses STL triangles into `Mesh`, and
   `world::StlSceneImporter` wraps them as flat imported `MeshPrimitive`
-  geometry with unit/material diagnostics for Epic #235. Write support remains
-  TODO.
+  geometry with unit/material diagnostics and rendercli smoke fixtures for Epic
+  #235. Write support remains TODO.
 - **3MF** — 3D printing interchange. ~~Core package import: ZIP container,
   model XML, object meshes, build items, transforms, units, and base material
   display colors.~~ ✅ **Done.** `core/formats/threemf` parses core package
   parts and `world::ThreeMfSceneImporter` maps build items to transformed
-  grouped imported meshes for Epic #235; production extensions, textures, and
-  write support remain TODO.
+  grouped imported meshes with rendercli smoke coverage for Epic #235;
+  production extensions, textures, and write support remain TODO.
 - **PLY** — already read (with LibFuzzer harness). Add write.
 - **glTF 2.0** — meshes + materials + textures + skeletal animation. Modern, well-specified. Use `cgltf` or `tinygltf`. Read + write; the natural default for web interop (feeds the §4.1 WebGL viewer directly).
 - **USD / OpenUSD** — Pixar's industry-standard scene description. Heavy dependency but the right long-term home for everything (geometry, materials, animation, layered overrides, references). Read-only first; write is aspirational.

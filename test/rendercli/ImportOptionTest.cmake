@@ -27,7 +27,11 @@ set(openscad_cache "${TEST_OUTPUT_DIR}/openscad-cache")
 set(openscad_real_cache "${TEST_OUTPUT_DIR}/openscad-real-cache")
 set(openscad_fixture_dir "${PROJECT_SOURCE_DIR}/test/fixtures/openscad")
 set(openscad_external_fixture "${openscad_fixture_dir}/external-compiler/compiler_smoke.scad")
-set(gcode_fixture "${PROJECT_SOURCE_DIR}/test/fixtures/gcode/absolute_layers.gcode")
+set(stl_fixture "${PROJECT_SOURCE_DIR}/test/fixtures/additive/wedge.stl")
+set(threemf_fixture "${PROJECT_SOURCE_DIR}/test/fixtures/additive/wedge.3mf")
+set(gcode_fixture "${PROJECT_SOURCE_DIR}/test/fixtures/additive/two_layer_path.gcode")
+set(stl_render "${TEST_OUTPUT_DIR}/stl-model.png")
+set(threemf_render "${TEST_OUTPUT_DIR}/3mf-model.png")
 set(gcode_speed_render "${TEST_OUTPUT_DIR}/gcode-speed.png")
 set(gcode_tool_layer_render "${TEST_OUTPUT_DIR}/gcode-tool-layer.png")
 set(gcode_cumulative_render "${TEST_OUTPUT_DIR}/gcode-cumulative.png")
@@ -217,6 +221,28 @@ rendercli_expect_failure(
     "${RENDERCLI}" --width 8 --height 8 --import_format json
     "${TEST_OUTPUT_DIR}/missing.rtjson" "${missing_render}"
 )
+
+rendercli_run(
+  NAME "rendercli imports additive STL model"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 64 --height 64
+    "${stl_fixture}" "${stl_render}"
+)
+rendercli_assert_image_dimensions("${stl_render}" 64 64
+                                  NAME "rendercli STL model dimensions")
+rendercli_assert_image_nonempty("${stl_render}"
+                                NAME "rendercli STL model pixels")
+
+rendercli_run(
+  NAME "rendercli imports additive 3MF model"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 64 --height 64
+    "${threemf_fixture}" "${threemf_render}"
+)
+rendercli_assert_image_dimensions("${threemf_render}" 64 64
+                                  NAME "rendercli 3MF model dimensions")
+rendercli_assert_image_nonempty("${threemf_render}"
+                                NAME "rendercli 3MF model pixels")
 
 rendercli_run(
   NAME "rendercli colors G-code by speed"

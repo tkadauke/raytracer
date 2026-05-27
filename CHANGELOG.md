@@ -76,6 +76,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   packages, parse model XML meshes, build-item transforms, units, and base
   material colors, and instantiate them as grouped imported mesh geometry for
   Epic #235. — GPT-5
+- **Additive manufacturing fixtures and import smoke tests.** Tiny
+  slicer-independent STL, 3MF, and G-code fixtures now exercise direct
+  `rendercli` model import and G-code layer visualization, with docs covering
+  the supported G-code subset and additive mesh non-goals for Epic #235. —
+  GPT-5
 - **G-code additive manufacturing visualization modes.** Imported G-code
   toolpaths can now color by layer, tool, speed, temperature, or
   extrusion/travel mode, and `rendercli` exposes G-code layer filtering and

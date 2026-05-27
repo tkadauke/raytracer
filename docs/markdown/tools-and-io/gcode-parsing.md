@@ -32,6 +32,15 @@ those curves in `Group` hierarchy: a top-level G-code import group,
 layer groups with step/layer metadata, then tool and slicer feature
 groups where that metadata is available.
 
+The supported subset is intentionally visualization-oriented: linear
+movement (`G0` / `G1`), absolute/relative XYZ modes, absolute/relative
+extrusion modes, extruder resets, feed rates, temperature commands, tool
+changes, and common layer/feature comments. The importer does not simulate
+printer firmware, arcs, bed leveling, acceleration, pressure advance,
+volumetric extrusion, retraction semantics beyond the E delta, macros, or
+machine-specific dialect commands. Unsupported commands produce diagnostics
+and are ignored when they do not affect the visible path preview.
+
 ## Source anchors
 
 <!-- source-anchors -->
