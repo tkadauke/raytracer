@@ -18,6 +18,7 @@ namespace RenderGraphRequestTest {
       .setViewModeOverride(RenderViewMode::Depth)
       .setPostProcessAAOverride(RenderPostProcessAA::None)
       .setPreviewShadowsOverride(false)
+      .setRasterBackendOverride(engine::raster::RasterBackend::openGL())
       .setWireframeOverlayOverride(false)
       .setCurveOverlayOverride(true)
       .requestExportedAOV(RenderViewMode::Stencil);
@@ -28,6 +29,8 @@ namespace RenderGraphRequestTest {
     EXPECT_EQ(RenderViewMode::Depth, resolved.defaultViewMode);
     EXPECT_EQ(RenderPostProcessAA::None, resolved.postProcessAA);
     EXPECT_FALSE(resolved.enablePreviewShadows);
+    ASSERT_TRUE(resolved.engineOptions.rasterizer().backend().has_value());
+    EXPECT_TRUE(resolved.engineOptions.rasterizer().backend()->isOpenGL());
     EXPECT_FALSE(resolved.enableWireframeOverlay);
     EXPECT_TRUE(resolved.enableCurveOverlay);
     ASSERT_EQ(1u, resolved.exportedAOVs.size());

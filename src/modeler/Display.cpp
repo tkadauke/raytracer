@@ -153,6 +153,20 @@ bool RenderDisplay::rasterizerPreviewShadowsEnabled() const {
   return m_rasterizerPreviewShadowsEnabled;
 }
 
+void RenderDisplay::setRasterizerPreviewBackend(engine::raster::RasterBackend backend) {
+  if (m_rasterizerPreviewBackend == backend)
+    return;
+
+  m_rasterizerPreviewBackend = backend;
+  emit renderGraphInputsChanged();
+  if (m_engineKind == EngineKind::Rasterizer)
+    render();
+}
+
+engine::raster::RasterBackend RenderDisplay::rasterizerPreviewBackend() const {
+  return m_rasterizerPreviewBackend;
+}
+
 void RenderDisplay::setPreviewPostProcessAA(engine::graph::RenderPostProcessAA aa) {
   if (m_previewPostProcessAA == aa)
     return;

@@ -226,7 +226,7 @@ starts from that scene's saved camera. The Elements dock exposes a generated
 intent in the property editor. Those properties write the scene's top-level
 `renderIntent` block, not
 normal child geometry. The editor groups the settings by role, uses dropdowns
-for enumerated choices such as engine, view mode, sampler, and
+for enumerated choices such as engine, raster backend, view mode, sampler, and
 postprocess AA, and only shows engine-specific fields for the selected default
 engine. The same property editor has a search field for filtering long property
 sets and collapsible groups so advanced scene/import settings can stay out of
@@ -239,7 +239,8 @@ rendercli.
 compiles the live preview from that saved intent. Choosing a preview engine,
 preview view, overlay, shadows, or preview FXAA/SMAA switches the preview into
 an explicit override mode, layering temporary request overrides without
-rewriting the scene file. FXAA/SMAA apply to the selected preview executor;
+rewriting the scene file. FXAA/SMAA apply to the selected preview executor; the
+Raster Backend submenu selects CPU or OpenGL for overridden Rasterizer previews;
 rasterizer preview shadows switch the live preview to Rasterizer before
 recompiling because the shadow pass is raster-specific. When the scene intent
 does not name a default camera, Modeler annotates scene-rendering passes with
@@ -258,8 +259,8 @@ Tonemap` selects the operator used by the graph's tonemap node.
 final render plan before the Render button starts execution. The plan starts
 from the scene render intent, then applies the render-window controls as
 temporary final-render overrides such as engine, resolution, samples, raster
-MSAA, and shadow-map quality. The image render executes the graph shown in that
-tab, including pass toggles made in the graph inspector.
+backend, MSAA, and shadow-map quality. The image render executes the graph shown
+in that tab, including pass toggles made in the graph inspector.
 
 The Render Graph dock compiles the current preview intent into a
 [`RenderPlan`](../render-graph/render-plans-and-resources.md) before preview

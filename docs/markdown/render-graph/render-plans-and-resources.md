@@ -630,9 +630,11 @@ generated `Render Settings` item. Preview controls and the final Render window d
 not mutate that object by default; they build temporary request overrides and
 then ask the compiler for an effective plan. Render settings are grouped in the
 property editor, enumerated choices use dropdowns, and backend-specific fields
-only appear when that backend is selected. The final Render window also owns
-its own Graph tab, so users can inspect the exact graph that will be executed
-before starting the render.
+only appear when that backend is selected. Raster backend selection is exposed
+through the same intent path: saved Render Settings, preview overrides, and the
+final Render window all compile to typed raster pass execution state. The final
+Render window also owns its own Graph tab, so users can inspect the exact graph
+that will be executed before starting the render.
 
 Pass and resource nodes use human-readable display names in the graph while
 keeping stable ids in tooltips and exported plans. Pass nodes also summarize

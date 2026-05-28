@@ -1,6 +1,7 @@
 #include "world/objects/RenderIntentElement.h"
 
 #include "engine/graph/RenderGraphTypes.h"
+#include "engine/raster/RasterBackend.h"
 #include "render/samplers/SamplerFactory.h"
 #include "render/viewplanes/ViewPlaneFactory.h"
 #include "world/objects/Scene.h"
@@ -73,6 +74,8 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
     return QStringLiteral("Queue Size");
   if (propertyName == QStringLiteral("rasterizerLod"))
     return QStringLiteral("LOD");
+  if (propertyName == QStringLiteral("rasterizerBackend"))
+    return QStringLiteral("Backend");
   if (propertyName == QStringLiteral("rasterizerMSAASamples"))
     return QStringLiteral("MSAA Samples");
   if (propertyName == QStringLiteral("rasterizerMSAAShading"))
@@ -134,6 +137,8 @@ QStringList RenderIntentElement::propertyChoices(const QString& propertyName) co
     return raytracerSamplerChoices();
   if (propertyName == QStringLiteral("raytracerViewPlane"))
     return raytracerViewPlaneChoices();
+  if (propertyName == QStringLiteral("rasterizerBackend"))
+    return {QStringLiteral("cpu"), QStringLiteral("opengl")};
   if (propertyName == QStringLiteral("rasterizerMSAAShading"))
     return {QStringLiteral("per_sample"), QStringLiteral("per_fragment")};
   if (propertyName == QStringLiteral("rasterizerShadowFilter"))
@@ -194,6 +199,11 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
       return QStringLiteral("Raster Shade Count");
     if (choice == QStringLiteral("raster_color_write_count"))
       return QStringLiteral("Raster Color-Write Count");
+  }
+  if (propertyName == QStringLiteral("rasterizerBackend")) {
+    const auto backend =
+      engine::raster::RasterBackend::fromString(choice.toStdString(), "rasterizerBackend");
+    return QString::fromLatin1(backend.displayName());
   }
   if (propertyName == QStringLiteral("rasterizerMSAAShading")) {
     if (choice == QStringLiteral("per_sample"))
@@ -401,6 +411,19 @@ int RenderIntentElement::rasterizerLod() const {
 void RenderIntentElement::setRasterizerLod(int lod) {
   auto value = intent();
   value.engineOptions.rasterizer().setLod(lod);
+  setIntent(value);
+}
+
+QString RenderIntentElement::rasterizerBackend() const {
+  const auto backend =
+    intent().engineOptions.rasterizer().backend().value_or(engine::raster::RasterBackend::cpu());
+  return QString::fromLatin1(backend.id());
+}
+
+void RenderIntentElement::setRasterizerBackend(const QString& backend) {
+  auto value = intent();
+  value.engineOptions.rasterizer().setBackend(
+    engine::raster::RasterBackend::fromString(backend.toStdString(), "rasterizerBackend"));
   setIntent(value);
 }
 

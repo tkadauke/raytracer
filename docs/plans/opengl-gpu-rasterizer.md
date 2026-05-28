@@ -150,7 +150,11 @@ Tasks:
 - Teach rendercli to bootstrap a `QGuiApplication` or offscreen platform mode
   when GPU raster is requested, so command-line GPU renders can create the
   context instead of reporting the current application-bootstrap error.
-- Add Modeler UI to select GPU raster preview backend only when available.
+- ~~Add Modeler UI to select GPU raster preview backend.~~ ✅ **Done.** The
+  scene Render Settings property editor, final Render window, and preview
+  override menu can all compile Rasterizer passes with the OpenGL backend.
+- Gate or annotate the Modeler OpenGL choice with the capability probe and
+  missing-draw-path status once the first draw path is close enough to exercise.
 
 Acceptance:
 

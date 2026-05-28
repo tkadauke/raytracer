@@ -35,6 +35,7 @@ class RenderIntentElement : public Element {
   Q_PROPERTY(int raytracerThreads READ raytracerThreads WRITE setRaytracerThreads)
   Q_PROPERTY(int raytracerQueueSize READ raytracerQueueSize WRITE setRaytracerQueueSize)
   Q_PROPERTY(int rasterizerLod READ rasterizerLod WRITE setRasterizerLod)
+  Q_PROPERTY(QString rasterizerBackend READ rasterizerBackend WRITE setRasterizerBackend)
   Q_PROPERTY(int rasterizerMSAASamples READ rasterizerMSAASamples WRITE setRasterizerMSAASamples)
   Q_PROPERTY(
     QString rasterizerMSAAShading READ rasterizerMSAAShading WRITE setRasterizerMSAAShading)
@@ -115,6 +116,9 @@ public:
 
   int rasterizerLod() const;
   void setRasterizerLod(int lod);
+
+  QString rasterizerBackend() const;
+  void setRasterizerBackend(const QString& backend);
 
   int rasterizerMSAASamples() const;
   void setRasterizerMSAASamples(int samples);

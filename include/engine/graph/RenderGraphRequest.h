@@ -2,6 +2,7 @@
 
 #include "engine/graph/RenderGraphCompiler.h"
 #include "engine/graph/RenderSceneAnalysis.h"
+#include "engine/raster/RasterBackend.h"
 
 #include <optional>
 #include <string>
@@ -49,6 +50,8 @@ namespace engine::graph {
     RenderGraphRequest& clearCurveOverlayOverride();
     RenderGraphRequest& setPreviewShadowsOverride(bool enabled);
     RenderGraphRequest& clearPreviewShadowsOverride();
+    RenderGraphRequest& setRasterBackendOverride(engine::raster::RasterBackend backend);
+    RenderGraphRequest& clearRasterBackendOverride();
     RenderGraphRequest& requestExportedAOV(RenderViewMode viewMode);
     RenderGraphRequest& addViewOverride(RenderViewOverride viewOverride);
 
@@ -69,6 +72,7 @@ namespace engine::graph {
     std::optional<bool> m_wireframeOverlayOverride;
     std::optional<bool> m_curveOverlayOverride;
     std::optional<bool> m_previewShadowsOverride;
+    std::optional<engine::raster::RasterBackend> m_rasterBackendOverride;
     std::vector<RenderViewMode> m_exportedAOVs;
     std::vector<RenderViewOverride> m_viewOverrides;
   };

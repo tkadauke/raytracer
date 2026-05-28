@@ -350,6 +350,7 @@ namespace PropertyEditorWidgetTest {
 
     EXPECT_EQ(nullptr, parameterWidget(editor, "raytracerSampler"));
     EXPECT_NE(nullptr, parameterWidget(editor, "rasterizerLod"));
+    EXPECT_NE(nullptr, parameterWidget(editor, "rasterizerBackend"));
     EXPECT_NE(nullptr, editor.findChild<QGroupBox*>("propertyGroupRasterizer"));
   }
 

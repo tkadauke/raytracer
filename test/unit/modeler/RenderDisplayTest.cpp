@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "engine/raster/RasterBackend.h"
 #include "src/modeler/Display.h"
 #include "render/RenderEngine.h"
 #include "render/cameras/Camera.h"
@@ -63,5 +64,16 @@ namespace RenderDisplayTest {
 
     ASSERT_VECTOR_NEAR(sceneCamera->position(), display.renderEngine()->camera()->position(), 1e-9);
     ASSERT_VECTOR_NEAR(sceneCamera->target(), display.renderEngine()->camera()->target(), 1e-9);
+  }
+
+  TEST_F(RenderDisplayTest, ShouldStoreRasterizerPreviewBackend) {
+    RenderDisplay display(nullptr);
+
+    EXPECT_TRUE(display.rasterizerPreviewBackend().isCPU());
+
+    display.setRenderGraphPreviewEnabled(false);
+    display.setRasterizerPreviewBackend(engine::raster::RasterBackend::openGL());
+
+    EXPECT_TRUE(display.rasterizerPreviewBackend().isOpenGL());
   }
 } // namespace RenderDisplayTest

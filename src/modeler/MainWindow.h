@@ -109,6 +109,8 @@ private slots:
   void usePreviewWireframe();
   void usePreviewRasterizer();
   void setPreviewRasterizerShadows(bool enabled);
+  void setPreviewRasterBackendCPU();
+  void setPreviewRasterBackendOpenGL();
   void setPreviewPostAANone();
   void setPreviewPostAAFxaa();
   void setPreviewPostAASmaa();

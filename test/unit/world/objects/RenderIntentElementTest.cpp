@@ -35,6 +35,7 @@ namespace RenderIntentElementTest {
     intent->setViewMode("depth");
     intent->setPreviewShadows(true);
     intent->setPostProcessAA("smaa");
+    intent->setRasterizerBackend("opengl");
     intent->setRasterizerMSAASamples(4);
     intent->setRasterizerShadowMapSize(128);
     intent->setRaytracerSampler("Jittered");
@@ -47,6 +48,8 @@ namespace RenderIntentElementTest {
     EXPECT_EQ(engine::graph::RenderViewMode::Depth, scene.renderIntent().defaultViewMode);
     EXPECT_TRUE(scene.renderIntent().enablePreviewShadows);
     EXPECT_EQ(engine::graph::RenderPostProcessAA::SMAA, scene.renderIntent().postProcessAA);
+    ASSERT_TRUE(scene.renderIntent().engineOptions.rasterizer().backend().has_value());
+    EXPECT_TRUE(scene.renderIntent().engineOptions.rasterizer().backend()->isOpenGL());
     ASSERT_TRUE(scene.renderIntent().engineOptions.rasterizer().msaaSamples().has_value());
     EXPECT_EQ(4, *scene.renderIntent().engineOptions.rasterizer().msaaSamples());
     ASSERT_TRUE(scene.renderIntent().engineOptions.rasterizer().shadowMapSize().has_value());
@@ -80,6 +83,7 @@ namespace RenderIntentElementTest {
     EXPECT_EQ(QString("Default Engine"), intent->propertyDisplayName("defaultEngine"));
     EXPECT_TRUE(intent->propertyChoices("defaultEngine").contains("rasterizer"));
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("stencil_composite"));
+    EXPECT_TRUE(intent->propertyChoices("rasterizerBackend").contains("opengl"));
     EXPECT_FALSE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
     intent->setDefaultEngine("rasterizer");
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
@@ -87,6 +91,7 @@ namespace RenderIntentElementTest {
               intent->propertyChoiceDisplayName("viewMode", "stencil_composite"));
     EXPECT_EQ(QString("Raster Depth-Test Count"),
               intent->propertyChoiceDisplayName("viewMode", "raster_depth_test_count"));
+    EXPECT_EQ(QString("OpenGL"), intent->propertyChoiceDisplayName("rasterizerBackend", "opengl"));
     EXPECT_EQ((QList<int>{1, 2, 4, 8}), intent->propertyIntChoices("rasterizerMSAASamples"));
   }
 

@@ -72,6 +72,7 @@ namespace RenderSettingsWidgetTest {
 
   TEST_F(RenderSettingsWidgetTest, ShouldDefaultRasterMSAAToOneSample) {
     RenderSettingsWidget widget;
+    EXPECT_EQ(QString("CPU"), widget.rasterBackend());
     EXPECT_EQ(1, widget.msaaSamples());
     EXPECT_EQ(QString("Per sample"), widget.msaaShadingMode());
   }
@@ -173,14 +174,18 @@ namespace RenderSettingsWidgetTest {
 
   TEST_F(RenderSettingsWidgetTest, ShouldReadRasterAAControls) {
     RenderSettingsWidget widget;
+    auto backend = widget.findChild<QComboBox*>("rasterBackend");
     auto shadingMode = widget.findChild<QComboBox*>("rasterMsaaShadingMode");
     auto postAA = widget.findChild<QComboBox*>("rasterPostProcessAA");
+    ASSERT_NE(nullptr, backend);
     ASSERT_NE(nullptr, shadingMode);
     ASSERT_NE(nullptr, postAA);
 
+    backend->setCurrentText("OpenGL");
     shadingMode->setCurrentText("Per fragment");
     postAA->setCurrentText("SMAA");
 
+    EXPECT_EQ(QString("OpenGL"), widget.rasterBackend());
     EXPECT_EQ(QString("Per fragment"), widget.msaaShadingMode());
     EXPECT_EQ(QString("SMAA"), widget.postProcessAA());
 
@@ -193,28 +198,33 @@ namespace RenderSettingsWidgetTest {
     RenderSettingsWidget widget;
 
     auto engineType = widget.findChild<QComboBox*>("engineType");
+    auto backend = widget.findChild<QComboBox*>("rasterBackend");
     auto msaa = widget.findChild<QComboBox*>("rasterMsaaSamples");
     auto msaaShading = widget.findChild<QComboBox*>("rasterMsaaShadingMode");
     auto postAA = widget.findChild<QComboBox*>("rasterPostProcessAA");
     auto shadowMaps = widget.findChild<QCheckBox*>("rasterShadowMaps");
     ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, backend);
     ASSERT_NE(nullptr, msaa);
     ASSERT_NE(nullptr, msaaShading);
     ASSERT_NE(nullptr, postAA);
     ASSERT_NE(nullptr, shadowMaps);
 
+    EXPECT_TRUE(backend->isHidden());
     EXPECT_TRUE(msaa->isHidden());
     EXPECT_TRUE(msaaShading->isHidden());
     EXPECT_TRUE(postAA->isHidden());
     EXPECT_TRUE(shadowMaps->isHidden());
 
     engineType->setCurrentText("Wireframe");
+    EXPECT_TRUE(backend->isHidden());
     EXPECT_TRUE(msaa->isHidden());
     EXPECT_TRUE(msaaShading->isHidden());
     EXPECT_TRUE(postAA->isHidden());
     EXPECT_TRUE(shadowMaps->isHidden());
 
     engineType->setCurrentText("Rasterizer");
+    EXPECT_FALSE(backend->isHidden());
     EXPECT_FALSE(msaa->isHidden());
     EXPECT_FALSE(msaaShading->isHidden());
     EXPECT_FALSE(postAA->isHidden());

@@ -6,6 +6,7 @@
 
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/RenderGraphRequest.h"
+#include "engine/raster/RasterBackend.h"
 #include "render/primitives/Scene.h"
 #include "render/cameras/Camera.h"
 
@@ -59,6 +60,8 @@ struct RenderWindow::Private {
       intent.enablePreviewShadows = settingsWidget->shadowMapsEnabled();
       intent.postProcessAA = postProcessAA();
       auto& options = intent.engineOptions.rasterizer();
+      options.setBackend(engine::raster::RasterBackend::fromString(
+        settingsWidget->rasterBackend().toStdString(), "render dialog raster backend"));
       options.setLod(settingsWidget->lod());
       options.setMSAASamples(settingsWidget->msaaSamples());
       if (settingsWidget->msaaShadingMode() == "Per fragment") {

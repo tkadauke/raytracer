@@ -136,6 +136,17 @@ namespace engine::graph {
     return *this;
   }
 
+  RenderGraphRequest&
+  RenderGraphRequest::setRasterBackendOverride(engine::raster::RasterBackend backend) {
+    m_rasterBackendOverride = backend;
+    return *this;
+  }
+
+  RenderGraphRequest& RenderGraphRequest::clearRasterBackendOverride() {
+    m_rasterBackendOverride.reset();
+    return *this;
+  }
+
   RenderGraphRequest& RenderGraphRequest::requestExportedAOV(RenderViewMode viewMode) {
     if (std::find(m_exportedAOVs.begin(), m_exportedAOVs.end(), viewMode) == m_exportedAOVs.end()) {
       m_exportedAOVs.push_back(viewMode);
@@ -184,6 +195,9 @@ namespace engine::graph {
     }
     if (m_previewShadowsOverride) {
       intent.setPreviewShadowsEnabled(*m_previewShadowsOverride);
+    }
+    if (m_rasterBackendOverride) {
+      intent.engineOptions.rasterizer().setBackend(*m_rasterBackendOverride);
     }
     for (const auto viewMode : m_exportedAOVs) {
       intent.requestExportedAOV(viewMode);

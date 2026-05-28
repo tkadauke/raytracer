@@ -109,6 +109,10 @@ int RenderSettingsWidget::lod() const {
   return p->ui.lod->value();
 }
 
+QString RenderSettingsWidget::rasterBackend() const {
+  return p->ui.rasterBackend->currentText();
+}
+
 int RenderSettingsWidget::msaaSamples() const {
   return p->ui.rasterMsaaSamples->currentText().toInt();
 }
@@ -184,6 +188,8 @@ void RenderSettingsWidget::updateEngineControls() {
   const bool showShadowDetails = isRasterizer && shadowMapsEnabled();
   p->ui.raytracerFrame->setVisible(isRaytracer);
   p->ui.wireframeFrame->setVisible(!isRaytracer);
+  p->ui.label_rasterBackend->setVisible(isRasterizer);
+  p->ui.rasterBackend->setVisible(isRasterizer);
   p->ui.label_rasterMsaa->setVisible(isRasterizer);
   p->ui.rasterMsaaSamples->setVisible(isRasterizer);
   p->ui.label_rasterMsaaShading->setVisible(isRasterizer);
@@ -221,6 +227,7 @@ void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.renderThreads->setEnabled(!busy);
   p->ui.queueSize->setEnabled(!busy);
   p->ui.lod->setEnabled(!busy);
+  p->ui.rasterBackend->setEnabled(!busy);
   p->ui.rasterMsaaSamples->setEnabled(!busy);
   p->ui.rasterMsaaShadingMode->setEnabled(!busy);
   p->ui.rasterPostProcessAA->setEnabled(!busy);

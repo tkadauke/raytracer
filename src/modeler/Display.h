@@ -2,6 +2,8 @@
 
 #include "widgets/QtDisplay.h"
 
+#include "engine/raster/RasterBackend.h"
+
 #include <cstdint>
 
 #include <QString>
@@ -80,6 +82,12 @@ public slots:
   void setRasterizerPreviewShadowsEnabled(bool enabled);
   bool rasterizerPreviewShadowsEnabled() const;
 
+  /// Selects the raster backend used when preview overrides compile a
+  /// Rasterizer graph. Scene render settings stay authoritative while
+  /// "Use Scene Render Settings" is enabled.
+  void setRasterizerPreviewBackend(engine::raster::RasterBackend backend);
+  engine::raster::RasterBackend rasterizerPreviewBackend() const;
+
   /// Select image-space anti-aliasing for the live preview graph.
   void setPreviewPostProcessAA(engine::graph::RenderPostProcessAA aa);
   engine::graph::RenderPostProcessAA previewPostProcessAA() const;
@@ -115,6 +123,7 @@ private:
   std::shared_ptr<engine::raytracer::Raytracer> m_raytracerEngine;
   EngineKind m_engineKind{EngineKind::Raytracer};
   bool m_rasterizerPreviewShadowsEnabled{false};
+  engine::raster::RasterBackend m_rasterizerPreviewBackend{engine::raster::RasterBackend::cpu()};
   engine::graph::RenderPostProcessAA m_previewPostProcessAA;
   engine::graph::RenderViewMode m_previewViewMode;
   bool m_wireframeOverlayEnabled{false};

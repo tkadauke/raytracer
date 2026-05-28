@@ -21,6 +21,7 @@ public:
   int renderThreads() const;
   int queueSize() const;
   int lod() const;
+  QString rasterBackend() const;
   int msaaSamples() const;
   QString msaaShadingMode() const;
   QString postProcessAA() const;

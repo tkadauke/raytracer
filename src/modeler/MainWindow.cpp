@@ -49,6 +49,7 @@
 #include "engine/graph/RenderGraphRequest.h"
 #include "engine/graph/RenderPassState.h"
 #include "engine/raytracer/Raytracer.h"
+#include "engine/raster/RasterBackend.h"
 #include "render/tonemap/TonemapFactory.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "render/primitives/Primitive.h"
@@ -635,6 +636,8 @@ struct MainWindow::Private {
   QAction* previewWireframeAct;
   QAction* previewRasterizerAct;
   QAction* previewRasterizerShadowsAct;
+  QAction* previewRasterBackendCPUAct;
+  QAction* previewRasterBackendOpenGLAct;
   QAction* previewPostAANoneAct;
   QAction* previewPostAAFxaaAct;
   QAction* previewPostAASmaaAct;
@@ -977,6 +980,25 @@ void MainWindow::createActions() {
   connect(p->previewRasterizerShadowsAct, SIGNAL(triggered(bool)), this,
           SLOT(setPreviewRasterizerShadows(bool)));
 
+  p->previewRasterBackendCPUAct = new QAction(tr("&CPU"), this);
+  p->previewRasterBackendCPUAct->setStatusTip(
+    tr("Use the software CPU rasterizer for live raster preview passes"));
+  p->previewRasterBackendCPUAct->setCheckable(true);
+  p->previewRasterBackendCPUAct->setChecked(true);
+  connect(p->previewRasterBackendCPUAct, SIGNAL(triggered()), this,
+          SLOT(setPreviewRasterBackendCPU()));
+
+  p->previewRasterBackendOpenGLAct = new QAction(tr("&OpenGL"), this);
+  p->previewRasterBackendOpenGLAct->setStatusTip(
+    tr("Use the OpenGL raster backend for live raster preview passes"));
+  p->previewRasterBackendOpenGLAct->setCheckable(true);
+  connect(p->previewRasterBackendOpenGLAct, SIGNAL(triggered()), this,
+          SLOT(setPreviewRasterBackendOpenGL()));
+
+  auto previewRasterBackendGroup = new QActionGroup(this);
+  previewRasterBackendGroup->addAction(p->previewRasterBackendCPUAct);
+  previewRasterBackendGroup->addAction(p->previewRasterBackendOpenGLAct);
+
   p->previewPostAANoneAct = new QAction(tr("&None"), this);
   p->previewPostAANoneAct->setStatusTip(
     tr("Disable image-space anti-aliasing in the live preview"));
@@ -1264,6 +1286,9 @@ void MainWindow::createMenus() {
   previewMenu->addSeparator();
   previewMenu->addAction(p->previewWireframeOverlayAct);
   previewMenu->addAction(p->previewRasterizerShadowsAct);
+  auto previewRasterBackendMenu = previewMenu->addMenu(tr("Raster &Backend"));
+  previewRasterBackendMenu->addAction(p->previewRasterBackendCPUAct);
+  previewRasterBackendMenu->addAction(p->previewRasterBackendOpenGLAct);
   auto previewPostAAMenu = previewMenu->addMenu(tr("Preview Post &AA"));
   previewPostAAMenu->addAction(p->previewPostAANoneAct);
   previewPostAAMenu->addAction(p->previewPostAAFxaaAct);
@@ -1802,6 +1827,18 @@ void MainWindow::setPreviewRasterizerShadows(bool enabled) {
     p->display->setEngineKind(RenderDisplay::EngineKind::Rasterizer);
   }
   p->display->setRasterizerPreviewShadowsEnabled(enabled);
+}
+
+void MainWindow::setPreviewRasterBackendCPU() {
+  setPreviewOverrideMode();
+  p->display->setRasterizerPreviewBackend(engine::raster::RasterBackend::cpu());
+}
+
+void MainWindow::setPreviewRasterBackendOpenGL() {
+  setPreviewOverrideMode();
+  p->previewRasterizerAct->setChecked(true);
+  p->display->setEngineKind(RenderDisplay::EngineKind::Rasterizer);
+  p->display->setRasterizerPreviewBackend(engine::raster::RasterBackend::openGL());
 }
 
 void MainWindow::setPreviewPostAANone() {
@@ -2487,6 +2524,14 @@ void MainWindow::applySceneRenderIntentToPreviewControls() {
 
   p->previewRasterizerShadowsAct->setChecked(intent.enablePreviewShadows);
   p->display->setRasterizerPreviewShadowsEnabled(intent.enablePreviewShadows);
+  const auto backend =
+    intent.engineOptions.rasterizer().backend().value_or(engine::raster::RasterBackend::cpu());
+  if (backend.isOpenGL()) {
+    p->previewRasterBackendOpenGLAct->setChecked(true);
+  } else {
+    p->previewRasterBackendCPUAct->setChecked(true);
+  }
+  p->display->setRasterizerPreviewBackend(backend);
   p->previewWireframeOverlayAct->setChecked(intent.enableWireframeOverlay);
   p->display->setWireframeOverlayEnabled(intent.enableWireframeOverlay);
 }
@@ -2586,6 +2631,7 @@ engine::graph::RenderIntent MainWindow::previewRenderIntent() const {
     return request.resolvedIntent();
 
   request.setPreviewShadowsOverride(p->display->rasterizerPreviewShadowsEnabled())
+    .setRasterBackendOverride(p->display->rasterizerPreviewBackend())
     .setPostProcessAAOverride(p->display->previewPostProcessAA())
     .setWireframeOverlayOverride(p->display->wireframeOverlayEnabled());
 

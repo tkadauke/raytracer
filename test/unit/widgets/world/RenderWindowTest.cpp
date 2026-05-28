@@ -13,6 +13,7 @@
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QCoreApplication>
 #include <QDoubleSpinBox>
 #include <QJsonObject>
 #include <QSpinBox>
@@ -75,6 +76,31 @@ namespace RenderWindowTest {
     EXPECT_NE(nullptr, graph->explicitPlan()->findPass("post_fxaa"));
 
     window.stop();
+  }
+
+  TEST_F(RenderWindowTest, ShouldCompileRasterBackendIntoRenderGraph) {
+    RenderWindow window;
+    Scene scene;
+    window.setScene(&scene);
+
+    auto* engineType = window.findChild<QComboBox*>("engineType");
+    auto* backend = window.findChild<QComboBox*>("rasterBackend");
+    ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, backend);
+
+    engineType->setCurrentText("Rasterizer");
+    backend->setCurrentText("OpenGL");
+    QCoreApplication::processEvents();
+
+    auto* graphInspector = window.findChild<RenderGraphInspectorWidget*>();
+    ASSERT_NE(nullptr, graphInspector);
+
+    const auto plan = graphInspector->effectivePlan();
+    const auto* beautyPass = plan.findPass("raster_beauty");
+    ASSERT_NE(nullptr, beautyPass);
+    const auto* beautyState = engine::graph::RasterBeautyPassState::fromPass(*beautyPass);
+    ASSERT_NE(nullptr, beautyState);
+    EXPECT_TRUE(beautyState->execution().backend().isOpenGL());
   }
 
   TEST_F(RenderWindowTest, ShouldShowFinalGraphBeforeRendering) {
