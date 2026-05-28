@@ -1,0 +1,70 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "raytracer glTF importer smoke fixture"
+  },
+  "scene": 0,
+  "scenes": [
+    {"name": "Fixture Scene", "nodes": [0, 2]}
+  ],
+  "nodes": [
+    {"name": "Root", "translation": [0.0, 0.0, 0.0], "children": [1]},
+    {"name": "Textured Quad", "mesh": 0},
+    {"name": "Camera Node", "translation": [0.0, 0.0, 3.0], "camera": 0}
+  ],
+  "cameras": [
+    {
+      "name": "Fixture Camera",
+      "type": "perspective",
+      "perspective": {"yfov": 0.9, "znear": 0.1, "zfar": 20.0}
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "data:application/octet-stream;base64,zcxMv83MTL8AAAAAzcxMP83MTL8AAAAAzcxMP83MTD8AAAAAzcxMv83MTD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAgD8AAIA/AACAPwAAgD8AAAAAAAAAAAAAAAAAAAEAAgAAAAIAAwA=",
+      "byteLength": 140
+    }
+  ],
+  "bufferViews": [
+    {"buffer": 0, "byteOffset": 0, "byteLength": 48},
+    {"buffer": 0, "byteOffset": 48, "byteLength": 48},
+    {"buffer": 0, "byteOffset": 96, "byteLength": 32},
+    {"buffer": 0, "byteOffset": 128, "byteLength": 12}
+  ],
+  "accessors": [
+    {"bufferView": 0, "componentType": 5126, "count": 4, "type": "VEC3"},
+    {"bufferView": 1, "componentType": 5126, "count": 4, "type": "VEC3"},
+    {"bufferView": 2, "componentType": 5126, "count": 4, "type": "VEC2"},
+    {"bufferView": 3, "componentType": 5123, "count": 6, "type": "SCALAR"}
+  ],
+  "images": [
+    {
+      "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==",
+      "mimeType": "image/png"
+    }
+  ],
+  "textures": [
+    {"source": 0}
+  ],
+  "materials": [
+    {
+      "name": "Textured Red",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [1.0, 0.25, 0.25, 1.0],
+        "baseColorTexture": {"index": 0}
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Quad Mesh",
+      "primitives": [
+        {
+          "attributes": {"POSITION": 0, "NORMAL": 1, "TEXCOORD_0": 2},
+          "indices": 3,
+          "material": 0
+        }
+      ]
+    }
+  ]
+}

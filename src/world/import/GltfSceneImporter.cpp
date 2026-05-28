@@ -10,6 +10,7 @@
 #include "render/textures/ImageTexture.h"
 #include "render/textures/mappings/UVMapping2D.h"
 #include "world/animation/Timeline.h"
+#include "world/import/ImportedSceneDefaults.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/CompiledPrimitive.h"
 #include "world/objects/DirectionalLight.h"
@@ -677,6 +678,9 @@ namespace world {
           if (!primitive)
             continue;
 
+          int triangleCount = 0;
+          if (auto meshPrimitive = std::dynamic_pointer_cast<render::MeshPrimitive>(primitive))
+            triangleCount = static_cast<int>(meshPrimitive->mesh()->faces().size());
           auto compiled = std::make_unique<CompiledPrimitive>(std::move(primitive));
           compiled->setId(QString("gltf-mesh-%1-primitive-%2").arg(meshIndex).arg(i));
           compiled->setName(mesh.name.empty()
@@ -685,6 +689,7 @@ namespace world {
           compiled->setMetadata(baseMetadata(m_sourcePath, sourceId("meshes", meshIndex), "mesh",
                                              static_cast<int>(meshIndex)));
           compiled->setMetadataValue("gltfPrimitiveIndex", static_cast<int>(i));
+          compiled->setMetadataValue("gltfTriangleCount", triangleCount);
           parent.addChild(std::move(compiled));
         }
       }

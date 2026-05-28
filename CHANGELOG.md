@@ -24,6 +24,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   shading calls, and color writes through rendercli and the Modeler Preview
   View menu, using an absolute color scale so red marks high repeated raster
   work rather than the image-local maximum. — GPT-5
+- **glTF mesh/material import fixtures and smoke tests.** glTF imports now
+  compile supported triangle meshes into `MeshPrimitive` geometry, map
+  base-color factors and `TEXCOORD_0` base-color textures to matte materials,
+  render a representative glTF fixture through rendercli, and document the
+  supported subset and unsupported extensions for Epic #233. — GPT-5
 - **glTF animation import smoke path.** glTF imports now preserve animation
   sampler/channel metadata on node groups, convert simple translation,
   rotation, and scale channels into world timeline tracks where possible, and

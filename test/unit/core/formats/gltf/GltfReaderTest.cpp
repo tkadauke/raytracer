@@ -213,6 +213,39 @@ namespace GltfReaderTest {
     EXPECT_EQ("weights", animation.channels[1].target.path);
   }
 
+  TEST(GltfReader, ParsesMeshMaterialTextureAndCameraFixture) {
+    const fs::path fixture = "test/fixtures/gltf/comprehensive_scene.gltf";
+
+    const core::gltf::ReadResult result = Reader::readFile(fixture);
+
+    ASSERT_TRUE(result.ok()) << (result.diagnostics.empty()
+                                   ? ""
+                                   : result.diagnostics.entries().front().toString());
+    ASSERT_TRUE(result.asset);
+    ASSERT_EQ(1u, result.asset->meshes.size());
+    EXPECT_EQ("Quad Mesh", result.asset->meshes[0].name);
+    ASSERT_EQ(1u, result.asset->meshes[0].primitives.size());
+    const auto& primitive = result.asset->meshes[0].primitives[0];
+    EXPECT_EQ(0u, primitive.position.value());
+    EXPECT_EQ(1u, primitive.normal.value());
+    EXPECT_EQ(2u, primitive.texcoord0.value());
+    EXPECT_EQ(3u, primitive.indices.value());
+    EXPECT_EQ(0u, primitive.material.value());
+    EXPECT_EQ(4, primitive.mode);
+
+    ASSERT_EQ(1u, result.asset->materials.size());
+    EXPECT_EQ("Textured Red", result.asset->materials[0].name);
+    EXPECT_EQ(1.0, result.asset->materials[0].pbrMetallicRoughness.baseColorFactor[0]);
+    ASSERT_TRUE(result.asset->materials[0].pbrMetallicRoughness.baseColorTexture.has_value());
+    EXPECT_EQ(0u, result.asset->materials[0].pbrMetallicRoughness.baseColorTexture->index);
+    ASSERT_EQ(1u, result.asset->textures.size());
+    EXPECT_EQ(0u, result.asset->textures[0].source.value());
+    ASSERT_EQ(1u, result.asset->images.size());
+    EXPECT_TRUE(result.asset->images[0].hasData());
+    EXPECT_EQ(0u, result.asset->nodes[1].mesh.value());
+    EXPECT_EQ(0u, result.asset->nodes[2].camera.value());
+  }
+
   TEST(GltfReader, ParsesCamerasAndPunctualLightExtension) {
     const string json = R"JSON({
       "asset": {"version": "2.0"},
