@@ -175,7 +175,12 @@ Acceptance:
 
 Tasks:
 
-- Traverse the runtime scene leaves and upload mesh geometry to VBO/IBO buffers.
+- ~~Traverse the runtime scene leaves and prepare mesh geometry for VBO/IBO
+  buffers.~~ ✅ **Done.** The OpenGL raster path now reuses the software raster
+  front end to produce a GPU-ready screen-space vertex/index buffer with the
+  same camera setup, clipping, culling, material albedo, cancellation, and LOD
+  behavior. Actual OpenGL buffer upload remains the next step.
+- Upload prepared mesh geometry to VBO/IBO buffers.
 - Compile a minimal shader for matte/base-color shading.
 - Bind graph raster pass state for camera, viewport, culling, and depth test.
 - Render into an FBO color attachment and depth attachment.

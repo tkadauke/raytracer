@@ -2,8 +2,10 @@
 
 #include "core/Buffer.h"
 #include "engine/raster/OpenGLOffscreenContext.h"
+#include "engine/raster/detail/OpenGLRasterMesh.h"
 
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace engine::raster {
@@ -24,6 +26,7 @@ namespace engine::raster {
       clone->setBackgroundColor(backgroundColor());
     }
     clone->setTonemap(tonemap());
+    clone->setLod(m_lod);
     if (m_cancelled.load()) {
       clone->cancel();
     }
@@ -53,8 +56,16 @@ namespace engine::raster {
     }
     return "OpenGL raster backend is selected and an offscreen context is available (" +
            availability.detail() +
-           "), but mesh upload, shader execution, and readback are not implemented yet; use "
+           "), but GPU buffer upload, shader execution, and readback are not implemented yet; use "
            "--raster_backend cpu until the first GPU raster pass lands";
+  }
+
+  int OpenGLRasterizer::lod() const {
+    return m_lod;
+  }
+
+  void OpenGLRasterizer::setLod(int lod) {
+    m_lod = lod;
   }
 
   bool OpenGLRasterizer::isAvailable() const {
@@ -83,9 +94,15 @@ namespace engine::raster {
       throw std::runtime_error(context.errorMessage());
     }
 
+    const detail::OpenGLRasterMesh mesh =
+      detail::OpenGLRasterMeshBuilder(scene().get(), camera(), m_lod, Recti(width, height),
+                                      m_cancelled)
+        .build();
+
     throw std::runtime_error(
       "OpenGL raster backend is selected and created an offscreen " + context.detailText() +
-      " context/framebuffer, but mesh upload, shader execution, and readback are not "
+      " context/framebuffer, and prepared " + std::to_string(mesh.triangleCount()) +
+      " screen-space triangles, but GPU buffer upload, shader execution, and readback are not "
       "implemented yet; use --raster_backend cpu until the first GPU raster pass lands");
   }
 }

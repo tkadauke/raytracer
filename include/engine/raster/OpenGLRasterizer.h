@@ -11,9 +11,10 @@ namespace engine::raster {
     * OpenGL-backed raster executor shell.
     *
     * The class is wired into graph backend selection and owns the first
-    * offscreen context/FBO capability path. Selecting it gives callers one
-    * deterministic backend/capability error until mesh upload, shader
-    * execution, and readback exist.
+    * offscreen context/FBO capability path plus the first reusable
+    * mesh-preparation path. Selecting it gives callers one deterministic
+    * backend/capability error until GPU buffer upload, shader execution, and
+    * readback exist.
     */
   class OpenGLRasterizer : public render::RenderEngine {
   public:
@@ -29,6 +30,9 @@ namespace engine::raster {
 
     static std::string statusMessage();
 
+    int lod() const;
+    void setLod(int lod);
+
     bool isAvailable() const;
     std::string availabilityDetail() const;
     std::string availabilityError() const;
@@ -39,5 +43,6 @@ namespace engine::raster {
     [[noreturn]] void throwRenderUnavailable(int width, int height) const;
 
     std::atomic<bool> m_cancelled{false};
+    int m_lod{0};
   };
 }

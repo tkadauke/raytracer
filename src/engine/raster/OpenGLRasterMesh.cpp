@@ -1,0 +1,112 @@
+#include "engine/raster/detail/OpenGLRasterMesh.h"
+
+#include "engine/raster/Rasterizer.h"
+#include "engine/raster/detail/RasterPipelineTypes.h"
+#include "engine/raster/detail/RasterTriangleEmitter.h"
+#include "render/cameras/Camera.h"
+#include "render/primitives/Scene.h"
+#include "render/viewplanes/ViewPlane.h"
+
+#include <algorithm>
+#include <cmath>
+#include <utility>
+
+namespace engine::raster::detail {
+  namespace {
+    float normalizedDeviceX(double screenX, const Recti& rect) {
+      if (rect.width() <= 0) {
+        return 0.0f;
+      }
+      return static_cast<float>(
+        ((screenX - rect.left()) / static_cast<double>(rect.width())) * 2.0 - 1.0);
+    }
+
+    float normalizedDeviceY(double screenY, const Recti& rect) {
+      if (rect.height() <= 0) {
+        return 0.0f;
+      }
+      return static_cast<float>(
+        1.0 - ((screenY - rect.top()) / static_cast<double>(rect.height())) * 2.0);
+    }
+
+    float normalizedDepth(const RasterVertex& vertex) {
+      if (vertex.invW == 0.0) {
+        return 0.0f;
+      }
+      const double depth = vertex.depthOverW / vertex.invW;
+      if (!std::isfinite(depth)) {
+        return 0.0f;
+      }
+      return static_cast<float>(std::clamp(depth, 0.0, 1.0));
+    }
+
+    OpenGLRasterMesh::Vertex vertexFor(const RasterTriangle& triangle, const RasterVertex& vertex,
+                                       const Recti& rect) {
+      const Colord albedo = triangle.rasterMaterial.albedo(
+        triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
+      return {normalizedDeviceX(vertex.x, rect),
+              normalizedDeviceY(vertex.y, rect),
+              normalizedDepth(vertex),
+              static_cast<float>(std::clamp(albedo.r(), 0.0, 1.0)),
+              static_cast<float>(std::clamp(albedo.g(), 0.0, 1.0)),
+              static_cast<float>(std::clamp(albedo.b(), 0.0, 1.0))};
+    }
+  }
+
+  bool OpenGLRasterMesh::empty() const {
+    return m_indices.empty();
+  }
+
+  std::size_t OpenGLRasterMesh::triangleCount() const {
+    return m_indices.size() / 3;
+  }
+
+  const OpenGLRasterMesh::Vertices& OpenGLRasterMesh::vertices() const {
+    return m_vertices;
+  }
+
+  const OpenGLRasterMesh::Indices& OpenGLRasterMesh::indices() const {
+    return m_indices;
+  }
+
+  void OpenGLRasterMesh::appendTriangle(const Vertex& v0, const Vertex& v1, const Vertex& v2) {
+    const auto base = static_cast<std::uint32_t>(m_vertices.size());
+    m_vertices.push_back(v0);
+    m_vertices.push_back(v1);
+    m_vertices.push_back(v2);
+    m_indices.push_back(base);
+    m_indices.push_back(base + 1);
+    m_indices.push_back(base + 2);
+  }
+
+  OpenGLRasterMeshBuilder::OpenGLRasterMeshBuilder(const render::Scene* scene,
+                                                   std::shared_ptr<render::Camera> camera, int lod,
+                                                   const Recti& framebufferRect,
+                                                   const std::atomic<bool>& cancelled)
+      : m_scene(scene),
+        m_camera(std::move(camera)),
+        m_lod(lod),
+        m_framebufferRect(framebufferRect),
+        m_cancelled(cancelled) {
+  }
+
+  OpenGLRasterMesh OpenGLRasterMeshBuilder::build() const {
+    OpenGLRasterMesh mesh;
+    if (!m_scene || !m_camera || !m_camera->viewPlane()) {
+      return mesh;
+    }
+
+    m_camera->viewPlane()->setup(m_camera->matrix(), m_framebufferRect);
+    Rasterizer rasterizer(m_camera, std::shared_ptr<render::Scene>());
+    rasterizer.setLod(m_lod);
+    RasterTriangleEmitter emitter(m_scene, m_camera, m_lod, rasterizer, m_cancelled,
+                                  Rasterizer::CullMode::Both, false, false);
+    emitter.forEachTriangle([&](const RasterTriangle& triangle) {
+      mesh.appendTriangle(vertexFor(triangle, triangle.vertices[0], m_framebufferRect),
+                          vertexFor(triangle, triangle.vertices[1], m_framebufferRect),
+                          vertexFor(triangle, triangle.vertices[2], m_framebufferRect));
+    });
+
+    return mesh;
+  }
+}

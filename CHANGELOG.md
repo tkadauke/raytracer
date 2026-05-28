@@ -77,6 +77,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   experimental OpenGL raster backend in Render Settings, final Render controls,
   and the live preview menu with the shared capability or missing-draw-path
   status instead of presenting it as equivalent to CPU raster. — GPT-5
+- **OpenGL raster mesh preparation.** The OpenGL raster backend now has a
+  tested mesh-preparation path that reuses the software raster front end to
+  produce screen-space vertices and indices with camera clipping, culling,
+  material albedo, cancellation, and LOD behavior ahead of actual VBO/IBO
+  upload. — GPT-5
 - **Modeler OpenGL raster backend selection.** Modeler Render Settings, the
   final Render window, and the live preview override menu now expose CPU/OpenGL
   raster backend selection and compile it into typed raster pass execution
