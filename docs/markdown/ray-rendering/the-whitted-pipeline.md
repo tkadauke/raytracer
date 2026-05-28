@@ -20,8 +20,9 @@ By the end you should know:
 - which file in the codebase owns each step,
 - the `RenderEngine` / `Raytracer` split and why the abstraction
   exists,
-- where `WhittedIntegrator` sits between the frame-rendering engine
-  and recursive material callbacks,
+- where the single-ray `Integrator` contract sits between the
+  frame-rendering engine, `WhittedIntegrator`, and recursive material
+  callbacks,
 - the recursive structure that gives [Whitted](../appendix/a-glossary.md#w) its name, and the
   reason the recursion has a depth cap.
 
