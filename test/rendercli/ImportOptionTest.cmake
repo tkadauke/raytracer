@@ -11,6 +11,13 @@ include("${CMAKE_CURRENT_LIST_DIR}/RendercliTestHelpers.cmake")
 file(REMOVE_RECURSE "${TEST_OUTPUT_DIR}")
 file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 
+set(run_real_openscad_fixture "$ENV{RAYTRACER_RUN_REAL_OPENSCAD_TESTS}")
+if(run_real_openscad_fixture MATCHES "^(1|ON|TRUE|YES|true|yes)$")
+  set(run_real_openscad_fixture TRUE)
+else()
+  set(run_real_openscad_fixture FALSE)
+endif()
+
 set(import_scene "${TEST_OUTPUT_DIR}/imported.rtjson")
 set(explicit_import_scene "${TEST_OUTPUT_DIR}/imported.scene")
 set(extension_render "${TEST_OUTPUT_DIR}/extension.png")
@@ -157,8 +164,10 @@ file(WRITE "${gltf_scene}" [=[
 }
 ]=])
 
-find_program(REAL_OPENSCAD_EXECUTABLE openscad)
-if(REAL_OPENSCAD_EXECUTABLE)
+if(run_real_openscad_fixture)
+  find_program(REAL_OPENSCAD_EXECUTABLE openscad)
+endif()
+if(run_real_openscad_fixture AND REAL_OPENSCAD_EXECUTABLE)
   set(openscad_real_scene_json "${openscad_scene_json}")
   string(REPLACE "${fake_openscad}" "${REAL_OPENSCAD_EXECUTABLE}" openscad_real_scene_json
          "${openscad_real_scene_json}")
@@ -225,7 +234,7 @@ rendercli_assert_image_dimensions("${gltf_render}" 32 32
 rendercli_assert_image_varied("${gltf_render}"
                               NAME "rendercli direct glTF varied pixels")
 
-if(REAL_OPENSCAD_EXECUTABLE)
+if(run_real_openscad_fixture AND REAL_OPENSCAD_EXECUTABLE)
   rendercli_run(
     NAME "rendercli renders OpenSCAD fixture with external compiler"
     COMMAND
@@ -236,8 +245,10 @@ if(REAL_OPENSCAD_EXECUTABLE)
                                     NAME "rendercli real OpenSCAD fixture dimensions")
   rendercli_assert_image_nonempty("${openscad_real_render}"
                                   NAME "rendercli real OpenSCAD fixture pixels")
-else()
+elseif(run_real_openscad_fixture)
   message(STATUS "Skipping real OpenSCAD render smoke: openscad executable was not found")
+else()
+  message(STATUS "Skipping real OpenSCAD render smoke: set RAYTRACER_RUN_REAL_OPENSCAD_TESTS=1 to opt in")
 endif()
 
 rendercli_expect_failure(
