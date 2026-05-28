@@ -132,8 +132,9 @@ public:
   engine::graph::RenderSceneAnalysis renderGraphAnalysis() const;
 
   /**
-    * Manual scene-acceleration override for testing and benchmarking. The
-    * default Automatic mode currently preserves the existing Grid selection.
+    * Manual scene-acceleration override for testing and benchmarking.
+    * Automatic mode chooses Linear for empty/single-leaf scenes and BVH for
+    * multi-leaf scenes; Grid remains available as an explicit override.
     */
   int accelerationMode() const;
   void setAccelerationMode(int mode);
