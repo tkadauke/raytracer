@@ -2,6 +2,7 @@
 #include "core/math/Cubic.h"
 
 #include "test/helpers/PolynomialTestHelper.h"
+#include "test/helpers/AllocationCounter.h"
 
 namespace CubicTest {
   template<class T>
@@ -33,5 +34,13 @@ namespace CubicTest {
     Cubic<TypeParam> cubic(1, 0, -1, 0);
     ASSERT_EQ(3, cubic.solve());
     ASSERT_CONTAINERS_NEAR(testing::makeStdVector<TypeParam>(-1, 0, 1), cubic.sortedResult(), 0.01);
+  }
+
+  TYPED_TEST(CubicTest, SortedResultDoesNotAllocate) {
+    Cubic<TypeParam> cubic(1, -6, 11, -6);
+    testing::allocations::ScopedCounter allocations;
+    auto roots = cubic.sortedResult();
+    ASSERT_EQ(3ul, roots.size());
+    ASSERT_EQ(0ul, allocations.count());
   }
 }

@@ -2,6 +2,7 @@
 #include "core/math/Quartic.h"
 
 #include "test/helpers/PolynomialTestHelper.h"
+#include "test/helpers/AllocationCounter.h"
 
 namespace QuarticTest {
   template<class T>
@@ -63,6 +64,14 @@ namespace QuarticTest {
                            0.01);
   }
 
+  TYPED_TEST(QuarticTest, SortedResultDoesNotAllocate) {
+    Quartic<TypeParam> quartic(1, -10, 35, -50, 24);
+    testing::allocations::ScopedCounter allocations;
+    auto roots = quartic.sortedResult();
+    ASSERT_EQ(4ul, roots.size());
+    ASSERT_EQ(0ul, allocations.count());
+  }
+
   TYPED_TEST(QuarticTest, ShouldSolveIllConditionedGrazingQuartic) {
     // This is the PolynomialBenchmark grazing-incidence case. Ferrari's
     // closed-form path used to report 0 roots for float and a spurious
@@ -72,6 +81,15 @@ namespace QuarticTest {
     ASSERT_CONTAINERS_NEAR(
       testing::makeStdVector<TypeParam>(TypeParam(-1000002), TypeParam(1.7548747)),
       quartic.stableSortedResult(), TypeParam(2));
+  }
+
+  TYPED_TEST(QuarticTest, StableSortedResultDoesNotAllocate) {
+    Quartic<TypeParam> quartic(TypeParam(1e-6), TypeParam(1), TypeParam(-2), TypeParam(1),
+                               TypeParam(-1));
+    testing::allocations::ScopedCounter allocations;
+    auto roots = quartic.stableSortedResult();
+    ASSERT_EQ(2ul, roots.size());
+    ASSERT_EQ(0ul, allocations.count());
   }
 
   TYPED_TEST(QuarticTest, ShouldSolveQuarticWithWideCoefficientScale) {

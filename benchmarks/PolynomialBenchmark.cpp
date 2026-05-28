@@ -1,8 +1,8 @@
 // Microbenchmarks for the polynomial root-finders used by the renderer's
 // quadric, cubic, and quartic intersection paths. Quartic::solve() is the
 // per-ray cost of torus intersection, including the inner Cubic solve and
-// up to two Quadric solves. sortedResult() heap-allocates a std::vector
-// per call — the benchmark captures that allocation cost too.
+// up to two Quadric solves. sortedResult() returns a fixed-capacity result
+// object; this benchmark keeps that zero-allocation path covered.
 
 #include <benchmark/benchmark.h>
 
@@ -63,9 +63,8 @@ namespace {
     }
   }
 
-  // solve() variant followed by the sortedResult() heap allocation that
-  // torus intersection actually performs. The delta vs bm_quartic_solve
-  // is the per-ray allocation cost we want to eliminate.
+  // solve() variant followed by sortedResult(), matching the torus
+  // intersection path while keeping the roots in fixed-capacity storage.
   template<typename T>
   void bm_quartic_sorted_result(benchmark::State& state) {
     T a = T(1), b = T(-10), c = T(35), d = T(-50), e = T(24);
