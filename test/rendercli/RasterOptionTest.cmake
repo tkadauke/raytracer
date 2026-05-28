@@ -246,6 +246,35 @@ else()
                   "${opengl_stencil_stderr}")
 endif()
 
+set(opengl_shadow_render "${TEST_OUTPUT_DIR}/raster-opengl-shadow-maps.png")
+execute_process(
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
+    --shadow_maps
+    "${matte_scene}" "${opengl_shadow_render}"
+  RESULT_VARIABLE opengl_shadow_result
+  OUTPUT_VARIABLE opengl_shadow_stdout
+  ERROR_VARIABLE opengl_shadow_stderr
+)
+if(opengl_shadow_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_shadow_render}" 16 12
+                                    NAME "rendercli --raster_backend gpu shadow maps dimensions")
+  rendercli_assert_image_nonempty("${opengl_shadow_render}"
+                                  NAME "rendercli --raster_backend gpu shadow maps pixels")
+elseif(opengl_shadow_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_shadow_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu shadow maps application bootstrap"
+                    "OpenGL shadow-map plan still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_shadow_result}" "${opengl_shadow_stdout}"
+                    "${opengl_shadow_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu shadow maps"
+                  "OpenGL shadow-map plan neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_shadow_result}" "${opengl_shadow_stdout}"
+                  "${opengl_shadow_stderr}")
+endif()
+
 set(opengl_object_id_render "${TEST_OUTPUT_DIR}/raster-opengl-object-id.png")
 execute_process(
   COMMAND

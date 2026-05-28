@@ -198,11 +198,12 @@ namespace RasterPassStateTest {
     expectOpenGLUnsupported(depthBias, "depth bias");
   }
 
-  TEST(RasterBeautyPassState, RejectsUnsupportedOpenGLShadowMaps) {
+  TEST(RasterBeautyPassState, AppliesShadowStateToOpenGLRasterizerAsNoOp) {
     RasterBeautyPassState state;
     state.shadows().setShadowMapsEnabled(true);
+    engine::raster::OpenGLRasterizer rasterizer(nullptr);
 
-    expectOpenGLUnsupported(state, "shadow maps");
+    EXPECT_NO_THROW(state.applyTo(rasterizer));
   }
 
   TEST(RasterBeautyPassState, AppliesImportedStateToRasterizer) {

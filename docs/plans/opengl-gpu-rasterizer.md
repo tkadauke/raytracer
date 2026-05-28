@@ -255,8 +255,8 @@ Tasks:
 
 - ~~Report unsupported fixed-function state before execution.~~ ✅ **Done.**
   OpenGL raster passes now reject unsupported raster pass postprocess AA,
-  depth bias, and shadow-map state with explicit diagnostics instead of
-  silently ignoring the compiled graph state.
+  and depth bias with explicit diagnostics instead of silently ignoring the
+  compiled graph state.
 - ~~Add fixed-function blending support.~~ ✅ **Done.** OpenGL raster draw calls
   now apply graph-derived blend enable, factors, operation, and constant color
   state.
@@ -274,7 +274,13 @@ Tasks:
   raster backend now use the software raster diagnostic fallback so IDs stay
   exact until the GPU path has integer attachment support; trace messages
   identify that mixed execution path.
-- Add shadow-map pass support only after graph shadow state is fully explicit.
+- ~~Allow graph shadow-map plans to execute while OpenGL shadow sampling is
+  pending.~~ ✅ **Done.** The CPU graph shadow pass still materializes and
+  caches shadow-map resources for OpenGL-selected raster plans, and OpenGL
+  beauty records a trace message when it renders without consuming the shadow
+  resource.
+- Add OpenGL shadow-map sampling after the GPU raster path has explicit shadow
+  texture binding and shader lighting state.
 
 Acceptance:
 

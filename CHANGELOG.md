@@ -97,6 +97,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   when OpenGL-selected object/material ID AOV passes use the software raster
   diagnostic fallback, so the graph UI can explain the mixed execution path. —
   GPT-5
+- **OpenGL raster shadow-map plan fallback.** OpenGL-selected raster plans now
+  accept graph preview shadow-map resources without rejecting the pass state;
+  the CPU graph shadow pass still materializes/cache-populates the shadow
+  resource, while OpenGL beauty records that it rendered without consuming
+  shadow-map lighting until GPU shadow sampling lands. — GPT-5
 - **rendercli OpenGL application bootstrap.** rendercli now pre-scans explicit
   `--raster_backend opengl|gpu` runs, starts a GUI-capable Qt application for
   that backend, and defaults the command-line GPU path to Qt's offscreen
@@ -815,9 +820,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   lanes, avoiding union type-punning undefined behavior without leaving the hot
   path. — GPT-5
 - **OpenGL raster unsupported state diagnostics.** OpenGL-backed raster passes
-  now reject unsupported postprocess-AA, depth-bias, and shadow-map state
-  explicitly instead of silently rendering without those compiled graph
-  settings. — GPT-5
+  now reject unsupported postprocess-AA and depth-bias state explicitly instead
+  of silently rendering without those compiled graph settings. — GPT-5
 - **OpenGL raster Cocoa probing.** The OpenGL raster backend now reports a
   clear unavailable-backend error for headless Qt Cocoa offscreen context
   probes instead of entering the Qt path that can crash, while Modeler is

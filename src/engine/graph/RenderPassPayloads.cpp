@@ -305,8 +305,20 @@ namespace engine::graph {
         } else if (backend.isOpenGL()) {
           auto rasterizer = std::static_pointer_cast<::engine::raster::OpenGLRasterizer>(engine);
           state.applyTo(*rasterizer);
+          if (readsShadowMap(context)) {
+            context.recordTraceMessage("OpenGL raster backend does not consume graph shadow maps "
+                                       "yet; beauty rendered without shadow-map lighting");
+          }
         }
         return engine;
+      }
+
+      bool readsShadowMap(const RenderExecutionContext& context) const {
+        return std::any_of(context.pass().reads.begin(), context.pass().reads.end(),
+                           [&](const ResourceRead& read) {
+                             return context.storage().descriptor(read.resource).type ==
+                                    RenderResourceType::ShadowMap;
+                           });
       }
     };
 

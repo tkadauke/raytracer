@@ -798,9 +798,6 @@ namespace engine::graph {
   }
 
   void RasterShadowState::applyTo(engine::raster::OpenGLRasterizer&) const {
-    if (m_enabled) {
-      openGLUnsupported("shadow maps");
-    }
   }
 
   void RasterShadowState::setShadowMapsEnabled(bool enabled) {
