@@ -68,6 +68,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   material callback handle, and `render::Integrator` as the transport-policy
   boundary future path tracers will implement; this documents the preserved
   default Whitted behavior and does not add path tracing. — GPT-5
+- **rendercli OpenGL application bootstrap.** rendercli now pre-scans explicit
+  `--raster_backend opengl|gpu` runs, starts a GUI-capable Qt application for
+  that backend, and defaults the command-line GPU path to Qt's offscreen
+  platform while CPU/headless renders continue to use `QCoreApplication`. —
+  GPT-5
 - **Modeler OpenGL raster backend selection.** Modeler Render Settings, the
   final Render window, and the live preview override menu now expose CPU/OpenGL
   raster backend selection and compile it into typed raster pass execution

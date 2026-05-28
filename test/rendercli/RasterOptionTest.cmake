@@ -53,11 +53,17 @@ endif()
 
 rendercli_expect_failure(
   NAME "rendercli --raster_backend gpu fails clearly until OpenGL draw path lands"
+  ERROR_VARIABLE opengl_failure_stderr
   STDERR_MATCHES "OpenGL raster backend is selected"
   COMMAND
     "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
     "${matte_scene}" "${TEST_OUTPUT_DIR}/raster-opengl.png"
 )
+if(opengl_failure_stderr MATCHES "QCoreApplication")
+  _rendercli_fail("rendercli --raster_backend gpu application bootstrap"
+                  "OpenGL backend still failed before rendercli started a GUI-capable application"
+                  "" "" "" "${opengl_failure_stderr}")
+endif()
 
 rendercli_run(
   NAME "rendercli --lod 0 renders curved raster scene"

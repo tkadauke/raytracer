@@ -2,6 +2,7 @@
 #include <QCommandLineParser>
 #include <QFile>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QImage>
 #include <QJsonDocument>
 #include <QJsonParseError>
@@ -912,6 +913,48 @@ namespace {
         return pass.enabled && pass.executor == engine::graph::RenderExecutorKind::Rasterizer;
       });
   }
+
+  class RenderCliApplication {
+  public:
+    RenderCliApplication(int& argc, char** argv) {
+      if (requiresGuiApplication(argc, argv)) {
+        installOffscreenPlatformDefault();
+        m_application = std::make_unique<QGuiApplication>(argc, argv);
+      } else {
+        m_application = std::make_unique<QCoreApplication>(argc, argv);
+      }
+    }
+
+  private:
+    static bool requiresGuiApplication(int argc, char** argv) {
+      for (int i = 1; i < argc; ++i) {
+        const QString argument = QString::fromLocal8Bit(argv[i]);
+        if (argument.startsWith(QStringLiteral("--raster_backend="))) {
+          return isOpenGLRasterBackend(argument.section(QLatin1Char('='), 1));
+        }
+        if (argument == QStringLiteral("--raster_backend") && i + 1 < argc) {
+          return isOpenGLRasterBackend(QString::fromLocal8Bit(argv[i + 1]));
+        }
+      }
+      return false;
+    }
+
+    static bool isOpenGLRasterBackend(QString value) {
+      value = normalizedRasterOption(value);
+      return value == QStringLiteral("opengl") || value == QStringLiteral("gl") ||
+             value == QStringLiteral("gpu");
+    }
+
+    static void installOffscreenPlatformDefault() {
+      if (!qEnvironmentVariableIsSet("QT_QPA_PLATFORM")) {
+        // rendercli has no visible window; callers can override this when
+        // probing a specific platform plugin.
+        qputenv("QT_QPA_PLATFORM", "offscreen");
+      }
+    }
+
+    std::unique_ptr<QCoreApplication> m_application;
+  };
 }
 
 class Renderer {
@@ -3261,7 +3304,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
 }
 
 int main(int argc, char** argv) {
-  QCoreApplication app(argc, argv);
+  RenderCliApplication app(argc, argv);
   QCoreApplication::setApplicationName(
     QCoreApplication::translate("rendercli", "Command line renderer"));
 

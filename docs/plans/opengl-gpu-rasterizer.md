@@ -147,9 +147,12 @@ Tasks:
   without changing the default backend yet.~~ ✅ **Done.** `--raster_backend
   opengl` and `gpu` serialize as typed raster pass execution state; `cpu`
   remains the default.
-- Teach rendercli to bootstrap a `QGuiApplication` or offscreen platform mode
+- ~~Teach rendercli to bootstrap a `QGuiApplication` or offscreen platform mode
   when GPU raster is requested, so command-line GPU renders can create the
-  context instead of reporting the current application-bootstrap error.
+  context instead of reporting the current application-bootstrap error.~~ ✅
+  **Done.** rendercli pre-scans `--raster_backend opengl|gpu`, starts a
+  `QGuiApplication` only for that path, and defaults the command-line GPU run
+  to Qt's offscreen platform unless the caller has already selected a platform.
 - ~~Add Modeler UI to select GPU raster preview backend.~~ ✅ **Done.** The
   scene Render Settings property editor, final Render window, and preview
   override menu can all compile Rasterizer passes with the OpenGL backend.
