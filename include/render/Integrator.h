@@ -1,0 +1,52 @@
+#pragma once
+
+#include "core/Color.h"
+#include "core/math/Ray.h"
+
+namespace render {
+  class RayCaster;
+  class Scene;
+  class State;
+
+  /**
+    * @brief Single-ray radiance evaluator.
+    *
+    * `Integrator` owns the policy for evaluating the radiance carried by one
+    * ray through a scene. It is intentionally narrower than `RenderEngine`:
+    * it has no camera, framebuffer, tonemap, tile scheduler, cancellation UI,
+    * or worker-thread ownership. Those remain engine responsibilities.
+    *
+    * The first contract is shaped around the current Whitted renderer:
+    *
+    *  - `scene` is the non-owning scene being queried.
+    *  - `ray` is the immutable ray to evaluate.
+    *  - `state` is the mutable per-primary-ray recursion / statistics state.
+    *  - `recursiveRayCaster` is the callback used by legacy materials to trace
+    *    reflection, refraction, and portal rays.
+    *
+    * That split lets `Raytracer` remain the owner of image rendering and
+    * single-ray probes while future code can move the Whitted radiance
+    * algorithm behind this interface without changing cameras or materials.
+    *
+    * @see RenderEngine — owns camera / scene / framebuffer rendering.
+    * @see RayCaster — compatibility callback for recursive material shading.
+    * @see State — mutable bookkeeping threaded through radiance evaluation.
+    */
+  class Integrator {
+  public:
+    virtual ~Integrator() = default;
+
+    /**
+      * Evaluate the radiance carried by `ray` in `scene`.
+      *
+      * Implementations may mutate `state` for recursion depth, hit-point
+      * probes, event tracing, and performance counters. The scene and ray are
+      * borrowed for the duration of the call; the integrator must not retain
+      * references to them. Recursive Whitted-style implementations call back
+      * through `recursiveRayCaster.rayColor(...)` when a material needs a
+      * secondary ray evaluated.
+      */
+    virtual Colord radiance(const Scene& scene, const Rayd& ray, State& state,
+                            const RayCaster& recursiveRayCaster) const = 0;
+  };
+}

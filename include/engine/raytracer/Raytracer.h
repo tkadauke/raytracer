@@ -37,7 +37,10 @@ namespace engine::raytracer {
     *    `rayColor`). Bypass the threading machinery — used by the
     *    interactive picking path in `Modeler` (mouse click → "what
     *    primitive is under the cursor?") and by tests pinning shading
-    *    behaviour.
+    *    behaviour. `rayColor` is also the `RayCaster` compatibility
+    *    callback that cameras and recursive materials call today; the
+    *    long-term owner of the single-ray radiance policy is
+    *    `render::Integrator`.
     *  - **Recursion-depth limit.** Specific to ray-recursive engines
     *    (raytracer, future path tracer). Wireframe / raster engines
     *    have no analogue, so it doesn't live on `RenderEngine`.
@@ -56,6 +59,7 @@ namespace engine::raytracer {
     * @endcode
     *
     * @see RenderEngine — the abstract base.
+    * @see render::Integrator — the single-ray radiance policy boundary.
     * @see Camera, Scene, Tonemap.
     * @see render::State — per-ray state threaded through `rayColor`.
     */

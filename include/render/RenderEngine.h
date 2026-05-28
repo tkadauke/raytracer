@@ -13,6 +13,7 @@ class Buffer;
 namespace render {
   class Tonemap;
   class Camera;
+  class Integrator;
   class Scene;
 
   /**
@@ -54,9 +55,16 @@ namespace render {
     *    `primitiveForRay`). These are raytracer-specific — a
     *    wireframe engine has no notion of "what colour is this
     *    pixel via recursive ray tracing."
-    *  - **Recursion-depth limit.** Lives on `Raytracer` because
-    *    only ray-recursive engines (raytracer, future path tracer)
-    *    have a meaningful concept of recursion.
+    *  - **Single-ray radiance policy.** Lives behind
+    *    `Integrator`, which receives a borrowed `Scene`, `Rayd`,
+    *    and mutable `State` for one ray. A `RenderEngine` owns
+    *    image production; an integrator owns "what does this ray
+    *    see?"
+    *  - **Recursion-depth limit.** Lives on `Raytracer` today
+    *    because only ray-recursive engines (raytracer, future path
+    *    tracer) have a meaningful concept of recursion. It belongs
+    *    with the concrete ray integration policy as that layer is
+    *    factored out.
     *  - **Worker threads.** Each engine picks its own threading
     *    strategy — the raytracer tiles pixels, the software rasterizer
     *    can tile the framebuffer, wireframe runs on the caller thread,
@@ -65,6 +73,7 @@ namespace render {
     * @see engine::raytracer::Raytracer — recursive raytracing engine.
     * @see engine::wireframe::Wireframe — edge-only tessellation preview.
     * @see engine::raster::Rasterizer — software triangle rasterizer.
+    * @see Integrator — single-ray radiance evaluation contract.
     * @see Tonemap — the HDR-to-LDR operator the LDR-render
     *      overload runs through.
     */
