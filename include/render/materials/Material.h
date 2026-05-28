@@ -38,10 +38,10 @@ namespace render {
     *
     * `shade` may not call other methods on the same material in a
     * way that would re-enter the recursion limit unguarded — the
-    * `Raytracer` increments `state.recursionDepth` on every
-    * `rayColor` call, so a well-formed `shade` either returns a
+    * active recursive `RayCaster` callback updates the `State` for
+    * each `rayColor` call, so a well-formed `shade` either returns a
     * direct-lit colour or delegates further work back through
-    * `raytracer->rayColor(...)`.
+    * `raycaster->rayColor(...)`.
     *
     * @see PhongMaterial — the canonical worked example.
     * @see BRDF / BTDF — the reflectance / transmittance lobes

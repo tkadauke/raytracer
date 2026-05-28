@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include "render/materials/TransparentMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
-#include "engine/raytracer/Raytracer.h"
 #include "render/State.h"
 #include "render/primitives/Scene.h"
 #include "core/math/Ray.h"
@@ -9,20 +8,12 @@
 
 #include <cmath>
 
-#include "core/math/HitPoint.h"
-#include "engine/raytracer/Raytracer.h"
-#include "render/State.h"
-#include "render/primitives/Scene.h"
-
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/RecordingRayCaster.h"
 
 namespace TransparentMaterialTest {
   using namespace render;
-  using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
+  using test::helpers::RecordingRayCaster;
 
   TEST(TransparentMaterial, ShouldInitialize) {
     TransparentMaterial material;
@@ -101,7 +92,7 @@ namespace TransparentMaterialTest {
       std::shared_ptr<ConstantColorTexture> texture =
         std::make_shared<ConstantColorTexture>(Colord::white());
       std::shared_ptr<render::Scene> scene = std::make_shared<Scene>(Colord::black());
-      std::shared_ptr<Raytracer> raytracer = std::make_shared<Raytracer>(scene);
+      RecordingRayCaster raycaster;
 
       HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
       Rayd ray{Vector3d(0, 5, 0), Vector3d(0, -1, 0)};
@@ -128,19 +119,22 @@ namespace TransparentMaterialTest {
   TEST(TransparentMaterial, ShouldTransmitBackgroundUnchangedAtIndexOne) {
     ShadeFixture f;
     // index = 1 means the refracted ray continues straight through the
-    // surface; with no other primitives in the scene it hits the
-    // background. transmittedColor at index 1 is white * 1 / 1 / |N·trans|,
+    // surface. transmittedColor at index 1 is white * 1 / 1 / |N·trans|,
     // and the |N·trans| in shade cancels it back to white * background.
-    f.scene->setBackground(Colord(1, 0, 0));
+    f.raycaster.pushColor(Colord::black());
+    f.raycaster.pushColor(Colord(1, 0, 0));
 
-    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(&f.raycaster, *f.scene, f.ray, f.hitPoint, f.state);
 
     ASSERT_COLOR_NEAR(Colord(1, 0, 0), colour, 0.001);
+    ASSERT_EQ(2u, f.raycaster.rays.size());
+    EXPECT_NEAR(-1.0, f.raycaster.rays.back().direction().y(), 0.001);
   }
 
   TEST(TransparentMaterial, ShouldAddReflectionContribution) {
     ShadeFixture f;
-    f.scene->setBackground(Colord(0, 1, 0));
+    f.raycaster.pushColor(Colord(0, 1, 0));
+    f.raycaster.pushColor(Colord::white());
     f.material.setReflectionColor(Colord::white());
     f.material.setReflectionCoefficient(0.5);
     f.material.setTransmissionCoefficient(0.0);
@@ -148,14 +142,15 @@ namespace TransparentMaterialTest {
     // with transmissionCoefficient 0 the transmittedColor is black.
     // Result is just the reflection branch: 0.5 * 1 * green = (0, 0.5, 0).
 
-    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(&f.raycaster, *f.scene, f.ray, f.hitPoint, f.state);
 
     ASSERT_COLOR_NEAR(Colord(0, 0.5, 0), colour, 0.001);
   }
 
   TEST(TransparentMaterial, ShouldSumReflectionAndTransmission) {
     ShadeFixture f;
-    f.scene->setBackground(Colord(1, 1, 1));
+    f.raycaster.pushColor(Colord(1, 1, 1));
+    f.raycaster.pushColor(Colord(1, 1, 1));
     f.material.setReflectionColor(Colord::white());
     f.material.setReflectionCoefficient(0.25);
     f.material.setTransmissionCoefficient(0.5);
@@ -164,7 +159,7 @@ namespace TransparentMaterialTest {
     //   transmission  = 0.5  * 1 * (1,1,1) = (0.5,  0.5,  0.5)
     // sum = (0.75, 0.75, 0.75).
 
-    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(&f.raycaster, *f.scene, f.ray, f.hitPoint, f.state);
 
     ASSERT_COLOR_NEAR(Colord(0.75, 0.75, 0.75), colour, 0.001);
   }
@@ -180,12 +175,12 @@ namespace TransparentMaterialTest {
     f.material.setRefractionIndex(0.5);
     constexpr double s = 0.7071067811865476;
     f.ray = Rayd(Vector3d(5, 5, 0), Vector3d(-s, -s, 0));
-    f.scene->setBackground(Colord(1, 0, 0));
+    f.raycaster.pushColor(Colord(1, 0, 0));
 
-    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(&f.raycaster, *f.scene, f.ray, f.hitPoint, f.state);
 
-    // Reflected ray goes back up into empty scene → background.
     ASSERT_COLOR_NEAR(Colord(1, 0, 0), colour, 0.001);
+    ASSERT_EQ(1u, f.raycaster.rays.size());
   }
 
   // Regression for the bug fixed in #36: prior to the fix, the
@@ -203,8 +198,7 @@ namespace TransparentMaterialTest {
   //
   // This test sets up a TIR-triggering hit (ray exiting glass at 60° from
   // the outward normal, IOR 1.5; critical angle is ~41.8°), forces the
-  // recursive reflection to truncate immediately to a black scene
-  // background (max recursion depth = 1), and asserts that the result is
+  // recursive reflection to return black, and asserts that the result is
   // *not* black — proving direct lighting was added.
   TEST(TransparentMaterial, ShouldIncludeDirectLightingOnTIRBranch) {
     auto scene = std::make_shared<Scene>();
@@ -214,9 +208,7 @@ namespace TransparentMaterialTest {
     auto material = std::make_shared<TransparentMaterial>(
       std::make_shared<ConstantColorTexture>(Colord(0.7, 0.2, 0.1)));
     material->setRefractionIndex(1.5);
-
-    auto rt = std::make_shared<Raytracer>(scene);
-    rt->setMaximumRecursionDepth(1); // forces the reflected ray to truncate.
+    RecordingRayCaster raycaster(Colord::black());
 
     // Outward normal +y; ray exiting glass at 60° from normal — past the
     // ~41.8° critical angle for IOR 1.5, so TIR triggers.
@@ -227,7 +219,7 @@ namespace TransparentMaterialTest {
 
     State state;
     state.startTrace();
-    Colord result = material->shade(rt.get(), *scene, ray, hitPoint, state);
+    Colord result = material->shade(&raycaster, *scene, ray, hitPoint, state);
 
     // Verify TIR actually fired (so we know we're testing the right branch).
     bool tirEventLogged = false;
@@ -240,8 +232,9 @@ namespace TransparentMaterialTest {
     ASSERT_TRUE(tirEventLogged) << "expected the TIR branch to execute";
 
     // Phong ambient contribution = texColor (red-ish) * scene.ambient (white).
-    // Pre-fix this would have been Colord::black() (truncated reflection).
+    // Pre-fix this would have been Colord::black() (black recursive reflection).
     ASSERT_NE(Colord::black(), result);
     ASSERT_GT(result.r(), 0.0);
+    ASSERT_EQ(1u, raycaster.rays.size());
   }
 }
