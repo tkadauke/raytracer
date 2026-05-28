@@ -1,0 +1,56 @@
+Command:
+
+  ./build/benchmark/benchmarks/benchmarks --benchmark_filter='bm_(random|legacy_rand|mt19937)' --benchmark_min_time=0.1s
+
+Notes:
+
+  Benchmarked on the Syrus Linux worker after a clean benchmark build. The
+  machine still reported background load, so compare CPU time, not wall time.
+  The benchmark source includes three choices:
+
+  - bm_random_*: project Number::random, thread-local PCG32
+  - bm_legacy_rand_*: legacy std::rand baseline
+  - bm_mt19937_*: thread-local std::mt19937_64 candidate
+
+Results:
+
+  Run on (4 X 2496 MHz CPU s)
+  CPU Caches:
+    L1 Data 32 KiB (x4)
+    L1 Instruction 32 KiB (x4)
+    L2 Unified 4096 KiB (x4)
+    L3 Unified 16384 KiB (x1)
+  Load Average: 15.39, 19.91, 21.56
+
+  Benchmark                                  Time             CPU   Iterations
+  ---------------------------------------------------------------------------
+  bm_random_unit<float>                   1.66 ns         1.60 ns     63104382
+  bm_random_unit<double>                  1.55 ns         1.55 ns     88774547
+  bm_random_range<float>                  1.60 ns         1.60 ns     85523697
+  bm_random_range<double>                 1.54 ns         1.54 ns     87480820
+  bm_random_int                           1.36 ns         1.36 ns     99163886
+  bm_random_batch<float>                  1561 ns         1559 ns        88367 items_per_second=657.042M/s
+  bm_random_batch<double>                 1816 ns         1587 ns        89213 items_per_second=645.276M/s
+  bm_random_threaded/threads:1            1.52 ns         1.49 ns     99505239
+  bm_random_threaded/threads:2           0.898 ns         1.71 ns     91893756
+  bm_random_threaded/threads:4           0.568 ns         1.62 ns     89696928
+  bm_random_threaded/threads:8           0.396 ns         1.74 ns     86816168
+  bm_legacy_rand_unit                     15.3 ns         15.2 ns      8451843
+  bm_legacy_rand_threaded/threads:1       14.4 ns         14.4 ns      8343828
+  bm_legacy_rand_threaded/threads:2       34.7 ns         56.7 ns      2000000
+  bm_legacy_rand_threaded/threads:4       43.7 ns         98.1 ns      5443620
+  bm_legacy_rand_threaded/threads:8       44.4 ns          152 ns       812736
+  bm_mt19937_unit                         6.39 ns         6.39 ns     19847680
+  bm_mt19937_threaded/threads:1           7.16 ns         7.15 ns     21719332
+  bm_mt19937_threaded/threads:2           3.73 ns         7.43 ns     19523924
+  bm_mt19937_threaded/threads:4           2.22 ns         8.15 ns     15931132
+  bm_mt19937_threaded/threads:8           1.50 ns         7.33 ns     18425176
+
+Summary:
+
+  PCG32 is about 9.8x faster than the legacy std::rand single-thread baseline
+  for random doubles (1.55 ns vs 15.2 ns CPU). It is about 4.1x faster than the
+  thread-local mt19937_64 candidate (1.55 ns vs 6.39 ns CPU). Under the 8-thread
+  benchmark, PCG32 stays near 1.74 ns CPU per call while std::rand rises to
+  152 ns CPU per call, an 87x CPU-time improvement and evidence that removing
+  the shared std::rand state matters for concurrent render workloads.

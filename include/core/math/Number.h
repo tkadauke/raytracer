@@ -37,6 +37,11 @@ namespace detail {
 
 /**
   * Seeds the calling thread's PRNG for deterministic output.
+  *
+  * Random generation is thread-local. Calling `seed()` affects only the
+  * current thread and does not reseed other render worker threads. The
+  * project no longer uses `std::rand`, so `std::srand` has no effect on
+  * `random()` or `Range::random()`.
   */
 inline void seed(uint64_t s) noexcept {
   detail::thread_rng().reseed(s);
