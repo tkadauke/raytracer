@@ -4,6 +4,7 @@
 #include "core/math/Rect.h"
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/graph/RenderPassState.h"
+#include "engine/raster/RasterBackend.h"
 #include "engine/raster/Rasterizer.h"
 
 #include <QJsonObject>
@@ -34,10 +35,14 @@ namespace engine::graph {
 
     void setMaximumThreads(int threads);
     void setQueueSize(int queueSize);
+    void setBackend(engine::raster::RasterBackend backend);
+
+    engine::raster::RasterBackend backend() const;
 
   private:
     std::optional<int> m_maximumThreads;
     std::optional<int> m_queueSize;
+    std::optional<engine::raster::RasterBackend> m_backend;
   };
 
   /**

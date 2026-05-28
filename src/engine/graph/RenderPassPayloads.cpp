@@ -294,12 +294,15 @@ namespace engine::graph {
       createEngine(const RenderExecutionContext& context) const override {
         const auto& graph = context.graph();
         auto camera = graph.camera() ? graph.camera()->clone() : nullptr;
-        auto rasterizer =
-          std::make_shared<::engine::raster::Rasterizer>(std::move(camera), graph.scene());
         const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(context.pass());
-        state.applyTo(*rasterizer);
-        applyRasterShadowInputs(context, state, *rasterizer);
-        return rasterizer;
+        const auto backend = state.execution().backend();
+        auto engine = backend.createEngine(std::move(camera), graph.scene());
+        if (backend.usesSoftwareRasterizer()) {
+          auto rasterizer = std::static_pointer_cast<::engine::raster::Rasterizer>(engine);
+          state.applyTo(*rasterizer);
+          applyRasterShadowInputs(context, state, *rasterizer);
+        }
+        return engine;
       }
     };
 
@@ -575,6 +578,10 @@ namespace engine::graph {
         auto rasterizer = std::make_shared<::engine::raster::Rasterizer>(std::move(camera),
                                                                          context.graph().scene());
         const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(pass);
+        if (!state.execution().backend().usesSoftwareRasterizer()) {
+          throw passError(pass, "OpenGL raster diagnostic AOV execution is not implemented yet; "
+                                "use raster backend 'cpu'");
+        }
         state.applyTo(*rasterizer);
         rasterizer->setDiagnosticOutputBuffers(outputs);
 
@@ -609,7 +616,12 @@ namespace engine::graph {
         auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
         auto rasterizer = std::make_shared<::engine::raster::Rasterizer>(std::move(camera),
                                                                          context.graph().scene());
-        RasterBeautyPassState::valueFromPass(pass).applyTo(*rasterizer);
+        const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(pass);
+        if (!state.execution().backend().usesSoftwareRasterizer()) {
+          throw passError(pass, "OpenGL raster stencil AOV execution is not implemented yet; "
+                                "use raster backend 'cpu'");
+        }
+        state.applyTo(*rasterizer);
         rasterizer->setMSAASamples(1);
         rasterizer->setPostProcessAA(::engine::raster::Rasterizer::PostProcessAA::None);
         rasterizer->setColorWriteMask(0);

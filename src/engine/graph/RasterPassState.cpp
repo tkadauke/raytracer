@@ -19,6 +19,10 @@ namespace engine::graph {
       return QString::fromStdString(value);
     }
 
+    QString qstr(const char* value) {
+      return QString::fromUtf8(value);
+    }
+
     [[noreturn]] void stateError(const std::string& path, const std::string& message) {
       throw std::runtime_error("Invalid raster pass state at " + path + ": " + message);
     }
@@ -368,12 +372,15 @@ namespace engine::graph {
 
   RasterExecutionState RasterExecutionState::fromJson(const QJsonObject& object,
                                                       const std::string& path) {
-    rejectUnknownFields(object, path, {"threads", "queueSize"});
+    rejectUnknownFields(object, path, {"threads", "queueSize", "backend"});
     RasterExecutionState state;
     if (hasField(object, "threads"))
       state.setMaximumThreads(intField(object, "threads", path));
     if (hasField(object, "queueSize"))
       state.setQueueSize(intField(object, "queueSize", path));
+    if (hasField(object, "backend"))
+      state.setBackend(engine::raster::RasterBackend::fromString(
+        stringField(object, "backend", path), path + ".backend"));
     return state;
   }
 
@@ -383,6 +390,8 @@ namespace engine::graph {
       object["threads"] = *m_maximumThreads;
     if (m_queueSize)
       object["queueSize"] = *m_queueSize;
+    if (m_backend && !m_backend->isCPU())
+      object["backend"] = qstr(m_backend->id());
     return object;
   }
 
@@ -406,6 +415,14 @@ namespace engine::graph {
 
   void RasterExecutionState::setQueueSize(int queueSize) {
     m_queueSize = std::max(1, queueSize);
+  }
+
+  void RasterExecutionState::setBackend(engine::raster::RasterBackend backend) {
+    m_backend = backend;
+  }
+
+  engine::raster::RasterBackend RasterExecutionState::backend() const {
+    return m_backend.value_or(engine::raster::RasterBackend::cpu());
   }
 
   RasterGeometryState RasterGeometryState::fromJson(const QJsonObject& object,

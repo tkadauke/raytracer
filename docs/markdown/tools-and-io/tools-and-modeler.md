@@ -94,11 +94,11 @@ into typed intent engine options before compilation. For example,
 `--sampler`, `--samples_per_pixel`, `--depth`, `--threads`, and
 `--queue_size` become raytracer pass state when the graph contains
 `raytrace_beauty`; raster controls such as `--lod`, `--msaa`,
-`--msaa_shading`, viewport/scissor, blending, alpha test, depth bias, and
-shadow-map quality become raster pass or shadow-node state; wireframe `--lod`
-becomes wireframe pass state. The compiler emits those parameters while
-synthesizing nodes, so exported graph JSON is self-describing and replay does
-not rely on hidden rendercli setup.
+`--msaa_shading`, `--raster_backend`, viewport/scissor, blending, alpha test,
+depth bias, and shadow-map quality become raster pass or shadow-node state;
+wireframe `--lod` becomes wireframe pass state. The compiler emits those
+parameters while synthesizing nodes, so exported graph JSON is self-describing
+and replay does not rely on hidden rendercli setup.
 If that intent does not name a default camera, rendercli annotates compiled
 scene-rendering passes with the active scene camera id.
 Selector-specific scene intent is preserved by scene JSON, but graph

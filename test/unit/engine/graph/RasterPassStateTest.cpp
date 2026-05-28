@@ -102,6 +102,7 @@ namespace RasterPassStateTest {
 
   TEST(RasterBeautyPassState, SerializesFocusedSubstates) {
     RasterBeautyPassState state;
+    state.execution().setBackend(engine::raster::RasterBackend::openGL());
     state.sampling().setMSAASamples(4);
     state.sampling().setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
     state.sampling().setPostProcessAA(Rasterizer::PostProcessAA::FXAA);
@@ -111,10 +112,12 @@ namespace RasterPassStateTest {
     state.shadows().setShadowFilterMode(Rasterizer::ShadowFilterMode::PCSS);
 
     const QJsonObject json = state.toJson();
+    const QJsonObject execution = json.value("execution").toObject();
     const QJsonObject sampling = json.value("sampling").toObject();
     const QJsonObject framebuffer = json.value("framebuffer").toObject();
     const QJsonObject shadows = json.value("shadows").toObject();
 
+    EXPECT_EQ("opengl", execution.value("backend").toString().toStdString());
     EXPECT_EQ(4, sampling.value("msaaSamples").toInt());
     EXPECT_EQ("per_fragment", sampling.value("msaaShadingMode").toString().toStdString());
     EXPECT_EQ("fxaa", sampling.value("postProcessAA").toString().toStdString());
@@ -127,6 +130,7 @@ namespace RasterPassStateTest {
   TEST(RasterBeautyPassState, AppliesImportedStateToRasterizer) {
     QJsonObject execution;
     execution["queueSize"] = 7;
+    execution["backend"] = "opengl";
     QJsonObject geometry;
     geometry["lod"] = 3;
     geometry["cullMode"] = "back";
@@ -165,9 +169,11 @@ namespace RasterPassStateTest {
     json["shadows"] = shadows;
 
     Rasterizer rasterizer(nullptr);
-    RasterBeautyPassState::fromJson(json).applyTo(rasterizer);
+    const RasterBeautyPassState state = RasterBeautyPassState::fromJson(json);
+    state.applyTo(rasterizer);
 
     EXPECT_EQ(3, rasterizer.lod());
+    EXPECT_TRUE(state.execution().backend().isOpenGL());
     EXPECT_EQ(7, rasterizer.queueSize());
     EXPECT_EQ(Rasterizer::CullMode::Back, rasterizer.cullMode());
     EXPECT_TRUE(rasterizer.hasCullModeOverride());

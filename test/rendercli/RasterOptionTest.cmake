@@ -15,6 +15,7 @@ set(matte_scene "${PROJECT_SOURCE_DIR}/scenes/raster_material_preview.json")
 set(reflective_scene "${PROJECT_SOURCE_DIR}/scenes/reflections.json")
 set(transmissive_scene "${PROJECT_SOURCE_DIR}/scenes/glass_torus.json")
 set(basic_render "${TEST_OUTPUT_DIR}/raster-basic.png")
+set(opengl_graph "${TEST_OUTPUT_DIR}/raster-opengl-graph.json")
 set(lod_0_render "${TEST_OUTPUT_DIR}/raster-lod-0.png")
 set(lod_3_render "${TEST_OUTPUT_DIR}/raster-lod-3.png")
 set(invalid_render "${TEST_OUTPUT_DIR}/invalid.png")
@@ -35,6 +36,28 @@ if(matte_stderr MATCHES "Rasterizer fallback:")
                   "simple matte/phong scene emitted recursive-material fallback warnings"
                   "" "" "" "${matte_stderr}")
 endif()
+
+rendercli_run(
+  NAME "rendercli --raster_backend opengl compiles graph pass state"
+  COMMAND
+    "${RENDERCLI}" --engine raster --render_graph_only --render_graph_format json
+    --raster_backend opengl
+    "${matte_scene}" "${opengl_graph}"
+)
+file(READ "${opengl_graph}" opengl_graph_json)
+if(NOT opengl_graph_json MATCHES "\"backend\"[ \r\n]*:[ \r\n]*\"opengl\"")
+  _rendercli_fail("rendercli --raster_backend opengl graph state"
+                  "compiled graph did not serialize the OpenGL raster backend"
+                  "" "" "" "${opengl_graph_json}")
+endif()
+
+rendercli_expect_failure(
+  NAME "rendercli --raster_backend gpu fails clearly until OpenGL executor lands"
+  STDERR_MATCHES "OpenGL raster backend is selected"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
+    "${matte_scene}" "${TEST_OUTPUT_DIR}/raster-opengl.png"
+)
 
 rendercli_run(
   NAME "rendercli --lod 0 renders curved raster scene"
@@ -149,5 +172,21 @@ rendercli_expect_failure(
   STDERR_MATCHES "Post-process AA must be 'none', 'fxaa', 'smaa', or 'taa'"
   COMMAND
     "${RENDERCLI}" --engine raster --post_aa sharpen
+    "${matte_scene}" "${invalid_render}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid --raster_backend"
+  STDERR_MATCHES "Raster backend must be 'cpu', 'opengl', or 'gpu'"
+  COMMAND
+    "${RENDERCLI}" --engine raster --raster_backend metal
+    "${matte_scene}" "${invalid_render}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects OpenGL raster backend with --direct_engine"
+  STDERR_MATCHES "OpenGL raster backend is graph-backed"
+  COMMAND
+    "${RENDERCLI}" --engine raster --direct_engine --raster_backend opengl
     "${matte_scene}" "${invalid_render}"
 )

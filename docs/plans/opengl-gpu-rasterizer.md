@@ -136,10 +136,13 @@ Tasks:
 
 - Add an OpenGL capability probe that can run in Modeler and rendercli.
 - Create an offscreen Qt/OpenGL context and FBO for rendercli/headless use.
-- Add a small `OpenGLRasterizer` executor shell with deterministic errors when
-  context creation fails.
-- Add render intent / rendercli spelling for selecting GPU raster backend,
-  without changing the default backend yet.
+- ~~Add a small `OpenGLRasterizer` executor shell with deterministic errors when
+  context creation fails.~~ ✅ **Done.** The first shell is graph-selectable and
+  reports one actionable unavailable-backend error until context/FBO work lands.
+- ~~Add render intent / rendercli spelling for selecting GPU raster backend,
+  without changing the default backend yet.~~ ✅ **Done.** `--raster_backend
+  opengl` and `gpu` serialize as typed raster pass execution state; `cpu`
+  remains the default.
 - Add Modeler UI to select GPU raster preview backend only when available.
 
 Acceptance:

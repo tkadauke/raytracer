@@ -2,6 +2,7 @@
 
 #include "core/Color.h"
 #include "core/math/Rect.h"
+#include "engine/raster/RasterBackend.h"
 
 #include <QJsonObject>
 
@@ -73,6 +74,8 @@ namespace engine::graph {
 
     void setMaximumThreads(int threads);
     void setQueueSize(int queueSize);
+    void setBackend(engine::raster::RasterBackend backend);
+    void setBackend(std::string backend);
     void setLod(int lod);
     void setCullMode(std::string mode);
     void setMSAASamples(int samples);
@@ -97,6 +100,7 @@ namespace engine::graph {
 
     std::optional<int> maximumThreads() const;
     std::optional<int> queueSize() const;
+    std::optional<engine::raster::RasterBackend> backend() const;
     std::optional<int> lod() const;
     std::optional<std::string> cullMode() const;
     std::optional<int> msaaSamples() const;
@@ -110,6 +114,7 @@ namespace engine::graph {
   private:
     std::optional<int> m_maximumThreads;
     std::optional<int> m_queueSize;
+    std::optional<engine::raster::RasterBackend> m_backend;
     std::optional<int> m_lod;
     std::optional<std::string> m_cullMode;
     std::optional<int> m_msaaSamples;

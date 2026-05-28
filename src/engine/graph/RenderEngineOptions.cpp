@@ -85,6 +85,10 @@ namespace engine::graph {
       return QString::fromStdString(value);
     }
 
+    QString qstr(const char* value) {
+      return QString::fromUtf8(value);
+    }
+
     QJsonArray rectToJson(const Recti& rect) {
       return QJsonArray{rect.left(), rect.top(), rect.width(), rect.height()};
     }
@@ -403,6 +407,8 @@ namespace engine::graph {
       execution["threads"] = *m_maximumThreads;
     if (m_queueSize)
       execution["queueSize"] = *m_queueSize;
+    if (m_backend && !m_backend->isCPU())
+      execution["backend"] = qstr(m_backend->id());
     if (!execution.isEmpty())
       object["execution"] = execution;
 
@@ -480,11 +486,14 @@ namespace engine::graph {
 
     RenderRasterizerOptions options;
     const QJsonObject execution = objectField(object, "execution", path);
-    rejectUnknownFields(execution, path + ".execution", {"threads", "queueSize"});
+    rejectUnknownFields(execution, path + ".execution", {"threads", "queueSize", "backend"});
     if (hasField(execution, "threads"))
       options.setMaximumThreads(intField(execution, "threads", path + ".execution"));
     if (hasField(execution, "queueSize"))
       options.setQueueSize(intField(execution, "queueSize", path + ".execution"));
+    if (hasField(execution, "backend"))
+      options.setBackend(engine::raster::RasterBackend::fromString(
+        stringField(execution, "backend", path + ".execution"), path + ".execution.backend"));
 
     const QJsonObject geometry = objectField(object, "geometry", path);
     rejectUnknownFields(geometry, path + ".geometry", {"lod", "cullMode"});
@@ -577,6 +586,7 @@ namespace engine::graph {
     RenderRasterizerOptions result = *this;
     result.m_maximumThreads = overrideOptional(result.m_maximumThreads, overrides.m_maximumThreads);
     result.m_queueSize = overrideOptional(result.m_queueSize, overrides.m_queueSize);
+    result.m_backend = overrideOptional(result.m_backend, overrides.m_backend);
     result.m_lod = overrideOptional(result.m_lod, overrides.m_lod);
     result.m_cullMode = overrideOptional(result.m_cullMode, overrides.m_cullMode);
     result.m_msaaSamples = overrideOptional(result.m_msaaSamples, overrides.m_msaaSamples);
@@ -627,6 +637,8 @@ namespace engine::graph {
       state.execution().setMaximumThreads(*m_maximumThreads);
     if (m_queueSize)
       state.execution().setQueueSize(*m_queueSize);
+    if (m_backend)
+      state.execution().setBackend(*m_backend);
     if (m_lod)
       state.geometry().setLod(*m_lod);
     if (m_cullMode)
@@ -717,6 +729,15 @@ namespace engine::graph {
 
   void RenderRasterizerOptions::setQueueSize(int queueSize) {
     m_queueSize = std::max(1, queueSize);
+  }
+
+  void RenderRasterizerOptions::setBackend(engine::raster::RasterBackend backend) {
+    m_backend = backend;
+  }
+
+  void RenderRasterizerOptions::setBackend(std::string backend) {
+    m_backend =
+      engine::raster::RasterBackend::fromString(std::move(backend), "rasterizer.execution.backend");
   }
 
   void RenderRasterizerOptions::setLod(int lod) {
@@ -827,6 +848,10 @@ namespace engine::graph {
 
   std::optional<int> RenderRasterizerOptions::queueSize() const {
     return m_queueSize;
+  }
+
+  std::optional<engine::raster::RasterBackend> RenderRasterizerOptions::backend() const {
+    return m_backend;
   }
 
   std::optional<int> RenderRasterizerOptions::lod() const {

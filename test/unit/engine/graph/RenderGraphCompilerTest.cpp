@@ -585,6 +585,7 @@ namespace RenderGraphCompilerTest {
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
     intent.enablePreviewShadows = true;
+    intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
     intent.engineOptions.rasterizer().setLod(3);
     intent.engineOptions.rasterizer().setMSAASamples(4);
     intent.engineOptions.rasterizer().setMSAAShadingMode("per_fragment");
@@ -597,6 +598,7 @@ namespace RenderGraphCompilerTest {
     ASSERT_NE(nullptr, beauty);
     const auto* beautyState = RasterBeautyPassState::fromPass(*beauty);
     ASSERT_NE(nullptr, beautyState);
+    EXPECT_TRUE(beautyState->execution().backend().isOpenGL());
     EXPECT_EQ(4, beautyState->sampling().msaaSamples());
 
     const auto* shadow = plan.findPass("raster_preview_shadows");

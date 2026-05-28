@@ -28,6 +28,7 @@
 #include "render/lights/PointLight.h"
 #include "render/RenderEngine.h"
 #include "engine/raytracer/Raytracer.h"
+#include "engine/raster/RasterBackend.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/materials/Material.h"
@@ -991,6 +992,8 @@ private:
   engine::graph::RenderGraphOverrides m_renderGraphOverrides;
   int m_wireframeLod;
   QString m_rasterCullMode;
+  QString m_rasterBackend;
+  bool m_rasterBackendSet;
   int m_rasterMsaaSamples;
   QString m_rasterMsaaShadingMode;
   QString m_rasterPostProcessAA;
@@ -1132,6 +1135,8 @@ Renderer::Renderer()
       m_renderGraphOverrides(),
       m_wireframeLod(0),
       m_rasterCullMode("both"),
+      m_rasterBackend("cpu"),
+      m_rasterBackendSet(false),
       m_rasterMsaaSamples(1),
       m_rasterMsaaShadingMode("per_sample"),
       m_rasterPostProcessAA("none"),
@@ -1452,6 +1457,8 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.wireframe().setLod(m_wireframeLod);
     options.rasterizer().setLod(m_wireframeLod);
   }
+  if (m_rasterBackendSet)
+    options.rasterizer().setBackend(m_rasterBackend.toStdString());
   if (m_rasterCullMode != "both")
     options.rasterizer().setCullMode(m_rasterCullMode.toStdString());
   if (m_rasterMsaaSamples != 1)
@@ -2319,6 +2326,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"disable_feature", "Disable a render graph feature; may be repeated or comma-separated",
       "feature"},
      {"lod", "Tessellation level of detail for wireframe / raster engines", "lod"},
+     {"raster_backend", "Rasterizer backend for graph raster passes (cpu, opengl, gpu)", "backend"},
      {"cull", "Rasterizer face culling mode (both, back, front)", "mode"},
      {"msaa", "Rasterizer MSAA samples (1, 2, 4, or 8)", "samples"},
      {"msaa_shading", "Rasterizer MSAA shading mode (per_sample, per_fragment)", "mode"},
@@ -2821,6 +2829,18 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     }
   }
 
+  if (parser.isSet("raster_backend")) {
+    try {
+      const auto backend = engine::raster::RasterBackend::fromString(
+        parser.value("raster_backend").toStdString(), "--raster_backend");
+      m_rasterBackend = QString::fromUtf8(backend.id());
+      m_rasterBackendSet = true;
+    } catch (const std::runtime_error&) {
+      *errorMessage = "Raster backend must be 'cpu', 'opengl', or 'gpu'";
+      return CommandLineError;
+    }
+  }
+
   if (parser.isSet("cull")) {
     const QString cull = parser.value("cull").toLower();
     if (cull != "both" && cull != "back" && cull != "front") {
@@ -3205,6 +3225,12 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
        parser.isSet("disable_pass_kind") || parser.isSet("disable_executor") ||
        parser.isSet("disable_feature"))) {
     *errorMessage = "Cannot combine --direct_engine with render graph options";
+    return CommandLineError;
+  }
+
+  if (m_directEngine && m_rasterBackendSet && m_rasterBackend != QStringLiteral("cpu")) {
+    *errorMessage =
+      "OpenGL raster backend is graph-backed; use --raster_backend cpu with --direct_engine";
     return CommandLineError;
   }
 

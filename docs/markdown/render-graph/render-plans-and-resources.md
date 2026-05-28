@@ -576,9 +576,12 @@ When the selected beauty executor is the rasterizer, graph-backed rendercli
 raster controls are compiled into the raster beauty pass's typed state and
 replayed by `RasterBeautyPass`. Exported graph JSON still shows that state
 under the pass's `parameters` object, making settings such as `--msaa`,
-`--msaa_shading`, `--viewport`, and color-output controls visible instead of
-living only in the direct raster engine setup path. Raster AOV producer passes
-use the same state object, so `--render_graph_view depth`,
+`--msaa_shading`, `--raster_backend`, `--viewport`, and color-output controls
+visible instead of living only in the direct raster engine setup path. CPU
+raster remains the default backend; selecting `opengl` currently records the
+backend in graph state and fails with an explicit capability error until the
+GPU executor can create an offscreen context and framebuffer. Raster AOV
+producer passes use the same state object, so `--render_graph_view depth`,
 `--render_graph_view raster_depth_test_count`, and exported raster AOV side
 branches see the requested tessellation and sampling settings. The stencil AOV
 is a graph-synthesized coverage mask: raytracer and wireframe
