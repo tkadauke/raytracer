@@ -44,6 +44,9 @@ namespace engine::raster::detail {
       float lightR{1.0f};
       float lightG{1.0f};
       float lightB{1.0f};
+      float specularR{0.0f};
+      float specularG{0.0f};
+      float specularB{0.0f};
       float albedoMode{0.0f};
     };
 
@@ -91,7 +94,11 @@ namespace engine::raster::detail {
 
     OpenGLRasterMesh::Vertex vertexFor(const RasterTriangle& triangle,
                                        const RasterVertex& vertex) const;
-    Colord lightingFor(const RasterTriangle& triangle, const RasterVertex& vertex) const;
+    Vector3d lightingNormalFor(const RasterTriangle& triangle, const RasterVertex& vertex) const;
+    Colord lightingFor(const RasterTriangle& triangle, const RasterVertex& vertex,
+                       const Vector3d& normal) const;
+    Colord specularFor(const RasterTriangle& triangle, const RasterVertex& vertex,
+                       const Vector3d& normal) const;
   };
 
 }

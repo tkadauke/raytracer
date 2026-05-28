@@ -118,6 +118,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   carry graph-scene ambient and direct diffuse light factors into the shader,
   so GPU raster output responds to scene lights instead of showing only raw
   material albedo. — GPT-5
+- **OpenGL raster Phong highlights.** OpenGL raster mesh vertices now carry
+  local Phong specular contributions into the shader for materials that expose
+  specular color, coefficient, and exponent. — GPT-5
 - **OpenGL raster readback timing.** Graph execution traces now report how
   long OpenGL raster passes spent copying color/depth/stencil attachments back
   to CPU buffers, making the current eager-readback cost visible in rendercli

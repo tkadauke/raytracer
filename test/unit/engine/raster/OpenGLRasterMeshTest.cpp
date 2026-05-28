@@ -4,6 +4,7 @@
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
+#include "render/materials/PhongMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
@@ -164,6 +165,37 @@ namespace OpenGLRasterMeshTest {
       EXPECT_FLOAT_EQ(0.75f, vertex.lightR);
       EXPECT_FLOAT_EQ(0.75f, vertex.lightG);
       EXPECT_FLOAT_EQ(0.75f, vertex.lightB);
+    }
+  }
+
+  TEST(OpenGLRasterMesh, CarriesPhongSpecularLighting) {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    scene->addLight(
+      std::make_shared<render::DirectionalLight>(Vector3d(0, 0, -1), Colord(0.2, 0.4, 0.6)));
+    auto triangle = std::make_shared<render::Triangle>(
+      Vector3d(-0.25, -0.25, 0), Vector3d(0, 0.25, 0), Vector3d(0.25, -0.25, 0));
+    auto material = std::make_shared<render::PhongMaterial>(
+      std::make_shared<render::ConstantColorTexture>(Colord::black()));
+    material->setAmbientCoefficient(0.0);
+    material->setDiffuseCoefficient(0.0);
+    material->setSpecularColor(Colord::white());
+    material->setSpecularCoefficient(0.5);
+    material->setExponent(1.0);
+    triangle->setMaterial(material);
+    scene->add(triangle);
+    std::atomic<bool> cancelled{false};
+
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+                                              Rasterizer::CullMode::Both, false, cancelled)
+                        .build();
+
+    ASSERT_FALSE(mesh.empty());
+    ASSERT_EQ(3u, mesh.vertices().size());
+    for (const auto& vertex : mesh.vertices()) {
+      EXPECT_FLOAT_EQ(0.0f, vertex.lightR);
+      EXPECT_GT(vertex.specularR, 0.0f);
+      EXPECT_GT(vertex.specularG, vertex.specularR);
+      EXPECT_GT(vertex.specularB, vertex.specularG);
     }
   }
 

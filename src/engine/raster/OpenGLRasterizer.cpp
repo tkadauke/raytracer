@@ -209,11 +209,13 @@ namespace engine::raster {
                                              "attribute vec2 uv;\n"
                                              "attribute float alphaScale;\n"
                                              "attribute vec3 lighting;\n"
+                                             "attribute vec3 specular;\n"
                                              "attribute float albedoMode;\n"
                                              "varying vec4 vertexColor;\n"
                                              "varying vec2 vertexUV;\n"
                                              "varying float fragmentAlphaScale;\n"
                                              "varying vec3 fragmentLighting;\n"
+                                             "varying vec3 fragmentSpecular;\n"
                                              "varying float fragmentAlbedoMode;\n"
                                              "void main() {\n"
                                              "  gl_Position = vec4(position.xyz * position.w, "
@@ -222,6 +224,7 @@ namespace engine::raster {
                                              "  vertexUV = uv;\n"
                                              "  fragmentAlphaScale = alphaScale;\n"
                                              "  fragmentLighting = lighting;\n"
+                                             "  fragmentSpecular = specular;\n"
                                              "  fragmentAlbedoMode = albedoMode;\n"
                                              "}\n")) {
           throw std::runtime_error("OpenGL raster backend could not compile vertex shader: " +
@@ -232,6 +235,7 @@ namespace engine::raster {
                                        "varying vec2 vertexUV;\n"
                                        "varying float fragmentAlphaScale;\n"
                                        "varying vec3 fragmentLighting;\n"
+                                       "varying vec3 fragmentSpecular;\n"
                                        "varying float fragmentAlbedoMode;\n"
                                        "uniform bool alphaTestEnabled;\n"
                                        "uniform int alphaFunc;\n"
@@ -266,7 +270,8 @@ namespace engine::raster {
                                        "sourceColor.g), sourceColor.b) * "
                                        "fragmentAlphaScale;\n"
                                        "  }\n"
-                                       "  sourceColor.rgb *= fragmentLighting;\n"
+                                       "  sourceColor.rgb = sourceColor.rgb * fragmentLighting + "
+                                       "fragmentSpecular;\n"
                                        "  if (!alphaPass(sourceColor.a)) discard;\n"
                                        "  gl_FragColor = sourceColor;\n"
                                        "}\n")) {
@@ -306,9 +311,10 @@ namespace engine::raster {
         const int uvLocation = program.attributeLocation("uv");
         const int alphaScaleLocation = program.attributeLocation("alphaScale");
         const int lightingLocation = program.attributeLocation("lighting");
+        const int specularLocation = program.attributeLocation("specular");
         const int albedoModeLocation = program.attributeLocation("albedoMode");
         if (positionLocation < 0 || colorLocation < 0 || uvLocation < 0 || alphaScaleLocation < 0 ||
-            lightingLocation < 0 || albedoModeLocation < 0) {
+            lightingLocation < 0 || specularLocation < 0 || albedoModeLocation < 0) {
           indexBuffer.release();
           vertexBuffer.release();
           program.release();
@@ -334,6 +340,10 @@ namespace engine::raster {
         program.enableAttributeArray(lightingLocation);
         program.setAttributeBuffer(lightingLocation, GL_FLOAT,
                                    offsetof(detail::OpenGLRasterMesh::Vertex, lightR), 3,
+                                   sizeof(detail::OpenGLRasterMesh::Vertex));
+        program.enableAttributeArray(specularLocation);
+        program.setAttributeBuffer(specularLocation, GL_FLOAT,
+                                   offsetof(detail::OpenGLRasterMesh::Vertex, specularR), 3,
                                    sizeof(detail::OpenGLRasterMesh::Vertex));
         program.enableAttributeArray(albedoModeLocation);
         program.setAttributeBuffer(albedoModeLocation, GL_FLOAT,
@@ -362,6 +372,7 @@ namespace engine::raster {
         resetFixedFunctionState(functions);
 
         program.disableAttributeArray(albedoModeLocation);
+        program.disableAttributeArray(specularLocation);
         program.disableAttributeArray(lightingLocation);
         program.disableAttributeArray(alphaScaleLocation);
         program.disableAttributeArray(uvLocation);

@@ -54,7 +54,7 @@ namespace engine::raster::detail {
       return static_cast<float>(static_cast<int>(mode));
     }
 
-    float lightComponent(double value) {
+    float nonnegativeComponent(double value) {
       return static_cast<float>(std::max(0.0, value));
     }
   }
@@ -138,7 +138,9 @@ namespace engine::raster::detail {
       triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
     const double alpha = triangle.rasterMaterial.alpha(
       triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
-    const Colord lighting = lightingFor(triangle, vertex);
+    const Vector3d normal = lightingNormalFor(triangle, vertex);
+    const Colord lighting = lightingFor(triangle, vertex, normal);
+    const Colord specular = specularFor(triangle, vertex, normal);
     const RasterAlbedoShaderSource shaderSource = triangle.rasterMaterial.shaderAlbedoSource();
     return {normalizedDeviceX(vertex.x, m_viewportRect),
             normalizedDeviceY(vertex.y, m_viewportRect),
@@ -151,22 +153,30 @@ namespace engine::raster::detail {
             static_cast<float>(vertex.uv.x()),
             static_cast<float>(vertex.uv.y()),
             static_cast<float>(std::clamp(triangle.rasterMaterial.materialAlpha(), 0.0, 1.0)),
-            lightComponent(lighting.r()),
-            lightComponent(lighting.g()),
-            lightComponent(lighting.b()),
+            nonnegativeComponent(lighting.r()),
+            nonnegativeComponent(lighting.g()),
+            nonnegativeComponent(lighting.b()),
+            nonnegativeComponent(specular.r()),
+            nonnegativeComponent(specular.g()),
+            nonnegativeComponent(specular.b()),
             shaderMode(shaderSource)};
   }
 
+  Vector3d OpenGLRasterMeshBuilder::lightingNormalFor(const RasterTriangle& triangle,
+                                                      const RasterVertex& vertex) const {
+    const Vector3d baseNormal = vertex.normal.normalized();
+    return triangle.rasterMaterial.lightingNormal(triangle.primitive, vertex.point, baseNormal,
+                                                  vertex.uv, triangle.uvDx, triangle.uvDy,
+                                                  triangle.tangentFrame);
+  }
+
   Colord OpenGLRasterMeshBuilder::lightingFor(const RasterTriangle& triangle,
-                                              const RasterVertex& vertex) const {
+                                              const RasterVertex& vertex,
+                                              const Vector3d& normal) const {
     if (!m_scene) {
       return Colord::white();
     }
 
-    const Vector3d baseNormal = vertex.normal.normalized();
-    const Vector3d normal = triangle.rasterMaterial.lightingNormal(
-      triangle.primitive, vertex.point, baseNormal, vertex.uv, triangle.uvDx, triangle.uvDy,
-      triangle.tangentFrame);
     Colord lighting = m_scene->ambient() * triangle.rasterMaterial.ambientCoefficient();
     for (const auto& light : m_scene->lights()) {
       const Vector3d lightDir = light->direction(vertex.point);
@@ -176,5 +186,33 @@ namespace engine::raster::detail {
       }
     }
     return lighting;
+  }
+
+  Colord OpenGLRasterMeshBuilder::specularFor(const RasterTriangle& triangle,
+                                              const RasterVertex& vertex,
+                                              const Vector3d& normal) const {
+    if (!m_scene || !m_camera || !triangle.rasterMaterial.hasSpecular()) {
+      return Colord::black();
+    }
+
+    const Vector3d viewDir = (-m_camera->rayForPixel(vertex.x, vertex.y).direction()).normalized();
+    Colord specular = Colord::black();
+    for (const auto& light : m_scene->lights()) {
+      const Vector3d lightDir = light->direction(vertex.point);
+      const double nDotL = std::max(0.0, normal * lightDir);
+      if (nDotL <= 0.0) {
+        continue;
+      }
+
+      const Vector3d lobeDirection = (-lightDir + normal * 2.0 * nDotL).normalized();
+      const double lobeDotView = std::max(0.0, lobeDirection * viewDir);
+      if (lobeDotView > 0.0) {
+        specular += triangle.rasterMaterial.specularColor() *
+                    triangle.rasterMaterial.specularCoefficient() *
+                    std::pow(lobeDotView, triangle.rasterMaterial.specularExponent()) *
+                    light->radiance() * nDotL;
+      }
+    }
+    return specular;
   }
 }
