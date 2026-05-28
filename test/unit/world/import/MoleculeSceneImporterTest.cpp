@@ -78,12 +78,12 @@ namespace MoleculeSceneImporterTest {
   }
 
   TEST(MoleculeSceneCompiler, ShouldMapModelsChainsAndResiduesToNestedGroups) {
-    std::ifstream input("test/fixtures/molecule/small.pdb");
+    std::ifstream input("test/fixtures/molecules/small.pdb");
     ASSERT_TRUE(input.is_open());
     const auto parsed = molecule::MoleculeParser().parsePdb(input);
 
     world::ImportSourceMetadata source;
-    source.sourcePath = "test/fixtures/molecule/small.pdb";
+    source.sourcePath = "test/fixtures/molecules/small.pdb";
     source.importerName = "molecule";
     source.formatName = "Molecule";
 
@@ -144,7 +144,7 @@ namespace MoleculeSceneImporterTest {
   }
 
   TEST(MoleculeSceneCompiler, ShouldComposeGroupVisibilityForChainsAndResidues) {
-    std::ifstream input("test/fixtures/molecule/small.pdb");
+    std::ifstream input("test/fixtures/molecules/small.pdb");
     ASSERT_TRUE(input.is_open());
     const auto parsed = molecule::MoleculeParser().parsePdb(input);
 
@@ -168,12 +168,12 @@ namespace MoleculeSceneImporterTest {
   }
 
   TEST(MoleculeSceneCompiler, ShouldBuildBackboneCurvesFromChainAlphaCarbons) {
-    std::ifstream input("test/fixtures/molecule/backbone_chain.pdb");
+    std::ifstream input("test/fixtures/molecules/backbone_chain.pdb");
     ASSERT_TRUE(input.is_open());
     const auto parsed = molecule::MoleculeParser().parsePdb(input);
 
     world::ImportSourceMetadata source;
-    source.sourcePath = "test/fixtures/molecule/backbone_chain.pdb";
+    source.sourcePath = "test/fixtures/molecules/backbone_chain.pdb";
     source.importerName = "molecule";
     source.formatName = "Molecule";
 
@@ -216,7 +216,7 @@ namespace MoleculeSceneImporterTest {
   }
 
   TEST(MoleculeSceneCompiler, ShouldSupportTubeBackboneModeAndDisableBackbones) {
-    std::ifstream input("test/fixtures/molecule/backbone_chain.pdb");
+    std::ifstream input("test/fixtures/molecules/backbone_chain.pdb");
     ASSERT_TRUE(input.is_open());
     const auto parsed = molecule::MoleculeParser().parsePdb(input);
 
@@ -246,7 +246,7 @@ namespace MoleculeSceneImporterTest {
     world::ImportOptions options;
     options.setValue("atomRadius", 0.1);
 
-    auto result = importer.importFile("test/fixtures/molecule/small.cif", options);
+    auto result = importer.importFile("test/fixtures/molecules/small.cif", options);
 
     ASSERT_TRUE(result.succeeded());
     ASSERT_NE(nullptr, result.groupRoot());
@@ -312,7 +312,7 @@ namespace MoleculeSceneImporterTest {
     options.setValue("colorScheme", "chain");
     options.setValue("spaceFillingScale", 0.5);
 
-    auto result = importer.importFile("test/fixtures/molecule/small.pdb", options);
+    auto result = importer.importFile("test/fixtures/molecules/small.pdb", options);
 
     ASSERT_TRUE(result.succeeded());
     auto root = result.takeRoot();
@@ -344,7 +344,7 @@ namespace MoleculeSceneImporterTest {
     world::ImportOptions options;
     options.setValue("representation", "backbone");
 
-    auto result = importer.importFile("test/fixtures/molecule/backbone_chain.pdb", options);
+    auto result = importer.importFile("test/fixtures/molecules/backbone_chain.pdb", options);
 
     ASSERT_TRUE(result.succeeded());
     auto root = result.takeRoot();
@@ -369,7 +369,7 @@ namespace MoleculeSceneImporterTest {
     options.setValue("backboneMode", "tube");
     options.setValue("backboneWidth", 0.75);
 
-    auto result = importer.importFile("test/fixtures/molecule/backbone_chain.pdb", options);
+    auto result = importer.importFile("test/fixtures/molecules/backbone_chain.pdb", options);
 
     ASSERT_TRUE(result.succeeded());
 

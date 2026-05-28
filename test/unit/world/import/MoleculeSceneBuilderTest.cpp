@@ -39,7 +39,7 @@ namespace MoleculeSceneBuilderTest {
   }
 
   TEST(MoleculeSceneBuilder, ShouldBuildAtomsBondsAndHierarchyFromTinyPdbFixture) {
-    std::ifstream input("test/fixtures/molecule/small.pdb");
+    std::ifstream input("test/fixtures/molecules/small.pdb");
     ASSERT_TRUE(input.is_open());
     const auto parsed = molecule::MoleculeParser().parsePdb(input);
 
@@ -80,7 +80,7 @@ namespace MoleculeSceneBuilderTest {
   }
 
   TEST(MoleculeSceneBuilder, ShouldInferBondsWhenConnectivityIsAbsent) {
-    std::ifstream input("test/fixtures/molecule/small.cif");
+    std::ifstream input("test/fixtures/molecules/small.cif");
     ASSERT_TRUE(input.is_open());
     const auto parsed = molecule::MoleculeParser().parseMmcif(input);
 

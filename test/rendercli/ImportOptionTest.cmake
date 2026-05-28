@@ -45,6 +45,11 @@ set(gltf_render "${TEST_OUTPUT_DIR}/gltf-model.png")
 set(gcode_speed_render "${TEST_OUTPUT_DIR}/gcode-speed.png")
 set(gcode_tool_layer_render "${TEST_OUTPUT_DIR}/gcode-tool-layer.png")
 set(gcode_cumulative_render "${TEST_OUTPUT_DIR}/gcode-cumulative.png")
+set(molecule_fixture_dir "${PROJECT_SOURCE_DIR}/test/fixtures/molecules")
+set(molecule_pdb_fixture "${molecule_fixture_dir}/small.pdb")
+set(molecule_cif_fixture "${molecule_fixture_dir}/small.cif")
+set(molecule_ball_and_stick_render "${TEST_OUTPUT_DIR}/molecule-ball-and-stick.png")
+set(molecule_space_filling_render "${TEST_OUTPUT_DIR}/molecule-space-filling.png")
 
 set(scene_json [=[
 {
@@ -340,3 +345,33 @@ rendercli_assert_image_nonempty("${gcode_cumulative_render}"
 rendercli_assert_image_hash_differs(
   "${gcode_tool_layer_render}" "${gcode_cumulative_render}"
   NAME "rendercli G-code current and cumulative layers differ")
+
+rendercli_run(
+  NAME "rendercli imports PDB molecule as ball-and-stick"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 64 --height 64
+    --import_option representation=ball-and-stick
+    --import_option colorScheme=element
+    "${molecule_pdb_fixture}" "${molecule_ball_and_stick_render}"
+)
+rendercli_assert_image_dimensions("${molecule_ball_and_stick_render}" 64 64
+                                  NAME "rendercli PDB molecule dimensions")
+rendercli_assert_image_nonempty("${molecule_ball_and_stick_render}"
+                                NAME "rendercli PDB molecule pixels")
+
+rendercli_run(
+  NAME "rendercli imports mmCIF molecule as space-filling"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 64 --height 64
+    --import_option representation=space-filling
+    --import_option colorScheme=chain
+    --import_option spaceFillingScale=0.55
+    "${molecule_cif_fixture}" "${molecule_space_filling_render}"
+)
+rendercli_assert_image_dimensions("${molecule_space_filling_render}" 64 64
+                                  NAME "rendercli mmCIF molecule dimensions")
+rendercli_assert_image_nonempty("${molecule_space_filling_render}"
+                                NAME "rendercli mmCIF molecule pixels")
+rendercli_assert_image_hash_differs(
+  "${molecule_ball_and_stick_render}" "${molecule_space_filling_render}"
+  NAME "rendercli molecule representations differ")
