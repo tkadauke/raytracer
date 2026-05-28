@@ -631,6 +631,13 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   metadata and direct `rendercli --ldraw_input` expose library roots, import
   scale, coordinate conversion, hierarchy preservation, normal mode, edge
   overlays, recursion limits, and missing-part policy for #210.
+- **PDB / PDBx/mmCIF molecular coordinates** — ~~parse atom-site records into
+  atoms, residues, chains, and models; preserve imported molecule hierarchy as
+  scene groups; generate protein CA-trace backbone curves as overlay, ribbon,
+  or tube representations.~~ ✅ **Done.** `MoleculeParser` and
+  `MoleculeSceneImporter` load molecular coordinate files into grouped atom
+  spheres plus per-chain CA backbone curves with residue metadata for Epic #236;
+  full secondary-structure ribbons remain TODO.
   ~~Shared sidecar asset resolver for importer search paths and cache keys.~~ ✅
   **Done.** `core::AssetResolver` resolves current-file-relative and configured
   search-root assets with explicit case-sensitivity behavior for Epic #230.

@@ -2,12 +2,15 @@
 
 #include "core/formats/molecule/MoleculeParser.h"
 #include "world/import/SceneImporterRegistry.h"
+#include "world/objects/Curve.h"
 #include "world/objects/Group.h"
 #include "world/objects/Sphere.h"
 
 #include <QFileInfo>
 #include <QJsonObject>
 
+#include <algorithm>
+#include <cctype>
 #include <fstream>
 
 using namespace std;
@@ -18,12 +21,26 @@ namespace world {
       return QString::fromStdString(value);
     }
 
+    string trimmedAtomName(string value) {
+      value.erase(value.begin(), find_if(value.begin(), value.end(),
+                                         [](unsigned char ch) { return !std::isspace(ch); }));
+      value.erase(
+        find_if(value.rbegin(), value.rend(), [](unsigned char ch) { return !std::isspace(ch); })
+          .base(),
+        value.end());
+      return value;
+    }
+
     QString sourceIdForModel(int modelId) {
       return QString("model/%1").arg(modelId);
     }
 
     QString sourceIdForChain(const molecule::Chain& chain) {
       return QString("%1/chain/%2").arg(sourceIdForModel(chain.modelId), qstr(chain.id));
+    }
+
+    QString sourceIdForBackbone(const molecule::Chain& chain) {
+      return QString("%1/backbone").arg(sourceIdForChain(chain));
     }
 
     QString residueToken(const molecule::Residue& residue) {
@@ -61,6 +78,19 @@ namespace world {
       return QStringLiteral("polymer");
     }
 
+    const molecule::Atom* alphaCarbonFor(const molecule::Residue& residue,
+                                         const molecule::Molecule& molecule) {
+      if (residueCategory(residue, molecule) != QStringLiteral("polymer"))
+        return nullptr;
+
+      for (const auto atomIndex : residue.atomIndices) {
+        const auto& atom = molecule.atoms()[atomIndex];
+        if (!atom.hetero && trimmedAtomName(atom.name) == "CA")
+          return &atom;
+      }
+      return nullptr;
+    }
+
     ImportProvenance provenanceFor(const ImportSourceMetadata& source, const QString& sourceId,
                                    const QString& recordId, const QString& kind) {
       ImportProvenance provenance = ImportProvenance::fromSource(source);
@@ -77,6 +107,12 @@ namespace world {
       group.setMetadataValue(QStringLiteral("molecule.kind"), kind);
     }
 
+    void applyCommonCurveMetadata(Curve& curve, const QString& sourceId, const QString& kind) {
+      curve.setMetadataValue(GroupMetadata::sourceFormatKey(), QStringLiteral("molecule"));
+      curve.setMetadataValue(GroupMetadata::sourceIdKey(), sourceId);
+      curve.setMetadataValue(QStringLiteral("molecule.kind"), kind);
+    }
+
     ImportDiagnostic convertDiagnostic(const molecule::Diagnostic& diagnostic,
                                        const QString& filename) {
       if (diagnostic.isError())
@@ -90,11 +126,80 @@ namespace world {
         return QStringLiteral("mmcif");
       return QStringLiteral("pdb");
     }
+
+    std::unique_ptr<Curve> compileBackboneCurve(const molecule::Molecule& molecule,
+                                                const molecule::Chain& chain,
+                                                const ImportSourceMetadata& source,
+                                                const QString& backboneMode, double backboneWidth) {
+      if (backboneMode == QStringLiteral("none"))
+        return nullptr;
+
+      struct BackboneResidue {
+        const molecule::Residue* residue;
+        const molecule::Atom* atom;
+      };
+
+      std::vector<BackboneResidue> residues;
+      std::vector<Vector3d> points;
+      for (const auto residueIndex : chain.residueIndices) {
+        const auto& residue = molecule.residues()[residueIndex];
+        const auto* atom = alphaCarbonFor(residue, molecule);
+        if (!atom)
+          continue;
+
+        residues.push_back(BackboneResidue{&residue, atom});
+        points.push_back(atom->position);
+      }
+
+      if (points.size() < 2)
+        return nullptr;
+
+      core::Polyline polyline(points);
+      polyline.setAttribute("sourceFormat", std::string("molecule"));
+      polyline.setAttribute("molecule.kind", std::string("backbone"));
+      polyline.setAttribute("modelId", chain.modelId);
+      polyline.setAttribute("chainId", chain.id);
+      polyline.setAttribute("representation", backboneMode.toStdString());
+      polyline.setAttribute("atomName", std::string("CA"));
+
+      for (std::size_t i = 0; i != polyline.segmentCount(); ++i) {
+        const auto& start = *residues[i].residue;
+        const auto& end = *residues[i + 1].residue;
+        polyline.setSegmentAttribute(i, "chainId", chain.id);
+        polyline.setSegmentAttribute(i, "startResidueName", start.name);
+        polyline.setSegmentAttribute(i, "startResidueIndex", start.sequenceNumber);
+        polyline.setSegmentAttribute(i, "startResidueInsertionCode", start.insertionCode);
+        polyline.setSegmentAttribute(i, "endResidueName", end.name);
+        polyline.setSegmentAttribute(i, "endResidueIndex", end.sequenceNumber);
+        polyline.setSegmentAttribute(i, "endResidueInsertionCode", end.insertionCode);
+      }
+
+      auto curve = std::make_unique<Curve>();
+      curve->setName(qstr(chain.id).isEmpty() ? QStringLiteral("Backbone <blank>")
+                                              : QString("Backbone %1").arg(qstr(chain.id)));
+      curve->setPolyline(polyline);
+      curve->setWidth(backboneMode == QStringLiteral("overlay") ? 0.0 : backboneWidth);
+      curve->setTessellationMode(backboneMode == QStringLiteral("tube") ? QStringLiteral("tube")
+                                                                        : QStringLiteral("ribbon"));
+      applyCommonCurveMetadata(*curve, sourceIdForBackbone(chain), QStringLiteral("backbone"));
+      curve->setMetadataValue(QStringLiteral("modelId"), chain.modelId);
+      curve->setMetadataValue(QStringLiteral("chainId"), qstr(chain.id));
+      curve->setMetadataValue(QStringLiteral("molecule.representation"), backboneMode);
+      curve->setMetadataValue(QStringLiteral("atomName"), QStringLiteral("CA"));
+      auto provenance = provenanceFor(source, sourceIdForBackbone(chain),
+                                      QString("CHAIN %1 CA BACKBONE").arg(qstr(chain.id)),
+                                      QStringLiteral("backbone"));
+      provenance.category["representation"] = backboneMode;
+      setImportProvenance(*curve, provenance);
+      return curve;
+    }
   }
 
   std::unique_ptr<Group> MoleculeSceneCompiler::compile(const molecule::Molecule& molecule,
                                                         const ImportSourceMetadata& source,
-                                                        double atomRadius) const {
+                                                        double atomRadius,
+                                                        const QString& backboneMode,
+                                                        double backboneWidth) const {
     auto root = std::make_unique<Group>();
     const QString moleculeId = qstr(molecule.metadata().id);
     root->setName(qstr(molecule.metadata().title).isEmpty() ? QStringLiteral("Molecule")
@@ -133,6 +238,10 @@ namespace world {
                                                        QString("CHAIN %1").arg(qstr(chain.id)),
                                                        QStringLiteral("chain")));
         modelGroup->addChild(chainGroup);
+
+        if (auto backbone =
+              compileBackboneCurve(molecule, chain, source, backboneMode.toLower(), backboneWidth))
+          chainGroup->addChild(std::move(backbone));
 
         for (const auto residueIndex : chain.residueIndices) {
           const auto& residue = molecule.residues()[residueIndex];
@@ -204,6 +313,21 @@ namespace world {
              "Radius used for generated atom sphere surfaces.",
              0.25,
              false,
+             {}},
+            {"backboneMode",
+             ImportOptionType::Choice,
+             "Backbone mode",
+             "Protein CA trace representation: none, overlay, ribbon, or tube.",
+             QStringLiteral("overlay"),
+             false,
+             {QStringLiteral("none"), QStringLiteral("overlay"), QStringLiteral("ribbon"),
+              QStringLiteral("tube")}},
+            {"backboneWidth",
+             ImportOptionType::Double,
+             "Backbone width",
+             "World-space width used for ribbon and tube backbone curves.",
+             0.35,
+             false,
              {}}};
   }
 
@@ -233,7 +357,11 @@ namespace world {
     }
 
     const double atomRadius = options.value("atomRadius", 0.25).toDouble();
-    ImportResult result(MoleculeSceneCompiler().compile(parsed.molecule(), source, atomRadius),
+    const QString backboneMode =
+      options.value("backboneMode", QStringLiteral("overlay")).toString().toLower();
+    const double backboneWidth = options.value("backboneWidth", 0.35).toDouble();
+    ImportResult result(MoleculeSceneCompiler().compile(parsed.molecule(), source, atomRadius,
+                                                        backboneMode, backboneWidth),
                         source);
     for (const auto& diagnostic : diagnostics)
       result.addDiagnostic(diagnostic);

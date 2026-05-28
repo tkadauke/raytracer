@@ -5,6 +5,7 @@
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/Element.h"
 #include "world/objects/Group.h"
+#include "world/objects/Curve.h"
 #include "world/objects/Scene.h"
 #include "world/objects/Sphere.h"
 
@@ -24,6 +25,10 @@ namespace MoleculeSceneImporterTest {
       return qobject_cast<Sphere*>(parent->childElements()[index]);
     }
 
+    Curve* curveChild(Group* parent, int index) {
+      return qobject_cast<Curve*>(parent->childElements()[index]);
+    }
+
     std::size_t countVisibleSurfaces(const Scene& scene) {
       return scene.renderGraphAnalysis().visibleSurfaceCount();
     }
@@ -36,6 +41,18 @@ namespace MoleculeSceneImporterTest {
       for (auto* child : root->childElements()) {
         if (auto* group = findGroupByMetadata(child, key, value))
           return group;
+      }
+      return nullptr;
+    }
+
+    Curve* findCurveByMetadata(Element* root, const QString& key, const QString& value) {
+      if (auto* curve = qobject_cast<Curve*>(root)) {
+        if (curve->metadataValue(key).toString() == value)
+          return curve;
+      }
+      for (auto* child : root->childElements()) {
+        if (auto* curve = findCurveByMetadata(child, key, value))
+          return curve;
       }
       return nullptr;
     }
@@ -119,6 +136,72 @@ namespace MoleculeSceneImporterTest {
     EXPECT_EQ(2u, countVisibleSurfaces(scene));
   }
 
+  TEST(MoleculeSceneCompiler, ShouldBuildBackboneCurvesFromChainAlphaCarbons) {
+    std::ifstream input("test/fixtures/molecule/backbone_chain.pdb");
+    ASSERT_TRUE(input.is_open());
+    const auto parsed = molecule::MoleculeParser().parsePdb(input);
+
+    world::ImportSourceMetadata source;
+    source.sourcePath = "test/fixtures/molecule/backbone_chain.pdb";
+    source.importerName = "molecule";
+    source.formatName = "Molecule";
+
+    auto root =
+      world::MoleculeSceneCompiler().compile(parsed.molecule(), source, 0.25, "overlay", 0.4);
+
+    auto* model = groupChild(root.get(), 0);
+    auto* chainA = groupChild(model, 0);
+    ASSERT_NE(nullptr, chainA);
+    auto* backbone = curveChild(chainA, 0);
+    ASSERT_NE(nullptr, backbone);
+
+    EXPECT_EQ(QString("backbone"), backbone->metadataValue("molecule.kind").toString());
+    EXPECT_EQ(QString("A"), backbone->metadataValue("chainId").toString());
+    EXPECT_EQ(QString("overlay"), backbone->metadataValue("molecule.representation").toString());
+    EXPECT_EQ(QString("model/1/chain/A/backbone"),
+              backbone->metadataValue(GroupMetadata::sourceIdKey()).toString());
+    EXPECT_DOUBLE_EQ(0.0, backbone->width());
+    EXPECT_EQ(QString("ribbon"), backbone->tessellationMode());
+
+    const auto& polyline = backbone->polyline();
+    ASSERT_EQ(3u, polyline.pointCount());
+    ASSERT_EQ(2u, polyline.segmentCount());
+    EXPECT_EQ(Vector3d(0.0, 0.0, 0.0), polyline.point(0));
+    EXPECT_EQ(Vector3d(1.5, 0.25, 0.0), polyline.point(1));
+    EXPECT_EQ(Vector3d(2.75, 0.75, 0.5), polyline.point(2));
+    ASSERT_NE(nullptr, polyline.attributeAs<std::string>("chainId"));
+    EXPECT_EQ("A", *polyline.attributeAs<std::string>("chainId"));
+    ASSERT_NE(nullptr, polyline.segmentAttributeAs<std::string>(0, "startResidueName"));
+    ASSERT_NE(nullptr, polyline.segmentAttributeAs<int>(0, "startResidueIndex"));
+    ASSERT_NE(nullptr, polyline.segmentAttributeAs<std::string>(1, "endResidueName"));
+    ASSERT_NE(nullptr, polyline.segmentAttributeAs<int>(1, "endResidueIndex"));
+    EXPECT_EQ("ALA", *polyline.segmentAttributeAs<std::string>(0, "startResidueName"));
+    EXPECT_EQ(1, *polyline.segmentAttributeAs<int>(0, "startResidueIndex"));
+    EXPECT_EQ("SER", *polyline.segmentAttributeAs<std::string>(1, "endResidueName"));
+    EXPECT_EQ(3, *polyline.segmentAttributeAs<int>(1, "endResidueIndex"));
+  }
+
+  TEST(MoleculeSceneCompiler, ShouldSupportTubeBackboneModeAndDisableBackbones) {
+    std::ifstream input("test/fixtures/molecule/backbone_chain.pdb");
+    ASSERT_TRUE(input.is_open());
+    const auto parsed = molecule::MoleculeParser().parsePdb(input);
+
+    world::ImportSourceMetadata source;
+    auto withTube =
+      world::MoleculeSceneCompiler().compile(parsed.molecule(), source, 0.25, "tube", 0.6);
+    auto* tubeBackbone = curveChild(groupChild(groupChild(withTube.get(), 0), 0), 0);
+    ASSERT_NE(nullptr, tubeBackbone);
+    EXPECT_DOUBLE_EQ(0.6, tubeBackbone->width());
+    EXPECT_EQ(QString("tube"), tubeBackbone->tessellationMode());
+
+    auto withoutBackbone =
+      world::MoleculeSceneCompiler().compile(parsed.molecule(), source, 0.25, "none", 0.6);
+    auto* chainA = groupChild(groupChild(withoutBackbone.get(), 0), 0);
+    ASSERT_NE(nullptr, chainA);
+    ASSERT_FALSE(chainA->childElements().isEmpty());
+    EXPECT_EQ(nullptr, qobject_cast<Curve*>(chainA->childElements().front()));
+  }
+
   TEST(MoleculeSceneImporter, ShouldImportAndRoundTripGroupedMoleculeJson) {
     world::MoleculeSceneImporter importer;
     world::ImportOptions options;
@@ -158,6 +241,56 @@ namespace MoleculeSceneImporterTest {
     ASSERT_TRUE(provenance.has_value());
     EXPECT_EQ(QString("ATOM 1"), provenance->recordId);
     EXPECT_EQ(QString("atom"), provenance->category["kind"].toString());
+  }
+
+  TEST(MoleculeSceneImporter, ShouldExposeBackboneImportOptions) {
+    world::MoleculeSceneImporter importer;
+
+    const auto schema = importer.optionSchema();
+    ASSERT_EQ(3u, schema.size());
+    EXPECT_EQ(QString("backboneMode"), schema[1].name);
+    EXPECT_EQ(world::ImportOptionType::Choice, schema[1].type);
+    EXPECT_TRUE(schema[1].choices.contains(QStringLiteral("overlay")));
+    EXPECT_TRUE(schema[1].choices.contains(QStringLiteral("ribbon")));
+    EXPECT_TRUE(schema[1].choices.contains(QStringLiteral("tube")));
+    EXPECT_EQ(QString("backboneWidth"), schema[2].name);
+    EXPECT_EQ(world::ImportOptionType::Double, schema[2].type);
+  }
+
+  TEST(MoleculeSceneImporter, ShouldImportAndRoundTripBackboneCurves) {
+    world::MoleculeSceneImporter importer;
+    world::ImportOptions options;
+    options.setValue("backboneMode", "tube");
+    options.setValue("backboneWidth", 0.75);
+
+    auto result = importer.importFile("test/fixtures/molecule/backbone_chain.pdb", options);
+
+    ASSERT_TRUE(result.succeeded());
+
+    Scene scene;
+    scene.addChild(result.takeRoot());
+    EXPECT_EQ(4u, countVisibleSurfaces(scene));
+
+    QJsonObject json;
+    scene.write(json);
+
+    Scene decoded;
+    decoded.read(json);
+    decoded.resolveElementReferences();
+
+    auto* backbone = findCurveByMetadata(&decoded, "molecule.kind", "backbone");
+    ASSERT_NE(nullptr, backbone);
+    EXPECT_DOUBLE_EQ(0.75, backbone->width());
+    EXPECT_EQ(QString("tube"), backbone->tessellationMode());
+    EXPECT_EQ(QString("A"), backbone->metadataValue("chainId").toString());
+
+    const auto& polyline = backbone->polyline();
+    ASSERT_EQ(3u, polyline.pointCount());
+    ASSERT_EQ(2u, polyline.segmentCount());
+    ASSERT_NE(nullptr, polyline.segmentAttributeAs<std::string>(0, "startResidueName"));
+    ASSERT_NE(nullptr, polyline.segmentAttributeAs<int>(1, "endResidueIndex"));
+    EXPECT_EQ("ALA", *polyline.segmentAttributeAs<std::string>(0, "startResidueName"));
+    EXPECT_EQ(3, *polyline.segmentAttributeAs<int>(1, "endResidueIndex"));
   }
 
   TEST(MoleculeSceneImporter, ShouldRegisterForMoleculeExtensions) {

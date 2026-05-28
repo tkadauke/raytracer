@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Protein backbone curves.** Molecule imports can now generate per-chain CA
+  trace backbone curves with residue segment metadata, selectable as overlay,
+  ribbon, tube, or disabled output through importer options for Epic #236. —
+  GPT-5
 - **Raster counter AOVs.** The rasterizer and render graph now expose
   graph-visible heatmap views for per-pixel coverage, depth tests, depth passes,
   shading calls, and color writes through rendercli and the Modeler Preview
