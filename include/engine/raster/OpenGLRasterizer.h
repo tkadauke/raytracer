@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Color.h"
 #include "core/math/Rect.h"
 #include "engine/raster/Rasterizer.h"
 #include "render/RenderEngine.h"
@@ -58,6 +59,17 @@ namespace engine::raster {
     std::uint8_t colorWriteMask() const;
     void setColorWriteMask(std::uint8_t mask);
 
+    bool blendingEnabled() const;
+    void setBlendingEnabled(bool enabled);
+    Rasterizer::BlendFactor sourceBlendFactor() const;
+    Rasterizer::BlendFactor destinationBlendFactor() const;
+    void setBlendFactors(Rasterizer::BlendFactor source, Rasterizer::BlendFactor destination);
+    Rasterizer::BlendOp blendOp() const;
+    void setBlendOp(Rasterizer::BlendOp op);
+    Colord blendConstantColor() const;
+    double blendConstantAlpha() const;
+    void setBlendConstant(const Colord& color, double alpha);
+
     bool isAvailable() const;
     std::string availabilityDetail() const;
     std::string availabilityError() const;
@@ -76,5 +88,11 @@ namespace engine::raster {
     bool m_scissorTestEnabled{false};
     Recti m_scissorRect;
     std::uint8_t m_colorWriteMask{Rasterizer::ColorWriteAll};
+    bool m_blendingEnabled{false};
+    Rasterizer::BlendFactor m_sourceBlendFactor{Rasterizer::BlendFactor::One};
+    Rasterizer::BlendFactor m_destinationBlendFactor{Rasterizer::BlendFactor::Zero};
+    Rasterizer::BlendOp m_blendOp{Rasterizer::BlendOp::Add};
+    Colord m_blendConstantColor{Colord::white()};
+    double m_blendConstantAlpha{1.0};
   };
 }

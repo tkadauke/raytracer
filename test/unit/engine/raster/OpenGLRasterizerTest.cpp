@@ -60,6 +60,11 @@ namespace OpenGLRasterizerTest {
     rasterizer.setViewportRect(Recti(4, 5, 20, 21));
     rasterizer.setScissorRect(Recti(6, 7, 18, 19));
     rasterizer.setColorWriteMask(engine::raster::Rasterizer::ColorWriteGreen);
+    rasterizer.setBlendingEnabled(true);
+    rasterizer.setBlendFactors(engine::raster::Rasterizer::BlendFactor::ConstantAlpha,
+                               engine::raster::Rasterizer::BlendFactor::OneMinusConstantAlpha);
+    rasterizer.setBlendOp(engine::raster::Rasterizer::BlendOp::Max);
+    rasterizer.setBlendConstant(Colord(0.1, 0.2, 0.3), 0.4);
 
     auto clone =
       std::dynamic_pointer_cast<engine::raster::OpenGLRasterizer>(rasterizer.cloneForRender());
@@ -75,6 +80,13 @@ namespace OpenGLRasterizerTest {
     EXPECT_EQ(6, clone->scissorRect().left());
     EXPECT_EQ(18, clone->scissorRect().width());
     EXPECT_EQ(engine::raster::Rasterizer::ColorWriteGreen, clone->colorWriteMask());
+    EXPECT_TRUE(clone->blendingEnabled());
+    EXPECT_EQ(engine::raster::Rasterizer::BlendFactor::ConstantAlpha, clone->sourceBlendFactor());
+    EXPECT_EQ(engine::raster::Rasterizer::BlendFactor::OneMinusConstantAlpha,
+              clone->destinationBlendFactor());
+    EXPECT_EQ(engine::raster::Rasterizer::BlendOp::Max, clone->blendOp());
+    EXPECT_EQ(Colord(0.1, 0.2, 0.3), clone->blendConstantColor());
+    EXPECT_EQ(0.4, clone->blendConstantAlpha());
   }
 
   TEST(OpenGLRasterizer, ClampsMSAASamplesToSupportedCounts) {

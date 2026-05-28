@@ -130,13 +130,35 @@ else()
                   "${opengl_color_mask_stderr}")
 endif()
 
-rendercli_expect_failure(
-  NAME "rendercli rejects unsupported OpenGL raster blend state"
-  STDERR_MATCHES "OpenGL raster backend does not support fixed-function blending yet"
+set(opengl_blend_render "${TEST_OUTPUT_DIR}/raster-opengl-blend.png")
+execute_process(
   COMMAND
     "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu --blend
-    "${matte_scene}" "${invalid_render}"
+    --blend_src constant_alpha --blend_dst one_minus_constant_alpha
+    --blend_constant_alpha 0.35
+    "${matte_scene}" "${opengl_blend_render}"
+  RESULT_VARIABLE opengl_blend_result
+  OUTPUT_VARIABLE opengl_blend_stdout
+  ERROR_VARIABLE opengl_blend_stderr
 )
+if(opengl_blend_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_blend_render}" 16 12
+                                    NAME "rendercli --raster_backend gpu blend dimensions")
+  rendercli_assert_image_nonempty("${opengl_blend_render}"
+                                  NAME "rendercli --raster_backend gpu blend pixels")
+elseif(opengl_blend_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_blend_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu blend application bootstrap"
+                    "OpenGL blending still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_blend_result}" "${opengl_blend_stdout}"
+                    "${opengl_blend_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu blend"
+                  "OpenGL blending neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_blend_result}" "${opengl_blend_stdout}"
+                  "${opengl_blend_stderr}")
+endif()
 
 set(opengl_depth_render "${TEST_OUTPUT_DIR}/raster-opengl-depth.png")
 execute_process(

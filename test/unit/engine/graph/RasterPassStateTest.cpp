@@ -152,6 +152,11 @@ namespace RasterPassStateTest {
     state.framebuffer().setViewportRect(Recti(4, 5, 20, 21));
     state.framebuffer().setScissorRect(Recti(6, 7, 18, 19));
     state.framebuffer().setColorWriteMask(Rasterizer::ColorWriteRed);
+    state.framebuffer().setBlendingEnabled(true);
+    state.framebuffer().setBlendFactors(Rasterizer::BlendFactor::ConstantAlpha,
+                                        Rasterizer::BlendFactor::OneMinusConstantAlpha);
+    state.framebuffer().setBlendOp(Rasterizer::BlendOp::Max);
+    state.framebuffer().setBlendConstant(Colord(0.2, 0.3, 0.4), 0.5);
     engine::raster::OpenGLRasterizer rasterizer(nullptr);
 
     state.applyTo(rasterizer);
@@ -167,6 +172,12 @@ namespace RasterPassStateTest {
     EXPECT_EQ(6, rasterizer.scissorRect().left());
     EXPECT_EQ(18, rasterizer.scissorRect().width());
     EXPECT_EQ(Rasterizer::ColorWriteRed, rasterizer.colorWriteMask());
+    EXPECT_TRUE(rasterizer.blendingEnabled());
+    EXPECT_EQ(Rasterizer::BlendFactor::ConstantAlpha, rasterizer.sourceBlendFactor());
+    EXPECT_EQ(Rasterizer::BlendFactor::OneMinusConstantAlpha, rasterizer.destinationBlendFactor());
+    EXPECT_EQ(Rasterizer::BlendOp::Max, rasterizer.blendOp());
+    EXPECT_EQ(Colord(0.2, 0.3, 0.4), rasterizer.blendConstantColor());
+    EXPECT_EQ(0.5, rasterizer.blendConstantAlpha());
   }
 
   TEST(RasterBeautyPassState, RejectsUnsupportedOpenGLPostProcessAA) {
@@ -180,10 +191,6 @@ namespace RasterPassStateTest {
     RasterBeautyPassState depthBias;
     depthBias.framebuffer().setDepthBias(0.01);
     expectOpenGLUnsupported(depthBias, "depth bias");
-
-    RasterBeautyPassState blending;
-    blending.framebuffer().setBlendingEnabled(true);
-    expectOpenGLUnsupported(blending, "blending");
 
     RasterBeautyPassState alphaTest;
     alphaTest.framebuffer().setAlphaTestEnabled(true);

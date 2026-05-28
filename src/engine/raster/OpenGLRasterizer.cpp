@@ -9,6 +9,7 @@
 #include <QOpenGLShaderProgram>
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <stdexcept>
 #include <utility>
@@ -19,13 +20,23 @@ namespace engine::raster {
     public:
       OpenGLRasterDrawPass(OpenGLOffscreenContext& context, int height, const Recti& viewportRect,
                            bool scissorEnabled, const Recti& scissorRect,
-                           std::uint8_t colorWriteMask)
+                           std::uint8_t colorWriteMask, bool blendingEnabled,
+                           Rasterizer::BlendFactor sourceBlendFactor,
+                           Rasterizer::BlendFactor destinationBlendFactor,
+                           Rasterizer::BlendOp blendOp, const Colord& blendConstantColor,
+                           double blendConstantAlpha)
           : m_context(context),
             m_height(height),
             m_viewportRect(viewportRect),
             m_scissorEnabled(scissorEnabled),
             m_scissorRect(scissorRect),
-            m_colorWriteMask(colorWriteMask) {
+            m_colorWriteMask(colorWriteMask),
+            m_blendingEnabled(blendingEnabled),
+            m_sourceBlendFactor(sourceBlendFactor),
+            m_destinationBlendFactor(destinationBlendFactor),
+            m_blendOp(blendOp),
+            m_blendConstantColor(blendConstantColor),
+            m_blendConstantAlpha(blendConstantAlpha) {
       }
 
       void render(const detail::OpenGLRasterMesh& mesh, const Colord& background,
@@ -66,9 +77,11 @@ namespace engine::raster {
                                 static_cast<GLfloat>(std::clamp(background.b(), 0.0, 1.0)), 1.0f);
         functions->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         applyColorWriteMask(functions);
+        applyBlending(functions);
 
         if (mesh.empty()) {
           functions->glFlush();
+          functions->glDisable(GL_BLEND);
           functions->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
           return;
         }
@@ -141,6 +154,7 @@ namespace engine::raster {
         functions->glFlush();
 
         functions->glDisable(GL_SCISSOR_TEST);
+        functions->glDisable(GL_BLEND);
         functions->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         program.disableAttributeArray(colorLocation);
@@ -171,12 +185,81 @@ namespace engine::raster {
                                (m_colorWriteMask & Rasterizer::ColorWriteBlue) != 0, GL_TRUE);
       }
 
+      void applyBlending(QOpenGLFunctions* functions) const {
+        if (!m_blendingEnabled) {
+          functions->glDisable(GL_BLEND);
+          return;
+        }
+
+        functions->glEnable(GL_BLEND);
+        functions->glBlendColor(
+          static_cast<GLclampf>(std::clamp(m_blendConstantColor.r(), 0.0, 1.0)),
+          static_cast<GLclampf>(std::clamp(m_blendConstantColor.g(), 0.0, 1.0)),
+          static_cast<GLclampf>(std::clamp(m_blendConstantColor.b(), 0.0, 1.0)),
+          static_cast<GLclampf>(std::clamp(m_blendConstantAlpha, 0.0, 1.0)));
+        functions->glBlendFunc(glBlendFactor(m_sourceBlendFactor),
+                               glBlendFactor(m_destinationBlendFactor));
+        functions->glBlendEquation(glBlendOp(m_blendOp));
+      }
+
+      static GLenum glBlendFactor(Rasterizer::BlendFactor factor) {
+        switch (factor) {
+        case Rasterizer::BlendFactor::Zero:
+          return GL_ZERO;
+        case Rasterizer::BlendFactor::One:
+          return GL_ONE;
+        case Rasterizer::BlendFactor::SourceColor:
+          return GL_SRC_COLOR;
+        case Rasterizer::BlendFactor::OneMinusSourceColor:
+          return GL_ONE_MINUS_SRC_COLOR;
+        case Rasterizer::BlendFactor::SourceAlpha:
+          return GL_SRC_ALPHA;
+        case Rasterizer::BlendFactor::OneMinusSourceAlpha:
+          return GL_ONE_MINUS_SRC_ALPHA;
+        case Rasterizer::BlendFactor::DestinationColor:
+          return GL_DST_COLOR;
+        case Rasterizer::BlendFactor::OneMinusDestinationColor:
+          return GL_ONE_MINUS_DST_COLOR;
+        case Rasterizer::BlendFactor::ConstantColor:
+          return GL_CONSTANT_COLOR;
+        case Rasterizer::BlendFactor::OneMinusConstantColor:
+          return GL_ONE_MINUS_CONSTANT_COLOR;
+        case Rasterizer::BlendFactor::ConstantAlpha:
+          return GL_CONSTANT_ALPHA;
+        case Rasterizer::BlendFactor::OneMinusConstantAlpha:
+          return GL_ONE_MINUS_CONSTANT_ALPHA;
+        }
+        return GL_ONE;
+      }
+
+      static GLenum glBlendOp(Rasterizer::BlendOp op) {
+        switch (op) {
+        case Rasterizer::BlendOp::Add:
+          return GL_FUNC_ADD;
+        case Rasterizer::BlendOp::Subtract:
+          return GL_FUNC_SUBTRACT;
+        case Rasterizer::BlendOp::ReverseSubtract:
+          return GL_FUNC_REVERSE_SUBTRACT;
+        case Rasterizer::BlendOp::Min:
+          return GL_MIN;
+        case Rasterizer::BlendOp::Max:
+          return GL_MAX;
+        }
+        return GL_FUNC_ADD;
+      }
+
       OpenGLOffscreenContext& m_context;
       int m_height;
       Recti m_viewportRect;
       bool m_scissorEnabled;
       Recti m_scissorRect;
       std::uint8_t m_colorWriteMask;
+      bool m_blendingEnabled;
+      Rasterizer::BlendFactor m_sourceBlendFactor;
+      Rasterizer::BlendFactor m_destinationBlendFactor;
+      Rasterizer::BlendOp m_blendOp;
+      Colord m_blendConstantColor;
+      double m_blendConstantAlpha;
     };
   }
 
@@ -215,6 +298,10 @@ namespace engine::raster {
       clone->clearScissorRect();
     }
     clone->setColorWriteMask(m_colorWriteMask);
+    clone->setBlendingEnabled(m_blendingEnabled);
+    clone->setBlendFactors(m_sourceBlendFactor, m_destinationBlendFactor);
+    clone->setBlendOp(m_blendOp);
+    clone->setBlendConstant(m_blendConstantColor, m_blendConstantAlpha);
     if (m_cancelled.load()) {
       clone->cancel();
     }
@@ -335,6 +422,49 @@ namespace engine::raster {
     m_colorWriteMask = mask & Rasterizer::ColorWriteAll;
   }
 
+  bool OpenGLRasterizer::blendingEnabled() const {
+    return m_blendingEnabled;
+  }
+
+  void OpenGLRasterizer::setBlendingEnabled(bool enabled) {
+    m_blendingEnabled = enabled;
+  }
+
+  Rasterizer::BlendFactor OpenGLRasterizer::sourceBlendFactor() const {
+    return m_sourceBlendFactor;
+  }
+
+  Rasterizer::BlendFactor OpenGLRasterizer::destinationBlendFactor() const {
+    return m_destinationBlendFactor;
+  }
+
+  void OpenGLRasterizer::setBlendFactors(Rasterizer::BlendFactor source,
+                                         Rasterizer::BlendFactor destination) {
+    m_sourceBlendFactor = source;
+    m_destinationBlendFactor = destination;
+  }
+
+  Rasterizer::BlendOp OpenGLRasterizer::blendOp() const {
+    return m_blendOp;
+  }
+
+  void OpenGLRasterizer::setBlendOp(Rasterizer::BlendOp op) {
+    m_blendOp = op;
+  }
+
+  Colord OpenGLRasterizer::blendConstantColor() const {
+    return m_blendConstantColor;
+  }
+
+  double OpenGLRasterizer::blendConstantAlpha() const {
+    return m_blendConstantAlpha;
+  }
+
+  void OpenGLRasterizer::setBlendConstant(const Colord& color, double alpha) {
+    m_blendConstantColor = color;
+    m_blendConstantAlpha = std::isfinite(alpha) ? std::clamp(alpha, 0.0, 1.0) : 1.0;
+  }
+
   bool OpenGLRasterizer::isAvailable() const {
     return OpenGLOffscreenContext::probe().available();
   }
@@ -374,7 +504,9 @@ namespace engine::raster {
     }
 
     OpenGLRasterDrawPass(context, buffer.height(), viewport, m_scissorTestEnabled, m_scissorRect,
-                         m_colorWriteMask)
+                         m_colorWriteMask, m_blendingEnabled, m_sourceBlendFactor,
+                         m_destinationBlendFactor, m_blendOp, m_blendConstantColor,
+                         m_blendConstantAlpha)
       .render(mesh, backgroundColor(), buffer, depthTarget);
   }
 }

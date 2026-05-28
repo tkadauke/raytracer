@@ -677,17 +677,15 @@ namespace engine::graph {
       rasterizer.clearScissorRect();
     }
     rasterizer.setColorWriteMask(m_colorWriteMask);
+    rasterizer.setBlendingEnabled(m_blendingEnabled);
+    rasterizer.setBlendFactors(m_sourceBlendFactor, m_destinationBlendFactor);
+    rasterizer.setBlendOp(m_blendOp);
+    rasterizer.setBlendConstant(m_blendConstantColor, m_blendConstantAlpha);
   }
 
   void RasterFramebufferState::validateSupportedByOpenGL() const {
     if (m_depthBias != 0.0) {
       openGLUnsupported("depth bias");
-    }
-    if (m_blendingEnabled || m_sourceBlendFactor != Rasterizer::BlendFactor::One ||
-        m_destinationBlendFactor != Rasterizer::BlendFactor::Zero ||
-        m_blendOp != Rasterizer::BlendOp::Add || !(m_blendConstantColor == Colord::white()) ||
-        m_blendConstantAlpha != 1.0) {
-      openGLUnsupported("fixed-function blending");
     }
     if (m_alphaTestEnabled || m_alphaFunc != Rasterizer::AlphaFunc::Always ||
         m_alphaReference != 0.0) {

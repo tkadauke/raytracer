@@ -255,10 +255,12 @@ Tasks:
 
 - ~~Report unsupported fixed-function state before execution.~~ ✅ **Done.**
   OpenGL raster passes now reject unsupported raster pass postprocess AA,
-  blending, alpha test, depth bias, and shadow-map state with explicit
-  diagnostics instead of silently ignoring the compiled graph state.
-- Add stencil, alpha test, blend, color write mask, and MSAA support where it
-  maps cleanly to OpenGL state.
+  alpha test, depth bias, and shadow-map state with explicit diagnostics
+  instead of silently ignoring the compiled graph state.
+- ~~Add fixed-function blending support.~~ ✅ **Done.** OpenGL raster draw calls
+  now apply graph-derived blend enable, factors, operation, and constant color
+  state.
+- Add stencil and alpha test support where it maps cleanly to OpenGL state.
 - Add object/material ID output with integer attachments or a fallback path.
 - Add shadow-map pass support only after graph shadow state is fully explicit.
 

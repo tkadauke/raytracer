@@ -79,6 +79,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPT-5
 - **OpenGL raster color write mask.** OpenGL-backed raster passes now apply
   graph-derived RGB color write masks after clearing the framebuffer. — GPT-5
+- **OpenGL raster blending.** OpenGL-backed raster passes now apply
+  graph-derived fixed-function blend enable, factors, operation, and constant
+  color state. — GPT-5
 - **rendercli OpenGL application bootstrap.** rendercli now pre-scans explicit
   `--raster_backend opengl|gpu` runs, starts a GUI-capable Qt application for
   that backend, and defaults the command-line GPU path to Qt's offscreen
@@ -797,9 +800,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   lanes, avoiding union type-punning undefined behavior without leaving the hot
   path. — GPT-5
 - **OpenGL raster unsupported state diagnostics.** OpenGL-backed raster passes
-  now reject unsupported postprocess-AA, blending, alpha-test, depth-bias, and
-  shadow-map state explicitly instead of silently rendering without those
-  compiled graph settings. — GPT-5
+  now reject unsupported postprocess-AA, alpha-test, depth-bias, and shadow-map
+  state explicitly instead of silently rendering without those compiled graph
+  settings. — GPT-5
 - **OpenGL raster Cocoa probing.** The OpenGL raster backend now reports a
   clear unavailable-backend error for headless Qt Cocoa offscreen context
   probes instead of entering the Qt path that can crash, while Modeler is
