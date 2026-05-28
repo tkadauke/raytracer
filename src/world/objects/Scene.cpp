@@ -8,7 +8,7 @@
 #include "world/objects/RenderIntentElement.h"
 #include "world/objects/StepVisibilityEvaluator.h"
 #include "render/primitives/Scene.h"
-#include "render/primitives/Grid.h"
+#include "render/primitives/SpatialIndexFactory.h"
 #include "world/import/LDrawSceneImporter.h"
 
 #include <QDir>
@@ -46,14 +46,15 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene() const {
 std::shared_ptr<render::Scene> Scene::toRaytracerScene(const StepPlaybackStyle& style) const {
   auto result = std::make_shared<render::Scene>();
 
-  auto grid = make_named<render::Grid>();
+  auto geometry = render::makeSpatialIndex(render::SpatialIndexKind::Grid);
+  render::spatialIndexPrimitive(geometry)->setName(name().toStdString());
   for (const auto& child : childElements()) {
     if (auto surface = dynamic_cast<Surface*>(child)) {
       // Surface::toRaytracer takes a non-owning raw pointer — it only
       // reaches into the scene to register lights/elements.
       auto primitive = surface->toRaytracer(result.get(), style);
       if (primitive && !primitive->boundingBox().isInfinite()) {
-        grid->add(primitive);
+        geometry->add(primitive);
       }
     } else if (auto light = dynamic_cast<Light*>(child)) {
       if (light->visible()) {
@@ -62,14 +63,14 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene(const StepPlaybackStyle& 
     } else if (auto group = dynamic_cast<Group*>(child)) {
       auto primitive = group->toRaytracer(result.get(), style);
       if (primitive && !primitive->boundingBox().isInfinite()) {
-        grid->add(primitive);
+        geometry->add(primitive);
       }
     }
   }
 
-  if (grid->primitives().size() > 0) {
-    grid->setup();
-    result->add(grid);
+  if (geometry->primitives().size() > 0) {
+    geometry->setup();
+    result->add(render::spatialIndexPrimitive(geometry));
   }
 
   result->setAmbient(ambient());

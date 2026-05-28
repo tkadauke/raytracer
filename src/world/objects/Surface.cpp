@@ -7,7 +7,6 @@
 #include "render/primitives/Instance.h"
 #include "render/primitives/Composite.h"
 #include "render/primitives/Scene.h"
-#include "render/primitives/Grid.h"
 
 Surface::Surface(Element* parent)
     : Transformable(parent),
@@ -64,8 +63,8 @@ std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene,
       }
     }
 
-    if (auto grid = std::dynamic_pointer_cast<render::Grid>(composite)) {
-      grid->setup();
+    if (auto index = std::dynamic_pointer_cast<render::SpatialIndex>(composite)) {
+      index->setup();
     }
 
     return applyTransform(composite);
