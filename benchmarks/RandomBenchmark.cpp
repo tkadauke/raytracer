@@ -1,10 +1,11 @@
-// Microbenchmarks for the random-number plumbing. Today's Number::random<T>
-// uses std::rand, which holds a global lock and has known-poor statistical
-// properties. These benchmarks pin the single-thread throughput and the
-// multi-thread contention baseline so a PRNG replacement can prove the
-// expected improvements.
+// Microbenchmarks for the random-number plumbing. Number::random<T> uses a
+// thread-local PCG32 generator; the legacy std::rand and thread-local mt19937
+// variants below keep the replacement's throughput evidence in one place.
 
 #include <benchmark/benchmark.h>
+
+#include <cstdlib>
+#include <random>
 
 #include "core/math/Number.h"
 
@@ -60,6 +61,43 @@ namespace {
     }
   }
 
+  double legacy_rand_unit() {
+    return double(std::rand()) * (1.0 / (double(RAND_MAX) + 1.0));
+  }
+
+  void bm_legacy_rand_unit(benchmark::State& state) {
+    for (auto _ : state) {
+      double r = legacy_rand_unit();
+      benchmark::DoNotOptimize(r);
+    }
+  }
+
+  void bm_legacy_rand_threaded(benchmark::State& state) {
+    for (auto _ : state) {
+      double r = legacy_rand_unit();
+      benchmark::DoNotOptimize(r);
+    }
+  }
+
+  double mt19937_unit() {
+    thread_local std::mt19937_64 rng(0x853c49e6748fea9bULL);
+    return double(rng() >> 11u) * (1.0 / 9007199254740992.0);
+  }
+
+  void bm_mt19937_unit(benchmark::State& state) {
+    for (auto _ : state) {
+      double r = mt19937_unit();
+      benchmark::DoNotOptimize(r);
+    }
+  }
+
+  void bm_mt19937_threaded(benchmark::State& state) {
+    for (auto _ : state) {
+      double r = mt19937_unit();
+      benchmark::DoNotOptimize(r);
+    }
+  }
+
 } // namespace
 
 BENCHMARK(bm_random_unit<float>);
@@ -71,3 +109,9 @@ BENCHMARK(bm_random_batch<float>);
 BENCHMARK(bm_random_batch<double>);
 
 BENCHMARK(bm_random_threaded)->Threads(1)->Threads(2)->Threads(4)->Threads(8);
+
+BENCHMARK(bm_legacy_rand_unit);
+BENCHMARK(bm_legacy_rand_threaded)->Threads(1)->Threads(2)->Threads(4)->Threads(8);
+
+BENCHMARK(bm_mt19937_unit);
+BENCHMARK(bm_mt19937_threaded)->Threads(1)->Threads(2)->Threads(4)->Threads(8);

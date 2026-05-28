@@ -208,13 +208,14 @@ behavior.
 
 Random sampler reproducibility — the
 [`RandomSampler.SameSeedProducesIdenticalSets`](../../../test/unit/render/samplers/RandomSamplerTest.cpp)
-test seeds `std::srand` with a fixed value, builds a sampler,
-seeds again, builds another, and asserts the two samplers
-produce identical sets. The sampler's reproducibility hinges on
-seeding `std::rand`-based randomness; outside controlled tests,
-the seed comes from `std::time` or whatever the runtime hands
-out, and successive renders produce different (but correctly
-distributed) noise.
+test calls `seed(uint64_t)` with a fixed value, builds a
+sampler, seeds again, builds another, and asserts the two
+samplers produce identical sets. The sampler's reproducibility
+hinges on the thread-local PCG32 stream in
+[`Number.h`](../../../include/core/math/Number.h); `std::srand`
+does not affect renderer sampling. Outside controlled tests, each
+thread owns its own default stream, so render workers do not
+contend on a shared global generator.
 
 Determinism interacts with the cancellation hook from
 [The Whitted pipeline: The `RenderEngine` abstraction](the-whitted-pipeline.md#the-renderengine-abstraction):
