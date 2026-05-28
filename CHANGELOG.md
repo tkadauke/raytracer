@@ -796,6 +796,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   keep public construction and setter paths in SIMD storage before reducing
   lanes, avoiding union type-punning undefined behavior without leaving the hot
   path. — GPT-5
+- **OpenGL raster unsupported state diagnostics.** OpenGL-backed raster passes
+  now reject unsupported postprocess-AA, blending, alpha-test, depth-bias, and
+  shadow-map state explicitly instead of silently rendering without those
+  compiled graph settings. — GPT-5
 - **OpenGL raster Cocoa probing.** The OpenGL raster backend now reports a
   clear unavailable-backend error for headless Qt Cocoa offscreen context
   probes instead of entering the Qt path that can crash, while Modeler is

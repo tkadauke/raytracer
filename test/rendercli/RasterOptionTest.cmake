@@ -130,6 +130,14 @@ else()
                   "${opengl_color_mask_stderr}")
 endif()
 
+rendercli_expect_failure(
+  NAME "rendercli rejects unsupported OpenGL raster blend state"
+  STDERR_MATCHES "OpenGL raster backend does not support fixed-function blending yet"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu --blend
+    "${matte_scene}" "${invalid_render}"
+)
+
 set(opengl_depth_render "${TEST_OUTPUT_DIR}/raster-opengl-depth.png")
 execute_process(
   COMMAND

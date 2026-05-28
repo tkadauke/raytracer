@@ -84,6 +84,7 @@ namespace engine::graph {
     bool empty() const;
     void applyTo(Rasterizer& rasterizer) const;
     void applyTo(engine::raster::OpenGLRasterizer& rasterizer) const;
+    void validateSupportedByOpenGL() const;
 
     void setMSAASamples(int samples);
     void setMSAAShadingMode(Rasterizer::MSAAShadingMode mode);
@@ -110,6 +111,7 @@ namespace engine::graph {
     bool empty() const;
     void applyTo(Rasterizer& rasterizer) const;
     void applyTo(engine::raster::OpenGLRasterizer& rasterizer) const;
+    void validateSupportedByOpenGL() const;
 
     void setViewportRect(const Recti& rect);
     void setScissorRect(const Recti& rect);
@@ -150,6 +152,7 @@ namespace engine::graph {
     QJsonObject toJson() const;
     bool empty() const;
     void applyTo(Rasterizer& rasterizer) const;
+    void applyTo(engine::raster::OpenGLRasterizer& rasterizer) const;
 
     void setShadowMapsEnabled(bool enabled);
     void setShadowMapSize(int size);

@@ -28,6 +28,11 @@ namespace engine::graph {
       throw std::runtime_error("Invalid raster pass state at " + path + ": " + message);
     }
 
+    [[noreturn]] void openGLUnsupported(const std::string& feature) {
+      throw std::runtime_error("OpenGL raster backend does not support " + feature +
+                               " yet; use raster backend 'cpu'");
+    }
+
     bool hasField(const QJsonObject& object, const char* key) {
       return !object.value(key).isUndefined();
     }
@@ -514,7 +519,14 @@ namespace engine::graph {
   }
 
   void RasterSamplingState::applyTo(engine::raster::OpenGLRasterizer& rasterizer) const {
+    validateSupportedByOpenGL();
     rasterizer.setMSAASamples(m_msaaSamples);
+  }
+
+  void RasterSamplingState::validateSupportedByOpenGL() const {
+    if (m_postProcessAA != Rasterizer::PostProcessAA::None) {
+      openGLUnsupported("raster pass post-process anti-aliasing");
+    }
   }
 
   void RasterSamplingState::setMSAASamples(int samples) {
@@ -653,6 +665,7 @@ namespace engine::graph {
   }
 
   void RasterFramebufferState::applyTo(engine::raster::OpenGLRasterizer& rasterizer) const {
+    validateSupportedByOpenGL();
     if (m_viewportRect) {
       rasterizer.setViewportRect(*m_viewportRect);
     } else {
@@ -664,6 +677,22 @@ namespace engine::graph {
       rasterizer.clearScissorRect();
     }
     rasterizer.setColorWriteMask(m_colorWriteMask);
+  }
+
+  void RasterFramebufferState::validateSupportedByOpenGL() const {
+    if (m_depthBias != 0.0) {
+      openGLUnsupported("depth bias");
+    }
+    if (m_blendingEnabled || m_sourceBlendFactor != Rasterizer::BlendFactor::One ||
+        m_destinationBlendFactor != Rasterizer::BlendFactor::Zero ||
+        m_blendOp != Rasterizer::BlendOp::Add || !(m_blendConstantColor == Colord::white()) ||
+        m_blendConstantAlpha != 1.0) {
+      openGLUnsupported("fixed-function blending");
+    }
+    if (m_alphaTestEnabled || m_alphaFunc != Rasterizer::AlphaFunc::Always ||
+        m_alphaReference != 0.0) {
+      openGLUnsupported("fixed-function alpha test");
+    }
   }
 
   void RasterFramebufferState::setViewportRect(const Recti& rect) {
@@ -770,6 +799,12 @@ namespace engine::graph {
     rasterizer.setShadowSlopeBias(m_slopeBias);
     rasterizer.setShadowFilterRadius(m_filterRadius);
     rasterizer.setShadowFilterMode(m_filterMode);
+  }
+
+  void RasterShadowState::applyTo(engine::raster::OpenGLRasterizer&) const {
+    if (m_enabled) {
+      openGLUnsupported("shadow maps");
+    }
   }
 
   void RasterShadowState::setShadowMapsEnabled(bool enabled) {
@@ -885,6 +920,10 @@ namespace engine::graph {
     m_shadows.applyTo(rasterizer);
   }
 
+  void RasterShadowPassState::applyTo(engine::raster::OpenGLRasterizer& rasterizer) const {
+    m_shadows.applyTo(rasterizer);
+  }
+
   void RasterShadowPassState::writeTo(RenderPassNode& pass) const {
     if (empty()) {
       pass.state.reset();
@@ -996,6 +1035,7 @@ namespace engine::graph {
     m_geometry.applyTo(rasterizer);
     m_sampling.applyTo(rasterizer);
     m_framebuffer.applyTo(rasterizer);
+    m_shadows.applyTo(rasterizer);
   }
 
   void RasterBeautyPassState::writeTo(RenderPassNode& pass) const {

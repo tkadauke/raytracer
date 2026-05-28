@@ -7,9 +7,25 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
+#include <stdexcept>
+#include <string>
+
 namespace RasterPassStateTest {
   using namespace engine::graph;
   using Rasterizer = engine::raster::Rasterizer;
+
+  void expectOpenGLUnsupported(const RasterBeautyPassState& state, const std::string& feature) {
+    engine::raster::OpenGLRasterizer rasterizer(nullptr);
+
+    try {
+      state.applyTo(rasterizer);
+      FAIL() << "expected unsupported OpenGL raster state";
+    } catch (const std::runtime_error& error) {
+      const std::string message = error.what();
+      EXPECT_NE(message.find("OpenGL raster backend"), std::string::npos);
+      EXPECT_NE(message.find(feature), std::string::npos);
+    }
+  }
 
   TEST(RasterShadowPassState, SerializesPreviewDefaults) {
     const RasterShadowPassState state = RasterShadowPassState::previewDefaults();
@@ -151,6 +167,34 @@ namespace RasterPassStateTest {
     EXPECT_EQ(6, rasterizer.scissorRect().left());
     EXPECT_EQ(18, rasterizer.scissorRect().width());
     EXPECT_EQ(Rasterizer::ColorWriteRed, rasterizer.colorWriteMask());
+  }
+
+  TEST(RasterBeautyPassState, RejectsUnsupportedOpenGLPostProcessAA) {
+    RasterBeautyPassState state;
+    state.sampling().setPostProcessAA(Rasterizer::PostProcessAA::FXAA);
+
+    expectOpenGLUnsupported(state, "post-process anti-aliasing");
+  }
+
+  TEST(RasterBeautyPassState, RejectsUnsupportedOpenGLFramebufferState) {
+    RasterBeautyPassState depthBias;
+    depthBias.framebuffer().setDepthBias(0.01);
+    expectOpenGLUnsupported(depthBias, "depth bias");
+
+    RasterBeautyPassState blending;
+    blending.framebuffer().setBlendingEnabled(true);
+    expectOpenGLUnsupported(blending, "blending");
+
+    RasterBeautyPassState alphaTest;
+    alphaTest.framebuffer().setAlphaTestEnabled(true);
+    expectOpenGLUnsupported(alphaTest, "alpha test");
+  }
+
+  TEST(RasterBeautyPassState, RejectsUnsupportedOpenGLShadowMaps) {
+    RasterBeautyPassState state;
+    state.shadows().setShadowMapsEnabled(true);
+
+    expectOpenGLUnsupported(state, "shadow maps");
   }
 
   TEST(RasterBeautyPassState, AppliesImportedStateToRasterizer) {
