@@ -39,50 +39,56 @@ public:
 
   template<class T>
   inline Vector4(const Vector3<T>& source) {
-    m_coordinates[0] = source.coordinate(0);
-    m_coordinates[1] = source.coordinate(1);
-    m_coordinates[2] = source.coordinate(2);
-    m_coordinates[3] = 1.0;
+    m_vector[0] = _mm_set_pd(static_cast<double>(source.y()), static_cast<double>(source.x()));
+    m_vector[1] = _mm_set_pd(1.0, static_cast<double>(source.z()));
   }
 
   template<int D, class C, class S, class V>
   inline Vector4(const Vector<D, C, S, V>& source) {
-    m_vector[0] = _mm_setzero_pd();
-    m_vector[1] = _mm_set_pd(1.0, 0.0);
-    for (int i = 0; i != Dim && i != D; ++i)
-      m_coordinates[i] = source.coordinate(i);
+    const double x = D > 0 ? static_cast<double>(source.coordinate(0)) : 0.0;
+    const double y = D > 1 ? static_cast<double>(source.coordinate(1)) : 0.0;
+    const double z = D > 2 ? static_cast<double>(source.coordinate(2)) : 0.0;
+    const double w = D > 3 ? static_cast<double>(source.coordinate(3)) : 1.0;
+    m_vector[0] = _mm_set_pd(y, x);
+    m_vector[1] = _mm_set_pd(w, z);
   }
 
   [[nodiscard]] inline double x() const noexcept {
-    return m_coordinates[0];
+    return _mm_cvtsd_f64(m_vector[0]);
   }
 
   inline void setX(const double& value) noexcept {
-    m_coordinates[0] = value;
+    m_vector[0] = _mm_move_sd(m_vector[0], _mm_set_sd(value));
   }
 
   [[nodiscard]] inline double y() const noexcept {
-    return m_coordinates[1];
+    return _mm_cvtsd_f64(_mm_unpackhi_pd(m_vector[0], m_vector[0]));
   }
 
   inline void setY(const double& value) noexcept {
-    m_coordinates[1] = value;
+    double lanes[2];
+    _mm_storeu_pd(lanes, m_vector[0]);
+    lanes[1] = value;
+    m_vector[0] = _mm_loadu_pd(lanes);
   }
 
   [[nodiscard]] inline double z() const noexcept {
-    return m_coordinates[2];
+    return _mm_cvtsd_f64(m_vector[1]);
   }
 
   inline void setZ(const double& value) noexcept {
-    m_coordinates[2] = value;
+    m_vector[1] = _mm_move_sd(m_vector[1], _mm_set_sd(value));
   }
 
   [[nodiscard]] inline double w() const noexcept {
-    return m_coordinates[3];
+    return _mm_cvtsd_f64(_mm_unpackhi_pd(m_vector[1], m_vector[1]));
   }
 
   inline void setW(const double& value) noexcept {
-    m_coordinates[3] = value;
+    double lanes[2];
+    _mm_storeu_pd(lanes, m_vector[1]);
+    lanes[1] = value;
+    m_vector[1] = _mm_loadu_pd(lanes);
   }
 
   [[nodiscard]] inline Vector4<double> operator+(const Vector4<double>& other) const noexcept {
@@ -101,8 +107,8 @@ public:
   }
 
   [[nodiscard]] inline double operator*(const Vector4<double>& other) const noexcept {
-    __m128d first = _mm_mul_pd(m_vector[0], other.m_vector[0]);
-    __m128d second = _mm_mul_pd(m_vector[1], other.m_vector[1]);
+    const __m128d first = _mm_mul_pd(m_vector[0], other.m_vector[0]);
+    const __m128d second = _mm_mul_pd(m_vector[1], other.m_vector[1]);
     return _mm_cvtsd_f64(first) + _mm_cvtsd_f64(_mm_unpackhi_pd(first, first)) +
            _mm_cvtsd_f64(second) + _mm_cvtsd_f64(_mm_unpackhi_pd(second, second));
   }
