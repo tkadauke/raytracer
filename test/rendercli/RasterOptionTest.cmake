@@ -77,6 +77,33 @@ else()
                   "" "${opengl_result}" "${opengl_stdout}" "${opengl_stderr}")
 endif()
 
+set(opengl_depth_render "${TEST_OUTPUT_DIR}/raster-opengl-depth.png")
+execute_process(
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
+    --render_graph_view depth
+    "${matte_scene}" "${opengl_depth_render}"
+  RESULT_VARIABLE opengl_depth_result
+  OUTPUT_VARIABLE opengl_depth_stdout
+  ERROR_VARIABLE opengl_depth_stderr
+)
+if(opengl_depth_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_depth_render}" 16 12
+                                    NAME "rendercli --raster_backend gpu depth dimensions")
+  rendercli_assert_image_nonempty("${opengl_depth_render}"
+                                  NAME "rendercli --raster_backend gpu depth pixels")
+elseif(opengl_depth_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_depth_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu depth application bootstrap"
+                    "OpenGL depth AOV still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_depth_result}" "${opengl_depth_stdout}" "${opengl_depth_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu depth AOV"
+                  "OpenGL depth AOV neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_depth_result}" "${opengl_depth_stdout}" "${opengl_depth_stderr}")
+endif()
+
 rendercli_run(
   NAME "rendercli --lod 0 renders curved raster scene"
   COMMAND

@@ -48,6 +48,7 @@ namespace engine::raster {
     bool bindFramebuffer();
     void releaseFramebuffer();
     void copyColorTo(Buffer<Colord>& target) const;
+    void copyDepthTo(Buffer<double>& target) const;
     bool isValid() const;
     const std::string& errorMessage() const;
     std::string detailText() const;

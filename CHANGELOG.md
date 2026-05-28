@@ -71,6 +71,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **OpenGL raster fixed-function state.** The OpenGL raster backend now applies
   graph-derived viewport, scissor, and face-culling state for the initial
   material-albedo mesh path. — GPT-5
+- **OpenGL raster depth AOV.** OpenGL-backed raster depth views now read back
+  the depth attachment into graph-visible CPU depth resources for trace,
+  visualization, and rendercli depth output. — GPT-5
 - **rendercli OpenGL application bootstrap.** rendercli now pre-scans explicit
   `--raster_backend opengl|gpu` runs, starts a GUI-capable Qt application for
   that backend, and defaults the command-line GPU path to Qt's offscreen

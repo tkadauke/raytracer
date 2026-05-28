@@ -603,9 +603,29 @@ namespace engine::graph {
         const auto& write = pass.singleWrite();
         requireDepthResource(context.storage(), write.resource, pass);
 
+        const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(pass);
+        if (state.execution().backend().isOpenGL()) {
+          renderOpenGLDepth(context, state);
+          return;
+        }
+
         ::engine::raster::Rasterizer::DiagnosticOutputBuffers outputs;
         outputs.depth = &context.storage().depth(write.resource);
         renderRasterDiagnostics(context, outputs);
+      }
+
+    private:
+      void renderOpenGLDepth(RenderExecutionContext& context,
+                             const RasterBeautyPassState& state) const {
+        auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
+        auto rasterizer = std::make_shared<::engine::raster::OpenGLRasterizer>(
+          std::move(camera), context.graph().scene());
+        state.applyTo(*rasterizer);
+
+        const auto& write = context.pass().singleWrite();
+        prepareEngine(*rasterizer, context.graph(), context.cancelled(), context.graph().tonemap());
+        context.setActiveEngine(rasterizer);
+        rasterizer->renderDepth(context.storage().depth(write.resource));
       }
     };
 

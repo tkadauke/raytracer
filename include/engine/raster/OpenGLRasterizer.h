@@ -27,6 +27,7 @@ namespace engine::raster {
     std::shared_ptr<render::RenderEngine> cloneForRender() const override;
     void render(Buffer<unsigned int>& buffer) override;
     void render(Buffer<Colord>& buffer) override;
+    void renderDepth(Buffer<double>& buffer);
     void cancel() override;
     void uncancel() override;
 
@@ -56,7 +57,7 @@ namespace engine::raster {
 
   private:
     Recti viewportRectFor(int width, int height) const;
-    void renderOpenGL(Buffer<Colord>& buffer) const;
+    void renderOpenGL(Buffer<Colord>& buffer, Buffer<double>* depthTarget) const;
 
     std::atomic<bool> m_cancelled{false};
     int m_lod{0};

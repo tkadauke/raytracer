@@ -200,7 +200,10 @@ Tasks:
   The backend clears the offscreen framebuffer, depth-tests triangles, and
   draws material-albedo color.
 - ~~Read back color for final output~~ ✅ **Done.** Color readback now fills
-  the render target. Depth readback for trace/AOV remains pending.
+  the render target.
+- ~~Read back depth for the raster depth AOV path.~~ ✅ **Done.** The OpenGL
+  backend can now materialize graph-visible CPU depth previews for depth AOV
+  renders.
 - Cache GPU buffers per immutable mesh payload where possible.
 
 Acceptance:

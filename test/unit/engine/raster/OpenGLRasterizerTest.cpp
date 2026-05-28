@@ -31,6 +31,17 @@ namespace OpenGLRasterizerTest {
     }
   }
 
+  TEST(OpenGLRasterizer, RenderDepthFailsClearlyWhenContextUnavailable) {
+    engine::raster::OpenGLRasterizer rasterizer(nullptr);
+    Buffer<double> buffer(2, 2);
+
+    try {
+      rasterizer.renderDepth(buffer);
+    } catch (const std::runtime_error& error) {
+      EXPECT_NE(std::string(error.what()).find("OpenGL raster backend"), std::string::npos);
+    }
+  }
+
   TEST(OpenGLRasterizer, ClonesLodForRender) {
     engine::raster::OpenGLRasterizer rasterizer(nullptr);
     rasterizer.setLod(3);

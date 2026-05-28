@@ -11,11 +11,15 @@
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFramebufferObjectFormat>
+#include <QOpenGLFunctions>
 #include <QSurfaceFormat>
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 #include <sstream>
 #include <utility>
+#include <vector>
 
 namespace engine::raster {
   OpenGLAvailability::OpenGLAvailability(bool available, std::string detail, std::string error)
@@ -184,6 +188,37 @@ namespace engine::raster {
       }
     }
 
+    void copyDepthTo(Buffer<double>& target) const {
+      if (!framebuffer || target.width() <= 0 || target.height() <= 0) {
+        return;
+      }
+
+      const int width = std::min(target.width(), framebuffer->width());
+      const int height = std::min(target.height(), framebuffer->height());
+      std::vector<GLfloat> pixels(static_cast<std::size_t>(width * height), 1.0f);
+      QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
+      functions->glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, pixels.data());
+
+      for (int y = 0; y != height; ++y) {
+        const int sourceY = height - 1 - y;
+        for (int x = 0; x != width; ++x) {
+          target[y][x] =
+            linearDepthFromOpenGLDepth(pixels[static_cast<std::size_t>(sourceY * width + x)]);
+        }
+      }
+    }
+
+    double linearDepthFromOpenGLDepth(float depth) const {
+      if (!std::isfinite(depth) || depth >= 1.0f) {
+        return std::numeric_limits<double>::infinity();
+      }
+      const double clampedDepth = std::clamp(static_cast<double>(depth), 0.0, 1.0);
+      if (clampedDepth >= 1.0) {
+        return std::numeric_limits<double>::infinity();
+      }
+      return clampedDepth / (1.0 - clampedDepth);
+    }
+
     void destroyResources() {
       if (framebuffer) {
         const bool alreadyCurrent = QOpenGLContext::currentContext() == context.get();
@@ -256,6 +291,10 @@ namespace engine::raster {
 
   void OpenGLOffscreenContext::copyColorTo(Buffer<Colord>& target) const {
     p->copyColorTo(target);
+  }
+
+  void OpenGLOffscreenContext::copyDepthTo(Buffer<double>& target) const {
+    p->copyDepthTo(target);
   }
 
   bool OpenGLOffscreenContext::isValid() const {

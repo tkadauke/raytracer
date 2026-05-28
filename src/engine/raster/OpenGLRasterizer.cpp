@@ -27,7 +27,7 @@ namespace engine::raster {
       }
 
       void render(const detail::OpenGLRasterMesh& mesh, const Colord& background,
-                  Buffer<Colord>& target) {
+                  Buffer<Colord>& target, Buffer<double>* depthTarget) {
         if (!m_context.makeCurrent()) {
           throw std::runtime_error(m_context.errorMessage());
         }
@@ -39,6 +39,9 @@ namespace engine::raster {
         try {
           draw(mesh, background);
           m_context.copyColorTo(target);
+          if (depthTarget) {
+            m_context.copyDepthTo(*depthTarget);
+          }
           m_context.releaseFramebuffer();
           m_context.doneCurrent();
         } catch (...) {
@@ -209,7 +212,12 @@ namespace engine::raster {
   }
 
   void OpenGLRasterizer::render(Buffer<Colord>& buffer) {
-    renderOpenGL(buffer);
+    renderOpenGL(buffer, nullptr);
+  }
+
+  void OpenGLRasterizer::renderDepth(Buffer<double>& buffer) {
+    Buffer<Colord> scratch(buffer.width(), buffer.height());
+    renderOpenGL(scratch, &buffer);
   }
 
   void OpenGLRasterizer::cancel() {
@@ -313,7 +321,7 @@ namespace engine::raster {
     return Recti(width, height);
   }
 
-  void OpenGLRasterizer::renderOpenGL(Buffer<Colord>& buffer) const {
+  void OpenGLRasterizer::renderOpenGL(Buffer<Colord>& buffer, Buffer<double>* depthTarget) const {
     OpenGLOffscreenContext context;
     if (!context.create(buffer.width(), buffer.height())) {
       throw std::runtime_error(context.errorMessage());
@@ -328,6 +336,6 @@ namespace engine::raster {
     }
 
     OpenGLRasterDrawPass(context, buffer.height(), viewport, m_scissorTestEnabled, m_scissorRect)
-      .render(mesh, backgroundColor(), buffer);
+      .render(mesh, backgroundColor(), buffer, depthTarget);
   }
 }
