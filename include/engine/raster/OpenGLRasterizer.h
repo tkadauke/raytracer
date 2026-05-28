@@ -12,9 +12,9 @@ namespace engine::raster {
     *
     * The class is wired into graph backend selection and owns the first
     * offscreen context/FBO capability path plus the first reusable
-    * mesh-preparation path. Selecting it gives callers one deterministic
-    * backend/capability error until GPU buffer upload, shader execution, and
-    * readback exist.
+    * mesh-preparation and draw path. The first visible implementation renders
+    * clipped triangles with material albedo into an offscreen color/depth
+    * framebuffer before readback.
     */
   class OpenGLRasterizer : public render::RenderEngine {
   public:
@@ -38,9 +38,7 @@ namespace engine::raster {
     std::string availabilityError() const;
 
   private:
-    [[noreturn]] void throwRenderUnavailable(const Buffer<Colord>* buffer) const;
-    [[noreturn]] void throwRenderUnavailable(const Buffer<unsigned int>* buffer) const;
-    [[noreturn]] void throwRenderUnavailable(int width, int height) const;
+    void renderOpenGL(Buffer<Colord>& buffer) const;
 
     std::atomic<bool> m_cancelled{false};
     int m_lod{0};

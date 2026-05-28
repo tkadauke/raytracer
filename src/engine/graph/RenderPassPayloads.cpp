@@ -12,6 +12,7 @@
 #include "engine/graph/RenderExecutionContext.h"
 #include "engine/graph/RenderResourceStorage.h"
 #include "engine/graph/WireframePassState.h"
+#include "engine/raster/OpenGLRasterizer.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wireframe/Wireframe.h"
@@ -301,6 +302,9 @@ namespace engine::graph {
           auto rasterizer = std::static_pointer_cast<::engine::raster::Rasterizer>(engine);
           state.applyTo(*rasterizer);
           applyRasterShadowInputs(context, state, *rasterizer);
+        } else if (backend.isOpenGL()) {
+          auto rasterizer = std::static_pointer_cast<::engine::raster::OpenGLRasterizer>(engine);
+          state.applyTo(*rasterizer);
         }
         return engine;
       }

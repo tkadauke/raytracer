@@ -4,11 +4,141 @@
 #include "engine/raster/OpenGLOffscreenContext.h"
 #include "engine/raster/detail/OpenGLRasterMesh.h"
 
+#include <QOpenGLBuffer>
+#include <QOpenGLFunctions>
+#include <QOpenGLShaderProgram>
+
+#include <algorithm>
+#include <cstddef>
 #include <stdexcept>
-#include <string>
 #include <utility>
 
 namespace engine::raster {
+  namespace {
+    class OpenGLRasterDrawPass {
+    public:
+      OpenGLRasterDrawPass(OpenGLOffscreenContext& context, int width, int height)
+          : m_context(context),
+            m_width(width),
+            m_height(height) {
+      }
+
+      void render(const detail::OpenGLRasterMesh& mesh, const Colord& background,
+                  Buffer<Colord>& target) {
+        if (!m_context.makeCurrent()) {
+          throw std::runtime_error(m_context.errorMessage());
+        }
+        if (!m_context.bindFramebuffer()) {
+          m_context.doneCurrent();
+          throw std::runtime_error(m_context.errorMessage());
+        }
+
+        try {
+          draw(mesh, background);
+          m_context.copyColorTo(target);
+          m_context.releaseFramebuffer();
+          m_context.doneCurrent();
+        } catch (...) {
+          m_context.releaseFramebuffer();
+          m_context.doneCurrent();
+          throw;
+        }
+      }
+
+    private:
+      void draw(const detail::OpenGLRasterMesh& mesh, const Colord& background) {
+        QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
+        functions->glViewport(0, 0, m_width, m_height);
+        functions->glEnable(GL_DEPTH_TEST);
+        functions->glDepthFunc(GL_LESS);
+        functions->glClearColor(static_cast<GLfloat>(std::clamp(background.r(), 0.0, 1.0)),
+                                static_cast<GLfloat>(std::clamp(background.g(), 0.0, 1.0)),
+                                static_cast<GLfloat>(std::clamp(background.b(), 0.0, 1.0)), 1.0f);
+        functions->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+        if (mesh.empty()) {
+          functions->glFlush();
+          return;
+        }
+
+        QOpenGLShaderProgram program;
+        if (!program.addShaderFromSourceCode(QOpenGLShader::Vertex,
+                                             "attribute vec3 position;\n"
+                                             "attribute vec3 color;\n"
+                                             "varying vec3 vertexColor;\n"
+                                             "void main() {\n"
+                                             "  gl_Position = vec4(position, 1.0);\n"
+                                             "  vertexColor = color;\n"
+                                             "}\n")) {
+          throw std::runtime_error("OpenGL raster backend could not compile vertex shader: " +
+                                   program.log().toStdString());
+        }
+        if (!program.addShaderFromSourceCode(QOpenGLShader::Fragment,
+                                             "varying vec3 vertexColor;\n"
+                                             "void main() {\n"
+                                             "  gl_FragColor = vec4(vertexColor, 1.0);\n"
+                                             "}\n")) {
+          throw std::runtime_error("OpenGL raster backend could not compile fragment shader: " +
+                                   program.log().toStdString());
+        }
+        if (!program.link()) {
+          throw std::runtime_error("OpenGL raster backend could not link shader program: " +
+                                   program.log().toStdString());
+        }
+        if (!program.bind()) {
+          throw std::runtime_error("OpenGL raster backend could not bind shader program");
+        }
+
+        QOpenGLBuffer vertexBuffer(QOpenGLBuffer::VertexBuffer);
+        QOpenGLBuffer indexBuffer(QOpenGLBuffer::IndexBuffer);
+        if (!vertexBuffer.create() || !indexBuffer.create()) {
+          program.release();
+          throw std::runtime_error("OpenGL raster backend could not create GPU buffers");
+        }
+
+        vertexBuffer.bind();
+        vertexBuffer.allocate(
+          mesh.vertices().data(),
+          static_cast<int>(mesh.vertices().size() * sizeof(detail::OpenGLRasterMesh::Vertex)));
+        indexBuffer.bind();
+        indexBuffer.allocate(mesh.indices().data(),
+                             static_cast<int>(mesh.indices().size() * sizeof(std::uint32_t)));
+
+        const int positionLocation = program.attributeLocation("position");
+        const int colorLocation = program.attributeLocation("color");
+        if (positionLocation < 0 || colorLocation < 0) {
+          indexBuffer.release();
+          vertexBuffer.release();
+          program.release();
+          throw std::runtime_error("OpenGL raster backend shader attributes are unavailable");
+        }
+
+        program.enableAttributeArray(positionLocation);
+        program.setAttributeBuffer(positionLocation, GL_FLOAT,
+                                   offsetof(detail::OpenGLRasterMesh::Vertex, x), 3,
+                                   sizeof(detail::OpenGLRasterMesh::Vertex));
+        program.enableAttributeArray(colorLocation);
+        program.setAttributeBuffer(colorLocation, GL_FLOAT,
+                                   offsetof(detail::OpenGLRasterMesh::Vertex, r), 3,
+                                   sizeof(detail::OpenGLRasterMesh::Vertex));
+
+        functions->glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh.indices().size()),
+                                  GL_UNSIGNED_INT, nullptr);
+        functions->glFlush();
+
+        program.disableAttributeArray(colorLocation);
+        program.disableAttributeArray(positionLocation);
+        indexBuffer.release();
+        vertexBuffer.release();
+        program.release();
+      }
+
+      OpenGLOffscreenContext& m_context;
+      int m_width;
+      int m_height;
+    };
+  }
+
   OpenGLRasterizer::OpenGLRasterizer(std::shared_ptr<render::Scene> scene)
       : RenderEngine(std::move(scene)) {
   }
@@ -34,11 +164,11 @@ namespace engine::raster {
   }
 
   void OpenGLRasterizer::render(Buffer<unsigned int>& buffer) {
-    throwRenderUnavailable(&buffer);
+    RenderEngine::render(buffer);
   }
 
   void OpenGLRasterizer::render(Buffer<Colord>& buffer) {
-    throwRenderUnavailable(&buffer);
+    renderOpenGL(buffer);
   }
 
   void OpenGLRasterizer::cancel() {
@@ -50,14 +180,9 @@ namespace engine::raster {
   }
 
   std::string OpenGLRasterizer::statusMessage() {
-    const OpenGLAvailability availability = OpenGLOffscreenContext::probe();
-    if (!availability.available()) {
-      return availability.error();
-    }
-    return "OpenGL raster backend is selected and an offscreen context is available (" +
-           availability.detail() +
-           "), but GPU buffer upload, shader execution, and readback are not implemented yet; use "
-           "--raster_backend cpu until the first GPU raster pass lands";
+    return "OpenGL raster backend renders the initial material-albedo mesh path when Qt can "
+           "create an offscreen context; unsupported hosts report an OpenGL capability error "
+           "when the backend is selected";
   }
 
   int OpenGLRasterizer::lod() const {
@@ -77,32 +202,26 @@ namespace engine::raster {
   }
 
   std::string OpenGLRasterizer::availabilityError() const {
-    return statusMessage();
+    const OpenGLAvailability availability = OpenGLOffscreenContext::probe();
+    if (!availability.available()) {
+      return availability.error();
+    }
+    return "OpenGL raster backend is selected and an offscreen context is available (" +
+           availability.detail() + ") and can render the initial material-albedo mesh path";
   }
 
-  void OpenGLRasterizer::throwRenderUnavailable(const Buffer<Colord>* buffer) const {
-    throwRenderUnavailable(buffer ? buffer->width() : 1, buffer ? buffer->height() : 1);
-  }
-
-  void OpenGLRasterizer::throwRenderUnavailable(const Buffer<unsigned int>* buffer) const {
-    throwRenderUnavailable(buffer ? buffer->width() : 1, buffer ? buffer->height() : 1);
-  }
-
-  void OpenGLRasterizer::throwRenderUnavailable(int width, int height) const {
+  void OpenGLRasterizer::renderOpenGL(Buffer<Colord>& buffer) const {
     OpenGLOffscreenContext context;
-    if (!context.create(width, height)) {
+    if (!context.create(buffer.width(), buffer.height())) {
       throw std::runtime_error(context.errorMessage());
     }
 
     const detail::OpenGLRasterMesh mesh =
-      detail::OpenGLRasterMeshBuilder(scene().get(), camera(), m_lod, Recti(width, height),
-                                      m_cancelled)
+      detail::OpenGLRasterMeshBuilder(scene().get(), camera(), m_lod,
+                                      Recti(buffer.width(), buffer.height()), m_cancelled)
         .build();
 
-    throw std::runtime_error(
-      "OpenGL raster backend is selected and created an offscreen " + context.detailText() +
-      " context/framebuffer, and prepared " + std::to_string(mesh.triangleCount()) +
-      " screen-space triangles, but GPU buffer upload, shader execution, and readback are not "
-      "implemented yet; use --raster_backend cpu until the first GPU raster pass lands");
+    OpenGLRasterDrawPass(context, buffer.width(), buffer.height())
+      .render(mesh, backgroundColor(), buffer);
   }
 }

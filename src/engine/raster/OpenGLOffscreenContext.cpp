@@ -1,7 +1,12 @@
 #include "engine/raster/OpenGLOffscreenContext.h"
 
+#include "core/Buffer.h"
+#include "core/Color.h"
+
+#include <QColor>
 #include <QCoreApplication>
 #include <QGuiApplication>
+#include <QImage>
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
@@ -61,18 +66,19 @@ namespace engine::raster {
       }
 
 #if defined(Q_OS_MACOS)
-      if (QGuiApplication::platformName() == QStringLiteral("cocoa")) {
+      if (QGuiApplication::platformName() == QStringLiteral("cocoa") &&
+          QCoreApplication::applicationName() != QStringLiteral("Modeler")) {
         errorMessage =
           "OpenGL raster backend is selected, but Qt Cocoa offscreen OpenGL context creation is "
-          "disabled because this backend currently requires a safe offscreen platform probe";
+          "only enabled inside Modeler because headless Cocoa context probes can crash in Qt";
         return false;
       }
 #endif
 
       QSurfaceFormat requested;
       requested.setRenderableType(QSurfaceFormat::OpenGL);
-      requested.setProfile(QSurfaceFormat::CoreProfile);
-      requested.setVersion(3, 3);
+      requested.setProfile(QSurfaceFormat::CompatibilityProfile);
+      requested.setVersion(2, 1);
       requested.setDepthBufferSize(24);
       requested.setStencilBufferSize(8);
 
@@ -120,6 +126,62 @@ namespace engine::raster {
 
       context->doneCurrent();
       return true;
+    }
+
+    bool makeCurrent() {
+      if (!context || !surface || !surface->isValid()) {
+        errorMessage =
+          "OpenGL raster backend is selected, but no valid offscreen context is available";
+        return false;
+      }
+      if (!context->makeCurrent(surface.get())) {
+        errorMessage =
+          "OpenGL raster backend is selected, but the offscreen context could not be made current";
+        return false;
+      }
+      return true;
+    }
+
+    void doneCurrent() {
+      if (context) {
+        context->doneCurrent();
+      }
+    }
+
+    bool bindFramebuffer() {
+      if (!framebuffer || !framebuffer->isValid()) {
+        errorMessage =
+          "OpenGL raster backend is selected, but no valid offscreen framebuffer is available";
+        return false;
+      }
+      if (!framebuffer->bind()) {
+        errorMessage =
+          "OpenGL raster backend is selected, but the offscreen framebuffer could not be bound";
+        return false;
+      }
+      return true;
+    }
+
+    void releaseFramebuffer() {
+      if (framebuffer) {
+        framebuffer->release();
+      }
+    }
+
+    void copyColorTo(Buffer<Colord>& target) const {
+      if (!framebuffer) {
+        return;
+      }
+
+      const QImage image = framebuffer->toImage();
+      const int width = std::min(target.width(), image.width());
+      const int height = std::min(target.height(), image.height());
+      for (int y = 0; y != height; ++y) {
+        for (int x = 0; x != width; ++x) {
+          const QColor color = image.pixelColor(x, y);
+          target[y][x] = Colord(color.redF(), color.greenF(), color.blueF());
+        }
+      }
     }
 
     void destroyResources() {
@@ -174,6 +236,26 @@ namespace engine::raster {
 
   bool OpenGLOffscreenContext::create(int width, int height) {
     return p->create(width, height);
+  }
+
+  bool OpenGLOffscreenContext::makeCurrent() {
+    return p->makeCurrent();
+  }
+
+  void OpenGLOffscreenContext::doneCurrent() {
+    p->doneCurrent();
+  }
+
+  bool OpenGLOffscreenContext::bindFramebuffer() {
+    return p->bindFramebuffer();
+  }
+
+  void OpenGLOffscreenContext::releaseFramebuffer() {
+    p->releaseFramebuffer();
+  }
+
+  void OpenGLOffscreenContext::copyColorTo(Buffer<Colord>& target) const {
+    p->copyColorTo(target);
   }
 
   bool OpenGLOffscreenContext::isValid() const {

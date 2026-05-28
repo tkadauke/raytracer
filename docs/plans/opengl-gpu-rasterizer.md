@@ -160,9 +160,10 @@ Tasks:
   missing-draw-path status once the first draw path is close enough to exercise.~~ ✅
   **Done.** The final Render window shows a backend-status row for OpenGL,
   Render Settings explains that OpenGL is experimental, and the preview menu
-  exposes the same shared OpenGL raster status. The capability probe also
-  rejects Qt's Cocoa offscreen path before entering the context-creation call
-  that can crash on macOS.
+  exposes the same shared OpenGL raster status. Headless Cocoa context probes
+  are still rejected before entering the Qt call that can crash on macOS;
+  Modeler is allowed to attempt the Cocoa path so the visible preview/render
+  UI can exercise the backend.
 
 Acceptance:
 
@@ -179,12 +180,23 @@ Tasks:
   buffers.~~ ✅ **Done.** The OpenGL raster path now reuses the software raster
   front end to produce a GPU-ready screen-space vertex/index buffer with the
   same camera setup, clipping, culling, material albedo, cancellation, and LOD
-  behavior. Actual OpenGL buffer upload remains the next step.
-- Upload prepared mesh geometry to VBO/IBO buffers.
-- Compile a minimal shader for matte/base-color shading.
-- Bind graph raster pass state for camera, viewport, culling, and depth test.
-- Render into an FBO color attachment and depth attachment.
-- Read back color for final output and depth for trace/AOV when requested.
+  behavior.
+- ~~Upload prepared mesh geometry to VBO/IBO buffers.~~ ✅ **Done.** The
+  initial OpenGL pass allocates Qt OpenGL vertex and index buffers from the
+  prepared mesh.
+- ~~Compile a minimal shader for matte/base-color shading.~~ ✅ **Done.** The
+  first shader draws interpolated material albedo so visible geometry appears
+  before direct lighting lands.
+- ~~Bind graph raster pass state for camera and LOD, and enable depth test.~~ ✅
+  **Done.** Camera setup and LOD are shared with the software front end, and
+  the OpenGL pass enables depth testing.
+- Bind remaining graph raster pass state for viewport/scissor, culling
+  overrides, MSAA, and other fixed-function controls.
+- ~~Render into an FBO color attachment and depth attachment.~~ ✅ **Done.**
+  The backend clears the offscreen framebuffer, depth-tests triangles, and
+  draws material-albedo color.
+- ~~Read back color for final output~~ ✅ **Done.** Color readback now fills
+  the render target. Depth readback for trace/AOV remains pending.
 - Cache GPU buffers per immutable mesh payload where possible.
 
 Acceptance:

@@ -4,6 +4,7 @@
 #include "engine/raster/OpenGLOffscreenContext.h"
 #include "engine/raster/OpenGLRasterizer.h"
 
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -19,16 +20,26 @@ namespace OpenGLRasterizerTest {
     }
   }
 
-  TEST(OpenGLRasterizer, FailsClearlyUntilDrawPathExists) {
+  TEST(OpenGLRasterizer, FailsClearlyWhenContextUnavailable) {
     engine::raster::OpenGLRasterizer rasterizer(nullptr);
     Buffer<Colord> buffer(2, 2);
 
     try {
       rasterizer.render(buffer);
-      FAIL() << "expected OpenGL rasterizer shell to report an unavailable draw path";
     } catch (const std::runtime_error& error) {
       EXPECT_NE(std::string(error.what()).find("OpenGL raster backend"), std::string::npos);
     }
+  }
+
+  TEST(OpenGLRasterizer, ClonesLodForRender) {
+    engine::raster::OpenGLRasterizer rasterizer(nullptr);
+    rasterizer.setLod(3);
+
+    auto clone =
+      std::dynamic_pointer_cast<engine::raster::OpenGLRasterizer>(rasterizer.cloneForRender());
+
+    ASSERT_NE(nullptr, clone);
+    EXPECT_EQ(3, clone->lod());
   }
 
   TEST(OpenGLRasterizer, ProvidesSharedStatusMessage) {

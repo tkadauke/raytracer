@@ -51,18 +51,30 @@ if(NOT opengl_graph_json MATCHES "\"backend\"[ \r\n]*:[ \r\n]*\"opengl\"")
                   "" "" "" "${opengl_graph_json}")
 endif()
 
-rendercli_expect_failure(
-  NAME "rendercli --raster_backend gpu fails clearly until OpenGL draw path lands"
-  ERROR_VARIABLE opengl_failure_stderr
-  STDERR_MATCHES "OpenGL raster backend is selected"
+set(opengl_render "${TEST_OUTPUT_DIR}/raster-opengl.png")
+execute_process(
   COMMAND
     "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
-    "${matte_scene}" "${TEST_OUTPUT_DIR}/raster-opengl.png"
+    "${matte_scene}" "${opengl_render}"
+  RESULT_VARIABLE opengl_result
+  OUTPUT_VARIABLE opengl_stdout
+  ERROR_VARIABLE opengl_stderr
 )
-if(opengl_failure_stderr MATCHES "QCoreApplication")
+if(opengl_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_render}" 16 12
+                                    NAME "rendercli --raster_backend gpu dimensions")
+  rendercli_assert_image_nonempty("${opengl_render}"
+                                  NAME "rendercli --raster_backend gpu pixels")
+elseif(opengl_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu application bootstrap"
+                    "OpenGL backend still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_result}" "${opengl_stdout}" "${opengl_stderr}")
+  endif()
+else()
   _rendercli_fail("rendercli --raster_backend gpu application bootstrap"
-                  "OpenGL backend still failed before rendercli started a GUI-capable application"
-                  "" "" "" "${opengl_failure_stderr}")
+                  "OpenGL backend neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_result}" "${opengl_stdout}" "${opengl_stderr}")
 endif()
 
 rendercli_run(

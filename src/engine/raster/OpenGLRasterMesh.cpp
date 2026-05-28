@@ -29,7 +29,7 @@ namespace engine::raster::detail {
         1.0 - ((screenY - rect.top()) / static_cast<double>(rect.height())) * 2.0);
     }
 
-    float normalizedDepth(const RasterVertex& vertex) {
+    float normalizedDeviceDepth(const RasterVertex& vertex) {
       if (vertex.invW == 0.0) {
         return 0.0f;
       }
@@ -37,7 +37,8 @@ namespace engine::raster::detail {
       if (!std::isfinite(depth)) {
         return 0.0f;
       }
-      return static_cast<float>(std::clamp(depth, 0.0, 1.0));
+      const double normalized = depth / (depth + 1.0);
+      return static_cast<float>(std::clamp(normalized * 2.0 - 1.0, -1.0, 1.0));
     }
 
     OpenGLRasterMesh::Vertex vertexFor(const RasterTriangle& triangle, const RasterVertex& vertex,
@@ -46,7 +47,7 @@ namespace engine::raster::detail {
         triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
       return {normalizedDeviceX(vertex.x, rect),
               normalizedDeviceY(vertex.y, rect),
-              normalizedDepth(vertex),
+              normalizedDeviceDepth(vertex),
               static_cast<float>(std::clamp(albedo.r(), 0.0, 1.0)),
               static_cast<float>(std::clamp(albedo.g(), 0.0, 1.0)),
               static_cast<float>(std::clamp(albedo.b(), 0.0, 1.0))};

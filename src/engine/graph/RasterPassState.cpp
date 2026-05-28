@@ -1,6 +1,7 @@
 #include "engine/graph/RasterPassState.h"
 
 #include "engine/graph/RenderPlan.h"
+#include "engine/raster/OpenGLRasterizer.h"
 
 #include <QJsonArray>
 
@@ -457,6 +458,10 @@ namespace engine::graph {
     } else {
       rasterizer.clearCullModeOverride();
     }
+  }
+
+  void RasterGeometryState::applyTo(engine::raster::OpenGLRasterizer& rasterizer) const {
+    rasterizer.setLod(m_lod);
   }
 
   void RasterGeometryState::setLod(int lod) {
@@ -962,6 +967,10 @@ namespace engine::graph {
     m_sampling.applyTo(rasterizer);
     m_framebuffer.applyTo(rasterizer);
     m_shadows.applyTo(rasterizer);
+  }
+
+  void RasterBeautyPassState::applyTo(engine::raster::OpenGLRasterizer& rasterizer) const {
+    m_geometry.applyTo(rasterizer);
   }
 
   void RasterBeautyPassState::writeTo(RenderPassNode& pass) const {

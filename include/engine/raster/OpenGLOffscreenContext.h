@@ -1,7 +1,12 @@
 #pragma once
 
+#include "core/Color.h"
+
 #include <memory>
 #include <string>
+
+template<class T>
+class Buffer;
 
 namespace engine::raster {
   /**
@@ -38,6 +43,11 @@ namespace engine::raster {
     static OpenGLAvailability probe();
 
     bool create(int width, int height);
+    bool makeCurrent();
+    void doneCurrent();
+    bool bindFramebuffer();
+    void releaseFramebuffer();
+    void copyColorTo(Buffer<Colord>& target) const;
     bool isValid() const;
     const std::string& errorMessage() const;
     std::string detailText() const;

@@ -82,6 +82,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   produce screen-space vertices and indices with camera clipping, culling,
   material albedo, cancellation, and LOD behavior ahead of actual VBO/IBO
   upload. — GPT-5
+- **Initial OpenGL raster rendering.** The OpenGL raster backend can now render
+  the first visible material-albedo mesh pass into an offscreen color/depth
+  framebuffer, read color back to render targets, and respect graph-compiled
+  raster LOD for that path. — GPT-5
 - **Modeler OpenGL raster backend selection.** Modeler Render Settings, the
   final Render window, and the live preview override menu now expose CPU/OpenGL
   raster backend selection and compile it into typed raster pass execution
@@ -782,8 +786,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   lanes, avoiding union type-punning undefined behavior without leaving the hot
   path. — GPT-5
 - **OpenGL raster Cocoa probing.** The OpenGL raster backend now reports a
-  clear unavailable-backend error on Qt's Cocoa offscreen path instead of
-  entering the Qt context-creation path that can crash during probes. — GPT-5
+  clear unavailable-backend error for headless Qt Cocoa offscreen context
+  probes instead of entering the Qt path that can crash, while Modeler is
+  allowed to exercise the Cocoa backend for visible preview/render output. —
+  GPT-5
 - **Direct group-root imports in rendercli.** Importers that return a grouped
   asset root now receive shared scene defaults and camera framing in direct
   rendercli/modeler opens, so STL, 3MF, and glTF group imports render without a

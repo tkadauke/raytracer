@@ -14,6 +14,7 @@ Q_DECLARE_METATYPE(Colord);
 
 int main(int argc, char** argv) {
   QApplication app(argc, argv);
+  QCoreApplication::setApplicationName(QStringLiteral("Modeler"));
 
   qRegisterMetaType<Vector3d>();
   qRegisterMetaType<Angled>();

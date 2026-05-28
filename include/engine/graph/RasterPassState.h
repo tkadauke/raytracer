@@ -15,6 +15,10 @@
 #include <optional>
 #include <string>
 
+namespace engine::raster {
+  class OpenGLRasterizer;
+}
+
 namespace engine::graph {
   class RenderPlan;
 
@@ -57,6 +61,7 @@ namespace engine::graph {
     QJsonObject toJson() const;
     bool empty() const;
     void applyTo(Rasterizer& rasterizer) const;
+    void applyTo(engine::raster::OpenGLRasterizer& rasterizer) const;
 
     void setLod(int lod);
     void setCullMode(Rasterizer::CullMode mode);
@@ -190,6 +195,7 @@ namespace engine::graph {
     QJsonObject toJson() const override;
     bool empty() const;
     void applyTo(Rasterizer& rasterizer) const;
+    void applyTo(engine::raster::OpenGLRasterizer& rasterizer) const;
 
     void writeTo(RenderPassNode& pass) const;
     std::size_t writeToRasterShadowPasses(RenderPlan& plan) const;
@@ -217,6 +223,7 @@ namespace engine::graph {
     QJsonObject toJson() const override;
     bool empty() const;
     void applyTo(Rasterizer& rasterizer) const;
+    void applyTo(engine::raster::OpenGLRasterizer& rasterizer) const;
 
     void writeTo(RenderPassNode& pass) const;
     std::size_t writeToRasterBeautyPasses(RenderPlan& plan) const;

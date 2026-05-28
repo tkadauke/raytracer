@@ -2,6 +2,7 @@
 
 #include "engine/graph/RasterPassState.h"
 #include "engine/graph/RenderPlan.h"
+#include "engine/raster/OpenGLRasterizer.h"
 
 #include <QJsonArray>
 #include <QJsonObject>
@@ -125,6 +126,16 @@ namespace RasterPassStateTest {
     EXPECT_TRUE(shadows.value("enabled").toBool());
     EXPECT_EQ(128, shadows.value("mapSize").toInt());
     EXPECT_EQ("pcss", shadows.value("filterMode").toString().toStdString());
+  }
+
+  TEST(RasterBeautyPassState, AppliesLodToOpenGLRasterizer) {
+    RasterBeautyPassState state;
+    state.geometry().setLod(3);
+    engine::raster::OpenGLRasterizer rasterizer(nullptr);
+
+    state.applyTo(rasterizer);
+
+    EXPECT_EQ(3, rasterizer.lod());
   }
 
   TEST(RasterBeautyPassState, AppliesImportedStateToRasterizer) {
