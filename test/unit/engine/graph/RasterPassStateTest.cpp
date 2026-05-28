@@ -157,6 +157,8 @@ namespace RasterPassStateTest {
                                         Rasterizer::BlendFactor::OneMinusConstantAlpha);
     state.framebuffer().setBlendOp(Rasterizer::BlendOp::Max);
     state.framebuffer().setBlendConstant(Colord(0.2, 0.3, 0.4), 0.5);
+    state.framebuffer().setAlphaTestEnabled(true);
+    state.framebuffer().setAlphaFunc(Rasterizer::AlphaFunc::Greater, 0.6);
     engine::raster::OpenGLRasterizer rasterizer(nullptr);
 
     state.applyTo(rasterizer);
@@ -178,6 +180,9 @@ namespace RasterPassStateTest {
     EXPECT_EQ(Rasterizer::BlendOp::Max, rasterizer.blendOp());
     EXPECT_EQ(Colord(0.2, 0.3, 0.4), rasterizer.blendConstantColor());
     EXPECT_EQ(0.5, rasterizer.blendConstantAlpha());
+    EXPECT_TRUE(rasterizer.alphaTestEnabled());
+    EXPECT_EQ(Rasterizer::AlphaFunc::Greater, rasterizer.alphaFunc());
+    EXPECT_EQ(0.6, rasterizer.alphaReference());
   }
 
   TEST(RasterBeautyPassState, RejectsUnsupportedOpenGLPostProcessAA) {
@@ -191,10 +196,6 @@ namespace RasterPassStateTest {
     RasterBeautyPassState depthBias;
     depthBias.framebuffer().setDepthBias(0.01);
     expectOpenGLUnsupported(depthBias, "depth bias");
-
-    RasterBeautyPassState alphaTest;
-    alphaTest.framebuffer().setAlphaTestEnabled(true);
-    expectOpenGLUnsupported(alphaTest, "alpha test");
   }
 
   TEST(RasterBeautyPassState, RejectsUnsupportedOpenGLShadowMaps) {

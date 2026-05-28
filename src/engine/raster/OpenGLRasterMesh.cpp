@@ -45,12 +45,15 @@ namespace engine::raster::detail {
                                        const Recti& rect) {
       const Colord albedo = triangle.rasterMaterial.albedo(
         triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
+      const double alpha = triangle.rasterMaterial.alpha(
+        triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
       return {normalizedDeviceX(vertex.x, rect),
               normalizedDeviceY(vertex.y, rect),
               normalizedDeviceDepth(vertex),
               static_cast<float>(std::clamp(albedo.r(), 0.0, 1.0)),
               static_cast<float>(std::clamp(albedo.g(), 0.0, 1.0)),
-              static_cast<float>(std::clamp(albedo.b(), 0.0, 1.0))};
+              static_cast<float>(std::clamp(albedo.b(), 0.0, 1.0)),
+              static_cast<float>(std::clamp(alpha, 0.0, 1.0))};
     }
   }
 

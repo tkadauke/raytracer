@@ -65,6 +65,8 @@ namespace OpenGLRasterizerTest {
                                engine::raster::Rasterizer::BlendFactor::OneMinusConstantAlpha);
     rasterizer.setBlendOp(engine::raster::Rasterizer::BlendOp::Max);
     rasterizer.setBlendConstant(Colord(0.1, 0.2, 0.3), 0.4);
+    rasterizer.setAlphaTestEnabled(true);
+    rasterizer.setAlphaFunc(engine::raster::Rasterizer::AlphaFunc::Greater, 0.6);
 
     auto clone =
       std::dynamic_pointer_cast<engine::raster::OpenGLRasterizer>(rasterizer.cloneForRender());
@@ -87,6 +89,9 @@ namespace OpenGLRasterizerTest {
     EXPECT_EQ(engine::raster::Rasterizer::BlendOp::Max, clone->blendOp());
     EXPECT_EQ(Colord(0.1, 0.2, 0.3), clone->blendConstantColor());
     EXPECT_EQ(0.4, clone->blendConstantAlpha());
+    EXPECT_TRUE(clone->alphaTestEnabled());
+    EXPECT_EQ(engine::raster::Rasterizer::AlphaFunc::Greater, clone->alphaFunc());
+    EXPECT_EQ(0.6, clone->alphaReference());
   }
 
   TEST(OpenGLRasterizer, ClampsMSAASamplesToSupportedCounts) {
@@ -106,6 +111,16 @@ namespace OpenGLRasterizerTest {
     rasterizer.setColorWriteMask(0xff);
 
     EXPECT_EQ(engine::raster::Rasterizer::ColorWriteAll, rasterizer.colorWriteMask());
+  }
+
+  TEST(OpenGLRasterizer, ClampsAlphaReference) {
+    engine::raster::OpenGLRasterizer rasterizer(nullptr);
+
+    rasterizer.setAlphaFunc(engine::raster::Rasterizer::AlphaFunc::Less, 2.0);
+    EXPECT_EQ(1.0, rasterizer.alphaReference());
+
+    rasterizer.setAlphaFunc(engine::raster::Rasterizer::AlphaFunc::Greater, -1.0);
+    EXPECT_EQ(0.0, rasterizer.alphaReference());
   }
 
   TEST(OpenGLRasterizer, ProvidesSharedStatusMessage) {

@@ -24,7 +24,8 @@ namespace engine::raster {
                            Rasterizer::BlendFactor sourceBlendFactor,
                            Rasterizer::BlendFactor destinationBlendFactor,
                            Rasterizer::BlendOp blendOp, const Colord& blendConstantColor,
-                           double blendConstantAlpha)
+                           double blendConstantAlpha, bool alphaTestEnabled,
+                           Rasterizer::AlphaFunc alphaFunc, double alphaReference)
           : m_context(context),
             m_height(height),
             m_viewportRect(viewportRect),
@@ -36,7 +37,10 @@ namespace engine::raster {
             m_destinationBlendFactor(destinationBlendFactor),
             m_blendOp(blendOp),
             m_blendConstantColor(blendConstantColor),
-            m_blendConstantAlpha(blendConstantAlpha) {
+            m_blendConstantAlpha(blendConstantAlpha),
+            m_alphaTestEnabled(alphaTestEnabled),
+            m_alphaFunc(alphaFunc),
+            m_alphaReference(alphaReference) {
       }
 
       void render(const detail::OpenGLRasterMesh& mesh, const Colord& background,
@@ -91,8 +95,8 @@ namespace engine::raster {
         QOpenGLShaderProgram program;
         if (!program.addShaderFromSourceCode(QOpenGLShader::Vertex,
                                              "attribute vec3 position;\n"
-                                             "attribute vec3 color;\n"
-                                             "varying vec3 vertexColor;\n"
+                                             "attribute vec4 color;\n"
+                                             "varying vec4 vertexColor;\n"
                                              "void main() {\n"
                                              "  gl_Position = vec4(position, 1.0);\n"
                                              "  vertexColor = color;\n"
@@ -100,11 +104,26 @@ namespace engine::raster {
           throw std::runtime_error("OpenGL raster backend could not compile vertex shader: " +
                                    program.log().toStdString());
         }
-        if (!program.addShaderFromSourceCode(QOpenGLShader::Fragment,
-                                             "varying vec3 vertexColor;\n"
-                                             "void main() {\n"
-                                             "  gl_FragColor = vec4(vertexColor, 1.0);\n"
-                                             "}\n")) {
+        if (!program.addShaderFromSourceCode(
+              QOpenGLShader::Fragment, "varying vec4 vertexColor;\n"
+                                       "uniform bool alphaTestEnabled;\n"
+                                       "uniform int alphaFunc;\n"
+                                       "uniform float alphaReference;\n"
+                                       "bool alphaPass(float alpha) {\n"
+                                       "  if (!alphaTestEnabled) return true;\n"
+                                       "  if (alphaFunc == 0) return false;\n"
+                                       "  if (alphaFunc == 1) return alpha < alphaReference;\n"
+                                       "  if (alphaFunc == 2) return alpha == alphaReference;\n"
+                                       "  if (alphaFunc == 3) return alpha <= alphaReference;\n"
+                                       "  if (alphaFunc == 4) return alpha > alphaReference;\n"
+                                       "  if (alphaFunc == 5) return alpha >= alphaReference;\n"
+                                       "  if (alphaFunc == 6) return alpha != alphaReference;\n"
+                                       "  return true;\n"
+                                       "}\n"
+                                       "void main() {\n"
+                                       "  if (!alphaPass(vertexColor.a)) discard;\n"
+                                       "  gl_FragColor = vertexColor;\n"
+                                       "}\n")) {
           throw std::runtime_error("OpenGL raster backend could not compile fragment shader: " +
                                    program.log().toStdString());
         }
@@ -115,6 +134,10 @@ namespace engine::raster {
         if (!program.bind()) {
           throw std::runtime_error("OpenGL raster backend could not bind shader program");
         }
+        program.setUniformValue("alphaTestEnabled", m_alphaTestEnabled);
+        program.setUniformValue("alphaFunc", static_cast<int>(m_alphaFunc));
+        program.setUniformValue("alphaReference",
+                                static_cast<GLfloat>(std::clamp(m_alphaReference, 0.0, 1.0)));
 
         QOpenGLBuffer vertexBuffer(QOpenGLBuffer::VertexBuffer);
         QOpenGLBuffer indexBuffer(QOpenGLBuffer::IndexBuffer);
@@ -146,7 +169,7 @@ namespace engine::raster {
                                    sizeof(detail::OpenGLRasterMesh::Vertex));
         program.enableAttributeArray(colorLocation);
         program.setAttributeBuffer(colorLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, r), 3,
+                                   offsetof(detail::OpenGLRasterMesh::Vertex, r), 4,
                                    sizeof(detail::OpenGLRasterMesh::Vertex));
 
         functions->glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh.indices().size()),
@@ -260,6 +283,9 @@ namespace engine::raster {
       Rasterizer::BlendOp m_blendOp;
       Colord m_blendConstantColor;
       double m_blendConstantAlpha;
+      bool m_alphaTestEnabled;
+      Rasterizer::AlphaFunc m_alphaFunc;
+      double m_alphaReference;
     };
   }
 
@@ -302,6 +328,8 @@ namespace engine::raster {
     clone->setBlendFactors(m_sourceBlendFactor, m_destinationBlendFactor);
     clone->setBlendOp(m_blendOp);
     clone->setBlendConstant(m_blendConstantColor, m_blendConstantAlpha);
+    clone->setAlphaTestEnabled(m_alphaTestEnabled);
+    clone->setAlphaFunc(m_alphaFunc, m_alphaReference);
     if (m_cancelled.load()) {
       clone->cancel();
     }
@@ -465,6 +493,27 @@ namespace engine::raster {
     m_blendConstantAlpha = std::isfinite(alpha) ? std::clamp(alpha, 0.0, 1.0) : 1.0;
   }
 
+  bool OpenGLRasterizer::alphaTestEnabled() const {
+    return m_alphaTestEnabled;
+  }
+
+  void OpenGLRasterizer::setAlphaTestEnabled(bool enabled) {
+    m_alphaTestEnabled = enabled;
+  }
+
+  Rasterizer::AlphaFunc OpenGLRasterizer::alphaFunc() const {
+    return m_alphaFunc;
+  }
+
+  double OpenGLRasterizer::alphaReference() const {
+    return m_alphaReference;
+  }
+
+  void OpenGLRasterizer::setAlphaFunc(Rasterizer::AlphaFunc func, double reference) {
+    m_alphaFunc = func;
+    m_alphaReference = std::isfinite(reference) ? std::clamp(reference, 0.0, 1.0) : 0.0;
+  }
+
   bool OpenGLRasterizer::isAvailable() const {
     return OpenGLOffscreenContext::probe().available();
   }
@@ -506,7 +555,7 @@ namespace engine::raster {
     OpenGLRasterDrawPass(context, buffer.height(), viewport, m_scissorTestEnabled, m_scissorRect,
                          m_colorWriteMask, m_blendingEnabled, m_sourceBlendFactor,
                          m_destinationBlendFactor, m_blendOp, m_blendConstantColor,
-                         m_blendConstantAlpha)
+                         m_blendConstantAlpha, m_alphaTestEnabled, m_alphaFunc, m_alphaReference)
       .render(mesh, backgroundColor(), buffer, depthTarget);
   }
 }

@@ -33,6 +33,7 @@ namespace engine::raster::detail {
       float r{0.0f};
       float g{0.0f};
       float b{0.0f};
+      float a{1.0f};
     };
 
     using Vertices = std::vector<Vertex>;

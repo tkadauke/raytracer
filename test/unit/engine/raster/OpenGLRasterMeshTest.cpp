@@ -3,6 +3,7 @@
 #include "engine/raster/detail/OpenGLRasterMesh.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/materials/MatteMaterial.h"
+#include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Triangle.h"
@@ -48,6 +49,29 @@ namespace OpenGLRasterMeshTest {
       EXPECT_FLOAT_EQ(1.0f, vertex.r);
       EXPECT_FLOAT_EQ(0.0f, vertex.g);
       EXPECT_FLOAT_EQ(0.0f, vertex.b);
+      EXPECT_FLOAT_EQ(1.0f, vertex.a);
+    }
+  }
+
+  TEST(OpenGLRasterMesh, CarriesRasterMaterialAlpha) {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    auto triangle = std::make_shared<render::Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0),
+                                                       Vector3d(0, 1, 0));
+    auto material = std::make_shared<render::TransparentMaterial>(
+      std::make_shared<render::ConstantColorTexture>(Colord::red()));
+    material->setTransmissionCoefficient(0.75);
+    triangle->setMaterial(material);
+    scene->add(triangle);
+    std::atomic<bool> cancelled{false};
+
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+                                              Rasterizer::CullMode::Both, false, cancelled)
+                        .build();
+
+    ASSERT_FALSE(mesh.empty());
+    ASSERT_EQ(3u, mesh.vertices().size());
+    for (const auto& vertex : mesh.vertices()) {
+      EXPECT_FLOAT_EQ(0.25f, vertex.a);
     }
   }
 

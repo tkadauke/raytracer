@@ -681,15 +681,13 @@ namespace engine::graph {
     rasterizer.setBlendFactors(m_sourceBlendFactor, m_destinationBlendFactor);
     rasterizer.setBlendOp(m_blendOp);
     rasterizer.setBlendConstant(m_blendConstantColor, m_blendConstantAlpha);
+    rasterizer.setAlphaTestEnabled(m_alphaTestEnabled);
+    rasterizer.setAlphaFunc(m_alphaFunc, m_alphaReference);
   }
 
   void RasterFramebufferState::validateSupportedByOpenGL() const {
     if (m_depthBias != 0.0) {
       openGLUnsupported("depth bias");
-    }
-    if (m_alphaTestEnabled || m_alphaFunc != Rasterizer::AlphaFunc::Always ||
-        m_alphaReference != 0.0) {
-      openGLUnsupported("fixed-function alpha test");
     }
   }
 

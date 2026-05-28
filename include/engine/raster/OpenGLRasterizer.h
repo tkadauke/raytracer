@@ -70,6 +70,12 @@ namespace engine::raster {
     double blendConstantAlpha() const;
     void setBlendConstant(const Colord& color, double alpha);
 
+    bool alphaTestEnabled() const;
+    void setAlphaTestEnabled(bool enabled);
+    Rasterizer::AlphaFunc alphaFunc() const;
+    double alphaReference() const;
+    void setAlphaFunc(Rasterizer::AlphaFunc func, double reference);
+
     bool isAvailable() const;
     std::string availabilityDetail() const;
     std::string availabilityError() const;
@@ -94,5 +100,8 @@ namespace engine::raster {
     Rasterizer::BlendOp m_blendOp{Rasterizer::BlendOp::Add};
     Colord m_blendConstantColor{Colord::white()};
     double m_blendConstantAlpha{1.0};
+    bool m_alphaTestEnabled{false};
+    Rasterizer::AlphaFunc m_alphaFunc{Rasterizer::AlphaFunc::Always};
+    double m_alphaReference{0.0};
   };
 }

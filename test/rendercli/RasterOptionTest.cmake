@@ -160,6 +160,35 @@ else()
                   "${opengl_blend_stderr}")
 endif()
 
+set(opengl_alpha_test_render "${TEST_OUTPUT_DIR}/raster-opengl-alpha-test.png")
+execute_process(
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
+    --alpha_test --alpha_func greater --alpha_ref 0.25
+    "${matte_scene}" "${opengl_alpha_test_render}"
+  RESULT_VARIABLE opengl_alpha_test_result
+  OUTPUT_VARIABLE opengl_alpha_test_stdout
+  ERROR_VARIABLE opengl_alpha_test_stderr
+)
+if(opengl_alpha_test_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_alpha_test_render}" 16 12
+                                    NAME "rendercli --raster_backend gpu alpha test dimensions")
+  rendercli_assert_image_nonempty("${opengl_alpha_test_render}"
+                                  NAME "rendercli --raster_backend gpu alpha test pixels")
+elseif(opengl_alpha_test_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_alpha_test_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu alpha test application bootstrap"
+                    "OpenGL alpha test still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_alpha_test_result}" "${opengl_alpha_test_stdout}"
+                    "${opengl_alpha_test_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu alpha test"
+                  "OpenGL alpha test neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_alpha_test_result}" "${opengl_alpha_test_stdout}"
+                  "${opengl_alpha_test_stderr}")
+endif()
+
 set(opengl_depth_render "${TEST_OUTPUT_DIR}/raster-opengl-depth.png")
 execute_process(
   COMMAND
