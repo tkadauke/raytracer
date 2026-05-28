@@ -229,6 +229,41 @@ trade-offs:
 The codebase's default is BVH. `Grid` ships as the
 educational alternative.
 
+## <a id="measured-policy-defaults"></a>Measured policy defaults
+Automatic acceleration is intentionally conservative at the
+edges and opinionated for real scenes:
+
+- empty and single-leaf scenes use the Linear fallback, avoiding
+  accelerator setup when there is nothing useful to accelerate;
+- multi-leaf scenes default to BVH;
+- Grid remains an explicit mode for regular, primary-heavy
+  scenes where uniform cells are known to match the geometry.
+
+The default is backed by the policy benchmark in
+[`benchmarks/AccelerationPolicyBenchmark.cpp`](../../../benchmarks/AccelerationPolicyBenchmark.cpp),
+with the recorded run in
+[`docs/perf/acceleration-policy-benchmark-2026-05-28.md`](../../perf/acceleration-policy-benchmark-2026-05-28.md).
+That benchmark compares Linear, Grid, and BVH on procedural
+clusters, a mesh-heavy terrain, an imported PLY triangle soup,
+and a repeated imported-assembly-style box scene. It records
+index build time, closest-hit primary rays, boolean shadow rays,
+and a primary-ray render-impact proxy.
+
+The measurements show three policy facts:
+
+- Linear builds fastest, but on multi-leaf ray queries it is
+  orders of magnitude slower than either accelerator. This backs
+  Linear only as the empty/single-leaf fallback.
+- Grid is excellent for regular primary-ray workloads. It wins
+  the primary render proxy on the procedural cluster, terrain,
+  and repeated-box assembly workloads, so it remains a first-class
+  manual policy for scenes with regular spatial density.
+- BVH wins every measured shadow-ray workload and wins the
+  imported PLY render proxy. Whitted-style renders trace shadow
+  rays from visible surfaces, and static imported scenes amortize
+  setup cost across many queries, so Auto uses BVH as the
+  multi-leaf default.
+
 ## <a id="acceleration-is-invisible-at-the-pixel-level"></a>Acceleration is invisible at the pixel level
 The crucial property of any acceleration structure is that it
 *doesn't change what gets rendered*. The same scene wrapped in
@@ -317,5 +352,7 @@ structures is purely a question of implementation effort.
 - `include/render/primitives/BVH.h`
 - `include/render/primitives/Grid.h`
 - `include/core/math/BoundingBox.h`
+- `benchmarks/AccelerationPolicyBenchmark.cpp`
+- `docs/perf/acceleration-policy-benchmark-2026-05-28.md`
 - `test/unit/render/primitives/BVHPerformanceTest.cpp`
 <!-- /source-anchors -->
