@@ -10,7 +10,11 @@
 #include "world/objects/Texture.h"
 #include "world/animation/AnimationTrack.h"
 #include "world/animation/Timeline.h"
+#include "render/primitives/BVH.h"
+#include "render/primitives/Composite.h"
+#include "render/primitives/Grid.h"
 #include "render/primitives/Scene.h"
+#include "render/primitives/SpatialIndexFactory.h"
 #include "core/math/Vector.h"
 #include "core/math/Angle.h"
 #include "core/Color.h"
@@ -103,6 +107,11 @@ namespace SceneTest {
     EXPECT_FALSE(scene.renderIntent().enableWireframeOverlay);
   }
 
+  TEST(Scene, ShouldDefaultToAutomaticAccelerationMode) {
+    Scene scene;
+    EXPECT_EQ(static_cast<int>(render::AccelerationMode::Automatic), scene.accelerationMode());
+  }
+
   TEST(Scene, ShouldSetAndGetAmbient) {
     Scene scene;
     scene.setAmbient(Colord(0.1, 0.2, 0.3));
@@ -150,6 +159,20 @@ namespace SceneTest {
     EXPECT_FALSE(scene.hasRenderIntent());
     EXPECT_EQ(engine::graph::RenderExecutorPreference::Raytracer,
               scene.renderIntent().defaultExecutor);
+  }
+
+  TEST(Scene, ShouldSetAndGetAccelerationMode) {
+    Scene scene;
+    scene.setAccelerationMode(static_cast<int>(render::AccelerationMode::BVH));
+
+    EXPECT_EQ(static_cast<int>(render::AccelerationMode::BVH), scene.accelerationMode());
+  }
+
+  TEST(Scene, ShouldResetUnknownAccelerationModeToAutomatic) {
+    Scene scene;
+    scene.setAccelerationMode(99);
+
+    EXPECT_EQ(static_cast<int>(render::AccelerationMode::Automatic), scene.accelerationMode());
   }
 
   TEST(Scene, ShouldAcceptAnyChild) {
@@ -555,6 +578,24 @@ namespace SceneTest {
     QFile::remove(path);
   }
 
+  TEST(Scene, ShouldRoundtripAccelerationModeViaSaveLoad) {
+    QTemporaryFile temp;
+    ASSERT_TRUE(temp.open());
+    auto path = temp.fileName();
+    temp.close();
+
+    Scene original;
+    original.setAccelerationMode(static_cast<int>(render::AccelerationMode::Linear));
+
+    ASSERT_TRUE(original.save(path));
+
+    Scene decoded;
+    ASSERT_TRUE(decoded.load(path));
+    EXPECT_EQ(static_cast<int>(render::AccelerationMode::Linear), decoded.accelerationMode());
+
+    QFile::remove(path);
+  }
+
   TEST(Scene, ShouldEvaluateAnimationAtFrame) {
     Scene scene;
     scene.setId("scene-id");
@@ -663,5 +704,46 @@ namespace SceneTest {
     auto rt = scene.toRaytracerScene();
     ASSERT_NE(nullptr, rt);
     EXPECT_EQ(0u, rt->lights().size());
+  }
+
+  TEST(Scene, ShouldRecordAutomaticAccelerationDecision) {
+    Scene scene;
+    scene.addChild(new Sphere);
+
+    auto rt = scene.toRaytracerScene();
+
+    ASSERT_TRUE(rt->accelerationDecision().has_value());
+    EXPECT_EQ(render::AccelerationMode::Automatic, rt->accelerationDecision()->requestedMode);
+    EXPECT_EQ(render::SpatialIndexKind::Grid, rt->accelerationDecision()->spatialIndexKind);
+    ASSERT_EQ(1u, rt->primitives().size());
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::Grid>(rt->primitives().front()));
+  }
+
+  TEST(Scene, ShouldUseManualLinearAccelerationOverride) {
+    Scene scene;
+    scene.setAccelerationMode(static_cast<int>(render::AccelerationMode::Linear));
+    scene.addChild(new Sphere);
+
+    auto rt = scene.toRaytracerScene();
+
+    ASSERT_TRUE(rt->accelerationDecision().has_value());
+    EXPECT_EQ(render::AccelerationMode::Linear, rt->accelerationDecision()->requestedMode);
+    EXPECT_EQ(render::SpatialIndexKind::Linear, rt->accelerationDecision()->spatialIndexKind);
+    ASSERT_EQ(1u, rt->primitives().size());
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::Composite>(rt->primitives().front()));
+  }
+
+  TEST(Scene, ShouldUseManualBVHAccelerationOverride) {
+    Scene scene;
+    scene.setAccelerationMode(static_cast<int>(render::AccelerationMode::BVH));
+    scene.addChild(new Sphere);
+
+    auto rt = scene.toRaytracerScene();
+
+    ASSERT_TRUE(rt->accelerationDecision().has_value());
+    EXPECT_EQ(render::AccelerationMode::BVH, rt->accelerationDecision()->requestedMode);
+    EXPECT_EQ(render::SpatialIndexKind::BVH, rt->accelerationDecision()->spatialIndexKind);
+    ASSERT_EQ(1u, rt->primitives().size());
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::BVH>(rt->primitives().front()));
   }
 }
