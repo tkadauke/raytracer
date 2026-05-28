@@ -11,6 +11,8 @@ this active plan surface.
 Remaining rasterizer-adjacent work is tracked in broader plans instead of this
 closed epic:
 
+- dense-scene rasterizer performance and diagnostics:
+  `docs/plans/rasterizer-performance.md`;
 - spatial-index-backed culling and acceleration: `docs/roadmap.md` §3.R7 and
   §4.1;
 - render-graph-owned AOV, depth, motion-vector, and temporal resources:
