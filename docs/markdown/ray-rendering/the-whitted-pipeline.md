@@ -20,6 +20,8 @@ By the end you should know:
 - which file in the codebase owns each step,
 - the `RenderEngine` / `Raytracer` split and why the abstraction
   exists,
+- where the single-ray `Integrator` contract sits between the
+  frame-rendering engine and recursive material callbacks,
 - the recursive structure that gives [Whitted](../appendix/a-glossary.md#w) its name, and the
   reason the recursion has a depth cap.
 
@@ -118,11 +120,22 @@ are the two others currently shipped.
 The base class owns the scene pointer, the camera shared pointer,
 the tonemap pointer, the cancellation hook, and the
 `render(buffer)` overload that calls into the subclass-specific
-algorithm. The subclass-specific bits are the algorithm itself
-plus any controls that only make sense for that algorithm — in
-the raytracer's case, the maximum recursion depth, the
-worker-thread count, and the single-ray probe methods used by the
-interactive picking path.
+algorithm. The subclass-specific bits are the frame algorithm
+itself plus any controls that only make sense for that algorithm —
+in the raytracer's case, the worker-thread count, the tile queue,
+and the single-ray probe methods used by the interactive picking
+path.
+
+The single-ray radiance policy is factored as
+[`render::Integrator`](../../../include/render/Integrator.h). It is
+smaller than a render engine: it receives a borrowed `Scene`, a
+`Rayd`, a mutable `State`, and a `RayCaster` callback for any
+secondary rays. That is enough vocabulary to express the current
+recursive Whitted evaluator, but it keeps ownership clear.
+`RenderEngine` renders images, `Raytracer` schedules raytraced
+image work and exposes probes, `Integrator` decides what one ray
+sees, and `RayCaster` is the callback handle materials use when
+they need another ray evaluated.
 
 The
 [`engine::raytracer::Raytracer`](../../../include/engine/raytracer/Raytracer.h)
@@ -161,7 +174,9 @@ from the threaded multi-ray render. That separation lets material
 shading call back into the renderer without dragging in the
 threading machinery — a `Material::shade` implementation that
 needs to recurse on a reflection ray takes a `RayCaster*` and
-calls `rayColor` on it.
+calls `rayColor` on it. `RayCaster` is deliberately a compatibility
+callback, not the integration-policy owner; the policy boundary is
+`Integrator`.
 
 ## <a id="the-recursive-heart"></a>The recursive heart
 Step 5 above — recursive reflection and refraction — is where
@@ -339,4 +354,5 @@ path-tracing engine, so "ray rendering" in this book means Whitted.
 - `include/render/RenderEngine.h`
 - `include/render/State.h`
 - `include/render/RayCaster.h`
+- `include/render/Integrator.h`
 <!-- /source-anchors -->

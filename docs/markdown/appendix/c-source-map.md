@@ -81,6 +81,7 @@
 | `include/engine/raytracer/Raytracer.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/engine/wireframe/Wireframe.h` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `include/render/HomogeneousClipVolume.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
+| `include/render/Integrator.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/RayCaster.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/RenderEngine.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/State.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |

@@ -23,7 +23,7 @@ namespace render {
     * The renderer's contract is one method: `shade` takes the
     * primary ray, the hit point along it, and a mutable `State`,
     * and returns a colour. Subclasses are responsible for
-    * synthesising the BRDF / BTDF lobes, calling `Raytracer::rayColor`
+    * synthesising the BRDF / BTDF lobes, calling `RayCaster::rayColor`
     * recursively for reflections / refractions, and reading the
     * `Scene::lights` for direct lighting.
     *
@@ -70,9 +70,8 @@ namespace render {
       *
       * Implementations should:
       *
-      *  - Read `raytracer->scene()->lights()` and `ambient()` for
-      *    direct lighting.
-      *  - Use `raytracer->rayColor(reflected, state)` for any
+      *  - Read `scene.lights()` and `ambient()` for direct lighting.
+      *  - Use `raycaster->rayColor(reflected, state)` for any
       *    recursive components.
       *  - Bump shadow-ray counters on `state` via the appropriate
       *    `state.shadowHit`/`shadowMiss` calls.
