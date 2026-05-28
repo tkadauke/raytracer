@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "core/math/HitPointInterval.h"
 #include "render/primitives/Box.h"
+#include "test/helpers/AllocationCounter.h"
 
 namespace HitPointIntervalTest {
   static render::Box* box = new render::Box(Vector3d::null, Vector3d::one);
@@ -188,12 +189,30 @@ namespace HitPointIntervalTest {
     ASSERT_TRUE(interval.points().usingInlineStorage());
   }
 
+  TEST(HitPointInterval, FourOrFewerHitPointsDoNotAllocate) {
+    testing::allocations::ScopedCounter allocations;
+    HitPointInterval interval;
+    interval.addIn(HitPoint(box, 1, Vector3d(), Vector3d()));
+    interval.addOut(HitPoint(box, 2, Vector3d(), Vector3d()));
+    interval.addIn(HitPoint(box, 3, Vector3d(), Vector3d()));
+    interval.addOut(HitPoint(box, 4, Vector3d(), Vector3d()));
+    ASSERT_EQ(0ul, allocations.count());
+  }
+
   TEST(HitPointInterval, HeapFallbackForFiveOrMoreHitPoints) {
     HitPointInterval interval;
     for (int i = 0; i < 5; ++i)
       interval.add(HitPoint(box, double(i + 1), Vector3d(), Vector3d()), (i & 1) == 0);
     ASSERT_EQ(5ul, interval.points().size());
     ASSERT_FALSE(interval.points().usingInlineStorage());
+  }
+
+  TEST(HitPointInterval, FifthHitPointAllocatesFallbackStorage) {
+    testing::allocations::ScopedCounter allocations;
+    HitPointInterval interval;
+    for (int i = 0; i < 5; ++i)
+      interval.add(HitPoint(box, double(i + 1), Vector3d(), Vector3d()), (i & 1) == 0);
+    ASSERT_EQ(1ul, allocations.count());
   }
 
   TEST(HitPointInterval, CopyPreservesInlineStorageForSmallIntervals) {

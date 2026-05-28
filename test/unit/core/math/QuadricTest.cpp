@@ -2,6 +2,7 @@
 #include "core/math/Quadric.h"
 
 #include "test/helpers/PolynomialTestHelper.h"
+#include "test/helpers/AllocationCounter.h"
 
 namespace QuadricTest {
   template<class T>
@@ -31,5 +32,13 @@ namespace QuadricTest {
     Quadric<TypeParam> quadric(1, 0, -1);
     ASSERT_EQ(2, quadric.solve());
     ASSERT_CONTAINERS_NEAR(testing::makeStdVector<TypeParam>(-1, 1), quadric.sortedResult(), 0.01);
+  }
+
+  TYPED_TEST(QuadricTest, SortedResultDoesNotAllocate) {
+    Quadric<TypeParam> quadric(1, -3, 2);
+    testing::allocations::ScopedCounter allocations;
+    auto roots = quadric.sortedResult();
+    ASSERT_EQ(2ul, roots.size());
+    ASSERT_EQ(0ul, allocations.count());
   }
 }
