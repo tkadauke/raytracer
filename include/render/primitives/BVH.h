@@ -99,7 +99,7 @@ namespace render {
       * after all `add()` calls and before the first `intersect`.
       * Re-calling rebuilds from scratch.
       */
-    void setup();
+    void setup() override;
 
     /**
       * Tunable: max primitives per leaf node. Smaller values produce

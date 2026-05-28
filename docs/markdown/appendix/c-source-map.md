@@ -113,7 +113,7 @@
 | `include/render/primitives/BVH.h` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
 | `include/render/primitives/Box.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/ClosedSolidUnion.h` | [Constructive solid geometry](../scene-structure/csg.md) |
-| `include/render/primitives/Composite.h` | [Tessellation](../rasterization/tessellation.md)<br>[Constructive solid geometry](../scene-structure/csg.md) |
+| `include/render/primitives/Composite.h` | [Tessellation](../rasterization/tessellation.md)<br>[Constructive solid geometry](../scene-structure/csg.md)<br>[Spatial acceleration](../scene-structure/spatial-acceleration.md) |
 | `include/render/primitives/ConvexHull.h` | [Constructive solid geometry](../scene-structure/csg.md) |
 | `include/render/primitives/ConvexOperation.h` | [Constructive solid geometry](../scene-structure/csg.md) |
 | `include/render/primitives/Curve.h` | [Tessellation](../rasterization/tessellation.md) |
@@ -131,6 +131,7 @@
 | `include/render/primitives/Primitive.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/Rectangle.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/SmoothMeshTriangle.h` | [Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
+| `include/render/primitives/SpatialIndex.h` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
 | `include/render/primitives/Sphere.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/Torus.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/Triangle.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |

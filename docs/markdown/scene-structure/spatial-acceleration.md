@@ -12,7 +12,13 @@ codebase ships:
 [`BVH`](../../../include/render/primitives/BVH.h)
 (Bounding Volume Hierarchy) and
 [`Grid`](../../../include/render/primitives/Grid.h) (uniform 3D
-grid). Both attack the same problem with different trade-offs,
+grid). Both implement the explicit
+[`SpatialIndex`](../../../include/render/primitives/SpatialIndex.h)
+contract alongside the flat
+[`Composite`](../../../include/render/primitives/Composite.h)
+fallback. All three share the same add/setup/bounds/intersection
+surface, but only BVH and Grid build acceleration data.
+Both attack the same problem with different trade-offs,
 and both reduce the per-ray cost to roughly
 $\mathcal{O}(\log N)$ for typical scenes.
 
@@ -306,6 +312,8 @@ structures is purely a question of implementation effort.
 ## Source anchors
 
 <!-- source-anchors -->
+- `include/render/primitives/SpatialIndex.h`
+- `include/render/primitives/Composite.h`
 - `include/render/primitives/BVH.h`
 - `include/render/primitives/Grid.h`
 - `include/core/math/BoundingBox.h`

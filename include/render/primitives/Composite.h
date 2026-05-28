@@ -1,10 +1,10 @@
 #pragma once
 
 #include <list>
-#include <list>
 #include <memory>
 
 #include "render/primitives/Primitive.h"
+#include "render/primitives/SpatialIndex.h"
 
 namespace render {
   /**
@@ -34,9 +34,8 @@ namespace render {
     * @see Grid — accelerated subclass.
     * @see Scene — scene-graph root; adds lights + ambient/background.
     */
-  class Composite : public Primitive {
+  class Composite : public Primitive, public SpatialIndex {
   public:
-    typedef std::list<std::shared_ptr<Primitive>> Primitives;
     using Primitive::forEachLeaf;
     using Primitive::forEachLeafInBounds;
 
@@ -66,17 +65,28 @@ namespace render {
       */
     bool intersects(const Rayd& ray, render::State& state) const override;
 
+    /**
+      * Flat fallback build hook for the SpatialIndex contract.
+      * Plain composites have no acceleration data to build.
+      */
+    void setup() override;
+
     /// Append `primitive` to the child list. Order doesn't matter
     /// for correctness, but front-loaded common-hit primitives can
     /// (slightly) help `intersects` short-circuit faster.
-    inline void add(std::shared_ptr<Primitive> primitive) {
+    inline void add(std::shared_ptr<Primitive> primitive) override {
       m_primitives.push_back(primitive);
     }
 
     /// @returns the child list. Iteration order matches insertion
     /// order.
-    inline const Primitives& primitives() const {
+    inline const Primitives& primitives() const override {
       return m_primitives;
+    }
+
+    /// @returns the composite's outer bounds.
+    inline const BoundingBoxd& bounds() const override {
+      return boundingBox();
     }
 
     void forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,

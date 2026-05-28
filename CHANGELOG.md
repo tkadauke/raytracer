@@ -20,6 +20,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   ribbon, tube, or disabled output through importer options for Epic #236. —
   GPT-5
 - **BoundingBox ray tests can reuse precomputed inverse directions and return slab intervals.** `BoundingBox` now exposes precomputed-inverse overloads for boolean and interval ray tests, and scalar BVH traversal computes that inverse once per ray before walking node boxes. — GPT-5
+- **`render::SpatialIndex` acceleration-structure interface.** `Composite`,
+  `BVH`, and `Grid` now expose the shared add/setup/bounds/intersect contract
+  explicitly without changing default scene construction for Epic #360. —
+  GPT-5
 - **Raster counter AOVs.** The rasterizer and render graph now expose
   graph-visible heatmap views for per-pixel coverage, depth tests, depth passes,
   shading calls, and color writes through rendercli and the Modeler Preview
