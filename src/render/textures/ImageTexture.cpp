@@ -70,6 +70,10 @@ int ImageTexture::mipLevelCount() const {
   return static_cast<int>(m_levels.size());
 }
 
+const std::vector<Colord>& ImageTexture::pixels(int level) const {
+  return m_levels[std::clamp(level, 0, mipLevelCount() - 1)].pixels;
+}
+
 ImageTextureFilter ImageTexture::filter() const {
   return m_filter;
 }

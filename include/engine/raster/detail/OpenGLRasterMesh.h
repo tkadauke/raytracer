@@ -3,6 +3,7 @@
 #include "core/Color.h"
 #include "core/math/Rect.h"
 #include "engine/raster/Rasterizer.h"
+#include "engine/raster/detail/RasterMaterial.h"
 
 #include <atomic>
 #include <cstdint>
@@ -37,22 +38,33 @@ namespace engine::raster::detail {
       float a{1.0f};
       float u{0.0f};
       float v{0.0f};
+      float alphaScale{1.0f};
       float albedoMode{0.0f};
+    };
+
+    struct Batch {
+      std::size_t indexOffset{0};
+      std::size_t indexCount{0};
+      RasterAlbedoShaderSource albedo;
     };
 
     using Vertices = std::vector<Vertex>;
     using Indices = std::vector<std::uint32_t>;
+    using Batches = std::vector<Batch>;
 
     bool empty() const;
     std::size_t triangleCount() const;
     const Vertices& vertices() const;
     const Indices& indices() const;
+    const Batches& batches() const;
 
-    void appendTriangle(const Vertex& v0, const Vertex& v1, const Vertex& v2);
+    void appendTriangle(const Vertex& v0, const Vertex& v1, const Vertex& v2,
+                        const RasterAlbedoShaderSource& albedo);
 
   private:
     Vertices m_vertices;
     Indices m_indices;
+    Batches m_batches;
   };
 
   class OpenGLRasterMeshBuilder {

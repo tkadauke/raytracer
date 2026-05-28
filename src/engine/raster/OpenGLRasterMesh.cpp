@@ -48,7 +48,8 @@ namespace engine::raster::detail {
       return static_cast<float>(1.0 / vertex.invW);
     }
 
-    float shaderMode(RasterAlbedoShaderMode mode) {
+    float shaderMode(const RasterAlbedoShaderSource& source) {
+      const RasterAlbedoShaderMode mode = source.mode;
       return static_cast<float>(static_cast<int>(mode));
     }
 
@@ -58,6 +59,7 @@ namespace engine::raster::detail {
         triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
       const double alpha = triangle.rasterMaterial.alpha(
         triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
+      const RasterAlbedoShaderSource shaderSource = triangle.rasterMaterial.shaderAlbedoSource();
       return {normalizedDeviceX(vertex.x, rect),
               normalizedDeviceY(vertex.y, rect),
               normalizedDeviceDepth(vertex),
@@ -68,7 +70,8 @@ namespace engine::raster::detail {
               static_cast<float>(std::clamp(alpha, 0.0, 1.0)),
               static_cast<float>(vertex.uv.x()),
               static_cast<float>(vertex.uv.y()),
-              shaderMode(triangle.rasterMaterial.shaderAlbedoMode())};
+              static_cast<float>(std::clamp(triangle.rasterMaterial.materialAlpha(), 0.0, 1.0)),
+              shaderMode(shaderSource)};
     }
   }
 
@@ -88,14 +91,25 @@ namespace engine::raster::detail {
     return m_indices;
   }
 
-  void OpenGLRasterMesh::appendTriangle(const Vertex& v0, const Vertex& v1, const Vertex& v2) {
+  const OpenGLRasterMesh::Batches& OpenGLRasterMesh::batches() const {
+    return m_batches;
+  }
+
+  void OpenGLRasterMesh::appendTriangle(const Vertex& v0, const Vertex& v1, const Vertex& v2,
+                                        const RasterAlbedoShaderSource& albedo) {
     const auto base = static_cast<std::uint32_t>(m_vertices.size());
+    const auto indexOffset = m_indices.size();
     m_vertices.push_back(v0);
     m_vertices.push_back(v1);
     m_vertices.push_back(v2);
     m_indices.push_back(base);
     m_indices.push_back(base + 1);
     m_indices.push_back(base + 2);
+    if (!m_batches.empty() && m_batches.back().albedo == albedo) {
+      m_batches.back().indexCount += 3;
+      return;
+    }
+    m_batches.push_back({indexOffset, 3, albedo});
   }
 
   OpenGLRasterMeshBuilder::OpenGLRasterMeshBuilder(const render::Scene* scene,
@@ -125,9 +139,10 @@ namespace engine::raster::detail {
     RasterTriangleEmitter emitter(m_scene, m_camera, m_lod, rasterizer, m_cancelled, m_cullMode,
                                   m_hasCullModeOverride, false);
     emitter.forEachTriangle([&](const RasterTriangle& triangle) {
+      const RasterAlbedoShaderSource albedo = triangle.rasterMaterial.shaderAlbedoSource();
       mesh.appendTriangle(vertexFor(triangle, triangle.vertices[0], m_viewportRect),
                           vertexFor(triangle, triangle.vertices[1], m_viewportRect),
-                          vertexFor(triangle, triangle.vertices[2], m_viewportRect));
+                          vertexFor(triangle, triangle.vertices[2], m_viewportRect), albedo);
     });
 
     return mesh;

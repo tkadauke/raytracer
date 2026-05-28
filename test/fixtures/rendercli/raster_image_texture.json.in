@@ -1,0 +1,54 @@
+{
+  "id": "{70000000-0000-0000-0000-000000000000}",
+  "name": "Raster Image Texture",
+  "ambient": [1.0, 1.0, 1.0],
+  "background": [0.0, 0.0, 0.0],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "{70000000-0000-0000-0000-000000000001}",
+      "name": "Camera",
+      "position": [0.0, 0.0, -3.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.6,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{70000000-0000-0000-0000-000000000010}",
+      "name": "CheckerImage",
+      "path": "@PROJECT_SOURCE_DIR@/test/fixtures/ldraw/texmap/checker.ppm",
+      "filter": "nearest",
+      "wrap": "repeat",
+      "mapping": "uv",
+      "uScale": 1.0,
+      "vScale": 1.0,
+      "type": "ImageTexture",
+      "children": []
+    },
+    {
+      "id": "{70000000-0000-0000-0000-000000000020}",
+      "name": "ImageMaterial",
+      "diffuseTexture": "{70000000-0000-0000-0000-000000000010}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 0.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{70000000-0000-0000-0000-000000000030}",
+      "name": "TexturedTriangle",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{70000000-0000-0000-0000-000000000020}",
+      "vertexA": [1.0, 1.0, 0.0],
+      "vertexB": [-1.0, 1.0, 0.0],
+      "vertexC": [0.0, -1.0, 0.0],
+      "type": "Triangle",
+      "children": []
+    }
+  ]
+}

@@ -8,7 +8,9 @@
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Triangle.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "render/textures/ImageTexture.h"
 #include "render/textures/UVColorTexture.h"
+#include "render/textures/mappings/UVMapping2D.h"
 
 #include <atomic>
 #include <memory>
@@ -42,6 +44,11 @@ namespace OpenGLRasterMeshTest {
     EXPECT_EQ(1u, mesh.triangleCount());
     ASSERT_EQ(3u, mesh.vertices().size());
     EXPECT_EQ((std::vector<std::uint32_t>{0, 1, 2}), mesh.indices());
+    ASSERT_EQ(1u, mesh.batches().size());
+    EXPECT_EQ(0u, mesh.batches()[0].indexOffset);
+    EXPECT_EQ(3u, mesh.batches()[0].indexCount);
+    EXPECT_EQ(engine::raster::detail::RasterAlbedoShaderMode::VertexColor,
+              mesh.batches()[0].albedo.mode);
     for (const auto& vertex : mesh.vertices()) {
       EXPECT_GE(vertex.x, -1.0f);
       EXPECT_LE(vertex.x, 1.0f);
@@ -52,6 +59,7 @@ namespace OpenGLRasterMeshTest {
       EXPECT_FLOAT_EQ(0.0f, vertex.g);
       EXPECT_FLOAT_EQ(0.0f, vertex.b);
       EXPECT_FLOAT_EQ(1.0f, vertex.a);
+      EXPECT_FLOAT_EQ(1.0f, vertex.alphaScale);
       EXPECT_FLOAT_EQ(0.0f, vertex.albedoMode);
     }
   }
@@ -78,7 +86,37 @@ namespace OpenGLRasterMeshTest {
     EXPECT_FLOAT_EQ(0.0f, mesh.vertices()[2].u);
     EXPECT_FLOAT_EQ(1.0f, mesh.vertices()[2].v);
     for (const auto& vertex : mesh.vertices()) {
+      EXPECT_FLOAT_EQ(1.0f, vertex.alphaScale);
       EXPECT_FLOAT_EQ(1.0f, vertex.albedoMode);
+    }
+    ASSERT_EQ(1u, mesh.batches().size());
+    EXPECT_EQ(engine::raster::detail::RasterAlbedoShaderMode::UVColor,
+              mesh.batches()[0].albedo.mode);
+  }
+
+  TEST(OpenGLRasterMesh, BatchesImageTextureShaderSource) {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    auto texture = std::make_shared<render::ImageTexture>(new render::UVMapping2D(2.0, 3.0), 1, 1,
+                                                          std::vector<Colord>{Colord::white()});
+    auto triangle = std::make_shared<render::Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0),
+                                                       Vector3d(0, 1, 0));
+    triangle->setMaterial(std::make_shared<render::MatteMaterial>(texture));
+    scene->add(triangle);
+    std::atomic<bool> cancelled{false};
+
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+                                              Rasterizer::CullMode::Both, false, cancelled)
+                        .build();
+
+    ASSERT_FALSE(mesh.empty());
+    ASSERT_EQ(1u, mesh.batches().size());
+    const auto& source = mesh.batches()[0].albedo;
+    EXPECT_EQ(engine::raster::detail::RasterAlbedoShaderMode::ImageTexture, source.mode);
+    EXPECT_EQ(texture.get(), source.image);
+    EXPECT_EQ(2.0, source.uScale);
+    EXPECT_EQ(3.0, source.vScale);
+    for (const auto& vertex : mesh.vertices()) {
+      EXPECT_FLOAT_EQ(2.0f, vertex.albedoMode);
     }
   }
 
@@ -101,6 +139,7 @@ namespace OpenGLRasterMeshTest {
     ASSERT_EQ(3u, mesh.vertices().size());
     for (const auto& vertex : mesh.vertices()) {
       EXPECT_FLOAT_EQ(0.25f, vertex.a);
+      EXPECT_FLOAT_EQ(0.25f, vertex.alphaScale);
     }
   }
 

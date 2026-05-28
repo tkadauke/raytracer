@@ -49,6 +49,7 @@ namespace render {
     int width(int level = 0) const;
     int height(int level = 0) const;
     int mipLevelCount() const;
+    const std::vector<Colord>& pixels(int level = 0) const;
 
     ImageTextureFilter filter() const;
     ImageTextureWrap wrap() const;

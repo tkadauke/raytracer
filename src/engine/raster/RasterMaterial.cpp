@@ -38,6 +38,15 @@ namespace engine::raster::detail {
     }
   }
 
+  bool RasterAlbedoShaderSource::operator==(const RasterAlbedoShaderSource& other) const {
+    return mode == other.mode && image == other.image && uScale == other.uScale &&
+           vScale == other.vScale;
+  }
+
+  bool RasterAlbedoShaderSource::operator!=(const RasterAlbedoShaderSource& other) const {
+    return !(*this == other);
+  }
+
   RasterTexture::RasterTexture()
       : m_kind(Kind::Constant),
         m_color(Colord::black()),
@@ -124,9 +133,18 @@ namespace engine::raster::detail {
     return m_color;
   }
 
-  RasterAlbedoShaderMode RasterTexture::shaderAlbedoMode() const {
-    return m_kind == Kind::UVColor ? RasterAlbedoShaderMode::UVColor
-                                   : RasterAlbedoShaderMode::VertexColor;
+  RasterAlbedoShaderSource RasterTexture::shaderAlbedoSource() const {
+    RasterAlbedoShaderSource source;
+    if (m_kind == Kind::UVColor) {
+      source.mode = RasterAlbedoShaderMode::UVColor;
+    } else if (m_kind == Kind::Image && m_image) {
+      source.mode = RasterAlbedoShaderMode::ImageTexture;
+      source.texture = m_texture;
+      source.image = m_image;
+      source.uScale = m_uScale;
+      source.vScale = m_vScale;
+    }
+    return source;
   }
 
   RasterTexture RasterTexture::fallback(std::shared_ptr<render::Texturec> texture) {
@@ -202,8 +220,12 @@ namespace engine::raster::detail {
     return m_hasNormalMap;
   }
 
-  RasterAlbedoShaderMode RasterMaterial::shaderAlbedoMode() const {
-    return m_albedo.shaderAlbedoMode();
+  RasterAlbedoShaderSource RasterMaterial::shaderAlbedoSource() const {
+    return m_albedo.shaderAlbedoSource();
+  }
+
+  double RasterMaterial::materialAlpha() const {
+    return m_materialAlpha;
   }
 
   Vector3d RasterMaterial::lightingNormal(const render::Primitive* primitive,

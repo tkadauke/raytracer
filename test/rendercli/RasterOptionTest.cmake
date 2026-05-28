@@ -15,6 +15,10 @@ set(matte_scene "${PROJECT_SOURCE_DIR}/scenes/raster_material_preview.json")
 set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(reflective_scene "${PROJECT_SOURCE_DIR}/scenes/reflections.json")
 set(transmissive_scene "${PROJECT_SOURCE_DIR}/scenes/glass_torus.json")
+set(image_texture_scene_template
+    "${PROJECT_SOURCE_DIR}/test/fixtures/rendercli/raster_image_texture.json.in")
+set(image_texture_scene "${TEST_OUTPUT_DIR}/raster_image_texture.json")
+configure_file("${image_texture_scene_template}" "${image_texture_scene}" @ONLY)
 set(basic_render "${TEST_OUTPUT_DIR}/raster-basic.png")
 set(opengl_graph "${TEST_OUTPUT_DIR}/raster-opengl-graph.json")
 set(lod_0_render "${TEST_OUTPUT_DIR}/raster-lod-0.png")
@@ -76,6 +80,34 @@ else()
   _rendercli_fail("rendercli --raster_backend gpu application bootstrap"
                   "OpenGL backend neither rendered nor reported a clear OpenGL capability error"
                   "" "${opengl_result}" "${opengl_stdout}" "${opengl_stderr}")
+endif()
+
+set(opengl_image_texture_render "${TEST_OUTPUT_DIR}/raster-opengl-image-texture.png")
+execute_process(
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 16 --height 16 --raster_backend gpu
+    "${image_texture_scene}" "${opengl_image_texture_render}"
+  RESULT_VARIABLE opengl_image_texture_result
+  OUTPUT_VARIABLE opengl_image_texture_stdout
+  ERROR_VARIABLE opengl_image_texture_stderr
+)
+if(opengl_image_texture_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_image_texture_render}" 16 16
+                                    NAME "rendercli --raster_backend gpu image texture dimensions")
+  rendercli_assert_image_nonempty("${opengl_image_texture_render}"
+                                  NAME "rendercli --raster_backend gpu image texture pixels")
+elseif(opengl_image_texture_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_image_texture_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu image texture application bootstrap"
+                    "OpenGL image texture path still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_image_texture_result}" "${opengl_image_texture_stdout}"
+                    "${opengl_image_texture_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu image texture"
+                  "OpenGL image texture render neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_image_texture_result}" "${opengl_image_texture_stdout}"
+                  "${opengl_image_texture_stderr}")
 endif()
 
 set(opengl_msaa_render "${TEST_OUTPUT_DIR}/raster-opengl-msaa.png")

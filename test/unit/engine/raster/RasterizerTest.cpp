@@ -1945,7 +1945,21 @@ namespace RasterizerTest {
     const auto texture =
       engine::raster::detail::RasterTexture::from(std::make_shared<render::UVColorTexture>());
 
-    EXPECT_EQ(engine::raster::detail::RasterAlbedoShaderMode::UVColor, texture.shaderAlbedoMode());
+    EXPECT_EQ(engine::raster::detail::RasterAlbedoShaderMode::UVColor,
+              texture.shaderAlbedoSource().mode);
+  }
+
+  TEST(RasterTexture, DirectImageTextureCanBeEvaluatedInShaderFromImage) {
+    auto image = std::make_shared<render::ImageTexture>(
+      new render::UVMapping2D(2.0, 1.0), 2, 1, std::vector<Colord>{Colord::red(), Colord::green()},
+      render::ImageTextureFilter::Nearest, render::ImageTextureWrap::Repeat);
+    const auto texture = engine::raster::detail::RasterTexture::from(image);
+    const auto source = texture.shaderAlbedoSource();
+
+    EXPECT_EQ(engine::raster::detail::RasterAlbedoShaderMode::ImageTexture, source.mode);
+    EXPECT_EQ(image.get(), source.image);
+    EXPECT_EQ(2.0, source.uScale);
+    EXPECT_EQ(1.0, source.vScale);
   }
 
   TEST(RasterTexture, DirectUVCheckerUsesScaledUVParity) {

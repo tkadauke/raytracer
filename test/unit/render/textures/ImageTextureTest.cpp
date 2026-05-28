@@ -70,6 +70,16 @@ namespace ImageTextureTest {
                     texture.sample(0.3, 0.7, Vector2d(1.0, 0.0), Vector2d(0.0, 0.0)));
   }
 
+  TEST(ImageTexture, ExposesGeneratedLevelPixelsForRenderBackends) {
+    ImageTexture texture(new UVMapping2D, 2, 2, quadPixels(), ImageTextureFilter::Mipmap);
+
+    ASSERT_EQ(2, texture.mipLevelCount());
+    ASSERT_EQ(4u, texture.pixels(0).size());
+    EXPECT_EQ(Colord::red(), texture.pixels(0)[0]);
+    ASSERT_EQ(1u, texture.pixels(1).size());
+    expectColorNear(Colord(0.5, 0.5, 0.5), texture.pixels(1)[0]);
+  }
+
   TEST(ImageTexture, EvaluateUsesConfiguredMapping) {
     ImageTexture texture(new UVMapping2D(2.0, 1.0), 2, 2, quadPixels(), ImageTextureFilter::Nearest,
                          ImageTextureWrap::Repeat);

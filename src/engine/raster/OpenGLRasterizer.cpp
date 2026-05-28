@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "engine/raster/OpenGLOffscreenContext.h"
 #include "engine/raster/detail/OpenGLRasterMesh.h"
+#include "render/textures/ImageTexture.h"
 
 #include <QOpenGLBuffer>
 #include <QOpenGLFunctions>
@@ -11,11 +12,92 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <stdexcept>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace engine::raster {
   namespace {
+    class OpenGLTextureCache {
+    public:
+      explicit OpenGLTextureCache(QOpenGLFunctions* functions)
+          : m_functions(functions) {
+      }
+
+      ~OpenGLTextureCache() {
+        for (const auto& entry : m_textures) {
+          GLuint texture = entry.second;
+          m_functions->glDeleteTextures(1, &texture);
+        }
+      }
+
+      GLuint textureFor(const render::ImageTexture& image) {
+        const auto cached = m_textures.find(&image);
+        if (cached != m_textures.end()) {
+          return cached->second;
+        }
+
+        GLuint texture = 0;
+        m_functions->glGenTextures(1, &texture);
+        if (texture == 0) {
+          throw std::runtime_error("OpenGL raster backend could not allocate an image texture");
+        }
+
+        m_functions->glBindTexture(GL_TEXTURE_2D, texture);
+        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter(image));
+        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter(image));
+        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapMode(image));
+        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapMode(image));
+        m_functions->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        for (int level = 0; level != image.mipLevelCount(); ++level) {
+          const std::vector<GLfloat> pixels = texturePixels(image.pixels(level));
+          m_functions->glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, image.width(level),
+                                    image.height(level), 0, GL_RGBA, GL_FLOAT, pixels.data());
+        }
+        m_functions->glBindTexture(GL_TEXTURE_2D, 0);
+        m_textures.emplace(&image, texture);
+        return texture;
+      }
+
+    private:
+      static GLint minFilter(const render::ImageTexture& image) {
+        switch (image.filter()) {
+        case render::ImageTextureFilter::Nearest:
+          return GL_NEAREST;
+        case render::ImageTextureFilter::Bilinear:
+          return GL_LINEAR;
+        case render::ImageTextureFilter::Mipmap:
+          return GL_LINEAR_MIPMAP_LINEAR;
+        }
+        return GL_LINEAR;
+      }
+
+      static GLint magFilter(const render::ImageTexture& image) {
+        return image.filter() == render::ImageTextureFilter::Nearest ? GL_NEAREST : GL_LINEAR;
+      }
+
+      static GLint wrapMode(const render::ImageTexture& image) {
+        return image.wrap() == render::ImageTextureWrap::Clamp ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+      }
+
+      static std::vector<GLfloat> texturePixels(const std::vector<Colord>& colors) {
+        std::vector<GLfloat> pixels;
+        pixels.reserve(colors.size() * 4);
+        for (const Colord& color : colors) {
+          pixels.push_back(static_cast<GLfloat>(std::clamp(color.r(), 0.0, 1.0)));
+          pixels.push_back(static_cast<GLfloat>(std::clamp(color.g(), 0.0, 1.0)));
+          pixels.push_back(static_cast<GLfloat>(std::clamp(color.b(), 0.0, 1.0)));
+          pixels.push_back(1.0f);
+        }
+        return pixels;
+      }
+
+      QOpenGLFunctions* m_functions;
+      std::unordered_map<const render::ImageTexture*, GLuint> m_textures;
+    };
+
     class OpenGLRasterDrawPass {
     public:
       OpenGLRasterDrawPass(
@@ -117,15 +199,18 @@ namespace engine::raster {
                                              "attribute vec4 position;\n"
                                              "attribute vec4 color;\n"
                                              "attribute vec2 uv;\n"
+                                             "attribute float alphaScale;\n"
                                              "attribute float albedoMode;\n"
                                              "varying vec4 vertexColor;\n"
                                              "varying vec2 vertexUV;\n"
+                                             "varying float fragmentAlphaScale;\n"
                                              "varying float fragmentAlbedoMode;\n"
                                              "void main() {\n"
                                              "  gl_Position = vec4(position.xyz * position.w, "
                                              "position.w);\n"
                                              "  vertexColor = color;\n"
                                              "  vertexUV = uv;\n"
+                                             "  fragmentAlphaScale = alphaScale;\n"
                                              "  fragmentAlbedoMode = albedoMode;\n"
                                              "}\n")) {
           throw std::runtime_error("OpenGL raster backend could not compile vertex shader: " +
@@ -134,10 +219,13 @@ namespace engine::raster {
         if (!program.addShaderFromSourceCode(
               QOpenGLShader::Fragment, "varying vec4 vertexColor;\n"
                                        "varying vec2 vertexUV;\n"
+                                       "varying float fragmentAlphaScale;\n"
                                        "varying float fragmentAlbedoMode;\n"
                                        "uniform bool alphaTestEnabled;\n"
                                        "uniform int alphaFunc;\n"
                                        "uniform float alphaReference;\n"
+                                       "uniform sampler2D imageTexture;\n"
+                                       "uniform vec2 imageUVScale;\n"
                                        "bool alphaPass(float alpha) {\n"
                                        "  if (!alphaTestEnabled) return true;\n"
                                        "  if (alphaFunc == 0) return false;\n"
@@ -154,7 +242,17 @@ namespace engine::raster {
                                        "  if (fragmentAlbedoMode > 0.5 && "
                                        "fragmentAlbedoMode < 1.5) {\n"
                                        "    sourceColor = vec4(vertexUV.x, vertexUV.y, 0.0, "
-                                       "vertexColor.a);\n"
+                                       "1.0);\n"
+                                       "    sourceColor.a = max(max(sourceColor.r, "
+                                       "sourceColor.g), sourceColor.b) * "
+                                       "fragmentAlphaScale;\n"
+                                       "  } else if (fragmentAlbedoMode > 1.5 && "
+                                       "fragmentAlbedoMode < 2.5) {\n"
+                                       "    sourceColor = texture2D(imageTexture, vertexUV * "
+                                       "imageUVScale);\n"
+                                       "    sourceColor.a = max(max(sourceColor.r, "
+                                       "sourceColor.g), sourceColor.b) * "
+                                       "fragmentAlphaScale;\n"
                                        "  }\n"
                                        "  if (!alphaPass(sourceColor.a)) discard;\n"
                                        "  gl_FragColor = sourceColor;\n"
@@ -173,6 +271,7 @@ namespace engine::raster {
         program.setUniformValue("alphaFunc", static_cast<int>(m_alphaFunc));
         program.setUniformValue("alphaReference",
                                 static_cast<GLfloat>(std::clamp(m_alphaReference, 0.0, 1.0)));
+        program.setUniformValue("imageTexture", 0);
 
         QOpenGLBuffer vertexBuffer(QOpenGLBuffer::VertexBuffer);
         QOpenGLBuffer indexBuffer(QOpenGLBuffer::IndexBuffer);
@@ -192,8 +291,10 @@ namespace engine::raster {
         const int positionLocation = program.attributeLocation("position");
         const int colorLocation = program.attributeLocation("color");
         const int uvLocation = program.attributeLocation("uv");
+        const int alphaScaleLocation = program.attributeLocation("alphaScale");
         const int albedoModeLocation = program.attributeLocation("albedoMode");
-        if (positionLocation < 0 || colorLocation < 0 || uvLocation < 0 || albedoModeLocation < 0) {
+        if (positionLocation < 0 || colorLocation < 0 || uvLocation < 0 || alphaScaleLocation < 0 ||
+            albedoModeLocation < 0) {
           indexBuffer.release();
           vertexBuffer.release();
           program.release();
@@ -212,18 +313,38 @@ namespace engine::raster {
         program.setAttributeBuffer(uvLocation, GL_FLOAT,
                                    offsetof(detail::OpenGLRasterMesh::Vertex, u), 2,
                                    sizeof(detail::OpenGLRasterMesh::Vertex));
+        program.enableAttributeArray(alphaScaleLocation);
+        program.setAttributeBuffer(alphaScaleLocation, GL_FLOAT,
+                                   offsetof(detail::OpenGLRasterMesh::Vertex, alphaScale), 1,
+                                   sizeof(detail::OpenGLRasterMesh::Vertex));
         program.enableAttributeArray(albedoModeLocation);
         program.setAttributeBuffer(albedoModeLocation, GL_FLOAT,
                                    offsetof(detail::OpenGLRasterMesh::Vertex, albedoMode), 1,
                                    sizeof(detail::OpenGLRasterMesh::Vertex));
 
-        functions->glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh.indices().size()),
-                                  GL_UNSIGNED_INT, nullptr);
+        OpenGLTextureCache textureCache(functions);
+        for (const auto& batch : mesh.batches()) {
+          functions->glActiveTexture(GL_TEXTURE0);
+          if (batch.albedo.mode == detail::RasterAlbedoShaderMode::ImageTexture &&
+              batch.albedo.image) {
+            functions->glBindTexture(GL_TEXTURE_2D, textureCache.textureFor(*batch.albedo.image));
+          } else {
+            functions->glBindTexture(GL_TEXTURE_2D, 0);
+          }
+          program.setUniformValue("imageUVScale", static_cast<GLfloat>(batch.albedo.uScale),
+                                  static_cast<GLfloat>(batch.albedo.vScale));
+          const auto byteOffset = reinterpret_cast<const void*>(
+            static_cast<std::uintptr_t>(batch.indexOffset * sizeof(std::uint32_t)));
+          functions->glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(batch.indexCount),
+                                    GL_UNSIGNED_INT, byteOffset);
+        }
+        functions->glBindTexture(GL_TEXTURE_2D, 0);
         functions->glFlush();
 
         resetFixedFunctionState(functions);
 
         program.disableAttributeArray(albedoModeLocation);
+        program.disableAttributeArray(alphaScaleLocation);
         program.disableAttributeArray(uvLocation);
         program.disableAttributeArray(colorLocation);
         program.disableAttributeArray(positionLocation);

@@ -227,9 +227,17 @@ Tasks:
   vertices now retain clip `w`, UV coordinates, and a shader albedo mode so
   supported procedural texture modes can be evaluated per fragment instead of
   pre-sampled as vertex colors.
-- Upload image textures used by imported glTF/LDraw/OpenSCAD mesh materials.
-- Implement base-color texture sampling with nearest/linear and wrap/clamp
-  modes where supported by the existing material model.
+- ~~Upload direct UV-mapped `ImageTexture` sources used by imported
+  glTF/LDraw/OpenSCAD mesh materials.~~ ✅ **Done.** OpenGL raster batches now
+  upload direct `ImageTexture` sources, including their generated mip levels,
+  and reuse one GL texture per image within the draw pass. Tinted or wrapped
+  texture stacks still use the vertex-color fallback until material texture
+  graphs have GPU descriptors.
+- ~~Implement base-color texture sampling with nearest/linear and wrap/clamp
+  modes where supported by the existing material model.~~ ✅ **Done.** The
+  OpenGL shader now samples UV-mapped image albedo with the runtime
+  nearest/bilinear/mipmap filter and repeat/clamp wrap policy carried by
+  `ImageTexture`.
 - Preserve current material fallback warnings.
 - Add a textured glTF fixture or generated smoke asset for rendercli coverage.
 
