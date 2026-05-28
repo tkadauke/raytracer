@@ -73,9 +73,10 @@ cleanly — see `include/engine/`, which today has three siblings
 
 Three reasons:
 
-1. **`Raytracer::rayColor` is a recursive function.** Wavefront
+1. **The default `WhittedIntegrator` is recursive.** Wavefront
    scheduling is iterative-with-per-pixel-state. Trying to fit both
-   into one class produces a mess. The recursive form also supports
+   policies into one scheduler produces a mess. The recursive
+   raytracer still supports
    the single-ray probe API (`primitiveForRay`, `rayState`,
    `rayColor`) used by interactive picking and tests pinning shading
    behavior. Those
@@ -115,11 +116,14 @@ and the single-ray probe API stays on `Raytracer` only.
 
 ### What gets refactored
 
-Probably nothing in `Raytracer.cpp`. The wavefront engine may need
-finer-grained access to the material's incoming/outgoing direction
-APIs than `rayColor` currently exposes, but those should already exist
-inside the shading code; we'd just need to call them at the right
-seam.
+Probably little in `Raytracer.cpp`. The relevant transport seam is
+now `render::Integrator`: `Raytracer::rayColor` delegates to the
+selected integrator, while materials use `RayCaster` only as the
+recursive callback handle. A wavefront or path-tracing engine may
+need finer-grained access to material incoming/outgoing direction
+APIs than the Whitted compatibility callback exposes, but those
+should already exist inside the shading code; we'd call them at the
+integrator/material boundary.
 
 If wavefront grows enough to want SoA ray batches (Ray4/Ray8 per
 Phase 4 of `complete/core-math-optimization.md`), the shared intersection
@@ -370,8 +374,8 @@ No code changes yet.
 
 Tracked as [#133](https://github.com/tkadauke/raytracer/issues/133).
 `render::State::throughput` now propagates attenuation through reflective,
-transparent, and portal recursion, and `Raytracer::rayColor` returns the scene
-background when throughput falls below `RAYTRACER_THROUGHPUT_CUTOFF`. This
+transparent, and portal recursion, and the active Whitted integrator returns
+the scene background when throughput falls below `RAYTRACER_THROUGHPUT_CUTOFF`. This
 validates the throughput-tracking arithmetic in a smaller, easier-to-debug
 context before the wavefront engine exists.
 

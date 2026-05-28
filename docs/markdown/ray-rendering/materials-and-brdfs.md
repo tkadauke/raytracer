@@ -36,20 +36,21 @@ virtual Colord shade(
 ```
 
 The signature carries five arguments and one return value. The `Colord` is the radiance
-leaving the surface in the direction of the incoming ray —
-exactly the quantity the recursive `rayColor` from
-[The Whitted pipeline: The recursive heart](the-whitted-pipeline.md#the-recursive-heart)
-expects to add to its accumulator.
+leaving the surface in the direction of the incoming ray. In the
+shipped Whitted renderer,
+[`render::WhittedIntegrator`](../../../include/render/WhittedIntegrator.h)
+asks the material for that value after it finds the closest hit.
 
-The `RayCaster*` is the back-pointer the material uses to recurse
-on secondary rays. A `ReflectiveMaterial` calls
+The `RayCaster*` is the callback handle the material uses to request
+secondary rays. A `ReflectiveMaterial` calls
 `raycaster->rayColor(reflectedRay, state)` and gets the color the
-recursion produces back; a `TransparentMaterial` does the same
-with the refracted ray. The double-pointer interface keeps the
+active integrator produces back; a `TransparentMaterial` does the same
+with the refracted ray. The pointer interface keeps the
 threading machinery from
 [The Whitted pipeline: The `RenderEngine` abstraction](the-whitted-pipeline.md#the-renderengine-abstraction)
 out of the material's view: a material doesn't know the engine
-has a thread pool or a queue size — it just calls `rayColor`.
+has a thread pool, a queue size, or a selected integrator — it just
+calls `rayColor` on the callback it was handed.
 
 The `Scene&` is the scene reference the shader needs for two
 specific operations: iterating the lights for direct illumination

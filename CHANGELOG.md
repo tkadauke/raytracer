@@ -63,6 +63,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   lives in `render::WhittedIntegrator`, preserving `Raytracer::rayColor`
   results while giving future ray engines a concrete integrator boundary for
   Epic #357. — GPT-5
+- **Integrator responsibility docs.** Roadmap and textbook material now
+  describe `Raytracer` as the frame scheduler/probe owner, `RayCaster` as the
+  material callback handle, and `render::Integrator` as the transport-policy
+  boundary future path tracers will implement; this documents the preserved
+  default Whitted behavior and does not add path tracing. — GPT-5
 - **Raster counter AOVs.** The rasterizer and render graph now expose
   graph-visible heatmap views for per-pixel coverage, depth tests, depth passes,
   shading calls, and color writes through rendercli and the Modeler Preview

@@ -1,7 +1,9 @@
 # Ray rendering
 
-The Whitted pipeline as it actually runs in
-[`engine::raytracer::Raytracer`](../../../include/engine/raytracer/Raytracer.h).
+The Whitted pipeline as it actually runs through
+[`engine::raytracer::Raytracer`](../../../include/engine/raytracer/Raytracer.h)
+and its default
+[`render::WhittedIntegrator`](../../../include/render/WhittedIntegrator.h).
 The longest volume in the book: every chapter expands one step of
 the pipeline introduced in [The Whitted pipeline](the-whitted-pipeline.md).
 
@@ -9,7 +11,7 @@ the pipeline introduced in [The Whitted pipeline](the-whitted-pipeline.md).
 
 - [The Whitted pipeline](the-whitted-pipeline.md) — the whole
    tracer in 200 words, then the road map for the rest of the
-   volume.
+   volume, including the engine/integrator split.
 - [Cameras](cameras.md) — pinhole, orthographic, spherical,
    fisheye, equirectangular, tilt-shift, thin-lens. Each one's
    physical model and its place in the codebase.
@@ -36,12 +38,16 @@ the pipeline introduced in [The Whitted pipeline](the-whitted-pipeline.md).
 ```
 include/engine/raytracer/Raytracer.h    ← interface
 src/engine/raytracer/Raytracer.cpp      ← implementation
+include/render/Integrator.h             ← single-ray transport contract
+include/render/WhittedIntegrator.h      ← default Whitted policy
 ```
 
-That class threads through everything in this volume. Camera is its
-shared pointer. The scene is what `render(buffer)` walks. Materials
-get called from `rayColor()`. Tonemap runs at the end, on the float
-framebuffer, before the LDR conversion that hits the
+Those classes thread through everything in this volume. Camera is the
+engine's shared pointer. The scene is what `render(buffer)` walks.
+`Raytracer::rayColor` delegates to the selected `Integrator`; the
+default `WhittedIntegrator` calls materials at hits, and materials use
+`RayCaster` only when they need a secondary ray. Tonemap runs at the
+end, on the float framebuffer, before the LDR conversion that hits the
 `Buffer<unsigned int>` you actually display.
 
 ## See also
