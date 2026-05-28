@@ -991,8 +991,7 @@ void MainWindow::createActions() {
 
   p->previewRasterBackendOpenGLAct = new QAction(tr("&OpenGL"), this);
   p->previewRasterBackendOpenGLAct->setStatusTip(
-    tr("Use the experimental OpenGL raster backend for live raster preview passes; mesh drawing "
-       "is not implemented yet"));
+    tr("Use the experimental OpenGL raster backend for live raster preview passes"));
   p->previewRasterBackendOpenGLAct->setToolTip(
     QString::fromStdString(engine::raster::OpenGLRasterizer::statusMessage()));
   p->previewRasterBackendOpenGLAct->setCheckable(true);

@@ -4,6 +4,7 @@
 #include "engine/raster/detail/RasterPipelineTypes.h"
 #include "engine/raster/detail/RasterTriangleEmitter.h"
 #include "render/cameras/Camera.h"
+#include "render/lights/Light.h"
 #include "render/primitives/Scene.h"
 #include "render/viewplanes/ViewPlane.h"
 
@@ -53,25 +54,8 @@ namespace engine::raster::detail {
       return static_cast<float>(static_cast<int>(mode));
     }
 
-    OpenGLRasterMesh::Vertex vertexFor(const RasterTriangle& triangle, const RasterVertex& vertex,
-                                       const Recti& rect) {
-      const Colord albedo = triangle.rasterMaterial.albedo(
-        triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
-      const double alpha = triangle.rasterMaterial.alpha(
-        triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
-      const RasterAlbedoShaderSource shaderSource = triangle.rasterMaterial.shaderAlbedoSource();
-      return {normalizedDeviceX(vertex.x, rect),
-              normalizedDeviceY(vertex.y, rect),
-              normalizedDeviceDepth(vertex),
-              clipW(vertex),
-              static_cast<float>(std::clamp(albedo.r(), 0.0, 1.0)),
-              static_cast<float>(std::clamp(albedo.g(), 0.0, 1.0)),
-              static_cast<float>(std::clamp(albedo.b(), 0.0, 1.0)),
-              static_cast<float>(std::clamp(alpha, 0.0, 1.0)),
-              static_cast<float>(vertex.uv.x()),
-              static_cast<float>(vertex.uv.y()),
-              static_cast<float>(std::clamp(triangle.rasterMaterial.materialAlpha(), 0.0, 1.0)),
-              shaderMode(shaderSource)};
+    float lightComponent(double value) {
+      return static_cast<float>(std::max(0.0, value));
     }
   }
 
@@ -140,11 +124,57 @@ namespace engine::raster::detail {
                                   m_hasCullModeOverride, false);
     emitter.forEachTriangle([&](const RasterTriangle& triangle) {
       const RasterAlbedoShaderSource albedo = triangle.rasterMaterial.shaderAlbedoSource();
-      mesh.appendTriangle(vertexFor(triangle, triangle.vertices[0], m_viewportRect),
-                          vertexFor(triangle, triangle.vertices[1], m_viewportRect),
-                          vertexFor(triangle, triangle.vertices[2], m_viewportRect), albedo);
+      mesh.appendTriangle(vertexFor(triangle, triangle.vertices[0]),
+                          vertexFor(triangle, triangle.vertices[1]),
+                          vertexFor(triangle, triangle.vertices[2]), albedo);
     });
 
     return mesh;
+  }
+
+  OpenGLRasterMesh::Vertex OpenGLRasterMeshBuilder::vertexFor(const RasterTriangle& triangle,
+                                                              const RasterVertex& vertex) const {
+    const Colord albedo = triangle.rasterMaterial.albedo(
+      triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
+    const double alpha = triangle.rasterMaterial.alpha(
+      triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
+    const Colord lighting = lightingFor(triangle, vertex);
+    const RasterAlbedoShaderSource shaderSource = triangle.rasterMaterial.shaderAlbedoSource();
+    return {normalizedDeviceX(vertex.x, m_viewportRect),
+            normalizedDeviceY(vertex.y, m_viewportRect),
+            normalizedDeviceDepth(vertex),
+            clipW(vertex),
+            static_cast<float>(std::clamp(albedo.r(), 0.0, 1.0)),
+            static_cast<float>(std::clamp(albedo.g(), 0.0, 1.0)),
+            static_cast<float>(std::clamp(albedo.b(), 0.0, 1.0)),
+            static_cast<float>(std::clamp(alpha, 0.0, 1.0)),
+            static_cast<float>(vertex.uv.x()),
+            static_cast<float>(vertex.uv.y()),
+            static_cast<float>(std::clamp(triangle.rasterMaterial.materialAlpha(), 0.0, 1.0)),
+            lightComponent(lighting.r()),
+            lightComponent(lighting.g()),
+            lightComponent(lighting.b()),
+            shaderMode(shaderSource)};
+  }
+
+  Colord OpenGLRasterMeshBuilder::lightingFor(const RasterTriangle& triangle,
+                                              const RasterVertex& vertex) const {
+    if (!m_scene) {
+      return Colord::white();
+    }
+
+    const Vector3d baseNormal = vertex.normal.normalized();
+    const Vector3d normal = triangle.rasterMaterial.lightingNormal(
+      triangle.primitive, vertex.point, baseNormal, vertex.uv, triangle.uvDx, triangle.uvDy,
+      triangle.tangentFrame);
+    Colord lighting = m_scene->ambient() * triangle.rasterMaterial.ambientCoefficient();
+    for (const auto& light : m_scene->lights()) {
+      const Vector3d lightDir = light->direction(vertex.point);
+      const double nDotL = std::max(0.0, normal * lightDir);
+      if (nDotL > 0.0) {
+        lighting += light->radiance() * triangle.rasterMaterial.diffuseCoefficient() * nDotL;
+      }
+    }
+    return lighting;
   }
 }

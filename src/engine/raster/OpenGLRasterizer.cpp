@@ -208,10 +208,12 @@ namespace engine::raster {
                                              "attribute vec4 color;\n"
                                              "attribute vec2 uv;\n"
                                              "attribute float alphaScale;\n"
+                                             "attribute vec3 lighting;\n"
                                              "attribute float albedoMode;\n"
                                              "varying vec4 vertexColor;\n"
                                              "varying vec2 vertexUV;\n"
                                              "varying float fragmentAlphaScale;\n"
+                                             "varying vec3 fragmentLighting;\n"
                                              "varying float fragmentAlbedoMode;\n"
                                              "void main() {\n"
                                              "  gl_Position = vec4(position.xyz * position.w, "
@@ -219,6 +221,7 @@ namespace engine::raster {
                                              "  vertexColor = color;\n"
                                              "  vertexUV = uv;\n"
                                              "  fragmentAlphaScale = alphaScale;\n"
+                                             "  fragmentLighting = lighting;\n"
                                              "  fragmentAlbedoMode = albedoMode;\n"
                                              "}\n")) {
           throw std::runtime_error("OpenGL raster backend could not compile vertex shader: " +
@@ -228,6 +231,7 @@ namespace engine::raster {
               QOpenGLShader::Fragment, "varying vec4 vertexColor;\n"
                                        "varying vec2 vertexUV;\n"
                                        "varying float fragmentAlphaScale;\n"
+                                       "varying vec3 fragmentLighting;\n"
                                        "varying float fragmentAlbedoMode;\n"
                                        "uniform bool alphaTestEnabled;\n"
                                        "uniform int alphaFunc;\n"
@@ -262,6 +266,7 @@ namespace engine::raster {
                                        "sourceColor.g), sourceColor.b) * "
                                        "fragmentAlphaScale;\n"
                                        "  }\n"
+                                       "  sourceColor.rgb *= fragmentLighting;\n"
                                        "  if (!alphaPass(sourceColor.a)) discard;\n"
                                        "  gl_FragColor = sourceColor;\n"
                                        "}\n")) {
@@ -300,9 +305,10 @@ namespace engine::raster {
         const int colorLocation = program.attributeLocation("color");
         const int uvLocation = program.attributeLocation("uv");
         const int alphaScaleLocation = program.attributeLocation("alphaScale");
+        const int lightingLocation = program.attributeLocation("lighting");
         const int albedoModeLocation = program.attributeLocation("albedoMode");
         if (positionLocation < 0 || colorLocation < 0 || uvLocation < 0 || alphaScaleLocation < 0 ||
-            albedoModeLocation < 0) {
+            lightingLocation < 0 || albedoModeLocation < 0) {
           indexBuffer.release();
           vertexBuffer.release();
           program.release();
@@ -324,6 +330,10 @@ namespace engine::raster {
         program.enableAttributeArray(alphaScaleLocation);
         program.setAttributeBuffer(alphaScaleLocation, GL_FLOAT,
                                    offsetof(detail::OpenGLRasterMesh::Vertex, alphaScale), 1,
+                                   sizeof(detail::OpenGLRasterMesh::Vertex));
+        program.enableAttributeArray(lightingLocation);
+        program.setAttributeBuffer(lightingLocation, GL_FLOAT,
+                                   offsetof(detail::OpenGLRasterMesh::Vertex, lightR), 3,
                                    sizeof(detail::OpenGLRasterMesh::Vertex));
         program.enableAttributeArray(albedoModeLocation);
         program.setAttributeBuffer(albedoModeLocation, GL_FLOAT,
@@ -352,6 +362,7 @@ namespace engine::raster {
         resetFixedFunctionState(functions);
 
         program.disableAttributeArray(albedoModeLocation);
+        program.disableAttributeArray(lightingLocation);
         program.disableAttributeArray(alphaScaleLocation);
         program.disableAttributeArray(uvLocation);
         program.disableAttributeArray(colorLocation);
@@ -622,9 +633,9 @@ namespace engine::raster {
   }
 
   std::string OpenGLRasterizer::statusMessage() {
-    return "OpenGL raster backend renders the initial material-albedo mesh path when Qt can "
-           "create an offscreen context; unsupported hosts report an OpenGL capability error "
-           "when the backend is selected";
+    return "OpenGL raster backend renders the initial lit mesh path when Qt can create an "
+           "offscreen context; unsupported hosts report an OpenGL capability error when the "
+           "backend is selected";
   }
 
   const std::string& OpenGLRasterizer::readbackTraceMessage() const {
@@ -875,7 +886,7 @@ namespace engine::raster {
       return availability.error();
     }
     return "OpenGL raster backend is selected and an offscreen context is available (" +
-           availability.detail() + ") and can render the initial material-albedo mesh path";
+           availability.detail() + ") and can render the initial lit mesh path";
   }
 
   Recti OpenGLRasterizer::viewportRectFor(int width, int height) const {

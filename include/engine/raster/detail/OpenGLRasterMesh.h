@@ -16,6 +16,8 @@ namespace render {
 }
 
 namespace engine::raster::detail {
+  struct RasterTriangle;
+  struct RasterVertex;
 
   /**
     * Screen-space triangle buffer prepared for the initial OpenGL raster path.
@@ -39,6 +41,9 @@ namespace engine::raster::detail {
       float u{0.0f};
       float v{0.0f};
       float alphaScale{1.0f};
+      float lightR{1.0f};
+      float lightG{1.0f};
+      float lightB{1.0f};
       float albedoMode{0.0f};
     };
 
@@ -83,6 +88,10 @@ namespace engine::raster::detail {
     Rasterizer::CullMode m_cullMode;
     bool m_hasCullModeOverride;
     const std::atomic<bool>& m_cancelled;
+
+    OpenGLRasterMesh::Vertex vertexFor(const RasterTriangle& triangle,
+                                       const RasterVertex& vertex) const;
+    Colord lightingFor(const RasterTriangle& triangle, const RasterVertex& vertex) const;
   };
 
 }

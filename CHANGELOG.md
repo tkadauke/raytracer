@@ -114,6 +114,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   direct UV-mapped `ImageTexture` albedo sources, sampling them in the GPU
   shader with their nearest/bilinear/mipmap filter and repeat/clamp wrap
   policy. — GPT-5
+- **OpenGL raster ambient/direct lighting.** OpenGL raster mesh vertices now
+  carry graph-scene ambient and direct diffuse light factors into the shader,
+  so GPU raster output responds to scene lights instead of showing only raw
+  material albedo. — GPT-5
 - **OpenGL raster readback timing.** Graph execution traces now report how
   long OpenGL raster passes spent copying color/depth/stencil attachments back
   to CPU buffers, making the current eager-readback cost visible in rendercli

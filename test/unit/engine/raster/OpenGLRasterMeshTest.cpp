@@ -2,6 +2,7 @@
 
 #include "engine/raster/detail/OpenGLRasterMesh.h"
 #include "render/cameras/PinholeCamera.h"
+#include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Scene.h"
@@ -140,6 +141,29 @@ namespace OpenGLRasterMeshTest {
     for (const auto& vertex : mesh.vertices()) {
       EXPECT_FLOAT_EQ(0.25f, vertex.a);
       EXPECT_FLOAT_EQ(0.25f, vertex.alphaScale);
+    }
+  }
+
+  TEST(OpenGLRasterMesh, CarriesAmbientAndDirectLightingFactor) {
+    auto scene = std::make_shared<render::Scene>(Colord(0.25, 0.5, 0.75));
+    scene->addLight(
+      std::make_shared<render::DirectionalLight>(Vector3d(0, 0, 1), Colord(0.5, 0.25, 0.0)));
+    auto triangle = std::make_shared<render::Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0),
+                                                       Vector3d(0, 1, 0));
+    triangle->setMaterial(matte(Colord::red()));
+    scene->add(triangle);
+    std::atomic<bool> cancelled{false};
+
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+                                              Rasterizer::CullMode::Both, false, cancelled)
+                        .build();
+
+    ASSERT_FALSE(mesh.empty());
+    ASSERT_EQ(3u, mesh.vertices().size());
+    for (const auto& vertex : mesh.vertices()) {
+      EXPECT_FLOAT_EQ(0.75f, vertex.lightR);
+      EXPECT_FLOAT_EQ(0.75f, vertex.lightG);
+      EXPECT_FLOAT_EQ(0.75f, vertex.lightB);
     }
   }
 

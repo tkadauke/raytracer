@@ -204,6 +204,10 @@ Tasks:
 - ~~Render into an FBO color attachment and depth attachment.~~ ✅ **Done.**
   The backend clears the offscreen framebuffer, depth-tests triangles, and
   draws material-albedo color.
+- ~~Apply ambient and direct diffuse lighting for the initial mesh path.~~ ✅
+  **Done.** OpenGL raster mesh vertices now carry the same scene ambient term
+  and per-light diffuse factor used by the CPU raster material path, leaving
+  shadows and specular for later slices.
 - ~~Read back color for final output~~ ✅ **Done.** Color readback now fills
   the render target.
 - ~~Read back depth for the raster depth AOV path.~~ ✅ **Done.** The OpenGL

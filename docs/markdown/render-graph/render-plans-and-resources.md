@@ -583,7 +583,7 @@ backend in graph state. In rendercli, that explicit selection starts a
 GUI-capable Qt application and requests Qt's offscreen platform by default; in
 Modeler, the existing GUI application owns that bootstrap. The OpenGL executor
 then creates an offscreen context and depth/stencil framebuffer when the host
-platform supports it, renders the initial material-albedo mesh pass, and reads
+platform supports it, renders the initial lit mesh pass, and reads
 color back into the graph resource; unsupported hosts still fail with an
 explicit capability error. Raster AOV producer passes use the same state
 object, so `--render_graph_view depth`,
