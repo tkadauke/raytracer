@@ -216,6 +216,35 @@ else()
                   "" "${opengl_depth_result}" "${opengl_depth_stdout}" "${opengl_depth_stderr}")
 endif()
 
+set(opengl_stencil_render "${TEST_OUTPUT_DIR}/raster-opengl-stencil.png")
+execute_process(
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
+    --render_graph_view stencil
+    "${matte_scene}" "${opengl_stencil_render}"
+  RESULT_VARIABLE opengl_stencil_result
+  OUTPUT_VARIABLE opengl_stencil_stdout
+  ERROR_VARIABLE opengl_stencil_stderr
+)
+if(opengl_stencil_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_stencil_render}" 16 12
+                                    NAME "rendercli --raster_backend gpu stencil dimensions")
+  rendercli_assert_image_nonempty("${opengl_stencil_render}"
+                                  NAME "rendercli --raster_backend gpu stencil pixels")
+elseif(opengl_stencil_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_stencil_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu stencil application bootstrap"
+                    "OpenGL stencil AOV still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_stencil_result}" "${opengl_stencil_stdout}"
+                    "${opengl_stencil_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu stencil AOV"
+                  "OpenGL stencil AOV neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_stencil_result}" "${opengl_stencil_stdout}"
+                  "${opengl_stencil_stderr}")
+endif()
+
 rendercli_run(
   NAME "rendercli --lod 0 renders curved raster scene"
   COMMAND

@@ -204,6 +204,19 @@ namespace engine::raster {
       readBoundDepthTo(target, *framebuffer);
     }
 
+    void copyStencilTo(Buffer<std::uint8_t>& target) const {
+      if (!framebuffer || target.width() <= 0 || target.height() <= 0) {
+        return;
+      }
+
+      if (framebuffer->format().samples() > 0) {
+        copyResolvedStencilTo(target);
+        return;
+      }
+
+      readBoundStencilTo(target, *framebuffer);
+    }
+
     void copyResolvedDepthTo(Buffer<double>& target) const {
       if (!QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
         throw std::runtime_error(
@@ -223,6 +236,28 @@ namespace engine::raster {
                                                 GL_DEPTH_BUFFER_BIT, GL_NEAREST);
       resolved.bind();
       readBoundDepthTo(target, resolved);
+      framebuffer->bind();
+    }
+
+    void copyResolvedStencilTo(Buffer<std::uint8_t>& target) const {
+      if (!QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
+        throw std::runtime_error(
+          "OpenGL raster backend cannot read multisample stencil without framebuffer blit support");
+      }
+
+      QOpenGLFramebufferObjectFormat resolveFormat;
+      resolveFormat.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+      QOpenGLFramebufferObject resolved(framebuffer->width(), framebuffer->height(), resolveFormat);
+      if (!resolved.isValid()) {
+        throw std::runtime_error(
+          "OpenGL raster backend could not create a stencil resolve framebuffer");
+      }
+
+      const QRect rect(0, 0, framebuffer->width(), framebuffer->height());
+      QOpenGLFramebufferObject::blitFramebuffer(&resolved, rect, framebuffer.get(), rect,
+                                                GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+      resolved.bind();
+      readBoundStencilTo(target, resolved);
       framebuffer->bind();
     }
 
@@ -251,6 +286,23 @@ namespace engine::raster {
         return std::numeric_limits<double>::infinity();
       }
       return clampedDepth / (1.0 - clampedDepth);
+    }
+
+    void readBoundStencilTo(Buffer<std::uint8_t>& target,
+                            const QOpenGLFramebufferObject& source) const {
+      const int width = std::min(target.width(), source.width());
+      const int height = std::min(target.height(), source.height());
+      std::vector<GLubyte> pixels(static_cast<std::size_t>(width * height), 0);
+      QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
+      functions->glReadPixels(0, 0, width, height, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE,
+                              pixels.data());
+
+      for (int y = 0; y != height; ++y) {
+        const int sourceY = height - 1 - y;
+        for (int x = 0; x != width; ++x) {
+          target[y][x] = pixels[static_cast<std::size_t>(sourceY * width + x)];
+        }
+      }
     }
 
     void destroyResources() {
@@ -333,6 +385,10 @@ namespace engine::raster {
 
   void OpenGLOffscreenContext::copyDepthTo(Buffer<double>& target) const {
     p->copyDepthTo(target);
+  }
+
+  void OpenGLOffscreenContext::copyStencilTo(Buffer<std::uint8_t>& target) const {
+    p->copyStencilTo(target);
   }
 
   bool OpenGLOffscreenContext::isValid() const {

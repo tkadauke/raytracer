@@ -2,6 +2,7 @@
 
 #include "core/Color.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -50,6 +51,7 @@ namespace engine::raster {
     void releaseFramebuffer();
     void copyColorTo(Buffer<Colord>& target) const;
     void copyDepthTo(Buffer<double>& target) const;
+    void copyStencilTo(Buffer<std::uint8_t>& target) const;
     bool isValid() const;
     const std::string& errorMessage() const;
     std::string detailText() const;

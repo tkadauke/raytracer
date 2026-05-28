@@ -67,6 +67,15 @@ namespace OpenGLRasterizerTest {
     rasterizer.setBlendConstant(Colord(0.1, 0.2, 0.3), 0.4);
     rasterizer.setAlphaTestEnabled(true);
     rasterizer.setAlphaFunc(engine::raster::Rasterizer::AlphaFunc::Greater, 0.6);
+    rasterizer.setStencilTestEnabled(true);
+    rasterizer.setStencilFunc(engine::raster::Rasterizer::StencilFunc::Equal, 7, 0x0f);
+    rasterizer.setStencilClearValue(3);
+    rasterizer.setStencilLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Clear);
+    rasterizer.setStencilStoreOp(engine::raster::Rasterizer::AttachmentStoreOp::Discard);
+    rasterizer.setStencilWriteMask(0xf0);
+    rasterizer.setStencilOps(engine::raster::Rasterizer::StencilOp::Replace,
+                             engine::raster::Rasterizer::StencilOp::IncrementClamp,
+                             engine::raster::Rasterizer::StencilOp::Invert);
 
     auto clone =
       std::dynamic_pointer_cast<engine::raster::OpenGLRasterizer>(rasterizer.cloneForRender());
@@ -92,6 +101,17 @@ namespace OpenGLRasterizerTest {
     EXPECT_TRUE(clone->alphaTestEnabled());
     EXPECT_EQ(engine::raster::Rasterizer::AlphaFunc::Greater, clone->alphaFunc());
     EXPECT_EQ(0.6, clone->alphaReference());
+    EXPECT_TRUE(clone->stencilTestEnabled());
+    EXPECT_EQ(engine::raster::Rasterizer::StencilFunc::Equal, clone->stencilFunc());
+    EXPECT_EQ(7, clone->stencilReference());
+    EXPECT_EQ(0x0f, clone->stencilMask());
+    EXPECT_EQ(3, clone->stencilClearValue());
+    EXPECT_EQ(engine::raster::Rasterizer::AttachmentLoadOp::Clear, clone->stencilLoadOp());
+    EXPECT_EQ(engine::raster::Rasterizer::AttachmentStoreOp::Discard, clone->stencilStoreOp());
+    EXPECT_EQ(0xf0, clone->stencilWriteMask());
+    EXPECT_EQ(engine::raster::Rasterizer::StencilOp::Replace, clone->stencilFailOp());
+    EXPECT_EQ(engine::raster::Rasterizer::StencilOp::IncrementClamp, clone->stencilDepthFailOp());
+    EXPECT_EQ(engine::raster::Rasterizer::StencilOp::Invert, clone->stencilPassOp());
   }
 
   TEST(OpenGLRasterizer, ClampsMSAASamplesToSupportedCounts) {

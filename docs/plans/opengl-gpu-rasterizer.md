@@ -263,7 +263,12 @@ Tasks:
 - ~~Add fixed-function alpha-test support.~~ ✅ **Done.** OpenGL raster draw
   calls now carry material alpha into the vertex stream and discard fragments
   through graph-derived alpha-test enable/function/reference state.
-- Add stencil support where it maps cleanly to OpenGL state.
+- ~~Add stencil AOV support where it maps cleanly to OpenGL state.~~ ✅
+  **Done.** OpenGL raster draw calls now apply the stencil state used by the
+  graph stencil AOV pass and read the stencil attachment back into the
+  graph-visible CPU resource.
+- Add generalized stencil pass state once high-level render intents need
+  explicit stencil tests beyond diagnostic/AOV generation.
 - Add object/material ID output with integer attachments or a fallback path.
 - Add shadow-map pass support only after graph shadow state is fully explicit.
 

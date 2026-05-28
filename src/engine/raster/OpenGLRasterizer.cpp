@@ -18,14 +18,17 @@ namespace engine::raster {
   namespace {
     class OpenGLRasterDrawPass {
     public:
-      OpenGLRasterDrawPass(OpenGLOffscreenContext& context, int height, const Recti& viewportRect,
-                           bool scissorEnabled, const Recti& scissorRect,
-                           std::uint8_t colorWriteMask, bool blendingEnabled,
-                           Rasterizer::BlendFactor sourceBlendFactor,
-                           Rasterizer::BlendFactor destinationBlendFactor,
-                           Rasterizer::BlendOp blendOp, const Colord& blendConstantColor,
-                           double blendConstantAlpha, bool alphaTestEnabled,
-                           Rasterizer::AlphaFunc alphaFunc, double alphaReference)
+      OpenGLRasterDrawPass(
+        OpenGLOffscreenContext& context, int height, const Recti& viewportRect, bool scissorEnabled,
+        const Recti& scissorRect, std::uint8_t colorWriteMask, bool blendingEnabled,
+        Rasterizer::BlendFactor sourceBlendFactor, Rasterizer::BlendFactor destinationBlendFactor,
+        Rasterizer::BlendOp blendOp, const Colord& blendConstantColor, double blendConstantAlpha,
+        bool alphaTestEnabled, Rasterizer::AlphaFunc alphaFunc, double alphaReference,
+        bool stencilTestEnabled, Rasterizer::StencilFunc stencilFunc, std::uint8_t stencilReference,
+        std::uint8_t stencilMask, std::uint8_t stencilClearValue,
+        Rasterizer::AttachmentLoadOp stencilLoadOp, Rasterizer::AttachmentStoreOp stencilStoreOp,
+        std::uint8_t stencilWriteMask, Rasterizer::StencilOp stencilFailOp,
+        Rasterizer::StencilOp stencilDepthFailOp, Rasterizer::StencilOp stencilPassOp)
           : m_context(context),
             m_height(height),
             m_viewportRect(viewportRect),
@@ -40,11 +43,23 @@ namespace engine::raster {
             m_blendConstantAlpha(blendConstantAlpha),
             m_alphaTestEnabled(alphaTestEnabled),
             m_alphaFunc(alphaFunc),
-            m_alphaReference(alphaReference) {
+            m_alphaReference(alphaReference),
+            m_stencilTestEnabled(stencilTestEnabled),
+            m_stencilFunc(stencilFunc),
+            m_stencilReference(stencilReference),
+            m_stencilMask(stencilMask),
+            m_stencilClearValue(stencilClearValue),
+            m_stencilLoadOp(stencilLoadOp),
+            m_stencilStoreOp(stencilStoreOp),
+            m_stencilWriteMask(stencilWriteMask),
+            m_stencilFailOp(stencilFailOp),
+            m_stencilDepthFailOp(stencilDepthFailOp),
+            m_stencilPassOp(stencilPassOp) {
       }
 
       void render(const detail::OpenGLRasterMesh& mesh, const Colord& background,
-                  Buffer<Colord>& target, Buffer<double>* depthTarget) {
+                  Buffer<Colord>& target, Buffer<double>* depthTarget,
+                  Buffer<std::uint8_t>* stencilTarget) {
         if (!m_context.makeCurrent()) {
           throw std::runtime_error(m_context.errorMessage());
         }
@@ -58,6 +73,9 @@ namespace engine::raster {
           m_context.copyColorTo(target);
           if (depthTarget) {
             m_context.copyDepthTo(*depthTarget);
+          }
+          if (stencilTarget && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store) {
+            m_context.copyStencilTo(*stencilTarget);
           }
           m_context.releaseFramebuffer();
           m_context.doneCurrent();
@@ -79,14 +97,16 @@ namespace engine::raster {
         functions->glClearColor(static_cast<GLfloat>(std::clamp(background.r(), 0.0, 1.0)),
                                 static_cast<GLfloat>(std::clamp(background.g(), 0.0, 1.0)),
                                 static_cast<GLfloat>(std::clamp(background.b(), 0.0, 1.0)), 1.0f);
+        functions->glStencilMask(0xff);
+        functions->glClearStencil(m_stencilClearValue);
         functions->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         applyColorWriteMask(functions);
         applyBlending(functions);
+        applyStencil(functions);
 
         if (mesh.empty()) {
           functions->glFlush();
-          functions->glDisable(GL_BLEND);
-          functions->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+          resetFixedFunctionState(functions);
           return;
         }
 
@@ -176,9 +196,7 @@ namespace engine::raster {
                                   GL_UNSIGNED_INT, nullptr);
         functions->glFlush();
 
-        functions->glDisable(GL_SCISSOR_TEST);
-        functions->glDisable(GL_BLEND);
-        functions->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        resetFixedFunctionState(functions);
 
         program.disableAttributeArray(colorLocation);
         program.disableAttributeArray(positionLocation);
@@ -223,6 +241,33 @@ namespace engine::raster {
         functions->glBlendFunc(glBlendFactor(m_sourceBlendFactor),
                                glBlendFactor(m_destinationBlendFactor));
         functions->glBlendEquation(glBlendOp(m_blendOp));
+      }
+
+      void applyStencil(QOpenGLFunctions* functions) const {
+        if (!m_stencilTestEnabled) {
+          functions->glDisable(GL_STENCIL_TEST);
+          functions->glStencilMask(0xff);
+          return;
+        }
+
+        if (m_stencilLoadOp == Rasterizer::AttachmentLoadOp::Load) {
+          throw std::runtime_error(
+            "OpenGL raster backend does not support stencil attachment load yet");
+        }
+
+        functions->glEnable(GL_STENCIL_TEST);
+        functions->glStencilFunc(glStencilFunc(m_stencilFunc), m_stencilReference, m_stencilMask);
+        functions->glStencilMask(m_stencilWriteMask);
+        functions->glStencilOp(glStencilOp(m_stencilFailOp), glStencilOp(m_stencilDepthFailOp),
+                               glStencilOp(m_stencilPassOp));
+      }
+
+      void resetFixedFunctionState(QOpenGLFunctions* functions) const {
+        functions->glDisable(GL_SCISSOR_TEST);
+        functions->glDisable(GL_BLEND);
+        functions->glDisable(GL_STENCIL_TEST);
+        functions->glStencilMask(0xff);
+        functions->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
       }
 
       static GLenum glBlendFactor(Rasterizer::BlendFactor factor) {
@@ -271,6 +316,46 @@ namespace engine::raster {
         return GL_FUNC_ADD;
       }
 
+      static GLenum glStencilFunc(Rasterizer::StencilFunc func) {
+        switch (func) {
+        case Rasterizer::StencilFunc::Never:
+          return GL_NEVER;
+        case Rasterizer::StencilFunc::Less:
+          return GL_LESS;
+        case Rasterizer::StencilFunc::Equal:
+          return GL_EQUAL;
+        case Rasterizer::StencilFunc::LessEqual:
+          return GL_LEQUAL;
+        case Rasterizer::StencilFunc::Greater:
+          return GL_GREATER;
+        case Rasterizer::StencilFunc::GreaterEqual:
+          return GL_GEQUAL;
+        case Rasterizer::StencilFunc::NotEqual:
+          return GL_NOTEQUAL;
+        case Rasterizer::StencilFunc::Always:
+          return GL_ALWAYS;
+        }
+        return GL_ALWAYS;
+      }
+
+      static GLenum glStencilOp(Rasterizer::StencilOp op) {
+        switch (op) {
+        case Rasterizer::StencilOp::Keep:
+          return GL_KEEP;
+        case Rasterizer::StencilOp::Zero:
+          return GL_ZERO;
+        case Rasterizer::StencilOp::Replace:
+          return GL_REPLACE;
+        case Rasterizer::StencilOp::IncrementClamp:
+          return GL_INCR;
+        case Rasterizer::StencilOp::DecrementClamp:
+          return GL_DECR;
+        case Rasterizer::StencilOp::Invert:
+          return GL_INVERT;
+        }
+        return GL_KEEP;
+      }
+
       OpenGLOffscreenContext& m_context;
       int m_height;
       Recti m_viewportRect;
@@ -286,6 +371,17 @@ namespace engine::raster {
       bool m_alphaTestEnabled;
       Rasterizer::AlphaFunc m_alphaFunc;
       double m_alphaReference;
+      bool m_stencilTestEnabled;
+      Rasterizer::StencilFunc m_stencilFunc;
+      std::uint8_t m_stencilReference;
+      std::uint8_t m_stencilMask;
+      std::uint8_t m_stencilClearValue;
+      Rasterizer::AttachmentLoadOp m_stencilLoadOp;
+      Rasterizer::AttachmentStoreOp m_stencilStoreOp;
+      std::uint8_t m_stencilWriteMask;
+      Rasterizer::StencilOp m_stencilFailOp;
+      Rasterizer::StencilOp m_stencilDepthFailOp;
+      Rasterizer::StencilOp m_stencilPassOp;
     };
   }
 
@@ -330,6 +426,13 @@ namespace engine::raster {
     clone->setBlendConstant(m_blendConstantColor, m_blendConstantAlpha);
     clone->setAlphaTestEnabled(m_alphaTestEnabled);
     clone->setAlphaFunc(m_alphaFunc, m_alphaReference);
+    clone->setStencilTestEnabled(m_stencilTestEnabled);
+    clone->setStencilFunc(m_stencilFunc, m_stencilReference, m_stencilMask);
+    clone->setStencilClearValue(m_stencilClearValue);
+    clone->setStencilLoadOp(m_stencilLoadOp);
+    clone->setStencilStoreOp(m_stencilStoreOp);
+    clone->setStencilWriteMask(m_stencilWriteMask);
+    clone->setStencilOps(m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp);
     if (m_cancelled.load()) {
       clone->cancel();
     }
@@ -341,12 +444,17 @@ namespace engine::raster {
   }
 
   void OpenGLRasterizer::render(Buffer<Colord>& buffer) {
-    renderOpenGL(buffer, nullptr);
+    renderOpenGL(buffer, nullptr, nullptr);
   }
 
   void OpenGLRasterizer::renderDepth(Buffer<double>& buffer) {
     Buffer<Colord> scratch(buffer.width(), buffer.height());
-    renderOpenGL(scratch, &buffer);
+    renderOpenGL(scratch, &buffer, nullptr);
+  }
+
+  void OpenGLRasterizer::renderStencil(Buffer<std::uint8_t>& buffer) {
+    Buffer<Colord> scratch(buffer.width(), buffer.height());
+    renderOpenGL(scratch, nullptr, &buffer);
   }
 
   void OpenGLRasterizer::cancel() {
@@ -514,6 +622,85 @@ namespace engine::raster {
     m_alphaReference = std::isfinite(reference) ? std::clamp(reference, 0.0, 1.0) : 0.0;
   }
 
+  bool OpenGLRasterizer::stencilTestEnabled() const {
+    return m_stencilTestEnabled;
+  }
+
+  void OpenGLRasterizer::setStencilTestEnabled(bool enabled) {
+    m_stencilTestEnabled = enabled;
+  }
+
+  Rasterizer::StencilFunc OpenGLRasterizer::stencilFunc() const {
+    return m_stencilFunc;
+  }
+
+  std::uint8_t OpenGLRasterizer::stencilReference() const {
+    return m_stencilReference;
+  }
+
+  std::uint8_t OpenGLRasterizer::stencilMask() const {
+    return m_stencilMask;
+  }
+
+  void OpenGLRasterizer::setStencilFunc(Rasterizer::StencilFunc func, std::uint8_t reference,
+                                        std::uint8_t mask) {
+    m_stencilFunc = func;
+    m_stencilReference = reference;
+    m_stencilMask = mask;
+  }
+
+  std::uint8_t OpenGLRasterizer::stencilClearValue() const {
+    return m_stencilClearValue;
+  }
+
+  void OpenGLRasterizer::setStencilClearValue(std::uint8_t value) {
+    m_stencilClearValue = value;
+  }
+
+  Rasterizer::AttachmentLoadOp OpenGLRasterizer::stencilLoadOp() const {
+    return m_stencilLoadOp;
+  }
+
+  void OpenGLRasterizer::setStencilLoadOp(Rasterizer::AttachmentLoadOp op) {
+    m_stencilLoadOp = op;
+  }
+
+  Rasterizer::AttachmentStoreOp OpenGLRasterizer::stencilStoreOp() const {
+    return m_stencilStoreOp;
+  }
+
+  void OpenGLRasterizer::setStencilStoreOp(Rasterizer::AttachmentStoreOp op) {
+    m_stencilStoreOp = op;
+  }
+
+  std::uint8_t OpenGLRasterizer::stencilWriteMask() const {
+    return m_stencilWriteMask;
+  }
+
+  void OpenGLRasterizer::setStencilWriteMask(std::uint8_t mask) {
+    m_stencilWriteMask = mask;
+  }
+
+  Rasterizer::StencilOp OpenGLRasterizer::stencilFailOp() const {
+    return m_stencilFailOp;
+  }
+
+  Rasterizer::StencilOp OpenGLRasterizer::stencilDepthFailOp() const {
+    return m_stencilDepthFailOp;
+  }
+
+  Rasterizer::StencilOp OpenGLRasterizer::stencilPassOp() const {
+    return m_stencilPassOp;
+  }
+
+  void OpenGLRasterizer::setStencilOps(Rasterizer::StencilOp stencilFail,
+                                       Rasterizer::StencilOp depthFail,
+                                       Rasterizer::StencilOp pass) {
+    m_stencilFailOp = stencilFail;
+    m_stencilDepthFailOp = depthFail;
+    m_stencilPassOp = pass;
+  }
+
   bool OpenGLRasterizer::isAvailable() const {
     return OpenGLOffscreenContext::probe().available();
   }
@@ -538,7 +725,8 @@ namespace engine::raster {
     return Recti(width, height);
   }
 
-  void OpenGLRasterizer::renderOpenGL(Buffer<Colord>& buffer, Buffer<double>* depthTarget) const {
+  void OpenGLRasterizer::renderOpenGL(Buffer<Colord>& buffer, Buffer<double>* depthTarget,
+                                      Buffer<std::uint8_t>* stencilTarget) const {
     OpenGLOffscreenContext context;
     if (!context.create(buffer.width(), buffer.height(), m_msaaSamples)) {
       throw std::runtime_error(context.errorMessage());
@@ -555,7 +743,10 @@ namespace engine::raster {
     OpenGLRasterDrawPass(context, buffer.height(), viewport, m_scissorTestEnabled, m_scissorRect,
                          m_colorWriteMask, m_blendingEnabled, m_sourceBlendFactor,
                          m_destinationBlendFactor, m_blendOp, m_blendConstantColor,
-                         m_blendConstantAlpha, m_alphaTestEnabled, m_alphaFunc, m_alphaReference)
-      .render(mesh, backgroundColor(), buffer, depthTarget);
+                         m_blendConstantAlpha, m_alphaTestEnabled, m_alphaFunc, m_alphaReference,
+                         m_stencilTestEnabled, m_stencilFunc, m_stencilReference, m_stencilMask,
+                         m_stencilClearValue, m_stencilLoadOp, m_stencilStoreOp, m_stencilWriteMask,
+                         m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp)
+      .render(mesh, backgroundColor(), buffer, depthTarget, stencilTarget);
   }
 }

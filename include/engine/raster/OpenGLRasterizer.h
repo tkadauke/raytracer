@@ -30,6 +30,7 @@ namespace engine::raster {
     void render(Buffer<unsigned int>& buffer) override;
     void render(Buffer<Colord>& buffer) override;
     void renderDepth(Buffer<double>& buffer);
+    void renderStencil(Buffer<std::uint8_t>& buffer);
     void cancel() override;
     void uncancel() override;
 
@@ -76,13 +77,35 @@ namespace engine::raster {
     double alphaReference() const;
     void setAlphaFunc(Rasterizer::AlphaFunc func, double reference);
 
+    bool stencilTestEnabled() const;
+    void setStencilTestEnabled(bool enabled);
+    Rasterizer::StencilFunc stencilFunc() const;
+    std::uint8_t stencilReference() const;
+    std::uint8_t stencilMask() const;
+    void setStencilFunc(Rasterizer::StencilFunc func, std::uint8_t reference,
+                        std::uint8_t mask = 0xff);
+    std::uint8_t stencilClearValue() const;
+    void setStencilClearValue(std::uint8_t value);
+    Rasterizer::AttachmentLoadOp stencilLoadOp() const;
+    void setStencilLoadOp(Rasterizer::AttachmentLoadOp op);
+    Rasterizer::AttachmentStoreOp stencilStoreOp() const;
+    void setStencilStoreOp(Rasterizer::AttachmentStoreOp op);
+    std::uint8_t stencilWriteMask() const;
+    void setStencilWriteMask(std::uint8_t mask);
+    Rasterizer::StencilOp stencilFailOp() const;
+    Rasterizer::StencilOp stencilDepthFailOp() const;
+    Rasterizer::StencilOp stencilPassOp() const;
+    void setStencilOps(Rasterizer::StencilOp stencilFail, Rasterizer::StencilOp depthFail,
+                       Rasterizer::StencilOp pass);
+
     bool isAvailable() const;
     std::string availabilityDetail() const;
     std::string availabilityError() const;
 
   private:
     Recti viewportRectFor(int width, int height) const;
-    void renderOpenGL(Buffer<Colord>& buffer, Buffer<double>* depthTarget) const;
+    void renderOpenGL(Buffer<Colord>& buffer, Buffer<double>* depthTarget,
+                      Buffer<std::uint8_t>* stencilTarget) const;
 
     std::atomic<bool> m_cancelled{false};
     int m_lod{0};
@@ -103,5 +126,16 @@ namespace engine::raster {
     bool m_alphaTestEnabled{false};
     Rasterizer::AlphaFunc m_alphaFunc{Rasterizer::AlphaFunc::Always};
     double m_alphaReference{0.0};
+    bool m_stencilTestEnabled{false};
+    Rasterizer::StencilFunc m_stencilFunc{Rasterizer::StencilFunc::Always};
+    std::uint8_t m_stencilReference{0};
+    std::uint8_t m_stencilMask{0xff};
+    std::uint8_t m_stencilClearValue{0};
+    Rasterizer::AttachmentLoadOp m_stencilLoadOp{Rasterizer::AttachmentLoadOp::Clear};
+    Rasterizer::AttachmentStoreOp m_stencilStoreOp{Rasterizer::AttachmentStoreOp::Store};
+    std::uint8_t m_stencilWriteMask{0xff};
+    Rasterizer::StencilOp m_stencilFailOp{Rasterizer::StencilOp::Keep};
+    Rasterizer::StencilOp m_stencilDepthFailOp{Rasterizer::StencilOp::Keep};
+    Rasterizer::StencilOp m_stencilPassOp{Rasterizer::StencilOp::Keep};
   };
 }
