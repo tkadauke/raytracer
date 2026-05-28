@@ -23,9 +23,9 @@ namespace render {
     *
     *  - `background()` is returned for primary rays that miss every
     *    primitive *and* for recursive rays that bottom out at the
-    *    `Raytracer::setMaximumRecursionDepth(N)` limit. The latter
-    *    is a deliberate softening — see `Raytracer::rayColor` for
-    *    why background, not black.
+    *    `WhittedIntegrator` recursion limit. The latter is a deliberate
+    *    softening — see `WhittedIntegrator::radiance` for why background,
+    *    not black.
     *  - `ambient()` is the constant illumination available to every
     *    surface without ray-traced visibility (no shadow ray);
     *    materials multiply it by their own ambient coefficient.

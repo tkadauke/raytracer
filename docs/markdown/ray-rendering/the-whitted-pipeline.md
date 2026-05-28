@@ -20,8 +20,8 @@ By the end you should know:
 - which file in the codebase owns each step,
 - the `RenderEngine` / `Raytracer` split and why the abstraction
   exists,
-- where the single-ray `Integrator` contract sits between the
-  frame-rendering engine and recursive material callbacks,
+- where `WhittedIntegrator` sits between the frame-rendering engine
+  and recursive material callbacks,
 - the recursive structure that gives [Whitted](../appendix/a-glossary.md#w) its name, and the
   reason the recursion has a depth cap.
 
@@ -84,8 +84,8 @@ It helps to enumerate the steps with the file that owns each one.
    transparent material does the same with the refraction
    direction. The recursive call may go several levels deep before
    bottoming out.
-   - Owner: same materials as step 3, plus the
-     `Raytracer::rayColor` entry point.
+   - Owner: same materials as step 3, plus
+     [`render::WhittedIntegrator`](../../../include/render/WhittedIntegrator.h).
 6. **Anti-aliasing accumulation.** When the camera's view plane
    has a sampler with more than one sample per pixel, the steps
    above run multiple times per pixel — once per subpixel sample —
@@ -184,30 +184,32 @@ Whitted's name comes from and is also the only step with a real
 recursive structure. The other six steps run once per pixel; this
 one calls itself.
 
-The implementation is short. From
-[`src/engine/raytracer/Raytracer.cpp`](../../../src/engine/raytracer/Raytracer.cpp):
+The implementation is short. `Raytracer::rayColor` delegates to
+the concrete Whitted integrator; from
+[`src/render/WhittedIntegrator.cpp`](../../../src/render/WhittedIntegrator.cpp):
 
 ```cpp
-// src/engine/raytracer/Raytracer.cpp:144
-Colord Raytracer::rayColor(const Rayd& ray, render::State& state) const {
+// src/render/WhittedIntegrator.cpp
+Colord WhittedIntegrator::radiance(const Scene& scene, const Rayd& ray, State& state,
+                                   const RayCaster& recursiveRayCaster) const {
   state.recurseIn();
   ScopeExit sx([&] { state.recurseOut(); });
 
-  if (state.recursionDepth == p->maximumRecursionDepth) {
-    return m_scene->background();
+  if (state.recursionDepth == m_maximumRecursionDepth) {
+    return scene.background();
   }
 
   HitPointInterval hitPoints;
-  auto primitive = m_scene->intersect(ray, hitPoints, state);
+  auto primitive = scene.intersect(ray, hitPoints, state);
   if (primitive) {
     auto hitPoint = hitPoints.minWithPositiveDistance();
     if (primitive->material()) {
-      return primitive->material()->shade(this, *m_scene, ray, hitPoint, state);
+      return primitive->material()->shade(&recursiveRayCaster, scene, ray, hitPoint, state);
     } else {
       return Colord::black();
     }
   } else {
-    return m_scene->background();
+    return scene.background();
   }
 }
 ```
@@ -279,10 +281,10 @@ for each pixel (x, y) in the view plane's iteration order:
    for each subpixel sample s of the sampler:
       Rayd primaryRay = camera->rayForPixel(x, y, s);
       State state;
-      Colord pixel = raytracer->rayColor(primaryRay, state);
+      Colord pixel = integrator.radiance(scene, primaryRay, state, raytracer);
       buffer[y][x] += pixel / sampleCount;     // accumulate
       │
-      │       (rayColor recurses on secondary rays as needed)
+      │       (radiance recurses through RayCaster as needed)
       ▼
 Buffer<Colord>          ← HDR float framebuffer, all pixels filled
       │
@@ -355,4 +357,6 @@ path-tracing engine, so "ray rendering" in this book means Whitted.
 - `include/render/State.h`
 - `include/render/RayCaster.h`
 - `include/render/Integrator.h`
+- `include/render/WhittedIntegrator.h`
+- `src/render/WhittedIntegrator.cpp`
 <!-- /source-anchors -->
