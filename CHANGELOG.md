@@ -32,6 +32,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `BVH`, and `Grid` now expose the shared add/setup/bounds/intersect contract
   explicitly without changing default scene construction for Epic #360. —
   GPT-5
+- **Selectable raytracer integrator.** `engine::raytracer::Raytracer` now owns
+  the selected `render::Integrator` polymorphically, defaults to
+  `WhittedIntegrator`, and delegates `rayColor` probes and render shading
+  through that configured policy for Epic #357. — GPT-5
 - **Integrator contract.** Runtime ray rendering now has a narrow
   `render::Integrator` interface documenting single-ray radiance evaluation
   over a scene, ray, mutable render state, and recursive `RayCaster` callback

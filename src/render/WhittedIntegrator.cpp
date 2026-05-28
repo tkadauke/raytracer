@@ -18,6 +18,12 @@ namespace render {
       : m_maximumRecursionDepth(10) {
   }
 
+  std::unique_ptr<Integrator> WhittedIntegrator::clone() const {
+    auto result = std::make_unique<WhittedIntegrator>();
+    result->setMaximumRecursionDepth(m_maximumRecursionDepth);
+    return result;
+  }
+
   Colord WhittedIntegrator::radiance(const Scene& scene, const Rayd& ray, State& state,
                                      const RayCaster& recursiveRayCaster) const {
     if (isCancelled()) {
@@ -28,7 +34,8 @@ namespace render {
     ScopeExit sx([&] { state.recurseOut(); });
 
     if (state.recursionDepth == m_maximumRecursionDepth) {
-      state.recordEvent(nullptr, "Raytracer: maximum recursion depth reached, returning background");
+      state.recordEvent(nullptr,
+                        "Raytracer: maximum recursion depth reached, returning background");
       return scene.background();
     }
 
