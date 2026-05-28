@@ -10,6 +10,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QLabel>
 #include <QSpinBox>
 #include <QThread>
 
@@ -192,6 +193,25 @@ namespace RenderSettingsWidgetTest {
     postAA->setCurrentText("TAA");
 
     EXPECT_EQ(QString("TAA"), widget.postProcessAA());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldAnnotateOpenGLRasterBackend) {
+    RenderSettingsWidget widget;
+    auto* engineType = widget.findChild<QComboBox*>("engineType");
+    auto* backend = widget.findChild<QComboBox*>("rasterBackend");
+    auto* status = widget.findChild<QLabel*>("rasterBackendStatus");
+    ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, backend);
+    ASSERT_NE(nullptr, status);
+
+    engineType->setCurrentText("Rasterizer");
+    EXPECT_TRUE(status->isHidden());
+
+    backend->setCurrentText("OpenGL");
+
+    EXPECT_FALSE(status->isHidden());
+    EXPECT_TRUE(status->wordWrap());
+    EXPECT_TRUE(status->text().contains(QStringLiteral("OpenGL raster backend")));
   }
 
   TEST_F(RenderSettingsWidgetTest, ShouldShowRasterControlsOnlyForRasterizer) {

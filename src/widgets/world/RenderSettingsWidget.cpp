@@ -1,3 +1,4 @@
+#include "engine/raster/OpenGLRasterizer.h"
 #include "render/samplers/SamplerFactory.h"
 #include "render/viewplanes/ViewPlaneFactory.h"
 #include "widgets/world/RenderSettingsWidget.h"
@@ -6,11 +7,28 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QLabel>
 #include <QSpinBox>
 #include <QThread>
 
 struct RenderSettingsWidget::Private {
   Ui::RenderSettingsWidget ui;
+  QLabel* rasterBackendStatus{nullptr};
+
+  bool openGLBackendSelected() const {
+    return ui.rasterBackend->currentText() == QStringLiteral("OpenGL");
+  }
+
+  void updateRasterBackendStatus(bool visible) {
+    if (!rasterBackendStatus) {
+      return;
+    }
+    rasterBackendStatus->setVisible(visible);
+    if (visible) {
+      rasterBackendStatus->setText(
+        QString::fromStdString(engine::raster::OpenGLRasterizer::statusMessage()));
+    }
+  }
 };
 
 RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
@@ -32,6 +50,14 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
 
   p->ui.viewPlaneType->setCurrentText("PointInterlacedViewPlane");
 
+  p->rasterBackendStatus = new QLabel(p->ui.wireframeFrame);
+  p->rasterBackendStatus->setObjectName(QStringLiteral("rasterBackendStatus"));
+  p->rasterBackendStatus->setWordWrap(true);
+  p->rasterBackendStatus->setTextInteractionFlags(Qt::TextSelectableByMouse);
+  p->rasterBackendStatus->setVisible(false);
+  p->ui.wireframeGridLayout->addWidget(p->rasterBackendStatus,
+                                       p->ui.wireframeGridLayout->rowCount(), 0, 1, 2);
+
   p->ui.renderThreads->setValue(QThread::idealThreadCount());
   p->ui.queueSize->setValue(QThread::idealThreadCount() * 8);
   p->ui.label_5->setVisible(false);
@@ -45,6 +71,8 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
   connect(p->ui.stopButton, SIGNAL(clicked()), this, SLOT(stop()));
   connect(p->ui.engineType, SIGNAL(currentTextChanged(const QString&)), this,
           SLOT(engineChanged()));
+  connect(p->ui.rasterBackend, SIGNAL(currentTextChanged(const QString&)), this,
+          SLOT(updateEngineControls()));
   connect(p->ui.rasterShadowMaps, SIGNAL(toggled(bool)), this, SLOT(updateEngineControls()));
   for (auto* comboBox : findChildren<QComboBox*>()) {
     connect(comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
@@ -211,6 +239,7 @@ void RenderSettingsWidget::updateEngineControls() {
   p->ui.rasterShadowFilterRadius->setVisible(showShadowDetails);
   p->ui.label_rasterShadowFilterMode->setVisible(showShadowDetails);
   p->ui.rasterShadowFilterMode->setVisible(showShadowDetails);
+  p->updateRasterBackendStatus(isRasterizer && p->openGLBackendSelected());
 }
 
 bool RenderSettingsWidget::showProgressIndicators() const {

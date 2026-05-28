@@ -49,6 +49,7 @@
 #include "engine/graph/RenderGraphRequest.h"
 #include "engine/graph/RenderPassState.h"
 #include "engine/raytracer/Raytracer.h"
+#include "engine/raster/OpenGLRasterizer.h"
 #include "engine/raster/RasterBackend.h"
 #include "render/tonemap/TonemapFactory.h"
 #include "render/viewplanes/ViewPlane.h"
@@ -990,7 +991,10 @@ void MainWindow::createActions() {
 
   p->previewRasterBackendOpenGLAct = new QAction(tr("&OpenGL"), this);
   p->previewRasterBackendOpenGLAct->setStatusTip(
-    tr("Use the OpenGL raster backend for live raster preview passes"));
+    tr("Use the experimental OpenGL raster backend for live raster preview passes; mesh drawing "
+       "is not implemented yet"));
+  p->previewRasterBackendOpenGLAct->setToolTip(
+    QString::fromStdString(engine::raster::OpenGLRasterizer::statusMessage()));
   p->previewRasterBackendOpenGLAct->setCheckable(true);
   connect(p->previewRasterBackendOpenGLAct, SIGNAL(triggered()), this,
           SLOT(setPreviewRasterBackendOpenGL()));

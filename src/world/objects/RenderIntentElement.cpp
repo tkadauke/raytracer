@@ -96,6 +96,14 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
   return Element::propertyDisplayName(propertyName);
 }
 
+QString RenderIntentElement::propertyDescription(const QString& propertyName) const {
+  if (propertyName == QStringLiteral("rasterizerBackend"))
+    return QStringLiteral(
+      "CPU is the reference software rasterizer. OpenGL is experimental: it records and probes "
+      "the graph-selected GPU backend, but the first mesh draw path is still incomplete.");
+  return Element::propertyDescription(propertyName);
+}
+
 QString RenderIntentElement::propertyGroup(const QString& propertyName) const {
   if (isRaytracerProperty(propertyName))
     return QStringLiteral("Raytracer");

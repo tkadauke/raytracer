@@ -46,6 +46,17 @@ namespace engine::raster {
     m_cancelled.store(false);
   }
 
+  std::string OpenGLRasterizer::statusMessage() {
+    const OpenGLAvailability availability = OpenGLOffscreenContext::probe();
+    if (!availability.available()) {
+      return availability.error();
+    }
+    return "OpenGL raster backend is selected and an offscreen context is available (" +
+           availability.detail() +
+           "), but mesh upload, shader execution, and readback are not implemented yet; use "
+           "--raster_backend cpu until the first GPU raster pass lands";
+  }
+
   bool OpenGLRasterizer::isAvailable() const {
     return OpenGLOffscreenContext::probe().available();
   }
@@ -55,14 +66,7 @@ namespace engine::raster {
   }
 
   std::string OpenGLRasterizer::availabilityError() const {
-    const OpenGLAvailability availability = OpenGLOffscreenContext::probe();
-    if (!availability.available()) {
-      return availability.error();
-    }
-    return "OpenGL raster backend is selected and an offscreen context is available (" +
-           availability.detail() +
-           "), but mesh upload, shader execution, and readback are not implemented yet; use "
-           "--raster_backend cpu until the first GPU raster pass lands";
+    return statusMessage();
   }
 
   void OpenGLRasterizer::throwRenderUnavailable(const Buffer<Colord>* buffer) const {

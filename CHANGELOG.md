@@ -73,6 +73,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   that backend, and defaults the command-line GPU path to Qt's offscreen
   platform while CPU/headless renders continue to use `QCoreApplication`. —
   GPT-5
+- **Modeler OpenGL raster backend status.** Modeler now annotates the
+  experimental OpenGL raster backend in Render Settings, final Render controls,
+  and the live preview menu with the shared capability or missing-draw-path
+  status instead of presenting it as equivalent to CPU raster. — GPT-5
 - **Modeler OpenGL raster backend selection.** Modeler Render Settings, the
   final Render window, and the live preview override menu now expose CPU/OpenGL
   raster backend selection and compile it into typed raster pass execution
@@ -772,6 +776,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   keep public construction and setter paths in SIMD storage before reducing
   lanes, avoiding union type-punning undefined behavior without leaving the hot
   path. — GPT-5
+- **OpenGL raster Cocoa probing.** The OpenGL raster backend now reports a
+  clear unavailable-backend error on Qt's Cocoa offscreen path instead of
+  entering the Qt context-creation path that can crash during probes. — GPT-5
 - **Direct group-root imports in rendercli.** Importers that return a grouped
   asset root now receive shared scene defaults and camera framing in direct
   rendercli/modeler opens, so STL, 3MF, and glTF group imports render without a

@@ -60,6 +60,15 @@ namespace engine::raster {
         return false;
       }
 
+#if defined(Q_OS_MACOS)
+      if (QGuiApplication::platformName() == QStringLiteral("cocoa")) {
+        errorMessage =
+          "OpenGL raster backend is selected, but Qt Cocoa offscreen OpenGL context creation is "
+          "disabled because this backend currently requires a safe offscreen platform probe";
+        return false;
+      }
+#endif
+
       QSurfaceFormat requested;
       requested.setRenderableType(QSurfaceFormat::OpenGL);
       requested.setProfile(QSurfaceFormat::CoreProfile);

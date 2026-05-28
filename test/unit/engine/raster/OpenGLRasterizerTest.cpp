@@ -30,4 +30,11 @@ namespace OpenGLRasterizerTest {
       EXPECT_NE(std::string(error.what()).find("OpenGL raster backend"), std::string::npos);
     }
   }
+
+  TEST(OpenGLRasterizer, ProvidesSharedStatusMessage) {
+    const std::string message = engine::raster::OpenGLRasterizer::statusMessage();
+
+    EXPECT_FALSE(message.empty());
+    EXPECT_NE(message.find("OpenGL raster backend"), std::string::npos);
+  }
 }

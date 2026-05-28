@@ -56,6 +56,7 @@ public:
   bool displayInSceneModel() const override;
   bool isPropertyVisible(const QString& propertyName) const override;
   QString propertyDisplayName(const QString& propertyName) const override;
+  QString propertyDescription(const QString& propertyName) const override;
   QString propertyGroup(const QString& propertyName) const override;
   QStringList propertyChoices(const QString& propertyName) const override;
   QList<int> propertyIntChoices(const QString& propertyName) const override;

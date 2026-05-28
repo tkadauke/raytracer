@@ -156,8 +156,13 @@ Tasks:
 - ~~Add Modeler UI to select GPU raster preview backend.~~ ✅ **Done.** The
   scene Render Settings property editor, final Render window, and preview
   override menu can all compile Rasterizer passes with the OpenGL backend.
-- Gate or annotate the Modeler OpenGL choice with the capability probe and
-  missing-draw-path status once the first draw path is close enough to exercise.
+- ~~Gate or annotate the Modeler OpenGL choice with the capability probe and
+  missing-draw-path status once the first draw path is close enough to exercise.~~ ✅
+  **Done.** The final Render window shows a backend-status row for OpenGL,
+  Render Settings explains that OpenGL is experimental, and the preview menu
+  exposes the same shared OpenGL raster status. The capability probe also
+  rejects Qt's Cocoa offscreen path before entering the context-creation call
+  that can crash on macOS.
 
 Acceptance:
 

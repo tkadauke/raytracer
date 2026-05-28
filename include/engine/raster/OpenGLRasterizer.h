@@ -27,6 +27,8 @@ namespace engine::raster {
     void cancel() override;
     void uncancel() override;
 
+    static std::string statusMessage();
+
     bool isAvailable() const;
     std::string availabilityDetail() const;
     std::string availabilityError() const;

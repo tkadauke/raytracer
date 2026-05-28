@@ -354,6 +354,15 @@ namespace PropertyEditorWidgetTest {
     EXPECT_NE(nullptr, editor.findChild<QGroupBox*>("propertyGroupRasterizer"));
   }
 
+  TEST_F(PropertyEditorWidgetTest, ShouldDescribeExperimentalRasterBackend) {
+    Scene root;
+    auto* settings = renderSettingsElement(root);
+    ASSERT_NE(nullptr, settings);
+
+    EXPECT_TRUE(settings->propertyDescription(QStringLiteral("rasterizerBackend"))
+                  .contains(QStringLiteral("OpenGL is experimental")));
+  }
+
   TEST_F(PropertyEditorWidgetTest, ShouldKeepRenderSettingsMinimumWidthCompact) {
     Scene root;
     auto* settings = renderSettingsElement(root);
