@@ -3,7 +3,7 @@
 **Date:** 2026-05-10
 
 Benchmark comparing four implementations of `Vector3<double>` to decide
-which resolution wins for Phase 2.3 of `docs/plans/core-math-optimization.md`.
+which resolution wins for Phase 2.3 of `docs/plans/complete/core-math-optimization.md`.
 
 ## Hardware / toolchain
 

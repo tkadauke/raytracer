@@ -1,5 +1,10 @@
 # Educational Widget Coverage Plan
 
+> **Status:** Complete and archived. The audit on 2026-05-28 confirmed every
+> listed widget exists under `scripts/docs/` and is embedded from the relevant
+> API or textbook documentation. Future widget ideas should start in a new
+> active plan rather than reopening this coverage checklist.
+
 This plan tracks documentation concepts that would benefit from interactive
 widgets or, rarely, static explanatory graphics. It complements the completed
 modernization plan in `docs/plans/complete/widgets.md` and the live

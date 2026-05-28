@@ -8,9 +8,9 @@
 > GPU offload. Captured 2026-05-10 from the conversation about
 > "compute one recursion at a time, stop when nothing changes."
 >
-> **Status:** Living document — design proposal, not yet committed.
-> Open questions need decisions before any implementation issue beyond
-> the throughput-cutoff prerequisite ([#133](https://github.com/tkadauke/raytracer/issues/133))
+> **Status:** Living document. Phase 1, the throughput-cutoff prerequisite,
+> has landed in the existing recursive engine; the wavefront sibling engine
+> itself is still unimplemented. Open questions need decisions before Phase 2
 > fans out.
 >
 > **Rule:** the wavefront engine is a **sibling** to the existing
@@ -122,7 +122,7 @@ inside the shading code; we'd just need to call them at the right
 seam.
 
 If wavefront grows enough to want SoA ray batches (Ray4/Ray8 per
-Phase 4 of `core-math-optimization.md`), the shared intersection
+Phase 4 of `complete/core-math-optimization.md`), the shared intersection
 routines may grow batched overloads. The existing AoS path stays for
 `Raytracer`.
 
@@ -285,7 +285,7 @@ Several options, in order of strictness:
 and catches the common case; the second guards against the long tail.
 
 The convergence threshold and active-pixel threshold both belong in
-`Constants.h` (per Phase 3.7 of `core-math-optimization.md`).
+`Constants.h` (per Phase 3.7 of `complete/core-math-optimization.md`).
 
 ---
 
@@ -366,11 +366,14 @@ Resolve open questions below. Pick convergence-detection scheme,
 tree-branching strategy, memory layout. Commit decisions to this doc.
 No code changes yet.
 
-### Phase 1 — throughput-based cutoff in the existing engine
+### ~~Phase 1 — throughput-based cutoff in the existing engine~~ ✅ **Done.**
 
 Tracked as [#133](https://github.com/tkadauke/raytracer/issues/133).
-Prerequisite for the wavefront engine because it validates the
-throughput-tracking arithmetic in a smaller, easier-to-debug context.
+`render::State::throughput` now propagates attenuation through reflective,
+transparent, and portal recursion, and `Raytracer::rayColor` returns the scene
+background when throughput falls below `RAYTRACER_THROUGHPUT_CUTOFF`. This
+validates the throughput-tracking arithmetic in a smaller, easier-to-debug
+context before the wavefront engine exists.
 
 ### Phase 2 — bare wavefront engine: same outputs as Raytracer
 
@@ -420,24 +423,26 @@ to 64spp without denoiser.
 
 ### Phase 6+ — SoA / GPU / packet traversal
 
-Future-work. Once the wavefront engine is stable and path-tracing
-semantics are locked in, the SoA / Ray4 / Ray8 work from
-`core-math-optimization.md` Phase 4 plugs in here as a performance
-optimization to the existing scheduler. GPU offload becomes
-architecturally tractable but is a major lift; not committed.
+Partially pre-landed. The SoA / Ray4 / Ray8 substrate from
+`complete/core-math-optimization.md` Phase 4 is already available: packet ray
+transport, primitive packet entry points, `BoundingBox::intersects4`, packet
+primitive kernels, and BVH Ray4/Ray8 active-mask traversal. Once the wavefront
+engine is stable and path-tracing semantics are locked in, this work plugs into
+the scheduler as a performance optimization. GPU offload remains a major lift;
+not committed.
 
 ---
 
 ## Interactions with other plans
 
-### `core-math-optimization.md`
+### `complete/core-math-optimization.md`
 
 - Phase 1.2 (SIMD `BoundingBox::intersects`) directly benefits the
   wavefront scheduler — every depth pass slams the BVH.
 - Phase 1.4 (HitPointInterval small-buffer) is even more valuable
   under wavefront, where intersection batches are explicit.
-- Phase 4 (SoA / batched ray ops, deferred) plugs in here naturally
-  in Phase 6.
+- Phase 4 (SoA / batched ray ops) has landed and plugs in here naturally in
+  Phase 6.
 
 ### `point-vector-normal-types.md`
 
@@ -546,9 +551,9 @@ starts.
 
 ## Working method
 
-1. Land Phase 1 (throughput cutoff,
+1. ~~Land Phase 1 (throughput cutoff,
    [#133](https://github.com/tkadauke/raytracer/issues/133)) first.
-   Validates the throughput arithmetic in a small surface.
+   Validates the throughput arithmetic in a small surface.~~ ✅ **Done.**
 2. Resolve open questions before Phase 2 starts.
 3. Phase 2 (bare wavefront) must produce byte-comparable output to
    `Raytracer` for the same maxDepth on the macro benchmark scenes.
@@ -559,6 +564,6 @@ starts.
    one; if a phase doesn't show that, regroup before continuing.
 5. Every PR updates `CHANGELOG.md` under `## Unreleased`.
 6. Every PR runs the full test suite end-to-end. The whole-render
-   macro benchmark must be reported per `core-math-optimization.md`'s
+   macro benchmark must be reported per `complete/core-math-optimization.md`'s
    "Rule." This plan is partly an architecture refactor and partly a
    performance optimization — both criteria apply.

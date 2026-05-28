@@ -40,20 +40,20 @@ This document is a roadmap, not a commitment, and there are no deadlines. Order 
 - **Templated math + SSE3 specializations** under `core/math/vector/sse3/` and `core/color/sse3/`. Production-grade. Low-touch.
 - **Constructive Solid Geometry** (`Composition`, `Union`, `Intersection`, `Difference`, `Instancing`) already works for implicit ray-traced primitives. Uncommon for a hobby project; reuse rather than rewrite.
 - **Tile-based parallel rendering** via `QThreadPool` already gives clean horizontal scaling within a host. Per-tile dispatch makes distributed rendering a small extension.
-- **Test discipline.** Unit + functional suites, LibFuzzer harness on the PLY parser, Google Benchmark on the SSE3 hot paths. CMake/Ninja, GitHub Actions CI, Doxygen pages, Dependabot, Dockerfile. Stronger engineering hygiene than most renderers.
+- **Test discipline.** Unit + functional suites, LibFuzzer harness on the PLY parser, Google Benchmark on hot paths, and Syrus-native build/test/textbook graders. CMake/Ninja, Doxygen pages, parked GitHub Actions/Dependabot configs, and Dockerfile coverage give stronger engineering hygiene than most renderers.
 - **Quartic intersector** for the torus is correct and numerically stable in the regimes tested.
 
 ### What needs reinforcement before features can stack
 
-- **`Buffer<unsigned int>` LDR pipeline.** Fine for Whitted; fatal for path tracing. PT needs a float accumulator, with tonemapping at the end.
-- **Whitted-only integrator hard-coded into `Raytracer::rayColor`.** No Monte Carlo integration. No Multiple Importance Sampling. No proper area-light shadow rays. No motion blur. The integrator and the engine are conflated.
+- ~~**`Buffer<unsigned int>` LDR pipeline.** Fine for Whitted; fatal for path tracing. PT needs a float accumulator, with tonemapping at the end.~~ ✅ **Done.** See §3.R1: engines can render into `Buffer<Colord>` and the LDR buffer is now a tonemapped display target.
+- **Whitted-only integrator hard-coded into `Raytracer::rayColor`.** No Monte Carlo integration, no Multiple Importance Sampling, and no proper area-light shadow rays. The renderer has velocity-based motion-blur sampling and a `RenderEngine` split, but recursive Whitted shading still owns the transport policy.
 - **Phong-only direct lighting, no Fresnel.** Reflection and transmission coefficients are scalar constants set on the material — physically wrong everywhere except at normal incidence. PT-class materials need Fresnel at every interface.
 - **No nested-medium tracking.** `PerfectTransmitter` hardcodes "the other side is air, IOR = 1." Glass-inside-glass scenes will be wrong.
 - **No complete tangent frame on `HitPoint`.** `HitPoint` can now carry UV coordinates for raster fragments and other callers that provide them, but tangent/bitangent data and full ray-intersection UV coverage are still missing. This blocks normal maps, anisotropic BRDFs, and a complete shading-normal pipeline.
-- **Texturing is rudimentary.** Procedural and image-backed textures exist as colour sources, and UV-driven raster albedo sampling now has a first implementation, but there is no bump/normal/displacement support, no triplanar projection, no MIP-mapping, and nothing that the modelling UI can attach via a material graph. This is "first interesting use case away from broken."
+- **Texturing is still incomplete.** Procedural and image-backed textures exist as colour sources; raster albedo now supports UV-driven image sampling, mip selection, and tangent-space normal maps. Ray/path-tracing texture evaluation still lacks bump/displacement, triplanar projection, cross-engine shading-normal slots, and a material-graph authoring surface.
 - **Bump and normal mapping: not implemented.** Distinct from texturing — needs a tangent frame on `HitPoint` and a shading-normal pass before BSDF eval.
-- **Camera library is small.** Pinhole, fish-eye, orthographic, and spherical exist. The roster is missing thin-lens (DoF), Kolb realistic, Panini, omnidirectional/cubemap, light-field, and stereo (parallel-frustum and toed-in) cameras.
-- **Acceleration structure is weak.** The current hierarchical container is closer to a naive list-of-lists than a proper acceleration tree. Render times scale poorly with scene complexity. A real BVH plus alternate spatial indexes (octree, kd-tree, uniform grid) is a prerequisite for everything past a few dozen primitives.
+- **Camera library is growing but still incomplete.** Pinhole, fish-eye, orthographic, spherical, equirectangular, thin-lens DoF, and tilt-shift cameras exist. The roster is still missing Kolb realistic, Panini, omnidirectional/cubemap, light-field, and stereo (parallel-frustum and toed-in) cameras.
+- **Spatial acceleration is partially reinforced.** `render::BVH` now provides SAH-built acceleration and Ray4/Ray8 packet traversal, while `Grid` remains available as the uniform-grid path. The missing pieces are the extracted `SpatialIndex` abstraction, octree/kd-tree variants, TLAS/BLAS instancing, and switching representative scene conversion defaults once benchmarks justify it.
 - ~~**Default recursion depth and black-on-truncation** — being addressed by the in-flight TIR / truncation PRs (#35, #36).~~ ✅ **Done.** #35 bumped the default `maximumRecursionDepth` 5→10 and switched truncation to return the scene background; #36 made the TIR branch of `TransparentMaterial::shade` retain Phong direct lighting.
 - ~~**No throughput-based adaptive recursion cutoff.** `Raytracer::rayColor` recurses to the hard depth limit regardless of how attenuated the path has become, wasting work on paths carrying < ε energy.~~ ✅ **Done.** `render::State` gains a `throughput` field (default 1.0); `ReflectiveMaterial`, `TransparentMaterial`, and `PortalMaterial` multiply it by the local attenuation before each recursive call; `rayColor` short-circuits to the scene background when `throughput < RAYTRACER_THROUGHPUT_CUTOFF` (1e-4 in `Constants.h`). The biased cutoff is a prerequisite for the unbiased Russian-Roulette variant planned for the path-tracing integrator (§4.1).
 
@@ -72,10 +72,10 @@ These don't exist and are blockers for entire feature classes:
 - ~~**No `RenderEngine` abstraction.**~~ ✅ Resolved by §3.R5 — `RenderEngine` base class lifted out of `Raytracer`; engines plug in via subclassing.
 - ~~**No `Mesh` interface that all primitives can produce.**~~ ✅ Resolved by §3.R4 — `Primitive::tessellate(int lod = 0) → shared_ptr<Mesh>` implemented across the standard primitive set.
 - **`Light` is not first-class enough.** Lights exist but aren't sampled for soft shadows or MIS — no `Light::sample(point) → (direction, pdf, intensity)`.
-- **No scene serialization.** Scenes are constructed in C++ or via scripts. Nothing round-trips through a file. Blocks UI save/load, file import/export workflows, distributed rendering, and AI-agent state persistence.
-- **No scene-object handle/ID system.** UI selection, undo, AI agent tool calls all need stable references. Today, objects are bare pointers.
-- **No time dimension** on the scene graph. Blocks animation.
-- **`BSDF` is not separated from `Material::shade`.** Today shading is `Material::shade(raytracer, ray, hit, state) → Color` — tightly coupled to the recursive raytracer's call style. Path tracing wants `BSDF::eval(wi, wo)`, `BSDF::sample(wi)`, `BSDF::pdf(wi, wo)` with the integrator owning the recursion.
+- ~~**No scene serialization.** Scenes are constructed in C++ or via scripts. Nothing round-trips through a file. Blocks UI save/load, file import/export workflows, distributed rendering, and AI-agent state persistence.~~ ✅ **Done for native editable scenes.** `world::Scene` now loads/saves JSON through `ElementFactory`, preserves render intent and animation blocks, and underpins `rendercli` / Modeler file workflows. External import/export breadth remains tracked under §4.4.
+- ~~**No scene-object handle/ID system.** UI selection, undo, AI agent tool calls all need stable references. Today, objects are bare pointers.~~ ✅ **Mostly done.** `world::Element` owns a stable string id, auto-generates UUID-style ids, serializes ids, and supports recursive `findById`. A typed `SceneObjectId` wrapper and render-runtime handle layer remain future cleanup.
+- ~~**No time dimension** on the scene graph. Blocks animation.~~ ✅ **Partially done.** Native scene JSON now has a top-level `animation` timeline, world-side keyframe tracks, frame evaluation, `rendercli --frame`, `rendercli --animation`, and read-only Modeler timeline preview. Render-side continuous track compilation and shutter-time sampling from arbitrary keyframes remain §4.7 follow-up work.
+- ~~**`BSDF` is not separated from `Material::shade`.** Today shading is `Material::shade(raytracer, ray, hit, state) → Color` — tightly coupled to the recursive raytracer's call style.~~ ✅ **Partially done.** `render::BSDF` exists with `eval`, `sample`, `pdf`, `reflectance`, and lobe flags; `BRDF` / `BTDF` adapt the legacy lobes to that interface. `Material::shade` is still the Whitted compatibility layer, finite lobes still need full sampling/pdf support, and the path-tracing integrator still has to own recursion.
 
 ---
 
@@ -111,16 +111,14 @@ Unblocks: every other refactor below. Specifically, R5 (`RenderEngine` abstracti
 
 ### R2. Stable scene-object IDs
 
-Every node in the scene graph gets a typed `SceneObjectId` (integer or UUID). `Scene::find(id) → Object*` lookup. Optional `Scene::name(id)` for debug.
+~~Every node in the scene graph gets a typed `SceneObjectId` (integer or UUID). `Scene::find(id) → Object*` lookup. Optional `Scene::name(id)` for debug.~~ ✅ **Mostly done.** Editable `world::Element` nodes have stable string ids, UUID-style defaults, JSON round-tripping, and recursive `findById`. Remaining cleanup: introduce a typed id wrapper and decide whether runtime `render::Object` needs persistent handles beyond metadata.
 
-- Estimated effort: ~1 day.
 - Unblocks: UI selection, undo/redo, AI agent tool calls, save-to-disk references.
 
 ### R3. Scene serialization (JSON, v1)
 
-Round-trip primitives + materials + camera + lights through a file format. Defer animation/time and CSG composition to v2 if it makes v1 simpler.
+~~Round-trip primitives + materials + camera + lights through a file format. Defer animation/time and CSG composition to v2 if it makes v1 simpler.~~ ✅ **Done.** `world::Scene::load/save` round-trips native JSON through `ElementFactory`, preserves child object ids/properties/references, imports, render intent, and the top-level animation block. Tests cover static scenes, invalid files, missing references, render-intent JSON, and animation round-trips.
 
-- Estimated effort: ~3 days.
 - Unblocks: UI save/load, file-format imports built on top of it, distributed rendering, AI agent state, regression test golden files for renders.
 
 ### R4. `Primitive::tessellate(LOD) → Mesh`
@@ -181,9 +179,8 @@ Unblocks: GL viewport, wireframe engine, software rasterizer, OBJ/STL/glTF expor
 
 ### R6. `BSDF` split from `Material::shade`
 
-Introduce a `BSDF` interface with `eval(wi, wo) → spectrum`, `sample(wi) → (wo, pdf)`, `pdf(wi, wo) → density`. Existing materials wrap their current logic in a `BSDF` implementation while keeping `Material::shade` as a thin compatibility layer for the Whitted integrator.
+~~Introduce a `BSDF` interface with `eval(wi, wo) → spectrum`, `sample(wi) → (wo, pdf)`, `pdf(wi, wo) → density`.~~ ✅ **Partially done.** `render::BSDF` now exists and the legacy `BRDF` / `BTDF` hierarchy inherits from it, with lobe flags and adapters for `eval`, `sample`, `pdf`, and `reflectance`. Remaining work: make `Material::shade` a thin Whitted compatibility layer over material-owned BSDF composition, add real sampling/pdf implementations for finite lobes, and move recursion ownership into a path-tracing integrator.
 
-- Estimated effort: ~3-5 days.
 - Unblocks: path tracing, MIS, the modern material library, Fresnel everywhere.
 
 ### R7. Spatial acceleration framework
@@ -249,7 +246,7 @@ Beyond the existing `Raytracer`, factor in (in suggested order):
   - **Planar reflections and portals** — classic stencil/pass-graph use case: mark a mirror/portal surface, render a reflected or redirected view only through that mask, clip against the portal/mirror plane, then composite. This gives raster/GPU previews good parity for flat mirrors, water planes, polished floors, and portal screens without pretending arbitrary recursive reflection is a raster strength. Water is the motivating natural-material case here: calm planar water can preview through reflection/refraction passes, while waves, caustics, foam, spray, and absorption belong to the natural-phenomena backlog.
 - **OpenGL viewport.** Real-time editor view. Tessellated meshes feed VBOs; GLSL shaders mirror the material library for live preview parity. Also unlocks gizmo rendering.
 - **WebGL / WebGPU preview.** The same scene rendered in a browser, served alongside the GitHub Pages docs. WebGL first (broadest support, simpler), WebGPU as a follow-up. Static-scene preview is the v1 target; web preview of *animations* (timeline scrubbing in the browser) is a stretch goal that lands after §4.7. This engine doubles as the canvas for the §4.0 interactive diagrams — the rendering engine and the explainer engine are the same code path.
-- **Path tracer.** Monte Carlo integrator over the same scene graph. Multiple Importance Sampling between BSDF sampling and light sampling. Stratified or Sobol QMC sampling. Adaptive sampling per tile. The implementation should explicitly compare **megakernel**, **wavefront/queue-based**, and **material-sorted** architectures: a simple megakernel is the clearest CPU baseline, while wavefront queues expose GPU divergence, occupancy, compaction, and BSDF/light sorting tradeoffs. ~~SoA ray packets (`Ray4`/`Ray8`) and a first batched sphere intersection kernel for CPU packet traversal.~~ ✅ **Done.** Added aligned packet transport, primitive packet entry points with scalar fallback, and an SSE `Sphere::intersectPacket(Ray4)` proof kernel for Epic #141 / Phase 4.1; block-batched BVH traversal remains a follow-up.
+- **Path tracer.** Monte Carlo integrator over the same scene graph. Multiple Importance Sampling between BSDF sampling and light sampling. Stratified or Sobol QMC sampling. Adaptive sampling per tile. The implementation should explicitly compare **megakernel**, **wavefront/queue-based**, and **material-sorted** architectures: a simple megakernel is the clearest CPU baseline, while wavefront queues expose GPU divergence, occupancy, compaction, and BSDF/light sorting tradeoffs. ~~SoA ray packets (`Ray4`/`Ray8`), primitive packet entry points, and block-batched BVH traversal for CPU packet traversal.~~ ✅ **Done.** Added aligned packet transport, scalar-fallback packet primitive entry points, SSE packet kernels for core primitives, `BoundingBox::intersects4`, and `BVH::intersectPacket(Ray4/Ray8)` active-mask descent with `BVHPacketBenchmark.cpp` coverage for Epic #141 Phases 4.1 and 4.3.
 - **GPU backends, eventually.** Vulkan compute, OptiX, or Metal. Templated math primitives port reasonably to CUDA. Massive undertaking; not a near-term priority. When this graduates from aspiration to plan, include mesh/task shaders, bindless resource models, shader-language targets (GLSL/HLSL/WGSL/SPIR-V), and CPU/GPU residency rules for out-of-core scenes rather than treating "GPU" as only a faster execution device.
 
 The "all engines over one scene" property is itself the pedagogical payoff — being able to render a single test scene through wireframe, software raster, OpenGL, WebGL, raytracer, and path tracer side-by-side teaches more about the rendering equation than any single engine ever could.

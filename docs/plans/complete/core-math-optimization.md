@@ -7,9 +7,13 @@
 > (extends §3.4 "grow the benchmark suite to cover all SSE3 hot
 > paths").
 >
-> **Status:** Living document — items graduate to the roadmap when
-> picked up, get crossed off when landed, or get pruned if disproven
-> by measurement.
+> **Status:** Complete and archived. The 2026-05-28 audit confirmed the
+> benchmark scaffolding and every Phase 1-4 optimization are implemented:
+> benchmark files exist for the planned surfaces, core math hot paths have the
+> documented optimizations, and the deferred path-tracing prerequisites
+> (Ray4/Ray8 packet work, stable quartic fallback, packet BVH traversal, and
+> matrix decompositions) have landed. New math work should start in a fresh
+> plan.
 >
 > **Rule:** every performance change is gated on a benchmark.
 > No exceptions. Build the benchmark first, capture the baseline,

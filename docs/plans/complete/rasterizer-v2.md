@@ -7,8 +7,8 @@
 >
 > **Status:** archived after the Epic #167 closeout. Child jobs #168 through
 > #181 landed the follow-up implementation, documentation, rendered examples,
-> and widget work. The active `docs/plans/rasterizer-v2.md` file now contains
-> only a forwarding note and links to broader follow-up plans.
+> and widget work. The archived plan remains here; broader follow-up work is
+> tracked in the roadmap and separate active plans.
 
 Closeout audit:
 
