@@ -269,7 +269,10 @@ Tasks:
   graph-visible CPU resource.
 - Add generalized stencil pass state once high-level render intents need
   explicit stencil tests beyond diagnostic/AOV generation.
-- Add object/material ID output with integer attachments or a fallback path.
+- ~~Add object/material ID output with integer attachments or a fallback
+  path.~~ ✅ **Done.** Object/material ID graph AOVs selected with the OpenGL
+  raster backend now use the software raster diagnostic fallback so IDs stay
+  exact until the GPU path has integer attachment support.
 - Add shadow-map pass support only after graph shadow state is fully explicit.
 
 Acceptance:

@@ -574,6 +574,18 @@ namespace engine::graph {
       void renderRasterDiagnostics(
         RenderExecutionContext& context,
         const ::engine::raster::Rasterizer::DiagnosticOutputBuffers& outputs) const {
+        const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(context.pass());
+        if (!state.execution().backend().usesSoftwareRasterizer()) {
+          throw passError(context.pass(),
+                          "OpenGL raster diagnostic AOV execution is not implemented yet; "
+                          "use raster backend 'cpu'");
+        }
+        renderSoftwareRasterDiagnostics(context, outputs);
+      }
+
+      void renderSoftwareRasterDiagnostics(
+        RenderExecutionContext& context,
+        const ::engine::raster::Rasterizer::DiagnosticOutputBuffers& outputs) const {
         const auto& pass = context.pass();
         const auto& write = pass.singleWrite();
         const auto& descriptor = context.storage().descriptor(write.resource);
@@ -582,10 +594,6 @@ namespace engine::graph {
         auto rasterizer = std::make_shared<::engine::raster::Rasterizer>(std::move(camera),
                                                                          context.graph().scene());
         const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(pass);
-        if (!state.execution().backend().usesSoftwareRasterizer()) {
-          throw passError(pass, "OpenGL raster diagnostic AOV execution is not implemented yet; "
-                                "use raster backend 'cpu'");
-        }
         state.applyTo(*rasterizer);
         rasterizer->setDiagnosticOutputBuffers(outputs);
 
@@ -730,7 +738,7 @@ namespace engine::graph {
         Buffer<const render::Primitive*> primitives(output.width(), output.height());
         ::engine::raster::Rasterizer::DiagnosticOutputBuffers outputs;
         outputs.primitive = &primitives;
-        renderRasterDiagnostics(context, outputs);
+        renderSoftwareRasterDiagnostics(context, outputs);
 
         const SceneRasterIdentityIds ids(context.graph().scene());
         for (int y = 0; y != output.height(); ++y) {
@@ -752,7 +760,7 @@ namespace engine::graph {
         Buffer<const render::Material*> materials(output.width(), output.height());
         ::engine::raster::Rasterizer::DiagnosticOutputBuffers outputs;
         outputs.material = &materials;
-        renderRasterDiagnostics(context, outputs);
+        renderSoftwareRasterDiagnostics(context, outputs);
 
         const SceneRasterIdentityIds ids(context.graph().scene());
         for (int y = 0; y != output.height(); ++y) {

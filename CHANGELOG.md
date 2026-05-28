@@ -89,6 +89,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **OpenGL raster stencil AOV.** OpenGL-backed raster stencil views now apply
   the graph stencil AOV pass state, update the offscreen stencil attachment,
   and read it back into graph-visible stencil resources. — GPT-5
+- **OpenGL raster ID AOV fallback.** Object/material ID views requested with
+  the OpenGL raster backend now execute through the software raster diagnostic
+  fallback instead of rejecting the graph, preserving exact scene ID resources
+  until GPU integer attachment support lands. — GPT-5
 - **rendercli OpenGL application bootstrap.** rendercli now pre-scans explicit
   `--raster_backend opengl|gpu` runs, starts a GUI-capable Qt application for
   that backend, and defaults the command-line GPU path to Qt's offscreen

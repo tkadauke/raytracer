@@ -12,6 +12,7 @@ file(REMOVE_RECURSE "${TEST_OUTPUT_DIR}")
 file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 
 set(matte_scene "${PROJECT_SOURCE_DIR}/scenes/raster_material_preview.json")
+set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(reflective_scene "${PROJECT_SOURCE_DIR}/scenes/reflections.json")
 set(transmissive_scene "${PROJECT_SOURCE_DIR}/scenes/glass_torus.json")
 set(basic_render "${TEST_OUTPUT_DIR}/raster-basic.png")
@@ -243,6 +244,62 @@ else()
                   "OpenGL stencil AOV neither rendered nor reported a clear OpenGL capability error"
                   "" "${opengl_stencil_result}" "${opengl_stencil_stdout}"
                   "${opengl_stencil_stderr}")
+endif()
+
+set(opengl_object_id_render "${TEST_OUTPUT_DIR}/raster-opengl-object-id.png")
+execute_process(
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 32 --height 24 --raster_backend gpu
+    --render_graph_view object_id
+    "${static_scene}" "${opengl_object_id_render}"
+  RESULT_VARIABLE opengl_object_id_result
+  OUTPUT_VARIABLE opengl_object_id_stdout
+  ERROR_VARIABLE opengl_object_id_stderr
+)
+if(opengl_object_id_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_object_id_render}" 32 24
+                                    NAME "rendercli --raster_backend gpu object ID dimensions")
+elseif(opengl_object_id_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_object_id_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu object ID application bootstrap"
+                    "OpenGL object ID AOV still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_object_id_result}" "${opengl_object_id_stdout}"
+                    "${opengl_object_id_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu object ID AOV"
+                  "OpenGL object ID AOV neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_object_id_result}" "${opengl_object_id_stdout}"
+                  "${opengl_object_id_stderr}")
+endif()
+
+set(opengl_material_id_render "${TEST_OUTPUT_DIR}/raster-opengl-material-id.png")
+execute_process(
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 32 --height 24 --raster_backend gpu
+    --render_graph_view material_id
+    "${static_scene}" "${opengl_material_id_render}"
+  RESULT_VARIABLE opengl_material_id_result
+  OUTPUT_VARIABLE opengl_material_id_stdout
+  ERROR_VARIABLE opengl_material_id_stderr
+)
+if(opengl_material_id_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_material_id_render}" 32 24
+                                    NAME "rendercli --raster_backend gpu material ID dimensions")
+  rendercli_assert_image_nonempty("${opengl_material_id_render}"
+                                  NAME "rendercli --raster_backend gpu material ID pixels")
+elseif(opengl_material_id_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_material_id_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu material ID application bootstrap"
+                    "OpenGL material ID AOV still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_material_id_result}" "${opengl_material_id_stdout}"
+                    "${opengl_material_id_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu material ID AOV"
+                  "OpenGL material ID AOV neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_material_id_result}" "${opengl_material_id_stdout}"
+                  "${opengl_material_id_stderr}")
 endif()
 
 rendercli_run(
