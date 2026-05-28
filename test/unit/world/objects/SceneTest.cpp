@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 
 #include "world/objects/Scene.h"
+#include "world/objects/CompiledPrimitive.h"
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/PointLight.h"
 #include "world/objects/Group.h"
@@ -10,9 +11,11 @@
 #include "world/objects/Texture.h"
 #include "world/animation/AnimationTrack.h"
 #include "world/animation/Timeline.h"
+#include "core/geometry/Mesh.h"
 #include "render/primitives/BVH.h"
 #include "render/primitives/Composite.h"
 #include "render/primitives/Grid.h"
+#include "render/primitives/MeshPrimitive.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/SpatialIndexFactory.h"
 #include "core/math/Vector.h"
@@ -69,6 +72,18 @@ namespace SceneTest {
 
   QJsonValue colorValue(double r, double g, double b) {
     return QJsonValue(QJsonArray({r, g, b}));
+  }
+
+  std::shared_ptr<render::MeshPrimitive> twoTriangleMeshPrimitive() {
+    Mesh mesh;
+    mesh.addVertex(Vector3d(-1.0, -1.0, 0.0), Vector3d(0.0, 0.0, 1.0));
+    mesh.addVertex(Vector3d(1.0, -1.0, 0.0), Vector3d(0.0, 0.0, 1.0));
+    mesh.addVertex(Vector3d(1.0, 1.0, 0.0), Vector3d(0.0, 0.0, 1.0));
+    mesh.addVertex(Vector3d(-1.0, 1.0, 0.0), Vector3d(0.0, 0.0, 1.0));
+    mesh.addFace({0, 1, 2});
+    mesh.addFace({0, 2, 3});
+    return std::make_shared<render::MeshPrimitive>(std::move(mesh),
+                                                   render::MeshPrimitive::NormalMode::Flat);
   }
 
   TEST(Scene, ShouldDefaultToCannedNewSceneName) {
@@ -706,7 +721,7 @@ namespace SceneTest {
     EXPECT_EQ(0u, rt->lights().size());
   }
 
-  TEST(Scene, ShouldRecordAutomaticAccelerationDecision) {
+  TEST(Scene, ShouldUseLinearAccelerationForSinglePrimitiveAutoScene) {
     Scene scene;
     scene.addChild(new Sphere);
 
@@ -714,9 +729,41 @@ namespace SceneTest {
 
     ASSERT_TRUE(rt->accelerationDecision().has_value());
     EXPECT_EQ(render::AccelerationMode::Automatic, rt->accelerationDecision()->requestedMode);
-    EXPECT_EQ(render::SpatialIndexKind::Grid, rt->accelerationDecision()->spatialIndexKind);
+    EXPECT_EQ(render::SpatialIndexKind::Linear, rt->accelerationDecision()->spatialIndexKind);
     ASSERT_EQ(1u, rt->primitives().size());
-    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::Grid>(rt->primitives().front()));
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::Composite>(rt->primitives().front()));
+  }
+
+  TEST(Scene, ShouldUseBVHAccelerationForProceduralMultiPrimitiveAutoScene) {
+    Scene scene;
+    scene.addChild(new Sphere);
+    auto* second = new Sphere;
+    second->setPosition(Vector3d(4.0, 0.0, 0.0));
+    scene.addChild(second);
+
+    auto rt = scene.toRaytracerScene();
+
+    ASSERT_TRUE(rt->accelerationDecision().has_value());
+    EXPECT_EQ(render::AccelerationMode::Automatic, rt->accelerationDecision()->requestedMode);
+    EXPECT_EQ(render::SpatialIndexKind::BVH, rt->accelerationDecision()->spatialIndexKind);
+    ASSERT_EQ(1u, rt->primitives().size());
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::BVH>(rt->primitives().front()));
+  }
+
+  TEST(Scene, ShouldUseLeafCountWhenChoosingAccelerationForImportedMeshGroups) {
+    Scene scene;
+    auto* importRoot = new Group;
+    importRoot->setName("Imported Mesh Root");
+    importRoot->addChild(new CompiledPrimitive(twoTriangleMeshPrimitive()));
+    scene.addChild(importRoot);
+
+    auto rt = scene.toRaytracerScene();
+
+    ASSERT_TRUE(rt->accelerationDecision().has_value());
+    EXPECT_EQ(render::AccelerationMode::Automatic, rt->accelerationDecision()->requestedMode);
+    EXPECT_EQ(render::SpatialIndexKind::BVH, rt->accelerationDecision()->spatialIndexKind);
+    ASSERT_EQ(1u, rt->primitives().size());
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::BVH>(rt->primitives().front()));
   }
 
   TEST(Scene, ShouldUseManualLinearAccelerationOverride) {

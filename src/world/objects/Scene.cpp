@@ -34,6 +34,19 @@ namespace {
     return mode >= static_cast<int>(render::AccelerationMode::Automatic) &&
            mode <= static_cast<int>(render::AccelerationMode::BVH);
   }
+
+  std::size_t countFiniteLeaves(const std::vector<std::shared_ptr<render::Primitive>>& primitives) {
+    std::size_t count = 0;
+    for (const auto& primitive : primitives) {
+      primitive->forEachTransformedLeaf([&](const render::Primitive::TransformedLeaf& leaf) {
+        const auto bounds = leaf.boundingBox();
+        if (bounds.isValid() && !bounds.isInfinite()) {
+          ++count;
+        }
+      });
+    }
+    return count;
+  }
 }
 
 Scene::Scene(Element* parent)
@@ -73,7 +86,8 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene(const StepPlaybackStyle& 
     }
   }
 
-  const render::AccelerationAnalysis analysis{boundedPrimitives.size()};
+  const render::AccelerationAnalysis analysis{boundedPrimitives.size(),
+                                              countFiniteLeaves(boundedPrimitives)};
   const auto decision = accelerationPolicy().choose(analysis);
   result->setAccelerationDecision(decision);
 

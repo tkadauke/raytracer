@@ -92,14 +92,25 @@ namespace SpatialIndexTest {
     }
   }
 
-  TEST(AccelerationPolicy, AutomaticConservativelySelectsGrid) {
-    const AccelerationAnalysis analysis{24};
+  TEST(AccelerationPolicy, AutomaticSelectsLinearForEmptyOrSmallScenes) {
+    const AccelerationAnalysis analysis{1, 1};
     const auto decision = AccelerationPolicy::automatic().choose(analysis);
 
     EXPECT_EQ(AccelerationMode::Automatic, decision.requestedMode);
-    EXPECT_EQ(SpatialIndexKind::Grid, decision.spatialIndexKind);
-    EXPECT_STREQ("automatic_conservative_grid", decision.reason);
-    EXPECT_EQ("requested=automatic selected=grid reason=automatic_conservative_grid",
+    EXPECT_EQ(SpatialIndexKind::Linear, decision.spatialIndexKind);
+    EXPECT_STREQ("automatic_empty_or_small_scene_linear", decision.reason);
+    EXPECT_EQ("requested=automatic selected=linear reason=automatic_empty_or_small_scene_linear",
+              diagnosticString(decision));
+  }
+
+  TEST(AccelerationPolicy, AutomaticSelectsBVHForMultiLeafScenes) {
+    const AccelerationAnalysis analysis{1, 24};
+    const auto decision = AccelerationPolicy::automatic().choose(analysis);
+
+    EXPECT_EQ(AccelerationMode::Automatic, decision.requestedMode);
+    EXPECT_EQ(SpatialIndexKind::BVH, decision.spatialIndexKind);
+    EXPECT_STREQ("automatic_general_bvh", decision.reason);
+    EXPECT_EQ("requested=automatic selected=bvh reason=automatic_general_bvh",
               diagnosticString(decision));
   }
 

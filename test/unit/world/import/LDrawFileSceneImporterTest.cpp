@@ -7,6 +7,8 @@
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/Scene.h"
 
+#include <QTemporaryFile>
+
 namespace LDrawFileSceneImporterTest {
 
   TEST(LDrawFileSceneImporter, RegistersForLDrawExtensions) {
@@ -42,6 +44,24 @@ namespace LDrawFileSceneImporterTest {
     const auto runtime = scene->toRaytracerScene();
     EXPECT_EQ(1u, runtime->primitives().size());
     EXPECT_TRUE(runtime->boundingBox().isValid());
+  }
+
+  TEST(LDrawFileSceneImporter, ChoosesBVHForMultiPolygonImportedScene) {
+    QTemporaryFile file("raytracer-ldraw-acceleration-XXXXXX.ldr");
+    ASSERT_TRUE(file.open());
+    file.write("3 16 -1 -1 0 0 1 0 1 -1 0\n"
+               "3 16 -1 1 0 1 1 0 0 -1 0\n");
+    const QString path = file.fileName();
+    file.close();
+
+    world::LDrawFileSceneImporter importer;
+    const auto result = importer.importFile(path);
+
+    ASSERT_TRUE(result.succeeded());
+    ASSERT_NE(nullptr, result.sceneRoot());
+    const auto runtime = result.sceneRoot()->toRaytracerScene();
+    ASSERT_TRUE(runtime->accelerationDecision().has_value());
+    EXPECT_EQ(render::SpatialIndexKind::BVH, runtime->accelerationDecision()->spatialIndexKind);
   }
 
   TEST(LDrawFileSceneImporter, AcceptsNamedAndHexSceneBackgroundColors) {

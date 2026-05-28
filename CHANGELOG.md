@@ -9,6 +9,14 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Changed
+
+- **Automatic scene acceleration selection.** Runtime scene conversion now
+  analyzes finite leaf geometry under imported groups and meshes, choosing the
+  linear fallback for empty/single-leaf scenes and BVH for multi-leaf glTF,
+  LDraw, molecular, and procedural scenes instead of preserving the old Grid
+  default for Epic #360. — GPT-5
+
 ### Added
 
 - **Molecule representation and color import options.** Molecule imports now
