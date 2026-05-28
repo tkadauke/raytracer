@@ -193,6 +193,10 @@ the concrete Whitted integrator; from
 // src/render/WhittedIntegrator.cpp
 Colord WhittedIntegrator::radiance(const Scene& scene, const Rayd& ray, State& state,
                                    const RayCaster& recursiveRayCaster) const {
+  if (isCancelled()) {
+    return scene.background();
+  }
+
   state.recurseIn();
   ScopeExit sx([&] { state.recurseOut(); });
 
@@ -200,8 +204,16 @@ Colord WhittedIntegrator::radiance(const Scene& scene, const Rayd& ray, State& s
     return scene.background();
   }
 
+  if (state.throughput < RAYTRACER_THROUGHPUT_CUTOFF) {
+    return scene.background();
+  }
+
   HitPointInterval hitPoints;
   auto primitive = scene.intersect(ray, hitPoints, state);
+  if (isCancelled()) {
+    return scene.background();
+  }
+
   if (primitive) {
     auto hitPoint = hitPoints.minWithPositiveDistance();
     if (primitive->material()) {
@@ -215,9 +227,17 @@ Colord WhittedIntegrator::radiance(const Scene& scene, const Rayd& ray, State& s
 }
 ```
 
-The routine has three branches.
+The routine has five visible exits: cancellation, depth cap,
+throughput cutoff, hit, and miss. The first three are guard exits
+that return the scene background before doing more work; the last
+two are the normal transport cases.
 
-The first branch is the **depth cap**. The recursion depth is
+The **cancellation** exit lets an interactive render stop without
+waiting for every recursive ray already in flight to finish. It
+returns the scene background because the caller is abandoning the
+render, not producing a physically meaningful sample.
+
+The **depth cap** is the next guard. The recursion depth is
 bumped on entry and decremented on exit (via the `ScopeExit`
 guard). Once it reaches the configured maximum, the renderer
 bottoms out by returning the scene background instead of recursing
@@ -226,7 +246,15 @@ the depth cap, the ray is conceptually a long distance from the
 camera, so returning the scene's environment color produces an
 image consistent with what a non-recursive miss would produce.
 
-The second branch is the **hit case**. The scene's `intersect`
+The **throughput cutoff** is the energy guard. Reflective,
+transparent, and portal materials multiply `State::throughput` by
+their attenuation before recursing. Once the carried energy drops
+below `RAYTRACER_THROUGHPUT_CUTOFF`, the integrator returns the
+background instead of spending time on a contribution too small to
+matter visually. This is still a Whitted shortcut, not Russian
+roulette path tracing.
+
+The **hit case** asks the scene's `intersect`
 returns the closest primitive the ray hits, with the corresponding
 `HitPointInterval` populated. The renderer asks the primitive for
 its material, hands the `RayCaster*` (`this`) to the material's
@@ -235,7 +263,7 @@ for a reflective or transparent material, includes calling back
 into `rayColor` on a secondary ray. The recursive call then
 re-enters this same routine one level deeper.
 
-The third branch is the **miss case**. Nothing was hit, so the
+The **miss case** is the ordinary no-hit path. Nothing was hit, so the
 routine returns the scene's background color.
 
 The depth cap matters because Whitted recursion can be unbounded.
@@ -323,6 +351,14 @@ Rasterization reuses both inputs in a different algorithmic frame.
 The other intentional omission is **path tracing** and the broader
 Monte Carlo integration territory. The codebase does not ship a
 path-tracing engine, so "ray rendering" in this book means Whitted.
+The `render::Integrator` boundary is where a future single-ray
+transport policy plugs in: a path tracer would implement that
+contract over the same `Scene`, `Rayd`, `State`, and sampling
+vocabulary, while still needing its own sampling, convergence, and
+noise-management behavior. `Raytracer::rayColor` remains the
+compatibility callback used by cameras, materials, tests, and
+interactive probes; it is no longer the transport-policy boundary
+itself.
 
 ## <a id="exercises"></a>Exercises
 1. The `rayColor` routine returns `Colord::black()` when the

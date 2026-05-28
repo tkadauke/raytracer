@@ -44,8 +44,9 @@ volume linearly; later chapters assume the vocabulary.
 
 ### Ray rendering
 
-The Whitted pipeline as it actually runs in
-`engine::raytracer::Raytracer`. The longest volume; pin Foundations in
+The Whitted pipeline as it actually runs through
+`engine::raytracer::Raytracer` and its default
+`render::WhittedIntegrator`. The longest volume; pin Foundations in
 your head before starting it.
 
 - [Volume index](ray-rendering/README.md)
