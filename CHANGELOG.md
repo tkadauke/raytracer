@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Molecule representation and color import options.** Molecule imports now
+  expose ball-and-stick, space-filling, and backbone representations plus
+  element, chain, and residue-category color schemes through the shared importer
+  option surface for rendercli and Modeler for Epic #236. — GPT-5
 - **Protein backbone curves.** Molecule imports can now generate per-chain CA
   trace backbone curves with residue segment metadata, selectable as overlay,
   ribbon, tube, or disabled output through importer options for Epic #236. —

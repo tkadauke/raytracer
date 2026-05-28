@@ -1,9 +1,14 @@
 #include "world/import/MoleculeSceneImporter.h"
 
 #include "core/formats/molecule/MoleculeParser.h"
+#include "core/math/Quaternion.h"
+#include "world/import/MoleculeSceneBuilder.h"
 #include "world/import/SceneImporterRegistry.h"
+#include "world/objects/ConstantColorTexture.h"
 #include "world/objects/Curve.h"
+#include "world/objects/Cylinder.h"
 #include "world/objects/Group.h"
+#include "world/objects/PhongMaterial.h"
 #include "world/objects/Sphere.h"
 
 #include <QFileInfo>
@@ -11,7 +16,11 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <fstream>
+#include <limits>
+#include <map>
+#include <vector>
 
 using namespace std;
 
@@ -19,6 +28,19 @@ namespace world {
   namespace {
     QString qstr(const string& value) {
       return QString::fromStdString(value);
+    }
+
+    string normalizedElement(string element) {
+      element.erase(remove_if(element.begin(), element.end(),
+                              [](unsigned char ch) { return std::isspace(ch) != 0; }),
+                    element.end());
+      if (element.empty())
+        return "X";
+
+      element[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(element[0])));
+      for (size_t i = 1; i < element.size(); ++i)
+        element[i] = static_cast<char>(std::tolower(static_cast<unsigned char>(element[i])));
+      return element;
     }
 
     string trimmedAtomName(string value) {
@@ -78,6 +100,83 @@ namespace world {
       return QStringLiteral("polymer");
     }
 
+    const std::vector<Colord>& chainPalette() {
+      static const std::vector<Colord> palette = {
+        Colord(0.10, 0.36, 0.95), Colord(0.90, 0.22, 0.16), Colord(0.10, 0.62, 0.32),
+        Colord(0.95, 0.68, 0.10), Colord(0.55, 0.25, 0.85), Colord(0.05, 0.65, 0.70),
+        Colord(0.90, 0.35, 0.70), Colord(0.50, 0.50, 0.18),
+      };
+      return palette;
+    }
+
+    Colord residueCategoryColor(const QString& category) {
+      if (category == QStringLiteral("water"))
+        return Colord(0.40, 0.75, 1.0);
+      if (category == QStringLiteral("ligand"))
+        return Colord(0.95, 0.55, 0.10);
+      return Colord(0.30, 0.70, 0.35);
+    }
+
+    Colord colorForAtom(const molecule::Atom& atom, const QString& residueCategory,
+                        const QString& colorScheme,
+                        const std::map<std::string, std::size_t>& chainOrdinals) {
+      if (colorScheme == QStringLiteral("chain")) {
+        const auto found = chainOrdinals.find(atom.chainId);
+        const auto index = found == chainOrdinals.end() ? 0u : found->second;
+        return chainPalette()[index % chainPalette().size()];
+      }
+      if (colorScheme == QStringLiteral("residue-category"))
+        return residueCategoryColor(residueCategory);
+      return moleculeElementStyle(atom.element).color;
+    }
+
+    Colord colorForBond(const molecule::Atom& atom, const QString& colorScheme,
+                        const std::map<std::string, std::size_t>& chainOrdinals) {
+      if (colorScheme == QStringLiteral("chain")) {
+        const auto found = chainOrdinals.find(atom.chainId);
+        const auto index = found == chainOrdinals.end() ? 0u : found->second;
+        return chainPalette()[index % chainPalette().size()];
+      }
+      return Colord(0.70, 0.70, 0.74);
+    }
+
+    std::unique_ptr<PhongMaterial> makeMaterial(const Colord& color) {
+      auto material = std::make_unique<PhongMaterial>();
+      material->setName(QStringLiteral("Material"));
+      material->setSpecularCoefficient(0.25);
+      material->setExponent(24);
+
+      auto texture = new ConstantColorTexture;
+      texture->setColor(color);
+      material->setDiffuseTexture(texture);
+      material->addChild(texture);
+      return material;
+    }
+
+    Matrix4d bondTransform(const Vector3d& first, const Vector3d& second) {
+      const auto center = (first + second) * 0.5;
+      const auto delta = second - first;
+      const auto length = delta.length();
+      if (length <= std::numeric_limits<double>::epsilon())
+        return Matrix4d::translate(center);
+
+      const auto direction = delta / length;
+      const auto up = Vector3d::up();
+      const auto dot = std::max(-1.0, std::min(1.0, up * direction));
+
+      Matrix4d rotation;
+      if (dot > 1.0 - 1e-9) {
+        rotation = Matrix4d();
+      } else if (dot < -1.0 + 1e-9) {
+        rotation = Quaterniond::fromAxisAngle(Vector3d(1, 0, 0), std::acos(-1.0)).toMatrix4();
+      } else {
+        const auto axis = (up ^ direction).normalized();
+        rotation = Quaterniond::fromAxisAngle(axis, std::acos(dot)).toMatrix4();
+      }
+
+      return Matrix4d::translate(center) * rotation;
+    }
+
     const molecule::Atom* alphaCarbonFor(const molecule::Residue& residue,
                                          const molecule::Molecule& molecule) {
       if (residueCategory(residue, molecule) != QStringLiteral("polymer"))
@@ -125,6 +224,37 @@ namespace world {
       if (suffix == "cif" || suffix == "mmcif")
         return QStringLiteral("mmcif");
       return QStringLiteral("pdb");
+    }
+
+    bool emitsAtoms(const MoleculeSceneCompileOptions& options) {
+      return options.representation != QStringLiteral("backbone");
+    }
+
+    bool emitsBonds(const MoleculeSceneCompileOptions& options) {
+      return options.representation == QStringLiteral("ball-and-stick");
+    }
+
+    QString effectiveBackboneMode(const MoleculeSceneCompileOptions& options) {
+      if (options.representation == QStringLiteral("backbone") &&
+          options.backboneMode == QStringLiteral("overlay"))
+        return QStringLiteral("tube");
+      return options.backboneMode;
+    }
+
+    std::map<std::string, std::size_t> chainOrdinalsFor(const molecule::Molecule& molecule) {
+      std::map<std::string, std::size_t> ordinals;
+      for (const auto& chain : molecule.chains()) {
+        if (ordinals.find(chain.id) == ordinals.end())
+          ordinals[chain.id] = ordinals.size();
+      }
+      return ordinals;
+    }
+
+    std::vector<molecule::Bond> bondsForRendering(const molecule::Molecule& molecule,
+                                                  const MoleculeSceneCompileOptions& options) {
+      MoleculeRenderOptions renderOptions;
+      renderOptions.inferBondsWhenMissing = options.inferBondsWhenMissing;
+      return moleculeBondsForRendering(molecule, renderOptions);
     }
 
     std::unique_ptr<Curve> compileBackboneCurve(const molecule::Molecule& molecule,
@@ -195,11 +325,16 @@ namespace world {
     }
   }
 
-  std::unique_ptr<Group> MoleculeSceneCompiler::compile(const molecule::Molecule& molecule,
-                                                        const ImportSourceMetadata& source,
-                                                        double atomRadius,
-                                                        const QString& backboneMode,
-                                                        double backboneWidth) const {
+  std::unique_ptr<Group>
+  MoleculeSceneCompiler::compile(const molecule::Molecule& molecule,
+                                 const ImportSourceMetadata& source,
+                                 const MoleculeSceneCompileOptions& rawOptions) const {
+    MoleculeSceneCompileOptions options = rawOptions;
+    options.representation = options.representation.toLower();
+    options.colorScheme = options.colorScheme.toLower();
+    options.backboneMode = options.backboneMode.toLower();
+    const auto chainOrdinals = chainOrdinalsFor(molecule);
+
     auto root = std::make_unique<Group>();
     const QString moleculeId = qstr(molecule.metadata().id);
     root->setName(qstr(molecule.metadata().title).isEmpty() ? QStringLiteral("Molecule")
@@ -210,6 +345,8 @@ namespace world {
       root->setMetadataValue(QStringLiteral("molecule.id"), moleculeId);
     if (!molecule.metadata().title.empty())
       root->setMetadataValue(QStringLiteral("molecule.title"), qstr(molecule.metadata().title));
+    root->setMetadataValue(QStringLiteral("molecule.representation"), options.representation);
+    root->setMetadataValue(QStringLiteral("molecule.colorScheme"), options.colorScheme);
     setImportProvenance(
       *root, provenanceFor(source, root->metadataValue(GroupMetadata::sourceIdKey()).toString(),
                            moleculeId, QStringLiteral("molecule")));
@@ -239,8 +376,8 @@ namespace world {
                                                        QStringLiteral("chain")));
         modelGroup->addChild(chainGroup);
 
-        if (auto backbone =
-              compileBackboneCurve(molecule, chain, source, backboneMode.toLower(), backboneWidth))
+        if (auto backbone = compileBackboneCurve(
+              molecule, chain, source, effectiveBackboneMode(options), options.backboneWidth))
           chainGroup->addChild(std::move(backbone));
 
         for (const auto residueIndex : chain.residueIndices) {
@@ -265,21 +402,39 @@ namespace world {
           setImportProvenance(*residueGroup, residueProvenance);
           chainGroup->addChild(residueGroup);
 
+          if (!emitsAtoms(options))
+            continue;
+
           for (const auto atomIndex : residue.atomIndices) {
             const auto& atom = molecule.atoms()[atomIndex];
             auto* atomSphere = new Sphere;
             atomSphere->setName(QString("%1 %2").arg(qstr(atom.name)).arg(atom.serialNumber));
-            atomSphere->setRadius(atomRadius);
+            const auto elementStyle = moleculeElementStyle(atom.element);
+            const double radius = options.representation == QStringLiteral("space-filling")
+                                    ? elementStyle.displayRadius * options.spaceFillingScale
+                                    : options.atomRadius;
+            atomSphere->setRadius(radius);
             atomSphere->setPosition(atom.position);
+            auto material =
+              makeMaterial(colorForAtom(atom, category, options.colorScheme, chainOrdinals));
+            atomSphere->setMaterial(material.get());
+            atomSphere->addChild(std::move(material));
             atomSphere->setMetadataValue(GroupMetadata::sourceFormatKey(),
                                          QStringLiteral("molecule"));
             atomSphere->setMetadataValue(GroupMetadata::sourceIdKey(), sourceIdForAtom(atom));
+            atomSphere->setMetadataValue(QStringLiteral("molecule.kind"), QStringLiteral("atom"));
+            atomSphere->setMetadataValue(QStringLiteral("molecule.representation"),
+                                         options.representation);
+            atomSphere->setMetadataValue(QStringLiteral("molecule.colorScheme"),
+                                         options.colorScheme);
             atomSphere->setMetadataValue(QStringLiteral("chainId"), qstr(atom.chainId));
             atomSphere->setMetadataValue(QStringLiteral("residueName"), qstr(atom.residueName));
             atomSphere->setMetadataValue(QStringLiteral("residueIndex"), atom.residueSequence);
             atomSphere->setMetadataValue(QStringLiteral("atomName"), qstr(atom.name));
             atomSphere->setMetadataValue(QStringLiteral("atomSerialNumber"), atom.serialNumber);
             atomSphere->setMetadataValue(QStringLiteral("element"), qstr(atom.element));
+            atomSphere->setMetadataValue(QStringLiteral("moleculeElement"),
+                                         qstr(normalizedElement(atom.element)));
             atomSphere->setMetadataValue(QStringLiteral("sourceRecord"), qstr(atom.sourceRecord));
             auto atomProvenance = provenanceFor(source, sourceIdForAtom(atom),
                                                 qstr(atom.sourceRecord), QStringLiteral("atom"));
@@ -291,6 +446,62 @@ namespace world {
             setImportProvenance(*atomSphere, atomProvenance);
             residueGroup->addChild(atomSphere);
           }
+        }
+
+        if (emitsBonds(options)) {
+          std::unique_ptr<Group> bondGroup;
+          for (const auto& bond : bondsForRendering(molecule, options)) {
+            const auto& first = molecule.atoms()[bond.firstAtomIndex];
+            const auto& second = molecule.atoms()[bond.secondAtomIndex];
+            if (first.modelId != model.id || second.modelId != model.id ||
+                first.chainId != chain.id || second.chainId != chain.id)
+              continue;
+
+            const auto length = first.position.distanceTo(second.position);
+            if (length <= std::numeric_limits<double>::epsilon())
+              continue;
+
+            if (!bondGroup) {
+              bondGroup = std::make_unique<Group>();
+              bondGroup->setName(QStringLiteral("Bonds"));
+              bondGroup->setLabel(bondGroup->name());
+              applyCommonGroupMetadata(*bondGroup,
+                                       sourceIdForChain(chain) + QStringLiteral("/bonds"),
+                                       QStringLiteral("bonds"));
+              bondGroup->setMetadataValue(QStringLiteral("modelId"), model.id);
+              bondGroup->setMetadataValue(QStringLiteral("chainId"), qstr(chain.id));
+              bondGroup->setMetadataValue(QStringLiteral("molecule.representation"),
+                                          options.representation);
+            }
+
+            auto* cylinder = new Cylinder;
+            cylinder->setName(
+              QStringLiteral("Bond %1-%2").arg(first.serialNumber).arg(second.serialNumber));
+            cylinder->setRadius(options.bondRadius);
+            cylinder->setHeight(length);
+            cylinder->setMatrix(bondTransform(first.position, second.position));
+            auto material = makeMaterial(colorForBond(first, options.colorScheme, chainOrdinals));
+            cylinder->setMaterial(material.get());
+            cylinder->addChild(std::move(material));
+            cylinder->setMetadataValue(GroupMetadata::sourceFormatKey(),
+                                       QStringLiteral("molecule"));
+            cylinder->setMetadataValue(GroupMetadata::sourceIdKey(), QString("%1/bond/%2-%3")
+                                                                       .arg(sourceIdForChain(chain))
+                                                                       .arg(first.serialNumber)
+                                                                       .arg(second.serialNumber));
+            cylinder->setMetadataValue(QStringLiteral("molecule.kind"), QStringLiteral("bond"));
+            cylinder->setMetadataValue(QStringLiteral("molecule.representation"),
+                                       options.representation);
+            cylinder->setMetadataValue(QStringLiteral("molecule.colorScheme"), options.colorScheme);
+            cylinder->setMetadataValue(QStringLiteral("firstAtomSerialNumber"), first.serialNumber);
+            cylinder->setMetadataValue(QStringLiteral("secondAtomSerialNumber"),
+                                       second.serialNumber);
+            cylinder->setMetadataValue(QStringLiteral("moleculeBondInferred"), bond.inferred);
+            bondGroup->addChild(cylinder);
+          }
+
+          if (bondGroup)
+            chainGroup->addChild(std::move(bondGroup));
         }
       }
     }
@@ -307,28 +518,58 @@ namespace world {
   }
 
   ImportOptionSchemas MoleculeSceneImporter::optionSchema() const {
-    return {{"atomRadius",
-             ImportOptionType::Double,
-             "Atom radius",
-             "Radius used for generated atom sphere surfaces.",
-             0.25,
-             false,
-             {}},
-            {"backboneMode",
-             ImportOptionType::Choice,
-             "Backbone mode",
-             "Protein CA trace representation: none, overlay, ribbon, or tube.",
-             QStringLiteral("overlay"),
-             false,
-             {QStringLiteral("none"), QStringLiteral("overlay"), QStringLiteral("ribbon"),
-              QStringLiteral("tube")}},
-            {"backboneWidth",
-             ImportOptionType::Double,
-             "Backbone width",
-             "World-space width used for ribbon and tube backbone curves.",
-             0.35,
-             false,
-             {}}};
+    return {
+      {"representation",
+       ImportOptionType::Choice,
+       "Representation",
+       "Molecular representation: ball-and-stick, space-filling, or backbone.",
+       QStringLiteral("ball-and-stick"),
+       false,
+       {QStringLiteral("ball-and-stick"), QStringLiteral("space-filling"),
+        QStringLiteral("backbone")}},
+      {"colorScheme",
+       ImportOptionType::Choice,
+       "Color scheme",
+       "Molecular color mapping: element, chain, or residue-category.",
+       QStringLiteral("element"),
+       false,
+       {QStringLiteral("element"), QStringLiteral("chain"), QStringLiteral("residue-category")}},
+      {"atomRadius",
+       ImportOptionType::Double,
+       "Atom radius",
+       "Radius used for generated ball-and-stick atom sphere surfaces.",
+       0.25,
+       false,
+       {}},
+      {"spaceFillingScale",
+       ImportOptionType::Double,
+       "Space-filling scale",
+       "Scale applied to van der Waals radii for space-filling atom spheres.",
+       1.0,
+       false,
+       {}},
+      {"bondRadius",
+       ImportOptionType::Double,
+       "Bond radius",
+       "Radius used for generated ball-and-stick bond cylinders.",
+       0.08,
+       false,
+       {}},
+      {"backboneMode",
+       ImportOptionType::Choice,
+       "Backbone mode",
+       "Protein CA trace representation: none, overlay, ribbon, or tube.",
+       QStringLiteral("overlay"),
+       false,
+       {QStringLiteral("none"), QStringLiteral("overlay"), QStringLiteral("ribbon"),
+        QStringLiteral("tube")}},
+      {"backboneWidth",
+       ImportOptionType::Double,
+       "Backbone width",
+       "World-space width used for ribbon and tube backbone curves.",
+       0.35,
+       false,
+       {}}};
   }
 
   ImportResult MoleculeSceneImporter::importFile(const QString& filename,
@@ -356,12 +597,20 @@ namespace world {
       return ImportResult::failed(std::move(diagnostics), source);
     }
 
-    const double atomRadius = options.value("atomRadius", 0.25).toDouble();
-    const QString backboneMode =
-      options.value("backboneMode", QStringLiteral("overlay")).toString().toLower();
-    const double backboneWidth = options.value("backboneWidth", 0.35).toDouble();
-    ImportResult result(MoleculeSceneCompiler().compile(parsed.molecule(), source, atomRadius,
-                                                        backboneMode, backboneWidth),
+    MoleculeSceneCompileOptions compileOptions;
+    compileOptions.representation =
+      options.value("representation", compileOptions.representation).toString().toLower();
+    compileOptions.colorScheme =
+      options.value("colorScheme", compileOptions.colorScheme).toString().toLower();
+    compileOptions.atomRadius = options.value("atomRadius", compileOptions.atomRadius).toDouble();
+    compileOptions.spaceFillingScale =
+      options.value("spaceFillingScale", compileOptions.spaceFillingScale).toDouble();
+    compileOptions.bondRadius = options.value("bondRadius", compileOptions.bondRadius).toDouble();
+    compileOptions.backboneMode =
+      options.value("backboneMode", compileOptions.backboneMode).toString().toLower();
+    compileOptions.backboneWidth =
+      options.value("backboneWidth", compileOptions.backboneWidth).toDouble();
+    ImportResult result(MoleculeSceneCompiler().compile(parsed.molecule(), source, compileOptions),
                         source);
     for (const auto& diagnostic : diagnostics)
       result.addDiagnostic(diagnostic);

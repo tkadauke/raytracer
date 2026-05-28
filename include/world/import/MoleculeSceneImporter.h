@@ -15,14 +15,24 @@ namespace world {
     * Converts parsed molecular coordinates into editable world scene hierarchy.
     *
     * The compiler preserves the source model -> chain -> residue hierarchy as
-    * generic Groups and emits simple atom spheres as visible leaves.
+    * generic Groups and emits representation-specific visible leaves.
     */
+  struct MoleculeSceneCompileOptions {
+    QString representation{QStringLiteral("ball-and-stick")};
+    QString colorScheme{QStringLiteral("element")};
+    double atomRadius{0.25};
+    double spaceFillingScale{1.0};
+    double bondRadius{0.08};
+    bool inferBondsWhenMissing{true};
+    QString backboneMode{QStringLiteral("overlay")};
+    double backboneWidth{0.35};
+  };
+
   class MoleculeSceneCompiler {
   public:
     [[nodiscard]] std::unique_ptr<Group>
     compile(const molecule::Molecule& molecule, const ImportSourceMetadata& source,
-            double atomRadius = 0.25, const QString& backboneMode = QStringLiteral("overlay"),
-            double backboneWidth = 0.35) const;
+            const MoleculeSceneCompileOptions& options = MoleculeSceneCompileOptions()) const;
   };
 
   /**

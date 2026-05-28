@@ -44,15 +44,13 @@ one example: [`MoleculeParser`](../../../include/core/formats/molecule/MoleculeP
 reads PDB `ATOM` / `HETATM` records and a supported PDBx/mmCIF `_atom_site`
 subset into [`Molecule`](../../../include/core/formats/molecule/Molecule.h)
 atoms, explicit PDB `CONECT` bonds, residues, chains, models, metadata, and
-lightweight diagnostics. [`MoleculeSceneBuilder`](../../../include/world/import/MoleculeSceneBuilder.h)
-then converts that structured data into a ball-and-stick `Group` hierarchy:
-model, chain, and residue groups contain element-colored atom spheres, while
-known or distance-inferred bonds become gray cylinders.
 [`MoleculeSceneImporter`](../../../include/world/import/MoleculeSceneImporter.h)
-uses that builder to expose the molecule scene through the common importer
-metadata and provenance surface. Keeping parser and scene conversion separate
-lets the core coordinate reader stay independent of Qt while the scene importer
-uses the same result contract as other formats.
+then converts that structured data into a provenance-preserving `Group`
+hierarchy with importer options for ball-and-stick, space-filling, and backbone
+representations. Atom and bond materials can be colored by element, chain, or
+residue category where the source data supports it. Keeping parser and scene
+conversion separate lets the core coordinate reader stay independent of Qt while
+the scene importer uses the same result contract as other formats.
 
 ## Options
 

@@ -1,11 +1,15 @@
 #include "world/import/MoleculeSceneImporter.h"
 
 #include "core/formats/molecule/MoleculeParser.h"
+#include "world/objects/ConstantColorTexture.h"
+#include "world/objects/Cylinder.h"
 #include "world/import/ImportResult.h"
+#include "world/import/MoleculeSceneBuilder.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/Element.h"
 #include "world/objects/Group.h"
 #include "world/objects/Curve.h"
+#include "world/objects/MatteMaterial.h"
 #include "world/objects/Scene.h"
 #include "world/objects/Sphere.h"
 
@@ -27,6 +31,20 @@ namespace MoleculeSceneImporterTest {
 
     Curve* curveChild(Group* parent, int index) {
       return qobject_cast<Curve*>(parent->childElements()[index]);
+    }
+
+    Cylinder* cylinderChild(Group* parent, int index) {
+      return qobject_cast<Cylinder*>(parent->childElements()[index]);
+    }
+
+    Colord materialColor(const Surface& surface) {
+      auto* material = qobject_cast<MatteMaterial*>(surface.material());
+      if (!material)
+        return Colord();
+      auto* texture = qobject_cast<ConstantColorTexture*>(material->diffuseTexture());
+      if (!texture)
+        return Colord();
+      return texture->color();
     }
 
     std::size_t countVisibleSurfaces(const Scene& scene) {
@@ -96,6 +114,10 @@ namespace MoleculeSceneImporterTest {
     ASSERT_EQ(2, gly->childElements().size());
     auto* atom = sphereChild(gly, 0);
     ASSERT_NE(nullptr, atom);
+    ASSERT_NE(nullptr, atom->material());
+    EXPECT_EQ(QString("ball-and-stick"), atom->metadataValue("molecule.representation").toString());
+    EXPECT_EQ(QString("element"), atom->metadataValue("molecule.colorScheme").toString());
+    EXPECT_EQ(QString("N"), atom->metadataValue("moleculeElement").toString());
     EXPECT_EQ(QString("ATOM 1"), atom->metadataValue("sourceRecord").toString());
     EXPECT_EQ(QString("model/7/chain/A/residue/GLY/1/atom/1"),
               atom->metadataValue(GroupMetadata::sourceIdKey()).toString());
@@ -110,6 +132,14 @@ namespace MoleculeSceneImporterTest {
     EXPECT_EQ(QString("LIG"), ligand->metadataValue("residueName").toString());
     EXPECT_EQ(201, ligand->metadataValue("residueIndex").toInt());
     EXPECT_EQ(QString("ligand"), ligand->metadataValue("molecule.category").toString());
+
+    auto* bonds = groupChild(chainA, 1);
+    ASSERT_NE(nullptr, bonds);
+    EXPECT_EQ(QString("bonds"), bonds->metadataValue("molecule.kind").toString());
+    auto* bond = cylinderChild(bonds, 0);
+    ASSERT_NE(nullptr, bond);
+    EXPECT_EQ(QString("bond"), bond->metadataValue("molecule.kind").toString());
+    EXPECT_FALSE(bond->metadataValue("moleculeBondInferred").toBool());
   }
 
   TEST(MoleculeSceneCompiler, ShouldComposeGroupVisibilityForChainsAndResidues) {
@@ -126,14 +156,14 @@ namespace MoleculeSceneImporterTest {
 
     Scene scene;
     scene.addChild(std::move(root));
-    EXPECT_EQ(3u, countVisibleSurfaces(scene));
+    EXPECT_EQ(4u, countVisibleSurfaces(scene));
 
     chainA->hide();
     EXPECT_EQ(1u, countVisibleSurfaces(scene));
 
     chainA->show();
     ligand->hide();
-    EXPECT_EQ(2u, countVisibleSurfaces(scene));
+    EXPECT_EQ(3u, countVisibleSurfaces(scene));
   }
 
   TEST(MoleculeSceneCompiler, ShouldBuildBackboneCurvesFromChainAlphaCarbons) {
@@ -146,8 +176,11 @@ namespace MoleculeSceneImporterTest {
     source.importerName = "molecule";
     source.formatName = "Molecule";
 
-    auto root =
-      world::MoleculeSceneCompiler().compile(parsed.molecule(), source, 0.25, "overlay", 0.4);
+    world::MoleculeSceneCompileOptions options;
+    options.backboneMode = "overlay";
+    options.backboneWidth = 0.4;
+
+    auto root = world::MoleculeSceneCompiler().compile(parsed.molecule(), source, options);
 
     auto* model = groupChild(root.get(), 0);
     auto* chainA = groupChild(model, 0);
@@ -187,15 +220,20 @@ namespace MoleculeSceneImporterTest {
     const auto parsed = molecule::MoleculeParser().parsePdb(input);
 
     world::ImportSourceMetadata source;
-    auto withTube =
-      world::MoleculeSceneCompiler().compile(parsed.molecule(), source, 0.25, "tube", 0.6);
+    world::MoleculeSceneCompileOptions tubeOptions;
+    tubeOptions.backboneMode = "tube";
+    tubeOptions.backboneWidth = 0.6;
+    auto withTube = world::MoleculeSceneCompiler().compile(parsed.molecule(), source, tubeOptions);
     auto* tubeBackbone = curveChild(groupChild(groupChild(withTube.get(), 0), 0), 0);
     ASSERT_NE(nullptr, tubeBackbone);
     EXPECT_DOUBLE_EQ(0.6, tubeBackbone->width());
     EXPECT_EQ(QString("tube"), tubeBackbone->tessellationMode());
 
+    world::MoleculeSceneCompileOptions noBackboneOptions;
+    noBackboneOptions.backboneMode = "none";
+    noBackboneOptions.backboneWidth = 0.6;
     auto withoutBackbone =
-      world::MoleculeSceneCompiler().compile(parsed.molecule(), source, 0.25, "none", 0.6);
+      world::MoleculeSceneCompiler().compile(parsed.molecule(), source, noBackboneOptions);
     auto* chainA = groupChild(groupChild(withoutBackbone.get(), 0), 0);
     ASSERT_NE(nullptr, chainA);
     ASSERT_FALSE(chainA->childElements().isEmpty());
@@ -247,14 +285,81 @@ namespace MoleculeSceneImporterTest {
     world::MoleculeSceneImporter importer;
 
     const auto schema = importer.optionSchema();
-    ASSERT_EQ(3u, schema.size());
-    EXPECT_EQ(QString("backboneMode"), schema[1].name);
-    EXPECT_EQ(world::ImportOptionType::Choice, schema[1].type);
-    EXPECT_TRUE(schema[1].choices.contains(QStringLiteral("overlay")));
-    EXPECT_TRUE(schema[1].choices.contains(QStringLiteral("ribbon")));
-    EXPECT_TRUE(schema[1].choices.contains(QStringLiteral("tube")));
-    EXPECT_EQ(QString("backboneWidth"), schema[2].name);
-    EXPECT_EQ(world::ImportOptionType::Double, schema[2].type);
+    ASSERT_EQ(7u, schema.size());
+    EXPECT_EQ(QString("representation"), schema[0].name);
+    EXPECT_EQ(world::ImportOptionType::Choice, schema[0].type);
+    EXPECT_TRUE(schema[0].choices.contains(QStringLiteral("ball-and-stick")));
+    EXPECT_TRUE(schema[0].choices.contains(QStringLiteral("space-filling")));
+    EXPECT_TRUE(schema[0].choices.contains(QStringLiteral("backbone")));
+    EXPECT_EQ(QString("colorScheme"), schema[1].name);
+    EXPECT_TRUE(schema[1].choices.contains(QStringLiteral("element")));
+    EXPECT_TRUE(schema[1].choices.contains(QStringLiteral("chain")));
+    EXPECT_TRUE(schema[1].choices.contains(QStringLiteral("residue-category")));
+    EXPECT_EQ(QString("backboneMode"), schema[5].name);
+    EXPECT_EQ(world::ImportOptionType::Choice, schema[5].type);
+    EXPECT_TRUE(schema[5].choices.contains(QStringLiteral("overlay")));
+    EXPECT_TRUE(schema[5].choices.contains(QStringLiteral("ribbon")));
+    EXPECT_TRUE(schema[5].choices.contains(QStringLiteral("tube")));
+    EXPECT_EQ(QString("backboneWidth"), schema[6].name);
+    EXPECT_EQ(world::ImportOptionType::Double, schema[6].type);
+  }
+
+  TEST(MoleculeSceneImporter, ShouldImportSpaceFillingAndChainColorOptions) {
+    world::MoleculeSceneImporter importer;
+    world::ImportOptions options;
+    options.setValue("representation", "space-filling");
+    options.setValue("colorScheme", "chain");
+    options.setValue("spaceFillingScale", 0.5);
+
+    auto result = importer.importFile("test/fixtures/molecule/small.pdb", options);
+
+    ASSERT_TRUE(result.succeeded());
+    auto root = result.takeRoot();
+    auto* rootGroup = qobject_cast<Group*>(root.get());
+    ASSERT_NE(nullptr, rootGroup);
+    auto* model = groupChild(rootGroup, 0);
+    auto* chainA = groupChild(model, 0);
+    auto* chainB = groupChild(model, 1);
+    auto* gly = groupChild(chainA, 0);
+    auto* ligand = groupChild(chainB, 0);
+    auto* nitrogen = sphereChild(gly, 0);
+    auto* carbon = sphereChild(gly, 1);
+    auto* ligandCarbon = sphereChild(ligand, 0);
+
+    ASSERT_NE(nullptr, nitrogen);
+    ASSERT_NE(nullptr, carbon);
+    ASSERT_NE(nullptr, ligandCarbon);
+    EXPECT_EQ(QString("space-filling"),
+              nitrogen->metadataValue("molecule.representation").toString());
+    EXPECT_DOUBLE_EQ(world::moleculeElementStyle("N").displayRadius * 0.5, nitrogen->radius());
+    EXPECT_DOUBLE_EQ(world::moleculeElementStyle("C").displayRadius * 0.5, carbon->radius());
+    EXPECT_EQ(2, model->childElements().size());
+    EXPECT_EQ(materialColor(*nitrogen), materialColor(*carbon));
+    EXPECT_NE(materialColor(*nitrogen), materialColor(*ligandCarbon));
+  }
+
+  TEST(MoleculeSceneImporter, ShouldImportBackboneRepresentationWithoutAtoms) {
+    world::MoleculeSceneImporter importer;
+    world::ImportOptions options;
+    options.setValue("representation", "backbone");
+
+    auto result = importer.importFile("test/fixtures/molecule/backbone_chain.pdb", options);
+
+    ASSERT_TRUE(result.succeeded());
+    auto root = result.takeRoot();
+    auto* rootGroup = qobject_cast<Group*>(root.get());
+    ASSERT_NE(nullptr, rootGroup);
+    auto* model = groupChild(rootGroup, 0);
+    auto* chainA = groupChild(model, 0);
+    ASSERT_NE(nullptr, chainA);
+    ASSERT_EQ(4, chainA->childElements().size());
+    auto* backbone = curveChild(chainA, 0);
+    ASSERT_NE(nullptr, backbone);
+    EXPECT_EQ(QString("tube"), backbone->metadataValue("molecule.representation").toString());
+    EXPECT_DOUBLE_EQ(0.35, backbone->width());
+    EXPECT_EQ(QString("tube"), backbone->tessellationMode());
+    for (int i = 1; i != chainA->childElements().size(); ++i)
+      EXPECT_EQ(nullptr, qobject_cast<Sphere*>(chainA->childElements()[i]));
   }
 
   TEST(MoleculeSceneImporter, ShouldImportAndRoundTripBackboneCurves) {
@@ -269,7 +374,7 @@ namespace MoleculeSceneImporterTest {
 
     Scene scene;
     scene.addChild(result.takeRoot());
-    EXPECT_EQ(4u, countVisibleSurfaces(scene));
+    EXPECT_EQ(6u, countVisibleSurfaces(scene));
 
     QJsonObject json;
     scene.write(json);
