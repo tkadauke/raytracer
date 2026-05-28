@@ -179,9 +179,11 @@ redoing the math.~~
 ✅ **Done.** Generic template is now branchless (two-level `std::min`/`std::max`,
 no sign branches). Explicit SSE2 specialization for `BoundingBox<double>` (the
 BVH hot path) processes X+Y axes in a single `__m128d` pass via
-`_mm_div_pd`/`_mm_mul_pd`/`_mm_min_pd`/`_mm_max_pd`. `intersect(Ray,
-Range<T>&)` overload added to all four paths (generic float, generic double,
-SSE2 double). Measured: 256-ray batch 222 → 302–342 M/s (+36–54%); 10k-ray
+`_mm_mul_pd`/`_mm_min_pd`/`_mm_max_pd`; BVH traversal precomputes the ray's
+inverse direction once and reuses it across node boxes. `intersect(Ray,
+Range<T>&)` and precomputed-inverse overloads added to all four paths (generic
+float, generic double, SSE2 double). Measured: 256-ray batch 222 → 302–342
+M/s (+36–54%); 10k-ray
 batch ~295–330 M/s. The ≥3× target was not reached on the 2.5 GHz build VM
 (high system load, low clock); re-measure on dedicated hardware. `float` path
 relies on the generic branchless template (SSE float specialization was

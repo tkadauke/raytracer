@@ -315,6 +315,16 @@ namespace BoundingBoxTest {
     ASSERT_TRUE(box.intersects(ray));
   }
 
+  TYPED_TEST(BoundingBoxTest, ShouldIntersectWithPrecomputedInverseDirection) {
+    BoundingBox<TypeParam> box(Vector3<TypeParam>(-1, -1, -1), Vector3<TypeParam>(1, 1, 1));
+    Rayd ray(Vector3<TypeParam>(-2, 0, 0), Vector3<TypeParam>(1, 0, 0));
+    Vector3<TypeParam> inverseDirection(TypeParam(1) / TypeParam(ray.direction().x()),
+                                        TypeParam(1) / TypeParam(ray.direction().y()),
+                                        TypeParam(1) / TypeParam(ray.direction().z()));
+
+    ASSERT_TRUE(box.intersects(ray, inverseDirection));
+  }
+
   TYPED_TEST(BoundingBoxTest, ShouldIntersectWithRayInYDirection) {
     BoundingBox<TypeParam> box(Vector3<TypeParam>(-1, -1, -1), Vector3<TypeParam>(1, 1, 1));
     Rayd ray(Vector3<TypeParam>(0, -2, 0), Vector3<TypeParam>(0, 1, 0));
@@ -350,6 +360,19 @@ namespace BoundingBoxTest {
 
     ASSERT_TRUE(box.intersect(ray, interval));
     // Ray along +X from x=-3: enters at x=-1 (t=2) and exits at x=+1 (t=4)
+    EXPECT_NEAR(double(interval.begin()), 2.0, 1e-5);
+    EXPECT_NEAR(double(interval.end()), 4.0, 1e-5);
+  }
+
+  TYPED_TEST(BoundingBoxTest, ShouldReturnIntervalWithPrecomputedInverseDirection) {
+    BoundingBox<TypeParam> box(Vector3<TypeParam>(-1, -1, -1), Vector3<TypeParam>(1, 1, 1));
+    Rayd ray(Vector4d(0, -3, 0, 1), Vector3d(0, 1, 0));
+    Vector3<TypeParam> inverseDirection(TypeParam(1) / TypeParam(ray.direction().x()),
+                                        TypeParam(1) / TypeParam(ray.direction().y()),
+                                        TypeParam(1) / TypeParam(ray.direction().z()));
+    ::Range<TypeParam> interval(TypeParam(0), TypeParam(0));
+
+    ASSERT_TRUE(box.intersect(ray, inverseDirection, interval));
     EXPECT_NEAR(double(interval.begin()), 2.0, 1e-5);
     EXPECT_NEAR(double(interval.end()), 4.0, 1e-5);
   }

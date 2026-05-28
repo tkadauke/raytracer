@@ -89,6 +89,55 @@ namespace {
   }
 
   template<typename T>
+  std::vector<Vector3<T>> inverseDirectionsFor(const std::vector<Rayd>& rays) {
+    std::vector<Vector3<T>> inverseDirections;
+    inverseDirections.reserve(rays.size());
+    for (const auto& ray : rays) {
+      inverseDirections.emplace_back(T(1) / T(ray.direction().x()), T(1) / T(ray.direction().y()),
+                                     T(1) / T(ray.direction().z()));
+    }
+    return inverseDirections;
+  }
+
+  // Same bool query, but with the ray's reciprocal direction precomputed once.
+  // This mirrors BVH traversal, where one ray is tested against many node boxes.
+  template<typename T>
+  void bm_intersects_precomputed_inverse(benchmark::State& state) {
+    BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
+    const auto rays = generateRays<T>(10000, T(2));
+    const auto inverseDirections = inverseDirectionsFor<T>(rays);
+    for (auto _ : state) {
+      int hits = 0;
+      for (std::size_t i = 0; i != rays.size(); ++i) {
+        if (box.intersects(rays[i], inverseDirections[i]))
+          ++hits;
+      }
+      benchmark::DoNotOptimize(hits);
+      benchmark::ClobberMemory();
+    }
+    state.SetItemsProcessed(state.iterations() * rays.size());
+  }
+
+  template<typename T>
+  void bm_intersect_interval_precomputed_inverse(benchmark::State& state) {
+    BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
+    const auto rays = generateRays<T>(10000, T(2));
+    const auto inverseDirections = inverseDirectionsFor<T>(rays);
+    for (auto _ : state) {
+      int hits = 0;
+      for (std::size_t i = 0; i != rays.size(); ++i) {
+        Range<T> interval(T(0), T(0));
+        if (box.intersect(rays[i], inverseDirections[i], interval))
+          ++hits;
+        benchmark::DoNotOptimize(interval);
+      }
+      benchmark::DoNotOptimize(hits);
+      benchmark::ClobberMemory();
+    }
+    state.SetItemsProcessed(state.iterations() * rays.size());
+  }
+
+  template<typename T>
   void bm_contains_point(benchmark::State& state) {
     BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
     std::vector<Vector3<T>> points;
@@ -171,6 +220,12 @@ BENCHMARK(bm_intersects_batch<double>);
 
 BENCHMARK(bm_intersect_interval<float>);
 BENCHMARK(bm_intersect_interval<double>);
+
+BENCHMARK(bm_intersects_precomputed_inverse<float>);
+BENCHMARK(bm_intersects_precomputed_inverse<double>);
+
+BENCHMARK(bm_intersect_interval_precomputed_inverse<float>);
+BENCHMARK(bm_intersect_interval_precomputed_inverse<double>);
 
 BENCHMARK(bm_contains_point<float>);
 BENCHMARK(bm_contains_point<double>);

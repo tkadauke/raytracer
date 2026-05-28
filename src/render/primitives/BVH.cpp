@@ -147,21 +147,33 @@ const Primitive* BVH::intersect(const Rayd& ray, HitPointInterval& hitPoints,
     // base implementation still produces correct results.
     return Composite::intersect(ray, hitPoints, state);
   }
-  return intersectNode(m_root.get(), ray, hitPoints, state);
+  const Vector3d inverseDirection(1.0 / ray.direction().x(), 1.0 / ray.direction().y(),
+                                  1.0 / ray.direction().z());
+  return intersectNode(m_root.get(), ray, inverseDirection, hitPoints, state);
 }
 
 bool BVH::intersects(const Rayd& ray, render::State& state) const {
   if (!m_root) {
     return Composite::intersects(ray, state);
   }
-  return intersectsNode(m_root.get(), ray, state);
+  const Vector3d inverseDirection(1.0 / ray.direction().x(), 1.0 / ray.direction().y(),
+                                  1.0 / ray.direction().z());
+  return intersectsNode(m_root.get(), ray, inverseDirection, state);
 }
 
-const Primitive* BVH::intersectNode(const Node* node, const Rayd& ray, HitPointInterval& hitPoints,
+const Primitive* BVH::intersectNode(const Node* node, const Rayd& ray,
+                                    const Vector3d& inverseDirection, HitPointInterval& hitPoints,
                                     render::State& state) const {
-  if (!node || !node->bbox.intersects(ray))
+  if (!node)
     return nullptr;
+  if (!node->bbox.intersects(ray, inverseDirection))
+    return nullptr;
+  return intersectHitNode(node, ray, inverseDirection, hitPoints, state);
+}
 
+const Primitive* BVH::intersectHitNode(const Node* node, const Rayd& ray,
+                                       const Vector3d& inverseDirection,
+                                       HitPointInterval& hitPoints, render::State& state) const {
   if (node->isLeaf()) {
     const Primitive* hit = nullptr;
     double minDistance = std::numeric_limits<double>::infinity();
@@ -180,15 +192,16 @@ const Primitive* BVH::intersectNode(const Node* node, const Rayd& ray, HitPointI
     return hit;
   }
 
-  // Internal node: descend both children and pick the closer hit. A
-  // future optimisation would be to descend the near child first and
-  // skip the far child entirely when the near hit's t is below the
-  // far child's bbox-entry t. For the v1 SAH BVH this isn't yet
-  // necessary — the AABB cull at each level already gives most of the
-  // speedup over the linear scan.
+  const Node* left = node->left.get();
+  const Node* right = node->right.get();
+  const bool leftHitBox = left && left->bbox.intersects(ray, inverseDirection);
+  const bool rightHitBox = right && right->bbox.intersects(ray, inverseDirection);
+
   HitPointInterval leftPoints, rightPoints;
-  const Primitive* leftHit = intersectNode(node->left.get(), ray, leftPoints, state);
-  const Primitive* rightHit = intersectNode(node->right.get(), ray, rightPoints, state);
+  const Primitive* leftHit =
+    leftHitBox ? intersectHitNode(left, ray, inverseDirection, leftPoints, state) : nullptr;
+  const Primitive* rightHit =
+    rightHitBox ? intersectHitNode(right, ray, inverseDirection, rightPoints, state) : nullptr;
 
   if (!leftHit) {
     hitPoints = hitPoints + rightPoints;
@@ -199,18 +212,24 @@ const Primitive* BVH::intersectNode(const Node* node, const Rayd& ray, HitPointI
     return leftHit;
   }
 
-  // Both children hit — accumulate every hit point and return the
-  // closer primitive.
+  // Keep Composite's interval contract: accumulate both children.
   hitPoints = hitPoints + leftPoints + rightPoints;
   const double leftT = leftPoints.minWithPositiveDistance().distance();
   const double rightT = rightPoints.minWithPositiveDistance().distance();
   return leftT <= rightT ? leftHit : rightHit;
 }
 
-bool BVH::intersectsNode(const Node* node, const Rayd& ray, render::State& state) const {
-  if (!node || !node->bbox.intersects(ray))
+bool BVH::intersectsNode(const Node* node, const Rayd& ray, const Vector3d& inverseDirection,
+                         render::State& state) const {
+  if (!node)
     return false;
+  if (!node->bbox.intersects(ray, inverseDirection))
+    return false;
+  return intersectsHitNode(node, ray, inverseDirection, state);
+}
 
+bool BVH::intersectsHitNode(const Node* node, const Rayd& ray, const Vector3d& inverseDirection,
+                            render::State& state) const {
   if (node->isLeaf()) {
     for (const auto& p : node->primitives) {
       if (p->intersects(ray, state))
@@ -219,8 +238,13 @@ bool BVH::intersectsNode(const Node* node, const Rayd& ray, render::State& state
     return false;
   }
 
-  return intersectsNode(node->left.get(), ray, state) ||
-         intersectsNode(node->right.get(), ray, state);
+  const Node* left = node->left.get();
+  const Node* right = node->right.get();
+  const bool leftHitBox = left && left->bbox.intersects(ray, inverseDirection);
+  const bool rightHitBox = right && right->bbox.intersects(ray, inverseDirection);
+
+  return (leftHitBox && intersectsHitNode(left, ray, inverseDirection, state)) ||
+         (rightHitBox && intersectsHitNode(right, ray, inverseDirection, state));
 }
 
 RayPacketIntersection4 BVH::intersectPacket(const Ray4& rays, render::State& state) const {
@@ -247,9 +271,9 @@ void BVH::intersectPacketNode(const Node* node, const Ray4& rays, uint16_t activ
   if (!node || activeMask == 0)
     return;
 
-  // Test each active-mask lane against this node's AABB. Lanes that miss
-  // are excluded from the descending mask, pruning the subtree for those
-  // rays without a separate traversal.
+    // Test each active-mask lane against this node's AABB. Lanes that miss
+    // are excluded from the descending mask, pruning the subtree for those
+    // rays without a separate traversal.
 #ifdef __SSE__
   const uint16_t nodeMask = static_cast<uint16_t>(
     activeMask & static_cast<uint16_t>(_mm_movemask_ps(node->bbox.intersects4(rays))));
