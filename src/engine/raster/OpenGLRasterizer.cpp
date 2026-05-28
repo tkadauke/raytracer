@@ -114,18 +114,27 @@ namespace engine::raster {
 
         QOpenGLShaderProgram program;
         if (!program.addShaderFromSourceCode(QOpenGLShader::Vertex,
-                                             "attribute vec3 position;\n"
+                                             "attribute vec4 position;\n"
                                              "attribute vec4 color;\n"
+                                             "attribute vec2 uv;\n"
+                                             "attribute float albedoMode;\n"
                                              "varying vec4 vertexColor;\n"
+                                             "varying vec2 vertexUV;\n"
+                                             "varying float fragmentAlbedoMode;\n"
                                              "void main() {\n"
-                                             "  gl_Position = vec4(position, 1.0);\n"
+                                             "  gl_Position = vec4(position.xyz * position.w, "
+                                             "position.w);\n"
                                              "  vertexColor = color;\n"
+                                             "  vertexUV = uv;\n"
+                                             "  fragmentAlbedoMode = albedoMode;\n"
                                              "}\n")) {
           throw std::runtime_error("OpenGL raster backend could not compile vertex shader: " +
                                    program.log().toStdString());
         }
         if (!program.addShaderFromSourceCode(
               QOpenGLShader::Fragment, "varying vec4 vertexColor;\n"
+                                       "varying vec2 vertexUV;\n"
+                                       "varying float fragmentAlbedoMode;\n"
                                        "uniform bool alphaTestEnabled;\n"
                                        "uniform int alphaFunc;\n"
                                        "uniform float alphaReference;\n"
@@ -141,8 +150,14 @@ namespace engine::raster {
                                        "  return true;\n"
                                        "}\n"
                                        "void main() {\n"
-                                       "  if (!alphaPass(vertexColor.a)) discard;\n"
-                                       "  gl_FragColor = vertexColor;\n"
+                                       "  vec4 sourceColor = vertexColor;\n"
+                                       "  if (fragmentAlbedoMode > 0.5 && "
+                                       "fragmentAlbedoMode < 1.5) {\n"
+                                       "    sourceColor = vec4(vertexUV.x, vertexUV.y, 0.0, "
+                                       "vertexColor.a);\n"
+                                       "  }\n"
+                                       "  if (!alphaPass(sourceColor.a)) discard;\n"
+                                       "  gl_FragColor = sourceColor;\n"
                                        "}\n")) {
           throw std::runtime_error("OpenGL raster backend could not compile fragment shader: " +
                                    program.log().toStdString());
@@ -176,7 +191,9 @@ namespace engine::raster {
 
         const int positionLocation = program.attributeLocation("position");
         const int colorLocation = program.attributeLocation("color");
-        if (positionLocation < 0 || colorLocation < 0) {
+        const int uvLocation = program.attributeLocation("uv");
+        const int albedoModeLocation = program.attributeLocation("albedoMode");
+        if (positionLocation < 0 || colorLocation < 0 || uvLocation < 0 || albedoModeLocation < 0) {
           indexBuffer.release();
           vertexBuffer.release();
           program.release();
@@ -185,11 +202,19 @@ namespace engine::raster {
 
         program.enableAttributeArray(positionLocation);
         program.setAttributeBuffer(positionLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, x), 3,
+                                   offsetof(detail::OpenGLRasterMesh::Vertex, x), 4,
                                    sizeof(detail::OpenGLRasterMesh::Vertex));
         program.enableAttributeArray(colorLocation);
         program.setAttributeBuffer(colorLocation, GL_FLOAT,
                                    offsetof(detail::OpenGLRasterMesh::Vertex, r), 4,
+                                   sizeof(detail::OpenGLRasterMesh::Vertex));
+        program.enableAttributeArray(uvLocation);
+        program.setAttributeBuffer(uvLocation, GL_FLOAT,
+                                   offsetof(detail::OpenGLRasterMesh::Vertex, u), 2,
+                                   sizeof(detail::OpenGLRasterMesh::Vertex));
+        program.enableAttributeArray(albedoModeLocation);
+        program.setAttributeBuffer(albedoModeLocation, GL_FLOAT,
+                                   offsetof(detail::OpenGLRasterMesh::Vertex, albedoMode), 1,
                                    sizeof(detail::OpenGLRasterMesh::Vertex));
 
         functions->glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh.indices().size()),
@@ -198,6 +223,8 @@ namespace engine::raster {
 
         resetFixedFunctionState(functions);
 
+        program.disableAttributeArray(albedoModeLocation);
+        program.disableAttributeArray(uvLocation);
         program.disableAttributeArray(colorLocation);
         program.disableAttributeArray(positionLocation);
         indexBuffer.release();

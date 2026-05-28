@@ -41,6 +41,17 @@ namespace engine::raster::detail {
       return static_cast<float>(std::clamp(normalized * 2.0 - 1.0, -1.0, 1.0));
     }
 
+    float clipW(const RasterVertex& vertex) {
+      if (vertex.invW <= 0.0 || !std::isfinite(vertex.invW)) {
+        return 1.0f;
+      }
+      return static_cast<float>(1.0 / vertex.invW);
+    }
+
+    float shaderMode(RasterAlbedoShaderMode mode) {
+      return static_cast<float>(static_cast<int>(mode));
+    }
+
     OpenGLRasterMesh::Vertex vertexFor(const RasterTriangle& triangle, const RasterVertex& vertex,
                                        const Recti& rect) {
       const Colord albedo = triangle.rasterMaterial.albedo(
@@ -50,10 +61,14 @@ namespace engine::raster::detail {
       return {normalizedDeviceX(vertex.x, rect),
               normalizedDeviceY(vertex.y, rect),
               normalizedDeviceDepth(vertex),
+              clipW(vertex),
               static_cast<float>(std::clamp(albedo.r(), 0.0, 1.0)),
               static_cast<float>(std::clamp(albedo.g(), 0.0, 1.0)),
               static_cast<float>(std::clamp(albedo.b(), 0.0, 1.0)),
-              static_cast<float>(std::clamp(alpha, 0.0, 1.0))};
+              static_cast<float>(std::clamp(alpha, 0.0, 1.0)),
+              static_cast<float>(vertex.uv.x()),
+              static_cast<float>(vertex.uv.y()),
+              shaderMode(triangle.rasterMaterial.shaderAlbedoMode())};
     }
   }
 

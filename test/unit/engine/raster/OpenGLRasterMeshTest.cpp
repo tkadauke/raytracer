@@ -8,6 +8,7 @@
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Triangle.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "render/textures/UVColorTexture.h"
 
 #include <atomic>
 #include <memory>
@@ -46,10 +47,38 @@ namespace OpenGLRasterMeshTest {
       EXPECT_LE(vertex.x, 1.0f);
       EXPECT_GE(vertex.y, -1.0f);
       EXPECT_LE(vertex.y, 1.0f);
+      EXPECT_GT(vertex.w, 0.0f);
       EXPECT_FLOAT_EQ(1.0f, vertex.r);
       EXPECT_FLOAT_EQ(0.0f, vertex.g);
       EXPECT_FLOAT_EQ(0.0f, vertex.b);
       EXPECT_FLOAT_EQ(1.0f, vertex.a);
+      EXPECT_FLOAT_EQ(0.0f, vertex.albedoMode);
+    }
+  }
+
+  TEST(OpenGLRasterMesh, CarriesUVColorShaderModeAndUVCoordinates) {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    auto triangle = std::make_shared<render::Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0),
+                                                       Vector3d(0, 1, 0));
+    triangle->setMaterial(
+      std::make_shared<render::MatteMaterial>(std::make_shared<render::UVColorTexture>()));
+    scene->add(triangle);
+    std::atomic<bool> cancelled{false};
+
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+                                              Rasterizer::CullMode::Both, false, cancelled)
+                        .build();
+
+    ASSERT_FALSE(mesh.empty());
+    ASSERT_EQ(3u, mesh.vertices().size());
+    EXPECT_FLOAT_EQ(0.0f, mesh.vertices()[0].u);
+    EXPECT_FLOAT_EQ(0.0f, mesh.vertices()[0].v);
+    EXPECT_FLOAT_EQ(1.0f, mesh.vertices()[1].u);
+    EXPECT_FLOAT_EQ(0.0f, mesh.vertices()[1].v);
+    EXPECT_FLOAT_EQ(0.0f, mesh.vertices()[2].u);
+    EXPECT_FLOAT_EQ(1.0f, mesh.vertices()[2].v);
+    for (const auto& vertex : mesh.vertices()) {
+      EXPECT_FLOAT_EQ(1.0f, vertex.albedoMode);
     }
   }
 

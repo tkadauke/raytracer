@@ -18,6 +18,8 @@ namespace render {
 
 namespace engine::raster::detail {
 
+  enum class RasterAlbedoShaderMode { VertexColor = 0, UVColor = 1 };
+
   struct RasterTangentFrame {
     Vector3d tangent{Vector3d::undefined};
     Vector3d bitangent{Vector3d::undefined};
@@ -39,6 +41,8 @@ namespace engine::raster::detail {
                     const Vector3d& normal, const Vector2d& uv,
                     const Vector2d& uvDx = Vector2d::null,
                     const Vector2d& uvDy = Vector2d::null) const;
+
+    RasterAlbedoShaderMode shaderAlbedoMode() const;
 
   private:
     enum class Kind { Constant, UVColor, UVChecker, Image, Fallback };
@@ -95,6 +99,8 @@ namespace engine::raster::detail {
                  const Vector2d& uvDy) const;
 
     bool hasNormalMap() const;
+
+    RasterAlbedoShaderMode shaderAlbedoMode() const;
 
     Vector3d lightingNormal(const render::Primitive* primitive, const Vector3d& worldPos,
                             const Vector3d& normal, const Vector2d& uv, const Vector2d& uvDx,

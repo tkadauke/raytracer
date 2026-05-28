@@ -222,6 +222,11 @@ Acceptance:
 
 Tasks:
 
+- ~~Carry UVs and perspective interpolation data through the OpenGL vertex
+  stream for shader-side texture evaluation.~~ ✅ **Done.** OpenGL raster
+  vertices now retain clip `w`, UV coordinates, and a shader albedo mode so
+  supported procedural texture modes can be evaluated per fragment instead of
+  pre-sampled as vertex colors.
 - Upload image textures used by imported glTF/LDraw/OpenSCAD mesh materials.
 - Implement base-color texture sampling with nearest/linear and wrap/clamp
   modes where supported by the existing material model.

@@ -124,6 +124,11 @@ namespace engine::raster::detail {
     return m_color;
   }
 
+  RasterAlbedoShaderMode RasterTexture::shaderAlbedoMode() const {
+    return m_kind == Kind::UVColor ? RasterAlbedoShaderMode::UVColor
+                                   : RasterAlbedoShaderMode::VertexColor;
+  }
+
   RasterTexture RasterTexture::fallback(std::shared_ptr<render::Texturec> texture) {
     RasterTexture result;
     result.m_kind = Kind::Fallback;
@@ -195,6 +200,10 @@ namespace engine::raster::detail {
 
   bool RasterMaterial::hasNormalMap() const {
     return m_hasNormalMap;
+  }
+
+  RasterAlbedoShaderMode RasterMaterial::shaderAlbedoMode() const {
+    return m_albedo.shaderAlbedoMode();
   }
 
   Vector3d RasterMaterial::lightingNormal(const render::Primitive* primitive,
@@ -319,11 +328,10 @@ namespace engine::raster::detail {
   }
 
   RasterMaterialSource RasterMaterialSource::withColorOverride(const Colord& albedo) const {
-    return RasterMaterialSource(Kind::Constant, albedo, RasterTexture::constant(Colord::black()),
-                                m_sidedness, m_recursiveFallback, m_ambientCoefficient,
-                                m_diffuseCoefficient, m_materialAlpha, m_specularColor,
-                                m_specularCoefficient, m_specularExponent, m_normalMap,
-                                m_hasNormalMap);
+    return RasterMaterialSource(
+      Kind::Constant, albedo, RasterTexture::constant(Colord::black()), m_sidedness,
+      m_recursiveFallback, m_ambientCoefficient, m_diffuseCoefficient, m_materialAlpha,
+      m_specularColor, m_specularCoefficient, m_specularExponent, m_normalMap, m_hasNormalMap);
   }
 
   RasterMaterialSource::RecursiveFallback RasterMaterialSource::recursiveFallback() const {

@@ -106,6 +106,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   counter AOV views requested with the OpenGL raster backend now execute through
   the software raster diagnostic fallback and record that mixed path in graph
   traces instead of rejecting the graph. — GPT-5
+- **OpenGL raster UV texture mode.** OpenGL raster mesh vertices now carry
+  clip-space interpolation data and UV coordinates, allowing `UVColorTexture`
+  albedo to be evaluated per fragment in the GPU shader instead of pre-sampled
+  as vertex colors. — GPT-5
 - **rendercli OpenGL application bootstrap.** rendercli now pre-scans explicit
   `--raster_backend opengl|gpu` runs, starts a GUI-capable Qt application for
   that backend, and defaults the command-line GPU path to Qt's offscreen

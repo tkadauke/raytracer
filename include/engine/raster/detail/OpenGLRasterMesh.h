@@ -30,10 +30,14 @@ namespace engine::raster::detail {
       float x{0.0f};
       float y{0.0f};
       float z{0.0f};
+      float w{1.0f};
       float r{0.0f};
       float g{0.0f};
       float b{0.0f};
       float a{1.0f};
+      float u{0.0f};
+      float v{0.0f};
+      float albedoMode{0.0f};
     };
 
     using Vertices = std::vector<Vertex>;
