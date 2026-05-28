@@ -94,6 +94,24 @@ namespace SimdRegressionTest {
     ASSERT_NEAR(g_s * g_t, s * t, kTol);
   }
 
+  TEST(SimdRegression, Vector3fDotProductAfterSettersMatchesGeneric) {
+    Vector3<float> s;
+    s.setX(1.5f);
+    s.setY(-2.0f);
+    s.setZ(3.5f);
+    Vector3<float> t(0.25f, 4.0f, -1.5f);
+    GenericVector3<float> g_s(1.5f, -2.0f, 3.5f), g_t(0.25f, 4.0f, -1.5f);
+    ASSERT_NEAR(g_s * g_t, s * t, kTol);
+  }
+
+  TEST(SimdRegression, Vector3fDotProductAfterVector4ConstructionMatchesGeneric) {
+    Vector4<float> source(1.5f, -2.0f, 3.5f, 0.5f);
+    Vector3<float> s(source);
+    Vector3<float> t(0.25f, 4.0f, -1.5f);
+    GenericVector3<float> g_s(1.5f, -2.0f, 3.5f), g_t(0.25f, 4.0f, -1.5f);
+    ASSERT_NEAR(g_s * g_t, s * t, kTol);
+  }
+
   TEST(SimdRegression, Vector3fLengthMatchesGeneric) {
     Vector3<float> s(3.0f, 4.0f, 12.0f); // Pythagorean: |.| = 13
     GenericVector3<float> g_s(3.0f, 4.0f, 12.0f);
@@ -118,6 +136,31 @@ namespace SimdRegressionTest {
     auto gen = g_s * k;
     for (int i = 0; i < 4; ++i)
       ASSERT_NEAR(gen[i], sse[i], kTol);
+  }
+
+  TEST(SimdRegression, Vector4fDotProductMatchesGeneric) {
+    Vector4<float> s(1.5f, -2.0f, 3.5f, 0.5f), t(0.25f, 4.0f, -1.5f, 0.25f);
+    GenericVector4<float> g_s(1.5f, -2.0f, 3.5f, 0.5f), g_t(0.25f, 4.0f, -1.5f, 0.25f);
+    ASSERT_NEAR(g_s * g_t, s * t, kTol);
+  }
+
+  TEST(SimdRegression, Vector4fDotProductAfterSettersMatchesGeneric) {
+    Vector4<float> s;
+    s.setX(1.5f);
+    s.setY(-2.0f);
+    s.setZ(3.5f);
+    s.setW(0.5f);
+    Vector4<float> t(0.25f, 4.0f, -1.5f, 0.25f);
+    GenericVector4<float> g_s(1.5f, -2.0f, 3.5f, 0.5f), g_t(0.25f, 4.0f, -1.5f, 0.25f);
+    ASSERT_NEAR(g_s * g_t, s * t, kTol);
+  }
+
+  TEST(SimdRegression, Vector4fDotProductAfterVector3ConstructionMatchesGeneric) {
+    Vector3<float> source(1.5f, -2.0f, 3.5f);
+    Vector4<float> s(source);
+    Vector4<float> t(0.25f, 4.0f, -1.5f, 0.25f);
+    GenericVector4<float> g_s(1.5f, -2.0f, 3.5f, 1.0f), g_t(0.25f, 4.0f, -1.5f, 0.25f);
+    ASSERT_NEAR(g_s * g_t, s * t, kTol);
   }
 
 #endif // __SSE__
@@ -160,6 +203,31 @@ namespace SimdRegressionTest {
     auto gen = g_s + g_t;
     for (int i = 0; i < 4; ++i)
       ASSERT_NEAR(gen[i], sse[i], kTol);
+  }
+
+  TEST(SimdRegression, Vector4dDotProductMatchesGeneric) {
+    Vector4<double> s(1.5, -2.0, 3.5, 0.5), t(0.25, 4.0, -1.5, 0.25);
+    GenericVector4<double> g_s(1.5, -2.0, 3.5, 0.5), g_t(0.25, 4.0, -1.5, 0.25);
+    ASSERT_NEAR(g_s * g_t, s * t, kTol);
+  }
+
+  TEST(SimdRegression, Vector4dDotProductAfterSettersMatchesGeneric) {
+    Vector4<double> s;
+    s.setX(1.5);
+    s.setY(-2.0);
+    s.setZ(3.5);
+    s.setW(0.5);
+    Vector4<double> t(0.25, 4.0, -1.5, 0.25);
+    GenericVector4<double> g_s(1.5, -2.0, 3.5, 0.5), g_t(0.25, 4.0, -1.5, 0.25);
+    ASSERT_NEAR(g_s * g_t, s * t, kTol);
+  }
+
+  TEST(SimdRegression, Vector4dDotProductAfterVector3ConstructionMatchesGeneric) {
+    Vector3<double> source(1.5, -2.0, 3.5);
+    Vector4<double> s(source);
+    Vector4<double> t(0.25, 4.0, -1.5, 0.25);
+    GenericVector4<double> g_s(1.5, -2.0, 3.5, 1.0), g_t(0.25, 4.0, -1.5, 0.25);
+    ASSERT_NEAR(g_s * g_t, s * t, kTol);
   }
 
 #endif // __SSE3__

@@ -36,49 +36,58 @@ public:
 
   template<class T>
   inline Vector4(const Vector3<T>& source) {
-    m_coordinates[0] = source.coordinate(0);
-    m_coordinates[1] = source.coordinate(1);
-    m_coordinates[2] = source.coordinate(2);
-    m_coordinates[3] = 1.0;
+    m_vector[0] = _mm_set_ps(1.0f, static_cast<float>(source.z()), static_cast<float>(source.y()),
+                             static_cast<float>(source.x()));
   }
 
   template<int D, class C, class S, class V>
   inline Vector4(const Vector<D, C, S, V>& source) {
-    m_vector[0] = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
-    for (int i = 0; i != Dim && i != D; ++i)
-      m_coordinates[i] = source.coordinate(i);
+    const float x = D > 0 ? static_cast<float>(source.coordinate(0)) : 0.0f;
+    const float y = D > 1 ? static_cast<float>(source.coordinate(1)) : 0.0f;
+    const float z = D > 2 ? static_cast<float>(source.coordinate(2)) : 0.0f;
+    const float w = D > 3 ? static_cast<float>(source.coordinate(3)) : 1.0f;
+    m_vector[0] = _mm_set_ps(w, z, y, x);
   }
 
   [[nodiscard]] inline float x() const noexcept {
-    return m_coordinates[0];
+    return _mm_cvtss_f32(m_vector[0]);
   }
 
   inline void setX(const float& value) noexcept {
-    m_coordinates[0] = value;
+    m_vector[0] = _mm_move_ss(m_vector[0], _mm_set_ss(value));
   }
 
   [[nodiscard]] inline float y() const noexcept {
-    return m_coordinates[1];
+    return _mm_cvtss_f32(_mm_shuffle_ps(m_vector[0], m_vector[0], _MM_SHUFFLE(1, 1, 1, 1)));
   }
 
   inline void setY(const float& value) noexcept {
-    m_coordinates[1] = value;
+    float lanes[4];
+    _mm_storeu_ps(lanes, m_vector[0]);
+    lanes[1] = value;
+    m_vector[0] = _mm_loadu_ps(lanes);
   }
 
   [[nodiscard]] inline float z() const noexcept {
-    return m_coordinates[2];
+    return _mm_cvtss_f32(_mm_shuffle_ps(m_vector[0], m_vector[0], _MM_SHUFFLE(2, 2, 2, 2)));
   }
 
   inline void setZ(const float& value) noexcept {
-    m_coordinates[2] = value;
+    float lanes[4];
+    _mm_storeu_ps(lanes, m_vector[0]);
+    lanes[2] = value;
+    m_vector[0] = _mm_loadu_ps(lanes);
   }
 
   [[nodiscard]] inline float w() const noexcept {
-    return m_coordinates[3];
+    return _mm_cvtss_f32(_mm_shuffle_ps(m_vector[0], m_vector[0], _MM_SHUFFLE(3, 3, 3, 3)));
   }
 
   inline void setW(const float& value) noexcept {
-    m_coordinates[3] = value;
+    float lanes[4];
+    _mm_storeu_ps(lanes, m_vector[0]);
+    lanes[3] = value;
+    m_vector[0] = _mm_loadu_ps(lanes);
   }
 
   [[nodiscard]] inline Vector4<float> operator+(const Vector4<float>& other) const noexcept {
@@ -94,10 +103,11 @@ public:
   }
 
   [[nodiscard]] inline float operator*(const Vector4<float>& other) const noexcept {
-    __m128 v = _mm_mul_ps(m_vector[0], other.m_vector[0]);
-    return _mm_cvtss_f32(v) + _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(1, 1, 1, 1))) +
-           _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(2, 2, 2, 2))) +
-           _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(3, 3, 3, 3)));
+    const __m128 products = _mm_mul_ps(m_vector[0], other.m_vector[0]);
+    return _mm_cvtss_f32(products) +
+           _mm_cvtss_f32(_mm_shuffle_ps(products, products, _MM_SHUFFLE(1, 1, 1, 1))) +
+           _mm_cvtss_f32(_mm_shuffle_ps(products, products, _MM_SHUFFLE(2, 2, 2, 2))) +
+           _mm_cvtss_f32(_mm_shuffle_ps(products, products, _MM_SHUFFLE(3, 3, 3, 3)));
   }
 
   [[nodiscard]] inline Vector4<float> operator*(const float& factor) const noexcept {

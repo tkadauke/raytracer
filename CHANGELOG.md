@@ -684,6 +684,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **SSE3 vector dot products.** The SSE3-specialized vector dot products now
+  keep public construction and setter paths in SIMD storage before reducing
+  lanes, avoiding union type-punning undefined behavior without leaving the hot
+  path. — GPT-5
 - **Direct group-root imports in rendercli.** Importers that return a grouped
   asset root now receive shared scene defaults and camera framing in direct
   rendercli/modeler opens, so STL, 3MF, and glTF group imports render without a
