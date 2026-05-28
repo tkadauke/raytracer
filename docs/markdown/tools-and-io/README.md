@@ -27,6 +27,9 @@ codebase, not just understand it.
 - [G-code parsing](gcode-parsing.md) — visualization-oriented 3D-printer
     movement, extrusion, layer comments, temperatures, and tool-change
     metadata.
+- [Molecule import](molecule-import.md) — PDB and PDBx/mmCIF coordinate
+    fixtures, render smoke coverage, representations, and current chemistry
+    limits.
 - [Importer lifecycle](importer-lifecycle.md) — shared scene-importer
     contract, options, sidecar asset resolution, diagnostics, provenance,
     fixtures, and render smoke patterns for new formats.

@@ -31,8 +31,8 @@
 | `include/core/formats/ldraw/LDrawFileResolver.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/core/formats/ldraw/LDrawGeometryCompiler.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/core/formats/ldraw/LDrawParser.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
-| `include/core/formats/molecule/Molecule.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
-| `include/core/formats/molecule/MoleculeParser.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `include/core/formats/molecule/Molecule.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[Molecule import](../tools-and-io/molecule-import.md) |
+| `include/core/formats/molecule/MoleculeParser.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[Molecule import](../tools-and-io/molecule-import.md) |
 | `include/core/formats/stl/StlFile.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[STL import](../tools-and-io/stl-import.md) |
 | `include/core/formats/stl/StlParseError.h` | [STL import](../tools-and-io/stl-import.md) |
 | `include/core/geometry/AttributeColorMap.h` | [Tessellation](../rasterization/tessellation.md) |
@@ -177,8 +177,8 @@
 | `include/world/import/ImportedSceneDefaults.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/world/import/LDrawFileSceneImporter.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/world/import/LDrawSceneImporter.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
-| `include/world/import/MoleculeSceneBuilder.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
-| `include/world/import/MoleculeSceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `include/world/import/MoleculeSceneBuilder.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[Molecule import](../tools-and-io/molecule-import.md) |
+| `include/world/import/MoleculeSceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[Molecule import](../tools-and-io/molecule-import.md) |
 | `include/world/import/OpenScadCompiler.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `include/world/import/OpenScadSceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `include/world/import/SceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
@@ -200,6 +200,8 @@
 | `src/core/formats/ldraw/LDrawFileResolver.cpp` | [LDraw import](../tools-and-io/ldraw-import.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ldraw/LDrawGeometryCompiler.cpp` | [LDraw import](../tools-and-io/ldraw-import.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ldraw/LDrawParser.cpp` | [LDraw import](../tools-and-io/ldraw-import.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
+| `src/core/formats/molecule/Molecule.cpp` | [Molecule import](../tools-and-io/molecule-import.md) |
+| `src/core/formats/molecule/MoleculeParser.cpp` | [Molecule import](../tools-and-io/molecule-import.md) |
 | `src/core/formats/ply/PlyElement.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ply/PlyFile.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ply/PlyProperty.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
@@ -235,6 +237,8 @@
 | `src/world/import/ImportedSceneDefaults.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `src/world/import/LDrawFileSceneImporter.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/import/LDrawSceneImporter.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
+| `src/world/import/MoleculeSceneBuilder.cpp` | [Molecule import](../tools-and-io/molecule-import.md) |
+| `src/world/import/MoleculeSceneImporter.cpp` | [Molecule import](../tools-and-io/molecule-import.md) |
 | `src/world/import/OpenScadCompiler.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `src/world/import/OpenScadSceneImporter.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `src/world/import/StlSceneImporter.cpp` | [STL import](../tools-and-io/stl-import.md) |
@@ -246,6 +250,7 @@
 | `test/fixtures/groups/` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/fixtures/importers/` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/fixtures/ldraw/` | [LDraw import](../tools-and-io/ldraw-import.md) |
+| `test/fixtures/molecules/` | [Molecule import](../tools-and-io/molecule-import.md) |
 | `test/fixtures/openscad/` | [OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `test/fixtures/stl/` | [STL import](../tools-and-io/stl-import.md) |
 | `test/functional/engine/wireframe/WireframeTest.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
@@ -265,7 +270,7 @@
 | `test/helpers/Silhouette.cpp` | [Blob analysis and silhouettes](../image-and-vision/blob-analysis-and-silhouettes.md) |
 | `test/helpers/Silhouette.h` | [Blob analysis and silhouettes](../image-and-vision/blob-analysis-and-silhouettes.md)<br>[Image buffers and pixel formats](../image-and-vision/image-buffers-and-pixel-formats.md)<br>[Shape classification](../image-and-vision/shape-classification.md) |
 | `test/rendercli/FrameOptionTest.cmake` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
-| `test/rendercli/ImportOptionTest.cmake` | [Additive manufacturing import](../tools-and-io/additive-manufacturing-import.md)<br>[glTF import](../tools-and-io/gltf-import.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
+| `test/rendercli/ImportOptionTest.cmake` | [Additive manufacturing import](../tools-and-io/additive-manufacturing-import.md)<br>[glTF import](../tools-and-io/gltf-import.md)<br>[Molecule import](../tools-and-io/molecule-import.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `test/rendercli/RaytracerOptionTest.cmake` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/rendercli/RenderGraphOptionTest.cmake` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `test/rendercli/StepOptionTest.cmake` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
@@ -275,6 +280,7 @@
 | `test/unit/core/formats/ldraw/LDrawColorTableTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/core/formats/ldraw/LDrawFileResolverTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/core/formats/ldraw/LDrawGeometryCompilerTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
+| `test/unit/core/formats/molecule/MoleculeParserTest.cpp` | [Molecule import](../tools-and-io/molecule-import.md) |
 | `test/unit/core/formats/ply/PlyFileTest.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `test/unit/core/formats/stl/StlFileTest.cpp` | [STL import](../tools-and-io/stl-import.md) |
 | `test/unit/core/math/interpolation/InterpolationTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
@@ -298,6 +304,8 @@
 | `test/unit/world/import/GltfSceneImporterTest.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/unit/world/import/ImporterFixtureHarnessTest.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/unit/world/import/LDrawFileSceneImporterTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
+| `test/unit/world/import/MoleculeSceneBuilderTest.cpp` | [Molecule import](../tools-and-io/molecule-import.md) |
+| `test/unit/world/import/MoleculeSceneImporterTest.cpp` | [Molecule import](../tools-and-io/molecule-import.md) |
 | `test/unit/world/import/OpenScadSceneImporterTest.cpp` | [OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `test/unit/world/import/StlSceneImporterTest.cpp` | [STL import](../tools-and-io/stl-import.md) |
 | `test/unit/world/objects/LDrawSceneImporterTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |

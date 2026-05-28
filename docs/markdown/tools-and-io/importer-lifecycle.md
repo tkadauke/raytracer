@@ -50,7 +50,9 @@ hierarchy with importer options for ball-and-stick, space-filling, and backbone
 representations. Atom and bond materials can be colored by element, chain, or
 residue category where the source data supports it. Keeping parser and scene
 conversion separate lets the core coordinate reader stay independent of Qt while
-the scene importer uses the same result contract as other formats.
+the scene importer uses the same result contract as other formats. The
+format-specific support matrix is documented in
+[Molecule import](molecule-import.md).
 
 ## Options
 

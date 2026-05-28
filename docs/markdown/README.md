@@ -104,6 +104,7 @@ The supporting cast around the rendering core.
 - [Additive manufacturing import](tools-and-io/additive-manufacturing-import.md)
 - [glTF import](tools-and-io/gltf-import.md)
 - [G-code parsing](tools-and-io/gcode-parsing.md)
+- [Molecule import](tools-and-io/molecule-import.md)
 - [Importer lifecycle](tools-and-io/importer-lifecycle.md)
 - [Tools and the Modeler](tools-and-io/tools-and-modeler.md)
 

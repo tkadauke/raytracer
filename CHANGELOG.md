@@ -19,6 +19,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Molecule fixtures, docs, and render smoke tests.** Tiny PDB and
+  PDBx/mmCIF molecule fixtures now live under `test/fixtures/molecules`,
+  rendercli CTest covers ball-and-stick and space-filling molecular renders,
+  and the textbook documents supported records, representation options, and
+  current chemistry limitations for Epic #236. — GPT-5
 - **Molecule representation and color import options.** Molecule imports now
   expose ball-and-stick, space-filling, and backbone representations plus
   element, chain, and residue-category color schemes through the shared importer

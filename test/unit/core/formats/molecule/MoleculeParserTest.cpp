@@ -10,7 +10,7 @@ using namespace std;
 namespace MoleculeParserTest {
 
   TEST(MoleculeParser, ShouldParsePdbAtomAndHetatmRecordsFromFixture) {
-    ifstream input("test/fixtures/molecule/small.pdb");
+    ifstream input("test/fixtures/molecules/small.pdb");
     ASSERT_TRUE(input.is_open());
 
     const auto result = molecule::MoleculeParser().parsePdb(input);
@@ -60,7 +60,7 @@ namespace MoleculeParserTest {
   }
 
   TEST(MoleculeParser, ShouldParseMmcifAtomSiteLoopFromFixture) {
-    ifstream input("test/fixtures/molecule/small.cif");
+    ifstream input("test/fixtures/molecules/small.cif");
     ASSERT_TRUE(input.is_open());
 
     const auto result = molecule::MoleculeParser().parseMmcif(input);
