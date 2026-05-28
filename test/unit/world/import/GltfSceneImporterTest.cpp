@@ -94,7 +94,7 @@ namespace GltfSceneImporterTest {
     })JSON");
 
     world::GltfSceneImporter importer;
-    const auto result = importer.importFile(path);
+    auto result = importer.importFile(path);
 
     ASSERT_TRUE(result.succeeded());
     ASSERT_NE(nullptr, result.groupRoot());
@@ -143,7 +143,7 @@ namespace GltfSceneImporterTest {
     })JSON");
 
     world::GltfSceneImporter importer;
-    const auto result = importer.importFile(path);
+    auto result = importer.importFile(path);
 
     ASSERT_TRUE(result.succeeded());
     ASSERT_NE(nullptr, result.groupRoot());
@@ -393,7 +393,7 @@ namespace GltfSceneImporterTest {
     })JSON");
 
     world::GltfSceneImporter importer;
-    const auto result = importer.importFile(path);
+    auto result = importer.importFile(path);
 
     ASSERT_TRUE(result.succeeded());
     auto* scene = qobject_cast<Group*>(result.groupRoot()->childElements()[0]);
@@ -515,7 +515,7 @@ namespace GltfSceneImporterTest {
     })JSON");
 
     world::GltfSceneImporter importer;
-    const auto result = importer.importFile(path);
+    auto result = importer.importFile(path);
 
     ASSERT_TRUE(result.succeeded());
     auto* meshPrimitive = importedMeshPrimitive(result);
@@ -531,6 +531,12 @@ namespace GltfSceneImporterTest {
     ASSERT_EQ(2u, meshPrimitive->leaves().size());
     EXPECT_NE(nullptr, meshPrimitive->leaves()[0]->material());
     EXPECT_NE(nullptr, meshPrimitive->leaves()[1]->material());
+
+    Scene scene;
+    scene.addChild(result.takeRoot());
+    const auto runtime = scene.toRaytracerScene();
+    ASSERT_TRUE(runtime->accelerationDecision().has_value());
+    EXPECT_EQ(render::SpatialIndexKind::BVH, runtime->accelerationDecision()->spatialIndexKind);
   }
 
   TEST(GltfSceneImporter, MapsPbrBaseColorFactorToMatteDiffuseTexture) {

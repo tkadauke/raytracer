@@ -13,12 +13,12 @@ namespace render {
 
   AccelerationPolicy AccelerationPolicy::manual(SpatialIndexKind kind) {
     switch (kind) {
-      case SpatialIndexKind::Linear:
-        return AccelerationPolicy(AccelerationMode::Linear);
-      case SpatialIndexKind::Grid:
-        return AccelerationPolicy(AccelerationMode::Grid);
-      case SpatialIndexKind::BVH:
-        return AccelerationPolicy(AccelerationMode::BVH);
+    case SpatialIndexKind::Linear:
+      return AccelerationPolicy(AccelerationMode::Linear);
+    case SpatialIndexKind::Grid:
+      return AccelerationPolicy(AccelerationMode::Grid);
+    case SpatialIndexKind::BVH:
+      return AccelerationPolicy(AccelerationMode::BVH);
     }
 
     return automatic();
@@ -32,32 +32,36 @@ namespace render {
     return m_mode;
   }
 
-  AccelerationDecision AccelerationPolicy::choose(const AccelerationAnalysis&) const {
+  AccelerationDecision AccelerationPolicy::choose(const AccelerationAnalysis& analysis) const {
     switch (m_mode) {
-      case AccelerationMode::Automatic:
-        return AccelerationDecision{m_mode, SpatialIndexKind::Grid, "automatic_conservative_grid"};
-      case AccelerationMode::Linear:
-        return manualDecision(m_mode, SpatialIndexKind::Linear);
-      case AccelerationMode::Grid:
-        return manualDecision(m_mode, SpatialIndexKind::Grid);
-      case AccelerationMode::BVH:
-        return manualDecision(m_mode, SpatialIndexKind::BVH);
+    case AccelerationMode::Automatic:
+      if (analysis.finiteLeafCount <= 1) {
+        return AccelerationDecision{m_mode, SpatialIndexKind::Linear,
+                                    "automatic_empty_or_small_scene_linear"};
+      }
+      return AccelerationDecision{m_mode, SpatialIndexKind::BVH, "automatic_general_bvh"};
+    case AccelerationMode::Linear:
+      return manualDecision(m_mode, SpatialIndexKind::Linear);
+    case AccelerationMode::Grid:
+      return manualDecision(m_mode, SpatialIndexKind::Grid);
+    case AccelerationMode::BVH:
+      return manualDecision(m_mode, SpatialIndexKind::BVH);
     }
 
-    return AccelerationDecision{AccelerationMode::Automatic, SpatialIndexKind::Grid,
-                                "automatic_conservative_grid"};
+    return AccelerationDecision{AccelerationMode::Automatic, SpatialIndexKind::Linear,
+                                "automatic_empty_or_small_scene_linear"};
   }
 
   const char* toString(AccelerationMode mode) {
     switch (mode) {
-      case AccelerationMode::Automatic:
-        return "automatic";
-      case AccelerationMode::Linear:
-        return "linear";
-      case AccelerationMode::Grid:
-        return "grid";
-      case AccelerationMode::BVH:
-        return "bvh";
+    case AccelerationMode::Automatic:
+      return "automatic";
+    case AccelerationMode::Linear:
+      return "linear";
+    case AccelerationMode::Grid:
+      return "grid";
+    case AccelerationMode::BVH:
+      return "bvh";
     }
 
     return "unknown";
@@ -65,12 +69,12 @@ namespace render {
 
   const char* toString(SpatialIndexKind kind) {
     switch (kind) {
-      case SpatialIndexKind::Linear:
-        return "linear";
-      case SpatialIndexKind::Grid:
-        return "grid";
-      case SpatialIndexKind::BVH:
-        return "bvh";
+    case SpatialIndexKind::Linear:
+      return "linear";
+    case SpatialIndexKind::Grid:
+      return "grid";
+    case SpatialIndexKind::BVH:
+      return "bvh";
     }
 
     return "unknown";

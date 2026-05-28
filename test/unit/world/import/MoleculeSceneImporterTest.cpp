@@ -1,6 +1,7 @@
 #include "world/import/MoleculeSceneImporter.h"
 
 #include "core/formats/molecule/MoleculeParser.h"
+#include "render/primitives/Scene.h"
 #include "world/objects/ConstantColorTexture.h"
 #include "world/objects/Cylinder.h"
 #include "world/import/ImportResult.h"
@@ -396,6 +397,20 @@ namespace MoleculeSceneImporterTest {
     ASSERT_NE(nullptr, polyline.segmentAttributeAs<int>(1, "endResidueIndex"));
     EXPECT_EQ("ALA", *polyline.segmentAttributeAs<std::string>(0, "startResidueName"));
     EXPECT_EQ(3, *polyline.segmentAttributeAs<int>(1, "endResidueIndex"));
+  }
+
+  TEST(MoleculeSceneImporter, ChoosesBVHForImportedAtomGroups) {
+    world::MoleculeSceneImporter importer;
+    auto result = importer.importFile("test/fixtures/molecule/small.cif");
+
+    ASSERT_TRUE(result.succeeded());
+
+    Scene scene;
+    scene.addChild(result.takeRoot());
+    const auto runtime = scene.toRaytracerScene();
+
+    ASSERT_TRUE(runtime->accelerationDecision().has_value());
+    EXPECT_EQ(render::SpatialIndexKind::BVH, runtime->accelerationDecision()->spatialIndexKind);
   }
 
   TEST(MoleculeSceneImporter, ShouldRegisterForMoleculeExtensions) {

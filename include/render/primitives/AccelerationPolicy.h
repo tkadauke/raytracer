@@ -23,6 +23,7 @@ namespace render {
     */
   struct AccelerationAnalysis {
     std::size_t boundedPrimitiveCount{0};
+    std::size_t finiteLeafCount{0};
   };
 
   /**
@@ -30,8 +31,8 @@ namespace render {
     */
   struct AccelerationDecision {
     AccelerationMode requestedMode{AccelerationMode::Automatic};
-    SpatialIndexKind spatialIndexKind{SpatialIndexKind::Grid};
-    const char* reason{"automatic_conservative_grid"};
+    SpatialIndexKind spatialIndexKind{SpatialIndexKind::Linear};
+    const char* reason{"automatic_empty_or_small_scene_linear"};
   };
 
   class AccelerationPolicy {
