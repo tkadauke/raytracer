@@ -132,6 +132,7 @@ namespace RasterPassStateTest {
     RasterBeautyPassState state;
     state.geometry().setLod(3);
     state.geometry().setCullMode(Rasterizer::CullMode::Front);
+    state.sampling().setMSAASamples(4);
     state.framebuffer().setViewportRect(Recti(4, 5, 20, 21));
     state.framebuffer().setScissorRect(Recti(6, 7, 18, 19));
     engine::raster::OpenGLRasterizer rasterizer(nullptr);
@@ -139,6 +140,7 @@ namespace RasterPassStateTest {
     state.applyTo(rasterizer);
 
     EXPECT_EQ(3, rasterizer.lod());
+    EXPECT_EQ(4, rasterizer.msaaSamples());
     EXPECT_TRUE(rasterizer.hasCullModeOverride());
     EXPECT_EQ(Rasterizer::CullMode::Front, rasterizer.cullMode());
     EXPECT_TRUE(rasterizer.viewportEnabled());

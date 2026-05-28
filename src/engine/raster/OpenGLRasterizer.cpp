@@ -186,6 +186,7 @@ namespace engine::raster {
     }
     clone->setTonemap(tonemap());
     clone->setLod(m_lod);
+    clone->setMSAASamples(m_msaaSamples);
     if (m_hasCullModeOverride) {
       clone->setCullMode(m_cullMode);
     } else {
@@ -240,6 +241,22 @@ namespace engine::raster {
 
   void OpenGLRasterizer::setLod(int lod) {
     m_lod = lod;
+  }
+
+  int OpenGLRasterizer::msaaSamples() const {
+    return m_msaaSamples;
+  }
+
+  void OpenGLRasterizer::setMSAASamples(int samples) {
+    if (samples <= 1) {
+      m_msaaSamples = 1;
+    } else if (samples <= 2) {
+      m_msaaSamples = 2;
+    } else if (samples <= 4) {
+      m_msaaSamples = 4;
+    } else {
+      m_msaaSamples = 8;
+    }
   }
 
   Rasterizer::CullMode OpenGLRasterizer::cullMode() const {
@@ -323,7 +340,7 @@ namespace engine::raster {
 
   void OpenGLRasterizer::renderOpenGL(Buffer<Colord>& buffer, Buffer<double>* depthTarget) const {
     OpenGLOffscreenContext context;
-    if (!context.create(buffer.width(), buffer.height())) {
+    if (!context.create(buffer.width(), buffer.height(), m_msaaSamples)) {
       throw std::runtime_error(context.errorMessage());
     }
 

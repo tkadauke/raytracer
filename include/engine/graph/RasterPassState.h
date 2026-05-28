@@ -83,6 +83,7 @@ namespace engine::graph {
     QJsonObject toJson() const;
     bool empty() const;
     void applyTo(Rasterizer& rasterizer) const;
+    void applyTo(engine::raster::OpenGLRasterizer& rasterizer) const;
 
     void setMSAASamples(int samples);
     void setMSAAShadingMode(Rasterizer::MSAAShadingMode mode);

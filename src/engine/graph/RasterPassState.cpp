@@ -513,6 +513,10 @@ namespace engine::graph {
     rasterizer.setPostProcessAA(m_postProcessAA);
   }
 
+  void RasterSamplingState::applyTo(engine::raster::OpenGLRasterizer& rasterizer) const {
+    rasterizer.setMSAASamples(m_msaaSamples);
+  }
+
   void RasterSamplingState::setMSAASamples(int samples) {
     if (samples <= 1) {
       m_msaaSamples = 1;
@@ -989,6 +993,7 @@ namespace engine::graph {
 
   void RasterBeautyPassState::applyTo(engine::raster::OpenGLRasterizer& rasterizer) const {
     m_geometry.applyTo(rasterizer);
+    m_sampling.applyTo(rasterizer);
     m_framebuffer.applyTo(rasterizer);
   }
 

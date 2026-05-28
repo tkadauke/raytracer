@@ -36,6 +36,9 @@ namespace engine::raster {
     int lod() const;
     void setLod(int lod);
 
+    int msaaSamples() const;
+    void setMSAASamples(int samples);
+
     Rasterizer::CullMode cullMode() const;
     bool hasCullModeOverride() const;
     void setCullMode(Rasterizer::CullMode mode);
@@ -61,6 +64,7 @@ namespace engine::raster {
 
     std::atomic<bool> m_cancelled{false};
     int m_lod{0};
+    int m_msaaSamples{1};
     Rasterizer::CullMode m_cullMode{Rasterizer::CullMode::Both};
     bool m_hasCullModeOverride{false};
     bool m_viewportEnabled{false};

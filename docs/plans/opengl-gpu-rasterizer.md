@@ -194,8 +194,10 @@ Tasks:
   overrides.~~ ✅ **Done.** The OpenGL raster backend now carries the same
   graph-derived viewport, scissor, and culling state as the CPU rasterizer for
   the initial mesh beauty path.
-- Bind remaining graph raster pass state for MSAA and other fixed-function
-  controls.
+- ~~Bind graph raster pass state for MSAA sample count.~~ ✅ **Done.** The
+  OpenGL raster backend now allocates a multisample framebuffer when graph pass
+  state requests MSAA.
+- Bind remaining graph raster pass state for other fixed-function controls.
 - ~~Render into an FBO color attachment and depth attachment.~~ ✅ **Done.**
   The backend clears the offscreen framebuffer, depth-tests triangles, and
   draws material-albedo color.

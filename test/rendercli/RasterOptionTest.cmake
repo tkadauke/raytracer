@@ -77,6 +77,32 @@ else()
                   "" "${opengl_result}" "${opengl_stdout}" "${opengl_stderr}")
 endif()
 
+set(opengl_msaa_render "${TEST_OUTPUT_DIR}/raster-opengl-msaa.png")
+execute_process(
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu --msaa 4
+    "${matte_scene}" "${opengl_msaa_render}"
+  RESULT_VARIABLE opengl_msaa_result
+  OUTPUT_VARIABLE opengl_msaa_stdout
+  ERROR_VARIABLE opengl_msaa_stderr
+)
+if(opengl_msaa_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_msaa_render}" 16 12
+                                    NAME "rendercli --raster_backend gpu --msaa dimensions")
+  rendercli_assert_image_nonempty("${opengl_msaa_render}"
+                                  NAME "rendercli --raster_backend gpu --msaa pixels")
+elseif(opengl_msaa_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_msaa_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu --msaa application bootstrap"
+                    "OpenGL MSAA still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_msaa_result}" "${opengl_msaa_stdout}" "${opengl_msaa_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu --msaa"
+                  "OpenGL MSAA neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_msaa_result}" "${opengl_msaa_stdout}" "${opengl_msaa_stderr}")
+endif()
+
 set(opengl_depth_render "${TEST_OUTPUT_DIR}/raster-opengl-depth.png")
 execute_process(
   COMMAND

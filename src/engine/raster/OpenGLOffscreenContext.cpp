@@ -12,12 +12,14 @@
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFramebufferObjectFormat>
 #include <QOpenGLFunctions>
+#include <QRect>
 #include <QSurfaceFormat>
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <sstream>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -58,7 +60,7 @@ namespace engine::raster {
       destroyResources();
     }
 
-    bool create(int width, int height) {
+    bool create(int width, int height, int samples) {
       destroyResources();
       errorMessage.clear();
 
@@ -116,6 +118,7 @@ namespace engine::raster {
 
       QOpenGLFramebufferObjectFormat framebufferFormat;
       framebufferFormat.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+      framebufferFormat.setSamples(samples > 1 ? samples : 0);
       framebuffer = std::make_unique<QOpenGLFramebufferObject>(
         std::max(1, width), std::max(1, height), framebufferFormat);
       if (!framebuffer->isValid()) {
@@ -193,8 +196,39 @@ namespace engine::raster {
         return;
       }
 
-      const int width = std::min(target.width(), framebuffer->width());
-      const int height = std::min(target.height(), framebuffer->height());
+      if (framebuffer->format().samples() > 0) {
+        copyResolvedDepthTo(target);
+        return;
+      }
+
+      readBoundDepthTo(target, *framebuffer);
+    }
+
+    void copyResolvedDepthTo(Buffer<double>& target) const {
+      if (!QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
+        throw std::runtime_error(
+          "OpenGL raster backend cannot read multisample depth without framebuffer blit support");
+      }
+
+      QOpenGLFramebufferObjectFormat resolveFormat;
+      resolveFormat.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+      QOpenGLFramebufferObject resolved(framebuffer->width(), framebuffer->height(), resolveFormat);
+      if (!resolved.isValid()) {
+        throw std::runtime_error(
+          "OpenGL raster backend could not create a depth resolve framebuffer");
+      }
+
+      const QRect rect(0, 0, framebuffer->width(), framebuffer->height());
+      QOpenGLFramebufferObject::blitFramebuffer(&resolved, rect, framebuffer.get(), rect,
+                                                GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+      resolved.bind();
+      readBoundDepthTo(target, resolved);
+      framebuffer->bind();
+    }
+
+    void readBoundDepthTo(Buffer<double>& target, const QOpenGLFramebufferObject& source) const {
+      const int width = std::min(target.width(), source.width());
+      const int height = std::min(target.height(), source.height());
       std::vector<GLfloat> pixels(static_cast<std::size_t>(width * height), 1.0f);
       QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
       functions->glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, pixels.data());
@@ -270,7 +304,11 @@ namespace engine::raster {
   }
 
   bool OpenGLOffscreenContext::create(int width, int height) {
-    return p->create(width, height);
+    return create(width, height, 1);
+  }
+
+  bool OpenGLOffscreenContext::create(int width, int height, int samples) {
+    return p->create(width, height, std::max(1, samples));
   }
 
   bool OpenGLOffscreenContext::makeCurrent() {

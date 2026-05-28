@@ -43,6 +43,7 @@ namespace engine::raster {
     static OpenGLAvailability probe();
 
     bool create(int width, int height);
+    bool create(int width, int height, int samples);
     bool makeCurrent();
     void doneCurrent();
     bool bindFramebuffer();
