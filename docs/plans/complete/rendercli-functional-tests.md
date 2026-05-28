@@ -5,23 +5,22 @@
 > behavior coverage for every public CLI path: parsing, validation, rendering
 > artifacts, stdout/stderr contracts, graph artifacts, animation output, and
 > cross-option rejection rules.
+>
+> **Status:** Complete and archived. The 2026-05-28 audit confirmed the shared
+> CMake helper module, image probe executable, per-family rendercli CTest
+> scripts, cross-option validation tests, and option coverage audit are all
+> implemented and registered from `test/CMakeLists.txt`.
 
 ## Current state
 
-`rendercli` has two CMake-script tests registered from `test/CMakeLists.txt`:
-
-- `rendercli_animation` runs `test/rendercli/FrameOptionTest.cmake`.
-- `rendercli_render_graph` runs `test/rendercli/RenderGraphOptionTest.cmake`.
-
-Those tests cover important new paths: `--frame`, `--animation`,
-`--render_graph_only`, graph text/DOT/JSON export, graph JSON replay, graph
-disable filters, graph intent overrides, the default graph render path, and the
-`--direct_engine` bypass. They also pin graph-backed raster state export,
-dependency-ordered graph JSON replay, graph-visible FXAA/SMAA postprocess pass
-insertion, executed graph trace JSON export, and the current TAA-in-raster-state
-fallback. They do not yet cover the full base renderer command surface, most
-raster-specific flags, all parse failures, or output-image invariants beyond
-"file exists" and a few "frames differ" checks.
+`rendercli` now has one CTest script per feature family:
+`rendercli_basic`, `rendercli_validation`, `rendercli_animation`,
+`rendercli_render_graph`, `rendercli_raster`, `rendercli_raytracer`,
+`rendercli_wireframe`, `rendercli_raster_shadows`,
+`rendercli_raster_output_state`, `rendercli_cross_options`, plus importer,
+step-playback, and option-audit coverage. Each script uses
+`test/rendercli/RendercliTestHelpers.cmake`; image assertions use the
+`rendercli_image_probe` helper.
 
 ## Principles
 

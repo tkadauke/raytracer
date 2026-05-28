@@ -10,7 +10,7 @@
 > drop in as a follow-up via the same N-templated machinery without
 > a rewrite. Each geometric type carries different transform semantics
 > and (in debug builds) a different runtime invariant. Companion doc
-> to `core-math-optimization.md`. Captured 2026-05-10 from the
+> to `complete/core-math-optimization.md`. Captured 2026-05-10 from the
 > conversation that motivated the idea; design refined 2026-05-11.
 >
 > **Status:** Living document — design proposal, not yet committed.
@@ -677,7 +677,7 @@ A planned spike (Phase N+1, after the type split has settled) ports
 the same surface to policy objects on a throwaway branch and
 benchmarks the two head-to-head on the macro render benchmark and
 the targeted vector/matrix microbenchmarks from
-`core-math-optimization.md`. If policy objects are equal-or-faster
+`complete/core-math-optimization.md`. If policy objects are equal-or-faster
 *and* the stylistic gains justify the migration cost, we refactor; if
 they regress performance, we stay with phantom tags. The public
 surface (concrete classes, typedefs, operator overloads) doesn't
@@ -697,8 +697,8 @@ types uniformly. Concretely: `Vec<double, 4, *, *>` (which is
 storage) each get one SIMD specialization; the tag and policy are
 irrelevant for the bit-level math.
 
-Implication: this plan is downstream of `core-math-optimization.md`
-Phase 2.3. Don't start implementation until that phase has shipped.
+Implication: this plan is downstream of `complete/core-math-optimization.md`
+Phase 2.3, which has shipped.
 
 ---
 
@@ -992,13 +992,13 @@ creep in during implementation:
 ## Working method
 
 1. Resolve open questions above. Update this doc with the decisions.
-2. Land `core-math-optimization.md` Phases 1 and 2 first — especially
-   Phase 2.3 (Vector3<double> SSE3 resolution), which determines the
-   storage foundation.
+2. ~~Land `complete/core-math-optimization.md` Phases 1 and 2 first —
+   especially Phase 2.3 (Vector3<double> SSE3 resolution), which determines
+   the storage foundation.~~ ✅ **Done.** Core-math Phases 1 and 2 are archived.
 3. Phase the migration as described above; each phase its own PR.
 4. Every PR updates `CHANGELOG.md` under `## Unreleased`.
 5. Every PR runs the full test suite end-to-end. The whole-render
-   macro benchmark (per `core-math-optimization.md`'s rule) must not
+   macro benchmark (per `complete/core-math-optimization.md`'s rule) must not
    regress on any phase — this is a *correctness* refactor, not a
    performance one, so the bar is "no regression," not "must improve."
 6. Resist scope creep into the Color type and the Vector4 unification
