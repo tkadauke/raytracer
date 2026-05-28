@@ -143,6 +143,12 @@ namespace OpenGLRasterizerTest {
     EXPECT_EQ(0.0, rasterizer.alphaReference());
   }
 
+  TEST(OpenGLRasterizer, DoesNotReportReadbackBeforeSuccessfulRender) {
+    engine::raster::OpenGLRasterizer rasterizer(nullptr);
+
+    EXPECT_TRUE(rasterizer.readbackTraceMessage().empty());
+  }
+
   TEST(OpenGLRasterizer, ProvidesSharedStatusMessage) {
     const std::string message = engine::raster::OpenGLRasterizer::statusMessage();
 

@@ -260,7 +260,10 @@ Tasks:
   compatible GPU passes.
 - Add explicit readback pass/operation for final image output, trace, and AOV
   export.
-- Record readback cost in graph trace metadata.
+- ~~Record readback cost in graph trace metadata.~~ ✅ **Done.** OpenGL raster
+  beauty/depth/stencil executions now append trace messages that report which
+  attachments were copied back to CPU buffers and how long that eager readback
+  took.
 - Validate CPU/GPU resource domain transitions.
 
 Acceptance:

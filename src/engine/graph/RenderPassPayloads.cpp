@@ -290,6 +290,29 @@ namespace engine::graph {
       * Whole-frame beauty payload backed by the software rasterizer.
       */
     class RasterBeautyPass : public BeautyPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), write.resource, pass);
+
+        auto engine = createEngine(context);
+        prepareEngine(*engine, context.graph(), context.cancelled(), context.graph().tonemap());
+        context.setActiveEngine(engine);
+        engine->render(context.storage().color(write.resource));
+        recordReadbackTrace(context, engine);
+      }
+
+      bool executeDisplay(RenderExecutionContext& context, Buffer<unsigned int>& buffer,
+                          std::shared_ptr<render::Tonemap> tonemap) override {
+        auto engine = createEngine(context);
+        prepareEngine(*engine, context.graph(), context.cancelled(), std::move(tonemap));
+        context.setActiveEngine(engine);
+        engine->render(buffer);
+        recordReadbackTrace(context, engine);
+        return true;
+      }
+
     private:
       std::shared_ptr<render::RenderEngine>
       createEngine(const RenderExecutionContext& context) const override {
@@ -311,6 +334,18 @@ namespace engine::graph {
           }
         }
         return engine;
+      }
+
+      void recordReadbackTrace(RenderExecutionContext& context,
+                               const std::shared_ptr<render::RenderEngine>& engine) const {
+        const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(context.pass());
+        if (!state.execution().backend().isOpenGL()) {
+          return;
+        }
+
+        const auto rasterizer =
+          std::static_pointer_cast<::engine::raster::OpenGLRasterizer>(engine);
+        context.recordTraceMessage(rasterizer->readbackTraceMessage());
       }
 
       bool readsShadowMap(const RenderExecutionContext& context) const {
@@ -652,6 +687,7 @@ namespace engine::graph {
         prepareEngine(*rasterizer, context.graph(), context.cancelled(), context.graph().tonemap());
         context.setActiveEngine(rasterizer);
         rasterizer->renderDepth(context.storage().depth(write.resource));
+        context.recordTraceMessage(rasterizer->readbackTraceMessage());
       }
     };
 
@@ -701,6 +737,7 @@ namespace engine::graph {
         prepareEngine(*rasterizer, context.graph(), context.cancelled(), context.graph().tonemap());
         context.setActiveEngine(rasterizer);
         rasterizer->renderStencil(stencil);
+        context.recordTraceMessage(rasterizer->readbackTraceMessage());
       }
 
       template<class RasterizerType>

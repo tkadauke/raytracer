@@ -114,6 +114,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   direct UV-mapped `ImageTexture` albedo sources, sampling them in the GPU
   shader with their nearest/bilinear/mipmap filter and repeat/clamp wrap
   policy. — GPT-5
+- **OpenGL raster readback timing.** Graph execution traces now report how
+  long OpenGL raster passes spent copying color/depth/stencil attachments back
+  to CPU buffers, making the current eager-readback cost visible in rendercli
+  traces and the Modeler graph inspector. — GPT-5
 - **rendercli OpenGL application bootstrap.** rendercli now pre-scans explicit
   `--raster_backend opengl|gpu` runs, starts a GUI-capable Qt application for
   that backend, and defaults the command-line GPU path to Qt's offscreen

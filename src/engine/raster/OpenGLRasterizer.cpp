@@ -10,9 +10,12 @@
 #include <QOpenGLShaderProgram>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 #include <unordered_map>
 #include <utility>
@@ -139,9 +142,10 @@ namespace engine::raster {
             m_stencilPassOp(stencilPassOp) {
       }
 
-      void render(const detail::OpenGLRasterMesh& mesh, const Colord& background,
-                  Buffer<Colord>& target, Buffer<double>* depthTarget,
-                  Buffer<std::uint8_t>* stencilTarget) {
+      std::chrono::nanoseconds render(const detail::OpenGLRasterMesh& mesh,
+                                      const Colord& background, Buffer<Colord>& target,
+                                      Buffer<double>* depthTarget,
+                                      Buffer<std::uint8_t>* stencilTarget) {
         if (!m_context.makeCurrent()) {
           throw std::runtime_error(m_context.errorMessage());
         }
@@ -152,6 +156,7 @@ namespace engine::raster {
 
         try {
           draw(mesh, background);
+          const auto readbackStarted = std::chrono::steady_clock::now();
           m_context.copyColorTo(target);
           if (depthTarget) {
             m_context.copyDepthTo(*depthTarget);
@@ -159,8 +164,11 @@ namespace engine::raster {
           if (stencilTarget && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store) {
             m_context.copyStencilTo(*stencilTarget);
           }
+          const auto readbackElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now() - readbackStarted);
           m_context.releaseFramebuffer();
           m_context.doneCurrent();
+          return readbackElapsed;
         } catch (...) {
           m_context.releaseFramebuffer();
           m_context.doneCurrent();
@@ -619,6 +627,10 @@ namespace engine::raster {
            "when the backend is selected";
   }
 
+  const std::string& OpenGLRasterizer::readbackTraceMessage() const {
+    return m_lastReadbackTraceMessage;
+  }
+
   int OpenGLRasterizer::lod() const {
     return m_lod;
   }
@@ -873,6 +885,33 @@ namespace engine::raster {
     return Recti(width, height);
   }
 
+  std::string OpenGLRasterizer::readbackTraceMessage(std::chrono::nanoseconds elapsed,
+                                                     bool copiedDepth, bool copiedStencil) const {
+    std::vector<std::string> attachments{"color"};
+    if (copiedDepth) {
+      attachments.push_back("depth");
+    }
+    if (copiedStencil) {
+      attachments.push_back("stencil");
+    }
+
+    std::ostringstream message;
+    message << "OpenGL raster readback copied ";
+    for (std::size_t i = 0; i != attachments.size(); ++i) {
+      if (i != 0) {
+        message << (i + 1 == attachments.size() ? " and " : ", ");
+      }
+      message << attachments[i];
+    }
+    message << " attachment";
+    if (attachments.size() != 1) {
+      message << "s";
+    }
+    message << " to CPU buffers in " << std::fixed << std::setprecision(3)
+            << elapsed.count() / 1000000.0 << " ms";
+    return message.str();
+  }
+
   void OpenGLRasterizer::renderOpenGL(Buffer<Colord>& buffer, Buffer<double>* depthTarget,
                                       Buffer<std::uint8_t>* stencilTarget) const {
     OpenGLOffscreenContext context;
@@ -888,13 +927,17 @@ namespace engine::raster {
                .build();
     }
 
-    OpenGLRasterDrawPass(context, buffer.height(), viewport, m_scissorTestEnabled, m_scissorRect,
-                         m_colorWriteMask, m_blendingEnabled, m_sourceBlendFactor,
-                         m_destinationBlendFactor, m_blendOp, m_blendConstantColor,
-                         m_blendConstantAlpha, m_alphaTestEnabled, m_alphaFunc, m_alphaReference,
-                         m_stencilTestEnabled, m_stencilFunc, m_stencilReference, m_stencilMask,
-                         m_stencilClearValue, m_stencilLoadOp, m_stencilStoreOp, m_stencilWriteMask,
-                         m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp)
-      .render(mesh, backgroundColor(), buffer, depthTarget, stencilTarget);
+    const auto readbackElapsed =
+      OpenGLRasterDrawPass(
+        context, buffer.height(), viewport, m_scissorTestEnabled, m_scissorRect, m_colorWriteMask,
+        m_blendingEnabled, m_sourceBlendFactor, m_destinationBlendFactor, m_blendOp,
+        m_blendConstantColor, m_blendConstantAlpha, m_alphaTestEnabled, m_alphaFunc,
+        m_alphaReference, m_stencilTestEnabled, m_stencilFunc, m_stencilReference, m_stencilMask,
+        m_stencilClearValue, m_stencilLoadOp, m_stencilStoreOp, m_stencilWriteMask, m_stencilFailOp,
+        m_stencilDepthFailOp, m_stencilPassOp)
+        .render(mesh, backgroundColor(), buffer, depthTarget, stencilTarget);
+    m_lastReadbackTraceMessage = readbackTraceMessage(
+      readbackElapsed, depthTarget != nullptr,
+      stencilTarget != nullptr && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store);
   }
 }

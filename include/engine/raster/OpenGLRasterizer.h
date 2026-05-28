@@ -6,6 +6,7 @@
 #include "render/RenderEngine.h"
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -101,11 +102,14 @@ namespace engine::raster {
     bool isAvailable() const;
     std::string availabilityDetail() const;
     std::string availabilityError() const;
+    const std::string& readbackTraceMessage() const;
 
   private:
     Recti viewportRectFor(int width, int height) const;
     void renderOpenGL(Buffer<Colord>& buffer, Buffer<double>* depthTarget,
                       Buffer<std::uint8_t>* stencilTarget) const;
+    std::string readbackTraceMessage(std::chrono::nanoseconds elapsed, bool copiedDepth,
+                                     bool copiedStencil) const;
 
     std::atomic<bool> m_cancelled{false};
     int m_lod{0};
@@ -137,5 +141,6 @@ namespace engine::raster {
     Rasterizer::StencilOp m_stencilFailOp{Rasterizer::StencilOp::Keep};
     Rasterizer::StencilOp m_stencilDepthFailOp{Rasterizer::StencilOp::Keep};
     Rasterizer::StencilOp m_stencilPassOp{Rasterizer::StencilOp::Keep};
+    mutable std::string m_lastReadbackTraceMessage;
   };
 }

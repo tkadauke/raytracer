@@ -25,6 +25,8 @@ set(textured_gltf_scene "${TEST_OUTPUT_DIR}/textured_triangle.gltf")
 configure_file("${textured_gltf_scene_template}" "${textured_gltf_scene}" @ONLY)
 set(basic_render "${TEST_OUTPUT_DIR}/raster-basic.png")
 set(opengl_graph "${TEST_OUTPUT_DIR}/raster-opengl-graph.json")
+set(opengl_trace "${TEST_OUTPUT_DIR}/raster-opengl-trace.json")
+set(opengl_trace_render "${TEST_OUTPUT_DIR}/raster-opengl-trace.png")
 set(lod_0_render "${TEST_OUTPUT_DIR}/raster-lod-0.png")
 set(lod_3_render "${TEST_OUTPUT_DIR}/raster-lod-3.png")
 set(invalid_render "${TEST_OUTPUT_DIR}/invalid.png")
@@ -84,6 +86,38 @@ else()
   _rendercli_fail("rendercli --raster_backend gpu application bootstrap"
                   "OpenGL backend neither rendered nor reported a clear OpenGL capability error"
                   "" "${opengl_result}" "${opengl_stdout}" "${opengl_stderr}")
+endif()
+
+execute_process(
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
+    --render_graph_trace_out "${opengl_trace}"
+    "${matte_scene}" "${opengl_trace_render}"
+  RESULT_VARIABLE opengl_trace_result
+  OUTPUT_VARIABLE opengl_trace_stdout
+  ERROR_VARIABLE opengl_trace_stderr
+)
+if(opengl_trace_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_trace_render}" 16 12
+                                    NAME "rendercli --raster_backend gpu trace dimensions")
+  rendercli_assert_nonempty("${opengl_trace}"
+                            NAME "rendercli --raster_backend gpu trace JSON")
+  file(READ "${opengl_trace}" opengl_trace_json)
+  if(NOT opengl_trace_json MATCHES "OpenGL raster readback copied color attachment")
+    _rendercli_fail("rendercli --raster_backend gpu readback trace"
+                    "OpenGL graph trace did not include readback timing"
+                    "" "${opengl_trace_result}" "${opengl_trace_stdout}" "${opengl_trace_json}")
+  endif()
+elseif(opengl_trace_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_trace_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu trace application bootstrap"
+                    "OpenGL trace path still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_trace_result}" "${opengl_trace_stdout}" "${opengl_trace_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu readback trace"
+                  "OpenGL trace render neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_trace_result}" "${opengl_trace_stdout}" "${opengl_trace_stderr}")
 endif()
 
 set(opengl_image_texture_render "${TEST_OUTPUT_DIR}/raster-opengl-image-texture.png")
