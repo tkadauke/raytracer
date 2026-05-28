@@ -239,7 +239,10 @@ Tasks:
   nearest/bilinear/mipmap filter and repeat/clamp wrap policy carried by
   `ImageTexture`.
 - Preserve current material fallback warnings.
-- Add a textured glTF fixture or generated smoke asset for rendercli coverage.
+- ~~Add a textured glTF fixture or generated smoke asset for rendercli
+  coverage.~~ ✅ **Done.** `rendercli_raster` now configures a tiny textured
+  glTF triangle and exercises it with `--raster_backend gpu`, accepting the
+  normal OpenGL capability error on hosts without an offscreen context.
 
 Acceptance:
 

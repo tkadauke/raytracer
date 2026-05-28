@@ -19,6 +19,10 @@ set(image_texture_scene_template
     "${PROJECT_SOURCE_DIR}/test/fixtures/rendercli/raster_image_texture.json.in")
 set(image_texture_scene "${TEST_OUTPUT_DIR}/raster_image_texture.json")
 configure_file("${image_texture_scene_template}" "${image_texture_scene}" @ONLY)
+set(textured_gltf_scene_template
+    "${PROJECT_SOURCE_DIR}/test/fixtures/rendercli/textured_triangle.gltf.in")
+set(textured_gltf_scene "${TEST_OUTPUT_DIR}/textured_triangle.gltf")
+configure_file("${textured_gltf_scene_template}" "${textured_gltf_scene}" @ONLY)
 set(basic_render "${TEST_OUTPUT_DIR}/raster-basic.png")
 set(opengl_graph "${TEST_OUTPUT_DIR}/raster-opengl-graph.json")
 set(lod_0_render "${TEST_OUTPUT_DIR}/raster-lod-0.png")
@@ -108,6 +112,34 @@ else()
                   "OpenGL image texture render neither rendered nor reported a clear OpenGL capability error"
                   "" "${opengl_image_texture_result}" "${opengl_image_texture_stdout}"
                   "${opengl_image_texture_stderr}")
+endif()
+
+set(opengl_gltf_texture_render "${TEST_OUTPUT_DIR}/raster-opengl-gltf-texture.png")
+execute_process(
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 16 --height 16 --raster_backend gpu
+    "${textured_gltf_scene}" "${opengl_gltf_texture_render}"
+  RESULT_VARIABLE opengl_gltf_texture_result
+  OUTPUT_VARIABLE opengl_gltf_texture_stdout
+  ERROR_VARIABLE opengl_gltf_texture_stderr
+)
+if(opengl_gltf_texture_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_gltf_texture_render}" 16 16
+                                    NAME "rendercli --raster_backend gpu textured glTF dimensions")
+  rendercli_assert_image_nonempty("${opengl_gltf_texture_render}"
+                                  NAME "rendercli --raster_backend gpu textured glTF pixels")
+elseif(opengl_gltf_texture_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_gltf_texture_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu textured glTF application bootstrap"
+                    "OpenGL textured glTF path still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_gltf_texture_result}" "${opengl_gltf_texture_stdout}"
+                    "${opengl_gltf_texture_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu textured glTF"
+                  "OpenGL textured glTF render neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_gltf_texture_result}" "${opengl_gltf_texture_stdout}"
+                  "${opengl_gltf_texture_stderr}")
 endif()
 
 set(opengl_msaa_render "${TEST_OUTPUT_DIR}/raster-opengl-msaa.png")
