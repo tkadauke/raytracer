@@ -5,6 +5,7 @@
 #include "render/RenderEngine.h"
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -54,6 +55,9 @@ namespace engine::raster {
     void setScissorRect(const Recti& rect);
     void clearScissorRect();
 
+    std::uint8_t colorWriteMask() const;
+    void setColorWriteMask(std::uint8_t mask);
+
     bool isAvailable() const;
     std::string availabilityDetail() const;
     std::string availabilityError() const;
@@ -71,5 +75,6 @@ namespace engine::raster {
     Recti m_viewportRect;
     bool m_scissorTestEnabled{false};
     Recti m_scissorRect;
+    std::uint8_t m_colorWriteMask{Rasterizer::ColorWriteAll};
   };
 }

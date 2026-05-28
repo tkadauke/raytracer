@@ -103,6 +103,33 @@ else()
                   "" "${opengl_msaa_result}" "${opengl_msaa_stdout}" "${opengl_msaa_stderr}")
 endif()
 
+set(opengl_color_mask_render "${TEST_OUTPUT_DIR}/raster-opengl-color-mask.png")
+execute_process(
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
+    --color_write_mask none
+    "${matte_scene}" "${opengl_color_mask_render}"
+  RESULT_VARIABLE opengl_color_mask_result
+  OUTPUT_VARIABLE opengl_color_mask_stdout
+  ERROR_VARIABLE opengl_color_mask_stderr
+)
+if(opengl_color_mask_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_color_mask_render}" 16 12
+                                    NAME "rendercli --raster_backend gpu color mask dimensions")
+elseif(opengl_color_mask_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_color_mask_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu color mask application bootstrap"
+                    "OpenGL color mask still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_color_mask_result}" "${opengl_color_mask_stdout}"
+                    "${opengl_color_mask_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu color mask"
+                  "OpenGL color mask neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_color_mask_result}" "${opengl_color_mask_stdout}"
+                  "${opengl_color_mask_stderr}")
+endif()
+
 set(opengl_depth_render "${TEST_OUTPUT_DIR}/raster-opengl-depth.png")
 execute_process(
   COMMAND

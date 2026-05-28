@@ -135,6 +135,7 @@ namespace RasterPassStateTest {
     state.sampling().setMSAASamples(4);
     state.framebuffer().setViewportRect(Recti(4, 5, 20, 21));
     state.framebuffer().setScissorRect(Recti(6, 7, 18, 19));
+    state.framebuffer().setColorWriteMask(Rasterizer::ColorWriteRed);
     engine::raster::OpenGLRasterizer rasterizer(nullptr);
 
     state.applyTo(rasterizer);
@@ -149,6 +150,7 @@ namespace RasterPassStateTest {
     EXPECT_TRUE(rasterizer.scissorTestEnabled());
     EXPECT_EQ(6, rasterizer.scissorRect().left());
     EXPECT_EQ(18, rasterizer.scissorRect().width());
+    EXPECT_EQ(Rasterizer::ColorWriteRed, rasterizer.colorWriteMask());
   }
 
   TEST(RasterBeautyPassState, AppliesImportedStateToRasterizer) {

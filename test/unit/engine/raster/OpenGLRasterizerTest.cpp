@@ -59,6 +59,7 @@ namespace OpenGLRasterizerTest {
     rasterizer.setCullMode(engine::raster::Rasterizer::CullMode::Back);
     rasterizer.setViewportRect(Recti(4, 5, 20, 21));
     rasterizer.setScissorRect(Recti(6, 7, 18, 19));
+    rasterizer.setColorWriteMask(engine::raster::Rasterizer::ColorWriteGreen);
 
     auto clone =
       std::dynamic_pointer_cast<engine::raster::OpenGLRasterizer>(rasterizer.cloneForRender());
@@ -73,6 +74,7 @@ namespace OpenGLRasterizerTest {
     EXPECT_TRUE(clone->scissorTestEnabled());
     EXPECT_EQ(6, clone->scissorRect().left());
     EXPECT_EQ(18, clone->scissorRect().width());
+    EXPECT_EQ(engine::raster::Rasterizer::ColorWriteGreen, clone->colorWriteMask());
   }
 
   TEST(OpenGLRasterizer, ClampsMSAASamplesToSupportedCounts) {
@@ -84,6 +86,14 @@ namespace OpenGLRasterizerTest {
     EXPECT_EQ(4, rasterizer.msaaSamples());
     rasterizer.setMSAASamples(99);
     EXPECT_EQ(8, rasterizer.msaaSamples());
+  }
+
+  TEST(OpenGLRasterizer, MasksUnsupportedColorWriteBits) {
+    engine::raster::OpenGLRasterizer rasterizer(nullptr);
+
+    rasterizer.setColorWriteMask(0xff);
+
+    EXPECT_EQ(engine::raster::Rasterizer::ColorWriteAll, rasterizer.colorWriteMask());
   }
 
   TEST(OpenGLRasterizer, ProvidesSharedStatusMessage) {

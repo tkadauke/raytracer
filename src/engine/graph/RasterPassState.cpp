@@ -663,6 +663,7 @@ namespace engine::graph {
     } else {
       rasterizer.clearScissorRect();
     }
+    rasterizer.setColorWriteMask(m_colorWriteMask);
   }
 
   void RasterFramebufferState::setViewportRect(const Recti& rect) {

@@ -18,12 +18,14 @@ namespace engine::raster {
     class OpenGLRasterDrawPass {
     public:
       OpenGLRasterDrawPass(OpenGLOffscreenContext& context, int height, const Recti& viewportRect,
-                           bool scissorEnabled, const Recti& scissorRect)
+                           bool scissorEnabled, const Recti& scissorRect,
+                           std::uint8_t colorWriteMask)
           : m_context(context),
             m_height(height),
             m_viewportRect(viewportRect),
             m_scissorEnabled(scissorEnabled),
-            m_scissorRect(scissorRect) {
+            m_scissorRect(scissorRect),
+            m_colorWriteMask(colorWriteMask) {
       }
 
       void render(const detail::OpenGLRasterMesh& mesh, const Colord& background,
@@ -63,9 +65,11 @@ namespace engine::raster {
                                 static_cast<GLfloat>(std::clamp(background.g(), 0.0, 1.0)),
                                 static_cast<GLfloat>(std::clamp(background.b(), 0.0, 1.0)), 1.0f);
         functions->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        applyColorWriteMask(functions);
 
         if (mesh.empty()) {
           functions->glFlush();
+          functions->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
           return;
         }
 
@@ -137,6 +141,7 @@ namespace engine::raster {
         functions->glFlush();
 
         functions->glDisable(GL_SCISSOR_TEST);
+        functions->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         program.disableAttributeArray(colorLocation);
         program.disableAttributeArray(positionLocation);
@@ -160,11 +165,18 @@ namespace engine::raster {
                              m_scissorRect.height());
       }
 
+      void applyColorWriteMask(QOpenGLFunctions* functions) const {
+        functions->glColorMask((m_colorWriteMask & Rasterizer::ColorWriteRed) != 0,
+                               (m_colorWriteMask & Rasterizer::ColorWriteGreen) != 0,
+                               (m_colorWriteMask & Rasterizer::ColorWriteBlue) != 0, GL_TRUE);
+      }
+
       OpenGLOffscreenContext& m_context;
       int m_height;
       Recti m_viewportRect;
       bool m_scissorEnabled;
       Recti m_scissorRect;
+      std::uint8_t m_colorWriteMask;
     };
   }
 
@@ -202,6 +214,7 @@ namespace engine::raster {
     } else {
       clone->clearScissorRect();
     }
+    clone->setColorWriteMask(m_colorWriteMask);
     if (m_cancelled.load()) {
       clone->cancel();
     }
@@ -314,6 +327,14 @@ namespace engine::raster {
     m_scissorTestEnabled = false;
   }
 
+  std::uint8_t OpenGLRasterizer::colorWriteMask() const {
+    return m_colorWriteMask;
+  }
+
+  void OpenGLRasterizer::setColorWriteMask(std::uint8_t mask) {
+    m_colorWriteMask = mask & Rasterizer::ColorWriteAll;
+  }
+
   bool OpenGLRasterizer::isAvailable() const {
     return OpenGLOffscreenContext::probe().available();
   }
@@ -352,7 +373,8 @@ namespace engine::raster {
                .build();
     }
 
-    OpenGLRasterDrawPass(context, buffer.height(), viewport, m_scissorTestEnabled, m_scissorRect)
+    OpenGLRasterDrawPass(context, buffer.height(), viewport, m_scissorTestEnabled, m_scissorRect,
+                         m_colorWriteMask)
       .render(mesh, backgroundColor(), buffer, depthTarget);
   }
 }

@@ -197,6 +197,9 @@ Tasks:
 - ~~Bind graph raster pass state for MSAA sample count.~~ ✅ **Done.** The
   OpenGL raster backend now allocates a multisample framebuffer when graph pass
   state requests MSAA.
+- ~~Bind graph raster pass state for color write masks.~~ ✅ **Done.** OpenGL
+  raster draw calls now apply graph-derived RGB color write masks after the
+  background clear.
 - Bind remaining graph raster pass state for other fixed-function controls.
 - ~~Render into an FBO color attachment and depth attachment.~~ ✅ **Done.**
   The backend clears the offscreen framebuffer, depth-tests triangles, and
