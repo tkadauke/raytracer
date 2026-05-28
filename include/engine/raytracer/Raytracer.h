@@ -16,6 +16,7 @@ class Buffer;
 
 namespace render {
   class Camera;
+  class WhittedIntegrator;
   class Primitive;
   class Scene;
   class State;
@@ -38,9 +39,9 @@ namespace engine::raytracer {
     *    interactive picking path in `Modeler` (mouse click → "what
     *    primitive is under the cursor?") and by tests pinning shading
     *    behaviour. `rayColor` is also the `RayCaster` compatibility
-    *    callback that cameras and recursive materials call today; the
-    *    long-term owner of the single-ray radiance policy is
-    *    `render::Integrator`.
+    *    callback that cameras and recursive materials call today; it
+    *    delegates the single-ray radiance policy to
+    *    `render::WhittedIntegrator`.
     *  - **Recursion-depth limit.** Specific to ray-recursive engines
     *    (raytracer, future path tracer). Wireframe / raster engines
     *    have no analogue, so it doesn't live on `RenderEngine`.
@@ -59,7 +60,7 @@ namespace engine::raytracer {
     * @endcode
     *
     * @see RenderEngine — the abstract base.
-    * @see render::Integrator — the single-ray radiance policy boundary.
+    * @see render::WhittedIntegrator — the default single-ray radiance policy.
     * @see Camera, Scene, Tonemap.
     * @see render::State — per-ray state threaded through `rayColor`.
     */
@@ -138,7 +139,8 @@ namespace engine::raytracer {
       * tracing `ray`, performing material evaluation and recursive
       * reflection / transmission as needed. Mutates `state` —
       * recursion depth, hit-point, and (when `traceEvents` is on) the
-      * event log are updated in place.
+      * event log are updated in place by the configured
+      * `render::WhittedIntegrator`.
       *
       * Bottoms out at `setMaximumRecursionDepth(N)` returning the
       * scene background; misses also return the scene background; a
