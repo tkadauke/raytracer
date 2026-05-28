@@ -172,8 +172,8 @@
 | `include/world/import/ImportedSceneDefaults.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/world/import/LDrawFileSceneImporter.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/world/import/LDrawSceneImporter.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
-| `include/world/import/MoleculeSceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/world/import/MoleculeSceneBuilder.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `include/world/import/MoleculeSceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/world/import/OpenScadCompiler.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `include/world/import/OpenScadSceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `include/world/import/SceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
