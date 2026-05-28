@@ -12,6 +12,7 @@
 #include <memory>
 
 namespace OpenGLRasterMeshTest {
+  using engine::raster::Rasterizer;
   using engine::raster::detail::OpenGLRasterMeshBuilder;
 
   std::shared_ptr<render::PinholeCamera> camera() {
@@ -31,8 +32,9 @@ namespace OpenGLRasterMeshTest {
     scene->add(triangle);
     std::atomic<bool> cancelled{false};
 
-    const auto mesh =
-      OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48), cancelled).build();
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+                                              Rasterizer::CullMode::Both, false, cancelled)
+                        .build();
 
     ASSERT_FALSE(mesh.empty());
     EXPECT_EQ(1u, mesh.triangleCount());
@@ -54,10 +56,12 @@ namespace OpenGLRasterMeshTest {
     scene->add(std::make_shared<render::Sphere>(Vector3d::null, 1.0));
     std::atomic<bool> cancelled{false};
 
-    const auto lod0 =
-      OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48), cancelled).build();
-    const auto lod1 =
-      OpenGLRasterMeshBuilder(scene.get(), camera(), 1, Recti(64, 48), cancelled).build();
+    const auto lod0 = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+                                              Rasterizer::CullMode::Both, false, cancelled)
+                        .build();
+    const auto lod1 = OpenGLRasterMeshBuilder(scene.get(), camera(), 1, Recti(64, 48),
+                                              Rasterizer::CullMode::Both, false, cancelled)
+                        .build();
 
     EXPECT_FALSE(lod0.empty());
     EXPECT_GT(lod1.triangleCount(), lod0.triangleCount());
@@ -68,9 +72,29 @@ namespace OpenGLRasterMeshTest {
     scene->add(std::make_shared<render::Sphere>(Vector3d::null, 1.0));
     std::atomic<bool> cancelled{true};
 
-    const auto mesh =
-      OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48), cancelled).build();
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+                                              Rasterizer::CullMode::Both, false, cancelled)
+                        .build();
 
     EXPECT_TRUE(mesh.empty());
+  }
+
+  TEST(OpenGLRasterMesh, AppliesCullModeOverrideDuringPreparation) {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    auto triangle = std::make_shared<render::Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0),
+                                                       Vector3d(0, 1, 0));
+    triangle->setMaterial(matte(Colord::red()));
+    scene->add(triangle);
+    std::atomic<bool> cancelled{false};
+
+    const auto unculled = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+                                                  Rasterizer::CullMode::Both, true, cancelled)
+                            .build();
+    const auto backfaceCulled = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+                                                        Rasterizer::CullMode::Back, true, cancelled)
+                                  .build();
+
+    EXPECT_FALSE(unculled.empty());
+    EXPECT_TRUE(backfaceCulled.empty());
   }
 }

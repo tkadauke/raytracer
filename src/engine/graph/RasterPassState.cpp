@@ -462,6 +462,11 @@ namespace engine::graph {
 
   void RasterGeometryState::applyTo(engine::raster::OpenGLRasterizer& rasterizer) const {
     rasterizer.setLod(m_lod);
+    if (m_cullMode && *m_cullMode != Rasterizer::CullMode::Both) {
+      rasterizer.setCullMode(*m_cullMode);
+    } else {
+      rasterizer.clearCullModeOverride();
+    }
   }
 
   void RasterGeometryState::setLod(int lod) {
@@ -641,6 +646,19 @@ namespace engine::graph {
     rasterizer.setBlendConstant(m_blendConstantColor, m_blendConstantAlpha);
     rasterizer.setAlphaTestEnabled(m_alphaTestEnabled);
     rasterizer.setAlphaFunc(m_alphaFunc, m_alphaReference);
+  }
+
+  void RasterFramebufferState::applyTo(engine::raster::OpenGLRasterizer& rasterizer) const {
+    if (m_viewportRect) {
+      rasterizer.setViewportRect(*m_viewportRect);
+    } else {
+      rasterizer.clearViewportRect();
+    }
+    if (m_scissorRect) {
+      rasterizer.setScissorRect(*m_scissorRect);
+    } else {
+      rasterizer.clearScissorRect();
+    }
   }
 
   void RasterFramebufferState::setViewportRect(const Recti& rect) {
@@ -971,6 +989,7 @@ namespace engine::graph {
 
   void RasterBeautyPassState::applyTo(engine::raster::OpenGLRasterizer& rasterizer) const {
     m_geometry.applyTo(rasterizer);
+    m_framebuffer.applyTo(rasterizer);
   }
 
   void RasterBeautyPassState::writeTo(RenderPassNode& pass) const {

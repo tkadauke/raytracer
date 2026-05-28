@@ -82,12 +82,16 @@ namespace engine::raster::detail {
 
   OpenGLRasterMeshBuilder::OpenGLRasterMeshBuilder(const render::Scene* scene,
                                                    std::shared_ptr<render::Camera> camera, int lod,
-                                                   const Recti& framebufferRect,
+                                                   const Recti& viewportRect,
+                                                   Rasterizer::CullMode cullMode,
+                                                   bool hasCullModeOverride,
                                                    const std::atomic<bool>& cancelled)
       : m_scene(scene),
         m_camera(std::move(camera)),
         m_lod(lod),
-        m_framebufferRect(framebufferRect),
+        m_viewportRect(viewportRect),
+        m_cullMode(cullMode),
+        m_hasCullModeOverride(hasCullModeOverride),
         m_cancelled(cancelled) {
   }
 
@@ -97,15 +101,15 @@ namespace engine::raster::detail {
       return mesh;
     }
 
-    m_camera->viewPlane()->setup(m_camera->matrix(), m_framebufferRect);
+    m_camera->viewPlane()->setup(m_camera->matrix(), m_viewportRect);
     Rasterizer rasterizer(m_camera, std::shared_ptr<render::Scene>());
     rasterizer.setLod(m_lod);
-    RasterTriangleEmitter emitter(m_scene, m_camera, m_lod, rasterizer, m_cancelled,
-                                  Rasterizer::CullMode::Both, false, false);
+    RasterTriangleEmitter emitter(m_scene, m_camera, m_lod, rasterizer, m_cancelled, m_cullMode,
+                                  m_hasCullModeOverride, false);
     emitter.forEachTriangle([&](const RasterTriangle& triangle) {
-      mesh.appendTriangle(vertexFor(triangle, triangle.vertices[0], m_framebufferRect),
-                          vertexFor(triangle, triangle.vertices[1], m_framebufferRect),
-                          vertexFor(triangle, triangle.vertices[2], m_framebufferRect));
+      mesh.appendTriangle(vertexFor(triangle, triangle.vertices[0], m_viewportRect),
+                          vertexFor(triangle, triangle.vertices[1], m_viewportRect),
+                          vertexFor(triangle, triangle.vertices[2], m_viewportRect));
     });
 
     return mesh;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/math/Rect.h"
+#include "engine/raster/Rasterizer.h"
 #include "render/RenderEngine.h"
 
 #include <atomic>
@@ -33,14 +35,36 @@ namespace engine::raster {
     int lod() const;
     void setLod(int lod);
 
+    Rasterizer::CullMode cullMode() const;
+    bool hasCullModeOverride() const;
+    void setCullMode(Rasterizer::CullMode mode);
+    void clearCullModeOverride();
+
+    bool viewportEnabled() const;
+    const Recti& viewportRect() const;
+    void setViewportRect(const Recti& rect);
+    void clearViewportRect();
+
+    bool scissorTestEnabled() const;
+    const Recti& scissorRect() const;
+    void setScissorRect(const Recti& rect);
+    void clearScissorRect();
+
     bool isAvailable() const;
     std::string availabilityDetail() const;
     std::string availabilityError() const;
 
   private:
+    Recti viewportRectFor(int width, int height) const;
     void renderOpenGL(Buffer<Colord>& buffer) const;
 
     std::atomic<bool> m_cancelled{false};
     int m_lod{0};
+    Rasterizer::CullMode m_cullMode{Rasterizer::CullMode::Both};
+    bool m_hasCullModeOverride{false};
+    bool m_viewportEnabled{false};
+    Recti m_viewportRect;
+    bool m_scissorTestEnabled{false};
+    Recti m_scissorRect;
   };
 }

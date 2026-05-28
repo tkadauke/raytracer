@@ -108,6 +108,7 @@ namespace engine::graph {
     QJsonObject toJson() const;
     bool empty() const;
     void applyTo(Rasterizer& rasterizer) const;
+    void applyTo(engine::raster::OpenGLRasterizer& rasterizer) const;
 
     void setViewportRect(const Recti& rect);
     void setScissorRect(const Recti& rect);

@@ -17,10 +17,13 @@ namespace engine::raster {
   namespace {
     class OpenGLRasterDrawPass {
     public:
-      OpenGLRasterDrawPass(OpenGLOffscreenContext& context, int width, int height)
+      OpenGLRasterDrawPass(OpenGLOffscreenContext& context, int height, const Recti& viewportRect,
+                           bool scissorEnabled, const Recti& scissorRect)
           : m_context(context),
-            m_width(width),
-            m_height(height) {
+            m_height(height),
+            m_viewportRect(viewportRect),
+            m_scissorEnabled(scissorEnabled),
+            m_scissorRect(scissorRect) {
       }
 
       void render(const detail::OpenGLRasterMesh& mesh, const Colord& background,
@@ -48,7 +51,9 @@ namespace engine::raster {
     private:
       void draw(const detail::OpenGLRasterMesh& mesh, const Colord& background) {
         QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
-        functions->glViewport(0, 0, m_width, m_height);
+        functions->glViewport(m_viewportRect.left(), openGLY(m_viewportRect),
+                              m_viewportRect.width(), m_viewportRect.height());
+        functions->glDisable(GL_SCISSOR_TEST);
         functions->glEnable(GL_DEPTH_TEST);
         functions->glDepthFunc(GL_LESS);
         functions->glClearColor(static_cast<GLfloat>(std::clamp(background.r(), 0.0, 1.0)),
@@ -60,6 +65,8 @@ namespace engine::raster {
           functions->glFlush();
           return;
         }
+
+        applyScissor(functions);
 
         QOpenGLShaderProgram program;
         if (!program.addShaderFromSourceCode(QOpenGLShader::Vertex,
@@ -126,6 +133,8 @@ namespace engine::raster {
                                   GL_UNSIGNED_INT, nullptr);
         functions->glFlush();
 
+        functions->glDisable(GL_SCISSOR_TEST);
+
         program.disableAttributeArray(colorLocation);
         program.disableAttributeArray(positionLocation);
         indexBuffer.release();
@@ -133,9 +142,26 @@ namespace engine::raster {
         program.release();
       }
 
+      int openGLY(const Recti& rect) const {
+        return m_height - rect.bottom();
+      }
+
+      void applyScissor(QOpenGLFunctions* functions) const {
+        if (!m_scissorEnabled) {
+          functions->glDisable(GL_SCISSOR_TEST);
+          return;
+        }
+
+        functions->glEnable(GL_SCISSOR_TEST);
+        functions->glScissor(m_scissorRect.left(), openGLY(m_scissorRect), m_scissorRect.width(),
+                             m_scissorRect.height());
+      }
+
       OpenGLOffscreenContext& m_context;
-      int m_width;
       int m_height;
+      Recti m_viewportRect;
+      bool m_scissorEnabled;
+      Recti m_scissorRect;
     };
   }
 
@@ -157,6 +183,21 @@ namespace engine::raster {
     }
     clone->setTonemap(tonemap());
     clone->setLod(m_lod);
+    if (m_hasCullModeOverride) {
+      clone->setCullMode(m_cullMode);
+    } else {
+      clone->clearCullModeOverride();
+    }
+    if (m_viewportEnabled) {
+      clone->setViewportRect(m_viewportRect);
+    } else {
+      clone->clearViewportRect();
+    }
+    if (m_scissorTestEnabled) {
+      clone->setScissorRect(m_scissorRect);
+    } else {
+      clone->clearScissorRect();
+    }
     if (m_cancelled.load()) {
       clone->cancel();
     }
@@ -193,6 +234,61 @@ namespace engine::raster {
     m_lod = lod;
   }
 
+  Rasterizer::CullMode OpenGLRasterizer::cullMode() const {
+    return m_cullMode;
+  }
+
+  bool OpenGLRasterizer::hasCullModeOverride() const {
+    return m_hasCullModeOverride;
+  }
+
+  void OpenGLRasterizer::setCullMode(Rasterizer::CullMode mode) {
+    m_cullMode = mode;
+    m_hasCullModeOverride = true;
+  }
+
+  void OpenGLRasterizer::clearCullModeOverride() {
+    m_hasCullModeOverride = false;
+  }
+
+  bool OpenGLRasterizer::viewportEnabled() const {
+    return m_viewportEnabled;
+  }
+
+  const Recti& OpenGLRasterizer::viewportRect() const {
+    return m_viewportRect;
+  }
+
+  void OpenGLRasterizer::setViewportRect(const Recti& rect) {
+    m_viewportRect =
+      Recti(rect.left(), rect.top(), std::max(0, rect.width()), std::max(0, rect.height()));
+    m_viewportEnabled = true;
+  }
+
+  void OpenGLRasterizer::clearViewportRect() {
+    m_viewportRect = Recti();
+    m_viewportEnabled = false;
+  }
+
+  bool OpenGLRasterizer::scissorTestEnabled() const {
+    return m_scissorTestEnabled;
+  }
+
+  const Recti& OpenGLRasterizer::scissorRect() const {
+    return m_scissorRect;
+  }
+
+  void OpenGLRasterizer::setScissorRect(const Recti& rect) {
+    m_scissorRect =
+      Recti(rect.left(), rect.top(), std::max(0, rect.width()), std::max(0, rect.height()));
+    m_scissorTestEnabled = true;
+  }
+
+  void OpenGLRasterizer::clearScissorRect() {
+    m_scissorRect = Recti();
+    m_scissorTestEnabled = false;
+  }
+
   bool OpenGLRasterizer::isAvailable() const {
     return OpenGLOffscreenContext::probe().available();
   }
@@ -210,18 +306,28 @@ namespace engine::raster {
            availability.detail() + ") and can render the initial material-albedo mesh path";
   }
 
+  Recti OpenGLRasterizer::viewportRectFor(int width, int height) const {
+    if (m_viewportEnabled) {
+      return m_viewportRect;
+    }
+    return Recti(width, height);
+  }
+
   void OpenGLRasterizer::renderOpenGL(Buffer<Colord>& buffer) const {
     OpenGLOffscreenContext context;
     if (!context.create(buffer.width(), buffer.height())) {
       throw std::runtime_error(context.errorMessage());
     }
 
-    const detail::OpenGLRasterMesh mesh =
-      detail::OpenGLRasterMeshBuilder(scene().get(), camera(), m_lod,
-                                      Recti(buffer.width(), buffer.height()), m_cancelled)
-        .build();
+    const Recti viewport = viewportRectFor(buffer.width(), buffer.height());
+    detail::OpenGLRasterMesh mesh;
+    if (viewport.width() > 0 && viewport.height() > 0) {
+      mesh = detail::OpenGLRasterMeshBuilder(scene().get(), camera(), m_lod, viewport, m_cullMode,
+                                             m_hasCullModeOverride, m_cancelled)
+               .build();
+    }
 
-    OpenGLRasterDrawPass(context, buffer.width(), buffer.height())
+    OpenGLRasterDrawPass(context, buffer.height(), viewport, m_scissorTestEnabled, m_scissorRect)
       .render(mesh, backgroundColor(), buffer);
   }
 }

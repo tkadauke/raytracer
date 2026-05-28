@@ -2,6 +2,7 @@
 
 #include "core/Color.h"
 #include "core/math/Rect.h"
+#include "engine/raster/Rasterizer.h"
 
 #include <atomic>
 #include <cstdint>
@@ -52,8 +53,8 @@ namespace engine::raster::detail {
   class OpenGLRasterMeshBuilder {
   public:
     OpenGLRasterMeshBuilder(const render::Scene* scene, std::shared_ptr<render::Camera> camera,
-                            int lod, const Recti& framebufferRect,
-                            const std::atomic<bool>& cancelled);
+                            int lod, const Recti& viewportRect, Rasterizer::CullMode cullMode,
+                            bool hasCullModeOverride, const std::atomic<bool>& cancelled);
 
     OpenGLRasterMesh build() const;
 
@@ -61,7 +62,9 @@ namespace engine::raster::detail {
     const render::Scene* m_scene;
     std::shared_ptr<render::Camera> m_camera;
     int m_lod;
-    Recti m_framebufferRect;
+    Recti m_viewportRect;
+    Rasterizer::CullMode m_cullMode;
+    bool m_hasCullModeOverride;
     const std::atomic<bool>& m_cancelled;
   };
 

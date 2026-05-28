@@ -128,14 +128,25 @@ namespace RasterPassStateTest {
     EXPECT_EQ("pcss", shadows.value("filterMode").toString().toStdString());
   }
 
-  TEST(RasterBeautyPassState, AppliesLodToOpenGLRasterizer) {
+  TEST(RasterBeautyPassState, AppliesSupportedStateToOpenGLRasterizer) {
     RasterBeautyPassState state;
     state.geometry().setLod(3);
+    state.geometry().setCullMode(Rasterizer::CullMode::Front);
+    state.framebuffer().setViewportRect(Recti(4, 5, 20, 21));
+    state.framebuffer().setScissorRect(Recti(6, 7, 18, 19));
     engine::raster::OpenGLRasterizer rasterizer(nullptr);
 
     state.applyTo(rasterizer);
 
     EXPECT_EQ(3, rasterizer.lod());
+    EXPECT_TRUE(rasterizer.hasCullModeOverride());
+    EXPECT_EQ(Rasterizer::CullMode::Front, rasterizer.cullMode());
+    EXPECT_TRUE(rasterizer.viewportEnabled());
+    EXPECT_EQ(4, rasterizer.viewportRect().left());
+    EXPECT_EQ(20, rasterizer.viewportRect().width());
+    EXPECT_TRUE(rasterizer.scissorTestEnabled());
+    EXPECT_EQ(6, rasterizer.scissorRect().left());
+    EXPECT_EQ(18, rasterizer.scissorRect().width());
   }
 
   TEST(RasterBeautyPassState, AppliesImportedStateToRasterizer) {

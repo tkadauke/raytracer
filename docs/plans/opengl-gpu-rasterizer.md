@@ -190,8 +190,12 @@ Tasks:
 - ~~Bind graph raster pass state for camera and LOD, and enable depth test.~~ ✅
   **Done.** Camera setup and LOD are shared with the software front end, and
   the OpenGL pass enables depth testing.
-- Bind remaining graph raster pass state for viewport/scissor, culling
-  overrides, MSAA, and other fixed-function controls.
+- ~~Bind graph raster pass state for viewport/scissor and culling
+  overrides.~~ ✅ **Done.** The OpenGL raster backend now carries the same
+  graph-derived viewport, scissor, and culling state as the CPU rasterizer for
+  the initial mesh beauty path.
+- Bind remaining graph raster pass state for MSAA and other fixed-function
+  controls.
 - ~~Render into an FBO color attachment and depth attachment.~~ ✅ **Done.**
   The backend clears the offscreen framebuffer, depth-tests triangles, and
   draws material-albedo color.

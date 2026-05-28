@@ -42,6 +42,26 @@ namespace OpenGLRasterizerTest {
     EXPECT_EQ(3, clone->lod());
   }
 
+  TEST(OpenGLRasterizer, ClonesFixedFunctionStateForRender) {
+    engine::raster::OpenGLRasterizer rasterizer(nullptr);
+    rasterizer.setCullMode(engine::raster::Rasterizer::CullMode::Back);
+    rasterizer.setViewportRect(Recti(4, 5, 20, 21));
+    rasterizer.setScissorRect(Recti(6, 7, 18, 19));
+
+    auto clone =
+      std::dynamic_pointer_cast<engine::raster::OpenGLRasterizer>(rasterizer.cloneForRender());
+
+    ASSERT_NE(nullptr, clone);
+    EXPECT_TRUE(clone->hasCullModeOverride());
+    EXPECT_EQ(engine::raster::Rasterizer::CullMode::Back, clone->cullMode());
+    EXPECT_TRUE(clone->viewportEnabled());
+    EXPECT_EQ(4, clone->viewportRect().left());
+    EXPECT_EQ(20, clone->viewportRect().width());
+    EXPECT_TRUE(clone->scissorTestEnabled());
+    EXPECT_EQ(6, clone->scissorRect().left());
+    EXPECT_EQ(18, clone->scissorRect().width());
+  }
+
   TEST(OpenGLRasterizer, ProvidesSharedStatusMessage) {
     const std::string message = engine::raster::OpenGLRasterizer::statusMessage();
 
