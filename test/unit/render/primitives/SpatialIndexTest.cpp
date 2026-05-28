@@ -2,6 +2,7 @@
 
 #include "core/math/HitPointInterval.h"
 #include "render/State.h"
+#include "render/primitives/AccelerationPolicy.h"
 #include "render/primitives/BVH.h"
 #include "render/primitives/Composite.h"
 #include "render/primitives/Grid.h"
@@ -89,5 +90,25 @@ namespace SpatialIndexTest {
       EXPECT_TRUE(index->intersects(ray, state));
       EXPECT_EQ(spatialIndexPrimitive(index)->boundingBox(), index->bounds());
     }
+  }
+
+  TEST(AccelerationPolicy, AutomaticConservativelySelectsGrid) {
+    const AccelerationAnalysis analysis{24};
+    const auto decision = AccelerationPolicy::automatic().choose(analysis);
+
+    EXPECT_EQ(AccelerationMode::Automatic, decision.requestedMode);
+    EXPECT_EQ(SpatialIndexKind::Grid, decision.spatialIndexKind);
+    EXPECT_STREQ("automatic_conservative_grid", decision.reason);
+    EXPECT_EQ("requested=automatic selected=grid reason=automatic_conservative_grid",
+              diagnosticString(decision));
+  }
+
+  TEST(AccelerationPolicy, ManualOverrideSelectsRequestedIndex) {
+    const AccelerationAnalysis analysis{24};
+    const auto decision = AccelerationPolicy::manual(SpatialIndexKind::BVH).choose(analysis);
+
+    EXPECT_EQ(AccelerationMode::BVH, decision.requestedMode);
+    EXPECT_EQ(SpatialIndexKind::BVH, decision.spatialIndexKind);
+    EXPECT_STREQ("manual_override", decision.reason);
   }
 }

@@ -23,10 +23,16 @@
 
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 namespace {
   bool looksLikeRenderGraphPlan(const QJsonObject& json) {
     return json["resources"].isArray() && json["passes"].isArray();
+  }
+
+  bool isKnownAccelerationMode(int mode) {
+    return mode >= static_cast<int>(render::AccelerationMode::Automatic) &&
+           mode <= static_cast<int>(render::AccelerationMode::BVH);
   }
 }
 
@@ -46,15 +52,14 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene() const {
 std::shared_ptr<render::Scene> Scene::toRaytracerScene(const StepPlaybackStyle& style) const {
   auto result = std::make_shared<render::Scene>();
 
-  auto geometry = render::makeSpatialIndex(render::SpatialIndexKind::Grid);
-  render::spatialIndexPrimitive(geometry)->setName(name().toStdString());
+  std::vector<std::shared_ptr<render::Primitive>> boundedPrimitives;
   for (const auto& child : childElements()) {
     if (auto surface = dynamic_cast<Surface*>(child)) {
       // Surface::toRaytracer takes a non-owning raw pointer — it only
       // reaches into the scene to register lights/elements.
       auto primitive = surface->toRaytracer(result.get(), style);
       if (primitive && !primitive->boundingBox().isInfinite()) {
-        geometry->add(primitive);
+        boundedPrimitives.push_back(primitive);
       }
     } else if (auto light = dynamic_cast<Light*>(child)) {
       if (light->visible()) {
@@ -63,12 +68,21 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene(const StepPlaybackStyle& 
     } else if (auto group = dynamic_cast<Group*>(child)) {
       auto primitive = group->toRaytracer(result.get(), style);
       if (primitive && !primitive->boundingBox().isInfinite()) {
-        geometry->add(primitive);
+        boundedPrimitives.push_back(primitive);
       }
     }
   }
 
-  if (geometry->primitives().size() > 0) {
+  const render::AccelerationAnalysis analysis{boundedPrimitives.size()};
+  const auto decision = accelerationPolicy().choose(analysis);
+  result->setAccelerationDecision(decision);
+
+  if (!boundedPrimitives.empty()) {
+    auto geometry = render::makeSpatialIndex(decision.spatialIndexKind);
+    render::spatialIndexPrimitive(geometry)->setName(name().toStdString());
+    for (const auto& primitive : boundedPrimitives) {
+      geometry->add(primitive);
+    }
     geometry->setup();
     result->add(render::spatialIndexPrimitive(geometry));
   }
@@ -77,6 +91,47 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene(const StepPlaybackStyle& 
   result->setBackground(background());
 
   return result;
+}
+
+int Scene::accelerationMode() const {
+  return static_cast<int>(m_accelerationMode);
+}
+
+void Scene::setAccelerationMode(int mode) {
+  if (isKnownAccelerationMode(mode)) {
+    m_accelerationMode = static_cast<render::AccelerationMode>(mode);
+  } else {
+    m_accelerationMode = render::AccelerationMode::Automatic;
+  }
+}
+
+render::AccelerationPolicy Scene::accelerationPolicy() const {
+  return render::AccelerationPolicy(m_accelerationMode);
+}
+
+QList<int> Scene::propertyIntChoices(const QString& propertyName) const {
+  if (propertyName == QStringLiteral("accelerationMode")) {
+    return {static_cast<int>(render::AccelerationMode::Automatic),
+            static_cast<int>(render::AccelerationMode::Linear),
+            static_cast<int>(render::AccelerationMode::Grid),
+            static_cast<int>(render::AccelerationMode::BVH)};
+  }
+  return Element::propertyIntChoices(propertyName);
+}
+
+QString Scene::propertyChoiceDisplayName(const QString& propertyName, const QString& choice) const {
+  if (propertyName == QStringLiteral("accelerationMode")) {
+    const auto mode = static_cast<render::AccelerationMode>(choice.toInt());
+    if (mode == render::AccelerationMode::Automatic)
+      return QStringLiteral("Auto");
+    if (mode == render::AccelerationMode::Linear)
+      return QStringLiteral("Linear");
+    if (mode == render::AccelerationMode::Grid)
+      return QStringLiteral("Grid");
+    if (mode == render::AccelerationMode::BVH)
+      return QStringLiteral("BVH");
+  }
+  return Element::propertyChoiceDisplayName(propertyName, choice);
 }
 
 void Scene::read(const QJsonObject& json) {

@@ -5,6 +5,7 @@
 
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/graph/RenderSceneAnalysis.h"
+#include "render/primitives/AccelerationPolicy.h"
 #include "world/objects/Element.h"
 #include "world/animation/Timeline.h"
 #include "core/Color.h"
@@ -22,6 +23,7 @@ class Scene : public Element {
   Q_OBJECT
   Q_PROPERTY(Colord ambient READ ambient WRITE setAmbient)
   Q_PROPERTY(Colord background READ background WRITE setBackground)
+  Q_PROPERTY(int accelerationMode READ accelerationMode WRITE setAccelerationMode)
 
 public:
   /**
@@ -130,6 +132,18 @@ public:
   engine::graph::RenderSceneAnalysis renderGraphAnalysis() const;
 
   /**
+    * Manual scene-acceleration override for testing and benchmarking. The
+    * default Automatic mode currently preserves the existing Grid selection.
+    */
+  int accelerationMode() const;
+  void setAccelerationMode(int mode);
+  render::AccelerationPolicy accelerationPolicy() const;
+
+  QList<int> propertyIntChoices(const QString& propertyName) const override;
+  QString propertyChoiceDisplayName(const QString& propertyName,
+                                    const QString& choice) const override;
+
+  /**
     * Applies the scene's animation timeline at @p frame.
     *
     * Static scenes are left unchanged.
@@ -233,6 +247,7 @@ private:
   bool m_changed;
   Colord m_ambient;
   Colord m_background;
+  render::AccelerationMode m_accelerationMode{render::AccelerationMode::Automatic};
   std::unique_ptr<world::Timeline> m_animation;
   engine::graph::RenderIntent m_renderIntent;
   bool m_hasRenderIntent{false};

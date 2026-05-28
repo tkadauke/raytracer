@@ -1,8 +1,10 @@
 #pragma once
 #include <list>
 #include <memory>
+#include <optional>
 
 #include "render/primitives/Composite.h"
+#include "render/primitives/AccelerationPolicy.h"
 #include "core/Color.h"
 
 namespace render {
@@ -129,9 +131,27 @@ namespace render {
       m_background = background;
     }
 
+    /**
+      * Records the policy decision used to wrap the scene's finite geometry.
+      * This is diagnostic-only: traversal still happens through the primitive
+      * tree itself.
+      */
+    inline void setAccelerationDecision(AccelerationDecision decision) {
+      m_accelerationDecision = decision;
+    }
+
+    /**
+      * @returns the acceleration choice used during scene construction, when
+      *   the scene came from a policy-aware builder such as world::Scene.
+      */
+    inline const std::optional<AccelerationDecision>& accelerationDecision() const {
+      return m_accelerationDecision;
+    }
+
   private:
     Lights m_lights;
     Colord m_ambient;
     Colord m_background;
+    std::optional<AccelerationDecision> m_accelerationDecision;
   };
 }
