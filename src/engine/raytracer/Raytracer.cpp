@@ -35,20 +35,35 @@ struct Raytracer::Private {
   std::unique_ptr<QThreadPool> threadPool;
   list<shared_ptr<engine::TileRenderTask>> tasks;
   int queueSize;
-  std::unique_ptr<render::WhittedIntegrator> integrator;
+  std::unique_ptr<render::Integrator> integrator;
   bool showProgressIndicators;
+
+  render::WhittedIntegrator* whittedIntegrator() {
+    return dynamic_cast<render::WhittedIntegrator*>(integrator.get());
+  }
+
+  const render::WhittedIntegrator* whittedIntegrator() const {
+    return dynamic_cast<const render::WhittedIntegrator*>(integrator.get());
+  }
+
+  void configureIntegratorCancellation(const Raytracer& owner) {
+    if (auto* whitted = whittedIntegrator()) {
+      whitted->setCancellationCallback(
+        [&owner] { return owner.camera() && owner.camera()->isCancelled(); });
+    }
+  }
 };
 
 Raytracer::Raytracer(std::shared_ptr<render::Scene> scene)
     : RenderEngine(std::move(scene)),
       p(std::make_unique<Private>()) {
-  p->integrator->setCancellationCallback([this] { return m_camera && m_camera->isCancelled(); });
+  p->configureIntegratorCancellation(*this);
 }
 
 Raytracer::Raytracer(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene)
     : RenderEngine(std::move(camera), std::move(scene)),
       p(std::make_unique<Private>()) {
-  p->integrator->setCancellationCallback([this] { return m_camera && m_camera->isCancelled(); });
+  p->configureIntegratorCancellation(*this);
 }
 
 Raytracer::~Raytracer() {
@@ -57,7 +72,7 @@ Raytracer::~Raytracer() {
 std::shared_ptr<render::RenderEngine> Raytracer::cloneForRender() const {
   auto result = std::make_shared<Raytracer>(m_camera ? m_camera->clone() : nullptr, m_scene);
   result->setTonemap(tonemap());
-  result->setMaximumRecursionDepth(p->integrator->maximumRecursionDepth());
+  result->setIntegrator(p->integrator->clone());
   result->setMaximumThreads(p->threadPool->maxThreadCount());
   result->setQueueSize(p->queueSize);
   result->setShowProgressIndicators(p->showProgressIndicators);
@@ -224,7 +239,21 @@ std::list<Recti> Raytracer::completedTiles() const {
 }
 
 void Raytracer::setMaximumRecursionDepth(int depth) {
-  p->integrator->setMaximumRecursionDepth(depth);
+  if (auto* whitted = p->whittedIntegrator()) {
+    whitted->setMaximumRecursionDepth(depth);
+  }
+}
+
+void Raytracer::setIntegrator(std::unique_ptr<render::Integrator> integrator) {
+  if (!integrator) {
+    throw std::invalid_argument("Raytracer integrator cannot be null");
+  }
+  p->integrator = std::move(integrator);
+  p->configureIntegratorCancellation(*this);
+}
+
+const render::Integrator& Raytracer::integrator() const {
+  return *p->integrator;
 }
 
 void Raytracer::setMaximumThreads(int threads) {

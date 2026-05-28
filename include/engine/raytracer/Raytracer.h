@@ -16,6 +16,7 @@ class Buffer;
 
 namespace render {
   class Camera;
+  class Integrator;
   class WhittedIntegrator;
   class Primitive;
   class Scene;
@@ -40,9 +41,8 @@ namespace engine::raytracer {
     *    primitive is under the cursor?") and by tests pinning shading
     *    behaviour. `rayColor` is also the `RayCaster` compatibility
     *    callback that cameras and recursive materials call today; it
-    *    delegates the single-ray radiance policy to
-    *    `render::WhittedIntegrator`, the current implementation of
-    *    the `render::Integrator` boundary.
+    *    delegates the single-ray radiance policy to the configured
+    *    `render::Integrator` (`render::WhittedIntegrator` by default).
     *  - **Recursion-depth limit.** Specific to ray-recursive engines
     *    (raytracer, future path tracer). Wireframe / raster engines
     *    have no analogue, so it doesn't live on `RenderEngine`.
@@ -141,8 +141,7 @@ namespace engine::raytracer {
       * tracing `ray`, performing material evaluation and recursive
       * reflection / transmission as needed. Mutates `state` —
       * recursion depth, hit-point, and (when `traceEvents` is on) the
-      * event log are updated in place by the configured
-      * `render::WhittedIntegrator`.
+      * event log are updated in place by the configured `render::Integrator`.
       *
       * Bottoms out at `setMaximumRecursionDepth(N)` returning the
       * scene background; misses also return the scene background; a
@@ -183,9 +182,22 @@ namespace engine::raytracer {
       *
       * The default is 10, chosen to handle glass-torus scenes
       * (4 surface crossings × reflection branches per hit) without
-      * truncating visible energy.
+      * truncating visible energy. This compatibility convenience applies when
+      * the selected integrator is `WhittedIntegrator`; other integrators own
+      * their own recursion policy.
       */
     void setMaximumRecursionDepth(int depth);
+
+    /**
+      * Replaces the single-ray radiance policy used by `rayColor`,
+      * `rayState`, `primitiveForRay`, and camera rendering. Passing `nullptr`
+      * is invalid; construct a fresh `WhittedIntegrator` to restore the
+      * default policy.
+      */
+    void setIntegrator(std::unique_ptr<render::Integrator> integrator);
+
+    /// @returns the currently configured single-ray radiance policy.
+    const render::Integrator& integrator() const;
 
     /**
       * Sets the worker-thread count. Defaults to
