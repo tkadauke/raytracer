@@ -26,6 +26,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   orthographic cameras to `OrthographicCamera`, directional/point lights to
   world lights, and warning when spot lights or range attenuation cannot be
   represented directly for Epic #233. — GPT-5
+- **glTF product-view scene defaults.** Direct `.gltf` and `.glb` imports now
+  use shared importer scene defaults for front-facing upright product-view
+  orientation, white background, ambient fill, directional light, and
+  unit-scale-aware pinhole camera framing in Modeler and rendercli. — GPT-5
 - **Source asset animation.** Scene animation tracks can now target editable
   source/import parameters such as OpenSCAD Customizer values; numeric
   parameters interpolate, boolean/string-like parameters are step-only, and

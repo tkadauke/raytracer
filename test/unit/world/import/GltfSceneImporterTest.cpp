@@ -4,6 +4,7 @@
 #include "core/math/HitPoint.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/MeshPrimitive.h"
+#include "render/primitives/Scene.h"
 #include "render/textures/ImageTexture.h"
 #include "world/import/GltfSceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
@@ -200,7 +201,7 @@ namespace GltfSceneImporterTest {
     ASSERT_EQ(1u, scene->animation()->tracks().size());
     EXPECT_EQ(QString("position"), scene->animation()->tracks().front().propertyName());
 
-    ASSERT_EQ(2, scene->childElements().size());
+    ASSERT_GE(scene->childElements().size(), 2);
     auto* importRoot = qobject_cast<Group*>(scene->childElements()[1]);
     ASSERT_NE(nullptr, importRoot);
     auto* sceneGroup = qobject_cast<Group*>(importRoot->childElements()[0]);
@@ -219,6 +220,121 @@ namespace GltfSceneImporterTest {
 
     scene->evaluateAnimationAtFrame(24);
     expectVectorNear(animatedNode->position(), Vector3d(1.0, 2.0, 3.0));
+  }
+
+  TEST(GltfSceneImporter, ConfiguresStandaloneSceneForProductView) {
+    const QString path = writeGltf(R"JSON({
+      "asset": {"version": "2.0"},
+      "buffers": [{
+        "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAA",
+        "byteLength": 36
+      }],
+      "bufferViews": [{"buffer": 0, "byteLength": 36}],
+      "accessors": [{"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3"}],
+      "meshes": [{"primitives": [{"attributes": {"POSITION": 0}}]}],
+      "scenes": [{"nodes": [0]}],
+      "nodes": [{"name": "Triangle", "mesh": 0}]
+    })JSON");
+
+    world::GltfSceneImporter importer;
+    auto result = importer.importFile(path);
+
+    ASSERT_TRUE(result.succeeded());
+    auto root = result.takeRoot();
+    ASSERT_NE(nullptr, root);
+    Element* importedRoot = root.get();
+    Scene scene;
+    scene.addChild(std::move(root));
+
+    EXPECT_TRUE(importer.configureImportedScene(scene, *importedRoot, world::ImportOptions()));
+
+    EXPECT_EQ(Colord::white(), scene.background());
+    EXPECT_EQ(Colord(0.8, 0.8, 0.8), scene.ambient());
+    auto* camera = qobject_cast<PinholeCamera*>(scene.activeCamera());
+    ASSERT_NE(nullptr, camera);
+    EXPECT_GT(camera->position().z(), camera->target().z());
+    EXPECT_GT(camera->zoom(), 1.0);
+
+    auto* group = qobject_cast<Group*>(importedRoot);
+    ASSERT_NE(nullptr, group);
+    EXPECT_NEAR(std::acos(-1.0), group->rotation().z(), 1e-9);
+    const Vector3d mappedSourceUp = group->localTransform() * Vector4d(0, 1, 0);
+    expectVectorNear(mappedSourceUp, Vector3d(0, -1, 0));
+    EXPECT_EQ(QString("gltf_y_up_to_product_view_up"),
+              group->metadataValue("coordinateConversion").toString());
+    EXPECT_TRUE(scene.toRaytracerScene()->boundingBox().isValid());
+  }
+
+  TEST(GltfSceneImporter, ConfiguresImportedRootWithoutChangingScene) {
+    world::GltfSceneImporter importer;
+    Group group;
+    Scene scene;
+    const Colord originalBackground = scene.background();
+    const Colord originalAmbient = scene.ambient();
+
+    EXPECT_TRUE(importer.configureImportedRoot(group, world::ImportOptions()));
+
+    EXPECT_EQ(originalBackground, scene.background());
+    EXPECT_EQ(originalAmbient, scene.ambient());
+    EXPECT_EQ(nullptr, scene.activeCamera());
+    EXPECT_NEAR(std::acos(-1.0), group.rotation().z(), 1e-9);
+    EXPECT_EQ(QString("gltf_y_up_to_product_view_up"),
+              group.metadataValue("coordinateConversion").toString());
+  }
+
+  TEST(GltfSceneImporter, ConfiguresAnimatedSceneRootForProductView) {
+    const QString path = writeGltf(R"JSON({
+      "asset": {"version": "2.0"},
+      "scene": 0,
+      "scenes": [{"name": "Animated Mesh Scene", "nodes": [0]}],
+      "nodes": [{"name": "Animated Mesh Node", "mesh": 0}],
+      "buffers": [
+        {
+          "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAA",
+          "byteLength": 36
+        },
+        {
+          "uri": "data:application/octet-stream;base64,AAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAQAAAQEA=",
+          "byteLength": 32
+        }
+      ],
+      "bufferViews": [
+        {"buffer": 0, "byteOffset": 0, "byteLength": 36},
+        {"buffer": 1, "byteOffset": 0, "byteLength": 8},
+        {"buffer": 1, "byteOffset": 8, "byteLength": 24}
+      ],
+      "accessors": [
+        {"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3"},
+        {"bufferView": 1, "componentType": 5126, "count": 2, "type": "SCALAR"},
+        {"bufferView": 2, "componentType": 5126, "count": 2, "type": "VEC3"}
+      ],
+      "meshes": [{"primitives": [{"attributes": {"POSITION": 0}}]}],
+      "animations": [{
+        "samplers": [{"input": 1, "output": 2, "interpolation": "STEP"}],
+        "channels": [{"sampler": 0, "target": {"node": 0, "path": "translation"}}]
+      }]
+    })JSON");
+
+    world::GltfSceneImporter importer;
+    const auto result = importer.importFile(path);
+
+    ASSERT_TRUE(result.succeeded());
+    ASSERT_NE(nullptr, result.sceneRoot());
+    auto* scene = result.sceneRoot();
+    EXPECT_EQ(Colord::white(), scene->background());
+    EXPECT_EQ(Colord(0.8, 0.8, 0.8), scene->ambient());
+    auto* camera = qobject_cast<PinholeCamera*>(scene->activeCamera());
+    ASSERT_NE(nullptr, camera);
+    EXPECT_GT(camera->position().z(), camera->target().z());
+    EXPECT_GT(camera->zoom(), 1.0);
+
+    ASSERT_GE(scene->childElements().size(), 2);
+    auto* importRoot = qobject_cast<Group*>(scene->childElements()[1]);
+    ASSERT_NE(nullptr, importRoot);
+    EXPECT_NEAR(std::acos(-1.0), importRoot->rotation().z(), 1e-9);
+    EXPECT_EQ(QString("gltf_y_up_to_product_view_up"),
+              importRoot->metadataValue("coordinateConversion").toString());
+    EXPECT_TRUE(scene->toRaytracerScene()->boundingBox().isValid());
   }
 
   TEST(GltfSceneImporter, ImportsPerspectiveAndOrthographicCamerasFromNodes) {

@@ -128,14 +128,20 @@ Other importers preserve hierarchy before geometry support is complete.
 glTF scenes and nodes to `Group` roots, using node transforms for the local
 group transform and attaching source IDs plus `ImportProvenance`. Its
 `preserve_hierarchy` option keeps parent-child relationships by default; tests
-can disable it to check the flattened global-transform path. When glTF
-animations contain simple node translation, rotation, or scale channels, the
-importer preserves sampler/channel metadata on the node groups and creates
-world timeline tracks for supported channels. Unsupported target paths or
-interpolation modes continue as warnings so the imported hierarchy remains
-inspectable. Mesh primitives
-compile to shared `MeshPrimitive` geometry, and glTF PBR base-color factors or
-base-color textures become renderer `MatteMaterial` diffuse textures. The
+can disable it to check the flattened global-transform path. Standalone glTF
+opens use the shared product-view defaults: the imported root is normalized so
+glTF's Y-up asset space appears upright in rendered images, then the scene gets
+a white background, ambient fill, a default light, and a front-facing framed
+pinhole camera. The shared pinhole framing path can raise zoom for unit-scale
+assets, so small interchange models still fill the image instead of sitting in
+the middle of a mostly empty frame.
+When glTF animations contain simple node translation, rotation, or scale
+channels, the importer preserves sampler/channel metadata on the node groups and
+creates world timeline tracks for supported channels. Unsupported target paths
+or interpolation modes continue as warnings so the imported hierarchy remains
+inspectable. Mesh primitives compile to shared `MeshPrimitive` geometry, and
+glTF PBR base-color factors or base-color textures become renderer
+`MatteMaterial` diffuse textures. The
 importer reports warnings when material features such as metallic/roughness,
 alpha modes, double-sided rendering, or extensions cannot be represented by the
 current renderer material model.

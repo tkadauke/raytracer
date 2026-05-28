@@ -18,6 +18,7 @@
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/PointLight.h"
 #include "world/objects/Scene.h"
+#include "world/objects/Transformable.h"
 
 #include <QColor>
 #include <QFileInfo>
@@ -948,6 +949,21 @@ namespace world {
        true,
        false,
        {}},
+      {"background_color",
+       ImportOptionType::String,
+       "Background color",
+       "Scene background as a CSS color name or hex color when importing a standalone glTF file.",
+       "white",
+       false,
+       {}},
+      {"ambient_color",
+       ImportOptionType::String,
+       "Ambient color",
+       "Scene ambient fill light as a CSS color name or hex color when importing a standalone glTF "
+       "file.",
+       "#cccccc",
+       false,
+       {}},
     };
   }
 
@@ -1001,8 +1017,11 @@ namespace world {
       auto scene = std::make_unique<Scene>(nullptr);
       scene->setName(root->name());
       scene->setMetadata(root->metadata());
+      Element* importedRoot = root.get();
       scene->addChild(std::move(root));
       scene->setAnimation(std::move(timeline));
+      if (importedRoot)
+        configureImportedScene(*scene, *importedRoot, options);
       result.setRoot(std::move(scene));
     } else {
       result.setRoot(std::move(root));
@@ -1012,6 +1031,45 @@ namespace world {
     for (const ImportDiagnostic& diagnostic : compilerDiagnostics)
       result.addDiagnostic(diagnostic);
     return result;
+  }
+
+  bool GltfSceneImporter::configureImportedRoot(Element& importedRoot,
+                                                const ImportOptions& options) const {
+    (void)options;
+    orientImportedRoot(importedRoot);
+    return true;
+  }
+
+  bool GltfSceneImporter::configureImportedScene(Scene& scene, Element& importedRoot,
+                                                 const ImportOptions& options) const {
+    const ImportedSceneDefaults defaults = importedSceneDefaults(options);
+    defaults.applyTo(scene);
+    configureImportedRoot(importedRoot, options);
+    (void)defaults.frameCamera(scene);
+    return true;
+  }
+
+  ImportedSceneDefaults
+  GltfSceneImporter::importedSceneDefaults(const ImportOptions& options) const {
+    ImportedSceneDefaults defaults;
+    defaults.setBackgroundColorFromOption(options, "background_color");
+    defaults.setAmbientColorFromOption(options, "ambient_color");
+    defaults.setCameraDirection(Vector3d(0.0, 0.0, 1.0));
+    return defaults;
+  }
+
+  void GltfSceneImporter::orientImportedRoot(Element& importedRoot) const {
+    auto* transformable = qobject_cast<Transformable*>(&importedRoot);
+    if (!transformable)
+      return;
+    if (transformable->metadataValue("coordinateConversion").toString() ==
+        QStringLiteral("gltf_y_up_to_product_view_up")) {
+      return;
+    }
+
+    const double pi = std::acos(-1.0);
+    transformable->setRotation(transformable->rotation() + Vector3d(0.0, 0.0, pi));
+    transformable->setMetadataValue("coordinateConversion", "gltf_y_up_to_product_view_up");
   }
 
 }

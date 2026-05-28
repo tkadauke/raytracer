@@ -15,6 +15,8 @@
 #include "core/math/Angle.h"
 #include "core/math/Rect.h"
 
+#include <algorithm>
+
 namespace CameraTest {
   // ---------- Camera (abstract base) ----------------------------------------
 
@@ -94,6 +96,42 @@ namespace CameraTest {
       EXPECT_GE(projected.y(), 0.0);
       EXPECT_LE(projected.y(), 480.0);
     }
+  }
+
+  TEST(PinholeCamera, ShouldIncreaseZoomWhenFramingSmallBounds) {
+    PinholeCamera camera;
+    camera.setDistance(5.0);
+    camera.setZoom(1.0);
+    const BoundingBoxd bounds(Vector3d(-0.3, -0.4, -0.2), Vector3d(0.3, 0.4, 0.2));
+
+    ASSERT_TRUE(camera.frameFrom(bounds, Vector3d(0.0, 0.0, 1.0)));
+
+    EXPECT_EQ(bounds.center(), camera.target());
+    EXPECT_DOUBLE_EQ(5.0, camera.distance());
+    EXPECT_GT(camera.zoom(), 1.0);
+    EXPECT_GT(camera.position().z(), camera.target().z());
+
+    auto renderCamera = std::dynamic_pointer_cast<render::PinholeCamera>(camera.toRaytracer());
+    ASSERT_NE(nullptr, renderCamera);
+    renderCamera->viewPlane()->setup(renderCamera->matrix(), Recti(0, 0, 640, 480));
+    double minX = 640.0;
+    double maxX = 0.0;
+    double minY = 480.0;
+    double maxY = 0.0;
+    for (const Vector3d& corner : bounds.vertices()) {
+      const Vector2d projected = renderCamera->projectPoint(corner);
+      ASSERT_FALSE(projected.isUndefined());
+      EXPECT_GE(projected.x(), 0.0);
+      EXPECT_LE(projected.x(), 640.0);
+      EXPECT_GE(projected.y(), 0.0);
+      EXPECT_LE(projected.y(), 480.0);
+      minX = std::min(minX, projected.x());
+      maxX = std::max(maxX, projected.x());
+      minY = std::min(minY, projected.y());
+      maxY = std::max(maxY, projected.y());
+    }
+    EXPECT_GT(maxX - minX, 200.0);
+    EXPECT_GT(maxY - minY, 200.0);
   }
 
   // ---------- OrthographicCamera --------------------------------------------

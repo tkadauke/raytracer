@@ -30,8 +30,10 @@ set(openscad_external_fixture "${openscad_fixture_dir}/external-compiler/compile
 set(stl_fixture "${PROJECT_SOURCE_DIR}/test/fixtures/additive/wedge.stl")
 set(threemf_fixture "${PROJECT_SOURCE_DIR}/test/fixtures/additive/wedge.3mf")
 set(gcode_fixture "${PROJECT_SOURCE_DIR}/test/fixtures/additive/two_layer_path.gcode")
+set(gltf_scene "${TEST_OUTPUT_DIR}/triangle.gltf")
 set(stl_render "${TEST_OUTPUT_DIR}/stl-model.png")
 set(threemf_render "${TEST_OUTPUT_DIR}/3mf-model.png")
+set(gltf_render "${TEST_OUTPUT_DIR}/gltf-model.png")
 set(gcode_speed_render "${TEST_OUTPUT_DIR}/gcode-speed.png")
 set(gcode_tool_layer_render "${TEST_OUTPUT_DIR}/gcode-tool-layer.png")
 set(gcode_cumulative_render "${TEST_OUTPUT_DIR}/gcode-cumulative.png")
@@ -134,6 +136,27 @@ string(REPLACE "__OPENSCAD_EXECUTABLE__" "${fake_openscad}" openscad_scene_json 
 string(REPLACE "__OPENSCAD_CACHE__" "${openscad_cache}" openscad_scene_json "${openscad_scene_json}")
 file(WRITE "${openscad_scene}" "${openscad_scene_json}")
 
+file(WRITE "${gltf_scene}" [=[
+{
+  "asset": {"version": "2.0", "generator": "raytracer rendercli smoke"},
+  "buffers": [{
+    "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAA",
+    "byteLength": 36
+  }],
+  "bufferViews": [{"buffer": 0, "byteLength": 36}],
+  "accessors": [{"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3"}],
+  "materials": [{
+    "pbrMetallicRoughness": {"baseColorFactor": [0.9, 0.1, 0.05, 1.0]}
+  }],
+  "meshes": [{
+    "name": "Triangle",
+    "primitives": [{"attributes": {"POSITION": 0}, "material": 0}]
+  }],
+  "scenes": [{"name": "Triangle Scene", "nodes": [0]}],
+  "nodes": [{"name": "Triangle Node", "mesh": 0}]
+}
+]=])
+
 find_program(REAL_OPENSCAD_EXECUTABLE openscad)
 if(REAL_OPENSCAD_EXECUTABLE)
   set(openscad_real_scene_json "${openscad_scene_json}")
@@ -190,6 +213,17 @@ rendercli_assert_image_dimensions("${openscad_direct_render}" 8 8
                                   NAME "rendercli direct OpenSCAD dimensions")
 rendercli_assert_image_nonempty("${openscad_direct_render}"
                                 NAME "rendercli direct OpenSCAD pixels")
+
+rendercli_run(
+  NAME "rendercli renders direct glTF import as product-view scene"
+  COMMAND
+    "${RENDERCLI}" --width 32 --height 32 --import_option "background_color=black"
+    "${gltf_scene}" "${gltf_render}"
+)
+rendercli_assert_image_dimensions("${gltf_render}" 32 32
+                                  NAME "rendercli direct glTF dimensions")
+rendercli_assert_image_varied("${gltf_render}"
+                              NAME "rendercli direct glTF varied pixels")
 
 if(REAL_OPENSCAD_EXECUTABLE)
   rendercli_run(

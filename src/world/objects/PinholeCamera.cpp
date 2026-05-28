@@ -5,11 +5,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace {
   constexpr double kNominalHalfWidth = 4.0;
   constexpr double kNominalHalfHeight = 3.0;
   constexpr double kFrameMargin = 1.15;
+  constexpr double kMinimumViewPlaneTargetGap = 1.0;
 
   Vector3d normalizedOrDefault(const Vector3d& direction) {
     if (direction.isUndefined() || direction.length() <= 1e-9) {
@@ -24,6 +26,41 @@ namespace {
       right = Vector3d(1.0, 0.0, 0.0) ^ forward;
     }
     return right.normalized();
+  }
+
+  double minimumEyeToTargetDistance(const BoundingBoxd& bounds, const Vector3d& target,
+                                    const Vector3d& forward, double lensDistance) {
+    double result = lensDistance + kMinimumViewPlaneTargetGap;
+    for (const Vector3d& corner : bounds.vertices()) {
+      const double z = (corner - target) * forward;
+      result = std::max(result, -z + lensDistance + kMinimumViewPlaneTargetGap);
+    }
+    return result;
+  }
+
+  double zoomThatFitsAtDistance(const BoundingBoxd& bounds, const Vector3d& target,
+                                const Vector3d& forward, const Vector3d& right, const Vector3d& up,
+                                double lensDistance, double eyeToTarget) {
+    double result = std::numeric_limits<double>::infinity();
+    for (const Vector3d& corner : bounds.vertices()) {
+      const Vector3d relative = corner - target;
+      const double availableDepth = eyeToTarget + relative * forward;
+      if (availableDepth <= 0.0)
+        continue;
+
+      const double x = std::abs(relative * right);
+      if (x > 1e-9) {
+        result =
+          std::min(result, availableDepth * kNominalHalfWidth / (lensDistance * x * kFrameMargin));
+      }
+
+      const double y = std::abs(relative * up);
+      if (y > 1e-9) {
+        result =
+          std::min(result, availableDepth * kNominalHalfHeight / (lensDistance * y * kFrameMargin));
+      }
+    }
+    return std::isfinite(result) && result > 0.0 ? result : 1.0;
   }
 }
 
@@ -43,18 +80,23 @@ bool PinholeCamera::frameFrom(const BoundingBoxd& bounds, const Vector3d& target
 
   const double lensDistance = distance() > 0.0 && std::isfinite(distance()) ? distance() : 5.0;
   const double zoomFactor = zoom() > 0.0 && std::isfinite(zoom()) ? zoom() : 1.0;
-  const double halfWidth = kNominalHalfWidth / zoomFactor / kFrameMargin;
-  const double halfHeight = kNominalHalfHeight / zoomFactor / kFrameMargin;
-  if (halfWidth <= 0.0 || halfHeight <= 0.0)
-    return false;
 
   const Vector3d target = bounds.center();
   const Vector3d eyeDirection = normalizedOrDefault(targetToEyeDirection);
   const Vector3d forward = -eyeDirection;
   const Vector3d right = cameraRightFor(forward);
   const Vector3d up = right ^ -forward;
+  const double minimumEyeToTarget =
+    minimumEyeToTargetDistance(bounds, target, forward, lensDistance);
+  const double fittedZoom =
+    std::max(zoomFactor, zoomThatFitsAtDistance(bounds, target, forward, right, up, lensDistance,
+                                                minimumEyeToTarget));
+  const double halfWidth = kNominalHalfWidth / fittedZoom / kFrameMargin;
+  const double halfHeight = kNominalHalfHeight / fittedZoom / kFrameMargin;
+  if (halfWidth <= 0.0 || halfHeight <= 0.0)
+    return false;
 
-  double eyeToTarget = lensDistance + 1.0;
+  double eyeToTarget = minimumEyeToTarget;
   for (const Vector3d& corner : bounds.vertices()) {
     const Vector3d relative = corner - target;
     const double x = std::abs(relative * right);
@@ -62,13 +104,13 @@ bool PinholeCamera::frameFrom(const BoundingBoxd& bounds, const Vector3d& target
     const double z = relative * forward;
     eyeToTarget = std::max(eyeToTarget, lensDistance * x / halfWidth - z);
     eyeToTarget = std::max(eyeToTarget, lensDistance * y / halfHeight - z);
-    eyeToTarget = std::max(eyeToTarget, -z + lensDistance + 1.0);
+    eyeToTarget = std::max(eyeToTarget, -z + lensDistance + kMinimumViewPlaneTargetGap);
   }
 
   setDistance(lensDistance);
   setTarget(target);
   setPosition(target + eyeDirection * std::max(eyeToTarget - lensDistance, 1.0));
-  setZoom(zoomFactor);
+  setZoom(fittedZoom);
   return true;
 }
 
