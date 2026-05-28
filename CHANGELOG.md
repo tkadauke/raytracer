@@ -68,10 +68,15 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   material callback handle, and `render::Integrator` as the transport-policy
   boundary future path tracers will implement; this documents the preserved
   default Whitted behavior and does not add path tracing. — GPT-5
+- **OpenGL raster context probe.** The OpenGL raster backend shell now probes
+  Qt offscreen context creation, allocates a depth/stencil framebuffer in
+  GUI-capable hosts, and reports a clear application-bootstrap or missing
+  draw-path error before mesh upload, shader execution, and readback land. —
+  GPT-5
 - **OpenGL raster backend selection shell.** Graph-backed raster plans can now
   record an opt-in `opengl`/`gpu` raster backend through rendercli and typed
   pass state; CPU remains the default, while the OpenGL shell reports a clear
-  unavailable-backend error until real context/FBO execution lands. — GPT-5
+  unavailable-backend error until real draw execution lands. — GPT-5
 - **Raster counter AOVs.** The rasterizer and render graph now expose
   graph-visible heatmap views for per-pixel coverage, depth tests, depth passes,
   shading calls, and color writes through rendercli and the Modeler Preview

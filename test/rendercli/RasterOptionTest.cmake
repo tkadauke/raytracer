@@ -52,7 +52,7 @@ if(NOT opengl_graph_json MATCHES "\"backend\"[ \r\n]*:[ \r\n]*\"opengl\"")
 endif()
 
 rendercli_expect_failure(
-  NAME "rendercli --raster_backend gpu fails clearly until OpenGL executor lands"
+  NAME "rendercli --raster_backend gpu fails clearly until OpenGL draw path lands"
   STDERR_MATCHES "OpenGL raster backend is selected"
   COMMAND
     "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu

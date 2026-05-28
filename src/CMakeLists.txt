@@ -39,6 +39,7 @@ target_link_libraries(raytracer
     Qt6::Gui
     Qt6::Widgets
     Qt6::Qml
+    Qt6::OpenGL
     ZLIB::ZLIB
 )
 

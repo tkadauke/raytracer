@@ -134,15 +134,22 @@ ad hoc scene type checks.
 
 Tasks:
 
-- Add an OpenGL capability probe that can run in Modeler and rendercli.
-- Create an offscreen Qt/OpenGL context and FBO for rendercli/headless use.
+- ~~Add an OpenGL capability probe that can run in Modeler and rendercli.~~ ✅
+  **Done.** `OpenGLOffscreenContext::probe()` reports either context details or
+  one actionable capability/bootstrap error.
+- ~~Create a reusable offscreen Qt/OpenGL context and FBO owner.~~ ✅ **Done.**
+  The OpenGL raster shell now attempts a Qt offscreen context, surface, and
+  depth/stencil FBO before stopping at the missing draw path.
 - ~~Add a small `OpenGLRasterizer` executor shell with deterministic errors when
   context creation fails.~~ ✅ **Done.** The first shell is graph-selectable and
-  reports one actionable unavailable-backend error until context/FBO work lands.
+  reports one actionable unavailable-backend error until mesh drawing lands.
 - ~~Add render intent / rendercli spelling for selecting GPU raster backend,
   without changing the default backend yet.~~ ✅ **Done.** `--raster_backend
   opengl` and `gpu` serialize as typed raster pass execution state; `cpu`
   remains the default.
+- Teach rendercli to bootstrap a `QGuiApplication` or offscreen platform mode
+  when GPU raster is requested, so command-line GPU renders can create the
+  context instead of reporting the current application-bootstrap error.
 - Add Modeler UI to select GPU raster preview backend only when available.
 
 Acceptance:

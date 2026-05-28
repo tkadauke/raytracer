@@ -579,8 +579,9 @@ under the pass's `parameters` object, making settings such as `--msaa`,
 `--msaa_shading`, `--raster_backend`, `--viewport`, and color-output controls
 visible instead of living only in the direct raster engine setup path. CPU
 raster remains the default backend; selecting `opengl` currently records the
-backend in graph state and fails with an explicit capability error until the
-GPU executor can create an offscreen context and framebuffer. Raster AOV
+backend in graph state, creates a Qt offscreen context and depth/stencil
+framebuffer in GUI-capable hosts, then fails with an explicit capability,
+application-bootstrap, or not-yet-implemented draw-path error. Raster AOV
 producer passes use the same state object, so `--render_graph_view depth`,
 `--render_graph_view raster_depth_test_count`, and exported raster AOV side
 branches see the requested tessellation and sampling settings. The stencil AOV

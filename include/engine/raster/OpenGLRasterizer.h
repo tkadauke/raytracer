@@ -10,10 +10,10 @@ namespace engine::raster {
   /**
     * OpenGL-backed raster executor shell.
     *
-    * The class is wired into graph backend selection before the real GL context,
-    * FBO, shader, and readback path exist. Selecting it gives callers one
-    * deterministic backend/capability error instead of silently falling back to
-    * the CPU rasterizer or bypassing the render graph.
+    * The class is wired into graph backend selection and owns the first
+    * offscreen context/FBO capability path. Selecting it gives callers one
+    * deterministic backend/capability error until mesh upload, shader
+    * execution, and readback exist.
     */
   class OpenGLRasterizer : public render::RenderEngine {
   public:
@@ -28,10 +28,13 @@ namespace engine::raster {
     void uncancel() override;
 
     bool isAvailable() const;
+    std::string availabilityDetail() const;
     std::string availabilityError() const;
 
   private:
-    [[noreturn]] void throwUnavailable() const;
+    [[noreturn]] void throwRenderUnavailable(const Buffer<Colord>* buffer) const;
+    [[noreturn]] void throwRenderUnavailable(const Buffer<unsigned int>* buffer) const;
+    [[noreturn]] void throwRenderUnavailable(int width, int height) const;
 
     std::atomic<bool> m_cancelled{false};
   };

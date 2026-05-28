@@ -1,6 +1,7 @@
 #include "engine/raster/OpenGLRasterizer.h"
 
 #include "core/Buffer.h"
+#include "engine/raster/OpenGLOffscreenContext.h"
 
 #include <stdexcept>
 #include <utility>
@@ -29,12 +30,12 @@ namespace engine::raster {
     return clone;
   }
 
-  void OpenGLRasterizer::render(Buffer<unsigned int>&) {
-    throwUnavailable();
+  void OpenGLRasterizer::render(Buffer<unsigned int>& buffer) {
+    throwRenderUnavailable(&buffer);
   }
 
-  void OpenGLRasterizer::render(Buffer<Colord>&) {
-    throwUnavailable();
+  void OpenGLRasterizer::render(Buffer<Colord>& buffer) {
+    throwRenderUnavailable(&buffer);
   }
 
   void OpenGLRasterizer::cancel() {
@@ -46,16 +47,41 @@ namespace engine::raster {
   }
 
   bool OpenGLRasterizer::isAvailable() const {
-    return false;
+    return OpenGLOffscreenContext::probe().available();
+  }
+
+  std::string OpenGLRasterizer::availabilityDetail() const {
+    return OpenGLOffscreenContext::probe().detail();
   }
 
   std::string OpenGLRasterizer::availabilityError() const {
-    return "OpenGL raster backend is selected, but the OpenGL executor shell does not yet "
-           "create a context, framebuffer, shader program, or readback path; use "
+    const OpenGLAvailability availability = OpenGLOffscreenContext::probe();
+    if (!availability.available()) {
+      return availability.error();
+    }
+    return "OpenGL raster backend is selected and an offscreen context is available (" +
+           availability.detail() +
+           "), but mesh upload, shader execution, and readback are not implemented yet; use "
            "--raster_backend cpu until the first GPU raster pass lands";
   }
 
-  void OpenGLRasterizer::throwUnavailable() const {
-    throw std::runtime_error(availabilityError());
+  void OpenGLRasterizer::throwRenderUnavailable(const Buffer<Colord>* buffer) const {
+    throwRenderUnavailable(buffer ? buffer->width() : 1, buffer ? buffer->height() : 1);
+  }
+
+  void OpenGLRasterizer::throwRenderUnavailable(const Buffer<unsigned int>* buffer) const {
+    throwRenderUnavailable(buffer ? buffer->width() : 1, buffer ? buffer->height() : 1);
+  }
+
+  void OpenGLRasterizer::throwRenderUnavailable(int width, int height) const {
+    OpenGLOffscreenContext context;
+    if (!context.create(width, height)) {
+      throw std::runtime_error(context.errorMessage());
+    }
+
+    throw std::runtime_error(
+      "OpenGL raster backend is selected and created an offscreen " + context.detailText() +
+      " context/framebuffer, but mesh upload, shader execution, and readback are not "
+      "implemented yet; use --raster_backend cpu until the first GPU raster pass lands");
   }
 }
