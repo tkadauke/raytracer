@@ -142,6 +142,38 @@ else()
                   "${opengl_gltf_texture_stderr}")
 endif()
 
+set(opengl_reflective_render "${TEST_OUTPUT_DIR}/raster-opengl-reflective.png")
+execute_process(
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
+    "${reflective_scene}" "${opengl_reflective_render}"
+  RESULT_VARIABLE opengl_reflective_result
+  OUTPUT_VARIABLE opengl_reflective_stdout
+  ERROR_VARIABLE opengl_reflective_stderr
+)
+if(NOT opengl_reflective_stderr MATCHES "Rasterizer fallback: ReflectiveMaterial")
+  _rendercli_fail("rendercli --raster_backend gpu reflective fallback warning"
+                  "OpenGL-selected raster render did not preserve the reflective material fallback warning"
+                  "" "${opengl_reflective_result}" "${opengl_reflective_stdout}"
+                  "${opengl_reflective_stderr}")
+endif()
+if(opengl_reflective_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_reflective_render}" 16 12
+                                    NAME "rendercli --raster_backend gpu reflective dimensions")
+elseif(opengl_reflective_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_reflective_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu reflective application bootstrap"
+                    "OpenGL reflective fallback path still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_reflective_result}" "${opengl_reflective_stdout}"
+                    "${opengl_reflective_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu reflective fallback warning"
+                  "OpenGL reflective fallback warning test neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_reflective_result}" "${opengl_reflective_stdout}"
+                  "${opengl_reflective_stderr}")
+endif()
+
 set(opengl_msaa_render "${TEST_OUTPUT_DIR}/raster-opengl-msaa.png")
 execute_process(
   COMMAND
