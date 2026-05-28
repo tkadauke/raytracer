@@ -79,7 +79,7 @@ namespace render {
       * though the typical pattern is to construct the grid fresh
       * for each render.
       */
-    void setup();
+    void setup() override;
 
   private:
     std::vector<std::shared_ptr<Primitive>> m_cells;

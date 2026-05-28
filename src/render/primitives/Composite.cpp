@@ -51,6 +51,9 @@ bool Composite::intersects(const Rayd& ray, render::State& state) const {
   return false;
 }
 
+void Composite::setup() {
+}
+
 void Composite::forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,
                             const LeafVisitor& visitor) const {
   auto own = material();
