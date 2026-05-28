@@ -242,6 +242,8 @@ namespace engine::raster {
                                        "uniform float alphaReference;\n"
                                        "uniform sampler2D imageTexture;\n"
                                        "uniform vec2 imageUVScale;\n"
+                                       "uniform vec3 checkerBright;\n"
+                                       "uniform vec3 checkerDark;\n"
                                        "bool alphaPass(float alpha) {\n"
                                        "  if (!alphaTestEnabled) return true;\n"
                                        "  if (alphaFunc == 0) return false;\n"
@@ -266,6 +268,17 @@ namespace engine::raster {
                                        "fragmentAlbedoMode < 2.5) {\n"
                                        "    sourceColor = texture2D(imageTexture, vertexUV * "
                                        "imageUVScale);\n"
+                                       "    sourceColor.a = max(max(sourceColor.r, "
+                                       "sourceColor.g), sourceColor.b) * "
+                                       "fragmentAlphaScale;\n"
+                                       "  } else if (fragmentAlbedoMode > 2.5 && "
+                                       "fragmentAlbedoMode < 3.5) {\n"
+                                       "    vec2 scaledUV = vertexUV * imageUVScale;\n"
+                                       "    float checker = mod(floor(scaledUV.x) + "
+                                       "floor(scaledUV.y), 2.0);\n"
+                                       "    vec3 checkerColor = mix(checkerBright, checkerDark, "
+                                       "step(0.5, checker));\n"
+                                       "    sourceColor = vec4(checkerColor, 1.0);\n"
                                        "    sourceColor.a = max(max(sourceColor.r, "
                                        "sourceColor.g), sourceColor.b) * "
                                        "fragmentAlphaScale;\n"
@@ -361,6 +374,13 @@ namespace engine::raster {
           }
           program.setUniformValue("imageUVScale", static_cast<GLfloat>(batch.albedo.uScale),
                                   static_cast<GLfloat>(batch.albedo.vScale));
+          program.setUniformValue("checkerBright",
+                                  static_cast<GLfloat>(batch.albedo.checkerBright.r()),
+                                  static_cast<GLfloat>(batch.albedo.checkerBright.g()),
+                                  static_cast<GLfloat>(batch.albedo.checkerBright.b()));
+          program.setUniformValue("checkerDark", static_cast<GLfloat>(batch.albedo.checkerDark.r()),
+                                  static_cast<GLfloat>(batch.albedo.checkerDark.g()),
+                                  static_cast<GLfloat>(batch.albedo.checkerDark.b()));
           const auto byteOffset = reinterpret_cast<const void*>(
             static_cast<std::uintptr_t>(batch.indexOffset * sizeof(std::uint32_t)));
           functions->glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(batch.indexCount),

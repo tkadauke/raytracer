@@ -18,7 +18,12 @@ namespace render {
 
 namespace engine::raster::detail {
 
-  enum class RasterAlbedoShaderMode { VertexColor = 0, UVColor = 1, ImageTexture = 2 };
+  enum class RasterAlbedoShaderMode {
+    VertexColor = 0,
+    UVColor = 1,
+    ImageTexture = 2,
+    UVChecker = 3
+  };
 
   struct RasterAlbedoShaderSource {
     RasterAlbedoShaderMode mode{RasterAlbedoShaderMode::VertexColor};
@@ -26,6 +31,8 @@ namespace engine::raster::detail {
     const render::ImageTexture* image{nullptr};
     double uScale{1.0};
     double vScale{1.0};
+    Colord checkerBright{Colord::white()};
+    Colord checkerDark{Colord::black()};
 
     bool operator==(const RasterAlbedoShaderSource& other) const;
     bool operator!=(const RasterAlbedoShaderSource& other) const;

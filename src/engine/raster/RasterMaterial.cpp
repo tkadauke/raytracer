@@ -40,7 +40,8 @@ namespace engine::raster::detail {
 
   bool RasterAlbedoShaderSource::operator==(const RasterAlbedoShaderSource& other) const {
     return mode == other.mode && image == other.image && uScale == other.uScale &&
-           vScale == other.vScale;
+           vScale == other.vScale && checkerBright == other.checkerBright &&
+           checkerDark == other.checkerDark;
   }
 
   bool RasterAlbedoShaderSource::operator!=(const RasterAlbedoShaderSource& other) const {
@@ -143,6 +144,13 @@ namespace engine::raster::detail {
       source.image = m_image;
       source.uScale = m_uScale;
       source.vScale = m_vScale;
+    } else if (m_kind == Kind::UVChecker && m_bright && m_dark &&
+               m_bright->m_kind == Kind::Constant && m_dark->m_kind == Kind::Constant) {
+      source.mode = RasterAlbedoShaderMode::UVChecker;
+      source.uScale = m_uScale;
+      source.vScale = m_vScale;
+      source.checkerBright = m_bright->m_color;
+      source.checkerDark = m_dark->m_color;
     }
     return source;
   }

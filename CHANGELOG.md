@@ -114,6 +114,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   direct UV-mapped `ImageTexture` albedo sources, sampling them in the GPU
   shader with their nearest/bilinear/mipmap filter and repeat/clamp wrap
   policy. — GPT-5
+- **OpenGL raster UV checker textures.** OpenGL raster passes now evaluate
+  direct UV-mapped checkerboard textures with constant child colors in the GPU
+  shader instead of pre-sampling them at mesh vertices. — GPT-5
 - **OpenGL raster ambient/direct lighting.** OpenGL raster mesh vertices now
   carry graph-scene ambient and direct diffuse light factors into the shader,
   so GPU raster output responds to scene lights instead of showing only raw

@@ -1977,6 +1977,20 @@ namespace RasterizerTest {
     EXPECT_EQ(Colord::black(), dark);
   }
 
+  TEST(RasterTexture, DirectUVCheckerCanBeEvaluatedInShaderFromConstants) {
+    auto checker = std::make_shared<render::CheckerBoardTexture>(
+      new render::UVMapping2D(2.0, 4.0), std::make_shared<ConstantColorTexture>(Colord::red()),
+      std::make_shared<ConstantColorTexture>(Colord::blue()));
+    const auto texture = engine::raster::detail::RasterTexture::from(checker);
+    const auto source = texture.shaderAlbedoSource();
+
+    EXPECT_EQ(engine::raster::detail::RasterAlbedoShaderMode::UVChecker, source.mode);
+    EXPECT_EQ(2.0, source.uScale);
+    EXPECT_EQ(4.0, source.vScale);
+    EXPECT_EQ(Colord::red(), source.checkerBright);
+    EXPECT_EQ(Colord::blue(), source.checkerDark);
+  }
+
   TEST(RasterTexture, DirectImageTextureUsesScaledUVMapping) {
     auto image = std::make_shared<render::ImageTexture>(
       new render::UVMapping2D(2.0, 1.0), 2, 1, std::vector<Colord>{Colord::red(), Colord::green()},

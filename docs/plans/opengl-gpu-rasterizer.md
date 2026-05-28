@@ -246,6 +246,10 @@ Tasks:
   OpenGL shader now samples UV-mapped image albedo with the runtime
   nearest/bilinear/mipmap filter and repeat/clamp wrap policy carried by
   `ImageTexture`.
+- ~~Evaluate direct UV checker textures in the shader where the existing
+  material model exposes constant checker colors.~~ ✅ **Done.** OpenGL raster
+  batches now carry UV checker scale and child colors so checkerboard albedo is
+  selected per fragment instead of pre-sampled at vertices.
 - ~~Preserve current material fallback warnings.~~ ✅ **Done.** rendercli now
   checks that OpenGL-selected raster graph plans still emit recursive-material
   fallback warnings before execution, even on hosts where the OpenGL pass later
