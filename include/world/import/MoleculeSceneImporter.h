@@ -3,6 +3,8 @@
 #include "core/formats/molecule/Molecule.h"
 #include "world/import/SceneImporter.h"
 
+#include <QString>
+
 #include <memory>
 
 class Group;
@@ -17,9 +19,10 @@ namespace world {
     */
   class MoleculeSceneCompiler {
   public:
-    [[nodiscard]] std::unique_ptr<Group> compile(const molecule::Molecule& molecule,
-                                                 const ImportSourceMetadata& source,
-                                                 double atomRadius = 0.25) const;
+    [[nodiscard]] std::unique_ptr<Group>
+    compile(const molecule::Molecule& molecule, const ImportSourceMetadata& source,
+            double atomRadius = 0.25, const QString& backboneMode = QStringLiteral("overlay"),
+            double backboneWidth = 0.35) const;
   };
 
   /**
