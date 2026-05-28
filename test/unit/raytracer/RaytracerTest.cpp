@@ -2,7 +2,9 @@
 #include <gmock/gmock.h>
 
 #include "engine/raytracer/Raytracer.h"
+#include "render/Integrator.h"
 #include "render/State.h"
+#include "render/WhittedIntegrator.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
@@ -54,6 +56,33 @@ namespace RaytracerTest {
         .WillByDefault(DoAll(AddHitPoint(hit), Return(primitive.get())));
       return primitive;
     }
+
+    class FixedIntegrator final : public Integrator {
+    public:
+      FixedIntegrator(Colord color, const Primitive* hitPrimitive = nullptr)
+          : m_color(color),
+            m_hitPrimitive(hitPrimitive) {
+      }
+
+      std::unique_ptr<Integrator> clone() const override {
+        return std::make_unique<FixedIntegrator>(m_color, m_hitPrimitive);
+      }
+
+      Colord radiance(const Scene& scene, const Rayd&, State& state,
+                      const RayCaster&) const override {
+        ++calls;
+        if (m_hitPrimitive) {
+          state.hitPoint = HitPoint(m_hitPrimitive, 2.0, Vector4d(0, 0, 2, 1), Vector3d(0, 0, -1));
+        }
+        return m_color + scene.background();
+      }
+
+      mutable int calls = 0;
+
+    private:
+      Colord m_color;
+      const Primitive* m_hitPrimitive;
+    };
   }
 
   TEST(Raytracer, ShouldDefaultToPinholeCameraWhenConstructedWithSceneOnly) {
@@ -67,6 +96,13 @@ namespace RaytracerTest {
     auto camera = std::make_shared<PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
     Raytracer raytracer(camera, scene);
     ASSERT_EQ(camera, raytracer.camera());
+  }
+
+  TEST(Raytracer, ShouldDefaultToWhittedIntegrator) {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    Raytracer raytracer(scene);
+
+    ASSERT_NE(nullptr, dynamic_cast<const WhittedIntegrator*>(&raytracer.integrator()));
   }
 
   TEST(Raytracer, ShouldExposeAndUpdateScene) {
@@ -89,6 +125,21 @@ namespace RaytracerTest {
     auto colour = raytracer.rayColor(ray, state);
 
     ASSERT_COLOR_NEAR(Colord(0.25, 0.5, 0.75), colour, 0.001);
+  }
+
+  TEST(Raytracer, RayColorShouldDelegateToConfiguredIntegrator) {
+    auto scene = std::make_shared<Scene>();
+    scene->setBackground(Colord(0.1, 0.2, 0.3));
+    Raytracer raytracer(scene);
+    auto integrator = std::make_unique<FixedIntegrator>(Colord(0.25, 0.5, 0.75));
+    auto* selected = integrator.get();
+    raytracer.setIntegrator(std::move(integrator));
+
+    State state;
+    const Colord colour = raytracer.rayColor(Rayd(Vector3d::null, Vector3d::forward()), state);
+
+    ASSERT_COLOR_NEAR(Colord(0.35, 0.7, 1.05), colour, 1e-12);
+    ASSERT_EQ(1, selected->calls);
   }
 
   TEST(Raytracer, RayColorShouldShadeMaterialOfHitPrimitive) {
@@ -208,6 +259,18 @@ namespace RaytracerTest {
     ASSERT_EQ(sphere.get(), hit);
   }
 
+  TEST(Raytracer, PrimitiveForRayShouldUseConfiguredIntegratorState) {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    auto sphere = whiteSphere(1.0);
+    scene->add(sphere);
+    Raytracer raytracer(scene);
+    raytracer.setIntegrator(std::make_unique<FixedIntegrator>(Colord::black(), sphere.get()));
+
+    auto hit = raytracer.primitiveForRay(Rayd(Vector3d::null, Vector3d::forward()));
+
+    ASSERT_EQ(sphere.get(), hit);
+  }
+
   TEST(Raytracer, PrimitiveForRayShouldReturnNullptrWhenRayMissesEverything) {
     auto scene = std::make_shared<Scene>(Colord::black());
     scene->add(whiteSphere(1.0));
@@ -231,6 +294,20 @@ namespace RaytracerTest {
     // The hit on the front of the unit sphere is at z = -1.
     ASSERT_EQ(sphere.get(), state.hitPoint.primitive());
     ASSERT_NEAR(-1.0, state.hitPoint.point().z(), 1e-6);
+  }
+
+  TEST(Raytracer, CloneForRenderShouldKeepConfiguredIntegrator) {
+    auto scene = std::make_shared<Scene>();
+    scene->setBackground(Colord(0.1, 0.2, 0.3));
+    auto raytracer = std::make_shared<Raytracer>(scene);
+    raytracer->setIntegrator(std::make_unique<FixedIntegrator>(Colord(0.25, 0.5, 0.75)));
+
+    auto clone = std::dynamic_pointer_cast<Raytracer>(raytracer->cloneForRender());
+
+    ASSERT_NE(nullptr, clone);
+    State state;
+    const Colord colour = clone->rayColor(Rayd(Vector3d::null, Vector3d::forward()), state);
+    ASSERT_COLOR_NEAR(Colord(0.35, 0.7, 1.05), colour, 1e-12);
   }
 
   TEST(Raytracer, RayColorShouldReturnBackgroundWhenThroughputBelowCutoff) {

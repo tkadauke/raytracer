@@ -3,6 +3,8 @@
 #include "core/Color.h"
 #include "core/math/Ray.h"
 
+#include <memory>
+
 namespace render {
   class RayCaster;
   class Scene;
@@ -35,6 +37,15 @@ namespace render {
   class Integrator {
   public:
     virtual ~Integrator() = default;
+
+    /**
+      * Creates an independent copy of this integrator.
+      *
+      * Render engines clone themselves for background render threads, so the
+      * selected radiance policy must travel with that engine snapshot without
+      * sharing mutable configuration.
+      */
+    virtual std::unique_ptr<Integrator> clone() const = 0;
 
     /**
       * Evaluate the radiance carried by `ray` in `scene`.

@@ -21,6 +21,10 @@ namespace IntegratorTest {
 
     class RecursiveProbeIntegrator final : public Integrator {
     public:
+      std::unique_ptr<Integrator> clone() const override {
+        return std::make_unique<RecursiveProbeIntegrator>();
+      }
+
       Colord radiance(const Scene& scene, const Rayd& ray, State& state,
                       const RayCaster& recursiveRayCaster) const override {
         state.recurseIn();
