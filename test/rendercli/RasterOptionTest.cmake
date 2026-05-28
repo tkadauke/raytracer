@@ -331,6 +331,45 @@ else()
                   "${opengl_material_id_stderr}")
 endif()
 
+set(opengl_normal_aov_render "${TEST_OUTPUT_DIR}/raster-opengl-normal-aov.png")
+rendercli_run(
+  NAME "rendercli --raster_backend gpu normal AOV uses diagnostic fallback"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 32 --height 24 --raster_backend gpu
+    --render_graph_view normal
+    "${static_scene}" "${opengl_normal_aov_render}"
+)
+rendercli_assert_image_dimensions("${opengl_normal_aov_render}" 32 24
+                                  NAME "rendercli --raster_backend gpu normal AOV dimensions")
+rendercli_assert_image_nonempty("${opengl_normal_aov_render}"
+                                NAME "rendercli --raster_backend gpu normal AOV pixels")
+
+set(opengl_world_position_aov_render "${TEST_OUTPUT_DIR}/raster-opengl-world-position-aov.png")
+rendercli_run(
+  NAME "rendercli --raster_backend gpu world-position AOV uses diagnostic fallback"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 32 --height 24 --raster_backend gpu
+    --render_graph_view world_position
+    "${static_scene}" "${opengl_world_position_aov_render}"
+)
+rendercli_assert_image_dimensions("${opengl_world_position_aov_render}" 32 24
+                                  NAME "rendercli --raster_backend gpu world-position AOV dimensions")
+rendercli_assert_image_nonempty("${opengl_world_position_aov_render}"
+                                NAME "rendercli --raster_backend gpu world-position AOV pixels")
+
+set(opengl_counter_aov_render "${TEST_OUTPUT_DIR}/raster-opengl-color-write-count-aov.png")
+rendercli_run(
+  NAME "rendercli --raster_backend gpu counter AOV uses diagnostic fallback"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 32 --height 24 --raster_backend gpu
+    --render_graph_view raster_color_write_count
+    "${static_scene}" "${opengl_counter_aov_render}"
+)
+rendercli_assert_image_dimensions("${opengl_counter_aov_render}" 32 24
+                                  NAME "rendercli --raster_backend gpu counter AOV dimensions")
+rendercli_assert_image_nonempty("${opengl_counter_aov_render}"
+                                NAME "rendercli --raster_backend gpu counter AOV pixels")
+
 rendercli_run(
   NAME "rendercli --lod 0 renders curved raster scene"
   COMMAND

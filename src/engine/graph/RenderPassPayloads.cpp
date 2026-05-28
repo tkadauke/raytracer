@@ -587,12 +587,18 @@ namespace engine::graph {
         RenderExecutionContext& context,
         const ::engine::raster::Rasterizer::DiagnosticOutputBuffers& outputs) const {
         const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(context.pass());
-        if (!state.execution().backend().usesSoftwareRasterizer()) {
-          throw passError(context.pass(),
-                          "OpenGL raster diagnostic AOV execution is not implemented yet; "
-                          "use raster backend 'cpu'");
+        const auto backend = state.execution().backend();
+        if (backend.usesSoftwareRasterizer()) {
+          renderSoftwareRasterDiagnostics(context, outputs);
+          return;
         }
-        renderSoftwareRasterDiagnostics(context, outputs);
+        if (backend.isOpenGL()) {
+          context.recordTraceMessage("OpenGL raster backend selected; diagnostic AOV used "
+                                     "software raster fallback");
+          renderSoftwareRasterDiagnostics(context, outputs);
+          return;
+        }
+        throw passError(context.pass(), "unsupported raster diagnostic AOV backend");
       }
 
       void renderSoftwareRasterDiagnostics(

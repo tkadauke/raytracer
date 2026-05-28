@@ -535,6 +535,27 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(materialId->message().find("software raster diagnostic fallback"), std::string::npos);
   }
 
+  TEST(GraphRenderEngine, RecordsOpenGLGenericDiagnosticAOVFallbackTraceMessage) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.defaultViewMode = RenderViewMode::Normal;
+    intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* normal = trace->findPass("normal_aov");
+    ASSERT_NE(nullptr, normal);
+    EXPECT_NE(normal->message().find("software raster fallback"), std::string::npos);
+  }
+
   TEST(GraphRenderEngine, ExecutesWorldPositionAOVViewAndRecordsColorTrace) {
     RenderIntent intent;
     intent.defaultViewMode = RenderViewMode::WorldPosition;

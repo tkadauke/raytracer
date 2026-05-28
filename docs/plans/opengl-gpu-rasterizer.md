@@ -274,6 +274,10 @@ Tasks:
   raster backend now use the software raster diagnostic fallback so IDs stay
   exact until the GPU path has integer attachment support; trace messages
   identify that mixed execution path.
+- ~~Keep graph diagnostic AOVs available while GPU attachments are incomplete.~~
+  ✅ **Done.** Normal, world-position, and raster counter AOVs selected with
+  the OpenGL backend now use the software raster diagnostic fallback and record
+  the mixed path in graph traces.
 - ~~Allow graph shadow-map plans to execute while OpenGL shadow sampling is
   pending.~~ ✅ **Done.** The CPU graph shadow pass still materializes and
   caches shadow-map resources for OpenGL-selected raster plans, and OpenGL
