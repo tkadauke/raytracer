@@ -631,6 +631,25 @@ namespace engine::graph {
     trace->m_diffs = diffsFor(trace->m_inputs, trace->m_outputs);
   }
 
+  void RenderGraphExecutionTraceRecorder::recordPassMessage(
+    std::shared_ptr<const RenderGraphExecutionTraceSession> session, const RenderPassNode& pass,
+    std::string message) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (!session || !m_current || !currentSessionMatches(*session) || message.empty()) {
+      return;
+    }
+
+    RenderPassTrace* trace = m_current->findMutablePass(pass.id);
+    if (!trace) {
+      return;
+    }
+
+    if (!trace->m_message.empty()) {
+      trace->m_message += "\n";
+    }
+    trace->m_message += std::move(message);
+  }
+
   std::shared_ptr<const RenderGraphExecutionTrace>
   RenderGraphExecutionTraceRecorder::lastTrace() const {
     std::lock_guard<std::mutex> lock(m_mutex);

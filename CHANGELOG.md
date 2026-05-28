@@ -93,6 +93,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   the OpenGL raster backend now execute through the software raster diagnostic
   fallback instead of rejecting the graph, preserving exact scene ID resources
   until GPU integer attachment support lands. — GPT-5
+- **OpenGL raster fallback trace messages.** Graph execution traces now record
+  when OpenGL-selected object/material ID AOV passes use the software raster
+  diagnostic fallback, so the graph UI can explain the mixed execution path. —
+  GPT-5
 - **rendercli OpenGL application bootstrap.** rendercli now pre-scans explicit
   `--raster_backend opengl|gpu` runs, starts a GUI-capable Qt application for
   that backend, and defaults the command-line GPU path to Qt's offscreen

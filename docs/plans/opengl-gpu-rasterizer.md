@@ -272,7 +272,8 @@ Tasks:
 - ~~Add object/material ID output with integer attachments or a fallback
   path.~~ ✅ **Done.** Object/material ID graph AOVs selected with the OpenGL
   raster backend now use the software raster diagnostic fallback so IDs stay
-  exact until the GPU path has integer attachment support.
+  exact until the GPU path has integer attachment support; trace messages
+  identify that mixed execution path.
 - Add shadow-map pass support only after graph shadow state is fully explicit.
 
 Acceptance:

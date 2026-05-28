@@ -738,6 +738,11 @@ namespace engine::graph {
         Buffer<const render::Primitive*> primitives(output.width(), output.height());
         ::engine::raster::Rasterizer::DiagnosticOutputBuffers outputs;
         outputs.primitive = &primitives;
+        if (RasterBeautyPassState::valueFromPass(pass).execution().backend().isOpenGL()) {
+          context.recordTraceMessage(
+            "OpenGL raster backend selected; object ID AOV used software raster diagnostic "
+            "fallback for exact ID output");
+        }
         renderSoftwareRasterDiagnostics(context, outputs);
 
         const SceneRasterIdentityIds ids(context.graph().scene());
@@ -760,6 +765,11 @@ namespace engine::graph {
         Buffer<const render::Material*> materials(output.width(), output.height());
         ::engine::raster::Rasterizer::DiagnosticOutputBuffers outputs;
         outputs.material = &materials;
+        if (RasterBeautyPassState::valueFromPass(pass).execution().backend().isOpenGL()) {
+          context.recordTraceMessage(
+            "OpenGL raster backend selected; material ID AOV used software raster diagnostic "
+            "fallback for exact ID output");
+        }
         renderSoftwareRasterDiagnostics(context, outputs);
 
         const SceneRasterIdentityIds ids(context.graph().scene());

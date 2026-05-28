@@ -9,12 +9,14 @@ namespace engine::graph {
   RenderExecutionContext::RenderExecutionContext(const RenderPassNode& pass,
                                                  RenderResourceStorage& storage,
                                                  const GraphRenderEngine& graph, bool cancelled,
-                                                 ActiveEngineSetter activeEngineSetter)
+                                                 ActiveEngineSetter activeEngineSetter,
+                                                 TraceMessageRecorder traceMessageRecorder)
       : m_pass(pass),
         m_storage(storage),
         m_graph(graph),
         m_cancelled(cancelled),
-        m_activeEngineSetter(std::move(activeEngineSetter)) {
+        m_activeEngineSetter(std::move(activeEngineSetter)),
+        m_traceMessageRecorder(std::move(traceMessageRecorder)) {
   }
 
   const RenderPassNode& RenderExecutionContext::pass() const {
@@ -45,5 +47,11 @@ namespace engine::graph {
 
   void RenderExecutionContext::clearActiveEngine() {
     setActiveEngine(nullptr);
+  }
+
+  void RenderExecutionContext::recordTraceMessage(std::string message) const {
+    if (m_traceMessageRecorder) {
+      m_traceMessageRecorder(std::move(message));
+    }
   }
 }

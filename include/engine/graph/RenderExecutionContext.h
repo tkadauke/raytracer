@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 
 namespace render {
   class RenderEngine;
@@ -24,10 +25,12 @@ namespace engine::graph {
   class RenderExecutionContext {
   public:
     using ActiveEngineSetter = std::function<void(std::shared_ptr<render::RenderEngine>)>;
+    using TraceMessageRecorder = std::function<void(std::string)>;
 
     RenderExecutionContext(const RenderPassNode& pass, RenderResourceStorage& storage,
                            const GraphRenderEngine& graph, bool cancelled,
-                           ActiveEngineSetter activeEngineSetter);
+                           ActiveEngineSetter activeEngineSetter,
+                           TraceMessageRecorder traceMessageRecorder = {});
 
     /**
       * @returns the compiled pass node being executed.
@@ -63,11 +66,17 @@ namespace engine::graph {
       */
     void clearActiveEngine();
 
+    /**
+      * Records supplemental trace text for the currently executing pass.
+      */
+    void recordTraceMessage(std::string message) const;
+
   private:
     const RenderPassNode& m_pass;
     RenderResourceStorage& m_storage;
     const GraphRenderEngine& m_graph;
     bool m_cancelled;
     ActiveEngineSetter m_activeEngineSetter;
+    TraceMessageRecorder m_traceMessageRecorder;
   };
 }

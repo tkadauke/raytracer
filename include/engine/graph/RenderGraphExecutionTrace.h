@@ -168,6 +168,8 @@ namespace engine::graph {
     void passFailed(std::shared_ptr<const RenderGraphExecutionTraceSession> session,
                     const RenderPassNode& pass, const RenderResourceStorage& storage,
                     std::string message);
+    void recordPassMessage(std::shared_ptr<const RenderGraphExecutionTraceSession> session,
+                           const RenderPassNode& pass, std::string message);
     std::shared_ptr<const RenderGraphExecutionTrace> lastTrace() const;
 
   private:

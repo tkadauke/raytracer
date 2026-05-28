@@ -7,6 +7,7 @@
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderGraphCompiler.h"
 #include "engine/graph/RenderResourceStorage.h"
+#include "engine/raster/RasterBackend.h"
 #include "engine/raster/detail/RasterShadowMapBuilder.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
@@ -494,6 +495,44 @@ namespace GraphRenderEngineTest {
     ASSERT_EQ(1u, outputs.size());
     ASSERT_TRUE(outputs.front()->hasColorPreview());
     EXPECT_GT(countNonBlackPixels(outputs.front()->colorPreview()), 0);
+  }
+
+  TEST(GraphRenderEngine, RecordsOpenGLIdAOVDiagnosticFallbackTraceMessages) {
+    RenderGraphCompiler compiler;
+
+    RenderIntent objectIntent;
+    objectIntent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    objectIntent.defaultViewMode = RenderViewMode::ObjectId;
+    objectIntent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
+    GraphRenderEngine objectEngine(camera(), highContrastScene());
+    objectEngine.setExecutionTraceEnabled(true);
+    objectEngine.setPlan(compiler.compile({32, 32, 1}, objectIntent));
+
+    Buffer<unsigned int> objectBuffer(32, 32);
+    objectEngine.render(objectBuffer);
+
+    auto objectTrace = objectEngine.lastExecutionTrace();
+    ASSERT_TRUE(objectTrace);
+    const RenderPassTrace* objectId = objectTrace->findPass("object_id_aov");
+    ASSERT_NE(nullptr, objectId);
+    EXPECT_NE(objectId->message().find("software raster diagnostic fallback"), std::string::npos);
+
+    RenderIntent materialIntent;
+    materialIntent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    materialIntent.defaultViewMode = RenderViewMode::MaterialId;
+    materialIntent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
+    GraphRenderEngine materialEngine(camera(), highContrastScene());
+    materialEngine.setExecutionTraceEnabled(true);
+    materialEngine.setPlan(compiler.compile({32, 32, 1}, materialIntent));
+
+    Buffer<unsigned int> materialBuffer(32, 32);
+    materialEngine.render(materialBuffer);
+
+    auto materialTrace = materialEngine.lastExecutionTrace();
+    ASSERT_TRUE(materialTrace);
+    const RenderPassTrace* materialId = materialTrace->findPass("material_id_aov");
+    ASSERT_NE(nullptr, materialId);
+    EXPECT_NE(materialId->message().find("software raster diagnostic fallback"), std::string::npos);
   }
 
   TEST(GraphRenderEngine, ExecutesWorldPositionAOVViewAndRecordsColorTrace) {

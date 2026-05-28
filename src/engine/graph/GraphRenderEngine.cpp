@@ -818,8 +818,15 @@ namespace engine::graph {
         std::lock_guard<std::mutex> lock(p->activeEngineMutex);
         p->activeEngine = std::move(engine);
       };
+      auto recordTraceMessage = [recorder = p->executionTraceRecorder,
+                                 session = traceSession.session, &pass](std::string message) {
+        if (recorder && session) {
+          recorder->recordPassMessage(session, pass, std::move(message));
+        }
+      };
 
-      RenderExecutionContext context(pass, storage, *this, p->cancelled.load(), setActiveEngine);
+      RenderExecutionContext context(pass, storage, *this, p->cancelled.load(), setActiveEngine,
+                                     recordTraceMessage);
       struct ActiveEngineReset {
         RenderExecutionContext& context;
         ~ActiveEngineReset() {
@@ -890,7 +897,15 @@ namespace engine::graph {
                                  toString(pass.executor) + "'");
       }
 
-      RenderExecutionContext context(pass, storage, *this, p->cancelled.load(), setActiveEngine);
+      auto recordTraceMessage = [recorder = p->executionTraceRecorder,
+                                 session = traceSession.session, &pass](std::string message) {
+        if (recorder && session) {
+          recorder->recordPassMessage(session, pass, std::move(message));
+        }
+      };
+
+      RenderExecutionContext context(pass, storage, *this, p->cancelled.load(), setActiveEngine,
+                                     recordTraceMessage);
       struct ActiveEngineReset {
         RenderExecutionContext& context;
         ~ActiveEngineReset() {
