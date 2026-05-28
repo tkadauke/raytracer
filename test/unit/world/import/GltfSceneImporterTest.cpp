@@ -2,11 +2,11 @@
 
 #include "core/geometry/Mesh.h"
 #include "core/math/HitPoint.h"
+#include "world/import/GltfSceneImporter.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/MeshPrimitive.h"
 #include "render/primitives/Scene.h"
 #include "render/textures/ImageTexture.h"
-#include "world/import/GltfSceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/CompiledPrimitive.h"
 #include "world/objects/DirectionalLight.h"
@@ -22,6 +22,8 @@
 #include <QJsonObject>
 #include <QTemporaryDir>
 #include <QTemporaryFile>
+
+#include <memory>
 
 namespace GltfSceneImporterTest {
   namespace {
@@ -335,6 +337,43 @@ namespace GltfSceneImporterTest {
     EXPECT_EQ(QString("gltf_y_up_to_product_view_up"),
               importRoot->metadataValue("coordinateConversion").toString());
     EXPECT_TRUE(scene->toRaytracerScene()->boundingBox().isValid());
+  }
+
+  TEST(GltfSceneImporter, ImportsFixtureMeshMaterialTextureAndCamera) {
+    world::GltfSceneImporter importer;
+    const auto result = importer.importFile("test/fixtures/gltf/comprehensive_scene.gltf");
+
+    ASSERT_TRUE(result.succeeded());
+    ASSERT_FALSE(result.hasWarnings());
+    ASSERT_NE(nullptr, result.groupRoot());
+    auto* scene = qobject_cast<Group*>(result.groupRoot()->childElements()[0]);
+    ASSERT_NE(nullptr, scene);
+    auto* root = qobject_cast<Group*>(scene->childElements()[0]);
+    ASSERT_NE(nullptr, root);
+    auto* meshNode = qobject_cast<Group*>(root->childElements()[0]);
+    ASSERT_NE(nullptr, meshNode);
+    ASSERT_EQ(1, meshNode->childElements().size());
+
+    auto* compiled = qobject_cast<CompiledPrimitive*>(meshNode->childElements()[0]);
+    ASSERT_NE(nullptr, compiled);
+    EXPECT_EQ(QString("Quad Mesh"), compiled->name());
+    EXPECT_EQ(2, compiled->metadataValue("gltfTriangleCount").toInt());
+    auto primitive =
+      std::dynamic_pointer_cast<render::MeshPrimitive>(compiled->toRaytracerPrimitive());
+    ASSERT_NE(nullptr, primitive);
+    ASSERT_NE(nullptr, primitive->mesh());
+    EXPECT_EQ(4u, primitive->mesh()->vertices().size());
+    EXPECT_EQ(2u, primitive->mesh()->faces().size());
+    ASSERT_EQ(2u, primitive->leaves().size());
+    auto material =
+      std::dynamic_pointer_cast<render::MatteMaterial>(primitive->leaves().front()->material());
+    ASSERT_NE(nullptr, material);
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::ImageTexture>(material->diffuseTexture()));
+
+    auto* cameraNode = qobject_cast<Group*>(scene->childElements()[1]);
+    ASSERT_NE(nullptr, cameraNode);
+    ASSERT_EQ(1, cameraNode->childElements().size());
+    EXPECT_NE(nullptr, qobject_cast<PinholeCamera*>(cameraNode->childElements()[0]));
   }
 
   TEST(GltfSceneImporter, ImportsPerspectiveAndOrthographicCamerasFromNodes) {

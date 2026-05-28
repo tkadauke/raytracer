@@ -38,6 +38,7 @@ set(stl_fixture "${PROJECT_SOURCE_DIR}/test/fixtures/additive/wedge.stl")
 set(threemf_fixture "${PROJECT_SOURCE_DIR}/test/fixtures/additive/wedge.3mf")
 set(gcode_fixture "${PROJECT_SOURCE_DIR}/test/fixtures/additive/two_layer_path.gcode")
 set(gltf_scene "${TEST_OUTPUT_DIR}/triangle.gltf")
+set(gltf_fixture "${PROJECT_SOURCE_DIR}/test/fixtures/gltf/comprehensive_scene.gltf")
 set(stl_render "${TEST_OUTPUT_DIR}/stl-model.png")
 set(threemf_render "${TEST_OUTPUT_DIR}/3mf-model.png")
 set(gltf_render "${TEST_OUTPUT_DIR}/gltf-model.png")
@@ -266,6 +267,17 @@ rendercli_expect_failure(
     "${RENDERCLI}" --width 8 --height 8 --import_format json
     "${TEST_OUTPUT_DIR}/missing.rtjson" "${missing_render}"
 )
+
+rendercli_run(
+  NAME "rendercli imports glTF mesh fixture"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 64 --height 64
+    "${gltf_fixture}" "${gltf_render}"
+)
+rendercli_assert_image_dimensions("${gltf_render}" 64 64
+                                  NAME "rendercli glTF model dimensions")
+rendercli_assert_image_varied("${gltf_render}"
+                              NAME "rendercli glTF model pixels")
 
 rendercli_run(
   NAME "rendercli imports additive STL model"

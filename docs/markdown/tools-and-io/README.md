@@ -21,6 +21,9 @@ codebase, not just understand it.
 - [Additive manufacturing import](additive-manufacturing-import.md) —
     STL/3MF mesh preview fixtures, rendercli smoke coverage, and importer
     limits for delivery-format print geometry.
+- [glTF import](gltf-import.md) — supported glTF 2.0 hierarchy, mesh,
+    material, texture, camera, light, animation subset, fixtures, and render
+    smoke coverage.
 - [G-code parsing](gcode-parsing.md) — visualization-oriented 3D-printer
     movement, extrusion, layer comments, temperatures, and tool-change
     metadata.

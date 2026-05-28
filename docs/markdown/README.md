@@ -102,6 +102,7 @@ The supporting cast around the rendering core.
 - [OpenSCAD import](tools-and-io/openscad-import.md)
 - [STL import](tools-and-io/stl-import.md)
 - [Additive manufacturing import](tools-and-io/additive-manufacturing-import.md)
+- [glTF import](tools-and-io/gltf-import.md)
 - [G-code parsing](tools-and-io/gcode-parsing.md)
 - [Importer lifecycle](tools-and-io/importer-lifecycle.md)
 - [Tools and the Modeler](tools-and-io/tools-and-modeler.md)
