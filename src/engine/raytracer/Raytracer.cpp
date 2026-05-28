@@ -2,20 +2,16 @@
 #include "render/State.h"
 #include "render/Stats.h"
 #include "core/util/BufferUtils.h"
-#include "core/math/Constants.h"
 #include "core/math/Vector.h"
 #include "core/math/Ray.h"
 #include "render/primitives/Scene.h"
 #include "core/Buffer.h"
-#include "core/math/HitPoint.h"
-#include "core/math/HitPointInterval.h"
-#include "render/materials/Material.h"
 #include "core/math/Matrix.h"
 #include "core/math/Rect.h"
 #include "render/TilePlan.h"
+#include "render/WhittedIntegrator.h"
 #include "render/cameras/Camera.h"
 #include "render/tonemap/Tonemap.h"
-#include "core/ScopeExit.h"
 
 #include "engine/TileRenderTask.h"
 
@@ -32,25 +28,27 @@ struct Raytracer::Private {
   inline Private()
       : threadPool(std::make_unique<QThreadPool>()),
         queueSize(QThread::idealThreadCount()),
-        maximumRecursionDepth(10),
+        integrator(std::make_unique<render::WhittedIntegrator>()),
         showProgressIndicators(false) {
   }
 
   std::unique_ptr<QThreadPool> threadPool;
   list<shared_ptr<engine::TileRenderTask>> tasks;
   int queueSize;
-  int maximumRecursionDepth;
+  std::unique_ptr<render::WhittedIntegrator> integrator;
   bool showProgressIndicators;
 };
 
 Raytracer::Raytracer(std::shared_ptr<render::Scene> scene)
     : RenderEngine(std::move(scene)),
       p(std::make_unique<Private>()) {
+  p->integrator->setCancellationCallback([this] { return m_camera && m_camera->isCancelled(); });
 }
 
 Raytracer::Raytracer(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene)
     : RenderEngine(std::move(camera), std::move(scene)),
       p(std::make_unique<Private>()) {
+  p->integrator->setCancellationCallback([this] { return m_camera && m_camera->isCancelled(); });
 }
 
 Raytracer::~Raytracer() {
@@ -59,7 +57,7 @@ Raytracer::~Raytracer() {
 std::shared_ptr<render::RenderEngine> Raytracer::cloneForRender() const {
   auto result = std::make_shared<Raytracer>(m_camera ? m_camera->clone() : nullptr, m_scene);
   result->setTonemap(tonemap());
-  result->setMaximumRecursionDepth(p->maximumRecursionDepth);
+  result->setMaximumRecursionDepth(p->integrator->maximumRecursionDepth());
   result->setMaximumThreads(p->threadPool->maxThreadCount());
   result->setQueueSize(p->queueSize);
   result->setShowProgressIndicators(p->showProgressIndicators);
@@ -191,46 +189,10 @@ render::State Raytracer::rayState(const Rayd& ray) const {
 }
 
 Colord Raytracer::rayColor(const Rayd& ray, render::State& state) const {
-  if (m_camera->isCancelled())
-    return m_scene ? m_scene->background() : Colord::black();
-
-  state.recurseIn();
-  ScopeExit sx([&] { state.recurseOut(); });
-
-  if (state.recursionDepth == p->maximumRecursionDepth) {
-    state.recordEvent(nullptr, "Raytracer: maximum recursion depth reached, returning background");
-    return m_scene->background();
+  if (!m_scene) {
+    return Colord::black();
   }
-
-  if (state.throughput < RAYTRACER_THROUGHPUT_CUTOFF) {
-    state.recordEvent(nullptr, "Raytracer: throughput below cutoff, returning background");
-    return m_scene->background();
-  }
-
-  HitPointInterval hitPoints;
-
-  auto primitive = m_scene->intersect(ray, hitPoints, state);
-  if (m_camera->isCancelled())
-    return m_scene->background();
-
-  if (primitive) {
-    auto hitPoint = hitPoints.minWithPositiveDistance();
-
-    if (state.recursionDepth == 1) {
-      state.hitPoint = hitPoint;
-    }
-
-    if (primitive->material()) {
-      state.recordEvent(nullptr, "Raytracer: shading material");
-      return primitive->material()->shade(this, *m_scene, ray, hitPoint, state);
-    } else {
-      state.recordEvent(nullptr, "Raytracer: no material found, returning black");
-      return Colord::black();
-    }
-  } else {
-    state.recordEvent(nullptr, "Raytracer: Nothing hit, returning background color");
-    return m_scene->background();
-  }
+  return p->integrator->radiance(*m_scene, ray, state, *this);
 }
 
 void Raytracer::cancel() {
@@ -262,7 +224,7 @@ std::list<Recti> Raytracer::completedTiles() const {
 }
 
 void Raytracer::setMaximumRecursionDepth(int depth) {
-  p->maximumRecursionDepth = depth;
+  p->integrator->setMaximumRecursionDepth(depth);
 }
 
 void Raytracer::setMaximumThreads(int threads) {

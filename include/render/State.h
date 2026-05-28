@@ -16,8 +16,9 @@ namespace render {
     *        pipeline.
     *
     * One `State` is constructed per primary ray. It travels by
-    * mutable reference through `Raytracer::rayColor` and every
-    * `Material::shade` / BRDF / BTDF call below it, accumulating:
+    * mutable reference through `Raytracer::rayColor`, the active
+    * `Integrator`, and every `Material::shade` / BRDF / BTDF call
+    * below it, accumulating:
     *
     *  - **Recursion bookkeeping**: `recursionDepth` / `maxRecursionDepth`,
     *    incremented on entry to `rayColor` and decremented on exit.
@@ -93,7 +94,7 @@ namespace render {
     }
 
     /// Increment recursion depth + ray count. Pairs with
-    /// `recurseOut`; called by `Raytracer::rayColor` on entry.
+    /// `recurseOut`; called by the active `Integrator` on entry.
     inline void recurseIn() {
       recursionDepth++;
       numRays++;
@@ -101,7 +102,7 @@ namespace render {
     }
 
     /// Decrement recursion depth. Pairs with `recurseIn`; called by
-    /// `Raytracer::rayColor` on exit (via a `ScopeExit`).
+    /// the active `Integrator` on exit (via a `ScopeExit`).
     inline void recurseOut() {
       recursionDepth--;
     }
@@ -193,8 +194,8 @@ namespace render {
     /// (reflection/transmission scalars × cosine terms) from the primary
     /// ray to the current bounce. Defaults to `1.0` for the primary ray.
     /// Materials update this before each recursive `RayCaster::rayColor`
-    /// call and restore it afterward; `Raytracer::rayColor` short-circuits
-    /// to the scene background when it drops below
+    /// call and restore it afterward; `WhittedIntegrator` short-circuits to
+    /// the scene background when it drops below
     /// `RAYTRACER_THROUGHPUT_CUTOFF`.
     double throughput;
   };

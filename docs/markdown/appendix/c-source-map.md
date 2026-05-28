@@ -86,6 +86,7 @@
 | `include/render/RenderEngine.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/State.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/TilePlan.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
+| `include/render/WhittedIntegrator.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/brdf/BRDF.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `include/render/brdf/BTDF.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `include/render/brdf/GlossySpecular.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
@@ -221,6 +222,7 @@
 | `src/engine/wireframe/Wireframe.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `src/modeler/` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/modeler/MainWindow.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[LDraw import](../tools-and-io/ldraw-import.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
+| `src/render/WhittedIntegrator.cpp` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `src/widgets/world/RenderGraphInspectorWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/widgets/world/RenderGraphTracePreviewWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/world/animation/AnimationTrack.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |

@@ -68,7 +68,7 @@ inline constexpr double E = 2.7182818284590452353;
 inline constexpr double GOLDEN_RATIO = 1.6180339887498948482;
 
 /**
-  * Throughput cutoff for adaptive recursion in `Raytracer::rayColor`. When
+  * Throughput cutoff for adaptive recursion in `WhittedIntegrator`. When
   * the accumulated path weight (product of reflection/transmission
   * attenuation coefficients along the bounce path) drops below this value,
   * the recursion short-circuits and returns the scene background. The
