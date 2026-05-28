@@ -343,6 +343,13 @@ public:
     */
   bool intersects(const Rayd& ray) const;
 
+  /**
+    * Variant of intersects() for acceleration structures that test the same
+    * ray against many boxes. @p inverseDirection must contain the component-
+    * wise reciprocal of @p ray.direction().
+    */
+  bool intersects(const Rayd& ray, const Vector3<T>& inverseDirection) const;
+
 #ifdef __SSE__
   /**
     * Tests four rays against this bounding box and returns an SSE comparison
@@ -363,6 +370,13 @@ public:
     * @returns true if the ray hits the box (t_enter <= t_exit && t_exit >= 0).
     */
   bool intersect(const Rayd& ray, Range<T>& interval) const;
+
+  /**
+    * Variant of intersect() for acceleration structures that test the same
+    * ray against many boxes. @p inverseDirection must contain the component-
+    * wise reciprocal of @p ray.direction().
+    */
+  bool intersect(const Rayd& ray, const Vector3<T>& inverseDirection, Range<T>& interval) const;
 
 private:
   Vector3<T> m_min, m_max;
@@ -403,6 +417,15 @@ std::array<Vector3<T>, 8> BoundingBox<T>::vertices() const {
   }};
 }
 
+#ifdef __SSE2__
+template<>
+inline bool BoundingBox<double>::intersect(const Rayd& ray, const Vector3<double>& inverseDirection,
+                                           Range<double>& interval) const;
+template<>
+inline bool BoundingBox<double>::intersects(const Rayd& ray,
+                                            const Vector3<double>& inverseDirection) const;
+#endif
+
 // Generic branchless slab intersection — eliminates all per-axis sign branches
 // by computing both (min-o)*inv_d and (max-o)*inv_d and using ternary min/max.
 // Ternary operators return values (not references), avoiding GCC 13's
@@ -411,11 +434,17 @@ std::array<Vector3<T>, 8> BoundingBox<T>::vertices() const {
 // The SSE2 double explicit specialization follows below.
 template<class T>
 bool BoundingBox<T>::intersects(const Rayd& ray) const {
+  return intersects(ray, Vector3<T>(T(1.0) / ray.direction().x(), T(1.0) / ray.direction().y(),
+                                    T(1.0) / ray.direction().z()));
+}
+
+template<class T>
+bool BoundingBox<T>::intersects(const Rayd& ray, const Vector3<T>& inverseDirection) const {
   RAYTRACER_STATS_INC(rayBoxIntersects);
   const T ox = ray.origin().x(), oy = ray.origin().y(), oz = ray.origin().z();
-  const T invDx = T(1.0) / ray.direction().x();
-  const T invDy = T(1.0) / ray.direction().y();
-  const T invDz = T(1.0) / ray.direction().z();
+  const T invDx = inverseDirection.x();
+  const T invDy = inverseDirection.y();
+  const T invDz = inverseDirection.z();
 
   const T t1x = (m_min.x() - ox) * invDx, t2x = (m_max.x() - ox) * invDx;
   const T t1y = (m_min.y() - oy) * invDy, t2y = (m_max.y() - oy) * invDy;
@@ -436,11 +465,20 @@ bool BoundingBox<T>::intersects(const Rayd& ray) const {
 
 template<class T>
 bool BoundingBox<T>::intersect(const Rayd& ray, Range<T>& interval) const {
+  return intersect(ray,
+                   Vector3<T>(T(1.0) / ray.direction().x(), T(1.0) / ray.direction().y(),
+                              T(1.0) / ray.direction().z()),
+                   interval);
+}
+
+template<class T>
+bool BoundingBox<T>::intersect(const Rayd& ray, const Vector3<T>& inverseDirection,
+                               Range<T>& interval) const {
   RAYTRACER_STATS_INC(rayBoxIntersects);
   const T ox = ray.origin().x(), oy = ray.origin().y(), oz = ray.origin().z();
-  const T invDx = T(1.0) / ray.direction().x();
-  const T invDy = T(1.0) / ray.direction().y();
-  const T invDz = T(1.0) / ray.direction().z();
+  const T invDx = inverseDirection.x();
+  const T invDy = inverseDirection.y();
+  const T invDz = inverseDirection.z();
 
   const T t1x = (m_min.x() - ox) * invDx, t2x = (m_max.x() - ox) * invDx;
   const T t1y = (m_min.y() - oy) * invDy, t2y = (m_max.y() - oy) * invDy;
@@ -550,14 +588,19 @@ __m128 BoundingBox<T>::intersects4(const Ray4& rays) const {
 #ifdef __SSE2__
 template<>
 inline bool BoundingBox<double>::intersects(const Rayd& ray) const {
+  return intersects(
+    ray, Vector3d(1.0 / ray.direction().x(), 1.0 / ray.direction().y(), 1.0 / ray.direction().z()));
+}
+
+template<>
+inline bool BoundingBox<double>::intersects(const Rayd& ray,
+                                            const Vector3<double>& inverseDirection) const {
   RAYTRACER_STATS_INC(rayBoxIntersects);
   // X+Y: two lanes of __m128d — _mm_set_pd(high=y, low=x)
   const __m128d min_xy = _mm_set_pd(m_min.y(), m_min.x());
   const __m128d max_xy = _mm_set_pd(m_max.y(), m_max.x());
   const __m128d orig_xy = _mm_set_pd(ray.origin().y(), ray.origin().x());
-  // Use _mm_div_pd so both reciprocals are computed in one SIMD instruction.
-  const __m128d dir_xy = _mm_set_pd(ray.direction().y(), ray.direction().x());
-  const __m128d invd_xy = _mm_div_pd(_mm_set1_pd(1.0), dir_xy);
+  const __m128d invd_xy = _mm_set_pd(inverseDirection.y(), inverseDirection.x());
 
   const __m128d t1_xy = _mm_mul_pd(_mm_sub_pd(min_xy, orig_xy), invd_xy);
   const __m128d t2_xy = _mm_mul_pd(_mm_sub_pd(max_xy, orig_xy), invd_xy);
@@ -567,7 +610,7 @@ inline bool BoundingBox<double>::intersects(const Rayd& ray) const {
 
   // Z axis — scalar; ternary min/max become conditional moves under -O3.
   // Ternary operators avoid -Wdangling-reference on std::min/std::max.
-  const double invDz = 1.0 / ray.direction().z();
+  const double invDz = inverseDirection.z();
   const double t1z = (m_min.z() - ray.origin().z()) * invDz;
   const double t2z = (m_max.z() - ray.origin().z()) * invDz;
   const double enter_z = t1z < t2z ? t1z : t2z;
@@ -588,12 +631,19 @@ inline bool BoundingBox<double>::intersects(const Rayd& ray) const {
 
 template<>
 inline bool BoundingBox<double>::intersect(const Rayd& ray, Range<double>& interval) const {
+  return intersect(
+    ray, Vector3d(1.0 / ray.direction().x(), 1.0 / ray.direction().y(), 1.0 / ray.direction().z()),
+    interval);
+}
+
+template<>
+inline bool BoundingBox<double>::intersect(const Rayd& ray, const Vector3<double>& inverseDirection,
+                                           Range<double>& interval) const {
   RAYTRACER_STATS_INC(rayBoxIntersects);
   const __m128d min_xy = _mm_set_pd(m_min.y(), m_min.x());
   const __m128d max_xy = _mm_set_pd(m_max.y(), m_max.x());
   const __m128d orig_xy = _mm_set_pd(ray.origin().y(), ray.origin().x());
-  const __m128d dir_xy = _mm_set_pd(ray.direction().y(), ray.direction().x());
-  const __m128d invd_xy = _mm_div_pd(_mm_set1_pd(1.0), dir_xy);
+  const __m128d invd_xy = _mm_set_pd(inverseDirection.y(), inverseDirection.x());
 
   const __m128d t1_xy = _mm_mul_pd(_mm_sub_pd(min_xy, orig_xy), invd_xy);
   const __m128d t2_xy = _mm_mul_pd(_mm_sub_pd(max_xy, orig_xy), invd_xy);
@@ -601,7 +651,7 @@ inline bool BoundingBox<double>::intersect(const Rayd& ray, Range<double>& inter
   const __m128d enter_xy = _mm_min_pd(t1_xy, t2_xy);
   const __m128d exit_xy = _mm_max_pd(t1_xy, t2_xy);
 
-  const double invDz = 1.0 / ray.direction().z();
+  const double invDz = inverseDirection.z();
   const double t1z = (m_min.z() - ray.origin().z()) * invDz;
   const double t2z = (m_max.z() - ray.origin().z()) * invDz;
   const double enter_z = t1z < t2z ? t1z : t2z;

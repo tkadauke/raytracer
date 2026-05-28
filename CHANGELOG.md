@@ -19,6 +19,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   trace backbone curves with residue segment metadata, selectable as overlay,
   ribbon, tube, or disabled output through importer options for Epic #236. —
   GPT-5
+- **BoundingBox ray tests can reuse precomputed inverse directions and return slab intervals.** `BoundingBox` now exposes precomputed-inverse overloads for boolean and interval ray tests, and scalar BVH traversal computes that inverse once per ray before walking node boxes. — GPT-5
 - **Raster counter AOVs.** The rasterizer and render graph now expose
   graph-visible heatmap views for per-pixel coverage, depth tests, depth passes,
   shading calls, and color writes through rendercli and the Modeler Preview

@@ -131,9 +131,16 @@ namespace render {
     int m_leafSize{4};
 
     std::unique_ptr<Node> build(std::vector<std::shared_ptr<Primitive>> prims) const;
-    const Primitive* intersectNode(const Node* node, const Rayd& ray, HitPointInterval& hitPoints,
+    const Primitive* intersectNode(const Node* node, const Rayd& ray,
+                                   const Vector3d& inverseDirection, HitPointInterval& hitPoints,
                                    render::State& state) const;
-    bool intersectsNode(const Node* node, const Rayd& ray, render::State& state) const;
+    const Primitive* intersectHitNode(const Node* node, const Rayd& ray,
+                                      const Vector3d& inverseDirection, HitPointInterval& hitPoints,
+                                      render::State& state) const;
+    bool intersectsNode(const Node* node, const Rayd& ray, const Vector3d& inverseDirection,
+                        render::State& state) const;
+    bool intersectsHitNode(const Node* node, const Rayd& ray, const Vector3d& inverseDirection,
+                           render::State& state) const;
 
     void intersectPacketNode(const Node* node, const Ray4& rays, uint16_t activeMask,
                              std::array<float, Ray4::lanes>& tMin, uint16_t& hitMask,
