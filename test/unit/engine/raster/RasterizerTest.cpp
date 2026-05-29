@@ -1168,6 +1168,38 @@ namespace RasterizerTest {
     EXPECT_EQ(1u, colorWriteCount[32][32]);
   }
 
+  TEST(Rasterizer, VisibilitySetReducesDiagnosticCounterWork) {
+    Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
+    engine.setQueueSize(1);
+    auto visibilitySet = std::make_shared<RasterVisibilitySet>();
+    visibilitySet->addVisibleLeaf(1, 1);
+    visibilitySet->addRejectedLeaf(RasterVisibilitySet::RejectionReason::Frustum, 1, 1);
+    engine.setVisibilitySet(visibilitySet);
+
+    Buffer<Colord> color(64, 64);
+    Buffer<std::uint32_t> coverageCount(64, 64);
+    Buffer<std::uint32_t> depthTestCount(64, 64);
+    Buffer<std::uint32_t> depthPassCount(64, 64);
+    Buffer<std::uint32_t> shadeCount(64, 64);
+    Buffer<std::uint32_t> colorWriteCount(64, 64);
+
+    Rasterizer::DiagnosticOutputBuffers outputs;
+    outputs.coverageCount = &coverageCount;
+    outputs.depthTestCount = &depthTestCount;
+    outputs.depthPassCount = &depthPassCount;
+    outputs.shadeCount = &shadeCount;
+    outputs.colorWriteCount = &colorWriteCount;
+    engine.setDiagnosticOutputBuffers(outputs);
+
+    engine.render(color);
+
+    EXPECT_EQ(1u, coverageCount[32][32]);
+    EXPECT_EQ(1u, depthTestCount[32][32]);
+    EXPECT_EQ(1u, depthPassCount[32][32]);
+    EXPECT_EQ(1u, shadeCount[32][32]);
+    EXPECT_EQ(1u, colorWriteCount[32][32]);
+  }
+
   TEST(Rasterizer, DiagnosticOutputBuffersIgnoreMismatchedBuffers) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
     Buffer<Colord> color(64, 64);

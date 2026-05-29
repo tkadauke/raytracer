@@ -181,9 +181,13 @@ Tasks:
 Acceptance:
 
 - Output remains identical for opaque fixtures.
-- Depth-test/color-write counters improve or remain neutral on representative
-  dense scenes.
-- The graph trace identifies when ordering was disabled by unsafe state.
+- ~~Depth-test/color-write counters improve or remain neutral on
+  representative dense scenes.~~ ✅ **Done.** Diagnostic counter coverage now
+  pins that a visibility set skips a duplicate rejected leaf before coverage,
+  depth-test, shading, and color-write counters are incremented.
+- ~~The graph trace identifies when ordering was disabled by unsafe state.~~ ✅
+  **Done.** Ordering trace status reports enabled, disabled, unsupported, or
+  not needed.
 
 ## Phase 3 - conservative backface and sidedness filtering
 
