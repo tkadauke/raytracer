@@ -200,12 +200,16 @@ Tasks:
 - ~~Bind graph raster pass state for color write masks.~~ ✅ **Done.** OpenGL
   raster draw calls now apply graph-derived RGB color write masks after the
   background clear.
+- ~~Bind graph raster pass state for color attachment controls.~~ ✅ **Done.**
+  Raster framebuffer state now serializes color load/store operations, OpenGL
+  honors color-store discard during readback, and color-load requests fail
+  clearly until GPU resource residency can seed the attachment.
 - ~~Bind graph raster pass state for depth compare/write controls.~~ ✅
   **Done.** Raster framebuffer state now serializes depth compare, clear,
   load/store, and write controls; OpenGL binds compare/write/clear/store state
   and rejects depth attachment load until graph resource residency exists.
-- Bind remaining graph raster pass state for attachment controls that still
-  need explicit GPU resource-domain support.
+- Bind remaining graph raster pass state for depth/stencil attachment-load
+  controls that still need explicit GPU resource-domain support.
 - ~~Render into an FBO color attachment and depth attachment.~~ ✅ **Done.**
   The backend clears the offscreen framebuffer, depth-tests triangles, and
   draws material-albedo color.

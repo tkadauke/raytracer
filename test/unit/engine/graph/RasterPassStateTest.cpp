@@ -124,6 +124,8 @@ namespace RasterPassStateTest {
     state.sampling().setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
     state.sampling().setPostProcessAA(Rasterizer::PostProcessAA::FXAA);
     state.framebuffer().setViewportRect(Recti(1, 2, 30, 40));
+    state.framebuffer().setColorLoadOp(Rasterizer::AttachmentLoadOp::Load);
+    state.framebuffer().setColorStoreOp(Rasterizer::AttachmentStoreOp::Discard);
     state.framebuffer().setDepthFunc(Rasterizer::DepthFunc::GreaterEqual);
     state.framebuffer().setDepthClearValue(4.5);
     state.framebuffer().setDepthStoreOp(Rasterizer::AttachmentStoreOp::Discard);
@@ -144,6 +146,8 @@ namespace RasterPassStateTest {
     EXPECT_EQ("per_fragment", sampling.value("msaaShadingMode").toString().toStdString());
     EXPECT_EQ("fxaa", sampling.value("postProcessAA").toString().toStdString());
     EXPECT_TRUE(framebuffer.value("viewport").isArray());
+    EXPECT_EQ("load", framebuffer.value("colorLoadOp").toString().toStdString());
+    EXPECT_EQ("discard", framebuffer.value("colorStoreOp").toString().toStdString());
     EXPECT_EQ("greater_equal", framebuffer.value("depthFunc").toString().toStdString());
     EXPECT_EQ(4.5, framebuffer.value("depthClearValue").toDouble());
     EXPECT_EQ("discard", framebuffer.value("depthStoreOp").toString().toStdString());
@@ -163,6 +167,7 @@ namespace RasterPassStateTest {
     state.sampling().setMSAASamples(4);
     state.framebuffer().setViewportRect(Recti(4, 5, 20, 21));
     state.framebuffer().setScissorRect(Recti(6, 7, 18, 19));
+    state.framebuffer().setColorStoreOp(Rasterizer::AttachmentStoreOp::Discard);
     state.framebuffer().setDepthFunc(Rasterizer::DepthFunc::Greater);
     state.framebuffer().setDepthBias(-0.125);
     state.framebuffer().setDepthClearValue(6.25);
@@ -191,6 +196,7 @@ namespace RasterPassStateTest {
     EXPECT_TRUE(rasterizer.scissorTestEnabled());
     EXPECT_EQ(6, rasterizer.scissorRect().left());
     EXPECT_EQ(18, rasterizer.scissorRect().width());
+    EXPECT_EQ(Rasterizer::AttachmentStoreOp::Discard, rasterizer.colorStoreOp());
     EXPECT_EQ(Rasterizer::DepthFunc::Greater, rasterizer.depthFunc());
     EXPECT_EQ(-0.125, rasterizer.depthBias());
     EXPECT_EQ(6.25, rasterizer.depthClearValue());
@@ -220,6 +226,10 @@ namespace RasterPassStateTest {
   }
 
   TEST(RasterBeautyPassState, RejectsUnsupportedOpenGLFramebufferState) {
+    RasterBeautyPassState colorLoad;
+    colorLoad.framebuffer().setColorLoadOp(Rasterizer::AttachmentLoadOp::Load);
+    expectOpenGLUnsupported(colorLoad, "color attachment load");
+
     RasterBeautyPassState depthLoad;
     depthLoad.framebuffer().setDepthLoadOp(Rasterizer::AttachmentLoadOp::Load);
     expectOpenGLUnsupported(depthLoad, "depth attachment load");
@@ -250,6 +260,8 @@ namespace RasterPassStateTest {
     sampling["msaaShadingMode"] = "per_fragment";
     sampling["postProcessAA"] = "smaa";
     QJsonObject framebuffer;
+    framebuffer["colorLoadOp"] = "load";
+    framebuffer["colorStoreOp"] = "discard";
     framebuffer["colorWriteMask"] = "g";
     framebuffer["blending"] = true;
     framebuffer["blendSource"] = "constant_alpha";
@@ -307,6 +319,8 @@ namespace RasterPassStateTest {
     EXPECT_EQ(4, rasterizer.msaaSamples());
     EXPECT_EQ(Rasterizer::MSAAShadingMode::PerFragment, rasterizer.msaaShadingMode());
     EXPECT_EQ(Rasterizer::PostProcessAA::SMAA, rasterizer.postProcessAA());
+    EXPECT_EQ(Rasterizer::AttachmentLoadOp::Load, rasterizer.colorLoadOp());
+    EXPECT_EQ(Rasterizer::AttachmentStoreOp::Discard, rasterizer.colorStoreOp());
     EXPECT_EQ(Rasterizer::ColorWriteGreen, rasterizer.colorWriteMask());
     EXPECT_TRUE(rasterizer.blendingEnabled());
     EXPECT_EQ(Rasterizer::BlendFactor::ConstantAlpha, rasterizer.sourceBlendFactor());

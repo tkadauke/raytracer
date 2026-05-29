@@ -216,14 +216,16 @@ namespace engine::raster {
     public:
       OpenGLRasterDrawPass(
         OpenGLOffscreenContext& context, int height, const Recti& viewportRect, bool scissorEnabled,
-        const Recti& scissorRect, std::uint8_t colorWriteMask, bool blendingEnabled,
-        Rasterizer::BlendFactor sourceBlendFactor, Rasterizer::BlendFactor destinationBlendFactor,
-        Rasterizer::BlendOp blendOp, const Colord& blendConstantColor, double blendConstantAlpha,
-        bool alphaTestEnabled, Rasterizer::AlphaFunc alphaFunc, double alphaReference,
-        Rasterizer::DepthFunc depthFunc, double depthClearValue,
-        Rasterizer::AttachmentLoadOp depthLoadOp, Rasterizer::AttachmentStoreOp depthStoreOp,
-        bool depthWriteEnabled, bool stencilTestEnabled, Rasterizer::StencilFunc stencilFunc,
-        std::uint8_t stencilReference, std::uint8_t stencilMask, std::uint8_t stencilClearValue,
+        const Recti& scissorRect, Rasterizer::AttachmentLoadOp colorLoadOp,
+        Rasterizer::AttachmentStoreOp colorStoreOp, std::uint8_t colorWriteMask,
+        bool blendingEnabled, Rasterizer::BlendFactor sourceBlendFactor,
+        Rasterizer::BlendFactor destinationBlendFactor, Rasterizer::BlendOp blendOp,
+        const Colord& blendConstantColor, double blendConstantAlpha, bool alphaTestEnabled,
+        Rasterizer::AlphaFunc alphaFunc, double alphaReference, Rasterizer::DepthFunc depthFunc,
+        double depthClearValue, Rasterizer::AttachmentLoadOp depthLoadOp,
+        Rasterizer::AttachmentStoreOp depthStoreOp, bool depthWriteEnabled, bool stencilTestEnabled,
+        Rasterizer::StencilFunc stencilFunc, std::uint8_t stencilReference,
+        std::uint8_t stencilMask, std::uint8_t stencilClearValue,
         Rasterizer::AttachmentLoadOp stencilLoadOp, Rasterizer::AttachmentStoreOp stencilStoreOp,
         std::uint8_t stencilWriteMask, Rasterizer::StencilOp stencilFailOp,
         Rasterizer::StencilOp stencilDepthFailOp, Rasterizer::StencilOp stencilPassOp,
@@ -233,6 +235,8 @@ namespace engine::raster {
             m_viewportRect(viewportRect),
             m_scissorEnabled(scissorEnabled),
             m_scissorRect(scissorRect),
+            m_colorLoadOp(colorLoadOp),
+            m_colorStoreOp(colorStoreOp),
             m_colorWriteMask(colorWriteMask),
             m_blendingEnabled(blendingEnabled),
             m_sourceBlendFactor(sourceBlendFactor),
@@ -281,7 +285,9 @@ namespace engine::raster {
           const auto drawElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - drawStarted);
           const auto readbackStarted = std::chrono::steady_clock::now();
-          m_context.copyColorTo(target);
+          if (m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store) {
+            m_context.copyColorTo(target);
+          }
           if (depthTarget && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store) {
             m_context.copyDepthTo(*depthTarget);
           }
@@ -302,6 +308,11 @@ namespace engine::raster {
 
     private:
       void draw(const detail::OpenGLRasterMesh& mesh, const Colord& background) {
+        if (m_colorLoadOp == Rasterizer::AttachmentLoadOp::Load) {
+          throw std::runtime_error(
+            "OpenGL raster backend does not support color attachment load yet");
+        }
+
         QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
         functions->glViewport(m_viewportRect.left(), openGLY(m_viewportRect),
                               m_viewportRect.width(), m_viewportRect.height());
@@ -1043,6 +1054,8 @@ namespace engine::raster {
       Recti m_viewportRect;
       bool m_scissorEnabled;
       Recti m_scissorRect;
+      Rasterizer::AttachmentLoadOp m_colorLoadOp;
+      Rasterizer::AttachmentStoreOp m_colorStoreOp;
       std::uint8_t m_colorWriteMask;
       bool m_blendingEnabled;
       Rasterizer::BlendFactor m_sourceBlendFactor;
@@ -1108,6 +1121,8 @@ namespace engine::raster {
     } else {
       clone->clearScissorRect();
     }
+    clone->setColorLoadOp(m_colorLoadOp);
+    clone->setColorStoreOp(m_colorStoreOp);
     clone->setColorWriteMask(m_colorWriteMask);
     clone->setBlendingEnabled(m_blendingEnabled);
     clone->setBlendFactors(m_sourceBlendFactor, m_destinationBlendFactor);
@@ -1253,6 +1268,22 @@ namespace engine::raster {
   void OpenGLRasterizer::clearScissorRect() {
     m_scissorRect = Recti();
     m_scissorTestEnabled = false;
+  }
+
+  Rasterizer::AttachmentLoadOp OpenGLRasterizer::colorLoadOp() const {
+    return m_colorLoadOp;
+  }
+
+  void OpenGLRasterizer::setColorLoadOp(Rasterizer::AttachmentLoadOp op) {
+    m_colorLoadOp = op;
+  }
+
+  Rasterizer::AttachmentStoreOp OpenGLRasterizer::colorStoreOp() const {
+    return m_colorStoreOp;
+  }
+
+  void OpenGLRasterizer::setColorStoreOp(Rasterizer::AttachmentStoreOp op) {
+    m_colorStoreOp = op;
   }
 
   Rasterizer::DepthFunc OpenGLRasterizer::depthFunc() const {
@@ -1496,8 +1527,12 @@ namespace engine::raster {
   }
 
   std::string OpenGLRasterizer::readbackTraceMessage(std::chrono::nanoseconds elapsed,
-                                                     bool copiedDepth, bool copiedStencil) const {
-    std::vector<std::string> attachments{"color"};
+                                                     bool copiedColor, bool copiedDepth,
+                                                     bool copiedStencil) const {
+    std::vector<std::string> attachments;
+    if (copiedColor) {
+      attachments.push_back("color");
+    }
     if (copiedDepth) {
       attachments.push_back("depth");
     }
@@ -1506,6 +1541,12 @@ namespace engine::raster {
     }
 
     std::ostringstream message;
+    if (attachments.empty()) {
+      message << "OpenGL raster readback skipped CPU attachment copies in " << std::fixed
+              << std::setprecision(3) << elapsed.count() / 1000000.0 << " ms";
+      return message.str();
+    }
+
     message << "OpenGL raster readback copied ";
     for (std::size_t i = 0; i != attachments.size(); ++i) {
       if (i != 0) {
@@ -1579,17 +1620,17 @@ namespace engine::raster {
 
     const auto timings =
       OpenGLRasterDrawPass(
-        context, buffer.height(), viewport, m_scissorTestEnabled, m_scissorRect, m_colorWriteMask,
-        m_blendingEnabled, m_sourceBlendFactor, m_destinationBlendFactor, m_blendOp,
-        m_blendConstantColor, m_blendConstantAlpha, m_alphaTestEnabled, m_alphaFunc,
-        m_alphaReference, m_depthFunc, m_depthClearValue, m_depthLoadOp, m_depthStoreOp,
-        m_depthWriteEnabled, m_stencilTestEnabled, m_stencilFunc, m_stencilReference, m_stencilMask,
-        m_stencilClearValue, m_stencilLoadOp, m_stencilStoreOp, m_stencilWriteMask, m_stencilFailOp,
-        m_stencilDepthFailOp, m_stencilPassOp, std::move(shadowTextureData),
-        camera() ? camera()->position() : Vector3d::null)
+        context, buffer.height(), viewport, m_scissorTestEnabled, m_scissorRect, m_colorLoadOp,
+        m_colorStoreOp, m_colorWriteMask, m_blendingEnabled, m_sourceBlendFactor,
+        m_destinationBlendFactor, m_blendOp, m_blendConstantColor, m_blendConstantAlpha,
+        m_alphaTestEnabled, m_alphaFunc, m_alphaReference, m_depthFunc, m_depthClearValue,
+        m_depthLoadOp, m_depthStoreOp, m_depthWriteEnabled, m_stencilTestEnabled, m_stencilFunc,
+        m_stencilReference, m_stencilMask, m_stencilClearValue, m_stencilLoadOp, m_stencilStoreOp,
+        m_stencilWriteMask, m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp,
+        std::move(shadowTextureData), camera() ? camera()->position() : Vector3d::null)
         .render(mesh, backgroundColor(), buffer, depthTarget, stencilTarget);
     m_lastReadbackTraceMessage = readbackTraceMessage(
-      timings.readbackElapsed,
+      timings.readbackElapsed, m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store,
       depthTarget != nullptr && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store,
       stencilTarget != nullptr && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store);
     m_lastTraceMessages.push_back(

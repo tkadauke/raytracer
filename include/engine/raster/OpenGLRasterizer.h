@@ -65,6 +65,11 @@ namespace engine::raster {
     void setScissorRect(const Recti& rect);
     void clearScissorRect();
 
+    Rasterizer::AttachmentLoadOp colorLoadOp() const;
+    void setColorLoadOp(Rasterizer::AttachmentLoadOp op);
+    Rasterizer::AttachmentStoreOp colorStoreOp() const;
+    void setColorStoreOp(Rasterizer::AttachmentStoreOp op);
+
     Rasterizer::DepthFunc depthFunc() const;
     void setDepthFunc(Rasterizer::DepthFunc func);
     double depthBias() const;
@@ -134,8 +139,8 @@ namespace engine::raster {
     Recti viewportRectFor(int width, int height) const;
     void renderOpenGL(Buffer<Colord>& buffer, Buffer<double>* depthTarget,
                       Buffer<std::uint8_t>* stencilTarget) const;
-    std::string readbackTraceMessage(std::chrono::nanoseconds elapsed, bool copiedDepth,
-                                     bool copiedStencil) const;
+    std::string readbackTraceMessage(std::chrono::nanoseconds elapsed, bool copiedColor,
+                                     bool copiedDepth, bool copiedStencil) const;
     std::string drawTraceMessage(std::chrono::nanoseconds elapsed, std::size_t triangleCount) const;
     std::string meshPreparationTraceMessage(std::chrono::nanoseconds elapsed,
                                             std::size_t triangleCount) const;
@@ -149,6 +154,8 @@ namespace engine::raster {
     Recti m_viewportRect;
     bool m_scissorTestEnabled{false};
     Recti m_scissorRect;
+    Rasterizer::AttachmentLoadOp m_colorLoadOp{Rasterizer::AttachmentLoadOp::Clear};
+    Rasterizer::AttachmentStoreOp m_colorStoreOp{Rasterizer::AttachmentStoreOp::Store};
     Rasterizer::DepthFunc m_depthFunc{Rasterizer::DepthFunc::Less};
     double m_depthBias{0.0};
     double m_depthClearValue{std::numeric_limits<double>::infinity()};

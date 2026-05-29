@@ -95,6 +95,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPT-5
 - **OpenGL raster color write mask.** OpenGL-backed raster passes now apply
   graph-derived RGB color write masks after clearing the framebuffer. — GPT-5
+- **Raster graph color attachment state.** Raster pass framebuffer state now
+  serializes color load/store operations; OpenGL raster accepts color-store
+  discard and rejects color-load until graph resource residency can seed GPU
+  attachments. — GPT-5
 - **OpenGL raster blending.** OpenGL-backed raster passes now apply
   graph-derived fixed-function blend enable, factors, operation, and constant
   color state. — GPT-5

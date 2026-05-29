@@ -116,6 +116,8 @@ namespace engine::graph {
 
     void setViewportRect(const Recti& rect);
     void setScissorRect(const Recti& rect);
+    void setColorLoadOp(Rasterizer::AttachmentLoadOp op);
+    void setColorStoreOp(Rasterizer::AttachmentStoreOp op);
     void setDepthFunc(Rasterizer::DepthFunc func);
     void setDepthBias(double bias);
     void setDepthClearValue(double value);
@@ -145,6 +147,8 @@ namespace engine::graph {
   private:
     std::optional<Recti> m_viewportRect;
     std::optional<Recti> m_scissorRect;
+    Rasterizer::AttachmentLoadOp m_colorLoadOp{Rasterizer::AttachmentLoadOp::Clear};
+    Rasterizer::AttachmentStoreOp m_colorStoreOp{Rasterizer::AttachmentStoreOp::Store};
     Rasterizer::DepthFunc m_depthFunc{Rasterizer::DepthFunc::Less};
     double m_depthBias{0.0};
     double m_depthClearValue{std::numeric_limits<double>::infinity()};

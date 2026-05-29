@@ -87,6 +87,8 @@ namespace OpenGLRasterizerTest {
     rasterizer.setCullMode(engine::raster::Rasterizer::CullMode::Back);
     rasterizer.setViewportRect(Recti(4, 5, 20, 21));
     rasterizer.setScissorRect(Recti(6, 7, 18, 19));
+    rasterizer.setColorLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
+    rasterizer.setColorStoreOp(engine::raster::Rasterizer::AttachmentStoreOp::Discard);
     rasterizer.setColorWriteMask(engine::raster::Rasterizer::ColorWriteGreen);
     rasterizer.setBlendingEnabled(true);
     rasterizer.setBlendFactors(engine::raster::Rasterizer::BlendFactor::ConstantAlpha,
@@ -125,6 +127,8 @@ namespace OpenGLRasterizerTest {
     EXPECT_TRUE(clone->scissorTestEnabled());
     EXPECT_EQ(6, clone->scissorRect().left());
     EXPECT_EQ(18, clone->scissorRect().width());
+    EXPECT_EQ(engine::raster::Rasterizer::AttachmentLoadOp::Load, clone->colorLoadOp());
+    EXPECT_EQ(engine::raster::Rasterizer::AttachmentStoreOp::Discard, clone->colorStoreOp());
     EXPECT_EQ(engine::raster::Rasterizer::ColorWriteGreen, clone->colorWriteMask());
     EXPECT_TRUE(clone->blendingEnabled());
     EXPECT_EQ(engine::raster::Rasterizer::BlendFactor::ConstantAlpha, clone->sourceBlendFactor());

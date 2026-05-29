@@ -696,6 +696,8 @@ namespace engine::graph {
     rejectUnknownFields(object, path,
                         {"viewport",
                          "scissor",
+                         "colorLoadOp",
+                         "colorStoreOp",
                          "depthFunc",
                          "depthBias",
                          "depthClearValue",
@@ -728,6 +730,12 @@ namespace engine::graph {
       state.setViewportRect(rectFromJson(object, "viewport", path));
     if (hasField(object, "scissor"))
       state.setScissorRect(rectFromJson(object, "scissor", path));
+    if (hasField(object, "colorLoadOp"))
+      state.setColorLoadOp(attachmentLoadOpFromString(stringField(object, "colorLoadOp", path),
+                                                      path + ".colorLoadOp"));
+    if (hasField(object, "colorStoreOp"))
+      state.setColorStoreOp(attachmentStoreOpFromString(stringField(object, "colorStoreOp", path),
+                                                        path + ".colorStoreOp"));
     if (hasField(object, "depthFunc"))
       state.setDepthFunc(
         depthFuncFromString(stringField(object, "depthFunc", path), path + ".depthFunc"));
@@ -832,6 +840,10 @@ namespace engine::graph {
       object["viewport"] = rectToJson(*m_viewportRect);
     if (m_scissorRect)
       object["scissor"] = rectToJson(*m_scissorRect);
+    if (m_colorLoadOp != Rasterizer::AttachmentLoadOp::Clear)
+      object["colorLoadOp"] = toString(m_colorLoadOp);
+    if (m_colorStoreOp != Rasterizer::AttachmentStoreOp::Store)
+      object["colorStoreOp"] = toString(m_colorStoreOp);
     if (m_depthFunc != Rasterizer::DepthFunc::Less)
       object["depthFunc"] = toString(m_depthFunc);
     if (m_depthBias != 0.0)
@@ -904,6 +916,8 @@ namespace engine::graph {
     } else {
       rasterizer.clearScissorRect();
     }
+    rasterizer.setColorLoadOp(m_colorLoadOp);
+    rasterizer.setColorStoreOp(m_colorStoreOp);
     rasterizer.setDepthFunc(m_depthFunc);
     rasterizer.setDepthBias(m_depthBias);
     rasterizer.setDepthClearValue(m_depthClearValue);
@@ -938,6 +952,8 @@ namespace engine::graph {
     } else {
       rasterizer.clearScissorRect();
     }
+    rasterizer.setColorLoadOp(m_colorLoadOp);
+    rasterizer.setColorStoreOp(m_colorStoreOp);
     rasterizer.setDepthFunc(m_depthFunc);
     rasterizer.setDepthBias(m_depthBias);
     rasterizer.setDepthClearValue(m_depthClearValue);
@@ -961,6 +977,9 @@ namespace engine::graph {
   }
 
   void RasterFramebufferState::validateSupportedByOpenGL() const {
+    if (m_colorLoadOp == Rasterizer::AttachmentLoadOp::Load) {
+      openGLUnsupported("color attachment load");
+    }
     if (m_depthLoadOp == Rasterizer::AttachmentLoadOp::Load) {
       openGLUnsupported("depth attachment load");
     }
@@ -975,6 +994,14 @@ namespace engine::graph {
 
   void RasterFramebufferState::setScissorRect(const Recti& rect) {
     m_scissorRect = rect;
+  }
+
+  void RasterFramebufferState::setColorLoadOp(Rasterizer::AttachmentLoadOp op) {
+    m_colorLoadOp = op;
+  }
+
+  void RasterFramebufferState::setColorStoreOp(Rasterizer::AttachmentStoreOp op) {
+    m_colorStoreOp = op;
   }
 
   void RasterFramebufferState::setDepthFunc(Rasterizer::DepthFunc func) {
