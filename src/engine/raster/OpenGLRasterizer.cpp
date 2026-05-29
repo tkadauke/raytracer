@@ -30,84 +30,6 @@
 namespace engine::raster {
   namespace {
 
-    class OpenGLTextureCache {
-    public:
-      explicit OpenGLTextureCache(QOpenGLFunctions* functions)
-          : m_functions(functions) {
-      }
-
-      ~OpenGLTextureCache() {
-        for (const auto& entry : m_textures) {
-          GLuint texture = entry.second;
-          m_functions->glDeleteTextures(1, &texture);
-        }
-      }
-
-      GLuint textureFor(const render::ImageTexture& image) {
-        const auto cached = m_textures.find(&image);
-        if (cached != m_textures.end()) {
-          return cached->second;
-        }
-
-        GLuint texture = 0;
-        m_functions->glGenTextures(1, &texture);
-        if (texture == 0) {
-          throw std::runtime_error("OpenGL raster backend could not allocate an image texture");
-        }
-
-        m_functions->glBindTexture(GL_TEXTURE_2D, texture);
-        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter(image));
-        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter(image));
-        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapMode(image));
-        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapMode(image));
-        m_functions->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        for (int level = 0; level != image.mipLevelCount(); ++level) {
-          const std::vector<GLfloat> pixels = texturePixels(image.pixels(level));
-          m_functions->glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, image.width(level),
-                                    image.height(level), 0, GL_RGBA, GL_FLOAT, pixels.data());
-        }
-        m_functions->glBindTexture(GL_TEXTURE_2D, 0);
-        m_textures.emplace(&image, texture);
-        return texture;
-      }
-
-    private:
-      static GLint minFilter(const render::ImageTexture& image) {
-        switch (image.filter()) {
-        case render::ImageTextureFilter::Nearest:
-          return GL_NEAREST;
-        case render::ImageTextureFilter::Bilinear:
-          return GL_LINEAR;
-        case render::ImageTextureFilter::Mipmap:
-          return GL_LINEAR_MIPMAP_LINEAR;
-        }
-        return GL_LINEAR;
-      }
-
-      static GLint magFilter(const render::ImageTexture& image) {
-        return image.filter() == render::ImageTextureFilter::Nearest ? GL_NEAREST : GL_LINEAR;
-      }
-
-      static GLint wrapMode(const render::ImageTexture& image) {
-        return image.wrap() == render::ImageTextureWrap::Clamp ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-      }
-
-      static std::vector<GLfloat> texturePixels(const std::vector<Colord>& colors) {
-        std::vector<GLfloat> pixels;
-        pixels.reserve(colors.size() * 4);
-        for (const Colord& color : colors) {
-          pixels.push_back(static_cast<GLfloat>(color.r()));
-          pixels.push_back(static_cast<GLfloat>(color.g()));
-          pixels.push_back(static_cast<GLfloat>(color.b()));
-          pixels.push_back(1.0f);
-        }
-        return pixels;
-      }
-
-      QOpenGLFunctions* m_functions;
-      std::unordered_map<const render::ImageTexture*, GLuint> m_textures;
-    };
-
     class OpenGLFallbackTexture {
     public:
       explicit OpenGLFallbackTexture(QOpenGLFunctions* functions)
@@ -455,7 +377,9 @@ namespace engine::raster {
                                    offsetof(detail::OpenGLRasterMesh::Vertex, albedoMode), 1,
                                    sizeof(detail::OpenGLRasterMesh::Vertex));
 
-        OpenGLTextureCache textureCache(functions);
+        if (!m_resources.imageTextures) {
+          m_resources.imageTextures = std::make_unique<detail::OpenGLRasterImageTextureCache>();
+        }
         for (const auto& batch : mesh.batches()) {
           if (m_cancelled.load()) {
             break;
@@ -463,7 +387,8 @@ namespace engine::raster {
           functions->glActiveTexture(GL_TEXTURE0);
           if (batch.albedo.mode == detail::RasterAlbedoShaderMode::ImageTexture &&
               batch.albedo.image) {
-            functions->glBindTexture(GL_TEXTURE_2D, textureCache.textureFor(*batch.albedo.image));
+            functions->glBindTexture(
+              GL_TEXTURE_2D, m_resources.imageTextures->textureFor(*batch.albedo.image, functions));
           } else {
             fallbackTexture.bind(0);
           }

@@ -52,6 +52,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **OpenGL raster image textures are cached across renders.** The texture
+  cache moved out of the per-render draw scope into the
+  `OpenGLRasterResourceCache` member, so each `ImageTexture` uploads once per
+  rasterizer (per clone) instead of every frame. The destructor releases the
+  cached GL handles against the right context. — Claude Opus 4.7
 - **OpenGL raster shader program is cached across renders.** `OpenGLRasterizer`
   now owns a `detail::OpenGLRasterResourceCache` that holds the offscreen
   context and the linked GLSL program (with attribute slot indices) across

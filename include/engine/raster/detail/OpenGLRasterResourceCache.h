@@ -2,9 +2,16 @@
 
 #include "engine/raster/OpenGLOffscreenContext.h"
 
+#include <cstdint>
 #include <memory>
+#include <unordered_map>
 
+class QOpenGLFunctions;
 class QOpenGLShaderProgram;
+
+namespace render {
+  class ImageTexture;
+}
 
 namespace engine::raster::detail {
   /**
@@ -32,20 +39,36 @@ namespace engine::raster::detail {
   };
 
   /**
+    * Caches GL texture handles for `ImageTexture` albedo sources so each
+    * image uploads only once per OpenGLRasterizer lifetime. Stored handles
+    * are valid for the cache's owning context; release must happen with
+    * that context current.
+    */
+  struct OpenGLRasterImageTextureCache {
+    std::unordered_map<const render::ImageTexture*, std::uint32_t> textures;
+
+    std::uint32_t textureFor(const render::ImageTexture& image, QOpenGLFunctions* functions);
+    void releaseAll(QOpenGLFunctions* functions);
+  };
+
+  /**
     * Owns the persistent GPU-side state of a single `OpenGLRasterizer`
-    * instance — the offscreen Qt context/surface/FBO and the linked raster
-    * shader program with its attribute slot lookups. Each `OpenGLRasterizer`
-    * (including each `cloneForRender` clone) owns one cache.
+    * instance — the offscreen Qt context/surface/FBO, the linked raster
+    * shader program with its attribute slot lookups, and the per-image GL
+    * texture handles for `ImageTexture` albedo sources. Each
+    * `OpenGLRasterizer` (including each `cloneForRender` clone) owns one
+    * cache.
     *
     * `ensureProgram()` compiles and links the program on first use; later
     * calls return immediately. The destructor makes the offscreen context
-    * current before releasing the program so the GL resources are freed
-    * against the right context.
+    * current before releasing the program and image textures so the GL
+    * resources are freed against the right context.
     */
   struct OpenGLRasterResourceCache {
     OpenGLOffscreenContext context;
     std::unique_ptr<QOpenGLShaderProgram> program;
     OpenGLRasterAttributeLocations locations;
+    std::unique_ptr<OpenGLRasterImageTextureCache> imageTextures;
 
     OpenGLRasterResourceCache();
     ~OpenGLRasterResourceCache();
