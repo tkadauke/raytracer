@@ -24,6 +24,8 @@ namespace RasterVisibilitySetTest {
     EXPECT_EQ(8u, set.rejectedTriangleCount());
     EXPECT_EQ(1u, set.rejectedLeafCount(RasterVisibilitySet::RejectionReason::Frustum));
     EXPECT_EQ(8u, set.rejectedTriangleCount(RasterVisibilitySet::RejectionReason::Frustum));
+    EXPECT_EQ(0u, set.rejectedLeafCount(RasterVisibilitySet::RejectionReason::Backface));
+    EXPECT_EQ(0u, set.rejectedTriangleCount(RasterVisibilitySet::RejectionReason::Backface));
   }
 
   TEST(RasterVisibilitySet, StoresOptionalVisibleLeafOrder) {

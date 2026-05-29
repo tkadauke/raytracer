@@ -658,7 +658,9 @@ passes consume before tessellation, while missing or mismatched leaf indices
 remain visible as a conservative fallback. When the compiled framebuffer state
 is order-independent (`Less`/`LessEqual` depth with writes enabled, blending
 off, stencil off), the pass also sorts visible bounded leaves front-to-back and
-records the ordered-leaf count in the trace. Order-dependent state leaves
+records the ordered-leaf count in the trace. Backface rejection counters are
+present in the same trace schema even before conservative sidedness filtering
+rejects any leaves. Order-dependent state leaves
 traversal order unchanged and is reported as disabled, unsupported, or not
 needed in the same trace message. The OpenGL raster backend consumes the same
 visibility set during mesh preparation, so CPU and GPU raster submission stay

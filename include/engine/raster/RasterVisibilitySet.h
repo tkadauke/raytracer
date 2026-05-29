@@ -13,7 +13,7 @@ namespace engine::raster {
     */
   class RasterVisibilitySet {
   public:
-    enum class RejectionReason { Frustum };
+    enum class RejectionReason { Frustum, Backface };
 
     void addVisibleLeaf(std::size_t triangleCount);
     void addVisibleLeaf(std::size_t triangleCount, std::size_t faceCount);

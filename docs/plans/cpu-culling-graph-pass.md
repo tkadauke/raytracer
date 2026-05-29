@@ -197,7 +197,9 @@ Tasks:
 - Detect negative-determinant transforms that flip winding.
 - Reject backfacing triangles or leaves only when material/pass state and
   metadata make it safe.
-- Attach rejected-backface counts to the visibility resource.
+- ~~Attach rejected-backface counts to the visibility resource.~~ ✅
+  **Done.** Visibility-set traces now report backface rejected leaf/triangle
+  counters, initially zero until conservative filtering starts using them.
 
 Acceptance:
 

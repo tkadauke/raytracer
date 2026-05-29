@@ -1610,6 +1610,12 @@ namespace engine::graph {
             << "; frustumRejectedTriangles="
             << visibilitySet.rejectedTriangleCount(
                  ::engine::raster::RasterVisibilitySet::RejectionReason::Frustum)
+            << "; backfaceRejectedLeaves="
+            << visibilitySet.rejectedLeafCount(
+                 ::engine::raster::RasterVisibilitySet::RejectionReason::Backface)
+            << "; backfaceRejectedTriangles="
+            << visibilitySet.rejectedTriangleCount(
+                 ::engine::raster::RasterVisibilitySet::RejectionReason::Backface)
             << "; frontToBackOrdering=" << ordering
             << "; frontToBackOrderedLeaves=" << visibilitySet.visibleLeafOrder().size()
             << "; CPU raster passes can skip rejected leaves";

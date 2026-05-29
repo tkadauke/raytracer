@@ -482,6 +482,7 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(std::string::npos, message.find("visibleLeaves=1")) << message;
     EXPECT_NE(std::string::npos, message.find("rejectedLeaves=1")) << message;
     EXPECT_NE(std::string::npos, message.find("frustumRejectedLeaves=1")) << message;
+    EXPECT_NE(std::string::npos, message.find("backfaceRejectedLeaves=0")) << message;
   }
 
   TEST(GraphRenderEngine, RecordsRasterVisibilityFrontToBackOrderingMetrics) {
