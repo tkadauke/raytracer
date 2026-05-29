@@ -156,6 +156,24 @@ namespace RenderGraphInspectorWidgetTest {
     return plan;
   }
 
+  RenderPlan featureGroupPlan() {
+    RenderPlan plan = twoPassPlan();
+
+    RenderPassNode postAA = plan.passes().back();
+    postAA.id = "post_fxaa";
+    postAA.name = "FXAA";
+    postAA.kind = RenderPassKind::PostProcess;
+    postAA.executor = RenderExecutorKind::PostProcess;
+    postAA.features = {"post_aa", "object_id"};
+
+    RenderPlan replacement;
+    for (const auto& resource : plan.resources())
+      replacement.addResource(resource);
+    replacement.addPass(plan.passes().front());
+    replacement.addPass(postAA);
+    return replacement;
+  }
+
   std::shared_ptr<render::Camera> camera() {
     return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
   }
@@ -333,6 +351,35 @@ namespace RenderGraphInspectorWidgetTest {
 
     const auto overrides = widget.overrides();
     EXPECT_TRUE(overrides.disabledPassKinds.count(RenderPassKind::Tonemap));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldHumanizeFeatureGroupsAndKeepRawOverrideValue) {
+    RenderGraphInspectorWidget widget;
+    Slot slot;
+    QObject::connect(&widget, SIGNAL(overridesChanged()), &slot, SLOT(receive()));
+    widget.setPlan(featureGroupPlan());
+
+    QTreeWidgetItem* postAA =
+      groupItem(widget, QStringLiteral("Feature"), QStringLiteral("Post AA"));
+    ASSERT_NE(nullptr, postAA);
+    EXPECT_EQ(QStringLiteral("post_aa"), postAA->toolTip(2));
+
+    QTreeWidgetItem* objectId =
+      groupItem(widget, QStringLiteral("Feature"), QStringLiteral("Object ID"));
+    ASSERT_NE(nullptr, objectId);
+    EXPECT_EQ(QStringLiteral("object_id"), objectId->toolTip(2));
+
+    postAA->setCheckState(0, Qt::Unchecked);
+
+    const RenderPlan effective = widget.effectivePlan();
+    const auto* pass = effective.findPass("post_fxaa");
+    ASSERT_NE(nullptr, pass);
+    EXPECT_FALSE(pass->enabled);
+    EXPECT_TRUE(slot.called());
+
+    const auto overrides = widget.overrides();
+    EXPECT_TRUE(overrides.disabledFeatures.count("post_aa"));
+    EXPECT_FALSE(overrides.disabledFeatures.count("Post AA"));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowResourceEdgeRows) {

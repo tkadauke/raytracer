@@ -710,7 +710,8 @@ copyable inspection.
   stage, pass kind, executor, read resources, written resources, and disabled
   behavior using human-readable enum labels;
 - the Groups table disables every pass matching a present kind, executor, or
-  feature tag and shows those kind/executor labels in the same UI vocabulary;
+  feature tag and shows those labels in the same UI vocabulary while keeping
+  the raw graph feature id in metadata for overrides and exports;
 - the Resources table lists each resource display name, producer, consumers,
   type, format, domain, lifetime, dimensions, and sample count using the same
   UI-facing labels.

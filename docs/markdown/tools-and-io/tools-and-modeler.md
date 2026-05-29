@@ -313,7 +313,9 @@ When a selected resource has no captured image, the trace preview distinguishes
 resources missing from the executed plan from resources that were declared but
 not read or written by the last execution path.
 The Groups tab applies the same override system to every pass matching a
-present pass kind, executor, or feature tag.
+present pass kind, executor, or feature tag. It presents those labels in
+human-readable UI text while keeping the raw graph ids in item metadata for
+the saved override values.
 Resource selections also show trace cache status in the property editor.
 For graph-visible raster preview shadows, that status distinguishes a rebuilt
 full shadow-map artifact from one restored from the graph artifact cache.

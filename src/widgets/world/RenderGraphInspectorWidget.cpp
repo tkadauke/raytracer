@@ -101,6 +101,7 @@ struct RenderGraphInspectorWidget::Private {
   QString displayText(RenderResourceDomain domain) const;
   QString displayText(RenderResourceLifetime lifetime) const;
   QString displayText(RenderResourceFormat format) const;
+  QString displayFeatureText(const RenderFeatureKind& feature) const;
   QString graphEnumText(const char* value) const;
   QString executionStateName(PassExecutionState state) const;
   QString passTraceLine(const RenderPassNode& pass) const;
@@ -286,6 +287,43 @@ QString RenderGraphInspectorWidget::Private::displayText(RenderResourceFormat fo
     return QStringLiteral("Scalar double");
   }
   return graphEnumText(toString(format));
+}
+
+QString
+RenderGraphInspectorWidget::Private::displayFeatureText(const RenderFeatureKind& feature) const {
+  QString value = qstr(feature);
+  value.replace(QLatin1Char('_'), QLatin1Char(' '));
+  value.replace(QLatin1Char('-'), QLatin1Char(' '));
+  const QStringList words = value.simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+
+  QStringList labels;
+  for (QString word : words) {
+    const QString lower = word.toLower();
+    if (lower == QStringLiteral("aa")) {
+      labels << QStringLiteral("AA");
+    } else if (lower == QStringLiteral("aov")) {
+      labels << QStringLiteral("AOV");
+    } else if (lower == QStringLiteral("cpu")) {
+      labels << QStringLiteral("CPU");
+    } else if (lower == QStringLiteral("gpu")) {
+      labels << QStringLiteral("GPU");
+    } else if (lower == QStringLiteral("id")) {
+      labels << QStringLiteral("ID");
+    } else if (lower == QStringLiteral("msaa")) {
+      labels << QStringLiteral("MSAA");
+    } else if (lower == QStringLiteral("opengl")) {
+      labels << QStringLiteral("OpenGL");
+    } else if (lower == QStringLiteral("pcf")) {
+      labels << QStringLiteral("PCF");
+    } else if (lower == QStringLiteral("pcss")) {
+      labels << QStringLiteral("PCSS");
+    } else {
+      word = lower;
+      word[0] = word[0].toUpper();
+      labels << word;
+    }
+  }
+  return labels.join(QLatin1Char(' '));
 }
 
 QString RenderGraphInspectorWidget::Private::graphEnumText(const char* value) const {
@@ -1212,7 +1250,8 @@ void RenderGraphInspectorWidget::rebuildGroups() {
     item->setData(0, GroupScopeRole, QStringLiteral("feature"));
     item->setData(0, GroupValueRole, qstr(feature));
     item->setText(1, tr("Feature"));
-    item->setText(2, qstr(feature));
+    item->setText(2, p->displayFeatureText(feature));
+    item->setToolTip(2, qstr(feature));
   }
 
   p->groups->resizeColumnToContents(0);

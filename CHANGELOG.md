@@ -813,6 +813,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler render graph feature labels.** The Render Graph Groups tab now
+  shows feature tags as human-readable labels while preserving raw graph
+  feature ids in item metadata and overrides. — GPT-5
 - **Modeler render graph enum labels.** The Render Graph dock now shows
   human-readable pass kind, executor, disabled-behavior, resource type, format,
   domain, and lifetime labels in its supporting tables instead of raw export
