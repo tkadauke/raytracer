@@ -2,7 +2,9 @@
 
 #include "engine/raster/Rasterizer.h"
 #include "engine/raster/detail/RasterPipelineTypes.h"
+#include "engine/raster/detail/RasterShadowMaps.h"
 #include "engine/raster/detail/RasterTriangleEmitter.h"
+#include "render/State.h"
 #include "render/cameras/Camera.h"
 #include "render/lights/Light.h"
 #include "render/primitives/Scene.h"
@@ -96,19 +98,18 @@ namespace engine::raster::detail {
     m_batches.push_back({indexOffset, 3, albedo});
   }
 
-  OpenGLRasterMeshBuilder::OpenGLRasterMeshBuilder(const render::Scene* scene,
-                                                   std::shared_ptr<render::Camera> camera, int lod,
-                                                   const Recti& viewportRect,
-                                                   Rasterizer::CullMode cullMode,
-                                                   bool hasCullModeOverride,
-                                                   const std::atomic<bool>& cancelled)
+  OpenGLRasterMeshBuilder::OpenGLRasterMeshBuilder(
+    const render::Scene* scene, std::shared_ptr<render::Camera> camera, int lod,
+    const Recti& viewportRect, Rasterizer::CullMode cullMode, bool hasCullModeOverride,
+    const std::atomic<bool>& cancelled, const ShadowMaps* shadowMaps)
       : m_scene(scene),
         m_camera(std::move(camera)),
         m_lod(lod),
         m_viewportRect(viewportRect),
         m_cullMode(cullMode),
         m_hasCullModeOverride(hasCullModeOverride),
-        m_cancelled(cancelled) {
+        m_cancelled(cancelled),
+        m_shadowMaps(shadowMaps) {
   }
 
   OpenGLRasterMesh OpenGLRasterMeshBuilder::build() const {
@@ -182,7 +183,8 @@ namespace engine::raster::detail {
       const Vector3d lightDir = light->direction(vertex.point);
       const double nDotL = std::max(0.0, normal * lightDir);
       if (nDotL > 0.0) {
-        lighting += light->radiance() * triangle.rasterMaterial.diffuseCoefficient() * nDotL;
+        lighting += light->radiance() * triangle.rasterMaterial.diffuseCoefficient() * nDotL *
+                    visibilityFor(*light, vertex, normal, lightDir);
       }
     }
     return lighting;
@@ -204,15 +206,35 @@ namespace engine::raster::detail {
         continue;
       }
 
+      const double visibility = visibilityFor(*light, vertex, normal, lightDir);
+      if (visibility <= 0.0) {
+        continue;
+      }
+
       const Vector3d lobeDirection = (-lightDir + normal * 2.0 * nDotL).normalized();
       const double lobeDotView = std::max(0.0, lobeDirection * viewDir);
       if (lobeDotView > 0.0) {
         specular += triangle.rasterMaterial.specularColor() *
                     triangle.rasterMaterial.specularCoefficient() *
                     std::pow(lobeDotView, triangle.rasterMaterial.specularExponent()) *
-                    light->radiance() * nDotL;
+                    light->radiance() * nDotL * visibility;
       }
     }
     return specular;
+  }
+
+  double OpenGLRasterMeshBuilder::visibilityFor(const render::Light& light,
+                                                const RasterVertex& vertex, const Vector3d& normal,
+                                                const Vector3d& lightDir) const {
+    if (!m_scene || !m_shadowMaps) {
+      return 1.0;
+    }
+
+    if (const DirectionalShadowMap* shadowMap = m_shadowMaps->forLight(&light)) {
+      return shadowMap->visibility(vertex.point, normal, lightDir);
+    }
+
+    render::State state;
+    return m_scene->intersects(Rayd(vertex.point, lightDir).epsilonShifted(), state) ? 0.0 : 1.0;
   }
 }

@@ -11,6 +11,7 @@
 
 namespace engine::raster {
   class Rasterizer;
+  class OpenGLRasterizer;
 }
 
 namespace engine::graph {
@@ -68,6 +69,7 @@ namespace engine::graph {
     virtual bool copyDepthTo(Buffer<double>& destination) const;
     virtual bool copyRasterShadowMapPreviewTo(Buffer<double>& destination) const;
     virtual bool applyRasterShadowMapsTo(engine::raster::Rasterizer& rasterizer) const;
+    virtual bool applyRasterShadowMapsTo(engine::raster::OpenGLRasterizer& rasterizer) const;
 
   private:
     RenderGraphCacheKey m_key;

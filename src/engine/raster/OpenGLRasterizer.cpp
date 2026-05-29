@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "engine/raster/OpenGLOffscreenContext.h"
 #include "engine/raster/detail/OpenGLRasterMesh.h"
+#include "engine/raster/detail/RasterShadowMaps.h"
 #include "render/textures/ImageTexture.h"
 
 #include <QOpenGLBuffer>
@@ -641,6 +642,8 @@ namespace engine::raster {
     clone->setStencilStoreOp(m_stencilStoreOp);
     clone->setStencilWriteMask(m_stencilWriteMask);
     clone->setStencilOps(m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp);
+    clone->setShadowMapsEnabled(m_shadowMapsEnabled);
+    clone->setExternalShadowMaps(m_externalShadowMaps);
     if (m_cancelled.load()) {
       clone->cancel();
     }
@@ -913,6 +916,23 @@ namespace engine::raster {
     m_stencilPassOp = pass;
   }
 
+  bool OpenGLRasterizer::shadowMapsEnabled() const {
+    return m_shadowMapsEnabled;
+  }
+
+  void OpenGLRasterizer::setShadowMapsEnabled(bool enabled) {
+    m_shadowMapsEnabled = enabled;
+  }
+
+  void
+  OpenGLRasterizer::setExternalShadowMaps(std::shared_ptr<const detail::ShadowMaps> shadowMaps) {
+    m_externalShadowMaps = std::move(shadowMaps);
+  }
+
+  void OpenGLRasterizer::clearExternalShadowMaps() {
+    setExternalShadowMaps(nullptr);
+  }
+
   bool OpenGLRasterizer::isAvailable() const {
     return OpenGLOffscreenContext::probe().available();
   }
@@ -974,8 +994,9 @@ namespace engine::raster {
     const Recti viewport = viewportRectFor(buffer.width(), buffer.height());
     detail::OpenGLRasterMesh mesh;
     if (viewport.width() > 0 && viewport.height() > 0) {
-      mesh = detail::OpenGLRasterMeshBuilder(scene().get(), camera(), m_lod, viewport, m_cullMode,
-                                             m_hasCullModeOverride, m_cancelled)
+      mesh = detail::OpenGLRasterMeshBuilder(
+               scene().get(), camera(), m_lod, viewport, m_cullMode, m_hasCullModeOverride,
+               m_cancelled, m_shadowMapsEnabled ? m_externalShadowMaps.get() : nullptr)
                .build();
     }
 

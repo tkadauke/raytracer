@@ -76,6 +76,7 @@ namespace OpenGLRasterizerTest {
     rasterizer.setStencilOps(engine::raster::Rasterizer::StencilOp::Replace,
                              engine::raster::Rasterizer::StencilOp::IncrementClamp,
                              engine::raster::Rasterizer::StencilOp::Invert);
+    rasterizer.setShadowMapsEnabled(true);
 
     auto clone =
       std::dynamic_pointer_cast<engine::raster::OpenGLRasterizer>(rasterizer.cloneForRender());
@@ -112,6 +113,7 @@ namespace OpenGLRasterizerTest {
     EXPECT_EQ(engine::raster::Rasterizer::StencilOp::Replace, clone->stencilFailOp());
     EXPECT_EQ(engine::raster::Rasterizer::StencilOp::IncrementClamp, clone->stencilDepthFailOp());
     EXPECT_EQ(engine::raster::Rasterizer::StencilOp::Invert, clone->stencilPassOp());
+    EXPECT_TRUE(clone->shadowMapsEnabled());
   }
 
   TEST(OpenGLRasterizer, ClampsMSAASamplesToSupportedCounts) {

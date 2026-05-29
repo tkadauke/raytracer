@@ -321,8 +321,13 @@ Tasks:
   caches shadow-map resources for OpenGL-selected raster plans, and OpenGL
   beauty records a trace message when it renders without consuming the shadow
   resource.
-- Add OpenGL shadow-map sampling after the GPU raster path has explicit shadow
-  texture binding and shader lighting state.
+- ~~Consume graph shadow-map artifacts in the current OpenGL mesh-preparation
+  path.~~ ✅ **Done.** OpenGL raster beauty now receives graph-owned shadow-map
+  artifacts and applies their visibility while preparing the lit mesh stream, so
+  shadow-enabled raster plans no longer render as fully unshadowed on the GPU
+  backend.
+- Add shader-side OpenGL shadow-map sampling after the GPU raster path has
+  explicit shadow texture binding and shader lighting state.
 
 Acceptance:
 

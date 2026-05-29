@@ -1,6 +1,7 @@
 #include "engine/graph/RasterShadowMapArtifact.h"
 
 #include "core/util/BufferUtils.h"
+#include "engine/raster/OpenGLRasterizer.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/raster/detail/RasterShadowMaps.h"
 
@@ -48,6 +49,12 @@ namespace engine::graph {
 
   bool
   RasterShadowMapArtifact::applyRasterShadowMapsTo(engine::raster::Rasterizer& rasterizer) const {
+    rasterizer.setExternalShadowMaps(m_shadowMaps);
+    return static_cast<bool>(m_shadowMaps);
+  }
+
+  bool RasterShadowMapArtifact::applyRasterShadowMapsTo(
+    engine::raster::OpenGLRasterizer& rasterizer) const {
     rasterizer.setExternalShadowMaps(m_shadowMaps);
     return static_cast<bool>(m_shadowMaps);
   }

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "engine/raster/detail/OpenGLRasterMesh.h"
+#include "engine/raster/detail/RasterShadowMaps.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
@@ -15,6 +16,7 @@
 #include "render/textures/TintedTexture.h"
 #include "render/textures/UVColorTexture.h"
 #include "render/textures/mappings/UVMapping2D.h"
+#include "render/viewplanes/ViewPlane.h"
 
 #include <atomic>
 #include <memory>
@@ -219,6 +221,43 @@ namespace OpenGLRasterMeshTest {
       EXPECT_FLOAT_EQ(0.75f, vertex.lightR);
       EXPECT_FLOAT_EQ(0.75f, vertex.lightG);
       EXPECT_FLOAT_EQ(0.75f, vertex.lightB);
+    }
+  }
+
+  TEST(OpenGLRasterMesh, AppliesExternalShadowMapsToDirectLighting) {
+    auto scene = std::make_shared<render::Scene>(Colord(0.25, 0.25, 0.25));
+    auto light =
+      std::make_shared<render::DirectionalLight>(Vector3d(0, 0, 1), Colord(1.0, 1.0, 1.0));
+    scene->addLight(light);
+    auto triangle = std::make_shared<render::Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0),
+                                                       Vector3d(0, 1, 0));
+    triangle->setMaterial(matte(Colord::red()));
+    scene->add(triangle);
+
+    auto shadowCamera = std::make_shared<engine::raster::detail::DirectionalShadowCamera>(
+      Vector3d::null, light->direction(), 2.0);
+    shadowCamera->setViewPlane(std::make_shared<render::ViewPlane>());
+    shadowCamera->viewPlane()->setup(Matrix4d(), Recti(4, 4));
+    auto depthBuffer = std::make_unique<Buffer<double>>(4, 4);
+    depthBuffer->clear(0.0);
+    std::vector<engine::raster::detail::DirectionalShadowCascade> cascades;
+    cascades.push_back({shadowCamera, std::move(depthBuffer), 0.0, 10.0});
+    engine::raster::detail::ShadowMaps shadowMaps;
+    shadowMaps.add(engine::raster::detail::DirectionalShadowMap(
+      light.get(), camera(), std::move(cascades), 0.0, 0.0, 0, Rasterizer::ShadowFilterMode::PCF));
+    std::atomic<bool> cancelled{false};
+
+    const auto mesh =
+      OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48), Rasterizer::CullMode::Both,
+                              false, cancelled, &shadowMaps)
+        .build();
+
+    ASSERT_FALSE(mesh.empty());
+    ASSERT_EQ(3u, mesh.vertices().size());
+    for (const auto& vertex : mesh.vertices()) {
+      EXPECT_FLOAT_EQ(0.25f, vertex.lightR);
+      EXPECT_FLOAT_EQ(0.25f, vertex.lightG);
+      EXPECT_FLOAT_EQ(0.25f, vertex.lightB);
     }
   }
 

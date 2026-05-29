@@ -107,6 +107,10 @@ namespace engine::graph {
     return false;
   }
 
+  bool RenderGraphCachedArtifact::applyRasterShadowMapsTo(engine::raster::OpenGLRasterizer&) const {
+    return false;
+  }
+
   RenderGraphDepthArtifact::RenderGraphDepthArtifact(RenderGraphCacheKey key,
                                                      const Buffer<double>& depth,
                                                      std::string description)

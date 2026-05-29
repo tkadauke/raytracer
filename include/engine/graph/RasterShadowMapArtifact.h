@@ -7,6 +7,7 @@
 #include <string>
 
 namespace engine::raster {
+  class OpenGLRasterizer;
   class Rasterizer;
 
   namespace detail {
@@ -34,6 +35,7 @@ namespace engine::graph {
     bool copyDepthTo(Buffer<double>& destination) const override;
     bool copyRasterShadowMapPreviewTo(Buffer<double>& destination) const override;
     bool applyRasterShadowMapsTo(engine::raster::Rasterizer& rasterizer) const override;
+    bool applyRasterShadowMapsTo(engine::raster::OpenGLRasterizer& rasterizer) const override;
 
   private:
     std::shared_ptr<const engine::raster::detail::ShadowMaps> m_shadowMaps;

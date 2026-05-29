@@ -214,6 +214,35 @@ namespace engine::graph {
       }
     }
 
+    bool applyRasterShadowInputs(const RenderExecutionContext& context,
+                                 const RasterBeautyPassState& beautyState,
+                                 ::engine::raster::OpenGLRasterizer& rasterizer) {
+      bool applied = false;
+      for (const auto& read : context.pass().reads) {
+        const auto& resource = context.storage().resource(read.resource);
+        if (resource.descriptor().type != RenderResourceType::ShadowMap ||
+            resource.substituteDefault()) {
+          continue;
+        }
+
+        const auto state = resource.state();
+        const auto* shadowState = state ? state->asRasterShadowPassState() : nullptr;
+        if (shadowState) {
+          shadowState->applyTo(rasterizer);
+        } else if (!beautyState.shadows().empty()) {
+          beautyState.shadows().applyTo(rasterizer);
+          rasterizer.setShadowMapsEnabled(true);
+        } else {
+          RasterShadowPassState::previewDefaults().applyTo(rasterizer);
+        }
+
+        if (const auto artifact = resource.artifact()) {
+          applied = artifact->applyRasterShadowMapsTo(rasterizer) || applied;
+        }
+      }
+      return applied;
+    }
+
     void prepareEngine(render::RenderEngine& engine, const GraphRenderEngine& graph, bool cancelled,
                        std::shared_ptr<render::Tonemap> tonemap) {
       engine.setTonemap(std::move(tonemap));
@@ -328,9 +357,13 @@ namespace engine::graph {
         } else if (backend.isOpenGL()) {
           auto rasterizer = std::static_pointer_cast<::engine::raster::OpenGLRasterizer>(engine);
           state.applyTo(*rasterizer);
-          if (readsShadowMap(context)) {
-            context.recordTraceMessage("OpenGL raster backend does not consume graph shadow maps "
-                                       "yet; beauty rendered without shadow-map lighting");
+          if (applyRasterShadowInputs(context, state, *rasterizer)) {
+            context.recordTraceMessage(
+              "OpenGL raster backend consumed graph shadow maps during mesh preparation");
+          } else if (readsShadowMap(context)) {
+            context.recordTraceMessage(
+              "OpenGL raster backend found a shadow-map edge without a materialized artifact; "
+              "beauty rendered without shadow-map lighting");
           }
         }
         return engine;

@@ -100,8 +100,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **OpenGL raster shadow-map plan fallback.** OpenGL-selected raster plans now
   accept graph preview shadow-map resources without rejecting the pass state;
   the CPU graph shadow pass still materializes/cache-populates the shadow
-  resource, while OpenGL beauty records that it rendered without consuming
-  shadow-map lighting until GPU shadow sampling lands. — GPT-5
+  resource so OpenGL beauty can render while shader-side shadow sampling is
+  still incomplete. — GPT-5
+- **OpenGL raster shadow-map consumption.** OpenGL-selected raster graph beauty
+  passes now consume graph-owned shadow-map artifacts during mesh preparation
+  instead of rendering shadow-enabled plans as fully direct-lit. — GPT-5
 - **OpenGL raster diagnostic AOV fallback.** Normal, world-position, and raster
   counter AOV views requested with the OpenGL raster backend now execute through
   the software raster diagnostic fallback and record that mixed path in graph

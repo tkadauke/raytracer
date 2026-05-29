@@ -797,7 +797,8 @@ namespace engine::graph {
     rasterizer.setShadowFilterMode(m_filterMode);
   }
 
-  void RasterShadowState::applyTo(engine::raster::OpenGLRasterizer&) const {
+  void RasterShadowState::applyTo(engine::raster::OpenGLRasterizer& rasterizer) const {
+    rasterizer.setShadowMapsEnabled(m_enabled);
   }
 
   void RasterShadowState::setShadowMapsEnabled(bool enabled) {

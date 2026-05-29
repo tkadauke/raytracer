@@ -12,6 +12,10 @@
 #include <string>
 
 namespace engine::raster {
+  namespace detail {
+    class ShadowMaps;
+  }
+
   /**
     * OpenGL-backed raster executor shell.
     *
@@ -99,6 +103,11 @@ namespace engine::raster {
     void setStencilOps(Rasterizer::StencilOp stencilFail, Rasterizer::StencilOp depthFail,
                        Rasterizer::StencilOp pass);
 
+    bool shadowMapsEnabled() const;
+    void setShadowMapsEnabled(bool enabled);
+    void setExternalShadowMaps(std::shared_ptr<const detail::ShadowMaps> shadowMaps);
+    void clearExternalShadowMaps();
+
     bool isAvailable() const;
     std::string availabilityDetail() const;
     std::string availabilityError() const;
@@ -141,6 +150,8 @@ namespace engine::raster {
     Rasterizer::StencilOp m_stencilFailOp{Rasterizer::StencilOp::Keep};
     Rasterizer::StencilOp m_stencilDepthFailOp{Rasterizer::StencilOp::Keep};
     Rasterizer::StencilOp m_stencilPassOp{Rasterizer::StencilOp::Keep};
+    bool m_shadowMapsEnabled{false};
+    std::shared_ptr<const detail::ShadowMaps> m_externalShadowMaps;
     mutable std::string m_lastReadbackTraceMessage;
   };
 }
