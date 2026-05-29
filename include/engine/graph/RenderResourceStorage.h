@@ -58,6 +58,14 @@ namespace engine::graph {
     RenderResource& resource(const RenderResourceId& id);
     const RenderResource& resource(const RenderResourceId& id) const;
 
+    /**
+      * Records that @p id is backed by a backend-owned GPU object. The graph
+      * still validates and traces the descriptor; this metadata explains why a
+      * CPU preview/readback buffer may not exist yet.
+      */
+    void setGpuResidency(const RenderResourceId& id, RenderGpuResourceResidency residency);
+    void clearGpuResidency(const RenderResourceId& id);
+
     Buffer<Colord>& color(const RenderResourceId& id);
     const Buffer<Colord>& color(const RenderResourceId& id) const;
 

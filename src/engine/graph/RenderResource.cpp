@@ -62,6 +62,14 @@ namespace engine::graph {
     }
   }
 
+  bool RenderGpuResourceResidency::operator==(const RenderGpuResourceResidency& other) const {
+    return backend == other.backend && description == other.description;
+  }
+
+  bool RenderGpuResourceResidency::operator!=(const RenderGpuResourceResidency& other) const {
+    return !(*this == other);
+  }
+
   RenderResource::RenderResource(RenderResourceDescriptor descriptor)
       : m_descriptor(std::move(descriptor)) {
   }
@@ -118,6 +126,22 @@ namespace engine::graph {
     return m_artifact;
   }
 
+  void RenderResource::setGpuResidency(RenderGpuResourceResidency residency) {
+    m_gpuResidency = std::move(residency);
+  }
+
+  void RenderResource::clearGpuResidency() {
+    m_gpuResidency.reset();
+  }
+
+  const std::optional<RenderGpuResourceResidency>& RenderResource::gpuResidency() const {
+    return m_gpuResidency;
+  }
+
+  bool RenderResource::gpuResident() const {
+    return m_gpuResidency.has_value();
+  }
+
   bool RenderResource::hasBuffer() const {
     return false;
   }
@@ -142,6 +166,7 @@ namespace engine::graph {
     m_substituteDefault = true;
     m_state.reset();
     m_artifact.reset();
+    m_gpuResidency.reset();
   }
 
   Buffer<Colord>& RenderResource::color() {

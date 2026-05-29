@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "core/Buffer.h"
+#include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderResourceStorage.h"
 
 #include <cstdint>
@@ -68,6 +69,59 @@ namespace RenderResourceStorageTest {
     EXPECT_FALSE(storage.hasBuffer("gpu_color"));
     EXPECT_EQ(RenderResourceType::Color, storage.descriptor("gpu_color").type);
     EXPECT_EQ(RenderResourceDomain::GPU, storage.descriptor("gpu_color").domain);
+  }
+
+  TEST(RenderResourceStorage, TracksGpuResidencyMetadata) {
+    auto descriptor = resource("gpu_color", RenderResourceType::Color);
+    descriptor.domain = RenderResourceDomain::GPU;
+
+    RenderResourceStorage storage;
+    storage.allocate({
+      descriptor,
+    });
+
+    storage.setGpuResidency("gpu_color", {"opengl", "texture 7"});
+
+    ASSERT_TRUE(storage.resource("gpu_color").gpuResident());
+    EXPECT_EQ((RenderGpuResourceResidency{"opengl", "texture 7"}),
+              *storage.resource("gpu_color").gpuResidency());
+
+    storage.clearGpuResidency("gpu_color");
+
+    EXPECT_FALSE(storage.resource("gpu_color").gpuResident());
+  }
+
+  TEST(RenderResourceStorage, ReportsGpuResidencyInTraceSnapshots) {
+    auto descriptor = resource("gpu_color", RenderResourceType::Color);
+    descriptor.domain = RenderResourceDomain::GPU;
+
+    RenderPassNode pass;
+    pass.id = "gpu_pass";
+    pass.name = "GPU Pass";
+    pass.executor = RenderExecutorKind::Rasterizer;
+    pass.writes.push_back({"gpu_color"});
+
+    RenderPlan plan;
+    plan.addResource(descriptor);
+    plan.addPass(pass);
+
+    RenderResourceStorage storage;
+    storage.allocate(plan.resources());
+    storage.setGpuResidency("gpu_color", {"opengl", "texture 7"});
+
+    RenderGraphExecutionTraceRecorder recorder;
+    const auto session = recorder.begin(plan);
+    recorder.passCompleted(session, pass, storage);
+    recorder.finish(session);
+
+    const auto trace = recorder.lastTrace();
+    ASSERT_NE(nullptr, trace);
+    const RenderPassTrace* tracedPass = trace->findPass("gpu_pass");
+    ASSERT_NE(nullptr, tracedPass);
+    ASSERT_EQ(1u, tracedPass->outputs().size());
+    EXPECT_FALSE(tracedPass->outputs().front().hasPreview());
+    EXPECT_NE(std::string::npos,
+              tracedPass->outputs().front().unavailableReason().find("resident on opengl"));
   }
 
   TEST(RenderResourceStorage, ThrowsForWrongTypedAccess) {

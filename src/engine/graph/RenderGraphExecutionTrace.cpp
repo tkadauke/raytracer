@@ -163,6 +163,17 @@ namespace engine::graph {
              " resources";
     }
 
+    std::string metadataOnlyReason(const RenderResource& resource) {
+      if (const auto& residency = resource.gpuResidency()) {
+        std::string reason = "GPU resource is resident on " + residency->backend;
+        if (!residency->description.empty()) {
+          reason += ": " + residency->description;
+        }
+        return reason;
+      }
+      return metadataOnlyReason(resource.descriptor());
+    }
+
     RenderGraphCacheMetadata cacheMetadataFor(const RenderResourceDescriptor& descriptor) {
       if (descriptor.lifetime != RenderResourceLifetime::PersistentCache) {
         return RenderGraphCacheMetadata(RenderGraphCacheStatus::NotCacheable,
@@ -727,8 +738,7 @@ namespace engine::graph {
 
     if (!resource.colorBacked()) {
       return RenderGraphResourceSnapshot(resourceId, resource.descriptor(), nullptr, nullptr,
-                                         metadataOnlyReason(resource.descriptor()),
-                                         cacheMetadataFor(resource));
+                                         metadataOnlyReason(resource), cacheMetadataFor(resource));
     }
 
     if (resource.descriptor().type == RenderResourceType::WorldPosition) {

@@ -9,10 +9,19 @@
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <string>
 
 namespace engine::graph {
   class RenderGraphCachedArtifact;
   class RenderPassState;
+
+  struct RenderGpuResourceResidency {
+    std::string backend;
+    std::string description;
+
+    bool operator==(const RenderGpuResourceResidency& other) const;
+    bool operator!=(const RenderGpuResourceResidency& other) const;
+  };
 
   /**
     * Runtime resource allocated from a `RenderResourceDescriptor`.
@@ -65,6 +74,16 @@ namespace engine::graph {
     std::shared_ptr<const RenderGraphCachedArtifact> artifact() const;
 
     /**
+      * Attaches backend-specific GPU residency metadata for descriptor-only
+      * resources whose concrete OpenGL/Vulkan/etc. object stays outside the CPU
+      * buffer storage layer.
+      */
+    void setGpuResidency(RenderGpuResourceResidency residency);
+    void clearGpuResidency();
+    const std::optional<RenderGpuResourceResidency>& gpuResidency() const;
+    bool gpuResident() const;
+
+    /**
       * @returns true when this resource owns a concrete CPU buffer.
       */
     virtual bool hasBuffer() const;
@@ -115,6 +134,7 @@ namespace engine::graph {
     std::shared_ptr<const RenderPassState> m_state;
     std::optional<RenderGraphCacheMetadata> m_cacheMetadata;
     std::shared_ptr<const RenderGraphCachedArtifact> m_artifact;
+    std::optional<RenderGpuResourceResidency> m_gpuResidency;
   };
 
   /**

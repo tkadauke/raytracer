@@ -2,6 +2,8 @@
 
 #include "core/util/BufferUtils.h"
 
+#include <utility>
+
 namespace engine::graph {
   void RenderResourceStorage::allocate(const std::vector<RenderResourceDescriptor>& descriptors) {
     clear();
@@ -41,6 +43,15 @@ namespace engine::graph {
     if (it == m_resources.end())
       throw std::out_of_range("unknown render resource '" + id + "'");
     return *it->second;
+  }
+
+  void RenderResourceStorage::setGpuResidency(const RenderResourceId& id,
+                                              RenderGpuResourceResidency residency) {
+    resource(id).setGpuResidency(std::move(residency));
+  }
+
+  void RenderResourceStorage::clearGpuResidency(const RenderResourceId& id) {
+    resource(id).clearGpuResidency();
   }
 
   Buffer<Colord>& RenderResourceStorage::color(const RenderResourceId& id) {

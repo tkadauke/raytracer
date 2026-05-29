@@ -278,7 +278,11 @@ Acceptance:
 Tasks:
 
 - Let graph resource storage keep OpenGL textures/renderbuffers resident across
-  compatible GPU passes.
+  compatible GPU passes. The CPU resource storage layer now tracks
+  backend-provided GPU residency metadata for descriptor-only resources and
+  surfaces that metadata in graph trace snapshots, providing the first storage
+  hook for resident OpenGL textures/renderbuffers before concrete pass reuse
+  lands.
 - Add explicit readback pass/operation for final image output, trace, and AOV
   export.
 - ~~Record readback cost in graph trace metadata.~~ ✅ **Done.** OpenGL raster
