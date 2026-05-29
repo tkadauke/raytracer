@@ -5,14 +5,12 @@
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
+#include "core/simd/Float4.h"
 #include <QDebug>
-#if RAYTRACER_SIMD_SSE
-#include <xmmintrin.h>
-#endif
 
 using namespace render;
 
-#if RAYTRACER_SIMD_SSE
+#if RAYTRACER_SIMD_SSE || RAYTRACER_SIMD_NEON
 namespace {
   void packetHit(State& state, const Primitive* primitive, const std::string& reason) {
     if (state.traceEvents) {
@@ -47,34 +45,32 @@ const Primitive* Plane::intersect(const Rayd& ray, HitPointInterval& hitPoints,
 }
 
 RayPacketIntersection4 Plane::intersectPacket(const Ray4& rays, render::State& state) const {
-#if !RAYTRACER_SIMD_SSE
+#if !(RAYTRACER_SIMD_SSE || RAYTRACER_SIMD_NEON)
   return Primitive::intersectPacket(rays, state);
 #else
+  using namespace core::simd;
+
   RayPacketIntersection4 result;
 
-  const __m128 nx = _mm_set1_ps(static_cast<float>(m_normal.x()));
-  const __m128 ny = _mm_set1_ps(static_cast<float>(m_normal.y()));
-  const __m128 nz = _mm_set1_ps(static_cast<float>(m_normal.z()));
-  const __m128 distance = _mm_set1_ps(static_cast<float>(m_distance));
-  const __m128 ox = _mm_load_ps(rays.originX.data());
-  const __m128 oy = _mm_load_ps(rays.originY.data());
-  const __m128 oz = _mm_load_ps(rays.originZ.data());
-  const __m128 dx = _mm_load_ps(rays.directionX.data());
-  const __m128 dy = _mm_load_ps(rays.directionY.data());
-  const __m128 dz = _mm_load_ps(rays.directionZ.data());
-  const __m128 angle =
-    _mm_add_ps(_mm_add_ps(_mm_mul_ps(nx, dx), _mm_mul_ps(ny, dy)), _mm_mul_ps(nz, dz));
-  const __m128 numerator = _mm_sub_ps(
-    _mm_setzero_ps(),
-    _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(nx, ox), _mm_mul_ps(ny, oy)), _mm_mul_ps(nz, oz)),
-               distance));
-  const __m128 t = _mm_div_ps(numerator, angle);
-  const __m128 hit =
-    _mm_and_ps(_mm_cmpneq_ps(angle, _mm_setzero_ps()), _mm_cmpgt_ps(t, _mm_setzero_ps()));
+  const Float4 nx = set1(static_cast<float>(m_normal.x()));
+  const Float4 ny = set1(static_cast<float>(m_normal.y()));
+  const Float4 nz = set1(static_cast<float>(m_normal.z()));
+  const Float4 distance = set1(static_cast<float>(m_distance));
+  const Float4 ox = load4(rays.originX.data());
+  const Float4 oy = load4(rays.originY.data());
+  const Float4 oz = load4(rays.originZ.data());
+  const Float4 dx = load4(rays.directionX.data());
+  const Float4 dy = load4(rays.directionY.data());
+  const Float4 dz = load4(rays.directionZ.data());
+  const Float4 angle = nx * dx + ny * dy + nz * dz;
+  const Float4 zeroValue = zero();
+  const Float4 numerator = zeroValue - (nx * ox + ny * oy + nz * oz + distance);
+  const Float4 t = numerator / angle;
+  const Mask4 hit = maskAnd(cmpNe(angle, zeroValue), cmpGt(t, zeroValue));
 
   alignas(16) float distances[4];
-  _mm_store_ps(distances, t);
-  const int hitMask = _mm_movemask_ps(hit);
+  store4(distances, t);
+  const int hitMask = movemask(hit);
   for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
     if ((hitMask & (1 << lane)) != 0) {
       result.setHit(lane, distances[lane], distances[lane]);

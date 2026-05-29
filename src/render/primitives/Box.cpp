@@ -5,21 +5,15 @@
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
+#include "core/simd/Float4.h"
 #include <cmath>
 #include <limits>
-#if RAYTRACER_SIMD_SSE
-#include <xmmintrin.h>
-#endif
 
 using namespace std;
 using namespace render;
 
-#if RAYTRACER_SIMD_SSE
+#if RAYTRACER_SIMD_SSE || RAYTRACER_SIMD_NEON
 namespace {
-  __m128 select_ps(__m128 mask, __m128 trueValue, __m128 falseValue) {
-    return _mm_or_ps(_mm_and_ps(mask, trueValue), _mm_andnot_ps(mask, falseValue));
-  }
-
   void packetHit(State& state, const Primitive* primitive, const std::string& reason) {
     if (state.traceEvents) {
       state.hit(primitive, reason);
@@ -102,38 +96,39 @@ const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints,
 }
 
 RayPacketIntersection4 Box::intersectPacket(const Ray4& rays, render::State& state) const {
-#if !RAYTRACER_SIMD_SSE
+#if !(RAYTRACER_SIMD_SSE || RAYTRACER_SIMD_NEON)
   return Primitive::intersectPacket(rays, state);
 #else
+  using namespace core::simd;
+
   RayPacketIntersection4 result;
 
-  const __m128 zero = _mm_setzero_ps();
-  const __m128 one = _mm_set1_ps(1.0f);
-  const __m128 negInfinity = _mm_set1_ps(-std::numeric_limits<float>::infinity());
-  const __m128 posInfinity = _mm_set1_ps(std::numeric_limits<float>::infinity());
+  const Float4 zeroValue = zero();
+  const Float4 one = set1(1.0f);
+  const Float4 negInfinity = set1(-std::numeric_limits<float>::infinity());
+  const Float4 posInfinity = set1(std::numeric_limits<float>::infinity());
   const Vector3d min = m_center - m_edge;
   const Vector3d max = m_center + m_edge;
 
   auto axis = [&](const Ray4::LaneArray& origins, const Ray4::LaneArray& directions, float minValue,
-                  float maxValue, __m128& enter, __m128& exit, __m128& valid) {
-    const __m128 o = _mm_load_ps(origins.data());
-    const __m128 d = _mm_load_ps(directions.data());
-    const __m128 minv = _mm_set1_ps(minValue);
-    const __m128 maxv = _mm_set1_ps(maxValue);
-    const __m128 parallel = _mm_cmpeq_ps(d, zero);
-    const __m128 inside = _mm_and_ps(_mm_cmpge_ps(o, minv), _mm_cmple_ps(o, maxv));
-    const __m128 invD = _mm_div_ps(one, d);
-    const __m128 t1 = _mm_mul_ps(_mm_sub_ps(minv, o), invD);
-    const __m128 t2 = _mm_mul_ps(_mm_sub_ps(maxv, o), invD);
-    enter = _mm_max_ps(enter, select_ps(parallel, negInfinity, _mm_min_ps(t1, t2)));
-    exit = _mm_min_ps(exit, select_ps(parallel, posInfinity, _mm_max_ps(t1, t2)));
-    valid = _mm_and_ps(
-      valid, _mm_or_ps(_mm_andnot_ps(parallel, _mm_cmpeq_ps(d, d)), _mm_and_ps(parallel, inside)));
+                  float maxValue, Float4& enter, Float4& exit, Mask4& valid) {
+    const Float4 o = load4(origins.data());
+    const Float4 d = load4(directions.data());
+    const Float4 minv = set1(minValue);
+    const Float4 maxv = set1(maxValue);
+    const Mask4 parallel = cmpEq(d, zeroValue);
+    const Mask4 inside = maskAnd(cmpGe(o, minv), cmpLe(o, maxv));
+    const Float4 invD = one / d;
+    const Float4 t1 = (minv - o) * invD;
+    const Float4 t2 = (maxv - o) * invD;
+    enter = core::simd::max(enter, select(parallel, negInfinity, core::simd::min(t1, t2)));
+    exit = core::simd::min(exit, select(parallel, posInfinity, core::simd::max(t1, t2)));
+    valid = maskAnd(valid, maskOr(maskAndNot(parallel, cmpEq(d, d)), maskAnd(parallel, inside)));
   };
 
-  __m128 enter = negInfinity;
-  __m128 exit = posInfinity;
-  __m128 valid = _mm_cmpeq_ps(zero, zero);
+  Float4 enter = negInfinity;
+  Float4 exit = posInfinity;
+  Mask4 valid = cmpEq(zeroValue, zeroValue);
   axis(rays.originX, rays.directionX, static_cast<float>(min.x()), static_cast<float>(max.x()),
        enter, exit, valid);
   axis(rays.originY, rays.directionY, static_cast<float>(min.y()), static_cast<float>(max.y()),
@@ -141,14 +136,13 @@ RayPacketIntersection4 Box::intersectPacket(const Ray4& rays, render::State& sta
   axis(rays.originZ, rays.directionZ, static_cast<float>(min.z()), static_cast<float>(max.z()),
        enter, exit, valid);
 
-  const __m128 hit =
-    _mm_and_ps(valid, _mm_and_ps(_mm_cmple_ps(enter, exit), _mm_cmpge_ps(exit, zero)));
+  const Mask4 hit = maskAnd(valid, maskAnd(cmpLe(enter, exit), cmpGe(exit, zeroValue)));
   alignas(16) float nearDistances[4];
   alignas(16) float farDistances[4];
-  _mm_store_ps(nearDistances, enter);
-  _mm_store_ps(farDistances, exit);
+  store4(nearDistances, enter);
+  store4(farDistances, exit);
 
-  const int hitMask = _mm_movemask_ps(hit);
+  const int hitMask = movemask(hit);
   for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
     if ((hitMask & (1 << lane)) != 0) {
       result.setHit(lane, nearDistances[lane], farDistances[lane]);
