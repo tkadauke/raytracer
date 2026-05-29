@@ -26,6 +26,7 @@
 
 namespace OpenGLRasterMeshTest {
   using engine::raster::Rasterizer;
+  using engine::raster::detail::OpenGLRasterMesh;
   using engine::raster::detail::OpenGLRasterMeshBuilder;
 
   std::shared_ptr<render::PinholeCamera> camera() {
@@ -53,6 +54,9 @@ namespace OpenGLRasterMeshTest {
     EXPECT_EQ(1u, mesh.triangleCount());
     ASSERT_EQ(3u, mesh.vertices().size());
     EXPECT_EQ((std::vector<std::uint32_t>{0, 1, 2}), mesh.indices());
+    EXPECT_EQ(mesh.vertices().size() * sizeof(OpenGLRasterMesh::Vertex),
+              mesh.vertexBufferByteSize());
+    EXPECT_EQ(mesh.indices().size() * sizeof(std::uint32_t), mesh.indexBufferByteSize());
     EXPECT_FLOAT_EQ(-1.0f, mesh.vertices()[0].worldX);
     EXPECT_FLOAT_EQ(-1.0f, mesh.vertices()[0].worldY);
     EXPECT_FLOAT_EQ(0.0f, mesh.vertices()[0].worldZ);

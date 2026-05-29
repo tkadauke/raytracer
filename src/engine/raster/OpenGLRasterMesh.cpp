@@ -69,6 +69,14 @@ namespace engine::raster::detail {
     return m_indices.size() / 3;
   }
 
+  std::size_t OpenGLRasterMesh::vertexBufferByteSize() const {
+    return m_vertices.size() * sizeof(Vertex);
+  }
+
+  std::size_t OpenGLRasterMesh::indexBufferByteSize() const {
+    return m_indices.size() * sizeof(std::uint32_t);
+  }
+
   const OpenGLRasterMesh::Vertices& OpenGLRasterMesh::vertices() const {
     return m_vertices;
   }

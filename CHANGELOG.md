@@ -77,6 +77,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **OpenGL AOV trace metadata.** OpenGL raster depth and stencil AOV graph
   executions now publish the same mesh-preparation, draw, shadow-texture, and
   readback trace messages as OpenGL beauty passes. — GPT-5
+- **OpenGL upload diagnostics.** OpenGL raster draw traces now include prepared
+  vertex/index buffer byte counts, making GPU upload pressure visible before
+  buffer residency and caching land. — GPT-5
 - **Render-to-texture recursion limit.** Render intent now carries an explicit
   `maxRenderToTextureRecursionDepth` bound, and graph compilation rejects
   subview expansion when that limit is reached. — GPT-5

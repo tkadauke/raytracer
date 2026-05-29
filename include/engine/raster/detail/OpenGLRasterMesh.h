@@ -99,6 +99,8 @@ namespace engine::raster::detail {
 
     bool empty() const;
     std::size_t triangleCount() const;
+    std::size_t vertexBufferByteSize() const;
+    std::size_t indexBufferByteSize() const;
     const Vertices& vertices() const;
     const Indices& indices() const;
     const Batches& batches() const;
