@@ -68,6 +68,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   material callback handle, and `render::Integrator` as the transport-policy
   boundary future path tracers will implement; this documents the preserved
   default Whitted behavior and does not add path tracing. — GPT-5
+- **Raster visibility resource trace summaries.** Visibility-set resource
+  snapshots now expose leaf, rejection, tile, and depth-summary counts in their
+  metadata-only trace reason instead of a generic no-preview message. — GPT-5
 - **Raster visibility tile-depth safety gating.** Raster visibility passes now
   leave tile coverage inspectable but suppress tile depth summaries for
   order-dependent raster state such as blending. — GPT-5

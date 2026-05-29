@@ -675,7 +675,11 @@ needed in the same trace message. The OpenGL raster backend consumes the same
 visibility set during mesh preparation, so CPU and GPU raster submission stay
 tied to the same explicit graph edge. That keeps the graph shape, rendercli
 exports, Modeler graph view, execution trace, and raster submission tied to the
-same explicit visibility edge.
+same explicit visibility edge. Because visibility sets are not image
+resources, graph trace snapshots do not show an input/output preview image for
+them; instead the metadata-only reason summarizes leaf counts, rejection
+reasons, tile coverage, and tile depth summaries so selecting the resource is
+still useful.
 
 The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
 `RenderIntent::postProcessAA` asks the compiler to insert a `post_fxaa` or

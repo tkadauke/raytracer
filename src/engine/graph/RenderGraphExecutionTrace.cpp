@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "core/util/BufferUtils.h"
 #include "engine/graph/RenderResourceStorage.h"
+#include "engine/raster/RasterVisibilitySet.h"
 
 #include <QJsonArray>
 
@@ -10,6 +11,7 @@
 #include <cmath>
 #include <initializer_list>
 #include <limits>
+#include <sstream>
 #include <stdexcept>
 #include <utility>
 
@@ -163,7 +165,30 @@ namespace engine::graph {
              " resources";
     }
 
+    std::string visibilitySetSummary(const engine::raster::RasterVisibilitySet& visibilitySet) {
+      std::ostringstream out;
+      out << "visibility set has no image preview; leaves=" << visibilitySet.visibleLeafCount()
+          << "/" << visibilitySet.leafCount()
+          << "; rejectedLeaves=" << visibilitySet.rejectedLeafCount() << "; frustumRejectedLeaves="
+          << visibilitySet.rejectedLeafCount(
+               engine::raster::RasterVisibilitySet::RejectionReason::Frustum)
+          << "; backfaceRejectedLeaves="
+          << visibilitySet.rejectedLeafCount(
+               engine::raster::RasterVisibilitySet::RejectionReason::Backface)
+          << "; tileGrid=" << visibilitySet.tileGrid().columns << "x"
+          << visibilitySet.tileGrid().rows
+          << "; visibleTileReferences=" << visibilitySet.visibleLeafTileReferenceCount()
+          << "; depthSummarizedTiles=" << visibilitySet.tileDepthSummarizedTileCount()
+          << "; uncertainTileLeaves=" << visibilitySet.tileUncertainVisibleLeafCount();
+      return out.str();
+    }
+
     std::string metadataOnlyReason(const RenderResource& resource) {
+      if (resource.visibilitySetBacked()) {
+        if (const auto visibilitySet = resource.visibilitySet()) {
+          return visibilitySetSummary(*visibilitySet);
+        }
+      }
       if (const auto& residency = resource.gpuResidency()) {
         std::string reason = "GPU resource is resident on " + residency->backend;
         if (!residency->description.empty()) {

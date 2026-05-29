@@ -505,6 +505,15 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(std::string::npos, message.find("uncertainTileLeaves=0")) << message;
     EXPECT_NE(std::string::npos, message.find("depthSummarizedTiles=1")) << message;
     EXPECT_NE(std::string::npos, message.find("tileDepthReferences=1")) << message;
+
+    const auto outputs = trace->outputSnapshotsForResource("raster_visibility_set");
+    ASSERT_EQ(1u, outputs.size());
+    EXPECT_FALSE(outputs.front()->hasPreview());
+    EXPECT_NE(std::string::npos,
+              outputs.front()->unavailableReason().find("visibility set has no image preview"));
+    EXPECT_NE(std::string::npos,
+              outputs.front()->unavailableReason().find("frustumRejectedLeaves=1"));
+    EXPECT_NE(std::string::npos, outputs.front()->unavailableReason().find("tileGrid=1x1"));
   }
 
   TEST(GraphRenderEngine, RecordsRasterVisibilityFrontToBackOrderingMetrics) {
