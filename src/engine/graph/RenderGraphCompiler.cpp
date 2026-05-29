@@ -154,13 +154,16 @@ namespace engine::graph {
   RenderPassNode
   RenderGraphCompiler::readbackPass(RenderPassId id, std::string name,
                                     RenderResourceId inputResource, RenderResourceId outputResource,
+                                    std::vector<RenderFeatureKind> baseFeatures,
                                     std::vector<RenderFeatureKind> extraFeatures) const {
     RenderPassNode pass;
     pass.id = std::move(id);
     pass.name = std::move(name);
     pass.kind = RenderPassKind::Readback;
     pass.executor = RenderExecutorKind::PostProcess;
-    pass.features = {"main", "readback", "transfer"};
+    pass.features = std::move(baseFeatures);
+    pass.features.push_back("readback");
+    pass.features.push_back("transfer");
     pass.features.insert(pass.features.end(), extraFeatures.begin(), extraFeatures.end());
     pass.addRead(std::move(inputResource));
     pass.addWrite(std::move(outputResource));
@@ -174,7 +177,7 @@ namespace engine::graph {
   RenderPassNode RenderGraphCompiler::readbackPass(RenderResourceId inputResource,
                                                    RenderResourceId outputResource) const {
     return readbackPass("beauty_readback", "Beauty readback", std::move(inputResource),
-                        std::move(outputResource));
+                        std::move(outputResource), {"main"});
   }
 
   RenderPassNode RenderGraphCompiler::tonemapPass(RenderResourceId inputResource,
@@ -213,7 +216,7 @@ namespace engine::graph {
         aovResource, readbackId, aov.title() + " AOV readback", RenderResourceLifetime::Transient);
       RenderPassNode readback =
         readbackPass("readback_" + aovId, "Read back " + aov.title() + " AOV", aovId, readbackId,
-                     {"aov", aov.feature()});
+                     {"main", "aov", aov.feature()});
       plan.addResourceProducer(std::move(readback), std::move(readbackDescriptor));
       visualizationInput = readbackId;
     }

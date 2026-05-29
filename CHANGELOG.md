@@ -810,6 +810,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **OpenGL raster AOV readback classification.** Exported OpenGL raster AOV
+  readback nodes are now tagged as exported side branches instead of `main`
+  display-chain work in graph features. — GPT-5
 - **Direct LDraw camera framing.** Direct `rendercli --ldraw_input` scenes now
   frame the active pinhole camera from imported model bounds through shared
   `Scene`/`PinholeCamera` logic, giving large or offset models a full-model

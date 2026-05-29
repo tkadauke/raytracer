@@ -685,6 +685,7 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ("beauty_readback_color", readback->writes.front().resource);
     EXPECT_TRUE(readback->supportsResourceDomain(RenderResourceDomain::CPU));
     EXPECT_TRUE(readback->supportsResourceDomain(RenderResourceDomain::GPU));
+    EXPECT_TRUE(hasFeature(*readback, "main"));
     EXPECT_TRUE(hasFeature(*readback, "readback"));
     EXPECT_TRUE(hasFeature(*readback, "transfer"));
 
@@ -715,6 +716,7 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ("depth_aov_readback", readback->writes.front().resource);
     EXPECT_TRUE(readback->supportsResourceDomain(RenderResourceDomain::CPU));
     EXPECT_TRUE(readback->supportsResourceDomain(RenderResourceDomain::GPU));
+    EXPECT_TRUE(hasFeature(*readback, "main"));
     EXPECT_TRUE(hasFeature(*readback, "depth"));
     EXPECT_TRUE(hasFeature(*readback, "readback"));
 
@@ -764,6 +766,7 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ("depth_aov_source", readback->reads.front().resource);
     EXPECT_EQ("depth_aov", readback->writes.front().resource);
     EXPECT_TRUE(hasFeature(*readback, "export"));
+    EXPECT_FALSE(hasFeature(*readback, "main"));
 
     const auto* visualization = plan.findPass("visualize_depth_aov");
     ASSERT_NE(nullptr, visualization);

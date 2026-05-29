@@ -66,6 +66,7 @@ namespace engine::graph {
                                               RenderResourceLifetime lifetime) const;
     RenderPassNode readbackPass(RenderPassId id, std::string name, RenderResourceId inputResource,
                                 RenderResourceId outputResource,
+                                std::vector<RenderFeatureKind> baseFeatures,
                                 std::vector<RenderFeatureKind> extraFeatures = {}) const;
     RenderPassNode readbackPass(RenderResourceId inputResource,
                                 RenderResourceId outputResource) const;
