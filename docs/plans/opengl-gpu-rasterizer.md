@@ -356,7 +356,9 @@ Tasks:
   `OpenGLShadowSamplingPlan` now captures the first supported subset: one
   hard-filtered directional cascade with constant bias. Graph traces record
   whether a shadow-enabled OpenGL pass matches that subset or still falls back
-  to CPU-prepared shadow visibility.
+  to CPU-prepared shadow visibility. `OpenGLShadowTextureData` now converts the
+  eligible shadow depth buffer into normalized RGBA float texels with a
+  no-occluder sentinel, ready for GL texture upload.
 
 Acceptance:
 
