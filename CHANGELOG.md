@@ -70,8 +70,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   default Whitted behavior and does not add path tracing. — GPT-5
 - **Raster visibility frustum diagnostics.** Graph visibility culling traces
   now classify transformed raster leaf bounds against the camera frustum and
-  report visible/rejected leaf and triangle counts before raster passes consume
-  the descriptor-only visibility resource. — GPT-5
+  report visible/rejected leaf and triangle counts; CPU raster passes consume
+  the resulting visibility set and skip rejected leaves. — GPT-5
 - **Raster visibility culling graph baseline.** Raster render intent can now
   request a graph-visible `raster_visibility` pass and `raster_visibility_set`
   resource through Modeler or `rendercli --raster_culling on|auto`; the first

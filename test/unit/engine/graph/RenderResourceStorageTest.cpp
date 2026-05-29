@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderResourceStorage.h"
+#include "engine/raster/RasterVisibilitySet.h"
 
 #include <cstdint>
 
@@ -54,6 +55,26 @@ namespace RenderResourceStorageTest {
     EXPECT_TRUE(storage.resource("world_position").colorBacked());
     EXPECT_TRUE(storage.resource("material_id").objectIdBacked());
     EXPECT_TRUE(storage.resource("shadow_map").depthBacked());
+  }
+
+  TEST(RenderResourceStorage, StoresRasterVisibilitySets) {
+    RenderResourceStorage storage;
+    auto descriptor = resource("visibility", RenderResourceType::VisibilitySet);
+    descriptor.width = 0;
+    descriptor.height = 0;
+    descriptor.format = RenderResourceFormat::Unknown;
+    storage.allocate({descriptor});
+
+    auto visibilitySet = std::make_shared<engine::raster::RasterVisibilitySet>();
+    visibilitySet->addRejectedLeaf(engine::raster::RasterVisibilitySet::RejectionReason::Frustum,
+                                   6);
+    storage.setVisibilitySet("visibility", visibilitySet);
+
+    EXPECT_TRUE(storage.resource("visibility").visibilitySetBacked());
+    EXPECT_FALSE(storage.hasBuffer("visibility"));
+    ASSERT_NE(nullptr, storage.visibilitySet("visibility"));
+    EXPECT_FALSE(storage.visibilitySet("visibility")->leafVisible(0));
+    EXPECT_FALSE(storage.resource("visibility").substituteDefault());
   }
 
   TEST(RenderResourceStorage, KeepsDescriptorForGpuResourceWithoutCpuBuffer) {

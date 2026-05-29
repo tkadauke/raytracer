@@ -524,6 +524,7 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setTemporalCurrentFrameWeight(m_temporalCurrentFrameWeight);
   result->setShadowMapsEnabled(m_shadowMapsEnabled);
   result->setExternalShadowMaps(m_externalShadowMaps);
+  result->setVisibilitySet(m_visibilitySet);
   result->setShadowMapSize(m_shadowMapSize);
   result->setShadowCascadeCount(m_shadowCascadeCount);
   result->setShadowCascadeSplitLambda(m_shadowCascadeSplitLambda);
@@ -675,6 +676,18 @@ std::shared_ptr<const ShadowMaps> Rasterizer::buildShadowMaps() const {
 
 void Rasterizer::setExternalShadowMaps(std::shared_ptr<const ShadowMaps> shadowMaps) {
   m_externalShadowMaps = std::move(shadowMaps);
+}
+
+void Rasterizer::setVisibilitySet(std::shared_ptr<const RasterVisibilitySet> visibilitySet) {
+  m_visibilitySet = std::move(visibilitySet);
+}
+
+void Rasterizer::clearVisibilitySet() {
+  m_visibilitySet.reset();
+}
+
+std::shared_ptr<const RasterVisibilitySet> Rasterizer::visibilitySet() const {
+  return m_visibilitySet;
 }
 
 bool Rasterizer::renderFirstDirectionalShadowMap(Buffer<double>& depthBuffer) {
@@ -1224,9 +1237,9 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
 
   const render::TilePlan tilePlan = render::TilePlan::forBuffer(width, height, queueSize);
   const MSAASamplePattern pattern(rasterizer.msaaSamples());
-  const RasterTriangleEmitter triangleEmitter(scene.get(), camera, rasterizer.lod(), rasterizer,
-                                              cancelled, rasterizer.cullMode(),
-                                              rasterizer.hasCullModeOverride(), true);
+  const RasterTriangleEmitter triangleEmitter(
+    scene.get(), camera, rasterizer.lod(), rasterizer, cancelled, rasterizer.cullMode(),
+    rasterizer.hasCullModeOverride(), true, rasterizer.visibilitySet());
   const ShadowMaps builtShadowMaps =
     rasterizer.m_externalShadowMaps
       ? ShadowMaps()

@@ -4,6 +4,7 @@
 #include "core/geometry/Mesh.h"
 #include "core/math/HitPoint.h"
 #include "engine/raster/Rasterizer.h"
+#include "engine/raster/RasterVisibilitySet.h"
 #include "engine/raster/detail/RasterMaterial.h"
 #include "engine/raster/detail/RasterMaterialEvaluator.h"
 #include "engine/raster/detail/RasterMSAA.h"
@@ -710,6 +711,33 @@ namespace RasterizerTest {
     engine.render(buffer);
 
     EXPECT_EQ(1, tessellateCalls);
+  }
+
+  TEST(Rasterizer, VisibilitySetSkipsRejectedLeafBeforeTessellation) {
+    int visibleTessellateCalls = 0;
+    int rejectedTessellateCalls = 0;
+    auto scene = std::make_shared<Scene>(Colord::white());
+    scene->add(std::make_shared<CountingPrimitive>(
+      BoundingBoxd(Vector3d(-1.0, -1.0, 0.0), Vector3d(1.0, 1.0, 1.0)), &visibleTessellateCalls));
+    scene->add(std::make_shared<CountingPrimitive>(
+      BoundingBoxd(Vector3d(-1.0, -1.0, 0.0), Vector3d(1.0, 1.0, 1.0)), &rejectedTessellateCalls));
+
+    auto visibilitySet = std::make_shared<RasterVisibilitySet>();
+    visibilitySet->addVisibleLeaf(0);
+    visibilitySet->addRejectedLeaf(RasterVisibilitySet::RejectionReason::Frustum, 0);
+
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setVisibilitySet(visibilitySet);
+    engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
+      return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
+                                      vertex.clipPosition, vertex.screenPosition};
+    });
+    Buffer<Colord> buffer(32, 32);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(1, visibleTessellateCalls);
+    EXPECT_EQ(0, rejectedTessellateCalls);
   }
 
   TEST(Rasterizer, HandlesNullSceneGracefully) {

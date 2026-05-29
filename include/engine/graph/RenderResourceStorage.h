@@ -111,6 +111,11 @@ namespace engine::graph {
       */
     void bindObjectId(const RenderResourceId& id, const Buffer<std::uint32_t>& source);
 
+    void setVisibilitySet(const RenderResourceId& id,
+                          std::shared_ptr<const ::engine::raster::RasterVisibilitySet> set);
+    std::shared_ptr<const ::engine::raster::RasterVisibilitySet>
+    visibilitySet(const RenderResourceId& id) const;
+
     /**
       * Copies materialized contents from @p sourceId into @p destinationId.
       *

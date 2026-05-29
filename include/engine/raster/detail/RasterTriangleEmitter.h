@@ -5,6 +5,7 @@
 #include "core/geometry/Mesh.h"
 #include "core/math/BoundingBox.h"
 #include "engine/raster/Rasterizer.h"
+#include "engine/raster/RasterVisibilitySet.h"
 #include "render/HomogeneousClipVolume.h"
 #include "render/cameras/Camera.h"
 #include "render/primitives/Scene.h"
@@ -54,12 +55,19 @@ namespace engine::raster::detail {
     RasterTriangleEmitter(const render::Scene* scene, std::shared_ptr<render::Camera> camera,
                           int lod, const Rasterizer& rasterizer, const std::atomic<bool>& cancelled,
                           Rasterizer::CullMode cullMode, bool hasCullModeOverride,
-                          bool applyVertexShader);
+                          bool applyVertexShader,
+                          std::shared_ptr<const RasterVisibilitySet> visibilitySet = nullptr);
 
     template<class EmitFn>
     void forEachTriangle(EmitFn&& callback) const {
       std::uint64_t globalFaceIdx = 0;
+      std::size_t leafIndex = 0;
       auto emitLeaf = [&](const render::Primitive::TransformedLeaf& leaf) {
+        const std::size_t currentLeafIndex = leafIndex++;
+        if (m_visibilitySet && !m_visibilitySet->leafVisible(currentLeafIndex)) {
+          return;
+        }
+
         if (m_cancelled.load())
           return;
 
@@ -165,7 +173,7 @@ namespace engine::raster::detail {
         }
       };
 
-      if (canCullPrimitiveBounds()) {
+      if (!m_visibilitySet && canCullPrimitiveBounds()) {
         m_scene->forEachTransformedLeafInBounds(
           [&](const BoundingBoxd& bounds) { return !boundsOutsideClipVolume(bounds); }, nullptr,
           Matrix4d(), Matrix3d(), emitLeaf);
@@ -215,6 +223,7 @@ namespace engine::raster::detail {
 
     const render::Scene* m_scene;
     std::shared_ptr<render::Camera> m_camera;
+    std::shared_ptr<const RasterVisibilitySet> m_visibilitySet;
     int m_lod;
     const Rasterizer& m_rasterizer;
     render::HomogeneousClipVolume m_clipVolume;

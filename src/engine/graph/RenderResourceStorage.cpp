@@ -149,6 +149,24 @@ namespace engine::graph {
     destinationResource.markProduced();
   }
 
+  void RenderResourceStorage::setVisibilitySet(
+    const RenderResourceId& id, std::shared_ptr<const ::engine::raster::RasterVisibilitySet> set) {
+    RenderResource& destinationResource = resource(id);
+    if (!destinationResource.visibilitySetBacked()) {
+      throw std::out_of_range("render resource '" + id + "' is not visibility-set-backed");
+    }
+    destinationResource.setVisibilitySet(std::move(set));
+  }
+
+  std::shared_ptr<const ::engine::raster::RasterVisibilitySet>
+  RenderResourceStorage::visibilitySet(const RenderResourceId& id) const {
+    const RenderResource& sourceResource = resource(id);
+    if (!sourceResource.visibilitySetBacked()) {
+      throw std::out_of_range("render resource '" + id + "' is not visibility-set-backed");
+    }
+    return sourceResource.visibilitySet();
+  }
+
   void RenderResourceStorage::copy(const RenderResourceId& sourceId,
                                    const RenderResourceId& destinationId,
                                    const std::string& action) {

@@ -133,19 +133,27 @@ Tasks:
 - ~~Test leaf bounding boxes against the frustum.~~ ✅ **Done.** Transformed
   leaf bounds are rejected only when all eight corners are outside the same
   clip plane.
-- Emit visible leaf ids and rejected-frustum counts. ✅ **Partial.** Trace
-  metadata now records visible and rejected-frustum leaf/triangle counts; the
-  concrete visibility-set payload still needs per-leaf ids before raster passes
-  can consume it.
-- Teach CPU raster to consume the visibility set and skip rejected leaves.
-- Add metrics comparing full-scene leaf count to submitted leaf count.
+- ~~Emit visible leaf ids and rejected-frustum counts.~~ ✅ **Done.** The first
+  concrete set stores traversal-order leaf decisions plus rejected-frustum
+  counts; stable authored leaf ids remain a future improvement for inspection
+  and cache persistence.
+- ~~Teach CPU raster to consume the visibility set and skip rejected leaves.~~
+  ✅ **Done.** The software raster front end skips rejected leaf indices before
+  tessellation and treats missing indices as visible.
+- ~~Add metrics comparing full-scene leaf count to submitted leaf count.~~ ✅
+  **Done.** Trace messages include input, visible, rejected, and
+  frustum-rejected leaf/triangle counts.
 
 Acceptance:
 
-- Offscreen bounded objects are skipped.
-- Render output is identical for opaque test scenes.
+- ~~Offscreen bounded objects are skipped.~~ ✅ **Done.** Unit coverage pins
+  that CPU raster visibility sets skip rejected leaves before tessellation.
+- ~~Render output is identical for opaque test scenes.~~ ✅ **Done.** Unit
+  coverage compares graph raster output with and without visibility culling for
+  an opaque offscreen-leaf scene.
 - Rendercli functional tests cover an offscreen geometry fixture.
-- Trace metadata shows how many leaves were rejected by frustum culling.
+- ~~Trace metadata shows how many leaves were rejected by frustum culling.~~ ✅
+  **Done.**
 
 ## Phase 2 - front-to-back ordering
 

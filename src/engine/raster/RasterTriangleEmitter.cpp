@@ -49,14 +49,14 @@ namespace engine::raster::detail {
     return mode == Rasterizer::CullMode::Back ? area > 0.0 : area < 0.0;
   }
 
-  RasterTriangleEmitter::RasterTriangleEmitter(const render::Scene* scene,
-                                               std::shared_ptr<render::Camera> camera, int lod,
-                                               const Rasterizer& rasterizer,
-                                               const std::atomic<bool>& cancelled,
-                                               Rasterizer::CullMode cullMode,
-                                               bool hasCullModeOverride, bool applyVertexShader)
+  RasterTriangleEmitter::RasterTriangleEmitter(
+    const render::Scene* scene, std::shared_ptr<render::Camera> camera, int lod,
+    const Rasterizer& rasterizer, const std::atomic<bool>& cancelled, Rasterizer::CullMode cullMode,
+    bool hasCullModeOverride, bool applyVertexShader,
+    std::shared_ptr<const RasterVisibilitySet> visibilitySet)
       : m_scene(scene),
         m_camera(std::move(camera)),
+        m_visibilitySet(std::move(visibilitySet)),
         m_lod(lod),
         m_rasterizer(rasterizer),
         m_clipVolume(rasterizer.nearClipDepth(), rasterizer.farClipDepth()),

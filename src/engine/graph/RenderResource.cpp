@@ -1,6 +1,7 @@
 #include "engine/graph/RenderResource.h"
 
 #include "core/util/BufferUtils.h"
+#include "engine/raster/RasterVisibilitySet.h"
 
 #include <algorithm>
 #include <limits>
@@ -90,6 +91,11 @@ namespace engine::graph {
   RenderResource::~RenderResource() = default;
 
   std::unique_ptr<RenderResource> RenderResource::create(RenderResourceDescriptor descriptor) {
+    if (descriptor.domain == RenderResourceDomain::CPU &&
+        descriptor.type == RenderResourceType::VisibilitySet) {
+      return std::make_unique<VisibilitySetRenderResource>(std::move(descriptor));
+    }
+
     if (descriptor.domain != RenderResourceDomain::CPU || !descriptor.hasImageShape()) {
       return std::make_unique<DescriptorOnlyRenderResource>(std::move(descriptor));
     }
@@ -175,6 +181,10 @@ namespace engine::graph {
     return false;
   }
 
+  bool RenderResource::visibilitySetBacked() const {
+    return false;
+  }
+
   void RenderResource::clearSubstituteDefault(RenderPassKind, const Colord&) {
     m_substituteDefault = true;
     m_state.reset();
@@ -214,6 +224,15 @@ namespace engine::graph {
     throw missingBuffer("object id");
   }
 
+  void
+  RenderResource::setVisibilitySet(std::shared_ptr<const engine::raster::RasterVisibilitySet>) {
+    throw missingBuffer("visibility set");
+  }
+
+  std::shared_ptr<const engine::raster::RasterVisibilitySet> RenderResource::visibilitySet() const {
+    throw missingBuffer("visibility set");
+  }
+
   void RenderResource::copyContentsTo(RenderResource&, const std::string& action) const {
     throw std::out_of_range(action + " source resource '" + descriptor().id +
                             "' has no CPU buffer");
@@ -222,6 +241,21 @@ namespace engine::graph {
   std::out_of_range RenderResource::missingBuffer(const char* typeName) const {
     return std::out_of_range("render resource '" + descriptor().id + "' has no CPU " + typeName +
                              " buffer");
+  }
+
+  bool VisibilitySetRenderResource::visibilitySetBacked() const {
+    return true;
+  }
+
+  void VisibilitySetRenderResource::setVisibilitySet(
+    std::shared_ptr<const engine::raster::RasterVisibilitySet> set) {
+    m_visibilitySet = std::move(set);
+    markProduced();
+  }
+
+  std::shared_ptr<const engine::raster::RasterVisibilitySet>
+  VisibilitySetRenderResource::visibilitySet() const {
+    return m_visibilitySet;
   }
 
   ColorRenderResource::ColorRenderResource(RenderResourceDescriptor descriptor)

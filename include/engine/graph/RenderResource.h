@@ -11,6 +11,10 @@
 #include <stdexcept>
 #include <string>
 
+namespace engine::raster {
+  class RasterVisibilitySet;
+}
+
 namespace engine::graph {
   class RenderGraphCachedArtifact;
   class RenderPassState;
@@ -109,6 +113,11 @@ namespace engine::graph {
     virtual bool objectIdBacked() const;
 
     /**
+      * @returns true when this resource can store a raster visibility set.
+      */
+    virtual bool visibilitySetBacked() const;
+
+    /**
       * Clears this resource to the value used when a disabled pass substitutes
       * a default output. Non-buffer descriptors ignore the request.
       */
@@ -125,6 +134,9 @@ namespace engine::graph {
 
     virtual Buffer<std::uint32_t>& objectId();
     virtual const Buffer<std::uint32_t>& objectId() const;
+
+    virtual void setVisibilitySet(std::shared_ptr<const engine::raster::RasterVisibilitySet> set);
+    virtual std::shared_ptr<const engine::raster::RasterVisibilitySet> visibilitySet() const;
 
     /**
       * Copies CPU-materialized contents into @p destination.
@@ -154,6 +166,21 @@ namespace engine::graph {
   class DescriptorOnlyRenderResource : public RenderResource {
   public:
     using RenderResource::RenderResource;
+  };
+
+  /**
+    * CPU resource backed by a transient raster visibility set.
+    */
+  class VisibilitySetRenderResource : public RenderResource {
+  public:
+    using RenderResource::RenderResource;
+
+    bool visibilitySetBacked() const override;
+    void setVisibilitySet(std::shared_ptr<const engine::raster::RasterVisibilitySet> set) override;
+    std::shared_ptr<const engine::raster::RasterVisibilitySet> visibilitySet() const override;
+
+  private:
+    std::shared_ptr<const engine::raster::RasterVisibilitySet> m_visibilitySet;
   };
 
   /**

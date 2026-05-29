@@ -19,6 +19,8 @@ namespace render {
 }
 
 namespace engine::raster {
+  class RasterVisibilitySet;
+
   namespace detail {
     class ShadowMaps;
   }
@@ -689,6 +691,10 @@ namespace engine::raster {
     inline void setLod(int lod) {
       m_lod = lod;
     }
+
+    void setVisibilitySet(std::shared_ptr<const RasterVisibilitySet> visibilitySet);
+    void clearVisibilitySet();
+    std::shared_ptr<const RasterVisibilitySet> visibilitySet() const;
 
     /// Sets the worker-thread count for tile rasterization. Defaults
     /// to `QThread::idealThreadCount()`.
@@ -1384,6 +1390,7 @@ namespace engine::raster {
     double m_temporalCurrentFrameWeight{0.1};
     bool m_shadowMapsEnabled{false};
     std::shared_ptr<const detail::ShadowMaps> m_externalShadowMaps;
+    std::shared_ptr<const RasterVisibilitySet> m_visibilitySet;
     int m_shadowMapSize{256};
     int m_shadowCascadeCount{1};
     double m_shadowCascadeSplitLambda{0.5};

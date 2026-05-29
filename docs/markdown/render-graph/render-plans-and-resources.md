@@ -648,15 +648,16 @@ node substitutes the default resource and prevents graph-controlled shadow
 enablement.
 Raster visibility culling is also intent-derived. When
 `engineOptions.rasterizer.geometry.visibilityCulling` is `on` or `auto`, the
-compiler inserts a `raster_visibility` pass that writes a descriptor-only
+compiler inserts a `raster_visibility` pass that writes a
 `raster_visibility_set` resource and adds that resource as an explicit input to
 raster beauty and AOV producers. The current payload is diagnostic: it records
 input/visible/rejected leaf counts, matching triangle counts at the compiled
 raster LOD, and frustum-rejected counts from transformed leaf bounds. The
-visibility resource is still descriptor-only and the raster pass still draws
-the full scene. That keeps the graph shape, rendercli exports, Modeler graph
-view, and execution trace ready for consuming concrete visibility sets without
-changing image output in this slice.
+visibility resource also carries traversal-order leaf decisions that CPU raster
+passes consume before tessellation, while missing or mismatched leaf indices
+remain visible as a conservative fallback. That keeps the graph shape,
+rendercli exports, Modeler graph view, execution trace, and CPU raster
+submission tied to the same explicit visibility edge.
 
 The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
 `RenderIntent::postProcessAA` asks the compiler to insert a `post_fxaa` or

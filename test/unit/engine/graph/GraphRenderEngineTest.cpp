@@ -435,7 +435,7 @@ namespace GraphRenderEngineTest {
     const RenderPassTrace* visibilityTrace = trace->findPass("raster_visibility");
     ASSERT_NE(nullptr, visibilityTrace);
     EXPECT_EQ(RenderPassExecutionStatus::Completed, visibilityTrace->status());
-    EXPECT_NE(std::string::npos, visibilityTrace->message().find("descriptor-only set"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("CPU visibility set"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("lod=0"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("inputLeaves=1"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("inputTriangles="));
@@ -466,6 +466,29 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(std::string::npos, message.find("visibleLeaves=1")) << message;
     EXPECT_NE(std::string::npos, message.find("rejectedLeaves=1")) << message;
     EXPECT_NE(std::string::npos, message.find("frustumRejectedLeaves=1")) << message;
+  }
+
+  TEST(GraphRenderEngine, RasterVisibilityCullingPreservesOpaqueOutput) {
+    RenderIntent fullIntent;
+    fullIntent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+
+    RenderIntent culledIntent = fullIntent;
+    culledIntent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
+
+    RenderGraphCompiler compiler;
+    const auto scene = visibleAndOffscreenBoxScene();
+
+    Buffer<unsigned int> full(32, 32);
+    GraphRenderEngine fullEngine(camera(), scene);
+    fullEngine.setPlan(compiler.compile({32, 32, 1}, fullIntent));
+    fullEngine.render(full);
+
+    Buffer<unsigned int> culled(32, 32);
+    GraphRenderEngine culledEngine(camera(), scene);
+    culledEngine.setPlan(compiler.compile({32, 32, 1}, culledIntent));
+    culledEngine.render(culled);
+
+    EXPECT_EQ(0, countDifferingPixels(full, culled));
   }
 
   TEST(GraphRenderEngine, ExecutesStencilAOVViewAndRecordsColorTrace) {

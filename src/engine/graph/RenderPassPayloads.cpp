@@ -15,6 +15,7 @@
 #include "engine/graph/WireframePassState.h"
 #include "engine/raster/OpenGLRasterizer.h"
 #include "engine/raster/Rasterizer.h"
+#include "engine/raster/RasterVisibilitySet.h"
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/Camera.h"
@@ -191,6 +192,31 @@ namespace engine::graph {
                          [&](const RenderFeatureKind& value) { return value == feature; });
     }
 
+    class RasterVisibilityInput {
+    public:
+      explicit RasterVisibilityInput(const RenderExecutionContext& context)
+          : m_context(context) {
+      }
+
+      void applyTo(::engine::raster::Rasterizer& rasterizer) const {
+        for (const auto& read : m_context.pass().reads) {
+          const auto& resource = m_context.storage().resource(read.resource);
+          if (resource.descriptor().type != RenderResourceType::VisibilitySet ||
+              resource.substituteDefault()) {
+            continue;
+          }
+
+          const auto visibilitySet = resource.visibilitySet();
+          if (visibilitySet) {
+            rasterizer.setVisibilitySet(visibilitySet);
+          }
+        }
+      }
+
+    private:
+      const RenderExecutionContext& m_context;
+    };
+
     void applyRasterShadowInputs(const RenderExecutionContext& context,
                                  const RasterBeautyPassState& beautyState,
                                  ::engine::raster::Rasterizer& rasterizer) {
@@ -357,6 +383,7 @@ namespace engine::graph {
         if (backend.usesSoftwareRasterizer()) {
           auto rasterizer = std::static_pointer_cast<::engine::raster::Rasterizer>(engine);
           state.applyTo(*rasterizer);
+          RasterVisibilityInput(context).applyTo(*rasterizer);
           applyRasterShadowInputs(context, state, *rasterizer);
         } else if (backend.isOpenGL()) {
           auto rasterizer = std::static_pointer_cast<::engine::raster::OpenGLRasterizer>(engine);
@@ -687,6 +714,7 @@ namespace engine::graph {
                                                                          context.graph().scene());
         const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(pass);
         state.applyTo(*rasterizer);
+        RasterVisibilityInput(context).applyTo(*rasterizer);
         rasterizer->setDiagnosticOutputBuffers(outputs);
 
         Buffer<Colord> scratch(descriptor.width, descriptor.height);
@@ -1394,33 +1422,21 @@ namespace engine::graph {
           throw passError(pass, "visibility culling pass must write a visibility-set resource");
         }
 
-        const Metrics metrics = baselineMetrics(context);
-        context.storage().resource(write.resource).markProduced();
-        context.recordTraceMessage(traceMessage(metrics));
+        const RasterVisibilityPassState state =
+          RasterVisibilityPassState::valueFromPass(context.pass());
+        const int lod = state.geometry().lod();
+        const auto visibilitySet = buildVisibilitySet(context, lod);
+        context.storage().setVisibilitySet(write.resource, visibilitySet);
+        context.recordTraceMessage(traceMessage(*visibilitySet, lod));
       }
 
     private:
-      struct Metrics {
-        std::size_t inputLeaves{0};
-        std::size_t inputTriangles{0};
-        std::size_t visibleLeaves{0};
-        std::size_t visibleTriangles{0};
-        std::size_t rejectedLeaves{0};
-        std::size_t rejectedTriangles{0};
-        std::size_t frustumRejectedLeaves{0};
-        std::size_t frustumRejectedTriangles{0};
-        int lod{0};
-      };
-
-      Metrics baselineMetrics(const RenderExecutionContext& context) const {
-        Metrics metrics;
-        const RasterVisibilityPassState state =
-          RasterVisibilityPassState::valueFromPass(context.pass());
-        metrics.lod = state.geometry().lod();
-
+      std::shared_ptr<::engine::raster::RasterVisibilitySet>
+      buildVisibilitySet(const RenderExecutionContext& context, int lod) const {
+        auto visibilitySet = std::make_shared<::engine::raster::RasterVisibilitySet>();
         const auto scene = context.graph().scene();
         if (!scene) {
-          return metrics;
+          return visibilitySet;
         }
 
         const std::shared_ptr<render::Camera> camera = context.graph().camera();
@@ -1428,22 +1444,16 @@ namespace engine::graph {
         std::unordered_map<const render::Primitive*, std::size_t> triangleCounts;
         scene->forEachTransformedLeaf(
           nullptr, Matrix4d(), Matrix3d(), [&](const render::Primitive::TransformedLeaf& leaf) {
-            const std::size_t triangles =
-              triangleCountFor(leaf.primitive, metrics.lod, triangleCounts);
-            ++metrics.inputLeaves;
-            metrics.inputTriangles += triangles;
+            const std::size_t triangles = triangleCountFor(leaf.primitive, lod, triangleCounts);
             if (boundsOutsideFrustum(leaf, camera.get(), clipVolume)) {
-              ++metrics.rejectedLeaves;
-              metrics.rejectedTriangles += triangles;
-              ++metrics.frustumRejectedLeaves;
-              metrics.frustumRejectedTriangles += triangles;
+              visibilitySet->addRejectedLeaf(
+                ::engine::raster::RasterVisibilitySet::RejectionReason::Frustum, triangles);
               return;
             }
 
-            ++metrics.visibleLeaves;
-            metrics.visibleTriangles += triangles;
+            visibilitySet->addVisibleLeaf(triangles);
           });
-        return metrics;
+        return visibilitySet;
       }
 
       render::HomogeneousClipVolume rasterClipVolume() const {
@@ -1504,18 +1514,23 @@ namespace engine::graph {
         return count;
       }
 
-      std::string traceMessage(const Metrics& metrics) const {
+      std::string traceMessage(const ::engine::raster::RasterVisibilitySet& visibilitySet,
+                               int lod) const {
         std::ostringstream out;
-        out << "visibility culling baseline produced a descriptor-only set"
-            << "; lod=" << metrics.lod << "; inputLeaves=" << metrics.inputLeaves
-            << "; inputTriangles=" << metrics.inputTriangles
-            << "; visibleLeaves=" << metrics.visibleLeaves
-            << "; visibleTriangles=" << metrics.visibleTriangles
-            << "; rejectedLeaves=" << metrics.rejectedLeaves
-            << "; rejectedTriangles=" << metrics.rejectedTriangles
-            << "; frustumRejectedLeaves=" << metrics.frustumRejectedLeaves
-            << "; frustumRejectedTriangles=" << metrics.frustumRejectedTriangles
-            << "; raster passes still draw all submitted primitives";
+        out << "visibility culling produced a CPU visibility set"
+            << "; lod=" << lod << "; inputLeaves=" << visibilitySet.leafCount()
+            << "; inputTriangles=" << visibilitySet.inputTriangleCount()
+            << "; visibleLeaves=" << visibilitySet.visibleLeafCount()
+            << "; visibleTriangles=" << visibilitySet.visibleTriangleCount()
+            << "; rejectedLeaves=" << visibilitySet.rejectedLeafCount()
+            << "; rejectedTriangles=" << visibilitySet.rejectedTriangleCount()
+            << "; frustumRejectedLeaves="
+            << visibilitySet.rejectedLeafCount(
+                 ::engine::raster::RasterVisibilitySet::RejectionReason::Frustum)
+            << "; frustumRejectedTriangles="
+            << visibilitySet.rejectedTriangleCount(
+                 ::engine::raster::RasterVisibilitySet::RejectionReason::Frustum)
+            << "; CPU raster passes can skip rejected leaves";
         return out.str();
       }
     };
