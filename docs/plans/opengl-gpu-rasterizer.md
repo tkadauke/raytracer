@@ -352,7 +352,9 @@ Tasks:
   shadow projection. Directional shadow cameras also expose their fitted
   origin, basis, and half-extent so shader uniforms can project those fragments
   into light-space; directional shadow maps expose bias and filter policy so
-  the GPU path can decide when shader sampling matches the graph state.
+  the GPU path can decide when shader sampling matches the graph state. An
+  `OpenGLShadowSamplingPlan` now captures the first supported subset: one
+  hard-filtered directional cascade with constant bias.
 
 Acceptance:
 
