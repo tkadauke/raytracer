@@ -131,8 +131,13 @@ namespace {
 
   void addSnapshot(QVBoxLayout& layout, const RenderGraphResourceSnapshot& snapshot) {
     addText(layout, snapshotTitle(snapshot), true);
-    if (!snapshot.hasPreview()) {
+    if (!snapshot.unavailableReason().empty()) {
       addText(layout, dashIfEmpty(qstr(snapshot.unavailableReason())));
+    }
+    if (!snapshot.hasPreview()) {
+      if (snapshot.unavailableReason().empty()) {
+        addText(layout, QStringLiteral("-"));
+      }
     } else if (snapshot.hasColorPreview()) {
       addImage(layout, snapshot.colorPreview());
     } else if (snapshot.hasDepthPreview()) {

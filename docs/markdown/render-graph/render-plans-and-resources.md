@@ -682,10 +682,12 @@ visibility set during mesh preparation, so CPU and GPU raster submission stay
 tied to the same explicit graph edge. That keeps the graph shape, rendercli
 exports, Modeler graph view, execution trace, and raster submission tied to the
 same explicit visibility edge. Because visibility sets are not image
-resources, graph trace snapshots do not show an input/output preview image for
-them; instead the metadata-only reason summarizes leaf counts, rejection
-reasons, tile coverage, and tile depth summaries so selecting the resource is
-still useful. Visibility-set resources are persistent-cache resources: their
+resources, graph trace snapshots show a debug tile preview rather than scene
+geometry: green tiles have finite depth summaries, yellow tiles are covered
+but depth-uncertain, and black tiles have no visible coverage. The same
+snapshot text summarizes leaf counts, rejection reasons, tile coverage, and
+tile depth summaries so selecting the resource is still useful. Visibility-set
+resources are persistent-cache resources: their
 artifact key uses the pass state, target descriptor, camera fingerprint, and a
 transformed scene-geometry fingerprint. Display-only changes such as tonemap
 switches can therefore reuse the cached set, while camera movement produces a

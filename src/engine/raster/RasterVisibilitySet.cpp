@@ -222,6 +222,17 @@ namespace engine::raster {
     return tiles.size();
   }
 
+  bool RasterVisibilitySet::tileCovered(std::size_t tileIndex) const {
+    for (const LeafDecision& leaf : m_leaves) {
+      if (leaf.visible && leaf.tileCoverageKnown &&
+          std::find(leaf.tileIndices.begin(), leaf.tileIndices.end(), tileIndex) !=
+            leaf.tileIndices.end()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   std::size_t RasterVisibilitySet::tileUncertainVisibleLeafCount() const {
     if (!hasTileGrid()) {
       return visibleLeafCount();

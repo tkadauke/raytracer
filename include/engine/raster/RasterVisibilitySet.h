@@ -53,6 +53,7 @@ namespace engine::raster {
     std::size_t rejectedTriangleCount(RejectionReason reason) const;
     std::size_t visibleLeafTileReferenceCount() const;
     std::size_t coveredTileCount() const;
+    bool tileCovered(std::size_t tileIndex) const;
     std::size_t tileUncertainVisibleLeafCount() const;
     std::size_t tileDepthSummarizedTileCount() const;
     std::size_t tileDepthReferenceCount() const;

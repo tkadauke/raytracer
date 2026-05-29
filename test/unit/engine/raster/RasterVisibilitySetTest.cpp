@@ -57,6 +57,10 @@ namespace RasterVisibilitySetTest {
 
     EXPECT_EQ(2u, set.visibleLeafTileReferenceCount());
     EXPECT_EQ(2u, set.coveredTileCount());
+    EXPECT_FALSE(set.tileCovered(1));
+    EXPECT_TRUE(set.tileCovered(2));
+    EXPECT_TRUE(set.tileCovered(3));
+    EXPECT_FALSE(set.tileCovered(99));
     EXPECT_EQ(1u, set.tileUncertainVisibleLeafCount());
     EXPECT_EQ(2u, set.tileDepthReferenceCount());
     EXPECT_EQ(2u, set.tileDepthSummarizedTileCount());

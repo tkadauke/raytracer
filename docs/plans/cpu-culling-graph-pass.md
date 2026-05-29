@@ -290,7 +290,11 @@ Modeler:
 - show the culling pass as a graph node;
 - selecting it shows input/output counts and rejection reasons in the property
   editor;
-- optionally show a visibility debug preview for rejected/visible groups;
+- ~~optionally show a visibility debug preview for rejected/visible groups;~~
+  ✅ **Done.** Visibility-set trace snapshots now include a tile debug preview:
+  summarized tiles render green, covered-but-depth-uncertain tiles render
+  yellow, and uncovered tiles render black while the snapshot text keeps the
+  leaf/rejection metrics.
 - keep the graph stable while the user is actively moving the camera, using the
   same freeze/heuristic rules as other graph execution state.
 

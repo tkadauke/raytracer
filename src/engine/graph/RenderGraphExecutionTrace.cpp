@@ -76,6 +76,62 @@ namespace engine::graph {
       return result;
     }
 
+    Colord visibilityTileColor(const engine::raster::RasterVisibilitySet& visibilitySet,
+                               std::size_t tile, double minDepth, double maxDepth) {
+      const double depth = visibilitySet.nearestTileDepth(tile);
+      if (std::isfinite(depth)) {
+        const double range = std::max(maxDepth - minDepth, 1e-9);
+        const double normalized = 1.0 - std::clamp((depth - minDepth) / range, 0.0, 1.0);
+        return Colord(0.08, 0.35 + normalized * 0.55, 0.18);
+      }
+      if (visibilitySet.tileCovered(tile)) {
+        return Colord(0.95, 0.75, 0.12);
+      }
+      return Colord(0.04, 0.04, 0.04);
+    }
+
+    std::shared_ptr<const Buffer<Colord>>
+    visibilitySetPreviewFor(const engine::raster::RasterVisibilitySet& visibilitySet) {
+      const auto& grid = visibilitySet.tileGrid();
+      if (!grid.enabled()) {
+        return nullptr;
+      }
+
+      double minDepth = std::numeric_limits<double>::infinity();
+      double maxDepth = -std::numeric_limits<double>::infinity();
+      for (std::size_t tile = 0; tile != grid.tileCount(); ++tile) {
+        const double depth = visibilitySet.nearestTileDepth(tile);
+        if (!std::isfinite(depth)) {
+          continue;
+        }
+        minDepth = std::min(minDepth, depth);
+        maxDepth = std::max(maxDepth, depth);
+      }
+      if (!std::isfinite(minDepth) || !std::isfinite(maxDepth)) {
+        minDepth = 0.0;
+        maxDepth = 1.0;
+      }
+
+      auto result = std::make_shared<Buffer<Colord>>(grid.width, grid.height);
+      result->clear(Colord::black());
+      for (int ty = 0; ty != grid.rows; ++ty) {
+        for (int tx = 0; tx != grid.columns; ++tx) {
+          const std::size_t tile = static_cast<std::size_t>(ty * grid.columns + tx);
+          const Colord color = visibilityTileColor(visibilitySet, tile, minDepth, maxDepth);
+          const int left = tx * grid.tileWidth;
+          const int top = ty * grid.tileHeight;
+          const int right = std::min(left + grid.tileWidth, grid.width);
+          const int bottom = std::min(top + grid.tileHeight, grid.height);
+          for (int y = top; y != bottom; ++y) {
+            for (int x = left; x != right; ++x) {
+              (*result)[y][x] = color;
+            }
+          }
+        }
+      }
+      return result;
+    }
+
     bool finiteColorRange(const Buffer<Colord>& source, Colord* minimum, Colord* maximum) {
       double minValues[3] = {std::numeric_limits<double>::infinity(),
                              std::numeric_limits<double>::infinity(),
@@ -175,9 +231,9 @@ namespace engine::graph {
 
     std::string visibilitySetSummary(const engine::raster::RasterVisibilitySet& visibilitySet) {
       std::ostringstream out;
-      out << "visibility set has no image preview; leaves=" << visibilitySet.visibleLeafCount()
-          << "/" << visibilitySet.leafCount()
-          << "; rejectedLeaves=" << visibilitySet.rejectedLeafCount() << "; frustumRejectedLeaves="
+      out << "visibility set tile preview; leaves=" << visibilitySet.visibleLeafCount() << "/"
+          << visibilitySet.leafCount() << "; rejectedLeaves=" << visibilitySet.rejectedLeafCount()
+          << "; frustumRejectedLeaves="
           << visibilitySet.rejectedLeafCount(
                engine::raster::RasterVisibilitySet::RejectionReason::Frustum)
           << "; backfaceRejectedLeaves="
@@ -330,6 +386,9 @@ namespace engine::graph {
     object["height"] = m_descriptor.height;
     object["previewAvailable"] = hasPreview();
     object["cache"] = m_cacheMetadata.toJson();
+    if (hasPreview() && !m_unavailableReason.empty()) {
+      object["summary"] = QString::fromStdString(m_unavailableReason);
+    }
     if (m_colorPreview) {
       object["previewKind"] = "color";
       object["previewWidth"] = m_colorPreview->width();
@@ -770,6 +829,13 @@ namespace engine::graph {
       return RenderGraphResourceSnapshot(resourceId, resource.descriptor(),
                                          objectIdPreviewFor(resource.objectId()), nullptr, "",
                                          cacheMetadataFor(resource));
+    }
+
+    if (resource.visibilitySetBacked()) {
+      return RenderGraphResourceSnapshot(
+        resourceId, resource.descriptor(),
+        resource.visibilitySet() ? visibilitySetPreviewFor(*resource.visibilitySet()) : nullptr,
+        nullptr, metadataOnlyReason(resource), cacheMetadataFor(resource));
     }
 
     if (!resource.colorBacked()) {

@@ -533,9 +533,11 @@ namespace GraphRenderEngineTest {
 
     const auto outputs = trace->outputSnapshotsForResource("raster_visibility_set");
     ASSERT_EQ(1u, outputs.size());
-    EXPECT_FALSE(outputs.front()->hasPreview());
+    EXPECT_TRUE(outputs.front()->hasColorPreview());
+    EXPECT_EQ(32, outputs.front()->colorPreview().width());
+    EXPECT_EQ(32, outputs.front()->colorPreview().height());
     EXPECT_NE(std::string::npos,
-              outputs.front()->unavailableReason().find("visibility set has no image preview"));
+              outputs.front()->unavailableReason().find("visibility set tile preview"));
     EXPECT_NE(std::string::npos,
               outputs.front()->unavailableReason().find("frustumRejectedLeaves=1"));
     EXPECT_NE(std::string::npos, outputs.front()->unavailableReason().find("tileGrid=1x1"));
