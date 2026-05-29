@@ -96,12 +96,17 @@ views can share one intent model without users requesting graph nodes directly.
 The compiler now expands whole-scene subviews into prefixed offscreen color
 branches that are visible in graph exports and the Modeler graph view. Raster
 subviews also export a matching prefixed depth AOV resource so later portal or
-mirror composites can depend on both color and depth. When a raster subview
+mirror composites can depend on both color and depth. Subview branches add a
+stable `subview:<id>` feature to every prefixed pass/resource, and exported
+subview final color/depth outputs add `subview_output` plus
+`subview_color_output` or `subview_depth_output` for later consumers that need
+to find the sampled resources without parsing ids. When a raster subview
 selects the OpenGL backend, the compiled branch still exposes the GPU-to-CPU
-readback passes before tonemap or exported AOV publication, making the transfer
-boundary inspectable instead of hidden inside execution. Selector-specific
-subviews are still rejected explicitly until scene partitioning can honor those
-selectors during execution. The intent also carries
+readback passes
+before tonemap or exported AOV publication, making the transfer boundary
+inspectable instead of hidden inside execution. Selector-specific subviews are
+still rejected explicitly until scene partitioning can honor those selectors
+during execution. The intent also carries
 `maxRenderToTextureRecursionDepth`, which defaults to one subview level and can
 be set to zero to reject render-to-texture expansion entirely.
 When the effective frame intent names a default camera or non-default shading

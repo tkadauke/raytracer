@@ -100,9 +100,11 @@ namespace engine::graph {
     RenderIntent subviewRenderIntent(const RenderIntent& frameIntent,
                                      const RenderSubviewIntent& subview) const;
     RenderPlan prefixedSubviewPlan(const RenderPlan& branch, const std::string& prefix,
-                                   const std::string& displayName) const;
+                                   const std::string& displayName,
+                                   const RenderFeatureKind& subviewFeature) const;
     std::string subviewPrefix(const RenderSubviewIntent& subview, std::size_t index,
                               std::set<std::string>& usedPrefixes) const;
+    RenderFeatureKind subviewFeature(const std::string& prefix) const;
     std::string subviewDisplayName(const RenderSubviewIntent& subview, std::size_t index) const;
     std::string sanitizeSubviewIdentifier(const std::string& name) const;
     RenderResourceId prefixedResourceId(const std::string& prefix,

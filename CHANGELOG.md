@@ -71,6 +71,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render graph subview branches.** Whole-scene render-to-texture subview
   intent now compiles into prefixed offscreen color branches with exported
   resources visible in graph exports and the Modeler graph view. — GPT-5
+- **Render graph subview output tags.** Render-to-texture subview branches now
+  tag their passes and exported resources with stable subview-specific and
+  output-kind features for future portal and mirror compositors. — GPT-5
 - **Raster subview depth resources.** Raster render-to-texture subviews now
   export a matching prefixed depth AOV resource so future portal and mirror
   composites can depend on color and depth from the same subview. — GPT-5

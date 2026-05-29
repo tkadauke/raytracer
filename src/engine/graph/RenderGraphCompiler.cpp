@@ -620,7 +620,8 @@ namespace engine::graph {
         compileWithSubviewDepth(target, subIntent, sceneAnalysis, renderToTextureDepth + 1);
       const std::string prefix = subviewPrefix(subview, i, usedPrefixes);
       const std::string displayName = subviewDisplayName(subview, i);
-      RenderPlan prefixed = prefixedSubviewPlan(branch, prefix, displayName);
+      RenderPlan prefixed =
+        prefixedSubviewPlan(branch, prefix, displayName, subviewFeature(prefix));
 
       for (const auto& resource : prefixed.resources()) {
         plan.addResource(resource);
@@ -651,15 +652,27 @@ namespace engine::graph {
     return result;
   }
 
-  RenderPlan RenderGraphCompiler::prefixedSubviewPlan(const RenderPlan& branch,
-                                                      const std::string& prefix,
-                                                      const std::string& displayName) const {
+  RenderPlan
+  RenderGraphCompiler::prefixedSubviewPlan(const RenderPlan& branch, const std::string& prefix,
+                                           const std::string& displayName,
+                                           const RenderFeatureKind& subviewFeature) const {
     RenderPlan result;
     for (auto resource : branch.resources()) {
+      const RenderResourceId originalId = resource.id;
       resource.id = prefixedResourceId(prefix, resource.id);
       resource.name = displayName + " " + resource.name;
       resource.addFeature("subview");
+      resource.addFeature(subviewFeature);
       resource.addFeature("render_to_texture");
+      if (resource.lifetime == RenderResourceLifetime::Exported &&
+          (originalId == "main_color" || resource.type == RenderResourceType::Depth)) {
+        resource.addFeature("subview_output");
+        if (originalId == "main_color") {
+          resource.addFeature("subview_color_output");
+        } else if (resource.type == RenderResourceType::Depth) {
+          resource.addFeature("subview_depth_output");
+        }
+      }
       result.addResource(std::move(resource));
     }
 
@@ -667,6 +680,7 @@ namespace engine::graph {
       pass.id = prefixedPassId(prefix, pass.id);
       pass.name = displayName + " " + pass.name;
       addFeature(pass, "subview");
+      addFeature(pass, subviewFeature);
       addFeature(pass, "render_to_texture");
       for (auto& read : pass.reads) {
         read.resource = prefixedResourceId(prefix, read.resource);
@@ -691,6 +705,14 @@ namespace engine::graph {
       prefix = base + "_" + std::to_string(suffix++) + "_";
     }
     return prefix;
+  }
+
+  RenderFeatureKind RenderGraphCompiler::subviewFeature(const std::string& prefix) const {
+    std::string id = prefix;
+    if (!id.empty() && id.back() == '_') {
+      id.pop_back();
+    }
+    return "subview:" + id;
   }
 
   std::string RenderGraphCompiler::subviewDisplayName(const RenderSubviewIntent& subview,

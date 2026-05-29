@@ -615,16 +615,23 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(RenderResourceType::Depth, depth->type);
     EXPECT_EQ(RenderResourceLifetime::Exported, depth->lifetime);
     EXPECT_TRUE(depth->hasFeature("subview"));
+    EXPECT_TRUE(depth->hasFeature("subview:subview_mirror_probe"));
     EXPECT_TRUE(depth->hasFeature("render_to_texture"));
+    EXPECT_TRUE(depth->hasFeature("subview_output"));
+    EXPECT_TRUE(depth->hasFeature("subview_depth_output"));
     const auto* output = plan.findResource("subview_mirror_probe_main_color");
     ASSERT_NE(nullptr, output);
     EXPECT_EQ(RenderResourceLifetime::Exported, output->lifetime);
     EXPECT_TRUE(output->hasFeature("subview"));
+    EXPECT_TRUE(output->hasFeature("subview:subview_mirror_probe"));
     EXPECT_TRUE(output->hasFeature("render_to_texture"));
+    EXPECT_TRUE(output->hasFeature("subview_output"));
+    EXPECT_TRUE(output->hasFeature("subview_color_output"));
 
     const auto* subviewBeauty = plan.findPass("subview_mirror_probe_raster_beauty");
     ASSERT_NE(nullptr, subviewBeauty);
     EXPECT_TRUE(hasFeature(*subviewBeauty, "subview"));
+    EXPECT_TRUE(hasFeature(*subviewBeauty, "subview:subview_mirror_probe"));
     EXPECT_TRUE(hasFeature(*subviewBeauty, "render_to_texture"));
     ASSERT_TRUE(subviewBeauty->sceneView.camera.has_value());
     ASSERT_TRUE(subviewBeauty->sceneView.camera->sceneCameraId.has_value());
@@ -636,6 +643,10 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.resourceCanReach("subview_mirror_probe_beauty_color",
                                       "subview_mirror_probe_main_color"));
     EXPECT_FALSE(plan.resourceCanReach("subview_mirror_probe_main_color", "main_color"));
+    const auto subviewOutputs = plan.resourcesWithFeature("subview_output");
+    ASSERT_EQ(2u, subviewOutputs.size());
+    EXPECT_NE(nullptr, plan.findResource(subviewOutputs[0]->id));
+    EXPECT_NE(nullptr, plan.findResource(subviewOutputs[1]->id));
     EXPECT_TRUE(plan.validate().valid());
   }
 

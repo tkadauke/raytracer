@@ -444,8 +444,11 @@ Tasks:
 - Add graph resources for offscreen color/depth inputs sampled by later passes.
   ✅ **Partial.** Whole-scene subview intent now expands into independent
   prefixed offscreen color branches with exported graph resources. Raster
-  subviews also export matching prefixed depth AOV resources. Sampling those
-  resources from later portal/mirror/material passes remains TODO.
+  subviews also export matching prefixed depth AOV resources, and subview
+  branches tag their final color/depth resources with stable
+  subview/output-kind features so future consumers can find them without
+  parsing ids. Sampling those resources from later portal/mirror/material
+  passes remains TODO.
 - ~~Bound recursion explicitly in render intent/graph compilation.~~ ✅
   **Done.** `RenderIntent` now carries `maxRenderToTextureRecursionDepth`, and
   graph compilation rejects subview expansion once that limit is reached.
