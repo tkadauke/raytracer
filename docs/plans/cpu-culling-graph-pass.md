@@ -194,12 +194,21 @@ Acceptance:
 Tasks:
 
 - Preserve reliable sidedness/winding facts from importers and tessellation.
-- Detect negative-determinant transforms that flip winding.
-- Reject backfacing triangles or leaves only when material/pass state and
-  metadata make it safe.
+- ~~Detect negative-determinant transforms that flip winding for pass-state
+  backface filtering.~~ ✅ **Done.** The first filtering path projects
+  transformed leaf triangles before applying the same screen-space cull policy
+  as raster submission, so mirrored transforms affect the visibility decision
+  the same way they affect the rasterizer. Importer-authored winding metadata
+  still remains future work.
+- ~~Reject backfacing triangles or leaves only when pass state makes it safe.~~
+  ✅ **Done.** The visibility pass now rejects only whole leaves whose
+  tessellated triangles are all inside clip space and all backfacing under an
+  explicit one-sided raster cull mode. Clipped, two-sided, unknown, or mixed
+  leaves stay visible.
 - ~~Attach rejected-backface counts to the visibility resource.~~ ✅
   **Done.** Visibility-set traces now report backface rejected leaf/triangle
-  counters, initially zero until conservative filtering starts using them.
+  counters for both the initial metrics-only path and the conservative
+  filtering path.
 
 Acceptance:
 

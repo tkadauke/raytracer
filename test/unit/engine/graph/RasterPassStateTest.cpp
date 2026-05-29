@@ -130,6 +130,10 @@ namespace RasterPassStateTest {
     EXPECT_EQ(3, geometry.value("lod").toInt());
     EXPECT_EQ("back", geometry.value("cullMode").toString().toStdString());
     EXPECT_FALSE(json.value("frontToBackOrdering").toBool(true));
+    EXPECT_TRUE(state.geometry().hasCullModeOverride());
+    EXPECT_EQ(Rasterizer::CullMode::Back, state.geometry().cullMode());
+    ASSERT_TRUE(state.geometry().cullModeOverride().has_value());
+    EXPECT_EQ(Rasterizer::CullMode::Back, *state.geometry().cullModeOverride());
 
     const auto decoded = RenderPassState::fromJson(
       RenderPassKind::Visibility, RenderExecutorKind::Rasterizer, json, "parameters");

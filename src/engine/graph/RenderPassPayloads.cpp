@@ -16,6 +16,7 @@
 #include "engine/raster/OpenGLRasterizer.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/raster/RasterVisibilitySet.h"
+#include "engine/raster/detail/RasterTriangleEmitter.h"
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/Camera.h"
@@ -1449,6 +1450,17 @@ namespace engine::graph {
       }
 
     private:
+      struct MeshStats {
+        std::size_t triangleCount{0};
+        std::size_t faceCount{0};
+        std::shared_ptr<Mesh> mesh;
+      };
+
+      struct VisibleLeafDepth {
+        std::size_t leafIndex{0};
+        double depth{0.0};
+      };
+
       std::shared_ptr<::engine::raster::RasterVisibilitySet>
       buildVisibilitySet(const RenderExecutionContext& context,
                          const RasterVisibilityPassState& state) const {
@@ -1471,6 +1483,12 @@ namespace engine::graph {
             if (boundsOutsideFrustum(leaf, camera.get(), clipVolume)) {
               visibilitySet->addRejectedLeaf(
                 ::engine::raster::RasterVisibilitySet::RejectionReason::Frustum,
+                stats.triangleCount, stats.faceCount);
+              return;
+            }
+            if (leafFullyBackfacing(leaf, camera.get(), clipVolume, state.geometry(), stats)) {
+              visibilitySet->addRejectedLeaf(
+                ::engine::raster::RasterVisibilitySet::RejectionReason::Backface,
                 stats.triangleCount, stats.faceCount);
               return;
             }
@@ -1532,6 +1550,73 @@ namespace engine::graph {
         return sharedOutCode != 0;
       }
 
+      bool leafFullyBackfacing(const render::Primitive::TransformedLeaf& leaf,
+                               const render::Camera* camera,
+                               const render::HomogeneousClipVolume& clipVolume,
+                               const RasterGeometryState& geometry, const MeshStats& stats) const {
+        if (!camera || !geometry.hasCullModeOverride() ||
+            geometry.cullMode() == ::engine::raster::Rasterizer::CullMode::Both || !stats.mesh ||
+            stats.triangleCount == 0) {
+          return false;
+        }
+
+        const auto& sourceVertices = stats.mesh->vertices();
+        std::vector<::engine::raster::detail::ProjectedVertex> projected(sourceVertices.size());
+        std::vector<Mesh::Vertex> vertices;
+        vertices.reserve(sourceVertices.size());
+        for (std::size_t vi = 0; vi != sourceVertices.size(); ++vi) {
+          const auto& vertex = sourceVertices[vi];
+          vertices.emplace_back(leaf.transformPoint(vertex.point),
+                                leaf.transformNormal(vertex.normal).normalizedOrZero(1e-12),
+                                vertex.uv);
+          const Vector4d clip = camera->projectPointToClipSpace(vertices.back().point);
+          if (clip.isUndefined() || clip.w() == 0.0) {
+            return false;
+          }
+
+          const double invW = 1.0 / clip.w();
+          const Vector3d screen(clip.x() * invW, clip.y() * invW, clip.z());
+          if (!screen.isDefined()) {
+            return false;
+          }
+          projected[vi] = {clip, screen, clipVolume.outCode(clip)};
+        }
+
+        const ::engine::raster::detail::RasterMaterialSource materialSource =
+          ::engine::raster::detail::RasterMaterialSource::from(leaf.material);
+        const ::engine::raster::detail::TriangleCullPolicy cullPolicy{geometry.cullMode(), true};
+        bool testedTriangle = false;
+        for (const auto& face : stats.mesh->faces()) {
+          if (face.size() < 3) {
+            continue;
+          }
+
+          for (std::size_t i = 1; i + 1 < face.size(); ++i) {
+            const auto& p0 = projected[face[0]];
+            const auto& p1 = projected[face[i]];
+            const auto& p2 = projected[face[i + 1]];
+            if ((p0.outCode | p1.outCode | p2.outCode) != 0) {
+              return false;
+            }
+
+            const auto& v0 = vertices[face[0]];
+            const auto& v1 = vertices[face[i]];
+            const auto& v2 = vertices[face[i + 1]];
+            const ::engine::raster::detail::ClipVert c0{v0.point, v0.normal, v0.uv, p0.clip,
+                                                        p0.screen};
+            const ::engine::raster::detail::ClipVert c1{v1.point, v1.normal, v1.uv, p1.clip,
+                                                        p1.screen};
+            const ::engine::raster::detail::ClipVert c2{v2.point, v2.normal, v2.uv, p2.clip,
+                                                        p2.screen};
+            if (!cullPolicy.shouldCull(materialSource, c0, c1, c2)) {
+              return false;
+            }
+            testedTriangle = true;
+          }
+        }
+        return testedTriangle;
+      }
+
       std::optional<double> frontToBackDepth(const render::Primitive::TransformedLeaf& leaf,
                                              const render::Camera* camera) const {
         if (!camera) {
@@ -1550,16 +1635,6 @@ namespace engine::graph {
         return clip.z();
       }
 
-      struct MeshStats {
-        std::size_t triangleCount{0};
-        std::size_t faceCount{0};
-      };
-
-      struct VisibleLeafDepth {
-        std::size_t leafIndex{0};
-        double depth{0.0};
-      };
-
       MeshStats
       meshStatsFor(const render::Primitive* primitive, int lod,
                    std::unordered_map<const render::Primitive*, MeshStats>& meshStats) const {
@@ -1575,6 +1650,7 @@ namespace engine::graph {
         MeshStats stats;
         const std::shared_ptr<Mesh> mesh = primitive->tessellate(lod);
         if (mesh) {
+          stats.mesh = mesh;
           stats.faceCount = mesh->faces().size();
           for (const auto& face : mesh->faces()) {
             if (face.size() >= 3) {

@@ -19,6 +19,7 @@
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
+#include "render/primitives/Triangle.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/tonemap/ReinhardTonemap.h"
 #include "test/helpers/ColorTestHelper.h"
@@ -306,6 +307,22 @@ namespace GraphRenderEngineTest {
     return scene;
   }
 
+  std::shared_ptr<render::Scene> frontAndBackFacingTriangleScene() {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord::black());
+
+    auto front = std::make_shared<render::Triangle>(
+      Vector3d(-1.5, -1.0, 0.0), Vector3d(-0.5, 1.0, 0.0), Vector3d(0.5, -1.0, 0.0));
+    front->setMaterial(matte(Colord::white()));
+    scene->add(front);
+
+    auto back = std::make_shared<render::Triangle>(
+      Vector3d(-0.5, -1.0, 0.0), Vector3d(1.5, -1.0, 0.0), Vector3d(0.5, 1.0, 0.0));
+    back->setMaterial(matte(Colord::white()));
+    scene->add(back);
+    return scene;
+  }
+
   std::shared_ptr<render::Scene> directionalShadowScene() {
     auto scene = std::make_shared<render::Scene>();
     scene->setAmbient(Colord(0.1, 0.1, 0.1));
@@ -507,6 +524,32 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(std::string::npos, message.find("visibleLeaves=2")) << message;
     EXPECT_NE(std::string::npos, message.find("frontToBackOrdering=enabled")) << message;
     EXPECT_NE(std::string::npos, message.find("frontToBackOrderedLeaves=2")) << message;
+  }
+
+  TEST(GraphRenderEngine, RecordsRasterVisibilityBackfaceRejectedMetrics) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
+    intent.engineOptions.rasterizer().setCullMode("back");
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), frontAndBackFacingTriangleScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* visibilityTrace = trace->findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibilityTrace);
+    const std::string& message = visibilityTrace->message();
+    EXPECT_NE(std::string::npos, message.find("inputLeaves=2")) << message;
+    EXPECT_NE(std::string::npos, message.find("visibleLeaves=1")) << message;
+    EXPECT_NE(std::string::npos, message.find("backfaceRejectedLeaves=1")) << message;
+    EXPECT_NE(std::string::npos, message.find("backfaceRejectedTriangles=1")) << message;
   }
 
   TEST(GraphRenderEngine, RasterVisibilityCullingPreservesOpaqueOutput) {

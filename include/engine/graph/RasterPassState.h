@@ -68,6 +68,9 @@ namespace engine::graph {
     void setCullMode(Rasterizer::CullMode mode);
 
     int lod() const;
+    std::optional<Rasterizer::CullMode> cullModeOverride() const;
+    Rasterizer::CullMode cullMode() const;
+    bool hasCullModeOverride() const;
 
   private:
     int m_lod{0};

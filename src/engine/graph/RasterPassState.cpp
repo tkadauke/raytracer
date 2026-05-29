@@ -624,6 +624,18 @@ namespace engine::graph {
     return m_lod;
   }
 
+  std::optional<Rasterizer::CullMode> RasterGeometryState::cullModeOverride() const {
+    return m_cullMode;
+  }
+
+  Rasterizer::CullMode RasterGeometryState::cullMode() const {
+    return m_cullMode.value_or(Rasterizer::CullMode::Both);
+  }
+
+  bool RasterGeometryState::hasCullModeOverride() const {
+    return m_cullMode.has_value() && *m_cullMode != Rasterizer::CullMode::Both;
+  }
+
   RasterSamplingState RasterSamplingState::fromJson(const QJsonObject& object,
                                                     const std::string& path) {
     rejectUnknownFields(object, path, {"msaaSamples", "msaaShadingMode", "postProcessAA"});
