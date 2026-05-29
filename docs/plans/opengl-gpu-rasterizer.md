@@ -221,6 +221,11 @@ Tasks:
   fragment shading.~~ ✅ **Done.** OpenGL raster batches now upload directional
   light radiance/direction and per-material lighting coefficients so smooth
   assets use fragment-normal lighting instead of Gouraud-style interpolation.
+- ~~Move point diffuse/specular lighting from vertex interpolation to fragment
+  shading.~~ ✅ **Done.** Runtime lights now expose shader-compatible
+  positional light state through the `Light` hierarchy, and OpenGL raster
+  batches upload point-light position/radiance for fragment-normal lighting
+  when shadow-map fallback is not required.
 - ~~Read back color for final output~~ ✅ **Done.** Color readback now fills
   the render target.
 - ~~Read back depth for the raster depth AOV path.~~ ✅ **Done.** The OpenGL

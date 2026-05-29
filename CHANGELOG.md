@@ -165,6 +165,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   evaluate directional diffuse and local Phong specular terms per fragment
   instead of interpolating those lighting contributions from mesh vertices,
   improving CPU/GPU raster parity on smooth assets. — GPT-5
+- **OpenGL raster fragment point lighting.** OpenGL raster passes now evaluate
+  point-light diffuse and local Phong specular terms per fragment when no
+  shadow-map fallback is required, improving CPU/GPU parity for point-lit
+  smooth assets. — GPT-5
 - **OpenGL raster readback timing.** Graph execution traces now report how
   long OpenGL raster passes spent copying color/depth/stencil attachments back
   to CPU buffers, making the current eager-readback cost visible in rendercli

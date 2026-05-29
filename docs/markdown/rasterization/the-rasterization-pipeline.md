@@ -310,9 +310,9 @@ backends consume the same shadow-map intent.
 Differences in those images are useful. The CPU column is the
 correctness reference for the software path and for headless docs/CI
 runs. The OpenGL column shows which pieces of the same compiled raster
-state are already implemented in the GPU backend: directional diffuse
-and Phong lighting, direct checker/image texture sampling, depth and
-stencil attachments, MSAA framebuffers, and the currently supported
+state are already implemented in the GPU backend: directional and point
+diffuse/Phong lighting, direct checker/image texture sampling,
+depth and stencil attachments, MSAA framebuffers, and the currently supported
 shader-side shadow-map subset. Unsupported raster state should fail or
 fall back through the graph with trace metadata instead of silently
 changing the render.

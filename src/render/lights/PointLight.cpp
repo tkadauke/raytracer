@@ -18,3 +18,7 @@ void PointLight::writeFingerprint(std::ostream& out, const std::string& prefix) 
   writeCommonFingerprint(out, prefix);
   writeFingerprintVector(out, prefix + "position", position());
 }
+
+std::optional<Vector3d> PointLight::positionalLightPosition() const {
+  return position();
+}

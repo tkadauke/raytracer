@@ -82,10 +82,20 @@ namespace engine::raster::detail {
       float radianceB{0.0f};
     };
 
+    struct PointLight {
+      float positionX{0.0f};
+      float positionY{0.0f};
+      float positionZ{0.0f};
+      float radianceR{0.0f};
+      float radianceG{0.0f};
+      float radianceB{0.0f};
+    };
+
     using Vertices = std::vector<Vertex>;
     using Indices = std::vector<std::uint32_t>;
     using Batches = std::vector<Batch>;
     using DirectionalLights = std::vector<DirectionalLight>;
+    using PointLights = std::vector<PointLight>;
 
     bool empty() const;
     std::size_t triangleCount() const;
@@ -93,16 +103,19 @@ namespace engine::raster::detail {
     const Indices& indices() const;
     const Batches& batches() const;
     const DirectionalLights& directionalLights() const;
+    const PointLights& pointLights() const;
 
     void appendTriangle(const Vertex& v0, const Vertex& v1, const Vertex& v2,
                         const RasterAlbedoShaderSource& albedo);
     void addDirectionalLight(const DirectionalLight& light);
+    void addPointLight(const PointLight& light);
 
   private:
     Vertices m_vertices;
     Indices m_indices;
     Batches m_batches;
     DirectionalLights m_directionalLights;
+    PointLights m_pointLights;
   };
 
   class OpenGLRasterMeshBuilder {
@@ -125,9 +138,11 @@ namespace engine::raster::detail {
     const ShadowMaps* m_shadowMaps;
 
     void appendDirectionalLights(OpenGLRasterMesh& mesh) const;
+    void appendPointLights(OpenGLRasterMesh& mesh) const;
     OpenGLRasterMesh::Vertex vertexFor(const RasterTriangle& triangle,
                                        const RasterVertex& vertex) const;
-    bool usesFragmentDirectionalLighting() const;
+    bool usesFragmentShaderLighting() const;
+    bool shadesInFragmentShader(const render::Light& light) const;
     Vector3d lightingNormalFor(const RasterTriangle& triangle, const RasterVertex& vertex) const;
     Colord ambientLightingFor(const RasterTriangle& triangle) const;
     Colord directLightingFor(const RasterTriangle& triangle, const RasterVertex& vertex,

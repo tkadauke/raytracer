@@ -13,6 +13,10 @@ std::optional<Vector3d> Light::directionalShadowMapDirection() const {
   return std::nullopt;
 }
 
+std::optional<Vector3d> Light::positionalLightPosition() const {
+  return std::nullopt;
+}
+
 void Light::writeCommonFingerprint(std::ostream& out, const std::string& prefix) const {
   out << prefix << "type=" << fingerprintType() << ';';
   writeFingerprintColor(out, prefix + "radiance", radiance());

@@ -91,6 +91,13 @@ namespace render {
       */
     virtual std::optional<Vector3d> directionalShadowMapDirection() const;
 
+    /**
+      * @returns the finite light position when this light can be represented as
+      * a positional shader light, or `std::nullopt` for light types that are
+      * direction-only or need a different sampling model.
+      */
+    virtual std::optional<Vector3d> positionalLightPosition() const;
+
   protected:
     void writeCommonFingerprint(std::ostream& out, const std::string& prefix) const;
     static void writeFingerprintColor(std::ostream& out, const std::string& name,

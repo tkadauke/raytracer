@@ -28,6 +28,7 @@
 namespace engine::raster {
   namespace {
     constexpr int kMaxDirectionalShaderLights = 8;
+    constexpr int kMaxPointShaderLights = 8;
 
     class OpenGLTextureCache {
     public:
@@ -400,6 +401,9 @@ namespace engine::raster {
               "uniform int directionalLightCount;\n"
               "uniform vec3 directionalLightDirection[8];\n"
               "uniform vec3 directionalLightRadiance[8];\n"
+              "uniform int pointLightCount;\n"
+              "uniform vec3 pointLightPosition[8];\n"
+              "uniform vec3 pointLightRadiance[8];\n"
               "uniform bool alphaTestEnabled;\n"
               "uniform int alphaFunc;\n"
               "uniform float alphaReference;\n"
@@ -501,6 +505,35 @@ namespace engine::raster {
               "    }\n"
               "  }\n"
               "}\n"
+              "void addPointLighting(vec3 normal, vec3 viewDir,\n"
+              "                      inout vec3 directLighting, "
+              "inout vec3 specularLighting) {\n"
+              "  for (int i = 0; i < 8; ++i) {\n"
+              "    if (i < pointLightCount) {\n"
+              "      vec3 lightDir = normalize(pointLightPosition[i] - "
+              "fragmentWorldPosition);\n"
+              "      float nDotL = max(0.0, dot(normal, lightDir));\n"
+              "      if (nDotL > 0.0) {\n"
+              "        vec3 radiance = pointLightRadiance[i];\n"
+              "        directLighting += radiance * fragmentMaterialDiffuse "
+              "* nDotL;\n"
+              "        if (fragmentMaterialSpecularCoefficient > 0.0) {\n"
+              "          vec3 lobeDirection = normalize(-lightDir + normal "
+              "* 2.0 * nDotL);\n"
+              "          float lobeDotView = max(0.0, dot(lobeDirection, "
+              "viewDir));\n"
+              "          if (lobeDotView > 0.0) {\n"
+              "            specularLighting += fragmentMaterialSpecularColor "
+              "*\n"
+              "              fragmentMaterialSpecularCoefficient *\n"
+              "              pow(lobeDotView, "
+              "fragmentMaterialSpecularExponent) * radiance * nDotL;\n"
+              "          }\n"
+              "        }\n"
+              "      }\n"
+              "    }\n"
+              "  }\n"
+              "}\n"
               "void main() {\n"
               "  vec4 sourceColor = vertexColor;\n"
               "  if (fragmentAlbedoMode > 0.5 && "
@@ -553,6 +586,8 @@ namespace engine::raster {
               "  vec3 shaderSpecular = vec3(0.0, 0.0, 0.0);\n"
               "  addDirectionalLighting(normal, viewDir, shadow, "
               "shaderDirectLighting, shaderSpecular);\n"
+              "  addPointLighting(normal, viewDir, shaderDirectLighting, "
+              "shaderSpecular);\n"
               "  sourceColor.rgb = sourceColor.rgb * "
               "(fragmentAmbientLighting + fragmentDirectLighting + "
               "shaderDirectLighting) + fragmentSpecular + "
@@ -847,18 +882,31 @@ namespace engine::raster {
                                const detail::OpenGLRasterMesh& mesh) const {
         setVectorUniform(program, "cameraPosition", m_cameraPosition);
 
-        const auto& lights = mesh.directionalLights();
-        const int lightCount =
-          static_cast<int>(std::min<std::size_t>(lights.size(), kMaxDirectionalShaderLights));
-        program.setUniformValue("directionalLightCount", lightCount);
-        for (int i = 0; i < lightCount; ++i) {
-          const auto& light = lights[static_cast<std::size_t>(i)];
+        const auto& directionalLights = mesh.directionalLights();
+        const int directionalLightCount = static_cast<int>(
+          std::min<std::size_t>(directionalLights.size(), kMaxDirectionalShaderLights));
+        program.setUniformValue("directionalLightCount", directionalLightCount);
+        for (int i = 0; i < directionalLightCount; ++i) {
+          const auto& light = directionalLights[static_cast<std::size_t>(i)];
           setVectorUniform(program, uniformName("directionalLightDirection", i).c_str(),
                            Vector3d(light.directionX, light.directionY, light.directionZ));
           program.setUniformValue(uniformName("directionalLightRadiance", i).c_str(),
                                   static_cast<GLfloat>(light.radianceR),
                                   static_cast<GLfloat>(light.radianceG),
                                   static_cast<GLfloat>(light.radianceB));
+        }
+
+        const auto& pointLights = mesh.pointLights();
+        const int pointLightCount =
+          static_cast<int>(std::min<std::size_t>(pointLights.size(), kMaxPointShaderLights));
+        program.setUniformValue("pointLightCount", pointLightCount);
+        for (int i = 0; i < pointLightCount; ++i) {
+          const auto& light = pointLights[static_cast<std::size_t>(i)];
+          setVectorUniform(program, uniformName("pointLightPosition", i).c_str(),
+                           Vector3d(light.positionX, light.positionY, light.positionZ));
+          program.setUniformValue(
+            uniformName("pointLightRadiance", i).c_str(), static_cast<GLfloat>(light.radianceR),
+            static_cast<GLfloat>(light.radianceG), static_cast<GLfloat>(light.radianceB));
         }
       }
 

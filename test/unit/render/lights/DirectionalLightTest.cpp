@@ -40,4 +40,10 @@ namespace DirectionalLightTest {
     ASSERT_TRUE(light.directionalShadowMapDirection().has_value());
     ASSERT_EQ(dir, *light.directionalShadowMapDirection());
   }
+
+  TEST(DirectionalLight, ShouldNotProvidePositionalLightPosition) {
+    DirectionalLight light(Vector3d(-0.5, -1, -0.5), Colord::white());
+
+    ASSERT_FALSE(light.positionalLightPosition().has_value());
+  }
 }

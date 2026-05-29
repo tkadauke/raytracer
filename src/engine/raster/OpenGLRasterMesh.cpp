@@ -85,6 +85,10 @@ namespace engine::raster::detail {
     return m_directionalLights;
   }
 
+  const OpenGLRasterMesh::PointLights& OpenGLRasterMesh::pointLights() const {
+    return m_pointLights;
+  }
+
   void OpenGLRasterMesh::appendTriangle(const Vertex& v0, const Vertex& v1, const Vertex& v2,
                                         const RasterAlbedoShaderSource& albedo) {
     const auto base = static_cast<std::uint32_t>(m_vertices.size());
@@ -104,6 +108,10 @@ namespace engine::raster::detail {
 
   void OpenGLRasterMesh::addDirectionalLight(const DirectionalLight& light) {
     m_directionalLights.push_back(light);
+  }
+
+  void OpenGLRasterMesh::addPointLight(const PointLight& light) {
+    m_pointLights.push_back(light);
   }
 
   OpenGLRasterMeshBuilder::OpenGLRasterMeshBuilder(
@@ -132,6 +140,7 @@ namespace engine::raster::detail {
     RasterTriangleEmitter emitter(m_scene, m_camera, m_lod, rasterizer, m_cancelled, m_cullMode,
                                   m_hasCullModeOverride, false);
     appendDirectionalLights(mesh);
+    appendPointLights(mesh);
     emitter.forEachTriangle([&](const RasterTriangle& triangle) {
       const RasterAlbedoShaderSource albedo = triangle.rasterMaterial.shaderAlbedoSource();
       mesh.appendTriangle(vertexFor(triangle, triangle.vertices[0]),
@@ -143,7 +152,7 @@ namespace engine::raster::detail {
   }
 
   void OpenGLRasterMeshBuilder::appendDirectionalLights(OpenGLRasterMesh& mesh) const {
-    if (!m_scene || !usesFragmentDirectionalLighting()) {
+    if (!m_scene || !usesFragmentShaderLighting()) {
       return;
     }
 
@@ -157,6 +166,23 @@ namespace engine::raster::detail {
         {static_cast<float>(direction->x()), static_cast<float>(direction->y()),
          static_cast<float>(direction->z()), nonnegativeComponent(radiance.r()),
          nonnegativeComponent(radiance.g()), nonnegativeComponent(radiance.b())});
+    }
+  }
+
+  void OpenGLRasterMeshBuilder::appendPointLights(OpenGLRasterMesh& mesh) const {
+    if (!m_scene || !usesFragmentShaderLighting()) {
+      return;
+    }
+
+    for (const auto& light : m_scene->lights()) {
+      const auto position = light->positionalLightPosition();
+      if (!position) {
+        continue;
+      }
+      const Colord radiance = light->radiance();
+      mesh.addPointLight({static_cast<float>(position->x()), static_cast<float>(position->y()),
+                          static_cast<float>(position->z()), nonnegativeComponent(radiance.r()),
+                          nonnegativeComponent(radiance.g()), nonnegativeComponent(radiance.b())});
     }
   }
 
@@ -206,8 +232,13 @@ namespace engine::raster::detail {
             shaderMode(shaderSource)};
   }
 
-  bool OpenGLRasterMeshBuilder::usesFragmentDirectionalLighting() const {
+  bool OpenGLRasterMeshBuilder::usesFragmentShaderLighting() const {
     return m_shadowMaps == nullptr;
+  }
+
+  bool OpenGLRasterMeshBuilder::shadesInFragmentShader(const render::Light& light) const {
+    return usesFragmentShaderLighting() && (light.directionalShadowMapDirection().has_value() ||
+                                            light.positionalLightPosition().has_value());
   }
 
   Vector3d OpenGLRasterMeshBuilder::lightingNormalFor(const RasterTriangle& triangle,
@@ -234,7 +265,7 @@ namespace engine::raster::detail {
 
     Colord lighting = Colord::black();
     for (const auto& light : m_scene->lights()) {
-      if (usesFragmentDirectionalLighting() && light->directionalShadowMapDirection()) {
+      if (shadesInFragmentShader(*light)) {
         continue;
       }
       const Vector3d lightDir = light->direction(vertex.point);
@@ -257,7 +288,7 @@ namespace engine::raster::detail {
     const Vector3d viewDir = (-m_camera->rayForPixel(vertex.x, vertex.y).direction()).normalized();
     Colord specular = Colord::black();
     for (const auto& light : m_scene->lights()) {
-      if (usesFragmentDirectionalLighting() && light->directionalShadowMapDirection()) {
+      if (shadesInFragmentShader(*light)) {
         continue;
       }
       const Vector3d lightDir = light->direction(vertex.point);

@@ -269,9 +269,10 @@ namespace OpenGLRasterMeshTest {
     }
   }
 
-  TEST(OpenGLRasterMesh, KeepsPointLightInVertexLightingFallback) {
+  TEST(OpenGLRasterMesh, CarriesPointLightForFragmentShader) {
     auto scene = std::make_shared<render::Scene>(Colord::black());
-    scene->addLight(std::make_shared<render::PointLight>(Vector3d(0, 0, 2), Colord::white()));
+    scene->addLight(
+      std::make_shared<render::PointLight>(Vector3d(0, 0, 2), Colord(0.25, 0.5, 0.75)));
     auto triangle = std::make_shared<render::Triangle>(
       Vector3d(-0.25, -0.25, 0), Vector3d(0.25, -0.25, 0), Vector3d(0, 0.25, 0));
     triangle->setMaterial(matte(Colord::red()));
@@ -284,11 +285,18 @@ namespace OpenGLRasterMeshTest {
 
     ASSERT_FALSE(mesh.empty());
     EXPECT_TRUE(mesh.directionalLights().empty());
+    ASSERT_EQ(1u, mesh.pointLights().size());
+    EXPECT_FLOAT_EQ(0.0f, mesh.pointLights()[0].positionX);
+    EXPECT_FLOAT_EQ(0.0f, mesh.pointLights()[0].positionY);
+    EXPECT_FLOAT_EQ(2.0f, mesh.pointLights()[0].positionZ);
+    EXPECT_FLOAT_EQ(0.25f, mesh.pointLights()[0].radianceR);
+    EXPECT_FLOAT_EQ(0.5f, mesh.pointLights()[0].radianceG);
+    EXPECT_FLOAT_EQ(0.75f, mesh.pointLights()[0].radianceB);
     ASSERT_EQ(3u, mesh.vertices().size());
     for (const auto& vertex : mesh.vertices()) {
-      EXPECT_GT(vertex.directR, 0.0f);
-      EXPECT_GT(vertex.directG, 0.0f);
-      EXPECT_GT(vertex.directB, 0.0f);
+      EXPECT_FLOAT_EQ(0.0f, vertex.directR);
+      EXPECT_FLOAT_EQ(0.0f, vertex.directG);
+      EXPECT_FLOAT_EQ(0.0f, vertex.directB);
     }
   }
 
@@ -322,6 +330,7 @@ namespace OpenGLRasterMeshTest {
 
     ASSERT_FALSE(mesh.empty());
     EXPECT_TRUE(mesh.directionalLights().empty());
+    EXPECT_TRUE(mesh.pointLights().empty());
     ASSERT_EQ(3u, mesh.vertices().size());
     for (const auto& vertex : mesh.vertices()) {
       EXPECT_FLOAT_EQ(0.25f, vertex.ambientR);

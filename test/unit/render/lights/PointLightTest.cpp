@@ -35,4 +35,11 @@ namespace PointLightTest {
     PointLight light(Vector3d(1, 0, 0), Colord::white());
     ASSERT_FALSE(light.directionalShadowMapDirection().has_value());
   }
+
+  TEST(PointLight, ShouldProvidePositionalLightPosition) {
+    PointLight light(Vector3d(1, 2, 3), Colord::white());
+
+    ASSERT_TRUE(light.positionalLightPosition().has_value());
+    EXPECT_EQ(Vector3d(1, 2, 3), *light.positionalLightPosition());
+  }
 }
