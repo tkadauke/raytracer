@@ -689,9 +689,9 @@ artifact key uses the pass state, target descriptor, camera fingerprint, and a
 transformed scene-geometry fingerprint. Display-only changes such as tonemap
 switches can therefore reuse the cached set, while camera movement produces a
 different cache entry. A second scene-side cache stores per-primitive/lod mesh
-statistics keyed by primitive identity and bounds, so a camera move can
-recompute the visibility set while reusing stable tessellation counts and
-backface-test meshes.
+statistics and transformed bounds keyed by primitive identity, primitive
+bounds, and transform, so a camera move can recompute the visibility set while
+reusing stable tessellation counts, backface-test meshes, and leaf bounds.
 
 The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
 `RenderIntent::postProcessAA` asks the compiler to insert a `post_fxaa` or

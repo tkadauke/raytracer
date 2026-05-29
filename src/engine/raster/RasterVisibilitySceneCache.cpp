@@ -14,6 +14,12 @@ namespace engine::raster {
            std::tie(other.primitive, other.lod, other.boundsFingerprint);
   }
 
+  bool RasterVisibilitySceneCache::TransformedBoundsKey::operator<(
+    const TransformedBoundsKey& other) const {
+    return std::tie(primitive, boundsFingerprint, matrixFingerprint) <
+           std::tie(other.primitive, other.boundsFingerprint, other.matrixFingerprint);
+  }
+
   RasterVisibilitySceneCache::MeshStatsLookup
   RasterVisibilitySceneCache::meshStatsFor(const render::Primitive& primitive, int lod) {
     const MeshStatsKey key{&primitive, lod, boundsFingerprint(primitive)};
@@ -33,14 +39,41 @@ namespace engine::raster {
     }
   }
 
+  RasterVisibilitySceneCache::TransformedBoundsLookup
+  RasterVisibilitySceneCache::transformedBoundsFor(const render::Primitive& primitive,
+                                                   const Matrix4d& pointMatrix) {
+    const TransformedBoundsKey key{&primitive, boundsFingerprint(primitive),
+                                   matrixFingerprint(pointMatrix)};
+    {
+      std::lock_guard<std::mutex> lock(m_mutex);
+      const auto it = m_transformedBounds.find(key);
+      if (it != m_transformedBounds.end()) {
+        return {it->second, true};
+      }
+    }
+
+    BoundingBoxd bounds = buildTransformedBounds(primitive, pointMatrix);
+    {
+      std::lock_guard<std::mutex> lock(m_mutex);
+      const auto [it, inserted] = m_transformedBounds.emplace(key, std::move(bounds));
+      return {it->second, !inserted};
+    }
+  }
+
   void RasterVisibilitySceneCache::clear() {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_meshStats.clear();
+    m_transformedBounds.clear();
   }
 
   std::size_t RasterVisibilitySceneCache::size() const {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_meshStats.size();
+  }
+
+  std::size_t RasterVisibilitySceneCache::transformedBoundsSize() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_transformedBounds.size();
   }
 
   RasterVisibilitySceneCache::MeshStats
@@ -59,6 +92,21 @@ namespace engine::raster {
     return stats;
   }
 
+  BoundingBoxd
+  RasterVisibilitySceneCache::buildTransformedBounds(const render::Primitive& primitive,
+                                                     const Matrix4d& pointMatrix) {
+    const BoundingBoxd& bounds = primitive.boundingBox();
+    if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite()) {
+      return bounds;
+    }
+
+    BoundingBoxd result;
+    for (const Vector3d& vertex : bounds.vertices()) {
+      result.include(pointMatrix.transformPoint(vertex));
+    }
+    return result;
+  }
+
   std::string RasterVisibilitySceneCache::boundsFingerprint(const render::Primitive& primitive) {
     const BoundingBoxd& bounds = primitive.boundingBox();
     std::ostringstream out;
@@ -68,6 +116,16 @@ namespace engine::raster {
       out << "min=" << bounds.min().x() << ',' << bounds.min().y() << ',' << bounds.min().z()
           << ";max=" << bounds.max().x() << ',' << bounds.max().y() << ',' << bounds.max().z()
           << ';';
+    }
+    return out.str();
+  }
+
+  std::string RasterVisibilitySceneCache::matrixFingerprint(const Matrix4d& matrix) {
+    std::ostringstream out;
+    for (int row = 0; row != 4; ++row) {
+      for (int column = 0; column != 4; ++column) {
+        out << matrix[row][column] << ';';
+      }
     }
     return out.str();
   }

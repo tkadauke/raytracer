@@ -1459,6 +1459,8 @@ namespace engine::graph {
         std::shared_ptr<::engine::raster::RasterVisibilitySet> visibilitySet;
         std::size_t meshCacheHits{0};
         std::size_t meshCacheMisses{0};
+        std::size_t boundsCacheHits{0};
+        std::size_t boundsCacheMisses{0};
       };
 
     public:
@@ -1488,9 +1490,9 @@ namespace engine::graph {
           .resource(write.resource)
           .setCacheMetadata(
             {RenderGraphCacheStatus::Stored, "cache miss; stored raster visibility-set artifact"});
-        context.recordTraceMessage(traceMessage(*result.visibilitySet, state,
-                                                RenderGraphCacheStatus::Stored,
-                                                result.meshCacheHits, result.meshCacheMisses));
+        context.recordTraceMessage(traceMessage(
+          *result.visibilitySet, state, RenderGraphCacheStatus::Stored, result.meshCacheHits,
+          result.meshCacheMisses, result.boundsCacheHits, result.boundsCacheMisses));
       }
 
     private:
@@ -1530,7 +1532,7 @@ namespace engine::graph {
           .setCacheMetadata(
             {RenderGraphCacheStatus::Hit, "restored raster visibility-set artifact from cache"});
         context.recordTraceMessage(traceMessage(*context.storage().visibilitySet(resourceId), state,
-                                                RenderGraphCacheStatus::Hit, 0, 0));
+                                                RenderGraphCacheStatus::Hit, 0, 0, 0, 0));
         return true;
       }
 
@@ -1542,7 +1544,7 @@ namespace engine::graph {
         visibilitySet->setTileGrid(descriptor.width, descriptor.height, TileSize, TileSize);
         const auto scene = context.graph().scene();
         if (!scene) {
-          return {visibilitySet, 0, 0};
+          return {visibilitySet, 0, 0, 0, 0};
         }
 
         const int lod = state.geometry().lod();
@@ -1550,6 +1552,8 @@ namespace engine::graph {
         const render::HomogeneousClipVolume clipVolume = rasterClipVolume();
         std::size_t meshCacheHits = 0;
         std::size_t meshCacheMisses = 0;
+        std::size_t boundsCacheHits = 0;
+        std::size_t boundsCacheMisses = 0;
         std::vector<VisibleLeafDepth> visibleLeafDepths;
         const bool tileDepthSummariesAllowed = state.frontToBackOrderingEnabled();
         bool orderable = state.frontToBackOrderingEnabled() && camera != nullptr;
@@ -1563,7 +1567,13 @@ namespace engine::graph {
               ++meshCacheMisses;
             }
             const MeshStats& stats = meshStats.stats;
-            if (boundsOutsideFrustum(leaf, camera.get(), clipVolume)) {
+            const auto bounds = transformedBoundsFor(context, leaf);
+            if (bounds.hit) {
+              ++boundsCacheHits;
+            } else {
+              ++boundsCacheMisses;
+            }
+            if (boundsOutsideFrustum(bounds.bounds, camera.get(), clipVolume)) {
               visibilitySet->addRejectedLeaf(
                 ::engine::raster::RasterVisibilitySet::RejectionReason::Frustum,
                 stats.triangleCount, stats.faceCount);
@@ -1577,8 +1587,8 @@ namespace engine::graph {
             }
 
             visibilitySet->addVisibleLeaf(stats.triangleCount, stats.faceCount);
-            if (auto coverage =
-                  projectedBoundsTiles(leaf, camera.get(), clipVolume, visibilitySet->tileGrid())) {
+            if (auto coverage = projectedBoundsTiles(bounds.bounds, camera.get(), clipVolume,
+                                                     visibilitySet->tileGrid())) {
               if (tileDepthSummariesAllowed) {
                 visibilitySet->setVisibleLeafTiles(leafIndex, std::move(coverage->tiles),
                                                    coverage->nearestDepth);
@@ -1587,7 +1597,7 @@ namespace engine::graph {
               }
             }
             if (orderable) {
-              if (const auto depth = frontToBackDepth(leaf, camera.get())) {
+              if (const auto depth = frontToBackDepth(bounds.bounds, camera.get())) {
                 visibleLeafDepths.push_back(VisibleLeafDepth{leafIndex, *depth});
               } else {
                 orderable = false;
@@ -1606,7 +1616,7 @@ namespace engine::graph {
           }
           visibilitySet->setVisibleLeafOrder(std::move(visibleLeafOrder));
         }
-        return {visibilitySet, meshCacheHits, meshCacheMisses};
+        return {visibilitySet, meshCacheHits, meshCacheMisses, boundsCacheHits, boundsCacheMisses};
       }
 
       render::HomogeneousClipVolume rasterClipVolume() const {
@@ -1615,14 +1625,12 @@ namespace engine::graph {
                                              defaultRasterizer.farClipDepth());
       }
 
-      bool boundsOutsideFrustum(const render::Primitive::TransformedLeaf& leaf,
-                                const render::Camera* camera,
+      bool boundsOutsideFrustum(const BoundingBoxd& bounds, const render::Camera* camera,
                                 const render::HomogeneousClipVolume& clipVolume) const {
         if (!camera) {
           return false;
         }
 
-        const BoundingBoxd bounds = leaf.boundingBox();
         if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite()) {
           return false;
         }
@@ -1710,15 +1718,13 @@ namespace engine::graph {
       }
 
       std::optional<ProjectedTileCoverage>
-      projectedBoundsTiles(const render::Primitive::TransformedLeaf& leaf,
-                           const render::Camera* camera,
+      projectedBoundsTiles(const BoundingBoxd& bounds, const render::Camera* camera,
                            const render::HomogeneousClipVolume& clipVolume,
                            const ::engine::raster::RasterVisibilitySet::TileGrid& grid) const {
         if (!camera || !grid.enabled()) {
           return std::nullopt;
         }
 
-        const BoundingBoxd bounds = leaf.boundingBox();
         if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite()) {
           return std::nullopt;
         }
@@ -1771,13 +1777,12 @@ namespace engine::graph {
         return ProjectedTileCoverage{std::move(tiles), nearestDepth};
       }
 
-      std::optional<double> frontToBackDepth(const render::Primitive::TransformedLeaf& leaf,
+      std::optional<double> frontToBackDepth(const BoundingBoxd& bounds,
                                              const render::Camera* camera) const {
         if (!camera) {
           return std::nullopt;
         }
 
-        const BoundingBoxd bounds = leaf.boundingBox();
         if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite()) {
           return std::nullopt;
         }
@@ -1797,10 +1802,21 @@ namespace engine::graph {
         return context.graph().rasterVisibilitySceneCache()->meshStatsFor(*primitive, lod);
       }
 
+      ::engine::raster::RasterVisibilitySceneCache::TransformedBoundsLookup
+      transformedBoundsFor(const RenderExecutionContext& context,
+                           const render::Primitive::TransformedLeaf& leaf) const {
+        if (!leaf.primitive) {
+          return {};
+        }
+        return context.graph().rasterVisibilitySceneCache()->transformedBoundsFor(*leaf.primitive,
+                                                                                  leaf.pointMatrix);
+      }
+
       std::string traceMessage(const ::engine::raster::RasterVisibilitySet& visibilitySet,
                                const RasterVisibilityPassState& state,
                                RenderGraphCacheStatus cacheStatus, std::size_t meshCacheHits,
-                               std::size_t meshCacheMisses) const {
+                               std::size_t meshCacheMisses, std::size_t boundsCacheHits,
+                               std::size_t boundsCacheMisses) const {
         const char* ordering = "unsupported";
         if (visibilitySet.hasVisibleLeafOrder()) {
           ordering = "enabled";
@@ -1813,6 +1829,8 @@ namespace engine::graph {
         out << "visibility culling produced a CPU visibility set"
             << "; cache=" << toString(cacheStatus) << "; lod=" << state.geometry().lod()
             << "; meshCacheHits=" << meshCacheHits << "; meshCacheMisses=" << meshCacheMisses
+            << "; boundsCacheHits=" << boundsCacheHits
+            << "; boundsCacheMisses=" << boundsCacheMisses
             << "; inputLeaves=" << visibilitySet.leafCount()
             << "; inputTriangles=" << visibilitySet.inputTriangleCount()
             << "; visibleLeaves=" << visibilitySet.visibleLeafCount()

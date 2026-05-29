@@ -33,11 +33,39 @@ namespace RasterVisibilitySceneCacheTest {
     render::Sphere sphere(Vector3d::null, 1.0);
 
     EXPECT_FALSE(cache.meshStatsFor(sphere, 0).hit);
+    EXPECT_FALSE(cache.transformedBoundsFor(sphere, Matrix4d()).hit);
     ASSERT_EQ(1u, cache.size());
+    ASSERT_EQ(1u, cache.transformedBoundsSize());
 
     cache.clear();
 
     EXPECT_EQ(0u, cache.size());
+    EXPECT_EQ(0u, cache.transformedBoundsSize());
     EXPECT_FALSE(cache.meshStatsFor(sphere, 0).hit);
+  }
+
+  TEST(RasterVisibilitySceneCache, ReusesPrimitiveTransformBounds) {
+    engine::raster::RasterVisibilitySceneCache cache;
+    render::Sphere sphere(Vector3d::null, 1.0);
+
+    const Matrix4d identity;
+    const auto first = cache.transformedBoundsFor(sphere, identity);
+    EXPECT_FALSE(first.hit);
+    EXPECT_TRUE(first.bounds.isValid());
+    EXPECT_EQ(Vector3d(-1.0, -1.0, -1.0), first.bounds.min());
+    EXPECT_EQ(Vector3d(1.0, 1.0, 1.0), first.bounds.max());
+    EXPECT_EQ(1u, cache.transformedBoundsSize());
+
+    const auto second = cache.transformedBoundsFor(sphere, identity);
+    EXPECT_TRUE(second.hit);
+    EXPECT_EQ(first.bounds.min(), second.bounds.min());
+    EXPECT_EQ(first.bounds.max(), second.bounds.max());
+    EXPECT_EQ(1u, cache.transformedBoundsSize());
+
+    const auto translated = cache.transformedBoundsFor(sphere, Matrix4d::translate(2.0, 0.0, 0.0));
+    EXPECT_FALSE(translated.hit);
+    EXPECT_EQ(Vector3d(1.0, -1.0, -1.0), translated.bounds.min());
+    EXPECT_EQ(Vector3d(3.0, 1.0, 1.0), translated.bounds.max());
+    EXPECT_EQ(2u, cache.transformedBoundsSize());
   }
 }

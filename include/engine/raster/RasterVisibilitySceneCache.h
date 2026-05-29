@@ -1,5 +1,8 @@
 #pragma once
 
+#include "core/math/BoundingBox.h"
+#include "core/math/Matrix.h"
+
 #include <cstddef>
 #include <map>
 #include <memory>
@@ -34,9 +37,17 @@ namespace engine::raster {
       bool hit{false};
     };
 
+    struct TransformedBoundsLookup {
+      BoundingBoxd bounds;
+      bool hit{false};
+    };
+
     MeshStatsLookup meshStatsFor(const render::Primitive& primitive, int lod);
+    TransformedBoundsLookup transformedBoundsFor(const render::Primitive& primitive,
+                                                 const Matrix4d& pointMatrix);
     void clear();
     std::size_t size() const;
+    std::size_t transformedBoundsSize() const;
 
   private:
     struct MeshStatsKey {
@@ -47,10 +58,22 @@ namespace engine::raster {
       bool operator<(const MeshStatsKey& other) const;
     };
 
+    struct TransformedBoundsKey {
+      const render::Primitive* primitive{nullptr};
+      std::string boundsFingerprint;
+      std::string matrixFingerprint;
+
+      bool operator<(const TransformedBoundsKey& other) const;
+    };
+
     static MeshStats buildMeshStats(const render::Primitive& primitive, int lod);
+    static BoundingBoxd buildTransformedBounds(const render::Primitive& primitive,
+                                               const Matrix4d& pointMatrix);
     static std::string boundsFingerprint(const render::Primitive& primitive);
+    static std::string matrixFingerprint(const Matrix4d& matrix);
 
     mutable std::mutex m_mutex;
     std::map<MeshStatsKey, MeshStats> m_meshStats;
+    std::map<TransformedBoundsKey, BoundingBoxd> m_transformedBounds;
   };
 }
