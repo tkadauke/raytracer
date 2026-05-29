@@ -421,6 +421,11 @@ namespace GraphRenderEngineTest {
     ASSERT_NE(nullptr, visibilityTrace);
     EXPECT_EQ(RenderPassExecutionStatus::Completed, visibilityTrace->status());
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("all-visible set"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("lod=0"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("inputLeaves=1"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("inputTriangles="));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("visibleLeaves=1"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("rejectedLeaves=0"));
   }
 
   TEST(GraphRenderEngine, ExecutesStencilAOVViewAndRecordsColorTrace) {

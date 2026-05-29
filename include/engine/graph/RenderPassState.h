@@ -9,6 +9,7 @@ namespace engine::graph {
   class PostProcessAAState;
   class RasterBeautyPassState;
   class RasterShadowPassState;
+  class RasterVisibilityPassState;
   class RaytracerBeautyPassState;
   enum class RenderExecutorKind;
   enum class RenderPassKind;
@@ -41,6 +42,7 @@ namespace engine::graph {
 
     virtual const RasterBeautyPassState* asRasterBeautyPassState() const;
     virtual const RasterShadowPassState* asRasterShadowPassState() const;
+    virtual const RasterVisibilityPassState* asRasterVisibilityPassState() const;
     virtual const RaytracerBeautyPassState* asRaytracerBeautyPassState() const;
     virtual const WireframePassState* asWireframePassState() const;
     virtual const PostProcessAAState* asPostProcessAAState() const;

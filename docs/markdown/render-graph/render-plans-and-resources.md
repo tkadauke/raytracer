@@ -651,9 +651,11 @@ Raster visibility culling is also intent-derived. When
 compiler inserts a `raster_visibility` pass that writes a descriptor-only
 `raster_visibility_set` resource and adds that resource as an explicit input to
 raster beauty and AOV producers. The current payload is a baseline: it records
-an all-visible result and the raster pass still draws the full scene. That
-keeps the graph shape, rendercli exports, Modeler graph view, and execution
-trace ready for frustum culling without changing image output in this slice.
+an all-visible result, input/visible/rejected leaf counts, matching triangle
+counts at the compiled raster LOD, and the raster pass still draws the full
+scene. That keeps the graph shape, rendercli exports, Modeler graph view, and
+execution trace ready for frustum culling without changing image output in this
+slice.
 
 The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
 `RenderIntent::postProcessAA` asks the compiler to insert a `post_fxaa` or

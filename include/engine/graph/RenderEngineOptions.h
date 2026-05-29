@@ -13,6 +13,7 @@
 namespace engine::graph {
   class RasterBeautyPassState;
   class RasterShadowPassState;
+  class RasterVisibilityPassState;
   class RaytracerBeautyPassState;
   class WireframePassState;
   enum class RenderPostProcessAA;
@@ -78,6 +79,7 @@ namespace engine::graph {
                                           bool includeImagePostProcessAA,
                                           bool includeShadowMapEnable) const;
     RasterShadowPassState shadowPassState() const;
+    RasterVisibilityPassState visibilityPassState() const;
 
     void setMaximumThreads(int threads);
     void setQueueSize(int queueSize);

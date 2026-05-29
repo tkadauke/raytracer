@@ -999,6 +999,32 @@ namespace RenderPlanTest {
     EXPECT_EQ(plan.toJson(), imported.toJson());
   }
 
+  TEST(RenderPlan, RoundTripsRasterVisibilityPassState) {
+    RenderPlan plan;
+    RenderResourceDescriptor visibilitySet;
+    visibilitySet.id = "raster_visibility_set";
+    visibilitySet.name = "Raster visibility set";
+    visibilitySet.type = RenderResourceType::VisibilitySet;
+    visibilitySet.lifetime = RenderResourceLifetime::Transient;
+    plan.addResource(visibilitySet);
+
+    auto visibility = pass("raster_visibility", RenderPassKind::Visibility);
+    visibility.executor = RenderExecutorKind::Rasterizer;
+    visibility.writes.push_back({"raster_visibility_set"});
+    auto state = std::make_shared<RasterVisibilityPassState>();
+    state->geometry().setLod(4);
+    visibility.state = state;
+    plan.addPass(visibility);
+
+    const RenderPlan imported = RenderPlan::fromJson(plan.toJson());
+
+    ASSERT_EQ(1u, imported.passes().size());
+    const auto decoded = RasterVisibilityPassState::fromPass(imported.passes()[0]);
+    ASSERT_NE(nullptr, decoded);
+    EXPECT_EQ(4, decoded->geometry().lod());
+    EXPECT_EQ(plan.toJson(), imported.toJson());
+  }
+
   TEST(RenderPlan, RejectsMalformedJsonImport) {
     QJsonObject badRoot;
     badRoot["resources"] = "not an array";

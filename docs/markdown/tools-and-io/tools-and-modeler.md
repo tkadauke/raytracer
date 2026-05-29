@@ -251,10 +251,12 @@ normal child geometry. The editor groups the settings by role, uses dropdowns
 for enumerated choices such as engine, raster backend, view mode, sampler, and
 postprocess AA. Raster settings include an opt-in Visibility Culling selector;
 `On` and `Auto` currently synthesize the graph-visible baseline culling node
-without changing submitted raster work. Engine-specific fields only show for
-the selected default engine. The same property editor has a search field for
-filtering long property sets and collapsible groups so advanced scene/import
-settings can stay out of the way. Internal execution controls such as
+without changing submitted raster work. Selecting the node after a traced
+render shows the all-visible leaf/triangle counts and rejected-zero baseline in
+the graph inspector metadata. Engine-specific fields only show for the selected
+default engine. The same property editor has a search field for filtering long
+property sets and collapsible groups so advanced scene/import settings can stay
+out of the way. Internal execution controls such as
 view-plane type, worker thread count, and queue size stay hidden in Modeler;
 Modeler's own preview/final controls keep using the point-interlaced view
 plane and automatic execution defaults, while lower-level values can still be

@@ -160,7 +160,8 @@ namespace engine::graph {
     return resource;
   }
 
-  RenderPassNode RenderGraphCompiler::visibilityCullingPass(const SceneView& sceneView) const {
+  RenderPassNode RenderGraphCompiler::visibilityCullingPass(const SceneView& sceneView,
+                                                            const RenderIntent& intent) const {
     RenderPassNode pass;
     pass.id = "raster_visibility";
     pass.name = "Raster visibility culling";
@@ -170,6 +171,7 @@ namespace engine::graph {
     pass.sceneView = sceneView;
     pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
     pass.canRunConcurrently = false;
+    intent.engineOptions.rasterizer().visibilityPassState().writeTo(pass);
     return pass;
   }
 
@@ -183,7 +185,7 @@ namespace engine::graph {
 
     const RenderResourceId visibilityResource = "raster_visibility_set";
     if (!plan.findResource(visibilityResource)) {
-      plan.addResourceProducer(visibilityCullingPass(sceneView), visibilitySetResource());
+      plan.addResourceProducer(visibilityCullingPass(sceneView, intent), visibilitySetResource());
     }
     pass.addRead(visibilityResource);
   }

@@ -64,6 +64,8 @@ namespace engine::graph {
         {RenderPassKind::Beauty, RenderPassKind::AOV}, RenderExecutorKind::Rasterizer);
       static const TypedRenderPassStateJsonFactory<RasterShadowPassState> rasterShadow(
         {RenderPassKind::Shadow}, RenderExecutorKind::Rasterizer);
+      static const TypedRenderPassStateJsonFactory<RasterVisibilityPassState> rasterVisibility(
+        {RenderPassKind::Visibility}, RenderExecutorKind::Rasterizer);
       static const TypedRenderPassStateJsonFactory<RaytracerBeautyPassState> raytracerBeauty(
         {RenderPassKind::Beauty}, RenderExecutorKind::Raytracer);
       static const PostProcessAAStateJsonFactory postProcessAA;
@@ -71,7 +73,8 @@ namespace engine::graph {
         {RenderPassKind::Beauty, RenderPassKind::Overlay}, RenderExecutorKind::Wireframe);
 
       static const std::vector<const RenderPassStateJsonFactory*> result = {
-        &rasterBeauty, &rasterShadow, &raytracerBeauty, &postProcessAA, &wireframe};
+        &rasterBeauty,    &rasterShadow,  &rasterVisibility,
+        &raytracerBeauty, &postProcessAA, &wireframe};
       return result;
     }
   }
@@ -99,6 +102,10 @@ namespace engine::graph {
   }
 
   const RasterShadowPassState* RenderPassState::asRasterShadowPassState() const {
+    return nullptr;
+  }
+
+  const RasterVisibilityPassState* RenderPassState::asRasterVisibilityPassState() const {
     return nullptr;
   }
 

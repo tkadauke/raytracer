@@ -620,6 +620,10 @@ namespace engine::graph {
     m_cullMode = mode;
   }
 
+  int RasterGeometryState::lod() const {
+    return m_lod;
+  }
+
   RasterSamplingState RasterSamplingState::fromJson(const QJsonObject& object,
                                                     const std::string& path) {
     rejectUnknownFields(object, path, {"msaaSamples", "msaaShadingMode", "postProcessAA"});
@@ -1333,6 +1337,63 @@ namespace engine::graph {
 
   const RasterShadowState& RasterShadowPassState::shadows() const {
     return m_shadows;
+  }
+
+  RasterVisibilityPassState RasterVisibilityPassState::fromJson(const QJsonObject& object,
+                                                                const std::string& path) {
+    rejectUnknownFields(object, path, {"geometry"});
+    RasterVisibilityPassState state;
+    if (hasField(object, "geometry"))
+      state.m_geometry =
+        RasterGeometryState::fromJson(objectField(object, "geometry", path), path + ".geometry");
+    return state;
+  }
+
+  const RasterVisibilityPassState* RasterVisibilityPassState::fromPass(const RenderPassNode& pass) {
+    if (!pass.state)
+      return nullptr;
+
+    const auto* state = pass.state->asRasterVisibilityPassState();
+    if (!state) {
+      throw std::runtime_error("pass '" + pass.id + "' does not carry raster visibility state");
+    }
+    return state;
+  }
+
+  RasterVisibilityPassState RasterVisibilityPassState::valueFromPass(const RenderPassNode& pass) {
+    const auto* state = fromPass(pass);
+    return state ? *state : RasterVisibilityPassState();
+  }
+
+  const RasterVisibilityPassState* RasterVisibilityPassState::asRasterVisibilityPassState() const {
+    return this;
+  }
+
+  QJsonObject RasterVisibilityPassState::toJson() const {
+    QJsonObject object;
+    if (!m_geometry.empty())
+      object["geometry"] = m_geometry.toJson();
+    return object;
+  }
+
+  bool RasterVisibilityPassState::empty() const {
+    return toJson().isEmpty();
+  }
+
+  void RasterVisibilityPassState::writeTo(RenderPassNode& pass) const {
+    if (empty()) {
+      pass.state.reset();
+    } else {
+      pass.state = std::make_shared<RasterVisibilityPassState>(*this);
+    }
+  }
+
+  RasterGeometryState& RasterVisibilityPassState::geometry() {
+    return m_geometry;
+  }
+
+  const RasterGeometryState& RasterVisibilityPassState::geometry() const {
+    return m_geometry;
   }
 
   RasterBeautyPassState RasterBeautyPassState::fromJson(const QJsonObject& object,

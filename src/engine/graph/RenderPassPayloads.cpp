@@ -1,6 +1,7 @@
 #include "engine/graph/RenderPassPayload.h"
 
 #include "core/Buffer.h"
+#include "core/geometry/Mesh.h"
 #include "core/math/HitPointInterval.h"
 #include "core/util/BufferUtils.h"
 #include "engine/graph/GraphRenderEngine.h"
@@ -28,8 +29,10 @@
 #include <limits>
 #include <map>
 #include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -1390,10 +1393,80 @@ namespace engine::graph {
           throw passError(pass, "visibility culling pass must write a visibility-set resource");
         }
 
+        const Metrics metrics = baselineMetrics(context);
         context.storage().resource(write.resource).markProduced();
-        context.recordTraceMessage(
-          "visibility culling baseline produced an all-visible set; raster passes still draw all "
-          "submitted primitives");
+        context.recordTraceMessage(traceMessage(metrics));
+      }
+
+    private:
+      struct Metrics {
+        std::size_t inputLeaves{0};
+        std::size_t inputTriangles{0};
+        std::size_t visibleLeaves{0};
+        std::size_t visibleTriangles{0};
+        std::size_t rejectedLeaves{0};
+        std::size_t rejectedTriangles{0};
+        int lod{0};
+      };
+
+      Metrics baselineMetrics(const RenderExecutionContext& context) const {
+        Metrics metrics;
+        const RasterVisibilityPassState state =
+          RasterVisibilityPassState::valueFromPass(context.pass());
+        metrics.lod = state.geometry().lod();
+
+        const auto scene = context.graph().scene();
+        if (!scene) {
+          return metrics;
+        }
+
+        std::unordered_map<const render::Primitive*, std::size_t> triangleCounts;
+        scene->forEachTransformedLeaf(
+          nullptr, Matrix4d(), Matrix3d(), [&](const render::Primitive::TransformedLeaf& leaf) {
+            ++metrics.inputLeaves;
+            metrics.inputTriangles += triangleCountFor(leaf.primitive, metrics.lod, triangleCounts);
+          });
+        metrics.visibleLeaves = metrics.inputLeaves;
+        metrics.visibleTriangles = metrics.inputTriangles;
+        return metrics;
+      }
+
+      std::size_t triangleCountFor(
+        const render::Primitive* primitive, int lod,
+        std::unordered_map<const render::Primitive*, std::size_t>& triangleCounts) const {
+        if (!primitive) {
+          return 0;
+        }
+
+        const auto cached = triangleCounts.find(primitive);
+        if (cached != triangleCounts.end()) {
+          return cached->second;
+        }
+
+        std::size_t count = 0;
+        const std::shared_ptr<Mesh> mesh = primitive->tessellate(lod);
+        if (mesh) {
+          for (const auto& face : mesh->faces()) {
+            if (face.size() >= 3) {
+              count += face.size() - 2;
+            }
+          }
+        }
+        triangleCounts.emplace(primitive, count);
+        return count;
+      }
+
+      std::string traceMessage(const Metrics& metrics) const {
+        std::ostringstream out;
+        out << "visibility culling baseline produced an all-visible set"
+            << "; lod=" << metrics.lod << "; inputLeaves=" << metrics.inputLeaves
+            << "; inputTriangles=" << metrics.inputTriangles
+            << "; visibleLeaves=" << metrics.visibleLeaves
+            << "; visibleTriangles=" << metrics.visibleTriangles
+            << "; rejectedLeaves=" << metrics.rejectedLeaves
+            << "; rejectedTriangles=" << metrics.rejectedTriangles
+            << "; raster passes still draw all submitted primitives";
+        return out.str();
       }
     };
 

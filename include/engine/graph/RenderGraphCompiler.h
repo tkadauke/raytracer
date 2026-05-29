@@ -63,7 +63,8 @@ namespace engine::graph {
     bool passNeedsExplicitReadback(const RenderPassNode& pass) const;
     bool rasterVisibilityCullingRequested(const RenderIntent& intent) const;
     RenderResourceDescriptor visibilitySetResource() const;
-    RenderPassNode visibilityCullingPass(const SceneView& sceneView) const;
+    RenderPassNode visibilityCullingPass(const SceneView& sceneView,
+                                         const RenderIntent& intent) const;
     void addRasterVisibilityInput(RenderPlan& plan, RenderPassNode& pass,
                                   const SceneView& sceneView, const RenderIntent& intent) const;
     RenderResourceDescriptor readbackResource(const RenderResourceDescriptor& source,

@@ -732,6 +732,15 @@ namespace engine::graph {
     return state;
   }
 
+  RasterVisibilityPassState RenderRasterizerOptions::visibilityPassState() const {
+    RasterVisibilityPassState state;
+    if (m_lod)
+      state.geometry().setLod(*m_lod);
+    if (m_cullMode)
+      state.geometry().setCullMode(cullModeFromString(*m_cullMode, "rasterizer.geometry.cullMode"));
+    return state;
+  }
+
   void RenderRasterizerOptions::setMaximumThreads(int threads) {
     m_maximumThreads = std::max(1, threads);
   }

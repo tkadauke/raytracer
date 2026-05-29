@@ -71,7 +71,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Raster visibility culling graph baseline.** Raster render intent can now
   request a graph-visible `raster_visibility` pass and `raster_visibility_set`
   resource through Modeler or `rendercli --raster_culling on|auto`; the first
-  payload records an all-visible baseline without changing raster output. —
+  payload records an all-visible leaf/triangle-count baseline, using typed
+  pass state for raster geometry settings, without changing raster output. —
   GPT-5
 - **OpenGL stencil-composite readback nodes.** OpenGL-backed stencil-composite
   graphs now route their internal raster base color and stencil mask through

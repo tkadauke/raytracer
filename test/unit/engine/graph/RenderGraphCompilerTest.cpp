@@ -699,6 +699,7 @@ namespace RenderGraphCompilerTest {
     RenderGraphCompiler compiler;
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setLod(2);
     intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
 
     const RenderPlan plan = compiler.compile({64, 64, 1}, intent);
@@ -710,6 +711,8 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(DisabledBehavior::SubstituteDefault, visibility->disabledBehavior);
     EXPECT_TRUE(hasFeature(*visibility, "visibility"));
     EXPECT_TRUE(hasFeature(*visibility, "culling"));
+    ASSERT_NE(nullptr, RasterVisibilityPassState::fromPass(*visibility));
+    EXPECT_EQ(2, RasterVisibilityPassState::fromPass(*visibility)->geometry().lod());
     ASSERT_EQ(1u, visibility->writes.size());
     EXPECT_EQ("raster_visibility_set", visibility->writes.front().resource);
 

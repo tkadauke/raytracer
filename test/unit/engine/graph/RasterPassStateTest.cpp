@@ -117,6 +117,40 @@ namespace RasterPassStateTest {
               plan.findResource("preview_shadow_map")->lifetime);
   }
 
+  TEST(RasterVisibilityPassState, SerializesGeometryState) {
+    RasterVisibilityPassState state;
+    state.geometry().setLod(3);
+    state.geometry().setCullMode(Rasterizer::CullMode::Back);
+
+    const QJsonObject json = state.toJson();
+    const QJsonObject geometry = json.value("geometry").toObject();
+
+    EXPECT_EQ(3, geometry.value("lod").toInt());
+    EXPECT_EQ("back", geometry.value("cullMode").toString().toStdString());
+
+    const auto decoded = RenderPassState::fromJson(
+      RenderPassKind::Visibility, RenderExecutorKind::Rasterizer, json, "parameters");
+    ASSERT_NE(nullptr, decoded);
+    const auto* visibility = decoded->asRasterVisibilityPassState();
+    ASSERT_NE(nullptr, visibility);
+    EXPECT_EQ(3, visibility->geometry().lod());
+  }
+
+  TEST(RasterVisibilityPassState, WritesToVisibilityPass) {
+    RenderPassNode pass;
+    pass.id = "raster_visibility";
+    pass.kind = RenderPassKind::Visibility;
+    pass.executor = RenderExecutorKind::Rasterizer;
+
+    RasterVisibilityPassState state;
+    state.geometry().setLod(2);
+    state.writeTo(pass);
+
+    const auto* decoded = RasterVisibilityPassState::fromPass(pass);
+    ASSERT_NE(nullptr, decoded);
+    EXPECT_EQ(2, decoded->geometry().lod());
+  }
+
   TEST(RasterBeautyPassState, SerializesFocusedSubstates) {
     RasterBeautyPassState state;
     state.execution().setBackend(engine::raster::RasterBackend::openGL());

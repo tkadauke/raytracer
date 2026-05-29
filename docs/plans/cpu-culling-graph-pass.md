@@ -95,12 +95,16 @@ Tasks:
   culling baseline.
 - ~~Add a pass payload/state type for CPU visibility preprocessing.~~ ✅
   **Done.** Added the `visibility` pass kind and a baseline raster visibility
-  payload that emits an all-visible set; separate typed state can be added when
-  the pass owns tunable culling controls or detailed metrics.
-- Record input leaf/triangle counts, visible counts, rejected counts, and pass
-  timing.
-- Add trace metadata and Modeler property display for the selected culling
-  node.
+  payload that emits an all-visible set. The pass carries typed raster
+  geometry state so exported/replayed graphs keep the LOD used for visibility
+  diagnostics.
+- ~~Record input leaf/triangle counts, visible counts, rejected counts, and pass
+  timing.~~ ✅ **Done.** The baseline payload records all-visible
+  leaf/triangle counts and rejected-zero counts in the pass trace; pass timing
+  comes from the existing graph trace timer.
+- ~~Add trace metadata and Modeler property display for the selected culling
+  node.~~ ✅ **Done.** The graph node and selected-pass properties show the
+  visibility pass trace message through the shared graph inspector surfaces.
 - ~~Add rendercli graph export coverage showing the culling node and resource.~~
   ✅ **Done.** `--raster_culling on|auto` now exports the synthesized
   `raster_visibility` node and `raster_visibility_set` resource.

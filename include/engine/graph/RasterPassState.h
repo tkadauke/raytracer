@@ -67,6 +67,8 @@ namespace engine::graph {
     void setLod(int lod);
     void setCullMode(Rasterizer::CullMode mode);
 
+    int lod() const;
+
   private:
     int m_lod{0};
     std::optional<Rasterizer::CullMode> m_cullMode;
@@ -249,6 +251,34 @@ namespace engine::graph {
 
   private:
     RasterShadowState m_shadows;
+  };
+
+  /**
+    * Typed state for graph visibility preprocessing passes.
+    *
+    * Visibility preprocessing must use the same scene-to-triangle controls as
+    * the raster pass that consumes its result. The first implementation only
+    * records baseline metrics, but those metrics still need to reflect the
+    * compiled raster LOD instead of reaching back into mutable scene intent.
+    */
+  class RasterVisibilityPassState : public RenderPassState {
+  public:
+    static RasterVisibilityPassState fromJson(const QJsonObject& object,
+                                              const std::string& path = "parameters");
+    static const RasterVisibilityPassState* fromPass(const RenderPassNode& pass);
+    static RasterVisibilityPassState valueFromPass(const RenderPassNode& pass);
+
+    const RasterVisibilityPassState* asRasterVisibilityPassState() const override;
+    QJsonObject toJson() const override;
+    bool empty() const;
+
+    void writeTo(RenderPassNode& pass) const;
+
+    RasterGeometryState& geometry();
+    const RasterGeometryState& geometry() const;
+
+  private:
+    RasterGeometryState m_geometry;
   };
 
   /**
