@@ -226,6 +226,9 @@ void RenderDisplay::setScene(Scene* scene, const StepPlaybackStyle& playbackStyl
     if (auto* camera = scene->activeCamera()) {
       m_engine->setCamera(camera->toRaytracer());
       setInteractiveCameraPose(camera->position(), camera->target());
+      if (m_graphEngine && !camera->id().isEmpty()) {
+        m_graphEngine->setSceneCamera(camera->id().toStdString(), m_engine->camera());
+      }
     }
   }
   setInteractive(true);
