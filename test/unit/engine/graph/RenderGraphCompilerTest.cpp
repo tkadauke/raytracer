@@ -721,6 +721,9 @@ namespace RenderGraphCompilerTest {
     ASSERT_NE(nullptr, visibilityResource);
     EXPECT_EQ(RenderResourceType::VisibilitySet, visibilityResource->type);
     EXPECT_EQ(RenderResourceFormat::Unknown, visibilityResource->format);
+    EXPECT_TRUE(visibilityResource->hasFeature("visibility"));
+    EXPECT_TRUE(visibilityResource->hasFeature("culling"));
+    EXPECT_TRUE(visibilityResource->hasFeature("rasterizer"));
     EXPECT_EQ(64, visibilityResource->width);
     EXPECT_EQ(64, visibilityResource->height);
     EXPECT_EQ(1, visibilityResource->sampleCount);

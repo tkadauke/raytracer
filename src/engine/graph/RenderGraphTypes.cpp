@@ -1129,6 +1129,16 @@ namespace engine::graph {
     return std::max(1, hint.value_or(fallback));
   }
 
+  void RenderResourceDescriptor::addFeature(RenderFeatureKind feature) {
+    if (!hasFeature(feature)) {
+      features.push_back(std::move(feature));
+    }
+  }
+
+  bool RenderResourceDescriptor::hasFeature(const RenderFeatureKind& feature) const {
+    return std::find(features.begin(), features.end(), feature) != features.end();
+  }
+
   bool RenderResourceDescriptor::hasImageShape() const {
     return width > 0 && height > 0;
   }
@@ -1148,6 +1158,9 @@ namespace engine::graph {
     QJsonObject object;
     object["id"] = qstr(id);
     object["name"] = qstr(name);
+    if (!features.empty()) {
+      object["features"] = stringArray(features);
+    }
     object["type"] = toString(type);
     object["format"] = toString(format);
     object["width"] = width;
@@ -1163,6 +1176,7 @@ namespace engine::graph {
     RenderResourceDescriptor resource;
     resource.id = stringField(object, "id", path);
     resource.name = stringField(object, "name", path);
+    resource.features = featureArrayFromJson(object, "features", path);
     resource.type =
       resourceTypeFromJson(stringField(object, "type", path, "color"), path + ".type");
     resource.format =

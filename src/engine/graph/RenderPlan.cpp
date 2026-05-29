@@ -64,9 +64,9 @@ namespace engine::graph {
 
     bool sameResourceDescriptor(const RenderResourceDescriptor& a,
                                 const RenderResourceDescriptor& b) {
-      return a.id == b.id && a.type == b.type && a.format == b.format && a.width == b.width &&
-             a.height == b.height && a.sampleCount == b.sampleCount && a.domain == b.domain &&
-             a.lifetime == b.lifetime;
+      return a.id == b.id && a.features == b.features && a.type == b.type && a.format == b.format &&
+             a.width == b.width && a.height == b.height && a.sampleCount == b.sampleCount &&
+             a.domain == b.domain && a.lifetime == b.lifetime;
     }
 
     bool sameReads(const std::vector<ResourceRead>& a, const std::vector<ResourceRead>& b) {
@@ -154,6 +154,19 @@ namespace engine::graph {
           out << separator;
         }
         out << toString(domain);
+        first = false;
+      }
+      return out.str();
+    }
+
+    std::string featureList(const std::vector<RenderFeatureKind>& features, const char* separator) {
+      std::ostringstream out;
+      bool first = true;
+      for (const auto& feature : features) {
+        if (!first) {
+          out << separator;
+        }
+        out << feature;
         first = false;
       }
       return out.str();
@@ -832,6 +845,9 @@ namespace engine::graph {
           << toString(resource.format) << ", " << toString(resource.domain) << ", "
           << toString(resource.lifetime) << ", " << resource.width << "x" << resource.height
           << ", samples=" << resource.sampleCount << ")\n";
+      if (!resource.features.empty()) {
+        out << "  features: " << featureList(resource.features, " ") << "\n";
+      }
     }
 
     out << "Execution order:\n";
@@ -911,7 +927,12 @@ namespace engine::graph {
       out << "  \"resource:" << dotEscape(resource.id) << "\""
           << " [shape=box,label=\"" << dotEscape(resource.id) << "\\n"
           << toString(resource.type) << "/" << toString(resource.format) << "\\n"
-          << toString(resource.domain) << "/" << toString(resource.lifetime) << "\"];\n";
+          << toString(resource.domain) << "/" << toString(resource.lifetime) << "\\n"
+          << resource.width << "x" << resource.height << ", samples=" << resource.sampleCount;
+      if (!resource.features.empty()) {
+        out << "\\nfeatures " << dotEscape(featureList(resource.features, ","));
+      }
+      out << "\"];\n";
     }
 
     for (const auto& pass : m_passes) {

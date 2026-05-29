@@ -165,6 +165,14 @@ namespace engine::graph {
              " resources";
     }
 
+    QJsonArray featureArray(const std::vector<RenderFeatureKind>& features) {
+      QJsonArray array;
+      for (const auto& feature : features) {
+        array.append(QString::fromStdString(feature));
+      }
+      return array;
+    }
+
     std::string visibilitySetSummary(const engine::raster::RasterVisibilitySet& visibilitySet) {
       std::ostringstream out;
       out << "visibility set has no image preview; leaves=" << visibilitySet.visibleLeafCount()
@@ -315,6 +323,9 @@ namespace engine::graph {
     object["resource"] = QString::fromStdString(m_resourceId);
     object["type"] = toString(m_descriptor.type);
     object["format"] = toString(m_descriptor.format);
+    if (!m_descriptor.features.empty()) {
+      object["features"] = featureArray(m_descriptor.features);
+    }
     object["width"] = m_descriptor.width;
     object["height"] = m_descriptor.height;
     object["previewAvailable"] = hasPreview();

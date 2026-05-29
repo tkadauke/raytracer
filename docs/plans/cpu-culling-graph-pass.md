@@ -286,8 +286,11 @@ rendercli:
 - ~~export culling metadata in graph trace JSON;~~ ✅ **Done.** Visibility pass
   trace messages and visibility-set resource snapshots now expose leaf,
   rejection, tile, and tile-depth summary metrics in trace JSON.
-- include visibility/culling resource information in graph JSON/DOT/text
-  exports;
+- ~~include visibility/culling resource information in graph JSON/DOT/text
+  exports;~~ ✅ **Done.** Resource descriptors now carry tooling feature
+  annotations, the compiled visibility-set resource is tagged as visibility,
+  culling, and rasterizer data, and text/DOT/JSON exports include those tags
+  plus the resource shape.
 - support focused functional tests without image-diff fragility.
 
 ## Testing

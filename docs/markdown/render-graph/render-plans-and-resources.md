@@ -142,6 +142,7 @@ A render resource is declared with `RenderResourceDescriptor`:
 struct RenderResourceDescriptor {
   RenderResourceId id;
   std::string name;
+  std::vector<RenderFeatureKind> features;
   RenderResourceType type{RenderResourceType::Color};
   RenderResourceFormat format{RenderResourceFormat::Unknown};
   int width{0};
@@ -155,6 +156,10 @@ struct RenderResourceDescriptor {
 The descriptor records what the resource is. It does not own the memory behind
 that resource. That separation is important: a plan can be printed, validated,
 or displayed without allocating every image it mentions.
+Resource `features` are non-executing annotations for tooling. For example, the
+compiler tags the raster visibility resource with visibility, culling, and
+rasterizer features so text, DOT, JSON, and the Modeler resource table make its
+purpose clear before the graph runs.
 
 Resource domains are `CPU` and `GPU`. `CPU` resources can be allocated by
 `RenderResourceStorage`; `GPU` resources are descriptors without CPU buffers in
@@ -463,9 +468,9 @@ the current serial executor.
 The DOT export uses resource nodes and pass nodes, with arrows from resources
 to reader passes and from writer passes to resources. Disabled pass nodes are
 dashed and gray so graph diagrams show effective overrides directly. The JSON
-export carries the same ids, enum strings, resource dimensions, pass features,
-reads, writes, scene selector, typed pass state serialized as `parameters`,
-disabled behavior, and scheduling flags.
+export carries the same ids, enum strings, resource dimensions, resource
+features, pass features, reads, writes, scene selector, typed pass state
+serialized as `parameters`, disabled behavior, and scheduling flags.
 
 The smallest graph-backed render is deliberately small: a whole-frame raytraced
 beauty pass writes a transient color resource, then a tonemap postprocess pass

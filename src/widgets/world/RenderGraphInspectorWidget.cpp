@@ -113,6 +113,7 @@ struct RenderGraphInspectorWidget::Private {
   QString shadingProfileText(const std::optional<ShadingProfileRef>& shadingProfile) const;
   QStringList passSceneViewLines(const RenderPassNode& pass) const;
   QString sizeText(const RenderResourceDescriptor& resource) const;
+  QString resourceFeatures(const RenderResourceDescriptor& resource) const;
   QString resourceReads(const RenderPlan& plan, const std::vector<ResourceRead>& reads) const;
   QString resourceWrites(const RenderPlan& plan, const std::vector<ResourceWrite>& writes) const;
   QString dependencySummary(const RenderPlan& plan,
@@ -434,6 +435,14 @@ RenderGraphInspectorWidget::Private::sizeText(const RenderResourceDescriptor& re
     .arg(resource.sampleCount);
 }
 
+QString RenderGraphInspectorWidget::Private::resourceFeatures(
+  const RenderResourceDescriptor& resource) const {
+  QStringList values;
+  for (const auto& feature : resource.features)
+    values << displayFeatureText(feature);
+  return dashIfEmpty(values.join(", "));
+}
+
 QString
 RenderGraphInspectorWidget::Private::resourceReads(const RenderPlan& plan,
                                                    const std::vector<ResourceRead>& reads) const {
@@ -503,11 +512,12 @@ RenderGraphInspectorWidget::Private::resourceConsumers(const RenderPlan& plan,
 
 QString RenderGraphInspectorWidget::Private::resourceTooltip(
   const RenderPlan& plan, const RenderResourceDescriptor& resource) const {
-  return QStringLiteral("Resource ID: %1\nProducer: %2\nConsumers: %3\nFormat: %4\nLifetime: "
-                        "%5\nSize: %6")
+  return QStringLiteral("Resource ID: %1\nProducer: %2\nConsumers: %3\nFeatures: %4\nFormat: "
+                        "%5\nLifetime: %6\nSize: %7")
     .arg(qstr(resource.id))
     .arg(resourceProducer(plan, resource.id))
     .arg(resourceConsumers(plan, resource.id))
+    .arg(resourceFeatures(resource))
     .arg(displayText(resource.format))
     .arg(displayText(resource.lifetime))
     .arg(sizeText(resource));
@@ -694,7 +704,8 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
   p->resources->setRootIsDecorated(false);
   p->resources->setAlternatingRowColors(true);
   p->resources->setHeaderLabels({tr("Resource"), tr("Producer"), tr("Consumers"), tr("Type"),
-                                 tr("Format"), tr("Domain"), tr("Lifetime"), tr("Size")});
+                                 tr("Features"), tr("Format"), tr("Domain"), tr("Lifetime"),
+                                 tr("Size")});
   p->resources->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
   p->resources->header()->setStretchLastSection(true);
   connect(p->resources, SIGNAL(itemSelectionChanged()), this, SLOT(resourceSelectionChanged()));
@@ -1275,10 +1286,11 @@ void RenderGraphInspectorWidget::rebuildResources() {
     item->setText(1, p->resourceProducer(plan, resource.id));
     item->setText(2, p->resourceConsumers(plan, resource.id));
     item->setText(3, p->displayText(resource.type));
-    item->setText(4, p->displayText(resource.format));
-    item->setText(5, p->displayText(resource.domain));
-    item->setText(6, p->displayText(resource.lifetime));
-    item->setText(7, p->sizeText(resource));
+    item->setText(4, p->resourceFeatures(resource));
+    item->setText(5, p->displayText(resource.format));
+    item->setText(6, p->displayText(resource.domain));
+    item->setText(7, p->displayText(resource.lifetime));
+    item->setText(8, p->sizeText(resource));
     if (resource.id == p->selectedResourceId)
       item->setSelected(true);
   }

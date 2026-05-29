@@ -151,6 +151,9 @@ namespace engine::graph {
     RenderResourceDescriptor resource;
     resource.id = "raster_visibility_set";
     resource.name = "Raster visibility set";
+    resource.addFeature("visibility");
+    resource.addFeature("culling");
+    resource.addFeature("rasterizer");
     resource.type = RenderResourceType::VisibilitySet;
     resource.format = RenderResourceFormat::Unknown;
     resource.width = target.width;

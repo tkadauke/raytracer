@@ -450,6 +450,7 @@ namespace engine::graph {
   struct RenderResourceDescriptor {
     RenderResourceId id;
     std::string name;
+    std::vector<RenderFeatureKind> features;
     RenderResourceType type{RenderResourceType::Color};
     RenderResourceFormat format{RenderResourceFormat::Unknown};
     int width{0};
@@ -458,6 +459,8 @@ namespace engine::graph {
     RenderResourceDomain domain{RenderResourceDomain::CPU};
     RenderResourceLifetime lifetime{RenderResourceLifetime::Transient};
 
+    void addFeature(RenderFeatureKind feature);
+    bool hasFeature(const RenderFeatureKind& feature) const;
     bool hasImageShape() const;
     bool externallyAvailable() const;
     bool requiresExternalBinding() const;

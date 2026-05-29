@@ -662,7 +662,9 @@ namespace RenderPlanTest {
 
   TEST(RenderPlan, ExportsTextDotAndJson) {
     RenderPlan plan;
-    plan.addResource(colorResource("main_color"));
+    auto mainColor = colorResource("main_color");
+    mainColor.addFeature("display");
+    plan.addResource(mainColor);
 
     auto main = pass("main");
     main.features.push_back("beauty");
@@ -675,6 +677,7 @@ namespace RenderPlanTest {
 
     const std::string text = plan.toText();
     EXPECT_NE(std::string::npos, text.find("main_color"));
+    EXPECT_NE(std::string::npos, text.find("features: display"));
     EXPECT_NE(std::string::npos, text.find("main"));
     EXPECT_NE(std::string::npos, text.find("features: beauty"));
     EXPECT_NE(std::string::npos,
@@ -688,6 +691,8 @@ namespace RenderPlanTest {
     EXPECT_NE(std::string::npos, dot.find("resource:main_color"));
     EXPECT_NE(std::string::npos, dot.find("color/rgb_double"));
     EXPECT_NE(std::string::npos, dot.find("cpu/transient"));
+    EXPECT_NE(std::string::npos, dot.find("640x360, samples=1"));
+    EXPECT_NE(std::string::npos, dot.find("features display"));
     EXPECT_NE(std::string::npos, dot.find("execution_stage_1"));
     EXPECT_NE(std::string::npos, dot.find("stage 1, order 1"));
     EXPECT_NE(std::string::npos, dot.find("selector object_name: hero"));
@@ -700,6 +705,9 @@ namespace RenderPlanTest {
     ASSERT_TRUE(json["passes"].isArray());
     ASSERT_TRUE(json["executionStages"].isArray());
     EXPECT_EQ(1, json["resources"].toArray().size());
+    const QJsonObject resource = json["resources"].toArray().at(0).toObject();
+    ASSERT_TRUE(resource["features"].isArray());
+    EXPECT_EQ("display", resource["features"].toArray().at(0).toString().toStdString());
     EXPECT_EQ(1, json["passes"].toArray().size());
     ASSERT_EQ(1, json["executionStages"].toArray().size());
     const auto stage = json["executionStages"].toArray().at(0).toObject();
@@ -1004,6 +1012,8 @@ namespace RenderPlanTest {
     RenderResourceDescriptor visibilitySet;
     visibilitySet.id = "raster_visibility_set";
     visibilitySet.name = "Raster visibility set";
+    visibilitySet.addFeature("visibility");
+    visibilitySet.addFeature("culling");
     visibilitySet.type = RenderResourceType::VisibilitySet;
     visibilitySet.lifetime = RenderResourceLifetime::Transient;
     plan.addResource(visibilitySet);
@@ -1018,6 +1028,9 @@ namespace RenderPlanTest {
 
     const RenderPlan imported = RenderPlan::fromJson(plan.toJson());
 
+    ASSERT_EQ(1u, imported.resources().size());
+    EXPECT_TRUE(imported.resources()[0].hasFeature("visibility"));
+    EXPECT_TRUE(imported.resources()[0].hasFeature("culling"));
     ASSERT_EQ(1u, imported.passes().size());
     const auto decoded = RasterVisibilityPassState::fromPass(imported.passes()[0]);
     ASSERT_NE(nullptr, decoded);
