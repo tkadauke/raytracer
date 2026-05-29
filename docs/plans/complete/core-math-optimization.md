@@ -12,7 +12,11 @@
 > benchmark files exist for the planned surfaces, core math hot paths have the
 > documented optimizations, and the deferred path-tracing prerequisites
 > (Ray4/Ray8 packet work, stable quartic fallback, packet BVH traversal, and
-> matrix decompositions) have landed. New math work should start in a fresh
+> matrix decompositions) have landed. Phase 1's measurement trail is summarized
+> in `docs/perf/core-math-phase1-audit-2026-05-28.md`; the raw captures remain
+> in `docs/perf/math-baseline-2026-05-10.txt`,
+> `docs/perf/math-after-phase1-2026-05-17.txt`, and
+> `docs/perf/random-prng-2026-05-28.txt`. New math work should start in a fresh
 > plan.
 >
 > **Rule:** every performance change is gated on a benchmark.
@@ -163,6 +167,12 @@ new free function `seed(uint64_t)` for deterministic tests.~~
 
 Replaced with thread-local PCG32 in `include/core/math/Number.h`. `seed(uint64_t)` added as a free function. `include/core/util/Random.h` `random_shuffle` updated to use the same PRNG. Baseline: ~6.3 ns/call single-thread (`docs/perf/math-baseline-2026-05-10.txt`); branch `syrus/issue-102-148`.
 
+✅ **Audit note.** The Phase 1 audit records PCG32 as the measured choice:
+Linux candidate comparison showed PCG32 at ~1.55 ns for random doubles versus
+~6.39 ns for thread-local `mt19937_64` and ~15.2 ns for legacy `std::rand`;
+the 8-thread comparison showed PCG32 near ~1.74 ns CPU/call versus `std::rand`
+at ~152 ns CPU/call. See `docs/perf/core-math-phase1-audit-2026-05-28.md`.
+
 ~~**Benchmark gate:** `RandomBenchmark.cpp` single-thread + 8-thread.~~
 ~~**Pass condition:** ≥5× single-thread throughput, ≥10× multi-thread
 (no global lock).~~
@@ -194,6 +204,12 @@ single ray and 10k-ray batch.
 **Pass condition (original):** ≥3× speedup on the batch; whole-render macro
 benchmark on the BVH-heavy scene shows ≥10% improvement.
 
+✅ **Audit note.** The shipped result is documented as a partial win, not as
+meeting the original gate: measured double-batch throughput improved roughly
+1.4-1.5× on the build VM, while the float-specific SSE path was rejected after
+measurement showed it blocked autovectorization. See
+`docs/perf/core-math-phase1-audit-2026-05-28.md`.
+
 ### ~~1.3 Fix the SSE3 dot-product type-punning UB~~ ✅ **Done.**
 
 ~~The current union trick (`union { __m128d vec; double coord[2]; }`)
@@ -211,6 +227,12 @@ with `_mm_cvtsd_f64`/`_mm_unpackhi_pd` and `_mm_cvtss_f32`/`_mm_shuffle_ps`
 intrinsic lane extracts. `VectorBenchmark` dot/reflect-chain/batch-dot medians
 stayed within noise on all four types. Branch: syrus/issue-104-146.
 
+✅ **Audit note.** The audit records this as correctness work with
+benchmark-neutral performance: representative double-vector dot products moved
+from 0.443 ns to 0.452 ns (`Vector3d`) and 0.556 ns to 0.567 ns (`Vector4d`).
+The later `Vector3<double>` decision benchmark rejected preserving the old
+UB-dependent specialization.
+
 ### ~~1.4 `HitPointInterval` small-buffer optimization~~
 
 ~~Most rays produce 1–2 hit points. Replace
@@ -226,6 +248,11 @@ improvement.~~
 
 ✅ **Done.** Introduced `SmallVector<T, N>` (`include/core/math/SmallVector.h`) and switched `HitPointInterval::HitPoints` from `std::vector` to `SmallVector<HitPointWrapper, 4>`. Zero-allocation invariant asserted in unit tests via `usingInlineStorage()`; measured ≥39% speedup on 1-hit, ≥41% on 2-hit, ≥74% on the single-hit-cycle path at `-O3` on Linux/x86-64. See syrus/issue-105-145.
 
+✅ **Audit note.** The baseline/post snapshot shows the same conclusion with
+larger same-machine deltas: `bm_push_n<1>` 24.1 ns -> 2.77 ns,
+`bm_push_n<2>` 58.3 ns -> 5.51 ns, and `bm_single_hit_cycle` 67.4 ns ->
+6.44 ns. See `docs/perf/core-math-phase1-audit-2026-05-28.md`.
+
 ### ~~1.5 `Polynomial::sortedResult` — return inline storage~~
 
 ~~Same fix as 1.4 — `std::vector<T>` allocates per call. The result
@@ -238,6 +265,11 @@ zero allocations on the hot path; whole-render macro benchmark on
 the torus scene shows ≥10% improvement.~~
 
 ✅ **Done.** `Polynomial::sortedResult()` now returns `SortedResult<T, Dimension>` — a stack-allocated bounded array with vector-like interface. No heap allocation on the hot path. Torus intersection updated to `auto results = quartic.sortedResult()`. Baseline gap: `bm_quartic_sorted_result` ~160 ns vs `bm_quartic_solve_into` ~70 ns (syrus/issue-106-144).
+
+✅ **Audit note.** The post-phase snapshot records
+`bm_quartic_sorted_result<float>` at 83.1 ns and
+`bm_quartic_sorted_result<double>` at 88.3 ns, down from ~160-161 ns in the
+baseline. See `docs/perf/core-math-phase1-audit-2026-05-28.md`.
 
 ---
 
@@ -296,7 +328,7 @@ the union trick; AVX2 is 2× slower on cross product; scalar/autovec ties or
 beats all correct alternatives and unblocks call-site autovectorization.
 `include/core/math/vector/sse3/Vector3d.h` and its companion
 `src/core/math/vector/sse3/Vector3d.cpp` deleted. Decision data at
-`docs/perf/phase-2.3-vec3d-decision-2026-05-10.txt`.
+`docs/perf/phase-2.3-vec3d-decision-2026-05-10.md`.
 
 ### ~~2.4 CRTP-ify `Polynomial::solve()`~~
 
