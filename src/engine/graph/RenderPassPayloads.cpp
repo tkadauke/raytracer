@@ -330,6 +330,17 @@ namespace engine::graph {
       createEngine(const RenderExecutionContext& context) const = 0;
     };
 
+    class OpenGLRasterTraceMessageRecorder {
+    protected:
+      void recordOpenGLRasterTraceMessages(
+        RenderExecutionContext& context,
+        const std::shared_ptr<::engine::raster::OpenGLRasterizer>& rasterizer) const {
+        for (const auto& message : rasterizer->traceMessages()) {
+          context.recordTraceMessage(message);
+        }
+      }
+    };
+
     /**
       * Whole-frame beauty payload backed by the Whitted raytracer.
       */
@@ -364,7 +375,7 @@ namespace engine::graph {
     /**
       * Whole-frame beauty payload backed by the software rasterizer.
       */
-    class RasterBeautyPass : public BeautyPassPayload {
+    class RasterBeautyPass : public BeautyPassPayload, private OpenGLRasterTraceMessageRecorder {
     public:
       void execute(RenderExecutionContext& context) override {
         const auto& pass = context.pass();
@@ -375,7 +386,7 @@ namespace engine::graph {
         prepareEngine(*engine, context.graph(), context.cancelled(), context.graph().tonemap());
         context.setActiveEngine(engine);
         engine->render(context.storage().color(write.resource));
-        recordReadbackTrace(context, engine);
+        recordTraceMessages(context, engine);
       }
 
       bool executeDisplay(RenderExecutionContext& context, Buffer<unsigned int>& buffer,
@@ -384,7 +395,7 @@ namespace engine::graph {
         prepareEngine(*engine, context.graph(), context.cancelled(), std::move(tonemap));
         context.setActiveEngine(engine);
         engine->render(buffer);
-        recordReadbackTrace(context, engine);
+        recordTraceMessages(context, engine);
         return true;
       }
 
@@ -420,7 +431,7 @@ namespace engine::graph {
         return engine;
       }
 
-      void recordReadbackTrace(RenderExecutionContext& context,
+      void recordTraceMessages(RenderExecutionContext& context,
                                const std::shared_ptr<render::RenderEngine>& engine) const {
         const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(context.pass());
         if (!state.execution().backend().isOpenGL()) {
@@ -429,9 +440,7 @@ namespace engine::graph {
 
         const auto rasterizer =
           std::static_pointer_cast<::engine::raster::OpenGLRasterizer>(engine);
-        for (const auto& message : rasterizer->traceMessages()) {
-          context.recordTraceMessage(message);
-        }
+        recordOpenGLRasterTraceMessages(context, rasterizer);
       }
 
       bool readsShadowMap(const RenderExecutionContext& context) const {
@@ -702,7 +711,8 @@ namespace engine::graph {
       }
     };
 
-    class RasterDiagnosticAOVPass : public RenderPassPayload {
+    class RasterDiagnosticAOVPass : public RenderPassPayload,
+                                    protected OpenGLRasterTraceMessageRecorder {
     protected:
       void renderRasterDiagnostics(
         RenderExecutionContext& context,
@@ -774,11 +784,12 @@ namespace engine::graph {
         prepareEngine(*rasterizer, context.graph(), context.cancelled(), context.graph().tonemap());
         context.setActiveEngine(rasterizer);
         rasterizer->renderDepth(context.storage().depth(write.resource));
-        context.recordTraceMessage(rasterizer->readbackTraceMessage());
+        recordOpenGLRasterTraceMessages(context, rasterizer);
       }
     };
 
-    class RasterStencilAOVPass : public RenderPassPayload {
+    class RasterStencilAOVPass : public RenderPassPayload,
+                                 private OpenGLRasterTraceMessageRecorder {
     public:
       void execute(RenderExecutionContext& context) override {
         const auto& pass = context.pass();
@@ -819,7 +830,7 @@ namespace engine::graph {
         prepareEngine(*rasterizer, context.graph(), context.cancelled(), context.graph().tonemap());
         context.setActiveEngine(rasterizer);
         rasterizer->renderStencil(stencil);
-        context.recordTraceMessage(rasterizer->readbackTraceMessage());
+        recordOpenGLRasterTraceMessages(context, rasterizer);
       }
 
       RasterBeautyPassState stencilAOVState(const RenderPassNode& pass) const {

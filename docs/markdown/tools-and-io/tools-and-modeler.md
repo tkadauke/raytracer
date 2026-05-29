@@ -195,12 +195,12 @@ status and elapsed time, the render-input fingerprint, supported input/output
 resource preview metadata, cache status metadata, and available
 difference-preview metadata. Trace capture is opt-in; ordinary graph renders
 skip those diagnostic artifacts, while this flag enables them for the render
-that is being exported. OpenGL raster passes also add trace messages that show
-which attachments were read back to CPU buffers and how long that transfer
-took; shadow-enabled OpenGL passes also report whether the graph shadow-map
-artifact was used through shader-side texture sampling or a CPU-prepared
-visibility fallback. Graph-only mode cannot write a trace because no graph
-execution happened.
+that is being exported. OpenGL raster passes also add trace messages for mesh
+preparation, OpenGL setup and draw submission, which attachments were read back
+to CPU buffers, and how long those phases took; shadow-enabled OpenGL passes
+also report whether the graph shadow-map artifact was used through shader-side
+texture sampling or a CPU-prepared visibility fallback. Graph-only mode cannot
+write a trace because no graph execution happened.
 
 That gives a two-step debugging loop:
 

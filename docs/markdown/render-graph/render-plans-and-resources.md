@@ -612,8 +612,10 @@ then creates an offscreen context and depth/stencil framebuffer when the host
 platform supports it, renders the initial lit mesh pass, and reads
 color back into the graph resource; unsupported hosts still fail with an
 explicit capability error. Graph traces report both the CPU mesh-preparation
-time for that OpenGL pass and the current eager color/depth/stencil readback
-time. OpenGL raster beauty plans also route the beauty color through an
+time, OpenGL setup and draw-submission time, and the current eager
+color/depth/stencil readback time. Beauty, depth AOV, and stencil AOV passes
+all publish those OpenGL timing messages. OpenGL raster beauty plans also route
+the beauty color through an
 explicit `beauty_readback` node before tonemap, so the graph already shows the
 transfer boundary that will become the real GPU-to-CPU copy once resident
 OpenGL resources are kept across passes. OpenGL-backed raster AOV view plans
