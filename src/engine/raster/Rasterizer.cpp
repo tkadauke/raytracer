@@ -25,6 +25,7 @@
 #include <QThreadPool>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <list>
@@ -37,9 +38,14 @@ using namespace engine::raster;
 
 namespace {
   constexpr double kMinimumRasterClipDepth = 1e-6;
+  using RasterClock = std::chrono::steady_clock;
 
   double minimumFarClipDepth(double nearDepth) {
     return std::nextafter(nearDepth, std::numeric_limits<double>::infinity());
+  }
+
+  double elapsedSeconds(RasterClock::time_point start, RasterClock::time_point end) {
+    return std::chrono::duration<double>(end - start).count();
   }
 }
 
@@ -135,7 +141,29 @@ namespace {
     return fullBufferView(*buffer);
   }
 
-  RasterDiagnosticBufferViews diagnosticViews(const Rasterizer& rasterizer, int width, int height) {
+  struct RasterMetricCounterBuffers {
+    Buffer<std::uint32_t>* coverage = nullptr;
+    Buffer<std::uint32_t>* depthTest = nullptr;
+    Buffer<std::uint32_t>* depthPass = nullptr;
+    Buffer<std::uint32_t>* shade = nullptr;
+    Buffer<std::uint32_t>* colorWrite = nullptr;
+  };
+
+  struct RasterMetricCounterAtomics {
+    std::atomic<std::uint64_t>* coveredSamples = nullptr;
+    std::atomic<std::uint64_t>* stencilTests = nullptr;
+    std::atomic<std::uint64_t>* stencilFails = nullptr;
+    std::atomic<std::uint64_t>* depthTests = nullptr;
+    std::atomic<std::uint64_t>* depthPasses = nullptr;
+    std::atomic<std::uint64_t>* depthFails = nullptr;
+    std::atomic<std::uint64_t>* shadedFragments = nullptr;
+    std::atomic<std::uint64_t>* alphaTestFails = nullptr;
+    std::atomic<std::uint64_t>* colorWrites = nullptr;
+  };
+
+  RasterDiagnosticBufferViews diagnosticViews(const Rasterizer& rasterizer, int width, int height,
+                                              const RasterMetricCounterBuffers& metricBuffers,
+                                              const RasterMetricCounterAtomics& metricAtomics) {
     const auto& outputs = rasterizer.diagnosticOutputBuffers();
     return {diagnosticView(outputs.depth, width, height),
             diagnosticView(outputs.worldPosition, width, height),
@@ -148,7 +176,21 @@ namespace {
             diagnosticView(outputs.depthTestCount, width, height),
             diagnosticView(outputs.depthPassCount, width, height),
             diagnosticView(outputs.shadeCount, width, height),
-            diagnosticView(outputs.colorWriteCount, width, height)};
+            diagnosticView(outputs.colorWriteCount, width, height),
+            diagnosticView(metricBuffers.coverage, width, height),
+            diagnosticView(metricBuffers.depthTest, width, height),
+            diagnosticView(metricBuffers.depthPass, width, height),
+            diagnosticView(metricBuffers.shade, width, height),
+            diagnosticView(metricBuffers.colorWrite, width, height),
+            metricAtomics.coveredSamples,
+            metricAtomics.stencilTests,
+            metricAtomics.stencilFails,
+            metricAtomics.depthTests,
+            metricAtomics.depthPasses,
+            metricAtomics.depthFails,
+            metricAtomics.shadedFragments,
+            metricAtomics.alphaTestFails,
+            metricAtomics.colorWrites};
   }
 
   template<class T>
@@ -411,8 +453,22 @@ struct Rasterizer::Private {
   int temporalFrameIndex{0};
   const render::Camera* temporalCamera{nullptr};
   const render::Scene* temporalScene{nullptr};
+  std::unique_ptr<Buffer<std::uint32_t>> metricCoverageCount;
+  std::unique_ptr<Buffer<std::uint32_t>> metricDepthTestCount;
+  std::unique_ptr<Buffer<std::uint32_t>> metricDepthPassCount;
+  std::unique_ptr<Buffer<std::uint32_t>> metricShadeCount;
+  std::unique_ptr<Buffer<std::uint32_t>> metricColorWriteCount;
+  std::atomic<std::uint64_t> metricCoveredSamples{0};
+  std::atomic<std::uint64_t> metricStencilTests{0};
+  std::atomic<std::uint64_t> metricStencilFails{0};
+  std::atomic<std::uint64_t> metricDepthTests{0};
+  std::atomic<std::uint64_t> metricDepthPasses{0};
+  std::atomic<std::uint64_t> metricDepthFails{0};
+  std::atomic<std::uint64_t> metricShadedFragments{0};
+  std::atomic<std::uint64_t> metricAlphaTestFails{0};
+  std::atomic<std::uint64_t> metricColorWrites{0};
 
-  void renderFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
+  void renderFrame(Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
                    const std::shared_ptr<render::Camera>& camera,
                    const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
 
@@ -483,7 +539,8 @@ struct Rasterizer::Private {
                               Buffer<double>* depthCapture = nullptr);
 
   static RasterTriangleSet collectRasterTriangles(const RasterTriangleEmitter& triangleEmitter,
-                                                  const render::TilePlan& tilePlan);
+                                                  const render::TilePlan& tilePlan,
+                                                  double* tileBinningSeconds = nullptr);
   static RasterTriangleSet triangleSetForPlan(const std::vector<RasterTriangle>& triangles,
                                               const render::TilePlan& tilePlan);
   void prepareTemporalResources(int width, int height);
@@ -491,6 +548,13 @@ struct Rasterizer::Private {
   TemporalResetCondition temporalResetCondition(int width, int height) const;
   void applyTemporalAA(const Rasterizer& rasterizer, Buffer<Colord>& buffer,
                        const TemporalJitter& currentJitter);
+  void resetMetrics(Rasterizer& rasterizer, int width, int height);
+  RasterMetricCounterBuffers metricCounterBuffers();
+  RasterMetricCounterAtomics metricCounterAtomics();
+  void recordTileMetrics(Rasterizer& rasterizer, const RasterTriangleSet& triangleSet,
+                         const render::TilePlan& tilePlan);
+  void publishFragmentMetrics(Rasterizer& rasterizer) const;
+  void publishDiagnosticImageStatistics(Rasterizer& rasterizer) const;
 };
 
 Rasterizer::Rasterizer(std::shared_ptr<render::Scene> scene)
@@ -504,6 +568,128 @@ Rasterizer::Rasterizer(std::shared_ptr<render::Camera> camera, std::shared_ptr<r
 }
 
 Rasterizer::~Rasterizer() = default;
+
+void Rasterizer::Private::resetMetrics(Rasterizer& rasterizer, int width, int height) {
+  rasterizer.m_lastMetrics = Rasterizer::RasterRenderMetrics();
+  if (rasterizer.scene()) {
+    rasterizer.m_lastMetrics.input.lightCount = rasterizer.scene()->lights().size();
+  }
+
+  auto prepareCounter = [&](std::unique_ptr<Buffer<std::uint32_t>>& buffer) {
+    if (!core::util::bufferDimensionsMatch(buffer.get(), width, height)) {
+      buffer = std::make_unique<Buffer<std::uint32_t>>(width, height);
+    }
+    buffer->clear(0u);
+  };
+  prepareCounter(metricCoverageCount);
+  prepareCounter(metricDepthTestCount);
+  prepareCounter(metricDepthPassCount);
+  prepareCounter(metricShadeCount);
+  prepareCounter(metricColorWriteCount);
+
+  metricCoveredSamples.store(0, std::memory_order_relaxed);
+  metricStencilTests.store(0, std::memory_order_relaxed);
+  metricStencilFails.store(0, std::memory_order_relaxed);
+  metricDepthTests.store(0, std::memory_order_relaxed);
+  metricDepthPasses.store(0, std::memory_order_relaxed);
+  metricDepthFails.store(0, std::memory_order_relaxed);
+  metricShadedFragments.store(0, std::memory_order_relaxed);
+  metricAlphaTestFails.store(0, std::memory_order_relaxed);
+  metricColorWrites.store(0, std::memory_order_relaxed);
+}
+
+RasterMetricCounterBuffers Rasterizer::Private::metricCounterBuffers() {
+  return {metricCoverageCount.get(), metricDepthTestCount.get(), metricDepthPassCount.get(),
+          metricShadeCount.get(), metricColorWriteCount.get()};
+}
+
+RasterMetricCounterAtomics Rasterizer::Private::metricCounterAtomics() {
+  return {&metricCoveredSamples,  &metricStencilTests,   &metricStencilFails,
+          &metricDepthTests,      &metricDepthPasses,    &metricDepthFails,
+          &metricShadedFragments, &metricAlphaTestFails, &metricColorWrites};
+}
+
+void Rasterizer::Private::recordTileMetrics(Rasterizer& rasterizer,
+                                            const RasterTriangleSet& triangleSet,
+                                            const render::TilePlan& tilePlan) {
+  auto& tiling = rasterizer.m_lastMetrics.tiling;
+  tiling.tileCount = tilePlan.size();
+  tiling.nonEmptyTileCount = 0;
+  tiling.triangleReferences = 0;
+  tiling.maxTriangleReferencesPerTile = 0;
+
+  std::vector<std::uint64_t> references;
+  references.reserve(tilePlan.size());
+  for (std::size_t tile = 0; tile != tilePlan.size(); ++tile) {
+    const std::uint64_t count = triangleSet.tileGrid().triangleIndices(tile).size();
+    references.push_back(count);
+    tiling.triangleReferences += count;
+    if (count > 0) {
+      ++tiling.nonEmptyTileCount;
+    }
+    tiling.maxTriangleReferencesPerTile = std::max(tiling.maxTriangleReferencesPerTile, count);
+  }
+
+  if (!references.empty()) {
+    std::sort(references.begin(), references.end());
+    const std::size_t index =
+      static_cast<std::size_t>(std::ceil(0.95 * static_cast<double>(references.size())) - 1.0);
+    tiling.p95TriangleReferencesPerTile =
+      static_cast<double>(references[std::min(index, references.size() - 1)]);
+  }
+}
+
+void Rasterizer::Private::publishFragmentMetrics(Rasterizer& rasterizer) const {
+  auto& fragments = rasterizer.m_lastMetrics.fragments;
+  fragments.coveredSamples = metricCoveredSamples.load(std::memory_order_relaxed);
+  fragments.stencilTests = metricStencilTests.load(std::memory_order_relaxed);
+  fragments.stencilFails = metricStencilFails.load(std::memory_order_relaxed);
+  fragments.depthTests = metricDepthTests.load(std::memory_order_relaxed);
+  fragments.depthPasses = metricDepthPasses.load(std::memory_order_relaxed);
+  fragments.depthFails = metricDepthFails.load(std::memory_order_relaxed);
+  fragments.shadedFragments = metricShadedFragments.load(std::memory_order_relaxed);
+  fragments.alphaTestFails = metricAlphaTestFails.load(std::memory_order_relaxed);
+  fragments.colorWrites = metricColorWrites.load(std::memory_order_relaxed);
+}
+
+void Rasterizer::Private::publishDiagnosticImageStatistics(Rasterizer& rasterizer) const {
+  auto distributionFor = [](const Buffer<std::uint32_t>* buffer) {
+    Rasterizer::MetricDistribution distribution;
+    if (!buffer || buffer->width() <= 0 || buffer->height() <= 0) {
+      return distribution;
+    }
+
+    std::vector<std::uint32_t> values;
+    values.reserve(static_cast<std::size_t>(buffer->width() * buffer->height()));
+    for (int y = 0; y != buffer->height(); ++y) {
+      for (int x = 0; x != buffer->width(); ++x) {
+        values.push_back((*buffer)[y][x]);
+      }
+    }
+    std::sort(values.begin(), values.end());
+    distribution.max = values.back();
+
+    const auto percentile = [&](double q) {
+      if (values.empty())
+        return 0.0;
+      const double scaled = q * static_cast<double>(values.size() - 1);
+      const std::size_t index = static_cast<std::size_t>(std::round(scaled));
+      return static_cast<double>(values[std::min(index, values.size() - 1)]);
+    };
+    distribution.p50 = percentile(0.50);
+    distribution.p90 = percentile(0.90);
+    distribution.p95 = percentile(0.95);
+    distribution.p99 = percentile(0.99);
+    return distribution;
+  };
+
+  auto& stats = rasterizer.m_lastMetrics.diagnosticImages;
+  stats.coverage = distributionFor(metricCoverageCount.get());
+  stats.depthTest = distributionFor(metricDepthTestCount.get());
+  stats.depthPass = distributionFor(metricDepthPassCount.get());
+  stats.shade = distributionFor(metricShadeCount.get());
+  stats.colorWrite = distributionFor(metricColorWriteCount.get());
+}
 
 std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   auto result = std::make_shared<Rasterizer>(m_camera ? m_camera->clone() : nullptr, m_scene);
@@ -742,6 +928,7 @@ void Rasterizer::render(Buffer<unsigned int>& buffer) {
 void Rasterizer::render(Buffer<Colord>& buffer) {
   // Caller is expected to call uncancel() between renders. Matches
   // the Wireframe / Raytracer convention.
+  const auto renderStart = RasterClock::now();
 
   std::unique_ptr<Buffer<Colord>> transientColor;
   Buffer<Colord>* colorTarget = &buffer;
@@ -750,17 +937,28 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
     colorTarget = transientColor.get();
   }
 
+  p->resetMetrics(*this, colorTarget->width(), colorTarget->height());
   loadColorAttachment(*this, *colorTarget, buffer);
   clearDiagnosticOutputsForRender(*this, colorTarget->width(), colorTarget->height());
 
-  if (!m_scene || !m_camera)
+  auto finishMetrics = [&]() {
+    p->publishFragmentMetrics(*this);
+    p->publishDiagnosticImageStatistics(*this);
+    m_lastMetrics.timings.totalRenderSeconds = elapsedSeconds(renderStart, RasterClock::now());
+  };
+
+  if (!m_scene || !m_camera) {
+    finishMetrics();
     return;
+  }
 
   // Same view-plane setup the other engines perform — the camera
   // projection math depends on the cached basis vectors.
   const Recti viewport = configuredViewportRect(*this, colorTarget->rect());
-  if (rasterRectEmpty(viewport))
+  if (rasterRectEmpty(viewport)) {
+    finishMetrics();
     return;
+  }
   m_camera->viewPlane()->setup(m_camera->matrix(), viewport);
 
   // From here down the render is expressed in pipeline terms. The
@@ -768,17 +966,26 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   // concrete passes and keeps task state available for activeTiles().
   p->tasks.clear();
   p->renderFrame(*this, m_scene, m_camera, m_cancelled, *colorTarget);
+  finishMetrics();
 }
 
 RasterTriangleSet
 Rasterizer::Private::collectRasterTriangles(const RasterTriangleEmitter& triangleEmitter,
-                                            const render::TilePlan& tilePlan) {
+                                            const render::TilePlan& tilePlan,
+                                            double* tileBinningSeconds) {
   // The emitter streams triangles, the set owns them and their tile
   // bins. Keeping those roles separate makes the later tile raster
   // pass independent of scene traversal and tessellation.
   RasterTriangleSet triangleSet(tilePlan);
-  triangleEmitter.forEachTriangle(
-    [&](const RasterTriangle& triangle) { triangleSet.add(triangle); });
+  double binningSeconds = 0.0;
+  triangleEmitter.forEachTriangle([&](const RasterTriangle& triangle) {
+    const auto start = RasterClock::now();
+    triangleSet.add(triangle);
+    binningSeconds += elapsedSeconds(start, RasterClock::now());
+  });
+  if (tileBinningSeconds) {
+    *tileBinningSeconds += binningSeconds;
+  }
   return triangleSet;
 }
 
@@ -806,7 +1013,8 @@ void Rasterizer::Private::renderTriangleSetPass(
     stencilView = fullBufferView(*passBuffers.stencil());
   }
   const RasterDiagnosticBufferViews diagnostics =
-    diagnosticViews(rasterizer, tilePlan.width(), tilePlan.height());
+    diagnosticViews(rasterizer, tilePlan.width(), tilePlan.height(), metricCounterBuffers(),
+                    metricCounterAtomics());
   const AlphaTestState alphaTest{rasterizer.alphaTestEnabled(), rasterizer.alphaFunc(),
                                  rasterizer.alphaReference()};
   withPreparedTrianglePolicies(
@@ -843,7 +1051,8 @@ void Rasterizer::Private::renderTriangleStreamPass(
     stencilView = fullBufferView(*passBuffers.stencil());
   }
   const RasterDiagnosticBufferViews diagnostics =
-    diagnosticViews(rasterizer, tilePlan.width(), tilePlan.height());
+    diagnosticViews(rasterizer, tilePlan.width(), tilePlan.height(), metricCounterBuffers(),
+                    metricCounterAtomics());
   const AlphaTestState alphaTest{rasterizer.alphaTestEnabled(), rasterizer.alphaFunc(),
                                  rasterizer.alphaReference()};
 
@@ -881,7 +1090,8 @@ void Rasterizer::Private::renderTriangleListPass(
     stencilView = fullBufferView(*passBuffers.stencil());
   }
   const RasterDiagnosticBufferViews diagnostics =
-    diagnosticViews(rasterizer, tilePlan.width(), tilePlan.height());
+    diagnosticViews(rasterizer, tilePlan.width(), tilePlan.height(), metricCounterBuffers(),
+                    metricCounterAtomics());
   const AlphaTestState alphaTest{rasterizer.alphaTestEnabled(), rasterizer.alphaFunc(),
                                  rasterizer.alphaReference()};
 
@@ -919,7 +1129,15 @@ void Rasterizer::Private::renderSingleSampleFrame(
     return;
   }
 
-  const RasterTriangleSet triangleSet = collectRasterTriangles(triangleEmitter, tilePlan);
+  double binningSeconds = 0.0;
+  const auto collectStart = RasterClock::now();
+  const RasterTriangleSet triangleSet =
+    collectRasterTriangles(triangleEmitter, tilePlan, &binningSeconds);
+  auto& metrics = const_cast<Rasterizer&>(rasterizer).m_lastMetrics;
+  metrics.timings.tessellationTriangleEmissionSeconds +=
+    std::max(0.0, elapsedSeconds(collectStart, RasterClock::now()) - binningSeconds);
+  metrics.timings.tileBinningSeconds += binningSeconds;
+  recordTileMetrics(const_cast<Rasterizer&>(rasterizer), triangleSet, tilePlan);
   if (cancelled.load() || triangleSet.empty())
     return;
 
@@ -934,7 +1152,15 @@ void Rasterizer::Private::renderAutomaticSingleSampleFrame(
   const render::TilePlan& candidateTilePlan, const RasterTriangleEmitter& triangleEmitter,
   const ShadowMaps& shadowMaps, const Recti& renderClip, const std::atomic<bool>& cancelled,
   Buffer<Colord>& buffer, const Vector2d& sampleOffset) {
-  const RasterTriangleSet candidateSet = collectRasterTriangles(triangleEmitter, candidateTilePlan);
+  double binningSeconds = 0.0;
+  const auto collectStart = RasterClock::now();
+  const RasterTriangleSet candidateSet =
+    collectRasterTriangles(triangleEmitter, candidateTilePlan, &binningSeconds);
+  auto& metrics = const_cast<Rasterizer&>(rasterizer).m_lastMetrics;
+  metrics.timings.tessellationTriangleEmissionSeconds +=
+    std::max(0.0, elapsedSeconds(collectStart, RasterClock::now()) - binningSeconds);
+  metrics.timings.tileBinningSeconds += binningSeconds;
+  recordTileMetrics(const_cast<Rasterizer&>(rasterizer), candidateSet, candidateTilePlan);
   if (cancelled.load() || candidateSet.empty())
     return;
 
@@ -953,8 +1179,11 @@ void Rasterizer::Private::renderAutomaticSingleSampleFrame(
   const render::TilePlan singleTilePlan =
     render::TilePlan::forBuffer(candidateTilePlan.width(), candidateTilePlan.height(), 1);
   lastResolvedQueueSize = 1;
+  const RasterTriangleSet singleTileSet =
+    triangleSetForPlan(candidateSet.triangles(), singleTilePlan);
+  recordTileMetrics(const_cast<Rasterizer&>(rasterizer), singleTileSet, singleTilePlan);
   renderTriangleListPass(
-    rasterizer, scene, candidateSet.triangles(), singleTilePlan, shadowMaps, renderClip, cancelled,
+    rasterizer, scene, singleTileSet.triangles(), singleTilePlan, shadowMaps, renderClip, cancelled,
     buffer, sampleOffset,
     rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA ? currentDepth.get() : nullptr);
 }
@@ -964,7 +1193,15 @@ void Rasterizer::Private::renderMSAAFrame(
   const render::TilePlan& tilePlan, const MSAASamplePattern& pattern,
   const RasterTriangleEmitter& triangleEmitter, const ShadowMaps& shadowMaps,
   const Recti& renderClip, const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
-  const RasterTriangleSet triangleSet = collectRasterTriangles(triangleEmitter, tilePlan);
+  double binningSeconds = 0.0;
+  const auto collectStart = RasterClock::now();
+  const RasterTriangleSet triangleSet =
+    collectRasterTriangles(triangleEmitter, tilePlan, &binningSeconds);
+  auto& metrics = const_cast<Rasterizer&>(rasterizer).m_lastMetrics;
+  metrics.timings.tessellationTriangleEmissionSeconds +=
+    std::max(0.0, elapsedSeconds(collectStart, RasterClock::now()) - binningSeconds);
+  metrics.timings.tileBinningSeconds += binningSeconds;
+  recordTileMetrics(const_cast<Rasterizer&>(rasterizer), triangleSet, tilePlan);
   if (cancelled.load() || triangleSet.empty())
     return;
 
@@ -987,7 +1224,15 @@ void Rasterizer::Private::renderAutomaticMSAAFrame(
   const render::TilePlan& candidateTilePlan, const MSAASamplePattern& pattern,
   const RasterTriangleEmitter& triangleEmitter, const ShadowMaps& shadowMaps,
   const Recti& renderClip, const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
-  const RasterTriangleSet candidateSet = collectRasterTriangles(triangleEmitter, candidateTilePlan);
+  double binningSeconds = 0.0;
+  const auto collectStart = RasterClock::now();
+  const RasterTriangleSet candidateSet =
+    collectRasterTriangles(triangleEmitter, candidateTilePlan, &binningSeconds);
+  auto& metrics = const_cast<Rasterizer&>(rasterizer).m_lastMetrics;
+  metrics.timings.tessellationTriangleEmissionSeconds +=
+    std::max(0.0, elapsedSeconds(collectStart, RasterClock::now()) - binningSeconds);
+  metrics.timings.tileBinningSeconds += binningSeconds;
+  recordTileMetrics(const_cast<Rasterizer&>(rasterizer), candidateSet, candidateTilePlan);
   if (cancelled.load() || candidateSet.empty())
     return;
 
@@ -1013,6 +1258,7 @@ void Rasterizer::Private::renderAutomaticMSAAFrame(
     return;
 
   lastResolvedQueueSize = 1;
+  recordTileMetrics(const_cast<Rasterizer&>(rasterizer), singleTileSet, singleTilePlan);
   renderMSAAFullFrame(rasterizer, scene, singleTileSet, singleTilePlan, shadowMaps, renderClip,
                       pattern, cancelled, buffer);
 }
@@ -1045,7 +1291,10 @@ void Rasterizer::Private::renderMSAAFullFrame(
     accumulateMSAASample(buffer, sampleBuffer);
   }
 
+  const auto resolveStart = RasterClock::now();
   resolveMSAA(buffer, pattern.count);
+  const_cast<Rasterizer&>(rasterizer).m_lastMetrics.timings.msaaResolveSeconds +=
+    elapsedSeconds(resolveStart, RasterClock::now());
 }
 
 void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
@@ -1083,8 +1332,8 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
     if (scratch->stencil()) {
       stencilView = tileBufferView(*scratch->stencil(), rect);
     }
-    const RasterDiagnosticBufferViews diagnostics =
-      diagnosticViews(rasterizer, buffer.width(), buffer.height());
+    const RasterDiagnosticBufferViews diagnostics = diagnosticViews(
+      rasterizer, buffer.width(), buffer.height(), metricCounterBuffers(), metricCounterAtomics());
     const AlphaTestState alphaTest{rasterizer.alphaTestEnabled(), rasterizer.alphaFunc(),
                                    rasterizer.alphaReference()};
 
@@ -1204,7 +1453,7 @@ void Rasterizer::Private::applyTemporalAA(const Rasterizer& rasterizer, Buffer<C
   ++temporalFrameIndex;
 }
 
-void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
+void Rasterizer::Private::renderFrame(Rasterizer& rasterizer,
                                       const std::shared_ptr<render::Scene>& scene,
                                       const std::shared_ptr<render::Camera>& camera,
                                       const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
@@ -1236,16 +1485,18 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
   const Vector2d sampleOffset(currentJitter.x, currentJitter.y);
 
   const render::TilePlan tilePlan = render::TilePlan::forBuffer(width, height, queueSize);
+  rasterizer.m_lastMetrics.tiling.tileCount = tilePlan.size();
   const MSAASamplePattern pattern(rasterizer.msaaSamples());
   const RasterTriangleEmitter triangleEmitter(
     scene.get(), camera, rasterizer.lod(), rasterizer, cancelled, rasterizer.cullMode(),
-    rasterizer.hasCullModeOverride(), true, rasterizer.visibilitySet());
+    rasterizer.hasCullModeOverride(), true, rasterizer.visibilitySet(), &rasterizer.m_lastMetrics);
   const ShadowMaps builtShadowMaps =
     rasterizer.m_externalShadowMaps
       ? ShadowMaps()
       : RasterShadowMapBuilder(rasterizer, scene, camera, *threadPool, cancelled).build();
   const ShadowMaps& shadowMaps =
     rasterizer.m_externalShadowMaps ? *rasterizer.m_externalShadowMaps : builtShadowMaps;
+  const auto rasterStart = RasterClock::now();
   if (automaticQueueSize && pattern.count > 1) {
     renderAutomaticMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, shadowMaps,
                              renderClip, cancelled, buffer);
@@ -1261,11 +1512,19 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
     renderSingleSampleFrame(rasterizer, scene, tilePlan, triangleEmitter, shadowMaps, renderClip,
                             cancelled, buffer, sampleOffset);
   }
+  const double rasterElapsed = elapsedSeconds(rasterStart, RasterClock::now());
+  const double nonRasterElapsed =
+    rasterizer.m_lastMetrics.timings.tessellationTriangleEmissionSeconds +
+    rasterizer.m_lastMetrics.timings.tileBinningSeconds +
+    rasterizer.m_lastMetrics.timings.msaaResolveSeconds;
+  rasterizer.m_lastMetrics.timings.rasterLoopSeconds +=
+    std::max(0.0, rasterElapsed - nonRasterElapsed);
 
   if (cancelled.load()) {
     return;
   }
 
+  const auto postprocessStart = RasterClock::now();
   if (useTemporalAA && pattern.count == 1) {
     applyTemporalAA(rasterizer, buffer, currentJitter);
   } else {
@@ -1281,4 +1540,6 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
       break;
     }
   }
+  rasterizer.m_lastMetrics.timings.postprocessSeconds +=
+    elapsedSeconds(postprocessStart, RasterClock::now());
 }

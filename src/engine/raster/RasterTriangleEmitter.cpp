@@ -58,7 +58,7 @@ namespace engine::raster::detail {
     const render::Scene* scene, std::shared_ptr<render::Camera> camera, int lod,
     const Rasterizer& rasterizer, const std::atomic<bool>& cancelled, Rasterizer::CullMode cullMode,
     bool hasCullModeOverride, bool applyVertexShader,
-    std::shared_ptr<const RasterVisibilitySet> visibilitySet)
+    std::shared_ptr<const RasterVisibilitySet> visibilitySet, Rasterizer::RasterRenderMetrics* metrics)
       : m_scene(scene),
         m_camera(std::move(camera)),
         m_visibilitySet(std::move(visibilitySet)),
@@ -67,7 +67,8 @@ namespace engine::raster::detail {
         m_clipVolume(rasterizer.nearClipDepth(), rasterizer.farClipDepth()),
         m_cullPolicy{cullMode, hasCullModeOverride},
         m_applyVertexShader(applyVertexShader),
-        m_cancelled(cancelled) {
+        m_cancelled(cancelled),
+        m_metrics(metrics) {
   }
 
   bool RasterTriangleEmitter::canCullPrimitiveBounds() const {
@@ -104,6 +105,36 @@ namespace engine::raster::detail {
     auto mesh = primitive->tessellate(m_lod);
     m_tessellationCache.emplace(primitive, mesh);
     return mesh;
+  }
+
+  void RasterTriangleEmitter::recordMesh(const Mesh& mesh, const render::Material* material) const {
+    if (!m_metrics)
+      return;
+    ++m_metrics->input.leafPrimitiveCount;
+    ++m_metrics->input.meshCount;
+    m_metrics->tessellation.generatedMeshVertices += mesh.vertices().size();
+    m_metrics->tessellation.generatedMeshFaces += mesh.faces().size();
+    if (material && m_seenMaterials.insert(material).second) {
+      ++m_metrics->input.materialCount;
+    }
+  }
+
+  void RasterTriangleEmitter::recordPreparedTriangleBeforeCulling() const {
+    if (m_metrics) {
+      ++m_metrics->tessellation.preparedTrianglesBeforeCulling;
+    }
+  }
+
+  void RasterTriangleEmitter::recordTriangleAfterCulling() const {
+    if (m_metrics) {
+      ++m_metrics->tessellation.trianglesAfterCulling;
+    }
+  }
+
+  void RasterTriangleEmitter::recordTriangleAfterClipping() const {
+    if (m_metrics) {
+      ++m_metrics->tessellation.trianglesAfterClipping;
+    }
   }
 
   bool RasterTriangleEmitter::makeVertex(const ClipVert& vertex, const render::Primitive* primitive,

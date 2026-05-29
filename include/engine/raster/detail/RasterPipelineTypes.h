@@ -11,6 +11,7 @@
 #include "render/viewplanes/ViewPlane.h"
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -181,14 +182,34 @@ namespace engine::raster::detail {
     RasterFullBufferView<std::uint32_t> depthPassCount;
     RasterFullBufferView<std::uint32_t> shadeCount;
     RasterFullBufferView<std::uint32_t> colorWriteCount;
+    RasterFullBufferView<std::uint32_t> metricCoverageCount;
+    RasterFullBufferView<std::uint32_t> metricDepthTestCount;
+    RasterFullBufferView<std::uint32_t> metricDepthPassCount;
+    RasterFullBufferView<std::uint32_t> metricShadeCount;
+    RasterFullBufferView<std::uint32_t> metricColorWriteCount;
+    std::atomic<std::uint64_t>* coveredSamples = nullptr;
+    std::atomic<std::uint64_t>* stencilTests = nullptr;
+    std::atomic<std::uint64_t>* stencilFails = nullptr;
+    std::atomic<std::uint64_t>* depthTests = nullptr;
+    std::atomic<std::uint64_t>* depthPasses = nullptr;
+    std::atomic<std::uint64_t>* depthFails = nullptr;
+    std::atomic<std::uint64_t>* shadedFragments = nullptr;
+    std::atomic<std::uint64_t>* alphaTestFails = nullptr;
+    std::atomic<std::uint64_t>* colorWrites = nullptr;
 
     void recordCoverage(int x, int y) const;
 
+    void recordStencilFail() const;
+
     void recordDepthTest(int x, int y) const;
+
+    void recordDepthFail() const;
 
     void recordDepthPass(int x, int y) const;
 
     void recordShade(int x, int y) const;
+
+    void recordAlphaTestFail() const;
 
     void recordColorWrite(int x, int y) const;
 
@@ -199,6 +220,7 @@ namespace engine::raster::detail {
 
   private:
     static void increment(RasterFullBufferView<std::uint32_t> counter, int x, int y);
+    static void increment(std::atomic<std::uint64_t>* counter);
   };
 
   // Per-frame tile binning structure. The tile plan defines disjoint pixel

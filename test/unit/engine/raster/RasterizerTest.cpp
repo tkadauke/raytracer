@@ -1200,6 +1200,66 @@ namespace RasterizerTest {
     EXPECT_EQ(1u, colorWriteCount[32][32]);
   }
 
+  TEST(Rasterizer, MetricsCaptureRasterWorkWithoutDiagnosticOutputBuffers) {
+    Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
+    engine.setQueueSize(4);
+
+    Buffer<Colord> color(64, 64);
+    engine.render(color);
+
+    const auto& metrics = engine.lastMetrics();
+    EXPECT_EQ(2u, metrics.input.leafPrimitiveCount);
+    EXPECT_EQ(2u, metrics.input.meshCount);
+    EXPECT_EQ(0u, metrics.input.materialCount);
+    EXPECT_EQ(0u, metrics.input.lightCount);
+    EXPECT_EQ(6u, metrics.tessellation.generatedMeshVertices);
+    EXPECT_EQ(2u, metrics.tessellation.generatedMeshFaces);
+    EXPECT_EQ(2u, metrics.tessellation.preparedTrianglesBeforeCulling);
+    EXPECT_EQ(2u, metrics.tessellation.trianglesAfterCulling);
+    EXPECT_EQ(2u, metrics.tessellation.trianglesAfterClipping);
+
+    EXPECT_EQ(4u, metrics.tiling.tileCount);
+    EXPECT_GT(metrics.tiling.nonEmptyTileCount, 0u);
+    EXPECT_GE(metrics.tiling.triangleReferences, 2u);
+    EXPECT_GT(metrics.tiling.maxTriangleReferencesPerTile, 0u);
+    EXPECT_GE(metrics.tiling.p95TriangleReferencesPerTile, 1.0);
+
+    EXPECT_GT(metrics.fragments.coveredSamples, 0u);
+    EXPECT_EQ(metrics.fragments.coveredSamples, metrics.fragments.stencilTests);
+    EXPECT_EQ(metrics.fragments.coveredSamples, metrics.fragments.depthTests);
+    EXPECT_GT(metrics.fragments.depthFails, 0u);
+    EXPECT_EQ(metrics.fragments.depthTests,
+              metrics.fragments.depthPasses + metrics.fragments.depthFails);
+    EXPECT_EQ(metrics.fragments.depthPasses, metrics.fragments.shadedFragments);
+    EXPECT_EQ(metrics.fragments.depthPasses, metrics.fragments.colorWrites);
+    EXPECT_EQ(0u, metrics.fragments.stencilFails);
+    EXPECT_EQ(0u, metrics.fragments.alphaTestFails);
+
+    EXPECT_EQ(2u, metrics.diagnosticImages.coverage.max);
+    EXPECT_EQ(2u, metrics.diagnosticImages.depthTest.max);
+    EXPECT_EQ(1u, metrics.diagnosticImages.depthPass.max);
+    EXPECT_EQ(1u, metrics.diagnosticImages.shade.max);
+    EXPECT_EQ(1u, metrics.diagnosticImages.colorWrite.max);
+    EXPECT_GT(metrics.timings.totalRenderSeconds, 0.0);
+  }
+
+  TEST(Rasterizer, MetricsCaptureMaterialAndLightInputSummary) {
+    auto tracked = sceneWithTrackedFrontFacingTriangle();
+    tracked.scene->addLight(
+      std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord::white()));
+    Rasterizer engine(headOnCamera(), tracked.scene);
+
+    Buffer<Colord> color(64, 64);
+    engine.render(color);
+
+    const auto& metrics = engine.lastMetrics();
+    EXPECT_EQ(1u, metrics.input.leafPrimitiveCount);
+    EXPECT_EQ(1u, metrics.input.meshCount);
+    EXPECT_EQ(1u, metrics.input.materialCount);
+    EXPECT_EQ(1u, metrics.input.lightCount);
+    EXPECT_TRUE(metrics.input.sourceKinds.empty());
+  }
+
   TEST(Rasterizer, DiagnosticOutputBuffersIgnoreMismatchedBuffers) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
     Buffer<Colord> color(64, 64);

@@ -247,6 +247,7 @@ namespace engine::raster::detail {
         diagnostics.recordCoverage(x, y);
         if (!stencil.pass(x, y)) {
           stencil.onStencilFail(x, y);
+          diagnostics.recordStencilFail();
           diagnostics.writeStencil(x, y, stencil.value(x, y));
           return;
         }
@@ -255,6 +256,7 @@ namespace engine::raster::detail {
         diagnostics.recordDepthTest(x, y);
         if (!depth.pass(x, y, fragment.depth)) {
           stencil.onDepthFail(x, y);
+          diagnostics.recordDepthFail();
           diagnostics.writeStencil(x, y, stencil.value(x, y));
           return;
         }
@@ -264,6 +266,7 @@ namespace engine::raster::detail {
         diagnostics.recordShade(x, y);
         const RasterFragment shaded = fragmentPolicy.shade(triangle, x, y, w0b, w1b, w2b, fragment);
         if (!alphaTest.pass(shaded.alpha)) {
+          diagnostics.recordAlphaTestFail();
           return;
         }
 

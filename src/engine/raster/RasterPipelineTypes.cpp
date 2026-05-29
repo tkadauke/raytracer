@@ -116,22 +116,45 @@ namespace engine::raster::detail {
 
   void RasterDiagnosticBufferViews::recordCoverage(int x, int y) const {
     increment(coverageCount, x, y);
+    increment(metricCoverageCount, x, y);
+    increment(coveredSamples);
+    increment(stencilTests);
+  }
+
+  void RasterDiagnosticBufferViews::recordStencilFail() const {
+    increment(stencilFails);
   }
 
   void RasterDiagnosticBufferViews::recordDepthTest(int x, int y) const {
     increment(depthTestCount, x, y);
+    increment(metricDepthTestCount, x, y);
+    increment(depthTests);
+  }
+
+  void RasterDiagnosticBufferViews::recordDepthFail() const {
+    increment(depthFails);
   }
 
   void RasterDiagnosticBufferViews::recordDepthPass(int x, int y) const {
     increment(depthPassCount, x, y);
+    increment(metricDepthPassCount, x, y);
+    increment(depthPasses);
   }
 
   void RasterDiagnosticBufferViews::recordShade(int x, int y) const {
     increment(shadeCount, x, y);
+    increment(metricShadeCount, x, y);
+    increment(shadedFragments);
+  }
+
+  void RasterDiagnosticBufferViews::recordAlphaTestFail() const {
+    increment(alphaTestFails);
   }
 
   void RasterDiagnosticBufferViews::recordColorWrite(int x, int y) const {
     increment(colorWriteCount, x, y);
+    increment(metricColorWriteCount, x, y);
+    increment(colorWrites);
   }
 
   void RasterDiagnosticBufferViews::writeStencil(int x, int y, std::uint8_t value) const {
@@ -167,6 +190,12 @@ namespace engine::raster::detail {
                                               int y) {
     if (counter.isValid()) {
       ++counter.at(x, y);
+    }
+  }
+
+  void RasterDiagnosticBufferViews::increment(std::atomic<std::uint64_t>* counter) {
+    if (counter) {
+      counter->fetch_add(1, std::memory_order_relaxed);
     }
   }
 
