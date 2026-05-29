@@ -170,6 +170,22 @@ namespace engine::raster::detail {
     return m_cascades;
   }
 
+  double DirectionalShadowMap::bias() const {
+    return m_bias;
+  }
+
+  double DirectionalShadowMap::slopeBias() const {
+    return m_slopeBias;
+  }
+
+  int DirectionalShadowMap::filterRadius() const {
+    return m_filterRadius;
+  }
+
+  Rasterizer::ShadowFilterMode DirectionalShadowMap::filterMode() const {
+    return m_filterMode;
+  }
+
   double DirectionalShadowMap::visibility(const Vector3d& worldPos, const Vector3d& receiverNormal,
                                           const Vector3d& lightDirection) const {
     const DirectionalShadowCascade* cascade = cascadeFor(worldPos);

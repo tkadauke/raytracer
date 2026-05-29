@@ -351,7 +351,8 @@ Tasks:
   now carries world position plus lighting normal for future per-fragment
   shadow projection. Directional shadow cameras also expose their fitted
   origin, basis, and half-extent so shader uniforms can project those fragments
-  into light-space.
+  into light-space; directional shadow maps expose bias and filter policy so
+  the GPU path can decide when shader sampling matches the graph state.
 
 Acceptance:
 

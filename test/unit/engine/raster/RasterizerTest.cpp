@@ -1394,6 +1394,15 @@ namespace RasterizerTest {
     EXPECT_DOUBLE_EQ(0.0, engine.shadowSlopeBias());
   }
 
+  TEST(Rasterizer, DirectionalShadowMapExposesSamplingState) {
+    const auto shadowMap = syntheticShadowMap(0.01, 0.02, 3, Rasterizer::ShadowFilterMode::PCSS);
+
+    EXPECT_DOUBLE_EQ(0.01, shadowMap.bias());
+    EXPECT_DOUBLE_EQ(0.02, shadowMap.slopeBias());
+    EXPECT_EQ(3, shadowMap.filterRadius());
+    EXPECT_EQ(Rasterizer::ShadowFilterMode::PCSS, shadowMap.filterMode());
+  }
+
   TEST(Rasterizer, ShadowSlopeBiasAddsToleranceForGrazingReceivers) {
     const Vector3d receiver(0.0, 0.0, 0.0);
     const Vector3d lightDirection(0.0, 0.0, -1.0);

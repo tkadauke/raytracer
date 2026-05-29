@@ -114,6 +114,11 @@ namespace engine::raster::detail {
 
     const std::vector<DirectionalShadowCascade>& cascades() const;
 
+    double bias() const;
+    double slopeBias() const;
+    int filterRadius() const;
+    Rasterizer::ShadowFilterMode filterMode() const;
+
     double visibility(const Vector3d& worldPos, const Vector3d& receiverNormal,
                       const Vector3d& lightDirection) const;
 
