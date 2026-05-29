@@ -12,6 +12,7 @@ file(REMOVE_RECURSE "${TEST_OUTPUT_DIR}")
 file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 
 set(matte_scene "${PROJECT_SOURCE_DIR}/scenes/raster_material_preview.json")
+set(shadow_scene "${PROJECT_SOURCE_DIR}/test/fixtures/rendercli/raster_shadow_caster.json")
 set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(reflective_scene "${PROJECT_SOURCE_DIR}/scenes/reflections.json")
 set(transmissive_scene "${PROJECT_SOURCE_DIR}/scenes/glass_torus.json")
@@ -387,8 +388,8 @@ set(opengl_shadow_trace_render "${TEST_OUTPUT_DIR}/raster-opengl-shadow-maps-tra
 execute_process(
   COMMAND
     "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
-    --shadow_maps
-    "${matte_scene}" "${opengl_shadow_render}"
+    --shadow_maps --shadow_map_size 64 --shadow_bias 0.1
+    "${shadow_scene}" "${opengl_shadow_render}"
   RESULT_VARIABLE opengl_shadow_result
   OUTPUT_VARIABLE opengl_shadow_stdout
   ERROR_VARIABLE opengl_shadow_stderr
@@ -415,8 +416,9 @@ endif()
 execute_process(
   COMMAND
     "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
-    --shadow_maps --render_graph_trace_out "${opengl_shadow_trace}"
-    "${matte_scene}" "${opengl_shadow_trace_render}"
+    --shadow_maps --shadow_map_size 64 --shadow_bias 0.1
+    --render_graph_trace_out "${opengl_shadow_trace}"
+    "${shadow_scene}" "${opengl_shadow_trace_render}"
   RESULT_VARIABLE opengl_shadow_trace_result
   OUTPUT_VARIABLE opengl_shadow_trace_stdout
   ERROR_VARIABLE opengl_shadow_trace_stderr
