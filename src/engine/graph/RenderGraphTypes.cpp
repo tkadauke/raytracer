@@ -1045,6 +1045,23 @@ namespace engine::graph {
     throw std::runtime_error(message.str());
   }
 
+  void RenderIntent::requireNoSubviews(const std::string& context) const {
+    if (subviews.empty()) {
+      return;
+    }
+
+    const std::string firstSubview =
+      subviews.front().name.empty() ? "unnamed subview" : subviews.front().name;
+    std::ostringstream message;
+    message << context << " does not support render-to-texture subviews yet";
+    message << " (" << firstSubview;
+    if (subviews.size() > 1) {
+      message << ", +" << (subviews.size() - 1) << " more";
+    }
+    message << ")";
+    throw std::runtime_error(message.str());
+  }
+
   SceneView RenderIntent::defaultSceneView() const {
     SceneView view;
     view.selector = SceneSelector::all();

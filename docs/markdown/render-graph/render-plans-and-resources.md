@@ -88,7 +88,9 @@ raster render dialog no longer compile a plan and then patch pass parameters in
 a separate front-end step. Future render-to-texture subviews can either inherit
 the global engine options or carry their own override block, so low-resolution
 probes and high-quality final views can share one intent model without users
-requesting graph nodes directly.
+requesting graph nodes directly. Until the compiler can synthesize those
+offscreen resources and composite passes, any scene-authored subview request is
+rejected explicitly rather than ignored.
 When the effective frame intent names a default camera or non-default shading
 profile, synthesized scene-rendering passes carry those references in their
 `SceneView` and in exported plan JSON. Shading-profile parameters are parsed

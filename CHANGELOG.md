@@ -96,6 +96,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   serializes depth compare, clear, load/store, and write controls, and the
   OpenGL raster backend binds the supported depth state from graph plans. —
   GPT-5
+- **Render subview validation.** The render graph compiler now rejects
+  render-to-texture subview intents with a clear diagnostic until subview pass
+  synthesis exists instead of silently ignoring them. — GPT-5
 - **OpenGL raster ID AOV fallback.** Object/material ID views requested with
   the OpenGL raster backend now execute through the software raster diagnostic
   fallback instead of rejecting the graph, preserving exact scene ID resources

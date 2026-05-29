@@ -322,7 +322,9 @@ The compiler resolves those options into typed payload state on the nodes it
 synthesizes. Subviews use the same view-override option fields to inherit the
 global engine options or provide their own override block, which keeps future
 render-to-texture quality controls in the same model without asking users to
-directly author graph nodes.
+directly author graph nodes. Current graph compilation rejects subview intents
+with a clear diagnostic until it can synthesize the necessary offscreen
+resources, alternate cameras, and composites.
 The effective default camera is carried on synthesized scene-rendering pass
 `SceneView` records and serialized in exported plan JSON, even though current
 executors still render with the engine's active camera until alternate-camera

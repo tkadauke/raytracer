@@ -539,6 +539,26 @@ namespace RenderGraphCompilerTest {
     }
   }
 
+  TEST(RenderGraphCompiler, RejectsSubviewIntentsUntilRenderToTextureExists) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+
+    RenderSubviewIntent subview;
+    subview.name = "mirror_probe";
+    subview.view.selector = SceneSelector::all();
+    subview.view.executor = RenderExecutorPreference::Rasterizer;
+    intent.subviews.push_back(subview);
+
+    try {
+      compiler.compile({64, 32, 1}, intent);
+      FAIL() << "Expected subview graph compilation rejection";
+    } catch (const std::runtime_error& error) {
+      const std::string message = error.what();
+      EXPECT_NE(std::string::npos, message.find("render-to-texture subviews"));
+      EXPECT_NE(std::string::npos, message.find("mirror_probe"));
+    }
+  }
+
   TEST(RenderGraphCompiler, NormalizesNonPositiveSampleCount) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

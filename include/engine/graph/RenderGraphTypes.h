@@ -399,6 +399,15 @@ namespace engine::graph {
     void requireWholeFrameOnly(const std::string& context) const;
 
     /**
+      * Throws when this intent requests render-to-texture subviews.
+      *
+      * Subviews are part of the durable intent model, but graph compilation
+      * must not ignore them until the compiler can synthesize the required
+      * offscreen resources, cameras, and composites.
+      */
+    void requireNoSubviews(const std::string& context) const;
+
+    /**
       * Builds the default scene view carried by synthesized scene-rendering
       * passes.
       */

@@ -263,6 +263,7 @@ namespace engine::graph {
     const RenderTargetSpec target = rawTarget.normalized();
     const RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
     frameIntent.requireWholeFrameOnly("RenderGraphCompiler");
+    frameIntent.requireNoSubviews("RenderGraphCompiler");
 
     if (frameIntent.defaultViewMode == RenderViewMode::StencilComposite) {
       return compileStencilCompositeView(target, frameIntent);
