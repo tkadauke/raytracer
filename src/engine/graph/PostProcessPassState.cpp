@@ -33,11 +33,6 @@ namespace engine::graph {
       return value.toString().toStdString();
     }
 
-    bool hasFeature(const RenderPassNode& pass, const char* feature) {
-      return std::any_of(pass.features.begin(), pass.features.end(),
-                         [feature](const RenderFeatureKind& value) { return value == feature; });
-    }
-
     std::shared_ptr<const PostProcessAAState> aaStateForMode(const std::string& mode,
                                                              const std::string& path) {
       if (mode == "fxaa")
@@ -131,9 +126,9 @@ namespace engine::graph {
       }
     }
 
-    if (hasFeature(pass, "post_aa") && hasFeature(pass, "fxaa"))
+    if (pass.hasFeature("post_aa") && pass.hasFeature("fxaa"))
       return std::make_shared<FxaaPostProcessAAState>();
-    if (hasFeature(pass, "post_aa") && hasFeature(pass, "smaa"))
+    if (pass.hasFeature("post_aa") && pass.hasFeature("smaa"))
       return std::make_shared<SmaaPostProcessAAState>();
 
     return nullptr;

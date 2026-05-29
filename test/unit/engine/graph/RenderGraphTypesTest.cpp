@@ -7,6 +7,7 @@
 #include <QJsonObject>
 
 #include <optional>
+#include <set>
 #include <stdexcept>
 #include <string>
 
@@ -77,6 +78,17 @@ namespace RenderGraphTypesTest {
               ShadingProfileParameterValue::fromText("  4.25  "));
     EXPECT_EQ(ShadingProfileParameterValue(std::string("warm")),
               ShadingProfileParameterValue::fromText("warm"));
+  }
+
+  TEST(RenderPassNode, OwnsFeatureQueries) {
+    RenderPassNode pass;
+    pass.features = {"main", "rasterizer", "render_to_texture"};
+
+    EXPECT_TRUE(pass.hasFeature("rasterizer"));
+    EXPECT_FALSE(pass.hasFeature("raytracer"));
+    EXPECT_TRUE(pass.hasAnyFeature({"raytracer", "render_to_texture"}));
+    EXPECT_FALSE(pass.hasAnyFeature({"raytracer", "wireframe"}));
+    EXPECT_FALSE(pass.hasAnyFeature(std::set<RenderFeatureKind>{}));
   }
 
   TEST(RenderIntent, SerializesToSceneJsonShape) {

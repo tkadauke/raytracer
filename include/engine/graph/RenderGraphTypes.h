@@ -512,6 +512,8 @@ namespace engine::graph {
     bool hasExternalSideEffects{false};
     bool canRunConcurrently{true};
 
+    bool hasFeature(const RenderFeatureKind& feature) const;
+    bool hasAnyFeature(const std::set<RenderFeatureKind>& features) const;
     void addRead(RenderResourceId resource);
     void addWrite(RenderResourceId resource);
     bool readsResource(const RenderResourceId& resource) const;

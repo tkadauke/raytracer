@@ -188,11 +188,6 @@ namespace engine::graph {
       std::map<const render::Material*, std::uint32_t> m_materialIds;
     };
 
-    bool hasFeature(const RenderPassNode& pass, const RenderFeatureKind& feature) {
-      return std::any_of(pass.features.begin(), pass.features.end(),
-                         [&](const RenderFeatureKind& value) { return value == feature; });
-    }
-
     class RasterVisibilityInput {
     public:
       explicit RasterVisibilityInput(const RenderExecutionContext& context)
@@ -1918,7 +1913,7 @@ namespace engine::graph {
       bool matches(const RenderPassNode& pass) const override {
         return pass.kind == m_kind && pass.executor == m_executor &&
                std::all_of(m_requiredFeatures.begin(), m_requiredFeatures.end(),
-                           [&](const auto& feature) { return hasFeature(pass, feature); });
+                           [&](const auto& feature) { return pass.hasFeature(feature); });
       }
 
       std::unique_ptr<RenderPassPayload> create(const RenderPassNode&) const override {
@@ -1948,7 +1943,7 @@ namespace engine::graph {
     public:
       bool matches(const RenderPassNode& pass) const override {
         return pass.kind == RenderPassKind::Overlay &&
-               pass.executor == RenderExecutorKind::Wireframe && !hasFeature(pass, "curve_overlay");
+               pass.executor == RenderExecutorKind::Wireframe && !pass.hasFeature("curve_overlay");
       }
 
       std::unique_ptr<RenderPassPayload> create(const RenderPassNode&) const override {
@@ -1961,7 +1956,7 @@ namespace engine::graph {
       bool matches(const RenderPassNode& pass) const override {
         return pass.kind == RenderPassKind::Composite &&
                pass.executor == RenderExecutorKind::Composite &&
-               (hasFeature(pass, "depth_composite") || hasFeature(pass, "stencil_composite"));
+               (pass.hasFeature("depth_composite") || pass.hasFeature("stencil_composite"));
       }
 
       std::unique_ptr<RenderPassPayload> create(const RenderPassNode&) const override {

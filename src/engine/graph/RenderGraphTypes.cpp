@@ -1206,6 +1206,16 @@ namespace engine::graph {
     return resource;
   }
 
+  bool RenderPassNode::hasFeature(const RenderFeatureKind& feature) const {
+    return std::find(features.begin(), features.end(), feature) != features.end();
+  }
+
+  bool RenderPassNode::hasAnyFeature(const std::set<RenderFeatureKind>& requestedFeatures) const {
+    return std::any_of(features.begin(), features.end(), [&](const RenderFeatureKind& feature) {
+      return requestedFeatures.find(feature) != requestedFeatures.end();
+    });
+  }
+
   void RenderPassNode::addRead(RenderResourceId resource) {
     if (!readsResource(resource)) {
       reads.push_back({std::move(resource)});

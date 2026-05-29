@@ -43,12 +43,6 @@ namespace engine::graph {
       return fallback;
     }
 
-    bool hasFeature(const RenderPassNode& pass, const std::set<RenderFeatureKind>& features) {
-      return std::any_of(
-        pass.features.begin(), pass.features.end(),
-        [&](const RenderFeatureKind& feature) { return contains(features, feature); });
-    }
-
     bool passReadsWhenExecuted(const RenderPassNode& pass) {
       return pass.enabled || pass.disabledBehavior == DisabledBehavior::Passthrough;
     }
@@ -1053,7 +1047,7 @@ namespace engine::graph {
       if (contains(overrides.disabledPasses, pass.id) ||
           contains(overrides.disabledPassKinds, pass.kind) ||
           contains(overrides.disabledExecutors, pass.executor) ||
-          hasFeature(pass, overrides.disabledFeatures)) {
+          pass.hasAnyFeature(overrides.disabledFeatures)) {
         pass.enabled = false;
       }
     }
