@@ -11,6 +11,8 @@
 
 | Source file | Chapters |
 |---|---|
+| `benchmarks/AccelerationPolicyBenchmark.cpp` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
+| `docs/perf/acceleration-policy-benchmark-2026-05-28.md` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
 | `fuzz/` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/core/Buffer.h` | [Color and buffers](../foundations/color-and-buffers.md)<br>[Image buffers and pixel formats](../image-and-vision/image-buffers-and-pixel-formats.md) |
 | `include/core/Color.h` | [Color and buffers](../foundations/color-and-buffers.md)<br>[Image buffers and pixel formats](../image-and-vision/image-buffers-and-pixel-formats.md) |

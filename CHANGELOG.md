@@ -28,6 +28,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   ribbon, tube, or disabled output through importer options for Epic #236. —
   GPT-5
 - **BoundingBox ray tests can reuse precomputed inverse directions and return slab intervals.** `BoundingBox` now exposes precomputed-inverse overloads for boolean and interval ray tests, and scalar BVH traversal computes that inverse once per ray before walking node boxes. — GPT-5
+- **Acceleration policy benchmark record.** A representative benchmark now
+  measures Linear/Grid/BVH build cost, primary intersections, shadow rays, and
+  primary-render impact across procedural, mesh-heavy, imported PLY, and
+  imported-assembly-style workloads, with the May 28, 2026 results documented
+  as the evidence for Epic #360's Auto defaults. — GPT-5
 - **Scene acceleration policy.** World scenes now expose an explicit
   acceleration mode for Auto, Linear, Grid, or BVH selection; converted runtime
   scenes record the selected acceleration decision for diagnostics while Auto
