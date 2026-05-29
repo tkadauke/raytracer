@@ -225,6 +225,7 @@ namespace engine::graph {
     std::optional<std::string> sceneCameraId;
     std::optional<CameraSnapshot> snapshot;
 
+    bool equivalentTo(const RenderCameraRef& other) const;
     std::string displayText() const;
     QJsonObject toJson() const;
     static RenderCameraRef fromJson(const QJsonValue& value, std::string path = "camera");

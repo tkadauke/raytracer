@@ -56,8 +56,10 @@ set(scene_intent_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.json")
 set(scene_intent_text_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.txt")
 set(active_camera_plan "${TEST_OUTPUT_DIR}/graph-active-camera.json")
 set(camera_override_plan "${TEST_OUTPUT_DIR}/graph-camera-override.json")
+set(camera_override_runtime_plan "${TEST_OUTPUT_DIR}/graph-camera-runtime-plan.json")
 set(camera_override_default_render "${TEST_OUTPUT_DIR}/graph-camera-default-render.png")
 set(camera_override_selected_render "${TEST_OUTPUT_DIR}/graph-camera-selected-render.png")
+set(camera_override_replayed_render "${TEST_OUTPUT_DIR}/graph-camera-replayed-render.png")
 set(shading_profile_override_plan "${TEST_OUTPUT_DIR}/graph-shading-profile-override.json")
 set(shading_profile_override_text_plan "${TEST_OUTPUT_DIR}/graph-shading-profile-override.txt")
 set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
@@ -1169,15 +1171,29 @@ rendercli_assert_image_dimensions("${camera_override_default_render}" 32 16
 rendercli_run(
   NAME "rendercli graph camera override changes rendered camera"
   COMMAND
-    "${RENDERCLI}" --render_graph_camera object-camera
+    "${RENDERCLI}" --render_graph_camera object-camera --render_graph_out "${camera_override_runtime_plan}"
+    --render_graph_format json
     --width 32 --height 16
     "${camera_override_runtime_scene}" "${camera_override_selected_render}"
 )
 rendercli_assert_image_dimensions("${camera_override_selected_render}" 32 16
                                   NAME "selected graph camera render dimensions")
+rendercli_assert_nonempty("${camera_override_runtime_plan}" NAME "selected graph camera plan")
 rendercli_assert_image_hash_differs("${camera_override_default_render}"
                                     "${camera_override_selected_render}"
                                     NAME "graph camera override render")
+
+rendercli_run(
+  NAME "rendercli graph replay uses plan camera"
+  COMMAND
+    "${RENDERCLI}" --render_graph_in "${camera_override_runtime_plan}"
+    "${camera_override_runtime_scene}" "${camera_override_replayed_render}"
+)
+rendercli_assert_image_dimensions("${camera_override_replayed_render}" 32 16
+                                  NAME "replayed graph camera render dimensions")
+rendercli_assert_image_hash_equals("${camera_override_selected_render}"
+                                   "${camera_override_replayed_render}"
+                                   NAME "replayed graph camera render")
 
 rendercli_run(
   NAME "rendercli graph shading profile override selects scene profile intent"

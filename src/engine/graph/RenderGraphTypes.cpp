@@ -577,6 +577,12 @@ namespace engine::graph {
     return profile;
   }
 
+  bool RenderCameraRef::equivalentTo(const RenderCameraRef& other) const {
+    return sceneCameraId == other.sceneCameraId &&
+           snapshot.has_value() == other.snapshot.has_value() &&
+           (!snapshot || snapshot->parameters == other.snapshot->parameters);
+  }
+
   std::string RenderCameraRef::displayText() const {
     std::string result;
     if (sceneCameraId) {

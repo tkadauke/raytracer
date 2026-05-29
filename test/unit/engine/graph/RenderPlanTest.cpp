@@ -97,6 +97,57 @@ namespace RenderPlanTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderPlan, ReportsUniqueExecutionCameraRefs) {
+    RenderPlan plan;
+    auto beauty = pass("beauty");
+    beauty.enabled = true;
+    beauty.sceneView.camera = RenderCameraRef{"shot-camera", std::nullopt};
+    plan.addPass(beauty);
+
+    auto tonemap = pass("tonemap", RenderPassKind::Tonemap);
+    tonemap.enabled = true;
+    tonemap.sceneView.camera = RenderCameraRef{"shot-camera", std::nullopt};
+    plan.addPass(tonemap);
+
+    const auto cameras = plan.executionCameraRefs();
+
+    ASSERT_EQ(1u, cameras.size());
+    ASSERT_TRUE(cameras[0].sceneCameraId.has_value());
+    EXPECT_EQ("shot-camera", *cameras[0].sceneCameraId);
+  }
+
+  TEST(RenderPlan, IgnoresDisabledAndSubviewExecutionCameraRefs) {
+    RenderPlan plan;
+    auto disabled = pass("disabled");
+    disabled.enabled = false;
+    disabled.sceneView.camera = RenderCameraRef{"disabled-camera", std::nullopt};
+    plan.addPass(disabled);
+
+    auto subview = pass("subview");
+    subview.features = {"subview", "subview:mirror"};
+    subview.sceneView.camera = RenderCameraRef{"mirror-camera", std::nullopt};
+    plan.addPass(subview);
+
+    EXPECT_TRUE(plan.executionCameraRefs().empty());
+  }
+
+  TEST(RenderPlan, ReportsMultipleExecutionCameraRefs) {
+    RenderPlan plan;
+    auto first = pass("first");
+    first.sceneView.camera = RenderCameraRef{"first-camera", std::nullopt};
+    plan.addPass(first);
+
+    auto second = pass("second");
+    second.sceneView.camera = RenderCameraRef{"second-camera", std::nullopt};
+    plan.addPass(second);
+
+    const auto cameras = plan.executionCameraRefs();
+
+    ASSERT_EQ(2u, cameras.size());
+    EXPECT_EQ("first-camera", *cameras[0].sceneCameraId);
+    EXPECT_EQ("second-camera", *cameras[1].sceneCameraId);
+  }
+
   TEST(RenderPlan, UpdatesResourceDescriptorById) {
     RenderPlan plan;
     plan.addResource(colorResource("main_color"));

@@ -99,6 +99,14 @@ namespace engine::graph {
     std::optional<int> executionStageNumber(const RenderPassId& id) const;
     std::vector<const RenderPassNode*> executionOrder() const;
     std::optional<int> executionOrderNumber(const RenderPassId& id) const;
+    /**
+      * @returns unique camera references carried by enabled non-subview passes.
+      *
+      * `GraphRenderEngine` still executes with one runtime camera, so replay
+      * callers use this to resolve the camera embedded in an exported graph
+      * before falling back to scene/default intent.
+      */
+    std::vector<RenderCameraRef> executionCameraRefs() const;
 
     /**
       * @returns true when @p other describes the same executable graph shape

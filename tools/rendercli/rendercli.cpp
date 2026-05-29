@@ -1927,26 +1927,6 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   int outputWidth = m_width;
   int outputHeight = m_height;
 
-  // Engine-agnostic camera setup. Both engines need a camera with a
-  // view plane sized to the output buffer; the only engine-specific
-  // wiring (recursion depth, threads, sampler) lives on the engine
-  // construction below.
-  std::shared_ptr<render::Camera> rtCamera;
-  if (graphIntent) {
-    const auto frameIntent = graphIntent->withWholeFrameOverridesApplied();
-    rtCamera = scene.toRaytracerCameraForRenderIntent(*graphIntent);
-    if (!rtCamera && frameIntent.defaultCamera) {
-      const auto cameraRef = *frameIntent.defaultCamera;
-      throw std::runtime_error("Render graph camera '" + cameraRef.displayText() +
-                               "' does not resolve to a scene camera");
-    }
-  } else if (auto camera = scene.activeCamera()) {
-    rtCamera = camera->toRaytracer();
-  }
-  if (!rtCamera && !graphIntent) {
-    qWarning("No camera found. Defaulting to Pinhole camera looking at the origin");
-  }
-
   std::shared_ptr<render::RenderEngine> engine;
   std::shared_ptr<engine::graph::GraphRenderEngine> graphEngine;
   engine::graph::RenderPlan graphPlan;
@@ -1964,7 +1944,42 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     if (!graphOutput.isEmpty()) {
       writeRenderGraphPlan(graphPlan, graphOutput);
     }
+  }
 
+  // Engine-agnostic camera setup. Both engines need a camera with a
+  // view plane sized to the output buffer; the only engine-specific
+  // wiring (recursion depth, threads, sampler) lives on the engine
+  // construction below.
+  std::shared_ptr<render::Camera> rtCamera;
+  if (graphIntent) {
+    const auto planCameras = graphPlan.executionCameraRefs();
+    if (planCameras.size() > 1) {
+      throw std::runtime_error("Render graph plan requires multiple execution cameras");
+    }
+    if (!planCameras.empty()) {
+      rtCamera = scene.toRaytracerCameraForRenderCameraRef(planCameras.front());
+      if (!rtCamera) {
+        throw std::runtime_error("Render graph plan camera '" + planCameras.front().displayText() +
+                                 "' does not resolve to a scene camera");
+      }
+    }
+    const auto frameIntent = graphIntent->withWholeFrameOverridesApplied();
+    if (!rtCamera) {
+      rtCamera = scene.toRaytracerCameraForRenderIntent(*graphIntent);
+    }
+    if (!rtCamera && frameIntent.defaultCamera) {
+      const auto cameraRef = *frameIntent.defaultCamera;
+      throw std::runtime_error("Render graph camera '" + cameraRef.displayText() +
+                               "' does not resolve to a scene camera");
+    }
+  } else if (auto camera = scene.activeCamera()) {
+    rtCamera = camera->toRaytracer();
+  }
+  if (!rtCamera && !graphIntent) {
+    qWarning("No camera found. Defaulting to Pinhole camera looking at the origin");
+  }
+
+  if (m_renderGraph) {
     graphEngine = rtCamera
                     ? std::make_shared<engine::graph::GraphRenderEngine>(rtCamera, raytracerScene)
                     : std::make_shared<engine::graph::GraphRenderEngine>(raytracerScene);

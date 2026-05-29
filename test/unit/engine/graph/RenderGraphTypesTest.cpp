@@ -31,6 +31,21 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("shot-camera, snapshot", sceneCamera.displayText());
   }
 
+  TEST(RenderCameraRef, ComparesExecutionEquivalence) {
+    RenderCameraRef first;
+    first.sceneCameraId = "shot-camera";
+    first.snapshot = CameraSnapshot{QJsonObject{{"zoom", 1.0}}};
+    RenderCameraRef same;
+    same.sceneCameraId = "shot-camera";
+    same.snapshot = CameraSnapshot{QJsonObject{{"zoom", 1.0}}};
+    RenderCameraRef different;
+    different.sceneCameraId = "other-camera";
+    different.snapshot = CameraSnapshot{QJsonObject{{"zoom", 1.0}}};
+
+    EXPECT_TRUE(first.equivalentTo(same));
+    EXPECT_FALSE(first.equivalentTo(different));
+  }
+
   TEST(ShadingProfileRef, FormatsDisplayTextAndDetectsDefaultProfile) {
     ShadingProfileRef profile;
     EXPECT_TRUE(profile.isDefault());

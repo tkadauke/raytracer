@@ -243,6 +243,11 @@ public:
     */
   const Camera* cameraForRenderCameraRef(const engine::graph::RenderCameraRef& cameraRef) const;
   /**
+    * Converts a scene-camera graph reference into a runtime camera.
+    */
+  std::shared_ptr<render::Camera>
+  toRaytracerCameraForRenderCameraRef(const engine::graph::RenderCameraRef& cameraRef) const;
+  /**
     * @returns the camera that should execute @p intent's whole-frame view, or
     *   the active camera when the intent does not name a graph camera.
     */

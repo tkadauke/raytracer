@@ -1035,6 +1035,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   whole-frame render intent camera before building the runtime engine, so
   `--render_graph_camera` and scene camera intent affect pixels instead of only
   graph exports. — GPT-5
+- **Render graph camera replay.** rendercli graph replay now resolves the
+  unique execution camera embedded in an imported render plan before falling
+  back to scene/default intent. — GPT-5
 - **Raster visibility face indices.** CPU raster visibility sets now preserve
   original face-index progression while skipping or reordering leaves, keeping
   fallback face colors and face-index AOV data stable under graph-visible

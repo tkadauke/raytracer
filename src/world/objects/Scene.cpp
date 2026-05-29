@@ -370,6 +370,12 @@ Scene::cameraForRenderCameraRef(const engine::graph::RenderCameraRef& cameraRef)
   return cameraById(QString::fromStdString(*cameraRef.sceneCameraId));
 }
 
+std::shared_ptr<render::Camera>
+Scene::toRaytracerCameraForRenderCameraRef(const engine::graph::RenderCameraRef& cameraRef) const {
+  const Camera* camera = cameraForRenderCameraRef(cameraRef);
+  return camera ? camera->toRaytracer() : nullptr;
+}
+
 const Camera* Scene::cameraForRenderIntent(const engine::graph::RenderIntent& intent) const {
   const engine::graph::RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
   if (frameIntent.defaultCamera) {

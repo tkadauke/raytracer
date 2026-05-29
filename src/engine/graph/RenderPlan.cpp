@@ -85,9 +85,7 @@ namespace engine::graph {
       if (!a) {
         return true;
       }
-      return a->sceneCameraId == b->sceneCameraId &&
-             a->snapshot.has_value() == b->snapshot.has_value() &&
-             (!a->snapshot || a->snapshot->parameters == b->snapshot->parameters);
+      return a->equivalentTo(*b);
     }
 
     bool sameShadingProfile(const std::optional<ShadingProfileRef>& a,
@@ -579,6 +577,24 @@ namespace engine::graph {
       ++orderNumber;
     }
     return std::nullopt;
+  }
+
+  std::vector<RenderCameraRef> RenderPlan::executionCameraRefs() const {
+    std::vector<RenderCameraRef> cameras;
+    for (const RenderPassNode* pass : executionOrder()) {
+      if (!pass->enabled || pass->hasFeature("subview") || !pass->sceneView.camera) {
+        continue;
+      }
+      const auto& camera = *pass->sceneView.camera;
+      const auto duplicate =
+        std::find_if(cameras.begin(), cameras.end(), [&camera](const RenderCameraRef& existing) {
+          return existing.equivalentTo(camera);
+        });
+      if (duplicate == cameras.end()) {
+        cameras.push_back(camera);
+      }
+    }
+    return cameras;
   }
 
   bool RenderPlan::executionEquivalentTo(const RenderPlan& other) const {
