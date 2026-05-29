@@ -368,7 +368,7 @@ namespace GltfSceneImporterTest {
     auto material =
       std::dynamic_pointer_cast<render::MatteMaterial>(primitive->leaves().front()->material());
     ASSERT_NE(nullptr, material);
-    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::ImageTexture>(material->diffuseTexture()));
+    EXPECT_NE(nullptr, material->diffuseTexture());
 
     auto* cameraNode = qobject_cast<Group*>(scene->childElements()[1]);
     ASSERT_NE(nullptr, cameraNode);

@@ -226,18 +226,21 @@ namespace GltfReaderTest {
     EXPECT_EQ("Quad Mesh", result.asset->meshes[0].name);
     ASSERT_EQ(1u, result.asset->meshes[0].primitives.size());
     const auto& primitive = result.asset->meshes[0].primitives[0];
-    EXPECT_EQ(0u, primitive.position.value());
-    EXPECT_EQ(1u, primitive.normal.value());
-    EXPECT_EQ(2u, primitive.texcoord0.value());
+    ASSERT_NE(primitive.attributes.end(), primitive.attributes.find("POSITION"));
+    ASSERT_NE(primitive.attributes.end(), primitive.attributes.find("NORMAL"));
+    ASSERT_NE(primitive.attributes.end(), primitive.attributes.find("TEXCOORD_0"));
+    EXPECT_EQ(0u, primitive.attributes.at("POSITION"));
+    EXPECT_EQ(1u, primitive.attributes.at("NORMAL"));
+    EXPECT_EQ(2u, primitive.attributes.at("TEXCOORD_0"));
     EXPECT_EQ(3u, primitive.indices.value());
     EXPECT_EQ(0u, primitive.material.value());
     EXPECT_EQ(4, primitive.mode);
 
     ASSERT_EQ(1u, result.asset->materials.size());
     EXPECT_EQ("Textured Red", result.asset->materials[0].name);
-    EXPECT_EQ(1.0, result.asset->materials[0].pbrMetallicRoughness.baseColorFactor[0]);
-    ASSERT_TRUE(result.asset->materials[0].pbrMetallicRoughness.baseColorTexture.has_value());
-    EXPECT_EQ(0u, result.asset->materials[0].pbrMetallicRoughness.baseColorTexture->index);
+    EXPECT_EQ(1.0, result.asset->materials[0].baseColorFactor[0]);
+    ASSERT_TRUE(result.asset->materials[0].baseColorTexture.has_value());
+    EXPECT_EQ(0u, result.asset->materials[0].baseColorTexture->index);
     ASSERT_EQ(1u, result.asset->textures.size());
     EXPECT_EQ(0u, result.asset->textures[0].source.value());
     ASSERT_EQ(1u, result.asset->images.size());
