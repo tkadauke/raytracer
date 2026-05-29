@@ -481,7 +481,7 @@ namespace MoleculeSceneImporterTest {
 
   TEST(MoleculeSceneImporter, ChoosesBVHForImportedAtomGroups) {
     world::MoleculeSceneImporter importer;
-    auto result = importer.importFile("test/fixtures/molecule/small.cif");
+    auto result = importer.importFile("test/fixtures/molecules/small.cif");
 
     ASSERT_TRUE(result.succeeded());
 
