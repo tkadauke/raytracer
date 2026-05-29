@@ -10,6 +10,10 @@
 
 namespace engine::raster::detail {
 
+  OpenGLShadowTextureData::OpenGLShadowTextureData()
+      : OpenGLShadowTextureData(0, 0, 1.0) {
+  }
+
   OpenGLShadowTextureData OpenGLShadowTextureData::from(const OpenGLShadowSamplingPlan& plan) {
     if (!plan.enabled() || !plan.cascade() || !plan.cascade()->depthBuffer) {
       return OpenGLShadowTextureData();

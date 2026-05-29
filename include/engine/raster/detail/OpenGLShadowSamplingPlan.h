@@ -29,6 +29,7 @@ namespace engine::raster::detail {
     bool canShadeSceneDirectLighting(const render::Scene* scene) const;
     std::string shaderLightingDisabledReason(const render::Scene* scene) const;
     std::string traceMessage() const;
+    std::string traceMessage(const render::Scene* scene) const;
     const DirectionalShadowMap* shadowMap() const;
     const DirectionalShadowCascade* cascade() const;
 

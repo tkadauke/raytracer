@@ -19,6 +19,8 @@ namespace engine::raster::detail {
     */
   class OpenGLShadowTextureData {
   public:
+    OpenGLShadowTextureData();
+
     static OpenGLShadowTextureData from(const OpenGLShadowSamplingPlan& plan);
 
     bool enabled() const;
@@ -38,7 +40,7 @@ namespace engine::raster::detail {
     static constexpr float kNoOccluderDepth = 1.0f;
     static constexpr float kMaximumOccluderDepth = 0.999999f;
 
-    explicit OpenGLShadowTextureData(int width = 0, int height = 0, double depthScale = 1.0);
+    OpenGLShadowTextureData(int width, int height, double depthScale);
 
     float normalizedDepth(double depth) const;
     void appendTexel(double depth);

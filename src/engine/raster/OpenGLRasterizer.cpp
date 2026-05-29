@@ -278,6 +278,7 @@ namespace engine::raster {
         QOpenGLShaderProgram program;
         if (!program.addShaderFromSourceCode(QOpenGLShader::Vertex,
                                              "attribute vec4 position;\n"
+                                             "attribute vec3 worldPosition;\n"
                                              "attribute vec4 color;\n"
                                              "attribute vec2 uv;\n"
                                              "attribute float alphaScale;\n"
@@ -285,6 +286,7 @@ namespace engine::raster {
                                              "attribute vec3 directLighting;\n"
                                              "attribute vec3 specular;\n"
                                              "attribute float albedoMode;\n"
+                                             "varying vec3 fragmentWorldPosition;\n"
                                              "varying vec4 vertexColor;\n"
                                              "varying vec2 vertexUV;\n"
                                              "varying float fragmentAlphaScale;\n"
@@ -295,6 +297,7 @@ namespace engine::raster {
                                              "void main() {\n"
                                              "  gl_Position = vec4(position.xyz * position.w, "
                                              "position.w);\n"
+                                             "  fragmentWorldPosition = worldPosition;\n"
                                              "  vertexColor = color;\n"
                                              "  vertexUV = uv;\n"
                                              "  fragmentAlphaScale = alphaScale;\n"
@@ -307,7 +310,8 @@ namespace engine::raster {
                                    program.log().toStdString());
         }
         if (!program.addShaderFromSourceCode(
-              QOpenGLShader::Fragment, "varying vec4 vertexColor;\n"
+              QOpenGLShader::Fragment, "varying vec3 fragmentWorldPosition;\n"
+                                       "varying vec4 vertexColor;\n"
                                        "varying vec2 vertexUV;\n"
                                        "varying float fragmentAlphaScale;\n"
                                        "varying vec3 fragmentAmbientLighting;\n"
@@ -322,6 +326,15 @@ namespace engine::raster {
                                        "uniform vec3 albedoTint;\n"
                                        "uniform vec3 checkerBright;\n"
                                        "uniform vec3 checkerDark;\n"
+                                       "uniform bool shadowTextureEnabled;\n"
+                                       "uniform sampler2D shadowTexture;\n"
+                                       "uniform vec3 shadowOrigin;\n"
+                                       "uniform vec3 shadowRight;\n"
+                                       "uniform vec3 shadowUp;\n"
+                                       "uniform vec3 shadowForward;\n"
+                                       "uniform float shadowHalfExtent;\n"
+                                       "uniform float shadowDepthScale;\n"
+                                       "uniform float shadowBias;\n"
                                        "bool alphaPass(float alpha) {\n"
                                        "  if (!alphaTestEnabled) return true;\n"
                                        "  if (alphaFunc == 0) return false;\n"
@@ -332,6 +345,26 @@ namespace engine::raster {
                                        "  if (alphaFunc == 5) return alpha >= alphaReference;\n"
                                        "  if (alphaFunc == 6) return alpha != alphaReference;\n"
                                        "  return true;\n"
+                                       "}\n"
+                                       "float shadowVisibility(vec3 worldPosition) {\n"
+                                       "  if (!shadowTextureEnabled) return 1.0;\n"
+                                       "  vec3 rel = worldPosition - shadowOrigin;\n"
+                                       "  float lightX = dot(rel, shadowRight);\n"
+                                       "  float lightY = dot(rel, shadowUp);\n"
+                                       "  float receiverDepth = dot(rel, shadowForward);\n"
+                                       "  if (receiverDepth < 0.0) return 1.0;\n"
+                                       "  vec2 uv = vec2((lightX / shadowHalfExtent + 1.0) * "
+                                       "0.5,\n"
+                                       "                (lightY / shadowHalfExtent + 1.0) * "
+                                       "0.5);\n"
+                                       "  if (uv.x < 0.0 || uv.y < 0.0 || uv.x >= 1.0 || uv.y >= "
+                                       "1.0) return 1.0;\n"
+                                       "  float occluderDepth = texture2D(shadowTexture, uv).r;\n"
+                                       "  if (occluderDepth >= 0.999999) return 1.0;\n"
+                                       "  float receiver = receiverDepth / shadowDepthScale;\n"
+                                       "  float bias = shadowBias / shadowDepthScale;\n"
+                                       "  return receiver <= occluderDepth + bias ? 1.0 : "
+                                       "0.0;\n"
                                        "}\n"
                                        "void main() {\n"
                                        "  vec4 sourceColor = vertexColor;\n"
@@ -367,9 +400,10 @@ namespace engine::raster {
                                        "sourceColor.g), sourceColor.b) * "
                                        "fragmentAlphaScale;\n"
                                        "  }\n"
+                                       "  float shadow = shadowVisibility(fragmentWorldPosition);\n"
                                        "  sourceColor.rgb = sourceColor.rgb * "
-                                       "(fragmentAmbientLighting + fragmentDirectLighting) + "
-                                       "fragmentSpecular;\n"
+                                       "(fragmentAmbientLighting + fragmentDirectLighting * "
+                                       "shadow) + fragmentSpecular * shadow;\n"
                                        "  if (!alphaPass(sourceColor.a)) discard;\n"
                                        "  gl_FragColor = sourceColor;\n"
                                        "}\n")) {
@@ -388,6 +422,7 @@ namespace engine::raster {
         program.setUniformValue("alphaReference",
                                 static_cast<GLfloat>(std::clamp(m_alphaReference, 0.0, 1.0)));
         program.setUniformValue("imageTexture", 0);
+        setShadowUniforms(program, shadowTexture.enabled());
         if (shadowTexture.enabled()) {
           shadowTexture.bind(1);
         }
@@ -408,6 +443,7 @@ namespace engine::raster {
                              static_cast<int>(mesh.indices().size() * sizeof(std::uint32_t)));
 
         const int positionLocation = program.attributeLocation("position");
+        const int worldPositionLocation = program.attributeLocation("worldPosition");
         const int colorLocation = program.attributeLocation("color");
         const int uvLocation = program.attributeLocation("uv");
         const int alphaScaleLocation = program.attributeLocation("alphaScale");
@@ -415,9 +451,9 @@ namespace engine::raster {
         const int directLightingLocation = program.attributeLocation("directLighting");
         const int specularLocation = program.attributeLocation("specular");
         const int albedoModeLocation = program.attributeLocation("albedoMode");
-        if (positionLocation < 0 || colorLocation < 0 || uvLocation < 0 || alphaScaleLocation < 0 ||
-            ambientLightingLocation < 0 || directLightingLocation < 0 || specularLocation < 0 ||
-            albedoModeLocation < 0) {
+        if (positionLocation < 0 || worldPositionLocation < 0 || colorLocation < 0 ||
+            uvLocation < 0 || alphaScaleLocation < 0 || ambientLightingLocation < 0 ||
+            directLightingLocation < 0 || specularLocation < 0 || albedoModeLocation < 0) {
           indexBuffer.release();
           vertexBuffer.release();
           program.release();
@@ -427,6 +463,10 @@ namespace engine::raster {
         program.enableAttributeArray(positionLocation);
         program.setAttributeBuffer(positionLocation, GL_FLOAT,
                                    offsetof(detail::OpenGLRasterMesh::Vertex, x), 4,
+                                   sizeof(detail::OpenGLRasterMesh::Vertex));
+        program.enableAttributeArray(worldPositionLocation);
+        program.setAttributeBuffer(worldPositionLocation, GL_FLOAT,
+                                   offsetof(detail::OpenGLRasterMesh::Vertex, worldX), 3,
                                    sizeof(detail::OpenGLRasterMesh::Vertex));
         program.enableAttributeArray(colorLocation);
         program.setAttributeBuffer(colorLocation, GL_FLOAT,
@@ -499,6 +539,7 @@ namespace engine::raster {
         program.disableAttributeArray(alphaScaleLocation);
         program.disableAttributeArray(uvLocation);
         program.disableAttributeArray(colorLocation);
+        program.disableAttributeArray(worldPositionLocation);
         program.disableAttributeArray(positionLocation);
         indexBuffer.release();
         vertexBuffer.release();
@@ -580,6 +621,30 @@ namespace engine::raster {
         functions->glDepthMask(GL_TRUE);
         functions->glDepthFunc(GL_LESS);
         functions->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+      }
+
+      void setShadowUniforms(QOpenGLShaderProgram& program, bool enabled) const {
+        program.setUniformValue("shadowTextureEnabled", enabled);
+        program.setUniformValue("shadowTexture", 1);
+        if (!enabled) {
+          return;
+        }
+
+        setVectorUniform(program, "shadowOrigin", m_shadowTextureData.origin());
+        setVectorUniform(program, "shadowRight", m_shadowTextureData.right());
+        setVectorUniform(program, "shadowUp", m_shadowTextureData.up());
+        setVectorUniform(program, "shadowForward", m_shadowTextureData.forward());
+        program.setUniformValue("shadowHalfExtent",
+                                static_cast<GLfloat>(m_shadowTextureData.halfExtent()));
+        program.setUniformValue("shadowDepthScale",
+                                static_cast<GLfloat>(m_shadowTextureData.depthScale()));
+        program.setUniformValue("shadowBias", static_cast<GLfloat>(m_shadowTextureData.bias()));
+      }
+
+      void setVectorUniform(QOpenGLShaderProgram& program, const char* name,
+                            const Vector3d& value) const {
+        program.setUniformValue(name, static_cast<GLfloat>(value.x()),
+                                static_cast<GLfloat>(value.y()), static_cast<GLfloat>(value.z()));
       }
 
       static GLfloat normalizedDepthClearValue(double depth) {
@@ -1197,14 +1262,18 @@ namespace engine::raster {
     const auto* shadowMaps = m_shadowMapsEnabled ? m_externalShadowMaps.get() : nullptr;
     const detail::OpenGLShadowSamplingPlan shadowSamplingPlan =
       detail::OpenGLShadowSamplingPlan::from(shadowMaps);
+    const bool useShaderShadowSampling =
+      shadowSamplingPlan.canShadeSceneDirectLighting(scene().get());
     detail::OpenGLShadowTextureData shadowTextureData =
-      detail::OpenGLShadowTextureData::from(shadowSamplingPlan);
+      useShaderShadowSampling ? detail::OpenGLShadowTextureData::from(shadowSamplingPlan)
+                              : detail::OpenGLShadowTextureData();
     const std::string shadowTextureTrace = shadowTextureData.traceMessage();
+    const auto* meshShadowMaps = useShaderShadowSampling ? nullptr : shadowMaps;
     detail::OpenGLRasterMesh mesh;
     const auto meshPreparationStarted = std::chrono::steady_clock::now();
     if (viewport.width() > 0 && viewport.height() > 0) {
       mesh = detail::OpenGLRasterMeshBuilder(scene().get(), camera(), m_lod, viewport, m_cullMode,
-                                             m_hasCullModeOverride, m_cancelled, shadowMaps)
+                                             m_hasCullModeOverride, m_cancelled, meshShadowMaps)
                .build();
     }
     const auto meshPreparationElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -1227,7 +1296,7 @@ namespace engine::raster {
     m_lastTraceMessages.push_back(
       meshPreparationTraceMessage(meshPreparationElapsed, mesh.triangleCount()));
     if (m_shadowMapsEnabled && m_externalShadowMaps) {
-      m_lastTraceMessages.push_back(shadowSamplingPlan.traceMessage());
+      m_lastTraceMessages.push_back(shadowSamplingPlan.traceMessage(scene().get()));
     }
     if (!shadowTextureTrace.empty()) {
       m_lastTraceMessages.push_back(shadowTextureTrace);

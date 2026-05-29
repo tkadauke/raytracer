@@ -616,10 +616,11 @@ shadow node uses that builder to produce the full directional/cascade
 collection, stores it as a typed artifact with a first-cascade depth preview,
 and the beauty pass consumes the artifact instead of rebuilding shadows
 internally. CPU raster uses the artifact during fragment shading; the current
-OpenGL raster backend consumes it while preparing the lit mesh stream until
-shader-side shadow texture sampling lands. Disabling the graph shadow node
-substitutes the default resource and prevents graph-controlled shadow
-enablement.
+OpenGL raster backend consumes it while preparing the lit mesh stream for
+unsupported shadow configurations, and uses shader-side shadow texture sampling
+when the graph artifact is one hard-filtered directional cascade that owns the
+scene's single direct light. Disabling the graph shadow node substitutes the
+default resource and prevents graph-controlled shadow enablement.
 
 The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
 `RenderIntent::postProcessAA` asks the compiler to insert a `post_fxaa` or

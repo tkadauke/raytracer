@@ -441,6 +441,12 @@ if(opengl_shadow_trace_result STREQUAL "0")
                     "" "${opengl_shadow_trace_result}" "${opengl_shadow_trace_stdout}"
                     "${opengl_shadow_trace_json}")
   endif()
+  if(NOT opengl_shadow_trace_json MATCHES "OpenGL raster shadow sampling uses shader-side binding")
+    _rendercli_fail("rendercli --raster_backend gpu shadow trace"
+                    "OpenGL shadow-map trace did not record shader-side sampling execution"
+                    "" "${opengl_shadow_trace_result}" "${opengl_shadow_trace_stdout}"
+                    "${opengl_shadow_trace_json}")
+  endif()
   if(NOT opengl_shadow_trace_json MATCHES "OpenGL raster shadow texture prepared")
     _rendercli_fail("rendercli --raster_backend gpu shadow trace"
                     "OpenGL shadow-map trace did not record texture payload preparation"

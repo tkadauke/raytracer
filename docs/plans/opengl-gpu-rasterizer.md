@@ -363,7 +363,9 @@ Tasks:
   nearest-filtered shadow texture and record the prepared texture dimensions in
   graph traces. The sampling plan also models the current lighting-channel
   limitation explicitly: shader-side shadowing is only allowed when the
-  eligible shadow map owns the scene's single direct light.
+  eligible shadow map owns the scene's single direct light. That guarded path
+  now disables CPU-prepared shadow visibility for the matching mesh stream and
+  lets the fragment shader sample the uploaded shadow texture per fragment.
 
 Acceptance:
 

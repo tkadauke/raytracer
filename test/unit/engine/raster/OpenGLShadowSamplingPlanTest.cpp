@@ -97,6 +97,7 @@ namespace OpenGLShadowSamplingPlanTest {
 
     EXPECT_TRUE(plan.canShadeSceneDirectLighting(scene.get()));
     EXPECT_TRUE(plan.shaderLightingDisabledReason(scene.get()).empty());
+    EXPECT_NE(std::string::npos, plan.traceMessage(scene.get()).find("uses shader-side binding"));
   }
 
   TEST(OpenGLShadowSamplingPlan, RejectsMismatchedSceneLightsForShaderLighting) {
@@ -112,6 +113,7 @@ namespace OpenGLShadowSamplingPlanTest {
     EXPECT_FALSE(plan.canShadeSceneDirectLighting(scene.get()));
     EXPECT_NE(std::string::npos,
               plan.shaderLightingDisabledReason(scene.get()).find("one scene light"));
+    EXPECT_NE(std::string::npos, plan.traceMessage(scene.get()).find("falls back"));
 
     auto otherScene = std::make_shared<render::Scene>();
     otherScene->addLight(extraLight);
