@@ -36,6 +36,11 @@ namespace engine::raster::detail {
                                       const ClipVert& v0, const ClipVert& v1,
                                       const ClipVert& v2) const {
     const Rasterizer::CullMode mode = hasOverride ? overrideMode : materialSource.defaultCullMode();
+    return shouldCull(mode, v0, v1, v2);
+  }
+
+  bool TriangleCullPolicy::shouldCull(Rasterizer::CullMode mode, const ClipVert& v0,
+                                      const ClipVert& v1, const ClipVert& v2) const {
     if (mode == Rasterizer::CullMode::Both)
       return false;
 

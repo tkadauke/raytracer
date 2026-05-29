@@ -42,6 +42,8 @@ namespace engine::raster::detail {
     Rasterizer::CullMode overrideMode;
     bool hasOverride;
 
+    bool shouldCull(Rasterizer::CullMode mode, const ClipVert& v0, const ClipVert& v1,
+                    const ClipVert& v2) const;
     bool shouldCull(const RasterMaterialSource& materialSource, const ClipVert& v0,
                     const ClipVert& v1, const ClipVert& v2) const;
   };

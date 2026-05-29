@@ -68,6 +68,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   material callback handle, and `render::Integrator` as the transport-policy
   boundary future path tracers will implement; this documents the preserved
   default Whitted behavior and does not add path tracing. — GPT-5
+- **Raster visibility material-cullability cache.** Graph visibility
+  preprocessing now shares material-sidedness-derived cullability facts across
+  render clones and reports material cullability cache hit/miss counts in the
+  trace. — GPT-5
 - **Render graph subview branches.** Whole-scene render-to-texture subview
   intent now compiles into prefixed offscreen color branches with exported
   resources visible in graph exports and the Modeler graph view. — GPT-5

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "engine/raster/RasterVisibilitySceneCache.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/primitives/Sphere.h"
 
 namespace RasterVisibilitySceneCacheTest {
@@ -67,5 +68,27 @@ namespace RasterVisibilitySceneCacheTest {
     EXPECT_EQ(Vector3d(1.0, -1.0, -1.0), translated.bounds.min());
     EXPECT_EQ(Vector3d(3.0, 1.0, 1.0), translated.bounds.max());
     EXPECT_EQ(2u, cache.transformedBoundsSize());
+  }
+
+  TEST(RasterVisibilitySceneCache, ReusesMaterialCullabilityUntilSidednessChanges) {
+    engine::raster::RasterVisibilitySceneCache cache;
+    auto material = std::make_shared<render::MatteMaterial>();
+    material->setSidedness(render::Material::Sidedness::Front);
+
+    const auto first = cache.materialCullabilityFor(material);
+    EXPECT_FALSE(first.hit);
+    EXPECT_EQ(engine::raster::Rasterizer::CullMode::Back, first.cullability.defaultCullMode);
+    EXPECT_EQ(1u, cache.materialCullabilitySize());
+
+    const auto second = cache.materialCullabilityFor(material);
+    EXPECT_TRUE(second.hit);
+    EXPECT_EQ(engine::raster::Rasterizer::CullMode::Back, second.cullability.defaultCullMode);
+    EXPECT_EQ(1u, cache.materialCullabilitySize());
+
+    material->setSidedness(render::Material::Sidedness::Back);
+    const auto changed = cache.materialCullabilityFor(material);
+    EXPECT_FALSE(changed.hit);
+    EXPECT_EQ(engine::raster::Rasterizer::CullMode::Front, changed.cullability.defaultCullMode);
+    EXPECT_EQ(2u, cache.materialCullabilitySize());
   }
 }

@@ -1460,6 +1460,8 @@ namespace engine::graph {
     private:
       using MeshStats = ::engine::raster::RasterVisibilitySceneCache::MeshStats;
       using MeshStatsLookup = ::engine::raster::RasterVisibilitySceneCache::MeshStatsLookup;
+      using MaterialCullabilityLookup =
+        ::engine::raster::RasterVisibilitySceneCache::MaterialCullabilityLookup;
 
       struct VisibilityBuildResult {
         std::shared_ptr<::engine::raster::RasterVisibilitySet> visibilitySet;
@@ -1467,6 +1469,8 @@ namespace engine::graph {
         std::size_t meshCacheMisses{0};
         std::size_t boundsCacheHits{0};
         std::size_t boundsCacheMisses{0};
+        std::size_t materialCullabilityCacheHits{0};
+        std::size_t materialCullabilityCacheMisses{0};
       };
 
     public:
@@ -1498,7 +1502,8 @@ namespace engine::graph {
             {RenderGraphCacheStatus::Stored, "cache miss; stored raster visibility-set artifact"});
         context.recordTraceMessage(traceMessage(
           *result.visibilitySet, state, RenderGraphCacheStatus::Stored, result.meshCacheHits,
-          result.meshCacheMisses, result.boundsCacheHits, result.boundsCacheMisses));
+          result.meshCacheMisses, result.boundsCacheHits, result.boundsCacheMisses,
+          result.materialCullabilityCacheHits, result.materialCullabilityCacheMisses));
       }
 
     private:
@@ -1538,7 +1543,7 @@ namespace engine::graph {
           .setCacheMetadata(
             {RenderGraphCacheStatus::Hit, "restored raster visibility-set artifact from cache"});
         context.recordTraceMessage(traceMessage(*context.storage().visibilitySet(resourceId), state,
-                                                RenderGraphCacheStatus::Hit, 0, 0, 0, 0));
+                                                RenderGraphCacheStatus::Hit, 0, 0, 0, 0, 0, 0));
         return true;
       }
 
@@ -1560,6 +1565,8 @@ namespace engine::graph {
         std::size_t meshCacheMisses = 0;
         std::size_t boundsCacheHits = 0;
         std::size_t boundsCacheMisses = 0;
+        std::size_t materialCullabilityCacheHits = 0;
+        std::size_t materialCullabilityCacheMisses = 0;
         std::vector<VisibleLeafDepth> visibleLeafDepths;
         const bool tileDepthSummariesAllowed = state.frontToBackOrderingEnabled();
         bool orderable = state.frontToBackOrderingEnabled() && camera != nullptr;
@@ -1585,7 +1592,10 @@ namespace engine::graph {
                 stats.triangleCount, stats.faceCount);
               return;
             }
-            if (leafFullyBackfacing(leaf, camera.get(), clipVolume, state.geometry(), stats)) {
+            const ::engine::raster::Rasterizer::CullMode cullMode =
+              visibilityCullModeFor(context, state.geometry(), leaf.material,
+                                    materialCullabilityCacheHits, materialCullabilityCacheMisses);
+            if (leafFullyBackfacing(leaf, camera.get(), clipVolume, cullMode, stats)) {
               visibilitySet->addRejectedLeaf(
                 ::engine::raster::RasterVisibilitySet::RejectionReason::Backface,
                 stats.triangleCount, stats.faceCount);
@@ -1622,7 +1632,13 @@ namespace engine::graph {
           }
           visibilitySet->setVisibleLeafOrder(std::move(visibleLeafOrder));
         }
-        return {visibilitySet, meshCacheHits, meshCacheMisses, boundsCacheHits, boundsCacheMisses};
+        return {visibilitySet,
+                meshCacheHits,
+                meshCacheMisses,
+                boundsCacheHits,
+                boundsCacheMisses,
+                materialCullabilityCacheHits,
+                materialCullabilityCacheMisses};
       }
 
       render::HomogeneousClipVolume rasterClipVolume() const {
@@ -1659,11 +1675,8 @@ namespace engine::graph {
       bool leafFullyBackfacing(const render::Primitive::TransformedLeaf& leaf,
                                const render::Camera* camera,
                                const render::HomogeneousClipVolume& clipVolume,
-                               const RasterGeometryState& geometry, const MeshStats& stats) const {
-        const ::engine::raster::detail::RasterMaterialSource materialSource =
-          ::engine::raster::detail::RasterMaterialSource::from(leaf.material);
-        const ::engine::raster::Rasterizer::CullMode cullMode =
-          geometry.hasCullModeOverride() ? geometry.cullMode() : materialSource.defaultCullMode();
+                               ::engine::raster::Rasterizer::CullMode cullMode,
+                               const MeshStats& stats) const {
         if (!camera || cullMode == ::engine::raster::Rasterizer::CullMode::Both || !stats.mesh ||
             stats.triangleCount == 0) {
           return false;
@@ -1715,13 +1728,32 @@ namespace engine::graph {
                                                         p1.screen};
             const ::engine::raster::detail::ClipVert c2{v2.point, v2.normal, v2.uv, p2.clip,
                                                         p2.screen};
-            if (!cullPolicy.shouldCull(materialSource, c0, c1, c2)) {
+            if (!cullPolicy.shouldCull(cullMode, c0, c1, c2)) {
               return false;
             }
             testedTriangle = true;
           }
         }
         return testedTriangle;
+      }
+
+      ::engine::raster::Rasterizer::CullMode
+      visibilityCullModeFor(const RenderExecutionContext& context,
+                            const RasterGeometryState& geometry,
+                            const std::shared_ptr<render::Material>& material,
+                            std::size_t& materialCullabilityCacheHits,
+                            std::size_t& materialCullabilityCacheMisses) const {
+        if (geometry.hasCullModeOverride()) {
+          return geometry.cullMode();
+        }
+
+        const MaterialCullabilityLookup lookup = materialCullabilityFor(context, material);
+        if (lookup.hit) {
+          ++materialCullabilityCacheHits;
+        } else {
+          ++materialCullabilityCacheMisses;
+        }
+        return lookup.cullability.defaultCullMode;
       }
 
       std::optional<ProjectedTileCoverage>
@@ -1819,11 +1851,19 @@ namespace engine::graph {
                                                                                   leaf.pointMatrix);
       }
 
+      MaterialCullabilityLookup
+      materialCullabilityFor(const RenderExecutionContext& context,
+                             const std::shared_ptr<render::Material>& material) const {
+        return context.graph().rasterVisibilitySceneCache()->materialCullabilityFor(material);
+      }
+
       std::string traceMessage(const ::engine::raster::RasterVisibilitySet& visibilitySet,
                                const RasterVisibilityPassState& state,
                                RenderGraphCacheStatus cacheStatus, std::size_t meshCacheHits,
                                std::size_t meshCacheMisses, std::size_t boundsCacheHits,
-                               std::size_t boundsCacheMisses) const {
+                               std::size_t boundsCacheMisses,
+                               std::size_t materialCullabilityCacheHits,
+                               std::size_t materialCullabilityCacheMisses) const {
         const char* ordering = "unsupported";
         if (visibilitySet.hasVisibleLeafOrder()) {
           ordering = "enabled";
@@ -1838,6 +1878,8 @@ namespace engine::graph {
             << "; meshCacheHits=" << meshCacheHits << "; meshCacheMisses=" << meshCacheMisses
             << "; boundsCacheHits=" << boundsCacheHits
             << "; boundsCacheMisses=" << boundsCacheMisses
+            << "; materialCullabilityCacheHits=" << materialCullabilityCacheHits
+            << "; materialCullabilityCacheMisses=" << materialCullabilityCacheMisses
             << "; inputLeaves=" << visibilitySet.leafCount()
             << "; inputTriangles=" << visibilitySet.inputTriangleCount()
             << "; visibleLeaves=" << visibilitySet.visibleLeafCount()

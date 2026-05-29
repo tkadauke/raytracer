@@ -634,12 +634,15 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("meshCacheMisses=2"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("boundsCacheHits=0"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("boundsCacheMisses=2"));
+    EXPECT_NE(std::string::npos,
+              visibilityTrace->message().find("materialCullabilityCacheMisses=1"));
     auto outputs = trace->outputSnapshotsForResource("raster_visibility_set");
     ASSERT_EQ(1u, outputs.size());
     EXPECT_EQ(RenderGraphCacheStatus::Stored, outputs.front()->cacheMetadata().status());
     EXPECT_EQ(1u, engine.artifactCache()->size());
     EXPECT_EQ(2u, engine.rasterVisibilitySceneCache()->size());
     EXPECT_EQ(2u, engine.rasterVisibilitySceneCache()->transformedBoundsSize());
+    EXPECT_EQ(1u, engine.rasterVisibilitySceneCache()->materialCullabilitySize());
 
     engine.setTonemap(std::make_shared<render::ReinhardTonemap>());
     engine.render(buffer);
@@ -653,12 +656,16 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("meshCacheMisses=0"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("boundsCacheHits=0"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("boundsCacheMisses=0"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("materialCullabilityCacheHits=0"));
+    EXPECT_NE(std::string::npos,
+              visibilityTrace->message().find("materialCullabilityCacheMisses=0"));
     outputs = trace->outputSnapshotsForResource("raster_visibility_set");
     ASSERT_EQ(1u, outputs.size());
     EXPECT_EQ(RenderGraphCacheStatus::Hit, outputs.front()->cacheMetadata().status());
     EXPECT_EQ(1u, engine.artifactCache()->size());
     EXPECT_EQ(2u, engine.rasterVisibilitySceneCache()->size());
     EXPECT_EQ(2u, engine.rasterVisibilitySceneCache()->transformedBoundsSize());
+    EXPECT_EQ(1u, engine.rasterVisibilitySceneCache()->materialCullabilitySize());
 
     cam->setPosition(Vector3d(0.25, 0.0, -5.0));
     engine.render(buffer);
@@ -672,12 +679,14 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("meshCacheMisses=0"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("boundsCacheHits=2"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("boundsCacheMisses=0"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("materialCullabilityCacheHits=1"));
     outputs = trace->outputSnapshotsForResource("raster_visibility_set");
     ASSERT_EQ(1u, outputs.size());
     EXPECT_EQ(RenderGraphCacheStatus::Stored, outputs.front()->cacheMetadata().status());
     EXPECT_EQ(2u, engine.artifactCache()->size());
     EXPECT_EQ(2u, engine.rasterVisibilitySceneCache()->size());
     EXPECT_EQ(2u, engine.rasterVisibilitySceneCache()->transformedBoundsSize());
+    EXPECT_EQ(1u, engine.rasterVisibilitySceneCache()->materialCullabilitySize());
   }
 
   TEST(GraphRenderEngine, KeepsPartiallyClippedVisibilityLeavesUncertain) {
