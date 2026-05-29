@@ -8,8 +8,12 @@
 #include "core/math/BoundingBox.h"
 #include "core/math/Range.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 #include "core/math/Vector.h"
+#include "core/simd/Float4.h"
 
+#include <array>
+#include <cstdint>
 #include <random>
 #include <vector>
 
@@ -31,6 +35,24 @@ namespace {
       rays.emplace_back(o, d.normalized());
     }
     return rays;
+  }
+
+  std::vector<Ray4> packetize(const std::vector<Rayd>& rays) {
+    std::vector<Ray4> packets;
+    packets.reserve(rays.size() / Ray4::lanes);
+    for (std::size_t i = 0; i < rays.size(); i += Ray4::lanes) {
+      packets.emplace_back(std::array<Rayd, 4>{rays[i], rays[i + 1], rays[i + 2], rays[i + 3]});
+    }
+    return packets;
+  }
+
+  int countBits(std::uint16_t mask) {
+    int count = 0;
+    while (mask != 0) {
+      count += mask & 1u;
+      mask >>= 1u;
+    }
+    return count;
   }
 
   template<typename T>
@@ -61,6 +83,23 @@ namespace {
       for (const auto& ray : rays) {
         if (box.intersects(ray))
           ++hits;
+      }
+      benchmark::DoNotOptimize(hits);
+      benchmark::ClobberMemory();
+    }
+    state.SetItemsProcessed(state.iterations() * rays.size());
+  }
+
+  template<typename T>
+  void bm_intersects4_packet_batch(benchmark::State& state) {
+    BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
+    const auto rays = generateRays<T>(10000, T(2));
+    const auto packets = packetize(rays);
+    for (auto _ : state) {
+      int hits = 0;
+      for (const auto& packet : packets) {
+        hits +=
+          countBits(static_cast<std::uint16_t>(core::simd::movemask(box.intersects4(packet))));
       }
       benchmark::DoNotOptimize(hits);
       benchmark::ClobberMemory();
@@ -217,6 +256,9 @@ BENCHMARK(bm_intersects<double>);
 
 BENCHMARK(bm_intersects_batch<float>);
 BENCHMARK(bm_intersects_batch<double>);
+
+BENCHMARK(bm_intersects4_packet_batch<float>);
+BENCHMARK(bm_intersects4_packet_batch<double>);
 
 BENCHMARK(bm_intersect_interval<float>);
 BENCHMARK(bm_intersect_interval<double>);

@@ -11,6 +11,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **BoundingBox Ray4 packet masks use the shared SIMD backend.**
+  `BoundingBox::intersects4(Ray4)` now runs through the four-wide SIMD
+  abstraction for SSE, NEON, and scalar builds, with explicit packet-mask tests
+  for parallel axes, zero directions, NaNs, and infinities for Epic #426 Phase
+  2. — GPT-5
 - **Central SIMD feature gates.** SIMD compile-time availability now flows
   through `include/core/SimdFeatures.h` project macros for SSE, SSE2, SSE3, AVX,
   and NEON, preserving existing x86 behavior while preparing Epic #426 ARM SIMD

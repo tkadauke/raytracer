@@ -3,6 +3,8 @@
 #include "core/simd/Float4.h"
 
 #include <array>
+#include <cmath>
+#include <limits>
 
 namespace Float4Test {
   template<class Backend>
@@ -73,6 +75,28 @@ namespace Float4Test {
     EXPECT_EQ(0b1110, core::simd::movemask(core::simd::maskNot(eq)));
   }
 
+  template<class Backend>
+  void expectMinMaxUseSseNaNRules() {
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    alignas(16) const float a[4] = {nan, 1.0f, nan, 4.0f};
+    alignas(16) const float b[4] = {2.0f, nan, nan, 3.0f};
+
+    const auto minimum = toArray<Backend>(
+      core::simd::min(core::simd::load4<Backend>(a), core::simd::load4<Backend>(b)));
+    const auto maximum = toArray<Backend>(
+      core::simd::max(core::simd::load4<Backend>(a), core::simd::load4<Backend>(b)));
+
+    EXPECT_EQ(2.0f, minimum[0]);
+    EXPECT_TRUE(std::isnan(minimum[1]));
+    EXPECT_TRUE(std::isnan(minimum[2]));
+    EXPECT_EQ(3.0f, minimum[3]);
+
+    EXPECT_EQ(2.0f, maximum[0]);
+    EXPECT_TRUE(std::isnan(maximum[1]));
+    EXPECT_TRUE(std::isnan(maximum[2]));
+    EXPECT_EQ(4.0f, maximum[3]);
+  }
+
   TEST(Float4, NativeBackendArithmeticWorks) {
     expectArithmeticWorks<core::simd::NativeBackend>();
   }
@@ -85,6 +109,10 @@ namespace Float4Test {
     expectMaskLogicWorks<core::simd::NativeBackend>();
   }
 
+  TEST(Float4, NativeBackendMinMaxUseSseNaNRules) {
+    expectMinMaxUseSseNaNRules<core::simd::NativeBackend>();
+  }
+
   TEST(Float4, ScalarFallbackArithmeticWorks) {
     expectArithmeticWorks<core::simd::ScalarBackend>();
   }
@@ -95,5 +123,9 @@ namespace Float4Test {
 
   TEST(Float4, ScalarFallbackMaskLogicWorks) {
     expectMaskLogicWorks<core::simd::ScalarBackend>();
+  }
+
+  TEST(Float4, ScalarFallbackMinMaxUseSseNaNRules) {
+    expectMinMaxUseSseNaNRules<core::simd::ScalarBackend>();
   }
 }
