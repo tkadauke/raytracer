@@ -1154,6 +1154,12 @@ namespace engine::graph {
     return std::find(features.begin(), features.end(), feature) != features.end();
   }
 
+  bool RenderResourceDescriptor::hasAllFeatures(
+    const std::set<RenderFeatureKind>& requestedFeatures) const {
+    return std::all_of(requestedFeatures.begin(), requestedFeatures.end(),
+                       [&](const RenderFeatureKind& feature) { return hasFeature(feature); });
+  }
+
   bool RenderResourceDescriptor::hasImageShape() const {
     return width > 0 && height > 0;
   }
@@ -1214,6 +1220,11 @@ namespace engine::graph {
     return std::any_of(features.begin(), features.end(), [&](const RenderFeatureKind& feature) {
       return requestedFeatures.find(feature) != requestedFeatures.end();
     });
+  }
+
+  bool RenderPassNode::hasAllFeatures(const std::set<RenderFeatureKind>& requestedFeatures) const {
+    return std::all_of(requestedFeatures.begin(), requestedFeatures.end(),
+                       [&](const RenderFeatureKind& feature) { return hasFeature(feature); });
   }
 
   void RenderPassNode::addRead(RenderResourceId resource) {

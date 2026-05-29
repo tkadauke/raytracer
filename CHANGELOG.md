@@ -91,6 +91,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render plan feature queries.** `RenderPlan` now exposes
   `passesWithFeature()` and `resourcesWithFeature()` for graph inspectors and
   future compositor planners that need tagged graph subsets. — GPT-5
+- **Render graph multi-feature queries.** Graph nodes, resource descriptors,
+  and `RenderPlan` now support all-feature queries so consumers can ask for
+  precise tagged subsets such as a specific subview output. — GPT-5
 - **Render-to-texture recursion limit.** Render intent now carries an explicit
   `maxRenderToTextureRecursionDepth` bound, and graph compilation rejects
   subview expansion when that limit is reached. — GPT-5

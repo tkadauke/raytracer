@@ -469,6 +469,7 @@ namespace engine::graph {
 
     void addFeature(RenderFeatureKind feature);
     bool hasFeature(const RenderFeatureKind& feature) const;
+    bool hasAllFeatures(const std::set<RenderFeatureKind>& features) const;
     bool hasImageShape() const;
     bool externallyAvailable() const;
     bool requiresExternalBinding() const;
@@ -514,6 +515,7 @@ namespace engine::graph {
 
     bool hasFeature(const RenderFeatureKind& feature) const;
     bool hasAnyFeature(const std::set<RenderFeatureKind>& features) const;
+    bool hasAllFeatures(const std::set<RenderFeatureKind>& features) const;
     void addRead(RenderResourceId resource);
     void addWrite(RenderResourceId resource);
     bool readsResource(const RenderResourceId& resource) const;

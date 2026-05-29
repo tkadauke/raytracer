@@ -28,7 +28,9 @@ product, and a feature kind gives users a higher-level switch such as
 `RenderPassNode::hasFeature()` and `RenderPassNode::hasAnyFeature()` rather
 than searching the feature vector directly; plan-level callers can also ask
 `RenderPlan::passesWithFeature()` and `RenderPlan::resourcesWithFeature()` for
-the tagged subset.
+the tagged subset, or use `passesWithAllFeatures()` and
+`resourcesWithAllFeatures()` when a later planner needs a precise intersection
+such as "the color output for this subview."
 
 The same header defines the enum classes used by plan declarations:
 

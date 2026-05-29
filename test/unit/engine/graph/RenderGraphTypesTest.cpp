@@ -89,6 +89,20 @@ namespace RenderGraphTypesTest {
     EXPECT_TRUE(pass.hasAnyFeature({"raytracer", "render_to_texture"}));
     EXPECT_FALSE(pass.hasAnyFeature({"raytracer", "wireframe"}));
     EXPECT_FALSE(pass.hasAnyFeature(std::set<RenderFeatureKind>{}));
+    EXPECT_TRUE(pass.hasAllFeatures({"main", "render_to_texture"}));
+    EXPECT_FALSE(pass.hasAllFeatures({"main", "raytracer"}));
+    EXPECT_TRUE(pass.hasAllFeatures(std::set<RenderFeatureKind>{}));
+  }
+
+  TEST(RenderResourceDescriptor, OwnsFeatureQueries) {
+    RenderResourceDescriptor resource;
+    resource.features = {"subview", "subview_color_output", "render_to_texture"};
+
+    EXPECT_TRUE(resource.hasFeature("subview_color_output"));
+    EXPECT_FALSE(resource.hasFeature("subview_depth_output"));
+    EXPECT_TRUE(resource.hasAllFeatures({"subview", "render_to_texture"}));
+    EXPECT_FALSE(resource.hasAllFeatures({"subview", "subview_depth_output"}));
+    EXPECT_TRUE(resource.hasAllFeatures(std::set<RenderFeatureKind>{}));
   }
 
   TEST(RenderIntent, SerializesToSceneJsonShape) {

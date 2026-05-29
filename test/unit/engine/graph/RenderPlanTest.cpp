@@ -443,10 +443,18 @@ namespace RenderPlanTest {
     ASSERT_EQ(1u, rasterizerPasses.size());
     EXPECT_EQ("raster_beauty", rasterizerPasses.front()->id);
     EXPECT_TRUE(plan.passesWithFeature("missing").empty());
+    const auto rasterizerMainPasses = plan.passesWithAllFeatures({"main", "rasterizer"});
+    ASSERT_EQ(1u, rasterizerMainPasses.size());
+    EXPECT_EQ("raster_beauty", rasterizerMainPasses.front()->id);
+    EXPECT_TRUE(plan.passesWithAllFeatures({"main", "wireframe"}).empty());
     const auto displayResources = plan.resourcesWithFeature("display");
     ASSERT_EQ(1u, displayResources.size());
     EXPECT_EQ("display_color", displayResources.front()->id);
     EXPECT_TRUE(plan.resourcesWithFeature("missing").empty());
+    const auto exportedDisplayResources = plan.resourcesWithAllFeatures({"display"});
+    ASSERT_EQ(1u, exportedDisplayResources.size());
+    EXPECT_EQ("display_color", exportedDisplayResources.front()->id);
+    EXPECT_TRUE(plan.resourcesWithAllFeatures({"display", "subview"}).empty());
 
     ASSERT_NE(nullptr, plan.findPass("raster_beauty"));
     EXPECT_TRUE(plan.hasPass("raster_beauty"));
