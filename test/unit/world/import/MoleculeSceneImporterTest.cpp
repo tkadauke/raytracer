@@ -19,6 +19,7 @@
 #include <QJsonObject>
 
 #include <fstream>
+#include <vector>
 
 namespace MoleculeSceneImporterTest {
   namespace {
@@ -74,6 +75,25 @@ namespace MoleculeSceneImporterTest {
           return curve;
       }
       return nullptr;
+    }
+
+    Sphere* findSphereByMetadata(Element* root, const QString& key, const QString& value) {
+      if (auto* sphere = qobject_cast<Sphere*>(root)) {
+        if (sphere->metadataValue(key).toString() == value)
+          return sphere;
+      }
+      for (auto* child : root->childElements()) {
+        if (auto* sphere = findSphereByMetadata(child, key, value))
+          return sphere;
+      }
+      return nullptr;
+    }
+
+    void collectCylinders(Element* root, std::vector<Cylinder*>& cylinders) {
+      if (auto* cylinder = qobject_cast<Cylinder*>(root))
+        cylinders.push_back(cylinder);
+      for (auto* child : root->childElements())
+        collectCylinders(child, cylinders);
     }
   }
 
@@ -141,6 +161,11 @@ namespace MoleculeSceneImporterTest {
     ASSERT_NE(nullptr, bond);
     EXPECT_EQ(QString("bond"), bond->metadataValue("molecule.kind").toString());
     EXPECT_FALSE(bond->metadataValue("moleculeBondInferred").toBool());
+    EXPECT_EQ(QString("BOND 1-2"), bond->metadataValue("sourceRecord").toString());
+    const auto bondProvenance = world::importProvenance(*bond);
+    ASSERT_TRUE(bondProvenance.has_value());
+    EXPECT_EQ(QString("bond"), bondProvenance->category["kind"].toString());
+    EXPECT_FALSE(bondProvenance->category["inferred"].toBool());
   }
 
   TEST(MoleculeSceneCompiler, ShouldComposeGroupVisibilityForChainsAndResidues) {
@@ -274,7 +299,7 @@ namespace MoleculeSceneImporterTest {
     EXPECT_EQ(QString("A"), gly->metadataValue("chainId").toString());
     EXPECT_EQ(QString("GLY"), gly->metadataValue("residueName").toString());
     EXPECT_EQ(1, gly->metadataValue("residueIndex").toInt());
-    EXPECT_DOUBLE_EQ(0.1, atom->radius());
+    EXPECT_DOUBLE_EQ(world::moleculeElementStyle("N").displayRadius * 0.1, atom->radius());
     EXPECT_EQ(QString("ATOM 1"), atom->metadataValue("sourceRecord").toString());
     const auto provenance = world::importProvenance(*atom);
     ASSERT_TRUE(provenance.has_value());
@@ -282,11 +307,64 @@ namespace MoleculeSceneImporterTest {
     EXPECT_EQ(QString("atom"), provenance->category["kind"].toString());
   }
 
+  TEST(MoleculeSceneImporter, ShouldImportStyledAtomsAndInferredBondsFromMmcif) {
+    world::MoleculeSceneImporter importer;
+
+    auto result = importer.importFile("test/fixtures/molecule/small.cif");
+
+    ASSERT_TRUE(result.succeeded());
+    auto root = result.takeRoot();
+    auto* rootGroup = qobject_cast<Group*>(root.get());
+    ASSERT_NE(nullptr, rootGroup);
+
+    auto* nitrogen = findSphereByMetadata(rootGroup, "sourceRecord", "ATOM 1");
+    auto* carbon = findSphereByMetadata(rootGroup, "sourceRecord", "ATOM 2");
+    ASSERT_NE(nullptr, nitrogen);
+    ASSERT_NE(nullptr, carbon);
+    EXPECT_EQ(world::moleculeElementStyle("N").color, materialColor(*nitrogen));
+    EXPECT_EQ(world::moleculeElementStyle("C").color, materialColor(*carbon));
+    EXPECT_DOUBLE_EQ(world::moleculeElementStyle("N").displayRadius * 0.25, nitrogen->radius());
+    EXPECT_DOUBLE_EQ(world::moleculeElementStyle("C").displayRadius * 0.25, carbon->radius());
+    EXPECT_EQ(QString("ATOM 1"), nitrogen->metadataValue("sourceRecord").toString());
+    EXPECT_EQ(QString("model/7/chain/A/residue/GLY/1/atom/1"),
+              nitrogen->metadataValue(GroupMetadata::sourceIdKey()).toString());
+    ASSERT_TRUE(world::importProvenance(*nitrogen).has_value());
+
+    std::vector<Cylinder*> cylinders;
+    collectCylinders(rootGroup, cylinders);
+    ASSERT_GE(cylinders.size(), 1u);
+    EXPECT_TRUE(cylinders[0]->metadataValue("moleculeBondInferred").toBool());
+    EXPECT_EQ(QString("bond"), cylinders[0]->metadataValue("molecule.kind").toString());
+    EXPECT_EQ(QString("INFERRED BOND 1-2"),
+              cylinders[0]->metadataValue("sourceRecord").toString());
+    EXPECT_EQ(QString("model/7/chain/A/bond/1-2"),
+              cylinders[0]->metadataValue(GroupMetadata::sourceIdKey()).toString());
+    const auto bondProvenance = world::importProvenance(*cylinders[0]);
+    ASSERT_TRUE(bondProvenance.has_value());
+    EXPECT_EQ(QString("bond"), bondProvenance->category["kind"].toString());
+    EXPECT_TRUE(bondProvenance->category["inferred"].toBool());
+  }
+
+  TEST(MoleculeSceneImporter, ShouldRespectDisabledBondInference) {
+    world::MoleculeSceneImporter importer;
+    world::ImportOptions options;
+    options.setValue("inferBondsWhenMissing", false);
+
+    auto result = importer.importFile("test/fixtures/molecule/small.cif", options);
+
+    ASSERT_TRUE(result.succeeded());
+    auto root = result.takeRoot();
+    ASSERT_NE(nullptr, root);
+    std::vector<Cylinder*> cylinders;
+    collectCylinders(root.get(), cylinders);
+    EXPECT_TRUE(cylinders.empty());
+  }
+
   TEST(MoleculeSceneImporter, ShouldExposeBackboneImportOptions) {
     world::MoleculeSceneImporter importer;
 
     const auto schema = importer.optionSchema();
-    ASSERT_EQ(7u, schema.size());
+    ASSERT_EQ(8u, schema.size());
     EXPECT_EQ(QString("representation"), schema[0].name);
     EXPECT_EQ(world::ImportOptionType::Choice, schema[0].type);
     EXPECT_TRUE(schema[0].choices.contains(QStringLiteral("ball-and-stick")));
@@ -296,13 +374,15 @@ namespace MoleculeSceneImporterTest {
     EXPECT_TRUE(schema[1].choices.contains(QStringLiteral("element")));
     EXPECT_TRUE(schema[1].choices.contains(QStringLiteral("chain")));
     EXPECT_TRUE(schema[1].choices.contains(QStringLiteral("residue-category")));
-    EXPECT_EQ(QString("backboneMode"), schema[5].name);
-    EXPECT_EQ(world::ImportOptionType::Choice, schema[5].type);
-    EXPECT_TRUE(schema[5].choices.contains(QStringLiteral("overlay")));
-    EXPECT_TRUE(schema[5].choices.contains(QStringLiteral("ribbon")));
-    EXPECT_TRUE(schema[5].choices.contains(QStringLiteral("tube")));
-    EXPECT_EQ(QString("backboneWidth"), schema[6].name);
-    EXPECT_EQ(world::ImportOptionType::Double, schema[6].type);
+    EXPECT_EQ(QString("inferBondsWhenMissing"), schema[5].name);
+    EXPECT_EQ(world::ImportOptionType::Boolean, schema[5].type);
+    EXPECT_EQ(QString("backboneMode"), schema[6].name);
+    EXPECT_EQ(world::ImportOptionType::Choice, schema[6].type);
+    EXPECT_TRUE(schema[6].choices.contains(QStringLiteral("overlay")));
+    EXPECT_TRUE(schema[6].choices.contains(QStringLiteral("ribbon")));
+    EXPECT_TRUE(schema[6].choices.contains(QStringLiteral("tube")));
+    EXPECT_EQ(QString("backboneWidth"), schema[7].name);
+    EXPECT_EQ(world::ImportOptionType::Double, schema[7].type);
   }
 
   TEST(MoleculeSceneImporter, ShouldImportSpaceFillingAndChainColorOptions) {
