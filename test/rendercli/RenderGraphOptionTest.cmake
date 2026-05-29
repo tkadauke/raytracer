@@ -20,6 +20,7 @@ set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
 set(invalid_exported_aov_scene "${TEST_OUTPUT_DIR}/invalid-exported-aov-scene.json")
 set(selector_specific_intent_scene "${TEST_OUTPUT_DIR}/selector-specific-intent-scene.json")
 set(subview_intent_scene "${TEST_OUTPUT_DIR}/subview-intent-scene.json")
+set(offscreen_culling_scene "${TEST_OUTPUT_DIR}/offscreen-culling-scene.json")
 set(malformed_graph_json "${TEST_OUTPUT_DIR}/malformed-graph.json")
 set(json_root_graph "${TEST_OUTPUT_DIR}/json-root-graph.json")
 set(semantic_invalid_graph "${TEST_OUTPUT_DIR}/semantic-invalid-graph.json")
@@ -74,6 +75,8 @@ set(raster_shadow_trace_render "${TEST_OUTPUT_DIR}/raster-shadow-trace-render.pn
 set(raster_state_plan "${TEST_OUTPUT_DIR}/raster-state-graph.json")
 set(raster_state_render "${TEST_OUTPUT_DIR}/raster-state-render.png")
 set(raster_culling_plan "${TEST_OUTPUT_DIR}/raster-culling-graph.txt")
+set(raster_culling_trace "${TEST_OUTPUT_DIR}/raster-culling-trace.json")
+set(raster_culling_trace_render "${TEST_OUTPUT_DIR}/raster-culling-trace-render.png")
 set(wireframe_state_plan "${TEST_OUTPUT_DIR}/wireframe-state-graph.json")
 set(raytracer_post_aa_plan "${TEST_OUTPUT_DIR}/raytracer-post-aa-graph.txt")
 set(wireframe_post_aa_plan "${TEST_OUTPUT_DIR}/wireframe-post-aa-graph.txt")
@@ -237,6 +240,70 @@ file(WRITE "${subview_intent_scene}" [=[
     ]
   },
   "children": []
+}
+]=])
+
+file(WRITE "${offscreen_culling_scene}" [=[
+{
+  "id": "{95000000-0000-0000-0000-000000000000}",
+  "name": "Offscreen Culling Fixture",
+  "ambient": [0.6, 0.6, 0.6],
+  "background": [0.0, 0.0, 0.0],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.0, -4.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.2,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "red-texture",
+      "name": "Red Texture",
+      "color": [1.0, 0.0, 0.0],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "red-matte",
+      "name": "Red Matte",
+      "diffuseTexture": "red-texture",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "visible-box",
+      "name": "Visible Box",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "red-matte",
+      "size": [1.0, 1.0, 1.0],
+      "bevelRadius": 0.0,
+      "type": "Box",
+      "children": []
+    },
+    {
+      "id": "offscreen-box",
+      "name": "Offscreen Box",
+      "position": [1000.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "red-matte",
+      "size": [1.0, 1.0, 1.0],
+      "bevelRadius": 0.0,
+      "type": "Box",
+      "children": []
+    }
+  ]
 }
 ]=])
 
@@ -1727,6 +1794,32 @@ if(NOT raster_culling_graph MATCHES "raster_visibility_set")
 endif()
 if(NOT raster_culling_graph MATCHES "raster_beauty")
   message(FATAL_ERROR "raster culling graph did not retain raster beauty pass: ${raster_culling_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli traces raster frustum culling for offscreen geometry"
+  COMMAND
+    "${RENDERCLI}" --engine raster --raster_culling on --width 32 --height 16
+    --render_graph_trace_out "${raster_culling_trace}"
+    "${offscreen_culling_scene}" "${raster_culling_trace_render}"
+)
+rendercli_assert_image_dimensions("${raster_culling_trace_render}" 32 16
+                                  NAME "graph raster culling trace image dimensions")
+rendercli_assert_image_nonempty("${raster_culling_trace_render}"
+                                NAME "graph raster culling trace image pixels")
+rendercli_assert_nonempty("${raster_culling_trace}" NAME "graph raster culling trace JSON")
+file(READ "${raster_culling_trace}" raster_culling_trace_json)
+if(NOT raster_culling_trace_json MATCHES "\"id\": \"raster_visibility\"")
+  message(FATAL_ERROR
+    "raster culling trace did not contain visibility pass: ${raster_culling_trace_json}")
+endif()
+if(NOT raster_culling_trace_json MATCHES "frustumRejectedLeaves=1")
+  message(FATAL_ERROR
+    "raster culling trace did not record one frustum-rejected leaf: ${raster_culling_trace_json}")
+endif()
+if(NOT raster_culling_trace_json MATCHES "CPU raster passes can skip rejected leaves")
+  message(FATAL_ERROR
+    "raster culling trace did not record CPU visibility set consumption: ${raster_culling_trace_json}")
 endif()
 
 rendercli_run(

@@ -151,7 +151,10 @@ Acceptance:
 - ~~Render output is identical for opaque test scenes.~~ ✅ **Done.** Unit
   coverage compares graph raster output with and without visibility culling for
   an opaque offscreen-leaf scene.
-- Rendercli functional tests cover an offscreen geometry fixture.
+- ~~Rendercli functional tests cover an offscreen geometry fixture.~~ ✅
+  **Done.** Functional coverage now renders a generated scene with one visible
+  box and one offscreen box, then asserts the graph trace reports a
+  frustum-rejected leaf and a CPU-consumable visibility set.
 - ~~Trace metadata shows how many leaves were rejected by frustum culling.~~ ✅
   **Done.**
 
