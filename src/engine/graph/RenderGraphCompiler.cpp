@@ -146,14 +146,15 @@ namespace engine::graph {
     return mode && *mode != RenderVisibilityCulling::Off;
   }
 
-  RenderResourceDescriptor RenderGraphCompiler::visibilitySetResource() const {
+  RenderResourceDescriptor
+  RenderGraphCompiler::visibilitySetResource(const RenderTargetSpec& target) const {
     RenderResourceDescriptor resource;
     resource.id = "raster_visibility_set";
     resource.name = "Raster visibility set";
     resource.type = RenderResourceType::VisibilitySet;
     resource.format = RenderResourceFormat::Unknown;
-    resource.width = 0;
-    resource.height = 0;
+    resource.width = target.width;
+    resource.height = target.height;
     resource.sampleCount = 1;
     resource.domain = RenderResourceDomain::CPU;
     resource.lifetime = RenderResourceLifetime::Transient;
@@ -175,7 +176,9 @@ namespace engine::graph {
     return pass;
   }
 
-  void RenderGraphCompiler::addRasterVisibilityInput(RenderPlan& plan, RenderPassNode& pass,
+  void RenderGraphCompiler::addRasterVisibilityInput(RenderPlan& plan,
+                                                     const RenderTargetSpec& target,
+                                                     RenderPassNode& pass,
                                                      const SceneView& sceneView,
                                                      const RenderIntent& intent) const {
     if (pass.executor != RenderExecutorKind::Rasterizer ||
@@ -185,7 +188,8 @@ namespace engine::graph {
 
     const RenderResourceId visibilityResource = "raster_visibility_set";
     if (!plan.findResource(visibilityResource)) {
-      plan.addResourceProducer(visibilityCullingPass(sceneView, intent), visibilitySetResource());
+      plan.addResourceProducer(visibilityCullingPass(sceneView, intent),
+                               visibilitySetResource(target));
     }
     pass.addRead(visibilityResource);
   }
@@ -254,7 +258,7 @@ namespace engine::graph {
 
     const RenderResourceId aovId = aov.resourceId();
     RenderPassNode producer = aovProducerPass(aov, executor, sceneView, true, target, intent);
-    addRasterVisibilityInput(plan, producer, sceneView, intent);
+    addRasterVisibilityInput(plan, target, producer, sceneView, intent);
     RenderResourceDescriptor aovResource =
       aov.resourceDescriptor(target, RenderResourceLifetime::Transient);
     plan.addResourceProducer(producer, aovResource);
@@ -300,7 +304,7 @@ namespace engine::graph {
     RenderResourceId visualizationInput = aovId;
     if (!plan.findResource(aovId)) {
       RenderPassNode producer = aovProducerPass(*aov, executor, sceneView, false, target, intent);
-      addRasterVisibilityInput(plan, producer, sceneView, intent);
+      addRasterVisibilityInput(plan, target, producer, sceneView, intent);
       if (passNeedsExplicitReadback(producer)) {
         const RenderResourceId sourceId = aovId + "_source";
         RenderResourceDescriptor sourceDescriptor = readbackResource(
@@ -344,7 +348,7 @@ namespace engine::graph {
 
     RenderPassNode base = beautyPass(RenderExecutorKind::Rasterizer, sceneView, target, intent,
                                      {"stencil_composite_base"});
-    addRasterVisibilityInput(plan, base, sceneView, intent);
+    addRasterVisibilityInput(plan, target, base, sceneView, intent);
     RenderResourceDescriptor baseColor =
       target.colorResource("base_color", "Base color", RenderResourceLifetime::Transient);
     plan.addResourceProducer(base, baseColor);
@@ -371,7 +375,7 @@ namespace engine::graph {
 
     RenderPassNode stencilProducer =
       aovProducerPass(*stencilAOV, RenderExecutorKind::Rasterizer, sceneView, true, target, intent);
-    addRasterVisibilityInput(plan, stencilProducer, sceneView, intent);
+    addRasterVisibilityInput(plan, target, stencilProducer, sceneView, intent);
     RenderResourceDescriptor stencilResource =
       stencilAOV->resourceDescriptor(target, RenderResourceLifetime::Transient);
     RenderResourceId stencilCompositeInput = stencilResource.id;
@@ -460,7 +464,7 @@ namespace engine::graph {
 
     RenderPassNode beauty =
       beautyPass(executor, frameIntent.defaultSceneView(), target, frameIntent);
-    addRasterVisibilityInput(plan, beauty, frameIntent.defaultSceneView(), frameIntent);
+    addRasterVisibilityInput(plan, target, beauty, frameIntent.defaultSceneView(), frameIntent);
     plan.addResourceProducer(beauty, beautyColor);
 
     RenderResourceId mainInputResource = beautyColor.id;

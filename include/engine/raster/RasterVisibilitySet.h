@@ -15,15 +15,31 @@ namespace engine::raster {
   public:
     enum class RejectionReason { Frustum, Backface };
 
+    struct TileGrid {
+      int width{0};
+      int height{0};
+      int tileWidth{0};
+      int tileHeight{0};
+      int columns{0};
+      int rows{0};
+
+      bool enabled() const;
+      std::size_t tileCount() const;
+    };
+
     void addVisibleLeaf(std::size_t triangleCount);
     void addVisibleLeaf(std::size_t triangleCount, std::size_t faceCount);
     void addRejectedLeaf(RejectionReason reason, std::size_t triangleCount);
     void addRejectedLeaf(RejectionReason reason, std::size_t triangleCount, std::size_t faceCount);
     void setVisibleLeafOrder(std::vector<std::size_t> leafIndices);
+    void setTileGrid(int width, int height, int tileWidth, int tileHeight);
+    void setVisibleLeafTiles(std::size_t leafIndex, std::vector<std::size_t> tileIndices);
 
     bool leafVisible(std::size_t leafIndex) const;
     bool hasVisibleLeafOrder() const;
     const std::vector<std::size_t>& visibleLeafOrder() const;
+    bool hasTileGrid() const;
+    const TileGrid& tileGrid() const;
     std::size_t leafCount() const;
     std::size_t leafFaceCount(std::size_t leafIndex) const;
     std::size_t inputTriangleCount() const;
@@ -33,6 +49,9 @@ namespace engine::raster {
     std::size_t rejectedTriangleCount() const;
     std::size_t rejectedLeafCount(RejectionReason reason) const;
     std::size_t rejectedTriangleCount(RejectionReason reason) const;
+    std::size_t visibleLeafTileReferenceCount() const;
+    std::size_t coveredTileCount() const;
+    std::size_t tileUncertainVisibleLeafCount() const;
 
   private:
     struct LeafDecision {
@@ -40,9 +59,12 @@ namespace engine::raster {
       RejectionReason rejectionReason{RejectionReason::Frustum};
       std::size_t triangleCount{0};
       std::size_t faceCount{0};
+      bool tileCoverageKnown{false};
+      std::vector<std::size_t> tileIndices;
     };
 
     std::vector<LeafDecision> m_leaves;
     std::vector<std::size_t> m_visibleLeafOrder;
+    TileGrid m_tileGrid;
   };
 }

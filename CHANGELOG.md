@@ -68,6 +68,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   material callback handle, and `render::Integrator` as the transport-policy
   boundary future path tracers will implement; this documents the preserved
   default Whitted behavior and does not add path tracing. — GPT-5
+- **Raster visibility tile diagnostics.** Raster visibility-set resources now
+  carry the render target tile grid and conservative per-visible-leaf tile
+  references, and graph traces report covered/uncertain tile metrics as the
+  baseline for later tile occlusion. — GPT-5
 - **Raster visibility backface filtering.** Raster visibility culling now
   rejects fully backfacing leaves when explicit raster cull mode and unclipped
   projected triangles make the decision conservative, and reports the saved

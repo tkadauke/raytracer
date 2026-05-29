@@ -721,8 +721,8 @@ namespace RenderGraphCompilerTest {
     ASSERT_NE(nullptr, visibilityResource);
     EXPECT_EQ(RenderResourceType::VisibilitySet, visibilityResource->type);
     EXPECT_EQ(RenderResourceFormat::Unknown, visibilityResource->format);
-    EXPECT_EQ(0, visibilityResource->width);
-    EXPECT_EQ(0, visibilityResource->height);
+    EXPECT_EQ(64, visibilityResource->width);
+    EXPECT_EQ(64, visibilityResource->height);
     EXPECT_EQ(1, visibilityResource->sampleCount);
     EXPECT_EQ(RenderResourceLifetime::Transient, visibilityResource->lifetime);
 

@@ -1817,6 +1817,14 @@ if(NOT raster_culling_trace_json MATCHES "frustumRejectedLeaves=1")
   message(FATAL_ERROR
     "raster culling trace did not record one frustum-rejected leaf: ${raster_culling_trace_json}")
 endif()
+if(NOT raster_culling_trace_json MATCHES "tileGrid=1x1")
+  message(FATAL_ERROR
+    "raster culling trace did not record the coarse tile grid: ${raster_culling_trace_json}")
+endif()
+if(NOT raster_culling_trace_json MATCHES "visibleTileReferences=1")
+  message(FATAL_ERROR
+    "raster culling trace did not record visible tile references: ${raster_culling_trace_json}")
+endif()
 if(NOT raster_culling_trace_json MATCHES "CPU raster passes can skip rejected leaves")
   message(FATAL_ERROR
     "raster culling trace did not record CPU visibility set consumption: ${raster_culling_trace_json}")

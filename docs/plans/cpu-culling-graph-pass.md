@@ -220,8 +220,13 @@ Acceptance:
 
 Tasks:
 
-- Divide the image into coarse screen tiles.
-- Project visible leaf bounds to tiles.
+- ~~Divide the image into coarse screen tiles.~~ ✅ **Done.** Visibility-set
+  resources now carry the render target tile grid using 32x32 pixel coarse
+  tiles.
+- ~~Project visible leaf bounds to tiles for diagnostics.~~ ✅ **Done.** The
+  visibility pass records tile references for visible leaves whose transformed
+  bounds project wholly inside clip space, and marks clipped or unknown bounds
+  as uncertain instead of using them for later occlusion decisions.
 - Maintain conservative per-tile depth summaries for opaque depth-writing work.
 - Reject later leaf/tile combinations that cannot pass depth.
 - Keep partially visible work in the set if any tile remains uncertain.
@@ -231,8 +236,10 @@ Acceptance:
 - Dense occluded scenes reduce coverage/depth-test counts, not only color
   writes.
 - Alpha/blend/stencil paths do not use unsafe occlusion shortcuts.
-- Trace metadata reports tile count, rejected tile references, and uncertain
-  cases.
+- ~~Trace metadata reports tile count and uncertain cases.~~ ✅ **Done.**
+  Current traces report tile grid dimensions, covered tiles, visible tile
+  references, and uncertain visible leaves. Rejected tile references remain
+  TODO until occlusion rejection exists.
 
 ## Phase 5 - caching and invalidation
 

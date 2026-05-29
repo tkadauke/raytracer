@@ -1461,10 +1461,15 @@ namespace engine::graph {
         double depth{0.0};
       };
 
+      static constexpr int TileSize = 32;
+
       std::shared_ptr<::engine::raster::RasterVisibilitySet>
       buildVisibilitySet(const RenderExecutionContext& context,
                          const RasterVisibilityPassState& state) const {
         auto visibilitySet = std::make_shared<::engine::raster::RasterVisibilitySet>();
+        const auto& write = context.pass().singleWrite();
+        const auto& descriptor = context.storage().descriptor(write.resource);
+        visibilitySet->setTileGrid(descriptor.width, descriptor.height, TileSize, TileSize);
         const auto scene = context.graph().scene();
         if (!scene) {
           return visibilitySet;
@@ -1494,6 +1499,10 @@ namespace engine::graph {
             }
 
             visibilitySet->addVisibleLeaf(stats.triangleCount, stats.faceCount);
+            if (const auto tiles =
+                  projectedBoundsTiles(leaf, camera.get(), clipVolume, visibilitySet->tileGrid())) {
+              visibilitySet->setVisibleLeafTiles(leafIndex, *tiles);
+            }
             if (orderable) {
               if (const auto depth = frontToBackDepth(leaf, camera.get())) {
                 visibleLeafDepths.push_back(VisibleLeafDepth{leafIndex, *depth});
@@ -1617,6 +1626,65 @@ namespace engine::graph {
         return testedTriangle;
       }
 
+      std::optional<std::vector<std::size_t>>
+      projectedBoundsTiles(const render::Primitive::TransformedLeaf& leaf,
+                           const render::Camera* camera,
+                           const render::HomogeneousClipVolume& clipVolume,
+                           const ::engine::raster::RasterVisibilitySet::TileGrid& grid) const {
+        if (!camera || !grid.enabled()) {
+          return std::nullopt;
+        }
+
+        const BoundingBoxd bounds = leaf.boundingBox();
+        if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite()) {
+          return std::nullopt;
+        }
+
+        double minX = std::numeric_limits<double>::infinity();
+        double minY = std::numeric_limits<double>::infinity();
+        double maxX = -std::numeric_limits<double>::infinity();
+        double maxY = -std::numeric_limits<double>::infinity();
+        for (const Vector3d& corner : bounds.vertices()) {
+          const Vector4d clip = camera->projectPointToClipSpace(corner);
+          if (clip.isUndefined() || clip.w() == 0.0 || clipVolume.outCode(clip) != 0) {
+            return std::nullopt;
+          }
+
+          const double invW = 1.0 / clip.w();
+          const double pixelX = (clip.x() * invW * 0.5 + 0.5) * grid.width;
+          const double pixelY = (0.5 - clip.y() * invW * 0.5) * grid.height;
+          if (!std::isfinite(pixelX) || !std::isfinite(pixelY)) {
+            return std::nullopt;
+          }
+          minX = std::min(minX, pixelX);
+          minY = std::min(minY, pixelY);
+          maxX = std::max(maxX, pixelX);
+          maxY = std::max(maxY, pixelY);
+        }
+
+        const int left = std::clamp(static_cast<int>(std::floor(minX)), 0, grid.width - 1);
+        const int top = std::clamp(static_cast<int>(std::floor(minY)), 0, grid.height - 1);
+        const int right = std::clamp(static_cast<int>(std::ceil(maxX)) - 1, 0, grid.width - 1);
+        const int bottom = std::clamp(static_cast<int>(std::ceil(maxY)) - 1, 0, grid.height - 1);
+        if (left > right || top > bottom) {
+          return std::nullopt;
+        }
+
+        const int tileLeft = left / grid.tileWidth;
+        const int tileRight = right / grid.tileWidth;
+        const int tileTop = top / grid.tileHeight;
+        const int tileBottom = bottom / grid.tileHeight;
+        std::vector<std::size_t> tiles;
+        tiles.reserve(
+          static_cast<std::size_t>((tileRight - tileLeft + 1) * (tileBottom - tileTop + 1)));
+        for (int ty = tileTop; ty <= tileBottom; ++ty) {
+          for (int tx = tileLeft; tx <= tileRight; ++tx) {
+            tiles.push_back(static_cast<std::size_t>(ty * grid.columns + tx));
+          }
+        }
+        return tiles;
+      }
+
       std::optional<double> frontToBackDepth(const render::Primitive::TransformedLeaf& leaf,
                                              const render::Camera* camera) const {
         if (!camera) {
@@ -1692,6 +1760,12 @@ namespace engine::graph {
             << "; backfaceRejectedTriangles="
             << visibilitySet.rejectedTriangleCount(
                  ::engine::raster::RasterVisibilitySet::RejectionReason::Backface)
+            << "; tileGrid=" << visibilitySet.tileGrid().columns << "x"
+            << visibilitySet.tileGrid().rows << "; tileSize=" << visibilitySet.tileGrid().tileWidth
+            << "x" << visibilitySet.tileGrid().tileHeight
+            << "; coveredTiles=" << visibilitySet.coveredTileCount()
+            << "; visibleTileReferences=" << visibilitySet.visibleLeafTileReferenceCount()
+            << "; uncertainTileLeaves=" << visibilitySet.tileUncertainVisibleLeafCount()
             << "; frontToBackOrdering=" << ordering
             << "; frontToBackOrderedLeaves=" << visibilitySet.visibleLeafOrder().size()
             << "; CPU raster passes can skip rejected leaves";

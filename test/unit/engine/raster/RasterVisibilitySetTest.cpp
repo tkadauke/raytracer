@@ -39,4 +39,24 @@ namespace RasterVisibilitySetTest {
     EXPECT_EQ(2u, set.visibleLeafOrder()[0]);
     EXPECT_EQ(0u, set.visibleLeafOrder()[1]);
   }
+
+  TEST(RasterVisibilitySet, StoresVisibleLeafTileCoverage) {
+    RasterVisibilitySet set;
+    set.setTileGrid(64, 32, 16, 16);
+    set.addVisibleLeaf(3, 1);
+    set.addVisibleLeaf(2, 1);
+    set.addRejectedLeaf(RasterVisibilitySet::RejectionReason::Frustum, 5, 1);
+
+    ASSERT_TRUE(set.hasTileGrid());
+    EXPECT_EQ(4, set.tileGrid().columns);
+    EXPECT_EQ(2, set.tileGrid().rows);
+    EXPECT_EQ(8u, set.tileGrid().tileCount());
+
+    set.setVisibleLeafTiles(0, {3, 2, 2, 99});
+    set.setVisibleLeafTiles(2, {1});
+
+    EXPECT_EQ(2u, set.visibleLeafTileReferenceCount());
+    EXPECT_EQ(2u, set.coveredTileCount());
+    EXPECT_EQ(1u, set.tileUncertainVisibleLeafCount());
+  }
 }
