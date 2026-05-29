@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <sstream>
 
 namespace engine::raster::detail {
 
@@ -78,6 +79,17 @@ namespace engine::raster::detail {
 
   double OpenGLShadowTextureData::halfExtent() const {
     return m_halfExtent;
+  }
+
+  std::string OpenGLShadowTextureData::traceMessage() const {
+    if (!enabled()) {
+      return {};
+    }
+
+    std::ostringstream message;
+    message << "OpenGL raster shadow texture prepared " << m_width << "x" << m_height
+            << " normalized depth texels for shader-side binding";
+    return message.str();
   }
 
   const std::vector<float>& OpenGLShadowTextureData::rgbaPixels() const {

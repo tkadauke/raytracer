@@ -359,7 +359,9 @@ Tasks:
   to CPU-prepared shadow visibility. `OpenGLShadowTextureData` now converts the
   eligible shadow depth buffer into normalized RGBA float texels with a
   no-occluder sentinel and carries the matching directional-light projection
-  constants, ready for GL texture upload and shader uniforms.
+  constants. Eligible OpenGL shadow passes now upload that payload as a
+  nearest-filtered shadow texture and record the prepared texture dimensions in
+  graph traces.
 
 Acceptance:
 

@@ -151,6 +151,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **OpenGL raster shadow sampling trace.** Shadow-enabled OpenGL raster passes
   now report whether their graph shadow-map artifact is eligible for future
   shader-side binding or falls back to CPU-prepared shadow visibility. — GPT-5
+- **OpenGL raster shadow texture trace.** Eligible OpenGL raster shadow passes
+  now prepare and upload normalized shadow-depth texture data and report the
+  texture dimensions in graph traces. — GPT-5
 - **rendercli OpenGL application bootstrap.** rendercli now pre-scans explicit
   `--raster_backend opengl|gpu` runs, starts a GUI-capable Qt application for
   that backend, and defaults the command-line GPU path to Qt's offscreen

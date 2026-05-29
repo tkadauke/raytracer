@@ -4,6 +4,7 @@
 #include "engine/raster/OpenGLOffscreenContext.h"
 #include "engine/raster/detail/OpenGLRasterMesh.h"
 #include "engine/raster/detail/OpenGLShadowSamplingPlan.h"
+#include "engine/raster/detail/OpenGLShadowTextureData.h"
 #include "engine/raster/detail/RasterShadowMaps.h"
 #include "render/textures/ImageTexture.h"
 
@@ -104,6 +105,63 @@ namespace engine::raster {
       std::unordered_map<const render::ImageTexture*, GLuint> m_textures;
     };
 
+    class OpenGLShadowTexture {
+    public:
+      OpenGLShadowTexture(QOpenGLFunctions* functions, const detail::OpenGLShadowTextureData& data)
+          : m_functions(functions) {
+        if (!data.enabled()) {
+          return;
+        }
+
+        m_functions->glGenTextures(1, &m_texture);
+        if (m_texture == 0) {
+          throw std::runtime_error("OpenGL raster backend could not allocate a shadow texture");
+        }
+
+        m_functions->glBindTexture(GL_TEXTURE_2D, m_texture);
+        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        m_functions->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        m_functions->glTexImage2D(GL_TEXTURE_2D, 0, internalFormat(), data.width(), data.height(),
+                                  0, GL_RGBA, GL_FLOAT, data.rgbaPixels().data());
+        m_functions->glBindTexture(GL_TEXTURE_2D, 0);
+      }
+
+      ~OpenGLShadowTexture() {
+        if (m_texture != 0) {
+          m_functions->glDeleteTextures(1, &m_texture);
+        }
+      }
+
+      bool enabled() const {
+        return m_texture != 0;
+      }
+
+      void bind(int textureUnit) const {
+        m_functions->glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
+        m_functions->glBindTexture(GL_TEXTURE_2D, m_texture);
+      }
+
+      void release(int textureUnit) const {
+        m_functions->glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
+        m_functions->glBindTexture(GL_TEXTURE_2D, 0);
+      }
+
+    private:
+      static GLint internalFormat() {
+#if defined(GL_RGBA32F)
+        return GL_RGBA32F;
+#else
+        return GL_RGBA;
+#endif
+      }
+
+      QOpenGLFunctions* m_functions;
+      GLuint m_texture{0};
+    };
+
     class OpenGLRasterDrawPass {
     public:
       OpenGLRasterDrawPass(
@@ -118,7 +176,8 @@ namespace engine::raster {
         std::uint8_t stencilReference, std::uint8_t stencilMask, std::uint8_t stencilClearValue,
         Rasterizer::AttachmentLoadOp stencilLoadOp, Rasterizer::AttachmentStoreOp stencilStoreOp,
         std::uint8_t stencilWriteMask, Rasterizer::StencilOp stencilFailOp,
-        Rasterizer::StencilOp stencilDepthFailOp, Rasterizer::StencilOp stencilPassOp)
+        Rasterizer::StencilOp stencilDepthFailOp, Rasterizer::StencilOp stencilPassOp,
+        detail::OpenGLShadowTextureData shadowTextureData)
           : m_context(context),
             m_height(height),
             m_viewportRect(viewportRect),
@@ -149,7 +208,8 @@ namespace engine::raster {
             m_stencilWriteMask(stencilWriteMask),
             m_stencilFailOp(stencilFailOp),
             m_stencilDepthFailOp(stencilDepthFailOp),
-            m_stencilPassOp(stencilPassOp) {
+            m_stencilPassOp(stencilPassOp),
+            m_shadowTextureData(std::move(shadowTextureData)) {
       }
 
       std::chrono::nanoseconds render(const detail::OpenGLRasterMesh& mesh,
@@ -205,6 +265,7 @@ namespace engine::raster {
         applyColorWriteMask(functions);
         applyBlending(functions);
         applyStencil(functions);
+        OpenGLShadowTexture shadowTexture(functions, m_shadowTextureData);
 
         if (mesh.empty()) {
           functions->glFlush();
@@ -327,6 +388,9 @@ namespace engine::raster {
         program.setUniformValue("alphaReference",
                                 static_cast<GLfloat>(std::clamp(m_alphaReference, 0.0, 1.0)));
         program.setUniformValue("imageTexture", 0);
+        if (shadowTexture.enabled()) {
+          shadowTexture.bind(1);
+        }
 
         QOpenGLBuffer vertexBuffer(QOpenGLBuffer::VertexBuffer);
         QOpenGLBuffer indexBuffer(QOpenGLBuffer::IndexBuffer);
@@ -420,6 +484,10 @@ namespace engine::raster {
                                     GL_UNSIGNED_INT, byteOffset);
         }
         functions->glBindTexture(GL_TEXTURE_2D, 0);
+        if (shadowTexture.enabled()) {
+          shadowTexture.release(1);
+          functions->glActiveTexture(GL_TEXTURE0);
+        }
         functions->glFlush();
 
         resetFixedFunctionState(functions);
@@ -661,6 +729,7 @@ namespace engine::raster {
       Rasterizer::StencilOp m_stencilFailOp;
       Rasterizer::StencilOp m_stencilDepthFailOp;
       Rasterizer::StencilOp m_stencilPassOp;
+      detail::OpenGLShadowTextureData m_shadowTextureData;
     };
   }
 
@@ -1128,6 +1197,9 @@ namespace engine::raster {
     const auto* shadowMaps = m_shadowMapsEnabled ? m_externalShadowMaps.get() : nullptr;
     const detail::OpenGLShadowSamplingPlan shadowSamplingPlan =
       detail::OpenGLShadowSamplingPlan::from(shadowMaps);
+    detail::OpenGLShadowTextureData shadowTextureData =
+      detail::OpenGLShadowTextureData::from(shadowSamplingPlan);
+    const std::string shadowTextureTrace = shadowTextureData.traceMessage();
     detail::OpenGLRasterMesh mesh;
     const auto meshPreparationStarted = std::chrono::steady_clock::now();
     if (viewport.width() > 0 && viewport.height() > 0) {
@@ -1146,7 +1218,7 @@ namespace engine::raster {
         m_alphaReference, m_depthFunc, m_depthClearValue, m_depthLoadOp, m_depthStoreOp,
         m_depthWriteEnabled, m_stencilTestEnabled, m_stencilFunc, m_stencilReference, m_stencilMask,
         m_stencilClearValue, m_stencilLoadOp, m_stencilStoreOp, m_stencilWriteMask, m_stencilFailOp,
-        m_stencilDepthFailOp, m_stencilPassOp)
+        m_stencilDepthFailOp, m_stencilPassOp, std::move(shadowTextureData))
         .render(mesh, backgroundColor(), buffer, depthTarget, stencilTarget);
     m_lastReadbackTraceMessage = readbackTraceMessage(
       readbackElapsed,
@@ -1156,6 +1228,9 @@ namespace engine::raster {
       meshPreparationTraceMessage(meshPreparationElapsed, mesh.triangleCount()));
     if (m_shadowMapsEnabled && m_externalShadowMaps) {
       m_lastTraceMessages.push_back(shadowSamplingPlan.traceMessage());
+    }
+    if (!shadowTextureTrace.empty()) {
+      m_lastTraceMessages.push_back(shadowTextureTrace);
     }
     m_lastTraceMessages.push_back(m_lastReadbackTraceMessage);
   }
