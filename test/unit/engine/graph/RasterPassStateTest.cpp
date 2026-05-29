@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -450,6 +451,16 @@ namespace RasterPassStateTest {
     ASSERT_NE(nullptr, plan.passes()[0].state);
     EXPECT_EQ(2, RasterBeautyPassState::fromPass(plan.passes()[0])->sampling().msaaSamples());
     EXPECT_EQ(nullptr, plan.passes()[1].state);
+  }
+
+  TEST(RasterBeautyPassState, IgnoresNonRasterPassState) {
+    RenderPassNode pass;
+    pass.id = "wireframe_beauty";
+    pass.kind = RenderPassKind::Beauty;
+    pass.executor = RenderExecutorKind::Wireframe;
+    pass.state = std::make_shared<RasterVisibilityPassState>();
+
+    EXPECT_EQ(nullptr, RasterBeautyPassState::fromPass(pass));
   }
 
   TEST(RasterBeautyPassState, WritesOnlyToRasterAOVPasses) {

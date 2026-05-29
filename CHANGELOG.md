@@ -950,6 +950,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   keep public construction and setter paths in SIMD storage before reducing
   lanes, avoiding union type-punning undefined behavior without leaving the hot
   path. — GPT-5
+- **Wireframe graph export with typed pass state.** Raster readback checks now
+  ignore non-raster pass state, so wireframe graph export no longer fails when
+  the wireframe beauty node carries wireframe-specific state. — GPT-5
 - **OpenGL raster unsupported state diagnostics.** OpenGL-backed raster passes
   now reject unsupported postprocess-AA and depth-bias state explicitly instead
   of silently rendering without those compiled graph settings. — GPT-5

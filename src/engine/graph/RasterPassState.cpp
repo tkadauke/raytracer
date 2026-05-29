@@ -1426,6 +1426,8 @@ namespace engine::graph {
   }
 
   const RasterBeautyPassState* RasterBeautyPassState::fromPass(const RenderPassNode& pass) {
+    if (pass.executor != RenderExecutorKind::Rasterizer)
+      return nullptr;
     if (!pass.state)
       return nullptr;
 
