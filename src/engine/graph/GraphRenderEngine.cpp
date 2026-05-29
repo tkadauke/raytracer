@@ -17,6 +17,8 @@
 #include "render/tonemap/LinearTonemap.h"
 #include "render/tonemap/Tonemap.h"
 
+#include <QJsonObject>
+
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
@@ -572,7 +574,8 @@ namespace engine::graph {
                          const std::shared_ptr<RenderGraphExecutionTraceRecorder>& recorder,
                          std::shared_ptr<const RenderGraphExecutionTraceSession> traceSession,
                          std::uint64_t renderGeneration, const RenderPassNode& pass,
-                         const RenderResourceStorage& storage, Execute execute) {
+                         const RenderResourceStorage& storage, const QJsonObject* metadata,
+                         Execute execute) {
       notifyPassStarted(graph, pass, renderGeneration);
       if (recorder && traceSession) {
         recorder->passStarted(traceSession, pass, storage);
@@ -593,7 +596,8 @@ namespace engine::graph {
         throw;
       }
       if (recorder && traceSession) {
-        recorder->passCompleted(traceSession, pass, storage);
+        recorder->passCompleted(traceSession, pass, storage,
+                                metadata ? *metadata : QJsonObject());
       }
       notifyPassFinished(graph, pass, renderGeneration);
     }
@@ -953,7 +957,7 @@ namespace engine::graph {
       } reset{context};
 
       executeObserved(*this, p->executionTraceRecorder, traceSession.session, renderGeneration,
-                      pass, storage, [&] { payload->execute(context); });
+                      pass, storage, &context.traceMetadata(), [&] { payload->execute(context); });
       for (const auto& write : pass.writes) {
         storage.resource(write.resource).markProduced();
       }
@@ -1036,7 +1040,7 @@ namespace engine::graph {
       } reset{context};
 
       executeObserved(*this, p->executionTraceRecorder, traceSession.session, renderGeneration,
-                      pass, storage, [&] {
+                      pass, storage, &context.traceMetadata(), [&] {
                         const bool executedForDisplay =
                           pass.kind == RenderPassKind::Beauty &&
                           pass.executor == RenderExecutorKind::Raytracer &&

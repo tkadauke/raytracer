@@ -53,6 +53,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   aggregate scene, tessellation, tile-binning, fragment-loop, diagnostic
   counter distribution, and timing metrics without requiring diagnostic AOV
   buffers for Epic #356. — GPT-5
+- **Raster metrics reporting.** `rendercli --raster_metrics_out` now writes
+  aggregate raster metrics JSON, `--raster_metrics_summary` prints concise
+  counters, and graph execution traces expose raster pass metrics for Modeler
+  inspection for Epic #356. — GPT-5
 - **Molecule representation and color import options.** Molecule imports now
   expose ball-and-stick, space-filling, and backbone representations plus
   element, chain, and residue-category color schemes through the shared importer

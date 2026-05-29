@@ -58,4 +58,12 @@ namespace engine::graph {
       m_traceMessageRecorder(std::move(message));
     }
   }
+
+  void RenderExecutionContext::setTraceMetadata(QJsonObject metadata) {
+    m_traceMetadata = std::move(metadata);
+  }
+
+  const QJsonObject& RenderExecutionContext::traceMetadata() const {
+    return m_traceMetadata;
+  }
 }

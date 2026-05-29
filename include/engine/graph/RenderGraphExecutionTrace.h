@@ -100,6 +100,7 @@ namespace engine::graph {
     const std::vector<RenderGraphResourceDiff>& diffs() const;
     std::chrono::nanoseconds elapsed() const;
     const std::string& message() const;
+    const QJsonObject& metadata() const;
     QJsonObject toJson() const;
 
   private:
@@ -116,6 +117,7 @@ namespace engine::graph {
     std::chrono::nanoseconds m_elapsed{0};
     std::optional<std::chrono::steady_clock::time_point> m_startedAt;
     std::string m_message;
+    QJsonObject m_metadata;
   };
 
   /**
@@ -162,6 +164,9 @@ namespace engine::graph {
                      const RenderPassNode& pass, const RenderResourceStorage& storage);
     void passCompleted(std::shared_ptr<const RenderGraphExecutionTraceSession> session,
                        const RenderPassNode& pass, const RenderResourceStorage& storage);
+    void passCompleted(std::shared_ptr<const RenderGraphExecutionTraceSession> session,
+                       const RenderPassNode& pass, const RenderResourceStorage& storage,
+                       QJsonObject metadata);
     void passSkipped(std::shared_ptr<const RenderGraphExecutionTraceSession> session,
                      const RenderPassNode& pass, const RenderResourceStorage& storage,
                      std::string message);

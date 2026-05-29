@@ -492,6 +492,10 @@ namespace engine::graph {
     return m_message;
   }
 
+  const QJsonObject& RenderPassTrace::metadata() const {
+    return m_metadata;
+  }
+
   QJsonObject RenderPassTrace::toJson() const {
     QJsonArray inputs;
     for (const auto& input : m_inputs) {
@@ -513,6 +517,7 @@ namespace engine::graph {
     object["status"] = toString(m_status);
     object["elapsedMs"] = m_elapsed.count() / 1000000.0;
     object["message"] = QString::fromStdString(m_message);
+    object["metadata"] = m_metadata;
     object["inputs"] = inputs;
     object["outputs"] = outputs;
     object["diffs"] = diffs;
@@ -663,6 +668,7 @@ namespace engine::graph {
     trace->m_startedAt = std::chrono::steady_clock::now();
     trace->m_elapsed = std::chrono::nanoseconds(0);
     trace->m_message.clear();
+    trace->m_metadata = QJsonObject();
     trace->m_inputs = snapshotsForReads(*m_current, pass, storage);
     trace->m_outputs.clear();
     trace->m_diffs.clear();
@@ -671,6 +677,12 @@ namespace engine::graph {
   void RenderGraphExecutionTraceRecorder::passCompleted(
     std::shared_ptr<const RenderGraphExecutionTraceSession> session, const RenderPassNode& pass,
     const RenderResourceStorage& storage) {
+    passCompleted(std::move(session), pass, storage, QJsonObject());
+  }
+
+  void RenderGraphExecutionTraceRecorder::passCompleted(
+    std::shared_ptr<const RenderGraphExecutionTraceSession> session, const RenderPassNode& pass,
+    const RenderResourceStorage& storage, QJsonObject metadata) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (!session || !m_current || !currentSessionMatches(*session)) {
       return;
@@ -687,6 +699,7 @@ namespace engine::graph {
         std::chrono::duration_cast<std::chrono::nanoseconds>(now - *trace->m_startedAt);
     }
     trace->m_status = RenderPassExecutionStatus::Completed;
+    trace->m_metadata = std::move(metadata);
     trace->m_outputs = snapshotsForWrites(*m_current, pass, storage);
     trace->m_diffs = diffsFor(trace->m_inputs, trace->m_outputs);
   }
@@ -708,6 +721,7 @@ namespace engine::graph {
     trace->m_elapsed = std::chrono::nanoseconds(0);
     trace->m_startedAt.reset();
     trace->m_message = std::move(message);
+    trace->m_metadata = QJsonObject();
     trace->m_inputs = snapshotsForReads(*m_current, pass, storage);
     trace->m_outputs = snapshotsForWrites(*m_current, pass, storage);
     trace->m_diffs = diffsFor(trace->m_inputs, trace->m_outputs);
@@ -733,6 +747,7 @@ namespace engine::graph {
     }
     trace->m_status = RenderPassExecutionStatus::Failed;
     trace->m_message = std::move(message);
+    trace->m_metadata = QJsonObject();
     trace->m_outputs = snapshotsForWrites(*m_current, pass, storage);
     trace->m_diffs = diffsFor(trace->m_inputs, trace->m_outputs);
   }

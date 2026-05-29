@@ -24,6 +24,9 @@
 #include <QThread>
 #include <QThreadPool>
 
+#include <QJsonArray>
+#include <QJsonObject>
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -568,6 +571,86 @@ Rasterizer::Rasterizer(std::shared_ptr<render::Camera> camera, std::shared_ptr<r
 }
 
 Rasterizer::~Rasterizer() = default;
+
+QJsonObject engine::raster::rasterRenderMetricsToJson(
+  const Rasterizer::RasterRenderMetrics& metrics) {
+  auto distributionToJson = [](const Rasterizer::MetricDistribution& distribution) {
+    QJsonObject object;
+    object["max"] = static_cast<double>(distribution.max);
+    object["p50"] = distribution.p50;
+    object["p90"] = distribution.p90;
+    object["p95"] = distribution.p95;
+    object["p99"] = distribution.p99;
+    return object;
+  };
+
+  QJsonArray sourceKinds;
+  for (const auto& sourceKind : metrics.input.sourceKinds) {
+    sourceKinds.push_back(QString::fromStdString(sourceKind));
+  }
+
+  QJsonObject input;
+  input["leafPrimitiveCount"] = static_cast<double>(metrics.input.leafPrimitiveCount);
+  input["meshCount"] = static_cast<double>(metrics.input.meshCount);
+  input["materialCount"] = static_cast<double>(metrics.input.materialCount);
+  input["lightCount"] = static_cast<double>(metrics.input.lightCount);
+  input["sourceKinds"] = sourceKinds;
+
+  QJsonObject tessellation;
+  tessellation["generatedMeshVertices"] =
+    static_cast<double>(metrics.tessellation.generatedMeshVertices);
+  tessellation["generatedMeshFaces"] = static_cast<double>(metrics.tessellation.generatedMeshFaces);
+  tessellation["preparedTrianglesBeforeCulling"] =
+    static_cast<double>(metrics.tessellation.preparedTrianglesBeforeCulling);
+  tessellation["trianglesAfterCulling"] =
+    static_cast<double>(metrics.tessellation.trianglesAfterCulling);
+  tessellation["trianglesAfterClipping"] =
+    static_cast<double>(metrics.tessellation.trianglesAfterClipping);
+
+  QJsonObject tiling;
+  tiling["tileCount"] = static_cast<double>(metrics.tiling.tileCount);
+  tiling["nonEmptyTileCount"] = static_cast<double>(metrics.tiling.nonEmptyTileCount);
+  tiling["triangleReferences"] = static_cast<double>(metrics.tiling.triangleReferences);
+  tiling["maxTriangleReferencesPerTile"] =
+    static_cast<double>(metrics.tiling.maxTriangleReferencesPerTile);
+  tiling["p95TriangleReferencesPerTile"] = metrics.tiling.p95TriangleReferencesPerTile;
+
+  QJsonObject fragments;
+  fragments["coveredSamples"] = static_cast<double>(metrics.fragments.coveredSamples);
+  fragments["stencilTests"] = static_cast<double>(metrics.fragments.stencilTests);
+  fragments["stencilFails"] = static_cast<double>(metrics.fragments.stencilFails);
+  fragments["depthTests"] = static_cast<double>(metrics.fragments.depthTests);
+  fragments["depthPasses"] = static_cast<double>(metrics.fragments.depthPasses);
+  fragments["depthFails"] = static_cast<double>(metrics.fragments.depthFails);
+  fragments["shadedFragments"] = static_cast<double>(metrics.fragments.shadedFragments);
+  fragments["alphaTestFails"] = static_cast<double>(metrics.fragments.alphaTestFails);
+  fragments["colorWrites"] = static_cast<double>(metrics.fragments.colorWrites);
+
+  QJsonObject diagnosticImages;
+  diagnosticImages["coverage"] = distributionToJson(metrics.diagnosticImages.coverage);
+  diagnosticImages["depthTest"] = distributionToJson(metrics.diagnosticImages.depthTest);
+  diagnosticImages["depthPass"] = distributionToJson(metrics.diagnosticImages.depthPass);
+  diagnosticImages["shade"] = distributionToJson(metrics.diagnosticImages.shade);
+  diagnosticImages["colorWrite"] = distributionToJson(metrics.diagnosticImages.colorWrite);
+
+  QJsonObject timings;
+  timings["tessellationTriangleEmissionSeconds"] =
+    metrics.timings.tessellationTriangleEmissionSeconds;
+  timings["tileBinningSeconds"] = metrics.timings.tileBinningSeconds;
+  timings["rasterLoopSeconds"] = metrics.timings.rasterLoopSeconds;
+  timings["msaaResolveSeconds"] = metrics.timings.msaaResolveSeconds;
+  timings["postprocessSeconds"] = metrics.timings.postprocessSeconds;
+  timings["totalRenderSeconds"] = metrics.timings.totalRenderSeconds;
+
+  QJsonObject object;
+  object["input"] = input;
+  object["tessellation"] = tessellation;
+  object["tiling"] = tiling;
+  object["fragments"] = fragments;
+  object["diagnosticImages"] = diagnosticImages;
+  object["timings"] = timings;
+  return object;
+}
 
 void Rasterizer::Private::resetMetrics(Rasterizer& rasterizer, int width, int height) {
   rasterizer.m_lastMetrics = Rasterizer::RasterRenderMetrics();

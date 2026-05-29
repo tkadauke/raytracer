@@ -14,6 +14,7 @@
 #include <QHeaderView>
 #include <QHBoxLayout>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QLabel>
 #include <QMetaObject>
 #include <QPainter>
@@ -357,9 +358,18 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
   if (!passTrace)
     return QString();
 
-  return QStringLiteral("%1, %2 ms")
+  QString line = QStringLiteral("%1, %2 ms")
     .arg(toString(passTrace->status()))
     .arg(passTrace->elapsed().count() / 1000000.0, 0, 'f', 2);
+  const QJsonObject fragments = passTrace->metadata().value(QStringLiteral("fragments")).toObject();
+  if (!fragments.isEmpty()) {
+    line += QStringLiteral(", shaded %1, writes %2")
+              .arg(static_cast<qulonglong>(
+                fragments.value(QStringLiteral("shadedFragments")).toDouble()))
+              .arg(static_cast<qulonglong>(
+                fragments.value(QStringLiteral("colorWrites")).toDouble()));
+  }
+  return line;
 }
 
 const RenderGraphResourceSnapshot* RenderGraphInspectorWidget::Private::firstSnapshotForResource(
@@ -680,7 +690,8 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
   p->passes->setObjectName("renderGraphPasses");
   p->passes->setRootIsDecorated(false);
   p->passes->setAlternatingRowColors(true);
-  p->passes->setHeaderLabels({tr("Enabled"), tr("Order"), tr("Stage"), tr("Pass"), tr("Kind"),
+  p->passes->setHeaderLabels({tr("Enabled"), tr("Order"), tr("Stage"), tr("Pass"), tr("Trace"),
+                              tr("Kind"),
                               tr("Executor"), tr("Selector"), tr("Camera"), tr("Shading"),
                               tr("Reads"), tr("Writes"), tr("Disabled behavior")});
   p->passes->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
@@ -823,6 +834,7 @@ void RenderGraphInspectorWidget::setExecutionTrace(
   std::shared_ptr<const RenderGraphExecutionTrace> trace) {
   p->trace = trace && trace->matchesPlan(effectivePlan()) ? std::move(trace) : nullptr;
   rebuildGraph();
+  rebuildPasses();
 
   if (p->hasSelection && !p->selectedResourceId.empty()) {
     emit selectedResourceTraceChanged(qstr(p->selectedResourceId));
@@ -1213,14 +1225,15 @@ void RenderGraphInspectorWidget::rebuildPasses() {
     item->setText(2, stage ? QString::number(*stage) : QStringLiteral("-"));
     item->setText(3, p->displayName(pass));
     item->setToolTip(3, qstr(pass.id));
-    item->setText(4, p->displayText(pass.kind));
-    item->setText(5, p->displayText(pass.executor));
-    item->setText(6, p->sceneSelectorText(pass.sceneView.selector));
-    item->setText(7, p->cameraText(pass.sceneView.camera));
-    item->setText(8, p->shadingProfileText(pass.sceneView.shadingProfile));
-    item->setText(9, p->resourceReads(plan, pass.reads));
-    item->setText(10, p->resourceWrites(plan, pass.writes));
-    item->setText(11, p->displayText(pass.disabledBehavior));
+    item->setText(4, p->passTraceLine(pass));
+    item->setText(5, p->displayText(pass.kind));
+    item->setText(6, p->displayText(pass.executor));
+    item->setText(7, p->sceneSelectorText(pass.sceneView.selector));
+    item->setText(8, p->cameraText(pass.sceneView.camera));
+    item->setText(9, p->shadingProfileText(pass.sceneView.shadingProfile));
+    item->setText(10, p->resourceReads(plan, pass.reads));
+    item->setText(11, p->resourceWrites(plan, pass.writes));
+    item->setText(12, p->displayText(pass.disabledBehavior));
     if (pass.id == p->selectedPassId)
       item->setSelected(true);
   }
