@@ -377,6 +377,8 @@ else()
 endif()
 
 set(opengl_shadow_render "${TEST_OUTPUT_DIR}/raster-opengl-shadow-maps.png")
+set(opengl_shadow_trace "${TEST_OUTPUT_DIR}/raster-opengl-shadow-maps-trace.json")
+set(opengl_shadow_trace_render "${TEST_OUTPUT_DIR}/raster-opengl-shadow-maps-trace.png")
 execute_process(
   COMMAND
     "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
@@ -403,6 +405,41 @@ else()
                   "OpenGL shadow-map plan neither rendered nor reported a clear OpenGL capability error"
                   "" "${opengl_shadow_result}" "${opengl_shadow_stdout}"
                   "${opengl_shadow_stderr}")
+endif()
+
+execute_process(
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
+    --shadow_maps --render_graph_trace_out "${opengl_shadow_trace}"
+    "${matte_scene}" "${opengl_shadow_trace_render}"
+  RESULT_VARIABLE opengl_shadow_trace_result
+  OUTPUT_VARIABLE opengl_shadow_trace_stdout
+  ERROR_VARIABLE opengl_shadow_trace_stderr
+)
+if(opengl_shadow_trace_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_shadow_trace_render}" 16 12
+                                    NAME "rendercli --raster_backend gpu shadow trace dimensions")
+  rendercli_assert_nonempty("${opengl_shadow_trace}"
+                            NAME "rendercli --raster_backend gpu shadow trace JSON")
+  file(READ "${opengl_shadow_trace}" opengl_shadow_trace_json)
+  if(NOT opengl_shadow_trace_json MATCHES "OpenGL raster backend consumed graph shadow maps")
+    _rendercli_fail("rendercli --raster_backend gpu shadow trace"
+                    "OpenGL shadow-map trace did not record graph artifact consumption"
+                    "" "${opengl_shadow_trace_result}" "${opengl_shadow_trace_stdout}"
+                    "${opengl_shadow_trace_json}")
+  endif()
+elseif(opengl_shadow_trace_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_shadow_trace_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu shadow trace application bootstrap"
+                    "OpenGL shadow-map trace still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_shadow_trace_result}" "${opengl_shadow_trace_stdout}"
+                    "${opengl_shadow_trace_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu shadow trace"
+                  "OpenGL shadow-map trace neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_shadow_trace_result}" "${opengl_shadow_trace_stdout}"
+                  "${opengl_shadow_trace_stderr}")
 endif()
 
 set(opengl_object_id_render "${TEST_OUTPUT_DIR}/raster-opengl-object-id.png")
