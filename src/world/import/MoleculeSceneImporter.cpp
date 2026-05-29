@@ -250,11 +250,12 @@ namespace world {
       return ordinals;
     }
 
-    std::vector<molecule::Bond> bondsForRendering(const molecule::Molecule& molecule,
-                                                  const MoleculeSceneCompileOptions& options) {
+    MoleculeRenderOptions renderOptionsFor(const MoleculeSceneCompileOptions& options) {
       MoleculeRenderOptions renderOptions;
+      renderOptions.atomRadiusScale = options.atomRadius;
+      renderOptions.bondRadius = options.bondRadius;
       renderOptions.inferBondsWhenMissing = options.inferBondsWhenMissing;
-      return moleculeBondsForRendering(molecule, renderOptions);
+      return renderOptions;
     }
 
     std::unique_ptr<Curve> compileBackboneCurve(const molecule::Molecule& molecule,
@@ -334,6 +335,7 @@ namespace world {
     options.colorScheme = options.colorScheme.toLower();
     options.backboneMode = options.backboneMode.toLower();
     const auto chainOrdinals = chainOrdinalsFor(molecule);
+    const auto renderOptions = renderOptionsFor(options);
 
     auto root = std::make_unique<Group>();
     const QString moleculeId = qstr(molecule.metadata().id);
@@ -412,7 +414,7 @@ namespace world {
             const auto elementStyle = moleculeElementStyle(atom.element);
             const double radius = options.representation == QStringLiteral("space-filling")
                                     ? elementStyle.displayRadius * options.spaceFillingScale
-                                    : options.atomRadius;
+                                    : elementStyle.displayRadius * renderOptions.atomRadiusScale;
             atomSphere->setRadius(radius);
             atomSphere->setPosition(atom.position);
             auto material =
@@ -450,7 +452,7 @@ namespace world {
 
         if (emitsBonds(options)) {
           std::unique_ptr<Group> bondGroup;
-          for (const auto& bond : bondsForRendering(molecule, options)) {
+          for (const auto& bond : moleculeBondsForRendering(molecule, renderOptions)) {
             const auto& first = molecule.atoms()[bond.firstAtomIndex];
             const auto& second = molecule.atoms()[bond.secondAtomIndex];
             if (first.modelId != model.id || second.modelId != model.id ||
@@ -477,7 +479,7 @@ namespace world {
             auto* cylinder = new Cylinder;
             cylinder->setName(
               QStringLiteral("Bond %1-%2").arg(first.serialNumber).arg(second.serialNumber));
-            cylinder->setRadius(options.bondRadius);
+            cylinder->setRadius(renderOptions.bondRadius);
             cylinder->setHeight(length);
             cylinder->setMatrix(bondTransform(first.position, second.position));
             auto material = makeMaterial(colorForBond(first, options.colorScheme, chainOrdinals));
@@ -497,6 +499,19 @@ namespace world {
             cylinder->setMetadataValue(QStringLiteral("secondAtomSerialNumber"),
                                        second.serialNumber);
             cylinder->setMetadataValue(QStringLiteral("moleculeBondInferred"), bond.inferred);
+            const QString bondRecord = bond.inferred
+                                         ? QStringLiteral("INFERRED BOND %1-%2")
+                                             .arg(first.serialNumber)
+                                             .arg(second.serialNumber)
+                                         : QStringLiteral("BOND %1-%2")
+                                             .arg(first.serialNumber)
+                                             .arg(second.serialNumber);
+            cylinder->setMetadataValue(QStringLiteral("sourceRecord"), bondRecord);
+            auto bondProvenance = provenanceFor(
+              source, cylinder->metadataValue(GroupMetadata::sourceIdKey()).toString(),
+              bondRecord, QStringLiteral("bond"));
+            bondProvenance.category["inferred"] = bond.inferred;
+            setImportProvenance(*cylinder, bondProvenance);
             bondGroup->addChild(cylinder);
           }
 
@@ -536,8 +551,8 @@ namespace world {
        {QStringLiteral("element"), QStringLiteral("chain"), QStringLiteral("residue-category")}},
       {"atomRadius",
        ImportOptionType::Double,
-       "Atom radius",
-       "Radius used for generated ball-and-stick atom sphere surfaces.",
+       "Atom radius scale",
+       "Scale applied to element radii for generated ball-and-stick atom sphere surfaces.",
        0.25,
        false,
        {}},
@@ -553,6 +568,13 @@ namespace world {
        "Bond radius",
        "Radius used for generated ball-and-stick bond cylinders.",
        0.08,
+       false,
+       {}},
+      {"inferBondsWhenMissing",
+       ImportOptionType::Boolean,
+       "Infer missing bonds",
+       "Infer simple covalent bonds when the molecule file has no explicit connectivity records.",
+       true,
        false,
        {}},
       {"backboneMode",
@@ -606,6 +628,8 @@ namespace world {
     compileOptions.spaceFillingScale =
       options.value("spaceFillingScale", compileOptions.spaceFillingScale).toDouble();
     compileOptions.bondRadius = options.value("bondRadius", compileOptions.bondRadius).toDouble();
+    compileOptions.inferBondsWhenMissing =
+      options.value("inferBondsWhenMissing", compileOptions.inferBondsWhenMissing).toBool();
     compileOptions.backboneMode =
       options.value("backboneMode", compileOptions.backboneMode).toString().toLower();
     compileOptions.backboneWidth =

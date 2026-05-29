@@ -24,6 +24,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   through `include/core/SimdFeatures.h` project macros for SSE, SSE2, SSE3, AVX,
   and NEON, preserving existing x86 behavior while preparing Epic #426 ARM SIMD
   work. — GPT-5
+- **Molecule importer visible styling.** Direct molecule imports now use shared
+  element-aware atom radii/colors and bond inference options while preserving
+  model, chain, residue, atom, and bond provenance metadata for Epic #408. —
+  GPT-5
 - **Source asset editable import options.** Non-OpenSCAD source assets now store
   editable importer values under `importOptions.parameters`, while existing
   OpenSCAD `importOptions.define` scenes continue to edit and rebuild through

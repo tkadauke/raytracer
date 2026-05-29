@@ -639,9 +639,10 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   and documentation for supported records, representations, and limitations.~~
   ✅ **Done.** `MoleculeParser` and
   `MoleculeSceneImporter` load molecular coordinate files into grouped atom
-  spheres plus per-chain CA backbone curves with residue metadata, backed by
-  `test/fixtures/molecules`, rendercli smoke tests, and the molecule import
-  textbook page for Epic #236; full secondary-structure ribbons remain TODO.
+  spheres, inferred or explicit bond cylinders, and per-chain CA backbone curves
+  with residue metadata, backed by `test/fixtures/molecules`, rendercli smoke
+  tests, and the molecule import textbook page for Epic #236 and Epic #408; full
+  secondary-structure ribbons remain TODO.
   ~~Shared sidecar asset resolver for importer search paths and cache keys.~~ ✅
   **Done.** `core::AssetResolver` resolves current-file-relative and configured
   search-root assets with explicit case-sensitivity behavior for Epic #230.
