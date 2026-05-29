@@ -19,6 +19,7 @@ set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
 set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
 set(invalid_exported_aov_scene "${TEST_OUTPUT_DIR}/invalid-exported-aov-scene.json")
 set(selector_specific_intent_scene "${TEST_OUTPUT_DIR}/selector-specific-intent-scene.json")
+set(subview_intent_scene "${TEST_OUTPUT_DIR}/subview-intent-scene.json")
 set(malformed_graph_json "${TEST_OUTPUT_DIR}/malformed-graph.json")
 set(json_root_graph "${TEST_OUTPUT_DIR}/json-root-graph.json")
 set(semantic_invalid_graph "${TEST_OUTPUT_DIR}/semantic-invalid-graph.json")
@@ -209,6 +210,28 @@ file(WRITE "${selector_specific_intent_scene}" [=[
       {
         "selector": {"kind": "object_name", "value": "Monitor"},
         "executor": "wireframe"
+      }
+    ]
+  },
+  "children": []
+}
+]=])
+
+file(WRITE "${subview_intent_scene}" [=[
+{
+  "id": "{94000000-0000-0000-0000-000000000000}",
+  "name": "Subview Intent Fixture",
+  "ambient": [0.4, 0.4, 0.4],
+  "background": [0.4, 0.8, 1.0],
+  "type": "Scene",
+  "renderIntent": {
+    "subviews": [
+      {
+        "name": "mirror_probe",
+        "view": {
+          "selector": {"kind": "all"},
+          "executor": "rasterizer"
+        }
       }
     ]
   },
@@ -1074,6 +1097,14 @@ rendercli_expect_failure(
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format json
     "${selector_specific_intent_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects unsupported subview scene intent"
+  STDERR_MATCHES "render-to-texture subviews.*mirror_probe"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    "${subview_intent_scene}" "${invalid_plan}"
 )
 
 rendercli_expect_failure(
