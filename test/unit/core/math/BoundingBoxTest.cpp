@@ -5,7 +5,9 @@
 #include "core/math/RayPacket.h"
 #include "core/simd/Float4.h"
 
+#include <limits>
 #include <sstream>
+#include <vector>
 
 using namespace std;
 
@@ -15,6 +17,18 @@ namespace BoundingBoxTest {
   Rayd toRayd(const Rayf& ray) {
     return Rayd(Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
                 Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z()));
+  }
+
+  template<class T>
+  int packetMask(const BoundingBox<T>& bbox, const std::array<Rayf, 4>& rays) {
+    return core::simd::movemask(bbox.intersects4(Ray4(rays)));
+  }
+
+  template<class T>
+  void expectPacketMask(const BoundingBox<T>& bbox, const std::array<Rayf, 4>& rays,
+                        int expectedMask) {
+    const int actualMask = packetMask(bbox, rays);
+    ASSERT_EQ(expectedMask, actualMask);
   }
 
   template<class T>
@@ -48,17 +62,44 @@ namespace BoundingBoxTest {
 
   TYPED_TEST(BoundingBoxTest, ShouldIntersectRay4PacketLikeScalarRays) {
     BoundingBox<TypeParam> bbox(Vector3<TypeParam>(-1, -1, -1), Vector3<TypeParam>(1, 1, 1));
-    const std::array<Rayf, 4> rayArray{
-      Rayf(Vector3f(0, 0, -2), Vector3f(0.1f, 0.1f, 1.0f).normalized()),
-      Rayf(Vector3f(3, 3, -2), Vector3f(0, 0, 1)),
-      Rayf(Vector3f(0, 0, 2), Vector3f(0.1f, 0.1f, 1.0f).normalized()),
-      Rayf(Vector3f(0, 0, 0), Vector3f(1, 0, 0))};
+    const std::vector<std::array<Rayf, 4>> packets{
+      std::array<Rayf, 4>{Rayf(Vector3f(0, 0, -2), Vector3f(0.1f, 0.1f, 1.0f).normalized()),
+                          Rayf(Vector3f(3, 3, -2), Vector3f(0.1f, 0.1f, 1.0f).normalized()),
+                          Rayf(Vector3f(0, 0, 2), Vector3f(0.1f, 0.1f, 1.0f).normalized()),
+                          Rayf(Vector3f(0, 0, 0), Vector3f(1.0f, 0.2f, 0.1f).normalized())},
+      std::array<Rayf, 4>{
+        Rayf(Vector3f(-4, 0.25f, 0.25f), Vector3f(1.0f, 0.1f, 0.0f).normalized()),
+        Rayf(Vector3f(4, 0.25f, 0.25f), Vector3f(-1.0f, 0.1f, 0.0f).normalized()),
+        Rayf(Vector3f(0.25f, -4, 0.25f), Vector3f(0.1f, 1.0f, 0.1f).normalized()),
+        Rayf(Vector3f(0.25f, 4, 0.25f), Vector3f(0.1f, -1.0f, 0.1f).normalized())}};
 
-    const int mask = core::simd::movemask(bbox.intersects4(Ray4(rayArray)));
-    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
-      ASSERT_EQ(bbox.intersects(toRayd(rayArray[lane])), (mask & (1 << lane)) != 0)
-        << "lane " << lane;
+    for (const auto& rayArray : packets) {
+      const int mask = packetMask(bbox, rayArray);
+      for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+        ASSERT_EQ(bbox.intersects(toRayd(rayArray[lane])), (mask & (1 << lane)) != 0)
+          << "lane " << lane;
+      }
     }
+  }
+
+  TYPED_TEST(BoundingBoxTest, ShouldIntersectRay4PacketWithParallelAxes) {
+    BoundingBox<TypeParam> bbox(Vector3<TypeParam>(-1, -1, -1), Vector3<TypeParam>(1, 1, 1));
+    const std::array<Rayf, 4> rayArray{
+      Rayf(Vector3f(0, 0, -2), Vector3f(0, 0, 1)), Rayf(Vector3f(2, 0, -2), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(1, 0, -2), Vector3f(0, 0, 1)), Rayf(Vector3f(-1, 0, -2), Vector3f(0, 0, 1))};
+
+    expectPacketMask(bbox, rayArray, 0b1101);
+  }
+
+  TYPED_TEST(BoundingBoxTest, ShouldPreserveRay4PacketNaNAndInfinityMasks) {
+    BoundingBox<TypeParam> bbox(Vector3<TypeParam>(-1, -1, -1), Vector3<TypeParam>(1, 1, 1));
+    const float inf = std::numeric_limits<float>::infinity();
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    const std::array<Rayf, 4> rayArray{
+      Rayf(Vector3f(0, 0, -2), Vector3f(0, 0, 1)), Rayf(Vector3f(0, 0, -2), Vector3f(nan, 0, 1)),
+      Rayf(Vector3f(0, 0, 0), Vector3f(inf, 0, 0)), Rayf(Vector3f(nan, 0, 0), Vector3f(-1, 0, 0))};
+
+    expectPacketMask(bbox, rayArray, 0b1101);
   }
 
   TYPED_TEST(BoundingBoxTest, ShouldCalculateSize) {

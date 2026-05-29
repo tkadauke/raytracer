@@ -153,7 +153,10 @@ Acceptance:
 
 Port the high-value four-ray float packet path through the new abstraction:
 
-- `BoundingBox<T>::intersects4(const Ray4&)`;
+- ~~`BoundingBox<T>::intersects4(const Ray4&)`;~~ ✅ **Done.** The packet mask
+  path uses `core::simd::Float4`/`Mask4`, with tests pinning zero-direction,
+  parallel-axis, NaN, infinity, and movemask behavior against the scalar ray
+  path.
 - `Sphere::intersectPacket(const Ray4&, State&)`;
 - `Plane::intersectPacket(const Ray4&, State&)`;
 - `Box::intersectPacket(const Ray4&, State&)`;
@@ -178,6 +181,11 @@ Benchmarks:
 - `RayPacketBenchmark`;
 - `BVHPacketBenchmark`;
 - one coherent-ray and one incoherent-ray BVH case.
+
+The benchmark surface now includes explicit `BoundingBoxBenchmark`
+`intersects4` packet entries. Record before/after ARM numbers for
+`BoundingBoxBenchmark` and `BatchedRayBenchmark` once an Apple Silicon worker
+is available for this phase.
 
 Acceptance:
 

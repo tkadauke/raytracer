@@ -262,16 +262,18 @@ namespace core::simd {
   [[nodiscard]] inline ScalarFloat4 min<ScalarBackend>(ScalarFloat4 lhs, ScalarFloat4 rhs) {
     const auto& a = lhs.value();
     const auto& b = rhs.value();
-    return ScalarFloat4(
-      {std::min(a[0], b[0]), std::min(a[1], b[1]), std::min(a[2], b[2]), std::min(a[3], b[3])});
+    // Match _mm_min_ps unordered-lane behavior: choose rhs when comparison is false.
+    return ScalarFloat4({a[0] < b[0] ? a[0] : b[0], a[1] < b[1] ? a[1] : b[1],
+                         a[2] < b[2] ? a[2] : b[2], a[3] < b[3] ? a[3] : b[3]});
   }
 
   template<>
   [[nodiscard]] inline ScalarFloat4 max<ScalarBackend>(ScalarFloat4 lhs, ScalarFloat4 rhs) {
     const auto& a = lhs.value();
     const auto& b = rhs.value();
-    return ScalarFloat4(
-      {std::max(a[0], b[0]), std::max(a[1], b[1]), std::max(a[2], b[2]), std::max(a[3], b[3])});
+    // Match _mm_max_ps unordered-lane behavior: choose rhs when comparison is false.
+    return ScalarFloat4({a[0] > b[0] ? a[0] : b[0], a[1] > b[1] ? a[1] : b[1],
+                         a[2] > b[2] ? a[2] : b[2], a[3] > b[3] ? a[3] : b[3]});
   }
 
   template<>
@@ -532,13 +534,15 @@ namespace core::simd {
   template<>
   [[nodiscard]] inline Float4T<NeonBackend> min<NeonBackend>(Float4T<NeonBackend> lhs,
                                                              Float4T<NeonBackend> rhs) {
-    return Float4T<NeonBackend>(vminq_f32(lhs.value(), rhs.value()));
+    return Float4T<NeonBackend>(
+      vbslq_f32(vcltq_f32(lhs.value(), rhs.value()), lhs.value(), rhs.value()));
   }
 
   template<>
   [[nodiscard]] inline Float4T<NeonBackend> max<NeonBackend>(Float4T<NeonBackend> lhs,
                                                              Float4T<NeonBackend> rhs) {
-    return Float4T<NeonBackend>(vmaxq_f32(lhs.value(), rhs.value()));
+    return Float4T<NeonBackend>(
+      vbslq_f32(vcgtq_f32(lhs.value(), rhs.value()), lhs.value(), rhs.value()));
   }
 
   template<>
