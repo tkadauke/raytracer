@@ -92,6 +92,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Raster graph stencil pass state.** Raster framebuffer pass state now
   serializes stencil test, reference/masks, load/store, and operations, and the
   stencil AOV producer configures that state in the compiled graph. — GPT-5
+- **Raster graph depth pass state.** Raster framebuffer pass state now
+  serializes depth compare, clear, load/store, and write controls, and the
+  OpenGL raster backend binds the supported depth state from graph plans. —
+  GPT-5
 - **OpenGL raster ID AOV fallback.** Object/material ID views requested with
   the OpenGL raster backend now execute through the software raster diagnostic
   fallback instead of rejecting the graph, preserving exact scene ID resources

@@ -124,6 +124,10 @@ namespace RasterPassStateTest {
     state.sampling().setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
     state.sampling().setPostProcessAA(Rasterizer::PostProcessAA::FXAA);
     state.framebuffer().setViewportRect(Recti(1, 2, 30, 40));
+    state.framebuffer().setDepthFunc(Rasterizer::DepthFunc::GreaterEqual);
+    state.framebuffer().setDepthClearValue(4.5);
+    state.framebuffer().setDepthStoreOp(Rasterizer::AttachmentStoreOp::Discard);
+    state.framebuffer().setDepthWriteEnabled(false);
     state.framebuffer().configureStencilWritePass(0x7f);
     state.shadows().setShadowMapsEnabled(true);
     state.shadows().setShadowMapSize(128);
@@ -140,6 +144,10 @@ namespace RasterPassStateTest {
     EXPECT_EQ("per_fragment", sampling.value("msaaShadingMode").toString().toStdString());
     EXPECT_EQ("fxaa", sampling.value("postProcessAA").toString().toStdString());
     EXPECT_TRUE(framebuffer.value("viewport").isArray());
+    EXPECT_EQ("greater_equal", framebuffer.value("depthFunc").toString().toStdString());
+    EXPECT_EQ(4.5, framebuffer.value("depthClearValue").toDouble());
+    EXPECT_EQ("discard", framebuffer.value("depthStoreOp").toString().toStdString());
+    EXPECT_FALSE(framebuffer.value("depthWrite").toBool(true));
     EXPECT_TRUE(framebuffer.value("stencilTest").toBool());
     EXPECT_EQ(0x7f, framebuffer.value("stencilReference").toInt());
     EXPECT_EQ("replace", framebuffer.value("stencilPassOp").toString().toStdString());
@@ -155,6 +163,10 @@ namespace RasterPassStateTest {
     state.sampling().setMSAASamples(4);
     state.framebuffer().setViewportRect(Recti(4, 5, 20, 21));
     state.framebuffer().setScissorRect(Recti(6, 7, 18, 19));
+    state.framebuffer().setDepthFunc(Rasterizer::DepthFunc::Greater);
+    state.framebuffer().setDepthClearValue(6.25);
+    state.framebuffer().setDepthStoreOp(Rasterizer::AttachmentStoreOp::Discard);
+    state.framebuffer().setDepthWriteEnabled(false);
     state.framebuffer().setColorWriteMask(Rasterizer::ColorWriteRed);
     state.framebuffer().setBlendingEnabled(true);
     state.framebuffer().setBlendFactors(Rasterizer::BlendFactor::ConstantAlpha,
@@ -178,6 +190,10 @@ namespace RasterPassStateTest {
     EXPECT_TRUE(rasterizer.scissorTestEnabled());
     EXPECT_EQ(6, rasterizer.scissorRect().left());
     EXPECT_EQ(18, rasterizer.scissorRect().width());
+    EXPECT_EQ(Rasterizer::DepthFunc::Greater, rasterizer.depthFunc());
+    EXPECT_EQ(6.25, rasterizer.depthClearValue());
+    EXPECT_EQ(Rasterizer::AttachmentStoreOp::Discard, rasterizer.depthStoreOp());
+    EXPECT_FALSE(rasterizer.depthWriteEnabled());
     EXPECT_EQ(Rasterizer::ColorWriteRed, rasterizer.colorWriteMask());
     EXPECT_TRUE(rasterizer.blendingEnabled());
     EXPECT_EQ(Rasterizer::BlendFactor::ConstantAlpha, rasterizer.sourceBlendFactor());
@@ -205,6 +221,10 @@ namespace RasterPassStateTest {
     RasterBeautyPassState depthBias;
     depthBias.framebuffer().setDepthBias(0.01);
     expectOpenGLUnsupported(depthBias, "depth bias");
+
+    RasterBeautyPassState depthLoad;
+    depthLoad.framebuffer().setDepthLoadOp(Rasterizer::AttachmentLoadOp::Load);
+    expectOpenGLUnsupported(depthLoad, "depth attachment load");
 
     RasterBeautyPassState stencilLoad;
     stencilLoad.framebuffer().setStencilLoadOp(Rasterizer::AttachmentLoadOp::Load);
@@ -241,6 +261,11 @@ namespace RasterPassStateTest {
     framebuffer["alphaTest"] = true;
     framebuffer["alphaFunc"] = "greater";
     framebuffer["alphaReference"] = 0.6;
+    framebuffer["depthFunc"] = "greater_equal";
+    framebuffer["depthClearValue"] = 12.5;
+    framebuffer["depthLoadOp"] = "load";
+    framebuffer["depthStoreOp"] = "discard";
+    framebuffer["depthWrite"] = false;
     framebuffer["stencilTest"] = true;
     framebuffer["stencilFunc"] = "equal";
     framebuffer["stencilReference"] = 12;
@@ -293,6 +318,11 @@ namespace RasterPassStateTest {
     EXPECT_TRUE(rasterizer.alphaTestEnabled());
     EXPECT_EQ(Rasterizer::AlphaFunc::Greater, rasterizer.alphaFunc());
     EXPECT_EQ(0.6, rasterizer.alphaReference());
+    EXPECT_EQ(Rasterizer::DepthFunc::GreaterEqual, rasterizer.depthFunc());
+    EXPECT_EQ(12.5, rasterizer.depthClearValue());
+    EXPECT_EQ(Rasterizer::AttachmentLoadOp::Load, rasterizer.depthLoadOp());
+    EXPECT_EQ(Rasterizer::AttachmentStoreOp::Discard, rasterizer.depthStoreOp());
+    EXPECT_FALSE(rasterizer.depthWriteEnabled());
     EXPECT_TRUE(rasterizer.stencilTestEnabled());
     EXPECT_EQ(Rasterizer::StencilFunc::Equal, rasterizer.stencilFunc());
     EXPECT_EQ(12, rasterizer.stencilReference());

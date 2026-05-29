@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -115,7 +116,12 @@ namespace engine::graph {
 
     void setViewportRect(const Recti& rect);
     void setScissorRect(const Recti& rect);
+    void setDepthFunc(Rasterizer::DepthFunc func);
     void setDepthBias(double bias);
+    void setDepthClearValue(double value);
+    void setDepthLoadOp(Rasterizer::AttachmentLoadOp op);
+    void setDepthStoreOp(Rasterizer::AttachmentStoreOp op);
+    void setDepthWriteEnabled(bool enabled);
     void setColorWriteMask(std::uint8_t mask);
     void setBlendingEnabled(bool enabled);
     void setBlendFactors(Rasterizer::BlendFactor source, Rasterizer::BlendFactor destination);
@@ -139,7 +145,12 @@ namespace engine::graph {
   private:
     std::optional<Recti> m_viewportRect;
     std::optional<Recti> m_scissorRect;
+    Rasterizer::DepthFunc m_depthFunc{Rasterizer::DepthFunc::Less};
     double m_depthBias{0.0};
+    double m_depthClearValue{std::numeric_limits<double>::infinity()};
+    Rasterizer::AttachmentLoadOp m_depthLoadOp{Rasterizer::AttachmentLoadOp::Clear};
+    Rasterizer::AttachmentStoreOp m_depthStoreOp{Rasterizer::AttachmentStoreOp::Store};
+    bool m_depthWriteEnabled{true};
     std::uint8_t m_colorWriteMask{Rasterizer::ColorWriteAll};
     bool m_blendingEnabled{false};
     Rasterizer::BlendFactor m_sourceBlendFactor{Rasterizer::BlendFactor::One};

@@ -9,6 +9,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -63,6 +64,17 @@ namespace engine::raster {
     const Recti& scissorRect() const;
     void setScissorRect(const Recti& rect);
     void clearScissorRect();
+
+    Rasterizer::DepthFunc depthFunc() const;
+    void setDepthFunc(Rasterizer::DepthFunc func);
+    double depthClearValue() const;
+    void setDepthClearValue(double value);
+    Rasterizer::AttachmentLoadOp depthLoadOp() const;
+    void setDepthLoadOp(Rasterizer::AttachmentLoadOp op);
+    Rasterizer::AttachmentStoreOp depthStoreOp() const;
+    void setDepthStoreOp(Rasterizer::AttachmentStoreOp op);
+    bool depthWriteEnabled() const;
+    void setDepthWriteEnabled(bool enabled);
 
     std::uint8_t colorWriteMask() const;
     void setColorWriteMask(std::uint8_t mask);
@@ -134,6 +146,11 @@ namespace engine::raster {
     Recti m_viewportRect;
     bool m_scissorTestEnabled{false};
     Recti m_scissorRect;
+    Rasterizer::DepthFunc m_depthFunc{Rasterizer::DepthFunc::Less};
+    double m_depthClearValue{std::numeric_limits<double>::infinity()};
+    Rasterizer::AttachmentLoadOp m_depthLoadOp{Rasterizer::AttachmentLoadOp::Clear};
+    Rasterizer::AttachmentStoreOp m_depthStoreOp{Rasterizer::AttachmentStoreOp::Store};
+    bool m_depthWriteEnabled{true};
     std::uint8_t m_colorWriteMask{Rasterizer::ColorWriteAll};
     bool m_blendingEnabled{false};
     Rasterizer::BlendFactor m_sourceBlendFactor{Rasterizer::BlendFactor::One};

@@ -67,6 +67,11 @@ namespace OpenGLRasterizerTest {
     rasterizer.setBlendConstant(Colord(0.1, 0.2, 0.3), 0.4);
     rasterizer.setAlphaTestEnabled(true);
     rasterizer.setAlphaFunc(engine::raster::Rasterizer::AlphaFunc::Greater, 0.6);
+    rasterizer.setDepthFunc(engine::raster::Rasterizer::DepthFunc::GreaterEqual);
+    rasterizer.setDepthClearValue(8.5);
+    rasterizer.setDepthLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Clear);
+    rasterizer.setDepthStoreOp(engine::raster::Rasterizer::AttachmentStoreOp::Discard);
+    rasterizer.setDepthWriteEnabled(false);
     rasterizer.setStencilTestEnabled(true);
     rasterizer.setStencilFunc(engine::raster::Rasterizer::StencilFunc::Equal, 7, 0x0f);
     rasterizer.setStencilClearValue(3);
@@ -102,6 +107,11 @@ namespace OpenGLRasterizerTest {
     EXPECT_TRUE(clone->alphaTestEnabled());
     EXPECT_EQ(engine::raster::Rasterizer::AlphaFunc::Greater, clone->alphaFunc());
     EXPECT_EQ(0.6, clone->alphaReference());
+    EXPECT_EQ(engine::raster::Rasterizer::DepthFunc::GreaterEqual, clone->depthFunc());
+    EXPECT_EQ(8.5, clone->depthClearValue());
+    EXPECT_EQ(engine::raster::Rasterizer::AttachmentLoadOp::Clear, clone->depthLoadOp());
+    EXPECT_EQ(engine::raster::Rasterizer::AttachmentStoreOp::Discard, clone->depthStoreOp());
+    EXPECT_FALSE(clone->depthWriteEnabled());
     EXPECT_TRUE(clone->stencilTestEnabled());
     EXPECT_EQ(engine::raster::Rasterizer::StencilFunc::Equal, clone->stencilFunc());
     EXPECT_EQ(7, clone->stencilReference());

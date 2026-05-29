@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <unordered_map>
@@ -110,8 +111,10 @@ namespace engine::raster {
         Rasterizer::BlendFactor sourceBlendFactor, Rasterizer::BlendFactor destinationBlendFactor,
         Rasterizer::BlendOp blendOp, const Colord& blendConstantColor, double blendConstantAlpha,
         bool alphaTestEnabled, Rasterizer::AlphaFunc alphaFunc, double alphaReference,
-        bool stencilTestEnabled, Rasterizer::StencilFunc stencilFunc, std::uint8_t stencilReference,
-        std::uint8_t stencilMask, std::uint8_t stencilClearValue,
+        Rasterizer::DepthFunc depthFunc, double depthClearValue,
+        Rasterizer::AttachmentLoadOp depthLoadOp, Rasterizer::AttachmentStoreOp depthStoreOp,
+        bool depthWriteEnabled, bool stencilTestEnabled, Rasterizer::StencilFunc stencilFunc,
+        std::uint8_t stencilReference, std::uint8_t stencilMask, std::uint8_t stencilClearValue,
         Rasterizer::AttachmentLoadOp stencilLoadOp, Rasterizer::AttachmentStoreOp stencilStoreOp,
         std::uint8_t stencilWriteMask, Rasterizer::StencilOp stencilFailOp,
         Rasterizer::StencilOp stencilDepthFailOp, Rasterizer::StencilOp stencilPassOp)
@@ -130,6 +133,11 @@ namespace engine::raster {
             m_alphaTestEnabled(alphaTestEnabled),
             m_alphaFunc(alphaFunc),
             m_alphaReference(alphaReference),
+            m_depthFunc(depthFunc),
+            m_depthClearValue(depthClearValue),
+            m_depthLoadOp(depthLoadOp),
+            m_depthStoreOp(depthStoreOp),
+            m_depthWriteEnabled(depthWriteEnabled),
             m_stencilTestEnabled(stencilTestEnabled),
             m_stencilFunc(stencilFunc),
             m_stencilReference(stencilReference),
@@ -159,7 +167,7 @@ namespace engine::raster {
           draw(mesh, background);
           const auto readbackStarted = std::chrono::steady_clock::now();
           m_context.copyColorTo(target);
-          if (depthTarget) {
+          if (depthTarget && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store) {
             m_context.copyDepthTo(*depthTarget);
           }
           if (stencilTarget && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store) {
@@ -184,13 +192,15 @@ namespace engine::raster {
                               m_viewportRect.width(), m_viewportRect.height());
         functions->glDisable(GL_SCISSOR_TEST);
         functions->glEnable(GL_DEPTH_TEST);
-        functions->glDepthFunc(GL_LESS);
+        functions->glDepthMask(GL_TRUE);
         functions->glClearColor(static_cast<GLfloat>(std::clamp(background.r(), 0.0, 1.0)),
                                 static_cast<GLfloat>(std::clamp(background.g(), 0.0, 1.0)),
                                 static_cast<GLfloat>(std::clamp(background.b(), 0.0, 1.0)), 1.0f);
+        functions->glClearDepthf(normalizedDepthClearValue(m_depthClearValue));
         functions->glStencilMask(0xff);
         functions->glClearStencil(m_stencilClearValue);
         functions->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        applyDepth(functions);
         applyColorWriteMask(functions);
         applyBlending(functions);
         applyStencil(functions);
@@ -430,6 +440,16 @@ namespace engine::raster {
         return m_height - rect.bottom();
       }
 
+      void applyDepth(QOpenGLFunctions* functions) const {
+        if (m_depthLoadOp == Rasterizer::AttachmentLoadOp::Load) {
+          throw std::runtime_error(
+            "OpenGL raster backend does not support depth attachment load yet");
+        }
+
+        functions->glDepthFunc(glDepthFunc(m_depthFunc));
+        functions->glDepthMask(m_depthWriteEnabled ? GL_TRUE : GL_FALSE);
+      }
+
       void applyScissor(QOpenGLFunctions* functions) const {
         if (!m_scissorEnabled) {
           functions->glDisable(GL_SCISSOR_TEST);
@@ -488,7 +508,39 @@ namespace engine::raster {
         functions->glDisable(GL_BLEND);
         functions->glDisable(GL_STENCIL_TEST);
         functions->glStencilMask(0xff);
+        functions->glDepthMask(GL_TRUE);
+        functions->glDepthFunc(GL_LESS);
         functions->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+      }
+
+      static GLfloat normalizedDepthClearValue(double depth) {
+        if (!std::isfinite(depth)) {
+          return depth < 0.0 ? 0.0f : 1.0f;
+        }
+        const double positiveDepth = std::max(0.0, depth);
+        return static_cast<GLfloat>(std::clamp(positiveDepth / (positiveDepth + 1.0), 0.0, 1.0));
+      }
+
+      static GLenum glDepthFunc(Rasterizer::DepthFunc func) {
+        switch (func) {
+        case Rasterizer::DepthFunc::Never:
+          return GL_NEVER;
+        case Rasterizer::DepthFunc::Less:
+          return GL_LESS;
+        case Rasterizer::DepthFunc::Equal:
+          return GL_EQUAL;
+        case Rasterizer::DepthFunc::LessEqual:
+          return GL_LEQUAL;
+        case Rasterizer::DepthFunc::Greater:
+          return GL_GREATER;
+        case Rasterizer::DepthFunc::GreaterEqual:
+          return GL_GEQUAL;
+        case Rasterizer::DepthFunc::NotEqual:
+          return GL_NOTEQUAL;
+        case Rasterizer::DepthFunc::Always:
+          return GL_ALWAYS;
+        }
+        return GL_LESS;
       }
 
       static GLenum glBlendFactor(Rasterizer::BlendFactor factor) {
@@ -592,6 +644,11 @@ namespace engine::raster {
       bool m_alphaTestEnabled;
       Rasterizer::AlphaFunc m_alphaFunc;
       double m_alphaReference;
+      Rasterizer::DepthFunc m_depthFunc;
+      double m_depthClearValue;
+      Rasterizer::AttachmentLoadOp m_depthLoadOp;
+      Rasterizer::AttachmentStoreOp m_depthStoreOp;
+      bool m_depthWriteEnabled;
       bool m_stencilTestEnabled;
       Rasterizer::StencilFunc m_stencilFunc;
       std::uint8_t m_stencilReference;
@@ -647,6 +704,11 @@ namespace engine::raster {
     clone->setBlendConstant(m_blendConstantColor, m_blendConstantAlpha);
     clone->setAlphaTestEnabled(m_alphaTestEnabled);
     clone->setAlphaFunc(m_alphaFunc, m_alphaReference);
+    clone->setDepthFunc(m_depthFunc);
+    clone->setDepthClearValue(m_depthClearValue);
+    clone->setDepthLoadOp(m_depthLoadOp);
+    clone->setDepthStoreOp(m_depthStoreOp);
+    clone->setDepthWriteEnabled(m_depthWriteEnabled);
     clone->setStencilTestEnabled(m_stencilTestEnabled);
     clone->setStencilFunc(m_stencilFunc, m_stencilReference, m_stencilMask);
     clone->setStencilClearValue(m_stencilClearValue);
@@ -779,6 +841,46 @@ namespace engine::raster {
   void OpenGLRasterizer::clearScissorRect() {
     m_scissorRect = Recti();
     m_scissorTestEnabled = false;
+  }
+
+  Rasterizer::DepthFunc OpenGLRasterizer::depthFunc() const {
+    return m_depthFunc;
+  }
+
+  void OpenGLRasterizer::setDepthFunc(Rasterizer::DepthFunc func) {
+    m_depthFunc = func;
+  }
+
+  double OpenGLRasterizer::depthClearValue() const {
+    return m_depthClearValue;
+  }
+
+  void OpenGLRasterizer::setDepthClearValue(double value) {
+    m_depthClearValue = value;
+  }
+
+  Rasterizer::AttachmentLoadOp OpenGLRasterizer::depthLoadOp() const {
+    return m_depthLoadOp;
+  }
+
+  void OpenGLRasterizer::setDepthLoadOp(Rasterizer::AttachmentLoadOp op) {
+    m_depthLoadOp = op;
+  }
+
+  Rasterizer::AttachmentStoreOp OpenGLRasterizer::depthStoreOp() const {
+    return m_depthStoreOp;
+  }
+
+  void OpenGLRasterizer::setDepthStoreOp(Rasterizer::AttachmentStoreOp op) {
+    m_depthStoreOp = op;
+  }
+
+  bool OpenGLRasterizer::depthWriteEnabled() const {
+    return m_depthWriteEnabled;
+  }
+
+  void OpenGLRasterizer::setDepthWriteEnabled(bool enabled) {
+    m_depthWriteEnabled = enabled;
   }
 
   std::uint8_t OpenGLRasterizer::colorWriteMask() const {
@@ -1038,12 +1140,14 @@ namespace engine::raster {
         context, buffer.height(), viewport, m_scissorTestEnabled, m_scissorRect, m_colorWriteMask,
         m_blendingEnabled, m_sourceBlendFactor, m_destinationBlendFactor, m_blendOp,
         m_blendConstantColor, m_blendConstantAlpha, m_alphaTestEnabled, m_alphaFunc,
-        m_alphaReference, m_stencilTestEnabled, m_stencilFunc, m_stencilReference, m_stencilMask,
+        m_alphaReference, m_depthFunc, m_depthClearValue, m_depthLoadOp, m_depthStoreOp,
+        m_depthWriteEnabled, m_stencilTestEnabled, m_stencilFunc, m_stencilReference, m_stencilMask,
         m_stencilClearValue, m_stencilLoadOp, m_stencilStoreOp, m_stencilWriteMask, m_stencilFailOp,
         m_stencilDepthFailOp, m_stencilPassOp)
         .render(mesh, backgroundColor(), buffer, depthTarget, stencilTarget);
     m_lastReadbackTraceMessage = readbackTraceMessage(
-      readbackElapsed, depthTarget != nullptr,
+      readbackElapsed,
+      depthTarget != nullptr && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store,
       stencilTarget != nullptr && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store);
     m_lastTraceMessages.push_back(
       meshPreparationTraceMessage(meshPreparationElapsed, mesh.triangleCount()));

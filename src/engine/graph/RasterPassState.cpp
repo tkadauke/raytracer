@@ -297,6 +297,40 @@ namespace engine::graph {
       stateError(path, "expected add, subtract, reverse_subtract, min, or max");
     }
 
+    const char* toString(Rasterizer::DepthFunc func) {
+      return enumName<Rasterizer::DepthFunc>(
+        func,
+        {{Rasterizer::DepthFunc::Never, "never"},
+         {Rasterizer::DepthFunc::Less, "less"},
+         {Rasterizer::DepthFunc::Equal, "equal"},
+         {Rasterizer::DepthFunc::LessEqual, "less_equal"},
+         {Rasterizer::DepthFunc::Greater, "greater"},
+         {Rasterizer::DepthFunc::GreaterEqual, "greater_equal"},
+         {Rasterizer::DepthFunc::NotEqual, "not_equal"},
+         {Rasterizer::DepthFunc::Always, "always"}},
+        "less");
+    }
+
+    Rasterizer::DepthFunc depthFuncFromString(const std::string& value, const std::string& path) {
+      if (value == "never")
+        return Rasterizer::DepthFunc::Never;
+      if (value == "less")
+        return Rasterizer::DepthFunc::Less;
+      if (value == "equal")
+        return Rasterizer::DepthFunc::Equal;
+      if (value == "less_equal")
+        return Rasterizer::DepthFunc::LessEqual;
+      if (value == "greater")
+        return Rasterizer::DepthFunc::Greater;
+      if (value == "greater_equal")
+        return Rasterizer::DepthFunc::GreaterEqual;
+      if (value == "not_equal")
+        return Rasterizer::DepthFunc::NotEqual;
+      if (value == "always")
+        return Rasterizer::DepthFunc::Always;
+      stateError(path, "unknown depth function");
+    }
+
     const char* toString(Rasterizer::AlphaFunc func) {
       return enumName<Rasterizer::AlphaFunc>(
         func,
@@ -659,25 +693,56 @@ namespace engine::graph {
 
   RasterFramebufferState RasterFramebufferState::fromJson(const QJsonObject& object,
                                                           const std::string& path) {
-    rejectUnknownFields(object, path, {"viewport",           "scissor",
-                                       "depthBias",          "colorWriteMask",
-                                       "blending",           "blendSource",
-                                       "blendDestination",   "blendOp",
-                                       "blendConstantColor", "blendConstantAlpha",
-                                       "alphaTest",          "alphaFunc",
-                                       "alphaReference",     "stencilTest",
-                                       "stencilFunc",        "stencilReference",
-                                       "stencilMask",        "stencilClearValue",
-                                       "stencilLoadOp",      "stencilStoreOp",
-                                       "stencilWriteMask",   "stencilFailOp",
-                                       "stencilDepthFailOp", "stencilPassOp"});
+    rejectUnknownFields(object, path,
+                        {"viewport",
+                         "scissor",
+                         "depthFunc",
+                         "depthBias",
+                         "depthClearValue",
+                         "depthLoadOp",
+                         "depthStoreOp",
+                         "depthWrite",
+                         "colorWriteMask",
+                         "blending",
+                         "blendSource",
+                         "blendDestination",
+                         "blendOp",
+                         "blendConstantColor",
+                         "blendConstantAlpha",
+                         "alphaTest",
+                         "alphaFunc",
+                         "alphaReference",
+                         "stencilTest",
+                         "stencilFunc",
+                         "stencilReference",
+                         "stencilMask",
+                         "stencilClearValue",
+                         "stencilLoadOp",
+                         "stencilStoreOp",
+                         "stencilWriteMask",
+                         "stencilFailOp",
+                         "stencilDepthFailOp",
+                         "stencilPassOp"});
     RasterFramebufferState state;
     if (hasField(object, "viewport"))
       state.setViewportRect(rectFromJson(object, "viewport", path));
     if (hasField(object, "scissor"))
       state.setScissorRect(rectFromJson(object, "scissor", path));
+    if (hasField(object, "depthFunc"))
+      state.setDepthFunc(
+        depthFuncFromString(stringField(object, "depthFunc", path), path + ".depthFunc"));
     if (hasField(object, "depthBias"))
       state.setDepthBias(doubleField(object, "depthBias", path));
+    if (hasField(object, "depthClearValue"))
+      state.setDepthClearValue(doubleField(object, "depthClearValue", path));
+    if (hasField(object, "depthLoadOp"))
+      state.setDepthLoadOp(attachmentLoadOpFromString(stringField(object, "depthLoadOp", path),
+                                                      path + ".depthLoadOp"));
+    if (hasField(object, "depthStoreOp"))
+      state.setDepthStoreOp(attachmentStoreOpFromString(stringField(object, "depthStoreOp", path),
+                                                        path + ".depthStoreOp"));
+    if (hasField(object, "depthWrite"))
+      state.setDepthWriteEnabled(boolField(object, "depthWrite", path));
     if (hasField(object, "colorWriteMask"))
       state.setColorWriteMask(colorWriteMaskFromString(stringField(object, "colorWriteMask", path),
                                                        path + ".colorWriteMask"));
@@ -767,8 +832,18 @@ namespace engine::graph {
       object["viewport"] = rectToJson(*m_viewportRect);
     if (m_scissorRect)
       object["scissor"] = rectToJson(*m_scissorRect);
+    if (m_depthFunc != Rasterizer::DepthFunc::Less)
+      object["depthFunc"] = toString(m_depthFunc);
     if (m_depthBias != 0.0)
       object["depthBias"] = m_depthBias;
+    if (std::isfinite(m_depthClearValue))
+      object["depthClearValue"] = m_depthClearValue;
+    if (m_depthLoadOp != Rasterizer::AttachmentLoadOp::Clear)
+      object["depthLoadOp"] = toString(m_depthLoadOp);
+    if (m_depthStoreOp != Rasterizer::AttachmentStoreOp::Store)
+      object["depthStoreOp"] = toString(m_depthStoreOp);
+    if (!m_depthWriteEnabled)
+      object["depthWrite"] = false;
     if (m_colorWriteMask != Rasterizer::ColorWriteAll)
       object["colorWriteMask"] = qstr(colorWriteMaskString(m_colorWriteMask));
     if (m_blendingEnabled)
@@ -829,7 +904,12 @@ namespace engine::graph {
     } else {
       rasterizer.clearScissorRect();
     }
+    rasterizer.setDepthFunc(m_depthFunc);
     rasterizer.setDepthBias(m_depthBias);
+    rasterizer.setDepthClearValue(m_depthClearValue);
+    rasterizer.setDepthLoadOp(m_depthLoadOp);
+    rasterizer.setDepthStoreOp(m_depthStoreOp);
+    rasterizer.setDepthWriteEnabled(m_depthWriteEnabled);
     rasterizer.setColorWriteMask(m_colorWriteMask);
     rasterizer.setBlendingEnabled(m_blendingEnabled);
     rasterizer.setBlendFactors(m_sourceBlendFactor, m_destinationBlendFactor);
@@ -858,6 +938,11 @@ namespace engine::graph {
     } else {
       rasterizer.clearScissorRect();
     }
+    rasterizer.setDepthFunc(m_depthFunc);
+    rasterizer.setDepthClearValue(m_depthClearValue);
+    rasterizer.setDepthLoadOp(m_depthLoadOp);
+    rasterizer.setDepthStoreOp(m_depthStoreOp);
+    rasterizer.setDepthWriteEnabled(m_depthWriteEnabled);
     rasterizer.setColorWriteMask(m_colorWriteMask);
     rasterizer.setBlendingEnabled(m_blendingEnabled);
     rasterizer.setBlendFactors(m_sourceBlendFactor, m_destinationBlendFactor);
@@ -878,6 +963,9 @@ namespace engine::graph {
     if (m_depthBias != 0.0) {
       openGLUnsupported("depth bias");
     }
+    if (m_depthLoadOp == Rasterizer::AttachmentLoadOp::Load) {
+      openGLUnsupported("depth attachment load");
+    }
     if (m_stencilLoadOp == Rasterizer::AttachmentLoadOp::Load) {
       openGLUnsupported("stencil attachment load");
     }
@@ -891,8 +979,28 @@ namespace engine::graph {
     m_scissorRect = rect;
   }
 
+  void RasterFramebufferState::setDepthFunc(Rasterizer::DepthFunc func) {
+    m_depthFunc = func;
+  }
+
   void RasterFramebufferState::setDepthBias(double bias) {
     m_depthBias = std::isfinite(bias) ? bias : 0.0;
+  }
+
+  void RasterFramebufferState::setDepthClearValue(double value) {
+    m_depthClearValue = value;
+  }
+
+  void RasterFramebufferState::setDepthLoadOp(Rasterizer::AttachmentLoadOp op) {
+    m_depthLoadOp = op;
+  }
+
+  void RasterFramebufferState::setDepthStoreOp(Rasterizer::AttachmentStoreOp op) {
+    m_depthStoreOp = op;
+  }
+
+  void RasterFramebufferState::setDepthWriteEnabled(bool enabled) {
+    m_depthWriteEnabled = enabled;
   }
 
   void RasterFramebufferState::setColorWriteMask(std::uint8_t mask) {
