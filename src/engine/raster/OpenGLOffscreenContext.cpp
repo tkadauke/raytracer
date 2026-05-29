@@ -3,10 +3,8 @@
 #include "core/Buffer.h"
 #include "core/Color.h"
 
-#include <QColor>
 #include <QCoreApplication>
 #include <QGuiApplication>
-#include <QImage>
 #include <QOffscreenSurface>
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
@@ -177,17 +175,52 @@ namespace engine::raster {
     }
 
     void copyColorTo(Buffer<Colord>& target) const {
-      if (!framebuffer) {
+      if (!framebuffer || target.width() <= 0 || target.height() <= 0) {
         return;
       }
 
-      const QImage image = framebuffer->toImage();
-      const int width = std::min(target.width(), image.width());
-      const int height = std::min(target.height(), image.height());
+      if (framebuffer->format().samples() > 0) {
+        copyResolvedColorTo(target);
+        return;
+      }
+
+      readBoundColorTo(target, *framebuffer);
+    }
+
+    void copyResolvedColorTo(Buffer<Colord>& target) const {
+      if (!QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
+        throw std::runtime_error(
+          "OpenGL raster backend cannot read multisample color without framebuffer blit support");
+      }
+
+      QOpenGLFramebufferObject resolved(framebuffer->width(), framebuffer->height());
+      if (!resolved.isValid()) {
+        throw std::runtime_error(
+          "OpenGL raster backend could not create a color resolve framebuffer");
+      }
+
+      const QRect rect(0, 0, framebuffer->width(), framebuffer->height());
+      QOpenGLFramebufferObject::blitFramebuffer(&resolved, rect, framebuffer.get(), rect,
+                                                GL_COLOR_BUFFER_BIT, GL_NEAREST);
+      resolved.bind();
+      readBoundColorTo(target, resolved);
+      framebuffer->bind();
+    }
+
+    void readBoundColorTo(Buffer<Colord>& target, const QOpenGLFramebufferObject& source) const {
+      const int width = std::min(target.width(), source.width());
+      const int height = std::min(target.height(), source.height());
+      std::vector<GLfloat> pixels(static_cast<std::size_t>(width * height * 4), 0.0f);
+      QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
+      functions->glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, pixels.data());
+
       for (int y = 0; y != height; ++y) {
+        const int sourceY = height - 1 - y;
         for (int x = 0; x != width; ++x) {
-          const QColor color = image.pixelColor(x, y);
-          target[y][x] = Colord(color.redF(), color.greenF(), color.blueF());
+          const auto offset = static_cast<std::size_t>((sourceY * width + x) * 4);
+          target[y][x] = Colord(std::clamp(static_cast<double>(pixels[offset]), 0.0, 1.0),
+                                std::clamp(static_cast<double>(pixels[offset + 1]), 0.0, 1.0),
+                                std::clamp(static_cast<double>(pixels[offset + 2]), 0.0, 1.0));
         }
       }
     }

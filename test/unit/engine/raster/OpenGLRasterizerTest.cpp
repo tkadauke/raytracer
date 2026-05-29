@@ -4,6 +4,9 @@
 #include "engine/raster/OpenGLOffscreenContext.h"
 #include "engine/raster/OpenGLRasterizer.h"
 
+#include <QOpenGLContext>
+#include <QOpenGLFunctions>
+
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -18,6 +21,30 @@ namespace OpenGLRasterizerTest {
     } else {
       EXPECT_FALSE(availability.error().empty());
     }
+  }
+
+  TEST(OpenGLOffscreenContext, CopiesRawColorChannelsWithoutUnpremultiplyingAlpha) {
+    engine::raster::OpenGLOffscreenContext context;
+    if (!context.create(2, 2) || !context.makeCurrent() || !context.bindFramebuffer()) {
+      SUCCEED() << "OpenGL context unavailable on this host";
+      return;
+    }
+
+    QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
+    functions->glViewport(0, 0, 2, 2);
+    functions->glDisable(GL_BLEND);
+    functions->glClearColor(0.24f, 0.27f, 0.30f, 0.30f);
+    functions->glClear(GL_COLOR_BUFFER_BIT);
+
+    Buffer<Colord> buffer(2, 2);
+    context.copyColorTo(buffer);
+
+    context.releaseFramebuffer();
+    context.doneCurrent();
+
+    EXPECT_NEAR(0.24, buffer[0][0].r(), 1.0 / 255.0);
+    EXPECT_NEAR(0.27, buffer[0][0].g(), 1.0 / 255.0);
+    EXPECT_NEAR(0.30, buffer[0][0].b(), 1.0 / 255.0);
   }
 
   TEST(OpenGLRasterizer, FailsClearlyWhenContextUnavailable) {

@@ -84,6 +84,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   tiny fallback texture for inactive sampler uniforms, avoiding Apple driver
   warnings about unloadable sampler units on non-textured or shadowless draws.
   — GPT-5
+- **OpenGL raster color readback.** OpenGL raster color readback now copies raw
+  framebuffer RGB channels instead of Qt image pixels, preserving colored
+  procedural textures whose shader alpha is below one. — GPT-5
 - **OpenGL raster depth AOV.** OpenGL-backed raster depth views now read back
   the depth attachment into graph-visible CPU depth resources for trace,
   visualization, and rendercli depth output. — GPT-5
