@@ -856,6 +856,10 @@ namespace engine::graph {
     if (!validation.valid()) {
       throw std::runtime_error(validationMessage(validation));
     }
+    if (plan.hasMultipleExecutionCameraRefs()) {
+      throw std::runtime_error("GraphRenderEngine cannot execute a plan with multiple scene "
+                               "camera references yet");
+    }
     requireExternalInputsBound(plan, p->externalResources);
     const std::uint64_t renderGeneration = p->claimExecutionGeneration();
     TraceSession traceSession = p->beginTraceIfEnabled(plan, executionInputFingerprint());
@@ -928,6 +932,10 @@ namespace engine::graph {
     const auto validation = plan.validate();
     if (!validation.valid()) {
       throw std::runtime_error(validationMessage(validation));
+    }
+    if (plan.hasMultipleExecutionCameraRefs()) {
+      throw std::runtime_error("GraphRenderEngine cannot execute a plan with multiple scene "
+                               "camera references yet");
     }
     requireExternalInputsBound(plan, p->externalResources);
     requireMatchingOutputSize(plan, buffer.width(), buffer.height());

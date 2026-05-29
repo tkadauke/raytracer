@@ -1953,7 +1953,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   std::shared_ptr<render::Camera> rtCamera;
   if (graphIntent) {
     const auto planCameras = graphPlan.executionCameraRefs();
-    if (planCameras.size() > 1) {
+    if (graphPlan.hasMultipleExecutionCameraRefs()) {
       throw std::runtime_error("Render graph plan requires multiple execution cameras");
     }
     if (!planCameras.empty()) {

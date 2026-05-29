@@ -112,6 +112,7 @@ namespace RenderPlanTest {
     const auto cameras = plan.executionCameraRefs();
 
     ASSERT_EQ(1u, cameras.size());
+    EXPECT_FALSE(plan.hasMultipleExecutionCameraRefs());
     ASSERT_TRUE(cameras[0].sceneCameraId.has_value());
     EXPECT_EQ("shot-camera", *cameras[0].sceneCameraId);
   }
@@ -144,6 +145,7 @@ namespace RenderPlanTest {
     const auto cameras = plan.executionCameraRefs();
 
     ASSERT_EQ(2u, cameras.size());
+    EXPECT_TRUE(plan.hasMultipleExecutionCameraRefs());
     EXPECT_EQ("first-camera", *cameras[0].sceneCameraId);
     EXPECT_EQ("second-camera", *cameras[1].sceneCameraId);
   }

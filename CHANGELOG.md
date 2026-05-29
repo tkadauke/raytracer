@@ -1038,6 +1038,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render graph camera replay.** rendercli graph replay now resolves the
   unique execution camera embedded in an imported render plan before falling
   back to scene/default intent. — GPT-5
+- **Render graph camera diagnostics.** `GraphRenderEngine` now rejects plans
+  with multiple non-subview scene camera references instead of executing them
+  with a single ambiguous runtime camera. — GPT-5
 - **Raster visibility face indices.** CPU raster visibility sets now preserve
   original face-index progression while skipping or reordering leaves, keeping
   fallback face colors and face-index AOV data stable under graph-visible

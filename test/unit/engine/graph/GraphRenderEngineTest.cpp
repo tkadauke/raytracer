@@ -469,6 +469,40 @@ namespace GraphRenderEngineTest {
     EXPECT_GT(countFiniteDepths(outputs.front()->depthPreview()), 0);
   }
 
+  TEST(GraphRenderEngine, RejectsExplicitPlanWithMultipleSceneCameras) {
+    RenderPlan plan;
+    plan.addResource(colorResource("beauty_color", RenderResourceLifetime::Transient));
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported));
+
+    RenderPassNode beauty;
+    beauty.id = "beauty";
+    beauty.kind = RenderPassKind::Beauty;
+    beauty.executor = RenderExecutorKind::Raytracer;
+    beauty.sceneView.camera = RenderCameraRef{"first-camera", std::nullopt};
+    beauty.addWrite("beauty_color");
+    plan.addPass(beauty);
+
+    RenderPassNode tonemap;
+    tonemap.id = "tonemap";
+    tonemap.kind = RenderPassKind::Tonemap;
+    tonemap.executor = RenderExecutorKind::PostProcess;
+    tonemap.sceneView.camera = RenderCameraRef{"second-camera", std::nullopt};
+    tonemap.addRead("beauty_color");
+    tonemap.addWrite("main_color");
+    plan.addPass(tonemap);
+
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setPlan(plan);
+    Buffer<unsigned int> buffer(2, 2);
+
+    try {
+      engine.render(buffer);
+      FAIL() << "expected multiple scene camera rejection";
+    } catch (const std::runtime_error& error) {
+      EXPECT_NE(std::string::npos, std::string(error.what()).find("multiple scene camera"));
+    }
+  }
+
   TEST(GraphRenderEngine, ExecutesRasterVisibilityCullingBaseline) {
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;

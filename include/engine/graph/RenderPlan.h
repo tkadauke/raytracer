@@ -107,6 +107,7 @@ namespace engine::graph {
       * before falling back to scene/default intent.
       */
     std::vector<RenderCameraRef> executionCameraRefs() const;
+    bool hasMultipleExecutionCameraRefs() const;
 
     /**
       * @returns true when @p other describes the same executable graph shape

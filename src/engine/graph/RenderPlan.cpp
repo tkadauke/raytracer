@@ -597,6 +597,10 @@ namespace engine::graph {
     return cameras;
   }
 
+  bool RenderPlan::hasMultipleExecutionCameraRefs() const {
+    return executionCameraRefs().size() > 1;
+  }
+
   bool RenderPlan::executionEquivalentTo(const RenderPlan& other) const {
     return m_resources.size() == other.m_resources.size() &&
            std::equal(m_resources.begin(), m_resources.end(), other.m_resources.begin(),
