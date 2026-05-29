@@ -3,6 +3,7 @@
 #include "engine/raster/detail/OpenGLRasterShaderSources.h"
 #include "render/textures/ImageTexture.h"
 
+#include <QOpenGLBuffer>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 #include <QOpenGLShader>
@@ -95,7 +96,8 @@ namespace engine::raster::detail {
   OpenGLRasterResourceCache::OpenGLRasterResourceCache() = default;
 
   OpenGLRasterResourceCache::~OpenGLRasterResourceCache() {
-    const bool needsContext = program || (imageTextures && !imageTextures->textures.empty());
+    const bool hasTextures = imageTextures && !imageTextures->textures.empty();
+    const bool needsContext = program || hasTextures || vertexBuffer || indexBuffer;
     if (!needsContext) {
       return;
     }
@@ -104,9 +106,13 @@ namespace engine::raster::detail {
         QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
         imageTextures->releaseAll(functions);
       }
+      vertexBuffer.reset();
+      indexBuffer.reset();
       program.reset();
       context.doneCurrent();
     } else {
+      vertexBuffer.reset();
+      indexBuffer.reset();
       program.reset();
     }
     imageTextures.reset();
@@ -150,6 +156,23 @@ namespace engine::raster::detail {
     if (!locations.resolved()) {
       program.reset();
       throw std::runtime_error("OpenGL raster backend shader attributes are unavailable");
+    }
+  }
+
+  void OpenGLRasterResourceCache::ensureMeshBuffers() {
+    if (!vertexBuffer) {
+      vertexBuffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+      if (!vertexBuffer->create()) {
+        vertexBuffer.reset();
+        throw std::runtime_error("OpenGL raster backend could not create a vertex buffer object");
+      }
+    }
+    if (!indexBuffer) {
+      indexBuffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
+      if (!indexBuffer->create()) {
+        indexBuffer.reset();
+        throw std::runtime_error("OpenGL raster backend could not create an index buffer object");
+      }
     }
   }
 }

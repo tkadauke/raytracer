@@ -52,6 +52,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **OpenGL raster vertex/index buffers are cached across renders.** Vertex
+  and index `QOpenGLBuffer`s now live on the resource cache; each render
+  re-uploads the current frame's payload through `allocate()` instead of
+  re-creating the GL buffer objects. — Claude Opus 4.7
 - **OpenGL raster image textures are cached across renders.** The texture
   cache moved out of the per-render draw scope into the
   `OpenGLRasterResourceCache` member, so each `ImageTexture` uploads once per

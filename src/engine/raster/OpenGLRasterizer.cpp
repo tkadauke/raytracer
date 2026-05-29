@@ -287,12 +287,9 @@ namespace engine::raster {
           fallbackTexture.bind(1);
         }
 
-        QOpenGLBuffer vertexBuffer(QOpenGLBuffer::VertexBuffer);
-        QOpenGLBuffer indexBuffer(QOpenGLBuffer::IndexBuffer);
-        if (!vertexBuffer.create() || !indexBuffer.create()) {
-          program.release();
-          throw std::runtime_error("OpenGL raster backend could not create GPU buffers");
-        }
+        m_resources.ensureMeshBuffers();
+        QOpenGLBuffer& vertexBuffer = *m_resources.vertexBuffer;
+        QOpenGLBuffer& indexBuffer = *m_resources.indexBuffer;
 
         vertexBuffer.bind();
         vertexBuffer.allocate(

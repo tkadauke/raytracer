@@ -6,6 +6,7 @@
 #include <memory>
 #include <unordered_map>
 
+class QOpenGLBuffer;
 class QOpenGLFunctions;
 class QOpenGLShaderProgram;
 
@@ -69,6 +70,8 @@ namespace engine::raster::detail {
     std::unique_ptr<QOpenGLShaderProgram> program;
     OpenGLRasterAttributeLocations locations;
     std::unique_ptr<OpenGLRasterImageTextureCache> imageTextures;
+    std::unique_ptr<QOpenGLBuffer> vertexBuffer;
+    std::unique_ptr<QOpenGLBuffer> indexBuffer;
 
     OpenGLRasterResourceCache();
     ~OpenGLRasterResourceCache();
@@ -86,5 +89,17 @@ namespace engine::raster::detail {
       * attribute resolution fails.
       */
     void ensureProgram();
+
+    /**
+      * Lazily allocates persistent vertex and index `QOpenGLBuffer`s on
+      * first call. Subsequent calls reuse the existing GL buffer objects;
+      * the draw pass re-uploads the current frame's vertex/index payload
+      * via `QOpenGLBuffer::allocate` (which calls `glBufferData`).
+      *
+      * The caller must have made the offscreen context current.
+      *
+      * @throws std::runtime_error if buffer creation fails.
+      */
+    void ensureMeshBuffers();
   };
 }
