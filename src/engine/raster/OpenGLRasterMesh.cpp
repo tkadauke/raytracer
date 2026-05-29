@@ -81,6 +81,10 @@ namespace engine::raster::detail {
     return m_batches;
   }
 
+  const OpenGLRasterMesh::DirectionalLights& OpenGLRasterMesh::directionalLights() const {
+    return m_directionalLights;
+  }
+
   void OpenGLRasterMesh::appendTriangle(const Vertex& v0, const Vertex& v1, const Vertex& v2,
                                         const RasterAlbedoShaderSource& albedo) {
     const auto base = static_cast<std::uint32_t>(m_vertices.size());
@@ -96,6 +100,10 @@ namespace engine::raster::detail {
       return;
     }
     m_batches.push_back({indexOffset, 3, albedo});
+  }
+
+  void OpenGLRasterMesh::addDirectionalLight(const DirectionalLight& light) {
+    m_directionalLights.push_back(light);
   }
 
   OpenGLRasterMeshBuilder::OpenGLRasterMeshBuilder(
@@ -123,6 +131,7 @@ namespace engine::raster::detail {
     rasterizer.setLod(m_lod);
     RasterTriangleEmitter emitter(m_scene, m_camera, m_lod, rasterizer, m_cancelled, m_cullMode,
                                   m_hasCullModeOverride, false);
+    appendDirectionalLights(mesh);
     emitter.forEachTriangle([&](const RasterTriangle& triangle) {
       const RasterAlbedoShaderSource albedo = triangle.rasterMaterial.shaderAlbedoSource();
       mesh.appendTriangle(vertexFor(triangle, triangle.vertices[0]),
@@ -131,6 +140,24 @@ namespace engine::raster::detail {
     });
 
     return mesh;
+  }
+
+  void OpenGLRasterMeshBuilder::appendDirectionalLights(OpenGLRasterMesh& mesh) const {
+    if (!m_scene || !usesFragmentDirectionalLighting()) {
+      return;
+    }
+
+    for (const auto& light : m_scene->lights()) {
+      const auto direction = light->directionalShadowMapDirection();
+      if (!direction) {
+        continue;
+      }
+      const Colord radiance = light->radiance();
+      mesh.addDirectionalLight(
+        {static_cast<float>(direction->x()), static_cast<float>(direction->y()),
+         static_cast<float>(direction->z()), nonnegativeComponent(radiance.r()),
+         nonnegativeComponent(radiance.g()), nonnegativeComponent(radiance.b())});
+    }
   }
 
   OpenGLRasterMesh::Vertex OpenGLRasterMeshBuilder::vertexFor(const RasterTriangle& triangle,
@@ -161,6 +188,12 @@ namespace engine::raster::detail {
             static_cast<float>(vertex.uv.x()),
             static_cast<float>(vertex.uv.y()),
             static_cast<float>(std::clamp(triangle.rasterMaterial.materialAlpha(), 0.0, 1.0)),
+            nonnegativeComponent(triangle.rasterMaterial.diffuseCoefficient()),
+            nonnegativeComponent(triangle.rasterMaterial.specularColor().r()),
+            nonnegativeComponent(triangle.rasterMaterial.specularColor().g()),
+            nonnegativeComponent(triangle.rasterMaterial.specularColor().b()),
+            nonnegativeComponent(triangle.rasterMaterial.specularCoefficient()),
+            nonnegativeComponent(triangle.rasterMaterial.specularExponent()),
             nonnegativeComponent(ambientLighting.r()),
             nonnegativeComponent(ambientLighting.g()),
             nonnegativeComponent(ambientLighting.b()),
@@ -171,6 +204,10 @@ namespace engine::raster::detail {
             nonnegativeComponent(specular.g()),
             nonnegativeComponent(specular.b()),
             shaderMode(shaderSource)};
+  }
+
+  bool OpenGLRasterMeshBuilder::usesFragmentDirectionalLighting() const {
+    return m_shadowMaps == nullptr;
   }
 
   Vector3d OpenGLRasterMeshBuilder::lightingNormalFor(const RasterTriangle& triangle,
@@ -197,6 +234,9 @@ namespace engine::raster::detail {
 
     Colord lighting = Colord::black();
     for (const auto& light : m_scene->lights()) {
+      if (usesFragmentDirectionalLighting() && light->directionalShadowMapDirection()) {
+        continue;
+      }
       const Vector3d lightDir = light->direction(vertex.point);
       const double nDotL = std::max(0.0, normal * lightDir);
       if (nDotL > 0.0) {
@@ -217,6 +257,9 @@ namespace engine::raster::detail {
     const Vector3d viewDir = (-m_camera->rayForPixel(vertex.x, vertex.y).direction()).normalized();
     Colord specular = Colord::black();
     for (const auto& light : m_scene->lights()) {
+      if (usesFragmentDirectionalLighting() && light->directionalShadowMapDirection()) {
+        continue;
+      }
       const Vector3d lightDir = light->direction(vertex.point);
       const double nDotL = std::max(0.0, normal * lightDir);
       if (nDotL <= 0.0) {

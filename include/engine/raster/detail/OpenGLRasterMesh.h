@@ -49,6 +49,12 @@ namespace engine::raster::detail {
       float u{0.0f};
       float v{0.0f};
       float alphaScale{1.0f};
+      float materialDiffuse{1.0f};
+      float materialSpecularR{0.0f};
+      float materialSpecularG{0.0f};
+      float materialSpecularB{0.0f};
+      float materialSpecularCoefficient{0.0f};
+      float materialSpecularExponent{16.0f};
       float ambientR{1.0f};
       float ambientG{1.0f};
       float ambientB{1.0f};
@@ -67,23 +73,36 @@ namespace engine::raster::detail {
       RasterAlbedoShaderSource albedo;
     };
 
+    struct DirectionalLight {
+      float directionX{0.0f};
+      float directionY{0.0f};
+      float directionZ{1.0f};
+      float radianceR{0.0f};
+      float radianceG{0.0f};
+      float radianceB{0.0f};
+    };
+
     using Vertices = std::vector<Vertex>;
     using Indices = std::vector<std::uint32_t>;
     using Batches = std::vector<Batch>;
+    using DirectionalLights = std::vector<DirectionalLight>;
 
     bool empty() const;
     std::size_t triangleCount() const;
     const Vertices& vertices() const;
     const Indices& indices() const;
     const Batches& batches() const;
+    const DirectionalLights& directionalLights() const;
 
     void appendTriangle(const Vertex& v0, const Vertex& v1, const Vertex& v2,
                         const RasterAlbedoShaderSource& albedo);
+    void addDirectionalLight(const DirectionalLight& light);
 
   private:
     Vertices m_vertices;
     Indices m_indices;
     Batches m_batches;
+    DirectionalLights m_directionalLights;
   };
 
   class OpenGLRasterMeshBuilder {
@@ -105,8 +124,10 @@ namespace engine::raster::detail {
     const std::atomic<bool>& m_cancelled;
     const ShadowMaps* m_shadowMaps;
 
+    void appendDirectionalLights(OpenGLRasterMesh& mesh) const;
     OpenGLRasterMesh::Vertex vertexFor(const RasterTriangle& triangle,
                                        const RasterVertex& vertex) const;
+    bool usesFragmentDirectionalLighting() const;
     Vector3d lightingNormalFor(const RasterTriangle& triangle, const RasterVertex& vertex) const;
     Colord ambientLightingFor(const RasterTriangle& triangle) const;
     Colord directLightingFor(const RasterTriangle& triangle, const RasterVertex& vertex,

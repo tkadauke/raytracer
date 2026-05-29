@@ -589,10 +589,11 @@ platform supports it, renders the initial lit mesh pass, and reads
 color back into the graph resource; unsupported hosts still fail with an
 explicit capability error. Graph traces report both the CPU mesh-preparation
 time for that OpenGL pass and the current eager color/depth/stencil readback
-time. That OpenGL path evaluates UV color textures,
-direct UV-mapped image textures (including glTF base-color tints), and direct
-UV checker textures with constant child colors in the shader. Raster AOV
-producer passes use the same state
+time. That OpenGL path evaluates directional diffuse/specular lighting, UV
+color textures, direct UV-mapped image textures (including glTF base-color
+tints), direct UV checker textures, and direct planar checker textures with
+constant child colors in the fragment shader. Raster AOV producer passes use
+the same state
 object, so `--render_graph_view depth`,
 `--render_graph_view raster_depth_test_count`, and exported raster AOV side
 branches see the requested tessellation and sampling settings. The stencil AOV

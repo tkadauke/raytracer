@@ -217,6 +217,10 @@ Tasks:
   **Done.** OpenGL raster mesh vertices now carry view-dependent specular
   contributions for materials with specular color/coefficient/exponent state,
   leaving shadow masking for a later slice.
+- ~~Move directional diffuse/specular lighting from vertex interpolation to
+  fragment shading.~~ ✅ **Done.** OpenGL raster batches now upload directional
+  light radiance/direction and per-material lighting coefficients so smooth
+  assets use fragment-normal lighting instead of Gouraud-style interpolation.
 - ~~Read back color for final output~~ ✅ **Done.** Color readback now fills
   the render target.
 - ~~Read back depth for the raster depth AOV path.~~ ✅ **Done.** The OpenGL

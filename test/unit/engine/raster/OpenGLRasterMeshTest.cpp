@@ -4,6 +4,7 @@
 #include "engine/raster/detail/RasterShadowMaps.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
+#include "render/lights/PointLight.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/PhongMaterial.h"
 #include "render/materials/TransparentMaterial.h"
@@ -234,7 +235,7 @@ namespace OpenGLRasterMeshTest {
     }
   }
 
-  TEST(OpenGLRasterMesh, CarriesAmbientAndDirectLightingFactor) {
+  TEST(OpenGLRasterMesh, CarriesAmbientAndDirectionalLightForFragmentShader) {
     auto scene = std::make_shared<render::Scene>(Colord(0.25, 0.5, 0.75));
     scene->addLight(
       std::make_shared<render::DirectionalLight>(Vector3d(0, 0, 1), Colord(0.5, 0.25, 0.0)));
@@ -249,14 +250,45 @@ namespace OpenGLRasterMeshTest {
                         .build();
 
     ASSERT_FALSE(mesh.empty());
+    ASSERT_EQ(1u, mesh.directionalLights().size());
+    EXPECT_FLOAT_EQ(0.0f, mesh.directionalLights()[0].directionX);
+    EXPECT_FLOAT_EQ(0.0f, mesh.directionalLights()[0].directionY);
+    EXPECT_FLOAT_EQ(1.0f, mesh.directionalLights()[0].directionZ);
+    EXPECT_FLOAT_EQ(0.5f, mesh.directionalLights()[0].radianceR);
+    EXPECT_FLOAT_EQ(0.25f, mesh.directionalLights()[0].radianceG);
+    EXPECT_FLOAT_EQ(0.0f, mesh.directionalLights()[0].radianceB);
     ASSERT_EQ(3u, mesh.vertices().size());
     for (const auto& vertex : mesh.vertices()) {
+      EXPECT_FLOAT_EQ(1.0f, vertex.materialDiffuse);
       EXPECT_FLOAT_EQ(0.25f, vertex.ambientR);
       EXPECT_FLOAT_EQ(0.5f, vertex.ambientG);
       EXPECT_FLOAT_EQ(0.75f, vertex.ambientB);
-      EXPECT_FLOAT_EQ(0.5f, vertex.directR);
-      EXPECT_FLOAT_EQ(0.25f, vertex.directG);
+      EXPECT_FLOAT_EQ(0.0f, vertex.directR);
+      EXPECT_FLOAT_EQ(0.0f, vertex.directG);
       EXPECT_FLOAT_EQ(0.0f, vertex.directB);
+    }
+  }
+
+  TEST(OpenGLRasterMesh, KeepsPointLightInVertexLightingFallback) {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    scene->addLight(std::make_shared<render::PointLight>(Vector3d(0, 0, 2), Colord::white()));
+    auto triangle = std::make_shared<render::Triangle>(
+      Vector3d(-0.25, -0.25, 0), Vector3d(0.25, -0.25, 0), Vector3d(0, 0.25, 0));
+    triangle->setMaterial(matte(Colord::red()));
+    scene->add(triangle);
+    std::atomic<bool> cancelled{false};
+
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+                                              Rasterizer::CullMode::Both, false, cancelled)
+                        .build();
+
+    ASSERT_FALSE(mesh.empty());
+    EXPECT_TRUE(mesh.directionalLights().empty());
+    ASSERT_EQ(3u, mesh.vertices().size());
+    for (const auto& vertex : mesh.vertices()) {
+      EXPECT_GT(vertex.directR, 0.0f);
+      EXPECT_GT(vertex.directG, 0.0f);
+      EXPECT_GT(vertex.directB, 0.0f);
     }
   }
 
@@ -289,6 +321,7 @@ namespace OpenGLRasterMeshTest {
         .build();
 
     ASSERT_FALSE(mesh.empty());
+    EXPECT_TRUE(mesh.directionalLights().empty());
     ASSERT_EQ(3u, mesh.vertices().size());
     for (const auto& vertex : mesh.vertices()) {
       EXPECT_FLOAT_EQ(0.25f, vertex.ambientR);
@@ -300,7 +333,7 @@ namespace OpenGLRasterMeshTest {
     }
   }
 
-  TEST(OpenGLRasterMesh, CarriesPhongSpecularLighting) {
+  TEST(OpenGLRasterMesh, CarriesPhongSpecularMaterialForFragmentShader) {
     auto scene = std::make_shared<render::Scene>(Colord::black());
     scene->addLight(
       std::make_shared<render::DirectionalLight>(Vector3d(0, 0, -1), Colord(0.2, 0.4, 0.6)));
@@ -322,13 +355,17 @@ namespace OpenGLRasterMeshTest {
                         .build();
 
     ASSERT_FALSE(mesh.empty());
+    ASSERT_EQ(1u, mesh.directionalLights().size());
     ASSERT_EQ(3u, mesh.vertices().size());
     for (const auto& vertex : mesh.vertices()) {
       EXPECT_FLOAT_EQ(0.0f, vertex.ambientR);
       EXPECT_FLOAT_EQ(0.0f, vertex.directR);
-      EXPECT_GT(vertex.specularR, 0.0f);
-      EXPECT_GT(vertex.specularG, vertex.specularR);
-      EXPECT_GT(vertex.specularB, vertex.specularG);
+      EXPECT_FLOAT_EQ(0.0f, vertex.specularR);
+      EXPECT_FLOAT_EQ(1.0f, vertex.materialSpecularR);
+      EXPECT_FLOAT_EQ(1.0f, vertex.materialSpecularG);
+      EXPECT_FLOAT_EQ(1.0f, vertex.materialSpecularB);
+      EXPECT_FLOAT_EQ(0.5f, vertex.materialSpecularCoefficient);
+      EXPECT_FLOAT_EQ(1.0f, vertex.materialSpecularExponent);
     }
   }
 

@@ -145,6 +145,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **OpenGL raster Phong highlights.** OpenGL raster mesh vertices now carry
   local Phong specular contributions into the shader for materials that expose
   specular color, coefficient, and exponent. — GPT-5
+- **OpenGL raster fragment directional lighting.** OpenGL raster passes now
+  evaluate directional diffuse and local Phong specular terms per fragment
+  instead of interpolating those lighting contributions from mesh vertices,
+  improving CPU/GPU raster parity on smooth assets. — GPT-5
 - **OpenGL raster readback timing.** Graph execution traces now report how
   long OpenGL raster passes spent copying color/depth/stencil attachments back
   to CPU buffers, making the current eager-readback cost visible in rendercli
