@@ -503,6 +503,40 @@ namespace GraphRenderEngineTest {
     }
   }
 
+  TEST(GraphRenderEngine, ExecutesPassWithBoundSceneCamera) {
+    RenderPlan plan;
+    plan.addResource(colorResource("beauty_color", RenderResourceLifetime::Transient, 16, 16));
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported, 16, 16));
+
+    RenderPassNode beauty;
+    beauty.id = "beauty";
+    beauty.kind = RenderPassKind::Beauty;
+    beauty.executor = RenderExecutorKind::Raytracer;
+    beauty.sceneView.camera = RenderCameraRef{"object-camera", std::nullopt};
+    beauty.addWrite("beauty_color");
+    plan.addPass(beauty);
+
+    RenderPassNode tonemap;
+    tonemap.id = "tonemap";
+    tonemap.kind = RenderPassKind::Tonemap;
+    tonemap.executor = RenderExecutorKind::PostProcess;
+    tonemap.addRead("beauty_color");
+    tonemap.addWrite("main_color");
+    plan.addPass(tonemap);
+
+    auto awayCamera =
+      std::make_shared<render::PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d(10.0, 0.0, 0.0));
+    auto objectCamera = camera();
+    GraphRenderEngine engine(awayCamera, highContrastScene());
+    engine.setSceneCamera("object-camera", objectCamera);
+    engine.setPlan(plan);
+
+    Buffer<unsigned int> buffer(16, 16);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+  }
+
   TEST(GraphRenderEngine, ExecutesRasterVisibilityCullingBaseline) {
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;

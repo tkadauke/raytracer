@@ -7,6 +7,7 @@
 #include <string>
 
 namespace render {
+  class Camera;
   class RenderEngine;
 }
 
@@ -47,6 +48,11 @@ namespace engine::graph {
       * @returns the graph engine that owns this execution.
       */
     const GraphRenderEngine& graph() const;
+
+    /**
+      * @returns the runtime camera selected for this pass.
+      */
+    std::shared_ptr<render::Camera> camera() const;
 
     /**
       * @returns true if cancellation was already requested before the pass ran.

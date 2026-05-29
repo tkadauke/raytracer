@@ -225,6 +225,24 @@ namespace SceneTest {
     EXPECT_EQ("shot-camera", *cameraRef->sceneCameraId);
   }
 
+  TEST(Scene, ShouldReturnAllSceneCameras) {
+    Scene scene;
+    auto* first = new PinholeCamera;
+    first->setId("first-camera");
+    scene.addChild(first);
+    auto* group = new Group;
+    auto* nested = new PinholeCamera;
+    nested->setId("nested-camera");
+    group->addChild(nested);
+    scene.addChild(group);
+
+    const auto cameras = scene.cameras();
+
+    ASSERT_EQ(2u, cameras.size());
+    EXPECT_EQ(first, cameras[0]);
+    EXPECT_EQ(nested, cameras[1]);
+  }
+
   TEST(Scene, ShouldResolveSceneCameraById) {
     Scene scene;
     auto* camera = new PinholeCamera;

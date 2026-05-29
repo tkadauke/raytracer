@@ -359,7 +359,7 @@ namespace engine::graph {
       std::shared_ptr<render::RenderEngine>
       createEngine(const RenderExecutionContext& context) const override {
         const auto& graph = context.graph();
-        auto camera = graph.camera() ? graph.camera()->clone() : nullptr;
+        auto camera = context.camera() ? context.camera()->clone() : nullptr;
         auto raytracer =
           std::make_shared<::engine::raytracer::Raytracer>(std::move(camera), graph.scene());
         RaytracerBeautyPassState::valueFromPass(context.pass()).applyTo(*raytracer);
@@ -398,7 +398,7 @@ namespace engine::graph {
       std::shared_ptr<render::RenderEngine>
       createEngine(const RenderExecutionContext& context) const override {
         const auto& graph = context.graph();
-        auto camera = graph.camera() ? graph.camera()->clone() : nullptr;
+        auto camera = context.camera() ? context.camera()->clone() : nullptr;
         const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(context.pass());
         const auto backend = state.execution().backend();
         auto engine = backend.createEngine(std::move(camera), graph.scene());
@@ -472,7 +472,7 @@ namespace engine::graph {
           return;
         }
 
-        auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
+        auto camera = context.camera() ? context.camera()->clone() : nullptr;
         auto rasterizer = std::make_shared<::engine::raster::Rasterizer>(std::move(camera),
                                                                          context.graph().scene());
         state->applyTo(*rasterizer);
@@ -533,7 +533,7 @@ namespace engine::graph {
         const auto& write = pass.singleWrite();
         clearOutput(context, write.resource);
 
-        auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
+        auto camera = context.camera() ? context.camera()->clone() : nullptr;
         auto scene = context.graph().scene();
         if (!camera || !scene) {
           return;
@@ -734,7 +734,7 @@ namespace engine::graph {
         const auto& write = pass.singleWrite();
         const auto& descriptor = context.storage().descriptor(write.resource);
 
-        auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
+        auto camera = context.camera() ? context.camera()->clone() : nullptr;
         auto rasterizer = std::make_shared<::engine::raster::Rasterizer>(std::move(camera),
                                                                          context.graph().scene());
         const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(pass);
@@ -770,7 +770,7 @@ namespace engine::graph {
     private:
       void renderOpenGLDepth(RenderExecutionContext& context,
                              const RasterBeautyPassState& state) const {
-        auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
+        auto camera = context.camera() ? context.camera()->clone() : nullptr;
         auto rasterizer = std::make_shared<::engine::raster::OpenGLRasterizer>(
           std::move(camera), context.graph().scene());
         state.applyTo(*rasterizer);
@@ -798,7 +798,7 @@ namespace engine::graph {
           return;
         }
 
-        auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
+        auto camera = context.camera() ? context.camera()->clone() : nullptr;
         auto rasterizer = std::make_shared<::engine::raster::Rasterizer>(std::move(camera),
                                                                          context.graph().scene());
         state.applyTo(*rasterizer);
@@ -817,7 +817,7 @@ namespace engine::graph {
     private:
       void renderOpenGLStencil(RenderExecutionContext& context, const RasterBeautyPassState& state,
                                Buffer<std::uint8_t>& stencil) const {
-        auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
+        auto camera = context.camera() ? context.camera()->clone() : nullptr;
         auto rasterizer = std::make_shared<::engine::raster::OpenGLRasterizer>(
           std::move(camera), context.graph().scene());
         state.applyTo(*rasterizer);
@@ -1298,7 +1298,7 @@ namespace engine::graph {
       std::shared_ptr<render::RenderEngine>
       createEngine(const RenderExecutionContext& context) const override {
         const auto& graph = context.graph();
-        auto camera = graph.camera() ? graph.camera()->clone() : nullptr;
+        auto camera = context.camera() ? context.camera()->clone() : nullptr;
         auto wireframe =
           std::make_shared<::engine::wireframe::Wireframe>(std::move(camera), graph.scene());
         WireframePassState::valueFromPass(context.pass()).applyTo(*wireframe);
@@ -1321,7 +1321,7 @@ namespace engine::graph {
         core::util::copyBuffer(destination, source);
 
         Buffer<Colord> overlay(source.width(), source.height());
-        auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
+        auto camera = context.camera() ? context.camera()->clone() : nullptr;
         auto wireframe = std::make_shared<::engine::wireframe::Wireframe>(std::move(camera),
                                                                           context.graph().scene());
         WireframePassState::valueFromPass(pass).applyTo(*wireframe);
@@ -1554,7 +1554,7 @@ namespace engine::graph {
         }
 
         const int lod = state.geometry().lod();
-        const std::shared_ptr<render::Camera> camera = context.graph().camera();
+        const std::shared_ptr<render::Camera> camera = context.camera();
         const render::HomogeneousClipVolume clipVolume = rasterClipVolume();
         std::size_t meshCacheHits = 0;
         std::size_t meshCacheMisses = 0;

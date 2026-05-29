@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <optional>
+#include <vector>
 
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/graph/RenderSceneAnalysis.h"
@@ -230,6 +231,10 @@ public:
     */
   Camera* activeCamera() const;
   /**
+    * @returns every camera in this scene tree.
+    */
+  std::vector<const Camera*> cameras() const;
+  /**
     * @returns the scene camera with @p id, or null when the id is missing or
     *   names a non-camera element.
     */
@@ -271,6 +276,7 @@ public:
   bool canHaveChild(Element* child) const override;
 
 private:
+  void collectCameras(const Element* root, std::vector<const Camera*>& cameras) const;
   void findReferences(Element* root, QMap<QString, Element*>& references);
   void readImports(const QJsonObject& json);
 

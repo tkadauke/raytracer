@@ -84,6 +84,23 @@ namespace engine::graph {
     const RenderPlan* explicitPlan() const;
 
     /**
+      * Binds a scene-camera id to a runtime camera that pass payloads can use
+      * when their `RenderPassNode::sceneView` names that camera.
+      */
+    void setSceneCamera(std::string sceneCameraId, std::shared_ptr<render::Camera> camera);
+
+    /**
+      * Clears all scene-camera runtime bindings.
+      */
+    void clearSceneCameras();
+
+    /**
+      * @returns the camera selected for @p pass, falling back to the graph's
+      * default camera when the pass does not name a bound scene camera.
+      */
+    std::shared_ptr<render::Camera> cameraForPass(const RenderPassNode& pass) const;
+
+    /**
       * Binds a CPU color buffer for an imported or history graph resource.
       *
       * The buffer is copied into execution storage at render time. It must stay

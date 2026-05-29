@@ -355,6 +355,21 @@ Camera* Scene::activeCamera() const {
   return camera;
 }
 
+std::vector<const Camera*> Scene::cameras() const {
+  std::vector<const Camera*> result;
+  collectCameras(this, result);
+  return result;
+}
+
+void Scene::collectCameras(const Element* root, std::vector<const Camera*>& cameras) const {
+  if (const auto* camera = qobject_cast<const Camera*>(root)) {
+    cameras.push_back(camera);
+  }
+  for (const auto* child : root->childElements()) {
+    collectCameras(child, cameras);
+  }
+}
+
 const Camera* Scene::cameraById(const QString& id) const {
   if (id.isEmpty()) {
     return nullptr;

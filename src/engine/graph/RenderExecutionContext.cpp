@@ -35,6 +35,10 @@ namespace engine::graph {
     return m_graph;
   }
 
+  std::shared_ptr<render::Camera> RenderExecutionContext::camera() const {
+    return m_graph.cameraForPass(m_pass);
+  }
+
   bool RenderExecutionContext::cancelled() const {
     return m_cancelled;
   }

@@ -1041,6 +1041,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render graph camera diagnostics.** `GraphRenderEngine` now rejects plans
   with multiple non-subview scene camera references instead of executing them
   with a single ambiguous runtime camera. — GPT-5
+- **Render graph pass camera bindings.** `GraphRenderEngine` can now bind
+  scene-camera ids to runtime cameras, and rendercli supplies those bindings so
+  pass nodes can execute with their graph-selected camera. — GPT-5
 - **Raster visibility face indices.** CPU raster visibility sets now preserve
   original face-index progression while skipping or reordering leaves, keeping
   fallback face colors and face-index AOV data stable under graph-visible

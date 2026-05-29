@@ -21,6 +21,7 @@
 #include <atomic>
 #include <cstdint>
 #include <iomanip>
+#include <map>
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
@@ -257,8 +258,8 @@ namespace engine::graph {
       light->writeFingerprint(out, prefix);
     }
 
-    void writeCameraFingerprint(std::ostream& out, const GraphRenderEngine& graph) {
-      if (auto camera = graph.camera()) {
+    void writeCameraFingerprint(std::ostream& out, const std::shared_ptr<render::Camera>& camera) {
+      if (camera) {
         out << "camera.type=" << camera->fingerprintType() << ';'
             << "camera.aspectMode=" << static_cast<int>(camera->aspectMode()) << ';'
             << "camera.aspectRatio=" << camera->aspectRatio() << ';';
@@ -267,6 +268,10 @@ namespace engine::graph {
       } else {
         out << "camera=null;";
       }
+    }
+
+    void writeCameraFingerprint(std::ostream& out, const GraphRenderEngine& graph) {
+      writeCameraFingerprint(out, graph.camera());
     }
 
     void writeSceneFingerprint(std::ostream& out, const GraphRenderEngine& graph) {
@@ -324,18 +329,20 @@ namespace engine::graph {
       return out.str();
     }
 
-    std::string shadowCacheInputFingerprintFor(const GraphRenderEngine& graph) {
+    std::string shadowCacheInputFingerprintFor(const GraphRenderEngine& graph,
+                                               const RenderPassNode& pass) {
       std::ostringstream out;
       out << std::setprecision(17);
-      writeCameraFingerprint(out, graph);
+      writeCameraFingerprint(out, graph.cameraForPass(pass));
       writeSceneFingerprint(out, graph);
       return out.str();
     }
 
-    std::string visibilityCacheInputFingerprintFor(const GraphRenderEngine& graph) {
+    std::string visibilityCacheInputFingerprintFor(const GraphRenderEngine& graph,
+                                                   const RenderPassNode& pass) {
       std::ostringstream out;
       out << std::setprecision(17);
-      writeCameraFingerprint(out, graph);
+      writeCameraFingerprint(out, graph.cameraForPass(pass));
       writeSceneGeometryFingerprint(out, graph);
       return out.str();
     }
@@ -486,6 +493,15 @@ namespace engine::graph {
       });
     }
 
+    std::map<std::string, std::shared_ptr<render::Camera>>
+    cloneSceneCameras(const std::map<std::string, std::shared_ptr<render::Camera>>& cameras) {
+      std::map<std::string, std::shared_ptr<render::Camera>> result;
+      for (const auto& [id, camera] : cameras) {
+        result.emplace(id, camera ? camera->clone() : nullptr);
+      }
+      return result;
+    }
+
     std::shared_ptr<render::Tonemap> displayTonemapForPlan(const RenderPlan& plan,
                                                            const GraphRenderEngine& graph) {
       if (planAppliesTonemap(plan)) {
@@ -615,6 +631,7 @@ namespace engine::graph {
     RenderSceneAnalysis sceneAnalysis{RenderSceneAnalysis::unknownScene()};
     std::optional<RenderPlan> explicitPlan;
     RenderPlan lastPlan;
+    std::map<std::string, std::shared_ptr<render::Camera>> sceneCameras;
     ExternalResourceBindings externalResources;
     std::shared_ptr<render::RenderEngine> activeEngine;
     std::shared_ptr<RenderGraphExecutionObserver> executionObserver;
@@ -676,6 +693,7 @@ namespace engine::graph {
     if (p->explicitPlan) {
       result->setPlan(*p->explicitPlan);
     }
+    result->p->sceneCameras = cloneSceneCameras(p->sceneCameras);
     result->p->externalResources = p->externalResources;
     result->setExecutionObserver(executionObserver());
     result->setExecutionTraceEnabled(executionTraceEnabled());
@@ -720,6 +738,32 @@ namespace engine::graph {
 
   const RenderPlan* GraphRenderEngine::explicitPlan() const {
     return p->explicitPlan ? &*p->explicitPlan : nullptr;
+  }
+
+  void GraphRenderEngine::setSceneCamera(std::string sceneCameraId,
+                                         std::shared_ptr<render::Camera> camera) {
+    if (sceneCameraId.empty()) {
+      throw std::runtime_error("scene camera id must not be empty");
+    }
+    if (!camera) {
+      throw std::runtime_error("scene camera '" + sceneCameraId + "' must not be null");
+    }
+    p->sceneCameras.insert_or_assign(std::move(sceneCameraId), std::move(camera));
+  }
+
+  void GraphRenderEngine::clearSceneCameras() {
+    p->sceneCameras.clear();
+  }
+
+  std::shared_ptr<render::Camera>
+  GraphRenderEngine::cameraForPass(const RenderPassNode& pass) const {
+    if (pass.sceneView.camera && pass.sceneView.camera->sceneCameraId) {
+      const auto camera = p->sceneCameras.find(*pass.sceneView.camera->sceneCameraId);
+      if (camera != p->sceneCameras.end()) {
+        return camera->second;
+      }
+    }
+    return camera();
   }
 
   void GraphRenderEngine::setExternalColorResource(RenderResourceId id,
@@ -824,11 +868,11 @@ namespace engine::graph {
 
   std::string GraphRenderEngine::cacheInputFingerprintForPass(const RenderPassNode& pass) const {
     if (pass.kind == RenderPassKind::Shadow && pass.executor == RenderExecutorKind::Rasterizer) {
-      return shadowCacheInputFingerprintFor(*this);
+      return shadowCacheInputFingerprintFor(*this, pass);
     }
     if (pass.kind == RenderPassKind::Visibility &&
         pass.executor == RenderExecutorKind::Rasterizer) {
-      return visibilityCacheInputFingerprintFor(*this);
+      return visibilityCacheInputFingerprintFor(*this, pass);
     }
     return executionInputFingerprint();
   }

@@ -1983,6 +1983,11 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     graphEngine = rtCamera
                     ? std::make_shared<engine::graph::GraphRenderEngine>(rtCamera, raytracerScene)
                     : std::make_shared<engine::graph::GraphRenderEngine>(raytracerScene);
+    for (const Camera* camera : scene.cameras()) {
+      if (!camera->id().isEmpty()) {
+        graphEngine->setSceneCamera(camera->id().toStdString(), camera->toRaytracer());
+      }
+    }
     graphEngine->setIntent(*graphIntent);
     graphEngine->setSceneAnalysis(scene.renderGraphAnalysis());
     graphEngine->setPlan(graphPlan);
