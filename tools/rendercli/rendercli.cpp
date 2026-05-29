@@ -947,6 +947,12 @@ namespace {
 
     static void installOffscreenPlatformDefault() {
       if (!qEnvironmentVariableIsSet("QT_QPA_PLATFORM")) {
+#if defined(Q_OS_MACOS)
+        if (qEnvironmentVariableIsSet("RAYTRACER_ALLOW_RENDERCLI_COCOA_OPENGL")) {
+          qputenv("QT_QPA_PLATFORM", "cocoa");
+          return;
+        }
+#endif
         // rendercli has no visible window; callers can override this when
         // probing a specific platform plugin.
         qputenv("QT_QPA_PLATFORM", "offscreen");

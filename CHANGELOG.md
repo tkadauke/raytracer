@@ -71,6 +71,15 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **OpenGL raster fixed-function state.** The OpenGL raster backend now applies
   graph-derived viewport, scissor, and face-culling state for the initial
   material-albedo mesh path. — GPT-5
+- **rendercli macOS OpenGL opt-in.** macOS rendercli runs can opt into Qt's
+  Cocoa platform for explicit `--raster_backend opengl|gpu` renders with
+  `RAYTRACER_ALLOW_RENDERCLI_COCOA_OPENGL=1`, while the default headless path
+  still fails clearly when Qt's offscreen plugin cannot create an OpenGL
+  context. — GPT-5
+- **OpenGL raster fallback sampler texture.** OpenGL raster passes now bind a
+  tiny fallback texture for inactive sampler uniforms, avoiding Apple driver
+  warnings about unloadable sampler units on non-textured or shadowless draws.
+  — GPT-5
 - **OpenGL raster depth AOV.** OpenGL-backed raster depth views now read back
   the depth attachment into graph-visible CPU depth resources for trace,
   visualization, and rendercli depth output. — GPT-5

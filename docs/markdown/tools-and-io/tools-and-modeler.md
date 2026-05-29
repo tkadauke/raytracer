@@ -103,6 +103,19 @@ default backend; when `--raster_backend opengl|gpu` is selected explicitly,
 rendercli starts a GUI-capable Qt application and defaults to Qt's offscreen
 platform so the OpenGL executor can probe or create an offscreen context and
 render the initial lit mesh pass when the host supports it.
+On macOS, Qt's offscreen platform may not be able to create an OpenGL context
+for a command-line process. In an interactive terminal session, developers can
+opt into Qt's Cocoa platform for that explicit GPU raster path:
+
+```sh
+$ RAYTRACER_ALLOW_RENDERCLI_COCOA_OPENGL=1 \
+  rendercli --engine raster --raster_backend opengl \
+            scenes/dice.json dice-gpu.png
+```
+
+That opt-in is intentionally not the default headless behavior; render farms
+and CI jobs should continue to use CPU raster unless they provide a known-good
+GUI-capable OpenGL context.
 If that intent does not name a default camera, rendercli annotates compiled
 scene-rendering passes with the active scene camera id.
 Selector-specific scene intent is preserved by scene JSON, but graph

@@ -73,7 +73,8 @@ namespace engine::raster {
 
 #if defined(Q_OS_MACOS)
       if (QGuiApplication::platformName() == QStringLiteral("cocoa") &&
-          QCoreApplication::applicationName() != QStringLiteral("Modeler")) {
+          QCoreApplication::applicationName() != QStringLiteral("Modeler") &&
+          !qEnvironmentVariableIsSet("RAYTRACER_ALLOW_RENDERCLI_COCOA_OPENGL")) {
         errorMessage =
           "OpenGL raster backend is selected, but Qt Cocoa offscreen OpenGL context creation is "
           "only enabled inside Modeler because headless Cocoa context probes can crash in Qt";

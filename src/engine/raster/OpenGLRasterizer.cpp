@@ -107,6 +107,48 @@ namespace engine::raster {
       std::unordered_map<const render::ImageTexture*, GLuint> m_textures;
     };
 
+    class OpenGLFallbackTexture {
+    public:
+      explicit OpenGLFallbackTexture(QOpenGLFunctions* functions)
+          : m_functions(functions) {
+        static constexpr GLfloat pixels[] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+        m_functions->glGenTextures(1, &m_texture);
+        if (m_texture == 0) {
+          throw std::runtime_error("OpenGL raster backend could not allocate a fallback texture");
+        }
+
+        m_functions->glBindTexture(GL_TEXTURE_2D, m_texture);
+        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        m_functions->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        m_functions->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_FLOAT, pixels);
+        m_functions->glBindTexture(GL_TEXTURE_2D, 0);
+      }
+
+      ~OpenGLFallbackTexture() {
+        if (m_texture != 0) {
+          m_functions->glDeleteTextures(1, &m_texture);
+        }
+      }
+
+      void bind(int textureUnit) const {
+        m_functions->glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
+        m_functions->glBindTexture(GL_TEXTURE_2D, m_texture);
+      }
+
+      void release(int textureUnit) const {
+        m_functions->glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
+        m_functions->glBindTexture(GL_TEXTURE_2D, 0);
+      }
+
+    private:
+      QOpenGLFunctions* m_functions;
+      GLuint m_texture{0};
+    };
+
     class OpenGLShadowTexture {
     public:
       OpenGLShadowTexture(QOpenGLFunctions* functions, const detail::OpenGLShadowTextureData& data)
@@ -286,6 +328,7 @@ namespace engine::raster {
 
         applyScissor(functions);
 
+        OpenGLFallbackTexture fallbackTexture(functions);
         QOpenGLShaderProgram program;
         if (!program.addShaderFromSourceCode(QOpenGLShader::Vertex,
                                              "attribute vec4 position;\n"
@@ -534,8 +577,11 @@ namespace engine::raster {
         program.setUniformValue("imageTexture", 0);
         setShadowUniforms(program, shadowTexture.enabled());
         setLightingUniforms(program, mesh);
+        fallbackTexture.bind(0);
         if (shadowTexture.enabled()) {
           shadowTexture.bind(1);
+        } else {
+          fallbackTexture.bind(1);
         }
 
         QOpenGLBuffer vertexBuffer(QOpenGLBuffer::VertexBuffer);
@@ -648,7 +694,7 @@ namespace engine::raster {
               batch.albedo.image) {
             functions->glBindTexture(GL_TEXTURE_2D, textureCache.textureFor(*batch.albedo.image));
           } else {
-            functions->glBindTexture(GL_TEXTURE_2D, 0);
+            fallbackTexture.bind(0);
           }
           program.setUniformValue("imageUVScale", static_cast<GLfloat>(batch.albedo.uScale),
                                   static_cast<GLfloat>(batch.albedo.vScale));
@@ -670,8 +716,11 @@ namespace engine::raster {
         functions->glBindTexture(GL_TEXTURE_2D, 0);
         if (shadowTexture.enabled()) {
           shadowTexture.release(1);
-          functions->glActiveTexture(GL_TEXTURE0);
+        } else {
+          fallbackTexture.release(1);
         }
+        fallbackTexture.release(0);
+        functions->glActiveTexture(GL_TEXTURE0);
         functions->glFlush();
 
         resetFixedFunctionState(functions);
