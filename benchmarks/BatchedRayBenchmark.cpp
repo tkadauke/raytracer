@@ -4,6 +4,7 @@
 
 #include <benchmark/benchmark.h>
 
+#include "core/SimdFeatures.h"
 #include "core/math/BoundingBox.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"

@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "core/SimdFeatures.h"
 #include "core/math/BoundingBox.h"
 #include "core/math/Range.h"
 #include "core/math/Ray.h"
