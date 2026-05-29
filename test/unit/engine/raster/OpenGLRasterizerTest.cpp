@@ -219,6 +219,19 @@ namespace OpenGLRasterizerTest {
     EXPECT_TRUE(rasterizer.traceMessages().empty());
   }
 
+  TEST(OpenGLRasterizer, RenderIsNoOpWhenCancelledBeforeCall) {
+    engine::raster::OpenGLRasterizer rasterizer(nullptr);
+    rasterizer.cancel();
+
+    Buffer<Colord> buffer(2, 2);
+    buffer.clear(Colord(0.5, 0.5, 0.5));
+
+    EXPECT_NO_THROW(rasterizer.render(buffer));
+
+    EXPECT_EQ(Colord(0.5, 0.5, 0.5), buffer[0][0]);
+    EXPECT_TRUE(rasterizer.traceMessages().empty());
+  }
+
   TEST(OpenGLRasterizer, AppendsTraceWhenLightCountsExceedShaderCap) {
     std::vector<std::string> traces;
     engine::raster::OpenGLRasterizer::appendLightTruncationTrace(0, 0, traces);

@@ -228,7 +228,7 @@ namespace engine::raster {
         std::uint8_t stencilWriteMask, Rasterizer::StencilOp stencilFailOp,
         Rasterizer::StencilOp stencilDepthFailOp, Rasterizer::StencilOp stencilPassOp,
         detail::OpenGLShadowTextureData shadowTextureData, const Vector3d& cameraPosition,
-        Rasterizer::CullMode cullMode, bool hasCullModeOverride)
+        Rasterizer::CullMode cullMode, bool hasCullModeOverride, const std::atomic<bool>& cancelled)
           : m_context(context),
             m_height(height),
             m_viewportRect(viewportRect),
@@ -265,13 +265,17 @@ namespace engine::raster {
             m_shadowTextureData(std::move(shadowTextureData)),
             m_cameraPosition(cameraPosition),
             m_cullMode(cullMode),
-            m_hasCullModeOverride(hasCullModeOverride) {
+            m_hasCullModeOverride(hasCullModeOverride),
+            m_cancelled(cancelled) {
       }
 
       OpenGLRasterRenderTimings render(const detail::OpenGLRasterMesh& mesh,
                                        const Colord& background, Buffer<Colord>* target,
                                        Buffer<double>* depthTarget,
                                        Buffer<std::uint8_t>* stencilTarget) {
+        if (m_cancelled.load()) {
+          return {};
+        }
         if (!m_context.makeCurrent()) {
           throw std::runtime_error(m_context.errorMessage());
         }
@@ -737,6 +741,9 @@ namespace engine::raster {
 
         OpenGLTextureCache textureCache(functions);
         for (const auto& batch : mesh.batches()) {
+          if (m_cancelled.load()) {
+            break;
+          }
           functions->glActiveTexture(GL_TEXTURE0);
           if (batch.albedo.mode == detail::RasterAlbedoShaderMode::ImageTexture &&
               batch.albedo.image) {
@@ -1099,6 +1106,7 @@ namespace engine::raster {
       Vector3d m_cameraPosition;
       Rasterizer::CullMode m_cullMode;
       bool m_hasCullModeOverride;
+      const std::atomic<bool>& m_cancelled;
     };
   }
 
@@ -1659,6 +1667,10 @@ namespace engine::raster {
     m_lastReadbackTraceMessage.clear();
     m_lastTraceMessages.clear();
 
+    if (m_cancelled.load()) {
+      return;
+    }
+
     OpenGLOffscreenContext context;
     if (!context.create(width, height, m_msaaSamples)) {
       throw std::runtime_error(context.errorMessage());
@@ -1696,7 +1708,7 @@ namespace engine::raster {
         m_stencilReference, m_stencilMask, m_stencilClearValue, m_stencilLoadOp, m_stencilStoreOp,
         m_stencilWriteMask, m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp,
         std::move(shadowTextureData), camera() ? camera()->position() : Vector3d::null, m_cullMode,
-        m_hasCullModeOverride)
+        m_hasCullModeOverride, m_cancelled)
         .render(mesh, backgroundColor(), colorTarget, depthTarget, stencilTarget);
     m_lastReadbackTraceMessage = readbackTraceMessage(
       timings.readbackElapsed,
