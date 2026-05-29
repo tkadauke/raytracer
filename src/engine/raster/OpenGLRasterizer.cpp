@@ -27,8 +27,6 @@
 
 namespace engine::raster {
   namespace {
-    constexpr int kMaxDirectionalShaderLights = 8;
-    constexpr int kMaxPointShaderLights = 8;
 
     class OpenGLTextureCache {
     public:
@@ -909,8 +907,8 @@ namespace engine::raster {
         setVectorUniform(program, "cameraPosition", m_cameraPosition);
 
         const auto& directionalLights = mesh.directionalLights();
-        const int directionalLightCount = static_cast<int>(
-          std::min<std::size_t>(directionalLights.size(), kMaxDirectionalShaderLights));
+        const int directionalLightCount = static_cast<int>(std::min<std::size_t>(
+          directionalLights.size(), OpenGLRasterizer::maxShaderDirectionalLights()));
         program.setUniformValue("directionalLightCount", directionalLightCount);
         for (int i = 0; i < directionalLightCount; ++i) {
           const auto& light = directionalLights[static_cast<std::size_t>(i)];
@@ -923,8 +921,8 @@ namespace engine::raster {
         }
 
         const auto& pointLights = mesh.pointLights();
-        const int pointLightCount =
-          static_cast<int>(std::min<std::size_t>(pointLights.size(), kMaxPointShaderLights));
+        const int pointLightCount = static_cast<int>(
+          std::min<std::size_t>(pointLights.size(), OpenGLRasterizer::maxShaderPointLights()));
         program.setUniformValue("pointLightCount", pointLightCount);
         for (int i = 0; i < pointLightCount; ++i) {
           const auto& light = pointLights[static_cast<std::size_t>(i)];
@@ -1194,6 +1192,25 @@ namespace engine::raster {
 
   void OpenGLRasterizer::uncancel() {
     m_cancelled.store(false);
+  }
+
+  void OpenGLRasterizer::appendLightTruncationTrace(std::size_t directionalLightCount,
+                                                    std::size_t pointLightCount,
+                                                    std::vector<std::string>& traces) {
+    const auto maxDirectional = static_cast<std::size_t>(maxShaderDirectionalLights());
+    const auto maxPoint = static_cast<std::size_t>(maxShaderPointLights());
+    if (directionalLightCount > maxDirectional) {
+      std::ostringstream message;
+      message << "OpenGL raster shader truncated " << directionalLightCount
+              << " directional lights to " << maxDirectional << " supported";
+      traces.push_back(message.str());
+    }
+    if (pointLightCount > maxPoint) {
+      std::ostringstream message;
+      message << "OpenGL raster shader truncated " << pointLightCount << " point lights to "
+              << maxPoint << " supported";
+      traces.push_back(message.str());
+    }
   }
 
   std::string OpenGLRasterizer::statusMessage() {
@@ -1688,6 +1705,8 @@ namespace engine::raster {
       stencilTarget != nullptr && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store);
     m_lastTraceMessages.push_back(
       meshPreparationTraceMessage(meshPreparationElapsed, mesh.triangleCount()));
+    appendLightTruncationTrace(mesh.directionalLights().size(), mesh.pointLights().size(),
+                               m_lastTraceMessages);
     m_lastTraceMessages.push_back(drawTraceMessage(
       timings.drawElapsed, mesh.triangleCount(), mesh.vertexBufferByteSize(),
       mesh.indexBufferByteSize(), mesh.imageTextureCount(), mesh.imageTextureUploadByteSize()));

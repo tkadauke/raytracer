@@ -45,6 +45,15 @@ namespace engine::raster {
     void uncancel() override;
 
     static std::string statusMessage();
+    static constexpr int maxShaderDirectionalLights() {
+      return 8;
+    }
+    static constexpr int maxShaderPointLights() {
+      return 8;
+    }
+    static void appendLightTruncationTrace(std::size_t directionalLightCount,
+                                           std::size_t pointLightCount,
+                                           std::vector<std::string>& traces);
 
     int lod() const;
     void setLod(int lod);

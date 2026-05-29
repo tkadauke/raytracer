@@ -219,6 +219,28 @@ namespace OpenGLRasterizerTest {
     EXPECT_TRUE(rasterizer.traceMessages().empty());
   }
 
+  TEST(OpenGLRasterizer, AppendsTraceWhenLightCountsExceedShaderCap) {
+    std::vector<std::string> traces;
+    engine::raster::OpenGLRasterizer::appendLightTruncationTrace(0, 0, traces);
+    EXPECT_TRUE(traces.empty());
+
+    const auto maxDirectional =
+      static_cast<std::size_t>(engine::raster::OpenGLRasterizer::maxShaderDirectionalLights());
+    const auto maxPoint =
+      static_cast<std::size_t>(engine::raster::OpenGLRasterizer::maxShaderPointLights());
+    engine::raster::OpenGLRasterizer::appendLightTruncationTrace(maxDirectional, maxPoint, traces);
+    EXPECT_TRUE(traces.empty());
+
+    engine::raster::OpenGLRasterizer::appendLightTruncationTrace(maxDirectional + 3, maxPoint + 1,
+                                                                 traces);
+    ASSERT_EQ(2u, traces.size());
+    EXPECT_NE(traces[0].find("directional"), std::string::npos);
+    EXPECT_NE(traces[0].find(std::to_string(maxDirectional + 3)), std::string::npos);
+    EXPECT_NE(traces[0].find(std::to_string(maxDirectional)), std::string::npos);
+    EXPECT_NE(traces[1].find("point"), std::string::npos);
+    EXPECT_NE(traces[1].find(std::to_string(maxPoint + 1)), std::string::npos);
+  }
+
   TEST(OpenGLRasterizer, ProvidesSharedStatusMessage) {
     const std::string message = engine::raster::OpenGLRasterizer::statusMessage();
 

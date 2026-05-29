@@ -52,6 +52,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **OpenGL raster backend traces directional/point light truncation.** When a
+  scene presents more directional or point lights than the GLSL shader
+  supports, render traces now record how many lights were dropped instead of
+  silently truncating. — Claude Opus 4.7
 - **OpenGL raster backend preserves HDR image-texture range on upload.**
   The texture cache used to clamp each channel to [0, 1] before uploading
   into `GL_RGBA32F`; HDR `ImageTexture` pixels now reach the GPU unmodified
