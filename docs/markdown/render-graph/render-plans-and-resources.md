@@ -663,9 +663,10 @@ internally. CPU raster uses the artifact during fragment shading; the current
 OpenGL raster backend consumes it while preparing the lit mesh stream for
 unsupported shadow configurations, and uses shader-side shadow texture sampling
 when the graph artifact is one directional cascade with hard shadows or a small
-PCF radius that owns the scene's single direct light. Disabling the graph shadow
-node substitutes the default resource and prevents graph-controlled shadow
-enablement.
+PCF radius that owns the scene's single direct light. Shader-side shadow traces
+include the prepared texture dimensions and upload byte count. Disabling the
+graph shadow node substitutes the default resource and prevents
+graph-controlled shadow enablement.
 Raster visibility culling is also intent-derived. When
 `engineOptions.rasterizer.geometry.visibilityCulling` is `on` or `auto`, the
 compiler inserts a `raster_visibility` pass that writes a

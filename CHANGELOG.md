@@ -80,6 +80,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **OpenGL upload diagnostics.** OpenGL raster draw traces now include prepared
   vertex/index buffer byte counts and image texture upload byte counts, making
   GPU upload pressure visible before buffer residency and caching land. — GPT-5
+- **OpenGL shadow texture diagnostics.** Shader-side OpenGL raster shadow
+  traces now include the prepared shadow texture upload byte count. — GPT-5
 - **Render pass feature queries.** `RenderPassNode` now owns `hasFeature()` and
   `hasAnyFeature()` so graph payloads and overrides query pass tags through the
   node instead of ad hoc helper functions. — GPT-5

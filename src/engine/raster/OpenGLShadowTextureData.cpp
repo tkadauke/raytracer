@@ -90,6 +90,10 @@ namespace engine::raster::detail {
     return m_halfExtent;
   }
 
+  std::size_t OpenGLShadowTextureData::uploadByteSize() const {
+    return m_rgbaPixels.size() * sizeof(float);
+  }
+
   std::string OpenGLShadowTextureData::traceMessage() const {
     if (!enabled()) {
       return {};
@@ -97,7 +101,8 @@ namespace engine::raster::detail {
 
     std::ostringstream message;
     message << "OpenGL raster shadow texture prepared " << m_width << "x" << m_height
-            << " normalized depth texels for shader-side binding";
+            << " normalized depth texels (" << uploadByteSize()
+            << " upload bytes) for shader-side binding";
     return message.str();
   }
 

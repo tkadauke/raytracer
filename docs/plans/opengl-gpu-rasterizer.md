@@ -239,8 +239,9 @@ Tasks:
 - Cache GPU buffers per immutable mesh payload where possible.
   ✅ **Baseline diagnostics.** Prepared OpenGL raster meshes now expose vertex
   and index buffer byte counts plus unique image texture upload byte counts,
-  and draw trace messages report those upload sizes so residency/caching work
-  has a visible before/after metric.
+  shader-side shadow texture data exposes upload byte counts, and draw/shadow
+  trace messages report those upload sizes so residency/caching work has a
+  visible before/after metric.
 
 Acceptance:
 

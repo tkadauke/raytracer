@@ -90,7 +90,10 @@ namespace OpenGLShadowTextureDataTest {
     EXPECT_EQ(Vector3d::up(), data.up());
     EXPECT_EQ(Vector3d::forward(), data.forward());
     EXPECT_DOUBLE_EQ(4.0, data.halfExtent());
+    EXPECT_EQ(static_cast<std::size_t>(kWidth * kHeight * 4 * sizeof(float)),
+              data.uploadByteSize());
     EXPECT_NE(std::string::npos, data.traceMessage().find("2x2"));
+    EXPECT_NE(std::string::npos, data.traceMessage().find("64 upload bytes"));
     EXPECT_NE(std::string::npos, data.traceMessage().find("shader-side binding"));
     ASSERT_EQ(static_cast<std::size_t>(kWidth * kHeight * 4), data.rgbaPixels().size());
     EXPECT_NEAR(2.0 / 7.0, data.rgbaPixels()[pixelOffset(0, 0)], 0.000001);

@@ -2,6 +2,7 @@
 
 #include "core/math/Vector.h"
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -34,6 +35,7 @@ namespace engine::raster::detail {
     const Vector3d& up() const;
     const Vector3d& forward() const;
     double halfExtent() const;
+    std::size_t uploadByteSize() const;
     std::string traceMessage() const;
     const std::vector<float>& rgbaPixels() const;
 
