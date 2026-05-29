@@ -230,8 +230,9 @@ Tasks:
 - ~~Maintain conservative per-tile depth summaries for visible work.~~ ✅
   **Done.** Tile-covered visible leaves now contribute their nearest projected
   bounds depth to each referenced tile, and the visibility trace reports
-  summarized tile and depth-reference counts. These summaries are still
-  diagnostic and are not yet used to reject occluded work.
+  summarized tile and depth-reference counts. These summaries are suppressed
+  for order-dependent state such as blending/stencil. They are still diagnostic
+  and are not yet used to reject occluded work.
 - Reject later leaf/tile combinations that cannot pass depth.
 - Keep partially visible work in the set if any tile remains uncertain.
 
@@ -239,7 +240,10 @@ Acceptance:
 
 - Dense occluded scenes reduce coverage/depth-test counts, not only color
   writes.
-- Alpha/blend/stencil paths do not use unsafe occlusion shortcuts.
+- ~~Alpha/blend/stencil paths do not use unsafe occlusion shortcuts.~~ ✅
+  **Done for the diagnostics baseline.** Order-dependent pass state keeps tile
+  coverage visible but suppresses tile depth summaries so later occlusion
+  rejection cannot treat those passes as depth-safe.
 - ~~Trace metadata reports tile count and uncertain cases.~~ ✅ **Done.**
   Current traces report tile grid dimensions, covered tiles, visible tile
   references, depth-summary counts, and uncertain visible leaves. Rejected tile

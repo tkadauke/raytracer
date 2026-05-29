@@ -1485,6 +1485,7 @@ namespace engine::graph {
         const render::HomogeneousClipVolume clipVolume = rasterClipVolume();
         std::unordered_map<const render::Primitive*, MeshStats> meshStats;
         std::vector<VisibleLeafDepth> visibleLeafDepths;
+        const bool tileDepthSummariesAllowed = state.frontToBackOrderingEnabled();
         bool orderable = state.frontToBackOrderingEnabled() && camera != nullptr;
         scene->forEachTransformedLeaf(
           nullptr, Matrix4d(), Matrix3d(), [&](const render::Primitive::TransformedLeaf& leaf) {
@@ -1506,8 +1507,12 @@ namespace engine::graph {
             visibilitySet->addVisibleLeaf(stats.triangleCount, stats.faceCount);
             if (auto coverage =
                   projectedBoundsTiles(leaf, camera.get(), clipVolume, visibilitySet->tileGrid())) {
-              visibilitySet->setVisibleLeafTiles(leafIndex, std::move(coverage->tiles),
-                                                 coverage->nearestDepth);
+              if (tileDepthSummariesAllowed) {
+                visibilitySet->setVisibleLeafTiles(leafIndex, std::move(coverage->tiles),
+                                                   coverage->nearestDepth);
+              } else {
+                visibilitySet->setVisibleLeafTiles(leafIndex, std::move(coverage->tiles));
+              }
             }
             if (orderable) {
               if (const auto depth = frontToBackDepth(leaf, camera.get())) {

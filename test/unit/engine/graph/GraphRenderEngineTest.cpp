@@ -531,6 +531,31 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(std::string::npos, message.find("frontToBackOrderedLeaves=2")) << message;
   }
 
+  TEST(GraphRenderEngine, SkipsRasterVisibilityTileDepthSummariesForOrderDependentState) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
+    intent.engineOptions.rasterizer().setBlendingEnabled(true);
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), visibleAndOffscreenBoxScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* visibilityTrace = trace->findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibilityTrace);
+    const std::string& message = visibilityTrace->message();
+    EXPECT_NE(std::string::npos, message.find("frontToBackOrdering=disabled")) << message;
+    EXPECT_NE(std::string::npos, message.find("visibleTileReferences=1")) << message;
+    EXPECT_NE(std::string::npos, message.find("depthSummarizedTiles=0")) << message;
+    EXPECT_NE(std::string::npos, message.find("tileDepthReferences=0")) << message;
+  }
+
   TEST(GraphRenderEngine, RecordsRasterVisibilityBackfaceRejectedMetrics) {
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
