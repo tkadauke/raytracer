@@ -196,7 +196,8 @@ Tasks:
   the initial mesh beauty path.
 - ~~Bind graph raster pass state for MSAA sample count.~~ ✅ **Done.** The
   OpenGL raster backend now allocates a multisample framebuffer when graph pass
-  state requests MSAA.
+  state requests MSAA, and OpenGL raster plans default MSAA shading state to
+  `per_fragment` so graph state matches the current GPU shading path.
 - ~~Bind graph raster pass state for color write masks.~~ ✅ **Done.** OpenGL
   raster draw calls now apply graph-derived RGB color write masks after the
   background clear.

@@ -160,6 +160,17 @@ namespace RasterPassStateTest {
     EXPECT_EQ("pcss", shadows.value("filterMode").toString().toStdString());
   }
 
+  TEST(RasterBeautyPassState, SerializesPerSampleMSAAShadingWhenMSAAEnabled) {
+    RasterBeautyPassState state;
+    state.sampling().setMSAASamples(4);
+    state.sampling().setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerSample);
+
+    const QJsonObject sampling = state.toJson().value("sampling").toObject();
+
+    EXPECT_EQ(4, sampling.value("msaaSamples").toInt());
+    EXPECT_EQ("per_sample", sampling.value("msaaShadingMode").toString().toStdString());
+  }
+
   TEST(RasterBeautyPassState, AppliesSupportedStateToOpenGLRasterizer) {
     RasterBeautyPassState state;
     state.geometry().setLod(3);
@@ -188,6 +199,7 @@ namespace RasterPassStateTest {
 
     EXPECT_EQ(3, rasterizer.lod());
     EXPECT_EQ(4, rasterizer.msaaSamples());
+    EXPECT_EQ(Rasterizer::MSAAShadingMode::PerSample, rasterizer.msaaShadingMode());
     EXPECT_TRUE(rasterizer.hasCullModeOverride());
     EXPECT_EQ(Rasterizer::CullMode::Front, rasterizer.cullMode());
     EXPECT_TRUE(rasterizer.viewportEnabled());
@@ -223,6 +235,26 @@ namespace RasterPassStateTest {
     state.sampling().setPostProcessAA(Rasterizer::PostProcessAA::FXAA);
 
     expectOpenGLUnsupported(state, "post-process anti-aliasing");
+  }
+
+  TEST(RasterBeautyPassState, DefaultsImportedOpenGLMSAAToPerFragmentShading) {
+    QJsonObject execution;
+    execution["backend"] = "opengl";
+    QJsonObject sampling;
+    sampling["msaaSamples"] = 4;
+    QJsonObject json;
+    json["execution"] = execution;
+    json["sampling"] = sampling;
+
+    const RasterBeautyPassState state = RasterBeautyPassState::fromJson(json);
+
+    EXPECT_EQ(Rasterizer::MSAAShadingMode::PerFragment, state.sampling().msaaShadingMode());
+    EXPECT_EQ("per_fragment", state.toJson()
+                                .value("sampling")
+                                .toObject()
+                                .value("msaaShadingMode")
+                                .toString()
+                                .toStdString());
   }
 
   TEST(RasterBeautyPassState, RejectsUnsupportedOpenGLFramebufferState) {

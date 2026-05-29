@@ -92,6 +92,7 @@ namespace engine::graph {
     void setPostProcessAA(Rasterizer::PostProcessAA aa);
 
     int msaaSamples() const;
+    Rasterizer::MSAAShadingMode msaaShadingMode() const;
 
   private:
     int m_msaaSamples{1};

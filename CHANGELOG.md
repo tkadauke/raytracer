@@ -93,6 +93,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **OpenGL raster MSAA framebuffer.** OpenGL-backed raster passes now apply
   graph-derived MSAA sample counts when creating the offscreen framebuffer. —
   GPT-5
+- **OpenGL raster MSAA shading state.** OpenGL raster plans now default MSAA
+  shading to `per_fragment` when MSAA is enabled, matching the current GPU
+  shading path instead of silently implying CPU per-sample shading. — GPT-5
 - **OpenGL raster color write mask.** OpenGL-backed raster passes now apply
   graph-derived RGB color write masks after clearing the framebuffer. — GPT-5
 - **Raster graph color attachment state.** Raster pass framebuffer state now

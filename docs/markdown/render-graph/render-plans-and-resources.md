@@ -588,7 +588,10 @@ under the pass's `parameters` object, making settings such as `--msaa`,
 `--msaa_shading`, `--raster_backend`, `--viewport`, and color-output controls
 visible instead of living only in the direct raster engine setup path. CPU
 raster remains the default backend; selecting `opengl` currently records the
-backend in graph state. In rendercli, that explicit selection starts a
+backend in graph state. Because the current OpenGL path shades once per
+fragment under MSAA, OpenGL raster MSAA plans default their compiled
+`msaaShadingMode` to `per_fragment` instead of inheriting the CPU rasterizer's
+per-sample default. In rendercli, that explicit selection starts a
 GUI-capable Qt application and requests Qt's offscreen platform by default; in
 Modeler, the existing GUI application owns that bootstrap. The OpenGL executor
 then creates an offscreen context and depth/stencil framebuffer when the host

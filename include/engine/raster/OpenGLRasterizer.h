@@ -49,6 +49,8 @@ namespace engine::raster {
 
     int msaaSamples() const;
     void setMSAASamples(int samples);
+    Rasterizer::MSAAShadingMode msaaShadingMode() const;
+    void setMSAAShadingMode(Rasterizer::MSAAShadingMode mode);
 
     Rasterizer::CullMode cullMode() const;
     bool hasCullModeOverride() const;
@@ -148,6 +150,7 @@ namespace engine::raster {
     std::atomic<bool> m_cancelled{false};
     int m_lod{0};
     int m_msaaSamples{1};
+    Rasterizer::MSAAShadingMode m_msaaShadingMode{Rasterizer::MSAAShadingMode::PerFragment};
     Rasterizer::CullMode m_cullMode{Rasterizer::CullMode::Both};
     bool m_hasCullModeOverride{false};
     bool m_viewportEnabled{false};

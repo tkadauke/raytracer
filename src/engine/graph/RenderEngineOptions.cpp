@@ -648,6 +648,8 @@ namespace engine::graph {
     if (m_msaaShadingMode) {
       state.sampling().setMSAAShadingMode(
         msaaShadingModeFromString(*m_msaaShadingMode, "rasterizer.sampling.msaaShadingMode"));
+    } else if (m_backend && m_backend->isOpenGL() && state.sampling().msaaSamples() > 1) {
+      state.sampling().setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
     }
     if (includeImagePostProcessAA || aa == RenderPostProcessAA::TAA)
       state.sampling().setPostProcessAA(rasterPostProcessAA(aa));

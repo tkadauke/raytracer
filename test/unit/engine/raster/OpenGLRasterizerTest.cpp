@@ -84,6 +84,7 @@ namespace OpenGLRasterizerTest {
   TEST(OpenGLRasterizer, ClonesFixedFunctionStateForRender) {
     engine::raster::OpenGLRasterizer rasterizer(nullptr);
     rasterizer.setMSAASamples(4);
+    rasterizer.setMSAAShadingMode(engine::raster::Rasterizer::MSAAShadingMode::PerSample);
     rasterizer.setCullMode(engine::raster::Rasterizer::CullMode::Back);
     rasterizer.setViewportRect(Recti(4, 5, 20, 21));
     rasterizer.setScissorRect(Recti(6, 7, 18, 19));
@@ -119,6 +120,7 @@ namespace OpenGLRasterizerTest {
 
     ASSERT_NE(nullptr, clone);
     EXPECT_EQ(4, clone->msaaSamples());
+    EXPECT_EQ(engine::raster::Rasterizer::MSAAShadingMode::PerSample, clone->msaaShadingMode());
     EXPECT_TRUE(clone->hasCullModeOverride());
     EXPECT_EQ(engine::raster::Rasterizer::CullMode::Back, clone->cullMode());
     EXPECT_TRUE(clone->viewportEnabled());
@@ -169,6 +171,13 @@ namespace OpenGLRasterizerTest {
     EXPECT_EQ(4, rasterizer.msaaSamples());
     rasterizer.setMSAASamples(99);
     EXPECT_EQ(8, rasterizer.msaaSamples());
+  }
+
+  TEST(OpenGLRasterizer, DefaultsToPerFragmentMSAAShading) {
+    engine::raster::OpenGLRasterizer rasterizer(nullptr);
+
+    EXPECT_EQ(engine::raster::Rasterizer::MSAAShadingMode::PerFragment,
+              rasterizer.msaaShadingMode());
   }
 
   TEST(OpenGLRasterizer, MasksUnsupportedColorWriteBits) {

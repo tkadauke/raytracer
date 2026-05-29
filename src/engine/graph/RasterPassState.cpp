@@ -639,7 +639,7 @@ namespace engine::graph {
     QJsonObject object;
     if (m_msaaSamples != 1)
       object["msaaSamples"] = m_msaaSamples;
-    if (m_msaaShadingMode != Rasterizer::MSAAShadingMode::PerSample)
+    if (m_msaaShadingMode != Rasterizer::MSAAShadingMode::PerSample || m_msaaSamples != 1)
       object["msaaShadingMode"] = toString(m_msaaShadingMode);
     if (m_postProcessAA != Rasterizer::PostProcessAA::None)
       object["postProcessAA"] = toString(m_postProcessAA);
@@ -659,6 +659,7 @@ namespace engine::graph {
   void RasterSamplingState::applyTo(engine::raster::OpenGLRasterizer& rasterizer) const {
     validateSupportedByOpenGL();
     rasterizer.setMSAASamples(m_msaaSamples);
+    rasterizer.setMSAAShadingMode(m_msaaShadingMode);
   }
 
   void RasterSamplingState::validateSupportedByOpenGL() const {
@@ -689,6 +690,10 @@ namespace engine::graph {
 
   int RasterSamplingState::msaaSamples() const {
     return m_msaaSamples;
+  }
+
+  Rasterizer::MSAAShadingMode RasterSamplingState::msaaShadingMode() const {
+    return m_msaaShadingMode;
   }
 
   RasterFramebufferState RasterFramebufferState::fromJson(const QJsonObject& object,
@@ -1335,21 +1340,27 @@ namespace engine::graph {
     rejectUnknownFields(object, path,
                         {"execution", "geometry", "sampling", "framebuffer", "shadows"});
     RasterBeautyPassState state;
+    QJsonObject samplingObject;
     if (hasField(object, "execution"))
       state.m_execution =
         RasterExecutionState::fromJson(objectField(object, "execution", path), path + ".execution");
     if (hasField(object, "geometry"))
       state.m_geometry =
         RasterGeometryState::fromJson(objectField(object, "geometry", path), path + ".geometry");
-    if (hasField(object, "sampling"))
-      state.m_sampling =
-        RasterSamplingState::fromJson(objectField(object, "sampling", path), path + ".sampling");
+    if (hasField(object, "sampling")) {
+      samplingObject = objectField(object, "sampling", path);
+      state.m_sampling = RasterSamplingState::fromJson(samplingObject, path + ".sampling");
+    }
     if (hasField(object, "framebuffer"))
       state.m_framebuffer = RasterFramebufferState::fromJson(
         objectField(object, "framebuffer", path), path + ".framebuffer");
     if (hasField(object, "shadows"))
       state.m_shadows =
         RasterShadowState::fromJson(objectField(object, "shadows", path), path + ".shadows");
+    if (state.m_execution.backend().isOpenGL() && state.m_sampling.msaaSamples() > 1 &&
+        !hasField(samplingObject, "msaaShadingMode")) {
+      state.m_sampling.setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
+    }
     return state;
   }
 

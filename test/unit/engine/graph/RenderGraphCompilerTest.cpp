@@ -631,6 +631,8 @@ namespace RenderGraphCompilerTest {
     ASSERT_NE(nullptr, beautyState);
     EXPECT_TRUE(beautyState->execution().backend().isOpenGL());
     EXPECT_EQ(4, beautyState->sampling().msaaSamples());
+    EXPECT_EQ(engine::raster::Rasterizer::MSAAShadingMode::PerFragment,
+              beautyState->sampling().msaaShadingMode());
 
     const auto* shadow = plan.findPass("raster_preview_shadows");
     ASSERT_NE(nullptr, shadow);
@@ -639,6 +641,30 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(128, shadowState->shadows().mapSize());
     ASSERT_NE(nullptr, plan.findResource("preview_shadow_map"));
     EXPECT_EQ(128, plan.findResource("preview_shadow_map")->width);
+  }
+
+  TEST(RenderGraphCompiler, OpenGLRasterMSAADefaultsToPerFragmentShading) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
+    intent.engineOptions.rasterizer().setMSAASamples(4);
+
+    const RenderPlan plan = compiler.compile({64, 64, intent.targetSampleCountHint()}, intent);
+
+    const auto* beauty = plan.findPass("raster_beauty");
+    ASSERT_NE(nullptr, beauty);
+    const auto* state = RasterBeautyPassState::fromPass(*beauty);
+    ASSERT_NE(nullptr, state);
+    EXPECT_EQ(4, state->sampling().msaaSamples());
+    EXPECT_EQ(engine::raster::Rasterizer::MSAAShadingMode::PerFragment,
+              state->sampling().msaaShadingMode());
+    EXPECT_EQ("per_fragment", state->toJson()
+                                .value("sampling")
+                                .toObject()
+                                .value("msaaShadingMode")
+                                .toString()
+                                .toStdString());
   }
 
   TEST(RenderGraphCompiler, OpenGLRasterBeautyRoutesThroughExplicitReadbackPass) {

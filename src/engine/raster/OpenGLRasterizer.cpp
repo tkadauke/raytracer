@@ -1106,6 +1106,7 @@ namespace engine::raster {
     clone->setTonemap(tonemap());
     clone->setLod(m_lod);
     clone->setMSAASamples(m_msaaSamples);
+    clone->setMSAAShadingMode(m_msaaShadingMode);
     if (m_hasCullModeOverride) {
       clone->setCullMode(m_cullMode);
     } else {
@@ -1213,6 +1214,14 @@ namespace engine::raster {
     } else {
       m_msaaSamples = 8;
     }
+  }
+
+  Rasterizer::MSAAShadingMode OpenGLRasterizer::msaaShadingMode() const {
+    return m_msaaShadingMode;
+  }
+
+  void OpenGLRasterizer::setMSAAShadingMode(Rasterizer::MSAAShadingMode mode) {
+    m_msaaShadingMode = mode;
   }
 
   Rasterizer::CullMode OpenGLRasterizer::cullMode() const {
