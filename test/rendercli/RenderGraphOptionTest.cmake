@@ -235,6 +235,11 @@ file(WRITE "${subview_intent_scene}" [=[
   "background": [0.4, 0.8, 1.0],
   "type": "Scene",
   "renderIntent": {
+    "engineOptions": {
+      "rasterizer": {
+        "execution": {"backend": "opengl"}
+      }
+    },
     "subviews": [
       {
         "name": "mirror_probe",
@@ -1275,11 +1280,17 @@ file(READ "${subview_plan}" subview_graph)
 if(NOT subview_graph MATCHES "subview_mirror_probe_raster_beauty")
   message(FATAL_ERROR "scene subview intent did not compile a raster branch: ${subview_graph}")
 endif()
+if(NOT subview_graph MATCHES "subview_mirror_probe_beauty_readback")
+  message(FATAL_ERROR "OpenGL scene subview intent did not route beauty through readback: ${subview_graph}")
+endif()
 if(NOT subview_graph MATCHES "subview_mirror_probe_main_color")
   message(FATAL_ERROR "scene subview intent did not export a subview color: ${subview_graph}")
 endif()
 if(NOT subview_graph MATCHES "subview_mirror_probe_depth_aov")
   message(FATAL_ERROR "scene subview intent did not export a subview depth resource: ${subview_graph}")
+endif()
+if(NOT subview_graph MATCHES "subview_mirror_probe_readback_depth_aov")
+  message(FATAL_ERROR "OpenGL scene subview intent did not route depth through readback: ${subview_graph}")
 endif()
 if(NOT subview_graph MATCHES "render_to_texture")
   message(FATAL_ERROR "scene subview intent did not mark render-to-texture features: ${subview_graph}")

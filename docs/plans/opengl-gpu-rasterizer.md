@@ -429,8 +429,11 @@ Acceptance:
 Tasks:
 
 - Add graph compiler cases for flat mirror and portal render-to-texture passes.
-- Use OpenGL executor only for the raster passes inside those compiled
-  sequences.
+- ~~Use OpenGL executor only for the raster passes inside those compiled
+  sequences.~~ ✅ **Done.** Raster subview branches inherit or override the
+  typed raster backend state, so OpenGL-selected offscreen raster passes still
+  compile as raster executor nodes with explicit readback transfer nodes before
+  CPU-only postprocess/composite consumers.
 - Add graph resources for offscreen color/depth inputs sampled by later passes.
   ✅ **Partial.** Whole-scene subview intent now expands into independent
   prefixed offscreen color branches with exported graph resources. Raster

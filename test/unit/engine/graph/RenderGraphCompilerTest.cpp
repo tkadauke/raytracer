@@ -639,6 +639,68 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, OpenGLSubviewIntentRoutesRasterProductsThroughReadbackPasses) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
+
+    RenderSubviewIntent subview;
+    subview.name = "portal view";
+    subview.view.selector = SceneSelector::all();
+    subview.view.executor = RenderExecutorPreference::Rasterizer;
+    intent.subviews.push_back(subview);
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    const auto* beauty = plan.findPass("subview_portal_view_raster_beauty");
+    ASSERT_NE(nullptr, beauty);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, beauty->executor);
+    const auto* beautyState = RasterBeautyPassState::fromPass(*beauty);
+    ASSERT_NE(nullptr, beautyState);
+    EXPECT_TRUE(beautyState->execution().backend().isOpenGL());
+
+    const auto* beautyReadback = plan.findPass("subview_portal_view_beauty_readback");
+    ASSERT_NE(nullptr, beautyReadback);
+    EXPECT_EQ(RenderPassKind::Readback, beautyReadback->kind);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, beautyReadback->executor);
+    EXPECT_TRUE(hasFeature(*beautyReadback, "subview"));
+    EXPECT_TRUE(hasFeature(*beautyReadback, "render_to_texture"));
+    ASSERT_EQ(1u, beautyReadback->reads.size());
+    ASSERT_EQ(1u, beautyReadback->writes.size());
+    EXPECT_EQ("subview_portal_view_beauty_color", beautyReadback->reads.front().resource);
+    EXPECT_EQ("subview_portal_view_beauty_readback_color", beautyReadback->writes.front().resource);
+
+    const auto* tonemap = plan.findPass("subview_portal_view_tonemap");
+    ASSERT_NE(nullptr, tonemap);
+    ASSERT_EQ(1u, tonemap->reads.size());
+    EXPECT_EQ("subview_portal_view_beauty_readback_color", tonemap->reads.front().resource);
+
+    const auto* depthProducer = plan.findPass("subview_portal_view_depth_aov");
+    ASSERT_NE(nullptr, depthProducer);
+    const auto* depthState = RasterBeautyPassState::fromPass(*depthProducer);
+    ASSERT_NE(nullptr, depthState);
+    EXPECT_TRUE(depthState->execution().backend().isOpenGL());
+    ASSERT_EQ(1u, depthProducer->writes.size());
+    EXPECT_EQ("subview_portal_view_depth_aov_source", depthProducer->writes.front().resource);
+
+    const auto* depthReadback = plan.findPass("subview_portal_view_readback_depth_aov");
+    ASSERT_NE(nullptr, depthReadback);
+    EXPECT_EQ(RenderPassKind::Readback, depthReadback->kind);
+    EXPECT_TRUE(hasFeature(*depthReadback, "subview"));
+    EXPECT_TRUE(hasFeature(*depthReadback, "render_to_texture"));
+    ASSERT_EQ(1u, depthReadback->reads.size());
+    ASSERT_EQ(1u, depthReadback->writes.size());
+    EXPECT_EQ("subview_portal_view_depth_aov_source", depthReadback->reads.front().resource);
+    EXPECT_EQ("subview_portal_view_depth_aov", depthReadback->writes.front().resource);
+
+    EXPECT_TRUE(
+      plan.resourceCanReach("subview_portal_view_beauty_color", "subview_portal_view_main_color"));
+    EXPECT_TRUE(plan.resourceCanReach("subview_portal_view_depth_aov_source",
+                                      "subview_portal_view_depth_aov"));
+    EXPECT_FALSE(plan.resourceCanReach("subview_portal_view_main_color", "main_color"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, RejectsSubviewSelectorsUntilScenePartitioningExists) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
