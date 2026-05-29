@@ -95,10 +95,9 @@ void Raytracer::render(Buffer<Colord>& buffer) {
   m_camera->setShowProgressIndicators(p->showProgressIndicators);
 
   // shared_from_this() returns shared_ptr<render::RenderEngine>; the
-  // TileRenderTask + Camera::render API both want shared_ptr<Raytracer>
-  // because the workers call rayColor() (a Raytracer-specific
-  // method). Static-cast is safe — `this` is definitively a
-  // Raytracer in our own member function.
+  // camera API consumes the RayCaster seam used for primary rays and
+  // material recursion. Static-cast is safe here because this member
+  // function only runs on a concrete Raytracer.
   auto self = std::static_pointer_cast<Raytracer>(shared_from_this());
   auto camera = m_camera;
   Buffer<Colord>* bufferPtr = &buffer;

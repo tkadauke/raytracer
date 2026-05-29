@@ -3,19 +3,15 @@
 #include "render/textures/ConstantColorTexture.h"
 
 #include "core/math/HitPoint.h"
-#include "engine/raytracer/Raytracer.h"
 #include "render/State.h"
 #include "render/primitives/Scene.h"
 
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/RecordingRayCaster.h"
 
 namespace ReflectiveMaterialTest {
   using namespace render;
-  using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
+  using test::helpers::RecordingRayCaster;
 
   TEST(ReflectiveMaterial, ShouldInitialize) {
     ReflectiveMaterial material;
@@ -69,15 +65,15 @@ namespace ReflectiveMaterialTest {
   // reflectionColor * coeff * tracedColor.)
   //
   // The fixture below puts a known background colour on an otherwise empty
-  // scene so the recursive ray hits nothing and rayColor returns the
-  // background — the cleanest way to assert "we reflected colour X".
+  // recursive `RayCaster` test double — the cleanest way to assert "we
+  // reflected colour X" without depending on Raytracer internals.
 
   namespace {
     struct ShadeFixture {
       std::shared_ptr<ConstantColorTexture> texture =
         std::make_shared<ConstantColorTexture>(Colord::white());
       std::shared_ptr<render::Scene> scene = std::make_shared<Scene>(Colord::black());
-      std::shared_ptr<Raytracer> raytracer = std::make_shared<Raytracer>(scene);
+      RecordingRayCaster raycaster;
 
       HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
       Rayd ray{Vector3d(0, 5, 0), Vector3d(0, -1, 0)};
@@ -98,24 +94,27 @@ namespace ReflectiveMaterialTest {
 
   TEST(ReflectiveMaterial, ShouldReflectSceneBackground) {
     ShadeFixture f;
-    f.scene->setBackground(Colord(1, 0, 0));
+    f.raycaster.pushColor(Colord(1, 0, 0));
     f.material.setReflectionColor(Colord::white());
     f.material.setReflectionCoefficient(1.0);
 
-    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(&f.raycaster, *f.scene, f.ray, f.hitPoint, f.state);
 
-    // Reflected ray hits no primitive → rayColor returns the background.
     // reflectionColor * coeff * background = white * 1 * red = red.
     ASSERT_COLOR_NEAR(Colord(1, 0, 0), colour, 0.001);
+    ASSERT_EQ(1u, f.raycaster.rays.size());
+    EXPECT_NEAR(0.0, f.raycaster.rays.front().direction().x(), 0.001);
+    EXPECT_NEAR(1.0, f.raycaster.rays.front().direction().y(), 0.001);
+    EXPECT_NEAR(0.0, f.raycaster.rays.front().direction().z(), 0.001);
   }
 
   TEST(ReflectiveMaterial, ShouldScaleReflectionByCoefficient) {
     ShadeFixture f;
-    f.scene->setBackground(Colord(1, 1, 1));
+    f.raycaster.pushColor(Colord(1, 1, 1));
     f.material.setReflectionColor(Colord::white());
     f.material.setReflectionCoefficient(0.25);
 
-    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(&f.raycaster, *f.scene, f.ray, f.hitPoint, f.state);
 
     // 1.0 * 0.25 * (1,1,1) = (0.25, 0.25, 0.25).
     ASSERT_COLOR_NEAR(Colord(0.25, 0.25, 0.25), colour, 0.001);
@@ -123,12 +122,12 @@ namespace ReflectiveMaterialTest {
 
   TEST(ReflectiveMaterial, ShouldFilterReflectionByReflectionColor) {
     ShadeFixture f;
-    f.scene->setBackground(Colord(1, 1, 1));
+    f.raycaster.pushColor(Colord(1, 1, 1));
     // Tinted mirror: reflects only the green channel.
     f.material.setReflectionColor(Colord(0, 1, 0));
     f.material.setReflectionCoefficient(1.0);
 
-    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(&f.raycaster, *f.scene, f.ray, f.hitPoint, f.state);
 
     // (0, 1, 0) * 1 * (1, 1, 1) = (0, 1, 0).
     ASSERT_COLOR_NEAR(Colord(0, 1, 0), colour, 0.001);
