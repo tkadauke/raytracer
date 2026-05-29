@@ -236,12 +236,16 @@ Tasks:
 - ~~Read back depth for the raster depth AOV path.~~ ✅ **Done.** The OpenGL
   backend can now materialize graph-visible CPU depth previews for depth AOV
   renders.
-- Cache GPU buffers per immutable mesh payload where possible.
-  ✅ **Baseline diagnostics.** Prepared OpenGL raster meshes now expose vertex
-  and index buffer byte counts plus unique image texture upload byte counts,
-  shader-side shadow texture data exposes upload byte counts, and draw/shadow
-  trace messages report those upload sizes so residency/caching work has a
-  visible before/after metric.
+- ~~Cache GPU buffers per immutable mesh payload where possible.~~ ✅
+  **Done.** `OpenGLRasterResourceCache` holds the offscreen context, the
+  linked shader program with attribute-slot lookups, the image-texture map,
+  and the vertex/index buffer objects across `render()` calls. First render
+  compiles + uploads; subsequent renders reuse all four resources and just
+  re-upload mesh payload bytes through `QOpenGLBuffer::allocate`. Each
+  rasterizer (and each `cloneForRender` clone) owns one cache; threading
+  matches Qt's per-thread context model. The earlier baseline byte-count
+  diagnostics still publish through graph traces so before/after caching
+  cost stays visible.
 
 Acceptance:
 
