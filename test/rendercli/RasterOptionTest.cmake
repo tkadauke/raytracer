@@ -467,6 +467,43 @@ else()
                   "${opengl_shadow_trace_stderr}")
 endif()
 
+set(opengl_shadow_pcf_trace "${TEST_OUTPUT_DIR}/raster-opengl-shadow-pcf-trace.json")
+set(opengl_shadow_pcf_render "${TEST_OUTPUT_DIR}/raster-opengl-shadow-pcf.png")
+execute_process(
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 16 --height 12 --raster_backend gpu
+    --shadow_maps --shadow_map_size 64 --shadow_bias 0.1
+    --shadow_filter_radius 2 --shadow_filter pcf
+    --render_graph_trace_out "${opengl_shadow_pcf_trace}"
+    "${shadow_scene}" "${opengl_shadow_pcf_render}"
+  RESULT_VARIABLE opengl_shadow_pcf_result
+  OUTPUT_VARIABLE opengl_shadow_pcf_stdout
+  ERROR_VARIABLE opengl_shadow_pcf_stderr
+)
+if(opengl_shadow_pcf_result STREQUAL "0")
+  rendercli_assert_image_dimensions("${opengl_shadow_pcf_render}" 16 12
+                                    NAME "rendercli --raster_backend gpu PCF shadow dimensions")
+  file(READ "${opengl_shadow_pcf_trace}" opengl_shadow_pcf_trace_json)
+  if(NOT opengl_shadow_pcf_trace_json MATCHES "OpenGL raster shadow sampling uses shader-side binding")
+    _rendercli_fail("rendercli --raster_backend gpu PCF shadow trace"
+                    "OpenGL PCF shadow-map trace did not record shader-side sampling execution"
+                    "" "${opengl_shadow_pcf_result}" "${opengl_shadow_pcf_stdout}"
+                    "${opengl_shadow_pcf_trace_json}")
+  endif()
+elseif(opengl_shadow_pcf_stderr MATCHES "OpenGL raster backend is selected")
+  if(opengl_shadow_pcf_stderr MATCHES "QCoreApplication")
+    _rendercli_fail("rendercli --raster_backend gpu PCF shadow trace application bootstrap"
+                    "OpenGL PCF shadow-map trace still failed before rendercli started a GUI-capable application"
+                    "" "${opengl_shadow_pcf_result}" "${opengl_shadow_pcf_stdout}"
+                    "${opengl_shadow_pcf_stderr}")
+  endif()
+else()
+  _rendercli_fail("rendercli --raster_backend gpu PCF shadow trace"
+                  "OpenGL PCF shadow-map trace neither rendered nor reported a clear OpenGL capability error"
+                  "" "${opengl_shadow_pcf_result}" "${opengl_shadow_pcf_stdout}"
+                  "${opengl_shadow_pcf_stderr}")
+endif()
+
 set(opengl_object_id_render "${TEST_OUTPUT_DIR}/raster-opengl-object-id.png")
 execute_process(
   COMMAND

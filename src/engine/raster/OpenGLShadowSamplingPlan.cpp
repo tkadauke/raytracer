@@ -21,8 +21,11 @@ namespace engine::raster::detail {
     if (shadowMap.cascades().size() != 1) {
       return disabled("shader-side OpenGL shadows require exactly one directional shadow cascade");
     }
-    if (shadowMap.filterRadius() != 0) {
-      return disabled("shader-side OpenGL shadows require hard filtering");
+    if (shadowMap.filterMode() == Rasterizer::ShadowFilterMode::PCSS) {
+      return disabled("shader-side OpenGL shadows do not support PCSS filtering yet");
+    }
+    if (shadowMap.filterRadius() > 4) {
+      return disabled("shader-side OpenGL shadows support PCF filter radius up to 4");
     }
     if (shadowMap.slopeBias() != 0.0) {
       return disabled("shader-side OpenGL shadows require constant bias");

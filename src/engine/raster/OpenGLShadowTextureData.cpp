@@ -22,6 +22,7 @@ namespace engine::raster::detail {
     const Buffer<double>& depth = *plan.cascade()->depthBuffer;
     OpenGLShadowTextureData data(depth.width(), depth.height(), 1.0);
     data.m_bias = plan.shadowMap()->bias();
+    data.m_filterRadius = plan.shadowMap()->filterRadius();
     data.m_origin = plan.cascade()->camera->origin();
     data.m_right = plan.cascade()->camera->right();
     data.m_up = plan.cascade()->camera->up();
@@ -63,6 +64,10 @@ namespace engine::raster::detail {
 
   double OpenGLShadowTextureData::bias() const {
     return m_bias;
+  }
+
+  int OpenGLShadowTextureData::filterRadius() const {
+    return m_filterRadius;
   }
 
   const Vector3d& OpenGLShadowTextureData::origin() const {

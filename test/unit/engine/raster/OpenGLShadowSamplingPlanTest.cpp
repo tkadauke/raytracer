@@ -35,14 +35,15 @@ namespace OpenGLShadowSamplingPlanTest {
     return {std::move(shadowCamera), std::move(depth), 0.0, 10.0};
   }
 
-  ShadowMaps shadowMaps(const render::Light* light = nullptr, int filterRadius = 0,
-                        double slopeBias = 0.0) {
+  ShadowMaps
+  shadowMaps(const render::Light* light = nullptr, int filterRadius = 0, double slopeBias = 0.0,
+             Rasterizer::ShadowFilterMode filterMode = Rasterizer::ShadowFilterMode::PCF) {
     std::vector<DirectionalShadowCascade> cascades;
     cascades.push_back(cascade());
 
     ShadowMaps maps;
     maps.add(DirectionalShadowMap(light, camera(), std::move(cascades), 0.01, slopeBias,
-                                  filterRadius, Rasterizer::ShadowFilterMode::PCF));
+                                  filterRadius, filterMode));
     return maps;
   }
 
@@ -68,15 +69,31 @@ namespace OpenGLShadowSamplingPlanTest {
     EXPECT_NE(std::string::npos, plan.traceMessage().find("CPU-prepared shadow visibility"));
   }
 
-  TEST(OpenGLShadowSamplingPlan, RejectsFilteredDirectionalMaps) {
-    ShadowMaps maps = shadowMaps(nullptr, 1);
+  TEST(OpenGLShadowSamplingPlan, EnablesSmallPcfDirectionalMaps) {
+    ShadowMaps maps = shadowMaps(nullptr, 2);
+
+    const OpenGLShadowSamplingPlan plan = OpenGLShadowSamplingPlan::from(&maps);
+
+    EXPECT_TRUE(plan.enabled());
+    EXPECT_TRUE(plan.disabledReason().empty());
+  }
+
+  TEST(OpenGLShadowSamplingPlan, RejectsWidePcfDirectionalMaps) {
+    ShadowMaps maps = shadowMaps(nullptr, 5);
 
     const OpenGLShadowSamplingPlan plan = OpenGLShadowSamplingPlan::from(&maps);
 
     EXPECT_FALSE(plan.enabled());
-    EXPECT_NE(std::string::npos, plan.disabledReason().find("hard filtering"));
-    EXPECT_NE(std::string::npos, plan.traceMessage().find("falls back"));
-    EXPECT_NE(std::string::npos, plan.traceMessage().find("hard filtering"));
+    EXPECT_NE(std::string::npos, plan.disabledReason().find("radius up to 4"));
+  }
+
+  TEST(OpenGLShadowSamplingPlan, RejectsPcssDirectionalMaps) {
+    ShadowMaps maps = shadowMaps(nullptr, 1, 0.0, Rasterizer::ShadowFilterMode::PCSS);
+
+    const OpenGLShadowSamplingPlan plan = OpenGLShadowSamplingPlan::from(&maps);
+
+    EXPECT_FALSE(plan.enabled());
+    EXPECT_NE(std::string::npos, plan.disabledReason().find("PCSS"));
   }
 
   TEST(OpenGLShadowSamplingPlan, RejectsSlopeBiasedDirectionalMaps) {

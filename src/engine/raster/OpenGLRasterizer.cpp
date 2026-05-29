@@ -335,6 +335,8 @@ namespace engine::raster {
                                        "uniform float shadowHalfExtent;\n"
                                        "uniform float shadowDepthScale;\n"
                                        "uniform float shadowBias;\n"
+                                       "uniform int shadowFilterRadius;\n"
+                                       "uniform vec2 shadowTexelSize;\n"
                                        "bool alphaPass(float alpha) {\n"
                                        "  if (!alphaTestEnabled) return true;\n"
                                        "  if (alphaFunc == 0) return false;\n"
@@ -345,6 +347,15 @@ namespace engine::raster {
                                        "  if (alphaFunc == 5) return alpha >= alphaReference;\n"
                                        "  if (alphaFunc == 6) return alpha != alphaReference;\n"
                                        "  return true;\n"
+                                       "}\n"
+                                       "float shadowSampleVisibility(vec2 uv, float receiver, "
+                                       "float bias) {\n"
+                                       "  if (uv.x < 0.0 || uv.y < 0.0 || uv.x >= 1.0 || uv.y >= "
+                                       "1.0) return 1.0;\n"
+                                       "  float occluderDepth = texture2D(shadowTexture, uv).r;\n"
+                                       "  if (occluderDepth >= 0.999999) return 1.0;\n"
+                                       "  return receiver <= occluderDepth + bias ? 1.0 : "
+                                       "0.0;\n"
                                        "}\n"
                                        "float shadowVisibility(vec3 worldPosition) {\n"
                                        "  if (!shadowTextureEnabled) return 1.0;\n"
@@ -357,14 +368,26 @@ namespace engine::raster {
                                        "0.5,\n"
                                        "                (lightY / shadowHalfExtent + 1.0) * "
                                        "0.5);\n"
-                                       "  if (uv.x < 0.0 || uv.y < 0.0 || uv.x >= 1.0 || uv.y >= "
-                                       "1.0) return 1.0;\n"
-                                       "  float occluderDepth = texture2D(shadowTexture, uv).r;\n"
-                                       "  if (occluderDepth >= 0.999999) return 1.0;\n"
                                        "  float receiver = receiverDepth / shadowDepthScale;\n"
                                        "  float bias = shadowBias / shadowDepthScale;\n"
-                                       "  return receiver <= occluderDepth + bias ? 1.0 : "
-                                       "0.0;\n"
+                                       "  if (shadowFilterRadius <= 0) {\n"
+                                       "    return shadowSampleVisibility(uv, receiver, bias);\n"
+                                       "  }\n"
+                                       "  float lit = 0.0;\n"
+                                       "  float samples = 0.0;\n"
+                                       "  for (int dy = -4; dy <= 4; ++dy) {\n"
+                                       "    for (int dx = -4; dx <= 4; ++dx) {\n"
+                                       "      if (dx >= -shadowFilterRadius && dx <= "
+                                       "shadowFilterRadius &&\n"
+                                       "          dy >= -shadowFilterRadius && dy <= "
+                                       "shadowFilterRadius) {\n"
+                                       "        lit += shadowSampleVisibility(uv + vec2(float(dx), "
+                                       "float(dy)) * shadowTexelSize, receiver, bias);\n"
+                                       "        samples += 1.0;\n"
+                                       "      }\n"
+                                       "    }\n"
+                                       "  }\n"
+                                       "  return lit / samples;\n"
                                        "}\n"
                                        "void main() {\n"
                                        "  vec4 sourceColor = vertexColor;\n"
@@ -639,6 +662,10 @@ namespace engine::raster {
         program.setUniformValue("shadowDepthScale",
                                 static_cast<GLfloat>(m_shadowTextureData.depthScale()));
         program.setUniformValue("shadowBias", static_cast<GLfloat>(m_shadowTextureData.bias()));
+        program.setUniformValue("shadowFilterRadius", m_shadowTextureData.filterRadius());
+        program.setUniformValue("shadowTexelSize",
+                                static_cast<GLfloat>(1.0 / m_shadowTextureData.width()),
+                                static_cast<GLfloat>(1.0 / m_shadowTextureData.height()));
       }
 
       void setVectorUniform(QOpenGLShaderProgram& program, const char* name,

@@ -28,6 +28,7 @@ namespace engine::raster::detail {
     int height() const;
     double depthScale() const;
     double bias() const;
+    int filterRadius() const;
     const Vector3d& origin() const;
     const Vector3d& right() const;
     const Vector3d& up() const;
@@ -49,6 +50,7 @@ namespace engine::raster::detail {
     int m_height;
     double m_depthScale;
     double m_bias{0.0};
+    int m_filterRadius{0};
     Vector3d m_origin{Vector3d::null};
     Vector3d m_right{Vector3d::right()};
     Vector3d m_up{Vector3d::up()};

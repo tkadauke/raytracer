@@ -22,6 +22,7 @@ namespace OpenGLShadowTextureDataTest {
 
   constexpr int kWidth = 2;
   constexpr int kHeight = 2;
+  constexpr int kFilterRadius = 2;
 
   std::shared_ptr<render::PinholeCamera> camera() {
     return std::make_shared<render::PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d::null);
@@ -52,8 +53,8 @@ namespace OpenGLShadowTextureDataTest {
     cascades.push_back(cascade());
 
     ShadowMaps maps;
-    maps.add(DirectionalShadowMap(nullptr, camera(), std::move(cascades), kShadowBias, 0.0, 0,
-                                  Rasterizer::ShadowFilterMode::PCF));
+    maps.add(DirectionalShadowMap(nullptr, camera(), std::move(cascades), kShadowBias, 0.0,
+                                  kFilterRadius, Rasterizer::ShadowFilterMode::PCF));
     return maps;
   }
 
@@ -83,6 +84,7 @@ namespace OpenGLShadowTextureDataTest {
     EXPECT_EQ(kHeight, data.height());
     EXPECT_DOUBLE_EQ(7.0, data.depthScale());
     EXPECT_DOUBLE_EQ(kShadowBias, data.bias());
+    EXPECT_EQ(kFilterRadius, data.filterRadius());
     EXPECT_EQ(Vector3d(1.0, 2.0, -5.0), data.origin());
     EXPECT_EQ(Vector3d::right(), data.right());
     EXPECT_EQ(Vector3d::up(), data.up());

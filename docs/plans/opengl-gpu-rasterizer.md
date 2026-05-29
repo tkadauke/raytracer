@@ -346,10 +346,10 @@ Tasks:
   shadow-texture sampling without changing the current image equation.
 - ~~Add shader-side OpenGL shadow-map sampling after the GPU raster path has
   explicit shadow texture binding and shader lighting state.~~ ✅ **Done.** The
-  first supported OpenGL shadow subset samples one hard-filtered directional
-  cascade in the fragment shader when that shadow map owns the scene's single
-  direct light; unsupported shadow configurations stay on CPU-prepared
-  visibility. The shadow-map
+  first supported OpenGL shadow subset samples one hard/PCF-filtered
+  directional cascade in the fragment shader when that shadow map owns the
+  scene's single direct light; unsupported shadow configurations stay on
+  CPU-prepared visibility. The shadow-map
   collection now exposes its directional maps directly so the GPU binding path
   can enumerate cascades without per-light lookup, and the OpenGL mesh stream
   now carries world position plus lighting normal for per-fragment
@@ -358,7 +358,8 @@ Tasks:
   into light-space; directional shadow maps expose bias and filter policy so
   the GPU path can decide when shader sampling matches the graph state. An
   `OpenGLShadowSamplingPlan` now captures the first supported subset: one
-  hard-filtered directional cascade with constant bias. Graph traces record
+  directional cascade with constant bias and hard shadows or PCF radius up to
+  4. Graph traces record
   whether a shadow-enabled OpenGL pass matches that subset or still falls back
   to CPU-prepared shadow visibility. `OpenGLShadowTextureData` now converts the
   eligible shadow depth buffer into normalized RGBA float texels with a
