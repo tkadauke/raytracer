@@ -426,5 +426,15 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("main_color", pass.writes.front().resource);
     EXPECT_TRUE(pass.readsResource("beauty_color"));
     EXPECT_TRUE(pass.writesResource("main_color"));
+    EXPECT_TRUE(pass.supportsResourceDomain(RenderResourceDomain::CPU));
+    EXPECT_FALSE(pass.supportsResourceDomain(RenderResourceDomain::GPU));
+  }
+
+  TEST(RenderPassNode, SupportsDeclaredResourceDomains) {
+    RenderPassNode pass;
+    pass.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
+
+    EXPECT_TRUE(pass.supportsResourceDomain(RenderResourceDomain::CPU));
+    EXPECT_TRUE(pass.supportsResourceDomain(RenderResourceDomain::GPU));
   }
 }

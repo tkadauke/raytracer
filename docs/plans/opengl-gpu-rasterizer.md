@@ -282,7 +282,9 @@ Tasks:
   backend-provided GPU residency metadata for descriptor-only resources and
   surfaces that metadata in graph trace snapshots, providing the first storage
   hook for resident OpenGL textures/renderbuffers before concrete pass reuse
-  lands.
+  lands. Render pass nodes now also declare their supported resource domains,
+  so GPU-compatible pass chains can validate explicitly instead of relying on a
+  hard-coded CPU-only rule.
 - Add explicit readback pass/operation for final image output, trace, and AOV
   export.
 - ~~Record readback cost in graph trace metadata.~~ ✅ **Done.** OpenGL raster

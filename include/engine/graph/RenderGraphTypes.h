@@ -490,6 +490,7 @@ namespace engine::graph {
     std::vector<RenderFeatureKind> features;
     std::vector<ResourceRead> reads;
     std::vector<ResourceWrite> writes;
+    std::set<RenderResourceDomain> supportedResourceDomains{RenderResourceDomain::CPU};
     SceneView sceneView;
     std::shared_ptr<const RenderPassState> state;
     DisabledBehavior disabledBehavior{DisabledBehavior::Error};

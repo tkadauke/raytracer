@@ -258,6 +258,13 @@ namespace engine::graph {
       return array;
     }
 
+    QJsonArray resourceDomainArray(const std::set<RenderResourceDomain>& domains) {
+      QJsonArray array;
+      for (const auto& domain : domains)
+        array.append(toString(domain));
+      return array;
+    }
+
     std::vector<RenderFeatureKind> featureArrayFromJson(const QJsonObject& object, const char* key,
                                                         const std::string& path) {
       std::vector<RenderFeatureKind> result;
@@ -331,6 +338,25 @@ namespace engine::graph {
         if (!array.at(i).isString())
           jsonError(path + "." + key + "[" + std::to_string(i) + "]", "expected string");
         result.push_back({array.at(i).toString().toStdString()});
+      }
+      return result;
+    }
+
+    std::set<RenderResourceDomain>
+    resourceDomainSetFromJson(const QJsonObject& object, const char* key, const std::string& path) {
+      std::set<RenderResourceDomain> result;
+      const auto value = object.value(key);
+      if (value.isUndefined())
+        return {RenderResourceDomain::CPU};
+      if (!value.isArray())
+        jsonError(path + "." + key, "expected array");
+
+      const auto array = value.toArray();
+      for (int i = 0; i < array.size(); ++i) {
+        if (!array.at(i).isString())
+          jsonError(path + "." + key + "[" + std::to_string(i) + "]", "expected string");
+        result.insert(resourceDomainFromJson(array.at(i).toString().toStdString(),
+                                             path + "." + key + "[" + std::to_string(i) + "]"));
       }
       return result;
     }
@@ -1168,7 +1194,7 @@ namespace engine::graph {
   }
 
   bool RenderPassNode::supportsResourceDomain(RenderResourceDomain domain) const {
-    return domain == RenderResourceDomain::CPU;
+    return supportedResourceDomains.find(domain) != supportedResourceDomains.end();
   }
 
   bool RenderPassNode::producesWhenDisabled() const {
@@ -1199,6 +1225,11 @@ namespace engine::graph {
     object["features"] = stringArray(features);
     object["reads"] = readArray(reads);
     object["writes"] = writeArray(writes);
+    if (supportedResourceDomains.size() != 1 ||
+        supportedResourceDomains.find(RenderResourceDomain::CPU) ==
+          supportedResourceDomains.end()) {
+      object["supportedResourceDomains"] = resourceDomainArray(supportedResourceDomains);
+    }
     object["sceneSelector"] = sceneView.selector.toJson();
     if (sceneView.camera) {
       object["sceneCamera"] = sceneView.camera->toJson();
@@ -1229,6 +1260,8 @@ namespace engine::graph {
     pass.features = featureArrayFromJson(object, "features", path);
     pass.reads = readsFromJson(object, "reads", path);
     pass.writes = writesFromJson(object, "writes", path);
+    pass.supportedResourceDomains =
+      resourceDomainSetFromJson(object, "supportedResourceDomains", path);
 
     const auto parameters = object.value("parameters");
     if (!parameters.isUndefined()) {

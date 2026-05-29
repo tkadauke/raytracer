@@ -169,6 +169,25 @@ namespace RenderPlanTest {
     }));
   }
 
+  TEST(RenderPlan, AllowsPassDeclaredGpuResourceDomains) {
+    RenderPlan plan;
+    auto gpuInput = colorResource("gpu_input", RenderResourceLifetime::Imported);
+    gpuInput.domain = RenderResourceDomain::GPU;
+    plan.addResource(gpuInput);
+    auto gpuOutput = colorResource("gpu_output", RenderResourceLifetime::Transient);
+    gpuOutput.domain = RenderResourceDomain::GPU;
+    plan.addResource(gpuOutput);
+
+    auto gpuPass = pass("gpu_pass", RenderPassKind::Beauty);
+    gpuPass.executor = RenderExecutorKind::Rasterizer;
+    gpuPass.supportedResourceDomains = {RenderResourceDomain::GPU};
+    gpuPass.reads.push_back({"gpu_input"});
+    gpuPass.writes.push_back({"gpu_output"});
+    plan.addPass(gpuPass);
+
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderPlan, ReportsUnproducedExportedResource) {
     RenderPlan plan;
     plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported));
@@ -723,6 +742,7 @@ namespace RenderPlanTest {
     node.features = {"main", "display"};
     node.reads.push_back({"history_color"});
     node.writes.push_back({"main_color"});
+    node.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
     node.sceneView.selector = SceneSelector::objectName("hero");
     node.sceneView.camera = RenderCameraRef{"shot-camera", std::nullopt};
     node.sceneView.shadingProfile = ShadingProfileRef{"toon", {}};
@@ -748,6 +768,15 @@ namespace RenderPlanTest {
                                .toString()
                                .toStdString());
     ASSERT_TRUE(json["passes"].toArray().at(0).toObject()["sceneShadingProfile"].isObject());
+    ASSERT_TRUE(json["passes"].toArray().at(0).toObject()["supportedResourceDomains"].isArray());
+    EXPECT_EQ("gpu", json["passes"]
+                       .toArray()
+                       .at(0)
+                       .toObject()["supportedResourceDomains"]
+                       .toArray()
+                       .at(1)
+                       .toString()
+                       .toStdString());
     EXPECT_EQ("toon", json["passes"]
                         .toArray()
                         .at(0)
