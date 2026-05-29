@@ -70,12 +70,15 @@ for consistency — the GL fixed-function path is free and the mesh builder
 should not double-decide. The parity test gets a back-culled variant to pin
 that visible behavior actually changes.
 
-### Commit 3: depth bias via `glPolygonOffset`
+### Commit 3: depth bias via `glPolygonOffset` — skipped
 
-Stop baking `m_depthBias` into vertex positions in the mesh builder. Apply it
-in `applyDepth` with `glPolygonOffset` + `glEnable(GL_POLYGON_OFFSET_FILL)`,
-mapping the public double bias to (factor, units). Add a parity test variant
-that coplanar geometry separates cleanly under bias.
+Investigation: CPU `Rasterizer` treats `depthBias` as a constant additive
+offset in NDC depth space (`DepthState::biasedDepth` = `depth + bias`). The
+OpenGL backend bakes the same constant offset into per-vertex NDC depth in
+`OpenGLRasterMesh.cpp`, matching CPU semantics. Switching to
+`glPolygonOffset` would apply a slope-scaled, depth-buffer-precision-dependent
+bias instead — that is a different contract, not a correctness fix. Revisit
+only if/when the public `depthBias` is redefined as slope-aware.
 
 ### Commit 4: stop clamping image textures at upload
 
