@@ -52,15 +52,21 @@ namespace engine::raster {
     std::unique_ptr<QOpenGLFramebufferObject> framebuffer;
     std::unique_ptr<QOffscreenSurface> surface;
     std::unique_ptr<QOpenGLContext> context;
+    int framebufferWidth{0};
+    int framebufferHeight{0};
+    int framebufferSamples{0};
     std::string errorMessage;
 
     ~Private() {
       destroyResources();
     }
 
-    bool create(int width, int height, int samples) {
-      destroyResources();
+    bool ensureContext() {
       errorMessage.clear();
+
+      if (context && surface && surface->isValid()) {
+        return true;
+      }
 
       if (!qobject_cast<QGuiApplication*>(QCoreApplication::instance())) {
         errorMessage =
@@ -107,31 +113,51 @@ namespace engine::raster {
         return false;
       }
 
-      if (!context->makeCurrent(surface.get())) {
-        errorMessage =
-          "OpenGL raster backend is selected, but the offscreen context could not be made current";
-        surface.reset();
-        context.reset();
+      return true;
+    }
+
+    bool ensureFramebuffer(int width, int height, int samples) {
+      if (!ensureContext()) {
         return false;
       }
 
+      const int normalizedSamples = samples > 1 ? samples : 0;
+      const int targetWidth = std::max(1, width);
+      const int targetHeight = std::max(1, height);
+      if (framebuffer && framebuffer->isValid() && framebufferWidth == targetWidth &&
+          framebufferHeight == targetHeight && framebufferSamples == normalizedSamples) {
+        return true;
+      }
+
+      if (!context->makeCurrent(surface.get())) {
+        errorMessage =
+          "OpenGL raster backend is selected, but the offscreen context could not be made current";
+        return false;
+      }
+
+      framebuffer.reset();
       QOpenGLFramebufferObjectFormat framebufferFormat;
       framebufferFormat.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
-      framebufferFormat.setSamples(samples > 1 ? samples : 0);
-      framebuffer = std::make_unique<QOpenGLFramebufferObject>(
-        std::max(1, width), std::max(1, height), framebufferFormat);
+      framebufferFormat.setSamples(normalizedSamples);
+      framebuffer =
+        std::make_unique<QOpenGLFramebufferObject>(targetWidth, targetHeight, framebufferFormat);
       if (!framebuffer->isValid()) {
         errorMessage =
           "OpenGL raster backend is selected, but Qt could not create an offscreen framebuffer";
         framebuffer.reset();
         context->doneCurrent();
-        surface.reset();
-        context.reset();
         return false;
       }
 
+      framebufferWidth = targetWidth;
+      framebufferHeight = targetHeight;
+      framebufferSamples = normalizedSamples;
       context->doneCurrent();
       return true;
+    }
+
+    bool create(int width, int height, int samples) {
+      return ensureContext() && ensureFramebuffer(width, height, samples);
     }
 
     bool makeCurrent() {
@@ -352,6 +378,9 @@ namespace engine::raster {
 
       surface.reset();
       context.reset();
+      framebufferWidth = 0;
+      framebufferHeight = 0;
+      framebufferSamples = 0;
     }
 
     bool isValid() const {
