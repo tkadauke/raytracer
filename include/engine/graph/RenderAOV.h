@@ -26,6 +26,7 @@ namespace engine::graph {
     virtual RenderResourceFormat resourceFormat() const = 0;
     virtual bool usesRasterTargetSampling() const = 0;
     virtual bool supportsExecutor(RenderExecutorKind executor) const = 0;
+    virtual void configureProducerPass(RenderPassNode& pass) const;
 
     RenderResourceId resourceId() const;
     RenderResourceId previewColorResourceId() const;

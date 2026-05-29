@@ -308,8 +308,11 @@ Tasks:
   **Done.** OpenGL raster draw calls now apply the stencil state used by the
   graph stencil AOV pass and read the stencil attachment back into the
   graph-visible CPU resource.
-- Add generalized stencil pass state once high-level render intents need
-  explicit stencil tests beyond diagnostic/AOV generation.
+- ~~Add generalized stencil pass state once high-level render intents need
+  explicit stencil tests beyond diagnostic/AOV generation.~~ ✅ **Done.**
+  Raster framebuffer state now serializes stencil test, reference/masks,
+  load/store, and operations; the stencil AOV definition configures that typed
+  state on its producer pass instead of hard-coding it inside the payload.
 - ~~Add object/material ID output with integer attachments or a fallback
   path.~~ ✅ **Done.** Object/material ID graph AOVs selected with the OpenGL
   raster backend now use the software raster diagnostic fallback so IDs stay

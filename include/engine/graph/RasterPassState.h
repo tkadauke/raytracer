@@ -99,7 +99,7 @@ namespace engine::graph {
   };
 
   /**
-    * Framebuffer-space, depth-bias, alpha, and color-output controls.
+    * Framebuffer-space, depth-bias, stencil, alpha, and color-output controls.
     */
   class RasterFramebufferState {
   public:
@@ -123,6 +123,18 @@ namespace engine::graph {
     void setBlendConstant(const Colord& color, double alpha);
     void setAlphaTestEnabled(bool enabled);
     void setAlphaFunc(Rasterizer::AlphaFunc func, double reference);
+    void setStencilTestEnabled(bool enabled);
+    void setStencilFunc(Rasterizer::StencilFunc func, std::uint8_t reference,
+                        std::uint8_t mask = 0xff);
+    void setStencilClearValue(std::uint8_t value);
+    void setStencilLoadOp(Rasterizer::AttachmentLoadOp op);
+    void setStencilStoreOp(Rasterizer::AttachmentStoreOp op);
+    void setStencilWriteMask(std::uint8_t mask);
+    void setStencilOps(Rasterizer::StencilOp stencilFail, Rasterizer::StencilOp depthFail,
+                       Rasterizer::StencilOp pass);
+    void configureStencilWritePass(std::uint8_t value);
+
+    bool stencilTestEnabled() const;
 
   private:
     std::optional<Recti> m_viewportRect;
@@ -138,6 +150,17 @@ namespace engine::graph {
     bool m_alphaTestEnabled{false};
     Rasterizer::AlphaFunc m_alphaFunc{Rasterizer::AlphaFunc::Always};
     double m_alphaReference{0.0};
+    bool m_stencilTestEnabled{false};
+    Rasterizer::StencilFunc m_stencilFunc{Rasterizer::StencilFunc::Always};
+    std::uint8_t m_stencilReference{0};
+    std::uint8_t m_stencilMask{0xff};
+    std::uint8_t m_stencilClearValue{0};
+    Rasterizer::AttachmentLoadOp m_stencilLoadOp{Rasterizer::AttachmentLoadOp::Clear};
+    Rasterizer::AttachmentStoreOp m_stencilStoreOp{Rasterizer::AttachmentStoreOp::Store};
+    std::uint8_t m_stencilWriteMask{0xff};
+    Rasterizer::StencilOp m_stencilFailOp{Rasterizer::StencilOp::Keep};
+    Rasterizer::StencilOp m_stencilDepthFailOp{Rasterizer::StencilOp::Keep};
+    Rasterizer::StencilOp m_stencilPassOp{Rasterizer::StencilOp::Keep};
   };
 
   /**

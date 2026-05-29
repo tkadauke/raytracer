@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <initializer_list>
 #include <stdexcept>
 #include <string>
@@ -71,6 +72,13 @@ namespace engine::graph {
       if (!std::isfinite(number) || std::floor(number) != number)
         stateError(path + "." + key, "expected integer");
       return static_cast<int>(number);
+    }
+
+    std::uint8_t byteField(const QJsonObject& object, const char* key, const std::string& path) {
+      const int value = intField(object, key, path);
+      if (value < 0 || value > 255)
+        stateError(path + "." + key, "expected integer from 0 to 255");
+      return static_cast<std::uint8_t>(value);
     }
 
     double doubleField(const QJsonObject& object, const char* key, const std::string& path) {
@@ -323,6 +331,102 @@ namespace engine::graph {
       stateError(path, "unknown alpha function");
     }
 
+    const char* toString(Rasterizer::StencilFunc func) {
+      return enumName<Rasterizer::StencilFunc>(
+        func,
+        {{Rasterizer::StencilFunc::Never, "never"},
+         {Rasterizer::StencilFunc::Less, "less"},
+         {Rasterizer::StencilFunc::Equal, "equal"},
+         {Rasterizer::StencilFunc::LessEqual, "less_equal"},
+         {Rasterizer::StencilFunc::Greater, "greater"},
+         {Rasterizer::StencilFunc::GreaterEqual, "greater_equal"},
+         {Rasterizer::StencilFunc::NotEqual, "not_equal"},
+         {Rasterizer::StencilFunc::Always, "always"}},
+        "always");
+    }
+
+    Rasterizer::StencilFunc stencilFuncFromString(const std::string& value,
+                                                  const std::string& path) {
+      if (value == "never")
+        return Rasterizer::StencilFunc::Never;
+      if (value == "less")
+        return Rasterizer::StencilFunc::Less;
+      if (value == "equal")
+        return Rasterizer::StencilFunc::Equal;
+      if (value == "less_equal")
+        return Rasterizer::StencilFunc::LessEqual;
+      if (value == "greater")
+        return Rasterizer::StencilFunc::Greater;
+      if (value == "greater_equal")
+        return Rasterizer::StencilFunc::GreaterEqual;
+      if (value == "not_equal")
+        return Rasterizer::StencilFunc::NotEqual;
+      if (value == "always")
+        return Rasterizer::StencilFunc::Always;
+      stateError(path, "unknown stencil function");
+    }
+
+    const char* toString(Rasterizer::StencilOp op) {
+      return enumName<Rasterizer::StencilOp>(
+        op,
+        {{Rasterizer::StencilOp::Keep, "keep"},
+         {Rasterizer::StencilOp::Zero, "zero"},
+         {Rasterizer::StencilOp::Replace, "replace"},
+         {Rasterizer::StencilOp::IncrementClamp, "increment_clamp"},
+         {Rasterizer::StencilOp::DecrementClamp, "decrement_clamp"},
+         {Rasterizer::StencilOp::Invert, "invert"}},
+        "keep");
+    }
+
+    Rasterizer::StencilOp stencilOpFromString(const std::string& value, const std::string& path) {
+      if (value == "keep")
+        return Rasterizer::StencilOp::Keep;
+      if (value == "zero")
+        return Rasterizer::StencilOp::Zero;
+      if (value == "replace")
+        return Rasterizer::StencilOp::Replace;
+      if (value == "increment_clamp")
+        return Rasterizer::StencilOp::IncrementClamp;
+      if (value == "decrement_clamp")
+        return Rasterizer::StencilOp::DecrementClamp;
+      if (value == "invert")
+        return Rasterizer::StencilOp::Invert;
+      stateError(path, "unknown stencil operation");
+    }
+
+    const char* toString(Rasterizer::AttachmentLoadOp op) {
+      return enumName<Rasterizer::AttachmentLoadOp>(op,
+                                                    {{Rasterizer::AttachmentLoadOp::Clear, "clear"},
+                                                     {Rasterizer::AttachmentLoadOp::Load, "load"}},
+                                                    "clear");
+    }
+
+    Rasterizer::AttachmentLoadOp attachmentLoadOpFromString(const std::string& value,
+                                                            const std::string& path) {
+      if (value == "clear")
+        return Rasterizer::AttachmentLoadOp::Clear;
+      if (value == "load")
+        return Rasterizer::AttachmentLoadOp::Load;
+      stateError(path, "expected clear or load");
+    }
+
+    const char* toString(Rasterizer::AttachmentStoreOp op) {
+      return enumName<Rasterizer::AttachmentStoreOp>(
+        op,
+        {{Rasterizer::AttachmentStoreOp::Store, "store"},
+         {Rasterizer::AttachmentStoreOp::Discard, "discard"}},
+        "store");
+    }
+
+    Rasterizer::AttachmentStoreOp attachmentStoreOpFromString(const std::string& value,
+                                                              const std::string& path) {
+      if (value == "store")
+        return Rasterizer::AttachmentStoreOp::Store;
+      if (value == "discard")
+        return Rasterizer::AttachmentStoreOp::Discard;
+      stateError(path, "expected store or discard");
+    }
+
     const char* toString(Rasterizer::ShadowFilterMode mode) {
       return enumName<Rasterizer::ShadowFilterMode>(
         mode,
@@ -555,10 +659,18 @@ namespace engine::graph {
 
   RasterFramebufferState RasterFramebufferState::fromJson(const QJsonObject& object,
                                                           const std::string& path) {
-    rejectUnknownFields(object, path,
-                        {"viewport", "scissor", "depthBias", "colorWriteMask", "blending",
-                         "blendSource", "blendDestination", "blendOp", "blendConstantColor",
-                         "blendConstantAlpha", "alphaTest", "alphaFunc", "alphaReference"});
+    rejectUnknownFields(object, path, {"viewport",           "scissor",
+                                       "depthBias",          "colorWriteMask",
+                                       "blending",           "blendSource",
+                                       "blendDestination",   "blendOp",
+                                       "blendConstantColor", "blendConstantAlpha",
+                                       "alphaTest",          "alphaFunc",
+                                       "alphaReference",     "stencilTest",
+                                       "stencilFunc",        "stencilReference",
+                                       "stencilMask",        "stencilClearValue",
+                                       "stencilLoadOp",      "stencilStoreOp",
+                                       "stencilWriteMask",   "stencilFailOp",
+                                       "stencilDepthFailOp", "stencilPassOp"});
     RasterFramebufferState state;
     if (hasField(object, "viewport"))
       state.setViewportRect(rectFromJson(object, "viewport", path));
@@ -605,6 +717,47 @@ namespace engine::graph {
         hasField(object, "alphaReference") ? doubleField(object, "alphaReference", path) : 0.0;
       state.setAlphaFunc(func, reference);
     }
+    if (hasField(object, "stencilTest"))
+      state.setStencilTestEnabled(boolField(object, "stencilTest", path));
+    if (hasField(object, "stencilFunc") || hasField(object, "stencilReference") ||
+        hasField(object, "stencilMask")) {
+      const auto func =
+        hasField(object, "stencilFunc")
+          ? stencilFuncFromString(stringField(object, "stencilFunc", path), path + ".stencilFunc")
+          : Rasterizer::StencilFunc::Always;
+      const std::uint8_t reference =
+        hasField(object, "stencilReference") ? byteField(object, "stencilReference", path) : 0;
+      const std::uint8_t mask =
+        hasField(object, "stencilMask") ? byteField(object, "stencilMask", path) : 0xff;
+      state.setStencilFunc(func, reference, mask);
+    }
+    if (hasField(object, "stencilClearValue"))
+      state.setStencilClearValue(byteField(object, "stencilClearValue", path));
+    if (hasField(object, "stencilLoadOp"))
+      state.setStencilLoadOp(attachmentLoadOpFromString(stringField(object, "stencilLoadOp", path),
+                                                        path + ".stencilLoadOp"));
+    if (hasField(object, "stencilStoreOp"))
+      state.setStencilStoreOp(attachmentStoreOpFromString(
+        stringField(object, "stencilStoreOp", path), path + ".stencilStoreOp"));
+    if (hasField(object, "stencilWriteMask"))
+      state.setStencilWriteMask(byteField(object, "stencilWriteMask", path));
+    if (hasField(object, "stencilFailOp") || hasField(object, "stencilDepthFailOp") ||
+        hasField(object, "stencilPassOp")) {
+      const auto stencilFail =
+        hasField(object, "stencilFailOp")
+          ? stencilOpFromString(stringField(object, "stencilFailOp", path), path + ".stencilFailOp")
+          : Rasterizer::StencilOp::Keep;
+      const auto depthFail =
+        hasField(object, "stencilDepthFailOp")
+          ? stencilOpFromString(stringField(object, "stencilDepthFailOp", path),
+                                path + ".stencilDepthFailOp")
+          : Rasterizer::StencilOp::Keep;
+      const auto pass =
+        hasField(object, "stencilPassOp")
+          ? stencilOpFromString(stringField(object, "stencilPassOp", path), path + ".stencilPassOp")
+          : Rasterizer::StencilOp::Keep;
+      state.setStencilOps(stencilFail, depthFail, pass);
+    }
     return state;
   }
 
@@ -636,6 +789,28 @@ namespace engine::graph {
       object["alphaFunc"] = toString(m_alphaFunc);
     if (m_alphaReference != 0.0)
       object["alphaReference"] = m_alphaReference;
+    if (m_stencilTestEnabled)
+      object["stencilTest"] = true;
+    if (m_stencilFunc != Rasterizer::StencilFunc::Always)
+      object["stencilFunc"] = toString(m_stencilFunc);
+    if (m_stencilReference != 0)
+      object["stencilReference"] = static_cast<int>(m_stencilReference);
+    if (m_stencilMask != 0xff)
+      object["stencilMask"] = static_cast<int>(m_stencilMask);
+    if (m_stencilClearValue != 0)
+      object["stencilClearValue"] = static_cast<int>(m_stencilClearValue);
+    if (m_stencilLoadOp != Rasterizer::AttachmentLoadOp::Clear)
+      object["stencilLoadOp"] = toString(m_stencilLoadOp);
+    if (m_stencilStoreOp != Rasterizer::AttachmentStoreOp::Store)
+      object["stencilStoreOp"] = toString(m_stencilStoreOp);
+    if (m_stencilWriteMask != 0xff)
+      object["stencilWriteMask"] = static_cast<int>(m_stencilWriteMask);
+    if (m_stencilFailOp != Rasterizer::StencilOp::Keep)
+      object["stencilFailOp"] = toString(m_stencilFailOp);
+    if (m_stencilDepthFailOp != Rasterizer::StencilOp::Keep)
+      object["stencilDepthFailOp"] = toString(m_stencilDepthFailOp);
+    if (m_stencilPassOp != Rasterizer::StencilOp::Keep)
+      object["stencilPassOp"] = toString(m_stencilPassOp);
     return object;
   }
 
@@ -662,6 +837,13 @@ namespace engine::graph {
     rasterizer.setBlendConstant(m_blendConstantColor, m_blendConstantAlpha);
     rasterizer.setAlphaTestEnabled(m_alphaTestEnabled);
     rasterizer.setAlphaFunc(m_alphaFunc, m_alphaReference);
+    rasterizer.setStencilTestEnabled(m_stencilTestEnabled);
+    rasterizer.setStencilFunc(m_stencilFunc, m_stencilReference, m_stencilMask);
+    rasterizer.setStencilClearValue(m_stencilClearValue);
+    rasterizer.setStencilLoadOp(m_stencilLoadOp);
+    rasterizer.setStencilStoreOp(m_stencilStoreOp);
+    rasterizer.setStencilWriteMask(m_stencilWriteMask);
+    rasterizer.setStencilOps(m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp);
   }
 
   void RasterFramebufferState::applyTo(engine::raster::OpenGLRasterizer& rasterizer) const {
@@ -683,11 +865,21 @@ namespace engine::graph {
     rasterizer.setBlendConstant(m_blendConstantColor, m_blendConstantAlpha);
     rasterizer.setAlphaTestEnabled(m_alphaTestEnabled);
     rasterizer.setAlphaFunc(m_alphaFunc, m_alphaReference);
+    rasterizer.setStencilTestEnabled(m_stencilTestEnabled);
+    rasterizer.setStencilFunc(m_stencilFunc, m_stencilReference, m_stencilMask);
+    rasterizer.setStencilClearValue(m_stencilClearValue);
+    rasterizer.setStencilLoadOp(m_stencilLoadOp);
+    rasterizer.setStencilStoreOp(m_stencilStoreOp);
+    rasterizer.setStencilWriteMask(m_stencilWriteMask);
+    rasterizer.setStencilOps(m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp);
   }
 
   void RasterFramebufferState::validateSupportedByOpenGL() const {
     if (m_depthBias != 0.0) {
       openGLUnsupported("depth bias");
+    }
+    if (m_stencilLoadOp == Rasterizer::AttachmentLoadOp::Load) {
+      openGLUnsupported("stencil attachment load");
     }
   }
 
@@ -733,6 +925,56 @@ namespace engine::graph {
   void RasterFramebufferState::setAlphaFunc(Rasterizer::AlphaFunc func, double reference) {
     m_alphaFunc = func;
     m_alphaReference = std::isfinite(reference) ? std::clamp(reference, 0.0, 1.0) : 0.0;
+  }
+
+  void RasterFramebufferState::setStencilTestEnabled(bool enabled) {
+    m_stencilTestEnabled = enabled;
+  }
+
+  void RasterFramebufferState::setStencilFunc(Rasterizer::StencilFunc func, std::uint8_t reference,
+                                              std::uint8_t mask) {
+    m_stencilFunc = func;
+    m_stencilReference = reference;
+    m_stencilMask = mask;
+  }
+
+  void RasterFramebufferState::setStencilClearValue(std::uint8_t value) {
+    m_stencilClearValue = value;
+  }
+
+  void RasterFramebufferState::setStencilLoadOp(Rasterizer::AttachmentLoadOp op) {
+    m_stencilLoadOp = op;
+  }
+
+  void RasterFramebufferState::setStencilStoreOp(Rasterizer::AttachmentStoreOp op) {
+    m_stencilStoreOp = op;
+  }
+
+  void RasterFramebufferState::setStencilWriteMask(std::uint8_t mask) {
+    m_stencilWriteMask = mask;
+  }
+
+  void RasterFramebufferState::setStencilOps(Rasterizer::StencilOp stencilFail,
+                                             Rasterizer::StencilOp depthFail,
+                                             Rasterizer::StencilOp pass) {
+    m_stencilFailOp = stencilFail;
+    m_stencilDepthFailOp = depthFail;
+    m_stencilPassOp = pass;
+  }
+
+  void RasterFramebufferState::configureStencilWritePass(std::uint8_t value) {
+    setStencilTestEnabled(true);
+    setStencilFunc(Rasterizer::StencilFunc::Always, value);
+    setStencilClearValue(0);
+    setStencilLoadOp(Rasterizer::AttachmentLoadOp::Clear);
+    setStencilStoreOp(Rasterizer::AttachmentStoreOp::Store);
+    setStencilWriteMask(0xff);
+    setStencilOps(Rasterizer::StencilOp::Keep, Rasterizer::StencilOp::Keep,
+                  Rasterizer::StencilOp::Replace);
+  }
+
+  bool RasterFramebufferState::stencilTestEnabled() const {
+    return m_stencilTestEnabled;
   }
 
   RasterShadowState RasterShadowState::fromJson(const QJsonObject& object,

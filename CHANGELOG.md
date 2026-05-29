@@ -89,6 +89,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **OpenGL raster stencil AOV.** OpenGL-backed raster stencil views now apply
   the graph stencil AOV pass state, update the offscreen stencil attachment,
   and read it back into graph-visible stencil resources. — GPT-5
+- **Raster graph stencil pass state.** Raster framebuffer pass state now
+  serializes stencil test, reference/masks, load/store, and operations, and the
+  stencil AOV producer configures that state in the compiled graph. — GPT-5
 - **OpenGL raster ID AOV fallback.** Object/material ID views requested with
   the OpenGL raster backend now execute through the software raster diagnostic
   fallback instead of rejecting the graph, preserving exact scene ID resources

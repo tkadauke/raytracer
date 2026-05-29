@@ -597,7 +597,10 @@ branches see the requested tessellation and sampling settings. The stencil AOV
 is a graph-synthesized coverage mask: raytracer and wireframe
 executors mark primary-hit pixels, while the rasterizer path runs a dedicated
 single-sample stencil-marking pass that writes an 8-bit graph stencil resource
-and visualizes it as grayscale. The
+and visualizes it as grayscale. For the rasterizer producer, that marking
+behavior is typed framebuffer state in the compiled pass: stencil test,
+reference/masks, attachment load/store, and pass/fail operations are visible in
+graph JSON instead of being hidden in the payload. The
 preview shadow request is also visible: when preview shadows are enabled and
 scene analysis reports visible geometry plus lights, the compiler inserts
 `raster_preview_shadows` before `raster_beauty`, stores the shadow-map settings

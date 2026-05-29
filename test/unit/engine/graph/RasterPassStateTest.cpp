@@ -124,6 +124,7 @@ namespace RasterPassStateTest {
     state.sampling().setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
     state.sampling().setPostProcessAA(Rasterizer::PostProcessAA::FXAA);
     state.framebuffer().setViewportRect(Recti(1, 2, 30, 40));
+    state.framebuffer().configureStencilWritePass(0x7f);
     state.shadows().setShadowMapsEnabled(true);
     state.shadows().setShadowMapSize(128);
     state.shadows().setShadowFilterMode(Rasterizer::ShadowFilterMode::PCSS);
@@ -139,6 +140,9 @@ namespace RasterPassStateTest {
     EXPECT_EQ("per_fragment", sampling.value("msaaShadingMode").toString().toStdString());
     EXPECT_EQ("fxaa", sampling.value("postProcessAA").toString().toStdString());
     EXPECT_TRUE(framebuffer.value("viewport").isArray());
+    EXPECT_TRUE(framebuffer.value("stencilTest").toBool());
+    EXPECT_EQ(0x7f, framebuffer.value("stencilReference").toInt());
+    EXPECT_EQ("replace", framebuffer.value("stencilPassOp").toString().toStdString());
     EXPECT_TRUE(shadows.value("enabled").toBool());
     EXPECT_EQ(128, shadows.value("mapSize").toInt());
     EXPECT_EQ("pcss", shadows.value("filterMode").toString().toStdString());
@@ -159,6 +163,7 @@ namespace RasterPassStateTest {
     state.framebuffer().setBlendConstant(Colord(0.2, 0.3, 0.4), 0.5);
     state.framebuffer().setAlphaTestEnabled(true);
     state.framebuffer().setAlphaFunc(Rasterizer::AlphaFunc::Greater, 0.6);
+    state.framebuffer().configureStencilWritePass(0x7f);
     engine::raster::OpenGLRasterizer rasterizer(nullptr);
 
     state.applyTo(rasterizer);
@@ -183,6 +188,10 @@ namespace RasterPassStateTest {
     EXPECT_TRUE(rasterizer.alphaTestEnabled());
     EXPECT_EQ(Rasterizer::AlphaFunc::Greater, rasterizer.alphaFunc());
     EXPECT_EQ(0.6, rasterizer.alphaReference());
+    EXPECT_TRUE(rasterizer.stencilTestEnabled());
+    EXPECT_EQ(Rasterizer::StencilFunc::Always, rasterizer.stencilFunc());
+    EXPECT_EQ(0x7f, rasterizer.stencilReference());
+    EXPECT_EQ(Rasterizer::StencilOp::Replace, rasterizer.stencilPassOp());
   }
 
   TEST(RasterBeautyPassState, RejectsUnsupportedOpenGLPostProcessAA) {
@@ -196,14 +205,19 @@ namespace RasterPassStateTest {
     RasterBeautyPassState depthBias;
     depthBias.framebuffer().setDepthBias(0.01);
     expectOpenGLUnsupported(depthBias, "depth bias");
+
+    RasterBeautyPassState stencilLoad;
+    stencilLoad.framebuffer().setStencilLoadOp(Rasterizer::AttachmentLoadOp::Load);
+    expectOpenGLUnsupported(stencilLoad, "stencil attachment load");
   }
 
-  TEST(RasterBeautyPassState, AppliesShadowStateToOpenGLRasterizerAsNoOp) {
+  TEST(RasterBeautyPassState, AppliesShadowStateToOpenGLRasterizer) {
     RasterBeautyPassState state;
     state.shadows().setShadowMapsEnabled(true);
     engine::raster::OpenGLRasterizer rasterizer(nullptr);
 
     EXPECT_NO_THROW(state.applyTo(rasterizer));
+    EXPECT_TRUE(rasterizer.shadowMapsEnabled());
   }
 
   TEST(RasterBeautyPassState, AppliesImportedStateToRasterizer) {
@@ -227,6 +241,17 @@ namespace RasterPassStateTest {
     framebuffer["alphaTest"] = true;
     framebuffer["alphaFunc"] = "greater";
     framebuffer["alphaReference"] = 0.6;
+    framebuffer["stencilTest"] = true;
+    framebuffer["stencilFunc"] = "equal";
+    framebuffer["stencilReference"] = 12;
+    framebuffer["stencilMask"] = 15;
+    framebuffer["stencilClearValue"] = 3;
+    framebuffer["stencilLoadOp"] = "clear";
+    framebuffer["stencilStoreOp"] = "discard";
+    framebuffer["stencilWriteMask"] = 240;
+    framebuffer["stencilFailOp"] = "zero";
+    framebuffer["stencilDepthFailOp"] = "increment_clamp";
+    framebuffer["stencilPassOp"] = "invert";
     framebuffer["viewport"] = QJsonArray{4, 5, 20, 21};
     framebuffer["scissor"] = QJsonArray{6, 7, 18, 19};
     framebuffer["depthBias"] = -0.125;
@@ -268,6 +293,17 @@ namespace RasterPassStateTest {
     EXPECT_TRUE(rasterizer.alphaTestEnabled());
     EXPECT_EQ(Rasterizer::AlphaFunc::Greater, rasterizer.alphaFunc());
     EXPECT_EQ(0.6, rasterizer.alphaReference());
+    EXPECT_TRUE(rasterizer.stencilTestEnabled());
+    EXPECT_EQ(Rasterizer::StencilFunc::Equal, rasterizer.stencilFunc());
+    EXPECT_EQ(12, rasterizer.stencilReference());
+    EXPECT_EQ(15, rasterizer.stencilMask());
+    EXPECT_EQ(3, rasterizer.stencilClearValue());
+    EXPECT_EQ(Rasterizer::AttachmentLoadOp::Clear, rasterizer.stencilLoadOp());
+    EXPECT_EQ(Rasterizer::AttachmentStoreOp::Discard, rasterizer.stencilStoreOp());
+    EXPECT_EQ(240, rasterizer.stencilWriteMask());
+    EXPECT_EQ(Rasterizer::StencilOp::Zero, rasterizer.stencilFailOp());
+    EXPECT_EQ(Rasterizer::StencilOp::IncrementClamp, rasterizer.stencilDepthFailOp());
+    EXPECT_EQ(Rasterizer::StencilOp::Invert, rasterizer.stencilPassOp());
     EXPECT_TRUE(rasterizer.viewportEnabled());
     EXPECT_EQ(4, rasterizer.viewportRect().left());
     EXPECT_EQ(20, rasterizer.viewportRect().width());

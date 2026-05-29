@@ -1,6 +1,7 @@
 #include "engine/graph/RenderAOV.h"
 
 #include "engine/graph/RenderGraphCompiler.h"
+#include "engine/graph/RasterPassState.h"
 
 #include <algorithm>
 #include <utility>
@@ -68,13 +69,31 @@ namespace engine::graph {
       std::vector<RenderExecutorKind> m_supportedExecutors;
     };
 
+    class StencilRenderAOVDefinition : public BasicRenderAOVDefinition {
+    public:
+      StencilRenderAOVDefinition()
+          : BasicRenderAOVDefinition(RenderViewMode::Stencil, "stencil", "Stencil",
+                                     RenderResourceType::Stencil, RenderResourceFormat::UInt8,
+                                     false) {
+      }
+
+      void configureProducerPass(RenderPassNode& pass) const override {
+        if (pass.executor != RenderExecutorKind::Rasterizer) {
+          return;
+        }
+
+        RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(pass);
+        state.framebuffer().setColorWriteMask(0);
+        state.framebuffer().configureStencilWritePass(0xff);
+        state.writeTo(pass);
+      }
+    };
+
     const std::vector<const RenderAOVDefinition*>& definitions() {
       static const BasicRenderAOVDefinition depth(RenderViewMode::Depth, "depth", "Depth",
                                                   RenderResourceType::Depth,
                                                   RenderResourceFormat::DepthDouble);
-      static const BasicRenderAOVDefinition stencil(RenderViewMode::Stencil, "stencil", "Stencil",
-                                                    RenderResourceType::Stencil,
-                                                    RenderResourceFormat::UInt8, false);
+      static const StencilRenderAOVDefinition stencil;
       static const BasicRenderAOVDefinition normal(RenderViewMode::Normal, "normal", "Normal",
                                                    RenderResourceType::Normal,
                                                    RenderResourceFormat::RGBDouble);
@@ -128,6 +147,9 @@ namespace engine::graph {
 
   RenderResourceId RenderAOVDefinition::previewColorResourceId() const {
     return resourceId() + "_color";
+  }
+
+  void RenderAOVDefinition::configureProducerPass(RenderPassNode&) const {
   }
 
   RenderResourceDescriptor

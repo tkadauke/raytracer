@@ -159,7 +159,15 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ("stencil_aov", plan.passes()[0].id);
     EXPECT_EQ(RenderPassKind::AOV, plan.passes()[0].kind);
     EXPECT_EQ(RenderExecutorKind::Rasterizer, plan.passes()[0].executor);
-    EXPECT_EQ(nullptr, plan.passes()[0].state);
+    ASSERT_NE(nullptr, plan.passes()[0].state);
+    {
+      const QJsonObject framebuffer =
+        plan.passes()[0].state->toJson().value("framebuffer").toObject();
+      EXPECT_EQ("none", framebuffer.value("colorWriteMask").toString().toStdString());
+      EXPECT_TRUE(framebuffer.value("stencilTest").toBool());
+      EXPECT_EQ(255, framebuffer.value("stencilReference").toInt());
+      EXPECT_EQ("replace", framebuffer.value("stencilPassOp").toString().toStdString());
+    }
     EXPECT_TRUE(hasFeature(plan.passes()[0], "stencil"));
     ASSERT_EQ(1u, plan.passes()[0].writes.size());
     EXPECT_EQ("stencil_aov", plan.passes()[0].writes[0].resource);
@@ -213,6 +221,9 @@ namespace RenderGraphCompilerTest {
     ASSERT_NE(nullptr, stencil);
     EXPECT_EQ(RenderPassKind::AOV, stencil->kind);
     EXPECT_EQ(RenderExecutorKind::Rasterizer, stencil->executor);
+    ASSERT_NE(nullptr, stencil->state);
+    EXPECT_TRUE(
+      stencil->state->toJson().value("framebuffer").toObject().value("stencilTest").toBool());
     ASSERT_EQ(1u, stencil->writes.size());
     EXPECT_EQ("stencil_aov", stencil->writes.front().resource);
 

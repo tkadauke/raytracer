@@ -734,7 +734,7 @@ namespace engine::graph {
         requireStencilResource(context.storage(), write.resource, pass);
 
         Buffer<std::uint8_t>& stencil = context.storage().stencil(write.resource);
-        const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(pass);
+        const RasterBeautyPassState state = stencilAOVState(pass);
         if (state.execution().backend().isOpenGL()) {
           renderOpenGLStencil(context, state, stencil);
           return;
@@ -744,9 +744,6 @@ namespace engine::graph {
         auto rasterizer = std::make_shared<::engine::raster::Rasterizer>(std::move(camera),
                                                                          context.graph().scene());
         state.applyTo(*rasterizer);
-        configureStencilAOV(*rasterizer);
-        rasterizer->setPostProcessAA(::engine::raster::Rasterizer::PostProcessAA::None);
-        rasterizer->setColorWriteMask(0);
         rasterizer->setColorStoreOp(::engine::raster::Rasterizer::AttachmentStoreOp::Discard);
 
         ::engine::raster::Rasterizer::AttachmentBuffers attachments;
@@ -766,8 +763,6 @@ namespace engine::graph {
         auto rasterizer = std::make_shared<::engine::raster::OpenGLRasterizer>(
           std::move(camera), context.graph().scene());
         state.applyTo(*rasterizer);
-        configureStencilAOV(*rasterizer);
-        rasterizer->setColorWriteMask(0);
 
         prepareEngine(*rasterizer, context.graph(), context.cancelled(), context.graph().tonemap());
         context.setActiveEngine(rasterizer);
@@ -775,18 +770,15 @@ namespace engine::graph {
         context.recordTraceMessage(rasterizer->readbackTraceMessage());
       }
 
-      template<class RasterizerType>
-      void configureStencilAOV(RasterizerType& rasterizer) const {
-        rasterizer.setMSAASamples(1);
-        rasterizer.setStencilTestEnabled(true);
-        rasterizer.setStencilFunc(::engine::raster::Rasterizer::StencilFunc::Always, 0xff);
-        rasterizer.setStencilClearValue(0);
-        rasterizer.setStencilLoadOp(::engine::raster::Rasterizer::AttachmentLoadOp::Clear);
-        rasterizer.setStencilStoreOp(::engine::raster::Rasterizer::AttachmentStoreOp::Store);
-        rasterizer.setStencilWriteMask(0xff);
-        rasterizer.setStencilOps(::engine::raster::Rasterizer::StencilOp::Keep,
-                                 ::engine::raster::Rasterizer::StencilOp::Keep,
-                                 ::engine::raster::Rasterizer::StencilOp::Replace);
+      RasterBeautyPassState stencilAOVState(const RenderPassNode& pass) const {
+        RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(pass);
+        state.sampling().setMSAASamples(1);
+        state.sampling().setPostProcessAA(::engine::raster::Rasterizer::PostProcessAA::None);
+        state.framebuffer().setColorWriteMask(0);
+        if (!state.framebuffer().stencilTestEnabled()) {
+          state.framebuffer().configureStencilWritePass(0xff);
+        }
+        return state;
       }
     };
 
