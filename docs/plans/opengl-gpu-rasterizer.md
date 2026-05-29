@@ -347,7 +347,9 @@ Tasks:
 - Add shader-side OpenGL shadow-map sampling after the GPU raster path has
   explicit shadow texture binding and shader lighting state. The shadow-map
   collection now exposes its directional maps directly so the GPU binding path
-  can enumerate cascades without per-light lookup.
+  can enumerate cascades without per-light lookup, and the OpenGL mesh stream
+  now carries world position plus lighting normal for future per-fragment
+  shadow projection.
 
 Acceptance:
 

@@ -36,6 +36,12 @@ namespace engine::raster::detail {
       float y{0.0f};
       float z{0.0f};
       float w{1.0f};
+      float worldX{0.0f};
+      float worldY{0.0f};
+      float worldZ{0.0f};
+      float normalX{0.0f};
+      float normalY{0.0f};
+      float normalZ{1.0f};
       float r{0.0f};
       float g{0.0f};
       float b{0.0f};
