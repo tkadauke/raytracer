@@ -3,6 +3,8 @@
 #include "render/RenderEngine.h"
 #include "core/math/Vector.h"
 
+#include <QJsonObject>
+
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -1509,5 +1511,7 @@ namespace engine::raster {
     AttachmentBuffers m_attachmentBuffers;
     RasterRenderMetrics m_lastMetrics;
   };
+
+  QJsonObject rasterRenderMetricsToJson(const Rasterizer::RasterRenderMetrics& metrics);
 
 } // namespace engine::raster

@@ -4,7 +4,9 @@
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QImage>
+#include <QJsonArray>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QJsonParseError>
 
 #include "world/import/LDrawFileSceneImporter.h"
@@ -96,6 +98,33 @@ namespace {
     std::cout << std::fixed << std::setprecision(3) << "render_ms"
               << " runs=" << timings.size() << " min=" << stats.minMs
               << " median=" << stats.medianMs << " avg=" << stats.avgMs << " max=" << stats.maxMs
+              << '\n';
+  }
+
+  bool isRasterMetricsObject(const QJsonObject& metadata) {
+    return metadata.contains("timings") && metadata.contains("fragments") &&
+           metadata.contains("tessellation");
+  }
+
+  void printRasterMetricsSummary(int run, const QString& passId, const QJsonObject& metrics) {
+    const QJsonObject timings = metrics.value("timings").toObject();
+    const QJsonObject tessellation = metrics.value("tessellation").toObject();
+    const QJsonObject fragments = metrics.value("fragments").toObject();
+    std::cout << std::fixed << std::setprecision(3) << "raster_metrics"
+              << " run=" << run;
+    if (!passId.isEmpty()) {
+      std::cout << " pass=" << passId.toStdString();
+    }
+    std::cout << " total_ms=" << timings.value("totalRenderSeconds").toDouble() * 1000.0
+              << " raster_ms=" << timings.value("rasterLoopSeconds").toDouble() * 1000.0
+              << " triangles=" << static_cast<std::uint64_t>(
+                   tessellation.value("trianglesAfterClipping").toDouble())
+              << " covered_samples=" << static_cast<std::uint64_t>(
+                   fragments.value("coveredSamples").toDouble())
+              << " shaded_fragments=" << static_cast<std::uint64_t>(
+                   fragments.value("shadedFragments").toDouble())
+              << " color_writes=" << static_cast<std::uint64_t>(
+                   fragments.value("colorWrites").toDouble())
               << '\n';
   }
 
@@ -1024,6 +1053,8 @@ private:
   QString m_renderGraphOut;
   QString m_renderGraphIn;
   QString m_renderGraphTraceOut;
+  QString m_rasterMetricsOut;
+  bool m_rasterMetricsSummary;
   std::vector<RenderGraphAOVOutput> m_renderGraphAOVOutputs;
   std::vector<RenderGraphViewOverrideInput> m_renderGraphViewOverrides;
   std::vector<RenderGraphImageInput> m_renderGraphColorInputs;
@@ -1121,6 +1152,7 @@ private:
   void writeRenderGraphPlan(const engine::graph::RenderPlan& plan, const QString& output) const;
   void writeRenderGraphTrace(const engine::graph::RenderGraphExecutionTrace& trace,
                              const QString& output) const;
+  void writeRasterMetricsReport(const QJsonArray& runs, const QString& output) const;
   void writeRenderGraphAOVOutputs(const engine::graph::RenderGraphExecutionTrace& trace,
                                   const engine::graph::RenderIntent& intent) const;
   std::shared_ptr<Buffer<Colord>>
@@ -1174,6 +1206,8 @@ Renderer::Renderer()
       m_renderGraphOut(),
       m_renderGraphIn(),
       m_renderGraphTraceOut(),
+      m_rasterMetricsOut(),
+      m_rasterMetricsSummary(false),
       m_renderGraphAOVOutputs(),
       m_renderGraphExecutorSet(false),
       m_renderGraphExecutor(engine::graph::RenderExecutorPreference::Raytracer),
@@ -1775,6 +1809,24 @@ void Renderer::writeRenderGraphTrace(const engine::graph::RenderGraphExecutionTr
   }
 }
 
+void Renderer::writeRasterMetricsReport(const QJsonArray& runs, const QString& output) const {
+  QJsonObject report;
+  report["schema"] = QStringLiteral("raytracer.raster_metrics.v1");
+  report["runs"] = runs;
+
+  QFile file(output);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    throw std::runtime_error(
+      QString("Unable to write raster metrics report: %1").arg(output).toStdString());
+  }
+
+  const QByteArray bytes = QJsonDocument(report).toJson(QJsonDocument::Indented);
+  if (file.write(bytes) != bytes.size()) {
+    throw std::runtime_error(
+      QString("Unable to write raster metrics report: %1").arg(output).toStdString());
+  }
+}
+
 void Renderer::writeRenderGraphAOVOutputs(const engine::graph::RenderGraphExecutionTrace& trace,
                                           const engine::graph::RenderIntent& intent) const {
   for (const auto& aovOutput : m_renderGraphAOVOutputs) {
@@ -1929,6 +1981,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
 
   std::shared_ptr<render::RenderEngine> engine;
   std::shared_ptr<engine::graph::GraphRenderEngine> graphEngine;
+  std::shared_ptr<engine::raster::Rasterizer> directRasterEngine;
   engine::graph::RenderPlan graphPlan;
 
   if (m_renderGraph) {
@@ -1993,7 +2046,8 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     graphEngine->setPlan(graphPlan);
     bindRenderGraphExternalInputs(*graphEngine);
     graphEngine->setExecutionTraceEnabled(!m_renderGraphTraceOut.isEmpty() ||
-                                          !m_renderGraphAOVOutputs.empty());
+                                          !m_renderGraphAOVOutputs.empty() ||
+                                          !m_rasterMetricsOut.isEmpty() || m_rasterMetricsSummary);
     engine = graphEngine;
   } else if (m_engine == "wireframe") {
     auto wireframe = std::make_shared<engine::wireframe::Wireframe>(raytracerScene);
@@ -2009,6 +2063,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     if (rtCamera)
       raster->setCamera(rtCamera);
     rasterBeautyPassState(commandLinePostProcessAA(), true, true).applyTo(*raster);
+    directRasterEngine = raster;
     engine = raster;
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);
@@ -2036,11 +2091,45 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   Buffer<unsigned int> buffer(outputWidth, outputHeight);
   std::vector<double> timings;
   timings.reserve(static_cast<std::size_t>(m_repeat));
+  QJsonArray rasterMetricRuns;
   for (int i = 0; i < m_repeat; ++i) {
     const auto start = Clock::now();
     engine->render(buffer);
     const auto end = Clock::now();
     timings.push_back(elapsedMilliseconds(start, end));
+
+    if (!m_rasterMetricsOut.isEmpty() || m_rasterMetricsSummary) {
+      QJsonObject run;
+      run["run"] = i + 1;
+      if (directRasterEngine) {
+        const QJsonObject metrics =
+          engine::raster::rasterRenderMetricsToJson(directRasterEngine->lastMetrics());
+        run["metrics"] = metrics;
+        if (m_rasterMetricsSummary) {
+          printRasterMetricsSummary(i + 1, QString(), metrics);
+        }
+      } else if (graphEngine) {
+        auto trace = graphEngine->lastExecutionTrace();
+        QJsonArray passes;
+        if (trace) {
+          for (const auto& passTrace : trace->passes()) {
+            if (!isRasterMetricsObject(passTrace.metadata())) {
+              continue;
+            }
+            QJsonObject pass;
+            pass["pass"] = QString::fromStdString(passTrace.passId());
+            pass["metrics"] = passTrace.metadata();
+            passes.push_back(pass);
+            if (m_rasterMetricsSummary) {
+              printRasterMetricsSummary(i + 1, pass.value("pass").toString(),
+                                        passTrace.metadata());
+            }
+          }
+        }
+        run["passes"] = passes;
+      }
+      rasterMetricRuns.push_back(run);
+    }
   }
 
   if (m_timing || m_repeat > 1) {
@@ -2061,6 +2150,24 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     if (!m_renderGraphAOVOutputs.empty()) {
       writeRenderGraphAOVOutputs(*trace, renderIntent(scene));
     }
+  }
+
+  if (!m_rasterMetricsOut.isEmpty() || m_rasterMetricsSummary) {
+    if (rasterMetricRuns.empty()) {
+      throw std::runtime_error("Raster metrics were requested but no raster render ran");
+    }
+    bool hasMetrics = false;
+    for (const auto& value : rasterMetricRuns) {
+      const QJsonObject run = value.toObject();
+      hasMetrics = hasMetrics || run.contains("metrics") || !run.value("passes").toArray().empty();
+    }
+    if (!hasMetrics) {
+      throw std::runtime_error("Raster metrics were requested but no raster pass produced metrics");
+    }
+  }
+
+  if (!m_rasterMetricsOut.isEmpty()) {
+    writeRasterMetricsReport(rasterMetricRuns, m_rasterMetricsOut);
   }
 
   QImage image = bufferToImage(buffer);
@@ -2366,6 +2473,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_out", "Write the compiled render graph to a file", "file"},
      {"render_graph_in", "Load a JSON render graph plan instead of compiling one", "file"},
      {"render_graph_trace_out", "Write the executed render graph trace to a JSON file", "file"},
+     {"raster_metrics_out", "Write aggregate raster render metrics to a JSON file", "file"},
+     {"raster_metrics_summary", "Print aggregate raster render metrics to stdout"},
      {"render_graph_aov_out",
       "Write an executed graph AOV preview image; repeat with view=file for multiple AOVs",
       "view=file"},
@@ -2726,6 +2835,14 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   if (parser.isSet("render_graph_trace_out")) {
     m_renderGraph = true;
     m_renderGraphTraceOut = parser.value("render_graph_trace_out");
+  }
+
+  if (parser.isSet("raster_metrics_out")) {
+    m_rasterMetricsOut = parser.value("raster_metrics_out");
+  }
+
+  if (parser.isSet("raster_metrics_summary")) {
+    m_rasterMetricsSummary = true;
   }
 
   if (parser.isSet("render_graph_aov_out")) {
@@ -3262,6 +3379,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     return CommandLineError;
   }
 
+  if (m_animation && (!m_rasterMetricsOut.isEmpty() || m_rasterMetricsSummary)) {
+    *errorMessage = "Cannot combine --animation with raster metrics output";
+    return CommandLineError;
+  }
+
   if (m_renderGraphOnly && m_repeat > 1) {
     *errorMessage = "Cannot combine --render_graph_only with --repeat";
     return CommandLineError;
@@ -3274,6 +3396,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
 
   if (m_renderGraphOnly && !m_renderGraphAOVOutputs.empty()) {
     *errorMessage = "Cannot combine --render_graph_only with --render_graph_aov_out";
+    return CommandLineError;
+  }
+
+  if (m_renderGraphOnly && (!m_rasterMetricsOut.isEmpty() || m_rasterMetricsSummary)) {
+    *errorMessage = "Cannot combine --render_graph_only with raster metrics output";
     return CommandLineError;
   }
 
@@ -3303,6 +3430,12 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   if (m_stepSelectionSet && m_stepSelection.mode == CommandLineStepMode::Sequence &&
       !m_renderGraphAOVOutputs.empty()) {
     *errorMessage = "Cannot combine --step sequence with --render_graph_aov_out";
+    return CommandLineError;
+  }
+
+  if (m_stepSelectionSet && m_stepSelection.mode == CommandLineStepMode::Sequence &&
+      (!m_rasterMetricsOut.isEmpty() || m_rasterMetricsSummary)) {
+    *errorMessage = "Cannot combine --step sequence with raster metrics output";
     return CommandLineError;
   }
 

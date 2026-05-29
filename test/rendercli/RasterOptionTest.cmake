@@ -49,6 +49,32 @@ if(matte_stderr MATCHES "Rasterizer fallback:")
                   "" "" "" "${matte_stderr}")
 endif()
 
+set(metrics_render "${TEST_OUTPUT_DIR}/raster-metrics.png")
+set(metrics_report "${TEST_OUTPUT_DIR}/raster-metrics.json")
+rendercli_run(
+  NAME "rendercli writes raster metrics JSON and summary"
+  OUTPUT_VARIABLE metrics_stdout
+  STDOUT_MATCHES "raster_metrics.*total_ms=.*covered_samples=.*color_writes="
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine raster --width 40 --height 24
+    --raster_metrics_out "${metrics_report}" --raster_metrics_summary
+    "${matte_scene}" "${metrics_render}"
+)
+rendercli_assert_exists("${metrics_report}" NAME "raster metrics report exists")
+file(READ "${metrics_report}" metrics_json)
+if(NOT metrics_json MATCHES "\"schema\"[^\n]*raytracer\\.raster_metrics\\.v1")
+  _rendercli_fail("rendercli raster metrics schema"
+                  "metrics report did not contain schema marker" "" "" "${metrics_json}" "")
+endif()
+if(NOT metrics_json MATCHES "\"coveredSamples\"")
+  _rendercli_fail("rendercli raster metrics counters"
+                  "metrics report did not contain fragment counters" "" "" "${metrics_json}" "")
+endif()
+if(NOT metrics_json MATCHES "\"totalRenderSeconds\"")
+  _rendercli_fail("rendercli raster metrics timings"
+                  "metrics report did not contain timing counters" "" "" "${metrics_json}" "")
+endif()
+
 rendercli_run(
   NAME "rendercli --raster_backend opengl compiles graph pass state"
   COMMAND

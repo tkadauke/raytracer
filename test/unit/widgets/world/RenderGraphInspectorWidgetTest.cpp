@@ -202,6 +202,20 @@ namespace RenderGraphInspectorWidgetTest {
     return engine.lastExecutionTrace();
   }
 
+  std::shared_ptr<const RenderGraphExecutionTrace> rasterTrace() {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({24, 24, 1}, intent));
+
+    Buffer<unsigned int> buffer(24, 24);
+    engine.render(buffer);
+    return engine.lastExecutionTrace();
+  }
+
   void processEventsFor(int milliseconds) {
     QElapsedTimer timer;
     timer.start();
@@ -274,12 +288,13 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QString("1"), passes->topLevelItem(0)->text(2));
     EXPECT_EQ(QString("Raytraced beauty"), passes->topLevelItem(0)->text(3));
     EXPECT_EQ(QString("raytrace_beauty"), passes->topLevelItem(0)->toolTip(3));
-    EXPECT_EQ(QString("Beauty"), passes->topLevelItem(0)->text(4));
-    EXPECT_EQ(QString("Raytracer"), passes->topLevelItem(0)->text(5));
-    EXPECT_EQ(QString("all"), passes->topLevelItem(0)->text(6));
-    EXPECT_EQ(QString("preview-camera"), passes->topLevelItem(0)->text(7));
-    EXPECT_EQ(QString("clay"), passes->topLevelItem(0)->text(8));
-    EXPECT_EQ(QString("Main color"), passes->topLevelItem(0)->text(10));
+    EXPECT_EQ(QString(), passes->topLevelItem(0)->text(4));
+    EXPECT_EQ(QString("Beauty"), passes->topLevelItem(0)->text(5));
+    EXPECT_EQ(QString("Raytracer"), passes->topLevelItem(0)->text(6));
+    EXPECT_EQ(QString("all"), passes->topLevelItem(0)->text(7));
+    EXPECT_EQ(QString("preview-camera"), passes->topLevelItem(0)->text(8));
+    EXPECT_EQ(QString("clay"), passes->topLevelItem(0)->text(9));
+    EXPECT_EQ(QString("Main color"), passes->topLevelItem(0)->text(11));
 
     ASSERT_NE(nullptr, graph->scene());
     auto* passNode = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
@@ -578,6 +593,33 @@ namespace RenderGraphInspectorWidgetTest {
 
     EXPECT_TRUE(nodeTextContains(pass, QStringLiteral("completed")));
     EXPECT_TRUE(nodeTextContains(resource, QStringLiteral("trace: color")));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowRasterMetricsOnSelectedPassRow) {
+    auto trace = rasterTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    auto* passes = widget.findChild<QTreeWidget*>("renderGraphPasses");
+    ASSERT_NE(nullptr, passes);
+    ASSERT_GT(passes->topLevelItemCount(), 0);
+
+    QTreeWidgetItem* raster = nullptr;
+    for (int row = 0; row != passes->topLevelItemCount(); ++row) {
+      if (passes->topLevelItem(row)->data(0, Qt::UserRole).toString() ==
+          QStringLiteral("raster_beauty")) {
+        raster = passes->topLevelItem(row);
+        break;
+      }
+    }
+
+    ASSERT_NE(nullptr, raster);
+    EXPECT_TRUE(raster->text(4).contains(QStringLiteral("completed")));
+    EXPECT_TRUE(raster->text(4).contains(QStringLiteral("shaded")));
+    EXPECT_TRUE(raster->text(4).contains(QStringLiteral("writes")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldEmitPassSelectedFromGraphNode) {

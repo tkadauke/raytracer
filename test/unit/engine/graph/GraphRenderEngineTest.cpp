@@ -26,6 +26,7 @@
 #include "test/helpers/ColorTestHelper.h"
 
 #include <QString>
+#include <QJsonObject>
 
 #include <chrono>
 #include <cmath>
@@ -1599,6 +1600,38 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(RenderExecutorKind::Rasterizer, engine.lastPlan().passes()[0].executor);
     EXPECT_EQ(RenderPassKind::Tonemap, engine.lastPlan().passes()[1].kind);
     EXPECT_EQ(Colord(0.1, 0.3, 0.5), buffer[0][0]);
+  }
+
+  TEST(GraphRenderEngine, RecordsRasterMetricsInExecutionTraceMetadata) {
+    auto scene = std::make_shared<render::Scene>();
+    scene->add(std::make_shared<render::Sphere>(Vector3d::null, 1.0));
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    RenderGraphCompiler compiler;
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<Colord> buffer(32, 32);
+    engine.render(buffer);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* raster = trace->findPass("raster_beauty");
+    ASSERT_NE(nullptr, raster);
+    const QJsonObject metadata = raster->metadata();
+    EXPECT_TRUE(metadata.contains("timings"));
+    EXPECT_TRUE(metadata.contains("fragments"));
+    EXPECT_GT(metadata.value("timings").toObject().value("totalRenderSeconds").toDouble(), 0.0);
+    EXPECT_GT(metadata.value("tessellation")
+                .toObject()
+                .value("trianglesAfterClipping")
+                .toDouble(),
+              0.0);
+    EXPECT_GT(metadata.value("fragments").toObject().value("coveredSamples").toDouble(), 0.0);
+    EXPECT_EQ(metadata, raster->toJson().value("metadata").toObject());
   }
 
   TEST(GraphRenderEngine, CompilePlanUsesSceneAnalysisAndClonesIt) {

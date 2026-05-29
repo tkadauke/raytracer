@@ -2,6 +2,8 @@
 
 #include "engine/graph/RenderGraphTypes.h"
 
+#include <QJsonObject>
+
 #include <functional>
 #include <memory>
 #include <string>
@@ -77,6 +79,9 @@ namespace engine::graph {
       */
     void recordTraceMessage(std::string message) const;
 
+    void setTraceMetadata(QJsonObject metadata);
+    const QJsonObject& traceMetadata() const;
+
   private:
     const RenderPassNode& m_pass;
     RenderResourceStorage& m_storage;
@@ -84,5 +89,6 @@ namespace engine::graph {
     bool m_cancelled;
     ActiveEngineSetter m_activeEngineSetter;
     TraceMessageRecorder m_traceMessageRecorder;
+    QJsonObject m_traceMetadata;
   };
 }

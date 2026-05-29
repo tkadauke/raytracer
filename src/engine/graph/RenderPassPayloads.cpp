@@ -382,6 +382,7 @@ namespace engine::graph {
         context.setActiveEngine(engine);
         engine->render(context.storage().color(write.resource));
         recordTraceMessages(context, engine);
+        recordRasterMetrics(context, engine);
       }
 
       bool executeDisplay(RenderExecutionContext& context, Buffer<unsigned int>& buffer,
@@ -391,6 +392,7 @@ namespace engine::graph {
         context.setActiveEngine(engine);
         engine->render(buffer);
         recordTraceMessages(context, engine);
+        recordRasterMetrics(context, engine);
         return true;
       }
 
@@ -436,6 +438,18 @@ namespace engine::graph {
         const auto rasterizer =
           std::static_pointer_cast<::engine::raster::OpenGLRasterizer>(engine);
         recordOpenGLRasterTraceMessages(context, rasterizer);
+      }
+
+      void recordRasterMetrics(RenderExecutionContext& context,
+                               const std::shared_ptr<render::RenderEngine>& engine) const {
+        const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(context.pass());
+        if (!state.execution().backend().usesSoftwareRasterizer()) {
+          return;
+        }
+
+        const auto rasterizer = std::static_pointer_cast<::engine::raster::Rasterizer>(engine);
+        context.setTraceMetadata(
+          ::engine::raster::rasterRenderMetricsToJson(rasterizer->lastMetrics()));
       }
 
       bool readsShadowMap(const RenderExecutionContext& context) const {
