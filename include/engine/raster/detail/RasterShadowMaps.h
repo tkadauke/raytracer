@@ -69,6 +69,12 @@ namespace engine::raster::detail {
 
     Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const override;
 
+    const Vector3d& origin() const;
+    const Vector3d& forward() const;
+    const Vector3d& right() const;
+    const Vector3d& up() const;
+    double halfExtent() const;
+
   private:
     DirectionalShadowCamera(const Vector3d& origin, const Vector3d& forward, const Vector3d& right,
                             const Vector3d& up, double halfExtent);

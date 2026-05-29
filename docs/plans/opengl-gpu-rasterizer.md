@@ -349,7 +349,9 @@ Tasks:
   collection now exposes its directional maps directly so the GPU binding path
   can enumerate cascades without per-light lookup, and the OpenGL mesh stream
   now carries world position plus lighting normal for future per-fragment
-  shadow projection.
+  shadow projection. Directional shadow cameras also expose their fitted
+  origin, basis, and half-extent so shader uniforms can project those fragments
+  into light-space.
 
 Acceptance:
 

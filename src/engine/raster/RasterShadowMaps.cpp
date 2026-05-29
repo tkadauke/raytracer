@@ -113,6 +113,26 @@ namespace engine::raster::detail {
                     1.0);
   }
 
+  const Vector3d& DirectionalShadowCamera::origin() const {
+    return m_origin;
+  }
+
+  const Vector3d& DirectionalShadowCamera::forward() const {
+    return m_forward;
+  }
+
+  const Vector3d& DirectionalShadowCamera::right() const {
+    return m_right;
+  }
+
+  const Vector3d& DirectionalShadowCamera::up() const {
+    return m_up;
+  }
+
+  double DirectionalShadowCamera::halfExtent() const {
+    return m_halfExtent;
+  }
+
   DirectionalShadowCamera::DirectionalShadowCamera(const Vector3d& origin, const Vector3d& forward,
                                                    const Vector3d& right, const Vector3d& up,
                                                    double halfExtent)

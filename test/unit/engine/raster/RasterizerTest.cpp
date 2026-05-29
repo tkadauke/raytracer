@@ -1433,6 +1433,11 @@ namespace RasterizerTest {
     shadowCamera.viewPlane()->setup(Matrix4d(), Recti(64, 64));
 
     EXPECT_LT(fit.halfExtent, 2.0);
+    EXPECT_EQ(fit.origin, shadowCamera.origin());
+    EXPECT_EQ(fit.basis.forward, shadowCamera.forward());
+    EXPECT_EQ(fit.basis.right, shadowCamera.right());
+    EXPECT_EQ(fit.basis.up, shadowCamera.up());
+    EXPECT_EQ(fit.halfExtent, shadowCamera.halfExtent());
     for (const Vector3d& point : points) {
       const Vector4d clip = shadowCamera.projectPointToClipSpace(point);
       EXPECT_LE(std::abs(clip.x()), 1.0);
