@@ -1093,6 +1093,24 @@ namespace engine::graph {
       }
     };
 
+    class ReadbackPass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& read = pass.singleRead();
+        const auto& write = pass.singleWrite();
+        const RenderResource& source = context.storage().resource(read.resource);
+        if (!source.hasBuffer()) {
+          throw passError(pass, "resource '" + read.resource +
+                                  "' has no CPU buffer; GPU readback is not implemented yet");
+        }
+
+        context.storage().copy(read.resource, write.resource, "readback");
+        context.recordTraceMessage("readback copied CPU-materialized resource '" + read.resource +
+                                   "' to '" + write.resource + "'");
+      }
+    };
+
     class DepthStencilCompositePass : public RenderPassPayload {
     public:
       void execute(RenderExecutionContext& context) override {
@@ -1464,6 +1482,8 @@ namespace engine::graph {
         RenderPassKind::Beauty, RenderExecutorKind::Wireframe);
       static const ExactPassPayloadFactory<TonemapPass> tonemap(RenderPassKind::Tonemap,
                                                                 RenderExecutorKind::PostProcess);
+      static const ExactPassPayloadFactory<ReadbackPass> readback(RenderPassKind::Readback,
+                                                                  RenderExecutorKind::PostProcess);
       static const FeaturePassPayloadFactory<RasterPreviewShadowPass> rasterPreviewShadows(
         RenderPassKind::Shadow, RenderExecutorKind::Rasterizer, {"preview_shadows"});
       static const FeaturePassPayloadFactory<DepthVisualizationPass> depthVisualization(
@@ -1550,6 +1570,7 @@ namespace engine::graph {
         &rasterBeauty,
         &wireframeBeauty,
         &tonemap,
+        &readback,
         &rasterPreviewShadows,
         &depthVisualization,
         &depthAOV,

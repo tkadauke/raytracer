@@ -91,6 +91,7 @@ namespace engine::graph {
     Composite,
     Tonemap,
     PostProcess,
+    Readback,
     AOV,
     Debug,
     Custom

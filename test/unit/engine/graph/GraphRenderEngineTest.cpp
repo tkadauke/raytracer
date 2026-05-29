@@ -1285,6 +1285,79 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(scene->background(), buffer[0][0]);
   }
 
+  TEST(GraphRenderEngine, ExecutesReadbackPassForCpuMaterializedColorResource) {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord(0.25, 0.5, 0.75));
+
+    RenderPlan plan;
+    plan.addResource(colorResource("gpu_boundary_color", RenderResourceLifetime::Transient));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    RenderPassNode beauty;
+    beauty.id = "beauty";
+    beauty.kind = RenderPassKind::Beauty;
+    beauty.executor = RenderExecutorKind::Raytracer;
+    beauty.writes.push_back({"gpu_boundary_color"});
+    plan.addPass(beauty);
+
+    RenderPassNode readback;
+    readback.id = "readback";
+    readback.kind = RenderPassKind::Readback;
+    readback.executor = RenderExecutorKind::PostProcess;
+    readback.reads.push_back({"gpu_boundary_color"});
+    readback.writes.push_back({"display_color"});
+    readback.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
+    plan.addPass(readback);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(plan);
+
+    Buffer<Colord> buffer(2, 2);
+    engine.render(buffer);
+
+    EXPECT_EQ(scene->background(), buffer[0][0]);
+    const auto trace = engine.lastExecutionTrace();
+    ASSERT_NE(nullptr, trace);
+    const auto* passTrace = trace->findPass("readback");
+    ASSERT_NE(nullptr, passTrace);
+    EXPECT_NE(std::string::npos,
+              passTrace->message().find("readback copied CPU-materialized resource"));
+  }
+
+  TEST(GraphRenderEngine, RejectsReadbackFromDescriptorOnlyGpuResource) {
+    auto scene = std::make_shared<render::Scene>();
+
+    RenderPlan plan;
+    auto gpu = colorResource("resident_color", RenderResourceLifetime::PersistentCache);
+    gpu.domain = RenderResourceDomain::GPU;
+    plan.addResource(gpu);
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    RenderPassNode readback;
+    readback.id = "readback";
+    readback.kind = RenderPassKind::Readback;
+    readback.executor = RenderExecutorKind::PostProcess;
+    readback.reads.push_back({"resident_color"});
+    readback.writes.push_back({"display_color"});
+    readback.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
+    plan.addPass(readback);
+    ASSERT_TRUE(plan.validate().valid());
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+
+    Buffer<Colord> buffer(2, 2);
+    try {
+      engine.render(buffer);
+      FAIL() << "Expected descriptor-only GPU readback rejection";
+    } catch (const std::runtime_error& error) {
+      const std::string message = error.what();
+      EXPECT_NE(std::string::npos, message.find("resource 'resident_color' has no CPU buffer"));
+      EXPECT_NE(std::string::npos, message.find("GPU readback is not implemented yet"));
+    }
+  }
+
   TEST(GraphRenderEngine, RejectsUnboundExternalInputResources) {
     auto scene = std::make_shared<render::Scene>();
 

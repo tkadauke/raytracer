@@ -834,6 +834,27 @@ namespace RenderPlanTest {
               exportedStages.at(1).toObject()["passes"].toArray().at(0).toString().toStdString());
   }
 
+  TEST(RenderPlan, RoundTripsReadbackPassKind) {
+    RenderPlan plan;
+    plan.addResource(colorResource("resident_color"));
+    plan.addResource(colorResource("readback_color", RenderResourceLifetime::Exported));
+
+    auto readback = pass("readback", RenderPassKind::Readback);
+    readback.executor = RenderExecutorKind::PostProcess;
+    readback.reads.push_back({"resident_color"});
+    readback.writes.push_back({"readback_color"});
+    readback.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
+    plan.addPass(readback);
+
+    const QJsonObject json = plan.toJson();
+    const RenderPlan imported = RenderPlan::fromJson(json);
+
+    ASSERT_EQ(1u, imported.passes().size());
+    EXPECT_EQ(RenderPassKind::Readback, imported.passes().front().kind);
+    EXPECT_EQ("readback", json["passes"].toArray().at(0).toObject()["kind"].toString());
+    EXPECT_EQ(json, imported.toJson());
+  }
+
   TEST(RenderPlan, AddsResourceProducerWithWriteEdge) {
     RenderPlan plan;
     auto beauty = pass("raster_beauty", RenderPassKind::Beauty);

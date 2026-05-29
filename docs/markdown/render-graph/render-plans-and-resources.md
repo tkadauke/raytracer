@@ -33,7 +33,7 @@ The same header defines the enum classes used by plan declarations:
 - `RenderExecutorKind` names the executor required by a compiled pass:
   raytracer, rasterizer, wireframe, composite, or postprocess.
 - `RenderPassKind` groups passes as beauty, shadow, overlay, composite,
-  tonemap, postprocess, AOV, debug, or custom.
+  tonemap, postprocess, readback, AOV, debug, or custom.
 - `RenderResourceType` classifies image-like graph products such as color,
   depth, stencil, object id, material id, normals, world positions, motion
   vectors, shadow maps, shadow masks, and custom textures.
@@ -183,6 +183,13 @@ are immutable artifacts addressed by a typed key: producer pass id, resource
 descriptor, pass-state fingerprint, and render-input fingerprint. The cache is
 ready for shadow maps, reflection probes, and similar resources once those
 artifacts are represented outside the direct engines.
+
+Readback is modeled as an explicit graph pass kind rather than hidden final
+state. The first `readback` payload copies CPU-materialized resources through
+the resource instances themselves and reports a clear error for descriptor-only
+GPU resources. That gives future OpenGL/Vulkan resource subclasses one
+execution hook for GPU-to-CPU transfer while keeping dependencies visible in
+text, DOT, JSON, and the Modeler graph view.
 
 ## <a id="pass-nodes-declare-reads-and-writes"></a>Pass nodes declare reads and writes
 `RenderPassNode` is the declarative node in the graph:

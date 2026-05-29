@@ -238,6 +238,34 @@ namespace RenderResourceStorageTest {
     EXPECT_THROW(storage.bindObjectId("history_object_id", external), std::runtime_error);
   }
 
+  TEST(RenderResourceStorage, CopiesCpuMaterializedColorResources) {
+    RenderResourceStorage storage;
+    storage.allocate({
+      resource("source", RenderResourceType::Color),
+      resource("destination", RenderResourceType::Color),
+    });
+
+    storage.color("source").clear(Colord(0.25, 0.5, 0.75));
+
+    storage.copy("source", "destination", "test copy");
+
+    EXPECT_EQ(Colord(0.25, 0.5, 0.75), storage.color("destination")[2][3]);
+    EXPECT_FALSE(storage.resource("destination").substituteDefault());
+  }
+
+  TEST(RenderResourceStorage, RejectsCopyFromDescriptorOnlyGpuResource) {
+    auto gpu = resource("gpu_color", RenderResourceType::Color);
+    gpu.domain = RenderResourceDomain::GPU;
+
+    RenderResourceStorage storage;
+    storage.allocate({
+      gpu,
+      resource("destination", RenderResourceType::Color),
+    });
+
+    EXPECT_THROW(storage.copy("gpu_color", "destination", "test readback"), std::out_of_range);
+  }
+
   TEST(RenderResourceStorage, TracksSubstituteDefaultContents) {
     RenderResourceStorage storage;
     storage.allocate({

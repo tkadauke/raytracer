@@ -99,6 +99,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   serializes color load/store operations; OpenGL raster accepts color-store
   discard and rejects color-load until graph resource residency can seed GPU
   attachments. — GPT-5
+- **Render graph readback pass.** Render plans now support an explicit
+  `readback` pass kind that copies CPU-materialized resources through
+  resource-owned operations and reports clear errors for descriptor-only GPU
+  resources until concrete GPU transfer support lands. — GPT-5
 - **OpenGL raster blending.** OpenGL-backed raster passes now apply
   graph-derived fixed-function blend enable, factors, operation, and constant
   color state. — GPT-5

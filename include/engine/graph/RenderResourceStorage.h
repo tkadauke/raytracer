@@ -111,6 +111,14 @@ namespace engine::graph {
       */
     void bindObjectId(const RenderResourceId& id, const Buffer<std::uint32_t>& source);
 
+    /**
+      * Copies materialized contents from @p sourceId into @p destinationId.
+      *
+      * The concrete source resource owns the type-specific copy behavior.
+      */
+    void copy(const RenderResourceId& sourceId, const RenderResourceId& destinationId,
+              const std::string& action);
+
   private:
     std::map<RenderResourceId, std::unique_ptr<RenderResource>> m_resources;
   };

@@ -148,4 +148,10 @@ namespace engine::graph {
     core::util::copyBuffer(destination, source);
     destinationResource.markProduced();
   }
+
+  void RenderResourceStorage::copy(const RenderResourceId& sourceId,
+                                   const RenderResourceId& destinationId,
+                                   const std::string& action) {
+    resource(sourceId).copyContentsTo(resource(destinationId), action);
+  }
 }

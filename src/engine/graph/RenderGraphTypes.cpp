@@ -204,6 +204,7 @@ namespace engine::graph {
                                         {"composite", RenderPassKind::Composite},
                                         {"tonemap", RenderPassKind::Tonemap},
                                         {"postprocess", RenderPassKind::PostProcess},
+                                        {"readback", RenderPassKind::Readback},
                                         {"aov", RenderPassKind::AOV},
                                         {"debug", RenderPassKind::Debug},
                                         {"custom", RenderPassKind::Custom}},
@@ -779,6 +780,7 @@ namespace engine::graph {
                                             {RenderPassKind::Composite, "composite"},
                                             {RenderPassKind::Tonemap, "tonemap"},
                                             {RenderPassKind::PostProcess, "postprocess"},
+                                            {RenderPassKind::Readback, "readback"},
                                             {RenderPassKind::AOV, "aov"},
                                             {RenderPassKind::Debug, "debug"},
                                             {RenderPassKind::Custom, "custom"}});

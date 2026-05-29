@@ -126,6 +126,16 @@ namespace engine::graph {
     virtual Buffer<std::uint32_t>& objectId();
     virtual const Buffer<std::uint32_t>& objectId() const;
 
+    /**
+      * Copies CPU-materialized contents into @p destination.
+      *
+      * Descriptor-only resources use the base implementation and report a
+      * missing CPU buffer. GPU subclasses can override this later with a real
+      * transfer/readback implementation while graph payloads keep using the
+      * same resource-level operation.
+      */
+    virtual void copyContentsTo(RenderResource& destination, const std::string& action) const;
+
   private:
     std::out_of_range missingBuffer(const char* typeName) const;
 
@@ -158,6 +168,7 @@ namespace engine::graph {
     void clearSubstituteDefault(RenderPassKind passKind, const Colord& beautyDefaultColor) override;
     Buffer<Colord>& color() override;
     const Buffer<Colord>& color() const override;
+    void copyContentsTo(RenderResource& destination, const std::string& action) const override;
 
   private:
     Buffer<Colord> m_buffer;
@@ -175,6 +186,7 @@ namespace engine::graph {
     bool depthBacked() const override;
     Buffer<double>& depth() override;
     const Buffer<double>& depth() const override;
+    void copyContentsTo(RenderResource& destination, const std::string& action) const override;
 
   private:
     Buffer<double> m_buffer;
@@ -192,6 +204,7 @@ namespace engine::graph {
     bool stencilBacked() const override;
     Buffer<std::uint8_t>& stencil() override;
     const Buffer<std::uint8_t>& stencil() const override;
+    void copyContentsTo(RenderResource& destination, const std::string& action) const override;
 
   private:
     Buffer<std::uint8_t> m_buffer;
@@ -209,6 +222,7 @@ namespace engine::graph {
     bool objectIdBacked() const override;
     Buffer<std::uint32_t>& objectId() override;
     const Buffer<std::uint32_t>& objectId() const override;
+    void copyContentsTo(RenderResource& destination, const std::string& action) const override;
 
   private:
     Buffer<std::uint32_t> m_buffer;

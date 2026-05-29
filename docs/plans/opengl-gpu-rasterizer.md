@@ -304,7 +304,11 @@ Tasks:
   hard-coded CPU-only rule; text and DOT graph exports surface that pass-domain
   support alongside resource domains for inspection.
 - Add explicit readback pass/operation for final image output, trace, and AOV
-  export.
+  export. ✅ **Partial.** `RenderPassKind::Readback` now exposes the transfer
+  boundary as a graph node and executes CPU-materialized copies through
+  `RenderResource` instance methods. Descriptor-only GPU inputs still fail
+  clearly until concrete OpenGL texture/renderbuffer residency can perform the
+  real transfer.
 - ~~Record readback cost in graph trace metadata.~~ ✅ **Done.** OpenGL raster
   beauty/depth/stencil executions now append trace messages that report which
   attachments were copied back to CPU buffers and how long that eager readback

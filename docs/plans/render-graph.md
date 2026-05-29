@@ -1537,7 +1537,10 @@ and reprojection experiments.
 
 Introduce GPU-backed resource storage and executor adapters after the CPU graph
 contracts are stable. GPU support should preserve the same high-level resource
-descriptors and pass dependencies.
+descriptors and pass dependencies. ✅ **Partial.** Passes now declare supported
+resource domains and a first-class readback pass kind exposes CPU/GPU transfer
+boundaries as graph nodes. Concrete GPU texture/renderbuffer ownership and
+OpenGL readback are still future work.
 
 ## Open design questions
 

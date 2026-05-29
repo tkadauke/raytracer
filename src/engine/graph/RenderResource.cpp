@@ -1,5 +1,7 @@
 #include "engine/graph/RenderResource.h"
 
+#include "core/util/BufferUtils.h"
+
 #include <algorithm>
 #include <limits>
 #include <utility>
@@ -59,6 +61,17 @@ namespace engine::graph {
       static const std::vector<const RenderResourceFactory*> result = {&color, &depth, &stencil,
                                                                        &objectId};
       return result;
+    }
+
+    template<class BufferType>
+    void requireMatchingCopySize(const BufferType& source, const BufferType& destination,
+                                 const std::string& action,
+                                 const RenderResourceDescriptor& sourceDescriptor,
+                                 const RenderResourceDescriptor& destinationDescriptor) {
+      if (!core::util::bufferDimensionsEqual(source, destination)) {
+        throw std::runtime_error(action + " requires matching dimensions for resources '" +
+                                 sourceDescriptor.id + "' and '" + destinationDescriptor.id + "'");
+      }
     }
   }
 
@@ -201,6 +214,11 @@ namespace engine::graph {
     throw missingBuffer("object id");
   }
 
+  void RenderResource::copyContentsTo(RenderResource&, const std::string& action) const {
+    throw std::out_of_range(action + " source resource '" + descriptor().id +
+                            "' has no CPU buffer");
+  }
+
   std::out_of_range RenderResource::missingBuffer(const char* typeName) const {
     return std::out_of_range("render resource '" + descriptor().id + "' has no CPU " + typeName +
                              " buffer");
@@ -233,6 +251,14 @@ namespace engine::graph {
     return m_buffer;
   }
 
+  void ColorRenderResource::copyContentsTo(RenderResource& destination,
+                                           const std::string& action) const {
+    Buffer<Colord>& output = destination.color();
+    requireMatchingCopySize(m_buffer, output, action, descriptor(), destination.descriptor());
+    core::util::copyBuffer(output, m_buffer);
+    destination.markProduced();
+  }
+
   DepthRenderResource::DepthRenderResource(RenderResourceDescriptor descriptor)
       : RenderResource(descriptor),
         m_buffer(this->descriptor().width, this->descriptor().height) {
@@ -258,6 +284,14 @@ namespace engine::graph {
 
   const Buffer<double>& DepthRenderResource::depth() const {
     return m_buffer;
+  }
+
+  void DepthRenderResource::copyContentsTo(RenderResource& destination,
+                                           const std::string& action) const {
+    Buffer<double>& output = destination.depth();
+    requireMatchingCopySize(m_buffer, output, action, descriptor(), destination.descriptor());
+    core::util::copyBuffer(output, m_buffer);
+    destination.markProduced();
   }
 
   StencilRenderResource::StencilRenderResource(RenderResourceDescriptor descriptor)
@@ -287,6 +321,14 @@ namespace engine::graph {
     return m_buffer;
   }
 
+  void StencilRenderResource::copyContentsTo(RenderResource& destination,
+                                             const std::string& action) const {
+    Buffer<std::uint8_t>& output = destination.stencil();
+    requireMatchingCopySize(m_buffer, output, action, descriptor(), destination.descriptor());
+    core::util::copyBuffer(output, m_buffer);
+    destination.markProduced();
+  }
+
   ObjectIdRenderResource::ObjectIdRenderResource(RenderResourceDescriptor descriptor)
       : RenderResource(descriptor),
         m_buffer(this->descriptor().width, this->descriptor().height) {
@@ -312,5 +354,13 @@ namespace engine::graph {
 
   const Buffer<std::uint32_t>& ObjectIdRenderResource::objectId() const {
     return m_buffer;
+  }
+
+  void ObjectIdRenderResource::copyContentsTo(RenderResource& destination,
+                                              const std::string& action) const {
+    Buffer<std::uint32_t>& output = destination.objectId();
+    requireMatchingCopySize(m_buffer, output, action, descriptor(), destination.descriptor());
+    core::util::copyBuffer(output, m_buffer);
+    destination.markProduced();
   }
 }
