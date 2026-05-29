@@ -274,9 +274,6 @@ namespace engine::raster {
                                        const Colord& background, Buffer<Colord>* target,
                                        Buffer<double>* depthTarget,
                                        Buffer<std::uint8_t>* stencilTarget) {
-        if (m_cancelled.load()) {
-          return {};
-        }
         if (!m_context.makeCurrent()) {
           throw std::runtime_error(m_context.errorMessage());
         }
@@ -1410,10 +1407,6 @@ namespace engine::raster {
                                       Buffer<std::uint8_t>* stencilTarget) const {
     m_lastReadbackTraceMessage.clear();
     m_lastTraceMessages.clear();
-
-    if (m_cancelled.load()) {
-      return;
-    }
 
     OpenGLOffscreenContext context;
     if (!context.create(width, height, m_msaaSamples)) {

@@ -53,10 +53,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 ### Fixed
 
 - **OpenGL raster backend honors cancellation during draw.** A cancellation
-  flag set before or during a render now skips the offscreen context
-  creation, FBO bind, and remaining batch draws instead of running the GL
-  pipeline to completion. Matches the CPU rasterizer's clean-stop contract.
-  — Claude Opus 4.7
+  flag set mid-render now stops the batch loop instead of running every
+  remaining batch through the GL pipeline. The check matches the CPU
+  rasterizer's per-triangle convention: callers are still expected to
+  `uncancel()` between renders, the pre-render path is unchanged. — Claude
+  Opus 4.7
 - **OpenGL raster `renderDepth`/`renderStencil` skip the throwaway color
   buffer.** Depth-only and stencil-only renders no longer allocate a
   framebuffer-sized `Buffer<Colord>` only to satisfy the internal render
