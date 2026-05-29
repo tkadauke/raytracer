@@ -256,8 +256,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QString("1"), passes->topLevelItem(0)->text(2));
     EXPECT_EQ(QString("Raytraced beauty"), passes->topLevelItem(0)->text(3));
     EXPECT_EQ(QString("raytrace_beauty"), passes->topLevelItem(0)->toolTip(3));
-    EXPECT_EQ(QString("beauty"), passes->topLevelItem(0)->text(4));
-    EXPECT_EQ(QString("raytracer"), passes->topLevelItem(0)->text(5));
+    EXPECT_EQ(QString("Beauty"), passes->topLevelItem(0)->text(4));
+    EXPECT_EQ(QString("Raytracer"), passes->topLevelItem(0)->text(5));
     EXPECT_EQ(QString("all"), passes->topLevelItem(0)->text(6));
     EXPECT_EQ(QString("preview-camera"), passes->topLevelItem(0)->text(7));
     EXPECT_EQ(QString("clay"), passes->topLevelItem(0)->text(8));
@@ -280,7 +280,7 @@ namespace RenderGraphInspectorWidgetTest {
     auto* resourceNode = graphNodeItem(graph->scene(), "resource", "main_color");
     ASSERT_NE(nullptr, resourceNode);
     EXPECT_TRUE(nodeTextContains(resourceNode, "Main color"));
-    EXPECT_TRUE(nodeTextContains(resourceNode, "Rgb Double"));
+    EXPECT_TRUE(nodeTextContains(resourceNode, "RGB double"));
     EXPECT_TRUE(nodeTextContains(resourceNode, "Exported"));
     EXPECT_TRUE(resourceNode->toolTip().contains("Resource ID: main_color"));
     EXPECT_TRUE(resourceNode->toolTip().contains("Producer: Raytraced beauty"));
@@ -291,7 +291,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QString("main_color"), resources->topLevelItem(0)->toolTip(0));
     EXPECT_EQ(QString("Raytraced beauty"), resources->topLevelItem(0)->text(1));
     EXPECT_EQ(QString("-"), resources->topLevelItem(0)->text(2));
-    EXPECT_EQ(QString("color"), resources->topLevelItem(0)->text(3));
+    EXPECT_EQ(QString("Color"), resources->topLevelItem(0)->text(3));
     EXPECT_THAT(status->text().toStdString(), ::testing::HasSubstr("Valid plan"));
   }
 
@@ -321,7 +321,7 @@ namespace RenderGraphInspectorWidgetTest {
     widget.setPlan(twoPassPlan());
 
     QTreeWidgetItem* tonemapKind =
-      groupItem(widget, QStringLiteral("Kind"), QStringLiteral("tonemap"));
+      groupItem(widget, QStringLiteral("Kind"), QStringLiteral("Tone map"));
     ASSERT_NE(nullptr, tonemapKind);
     tonemapKind->setCheckState(0, Qt::Unchecked);
 

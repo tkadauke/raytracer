@@ -94,6 +94,13 @@ struct RenderGraphInspectorWidget::Private {
   QString displayName(const RenderPassNode& pass) const;
   QString displayName(const RenderResourceDescriptor& resource) const;
   QString displayResourceName(const RenderPlan& plan, const RenderResourceId& resourceId) const;
+  QString displayText(RenderExecutorKind executor) const;
+  QString displayText(RenderPassKind kind) const;
+  QString displayText(DisabledBehavior behavior) const;
+  QString displayText(RenderResourceType type) const;
+  QString displayText(RenderResourceDomain domain) const;
+  QString displayText(RenderResourceLifetime lifetime) const;
+  QString displayText(RenderResourceFormat format) const;
   QString graphEnumText(const char* value) const;
   QString executionStateName(PassExecutionState state) const;
   QString passTraceLine(const RenderPassNode& pass) const;
@@ -151,6 +158,134 @@ RenderGraphInspectorWidget::Private::displayResourceName(const RenderPlan& plan,
                                                          const RenderResourceId& resourceId) const {
   const RenderResourceDescriptor* resource = plan.findResource(resourceId);
   return resource ? displayName(*resource) : humanizeIdentifier(qstr(resourceId));
+}
+
+QString RenderGraphInspectorWidget::Private::displayText(RenderExecutorKind executor) const {
+  switch (executor) {
+  case RenderExecutorKind::Raytracer:
+    return QStringLiteral("Raytracer");
+  case RenderExecutorKind::Rasterizer:
+    return QStringLiteral("Rasterizer");
+  case RenderExecutorKind::Wireframe:
+    return QStringLiteral("Wireframe");
+  case RenderExecutorKind::Composite:
+    return QStringLiteral("Composite");
+  case RenderExecutorKind::PostProcess:
+    return QStringLiteral("Postprocess");
+  }
+  return graphEnumText(toString(executor));
+}
+
+QString RenderGraphInspectorWidget::Private::displayText(RenderPassKind kind) const {
+  switch (kind) {
+  case RenderPassKind::Beauty:
+    return QStringLiteral("Beauty");
+  case RenderPassKind::Shadow:
+    return QStringLiteral("Shadow");
+  case RenderPassKind::Overlay:
+    return QStringLiteral("Overlay");
+  case RenderPassKind::Composite:
+    return QStringLiteral("Composite");
+  case RenderPassKind::Tonemap:
+    return QStringLiteral("Tone map");
+  case RenderPassKind::PostProcess:
+    return QStringLiteral("Postprocess");
+  case RenderPassKind::Readback:
+    return QStringLiteral("Readback");
+  case RenderPassKind::AOV:
+    return QStringLiteral("AOV");
+  case RenderPassKind::Debug:
+    return QStringLiteral("Debug");
+  case RenderPassKind::Custom:
+    return QStringLiteral("Custom");
+  }
+  return graphEnumText(toString(kind));
+}
+
+QString RenderGraphInspectorWidget::Private::displayText(DisabledBehavior behavior) const {
+  switch (behavior) {
+  case DisabledBehavior::Error:
+    return QStringLiteral("Error");
+  case DisabledBehavior::CullDependents:
+    return QStringLiteral("Cull dependents");
+  case DisabledBehavior::SubstituteDefault:
+    return QStringLiteral("Substitute default");
+  case DisabledBehavior::Passthrough:
+    return QStringLiteral("Passthrough");
+  }
+  return graphEnumText(toString(behavior));
+}
+
+QString RenderGraphInspectorWidget::Private::displayText(RenderResourceType type) const {
+  switch (type) {
+  case RenderResourceType::Color:
+    return QStringLiteral("Color");
+  case RenderResourceType::Depth:
+    return QStringLiteral("Depth");
+  case RenderResourceType::Stencil:
+    return QStringLiteral("Stencil");
+  case RenderResourceType::ObjectId:
+    return QStringLiteral("Object ID");
+  case RenderResourceType::MaterialId:
+    return QStringLiteral("Material ID");
+  case RenderResourceType::Normal:
+    return QStringLiteral("Normal");
+  case RenderResourceType::WorldPosition:
+    return QStringLiteral("World position");
+  case RenderResourceType::MotionVector:
+    return QStringLiteral("Motion vector");
+  case RenderResourceType::ShadowMap:
+    return QStringLiteral("Shadow map");
+  case RenderResourceType::ShadowMask:
+    return QStringLiteral("Shadow mask");
+  case RenderResourceType::CustomTexture:
+    return QStringLiteral("Custom texture");
+  }
+  return graphEnumText(toString(type));
+}
+
+QString RenderGraphInspectorWidget::Private::displayText(RenderResourceDomain domain) const {
+  switch (domain) {
+  case RenderResourceDomain::CPU:
+    return QStringLiteral("CPU");
+  case RenderResourceDomain::GPU:
+    return QStringLiteral("GPU");
+  }
+  return graphEnumText(toString(domain));
+}
+
+QString RenderGraphInspectorWidget::Private::displayText(RenderResourceLifetime lifetime) const {
+  switch (lifetime) {
+  case RenderResourceLifetime::Transient:
+    return QStringLiteral("Transient");
+  case RenderResourceLifetime::Imported:
+    return QStringLiteral("Imported");
+  case RenderResourceLifetime::Exported:
+    return QStringLiteral("Exported");
+  case RenderResourceLifetime::History:
+    return QStringLiteral("History");
+  case RenderResourceLifetime::PersistentCache:
+    return QStringLiteral("Persistent cache");
+  }
+  return graphEnumText(toString(lifetime));
+}
+
+QString RenderGraphInspectorWidget::Private::displayText(RenderResourceFormat format) const {
+  switch (format) {
+  case RenderResourceFormat::Unknown:
+    return QStringLiteral("Unknown");
+  case RenderResourceFormat::RGBDouble:
+    return QStringLiteral("RGB double");
+  case RenderResourceFormat::DepthDouble:
+    return QStringLiteral("Depth double");
+  case RenderResourceFormat::UInt8:
+    return QStringLiteral("UInt8");
+  case RenderResourceFormat::UInt32:
+    return QStringLiteral("UInt32");
+  case RenderResourceFormat::ScalarDouble:
+    return QStringLiteral("Scalar double");
+  }
+  return graphEnumText(toString(format));
 }
 
 QString RenderGraphInspectorWidget::Private::graphEnumText(const char* value) const {
@@ -331,8 +466,8 @@ QString RenderGraphInspectorWidget::Private::resourceTooltip(
     .arg(qstr(resource.id))
     .arg(resourceProducer(plan, resource.id))
     .arg(resourceConsumers(plan, resource.id))
-    .arg(toString(resource.format))
-    .arg(toString(resource.lifetime))
+    .arg(displayText(resource.format))
+    .arg(displayText(resource.lifetime))
     .arg(sizeText(resource));
 }
 
@@ -942,9 +1077,9 @@ void RenderGraphInspectorWidget::rebuildGraph() {
     QPen resourcePen(QColor(80, 95, 110));
     resourcePen.setWidthF(resource.id == p->selectedResourceId ? 2.5 : 1.2);
     QStringList lines{p->displayName(resource),
-                      p->graphEnumText(toString(resource.type)) + QStringLiteral("/") +
-                        p->graphEnumText(toString(resource.format)),
-                      p->graphEnumText(toString(resource.lifetime)), p->sizeText(resource)};
+                      p->displayText(resource.type) + QStringLiteral("/") +
+                        p->displayText(resource.format),
+                      p->displayText(resource.lifetime), p->sizeText(resource)};
     const QString traceLine = trace ? p->resourceTraceLine(resource) : QString();
     if (!traceLine.isEmpty())
       lines << traceLine;
@@ -982,8 +1117,8 @@ void RenderGraphInspectorWidget::rebuildGraph() {
       pen.setStyle(Qt::DashLine);
 
     QStringList lines{p->displayName(pass),
-                      p->graphEnumText(toString(pass.kind)) + QStringLiteral("/") +
-                        p->graphEnumText(toString(pass.executor)),
+                      p->displayText(pass.kind) + QStringLiteral("/") +
+                        p->displayText(pass.executor),
                       pass.enabled ? tr("enabled") : tr("disabled")};
     lines << p->passSceneViewLines(pass);
     const auto stage = plan.executionStageNumber(pass.id);
@@ -1025,14 +1160,14 @@ void RenderGraphInspectorWidget::rebuildPasses() {
     item->setText(2, stage ? QString::number(*stage) : QStringLiteral("-"));
     item->setText(3, p->displayName(pass));
     item->setToolTip(3, qstr(pass.id));
-    item->setText(4, toString(pass.kind));
-    item->setText(5, toString(pass.executor));
+    item->setText(4, p->displayText(pass.kind));
+    item->setText(5, p->displayText(pass.executor));
     item->setText(6, p->sceneSelectorText(pass.sceneView.selector));
     item->setText(7, p->cameraText(pass.sceneView.camera));
     item->setText(8, p->shadingProfileText(pass.sceneView.shadingProfile));
     item->setText(9, p->resourceReads(plan, pass.reads));
     item->setText(10, p->resourceWrites(plan, pass.writes));
-    item->setText(11, toString(pass.disabledBehavior));
+    item->setText(11, p->displayText(pass.disabledBehavior));
     if (pass.id == p->selectedPassId)
       item->setSelected(true);
   }
@@ -1055,7 +1190,7 @@ void RenderGraphInspectorWidget::rebuildGroups() {
     item->setData(0, GroupScopeRole, QStringLiteral("kind"));
     item->setData(0, GroupValueRole, static_cast<int>(kind));
     item->setText(1, tr("Kind"));
-    item->setText(2, toString(kind));
+    item->setText(2, p->displayText(kind));
   }
 
   for (const auto executor : plan.passExecutors()) {
@@ -1066,7 +1201,7 @@ void RenderGraphInspectorWidget::rebuildGroups() {
     item->setData(0, GroupScopeRole, QStringLiteral("executor"));
     item->setData(0, GroupValueRole, static_cast<int>(executor));
     item->setText(1, tr("Executor"));
-    item->setText(2, toString(executor));
+    item->setText(2, p->displayText(executor));
   }
 
   for (const auto& feature : plan.passFeatures()) {
@@ -1096,10 +1231,10 @@ void RenderGraphInspectorWidget::rebuildResources() {
     item->setToolTip(0, qstr(resource.id));
     item->setText(1, p->resourceProducer(plan, resource.id));
     item->setText(2, p->resourceConsumers(plan, resource.id));
-    item->setText(3, toString(resource.type));
-    item->setText(4, toString(resource.format));
-    item->setText(5, toString(resource.domain));
-    item->setText(6, toString(resource.lifetime));
+    item->setText(3, p->displayText(resource.type));
+    item->setText(4, p->displayText(resource.format));
+    item->setText(5, p->displayText(resource.domain));
+    item->setText(6, p->displayText(resource.lifetime));
     item->setText(7, p->sizeText(resource));
     if (resource.id == p->selectedResourceId)
       item->setSelected(true);

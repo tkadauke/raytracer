@@ -706,11 +706,12 @@ copyable inspection.
   start, finish, or fail execution;
 - the Passes table lists each pass display name, execution order, execution
   stage, pass kind, executor, read resources, written resources, and disabled
-  behavior;
+  behavior using human-readable enum labels;
 - the Groups table disables every pass matching a present kind, executor, or
-  feature tag;
+  feature tag and shows those kind/executor labels in the same UI vocabulary;
 - the Resources table lists each resource display name, producer, consumers,
-  type, format, domain, lifetime, dimensions, and sample count.
+  type, format, domain, lifetime, dimensions, and sample count using the same
+  UI-facing labels.
 
 The checkbox in each pass row builds a `RenderGraphOverrides` value for that
 pass id. The dock applies those overrides to the compiled plan and runs

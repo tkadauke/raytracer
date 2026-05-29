@@ -810,6 +810,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler render graph enum labels.** The Render Graph dock now shows
+  human-readable pass kind, executor, disabled-behavior, resource type, format,
+  domain, and lifetime labels in its supporting tables instead of raw export
+  spellings. — GPT-5
 - **OpenGL raster AOV readback classification.** Exported OpenGL raster AOV
   readback nodes are now tagged as exported side branches instead of `main`
   display-chain work in graph features. — GPT-5
