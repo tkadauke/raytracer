@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/SimdFeatures.h"
+
 #include "core/InPlaceSetOperators.h"
 #include "core/InequalityOperator.h"
 #include "core/math/Range.h"
@@ -13,10 +15,10 @@
 #include <iostream>
 #include <algorithm>
 
-#ifdef __SSE2__
+#if RAYTRACER_SIMD_SSE2
 #include <emmintrin.h>
 #endif
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
 #include <xmmintrin.h>
 #endif
 
@@ -350,7 +352,7 @@ public:
     */
   bool intersects(const Rayd& ray, const Vector3<T>& inverseDirection) const;
 
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
   /**
     * Tests four rays against this bounding box and returns an SSE comparison
     * mask. Use `_mm_movemask_ps(result)` to extract one hit bit per Ray4 lane.
@@ -417,7 +419,7 @@ std::array<Vector3<T>, 8> BoundingBox<T>::vertices() const {
   }};
 }
 
-#ifdef __SSE2__
+#if RAYTRACER_SIMD_SSE2
 template<>
 inline bool BoundingBox<double>::intersect(const Rayd& ray, const Vector3<double>& inverseDirection,
                                            Range<double>& interval) const;
@@ -498,7 +500,7 @@ bool BoundingBox<T>::intersect(const Rayd& ray, const Vector3<T>& inverseDirecti
   return t_enter <= t_exit && t_exit >= T(0.0);
 }
 
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
 namespace bounding_box_detail {
   inline __m128 select_ps(__m128 mask, __m128 trueValue, __m128 falseValue) {
     return _mm_or_ps(_mm_and_ps(mask, trueValue), _mm_andnot_ps(mask, falseValue));
@@ -585,7 +587,7 @@ __m128 BoundingBox<T>::intersects4(const Ray4& rays) const {
 // Processes X and Y axes together in one __m128d pair; Z is scalar.
 // The BVH uses BoundingBoxd (double) on every node per ray, so this is
 // the hot path.
-#ifdef __SSE2__
+#if RAYTRACER_SIMD_SSE2
 template<>
 inline bool BoundingBox<double>::intersects(const Rayd& ray) const {
   return intersects(
@@ -668,7 +670,7 @@ inline bool BoundingBox<double>::intersect(const Rayd& ray, const Vector3<double
   interval = Range<double>(t_enter, t_exit);
   return t_enter <= t_exit && t_exit >= 0.0;
 }
-#endif // __SSE2__
+#endif // RAYTRACER_SIMD_SSE2
 
 /**
   * Outputs the given bounding box to the given std::ostream.

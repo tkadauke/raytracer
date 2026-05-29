@@ -1,6 +1,7 @@
 #include "core/Color.h"
+#include "core/SimdFeatures.h"
 
-#ifdef __SSE3__
+#if RAYTRACER_SIMD_SSE3
 
 const Color<double>& Color<double>::black() {
   static Color<double> c(0, 0, 0);

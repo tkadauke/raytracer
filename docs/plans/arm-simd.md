@@ -77,8 +77,9 @@ Takeaways:
 
 ## Phase 0 - inventory, gates, and baselines
 
-Create a small SIMD configuration header, for example
-`include/core/simd/SimdConfig.h`, with project-level feature macros:
+~~Create a small SIMD configuration header with project-level feature macros:~~
+✅ **Done.** `include/core/SimdFeatures.h` is the canonical header, and
+existing x86 SSE/SSE3/AVX call sites now use these macros:
 
 - `RAYTRACER_SIMD_SSE`
 - `RAYTRACER_SIMD_SSE2`
@@ -86,11 +87,15 @@ Create a small SIMD configuration header, for example
 - `RAYTRACER_SIMD_AVX`
 - `RAYTRACER_SIMD_NEON`
 
-Use compiler macros such as `__SSE__`, `__SSE2__`, `__SSE3__`, `__AVX__`,
+~~Use compiler macros such as `__SSE__`, `__SSE2__`, `__SSE3__`, `__AVX__`,
 `__ARM_NEON`, and `__aarch64__` behind that one header. Existing code should
-move away from directly testing architecture macros.
+move away from directly testing architecture macros.~~ ✅ **Done.** The new
+project macros map directly to the same compiler feature macros that gated the
+old code paths.
 
-Baseline before changing behavior:
+~~Baseline before changing behavior:~~ ✅ **Done.**
+`docs/perf/arm-simd-phase0-baseline-2026-05-28.md` records the current
+baseline evidence and the exact capture commands.
 
 - run `VectorBenchmark`, `MatrixBenchmark`, `BoundingBoxBenchmark`,
   `BatchedRayBenchmark`, `RayPacketBenchmark`, and `BVHPacketBenchmark` on

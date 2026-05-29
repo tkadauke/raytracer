@@ -1,19 +1,20 @@
 #include "render/State.h"
 #include "render/primitives/Box.h"
+#include "core/SimdFeatures.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
 #include <cmath>
 #include <limits>
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
 #include <xmmintrin.h>
 #endif
 
 using namespace std;
 using namespace render;
 
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
 namespace {
   __m128 select_ps(__m128 mask, __m128 trueValue, __m128 falseValue) {
     return _mm_or_ps(_mm_and_ps(mask, trueValue), _mm_andnot_ps(mask, falseValue));
@@ -101,7 +102,7 @@ const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints,
 }
 
 RayPacketIntersection4 Box::intersectPacket(const Ray4& rays, render::State& state) const {
-#ifndef __SSE__
+#if !RAYTRACER_SIMD_SSE
   return Primitive::intersectPacket(rays, state);
 #else
   RayPacketIntersection4 result;

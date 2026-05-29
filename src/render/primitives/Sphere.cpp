@@ -1,20 +1,21 @@
 #include "render/State.h"
 #include "render/Stats.h"
 #include "render/primitives/Sphere.h"
+#include "core/SimdFeatures.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Constants.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
 #include <cmath>
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
 #include <xmmintrin.h>
 #endif
 
 using namespace std;
 using namespace render;
 
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
 namespace {
   void packetHit(State& state, const Primitive* primitive, const std::string& reason) {
     if (state.traceEvents) {
@@ -68,7 +69,7 @@ const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints,
 }
 
 RayPacketIntersection4 Sphere::intersectPacket(const Ray4& rays, render::State& state) const {
-#ifndef __SSE__
+#if !RAYTRACER_SIMD_SSE
   return Primitive::intersectPacket(rays, state);
 #else
   RAYTRACER_STATS_INC(raySphereIntersect);

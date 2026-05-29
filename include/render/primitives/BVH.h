@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/SimdFeatures.h"
+
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -85,7 +87,7 @@ namespace render {
       */
     RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
 
-#ifdef __AVX__
+#if RAYTRACER_SIMD_AVX
     /**
       * Eight-lane variant. Active-mask descent is identical to the
       * Ray4 path; leaf dispatch calls Primitive::intersectPacket(Ray8).
@@ -145,7 +147,7 @@ namespace render {
     void intersectPacketNode(const Node* node, const Ray4& rays, uint16_t activeMask,
                              std::array<float, Ray4::lanes>& tMin, uint16_t& hitMask,
                              render::State& state) const;
-#ifdef __AVX__
+#if RAYTRACER_SIMD_AVX
     void intersectPacketNode(const Node* node, const Ray8& rays, uint16_t activeMask,
                              std::array<float, Ray8::lanes>& tMin, uint16_t& hitMask,
                              render::State& state) const;

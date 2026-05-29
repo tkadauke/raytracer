@@ -1,11 +1,12 @@
 #include <gtest/gtest.h>
+#include "core/SimdFeatures.h"
 #include "core/math/BoundingBox.h"
 #include "core/math/Range.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
 
 #include <sstream>
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
 #include <xmmintrin.h>
 #endif
 
@@ -48,7 +49,7 @@ namespace BoundingBoxTest {
     ASSERT_EQ(Vector3<TypeParam>(1, 1, 1), bbox.max());
   }
 
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
   TYPED_TEST(BoundingBoxTest, ShouldIntersectRay4PacketLikeScalarRays) {
     BoundingBox<TypeParam> bbox(Vector3<TypeParam>(-1, -1, -1), Vector3<TypeParam>(1, 1, 1));
     const std::array<Rayf, 4> rayArray{

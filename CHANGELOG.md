@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Central SIMD feature gates.** SIMD compile-time availability now flows
+  through `include/core/SimdFeatures.h` project macros for SSE, SSE2, SSE3, AVX,
+  and NEON, preserving existing x86 behavior while preparing Epic #426 ARM SIMD
+  work. — GPT-5
 - **Automatic scene acceleration selection.** Runtime scene conversion now
   analyzes finite leaf geometry under imported groups and meshes, choosing the
   linear fallback for empty/single-leaf scenes and BVH for multi-leaf glTF,

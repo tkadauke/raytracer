@@ -3,10 +3,11 @@
 // The SSE3 specialisations of Vector3<float>, Vector3<double>, Vector4<float>,
 // Vector4<double>, Color<float>, and Color<double> live in
 // include/core/math/vector/sse3/ and include/core/color/sse3/. They are
-// gated on __SSE__ / __SSE3__ at compile time. When those macros are defined
-// (i.e. on x86 with -msse3, which CMakeLists.txt sets unconditionally for
-// x86-family CPUs), the specialisations replace the generic Vector / Color
-// templates for those particular instantiations.
+// gated on RAYTRACER_SIMD_SSE / RAYTRACER_SIMD_SSE3 at compile time. When
+// those project-level gates are enabled (i.e. on x86 with -msse3, which
+// CMakeLists.txt sets unconditionally for x86-family CPUs), the specialisations
+// replace the generic Vector / Color templates for those particular
+// instantiations.
 //
 // Each test below takes a battery of inputs, runs each operation through both
 // the SSE3 specialisation and an explicit instantiation of the generic
@@ -20,6 +21,7 @@
 
 #include <gtest/gtest.h>
 
+#include "core/SimdFeatures.h"
 #include "core/Color.h"
 #include "core/math/Vector.h"
 
@@ -32,8 +34,9 @@ namespace SimdRegressionTest {
   namespace {
     // Explicitly-instantiated *generic* aliases. These bypass the Vector3<T>
     // / Color<T> SSE3 specialisations and always use the underlying
-    // template's scalar implementation, regardless of whether __SSE__ is
-    // defined. They are the "expected" side of every comparison below.
+    // template's scalar implementation, regardless of whether
+    // RAYTRACER_SIMD_SSE is enabled. They are the "expected" side of every
+    // comparison below.
     template<class T>
     using GenericVector3 = Vector<3, T, T, void>;
     template<class T>
@@ -42,9 +45,9 @@ namespace SimdRegressionTest {
     [[maybe_unused]] constexpr double kTol = 1e-6;
   }
 
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
 
-  // Vector3<float> — SSE3 specialisation gated on __SSE__.
+  // Vector3<float> — SSE3 specialisation gated on RAYTRACER_SIMD_SSE.
   TEST(SimdRegression, Vector3fAddMatchesGeneric) {
     Vector3<float> s(1.5f, -2.0f, 3.5f);
     Vector3<float> t(0.25f, 4.0f, -1.5f);
@@ -118,7 +121,7 @@ namespace SimdRegressionTest {
     ASSERT_NEAR(g_s.length(), s.length(), kTol);
   }
 
-  // Vector4<float> — SSE3 specialisation gated on __SSE__.
+  // Vector4<float> — SSE3 specialisation gated on RAYTRACER_SIMD_SSE.
   TEST(SimdRegression, Vector4fAddMatchesGeneric) {
     Vector4<float> s(1.5f, -2.0f, 3.5f, 0.5f), t(0.25f, 4.0f, -1.5f, 0.25f);
     GenericVector4<float> g_s(1.5f, -2.0f, 3.5f, 0.5f), g_t(0.25f, 4.0f, -1.5f, 0.25f);
@@ -163,11 +166,11 @@ namespace SimdRegressionTest {
     ASSERT_NEAR(g_s * g_t, s * t, kTol);
   }
 
-#endif // __SSE__
+#endif // RAYTRACER_SIMD_SSE
 
-#ifdef __SSE3__
+#if RAYTRACER_SIMD_SSE3
 
-  // Vector3<double> — SSE3 specialisation gated on __SSE3__.
+  // Vector3<double> — SSE3 specialisation gated on RAYTRACER_SIMD_SSE3.
   TEST(SimdRegression, Vector3dAddMatchesGeneric) {
     Vector3<double> s(1.5, -2.0, 3.5), t(0.25, 4.0, -1.5);
     GenericVector3<double> g_s(1.5, -2.0, 3.5), g_t(0.25, 4.0, -1.5);
@@ -195,7 +198,7 @@ namespace SimdRegressionTest {
     ASSERT_NEAR(1.0, k.z(), kTol);
   }
 
-  // Vector4<double> — SSE3 specialisation gated on __SSE3__.
+  // Vector4<double> — SSE3 specialisation gated on RAYTRACER_SIMD_SSE3.
   TEST(SimdRegression, Vector4dAddMatchesGeneric) {
     Vector4<double> s(1.5, -2.0, 3.5, 0.5), t(0.25, 4.0, -1.5, 0.25);
     GenericVector4<double> g_s(1.5, -2.0, 3.5, 0.5), g_t(0.25, 4.0, -1.5, 0.25);
@@ -230,9 +233,9 @@ namespace SimdRegressionTest {
     ASSERT_NEAR(g_s * g_t, s * t, kTol);
   }
 
-#endif // __SSE3__
+#endif // RAYTRACER_SIMD_SSE3
 
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
 
   // Color<float> SSE specialisation. There's no separately-instantiable
   // generic Color<float> (Color<T> is the only template), so these tests
@@ -256,9 +259,9 @@ namespace SimdRegressionTest {
     ASSERT_COLOR_NEAR(Color<float>(0.2f, 0.3f, 0.4f), product, 1e-6f);
   }
 
-#endif // __SSE__
+#endif // RAYTRACER_SIMD_SSE
 
-#ifdef __SSE3__
+#if RAYTRACER_SIMD_SSE3
 
   // Color<double> SSE3 specialisation.
   TEST(SimdRegression, ColordAddMatchesScalar) {
@@ -273,12 +276,44 @@ namespace SimdRegressionTest {
     ASSERT_COLOR_NEAR(Color<double>(0.2, 0.3, 0.4), product, 1e-9);
   }
 
-#endif // __SSE3__
+#endif // RAYTRACER_SIMD_SSE3
 
-  // A single sanity-check test that always builds (regardless of __SSE__),
+  // A single sanity-check test that always builds (regardless of RAYTRACER_SIMD_SSE),
   // so this TU has at least one test on every platform — keeps CTest from
   // emitting a "no tests in this TU" warning on arm64.
   TEST(SimdRegression, ShouldBuildOnEveryPlatform) {
     SUCCEED();
+  }
+
+  TEST(SimdFeatures, ProjectMacrosMatchCompilerFeatures) {
+#if defined(__SSE__)
+    EXPECT_EQ(1, RAYTRACER_SIMD_SSE);
+#else
+    EXPECT_EQ(0, RAYTRACER_SIMD_SSE);
+#endif
+
+#if defined(__SSE2__)
+    EXPECT_EQ(1, RAYTRACER_SIMD_SSE2);
+#else
+    EXPECT_EQ(0, RAYTRACER_SIMD_SSE2);
+#endif
+
+#if defined(__SSE3__)
+    EXPECT_EQ(1, RAYTRACER_SIMD_SSE3);
+#else
+    EXPECT_EQ(0, RAYTRACER_SIMD_SSE3);
+#endif
+
+#if defined(__AVX__)
+    EXPECT_EQ(1, RAYTRACER_SIMD_AVX);
+#else
+    EXPECT_EQ(0, RAYTRACER_SIMD_AVX);
+#endif
+
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+    EXPECT_EQ(1, RAYTRACER_SIMD_NEON);
+#else
+    EXPECT_EQ(0, RAYTRACER_SIMD_NEON);
+#endif
   }
 }

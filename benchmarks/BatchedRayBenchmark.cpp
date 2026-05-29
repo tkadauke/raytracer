@@ -4,6 +4,7 @@
 
 #include <benchmark/benchmark.h>
 
+#include "core/SimdFeatures.h"
 #include "core/math/BoundingBox.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
@@ -18,7 +19,7 @@
 #include <cstdint>
 #include <random>
 #include <vector>
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
 #include <xmmintrin.h>
 #endif
 
@@ -204,7 +205,7 @@ namespace {
     for (auto _ : state) {
       int hits = 0;
       for (const auto& packet : packets) {
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
         hits += countBits(static_cast<std::uint16_t>(_mm_movemask_ps(box.intersects4(packet))));
 #else
         for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {

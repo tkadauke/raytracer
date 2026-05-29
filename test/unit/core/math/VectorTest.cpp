@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "core/SimdFeatures.h"
 #include "core/math/Vector.h"
 #include "test/helpers/TypeTestHelper.h"
 
@@ -743,7 +744,7 @@ namespace Vector3Test {
   TYPED_TEST_SUITE(Vector3Test, Vector3Types);
 
   TYPED_TEST(Vector3Test, ShouldHaveRightSize) {
-#if defined(__SSE__) || defined(__SSE3__)
+#if RAYTRACER_SIMD_SSE || RAYTRACER_SIMD_SSE3
     if (sizeof(TypeParam) == sizeof(float)) {
       // Vector3<float> has an SSE3 specialization that pads to one full XMM register.
       ASSERT_EQ(sizeof(Vector<3, TypeParam>) + sizeof(TypeParam), sizeof(Vector3<TypeParam>));

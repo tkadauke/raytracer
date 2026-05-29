@@ -42,7 +42,10 @@
 
 1. The `cppcheck` suppression list embeds `/Users/tkadauke/code/raytracer/...` paths — it silently suppresses nothing on any other machine, defeating the purpose.
 2. `meta::StaticIf` and `NullType` are custom re-implementations of `std::conditional` and `std::monostate`, both of which landed in C++17. They can be deleted.
-3. SSE3 intrinsic paths in `include/core/math/vector/sse3/` and `include/core/color/sse3/` are gated on `#ifdef __SSE__` — correct, but they are only tested implicitly; there are no targeted SIMD regression tests.
+3. SIMD intrinsic paths in `include/core/math/vector/sse3/`,
+   `include/core/color/sse3/`, packet traversal, and matrix hot paths are gated
+   through `include/core/SimdFeatures.h` project macros, with regression tests
+   covering the current SSE/SSE3 selections.
 4. There is only one commit in the visible log, so git history depth is shallow; this is likely a mirror rather than the full history.
 
 ---
@@ -195,7 +198,12 @@ endif()
          --fail-under-line 80
    ```
 
-2. **Add SIMD regression tests.** The SSE3 paths in `Vector3<float>`, `Vector4<float>`, etc. are not explicitly tested under the `#ifdef __SSE__` branch. Add parametric tests that exercise both the generic and SSE3 implementations with the same inputs.
+~~2. **Add SIMD regression tests.** The SSE3 paths in `Vector3<float>`,
+`Vector4<float>`, etc. should be explicitly tested under the project SIMD
+feature gates.~~ ✅ **Done.** `test/unit/core/math/SimdRegressionTest.cpp`
+exercises the current SSE/SSE3 vector and color specializations against scalar
+expectations and verifies `include/core/SimdFeatures.h` maps to the compiler
+feature macros.
 
 3. **Fuzz the PLY parser.** The PLY format reader in `include/core/formats/ply/` parses external data — it is the highest-risk attack surface in the library. Add a LibFuzzer target:
 

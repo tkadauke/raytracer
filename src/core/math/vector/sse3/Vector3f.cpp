@@ -1,6 +1,7 @@
 #include "core/math/Vector.h"
+#include "core/SimdFeatures.h"
 
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
 
 using namespace std;
 

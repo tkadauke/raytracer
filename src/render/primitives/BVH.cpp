@@ -1,5 +1,6 @@
 #include "render/primitives/BVH.h"
 
+#include "core/SimdFeatures.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 #include "render/State.h"
@@ -274,7 +275,7 @@ void BVH::intersectPacketNode(const Node* node, const Ray4& rays, uint16_t activ
     // Test each active-mask lane against this node's AABB. Lanes that miss
     // are excluded from the descending mask, pruning the subtree for those
     // rays without a separate traversal.
-#ifdef __SSE__
+#if RAYTRACER_SIMD_SSE
   const uint16_t nodeMask = static_cast<uint16_t>(
     activeMask & static_cast<uint16_t>(_mm_movemask_ps(node->bbox.intersects4(rays))));
 #else
@@ -310,7 +311,7 @@ void BVH::intersectPacketNode(const Node* node, const Ray4& rays, uint16_t activ
   intersectPacketNode(node->right.get(), rays, nodeMask, tMin, hitMask, state);
 }
 
-#ifdef __AVX__
+#if RAYTRACER_SIMD_AVX
 RayPacketIntersection8 BVH::intersectPacket(const Ray8& rays, render::State& state) const {
   if (!m_root) {
     return Primitive::intersectPacket(rays, state);
@@ -363,4 +364,4 @@ void BVH::intersectPacketNode(const Node* node, const Ray8& rays, uint16_t activ
   intersectPacketNode(node->left.get(), rays, nodeMask, tMin, hitMask, state);
   intersectPacketNode(node->right.get(), rays, nodeMask, tMin, hitMask, state);
 }
-#endif // __AVX__
+#endif // RAYTRACER_SIMD_AVX
