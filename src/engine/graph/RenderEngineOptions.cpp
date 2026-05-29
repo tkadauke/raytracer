@@ -417,6 +417,9 @@ namespace engine::graph {
       geometry["lod"] = *m_lod;
     if (m_cullMode)
       geometry["cullMode"] = qstr(*m_cullMode);
+    if (m_visibilityCulling)
+      geometry["visibilityCulling"] =
+        qstr(RenderRasterizerOptions::visibilityCullingName(*m_visibilityCulling));
     if (!geometry.isEmpty())
       object["geometry"] = geometry;
 
@@ -496,11 +499,13 @@ namespace engine::graph {
         stringField(execution, "backend", path + ".execution"), path + ".execution.backend"));
 
     const QJsonObject geometry = objectField(object, "geometry", path);
-    rejectUnknownFields(geometry, path + ".geometry", {"lod", "cullMode"});
+    rejectUnknownFields(geometry, path + ".geometry", {"lod", "cullMode", "visibilityCulling"});
     if (hasField(geometry, "lod"))
       options.setLod(intField(geometry, "lod", path + ".geometry"));
     if (hasField(geometry, "cullMode"))
       options.setCullMode(stringField(geometry, "cullMode", path + ".geometry"));
+    if (hasField(geometry, "visibilityCulling"))
+      options.setVisibilityCulling(stringField(geometry, "visibilityCulling", path + ".geometry"));
 
     const QJsonObject sampling = objectField(object, "sampling", path);
     rejectUnknownFields(sampling, path + ".sampling", {"msaaSamples", "msaaShadingMode"});
@@ -589,6 +594,8 @@ namespace engine::graph {
     result.m_backend = overrideOptional(result.m_backend, overrides.m_backend);
     result.m_lod = overrideOptional(result.m_lod, overrides.m_lod);
     result.m_cullMode = overrideOptional(result.m_cullMode, overrides.m_cullMode);
+    result.m_visibilityCulling =
+      overrideOptional(result.m_visibilityCulling, overrides.m_visibilityCulling);
     result.m_msaaSamples = overrideOptional(result.m_msaaSamples, overrides.m_msaaSamples);
     result.m_msaaShadingMode =
       overrideOptional(result.m_msaaShadingMode, overrides.m_msaaShadingMode);
@@ -751,6 +758,39 @@ namespace engine::graph {
     m_cullMode = std::move(mode);
   }
 
+  RenderVisibilityCulling
+  RenderRasterizerOptions::visibilityCullingFromString(const std::string& value,
+                                                       const std::string& path) {
+    if (value == "off")
+      return RenderVisibilityCulling::Off;
+    if (value == "on")
+      return RenderVisibilityCulling::On;
+    if (value == "auto")
+      return RenderVisibilityCulling::Auto;
+    optionsError(path, "expected off, on, or auto");
+  }
+
+  const char* RenderRasterizerOptions::visibilityCullingName(RenderVisibilityCulling mode) {
+    switch (mode) {
+    case RenderVisibilityCulling::Off:
+      return "off";
+    case RenderVisibilityCulling::On:
+      return "on";
+    case RenderVisibilityCulling::Auto:
+      return "auto";
+    }
+    return "off";
+  }
+
+  void RenderRasterizerOptions::setVisibilityCulling(RenderVisibilityCulling mode) {
+    m_visibilityCulling = mode;
+  }
+
+  void RenderRasterizerOptions::setVisibilityCulling(std::string mode) {
+    m_visibilityCulling =
+      visibilityCullingFromString(mode, "rasterizer.geometry.visibilityCulling");
+  }
+
   void RenderRasterizerOptions::setMSAASamples(int samples) {
     if (samples <= 1) {
       m_msaaSamples = 1;
@@ -862,6 +902,10 @@ namespace engine::graph {
 
   std::optional<std::string> RenderRasterizerOptions::cullMode() const {
     return m_cullMode;
+  }
+
+  std::optional<RenderVisibilityCulling> RenderRasterizerOptions::visibilityCulling() const {
+    return m_visibilityCulling;
   }
 
   std::optional<int> RenderRasterizerOptions::msaaSamples() const {

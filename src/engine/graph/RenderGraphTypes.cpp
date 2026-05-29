@@ -163,6 +163,7 @@ namespace engine::graph {
                                             {"motion_vector", RenderResourceType::MotionVector},
                                             {"shadow_map", RenderResourceType::ShadowMap},
                                             {"shadow_mask", RenderResourceType::ShadowMask},
+                                            {"visibility_set", RenderResourceType::VisibilitySet},
                                             {"custom_texture", RenderResourceType::CustomTexture}},
                                            path);
     }
@@ -205,6 +206,7 @@ namespace engine::graph {
                                         {"tonemap", RenderPassKind::Tonemap},
                                         {"postprocess", RenderPassKind::PostProcess},
                                         {"readback", RenderPassKind::Readback},
+                                        {"visibility", RenderPassKind::Visibility},
                                         {"aov", RenderPassKind::AOV},
                                         {"debug", RenderPassKind::Debug},
                                         {"custom", RenderPassKind::Custom}},
@@ -781,6 +783,7 @@ namespace engine::graph {
                                             {RenderPassKind::Tonemap, "tonemap"},
                                             {RenderPassKind::PostProcess, "postprocess"},
                                             {RenderPassKind::Readback, "readback"},
+                                            {RenderPassKind::Visibility, "visibility"},
                                             {RenderPassKind::AOV, "aov"},
                                             {RenderPassKind::Debug, "debug"},
                                             {RenderPassKind::Custom, "custom"}});
@@ -806,6 +809,7 @@ namespace engine::graph {
                                          {RenderResourceType::MotionVector, "motion_vector"},
                                          {RenderResourceType::ShadowMap, "shadow_map"},
                                          {RenderResourceType::ShadowMask, "shadow_mask"},
+                                         {RenderResourceType::VisibilitySet, "visibility_set"},
                                          {RenderResourceType::CustomTexture, "custom_texture"}});
   }
 

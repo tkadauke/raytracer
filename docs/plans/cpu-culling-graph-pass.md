@@ -4,7 +4,7 @@
 > visibility sets before raster execution, reducing unnecessary raster work
 > without changing final image semantics.
 >
-> **Status:** planning. This plan is independent of the OpenGL GPU rasterizer.
+> **Status:** Phase 0 baseline started. This plan is independent of the OpenGL GPU rasterizer.
 > The visibility resource should be consumable by CPU raster first and later by
 > GPU raster, but neither backend should depend on the other.
 >
@@ -90,20 +90,33 @@ occlusion, or another rule.
 
 Tasks:
 
-- Add `VisibilitySet` or equivalent graph resource type.
-- Add a pass payload/state type for CPU visibility preprocessing.
+- ~~Add `VisibilitySet` or equivalent graph resource type.~~ ✅ **Done.**
+  Added `visibility_set` as a descriptor-only graph resource for the raster
+  culling baseline.
+- ~~Add a pass payload/state type for CPU visibility preprocessing.~~ ✅
+  **Done.** Added the `visibility` pass kind and a baseline raster visibility
+  payload that emits an all-visible set; separate typed state can be added when
+  the pass owns tunable culling controls or detailed metrics.
 - Record input leaf/triangle counts, visible counts, rejected counts, and pass
   timing.
 - Add trace metadata and Modeler property display for the selected culling
   node.
-- Add rendercli graph export coverage showing the culling node and resource.
-- Keep the pass disabled by default until it has at least frustum coverage.
+- ~~Add rendercli graph export coverage showing the culling node and resource.~~
+  ✅ **Done.** `--raster_culling on|auto` now exports the synthesized
+  `raster_visibility` node and `raster_visibility_set` resource.
+- ~~Keep the pass disabled by default until it has at least frustum coverage.~~
+  ✅ **Done.** The pass is opt-in through raster render intent and command-line
+  overrides.
 
 Acceptance:
 
-- A compiled graph can contain a visibility pass and resource.
-- The graph view shows the pass and the raster pass dependency edge.
-- A raster pass can ignore the resource and still render normally.
+- ~~A compiled graph can contain a visibility pass and resource.~~ ✅ **Done.**
+- ~~The graph view shows the pass and the raster pass dependency edge.~~ ✅
+  **Done.** The baseline uses ordinary resource edges, so the existing graph
+  view displays it without special-case UI.
+- ~~A raster pass can ignore the resource and still render normally.~~ ✅
+  **Done.** The first payload records an all-visible baseline and current
+  raster payloads keep drawing the full scene.
 
 ## Phase 1 - frustum culling
 

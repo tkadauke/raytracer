@@ -94,6 +94,7 @@ namespace RenderGraphTypesTest {
     intent.engineOptions.raytracer().setSampler("Jittered");
     intent.engineOptions.raytracer().setSamplesPerPixel(8);
     intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
+    intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::Auto);
     intent.engineOptions.rasterizer().setMSAASamples(4);
     intent.engineOptions.rasterizer().setShadowMapSize(128);
     intent.engineOptions.wireframe().setLod(2);
@@ -127,6 +128,11 @@ namespace RenderGraphTypesTest {
                           .toObject()["backend"]
                           .toString()
                           .toStdString());
+    EXPECT_EQ("auto", engineOptions["rasterizer"]
+                        .toObject()["geometry"]
+                        .toObject()["visibilityCulling"]
+                        .toString()
+                        .toStdString());
     EXPECT_EQ(4,
               engineOptions["rasterizer"].toObject()["sampling"].toObject()["msaaSamples"].toInt());
     EXPECT_EQ(128, engineOptions["rasterizer"].toObject()["shadows"].toObject()["mapSize"].toInt());
@@ -164,8 +170,11 @@ namespace RenderGraphTypesTest {
     rasterSampling["msaaSamples"] = 4;
     QJsonObject rasterExecution;
     rasterExecution["backend"] = "gpu";
+    QJsonObject rasterGeometry;
+    rasterGeometry["visibilityCulling"] = "on";
     QJsonObject rasterizerOptions;
     rasterizerOptions["execution"] = rasterExecution;
+    rasterizerOptions["geometry"] = rasterGeometry;
     rasterizerOptions["sampling"] = rasterSampling;
     QJsonObject engineOptions;
     engineOptions["raytracer"] = raytracerOptions;
@@ -197,6 +206,8 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ(4, *intent.engineOptions.rasterizer().msaaSamples());
     ASSERT_TRUE(intent.engineOptions.rasterizer().backend().has_value());
     EXPECT_TRUE(intent.engineOptions.rasterizer().backend()->isOpenGL());
+    ASSERT_TRUE(intent.engineOptions.rasterizer().visibilityCulling().has_value());
+    EXPECT_EQ(RenderVisibilityCulling::On, *intent.engineOptions.rasterizer().visibilityCulling());
     ASSERT_EQ(4u, intent.exportedAOVs.size());
     EXPECT_EQ(RenderViewMode::Depth, intent.exportedAOVs[0]);
     EXPECT_EQ(RenderViewMode::Stencil, intent.exportedAOVs[1]);

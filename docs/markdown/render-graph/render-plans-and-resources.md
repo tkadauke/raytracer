@@ -33,10 +33,10 @@ The same header defines the enum classes used by plan declarations:
 - `RenderExecutorKind` names the executor required by a compiled pass:
   raytracer, rasterizer, wireframe, composite, or postprocess.
 - `RenderPassKind` groups passes as beauty, shadow, overlay, composite,
-  tonemap, postprocess, readback, AOV, debug, or custom.
+  tonemap, postprocess, readback, visibility, AOV, debug, or custom.
 - `RenderResourceType` classifies image-like graph products such as color,
   depth, stencil, object id, material id, normals, world positions, motion
-  vectors, shadow maps, shadow masks, and custom textures.
+  vectors, shadow maps, shadow masks, visibility sets, and custom textures.
 
 Each enum has a `toString(...)` helper implemented next to the type
 definitions in
@@ -81,16 +81,17 @@ a clear error instead of silently rendering only the default frame intent. Users
 still describe what they want, and the compiler remains responsible for
 synthesizing pass nodes.
 Advanced controls such as raytracer sampler, samples per pixel, recursion
-depth, raster MSAA, raster LOD, raster shadow-map quality, and wireframe LOD
-live in typed `RenderEngineOptions` fields on the intent. The compiler resolves
-those options into typed pass state on synthesized nodes; rendercli and the
-raster render dialog no longer compile a plan and then patch pass parameters in
-a separate front-end step. Future render-to-texture subviews can either inherit
-the global engine options or carry their own override block, so low-resolution
-probes and high-quality final views can share one intent model without users
-requesting graph nodes directly. Until the compiler can synthesize those
-offscreen resources and composite passes, any scene-authored subview request is
-rejected explicitly rather than ignored.
+depth, raster MSAA, raster LOD, raster visibility culling, raster shadow-map
+quality, and wireframe LOD live in typed `RenderEngineOptions` fields on the
+intent. The compiler resolves those options into typed pass state or
+intent-derived graph nodes; rendercli and the raster render dialog no longer
+compile a plan and then patch pass parameters in a separate front-end step.
+Future render-to-texture subviews can either inherit the global engine options
+or carry their own override block, so low-resolution probes and high-quality
+final views can share one intent model without users requesting graph nodes
+directly. Until the compiler can synthesize those offscreen resources and
+composite passes, any scene-authored subview request is rejected explicitly
+rather than ignored.
 When the effective frame intent names a default camera or non-default shading
 profile, synthesized scene-rendering passes carry those references in their
 `SceneView` and in exported plan JSON. Shading-profile parameters are parsed
@@ -645,6 +646,14 @@ when the graph artifact is one directional cascade with hard shadows or a small
 PCF radius that owns the scene's single direct light. Disabling the graph shadow
 node substitutes the default resource and prevents graph-controlled shadow
 enablement.
+Raster visibility culling is also intent-derived. When
+`engineOptions.rasterizer.geometry.visibilityCulling` is `on` or `auto`, the
+compiler inserts a `raster_visibility` pass that writes a descriptor-only
+`raster_visibility_set` resource and adds that resource as an explicit input to
+raster beauty and AOV producers. The current payload is a baseline: it records
+an all-visible result and the raster pass still draws the full scene. That
+keeps the graph shape, rendercli exports, Modeler graph view, and execution
+trace ready for frustum culling without changing image output in this slice.
 
 The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
 `RenderIntent::postProcessAA` asks the compiler to insert a `post_fxaa` or

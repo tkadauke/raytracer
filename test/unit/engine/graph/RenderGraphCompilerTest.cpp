@@ -695,6 +695,63 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(128, plan.findResource("preview_shadow_map")->width);
   }
 
+  TEST(RenderGraphCompiler, RasterVisibilityCullingOptionAddsVisibilityDependency) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
+
+    const RenderPlan plan = compiler.compile({64, 64, 1}, intent);
+
+    const auto* visibility = plan.findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibility);
+    EXPECT_EQ(RenderPassKind::Visibility, visibility->kind);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, visibility->executor);
+    EXPECT_EQ(DisabledBehavior::SubstituteDefault, visibility->disabledBehavior);
+    EXPECT_TRUE(hasFeature(*visibility, "visibility"));
+    EXPECT_TRUE(hasFeature(*visibility, "culling"));
+    ASSERT_EQ(1u, visibility->writes.size());
+    EXPECT_EQ("raster_visibility_set", visibility->writes.front().resource);
+
+    const auto* visibilityResource = plan.findResource("raster_visibility_set");
+    ASSERT_NE(nullptr, visibilityResource);
+    EXPECT_EQ(RenderResourceType::VisibilitySet, visibilityResource->type);
+    EXPECT_EQ(RenderResourceFormat::Unknown, visibilityResource->format);
+    EXPECT_EQ(0, visibilityResource->width);
+    EXPECT_EQ(0, visibilityResource->height);
+    EXPECT_EQ(1, visibilityResource->sampleCount);
+    EXPECT_EQ(RenderResourceLifetime::Transient, visibilityResource->lifetime);
+
+    const auto* beauty = plan.findPass("raster_beauty");
+    ASSERT_NE(nullptr, beauty);
+    EXPECT_TRUE(beauty->readsResource("raster_visibility_set"));
+    ASSERT_TRUE(plan.executionOrderNumber("raster_visibility").has_value());
+    ASSERT_TRUE(plan.executionOrderNumber("raster_beauty").has_value());
+    EXPECT_LT(*plan.executionOrderNumber("raster_visibility"),
+              *plan.executionOrderNumber("raster_beauty"));
+    EXPECT_TRUE(plan.resourceCanReach("raster_visibility_set", "main_color"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, RasterAOVVisibilityCullingOptionAddsVisibilityDependency) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.defaultViewMode = RenderViewMode::Depth;
+    intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::Auto);
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    const auto* visibility = plan.findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibility);
+    const auto* depth = plan.findPass("depth_aov");
+    ASSERT_NE(nullptr, depth);
+    EXPECT_TRUE(depth->readsResource("raster_visibility_set"));
+    ASSERT_EQ(1u, plan.consumersOf("raster_visibility_set").size());
+    EXPECT_EQ("depth_aov", plan.consumersOf("raster_visibility_set").front()->id);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, OpenGLRasterMSAADefaultsToPerFragmentShading) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

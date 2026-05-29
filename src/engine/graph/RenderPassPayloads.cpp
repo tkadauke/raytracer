@@ -1380,6 +1380,23 @@ namespace engine::graph {
       }
     };
 
+    class RasterVisibilityCullingPass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        const auto& descriptor = context.storage().descriptor(write.resource);
+        if (descriptor.type != RenderResourceType::VisibilitySet) {
+          throw passError(pass, "visibility culling pass must write a visibility-set resource");
+        }
+
+        context.storage().resource(write.resource).markProduced();
+        context.recordTraceMessage(
+          "visibility culling baseline produced an all-visible set; raster passes still draw all "
+          "submitted primitives");
+      }
+    };
+
     class BuiltinPassPayloadFactory {
     public:
       virtual ~BuiltinPassPayloadFactory() = default;
@@ -1484,6 +1501,8 @@ namespace engine::graph {
                                                                 RenderExecutorKind::PostProcess);
       static const ExactPassPayloadFactory<ReadbackPass> readback(RenderPassKind::Readback,
                                                                   RenderExecutorKind::PostProcess);
+      static const FeaturePassPayloadFactory<RasterVisibilityCullingPass> rasterVisibility(
+        RenderPassKind::Visibility, RenderExecutorKind::Rasterizer, {"visibility", "culling"});
       static const FeaturePassPayloadFactory<RasterPreviewShadowPass> rasterPreviewShadows(
         RenderPassKind::Shadow, RenderExecutorKind::Rasterizer, {"preview_shadows"});
       static const FeaturePassPayloadFactory<DepthVisualizationPass> depthVisualization(
@@ -1571,6 +1590,7 @@ namespace engine::graph {
         &wireframeBeauty,
         &tonemap,
         &readback,
+        &rasterVisibility,
         &rasterPreviewShadows,
         &depthVisualization,
         &depthAOV,

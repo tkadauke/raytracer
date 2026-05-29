@@ -68,6 +68,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   material callback handle, and `render::Integrator` as the transport-policy
   boundary future path tracers will implement; this documents the preserved
   default Whitted behavior and does not add path tracing. — GPT-5
+- **Raster visibility culling graph baseline.** Raster render intent can now
+  request a graph-visible `raster_visibility` pass and `raster_visibility_set`
+  resource through Modeler or `rendercli --raster_culling on|auto`; the first
+  payload records an all-visible baseline without changing raster output. —
+  GPT-5
 - **OpenGL stencil-composite readback nodes.** OpenGL-backed stencil-composite
   graphs now route their internal raster base color and stencil mask through
   explicit readback nodes before the composite pass consumes them. — GPT-5

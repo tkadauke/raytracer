@@ -36,6 +36,8 @@ class RenderIntentElement : public Element {
   Q_PROPERTY(int raytracerQueueSize READ raytracerQueueSize WRITE setRaytracerQueueSize)
   Q_PROPERTY(int rasterizerLod READ rasterizerLod WRITE setRasterizerLod)
   Q_PROPERTY(QString rasterizerBackend READ rasterizerBackend WRITE setRasterizerBackend)
+  Q_PROPERTY(QString rasterizerVisibilityCulling READ rasterizerVisibilityCulling WRITE
+               setRasterizerVisibilityCulling)
   Q_PROPERTY(int rasterizerMSAASamples READ rasterizerMSAASamples WRITE setRasterizerMSAASamples)
   Q_PROPERTY(
     QString rasterizerMSAAShading READ rasterizerMSAAShading WRITE setRasterizerMSAAShading)
@@ -121,6 +123,9 @@ public:
   QString rasterizerBackend() const;
   void setRasterizerBackend(const QString& backend);
 
+  QString rasterizerVisibilityCulling() const;
+  void setRasterizerVisibilityCulling(const QString& mode);
+
   int rasterizerMSAASamples() const;
   void setRasterizerMSAASamples(int samples);
 
@@ -160,6 +165,7 @@ private:
   bool isWireframeProperty(const QString& propertyName) const;
   QStringList raytracerSamplerChoices() const;
   QStringList raytracerViewPlaneChoices() const;
+  QString visibilityCullingText(engine::graph::RenderVisibilityCulling mode) const;
   QString toQString(const std::string& value) const;
   QString toQString(const char* value) const;
   QString normalizedText(const QString& text) const;

@@ -76,6 +76,8 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
     return QStringLiteral("LOD");
   if (propertyName == QStringLiteral("rasterizerBackend"))
     return QStringLiteral("Backend");
+  if (propertyName == QStringLiteral("rasterizerVisibilityCulling"))
+    return QStringLiteral("Visibility Culling");
   if (propertyName == QStringLiteral("rasterizerMSAASamples"))
     return QStringLiteral("MSAA Samples");
   if (propertyName == QStringLiteral("rasterizerMSAAShading"))
@@ -101,6 +103,10 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
     return QStringLiteral(
       "CPU is the reference software rasterizer. OpenGL is experimental: it records and probes "
       "the graph-selected GPU backend, but the first mesh draw path is still incomplete.");
+  if (propertyName == QStringLiteral("rasterizerVisibilityCulling"))
+    return QStringLiteral(
+      "Requests a graph-visible CPU culling pass. The current baseline records an all-visible "
+      "resource; later frustum culling will skip offscreen raster work.");
   return Element::propertyDescription(propertyName);
 }
 
@@ -147,6 +153,8 @@ QStringList RenderIntentElement::propertyChoices(const QString& propertyName) co
     return raytracerViewPlaneChoices();
   if (propertyName == QStringLiteral("rasterizerBackend"))
     return {QStringLiteral("cpu"), QStringLiteral("opengl")};
+  if (propertyName == QStringLiteral("rasterizerVisibilityCulling"))
+    return {QStringLiteral("off"), QStringLiteral("on"), QStringLiteral("auto")};
   if (propertyName == QStringLiteral("rasterizerMSAAShading"))
     return {QStringLiteral("per_sample"), QStringLiteral("per_fragment")};
   if (propertyName == QStringLiteral("rasterizerShadowFilter"))
@@ -212,6 +220,14 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
     const auto backend =
       engine::raster::RasterBackend::fromString(choice.toStdString(), "rasterizerBackend");
     return QString::fromLatin1(backend.displayName());
+  }
+  if (propertyName == QStringLiteral("rasterizerVisibilityCulling")) {
+    if (choice == QStringLiteral("off"))
+      return QStringLiteral("Off");
+    if (choice == QStringLiteral("on"))
+      return QStringLiteral("On");
+    if (choice == QStringLiteral("auto"))
+      return QStringLiteral("Auto");
   }
   if (propertyName == QStringLiteral("rasterizerMSAAShading")) {
     if (choice == QStringLiteral("per_sample"))
@@ -435,6 +451,17 @@ void RenderIntentElement::setRasterizerBackend(const QString& backend) {
   setIntent(value);
 }
 
+QString RenderIntentElement::rasterizerVisibilityCulling() const {
+  const auto mode = intent().engineOptions.rasterizer().visibilityCulling();
+  return mode ? visibilityCullingText(*mode) : QStringLiteral("off");
+}
+
+void RenderIntentElement::setRasterizerVisibilityCulling(const QString& mode) {
+  auto value = intent();
+  value.engineOptions.rasterizer().setVisibilityCulling(normalizedText(mode).toStdString());
+  setIntent(value);
+}
+
 int RenderIntentElement::rasterizerMSAASamples() const {
   return intent().engineOptions.rasterizer().msaaSamples().value_or(1);
 }
@@ -642,4 +669,17 @@ QStringList RenderIntentElement::raytracerViewPlaneChoices() const {
     choices << QString::fromStdString(id);
   }
   return choices;
+}
+
+QString
+RenderIntentElement::visibilityCullingText(engine::graph::RenderVisibilityCulling mode) const {
+  switch (mode) {
+  case engine::graph::RenderVisibilityCulling::Off:
+    return QStringLiteral("off");
+  case engine::graph::RenderVisibilityCulling::On:
+    return QStringLiteral("on");
+  case engine::graph::RenderVisibilityCulling::Auto:
+    return QStringLiteral("auto");
+  }
+  return QStringLiteral("off");
 }

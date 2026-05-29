@@ -18,6 +18,13 @@ namespace engine::graph {
   enum class RenderPostProcessAA;
 
   /**
+    * Intent-level request for a graph-visible raster visibility preprocessing
+    * pass. `Auto` is reserved for compiler heuristics; today it requests the
+    * same baseline pass as `On`.
+    */
+  enum class RenderVisibilityCulling { Off, On, Auto };
+
+  /**
     * Intent-level advanced controls for raytracer-backed views.
     *
     * Fields are optional so subviews can inherit global options and override
@@ -78,6 +85,8 @@ namespace engine::graph {
     void setBackend(std::string backend);
     void setLod(int lod);
     void setCullMode(std::string mode);
+    void setVisibilityCulling(RenderVisibilityCulling mode);
+    void setVisibilityCulling(std::string mode);
     void setMSAASamples(int samples);
     void setMSAAShadingMode(std::string mode);
     void setViewportRect(const Recti& rect);
@@ -103,6 +112,7 @@ namespace engine::graph {
     std::optional<engine::raster::RasterBackend> backend() const;
     std::optional<int> lod() const;
     std::optional<std::string> cullMode() const;
+    std::optional<RenderVisibilityCulling> visibilityCulling() const;
     std::optional<int> msaaSamples() const;
     std::optional<std::string> msaaShadingMode() const;
     std::optional<int> shadowMapSize() const;
@@ -117,6 +127,7 @@ namespace engine::graph {
     std::optional<engine::raster::RasterBackend> m_backend;
     std::optional<int> m_lod;
     std::optional<std::string> m_cullMode;
+    std::optional<RenderVisibilityCulling> m_visibilityCulling;
     std::optional<int> m_msaaSamples;
     std::optional<std::string> m_msaaShadingMode;
     std::optional<Recti> m_viewportRect;
@@ -139,6 +150,10 @@ namespace engine::graph {
     std::optional<double> m_shadowSlopeBias;
     std::optional<int> m_shadowFilterRadius;
     std::optional<std::string> m_shadowFilterMode;
+
+    static RenderVisibilityCulling visibilityCullingFromString(const std::string& value,
+                                                               const std::string& path);
+    static const char* visibilityCullingName(RenderVisibilityCulling mode);
   };
 
   /**

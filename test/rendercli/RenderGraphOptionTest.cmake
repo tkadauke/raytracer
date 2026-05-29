@@ -73,6 +73,7 @@ set(raster_shadow_trace "${TEST_OUTPUT_DIR}/raster-shadow-trace.json")
 set(raster_shadow_trace_render "${TEST_OUTPUT_DIR}/raster-shadow-trace-render.png")
 set(raster_state_plan "${TEST_OUTPUT_DIR}/raster-state-graph.json")
 set(raster_state_render "${TEST_OUTPUT_DIR}/raster-state-render.png")
+set(raster_culling_plan "${TEST_OUTPUT_DIR}/raster-culling-graph.txt")
 set(wireframe_state_plan "${TEST_OUTPUT_DIR}/wireframe-state-graph.json")
 set(raytracer_post_aa_plan "${TEST_OUTPUT_DIR}/raytracer-post-aa-graph.txt")
 set(wireframe_post_aa_plan "${TEST_OUTPUT_DIR}/wireframe-post-aa-graph.txt")
@@ -1407,6 +1408,14 @@ rendercli_expect_failure(
 )
 
 rendercli_expect_failure(
+  NAME "rendercli rejects invalid raster visibility culling mode"
+  STDERR_MATCHES "Raster visibility culling must be"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --raster_culling maybe
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
   NAME "rendercli rejects invalid disabled executor"
   STDERR_MATCHES "Render graph executor is not recognized"
   COMMAND
@@ -1699,6 +1708,25 @@ if(raster_state_graph MATCHES "postProcessAA")
 endif()
 if(NOT raster_state_graph MATCHES "mapSize")
   message(FATAL_ERROR "raster state graph did not contain shadow state: ${raster_state_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli exports graph-visible raster visibility culling"
+  COMMAND
+    "${RENDERCLI}" --engine raster --render_graph_only --render_graph_format text
+    --raster_culling on --width 32 --height 16
+    "${static_scene}" "${raster_culling_plan}"
+)
+rendercli_assert_nonempty("${raster_culling_plan}" NAME "graph raster culling plan")
+file(READ "${raster_culling_plan}" raster_culling_graph)
+if(NOT raster_culling_graph MATCHES "raster_visibility")
+  message(FATAL_ERROR "raster culling graph did not contain visibility pass: ${raster_culling_graph}")
+endif()
+if(NOT raster_culling_graph MATCHES "raster_visibility_set")
+  message(FATAL_ERROR "raster culling graph did not contain visibility resource: ${raster_culling_graph}")
+endif()
+if(NOT raster_culling_graph MATCHES "raster_beauty")
+  message(FATAL_ERROR "raster culling graph did not retain raster beauty pass: ${raster_culling_graph}")
 endif()
 
 rendercli_run(

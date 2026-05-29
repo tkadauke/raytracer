@@ -193,6 +193,8 @@ QString RenderGraphInspectorWidget::Private::displayText(RenderPassKind kind) co
     return QStringLiteral("Postprocess");
   case RenderPassKind::Readback:
     return QStringLiteral("Readback");
+  case RenderPassKind::Visibility:
+    return QStringLiteral("Visibility");
   case RenderPassKind::AOV:
     return QStringLiteral("AOV");
   case RenderPassKind::Debug:
@@ -239,6 +241,8 @@ QString RenderGraphInspectorWidget::Private::displayText(RenderResourceType type
     return QStringLiteral("Shadow map");
   case RenderResourceType::ShadowMask:
     return QStringLiteral("Shadow mask");
+  case RenderResourceType::VisibilitySet:
+    return QStringLiteral("Visibility set");
   case RenderResourceType::CustomTexture:
     return QStringLiteral("Custom texture");
   }

@@ -92,6 +92,7 @@ namespace engine::graph {
     Tonemap,
     PostProcess,
     Readback,
+    Visibility,
     AOV,
     Debug,
     Custom
@@ -122,6 +123,7 @@ namespace engine::graph {
     MotionVector,
     ShadowMap,
     ShadowMask,
+    VisibilitySet,
     CustomTexture
   };
 

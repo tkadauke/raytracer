@@ -345,6 +345,8 @@ namespace {
       *kind = RenderPassKind::Tonemap;
     } else if (normalized == "postprocess") {
       *kind = RenderPassKind::PostProcess;
+    } else if (normalized == "visibility") {
+      *kind = RenderPassKind::Visibility;
     } else if (normalized == "aov") {
       *kind = RenderPassKind::AOV;
     } else if (normalized == "debug") {
@@ -1043,6 +1045,7 @@ private:
   QString m_rasterCullMode;
   QString m_rasterBackend;
   bool m_rasterBackendSet;
+  QString m_rasterVisibilityCulling;
   int m_rasterMsaaSamples;
   QString m_rasterMsaaShadingMode;
   QString m_rasterPostProcessAA;
@@ -1186,6 +1189,7 @@ Renderer::Renderer()
       m_rasterCullMode("both"),
       m_rasterBackend("cpu"),
       m_rasterBackendSet(false),
+      m_rasterVisibilityCulling("off"),
       m_rasterMsaaSamples(1),
       m_rasterMsaaShadingMode("per_sample"),
       m_rasterPostProcessAA("none"),
@@ -1510,6 +1514,8 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.rasterizer().setBackend(m_rasterBackend.toStdString());
   if (m_rasterCullMode != "both")
     options.rasterizer().setCullMode(m_rasterCullMode.toStdString());
+  if (m_rasterVisibilityCulling != "off")
+    options.rasterizer().setVisibilityCulling(m_rasterVisibilityCulling.toStdString());
   if (m_rasterMsaaSamples != 1)
     options.rasterizer().setMSAASamples(m_rasterMsaaSamples);
   if (m_rasterMsaaShadingMode != "per_sample")
@@ -2367,7 +2373,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"disable_pass", "Disable a render graph pass id; may be repeated or comma-separated", "id"},
      {"disable_pass_kind",
       "Disable render graph pass kind (beauty, shadow, overlay, composite, tonemap, postprocess, "
-      "aov, debug, custom)",
+      "visibility, aov, debug, custom)",
       "kind"},
      {"disable_executor",
       "Disable render graph executor (raytracer, rasterizer, wireframe, composite, postprocess)",
@@ -2377,6 +2383,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"lod", "Tessellation level of detail for wireframe / raster engines", "lod"},
      {"raster_backend", "Rasterizer backend for graph raster passes (cpu, opengl, gpu)", "backend"},
      {"cull", "Rasterizer face culling mode (both, back, front)", "mode"},
+     {"raster_culling", "Request graph-visible raster visibility culling (off, on, auto)", "mode"},
      {"msaa", "Rasterizer MSAA samples (1, 2, 4, or 8)", "samples"},
      {"msaa_shading", "Rasterizer MSAA shading mode (per_sample, per_fragment)", "mode"},
      {"post_aa", "Post-process anti-aliasing (none, fxaa, smaa; taa is rasterizer-only)", "mode"},
@@ -2899,6 +2906,15 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     m_rasterCullMode = cull;
   }
 
+  if (parser.isSet("raster_culling")) {
+    const QString mode = normalizedRasterOption(parser.value("raster_culling"));
+    if (mode != "off" && mode != "on" && mode != "auto") {
+      *errorMessage = "Raster visibility culling must be 'off', 'on', or 'auto'";
+      return CommandLineError;
+    }
+    m_rasterVisibilityCulling = mode;
+  }
+
   if (parser.isSet("msaa")) {
     bool ok = false;
     m_rasterMsaaSamples = parser.value("msaa").toInt(&ok);
@@ -3272,7 +3288,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
        parser.isSet("render_graph_shading_parameter") || m_renderGraphWireframeOverlay ||
        m_renderGraphCurveOverlay || parser.isSet("disable_pass") ||
        parser.isSet("disable_pass_kind") || parser.isSet("disable_executor") ||
-       parser.isSet("disable_feature"))) {
+       parser.isSet("disable_feature") || parser.isSet("raster_culling"))) {
     *errorMessage = "Cannot combine --direct_engine with render graph options";
     return CommandLineError;
   }

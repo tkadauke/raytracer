@@ -397,6 +397,32 @@ namespace GraphRenderEngineTest {
     EXPECT_GT(countFiniteDepths(outputs.front()->depthPreview()), 0);
   }
 
+  TEST(GraphRenderEngine, ExecutesRasterVisibilityCullingBaseline) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+    const auto* visibility = engine.lastPlan().findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibility);
+    EXPECT_EQ(RenderPassKind::Visibility, visibility->kind);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* visibilityTrace = trace->findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibilityTrace);
+    EXPECT_EQ(RenderPassExecutionStatus::Completed, visibilityTrace->status());
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("all-visible set"));
+  }
+
   TEST(GraphRenderEngine, ExecutesStencilAOVViewAndRecordsColorTrace) {
     RenderIntent intent;
     intent.defaultViewMode = RenderViewMode::Stencil;

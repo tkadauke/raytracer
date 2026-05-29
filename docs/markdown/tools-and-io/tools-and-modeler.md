@@ -95,14 +95,15 @@ into typed intent engine options before compilation. For example,
 `--queue_size` become raytracer pass state when the graph contains
 `raytrace_beauty`; raster controls such as `--lod`, `--msaa`,
 `--msaa_shading`, `--raster_backend`, viewport/scissor, blending, alpha test,
-depth bias, and shadow-map quality become raster pass or shadow-node state;
-wireframe `--lod` becomes wireframe pass state. The compiler emits those
-parameters while synthesizing nodes, so exported graph JSON is self-describing
-and replay does not rely on hidden rendercli setup. CPU raster remains the
-default backend; when `--raster_backend opengl|gpu` is selected explicitly,
-rendercli starts a GUI-capable Qt application and defaults to Qt's offscreen
-platform so the OpenGL executor can probe or create an offscreen context and
-render the initial lit mesh pass when the host supports it.
+depth bias, shadow-map quality, and `--raster_culling on|auto|off` become
+raster pass, shadow-node, or visibility-node state; wireframe `--lod` becomes
+wireframe pass state. The compiler emits those parameters while synthesizing
+nodes, so exported graph JSON is self-describing and replay does not rely on
+hidden rendercli setup. CPU raster remains the default backend; when
+`--raster_backend opengl|gpu` is selected explicitly, rendercli starts a
+GUI-capable Qt application and defaults to Qt's offscreen platform so the
+OpenGL executor can probe or create an offscreen context and render the initial
+lit mesh pass when the host supports it.
 On macOS, Qt's offscreen platform may not be able to create an OpenGL context
 for a command-line process. In an interactive terminal session, developers can
 opt into Qt's Cocoa platform for that explicit GPU raster path:
@@ -248,14 +249,16 @@ intent in the property editor. Those properties write the scene's top-level
 `renderIntent` block, not
 normal child geometry. The editor groups the settings by role, uses dropdowns
 for enumerated choices such as engine, raster backend, view mode, sampler, and
-postprocess AA, and only shows engine-specific fields for the selected default
-engine. The same property editor has a search field for filtering long property
-sets and collapsible groups so advanced scene/import settings can stay out of
-the way. Internal execution controls such as view-plane type, worker thread
-count, and queue size stay hidden in Modeler; Modeler's own preview/final
-controls keep using the point-interlaced view plane and automatic execution
-defaults, while lower-level values can still be authored through scene JSON or
-rendercli.
+postprocess AA. Raster settings include an opt-in Visibility Culling selector;
+`On` and `Auto` currently synthesize the graph-visible baseline culling node
+without changing submitted raster work. Engine-specific fields only show for
+the selected default engine. The same property editor has a search field for
+filtering long property sets and collapsible groups so advanced scene/import
+settings can stay out of the way. Internal execution controls such as
+view-plane type, worker thread count, and queue size stay hidden in Modeler;
+Modeler's own preview/final controls keep using the point-interlaced view
+plane and automatic execution defaults, while lower-level values can still be
+authored through scene JSON or rendercli.
 `Render -> Preview Engine -> Use Scene Render Settings`
 compiles the live preview from that saved intent. Choosing a preview engine,
 preview view, overlay, shadows, or preview FXAA/SMAA switches the preview into

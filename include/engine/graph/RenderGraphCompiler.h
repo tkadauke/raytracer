@@ -61,6 +61,11 @@ namespace engine::graph {
                               std::vector<RenderFeatureKind> extraFeatures = {}) const;
     bool beautyPassNeedsExplicitReadback(const RenderPassNode& pass) const;
     bool passNeedsExplicitReadback(const RenderPassNode& pass) const;
+    bool rasterVisibilityCullingRequested(const RenderIntent& intent) const;
+    RenderResourceDescriptor visibilitySetResource() const;
+    RenderPassNode visibilityCullingPass(const SceneView& sceneView) const;
+    void addRasterVisibilityInput(RenderPlan& plan, RenderPassNode& pass,
+                                  const SceneView& sceneView, const RenderIntent& intent) const;
     RenderResourceDescriptor readbackResource(const RenderResourceDescriptor& source,
                                               RenderResourceId id, std::string name,
                                               RenderResourceLifetime lifetime) const;
