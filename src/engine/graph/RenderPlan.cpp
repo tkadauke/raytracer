@@ -356,6 +356,28 @@ namespace engine::graph {
     return result;
   }
 
+  std::vector<const RenderPassNode*>
+  RenderPlan::passesWithFeature(const RenderFeatureKind& feature) const {
+    std::vector<const RenderPassNode*> result;
+    for (const auto& pass : m_passes) {
+      if (pass.hasFeature(feature)) {
+        result.push_back(&pass);
+      }
+    }
+    return result;
+  }
+
+  std::vector<const RenderResourceDescriptor*>
+  RenderPlan::resourcesWithFeature(const RenderFeatureKind& feature) const {
+    std::vector<const RenderResourceDescriptor*> result;
+    for (const auto& resource : m_resources) {
+      if (resource.hasFeature(feature)) {
+        result.push_back(&resource);
+      }
+    }
+    return result;
+  }
+
   const RenderPassNode* RenderPlan::producerOf(const RenderResourceId& resource) const {
     const auto it = std::find_if(m_passes.begin(), m_passes.end(), [&](const RenderPassNode& pass) {
       return pass.writesResource(resource);

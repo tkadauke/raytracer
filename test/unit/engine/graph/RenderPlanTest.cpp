@@ -413,8 +413,12 @@ namespace RenderPlanTest {
 
   TEST(RenderPlan, FindsPassResourcesAndResourceEdges) {
     RenderPlan plan;
-    plan.addResource(colorResource("beauty_color"));
-    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+    auto beautyColor = colorResource("beauty_color");
+    beautyColor.addFeature("rasterizer");
+    plan.addResource(beautyColor);
+    auto displayColor = colorResource("display_color", RenderResourceLifetime::Exported);
+    displayColor.addFeature("display");
+    plan.addResource(displayColor);
 
     auto beauty = pass("raster_beauty", RenderPassKind::Beauty);
     beauty.features = {"main", "rasterizer"};
@@ -435,6 +439,14 @@ namespace RenderPlanTest {
                 {RenderExecutorKind::Rasterizer, RenderExecutorKind::PostProcess}),
               plan.passExecutors());
     EXPECT_EQ(std::set<RenderFeatureKind>({"display", "main", "rasterizer"}), plan.passFeatures());
+    const auto rasterizerPasses = plan.passesWithFeature("rasterizer");
+    ASSERT_EQ(1u, rasterizerPasses.size());
+    EXPECT_EQ("raster_beauty", rasterizerPasses.front()->id);
+    EXPECT_TRUE(plan.passesWithFeature("missing").empty());
+    const auto displayResources = plan.resourcesWithFeature("display");
+    ASSERT_EQ(1u, displayResources.size());
+    EXPECT_EQ("display_color", displayResources.front()->id);
+    EXPECT_TRUE(plan.resourcesWithFeature("missing").empty());
 
     ASSERT_NE(nullptr, plan.findPass("raster_beauty"));
     EXPECT_TRUE(plan.hasPass("raster_beauty"));

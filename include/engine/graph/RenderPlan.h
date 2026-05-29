@@ -80,6 +80,9 @@ namespace engine::graph {
     std::set<RenderPassKind> passKinds() const;
     std::set<RenderExecutorKind> passExecutors() const;
     std::set<RenderFeatureKind> passFeatures() const;
+    std::vector<const RenderPassNode*> passesWithFeature(const RenderFeatureKind& feature) const;
+    std::vector<const RenderResourceDescriptor*>
+    resourcesWithFeature(const RenderFeatureKind& feature) const;
     const RenderPassNode* producerOf(const RenderResourceId& resource) const;
     std::vector<const RenderPassNode*> consumersOf(const RenderResourceId& resource) const;
     std::vector<RenderResourceId> externalInputResourceIds() const;

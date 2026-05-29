@@ -26,7 +26,9 @@ A pass id names a unit of work, a resource id names a produced or consumed data
 product, and a feature kind gives users a higher-level switch such as
 `"shadow_maps"` or `"main"`. Pass code queries those tags through
 `RenderPassNode::hasFeature()` and `RenderPassNode::hasAnyFeature()` rather
-than searching the feature vector directly.
+than searching the feature vector directly; plan-level callers can also ask
+`RenderPlan::passesWithFeature()` and `RenderPlan::resourcesWithFeature()` for
+the tagged subset.
 
 The same header defines the enum classes used by plan declarations:
 
