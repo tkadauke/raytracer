@@ -193,7 +193,11 @@ Acceptance:
 
 Tasks:
 
-- Preserve reliable sidedness/winding facts from importers and tessellation.
+- Preserve reliable sidedness/winding facts from importers and tessellation. ✅
+  **Partial.** The visibility pass now honors runtime material sidedness
+  defaults when no explicit cull override is set, matching raster submission for
+  front/back/two-sided materials. Importer-authored winding reliability remains
+  TODO.
 - ~~Detect negative-determinant transforms that flip winding for pass-state
   backface filtering.~~ ✅ **Done.** The first filtering path projects
   transformed leaf triangles before applying the same screen-space cull policy

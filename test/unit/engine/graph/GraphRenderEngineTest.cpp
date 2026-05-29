@@ -335,6 +335,18 @@ namespace GraphRenderEngineTest {
     return scene;
   }
 
+  std::shared_ptr<render::Scene>
+  frontAndBackFacingTriangleScene(render::Material::Sidedness sidedness) {
+    auto scene = frontAndBackFacingTriangleScene();
+    scene->forEachLeaf(
+      [sidedness](const render::Primitive*, std::shared_ptr<render::Material> material) {
+        if (material) {
+          material->setSidedness(sidedness);
+        }
+      });
+    return scene;
+  }
+
   std::shared_ptr<render::Scene> directionalShadowScene() {
     auto scene = std::make_shared<render::Scene>();
     scene->setAmbient(Colord(0.1, 0.1, 0.1));
@@ -696,6 +708,55 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(std::string::npos, message.find("visibleLeaves=1")) << message;
     EXPECT_NE(std::string::npos, message.find("backfaceRejectedLeaves=1")) << message;
     EXPECT_NE(std::string::npos, message.find("backfaceRejectedTriangles=1")) << message;
+  }
+
+  TEST(GraphRenderEngine, RasterVisibilityUsesMaterialSidednessForBackfaceRejection) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(),
+                             frontAndBackFacingTriangleScene(render::Material::Sidedness::Front));
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* visibilityTrace = trace->findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibilityTrace);
+    const std::string& message = visibilityTrace->message();
+    EXPECT_NE(std::string::npos, message.find("inputLeaves=2")) << message;
+    EXPECT_NE(std::string::npos, message.find("visibleLeaves=1")) << message;
+    EXPECT_NE(std::string::npos, message.find("backfaceRejectedLeaves=1")) << message;
+    EXPECT_NE(std::string::npos, message.find("backfaceRejectedTriangles=1")) << message;
+  }
+
+  TEST(GraphRenderEngine, RasterVisibilityKeepsTwoSidedMaterialBackfacesVisible) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(
+      camera(), frontAndBackFacingTriangleScene(render::Material::Sidedness::TwoSided));
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* visibilityTrace = trace->findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibilityTrace);
+    const std::string& message = visibilityTrace->message();
+    EXPECT_NE(std::string::npos, message.find("visibleLeaves=2")) << message;
+    EXPECT_NE(std::string::npos, message.find("backfaceRejectedLeaves=0")) << message;
   }
 
   TEST(GraphRenderEngine, RasterVisibilityCullingPreservesOpaqueOutput) {

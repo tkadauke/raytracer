@@ -664,10 +664,11 @@ remain visible as a conservative fallback. When the compiled framebuffer state
 is order-independent (`Less`/`LessEqual` depth with writes enabled, blending
 off, stencil off), the pass also sorts visible bounded leaves front-to-back and
 records the ordered-leaf count in the trace. If the raster geometry state has
-an explicit one-sided cull mode, the pass can also reject a whole leaf whose
-tessellated triangles are all inside clip space and all backfacing after the
-leaf transform and camera projection. Clipped, unknown, or two-sided work stays
-visible, and the trace reports backface-rejected leaf and triangle counts.
+an explicit one-sided cull mode, or the material's sidedness supplies a
+one-sided default, the pass can also reject a whole leaf whose tessellated
+triangles are all inside clip space and all backfacing after the leaf transform
+and camera projection. Clipped, unknown, or two-sided work stays visible, and
+the trace reports backface-rejected leaf and triangle counts.
 The visibility resource also stores the target's coarse tile grid and, when a
 visible leaf's transformed bounds project wholly inside clip space, the tile
 references touched by that leaf plus its nearest projected bounds depth. The

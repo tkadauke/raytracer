@@ -1654,8 +1654,11 @@ namespace engine::graph {
                                const render::Camera* camera,
                                const render::HomogeneousClipVolume& clipVolume,
                                const RasterGeometryState& geometry, const MeshStats& stats) const {
-        if (!camera || !geometry.hasCullModeOverride() ||
-            geometry.cullMode() == ::engine::raster::Rasterizer::CullMode::Both || !stats.mesh ||
+        const ::engine::raster::detail::RasterMaterialSource materialSource =
+          ::engine::raster::detail::RasterMaterialSource::from(leaf.material);
+        const ::engine::raster::Rasterizer::CullMode cullMode =
+          geometry.hasCullModeOverride() ? geometry.cullMode() : materialSource.defaultCullMode();
+        if (!camera || cullMode == ::engine::raster::Rasterizer::CullMode::Both || !stats.mesh ||
             stats.triangleCount == 0) {
           return false;
         }
@@ -1682,9 +1685,7 @@ namespace engine::graph {
           projected[vi] = {clip, screen, clipVolume.outCode(clip)};
         }
 
-        const ::engine::raster::detail::RasterMaterialSource materialSource =
-          ::engine::raster::detail::RasterMaterialSource::from(leaf.material);
-        const ::engine::raster::detail::TriangleCullPolicy cullPolicy{geometry.cullMode(), true};
+        const ::engine::raster::detail::TriangleCullPolicy cullPolicy{cullMode, true};
         bool testedTriangle = false;
         for (const auto& face : stats.mesh->faces()) {
           if (face.size() < 3) {

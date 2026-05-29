@@ -868,6 +868,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Raster visibility material sidedness.** Graph visibility backface rejection
+  now honors front/back-sided material defaults when no explicit raster cull
+  override is set, matching the software and OpenGL raster submission paths
+  while keeping two-sided materials visible. — GPT-5
 - **Modeler render graph feature labels.** The Render Graph Groups tab now
   shows feature tags as human-readable labels while preserving raw graph
   feature ids in item metadata and overrides. — GPT-5
