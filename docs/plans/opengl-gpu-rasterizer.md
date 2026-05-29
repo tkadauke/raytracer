@@ -361,7 +361,9 @@ Tasks:
   no-occluder sentinel and carries the matching directional-light projection
   constants. Eligible OpenGL shadow passes now upload that payload as a
   nearest-filtered shadow texture and record the prepared texture dimensions in
-  graph traces.
+  graph traces. The sampling plan also models the current lighting-channel
+  limitation explicitly: shader-side shadowing is only allowed when the
+  eligible shadow map owns the scene's single direct light.
 
 Acceptance:
 

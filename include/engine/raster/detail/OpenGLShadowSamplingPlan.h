@@ -6,7 +6,13 @@ namespace engine::raster::detail {
   struct DirectionalShadowCascade;
   class DirectionalShadowMap;
   class ShadowMaps;
+}
 
+namespace render {
+  class Scene;
+}
+
+namespace engine::raster::detail {
   /**
     * Supported subset for shader-side OpenGL shadow sampling.
     *
@@ -20,6 +26,8 @@ namespace engine::raster::detail {
 
     bool enabled() const;
     const std::string& disabledReason() const;
+    bool canShadeSceneDirectLighting(const render::Scene* scene) const;
+    std::string shaderLightingDisabledReason(const render::Scene* scene) const;
     std::string traceMessage() const;
     const DirectionalShadowMap* shadowMap() const;
     const DirectionalShadowCascade* cascade() const;

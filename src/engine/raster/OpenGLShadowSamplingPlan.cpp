@@ -1,6 +1,7 @@
 #include "engine/raster/detail/OpenGLShadowSamplingPlan.h"
 
 #include "engine/raster/detail/RasterShadowMaps.h"
+#include "render/primitives/Scene.h"
 
 #include <utility>
 
@@ -40,6 +41,31 @@ namespace engine::raster::detail {
 
   const std::string& OpenGLShadowSamplingPlan::disabledReason() const {
     return m_disabledReason;
+  }
+
+  bool OpenGLShadowSamplingPlan::canShadeSceneDirectLighting(const render::Scene* scene) const {
+    return shaderLightingDisabledReason(scene).empty();
+  }
+
+  std::string
+  OpenGLShadowSamplingPlan::shaderLightingDisabledReason(const render::Scene* scene) const {
+    if (!enabled()) {
+      return m_disabledReason;
+    }
+    if (!scene) {
+      return "shader-side OpenGL shadows require a scene";
+    }
+
+    const auto& lights = scene->lights();
+    if (lights.size() != 1) {
+      return "shader-side OpenGL shadows require exactly one scene light until light-channel "
+             "splitting lands";
+    }
+    if (lights.front().get() != m_shadowMap->light()) {
+      return "shader-side OpenGL shadows require the eligible shadow map to own the only scene "
+             "light";
+    }
+    return {};
   }
 
   std::string OpenGLShadowSamplingPlan::traceMessage() const {

@@ -3,7 +3,9 @@
 #include "engine/raster/detail/OpenGLShadowSamplingPlan.h"
 #include "engine/raster/detail/RasterShadowMaps.h"
 #include "render/cameras/PinholeCamera.h"
+#include "render/lights/DirectionalLight.h"
 #include "render/viewplanes/ViewPlane.h"
+#include "render/primitives/Scene.h"
 
 #include <limits>
 #include <memory>
@@ -16,6 +18,7 @@ namespace OpenGLShadowSamplingPlanTest {
   using engine::raster::detail::DirectionalShadowMap;
   using engine::raster::detail::OpenGLShadowSamplingPlan;
   using engine::raster::detail::ShadowMaps;
+  using render::DirectionalLight;
 
   std::shared_ptr<render::PinholeCamera> camera() {
     return std::make_shared<render::PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d::null);
@@ -32,12 +35,13 @@ namespace OpenGLShadowSamplingPlanTest {
     return {std::move(shadowCamera), std::move(depth), 0.0, 10.0};
   }
 
-  ShadowMaps shadowMaps(int filterRadius = 0, double slopeBias = 0.0) {
+  ShadowMaps shadowMaps(const render::Light* light = nullptr, int filterRadius = 0,
+                        double slopeBias = 0.0) {
     std::vector<DirectionalShadowCascade> cascades;
     cascades.push_back(cascade());
 
     ShadowMaps maps;
-    maps.add(DirectionalShadowMap(nullptr, camera(), std::move(cascades), 0.01, slopeBias,
+    maps.add(DirectionalShadowMap(light, camera(), std::move(cascades), 0.01, slopeBias,
                                   filterRadius, Rasterizer::ShadowFilterMode::PCF));
     return maps;
   }
@@ -65,7 +69,7 @@ namespace OpenGLShadowSamplingPlanTest {
   }
 
   TEST(OpenGLShadowSamplingPlan, RejectsFilteredDirectionalMaps) {
-    ShadowMaps maps = shadowMaps(1);
+    ShadowMaps maps = shadowMaps(nullptr, 1);
 
     const OpenGLShadowSamplingPlan plan = OpenGLShadowSamplingPlan::from(&maps);
 
@@ -76,11 +80,43 @@ namespace OpenGLShadowSamplingPlanTest {
   }
 
   TEST(OpenGLShadowSamplingPlan, RejectsSlopeBiasedDirectionalMaps) {
-    ShadowMaps maps = shadowMaps(0, 0.25);
+    ShadowMaps maps = shadowMaps(nullptr, 0, 0.25);
 
     const OpenGLShadowSamplingPlan plan = OpenGLShadowSamplingPlan::from(&maps);
 
     EXPECT_FALSE(plan.enabled());
     EXPECT_NE(std::string::npos, plan.disabledReason().find("constant bias"));
+  }
+
+  TEST(OpenGLShadowSamplingPlan, AcceptsOnlyMatchingSingleLightForShaderLighting) {
+    auto light = std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord::white());
+    auto scene = std::make_shared<render::Scene>();
+    scene->addLight(light);
+    ShadowMaps maps = shadowMaps(light.get());
+    const OpenGLShadowSamplingPlan plan = OpenGLShadowSamplingPlan::from(&maps);
+
+    EXPECT_TRUE(plan.canShadeSceneDirectLighting(scene.get()));
+    EXPECT_TRUE(plan.shaderLightingDisabledReason(scene.get()).empty());
+  }
+
+  TEST(OpenGLShadowSamplingPlan, RejectsMismatchedSceneLightsForShaderLighting) {
+    auto shadowLight =
+      std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord::white());
+    auto extraLight = std::make_shared<DirectionalLight>(Vector3d(0.0, -1.0, 0.0), Colord::white());
+    auto scene = std::make_shared<render::Scene>();
+    scene->addLight(shadowLight);
+    scene->addLight(extraLight);
+    ShadowMaps maps = shadowMaps(shadowLight.get());
+    const OpenGLShadowSamplingPlan plan = OpenGLShadowSamplingPlan::from(&maps);
+
+    EXPECT_FALSE(plan.canShadeSceneDirectLighting(scene.get()));
+    EXPECT_NE(std::string::npos,
+              plan.shaderLightingDisabledReason(scene.get()).find("one scene light"));
+
+    auto otherScene = std::make_shared<render::Scene>();
+    otherScene->addLight(extraLight);
+    EXPECT_FALSE(plan.canShadeSceneDirectLighting(otherScene.get()));
+    EXPECT_NE(std::string::npos,
+              plan.shaderLightingDisabledReason(otherScene.get()).find("own the only scene light"));
   }
 }
