@@ -112,12 +112,14 @@ private:
   [[nodiscard]] const world::ImportOptionSchema*
   editableImportPropertySchema(const QString& propertyName) const;
   [[nodiscard]] QVariant editableImportPropertyValue(const world::ImportOptionSchema& schema,
-                                                     const QJsonObject& defines) const;
+                                                     const QJsonObject& parameters) const;
   [[nodiscard]] QVariant coerceEditableImportPropertyValue(const world::ImportOptionSchema& schema,
                                                            const QVariant& value) const;
   [[nodiscard]] QString editableImportPropertyGroupName() const;
+  [[nodiscard]] QString editableImportParameterOptionName() const;
+  [[nodiscard]] QJsonObject editableImportParameterValues() const;
   void removeEditableImportProperties();
-  void setEditableImportDefine(const QString& propertyName, const QVariant& value);
+  void setEditableImportParameter(const QString& propertyName, const QVariant& value);
   void applyEditableImportPropertyChange(const QString& propertyName);
   [[nodiscard]] AnimationPropertyType
   animationPropertyTypeForSchema(const world::ImportOptionSchema& schema) const;
