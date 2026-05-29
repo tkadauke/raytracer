@@ -272,20 +272,11 @@ void BVH::intersectPacketNode(const Node* node, const Ray4& rays, uint16_t activ
   if (!node || activeMask == 0)
     return;
 
-    // Test each active-mask lane against this node's AABB. Lanes that miss
-    // are excluded from the descending mask, pruning the subtree for those
-    // rays without a separate traversal.
-#if RAYTRACER_SIMD_SSE
+  // Test each active-mask lane against this node's AABB. Lanes that miss
+  // are excluded from the descending mask, pruning the subtree for those
+  // rays without a separate traversal.
   const uint16_t nodeMask = static_cast<uint16_t>(
-    activeMask & static_cast<uint16_t>(_mm_movemask_ps(node->bbox.intersects4(rays))));
-#else
-  uint16_t nodeMask = 0;
-  for (std::size_t i = 0; i < Ray4::lanes; ++i) {
-    if ((activeMask & (1u << i)) && node->bbox.intersects(rays.rayd(i))) {
-      nodeMask |= static_cast<uint16_t>(1u << i);
-    }
-  }
-#endif
+    activeMask & static_cast<uint16_t>(core::simd::movemask(node->bbox.intersects4(rays))));
   if (!nodeMask)
     return;
 

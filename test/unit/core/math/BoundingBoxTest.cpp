@@ -1,14 +1,11 @@
 #include <gtest/gtest.h>
-#include "core/SimdFeatures.h"
 #include "core/math/BoundingBox.h"
 #include "core/math/Range.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
+#include "core/simd/Float4.h"
 
 #include <sstream>
-#if RAYTRACER_SIMD_SSE
-#include <xmmintrin.h>
-#endif
 
 using namespace std;
 
@@ -49,7 +46,6 @@ namespace BoundingBoxTest {
     ASSERT_EQ(Vector3<TypeParam>(1, 1, 1), bbox.max());
   }
 
-#if RAYTRACER_SIMD_SSE
   TYPED_TEST(BoundingBoxTest, ShouldIntersectRay4PacketLikeScalarRays) {
     BoundingBox<TypeParam> bbox(Vector3<TypeParam>(-1, -1, -1), Vector3<TypeParam>(1, 1, 1));
     const std::array<Rayf, 4> rayArray{
@@ -58,13 +54,12 @@ namespace BoundingBoxTest {
       Rayf(Vector3f(0, 0, 2), Vector3f(0.1f, 0.1f, 1.0f).normalized()),
       Rayf(Vector3f(0, 0, 0), Vector3f(1, 0, 0))};
 
-    const int mask = _mm_movemask_ps(bbox.intersects4(Ray4(rayArray)));
+    const int mask = core::simd::movemask(bbox.intersects4(Ray4(rayArray)));
     for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
       ASSERT_EQ(bbox.intersects(toRayd(rayArray[lane])), (mask & (1 << lane)) != 0)
         << "lane " << lane;
     }
   }
-#endif
 
   TYPED_TEST(BoundingBoxTest, ShouldCalculateSize) {
     BoundingBox<TypeParam> bbox(Vector3<TypeParam>(-1, -1, -1), Vector3<TypeParam>(1, 1, 1));

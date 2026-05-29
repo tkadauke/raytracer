@@ -114,8 +114,11 @@ Acceptance:
 
 ## Phase 1 - small 4-wide float abstraction
 
-Add an internal 4-wide float API instead of copying every SSE algorithm into a
-parallel NEON file. The first useful surface is enough for packet traversal:
+~~Add an internal 4-wide float API instead of copying every SSE algorithm into a
+parallel NEON file. The first useful surface is enough for packet traversal:~~
+✅ **Done.** `include/core/simd/Float4.h` now exposes the shared
+`Float4`/`Mask4` backend with SSE, NEON, and scalar implementations for packet
+traversal:
 
 - `simd::Float4`;
 - `simd::Mask4`;
@@ -138,10 +141,13 @@ backend, then keep the packet algorithms architecture-neutral.
 
 Acceptance:
 
-- unit tests cover arithmetic, comparison, select, and movemask behavior across
-  all compiled backends;
-- at least one existing packet helper is migrated without a performance
-  regression on x86.
+- ~~unit tests cover arithmetic, comparison, select, and movemask behavior
+  across all compiled backends;~~ ✅ **Done.** `Float4Test` covers the shared
+  arithmetic, comparison, selection, and mask behavior.
+- ~~at least one existing packet helper is migrated without a performance
+  regression on x86.~~ ✅ **Done.** `BoundingBox::intersects4` uses the shared
+  `Float4`/`Mask4` helper, and the migrated BVH coherent packet benchmark
+  remains in line with the recorded x86 Phase 0 packet baseline.
 
 ## Phase 2 - Ray4 packet acceleration on ARM
 

@@ -23,6 +23,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Shared four-wide SIMD backend.** Internal packet traversal code now has a
+  shared `core::simd::Float4`/`Mask4` abstraction with SSE, NEON, and scalar
+  backends, and BVH bounding-box packet tests use that backend instead of a
+  direct x86-only movemask path for Epic #426. — GPT-5
 - **Molecule fixtures, docs, and render smoke tests.** Tiny PDB and
   PDBx/mmCIF molecule fixtures now live under `test/fixtures/molecules`,
   rendercli CTest covers ball-and-stick and space-filling molecular renders,

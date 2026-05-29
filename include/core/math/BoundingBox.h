@@ -8,6 +8,7 @@
 #include "core/math/Vector.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
+#include "core/simd/Float4.h"
 #include "render/Stats.h"
 
 #include <array>
@@ -352,13 +353,11 @@ public:
     */
   bool intersects(const Rayd& ray, const Vector3<T>& inverseDirection) const;
 
-#if RAYTRACER_SIMD_SSE
   /**
-    * Tests four rays against this bounding box and returns an SSE comparison
-    * mask. Use `_mm_movemask_ps(result)` to extract one hit bit per Ray4 lane.
+    * Tests four rays against this bounding box and returns one hit bit per
+    * SIMD lane. Use `core::simd::movemask(result)` to extract the lane mask.
     */
-  __m128 intersects4(const Ray4& rays) const;
-#endif
+  core::simd::Mask4 intersects4(const Ray4& rays) const;
 
   /**
     * Tests whether @p ray intersects the bounding box, and if so populates
@@ -500,78 +499,75 @@ bool BoundingBox<T>::intersect(const Rayd& ray, const Vector3<T>& inverseDirecti
   return t_enter <= t_exit && t_exit >= T(0.0);
 }
 
-#if RAYTRACER_SIMD_SSE
-namespace bounding_box_detail {
-  inline __m128 select_ps(__m128 mask, __m128 trueValue, __m128 falseValue) {
-    return _mm_or_ps(_mm_and_ps(mask, trueValue), _mm_andnot_ps(mask, falseValue));
-  }
-}
-
 template<class T>
-__m128 BoundingBox<T>::intersects4(const Ray4& rays) const {
+inline __attribute__((always_inline)) core::simd::Mask4
+BoundingBox<T>::intersects4(const Ray4& rays) const {
   RAYTRACER_STATS_INC(rayBoxIntersects);
 
-  const __m128 zero = _mm_setzero_ps();
-  const __m128 ox = _mm_load_ps(rays.originX.data());
-  const __m128 oy = _mm_load_ps(rays.originY.data());
-  const __m128 oz = _mm_load_ps(rays.originZ.data());
-  const __m128 dx = _mm_load_ps(rays.directionX.data());
-  const __m128 dy = _mm_load_ps(rays.directionY.data());
-  const __m128 dz = _mm_load_ps(rays.directionZ.data());
-  const __m128 minX = _mm_set1_ps(static_cast<float>(m_min.x()));
-  const __m128 minY = _mm_set1_ps(static_cast<float>(m_min.y()));
-  const __m128 minZ = _mm_set1_ps(static_cast<float>(m_min.z()));
-  const __m128 maxX = _mm_set1_ps(static_cast<float>(m_max.x()));
-  const __m128 maxY = _mm_set1_ps(static_cast<float>(m_max.y()));
-  const __m128 maxZ = _mm_set1_ps(static_cast<float>(m_max.z()));
+  using namespace core::simd;
 
-  const int zeroDirectionMask = _mm_movemask_ps(
-    _mm_or_ps(_mm_or_ps(_mm_cmpeq_ps(dx, zero), _mm_cmpeq_ps(dy, zero)), _mm_cmpeq_ps(dz, zero)));
+  const Float4 zeroValue = zero();
+  const Float4 ox = load4(rays.originX.data());
+  const Float4 oy = load4(rays.originY.data());
+  const Float4 oz = load4(rays.originZ.data());
+  const Float4 dx = load4(rays.directionX.data());
+  const Float4 dy = load4(rays.directionY.data());
+  const Float4 dz = load4(rays.directionZ.data());
+  const Float4 minX = set1(static_cast<float>(m_min.x()));
+  const Float4 minY = set1(static_cast<float>(m_min.y()));
+  const Float4 minZ = set1(static_cast<float>(m_min.z()));
+  const Float4 maxX = set1(static_cast<float>(m_max.x()));
+  const Float4 maxY = set1(static_cast<float>(m_max.y()));
+  const Float4 maxZ = set1(static_cast<float>(m_max.z()));
+
+  const int zeroDirectionMask =
+    movemask(maskOr(maskOr(cmpEq(dx, zeroValue), cmpEq(dy, zeroValue)), cmpEq(dz, zeroValue)));
   if (zeroDirectionMask == 0) {
-    const __m128 one = _mm_set1_ps(1.0f);
-    const __m128 invDx = _mm_div_ps(one, dx);
-    const __m128 invDy = _mm_div_ps(one, dy);
-    const __m128 invDz = _mm_div_ps(one, dz);
-    const __m128 t1x = _mm_mul_ps(_mm_sub_ps(minX, ox), invDx);
-    const __m128 t2x = _mm_mul_ps(_mm_sub_ps(maxX, ox), invDx);
-    const __m128 t1y = _mm_mul_ps(_mm_sub_ps(minY, oy), invDy);
-    const __m128 t2y = _mm_mul_ps(_mm_sub_ps(maxY, oy), invDy);
-    const __m128 t1z = _mm_mul_ps(_mm_sub_ps(minZ, oz), invDz);
-    const __m128 t2z = _mm_mul_ps(_mm_sub_ps(maxZ, oz), invDz);
-    const __m128 enter =
-      _mm_max_ps(_mm_max_ps(_mm_min_ps(t1x, t2x), _mm_min_ps(t1y, t2y)), _mm_min_ps(t1z, t2z));
-    const __m128 exit =
-      _mm_min_ps(_mm_min_ps(_mm_max_ps(t1x, t2x), _mm_max_ps(t1y, t2y)), _mm_max_ps(t1z, t2z));
-    return _mm_and_ps(_mm_cmple_ps(enter, exit), _mm_cmpge_ps(exit, zero));
+    const Float4 one = set1(1.0f);
+    const Float4 invDx = one / dx;
+    const Float4 invDy = one / dy;
+    const Float4 invDz = one / dz;
+    const Float4 t1x = (minX - ox) * invDx;
+    const Float4 t2x = (maxX - ox) * invDx;
+    const Float4 t1y = (minY - oy) * invDy;
+    const Float4 t2y = (maxY - oy) * invDy;
+    const Float4 t1z = (minZ - oz) * invDz;
+    const Float4 t2z = (maxZ - oz) * invDz;
+    const Float4 enter =
+      core::simd::max(core::simd::max(core::simd::min(t1x, t2x), core::simd::min(t1y, t2y)),
+                      core::simd::min(t1z, t2z));
+    const Float4 exit =
+      core::simd::min(core::simd::min(core::simd::max(t1x, t2x), core::simd::max(t1y, t2y)),
+                      core::simd::max(t1z, t2z));
+    return maskAnd(cmpLe(enter, exit), cmpGe(exit, zeroValue));
   }
 
-  const __m128 one = _mm_set1_ps(1.0f);
-  const __m128 negInfinity = _mm_set1_ps(-std::numeric_limits<float>::infinity());
-  const __m128 posInfinity = _mm_set1_ps(std::numeric_limits<float>::infinity());
+  const Float4 one = set1(1.0f);
+  const Float4 negInfinity = set1(-std::numeric_limits<float>::infinity());
+  const Float4 posInfinity = set1(std::numeric_limits<float>::infinity());
 
   auto axis = [&](const Ray4::LaneArray& origins, const Ray4::LaneArray& directions, float minValue,
-                  float maxValue, __m128& enter, __m128& exit, __m128& valid) {
-    const __m128 o = _mm_load_ps(origins.data());
-    const __m128 d = _mm_load_ps(directions.data());
-    const __m128 minv = _mm_set1_ps(minValue);
-    const __m128 maxv = _mm_set1_ps(maxValue);
-    const __m128 parallel = _mm_cmpeq_ps(d, zero);
-    const __m128 inside = _mm_and_ps(_mm_cmpge_ps(o, minv), _mm_cmple_ps(o, maxv));
-    const __m128 invD = _mm_div_ps(one, d);
-    const __m128 t1 = _mm_mul_ps(_mm_sub_ps(minv, o), invD);
-    const __m128 t2 = _mm_mul_ps(_mm_sub_ps(maxv, o), invD);
-    const __m128 axisEnter = _mm_min_ps(t1, t2);
-    const __m128 axisExit = _mm_max_ps(t1, t2);
+                  float maxValue, Float4& enter, Float4& exit, Mask4& valid) {
+    const Float4 o = load4(origins.data());
+    const Float4 d = load4(directions.data());
+    const Float4 minv = set1(minValue);
+    const Float4 maxv = set1(maxValue);
+    const Mask4 parallel = cmpEq(d, zeroValue);
+    const Mask4 inside = maskAnd(cmpGe(o, minv), cmpLe(o, maxv));
+    const Float4 invD = one / d;
+    const Float4 t1 = (minv - o) * invD;
+    const Float4 t2 = (maxv - o) * invD;
+    const Float4 axisEnter = core::simd::min(t1, t2);
+    const Float4 axisExit = core::simd::max(t1, t2);
 
-    enter = _mm_max_ps(enter, bounding_box_detail::select_ps(parallel, negInfinity, axisEnter));
-    exit = _mm_min_ps(exit, bounding_box_detail::select_ps(parallel, posInfinity, axisExit));
-    valid = _mm_and_ps(
-      valid, _mm_or_ps(_mm_andnot_ps(parallel, _mm_cmpeq_ps(d, d)), _mm_and_ps(parallel, inside)));
+    enter = core::simd::max(enter, select(parallel, negInfinity, axisEnter));
+    exit = core::simd::min(exit, select(parallel, posInfinity, axisExit));
+    valid = maskAnd(valid, maskOr(maskAndNot(parallel, cmpEq(d, d)), maskAnd(parallel, inside)));
   };
 
-  __m128 enter = negInfinity;
-  __m128 exit = posInfinity;
-  __m128 valid = _mm_cmpeq_ps(zero, zero);
+  Float4 enter = negInfinity;
+  Float4 exit = posInfinity;
+  Mask4 valid = cmpEq(zeroValue, zeroValue);
   axis(rays.originX, rays.directionX, static_cast<float>(m_min.x()), static_cast<float>(m_max.x()),
        enter, exit, valid);
   axis(rays.originY, rays.directionY, static_cast<float>(m_min.y()), static_cast<float>(m_max.y()),
@@ -579,9 +575,8 @@ __m128 BoundingBox<T>::intersects4(const Ray4& rays) const {
   axis(rays.originZ, rays.directionZ, static_cast<float>(m_min.z()), static_cast<float>(m_max.z()),
        enter, exit, valid);
 
-  return _mm_and_ps(valid, _mm_and_ps(_mm_cmple_ps(enter, exit), _mm_cmpge_ps(exit, zero)));
+  return maskAnd(valid, maskAnd(cmpLe(enter, exit), cmpGe(exit, zeroValue)));
 }
-#endif
 
 // ── SSE2 double specialization ───────────────────────────────────────────────
 // Processes X and Y axes together in one __m128d pair; Z is scalar.
