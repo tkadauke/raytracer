@@ -149,6 +149,7 @@ namespace OpenGLRasterizerTest {
     engine::raster::OpenGLRasterizer rasterizer(nullptr);
 
     EXPECT_TRUE(rasterizer.readbackTraceMessage().empty());
+    EXPECT_TRUE(rasterizer.traceMessages().empty());
   }
 
   TEST(OpenGLRasterizer, ProvidesSharedStatusMessage) {

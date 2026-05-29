@@ -280,6 +280,9 @@ Tasks:
   beauty/depth/stencil executions now append trace messages that report which
   attachments were copied back to CPU buffers and how long that eager readback
   took.
+- ~~Record mesh-preparation cost in graph trace metadata.~~ ✅ **Done.**
+  OpenGL raster traces now include how many triangles were prepared for the GPU
+  mesh stream and how long that CPU preparation took.
 - Validate CPU/GPU resource domain transitions.
 
 Acceptance:

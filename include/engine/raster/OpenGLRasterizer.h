@@ -7,9 +7,11 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace engine::raster {
   namespace detail {
@@ -112,6 +114,7 @@ namespace engine::raster {
     std::string availabilityDetail() const;
     std::string availabilityError() const;
     const std::string& readbackTraceMessage() const;
+    const std::vector<std::string>& traceMessages() const;
 
   private:
     Recti viewportRectFor(int width, int height) const;
@@ -119,6 +122,8 @@ namespace engine::raster {
                       Buffer<std::uint8_t>* stencilTarget) const;
     std::string readbackTraceMessage(std::chrono::nanoseconds elapsed, bool copiedDepth,
                                      bool copiedStencil) const;
+    std::string meshPreparationTraceMessage(std::chrono::nanoseconds elapsed,
+                                            std::size_t triangleCount) const;
 
     std::atomic<bool> m_cancelled{false};
     int m_lod{0};
@@ -153,5 +158,6 @@ namespace engine::raster {
     bool m_shadowMapsEnabled{false};
     std::shared_ptr<const detail::ShadowMaps> m_externalShadowMaps;
     mutable std::string m_lastReadbackTraceMessage;
+    mutable std::vector<std::string> m_lastTraceMessages;
   };
 }

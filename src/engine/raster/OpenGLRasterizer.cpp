@@ -698,6 +698,10 @@ namespace engine::raster {
     return m_lastReadbackTraceMessage;
   }
 
+  const std::vector<std::string>& OpenGLRasterizer::traceMessages() const {
+    return m_lastTraceMessages;
+  }
+
   int OpenGLRasterizer::lod() const {
     return m_lod;
   }
@@ -996,8 +1000,22 @@ namespace engine::raster {
     return message.str();
   }
 
+  std::string OpenGLRasterizer::meshPreparationTraceMessage(std::chrono::nanoseconds elapsed,
+                                                            std::size_t triangleCount) const {
+    std::ostringstream message;
+    message << "OpenGL raster mesh preparation built " << triangleCount << " triangle";
+    if (triangleCount != 1) {
+      message << "s";
+    }
+    message << " in " << std::fixed << std::setprecision(3) << elapsed.count() / 1000000.0 << " ms";
+    return message.str();
+  }
+
   void OpenGLRasterizer::renderOpenGL(Buffer<Colord>& buffer, Buffer<double>* depthTarget,
                                       Buffer<std::uint8_t>* stencilTarget) const {
+    m_lastReadbackTraceMessage.clear();
+    m_lastTraceMessages.clear();
+
     OpenGLOffscreenContext context;
     if (!context.create(buffer.width(), buffer.height(), m_msaaSamples)) {
       throw std::runtime_error(context.errorMessage());
@@ -1005,12 +1023,15 @@ namespace engine::raster {
 
     const Recti viewport = viewportRectFor(buffer.width(), buffer.height());
     detail::OpenGLRasterMesh mesh;
+    const auto meshPreparationStarted = std::chrono::steady_clock::now();
     if (viewport.width() > 0 && viewport.height() > 0) {
       mesh = detail::OpenGLRasterMeshBuilder(
                scene().get(), camera(), m_lod, viewport, m_cullMode, m_hasCullModeOverride,
                m_cancelled, m_shadowMapsEnabled ? m_externalShadowMaps.get() : nullptr)
                .build();
     }
+    const auto meshPreparationElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
+      std::chrono::steady_clock::now() - meshPreparationStarted);
 
     const auto readbackElapsed =
       OpenGLRasterDrawPass(
@@ -1024,5 +1045,8 @@ namespace engine::raster {
     m_lastReadbackTraceMessage = readbackTraceMessage(
       readbackElapsed, depthTarget != nullptr,
       stencilTarget != nullptr && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store);
+    m_lastTraceMessages.push_back(
+      meshPreparationTraceMessage(meshPreparationElapsed, mesh.triangleCount()));
+    m_lastTraceMessages.push_back(m_lastReadbackTraceMessage);
   }
 }

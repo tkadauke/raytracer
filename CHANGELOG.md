@@ -135,6 +135,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   long OpenGL raster passes spent copying color/depth/stencil attachments back
   to CPU buffers, making the current eager-readback cost visible in rendercli
   traces and the Modeler graph inspector. — GPT-5
+- **OpenGL raster mesh-preparation timing.** Graph execution traces now report
+  how many triangles the OpenGL raster backend prepared for the GPU mesh stream
+  and how long that CPU preparation took. — GPT-5
 - **rendercli OpenGL application bootstrap.** rendercli now pre-scans explicit
   `--raster_backend opengl|gpu` runs, starts a GUI-capable Qt application for
   that backend, and defaults the command-line GPU path to Qt's offscreen

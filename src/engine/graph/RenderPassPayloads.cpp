@@ -378,7 +378,9 @@ namespace engine::graph {
 
         const auto rasterizer =
           std::static_pointer_cast<::engine::raster::OpenGLRasterizer>(engine);
-        context.recordTraceMessage(rasterizer->readbackTraceMessage());
+        for (const auto& message : rasterizer->traceMessages()) {
+          context.recordTraceMessage(message);
+        }
       }
 
       bool readsShadowMap(const RenderExecutionContext& context) const {

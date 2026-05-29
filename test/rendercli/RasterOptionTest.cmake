@@ -108,6 +108,11 @@ if(opengl_trace_result STREQUAL "0")
                     "OpenGL graph trace did not include readback timing"
                     "" "${opengl_trace_result}" "${opengl_trace_stdout}" "${opengl_trace_json}")
   endif()
+  if(NOT opengl_trace_json MATCHES "OpenGL raster mesh preparation built")
+    _rendercli_fail("rendercli --raster_backend gpu mesh preparation trace"
+                    "OpenGL graph trace did not include mesh-preparation timing"
+                    "" "${opengl_trace_result}" "${opengl_trace_stdout}" "${opengl_trace_json}")
+  endif()
 elseif(opengl_trace_stderr MATCHES "OpenGL raster backend is selected")
   if(opengl_trace_stderr MATCHES "QCoreApplication")
     _rendercli_fail("rendercli --raster_backend gpu trace application bootstrap"

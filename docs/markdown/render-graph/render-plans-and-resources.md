@@ -585,7 +585,9 @@ Modeler, the existing GUI application owns that bootstrap. The OpenGL executor
 then creates an offscreen context and depth/stencil framebuffer when the host
 platform supports it, renders the initial lit mesh pass, and reads
 color back into the graph resource; unsupported hosts still fail with an
-explicit capability error. That OpenGL path evaluates UV color textures,
+explicit capability error. Graph traces report both the CPU mesh-preparation
+time for that OpenGL pass and the current eager color/depth/stencil readback
+time. That OpenGL path evaluates UV color textures,
 direct UV-mapped image textures (including glTF base-color tints), and direct
 UV checker textures with constant child colors in the shader. Raster AOV
 producer passes use the same state
