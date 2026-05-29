@@ -80,6 +80,11 @@ namespace OpenGLRasterizerParityTest {
 
     constexpr double kNoisyPixelChannelThreshold = 0.10;
 
+    bool channelDifferenceExceeds(const Colord& a, const Colord& b, double threshold) {
+      return std::abs(a.r() - b.r()) > threshold || std::abs(a.g() - b.g()) > threshold ||
+             std::abs(a.b() - b.b()) > threshold;
+    }
+
     ChannelStats compareBuffers(const Buffer<Colord>& cpu, const Buffer<Colord>& gpu) {
       ChannelStats stats;
       const int width = cpu.width();
@@ -87,21 +92,16 @@ namespace OpenGLRasterizerParityTest {
       const std::size_t channels = static_cast<std::size_t>(width) * height * 3;
       const std::size_t pixels = static_cast<std::size_t>(width) * height;
       double sumAbs = 0.0;
-      std::size_t noisy = 0;
       for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
           const Colord& a = cpu[y][x];
           const Colord& b = gpu[y][x];
-          const double dr = std::abs(a.r() - b.r());
-          const double dg = std::abs(a.g() - b.g());
-          const double db = std::abs(a.b() - b.b());
-          sumAbs += dr + dg + db;
-          if (dr > kNoisyPixelChannelThreshold || dg > kNoisyPixelChannelThreshold ||
-              db > kNoisyPixelChannelThreshold) {
-            ++noisy;
-          }
+          sumAbs += std::abs(a.r() - b.r()) + std::abs(a.g() - b.g()) + std::abs(a.b() - b.b());
         }
       }
+      const int noisy = cpu.countDifferences(gpu, [](const Colord& a, const Colord& b) {
+        return channelDifferenceExceeds(a, b, kNoisyPixelChannelThreshold);
+      });
       stats.meanAbs = channels == 0 ? 0.0 : sumAbs / static_cast<double>(channels);
       stats.noisyFraction = pixels == 0 ? 0.0 : static_cast<double>(noisy) / pixels;
       return stats;

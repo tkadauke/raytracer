@@ -95,6 +95,32 @@ public:
     }
   }
 
+  /**
+    * @returns the number of element positions where @p differs reports the
+    * values from this buffer and @p other as different. Returns the total
+    * element count when the buffers have mismatched dimensions.
+    *
+    * @tparam Predicate `bool(const T&, const T&)`. For multi-channel value
+    * types like `Colord`, callers supply the comparison semantics (per-channel
+    * tolerance, mask, etc.); for arithmetic `T` callers usually pass a small
+    * tolerance check.
+    */
+  template<typename Predicate>
+  inline int countDifferences(const Buffer& other, Predicate differs) const {
+    if (other.width() != width() || other.height() != height()) {
+      return width() * height();
+    }
+    int count = 0;
+    for (int y = 0; y != height(); ++y) {
+      for (int x = 0; x != width(); ++x) {
+        if (differs(m_buffer[y][x], other.m_buffer[y][x])) {
+          ++count;
+        }
+      }
+    }
+    return count;
+  }
+
 private:
   BufferType m_buffer;
   int m_width, m_height;

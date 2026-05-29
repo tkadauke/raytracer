@@ -50,6 +50,15 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   LDraw, molecular, and procedural scenes instead of preserving the old Grid
   default for Epic #360. — GPT-5
 
+### Added
+
+- **`Buffer<T>::countDifferences(other, predicate)`.** Tests that need to
+  diff two buffers (CPU↔GPU parity comparisons, pre-/post-mutation render
+  checks) now have a single shared helper instead of hand-rolled nested
+  loops. The predicate carries the comparison semantics (per-channel
+  tolerance, mask, exact equality) so the helper stays useful across
+  element types. — Claude Opus 4.7
+
 ### Fixed
 
 - **OpenGL raster backend honors cancellation during draw.** A cancellation

@@ -109,4 +109,63 @@ namespace RenderDisplayTest {
     ASSERT_VECTOR_NEAR(passCamera->position(), selectedCamera->position(), 1e-9);
     ASSERT_VECTOR_NEAR(passCamera->target(), selectedCamera->target(), 1e-9);
   }
+
+  // Regression guard: `RenderDisplay::setScene` used to bind a snapshot of the
+  // active scene camera to the graph engine and then create a *second*
+  // independent snapshot for the engine's runtime camera. Interactive mouse
+  // drags mutate the runtime camera, but graph passes that name the active
+  // camera by id were resolving to the stale binding — so all engines kept
+  // rendering with the pre-drag pose.
+  TEST_F(RenderDisplayTest, ActiveSceneCameraBindingSharesEngineRuntimeCamera) {
+    auto scene = std::make_unique<Scene>();
+    auto* activeCamera = new PinholeCamera;
+    activeCamera->setId("active-camera");
+    activeCamera->setPosition(Vector3d(0, 0, -6));
+    activeCamera->setTarget(Vector3d::null);
+    scene->addChild(activeCamera);
+
+    RenderDisplay display(nullptr);
+    display.setRenderGraphPreviewEnabled(false);
+    display.setScene(scene.get());
+
+    auto graph =
+      std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(display.renderEngine());
+    ASSERT_NE(nullptr, graph);
+
+    engine::graph::RenderPassNode pass;
+    pass.sceneView.camera = engine::graph::RenderCameraRef{"active-camera", std::nullopt};
+
+    EXPECT_EQ(display.renderEngine()->camera().get(), graph->cameraForPass(pass).get());
+  }
+
+  TEST_F(RenderDisplayTest, MutatingEngineCameraIsVisibleThroughCameraForPass) {
+    auto scene = std::make_unique<Scene>();
+    auto* activeCamera = new PinholeCamera;
+    activeCamera->setId("active-camera");
+    activeCamera->setPosition(Vector3d(0, 0, -6));
+    activeCamera->setTarget(Vector3d::null);
+    scene->addChild(activeCamera);
+
+    RenderDisplay display(nullptr);
+    display.setRenderGraphPreviewEnabled(false);
+    display.setScene(scene.get());
+
+    auto graph =
+      std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(display.renderEngine());
+    ASSERT_NE(nullptr, graph);
+
+    const Vector3d draggedPosition(7, 8, 9);
+    const Vector3d draggedTarget(1, -1, 2);
+    display.renderEngine()->camera()->setPosition(draggedPosition);
+    display.renderEngine()->camera()->setTarget(draggedTarget);
+
+    engine::graph::RenderPassNode pass;
+    pass.sceneView.camera = engine::graph::RenderCameraRef{"active-camera", std::nullopt};
+
+    auto resolved = graph->cameraForPass(pass);
+    ASSERT_NE(nullptr, resolved);
+    ASSERT_VECTOR_NEAR(draggedPosition, resolved->position(), 1e-9);
+    ASSERT_VECTOR_NEAR(draggedTarget, resolved->target(), 1e-9);
+  }
+
 } // namespace RenderDisplayTest
