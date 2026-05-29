@@ -133,28 +133,39 @@ or use a Qt `qrc` resource). The behavior is byte-identical; the diff is
 purely the move plus a loader. Required before any shader edit in Phase 4 is
 reviewable.
 
-## Phase 4 — pipeline-cost fixes
+## Phase 4 — pipeline-cost fixes (deferred to a follow-up plan)
 
-### Commit 10: cache the linked shader program across `render()` calls
+Discovery while implementing: `OpenGLOffscreenContext::create()` tears down
+the GL context, surface, and FBO on every call (see
+`OpenGLOffscreenContext.cpp:62` — `destroyResources()` at the top of
+`create()`). With that lifecycle, caching the linked shader program, image
+textures, and VBOs *inside* the context produces a cache miss on every
+render — the cache is destroyed before the next call reaches it.
 
-Hold the linked `QOpenGLShaderProgram` plus attribute locations in a small
-struct owned by `OpenGLRasterizer` (or static, keyed by `QOpenGLContext*`).
-Compile/link only on the first render against a given context, or when the
-context is destroyed/recreated. Verify on Qt's
-`QOpenGLContext::aboutToBeDestroyed` signal that cached state is released.
+The program/texture/VBO caches are therefore gated on first refactoring
+`OpenGLOffscreenContext` to separate persistent state (context + surface)
+from per-render state (FBO sized to the target). That refactor is a
+self-contained piece of work — at least the following commits:
 
-### Commit 11: cache image-texture uploads across `render()` calls
+1. Split `OpenGLOffscreenContext` into `ensureContext()` (idempotent) and
+   `ensureFramebuffer(width, height, samples)` (recreated when dimensions
+   change).
+2. Move ownership of the context into a member of `OpenGLRasterizer`
+   (mutable, lifecycle-tied to the rasterizer's owning thread).
+3. Cache the linked `QOpenGLShaderProgram` plus attribute locations on the
+   rasterizer; first render compiles, subsequent renders reuse.
+4. Lift `OpenGLTextureCache` out of the draw scope; image textures upload
+   once per rasterizer lifetime.
+5. Keep one `QOpenGLBuffer` pair (vertex + index) on the rasterizer and
+   re-upload via `glBufferData`/`glBufferSubData`.
 
-`OpenGLTextureCache` is currently scoped inside `OpenGLRasterDrawPass::draw`.
-Lift it to the rasterizer (or, again, context-keyed static) so each
-`ImageTexture` uploads once. Match the program-cache lifetime rules.
+The threading caveat in the original "out of scope" list still applies: each
+`cloneForRender` already lives on one thread, so per-rasterizer (per-clone)
+caching does not need a share-group story. The same caveats around release
+on `QOpenGLContext::aboutToBeDestroyed` apply.
 
-### Commit 12: cache vertex/index buffers across `render()` calls
-
-`QOpenGLBuffer vertexBuffer/indexBuffer` are currently local to `draw()`.
-Keep one pair around, re-allocate via `glBufferData(GL_..._BUFFER, size, ptr,
-GL_DYNAMIC_DRAW)` each frame (or just `bufferSubData` when size fits). Reuses
-the GPU allocation across frames; same caching lifecycle as the program.
+Track this as `docs/plans/opengl-rasterizer-resource-caching.md` (or a
+section appended here) when the work begins.
 
 ## Out of scope (documented, not done)
 
