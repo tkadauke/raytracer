@@ -162,9 +162,16 @@ Acceptance:
 
 Tasks:
 
-- Sort visible opaque work roughly by camera depth after frustum culling.
-- Preserve original order for order-dependent pass state.
-- Surface ordering metrics in trace metadata.
+- ~~Sort visible opaque work roughly by camera depth after frustum culling.~~
+  ✅ **Done.** Visibility passes now sort visible bounded leaves by projected
+  camera depth when the compiled raster state is order-independent.
+- ~~Preserve original order for order-dependent pass state.~~ ✅ **Done.**
+  Front-to-back ordering is disabled for currently graph-visible unsafe state
+  such as blending, stencil tests, disabled depth writes, or nonstandard depth
+  comparisons.
+- ~~Surface ordering metrics in trace metadata.~~ ✅ **Done.** Trace messages
+  report whether front-to-back ordering was enabled, disabled, or unsupported,
+  plus the number of ordered leaves.
 - ~~Feed ordered work into CPU raster~~ and later GPU raster draw submission.
   ✅ **Partially done.** The visibility set can now carry an explicit
   visible-leaf order, and the CPU raster front end consumes it while preserving

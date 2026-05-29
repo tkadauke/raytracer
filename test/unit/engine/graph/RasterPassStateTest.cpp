@@ -122,12 +122,14 @@ namespace RasterPassStateTest {
     RasterVisibilityPassState state;
     state.geometry().setLod(3);
     state.geometry().setCullMode(Rasterizer::CullMode::Back);
+    state.setFrontToBackOrderingEnabled(false);
 
     const QJsonObject json = state.toJson();
     const QJsonObject geometry = json.value("geometry").toObject();
 
     EXPECT_EQ(3, geometry.value("lod").toInt());
     EXPECT_EQ("back", geometry.value("cullMode").toString().toStdString());
+    EXPECT_FALSE(json.value("frontToBackOrdering").toBool(true));
 
     const auto decoded = RenderPassState::fromJson(
       RenderPassKind::Visibility, RenderExecutorKind::Rasterizer, json, "parameters");
@@ -135,6 +137,28 @@ namespace RasterPassStateTest {
     const auto* visibility = decoded->asRasterVisibilityPassState();
     ASSERT_NE(nullptr, visibility);
     EXPECT_EQ(3, visibility->geometry().lod());
+    EXPECT_FALSE(visibility->frontToBackOrderingEnabled());
+  }
+
+  TEST(RasterFramebufferState, ReportsFrontToBackOrderingSafety) {
+    RasterFramebufferState state;
+    EXPECT_TRUE(state.supportsFrontToBackVisibilityOrdering());
+
+    RasterFramebufferState blending;
+    blending.setBlendingEnabled(true);
+    EXPECT_FALSE(blending.supportsFrontToBackVisibilityOrdering());
+
+    RasterFramebufferState stencil;
+    stencil.setStencilTestEnabled(true);
+    EXPECT_FALSE(stencil.supportsFrontToBackVisibilityOrdering());
+
+    RasterFramebufferState disabledDepthWrite;
+    disabledDepthWrite.setDepthWriteEnabled(false);
+    EXPECT_FALSE(disabledDepthWrite.supportsFrontToBackVisibilityOrdering());
+
+    RasterFramebufferState alwaysDepth;
+    alwaysDepth.setDepthFunc(Rasterizer::DepthFunc::Always);
+    EXPECT_FALSE(alwaysDepth.supportsFrontToBackVisibilityOrdering());
   }
 
   TEST(RasterVisibilityPassState, WritesToVisibilityPass) {

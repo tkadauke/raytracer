@@ -713,6 +713,7 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(hasFeature(*visibility, "culling"));
     ASSERT_NE(nullptr, RasterVisibilityPassState::fromPass(*visibility));
     EXPECT_EQ(2, RasterVisibilityPassState::fromPass(*visibility)->geometry().lod());
+    EXPECT_TRUE(RasterVisibilityPassState::fromPass(*visibility)->frontToBackOrderingEnabled());
     ASSERT_EQ(1u, visibility->writes.size());
     EXPECT_EQ("raster_visibility_set", visibility->writes.front().resource);
 
@@ -734,6 +735,22 @@ namespace RenderGraphCompilerTest {
               *plan.executionOrderNumber("raster_beauty"));
     EXPECT_TRUE(plan.resourceCanReach("raster_visibility_set", "main_color"));
     EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, RasterVisibilityCullingDisablesOrderingForBlending) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
+    intent.engineOptions.rasterizer().setBlendingEnabled(true);
+
+    const RenderPlan plan = compiler.compile({64, 64, 1}, intent);
+
+    const auto* visibility = plan.findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibility);
+    const auto* state = RasterVisibilityPassState::fromPass(*visibility);
+    ASSERT_NE(nullptr, state);
+    EXPECT_FALSE(state->frontToBackOrderingEnabled());
   }
 
   TEST(RenderGraphCompiler, RasterAOVVisibilityCullingOptionAddsVisibilityDependency) {

@@ -1424,26 +1424,30 @@ namespace engine::graph {
 
         const RasterVisibilityPassState state =
           RasterVisibilityPassState::valueFromPass(context.pass());
-        const int lod = state.geometry().lod();
-        const auto visibilitySet = buildVisibilitySet(context, lod);
+        const auto visibilitySet = buildVisibilitySet(context, state);
         context.storage().setVisibilitySet(write.resource, visibilitySet);
-        context.recordTraceMessage(traceMessage(*visibilitySet, lod));
+        context.recordTraceMessage(traceMessage(*visibilitySet, state));
       }
 
     private:
       std::shared_ptr<::engine::raster::RasterVisibilitySet>
-      buildVisibilitySet(const RenderExecutionContext& context, int lod) const {
+      buildVisibilitySet(const RenderExecutionContext& context,
+                         const RasterVisibilityPassState& state) const {
         auto visibilitySet = std::make_shared<::engine::raster::RasterVisibilitySet>();
         const auto scene = context.graph().scene();
         if (!scene) {
           return visibilitySet;
         }
 
+        const int lod = state.geometry().lod();
         const std::shared_ptr<render::Camera> camera = context.graph().camera();
         const render::HomogeneousClipVolume clipVolume = rasterClipVolume();
         std::unordered_map<const render::Primitive*, MeshStats> meshStats;
+        std::vector<VisibleLeafDepth> visibleLeafDepths;
+        bool orderable = state.frontToBackOrderingEnabled() && camera != nullptr;
         scene->forEachTransformedLeaf(
           nullptr, Matrix4d(), Matrix3d(), [&](const render::Primitive::TransformedLeaf& leaf) {
+            const std::size_t leafIndex = visibilitySet->leafCount();
             const MeshStats stats = meshStatsFor(leaf.primitive, lod, meshStats);
             if (boundsOutsideFrustum(leaf, camera.get(), clipVolume)) {
               visibilitySet->addRejectedLeaf(
@@ -1453,7 +1457,26 @@ namespace engine::graph {
             }
 
             visibilitySet->addVisibleLeaf(stats.triangleCount, stats.faceCount);
+            if (orderable) {
+              if (const auto depth = frontToBackDepth(leaf, camera.get())) {
+                visibleLeafDepths.push_back(VisibleLeafDepth{leafIndex, *depth});
+              } else {
+                orderable = false;
+              }
+            }
           });
+        if (orderable && visibleLeafDepths.size() > 1) {
+          std::stable_sort(visibleLeafDepths.begin(), visibleLeafDepths.end(),
+                           [](const VisibleLeafDepth& lhs, const VisibleLeafDepth& rhs) {
+                             return lhs.depth < rhs.depth;
+                           });
+          std::vector<std::size_t> visibleLeafOrder;
+          visibleLeafOrder.reserve(visibleLeafDepths.size());
+          for (const VisibleLeafDepth& leaf : visibleLeafDepths) {
+            visibleLeafOrder.push_back(leaf.leafIndex);
+          }
+          visibilitySet->setVisibleLeafOrder(std::move(visibleLeafOrder));
+        }
         return visibilitySet;
       }
 
@@ -1490,9 +1513,32 @@ namespace engine::graph {
         return sharedOutCode != 0;
       }
 
+      std::optional<double> frontToBackDepth(const render::Primitive::TransformedLeaf& leaf,
+                                             const render::Camera* camera) const {
+        if (!camera) {
+          return std::nullopt;
+        }
+
+        const BoundingBoxd bounds = leaf.boundingBox();
+        if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite()) {
+          return std::nullopt;
+        }
+
+        const Vector4d clip = camera->projectPointToClipSpace(bounds.center());
+        if (clip.isUndefined() || !std::isfinite(clip.z())) {
+          return std::nullopt;
+        }
+        return clip.z();
+      }
+
       struct MeshStats {
         std::size_t triangleCount{0};
         std::size_t faceCount{0};
+      };
+
+      struct VisibleLeafDepth {
+        std::size_t leafIndex{0};
+        double depth{0.0};
       };
 
       MeshStats
@@ -1522,10 +1568,18 @@ namespace engine::graph {
       }
 
       std::string traceMessage(const ::engine::raster::RasterVisibilitySet& visibilitySet,
-                               int lod) const {
+                               const RasterVisibilityPassState& state) const {
+        const char* ordering = "unsupported";
+        if (visibilitySet.hasVisibleLeafOrder()) {
+          ordering = "enabled";
+        } else if (!state.frontToBackOrderingEnabled()) {
+          ordering = "disabled";
+        } else if (visibilitySet.visibleLeafCount() <= 1) {
+          ordering = "not_needed";
+        }
         std::ostringstream out;
         out << "visibility culling produced a CPU visibility set"
-            << "; lod=" << lod << "; inputLeaves=" << visibilitySet.leafCount()
+            << "; lod=" << state.geometry().lod() << "; inputLeaves=" << visibilitySet.leafCount()
             << "; inputTriangles=" << visibilitySet.inputTriangleCount()
             << "; visibleLeaves=" << visibilitySet.visibleLeafCount()
             << "; visibleTriangles=" << visibilitySet.visibleTriangleCount()
@@ -1537,6 +1591,8 @@ namespace engine::graph {
             << "; frustumRejectedTriangles="
             << visibilitySet.rejectedTriangleCount(
                  ::engine::raster::RasterVisibilitySet::RejectionReason::Frustum)
+            << "; frontToBackOrdering=" << ordering
+            << "; frontToBackOrderedLeaves=" << visibilitySet.visibleLeafOrder().size()
             << "; CPU raster passes can skip rejected leaves";
         return out.str();
       }

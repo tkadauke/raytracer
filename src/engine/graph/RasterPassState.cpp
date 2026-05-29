@@ -1115,6 +1115,13 @@ namespace engine::graph {
                   Rasterizer::StencilOp::Replace);
   }
 
+  bool RasterFramebufferState::supportsFrontToBackVisibilityOrdering() const {
+    const bool depthOrdersFragments =
+      m_depthFunc == Rasterizer::DepthFunc::Less || m_depthFunc == Rasterizer::DepthFunc::LessEqual;
+    return depthOrdersFragments && m_depthWriteEnabled && !m_blendingEnabled &&
+           !m_stencilTestEnabled;
+  }
+
   bool RasterFramebufferState::stencilTestEnabled() const {
     return m_stencilTestEnabled;
   }
@@ -1341,11 +1348,13 @@ namespace engine::graph {
 
   RasterVisibilityPassState RasterVisibilityPassState::fromJson(const QJsonObject& object,
                                                                 const std::string& path) {
-    rejectUnknownFields(object, path, {"geometry"});
+    rejectUnknownFields(object, path, {"geometry", "frontToBackOrdering"});
     RasterVisibilityPassState state;
     if (hasField(object, "geometry"))
       state.m_geometry =
         RasterGeometryState::fromJson(objectField(object, "geometry", path), path + ".geometry");
+    if (hasField(object, "frontToBackOrdering"))
+      state.setFrontToBackOrderingEnabled(boolField(object, "frontToBackOrdering", path));
     return state;
   }
 
@@ -1373,6 +1382,8 @@ namespace engine::graph {
     QJsonObject object;
     if (!m_geometry.empty())
       object["geometry"] = m_geometry.toJson();
+    if (!m_frontToBackOrderingEnabled)
+      object["frontToBackOrdering"] = false;
     return object;
   }
 
@@ -1394,6 +1405,14 @@ namespace engine::graph {
 
   const RasterGeometryState& RasterVisibilityPassState::geometry() const {
     return m_geometry;
+  }
+
+  void RasterVisibilityPassState::setFrontToBackOrderingEnabled(bool enabled) {
+    m_frontToBackOrderingEnabled = enabled;
+  }
+
+  bool RasterVisibilityPassState::frontToBackOrderingEnabled() const {
+    return m_frontToBackOrderingEnabled;
   }
 
   RasterBeautyPassState RasterBeautyPassState::fromJson(const QJsonObject& object,

@@ -655,9 +655,14 @@ input/visible/rejected leaf counts, matching triangle counts at the compiled
 raster LOD, and frustum-rejected counts from transformed leaf bounds. The
 visibility resource also carries traversal-order leaf decisions that CPU raster
 passes consume before tessellation, while missing or mismatched leaf indices
-remain visible as a conservative fallback. That keeps the graph shape,
-rendercli exports, Modeler graph view, execution trace, and CPU raster
-submission tied to the same explicit visibility edge.
+remain visible as a conservative fallback. When the compiled framebuffer state
+is order-independent (`Less`/`LessEqual` depth with writes enabled, blending
+off, stencil off), the pass also sorts visible bounded leaves front-to-back and
+records the ordered-leaf count in the trace. Order-dependent state leaves
+traversal order unchanged and is reported as disabled, unsupported, or not
+needed in the same trace message. That keeps the graph shape, rendercli exports, Modeler graph
+view, execution trace, and CPU raster submission tied to the same explicit
+visibility edge.
 
 The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
 `RenderIntent::postProcessAA` asks the compiler to insert a `post_fxaa` or

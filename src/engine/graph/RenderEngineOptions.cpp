@@ -738,6 +738,10 @@ namespace engine::graph {
       state.geometry().setLod(*m_lod);
     if (m_cullMode)
       state.geometry().setCullMode(cullModeFromString(*m_cullMode, "rasterizer.geometry.cullMode"));
+    const RasterBeautyPassState beautyState =
+      beautyPassState(1, RenderPostProcessAA::None, false, false);
+    state.setFrontToBackOrderingEnabled(
+      beautyState.framebuffer().supportsFrontToBackVisibilityOrdering());
     return state;
   }
 

@@ -290,6 +290,22 @@ namespace GraphRenderEngineTest {
     return scene;
   }
 
+  std::shared_ptr<render::Scene> twoVisibleDepthBoxScene() {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord::black());
+
+    auto nearBox =
+      std::make_shared<render::Box>(Vector3d(-0.75, 0.0, 0.0), Vector3d(0.35, 0.35, 0.35));
+    nearBox->setMaterial(matte(Colord::white()));
+    scene->add(nearBox);
+
+    auto farBox =
+      std::make_shared<render::Box>(Vector3d(0.75, 0.0, 1.0), Vector3d(0.35, 0.35, 0.35));
+    farBox->setMaterial(matte(Colord::white()));
+    scene->add(farBox);
+    return scene;
+  }
+
   std::shared_ptr<render::Scene> directionalShadowScene() {
     auto scene = std::make_shared<render::Scene>();
     scene->setAmbient(Colord(0.1, 0.1, 0.1));
@@ -466,6 +482,30 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(std::string::npos, message.find("visibleLeaves=1")) << message;
     EXPECT_NE(std::string::npos, message.find("rejectedLeaves=1")) << message;
     EXPECT_NE(std::string::npos, message.find("frustumRejectedLeaves=1")) << message;
+  }
+
+  TEST(GraphRenderEngine, RecordsRasterVisibilityFrontToBackOrderingMetrics) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), twoVisibleDepthBoxScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* visibilityTrace = trace->findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibilityTrace);
+    const std::string& message = visibilityTrace->message();
+    EXPECT_NE(std::string::npos, message.find("visibleLeaves=2")) << message;
+    EXPECT_NE(std::string::npos, message.find("frontToBackOrdering=enabled")) << message;
+    EXPECT_NE(std::string::npos, message.find("frontToBackOrderedLeaves=2")) << message;
   }
 
   TEST(GraphRenderEngine, RasterVisibilityCullingPreservesOpaqueOutput) {

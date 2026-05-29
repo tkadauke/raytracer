@@ -145,6 +145,7 @@ namespace engine::graph {
                        Rasterizer::StencilOp pass);
     void configureStencilWritePass(std::uint8_t value);
 
+    bool supportsFrontToBackVisibilityOrdering() const;
     bool stencilTestEnabled() const;
 
   private:
@@ -276,9 +277,12 @@ namespace engine::graph {
 
     RasterGeometryState& geometry();
     const RasterGeometryState& geometry() const;
+    void setFrontToBackOrderingEnabled(bool enabled);
+    bool frontToBackOrderingEnabled() const;
 
   private:
     RasterGeometryState m_geometry;
+    bool m_frontToBackOrderingEnabled{true};
   };
 
   /**
