@@ -21,6 +21,7 @@ set(invalid_exported_aov_scene "${TEST_OUTPUT_DIR}/invalid-exported-aov-scene.js
 set(selector_specific_intent_scene "${TEST_OUTPUT_DIR}/selector-specific-intent-scene.json")
 set(subview_intent_scene "${TEST_OUTPUT_DIR}/subview-intent-scene.json")
 set(offscreen_culling_scene "${TEST_OUTPUT_DIR}/offscreen-culling-scene.json")
+set(material_sidedness_culling_scene "${TEST_OUTPUT_DIR}/material-sidedness-culling-scene.json")
 set(malformed_graph_json "${TEST_OUTPUT_DIR}/malformed-graph.json")
 set(json_root_graph "${TEST_OUTPUT_DIR}/json-root-graph.json")
 set(semantic_invalid_graph "${TEST_OUTPUT_DIR}/semantic-invalid-graph.json")
@@ -77,6 +78,9 @@ set(raster_state_render "${TEST_OUTPUT_DIR}/raster-state-render.png")
 set(raster_culling_plan "${TEST_OUTPUT_DIR}/raster-culling-graph.txt")
 set(raster_culling_trace "${TEST_OUTPUT_DIR}/raster-culling-trace.json")
 set(raster_culling_trace_render "${TEST_OUTPUT_DIR}/raster-culling-trace-render.png")
+set(raster_sidedness_culling_trace "${TEST_OUTPUT_DIR}/raster-sidedness-culling-trace.json")
+set(raster_sidedness_culling_trace_render
+    "${TEST_OUTPUT_DIR}/raster-sidedness-culling-trace-render.png")
 set(wireframe_state_plan "${TEST_OUTPUT_DIR}/wireframe-state-graph.json")
 set(raytracer_post_aa_plan "${TEST_OUTPUT_DIR}/raytracer-post-aa-graph.txt")
 set(wireframe_post_aa_plan "${TEST_OUTPUT_DIR}/wireframe-post-aa-graph.txt")
@@ -301,6 +305,73 @@ file(WRITE "${offscreen_culling_scene}" [=[
       "size": [1.0, 1.0, 1.0],
       "bevelRadius": 0.0,
       "type": "Box",
+      "children": []
+    }
+  ]
+}
+]=])
+
+file(WRITE "${material_sidedness_culling_scene}" [=[
+{
+  "id": "{96000000-0000-0000-0000-000000000000}",
+  "name": "Material Sidedness Culling Fixture",
+  "ambient": [1.0, 1.0, 1.0],
+  "background": [0.0, 0.0, 0.0],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.0, -4.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.2,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "white-texture",
+      "name": "White Texture",
+      "color": [1.0, 1.0, 1.0],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "front-matte",
+      "name": "Front Sided Matte",
+      "diffuseTexture": "white-texture",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "sidedness": "Front",
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "front-facing",
+      "name": "Front Facing Triangle",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "front-matte",
+      "vertexA": [-1.5, -1.0, 0.0],
+      "vertexB": [-0.5, 1.0, 0.0],
+      "vertexC": [0.5, -1.0, 0.0],
+      "type": "Triangle",
+      "children": []
+    },
+    {
+      "id": "back-facing",
+      "name": "Back Facing Triangle",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "front-matte",
+      "vertexA": [-0.5, -1.0, 0.0],
+      "vertexB": [1.5, -1.0, 0.0],
+      "vertexC": [0.5, 1.0, 0.0],
+      "type": "Triangle",
       "children": []
     }
   ]
@@ -1838,6 +1909,33 @@ endif()
 if(NOT raster_culling_trace_json MATCHES "CPU raster passes can skip rejected leaves")
   message(FATAL_ERROR
     "raster culling trace did not record CPU visibility set consumption: ${raster_culling_trace_json}")
+endif()
+
+rendercli_run(
+  NAME "rendercli traces material-sided raster backface culling"
+  COMMAND
+    "${RENDERCLI}" --engine raster --raster_culling on --width 32 --height 16
+    --render_graph_trace_out "${raster_sidedness_culling_trace}"
+    "${material_sidedness_culling_scene}" "${raster_sidedness_culling_trace_render}"
+)
+rendercli_assert_image_dimensions("${raster_sidedness_culling_trace_render}" 32 16
+                                  NAME "graph raster sidedness culling trace image dimensions")
+rendercli_assert_image_nonempty("${raster_sidedness_culling_trace_render}"
+                                NAME "graph raster sidedness culling trace image pixels")
+rendercli_assert_nonempty("${raster_sidedness_culling_trace}"
+                          NAME "graph raster sidedness culling trace JSON")
+file(READ "${raster_sidedness_culling_trace}" raster_sidedness_culling_trace_json)
+if(NOT raster_sidedness_culling_trace_json MATCHES "visibleLeaves=1")
+  message(FATAL_ERROR
+    "raster sidedness culling trace did not keep one visible leaf: ${raster_sidedness_culling_trace_json}")
+endif()
+if(NOT raster_sidedness_culling_trace_json MATCHES "backfaceRejectedLeaves=1")
+  message(FATAL_ERROR
+    "raster sidedness culling trace did not reject one material-sided backface: ${raster_sidedness_culling_trace_json}")
+endif()
+if(NOT raster_sidedness_culling_trace_json MATCHES "backfaceRejectedTriangles=1")
+  message(FATAL_ERROR
+    "raster sidedness culling trace did not count the material-sided backface triangle: ${raster_sidedness_culling_trace_json}")
 endif()
 
 rendercli_run(
