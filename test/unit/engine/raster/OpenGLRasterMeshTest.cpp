@@ -15,6 +15,7 @@
 #include "render/textures/ImageTexture.h"
 #include "render/textures/TintedTexture.h"
 #include "render/textures/UVColorTexture.h"
+#include "render/textures/mappings/PlanarMapping2D.h"
 #include "render/textures/mappings/UVMapping2D.h"
 #include "render/viewplanes/ViewPlane.h"
 
@@ -181,6 +182,32 @@ namespace OpenGLRasterMeshTest {
     EXPECT_EQ(Colord::blue(), source.checkerDark);
     for (const auto& vertex : mesh.vertices()) {
       EXPECT_FLOAT_EQ(3.0f, vertex.albedoMode);
+    }
+  }
+
+  TEST(OpenGLRasterMesh, BatchesPlanarCheckerShaderSource) {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    auto checker = std::make_shared<render::CheckerBoardTexture>(
+      new render::PlanarMapping2D, std::make_shared<render::ConstantColorTexture>(Colord::red()),
+      std::make_shared<render::ConstantColorTexture>(Colord::blue()));
+    auto triangle = std::make_shared<render::Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0),
+                                                       Vector3d(0, 1, 0));
+    triangle->setMaterial(std::make_shared<render::MatteMaterial>(checker));
+    scene->add(triangle);
+    std::atomic<bool> cancelled{false};
+
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+                                              Rasterizer::CullMode::Both, false, cancelled)
+                        .build();
+
+    ASSERT_FALSE(mesh.empty());
+    ASSERT_EQ(1u, mesh.batches().size());
+    const auto& source = mesh.batches()[0].albedo;
+    EXPECT_EQ(engine::raster::detail::RasterAlbedoShaderMode::PlanarChecker, source.mode);
+    EXPECT_EQ(Colord::red(), source.checkerBright);
+    EXPECT_EQ(Colord::blue(), source.checkerDark);
+    for (const auto& vertex : mesh.vertices()) {
+      EXPECT_FLOAT_EQ(4.0f, vertex.albedoMode);
     }
   }
 

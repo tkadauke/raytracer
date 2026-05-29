@@ -30,6 +30,7 @@
 #include "render/textures/TintedTexture.h"
 #include "render/textures/Texture.h"
 #include "render/textures/UVColorTexture.h"
+#include "render/textures/mappings/PlanarMapping2D.h"
 #include "render/textures/mappings/UVMapping2D.h"
 
 #include <QThreadPool>
@@ -2019,6 +2020,33 @@ namespace RasterizerTest {
     EXPECT_EQ(engine::raster::detail::RasterAlbedoShaderMode::UVChecker, source.mode);
     EXPECT_EQ(2.0, source.uScale);
     EXPECT_EQ(4.0, source.vScale);
+    EXPECT_EQ(Colord::red(), source.checkerBright);
+    EXPECT_EQ(Colord::blue(), source.checkerDark);
+  }
+
+  TEST(RasterTexture, DirectPlanarCheckerUsesWorldPositionParity) {
+    auto checker = std::make_shared<render::CheckerBoardTexture>(
+      new render::PlanarMapping2D, std::make_shared<ConstantColorTexture>(Colord::white()),
+      std::make_shared<ConstantColorTexture>(Colord::black()));
+    const auto texture = engine::raster::detail::RasterTexture::from(checker);
+
+    const Colord bright =
+      texture.evaluate(nullptr, Vector3d(0.2, 0.0, 0.2), Vector3d::up(), Vector2d::null);
+    const Colord dark =
+      texture.evaluate(nullptr, Vector3d(1.2, 0.0, 0.2), Vector3d::up(), Vector2d::null);
+
+    EXPECT_EQ(Colord::white(), bright);
+    EXPECT_EQ(Colord::black(), dark);
+  }
+
+  TEST(RasterTexture, DirectPlanarCheckerCanBeEvaluatedInShaderFromConstants) {
+    auto checker = std::make_shared<render::CheckerBoardTexture>(
+      new render::PlanarMapping2D, std::make_shared<ConstantColorTexture>(Colord::red()),
+      std::make_shared<ConstantColorTexture>(Colord::blue()));
+    const auto texture = engine::raster::detail::RasterTexture::from(checker);
+    const auto source = texture.shaderAlbedoSource();
+
+    EXPECT_EQ(engine::raster::detail::RasterAlbedoShaderMode::PlanarChecker, source.mode);
     EXPECT_EQ(Colord::red(), source.checkerBright);
     EXPECT_EQ(Colord::blue(), source.checkerDark);
   }

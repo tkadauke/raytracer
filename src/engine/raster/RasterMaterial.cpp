@@ -10,6 +10,7 @@
 #include "render/textures/ImageTexture.h"
 #include "render/textures/TintedTexture.h"
 #include "render/textures/UVColorTexture.h"
+#include "render/textures/mappings/PlanarMapping2D.h"
 #include "render/textures/mappings/UVMapping2D.h"
 
 #include <algorithm>
@@ -104,13 +105,21 @@ namespace engine::raster::detail {
     if (typeid(*texturePtr) == typeid(render::CheckerBoardTexture)) {
       const auto* checker = static_cast<const render::CheckerBoardTexture*>(texturePtr);
       const render::TextureMapping2D* mapping = checker->mapping();
-      if (mapping && typeid(*mapping) == typeid(render::UVMapping2D) && checker->brightTexture() &&
-          checker->darkTexture()) {
+      if (mapping && checker->brightTexture() && checker->darkTexture() &&
+          typeid(*mapping) == typeid(render::UVMapping2D)) {
         const auto* uvMapping = static_cast<const render::UVMapping2D*>(mapping);
         RasterTexture result;
         result.m_kind = Kind::UVChecker;
         result.m_uScale = uvMapping->uScale();
         result.m_vScale = uvMapping->vScale();
+        result.m_bright = std::make_shared<RasterTexture>(from(checker->brightTexture()));
+        result.m_dark = std::make_shared<RasterTexture>(from(checker->darkTexture()));
+        return result;
+      }
+      if (mapping && checker->brightTexture() && checker->darkTexture() &&
+          typeid(*mapping) == typeid(render::PlanarMapping2D)) {
+        RasterTexture result;
+        result.m_kind = Kind::PlanarChecker;
         result.m_bright = std::make_shared<RasterTexture>(from(checker->brightTexture()));
         result.m_dark = std::make_shared<RasterTexture>(from(checker->darkTexture()));
         return result;
@@ -137,7 +146,10 @@ namespace engine::raster::detail {
                                Vector2d(uvDy.x() * m_uScale, uvDy.y() * m_vScale));
       break;
     case Kind::UVChecker:
-      result = checkerChild(uv).evaluate(primitive, worldPos, normal, uv, uvDx, uvDy);
+      result = uvCheckerChild(uv).evaluate(primitive, worldPos, normal, uv, uvDx, uvDy);
+      break;
+    case Kind::PlanarChecker:
+      result = planarCheckerChild(worldPos).evaluate(primitive, worldPos, normal, uv, uvDx, uvDy);
       break;
     case Kind::Fallback: {
       const HitPoint hp(primitive, 0.0, Vector4d(worldPos), normal, uv);
@@ -167,6 +179,11 @@ namespace engine::raster::detail {
       source.vScale = m_vScale;
       source.checkerBright = m_bright->m_color;
       source.checkerDark = m_dark->m_color;
+    } else if (m_kind == Kind::PlanarChecker && m_bright && m_dark &&
+               m_bright->m_kind == Kind::Constant && m_dark->m_kind == Kind::Constant) {
+      source.mode = RasterAlbedoShaderMode::PlanarChecker;
+      source.checkerBright = m_bright->m_color;
+      source.checkerDark = m_dark->m_color;
     }
     return source;
   }
@@ -178,11 +195,17 @@ namespace engine::raster::detail {
     return result;
   }
 
-  const RasterTexture& RasterTexture::checkerChild(const Vector2d& uv) const {
-    const double s = uv.x() * m_uScale;
-    const double t = uv.y() * m_vScale;
+  const RasterTexture& RasterTexture::checkerChild(double s, double t) const {
     const int parity = static_cast<int>(std::floor(s)) + static_cast<int>(std::floor(t));
     return (parity % 2 == 0) ? *m_bright : *m_dark;
+  }
+
+  const RasterTexture& RasterTexture::planarCheckerChild(const Vector3d& worldPos) const {
+    return checkerChild(worldPos * Vector3d::right(), worldPos * Vector3d::forward());
+  }
+
+  const RasterTexture& RasterTexture::uvCheckerChild(const Vector2d& uv) const {
+    return checkerChild(uv.x() * m_uScale, uv.y() * m_vScale);
   }
 
   RasterMaterial::RasterMaterial()

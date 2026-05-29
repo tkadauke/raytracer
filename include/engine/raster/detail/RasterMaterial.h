@@ -22,7 +22,8 @@ namespace engine::raster::detail {
     VertexColor = 0,
     UVColor = 1,
     ImageTexture = 2,
-    UVChecker = 3
+    UVChecker = 3,
+    PlanarChecker = 4
   };
 
   struct RasterAlbedoShaderSource {
@@ -64,11 +65,13 @@ namespace engine::raster::detail {
     RasterAlbedoShaderSource shaderAlbedoSource() const;
 
   private:
-    enum class Kind { Constant, UVColor, UVChecker, Image, Fallback };
+    enum class Kind { Constant, UVColor, UVChecker, PlanarChecker, Image, Fallback };
 
     static RasterTexture fallback(std::shared_ptr<render::Texturec> texture);
 
-    const RasterTexture& checkerChild(const Vector2d& uv) const;
+    const RasterTexture& checkerChild(double s, double t) const;
+    const RasterTexture& planarCheckerChild(const Vector3d& worldPos) const;
+    const RasterTexture& uvCheckerChild(const Vector2d& uv) const;
 
     Kind m_kind;
     Colord m_color;
