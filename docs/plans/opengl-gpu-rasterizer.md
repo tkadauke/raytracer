@@ -321,8 +321,8 @@ Tasks:
   paths inside the OpenGL backend that read from and write to it instead of
   going through CPU buffers. That is multi-week scope and crosses
   `engine::raster`, `engine::graph`, and the new `engine::gpu` boundary
-  noted in the resolved open questions. Track in
-  `docs/plans/opengl-gpu-residency.md` (TODO) when the work starts.
+  noted in the resolved open questions. See
+  `docs/plans/opengl-gpu-residency.md` for the phased plan.
 - Add explicit readback pass/operation for final image output, trace, and AOV
   export. ✅ **Done for current pipeline.** `RenderPassKind::Readback` is the
   graph-visible transfer boundary; beauty, depth, stencil, and AOV branches

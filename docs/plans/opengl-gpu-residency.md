@@ -1,0 +1,161 @@
+# OpenGL GPU residency plan - May 2026
+
+> **Scope:** make OpenGL textures and renderbuffers persist across compatible
+> GPU passes in a render graph, so multi-pass GPU plans stop round-tripping
+> every intermediate resource through CPU buffers. Unlocks both
+> `AttachmentLoadOp::Load` on the OpenGL backend and the "no readback
+> between every pass" acceptance criterion from
+> `docs/plans/opengl-gpu-rasterizer.md` Phase 3.
+>
+> **Status:** planning. Prerequisite work — graph-side resource-domain
+> metadata, GPU descriptor surface in trace exports, and the
+> `RenderPassKind::Readback` node — is already in place; this plan adds
+> the concrete OpenGL backend resource type and integrates it with the
+> resource-storage layer.
+>
+> **Related plans:** `docs/plans/opengl-gpu-rasterizer.md` owns the
+> rasterizer pipeline; this plan handles the resource side.
+> `docs/plans/render-graph.md` owns pass-compatibility metadata and
+> resource validation.
+
+---
+
+## Why
+
+Today every OpenGL raster pass eagerly materializes its color/depth/stencil
+outputs into CPU `Buffer<T>` objects via `copyColorTo` / `copyDepthTo` /
+`copyStencilTo`, and every consumer pass either reads CPU or fails on a
+descriptor-only-GPU input. Multi-pass GPU plans pay an FBO→CPU readback +
+CPU→FBO upload round-trip per pass even when the producer and consumer both
+live on the GPU. The Phase 4 caching work made each pass faster, but the
+inter-pass bandwidth bottleneck is what limits throughput on real plans.
+
+The graph already knows when a pass chain is GPU-compatible (resource-domain
+validation + per-pass supported-domain metadata exist), so the missing piece
+is purely a backend resource type that the OpenGL executor produces and
+consumes.
+
+## Non-goals
+
+- **Not** a portable GPU-resource abstraction. This adds an OpenGL-specific
+  backend; future Vulkan/Metal residency, if it ever happens, would
+  introduce its own resource type and the storage layer would discriminate.
+- **Not** automatic readback elision. Resources still need an explicit
+  `RenderPassKind::Readback` node to cross to CPU; the optimization here is
+  only that GPU producers and GPU consumers can talk to each other
+  directly.
+- **Not** cross-rasterizer sharing. Resources are scoped to one
+  `OpenGLRasterResourceCache` (one `OpenGLRasterizer` instance, one
+  thread). Cross-context share groups are a separate concern.
+
+## Architecture
+
+The shape mirrors the existing CPU resource path:
+
+```text
+RenderPlan
+  -> RenderResourceStorage (per-render scratch)
+      .allocate(plan.resources())     // CPU: Buffer<T>; OpenGL: this plan
+      .bind(resource, OpenGL handle)  // when producer is the OpenGL backend
+  -> pass executors
+      OpenGLRasterizer
+        producer: writes into FBO attachment → registers GL handle on resource
+        consumer: reads GL texture handle from resource as input attachment
+      Other executors
+        consumer: see descriptor-only GPU input → fail clearly OR a
+                  scheduled readback node materializes CPU first
+```
+
+Add an `engine::raster::OpenGLRasterResource` struct (or similar) that
+holds:
+
+* a `GLuint` texture handle (the resident GPU-side storage),
+* the `RenderResourceKind` it satisfies (color, depth, stencil, normal,
+  worldpos, …),
+* the `QOpenGLContext*` it lives in (a sanity tag — consumers in a
+  different context must fall through to the readback path).
+
+`RenderResourceStorage` learns to hold either a CPU `Buffer<T>` or an
+OpenGL handle per resource id, keyed on the resource's declared backend
+domain. The validation that already rejects CPU passes reading GPU
+descriptors does not change; it just gets a real GPU side to validate
+against.
+
+## Phase 0 — backend resource type and storage hook
+
+Tasks:
+
+- Define `OpenGLRasterResource` in `include/engine/raster/detail/` holding
+  a texture handle, kind, source rasterizer context pointer, and a
+  destructor that releases the handle with the source context current
+  (matching the existing `OpenGLRasterResourceCache` lifecycle pattern).
+- Extend `RenderResourceStorage` to accept and surface OpenGL resources
+  through a typed accessor (`storage.openGLResourceFor(id)` returning
+  `OpenGLRasterResource*` or null).
+- Add a graph-level acceptance test that asserts an OpenGL-only pass chain
+  serializes its inter-pass resources as OpenGL handles, not CPU buffers.
+
+## Phase 1 — `OpenGLRasterizer` produces resident outputs
+
+Tasks:
+
+- Teach `OpenGLRasterizer` to publish its FBO color attachment as an
+  `OpenGLRasterResource` on the storage when a downstream consumer pass
+  declares OpenGL-domain input. Skip the `copyColorTo` readback for that
+  case.
+- Same for depth attachment and the stencil-attached path.
+- The existing per-render CPU-readback path stays as the fallback when
+  the consumer is CPU-only or when an explicit `Readback` node is
+  scheduled.
+- Parity test variant: two OpenGL raster passes in a plan, second reads
+  the first's color as albedo input; total pixels still match the CPU
+  reference within the parity tolerance.
+
+## Phase 2 — `OpenGLRasterizer` consumes resident inputs
+
+Tasks:
+
+- Implement `AttachmentLoadOp::Load` for color, depth, and stencil:
+  blit the GL handle from the input resource into the FBO attachment at
+  pass start instead of clearing.
+- Make a small parity test: a "preserve depth across two GPU passes"
+  scene where the second pass's `depthLoadOp = Load` and the first
+  pass's depth must show through.
+- Remove the three `does not support … attachment load yet` throws in
+  `OpenGLRasterizer.cpp`.
+
+## Phase 3 — graph-driven scheduling polish
+
+Tasks:
+
+- When the graph compiles a pass chain, mark the intermediate resources
+  with their preferred domain (`OpenGL` if all producers and consumers
+  support it). The storage layer already follows the markings; this just
+  populates them.
+- Trace messages distinguish "kept resident on GPU" from "round-tripped
+  via readback" so a user inspecting a plan can see the optimization
+  paid off.
+- rendercli functional test: a multi-pass GPU plan reports zero implicit
+  readback nodes between compatible passes.
+
+## Out of scope (deferred)
+
+- **Sharing GL resources across rasterizer instances.** Each clone owns
+  its own context; cross-context share groups would let resources travel
+  between threads but require careful Qt setup. Tracked as a future
+  follow-up if the parallel render tile model ever moves to GPU.
+- **Mipmap regeneration on GPU outputs.** First version produces flat
+  level-0 textures; consumers that want mipmaps trigger CPU readback for
+  now.
+- **Automatic readback insertion at executor boundaries.** The graph
+  compiler already inserts `Readback` nodes where needed; backend-side
+  auto-insertion is unnecessary and would hide intent from the trace.
+
+## How to verify
+
+- New unit tests cover storage type discrimination and resource
+  destructor lifecycle.
+- New parity test variants cover producer→consumer GPU chains.
+- Existing OpenGL parity tests stay green (single-pass behavior is
+  unchanged).
+- rendercli trace inspection shows the load/store transitions.
