@@ -57,6 +57,9 @@ namespace engine::graph {
     RenderPassNode beautyPass(RenderExecutorKind executor, const SceneView& sceneView,
                               const RenderTargetSpec& target, const RenderIntent& intent,
                               std::vector<RenderFeatureKind> extraFeatures = {}) const;
+    bool beautyPassNeedsExplicitReadback(const RenderPassNode& pass) const;
+    RenderPassNode readbackPass(RenderResourceId inputResource,
+                                RenderResourceId outputResource) const;
     RenderPassNode tonemapPass(RenderResourceId inputResource,
                                RenderResourceId outputResource) const;
     RenderPlan compileStencilCompositeView(const RenderTargetSpec& target,

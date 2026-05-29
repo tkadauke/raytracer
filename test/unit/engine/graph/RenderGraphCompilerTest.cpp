@@ -641,6 +641,35 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(128, plan.findResource("preview_shadow_map")->width);
   }
 
+  TEST(RenderGraphCompiler, OpenGLRasterBeautyRoutesThroughExplicitReadbackPass) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
+
+    const RenderPlan plan = compiler.compile({64, 64, 1}, intent);
+
+    const auto* readback = plan.findPass("beauty_readback");
+    ASSERT_NE(nullptr, readback);
+    EXPECT_EQ(RenderPassKind::Readback, readback->kind);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, readback->executor);
+    ASSERT_EQ(1u, readback->reads.size());
+    ASSERT_EQ(1u, readback->writes.size());
+    EXPECT_EQ("beauty_color", readback->reads.front().resource);
+    EXPECT_EQ("beauty_readback_color", readback->writes.front().resource);
+    EXPECT_TRUE(readback->supportsResourceDomain(RenderResourceDomain::CPU));
+    EXPECT_TRUE(readback->supportsResourceDomain(RenderResourceDomain::GPU));
+    EXPECT_TRUE(hasFeature(*readback, "readback"));
+    EXPECT_TRUE(hasFeature(*readback, "transfer"));
+
+    const auto* tonemap = plan.findPass("tonemap");
+    ASSERT_NE(nullptr, tonemap);
+    ASSERT_EQ(1u, tonemap->reads.size());
+    EXPECT_EQ("beauty_readback_color", tonemap->reads.front().resource);
+    EXPECT_TRUE(plan.resourceCanReach("beauty_color", "main_color"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, WireframeOptionsBecomeBeautyAndOverlayPassState) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

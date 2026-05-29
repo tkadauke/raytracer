@@ -188,6 +188,28 @@ namespace engine::graph {
     return pass;
   }
 
+  bool RenderGraphCompiler::beautyPassNeedsExplicitReadback(const RenderPassNode& pass) const {
+    const auto* state = RasterBeautyPassState::fromPass(pass);
+    return state && state->execution().backend().isOpenGL();
+  }
+
+  RenderPassNode RenderGraphCompiler::readbackPass(RenderResourceId inputResource,
+                                                   RenderResourceId outputResource) const {
+    RenderPassNode pass;
+    pass.id = "beauty_readback";
+    pass.name = "Beauty readback";
+    pass.kind = RenderPassKind::Readback;
+    pass.executor = RenderExecutorKind::PostProcess;
+    pass.features = {"main", "readback", "transfer"};
+    pass.addRead(std::move(inputResource));
+    pass.addWrite(std::move(outputResource));
+    pass.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
+    pass.sceneView.selector = SceneSelector::all();
+    pass.disabledBehavior = DisabledBehavior::Error;
+    pass.canRunConcurrently = false;
+    return pass;
+  }
+
   RenderPassNode RenderGraphCompiler::tonemapPass(RenderResourceId inputResource,
                                                   RenderResourceId outputResource) const {
     RenderPassNode pass;
@@ -293,10 +315,19 @@ namespace engine::graph {
       beautyPass(executor, frameIntent.defaultSceneView(), target, frameIntent);
     plan.addResourceProducer(beauty, beautyColor);
 
+    RenderResourceId mainInputResource = beautyColor.id;
+    if (beautyPassNeedsExplicitReadback(beauty)) {
+      RenderResourceDescriptor readbackColor = target.colorResource(
+        "beauty_readback_color", "Beauty readback color", RenderResourceLifetime::Transient);
+      RenderPassNode readback = readbackPass(beautyColor.id, readbackColor.id);
+      plan.addResourceProducer(std::move(readback), readbackColor);
+      mainInputResource = "beauty_readback_color";
+    }
+
     RenderResourceDescriptor mainColor =
       target.colorResource("main_color", "Main color", RenderResourceLifetime::Exported);
-    plan.routeResourceThroughPass("beauty_color", mainColor,
-                                  tonemapPass("beauty_color", "main_color"));
+    plan.routeResourceThroughPass(mainInputResource, mainColor,
+                                  tonemapPass(mainInputResource, "main_color"));
 
     if (usesPreviewShadows) {
       RenderPassNode shadows;
