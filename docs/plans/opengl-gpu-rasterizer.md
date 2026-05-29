@@ -472,11 +472,26 @@ Required checks for each phase:
   differences only where deterministic;
 - trace metadata for GPU timing, readback timing, and fallback reason.
 
-## Open questions
+## Open questions — resolved
 
-- Should the first public spelling be `--raster_backend gpu` or
-  `--render_graph_executor opengl_rasterizer`?
-- Should OpenGL be a direct engine option, a graph executor option, or both?
-- How much platform-specific context code belongs in `engine/raster` versus a
-  small `engine/gpu` utility module?
+- **Public CLI spelling: `--raster_backend opengl|gpu`.** Decided as shipped.
+  The spelling lives alongside `--raster_backend cpu|software` rather than
+  under a separate `--render_graph_executor` namespace because the backend
+  choice is a property of a raster pass, not a separate executor — the graph
+  compiler still picks raster vs. raytracer vs. wireframe; the raster backend
+  picks how that raster pass executes. `RasterBackend::fromString` accepts
+  `opengl`, `gl`, and `gpu` as aliases of the same value.
+- **OpenGL is a graph-executor option only.** Decided as shipped. The
+  `OpenGLRasterizer` is a `render::RenderEngine` so it can be instantiated
+  directly for testing, but the user-facing path is always through the graph
+  (`RasterBackend` selects it inside a raster pass payload). A direct
+  "OpenGL engine" CLI option would duplicate camera/scene/intent handling
+  that already lives in the graph compiler.
+- **Context code stays in `engine/raster/` for now.** Decided as shipped.
+  `OpenGLOffscreenContext` lives next to `OpenGLRasterizer` because the
+  context lifecycle is owned by the raster executor. A separate
+  `engine/gpu/` utility module would make sense once a second GPU executor
+  (compute, ray query, future raytracer) needs to share the offscreen
+  context bootstrap; until then, the proximity in `engine/raster/` keeps
+  the dependency edge short and the code reviewable.
 - Which CI environment can reliably exercise OpenGL, if any?
