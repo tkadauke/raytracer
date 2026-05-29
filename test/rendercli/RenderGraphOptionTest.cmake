@@ -20,6 +20,7 @@ set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
 set(invalid_exported_aov_scene "${TEST_OUTPUT_DIR}/invalid-exported-aov-scene.json")
 set(selector_specific_intent_scene "${TEST_OUTPUT_DIR}/selector-specific-intent-scene.json")
 set(subview_intent_scene "${TEST_OUTPUT_DIR}/subview-intent-scene.json")
+set(subview_recursion_limit_scene "${TEST_OUTPUT_DIR}/subview-recursion-limit-scene.json")
 set(offscreen_culling_scene "${TEST_OUTPUT_DIR}/offscreen-culling-scene.json")
 set(material_sidedness_culling_scene "${TEST_OUTPUT_DIR}/material-sidedness-culling-scene.json")
 set(malformed_graph_json "${TEST_OUTPUT_DIR}/malformed-graph.json")
@@ -234,6 +235,29 @@ file(WRITE "${subview_intent_scene}" [=[
   "background": [0.4, 0.8, 1.0],
   "type": "Scene",
   "renderIntent": {
+    "subviews": [
+      {
+        "name": "mirror_probe",
+        "view": {
+          "selector": {"kind": "all"},
+          "executor": "rasterizer"
+        }
+      }
+    ]
+  },
+  "children": []
+}
+]=])
+
+file(WRITE "${subview_recursion_limit_scene}" [=[
+{
+  "id": "{94000000-0000-0000-0000-000000000001}",
+  "name": "Subview Recursion Limit Fixture",
+  "ambient": [0.4, 0.4, 0.4],
+  "background": [0.4, 0.8, 1.0],
+  "type": "Scene",
+  "renderIntent": {
+    "maxRenderToTextureRecursionDepth": 0,
     "subviews": [
       {
         "name": "mirror_probe",
@@ -1257,6 +1281,14 @@ endif()
 if(NOT subview_graph MATCHES "render_to_texture")
   message(FATAL_ERROR "scene subview intent did not mark render-to-texture features: ${subview_graph}")
 endif()
+
+rendercli_expect_failure(
+  NAME "rendercli rejects subview recursion limit"
+  STDERR_MATCHES "render-to-texture recursion limit 0 reached.*mirror_probe"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    "${subview_recursion_limit_scene}" "${invalid_plan}"
+)
 
 rendercli_expect_failure(
   NAME "rendercli rejects unsupported selector-specific CLI intent"

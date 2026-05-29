@@ -652,6 +652,27 @@ namespace RenderGraphCompilerTest {
     }
   }
 
+  TEST(RenderGraphCompiler, RejectsSubviewIntentAtRenderToTextureRecursionLimit) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.setMaxRenderToTextureRecursionDepth(0);
+
+    RenderSubviewIntent subview;
+    subview.name = "mirror probe";
+    subview.view.selector = SceneSelector::all();
+    subview.view.executor = RenderExecutorPreference::Rasterizer;
+    intent.subviews.push_back(subview);
+
+    try {
+      compiler.compile({64, 32, 1}, intent);
+      FAIL() << "Expected render-to-texture recursion limit rejection";
+    } catch (const std::runtime_error& error) {
+      const std::string message = error.what();
+      EXPECT_NE(std::string::npos, message.find("render-to-texture recursion limit 0 reached"));
+      EXPECT_NE(std::string::npos, message.find("mirror probe"));
+    }
+  }
+
   TEST(RenderGraphCompiler, NormalizesNonPositiveSampleCount) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

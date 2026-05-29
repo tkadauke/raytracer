@@ -879,6 +879,9 @@ namespace engine::graph {
         subviewArray.append(subview.toJson());
       result["subviews"] = subviewArray;
     }
+    if (maxRenderToTextureRecursionDepth != 1) {
+      result["maxRenderToTextureRecursionDepth"] = maxRenderToTextureRecursionDepth;
+    }
 
     return result;
   }
@@ -920,6 +923,10 @@ namespace engine::graph {
 
   void RenderIntent::setPostProcessAA(RenderPostProcessAA aa) {
     postProcessAA = aa;
+  }
+
+  void RenderIntent::setMaxRenderToTextureRecursionDepth(int depth) {
+    maxRenderToTextureRecursionDepth = std::max(0, depth);
   }
 
   void RenderIntent::setAutomaticFeaturesEnabled(bool enabled) {
@@ -1028,6 +1035,14 @@ namespace engine::graph {
         intent.subviews.push_back(RenderSubviewIntent::fromJson(
           subviews.at(i).toObject(), "renderIntent.subviews[" + std::to_string(i) + "]"));
       }
+    }
+
+    if (!object.value("maxRenderToTextureRecursionDepth").isUndefined()) {
+      const int depth = intField(object, "maxRenderToTextureRecursionDepth", "renderIntent", 1);
+      if (depth < 0) {
+        jsonError("renderIntent.maxRenderToTextureRecursionDepth", "expected non-negative integer");
+      }
+      intent.setMaxRenderToTextureRecursionDepth(depth);
     }
 
     return intent;

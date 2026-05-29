@@ -91,6 +91,7 @@ namespace RenderGraphTypesTest {
     intent.enableCurveOverlay = true;
     intent.enablePreviewShadows = true;
     intent.postProcessAA = RenderPostProcessAA::SMAA;
+    intent.setMaxRenderToTextureRecursionDepth(3);
     intent.engineOptions.raytracer().setSampler("Jittered");
     intent.engineOptions.raytracer().setSamplesPerPixel(8);
     intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
@@ -115,6 +116,7 @@ namespace RenderGraphTypesTest {
     EXPECT_TRUE(json["enableCurveOverlay"].toBool());
     EXPECT_TRUE(json["enablePreviewShadows"].toBool());
     EXPECT_EQ("smaa", json["postProcessAA"].toString().toStdString());
+    EXPECT_EQ(3, json["maxRenderToTextureRecursionDepth"].toInt());
     const auto engineOptions = json["engineOptions"].toObject();
     EXPECT_EQ("Jittered", engineOptions["raytracer"]
                             .toObject()["sampling"]
@@ -190,6 +192,7 @@ namespace RenderGraphTypesTest {
     json["viewOverrides"] = QJsonArray{viewOverride};
     json["exportedAOVs"] =
       QJsonArray{"depth", "stencil", "world_position", "raster_color_write_count"};
+    json["maxRenderToTextureRecursionDepth"] = 4;
 
     const RenderIntent intent = RenderIntent::fromJson(json);
 
@@ -200,6 +203,7 @@ namespace RenderGraphTypesTest {
     EXPECT_FALSE(intent.enableWireframeOverlay);
     EXPECT_FALSE(intent.enableCurveOverlay);
     EXPECT_EQ(RenderPostProcessAA::None, intent.postProcessAA);
+    EXPECT_EQ(4, intent.maxRenderToTextureRecursionDepth);
     ASSERT_TRUE(intent.engineOptions.raytracer().samplesPerPixel().has_value());
     EXPECT_EQ(12, *intent.engineOptions.raytracer().samplesPerPixel());
     ASSERT_TRUE(intent.engineOptions.rasterizer().msaaSamples().has_value());
@@ -218,6 +222,17 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("Monitor", intent.viewOverrides.front().selector.value);
     ASSERT_TRUE(intent.viewOverrides.front().executor.has_value());
     EXPECT_EQ(RenderExecutorPreference::Wireframe, *intent.viewOverrides.front().executor);
+  }
+
+  TEST(RenderIntent, DefaultsRenderToTextureRecursionDepthToOneAndRejectsNegativeJson) {
+    RenderIntent defaults;
+    EXPECT_EQ(1, defaults.maxRenderToTextureRecursionDepth);
+    defaults.setMaxRenderToTextureRecursionDepth(-7);
+    EXPECT_EQ(0, defaults.maxRenderToTextureRecursionDepth);
+
+    QJsonObject json;
+    json["maxRenderToTextureRecursionDepth"] = -1;
+    EXPECT_THROW(RenderIntent::fromJson(json), std::runtime_error);
   }
 
   TEST(RenderIntent, ReadsStencilCompositeViewMode) {

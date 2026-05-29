@@ -60,6 +60,9 @@ namespace engine::graph {
     RenderPassNode beautyPass(RenderExecutorKind executor, const SceneView& sceneView,
                               const RenderTargetSpec& target, const RenderIntent& intent,
                               std::vector<RenderFeatureKind> extraFeatures = {}) const;
+    RenderPlan compileWithSubviewDepth(const RenderTargetSpec& target, const RenderIntent& intent,
+                                       const RenderSceneAnalysis& sceneAnalysis,
+                                       int renderToTextureDepth) const;
     bool beautyPassNeedsExplicitReadback(const RenderPassNode& pass) const;
     bool passNeedsExplicitReadback(const RenderPassNode& pass) const;
     bool rasterVisibilityCullingRequested(const RenderIntent& intent) const;
@@ -92,8 +95,8 @@ namespace engine::graph {
     RenderPlan compileStencilCompositeView(const RenderTargetSpec& target,
                                            const RenderIntent& intent) const;
     void addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,
-                            const RenderIntent& intent,
-                            const RenderSceneAnalysis& sceneAnalysis) const;
+                            const RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis,
+                            int renderToTextureDepth) const;
     RenderIntent subviewRenderIntent(const RenderIntent& frameIntent,
                                      const RenderSubviewIntent& subview) const;
     RenderPlan prefixedSubviewPlan(const RenderPlan& branch, const std::string& prefix,

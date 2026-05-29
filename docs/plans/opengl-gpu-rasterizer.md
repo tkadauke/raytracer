@@ -435,7 +435,9 @@ Tasks:
   ✅ **Partial.** Whole-scene subview intent now expands into independent
   prefixed offscreen color branches with exported graph resources. Sampling
   those resources from later portal/mirror/material passes remains TODO.
-- Bound recursion explicitly in render intent/graph compilation.
+- ~~Bound recursion explicitly in render intent/graph compilation.~~ ✅
+  **Done.** `RenderIntent` now carries `maxRenderToTextureRecursionDepth`, and
+  graph compilation rejects subview expansion once that limit is reached.
 
 Acceptance:
 

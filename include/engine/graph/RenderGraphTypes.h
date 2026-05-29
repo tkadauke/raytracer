@@ -295,6 +295,9 @@ namespace engine::graph {
     std::vector<RenderViewMode> exportedAOVs;
     std::vector<RenderViewOverride> viewOverrides;
     std::vector<RenderSubviewIntent> subviews;
+    /// Maximum render-to-texture expansion depth for mirrors, portals, and
+    /// screen-like subviews. A value of zero rejects subview expansion.
+    int maxRenderToTextureRecursionDepth{1};
 
     /**
       * Serializes this user-facing render intent to the scene JSON shape.
@@ -341,6 +344,11 @@ namespace engine::graph {
       * Sets the requested image-space postprocess anti-aliasing mode.
       */
     void setPostProcessAA(RenderPostProcessAA aa);
+
+    /**
+      * Sets the maximum nested render-to-texture expansion depth.
+      */
+    void setMaxRenderToTextureRecursionDepth(int depth);
 
     /**
       * Enables or disables automatic compiler feature expansion.

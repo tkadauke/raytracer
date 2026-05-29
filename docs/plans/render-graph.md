@@ -326,7 +326,8 @@ directly author graph nodes. Whole-scene subview intents now compile into
 prefixed offscreen color branches with exported graph resources for inspection.
 Selector-specific subviews still fail clearly until scene partitioning can
 drive those branches safely; alternate-camera execution and final composites
-remain TODO.
+remain TODO. `maxRenderToTextureRecursionDepth` now bounds expansion in render
+intent and graph compilation, with zero explicitly disabling subview expansion.
 The effective default camera is carried on synthesized scene-rendering pass
 `SceneView` records and serialized in exported plan JSON, even though current
 executors still render with the engine's active camera until alternate-camera
@@ -1488,7 +1489,8 @@ also synthesize a `stencil_composite` structural view that renders raster
 beauty, wireframe foreground, a raster stencil AOV, a stencil composite pass,
 and tonemap from scene intent, and the Modeler ships with a loadable scene for
 that path. Whole-scene render-to-texture subviews now compile into independent
-prefixed offscreen color branches for graph inspection. Portal/mirror pass
+prefixed offscreen color branches for graph inspection, and render intent now
+sets an explicit render-to-texture recursion limit. Portal/mirror pass
 synthesis, alternate-camera rendering, subview sampling/composition, and
 selector-derived stencil masks remain TODO.
 

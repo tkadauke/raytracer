@@ -439,13 +439,20 @@ namespace engine::graph {
   RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& rawTarget,
                                           const RenderIntent& intent,
                                           const RenderSceneAnalysis& sceneAnalysis) const {
+    return compileWithSubviewDepth(rawTarget, intent, sceneAnalysis, 0);
+  }
+
+  RenderPlan RenderGraphCompiler::compileWithSubviewDepth(const RenderTargetSpec& rawTarget,
+                                                          const RenderIntent& intent,
+                                                          const RenderSceneAnalysis& sceneAnalysis,
+                                                          int renderToTextureDepth) const {
     const RenderTargetSpec target = rawTarget.normalized();
     const RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
     frameIntent.requireWholeFrameOnly("RenderGraphCompiler");
 
     if (frameIntent.defaultViewMode == RenderViewMode::StencilComposite) {
       RenderPlan plan = compileStencilCompositeView(target, frameIntent);
-      addSubviewBranches(plan, target, frameIntent, sceneAnalysis);
+      addSubviewBranches(plan, target, frameIntent, sceneAnalysis, renderToTextureDepth);
       return plan;
     }
 
@@ -459,7 +466,7 @@ namespace engine::graph {
       RenderPlan plan =
         this->aovViewPlan(target, executor, *aov, frameIntent.defaultSceneView(), frameIntent);
       addAuxiliaryAOVExports(plan, target, executor, frameIntent);
-      addSubviewBranches(plan, target, frameIntent, sceneAnalysis);
+      addSubviewBranches(plan, target, frameIntent, sceneAnalysis, renderToTextureDepth);
       return plan;
     }
 
@@ -572,14 +579,32 @@ namespace engine::graph {
     }
 
     addAuxiliaryAOVExports(plan, target, executor, frameIntent);
-    addSubviewBranches(plan, target, frameIntent, sceneAnalysis);
+    addSubviewBranches(plan, target, frameIntent, sceneAnalysis, renderToTextureDepth);
 
     return plan;
   }
 
   void RenderGraphCompiler::addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,
                                                const RenderIntent& intent,
-                                               const RenderSceneAnalysis& sceneAnalysis) const {
+                                               const RenderSceneAnalysis& sceneAnalysis,
+                                               int renderToTextureDepth) const {
+    if (intent.subviews.empty()) {
+      return;
+    }
+    if (renderToTextureDepth >= intent.maxRenderToTextureRecursionDepth) {
+      std::ostringstream message;
+      message << "RenderGraphCompiler render-to-texture recursion limit "
+              << intent.maxRenderToTextureRecursionDepth << " reached";
+      const std::string firstSubview =
+        intent.subviews.front().name.empty() ? "unnamed subview" : intent.subviews.front().name;
+      message << " (" << firstSubview;
+      if (intent.subviews.size() > 1) {
+        message << ", +" << (intent.subviews.size() - 1) << " more";
+      }
+      message << ")";
+      throw std::runtime_error(message.str());
+    }
+
     std::set<std::string> usedPrefixes;
     for (std::size_t i = 0; i != intent.subviews.size(); ++i) {
       const RenderSubviewIntent& subview = intent.subviews[i];
@@ -591,7 +616,8 @@ namespace engine::graph {
       }
 
       RenderIntent subIntent = subviewRenderIntent(intent, subview);
-      RenderPlan branch = compile(target, subIntent, sceneAnalysis);
+      RenderPlan branch =
+        compileWithSubviewDepth(target, subIntent, sceneAnalysis, renderToTextureDepth + 1);
       const std::string prefix = subviewPrefix(subview, i, usedPrefixes);
       const std::string displayName = subviewDisplayName(subview, i);
       RenderPlan prefixed = prefixedSubviewPlan(branch, prefix, displayName);
@@ -617,6 +643,7 @@ namespace engine::graph {
     result.enablePreviewShadows = frameIntent.enablePreviewShadows;
     result.postProcessAA = frameIntent.postProcessAA;
     result.engineOptions = subview.resolvedEngineOptions(frameIntent.engineOptions);
+    result.maxRenderToTextureRecursionDepth = frameIntent.maxRenderToTextureRecursionDepth;
     return result;
   }
 
