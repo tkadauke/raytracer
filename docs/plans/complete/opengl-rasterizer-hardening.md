@@ -105,10 +105,15 @@ non-null + `colorStoreOp == Store`.
 ### Commit 7: cancellation checkpoint inside the draw pass
 
 `OpenGLRasterDrawPass::render` runs to completion once entered. Take a
-`std::atomic<bool>&` ref into the draw pass and bail (with a thrown
-`std::runtime_error` or a clean return that leaves the target untouched —
-match the CPU rasterizer's contract) between mesh-built and FBO-bound, and
-between batches inside the `for (const auto& batch : mesh.batches())` loop.
+`std::atomic<bool>&` ref into the draw pass and bail between batches inside
+the `for (const auto& batch : mesh.batches())` loop. The initially-planned
+extra checkpoints (before context creation, before the FBO bind) were tried
+and reverted: they leave the target buffer untouched and so they broke the
+Modeler's "drag camera and re-render" flow when callers did not yet
+`uncancel()` between renders. The CPU `Rasterizer` deliberately checks
+cancellation only inside its inner per-triangle loop (see the comment at
+`Rasterizer.cpp:743`, "Caller is expected to call uncancel() between
+renders"); the OpenGL backend now matches that contract.
 
 ### Commit 8: refresh the stale header docstring + add a CHANGELOG rollup entry
 

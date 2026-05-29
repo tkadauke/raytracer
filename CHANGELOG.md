@@ -100,6 +100,19 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   shared `core::simd::Float4`/`Mask4` abstraction with SSE, NEON, and scalar
   backends, and BVH bounding-box packet tests use that backend instead of a
   direct x86-only movemask path for Epic #426. — GPT-5
+- **OpenGL raster backend feature surface (rollup).** Graph-driven raster
+  passes selecting the OpenGL backend now render Phong-style direct lighting
+  from up to 8 directional and 8 point lights; material albedo from vertex
+  color, UV, image texture (HDR-range preserved), checker, or world-space
+  checker; alpha test, color/depth/stencil load and store ops, blending,
+  color write masking, depth function/bias/write toggles, stencil func/ops/
+  masks, explicit cull-mode overrides through `GL_CULL_FACE`, and optional
+  external shadow textures sampled inside the fragment shader. Depth- and
+  stencil-only renders skip color readback; cancellation interrupts the
+  inner draw loop between batches. Hosts without offscreen GL report a clear
+  error through `availabilityError()`. This rollup summarizes work tracked
+  in `docs/plans/complete/opengl-rasterizer-hardening.md` and supersedes the
+  earlier "shell" entry as the current feature picture. — Claude Opus 4.7
 - **Molecule fixtures, docs, and render smoke tests.** Tiny PDB and
   PDBx/mmCIF molecule fixtures now live under `test/fixtures/molecules`,
   rendercli CTest covers ball-and-stick and space-filling molecular renders,
