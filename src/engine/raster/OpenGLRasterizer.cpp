@@ -269,7 +269,7 @@ namespace engine::raster {
       }
 
       OpenGLRasterRenderTimings render(const detail::OpenGLRasterMesh& mesh,
-                                       const Colord& background, Buffer<Colord>& target,
+                                       const Colord& background, Buffer<Colord>* target,
                                        Buffer<double>* depthTarget,
                                        Buffer<std::uint8_t>* stencilTarget) {
         if (!m_context.makeCurrent()) {
@@ -286,8 +286,8 @@ namespace engine::raster {
           const auto drawElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - drawStarted);
           const auto readbackStarted = std::chrono::steady_clock::now();
-          if (m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-            m_context.copyColorTo(target);
+          if (target && m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store) {
+            m_context.copyColorTo(*target);
           }
           if (depthTarget && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store) {
             m_context.copyDepthTo(*depthTarget);
@@ -1173,17 +1173,15 @@ namespace engine::raster {
   }
 
   void OpenGLRasterizer::render(Buffer<Colord>& buffer) {
-    renderOpenGL(buffer, nullptr, nullptr);
+    renderOpenGL(buffer.width(), buffer.height(), &buffer, nullptr, nullptr);
   }
 
   void OpenGLRasterizer::renderDepth(Buffer<double>& buffer) {
-    Buffer<Colord> scratch(buffer.width(), buffer.height());
-    renderOpenGL(scratch, &buffer, nullptr);
+    renderOpenGL(buffer.width(), buffer.height(), nullptr, &buffer, nullptr);
   }
 
   void OpenGLRasterizer::renderStencil(Buffer<std::uint8_t>& buffer) {
-    Buffer<Colord> scratch(buffer.width(), buffer.height());
-    renderOpenGL(scratch, nullptr, &buffer);
+    renderOpenGL(buffer.width(), buffer.height(), nullptr, nullptr, &buffer);
   }
 
   void OpenGLRasterizer::cancel() {
@@ -1655,17 +1653,18 @@ namespace engine::raster {
     return message.str();
   }
 
-  void OpenGLRasterizer::renderOpenGL(Buffer<Colord>& buffer, Buffer<double>* depthTarget,
+  void OpenGLRasterizer::renderOpenGL(int width, int height, Buffer<Colord>* colorTarget,
+                                      Buffer<double>* depthTarget,
                                       Buffer<std::uint8_t>* stencilTarget) const {
     m_lastReadbackTraceMessage.clear();
     m_lastTraceMessages.clear();
 
     OpenGLOffscreenContext context;
-    if (!context.create(buffer.width(), buffer.height(), m_msaaSamples)) {
+    if (!context.create(width, height, m_msaaSamples)) {
       throw std::runtime_error(context.errorMessage());
     }
 
-    const Recti viewport = viewportRectFor(buffer.width(), buffer.height());
+    const Recti viewport = viewportRectFor(width, height);
     const auto* shadowMaps = m_shadowMapsEnabled ? m_externalShadowMaps.get() : nullptr;
     const detail::OpenGLShadowSamplingPlan shadowSamplingPlan =
       detail::OpenGLShadowSamplingPlan::from(shadowMaps);
@@ -1689,7 +1688,7 @@ namespace engine::raster {
 
     const auto timings =
       OpenGLRasterDrawPass(
-        context, buffer.height(), viewport, m_scissorTestEnabled, m_scissorRect, m_colorLoadOp,
+        context, height, viewport, m_scissorTestEnabled, m_scissorRect, m_colorLoadOp,
         m_colorStoreOp, m_colorWriteMask, m_blendingEnabled, m_sourceBlendFactor,
         m_destinationBlendFactor, m_blendOp, m_blendConstantColor, m_blendConstantAlpha,
         m_alphaTestEnabled, m_alphaFunc, m_alphaReference, m_depthFunc, m_depthClearValue,
@@ -1698,9 +1697,10 @@ namespace engine::raster {
         m_stencilWriteMask, m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp,
         std::move(shadowTextureData), camera() ? camera()->position() : Vector3d::null, m_cullMode,
         m_hasCullModeOverride)
-        .render(mesh, backgroundColor(), buffer, depthTarget, stencilTarget);
+        .render(mesh, backgroundColor(), colorTarget, depthTarget, stencilTarget);
     m_lastReadbackTraceMessage = readbackTraceMessage(
-      timings.readbackElapsed, m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store,
+      timings.readbackElapsed,
+      colorTarget != nullptr && m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store,
       depthTarget != nullptr && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store,
       stencilTarget != nullptr && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store);
     m_lastTraceMessages.push_back(

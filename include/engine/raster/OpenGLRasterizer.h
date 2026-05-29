@@ -153,8 +153,8 @@ namespace engine::raster {
 
   private:
     Recti viewportRectFor(int width, int height) const;
-    void renderOpenGL(Buffer<Colord>& buffer, Buffer<double>* depthTarget,
-                      Buffer<std::uint8_t>* stencilTarget) const;
+    void renderOpenGL(int width, int height, Buffer<Colord>* colorTarget,
+                      Buffer<double>* depthTarget, Buffer<std::uint8_t>* stencilTarget) const;
     std::string readbackTraceMessage(std::chrono::nanoseconds elapsed, bool copiedColor,
                                      bool copiedDepth, bool copiedStencil) const;
     std::string drawTraceMessage(std::chrono::nanoseconds elapsed, std::size_t triangleCount,

@@ -52,6 +52,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **OpenGL raster `renderDepth`/`renderStencil` skip the throwaway color
+  buffer.** Depth-only and stencil-only renders no longer allocate a
+  framebuffer-sized `Buffer<Colord>` only to satisfy the internal render
+  signature; the color readback is gated on a non-null color target. — Claude
+  Opus 4.7
 - **OpenGL raster backend traces directional/point light truncation.** When a
   scene presents more directional or point lights than the GLSL shader
   supports, render traces now record how many lights were dropped instead of
