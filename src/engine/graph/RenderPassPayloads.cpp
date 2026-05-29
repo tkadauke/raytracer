@@ -1441,17 +1441,18 @@ namespace engine::graph {
 
         const std::shared_ptr<render::Camera> camera = context.graph().camera();
         const render::HomogeneousClipVolume clipVolume = rasterClipVolume();
-        std::unordered_map<const render::Primitive*, std::size_t> triangleCounts;
+        std::unordered_map<const render::Primitive*, MeshStats> meshStats;
         scene->forEachTransformedLeaf(
           nullptr, Matrix4d(), Matrix3d(), [&](const render::Primitive::TransformedLeaf& leaf) {
-            const std::size_t triangles = triangleCountFor(leaf.primitive, lod, triangleCounts);
+            const MeshStats stats = meshStatsFor(leaf.primitive, lod, meshStats);
             if (boundsOutsideFrustum(leaf, camera.get(), clipVolume)) {
               visibilitySet->addRejectedLeaf(
-                ::engine::raster::RasterVisibilitySet::RejectionReason::Frustum, triangles);
+                ::engine::raster::RasterVisibilitySet::RejectionReason::Frustum,
+                stats.triangleCount, stats.faceCount);
               return;
             }
 
-            visibilitySet->addVisibleLeaf(triangles);
+            visibilitySet->addVisibleLeaf(stats.triangleCount, stats.faceCount);
           });
         return visibilitySet;
       }
@@ -1489,29 +1490,35 @@ namespace engine::graph {
         return sharedOutCode != 0;
       }
 
-      std::size_t triangleCountFor(
-        const render::Primitive* primitive, int lod,
-        std::unordered_map<const render::Primitive*, std::size_t>& triangleCounts) const {
+      struct MeshStats {
+        std::size_t triangleCount{0};
+        std::size_t faceCount{0};
+      };
+
+      MeshStats
+      meshStatsFor(const render::Primitive* primitive, int lod,
+                   std::unordered_map<const render::Primitive*, MeshStats>& meshStats) const {
         if (!primitive) {
-          return 0;
+          return {};
         }
 
-        const auto cached = triangleCounts.find(primitive);
-        if (cached != triangleCounts.end()) {
+        const auto cached = meshStats.find(primitive);
+        if (cached != meshStats.end()) {
           return cached->second;
         }
 
-        std::size_t count = 0;
+        MeshStats stats;
         const std::shared_ptr<Mesh> mesh = primitive->tessellate(lod);
         if (mesh) {
+          stats.faceCount = mesh->faces().size();
           for (const auto& face : mesh->faces()) {
             if (face.size() >= 3) {
-              count += face.size() - 2;
+              stats.triangleCount += face.size() - 2;
             }
           }
         }
-        triangleCounts.emplace(primitive, count);
-        return count;
+        meshStats.emplace(primitive, stats);
+        return stats;
       }
 
       std::string traceMessage(const ::engine::raster::RasterVisibilitySet& visibilitySet,

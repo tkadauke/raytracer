@@ -165,7 +165,10 @@ Tasks:
 - Sort visible opaque work roughly by camera depth after frustum culling.
 - Preserve original order for order-dependent pass state.
 - Surface ordering metrics in trace metadata.
-- Feed ordered work into CPU raster and later GPU raster draw submission.
+- ~~Feed ordered work into CPU raster~~ and later GPU raster draw submission.
+  ✅ **Partially done.** The visibility set can now carry an explicit
+  visible-leaf order, and the CPU raster front end consumes it while preserving
+  original face-index progression for skipped/reordered leaves.
 
 Acceptance:
 

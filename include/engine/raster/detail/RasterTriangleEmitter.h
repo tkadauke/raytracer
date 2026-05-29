@@ -60,22 +60,25 @@ namespace engine::raster::detail {
 
     template<class EmitFn>
     void forEachTriangle(EmitFn&& callback) const {
-      std::uint64_t globalFaceIdx = 0;
-      std::size_t leafIndex = 0;
-      auto emitLeaf = [&](const render::Primitive::TransformedLeaf& leaf) {
-        const std::size_t currentLeafIndex = leafIndex++;
+      using TransformedLeaf = render::Primitive::TransformedLeaf;
+
+      auto emitLeaf = [&](const TransformedLeaf& leaf, std::size_t currentLeafIndex,
+                          std::uint64_t firstFaceIdx) {
         if (m_visibilitySet && !m_visibilitySet->leafVisible(currentLeafIndex)) {
-          return;
+          return static_cast<std::uint64_t>(m_visibilitySet->leafFaceCount(currentLeafIndex));
         }
 
         if (m_cancelled.load())
-          return;
+          return std::uint64_t{0};
 
         const render::Primitive* primitive = leaf.primitive;
         std::shared_ptr<render::Material> material = leaf.material;
         auto mesh = tessellatedMeshFor(primitive);
-        if (!mesh)
-          return;
+        if (!mesh) {
+          return m_visibilitySet
+                   ? static_cast<std::uint64_t>(m_visibilitySet->leafFaceCount(currentLeafIndex))
+                   : std::uint64_t{0};
+        }
 
         const auto& sourceVertices = mesh->vertices();
         std::vector<Mesh::Vertex> vertices;
@@ -89,6 +92,7 @@ namespace engine::raster::detail {
         const auto& faces = mesh->faces();
         const auto& viewPlane = *m_camera->viewPlane();
         const RasterMaterialSource materialSource = RasterMaterialSource::from(material);
+        std::uint64_t faceIdx = firstFaceIdx;
 
         // Project each mesh vertex once per primitive. Faces then
         // reuse clip/screen data while fan-triangulating polygons.
@@ -102,9 +106,9 @@ namespace engine::raster::detail {
             outCode};
         }
 
-        for (std::size_t fi = 0; fi < faces.size(); ++fi, ++globalFaceIdx) {
+        for (std::size_t fi = 0; fi < faces.size(); ++fi, ++faceIdx) {
           if (m_cancelled.load())
-            return;
+            return static_cast<std::uint64_t>(faces.size());
 
           const auto& face = faces[fi];
           if (face.size() < 3)
@@ -133,8 +137,8 @@ namespace engine::raster::detail {
               ClipVert v2{vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
                           vertices[face[i + 1]].uv, p2.clip, p2.screen};
 
-              emitPreparedTriangle(primitive, material, faceMaterialSource, globalFaceIdx, v0, v1,
-                                   v2, callback);
+              emitPreparedTriangle(primitive, material, faceMaterialSource, faceIdx, v0, v1, v2,
+                                   callback);
               continue;
             }
 
@@ -166,19 +170,60 @@ namespace engine::raster::detail {
                 continue;
               }
 
-              emitPreparedTriangle(primitive, material, faceMaterialSource, globalFaceIdx, v0, v1,
-                                   v2, callback);
+              emitPreparedTriangle(primitive, material, faceMaterialSource, faceIdx, v0, v1, v2,
+                                   callback);
             }
           }
         }
+
+        return static_cast<std::uint64_t>(faces.size());
+      };
+
+      if (m_visibilitySet && m_visibilitySet->hasVisibleLeafOrder()) {
+        std::vector<TransformedLeaf> leaves;
+        m_scene->forEachTransformedLeaf(
+          nullptr, Matrix4d(), Matrix3d(),
+          [&](const TransformedLeaf& leaf) { leaves.push_back(leaf); });
+
+        std::vector<std::uint64_t> leafFaceBases;
+        leafFaceBases.reserve(leaves.size());
+        std::uint64_t nextFaceIdx = 0;
+        for (std::size_t index = 0; index < leaves.size(); ++index) {
+          leafFaceBases.push_back(nextFaceIdx);
+          nextFaceIdx += static_cast<std::uint64_t>(m_visibilitySet->leafFaceCount(index));
+        }
+
+        std::vector<bool> emitted(leaves.size(), false);
+        for (std::size_t leafIndex : m_visibilitySet->visibleLeafOrder()) {
+          if (leafIndex >= leaves.size() || emitted[leafIndex]) {
+            continue;
+          }
+          emitLeaf(leaves[leafIndex], leafIndex, leafFaceBases[leafIndex]);
+          emitted[leafIndex] = true;
+        }
+
+        for (std::size_t leafIndex = 0; leafIndex < leaves.size(); ++leafIndex) {
+          if (emitted[leafIndex]) {
+            continue;
+          }
+          emitLeaf(leaves[leafIndex], leafIndex, leafFaceBases[leafIndex]);
+        }
+        return;
+      }
+
+      std::uint64_t nextFaceIdx = 0;
+      std::size_t leafIndex = 0;
+      auto emitNextLeaf = [&](const TransformedLeaf& leaf) {
+        const std::size_t currentLeafIndex = leafIndex++;
+        nextFaceIdx += emitLeaf(leaf, currentLeafIndex, nextFaceIdx);
       };
 
       if (!m_visibilitySet && canCullPrimitiveBounds()) {
         m_scene->forEachTransformedLeafInBounds(
           [&](const BoundingBoxd& bounds) { return !boundsOutsideClipVolume(bounds); }, nullptr,
-          Matrix4d(), Matrix3d(), emitLeaf);
+          Matrix4d(), Matrix3d(), emitNextLeaf);
       } else {
-        m_scene->forEachTransformedLeaf(nullptr, Matrix4d(), Matrix3d(), emitLeaf);
+        m_scene->forEachTransformedLeaf(nullptr, Matrix4d(), Matrix3d(), emitNextLeaf);
       }
     }
 

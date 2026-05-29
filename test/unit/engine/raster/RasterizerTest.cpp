@@ -100,6 +100,32 @@ namespace RasterizerTest {
     int* m_tessellateCalls;
   };
 
+  class RecordingPrimitive : public Primitive {
+  public:
+    RecordingPrimitive(int id, std::vector<int>* tessellationOrder)
+        : m_id(id),
+          m_tessellationOrder(tessellationOrder) {
+    }
+
+    const Primitive* intersect(const Rayd&, HitPointInterval&, render::State&) const override {
+      return nullptr;
+    }
+
+    std::shared_ptr<Mesh> tessellate(int = 0) const override {
+      m_tessellationOrder->push_back(m_id);
+      return std::make_shared<Mesh>();
+    }
+
+  protected:
+    BoundingBoxd calculateBoundingBox() const override {
+      return BoundingBoxd(Vector3d(-1.0, -1.0, 0.0), Vector3d(1.0, 1.0, 1.0));
+    }
+
+  private:
+    int m_id;
+    std::vector<int>* m_tessellationOrder;
+  };
+
   class CountingComposite : public Composite {
   public:
     explicit CountingComposite(int* flattenCalls)
@@ -738,6 +764,28 @@ namespace RasterizerTest {
 
     EXPECT_EQ(1, visibleTessellateCalls);
     EXPECT_EQ(0, rejectedTessellateCalls);
+  }
+
+  TEST(Rasterizer, VisibilitySetOrdersVisibleLeavesBeforeTessellation) {
+    std::vector<int> tessellationOrder;
+    auto scene = std::make_shared<Scene>(Colord::white());
+    scene->add(std::make_shared<RecordingPrimitive>(0, &tessellationOrder));
+    scene->add(std::make_shared<RecordingPrimitive>(1, &tessellationOrder));
+    scene->add(std::make_shared<RecordingPrimitive>(2, &tessellationOrder));
+
+    auto visibilitySet = std::make_shared<RasterVisibilitySet>();
+    visibilitySet->addVisibleLeaf(0);
+    visibilitySet->addVisibleLeaf(0);
+    visibilitySet->addVisibleLeaf(0);
+    visibilitySet->setVisibleLeafOrder({2, 0});
+
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setVisibilitySet(visibilitySet);
+    Buffer<Colord> buffer(32, 32);
+
+    engine.render(buffer);
+
+    EXPECT_EQ((std::vector<int>{2, 0, 1}), tessellationOrder);
   }
 
   TEST(Rasterizer, HandlesNullSceneGracefully) {

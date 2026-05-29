@@ -950,6 +950,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   keep public construction and setter paths in SIMD storage before reducing
   lanes, avoiding union type-punning undefined behavior without leaving the hot
   path. — GPT-5
+- **Raster visibility face indices.** CPU raster visibility sets now preserve
+  original face-index progression while skipping or reordering leaves, keeping
+  fallback face colors and face-index AOV data stable under graph-visible
+  culling. — GPT-5
 - **Wireframe graph export with typed pass state.** Raster readback checks now
   ignore non-raster pass state, so wireframe graph export no longer fails when
   the wireframe beauty node carries wireframe-specific state. — GPT-5

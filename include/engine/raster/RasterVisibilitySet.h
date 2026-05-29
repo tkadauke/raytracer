@@ -16,10 +16,16 @@ namespace engine::raster {
     enum class RejectionReason { Frustum };
 
     void addVisibleLeaf(std::size_t triangleCount);
+    void addVisibleLeaf(std::size_t triangleCount, std::size_t faceCount);
     void addRejectedLeaf(RejectionReason reason, std::size_t triangleCount);
+    void addRejectedLeaf(RejectionReason reason, std::size_t triangleCount, std::size_t faceCount);
+    void setVisibleLeafOrder(std::vector<std::size_t> leafIndices);
 
     bool leafVisible(std::size_t leafIndex) const;
+    bool hasVisibleLeafOrder() const;
+    const std::vector<std::size_t>& visibleLeafOrder() const;
     std::size_t leafCount() const;
+    std::size_t leafFaceCount(std::size_t leafIndex) const;
     std::size_t inputTriangleCount() const;
     std::size_t visibleLeafCount() const;
     std::size_t visibleTriangleCount() const;
@@ -33,8 +39,10 @@ namespace engine::raster {
       bool visible{true};
       RejectionReason rejectionReason{RejectionReason::Frustum};
       std::size_t triangleCount{0};
+      std::size_t faceCount{0};
     };
 
     std::vector<LeafDecision> m_leaves;
+    std::vector<std::size_t> m_visibleLeafOrder;
   };
 }
