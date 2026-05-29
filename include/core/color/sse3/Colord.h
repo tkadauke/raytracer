@@ -1,7 +1,9 @@
 #pragma once
+
+#include "core/SimdFeatures.h"
 #include <algorithm>
 
-#ifdef __SSE3__
+#if RAYTRACER_SIMD_SSE3
 
 #include "core/DivisionByZeroException.h"
 #include "core/InequalityOperator.h"

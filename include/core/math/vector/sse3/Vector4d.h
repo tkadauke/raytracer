@@ -1,6 +1,8 @@
 #pragma once
 
-#ifdef __SSE3__
+#include "core/SimdFeatures.h"
+
+#if RAYTRACER_SIMD_SSE3
 
 #include <pmmintrin.h>
 

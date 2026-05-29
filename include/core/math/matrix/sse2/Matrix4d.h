@@ -1,6 +1,8 @@
 #pragma once
 
-#ifdef __SSE2__
+#include "core/SimdFeatures.h"
+
+#if RAYTRACER_SIMD_SSE2
 
 #include <emmintrin.h>
 
@@ -46,9 +48,9 @@ Matrix4<double>::operator*(const Matrix4<double>& b) const noexcept {
   return result;
 }
 
-#endif // __SSE2__
+#endif // RAYTRACER_SIMD_SSE2
 
-#ifdef __SSE3__
+#if RAYTRACER_SIMD_SSE3
 
 #include <pmmintrin.h>
 
@@ -80,4 +82,4 @@ Matrix4<double>::operator*(const Vector4<double>& vec) const noexcept {
   return Vector4<double>(r[0], r[1], r[2], r[3]);
 }
 
-#endif // __SSE3__
+#endif // RAYTRACER_SIMD_SSE3

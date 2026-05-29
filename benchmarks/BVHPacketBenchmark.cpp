@@ -22,6 +22,7 @@
 
 #include <benchmark/benchmark.h>
 
+#include "core/SimdFeatures.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
@@ -276,7 +277,7 @@ namespace {
     benchState.SetItemsProcessed(benchState.iterations() * 256 * 256);
   }
 
-#ifdef __AVX__
+#if RAYTRACER_SIMD_AVX
   // ── Ray8 benchmarks (AVX only) ──────────────────────────────────────────
 
   struct CoherentGroup8 {
@@ -360,7 +361,7 @@ namespace {
     }
     benchState.SetItemsProcessed(benchState.iterations() * groups.size() * 8);
   }
-#endif // __AVX__
+#endif // RAYTRACER_SIMD_AVX
 
 } // namespace
 
@@ -373,7 +374,7 @@ BENCHMARK(bm_bvh_packet4_incoherent);
 BENCHMARK(bm_bvh_primary_render_scalar);
 BENCHMARK(bm_bvh_primary_render_packet4);
 
-#ifdef __AVX__
+#if RAYTRACER_SIMD_AVX
 BENCHMARK(bm_bvh_scalar_coherent8);
 BENCHMARK(bm_bvh_packet8_coherent);
 #endif
