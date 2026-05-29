@@ -940,6 +940,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render graph resource-domain validation.** Plan validation now rejects
   current CPU-backed passes that read or write GPU-domain resources, making
   replayed future-domain graph JSON fail before execution. — GPT-5
+- **Render graph resource-domain exports.** Text and DOT graph exports now show
+  resource domains and non-default pass domain support, making GPU-compatible
+  pass chains visible in graph inspection. — GPT-5
 - **Render graph selector-specific intent.** Graph compilation now rejects
   selector-specific render-intent overrides with a clear error instead of
   silently ignoring targeted scene intent until scene partitioning is supported.

@@ -667,6 +667,7 @@ namespace RenderPlanTest {
     auto main = pass("main");
     main.features.push_back("beauty");
     main.writes.push_back({"main_color"});
+    main.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
     main.sceneView.selector = SceneSelector::objectName("hero");
     main.sceneView.camera = RenderCameraRef{"shot-camera", std::nullopt};
     main.sceneView.shadingProfile = ShadingProfileRef{"toon", {}};
@@ -678,6 +679,7 @@ namespace RenderPlanTest {
     EXPECT_NE(std::string::npos, text.find("features: beauty"));
     EXPECT_NE(std::string::npos,
               text.find("scene: selector=object_name: hero, camera=shot-camera, shading=toon"));
+    EXPECT_NE(std::string::npos, text.find("resource domains: cpu gpu"));
     EXPECT_NE(std::string::npos, text.find("Execution order"));
     EXPECT_NE(std::string::npos, text.find("Dependencies"));
 
@@ -685,12 +687,13 @@ namespace RenderPlanTest {
     EXPECT_NE(std::string::npos, dot.find("digraph RenderPlan"));
     EXPECT_NE(std::string::npos, dot.find("resource:main_color"));
     EXPECT_NE(std::string::npos, dot.find("color/rgb_double"));
-    EXPECT_NE(std::string::npos, dot.find("transient"));
+    EXPECT_NE(std::string::npos, dot.find("cpu/transient"));
     EXPECT_NE(std::string::npos, dot.find("execution_stage_1"));
     EXPECT_NE(std::string::npos, dot.find("stage 1, order 1"));
     EXPECT_NE(std::string::npos, dot.find("selector object_name: hero"));
     EXPECT_NE(std::string::npos, dot.find("camera shot-camera"));
     EXPECT_NE(std::string::npos, dot.find("shading toon"));
+    EXPECT_NE(std::string::npos, dot.find("domains cpu,gpu"));
 
     const QJsonObject json = plan.toJson();
     ASSERT_TRUE(json["resources"].isArray());

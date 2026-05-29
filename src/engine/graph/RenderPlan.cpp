@@ -127,15 +127,36 @@ namespace engine::graph {
     bool samePassNode(const RenderPassNode& a, const RenderPassNode& b) {
       return a.id == b.id && a.kind == b.kind && a.executor == b.executor &&
              a.features == b.features && sameReads(a.reads, b.reads) &&
-             sameWrites(a.writes, b.writes) && sameSceneView(a.sceneView, b.sceneView) &&
-             samePassState(a.state, b.state) && a.disabledBehavior == b.disabledBehavior &&
-             a.enabled == b.enabled && a.hasExternalSideEffects == b.hasExternalSideEffects &&
+             sameWrites(a.writes, b.writes) &&
+             a.supportedResourceDomains == b.supportedResourceDomains &&
+             sameSceneView(a.sceneView, b.sceneView) && samePassState(a.state, b.state) &&
+             a.disabledBehavior == b.disabledBehavior && a.enabled == b.enabled &&
+             a.hasExternalSideEffects == b.hasExternalSideEffects &&
              a.canRunConcurrently == b.canRunConcurrently;
     }
 
     bool hasNonDefaultSceneView(const SceneView& sceneView) {
       return !sceneView.selector.selectsWholeFrame() || sceneView.camera.has_value() ||
              sceneView.shadingProfile.has_value();
+    }
+
+    bool hasNonDefaultResourceDomains(const RenderPassNode& pass) {
+      return pass.supportedResourceDomains.size() != 1 ||
+             !contains(pass.supportedResourceDomains, RenderResourceDomain::CPU);
+    }
+
+    std::string resourceDomainList(const std::set<RenderResourceDomain>& domains,
+                                   const char* separator) {
+      std::ostringstream out;
+      bool first = true;
+      for (const auto& domain : domains) {
+        if (!first) {
+          out << separator;
+        }
+        out << toString(domain);
+        first = false;
+      }
+      return out.str();
     }
 
     [[noreturn]] void jsonError(const std::string& path, const std::string& message) {
@@ -848,6 +869,10 @@ namespace engine::graph {
           << ", shading="
           << (pass.sceneView.shadingProfile ? pass.sceneView.shadingProfile->displayText() : "-")
           << "\n";
+      if (hasNonDefaultResourceDomains(pass)) {
+        out << "  resource domains: " << resourceDomainList(pass.supportedResourceDomains, " ")
+            << "\n";
+      }
       if (!pass.features.empty()) {
         out << "  features:";
         for (const auto& feature : pass.features)
@@ -886,7 +911,7 @@ namespace engine::graph {
       out << "  \"resource:" << dotEscape(resource.id) << "\""
           << " [shape=box,label=\"" << dotEscape(resource.id) << "\\n"
           << toString(resource.type) << "/" << toString(resource.format) << "\\n"
-          << toString(resource.lifetime) << "\"];\n";
+          << toString(resource.domain) << "/" << toString(resource.lifetime) << "\"];\n";
     }
 
     for (const auto& pass : m_passes) {
@@ -907,6 +932,9 @@ namespace engine::graph {
         if (pass.sceneView.shadingProfile) {
           out << "\\nshading " << dotEscape(pass.sceneView.shadingProfile->displayText());
         }
+      }
+      if (hasNonDefaultResourceDomains(pass)) {
+        out << "\\ndomains " << dotEscape(resourceDomainList(pass.supportedResourceDomains, ","));
       }
       out << "\"";
       if (!pass.enabled) {
