@@ -344,11 +344,15 @@ Tasks:
   **Done.** OpenGL vertices now carry ambient and direct-light factors
   separately, leaving the shader with a direct-light channel for later
   shadow-texture sampling without changing the current image equation.
-- Add shader-side OpenGL shadow-map sampling after the GPU raster path has
-  explicit shadow texture binding and shader lighting state. The shadow-map
+- ~~Add shader-side OpenGL shadow-map sampling after the GPU raster path has
+  explicit shadow texture binding and shader lighting state.~~ ✅ **Done.** The
+  first supported OpenGL shadow subset samples one hard-filtered directional
+  cascade in the fragment shader when that shadow map owns the scene's single
+  direct light; unsupported shadow configurations stay on CPU-prepared
+  visibility. The shadow-map
   collection now exposes its directional maps directly so the GPU binding path
   can enumerate cascades without per-light lookup, and the OpenGL mesh stream
-  now carries world position plus lighting normal for future per-fragment
+  now carries world position plus lighting normal for per-fragment
   shadow projection. Directional shadow cameras also expose their fitted
   origin, basis, and half-extent so shader uniforms can project those fragments
   into light-space; directional shadow maps expose bias and filter policy so
