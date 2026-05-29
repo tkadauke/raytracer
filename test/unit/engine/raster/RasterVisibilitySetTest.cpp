@@ -52,11 +52,15 @@ namespace RasterVisibilitySetTest {
     EXPECT_EQ(2, set.tileGrid().rows);
     EXPECT_EQ(8u, set.tileGrid().tileCount());
 
-    set.setVisibleLeafTiles(0, {3, 2, 2, 99});
+    set.setVisibleLeafTiles(0, {3, 2, 2, 99}, 4.0);
     set.setVisibleLeafTiles(2, {1});
 
     EXPECT_EQ(2u, set.visibleLeafTileReferenceCount());
     EXPECT_EQ(2u, set.coveredTileCount());
     EXPECT_EQ(1u, set.tileUncertainVisibleLeafCount());
+    EXPECT_EQ(2u, set.tileDepthReferenceCount());
+    EXPECT_EQ(2u, set.tileDepthSummarizedTileCount());
+    EXPECT_DOUBLE_EQ(4.0, set.nearestTileDepth(2));
+    EXPECT_DOUBLE_EQ(4.0, set.nearestTileDepth(3));
   }
 }

@@ -1,6 +1,8 @@
 #include "engine/raster/RasterVisibilitySet.h"
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 #include <set>
 #include <utility>
 
@@ -49,6 +51,13 @@ namespace engine::raster {
   void RasterVisibilitySet::setTileGrid(int width, int height, int tileWidth, int tileHeight) {
     if (width <= 0 || height <= 0 || tileWidth <= 0 || tileHeight <= 0) {
       m_tileGrid = {};
+      m_nearestTileDepths.clear();
+      m_tileDepthReferenceCount = 0;
+      for (LeafDecision& leaf : m_leaves) {
+        leaf.tileCoverageKnown = false;
+        leaf.tileIndices.clear();
+        leaf.tileDepthKnown = false;
+      }
       return;
     }
 
@@ -58,20 +67,30 @@ namespace engine::raster {
     m_tileGrid.tileHeight = tileHeight;
     m_tileGrid.columns = (width + tileWidth - 1) / tileWidth;
     m_tileGrid.rows = (height + tileHeight - 1) / tileHeight;
+    m_nearestTileDepths.assign(m_tileGrid.tileCount(), std::numeric_limits<double>::infinity());
+    m_tileDepthReferenceCount = 0;
     for (LeafDecision& leaf : m_leaves) {
       leaf.tileCoverageKnown = false;
       leaf.tileIndices.clear();
+      leaf.tileDepthKnown = false;
     }
   }
 
   void RasterVisibilitySet::setVisibleLeafTiles(std::size_t leafIndex,
                                                 std::vector<std::size_t> tileIndices) {
+    setVisibleLeafTiles(leafIndex, std::move(tileIndices), std::numeric_limits<double>::infinity());
+  }
+
+  void RasterVisibilitySet::setVisibleLeafTiles(std::size_t leafIndex,
+                                                std::vector<std::size_t> tileIndices,
+                                                double nearestDepth) {
     if (leafIndex >= m_leaves.size() || !m_leaves[leafIndex].visible || !hasTileGrid()) {
       return;
     }
     LeafDecision& leaf = m_leaves[leafIndex];
     leaf.tileCoverageKnown = false;
     leaf.tileIndices.clear();
+    leaf.tileDepthKnown = false;
 
     const std::size_t tileCount = m_tileGrid.tileCount();
     tileIndices.erase(std::remove_if(tileIndices.begin(), tileIndices.end(),
@@ -80,11 +99,17 @@ namespace engine::raster {
     std::sort(tileIndices.begin(), tileIndices.end());
     tileIndices.erase(std::unique(tileIndices.begin(), tileIndices.end()), tileIndices.end());
     if (tileIndices.empty()) {
+      rebuildTileDepthSummaries();
       return;
     }
 
     leaf.tileCoverageKnown = true;
     leaf.tileIndices = std::move(tileIndices);
+    if (std::isfinite(nearestDepth)) {
+      leaf.tileDepthKnown = true;
+      leaf.nearestTileDepth = nearestDepth;
+    }
+    rebuildTileDepthSummaries();
   }
 
   bool RasterVisibilitySet::leafVisible(std::size_t leafIndex) const {
@@ -209,5 +234,47 @@ namespace engine::raster {
       }
     }
     return count;
+  }
+
+  std::size_t RasterVisibilitySet::tileDepthSummarizedTileCount() const {
+    std::size_t count = 0;
+    for (double depth : m_nearestTileDepths) {
+      if (std::isfinite(depth)) {
+        ++count;
+      }
+    }
+    return count;
+  }
+
+  std::size_t RasterVisibilitySet::tileDepthReferenceCount() const {
+    return m_tileDepthReferenceCount;
+  }
+
+  double RasterVisibilitySet::nearestTileDepth(std::size_t tileIndex) const {
+    if (tileIndex >= m_nearestTileDepths.size()) {
+      return std::numeric_limits<double>::infinity();
+    }
+    return m_nearestTileDepths[tileIndex];
+  }
+
+  void RasterVisibilitySet::rebuildTileDepthSummaries() {
+    m_nearestTileDepths.assign(m_tileGrid.tileCount(), std::numeric_limits<double>::infinity());
+    m_tileDepthReferenceCount = 0;
+    if (!hasTileGrid()) {
+      return;
+    }
+
+    for (const LeafDecision& leaf : m_leaves) {
+      if (!leaf.visible || !leaf.tileCoverageKnown || !leaf.tileDepthKnown) {
+        continue;
+      }
+      for (std::size_t tile : leaf.tileIndices) {
+        if (tile >= m_nearestTileDepths.size()) {
+          continue;
+        }
+        ++m_tileDepthReferenceCount;
+        m_nearestTileDepths[tile] = std::min(m_nearestTileDepths[tile], leaf.nearestTileDepth);
+      }
+    }
   }
 }

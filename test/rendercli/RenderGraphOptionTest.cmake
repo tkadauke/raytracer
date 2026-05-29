@@ -1825,6 +1825,10 @@ if(NOT raster_culling_trace_json MATCHES "visibleTileReferences=1")
   message(FATAL_ERROR
     "raster culling trace did not record visible tile references: ${raster_culling_trace_json}")
 endif()
+if(NOT raster_culling_trace_json MATCHES "depthSummarizedTiles=1")
+  message(FATAL_ERROR
+    "raster culling trace did not record tile depth summaries: ${raster_culling_trace_json}")
+endif()
 if(NOT raster_culling_trace_json MATCHES "CPU raster passes can skip rejected leaves")
   message(FATAL_ERROR
     "raster culling trace did not record CPU visibility set consumption: ${raster_culling_trace_json}")

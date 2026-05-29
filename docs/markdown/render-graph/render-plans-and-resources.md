@@ -665,15 +665,16 @@ leaf transform and camera projection. Clipped, unknown, or two-sided work stays
 visible, and the trace reports backface-rejected leaf and triangle counts.
 The visibility resource also stores the target's coarse tile grid and, when a
 visible leaf's transformed bounds project wholly inside clip space, the tile
-references touched by that leaf. The trace reports covered tile counts,
-visible-leaf tile references, and uncertain visible leaves; those numbers are
-diagnostic for now and do not yet reject occluded work. Order-dependent state
-leaves traversal order unchanged and is reported as disabled, unsupported, or
-not needed in the same trace message. The OpenGL raster backend consumes the
-same visibility set during mesh preparation, so CPU and GPU raster submission
-stay tied to the same explicit graph edge. That keeps the graph shape,
-rendercli exports, Modeler graph view, execution trace, and raster submission
-tied to the same explicit visibility edge.
+references touched by that leaf plus its nearest projected bounds depth. The
+trace reports covered tile counts, visible-leaf tile references, depth
+summary counts, and uncertain visible leaves; those numbers are diagnostic for
+now and do not yet reject occluded work. Order-dependent state leaves traversal
+order unchanged and is reported as disabled, unsupported, or not needed in the
+same trace message. The OpenGL raster backend consumes the same visibility set
+during mesh preparation, so CPU and GPU raster submission stay tied to the same
+explicit graph edge. That keeps the graph shape, rendercli exports, Modeler
+graph view, execution trace, and raster submission tied to the same explicit
+visibility edge.
 
 The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
 `RenderIntent::postProcessAA` asks the compiler to insert a `post_fxaa` or

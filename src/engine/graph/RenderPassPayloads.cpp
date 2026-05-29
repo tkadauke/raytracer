@@ -1461,6 +1461,11 @@ namespace engine::graph {
         double depth{0.0};
       };
 
+      struct ProjectedTileCoverage {
+        std::vector<std::size_t> tiles;
+        double nearestDepth{std::numeric_limits<double>::infinity()};
+      };
+
       static constexpr int TileSize = 32;
 
       std::shared_ptr<::engine::raster::RasterVisibilitySet>
@@ -1499,9 +1504,10 @@ namespace engine::graph {
             }
 
             visibilitySet->addVisibleLeaf(stats.triangleCount, stats.faceCount);
-            if (const auto tiles =
+            if (auto coverage =
                   projectedBoundsTiles(leaf, camera.get(), clipVolume, visibilitySet->tileGrid())) {
-              visibilitySet->setVisibleLeafTiles(leafIndex, *tiles);
+              visibilitySet->setVisibleLeafTiles(leafIndex, std::move(coverage->tiles),
+                                                 coverage->nearestDepth);
             }
             if (orderable) {
               if (const auto depth = frontToBackDepth(leaf, camera.get())) {
@@ -1626,7 +1632,7 @@ namespace engine::graph {
         return testedTriangle;
       }
 
-      std::optional<std::vector<std::size_t>>
+      std::optional<ProjectedTileCoverage>
       projectedBoundsTiles(const render::Primitive::TransformedLeaf& leaf,
                            const render::Camera* camera,
                            const render::HomogeneousClipVolume& clipVolume,
@@ -1644,9 +1650,11 @@ namespace engine::graph {
         double minY = std::numeric_limits<double>::infinity();
         double maxX = -std::numeric_limits<double>::infinity();
         double maxY = -std::numeric_limits<double>::infinity();
+        double nearestDepth = std::numeric_limits<double>::infinity();
         for (const Vector3d& corner : bounds.vertices()) {
           const Vector4d clip = camera->projectPointToClipSpace(corner);
-          if (clip.isUndefined() || clip.w() == 0.0 || clipVolume.outCode(clip) != 0) {
+          if (clip.isUndefined() || clip.w() == 0.0 || !std::isfinite(clip.z()) ||
+              clipVolume.outCode(clip) != 0) {
             return std::nullopt;
           }
 
@@ -1660,6 +1668,7 @@ namespace engine::graph {
           minY = std::min(minY, pixelY);
           maxX = std::max(maxX, pixelX);
           maxY = std::max(maxY, pixelY);
+          nearestDepth = std::min(nearestDepth, clip.z());
         }
 
         const int left = std::clamp(static_cast<int>(std::floor(minX)), 0, grid.width - 1);
@@ -1682,7 +1691,7 @@ namespace engine::graph {
             tiles.push_back(static_cast<std::size_t>(ty * grid.columns + tx));
           }
         }
-        return tiles;
+        return ProjectedTileCoverage{std::move(tiles), nearestDepth};
       }
 
       std::optional<double> frontToBackDepth(const render::Primitive::TransformedLeaf& leaf,
@@ -1766,6 +1775,8 @@ namespace engine::graph {
             << "; coveredTiles=" << visibilitySet.coveredTileCount()
             << "; visibleTileReferences=" << visibilitySet.visibleLeafTileReferenceCount()
             << "; uncertainTileLeaves=" << visibilitySet.tileUncertainVisibleLeafCount()
+            << "; depthSummarizedTiles=" << visibilitySet.tileDepthSummarizedTileCount()
+            << "; tileDepthReferences=" << visibilitySet.tileDepthReferenceCount()
             << "; frontToBackOrdering=" << ordering
             << "; frontToBackOrderedLeaves=" << visibilitySet.visibleLeafOrder().size()
             << "; CPU raster passes can skip rejected leaves";

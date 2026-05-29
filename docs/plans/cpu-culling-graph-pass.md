@@ -227,7 +227,11 @@ Tasks:
   visibility pass records tile references for visible leaves whose transformed
   bounds project wholly inside clip space, and marks clipped or unknown bounds
   as uncertain instead of using them for later occlusion decisions.
-- Maintain conservative per-tile depth summaries for opaque depth-writing work.
+- ~~Maintain conservative per-tile depth summaries for visible work.~~ ✅
+  **Done.** Tile-covered visible leaves now contribute their nearest projected
+  bounds depth to each referenced tile, and the visibility trace reports
+  summarized tile and depth-reference counts. These summaries are still
+  diagnostic and are not yet used to reject occluded work.
 - Reject later leaf/tile combinations that cannot pass depth.
 - Keep partially visible work in the set if any tile remains uncertain.
 
@@ -238,8 +242,8 @@ Acceptance:
 - Alpha/blend/stencil paths do not use unsafe occlusion shortcuts.
 - ~~Trace metadata reports tile count and uncertain cases.~~ ✅ **Done.**
   Current traces report tile grid dimensions, covered tiles, visible tile
-  references, and uncertain visible leaves. Rejected tile references remain
-  TODO until occlusion rejection exists.
+  references, depth-summary counts, and uncertain visible leaves. Rejected tile
+  references remain TODO until occlusion rejection exists.
 
 ## Phase 5 - caching and invalidation
 

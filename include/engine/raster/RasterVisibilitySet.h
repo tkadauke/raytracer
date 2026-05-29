@@ -34,6 +34,8 @@ namespace engine::raster {
     void setVisibleLeafOrder(std::vector<std::size_t> leafIndices);
     void setTileGrid(int width, int height, int tileWidth, int tileHeight);
     void setVisibleLeafTiles(std::size_t leafIndex, std::vector<std::size_t> tileIndices);
+    void setVisibleLeafTiles(std::size_t leafIndex, std::vector<std::size_t> tileIndices,
+                             double nearestDepth);
 
     bool leafVisible(std::size_t leafIndex) const;
     bool hasVisibleLeafOrder() const;
@@ -52,6 +54,9 @@ namespace engine::raster {
     std::size_t visibleLeafTileReferenceCount() const;
     std::size_t coveredTileCount() const;
     std::size_t tileUncertainVisibleLeafCount() const;
+    std::size_t tileDepthSummarizedTileCount() const;
+    std::size_t tileDepthReferenceCount() const;
+    double nearestTileDepth(std::size_t tileIndex) const;
 
   private:
     struct LeafDecision {
@@ -61,10 +66,16 @@ namespace engine::raster {
       std::size_t faceCount{0};
       bool tileCoverageKnown{false};
       std::vector<std::size_t> tileIndices;
+      bool tileDepthKnown{false};
+      double nearestTileDepth{0.0};
     };
+
+    void rebuildTileDepthSummaries();
 
     std::vector<LeafDecision> m_leaves;
     std::vector<std::size_t> m_visibleLeafOrder;
     TileGrid m_tileGrid;
+    std::vector<double> m_nearestTileDepths;
+    std::size_t m_tileDepthReferenceCount{0};
   };
 }

@@ -503,6 +503,8 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(std::string::npos, message.find("tileGrid=1x1")) << message;
     EXPECT_NE(std::string::npos, message.find("visibleTileReferences=1")) << message;
     EXPECT_NE(std::string::npos, message.find("uncertainTileLeaves=0")) << message;
+    EXPECT_NE(std::string::npos, message.find("depthSummarizedTiles=1")) << message;
+    EXPECT_NE(std::string::npos, message.find("tileDepthReferences=1")) << message;
   }
 
   TEST(GraphRenderEngine, RecordsRasterVisibilityFrontToBackOrderingMetrics) {
