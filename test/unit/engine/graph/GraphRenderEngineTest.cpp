@@ -275,6 +275,21 @@ namespace GraphRenderEngineTest {
     return scene;
   }
 
+  std::shared_ptr<render::Scene> visibleAndOffscreenBoxScene() {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord::black());
+
+    auto visible = std::make_shared<render::Box>(Vector3d(0.0, 0.0, 0.0), Vector3d(0.5, 0.5, 0.5));
+    visible->setMaterial(matte(Colord::white()));
+    scene->add(visible);
+
+    auto offscreen =
+      std::make_shared<render::Box>(Vector3d(1000.0, 0.0, 0.0), Vector3d(0.5, 0.5, 0.5));
+    offscreen->setMaterial(matte(Colord::white()));
+    scene->add(offscreen);
+    return scene;
+  }
+
   std::shared_ptr<render::Scene> directionalShadowScene() {
     auto scene = std::make_shared<render::Scene>();
     scene->setAmbient(Colord(0.1, 0.1, 0.1));
@@ -420,12 +435,37 @@ namespace GraphRenderEngineTest {
     const RenderPassTrace* visibilityTrace = trace->findPass("raster_visibility");
     ASSERT_NE(nullptr, visibilityTrace);
     EXPECT_EQ(RenderPassExecutionStatus::Completed, visibilityTrace->status());
-    EXPECT_NE(std::string::npos, visibilityTrace->message().find("all-visible set"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("descriptor-only set"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("lod=0"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("inputLeaves=1"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("inputTriangles="));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("visibleLeaves=1"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("rejectedLeaves=0"));
+  }
+
+  TEST(GraphRenderEngine, RecordsRasterVisibilityFrustumRejectedMetrics) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), visibleAndOffscreenBoxScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* visibilityTrace = trace->findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibilityTrace);
+    const std::string& message = visibilityTrace->message();
+    EXPECT_NE(std::string::npos, message.find("inputLeaves=2")) << message;
+    EXPECT_NE(std::string::npos, message.find("visibleLeaves=1")) << message;
+    EXPECT_NE(std::string::npos, message.find("rejectedLeaves=1")) << message;
+    EXPECT_NE(std::string::npos, message.find("frustumRejectedLeaves=1")) << message;
   }
 
   TEST(GraphRenderEngine, ExecutesStencilAOVViewAndRecordsColorTrace) {

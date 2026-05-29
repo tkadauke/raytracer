@@ -252,7 +252,7 @@ for enumerated choices such as engine, raster backend, view mode, sampler, and
 postprocess AA. Raster settings include an opt-in Visibility Culling selector;
 `On` and `Auto` currently synthesize the graph-visible baseline culling node
 without changing submitted raster work. Selecting the node after a traced
-render shows the all-visible leaf/triangle counts and rejected-zero baseline in
+render shows leaf/triangle counts plus any frustum-rejected baseline counts in
 the graph inspector metadata. Engine-specific fields only show for the selected
 default engine. The same property editor has a search field for filtering long
 property sets and collapsible groups so advanced scene/import settings can stay

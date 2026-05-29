@@ -126,10 +126,17 @@ Acceptance:
 
 Tasks:
 
-- Compute camera frustum planes from the active render camera where projection
-  is supported.
-- Test leaf bounding boxes against the frustum.
-- Emit visible leaf ids and rejected-frustum counts.
+- ~~Compute camera frustum planes from the active render camera where projection
+  is supported.~~ ✅ **Done.** The visibility payload uses the same
+  homogeneous clip-space test shape as the raster front end and keeps leaves
+  visible when the active camera cannot project bounds conservatively.
+- ~~Test leaf bounding boxes against the frustum.~~ ✅ **Done.** Transformed
+  leaf bounds are rejected only when all eight corners are outside the same
+  clip plane.
+- Emit visible leaf ids and rejected-frustum counts. ✅ **Partial.** Trace
+  metadata now records visible and rejected-frustum leaf/triangle counts; the
+  concrete visibility-set payload still needs per-leaf ids before raster passes
+  can consume it.
 - Teach CPU raster to consume the visibility set and skip rejected leaves.
 - Add metrics comparing full-scene leaf count to submitted leaf count.
 

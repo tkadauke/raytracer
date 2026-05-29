@@ -18,6 +18,7 @@
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/Camera.h"
+#include "render/HomogeneousClipVolume.h"
 #include "render/primitives/Scene.h"
 #include "render/samplers/SampleStream.h"
 #include "render/State.h"
@@ -1406,6 +1407,8 @@ namespace engine::graph {
         std::size_t visibleTriangles{0};
         std::size_t rejectedLeaves{0};
         std::size_t rejectedTriangles{0};
+        std::size_t frustumRejectedLeaves{0};
+        std::size_t frustumRejectedTriangles{0};
         int lod{0};
       };
 
@@ -1420,15 +1423,60 @@ namespace engine::graph {
           return metrics;
         }
 
+        const std::shared_ptr<render::Camera> camera = context.graph().camera();
+        const render::HomogeneousClipVolume clipVolume = rasterClipVolume();
         std::unordered_map<const render::Primitive*, std::size_t> triangleCounts;
         scene->forEachTransformedLeaf(
           nullptr, Matrix4d(), Matrix3d(), [&](const render::Primitive::TransformedLeaf& leaf) {
+            const std::size_t triangles =
+              triangleCountFor(leaf.primitive, metrics.lod, triangleCounts);
             ++metrics.inputLeaves;
-            metrics.inputTriangles += triangleCountFor(leaf.primitive, metrics.lod, triangleCounts);
+            metrics.inputTriangles += triangles;
+            if (boundsOutsideFrustum(leaf, camera.get(), clipVolume)) {
+              ++metrics.rejectedLeaves;
+              metrics.rejectedTriangles += triangles;
+              ++metrics.frustumRejectedLeaves;
+              metrics.frustumRejectedTriangles += triangles;
+              return;
+            }
+
+            ++metrics.visibleLeaves;
+            metrics.visibleTriangles += triangles;
           });
-        metrics.visibleLeaves = metrics.inputLeaves;
-        metrics.visibleTriangles = metrics.inputTriangles;
         return metrics;
+      }
+
+      render::HomogeneousClipVolume rasterClipVolume() const {
+        const engine::raster::Rasterizer defaultRasterizer(nullptr);
+        return render::HomogeneousClipVolume(defaultRasterizer.nearClipDepth(),
+                                             defaultRasterizer.farClipDepth());
+      }
+
+      bool boundsOutsideFrustum(const render::Primitive::TransformedLeaf& leaf,
+                                const render::Camera* camera,
+                                const render::HomogeneousClipVolume& clipVolume) const {
+        if (!camera) {
+          return false;
+        }
+
+        const BoundingBoxd bounds = leaf.boundingBox();
+        if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite()) {
+          return false;
+        }
+
+        std::uint8_t sharedOutCode = render::HomogeneousClipVolume::allBits();
+        for (const Vector3d& corner : bounds.vertices()) {
+          const Vector4d clip = camera->projectPointToClipSpace(corner);
+          if (clip.isUndefined()) {
+            return false;
+          }
+          sharedOutCode &= clipVolume.outCode(clip);
+          if (sharedOutCode == 0) {
+            return false;
+          }
+        }
+
+        return sharedOutCode != 0;
       }
 
       std::size_t triangleCountFor(
@@ -1458,13 +1506,15 @@ namespace engine::graph {
 
       std::string traceMessage(const Metrics& metrics) const {
         std::ostringstream out;
-        out << "visibility culling baseline produced an all-visible set"
+        out << "visibility culling baseline produced a descriptor-only set"
             << "; lod=" << metrics.lod << "; inputLeaves=" << metrics.inputLeaves
             << "; inputTriangles=" << metrics.inputTriangles
             << "; visibleLeaves=" << metrics.visibleLeaves
             << "; visibleTriangles=" << metrics.visibleTriangles
             << "; rejectedLeaves=" << metrics.rejectedLeaves
             << "; rejectedTriangles=" << metrics.rejectedTriangles
+            << "; frustumRejectedLeaves=" << metrics.frustumRejectedLeaves
+            << "; frustumRejectedTriangles=" << metrics.frustumRejectedTriangles
             << "; raster passes still draw all submitted primitives";
         return out.str();
       }
