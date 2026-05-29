@@ -291,6 +291,17 @@ namespace GraphRenderEngineTest {
     return scene;
   }
 
+  std::shared_ptr<render::Scene> partiallyClippedBoxScene() {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord::black());
+
+    auto clipped = std::make_shared<render::Rectangle>(
+      Vector3d(-1.0, -1.0, 0.0), Vector3d(0.0, 2.0, 0.0), Vector3d(100.0, 0.0, 0.0));
+    clipped->setMaterial(matte(Colord::white()));
+    scene->add(clipped);
+    return scene;
+  }
+
   std::shared_ptr<render::Scene> twoVisibleDepthBoxScene() {
     auto scene = std::make_shared<render::Scene>();
     scene->setBackground(Colord::black());
@@ -514,6 +525,31 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(std::string::npos,
               outputs.front()->unavailableReason().find("frustumRejectedLeaves=1"));
     EXPECT_NE(std::string::npos, outputs.front()->unavailableReason().find("tileGrid=1x1"));
+  }
+
+  TEST(GraphRenderEngine, KeepsPartiallyClippedVisibilityLeavesUncertain) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), partiallyClippedBoxScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* visibilityTrace = trace->findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibilityTrace);
+    const std::string& message = visibilityTrace->message();
+    EXPECT_NE(std::string::npos, message.find("visibleLeaves=1")) << message;
+    EXPECT_NE(std::string::npos, message.find("rejectedLeaves=0")) << message;
+    EXPECT_NE(std::string::npos, message.find("uncertainTileLeaves=1")) << message;
+    EXPECT_NE(std::string::npos, message.find("depthSummarizedTiles=0")) << message;
   }
 
   TEST(GraphRenderEngine, RecordsRasterVisibilityFrontToBackOrderingMetrics) {

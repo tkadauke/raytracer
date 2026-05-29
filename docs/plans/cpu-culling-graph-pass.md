@@ -234,7 +234,9 @@ Tasks:
   for order-dependent state such as blending/stencil. They are still diagnostic
   and are not yet used to reject occluded work.
 - Reject later leaf/tile combinations that cannot pass depth.
-- Keep partially visible work in the set if any tile remains uncertain.
+- ~~Keep partially visible work in the set if any tile remains uncertain.~~ ✅
+  **Done.** Unit coverage pins that a partially clipped leaf remains visible,
+  contributes no tile-depth summary, and reports an uncertain tile leaf.
 
 Acceptance:
 
