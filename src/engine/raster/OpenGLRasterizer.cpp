@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "engine/raster/OpenGLOffscreenContext.h"
 #include "engine/raster/detail/OpenGLRasterMesh.h"
+#include "engine/raster/detail/OpenGLShadowSamplingPlan.h"
 #include "engine/raster/detail/RasterShadowMaps.h"
 #include "render/textures/ImageTexture.h"
 
@@ -1124,12 +1125,14 @@ namespace engine::raster {
     }
 
     const Recti viewport = viewportRectFor(buffer.width(), buffer.height());
+    const auto* shadowMaps = m_shadowMapsEnabled ? m_externalShadowMaps.get() : nullptr;
+    const detail::OpenGLShadowSamplingPlan shadowSamplingPlan =
+      detail::OpenGLShadowSamplingPlan::from(shadowMaps);
     detail::OpenGLRasterMesh mesh;
     const auto meshPreparationStarted = std::chrono::steady_clock::now();
     if (viewport.width() > 0 && viewport.height() > 0) {
-      mesh = detail::OpenGLRasterMeshBuilder(
-               scene().get(), camera(), m_lod, viewport, m_cullMode, m_hasCullModeOverride,
-               m_cancelled, m_shadowMapsEnabled ? m_externalShadowMaps.get() : nullptr)
+      mesh = detail::OpenGLRasterMeshBuilder(scene().get(), camera(), m_lod, viewport, m_cullMode,
+                                             m_hasCullModeOverride, m_cancelled, shadowMaps)
                .build();
     }
     const auto meshPreparationElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -1151,6 +1154,9 @@ namespace engine::raster {
       stencilTarget != nullptr && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store);
     m_lastTraceMessages.push_back(
       meshPreparationTraceMessage(meshPreparationElapsed, mesh.triangleCount()));
+    if (m_shadowMapsEnabled && m_externalShadowMaps) {
+      m_lastTraceMessages.push_back(shadowSamplingPlan.traceMessage());
+    }
     m_lastTraceMessages.push_back(m_lastReadbackTraceMessage);
   }
 }

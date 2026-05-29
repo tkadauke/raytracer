@@ -148,6 +148,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **OpenGL raster mesh-preparation timing.** Graph execution traces now report
   how many triangles the OpenGL raster backend prepared for the GPU mesh stream
   and how long that CPU preparation took. — GPT-5
+- **OpenGL raster shadow sampling trace.** Shadow-enabled OpenGL raster passes
+  now report whether their graph shadow-map artifact is eligible for future
+  shader-side binding or falls back to CPU-prepared shadow visibility. — GPT-5
 - **rendercli OpenGL application bootstrap.** rendercli now pre-scans explicit
   `--raster_backend opengl|gpu` runs, starts a GUI-capable Qt application for
   that backend, and defaults the command-line GPU path to Qt's offscreen

@@ -42,6 +42,15 @@ namespace engine::raster::detail {
     return m_disabledReason;
   }
 
+  std::string OpenGLShadowSamplingPlan::traceMessage() const {
+    if (enabled()) {
+      return "OpenGL raster shadow sampling is eligible for shader-side binding; current pass "
+             "still uses CPU-prepared shadow visibility";
+    }
+    return "OpenGL raster shadow sampling falls back to CPU-prepared visibility: " +
+           m_disabledReason;
+  }
+
   const DirectionalShadowMap* OpenGLShadowSamplingPlan::shadowMap() const {
     return m_shadowMap;
   }

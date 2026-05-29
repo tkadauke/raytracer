@@ -354,7 +354,9 @@ Tasks:
   into light-space; directional shadow maps expose bias and filter policy so
   the GPU path can decide when shader sampling matches the graph state. An
   `OpenGLShadowSamplingPlan` now captures the first supported subset: one
-  hard-filtered directional cascade with constant bias.
+  hard-filtered directional cascade with constant bias. Graph traces record
+  whether a shadow-enabled OpenGL pass matches that subset or still falls back
+  to CPU-prepared shadow visibility.
 
 Acceptance:
 

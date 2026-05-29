@@ -20,6 +20,7 @@ namespace engine::raster::detail {
 
     bool enabled() const;
     const std::string& disabledReason() const;
+    std::string traceMessage() const;
     const DirectionalShadowMap* shadowMap() const;
     const DirectionalShadowCascade* cascade() const;
 

@@ -60,6 +60,8 @@ namespace OpenGLShadowSamplingPlanTest {
     EXPECT_EQ(&maps.directionalMaps().front(), plan.shadowMap());
     EXPECT_EQ(&maps.directionalMaps().front().cascades().front(), plan.cascade());
     EXPECT_TRUE(plan.disabledReason().empty());
+    EXPECT_NE(std::string::npos, plan.traceMessage().find("eligible for shader-side binding"));
+    EXPECT_NE(std::string::npos, plan.traceMessage().find("CPU-prepared shadow visibility"));
   }
 
   TEST(OpenGLShadowSamplingPlan, RejectsFilteredDirectionalMaps) {
@@ -69,6 +71,8 @@ namespace OpenGLShadowSamplingPlanTest {
 
     EXPECT_FALSE(plan.enabled());
     EXPECT_NE(std::string::npos, plan.disabledReason().find("hard filtering"));
+    EXPECT_NE(std::string::npos, plan.traceMessage().find("falls back"));
+    EXPECT_NE(std::string::npos, plan.traceMessage().find("hard filtering"));
   }
 
   TEST(OpenGLShadowSamplingPlan, RejectsSlopeBiasedDirectionalMaps) {
