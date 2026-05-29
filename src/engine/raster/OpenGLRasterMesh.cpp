@@ -8,10 +8,12 @@
 #include "render/cameras/Camera.h"
 #include "render/lights/Light.h"
 #include "render/primitives/Scene.h"
+#include "render/textures/ImageTexture.h"
 #include "render/viewplanes/ViewPlane.h"
 
 #include <algorithm>
 #include <cmath>
+#include <unordered_set>
 #include <utility>
 
 namespace engine::raster::detail {
@@ -75,6 +77,32 @@ namespace engine::raster::detail {
 
   std::size_t OpenGLRasterMesh::indexBufferByteSize() const {
     return m_indices.size() * sizeof(std::uint32_t);
+  }
+
+  std::size_t OpenGLRasterMesh::imageTextureCount() const {
+    std::unordered_set<const render::ImageTexture*> images;
+    for (const Batch& batch : m_batches) {
+      if (batch.albedo.mode == RasterAlbedoShaderMode::ImageTexture && batch.albedo.image) {
+        images.insert(batch.albedo.image);
+      }
+    }
+    return images.size();
+  }
+
+  std::size_t OpenGLRasterMesh::imageTextureUploadByteSize() const {
+    std::unordered_set<const render::ImageTexture*> images;
+    std::size_t bytes = 0;
+    for (const Batch& batch : m_batches) {
+      if (batch.albedo.mode != RasterAlbedoShaderMode::ImageTexture || !batch.albedo.image ||
+          !images.insert(batch.albedo.image).second) {
+        continue;
+      }
+      for (int level = 0; level != batch.albedo.image->mipLevelCount(); ++level) {
+        bytes += static_cast<std::size_t>(batch.albedo.image->width(level)) *
+                 static_cast<std::size_t>(batch.albedo.image->height(level)) * 4u * sizeof(float);
+      }
+    }
+    return bytes;
   }
 
   const OpenGLRasterMesh::Vertices& OpenGLRasterMesh::vertices() const {

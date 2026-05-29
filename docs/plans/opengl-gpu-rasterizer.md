@@ -238,8 +238,9 @@ Tasks:
   renders.
 - Cache GPU buffers per immutable mesh payload where possible.
   ✅ **Baseline diagnostics.** Prepared OpenGL raster meshes now expose vertex
-  and index buffer byte counts, and draw trace messages report those upload
-  sizes so residency/caching work has a visible before/after metric.
+  and index buffer byte counts plus unique image texture upload byte counts,
+  and draw trace messages report those upload sizes so residency/caching work
+  has a visible before/after metric.
 
 Acceptance:
 

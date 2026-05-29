@@ -155,6 +155,8 @@ namespace OpenGLRasterMeshTest {
     EXPECT_EQ(texture.get(), source.image);
     EXPECT_EQ(2.0, source.uScale);
     EXPECT_EQ(3.0, source.vScale);
+    EXPECT_EQ(1u, mesh.imageTextureCount());
+    EXPECT_EQ(4u * sizeof(float), mesh.imageTextureUploadByteSize());
     for (const auto& vertex : mesh.vertices()) {
       EXPECT_FLOAT_EQ(2.0f, vertex.albedoMode);
     }

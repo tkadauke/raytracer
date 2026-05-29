@@ -101,6 +101,8 @@ namespace engine::raster::detail {
     std::size_t triangleCount() const;
     std::size_t vertexBufferByteSize() const;
     std::size_t indexBufferByteSize() const;
+    std::size_t imageTextureCount() const;
+    std::size_t imageTextureUploadByteSize() const;
     const Vertices& vertices() const;
     const Indices& indices() const;
     const Batches& batches() const;

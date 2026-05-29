@@ -1589,11 +1589,20 @@ namespace engine::raster {
   std::string OpenGLRasterizer::drawTraceMessage(std::chrono::nanoseconds elapsed,
                                                  std::size_t triangleCount,
                                                  std::size_t vertexBufferBytes,
-                                                 std::size_t indexBufferBytes) const {
+                                                 std::size_t indexBufferBytes,
+                                                 std::size_t imageTextureCount,
+                                                 std::size_t imageTextureBytes) const {
     std::ostringstream message;
     message << "OpenGL raster draw uploaded " << vertexBufferBytes << " vertex bytes and "
-            << indexBufferBytes << " index bytes, prepared GPU state, and submitted "
-            << triangleCount << " triangle";
+            << indexBufferBytes << " index bytes";
+    if (imageTextureCount != 0) {
+      message << " plus " << imageTextureBytes << " texture bytes across " << imageTextureCount
+              << " image texture";
+      if (imageTextureCount != 1) {
+        message << "s";
+      }
+    }
+    message << ", prepared GPU state, and submitted " << triangleCount << " triangle";
     if (triangleCount != 1) {
       message << "s";
     }
@@ -1661,9 +1670,9 @@ namespace engine::raster {
       stencilTarget != nullptr && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store);
     m_lastTraceMessages.push_back(
       meshPreparationTraceMessage(meshPreparationElapsed, mesh.triangleCount()));
-    m_lastTraceMessages.push_back(drawTraceMessage(timings.drawElapsed, mesh.triangleCount(),
-                                                   mesh.vertexBufferByteSize(),
-                                                   mesh.indexBufferByteSize()));
+    m_lastTraceMessages.push_back(drawTraceMessage(
+      timings.drawElapsed, mesh.triangleCount(), mesh.vertexBufferByteSize(),
+      mesh.indexBufferByteSize(), mesh.imageTextureCount(), mesh.imageTextureUploadByteSize()));
     if (m_shadowMapsEnabled && m_externalShadowMaps) {
       m_lastTraceMessages.push_back(shadowSamplingPlan.traceMessage(scene().get()));
     }

@@ -149,7 +149,9 @@ namespace engine::raster {
     std::string readbackTraceMessage(std::chrono::nanoseconds elapsed, bool copiedColor,
                                      bool copiedDepth, bool copiedStencil) const;
     std::string drawTraceMessage(std::chrono::nanoseconds elapsed, std::size_t triangleCount,
-                                 std::size_t vertexBufferBytes, std::size_t indexBufferBytes) const;
+                                 std::size_t vertexBufferBytes, std::size_t indexBufferBytes,
+                                 std::size_t imageTextureCount,
+                                 std::size_t imageTextureBytes) const;
     std::string meshPreparationTraceMessage(std::chrono::nanoseconds elapsed,
                                             std::size_t triangleCount) const;
 
