@@ -7,8 +7,11 @@
 #include "engine/graph/WireframePassState.h"
 
 #include <algorithm>
+#include <cctype>
+#include <cstddef>
 #include <memory>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -439,10 +442,11 @@ namespace engine::graph {
     const RenderTargetSpec target = rawTarget.normalized();
     const RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
     frameIntent.requireWholeFrameOnly("RenderGraphCompiler");
-    frameIntent.requireNoSubviews("RenderGraphCompiler");
 
     if (frameIntent.defaultViewMode == RenderViewMode::StencilComposite) {
-      return compileStencilCompositeView(target, frameIntent);
+      RenderPlan plan = compileStencilCompositeView(target, frameIntent);
+      addSubviewBranches(plan, target, frameIntent, sceneAnalysis);
+      return plan;
     }
 
     const RenderExecutorKind executor = frameIntent.defaultExecutorKind();
@@ -455,6 +459,7 @@ namespace engine::graph {
       RenderPlan plan =
         this->aovViewPlan(target, executor, *aov, frameIntent.defaultSceneView(), frameIntent);
       addAuxiliaryAOVExports(plan, target, executor, frameIntent);
+      addSubviewBranches(plan, target, frameIntent, sceneAnalysis);
       return plan;
     }
 
@@ -567,7 +572,136 @@ namespace engine::graph {
     }
 
     addAuxiliaryAOVExports(plan, target, executor, frameIntent);
+    addSubviewBranches(plan, target, frameIntent, sceneAnalysis);
 
     return plan;
+  }
+
+  void RenderGraphCompiler::addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,
+                                               const RenderIntent& intent,
+                                               const RenderSceneAnalysis& sceneAnalysis) const {
+    std::set<std::string> usedPrefixes;
+    for (std::size_t i = 0; i != intent.subviews.size(); ++i) {
+      const RenderSubviewIntent& subview = intent.subviews[i];
+      if (!subview.view.selector.selectsWholeFrame()) {
+        throw std::runtime_error(
+          "RenderGraphCompiler does not support selector-specific render-to-texture subviews yet "
+          "(" +
+          subview.view.selector.displayText() + ")");
+      }
+
+      RenderIntent subIntent = subviewRenderIntent(intent, subview);
+      RenderPlan branch = compile(target, subIntent, sceneAnalysis);
+      const std::string prefix = subviewPrefix(subview, i, usedPrefixes);
+      const std::string displayName = subviewDisplayName(subview, i);
+      RenderPlan prefixed = prefixedSubviewPlan(branch, prefix, displayName);
+
+      for (const auto& resource : prefixed.resources()) {
+        plan.addResource(resource);
+      }
+      for (const auto& pass : prefixed.passes()) {
+        plan.addPass(pass);
+      }
+    }
+  }
+
+  RenderIntent RenderGraphCompiler::subviewRenderIntent(const RenderIntent& frameIntent,
+                                                        const RenderSubviewIntent& subview) const {
+    RenderIntent result;
+    result.defaultExecutor = subview.view.executor.value_or(frameIntent.defaultExecutor);
+    result.defaultViewMode = subview.view.viewMode.value_or(frameIntent.defaultViewMode);
+    result.defaultShadingProfile =
+      subview.view.shadingProfile.value_or(frameIntent.defaultShadingProfile);
+    result.defaultCamera = subview.view.camera ? subview.view.camera : frameIntent.defaultCamera;
+    result.enableAutomaticFeatures = frameIntent.enableAutomaticFeatures;
+    result.enablePreviewShadows = frameIntent.enablePreviewShadows;
+    result.postProcessAA = frameIntent.postProcessAA;
+    result.engineOptions = subview.resolvedEngineOptions(frameIntent.engineOptions);
+    return result;
+  }
+
+  RenderPlan RenderGraphCompiler::prefixedSubviewPlan(const RenderPlan& branch,
+                                                      const std::string& prefix,
+                                                      const std::string& displayName) const {
+    RenderPlan result;
+    for (auto resource : branch.resources()) {
+      resource.id = prefixedResourceId(prefix, resource.id);
+      resource.name = displayName + " " + resource.name;
+      resource.addFeature("subview");
+      resource.addFeature("render_to_texture");
+      result.addResource(std::move(resource));
+    }
+
+    for (auto pass : branch.passes()) {
+      pass.id = prefixedPassId(prefix, pass.id);
+      pass.name = displayName + " " + pass.name;
+      addFeature(pass, "subview");
+      addFeature(pass, "render_to_texture");
+      for (auto& read : pass.reads) {
+        read.resource = prefixedResourceId(prefix, read.resource);
+      }
+      for (auto& write : pass.writes) {
+        write.resource = prefixedResourceId(prefix, write.resource);
+      }
+      result.addPass(std::move(pass));
+    }
+    return result;
+  }
+
+  std::string RenderGraphCompiler::subviewPrefix(const RenderSubviewIntent& subview,
+                                                 std::size_t index,
+                                                 std::set<std::string>& usedPrefixes) const {
+    const std::string sanitized = sanitizeSubviewIdentifier(subview.name);
+    const std::string base =
+      "subview_" + (sanitized.empty() ? std::to_string(index + 1) : sanitized);
+    std::string prefix = base + "_";
+    std::size_t suffix = 2;
+    while (!usedPrefixes.insert(prefix).second) {
+      prefix = base + "_" + std::to_string(suffix++) + "_";
+    }
+    return prefix;
+  }
+
+  std::string RenderGraphCompiler::subviewDisplayName(const RenderSubviewIntent& subview,
+                                                      std::size_t index) const {
+    if (!subview.name.empty()) {
+      return "Subview " + subview.name;
+    }
+    return "Subview " + std::to_string(index + 1);
+  }
+
+  std::string RenderGraphCompiler::sanitizeSubviewIdentifier(const std::string& name) const {
+    std::string result;
+    result.reserve(name.size());
+    bool lastWasUnderscore = true;
+    for (unsigned char ch : name) {
+      if (std::isalnum(ch)) {
+        result.push_back(static_cast<char>(std::tolower(ch)));
+        lastWasUnderscore = false;
+      } else if (!lastWasUnderscore) {
+        result.push_back('_');
+        lastWasUnderscore = true;
+      }
+    }
+    if (!result.empty() && result.back() == '_') {
+      result.pop_back();
+    }
+    return result;
+  }
+
+  RenderResourceId RenderGraphCompiler::prefixedResourceId(const std::string& prefix,
+                                                           const RenderResourceId& id) const {
+    return prefix + id;
+  }
+
+  RenderPassId RenderGraphCompiler::prefixedPassId(const std::string& prefix,
+                                                   const RenderPassId& id) const {
+    return prefix + id;
+  }
+
+  void RenderGraphCompiler::addFeature(RenderPassNode& pass, RenderFeatureKind feature) const {
+    if (std::find(pass.features.begin(), pass.features.end(), feature) == pass.features.end()) {
+      pass.features.push_back(std::move(feature));
+    }
   }
 }

@@ -37,6 +37,7 @@ set(dot_plan "${TEST_OUTPUT_DIR}/graph.dot")
 set(intent_plan "${TEST_OUTPUT_DIR}/graph-intent.txt")
 set(intent_view_plan "${TEST_OUTPUT_DIR}/graph-intent-view.txt")
 set(intent_view_override_plan "${TEST_OUTPUT_DIR}/graph-intent-view-override.txt")
+set(subview_plan "${TEST_OUTPUT_DIR}/graph-subview.json")
 set(depth_view_render "${TEST_OUTPUT_DIR}/graph-depth-view.png")
 set(raster_depth_view_render "${TEST_OUTPUT_DIR}/graph-raster-depth-view.png")
 set(raster_depth_view_plan "${TEST_OUTPUT_DIR}/graph-raster-depth-view.json")
@@ -1238,13 +1239,24 @@ rendercli_expect_failure(
     "${selector_specific_intent_scene}" "${invalid_plan}"
 )
 
-rendercli_expect_failure(
-  NAME "rendercli rejects unsupported subview scene intent"
-  STDERR_MATCHES "render-to-texture subviews.*mirror_probe"
+rendercli_run(
+  NAME "rendercli exports scene subview render graph"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format json
-    "${subview_intent_scene}" "${invalid_plan}"
+    --width 32 --height 16
+    "${subview_intent_scene}" "${subview_plan}"
 )
+rendercli_assert_nonempty("${subview_plan}" NAME "scene subview graph output")
+file(READ "${subview_plan}" subview_graph)
+if(NOT subview_graph MATCHES "subview_mirror_probe_raster_beauty")
+  message(FATAL_ERROR "scene subview intent did not compile a raster branch: ${subview_graph}")
+endif()
+if(NOT subview_graph MATCHES "subview_mirror_probe_main_color")
+  message(FATAL_ERROR "scene subview intent did not export a subview color: ${subview_graph}")
+endif()
+if(NOT subview_graph MATCHES "render_to_texture")
+  message(FATAL_ERROR "scene subview intent did not mark render-to-texture features: ${subview_graph}")
+endif()
 
 rendercli_expect_failure(
   NAME "rendercli rejects unsupported selector-specific CLI intent"

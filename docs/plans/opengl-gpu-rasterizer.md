@@ -432,6 +432,9 @@ Tasks:
 - Use OpenGL executor only for the raster passes inside those compiled
   sequences.
 - Add graph resources for offscreen color/depth inputs sampled by later passes.
+  ✅ **Partial.** Whole-scene subview intent now expands into independent
+  prefixed offscreen color branches with exported graph resources. Sampling
+  those resources from later portal/mirror/material passes remains TODO.
 - Bound recursion explicitly in render intent/graph compilation.
 
 Acceptance:

@@ -4,6 +4,7 @@
 #include "engine/graph/RenderSceneAnalysis.h"
 
 #include <string>
+#include <set>
 #include <vector>
 
 namespace engine::graph {
@@ -90,5 +91,20 @@ namespace engine::graph {
                                 RenderExecutorKind executor, const RenderIntent& intent) const;
     RenderPlan compileStencilCompositeView(const RenderTargetSpec& target,
                                            const RenderIntent& intent) const;
+    void addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,
+                            const RenderIntent& intent,
+                            const RenderSceneAnalysis& sceneAnalysis) const;
+    RenderIntent subviewRenderIntent(const RenderIntent& frameIntent,
+                                     const RenderSubviewIntent& subview) const;
+    RenderPlan prefixedSubviewPlan(const RenderPlan& branch, const std::string& prefix,
+                                   const std::string& displayName) const;
+    std::string subviewPrefix(const RenderSubviewIntent& subview, std::size_t index,
+                              std::set<std::string>& usedPrefixes) const;
+    std::string subviewDisplayName(const RenderSubviewIntent& subview, std::size_t index) const;
+    std::string sanitizeSubviewIdentifier(const std::string& name) const;
+    RenderResourceId prefixedResourceId(const std::string& prefix,
+                                        const RenderResourceId& id) const;
+    RenderPassId prefixedPassId(const std::string& prefix, const RenderPassId& id) const;
+    void addFeature(RenderPassNode& pass, RenderFeatureKind feature) const;
   };
 }

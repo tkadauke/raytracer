@@ -591,23 +591,64 @@ namespace RenderGraphCompilerTest {
     }
   }
 
-  TEST(RenderGraphCompiler, RejectsSubviewIntentsUntilRenderToTextureExists) {
+  TEST(RenderGraphCompiler, CompilesSubviewIntentAsPrefixedRenderToTextureBranch) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.engineOptions.rasterizer().setMSAASamples(4);
+
+    RenderSubviewIntent subview;
+    subview.name = "mirror probe";
+    subview.view.selector = SceneSelector::all();
+    subview.view.executor = RenderExecutorPreference::Rasterizer;
+    subview.view.camera = RenderCameraRef{"mirror-camera", std::nullopt};
+    subview.view.engineOptions.rasterizer().setMSAASamples(2);
+    intent.subviews.push_back(subview);
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_NE(nullptr, plan.findPass("subview_mirror_probe_raster_beauty"));
+    ASSERT_NE(nullptr, plan.findPass("subview_mirror_probe_tonemap"));
+    ASSERT_NE(nullptr, plan.findResource("subview_mirror_probe_beauty_color"));
+    const auto* output = plan.findResource("subview_mirror_probe_main_color");
+    ASSERT_NE(nullptr, output);
+    EXPECT_EQ(RenderResourceLifetime::Exported, output->lifetime);
+    EXPECT_TRUE(output->hasFeature("subview"));
+    EXPECT_TRUE(output->hasFeature("render_to_texture"));
+
+    const auto* subviewBeauty = plan.findPass("subview_mirror_probe_raster_beauty");
+    ASSERT_NE(nullptr, subviewBeauty);
+    EXPECT_TRUE(hasFeature(*subviewBeauty, "subview"));
+    EXPECT_TRUE(hasFeature(*subviewBeauty, "render_to_texture"));
+    ASSERT_TRUE(subviewBeauty->sceneView.camera.has_value());
+    ASSERT_TRUE(subviewBeauty->sceneView.camera->sceneCameraId.has_value());
+    EXPECT_EQ("mirror-camera", *subviewBeauty->sceneView.camera->sceneCameraId);
+    ASSERT_NE(nullptr, subviewBeauty->state);
+    const auto state = subviewBeauty->state->toJson();
+    EXPECT_EQ(2, state.value("sampling").toObject().value("msaaSamples").toInt());
+
+    EXPECT_TRUE(plan.resourceCanReach("subview_mirror_probe_beauty_color",
+                                      "subview_mirror_probe_main_color"));
+    EXPECT_FALSE(plan.resourceCanReach("subview_mirror_probe_main_color", "main_color"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, RejectsSubviewSelectorsUntilScenePartitioningExists) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
 
     RenderSubviewIntent subview;
-    subview.name = "mirror_probe";
-    subview.view.selector = SceneSelector::all();
+    subview.name = "monitor feed";
+    subview.view.selector = SceneSelector::objectName("Monitor");
     subview.view.executor = RenderExecutorPreference::Rasterizer;
     intent.subviews.push_back(subview);
 
     try {
       compiler.compile({64, 32, 1}, intent);
-      FAIL() << "Expected subview graph compilation rejection";
+      FAIL() << "Expected selector-specific subview graph compilation rejection";
     } catch (const std::runtime_error& error) {
       const std::string message = error.what();
-      EXPECT_NE(std::string::npos, message.find("render-to-texture subviews"));
-      EXPECT_NE(std::string::npos, message.find("mirror_probe"));
+      EXPECT_NE(std::string::npos, message.find("selector-specific render-to-texture subviews"));
+      EXPECT_NE(std::string::npos, message.find("object_name: Monitor"));
     }
   }
 

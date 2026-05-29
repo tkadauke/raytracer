@@ -320,11 +320,13 @@ sampler/samples/view-plane/recursion settings, raster sampling/framebuffer/
 shadow settings, and wireframe LOD are stored as typed `RenderEngineOptions`.
 The compiler resolves those options into typed payload state on the nodes it
 synthesizes. Subviews use the same view-override option fields to inherit the
-global engine options or provide their own override block, which keeps future
+global engine options or provide their own override block, which keeps
 render-to-texture quality controls in the same model without asking users to
-directly author graph nodes. Current graph compilation rejects subview intents
-with a clear diagnostic until it can synthesize the necessary offscreen
-resources, alternate cameras, and composites.
+directly author graph nodes. Whole-scene subview intents now compile into
+prefixed offscreen color branches with exported graph resources for inspection.
+Selector-specific subviews still fail clearly until scene partitioning can
+drive those branches safely; alternate-camera execution and final composites
+remain TODO.
 The effective default camera is carried on synthesized scene-rendering pass
 `SceneView` records and serialized in exported plan JSON, even though current
 executors still render with the engine's active camera until alternate-camera
@@ -1485,7 +1487,9 @@ stencil-marking payload that uses tessellated raster geometry. The compiler can
 also synthesize a `stencil_composite` structural view that renders raster
 beauty, wireframe foreground, a raster stencil AOV, a stencil composite pass,
 and tonemap from scene intent, and the Modeler ships with a loadable scene for
-that path. Portal/mirror pass synthesis, alternate-camera rendering, and
+that path. Whole-scene render-to-texture subviews now compile into independent
+prefixed offscreen color branches for graph inspection. Portal/mirror pass
+synthesis, alternate-camera rendering, subview sampling/composition, and
 selector-derived stencil masks remain TODO.
 
 ### AOV exports
