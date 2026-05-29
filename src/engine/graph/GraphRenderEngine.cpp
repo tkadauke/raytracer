@@ -11,6 +11,7 @@
 #include "core/math/BoundingBox.h"
 #include "render/cameras/Camera.h"
 #include "render/lights/Light.h"
+#include "render/materials/Material.h"
 #include "render/primitives/Scene.h"
 #include "render/tonemap/LinearTonemap.h"
 #include "render/tonemap/Tonemap.h"
@@ -207,6 +208,21 @@ namespace engine::graph {
       out << name << '=' << vector.x() << ',' << vector.y() << ',' << vector.z() << ';';
     }
 
+    template<int Dimensions, class T, class VectorType, class Derived>
+    void writeMatrixFingerprint(std::ostream& out, const std::string& name,
+                                const Matrix<Dimensions, T, VectorType, Derived>& matrix) {
+      out << name << '=';
+      for (int row = 0; row != Dimensions; ++row) {
+        for (int col = 0; col != Dimensions; ++col) {
+          if (row != 0 || col != 0) {
+            out << ',';
+          }
+          out << matrix[row][col];
+        }
+      }
+      out << ';';
+    }
+
     void writeBoundingBoxFingerprint(std::ostream& out, const BoundingBoxd& bounds) {
       out << "bounds.valid=" << bounds.isValid() << ';'
           << "bounds.undefined=" << bounds.isUndefined() << ';'
@@ -215,6 +231,18 @@ namespace engine::graph {
         writeVectorFingerprint(out, "bounds.min", bounds.min());
         writeVectorFingerprint(out, "bounds.max", bounds.max());
       }
+    }
+
+    void writeMaterialCullingFingerprint(std::ostream& out,
+                                         const std::shared_ptr<render::Material>& material,
+                                         const std::string& prefix) {
+      if (!material) {
+        out << prefix << "material=null;";
+        return;
+      }
+
+      out << prefix << "material.ptr=" << material.get() << ';' << prefix
+          << "material.sidedness=" << static_cast<int>(material->sidedness()) << ';';
     }
 
     void writeLightFingerprint(std::ostream& out, const std::shared_ptr<render::Light>& light,
@@ -256,6 +284,27 @@ namespace engine::graph {
       }
     }
 
+    void writeSceneGeometryFingerprint(std::ostream& out, const GraphRenderEngine& graph) {
+      if (auto scene = graph.scene()) {
+        out << "scene.ptr=" << scene.get() << ';';
+        writeBoundingBoxFingerprint(out, scene->boundingBox());
+
+        std::size_t leafIndex = 0;
+        static_cast<const render::Primitive&>(*scene).forEachTransformedLeaf(
+          [&](const render::Primitive::TransformedLeaf& leaf) {
+            const std::string prefix = "leaf[" + std::to_string(leafIndex++) + "].";
+            out << prefix << "primitive.ptr=" << leaf.primitive << ';';
+            writeMaterialCullingFingerprint(out, leaf.material, prefix);
+            writeBoundingBoxFingerprint(out, leaf.boundingBox());
+            writeMatrixFingerprint(out, prefix + "pointMatrix", leaf.pointMatrix);
+            writeMatrixFingerprint(out, prefix + "normalMatrix", leaf.normalMatrix);
+          });
+        out << "scene.leaves=" << leafIndex << ';';
+      } else {
+        out << "scene=null;";
+      }
+    }
+
     void writeDisplayFingerprint(std::ostream& out, const GraphRenderEngine& graph) {
       writeColorFingerprint(out, "engine.background", graph.backgroundColor());
       if (auto tonemap = graph.tonemap()) {
@@ -279,6 +328,14 @@ namespace engine::graph {
       out << std::setprecision(17);
       writeCameraFingerprint(out, graph);
       writeSceneFingerprint(out, graph);
+      return out.str();
+    }
+
+    std::string visibilityCacheInputFingerprintFor(const GraphRenderEngine& graph) {
+      std::ostringstream out;
+      out << std::setprecision(17);
+      writeCameraFingerprint(out, graph);
+      writeSceneGeometryFingerprint(out, graph);
       return out.str();
     }
 
@@ -764,6 +821,10 @@ namespace engine::graph {
   std::string GraphRenderEngine::cacheInputFingerprintForPass(const RenderPassNode& pass) const {
     if (pass.kind == RenderPassKind::Shadow && pass.executor == RenderExecutorKind::Rasterizer) {
       return shadowCacheInputFingerprintFor(*this);
+    }
+    if (pass.kind == RenderPassKind::Visibility &&
+        pass.executor == RenderExecutorKind::Rasterizer) {
+      return visibilityCacheInputFingerprintFor(*this);
     }
     return executionInputFingerprint();
   }

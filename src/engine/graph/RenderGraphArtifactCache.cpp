@@ -23,7 +23,7 @@ namespace engine::graph {
     auto keyFields(const RenderGraphCacheKey& key) {
       const auto& descriptor = key.descriptor();
       return std::tie(key.producerPassId(), key.resourceId(), descriptor.name, descriptor.type,
-                      descriptor.format, descriptor.width, descriptor.height,
+                      descriptor.features, descriptor.format, descriptor.width, descriptor.height,
                       descriptor.sampleCount, descriptor.domain, descriptor.lifetime,
                       key.producerStateFingerprint(), key.inputFingerprint());
     }

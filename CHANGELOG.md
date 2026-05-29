@@ -68,6 +68,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   material callback handle, and `render::Integrator` as the transport-policy
   boundary future path tracers will implement; this documents the preserved
   default Whitted behavior and does not add path tracing. — GPT-5
+- **Raster visibility-set artifact cache.** Graph visibility culling now stores
+  visibility-set artifacts in the shared graph cache, reports stored/hit status
+  in traces, and keys reuse on pass state, target shape, camera, and
+  transformed scene geometry rather than display-only settings. — GPT-5
 - **Render graph resource feature annotations.** Graph resource descriptors can
   now carry feature tags, and the raster visibility-set resource exports its
   visibility/culling/rasterizer purpose in JSON, text, DOT, and the Modeler

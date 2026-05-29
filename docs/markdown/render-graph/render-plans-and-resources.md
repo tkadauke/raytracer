@@ -684,7 +684,11 @@ same explicit visibility edge. Because visibility sets are not image
 resources, graph trace snapshots do not show an input/output preview image for
 them; instead the metadata-only reason summarizes leaf counts, rejection
 reasons, tile coverage, and tile depth summaries so selecting the resource is
-still useful.
+still useful. Visibility-set resources are persistent-cache resources: their
+artifact key uses the pass state, target descriptor, camera fingerprint, and a
+transformed scene-geometry fingerprint. Display-only changes such as tonemap
+switches can therefore reuse the cached set, while camera movement produces a
+different cache entry.
 
 The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
 `RenderIntent::postProcessAA` asks the compiler to insert a `post_fxaa` or

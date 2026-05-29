@@ -259,8 +259,14 @@ Tasks:
   material cullability, and source/import provenance.
 - Invalidate scene-side cache entries when geometry, transform, material,
   visibility, animation frame, or import-generated output changes.
-- Keep camera-dependent culling results per camera/frame/view pass, not global.
-- Expose cache hit/miss metadata in the culling pass trace.
+- ~~Keep camera-dependent culling results per camera/frame/view pass, not
+  global.~~ ✅ **Done.** Raster visibility-set artifacts are cached with the
+  pass state, target descriptor, camera fingerprint, and transformed scene
+  geometry fingerprint, so display-only changes can reuse the culling result
+  while camera moves produce separate entries.
+- ~~Expose cache hit/miss metadata in the culling pass trace.~~ ✅ **Done.**
+  Visibility pass trace messages and resource snapshots now report stored/hit
+  cache status for the graph-owned visibility-set artifact.
 
 Acceptance:
 

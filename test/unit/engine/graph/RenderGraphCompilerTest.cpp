@@ -727,7 +727,7 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(64, visibilityResource->width);
     EXPECT_EQ(64, visibilityResource->height);
     EXPECT_EQ(1, visibilityResource->sampleCount);
-    EXPECT_EQ(RenderResourceLifetime::Transient, visibilityResource->lifetime);
+    EXPECT_EQ(RenderResourceLifetime::PersistentCache, visibilityResource->lifetime);
 
     const auto* beauty = plan.findPass("raster_beauty");
     ASSERT_NE(nullptr, beauty);

@@ -1432,6 +1432,24 @@ namespace engine::graph {
       }
     };
 
+    class RasterVisibilitySetArtifact : public RenderGraphCachedArtifact {
+    public:
+      RasterVisibilitySetArtifact(
+        RenderGraphCacheKey key,
+        std::shared_ptr<const ::engine::raster::RasterVisibilitySet> visibilitySet,
+        std::string description = {})
+          : RenderGraphCachedArtifact(std::move(key), std::move(description)),
+            m_visibilitySet(std::move(visibilitySet)) {
+      }
+
+      std::shared_ptr<const ::engine::raster::RasterVisibilitySet> visibilitySet() const {
+        return m_visibilitySet;
+      }
+
+    private:
+      std::shared_ptr<const ::engine::raster::RasterVisibilitySet> m_visibilitySet;
+    };
+
     class RasterVisibilityCullingPass : public RenderPassPayload {
     public:
       void execute(RenderExecutionContext& context) override {
@@ -1444,9 +1462,24 @@ namespace engine::graph {
 
         const RasterVisibilityPassState state =
           RasterVisibilityPassState::valueFromPass(context.pass());
+        const RenderGraphCacheKey cacheKey = RenderGraphCacheKey::forPassOutput(
+          pass, descriptor, context.graph().cacheInputFingerprintForPass(pass));
+        if (restoreFromCache(context, write.resource, cacheKey, state)) {
+          return;
+        }
+
         const auto visibilitySet = buildVisibilitySet(context, state);
         context.storage().setVisibilitySet(write.resource, visibilitySet);
-        context.recordTraceMessage(traceMessage(*visibilitySet, state));
+        auto artifact = std::make_shared<RasterVisibilitySetArtifact>(cacheKey, visibilitySet,
+                                                                      "raster visibility set");
+        context.storage().resource(write.resource).setArtifact(artifact);
+        context.graph().artifactCache()->store(artifact);
+        context.storage()
+          .resource(write.resource)
+          .setCacheMetadata(
+            {RenderGraphCacheStatus::Stored, "cache miss; stored raster visibility-set artifact"});
+        context.recordTraceMessage(
+          traceMessage(*visibilitySet, state, RenderGraphCacheStatus::Stored));
       }
 
     private:
@@ -1467,6 +1500,34 @@ namespace engine::graph {
       };
 
       static constexpr int TileSize = 32;
+
+      bool restoreFromCache(RenderExecutionContext& context, const RenderResourceId& resourceId,
+                            const RenderGraphCacheKey& cacheKey,
+                            const RasterVisibilityPassState& state) const {
+        auto cached = context.graph().artifactCache()->find(cacheKey);
+        if (!cached) {
+          return false;
+        }
+
+        auto artifact = std::dynamic_pointer_cast<const RasterVisibilitySetArtifact>(cached);
+        if (!artifact || !artifact->visibilitySet()) {
+          context.storage()
+            .resource(resourceId)
+            .setCacheMetadata({RenderGraphCacheStatus::Invalidated,
+                               "cached artifact type did not match the visibility-set resource"});
+          return false;
+        }
+
+        context.storage().setVisibilitySet(resourceId, artifact->visibilitySet());
+        context.storage().resource(resourceId).setArtifact(std::move(artifact));
+        context.storage()
+          .resource(resourceId)
+          .setCacheMetadata(
+            {RenderGraphCacheStatus::Hit, "restored raster visibility-set artifact from cache"});
+        context.recordTraceMessage(traceMessage(*context.storage().visibilitySet(resourceId), state,
+                                                RenderGraphCacheStatus::Hit));
+        return true;
+      }
 
       std::shared_ptr<::engine::raster::RasterVisibilitySet>
       buildVisibilitySet(const RenderExecutionContext& context,
@@ -1745,7 +1806,8 @@ namespace engine::graph {
       }
 
       std::string traceMessage(const ::engine::raster::RasterVisibilitySet& visibilitySet,
-                               const RasterVisibilityPassState& state) const {
+                               const RasterVisibilityPassState& state,
+                               RenderGraphCacheStatus cacheStatus) const {
         const char* ordering = "unsupported";
         if (visibilitySet.hasVisibleLeafOrder()) {
           ordering = "enabled";
@@ -1756,7 +1818,8 @@ namespace engine::graph {
         }
         std::ostringstream out;
         out << "visibility culling produced a CPU visibility set"
-            << "; lod=" << state.geometry().lod() << "; inputLeaves=" << visibilitySet.leafCount()
+            << "; cache=" << toString(cacheStatus) << "; lod=" << state.geometry().lod()
+            << "; inputLeaves=" << visibilitySet.leafCount()
             << "; inputTriangles=" << visibilitySet.inputTriangleCount()
             << "; visibleLeaves=" << visibilitySet.visibleLeafCount()
             << "; visibleTriangles=" << visibilitySet.visibleTriangleCount()

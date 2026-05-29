@@ -160,7 +160,7 @@ namespace engine::graph {
     resource.height = target.height;
     resource.sampleCount = 1;
     resource.domain = RenderResourceDomain::CPU;
-    resource.lifetime = RenderResourceLifetime::Transient;
+    resource.lifetime = RenderResourceLifetime::PersistentCache;
     return resource;
   }
 

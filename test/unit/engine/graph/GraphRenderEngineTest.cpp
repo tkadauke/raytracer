@@ -480,6 +480,7 @@ namespace GraphRenderEngineTest {
     ASSERT_NE(nullptr, visibilityTrace);
     EXPECT_EQ(RenderPassExecutionStatus::Completed, visibilityTrace->status());
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("CPU visibility set"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("cache=stored"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("lod=0"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("inputLeaves=1"));
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("inputTriangles="));
@@ -525,6 +526,51 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(std::string::npos,
               outputs.front()->unavailableReason().find("frustumRejectedLeaves=1"));
     EXPECT_NE(std::string::npos, outputs.front()->unavailableReason().find("tileGrid=1x1"));
+  }
+
+  TEST(GraphRenderEngine, RasterVisibilityCullingReusesVisibilitySetArtifactCache) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
+
+    auto cam = camera();
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(cam, visibleAndOffscreenBoxScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    auto outputs = trace->outputSnapshotsForResource("raster_visibility_set");
+    ASSERT_EQ(1u, outputs.size());
+    EXPECT_EQ(RenderGraphCacheStatus::Stored, outputs.front()->cacheMetadata().status());
+    EXPECT_EQ(1u, engine.artifactCache()->size());
+
+    engine.setTonemap(std::make_shared<render::ReinhardTonemap>());
+    engine.render(buffer);
+
+    trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* visibilityTrace = trace->findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibilityTrace);
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("cache=hit"));
+    outputs = trace->outputSnapshotsForResource("raster_visibility_set");
+    ASSERT_EQ(1u, outputs.size());
+    EXPECT_EQ(RenderGraphCacheStatus::Hit, outputs.front()->cacheMetadata().status());
+    EXPECT_EQ(1u, engine.artifactCache()->size());
+
+    cam->setPosition(Vector3d(0.25, 0.0, -5.0));
+    engine.render(buffer);
+
+    trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    outputs = trace->outputSnapshotsForResource("raster_visibility_set");
+    ASSERT_EQ(1u, outputs.size());
+    EXPECT_EQ(RenderGraphCacheStatus::Stored, outputs.front()->cacheMetadata().status());
+    EXPECT_EQ(2u, engine.artifactCache()->size());
   }
 
   TEST(GraphRenderEngine, KeepsPartiallyClippedVisibilityLeavesUncertain) {
