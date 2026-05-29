@@ -43,9 +43,12 @@ namespace engine::raster::detail {
       float u{0.0f};
       float v{0.0f};
       float alphaScale{1.0f};
-      float lightR{1.0f};
-      float lightG{1.0f};
-      float lightB{1.0f};
+      float ambientR{1.0f};
+      float ambientG{1.0f};
+      float ambientB{1.0f};
+      float directR{0.0f};
+      float directG{0.0f};
+      float directB{0.0f};
       float specularR{0.0f};
       float specularG{0.0f};
       float specularB{0.0f};
@@ -99,8 +102,9 @@ namespace engine::raster::detail {
     OpenGLRasterMesh::Vertex vertexFor(const RasterTriangle& triangle,
                                        const RasterVertex& vertex) const;
     Vector3d lightingNormalFor(const RasterTriangle& triangle, const RasterVertex& vertex) const;
-    Colord lightingFor(const RasterTriangle& triangle, const RasterVertex& vertex,
-                       const Vector3d& normal) const;
+    Colord ambientLightingFor(const RasterTriangle& triangle) const;
+    Colord directLightingFor(const RasterTriangle& triangle, const RasterVertex& vertex,
+                             const Vector3d& normal) const;
     Colord specularFor(const RasterTriangle& triangle, const RasterVertex& vertex,
                        const Vector3d& normal) const;
     double visibilityFor(const render::Light& light, const RasterVertex& vertex,

@@ -140,7 +140,8 @@ namespace engine::raster::detail {
     const double alpha = triangle.rasterMaterial.alpha(
       triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
     const Vector3d normal = lightingNormalFor(triangle, vertex);
-    const Colord lighting = lightingFor(triangle, vertex, normal);
+    const Colord ambientLighting = ambientLightingFor(triangle);
+    const Colord directLighting = directLightingFor(triangle, vertex, normal);
     const Colord specular = specularFor(triangle, vertex, normal);
     const RasterAlbedoShaderSource shaderSource = triangle.rasterMaterial.shaderAlbedoSource();
     return {normalizedDeviceX(vertex.x, m_viewportRect),
@@ -154,9 +155,12 @@ namespace engine::raster::detail {
             static_cast<float>(vertex.uv.x()),
             static_cast<float>(vertex.uv.y()),
             static_cast<float>(std::clamp(triangle.rasterMaterial.materialAlpha(), 0.0, 1.0)),
-            nonnegativeComponent(lighting.r()),
-            nonnegativeComponent(lighting.g()),
-            nonnegativeComponent(lighting.b()),
+            nonnegativeComponent(ambientLighting.r()),
+            nonnegativeComponent(ambientLighting.g()),
+            nonnegativeComponent(ambientLighting.b()),
+            nonnegativeComponent(directLighting.r()),
+            nonnegativeComponent(directLighting.g()),
+            nonnegativeComponent(directLighting.b()),
             nonnegativeComponent(specular.r()),
             nonnegativeComponent(specular.g()),
             nonnegativeComponent(specular.b()),
@@ -171,14 +175,21 @@ namespace engine::raster::detail {
                                                   triangle.tangentFrame);
   }
 
-  Colord OpenGLRasterMeshBuilder::lightingFor(const RasterTriangle& triangle,
-                                              const RasterVertex& vertex,
-                                              const Vector3d& normal) const {
+  Colord OpenGLRasterMeshBuilder::ambientLightingFor(const RasterTriangle& triangle) const {
     if (!m_scene) {
       return Colord::white();
     }
+    return m_scene->ambient() * triangle.rasterMaterial.ambientCoefficient();
+  }
 
-    Colord lighting = m_scene->ambient() * triangle.rasterMaterial.ambientCoefficient();
+  Colord OpenGLRasterMeshBuilder::directLightingFor(const RasterTriangle& triangle,
+                                                    const RasterVertex& vertex,
+                                                    const Vector3d& normal) const {
+    if (!m_scene) {
+      return Colord::black();
+    }
+
+    Colord lighting = Colord::black();
     for (const auto& light : m_scene->lights()) {
       const Vector3d lightDir = light->direction(vertex.point);
       const double nDotL = std::max(0.0, normal * lightDir);

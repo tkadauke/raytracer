@@ -218,9 +218,12 @@ namespace OpenGLRasterMeshTest {
     ASSERT_FALSE(mesh.empty());
     ASSERT_EQ(3u, mesh.vertices().size());
     for (const auto& vertex : mesh.vertices()) {
-      EXPECT_FLOAT_EQ(0.75f, vertex.lightR);
-      EXPECT_FLOAT_EQ(0.75f, vertex.lightG);
-      EXPECT_FLOAT_EQ(0.75f, vertex.lightB);
+      EXPECT_FLOAT_EQ(0.25f, vertex.ambientR);
+      EXPECT_FLOAT_EQ(0.5f, vertex.ambientG);
+      EXPECT_FLOAT_EQ(0.75f, vertex.ambientB);
+      EXPECT_FLOAT_EQ(0.5f, vertex.directR);
+      EXPECT_FLOAT_EQ(0.25f, vertex.directG);
+      EXPECT_FLOAT_EQ(0.0f, vertex.directB);
     }
   }
 
@@ -255,9 +258,12 @@ namespace OpenGLRasterMeshTest {
     ASSERT_FALSE(mesh.empty());
     ASSERT_EQ(3u, mesh.vertices().size());
     for (const auto& vertex : mesh.vertices()) {
-      EXPECT_FLOAT_EQ(0.25f, vertex.lightR);
-      EXPECT_FLOAT_EQ(0.25f, vertex.lightG);
-      EXPECT_FLOAT_EQ(0.25f, vertex.lightB);
+      EXPECT_FLOAT_EQ(0.25f, vertex.ambientR);
+      EXPECT_FLOAT_EQ(0.25f, vertex.ambientG);
+      EXPECT_FLOAT_EQ(0.25f, vertex.ambientB);
+      EXPECT_FLOAT_EQ(0.0f, vertex.directR);
+      EXPECT_FLOAT_EQ(0.0f, vertex.directG);
+      EXPECT_FLOAT_EQ(0.0f, vertex.directB);
     }
   }
 
@@ -285,7 +291,8 @@ namespace OpenGLRasterMeshTest {
     ASSERT_FALSE(mesh.empty());
     ASSERT_EQ(3u, mesh.vertices().size());
     for (const auto& vertex : mesh.vertices()) {
-      EXPECT_FLOAT_EQ(0.0f, vertex.lightR);
+      EXPECT_FLOAT_EQ(0.0f, vertex.ambientR);
+      EXPECT_FLOAT_EQ(0.0f, vertex.directR);
       EXPECT_GT(vertex.specularR, 0.0f);
       EXPECT_GT(vertex.specularG, vertex.specularR);
       EXPECT_GT(vertex.specularB, vertex.specularG);

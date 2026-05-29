@@ -209,13 +209,15 @@ namespace engine::raster {
                                              "attribute vec4 color;\n"
                                              "attribute vec2 uv;\n"
                                              "attribute float alphaScale;\n"
-                                             "attribute vec3 lighting;\n"
+                                             "attribute vec3 ambientLighting;\n"
+                                             "attribute vec3 directLighting;\n"
                                              "attribute vec3 specular;\n"
                                              "attribute float albedoMode;\n"
                                              "varying vec4 vertexColor;\n"
                                              "varying vec2 vertexUV;\n"
                                              "varying float fragmentAlphaScale;\n"
-                                             "varying vec3 fragmentLighting;\n"
+                                             "varying vec3 fragmentAmbientLighting;\n"
+                                             "varying vec3 fragmentDirectLighting;\n"
                                              "varying vec3 fragmentSpecular;\n"
                                              "varying float fragmentAlbedoMode;\n"
                                              "void main() {\n"
@@ -224,7 +226,8 @@ namespace engine::raster {
                                              "  vertexColor = color;\n"
                                              "  vertexUV = uv;\n"
                                              "  fragmentAlphaScale = alphaScale;\n"
-                                             "  fragmentLighting = lighting;\n"
+                                             "  fragmentAmbientLighting = ambientLighting;\n"
+                                             "  fragmentDirectLighting = directLighting;\n"
                                              "  fragmentSpecular = specular;\n"
                                              "  fragmentAlbedoMode = albedoMode;\n"
                                              "}\n")) {
@@ -235,7 +238,8 @@ namespace engine::raster {
               QOpenGLShader::Fragment, "varying vec4 vertexColor;\n"
                                        "varying vec2 vertexUV;\n"
                                        "varying float fragmentAlphaScale;\n"
-                                       "varying vec3 fragmentLighting;\n"
+                                       "varying vec3 fragmentAmbientLighting;\n"
+                                       "varying vec3 fragmentDirectLighting;\n"
                                        "varying vec3 fragmentSpecular;\n"
                                        "varying float fragmentAlbedoMode;\n"
                                        "uniform bool alphaTestEnabled;\n"
@@ -291,7 +295,8 @@ namespace engine::raster {
                                        "sourceColor.g), sourceColor.b) * "
                                        "fragmentAlphaScale;\n"
                                        "  }\n"
-                                       "  sourceColor.rgb = sourceColor.rgb * fragmentLighting + "
+                                       "  sourceColor.rgb = sourceColor.rgb * "
+                                       "(fragmentAmbientLighting + fragmentDirectLighting) + "
                                        "fragmentSpecular;\n"
                                        "  if (!alphaPass(sourceColor.a)) discard;\n"
                                        "  gl_FragColor = sourceColor;\n"
@@ -331,11 +336,13 @@ namespace engine::raster {
         const int colorLocation = program.attributeLocation("color");
         const int uvLocation = program.attributeLocation("uv");
         const int alphaScaleLocation = program.attributeLocation("alphaScale");
-        const int lightingLocation = program.attributeLocation("lighting");
+        const int ambientLightingLocation = program.attributeLocation("ambientLighting");
+        const int directLightingLocation = program.attributeLocation("directLighting");
         const int specularLocation = program.attributeLocation("specular");
         const int albedoModeLocation = program.attributeLocation("albedoMode");
         if (positionLocation < 0 || colorLocation < 0 || uvLocation < 0 || alphaScaleLocation < 0 ||
-            lightingLocation < 0 || specularLocation < 0 || albedoModeLocation < 0) {
+            ambientLightingLocation < 0 || directLightingLocation < 0 || specularLocation < 0 ||
+            albedoModeLocation < 0) {
           indexBuffer.release();
           vertexBuffer.release();
           program.release();
@@ -358,9 +365,13 @@ namespace engine::raster {
         program.setAttributeBuffer(alphaScaleLocation, GL_FLOAT,
                                    offsetof(detail::OpenGLRasterMesh::Vertex, alphaScale), 1,
                                    sizeof(detail::OpenGLRasterMesh::Vertex));
-        program.enableAttributeArray(lightingLocation);
-        program.setAttributeBuffer(lightingLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, lightR), 3,
+        program.enableAttributeArray(ambientLightingLocation);
+        program.setAttributeBuffer(ambientLightingLocation, GL_FLOAT,
+                                   offsetof(detail::OpenGLRasterMesh::Vertex, ambientR), 3,
+                                   sizeof(detail::OpenGLRasterMesh::Vertex));
+        program.enableAttributeArray(directLightingLocation);
+        program.setAttributeBuffer(directLightingLocation, GL_FLOAT,
+                                   offsetof(detail::OpenGLRasterMesh::Vertex, directR), 3,
                                    sizeof(detail::OpenGLRasterMesh::Vertex));
         program.enableAttributeArray(specularLocation);
         program.setAttributeBuffer(specularLocation, GL_FLOAT,
@@ -404,7 +415,8 @@ namespace engine::raster {
 
         program.disableAttributeArray(albedoModeLocation);
         program.disableAttributeArray(specularLocation);
-        program.disableAttributeArray(lightingLocation);
+        program.disableAttributeArray(directLightingLocation);
+        program.disableAttributeArray(ambientLightingLocation);
         program.disableAttributeArray(alphaScaleLocation);
         program.disableAttributeArray(uvLocation);
         program.disableAttributeArray(colorLocation);

@@ -326,6 +326,10 @@ Tasks:
   artifacts and applies their visibility while preparing the lit mesh stream, so
   shadow-enabled raster plans no longer render as fully unshadowed on the GPU
   backend.
+- ~~Separate ambient and direct lighting terms in the OpenGL mesh stream.~~ ✅
+  **Done.** OpenGL vertices now carry ambient and direct-light factors
+  separately, leaving the shader with a direct-light channel for later
+  shadow-texture sampling without changing the current image equation.
 - Add shader-side OpenGL shadow-map sampling after the GPU raster path has
   explicit shadow texture binding and shader lighting state.
 
