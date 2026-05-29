@@ -52,6 +52,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **OpenGL raster shader program is cached across renders.** `OpenGLRasterizer`
+  now owns a `detail::OpenGLRasterResourceCache` that holds the offscreen
+  context and the linked GLSL program (with attribute slot indices) across
+  `render()` calls. First render compiles + links; subsequent renders skip
+  shader compilation entirely. — Claude Opus 4.7
 - **`Buffer<T>::countDifferences(other, predicate)`.** Tests that need to
   diff two buffers (CPU↔GPU parity comparisons, pre-/post-mutation render
   checks) now have a single shared helper instead of hand-rolled nested

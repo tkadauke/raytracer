@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "engine/raster/OpenGLOffscreenContext.h"
 #include "engine/raster/detail/OpenGLRasterMesh.h"
+#include "engine/raster/detail/OpenGLRasterResourceCache.h"
 #include "engine/raster/detail/OpenGLRasterShaderSources.h"
 #include "engine/raster/detail/OpenGLShadowSamplingPlan.h"
 #include "engine/raster/detail/OpenGLShadowTextureData.h"
@@ -214,8 +215,8 @@ namespace engine::raster {
     class OpenGLRasterDrawPass {
     public:
       OpenGLRasterDrawPass(
-        OpenGLOffscreenContext& context, int height, const Recti& viewportRect, bool scissorEnabled,
-        const Recti& scissorRect, Rasterizer::AttachmentLoadOp colorLoadOp,
+        detail::OpenGLRasterResourceCache& resources, int height, const Recti& viewportRect,
+        bool scissorEnabled, const Recti& scissorRect, Rasterizer::AttachmentLoadOp colorLoadOp,
         Rasterizer::AttachmentStoreOp colorStoreOp, std::uint8_t colorWriteMask,
         bool blendingEnabled, Rasterizer::BlendFactor sourceBlendFactor,
         Rasterizer::BlendFactor destinationBlendFactor, Rasterizer::BlendOp blendOp,
@@ -230,7 +231,7 @@ namespace engine::raster {
         Rasterizer::StencilOp stencilDepthFailOp, Rasterizer::StencilOp stencilPassOp,
         detail::OpenGLShadowTextureData shadowTextureData, const Vector3d& cameraPosition,
         Rasterizer::CullMode cullMode, bool hasCullModeOverride, const std::atomic<bool>& cancelled)
-          : m_context(context),
+          : m_resources(resources),
             m_height(height),
             m_viewportRect(viewportRect),
             m_scissorEnabled(scissorEnabled),
@@ -274,12 +275,12 @@ namespace engine::raster {
                                        const Colord& background, Buffer<Colord>* target,
                                        Buffer<double>* depthTarget,
                                        Buffer<std::uint8_t>* stencilTarget) {
-        if (!m_context.makeCurrent()) {
-          throw std::runtime_error(m_context.errorMessage());
+        if (!m_resources.context.makeCurrent()) {
+          throw std::runtime_error(m_resources.context.errorMessage());
         }
-        if (!m_context.bindFramebuffer()) {
-          m_context.doneCurrent();
-          throw std::runtime_error(m_context.errorMessage());
+        if (!m_resources.context.bindFramebuffer()) {
+          m_resources.context.doneCurrent();
+          throw std::runtime_error(m_resources.context.errorMessage());
         }
 
         try {
@@ -289,22 +290,22 @@ namespace engine::raster {
             std::chrono::steady_clock::now() - drawStarted);
           const auto readbackStarted = std::chrono::steady_clock::now();
           if (target && m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-            m_context.copyColorTo(*target);
+            m_resources.context.copyColorTo(*target);
           }
           if (depthTarget && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-            m_context.copyDepthTo(*depthTarget);
+            m_resources.context.copyDepthTo(*depthTarget);
           }
           if (stencilTarget && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-            m_context.copyStencilTo(*stencilTarget);
+            m_resources.context.copyStencilTo(*stencilTarget);
           }
           const auto readbackElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - readbackStarted);
-          m_context.releaseFramebuffer();
-          m_context.doneCurrent();
+          m_resources.context.releaseFramebuffer();
+          m_resources.context.doneCurrent();
           return {drawElapsed, readbackElapsed};
         } catch (...) {
-          m_context.releaseFramebuffer();
-          m_context.doneCurrent();
+          m_resources.context.releaseFramebuffer();
+          m_resources.context.doneCurrent();
           throw;
         }
       }
@@ -345,21 +346,8 @@ namespace engine::raster {
         applyScissor(functions);
 
         OpenGLFallbackTexture fallbackTexture(functions);
-        QOpenGLShaderProgram program;
-        if (!program.addShaderFromSourceCode(QOpenGLShader::Vertex,
-                                             detail::kOpenGLRasterVertexShader)) {
-          throw std::runtime_error("OpenGL raster backend could not compile vertex shader: " +
-                                   program.log().toStdString());
-        }
-        if (!program.addShaderFromSourceCode(QOpenGLShader::Fragment,
-                                             detail::kOpenGLRasterFragmentShader)) {
-          throw std::runtime_error("OpenGL raster backend could not compile fragment shader: " +
-                                   program.log().toStdString());
-        }
-        if (!program.link()) {
-          throw std::runtime_error("OpenGL raster backend could not link shader program: " +
-                                   program.log().toStdString());
-        }
+        m_resources.ensureProgram();
+        QOpenGLShaderProgram& program = *m_resources.program;
         if (!program.bind()) {
           throw std::runtime_error("OpenGL raster backend could not bind shader program");
         }
@@ -392,34 +380,21 @@ namespace engine::raster {
         indexBuffer.allocate(mesh.indices().data(),
                              static_cast<int>(mesh.indices().size() * sizeof(std::uint32_t)));
 
-        const int positionLocation = program.attributeLocation("position");
-        const int worldPositionLocation = program.attributeLocation("worldPosition");
-        const int normalLocation = program.attributeLocation("normal");
-        const int colorLocation = program.attributeLocation("color");
-        const int uvLocation = program.attributeLocation("uv");
-        const int alphaScaleLocation = program.attributeLocation("alphaScale");
-        const int materialDiffuseLocation = program.attributeLocation("materialDiffuse");
-        const int materialSpecularColorLocation =
-          program.attributeLocation("materialSpecularColor");
+        const int positionLocation = m_resources.locations.position;
+        const int worldPositionLocation = m_resources.locations.worldPosition;
+        const int normalLocation = m_resources.locations.normal;
+        const int colorLocation = m_resources.locations.color;
+        const int uvLocation = m_resources.locations.uv;
+        const int alphaScaleLocation = m_resources.locations.alphaScale;
+        const int materialDiffuseLocation = m_resources.locations.materialDiffuse;
+        const int materialSpecularColorLocation = m_resources.locations.materialSpecularColor;
         const int materialSpecularCoefficientLocation =
-          program.attributeLocation("materialSpecularCoefficient");
-        const int materialSpecularExponentLocation =
-          program.attributeLocation("materialSpecularExponent");
-        const int ambientLightingLocation = program.attributeLocation("ambientLighting");
-        const int directLightingLocation = program.attributeLocation("directLighting");
-        const int specularLocation = program.attributeLocation("specular");
-        const int albedoModeLocation = program.attributeLocation("albedoMode");
-        if (positionLocation < 0 || worldPositionLocation < 0 || normalLocation < 0 ||
-            colorLocation < 0 || uvLocation < 0 || alphaScaleLocation < 0 ||
-            materialDiffuseLocation < 0 || materialSpecularColorLocation < 0 ||
-            materialSpecularCoefficientLocation < 0 || materialSpecularExponentLocation < 0 ||
-            ambientLightingLocation < 0 || directLightingLocation < 0 || specularLocation < 0 ||
-            albedoModeLocation < 0) {
-          indexBuffer.release();
-          vertexBuffer.release();
-          program.release();
-          throw std::runtime_error("OpenGL raster backend shader attributes are unavailable");
-        }
+          m_resources.locations.materialSpecularCoefficient;
+        const int materialSpecularExponentLocation = m_resources.locations.materialSpecularExponent;
+        const int ambientLightingLocation = m_resources.locations.ambientLighting;
+        const int directLightingLocation = m_resources.locations.directLighting;
+        const int specularLocation = m_resources.locations.specular;
+        const int albedoModeLocation = m_resources.locations.albedoMode;
 
         program.enableAttributeArray(positionLocation);
         program.setAttributeBuffer(positionLocation, GL_FLOAT,
@@ -810,7 +785,7 @@ namespace engine::raster {
         return GL_KEEP;
       }
 
-      OpenGLOffscreenContext& m_context;
+      detail::OpenGLRasterResourceCache& m_resources;
       int m_height;
       Recti m_viewportRect;
       bool m_scissorEnabled;
@@ -1408,9 +1383,11 @@ namespace engine::raster {
     m_lastReadbackTraceMessage.clear();
     m_lastTraceMessages.clear();
 
-    OpenGLOffscreenContext context;
-    if (!context.create(width, height, m_msaaSamples)) {
-      throw std::runtime_error(context.errorMessage());
+    if (!m_resources) {
+      m_resources = std::make_unique<detail::OpenGLRasterResourceCache>();
+    }
+    if (!m_resources->context.create(width, height, m_msaaSamples)) {
+      throw std::runtime_error(m_resources->context.errorMessage());
     }
 
     const Recti viewport = viewportRectFor(width, height);
@@ -1437,7 +1414,7 @@ namespace engine::raster {
 
     const auto timings =
       OpenGLRasterDrawPass(
-        context, height, viewport, m_scissorTestEnabled, m_scissorRect, m_colorLoadOp,
+        *m_resources, height, viewport, m_scissorTestEnabled, m_scissorRect, m_colorLoadOp,
         m_colorStoreOp, m_colorWriteMask, m_blendingEnabled, m_sourceBlendFactor,
         m_destinationBlendFactor, m_blendOp, m_blendConstantColor, m_blendConstantAlpha,
         m_alphaTestEnabled, m_alphaFunc, m_alphaReference, m_depthFunc, m_depthClearValue,

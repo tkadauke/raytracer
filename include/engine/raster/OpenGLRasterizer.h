@@ -19,6 +19,7 @@ namespace engine::raster {
 
   namespace detail {
     class ShadowMaps;
+    struct OpenGLRasterResourceCache;
   }
 
   /**
@@ -234,5 +235,6 @@ namespace engine::raster {
     std::shared_ptr<const RasterVisibilitySet> m_visibilitySet;
     mutable std::string m_lastReadbackTraceMessage;
     mutable std::vector<std::string> m_lastTraceMessages;
+    mutable std::unique_ptr<detail::OpenGLRasterResourceCache> m_resources;
   };
 }
