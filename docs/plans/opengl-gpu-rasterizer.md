@@ -292,6 +292,10 @@ Tasks:
 - ~~Record mesh-preparation cost in graph trace metadata.~~ ✅ **Done.**
   OpenGL raster traces now include how many triangles were prepared for the GPU
   mesh stream and how long that CPU preparation took.
+- ~~Record OpenGL setup/draw submission cost in graph trace metadata.~~ ✅
+  **Done.** OpenGL raster traces now report how long the offscreen draw block
+  spent clearing state, compiling/binding shaders, uploading buffers/textures,
+  and submitting draw calls before CPU readback begins.
 - ~~Validate CPU/GPU resource domain transitions.~~ ✅ **Done.** Render plan
   validation rejects CPU-only passes that read or write GPU-domain resources,
   and resource storage keeps GPU descriptors as metadata-only until explicit

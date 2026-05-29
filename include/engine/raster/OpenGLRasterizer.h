@@ -134,6 +134,7 @@ namespace engine::raster {
                       Buffer<std::uint8_t>* stencilTarget) const;
     std::string readbackTraceMessage(std::chrono::nanoseconds elapsed, bool copiedDepth,
                                      bool copiedStencil) const;
+    std::string drawTraceMessage(std::chrono::nanoseconds elapsed, std::size_t triangleCount) const;
     std::string meshPreparationTraceMessage(std::chrono::nanoseconds elapsed,
                                             std::size_t triangleCount) const;
 

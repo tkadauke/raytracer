@@ -162,6 +162,11 @@ namespace engine::raster {
       GLuint m_texture{0};
     };
 
+    struct OpenGLRasterRenderTimings {
+      std::chrono::nanoseconds drawElapsed{0};
+      std::chrono::nanoseconds readbackElapsed{0};
+    };
+
     class OpenGLRasterDrawPass {
     public:
       OpenGLRasterDrawPass(
@@ -212,10 +217,10 @@ namespace engine::raster {
             m_shadowTextureData(std::move(shadowTextureData)) {
       }
 
-      std::chrono::nanoseconds render(const detail::OpenGLRasterMesh& mesh,
-                                      const Colord& background, Buffer<Colord>& target,
-                                      Buffer<double>* depthTarget,
-                                      Buffer<std::uint8_t>* stencilTarget) {
+      OpenGLRasterRenderTimings render(const detail::OpenGLRasterMesh& mesh,
+                                       const Colord& background, Buffer<Colord>& target,
+                                       Buffer<double>* depthTarget,
+                                       Buffer<std::uint8_t>* stencilTarget) {
         if (!m_context.makeCurrent()) {
           throw std::runtime_error(m_context.errorMessage());
         }
@@ -225,7 +230,10 @@ namespace engine::raster {
         }
 
         try {
+          const auto drawStarted = std::chrono::steady_clock::now();
           draw(mesh, background);
+          const auto drawElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now() - drawStarted);
           const auto readbackStarted = std::chrono::steady_clock::now();
           m_context.copyColorTo(target);
           if (depthTarget && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store) {
@@ -238,7 +246,7 @@ namespace engine::raster {
             std::chrono::steady_clock::now() - readbackStarted);
           m_context.releaseFramebuffer();
           m_context.doneCurrent();
-          return readbackElapsed;
+          return {drawElapsed, readbackElapsed};
         } catch (...) {
           m_context.releaseFramebuffer();
           m_context.doneCurrent();
@@ -1264,6 +1272,18 @@ namespace engine::raster {
     return message.str();
   }
 
+  std::string OpenGLRasterizer::drawTraceMessage(std::chrono::nanoseconds elapsed,
+                                                 std::size_t triangleCount) const {
+    std::ostringstream message;
+    message << "OpenGL raster draw prepared GPU state and submitted " << triangleCount
+            << " triangle";
+    if (triangleCount != 1) {
+      message << "s";
+    }
+    message << " in " << std::fixed << std::setprecision(3) << elapsed.count() / 1000000.0 << " ms";
+    return message.str();
+  }
+
   std::string OpenGLRasterizer::meshPreparationTraceMessage(std::chrono::nanoseconds elapsed,
                                                             std::size_t triangleCount) const {
     std::ostringstream message;
@@ -1306,7 +1326,7 @@ namespace engine::raster {
     const auto meshPreparationElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::steady_clock::now() - meshPreparationStarted);
 
-    const auto readbackElapsed =
+    const auto timings =
       OpenGLRasterDrawPass(
         context, buffer.height(), viewport, m_scissorTestEnabled, m_scissorRect, m_colorWriteMask,
         m_blendingEnabled, m_sourceBlendFactor, m_destinationBlendFactor, m_blendOp,
@@ -1317,11 +1337,12 @@ namespace engine::raster {
         m_stencilDepthFailOp, m_stencilPassOp, std::move(shadowTextureData))
         .render(mesh, backgroundColor(), buffer, depthTarget, stencilTarget);
     m_lastReadbackTraceMessage = readbackTraceMessage(
-      readbackElapsed,
+      timings.readbackElapsed,
       depthTarget != nullptr && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store,
       stencilTarget != nullptr && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store);
     m_lastTraceMessages.push_back(
       meshPreparationTraceMessage(meshPreparationElapsed, mesh.triangleCount()));
+    m_lastTraceMessages.push_back(drawTraceMessage(timings.drawElapsed, mesh.triangleCount()));
     if (m_shadowMapsEnabled && m_externalShadowMaps) {
       m_lastTraceMessages.push_back(shadowSamplingPlan.traceMessage(scene().get()));
     }
