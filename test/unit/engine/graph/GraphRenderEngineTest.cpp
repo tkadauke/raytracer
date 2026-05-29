@@ -8,6 +8,7 @@
 #include "engine/graph/RenderGraphCompiler.h"
 #include "engine/graph/RenderResourceStorage.h"
 #include "engine/raster/RasterBackend.h"
+#include "engine/raster/RasterVisibilitySceneCache.h"
 #include "engine/raster/detail/RasterShadowMapBuilder.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
@@ -544,33 +545,48 @@ namespace GraphRenderEngineTest {
 
     auto trace = engine.lastExecutionTrace();
     ASSERT_TRUE(trace);
+    const RenderPassTrace* visibilityTrace = trace->findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibilityTrace);
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("cache=stored"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("meshCacheHits=0"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("meshCacheMisses=2"));
     auto outputs = trace->outputSnapshotsForResource("raster_visibility_set");
     ASSERT_EQ(1u, outputs.size());
     EXPECT_EQ(RenderGraphCacheStatus::Stored, outputs.front()->cacheMetadata().status());
     EXPECT_EQ(1u, engine.artifactCache()->size());
+    EXPECT_EQ(2u, engine.rasterVisibilitySceneCache()->size());
 
     engine.setTonemap(std::make_shared<render::ReinhardTonemap>());
     engine.render(buffer);
 
     trace = engine.lastExecutionTrace();
     ASSERT_TRUE(trace);
-    const RenderPassTrace* visibilityTrace = trace->findPass("raster_visibility");
+    visibilityTrace = trace->findPass("raster_visibility");
     ASSERT_NE(nullptr, visibilityTrace);
     EXPECT_NE(std::string::npos, visibilityTrace->message().find("cache=hit"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("meshCacheHits=0"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("meshCacheMisses=0"));
     outputs = trace->outputSnapshotsForResource("raster_visibility_set");
     ASSERT_EQ(1u, outputs.size());
     EXPECT_EQ(RenderGraphCacheStatus::Hit, outputs.front()->cacheMetadata().status());
     EXPECT_EQ(1u, engine.artifactCache()->size());
+    EXPECT_EQ(2u, engine.rasterVisibilitySceneCache()->size());
 
     cam->setPosition(Vector3d(0.25, 0.0, -5.0));
     engine.render(buffer);
 
     trace = engine.lastExecutionTrace();
     ASSERT_TRUE(trace);
+    visibilityTrace = trace->findPass("raster_visibility");
+    ASSERT_NE(nullptr, visibilityTrace);
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("cache=stored"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("meshCacheHits=2"));
+    EXPECT_NE(std::string::npos, visibilityTrace->message().find("meshCacheMisses=0"));
     outputs = trace->outputSnapshotsForResource("raster_visibility_set");
     ASSERT_EQ(1u, outputs.size());
     EXPECT_EQ(RenderGraphCacheStatus::Stored, outputs.front()->cacheMetadata().status());
     EXPECT_EQ(2u, engine.artifactCache()->size());
+    EXPECT_EQ(2u, engine.rasterVisibilitySceneCache()->size());
   }
 
   TEST(GraphRenderEngine, KeepsPartiallyClippedVisibilityLeavesUncertain) {

@@ -255,8 +255,12 @@ Acceptance:
 
 Tasks:
 
-- Cache stable scene acceleration structures such as leaf bounds, mesh bounds,
-  material cullability, and source/import provenance.
+- Cache stable scene acceleration structures such as leaf bounds,
+  ~~mesh bounds~~, material cullability, and source/import provenance. ✅
+  **Partial.** Raster visibility preprocessing now shares per-primitive/lod mesh
+  statistics across graph render clones and invalidates those entries when the
+  primitive bounds fingerprint changes; leaf bounds, material cullability, and
+  source/import provenance remain TODO.
 - Invalidate scene-side cache entries when geometry, transform, material,
   visibility, animation frame, or import-generated output changes.
 - ~~Keep camera-dependent culling results per camera/frame/view pass, not

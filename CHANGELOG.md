@@ -68,6 +68,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   material callback handle, and `render::Integrator` as the transport-policy
   boundary future path tracers will implement; this documents the preserved
   default Whitted behavior and does not add path tracing. — GPT-5
+- **Raster visibility scene mesh cache.** Graph visibility preprocessing now
+  shares per-primitive/lod mesh statistics across render clones, reports mesh
+  cache hit/miss counts in traces, and reuses those scene-side facts when a
+  camera move invalidates the camera-specific visibility-set artifact. — GPT-5
 - **Raster visibility-set artifact cache.** Graph visibility culling now stores
   visibility-set artifacts in the shared graph cache, reports stored/hit status
   in traces, and keys reuse on pass state, target shape, camera, and

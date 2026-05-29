@@ -8,6 +8,7 @@
 #include "engine/graph/RenderGraphExecutionObserver.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderResourceStorage.h"
+#include "engine/raster/RasterVisibilitySceneCache.h"
 #include "core/math/BoundingBox.h"
 #include "render/cameras/Camera.h"
 #include "render/lights/Light.h"
@@ -621,6 +622,8 @@ namespace engine::graph {
       std::make_shared<RenderGraphExecutionTraceRecorder>()};
     std::shared_ptr<RenderGraphArtifactCache> artifactCache{
       std::make_shared<RenderGraphArtifactCache>()};
+    std::shared_ptr<engine::raster::RasterVisibilitySceneCache> rasterVisibilitySceneCache{
+      std::make_shared<engine::raster::RasterVisibilitySceneCache>()};
     std::shared_ptr<std::atomic<std::uint64_t>> nextExecutionGeneration{
       std::make_shared<std::atomic<std::uint64_t>>(1)};
     std::atomic<bool> executionTraceEnabled{false};
@@ -678,6 +681,7 @@ namespace engine::graph {
     result->setExecutionTraceEnabled(executionTraceEnabled());
     result->p->executionTraceRecorder = p->executionTraceRecorder;
     result->p->artifactCache = p->artifactCache;
+    result->p->rasterVisibilitySceneCache = p->rasterVisibilitySceneCache;
     result->p->nextExecutionGeneration = p->nextExecutionGeneration;
     return result;
   }
@@ -831,6 +835,11 @@ namespace engine::graph {
 
   std::shared_ptr<RenderGraphArtifactCache> GraphRenderEngine::artifactCache() const {
     return p->artifactCache;
+  }
+
+  std::shared_ptr<engine::raster::RasterVisibilitySceneCache>
+  GraphRenderEngine::rasterVisibilitySceneCache() const {
+    return p->rasterVisibilitySceneCache;
   }
 
   void GraphRenderEngine::render(Buffer<Colord>& buffer) {

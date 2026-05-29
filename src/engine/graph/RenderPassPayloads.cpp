@@ -15,6 +15,7 @@
 #include "engine/graph/WireframePassState.h"
 #include "engine/raster/OpenGLRasterizer.h"
 #include "engine/raster/Rasterizer.h"
+#include "engine/raster/RasterVisibilitySceneCache.h"
 #include "engine/raster/RasterVisibilitySet.h"
 #include "engine/raster/detail/RasterTriangleEmitter.h"
 #include "engine/raytracer/Raytracer.h"
@@ -35,7 +36,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -1451,6 +1451,16 @@ namespace engine::graph {
     };
 
     class RasterVisibilityCullingPass : public RenderPassPayload {
+    private:
+      using MeshStats = ::engine::raster::RasterVisibilitySceneCache::MeshStats;
+      using MeshStatsLookup = ::engine::raster::RasterVisibilitySceneCache::MeshStatsLookup;
+
+      struct VisibilityBuildResult {
+        std::shared_ptr<::engine::raster::RasterVisibilitySet> visibilitySet;
+        std::size_t meshCacheHits{0};
+        std::size_t meshCacheMisses{0};
+      };
+
     public:
       void execute(RenderExecutionContext& context) override {
         const auto& pass = context.pass();
@@ -1468,27 +1478,22 @@ namespace engine::graph {
           return;
         }
 
-        const auto visibilitySet = buildVisibilitySet(context, state);
-        context.storage().setVisibilitySet(write.resource, visibilitySet);
-        auto artifact = std::make_shared<RasterVisibilitySetArtifact>(cacheKey, visibilitySet,
-                                                                      "raster visibility set");
+        const VisibilityBuildResult result = buildVisibilitySet(context, state);
+        context.storage().setVisibilitySet(write.resource, result.visibilitySet);
+        auto artifact = std::make_shared<RasterVisibilitySetArtifact>(
+          cacheKey, result.visibilitySet, "raster visibility set");
         context.storage().resource(write.resource).setArtifact(artifact);
         context.graph().artifactCache()->store(artifact);
         context.storage()
           .resource(write.resource)
           .setCacheMetadata(
             {RenderGraphCacheStatus::Stored, "cache miss; stored raster visibility-set artifact"});
-        context.recordTraceMessage(
-          traceMessage(*visibilitySet, state, RenderGraphCacheStatus::Stored));
+        context.recordTraceMessage(traceMessage(*result.visibilitySet, state,
+                                                RenderGraphCacheStatus::Stored,
+                                                result.meshCacheHits, result.meshCacheMisses));
       }
 
     private:
-      struct MeshStats {
-        std::size_t triangleCount{0};
-        std::size_t faceCount{0};
-        std::shared_ptr<Mesh> mesh;
-      };
-
       struct VisibleLeafDepth {
         std::size_t leafIndex{0};
         double depth{0.0};
@@ -1525,33 +1530,39 @@ namespace engine::graph {
           .setCacheMetadata(
             {RenderGraphCacheStatus::Hit, "restored raster visibility-set artifact from cache"});
         context.recordTraceMessage(traceMessage(*context.storage().visibilitySet(resourceId), state,
-                                                RenderGraphCacheStatus::Hit));
+                                                RenderGraphCacheStatus::Hit, 0, 0));
         return true;
       }
 
-      std::shared_ptr<::engine::raster::RasterVisibilitySet>
-      buildVisibilitySet(const RenderExecutionContext& context,
-                         const RasterVisibilityPassState& state) const {
+      VisibilityBuildResult buildVisibilitySet(const RenderExecutionContext& context,
+                                               const RasterVisibilityPassState& state) const {
         auto visibilitySet = std::make_shared<::engine::raster::RasterVisibilitySet>();
         const auto& write = context.pass().singleWrite();
         const auto& descriptor = context.storage().descriptor(write.resource);
         visibilitySet->setTileGrid(descriptor.width, descriptor.height, TileSize, TileSize);
         const auto scene = context.graph().scene();
         if (!scene) {
-          return visibilitySet;
+          return {visibilitySet, 0, 0};
         }
 
         const int lod = state.geometry().lod();
         const std::shared_ptr<render::Camera> camera = context.graph().camera();
         const render::HomogeneousClipVolume clipVolume = rasterClipVolume();
-        std::unordered_map<const render::Primitive*, MeshStats> meshStats;
+        std::size_t meshCacheHits = 0;
+        std::size_t meshCacheMisses = 0;
         std::vector<VisibleLeafDepth> visibleLeafDepths;
         const bool tileDepthSummariesAllowed = state.frontToBackOrderingEnabled();
         bool orderable = state.frontToBackOrderingEnabled() && camera != nullptr;
         scene->forEachTransformedLeaf(
           nullptr, Matrix4d(), Matrix3d(), [&](const render::Primitive::TransformedLeaf& leaf) {
             const std::size_t leafIndex = visibilitySet->leafCount();
-            const MeshStats stats = meshStatsFor(leaf.primitive, lod, meshStats);
+            const MeshStatsLookup meshStats = meshStatsFor(context, leaf.primitive, lod);
+            if (meshStats.hit) {
+              ++meshCacheHits;
+            } else {
+              ++meshCacheMisses;
+            }
+            const MeshStats& stats = meshStats.stats;
             if (boundsOutsideFrustum(leaf, camera.get(), clipVolume)) {
               visibilitySet->addRejectedLeaf(
                 ::engine::raster::RasterVisibilitySet::RejectionReason::Frustum,
@@ -1595,7 +1606,7 @@ namespace engine::graph {
           }
           visibilitySet->setVisibleLeafOrder(std::move(visibleLeafOrder));
         }
-        return visibilitySet;
+        return {visibilitySet, meshCacheHits, meshCacheMisses};
       }
 
       render::HomogeneousClipVolume rasterClipVolume() const {
@@ -1778,36 +1789,18 @@ namespace engine::graph {
         return clip.z();
       }
 
-      MeshStats
-      meshStatsFor(const render::Primitive* primitive, int lod,
-                   std::unordered_map<const render::Primitive*, MeshStats>& meshStats) const {
+      MeshStatsLookup meshStatsFor(const RenderExecutionContext& context,
+                                   const render::Primitive* primitive, int lod) const {
         if (!primitive) {
           return {};
         }
-
-        const auto cached = meshStats.find(primitive);
-        if (cached != meshStats.end()) {
-          return cached->second;
-        }
-
-        MeshStats stats;
-        const std::shared_ptr<Mesh> mesh = primitive->tessellate(lod);
-        if (mesh) {
-          stats.mesh = mesh;
-          stats.faceCount = mesh->faces().size();
-          for (const auto& face : mesh->faces()) {
-            if (face.size() >= 3) {
-              stats.triangleCount += face.size() - 2;
-            }
-          }
-        }
-        meshStats.emplace(primitive, stats);
-        return stats;
+        return context.graph().rasterVisibilitySceneCache()->meshStatsFor(*primitive, lod);
       }
 
       std::string traceMessage(const ::engine::raster::RasterVisibilitySet& visibilitySet,
                                const RasterVisibilityPassState& state,
-                               RenderGraphCacheStatus cacheStatus) const {
+                               RenderGraphCacheStatus cacheStatus, std::size_t meshCacheHits,
+                               std::size_t meshCacheMisses) const {
         const char* ordering = "unsupported";
         if (visibilitySet.hasVisibleLeafOrder()) {
           ordering = "enabled";
@@ -1819,6 +1812,7 @@ namespace engine::graph {
         std::ostringstream out;
         out << "visibility culling produced a CPU visibility set"
             << "; cache=" << toString(cacheStatus) << "; lod=" << state.geometry().lod()
+            << "; meshCacheHits=" << meshCacheHits << "; meshCacheMisses=" << meshCacheMisses
             << "; inputLeaves=" << visibilitySet.leafCount()
             << "; inputTriangles=" << visibilitySet.inputTriangleCount()
             << "; visibleLeaves=" << visibilitySet.visibleLeafCount()

@@ -7,6 +7,10 @@
 #include <memory>
 #include <string>
 
+namespace engine::raster {
+  class RasterVisibilitySceneCache;
+}
+
 namespace engine::graph {
   class RenderGraphArtifactCache;
   class RenderGraphExecutionObserver;
@@ -197,6 +201,11 @@ namespace engine::graph {
       * clones created from it.
       */
     std::shared_ptr<RenderGraphArtifactCache> artifactCache() const;
+
+    /**
+      * @returns the scene-side cache used by raster visibility preprocessing.
+      */
+    std::shared_ptr<engine::raster::RasterVisibilitySceneCache> rasterVisibilitySceneCache() const;
 
     /**
       * Executes the current plan into @p buffer.
