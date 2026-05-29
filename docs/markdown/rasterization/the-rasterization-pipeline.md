@@ -288,6 +288,35 @@ matches the preview image's intent: the left pair isolates Matte
 ambient/diffuse coefficients, and the right pair isolates broad versus
 tight Phong specular response.
 
+## <a id="cpu-and-opengl-raster-backends"></a>CPU and OpenGL raster backends
+The software rasterizer remains the reference implementation because it
+is deterministic, inspectable, and works without a graphics context. The
+render graph can also compile raster beauty passes with the experimental
+OpenGL backend. That backend still uses the same scene, camera,
+tessellation, graph intent, and graph-owned shadow-map resources, but it
+submits the final mesh pass to an offscreen OpenGL framebuffer and reads
+the result back into the graph resource.
+
+The comparison below uses graph-backed renders for both columns. The
+first row exercises local material lighting plus planar and UV checker
+textures. The second row enables graph preview shadow maps so both
+backends consume the same shadow-map intent.
+
+| CPU raster | OpenGL raster |
+| --- | --- |
+| ![Graph-backed CPU raster render with directional lighting and checker textures](../../images/rasterizer_backend_lit_cpu.png) | ![Graph-backed OpenGL raster render with directional lighting and checker textures](../../images/rasterizer_backend_lit_opengl.png) |
+| ![Graph-backed CPU raster render with graph preview shadow maps](../../images/rasterizer_backend_shadow_cpu.png) | ![Graph-backed OpenGL raster render with graph preview shadow maps](../../images/rasterizer_backend_shadow_opengl.png) |
+
+Differences in those images are useful. The CPU column is the
+correctness reference for the software path and for headless docs/CI
+runs. The OpenGL column shows which pieces of the same compiled raster
+state are already implemented in the GPU backend: directional diffuse
+and Phong lighting, direct checker/image texture sampling, depth and
+stencil attachments, MSAA framebuffers, and the currently supported
+shader-side shadow-map subset. Unsupported raster state should fail or
+fall back through the graph with trace metadata instead of silently
+changing the render.
+
 ## <a id="the-render-method-end-to-end"></a>The render method, end to end
 The full
 [`Rasterizer::render`](../../../src/engine/raster/Rasterizer.cpp)

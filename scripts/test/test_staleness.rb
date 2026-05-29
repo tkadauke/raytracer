@@ -103,4 +103,12 @@ class SceneHashTest < Minitest::Test
     assert_equal "--width=32",
                  Scene.render_args(:shadow_maps => false, :width => 32)
   end
+
+  def test_opengl_raster_docs_opt_into_macos_cocoa_context
+    assert_equal({"RAYTRACER_ALLOW_RENDERCLI_COCOA_OPENGL" => "1"},
+                 Scene.render_env(:raster_backend => "opengl"))
+    assert_equal({"RAYTRACER_ALLOW_RENDERCLI_COCOA_OPENGL" => "1"},
+                 Scene.render_env("raster_backend" => "gpu"))
+    assert_equal({}, Scene.render_env(:raster_backend => "cpu"))
+  end
 end

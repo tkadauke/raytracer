@@ -76,6 +76,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `RAYTRACER_ALLOW_RENDERCLI_COCOA_OPENGL=1`, while the default headless path
   still fails clearly when Qt's offscreen plugin cannot create an OpenGL
   context. — GPT-5
+- **OpenGL raster documentation comparisons.** Rasterizer documentation now
+  includes graph-backed CPU/OpenGL comparison scenes for lit material output
+  and graph-owned shadow maps, and the docs renderer opts those OpenGL examples
+  into the macOS Cocoa context bootstrap when needed. — GPT-5
 - **OpenGL raster fallback sampler texture.** OpenGL raster passes now bind a
   tiny fallback texture for inactive sampler uniforms, avoiding Apple driver
   warnings about unloadable sampler units on non-textured or shadowless draws.

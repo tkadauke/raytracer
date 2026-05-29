@@ -145,6 +145,70 @@ module ::Common
               )
   end
 
+  def rasterizer_backend_comparison_scene
+    options(lod: 4)
+    ambient [0.16, 0.16, 0.17]
+    background [0.05, 0.07, 0.09]
+
+    directional_light :direction => [-0.55, -0.72, -0.42],
+                      :color => [1.0, 0.96, 0.86],
+                      :intensity => 1.55
+
+    pinhole_camera :position => [2.85, -1.70, -4.25],
+                   :target => [0.08, 0.42, 0.02],
+                   :zoom => 1.92
+
+    rectangle :position => [-3.5, 1.05, -2.45],
+              :leg1 => [7.0, 0, 0],
+              :leg2 => [0, 0, 5.0],
+              :material => matte_material(
+                :diffuseTexture => checker_board_texture(
+                  :uScale => 1.25,
+                  :vScale => 1.25,
+                  :brightTexture => white,
+                  :darkTexture => black,
+                ),
+                :ambientCoefficient => 0.35,
+                :diffuseCoefficient => 0.90,
+              )
+
+    sphere :radius => 0.70,
+           :position => [-1.10, 0.36, -0.12],
+           :material => matte_material(
+             :diffuseTexture => constant_color_texture(:color => [0.78, 0.12, 0.10]),
+             :ambientCoefficient => 0.22,
+             :diffuseCoefficient => 0.95,
+           )
+
+    box :size => [0.88, 0.92, 0.88],
+        :position => [0.22, 0.58, 0.06],
+        :rotation => [0.0, 0.48, 0.0],
+        :material => matte_material(
+          :diffuseTexture => checker_board_texture(
+            :mapping => "uv",
+            :uScale => 5.0,
+            :vScale => 5.0,
+            :brightTexture => white,
+            :darkTexture => black,
+          ),
+          :ambientCoefficient => 0.24,
+          :diffuseCoefficient => 0.90,
+        )
+
+    torus :sweptRadius => 0.48,
+          :tubeRadius => 0.14,
+          :position => [1.42, 0.46, -0.02],
+          :rotation => [0.28, -0.58, 0.0],
+          :material => phong_material(
+            :diffuseTexture => constant_color_texture(:color => [0.14, 0.30, 0.86]),
+            :ambientCoefficient => 0.20,
+            :diffuseCoefficient => 0.72,
+            :specularColor => [1.0, 1.0, 1.0],
+            :specularCoefficient => 0.80,
+            :exponent => 36,
+          )
+  end
+
   def rasterizer_viewport_scissor_scene
     ambient [1.0, 1.0, 1.0]
     background [0.035, 0.045, 0.060]
@@ -321,6 +385,38 @@ class_doc(engine: "raster", direct_engine: true, width: 480, height: 240) do
   name "rasterizer_material_preview"
 
   rasterizer_material_preview_scene
+end
+
+RASTERIZER_BACKEND_DOC_OPTIONS = {
+  :engine => "raster",
+  :render_graph => true,
+  :width => 360,
+  :height => 240,
+  :samples_per_pixel => 1,
+}
+
+[
+  ["cpu", "cpu"],
+  ["opengl", "opengl"],
+].each do |label, backend|
+  class_doc(**RASTERIZER_BACKEND_DOC_OPTIONS, :raster_backend => backend) do
+    name "rasterizer_backend_lit_#{label}"
+
+    rasterizer_backend_comparison_scene
+  end
+end
+
+[
+  ["cpu", "cpu"],
+  ["opengl", "opengl"],
+].each do |label, backend|
+  class_doc(**RASTERIZER_BACKEND_DOC_OPTIONS, :raster_backend => backend,
+            :shadow_maps => true, :shadow_map_size => 128, :shadow_bias => 0.25,
+            :shadow_filter => "pcf", :shadow_filter_radius => 2) do
+    name "rasterizer_backend_shadow_#{label}"
+
+    rasterizer_backend_comparison_scene
+  end
 end
 
 class_doc(engine: "raster", direct_engine: true, width: 240, height: 180) do

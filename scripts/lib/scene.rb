@@ -255,9 +255,10 @@ class Scene < Element
 
     FileUtils.mkdir_p(File.dirname(file))
 
-    args = Scene.render_args(options.merge(opts))
+    render_options = options.merge(opts)
+    args = Scene.render_args(render_options)
     rendercli = ENV.fetch('RENDERCLI', 'build/release/tools/rendercli/rendercli')
-    if system "#{rendercli} #{file_name} #{file} #{args}"
+    if system Scene.render_env(render_options), "#{rendercli} #{file_name} #{file} #{args}"
       File.write(hash_file, new_hash)
     end
 
@@ -293,6 +294,15 @@ class Scene < Element
         "--#{key}=#{value}"
       end
     end.compact.join(" ")
+  end
+
+  def self.render_env(opts)
+    backend = opts[:raster_backend] || opts["raster_backend"]
+    if ["gl", "gpu", "opengl"].include?(backend.to_s.downcase)
+      {"RAYTRACER_ALLOW_RENDERCLI_COCOA_OPENGL" => "1"}
+    else
+      {}
+    end
   end
 
   def self.normalize_hash_payload(value)

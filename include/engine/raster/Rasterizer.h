@@ -236,6 +236,22 @@ namespace engine::raster {
   *
   * @image html rasterizer_material_preview.png "Matte coefficient and Phong specular preview"
   *
+  * @par CPU and OpenGL raster backends
+  *
+  * The software rasterizer is the reference path, but graph-backed raster
+  * passes can opt into the experimental OpenGL backend. The comparison below
+  * renders the same graph-compiled scene through CPU raster and OpenGL raster:
+  * a planar checker floor, a UV checker box, local matte/Phong material terms,
+  * and then the same setup with graph-owned preview shadow maps enabled.
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_backend_lit_cpu.png "CPU raster backend"</td>
+  * <td>@image html rasterizer_backend_lit_opengl.png "OpenGL raster backend"</td>
+  * </tr><tr>
+  * <td>@image html rasterizer_backend_shadow_cpu.png "CPU raster backend with graph shadow maps"</td>
+  * <td>@image html rasterizer_backend_shadow_opengl.png "OpenGL raster backend with graph shadow maps"</td>
+  * </tr></table>
+  *
   * @par Antialiasing
   *
   * The antialiasing figures separate coverage quality from postprocessing.
