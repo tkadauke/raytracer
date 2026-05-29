@@ -355,6 +355,35 @@ Camera* Scene::activeCamera() const {
   return camera;
 }
 
+const Camera* Scene::cameraById(const QString& id) const {
+  if (id.isEmpty()) {
+    return nullptr;
+  }
+  return qobject_cast<const Camera*>(findById(id));
+}
+
+const Camera*
+Scene::cameraForRenderCameraRef(const engine::graph::RenderCameraRef& cameraRef) const {
+  if (!cameraRef.sceneCameraId) {
+    return nullptr;
+  }
+  return cameraById(QString::fromStdString(*cameraRef.sceneCameraId));
+}
+
+const Camera* Scene::cameraForRenderIntent(const engine::graph::RenderIntent& intent) const {
+  const engine::graph::RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
+  if (frameIntent.defaultCamera) {
+    return cameraForRenderCameraRef(*frameIntent.defaultCamera);
+  }
+  return activeCamera();
+}
+
+std::shared_ptr<render::Camera>
+Scene::toRaytracerCameraForRenderIntent(const engine::graph::RenderIntent& intent) const {
+  const Camera* camera = cameraForRenderIntent(intent);
+  return camera ? camera->toRaytracer() : nullptr;
+}
+
 bool Scene::frameActivePinholeCameraToContents(const Vector3d& targetToEyeDirection) {
   return frameActivePinholeCameraToContents(StepPlaybackStyle(), targetToEyeDirection);
 }

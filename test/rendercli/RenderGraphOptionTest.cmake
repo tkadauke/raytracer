@@ -16,6 +16,7 @@ set(graph_demo_scene "${PROJECT_SOURCE_DIR}/scenes/render_graph_aov_demo.json")
 set(stencil_composite_demo_scene
     "${PROJECT_SOURCE_DIR}/scenes/render_graph_stencil_composite_demo.json")
 set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
+set(camera_override_runtime_scene "${TEST_OUTPUT_DIR}/camera-override-runtime-scene.json")
 set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
 set(invalid_exported_aov_scene "${TEST_OUTPUT_DIR}/invalid-exported-aov-scene.json")
 set(selector_specific_intent_scene "${TEST_OUTPUT_DIR}/selector-specific-intent-scene.json")
@@ -55,6 +56,8 @@ set(scene_intent_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.json")
 set(scene_intent_text_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.txt")
 set(active_camera_plan "${TEST_OUTPUT_DIR}/graph-active-camera.json")
 set(camera_override_plan "${TEST_OUTPUT_DIR}/graph-camera-override.json")
+set(camera_override_default_render "${TEST_OUTPUT_DIR}/graph-camera-default-render.png")
+set(camera_override_selected_render "${TEST_OUTPUT_DIR}/graph-camera-selected-render.png")
 set(shading_profile_override_plan "${TEST_OUTPUT_DIR}/graph-shading-profile-override.json")
 set(shading_profile_override_text_plan "${TEST_OUTPUT_DIR}/graph-shading-profile-override.txt")
 set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
@@ -124,6 +127,66 @@ file(WRITE "${scene_intent_scene}" [=[
     ]
   },
   "children": []
+}
+]=])
+
+file(WRITE "${camera_override_runtime_scene}" [=[
+{
+  "id": "{94000000-0000-0000-0000-000000000000}",
+  "name": "Camera Override Runtime Fixture",
+  "ambient": [1.0, 1.0, 1.0],
+  "background": [0.0, 0.0, 0.0],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "object-camera",
+      "name": "Object Camera",
+      "position": [0.0, 0.0, -4.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.4,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "empty-camera",
+      "name": "Empty Camera",
+      "position": [0.0, 0.0, -4.0],
+      "target": [8.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.4,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "red-texture",
+      "name": "Red Texture",
+      "color": [1.0, 0.0, 0.0],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "red-material",
+      "name": "Red Material",
+      "diffuseTexture": "red-texture",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 0.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "sphere",
+      "name": "Sphere",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "red-material",
+      "radius": 1.0,
+      "type": "Sphere",
+      "children": []
+    }
+  ]
 }
 ]=])
 
@@ -1093,6 +1156,28 @@ file(READ "${camera_override_plan}" camera_override_graph)
 if(NOT camera_override_graph MATCHES "\"sceneCameraId\": \"command-camera\"")
   message(FATAL_ERROR "graph camera override did not carry command-camera: ${camera_override_graph}")
 endif()
+
+rendercli_run(
+  NAME "rendercli graph camera override selects execution camera"
+  COMMAND
+    "${RENDERCLI}" --width 32 --height 16
+    "${camera_override_runtime_scene}" "${camera_override_default_render}"
+)
+rendercli_assert_image_dimensions("${camera_override_default_render}" 32 16
+                                  NAME "default graph camera render dimensions")
+
+rendercli_run(
+  NAME "rendercli graph camera override changes rendered camera"
+  COMMAND
+    "${RENDERCLI}" --render_graph_camera object-camera
+    --width 32 --height 16
+    "${camera_override_runtime_scene}" "${camera_override_selected_render}"
+)
+rendercli_assert_image_dimensions("${camera_override_selected_render}" 32 16
+                                  NAME "selected graph camera render dimensions")
+rendercli_assert_image_hash_differs("${camera_override_default_render}"
+                                    "${camera_override_selected_render}"
+                                    NAME "graph camera override render")
 
 rendercli_run(
   NAME "rendercli graph shading profile override selects scene profile intent"

@@ -149,6 +149,7 @@ public:
   }
 
   Element* findById(const QString& id);
+  const Element* findById(const QString& id) const;
 
   inline Element* parent() const {
     return static_cast<Element*>(QObject::parent());

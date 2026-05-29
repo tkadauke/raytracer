@@ -225,6 +225,63 @@ namespace SceneTest {
     EXPECT_EQ("shot-camera", *cameraRef->sceneCameraId);
   }
 
+  TEST(Scene, ShouldResolveSceneCameraById) {
+    Scene scene;
+    auto* camera = new PinholeCamera;
+    camera->setId("shot-camera");
+    scene.addChild(camera);
+    auto* sphere = new Sphere;
+    sphere->setId("not-a-camera");
+    scene.addChild(sphere);
+
+    EXPECT_EQ(camera, scene.cameraById("shot-camera"));
+    EXPECT_EQ(nullptr, scene.cameraById("not-a-camera"));
+    EXPECT_EQ(nullptr, scene.cameraById("missing"));
+  }
+
+  TEST(Scene, ShouldResolveRenderIntentCamera) {
+    Scene scene;
+    auto* first = new PinholeCamera;
+    first->setId("shot-camera");
+    scene.addChild(first);
+    auto* active = new PinholeCamera;
+    active->setId("active-camera");
+    scene.addChild(active);
+
+    engine::graph::RenderIntent intent;
+    intent.setDefaultCamera(engine::graph::RenderCameraRef{"shot-camera", std::nullopt});
+
+    EXPECT_EQ(first, scene.cameraForRenderIntent(intent));
+  }
+
+  TEST(Scene, ShouldApplyWholeFrameCameraOverrideWhenResolvingRenderIntentCamera) {
+    Scene scene;
+    auto* active = new PinholeCamera;
+    active->setId("active-camera");
+    scene.addChild(active);
+    auto* overrideCamera = new PinholeCamera;
+    overrideCamera->setId("override-camera");
+    scene.addChild(overrideCamera);
+
+    engine::graph::RenderIntent intent;
+    intent.setDefaultCamera(engine::graph::RenderCameraRef{"active-camera", std::nullopt});
+    engine::graph::RenderViewOverride viewOverride;
+    viewOverride.selector = engine::graph::SceneSelector::all();
+    viewOverride.camera = engine::graph::RenderCameraRef{"override-camera", std::nullopt};
+    intent.viewOverrides.push_back(viewOverride);
+
+    EXPECT_EQ(overrideCamera, scene.cameraForRenderIntent(intent));
+  }
+
+  TEST(Scene, ShouldFallBackToActiveCameraWhenRenderIntentHasNoCamera) {
+    Scene scene;
+    auto* camera = new PinholeCamera;
+    camera->setId("active-camera");
+    scene.addChild(camera);
+
+    EXPECT_EQ(camera, scene.cameraForRenderIntent(engine::graph::RenderIntent()));
+  }
+
   TEST(Scene, ShouldFrameActivePinholeCameraToContents) {
     Scene scene;
     auto* camera = new PinholeCamera;

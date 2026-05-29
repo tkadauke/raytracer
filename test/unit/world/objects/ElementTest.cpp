@@ -263,6 +263,17 @@ namespace ElementTest {
     EXPECT_EQ(child, root.findById("child"));
   }
 
+  TEST(Element, ShouldFindChildByIdThroughConstRoot) {
+    TestElement root;
+    auto* child = new Element;
+    child->setId("child");
+    root.addChild(child);
+
+    const auto& constRoot = root;
+
+    EXPECT_EQ(child, constRoot.findById("child"));
+  }
+
   TEST(Element, ShouldFindGrandchildById) {
     TestElement root;
     auto* mid = new TestElement;

@@ -355,6 +355,19 @@ Element* Element::findById(const QString& id) {
   return nullptr;
 }
 
+const Element* Element::findById(const QString& id) const {
+  if (id == this->id()) {
+    return this;
+  } else {
+    for (const auto& child : childElements()) {
+      auto result = child->findById(id);
+      if (result)
+        return result;
+    }
+  }
+  return nullptr;
+}
+
 bool Element::canHaveChild(Element*) const {
   return false;
 }

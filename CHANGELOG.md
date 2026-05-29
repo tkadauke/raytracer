@@ -1031,6 +1031,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   keep public construction and setter paths in SIMD storage before reducing
   lanes, avoiding union type-punning undefined behavior without leaving the hot
   path. — GPT-5
+- **Render graph camera execution.** rendercli graph renders now resolve the
+  whole-frame render intent camera before building the runtime engine, so
+  `--render_graph_camera` and scene camera intent affect pixels instead of only
+  graph exports. — GPT-5
 - **Raster visibility face indices.** CPU raster visibility sets now preserve
   original face-index progression while skipping or reordering leaves, keeping
   fallback face colors and face-index AOV data stable under graph-visible

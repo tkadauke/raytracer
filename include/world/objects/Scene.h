@@ -16,6 +16,7 @@ class Camera;
 struct StepPlaybackStyle;
 
 namespace render {
+  class Camera;
   class Scene;
 }
 
@@ -228,6 +229,29 @@ public:
     * @returns the scene's active camera.
     */
   Camera* activeCamera() const;
+  /**
+    * @returns the scene camera with @p id, or null when the id is missing or
+    *   names a non-camera element.
+    */
+  const Camera* cameraById(const QString& id) const;
+  /**
+    * Resolves a render-graph camera reference against this scene.
+    *
+    * The current graph execution path can consume scene-camera references.
+    * Snapshot cameras are preserved in graph JSON but do not yet have a world
+    * object to convert into a runtime camera here.
+    */
+  const Camera* cameraForRenderCameraRef(const engine::graph::RenderCameraRef& cameraRef) const;
+  /**
+    * @returns the camera that should execute @p intent's whole-frame view, or
+    *   the active camera when the intent does not name a graph camera.
+    */
+  const Camera* cameraForRenderIntent(const engine::graph::RenderIntent& intent) const;
+  /**
+    * Converts the camera selected by @p intent into a runtime camera.
+    */
+  std::shared_ptr<render::Camera>
+  toRaytracerCameraForRenderIntent(const engine::graph::RenderIntent& intent) const;
   /**
     * Frames the active pinhole camera around the scene contents.
     */
