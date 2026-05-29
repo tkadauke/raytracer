@@ -87,23 +87,6 @@ namespace engine::graph {
       return pass;
     }
 
-    RenderPlan aovViewPlan(const RenderTargetSpec& target, RenderExecutorKind executor,
-                           const RenderAOVDefinition& aov, const SceneView& sceneView,
-                           const RenderIntent& intent) {
-      RenderPlan plan;
-
-      const RenderResourceId aovId = aov.resourceId();
-      RenderPassNode producer = aovProducerPass(aov, executor, sceneView, true, target, intent);
-      plan.addResourceProducer(std::move(producer),
-                               aov.resourceDescriptor(target, RenderResourceLifetime::Transient));
-
-      RenderResourceDescriptor mainColor =
-        target.colorResource("main_color", "Main color", RenderResourceLifetime::Exported);
-      plan.routeResourceThroughPass(aovId, mainColor,
-                                    aovVisualizationPass(aov, aovId, mainColor.id, true));
-      return plan;
-    }
-
     void addAuxiliaryAOVExport(RenderPlan& plan, const RenderTargetSpec& target,
                                RenderExecutorKind executor, RenderViewMode viewMode,
                                RenderViewMode defaultViewMode, const SceneView& sceneView,
@@ -189,18 +172,35 @@ namespace engine::graph {
   }
 
   bool RenderGraphCompiler::beautyPassNeedsExplicitReadback(const RenderPassNode& pass) const {
+    return pass.kind == RenderPassKind::Beauty && passNeedsExplicitReadback(pass);
+  }
+
+  bool RenderGraphCompiler::passNeedsExplicitReadback(const RenderPassNode& pass) const {
     const auto* state = RasterBeautyPassState::fromPass(pass);
     return state && state->execution().backend().isOpenGL();
   }
 
-  RenderPassNode RenderGraphCompiler::readbackPass(RenderResourceId inputResource,
-                                                   RenderResourceId outputResource) const {
+  RenderResourceDescriptor
+  RenderGraphCompiler::readbackResource(const RenderResourceDescriptor& source, RenderResourceId id,
+                                        std::string name, RenderResourceLifetime lifetime) const {
+    RenderResourceDescriptor result = source;
+    result.id = std::move(id);
+    result.name = std::move(name);
+    result.lifetime = lifetime;
+    return result;
+  }
+
+  RenderPassNode
+  RenderGraphCompiler::readbackPass(RenderPassId id, std::string name,
+                                    RenderResourceId inputResource, RenderResourceId outputResource,
+                                    std::vector<RenderFeatureKind> extraFeatures) const {
     RenderPassNode pass;
-    pass.id = "beauty_readback";
-    pass.name = "Beauty readback";
+    pass.id = std::move(id);
+    pass.name = std::move(name);
     pass.kind = RenderPassKind::Readback;
     pass.executor = RenderExecutorKind::PostProcess;
     pass.features = {"main", "readback", "transfer"};
+    pass.features.insert(pass.features.end(), extraFeatures.begin(), extraFeatures.end());
     pass.addRead(std::move(inputResource));
     pass.addWrite(std::move(outputResource));
     pass.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
@@ -208,6 +208,12 @@ namespace engine::graph {
     pass.disabledBehavior = DisabledBehavior::Error;
     pass.canRunConcurrently = false;
     return pass;
+  }
+
+  RenderPassNode RenderGraphCompiler::readbackPass(RenderResourceId inputResource,
+                                                   RenderResourceId outputResource) const {
+    return readbackPass("beauty_readback", "Beauty readback", std::move(inputResource),
+                        std::move(outputResource));
   }
 
   RenderPassNode RenderGraphCompiler::tonemapPass(RenderResourceId inputResource,
@@ -224,6 +230,39 @@ namespace engine::graph {
     pass.disabledBehavior = DisabledBehavior::Passthrough;
     pass.canRunConcurrently = false;
     return pass;
+  }
+
+  RenderPlan RenderGraphCompiler::aovViewPlan(const RenderTargetSpec& target,
+                                              RenderExecutorKind executor,
+                                              const RenderAOVDefinition& aov,
+                                              const SceneView& sceneView,
+                                              const RenderIntent& intent) const {
+    RenderPlan plan;
+
+    const RenderResourceId aovId = aov.resourceId();
+    RenderPassNode producer = aovProducerPass(aov, executor, sceneView, true, target, intent);
+    RenderResourceDescriptor aovResource =
+      aov.resourceDescriptor(target, RenderResourceLifetime::Transient);
+    plan.addResourceProducer(producer, aovResource);
+
+    RenderResourceId visualizationInput = aovId;
+    if (passNeedsExplicitReadback(producer)) {
+      const RenderResourceId readbackId = aovId + "_readback";
+      RenderResourceDescriptor readbackDescriptor = readbackResource(
+        aovResource, readbackId, aov.title() + " AOV readback", RenderResourceLifetime::Transient);
+      RenderPassNode readback =
+        readbackPass("readback_" + aovId, "Read back " + aov.title() + " AOV", aovId, readbackId,
+                     {"aov", aov.feature()});
+      plan.addResourceProducer(std::move(readback), std::move(readbackDescriptor));
+      visualizationInput = readbackId;
+    }
+
+    RenderResourceDescriptor mainColor =
+      target.colorResource("main_color", "Main color", RenderResourceLifetime::Exported);
+    plan.routeResourceThroughPass(
+      visualizationInput, mainColor,
+      aovVisualizationPass(aov, visualizationInput, mainColor.id, true));
+    return plan;
   }
 
   RenderPlan RenderGraphCompiler::compileStencilCompositeView(const RenderTargetSpec& target,
@@ -299,7 +338,7 @@ namespace engine::graph {
 
     if (const auto* aov = renderAOVDefinition(frameIntent.defaultViewMode)) {
       RenderPlan plan =
-        aovViewPlan(target, executor, *aov, frameIntent.defaultSceneView(), frameIntent);
+        this->aovViewPlan(target, executor, *aov, frameIntent.defaultSceneView(), frameIntent);
       addAuxiliaryAOVExports(plan, target, executor, frameIntent);
       return plan;
     }

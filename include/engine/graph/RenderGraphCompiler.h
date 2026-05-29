@@ -7,6 +7,8 @@
 #include <vector>
 
 namespace engine::graph {
+  class RenderAOVDefinition;
+
   /**
     * Dimensions and sampling shape of the image a render plan targets.
     *
@@ -58,10 +60,20 @@ namespace engine::graph {
                               const RenderTargetSpec& target, const RenderIntent& intent,
                               std::vector<RenderFeatureKind> extraFeatures = {}) const;
     bool beautyPassNeedsExplicitReadback(const RenderPassNode& pass) const;
+    bool passNeedsExplicitReadback(const RenderPassNode& pass) const;
+    RenderResourceDescriptor readbackResource(const RenderResourceDescriptor& source,
+                                              RenderResourceId id, std::string name,
+                                              RenderResourceLifetime lifetime) const;
+    RenderPassNode readbackPass(RenderPassId id, std::string name, RenderResourceId inputResource,
+                                RenderResourceId outputResource,
+                                std::vector<RenderFeatureKind> extraFeatures = {}) const;
     RenderPassNode readbackPass(RenderResourceId inputResource,
                                 RenderResourceId outputResource) const;
     RenderPassNode tonemapPass(RenderResourceId inputResource,
                                RenderResourceId outputResource) const;
+    RenderPlan aovViewPlan(const RenderTargetSpec& target, RenderExecutorKind executor,
+                           const RenderAOVDefinition& aov, const SceneView& sceneView,
+                           const RenderIntent& intent) const;
     RenderPlan compileStencilCompositeView(const RenderTargetSpec& target,
                                            const RenderIntent& intent) const;
   };

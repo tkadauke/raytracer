@@ -599,8 +599,9 @@ time for that OpenGL pass and the current eager color/depth/stencil readback
 time. OpenGL raster beauty plans also route the beauty color through an
 explicit `beauty_readback` node before tonemap, so the graph already shows the
 transfer boundary that will become the real GPU-to-CPU copy once resident
-OpenGL resources are kept across passes. That OpenGL path evaluates
-directional and point diffuse/specular lighting, UV
+OpenGL resources are kept across passes. OpenGL-backed raster AOV view plans
+use the same shape between the raw AOV resource and its visualization pass. That
+OpenGL path evaluates directional and point diffuse/specular lighting, UV
 color textures, direct UV-mapped image textures (including glTF base-color
 tints), direct UV checker textures, and direct planar checker textures with
 constant child colors in the fragment shader. Raster AOV producer passes use

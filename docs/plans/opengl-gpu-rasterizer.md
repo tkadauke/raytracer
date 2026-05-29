@@ -311,7 +311,8 @@ Tasks:
   real transfer. OpenGL raster beauty compilation now inserts `beauty_readback`
   before tonemap, so the final-output transfer boundary is visible in graph
   exports and the Modeler graph view even while the current OpenGL pass still
-  eagerly materializes CPU color.
+  eagerly materializes CPU color. OpenGL-backed raster AOV view compilation
+  now inserts the same kind of readback node before visualization.
 - ~~Record readback cost in graph trace metadata.~~ ✅ **Done.** OpenGL raster
   beauty/depth/stencil executions now append trace messages that report which
   attachments were copied back to CPU buffers and how long that eager readback

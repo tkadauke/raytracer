@@ -670,6 +670,42 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, OpenGLRasterAOVRoutesThroughExplicitReadbackPass) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.defaultViewMode = RenderViewMode::Depth;
+    intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    const auto* readback = plan.findPass("readback_depth_aov");
+    ASSERT_NE(nullptr, readback);
+    EXPECT_EQ(RenderPassKind::Readback, readback->kind);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, readback->executor);
+    ASSERT_EQ(1u, readback->reads.size());
+    ASSERT_EQ(1u, readback->writes.size());
+    EXPECT_EQ("depth_aov", readback->reads.front().resource);
+    EXPECT_EQ("depth_aov_readback", readback->writes.front().resource);
+    EXPECT_TRUE(readback->supportsResourceDomain(RenderResourceDomain::CPU));
+    EXPECT_TRUE(readback->supportsResourceDomain(RenderResourceDomain::GPU));
+    EXPECT_TRUE(hasFeature(*readback, "depth"));
+    EXPECT_TRUE(hasFeature(*readback, "readback"));
+
+    const auto* readbackResource = plan.findResource("depth_aov_readback");
+    ASSERT_NE(nullptr, readbackResource);
+    EXPECT_EQ(RenderResourceType::Depth, readbackResource->type);
+    EXPECT_EQ(RenderResourceFormat::DepthDouble, readbackResource->format);
+    EXPECT_EQ(RenderResourceLifetime::Transient, readbackResource->lifetime);
+
+    const auto* visualization = plan.findPass("visualize_depth_aov");
+    ASSERT_NE(nullptr, visualization);
+    ASSERT_EQ(1u, visualization->reads.size());
+    EXPECT_EQ("depth_aov_readback", visualization->reads.front().resource);
+    EXPECT_TRUE(plan.resourceCanReach("depth_aov", "main_color"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, WireframeOptionsBecomeBeautyAndOverlayPassState) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
