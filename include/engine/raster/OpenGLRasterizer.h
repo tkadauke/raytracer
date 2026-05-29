@@ -67,6 +67,8 @@ namespace engine::raster {
 
     Rasterizer::DepthFunc depthFunc() const;
     void setDepthFunc(Rasterizer::DepthFunc func);
+    double depthBias() const;
+    void setDepthBias(double bias);
     double depthClearValue() const;
     void setDepthClearValue(double value);
     Rasterizer::AttachmentLoadOp depthLoadOp() const;
@@ -148,6 +150,7 @@ namespace engine::raster {
     bool m_scissorTestEnabled{false};
     Recti m_scissorRect;
     Rasterizer::DepthFunc m_depthFunc{Rasterizer::DepthFunc::Less};
+    double m_depthBias{0.0};
     double m_depthClearValue{std::numeric_limits<double>::infinity()};
     Rasterizer::AttachmentLoadOp m_depthLoadOp{Rasterizer::AttachmentLoadOp::Clear};
     Rasterizer::AttachmentStoreOp m_depthStoreOp{Rasterizer::AttachmentStoreOp::Store};

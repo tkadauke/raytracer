@@ -32,11 +32,11 @@ namespace engine::raster::detail {
         1.0 - ((screenY - rect.top()) / static_cast<double>(rect.height())) * 2.0);
     }
 
-    float normalizedDeviceDepth(const RasterVertex& vertex) {
+    float normalizedDeviceDepth(const RasterVertex& vertex, double depthBias) {
       if (vertex.invW == 0.0) {
         return 0.0f;
       }
-      const double depth = vertex.depthOverW / vertex.invW;
+      const double depth = vertex.depthOverW / vertex.invW + depthBias;
       if (!std::isfinite(depth)) {
         return 0.0f;
       }
@@ -117,7 +117,7 @@ namespace engine::raster::detail {
   OpenGLRasterMeshBuilder::OpenGLRasterMeshBuilder(
     const render::Scene* scene, std::shared_ptr<render::Camera> camera, int lod,
     const Recti& viewportRect, Rasterizer::CullMode cullMode, bool hasCullModeOverride,
-    const std::atomic<bool>& cancelled, const ShadowMaps* shadowMaps)
+    const std::atomic<bool>& cancelled, const ShadowMaps* shadowMaps, double depthBias)
       : m_scene(scene),
         m_camera(std::move(camera)),
         m_lod(lod),
@@ -125,7 +125,8 @@ namespace engine::raster::detail {
         m_cullMode(cullMode),
         m_hasCullModeOverride(hasCullModeOverride),
         m_cancelled(cancelled),
-        m_shadowMaps(shadowMaps) {
+        m_shadowMaps(shadowMaps),
+        m_depthBias(std::isfinite(depthBias) ? depthBias : 0.0) {
   }
 
   OpenGLRasterMesh OpenGLRasterMeshBuilder::build() const {
@@ -199,7 +200,7 @@ namespace engine::raster::detail {
     const RasterAlbedoShaderSource shaderSource = triangle.rasterMaterial.shaderAlbedoSource();
     return {normalizedDeviceX(vertex.x, m_viewportRect),
             normalizedDeviceY(vertex.y, m_viewportRect),
-            normalizedDeviceDepth(vertex),
+            normalizedDeviceDepth(vertex, m_depthBias),
             clipW(vertex),
             static_cast<float>(vertex.point.x()),
             static_cast<float>(vertex.point.y()),

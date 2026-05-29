@@ -939,6 +939,7 @@ namespace engine::graph {
       rasterizer.clearScissorRect();
     }
     rasterizer.setDepthFunc(m_depthFunc);
+    rasterizer.setDepthBias(m_depthBias);
     rasterizer.setDepthClearValue(m_depthClearValue);
     rasterizer.setDepthLoadOp(m_depthLoadOp);
     rasterizer.setDepthStoreOp(m_depthStoreOp);
@@ -960,9 +961,6 @@ namespace engine::graph {
   }
 
   void RasterFramebufferState::validateSupportedByOpenGL() const {
-    if (m_depthBias != 0.0) {
-      openGLUnsupported("depth bias");
-    }
     if (m_depthLoadOp == Rasterizer::AttachmentLoadOp::Load) {
       openGLUnsupported("depth attachment load");
     }

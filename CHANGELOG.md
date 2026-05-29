@@ -102,6 +102,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   material alpha through the GPU vertex stream and apply graph-derived
   alpha-test enable, function, and reference state before color/depth writes.
   — GPT-5
+- **OpenGL raster depth bias.** OpenGL-backed raster passes now apply
+  graph-derived depth bias to prepared mesh depth instead of rejecting that
+  framebuffer state. — GPT-5
 - **OpenGL raster stencil AOV.** OpenGL-backed raster stencil views now apply
   the graph stencil AOV pass state, update the offscreen stencil attachment,
   and read it back into graph-visible stencil resources. — GPT-5

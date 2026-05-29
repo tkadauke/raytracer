@@ -596,7 +596,8 @@ constant child colors in the fragment shader. Raster AOV producer passes use
 the same state
 object, so `--render_graph_view depth`,
 `--render_graph_view raster_depth_test_count`, and exported raster AOV side
-branches see the requested tessellation and sampling settings. The stencil AOV
+branches see the requested tessellation, sampling, and depth-bias settings. The
+stencil AOV
 is a graph-synthesized coverage mask: raytracer and wireframe
 executors mark primary-hit pixels, while the rasterizer path runs a dedicated
 single-sample stencil-marking pass that writes an 8-bit graph stencil resource

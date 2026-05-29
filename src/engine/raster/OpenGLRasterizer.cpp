@@ -1116,6 +1116,7 @@ namespace engine::raster {
     clone->setAlphaTestEnabled(m_alphaTestEnabled);
     clone->setAlphaFunc(m_alphaFunc, m_alphaReference);
     clone->setDepthFunc(m_depthFunc);
+    clone->setDepthBias(m_depthBias);
     clone->setDepthClearValue(m_depthClearValue);
     clone->setDepthLoadOp(m_depthLoadOp);
     clone->setDepthStoreOp(m_depthStoreOp);
@@ -1260,6 +1261,14 @@ namespace engine::raster {
 
   void OpenGLRasterizer::setDepthFunc(Rasterizer::DepthFunc func) {
     m_depthFunc = func;
+  }
+
+  double OpenGLRasterizer::depthBias() const {
+    return m_depthBias;
+  }
+
+  void OpenGLRasterizer::setDepthBias(double bias) {
+    m_depthBias = std::isfinite(bias) ? bias : 0.0;
   }
 
   double OpenGLRasterizer::depthClearValue() const {
@@ -1561,7 +1570,8 @@ namespace engine::raster {
     const auto meshPreparationStarted = std::chrono::steady_clock::now();
     if (viewport.width() > 0 && viewport.height() > 0) {
       mesh = detail::OpenGLRasterMeshBuilder(scene().get(), camera(), m_lod, viewport, m_cullMode,
-                                             m_hasCullModeOverride, m_cancelled, meshShadowMaps)
+                                             m_hasCullModeOverride, m_cancelled, meshShadowMaps,
+                                             m_depthBias)
                .build();
     }
     const auto meshPreparationElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(

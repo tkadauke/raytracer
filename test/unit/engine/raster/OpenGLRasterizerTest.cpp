@@ -7,6 +7,7 @@
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -95,6 +96,7 @@ namespace OpenGLRasterizerTest {
     rasterizer.setAlphaTestEnabled(true);
     rasterizer.setAlphaFunc(engine::raster::Rasterizer::AlphaFunc::Greater, 0.6);
     rasterizer.setDepthFunc(engine::raster::Rasterizer::DepthFunc::GreaterEqual);
+    rasterizer.setDepthBias(-0.125);
     rasterizer.setDepthClearValue(8.5);
     rasterizer.setDepthLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Clear);
     rasterizer.setDepthStoreOp(engine::raster::Rasterizer::AttachmentStoreOp::Discard);
@@ -135,6 +137,7 @@ namespace OpenGLRasterizerTest {
     EXPECT_EQ(engine::raster::Rasterizer::AlphaFunc::Greater, clone->alphaFunc());
     EXPECT_EQ(0.6, clone->alphaReference());
     EXPECT_EQ(engine::raster::Rasterizer::DepthFunc::GreaterEqual, clone->depthFunc());
+    EXPECT_EQ(-0.125, clone->depthBias());
     EXPECT_EQ(8.5, clone->depthClearValue());
     EXPECT_EQ(engine::raster::Rasterizer::AttachmentLoadOp::Clear, clone->depthLoadOp());
     EXPECT_EQ(engine::raster::Rasterizer::AttachmentStoreOp::Discard, clone->depthStoreOp());
@@ -180,6 +183,14 @@ namespace OpenGLRasterizerTest {
 
     rasterizer.setAlphaFunc(engine::raster::Rasterizer::AlphaFunc::Greater, -1.0);
     EXPECT_EQ(0.0, rasterizer.alphaReference());
+  }
+
+  TEST(OpenGLRasterizer, ClearsNonFiniteDepthBias) {
+    engine::raster::OpenGLRasterizer rasterizer(nullptr);
+
+    rasterizer.setDepthBias(std::numeric_limits<double>::infinity());
+
+    EXPECT_EQ(0.0, rasterizer.depthBias());
   }
 
   TEST(OpenGLRasterizer, DoesNotReportReadbackBeforeSuccessfulRender) {

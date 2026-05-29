@@ -164,6 +164,7 @@ namespace RasterPassStateTest {
     state.framebuffer().setViewportRect(Recti(4, 5, 20, 21));
     state.framebuffer().setScissorRect(Recti(6, 7, 18, 19));
     state.framebuffer().setDepthFunc(Rasterizer::DepthFunc::Greater);
+    state.framebuffer().setDepthBias(-0.125);
     state.framebuffer().setDepthClearValue(6.25);
     state.framebuffer().setDepthStoreOp(Rasterizer::AttachmentStoreOp::Discard);
     state.framebuffer().setDepthWriteEnabled(false);
@@ -191,6 +192,7 @@ namespace RasterPassStateTest {
     EXPECT_EQ(6, rasterizer.scissorRect().left());
     EXPECT_EQ(18, rasterizer.scissorRect().width());
     EXPECT_EQ(Rasterizer::DepthFunc::Greater, rasterizer.depthFunc());
+    EXPECT_EQ(-0.125, rasterizer.depthBias());
     EXPECT_EQ(6.25, rasterizer.depthClearValue());
     EXPECT_EQ(Rasterizer::AttachmentStoreOp::Discard, rasterizer.depthStoreOp());
     EXPECT_FALSE(rasterizer.depthWriteEnabled());
@@ -218,10 +220,6 @@ namespace RasterPassStateTest {
   }
 
   TEST(RasterBeautyPassState, RejectsUnsupportedOpenGLFramebufferState) {
-    RasterBeautyPassState depthBias;
-    depthBias.framebuffer().setDepthBias(0.01);
-    expectOpenGLUnsupported(depthBias, "depth bias");
-
     RasterBeautyPassState depthLoad;
     depthLoad.framebuffer().setDepthLoadOp(Rasterizer::AttachmentLoadOp::Load);
     expectOpenGLUnsupported(depthLoad, "depth attachment load");

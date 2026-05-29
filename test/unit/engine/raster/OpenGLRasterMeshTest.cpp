@@ -78,6 +78,27 @@ namespace OpenGLRasterMeshTest {
     }
   }
 
+  TEST(OpenGLRasterMesh, AppliesDepthBiasToPreparedDeviceDepth) {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    auto triangle = std::make_shared<render::Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0),
+                                                       Vector3d(0, 1, 0));
+    triangle->setMaterial(matte(Colord::red()));
+    scene->add(triangle);
+    std::atomic<bool> cancelled{false};
+
+    const auto unbiased = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+                                                  Rasterizer::CullMode::Both, false, cancelled)
+                            .build();
+    const auto biased =
+      OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48), Rasterizer::CullMode::Both,
+                              false, cancelled, nullptr, 1.0)
+        .build();
+
+    ASSERT_EQ(3u, unbiased.vertices().size());
+    ASSERT_EQ(3u, biased.vertices().size());
+    EXPECT_GT(biased.vertices()[0].z, unbiased.vertices()[0].z);
+  }
+
   TEST(OpenGLRasterMesh, CarriesUVColorShaderModeAndUVCoordinates) {
     auto scene = std::make_shared<render::Scene>(Colord::black());
     auto triangle = std::make_shared<render::Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0),

@@ -327,15 +327,18 @@ Acceptance:
 Tasks:
 
 - ~~Report unsupported fixed-function state before execution.~~ ✅ **Done.**
-  OpenGL raster passes now reject unsupported raster pass postprocess AA,
-  and depth bias with explicit diagnostics instead of silently ignoring the
-  compiled graph state.
+  OpenGL raster passes now reject unsupported raster pass postprocess AA and
+  attachment-load state with explicit diagnostics instead of silently ignoring
+  the compiled graph state.
 - ~~Add fixed-function blending support.~~ ✅ **Done.** OpenGL raster draw calls
   now apply graph-derived blend enable, factors, operation, and constant color
   state.
 - ~~Add fixed-function alpha-test support.~~ ✅ **Done.** OpenGL raster draw
   calls now carry material alpha into the vertex stream and discard fragments
   through graph-derived alpha-test enable/function/reference state.
+- ~~Add depth-bias support.~~ ✅ **Done.** OpenGL raster mesh preparation now
+  applies graph-derived signed depth bias to device depth, matching the CPU
+  rasterizer's pass-state contract for depth comparisons and writes.
 - ~~Add stencil AOV support where it maps cleanly to OpenGL state.~~ ✅
   **Done.** OpenGL raster draw calls now apply the stencil state used by the
   graph stencil AOV pass and read the stencil attachment back into the
