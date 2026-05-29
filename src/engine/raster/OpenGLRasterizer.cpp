@@ -96,9 +96,9 @@ namespace engine::raster {
         std::vector<GLfloat> pixels;
         pixels.reserve(colors.size() * 4);
         for (const Colord& color : colors) {
-          pixels.push_back(static_cast<GLfloat>(std::clamp(color.r(), 0.0, 1.0)));
-          pixels.push_back(static_cast<GLfloat>(std::clamp(color.g(), 0.0, 1.0)));
-          pixels.push_back(static_cast<GLfloat>(std::clamp(color.b(), 0.0, 1.0)));
+          pixels.push_back(static_cast<GLfloat>(color.r()));
+          pixels.push_back(static_cast<GLfloat>(color.g()));
+          pixels.push_back(static_cast<GLfloat>(color.b()));
           pixels.push_back(1.0f);
         }
         return pixels;

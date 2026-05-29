@@ -52,6 +52,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **OpenGL raster backend preserves HDR image-texture range on upload.**
+  The texture cache used to clamp each channel to [0, 1] before uploading
+  into `GL_RGBA32F`; HDR `ImageTexture` pixels now reach the GPU unmodified
+  so the GL fragment shader sees the same range the CPU paths use. — Claude
+  Opus 4.7
 - **OpenGL raster backend honors cull-mode overrides on the GPU pipeline.**
   Selecting `Back` or `Front` culling now enables `GL_CULL_FACE` with the
   matching `glCullFace` orientation alongside the existing CPU-side filter,
