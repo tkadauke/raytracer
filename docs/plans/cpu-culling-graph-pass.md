@@ -172,10 +172,11 @@ Tasks:
 - ~~Surface ordering metrics in trace metadata.~~ ✅ **Done.** Trace messages
   report whether front-to-back ordering was enabled, disabled, or unsupported,
   plus the number of ordered leaves.
-- ~~Feed ordered work into CPU raster~~ and later GPU raster draw submission.
-  ✅ **Partially done.** The visibility set can now carry an explicit
-  visible-leaf order, and the CPU raster front end consumes it while preserving
-  original face-index progression for skipped/reordered leaves.
+- ~~Feed ordered work into CPU raster and later GPU raster draw submission.~~
+  ✅ **Done.** The visibility set can now carry an explicit visible-leaf order;
+  the CPU raster front end consumes it while preserving original face-index
+  progression, and OpenGL raster mesh preparation consumes the same set before
+  GPU upload.
 
 Acceptance:
 

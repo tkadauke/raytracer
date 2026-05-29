@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "engine/raster/OpenGLOffscreenContext.h"
 #include "engine/raster/OpenGLRasterizer.h"
+#include "engine/raster/RasterVisibilitySet.h"
 
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
@@ -114,6 +115,9 @@ namespace OpenGLRasterizerTest {
                              engine::raster::Rasterizer::StencilOp::IncrementClamp,
                              engine::raster::Rasterizer::StencilOp::Invert);
     rasterizer.setShadowMapsEnabled(true);
+    auto visibilitySet = std::make_shared<engine::raster::RasterVisibilitySet>();
+    visibilitySet->addVisibleLeaf(1, 1);
+    rasterizer.setVisibilitySet(visibilitySet);
 
     auto clone =
       std::dynamic_pointer_cast<engine::raster::OpenGLRasterizer>(rasterizer.cloneForRender());
@@ -160,6 +164,8 @@ namespace OpenGLRasterizerTest {
     EXPECT_EQ(engine::raster::Rasterizer::StencilOp::IncrementClamp, clone->stencilDepthFailOp());
     EXPECT_EQ(engine::raster::Rasterizer::StencilOp::Invert, clone->stencilPassOp());
     EXPECT_TRUE(clone->shadowMapsEnabled());
+    ASSERT_NE(nullptr, clone->visibilitySet());
+    EXPECT_TRUE(clone->visibilitySet()->leafVisible(0));
   }
 
   TEST(OpenGLRasterizer, ClampsMSAASamplesToSupportedCounts) {

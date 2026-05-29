@@ -15,6 +15,8 @@
 #include <vector>
 
 namespace engine::raster {
+  class RasterVisibilitySet;
+
   namespace detail {
     class ShadowMaps;
   }
@@ -130,6 +132,9 @@ namespace engine::raster {
     void setShadowMapsEnabled(bool enabled);
     void setExternalShadowMaps(std::shared_ptr<const detail::ShadowMaps> shadowMaps);
     void clearExternalShadowMaps();
+    void setVisibilitySet(std::shared_ptr<const RasterVisibilitySet> visibilitySet);
+    void clearVisibilitySet();
+    std::shared_ptr<const RasterVisibilitySet> visibilitySet() const;
 
     bool isAvailable() const;
     std::string availabilityDetail() const;
@@ -188,6 +193,7 @@ namespace engine::raster {
     Rasterizer::StencilOp m_stencilPassOp{Rasterizer::StencilOp::Keep};
     bool m_shadowMapsEnabled{false};
     std::shared_ptr<const detail::ShadowMaps> m_externalShadowMaps;
+    std::shared_ptr<const RasterVisibilitySet> m_visibilitySet;
     mutable std::string m_lastReadbackTraceMessage;
     mutable std::vector<std::string> m_lastTraceMessages;
   };

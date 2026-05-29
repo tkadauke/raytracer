@@ -117,7 +117,8 @@ namespace engine::raster::detail {
   OpenGLRasterMeshBuilder::OpenGLRasterMeshBuilder(
     const render::Scene* scene, std::shared_ptr<render::Camera> camera, int lod,
     const Recti& viewportRect, Rasterizer::CullMode cullMode, bool hasCullModeOverride,
-    const std::atomic<bool>& cancelled, const ShadowMaps* shadowMaps, double depthBias)
+    const std::atomic<bool>& cancelled, const ShadowMaps* shadowMaps, double depthBias,
+    std::shared_ptr<const RasterVisibilitySet> visibilitySet)
       : m_scene(scene),
         m_camera(std::move(camera)),
         m_lod(lod),
@@ -126,7 +127,8 @@ namespace engine::raster::detail {
         m_hasCullModeOverride(hasCullModeOverride),
         m_cancelled(cancelled),
         m_shadowMaps(shadowMaps),
-        m_depthBias(std::isfinite(depthBias) ? depthBias : 0.0) {
+        m_depthBias(std::isfinite(depthBias) ? depthBias : 0.0),
+        m_visibilitySet(std::move(visibilitySet)) {
   }
 
   OpenGLRasterMesh OpenGLRasterMeshBuilder::build() const {
@@ -139,7 +141,7 @@ namespace engine::raster::detail {
     Rasterizer rasterizer(m_camera, std::shared_ptr<render::Scene>());
     rasterizer.setLod(m_lod);
     RasterTriangleEmitter emitter(m_scene, m_camera, m_lod, rasterizer, m_cancelled, m_cullMode,
-                                  m_hasCullModeOverride, false);
+                                  m_hasCullModeOverride, false, m_visibilitySet);
     appendDirectionalLights(mesh);
     appendPointLights(mesh);
     emitter.forEachTriangle([&](const RasterTriangle& triangle) {

@@ -1146,6 +1146,7 @@ namespace engine::raster {
     clone->setStencilOps(m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp);
     clone->setShadowMapsEnabled(m_shadowMapsEnabled);
     clone->setExternalShadowMaps(m_externalShadowMaps);
+    clone->setVisibilitySet(m_visibilitySet);
     if (m_cancelled.load()) {
       clone->cancel();
     }
@@ -1511,6 +1512,19 @@ namespace engine::raster {
     setExternalShadowMaps(nullptr);
   }
 
+  void
+  OpenGLRasterizer::setVisibilitySet(std::shared_ptr<const RasterVisibilitySet> visibilitySet) {
+    m_visibilitySet = std::move(visibilitySet);
+  }
+
+  void OpenGLRasterizer::clearVisibilitySet() {
+    setVisibilitySet(nullptr);
+  }
+
+  std::shared_ptr<const RasterVisibilitySet> OpenGLRasterizer::visibilitySet() const {
+    return m_visibilitySet;
+  }
+
   bool OpenGLRasterizer::isAvailable() const {
     return OpenGLOffscreenContext::probe().available();
   }
@@ -1621,7 +1635,7 @@ namespace engine::raster {
     if (viewport.width() > 0 && viewport.height() > 0) {
       mesh = detail::OpenGLRasterMeshBuilder(scene().get(), camera(), m_lod, viewport, m_cullMode,
                                              m_hasCullModeOverride, m_cancelled, meshShadowMaps,
-                                             m_depthBias)
+                                             m_depthBias, m_visibilitySet)
                .build();
     }
     const auto meshPreparationElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(

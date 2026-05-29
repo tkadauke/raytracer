@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "engine/raster/RasterVisibilitySet.h"
 #include "engine/raster/detail/OpenGLRasterMesh.h"
 #include "engine/raster/detail/RasterShadowMaps.h"
 #include "render/cameras/PinholeCamera.h"
@@ -413,6 +414,31 @@ namespace OpenGLRasterMeshTest {
 
     EXPECT_FALSE(lod0.empty());
     EXPECT_GT(lod1.triangleCount(), lod0.triangleCount());
+  }
+
+  TEST(OpenGLRasterMesh, ConsumesVisibilitySetDuringPreparation) {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    auto visible = std::make_shared<render::Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0),
+                                                      Vector3d(0, 1, 0));
+    visible->setMaterial(matte(Colord::red()));
+    scene->add(visible);
+    auto rejected = std::make_shared<render::Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0),
+                                                       Vector3d(0, 1, 0));
+    rejected->setMaterial(matte(Colord::green()));
+    scene->add(rejected);
+    std::atomic<bool> cancelled{false};
+
+    auto visibilitySet = std::make_shared<engine::raster::RasterVisibilitySet>();
+    visibilitySet->addVisibleLeaf(1, 1);
+    visibilitySet->addRejectedLeaf(engine::raster::RasterVisibilitySet::RejectionReason::Frustum, 1,
+                                   1);
+
+    const auto mesh =
+      OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48), Rasterizer::CullMode::Both,
+                              false, cancelled, nullptr, 0.0, visibilitySet)
+        .build();
+
+    EXPECT_EQ(1u, mesh.triangleCount());
   }
 
   TEST(OpenGLRasterMesh, StopsWhenCancelled) {

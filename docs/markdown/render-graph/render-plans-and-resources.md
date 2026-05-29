@@ -660,9 +660,11 @@ is order-independent (`Less`/`LessEqual` depth with writes enabled, blending
 off, stencil off), the pass also sorts visible bounded leaves front-to-back and
 records the ordered-leaf count in the trace. Order-dependent state leaves
 traversal order unchanged and is reported as disabled, unsupported, or not
-needed in the same trace message. That keeps the graph shape, rendercli exports, Modeler graph
-view, execution trace, and CPU raster submission tied to the same explicit
-visibility edge.
+needed in the same trace message. The OpenGL raster backend consumes the same
+visibility set during mesh preparation, so CPU and GPU raster submission stay
+tied to the same explicit graph edge. That keeps the graph shape, rendercli
+exports, Modeler graph view, execution trace, and raster submission tied to the
+same explicit visibility edge.
 
 The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
 `RenderIntent::postProcessAA` asks the compiler to insert a `post_fxaa` or

@@ -199,6 +199,21 @@ namespace engine::graph {
       }
 
       void applyTo(::engine::raster::Rasterizer& rasterizer) const {
+        if (const auto set = selectedVisibilitySet()) {
+          rasterizer.setVisibilitySet(set);
+        }
+      }
+
+      bool applyTo(::engine::raster::OpenGLRasterizer& rasterizer) const {
+        if (const auto set = selectedVisibilitySet()) {
+          rasterizer.setVisibilitySet(set);
+          return true;
+        }
+        return false;
+      }
+
+    private:
+      std::shared_ptr<const ::engine::raster::RasterVisibilitySet> selectedVisibilitySet() const {
         for (const auto& read : m_context.pass().reads) {
           const auto& resource = m_context.storage().resource(read.resource);
           if (resource.descriptor().type != RenderResourceType::VisibilitySet ||
@@ -208,12 +223,12 @@ namespace engine::graph {
 
           const auto visibilitySet = resource.visibilitySet();
           if (visibilitySet) {
-            rasterizer.setVisibilitySet(visibilitySet);
+            return visibilitySet;
           }
         }
+        return nullptr;
       }
 
-    private:
       const RenderExecutionContext& m_context;
     };
 
@@ -388,6 +403,10 @@ namespace engine::graph {
         } else if (backend.isOpenGL()) {
           auto rasterizer = std::static_pointer_cast<::engine::raster::OpenGLRasterizer>(engine);
           state.applyTo(*rasterizer);
+          if (RasterVisibilityInput(context).applyTo(*rasterizer)) {
+            context.recordTraceMessage(
+              "OpenGL raster backend consumed graph visibility set during mesh preparation");
+          }
           if (applyRasterShadowInputs(context, state, *rasterizer)) {
             context.recordTraceMessage(
               "OpenGL raster backend consumed graph shadow maps during mesh preparation");

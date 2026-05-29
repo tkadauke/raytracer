@@ -120,10 +120,12 @@ namespace engine::raster::detail {
 
   class OpenGLRasterMeshBuilder {
   public:
-    OpenGLRasterMeshBuilder(const render::Scene* scene, std::shared_ptr<render::Camera> camera,
-                            int lod, const Recti& viewportRect, Rasterizer::CullMode cullMode,
-                            bool hasCullModeOverride, const std::atomic<bool>& cancelled,
-                            const ShadowMaps* shadowMaps = nullptr, double depthBias = 0.0);
+    OpenGLRasterMeshBuilder(
+      const render::Scene* scene, std::shared_ptr<render::Camera> camera, int lod,
+      const Recti& viewportRect, Rasterizer::CullMode cullMode, bool hasCullModeOverride,
+      const std::atomic<bool>& cancelled, const ShadowMaps* shadowMaps = nullptr,
+      double depthBias = 0.0,
+      std::shared_ptr<const engine::raster::RasterVisibilitySet> visibilitySet = nullptr);
 
     OpenGLRasterMesh build() const;
 
@@ -137,6 +139,7 @@ namespace engine::raster::detail {
     const std::atomic<bool>& m_cancelled;
     const ShadowMaps* m_shadowMaps;
     double m_depthBias;
+    std::shared_ptr<const engine::raster::RasterVisibilitySet> m_visibilitySet;
 
     void appendDirectionalLights(OpenGLRasterMesh& mesh) const;
     void appendPointLights(OpenGLRasterMesh& mesh) const;

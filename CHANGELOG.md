@@ -68,6 +68,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   material callback handle, and `render::Integrator` as the transport-policy
   boundary future path tracers will implement; this documents the preserved
   default Whitted behavior and does not add path tracing. — GPT-5
+- **OpenGL raster visibility-set consumption.** OpenGL raster mesh preparation
+  now consumes graph visibility sets, including front-to-back visible-leaf
+  order, instead of traversing every leaf after a `raster_visibility` pass. —
+  GPT-5
 - **Raster visibility front-to-back ordering.** Graph-visible raster
   visibility culling now sorts visible bounded leaves front-to-back for
   order-independent CPU raster passes and records ordering status/counts in the
