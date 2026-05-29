@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -58,7 +59,8 @@ namespace engine::raster::detail {
                           int lod, const Rasterizer& rasterizer, const std::atomic<bool>& cancelled,
                           Rasterizer::CullMode cullMode, bool hasCullModeOverride,
                           bool applyVertexShader,
-                          std::shared_ptr<const RasterVisibilitySet> visibilitySet = nullptr);
+                          std::shared_ptr<const RasterVisibilitySet> visibilitySet = nullptr,
+                          Rasterizer::RasterRenderMetrics* metrics = nullptr);
 
     template<class EmitFn>
     void forEachTriangle(EmitFn&& callback) const {
@@ -81,6 +83,7 @@ namespace engine::raster::detail {
                    ? static_cast<std::uint64_t>(m_visibilitySet->leafFaceCount(currentLeafIndex))
                    : std::uint64_t{0};
         }
+        recordMesh(*mesh, material.get());
 
         const auto& sourceVertices = mesh->vertices();
         std::vector<Mesh::Vertex> vertices;
@@ -236,18 +239,29 @@ namespace engine::raster::detail {
 
     std::shared_ptr<Mesh> tessellatedMeshFor(const render::Primitive* primitive) const;
 
+    void recordMesh(const Mesh& mesh, const render::Material* material) const;
+
+    void recordPreparedTriangleBeforeCulling() const;
+
+    void recordTriangleAfterCulling() const;
+
+    void recordTriangleAfterClipping() const;
+
     template<class EmitFn>
     void emitPreparedTriangle(const render::Primitive* primitive,
                               const std::shared_ptr<render::Material>& material,
                               const RasterMaterialSource& materialSource, std::uint64_t faceIdx,
                               const ClipVert& v0, const ClipVert& v1, const ClipVert& v2,
                               EmitFn& callback) const {
+      recordPreparedTriangleBeforeCulling();
       if (m_cullPolicy.shouldCull(materialSource, v0, v1, v2)) {
         return;
       }
+      recordTriangleAfterCulling();
 
       RasterTriangle triangle;
       if (makeTriangle(v0, v1, v2, primitive, material, materialSource, faceIdx, triangle)) {
+        recordTriangleAfterClipping();
         callback(triangle);
       }
     }
@@ -277,7 +291,9 @@ namespace engine::raster::detail {
     TriangleCullPolicy m_cullPolicy;
     bool m_applyVertexShader;
     const std::atomic<bool>& m_cancelled;
+    Rasterizer::RasterRenderMetrics* m_metrics;
     mutable std::unordered_map<const render::Primitive*, std::shared_ptr<Mesh>> m_tessellationCache;
+    mutable std::unordered_set<const render::Material*> m_seenMaterials;
   };
 
 }

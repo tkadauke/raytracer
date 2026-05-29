@@ -11,7 +11,9 @@
 #include <limits>
 #include <list>
 #include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace render {
   class Material;
@@ -593,6 +595,69 @@ namespace engine::raster {
       const render::Primitive* primitive;
       const render::Material* material;
       std::uint64_t faceIdx;
+    };
+
+    struct MetricDistribution {
+      std::uint32_t max = 0;
+      double p50 = 0.0;
+      double p90 = 0.0;
+      double p95 = 0.0;
+      double p99 = 0.0;
+    };
+
+    struct RasterRenderMetrics {
+      struct InputSceneSummary {
+        std::uint64_t leafPrimitiveCount = 0;
+        std::uint64_t meshCount = 0;
+        std::uint64_t materialCount = 0;
+        std::uint64_t lightCount = 0;
+        std::vector<std::string> sourceKinds;
+      } input;
+
+      struct TessellationSummary {
+        std::uint64_t generatedMeshVertices = 0;
+        std::uint64_t generatedMeshFaces = 0;
+        std::uint64_t preparedTrianglesBeforeCulling = 0;
+        std::uint64_t trianglesAfterCulling = 0;
+        std::uint64_t trianglesAfterClipping = 0;
+      } tessellation;
+
+      struct TileBinningSummary {
+        std::uint64_t tileCount = 0;
+        std::uint64_t nonEmptyTileCount = 0;
+        std::uint64_t triangleReferences = 0;
+        std::uint64_t maxTriangleReferencesPerTile = 0;
+        double p95TriangleReferencesPerTile = 0.0;
+      } tiling;
+
+      struct FragmentLoopTotals {
+        std::uint64_t coveredSamples = 0;
+        std::uint64_t stencilTests = 0;
+        std::uint64_t stencilFails = 0;
+        std::uint64_t depthTests = 0;
+        std::uint64_t depthPasses = 0;
+        std::uint64_t depthFails = 0;
+        std::uint64_t shadedFragments = 0;
+        std::uint64_t alphaTestFails = 0;
+        std::uint64_t colorWrites = 0;
+      } fragments;
+
+      struct DiagnosticImageStatistics {
+        MetricDistribution coverage;
+        MetricDistribution depthTest;
+        MetricDistribution depthPass;
+        MetricDistribution shade;
+        MetricDistribution colorWrite;
+      } diagnosticImages;
+
+      struct TimingSummary {
+        double tessellationTriangleEmissionSeconds = 0.0;
+        double tileBinningSeconds = 0.0;
+        double rasterLoopSeconds = 0.0;
+        double msaaResolveSeconds = 0.0;
+        double postprocessSeconds = 0.0;
+        double totalRenderSeconds = 0.0;
+      } timings;
     };
 
     /**
@@ -1357,6 +1422,11 @@ namespace engine::raster {
       m_diagnosticOutputBuffers = DiagnosticOutputBuffers();
     }
 
+    /// Returns aggregate metrics gathered during the most recent raster render.
+    inline const RasterRenderMetrics& lastMetrics() const {
+      return m_lastMetrics;
+    }
+
     /// Returns the borrowed depth/stencil attachments used by direct renders.
     inline const AttachmentBuffers& attachmentBuffers() const {
       return m_attachmentBuffers;
@@ -1437,6 +1507,7 @@ namespace engine::raster {
     FragmentShader m_fragmentShader;
     DiagnosticOutputBuffers m_diagnosticOutputBuffers;
     AttachmentBuffers m_attachmentBuffers;
+    RasterRenderMetrics m_lastMetrics;
   };
 
 } // namespace engine::raster
