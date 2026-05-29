@@ -209,8 +209,14 @@ Tasks:
   **Done.** Raster framebuffer state now serializes depth compare, clear,
   load/store, and write controls; OpenGL binds compare/write/clear/store state
   and rejects depth attachment load until graph resource residency exists.
-- Bind remaining graph raster pass state for depth/stencil attachment-load
-  controls that still need explicit GPU resource-domain support.
+- ⏸ **Gated on Phase 3 GPU residency.** Bind remaining graph raster pass
+  state for depth/stencil attachment-load controls. Currently throws
+  `"OpenGL raster backend does not support depth attachment load yet"`
+  because honoring `AttachmentLoadOp::Load` requires either (a) a
+  GPU-resident depth resource that earlier passes wrote to and this pass can
+  read from the same context, or (b) a CPU→GPU depth upload at pass start.
+  Path (a) is the real fix and lands with Phase 3 residency. Path (b) is a
+  bandwidth-heavy stopgap and is not worth wiring before residency.
 - ~~Render into an FBO color attachment and depth attachment.~~ ✅ **Done.**
   The backend clears the offscreen framebuffer, depth-tests triangles, and
   draws material-albedo color.
@@ -304,30 +310,26 @@ Acceptance:
 
 Tasks:
 
-- Let graph resource storage keep OpenGL textures/renderbuffers resident across
-  compatible GPU passes. The CPU resource storage layer now tracks
-  backend-provided GPU residency metadata for descriptor-only resources and
-  surfaces that metadata in graph trace snapshots, providing the first storage
-  hook for resident OpenGL textures/renderbuffers before concrete pass reuse
-  lands. Render pass nodes now also declare their supported resource domains,
-  so GPU-compatible pass chains can validate explicitly instead of relying on a
-  hard-coded CPU-only rule; text and DOT graph exports surface that pass-domain
-  support alongside resource domains for inspection.
+- ⏸ **Deferred to a dedicated GPU-residency plan.** Let graph resource
+  storage keep OpenGL textures/renderbuffers resident across compatible GPU
+  passes. The CPU storage layer already tracks GPU residency metadata for
+  descriptor-only resources, surfaces it in graph trace snapshots, and the
+  graph compiler validates pass-domain support, so the scaffolding is in
+  place. What is still missing is an `OpenGLRasterResource` (or similar)
+  backend type that actually owns GL texture/renderbuffer handles, a
+  resource-storage path that constructs and binds it, and producer/consumer
+  paths inside the OpenGL backend that read from and write to it instead of
+  going through CPU buffers. That is multi-week scope and crosses
+  `engine::raster`, `engine::graph`, and the new `engine::gpu` boundary
+  noted in the resolved open questions. Track in
+  `docs/plans/opengl-gpu-residency.md` (TODO) when the work starts.
 - Add explicit readback pass/operation for final image output, trace, and AOV
-  export. ✅ **Partial.** `RenderPassKind::Readback` now exposes the transfer
-  boundary as a graph node and executes CPU-materialized copies through
-  `RenderResource` instance methods. Descriptor-only GPU inputs still fail
-  clearly until concrete OpenGL texture/renderbuffer residency can perform the
-  real transfer. OpenGL raster beauty compilation now inserts `beauty_readback`
-  before tonemap, so the final-output transfer boundary is visible in graph
-  exports and the Modeler graph view even while the current OpenGL pass still
-  eagerly materializes CPU color. OpenGL-backed raster AOV view compilation
-  now inserts the same kind of readback node before visualization, and exported
-  AOV side branches route their transient producer resource through a readback
-  node before publishing the exported resource. OpenGL-backed stencil-composite
-  plans also route their internal raster base color and stencil mask through
-  readback nodes before the composite pass consumes them, keeping exported
-  stencil AOV side branches independent from the structural mask.
+  export. ✅ **Done for current pipeline.** `RenderPassKind::Readback` is the
+  graph-visible transfer boundary; beauty, depth, stencil, and AOV branches
+  insert readback nodes before consumer or export. The remaining
+  descriptor-only-GPU-inputs case is gated on the GPU residency item above —
+  there are no descriptor-only GPU inputs until residency lands, so this
+  item is effectively complete for the as-shipped pipeline.
 - ~~Record readback cost in graph trace metadata.~~ ✅ **Done.** OpenGL raster
   beauty/depth/stencil executions now append trace messages that report which
   attachments were copied back to CPU buffers and how long that eager readback
@@ -439,20 +441,32 @@ Acceptance:
 
 Tasks:
 
-- Add graph compiler cases for flat mirror and portal render-to-texture passes.
+- ⏸ **Cross-plan, owned by the render-graph plan.** Add graph compiler
+  cases for flat mirror and portal render-to-texture passes. Per this
+  plan's "Graph responsibilities" section the graph owns portal/mirror
+  compilation; OpenGL just executes the resulting raster passes (which is
+  already in place — see the next bullet). The compiler work is a multi-week
+  scope spanning scene introspection of `PortalMaterial` /
+  `FlatMirrorMaterial` (the runtime materials already exist), reflected-
+  camera and portal-stencil pass synthesis, and recursion-budget
+  enforcement. Track under `docs/plans/render-graph.md` when picked up;
+  this plan only needs to keep its OpenGL-executor pieces working with the
+  result.
 - ~~Use OpenGL executor only for the raster passes inside those compiled
   sequences.~~ ✅ **Done.** Raster subview branches inherit or override the
   typed raster backend state, so OpenGL-selected offscreen raster passes still
   compile as raster executor nodes with explicit readback transfer nodes before
   CPU-only postprocess/composite consumers.
-- Add graph resources for offscreen color/depth inputs sampled by later passes.
-  ✅ **Partial.** Whole-scene subview intent now expands into independent
-  prefixed offscreen color branches with exported graph resources. Raster
-  subviews also export matching prefixed depth AOV resources, and subview
-  branches tag their final color/depth resources with stable
-  subview/output-kind features so future consumers can find them without
-  parsing ids. Sampling those resources from later portal/mirror/material
-  passes remains TODO.
+- ⏸ **Gated on the render-graph compiler bullet above.** Add graph
+  resources for offscreen color/depth inputs sampled by later passes. The
+  producer side is done — whole-scene subview intent now expands into
+  independent prefixed offscreen color branches, raster subviews export
+  matching prefixed depth AOV resources, and subview branches tag their
+  final color/depth resources with stable subview/output-kind features so
+  consumers can find them without parsing ids. The consumer side (sampling
+  those resources from later portal/mirror/material passes) only has work
+  to do once the compiler synthesizes the consumers — i.e., it lands as
+  part of the portal/mirror compiler work, not before.
 - ~~Bound recursion explicitly in render intent/graph compilation.~~ ✅
   **Done.** `RenderIntent` now carries `maxRenderToTextureRecursionDepth`, and
   graph compilation rejects subview expansion once that limit is reached.
