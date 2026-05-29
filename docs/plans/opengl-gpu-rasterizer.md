@@ -238,9 +238,13 @@ Tasks:
 - ~~Upload direct UV-mapped `ImageTexture` sources used by imported
   glTF/LDraw/OpenSCAD mesh materials.~~ ✅ **Done.** OpenGL raster batches now
   upload direct `ImageTexture` sources, including their generated mip levels,
-  and reuse one GL texture per image within the draw pass. Tinted or wrapped
+  and reuse one GL texture per image within the draw pass. Other wrapped
   texture stacks still use the vertex-color fallback until material texture
   graphs have GPU descriptors.
+- ~~Preserve glTF base-color texture tints without falling back to vertex-color
+  sampling.~~ ✅ **Done.** glTF tinting now uses a shared `TintedTexture`, and
+  OpenGL raster albedo state carries the tint beside supported direct image
+  sources.
 - ~~Implement base-color texture sampling with nearest/linear and wrap/clamp
   modes where supported by the existing material model.~~ ✅ **Done.** The
   OpenGL shader now samples UV-mapped image albedo with the runtime

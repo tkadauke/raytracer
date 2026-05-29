@@ -8,6 +8,7 @@
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/ImageTexture.h"
+#include "render/textures/TintedTexture.h"
 #include "render/textures/UVColorTexture.h"
 #include "render/textures/mappings/UVMapping2D.h"
 
@@ -41,7 +42,7 @@ namespace engine::raster::detail {
   bool RasterAlbedoShaderSource::operator==(const RasterAlbedoShaderSource& other) const {
     return mode == other.mode && image == other.image && uScale == other.uScale &&
            vScale == other.vScale && checkerBright == other.checkerBright &&
-           checkerDark == other.checkerDark;
+           checkerDark == other.checkerDark && tint == other.tint;
   }
 
   bool RasterAlbedoShaderSource::operator!=(const RasterAlbedoShaderSource& other) const {
@@ -51,6 +52,7 @@ namespace engine::raster::detail {
   RasterTexture::RasterTexture()
       : m_kind(Kind::Constant),
         m_color(Colord::black()),
+        m_tint(Colord::white()),
         m_uScale(1.0),
         m_vScale(1.0) {
   }
@@ -74,6 +76,13 @@ namespace engine::raster::detail {
     if (typeid(*texturePtr) == typeid(render::UVColorTexture)) {
       RasterTexture result;
       result.m_kind = Kind::UVColor;
+      return result;
+    }
+
+    if (typeid(*texturePtr) == typeid(render::TintedTexture)) {
+      const auto* tinted = static_cast<const render::TintedTexture*>(texturePtr);
+      RasterTexture result = from(tinted->texture());
+      result.m_tint = result.m_tint * tinted->tint();
       return result;
     }
 
@@ -114,28 +123,35 @@ namespace engine::raster::detail {
   Colord RasterTexture::evaluate(const render::Primitive* primitive, const Vector3d& worldPos,
                                  const Vector3d& normal, const Vector2d& uv, const Vector2d& uvDx,
                                  const Vector2d& uvDy) const {
+    Colord result;
     switch (m_kind) {
     case Kind::Constant:
-      return m_color;
+      result = m_color;
+      break;
     case Kind::UVColor:
-      return Colord(uv.x(), uv.y(), 0.0);
+      result = Colord(uv.x(), uv.y(), 0.0);
+      break;
     case Kind::Image:
-      return m_image->sample(uv.x() * m_uScale, uv.y() * m_vScale,
-                             Vector2d(uvDx.x() * m_uScale, uvDx.y() * m_vScale),
-                             Vector2d(uvDy.x() * m_uScale, uvDy.y() * m_vScale));
+      result = m_image->sample(uv.x() * m_uScale, uv.y() * m_vScale,
+                               Vector2d(uvDx.x() * m_uScale, uvDx.y() * m_vScale),
+                               Vector2d(uvDy.x() * m_uScale, uvDy.y() * m_vScale));
+      break;
     case Kind::UVChecker:
-      return checkerChild(uv).evaluate(primitive, worldPos, normal, uv, uvDx, uvDy);
+      result = checkerChild(uv).evaluate(primitive, worldPos, normal, uv, uvDx, uvDy);
+      break;
     case Kind::Fallback: {
       const HitPoint hp(primitive, 0.0, Vector4d(worldPos), normal, uv);
       const Rayd ray(worldPos, -normal);
-      return m_texture->evaluate(ray, hp);
+      result = m_texture->evaluate(ray, hp);
+      break;
     }
     }
-    return m_color;
+    return result * m_tint;
   }
 
   RasterAlbedoShaderSource RasterTexture::shaderAlbedoSource() const {
     RasterAlbedoShaderSource source;
+    source.tint = m_tint;
     if (m_kind == Kind::UVColor) {
       source.mode = RasterAlbedoShaderMode::UVColor;
     } else if (m_kind == Kind::Image && m_image) {

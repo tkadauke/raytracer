@@ -242,6 +242,7 @@ namespace engine::raster {
                                        "uniform float alphaReference;\n"
                                        "uniform sampler2D imageTexture;\n"
                                        "uniform vec2 imageUVScale;\n"
+                                       "uniform vec3 albedoTint;\n"
                                        "uniform vec3 checkerBright;\n"
                                        "uniform vec3 checkerDark;\n"
                                        "bool alphaPass(float alpha) {\n"
@@ -279,6 +280,12 @@ namespace engine::raster {
                                        "    vec3 checkerColor = mix(checkerBright, checkerDark, "
                                        "step(0.5, checker));\n"
                                        "    sourceColor = vec4(checkerColor, 1.0);\n"
+                                       "    sourceColor.a = max(max(sourceColor.r, "
+                                       "sourceColor.g), sourceColor.b) * "
+                                       "fragmentAlphaScale;\n"
+                                       "  }\n"
+                                       "  sourceColor.rgb *= albedoTint;\n"
+                                       "  if (fragmentAlbedoMode > 0.5) {\n"
                                        "    sourceColor.a = max(max(sourceColor.r, "
                                        "sourceColor.g), sourceColor.b) * "
                                        "fragmentAlphaScale;\n"
@@ -374,6 +381,9 @@ namespace engine::raster {
           }
           program.setUniformValue("imageUVScale", static_cast<GLfloat>(batch.albedo.uScale),
                                   static_cast<GLfloat>(batch.albedo.vScale));
+          program.setUniformValue("albedoTint", static_cast<GLfloat>(batch.albedo.tint.r()),
+                                  static_cast<GLfloat>(batch.albedo.tint.g()),
+                                  static_cast<GLfloat>(batch.albedo.tint.b()));
           program.setUniformValue("checkerBright",
                                   static_cast<GLfloat>(batch.albedo.checkerBright.r()),
                                   static_cast<GLfloat>(batch.albedo.checkerBright.g()),

@@ -150,6 +150,7 @@
 | `include/render/textures/ConstantColorTexture.h` | [Textures](../ray-rendering/textures.md) |
 | `include/render/textures/ImageTexture.h` | [Textures](../ray-rendering/textures.md) |
 | `include/render/textures/Texture.h` | [Textures](../ray-rendering/textures.md) |
+| `include/render/textures/TintedTexture.h` | [Textures](../ray-rendering/textures.md) |
 | `include/render/textures/UVColorTexture.h` | [Textures](../ray-rendering/textures.md) |
 | `include/render/textures/mappings/` | [Textures](../ray-rendering/textures.md) |
 | `include/render/tonemap/AcesTonemap.h` | [Tone mapping](../ray-rendering/tone-mapping.md) |

@@ -12,6 +12,7 @@
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/ImageTexture.h"
+#include "render/textures/TintedTexture.h"
 #include "render/textures/UVColorTexture.h"
 #include "render/textures/mappings/UVMapping2D.h"
 
@@ -121,6 +122,29 @@ namespace OpenGLRasterMeshTest {
     for (const auto& vertex : mesh.vertices()) {
       EXPECT_FLOAT_EQ(2.0f, vertex.albedoMode);
     }
+  }
+
+  TEST(OpenGLRasterMesh, BatchesTintedImageTextureShaderSource) {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    auto image = std::make_shared<render::ImageTexture>(new render::UVMapping2D(2.0, 3.0), 1, 1,
+                                                        std::vector<Colord>{Colord::white()});
+    auto tinted = std::make_shared<render::TintedTexture>(image, Colord(0.5, 0.25, 0.75));
+    auto triangle = std::make_shared<render::Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0),
+                                                       Vector3d(0, 1, 0));
+    triangle->setMaterial(std::make_shared<render::MatteMaterial>(tinted));
+    scene->add(triangle);
+    std::atomic<bool> cancelled{false};
+
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+                                              Rasterizer::CullMode::Both, false, cancelled)
+                        .build();
+
+    ASSERT_FALSE(mesh.empty());
+    ASSERT_EQ(1u, mesh.batches().size());
+    const auto& source = mesh.batches()[0].albedo;
+    EXPECT_EQ(engine::raster::detail::RasterAlbedoShaderMode::ImageTexture, source.mode);
+    EXPECT_EQ(image.get(), source.image);
+    EXPECT_EQ(Colord(0.5, 0.25, 0.75), source.tint);
   }
 
   TEST(OpenGLRasterMesh, BatchesUVCheckerShaderSource) {

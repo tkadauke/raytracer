@@ -11,9 +11,9 @@ By the end of this chapter you should know:
 
 - the `Texture<T>` interface and the contract it places on
   subclasses,
-- the four concrete textures the codebase ships
+- the five concrete textures the codebase ships
   (`ConstantColorTexture`, `CheckerBoardTexture`,
-  `UVColorTexture`, `ImageTexture`) and what each is for,
+  `TintedTexture`, `UVColorTexture`, `ImageTexture`) and what each is for,
 - the **mapping** abstraction that turns a hit point into 2D
   texture coordinates, and the difference between planar and
   [UV](../appendix/a-glossary.md#u)-direct,
@@ -48,7 +48,7 @@ know how the surface is being looked at) can ask. None of the
 shipped textures use the ray; the parameter is there for future
 extensions and to keep the interface honest.
 
-## <a id="the-three-concrete-textures"></a>The three concrete textures
+## <a id="the-concrete-textures"></a>The concrete textures
 ### `ConstantColorTexture`
 
 This is the trivial case. The class stores a single `Colord` and
@@ -70,6 +70,19 @@ public:
 You'll see this everywhere in the codebase. Every functional test
 that adds a "red sphere" or a "blue plane" is constructing a
 `ConstantColorTexture` and handing it to a material constructor.
+
+### `TintedTexture`
+
+`TintedTexture` is a small wrapper around another color texture.
+It evaluates the child texture, then multiplies the result by a
+stored `Colord` tint. Importers use it when an external format has
+both a sampled image and a base-color factor, such as glTF's
+base-color texture plus base-color multiplier.
+
+The wrapper keeps that intent visible to raster backends: a direct
+UV-mapped `ImageTexture` can still stay an image texture for shader
+sampling, while the tint travels beside it as a simple per-fragment
+multiply.
 
 ### `CheckerBoardTexture`
 
@@ -232,6 +245,7 @@ surfaces.
 - `include/render/textures/ConstantColorTexture.h`
 - `include/render/textures/CheckerBoardTexture.h`
 - `include/render/textures/ImageTexture.h`
+- `include/render/textures/TintedTexture.h`
 - `include/render/textures/UVColorTexture.h`
 - `include/render/textures/mappings/`
 <!-- /source-anchors -->

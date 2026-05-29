@@ -27,6 +27,7 @@
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/ImageTexture.h"
+#include "render/textures/TintedTexture.h"
 #include "render/textures/Texture.h"
 #include "render/textures/UVColorTexture.h"
 #include "render/textures/mappings/UVMapping2D.h"
@@ -1960,6 +1961,21 @@ namespace RasterizerTest {
     EXPECT_EQ(image.get(), source.image);
     EXPECT_EQ(2.0, source.uScale);
     EXPECT_EQ(1.0, source.vScale);
+  }
+
+  TEST(RasterTexture, TintedImageTextureCanBeEvaluatedInShaderFromImageAndTint) {
+    auto image = std::make_shared<render::ImageTexture>(
+      new render::UVMapping2D(2.0, 1.0), 1, 1, std::vector<Colord>{Colord::white()},
+      render::ImageTextureFilter::Nearest, render::ImageTextureWrap::Repeat);
+    auto tinted = std::make_shared<render::TintedTexture>(image, Colord(0.5, 0.25, 0.75));
+    const auto texture = engine::raster::detail::RasterTexture::from(tinted);
+    const auto source = texture.shaderAlbedoSource();
+
+    EXPECT_EQ(engine::raster::detail::RasterAlbedoShaderMode::ImageTexture, source.mode);
+    EXPECT_EQ(image.get(), source.image);
+    EXPECT_EQ(Colord(0.5, 0.25, 0.75), source.tint);
+    EXPECT_EQ(Colord(0.5, 0.25, 0.75),
+              texture.evaluate(nullptr, Vector3d::null, Vector3d::up(), Vector2d(0.0, 0.0)));
   }
 
   TEST(RasterTexture, DirectUVCheckerUsesScaledUVParity) {

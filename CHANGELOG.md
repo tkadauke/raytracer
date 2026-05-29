@@ -114,6 +114,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   direct UV-mapped `ImageTexture` albedo sources, sampling them in the GPU
   shader with their nearest/bilinear/mipmap filter and repeat/clamp wrap
   policy. — GPT-5
+- **OpenGL raster tinted image textures.** glTF base-color texture tints now
+  use a shared `TintedTexture` class, and OpenGL raster shader albedo state can
+  preserve direct image texture sampling while applying the tint per fragment.
+  — GPT-5
 - **OpenGL raster UV checker textures.** OpenGL raster passes now evaluate
   direct UV-mapped checkerboard textures with constant child colors in the GPU
   shader instead of pre-sampling them at mesh vertices. — GPT-5

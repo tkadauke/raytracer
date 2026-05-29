@@ -8,6 +8,7 @@
 #include "render/primitives/MeshPrimitive.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/ImageTexture.h"
+#include "render/textures/TintedTexture.h"
 #include "render/textures/mappings/UVMapping2D.h"
 #include "world/animation/Timeline.h"
 #include "world/import/ImportedSceneDefaults.h"
@@ -206,22 +207,6 @@ namespace world {
         result.addDiagnostic(importDiagnosticFor(diagnostic, source));
     }
 
-    class TintedTexture : public render::Texturec {
-    public:
-      TintedTexture(std::shared_ptr<render::Texturec> texture, Colord tint)
-          : m_texture(std::move(texture)),
-            m_tint(tint) {
-      }
-
-      Colord evaluate(const Rayd& ray, const HitPoint& hitPoint) const override {
-        return m_texture->evaluate(ray, hitPoint) * m_tint;
-      }
-
-    private:
-      std::shared_ptr<render::Texturec> m_texture;
-      Colord m_tint;
-    };
-
     bool isWhite(const Colord& color) {
       return color.r() == 1.0 && color.g() == 1.0 && color.b() == 1.0;
     }
@@ -309,7 +294,7 @@ namespace world {
         return std::make_shared<render::ConstantColorTexture>(baseColor);
       if (isWhite(baseColor))
         return texture;
-      return std::make_shared<TintedTexture>(std::move(texture), baseColor);
+      return std::make_shared<render::TintedTexture>(std::move(texture), baseColor);
     }
 
     void appendMaterialDiagnostics(ImportResult& result, const core::gltf::Asset& asset,

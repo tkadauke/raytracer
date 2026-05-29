@@ -33,6 +33,7 @@ namespace engine::raster::detail {
     double vScale{1.0};
     Colord checkerBright{Colord::white()};
     Colord checkerDark{Colord::black()};
+    Colord tint{Colord::white()};
 
     bool operator==(const RasterAlbedoShaderSource& other) const;
     bool operator!=(const RasterAlbedoShaderSource& other) const;
@@ -71,6 +72,7 @@ namespace engine::raster::detail {
 
     Kind m_kind;
     Colord m_color;
+    Colord m_tint;
     std::shared_ptr<render::Texturec> m_texture;
     const render::ImageTexture* m_image = nullptr;
     double m_uScale;
