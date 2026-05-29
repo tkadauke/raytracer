@@ -304,6 +304,10 @@ namespace engine::raster::detail {
     return true;
   }
 
+  const std::vector<DirectionalShadowMap>& ShadowMaps::directionalMaps() const {
+    return m_directional;
+  }
+
   const DirectionalShadowMap* ShadowMaps::forLight(const render::Light* light) const {
     for (const auto& shadowMap : m_directional) {
       if (shadowMap.light() == light)

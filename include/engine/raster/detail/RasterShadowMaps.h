@@ -151,6 +151,8 @@ namespace engine::raster::detail {
 
     bool copyFirstDirectionalDepthTo(Buffer<double>& destination) const;
 
+    const std::vector<DirectionalShadowMap>& directionalMaps() const;
+
     const DirectionalShadowMap* forLight(const render::Light* light) const;
 
   private:

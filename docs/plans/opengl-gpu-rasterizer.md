@@ -345,7 +345,9 @@ Tasks:
   separately, leaving the shader with a direct-light channel for later
   shadow-texture sampling without changing the current image equation.
 - Add shader-side OpenGL shadow-map sampling after the GPU raster path has
-  explicit shadow texture binding and shader lighting state.
+  explicit shadow texture binding and shader lighting state. The shadow-map
+  collection now exposes its directional maps directly so the GPU binding path
+  can enumerate cascades without per-light lookup.
 
 Acceptance:
 

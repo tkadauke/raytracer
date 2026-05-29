@@ -1457,9 +1457,11 @@ namespace RasterizerTest {
         .build();
 
     ASSERT_FALSE(shadowMaps.empty());
+    ASSERT_EQ(1u, shadowMaps.directionalMaps().size());
     ASSERT_FALSE(scene->lights().empty());
     const auto* shadowMap = shadowMaps.forLight(scene->lights().front().get());
     ASSERT_NE(nullptr, shadowMap);
+    EXPECT_EQ(shadowMap, &shadowMaps.directionalMaps().front());
     EXPECT_LT(shadowMap->visibility(Vector3d(0.6, 0.0, 1.0), Vector3d(0.0, 0.0, -1.0),
                                     Vector3d(-0.5, 0.2, -1.0)),
               1.0);
