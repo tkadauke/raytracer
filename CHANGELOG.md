@@ -16,6 +16,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   abstraction for SSE, NEON, and scalar builds, with explicit packet-mask tests
   for parallel axes, zero directions, NaNs, and infinities for Epic #426 Phase
   2. — GPT-5
+- **Ray4 primitive packet kernels.** Sphere, Plane, Box, and Triangle packet
+  intersections now use the shared four-wide SIMD backend, enabling the same
+  packet code path on SSE and NEON while preserving scalar fallback behavior for
+  unsupported targets for Epic #426. — GPT-5
 - **Central SIMD feature gates.** SIMD compile-time availability now flows
   through `include/core/SimdFeatures.h` project macros for SSE, SSE2, SSE3, AVX,
   and NEON, preserving existing x86 behavior while preparing Epic #426 ARM SIMD

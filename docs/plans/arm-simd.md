@@ -157,11 +157,16 @@ Port the high-value four-ray float packet path through the new abstraction:
   path uses `core::simd::Float4`/`Mask4`, with tests pinning zero-direction,
   parallel-axis, NaN, infinity, and movemask behavior against the scalar ray
   path.
-- `Sphere::intersectPacket(const Ray4&, State&)`;
-- `Plane::intersectPacket(const Ray4&, State&)`;
-- `Box::intersectPacket(const Ray4&, State&)`;
-- `Triangle::intersectPacket(const Ray4&, State&)`;
-- `BVH::intersectPacketNode` node-mask computation.
+- ~~`Sphere::intersectPacket(const Ray4&, State&)`;~~ ✅ **Done.** Uses the
+  shared four-wide SIMD backend with scalar fallback.
+- ~~`Plane::intersectPacket(const Ray4&, State&)`;~~ ✅ **Done.** Uses the
+  shared four-wide SIMD backend with scalar fallback.
+- ~~`Box::intersectPacket(const Ray4&, State&)`;~~ ✅ **Done.** Uses the shared
+  four-wide SIMD backend with scalar fallback.
+- ~~`Triangle::intersectPacket(const Ray4&, State&)`;~~ ✅ **Done.** Uses the
+  shared four-wide SIMD backend with scalar fallback.
+- ~~`BVH::intersectPacketNode` node-mask computation.~~ ✅ **Done.** Uses
+  `core::simd::movemask` over the shared bounding-box packet mask.
 
 The existing `Ray4` layout is already suitable for NEON: each coordinate is an
 aligned four-float lane array. Avoid changing that layout unless a benchmark
@@ -186,6 +191,10 @@ The benchmark surface now includes explicit `BoundingBoxBenchmark`
 `intersects4` packet entries. Record before/after ARM numbers for
 `BoundingBoxBenchmark` and `BatchedRayBenchmark` once an Apple Silicon worker
 is available for this phase.
+
+Post-port x86 packet-kernel evidence is recorded in
+`docs/perf/arm-simd-phase2-packet-kernels-2026-05-29.md`; ARM before/after
+timing still needs an ARM runner.
 
 Acceptance:
 
