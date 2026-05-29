@@ -22,13 +22,39 @@ namespace engine::raster {
   }
 
   /**
-    * OpenGL-backed raster executor shell.
+    * OpenGL-backed raster executor.
     *
-    * The class is wired into graph backend selection and owns the first
-    * offscreen context/FBO capability path plus the first reusable
-    * mesh-preparation and draw path. The first visible implementation renders
-    * clipped triangles with material albedo into an offscreen color/depth
-    * framebuffer before readback.
+    * Implements the same `render::RenderEngine` contract as the CPU
+    * `Rasterizer` and is selected by `RasterBackend::openGL()` for graph
+    * passes that opt into GPU execution. The pipeline builds an
+    * `OpenGLOffscreenContext`, prepares a triangle mesh from the scene
+    * through `OpenGLRasterMeshBuilder` (which respects per-material cull
+    * defaults, LOD, and an optional visibility set), then issues a single
+    * GLSL pass that supports:
+    *
+    * * Phong-style direct lighting from up to
+    *   `maxShaderDirectionalLights()` directional and
+    *   `maxShaderPointLights()` point lights; extras are reported in the
+    *   trace messages,
+    * * material albedo from vertex color, UV, image texture, or checker
+    *   patterns with optional tint,
+    * * alpha test, color/depth/stencil load/store ops, blending, color
+    *   write masking, depth function/bias/write toggles, stencil
+    *   func/ops/masks, and explicit cull-mode overrides (Front/Back) via
+    *   `GL_CULL_FACE`,
+    * * an optional external shadow-texture sampled inside the fragment
+    *   shader for directional light shadowing.
+    *
+    * `render()`, `renderDepth()`, and `renderStencil()` share the same
+    * draw path; depth- and stencil-only renders skip color readback.
+    * Cancellation is checked before context creation, before the FBO
+    * bind, and between batch draws, matching the CPU rasterizer's
+    * clean-stop contract.
+    *
+    * Hosts without a usable offscreen GL context (no `QGuiApplication`,
+    * gated Cocoa probes, etc.) report a clear error through
+    * `availabilityError()` and throw from `render()` rather than
+    * silently producing an empty buffer.
     */
   class OpenGLRasterizer : public render::RenderEngine {
   public:
