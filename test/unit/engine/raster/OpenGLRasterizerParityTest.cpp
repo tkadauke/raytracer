@@ -57,6 +57,18 @@ namespace OpenGLRasterizerParityTest {
       return scene;
     }
 
+    std::shared_ptr<Scene> backFacingRectangleScene() {
+      auto scene = std::make_shared<Scene>(Colord(0.05, 0.05, 0.1));
+      auto rect = std::make_shared<Rectangle>(Vector3d(-1.0, -1.0, 0.0), Vector3d(2.0, 0.0, 0.0),
+                                              Vector3d(0.0, 2.0, 0.0));
+      rect->setMaterial(std::make_shared<MatteMaterial>(
+        std::make_shared<ConstantColorTexture>(Colord(0.8, 0.4, 0.2))));
+      scene->add(rect);
+      scene->addLight(
+        std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord::white()));
+      return scene;
+    }
+
     std::shared_ptr<PinholeCamera> camera() {
       return std::make_shared<PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
     }
@@ -134,6 +146,31 @@ namespace OpenGLRasterizerParityTest {
     cpuEngine.render(cpuBuffer);
 
     OpenGLRasterizer gpuEngine(cam, scene);
+    Buffer<Colord> gpuBuffer(kBufferSize, kBufferSize);
+    gpuEngine.render(gpuBuffer);
+
+    const ChannelStats stats = compareBuffers(cpuBuffer, gpuBuffer);
+    EXPECT_LE(stats.meanAbs, 0.005)
+      << "mean channel divergence too large between CPU and OpenGL paths";
+    EXPECT_LE(stats.noisyFraction, 0.05)
+      << "fraction of pixels with large channel divergence too large";
+  }
+
+  TEST_F(OpenGLRasterizerParity, BackCullModeMatchesCpuOnBackFacingGeometry) {
+    if (!OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+
+    auto scene = backFacingRectangleScene();
+    auto cam = camera();
+
+    Rasterizer cpuEngine(cam, scene);
+    cpuEngine.setCullMode(Rasterizer::CullMode::Back);
+    Buffer<Colord> cpuBuffer(kBufferSize, kBufferSize);
+    cpuEngine.render(cpuBuffer);
+
+    OpenGLRasterizer gpuEngine(cam, scene);
+    gpuEngine.setCullMode(Rasterizer::CullMode::Back);
     Buffer<Colord> gpuBuffer(kBufferSize, kBufferSize);
     gpuEngine.render(gpuBuffer);
 

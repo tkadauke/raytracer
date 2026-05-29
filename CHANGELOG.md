@@ -50,6 +50,13 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   LDraw, molecular, and procedural scenes instead of preserving the old Grid
   default for Epic #360. — GPT-5
 
+### Fixed
+
+- **OpenGL raster backend honors cull-mode overrides on the GPU pipeline.**
+  Selecting `Back` or `Front` culling now enables `GL_CULL_FACE` with the
+  matching `glCullFace` orientation alongside the existing CPU-side filter,
+  so the GL state matches what `setCullMode` advertises. — Claude Opus 4.7
+
 ### Added
 
 - **Dimensioned sampler streams.** `SampleStream` now exposes named pixel,

@@ -229,7 +229,8 @@ namespace engine::raster {
         Rasterizer::AttachmentLoadOp stencilLoadOp, Rasterizer::AttachmentStoreOp stencilStoreOp,
         std::uint8_t stencilWriteMask, Rasterizer::StencilOp stencilFailOp,
         Rasterizer::StencilOp stencilDepthFailOp, Rasterizer::StencilOp stencilPassOp,
-        detail::OpenGLShadowTextureData shadowTextureData, const Vector3d& cameraPosition)
+        detail::OpenGLShadowTextureData shadowTextureData, const Vector3d& cameraPosition,
+        Rasterizer::CullMode cullMode, bool hasCullModeOverride)
           : m_context(context),
             m_height(height),
             m_viewportRect(viewportRect),
@@ -264,7 +265,9 @@ namespace engine::raster {
             m_stencilDepthFailOp(stencilDepthFailOp),
             m_stencilPassOp(stencilPassOp),
             m_shadowTextureData(std::move(shadowTextureData)),
-            m_cameraPosition(cameraPosition) {
+            m_cameraPosition(cameraPosition),
+            m_cullMode(cullMode),
+            m_hasCullModeOverride(hasCullModeOverride) {
       }
 
       OpenGLRasterRenderTimings render(const detail::OpenGLRasterMesh& mesh,
@@ -330,6 +333,7 @@ namespace engine::raster {
         applyColorWriteMask(functions);
         applyBlending(functions);
         applyStencil(functions);
+        applyCullMode(functions);
         OpenGLShadowTexture shadowTexture(functions, m_shadowTextureData);
 
         if (mesh.empty()) {
@@ -838,6 +842,16 @@ namespace engine::raster {
         functions->glBlendEquation(glBlendOp(m_blendOp));
       }
 
+      void applyCullMode(QOpenGLFunctions* functions) const {
+        if (!m_hasCullModeOverride || m_cullMode == Rasterizer::CullMode::Both) {
+          functions->glDisable(GL_CULL_FACE);
+          return;
+        }
+        functions->glEnable(GL_CULL_FACE);
+        functions->glFrontFace(GL_CCW);
+        functions->glCullFace(m_cullMode == Rasterizer::CullMode::Back ? GL_BACK : GL_FRONT);
+      }
+
       void applyStencil(QOpenGLFunctions* functions) const {
         if (!m_stencilTestEnabled) {
           functions->glDisable(GL_STENCIL_TEST);
@@ -861,6 +875,7 @@ namespace engine::raster {
         functions->glDisable(GL_SCISSOR_TEST);
         functions->glDisable(GL_BLEND);
         functions->glDisable(GL_STENCIL_TEST);
+        functions->glDisable(GL_CULL_FACE);
         functions->glStencilMask(0xff);
         functions->glDepthMask(GL_TRUE);
         functions->glDepthFunc(GL_LESS);
@@ -1084,6 +1099,8 @@ namespace engine::raster {
       Rasterizer::StencilOp m_stencilPassOp;
       detail::OpenGLShadowTextureData m_shadowTextureData;
       Vector3d m_cameraPosition;
+      Rasterizer::CullMode m_cullMode;
+      bool m_hasCullModeOverride;
     };
   }
 
@@ -1662,7 +1679,8 @@ namespace engine::raster {
         m_depthLoadOp, m_depthStoreOp, m_depthWriteEnabled, m_stencilTestEnabled, m_stencilFunc,
         m_stencilReference, m_stencilMask, m_stencilClearValue, m_stencilLoadOp, m_stencilStoreOp,
         m_stencilWriteMask, m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp,
-        std::move(shadowTextureData), camera() ? camera()->position() : Vector3d::null)
+        std::move(shadowTextureData), camera() ? camera()->position() : Vector3d::null, m_cullMode,
+        m_hasCullModeOverride)
         .render(mesh, backgroundColor(), buffer, depthTarget, stencilTarget);
     m_lastReadbackTraceMessage = readbackTraceMessage(
       timings.readbackElapsed, m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store,
