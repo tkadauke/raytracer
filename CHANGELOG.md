@@ -1044,6 +1044,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render graph pass camera bindings.** `GraphRenderEngine` can now bind
   scene-camera ids to runtime cameras, and rendercli supplies those bindings so
   pass nodes can execute with their graph-selected camera. — GPT-5
+- **Modeler graph camera bindings.** The Modeler preview and final render
+  window now bind all scene cameras into their graph engines so pass-selected
+  cameras execute consistently outside rendercli. — GPT-5
 - **Raster visibility face indices.** CPU raster visibility sets now preserve
   original face-index progression while skipping or reordering leaves, keeping
   fallback face colors and face-index AOV data stable under graph-visible

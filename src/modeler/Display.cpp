@@ -218,6 +218,7 @@ void RenderDisplay::setScene(Scene* scene, const StepPlaybackStyle& playbackStyl
   m_engine->setScene(scene->toRaytracerScene(playbackStyle));
   if (m_graphEngine) {
     m_graphEngine->setSceneAnalysis(scene->renderGraphAnalysis());
+    bindSceneCameras(*scene);
   }
   const bool needsSceneCamera =
     cameraPolicy == CameraPolicy::ResetToSceneCamera || !m_engine->camera();
@@ -336,6 +337,18 @@ void RenderDisplay::applyPreviewPolicy(EngineKind kind) {
   setClearBackBufferOnRenderStart(true);
   setProgressUpdateIntervalMs(0);
   setCancelRenderOnInteraction(false);
+}
+
+void RenderDisplay::bindSceneCameras(const Scene& scene) {
+  if (!m_graphEngine)
+    return;
+
+  m_graphEngine->clearSceneCameras();
+  for (const Camera* camera : scene.cameras()) {
+    if (!camera->id().isEmpty()) {
+      m_graphEngine->setSceneCamera(camera->id().toStdString(), camera->toRaytracer());
+    }
+  }
 }
 
 void RenderDisplay::mousePressEvent(QMouseEvent* event) {

@@ -117,6 +117,7 @@ public slots:
 
 private:
   void applyPreviewPolicy(EngineKind kind);
+  void bindSceneCameras(const Scene& scene);
 
   std::shared_ptr<engine::graph::GraphRenderEngine> m_graphEngine;
   std::shared_ptr<engine::graph::RenderGraphExecutionObserver> m_graphExecutionObserver;

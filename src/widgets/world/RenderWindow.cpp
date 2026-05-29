@@ -38,6 +38,15 @@ struct RenderWindow::Private {
     engine::graph::RenderSceneAnalysis::unknownScene()};
   engine::graph::RenderIntent baseIntent;
 
+  void bindSceneCameras(const Scene& scene) {
+    graph->clearSceneCameras();
+    for (const Camera* camera : scene.cameras()) {
+      if (!camera->id().isEmpty()) {
+        graph->setSceneCamera(camera->id().toStdString(), camera->toRaytracer());
+      }
+    }
+  }
+
   engine::graph::RenderPostProcessAA postProcessAA() const {
     const QString postAA = settingsWidget->postProcessAA();
     if (postAA == "FXAA") {
@@ -220,6 +229,7 @@ void RenderWindow::setScene(::Scene* scene) {
 
   p->graph->setScene(raytracerScene);
   p->graph->setSceneAnalysis(p->sceneAnalysis);
+  p->bindSceneCameras(*scene);
 
   auto camera = scene->activeCamera();
   std::shared_ptr<render::Camera> rtCamera;

@@ -2,14 +2,17 @@
 
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/RasterPassState.h"
+#include "render/cameras/Camera.h"
 #include "widgets/RenderWidget.h"
 #include "widgets/world/RenderGraphInspectorWidget.h"
 #include "widgets/world/RenderWindow.h"
+#include "world/objects/PinholeCamera.h"
 #include "world/objects/PointLight.h"
 #include "world/objects/Scene.h"
 #include "world/objects/Sphere.h"
 
 #include "test/helpers/GuiTestHelper.h"
+#include "test/helpers/VectorTestHelper.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -101,6 +104,38 @@ namespace RenderWindowTest {
     const auto* beautyState = engine::graph::RasterBeautyPassState::fromPass(*beautyPass);
     ASSERT_NE(nullptr, beautyState);
     EXPECT_TRUE(beautyState->execution().backend().isOpenGL());
+  }
+
+  TEST_F(RenderWindowTest, ShouldBindSceneCamerasForFinalGraphPasses) {
+    RenderWindow window;
+    Scene scene;
+    auto* activeCamera = new PinholeCamera;
+    activeCamera->setId("active-camera");
+    activeCamera->setPosition(Vector3d(0, 0, -6));
+    activeCamera->setTarget(Vector3d::null);
+    scene.addChild(activeCamera);
+
+    auto* passCamera = new PinholeCamera;
+    passCamera->setId("pass-camera");
+    passCamera->setPosition(Vector3d(4, 3, -9));
+    passCamera->setTarget(Vector3d(1, 2, 0));
+    scene.addChild(passCamera);
+
+    window.setScene(&scene);
+
+    auto* renderWidget = window.findChild<RenderWidget*>();
+    ASSERT_NE(nullptr, renderWidget);
+    auto graph =
+      std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(renderWidget->renderEngine());
+    ASSERT_NE(nullptr, graph);
+
+    engine::graph::RenderPassNode pass;
+    pass.sceneView.camera = engine::graph::RenderCameraRef{"pass-camera", std::nullopt};
+
+    auto selectedCamera = graph->cameraForPass(pass);
+    ASSERT_NE(nullptr, selectedCamera);
+    ASSERT_VECTOR_NEAR(passCamera->position(), selectedCamera->position(), 1e-9);
+    ASSERT_VECTOR_NEAR(passCamera->target(), selectedCamera->target(), 1e-9);
   }
 
   TEST_F(RenderWindowTest, ShouldShowFinalGraphBeforeRendering) {

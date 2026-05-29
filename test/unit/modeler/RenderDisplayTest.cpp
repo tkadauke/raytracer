@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "engine/graph/GraphRenderEngine.h"
+#include "engine/graph/RenderGraphTypes.h"
 #include "engine/raster/RasterBackend.h"
 #include "src/modeler/Display.h"
 #include "render/RenderEngine.h"
@@ -75,5 +77,36 @@ namespace RenderDisplayTest {
     display.setRasterizerPreviewBackend(engine::raster::RasterBackend::openGL());
 
     EXPECT_TRUE(display.rasterizerPreviewBackend().isOpenGL());
+  }
+
+  TEST_F(RenderDisplayTest, ShouldBindSceneCamerasForPreviewGraphPasses) {
+    auto scene = std::make_unique<Scene>();
+    auto* activeCamera = new PinholeCamera;
+    activeCamera->setId("active-camera");
+    activeCamera->setPosition(Vector3d(0, 0, -6));
+    activeCamera->setTarget(Vector3d::null);
+    scene->addChild(activeCamera);
+
+    auto* passCamera = new PinholeCamera;
+    passCamera->setId("pass-camera");
+    passCamera->setPosition(Vector3d(4, 3, -9));
+    passCamera->setTarget(Vector3d(1, 2, 0));
+    scene->addChild(passCamera);
+
+    RenderDisplay display(nullptr);
+    display.setRenderGraphPreviewEnabled(false);
+    display.setScene(scene.get());
+
+    auto graph =
+      std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(display.renderEngine());
+    ASSERT_NE(nullptr, graph);
+
+    engine::graph::RenderPassNode pass;
+    pass.sceneView.camera = engine::graph::RenderCameraRef{"pass-camera", std::nullopt};
+
+    auto selectedCamera = graph->cameraForPass(pass);
+    ASSERT_NE(nullptr, selectedCamera);
+    ASSERT_VECTOR_NEAR(passCamera->position(), selectedCamera->position(), 1e-9);
+    ASSERT_VECTOR_NEAR(passCamera->target(), selectedCamera->target(), 1e-9);
   }
 } // namespace RenderDisplayTest
