@@ -105,8 +105,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   resources until concrete GPU transfer support lands. — GPT-5
 - **OpenGL raster graph readback node.** OpenGL raster beauty plans now route
   through a visible `beauty_readback` node before tonemap, and OpenGL-backed
-  raster AOV view plans route through a matching readback node before
-  visualization. — GPT-5
+  raster AOV view/export plans route through a matching readback node before
+  visualization or exported AOV publication. — GPT-5
 - **OpenGL raster blending.** OpenGL-backed raster passes now apply
   graph-derived fixed-function blend enable, factors, operation, and constant
   color state. — GPT-5

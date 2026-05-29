@@ -74,6 +74,12 @@ namespace engine::graph {
     RenderPlan aovViewPlan(const RenderTargetSpec& target, RenderExecutorKind executor,
                            const RenderAOVDefinition& aov, const SceneView& sceneView,
                            const RenderIntent& intent) const;
+    void addAuxiliaryAOVExport(RenderPlan& plan, const RenderTargetSpec& target,
+                               RenderExecutorKind executor, RenderViewMode viewMode,
+                               RenderViewMode defaultViewMode, const SceneView& sceneView,
+                               const RenderIntent& intent) const;
+    void addAuxiliaryAOVExports(RenderPlan& plan, const RenderTargetSpec& target,
+                                RenderExecutorKind executor, const RenderIntent& intent) const;
     RenderPlan compileStencilCompositeView(const RenderTargetSpec& target,
                                            const RenderIntent& intent) const;
   };

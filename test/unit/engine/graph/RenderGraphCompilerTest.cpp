@@ -706,6 +706,47 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, OpenGLRasterExportedAOVRoutesThroughExplicitReadbackPass) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
+    intent.exportedAOVs = {RenderViewMode::Depth};
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    const auto* source = plan.findResource("depth_aov_source");
+    ASSERT_NE(nullptr, source);
+    EXPECT_EQ(RenderResourceType::Depth, source->type);
+    EXPECT_EQ(RenderResourceLifetime::Transient, source->lifetime);
+
+    const auto* exported = plan.findResource("depth_aov");
+    ASSERT_NE(nullptr, exported);
+    EXPECT_EQ(RenderResourceType::Depth, exported->type);
+    EXPECT_EQ(RenderResourceLifetime::Exported, exported->lifetime);
+
+    const auto* producer = plan.findPass("depth_aov");
+    ASSERT_NE(nullptr, producer);
+    ASSERT_EQ(1u, producer->writes.size());
+    EXPECT_EQ("depth_aov_source", producer->writes.front().resource);
+
+    const auto* readback = plan.findPass("readback_depth_aov");
+    ASSERT_NE(nullptr, readback);
+    EXPECT_EQ(RenderPassKind::Readback, readback->kind);
+    ASSERT_EQ(1u, readback->reads.size());
+    ASSERT_EQ(1u, readback->writes.size());
+    EXPECT_EQ("depth_aov_source", readback->reads.front().resource);
+    EXPECT_EQ("depth_aov", readback->writes.front().resource);
+    EXPECT_TRUE(hasFeature(*readback, "export"));
+
+    const auto* visualization = plan.findPass("visualize_depth_aov");
+    ASSERT_NE(nullptr, visualization);
+    ASSERT_EQ(1u, visualization->reads.size());
+    EXPECT_EQ("depth_aov", visualization->reads.front().resource);
+    EXPECT_TRUE(plan.resourceCanReach("depth_aov_source", "depth_aov_color"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, WireframeOptionsBecomeBeautyAndOverlayPassState) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

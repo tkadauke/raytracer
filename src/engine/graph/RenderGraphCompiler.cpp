@@ -86,45 +86,6 @@ namespace engine::graph {
       pass.canRunConcurrently = false;
       return pass;
     }
-
-    void addAuxiliaryAOVExport(RenderPlan& plan, const RenderTargetSpec& target,
-                               RenderExecutorKind executor, RenderViewMode viewMode,
-                               RenderViewMode defaultViewMode, const SceneView& sceneView,
-                               const RenderIntent& intent) {
-      const auto* aov = renderAOVDefinition(viewMode);
-      if (!aov) {
-        throw std::runtime_error("view mode '" + std::string(toString(viewMode)) +
-                                 "' is not an AOV export");
-      }
-
-      if (viewMode == defaultViewMode || plan.findResource(aov->previewColorResourceId())) {
-        return;
-      }
-
-      const RenderResourceId aovId = aov->resourceId();
-      const RenderResourceId previewId = aov->previewColorResourceId();
-      if (!plan.findResource(aovId)) {
-        RenderPassNode producer = aovProducerPass(*aov, executor, sceneView, false, target, intent);
-        plan.addResourceProducer(std::move(producer),
-                                 aov->resourceDescriptor(target, RenderResourceLifetime::Exported));
-      }
-      plan.addResourceProducer(aovVisualizationPass(*aov, aovId, previewId, false),
-                               target.colorResource(previewId, aov->title() + " AOV preview",
-                                                    RenderResourceLifetime::Exported));
-    }
-
-    void addAuxiliaryAOVExports(RenderPlan& plan, const RenderTargetSpec& target,
-                                RenderExecutorKind executor, const RenderIntent& intent) {
-      const SceneView sceneView = intent.defaultSceneView();
-      std::set<RenderViewMode> seen;
-      for (RenderViewMode viewMode : intent.exportedAOVs) {
-        if (!seen.insert(viewMode).second) {
-          continue;
-        }
-        addAuxiliaryAOVExport(plan, target, executor, viewMode, intent.defaultViewMode, sceneView,
-                              intent);
-      }
-    }
   }
 
   RenderTargetSpec RenderTargetSpec::normalized() const {
@@ -263,6 +224,63 @@ namespace engine::graph {
       visualizationInput, mainColor,
       aovVisualizationPass(aov, visualizationInput, mainColor.id, true));
     return plan;
+  }
+
+  void RenderGraphCompiler::addAuxiliaryAOVExport(RenderPlan& plan, const RenderTargetSpec& target,
+                                                  RenderExecutorKind executor,
+                                                  RenderViewMode viewMode,
+                                                  RenderViewMode defaultViewMode,
+                                                  const SceneView& sceneView,
+                                                  const RenderIntent& intent) const {
+    const auto* aov = renderAOVDefinition(viewMode);
+    if (!aov) {
+      throw std::runtime_error("view mode '" + std::string(toString(viewMode)) +
+                               "' is not an AOV export");
+    }
+
+    if (viewMode == defaultViewMode || plan.findResource(aov->previewColorResourceId())) {
+      return;
+    }
+
+    const RenderResourceId aovId = aov->resourceId();
+    const RenderResourceId previewId = aov->previewColorResourceId();
+    RenderResourceId visualizationInput = aovId;
+    if (!plan.findResource(aovId)) {
+      RenderPassNode producer = aovProducerPass(*aov, executor, sceneView, false, target, intent);
+      if (passNeedsExplicitReadback(producer)) {
+        const RenderResourceId sourceId = aovId + "_source";
+        RenderResourceDescriptor sourceDescriptor = readbackResource(
+          aov->resourceDescriptor(target, RenderResourceLifetime::Transient), sourceId,
+          aov->title() + " AOV source", RenderResourceLifetime::Transient);
+        plan.addResourceProducer(producer, std::move(sourceDescriptor));
+
+        RenderPassNode readback =
+          readbackPass("readback_" + aovId, "Read back " + aov->title() + " AOV", sourceId, aovId,
+                       {"aov", "export", aov->feature()});
+        plan.addResourceProducer(std::move(readback),
+                                 aov->resourceDescriptor(target, RenderResourceLifetime::Exported));
+      } else {
+        plan.addResourceProducer(std::move(producer),
+                                 aov->resourceDescriptor(target, RenderResourceLifetime::Exported));
+      }
+    }
+    plan.addResourceProducer(aovVisualizationPass(*aov, visualizationInput, previewId, false),
+                             target.colorResource(previewId, aov->title() + " AOV preview",
+                                                  RenderResourceLifetime::Exported));
+  }
+
+  void RenderGraphCompiler::addAuxiliaryAOVExports(RenderPlan& plan, const RenderTargetSpec& target,
+                                                   RenderExecutorKind executor,
+                                                   const RenderIntent& intent) const {
+    const SceneView sceneView = intent.defaultSceneView();
+    std::set<RenderViewMode> seen;
+    for (RenderViewMode viewMode : intent.exportedAOVs) {
+      if (!seen.insert(viewMode).second) {
+        continue;
+      }
+      addAuxiliaryAOVExport(plan, target, executor, viewMode, intent.defaultViewMode, sceneView,
+                            intent);
+    }
   }
 
   RenderPlan RenderGraphCompiler::compileStencilCompositeView(const RenderTargetSpec& target,
