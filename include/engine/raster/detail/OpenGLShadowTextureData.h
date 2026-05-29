@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/math/Vector.h"
+
 #include <vector>
 
 namespace engine::raster::detail {
@@ -22,6 +24,12 @@ namespace engine::raster::detail {
     int width() const;
     int height() const;
     double depthScale() const;
+    double bias() const;
+    const Vector3d& origin() const;
+    const Vector3d& right() const;
+    const Vector3d& up() const;
+    const Vector3d& forward() const;
+    double halfExtent() const;
     const std::vector<float>& rgbaPixels() const;
 
   private:
@@ -36,6 +44,12 @@ namespace engine::raster::detail {
     int m_width;
     int m_height;
     double m_depthScale;
+    double m_bias{0.0};
+    Vector3d m_origin{Vector3d::null};
+    Vector3d m_right{Vector3d::right()};
+    Vector3d m_up{Vector3d::up()};
+    Vector3d m_forward{Vector3d::forward()};
+    double m_halfExtent{1.0};
     std::vector<float> m_rgbaPixels;
   };
 }

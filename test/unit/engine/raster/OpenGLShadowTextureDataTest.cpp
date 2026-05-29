@@ -26,9 +26,15 @@ namespace OpenGLShadowTextureDataTest {
     return std::make_shared<render::PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d::null);
   }
 
+  constexpr double kShadowBias = 0.01;
+
+  std::shared_ptr<DirectionalShadowCamera> shadowCamera() {
+    return std::make_shared<DirectionalShadowCamera>(Vector3d(1.0, 2.0, 3.0),
+                                                     Vector3d(0.0, 0.0, -1.0), 4.0);
+  }
+
   DirectionalShadowCascade cascade() {
-    auto shadowCamera =
-      std::make_shared<DirectionalShadowCamera>(Vector3d::null, Vector3d(0.0, 0.0, -1.0), 1.0);
+    auto shadowCamera = OpenGLShadowTextureDataTest::shadowCamera();
     shadowCamera->setViewPlane(std::make_shared<render::ViewPlane>());
     shadowCamera->viewPlane()->setup(Matrix4d(), Recti(kWidth, kHeight));
 
@@ -45,7 +51,7 @@ namespace OpenGLShadowTextureDataTest {
     cascades.push_back(cascade());
 
     ShadowMaps maps;
-    maps.add(DirectionalShadowMap(nullptr, camera(), std::move(cascades), 0.01, 0.0, 0,
+    maps.add(DirectionalShadowMap(nullptr, camera(), std::move(cascades), kShadowBias, 0.0, 0,
                                   Rasterizer::ShadowFilterMode::PCF));
     return maps;
   }
@@ -75,6 +81,12 @@ namespace OpenGLShadowTextureDataTest {
     EXPECT_EQ(kWidth, data.width());
     EXPECT_EQ(kHeight, data.height());
     EXPECT_DOUBLE_EQ(7.0, data.depthScale());
+    EXPECT_DOUBLE_EQ(kShadowBias, data.bias());
+    EXPECT_EQ(Vector3d(1.0, 2.0, -5.0), data.origin());
+    EXPECT_EQ(Vector3d::right(), data.right());
+    EXPECT_EQ(Vector3d::up(), data.up());
+    EXPECT_EQ(Vector3d::forward(), data.forward());
+    EXPECT_DOUBLE_EQ(4.0, data.halfExtent());
     ASSERT_EQ(static_cast<std::size_t>(kWidth * kHeight * 4), data.rgbaPixels().size());
     EXPECT_NEAR(2.0 / 7.0, data.rgbaPixels()[pixelOffset(0, 0)], 0.000001);
     EXPECT_FLOAT_EQ(1.0f, data.rgbaPixels()[pixelOffset(1, 0)]);

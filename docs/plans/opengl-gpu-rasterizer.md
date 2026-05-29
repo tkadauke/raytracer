@@ -358,7 +358,8 @@ Tasks:
   whether a shadow-enabled OpenGL pass matches that subset or still falls back
   to CPU-prepared shadow visibility. `OpenGLShadowTextureData` now converts the
   eligible shadow depth buffer into normalized RGBA float texels with a
-  no-occluder sentinel, ready for GL texture upload.
+  no-occluder sentinel and carries the matching directional-light projection
+  constants, ready for GL texture upload and shader uniforms.
 
 Acceptance:
 

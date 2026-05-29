@@ -16,6 +16,12 @@ namespace engine::raster::detail {
 
     const Buffer<double>& depth = *plan.cascade()->depthBuffer;
     OpenGLShadowTextureData data(depth.width(), depth.height(), 1.0);
+    data.m_bias = plan.shadowMap()->bias();
+    data.m_origin = plan.cascade()->camera->origin();
+    data.m_right = plan.cascade()->camera->right();
+    data.m_up = plan.cascade()->camera->up();
+    data.m_forward = plan.cascade()->camera->forward();
+    data.m_halfExtent = plan.cascade()->camera->halfExtent();
     for (int y = 0; y != depth.height(); ++y) {
       for (int x = 0; x != depth.width(); ++x) {
         const double value = depth[y][x];
@@ -48,6 +54,30 @@ namespace engine::raster::detail {
 
   double OpenGLShadowTextureData::depthScale() const {
     return m_depthScale;
+  }
+
+  double OpenGLShadowTextureData::bias() const {
+    return m_bias;
+  }
+
+  const Vector3d& OpenGLShadowTextureData::origin() const {
+    return m_origin;
+  }
+
+  const Vector3d& OpenGLShadowTextureData::right() const {
+    return m_right;
+  }
+
+  const Vector3d& OpenGLShadowTextureData::up() const {
+    return m_up;
+  }
+
+  const Vector3d& OpenGLShadowTextureData::forward() const {
+    return m_forward;
+  }
+
+  double OpenGLShadowTextureData::halfExtent() const {
+    return m_halfExtent;
   }
 
   const std::vector<float>& OpenGLShadowTextureData::rgbaPixels() const {
