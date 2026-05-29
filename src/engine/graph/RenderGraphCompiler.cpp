@@ -291,10 +291,22 @@ namespace engine::graph {
     const SceneView sceneView = intent.defaultSceneView();
     RenderPlan plan;
 
-    plan.addResourceProducer(
-      beautyPass(RenderExecutorKind::Rasterizer, sceneView, target, intent,
-                 {"stencil_composite_base"}),
-      target.colorResource("base_color", "Base color", RenderResourceLifetime::Transient));
+    RenderPassNode base = beautyPass(RenderExecutorKind::Rasterizer, sceneView, target, intent,
+                                     {"stencil_composite_base"});
+    RenderResourceDescriptor baseColor =
+      target.colorResource("base_color", "Base color", RenderResourceLifetime::Transient);
+    plan.addResourceProducer(base, baseColor);
+    RenderResourceId baseCompositeInput = baseColor.id;
+    if (beautyPassNeedsExplicitReadback(base)) {
+      RenderResourceDescriptor baseReadback = target.colorResource(
+        "base_readback_color", "Base readback color", RenderResourceLifetime::Transient);
+      RenderPassNode readback =
+        readbackPass("readback_base_color", "Read back base color", baseColor.id, baseReadback.id,
+                     {"main", "stencil_composite"});
+      plan.addResourceProducer(std::move(readback), baseReadback);
+      baseCompositeInput = "base_readback_color";
+    }
+
     plan.addResourceProducer(beautyPass(RenderExecutorKind::Wireframe, sceneView, target, intent,
                                         {"stencil_composite_foreground"}),
                              target.colorResource("foreground_color", "Foreground color",
@@ -304,9 +316,31 @@ namespace engine::graph {
     if (!stencilAOV) {
       throw std::runtime_error("stencil composite view requires a stencil AOV definition");
     }
-    plan.addResourceProducer(
-      aovProducerPass(*stencilAOV, RenderExecutorKind::Rasterizer, sceneView, true, target, intent),
-      stencilAOV->resourceDescriptor(target, RenderResourceLifetime::Transient));
+
+    RenderPassNode stencilProducer =
+      aovProducerPass(*stencilAOV, RenderExecutorKind::Rasterizer, sceneView, true, target, intent);
+    RenderResourceDescriptor stencilResource =
+      stencilAOV->resourceDescriptor(target, RenderResourceLifetime::Transient);
+    RenderResourceId stencilCompositeInput = stencilResource.id;
+    if (passNeedsExplicitReadback(stencilProducer)) {
+      stencilProducer.id = "stencil_composite_mask";
+      stencilProducer.name = "Stencil composite mask";
+      stencilProducer.features.push_back("stencil_composite_mask");
+      stencilResource.id = "stencil_composite_mask_source";
+      stencilResource.name = "Stencil composite mask source";
+      plan.addResourceProducer(std::move(stencilProducer), stencilResource);
+
+      RenderResourceDescriptor stencilReadback =
+        readbackResource(stencilResource, "stencil_composite_mask", "Stencil composite mask",
+                         RenderResourceLifetime::Transient);
+      RenderPassNode readback = readbackPass(
+        "readback_stencil_composite_mask", "Read back stencil composite mask", stencilResource.id,
+        stencilReadback.id, {"main", "stencil_composite"}, {"aov", stencilAOV->feature()});
+      plan.addResourceProducer(std::move(readback), std::move(stencilReadback));
+      stencilCompositeInput = "stencil_composite_mask";
+    } else {
+      plan.addResourceProducer(std::move(stencilProducer), std::move(stencilResource));
+    }
 
     RenderPassNode composite;
     composite.id = "stencil_composite";
@@ -314,9 +348,9 @@ namespace engine::graph {
     composite.kind = RenderPassKind::Composite;
     composite.executor = RenderExecutorKind::Composite;
     composite.features = {"main", "composite", "stencil_composite"};
-    composite.addRead("base_color");
+    composite.addRead(std::move(baseCompositeInput));
     composite.addRead("foreground_color");
-    composite.addRead(stencilAOV->resourceId());
+    composite.addRead(std::move(stencilCompositeInput));
     composite.addWrite("composited_color");
     composite.sceneView.selector = SceneSelector::all();
     composite.disabledBehavior = DisabledBehavior::SubstituteDefault;

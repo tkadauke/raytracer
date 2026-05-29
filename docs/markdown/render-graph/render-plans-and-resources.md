@@ -606,8 +606,10 @@ OpenGL resources are kept across passes. OpenGL-backed raster AOV view plans
 use the same shape between the raw AOV resource and its visualization pass;
 exported side AOV branches keep the public exported resource on the readback
 side of that boundary and classify that transfer as an exported AOV branch
-rather than part of the main display chain. That OpenGL path evaluates
-directional and point
+rather than part of the main display chain. OpenGL-backed stencil-composite
+plans apply the same rule to their internal raster base color and stencil mask
+before the composite pass consumes them, while exported stencil AOVs remain
+separate side branches. That OpenGL path evaluates directional and point
 diffuse/specular lighting, UV
 color textures, direct UV-mapped image textures (including glTF base-color
 tints), direct UV checker textures, and direct planar checker textures with

@@ -68,6 +68,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   material callback handle, and `render::Integrator` as the transport-policy
   boundary future path tracers will implement; this documents the preserved
   default Whitted behavior and does not add path tracing. — GPT-5
+- **OpenGL stencil-composite readback nodes.** OpenGL-backed stencil-composite
+  graphs now route their internal raster base color and stencil mask through
+  explicit readback nodes before the composite pass consumes them. — GPT-5
 - **OpenGL raster fixed-function state.** The OpenGL raster backend now applies
   graph-derived viewport, scissor, and face-culling state for the initial
   material-albedo mesh path. — GPT-5

@@ -255,6 +255,58 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, OpenGLStencilCompositeRoutesRasterInputsThroughReadbackPasses) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultViewMode = RenderViewMode::StencilComposite;
+    intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
+    intent.exportedAOVs = {RenderViewMode::Stencil};
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    const auto* baseReadback = plan.findPass("readback_base_color");
+    ASSERT_NE(nullptr, baseReadback);
+    EXPECT_EQ(RenderPassKind::Readback, baseReadback->kind);
+    ASSERT_EQ(1u, baseReadback->reads.size());
+    ASSERT_EQ(1u, baseReadback->writes.size());
+    EXPECT_EQ("base_color", baseReadback->reads.front().resource);
+    EXPECT_EQ("base_readback_color", baseReadback->writes.front().resource);
+    EXPECT_TRUE(hasFeature(*baseReadback, "stencil_composite"));
+
+    const auto* stencilProducer = plan.findPass("stencil_composite_mask");
+    ASSERT_NE(nullptr, stencilProducer);
+    EXPECT_EQ(RenderPassKind::AOV, stencilProducer->kind);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, stencilProducer->executor);
+    ASSERT_EQ(1u, stencilProducer->writes.size());
+    EXPECT_EQ("stencil_composite_mask_source", stencilProducer->writes.front().resource);
+
+    const auto* stencilReadback = plan.findPass("readback_stencil_composite_mask");
+    ASSERT_NE(nullptr, stencilReadback);
+    EXPECT_EQ(RenderPassKind::Readback, stencilReadback->kind);
+    ASSERT_EQ(1u, stencilReadback->reads.size());
+    ASSERT_EQ(1u, stencilReadback->writes.size());
+    EXPECT_EQ("stencil_composite_mask_source", stencilReadback->reads.front().resource);
+    EXPECT_EQ("stencil_composite_mask", stencilReadback->writes.front().resource);
+    EXPECT_TRUE(hasFeature(*stencilReadback, "stencil_composite"));
+    EXPECT_TRUE(hasFeature(*stencilReadback, "stencil"));
+
+    const auto* composite = plan.findPass("stencil_composite");
+    ASSERT_NE(nullptr, composite);
+    ASSERT_EQ(3u, composite->reads.size());
+    EXPECT_EQ("base_readback_color", composite->reads[0].resource);
+    EXPECT_EQ("foreground_color", composite->reads[1].resource);
+    EXPECT_EQ("stencil_composite_mask", composite->reads[2].resource);
+
+    const auto* exportedStencil = plan.findResource("stencil_aov");
+    ASSERT_NE(nullptr, exportedStencil);
+    EXPECT_EQ(RenderResourceLifetime::Exported, exportedStencil->lifetime);
+    const auto* exportedStencilReadback = plan.findPass("readback_stencil_aov");
+    ASSERT_NE(nullptr, exportedStencilReadback);
+    EXPECT_TRUE(hasFeature(*exportedStencilReadback, "export"));
+    EXPECT_FALSE(hasFeature(*exportedStencilReadback, "stencil_composite"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, NormalViewModeCompilesNormalAOVPlan) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

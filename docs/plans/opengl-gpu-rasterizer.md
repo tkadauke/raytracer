@@ -315,7 +315,10 @@ Tasks:
   eagerly materializes CPU color. OpenGL-backed raster AOV view compilation
   now inserts the same kind of readback node before visualization, and exported
   AOV side branches route their transient producer resource through a readback
-  node before publishing the exported resource.
+  node before publishing the exported resource. OpenGL-backed stencil-composite
+  plans also route their internal raster base color and stencil mask through
+  readback nodes before the composite pass consumes them, keeping exported
+  stencil AOV side branches independent from the structural mask.
 - ~~Record readback cost in graph trace metadata.~~ ✅ **Done.** OpenGL raster
   beauty/depth/stencil executions now append trace messages that report which
   attachments were copied back to CPU buffers and how long that eager readback
