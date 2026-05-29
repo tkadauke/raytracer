@@ -368,7 +368,10 @@ namespace GltfSceneImporterTest {
     auto material =
       std::dynamic_pointer_cast<render::MatteMaterial>(primitive->leaves().front()->material());
     ASSERT_NE(nullptr, material);
-    EXPECT_NE(nullptr, material->diffuseTexture());
+    ASSERT_NE(nullptr, material->diffuseTexture());
+    const HitPoint texturedHit(nullptr, 0.0, Vector4d::null, Vector3d::null, Vector2d(0.0, 0.0));
+    expectColorNear(material->diffuseTexture()->evaluate(Rayd::undefined, texturedHit),
+                    Colord::red());
 
     auto* cameraNode = qobject_cast<Group*>(scene->childElements()[1]);
     ASSERT_NE(nullptr, cameraNode);

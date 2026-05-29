@@ -93,7 +93,11 @@ namespace SourceAssetTest {
          "Editable source length.",
          2.5,
          false,
-         {}},
+         {},
+         {},
+         0.5,
+         10.0,
+         0.25},
         {"enabled",
          world::ImportOptionType::Boolean,
          "Enabled",
@@ -122,16 +126,26 @@ namespace SourceAssetTest {
          QStringLiteral("[2, 0]"),
          false,
          {}},
+        {"quality",
+         world::ImportOptionType::Choice,
+         "Quality",
+         "Editable source quality.",
+         QStringLiteral("draft"),
+         false,
+         {QStringLiteral("draft"), QStringLiteral("final")}},
       };
     }
 
     world::ImportResult importFile(const QString& filename,
                                    const world::ImportOptions& options) const override {
       auto group = std::make_unique<Group>();
+      const auto parameters = options.value("parameters").toJsonObject();
       const auto defines = options.value("define").toJsonObject();
-      group->setName(QString("length=%1 enabled=%2")
-                       .arg(defines.value("length").toDouble(2.5))
-                       .arg(defines.value("enabled").toBool(true)));
+      const auto values = parameters.isEmpty() ? defines : parameters;
+      group->setName(QString("length=%1 enabled=%2 quality=%3")
+                       .arg(values.value("length").toDouble(2.5))
+                       .arg(values.value("enabled").toBool(true))
+                       .arg(values.value("quality").toString(QStringLiteral("draft"))));
 
       world::ImportSourceMetadata source;
       source.importerName = name();
@@ -323,25 +337,44 @@ namespace SourceAssetTest {
     EXPECT_EQ(QStringLiteral("Length"), asset.propertyDisplayName("length"));
     EXPECT_EQ(QStringLiteral("Wall Thickness"), asset.propertyDisplayName("wall_thickness"));
     EXPECT_EQ(QStringLiteral("Editable source length."), asset.propertyDescription("length"));
+    EXPECT_EQ((QStringList{QStringLiteral("draft"), QStringLiteral("final")}),
+              asset.propertyChoices("quality"));
+    ASSERT_TRUE(asset.propertyDoubleRange("length").has_value());
+    EXPECT_DOUBLE_EQ(0.5, asset.propertyDoubleRange("length")->first);
+    EXPECT_DOUBLE_EQ(10.0, asset.propertyDoubleRange("length")->second);
+    ASSERT_TRUE(asset.propertyDoubleStep("length").has_value());
+    EXPECT_DOUBLE_EQ(0.25, *asset.propertyDoubleStep("length"));
     EXPECT_DOUBLE_EQ(2.5, asset.property("length").toDouble());
     EXPECT_TRUE(asset.property("enabled").toBool());
     EXPECT_EQ(8, asset.property("segments").toInt());
+    EXPECT_EQ(QStringLiteral("draft"), asset.property("quality").toString());
     ASSERT_EQ(1, asset.childElements().size());
-    EXPECT_EQ(QString("length=2.5 enabled=1"), asset.childElements().front()->name());
+    EXPECT_EQ(QString("length=2.5 enabled=1 quality=draft"), asset.childElements().front()->name());
 
     asset.setProperty("length", 4.0);
     asset.propertyEdited("length");
 
-    const auto defines = asset.importOptions().value("define").toObject();
-    EXPECT_DOUBLE_EQ(4.0, defines.value("length").toDouble());
+    const auto parameters = asset.importOptions().value("parameters").toObject();
+    EXPECT_DOUBLE_EQ(4.0, parameters.value("length").toDouble());
+    EXPECT_FALSE(asset.importOptions().contains("define"));
     ASSERT_EQ(1, asset.childElements().size());
-    EXPECT_EQ(QString("length=4 enabled=1"), asset.childElements().front()->name());
+    EXPECT_EQ(QString("length=4 enabled=1 quality=draft"), asset.childElements().front()->name());
+
+    asset.setProperty("quality", "final");
+    asset.propertyEdited("quality");
+
+    const auto updatedParameters = asset.importOptions().value("parameters").toObject();
+    EXPECT_EQ(QStringLiteral("final"), updatedParameters.value("quality").toString());
+    ASSERT_EQ(1, asset.childElements().size());
+    EXPECT_EQ(QString("length=4 enabled=1 quality=final"), asset.childElements().front()->name());
 
     QJsonObject json;
     asset.write(json);
     EXPECT_FALSE(json.contains("length"));
-    EXPECT_DOUBLE_EQ(4.0,
-                     json["importOptions"].toObject()["define"].toObject()["length"].toDouble());
+    EXPECT_DOUBLE_EQ(
+      4.0, json["importOptions"].toObject()["parameters"].toObject()["length"].toDouble());
+    EXPECT_EQ(QStringLiteral("final"),
+              json["importOptions"].toObject()["parameters"].toObject()["quality"].toString());
   }
 
   TEST(SourceAsset, AnimatesEditableImporterDoubleParametersAndRebuildsGeneratedOutput) {
@@ -364,9 +397,9 @@ namespace SourceAssetTest {
     track.apply(scene, 6);
 
     EXPECT_DOUBLE_EQ(6.0, asset->property("length").toDouble());
-    EXPECT_DOUBLE_EQ(6.0, asset->importOptions()["define"].toObject()["length"].toDouble());
+    EXPECT_DOUBLE_EQ(6.0, asset->importOptions()["parameters"].toObject()["length"].toDouble());
     ASSERT_EQ(1, asset->childElements().size());
-    EXPECT_EQ(QString("length=6 enabled=1"), asset->childElements().front()->name());
+    EXPECT_EQ(QString("length=6 enabled=1 quality=draft"), asset->childElements().front()->name());
   }
 
   TEST(SourceAsset, AnimatesEditableImporterIntegerParameters) {
@@ -389,7 +422,7 @@ namespace SourceAssetTest {
     track.apply(scene, 6);
 
     EXPECT_EQ(13, asset->property("segments").toInt());
-    EXPECT_EQ(13, asset->importOptions()["define"].toObject()["segments"].toInt());
+    EXPECT_EQ(13, asset->importOptions()["parameters"].toObject()["segments"].toInt());
   }
 
   TEST(SourceAsset, AnimatesEditableImporterDiscreteParametersWithStepInterpolation) {
@@ -413,9 +446,10 @@ namespace SourceAssetTest {
     enabledTrack.apply(scene, 11);
 
     EXPECT_FALSE(asset->property("enabled").toBool());
-    EXPECT_FALSE(asset->importOptions()["define"].toObject()["enabled"].toBool());
+    EXPECT_FALSE(asset->importOptions()["parameters"].toObject()["enabled"].toBool());
     ASSERT_EQ(1, asset->childElements().size());
-    EXPECT_EQ(QString("length=2.5 enabled=0"), asset->childElements().front()->name());
+    EXPECT_EQ(QString("length=2.5 enabled=0 quality=draft"),
+              asset->childElements().front()->name());
 
     const world::AnimationTrack sizeTrack(asset->id(), "size",
                                           {
@@ -427,7 +461,7 @@ namespace SourceAssetTest {
 
     EXPECT_EQ(QStringLiteral("[3, 0]"), asset->property("size").toString());
     EXPECT_EQ(QStringLiteral("[3, 0]"),
-              asset->importOptions()["define"].toObject()["size"].toString());
+              asset->importOptions()["parameters"].toObject()["size"].toString());
   }
 
   TEST(SourceAsset, RejectsLinearAnimationForEditableImporterStringParameters) {

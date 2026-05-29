@@ -228,6 +228,37 @@ exit 0
     EXPECT_TRUE(parameters[4].defaultValue.toBool());
   }
 
+  TEST(SourceAsset, StoresOpenScadEditableParametersInDefineOptions) {
+    QTemporaryDir dir;
+    const QString executable = writeExecutable(dir);
+    const QString cacheDirectory = dir.filePath("cache");
+    qputenv("OPENSCAD_FAKE_LOG", dir.filePath("openscad.log").toLocal8Bit());
+    auto source = writeScad(R"(
+      /*<!!start test_model!!>*/
+      sides = 6; //[4:square, 6:Hex, 64:circle]
+      /*<!!end test_model!!>*/
+      sphere(r = 1);
+    )");
+
+    SourceAsset asset;
+    asset.setSourcePath(source->fileName());
+    asset.setFormat("openscad");
+    asset.setImportOptions(optionsFor(executable, cacheDirectory));
+    asset.rebuildGeneratedChildren();
+
+    EXPECT_EQ(QStringList({QStringLiteral("4"), QStringLiteral("6"), QStringLiteral("64")}),
+              asset.propertyChoices("sides"));
+    EXPECT_EQ(QStringLiteral("6"), asset.property("sides").toString());
+
+    asset.setProperty("sides", "64");
+    asset.propertyEdited("sides");
+
+    const auto options = asset.importOptions();
+    EXPECT_EQ(QStringLiteral("64"), options.value("define").toObject().value("sides").toString());
+    EXPECT_FALSE(options.contains("parameters"));
+    ASSERT_EQ(1, asset.childElements().size());
+  }
+
   TEST(OpenScadSceneImporter, ImportsSupportedPrimitivesAndTransforms) {
     const auto file = writeScad(R"(
       translate([1, 2, 3]) rotate([0, 0, 90]) scale([2, 3, 4])
