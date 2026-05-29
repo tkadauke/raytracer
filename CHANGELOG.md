@@ -71,6 +71,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render graph subview branches.** Whole-scene render-to-texture subview
   intent now compiles into prefixed offscreen color branches with exported
   resources visible in graph exports and the Modeler graph view. — GPT-5
+- **Raster subview depth resources.** Raster render-to-texture subviews now
+  export a matching prefixed depth AOV resource so future portal and mirror
+  composites can depend on color and depth from the same subview. — GPT-5
 - **Render-to-texture recursion limit.** Render intent now carries an explicit
   `maxRenderToTextureRecursionDepth` bound, and graph compilation rejects
   subview expansion when that limit is reached. — GPT-5

@@ -323,7 +323,8 @@ synthesizes. Subviews use the same view-override option fields to inherit the
 global engine options or provide their own override block, which keeps
 render-to-texture quality controls in the same model without asking users to
 directly author graph nodes. Whole-scene subview intents now compile into
-prefixed offscreen color branches with exported graph resources for inspection.
+prefixed offscreen color branches with exported graph resources for inspection;
+raster subviews also synthesize prefixed depth AOV resources.
 Selector-specific subviews still fail clearly until scene partitioning can
 drive those branches safely; alternate-camera execution and final composites
 remain TODO. `maxRenderToTextureRecursionDepth` now bounds expansion in render
@@ -1489,8 +1490,9 @@ also synthesize a `stencil_composite` structural view that renders raster
 beauty, wireframe foreground, a raster stencil AOV, a stencil composite pass,
 and tonemap from scene intent, and the Modeler ships with a loadable scene for
 that path. Whole-scene render-to-texture subviews now compile into independent
-prefixed offscreen color branches for graph inspection, and render intent now
-sets an explicit render-to-texture recursion limit. Portal/mirror pass
+prefixed offscreen color branches for graph inspection, raster subviews also
+export matching prefixed depth AOV resources, and render intent now sets an
+explicit render-to-texture recursion limit. Portal/mirror pass
 synthesis, alternate-camera rendering, subview sampling/composition, and
 selector-derived stencil masks remain TODO.
 

@@ -607,8 +607,15 @@ namespace RenderGraphCompilerTest {
     const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
 
     ASSERT_NE(nullptr, plan.findPass("subview_mirror_probe_raster_beauty"));
+    ASSERT_NE(nullptr, plan.findPass("subview_mirror_probe_depth_aov"));
     ASSERT_NE(nullptr, plan.findPass("subview_mirror_probe_tonemap"));
     ASSERT_NE(nullptr, plan.findResource("subview_mirror_probe_beauty_color"));
+    const auto* depth = plan.findResource("subview_mirror_probe_depth_aov");
+    ASSERT_NE(nullptr, depth);
+    EXPECT_EQ(RenderResourceType::Depth, depth->type);
+    EXPECT_EQ(RenderResourceLifetime::Exported, depth->lifetime);
+    EXPECT_TRUE(depth->hasFeature("subview"));
+    EXPECT_TRUE(depth->hasFeature("render_to_texture"));
     const auto* output = plan.findResource("subview_mirror_probe_main_color");
     ASSERT_NE(nullptr, output);
     EXPECT_EQ(RenderResourceLifetime::Exported, output->lifetime);

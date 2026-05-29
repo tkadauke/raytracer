@@ -644,6 +644,10 @@ namespace engine::graph {
     result.postProcessAA = frameIntent.postProcessAA;
     result.engineOptions = subview.resolvedEngineOptions(frameIntent.engineOptions);
     result.maxRenderToTextureRecursionDepth = frameIntent.maxRenderToTextureRecursionDepth;
+    if (result.defaultExecutorKind() == RenderExecutorKind::Rasterizer &&
+        result.defaultViewMode != RenderViewMode::Depth) {
+      result.requestExportedAOV(RenderViewMode::Depth);
+    }
     return result;
   }
 
