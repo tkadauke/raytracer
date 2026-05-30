@@ -190,6 +190,9 @@ namespace engine::raster {
                                  std::size_t imageTextureBytes) const;
     std::string meshPreparationTraceMessage(std::chrono::nanoseconds elapsed,
                                             std::size_t triangleCount) const;
+    std::string latencyBreakdownTraceMessage(std::chrono::nanoseconds makeCurrentElapsed,
+                                             std::chrono::nanoseconds glFinishElapsed,
+                                             std::chrono::nanoseconds doneCurrentElapsed) const;
 
     std::atomic<bool> m_cancelled{false};
     int m_lod{0};

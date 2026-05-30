@@ -130,8 +130,11 @@ namespace engine::raster {
     };
 
     struct OpenGLRasterRenderTimings {
+      std::chrono::nanoseconds makeCurrentElapsed{0};
       std::chrono::nanoseconds drawElapsed{0};
+      std::chrono::nanoseconds glFinishElapsed{0};
       std::chrono::nanoseconds readbackElapsed{0};
+      std::chrono::nanoseconds doneCurrentElapsed{0};
     };
 
     class OpenGLRasterDrawPass {
@@ -197,6 +200,8 @@ namespace engine::raster {
                                        const Colord& background, Buffer<Colord>* target,
                                        Buffer<double>* depthTarget,
                                        Buffer<std::uint8_t>* stencilTarget) {
+        OpenGLRasterRenderTimings timings;
+        const auto makeCurrentStarted = std::chrono::steady_clock::now();
         if (!m_resources.context.makeCurrent()) {
           throw std::runtime_error(m_resources.context.errorMessage());
         }
@@ -204,12 +209,18 @@ namespace engine::raster {
           m_resources.context.doneCurrent();
           throw std::runtime_error(m_resources.context.errorMessage());
         }
+        timings.makeCurrentElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::steady_clock::now() - makeCurrentStarted);
 
         try {
           const auto drawStarted = std::chrono::steady_clock::now();
           draw(mesh, background);
-          const auto drawElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
+          timings.drawElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - drawStarted);
+          const auto glFinishStarted = std::chrono::steady_clock::now();
+          QOpenGLContext::currentContext()->functions()->glFinish();
+          timings.glFinishElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now() - glFinishStarted);
           const auto readbackStarted = std::chrono::steady_clock::now();
           if (target && m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store) {
             m_resources.context.copyColorTo(*target);
@@ -220,11 +231,14 @@ namespace engine::raster {
           if (stencilTarget && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store) {
             m_resources.context.copyStencilTo(*stencilTarget);
           }
-          const auto readbackElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
+          timings.readbackElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - readbackStarted);
+          const auto doneCurrentStarted = std::chrono::steady_clock::now();
           m_resources.context.releaseFramebuffer();
           m_resources.context.doneCurrent();
-          return {drawElapsed, readbackElapsed};
+          timings.doneCurrentElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now() - doneCurrentStarted);
+          return timings;
         } catch (...) {
           m_resources.context.releaseFramebuffer();
           m_resources.context.doneCurrent();
@@ -1288,6 +1302,18 @@ namespace engine::raster {
     return message.str();
   }
 
+  std::string OpenGLRasterizer::latencyBreakdownTraceMessage(
+    std::chrono::nanoseconds makeCurrentElapsed, std::chrono::nanoseconds glFinishElapsed,
+    std::chrono::nanoseconds doneCurrentElapsed) const {
+    std::ostringstream message;
+    message << std::fixed << std::setprecision(3)
+            << "OpenGL raster per-frame overhead: makeCurrent+bindFBO "
+            << makeCurrentElapsed.count() / 1000000.0 << " ms, glFinish (GPU wait) "
+            << glFinishElapsed.count() / 1000000.0 << " ms, releaseFBO+doneCurrent "
+            << doneCurrentElapsed.count() / 1000000.0 << " ms";
+    return message.str();
+  }
+
   std::string OpenGLRasterizer::meshPreparationTraceMessage(std::chrono::nanoseconds elapsed,
                                                             std::size_t triangleCount) const {
     std::ostringstream message;
@@ -1358,6 +1384,8 @@ namespace engine::raster {
     m_lastTraceMessages.push_back(drawTraceMessage(
       timings.drawElapsed, mesh.triangleCount(), mesh.vertexBufferByteSize(),
       mesh.indexBufferByteSize(), mesh.imageTextureCount(), mesh.imageTextureUploadByteSize()));
+    m_lastTraceMessages.push_back(latencyBreakdownTraceMessage(
+      timings.makeCurrentElapsed, timings.glFinishElapsed, timings.doneCurrentElapsed));
     if (m_shadowMapsEnabled && m_externalShadowMaps) {
       m_lastTraceMessages.push_back(shadowSamplingPlan.traceMessage(scene().get()));
     }
