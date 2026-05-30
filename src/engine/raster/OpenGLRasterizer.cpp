@@ -141,64 +141,94 @@ namespace engine::raster {
       std::chrono::nanoseconds doneCurrentElapsed{0};
     };
 
+    // Per-render configuration for `OpenGLRasterDrawPass`. Populated
+    // by `OpenGLRasterizer::renderOpenGL` and passed in as one bundle
+    // so adding new draw-time state (attachment-load policy,
+    // attachment-set handles, future Phase 3 residency knobs) doesn't
+    // require touching the draw-pass constructor signature, every call
+    // site, and the member-init list.
+    struct OpenGLRasterDrawState {
+      int height{0};
+      Recti viewportRect;
+      bool scissorEnabled{false};
+      Recti scissorRect;
+      Rasterizer::AttachmentLoadOp colorLoadOp{Rasterizer::AttachmentLoadOp::Clear};
+      Rasterizer::AttachmentStoreOp colorStoreOp{Rasterizer::AttachmentStoreOp::Store};
+      std::uint8_t colorWriteMask{Rasterizer::ColorWriteAll};
+      bool blendingEnabled{false};
+      Rasterizer::BlendFactor sourceBlendFactor{Rasterizer::BlendFactor::One};
+      Rasterizer::BlendFactor destinationBlendFactor{Rasterizer::BlendFactor::Zero};
+      Rasterizer::BlendOp blendOp{Rasterizer::BlendOp::Add};
+      Colord blendConstantColor{Colord::white()};
+      double blendConstantAlpha{1.0};
+      bool alphaTestEnabled{false};
+      Rasterizer::AlphaFunc alphaFunc{Rasterizer::AlphaFunc::Always};
+      double alphaReference{0.0};
+      Rasterizer::DepthFunc depthFunc{Rasterizer::DepthFunc::Less};
+      double depthClearValue{1.0};
+      Rasterizer::AttachmentLoadOp depthLoadOp{Rasterizer::AttachmentLoadOp::Clear};
+      Rasterizer::AttachmentStoreOp depthStoreOp{Rasterizer::AttachmentStoreOp::Store};
+      bool depthWriteEnabled{true};
+      bool stencilTestEnabled{false};
+      Rasterizer::StencilFunc stencilFunc{Rasterizer::StencilFunc::Always};
+      std::uint8_t stencilReference{0};
+      std::uint8_t stencilMask{0xff};
+      std::uint8_t stencilClearValue{0};
+      Rasterizer::AttachmentLoadOp stencilLoadOp{Rasterizer::AttachmentLoadOp::Clear};
+      Rasterizer::AttachmentStoreOp stencilStoreOp{Rasterizer::AttachmentStoreOp::Store};
+      std::uint8_t stencilWriteMask{0xff};
+      Rasterizer::StencilOp stencilFailOp{Rasterizer::StencilOp::Keep};
+      Rasterizer::StencilOp stencilDepthFailOp{Rasterizer::StencilOp::Keep};
+      Rasterizer::StencilOp stencilPassOp{Rasterizer::StencilOp::Keep};
+      detail::OpenGLShadowTextureData shadowTextureData;
+      Vector3d cameraPosition;
+      std::optional<Matrix4d> viewProjection;
+      Rasterizer::CullMode cullMode{Rasterizer::CullMode::Both};
+      bool hasCullModeOverride{false};
+    };
+
     class OpenGLRasterDrawPass {
     public:
-      OpenGLRasterDrawPass(
-        detail::OpenGLRasterResourceCache& resources, int height, const Recti& viewportRect,
-        bool scissorEnabled, const Recti& scissorRect, Rasterizer::AttachmentLoadOp colorLoadOp,
-        Rasterizer::AttachmentStoreOp colorStoreOp, std::uint8_t colorWriteMask,
-        bool blendingEnabled, Rasterizer::BlendFactor sourceBlendFactor,
-        Rasterizer::BlendFactor destinationBlendFactor, Rasterizer::BlendOp blendOp,
-        const Colord& blendConstantColor, double blendConstantAlpha, bool alphaTestEnabled,
-        Rasterizer::AlphaFunc alphaFunc, double alphaReference, Rasterizer::DepthFunc depthFunc,
-        double depthClearValue, Rasterizer::AttachmentLoadOp depthLoadOp,
-        Rasterizer::AttachmentStoreOp depthStoreOp, bool depthWriteEnabled, bool stencilTestEnabled,
-        Rasterizer::StencilFunc stencilFunc, std::uint8_t stencilReference,
-        std::uint8_t stencilMask, std::uint8_t stencilClearValue,
-        Rasterizer::AttachmentLoadOp stencilLoadOp, Rasterizer::AttachmentStoreOp stencilStoreOp,
-        std::uint8_t stencilWriteMask, Rasterizer::StencilOp stencilFailOp,
-        Rasterizer::StencilOp stencilDepthFailOp, Rasterizer::StencilOp stencilPassOp,
-        detail::OpenGLShadowTextureData shadowTextureData, const Vector3d& cameraPosition,
-        const std::optional<Matrix4d>& viewProjection, Rasterizer::CullMode cullMode,
-        bool hasCullModeOverride, const std::atomic<bool>& cancelled)
+      OpenGLRasterDrawPass(detail::OpenGLRasterResourceCache& resources,
+                           OpenGLRasterDrawState state, const std::atomic<bool>& cancelled)
           : m_resources(resources),
-            m_height(height),
-            m_viewportRect(viewportRect),
-            m_scissorEnabled(scissorEnabled),
-            m_scissorRect(scissorRect),
-            m_colorLoadOp(colorLoadOp),
-            m_colorStoreOp(colorStoreOp),
-            m_colorWriteMask(colorWriteMask),
-            m_blendingEnabled(blendingEnabled),
-            m_sourceBlendFactor(sourceBlendFactor),
-            m_destinationBlendFactor(destinationBlendFactor),
-            m_blendOp(blendOp),
-            m_blendConstantColor(blendConstantColor),
-            m_blendConstantAlpha(blendConstantAlpha),
-            m_alphaTestEnabled(alphaTestEnabled),
-            m_alphaFunc(alphaFunc),
-            m_alphaReference(alphaReference),
-            m_depthFunc(depthFunc),
-            m_depthClearValue(depthClearValue),
-            m_depthLoadOp(depthLoadOp),
-            m_depthStoreOp(depthStoreOp),
-            m_depthWriteEnabled(depthWriteEnabled),
-            m_stencilTestEnabled(stencilTestEnabled),
-            m_stencilFunc(stencilFunc),
-            m_stencilReference(stencilReference),
-            m_stencilMask(stencilMask),
-            m_stencilClearValue(stencilClearValue),
-            m_stencilLoadOp(stencilLoadOp),
-            m_stencilStoreOp(stencilStoreOp),
-            m_stencilWriteMask(stencilWriteMask),
-            m_stencilFailOp(stencilFailOp),
-            m_stencilDepthFailOp(stencilDepthFailOp),
-            m_stencilPassOp(stencilPassOp),
-            m_shadowTextureData(std::move(shadowTextureData)),
-            m_cameraPosition(cameraPosition),
-            m_viewProjection(viewProjection),
-            m_cullMode(cullMode),
-            m_hasCullModeOverride(hasCullModeOverride),
+            m_height(state.height),
+            m_viewportRect(state.viewportRect),
+            m_scissorEnabled(state.scissorEnabled),
+            m_scissorRect(state.scissorRect),
+            m_colorLoadOp(state.colorLoadOp),
+            m_colorStoreOp(state.colorStoreOp),
+            m_colorWriteMask(state.colorWriteMask),
+            m_blendingEnabled(state.blendingEnabled),
+            m_sourceBlendFactor(state.sourceBlendFactor),
+            m_destinationBlendFactor(state.destinationBlendFactor),
+            m_blendOp(state.blendOp),
+            m_blendConstantColor(state.blendConstantColor),
+            m_blendConstantAlpha(state.blendConstantAlpha),
+            m_alphaTestEnabled(state.alphaTestEnabled),
+            m_alphaFunc(state.alphaFunc),
+            m_alphaReference(state.alphaReference),
+            m_depthFunc(state.depthFunc),
+            m_depthClearValue(state.depthClearValue),
+            m_depthLoadOp(state.depthLoadOp),
+            m_depthStoreOp(state.depthStoreOp),
+            m_depthWriteEnabled(state.depthWriteEnabled),
+            m_stencilTestEnabled(state.stencilTestEnabled),
+            m_stencilFunc(state.stencilFunc),
+            m_stencilReference(state.stencilReference),
+            m_stencilMask(state.stencilMask),
+            m_stencilClearValue(state.stencilClearValue),
+            m_stencilLoadOp(state.stencilLoadOp),
+            m_stencilStoreOp(state.stencilStoreOp),
+            m_stencilWriteMask(state.stencilWriteMask),
+            m_stencilFailOp(state.stencilFailOp),
+            m_stencilDepthFailOp(state.stencilDepthFailOp),
+            m_stencilPassOp(state.stencilPassOp),
+            m_shadowTextureData(std::move(state.shadowTextureData)),
+            m_cameraPosition(state.cameraPosition),
+            m_viewProjection(std::move(state.viewProjection)),
+            m_cullMode(state.cullMode),
+            m_hasCullModeOverride(state.hasCullModeOverride),
             m_cancelled(cancelled) {
       }
 
@@ -1480,17 +1510,47 @@ namespace engine::raster {
       drawViewport = camera()->viewPlane()->innerRect();
     }
 
+    OpenGLRasterDrawState drawState;
+    drawState.height = height;
+    drawState.viewportRect = drawViewport;
+    drawState.scissorEnabled = m_scissorTestEnabled;
+    drawState.scissorRect = m_scissorRect;
+    drawState.colorLoadOp = m_colorLoadOp;
+    drawState.colorStoreOp = m_colorStoreOp;
+    drawState.colorWriteMask = m_colorWriteMask;
+    drawState.blendingEnabled = m_blendingEnabled;
+    drawState.sourceBlendFactor = m_sourceBlendFactor;
+    drawState.destinationBlendFactor = m_destinationBlendFactor;
+    drawState.blendOp = m_blendOp;
+    drawState.blendConstantColor = m_blendConstantColor;
+    drawState.blendConstantAlpha = m_blendConstantAlpha;
+    drawState.alphaTestEnabled = m_alphaTestEnabled;
+    drawState.alphaFunc = m_alphaFunc;
+    drawState.alphaReference = m_alphaReference;
+    drawState.depthFunc = m_depthFunc;
+    drawState.depthClearValue = m_depthClearValue;
+    drawState.depthLoadOp = m_depthLoadOp;
+    drawState.depthStoreOp = m_depthStoreOp;
+    drawState.depthWriteEnabled = m_depthWriteEnabled;
+    drawState.stencilTestEnabled = m_stencilTestEnabled;
+    drawState.stencilFunc = m_stencilFunc;
+    drawState.stencilReference = m_stencilReference;
+    drawState.stencilMask = m_stencilMask;
+    drawState.stencilClearValue = m_stencilClearValue;
+    drawState.stencilLoadOp = m_stencilLoadOp;
+    drawState.stencilStoreOp = m_stencilStoreOp;
+    drawState.stencilWriteMask = m_stencilWriteMask;
+    drawState.stencilFailOp = m_stencilFailOp;
+    drawState.stencilDepthFailOp = m_stencilDepthFailOp;
+    drawState.stencilPassOp = m_stencilPassOp;
+    drawState.shadowTextureData = std::move(shadowTextureData);
+    drawState.cameraPosition = camera() ? camera()->position() : Vector3d::null;
+    drawState.viewProjection = viewProjection;
+    drawState.cullMode = m_cullMode;
+    drawState.hasCullModeOverride = m_hasCullModeOverride;
+
     const auto timings =
-      OpenGLRasterDrawPass(
-        *m_resources, height, drawViewport, m_scissorTestEnabled, m_scissorRect, m_colorLoadOp,
-        m_colorStoreOp, m_colorWriteMask, m_blendingEnabled, m_sourceBlendFactor,
-        m_destinationBlendFactor, m_blendOp, m_blendConstantColor, m_blendConstantAlpha,
-        m_alphaTestEnabled, m_alphaFunc, m_alphaReference, m_depthFunc, m_depthClearValue,
-        m_depthLoadOp, m_depthStoreOp, m_depthWriteEnabled, m_stencilTestEnabled, m_stencilFunc,
-        m_stencilReference, m_stencilMask, m_stencilClearValue, m_stencilLoadOp, m_stencilStoreOp,
-        m_stencilWriteMask, m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp,
-        std::move(shadowTextureData), camera() ? camera()->position() : Vector3d::null,
-        viewProjection, m_cullMode, m_hasCullModeOverride, m_cancelled)
+      OpenGLRasterDrawPass(*m_resources, std::move(drawState), m_cancelled)
         .render(mesh, backgroundColor(), colorTarget, depthTarget, stencilTarget);
     m_lastReadbackTraceMessage = readbackTraceMessage(
       timings.readbackElapsed,
