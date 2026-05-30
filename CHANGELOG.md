@@ -143,6 +143,14 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   context to the destroying thread before `makeCurrent`, and leaks the
   framebuffer to the OS if migration is impossible — process-exit cleanup
   no longer aborts. — Claude Opus 4.7
+- **OpenGL raster cache destructor no longer SIGSEGVs at process exit.**
+  Same shutdown path as above: when the context could not be made current,
+  the cache destructor still called `unique_ptr::reset()` on its
+  `QOpenGLBuffer` and `QOpenGLShaderProgram` members. Those destructors
+  look up per-context GL functions via `QOpenGLContext::currentContext()`,
+  null-deref when no context is current. Release without running the
+  destructors on the no-context path; the OS reclaims the GL handles. —
+  Claude Opus 4.7
 - **OpenGL raster backend honors cancellation during draw.** A cancellation
   flag set mid-render now stops the batch loop instead of running every
   remaining batch through the GL pipeline. The check matches the CPU

@@ -136,12 +136,25 @@ namespace engine::raster::detail {
       indexBuffer.reset();
       program.reset();
       context.doneCurrent();
+      imageTextures.reset();
     } else {
-      vertexBuffer.reset();
-      indexBuffer.reset();
-      program.reset();
+      // Process-exit shutdown path: the context's owning thread has
+      // exited without re-attaching here, so we cannot make it current.
+      // `~QOpenGLBuffer` / `~QOpenGLShaderProgram` look up the per-context
+      // GL functions via `QOpenGLContext::currentContext()`; with no
+      // current context the lookup dereferences a null and segfaults.
+      // Leak the GL objects (release without running their destructors)
+      // so the OS reclaims them on exit. Same fallback as
+      // `OpenGLOffscreenContext::Private::destroyResources` for the
+      // framebuffer.
+      (void)vertexBuffer.release();
+      (void)indexBuffer.release();
+      (void)program.release();
+      if (imageTextures) {
+        imageTextures->textures.clear();
+      }
+      imageTextures.reset();
     }
-    imageTextures.reset();
   }
 
   void OpenGLRasterResourceCache::ensureProgram() {
