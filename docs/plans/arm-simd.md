@@ -261,22 +261,31 @@ Acceptance:
 
 ## Phase 5 - Ray8 and wider packet policy
 
-Keep `Ray8` AVX-only initially. AArch64 NEON is 128-bit, so an ARM `Ray8`
+~~Keep `Ray8` AVX-only initially. AArch64 NEON is 128-bit, so an ARM `Ray8`
 implementation would be two `Float4` chunks rather than one native vector. That
 can still be useful for API symmetry or traversal batching, but it is a
-separate algorithmic choice.
+separate algorithmic choice.~~ ✅ **Done.** `Ray8` stays AVX-only for Epic #426.
+`docs/perf/arm-simd-phase5-ray8-policy-2026-05-30.md` records the benchmark
+evidence: direct two-`Ray4` coherent traversal is already measurable through
+`BVHPacketBenchmark`, and the available x86 AVX probe did not show a wider
+`Ray8` traversal win.
 
 Possible later work:
 
-- express `Ray8` operations as two `Ray4` packets on NEON;
-- measure whether the larger packet improves coherent BVH traversal enough to
-  offset sparse masks and extra bookkeeping;
-- consider a generic `RayPacket<N>` algorithm over backend vector chunks.
+- keep `Ray8` operations AVX-only unless Apple Silicon benchmarks show a
+  two-`Ray4` ARM wrapper materially beats direct two-`Ray4` calls;
+- continue measuring whether larger packet traversal improves coherent BVH
+  traversal enough to offset sparse masks and extra bookkeeping;
+- consider a generic `RayPacket<N>` algorithm over backend vector chunks only
+  if it changes traversal bookkeeping rather than adding API symmetry.
 
 Acceptance:
 
-- no `Ray8` ARM work lands without BVH packet benchmark evidence;
-- `Ray4` remains the primary ARM packet path.
+- ~~no `Ray8` ARM work lands without BVH packet benchmark evidence;~~ ✅
+  **Done.** The Phase 5 perf note records the evidence and keeps ARM `Ray8`
+  unimplemented.
+- ~~`Ray4` remains the primary ARM packet path.~~ ✅ **Done.** Phase 5 leaves
+  ARM packet traversal centered on `Ray4`.
 
 ## Documentation and maintenance
 

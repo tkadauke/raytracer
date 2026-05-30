@@ -16,6 +16,10 @@
 // pass over a 256×256 virtual image using 2×2 pixel tiles. This is the
 // "whole-render ≥15% improvement" gate in the acceptance criteria.
 //
+// bm_bvh_packet4x2_coherent8 measures the Phase 5 ARM Ray8 policy question:
+// an eight-ray coherent tile processed as two explicit Ray4 traversals. Native
+// bm_bvh_packet8_coherent remains AVX-only.
+//
 // Build and run:
 //   cmake --preset benchmark && cmake --build --preset benchmark --target benchmarks
 //   ./build/benchmark/benchmarks/benchmarks --benchmark_filter=bm_bvh_
@@ -277,9 +281,6 @@ namespace {
     benchState.SetItemsProcessed(benchState.iterations() * 256 * 256);
   }
 
-#if RAYTRACER_SIMD_AVX
-  // ── Ray8 benchmarks (AVX only) ──────────────────────────────────────────
-
   struct CoherentGroup8 {
     std::array<Rayd, 8> rays{
       Rayd(Vector3d::null, Vector3d::forward()), Rayd(Vector3d::null, Vector3d::forward()),
@@ -322,8 +323,29 @@ namespace {
     return groups;
   }
 
-  Ray8 toRay8(const std::array<Rayd, 8>& rays) {
-    return Ray8(rays);
+  Ray4 toRay4Chunk(const std::array<Rayd, 8>& rays, std::size_t offset) {
+    return Ray4(
+      std::array<Rayd, 4>{rays[offset], rays[offset + 1], rays[offset + 2], rays[offset + 3]});
+  }
+
+  void bm_bvh_packet4x2_coherent8(benchmark::State& benchState) {
+    const auto bvh = buildScene();
+    const auto groups = generateCoherentGroups8(1024);
+    for (auto _ : benchState) {
+      int hits = 0;
+      for (const auto& group : groups) {
+        State firstTraceState;
+        const auto first = bvh->intersectPacket(toRay4Chunk(group.rays, 0), firstTraceState);
+        hits += countBits(first.hitMask);
+
+        State secondTraceState;
+        const auto second = bvh->intersectPacket(toRay4Chunk(group.rays, 4), secondTraceState);
+        hits += countBits(second.hitMask);
+      }
+      benchmark::DoNotOptimize(hits);
+      benchmark::ClobberMemory();
+    }
+    benchState.SetItemsProcessed(benchState.iterations() * groups.size() * 8);
   }
 
   void bm_bvh_scalar_coherent8(benchmark::State& benchState) {
@@ -344,6 +366,13 @@ namespace {
       benchmark::ClobberMemory();
     }
     benchState.SetItemsProcessed(benchState.iterations() * groups.size() * 8);
+  }
+
+#if RAYTRACER_SIMD_AVX
+  // ── Ray8 benchmarks (AVX only) ──────────────────────────────────────────
+
+  Ray8 toRay8(const std::array<Rayd, 8>& rays) {
+    return Ray8(rays);
   }
 
   void bm_bvh_packet8_coherent(benchmark::State& benchState) {
@@ -374,7 +403,8 @@ BENCHMARK(bm_bvh_packet4_incoherent);
 BENCHMARK(bm_bvh_primary_render_scalar);
 BENCHMARK(bm_bvh_primary_render_packet4);
 
-#if RAYTRACER_SIMD_AVX
 BENCHMARK(bm_bvh_scalar_coherent8);
+#if RAYTRACER_SIMD_AVX
 BENCHMARK(bm_bvh_packet8_coherent);
 #endif
+BENCHMARK(bm_bvh_packet4x2_coherent8);
