@@ -10,6 +10,7 @@
 #include "engine/raster/detail/OpenGLShadowSamplingPlan.h"
 #include "engine/raster/detail/OpenGLShadowTextureData.h"
 #include "engine/raster/detail/RasterShadowMaps.h"
+#include "render/cameras/Camera.h"
 #include "render/textures/ImageTexture.h"
 
 #include <QOpenGLBuffer>
@@ -157,7 +158,8 @@ namespace engine::raster {
         std::uint8_t stencilWriteMask, Rasterizer::StencilOp stencilFailOp,
         Rasterizer::StencilOp stencilDepthFailOp, Rasterizer::StencilOp stencilPassOp,
         detail::OpenGLShadowTextureData shadowTextureData, const Vector3d& cameraPosition,
-        Rasterizer::CullMode cullMode, bool hasCullModeOverride, const std::atomic<bool>& cancelled)
+        const std::optional<Matrix4d>& viewProjection, Rasterizer::CullMode cullMode,
+        bool hasCullModeOverride, const std::atomic<bool>& cancelled)
           : m_resources(resources),
             m_height(height),
             m_viewportRect(viewportRect),
@@ -193,6 +195,7 @@ namespace engine::raster {
             m_stencilPassOp(stencilPassOp),
             m_shadowTextureData(std::move(shadowTextureData)),
             m_cameraPosition(cameraPosition),
+            m_viewProjection(viewProjection),
             m_cullMode(cullMode),
             m_hasCullModeOverride(hasCullModeOverride),
             m_cancelled(cancelled) {
@@ -291,6 +294,14 @@ namespace engine::raster {
         QOpenGLShaderProgram& program = *m_resources.program;
         if (!program.bind()) {
           throw std::runtime_error("OpenGL raster backend could not bind shader program");
+        }
+        program.setUniformValue("useMatrixProjection", m_viewProjection.has_value());
+        if (m_viewProjection) {
+          const Matrix4f gpu(*m_viewProjection);
+          const int loc = program.uniformLocation("viewProjection");
+          if (loc >= 0) {
+            functions->glUniformMatrix4fv(loc, 1, GL_TRUE, gpu.data());
+          }
         }
         program.setUniformValue("alphaTestEnabled", m_alphaTestEnabled);
         program.setUniformValue("alphaFunc", static_cast<int>(m_alphaFunc));
@@ -761,6 +772,7 @@ namespace engine::raster {
       Rasterizer::StencilOp m_stencilPassOp;
       detail::OpenGLShadowTextureData m_shadowTextureData;
       Vector3d m_cameraPosition;
+      std::optional<Matrix4d> m_viewProjection;
       Rasterizer::CullMode m_cullMode;
       bool m_hasCullModeOverride;
       const std::atomic<bool>& m_cancelled;
@@ -1382,6 +1394,14 @@ namespace engine::raster {
     const auto meshPreparationElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::steady_clock::now() - meshPreparationStarted);
 
+    // Pull the camera's GL view-projection matrix once per render after
+    // the mesh builder has set up the view plane. PinholeCamera returns
+    // a value; other camera types (thin-lens, fish-eye, …) return
+    // nullopt and the shader falls back to the legacy per-vertex baked
+    // clip-space positions.
+    const std::optional<Matrix4d> viewProjection =
+      camera() ? camera()->worldToClipMatrix() : std::optional<Matrix4d>{};
+
     const auto timings =
       OpenGLRasterDrawPass(
         *m_resources, height, viewport, m_scissorTestEnabled, m_scissorRect, m_colorLoadOp,
@@ -1391,8 +1411,8 @@ namespace engine::raster {
         m_depthLoadOp, m_depthStoreOp, m_depthWriteEnabled, m_stencilTestEnabled, m_stencilFunc,
         m_stencilReference, m_stencilMask, m_stencilClearValue, m_stencilLoadOp, m_stencilStoreOp,
         m_stencilWriteMask, m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp,
-        std::move(shadowTextureData), camera() ? camera()->position() : Vector3d::null, m_cullMode,
-        m_hasCullModeOverride, m_cancelled)
+        std::move(shadowTextureData), camera() ? camera()->position() : Vector3d::null,
+        viewProjection, m_cullMode, m_hasCullModeOverride, m_cancelled)
         .render(mesh, backgroundColor(), colorTarget, depthTarget, stencilTarget);
     m_lastReadbackTraceMessage = readbackTraceMessage(
       timings.readbackElapsed,

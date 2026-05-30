@@ -1,4 +1,5 @@
 #include "render/cameras/CameraFactory.h"
+#include "core/DivisionByZeroException.h"
 #include "render/cameras/PinholeCamera.h"
 #include "PinholeProjection.h"
 #include "core/math/Ray.h"
@@ -41,7 +42,15 @@ Vector4d PinholeCamera::projectPointToClipSpace(const Vector3d& worldPoint) cons
 }
 
 std::optional<Matrix4d> PinholeCamera::worldToClipMatrix() const {
-  return projectionMatrix() * Matrix4d::translate(0.0, 0.0, m_distance) * inverseMatrix();
+  // A default-constructed `PinholeCamera` has eye == target, which
+  // makes `lookAt` produce a singular matrix; `inverseMatrix()` would
+  // then throw `DivisionByZeroException`. Treat that as "no usable
+  // matrix" — callers fall back to the per-vertex CPU projection path.
+  try {
+    return projectionMatrix() * Matrix4d::translate(0.0, 0.0, m_distance) * inverseMatrix();
+  } catch (const DivisionByZeroException&) {
+    return std::nullopt;
+  }
 }
 
 double PinholeCamera::eyeRelativeDepth(const Vector3d& worldPoint) const {

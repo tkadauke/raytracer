@@ -2,6 +2,8 @@
 
 namespace engine::raster::detail {
   constexpr const char* kOpenGLRasterVertexShader = R"glsl(
+uniform mat4 viewProjection;
+uniform bool useMatrixProjection;
 attribute vec4 position;
 attribute vec3 worldPosition;
 attribute vec3 normal;
@@ -30,7 +32,11 @@ varying vec3 fragmentDirectLighting;
 varying vec3 fragmentSpecular;
 varying float fragmentAlbedoMode;
 void main() {
-  gl_Position = vec4(position.xyz * position.w, position.w);
+  if (useMatrixProjection) {
+    gl_Position = viewProjection * vec4(worldPosition, 1.0);
+  } else {
+    gl_Position = vec4(position.xyz * position.w, position.w);
+  }
   fragmentWorldPosition = worldPosition;
   fragmentNormal = normal;
   vertexColor = color;
