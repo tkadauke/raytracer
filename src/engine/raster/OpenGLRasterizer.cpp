@@ -1428,16 +1428,19 @@ namespace engine::raster {
     }
 
     const Recti viewport = viewportRectFor(width, height);
-    const auto* shadowMaps = m_shadowMapsEnabled ? m_externalShadowMaps.get() : nullptr;
+    const std::shared_ptr<const detail::ShadowMaps> shadowMapsPtr =
+      m_shadowMapsEnabled ? m_externalShadowMaps : nullptr;
     const detail::OpenGLShadowSamplingPlan shadowSamplingPlan =
-      detail::OpenGLShadowSamplingPlan::from(shadowMaps);
+      detail::OpenGLShadowSamplingPlan::from(shadowMapsPtr.get());
     const bool useShaderShadowSampling =
       shadowSamplingPlan.canShadeSceneDirectLighting(scene().get());
     detail::OpenGLShadowTextureData shadowTextureData =
       useShaderShadowSampling ? detail::OpenGLShadowTextureData::from(shadowSamplingPlan)
                               : detail::OpenGLShadowTextureData();
     const std::string shadowTextureTrace = shadowTextureData.traceMessage();
-    const auto* meshShadowMaps = useShaderShadowSampling ? nullptr : shadowMaps;
+    const std::shared_ptr<const detail::ShadowMaps> meshShadowMapsPtr =
+      useShaderShadowSampling ? nullptr : shadowMapsPtr;
+    const auto* meshShadowMaps = meshShadowMapsPtr.get();
     const auto meshPreparationStarted = std::chrono::steady_clock::now();
     bool meshCacheHit = false;
     if (viewport.width() > 0 && viewport.height() > 0) {
@@ -1446,8 +1449,8 @@ namespace engine::raster {
                                                     meshShadowMaps, m_depthBias, m_visibilitySet);
       detail::OpenGLMeshCacheKey key;
       key.scene = scene();
-      key.visibilitySet = m_visibilitySet.get();
-      key.shadowMaps = meshShadowMaps;
+      key.visibilitySet = m_visibilitySet;
+      key.shadowMaps = meshShadowMapsPtr;
       key.lod = m_lod;
       key.viewportWidth = viewport.width();
       key.viewportHeight = viewport.height();

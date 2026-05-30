@@ -85,8 +85,13 @@ namespace engine::raster::detail {
     */
   struct OpenGLMeshCacheKey {
     std::weak_ptr<const render::Scene> scene;
-    const RasterVisibilitySet* visibilitySet{nullptr};
-    const ShadowMaps* shadowMaps{nullptr};
+    // `visibilitySet` and `shadowMaps` are held as weak_ptrs for the
+    // same reason as `scene`: a pool-allocated visibility set / shadow
+    // map that gets freed and reallocated at the same address would
+    // otherwise produce a false cache hit. `matches()` compares via
+    // `lock().get()` so both-null counts as equal.
+    std::weak_ptr<const RasterVisibilitySet> visibilitySet;
+    std::weak_ptr<const ShadowMaps> shadowMaps;
     int lod{0};
     int viewportWidth{0};
     int viewportHeight{0};

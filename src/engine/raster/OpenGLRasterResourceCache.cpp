@@ -97,11 +97,11 @@ namespace engine::raster::detail {
     if (!a || a.get() != b.get()) {
       return false;
     }
-    if (visibilitySet != other.visibilitySet || shadowMaps != other.shadowMaps ||
-        lod != other.lod || viewportWidth != other.viewportWidth ||
-        viewportHeight != other.viewportHeight || cullMode != other.cullMode ||
-        hasCullModeOverride != other.hasCullModeOverride || depthBias != other.depthBias ||
-        cameraDependent != other.cameraDependent) {
+    if (visibilitySet.lock().get() != other.visibilitySet.lock().get() ||
+        shadowMaps.lock().get() != other.shadowMaps.lock().get() || lod != other.lod ||
+        viewportWidth != other.viewportWidth || viewportHeight != other.viewportHeight ||
+        cullMode != other.cullMode || hasCullModeOverride != other.hasCullModeOverride ||
+        depthBias != other.depthBias || cameraDependent != other.cameraDependent) {
       return false;
     }
     if (cameraDependent &&
