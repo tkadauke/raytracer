@@ -891,12 +891,23 @@ namespace engine::raster {
 
   std::shared_ptr<detail::OpenGLRasterResourceCache> OpenGLRasterizer::sharedResources() {
     static std::mutex mutex;
-    static std::shared_ptr<detail::OpenGLRasterResourceCache> cache;
+    // Heap-allocated and intentionally leaked: at process exit, Qt's
+    // own static state (the mutex inside `qt_gl_functions_resource`)
+    // has already been torn down by `__cxa_finalize_ranges`. Running
+    // `~OpenGLRasterResourceCache` then — even with the context current
+    // — crashes inside `QOpenGLBuffer::destroy` →
+    // `QOpenGLContextGroupPrivate::deletePendingResources` →
+    // `QOpenGLMultiGroupSharedResource::value` when it tries to lock
+    // the destroyed mutex. Keeping a strong ref through a never-freed
+    // heap pointer means the cache destructor never runs; the OS
+    // reclaims the GL handles when the process exits.
+    static std::shared_ptr<detail::OpenGLRasterResourceCache>* cache = nullptr;
     std::lock_guard<std::mutex> lock(mutex);
     if (!cache) {
-      cache = std::make_shared<detail::OpenGLRasterResourceCache>();
+      cache = new std::shared_ptr<detail::OpenGLRasterResourceCache>(
+        std::make_shared<detail::OpenGLRasterResourceCache>());
     }
-    return cache;
+    return *cache;
   }
 
   std::string OpenGLRasterizer::statusMessage() {

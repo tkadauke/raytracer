@@ -121,6 +121,14 @@ namespace engine::raster::detail {
   OpenGLRasterResourceCache::OpenGLRasterResourceCache() = default;
 
   OpenGLRasterResourceCache::~OpenGLRasterResourceCache() {
+    // The process-wide shared cache (`OpenGLRasterizer::sharedResources`)
+    // is intentionally leaked and never runs this destructor — Qt's
+    // own static state is destroyed before us by `__cxa_finalize_ranges`,
+    // and any GL cleanup at that point crashes inside the per-context
+    // resource lookup. This path therefore only runs for short-lived
+    // caches (e.g. the fallback rasterizer creates a fresh cache when
+    // it cannot migrate the shared context to its thread) whose owning
+    // thread is still alive.
     const bool hasTextures = imageTextures && !imageTextures->textures.empty();
     const bool needsContext = program || hasTextures || vertexBuffer || indexBuffer;
     if (!needsContext) {
@@ -136,25 +144,16 @@ namespace engine::raster::detail {
       indexBuffer.reset();
       program.reset();
       context.doneCurrent();
-      imageTextures.reset();
     } else {
-      // Process-exit shutdown path: the context's owning thread has
-      // exited without re-attaching here, so we cannot make it current.
-      // `~QOpenGLBuffer` / `~QOpenGLShaderProgram` look up the per-context
-      // GL functions via `QOpenGLContext::currentContext()`; with no
-      // current context the lookup dereferences a null and segfaults.
-      // Leak the GL objects (release without running their destructors)
-      // so the OS reclaims them on exit. Same fallback as
-      // `OpenGLOffscreenContext::Private::destroyResources` for the
-      // framebuffer.
+      // No usable context — leak the GL handles. The OS reclaims them.
       (void)vertexBuffer.release();
       (void)indexBuffer.release();
       (void)program.release();
       if (imageTextures) {
         imageTextures->textures.clear();
       }
-      imageTextures.reset();
     }
+    imageTextures.reset();
   }
 
   void OpenGLRasterResourceCache::ensureProgram() {
