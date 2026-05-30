@@ -86,6 +86,31 @@ namespace engine::raster::detail {
     textures.clear();
   }
 
+  bool OpenGLMeshCacheKey::sceneMatches(const std::shared_ptr<const render::Scene>& other) const {
+    const auto locked = scene.lock();
+    return locked && locked.get() == other.get();
+  }
+
+  bool OpenGLMeshCacheKey::matches(const OpenGLMeshCacheKey& other) const {
+    const auto a = scene.lock();
+    const auto b = other.scene.lock();
+    if (!a || a.get() != b.get()) {
+      return false;
+    }
+    if (visibilitySet != other.visibilitySet || shadowMaps != other.shadowMaps ||
+        lod != other.lod || viewportWidth != other.viewportWidth ||
+        viewportHeight != other.viewportHeight || cullMode != other.cullMode ||
+        hasCullModeOverride != other.hasCullModeOverride || depthBias != other.depthBias ||
+        cameraDependent != other.cameraDependent) {
+      return false;
+    }
+    if (cameraDependent &&
+        (cameraPosition != other.cameraPosition || cameraTarget != other.cameraTarget)) {
+      return false;
+    }
+    return true;
+  }
+
   bool OpenGLRasterAttributeLocations::resolved() const {
     return position >= 0 && worldPosition >= 0 && normal >= 0 && color >= 0 && uv >= 0 &&
            alphaScale >= 0 && materialDiffuse >= 0 && materialSpecularColor >= 0 &&

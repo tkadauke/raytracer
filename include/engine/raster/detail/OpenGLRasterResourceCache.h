@@ -1,9 +1,13 @@
 #pragma once
 
+#include "core/math/Vector.h"
 #include "engine/raster/OpenGLOffscreenContext.h"
+#include "engine/raster/Rasterizer.h"
+#include "engine/raster/detail/OpenGLRasterMesh.h"
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 
 class QOpenGLBuffer;
@@ -12,9 +16,15 @@ class QOpenGLShaderProgram;
 
 namespace render {
   class ImageTexture;
+  class Scene;
+}
+
+namespace engine::raster {
+  class RasterVisibilitySet;
 }
 
 namespace engine::raster::detail {
+  class ShadowMaps;
   /**
     * Attribute slot indices for the OpenGL raster shader program. Populated
     * once at link time and reused across `OpenGLRasterizer::render()` calls
@@ -53,6 +63,45 @@ namespace engine::raster::detail {
   };
 
   /**
+    * Cache key for the prepared `OpenGLRasterMesh`. The mesh content
+    * depends on these inputs; camera-only changes (e.g. dragging in the
+    * Modeler) do NOT change the key when the camera projection is moved
+    * to the GPU shader (see `Camera::worldToClipMatrix`). On scene
+    * mutations, `render::Scene` itself is replaced (the Modeler edit
+    * pipeline calls `Scene::toRaytracerScene` which constructs a fresh
+    * one), so weak-pointer identity comparison correctly invalidates the
+    * cache.
+    *
+    * The scene is held as `weak_ptr` so a freed-then-reallocated scene
+    * at the same memory address does not produce a false cache hit —
+    * the previous weak_ptr expires when the original scene is
+    * destroyed, and `sceneMatches` returns false even if the new
+    * `shared_ptr` happens to wrap the same address.
+    *
+    * When the build path bakes CPU-side specular lighting that depends
+    * on the camera (overflow lights with specular materials), the
+    * `cameraPosition` field captures that dependence; same camera =
+    * cache hit, different camera = cache miss.
+    */
+  struct OpenGLMeshCacheKey {
+    std::weak_ptr<const render::Scene> scene;
+    const RasterVisibilitySet* visibilitySet{nullptr};
+    const ShadowMaps* shadowMaps{nullptr};
+    int lod{0};
+    int viewportWidth{0};
+    int viewportHeight{0};
+    Rasterizer::CullMode cullMode{Rasterizer::CullMode::Both};
+    bool hasCullModeOverride{false};
+    double depthBias{0.0};
+    Vector3d cameraPosition; // only meaningful when cameraDependent is true
+    Vector3d cameraTarget;   // ditto
+    bool cameraDependent{false};
+
+    bool sceneMatches(const std::shared_ptr<const render::Scene>& other) const;
+    bool matches(const OpenGLMeshCacheKey& other) const;
+  };
+
+  /**
     * Owns the persistent GPU-side state of a single `OpenGLRasterizer`
     * instance — the offscreen Qt context/surface/FBO, the linked raster
     * shader program with its attribute slot lookups, and the per-image GL
@@ -72,6 +121,8 @@ namespace engine::raster::detail {
     std::unique_ptr<OpenGLRasterImageTextureCache> imageTextures;
     std::unique_ptr<QOpenGLBuffer> vertexBuffer;
     std::unique_ptr<QOpenGLBuffer> indexBuffer;
+    std::optional<OpenGLMeshCacheKey> cachedMeshKey;
+    OpenGLRasterMesh cachedMesh;
 
     OpenGLRasterResourceCache();
     ~OpenGLRasterResourceCache();

@@ -201,7 +201,7 @@ namespace engine::raster {
                                  std::size_t imageTextureCount,
                                  std::size_t imageTextureBytes) const;
     std::string meshPreparationTraceMessage(std::chrono::nanoseconds elapsed,
-                                            std::size_t triangleCount) const;
+                                            std::size_t triangleCount, bool cacheHit) const;
     std::string latencyBreakdownTraceMessage(std::chrono::nanoseconds makeCurrentElapsed,
                                              std::chrono::nanoseconds glFinishElapsed,
                                              std::chrono::nanoseconds doneCurrentElapsed) const;

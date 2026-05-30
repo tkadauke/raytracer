@@ -1342,11 +1342,16 @@ namespace engine::raster {
   }
 
   std::string OpenGLRasterizer::meshPreparationTraceMessage(std::chrono::nanoseconds elapsed,
-                                                            std::size_t triangleCount) const {
+                                                            std::size_t triangleCount,
+                                                            bool cacheHit) const {
     std::ostringstream message;
-    message << "OpenGL raster mesh preparation built " << triangleCount << " triangle";
+    message << "OpenGL raster mesh preparation " << (cacheHit ? "reused " : "built ")
+            << triangleCount << " triangle";
     if (triangleCount != 1) {
       message << "s";
+    }
+    if (cacheHit) {
+      message << " from cache";
     }
     message << " in " << std::fixed << std::setprecision(3) << elapsed.count() / 1000000.0 << " ms";
     return message.str();
@@ -1383,14 +1388,38 @@ namespace engine::raster {
                               : detail::OpenGLShadowTextureData();
     const std::string shadowTextureTrace = shadowTextureData.traceMessage();
     const auto* meshShadowMaps = useShaderShadowSampling ? nullptr : shadowMaps;
-    detail::OpenGLRasterMesh mesh;
     const auto meshPreparationStarted = std::chrono::steady_clock::now();
+    bool meshCacheHit = false;
     if (viewport.width() > 0 && viewport.height() > 0) {
-      mesh = detail::OpenGLRasterMeshBuilder(scene().get(), camera(), m_lod, viewport, m_cullMode,
-                                             m_hasCullModeOverride, m_cancelled, meshShadowMaps,
-                                             m_depthBias, m_visibilitySet)
-               .build();
+      const detail::OpenGLRasterMeshBuilder builder(scene().get(), camera(), m_lod, viewport,
+                                                    m_cullMode, m_hasCullModeOverride, m_cancelled,
+                                                    meshShadowMaps, m_depthBias, m_visibilitySet);
+      detail::OpenGLMeshCacheKey key;
+      key.scene = scene();
+      key.visibilitySet = m_visibilitySet.get();
+      key.shadowMaps = meshShadowMaps;
+      key.lod = m_lod;
+      key.viewportWidth = viewport.width();
+      key.viewportHeight = viewport.height();
+      key.cullMode = m_cullMode;
+      key.hasCullModeOverride = m_hasCullModeOverride;
+      key.depthBias = m_depthBias;
+      key.cameraDependent = builder.bakesCameraDependentLighting();
+      if (key.cameraDependent && camera()) {
+        key.cameraPosition = camera()->position();
+        key.cameraTarget = camera()->target();
+      }
+      if (m_resources->cachedMeshKey && m_resources->cachedMeshKey->matches(key)) {
+        meshCacheHit = true;
+      } else {
+        m_resources->cachedMesh = builder.build();
+        m_resources->cachedMeshKey = key;
+      }
+    } else {
+      m_resources->cachedMesh = detail::OpenGLRasterMesh();
+      m_resources->cachedMeshKey.reset();
     }
+    detail::OpenGLRasterMesh& mesh = m_resources->cachedMesh;
     const auto meshPreparationElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::steady_clock::now() - meshPreparationStarted);
 
@@ -1420,7 +1449,7 @@ namespace engine::raster {
       depthTarget != nullptr && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store,
       stencilTarget != nullptr && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store);
     m_lastTraceMessages.push_back(
-      meshPreparationTraceMessage(meshPreparationElapsed, mesh.triangleCount()));
+      meshPreparationTraceMessage(meshPreparationElapsed, mesh.triangleCount(), meshCacheHit));
     appendLightTruncationTrace(mesh.directionalLights().size(), mesh.pointLights().size(),
                                m_lastTraceMessages);
     m_lastTraceMessages.push_back(drawTraceMessage(

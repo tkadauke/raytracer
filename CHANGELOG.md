@@ -79,6 +79,19 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GL context migrates to the current render thread on each frame; if
   migration fails the rasterizer falls through to a fresh local cache so
   it never gets stuck. — Claude Opus 4.7
+- **OpenGL raster mesh is cached across renders.** The packed
+  `OpenGLRasterMesh` (vertices, indices, batch list, baked lights) now lives
+  on the shared `OpenGLRasterResourceCache` and survives across renders. The
+  cache key holds the scene as `weak_ptr` (so a freed-then-reallocated scene
+  at the same address never produces a false hit) plus the rest of the
+  mesh-affecting inputs (lod, viewport, cull mode, depth bias, visibility
+  set, shadow maps). Camera-only changes — e.g. dragging the Modeler view —
+  hit the cache whenever the build path is camera-independent (all lights
+  shaded in the fragment shader; the GPU handles projection through
+  `Camera::worldToClipMatrix`). For the sloth model (498k triangles) this
+  collapses the ~800 ms per-frame mesh prep into a cache lookup. Cache miss
+  on first render, lod change, viewport resize, or scene replacement keeps
+  the result correct. — Claude Opus 4.7
 - **OpenGL raster vertex/index buffers are cached across renders.** Vertex
   and index `QOpenGLBuffer`s now live on the resource cache; each render
   re-uploads the current frame's payload through `allocate()` instead of

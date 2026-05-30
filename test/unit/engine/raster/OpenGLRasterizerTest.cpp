@@ -1,13 +1,23 @@
 #include <gtest/gtest.h>
 
 #include "core/Buffer.h"
+#include "core/Color.h"
+#include "core/math/Vector.h"
 #include "engine/raster/OpenGLOffscreenContext.h"
 #include "engine/raster/OpenGLRasterizer.h"
 #include "engine/raster/RasterVisibilitySet.h"
+#include "render/cameras/PinholeCamera.h"
+#include "render/lights/DirectionalLight.h"
+#include "render/materials/MatteMaterial.h"
+#include "render/primitives/Scene.h"
+#include "render/primitives/Sphere.h"
+#include "render/textures/ConstantColorTexture.h"
+#include "test/helpers/GuiTestHelper.h"
 
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 
+#include <algorithm>
 #include <limits>
 #include <memory>
 #include <stdexcept>
@@ -246,5 +256,67 @@ namespace OpenGLRasterizerTest {
 
     EXPECT_FALSE(message.empty());
     EXPECT_NE(message.find("OpenGL raster backend"), std::string::npos);
+  }
+
+  namespace {
+    std::shared_ptr<render::Scene> simpleSphereScene() {
+      auto scene = std::make_shared<render::Scene>(Colord(0.05, 0.05, 0.1));
+      auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 1.0);
+      sphere->setMaterial(std::make_shared<render::MatteMaterial>(
+        std::make_shared<render::ConstantColorTexture>(Colord(0.8, 0.4, 0.2))));
+      scene->add(sphere);
+      scene->addLight(
+        std::make_shared<render::DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord::white()));
+      return scene;
+    }
+
+    bool tracesContain(const std::vector<std::string>& traces, const std::string& needle) {
+      return std::any_of(traces.begin(), traces.end(), [&](const std::string& line) {
+        return line.find(needle) != std::string::npos;
+      });
+    }
+  }
+
+  class OpenGLRasterizerMeshCache : public ::testing::GuiTest {};
+
+  TEST_F(OpenGLRasterizerMeshCache, ReusesMeshAcrossRendersWithSameSceneAndCamera) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+
+    auto scene = simpleSphereScene();
+    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+
+    engine::raster::OpenGLRasterizer rasterizer(cam, scene);
+    Buffer<Colord> buffer(32, 32);
+
+    rasterizer.render(buffer);
+    EXPECT_TRUE(tracesContain(rasterizer.traceMessages(), "built"));
+
+    rasterizer.render(buffer);
+    EXPECT_TRUE(tracesContain(rasterizer.traceMessages(), "reused"))
+      << "second render with identical scene+camera should hit the mesh cache";
+  }
+
+  TEST_F(OpenGLRasterizerMeshCache, RebuildsMeshWhenSceneIdentityChanges) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+
+    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+
+    auto firstScene = simpleSphereScene();
+    engine::raster::OpenGLRasterizer firstRasterizer(cam, firstScene);
+    Buffer<Colord> buffer(32, 32);
+    firstRasterizer.render(buffer);
+    firstScene.reset();
+
+    auto secondScene = simpleSphereScene();
+    engine::raster::OpenGLRasterizer secondRasterizer(cam, secondScene);
+    secondRasterizer.render(buffer);
+
+    EXPECT_TRUE(tracesContain(secondRasterizer.traceMessages(), "built"))
+      << "a freed-and-replaced scene must not produce a false cache hit even if "
+         "the new scene is allocated at the same address";
   }
 }
