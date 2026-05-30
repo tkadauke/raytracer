@@ -196,7 +196,6 @@ namespace engine::raster {
             m_viewportRect(state.viewportRect),
             m_scissorEnabled(state.scissorEnabled),
             m_scissorRect(state.scissorRect),
-            m_colorLoadOp(state.colorLoadOp),
             m_colorStoreOp(state.colorStoreOp),
             m_colorWriteMask(state.colorWriteMask),
             m_blendingEnabled(state.blendingEnabled),
@@ -210,7 +209,6 @@ namespace engine::raster {
             m_alphaReference(state.alphaReference),
             m_depthFunc(state.depthFunc),
             m_depthClearValue(state.depthClearValue),
-            m_depthLoadOp(state.depthLoadOp),
             m_depthStoreOp(state.depthStoreOp),
             m_depthWriteEnabled(state.depthWriteEnabled),
             m_stencilTestEnabled(state.stencilTestEnabled),
@@ -218,7 +216,6 @@ namespace engine::raster {
             m_stencilReference(state.stencilReference),
             m_stencilMask(state.stencilMask),
             m_stencilClearValue(state.stencilClearValue),
-            m_stencilLoadOp(state.stencilLoadOp),
             m_stencilStoreOp(state.stencilStoreOp),
             m_stencilWriteMask(state.stencilWriteMask),
             m_stencilFailOp(state.stencilFailOp),
@@ -287,11 +284,10 @@ namespace engine::raster {
 
     private:
       void draw(const detail::OpenGLRasterMesh& mesh, const Colord& background) {
-        if (m_colorLoadOp == Rasterizer::AttachmentLoadOp::Load) {
-          throw std::runtime_error(
-            "OpenGL raster backend does not support color attachment load yet");
-        }
-
+        // Attachment-load support is checked in
+        // `OpenGLRasterizer::renderOpenGL` before the context is bound;
+        // by the time we reach `draw()`, color/depth/stencil load ops
+        // are all guaranteed to be `Clear` or `DontCare`.
         QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
         functions->glViewport(m_viewportRect.left(), openGLY(m_viewportRect),
                               m_viewportRect.width(), m_viewportRect.height());
@@ -506,11 +502,7 @@ namespace engine::raster {
       }
 
       void applyDepth(QOpenGLFunctions* functions) const {
-        if (m_depthLoadOp == Rasterizer::AttachmentLoadOp::Load) {
-          throw std::runtime_error(
-            "OpenGL raster backend does not support depth attachment load yet");
-        }
-
+        // Load-op rejected pre-bind in `OpenGLRasterizer::renderOpenGL`.
         functions->glDepthFunc(glDepthFunc(m_depthFunc));
         functions->glDepthMask(m_depthWriteEnabled ? GL_TRUE : GL_FALSE);
       }
@@ -566,11 +558,7 @@ namespace engine::raster {
           return;
         }
 
-        if (m_stencilLoadOp == Rasterizer::AttachmentLoadOp::Load) {
-          throw std::runtime_error(
-            "OpenGL raster backend does not support stencil attachment load yet");
-        }
-
+        // Load-op rejected pre-bind in `OpenGLRasterizer::renderOpenGL`.
         functions->glEnable(GL_STENCIL_TEST);
         functions->glStencilFunc(glStencilFunc(m_stencilFunc), m_stencilReference, m_stencilMask);
         functions->glStencilMask(m_stencilWriteMask);
@@ -776,7 +764,6 @@ namespace engine::raster {
       Recti m_viewportRect;
       bool m_scissorEnabled;
       Recti m_scissorRect;
-      Rasterizer::AttachmentLoadOp m_colorLoadOp;
       Rasterizer::AttachmentStoreOp m_colorStoreOp;
       std::uint8_t m_colorWriteMask;
       bool m_blendingEnabled;
@@ -790,7 +777,6 @@ namespace engine::raster {
       double m_alphaReference;
       Rasterizer::DepthFunc m_depthFunc;
       double m_depthClearValue;
-      Rasterizer::AttachmentLoadOp m_depthLoadOp;
       Rasterizer::AttachmentStoreOp m_depthStoreOp;
       bool m_depthWriteEnabled;
       bool m_stencilTestEnabled;
@@ -798,7 +784,6 @@ namespace engine::raster {
       std::uint8_t m_stencilReference;
       std::uint8_t m_stencilMask;
       std::uint8_t m_stencilClearValue;
-      Rasterizer::AttachmentLoadOp m_stencilLoadOp;
       Rasterizer::AttachmentStoreOp m_stencilStoreOp;
       std::uint8_t m_stencilWriteMask;
       Rasterizer::StencilOp m_stencilFailOp;
@@ -1412,6 +1397,23 @@ namespace engine::raster {
                                       Buffer<std::uint8_t>* stencilTarget) const {
     m_lastReadbackTraceMessage.clear();
     m_lastTraceMessages.clear();
+
+    // Reject `AttachmentLoadOp::Load` requests before touching the
+    // GL context. Honoring `Load` requires a GPU-resident attachment
+    // that earlier passes wrote to; that lands with Phase 3 residency.
+    // Throwing pre-bind keeps the failure observable as a render-graph
+    // diagnostic rather than as a half-bound GL frame.
+    const auto rejectUnsupportedLoad = [](const char* attachment, Rasterizer::AttachmentLoadOp op) {
+      if (op == Rasterizer::AttachmentLoadOp::Load) {
+        std::string message = "OpenGL raster backend does not support ";
+        message += attachment;
+        message += " attachment load yet";
+        throw std::runtime_error(message);
+      }
+    };
+    rejectUnsupportedLoad("color", m_colorLoadOp);
+    rejectUnsupportedLoad("depth", m_depthLoadOp);
+    rejectUnsupportedLoad("stencil", m_stencilLoadOp);
 
     if (!m_resources) {
       m_resources = sharedResources();
