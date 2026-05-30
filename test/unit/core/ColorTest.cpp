@@ -1,8 +1,10 @@
 #include <gtest/gtest.h>
+#include "core/SimdFeatures.h"
 #include "core/Color.h"
 #include "test/helpers/ColorTestHelper.h"
 
 #include <sstream>
+#include <type_traits>
 
 using namespace std;
 
@@ -54,6 +56,29 @@ namespace ColorTest {
   // optimizations, so it's used to test the unspecialized Color class
   typedef ::testing::Types<float, double, long double> ColorTypes;
   TYPED_TEST_SUITE(ColorTest, ColorTypes);
+
+  TYPED_TEST(ColorTest, ShouldHaveExpectedLayout) {
+    if constexpr (std::is_same_v<TypeParam, float>) {
+#if RAYTRACER_SIMD_SSE
+      EXPECT_EQ(16u, sizeof(Color<TypeParam>));
+      EXPECT_EQ(16u, alignof(Color<TypeParam>));
+#else
+      EXPECT_EQ(3u * sizeof(TypeParam), sizeof(Color<TypeParam>));
+      EXPECT_EQ(alignof(TypeParam), alignof(Color<TypeParam>));
+#endif
+    } else if constexpr (std::is_same_v<TypeParam, double>) {
+#if RAYTRACER_SIMD_SSE3
+      EXPECT_EQ(32u, sizeof(Color<TypeParam>));
+      EXPECT_EQ(16u, alignof(Color<TypeParam>));
+#else
+      EXPECT_EQ(3u * sizeof(TypeParam), sizeof(Color<TypeParam>));
+      EXPECT_EQ(alignof(TypeParam), alignof(Color<TypeParam>));
+#endif
+    } else {
+      EXPECT_EQ(3u * sizeof(TypeParam), sizeof(Color<TypeParam>));
+      EXPECT_EQ(alignof(TypeParam), alignof(Color<TypeParam>));
+    }
+  }
 
   TYPED_TEST(ColorTest, ShouldInitializeComponentsWithZeros) {
     Color<TypeParam> color;
@@ -239,6 +264,31 @@ namespace ColorTest {
     ASSERT_EQ(0x00000000u, c1.rgb());
     Color<TypeParam> c2(1, 1, 1);
     ASSERT_EQ(0x00FFFFFFu, c2.rgb());
+  }
+
+  TYPED_TEST(ColorTest, ShouldPinRgbQuantizationSemantics) {
+    const Color<TypeParam> midpoint(0.5, 0.25, 0.75);
+
+    if constexpr (std::is_same_v<TypeParam, float>) {
+#if RAYTRACER_SIMD_SSE
+      EXPECT_EQ(0x008040BFu, midpoint.rgb());
+#else
+      EXPECT_EQ(0x007F3FBFu, midpoint.rgb());
+#endif
+    } else if constexpr (std::is_same_v<TypeParam, double>) {
+#if RAYTRACER_SIMD_SSE3
+      EXPECT_EQ(0x008040BFu, midpoint.rgb());
+#else
+      EXPECT_EQ(0x007F3FBFu, midpoint.rgb());
+#endif
+    } else {
+      EXPECT_EQ(0x007F3FBFu, midpoint.rgb());
+    }
+  }
+
+  TYPED_TEST(ColorTest, ShouldClampRgbOverflowAfterQuantization) {
+    const Color<TypeParam> color(1.25, 1.0, 2.0);
+    EXPECT_EQ(0x00FFFFFFu, color.rgb());
   }
 
   TYPED_TEST(ColorTest, ShouldDefineConstants) {

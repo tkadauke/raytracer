@@ -212,6 +212,11 @@ After packet acceleration, evaluate the single-object math types:
 - `Colorf`;
 - `Matrix4f` matrix-matrix and matrix-vector operations.
 
+✅ **Done.** No Phase 3 NEON whole-type specialization is retained without ARM
+before/after evidence. The decision and rerun filter are recorded in
+`docs/perf/arm-simd-phase3-float-math-candidates-2026-05-30.md`; `ColorBenchmark`
+now covers Colorf arithmetic and RGB packing for future ARM candidate runs.
+
 The scratch benchmark suggests `Vector3f` and `Vector4f` can benefit from NEON,
 but layout and call-site autovectorization matter. For `Colorf`, the arithmetic
 port is straightforward, but the actual value depends on how hot color
@@ -230,9 +235,13 @@ Specific risks:
 Acceptance:
 
 - `VectorBenchmark`, `MatrixBenchmark`, and representative render benchmarks
-  show a real improvement;
-- object size/alignment expectations are explicit in tests;
-- color conversion behavior is pinned by tests.
+  show a real improvement before any Phase 3 NEON candidate is retained;
+- ~~object size/alignment expectations are explicit in tests;~~ ✅ **Done.**
+  `ColorTest`, `VectorTest`, and `MatrixTest` pin the current specialized and
+  generic layouts.
+- ~~color conversion behavior is pinned by tests.~~ ✅ **Done.** `ColorTest`
+  covers midpoint quantization and overflow clamping before any NEON Colorf
+  specialization lands.
 
 ## Phase 4 - double precision triage
 
