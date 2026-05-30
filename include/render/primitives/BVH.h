@@ -75,8 +75,8 @@ namespace render {
       * Block-batched packet traversal for four rays. Walks all lanes
       * through a single BVH descent, pruning subtrees where every
       * active-mask ray misses the node AABB. Leaf hits are accumulated
-      * per-lane via Primitive::intersectPacket (SSE path for Sphere,
-      * scalar fallback for other primitives). Returns tNear set to the
+      * per-lane via Primitive::intersectPacket (SIMD path for packet-aware
+      * primitives, scalar fallback otherwise). Returns tNear set to the
       * closest positive hit distance per lane; tFar mirrors tNear.
       *
       * Coherent rays (same pixel tile, nearly identical directions)
