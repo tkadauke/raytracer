@@ -60,7 +60,8 @@ namespace engine::raster::detail {
                           Rasterizer::CullMode cullMode, bool hasCullModeOverride,
                           bool applyVertexShader,
                           std::shared_ptr<const RasterVisibilitySet> visibilitySet = nullptr,
-                          Rasterizer::RasterRenderMetrics* metrics = nullptr);
+                          Rasterizer::RasterRenderMetrics* metrics = nullptr,
+                          bool skipCameraProjection = false);
 
     template<class EmitFn>
     void forEachTriangle(EmitFn&& callback) const {
@@ -101,14 +102,24 @@ namespace engine::raster::detail {
 
         // Project each mesh vertex once per primitive. Faces then
         // reuse clip/screen data while fan-triangulating polygons.
+        // In the camera-independent fast path the projection, clip, and
+        // screen fields are unused downstream (the GPU does projection
+        // via the uniform `viewProjection` matrix), so we leave them
+        // undefined and signal "inside the volume" via outCode = 0.
         std::vector<ProjectedVertex> projected(vertices.size());
-        for (std::size_t vi = 0; vi < vertices.size(); ++vi) {
-          const auto& vertex = vertices[vi];
-          const Vector4d clip = m_camera->projectPointToClipSpace(vertex.point);
-          const std::uint8_t outCode = m_clipVolume.outCode(clip);
-          projected[vi] = {
-            clip, outCode == 0 ? viewPlane.screenFromClipUnchecked(clip) : Vector3d::undefined,
-            outCode};
+        if (m_skipCameraProjection) {
+          for (std::size_t vi = 0; vi < vertices.size(); ++vi) {
+            projected[vi] = {Vector4d::undefined, Vector3d::undefined, std::uint8_t{0}};
+          }
+        } else {
+          for (std::size_t vi = 0; vi < vertices.size(); ++vi) {
+            const auto& vertex = vertices[vi];
+            const Vector4d clip = m_camera->projectPointToClipSpace(vertex.point);
+            const std::uint8_t outCode = m_clipVolume.outCode(clip);
+            projected[vi] = {
+              clip, outCode == 0 ? viewPlane.screenFromClipUnchecked(clip) : Vector3d::undefined,
+              outCode};
+          }
         }
 
         for (std::size_t fi = 0; fi < faces.size(); ++fi, ++faceIdx) {
@@ -223,7 +234,7 @@ namespace engine::raster::detail {
         nextFaceIdx += emitLeaf(leaf, currentLeafIndex, nextFaceIdx);
       };
 
-      if (!m_visibilitySet && canCullPrimitiveBounds()) {
+      if (!m_visibilitySet && !m_skipCameraProjection && canCullPrimitiveBounds()) {
         m_scene->forEachTransformedLeafInBounds(
           [&](const BoundingBoxd& bounds) { return !boundsOutsideClipVolume(bounds); }, nullptr,
           Matrix4d(), Matrix3d(), emitNextLeaf);
@@ -290,6 +301,7 @@ namespace engine::raster::detail {
     render::HomogeneousClipVolume m_clipVolume;
     TriangleCullPolicy m_cullPolicy;
     bool m_applyVertexShader;
+    bool m_skipCameraProjection;
     const std::atomic<bool>& m_cancelled;
     Rasterizer::RasterRenderMetrics* m_metrics;
     mutable std::unordered_map<const render::Primitive*, std::shared_ptr<Mesh>> m_tessellationCache;

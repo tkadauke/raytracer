@@ -58,15 +58,22 @@ namespace engine::raster::detail {
     const render::Scene* scene, std::shared_ptr<render::Camera> camera, int lod,
     const Rasterizer& rasterizer, const std::atomic<bool>& cancelled, Rasterizer::CullMode cullMode,
     bool hasCullModeOverride, bool applyVertexShader,
-    std::shared_ptr<const RasterVisibilitySet> visibilitySet, Rasterizer::RasterRenderMetrics* metrics)
+    std::shared_ptr<const RasterVisibilitySet> visibilitySet,
+    Rasterizer::RasterRenderMetrics* metrics, bool skipCameraProjection)
       : m_scene(scene),
         m_camera(std::move(camera)),
         m_visibilitySet(std::move(visibilitySet)),
         m_lod(lod),
         m_rasterizer(rasterizer),
         m_clipVolume(rasterizer.nearClipDepth(), rasterizer.farClipDepth()),
-        m_cullPolicy{cullMode, hasCullModeOverride},
+        // When the caller skips CPU projection, screen-space cull cannot
+        // run (signedScreenArea reads undefined screen coords). Force
+        // CullMode::Both so the policy's `shouldCull` returns false; the
+        // GPU is expected to handle face culling via GL state.
+        m_cullPolicy{skipCameraProjection ? Rasterizer::CullMode::Both : cullMode,
+                     skipCameraProjection ? true : hasCullModeOverride},
         m_applyVertexShader(applyVertexShader),
+        m_skipCameraProjection(skipCameraProjection),
         m_cancelled(cancelled),
         m_metrics(metrics) {
   }
@@ -158,6 +165,16 @@ namespace engine::raster::detail {
         uv = output.uv;
         screen = output.screenPosition;
       }
+    }
+
+    // Camera-independent fast path: the emitter intentionally leaves
+    // `screen`/`clip` undefined because the GPU does projection. The
+    // downstream consumer (`OpenGLRasterMeshBuilder::vertexFor` with
+    // `cameraIndependent=true`) ignores the screen-space fields. Emit
+    // a vertex with sentinel zeros so the triangle survives.
+    if (m_skipCameraProjection) {
+      out = {point, normal, uv, 1.0, 0.0, 0.0, 0.0};
+      return true;
     }
 
     if (screen.isUndefined() || screen.z() <= 0.0)

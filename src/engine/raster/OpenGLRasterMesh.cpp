@@ -176,18 +176,50 @@ namespace engine::raster::detail {
     m_camera->viewPlane()->setup(m_camera->matrix(), m_viewportRect);
     Rasterizer rasterizer(m_camera, std::shared_ptr<render::Scene>());
     rasterizer.setLod(m_lod);
+    const bool cameraIndependent = isCameraIndependentBuildAvailable();
     RasterTriangleEmitter emitter(m_scene, m_camera, m_lod, rasterizer, m_cancelled, m_cullMode,
-                                  m_hasCullModeOverride, false, m_visibilitySet);
+                                  m_hasCullModeOverride, false, m_visibilitySet,
+                                  /*metrics=*/nullptr, cameraIndependent);
     appendDirectionalLights(mesh);
     appendPointLights(mesh);
     emitter.forEachTriangle([&](const RasterTriangle& triangle) {
       const RasterAlbedoShaderSource albedo = triangle.rasterMaterial.shaderAlbedoSource();
-      mesh.appendTriangle(vertexFor(triangle, triangle.vertices[0]),
-                          vertexFor(triangle, triangle.vertices[1]),
-                          vertexFor(triangle, triangle.vertices[2]), albedo);
+      mesh.appendTriangle(vertexFor(triangle, triangle.vertices[0], cameraIndependent),
+                          vertexFor(triangle, triangle.vertices[1], cameraIndependent),
+                          vertexFor(triangle, triangle.vertices[2], cameraIndependent), albedo);
     });
 
     return mesh;
+  }
+
+  bool OpenGLRasterMeshBuilder::isCameraIndependentBuildAvailable() const {
+    if (!m_scene || !m_camera) {
+      return false;
+    }
+    if (!m_camera->worldToClipMatrix().has_value()) {
+      return false;
+    }
+    if (!usesFragmentShaderLighting()) {
+      return false;
+    }
+    for (const auto& light : m_scene->lights()) {
+      if (!shadesInFragmentShader(*light)) {
+        return false;
+      }
+    }
+    // Depth bias and per-material cull mode are currently CPU-baked
+    // (into `vertex.z` and the triangle-cull policy, respectively).
+    // The GPU-side equivalents (`glPolygonOffset`, per-batch
+    // `glCullFace`) are follow-ups; for now, fall back to the
+    // CPU-projected path whenever either is in effect so callers that
+    // rely on these features keep working.
+    if (m_depthBias != 0.0) {
+      return false;
+    }
+    if (m_hasCullModeOverride && m_cullMode != Rasterizer::CullMode::Both) {
+      return false;
+    }
+    return true;
   }
 
   void OpenGLRasterMeshBuilder::appendDirectionalLights(OpenGLRasterMesh& mesh) const {
@@ -226,20 +258,35 @@ namespace engine::raster::detail {
   }
 
   OpenGLRasterMesh::Vertex OpenGLRasterMeshBuilder::vertexFor(const RasterTriangle& triangle,
-                                                              const RasterVertex& vertex) const {
+                                                              const RasterVertex& vertex,
+                                                              bool cameraIndependent) const {
     const Colord albedo = triangle.rasterMaterial.albedo(
       triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
     const double alpha = triangle.rasterMaterial.alpha(
       triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
     const Vector3d normal = lightingNormalFor(triangle, vertex);
     const Colord ambientLighting = ambientLightingFor(triangle);
-    const Colord directLighting = directLightingFor(triangle, vertex, normal);
-    const Colord specular = specularFor(triangle, vertex, normal);
+    // In the camera-independent path every light is handled in the
+    // fragment shader, so the CPU-side direct/specular bakes
+    // (`directLightingFor`/`specularFor`) would unconditionally return
+    // black. Skip both — `specularFor` in particular calls
+    // `Camera::rayForPixel(vertex.x, vertex.y)` which reads the
+    // camera-dependent projected screen coords that the emitter no
+    // longer populates.
+    const Colord directLighting =
+      cameraIndependent ? Colord::black() : directLightingFor(triangle, vertex, normal);
+    const Colord specular =
+      cameraIndependent ? Colord::black() : specularFor(triangle, vertex, normal);
     const RasterAlbedoShaderSource shaderSource = triangle.rasterMaterial.shaderAlbedoSource();
-    return {normalizedDeviceX(vertex.x, m_viewportRect),
-            normalizedDeviceY(vertex.y, m_viewportRect),
-            normalizedDeviceDepth(vertex, m_depthBias),
-            clipW(vertex),
+    // The shader picks between matrix projection (using worldPosition)
+    // and the legacy CPU-baked path (using position.xyz/w). In
+    // camera-independent mode the matrix path is in effect, so the
+    // legacy position attrs are unused — leave them at sentinel zeros
+    // instead of paying for `projectPointToClipSpace`+NDC remapping.
+    return {cameraIndependent ? 0.0f : normalizedDeviceX(vertex.x, m_viewportRect),
+            cameraIndependent ? 0.0f : normalizedDeviceY(vertex.y, m_viewportRect),
+            cameraIndependent ? 0.0f : normalizedDeviceDepth(vertex, m_depthBias),
+            cameraIndependent ? 1.0f : clipW(vertex),
             static_cast<float>(vertex.point.x()),
             static_cast<float>(vertex.point.y()),
             static_cast<float>(vertex.point.z()),

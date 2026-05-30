@@ -133,6 +133,19 @@ namespace engine::raster::detail {
 
     OpenGLRasterMesh build() const;
 
+    /**
+      * @returns true when `build()` can emit a mesh that does not depend on
+      * the camera pose — when every light is handled in the fragment
+      * shader (no CPU per-vertex direct/specular bake), no shadow maps
+      * need CPU sampling, and the camera can supply a GPU
+      * `worldToClipMatrix`. The returned mesh skips per-vertex
+      * projection, frustum culling, and triangle clipping (the GPU
+      * does all three natively), so the cache key in
+      * `OpenGLRasterResourceCache` can drop the camera pose and the
+      * Modeler's camera-drag path hits the cache every frame.
+      */
+    bool isCameraIndependentBuildAvailable() const;
+
   private:
     const render::Scene* m_scene;
     std::shared_ptr<render::Camera> m_camera;
@@ -147,8 +160,8 @@ namespace engine::raster::detail {
 
     void appendDirectionalLights(OpenGLRasterMesh& mesh) const;
     void appendPointLights(OpenGLRasterMesh& mesh) const;
-    OpenGLRasterMesh::Vertex vertexFor(const RasterTriangle& triangle,
-                                       const RasterVertex& vertex) const;
+    OpenGLRasterMesh::Vertex vertexFor(const RasterTriangle& triangle, const RasterVertex& vertex,
+                                       bool cameraIndependent) const;
     bool usesFragmentShaderLighting() const;
     bool shadesInFragmentShader(const render::Light& light) const;
     Vector3d lightingNormalFor(const RasterTriangle& triangle, const RasterVertex& vertex) const;

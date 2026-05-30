@@ -366,7 +366,7 @@ namespace OpenGLRasterizerTest {
          "not refreshed and the projection matrix used another pass's aspect";
   }
 
-  TEST_F(OpenGLRasterizerMeshCache, RebuildsMeshWhenCameraMoves) {
+  TEST_F(OpenGLRasterizerMeshCache, ReusesMeshAcrossCameraMovesForCameraIndependentBuilds) {
     if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
       GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
     }
@@ -381,10 +381,35 @@ namespace OpenGLRasterizerTest {
     cam->setPosition(Vector3d(2, 0, -5));
     rasterizer.render(buffer);
 
+    EXPECT_TRUE(tracesContain(rasterizer.traceMessages(), "reused"))
+      << "scene with only fragment-shader-handled lights builds a camera-"
+         "independent mesh; the GPU does projection / cull / clip, so the "
+         "cached mesh stays valid across camera moves";
+  }
+
+  TEST_F(OpenGLRasterizerMeshCache, RebuildsMeshWhenCameraMovesForDepthBiasedRenders) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+
+    auto scene = simpleSphereScene();
+    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+
+    engine::raster::OpenGLRasterizer rasterizer(cam, scene);
+    // A non-zero depth bias forces the CPU-projected path because the
+    // bias is currently baked into `vertex.z`; the camera-independent
+    // path's zeroed z would lose the offset. With the CPU path active
+    // the cache key includes the camera pose, so a move invalidates.
+    rasterizer.setDepthBias(0.01);
+    Buffer<Colord> buffer(32, 32);
+    rasterizer.render(buffer);
+
+    cam->setPosition(Vector3d(2, 0, -5));
+    rasterizer.render(buffer);
+
     EXPECT_TRUE(tracesContain(rasterizer.traceMessages(), "built"))
-      << "camera move must invalidate the cached mesh — frustum culling depends "
-         "on camera pose, so a cache hit across moves leaves holes where "
-         "previously-culled primitives are now in-frustum";
+      << "depth-biased scene falls back to the CPU-projected path whose "
+         "cache key includes the camera pose; a camera move must invalidate";
   }
 
   class OpenGLRasterizerAspect : public ::testing::GuiTest {};

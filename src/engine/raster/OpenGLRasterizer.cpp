@@ -1416,18 +1416,17 @@ namespace engine::raster {
       key.cullMode = m_cullMode;
       key.hasCullModeOverride = m_hasCullModeOverride;
       key.depthBias = m_depthBias;
-      // Mesh content is camera-dependent through more than the per-vertex
-      // lighting bake: `RasterTriangleEmitter` rejects primitives whose
-      // AABB sits entirely outside the camera's homogeneous frustum and
-      // clips surviving triangles at the near/far planes. A camera-only
-      // change (Modeler drag) therefore needs a fresh mesh — without
-      // this the previously-frustum-rejected geometry leaves holes in
-      // the cached mesh as the camera turns. A separate camera-
-      // independent build path (no CPU frustum culling, no CPU triangle
-      // clipping; let GL handle both) would let camera-drag hit the
-      // cache, but that's a wider change.
-      key.cameraDependent = true;
-      if (camera()) {
+      // The mesh build path is camera-dependent unless every light is
+      // handled in the fragment shader AND the camera supplies a GPU
+      // projection matrix. With both gates true, the builder skips
+      // per-vertex projection, per-primitive frustum cull, and
+      // triangle clipping (`isCameraIndependentBuildAvailable()`);
+      // the resulting mesh is reusable across camera moves and the
+      // cache key drops the camera pose. Otherwise the camera pose is
+      // load-bearing — frustum culling and CPU specular bake would
+      // leave holes / stale highlights if the cache hit across a move.
+      key.cameraDependent = !builder.isCameraIndependentBuildAvailable();
+      if (key.cameraDependent && camera()) {
         key.cameraPosition = camera()->position();
         key.cameraTarget = camera()->target();
       }

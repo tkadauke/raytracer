@@ -44,6 +44,18 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   editable importer values under `importOptions.parameters`, while existing
   OpenSCAD `importOptions.define` scenes continue to edit and rebuild through
   the legacy define object for Epic #408. — GPT-5
+- **OpenGL raster mesh build skips CPU projection / cull / clip when the
+  GPU can do it.** `OpenGLRasterMeshBuilder` now detects when the camera
+  supplies a GPU `worldToClipMatrix` and every light is handled by the
+  fragment shader (and no depth bias or cull-mode override is in effect).
+  In that "camera-independent" mode it tells `RasterTriangleEmitter` to
+  skip per-vertex `projectPointToClipSpace`, the per-primitive AABB
+  frustum cull, and the Sutherland-Hodgman triangle clipping; the GPU
+  handles all three natively. The cache key drops the camera pose, so
+  Modeler camera drag becomes a cache hit instead of a ~800 ms mesh
+  rebuild for the sloth (498k tris). Scenes that need CPU depth bias,
+  cull-mode override, or per-vertex lighting bakes fall back to the
+  existing CPU-projected path. — Claude Opus 4.7
 - **Automatic scene acceleration selection.** Runtime scene conversion now
   analyzes finite leaf geometry under imported groups and meshes, choosing the
   linear fallback for empty/single-leaf scenes and BVH for multi-leaf glTF,
