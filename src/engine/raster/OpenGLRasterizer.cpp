@@ -353,12 +353,15 @@ namespace engine::raster {
         QOpenGLBuffer& indexBuffer = *m_resources.indexBuffer;
 
         vertexBuffer.bind();
-        vertexBuffer.allocate(
-          mesh.vertices().data(),
-          static_cast<int>(mesh.vertices().size() * sizeof(detail::OpenGLRasterMesh::Vertex)));
         indexBuffer.bind();
-        indexBuffer.allocate(mesh.indices().data(),
-                             static_cast<int>(mesh.indices().size() * sizeof(std::uint32_t)));
+        if (!m_resources.cachedMeshUploaded) {
+          vertexBuffer.allocate(
+            mesh.vertices().data(),
+            static_cast<int>(mesh.vertices().size() * sizeof(detail::OpenGLRasterMesh::Vertex)));
+          indexBuffer.allocate(mesh.indices().data(),
+                               static_cast<int>(mesh.indices().size() * sizeof(std::uint32_t)));
+          m_resources.cachedMeshUploaded = true;
+        }
 
         const int positionLocation = m_resources.locations.position;
         const int worldPositionLocation = m_resources.locations.worldPosition;
@@ -1347,15 +1350,20 @@ namespace engine::raster {
     return message.str();
   }
 
-  std::string OpenGLRasterizer::drawTraceMessage(std::chrono::nanoseconds elapsed,
-                                                 std::size_t triangleCount,
-                                                 std::size_t vertexBufferBytes,
-                                                 std::size_t indexBufferBytes,
-                                                 std::size_t imageTextureCount,
-                                                 std::size_t imageTextureBytes) const {
+  std::string
+  OpenGLRasterizer::drawTraceMessage(std::chrono::nanoseconds elapsed, std::size_t triangleCount,
+                                     std::size_t vertexBufferBytes, std::size_t indexBufferBytes,
+                                     std::size_t imageTextureCount, std::size_t imageTextureBytes,
+                                     bool uploadedMesh) const {
     std::ostringstream message;
-    message << "OpenGL raster draw uploaded " << vertexBufferBytes << " vertex bytes and "
-            << indexBufferBytes << " index bytes";
+    message << "OpenGL raster draw ";
+    if (uploadedMesh) {
+      message << "uploaded " << vertexBufferBytes << " vertex bytes and " << indexBufferBytes
+              << " index bytes";
+    } else {
+      message << "reused " << vertexBufferBytes << " vertex bytes and " << indexBufferBytes
+              << " index bytes from cache";
+    }
     if (imageTextureCount != 0) {
       message << " plus " << imageTextureBytes << " texture bytes across " << imageTextureCount
               << " image texture";
@@ -1479,10 +1487,12 @@ namespace engine::raster {
       } else {
         m_resources->cachedMesh = builder.build();
         m_resources->cachedMeshKey = key;
+        m_resources->cachedMeshUploaded = false;
       }
     } else {
       m_resources->cachedMesh = detail::OpenGLRasterMesh();
       m_resources->cachedMeshKey.reset();
+      m_resources->cachedMeshUploaded = false;
     }
     detail::OpenGLRasterMesh& mesh = m_resources->cachedMesh;
     const auto meshPreparationElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -1549,6 +1559,12 @@ namespace engine::raster {
     drawState.cullMode = m_cullMode;
     drawState.hasCullModeOverride = m_hasCullModeOverride;
 
+    // Captured before the draw pass: when the cache hits the upload
+    // is skipped (`cachedMeshUploaded` was already true). When the
+    // cache misses, `renderOpenGL` reset the flag to false before
+    // building the new mesh; the draw pass uploads and sets it back
+    // to true.
+    const bool uploadedFreshMesh = !m_resources->cachedMeshUploaded;
     const auto timings =
       OpenGLRasterDrawPass(*m_resources, std::move(drawState), m_cancelled)
         .render(mesh, backgroundColor(), colorTarget, depthTarget, stencilTarget);
@@ -1561,9 +1577,10 @@ namespace engine::raster {
       meshPreparationTraceMessage(meshPreparationElapsed, mesh.triangleCount(), meshCacheHit));
     appendLightTruncationTrace(mesh.directionalLights().size(), mesh.pointLights().size(),
                                m_lastTraceMessages);
-    m_lastTraceMessages.push_back(drawTraceMessage(
-      timings.drawElapsed, mesh.triangleCount(), mesh.vertexBufferByteSize(),
-      mesh.indexBufferByteSize(), mesh.imageTextureCount(), mesh.imageTextureUploadByteSize()));
+    m_lastTraceMessages.push_back(
+      drawTraceMessage(timings.drawElapsed, mesh.triangleCount(), mesh.vertexBufferByteSize(),
+                       mesh.indexBufferByteSize(), mesh.imageTextureCount(),
+                       mesh.imageTextureUploadByteSize(), uploadedFreshMesh));
     m_lastTraceMessages.push_back(latencyBreakdownTraceMessage(
       timings.makeCurrentElapsed, timings.glFinishElapsed, timings.doneCurrentElapsed));
     if (m_shadowMapsEnabled && m_externalShadowMaps) {

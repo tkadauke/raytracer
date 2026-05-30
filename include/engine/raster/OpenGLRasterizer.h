@@ -198,8 +198,8 @@ namespace engine::raster {
                                      bool copiedDepth, bool copiedStencil) const;
     std::string drawTraceMessage(std::chrono::nanoseconds elapsed, std::size_t triangleCount,
                                  std::size_t vertexBufferBytes, std::size_t indexBufferBytes,
-                                 std::size_t imageTextureCount,
-                                 std::size_t imageTextureBytes) const;
+                                 std::size_t imageTextureCount, std::size_t imageTextureBytes,
+                                 bool uploadedMesh) const;
     std::string meshPreparationTraceMessage(std::chrono::nanoseconds elapsed,
                                             std::size_t triangleCount, bool cacheHit) const;
     std::string latencyBreakdownTraceMessage(std::chrono::nanoseconds makeCurrentElapsed,

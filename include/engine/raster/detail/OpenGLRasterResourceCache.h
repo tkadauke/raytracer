@@ -123,6 +123,12 @@ namespace engine::raster::detail {
     std::unique_ptr<QOpenGLBuffer> indexBuffer;
     std::optional<OpenGLMeshCacheKey> cachedMeshKey;
     OpenGLRasterMesh cachedMesh;
+    // True when the contents of `cachedMesh` have already been uploaded
+    // into `vertexBuffer` / `indexBuffer`. The draw pass uploads on
+    // demand and sets this; `OpenGLRasterizer::renderOpenGL` resets it
+    // whenever `cachedMesh` is replaced. Keeps the per-frame mesh
+    // upload (~50 MB for the sloth) off the cache-hit path.
+    bool cachedMeshUploaded{false};
 
     OpenGLRasterResourceCache();
     ~OpenGLRasterResourceCache();

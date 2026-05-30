@@ -298,6 +298,27 @@ namespace OpenGLRasterizerTest {
       << "second render with identical scene+camera should hit the mesh cache";
   }
 
+  TEST_F(OpenGLRasterizerMeshCache, SkipsVertexBufferUploadOnCacheHit) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+
+    auto scene = simpleSphereScene();
+    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+
+    engine::raster::OpenGLRasterizer rasterizer(cam, scene);
+    Buffer<Colord> buffer(32, 32);
+
+    rasterizer.render(buffer);
+    EXPECT_TRUE(tracesContain(rasterizer.traceMessages(), "OpenGL raster draw uploaded"))
+      << "first render uploads vertex/index data fresh";
+
+    rasterizer.render(buffer);
+    EXPECT_TRUE(tracesContain(rasterizer.traceMessages(), "reused") &&
+                tracesContain(rasterizer.traceMessages(), "from cache"))
+      << "cache-hit render must skip the vertex/index buffer re-upload";
+  }
+
   TEST_F(OpenGLRasterizerMeshCache, RebuildsMeshWhenSceneIdentityChanges) {
     if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
       GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
