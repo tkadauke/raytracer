@@ -209,6 +209,7 @@ namespace engine::raster {
         }
         if (!m_resources.context.bindFramebuffer()) {
           m_resources.context.doneCurrent();
+          m_resources.context.detachFromCurrentThread();
           throw std::runtime_error(m_resources.context.errorMessage());
         }
         timings.makeCurrentElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -238,12 +239,14 @@ namespace engine::raster {
           const auto doneCurrentStarted = std::chrono::steady_clock::now();
           m_resources.context.releaseFramebuffer();
           m_resources.context.doneCurrent();
+          m_resources.context.detachFromCurrentThread();
           timings.doneCurrentElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - doneCurrentStarted);
           return timings;
         } catch (...) {
           m_resources.context.releaseFramebuffer();
           m_resources.context.doneCurrent();
+          m_resources.context.detachFromCurrentThread();
           throw;
         }
       }

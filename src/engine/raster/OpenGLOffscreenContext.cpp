@@ -171,14 +171,16 @@ namespace engine::raster {
       if (context->thread() == current) {
         return true;
       }
-      // moveToThread can only be invoked from the object's current thread.
-      // For the shared-cache pattern the previous render thread has
-      // typically already exited, in which case the context is parented to
-      // a dead thread and we cannot migrate it cleanly; report the failure
-      // so the caller recreates.
-      if (context->thread() == nullptr || !context->thread()->isRunning()) {
-        errorMessage =
-          "OpenGL raster backend cannot migrate the offscreen context — owner thread is gone";
+      // Qt only allows `moveToThread` from the object's current thread,
+      // unless the object is already detached (thread() == nullptr). The
+      // shared-cache pattern leaves the context detached after each
+      // render (see `detachFromCurrentThread` below) so any subsequent
+      // render thread can claim it; a non-null thread() here means the
+      // previous owner exited without detaching, in which case Qt will
+      // not let us migrate and the cache has to be rebuilt.
+      if (context->thread() != nullptr) {
+        errorMessage = "OpenGL raster backend cannot migrate the offscreen context — owner thread "
+                       "did not detach";
         return false;
       }
       context->moveToThread(current);
@@ -188,6 +190,20 @@ namespace engine::raster {
       // The FBO is not a QObject; it lives inside the context and follows
       // it across threads. No explicit move is needed.
       return true;
+    }
+
+    void detachFromCurrentThread() {
+      // Called after `doneCurrent` so the next render's worker thread
+      // can `migrateToCurrentThread` the context across, even though
+      // its creation thread has by then exited. Must run on the
+      // context's current thread, which is always the render thread
+      // immediately after `doneCurrent`.
+      if (context) {
+        context->moveToThread(nullptr);
+      }
+      if (surface) {
+        surface->moveToThread(nullptr);
+      }
     }
 
     bool makeCurrent() {
@@ -458,6 +474,10 @@ namespace engine::raster {
 
   bool OpenGLOffscreenContext::migrateToCurrentThread() {
     return p->migrateToCurrentThread();
+  }
+
+  void OpenGLOffscreenContext::detachFromCurrentThread() {
+    p->detachFromCurrentThread();
   }
 
   bool OpenGLOffscreenContext::makeCurrent() {

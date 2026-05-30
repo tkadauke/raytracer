@@ -57,6 +57,15 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   showing the rolling mean FPS and frame time over the last 30 finished
   renders. Off by default; useful for comparing CPU vs OpenGL raster
   responsiveness across scenes. — Claude Opus 4.7
+- **OpenGL raster shared cache survives per-frame worker threads.** The
+  `sharedResources()` cache held the GL context's Qt thread affinity until
+  the next render, but the Modeler spawns a fresh `QThread` per render and
+  the previous thread exits before the new one starts. The cache's
+  `migrateToCurrentThread()` was always failing in that flow, so every
+  frame paid the ~70 ms cold shader compile cost — invisible to the unit
+  tests that ran every render on the gtest main thread. Detach the GL
+  context (`QOpenGLContext::moveToThread(nullptr)`) immediately after
+  `doneCurrent` so the next render's worker can claim it. — Claude Opus 4.7
 - **OpenGL raster cache is now process-wide via `sharedResources()`.** Every
   `OpenGLRasterizer` instance pulls its context, shader program, image
   textures, and vertex/index buffers from a single shared cache. The

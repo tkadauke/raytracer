@@ -12,6 +12,8 @@
 #include "render/textures/ConstantColorTexture.h"
 #include "test/helpers/GuiTestHelper.h"
 
+#include <QThread>
+
 #include <chrono>
 #include <iostream>
 #include <memory>
@@ -111,5 +113,67 @@ namespace OpenGLRepeatRenderTest {
     EXPECT_LT(subsequentMean, 25.0)
       << "fresh-instance subsequent renders should reuse the shared cache; mean was "
       << subsequentMean << " ms (cold would be ~70 ms)";
+  }
+
+  namespace {
+    class OneShotRenderThread : public QThread {
+    public:
+      OneShotRenderThread(int width, int height, std::shared_ptr<Scene> scene_,
+                          std::shared_ptr<PinholeCamera> cam_)
+          : m_buffer(width, height),
+            m_scene(std::move(scene_)),
+            m_cam(std::move(cam_)) {
+      }
+
+      void run() override {
+        OpenGLRasterizer fresh(m_cam, m_scene);
+        const auto t0 = std::chrono::steady_clock::now();
+        fresh.render(m_buffer);
+        const auto t1 = std::chrono::steady_clock::now();
+        m_elapsedMs = std::chrono::duration<double, std::milli>(t1 - t0).count();
+      }
+
+      double m_elapsedMs{0.0};
+      Buffer<Colord> m_buffer;
+      std::shared_ptr<Scene> m_scene;
+      std::shared_ptr<PinholeCamera> m_cam;
+    };
+  }
+
+  TEST_F(OpenGLRepeatRender, GpuSharedCacheSurvivesPerFrameWorkerThreads) {
+    if (!OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "no offscreen GL";
+    }
+    // Mirrors the Modeler render-job pattern: each render is dispatched
+    // to a fresh QThread that exits immediately after the render finishes.
+    // The shared OpenGLRasterResourceCache lives across threads through
+    // OpenGLOffscreenContext::detachFromCurrentThread() /
+    // migrateToCurrentThread() so the second-and-later renders reuse the
+    // linked program, image textures, and VBOs instead of paying the
+    // ~70 ms cold cost every frame.
+    auto scene = sphereScene();
+    auto cam = camera();
+
+    double firstFrame = 0.0;
+    double subsequentTotal = 0.0;
+    const int iterations = 5;
+    for (int i = 0; i < iterations + 1; ++i) {
+      OneShotRenderThread t(1024, 1024, scene, cam);
+      t.start();
+      t.wait();
+      if (i == 0) {
+        firstFrame = t.m_elapsedMs;
+      } else {
+        subsequentTotal += t.m_elapsedMs;
+      }
+    }
+    const double subsequentMean = subsequentTotal / iterations;
+    std::cerr << "per-frame-worker-thread pattern at 1024x1024: first=" << firstFrame
+              << " ms, subsequent_mean=" << subsequentMean << " ms ("
+              << (firstFrame / subsequentMean) << "x speedup vs first)\n";
+
+    EXPECT_LT(subsequentMean, 25.0)
+      << "shared cache should survive across one-shot render threads; mean was " << subsequentMean
+      << " ms (cold per-frame would be ~70 ms)";
   }
 }

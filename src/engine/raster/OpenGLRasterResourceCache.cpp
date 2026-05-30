@@ -101,6 +101,7 @@ namespace engine::raster::detail {
     if (!needsContext) {
       return;
     }
+    context.migrateToCurrentThread();
     if (context.makeCurrent()) {
       if (imageTextures) {
         QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();

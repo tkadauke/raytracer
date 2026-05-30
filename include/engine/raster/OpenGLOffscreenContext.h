@@ -61,6 +61,15 @@ namespace engine::raster {
       */
     bool migrateToCurrentThread();
 
+    /**
+      * Releases the context's Qt thread affinity (moves it to "no
+      * thread") so the next render — typically on a freshly-spawned
+      * worker thread — can `migrateToCurrentThread()` and adopt it.
+      * Must be called from the context's current thread, immediately
+      * after `doneCurrent`.
+      */
+    void detachFromCurrentThread();
+
     bool makeCurrent();
     void doneCurrent();
     bool bindFramebuffer();
