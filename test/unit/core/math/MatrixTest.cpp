@@ -691,6 +691,30 @@ namespace Matrix4Test {
     ASSERT_EQ(expected, copy);
   }
 
+  TEST(Matrix4, ShouldConvertFromDifferentElementType) {
+    Matrix4d m;
+    m[0][0] = 1.5;
+    m[1][2] = 7.5;
+    m[3][3] = 9.5;
+    Matrix4f f(m);
+    EXPECT_FLOAT_EQ(1.5f, f[0][0]);
+    EXPECT_FLOAT_EQ(7.5f, f[1][2]);
+    EXPECT_FLOAT_EQ(9.5f, f[3][3]);
+  }
+
+  TEST(Matrix4, DataExposesContiguousRowMajorStorage) {
+    Matrix4f m;
+    for (int r = 0; r != 4; ++r) {
+      for (int c = 0; c != 4; ++c) {
+        m[r][c] = static_cast<float>(r * 4 + c);
+      }
+    }
+    const float* data = m.data();
+    for (int i = 0; i != 16; ++i) {
+      EXPECT_FLOAT_EQ(static_cast<float>(i), data[i]);
+    }
+  }
+
   TYPED_TEST(Matrix4Test, ShouldReturnVector4WhenMultipliedWithVector) {
     Matrix4<TypeParam> matrix;
     Vector4<TypeParam> vector(1, 2, 3);
