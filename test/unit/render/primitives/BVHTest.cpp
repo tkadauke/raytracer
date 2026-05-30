@@ -5,6 +5,8 @@
 #include "render/primitives/BVH.h"
 #include "render/primitives/Sphere.h"
 
+#include <array>
+#include <cmath>
 #include <memory>
 #include <random>
 
@@ -27,6 +29,24 @@ namespace BVHTest {
     }
     bvh->setup();
     return bvh;
+  }
+
+  static void expectPacketMatchesScalarLanes(const BVH& bvh, const std::array<Rayd, 4>& rays) {
+    State packetState;
+    const auto packet = bvh.intersectPacket(Ray4(rays), packetState);
+
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      State scalarState;
+      HitPointInterval scalarHits;
+      const bool scalarHit = bvh.intersect(rays[lane], scalarHits, scalarState) != nullptr;
+
+      ASSERT_EQ(scalarHit, packet.hit(lane)) << "lane " << lane;
+      if (scalarHit) {
+        const double scalarT = scalarHits.minWithPositiveDistance().distance();
+        const double packetT = static_cast<double>(packet.tNear[lane]);
+        EXPECT_NEAR(scalarT, packetT, 1e-3) << "lane " << lane;
+      }
+    }
   }
 
   TEST(BVH, EmptyHierarchyMissesEverything) {
@@ -259,6 +279,32 @@ namespace BVHTest {
       EXPECT_NEAR(scalarT, packetT, 1e-3)
         << "Lane " << i << ": scalar t=" << scalarT << " packet t=" << packetT;
     }
+  }
+
+  TEST(BVH, PacketIntersectMatchesScalarForCoherentRay4Traversal) {
+    auto bvh = gridSpheres(4);
+
+    const std::array<Rayd, 4> coherentRays = {
+      Rayd(Vector3d(-10, 0.00, 0.00), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(-10, 0.05, 0.00), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(-10, 0.00, 0.05), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(-10, 0.05, 0.05), Vector3d(1, 0, 0)),
+    };
+
+    expectPacketMatchesScalarLanes(*bvh, coherentRays);
+  }
+
+  TEST(BVH, PacketIntersectMatchesScalarForIncoherentRay4Traversal) {
+    auto bvh = gridSpheres(4);
+
+    const std::array<Rayd, 4> incoherentRays = {
+      Rayd(Vector3d(-10, 0, 0), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(0, -10, 4), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(100, 100, 100), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(6, 6, -10), Vector3d(0, 0, 1)),
+    };
+
+    expectPacketMatchesScalarLanes(*bvh, incoherentRays);
   }
 
   TEST(BVH, PacketIntersectFallsBackToLinearScanIfSetupNotCalled) {
