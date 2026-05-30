@@ -310,7 +310,7 @@ namespace MoleculeSceneImporterTest {
   TEST(MoleculeSceneImporter, ShouldImportStyledAtomsAndInferredBondsFromMmcif) {
     world::MoleculeSceneImporter importer;
 
-    auto result = importer.importFile("test/fixtures/molecule/small.cif");
+    auto result = importer.importFile("test/fixtures/molecules/small.cif");
 
     ASSERT_TRUE(result.succeeded());
     auto root = result.takeRoot();
@@ -350,7 +350,7 @@ namespace MoleculeSceneImporterTest {
     world::ImportOptions options;
     options.setValue("inferBondsWhenMissing", false);
 
-    auto result = importer.importFile("test/fixtures/molecule/small.cif", options);
+    auto result = importer.importFile("test/fixtures/molecules/small.cif", options);
 
     ASSERT_TRUE(result.succeeded());
     auto root = result.takeRoot();
