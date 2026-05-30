@@ -433,6 +433,50 @@ namespace OpenGLRasterizerTest {
          "cache key includes the camera pose; a camera move must invalidate";
   }
 
+  class OpenGLRasterizerAttachmentLoad : public ::testing::GuiTest {};
+
+  // Today `AttachmentLoadOp::Load` is rejected before the context bind
+  // because it requires GPU-resident attachments that earlier passes
+  // wrote to. The plan in `docs/plans/opengl-gpu-residency.md` Phase 2
+  // makes this implementable. When residency lands, flip this test to
+  // assert that a two-pass plan with `Load` on the second pass actually
+  // preserves the first pass's depth output instead of clearing.
+  TEST_F(OpenGLRasterizerAttachmentLoad, RejectsColorLoadOpUntilResidencyLands) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    engine::raster::OpenGLRasterizer rasterizer(
+      std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
+    rasterizer.setColorLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
+    Buffer<Colord> buffer(8, 8);
+    EXPECT_THROW(rasterizer.render(buffer), std::runtime_error);
+  }
+
+  TEST_F(OpenGLRasterizerAttachmentLoad, RejectsDepthLoadOpUntilResidencyLands) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    engine::raster::OpenGLRasterizer rasterizer(
+      std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
+    rasterizer.setDepthLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
+    Buffer<Colord> buffer(8, 8);
+    EXPECT_THROW(rasterizer.render(buffer), std::runtime_error);
+  }
+
+  TEST_F(OpenGLRasterizerAttachmentLoad, RejectsStencilLoadOpUntilResidencyLands) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    engine::raster::OpenGLRasterizer rasterizer(
+      std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
+    rasterizer.setStencilLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
+    Buffer<Colord> buffer(8, 8);
+    EXPECT_THROW(rasterizer.render(buffer), std::runtime_error);
+  }
+
   class OpenGLRasterizerAspect : public ::testing::GuiTest {};
 
   TEST_F(OpenGLRasterizerAspect, FitExactLeavesPillarboxBarsAroundInnerRect) {
