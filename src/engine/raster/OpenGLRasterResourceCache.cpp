@@ -120,6 +120,31 @@ namespace engine::raster::detail {
 
   OpenGLRasterResourceCache::OpenGLRasterResourceCache() = default;
 
+  OpenGLRasterResourceCache::MeshSlotResult
+  OpenGLRasterResourceCache::acquireMeshSlot(const OpenGLMeshCacheKey& key) {
+    // Hit pass: linear scan (n=4, small) for a matching key.
+    for (std::size_t i = 0; i < meshCache.size(); ++i) {
+      auto& entry = meshCache[i];
+      if (entry.lastUsed != 0 && entry.key && entry.key->matches(key)) {
+        entry.lastUsed = ++meshUseTick;
+        return {&entry, static_cast<std::ptrdiff_t>(i), true};
+      }
+    }
+    // Miss pass: pick the LRU slot (smallest lastUsed, with 0 = empty
+    // counting as smallest). Empty slots win, then the oldest hit.
+    std::size_t victim = 0;
+    for (std::size_t i = 1; i < meshCache.size(); ++i) {
+      if (meshCache[i].lastUsed < meshCache[victim].lastUsed) {
+        victim = i;
+      }
+    }
+    auto& entry = meshCache[victim];
+    entry.key.reset();
+    entry.mesh = OpenGLRasterMesh();
+    entry.lastUsed = ++meshUseTick;
+    return {&entry, static_cast<std::ptrdiff_t>(victim), false};
+  }
+
   OpenGLRasterResourceCache::~OpenGLRasterResourceCache() {
     // The process-wide shared cache (`OpenGLRasterizer::sharedResources`)
     // is intentionally leaked and never runs this destructor — Qt's

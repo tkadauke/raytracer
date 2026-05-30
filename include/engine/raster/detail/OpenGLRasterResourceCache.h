@@ -5,6 +5,7 @@
 #include "engine/raster/Rasterizer.h"
 #include "engine/raster/detail/OpenGLRasterMesh.h"
 
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -119,6 +120,24 @@ namespace engine::raster::detail {
     * current before releasing the program and image textures so the GL
     * resources are freed against the right context.
     */
+  /**
+    * One entry in the LRU mesh cache. `lastUsed` rises monotonically on
+    * each touch (build or hit); the slot with the smallest `lastUsed`
+    * is evicted on the next miss. A `lastUsed == 0` slot is empty.
+    */
+  struct OpenGLCachedMeshEntry {
+    std::optional<OpenGLMeshCacheKey> key;
+    OpenGLRasterMesh mesh;
+    std::uint64_t lastUsed{0};
+  };
+
+  /**
+    * LRU cache capacity. A multi-pass render graph typically renders
+    * color + depth AOV + stencil AOV per frame, sometimes plus object
+    * ID; four slots covers that without thrashing.
+    */
+  inline constexpr std::size_t kOpenGLMeshCacheSize = 4;
+
   struct OpenGLRasterResourceCache {
     OpenGLOffscreenContext context;
     std::unique_ptr<QOpenGLShaderProgram> program;
@@ -126,14 +145,18 @@ namespace engine::raster::detail {
     std::unique_ptr<OpenGLRasterImageTextureCache> imageTextures;
     std::unique_ptr<QOpenGLBuffer> vertexBuffer;
     std::unique_ptr<QOpenGLBuffer> indexBuffer;
-    std::optional<OpenGLMeshCacheKey> cachedMeshKey;
-    OpenGLRasterMesh cachedMesh;
-    // True when the contents of `cachedMesh` have already been uploaded
-    // into `vertexBuffer` / `indexBuffer`. The draw pass uploads on
-    // demand and sets this; `OpenGLRasterizer::renderOpenGL` resets it
-    // whenever `cachedMesh` is replaced. Keeps the per-frame mesh
-    // upload (~50 MB for the sloth) off the cache-hit path.
-    bool cachedMeshUploaded{false};
+    std::array<OpenGLCachedMeshEntry, kOpenGLMeshCacheSize> meshCache;
+    // Monotonic tick used as the LRU sort key. Bumped on every cache
+    // build/hit; new builds get the highest value, the slot with the
+    // smallest value (or 0, empty) is evicted next.
+    std::uint64_t meshUseTick{0};
+    // Index into `meshCache` of the entry whose vertex/index payload is
+    // currently in `vertexBuffer` / `indexBuffer`. -1 means the GPU
+    // buffers are stale (or were never populated). The draw pass
+    // checks this against the active entry's index; mismatch means
+    // re-upload. Keeps the per-frame upload off the LRU-hit path even
+    // when multiple passes rotate through several cached meshes.
+    std::ptrdiff_t uploadedMeshSlot{-1};
 
     OpenGLRasterResourceCache();
     ~OpenGLRasterResourceCache();
@@ -163,5 +186,27 @@ namespace engine::raster::detail {
       * @throws std::runtime_error if buffer creation fails.
       */
     void ensureMeshBuffers();
+
+    /**
+      * Result of `acquireMeshSlot`. `entry` is the cache slot to use;
+      * the caller fills `entry->mesh` and `entry->key` on a miss. `slot`
+      * is the slot's array index (for the upload-skip tracking).
+      */
+    struct MeshSlotResult {
+      OpenGLCachedMeshEntry* entry{nullptr};
+      std::ptrdiff_t slot{-1};
+      bool hit{false};
+    };
+
+    /**
+      * Find a cached mesh whose key matches, or evict the LRU slot for
+      * the caller to populate. On a hit the slot's `lastUsed` is
+      * bumped to the highest tick. On a miss the chosen slot's
+      * previous `key`/`mesh` are reset; the caller must overwrite
+      * them and the caller is responsible for invalidating
+      * `uploadedMeshSlot` if the chosen slot equals it (its GL bytes
+      * are stale).
+      */
+    MeshSlotResult acquireMeshSlot(const OpenGLMeshCacheKey& key);
   };
 }

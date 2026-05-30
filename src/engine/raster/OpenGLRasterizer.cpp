@@ -86,6 +86,11 @@ namespace engine::raster {
       std::optional<Matrix4d> viewProjection;
       Rasterizer::CullMode cullMode{Rasterizer::CullMode::Both};
       bool hasCullModeOverride{false};
+      // True when the GPU vertex/index buffers already hold this
+      // mesh's payload (tracked across renders by
+      // `OpenGLRasterResourceCache::uploadedMeshSlot`). The draw pass
+      // skips `vertexBuffer.allocate()` in that case.
+      bool skipMeshUpload{false};
     };
 
     class OpenGLRasterDrawPass {
@@ -127,6 +132,7 @@ namespace engine::raster {
             m_viewProjection(std::move(state.viewProjection)),
             m_cullMode(state.cullMode),
             m_hasCullModeOverride(state.hasCullModeOverride),
+            m_skipMeshUpload(state.skipMeshUpload),
             m_cancelled(cancelled) {
       }
 
@@ -251,13 +257,12 @@ namespace engine::raster {
 
         vertexBuffer.bind();
         indexBuffer.bind();
-        if (!m_resources.cachedMeshUploaded) {
+        if (!m_skipMeshUpload) {
           vertexBuffer.allocate(
             mesh.vertices().data(),
             static_cast<int>(mesh.vertices().size() * sizeof(detail::OpenGLRasterMesh::Vertex)));
           indexBuffer.allocate(mesh.indices().data(),
                                static_cast<int>(mesh.indices().size() * sizeof(std::uint32_t)));
-          m_resources.cachedMeshUploaded = true;
         }
 
         const int positionLocation = m_resources.locations.position;
@@ -695,6 +700,7 @@ namespace engine::raster {
       std::optional<Matrix4d> m_viewProjection;
       Rasterizer::CullMode m_cullMode;
       bool m_hasCullModeOverride;
+      bool m_skipMeshUpload;
       const std::atomic<bool>& m_cancelled;
     };
   }
@@ -1346,6 +1352,8 @@ namespace engine::raster {
     const auto* meshShadowMaps = meshShadowMapsPtr.get();
     const auto meshPreparationStarted = std::chrono::steady_clock::now();
     bool meshCacheHit = false;
+    detail::OpenGLRasterMesh* activeMesh = nullptr;
+    std::ptrdiff_t activeMeshSlot = -1;
     if (viewport.width() > 0 && viewport.height() > 0) {
       const detail::OpenGLRasterMeshBuilder builder(scene().get(), camera(), m_lod, viewport,
                                                     m_cullMode, m_hasCullModeOverride, m_cancelled,
@@ -1374,7 +1382,10 @@ namespace engine::raster {
         key.cameraPosition = camera()->position();
         key.cameraTarget = camera()->target();
       }
-      if (m_resources->cachedMeshKey && m_resources->cachedMeshKey->matches(key)) {
+      const auto slotResult = m_resources->acquireMeshSlot(key);
+      activeMeshSlot = slotResult.slot;
+      activeMesh = &slotResult.entry->mesh;
+      if (slotResult.hit) {
         meshCacheHit = true;
         // Mesh build calls `viewPlane()->setup` as a side effect; on a
         // cache hit the side effect is skipped. The view plane is shared
@@ -1391,16 +1402,25 @@ namespace engine::raster {
           camera()->viewPlane()->setup(camera()->matrix(), viewport);
         }
       } else {
-        m_resources->cachedMesh = builder.build();
-        m_resources->cachedMeshKey = key;
-        m_resources->cachedMeshUploaded = false;
+        slotResult.entry->mesh = builder.build();
+        slotResult.entry->key = key;
+        // The slot we just rebuilt may be the same one whose GL bytes
+        // are currently in the VBO; if so, the GPU buffer is now stale.
+        if (m_resources->uploadedMeshSlot == slotResult.slot) {
+          m_resources->uploadedMeshSlot = -1;
+        }
       }
     } else {
-      m_resources->cachedMesh = detail::OpenGLRasterMesh();
-      m_resources->cachedMeshKey.reset();
-      m_resources->cachedMeshUploaded = false;
+      activeMesh = &m_resources->meshCache[0].mesh;
+      m_resources->meshCache[0].mesh = detail::OpenGLRasterMesh();
+      m_resources->meshCache[0].key.reset();
+      m_resources->meshCache[0].lastUsed = 0;
+      activeMeshSlot = 0;
+      if (m_resources->uploadedMeshSlot == 0) {
+        m_resources->uploadedMeshSlot = -1;
+      }
     }
-    detail::OpenGLRasterMesh& mesh = m_resources->cachedMesh;
+    detail::OpenGLRasterMesh& mesh = *activeMesh;
     const auto meshPreparationElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::steady_clock::now() - meshPreparationStarted);
 
@@ -1465,15 +1485,20 @@ namespace engine::raster {
     drawState.cullMode = m_cullMode;
     drawState.hasCullModeOverride = m_hasCullModeOverride;
 
-    // Captured before the draw pass: when the cache hits the upload
-    // is skipped (`cachedMeshUploaded` was already true). When the
-    // cache misses, `renderOpenGL` reset the flag to false before
-    // building the new mesh; the draw pass uploads and sets it back
-    // to true.
-    const bool uploadedFreshMesh = !m_resources->cachedMeshUploaded;
+    // Upload skip: the GPU vertex/index buffer holds bytes for whichever
+    // mesh-cache slot last wrote them (tracked in `uploadedMeshSlot`).
+    // When the active slot already matches, the draw pass skips the
+    // re-upload — saves ~50 MB/frame for the sloth on cache hits and
+    // keeps the LRU effective when several passes rotate through
+    // different cached meshes.
+    const bool uploadedFreshMesh = m_resources->uploadedMeshSlot != activeMeshSlot;
+    drawState.skipMeshUpload = !uploadedFreshMesh;
     const auto timings =
       OpenGLRasterDrawPass(*m_resources, std::move(drawState), m_cancelled)
         .render(mesh, backgroundColor(), colorTarget, depthTarget, stencilTarget);
+    if (uploadedFreshMesh) {
+      m_resources->uploadedMeshSlot = activeMeshSlot;
+    }
     m_lastReadbackTraceMessage = readbackTraceMessage(
       timings.readbackElapsed,
       colorTarget != nullptr && m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store,

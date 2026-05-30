@@ -408,6 +408,38 @@ namespace OpenGLRasterizerTest {
          "cached mesh stays valid across camera moves";
   }
 
+  TEST_F(OpenGLRasterizerMeshCache, LruRetainsEntriesAcrossMultiPassThrashing) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+
+    // Three different scenes that miss each other's cache key. With a
+    // single-entry cache they would invalidate each other on every
+    // rotation; the n=4 LRU keeps all three resident, so iterating
+    // through them all hits the cache on the second pass through each.
+    auto sceneA = simpleSphereScene();
+    auto sceneB = simpleSphereScene();
+    auto sceneC = simpleSphereScene();
+    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    Buffer<Colord> buffer(16, 16);
+
+    engine::raster::OpenGLRasterizer rA(cam, sceneA);
+    engine::raster::OpenGLRasterizer rB(cam, sceneB);
+    engine::raster::OpenGLRasterizer rC(cam, sceneC);
+    rA.render(buffer);
+    rB.render(buffer);
+    rC.render(buffer);
+
+    // Second rotation: all three should now hit the cache.
+    rA.render(buffer);
+    EXPECT_TRUE(tracesContain(rA.traceMessages(), "reused"))
+      << "sceneA's mesh must survive sceneB and sceneC's intervening builds";
+    rB.render(buffer);
+    EXPECT_TRUE(tracesContain(rB.traceMessages(), "reused"));
+    rC.render(buffer);
+    EXPECT_TRUE(tracesContain(rC.traceMessages(), "reused"));
+  }
+
   TEST_F(OpenGLRasterizerMeshCache, RebuildsMeshWhenCameraMovesForDepthBiasedRenders) {
     if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
       GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
