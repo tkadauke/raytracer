@@ -52,6 +52,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Modeler preview FPS overlay.** Render → Preview Engine → FPS Overlay
+  toggles a small black-on-white box in the top-right of the preview window
+  showing the rolling mean FPS and frame time over the last 30 finished
+  renders. Off by default; useful for comparing CPU vs OpenGL raster
+  responsiveness across scenes. — Claude Opus 4.7
 - **OpenGL raster cache is now process-wide via `sharedResources()`.** Every
   `OpenGLRasterizer` instance pulls its context, shader program, image
   textures, and vertex/index buffers from a single shared cache. The

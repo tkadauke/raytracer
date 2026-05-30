@@ -107,6 +107,11 @@ public:
   /// @returns the active render engine.
   std::shared_ptr<render::RenderEngine> renderEngine() const;
 
+  /// Enables a small FPS / mean-frame-time overlay drawn over the
+  /// top-right of the rendered image. Off by default.
+  void setFpsOverlayEnabled(bool enabled);
+  bool fpsOverlayEnabled() const;
+
   /**
     * Resize the internal buffer. Call before `render()` to match
     * the desired output resolution; resizing during a render is

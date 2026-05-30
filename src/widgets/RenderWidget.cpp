@@ -8,7 +8,9 @@
 #include <QThread>
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
+#include <deque>
 #include <exception>
 #include <cstring>
 #include <list>
@@ -86,7 +88,8 @@ struct RenderWidget::Private {
         progressUpdateIntervalMs(0),
         renderGeneration(0),
         aspectMode(render::AspectMode::FitWidth),
-        aspectRatio(0.0) {
+        aspectRatio(0.0),
+        fpsOverlayEnabled(false) {
   }
 
   std::unique_ptr<RenderJob> activeJob;
@@ -101,6 +104,9 @@ struct RenderWidget::Private {
   std::uint64_t renderGeneration;
   render::AspectMode aspectMode;
   double aspectRatio;
+  bool fpsOverlayEnabled;
+  std::chrono::steady_clock::time_point renderStartedAt;
+  std::deque<double> recentFrameMs;
 };
 
 RenderWidget::RenderWidget(QWidget* parent, std::shared_ptr<render::RenderEngine> engine)
@@ -226,6 +232,7 @@ void RenderWidget::render() {
 
   const std::uint64_t generation = ++p->renderGeneration;
   p->activeJob = std::make_unique<RenderJob>(generation, renderEngine, buffer, isolatedRender);
+  p->renderStartedAt = std::chrono::steady_clock::now();
   connect(p->activeJob->thread, &QThread::finished, this,
           [this, generation]() { renderThreadDone(generation); });
   p->activeJob->thread->start();
@@ -365,10 +372,50 @@ void RenderWidget::paintEvent(QPaintEvent*) {
     QImage image = p->frontImage.copy();
     markTilesInProgress(image);
     painter.drawImage(QPoint(0, 0), image);
-    return;
+  } else {
+    painter.drawImage(QPoint(0, 0), p->frontImage);
   }
 
-  painter.drawImage(QPoint(0, 0), p->frontImage);
+  if (p->fpsOverlayEnabled && !p->recentFrameMs.empty()) {
+    double sum = 0.0;
+    for (double ms : p->recentFrameMs) {
+      sum += ms;
+    }
+    const double meanMs = sum / static_cast<double>(p->recentFrameMs.size());
+    const double fps = meanMs > 0.0 ? 1000.0 / meanMs : 0.0;
+    const QString label = QString("FPS %1  (%2 ms)").arg(fps, 0, 'f', 1).arg(meanMs, 0, 'f', 1);
+
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    QFont font = painter.font();
+    font.setPointSize(11);
+    font.setBold(true);
+    painter.setFont(font);
+    const QFontMetrics metrics(font);
+    const int textWidth = metrics.horizontalAdvance(label);
+    const int textHeight = metrics.height();
+    const int margin = 6;
+    const int padding = 4;
+    const QRect box(width() - textWidth - 2 * padding - margin, margin, textWidth + 2 * padding,
+                    textHeight + 2 * padding);
+    painter.fillRect(box, QColor(0, 0, 0, 160));
+    painter.setPen(Qt::white);
+    painter.drawText(box, Qt::AlignCenter, label);
+  }
+}
+
+void RenderWidget::setFpsOverlayEnabled(bool enabled) {
+  if (p->fpsOverlayEnabled == enabled) {
+    return;
+  }
+  p->fpsOverlayEnabled = enabled;
+  if (!enabled) {
+    p->recentFrameMs.clear();
+  }
+  update();
+}
+
+bool RenderWidget::fpsOverlayEnabled() const {
+  return p->fpsOverlayEnabled;
 }
 
 Buffer<unsigned int>* RenderWidget::activeBackBuffer() const {
@@ -485,6 +532,13 @@ void RenderWidget::renderThreadDone(std::uint64_t generation) {
 
   if (!p->activeJob->discardFinishedFrame) {
     publishFullBackBuffer();
+    const auto elapsed = std::chrono::duration<double, std::milli>(
+                           std::chrono::steady_clock::now() - p->renderStartedAt)
+                           .count();
+    p->recentFrameMs.push_back(elapsed);
+    while (p->recentFrameMs.size() > 30) {
+      p->recentFrameMs.pop_front();
+    }
   }
   if (p->timer != 0) {
     killTimer(p->timer);

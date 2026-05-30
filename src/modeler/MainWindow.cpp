@@ -637,6 +637,7 @@ struct MainWindow::Private {
   QAction* previewWireframeAct;
   QAction* previewRasterizerAct;
   QAction* previewRasterizerShadowsAct;
+  QAction* previewFpsOverlayAct;
   QAction* previewRasterBackendCPUAct;
   QAction* previewRasterBackendOpenGLAct;
   QAction* previewPostAANoneAct;
@@ -981,6 +982,13 @@ void MainWindow::createActions() {
   connect(p->previewRasterizerShadowsAct, SIGNAL(triggered(bool)), this,
           SLOT(setPreviewRasterizerShadows(bool)));
 
+  p->previewFpsOverlayAct = new QAction(tr("&FPS Overlay"), this);
+  p->previewFpsOverlayAct->setStatusTip(
+    tr("Show a small mean frame time / FPS readout in the top-right of the preview window"));
+  p->previewFpsOverlayAct->setCheckable(true);
+  p->previewFpsOverlayAct->setChecked(false);
+  connect(p->previewFpsOverlayAct, SIGNAL(triggered(bool)), this, SLOT(setPreviewFpsOverlay(bool)));
+
   p->previewRasterBackendCPUAct = new QAction(tr("&CPU"), this);
   p->previewRasterBackendCPUAct->setStatusTip(
     tr("Use the software CPU rasterizer for live raster preview passes"));
@@ -1289,6 +1297,7 @@ void MainWindow::createMenus() {
   previewMenu->addSeparator();
   previewMenu->addAction(p->previewWireframeOverlayAct);
   previewMenu->addAction(p->previewRasterizerShadowsAct);
+  previewMenu->addAction(p->previewFpsOverlayAct);
   auto previewRasterBackendMenu = previewMenu->addMenu(tr("Raster &Backend"));
   previewRasterBackendMenu->addAction(p->previewRasterBackendCPUAct);
   previewRasterBackendMenu->addAction(p->previewRasterBackendOpenGLAct);
@@ -1830,6 +1839,10 @@ void MainWindow::setPreviewRasterizerShadows(bool enabled) {
     p->display->setEngineKind(RenderDisplay::EngineKind::Rasterizer);
   }
   p->display->setRasterizerPreviewShadowsEnabled(enabled);
+}
+
+void MainWindow::setPreviewFpsOverlay(bool enabled) {
+  p->display->setFpsOverlayEnabled(enabled);
 }
 
 void MainWindow::setPreviewRasterBackendCPU() {
