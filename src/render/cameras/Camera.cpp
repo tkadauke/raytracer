@@ -92,6 +92,10 @@ Vector4d Camera::projectPointToClipSpace(const Vector3d&) const {
   return Vector4d::undefined;
 }
 
+std::optional<Matrix4d> Camera::worldToClipMatrix() const {
+  return std::nullopt;
+}
+
 double Camera::eyeRelativeDepth(const Vector3d&) const {
   // Default implementation: cameras without a closed-form projection
   // (FishEye, Spherical, …) report zero. The rasterizer's clipper

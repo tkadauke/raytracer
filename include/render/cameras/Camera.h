@@ -4,6 +4,8 @@
 
 #include "core/math/Vector.h"
 #include "core/math/Matrix.h"
+
+#include <optional>
 #include "core/math/Ray.h"
 #include "core/Color.h"
 #include "core/MemoizedValue.h"
@@ -261,6 +263,25 @@ namespace render {
       * @endhtmlonly
       */
     virtual Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const;
+
+    /**
+      * @returns the world-space → OpenGL clip-space matrix for cameras
+      * whose projection is a single 4×4 affine-plus-frustum transform
+      * (pinhole, orthographic, and inheritors thereof), or `std::nullopt`
+      * for cameras whose forward projection cannot be expressed as a
+      * matrix (thin-lens, fish-eye, spherical, equirectangular). GPU
+      * backends that can perform per-vertex projection consult this
+      * method to install a uniform; backends fall back to per-vertex CPU
+      * projection when this returns `std::nullopt`. The matrix that is
+      * returned must produce clip-space output compatible with the
+      * OpenGL pipeline (perspective divide gives NDC in [-1, 1] for x/y
+      * and the depth-buffer range for z).
+      *
+      * Implementations require the camera's view plane to have been set
+      * up first (`viewPlane()->setup(...)`); callers that have not yet
+      * done so should pass through `projectPointToClipSpace` instead.
+      */
+    virtual std::optional<Matrix4d> worldToClipMatrix() const;
 
     /**
       * Eye-relative depth scalar for the world-space point — positive

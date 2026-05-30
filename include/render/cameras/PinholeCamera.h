@@ -77,6 +77,16 @@ namespace render {
       */
     Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const override;
 
+    /**
+      * @returns the world → OpenGL clip-space matrix for this pinhole
+      * camera, composed as `projectionMatrix() * translate(0, 0,
+      * distance) * inverseMatrix()`. The translation steps the
+      * camera-space point into the project's +Z-forward eye convention
+      * before the frustum is applied, mirroring the per-vertex math in
+      * `projectPointToClipSpace`. Requires `viewPlane()` to be set up.
+      */
+    std::optional<Matrix4d> worldToClipMatrix() const override;
+
     /// Signed eye-relative depth — positive in front of the eye,
     /// negative behind. Used by the rasterizer's near-plane clipper
     /// to trim triangles straddling the configured clip-depth planes.

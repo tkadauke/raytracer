@@ -40,6 +40,10 @@ Vector4d PinholeCamera::projectPointToClipSpace(const Vector3d& worldPoint) cons
   return detail::PinholeProjection(*this, m_distance).projectPointToClipSpace(worldPoint);
 }
 
+std::optional<Matrix4d> PinholeCamera::worldToClipMatrix() const {
+  return projectionMatrix() * Matrix4d::translate(0.0, 0.0, m_distance) * inverseMatrix();
+}
+
 double PinholeCamera::eyeRelativeDepth(const Vector3d& worldPoint) const {
   return detail::PinholeProjection(*this, m_distance).eyeRelativeDepth(worldPoint);
 }

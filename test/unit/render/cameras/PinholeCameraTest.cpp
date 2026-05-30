@@ -216,6 +216,31 @@ namespace PinholeCameraTest {
     EXPECT_NEAR(projected.z(), fromClip.z(), 1e-9);
   }
 
+  TEST(PinholeCamera, WorldToClipMatrixMatchesPerVertexProjection) {
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d(0, 0.2, 1));
+    initViewPlane(camera, 320, 240);
+
+    const auto matrix = camera.worldToClipMatrix();
+    ASSERT_TRUE(matrix.has_value());
+
+    // Sampled world points covering the view frustum's interior.
+    const Vector3d points[] = {
+      Vector3d(0, 0, 0), Vector3d(1, 0, 0),  Vector3d(0, 1, 0),
+      Vector3d(0, 0, 1), Vector3d(-2, 3, 4), Vector3d(0.5, -0.25, 2.5),
+    };
+    for (const Vector3d& world : points) {
+      const Vector4d expected = camera.projectPointToClipSpace(world);
+      const Vector4d through = *matrix * Vector4d(world.x(), world.y(), world.z(), 1.0);
+      // The per-vertex form stashes eye-depth in z/w; the matrix form gives
+      // the standard OpenGL clip-space z that the perspective divide
+      // yields NDC z in [-1, 1] for. Compare on x/y (post-divide) and w
+      // (eye-depth equivalence).
+      EXPECT_NEAR(expected.x(), through.x(), 1e-9);
+      EXPECT_NEAR(expected.y(), through.y(), 1e-9);
+      EXPECT_NEAR(expected.w(), through.w(), 1e-9);
+    }
+  }
+
   TEST(PinholeCamera, ClipSpaceProjectionKeepsBehindEyePointsRepresentable) {
     PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(camera);
