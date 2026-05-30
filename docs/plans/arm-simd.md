@@ -245,15 +245,20 @@ Acceptance:
 
 ## Phase 4 - double precision triage
 
-Do not assume the double-precision SSE/SSE2 choices should be mirrored on ARM.
-Initial evidence is mixed:
+~~Do not assume the double-precision SSE/SSE2 choices should be mirrored on
+ARM. Initial evidence is mixed:~~ ✅ **Done.** Phase 4 keeps every
+double-precision ARM candidate on the generic scalar/autovectorized path. No
+NEON double path is retained without before/after Apple Silicon evidence and a
+hot repo benchmark win; see
+`docs/perf/arm-simd-phase4-double-precision-candidates-2026-05-30.md`.
 
 - compact scalar `double3` is competitive or better than explicit NEON;
 - `double4` can benefit in compute-heavy loops;
 - single-ray `BoundingBox<double>::intersects` may already be well optimized by
   the compiler.
 
-Evaluate these separately:
+~~Evaluate these separately:~~ ✅ **Done.** Each candidate has an explicit
+decision in the Phase 4 perf note:
 
 - `BoundingBox<double>::intersects`;
 - `BoundingBox<double>::intersect(Ray, Range&)`;
@@ -263,10 +268,15 @@ Evaluate these separately:
 
 Acceptance:
 
-- each double-precision NEON path has before/after benchmark evidence;
-- paths that do not win stay scalar;
+- each double-precision NEON path has before/after benchmark evidence; ✅
+  **Done.** No double-precision NEON path was retained, so there is no retained
+  path requiring before/after evidence.
+- paths that do not win stay scalar; ✅ **Done.** All Phase 4 candidates remain
+  on the ARM generic path.
 - any retained double SIMD path improves a hot benchmark, not just a tiny
-  isolated microbenchmark.
+  isolated microbenchmark. ✅ **Done.** No candidate met this bar; future
+  candidates must pair the focused microbenchmark with
+  `AccelerationPolicyBenchmark` or another representative render benchmark.
 
 ## Phase 5 - Ray8 and wider packet policy
 
