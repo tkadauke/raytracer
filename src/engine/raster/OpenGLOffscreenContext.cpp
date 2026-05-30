@@ -12,6 +12,7 @@
 #include <QOpenGLFunctions>
 #include <QRect>
 #include <QSurfaceFormat>
+#include <QThread>
 
 #include <algorithm>
 #include <cmath>
@@ -158,6 +159,35 @@ namespace engine::raster {
 
     bool create(int width, int height, int samples) {
       return ensureContext() && ensureFramebuffer(width, height, samples);
+    }
+
+    bool migrateToCurrentThread() {
+      // Nothing to migrate — the context will be created on the current
+      // thread by ensureContext().
+      if (!context) {
+        return true;
+      }
+      QThread* current = QThread::currentThread();
+      if (context->thread() == current) {
+        return true;
+      }
+      // moveToThread can only be invoked from the object's current thread.
+      // For the shared-cache pattern the previous render thread has
+      // typically already exited, in which case the context is parented to
+      // a dead thread and we cannot migrate it cleanly; report the failure
+      // so the caller recreates.
+      if (context->thread() == nullptr || !context->thread()->isRunning()) {
+        errorMessage =
+          "OpenGL raster backend cannot migrate the offscreen context — owner thread is gone";
+        return false;
+      }
+      context->moveToThread(current);
+      if (surface) {
+        surface->moveToThread(current);
+      }
+      // The FBO is not a QObject; it lives inside the context and follows
+      // it across threads. No explicit move is needed.
+      return true;
     }
 
     bool makeCurrent() {
@@ -424,6 +454,10 @@ namespace engine::raster {
 
   bool OpenGLOffscreenContext::create(int width, int height, int samples) {
     return p->create(width, height, std::max(1, samples));
+  }
+
+  bool OpenGLOffscreenContext::migrateToCurrentThread() {
+    return p->migrateToCurrentThread();
   }
 
   bool OpenGLOffscreenContext::makeCurrent() {

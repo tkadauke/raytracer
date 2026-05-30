@@ -72,6 +72,18 @@ namespace engine::raster {
     void uncancel() override;
 
     static std::string statusMessage();
+
+    /**
+      * Returns the process-wide shared GL resource cache. Every
+      * `OpenGLRasterizer` instance pulls its context, shader program,
+      * image textures, and vertex/index buffers from this cache so that
+      * graph-driven frame loops — which construct a fresh
+      * `OpenGLRasterizer` per pass through `RasterBackend::createEngine` —
+      * still hit warm caches across frames. Callers should not retain the
+      * returned pointer beyond their immediate use.
+      */
+    static std::shared_ptr<detail::OpenGLRasterResourceCache> sharedResources();
+
     static constexpr int maxShaderDirectionalLights() {
       return 8;
     }
@@ -238,6 +250,6 @@ namespace engine::raster {
     std::shared_ptr<const RasterVisibilitySet> m_visibilitySet;
     mutable std::string m_lastReadbackTraceMessage;
     mutable std::vector<std::string> m_lastTraceMessages;
-    mutable std::unique_ptr<detail::OpenGLRasterResourceCache> m_resources;
+    mutable std::shared_ptr<detail::OpenGLRasterResourceCache> m_resources;
   };
 }

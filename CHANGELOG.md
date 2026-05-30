@@ -52,6 +52,19 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **OpenGL raster cache is now process-wide via `sharedResources()`.** Every
+  `OpenGLRasterizer` instance pulls its context, shader program, image
+  textures, and vertex/index buffers from a single shared cache. The
+  Modeler/graph pattern constructs a fresh rasterizer per pass per frame
+  (through `RasterBackend::createEngine`); before this change every such
+  frame paid the ~70 ms cold shader compile + texture upload cost at
+  1024x1024, so interactive drag felt slower than the CPU rasterizer even
+  though steady-state GPU rendering is much faster. With the shared cache,
+  fresh-instance subsequent renders complete in ~3 ms — matching the
+  steady-state performance of a single retained rasterizer. The offscreen
+  GL context migrates to the current render thread on each frame; if
+  migration fails the rasterizer falls through to a fresh local cache so
+  it never gets stuck. — Claude Opus 4.7
 - **OpenGL raster vertex/index buffers are cached across renders.** Vertex
   and index `QOpenGLBuffer`s now live on the resource cache; each render
   re-uploads the current frame's payload through `allocate()` instead of

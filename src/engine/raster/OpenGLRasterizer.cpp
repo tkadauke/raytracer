@@ -2,6 +2,8 @@
 
 #include "core/Buffer.h"
 #include "engine/raster/OpenGLOffscreenContext.h"
+
+#include <mutex>
 #include "engine/raster/detail/OpenGLRasterMesh.h"
 #include "engine/raster/detail/OpenGLRasterResourceCache.h"
 #include "engine/raster/detail/OpenGLRasterShaderSources.h"
@@ -871,6 +873,16 @@ namespace engine::raster {
     }
   }
 
+  std::shared_ptr<detail::OpenGLRasterResourceCache> OpenGLRasterizer::sharedResources() {
+    static std::mutex mutex;
+    static std::shared_ptr<detail::OpenGLRasterResourceCache> cache;
+    std::lock_guard<std::mutex> lock(mutex);
+    if (!cache) {
+      cache = std::make_shared<detail::OpenGLRasterResourceCache>();
+    }
+    return cache;
+  }
+
   std::string OpenGLRasterizer::statusMessage() {
     return "OpenGL raster backend renders the initial lit mesh path when Qt can create an "
            "offscreen context; unsupported hosts report an OpenGL capability error when the "
@@ -1332,7 +1344,14 @@ namespace engine::raster {
     m_lastTraceMessages.clear();
 
     if (!m_resources) {
-      m_resources = std::make_unique<detail::OpenGLRasterResourceCache>();
+      m_resources = sharedResources();
+    }
+    if (!m_resources->context.migrateToCurrentThread()) {
+      // The cache's offscreen context was bound to a thread that has
+      // since exited. Replace it locally so this render and future ones
+      // start clean instead of retrying the failed migration every
+      // frame.
+      m_resources = std::make_shared<detail::OpenGLRasterResourceCache>();
     }
     if (!m_resources->context.create(width, height, m_msaaSamples)) {
       throw std::runtime_error(m_resources->context.errorMessage());
