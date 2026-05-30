@@ -8,6 +8,7 @@
 #include "engine/raster/detail/OpenGLRasterResourceCache.h"
 #include "engine/raster/detail/OpenGLRasterShaderSources.h"
 #include "engine/raster/detail/OpenGLShadowSamplingPlan.h"
+#include "engine/raster/detail/OpenGLRasterTextures.h"
 #include "engine/raster/detail/OpenGLShadowTextureData.h"
 #include "engine/raster/detail/RasterShadowMaps.h"
 #include "render/cameras/Camera.h"
@@ -33,106 +34,6 @@
 
 namespace engine::raster {
   namespace {
-
-    class OpenGLFallbackTexture {
-    public:
-      explicit OpenGLFallbackTexture(QOpenGLFunctions* functions)
-          : m_functions(functions) {
-        static constexpr GLfloat pixels[] = {1.0f, 1.0f, 1.0f, 1.0f};
-
-        m_functions->glGenTextures(1, &m_texture);
-        if (m_texture == 0) {
-          throw std::runtime_error("OpenGL raster backend could not allocate a fallback texture");
-        }
-
-        m_functions->glBindTexture(GL_TEXTURE_2D, m_texture);
-        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        m_functions->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        m_functions->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_FLOAT, pixels);
-        m_functions->glBindTexture(GL_TEXTURE_2D, 0);
-      }
-
-      ~OpenGLFallbackTexture() {
-        if (m_texture != 0) {
-          m_functions->glDeleteTextures(1, &m_texture);
-        }
-      }
-
-      void bind(int textureUnit) const {
-        m_functions->glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
-        m_functions->glBindTexture(GL_TEXTURE_2D, m_texture);
-      }
-
-      void release(int textureUnit) const {
-        m_functions->glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
-        m_functions->glBindTexture(GL_TEXTURE_2D, 0);
-      }
-
-    private:
-      QOpenGLFunctions* m_functions;
-      GLuint m_texture{0};
-    };
-
-    class OpenGLShadowTexture {
-    public:
-      OpenGLShadowTexture(QOpenGLFunctions* functions, const detail::OpenGLShadowTextureData& data)
-          : m_functions(functions) {
-        if (!data.enabled()) {
-          return;
-        }
-
-        m_functions->glGenTextures(1, &m_texture);
-        if (m_texture == 0) {
-          throw std::runtime_error("OpenGL raster backend could not allocate a shadow texture");
-        }
-
-        m_functions->glBindTexture(GL_TEXTURE_2D, m_texture);
-        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        m_functions->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        m_functions->glTexImage2D(GL_TEXTURE_2D, 0, internalFormat(), data.width(), data.height(),
-                                  0, GL_RGBA, GL_FLOAT, data.rgbaPixels().data());
-        m_functions->glBindTexture(GL_TEXTURE_2D, 0);
-      }
-
-      ~OpenGLShadowTexture() {
-        if (m_texture != 0) {
-          m_functions->glDeleteTextures(1, &m_texture);
-        }
-      }
-
-      bool enabled() const {
-        return m_texture != 0;
-      }
-
-      void bind(int textureUnit) const {
-        m_functions->glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
-        m_functions->glBindTexture(GL_TEXTURE_2D, m_texture);
-      }
-
-      void release(int textureUnit) const {
-        m_functions->glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
-        m_functions->glBindTexture(GL_TEXTURE_2D, 0);
-      }
-
-    private:
-      static GLint internalFormat() {
-#if defined(GL_RGBA32F)
-        return GL_RGBA32F;
-#else
-        return GL_RGBA;
-#endif
-      }
-
-      QOpenGLFunctions* m_functions;
-      GLuint m_texture{0};
-    };
-
     struct OpenGLRasterRenderTimings {
       std::chrono::nanoseconds makeCurrentElapsed{0};
       std::chrono::nanoseconds drawElapsed{0};
@@ -306,7 +207,7 @@ namespace engine::raster {
         applyBlending(functions);
         applyStencil(functions);
         applyCullMode(functions);
-        OpenGLShadowTexture shadowTexture(functions, m_shadowTextureData);
+        detail::OpenGLShadowTexture shadowTexture(functions, m_shadowTextureData);
 
         if (mesh.empty()) {
           functions->glFlush();
@@ -316,7 +217,7 @@ namespace engine::raster {
 
         applyScissor(functions);
 
-        OpenGLFallbackTexture fallbackTexture(functions);
+        detail::OpenGLFallbackTexture fallbackTexture(functions);
         m_resources.ensureProgram();
         QOpenGLShaderProgram& program = *m_resources.program;
         if (!program.bind()) {
