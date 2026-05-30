@@ -97,12 +97,15 @@ public:
 
   /**
     * Constructs a matrix from source, which can be of a different Matrix type.
-    * The source Matrix can be of different size. If bigger, only what fits into
-    * the destination matrix will be copied. If smaller, the rest will be filled
-    * with zeroes, except the diagonal, which will be filled with ones.
+    * The source Matrix can be of different size and a different element type.
+    * If bigger, only what fits into the destination matrix will be copied. If
+    * smaller, the rest will be filled with zeroes, except the diagonal, which
+    * will be filled with ones. Element values are explicitly converted to @c T
+    * so narrowing (e.g. double → float) is intentional rather than an implicit
+    * conversion warning.
     */
-  template<int D, class V, class M>
-  inline constexpr Matrix(const Matrix<D, T, V, M>& source) {
+  template<int D, class U, class V, class M>
+  inline constexpr Matrix(const Matrix<D, U, V, M>& source) {
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
         if (row >= D || col >= D) {
@@ -111,7 +114,7 @@ public:
           else
             m_cells[row][col] = T();
         } else {
-          m_cells[row][col] = source[row][col];
+          m_cells[row][col] = static_cast<T>(source[row][col]);
         }
       }
     }
@@ -129,6 +132,20 @@ public:
     */
   inline constexpr void setCell(int row, int col, const T& value) noexcept {
     m_cells[row][col] = value;
+  }
+
+  /**
+    * @returns a pointer to the matrix's underlying contiguous storage,
+    * laid out row-major: `data()[r * Dimensions + c] == cell(r, c)`. Use this
+    * to hand the matrix off to APIs that consume a flat element array (e.g.
+    * OpenGL's `glUniformMatrix4fv`, BLAS, file I/O). Prefer `cell(r, c)` or
+    * `operator[]` for element access; `data()` is the escape hatch.
+    */
+  [[nodiscard]] inline constexpr const T* data() const noexcept {
+    return &m_cells[0][0];
+  }
+  [[nodiscard]] inline constexpr T* data() noexcept {
+    return &m_cells[0][0];
   }
 
   /**
@@ -797,8 +814,8 @@ public:
     * submatrix is copied. If the source is smaller, then the rest is filled
     * with zeroes, except for the diagonal.
     */
-  template<int D, class V, class M>
-  inline constexpr Matrix2(const Matrix<D, T, V, M>& source)
+  template<int D, class U, class V, class M>
+  inline constexpr Matrix2(const Matrix<D, U, V, M>& source)
       : Base(source) {
   }
 
@@ -1055,8 +1072,8 @@ public:
     * submatrix is copied. If the source is smaller, then the rest is filled
     * with zeroes, except for the diagonal.
     */
-  template<int D, class V, class M>
-  inline constexpr Matrix3(const Matrix<D, T, V, M>& source)
+  template<int D, class U, class V, class M>
+  inline constexpr Matrix3(const Matrix<D, U, V, M>& source)
       : Base(source) {
   }
 
@@ -1269,8 +1286,8 @@ public:
     * submatrix is copied. If the source is smaller, then the rest is filled
     * with zeroes, except for the diagonal.
     */
-  template<int D, class V, class M>
-  inline constexpr Matrix4(const Matrix<D, T, V, M>& source)
+  template<int D, class U, class V, class M>
+  inline constexpr Matrix4(const Matrix<D, U, V, M>& source)
       : Base(source) {
   }
 
@@ -1711,6 +1728,25 @@ typedef Matrix4<float> Matrix4f;
   * Four-dimensional matrix with double components.
   */
 typedef Matrix4<double> Matrix4d;
+
+// The SSE2 specializations in `core/math/matrix/sse2/` and the public
+// `data()` accessor both rely on `Matrix4<T>` being laid out as a flat
+// row-major `T[16]` with no padding. If a future change ever violates that
+// — by adding members, changing the storage type, or shipping a
+// per-platform specialization — these asserts force a deliberate revisit
+// instead of letting `data()` silently hand out wrong pointers.
+static_assert(sizeof(Matrix4<float>) == sizeof(float) * 16,
+              "Matrix4<float> must remain a flat row-major 16-element buffer");
+static_assert(sizeof(Matrix4<double>) == sizeof(double) * 16,
+              "Matrix4<double> must remain a flat row-major 16-element buffer");
+static_assert(sizeof(Matrix3<float>) == sizeof(float) * 9,
+              "Matrix3<float> must remain a flat row-major 9-element buffer");
+static_assert(sizeof(Matrix3<double>) == sizeof(double) * 9,
+              "Matrix3<double> must remain a flat row-major 9-element buffer");
+static_assert(sizeof(Matrix2<float>) == sizeof(float) * 4,
+              "Matrix2<float> must remain a flat row-major 4-element buffer");
+static_assert(sizeof(Matrix2<double>) == sizeof(double) * 4,
+              "Matrix2<double> must remain a flat row-major 4-element buffer");
 
 // ---------------------------------------------------------------------------
 // Out-of-class definition for the all-zero matrix constant.
