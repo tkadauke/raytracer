@@ -12,6 +12,7 @@
 #include "engine/raster/detail/RasterShadowMaps.h"
 #include "render/cameras/Camera.h"
 #include "render/textures/ImageTexture.h"
+#include "render/viewplanes/ViewPlane.h"
 
 #include <QOpenGLBuffer>
 #include <QOpenGLFunctions>
@@ -1404,13 +1405,37 @@ namespace engine::raster {
       key.cullMode = m_cullMode;
       key.hasCullModeOverride = m_hasCullModeOverride;
       key.depthBias = m_depthBias;
-      key.cameraDependent = builder.bakesCameraDependentLighting();
-      if (key.cameraDependent && camera()) {
+      // Mesh content is camera-dependent through more than the per-vertex
+      // lighting bake: `RasterTriangleEmitter` rejects primitives whose
+      // AABB sits entirely outside the camera's homogeneous frustum and
+      // clips surviving triangles at the near/far planes. A camera-only
+      // change (Modeler drag) therefore needs a fresh mesh — without
+      // this the previously-frustum-rejected geometry leaves holes in
+      // the cached mesh as the camera turns. A separate camera-
+      // independent build path (no CPU frustum culling, no CPU triangle
+      // clipping; let GL handle both) would let camera-drag hit the
+      // cache, but that's a wider change.
+      key.cameraDependent = true;
+      if (camera()) {
         key.cameraPosition = camera()->position();
         key.cameraTarget = camera()->target();
       }
       if (m_resources->cachedMeshKey && m_resources->cachedMeshKey->matches(key)) {
         meshCacheHit = true;
+        // Mesh build calls `viewPlane()->setup` as a side effect; on a
+        // cache hit the side effect is skipped. The view plane is shared
+        // with other render passes that may have left it set up for a
+        // different viewport (shadow maps, picking, separate post-
+        // process passes), and `worldToClipMatrix` below reads
+        // `viewPlane()->hSpan()/vSpan()` to compose the projection
+        // matrix. Re-run setup so the matrix matches this pass's
+        // viewport. Without this, cache hits intermittently render with
+        // another pass's projection — the symptom is a scene squished
+        // along the buffer axis whose ratio differs from the other
+        // pass's viewport.
+        if (camera() && camera()->viewPlane()) {
+          camera()->viewPlane()->setup(camera()->matrix(), viewport);
+        }
       } else {
         m_resources->cachedMesh = builder.build();
         m_resources->cachedMeshKey = key;
@@ -1431,9 +1456,23 @@ namespace engine::raster {
     const std::optional<Matrix4d> viewProjection =
       camera() ? camera()->worldToClipMatrix() : std::optional<Matrix4d>{};
 
+    // FitExact aspect mode confines rendered content to the view plane's
+    // inner rect (letterbox/pillarbox bars elsewhere). The CPU rasterizer
+    // gets this for free because `projectPoint` maps world coords through
+    // `inner.width()/inner.height()`. The GL viewport has to mirror that
+    // — otherwise NDC stretches the projection across the full buffer
+    // and content appears squished along the buffer's wider axis. The
+    // clear pass still hits the full framebuffer (glClear ignores the
+    // viewport), so bars naturally take the background color.
+    Recti drawViewport = viewport;
+    if (!m_viewportEnabled && camera() && camera()->viewPlane() &&
+        camera()->viewPlane()->aspectMode() == render::AspectMode::FitExact) {
+      drawViewport = camera()->viewPlane()->innerRect();
+    }
+
     const auto timings =
       OpenGLRasterDrawPass(
-        *m_resources, height, viewport, m_scissorTestEnabled, m_scissorRect, m_colorLoadOp,
+        *m_resources, height, drawViewport, m_scissorTestEnabled, m_scissorRect, m_colorLoadOp,
         m_colorStoreOp, m_colorWriteMask, m_blendingEnabled, m_sourceBlendFactor,
         m_destinationBlendFactor, m_blendOp, m_blendConstantColor, m_blendConstantAlpha,
         m_alphaTestEnabled, m_alphaFunc, m_alphaReference, m_depthFunc, m_depthClearValue,

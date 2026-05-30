@@ -234,9 +234,11 @@ namespace PinholeCameraTest {
       // The per-vertex form stashes eye-depth in z/w; the matrix form gives
       // the standard OpenGL clip-space z that the perspective divide
       // yields NDC z in [-1, 1] for. Compare on x/y (post-divide) and w
-      // (eye-depth equivalence).
+      // (eye-depth equivalence). The matrix flips Y so positive world Y
+      // lands at the bottom of the GL framebuffer, matching the project's
+      // Y-down screen convention.
       EXPECT_NEAR(expected.x(), through.x(), 1e-9);
-      EXPECT_NEAR(expected.y(), through.y(), 1e-9);
+      EXPECT_NEAR(-expected.y(), through.y(), 1e-9);
       EXPECT_NEAR(expected.w(), through.w(), 1e-9);
     }
   }

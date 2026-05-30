@@ -85,13 +85,18 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   cache key holds the scene as `weak_ptr` (so a freed-then-reallocated scene
   at the same address never produces a false hit) plus the rest of the
   mesh-affecting inputs (lod, viewport, cull mode, depth bias, visibility
-  set, shadow maps). Camera-only changes — e.g. dragging the Modeler view —
-  hit the cache whenever the build path is camera-independent (all lights
-  shaded in the fragment shader; the GPU handles projection through
-  `Camera::worldToClipMatrix`). For the sloth model (498k triangles) this
-  collapses the ~800 ms per-frame mesh prep into a cache lookup. Cache miss
-  on first render, lod change, viewport resize, or scene replacement keeps
-  the result correct. — Claude Opus 4.7
+  set, shadow maps, camera pose). Cache miss on first render, lod change,
+  viewport resize, scene replacement, or any camera change keeps the result
+  correct (the mesh build does CPU-side frustum culling and triangle
+  clipping that both depend on the camera, so a cache hit across a camera
+  move would leave holes where previously-rejected geometry is now
+  in-frustum). On a cache hit the renderer re-runs `viewPlane()->setup()`
+  before composing the projection matrix so it picks up `hSpan/vSpan` for
+  *this* pass's viewport — without this, another render pass sharing the
+  camera (shadow maps, picking) could leave the view plane set up for a
+  different aspect, and the cache-hit render would project the scene
+  squished. A follow-up camera-independent build path could let camera-
+  drag hit the cache. — Claude Opus 4.7
 - **OpenGL raster vertex/index buffers are cached across renders.** Vertex
   and index `QOpenGLBuffer`s now live on the resource cache; each render
   re-uploads the current frame's payload through `allocate()` instead of
@@ -115,6 +120,29 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **OpenGL raster backend no longer renders vertically flipped.** GPU-side
+  projection composed the project's perspective matrix directly into
+  `gl_Position`, but the project's screen convention places world Y+ at
+  the bottom of the image while a standard GL frustum places it at the
+  top. `PinholeCamera::worldToClipMatrix` now negates Y so the GPU output
+  matches the CPU rasterizer. — Claude Opus 4.7
+- **OpenGL raster backend respects FitExact letterbox/pillarbox bars.**
+  The CPU rasterizer maps the projection through `viewPlane()->innerRect()`
+  in `FitExact` aspect mode so a 4:3 frustum lands in a 4:3 inner rect
+  centered in a wider buffer. The GL viewport was set to the full buffer,
+  so the same projection was stretched across the entire framebuffer and
+  content appeared squished along the buffer's wider axis. The GL
+  viewport is now the inner rect in `FitExact` mode; the framebuffer
+  clear still fills the full buffer with the background color, so the
+  bars naturally take the background color. — Claude Opus 4.7
+- **OpenGL offscreen-context destructor no longer aborts at process exit.**
+  When the process-wide `sharedResources()` cache destructs on the main
+  thread after the last render thread has exited (without re-attaching
+  the context), `QOpenGLContext::makeCurrent` would `qFatal` from the
+  framebuffer cleanup path. The destructor now migrates the detached
+  context to the destroying thread before `makeCurrent`, and leaks the
+  framebuffer to the OS if migration is impossible — process-exit cleanup
+  no longer aborts. — Claude Opus 4.7
 - **OpenGL raster backend honors cancellation during draw.** A cancellation
   flag set mid-render now stops the batch loop instead of running every
   remaining batch through the GL pipeline. The check matches the CPU

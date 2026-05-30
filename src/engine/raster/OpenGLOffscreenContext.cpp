@@ -414,11 +414,24 @@ namespace engine::raster {
     void destroyResources() {
       if (framebuffer) {
         const bool alreadyCurrent = QOpenGLContext::currentContext() == context.get();
-        const bool madeCurrent = alreadyCurrent || (context && surface && surface->isValid() &&
-                                                    context->makeCurrent(surface.get()));
-        framebuffer.reset();
-        if (madeCurrent && !alreadyCurrent) {
-          context->doneCurrent();
+        const bool canMakeCurrent =
+          context && surface && surface->isValid() &&
+          (alreadyCurrent || context->thread() == QThread::currentThread() ||
+           (context->thread() == nullptr &&
+            (context->moveToThread(QThread::currentThread()),
+             surface->moveToThread(QThread::currentThread()), true)));
+        const bool madeCurrent =
+          alreadyCurrent || (canMakeCurrent && context->makeCurrent(surface.get()));
+        if (madeCurrent) {
+          framebuffer.reset();
+          if (!alreadyCurrent) {
+            context->doneCurrent();
+          }
+        } else {
+          // Process-exit shutdown path: the context's owning thread has
+          // exited without re-attaching here, so `makeCurrent` would
+          // qFatal. Leak the GL framebuffer; the OS reclaims it.
+          framebuffer.release();
         }
       }
 

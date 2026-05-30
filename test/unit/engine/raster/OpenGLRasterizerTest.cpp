@@ -319,4 +319,104 @@ namespace OpenGLRasterizerTest {
       << "a freed-and-replaced scene must not produce a false cache hit even if "
          "the new scene is allocated at the same address";
   }
+
+  TEST_F(OpenGLRasterizerMeshCache, CacheHitRefreshesViewPlaneSetup) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+
+    auto scene = simpleSphereScene();
+    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    cam->setAspectMode(render::AspectMode::FitWidth);
+
+    engine::raster::OpenGLRasterizer rasterizer(cam, scene);
+    Buffer<Colord> referenceBuffer(64, 32);
+    rasterizer.render(referenceBuffer);
+
+    // Simulate another render pass on the same camera mutating the view
+    // plane to a different viewport before this rasterizer renders
+    // again (shadow maps, picking, post-process passes share the camera
+    // through the graph pipeline). On the next render the cache hits,
+    // and without an explicit `setup()` call the view plane would still
+    // carry the other pass's `hSpan/vSpan` — the resulting projection
+    // matrix would then squish the scene to that pass's aspect. The
+    // FitWidth aspect mode is what makes `hSpan/vSpan` actually depend
+    // on the viewport; Stretch's fixed 8×6 would mask the bug.
+    cam->viewPlane()->setup(cam->matrix(), Recti(0, 0, 32, 64));
+
+    Buffer<Colord> cacheHitBuffer(64, 32);
+    rasterizer.render(cacheHitBuffer);
+
+    EXPECT_TRUE(tracesContain(rasterizer.traceMessages(), "reused"))
+      << "scaffold check: this test only stress-tests the cache-hit path";
+
+    bool anyDifference = false;
+    for (int y = 0; y < 32 && !anyDifference; ++y) {
+      for (int x = 0; x < 64 && !anyDifference; ++x) {
+        const Colord& a = referenceBuffer[y][x];
+        const Colord& b = cacheHitBuffer[y][x];
+        if (std::abs(a.r() - b.r()) > 1.0 / 255.0 || std::abs(a.g() - b.g()) > 1.0 / 255.0 ||
+            std::abs(a.b() - b.b()) > 1.0 / 255.0) {
+          anyDifference = true;
+        }
+      }
+    }
+    EXPECT_FALSE(anyDifference)
+      << "cache-hit render diverges from fresh render — view-plane state was "
+         "not refreshed and the projection matrix used another pass's aspect";
+  }
+
+  TEST_F(OpenGLRasterizerMeshCache, RebuildsMeshWhenCameraMoves) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+
+    auto scene = simpleSphereScene();
+    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+
+    engine::raster::OpenGLRasterizer rasterizer(cam, scene);
+    Buffer<Colord> buffer(32, 32);
+    rasterizer.render(buffer);
+
+    cam->setPosition(Vector3d(2, 0, -5));
+    rasterizer.render(buffer);
+
+    EXPECT_TRUE(tracesContain(rasterizer.traceMessages(), "built"))
+      << "camera move must invalidate the cached mesh — frustum culling depends "
+         "on camera pose, so a cache hit across moves leaves holes where "
+         "previously-culled primitives are now in-frustum";
+  }
+
+  class OpenGLRasterizerAspect : public ::testing::GuiTest {};
+
+  TEST_F(OpenGLRasterizerAspect, FitExactLeavesPillarboxBarsAroundInnerRect) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+
+    auto scene = std::make_shared<render::Scene>(Colord(1.0, 1.0, 1.0));
+    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 100.0);
+    sphere->setMaterial(std::make_shared<render::MatteMaterial>(
+      std::make_shared<render::ConstantColorTexture>(Colord(0.0, 0.0, 0.0))));
+    scene->add(sphere);
+    scene->addLight(
+      std::make_shared<render::DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord::white()));
+
+    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    cam->setAspectMode(render::AspectMode::FitExact);
+    cam->setAspectRatio(1.0);
+
+    engine::raster::OpenGLRasterizer gpu(cam, scene);
+    Buffer<Colord> buffer(64, 32);
+    gpu.render(buffer);
+
+    const int barLeft = 0;
+    const int barRight = 63;
+    EXPECT_GT(buffer[16][barLeft].r() + buffer[16][barLeft].g() + buffer[16][barLeft].b(), 2.5)
+      << "left pillarbox bar should remain at the buffer's clear color";
+    EXPECT_GT(buffer[16][barRight].r() + buffer[16][barRight].g() + buffer[16][barRight].b(), 2.5)
+      << "right pillarbox bar should remain at the buffer's clear color";
+    EXPECT_LT(buffer[16][32].r() + buffer[16][32].g() + buffer[16][32].b(), 1.5)
+      << "center of inner rect should hit the (black) sphere covering the whole frustum";
+  }
 }

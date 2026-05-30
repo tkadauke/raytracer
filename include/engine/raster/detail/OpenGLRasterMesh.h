@@ -133,17 +133,6 @@ namespace engine::raster::detail {
 
     OpenGLRasterMesh build() const;
 
-    /**
-      * @returns whether `build()` would emit per-vertex lighting that
-      * depends on the camera pose (i.e. CPU-baked specular). Used by
-      * the mesh-cache key in `OpenGLRasterResourceCache` to decide
-      * whether camera-only changes invalidate the cached mesh. False
-      * for scenes where every light is handled by the fragment shader
-      * (no shadow maps and every light has directional or positional
-      * state).
-      */
-    bool bakesCameraDependentLighting() const;
-
   private:
     const render::Scene* m_scene;
     std::shared_ptr<render::Camera> m_camera;

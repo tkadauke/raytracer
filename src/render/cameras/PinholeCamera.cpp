@@ -46,8 +46,15 @@ std::optional<Matrix4d> PinholeCamera::worldToClipMatrix() const {
   // makes `lookAt` produce a singular matrix; `inverseMatrix()` would
   // then throw `DivisionByZeroException`. Treat that as "no usable
   // matrix" — callers fall back to the per-vertex CPU projection path.
+  //
+  // The Y axis is negated relative to a textbook view-projection matrix:
+  // the project's screen convention places world Y+ at the BOTTOM of
+  // the image (see `PinholeProjection::projectPoint`), while a standard
+  // GL frustum places it at the top. Without this flip the GPU
+  // rasterizer renders mirrored vertically relative to the CPU path.
+  static const Matrix4d flipY(1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
   try {
-    return projectionMatrix() * Matrix4d::translate(0.0, 0.0, m_distance) * inverseMatrix();
+    return flipY * projectionMatrix() * Matrix4d::translate(0.0, 0.0, m_distance) * inverseMatrix();
   } catch (const DivisionByZeroException&) {
     return std::nullopt;
   }

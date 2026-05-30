@@ -275,25 +275,6 @@ namespace engine::raster::detail {
     return m_shadowMaps == nullptr;
   }
 
-  bool OpenGLRasterMeshBuilder::bakesCameraDependentLighting() const {
-    // CPU bakes per-vertex specular for lights the fragment shader
-    // does not handle (see `specularFor`). When every light is handled
-    // in-shader, no CPU specular bake fires and the mesh is camera-
-    // independent.
-    if (!m_scene) {
-      return false;
-    }
-    if (!usesFragmentShaderLighting()) {
-      return true;
-    }
-    for (const auto& light : m_scene->lights()) {
-      if (!shadesInFragmentShader(*light)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   bool OpenGLRasterMeshBuilder::shadesInFragmentShader(const render::Light& light) const {
     return usesFragmentShaderLighting() && (light.directionalShadowMapDirection().has_value() ||
                                             light.positionalLightPosition().has_value());
