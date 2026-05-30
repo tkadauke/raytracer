@@ -4,6 +4,7 @@
 #include "test/helpers/TypeTestHelper.h"
 
 #include <limits>
+#include <type_traits>
 
 // Verify that constexpr arithmetic compiles and evaluates at compile time.
 // Uses Vector3<int> to avoid SSE3 specializations, which use SIMD intrinsics
@@ -762,6 +763,18 @@ namespace Vector3Test {
 #endif
   }
 
+  TYPED_TEST(Vector3Test, ShouldHaveExpectedAlignment) {
+    if constexpr (std::is_same_v<TypeParam, float>) {
+#if RAYTRACER_SIMD_SSE
+      EXPECT_EQ(16u, alignof(Vector3<TypeParam>));
+#else
+      EXPECT_EQ(alignof(TypeParam), alignof(Vector3<TypeParam>));
+#endif
+    } else {
+      EXPECT_EQ(alignof(TypeParam), alignof(Vector3<TypeParam>));
+    }
+  }
+
   TYPED_TEST(Vector3Test, ShouldInitializeNullVector) {
     Vector3<TypeParam> vector;
     ASSERT_EQ(0, vector.x());
@@ -998,6 +1011,24 @@ namespace Vector4Test {
   TYPED_TEST(Vector4Test, ShouldHaveRightSize) {
     ASSERT_EQ(sizeof(Vector<4, TypeParam>), sizeof(Vector4<TypeParam>));
     ASSERT_EQ(4 * sizeof(TypeParam), sizeof(Vector4<TypeParam>));
+  }
+
+  TYPED_TEST(Vector4Test, ShouldHaveExpectedAlignment) {
+    if constexpr (std::is_same_v<TypeParam, float>) {
+#if RAYTRACER_SIMD_SSE
+      EXPECT_EQ(16u, alignof(Vector4<TypeParam>));
+#else
+      EXPECT_EQ(alignof(TypeParam), alignof(Vector4<TypeParam>));
+#endif
+    } else if constexpr (std::is_same_v<TypeParam, double>) {
+#if RAYTRACER_SIMD_SSE3
+      EXPECT_EQ(16u, alignof(Vector4<TypeParam>));
+#else
+      EXPECT_EQ(alignof(TypeParam), alignof(Vector4<TypeParam>));
+#endif
+    } else {
+      EXPECT_EQ(alignof(TypeParam), alignof(Vector4<TypeParam>));
+    }
   }
 
   TYPED_TEST(Vector4Test, ShouldInitializeNullVector) {

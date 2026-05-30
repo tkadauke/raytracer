@@ -641,6 +641,11 @@ namespace Matrix4Test {
 
   TYPED_TEST_SUITE(Matrix4Test, SpecializedMatrixTypes);
 
+  TYPED_TEST(Matrix4Test, ShouldHaveExpectedLayout) {
+    EXPECT_EQ(16u * sizeof(TypeParam), sizeof(Matrix4<TypeParam>));
+    EXPECT_EQ(alignof(TypeParam), alignof(Matrix4<TypeParam>));
+  }
+
   TYPED_TEST(Matrix4Test, ShouldInitializeIdentity) {
     Matrix4<TypeParam> matrix;
     ASSERT_EQ(1, matrix[0][0]);
