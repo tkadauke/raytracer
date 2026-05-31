@@ -7,6 +7,41 @@
 
 namespace render {
   /**
+    * Named stochastic dimensions reserved by the renderer and future
+    * integrators.
+    *
+    * Pixel, time, and lens keep the existing renderer/camera stream order:
+    * the render loop consumes pixel jitter first, shutter time second, and
+    * thin-lens cameras consume aperture samples after that. Path-tracing
+    * dimensions are indexed by bounce/sample depth so BSDF, light, and
+    * continuation requests for one bounce cannot accidentally reuse the same
+    * 2D pattern.
+    */
+  enum class SampleDimension { Pixel, Time, Lens, BSDF, Light, Continuation };
+
+  /**
+    * Maps a named dimension and optional depth/index to the stream's stable
+    * numeric dimension.
+    */
+  constexpr std::uint64_t sampleDimensionIndex(SampleDimension dimension, std::uint64_t index = 0) {
+    switch (dimension) {
+    case SampleDimension::Pixel:
+      return 0;
+    case SampleDimension::Time:
+      return 1;
+    case SampleDimension::Lens:
+      return 2;
+    case SampleDimension::BSDF:
+      return 3 + index * 3;
+    case SampleDimension::Light:
+      return 4 + index * 3;
+    case SampleDimension::Continuation:
+      return 5 + index * 3;
+    }
+    return 0;
+  }
+
+  /**
     * @brief Stream of stratified Monte-Carlo samples for a single
     *        primary-ray sample.
     *
@@ -16,8 +51,10 @@ namespace render {
     * tracer) pulls dimensions from the stream as needed:
     *
     *     auto stream = sampler->stream(sampleIndex, pixelHash);
-    *     Vector2d lensSample = stream->next2D();   // dimension 0–1
-    *     double   timeSample = stream->next1D();   // dimension 2
+    *     Vector2d lensSample = stream->next2D();
+    *     double   timeSample = stream->next1D();
+    *     Vector2d bsdfSample =
+    *       stream->sample2D(SampleDimension::BSDF, bounce);
     *
     * Each call advances an internal dimension counter, so consecutive
     * pulls return *independently stratified* samples (modulo the
@@ -68,6 +105,20 @@ namespace render {
       *  - Russian-roulette decisions in a path tracer
       */
     virtual double next1D() = 0;
+
+    /**
+      * Pull a 2D sample from a named dimension without advancing the
+      * sequential `next*` cursor. Integrators should prefer this for
+      * path-tracing dimensions so BSDF, light, and continuation samples
+      * have deterministic ownership independent of call order.
+      */
+    virtual Vector2d sample2D(SampleDimension dimension, std::uint64_t index = 0) = 0;
+
+    /**
+      * Pull a 1D sample from a named dimension without advancing the
+      * sequential `next*` cursor.
+      */
+    virtual double sample1D(SampleDimension dimension, std::uint64_t index = 0) = 0;
   };
 
   /**
@@ -92,6 +143,12 @@ namespace render {
       return Vector2d(0.5, 0.5);
     }
     double next1D() override {
+      return 0.5;
+    }
+    Vector2d sample2D(SampleDimension, std::uint64_t = 0) override {
+      return Vector2d(0.5, 0.5);
+    }
+    double sample1D(SampleDimension, std::uint64_t = 0) override {
       return 0.5;
     }
   };

@@ -89,11 +89,10 @@ namespace render {
     *
     * ### Sampling
     *
-    * Same per-ray sample stream as `ThinLensCamera` — the lens
-    * disc sample is pulled from `stream.next2D()`, decorrelated
-    * from the renderer's sub-pixel jitter (dim 0) and time sample
-    * (dim 1). The stratification properties from §SampleStream
-    * apply unchanged.
+    * Same per-ray sample stream as `ThinLensCamera` — during rendering
+    * the lens disc cursor read lands on the named lens dimension,
+    * decorrelated from the renderer's sub-pixel jitter and time sample.
+    * The stratification properties from §SampleStream apply unchanged.
     *
     * @see ThinLensCamera — the perpendicular-focal-plane parent.
     */

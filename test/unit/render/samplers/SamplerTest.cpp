@@ -81,6 +81,28 @@ namespace SamplerTest {
     }
   }
 
+  TEST(NullSampleStream, NamedDimensionsReturnCenter) {
+    render::NullSampleStream stream;
+
+    auto lens = stream.sample2D(SampleDimension::Lens);
+    ASSERT_DOUBLE_EQ(0.5, lens.x());
+    ASSERT_DOUBLE_EQ(0.5, lens.y());
+    ASSERT_DOUBLE_EQ(0.5, stream.sample1D(SampleDimension::Continuation, 4));
+  }
+
+  TEST(SampleDimension, ShouldExposeStableDimensionIndices) {
+    ASSERT_EQ(0u, sampleDimensionIndex(SampleDimension::Pixel));
+    ASSERT_EQ(1u, sampleDimensionIndex(SampleDimension::Time));
+    ASSERT_EQ(2u, sampleDimensionIndex(SampleDimension::Lens));
+    ASSERT_EQ(3u, sampleDimensionIndex(SampleDimension::BSDF));
+    ASSERT_EQ(4u, sampleDimensionIndex(SampleDimension::Light));
+    ASSERT_EQ(5u, sampleDimensionIndex(SampleDimension::Continuation));
+
+    ASSERT_EQ(6u, sampleDimensionIndex(SampleDimension::BSDF, 1));
+    ASSERT_EQ(7u, sampleDimensionIndex(SampleDimension::Light, 1));
+    ASSERT_EQ(8u, sampleDimensionIndex(SampleDimension::Continuation, 1));
+  }
+
   TEST(SamplerStream, DefaultStreamReturnsSamplesFromCorrectSet) {
     IndexedSampler sampler;
     sampler.setup(4, 8); // 4 samples per set, 8 sets
@@ -144,5 +166,43 @@ namespace SamplerTest {
     stream->next1D();              // dim 1
     auto third = stream->next2D(); // dim 2 → set 2 → sample[0] = 2/100
     ASSERT_DOUBLE_EQ(2.0 / 100.0, third.x());
+  }
+
+  TEST(SamplerStream, NamedDimensionsMatchLegacyCameraDimensionOrder) {
+    IndexedSampler sampler;
+    sampler.setup(4, 8);
+
+    auto stream = sampler.stream(0, 0);
+
+    ASSERT_DOUBLE_EQ(0.0 / 100.0, stream->sample2D(SampleDimension::Pixel).x());
+    ASSERT_DOUBLE_EQ(1.0 / 100.0, stream->sample1D(SampleDimension::Time));
+    ASSERT_DOUBLE_EQ(2.0 / 100.0, stream->sample2D(SampleDimension::Lens).x());
+  }
+
+  TEST(SamplerStream, PathTracingDimensionsDoNotReuseTheSamePattern) {
+    IndexedSampler sampler;
+    sampler.setup(4, 16);
+
+    auto stream = sampler.stream(0, 0);
+
+    ASSERT_DOUBLE_EQ(3.0 / 100.0, stream->sample2D(SampleDimension::BSDF, 0).x());
+    ASSERT_DOUBLE_EQ(4.0 / 100.0, stream->sample2D(SampleDimension::Light, 0).x());
+    ASSERT_DOUBLE_EQ(5.0 / 100.0, stream->sample1D(SampleDimension::Continuation, 0));
+
+    ASSERT_DOUBLE_EQ(6.0 / 100.0, stream->sample2D(SampleDimension::BSDF, 1).x());
+    ASSERT_DOUBLE_EQ(7.0 / 100.0, stream->sample2D(SampleDimension::Light, 1).x());
+    ASSERT_DOUBLE_EQ(8.0 / 100.0, stream->sample1D(SampleDimension::Continuation, 1));
+  }
+
+  TEST(SamplerStream, NamedDimensionReadsDoNotAdvanceSequentialCursor) {
+    IndexedSampler sampler;
+    sampler.setup(4, 8);
+
+    auto stream = sampler.stream(0, 0);
+
+    ASSERT_DOUBLE_EQ(3.0 / 100.0, stream->sample2D(SampleDimension::BSDF).x());
+    ASSERT_DOUBLE_EQ(0.0 / 100.0, stream->next2D().x());
+    ASSERT_DOUBLE_EQ(1.0 / 100.0, stream->next1D());
+    ASSERT_DOUBLE_EQ(2.0 / 100.0, stream->next2D().x());
   }
 }
