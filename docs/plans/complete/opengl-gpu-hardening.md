@@ -11,7 +11,7 @@
 > questions in `opengl-gpu-rasterizer.md` and `opengl-gpu-residency.md`
 > have been waiting on.
 >
-> **Related plans:** `docs/plans/opengl-gpu-rasterizer.md` (pipeline),
+> **Related plans:** `docs/plans/complete/opengl-gpu-rasterizer.md` (pipeline),
 > `docs/plans/opengl-gpu-residency.md` (resource lifetime),
 > `docs/plans/render-graph.md` (resource validation).
 

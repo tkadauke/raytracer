@@ -10,7 +10,7 @@
 >
 > **Related plans:** `docs/plans/rasterizer-performance.md` tracks raster
 > performance diagnostics and optimization phases. `docs/plans/render-graph.md`
-> owns pass/resource inspection. `docs/plans/opengl-gpu-rasterizer.md` tracks a
+> owns pass/resource inspection. `docs/plans/complete/opengl-gpu-rasterizer.md` tracks a
 > separate GPU executor.
 
 ---

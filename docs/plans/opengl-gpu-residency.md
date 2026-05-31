@@ -5,7 +5,7 @@
 > every intermediate resource through CPU buffers. Unlocks both
 > `AttachmentLoadOp::Load` on the OpenGL backend and the "no readback
 > between every pass" acceptance criterion from
-> `docs/plans/opengl-gpu-rasterizer.md` Phase 3.
+> `docs/plans/complete/opengl-gpu-rasterizer.md` Phase 3.
 >
 > **Status:** planning. Prerequisite work — graph-side resource-domain
 > metadata, GPU descriptor surface in trace exports, and the
@@ -13,7 +13,7 @@
 > the concrete OpenGL backend resource type and integrates it with the
 > resource-storage layer.
 >
-> **Related plans:** `docs/plans/opengl-gpu-rasterizer.md` owns the
+> **Related plans:** `docs/plans/complete/opengl-gpu-rasterizer.md` owns the
 > rasterizer pipeline; this plan handles the resource side.
 > `docs/plans/render-graph.md` owns pass-compatibility metadata and
 > resource validation.

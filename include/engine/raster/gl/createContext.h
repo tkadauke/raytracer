@@ -15,10 +15,12 @@ namespace engine::raster::gl {
     *   `OpenGLOffscreenContext` when `QGuiApplication` is present so
     *   the Modeler keeps sharing its GL infrastructure with Qt
     *   widgets.
-    * - **Linux** and other platforms: returns the Qt-backed
-    *   `OpenGLOffscreenContext` for now. An EGL native backend is
-    *   tracked under Phase 2 of opengl-gpu-hardening.md and slots
-    *   into this factory.
+    * - **Linux** (`__linux__`): returns a Mesa surfaceless
+    *   `EglContext` (native, no Qt) when no `QGuiApplication` is
+    *   running. Returns `OpenGLOffscreenContext` when a
+    *   `QGuiApplication` is up.
+    * - **Other platforms**: returns `OpenGLOffscreenContext` —
+    *   requires a `QGuiApplication`.
     *
     * Callers that need a specific backend (tests, advanced users)
     * can still construct the concrete classes directly.

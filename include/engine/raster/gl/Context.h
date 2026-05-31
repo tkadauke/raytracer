@@ -51,14 +51,11 @@ namespace engine::raster::gl {
     *   `gl::CGLContext`         — macOS native via `<OpenGL/CGL.h>`.
     *   `gl::EglContext`         — Linux headless via Mesa surfaceless EGL.
     *
-    * Per Phase 3 of `docs/plans/opengl-gpu-hardening.md`, the FBO +
-    * color/depth/stencil renderbuffers live on `gl::AttachmentSet`
-    * instances owned by `OpenGLRasterResourceCache`, not on the
-    * context. Multiple attachment sets can coexist (per-pass
-    * dimensions, per-AOV sample counts) without forcing the context
-    * to reallocate, and the residency work in
-    * `docs/plans/opengl-gpu-residency.md` slots in by registering the
-    * attachment sets with the graph storage.
+    * The FBO + color/depth/stencil renderbuffers live on
+    * `gl::AttachmentSet` instances owned by
+    * `OpenGLRasterResourceCache`, not on the context. Multiple
+    * attachment sets can coexist (per-pass dimensions, per-AOV
+    * sample counts) without forcing the context to reallocate.
     *
     * Threading semantics match Qt's per-thread context model:
     * `makeCurrent` ties the context to the calling thread until
