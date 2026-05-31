@@ -11,6 +11,8 @@ By the end of this chapter you should know:
 
 - the abstract `Light` interface and the two virtual methods
   every concrete light implements,
+- the sampling/PDF metadata a Monte Carlo integrator can ask from
+  a light without changing the current Whitted direct-lighting path,
 - how a point light differs physically and computationally from
   a directional light,
 - the shadow ray as the test for "is this light visible from
@@ -45,6 +47,36 @@ the color components — a "100 W bulb" is a `Colord(100, 100,
 100)`, not a separate brightness scalar. Materials simply
 multiply their [BRDF](../appendix/a-glossary.md#b) result by the radiance and the geometric
 cosine, with no further scaling.
+
+The same base class now also exposes a sampling contract for
+future Monte Carlo direct-lighting estimators:
+
+```cpp
+// include/render/lights/Light.h
+struct LightSample {
+  Vector3d direction;
+  Colord   radiance;
+  double   distance;
+  double   pdf;
+  bool     delta;
+};
+
+virtual LightSample sample(const Vector3d& point) const;
+virtual double pdf(const Vector3d& point, const Vector3d& direction) const;
+virtual bool isDelta() const;
+virtual Colord emission() const;
+virtual std::optional<Colord> power() const;
+```
+
+`sample(point)` returns one direction from the shaded point toward
+the light, the radiance arriving from that draw, the distance to the
+sampled emitter when finite, the PDF of the draw, and whether the
+sample is a delta event. `pdf(point, direction)` evaluates the
+ordinary solid-angle density for a direction chosen by some other
+sampler, such as a BSDF sample in an MIS estimator. `emission()` and
+`power()` are metadata for light-selection heuristics and future
+many-light sampling; `radiance()` remains the value used by the
+current material loops.
 
 Lights live on a separate list off
 [`Scene::lights()`](../../../include/render/primitives/Scene.h),
@@ -100,6 +132,35 @@ position lookup.
 Visually, directional lights produce parallel shadow edges and
 even illumination across the scene. Point lights produce
 shadows that radiate outward from the light's position.
+
+## <a id="delta-light-sampling"></a>Delta light sampling
+The light sampling API is already implemented for the two shipped
+light classes, but both are **delta lights**.
+
+A point light is infinitesimal in position. From a shaded point,
+there is exactly one direction that reaches it. A directional light
+is infinitesimal in direction. From every shaded point, there is
+again exactly one light direction. Their `sample(point)` methods
+therefore return deterministic `LightSample` values with `pdf == 1`
+and `delta == true`. Their ordinary `pdf(point, direction)` methods
+return zero, because a delta distribution is not an ordinary
+solid-angle density.
+
+That distinction is what a future MIS integrator needs. When the
+light sampler draws a delta light, the integrator uses the sampled
+event directly and gives it MIS weight 1; the competing BSDF sampler
+cannot hit an infinitely small point or direction with nonzero
+probability. When non-delta lights land later — rectangles, spheres,
+environment maps, mesh emitters — `sample(point)` will return
+stochastic directions and non-delta PDFs, and `pdf(point, direction)`
+will let BSDF-sampled directions be weighted against light-sampled
+ones.
+
+The important boundary is capability: these methods document how
+lights can be sampled, not that the renderer already performs soft
+shadows or path tracing. The shipped Whitted materials still iterate
+`Scene::lights()`, call `direction()` / `radiance()`, and cast the
+hard shadow ray described below.
 
 ## <a id="the-shadow-ray"></a>The shadow ray
 The shading routine in
@@ -372,6 +433,8 @@ together.
   [Sampling and anti-aliasing](sampling-and-anti-aliasing.md)
 - Materials consume light contributions:
   [The five shipped materials](materials-and-brdfs.md#the-five-shipped-materials)
+- BSDF and MIS contracts:
+  [Materials and BRDFs: MIS helper contracts](materials-and-brdfs.md#mis-helper-contracts)
 - Shadow-boundary functional contract:
   [`test/functional/render/lights/PointLightTest.cpp`](../../../test/functional/render/lights/PointLightTest.cpp)
 
@@ -381,5 +444,7 @@ together.
 - `include/render/lights/Light.h`
 - `include/render/lights/PointLight.h`
 - `include/render/lights/DirectionalLight.h`
+- `test/unit/render/lights/PointLightTest.cpp`
+- `test/unit/render/lights/DirectionalLightTest.cpp`
 - `test/functional/render/lights/PointLightTest.cpp`
 <!-- /source-anchors -->
