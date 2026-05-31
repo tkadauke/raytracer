@@ -1,6 +1,8 @@
 #pragma once
 #include <atomic>
+#include <cstdint>
 #include <memory>
+#include <optional>
 
 #include "core/math/Vector.h"
 #include "core/math/Matrix.h"
@@ -133,6 +135,8 @@ namespace render {
     void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer) const;
     virtual void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer,
                         const Rect<int>& rect) const;
+    void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer,
+                const Rect<int>& rect, std::uint64_t tileSeed) const;
 
     /**
       * Render into a packed-RGB display buffer with inline
@@ -154,6 +158,9 @@ namespace render {
       */
     virtual void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigned int>& buffer,
                         std::shared_ptr<render::Tonemap> tonemap, const Rect<int>& rect) const;
+    void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigned int>& buffer,
+                std::shared_ptr<render::Tonemap> tonemap, const Rect<int>& rect,
+                std::uint64_t tileSeed) const;
 
     /**
       * Render one tile into both an HDR graph resource and a packed-RGB display
@@ -164,6 +171,9 @@ namespace render {
     virtual void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& hdrBuffer,
                         Buffer<unsigned int>& displayBuffer,
                         std::shared_ptr<render::Tonemap> tonemap, const Rect<int>& rect) const;
+    void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& hdrBuffer,
+                Buffer<unsigned int>& displayBuffer, std::shared_ptr<render::Tonemap> tonemap,
+                const Rect<int>& rect, std::uint64_t tileSeed) const;
 
     /**
       * Generate a primary ray for pixel `(x, y)`.
@@ -345,6 +355,15 @@ namespace render {
                  const render::ViewPlane::Iterator& pixel, unsigned int rgb) const;
 
   private:
+    void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer,
+                const Rect<int>& rect, std::optional<std::uint64_t> tileSeed) const;
+    void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigned int>& buffer,
+                std::shared_ptr<render::Tonemap> tonemap, const Rect<int>& rect,
+                std::optional<std::uint64_t> tileSeed) const;
+    void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& hdrBuffer,
+                Buffer<unsigned int>& displayBuffer, std::shared_ptr<render::Tonemap> tonemap,
+                const Rect<int>& rect, std::optional<std::uint64_t> tileSeed) const;
+
     std::atomic<bool> m_cancelled;
     bool m_showProgressIndicators;
     render::AspectMode m_aspectMode;

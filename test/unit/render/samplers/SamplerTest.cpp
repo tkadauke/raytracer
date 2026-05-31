@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "render/SamplingSeed.h"
 #include "render/samplers/Sampler.h"
 #include "render/samplers/SampleStream.h"
 
@@ -204,5 +205,32 @@ namespace SamplerTest {
     ASSERT_DOUBLE_EQ(0.0 / 100.0, stream->next2D().x());
     ASSERT_DOUBLE_EQ(1.0 / 100.0, stream->next1D());
     ASSERT_DOUBLE_EQ(2.0 / 100.0, stream->next2D().x());
+  }
+
+  TEST(SamplingSeed, DerivesStableHierarchicalSeeds) {
+    const std::uint64_t tile = SamplingSeed::tileSeed(1234, 5);
+    const std::uint64_t pixel = SamplingSeed::pixelSeed(tile, 17, 23);
+    const std::uint64_t sample = SamplingSeed::sampleSeed(pixel, 3);
+
+    EXPECT_EQ(tile, SamplingSeed::tileSeed(1234, 5));
+    EXPECT_EQ(pixel, SamplingSeed::pixelSeed(tile, 17, 23));
+    EXPECT_EQ(sample, SamplingSeed::sampleSeed(pixel, 3));
+
+    EXPECT_NE(tile, SamplingSeed::tileSeed(1234, 6));
+    EXPECT_NE(pixel, SamplingSeed::pixelSeed(tile, 18, 23));
+    EXPECT_NE(sample, SamplingSeed::sampleSeed(pixel, 4));
+  }
+
+  TEST(SamplerStream, SeededPixelHashesSelectStableSets) {
+    IndexedSampler sampler;
+    sampler.setup(4, 64);
+
+    const auto tileSeed = SamplingSeed::tileSeed(1234, 2);
+    const auto pixelSeed = SamplingSeed::pixelSeed(tileSeed, 4, 9);
+
+    auto first = sampler.stream(0, pixelSeed)->next2D();
+    auto second = sampler.stream(0, pixelSeed)->next2D();
+
+    EXPECT_EQ(first, second);
   }
 }

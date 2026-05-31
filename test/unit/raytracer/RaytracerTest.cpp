@@ -310,6 +310,31 @@ namespace RaytracerTest {
     ASSERT_COLOR_NEAR(Colord(0.35, 0.7, 1.05), colour, 1e-12);
   }
 
+  TEST(Raytracer, ShouldExposeAndClearSamplingSeed) {
+    auto scene = std::make_shared<Scene>();
+    Raytracer raytracer(scene);
+    ASSERT_FALSE(raytracer.samplingSeed().has_value());
+
+    raytracer.setSamplingSeed(12345);
+    ASSERT_TRUE(raytracer.samplingSeed().has_value());
+    ASSERT_EQ(12345u, *raytracer.samplingSeed());
+
+    raytracer.clearSamplingSeed();
+    ASSERT_FALSE(raytracer.samplingSeed().has_value());
+  }
+
+  TEST(Raytracer, CloneForRenderShouldKeepSamplingSeed) {
+    auto scene = std::make_shared<Scene>();
+    auto raytracer = std::make_shared<Raytracer>(scene);
+    raytracer->setSamplingSeed(67890);
+
+    auto clone = std::dynamic_pointer_cast<Raytracer>(raytracer->cloneForRender());
+
+    ASSERT_NE(nullptr, clone);
+    ASSERT_TRUE(clone->samplingSeed().has_value());
+    ASSERT_EQ(67890u, *clone->samplingSeed());
+  }
+
   TEST(Raytracer, RayColorShouldReturnBackgroundWhenThroughputBelowCutoff) {
     // Verify the throughput-cutoff path: if state.throughput is already below
     // the threshold when rayColor is entered, it must short-circuit to the

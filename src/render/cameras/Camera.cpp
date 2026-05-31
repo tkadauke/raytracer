@@ -1,5 +1,6 @@
 #include "render/cameras/Camera.h"
 #include "core/math/Rect.h"
+#include "render/SamplingSeed.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "render/viewplanes/PointInterlacedViewPlane.h"
 #include "render/samplers/Sampler.h"
@@ -9,8 +10,29 @@
 #include "render/State.h"
 
 #include <algorithm>
+#include <optional>
 
 using namespace render;
+
+namespace {
+  std::uint64_t legacyPixelHash(const render::ViewPlane::Iterator& pixel) {
+    // Per-pixel hash: any cheap function that varies per (column,
+    // row) is fine. Weyl-style multipliers spread adjacent pixels
+    // into different sample sets so neighbouring pixels don't end up
+    // with identical lens / time / ... dimensions for the same
+    // sampleIndex. The constants are coprime odd-ish — the exact
+    // values don't matter, only that they decorrelate the grid.
+    return static_cast<std::uint64_t>(pixel.column()) * 73856093ull ^
+           static_cast<std::uint64_t>(pixel.row()) * 19349663ull;
+  }
+
+  std::uint64_t pixelHashFor(const render::ViewPlane::Iterator& pixel,
+                             std::optional<std::uint64_t> tileSeed) {
+    if (tileSeed)
+      return render::SamplingSeed::pixelSeed(*tileSeed, pixel.column(), pixel.row());
+    return legacyPixelHash(pixel);
+  }
+}
 
 Camera::Camera()
     : m_cancelled(false),
@@ -124,6 +146,16 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
 
 void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer,
                     const Recti& rect) const {
+  render(raycaster, buffer, rect, std::nullopt);
+}
+
+void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer,
+                    const Recti& rect, std::uint64_t tileSeed) const {
+  render(raycaster, buffer, rect, std::optional<std::uint64_t>(tileSeed));
+}
+
+void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer,
+                    const Recti& rect, std::optional<std::uint64_t> tileSeed) const {
   if (isCancelled())
     return;
 
@@ -160,14 +192,7 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
       plot(buffer, actualRect, pixel, Colord(1, 0, 0));
     }
 
-    // Per-pixel hash: any cheap function that varies per (column,
-    // row) is fine. Weyl-style multipliers spread adjacent pixels
-    // into different sample sets so neighbouring pixels don't end up
-    // with identical lens / time / ... dimensions for the same
-    // sampleIndex. The constants are coprime odd-ish — the exact
-    // values don't matter, only that they decorrelate the grid.
-    const std::uint64_t pixelHash = static_cast<std::uint64_t>(pixel.column()) * 73856093ull ^
-                                    static_cast<std::uint64_t>(pixel.row()) * 19349663ull;
+    const std::uint64_t pixelHash = pixelHashFor(pixel, tileSeed);
 
     Colord pixelColor;
     for (int sampleIndex = 0; sampleIndex != samplesPerPixel; ++sampleIndex) {
@@ -238,6 +263,18 @@ void Camera::plotRGB(Buffer<unsigned int>& buffer, const Recti& rect,
 
 void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigned int>& buffer,
                     std::shared_ptr<render::Tonemap> tonemap, const Recti& rect) const {
+  render(raycaster, buffer, tonemap, rect, std::nullopt);
+}
+
+void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigned int>& buffer,
+                    std::shared_ptr<render::Tonemap> tonemap, const Recti& rect,
+                    std::uint64_t tileSeed) const {
+  render(raycaster, buffer, tonemap, rect, std::optional<std::uint64_t>(tileSeed));
+}
+
+void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigned int>& buffer,
+                    std::shared_ptr<render::Tonemap> tonemap, const Recti& rect,
+                    std::optional<std::uint64_t> tileSeed) const {
   if (isCancelled())
     return;
 
@@ -279,8 +316,7 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
       plotRGB(buffer, actualRect, pixel, 0xffff0000);
     }
 
-    const std::uint64_t pixelHash = static_cast<std::uint64_t>(pixel.column()) * 73856093ull ^
-                                    static_cast<std::uint64_t>(pixel.row()) * 19349663ull;
+    const std::uint64_t pixelHash = pixelHashFor(pixel, tileSeed);
 
     Colord pixelColor;
     for (int sampleIndex = 0; sampleIndex != samplesPerPixel; ++sampleIndex) {
@@ -316,6 +352,19 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
 void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& hdrBuffer,
                     Buffer<unsigned int>& displayBuffer, std::shared_ptr<render::Tonemap> tonemap,
                     const Recti& rect) const {
+  render(raycaster, hdrBuffer, displayBuffer, tonemap, rect, std::nullopt);
+}
+
+void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& hdrBuffer,
+                    Buffer<unsigned int>& displayBuffer, std::shared_ptr<render::Tonemap> tonemap,
+                    const Recti& rect, std::uint64_t tileSeed) const {
+  render(raycaster, hdrBuffer, displayBuffer, tonemap, rect,
+         std::optional<std::uint64_t>(tileSeed));
+}
+
+void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& hdrBuffer,
+                    Buffer<unsigned int>& displayBuffer, std::shared_ptr<render::Tonemap> tonemap,
+                    const Recti& rect, std::optional<std::uint64_t> tileSeed) const {
   if (isCancelled())
     return;
 
@@ -349,8 +398,7 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
       plotRGB(displayBuffer, actualRect, pixel, 0xffff0000);
     }
 
-    const std::uint64_t pixelHash = static_cast<std::uint64_t>(pixel.column()) * 73856093ull ^
-                                    static_cast<std::uint64_t>(pixel.row()) * 19349663ull;
+    const std::uint64_t pixelHash = pixelHashFor(pixel, tileSeed);
 
     Colord pixelColor;
     for (int sampleIndex = 0; sampleIndex != samplesPerPixel; ++sampleIndex) {
