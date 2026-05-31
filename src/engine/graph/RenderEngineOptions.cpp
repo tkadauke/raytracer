@@ -438,6 +438,12 @@ namespace engine::graph {
     if (!geometry.isEmpty())
       object["geometry"] = geometry;
 
+    QJsonObject depthPrepass;
+    if (m_depthPrepass)
+      depthPrepass["mode"] = qstr(*m_depthPrepass);
+    if (!depthPrepass.isEmpty())
+      object["depthPrepass"] = depthPrepass;
+
     QJsonObject sampling;
     if (m_msaaSamples)
       sampling["msaaSamples"] = *m_msaaSamples;
@@ -500,7 +506,8 @@ namespace engine::graph {
   RenderRasterizerOptions RenderRasterizerOptions::fromJson(const QJsonObject& object,
                                                             const std::string& path) {
     rejectUnknownFields(object, path,
-                        {"execution", "geometry", "sampling", "framebuffer", "shadows"});
+                        {"execution", "geometry", "sampling", "depthPrepass", "framebuffer",
+                         "shadows"});
 
     RenderRasterizerOptions options;
     const QJsonObject execution = objectField(object, "execution", path);
@@ -527,6 +534,11 @@ namespace engine::graph {
       options.setCullMode(stringField(geometry, "cullMode", path + ".geometry"));
     if (hasField(geometry, "visibilityCulling"))
       options.setVisibilityCulling(stringField(geometry, "visibilityCulling", path + ".geometry"));
+
+    const QJsonObject depthPrepass = objectField(object, "depthPrepass", path);
+    rejectUnknownFields(depthPrepass, path + ".depthPrepass", {"mode"});
+    if (hasField(depthPrepass, "mode"))
+      options.setDepthPrepass(stringField(depthPrepass, "mode", path + ".depthPrepass"));
 
     const QJsonObject sampling = objectField(object, "sampling", path);
     rejectUnknownFields(sampling, path + ".sampling", {"msaaSamples", "msaaShadingMode"});
@@ -621,6 +633,7 @@ namespace engine::graph {
     result.m_cullMode = overrideOptional(result.m_cullMode, overrides.m_cullMode);
     result.m_visibilityCulling =
       overrideOptional(result.m_visibilityCulling, overrides.m_visibilityCulling);
+    result.m_depthPrepass = overrideOptional(result.m_depthPrepass, overrides.m_depthPrepass);
     result.m_msaaSamples = overrideOptional(result.m_msaaSamples, overrides.m_msaaSamples);
     result.m_msaaShadingMode =
       overrideOptional(result.m_msaaShadingMode, overrides.m_msaaShadingMode);
@@ -691,6 +704,17 @@ namespace engine::graph {
     }
     if (includeImagePostProcessAA || aa == RenderPostProcessAA::TAA)
       state.sampling().setPostProcessAA(rasterPostProcessAA(aa));
+    if (m_depthPrepass) {
+      if (*m_depthPrepass == "on") {
+        state.depthPrepass().setMode(Rasterizer::DepthPrepassMode::On);
+      } else if (*m_depthPrepass == "auto") {
+        state.depthPrepass().setMode(Rasterizer::DepthPrepassMode::Auto);
+      } else if (*m_depthPrepass == "off") {
+        state.depthPrepass().setMode(Rasterizer::DepthPrepassMode::Off);
+      } else {
+        optionsError("rasterizer.depthPrepass.mode", "expected off, on, or auto");
+      }
+    }
     if (m_viewportRect)
       state.framebuffer().setViewportRect(*m_viewportRect);
     if (m_scissorRect)
@@ -850,6 +874,12 @@ namespace engine::graph {
       visibilityCullingFromString(mode, "rasterizer.geometry.visibilityCulling");
   }
 
+  void RenderRasterizerOptions::setDepthPrepass(std::string mode) {
+    if (mode != "off" && mode != "on" && mode != "auto")
+      optionsError("rasterizer.depthPrepass.mode", "expected off, on, or auto");
+    m_depthPrepass = std::move(mode);
+  }
+
   void RenderRasterizerOptions::setMSAASamples(int samples) {
     if (samples <= 1) {
       m_msaaSamples = 1;
@@ -973,6 +1003,10 @@ namespace engine::graph {
 
   std::optional<RenderVisibilityCulling> RenderRasterizerOptions::visibilityCulling() const {
     return m_visibilityCulling;
+  }
+
+  std::optional<std::string> RenderRasterizerOptions::depthPrepass() const {
+    return m_depthPrepass;
   }
 
   std::optional<int> RenderRasterizerOptions::msaaSamples() const {

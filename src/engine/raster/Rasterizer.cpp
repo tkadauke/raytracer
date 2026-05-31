@@ -110,14 +110,19 @@ namespace {
   using engine::raster::detail::accumulateMSAASample;
   using engine::raster::detail::AlphaTestState;
   using engine::raster::detail::colorOutputPolicy;
+  using engine::raster::detail::DepthReadOnlyPolicy;
+  using engine::raster::detail::DepthState;
+  using engine::raster::detail::DepthWritePolicy;
   using engine::raster::detail::fullBufferView;
   using engine::raster::detail::intersectRasterRects;
   using engine::raster::detail::MSAAFragmentShadeCache;
   using engine::raster::detail::MSAASamplePattern;
   using engine::raster::detail::MSAATileScratch;
+  using engine::raster::detail::NoStencilPolicy;
   using engine::raster::detail::PassBuffers;
   using engine::raster::detail::RasterDiagnosticBufferViews;
   using engine::raster::detail::RasterFullBufferView;
+  using engine::raster::detail::rasterizeDepthOnlyTriangleSetWithPolicies;
   using engine::raster::detail::rasterizePreparedTriangleWithPolicies;
   using engine::raster::detail::rasterizeTileWithPolicies;
   using engine::raster::detail::rasterizeTriangleSetWithPolicies;
@@ -338,6 +343,40 @@ namespace {
       return false;
     }
     return rasterizer.colorWriteMask() == Rasterizer::ColorWriteAll;
+  }
+
+  const char* depthPrepassModeName(Rasterizer::DepthPrepassMode mode) {
+    switch (mode) {
+    case Rasterizer::DepthPrepassMode::Off:
+      return "off";
+    case Rasterizer::DepthPrepassMode::On:
+      return "on";
+    case Rasterizer::DepthPrepassMode::Auto:
+      return "auto";
+    }
+    return "off";
+  }
+
+  bool rasterPassHasExpensiveShading(const Rasterizer& rasterizer) {
+    const auto scene = rasterizer.scene();
+    return static_cast<bool>(rasterizer.fragmentShader()) || rasterizer.shadowMapsEnabled() ||
+           (scene && !scene->lights().empty());
+  }
+
+  std::string depthPrepassDecision(const Rasterizer& rasterizer,
+                                   const render::TilePlan& tilePlan) {
+    if (rasterizer.depthPrepassMode() == Rasterizer::DepthPrepassMode::Off)
+      return "disabled";
+    if (rasterizer.msaaSamples() != 1)
+      return "suppressed_msaa";
+    if (tilePlan.isSingleTile())
+      return "suppressed_streaming_single_tile";
+    if (!passSupportsConservativeDepthOcclusion(rasterizer))
+      return "suppressed_non_opaque_or_unsupported_state";
+    if (rasterizer.depthPrepassMode() == Rasterizer::DepthPrepassMode::Auto &&
+        !rasterPassHasExpensiveShading(rasterizer) && !rasterizer.visibilitySet())
+      return "suppressed_auto_no_expensive_shading_or_hierarchical_consumer";
+    return "enabled";
   }
 
   RasterTilingStats tilingStats(const RasterTriangleSet& triangleSet,
@@ -679,6 +718,15 @@ engine::raster::rasterRenderMetricsToJson(const Rasterizer::RasterRenderMetrics&
   diagnosticImages["shade"] = distributionToJson(metrics.diagnosticImages.shade);
   diagnosticImages["colorWrite"] = distributionToJson(metrics.diagnosticImages.colorWrite);
 
+  QJsonObject depthPrepass;
+  depthPrepass["requested"] = QString::fromStdString(metrics.depthPrepass.requested);
+  depthPrepass["enabled"] = metrics.depthPrepass.enabled;
+  depthPrepass["decision"] = QString::fromStdString(metrics.depthPrepass.decision);
+  depthPrepass["inputTriangles"] = static_cast<double>(metrics.depthPrepass.inputTriangles);
+  depthPrepass["prepassSeconds"] = metrics.depthPrepass.prepassSeconds;
+  depthPrepass["colorPassSeconds"] = metrics.depthPrepass.colorPassSeconds;
+  depthPrepass["totalMeasuredSeconds"] = metrics.depthPrepass.totalMeasuredSeconds;
+
   QJsonObject timings;
   timings["tessellationTriangleEmissionSeconds"] =
     metrics.timings.tessellationTriangleEmissionSeconds;
@@ -693,6 +741,7 @@ engine::raster::rasterRenderMetricsToJson(const Rasterizer::RasterRenderMetrics&
   object["tessellation"] = tessellation;
   object["tiling"] = tiling;
   object["fragments"] = fragments;
+  object["depthPrepass"] = depthPrepass;
   object["diagnosticImages"] = diagnosticImages;
   object["timings"] = timings;
   return object;
@@ -862,6 +911,7 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setShadowSlopeBias(m_shadowSlopeBias);
   result->setShadowFilterRadius(m_shadowFilterRadius);
   result->setShadowFilterMode(m_shadowFilterMode);
+  result->setDepthPrepassMode(m_depthPrepassMode);
   result->m_cullMode = m_cullMode;
   result->m_hasCullModeOverride = m_hasCullModeOverride;
   result->m_viewportEnabled = m_viewportEnabled;
@@ -1189,18 +1239,57 @@ void Rasterizer::Private::renderTriangleSetPass(
                                  rasterizer.alphaReference()};
   const bool conservativeDepthOcclusion =
     passSupportsConservativeDepthOcclusion(rasterizer);
-  withPreparedTrianglePolicies(
-    scene.get(), rasterizer, shadowMaps, fullBufferView(passBuffers.depth()), stencilView,
-    [&](auto stencil, auto depth, auto fragmentPolicy) {
-      withMSAAFragmentShadingPolicy(
-        rasterizer, shadeCache, fragmentPolicy, [&](auto msaaFragmentPolicy) {
-          rasterizeTriangleSetWithPolicies(
-            triangleSet, tilePlan, *threadPool, tasks, cancelled,
-            colorOutputPolicy(rasterizer, fullBufferView(passBuffers.color())), renderClip,
-            sampleOffset, stencil, depth, msaaFragmentPolicy, alphaTest,
-            conservativeDepthOcclusion, diagnostics);
-        });
-    });
+  const std::string prepassDecision = depthPrepassDecision(rasterizer, tilePlan);
+  auto& prepassMetrics = const_cast<Rasterizer&>(rasterizer).m_lastMetrics.depthPrepass;
+  prepassMetrics.requested = depthPrepassModeName(rasterizer.depthPrepassMode());
+  prepassMetrics.decision = prepassDecision;
+
+  if (prepassDecision == "enabled") {
+    prepassMetrics.enabled = true;
+    prepassMetrics.inputTriangles += triangleSet.triangles().size();
+    const auto prepassStart = RasterClock::now();
+    rasterizeDepthOnlyTriangleSetWithPolicies(
+      triangleSet, tilePlan, *threadPool, tasks, cancelled, sampleOffset, NoStencilPolicy{},
+      DepthWritePolicy<RasterFullBufferView<double>>{
+        fullBufferView(passBuffers.depth()),
+        DepthState{Rasterizer::DepthFunc::Less, rasterizer.depthBias()}});
+    prepassMetrics.prepassSeconds += elapsedSeconds(prepassStart, RasterClock::now());
+    if (cancelled.load())
+      return;
+
+    const auto colorPassStart = RasterClock::now();
+    withPreparedTrianglePolicies(
+      scene.get(), rasterizer, shadowMaps, fullBufferView(passBuffers.depth()), stencilView,
+      [&](auto, auto, auto fragmentPolicy) {
+        withMSAAFragmentShadingPolicy(
+          rasterizer, shadeCache, fragmentPolicy, [&](auto msaaFragmentPolicy) {
+            rasterizeTriangleSetWithPolicies(
+              triangleSet, tilePlan, *threadPool, tasks, cancelled,
+              colorOutputPolicy(rasterizer, fullBufferView(passBuffers.color())), renderClip,
+              sampleOffset, NoStencilPolicy{},
+              DepthReadOnlyPolicy<RasterFullBufferView<double>>{
+                fullBufferView(passBuffers.depth()),
+                DepthState{Rasterizer::DepthFunc::LessEqual, rasterizer.depthBias()}},
+              msaaFragmentPolicy, alphaTest, conservativeDepthOcclusion, diagnostics);
+          });
+      });
+    prepassMetrics.colorPassSeconds += elapsedSeconds(colorPassStart, RasterClock::now());
+    prepassMetrics.totalMeasuredSeconds =
+      prepassMetrics.prepassSeconds + prepassMetrics.colorPassSeconds;
+  } else {
+    withPreparedTrianglePolicies(
+      scene.get(), rasterizer, shadowMaps, fullBufferView(passBuffers.depth()), stencilView,
+      [&](auto stencil, auto depth, auto fragmentPolicy) {
+        withMSAAFragmentShadingPolicy(
+          rasterizer, shadeCache, fragmentPolicy, [&](auto msaaFragmentPolicy) {
+            rasterizeTriangleSetWithPolicies(
+              triangleSet, tilePlan, *threadPool, tasks, cancelled,
+              colorOutputPolicy(rasterizer, fullBufferView(passBuffers.color())), renderClip,
+              sampleOffset, stencil, depth, msaaFragmentPolicy, alphaTest,
+              conservativeDepthOcclusion, diagnostics);
+          });
+      });
+  }
 
   if (depthCapture &&
       core::util::bufferDimensionsMatch(depthCapture, tilePlan.width(), tilePlan.height())) {
@@ -1667,6 +1756,9 @@ void Rasterizer::Private::renderFrame(Rasterizer& rasterizer,
 
   const render::TilePlan tilePlan = render::TilePlan::forBuffer(width, height, queueSize);
   rasterizer.m_lastMetrics.tiling.tileCount = tilePlan.size();
+  rasterizer.m_lastMetrics.depthPrepass.requested =
+    depthPrepassModeName(rasterizer.depthPrepassMode());
+  rasterizer.m_lastMetrics.depthPrepass.decision = depthPrepassDecision(rasterizer, tilePlan);
   const MSAASamplePattern pattern(rasterizer.msaaSamples());
   const RasterTriangleEmitter triangleEmitter(
     scene.get(), camera, rasterizer.lod(), rasterizer, cancelled, rasterizer.cullMode(),

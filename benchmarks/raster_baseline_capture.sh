@@ -7,6 +7,7 @@ out_root="${RASTER_BASELINE_OUT:-${repo_root}/tmp/raster-baselines}"
 repeat="${RASTER_BASELINE_REPEAT:-5}"
 width="${RASTER_BASELINE_WIDTH:-640}"
 height="${RASTER_BASELINE_HEIGHT:-480}"
+depth_prepass="${RASTER_BASELINE_DEPTH_PREPASS:-off}"
 
 counter_aovs=(
   raster_coverage_count
@@ -34,6 +35,7 @@ Environment:
   RASTER_BASELINE_REPEAT repeated render count per variant (default: 5)
   RASTER_BASELINE_WIDTH  output width (default: 640)
   RASTER_BASELINE_HEIGHT output height (default: 480)
+  RASTER_BASELINE_DEPTH_PREPASS depth prepass mode: off, on, or auto (default: off)
 
 Each scene captures metrics JSON for MSAA 1 and 4 at LOD 0 and LOD 2. Passing
 --aovs also exports the five raster counter AOV preview PNGs for each variant.
@@ -143,6 +145,10 @@ run_variant() {
     --raster_metrics_out "${metrics}"
     --raster_metrics_summary
   )
+
+  if [[ "${depth_prepass}" != "off" ]]; then
+    args+=(--depth_prepass "${depth_prepass}")
+  fi
 
   if [[ -n "${extra}" ]]; then
     # shellcheck disable=SC2206

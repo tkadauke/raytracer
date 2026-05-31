@@ -223,6 +223,26 @@ namespace engine::graph {
       stateError(path, "expected per_sample or per_fragment");
     }
 
+    const char* toString(Rasterizer::DepthPrepassMode mode) {
+      return enumName<Rasterizer::DepthPrepassMode>(
+        mode,
+        {{Rasterizer::DepthPrepassMode::Off, "off"},
+         {Rasterizer::DepthPrepassMode::On, "on"},
+         {Rasterizer::DepthPrepassMode::Auto, "auto"}},
+        "off");
+    }
+
+    Rasterizer::DepthPrepassMode depthPrepassModeFromString(const std::string& value,
+                                                            const std::string& path) {
+      if (value == "off")
+        return Rasterizer::DepthPrepassMode::Off;
+      if (value == "on")
+        return Rasterizer::DepthPrepassMode::On;
+      if (value == "auto")
+        return Rasterizer::DepthPrepassMode::Auto;
+      stateError(path, "expected off, on, or auto");
+    }
+
     const char* toString(Rasterizer::PostProcessAA aa) {
       return enumName<Rasterizer::PostProcessAA>(aa,
                                                  {{Rasterizer::PostProcessAA::None, "none"},
@@ -776,6 +796,45 @@ namespace engine::graph {
 
   Rasterizer::MSAAShadingMode RasterSamplingState::msaaShadingMode() const {
     return m_msaaShadingMode;
+  }
+
+  RasterDepthPrepassState RasterDepthPrepassState::fromJson(const QJsonObject& object,
+                                                            const std::string& path) {
+    rejectUnknownFields(object, path, {"mode"});
+    RasterDepthPrepassState state;
+    if (hasField(object, "mode"))
+      state.setMode(
+        depthPrepassModeFromString(stringField(object, "mode", path), path + ".mode"));
+    return state;
+  }
+
+  QJsonObject RasterDepthPrepassState::toJson() const {
+    QJsonObject object;
+    if (m_mode != Rasterizer::DepthPrepassMode::Off)
+      object["mode"] = toString(m_mode);
+    return object;
+  }
+
+  bool RasterDepthPrepassState::empty() const {
+    return toJson().isEmpty();
+  }
+
+  void RasterDepthPrepassState::applyTo(Rasterizer& rasterizer) const {
+    rasterizer.setDepthPrepassMode(m_mode);
+  }
+
+  void RasterDepthPrepassState::applyTo(engine::raster::OpenGLRasterizer&) const {
+    if (m_mode != Rasterizer::DepthPrepassMode::Off) {
+      openGLUnsupported("measured depth prepass");
+    }
+  }
+
+  void RasterDepthPrepassState::setMode(Rasterizer::DepthPrepassMode mode) {
+    m_mode = mode;
+  }
+
+  Rasterizer::DepthPrepassMode RasterDepthPrepassState::mode() const {
+    return m_mode;
   }
 
   RasterFramebufferState RasterFramebufferState::fromJson(const QJsonObject& object,
@@ -1496,7 +1555,8 @@ namespace engine::graph {
   RasterBeautyPassState RasterBeautyPassState::fromJson(const QJsonObject& object,
                                                         const std::string& path) {
     rejectUnknownFields(object, path,
-                        {"execution", "geometry", "sampling", "framebuffer", "shadows"});
+                        {"execution", "geometry", "sampling", "depthPrepass", "framebuffer",
+                         "shadows"});
     RasterBeautyPassState state;
     QJsonObject samplingObject;
     if (hasField(object, "execution"))
@@ -1509,6 +1569,9 @@ namespace engine::graph {
       samplingObject = objectField(object, "sampling", path);
       state.m_sampling = RasterSamplingState::fromJson(samplingObject, path + ".sampling");
     }
+    if (hasField(object, "depthPrepass"))
+      state.m_depthPrepass = RasterDepthPrepassState::fromJson(
+        objectField(object, "depthPrepass", path), path + ".depthPrepass");
     if (hasField(object, "framebuffer"))
       state.m_framebuffer = RasterFramebufferState::fromJson(
         objectField(object, "framebuffer", path), path + ".framebuffer");
@@ -1552,6 +1615,8 @@ namespace engine::graph {
       object["geometry"] = m_geometry.toJson();
     if (!m_sampling.empty())
       object["sampling"] = m_sampling.toJson();
+    if (!m_depthPrepass.empty())
+      object["depthPrepass"] = m_depthPrepass.toJson();
     if (!m_framebuffer.empty())
       object["framebuffer"] = m_framebuffer.toJson();
     if (!m_shadows.empty())
@@ -1567,6 +1632,7 @@ namespace engine::graph {
     m_execution.applyTo(rasterizer);
     m_geometry.applyTo(rasterizer);
     m_sampling.applyTo(rasterizer);
+    m_depthPrepass.applyTo(rasterizer);
     m_framebuffer.applyTo(rasterizer);
     m_shadows.applyTo(rasterizer);
   }
@@ -1574,6 +1640,7 @@ namespace engine::graph {
   void RasterBeautyPassState::applyTo(engine::raster::OpenGLRasterizer& rasterizer) const {
     m_geometry.applyTo(rasterizer);
     m_sampling.applyTo(rasterizer);
+    m_depthPrepass.applyTo(rasterizer);
     m_framebuffer.applyTo(rasterizer);
     m_shadows.applyTo(rasterizer);
   }
@@ -1608,6 +1675,10 @@ namespace engine::graph {
     return m_sampling;
   }
 
+  RasterDepthPrepassState& RasterBeautyPassState::depthPrepass() {
+    return m_depthPrepass;
+  }
+
   RasterFramebufferState& RasterBeautyPassState::framebuffer() {
     return m_framebuffer;
   }
@@ -1626,6 +1697,10 @@ namespace engine::graph {
 
   const RasterSamplingState& RasterBeautyPassState::sampling() const {
     return m_sampling;
+  }
+
+  const RasterDepthPrepassState& RasterBeautyPassState::depthPrepass() const {
+    return m_depthPrepass;
   }
 
   const RasterFramebufferState& RasterBeautyPassState::framebuffer() const {

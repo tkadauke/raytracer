@@ -91,6 +91,7 @@ namespace engine::graph {
     void setCullMode(std::string mode);
     void setVisibilityCulling(RenderVisibilityCulling mode);
     void setVisibilityCulling(std::string mode);
+    void setDepthPrepass(std::string mode);
     void setMSAASamples(int samples);
     void setMSAAShadingMode(std::string mode);
     void setViewportRect(const Recti& rect);
@@ -119,6 +120,7 @@ namespace engine::graph {
     std::optional<double> maximumScreenSpaceError() const;
     std::optional<std::string> cullMode() const;
     std::optional<RenderVisibilityCulling> visibilityCulling() const;
+    std::optional<std::string> depthPrepass() const;
     std::optional<int> msaaSamples() const;
     std::optional<std::string> msaaShadingMode() const;
     std::optional<int> shadowMapSize() const;
@@ -136,6 +138,7 @@ namespace engine::graph {
     std::optional<double> m_maximumScreenSpaceError;
     std::optional<std::string> m_cullMode;
     std::optional<RenderVisibilityCulling> m_visibilityCulling;
+    std::optional<std::string> m_depthPrepass;
     std::optional<int> m_msaaSamples;
     std::optional<std::string> m_msaaShadingMode;
     std::optional<Recti> m_viewportRect;

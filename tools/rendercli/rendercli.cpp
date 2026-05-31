@@ -1052,6 +1052,7 @@ private:
   QString m_rasterBackend;
   bool m_rasterBackendSet;
   QString m_rasterVisibilityCulling;
+  QString m_rasterDepthPrepass;
   int m_rasterMsaaSamples;
   QString m_rasterMsaaShadingMode;
   QString m_rasterPostProcessAA;
@@ -1200,6 +1201,7 @@ Renderer::Renderer()
       m_rasterBackend("cpu"),
       m_rasterBackendSet(false),
       m_rasterVisibilityCulling("off"),
+      m_rasterDepthPrepass("off"),
       m_rasterMsaaSamples(1),
       m_rasterMsaaShadingMode("per_sample"),
       m_rasterPostProcessAA("none"),
@@ -1527,6 +1529,8 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.rasterizer().setCullMode(m_rasterCullMode.toStdString());
   if (m_rasterVisibilityCulling != "off")
     options.rasterizer().setVisibilityCulling(m_rasterVisibilityCulling.toStdString());
+  if (m_rasterDepthPrepass != "off")
+    options.rasterizer().setDepthPrepass(m_rasterDepthPrepass.toStdString());
   if (m_rasterMsaaSamples != 1)
     options.rasterizer().setMSAASamples(m_rasterMsaaSamples);
   if (m_rasterMsaaShadingMode != "per_sample")
@@ -1607,6 +1611,11 @@ Renderer::rasterBeautyPassState(engine::graph::RenderPostProcessAA postProcessAA
   }
 
   state.sampling().setMSAASamples(m_rasterMsaaSamples);
+  if (m_rasterDepthPrepass == "on") {
+    state.depthPrepass().setMode(engine::raster::Rasterizer::DepthPrepassMode::On);
+  } else if (m_rasterDepthPrepass == "auto") {
+    state.depthPrepass().setMode(engine::raster::Rasterizer::DepthPrepassMode::Auto);
+  }
   if (m_rasterMsaaShadingMode == "per_fragment") {
     state.sampling().setMSAAShadingMode(engine::raster::Rasterizer::MSAAShadingMode::PerFragment);
   }
@@ -2506,6 +2515,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"raster_backend", "Rasterizer backend for graph raster passes (cpu, opengl, gpu)", "backend"},
      {"cull", "Rasterizer face culling mode (both, back, front)", "mode"},
      {"raster_culling", "Request graph-visible raster visibility culling (off, on, auto)", "mode"},
+     {"depth_prepass", "Request measured raster depth prepass (off, on, auto)", "mode"},
      {"msaa", "Rasterizer MSAA samples (1, 2, 4, or 8)", "samples"},
      {"msaa_shading", "Rasterizer MSAA shading mode (per_sample, per_fragment)", "mode"},
      {"post_aa", "Post-process anti-aliasing (none, fxaa, smaa; taa is rasterizer-only)", "mode"},
@@ -3046,6 +3056,15 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     m_rasterVisibilityCulling = mode;
   }
 
+  if (parser.isSet("depth_prepass")) {
+    const QString mode = normalizedRasterOption(parser.value("depth_prepass"));
+    if (mode != "off" && mode != "on" && mode != "auto") {
+      *errorMessage = "Raster depth prepass must be 'off', 'on', or 'auto'";
+      return CommandLineError;
+    }
+    m_rasterDepthPrepass = mode;
+  }
+
   if (parser.isSet("msaa")) {
     bool ok = false;
     m_rasterMsaaSamples = parser.value("msaa").toInt(&ok);
@@ -3435,7 +3454,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
        parser.isSet("render_graph_shading_parameter") || m_renderGraphWireframeOverlay ||
        m_renderGraphCurveOverlay || parser.isSet("disable_pass") ||
        parser.isSet("disable_pass_kind") || parser.isSet("disable_executor") ||
-       parser.isSet("disable_feature") || parser.isSet("raster_culling"))) {
+       parser.isSet("disable_feature") || parser.isSet("raster_culling") ||
+       parser.isSet("depth_prepass"))) {
     *errorMessage = "Cannot combine --direct_engine with render graph options";
     return CommandLineError;
   }

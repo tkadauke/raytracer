@@ -1624,6 +1624,9 @@ namespace GraphRenderEngineTest {
     const QJsonObject metadata = raster->metadata();
     EXPECT_TRUE(metadata.contains("timings"));
     EXPECT_TRUE(metadata.contains("fragments"));
+    EXPECT_TRUE(metadata.contains("depthPrepass"));
+    EXPECT_EQ("off", metadata.value("depthPrepass").toObject().value("requested").toString());
+    EXPECT_EQ("disabled", metadata.value("depthPrepass").toObject().value("decision").toString());
     EXPECT_GT(metadata.value("timings").toObject().value("totalRenderSeconds").toDouble(), 0.0);
     EXPECT_GT(metadata.value("tessellation")
                 .toObject()
