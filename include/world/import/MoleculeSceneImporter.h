@@ -6,6 +6,7 @@
 #include <QString>
 
 #include <memory>
+#include <optional>
 
 class Group;
 
@@ -26,6 +27,7 @@ namespace world {
     bool inferBondsWhenMissing{true};
     bool includeHydrogens{true};
     bool includeWater{true};
+    std::optional<int> modelId;
     QString backboneMode{QStringLiteral("overlay")};
     double backboneWidth{0.35};
   };

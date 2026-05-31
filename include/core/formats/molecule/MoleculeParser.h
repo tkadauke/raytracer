@@ -35,6 +35,14 @@ namespace molecule {
   class MoleculeParser {
   public:
     MoleculeParseResult parsePdb(std::istream& input) const;
+    /**
+      * Parses PDBx/mmCIF coordinate data.
+      *
+      * Alternate-location rows are collapsed deterministically by atom site:
+      * the first blank or alternate identifier encountered is kept, later
+      * alternatives for the same model/chain/residue/atom site are skipped
+      * with warnings so usable coordinates still import.
+      */
     MoleculeParseResult parseMmcif(std::istream& input) const;
     MoleculeParseResult parse(std::istream& input, const std::string& format) const;
   };

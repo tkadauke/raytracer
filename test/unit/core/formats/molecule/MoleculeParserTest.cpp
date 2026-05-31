@@ -94,6 +94,107 @@ namespace MoleculeParserTest {
     EXPECT_EQ(201, ligand.residueSequence);
   }
 
+  TEST(MoleculeParser, ShouldParseExplicitMmcifStructConnBonds) {
+    istringstream input("data_bonds\n"
+                        "loop_\n"
+                        "_atom_site.group_PDB\n"
+                        "_atom_site.id\n"
+                        "_atom_site.type_symbol\n"
+                        "_atom_site.label_atom_id\n"
+                        "_atom_site.label_comp_id\n"
+                        "_atom_site.label_asym_id\n"
+                        "_atom_site.label_seq_id\n"
+                        "_atom_site.Cartn_x\n"
+                        "_atom_site.Cartn_y\n"
+                        "_atom_site.Cartn_z\n"
+                        "ATOM 1 C C1 LIG A 1 0.0 0.0 0.0\n"
+                        "ATOM 2 O O1 LIG A 1 5.0 0.0 0.0\n"
+                        "loop_\n"
+                        "_struct_conn.conn_type_id\n"
+                        "_struct_conn.ptnr1_label_asym_id\n"
+                        "_struct_conn.ptnr1_label_comp_id\n"
+                        "_struct_conn.ptnr1_label_seq_id\n"
+                        "_struct_conn.ptnr1_label_atom_id\n"
+                        "_struct_conn.ptnr2_label_asym_id\n"
+                        "_struct_conn.ptnr2_label_comp_id\n"
+                        "_struct_conn.ptnr2_label_seq_id\n"
+                        "_struct_conn.ptnr2_label_atom_id\n"
+                        "covale A LIG 1 C1 A LIG 1 O1\n");
+
+    const auto result = molecule::MoleculeParser().parseMmcif(input);
+
+    ASSERT_FALSE(result.hasErrors());
+    ASSERT_EQ(1u, result.molecule().bonds().size());
+    EXPECT_EQ(0u, result.molecule().bonds()[0].firstAtomIndex);
+    EXPECT_EQ(1u, result.molecule().bonds()[0].secondAtomIndex);
+    EXPECT_FALSE(result.molecule().bonds()[0].inferred);
+  }
+
+  TEST(MoleculeParser, ShouldKeepFirstMmcifAlternateLocationAndWarnForSkippedRows) {
+    istringstream input("data_alt\n"
+                        "loop_\n"
+                        "_atom_site.group_PDB\n"
+                        "_atom_site.id\n"
+                        "_atom_site.type_symbol\n"
+                        "_atom_site.label_atom_id\n"
+                        "_atom_site.label_alt_id\n"
+                        "_atom_site.label_comp_id\n"
+                        "_atom_site.label_asym_id\n"
+                        "_atom_site.label_seq_id\n"
+                        "_atom_site.Cartn_x\n"
+                        "_atom_site.Cartn_y\n"
+                        "_atom_site.Cartn_z\n"
+                        "_atom_site.occupancy\n"
+                        "ATOM 1 C CA A GLY A 1 1.0 0.0 0.0 0.60\n"
+                        "ATOM 2 C CA B GLY A 1 9.0 0.0 0.0 0.40\n");
+
+    const auto result = molecule::MoleculeParser().parseMmcif(input);
+
+    ASSERT_TRUE(result.hasWarnings());
+    ASSERT_EQ(1u, result.molecule().atoms().size());
+    EXPECT_EQ(1, result.molecule().atoms()[0].serialNumber);
+    EXPECT_EQ("A", result.molecule().atoms()[0].alternateLocation);
+    EXPECT_DOUBLE_EQ(1.0, result.molecule().atoms()[0].position[0]);
+    ASSERT_EQ(1u, result.diagnostics().size());
+    EXPECT_NE(string::npos, result.diagnostics()[0].message.find("alternate location"));
+  }
+
+  TEST(MoleculeParser, ShouldWarnForUnresolvedMmcifStructConnRowsWithoutFailingCoordinates) {
+    istringstream input("data_bad_bond\n"
+                        "loop_\n"
+                        "_atom_site.group_PDB\n"
+                        "_atom_site.id\n"
+                        "_atom_site.type_symbol\n"
+                        "_atom_site.label_atom_id\n"
+                        "_atom_site.label_comp_id\n"
+                        "_atom_site.label_asym_id\n"
+                        "_atom_site.label_seq_id\n"
+                        "_atom_site.Cartn_x\n"
+                        "_atom_site.Cartn_y\n"
+                        "_atom_site.Cartn_z\n"
+                        "ATOM 1 C C1 LIG A 1 0.0 0.0 0.0\n"
+                        "loop_\n"
+                        "_struct_conn.conn_type_id\n"
+                        "_struct_conn.ptnr1_label_asym_id\n"
+                        "_struct_conn.ptnr1_label_comp_id\n"
+                        "_struct_conn.ptnr1_label_seq_id\n"
+                        "_struct_conn.ptnr1_label_atom_id\n"
+                        "_struct_conn.ptnr2_label_asym_id\n"
+                        "_struct_conn.ptnr2_label_comp_id\n"
+                        "_struct_conn.ptnr2_label_seq_id\n"
+                        "_struct_conn.ptnr2_label_atom_id\n"
+                        "covale A LIG 1 C1 A LIG 1 MISSING\n");
+
+    const auto result = molecule::MoleculeParser().parseMmcif(input);
+
+    EXPECT_TRUE(result.hasWarnings());
+    EXPECT_FALSE(result.hasErrors());
+    EXPECT_EQ(1u, result.molecule().atoms().size());
+    EXPECT_TRUE(result.molecule().bonds().empty());
+    ASSERT_EQ(1u, result.diagnostics().size());
+    EXPECT_NE(string::npos, result.diagnostics()[0].message.find("not imported"));
+  }
+
   TEST(MoleculeParser, ShouldWarnAndSkipPdbRecordsWithMissingCoordinates) {
     istringstream input(
       "ATOM      1  N   GLY A   1      11.104          9.321  1.00 16.44           N\n");
