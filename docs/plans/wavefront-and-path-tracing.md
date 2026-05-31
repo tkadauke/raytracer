@@ -379,6 +379,11 @@ the scene background when throughput falls below `RAYTRACER_THROUGHPUT_CUTOFF`. 
 validates the throughput-tracking arithmetic in a smaller, easier-to-debug
 context before the wavefront engine exists.
 
+Follow-up utility work is also in place: `render/PathTermination.h` now exposes
+explicit Russian-roulette continuation probabilities and survival weights, with
+unit coverage proving the expected throughput stays unchanged. ✅ **Done.**
+Supports Epic #358.
+
 ### Phase 2 — bare wavefront engine: same outputs as Raytracer
 
 New `WavefrontRaytracer` sibling under `include/engine/wavefront/`.

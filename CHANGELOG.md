@@ -91,6 +91,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Russian-roulette path-continuation helpers.** New
+  `render/PathTermination.h` utilities compute explicit continuation
+  probabilities and survival weights for scalar or RGB throughput, with tests
+  pinning unbiased expected-throughput preservation for future Monte Carlo
+  integrators. Whitted recursion behavior is unchanged. Supports Epic #358. —
+  GPT-5
 - **Modeler preview FPS overlay.** Render → Preview Engine → FPS Overlay
   toggles a small black-on-white box in the top-right of the preview window
   showing the rolling mean FPS and frame time over the last 30 finished
