@@ -13,11 +13,10 @@
 #include "engine/raster/detail/OpenGLRasterTextures.h"
 #include "engine/raster/detail/OpenGLShadowTextureData.h"
 #include "engine/raster/detail/RasterShadowMaps.h"
+#include "engine/raster/gl/Bindings.h"
 #include "render/cameras/Camera.h"
 #include "render/textures/ImageTexture.h"
 #include "render/viewplanes/ViewPlane.h"
-
-#include <QOpenGLFunctions>
 
 #include <algorithm>
 #include <chrono>
@@ -108,7 +107,7 @@ namespace engine::raster {
           timings.drawElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - drawStarted);
           const auto glFinishStarted = std::chrono::steady_clock::now();
-          QOpenGLContext::currentContext()->functions()->glFinish();
+          glFinish();
           timings.glFinishElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - glFinishStarted);
           const auto readbackStarted = std::chrono::steady_clock::now();
@@ -144,36 +143,35 @@ namespace engine::raster {
         // `OpenGLRasterizer::renderOpenGL` before the context is bound;
         // by the time we reach `draw()`, color/depth/stencil load ops
         // are all guaranteed to be `Clear` or `DontCare`.
-        QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
-        functions->glViewport(m_viewportRect.left(), openGLY(m_viewportRect),
-                              m_viewportRect.width(), m_viewportRect.height());
-        functions->glDisable(GL_SCISSOR_TEST);
-        functions->glEnable(GL_DEPTH_TEST);
-        functions->glDepthMask(GL_TRUE);
-        functions->glClearColor(static_cast<GLfloat>(std::clamp(background.r(), 0.0, 1.0)),
-                                static_cast<GLfloat>(std::clamp(background.g(), 0.0, 1.0)),
-                                static_cast<GLfloat>(std::clamp(background.b(), 0.0, 1.0)), 1.0f);
-        functions->glClearDepthf(detail::normalizedDepthClearValue(m_depthClearValue));
-        functions->glStencilMask(0xff);
-        functions->glClearStencil(m_stencilClearValue);
-        functions->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        glViewport(m_viewportRect.left(), openGLY(m_viewportRect), m_viewportRect.width(),
+                   m_viewportRect.height());
+        glDisable(GL_SCISSOR_TEST);
+        glEnable(GL_DEPTH_TEST);
+        glDepthMask(GL_TRUE);
+        glClearColor(static_cast<GLfloat>(std::clamp(background.r(), 0.0, 1.0)),
+                     static_cast<GLfloat>(std::clamp(background.g(), 0.0, 1.0)),
+                     static_cast<GLfloat>(std::clamp(background.b(), 0.0, 1.0)), 1.0f);
+        glClearDepth(detail::normalizedDepthClearValue(m_depthClearValue));
+        glStencilMask(0xff);
+        glClearStencil(m_stencilClearValue);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         const detail::OpenGLRasterDrawState fixedState = fixedFunctionStateSlice();
-        detail::applyDepth(functions, fixedState);
-        detail::applyColorWriteMask(functions, fixedState);
-        detail::applyBlending(functions, fixedState);
-        detail::applyStencil(functions, fixedState);
-        detail::applyCullMode(functions, fixedState);
-        detail::OpenGLShadowTexture shadowTexture(functions, m_shadowTextureData);
+        detail::applyDepth(fixedState);
+        detail::applyColorWriteMask(fixedState);
+        detail::applyBlending(fixedState);
+        detail::applyStencil(fixedState);
+        detail::applyCullMode(fixedState);
+        detail::OpenGLShadowTexture shadowTexture(m_shadowTextureData);
 
         if (mesh.empty()) {
-          functions->glFlush();
-          detail::resetFixedFunctionState(functions);
+          glFlush();
+          detail::resetFixedFunctionState();
           return;
         }
 
-        detail::applyScissor(functions, fixedState, m_height);
+        detail::applyScissor(fixedState, m_height);
 
-        detail::OpenGLFallbackTexture fallbackTexture(functions);
+        detail::OpenGLFallbackTexture fallbackTexture;
         m_resources.ensureProgram();
         gl::ShaderProgram& program = *m_resources.program;
         if (!program.bind()) {
@@ -184,7 +182,7 @@ namespace engine::raster {
           const Matrix4f gpu(*m_viewProjection);
           const int loc = program.uniformLocation("viewProjection");
           if (loc >= 0) {
-            functions->glUniformMatrix4fv(loc, 1, GL_TRUE, gpu.data());
+            glUniformMatrix4fv(loc, 1, GL_TRUE, gpu.data());
           }
         }
         program.setUniformValue("alphaTestEnabled", m_alphaTestEnabled);
@@ -297,11 +295,11 @@ namespace engine::raster {
           if (m_cancelled.load()) {
             break;
           }
-          functions->glActiveTexture(GL_TEXTURE0);
+          glActiveTexture(GL_TEXTURE0);
           if (batch.albedo.mode == detail::RasterAlbedoShaderMode::ImageTexture &&
               batch.albedo.image) {
-            functions->glBindTexture(
-              GL_TEXTURE_2D, m_resources.imageTextures->textureFor(*batch.albedo.image, functions));
+            glBindTexture(GL_TEXTURE_2D,
+                          m_resources.imageTextures->textureFor(*batch.albedo.image));
           } else {
             fallbackTexture.bind(0);
           }
@@ -319,20 +317,20 @@ namespace engine::raster {
                                   static_cast<GLfloat>(batch.albedo.checkerDark.b()));
           const auto byteOffset = reinterpret_cast<const void*>(
             static_cast<std::uintptr_t>(batch.indexOffset * sizeof(std::uint32_t)));
-          functions->glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(batch.indexCount),
-                                    GL_UNSIGNED_INT, byteOffset);
+          glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(batch.indexCount), GL_UNSIGNED_INT,
+                         byteOffset);
         }
-        functions->glBindTexture(GL_TEXTURE_2D, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
         if (shadowTexture.enabled()) {
           shadowTexture.release(1);
         } else {
           fallbackTexture.release(1);
         }
         fallbackTexture.release(0);
-        functions->glActiveTexture(GL_TEXTURE0);
-        functions->glFlush();
+        glActiveTexture(GL_TEXTURE0);
+        glFlush();
 
-        detail::resetFixedFunctionState(functions);
+        detail::resetFixedFunctionState();
 
         program.disableAttributeArray(albedoModeLocation);
         program.disableAttributeArray(specularLocation);

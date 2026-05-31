@@ -9,7 +9,6 @@
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFramebufferObjectFormat>
-#include <QOpenGLFunctions>
 #include <QRect>
 #include <QSurfaceFormat>
 #include <QThread>
@@ -283,8 +282,7 @@ namespace engine::raster {
       const int width = std::min(target.width(), source.width());
       const int height = std::min(target.height(), source.height());
       std::vector<GLfloat> pixels(static_cast<std::size_t>(width * height * 4), 0.0f);
-      QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
-      functions->glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, pixels.data());
+      glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, pixels.data());
 
       for (int y = 0; y != height; ++y) {
         const int sourceY = height - 1 - y;
@@ -371,8 +369,7 @@ namespace engine::raster {
       const int width = std::min(target.width(), source.width());
       const int height = std::min(target.height(), source.height());
       std::vector<GLfloat> pixels(static_cast<std::size_t>(width * height), 1.0f);
-      QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
-      functions->glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, pixels.data());
+      glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, pixels.data());
 
       for (int y = 0; y != height; ++y) {
         const int sourceY = height - 1 - y;
@@ -399,9 +396,7 @@ namespace engine::raster {
       const int width = std::min(target.width(), source.width());
       const int height = std::min(target.height(), source.height());
       std::vector<GLubyte> pixels(static_cast<std::size_t>(width * height), 0);
-      QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
-      functions->glReadPixels(0, 0, width, height, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE,
-                              pixels.data());
+      glReadPixels(0, 0, width, height, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, pixels.data());
 
       for (int y = 0; y != height; ++y) {
         const int sourceY = height - 1 - y;

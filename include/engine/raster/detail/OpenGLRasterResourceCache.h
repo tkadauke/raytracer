@@ -13,8 +13,6 @@
 #include <optional>
 #include <unordered_map>
 
-class QOpenGLFunctions;
-
 namespace render {
   class ImageTexture;
   class Scene;
@@ -59,8 +57,8 @@ namespace engine::raster::detail {
   struct OpenGLRasterImageTextureCache {
     std::unordered_map<const render::ImageTexture*, std::uint32_t> textures;
 
-    std::uint32_t textureFor(const render::ImageTexture& image, QOpenGLFunctions* functions);
-    void releaseAll(QOpenGLFunctions* functions);
+    std::uint32_t textureFor(const render::ImageTexture& image);
+    void releaseAll();
   };
 
   /**

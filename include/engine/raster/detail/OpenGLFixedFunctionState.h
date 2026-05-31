@@ -2,8 +2,7 @@
 
 #include "engine/raster/Rasterizer.h"
 #include "engine/raster/detail/OpenGLRasterDrawState.h"
-
-#include <QOpenGLFunctions>
+#include "engine/raster/gl/Bindings.h"
 
 #include <algorithm>
 #include <cmath>
@@ -16,9 +15,9 @@ namespace engine::raster::detail {
     * time we add a state knob and so the residency-substrate work can
     * reuse them across a per-attachment-set draw scaffold.
     *
-    * All entry points take a `QOpenGLFunctions*` so the caller controls
-    * which function loader they're issued against; that becomes a
-    * cleaner seam when the Qt → native-GL decoupling lands.
+    * The helpers call raw `gl*` symbols (via `gl/Bindings.h`); the
+    * caller must have a GL context current when invoking them, but
+    * the context can be any backend — Qt-backed or native CGL.
     */
 
   inline GLenum toGLDepthFunc(Rasterizer::DepthFunc func) {
@@ -137,67 +136,63 @@ namespace engine::raster::detail {
     return static_cast<GLfloat>(std::clamp(positiveDepth / (positiveDepth + 1.0), 0.0, 1.0));
   }
 
-  inline void applyDepth(QOpenGLFunctions* functions, const OpenGLRasterDrawState& state) {
-    functions->glDepthFunc(toGLDepthFunc(state.depthFunc));
-    functions->glDepthMask(state.depthWriteEnabled ? GL_TRUE : GL_FALSE);
+  inline void applyDepth(const OpenGLRasterDrawState& state) {
+    glDepthFunc(toGLDepthFunc(state.depthFunc));
+    glDepthMask(state.depthWriteEnabled ? GL_TRUE : GL_FALSE);
   }
 
-  inline void applyScissor(QOpenGLFunctions* functions, const OpenGLRasterDrawState& state,
-                           int framebufferHeight) {
+  inline void applyScissor(const OpenGLRasterDrawState& state, int framebufferHeight) {
     if (!state.scissorEnabled) {
-      functions->glDisable(GL_SCISSOR_TEST);
+      glDisable(GL_SCISSOR_TEST);
       return;
     }
-    functions->glEnable(GL_SCISSOR_TEST);
-    functions->glScissor(state.scissorRect.left(), framebufferHeight - state.scissorRect.bottom(),
-                         state.scissorRect.width(), state.scissorRect.height());
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(state.scissorRect.left(), framebufferHeight - state.scissorRect.bottom(),
+              state.scissorRect.width(), state.scissorRect.height());
   }
 
-  inline void applyColorWriteMask(QOpenGLFunctions* functions, const OpenGLRasterDrawState& state) {
-    functions->glColorMask((state.colorWriteMask & Rasterizer::ColorWriteRed) != 0,
-                           (state.colorWriteMask & Rasterizer::ColorWriteGreen) != 0,
-                           (state.colorWriteMask & Rasterizer::ColorWriteBlue) != 0, GL_TRUE);
+  inline void applyColorWriteMask(const OpenGLRasterDrawState& state) {
+    glColorMask((state.colorWriteMask & Rasterizer::ColorWriteRed) != 0,
+                (state.colorWriteMask & Rasterizer::ColorWriteGreen) != 0,
+                (state.colorWriteMask & Rasterizer::ColorWriteBlue) != 0, GL_TRUE);
   }
 
-  inline void applyBlending(QOpenGLFunctions* functions, const OpenGLRasterDrawState& state) {
+  inline void applyBlending(const OpenGLRasterDrawState& state) {
     if (!state.blendingEnabled) {
-      functions->glDisable(GL_BLEND);
+      glDisable(GL_BLEND);
       return;
     }
-    functions->glEnable(GL_BLEND);
-    functions->glBlendColor(
-      static_cast<GLclampf>(std::clamp(state.blendConstantColor.r(), 0.0, 1.0)),
-      static_cast<GLclampf>(std::clamp(state.blendConstantColor.g(), 0.0, 1.0)),
-      static_cast<GLclampf>(std::clamp(state.blendConstantColor.b(), 0.0, 1.0)),
-      static_cast<GLclampf>(std::clamp(state.blendConstantAlpha, 0.0, 1.0)));
-    functions->glBlendFunc(toGLBlendFactor(state.sourceBlendFactor),
-                           toGLBlendFactor(state.destinationBlendFactor));
-    functions->glBlendEquation(toGLBlendOp(state.blendOp));
+    glEnable(GL_BLEND);
+    glBlendColor(static_cast<GLclampf>(std::clamp(state.blendConstantColor.r(), 0.0, 1.0)),
+                 static_cast<GLclampf>(std::clamp(state.blendConstantColor.g(), 0.0, 1.0)),
+                 static_cast<GLclampf>(std::clamp(state.blendConstantColor.b(), 0.0, 1.0)),
+                 static_cast<GLclampf>(std::clamp(state.blendConstantAlpha, 0.0, 1.0)));
+    glBlendFunc(toGLBlendFactor(state.sourceBlendFactor),
+                toGLBlendFactor(state.destinationBlendFactor));
+    glBlendEquation(toGLBlendOp(state.blendOp));
   }
 
-  inline void applyCullMode(QOpenGLFunctions* functions, const OpenGLRasterDrawState& state) {
+  inline void applyCullMode(const OpenGLRasterDrawState& state) {
     if (!state.hasCullModeOverride || state.cullMode == Rasterizer::CullMode::Both) {
-      functions->glDisable(GL_CULL_FACE);
+      glDisable(GL_CULL_FACE);
       return;
     }
-    functions->glEnable(GL_CULL_FACE);
-    functions->glFrontFace(GL_CCW);
-    functions->glCullFace(state.cullMode == Rasterizer::CullMode::Back ? GL_BACK : GL_FRONT);
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CCW);
+    glCullFace(state.cullMode == Rasterizer::CullMode::Back ? GL_BACK : GL_FRONT);
   }
 
-  inline void applyStencil(QOpenGLFunctions* functions, const OpenGLRasterDrawState& state) {
+  inline void applyStencil(const OpenGLRasterDrawState& state) {
     if (!state.stencilTestEnabled) {
-      functions->glDisable(GL_STENCIL_TEST);
-      functions->glStencilMask(0xff);
+      glDisable(GL_STENCIL_TEST);
+      glStencilMask(0xff);
       return;
     }
-    functions->glEnable(GL_STENCIL_TEST);
-    functions->glStencilFunc(toGLStencilFunc(state.stencilFunc), state.stencilReference,
-                             state.stencilMask);
-    functions->glStencilMask(state.stencilWriteMask);
-    functions->glStencilOp(toGLStencilOp(state.stencilFailOp),
-                           toGLStencilOp(state.stencilDepthFailOp),
-                           toGLStencilOp(state.stencilPassOp));
+    glEnable(GL_STENCIL_TEST);
+    glStencilFunc(toGLStencilFunc(state.stencilFunc), state.stencilReference, state.stencilMask);
+    glStencilMask(state.stencilWriteMask);
+    glStencilOp(toGLStencilOp(state.stencilFailOp), toGLStencilOp(state.stencilDepthFailOp),
+                toGLStencilOp(state.stencilPassOp));
   }
 
   /**
@@ -205,14 +200,14 @@ namespace engine::raster::detail {
     * the draw pass and tests expect at scope exit. Mirrors what every
     * `apply*` above might have changed.
     */
-  inline void resetFixedFunctionState(QOpenGLFunctions* functions) {
-    functions->glDisable(GL_SCISSOR_TEST);
-    functions->glDisable(GL_BLEND);
-    functions->glDisable(GL_STENCIL_TEST);
-    functions->glDisable(GL_CULL_FACE);
-    functions->glStencilMask(0xff);
-    functions->glDepthMask(GL_TRUE);
-    functions->glDepthFunc(GL_LESS);
-    functions->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+  inline void resetFixedFunctionState() {
+    glDisable(GL_SCISSOR_TEST);
+    glDisable(GL_BLEND);
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_CULL_FACE);
+    glStencilMask(0xff);
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
   }
 }

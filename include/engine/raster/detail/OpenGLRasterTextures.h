@@ -1,8 +1,7 @@
 #pragma once
 
 #include "engine/raster/detail/OpenGLShadowTextureData.h"
-
-#include <QOpenGLFunctions>
+#include "engine/raster/gl/Bindings.h"
 
 #include <cstdint>
 #include <stdexcept>
@@ -20,28 +19,27 @@ namespace engine::raster::detail {
     */
   class OpenGLFallbackTexture {
   public:
-    explicit OpenGLFallbackTexture(QOpenGLFunctions* functions)
-        : m_functions(functions) {
+    OpenGLFallbackTexture() {
       static constexpr GLfloat pixels[] = {1.0f, 1.0f, 1.0f, 1.0f};
 
-      m_functions->glGenTextures(1, &m_texture);
+      glGenTextures(1, &m_texture);
       if (m_texture == 0) {
         throw std::runtime_error("OpenGL raster backend could not allocate a fallback texture");
       }
 
-      m_functions->glBindTexture(GL_TEXTURE_2D, m_texture);
-      m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      m_functions->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-      m_functions->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_FLOAT, pixels);
-      m_functions->glBindTexture(GL_TEXTURE_2D, 0);
+      glBindTexture(GL_TEXTURE_2D, m_texture);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_FLOAT, pixels);
+      glBindTexture(GL_TEXTURE_2D, 0);
     }
 
     ~OpenGLFallbackTexture() {
       if (m_texture != 0) {
-        m_functions->glDeleteTextures(1, &m_texture);
+        glDeleteTextures(1, &m_texture);
       }
     }
 
@@ -49,17 +47,16 @@ namespace engine::raster::detail {
     OpenGLFallbackTexture& operator=(const OpenGLFallbackTexture&) = delete;
 
     void bind(int textureUnit) const {
-      m_functions->glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
-      m_functions->glBindTexture(GL_TEXTURE_2D, m_texture);
+      glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
+      glBindTexture(GL_TEXTURE_2D, m_texture);
     }
 
     void release(int textureUnit) const {
-      m_functions->glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
-      m_functions->glBindTexture(GL_TEXTURE_2D, 0);
+      glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
+      glBindTexture(GL_TEXTURE_2D, 0);
     }
 
   private:
-    QOpenGLFunctions* m_functions;
     GLuint m_texture{0};
   };
 
@@ -72,31 +69,30 @@ namespace engine::raster::detail {
     */
   class OpenGLShadowTexture {
   public:
-    OpenGLShadowTexture(QOpenGLFunctions* functions, const OpenGLShadowTextureData& data)
-        : m_functions(functions) {
+    explicit OpenGLShadowTexture(const OpenGLShadowTextureData& data) {
       if (!data.enabled()) {
         return;
       }
 
-      m_functions->glGenTextures(1, &m_texture);
+      glGenTextures(1, &m_texture);
       if (m_texture == 0) {
         throw std::runtime_error("OpenGL raster backend could not allocate a shadow texture");
       }
 
-      m_functions->glBindTexture(GL_TEXTURE_2D, m_texture);
-      m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      m_functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      m_functions->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-      m_functions->glTexImage2D(GL_TEXTURE_2D, 0, internalFormat(), data.width(), data.height(), 0,
-                                GL_RGBA, GL_FLOAT, data.rgbaPixels().data());
-      m_functions->glBindTexture(GL_TEXTURE_2D, 0);
+      glBindTexture(GL_TEXTURE_2D, m_texture);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+      glTexImage2D(GL_TEXTURE_2D, 0, internalFormat(), data.width(), data.height(), 0, GL_RGBA,
+                   GL_FLOAT, data.rgbaPixels().data());
+      glBindTexture(GL_TEXTURE_2D, 0);
     }
 
     ~OpenGLShadowTexture() {
       if (m_texture != 0) {
-        m_functions->glDeleteTextures(1, &m_texture);
+        glDeleteTextures(1, &m_texture);
       }
     }
 
@@ -108,13 +104,13 @@ namespace engine::raster::detail {
     }
 
     void bind(int textureUnit) const {
-      m_functions->glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
-      m_functions->glBindTexture(GL_TEXTURE_2D, m_texture);
+      glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
+      glBindTexture(GL_TEXTURE_2D, m_texture);
     }
 
     void release(int textureUnit) const {
-      m_functions->glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
-      m_functions->glBindTexture(GL_TEXTURE_2D, 0);
+      glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + textureUnit));
+      glBindTexture(GL_TEXTURE_2D, 0);
     }
 
   private:
@@ -126,7 +122,6 @@ namespace engine::raster::detail {
 #endif
     }
 
-    QOpenGLFunctions* m_functions;
     GLuint m_texture{0};
   };
 }

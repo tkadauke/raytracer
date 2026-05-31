@@ -1,11 +1,9 @@
 #include "engine/raster/detail/OpenGLRasterResourceCache.h"
 
 #include "engine/raster/detail/OpenGLRasterShaderSources.h"
+#include "engine/raster/gl/Bindings.h"
 #include "engine/raster/gl/createContext.h"
 #include "render/textures/ImageTexture.h"
-
-#include <QOpenGLContext>
-#include <QOpenGLFunctions>
 
 #include <algorithm>
 #include <stdexcept>
@@ -47,39 +45,38 @@ namespace engine::raster::detail {
     }
   }
 
-  std::uint32_t OpenGLRasterImageTextureCache::textureFor(const render::ImageTexture& image,
-                                                          QOpenGLFunctions* functions) {
+  std::uint32_t OpenGLRasterImageTextureCache::textureFor(const render::ImageTexture& image) {
     const auto cached = textures.find(&image);
     if (cached != textures.end()) {
       return cached->second;
     }
 
     GLuint texture = 0;
-    functions->glGenTextures(1, &texture);
+    glGenTextures(1, &texture);
     if (texture == 0) {
       throw std::runtime_error("OpenGL raster backend could not allocate an image texture");
     }
 
-    functions->glBindTexture(GL_TEXTURE_2D, texture);
-    functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glMinFilter(image));
-    functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glMagFilter(image));
-    functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glWrapMode(image));
-    functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrapMode(image));
-    functions->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glMinFilter(image));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glMagFilter(image));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glWrapMode(image));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrapMode(image));
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     for (int level = 0; level != image.mipLevelCount(); ++level) {
       const std::vector<GLfloat> pixels = texturePixels(image.pixels(level));
-      functions->glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, image.width(level),
-                              image.height(level), 0, GL_RGBA, GL_FLOAT, pixels.data());
+      glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, image.width(level), image.height(level), 0,
+                   GL_RGBA, GL_FLOAT, pixels.data());
     }
-    functions->glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
     textures.emplace(&image, texture);
     return texture;
   }
 
-  void OpenGLRasterImageTextureCache::releaseAll(QOpenGLFunctions* functions) {
+  void OpenGLRasterImageTextureCache::releaseAll() {
     for (const auto& entry : textures) {
       GLuint texture = entry.second;
-      functions->glDeleteTextures(1, &texture);
+      glDeleteTextures(1, &texture);
     }
     textures.clear();
   }
@@ -162,8 +159,7 @@ namespace engine::raster::detail {
     context->migrateToCurrentThread();
     if (context->makeCurrent()) {
       if (imageTextures) {
-        QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
-        imageTextures->releaseAll(functions);
+        imageTextures->releaseAll();
       }
       vertexBuffer.reset();
       indexBuffer.reset();
