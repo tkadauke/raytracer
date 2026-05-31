@@ -17,7 +17,6 @@
 #include "render/textures/ImageTexture.h"
 #include "render/viewplanes/ViewPlane.h"
 
-#include <QOpenGLBuffer>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
 
@@ -204,8 +203,8 @@ namespace engine::raster {
         }
 
         m_resources.ensureMeshBuffers();
-        QOpenGLBuffer& vertexBuffer = *m_resources.vertexBuffer;
-        QOpenGLBuffer& indexBuffer = *m_resources.indexBuffer;
+        gl::Buffer& vertexBuffer = *m_resources.vertexBuffer;
+        gl::Buffer& indexBuffer = *m_resources.indexBuffer;
 
         vertexBuffer.bind();
         indexBuffer.bind();

@@ -120,16 +120,21 @@ namespace engine::raster::gl {
     /// Unbind the FBO; pair with `bindFramebuffer`.
     virtual void releaseFramebuffer() = 0;
 
+    // `::Buffer<T>` is the global pixel-buffer template (core/Buffer.h);
+    // qualify it so the unqualified name doesn't resolve to
+    // `engine::raster::gl::Buffer` (the VBO/IBO wrapper) when the
+    // resource cache pulls both headers in.
+
     /// Read the FBO's color attachment into `target`, flipping rows
     /// so the buffer's row-0 is the visible top.
-    virtual void copyColorTo(Buffer<Colord>& target) const = 0;
+    virtual void copyColorTo(::Buffer<Colord>& target) const = 0;
 
     /// Read the FBO's depth attachment into `target` as normalized
     /// [0, 1] doubles, with the same row-flip as `copyColorTo`.
-    virtual void copyDepthTo(Buffer<double>& target) const = 0;
+    virtual void copyDepthTo(::Buffer<double>& target) const = 0;
 
     /// Read the FBO's stencil attachment as raw bytes, row-flipped.
-    virtual void copyStencilTo(Buffer<std::uint8_t>& target) const = 0;
+    virtual void copyStencilTo(::Buffer<std::uint8_t>& target) const = 0;
 
     /// Last operation's error message, set when `create`, `migrate*`,
     /// `makeCurrent`, or `bindFramebuffer` return false. Empty when

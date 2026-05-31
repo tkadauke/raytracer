@@ -4,7 +4,6 @@
 #include "engine/raster/gl/createContext.h"
 #include "render/textures/ImageTexture.h"
 
-#include <QOpenGLBuffer>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 #include <QOpenGLShader>
@@ -227,14 +226,14 @@ namespace engine::raster::detail {
 
   void OpenGLRasterResourceCache::ensureMeshBuffers() {
     if (!vertexBuffer) {
-      vertexBuffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+      vertexBuffer = std::make_unique<gl::Buffer>(gl::Buffer::Target::Vertex);
       if (!vertexBuffer->create()) {
         vertexBuffer.reset();
         throw std::runtime_error("OpenGL raster backend could not create a vertex buffer object");
       }
     }
     if (!indexBuffer) {
-      indexBuffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
+      indexBuffer = std::make_unique<gl::Buffer>(gl::Buffer::Target::Index);
       if (!indexBuffer->create()) {
         indexBuffer.reset();
         throw std::runtime_error("OpenGL raster backend could not create an index buffer object");

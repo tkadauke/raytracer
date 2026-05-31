@@ -3,6 +3,7 @@
 #include "core/math/Vector.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/raster/detail/OpenGLRasterMesh.h"
+#include "engine/raster/gl/Buffer.h"
 #include "engine/raster/gl/Context.h"
 
 #include <array>
@@ -11,7 +12,6 @@
 #include <optional>
 #include <unordered_map>
 
-class QOpenGLBuffer;
 class QOpenGLFunctions;
 class QOpenGLShaderProgram;
 
@@ -148,8 +148,8 @@ namespace engine::raster::detail {
     std::unique_ptr<QOpenGLShaderProgram> program;
     OpenGLRasterAttributeLocations locations;
     std::unique_ptr<OpenGLRasterImageTextureCache> imageTextures;
-    std::unique_ptr<QOpenGLBuffer> vertexBuffer;
-    std::unique_ptr<QOpenGLBuffer> indexBuffer;
+    std::unique_ptr<gl::Buffer> vertexBuffer;
+    std::unique_ptr<gl::Buffer> indexBuffer;
     std::array<OpenGLCachedMeshEntry, kOpenGLMeshCacheSize> meshCache;
     // Monotonic tick used as the LRU sort key. Bumped on every cache
     // build/hit; new builds get the highest value, the slot with the
