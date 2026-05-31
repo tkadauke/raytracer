@@ -5,8 +5,10 @@
 #include <istream>
 #include <map>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <stdexcept>
+#include <tuple>
 #include <utility>
 
 using namespace std;
@@ -16,6 +18,28 @@ namespace molecule {
     struct Token {
       string text;
       int line{1};
+    };
+
+    struct AtomSiteKey {
+      int modelId{1};
+      string chainId;
+      int residueSequence{0};
+      string insertionCode;
+      string residueName;
+      string atomName;
+
+      bool operator<(const AtomSiteKey& other) const {
+        return tie(modelId, chainId, residueSequence, insertionCode, residueName, atomName) <
+               tie(other.modelId, other.chainId, other.residueSequence, other.insertionCode,
+                   other.residueName, other.atomName);
+      }
+    };
+
+    struct MmcifConnection {
+      AtomSiteKey first;
+      AtomSiteKey second;
+      int order{1};
+      int line{-1};
     };
 
     string trim(string value) {
@@ -86,6 +110,19 @@ namespace molecule {
         }
       }
       return element;
+    }
+
+    string normalizedAltId(const string& value) {
+      return normalizeCifValue(value);
+    }
+
+    int bondOrderForConnType(const string& type) {
+      const auto normalized = lowercased(type);
+      if (normalized.find("doub") != string::npos)
+        return 2;
+      if (normalized.find("trip") != string::npos)
+        return 3;
+      return 1;
     }
 
     vector<Token> tokenizeCif(istream& input) {
@@ -160,6 +197,49 @@ namespace molecule {
           return normalizeCifValue(fallbackFound->second);
       }
       return "";
+    }
+
+    string valueForAny(const map<string, string>& row, const vector<string>& names) {
+      for (const auto& name : names) {
+        const auto found = row.find(name);
+        if (found != row.end())
+          return normalizeCifValue(found->second);
+      }
+      return "";
+    }
+
+    AtomSiteKey atomSiteKeyFromRow(const map<string, string>& row) {
+      AtomSiteKey key;
+      key.modelId = parseOptionalInt(valueFor(row, "_atom_site.pdbx_PDB_model_num")).value_or(1);
+      key.atomName = valueFor(row, "_atom_site.auth_atom_id", "_atom_site.label_atom_id");
+      key.residueName = valueFor(row, "_atom_site.auth_comp_id", "_atom_site.label_comp_id");
+      key.chainId = valueFor(row, "_atom_site.auth_asym_id", "_atom_site.label_asym_id");
+      key.residueSequence =
+        parseOptionalInt(valueFor(row, "_atom_site.auth_seq_id", "_atom_site.label_seq_id"))
+          .value_or(0);
+      key.insertionCode = valueFor(row, "_atom_site.pdbx_PDB_ins_code");
+      return key;
+    }
+
+    AtomSiteKey connectionPartnerKeyFromRow(const map<string, string>& row, const string& prefix) {
+      AtomSiteKey key;
+      key.modelId =
+        parseOptionalInt(valueForAny(row, {"_struct_conn." + prefix + "_label_model_id",
+                                           "_struct_conn.pdbx_" + prefix + "_PDB_model_num"}))
+          .value_or(1);
+      key.atomName = valueForAny(row, {"_struct_conn." + prefix + "_auth_atom_id",
+                                       "_struct_conn." + prefix + "_label_atom_id"});
+      key.residueName = valueForAny(row, {"_struct_conn." + prefix + "_auth_comp_id",
+                                          "_struct_conn." + prefix + "_label_comp_id"});
+      key.chainId = valueForAny(row, {"_struct_conn." + prefix + "_auth_asym_id",
+                                      "_struct_conn." + prefix + "_label_asym_id"});
+      key.residueSequence =
+        parseOptionalInt(valueForAny(row, {"_struct_conn." + prefix + "_auth_seq_id",
+                                           "_struct_conn." + prefix + "_label_seq_id"}))
+          .value_or(0);
+      key.insertionCode = valueForAny(row, {"_struct_conn.pdbx_" + prefix + "_PDB_ins_code",
+                                            "_struct_conn." + prefix + "_PDB_ins_code"});
+      return key;
     }
 
     vector<int> parsePdbConectSerials(const string& line) {
@@ -301,6 +381,9 @@ namespace molecule {
   MoleculeParseResult MoleculeParser::parseMmcif(istream& input) const {
     MoleculeParseResult result;
     const auto tokens = tokenizeCif(input);
+    map<AtomSiteKey, size_t> atomIndexBySite;
+    set<AtomSiteKey> acceptedAtomSites;
+    vector<MmcifConnection> connections;
 
     for (size_t i = 0; i < tokens.size();) {
       const auto& token = tokens[i];
@@ -318,6 +401,9 @@ namespace molecule {
         const bool isAtomSiteLoop = any_of(tags.begin(), tags.end(), [](const Token& tag) {
           return startsWith(tag.text, "_atom_site.");
         });
+        const bool isStructConnLoop = any_of(tags.begin(), tags.end(), [](const Token& tag) {
+          return startsWith(tag.text, "_struct_conn.");
+        });
         if (tags.empty()) {
           addWarning(result, "mmCIF loop_ has no tags", token.line);
           continue;
@@ -331,47 +417,82 @@ namespace molecule {
             break;
           }
 
-          if (isAtomSiteLoop) {
+          if (isAtomSiteLoop || isStructConnLoop) {
             map<string, string> row;
             const auto rowLine = tokens[i].line;
             for (size_t tagIndex = 0; tagIndex < tags.size(); ++tagIndex)
               row[tags[tagIndex].text] = tokens[i + tagIndex].text;
 
-            try {
-              const auto x = parseOptionalDouble(valueFor(row, "_atom_site.Cartn_x"));
-              const auto y = parseOptionalDouble(valueFor(row, "_atom_site.Cartn_y"));
-              const auto z = parseOptionalDouble(valueFor(row, "_atom_site.Cartn_z"));
-              if (!x || !y || !z) {
-                addWarning(result, "atom_site row is missing one or more coordinates", rowLine);
-              } else {
-                Atom atom;
-                atom.hetero = valueFor(row, "_atom_site.group_PDB") == "HETATM";
-                atom.serialNumber = parseOptionalInt(valueFor(row, "_atom_site.id")).value_or(0);
-                atom.name = valueFor(row, "_atom_site.auth_atom_id", "_atom_site.label_atom_id");
-                atom.alternateLocation = valueFor(row, "_atom_site.label_alt_id");
-                atom.element = valueFor(row, "_atom_site.type_symbol");
-                atom.residueName =
-                  valueFor(row, "_atom_site.auth_comp_id", "_atom_site.label_comp_id");
-                atom.chainId = valueFor(row, "_atom_site.auth_asym_id", "_atom_site.label_asym_id");
-                atom.residueSequence = parseOptionalInt(valueFor(row, "_atom_site.auth_seq_id",
-                                                                 "_atom_site.label_seq_id"))
-                                         .value_or(0);
-                atom.insertionCode = valueFor(row, "_atom_site.pdbx_PDB_ins_code");
-                atom.position = Vector3d(*x, *y, *z);
-                atom.occupancy = parseOptionalDouble(valueFor(row, "_atom_site.occupancy"));
-                atom.temperatureFactor =
-                  parseOptionalDouble(valueFor(row, "_atom_site.B_iso_or_equiv"));
-                atom.modelId =
-                  parseOptionalInt(valueFor(row, "_atom_site.pdbx_PDB_model_num")).value_or(1);
-                atom.sourceRecord =
-                  valueFor(row, "_atom_site.group_PDB") + " " + to_string(atom.serialNumber);
-                atom.sourceLine = rowLine;
-                result.molecule().addAtom(atom);
+            if (isAtomSiteLoop) {
+              try {
+                const auto x = parseOptionalDouble(valueFor(row, "_atom_site.Cartn_x"));
+                const auto y = parseOptionalDouble(valueFor(row, "_atom_site.Cartn_y"));
+                const auto z = parseOptionalDouble(valueFor(row, "_atom_site.Cartn_z"));
+                if (!x || !y || !z) {
+                  addWarning(result, "atom_site row is missing one or more coordinates", rowLine);
+                } else {
+                  const auto siteKey = atomSiteKeyFromRow(row);
+                  const auto altId = normalizedAltId(valueFor(row, "_atom_site.label_alt_id"));
+                  if (!altId.empty() &&
+                      acceptedAtomSites.find(siteKey) != acceptedAtomSites.end()) {
+                    addWarning(
+                      result,
+                      "atom_site alternate location '" + altId +
+                        "' skipped; keeping the blank or first-seen alternate for this atom site",
+                      rowLine);
+                  } else if (acceptedAtomSites.find(siteKey) != acceptedAtomSites.end()) {
+                    addWarning(result,
+                               "duplicate atom_site row skipped for an already accepted atom site",
+                               rowLine);
+                  } else {
+                    Atom atom;
+                    atom.hetero = valueFor(row, "_atom_site.group_PDB") == "HETATM";
+                    atom.serialNumber =
+                      parseOptionalInt(valueFor(row, "_atom_site.id")).value_or(0);
+                    atom.name = siteKey.atomName;
+                    atom.alternateLocation = altId;
+                    atom.element = valueFor(row, "_atom_site.type_symbol");
+                    atom.residueName = siteKey.residueName;
+                    atom.chainId = siteKey.chainId;
+                    atom.residueSequence = siteKey.residueSequence;
+                    atom.insertionCode = siteKey.insertionCode;
+                    atom.position = Vector3d(*x, *y, *z);
+                    atom.occupancy = parseOptionalDouble(valueFor(row, "_atom_site.occupancy"));
+                    atom.temperatureFactor =
+                      parseOptionalDouble(valueFor(row, "_atom_site.B_iso_or_equiv"));
+                    atom.modelId = siteKey.modelId;
+                    atom.sourceRecord =
+                      valueFor(row, "_atom_site.group_PDB") + " " + to_string(atom.serialNumber);
+                    atom.sourceLine = rowLine;
+                    result.molecule().addAtom(atom);
+                    acceptedAtomSites.insert(siteKey);
+                    atomIndexBySite[siteKey] = result.molecule().atoms().size() - 1;
+                  }
+                }
+              } catch (const invalid_argument&) {
+                addWarning(result, "atom_site row has invalid numeric coordinate data", rowLine);
+              } catch (const out_of_range&) {
+                addWarning(result, "atom_site row has out-of-range numeric data", rowLine);
               }
-            } catch (const invalid_argument&) {
-              addWarning(result, "atom_site row has invalid numeric coordinate data", rowLine);
-            } catch (const out_of_range&) {
-              addWarning(result, "atom_site row has out-of-range numeric data", rowLine);
+            } else if (isStructConnLoop) {
+              try {
+                auto first = connectionPartnerKeyFromRow(row, "ptnr1");
+                auto second = connectionPartnerKeyFromRow(row, "ptnr2");
+                if (first.atomName.empty() || second.atomName.empty()) {
+                  addWarning(result, "struct_conn row is missing one or more atom identifiers",
+                             rowLine);
+                } else {
+                  connections.push_back(MmcifConnection{
+                    first, second, bondOrderForConnType(valueFor(row, "_struct_conn.conn_type_id")),
+                    rowLine});
+                }
+              } catch (const invalid_argument&) {
+                addWarning(result, "struct_conn row has invalid numeric atom identifier data",
+                           rowLine);
+              } catch (const out_of_range&) {
+                addWarning(result, "struct_conn row has out-of-range atom identifier data",
+                           rowLine);
+              }
             }
           }
 
@@ -383,6 +504,17 @@ namespace molecule {
       } else {
         i += startsWith(token.text, "_") && i + 1 < tokens.size() ? 2 : 1;
       }
+    }
+
+    for (const auto& connection : connections) {
+      const auto first = atomIndexBySite.find(connection.first);
+      const auto second = atomIndexBySite.find(connection.second);
+      if (first == atomIndexBySite.end() || second == atomIndexBySite.end()) {
+        addWarning(result, "struct_conn row references atoms that were not imported",
+                   connection.line);
+        continue;
+      }
+      result.molecule().addBond(first->second, second->second, connection.order);
     }
 
     return result;

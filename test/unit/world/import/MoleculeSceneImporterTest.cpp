@@ -18,8 +18,10 @@
 #include <gtest/gtest.h>
 
 #include <QJsonObject>
+#include <QTemporaryFile>
 
 #include <fstream>
+#include <memory>
 #include <vector>
 
 namespace MoleculeSceneImporterTest {
@@ -116,6 +118,14 @@ namespace MoleculeSceneImporterTest {
       for (auto* child : root->childElements())
         count += recursiveElementCount(child);
       return count;
+    }
+
+    std::unique_ptr<QTemporaryFile> writeTemporaryCif(const QByteArray& source) {
+      auto file = std::make_unique<QTemporaryFile>("raytracer-molecule-XXXXXX.cif");
+      EXPECT_TRUE(file->open());
+      file->write(source);
+      file->flush();
+      return file;
     }
   }
 
@@ -374,6 +384,45 @@ namespace MoleculeSceneImporterTest {
     EXPECT_TRUE(bondProvenance->category["inferred"].toBool());
   }
 
+  TEST(MoleculeSceneImporter, ShouldPreferExplicitMmcifBondsOverDistanceInference) {
+    auto file = writeTemporaryCif(R"CIF(data_explicit
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_seq_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+ATOM 1 C C1 LIG A 1 0.0 0.0 0.0
+ATOM 2 O O1 LIG A 1 5.0 0.0 0.0
+loop_
+_struct_conn.conn_type_id
+_struct_conn.ptnr1_label_asym_id
+_struct_conn.ptnr1_label_comp_id
+_struct_conn.ptnr1_label_seq_id
+_struct_conn.ptnr1_label_atom_id
+_struct_conn.ptnr2_label_asym_id
+_struct_conn.ptnr2_label_comp_id
+_struct_conn.ptnr2_label_seq_id
+_struct_conn.ptnr2_label_atom_id
+covale A LIG 1 C1 A LIG 1 O1
+)CIF");
+
+    world::MoleculeSceneImporter importer;
+    auto result = importer.importFile(file->fileName());
+
+    ASSERT_TRUE(result.succeeded());
+    std::vector<Cylinder*> cylinders;
+    collectCylinders(result.groupRoot(), cylinders);
+    ASSERT_EQ(1u, cylinders.size());
+    EXPECT_FALSE(cylinders[0]->metadataValue("moleculeBondInferred").toBool());
+    EXPECT_EQ(QString("BOND 1-2"), cylinders[0]->metadataValue("sourceRecord").toString());
+  }
+
   TEST(MoleculeSceneImporter, ShouldRespectDisabledBondInference) {
     world::MoleculeSceneImporter importer;
     world::ImportOptions options;
@@ -456,7 +505,7 @@ namespace MoleculeSceneImporterTest {
     world::MoleculeSceneImporter importer;
 
     const auto schema = importer.optionSchema();
-    ASSERT_EQ(10u, schema.size());
+    ASSERT_EQ(11u, schema.size());
     EXPECT_EQ(QString("representation"), schema[0].name);
     EXPECT_EQ(world::ImportOptionType::Choice, schema[0].type);
     EXPECT_TRUE(schema[0].choices.contains(QStringLiteral("ball-and-stick")));
@@ -472,13 +521,15 @@ namespace MoleculeSceneImporterTest {
     EXPECT_EQ(world::ImportOptionType::Boolean, schema[6].type);
     EXPECT_EQ(QString("includeWater"), schema[7].name);
     EXPECT_EQ(world::ImportOptionType::Boolean, schema[7].type);
-    EXPECT_EQ(QString("backboneMode"), schema[8].name);
-    EXPECT_EQ(world::ImportOptionType::Choice, schema[8].type);
-    EXPECT_TRUE(schema[8].choices.contains(QStringLiteral("overlay")));
-    EXPECT_TRUE(schema[8].choices.contains(QStringLiteral("ribbon")));
-    EXPECT_TRUE(schema[8].choices.contains(QStringLiteral("tube")));
-    EXPECT_EQ(QString("backboneWidth"), schema[9].name);
-    EXPECT_EQ(world::ImportOptionType::Double, schema[9].type);
+    EXPECT_EQ(QString("modelId"), schema[8].name);
+    EXPECT_EQ(world::ImportOptionType::Integer, schema[8].type);
+    EXPECT_EQ(QString("backboneMode"), schema[9].name);
+    EXPECT_EQ(world::ImportOptionType::Choice, schema[9].type);
+    EXPECT_TRUE(schema[9].choices.contains(QStringLiteral("overlay")));
+    EXPECT_TRUE(schema[9].choices.contains(QStringLiteral("ribbon")));
+    EXPECT_TRUE(schema[9].choices.contains(QStringLiteral("tube")));
+    EXPECT_EQ(QString("backboneWidth"), schema[10].name);
+    EXPECT_EQ(world::ImportOptionType::Double, schema[10].type);
   }
 
   TEST(MoleculeSceneImporter, ShouldExposeEditableSourceAssetParameters) {
@@ -487,7 +538,7 @@ namespace MoleculeSceneImporterTest {
     EXPECT_TRUE(importer.wrapDirectImportInSourceAsset());
     const auto schema = importer.editableSourceParameters("test/fixtures/molecules/small.cif", {});
 
-    ASSERT_EQ(6u, schema.size());
+    ASSERT_EQ(7u, schema.size());
     EXPECT_EQ(QString("renderMode"), schema[0].name);
     EXPECT_EQ(world::ImportOptionType::Choice, schema[0].type);
     EXPECT_EQ((QStringList{QStringLiteral("ball_and_stick"), QStringLiteral("space_filling"),
@@ -499,6 +550,7 @@ namespace MoleculeSceneImporterTest {
     EXPECT_EQ(QString("inferBondsWhenMissing"), schema[3].name);
     EXPECT_EQ(QString("includeHydrogens"), schema[4].name);
     EXPECT_EQ(QString("includeWater"), schema[5].name);
+    EXPECT_EQ(QString("modelId"), schema[6].name);
   }
 
   TEST(MoleculeSceneImporter, ShouldRebuildSourceAssetWhenRenderModeChanges) {
@@ -612,6 +664,101 @@ namespace MoleculeSceneImporterTest {
     EXPECT_EQ(2, model->childElements().size());
     EXPECT_EQ(materialColor(*nitrogen), materialColor(*carbon));
     EXPECT_NE(materialColor(*nitrogen), materialColor(*ligandCarbon));
+  }
+
+  TEST(MoleculeSceneImporter, ShouldFilterHydrogensAndWaterWithoutLosingResidueProvenance) {
+    auto file = writeTemporaryCif(R"CIF(data_filters
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_seq_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+ATOM 1 N N GLY A 1 0.0 0.0 0.0
+ATOM 2 H H GLY A 1 0.9 0.0 0.0
+HETATM 3 O O HOH A 2 5.0 0.0 0.0
+)CIF");
+
+    world::MoleculeSceneImporter importer;
+    world::ImportOptions options;
+    options.setValue("includeHydrogens", false);
+    options.setValue("includeWater", false);
+
+    auto result = importer.importFile(file->fileName(), options);
+
+    ASSERT_TRUE(result.succeeded());
+    auto root = result.takeRoot();
+    auto* rootGroup = qobject_cast<Group*>(root.get());
+    ASSERT_NE(nullptr, rootGroup);
+    auto* gly = findGroupByMetadata(rootGroup, "residueName", "GLY");
+    ASSERT_NE(nullptr, gly);
+    EXPECT_EQ(QString("model/1/chain/A/residue/GLY/1"),
+              gly->metadataValue(GroupMetadata::sourceIdKey()).toString());
+    EXPECT_EQ(nullptr, findSphereByMetadata(rootGroup, "atomSerialNumber", "2"));
+    EXPECT_EQ(nullptr, findGroupByMetadata(rootGroup, "residueName", "HOH"));
+
+    std::vector<Sphere*> spheres;
+    collectSpheres(rootGroup, spheres);
+    ASSERT_EQ(1u, spheres.size());
+    EXPECT_EQ(1, spheres[0]->metadataValue("atomSerialNumber").toInt());
+  }
+
+  TEST(MoleculeSceneImporter, ShouldImportSpecificMmcifModelWhenRequested) {
+    auto file = writeTemporaryCif(R"CIF(data_models
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_seq_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.pdbx_PDB_model_num
+ATOM 1 C C1 LIG A 1 0.0 0.0 0.0 1
+ATOM 2 C C1 LIG A 1 3.0 0.0 0.0 2
+)CIF");
+
+    world::MoleculeSceneImporter importer;
+    world::ImportOptions options;
+    options.setValue("modelId", 2);
+
+    auto result = importer.importFile(file->fileName(), options);
+
+    ASSERT_TRUE(result.succeeded());
+    auto root = result.takeRoot();
+    auto* rootGroup = qobject_cast<Group*>(root.get());
+    ASSERT_NE(nullptr, rootGroup);
+    ASSERT_EQ(1, rootGroup->childElements().size());
+    auto* model = groupChild(rootGroup, 0);
+    ASSERT_NE(nullptr, model);
+    EXPECT_EQ(2, model->metadataValue("modelId").toInt());
+    EXPECT_EQ(nullptr, findGroupByMetadata(rootGroup, "sourceId", "model/1"));
+
+    std::vector<Sphere*> spheres;
+    collectSpheres(rootGroup, spheres);
+    ASSERT_EQ(1u, spheres.size());
+    EXPECT_EQ(2, spheres[0]->metadataValue("atomSerialNumber").toInt());
+  }
+
+  TEST(MoleculeSceneImporter, ShouldWarnButContinueWhenSelectedModelIsMissing) {
+    world::MoleculeSceneImporter importer;
+    world::ImportOptions options;
+    options.setValue("modelId", 99);
+
+    auto result = importer.importFile("test/fixtures/molecules/small.cif", options);
+
+    EXPECT_TRUE(result.succeeded());
+    EXPECT_TRUE(result.hasWarnings());
+    ASSERT_NE(nullptr, result.groupRoot());
+    EXPECT_EQ(0, result.groupRoot()->childElements().size());
   }
 
   TEST(MoleculeSceneImporter, ShouldImportBackboneRepresentationWithoutAtoms) {

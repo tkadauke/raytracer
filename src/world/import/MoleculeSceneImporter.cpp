@@ -277,6 +277,10 @@ namespace world {
       return ordinals;
     }
 
+    bool includesModel(int modelId, const MoleculeSceneCompileOptions& options) {
+      return !options.modelId || *options.modelId == modelId;
+    }
+
     MoleculeRenderOptions renderOptionsFor(const MoleculeSceneCompileOptions& options) {
       MoleculeRenderOptions renderOptions;
       renderOptions.atomRadiusScale = options.atomRadius;
@@ -407,6 +411,9 @@ namespace world {
                            moleculeId, QStringLiteral("molecule")));
 
     for (const auto& model : molecule.models()) {
+      if (!includesModel(model.id, options))
+        continue;
+
       auto* modelGroup = new Group;
       modelGroup->setName(QString("Model %1").arg(model.id));
       modelGroup->setLabel(modelGroup->name());
@@ -668,6 +675,17 @@ namespace world {
        true,
        false,
        {}},
+      {"modelId",
+       ImportOptionType::Integer,
+       "Model",
+       "Specific source model to import, or 0 to import all models.",
+       0,
+       false,
+       {},
+       {},
+       0,
+       {},
+       1},
       {"backboneMode",
        ImportOptionType::Choice,
        "Backbone mode",
@@ -741,6 +759,14 @@ namespace world {
        true,
        false,
        {},
+       QStringLiteral("Molecule Parameters")},
+      {"modelId",
+       ImportOptionType::Integer,
+       "Model",
+       "Specific source model to generate, or 0 to generate all models.",
+       0,
+       false,
+       {},
        QStringLiteral("Molecule Parameters")}};
   }
 
@@ -810,6 +836,18 @@ namespace world {
     compileOptions.includeWater =
       importOptionValue(options, QStringLiteral("includeWater"), compileOptions.includeWater)
         .toBool();
+    const int selectedModelId = importOptionValue(options, QStringLiteral("modelId"), 0).toInt();
+    if (selectedModelId > 0) {
+      compileOptions.modelId = selectedModelId;
+      const auto hasModel = any_of(
+        parsed.molecule().models().begin(), parsed.molecule().models().end(),
+        [selectedModelId](const molecule::Model& model) { return model.id == selectedModelId; });
+      if (!hasModel)
+        diagnostics.push_back(ImportDiagnostic::warning(
+          QStringLiteral("Selected molecule model %1 was not present in the source")
+            .arg(selectedModelId),
+          filename));
+    }
     compileOptions.backboneMode =
       importOptionValue(options, QStringLiteral("backboneMode"), compileOptions.backboneMode)
         .toString()

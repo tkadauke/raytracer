@@ -26,6 +26,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   generate concrete ball-and-stick, space-filling, and atom-only primitive
   layouts from `renderMode` while preserving per-atom and per-bond selection
   metadata for Epic #408. — GPT-5
+- **Molecule mmCIF import fidelity.** PDBx/mmCIF imports now honor explicit
+  `struct_conn` bonds before distance inference, skip alternate locations with
+  a deterministic first-site policy and warnings, and expose model, hydrogen,
+  and water filtering controls without dropping coordinate provenance for Epic
+  #408. — GPT-5
 - **BoundingBox Ray4 packet masks use the shared SIMD backend.**
   `BoundingBox::intersects4(Ray4)` now runs through the four-wide SIMD
   abstraction for SSE, NEON, and scalar builds, with explicit packet-mask tests
