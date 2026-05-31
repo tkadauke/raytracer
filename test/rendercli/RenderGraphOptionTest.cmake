@@ -82,6 +82,8 @@ set(raster_shadow_trace "${TEST_OUTPUT_DIR}/raster-shadow-trace.json")
 set(raster_shadow_trace_render "${TEST_OUTPUT_DIR}/raster-shadow-trace-render.png")
 set(raster_state_plan "${TEST_OUTPUT_DIR}/raster-state-graph.json")
 set(raster_state_render "${TEST_OUTPUT_DIR}/raster-state-render.png")
+set(raytracer_integrator_plan "${TEST_OUTPUT_DIR}/raytracer-integrator-graph.json")
+set(raytracer_integrator_render "${TEST_OUTPUT_DIR}/raytracer-integrator-render.png")
 set(raster_culling_plan "${TEST_OUTPUT_DIR}/raster-culling-graph.txt")
 set(raster_culling_trace "${TEST_OUTPUT_DIR}/raster-culling-trace.json")
 set(raster_culling_trace_render "${TEST_OUTPUT_DIR}/raster-culling-trace-render.png")
@@ -1304,6 +1306,29 @@ file(READ "${json_plan}" json_graph)
 if(NOT json_graph MATCHES "executionStages")
   message(FATAL_ERROR "JSON graph export did not contain executionStages: ${json_graph}")
 endif()
+
+rendercli_run(
+  NAME "rendercli exports raytracer integrator state in render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --engine raytracer --integrator pathtracer --width 32 --height 16
+    "${static_scene}" "${raytracer_integrator_plan}"
+)
+rendercli_assert_nonempty("${raytracer_integrator_plan}" NAME "raytracer integrator graph output")
+file(READ "${raytracer_integrator_plan}" raytracer_integrator_graph)
+if(NOT raytracer_integrator_graph MATCHES "\"integrator\": \"pathtracer\"")
+  message(FATAL_ERROR
+          "raytracer integrator graph did not contain pathtracer state: ${raytracer_integrator_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli renders graph raytracer with pathtracer integrator"
+  COMMAND
+    "${RENDERCLI}" --engine raytracer --integrator pathtracer --width 16 --height 16
+    "${static_scene}" "${raytracer_integrator_render}"
+)
+rendercli_assert_image_nonempty("${raytracer_integrator_render}"
+                                NAME "raytracer pathtracer graph render pixels")
 
 rendercli_expect_failure(
   NAME "rendercli rejects invalid render graph format"

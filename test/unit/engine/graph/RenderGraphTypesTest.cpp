@@ -133,6 +133,7 @@ namespace RenderGraphTypesTest {
     intent.enablePreviewShadows = true;
     intent.postProcessAA = RenderPostProcessAA::SMAA;
     intent.setMaxRenderToTextureRecursionDepth(3);
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
     intent.engineOptions.raytracer().setSampler("Jittered");
     intent.engineOptions.raytracer().setSamplesPerPixel(8);
     intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
@@ -162,6 +163,11 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("smaa", json["postProcessAA"].toString().toStdString());
     EXPECT_EQ(3, json["maxRenderToTextureRecursionDepth"].toInt());
     const auto engineOptions = json["engineOptions"].toObject();
+    EXPECT_EQ("pathtracer", engineOptions["raytracer"]
+                              .toObject()["execution"]
+                              .toObject()["integrator"]
+                              .toString()
+                              .toStdString());
     EXPECT_EQ("Jittered", engineOptions["raytracer"]
                             .toObject()["sampling"]
                             .toObject()["sampler"]
@@ -218,9 +224,12 @@ namespace RenderGraphTypesTest {
     QJsonObject json;
     json["defaultExecutor"] = "rasterizer";
     json["defaultShadingProfile"] = "toon";
+    QJsonObject raytracerExecution;
+    raytracerExecution["integrator"] = "pt";
     QJsonObject raytracerSampling;
     raytracerSampling["samplesPerPixel"] = 12;
     QJsonObject raytracerOptions;
+    raytracerOptions["execution"] = raytracerExecution;
     raytracerOptions["sampling"] = raytracerSampling;
     QJsonObject rasterSampling;
     rasterSampling["msaaSamples"] = 4;
@@ -261,6 +270,8 @@ namespace RenderGraphTypesTest {
     EXPECT_FALSE(intent.enableCurveOverlay);
     EXPECT_EQ(RenderPostProcessAA::None, intent.postProcessAA);
     EXPECT_EQ(4, intent.maxRenderToTextureRecursionDepth);
+    ASSERT_TRUE(intent.engineOptions.raytracer().integrator().has_value());
+    EXPECT_EQ("pathtracer", *intent.engineOptions.raytracer().integrator());
     ASSERT_TRUE(intent.engineOptions.raytracer().samplesPerPixel().has_value());
     EXPECT_EQ(12, *intent.engineOptions.raytracer().samplesPerPixel());
     ASSERT_TRUE(intent.engineOptions.rasterizer().msaaSamples().has_value());

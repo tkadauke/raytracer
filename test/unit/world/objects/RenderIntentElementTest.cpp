@@ -43,6 +43,7 @@ namespace RenderIntentElementTest {
     intent->setRasterizerMaxScreenSpaceError(0.25);
     intent->setRasterizerMSAASamples(4);
     intent->setRasterizerShadowMapSize(128);
+    intent->setRaytracerIntegrator("path_tracer");
     intent->setRaytracerSampler("Jittered");
     intent->setRaytracerSamplesPerPixel(9);
     intent->setWireframeLod(2);
@@ -73,6 +74,8 @@ namespace RenderIntentElementTest {
     ASSERT_TRUE(scene.renderIntent().engineOptions.rasterizer().shadowMapSize().has_value());
     EXPECT_EQ(128, *scene.renderIntent().engineOptions.rasterizer().shadowMapSize());
     ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().sampler().has_value());
+    ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().integrator().has_value());
+    EXPECT_EQ("pathtracer", *scene.renderIntent().engineOptions.raytracer().integrator());
     EXPECT_EQ("Jittered", *scene.renderIntent().engineOptions.raytracer().sampler());
     ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().samplesPerPixel().has_value());
     EXPECT_EQ(9, *scene.renderIntent().engineOptions.raytracer().samplesPerPixel());
@@ -105,6 +108,7 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->propertyChoices("rasterizerVisibilityCulling").contains("auto"));
     EXPECT_TRUE(intent->propertyChoices("rasterizerDepthPrepass").contains("auto"));
     EXPECT_TRUE(intent->propertyChoices("rasterizerTessellationQuality").contains("final"));
+    EXPECT_TRUE(intent->propertyChoices("raytracerIntegrator").contains("pathtracer"));
     EXPECT_FALSE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
     intent->setDefaultEngine("rasterizer");
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
@@ -118,12 +122,14 @@ namespace RenderIntentElementTest {
     EXPECT_EQ(QString("Depth Prepass"), intent->propertyDisplayName("rasterizerDepthPrepass"));
     EXPECT_EQ(QString("Tessellation Quality"),
               intent->propertyDisplayName("rasterizerTessellationQuality"));
+    EXPECT_EQ(QString("Integrator"), intent->propertyDisplayName("raytracerIntegrator"));
+    EXPECT_EQ(QString("Path Tracer"),
+              intent->propertyChoiceDisplayName("raytracerIntegrator", "pathtracer"));
     EXPECT_EQ(QString("Final"),
               intent->propertyChoiceDisplayName("rasterizerTessellationQuality", "final"));
     EXPECT_EQ(QString("Auto"),
               intent->propertyChoiceDisplayName("rasterizerVisibilityCulling", "auto"));
-    EXPECT_EQ(QString("Auto"),
-              intent->propertyChoiceDisplayName("rasterizerDepthPrepass", "auto"));
+    EXPECT_EQ(QString("Auto"), intent->propertyChoiceDisplayName("rasterizerDepthPrepass", "auto"));
     EXPECT_EQ((QList<int>{1, 2, 4, 8}), intent->propertyIntChoices("rasterizerMSAASamples"));
   }
 
@@ -148,6 +154,7 @@ namespace RenderIntentElementTest {
     ASSERT_NE(nullptr, intent);
 
     EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
+    EXPECT_TRUE(intent->isPropertyVisible("raytracerIntegrator"));
     EXPECT_FALSE(intent->isPropertyVisible("raytracerViewPlane"));
     EXPECT_FALSE(intent->isPropertyVisible("raytracerThreads"));
     EXPECT_FALSE(intent->isPropertyVisible("raytracerQueueSize"));
@@ -155,6 +162,7 @@ namespace RenderIntentElementTest {
 
     intent->setDefaultEngine("rasterizer");
     EXPECT_FALSE(intent->isPropertyVisible("raytracerSampler"));
+    EXPECT_FALSE(intent->isPropertyVisible("raytracerIntegrator"));
     EXPECT_TRUE(intent->isPropertyVisible("rasterizerLod"));
     EXPECT_TRUE(intent->isPropertyVisible("rasterizerVisibilityCulling"));
     EXPECT_TRUE(intent->isPropertyVisible("rasterizerDepthPrepass"));

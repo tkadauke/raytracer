@@ -11,6 +11,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Raytracer integrator selection is graph-visible.** Render intent and
+  raytracer beauty pass state now carry `whitted` / `pathtracer` integrator
+  selection, so rendercli's `--integrator pathtracer` is represented in
+  exported graph JSON and graph rendering instead of staying direct-engine-only.
+  — GPT-5
 - **Raster performance closeout.** Modeler Render Settings now expose the
   raster depth-prepass mode, rendercli exposes raster tessellation quality and
   max screen-space error controls, and raster metrics summaries include queue

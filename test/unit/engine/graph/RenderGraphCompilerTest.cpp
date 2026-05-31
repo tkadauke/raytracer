@@ -783,6 +783,7 @@ namespace RenderGraphCompilerTest {
   TEST(RenderGraphCompiler, RaytracerOptionsBecomeBeautyPassState) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
     intent.engineOptions.raytracer().setSampler("Jittered");
     intent.engineOptions.raytracer().setSamplesPerPixel(9);
     intent.engineOptions.raytracer().setViewPlane("TiledViewPlane");
@@ -794,10 +795,12 @@ namespace RenderGraphCompilerTest {
     ASSERT_NE(nullptr, pass);
     const auto* state = RaytracerBeautyPassState::fromPass(*pass);
     ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->integrator().has_value());
     ASSERT_TRUE(state->sampler().has_value());
     ASSERT_TRUE(state->samplesPerPixel().has_value());
     ASSERT_TRUE(state->viewPlane().has_value());
     ASSERT_TRUE(state->maximumRecursionDepth().has_value());
+    EXPECT_EQ("pathtracer", *state->integrator());
     EXPECT_EQ("Jittered", *state->sampler());
     EXPECT_EQ(9, *state->samplesPerPixel());
     EXPECT_EQ("TiledViewPlane", *state->viewPlane());

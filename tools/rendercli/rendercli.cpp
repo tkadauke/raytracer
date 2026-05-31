@@ -1307,6 +1307,8 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
 
   if (m_maximumRecursionDepthSet)
     options.raytracer().setMaximumRecursionDepth(m_maximumRecursionDepth);
+  if (m_integratorSet)
+    options.raytracer().setIntegrator(m_integrator.toStdString());
   if (m_samplerSet)
     options.raytracer().setSampler(m_sampler.toStdString());
   if (m_samplesPerPixelSet)

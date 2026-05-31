@@ -3,6 +3,8 @@
 #include "engine/graph/RaytracerPassState.h"
 #include "engine/graph/RenderPlan.h"
 #include "engine/raytracer/Raytracer.h"
+#include "render/PathTracingIntegrator.h"
+#include "render/WhittedIntegrator.h"
 #include "render/cameras/Camera.h"
 #include "render/samplers/JitteredSampler.h"
 #include "render/viewplanes/TiledViewPlane.h"
@@ -17,6 +19,7 @@ namespace RaytracerPassStateTest {
     state.setMaximumRecursionDepth(7);
     state.setMaximumThreads(3);
     state.setQueueSize(11);
+    state.setIntegrator("path_tracer");
     state.setSampler("Jittered");
     state.setSamplesPerPixel(16);
     state.setViewPlane("TiledViewPlane");
@@ -26,6 +29,8 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ(7, json.value("execution").toObject().value("maxRecursionDepth").toInt());
     EXPECT_EQ(3, json.value("execution").toObject().value("threads").toInt());
     EXPECT_EQ(11, json.value("execution").toObject().value("queueSize").toInt());
+    EXPECT_EQ("pathtracer",
+              json.value("execution").toObject().value("integrator").toString().toStdString());
     EXPECT_EQ("Jittered",
               json.value("sampling").toObject().value("sampler").toString().toStdString());
     EXPECT_EQ(16, json.value("sampling").toObject().value("samplesPerPixel").toInt());
@@ -36,15 +41,33 @@ namespace RaytracerPassStateTest {
     ASSERT_TRUE(decoded.maximumRecursionDepth().has_value());
     ASSERT_TRUE(decoded.maximumThreads().has_value());
     ASSERT_TRUE(decoded.queueSize().has_value());
+    ASSERT_TRUE(decoded.integrator().has_value());
     ASSERT_TRUE(decoded.sampler().has_value());
     ASSERT_TRUE(decoded.samplesPerPixel().has_value());
     ASSERT_TRUE(decoded.viewPlane().has_value());
     EXPECT_EQ(7, *decoded.maximumRecursionDepth());
     EXPECT_EQ(3, *decoded.maximumThreads());
     EXPECT_EQ(11, *decoded.queueSize());
+    EXPECT_EQ("pathtracer", *decoded.integrator());
     EXPECT_EQ("Jittered", *decoded.sampler());
     EXPECT_EQ(16, *decoded.samplesPerPixel());
     EXPECT_EQ("TiledViewPlane", *decoded.viewPlane());
+  }
+
+  TEST(RaytracerBeautyPassState, AppliesPathTracingIntegratorToRaytracer) {
+    RaytracerBeautyPassState state;
+    state.setIntegrator("pt");
+    state.setMaximumRecursionDepth(5);
+
+    engine::raytracer::Raytracer raytracer(nullptr);
+    ASSERT_NE(nullptr, dynamic_cast<const render::WhittedIntegrator*>(&raytracer.integrator()));
+
+    state.applyTo(raytracer);
+
+    const auto* integrator =
+      dynamic_cast<const render::PathTracingIntegrator*>(&raytracer.integrator());
+    ASSERT_NE(nullptr, integrator);
+    EXPECT_EQ(5, integrator->maximumRecursionDepth());
   }
 
   TEST(RaytracerBeautyPassState, AppliesSamplingAndViewPlaneToRaytracer) {

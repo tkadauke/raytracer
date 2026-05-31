@@ -60,6 +60,8 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
     return QStringLiteral("Shadow Maps");
   if (propertyName == QStringLiteral("postProcessAA"))
     return QStringLiteral("Postprocess AA");
+  if (propertyName == QStringLiteral("raytracerIntegrator"))
+    return QStringLiteral("Integrator");
   if (propertyName == QStringLiteral("raytracerSampler"))
     return QStringLiteral("Sampler");
   if (propertyName == QStringLiteral("raytracerSamplesPerPixel"))
@@ -167,6 +169,8 @@ QStringList RenderIntentElement::propertyChoices(const QString& propertyName) co
             QStringLiteral("taa")};
   if (propertyName == QStringLiteral("raytracerSampler"))
     return raytracerSamplerChoices();
+  if (propertyName == QStringLiteral("raytracerIntegrator"))
+    return {QStringLiteral("whitted"), QStringLiteral("pathtracer")};
   if (propertyName == QStringLiteral("raytracerViewPlane"))
     return raytracerViewPlaneChoices();
   if (propertyName == QStringLiteral("rasterizerBackend"))
@@ -224,6 +228,12 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
                                                        const QString& choice) const {
   if (propertyName == QStringLiteral("postProcessAA"))
     return choice == QStringLiteral("none") ? QStringLiteral("None") : choice.toUpper();
+  if (propertyName == QStringLiteral("raytracerIntegrator")) {
+    if (choice == QStringLiteral("whitted"))
+      return QStringLiteral("Whitted");
+    if (choice == QStringLiteral("pathtracer"))
+      return QStringLiteral("Path Tracer");
+  }
   if (propertyName == QStringLiteral("viewMode")) {
     if (choice == QStringLiteral("object_id"))
       return QStringLiteral("Object ID");
@@ -408,6 +418,18 @@ void RenderIntentElement::setPostProcessAA(const QString& mode) {
 
 QString RenderIntentElement::raytracerSampler() const {
   return toQString(intent().engineOptions.raytracer().sampler().value_or("Regular"));
+}
+
+QString RenderIntentElement::raytracerIntegrator() const {
+  return toQString(intent().engineOptions.raytracer().integrator().value_or("whitted"));
+}
+
+void RenderIntentElement::setRaytracerIntegrator(const QString& integrator) {
+  auto value = intent();
+  value.engineOptions.raytracer().setIntegrator(integrator.trimmed().isEmpty()
+                                                  ? std::string("whitted")
+                                                  : normalizedText(integrator).toStdString());
+  setIntent(value);
 }
 
 void RenderIntentElement::setRaytracerSampler(const QString& sampler) {

@@ -3,6 +3,8 @@
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/graph/RenderPlan.h"
 #include "engine/raytracer/Raytracer.h"
+#include "render/PathTracingIntegrator.h"
+#include "render/WhittedIntegrator.h"
 #include "render/cameras/Camera.h"
 #include "render/samplers/Sampler.h"
 #include "render/samplers/SamplerFactory.h"
@@ -10,6 +12,7 @@
 #include "render/viewplanes/ViewPlaneFactory.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <initializer_list>
 #include <stdexcept>
@@ -79,13 +82,15 @@ namespace engine::graph {
     RaytracerBeautyPassState state;
     const QJsonObject execution = objectField(object, "execution", path);
     rejectUnknownFields(execution, path + ".execution",
-                        {"maxRecursionDepth", "threads", "queueSize"});
+                        {"maxRecursionDepth", "threads", "queueSize", "integrator"});
     if (hasField(execution, "maxRecursionDepth"))
       state.setMaximumRecursionDepth(intField(execution, "maxRecursionDepth", path + ".execution"));
     if (hasField(execution, "threads"))
       state.setMaximumThreads(intField(execution, "threads", path + ".execution"));
     if (hasField(execution, "queueSize"))
       state.setQueueSize(intField(execution, "queueSize", path + ".execution"));
+    if (hasField(execution, "integrator"))
+      state.setIntegrator(stringField(execution, "integrator", path + ".execution"));
 
     const QJsonObject sampling = objectField(object, "sampling", path);
     rejectUnknownFields(sampling, path + ".sampling", {"sampler", "samplesPerPixel"});
@@ -127,6 +132,8 @@ namespace engine::graph {
       execution["threads"] = *m_maximumThreads;
     if (m_queueSize)
       execution["queueSize"] = *m_queueSize;
+    if (m_integrator)
+      execution["integrator"] = qstr(*m_integrator);
     if (!execution.isEmpty())
       object["execution"] = execution;
 
@@ -152,6 +159,8 @@ namespace engine::graph {
   }
 
   void RaytracerBeautyPassState::applyTo(Raytracer& raytracer) const {
+    if (auto integrator = createIntegratorForPass())
+      raytracer.setIntegrator(std::move(integrator));
     if (m_maximumRecursionDepth)
       raytracer.setMaximumRecursionDepth(*m_maximumRecursionDepth);
     if (m_maximumThreads)
@@ -189,6 +198,11 @@ namespace engine::graph {
     m_queueSize = std::max(1, queueSize);
   }
 
+  void RaytracerBeautyPassState::setIntegrator(std::string integrator) {
+    m_integrator =
+      normalizedIntegratorName(std::move(integrator), "parameters.execution.integrator");
+  }
+
   void RaytracerBeautyPassState::setSampler(std::string sampler) {
     m_sampler = std::move(sampler);
   }
@@ -213,6 +227,10 @@ namespace engine::graph {
     return m_queueSize;
   }
 
+  std::optional<std::string> RaytracerBeautyPassState::integrator() const {
+    return m_integrator;
+  }
+
   std::optional<std::string> RaytracerBeautyPassState::sampler() const {
     return m_sampler;
   }
@@ -223,6 +241,30 @@ namespace engine::graph {
 
   std::optional<std::string> RaytracerBeautyPassState::viewPlane() const {
     return m_viewPlane;
+  }
+
+  std::string RaytracerBeautyPassState::normalizedIntegratorName(std::string integrator,
+                                                                 const std::string& path) {
+    std::transform(integrator.begin(), integrator.end(), integrator.begin(),
+                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+    std::replace(integrator.begin(), integrator.end(), '-', '_');
+    if (integrator == "whitted")
+      return "whitted";
+    if (integrator == "pathtracer" || integrator == "path_tracer" || integrator == "pt")
+      return "pathtracer";
+    stateError(path, "expected whitted or pathtracer");
+  }
+
+  std::unique_ptr<render::Integrator> RaytracerBeautyPassState::createIntegratorForPass() const {
+    if (!m_integrator)
+      return nullptr;
+    if (*m_integrator == "pathtracer") {
+      auto integrator = std::make_unique<render::PathTracingIntegrator>();
+      if (m_maximumRecursionDepth)
+        integrator->setMaximumRecursionDepth(*m_maximumRecursionDepth);
+      return integrator;
+    }
+    return std::make_unique<render::WhittedIntegrator>();
   }
 
   std::shared_ptr<render::Sampler> RaytracerBeautyPassState::createSamplerForPass() const {

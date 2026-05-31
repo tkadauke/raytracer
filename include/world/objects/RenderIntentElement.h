@@ -26,6 +26,7 @@ class RenderIntentElement : public Element {
   Q_PROPERTY(bool curveOverlay READ curveOverlay WRITE setCurveOverlay)
   Q_PROPERTY(bool previewShadows READ previewShadows WRITE setPreviewShadows)
   Q_PROPERTY(QString postProcessAA READ postProcessAA WRITE setPostProcessAA)
+  Q_PROPERTY(QString raytracerIntegrator READ raytracerIntegrator WRITE setRaytracerIntegrator)
   Q_PROPERTY(QString raytracerSampler READ raytracerSampler WRITE setRaytracerSampler)
   Q_PROPERTY(
     int raytracerSamplesPerPixel READ raytracerSamplesPerPixel WRITE setRaytracerSamplesPerPixel)
@@ -42,8 +43,8 @@ class RenderIntentElement : public Element {
   Q_PROPERTY(QString rasterizerBackend READ rasterizerBackend WRITE setRasterizerBackend)
   Q_PROPERTY(QString rasterizerVisibilityCulling READ rasterizerVisibilityCulling WRITE
                setRasterizerVisibilityCulling)
-  Q_PROPERTY(QString rasterizerDepthPrepass READ rasterizerDepthPrepass WRITE
-               setRasterizerDepthPrepass)
+  Q_PROPERTY(
+    QString rasterizerDepthPrepass READ rasterizerDepthPrepass WRITE setRasterizerDepthPrepass)
   Q_PROPERTY(int rasterizerMSAASamples READ rasterizerMSAASamples WRITE setRasterizerMSAASamples)
   Q_PROPERTY(
     QString rasterizerMSAAShading READ rasterizerMSAAShading WRITE setRasterizerMSAAShading)
@@ -104,6 +105,9 @@ public:
 
   QString postProcessAA() const;
   void setPostProcessAA(const QString& mode);
+
+  QString raytracerIntegrator() const;
+  void setRaytracerIntegrator(const QString& integrator);
 
   QString raytracerSampler() const;
   void setRaytracerSampler(const QString& sampler);
