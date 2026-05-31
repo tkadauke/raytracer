@@ -49,6 +49,15 @@ if(APPLE)
   target_link_libraries(raytracer PUBLIC "-framework OpenGL")
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  # EGLContext uses Mesa's surfaceless EGL platform so that rendercli
+  # can open an offscreen GL context on Linux without QGuiApplication
+  # or any window-system surface. libEGL and libGL ship with the
+  # `libgl1-mesa-dev` package the Dockerfile installs.
+  find_package(OpenGL REQUIRED COMPONENTS OpenGL EGL)
+  target_link_libraries(raytracer PUBLIC OpenGL::OpenGL OpenGL::EGL)
+endif()
+
 if(RAYTRACER_ENABLE_STATS)
   # PUBLIC so headers like include/render/Stats.h see the same definition
   # in the library and in dependents (tests, tools, Modeler). Without that,

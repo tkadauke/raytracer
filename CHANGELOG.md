@@ -45,16 +45,16 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   OpenSCAD `importOptions.define` scenes continue to edit and rebuild through
   the legacy define object for Epic #408. — GPT-5
 - **rendercli no longer needs `QGuiApplication` for the OpenGL raster
-  backend on macOS.** `RenderCliApplication` always constructs a
-  `QCoreApplication`; the new `gl::createOffscreenContext()` factory
-  picks `gl::CGLContext` (Apple's CoreGL framework, no Qt
-  involvement) when no `QGuiApplication` is up. The
-  `RAYTRACER_ALLOW_RENDERCLI_COCOA_OPENGL` env-var escape hatch and
-  the `QT_QPA_PLATFORM=offscreen` bootstrap are gone — rendercli
+  backend on macOS or Linux.** `RenderCliApplication` always
+  constructs a `QCoreApplication`; the new `gl::createOffscreenContext()`
+  factory picks `gl::CGLContext` (Apple's CoreGL framework) on macOS
+  or `gl::EglContext` (Mesa surfaceless EGL) on Linux when no
+  `QGuiApplication` is up — no Qt involvement on either platform.
+  The `RAYTRACER_ALLOW_RENDERCLI_COCOA_OPENGL` env-var escape hatch
+  and the `QT_QPA_PLATFORM=offscreen` bootstrap are gone — rendercli
   starts a few hundred ms faster and runs in environments without an
-  active window server. Linux still falls through to the Qt backend
-  (needs `QGuiApplication`) until the EGL backend lands. Modeler is
-  unchanged. Closes opengl-gpu-hardening Phase 2. — Claude Opus 4.7
+  active window server. Modeler is unchanged. Closes
+  opengl-gpu-hardening Phase 2. — Claude Opus 4.7
 - **OpenGL raster mesh build skips CPU projection / cull / clip when the
   GPU can do it.** `OpenGLRasterMeshBuilder` now detects when the camera
   supplies a GPU `worldToClipMatrix` and every light is handled by the

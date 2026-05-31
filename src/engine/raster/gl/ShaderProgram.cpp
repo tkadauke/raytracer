@@ -1,5 +1,6 @@
 #include "engine/raster/gl/ShaderProgram.h"
 
+#include <cstdint>
 #include <vector>
 
 namespace engine::raster::gl {

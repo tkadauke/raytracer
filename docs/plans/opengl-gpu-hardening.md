@@ -150,7 +150,7 @@ Acceptance:
 - ✅ Failing-pending-residency tests exist
   (`OpenGLRasterizerAttachmentLoad.{Color,Depth,Stencil}LoadOp...`).
 
-## Phase 2 — Qt → native-GL decoupling ✅ **Done on macOS.** (Linux EGL backend still TODO.)
+## Phase 2 — Qt → native-GL decoupling ✅ **Done.**
 
 Goals: remove Qt OpenGL classes from the engine library. Modeler keeps
 Qt for UI; rendercli drops `QGuiApplication`. ~600-800 lines of
@@ -179,17 +179,16 @@ mechanical wrapper code + 200-300 lines of per-platform context bring-up.
 - `RenderCliApplication` constructs `QCoreApplication`
   unconditionally; the factory selects CGL automatically when no
   `QGuiApplication` is up.
+- `gl::EglContext` native backend for Linux using Mesa's surfaceless
+  EGL platform. End-to-end render verified in the Ubuntu 24.04
+  Docker container with `LIBGL_ALWAYS_SOFTWARE=1`; 4 standalone
+  EglContext tests cover probe/create/clear+readback/thread cycle.
 
-**Remaining for full Phase 2 closure:**
+**Deferred to Phase 3:**
 
-1. `gl::EGLContext` native backend for Linux (mirrors CGLContext
-   structure; uses Mesa EGL surfaceless context). On macOS the factory
-   already takes the CGL path so rendercli is unblocked; Linux still
-   falls through to the Qt backend, which needs `QGuiApplication`.
-2. `gl::Framebuffer` wrapper — deferred to Phase 3 (residency); the
-   FBO is owned by the context backend (Qt and CGL each manage their
-   own) and a shared wrapper pays off when attachment-set carve-out
-   happens.
+- `gl::Framebuffer` wrapper. The FBO is owned by the context backend
+  (Qt, CGL, EGL each manage their own); a shared wrapper pays off
+  when attachment-set carve-out happens.
 
 New directory: `include/engine/raster/gl/`
 

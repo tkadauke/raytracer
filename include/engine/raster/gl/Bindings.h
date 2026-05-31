@@ -17,7 +17,15 @@
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
 #elif defined(__linux__)
+// Mesa's <GL/gl.h> declares OpenGL 1.2 entry points unconditionally
+// but gates 2.0+ symbols (glUniformMatrix4fv, glGenBuffers,
+// glCompileShader, …) on `GL_GLEXT_PROTOTYPES`. The Mesa libGL.so
+// exports all of these symbols, so defining the macro before including
+// the headers gives us the entire desktop GL surface without needing
+// a function-pointer loader.
+#define GL_GLEXT_PROTOTYPES 1
 #include <GL/gl.h>
+#include <GL/glext.h>
 #else
 #error "gl::Bindings has no OpenGL header mapping for this platform"
 #endif
