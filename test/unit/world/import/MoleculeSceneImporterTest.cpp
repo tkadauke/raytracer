@@ -97,11 +97,25 @@ namespace MoleculeSceneImporterTest {
         collectCylinders(child, cylinders);
     }
 
+    void collectCurves(Element* root, std::vector<Curve*>& curves) {
+      if (auto* curve = qobject_cast<Curve*>(root))
+        curves.push_back(curve);
+      for (auto* child : root->childElements())
+        collectCurves(child, curves);
+    }
+
     void collectSpheres(Element* root, std::vector<Sphere*>& spheres) {
       if (auto* sphere = qobject_cast<Sphere*>(root))
         spheres.push_back(sphere);
       for (auto* child : root->childElements())
         collectSpheres(child, spheres);
+    }
+
+    int recursiveElementCount(Element* root) {
+      int count = 1;
+      for (auto* child : root->childElements())
+        count += recursiveElementCount(child);
+      return count;
     }
   }
 
@@ -153,6 +167,10 @@ namespace MoleculeSceneImporterTest {
     const auto atomProvenance = world::importProvenance(*atom);
     ASSERT_TRUE(atomProvenance.has_value());
     EXPECT_EQ(QString("ATOM 1"), atomProvenance->recordId);
+    EXPECT_EQ(QString("ball-and-stick"),
+              atomProvenance->category["representation"].toString());
+    EXPECT_EQ(QString("N"), atomProvenance->category["element"].toString());
+    EXPECT_EQ(0, atomProvenance->category["atomIndex"].toInt());
     ASSERT_TRUE(atomProvenance->lineStart.has_value());
     EXPECT_EQ(4, *atomProvenance->lineStart);
 
@@ -174,6 +192,10 @@ namespace MoleculeSceneImporterTest {
     ASSERT_TRUE(bondProvenance.has_value());
     EXPECT_EQ(QString("bond"), bondProvenance->category["kind"].toString());
     EXPECT_FALSE(bondProvenance->category["inferred"].toBool());
+    EXPECT_EQ(QString("ball-and-stick"),
+              bondProvenance->category["representation"].toString());
+    EXPECT_EQ(0, bondProvenance->category["firstAtomIndex"].toInt());
+    EXPECT_EQ(1, bondProvenance->category["secondAtomIndex"].toInt());
   }
 
   TEST(MoleculeSceneCompiler, ShouldComposeGroupVisibilityForChainsAndResidues) {
@@ -367,6 +389,69 @@ namespace MoleculeSceneImporterTest {
     EXPECT_TRUE(cylinders.empty());
   }
 
+  TEST(MoleculeSceneCompiler, ShouldEmitConcreteRenderModesAsOrdinaryPrimitives) {
+    std::ifstream input("test/fixtures/molecules/small.cif");
+    ASSERT_TRUE(input.is_open());
+    const auto parsed = molecule::MoleculeParser().parseMmcif(input);
+
+    world::ImportSourceMetadata source;
+    source.sourcePath = "test/fixtures/molecules/small.cif";
+    source.importerName = "molecule";
+    source.formatName = "Molecule";
+
+    world::MoleculeSceneCompileOptions ballAndStickOptions;
+    ballAndStickOptions.representation = "ball_and_stick";
+    auto ballAndStick =
+      world::MoleculeSceneCompiler().compile(parsed.molecule(), source, ballAndStickOptions);
+    std::vector<Sphere*> ballAndStickSpheres;
+    std::vector<Cylinder*> ballAndStickCylinders;
+    collectSpheres(ballAndStick.get(), ballAndStickSpheres);
+    collectCylinders(ballAndStick.get(), ballAndStickCylinders);
+    ASSERT_EQ(3u, ballAndStickSpheres.size());
+    ASSERT_EQ(1u, ballAndStickCylinders.size());
+    auto* ballAndStickNitrogen = findSphereByMetadata(ballAndStick.get(), "sourceRecord", "ATOM 1");
+    ASSERT_NE(nullptr, ballAndStickNitrogen);
+    EXPECT_EQ(world::moleculeElementStyle("N").color, materialColor(*ballAndStickNitrogen));
+    EXPECT_DOUBLE_EQ(world::moleculeElementStyle("N").displayRadius * 0.25,
+                     ballAndStickNitrogen->radius());
+    EXPECT_EQ(QString("ball-and-stick"),
+              ballAndStickNitrogen->metadataValue("molecule.representation").toString());
+
+    world::MoleculeSceneCompileOptions spaceFillingOptions;
+    spaceFillingOptions.representation = "space_filling";
+    auto spaceFilling =
+      world::MoleculeSceneCompiler().compile(parsed.molecule(), source, spaceFillingOptions);
+    std::vector<Sphere*> spaceFillingSpheres;
+    std::vector<Cylinder*> spaceFillingCylinders;
+    collectSpheres(spaceFilling.get(), spaceFillingSpheres);
+    collectCylinders(spaceFilling.get(), spaceFillingCylinders);
+    ASSERT_EQ(3u, spaceFillingSpheres.size());
+    EXPECT_TRUE(spaceFillingCylinders.empty());
+    auto* spaceFillingNitrogen = findSphereByMetadata(spaceFilling.get(), "sourceRecord", "ATOM 1");
+    ASSERT_NE(nullptr, spaceFillingNitrogen);
+    EXPECT_EQ(world::moleculeElementStyle("N").color, materialColor(*spaceFillingNitrogen));
+    EXPECT_DOUBLE_EQ(world::moleculeElementStyle("N").displayRadius,
+                     spaceFillingNitrogen->radius());
+    EXPECT_EQ(QString("space-filling"),
+              spaceFillingNitrogen->metadataValue("molecule.representation").toString());
+
+    world::MoleculeSceneCompileOptions atomOptions;
+    atomOptions.representation = "atoms";
+    auto atoms = world::MoleculeSceneCompiler().compile(parsed.molecule(), source, atomOptions);
+    std::vector<Sphere*> atomSpheres;
+    std::vector<Cylinder*> atomCylinders;
+    collectSpheres(atoms.get(), atomSpheres);
+    collectCylinders(atoms.get(), atomCylinders);
+    ASSERT_EQ(3u, atomSpheres.size());
+    EXPECT_TRUE(atomCylinders.empty());
+    auto* atomNitrogen = findSphereByMetadata(atoms.get(), "sourceRecord", "ATOM 1");
+    ASSERT_NE(nullptr, atomNitrogen);
+    EXPECT_EQ(world::moleculeElementStyle("N").color, materialColor(*atomNitrogen));
+    EXPECT_DOUBLE_EQ(world::moleculeElementStyle("N").displayRadius * 0.25,
+                     atomNitrogen->radius());
+    EXPECT_EQ(QString("atoms"), atomNitrogen->metadataValue("molecule.representation").toString());
+  }
+
   TEST(MoleculeSceneImporter, ShouldExposeBackboneImportOptions) {
     world::MoleculeSceneImporter importer;
 
@@ -427,9 +512,32 @@ namespace MoleculeSceneImporterTest {
 
     EXPECT_EQ(QStringLiteral("ball_and_stick"), asset.property("renderMode").toString());
     ASSERT_EQ(1, asset.childElements().size());
+    const int ballAndStickElementCount = recursiveElementCount(asset.childElements().front());
     std::vector<Cylinder*> cylinders;
     collectCylinders(asset.childElements().front(), cylinders);
     ASSERT_FALSE(cylinders.empty());
+    std::vector<Sphere*> spheres;
+    collectSpheres(asset.childElements().front(), spheres);
+    auto* nitrogen = findSphereByMetadata(asset.childElements().front(), "sourceRecord", "ATOM 1");
+    ASSERT_NE(nullptr, nitrogen);
+    const double ballAndStickRadius = nitrogen->radius();
+
+    asset.setProperty("renderMode", "space_filling");
+    asset.propertyEdited("renderMode");
+
+    ASSERT_EQ(1, asset.childElements().size());
+    const int spaceFillingElementCount = recursiveElementCount(asset.childElements().front());
+    cylinders.clear();
+    collectCylinders(asset.childElements().front(), cylinders);
+    EXPECT_TRUE(cylinders.empty());
+    spheres.clear();
+    collectSpheres(asset.childElements().front(), spheres);
+    EXPECT_EQ(3u, spheres.size());
+    nitrogen = findSphereByMetadata(asset.childElements().front(), "sourceRecord", "ATOM 1");
+    ASSERT_NE(nullptr, nitrogen);
+    EXPECT_DOUBLE_EQ(world::moleculeElementStyle("N").displayRadius, nitrogen->radius());
+    EXPECT_GT(nitrogen->radius(), ballAndStickRadius);
+    EXPECT_LT(spaceFillingElementCount, ballAndStickElementCount);
 
     asset.setProperty("renderMode", "atoms");
     asset.propertyEdited("renderMode");
@@ -443,9 +551,12 @@ namespace MoleculeSceneImporterTest {
     cylinders.clear();
     collectCylinders(asset.childElements().front(), cylinders);
     EXPECT_TRUE(cylinders.empty());
-    std::vector<Sphere*> spheres;
+    spheres.clear();
     collectSpheres(asset.childElements().front(), spheres);
-    EXPECT_FALSE(spheres.empty());
+    EXPECT_EQ(3u, spheres.size());
+    nitrogen = findSphereByMetadata(asset.childElements().front(), "sourceRecord", "ATOM 1");
+    ASSERT_NE(nullptr, nitrogen);
+    EXPECT_DOUBLE_EQ(ballAndStickRadius, nitrogen->radius());
 
     QJsonObject json;
     asset.write(json);
@@ -525,6 +636,27 @@ namespace MoleculeSceneImporterTest {
     EXPECT_EQ(QString("tube"), backbone->tessellationMode());
     for (int i = 1; i != chainA->childElements().size(); ++i)
       EXPECT_EQ(nullptr, qobject_cast<Sphere*>(chainA->childElements()[i]));
+  }
+
+  TEST(MoleculeSceneImporter, RenderModeDoesNotAddImplicitBackboneOverlay) {
+    world::MoleculeSceneImporter importer;
+    world::ImportOptions options;
+    options.setValue("renderMode", "atoms");
+
+    auto result = importer.importFile("test/fixtures/molecules/backbone_chain.pdb", options);
+
+    ASSERT_TRUE(result.succeeded());
+    auto root = result.takeRoot();
+    ASSERT_NE(nullptr, root);
+    std::vector<Sphere*> spheres;
+    std::vector<Cylinder*> cylinders;
+    std::vector<Curve*> curves;
+    collectSpheres(root.get(), spheres);
+    collectCylinders(root.get(), cylinders);
+    collectCurves(root.get(), curves);
+    EXPECT_FALSE(spheres.empty());
+    EXPECT_TRUE(cylinders.empty());
+    EXPECT_TRUE(curves.empty());
   }
 
   TEST(MoleculeSceneImporter, ShouldImportAndRoundTripBackboneCurves) {

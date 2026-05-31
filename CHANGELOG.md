@@ -22,6 +22,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   sidedness only infers backface culling for trusted front-sided geometry;
   raster metrics also report culling and winding/degeneracy triangle rejects
   for Epic #356. — GPT-5
+- **Molecule SourceAsset render modes.** Source-backed molecule imports now
+  generate concrete ball-and-stick, space-filling, and atom-only primitive
+  layouts from `renderMode` while preserving per-atom and per-bond selection
+  metadata for Epic #408. — GPT-5
 - **BoundingBox Ray4 packet masks use the shared SIMD backend.**
   `BoundingBox::intersects4(Ray4)` now runs through the four-wide SIMD
   abstraction for SSE, NEON, and scalar builds, with explicit packet-mask tests
