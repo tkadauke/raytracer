@@ -56,6 +56,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   time, lens, BSDF, light, and continuation dimensions so future integrators
   can request independent samples deterministically without reusing one 2D
   pattern accidentally for Epic #358. — GPT-5
+- **Raster performance baseline captures.** `benchmarks/raster_baseline_capture.sh`
+  now captures repeatable raster metrics for the baseline materials, dense
+  sphere, offscreen floor, fixed-function alpha/blend/stencil, and synthesized
+  dense LDraw import scenes at 1x/4x MSAA and LOD 0/2 for Epic #356. — GPT-5
 - **Shared four-wide SIMD backend.** Internal packet traversal code now has a
   shared `core::simd::Float4`/`Mask4` abstraction with SSE, NEON, and scalar
   backends, and BVH bounding-box packet tests use that backend instead of a
