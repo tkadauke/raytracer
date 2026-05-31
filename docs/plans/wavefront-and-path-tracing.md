@@ -8,16 +8,19 @@
 > GPU offload. Captured 2026-05-10 from the conversation about
 > "compute one recursion at a time, stop when nothing changes."
 >
-> **Status:** Living document. Phase 1, the throughput-cutoff prerequisite,
-> has landed in the existing recursive engine; the wavefront sibling engine
-> itself is still unimplemented. Open questions need decisions before Phase 2
-> fans out.
+> **Status:** Living document. Updated 2026-05-31 after the render graph,
+> render-intent, scalar path-tracing, packet-intersection, and OpenGL raster
+> work landed. Phase 1, the throughput-cutoff prerequisite, is done. A scalar
+> `PathTracingIntegrator` also exists now, but the wavefront sibling engine
+> itself is still unimplemented. The remaining work is therefore scheduler /
+> executor work, plus intent plumbing, not "invent path tracing from zero."
 >
 > **Rule:** the wavefront engine is a **sibling** to the existing
-> `Raytracer`, not a replacement. Both ship; the user chooses. Reuses
-> the shared substrate (intersection, materials, BVH, lights, camera)
-> through the existing `render::` namespace — wavefront only changes
-> the scheduling.
+> `Raytracer`, not a replacement. Both ship; the user chooses through render
+> intent / render graph compilation. Reuses the shared substrate
+> (intersection, materials, BVH, lights, camera, samplers, BSDF/light sampling)
+> through the existing `render::` namespace — wavefront changes scheduling and
+> per-path state ownership.
 
 ---
 
@@ -38,11 +41,14 @@ Two related techniques, in order of architectural disruption:
 
 The natural progression continues past wavefront:
 
-3. **Stochastic path tracing.** Once you're scheduling depth-major
-   with one outgoing ray per hit, classical Whitted's reflect+transmit
-   branching becomes unnatural. Importance-sample one outgoing
-   direction at each hit, shoot many primary samples per pixel,
-   average. The wavefront engine is the natural host.
+3. **Stochastic path tracing.** The first scalar version has now
+   landed as `render::PathTracingIntegrator`: it is an iterative
+   megakernel `Integrator`, consumes `SampleStream`, uses
+   `Material::sampleBsdf` / `evalBsdf`, samples lights for next-event
+   estimation, and applies Russian roulette. That is deliberately not
+   a wavefront scheduler. The wavefront work should reuse this
+   substrate and re-host compatible path-tracing semantics in
+   depth-major queues once the Whitted-parity scheduler is proven.
 
 4. **Denoising.** Once you have a partial image after each depth pass
    (and per-pixel uncertainty signals from path tracing), drop in a
@@ -51,8 +57,10 @@ The natural progression continues past wavefront:
 
 5. **GPU offload.** Wavefront is the canonical GPU ray-tracing
    architecture (Laine, Karras & Aila 2013 introduced it for that
-   reason). Once data is SoA and scheduling is depth-major, the path
-   to GPU is well-trodden.
+   reason). The repository now has an OpenGL raster backend and graph
+   GPU/CPU resource-domain plumbing, but that is rasterization
+   infrastructure, not GPU ray tracing. CPU wavefront comes first;
+   GPU ray tracing remains a separate future plan.
 
 Each builds on the previous. This plan covers (2) in detail, (3) and
 (4) in sketch, and (5) as a future-work pointer.
@@ -65,26 +73,34 @@ Thomas asked: "Do we need a separate render engine for that or can we
 implement it as an alternative render method?"
 
 **Answer: new sibling engine, not a rewrite of the existing
-`Raytracer`.** The existing engine architecture already supports this
-cleanly — see `include/engine/`, which today has three siblings
-(`raster`, `wireframe`, `raytracer`), all concrete `RenderEngine`s.
+`Raytracer`.** The existing engine architecture still supports this
+cleanly, but the integration point has changed since this plan was
+first written: rendercli and Modeler now render through the graph by
+default, and scenes carry editable render intent. A wavefront engine
+therefore needs both a concrete `RenderEngine` implementation and a
+graph executor surface (`RenderExecutorPreference`,
+`RenderExecutorKind`, pass payload/state, rendercli/modeler intent UI).
 
 ### Why a sibling rather than an in-place rewrite
 
-Three reasons:
+Four reasons:
 
-1. **The default `WhittedIntegrator` is recursive.** Wavefront
-   scheduling is iterative-with-per-pixel-state. Trying to fit both
-   policies into one scheduler produces a mess. The recursive
-   raytracer still supports
-   the single-ray probe API (`primitiveForRay`, `rayState`,
-   `rayColor`) used by interactive picking and tests pinning shading
-   behavior. Those
-   probes don't want depth-major scheduling.
-2. **A/B benchmarking.** With both engines shipping, you can run the
+1. **Scheduling and radiance policy are now separate concepts.**
+   `Raytracer` owns camera/framebuffer/tile scheduling and delegates
+   per-ray radiance to `render::Integrator` (`WhittedIntegrator` by
+   default, `PathTracingIntegrator` when selected). Wavefront changes
+   scheduling and per-path state ownership. It should not be crammed
+   into `Raytracer::render()` as a mode.
+2. **The recursive raytracer still owns single-ray probes.** APIs such
+   as `primitiveForRay`, `rayState`, and `rayColor` are used by
+   interactive picking and tests pinning shading behavior. Those
+   probes should remain on `Raytracer`; wavefront should not inherit
+   the `RayCaster` probe contract just to satisfy callers that want a
+   single scalar ray.
+3. **A/B benchmarking.** With both engines shipping, you can run the
    same scene through both and directly measure the difference rather
    than reasoning about it.
-3. **Risk containment.** If wavefront has a subtle bug for some
+4. **Risk containment.** If wavefront has a subtle bug for some
    material/scene combo, users have a known-good fallback. Especially
    important during the transition into path tracing, where the
    semantics genuinely change (stochastic per-sample vs. deterministic
@@ -92,10 +108,10 @@ Three reasons:
 
 ### What gets shared
 
-Everything except the scheduling. Materials, primitives, BVH
-traversal, intersection routines, lights, cameras, tonemapping, and
-the per-ray `State` machinery all live in `render::` already and stay
-there.
+Everything except scheduling and queue/state ownership. Materials,
+primitives, BVH traversal, intersection routines, lights, cameras,
+samplers/sample streams, tonemapping, BSDF sampling, and the per-ray
+`State` machinery all live in `render::` already and stay there.
 
 The wavefront engine reuses them via the existing interfaces:
 
@@ -110,25 +126,39 @@ namespace engine::wavefront {
 }
 ```
 
-`RayCaster` mixin (`include/engine/raytracer/Raytracer.h:63`) is
-specific to the recursive engine — wavefront doesn't inherit it,
-and the single-ray probe API stays on `Raytracer` only.
+`RayCaster` mixin (`include/engine/raytracer/Raytracer.h`) is
+specific to the recursive compatibility path — wavefront doesn't
+inherit it, and the single-ray probe API stays on `Raytracer` only.
 
 ### What gets refactored
 
-Probably little in `Raytracer.cpp`. The relevant transport seam is
-now `render::Integrator`: `Raytracer::rayColor` delegates to the
-selected integrator, while materials use `RayCaster` only as the
-recursive callback handle. A wavefront or path-tracing engine may
-need finer-grained access to material incoming/outgoing direction
-APIs than the Whitted compatibility callback exposes, but those
-should already exist inside the shading code; we'd call them at the
-integrator/material boundary.
+Probably little in `Raytracer.cpp`. The relevant transport seams
+already exist:
+
+- `render::Integrator` is the scalar single-ray radiance policy seam.
+- `PathTracingIntegrator` is an iterative scalar path tracer and a good
+  reference for BSDF, direct-lighting, and Russian-roulette behavior.
+- `Material::supportsBsdfSampling`, `evalBsdf`, `sampleBsdf`, and
+  `bsdfPdf` are the material-side path-tracing hooks.
+- `SampleStream` reserves named stochastic dimensions for pixel, lens,
+  time, BSDF, light, and continuation samples.
+- `RenderRaytracerOptions` / `RaytracerBeautyPassState` carry graph-visible
+  raytracer execution and sampling state, but they do **not** yet carry
+  integrator selection.
+
+The next refactor before a wavefront engine should be to make
+integrator selection intent-derived and graph-visible. Today
+rendercli has `--integrator whitted|pathtracer`, but that direct-engine
+choice is not represented in `RenderIntent`, `RenderRaytracerOptions`,
+or compiled raytracer pass state. Fix that before adding a new
+wavefront executor so graph and direct paths do not diverge again.
 
 If wavefront grows enough to want SoA ray batches (Ray4/Ray8 per
-Phase 4 of `complete/core-math-optimization.md`), the shared intersection
-routines may grow batched overloads. The existing AoS path stays for
-`Raytracer`.
+Phase 4 of `complete/core-math-optimization.md`), the shared
+intersection routines already have a usable packet substrate:
+`Ray4`/`Ray8`, primitive packet entry points, `BoundingBox::intersects4`,
+packet primitive kernels, and BVH packet traversal. The existing AoS
+scalar path stays for `Raytracer`.
 
 ---
 
@@ -246,12 +276,12 @@ Two alternatives considered and not picked for v1:
   at deep passes (when the active set is sparse), but loses BVH cache
   coherence — a thread processing pixels (3,17), (88,201), (412,49)
   hits very different BVH nodes than one processing a contiguous
-  tile. Profile in Phase 3+ if tile imbalance becomes the bottleneck;
+  tile. Profile in Phase 4+ if tile imbalance becomes the bottleneck;
   not worth the complexity in v1.
 - **Hybrid work-stealing.** Threads start with their assigned tile,
   steal from neighbors when their tile empties. The natural endgame
   for v1 if profiling shows idle threads waiting on slow tiles. Defer
-  to Phase 6+ unless data demands it sooner.
+  to Phase 7+ unless data demands it sooner.
 
 ### Implication for convergence detection
 
@@ -349,13 +379,13 @@ outgoing direction.
   the current raytracer is best at.
 - Con: more complex than either extreme. Two code paths to test.
 
-**Recommendation**: ship wavefront with **C** (hybrid) as v1. Whitted
-deterministic split for specular/transmissive bounces (small fan-out),
-single-sample importance for diffuse. Migrate to pure **B** when path
-tracing arrives in earnest. **A** is mostly a stepping stone — useful
-for proving the architecture before committing to stochastic
-sampling, but the implementation effort doesn't transfer well to **B**
-later.
+**Updated recommendation**: use **A** only for the bare Whitted-parity
+wavefront engine, because exact-ish parity is the cleanest scheduler proof.
+For wavefront path tracing, start with **B** because the scalar
+`PathTracingIntegrator` has already established the material/light/sampler
+contract for single-continuation paths. Treat **C** as an optional quality
+optimization for deterministic specular/transmissive chains after measurement,
+not as the default first path-tracing design.
 
 ---
 
@@ -366,9 +396,10 @@ with the first phase that introduces it; subsequent phases reuse it.
 
 ### Phase 0 — design lock
 
-Resolve open questions below. Pick convergence-detection scheme,
-tree-branching strategy, memory layout. Commit decisions to this doc.
-No code changes yet.
+Resolve open questions below. Tree-branching sequencing is now locked; the
+remaining design decisions are convergence detection, first-phase memory layout,
+and how much scalar path-tracing behavior to factor before wavefront owns the
+queues. Commit decisions to this doc before starting the bare wavefront engine.
 
 ### ~~Phase 1 — throughput-based cutoff in the existing engine~~ ✅ **Done.**
 
@@ -384,20 +415,66 @@ explicit Russian-roulette continuation probabilities and survival weights, with
 unit coverage proving the expected throughput stays unchanged. ✅ **Done.**
 Supports Epic #358.
 
-### Phase 2 — bare wavefront engine: same outputs as Raytracer
+### Phase 1.5 — scalar path-tracing substrate ✅ **Done.**
+
+This was not in the original plan, but it landed before the wavefront engine:
+`render::PathTracingIntegrator` is now a concrete `Integrator` sibling to
+`WhittedIntegrator`. It is an iterative scalar megakernel path tracer with:
+
+- deterministic per-primary `SampleStream` consumption,
+- named BSDF/light/continuation sample dimensions,
+- material BSDF hooks (`sampleBsdf`, `evalBsdf`, `bsdfPdf`),
+- next-event estimation through `Light::sample`,
+- Russian-roulette termination,
+- Whitted fallback for materials that do not yet support BSDF sampling.
+
+This does **not** replace wavefront. It narrows the future wavefront task: reuse
+these sampling/material semantics and replace the scalar megakernel loop with a
+depth-major scheduler once the scheduler is ready.
+
+### Phase 2 — render-intent and graph parity for ray integrators
+
+Before adding another engine, remove the current direct/graph divergence:
+rendercli can select `--integrator whitted|pathtracer` for the direct
+raytracer path, but the render graph cannot express that selection.
+
+Tasks:
+
+- Add a validated integrator field to `RenderRaytracerOptions`.
+- Persist it through `RenderIntent`, `RenderIntentElement` ("Render Settings"),
+  JSON import/export, and subview override merging.
+- Add the matching field to `RaytracerBeautyPassState` and make
+  `RaytracerBeautyPassState::applyTo` install `WhittedIntegrator` or
+  `PathTracingIntegrator`.
+- Wire rendercli `--integrator` into the intent-derived path, not just the
+  direct-engine path.
+- Expose the setting in Modeler render settings with a dropdown, and hide
+  path-tracer-specific controls until `Path Tracer` is selected.
+- Add rendercli functional tests that `--render_graph_out` records the
+  integrator and that graph rendering and direct rendering honor the same
+  choice.
+
+**Goal**: the graph can represent and replay raytracer integrator choice.
+**Gate**: no direct-only integrator behavior remains except legacy
+`--no_render_graph` debugging.
+
+### Phase 3 — bare wavefront engine: same outputs as Raytracer
 
 New `WavefrontRaytracer` sibling under `include/engine/wavefront/`.
 Whitted semantics with tree-flattening (Option **A** above) so the
 output matches `Raytracer` byte-for-byte (modulo floating-point
-non-determinism from threading). Convergence test runs but doesn't
-yet drive any cutoff — instrumented to log delta-per-pass to a
-benchmark report.
+non-determinism from threading). Add it as a graph executor as part of
+the same slice: `RenderExecutorPreference`, `RenderExecutorKind`,
+executor definition, pass payload/state, rendercli selection, Modeler
+render settings, and graph inspector display names. Convergence test
+runs but doesn't yet drive any cutoff — instrumented to log
+delta-per-pass to a benchmark report.
 
 **Goal**: prove the architecture without changing image output.
 **Gate**: macro benchmark output (sphere / torus / BVH scenes) RMS
 within 1e-3 of `Raytracer` output for the same maxDepth.
 
-### Phase 3 — image-wide adaptive depth via convergence detection
+### Phase 4 — image-wide adaptive depth via convergence detection
 
 Activate the convergence test as a stop condition. Active-pixel count
 + L2 over active subset. Threshold tuning via the macro benchmark.
@@ -407,19 +484,24 @@ visible quality loss.
 **Gate**: ≥30% wall-clock improvement on the BVH-heavy scene at
 matching quality (visual delta < ε).
 
-### Phase 4 — switch tree-branching strategy from A to C
+### Phase 5 — wavefront path-tracing semantics
 
-Hybrid: specular bounces stay deterministic-split; diffuse switches to
-single-sample importance. Add a basic samples-per-pixel control —
-shoot N primary rays through each pixel, average. Per-pixel state
-becomes per-(pixel, sample), but the scheduler is unchanged.
+Re-host the scalar `PathTracingIntegrator` behavior in the depth-major
+scheduler. Do not call the scalar integrator wholesale for each ray; factor
+shared material/light-sampling behavior into reusable methods or small objects
+where needed so wavefront owns queues, active masks, and per-path state.
+
+Start with pure single-continuation path tracing (Option **B**) unless a
+measured scene proves deterministic specular split (Option **C**) is needed for
+acceptable variance. The existing samples-per-pixel controls become
+per-(pixel, sample) state in the wavefront scheduler.
 
 **Goal**: indirect lighting on diffuse surfaces (the path-tracing
 payoff).
 **Gate**: a Cornell-box-style scene with indirect bounce produces
 the visual difference path tracing is famous for.
 
-### Phase 5 — denoising hook between passes
+### Phase 6 — denoising hook between passes
 
 Add a `Denoiser` interface that runs between depth passes (or just at
 the end). v1: simple spatiotemporal filter (a-trous or bilateral on
@@ -430,7 +512,7 @@ learned denoiser.
 **Gate**: 4spp render with denoiser produces image visually comparable
 to 64spp without denoiser.
 
-### Phase 6+ — SoA / GPU / packet traversal
+### Phase 7+ — SoA / GPU / packet traversal
 
 Partially pre-landed. The SoA / Ray4 / Ray8 substrate from
 `complete/core-math-optimization.md` Phase 4 is already available: packet ray
@@ -444,6 +526,19 @@ not committed.
 
 ## Interactions with other plans
 
+### `render-graph.md`
+
+This plan now depends on the graph path. rendercli renders through the graph by
+default, Modeler previews are graph-backed, and scenes carry editable render
+intent. A wavefront implementation must therefore add graph-visible executor
+and pass state from the start; `--engine wavefront` as a direct-engine bypass is
+useful for focused debugging, but it is not the primary user surface.
+
+The immediate graph gap is ray integrator selection. `--integrator
+pathtracer` exists for direct rendercli, but `RenderIntent` /
+`RenderRaytracerOptions` / `RaytracerBeautyPassState` cannot yet represent it.
+Close that before adding a wavefront executor.
+
 ### `complete/core-math-optimization.md`
 
 - Phase 1.2 (SIMD `BoundingBox::intersects`) directly benefits the
@@ -451,7 +546,7 @@ not committed.
 - Phase 1.4 (HitPointInterval small-buffer) is even more valuable
   under wavefront, where intersection batches are explicit.
 - Phase 4 (SoA / batched ray ops) has landed and plugs in here naturally in
-  Phase 6.
+  Phase 7.
 
 ### `point-vector-normal-types.md`
 
@@ -461,6 +556,14 @@ not committed.
 - `Transform<T>` wrapper is exactly the right type for the camera in
   the wavefront engine (cameras transform Points for primary-ray
   origins, Directions for primary-ray directions).
+
+### `whitted-ray-packets.md`
+
+The packet plan remains a scalar `Raytracer` optimization plan, not a
+replacement for wavefront. Its Phase 0 decision was to pursue sample packets
+inside the Whitted-style render path when that work resumes. Wavefront can use
+the same packet intersection substrate later, but the scheduler work in this
+plan should not wait for packetized Whitted rendering.
 
 ### Existing `Raytracer`
 
@@ -480,10 +583,21 @@ not committed.
   defeats the speedup; too loose introduces visible artifacts.
   Mitigation: bake threshold tuning into the macro benchmark; treat
   the chosen value as a per-engine setting visible in UI/CLI.
-- **Path-tracing variance.** When Phase 4 lands, low-spp renders will
+- **Path-tracing variance.** When Phase 5 lands, low-spp renders will
   look noisy compared to Whitted's smooth output. Mitigation: ship
-  with sensible default spp; document that denoising (Phase 5)
+  with sensible default spp; document that denoising (Phase 6)
   follows; keep `Raytracer` as the noise-free fallback.
+- **Material BSDF coverage.** The scalar path tracer falls back to
+  Whitted shading for materials that do not implement BSDF sampling.
+  A wavefront path tracer can make the same compatibility choice, but
+  it will not get true indirect lighting through those materials until
+  the material side is refactored. Mitigation: track material BSDF
+  support explicitly and keep graph/pass trace metadata visible so
+  users can see when a pass used compatibility shading.
+- **Graph/direct divergence.** rendercli has historically grown
+  direct-engine switches faster than graph-visible intent. Mitigation:
+  Phase 2 makes integrator selection graph-visible before wavefront
+  adds another backend choice.
 - **Test pinning breakage.** Tests that pin exact pixel values from
   the recursive engine will not pin against the wavefront engine
   (different ordering, different floating-point accumulation order).
@@ -506,7 +620,7 @@ not committed.
 
 ## Open questions
 
-These need decisions before Phase 2 (the bare wavefront engine)
+These need decisions before Phase 3 (the bare wavefront engine)
 starts.
 
 1. ~~**Whole-image or tile-based as the default?**~~ **Resolved**:
@@ -519,28 +633,39 @@ starts.
 2. **Convergence-detection scheme.** L2, max, percentile,
    active-pixel count, or combination. Lean active-pixel count + L2
    over active subset; not locked.
-3. **Tree-branching strategy for v1.** A (flatten queue), B (single
-   sample), or C (hybrid). Lean **A for Phase 2**, swap to **C in
-   Phase 4**. Pure **B** waits for explicit path-tracing decision.
+3. ~~**Tree-branching strategy for v1.**~~ **Resolved for sequencing**:
+   use **A** for the Whitted-parity scheduler proof, then start
+   wavefront path tracing with **B** because scalar path tracing already
+   landed with that shape. Revisit **C** only after variance/performance
+   data says deterministic specular splitting is worth the complexity.
 4. **`PixelState` memory layout.** AoS (`std::vector<PixelState>`),
    SoA (parallel arrays per field), or hybrid. AoS for v1; profile and
-   migrate to SoA in Phase 6 if needed.
-5. **Samples-per-pixel control.** A global setting? Per-pixel
-   adaptive (more samples where variance is high)? Lean global for
-   v1 (matches Whitted's effectively-1-spp), per-pixel adaptive in
-   Phase 4 or later.
-6. **CLI / UI surface.** A new `--engine wavefront` flag to
-   `rendercli`? A GUI engine-selector dropdown? Both presumably;
-   detail depends on the existing CLI/UI shape.
-7. **Where do scene-format defaults live?** A scene file probably
-   wants to express "this scene needs path tracing for the indirect
-   bounce." Add to the scene schema, or leave engine choice 100% on
-   the operator?
+   migrate to SoA in Phase 7 if needed.
+5. ~~**Samples-per-pixel control.**~~ **Resolved for v1**: global
+   samples-per-pixel already exists in rendercli and render intent.
+   Wavefront consumes the same setting. Per-pixel adaptive sampling is
+   later work.
+6. ~~**CLI / UI surface.**~~ **Partially resolved**: render intent /
+   render graph are the primary surface; direct `--engine wavefront`
+   remains useful as a debug bypass. Modeler should expose the same
+   choice in Render Settings, and render dialogs should preview the
+   compiled graph before rendering.
+7. ~~**Where do scene-format defaults live?**~~ **Resolved**: engine and
+   integrator preferences live in scene-backed render intent, not in
+   file-format-specific scene loaders. Importers may suggest sensible
+   cameras/lights/backgrounds, but they should not prescribe graph
+   executors except through ordinary render intent metadata.
 8. **Resume / progressive rendering.** Should the wavefront engine
    produce a usable image after every depth pass for progressive
    display? (It naturally can — the `accumulated` field is already a
    valid image at every pass.) Yes, ship it. Probably want a "preview
    on" flag for the GUI.
+9. **Integrator factoring.** How much of `PathTracingIntegrator` should
+   be factored into reusable methods/classes before wavefront path
+   tracing? Keep this OOP and behavior-owned: direct-lighting and BSDF
+   continuation behavior can move behind small transport helpers if the
+   wavefront scheduler needs them, but avoid free-function utility piles
+   or operation type switches.
 
 ---
 
@@ -549,12 +674,19 @@ starts.
 - **It is not a replacement for the existing `Raytracer`.** Both ship.
   The recursive engine stays as canonical for tests, debug, and
   single-ray probes.
-- **It is not a path tracer in Phase 2.** Phase 2 ships with Whitted
-  semantics, just scheduled differently. Path tracing is Phase 4+.
-- **It is not a GPU renderer.** Phase 6+ leaves that door open;
-  Phase 2-5 are all CPU.
-- **It is not a SoA refactor of the whole codebase.** Phase 2 uses AoS
-  per-pixel state; SoA is a future optimization.
+- **It is not the scalar path tracer.** `PathTracingIntegrator` already
+  exists and stays useful as the simple teaching implementation. Wavefront
+  path tracing is the later scheduler/queue form of compatible transport
+  semantics.
+- **It is not a path tracer in the first wavefront engine phase.** The
+  first wavefront engine ships with Whitted semantics, just scheduled
+  differently. Wavefront path tracing comes after graph/intent parity and
+  Whitted scheduler proof.
+- **It is not a GPU renderer.** Phase 7+ leaves that door open;
+  Phases 2-6 are all CPU.
+- **It is not a SoA refactor of the whole codebase.** Phase 2 only updates
+  intent plumbing; the first wavefront engine phase uses AoS per-pixel state.
+  SoA is a future optimization.
 
 ---
 
@@ -563,16 +695,21 @@ starts.
 1. ~~Land Phase 1 (throughput cutoff,
    [#133](https://github.com/tkadauke/raytracer/issues/133)) first.
    Validates the throughput arithmetic in a small surface.~~ ✅ **Done.**
-2. Resolve open questions before Phase 2 starts.
-3. Phase 2 (bare wavefront) must produce byte-comparable output to
+2. ~~Land the scalar path-tracing substrate.~~ ✅ **Done.**
+   `PathTracingIntegrator`, `SampleStream`, material BSDF hooks, light
+   sampling, and Russian-roulette support are now present.
+3. Do Phase 2 before the wavefront engine: make integrator choice part of
+   scene-backed render intent and compiled graph pass state.
+4. Resolve the remaining scheduler open questions before Phase 3 starts.
+5. Phase 3 (bare wavefront) must produce byte-comparable output to
    `Raytracer` for the same maxDepth on the macro benchmark scenes.
    This is the regression gate.
-4. Each subsequent phase has its own quality gate stated in its
+6. Each subsequent phase has its own quality gate stated in its
    description. Don't skip the gate to ship — the whole point of the
    wavefront engine is to be measurably better than the recursive
    one; if a phase doesn't show that, regroup before continuing.
-5. Every PR updates `CHANGELOG.md` under `## Unreleased`.
-6. Every PR runs the full test suite end-to-end. The whole-render
+7. Every PR updates `CHANGELOG.md` under `## Unreleased`.
+8. Every PR runs the full test suite end-to-end. The whole-render
    macro benchmark must be reported per `complete/core-math-optimization.md`'s
    "Rule." This plan is partly an architecture refactor and partly a
    performance optimization — both criteria apply.
