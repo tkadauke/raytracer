@@ -151,6 +151,20 @@ rendercli_expect_parser_failure(
 )
 
 rendercli_expect_parser_failure(
+  "rendercli rejects invalid raster tessellation quality"
+  "Raster tessellation quality must be 'preview', 'balanced', or 'final'"
+  --raster_tessellation_quality draft
+  "${basic_scene}" "${valid_output}"
+)
+
+rendercli_expect_parser_failure(
+  "rendercli rejects invalid raster max screen-space error"
+  "Raster max screen-space error must be a non-negative number"
+  --raster_max_screen_space_error -1
+  "${basic_scene}" "${valid_output}"
+)
+
+rendercli_expect_parser_failure(
   "rendercli rejects invalid repeat count"
   "Repeat must be a positive integer"
   --repeat 0

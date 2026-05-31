@@ -82,6 +82,8 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
     return QStringLiteral("Backend");
   if (propertyName == QStringLiteral("rasterizerVisibilityCulling"))
     return QStringLiteral("Visibility Culling");
+  if (propertyName == QStringLiteral("rasterizerDepthPrepass"))
+    return QStringLiteral("Depth Prepass");
   if (propertyName == QStringLiteral("rasterizerMSAASamples"))
     return QStringLiteral("MSAA Samples");
   if (propertyName == QStringLiteral("rasterizerMSAAShading"))
@@ -119,6 +121,10 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
     return QStringLiteral(
       "Advanced override in pixels for choosing cheaper tessellation variants from projected "
       "primitive size. Zero keeps the requested LOD.");
+  if (propertyName == QStringLiteral("rasterizerDepthPrepass"))
+    return QStringLiteral(
+      "Requests an optional measured opaque depth prepass. Auto currently suppresses cheap or "
+      "unsupported passes and records the decision in raster metrics.");
   return Element::propertyDescription(propertyName);
 }
 
@@ -166,6 +172,8 @@ QStringList RenderIntentElement::propertyChoices(const QString& propertyName) co
   if (propertyName == QStringLiteral("rasterizerBackend"))
     return {QStringLiteral("cpu"), QStringLiteral("opengl")};
   if (propertyName == QStringLiteral("rasterizerVisibilityCulling"))
+    return {QStringLiteral("off"), QStringLiteral("on"), QStringLiteral("auto")};
+  if (propertyName == QStringLiteral("rasterizerDepthPrepass"))
     return {QStringLiteral("off"), QStringLiteral("on"), QStringLiteral("auto")};
   if (propertyName == QStringLiteral("rasterizerTessellationQuality"))
     return {QStringLiteral("preview"), QStringLiteral("balanced"), QStringLiteral("final")};
@@ -246,6 +254,14 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
       return QStringLiteral("Final");
   }
   if (propertyName == QStringLiteral("rasterizerVisibilityCulling")) {
+    if (choice == QStringLiteral("off"))
+      return QStringLiteral("Off");
+    if (choice == QStringLiteral("on"))
+      return QStringLiteral("On");
+    if (choice == QStringLiteral("auto"))
+      return QStringLiteral("Auto");
+  }
+  if (propertyName == QStringLiteral("rasterizerDepthPrepass")) {
     if (choice == QStringLiteral("off"))
       return QStringLiteral("Off");
     if (choice == QStringLiteral("on"))
@@ -503,6 +519,16 @@ QString RenderIntentElement::rasterizerVisibilityCulling() const {
 void RenderIntentElement::setRasterizerVisibilityCulling(const QString& mode) {
   auto value = intent();
   value.engineOptions.rasterizer().setVisibilityCulling(normalizedText(mode).toStdString());
+  setIntent(value);
+}
+
+QString RenderIntentElement::rasterizerDepthPrepass() const {
+  return toQString(intent().engineOptions.rasterizer().depthPrepass().value_or("off"));
+}
+
+void RenderIntentElement::setRasterizerDepthPrepass(const QString& mode) {
+  auto value = intent();
+  value.engineOptions.rasterizer().setDepthPrepass(normalizedText(mode).toStdString());
   setIntent(value);
 }
 

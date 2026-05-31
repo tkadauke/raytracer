@@ -110,3 +110,43 @@ material-sidedness-driven inferred culling.
 | `--cull both` | 4 | 0 | 3,456 | 0 | 0 | 230,281 | 230,281 |
 | default | 4 | 2 | 2,328 | 1,128 | 0 | 113,743 | 113,743 |
 | `--cull both` | 4 | 2 | 3,456 | 0 | 0 | 230,281 | 230,281 |
+
+## Closeout Mode Checks
+
+Captured during the Epic #356 closeout on 2026-05-31 from the project release
+build in the Syrus Linux runner. These are reproducibility notes for the
+shipped controls rather than thresholds; rerun the commands after hardware or
+compiler changes.
+
+Commands used:
+
+```sh
+cmake --preset release
+cmake --build --preset release --target rendercli
+build/release/tools/rendercli/rendercli --engine raster --width 320 --height 240 \
+  --repeat 3 --timing --raster_metrics_summary --raster_metrics_out <file> \
+  scenes/raster_material_preview.json <png>
+```
+
+The same command was repeated with `--queue_size 1` and `--depth_prepass on`.
+The default row lets automatic scheduling choose the queue; the explicit queue
+row records the single-tile control case.
+
+| Scene / mode | Median render_ms | Median total_ms | Queue decision | Depth-prepass decision | Covered samples | Shaded fragments | Color writes |
+| --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
+| materials, default auto queue | 17.642 ms | 8.677 ms | `tiled` / `metrics_accepted`, queue 16 | `disabled` | 7,656 | 6,270 | 6,270 |
+| materials, `--queue_size 1` | 10.916 ms | 4.047 ms | `explicit_queue_size` / `caller_override`, queue 1 | `disabled` | 7,656 | 6,363 | 6,363 |
+| materials, `--depth_prepass on` | 12.075 ms | 6.152 ms | `tiled` / `metrics_accepted`, queue 16 | `enabled`, 1.653 ms median measured prepass | 7,656 | 5,564 | 5,564 |
+
+This small material scene shows why the scheduling and prepass decisions stay
+observable instead of becoming hard-coded policy. Automatic tiling is accepted
+by the current tile metrics, but the single-tile override is faster at this
+small resolution because queue overhead dominates. The depth prepass lowers
+shaded fragments and color writes, but the metrics also report the extra
+prepass time so the decision can be evaluated against total render time.
+
+The dense-sphere 320x240 control render reported 224 clipped triangles, 3,998
+covered samples, 1,999 shaded fragments, and `single_tile` /
+`low_projected_work`; forcing `--cull both` was identical for that two-sided
+scene. The earlier Phase 1 dense-LDraw table above is the culling-sensitive
+counter delta for imported winding metadata.

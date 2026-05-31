@@ -369,6 +369,20 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
               .arg(static_cast<qulonglong>(
                 fragments.value(QStringLiteral("colorWrites")).toDouble()));
   }
+  const QJsonObject scheduling =
+    passTrace->metadata().value(QStringLiteral("scheduling")).toObject();
+  if (!scheduling.isEmpty()) {
+    line += QStringLiteral(", queue %1 %2")
+              .arg(static_cast<qulonglong>(
+                scheduling.value(QStringLiteral("resolvedQueueSize")).toDouble()))
+              .arg(scheduling.value(QStringLiteral("decision")).toString());
+  }
+  const QJsonObject depthPrepass =
+    passTrace->metadata().value(QStringLiteral("depthPrepass")).toObject();
+  if (!depthPrepass.isEmpty()) {
+    line += QStringLiteral(", prepass %1")
+              .arg(depthPrepass.value(QStringLiteral("decision")).toString());
+  }
   return line;
 }
 

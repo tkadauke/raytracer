@@ -275,13 +275,15 @@ namespace engine::raster::detail {
                               const ClipVert& v0, const ClipVert& v1, const ClipVert& v2,
                               EmitFn& callback) const {
       recordPreparedTriangleBeforeCulling();
-      if (!m_skipCameraProjection && m_cullPolicy.hasDegenerateScreenWinding(v0, v1, v2)) {
-        recordTriangleRejectedByWindingOrDegeneracy();
-        return;
-      }
-      if (m_cullPolicy.shouldCull(materialSource, primitive, v0, v1, v2)) {
-        recordTriangleRejectedByCulling();
-        return;
+      if (!m_skipCameraProjection) {
+        if (m_cullPolicy.hasDegenerateScreenWinding(v0, v1, v2)) {
+          recordTriangleRejectedByWindingOrDegeneracy();
+          return;
+        }
+        if (m_cullPolicy.shouldCull(materialSource, primitive, v0, v1, v2)) {
+          recordTriangleRejectedByCulling();
+          return;
+        }
       }
 
       RasterTriangle triangle;

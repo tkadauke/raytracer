@@ -42,6 +42,8 @@ class RenderIntentElement : public Element {
   Q_PROPERTY(QString rasterizerBackend READ rasterizerBackend WRITE setRasterizerBackend)
   Q_PROPERTY(QString rasterizerVisibilityCulling READ rasterizerVisibilityCulling WRITE
                setRasterizerVisibilityCulling)
+  Q_PROPERTY(QString rasterizerDepthPrepass READ rasterizerDepthPrepass WRITE
+               setRasterizerDepthPrepass)
   Q_PROPERTY(int rasterizerMSAASamples READ rasterizerMSAASamples WRITE setRasterizerMSAASamples)
   Q_PROPERTY(
     QString rasterizerMSAAShading READ rasterizerMSAAShading WRITE setRasterizerMSAAShading)
@@ -135,6 +137,9 @@ public:
 
   QString rasterizerVisibilityCulling() const;
   void setRasterizerVisibilityCulling(const QString& mode);
+
+  QString rasterizerDepthPrepass() const;
+  void setRasterizerDepthPrepass(const QString& mode);
 
   int rasterizerMSAASamples() const;
   void setRasterizerMSAASamples(int samples);

@@ -759,6 +759,12 @@ keeping stable ids in tooltips and exported plans. Pass nodes also summarize
 non-default scene selector, camera, and shading-profile intent directly in the
 graph, and the pass table/property editor keep the same details available for
 copyable inspection.
+After a traced raster render, raster pass nodes also summarize the aggregate
+metrics that explain preview cost: pass timing, shaded fragments, color writes,
+queue decision, depth-prepass decision, and the full JSON metadata available in
+the property editor. The counter AOV views remain image previews, but these
+metadata totals are available even when the user does not request the counter
+images.
 
 - the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
   vertically, shows resources between producer and consumer passes, and lets the

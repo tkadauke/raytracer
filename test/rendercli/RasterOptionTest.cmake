@@ -54,7 +54,8 @@ set(metrics_report "${TEST_OUTPUT_DIR}/raster-metrics.json")
 rendercli_run(
   NAME "rendercli writes raster metrics JSON and summary"
   OUTPUT_VARIABLE metrics_stdout
-  STDOUT_MATCHES "raster_metrics.*total_ms=.*covered_samples=.*color_writes="
+  STDOUT_MATCHES
+    "raster_metrics.*queue_decision=.*depth_prepass=off.*depth_prepass_decision=disabled.*coverage_minus_shaded=.*coarse_depth_rejects=.*color_writes="
   COMMAND
     "${RENDERCLI}" --direct_engine --engine raster --width 40 --height 24
     --raster_metrics_out "${metrics_report}" --raster_metrics_summary
@@ -73,6 +74,16 @@ endif()
 if(NOT metrics_json MATCHES "\"totalRenderSeconds\"")
   _rendercli_fail("rendercli raster metrics timings"
                   "metrics report did not contain timing counters" "" "" "${metrics_json}" "")
+endif()
+if(NOT metrics_json MATCHES "\"depthPrepass\"")
+  _rendercli_fail("rendercli raster metrics depth prepass"
+                  "metrics report did not contain depth prepass decision metadata"
+                  "" "" "${metrics_json}" "")
+endif()
+if(NOT metrics_json MATCHES "\"scheduling\"")
+  _rendercli_fail("rendercli raster metrics scheduling"
+                  "metrics report did not contain scheduling metadata"
+                  "" "" "${metrics_json}" "")
 endif()
 
 rendercli_run(
@@ -674,6 +685,26 @@ if(NOT cull_both_graph_json MATCHES "\"cullMode\"[ \r\n]*:[ \r\n]*\"both\"")
   _rendercli_fail("rendercli --cull both graph state"
                   "compiled graph did not serialize explicit cullMode=both"
                   "" "" "" "${cull_both_graph_json}")
+endif()
+
+set(tessellation_quality_graph "${TEST_OUTPUT_DIR}/raster-tessellation-quality-graph.json")
+rendercli_run(
+  NAME "rendercli raster tessellation quality serializes graph state"
+  COMMAND
+    "${RENDERCLI}" --engine raster --render_graph_only --render_graph_format json
+    --raster_tessellation_quality preview --raster_max_screen_space_error 0.25
+    "${matte_scene}" "${tessellation_quality_graph}"
+)
+file(READ "${tessellation_quality_graph}" tessellation_quality_graph_json)
+if(NOT tessellation_quality_graph_json MATCHES "\"quality\"[ \r\n]*:[ \r\n]*\"preview\"")
+  _rendercli_fail("rendercli raster tessellation quality graph state"
+                  "compiled graph did not serialize raster geometry quality=preview"
+                  "" "" "" "${tessellation_quality_graph_json}")
+endif()
+if(NOT tessellation_quality_graph_json MATCHES "\"maxScreenSpaceError\"[ \r\n]*:[ \r\n]*0\\.25")
+  _rendercli_fail("rendercli raster max screen-space error graph state"
+                  "compiled graph did not serialize maxScreenSpaceError=0.25"
+                  "" "" "" "${tessellation_quality_graph_json}")
 endif()
 
 set(depth_prepass_graph "${TEST_OUTPUT_DIR}/raster-depth-prepass-graph.json")

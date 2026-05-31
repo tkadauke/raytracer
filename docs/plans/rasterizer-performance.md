@@ -154,22 +154,34 @@ full tessellation may be wasteful at preview scale.
 
 Tasks:
 
-- Add projected-size metrics for tessellated primitives or imported part
-  instances.
-- Introduce render-intent quality presets for raster tessellation, with an
-  advanced override for maximum screen-space error.
-- Let primitive tessellators and source importers choose lower-detail meshes
-  when the projected error stays below the requested quality.
-- Cache LOD variants for repeated source parts so large imports do not rebuild
-  identical geometry repeatedly.
-- Keep high-quality final render settings available and visible in the compiled
-  graph state.
+- ~~Add projected-size metrics for tessellated primitives or imported part
+  instances.~~ ✅ **Done.** Raster metrics include maximum projected primitive
+  size plus screen-space LOD reductions for Epic #356 Phase 2.
+- ~~Introduce render-intent quality presets for raster tessellation, with an
+  advanced override for maximum screen-space error.~~ ✅ **Done.** Render
+  intent, Modeler Render Settings, and rendercli expose preview/balanced/final
+  quality plus `--raster_max_screen_space_error`.
+- ~~Let primitive tessellators and source importers choose lower-detail meshes
+  when the projected error stays below the requested quality.~~ ✅ **Done.**
+  `RasterTriangleEmitter` lowers requested LOD only when projected error allows
+  it, while `final` preserves the requested LOD by default.
+- ~~Cache LOD variants for repeated source parts so large imports do not rebuild
+  identical geometry repeatedly.~~ ✅ **Done.** Repeated primitive/LOD variants
+  use a shared cache and metrics report cache hits/misses.
+- ~~Keep high-quality final render settings available and visible in the
+  compiled graph state.~~ ✅ **Done.** `RasterGeometryState` serializes quality
+  and max screen-space error into graph JSON and applies them to CPU/OpenGL
+  raster paths.
 
 Acceptance:
 
-- Lower preview quality reduces prepared triangles and coverage/depth-test
-  counts on LEGO scenes.
-- The same scene can still request high-quality tessellation for final renders.
+- ~~Lower preview quality reduces prepared triangles and coverage/depth-test
+  counts on LEGO scenes.~~ ✅ **Done.** Unit coverage pins LOD reductions and
+  cache hits; closeout benchmark notes live in
+  `docs/perf/raster-baseline-scenes-2026-05-31.md`.
+- ~~The same scene can still request high-quality tessellation for final
+  renders.~~ ✅ **Done.** Final quality leaves requested LOD intact unless an
+  explicit error override is set.
 
 ## Phase 3 - ordering and coarse occlusion
 
@@ -210,12 +222,20 @@ distribution.
 
 Tasks:
 
-- Use metrics to identify tile-list duplication and pathological tile loads.
-- Consider adaptive tile sizes or coarse bins for dense imported scenes.
-- Keep the existing automatic queue-size policy, but feed it the new metrics
-  instead of only pre-render estimates.
-- Add a benchmark case for dense imported geometry once a suitable fixture is
-  checked in or synthesized.
+- ~~Use metrics to identify tile-list duplication and pathological tile
+  loads.~~ ✅ **Done.** Scheduling metrics record evaluated queue sizes,
+  resolved queue, tile-reference duplication, and decision reason.
+- ~~Consider adaptive tile sizes or coarse bins for dense imported scenes.~~ ✅
+  **Done.** The automatic policy retries coarser queue sizes before falling
+  back to single-tile rendering.
+- ~~Keep the existing automatic queue-size policy, but feed it the new metrics
+  instead of only pre-render estimates.~~ ✅ **Done.** Queue decisions now use
+  measured tile-bin behavior and stay visible in rendercli summaries and graph
+  trace metadata.
+- ~~Add a benchmark case for dense imported geometry once a suitable fixture is
+  checked in or synthesized.~~ ✅ **Done.** `RasterizerTilingBenchmark` and
+  `benchmarks/raster_baseline_capture.sh dense_ldraw` cover synthesized dense
+  imported geometry.
 
 ## Phase 5 - optional depth prepass
 
@@ -224,10 +244,16 @@ can also double coverage work. Treat it as a later opt-in or heuristic feature.
 
 Tasks:
 
-- Enable only for opaque raster passes with expensive shading or when
-  hierarchical rejection can consume the prepass result.
-- Measure whether depth prepass reduces total time, not only color writes.
-- Expose the decision in graph state and trace metadata.
+- ~~Enable only for opaque raster passes with expensive shading or when
+  hierarchical rejection can consume the prepass result.~~ ✅ **Done.** The
+  prepass is gated to supported opaque 1x CPU raster state and `auto`
+  suppresses cheap/unsupported passes.
+- ~~Measure whether depth prepass reduces total time, not only color writes.~~
+  ✅ **Done.** Metrics report prepass, color-pass, and total measured seconds;
+  rendercli summaries include the prepass decision and measured time.
+- ~~Expose the decision in graph state and trace metadata.~~ ✅ **Done.**
+  `RasterDepthPrepassState`, rendercli `--depth_prepass`, Modeler Render
+  Settings, and graph trace metadata expose the requested mode and decision.
 
 ## Documentation and tests
 
