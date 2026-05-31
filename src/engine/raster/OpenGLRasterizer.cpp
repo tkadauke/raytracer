@@ -8,6 +8,8 @@
 #include "engine/raster/detail/OpenGLRasterResourceCache.h"
 #include "engine/raster/detail/OpenGLRasterShaderSources.h"
 #include "engine/raster/detail/OpenGLShadowSamplingPlan.h"
+#include "engine/raster/detail/OpenGLFixedFunctionState.h"
+#include "engine/raster/detail/OpenGLRasterDrawState.h"
 #include "engine/raster/detail/OpenGLRasterTextures.h"
 #include "engine/raster/detail/OpenGLShadowTextureData.h"
 #include "engine/raster/detail/RasterShadowMaps.h"
@@ -42,61 +44,10 @@ namespace engine::raster {
       std::chrono::nanoseconds doneCurrentElapsed{0};
     };
 
-    // Per-render configuration for `OpenGLRasterDrawPass`. Populated
-    // by `OpenGLRasterizer::renderOpenGL` and passed in as one bundle
-    // so adding new draw-time state (attachment-load policy,
-    // attachment-set handles, future Phase 3 residency knobs) doesn't
-    // require touching the draw-pass constructor signature, every call
-    // site, and the member-init list.
-    struct OpenGLRasterDrawState {
-      int height{0};
-      Recti viewportRect;
-      bool scissorEnabled{false};
-      Recti scissorRect;
-      Rasterizer::AttachmentLoadOp colorLoadOp{Rasterizer::AttachmentLoadOp::Clear};
-      Rasterizer::AttachmentStoreOp colorStoreOp{Rasterizer::AttachmentStoreOp::Store};
-      std::uint8_t colorWriteMask{Rasterizer::ColorWriteAll};
-      bool blendingEnabled{false};
-      Rasterizer::BlendFactor sourceBlendFactor{Rasterizer::BlendFactor::One};
-      Rasterizer::BlendFactor destinationBlendFactor{Rasterizer::BlendFactor::Zero};
-      Rasterizer::BlendOp blendOp{Rasterizer::BlendOp::Add};
-      Colord blendConstantColor{Colord::white()};
-      double blendConstantAlpha{1.0};
-      bool alphaTestEnabled{false};
-      Rasterizer::AlphaFunc alphaFunc{Rasterizer::AlphaFunc::Always};
-      double alphaReference{0.0};
-      Rasterizer::DepthFunc depthFunc{Rasterizer::DepthFunc::Less};
-      double depthClearValue{1.0};
-      Rasterizer::AttachmentLoadOp depthLoadOp{Rasterizer::AttachmentLoadOp::Clear};
-      Rasterizer::AttachmentStoreOp depthStoreOp{Rasterizer::AttachmentStoreOp::Store};
-      bool depthWriteEnabled{true};
-      bool stencilTestEnabled{false};
-      Rasterizer::StencilFunc stencilFunc{Rasterizer::StencilFunc::Always};
-      std::uint8_t stencilReference{0};
-      std::uint8_t stencilMask{0xff};
-      std::uint8_t stencilClearValue{0};
-      Rasterizer::AttachmentLoadOp stencilLoadOp{Rasterizer::AttachmentLoadOp::Clear};
-      Rasterizer::AttachmentStoreOp stencilStoreOp{Rasterizer::AttachmentStoreOp::Store};
-      std::uint8_t stencilWriteMask{0xff};
-      Rasterizer::StencilOp stencilFailOp{Rasterizer::StencilOp::Keep};
-      Rasterizer::StencilOp stencilDepthFailOp{Rasterizer::StencilOp::Keep};
-      Rasterizer::StencilOp stencilPassOp{Rasterizer::StencilOp::Keep};
-      detail::OpenGLShadowTextureData shadowTextureData;
-      Vector3d cameraPosition;
-      std::optional<Matrix4d> viewProjection;
-      Rasterizer::CullMode cullMode{Rasterizer::CullMode::Both};
-      bool hasCullModeOverride{false};
-      // True when the GPU vertex/index buffers already hold this
-      // mesh's payload (tracked across renders by
-      // `OpenGLRasterResourceCache::uploadedMeshSlot`). The draw pass
-      // skips `vertexBuffer.allocate()` in that case.
-      bool skipMeshUpload{false};
-    };
-
     class OpenGLRasterDrawPass {
     public:
       OpenGLRasterDrawPass(detail::OpenGLRasterResourceCache& resources,
-                           OpenGLRasterDrawState state, const std::atomic<bool>& cancelled)
+                           detail::OpenGLRasterDrawState state, const std::atomic<bool>& cancelled)
           : m_resources(resources),
             m_height(state.height),
             m_viewportRect(state.viewportRect),
@@ -204,24 +155,25 @@ namespace engine::raster {
         functions->glClearColor(static_cast<GLfloat>(std::clamp(background.r(), 0.0, 1.0)),
                                 static_cast<GLfloat>(std::clamp(background.g(), 0.0, 1.0)),
                                 static_cast<GLfloat>(std::clamp(background.b(), 0.0, 1.0)), 1.0f);
-        functions->glClearDepthf(normalizedDepthClearValue(m_depthClearValue));
+        functions->glClearDepthf(detail::normalizedDepthClearValue(m_depthClearValue));
         functions->glStencilMask(0xff);
         functions->glClearStencil(m_stencilClearValue);
         functions->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-        applyDepth(functions);
-        applyColorWriteMask(functions);
-        applyBlending(functions);
-        applyStencil(functions);
-        applyCullMode(functions);
+        const detail::OpenGLRasterDrawState fixedState = fixedFunctionStateSlice();
+        detail::applyDepth(functions, fixedState);
+        detail::applyColorWriteMask(functions, fixedState);
+        detail::applyBlending(functions, fixedState);
+        detail::applyStencil(functions, fixedState);
+        detail::applyCullMode(functions, fixedState);
         detail::OpenGLShadowTexture shadowTexture(functions, m_shadowTextureData);
 
         if (mesh.empty()) {
           functions->glFlush();
-          resetFixedFunctionState(functions);
+          detail::resetFixedFunctionState(functions);
           return;
         }
 
-        applyScissor(functions);
+        detail::applyScissor(functions, fixedState, m_height);
 
         detail::OpenGLFallbackTexture fallbackTexture(functions);
         m_resources.ensureProgram();
@@ -382,7 +334,7 @@ namespace engine::raster {
         functions->glActiveTexture(GL_TEXTURE0);
         functions->glFlush();
 
-        resetFixedFunctionState(functions);
+        detail::resetFixedFunctionState(functions);
 
         program.disableAttributeArray(albedoModeLocation);
         program.disableAttributeArray(specularLocation);
@@ -407,80 +359,35 @@ namespace engine::raster {
         return m_height - rect.bottom();
       }
 
-      void applyDepth(QOpenGLFunctions* functions) const {
-        // Load-op rejected pre-bind in `OpenGLRasterizer::renderOpenGL`.
-        functions->glDepthFunc(glDepthFunc(m_depthFunc));
-        functions->glDepthMask(m_depthWriteEnabled ? GL_TRUE : GL_FALSE);
-      }
-
-      void applyScissor(QOpenGLFunctions* functions) const {
-        if (!m_scissorEnabled) {
-          functions->glDisable(GL_SCISSOR_TEST);
-          return;
-        }
-
-        functions->glEnable(GL_SCISSOR_TEST);
-        functions->glScissor(m_scissorRect.left(), openGLY(m_scissorRect), m_scissorRect.width(),
-                             m_scissorRect.height());
-      }
-
-      void applyColorWriteMask(QOpenGLFunctions* functions) const {
-        functions->glColorMask((m_colorWriteMask & Rasterizer::ColorWriteRed) != 0,
-                               (m_colorWriteMask & Rasterizer::ColorWriteGreen) != 0,
-                               (m_colorWriteMask & Rasterizer::ColorWriteBlue) != 0, GL_TRUE);
-      }
-
-      void applyBlending(QOpenGLFunctions* functions) const {
-        if (!m_blendingEnabled) {
-          functions->glDisable(GL_BLEND);
-          return;
-        }
-
-        functions->glEnable(GL_BLEND);
-        functions->glBlendColor(
-          static_cast<GLclampf>(std::clamp(m_blendConstantColor.r(), 0.0, 1.0)),
-          static_cast<GLclampf>(std::clamp(m_blendConstantColor.g(), 0.0, 1.0)),
-          static_cast<GLclampf>(std::clamp(m_blendConstantColor.b(), 0.0, 1.0)),
-          static_cast<GLclampf>(std::clamp(m_blendConstantAlpha, 0.0, 1.0)));
-        functions->glBlendFunc(glBlendFactor(m_sourceBlendFactor),
-                               glBlendFactor(m_destinationBlendFactor));
-        functions->glBlendEquation(glBlendOp(m_blendOp));
-      }
-
-      void applyCullMode(QOpenGLFunctions* functions) const {
-        if (!m_hasCullModeOverride || m_cullMode == Rasterizer::CullMode::Both) {
-          functions->glDisable(GL_CULL_FACE);
-          return;
-        }
-        functions->glEnable(GL_CULL_FACE);
-        functions->glFrontFace(GL_CCW);
-        functions->glCullFace(m_cullMode == Rasterizer::CullMode::Back ? GL_BACK : GL_FRONT);
-      }
-
-      void applyStencil(QOpenGLFunctions* functions) const {
-        if (!m_stencilTestEnabled) {
-          functions->glDisable(GL_STENCIL_TEST);
-          functions->glStencilMask(0xff);
-          return;
-        }
-
-        // Load-op rejected pre-bind in `OpenGLRasterizer::renderOpenGL`.
-        functions->glEnable(GL_STENCIL_TEST);
-        functions->glStencilFunc(glStencilFunc(m_stencilFunc), m_stencilReference, m_stencilMask);
-        functions->glStencilMask(m_stencilWriteMask);
-        functions->glStencilOp(glStencilOp(m_stencilFailOp), glStencilOp(m_stencilDepthFailOp),
-                               glStencilOp(m_stencilPassOp));
-      }
-
-      void resetFixedFunctionState(QOpenGLFunctions* functions) const {
-        functions->glDisable(GL_SCISSOR_TEST);
-        functions->glDisable(GL_BLEND);
-        functions->glDisable(GL_STENCIL_TEST);
-        functions->glDisable(GL_CULL_FACE);
-        functions->glStencilMask(0xff);
-        functions->glDepthMask(GL_TRUE);
-        functions->glDepthFunc(GL_LESS);
-        functions->glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+      // Fixed-function GL state translation lives in
+      // engine/raster/detail/OpenGLFixedFunctionState.h. The thin
+      // wrappers here adapt the draw-pass member view to the free
+      // functions until the rest of the draw pass migrates to a state
+      // struct as well.
+      detail::OpenGLRasterDrawState fixedFunctionStateSlice() const {
+        detail::OpenGLRasterDrawState slice;
+        slice.scissorEnabled = m_scissorEnabled;
+        slice.scissorRect = m_scissorRect;
+        slice.colorWriteMask = m_colorWriteMask;
+        slice.blendingEnabled = m_blendingEnabled;
+        slice.sourceBlendFactor = m_sourceBlendFactor;
+        slice.destinationBlendFactor = m_destinationBlendFactor;
+        slice.blendOp = m_blendOp;
+        slice.blendConstantColor = m_blendConstantColor;
+        slice.blendConstantAlpha = m_blendConstantAlpha;
+        slice.depthFunc = m_depthFunc;
+        slice.depthWriteEnabled = m_depthWriteEnabled;
+        slice.stencilTestEnabled = m_stencilTestEnabled;
+        slice.stencilFunc = m_stencilFunc;
+        slice.stencilReference = m_stencilReference;
+        slice.stencilMask = m_stencilMask;
+        slice.stencilWriteMask = m_stencilWriteMask;
+        slice.stencilFailOp = m_stencilFailOp;
+        slice.stencilDepthFailOp = m_stencilDepthFailOp;
+        slice.stencilPassOp = m_stencilPassOp;
+        slice.cullMode = m_cullMode;
+        slice.hasCullModeOverride = m_hasCullModeOverride;
+        return slice;
       }
 
       void setShadowUniforms(QOpenGLShaderProgram& program, bool enabled) const {
@@ -547,122 +454,6 @@ namespace engine::raster {
         std::ostringstream name;
         name << arrayName << "[" << index << "]";
         return name.str();
-      }
-
-      static GLfloat normalizedDepthClearValue(double depth) {
-        if (!std::isfinite(depth)) {
-          return depth < 0.0 ? 0.0f : 1.0f;
-        }
-        const double positiveDepth = std::max(0.0, depth);
-        return static_cast<GLfloat>(std::clamp(positiveDepth / (positiveDepth + 1.0), 0.0, 1.0));
-      }
-
-      static GLenum glDepthFunc(Rasterizer::DepthFunc func) {
-        switch (func) {
-        case Rasterizer::DepthFunc::Never:
-          return GL_NEVER;
-        case Rasterizer::DepthFunc::Less:
-          return GL_LESS;
-        case Rasterizer::DepthFunc::Equal:
-          return GL_EQUAL;
-        case Rasterizer::DepthFunc::LessEqual:
-          return GL_LEQUAL;
-        case Rasterizer::DepthFunc::Greater:
-          return GL_GREATER;
-        case Rasterizer::DepthFunc::GreaterEqual:
-          return GL_GEQUAL;
-        case Rasterizer::DepthFunc::NotEqual:
-          return GL_NOTEQUAL;
-        case Rasterizer::DepthFunc::Always:
-          return GL_ALWAYS;
-        }
-        return GL_LESS;
-      }
-
-      static GLenum glBlendFactor(Rasterizer::BlendFactor factor) {
-        switch (factor) {
-        case Rasterizer::BlendFactor::Zero:
-          return GL_ZERO;
-        case Rasterizer::BlendFactor::One:
-          return GL_ONE;
-        case Rasterizer::BlendFactor::SourceColor:
-          return GL_SRC_COLOR;
-        case Rasterizer::BlendFactor::OneMinusSourceColor:
-          return GL_ONE_MINUS_SRC_COLOR;
-        case Rasterizer::BlendFactor::SourceAlpha:
-          return GL_SRC_ALPHA;
-        case Rasterizer::BlendFactor::OneMinusSourceAlpha:
-          return GL_ONE_MINUS_SRC_ALPHA;
-        case Rasterizer::BlendFactor::DestinationColor:
-          return GL_DST_COLOR;
-        case Rasterizer::BlendFactor::OneMinusDestinationColor:
-          return GL_ONE_MINUS_DST_COLOR;
-        case Rasterizer::BlendFactor::ConstantColor:
-          return GL_CONSTANT_COLOR;
-        case Rasterizer::BlendFactor::OneMinusConstantColor:
-          return GL_ONE_MINUS_CONSTANT_COLOR;
-        case Rasterizer::BlendFactor::ConstantAlpha:
-          return GL_CONSTANT_ALPHA;
-        case Rasterizer::BlendFactor::OneMinusConstantAlpha:
-          return GL_ONE_MINUS_CONSTANT_ALPHA;
-        }
-        return GL_ONE;
-      }
-
-      static GLenum glBlendOp(Rasterizer::BlendOp op) {
-        switch (op) {
-        case Rasterizer::BlendOp::Add:
-          return GL_FUNC_ADD;
-        case Rasterizer::BlendOp::Subtract:
-          return GL_FUNC_SUBTRACT;
-        case Rasterizer::BlendOp::ReverseSubtract:
-          return GL_FUNC_REVERSE_SUBTRACT;
-        case Rasterizer::BlendOp::Min:
-          return GL_MIN;
-        case Rasterizer::BlendOp::Max:
-          return GL_MAX;
-        }
-        return GL_FUNC_ADD;
-      }
-
-      static GLenum glStencilFunc(Rasterizer::StencilFunc func) {
-        switch (func) {
-        case Rasterizer::StencilFunc::Never:
-          return GL_NEVER;
-        case Rasterizer::StencilFunc::Less:
-          return GL_LESS;
-        case Rasterizer::StencilFunc::Equal:
-          return GL_EQUAL;
-        case Rasterizer::StencilFunc::LessEqual:
-          return GL_LEQUAL;
-        case Rasterizer::StencilFunc::Greater:
-          return GL_GREATER;
-        case Rasterizer::StencilFunc::GreaterEqual:
-          return GL_GEQUAL;
-        case Rasterizer::StencilFunc::NotEqual:
-          return GL_NOTEQUAL;
-        case Rasterizer::StencilFunc::Always:
-          return GL_ALWAYS;
-        }
-        return GL_ALWAYS;
-      }
-
-      static GLenum glStencilOp(Rasterizer::StencilOp op) {
-        switch (op) {
-        case Rasterizer::StencilOp::Keep:
-          return GL_KEEP;
-        case Rasterizer::StencilOp::Zero:
-          return GL_ZERO;
-        case Rasterizer::StencilOp::Replace:
-          return GL_REPLACE;
-        case Rasterizer::StencilOp::IncrementClamp:
-          return GL_INCR;
-        case Rasterizer::StencilOp::DecrementClamp:
-          return GL_DECR;
-        case Rasterizer::StencilOp::Invert:
-          return GL_INVERT;
-        }
-        return GL_KEEP;
       }
 
       detail::OpenGLRasterResourceCache& m_resources;
@@ -1446,7 +1237,7 @@ namespace engine::raster {
       drawViewport = camera()->viewPlane()->innerRect();
     }
 
-    OpenGLRasterDrawState drawState;
+    detail::OpenGLRasterDrawState drawState;
     drawState.height = height;
     drawState.viewportRect = drawViewport;
     drawState.scissorEnabled = m_scissorTestEnabled;
