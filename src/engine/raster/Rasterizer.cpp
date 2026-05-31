@@ -34,6 +34,7 @@
 #include <list>
 #include <limits>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -305,8 +306,28 @@ namespace {
   struct RasterTilingStats {
     std::size_t triangles{0};
     std::size_t tileReferences{0};
+    std::size_t nonEmptyTiles{0};
+    std::size_t maxTriangleReferencesPerTile{0};
+    double p95TriangleReferencesPerTile{0.0};
     double projectedBoundsPixels{0.0};
     double maxProjectedBoundsPixels{0.0};
+  };
+
+  struct RasterQueueChoice {
+    render::TilePlan tilePlan;
+    RasterTriangleSet triangleSet;
+    int queueSize{1};
+    std::string decision;
+    std::string reason;
+
+    RasterQueueChoice(render::TilePlan plan, RasterTriangleSet set, int queue,
+                      std::string queueDecision, std::string queueReason)
+        : tilePlan(std::move(plan)),
+          triangleSet(std::move(set)),
+          queueSize(queue),
+          decision(std::move(queueDecision)),
+          reason(std::move(queueReason)) {
+    }
   };
 
   double projectedBoundsArea(const RasterTriangle& triangle) {
@@ -388,8 +409,23 @@ namespace {
       stats.projectedBoundsPixels += area;
       stats.maxProjectedBoundsPixels = std::max(stats.maxProjectedBoundsPixels, area);
     }
+    std::vector<std::size_t> references;
+    references.reserve(tilePlan.size());
     for (std::size_t tile = 0; tile != tilePlan.size(); ++tile) {
-      stats.tileReferences += triangleSet.tileGrid().triangleIndices(tile).size();
+      const std::size_t count = triangleSet.tileGrid().triangleIndices(tile).size();
+      references.push_back(count);
+      stats.tileReferences += count;
+      if (count > 0) {
+        ++stats.nonEmptyTiles;
+      }
+      stats.maxTriangleReferencesPerTile = std::max(stats.maxTriangleReferencesPerTile, count);
+    }
+    if (!references.empty()) {
+      std::sort(references.begin(), references.end());
+      const std::size_t index =
+        static_cast<std::size_t>(std::ceil(0.95 * static_cast<double>(references.size())) - 1.0);
+      stats.p95TriangleReferencesPerTile =
+        static_cast<double>(references[std::min(index, references.size() - 1)]);
     }
     return stats;
   }
@@ -398,38 +434,76 @@ namespace {
     return std::max(1, threads * 4);
   }
 
-  bool shouldUseTiledRasterization(const RasterTilingStats& stats, int width, int height,
-                                   int queueSize, int threads, int msaaSamples) {
+  double averageTilesPerTriangle(const RasterTilingStats& stats) {
+    return stats.triangles > 0
+             ? static_cast<double>(stats.tileReferences) / static_cast<double>(stats.triangles)
+             : 0.0;
+  }
+
+  double tileLoadImbalance(const RasterTilingStats& stats) {
+    if (stats.nonEmptyTiles == 0 || stats.tileReferences == 0)
+      return 0.0;
+    const double averageTileReferences =
+      static_cast<double>(stats.tileReferences) / static_cast<double>(stats.nonEmptyTiles);
+    return averageTileReferences > 0.0
+             ? static_cast<double>(stats.maxTriangleReferencesPerTile) / averageTileReferences
+             : 0.0;
+  }
+
+  std::string tiledRasterizationRejectionReason(const RasterTilingStats& stats, int width,
+                                                int height, int queueSize, int threads,
+                                                int msaaSamples) {
     if (threads <= 1 || queueSize <= 1 || stats.triangles == 0)
-      return false;
+      return "single_worker_or_empty";
 
     const double framePixels = static_cast<double>(std::max(1, width * height));
     if (framePixels < 16384.0)
-      return false;
+      return "small_frame";
 
     const double triangles = static_cast<double>(stats.triangles);
-    const double avgTilesPerTriangle =
-      triangles > 0.0 ? static_cast<double>(stats.tileReferences) / triangles : 0.0;
+    const double avgTilesPerTriangle = averageTilesPerTriangle(stats);
     const double avgProjectedBounds =
       triangles > 0.0 ? stats.projectedBoundsPixels / triangles : 0.0;
     const double trianglesPerFramePixel = triangles / framePixels;
+    const double imbalance = tileLoadImbalance(stats);
 
     // Grounded in the #168 measurements: tiled rendering wins for screen-heavy
     // scenes with moderate projected triangle counts, but loses badly when dense
     // tessellation makes triangle preparation and tile-list duplication dominate.
     if (avgTilesPerTriangle > 2.25)
-      return false;
+      return "tile_reference_duplication";
+    if (imbalance > 6.0 &&
+        stats.maxTriangleReferencesPerTile > stats.p95TriangleReferencesPerTile * 3.0)
+      return "tile_load_imbalance";
     if (trianglesPerFramePixel > 1.0 / 32.0)
-      return false;
+      return "dense_triangle_load";
     if (triangles < static_cast<double>(threads * 16))
-      return false;
+      return "too_few_triangles";
 
     const double sampleMultiplier = static_cast<double>(std::max(1, msaaSamples));
     const double projectedWork = stats.projectedBoundsPixels * sampleMultiplier;
     if (projectedWork < framePixels * 0.20)
-      return false;
+      return "low_projected_work";
 
-    return avgProjectedBounds >= 16.0;
+    return avgProjectedBounds >= 16.0 ? "" : "tiny_projected_triangles";
+  }
+
+  std::vector<int> adaptiveQueueSizes(int requestedQueueSize, int threads) {
+    std::vector<int> queueSizes;
+    auto add = [&](int queueSize) {
+      queueSize = std::max(1, queueSize);
+      if (std::find(queueSizes.begin(), queueSizes.end(), queueSize) == queueSizes.end()) {
+        queueSizes.push_back(queueSize);
+      }
+    };
+
+    add(requestedQueueSize);
+    for (int queueSize = requestedQueueSize / 2; queueSize > threads; queueSize /= 2) {
+      add(queueSize);
+    }
+    add(threads);
+    add(1);
+    return queueSizes;
   }
 
   Colord sampleHistoryColor(const Buffer<Colord>& history, double x, double y) {
@@ -614,6 +688,11 @@ struct Rasterizer::Private {
   static RasterTriangleSet triangleSetForPlan(const std::vector<RasterTriangle>& triangles,
                                               const render::TilePlan& tilePlan,
                                               bool sortFrontToBack);
+  static RasterQueueChoice chooseAutomaticQueue(const RasterTriangleSet& candidateSet,
+                                                const render::TilePlan& candidateTilePlan,
+                                                bool sortFrontToBack, int threads, int msaaSamples,
+                                                std::vector<int>* evaluatedQueueSizes,
+                                                double* adaptiveBinningSeconds = nullptr);
   void prepareTemporalResources(int width, int height);
   void prepareMSAATileScratch(const Rasterizer& rasterizer, const render::TilePlan& tilePlan);
   TemporalResetCondition temporalResetCondition(int width, int height) const;
@@ -624,6 +703,9 @@ struct Rasterizer::Private {
   RasterMetricCounterAtomics metricCounterAtomics();
   void recordTileMetrics(Rasterizer& rasterizer, const RasterTriangleSet& triangleSet,
                          const render::TilePlan& tilePlan);
+  void recordSchedulingMetrics(Rasterizer& rasterizer, bool automatic,
+                               const std::vector<int>& evaluatedQueueSizes,
+                               const std::string& decision, const std::string& reason) const;
   void publishFragmentMetrics(Rasterizer& rasterizer) const;
   void publishDiagnosticImageStatistics(Rasterizer& rasterizer) const;
 };
@@ -694,6 +776,19 @@ engine::raster::rasterRenderMetricsToJson(const Rasterizer::RasterRenderMetrics&
     static_cast<double>(metrics.tiling.maxTriangleReferencesPerTile);
   tiling["p95TriangleReferencesPerTile"] = metrics.tiling.p95TriangleReferencesPerTile;
 
+  QJsonArray evaluatedQueueSizes;
+  for (const std::uint64_t queueSize : metrics.scheduling.evaluatedQueueSizes) {
+    evaluatedQueueSizes.push_back(static_cast<double>(queueSize));
+  }
+
+  QJsonObject scheduling;
+  scheduling["automaticQueueSize"] = metrics.scheduling.automaticQueueSize;
+  scheduling["configuredQueueSize"] = static_cast<double>(metrics.scheduling.configuredQueueSize);
+  scheduling["resolvedQueueSize"] = static_cast<double>(metrics.scheduling.resolvedQueueSize);
+  scheduling["evaluatedQueueSizes"] = evaluatedQueueSizes;
+  scheduling["decision"] = QString::fromStdString(metrics.scheduling.decision);
+  scheduling["reason"] = QString::fromStdString(metrics.scheduling.reason);
+
   QJsonObject fragments;
   fragments["coveredSamples"] = static_cast<double>(metrics.fragments.coveredSamples);
   fragments["stencilTests"] = static_cast<double>(metrics.fragments.stencilTests);
@@ -740,6 +835,7 @@ engine::raster::rasterRenderMetricsToJson(const Rasterizer::RasterRenderMetrics&
   object["input"] = input;
   object["tessellation"] = tessellation;
   object["tiling"] = tiling;
+  object["scheduling"] = scheduling;
   object["fragments"] = fragments;
   object["depthPrepass"] = depthPrepass;
   object["diagnosticImages"] = diagnosticImages;
@@ -783,10 +879,11 @@ RasterMetricCounterBuffers Rasterizer::Private::metricCounterBuffers() {
 }
 
 RasterMetricCounterAtomics Rasterizer::Private::metricCounterAtomics() {
-  return {&metricCoveredSamples,  &metricStencilTests,   &metricStencilFails,
-          &metricDepthTests,      &metricDepthPasses,    &metricDepthFails,
-          &metricShadedFragments, &metricAlphaTestFails, &metricColorWrites,
-          &metricConservativeDepthRejectedTriangleTiles};
+  return {&metricCoveredSamples,  &metricStencilTests,
+          &metricStencilFails,    &metricDepthTests,
+          &metricDepthPasses,     &metricDepthFails,
+          &metricShadedFragments, &metricAlphaTestFails,
+          &metricColorWrites,     &metricConservativeDepthRejectedTriangleTiles};
 }
 
 void Rasterizer::Private::recordTileMetrics(Rasterizer& rasterizer,
@@ -819,6 +916,24 @@ void Rasterizer::Private::recordTileMetrics(Rasterizer& rasterizer,
   }
 }
 
+void Rasterizer::Private::recordSchedulingMetrics(Rasterizer& rasterizer, bool automatic,
+                                                  const std::vector<int>& evaluatedQueueSizes,
+                                                  const std::string& decision,
+                                                  const std::string& reason) const {
+  auto& scheduling = rasterizer.m_lastMetrics.scheduling;
+  scheduling.automaticQueueSize = automatic;
+  scheduling.configuredQueueSize = static_cast<std::uint64_t>(std::max(1, queueSize));
+  scheduling.resolvedQueueSize = static_cast<std::uint64_t>(std::max(1, lastResolvedQueueSize));
+  scheduling.evaluatedQueueSizes.clear();
+  scheduling.evaluatedQueueSizes.reserve(evaluatedQueueSizes.size());
+  for (const int evaluatedQueueSize : evaluatedQueueSizes) {
+    scheduling.evaluatedQueueSizes.push_back(
+      static_cast<std::uint64_t>(std::max(1, evaluatedQueueSize)));
+  }
+  scheduling.decision = decision;
+  scheduling.reason = reason;
+}
+
 void Rasterizer::Private::publishFragmentMetrics(Rasterizer& rasterizer) const {
   auto& fragments = rasterizer.m_lastMetrics.fragments;
   fragments.coveredSamples = metricCoveredSamples.load(std::memory_order_relaxed);
@@ -832,13 +947,12 @@ void Rasterizer::Private::publishFragmentMetrics(Rasterizer& rasterizer) const {
   fragments.colorWrites = metricColorWrites.load(std::memory_order_relaxed);
   fragments.conservativeDepthRejectedTriangleTiles =
     metricConservativeDepthRejectedTriangleTiles.load(std::memory_order_relaxed);
-  fragments.coverageMinusShadedFragments =
-    fragments.coveredSamples >= fragments.shadedFragments
-      ? fragments.coveredSamples - fragments.shadedFragments
-      : 0;
-  fragments.depthTestsMinusColorWrites =
-    fragments.depthTests >= fragments.colorWrites ? fragments.depthTests - fragments.colorWrites
-                                                  : 0;
+  fragments.coverageMinusShadedFragments = fragments.coveredSamples >= fragments.shadedFragments
+                                             ? fragments.coveredSamples - fragments.shadedFragments
+                                             : 0;
+  fragments.depthTestsMinusColorWrites = fragments.depthTests >= fragments.colorWrites
+                                           ? fragments.depthTests - fragments.colorWrites
+                                           : 0;
 }
 
 void Rasterizer::Private::publishDiagnosticImageStatistics(Rasterizer& rasterizer) const {
@@ -1175,18 +1289,15 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   finishMetrics();
 }
 
-RasterTriangleSet
-Rasterizer::Private::collectRasterTriangles(const RasterTriangleEmitter& triangleEmitter,
-                                            const render::TilePlan& tilePlan,
-                                            bool shouldSortFrontToBack,
-                                            double* tileBinningSeconds) {
+RasterTriangleSet Rasterizer::Private::collectRasterTriangles(
+  const RasterTriangleEmitter& triangleEmitter, const render::TilePlan& tilePlan,
+  bool shouldSortFrontToBack, double* tileBinningSeconds) {
   // The emitter streams triangles, the set owns them and their tile
   // bins. Keeping those roles separate makes the later tile raster
   // pass independent of scene traversal and tessellation.
   std::vector<RasterTriangle> triangles;
-  triangleEmitter.forEachTriangle([&](const RasterTriangle& triangle) {
-    triangles.push_back(triangle);
-  });
+  triangleEmitter.forEachTriangle(
+    [&](const RasterTriangle& triangle) { triangles.push_back(triangle); });
   if (shouldSortFrontToBack) {
     sortFrontToBack(triangles);
   }
@@ -1217,6 +1328,63 @@ Rasterizer::Private::triangleSetForPlan(const std::vector<RasterTriangle>& trian
     triangleSet.add(triangle);
   }
   return triangleSet;
+}
+
+RasterQueueChoice Rasterizer::Private::chooseAutomaticQueue(
+  const RasterTriangleSet& candidateSet, const render::TilePlan& candidateTilePlan,
+  bool sortFrontToBack, int threads, int msaaSamples, std::vector<int>* evaluatedQueueSizes,
+  double* adaptiveBinningSeconds) {
+  const std::vector<int> queueSizes =
+    adaptiveQueueSizes(static_cast<int>(candidateTilePlan.size()), threads);
+  std::string lastReason = "single_tile_fallback";
+
+  for (const int queueSize : queueSizes) {
+    const render::TilePlan tilePlan =
+      queueSize == static_cast<int>(candidateTilePlan.size())
+        ? candidateTilePlan
+        : render::TilePlan::forBuffer(candidateTilePlan.width(), candidateTilePlan.height(),
+                                      queueSize);
+    const int actualQueueSize = static_cast<int>(tilePlan.size());
+    if (evaluatedQueueSizes) {
+      evaluatedQueueSizes->push_back(actualQueueSize);
+    }
+
+    RasterTriangleSet triangleSet = [&] {
+      if (actualQueueSize == static_cast<int>(candidateTilePlan.size())) {
+        return candidateSet;
+      }
+      const auto rebinStart = RasterClock::now();
+      RasterTriangleSet rebinned =
+        triangleSetForPlan(candidateSet.triangles(), tilePlan, sortFrontToBack);
+      if (adaptiveBinningSeconds) {
+        *adaptiveBinningSeconds += elapsedSeconds(rebinStart, RasterClock::now());
+      }
+      return rebinned;
+    }();
+    const RasterTilingStats stats = tilingStats(triangleSet, tilePlan);
+    if (actualQueueSize == 1) {
+      return RasterQueueChoice(std::move(tilePlan), std::move(triangleSet), actualQueueSize,
+                               "single_tile", lastReason);
+    }
+
+    lastReason = tiledRasterizationRejectionReason(stats, tilePlan.width(), tilePlan.height(),
+                                                   actualQueueSize, threads, msaaSamples);
+    if (lastReason.empty()) {
+      return RasterQueueChoice(std::move(tilePlan), std::move(triangleSet), actualQueueSize,
+                               "tiled", "metrics_accepted");
+    }
+  }
+
+  const render::TilePlan tilePlan =
+    render::TilePlan::forBuffer(candidateTilePlan.width(), candidateTilePlan.height(), 1);
+  const auto rebinStart = RasterClock::now();
+  RasterTriangleSet triangleSet =
+    triangleSetForPlan(candidateSet.triangles(), tilePlan, sortFrontToBack);
+  if (adaptiveBinningSeconds) {
+    *adaptiveBinningSeconds += elapsedSeconds(rebinStart, RasterClock::now());
+  }
+  return RasterQueueChoice(std::move(tilePlan), std::move(triangleSet), 1, "single_tile",
+                           lastReason);
 }
 
 void Rasterizer::Private::renderTriangleSetPass(
@@ -1418,38 +1586,42 @@ void Rasterizer::Private::renderAutomaticSingleSampleFrame(
   double binningSeconds = 0.0;
   const auto collectStart = RasterClock::now();
   const bool sortOpaqueFrontToBack = passSupportsConservativeDepthOcclusion(rasterizer);
-  const RasterTriangleSet candidateSet =
-    collectRasterTriangles(triangleEmitter, candidateTilePlan, sortOpaqueFrontToBack,
-                           &binningSeconds);
+  const RasterTriangleSet candidateSet = collectRasterTriangles(
+    triangleEmitter, candidateTilePlan, sortOpaqueFrontToBack, &binningSeconds);
   auto& metrics = const_cast<Rasterizer&>(rasterizer).m_lastMetrics;
   metrics.timings.tessellationTriangleEmissionSeconds +=
     std::max(0.0, elapsedSeconds(collectStart, RasterClock::now()) - binningSeconds);
   metrics.timings.tileBinningSeconds += binningSeconds;
-  recordTileMetrics(const_cast<Rasterizer&>(rasterizer), candidateSet, candidateTilePlan);
-  if (cancelled.load() || candidateSet.empty())
+  if (cancelled.load() || candidateSet.empty()) {
+    lastResolvedQueueSize = 1;
+    recordTileMetrics(const_cast<Rasterizer&>(rasterizer), candidateSet, candidateTilePlan);
+    recordSchedulingMetrics(const_cast<Rasterizer&>(rasterizer), true,
+                            {static_cast<int>(candidateTilePlan.size())}, "single_tile",
+                            "cancelled_or_empty");
     return;
+  }
 
-  const RasterTilingStats stats = tilingStats(candidateSet, candidateTilePlan);
-  if (shouldUseTiledRasterization(stats, candidateTilePlan.width(), candidateTilePlan.height(),
-                                  static_cast<int>(candidateTilePlan.size()),
-                                  threadPool->maxThreadCount(), rasterizer.msaaSamples())) {
-    lastResolvedQueueSize = static_cast<int>(candidateTilePlan.size());
+  std::vector<int> evaluatedQueueSizes;
+  double adaptiveBinningSeconds = 0.0;
+  RasterQueueChoice choice = chooseAutomaticQueue(
+    candidateSet, candidateTilePlan, sortOpaqueFrontToBack, threadPool->maxThreadCount(),
+    rasterizer.msaaSamples(), &evaluatedQueueSizes, &adaptiveBinningSeconds);
+  metrics.timings.tileBinningSeconds += adaptiveBinningSeconds;
+  lastResolvedQueueSize = choice.queueSize;
+  recordTileMetrics(const_cast<Rasterizer&>(rasterizer), choice.triangleSet, choice.tilePlan);
+  recordSchedulingMetrics(const_cast<Rasterizer&>(rasterizer), true, evaluatedQueueSizes,
+                          choice.decision, choice.reason);
+  if (choice.decision == "tiled") {
     renderTriangleSetPass(
-      rasterizer, scene, candidateSet, candidateTilePlan, shadowMaps, renderClip, cancelled, buffer,
-      sampleOffset, true, nullptr,
+      rasterizer, scene, choice.triangleSet, choice.tilePlan, shadowMaps, renderClip, cancelled,
+      buffer, sampleOffset, true, nullptr,
       rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA ? currentDepth.get() : nullptr);
     return;
   }
 
-  const render::TilePlan singleTilePlan =
-    render::TilePlan::forBuffer(candidateTilePlan.width(), candidateTilePlan.height(), 1);
-  lastResolvedQueueSize = 1;
-  const RasterTriangleSet singleTileSet =
-    triangleSetForPlan(candidateSet.triangles(), singleTilePlan, sortOpaqueFrontToBack);
-  recordTileMetrics(const_cast<Rasterizer&>(rasterizer), singleTileSet, singleTilePlan);
   renderTriangleListPass(
-    rasterizer, scene, singleTileSet.triangles(), singleTilePlan, shadowMaps, renderClip, cancelled,
-    buffer, sampleOffset,
+    rasterizer, scene, choice.triangleSet.triangles(), choice.tilePlan, shadowMaps, renderClip,
+    cancelled, buffer, sampleOffset,
     rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA ? currentDepth.get() : nullptr);
 }
 
@@ -1493,42 +1665,46 @@ void Rasterizer::Private::renderAutomaticMSAAFrame(
   double binningSeconds = 0.0;
   const auto collectStart = RasterClock::now();
   const bool sortOpaqueFrontToBack = passSupportsConservativeDepthOcclusion(rasterizer);
-  const RasterTriangleSet candidateSet =
-    collectRasterTriangles(triangleEmitter, candidateTilePlan, sortOpaqueFrontToBack,
-                           &binningSeconds);
+  const RasterTriangleSet candidateSet = collectRasterTriangles(
+    triangleEmitter, candidateTilePlan, sortOpaqueFrontToBack, &binningSeconds);
   auto& metrics = const_cast<Rasterizer&>(rasterizer).m_lastMetrics;
   metrics.timings.tessellationTriangleEmissionSeconds +=
     std::max(0.0, elapsedSeconds(collectStart, RasterClock::now()) - binningSeconds);
   metrics.timings.tileBinningSeconds += binningSeconds;
-  recordTileMetrics(const_cast<Rasterizer&>(rasterizer), candidateSet, candidateTilePlan);
-  if (cancelled.load() || candidateSet.empty())
+  if (cancelled.load() || candidateSet.empty()) {
+    lastResolvedQueueSize = 1;
+    recordTileMetrics(const_cast<Rasterizer&>(rasterizer), candidateSet, candidateTilePlan);
+    recordSchedulingMetrics(const_cast<Rasterizer&>(rasterizer), true,
+                            {static_cast<int>(candidateTilePlan.size())}, "single_tile",
+                            "cancelled_or_empty");
     return;
+  }
 
-  const RasterTilingStats stats = tilingStats(candidateSet, candidateTilePlan);
-  if (shouldUseTiledRasterization(stats, candidateTilePlan.width(), candidateTilePlan.height(),
-                                  static_cast<int>(candidateTilePlan.size()),
-                                  threadPool->maxThreadCount(), rasterizer.msaaSamples())) {
-    lastResolvedQueueSize = static_cast<int>(candidateTilePlan.size());
-    prepareMSAATileScratch(rasterizer, candidateTilePlan);
+  std::vector<int> evaluatedQueueSizes;
+  double adaptiveBinningSeconds = 0.0;
+  RasterQueueChoice choice = chooseAutomaticQueue(
+    candidateSet, candidateTilePlan, sortOpaqueFrontToBack, threadPool->maxThreadCount(),
+    rasterizer.msaaSamples(), &evaluatedQueueSizes, &adaptiveBinningSeconds);
+  metrics.timings.tileBinningSeconds += adaptiveBinningSeconds;
+  lastResolvedQueueSize = choice.queueSize;
+  recordTileMetrics(const_cast<Rasterizer&>(rasterizer), choice.triangleSet, choice.tilePlan);
+  recordSchedulingMetrics(const_cast<Rasterizer&>(rasterizer), true, evaluatedQueueSizes,
+                          choice.decision, choice.reason);
+  if (choice.decision == "tiled") {
+    prepareMSAATileScratch(rasterizer, choice.tilePlan);
     engine::dispatchTileTasks(
-      candidateTilePlan, *threadPool, tasks, [&](const Recti& rect, std::size_t tileIndex) {
-        renderMSAATile(rasterizer, scene, candidateSet, shadowMaps, renderClip, pattern, rect,
+      choice.tilePlan, *threadPool, tasks, [&](const Recti& rect, std::size_t tileIndex) {
+        renderMSAATile(rasterizer, scene, choice.triangleSet, shadowMaps, renderClip, pattern, rect,
                        tileIndex, cancelled, buffer);
       });
     return;
   }
 
-  const render::TilePlan singleTilePlan =
-    render::TilePlan::forBuffer(candidateTilePlan.width(), candidateTilePlan.height(), 1);
-  const RasterTriangleSet singleTileSet =
-    triangleSetForPlan(candidateSet.triangles(), singleTilePlan, sortOpaqueFrontToBack);
-  if (singleTileSet.empty())
+  if (choice.triangleSet.empty())
     return;
 
-  lastResolvedQueueSize = 1;
-  recordTileMetrics(const_cast<Rasterizer&>(rasterizer), singleTileSet, singleTilePlan);
-  renderMSAAFullFrame(rasterizer, scene, singleTileSet, singleTilePlan, shadowMaps, renderClip,
-                      pattern, cancelled, buffer);
+  renderMSAAFullFrame(rasterizer, scene, choice.triangleSet, choice.tilePlan, shadowMaps,
+                      renderClip, pattern, cancelled, buffer);
 }
 
 void Rasterizer::Private::renderMSAAFullFrame(
@@ -1604,8 +1780,7 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
       rasterizer, buffer.width(), buffer.height(), metricCounterBuffers(), metricCounterAtomics());
     const AlphaTestState alphaTest{rasterizer.alphaTestEnabled(), rasterizer.alphaFunc(),
                                    rasterizer.alphaReference()};
-    const bool conservativeDepthOcclusion =
-      passSupportsConservativeDepthOcclusion(rasterizer);
+    const bool conservativeDepthOcclusion = passSupportsConservativeDepthOcclusion(rasterizer);
 
     withPreparedTrianglePolicies(
       scene.get(), rasterizer, shadowMaps, tileBufferView(scratch->depth(), rect), stencilView,
@@ -1775,6 +1950,8 @@ void Rasterizer::Private::renderFrame(Rasterizer& rasterizer,
                              renderClip, cancelled, buffer);
   } else if (pattern.count > 1) {
     lastResolvedQueueSize = static_cast<int>(tilePlan.size());
+    recordSchedulingMetrics(rasterizer, false, {lastResolvedQueueSize}, "explicit_queue_size",
+                            "caller_override");
     renderMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, shadowMaps, renderClip,
                     cancelled, buffer);
   } else if (automaticQueueSize) {
@@ -1782,6 +1959,8 @@ void Rasterizer::Private::renderFrame(Rasterizer& rasterizer,
                                      renderClip, cancelled, buffer, sampleOffset);
   } else {
     lastResolvedQueueSize = static_cast<int>(tilePlan.size());
+    recordSchedulingMetrics(rasterizer, false, {lastResolvedQueueSize}, "explicit_queue_size",
+                            "caller_override");
     renderSingleSampleFrame(rasterizer, scene, tilePlan, triangleEmitter, shadowMaps, renderClip,
                             cancelled, buffer, sampleOffset);
   }

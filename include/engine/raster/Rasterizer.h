@@ -642,6 +642,15 @@ namespace engine::raster {
         double p95TriangleReferencesPerTile = 0.0;
       } tiling;
 
+      struct SchedulingSummary {
+        bool automaticQueueSize = false;
+        std::uint64_t configuredQueueSize = 0;
+        std::uint64_t resolvedQueueSize = 0;
+        std::vector<std::uint64_t> evaluatedQueueSizes;
+        std::string decision;
+        std::string reason;
+      } scheduling;
+
       struct FragmentLoopTotals {
         std::uint64_t coveredSamples = 0;
         std::uint64_t stencilTests = 0;
