@@ -86,6 +86,8 @@ set(raytracer_integrator_plan "${TEST_OUTPUT_DIR}/raytracer-integrator-graph.jso
 set(raytracer_integrator_render "${TEST_OUTPUT_DIR}/raytracer-integrator-render.png")
 set(wavefront_plan "${TEST_OUTPUT_DIR}/wavefront-graph.json")
 set(wavefront_render "${TEST_OUTPUT_DIR}/wavefront-render.png")
+set(wavefront_pathtracer_plan "${TEST_OUTPUT_DIR}/wavefront-pathtracer-graph.json")
+set(wavefront_pathtracer_render "${TEST_OUTPUT_DIR}/wavefront-pathtracer-render.png")
 set(raster_culling_plan "${TEST_OUTPUT_DIR}/raster-culling-graph.txt")
 set(raster_culling_trace "${TEST_OUTPUT_DIR}/raster-culling-trace.json")
 set(raster_culling_trace_render "${TEST_OUTPUT_DIR}/raster-culling-trace-render.png")
@@ -1355,6 +1357,34 @@ rendercli_run(
     "${static_scene}" "${wavefront_render}"
 )
 rendercli_assert_image_nonempty("${wavefront_render}" NAME "wavefront graph render pixels")
+
+rendercli_run(
+  NAME "rendercli exports wavefront pathtracer state in render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --engine wavefront --integrator pathtracer --width 32 --height 16
+    "${static_scene}" "${wavefront_pathtracer_plan}"
+)
+rendercli_assert_nonempty("${wavefront_pathtracer_plan}"
+                          NAME "wavefront pathtracer graph output")
+file(READ "${wavefront_pathtracer_plan}" wavefront_pathtracer_graph)
+if(NOT wavefront_pathtracer_graph MATCHES "\"executor\": \"wavefront\"")
+  message(FATAL_ERROR
+          "wavefront pathtracer graph did not contain wavefront executor: ${wavefront_pathtracer_graph}")
+endif()
+if(NOT wavefront_pathtracer_graph MATCHES "\"integrator\": \"pathtracer\"")
+  message(FATAL_ERROR
+          "wavefront pathtracer graph did not contain pathtracer state: ${wavefront_pathtracer_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli renders graph wavefront with pathtracer integrator"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
+    "${static_scene}" "${wavefront_pathtracer_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_pathtracer_render}"
+                                NAME "wavefront pathtracer graph render pixels")
 
 rendercli_expect_failure(
   NAME "rendercli rejects invalid render graph format"
