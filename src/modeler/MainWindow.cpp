@@ -1531,14 +1531,23 @@ void MainWindow::openFile(const QString& fileName) {
     thread->deleteLater();
     progress->deleteLater();
 
+    // Prune the entry from the recent list only when the file is
+    // actually gone; transient or recoverable failures (parse errors,
+    // unsupported features, file in use) should keep the entry so the
+    // user can retry without re-locating the file.
+    const bool fileMissing = !QFileInfo::exists(fileName);
     if (!opened.errorMessage.isEmpty()) {
-      removeRecentFile(fileName);
+      if (fileMissing) {
+        removeRecentFile(fileName);
+      }
       QMessageBox::warning(this, tr("Open File"), opened.errorMessage);
       return;
     }
 
     if (!opened.scene) {
-      removeRecentFile(fileName);
+      if (fileMissing) {
+        removeRecentFile(fileName);
+      }
       QMessageBox::warning(this, tr("Open File"), tr("Could not load %1").arg(fileName));
       return;
     }
