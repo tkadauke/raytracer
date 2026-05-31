@@ -127,6 +127,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   pinning unbiased expected-throughput preservation for future Monte Carlo
   integrators. Whitted recursion behavior is unchanged. Supports Epic #358. —
   GPT-5
+- **Multiple-importance-sampling helpers.** Future direct-lighting integrators
+  can now use tested balance/power heuristic utilities and small BSDF/light
+  PDF estimator helpers without adopting a full path tracer. — GPT-5
 - **Modeler preview FPS overlay.** Render → Preview Engine → FPS Overlay
   toggles a small black-on-white box in the top-right of the preview window
   showing the rolling mean FPS and frame time over the last 30 finished
