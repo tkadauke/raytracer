@@ -1,0 +1,37 @@
+{
+  "id": "molecule-source-asset-scene",
+  "name": "Molecule SourceAsset Render Fixture",
+  "ambient": [0.7, 0.7, 0.7],
+  "background": [0.0, 0.0, 0.0],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.0, -2.5],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 2.5,
+      "zoom": 2.5,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "light",
+      "name": "Light",
+      "direction": [-0.2, -0.4, -1.0],
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 1.0,
+      "visible": true,
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "molecule-source",
+      "name": "Molecule Source",
+      "sourcePath": "../molecules/source_asset_demo.pdb",
+      "format": "molecule",
+      "type": "SourceAsset",
+      "children": []
+    }
+  ]
+}

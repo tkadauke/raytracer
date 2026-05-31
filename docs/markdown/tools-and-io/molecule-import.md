@@ -41,8 +41,12 @@ Direct Modeler opens and imports keep `.pdb`, `.cif`, and `.mmcif` files as
 `SourceAsset` objects. Their editable source parameters are stored under
 `importOptions.parameters` and rebuild generated children from the original
 source path. `renderMode` accepts `ball_and_stick`, `space_filling`, and
-`atoms`; `atomRadiusScale`, `bondRadius`, `inferBondsWhenMissing`,
-`includeHydrogens`, and `includeWater` are safe regeneration controls.
+`atoms`; changing it currently regenerates transient scene primitives rather
+than switching to a cached mesh representation. `atomRadiusScale`, `bondRadius`,
+`inferBondsWhenMissing`, `includeHydrogens`, and `includeWater` are safe
+regeneration controls. Each generated atom, bond, residue, chain, model, and
+backbone curve carries molecule provenance metadata, so inspectors can still
+trace visible output back to source records after a SourceAsset rebuild.
 
 Example:
 
@@ -61,11 +65,16 @@ draw hydrogen bonds, infer secondary-structure sheets / helices, or model
 solvent surfaces. Element styling is a compact built-in table with generic
 fallbacks, so it is suitable for visual regression tests and previews rather
 than publication-grade chemistry.
+Converting molecule SourceAssets into shared mesh assets or reusable generated
+mesh cache entries is future work.
 
 The checked-in fixtures under `test/fixtures/molecules/` intentionally stay
 small. Unit tests cover PDB and mmCIF parse paths and importer metadata;
 rendercli smoke tests render PDB ball-and-stick and mmCIF space-filling scenes
-to catch integration regressions that would otherwise produce blank images.
+to catch integration regressions that would otherwise produce blank images. A
+separate SourceAsset smoke fixture renders the default mode and compares it with
+`atoms` mode so blank, unmaterialed, or bond-free SourceAsset imports fail
+quickly.
 
 ## Source anchors
 
@@ -79,6 +88,7 @@ to catch integration regressions that would otherwise produce blank images.
 - `src/world/import/MoleculeSceneImporter.cpp`
 - `src/world/import/MoleculeSceneBuilder.cpp`
 - `test/fixtures/molecules/`
+- `test/fixtures/rendercli/molecule_source_asset.json`
 - `test/rendercli/ImportOptionTest.cmake`
 - `test/unit/core/formats/molecule/MoleculeParserTest.cpp`
 - `test/unit/world/import/MoleculeSceneImporterTest.cpp`
