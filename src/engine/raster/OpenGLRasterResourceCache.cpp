@@ -6,8 +6,6 @@
 
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
-#include <QOpenGLShader>
-#include <QOpenGLShaderProgram>
 
 #include <algorithm>
 #include <stdexcept>
@@ -188,18 +186,20 @@ namespace engine::raster::detail {
       return;
     }
 
-    program = std::make_unique<QOpenGLShaderProgram>();
-    if (!program->addShaderFromSourceCode(QOpenGLShader::Vertex, kOpenGLRasterVertexShader)) {
+    program = std::make_unique<gl::ShaderProgram>();
+    if (!program->addShaderFromSourceCode(gl::ShaderProgram::ShaderStage::Vertex,
+                                          kOpenGLRasterVertexShader)) {
       throw std::runtime_error("OpenGL raster backend could not compile vertex shader: " +
-                               program->log().toStdString());
+                               program->errorLog());
     }
-    if (!program->addShaderFromSourceCode(QOpenGLShader::Fragment, kOpenGLRasterFragmentShader)) {
+    if (!program->addShaderFromSourceCode(gl::ShaderProgram::ShaderStage::Fragment,
+                                          kOpenGLRasterFragmentShader)) {
       throw std::runtime_error("OpenGL raster backend could not compile fragment shader: " +
-                               program->log().toStdString());
+                               program->errorLog());
     }
     if (!program->link()) {
       throw std::runtime_error("OpenGL raster backend could not link shader program: " +
-                               program->log().toStdString());
+                               program->errorLog());
     }
 
     locations.position = program->attributeLocation("position");

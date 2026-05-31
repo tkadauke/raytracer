@@ -5,6 +5,7 @@
 #include "engine/raster/detail/OpenGLRasterMesh.h"
 #include "engine/raster/gl/Buffer.h"
 #include "engine/raster/gl/Context.h"
+#include "engine/raster/gl/ShaderProgram.h"
 
 #include <array>
 #include <cstdint>
@@ -13,7 +14,6 @@
 #include <unordered_map>
 
 class QOpenGLFunctions;
-class QOpenGLShaderProgram;
 
 namespace render {
   class ImageTexture;
@@ -145,7 +145,7 @@ namespace engine::raster::detail {
     // Qt-backed when a QGuiApplication is up (Modeler), CGL otherwise
     // (rendercli).
     std::unique_ptr<gl::Context> context;
-    std::unique_ptr<QOpenGLShaderProgram> program;
+    std::unique_ptr<gl::ShaderProgram> program;
     OpenGLRasterAttributeLocations locations;
     std::unique_ptr<OpenGLRasterImageTextureCache> imageTextures;
     std::unique_ptr<gl::Buffer> vertexBuffer;

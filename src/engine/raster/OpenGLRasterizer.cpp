@@ -18,7 +18,6 @@
 #include "render/viewplanes/ViewPlane.h"
 
 #include <QOpenGLFunctions>
-#include <QOpenGLShaderProgram>
 
 #include <algorithm>
 #include <chrono>
@@ -176,7 +175,7 @@ namespace engine::raster {
 
         detail::OpenGLFallbackTexture fallbackTexture(functions);
         m_resources.ensureProgram();
-        QOpenGLShaderProgram& program = *m_resources.program;
+        gl::ShaderProgram& program = *m_resources.program;
         if (!program.bind()) {
           throw std::runtime_error("OpenGL raster backend could not bind shader program");
         }
@@ -389,7 +388,7 @@ namespace engine::raster {
         return slice;
       }
 
-      void setShadowUniforms(QOpenGLShaderProgram& program, bool enabled) const {
+      void setShadowUniforms(gl::ShaderProgram& program, bool enabled) const {
         program.setUniformValue("shadowTextureEnabled", enabled);
         program.setUniformValue("shadowTexture", 1);
         if (!enabled) {
@@ -411,7 +410,7 @@ namespace engine::raster {
                                 static_cast<GLfloat>(1.0 / m_shadowTextureData.height()));
       }
 
-      void setLightingUniforms(QOpenGLShaderProgram& program,
+      void setLightingUniforms(gl::ShaderProgram& program,
                                const detail::OpenGLRasterMesh& mesh) const {
         setVectorUniform(program, "cameraPosition", m_cameraPosition);
 
@@ -443,7 +442,7 @@ namespace engine::raster {
         }
       }
 
-      void setVectorUniform(QOpenGLShaderProgram& program, const char* name,
+      void setVectorUniform(gl::ShaderProgram& program, const char* name,
                             const Vector3d& value) const {
         program.setUniformValue(name, static_cast<GLfloat>(value.x()),
                                 static_cast<GLfloat>(value.y()), static_cast<GLfloat>(value.z()));
