@@ -477,10 +477,6 @@ namespace engine::raster {
     return OpenGLAvailability::available(context.detailText());
   }
 
-  bool OpenGLOffscreenContext::create(int width, int height) {
-    return create(width, height, 1);
-  }
-
   bool OpenGLOffscreenContext::create(int width, int height, int samples) {
     return p->create(width, height, std::max(1, samples));
   }

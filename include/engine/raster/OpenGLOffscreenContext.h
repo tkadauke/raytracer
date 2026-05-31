@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/Color.h"
+#include "engine/raster/gl/Context.h"
 
 #include <cstdint>
 #include <memory>
@@ -32,54 +33,38 @@ namespace engine::raster {
 
   /**
     * Owns a Qt offscreen OpenGL context, surface, and framebuffer object.
+    *
+    * Implements `engine::raster::gl::Context` so downstream callers can
+    * gradually migrate to the abstract base while the Qt-backed
+    * implementation lives here. The native backends (CGL, EGL) land
+    * later in Phase 2.
     */
-  class OpenGLOffscreenContext {
+  class OpenGLOffscreenContext final : public gl::Context {
   public:
     OpenGLOffscreenContext();
-    ~OpenGLOffscreenContext();
+    ~OpenGLOffscreenContext() override;
 
     OpenGLOffscreenContext(const OpenGLOffscreenContext&) = delete;
     OpenGLOffscreenContext& operator=(const OpenGLOffscreenContext&) = delete;
 
     static OpenGLAvailability probe();
 
-    bool create(int width, int height);
-    bool create(int width, int height, int samples);
+    using gl::Context::create;
+    bool create(int width, int height, int samples) override;
 
-    /**
-      * Migrates the underlying `QOpenGLContext` / `QOffscreenSurface` /
-      * `QOpenGLFramebufferObject` to the current thread before
-      * `makeCurrent()` is called. This is the migration path used by the
-      * shared `OpenGLRasterizer` resource cache, where the cache outlives
-      * any one render thread while the GL context is tied to a specific
-      * thread at any moment.
-      *
-      * Returns true if the context now belongs to the current thread (or
-      * already did), false if migration was not possible (the original
-      * thread has exited and Qt refuses the move). On false, callers
-      * should fall through to recreating the context.
-      */
-    bool migrateToCurrentThread();
+    bool migrateToCurrentThread() override;
+    void detachFromCurrentThread() override;
 
-    /**
-      * Releases the context's Qt thread affinity (moves it to "no
-      * thread") so the next render — typically on a freshly-spawned
-      * worker thread — can `migrateToCurrentThread()` and adopt it.
-      * Must be called from the context's current thread, immediately
-      * after `doneCurrent`.
-      */
-    void detachFromCurrentThread();
-
-    bool makeCurrent();
-    void doneCurrent();
-    bool bindFramebuffer();
-    void releaseFramebuffer();
-    void copyColorTo(Buffer<Colord>& target) const;
-    void copyDepthTo(Buffer<double>& target) const;
-    void copyStencilTo(Buffer<std::uint8_t>& target) const;
-    bool isValid() const;
-    const std::string& errorMessage() const;
-    std::string detailText() const;
+    bool makeCurrent() override;
+    void doneCurrent() override;
+    bool bindFramebuffer() override;
+    void releaseFramebuffer() override;
+    void copyColorTo(Buffer<Colord>& target) const override;
+    void copyDepthTo(Buffer<double>& target) const override;
+    void copyStencilTo(Buffer<std::uint8_t>& target) const override;
+    bool isValid() const override;
+    const std::string& errorMessage() const override;
+    std::string detailText() const override;
 
   private:
     struct Private;
