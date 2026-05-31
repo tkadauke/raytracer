@@ -150,17 +150,43 @@ Acceptance:
 - ✅ Failing-pending-residency tests exist
   (`OpenGLRasterizerAttachmentLoad.{Color,Depth,Stencil}LoadOp...`).
 
-## Phase 2 — Qt → native-GL decoupling
+## Phase 2 — Qt → native-GL decoupling ⏳ **In progress.**
 
 Goals: remove Qt OpenGL classes from the engine library. Modeler keeps
 Qt for UI; rendercli drops `QGuiApplication`. ~600-800 lines of
 mechanical wrapper code + 200-300 lines of per-platform context bring-up.
 
+**Done so far** (commits `d5f7d73a` → `06c4369f`):
+
+- `engine::raster::gl::Context` abstract interface (`d5f7d73a`).
+- `OpenGLOffscreenContext` implements `gl::Context` so the Qt-backed
+  impl satisfies the contract (`c4a605bc`).
+- `gl::CGLContext` native backend for macOS — self-contained,
+  standalone tests cover probe/create/clear+readback round-trip/
+  thread cycle (`875263b7`).
+- `gl::createOffscreenContext()` factory + `OpenGLRasterResourceCache`
+  holds `unique_ptr<gl::Context>` (`99349a96`).
+- Rendercli `QGuiApplication` removal is staged but gated on the
+  buffer/shader/framebuffer wrappers below — Qt OpenGL classes still
+  live downstream of the context type (`06c4369f`).
+
+**Remaining, in this order**:
+
+1. `gl::Buffer` / `gl::ShaderProgram` / `gl::Framebuffer` wrappers
+   over raw GL — replaces `QOpenGLBuffer`, `QOpenGLShaderProgram`,
+   `QOpenGLFramebufferObject` in the rasterizer / cache. Each is
+   ~200-400 lines including its test scaffold.
+2. `gl::EGLContext` native backend for Linux (mirrors CGLContext
+   structure; uses Mesa EGL surfaceless context).
+3. Rendercli flip: `RenderCliApplication` collapses to
+   `QCoreApplication` unconditionally; the factory's
+   "CGL-when-no-QGuiApplication" path lights up.
+
 New directory: `include/engine/raster/gl/`
 
 ```text
-gl/Context.h          // abstract: makeCurrent/doneCurrent/threading
-gl/ContextCGL.h       // macOS Core OpenGL
+gl/Context.h          // abstract: makeCurrent/doneCurrent/threading  ✅
+gl/CGLContext.h       // macOS Core OpenGL                            ✅
 gl/ContextEGL.h       // Linux/headless EGL (Mesa or SwiftShader)
 gl/Buffer.h           // RAII over glGenBuffers/glBufferData
 gl/ShaderProgram.h    // RAII over glCreateProgram + uniform/attrib helpers
