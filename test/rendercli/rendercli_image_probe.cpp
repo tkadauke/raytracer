@@ -1,6 +1,7 @@
 #include <QImage>
 #include <QImageReader>
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <iomanip>
@@ -46,6 +47,9 @@ int main(int argc, char** argv) {
 
   const QImage rgba = image.convertToFormat(QImage::Format_RGBA8888);
   std::uint64_t nonzeroPixels = 0;
+  std::uint64_t warmPixels = 0;
+  std::uint64_t coolPixels = 0;
+  std::uint64_t neutralPixels = 0;
   std::unordered_set<std::uint32_t> uniqueColors;
   std::uint64_t hash = fnvOffsetBasis;
   hash = fnv1aAppendUint32(hash, static_cast<std::uint32_t>(rgba.width()));
@@ -63,6 +67,17 @@ int main(int argc, char** argv) {
       };
       if (pixel[0] != 0 || pixel[1] != 0 || pixel[2] != 0)
         ++nonzeroPixels;
+      const auto red = static_cast<int>(pixel[0]);
+      const auto green = static_cast<int>(pixel[1]);
+      const auto blue = static_cast<int>(pixel[2]);
+      const auto brightest = std::max(red, std::max(green, blue));
+      const auto darkest = std::min(red, std::min(green, blue));
+      if (red > 48 && red > green * 13 / 10 && red > blue * 13 / 10)
+        ++warmPixels;
+      if (blue > 48 && blue > red * 13 / 10 && blue > green * 11 / 10)
+        ++coolPixels;
+      if (brightest > 64 && brightest - darkest <= 48)
+        ++neutralPixels;
       uniqueColors.insert((static_cast<std::uint32_t>(pixel[0]) << 24u) |
                           (static_cast<std::uint32_t>(pixel[1]) << 16u) |
                           (static_cast<std::uint32_t>(pixel[2]) << 8u) |
@@ -74,6 +89,8 @@ int main(int argc, char** argv) {
 
   std::cout << "width=" << rgba.width() << " height=" << rgba.height()
             << " nonzero_pixels=" << nonzeroPixels << " unique_colors=" << uniqueColors.size()
+            << " warm_pixels=" << warmPixels << " cool_pixels=" << coolPixels
+            << " neutral_pixels=" << neutralPixels
             << " hash=" << std::hex << std::setw(16) << std::setfill('0') << hash << std::dec
             << "\n";
 

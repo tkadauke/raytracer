@@ -48,8 +48,12 @@ set(gcode_cumulative_render "${TEST_OUTPUT_DIR}/gcode-cumulative.png")
 set(molecule_fixture_dir "${PROJECT_SOURCE_DIR}/test/fixtures/molecules")
 set(molecule_pdb_fixture "${molecule_fixture_dir}/small.pdb")
 set(molecule_cif_fixture "${molecule_fixture_dir}/small.cif")
+set(molecule_source_asset_fixture "${PROJECT_SOURCE_DIR}/test/fixtures/rendercli/molecule_source_asset.json")
 set(molecule_ball_and_stick_render "${TEST_OUTPUT_DIR}/molecule-ball-and-stick.png")
 set(molecule_space_filling_render "${TEST_OUTPUT_DIR}/molecule-space-filling.png")
+set(molecule_source_asset_render "${TEST_OUTPUT_DIR}/molecule-source-asset.png")
+set(molecule_source_asset_atoms_render "${TEST_OUTPUT_DIR}/molecule-source-asset-atoms.png")
+set(molecule_source_asset_atoms_scene "${TEST_OUTPUT_DIR}/molecule-source-asset-atoms.json")
 
 set(scene_json [=[
 {
@@ -169,6 +173,54 @@ file(WRITE "${gltf_scene}" [=[
   "nodes": [{"name": "Triangle Node", "mesh": 0}]
 }
 ]=])
+
+set(molecule_source_asset_atoms_scene_json [=[
+{
+  "id": "molecule-source-asset-atoms-scene",
+  "name": "Molecule SourceAsset Atoms Render Fixture",
+  "ambient": [0.7, 0.7, 0.7],
+  "background": [0.0, 0.0, 0.0],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.0, -2.5],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 2.5,
+      "zoom": 2.5,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "light",
+      "name": "Light",
+      "direction": [-0.2, -0.4, -1.0],
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 1.0,
+      "visible": true,
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "molecule-source",
+      "name": "Molecule Source",
+      "sourcePath": "__MOLECULE_SOURCE__",
+      "format": "molecule",
+      "importOptions": {
+        "parameters": {
+          "renderMode": "atoms"
+        }
+      },
+      "type": "SourceAsset",
+      "children": []
+    }
+  ]
+}
+]=])
+string(REPLACE "__MOLECULE_SOURCE__" "${molecule_fixture_dir}/source_asset_demo.pdb"
+       molecule_source_asset_atoms_scene_json "${molecule_source_asset_atoms_scene_json}")
+file(WRITE "${molecule_source_asset_atoms_scene}" "${molecule_source_asset_atoms_scene_json}")
 
 if(run_real_openscad_fixture)
   find_program(REAL_OPENSCAD_EXECUTABLE openscad)
@@ -375,3 +427,42 @@ rendercli_assert_image_nonempty("${molecule_space_filling_render}"
 rendercli_assert_image_hash_differs(
   "${molecule_ball_and_stick_render}" "${molecule_space_filling_render}"
   NAME "rendercli molecule representations differ")
+
+rendercli_run(
+  NAME "rendercli renders molecule SourceAsset default mode"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 96 --height 96 --import_format json
+    "${molecule_source_asset_fixture}" "${molecule_source_asset_render}"
+)
+rendercli_assert_image_dimensions("${molecule_source_asset_render}" 96 96
+                                  NAME "rendercli molecule SourceAsset dimensions")
+rendercli_assert_image_varied("${molecule_source_asset_render}"
+                              NAME "rendercli molecule SourceAsset styled pixels")
+rendercli_probe_image("${molecule_source_asset_render}"
+                      NAME "rendercli molecule SourceAsset color families"
+                      WARM_PIXELS_VARIABLE molecule_source_warm_pixels
+                      COOL_PIXELS_VARIABLE molecule_source_cool_pixels
+                      NEUTRAL_PIXELS_VARIABLE molecule_source_neutral_pixels
+                      OUTPUT_VARIABLE molecule_source_probe)
+if(molecule_source_warm_pixels LESS 1 OR molecule_source_cool_pixels LESS 1)
+  _rendercli_fail(
+    "rendercli molecule SourceAsset styled atoms"
+    "expected default molecule SourceAsset render to contain warm and cool element-colored atom pixels"
+    "" "" "${molecule_source_probe}" "")
+endif()
+if(molecule_source_neutral_pixels LESS 1)
+  _rendercli_fail(
+    "rendercli molecule SourceAsset bond pixels"
+    "expected default molecule SourceAsset render to contain neutral bond pixels"
+    "" "" "${molecule_source_probe}" "")
+endif()
+
+rendercli_run(
+  NAME "rendercli renders molecule SourceAsset atoms mode"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 96 --height 96 --import_format json
+    "${molecule_source_asset_atoms_scene}" "${molecule_source_asset_atoms_render}"
+)
+rendercli_assert_image_hash_differs(
+  "${molecule_source_asset_render}" "${molecule_source_asset_atoms_render}"
+  NAME "rendercli molecule SourceAsset default mode includes bonds")

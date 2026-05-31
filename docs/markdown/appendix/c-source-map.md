@@ -189,6 +189,7 @@
 | `include/world/objects/Group.h` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/world/objects/PinholeCamera.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/world/objects/Scene.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[LDraw import](../tools-and-io/ldraw-import.md) |
+| `include/world/objects/SourceAsset.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/world/objects/StepVisibilityEvaluator.h` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `scenes/` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `scenes/animation_frame_demo.json` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
@@ -253,8 +254,9 @@
 | `test/fixtures/groups/` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/fixtures/importers/` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/fixtures/ldraw/` | [LDraw import](../tools-and-io/ldraw-import.md) |
-| `test/fixtures/molecules/` | [Molecule import](../tools-and-io/molecule-import.md) |
+| `test/fixtures/molecules/` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[Molecule import](../tools-and-io/molecule-import.md) |
 | `test/fixtures/openscad/` | [OpenSCAD import](../tools-and-io/openscad-import.md) |
+| `test/fixtures/rendercli/molecule_source_asset.json` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[Molecule import](../tools-and-io/molecule-import.md) |
 | `test/fixtures/stl/` | [STL import](../tools-and-io/stl-import.md) |
 | `test/functional/engine/wireframe/WireframeTest.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `test/functional/render/cameras/ThinLensCameraTest.cpp` | [Cameras](../ray-rendering/cameras.md) |
@@ -273,7 +275,7 @@
 | `test/helpers/Silhouette.cpp` | [Blob analysis and silhouettes](../image-and-vision/blob-analysis-and-silhouettes.md) |
 | `test/helpers/Silhouette.h` | [Blob analysis and silhouettes](../image-and-vision/blob-analysis-and-silhouettes.md)<br>[Image buffers and pixel formats](../image-and-vision/image-buffers-and-pixel-formats.md)<br>[Shape classification](../image-and-vision/shape-classification.md) |
 | `test/rendercli/FrameOptionTest.cmake` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
-| `test/rendercli/ImportOptionTest.cmake` | [Additive manufacturing import](../tools-and-io/additive-manufacturing-import.md)<br>[glTF import](../tools-and-io/gltf-import.md)<br>[Molecule import](../tools-and-io/molecule-import.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
+| `test/rendercli/ImportOptionTest.cmake` | [Additive manufacturing import](../tools-and-io/additive-manufacturing-import.md)<br>[glTF import](../tools-and-io/gltf-import.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[Molecule import](../tools-and-io/molecule-import.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `test/rendercli/RaytracerOptionTest.cmake` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/rendercli/RenderGraphOptionTest.cmake` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `test/rendercli/StepOptionTest.cmake` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |

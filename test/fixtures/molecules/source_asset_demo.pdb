@@ -1,0 +1,8 @@
+HEADER    SOURCE ASSET DEMO                      01-JAN-26   1SAD
+TITLE     SOURCE ASSET BALL AND STICK DEMO
+MODEL        1
+ATOM      1  N   DEM A   1      -0.700   0.000   0.000  1.00 10.00           N
+ATOM      2  O   DEM A   1       0.700   0.000   0.000  1.00 10.00           O
+CONECT    1    2
+ENDMDL
+END

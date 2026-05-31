@@ -54,6 +54,20 @@ the scene importer uses the same result contract as other formats. The
 format-specific support matrix is documented in
 [Molecule import](molecule-import.md).
 
+Direct molecule opens are also source-backed. The molecule importer asks callers
+to wrap `.pdb`, `.cif`, and `.mmcif` inputs in
+[`SourceAsset`](../../../include/world/objects/SourceAsset.h), so the saved
+scene records the source path, importer format, and editable generation
+parameters instead of baking a one-time copy of the generated atom and bond
+objects. Its current `renderMode` values regenerate ordinary scene primitives:
+`ball_and_stick` creates styled atom spheres and bond cylinders, `space_filling`
+creates scaled atom spheres, and `atoms` keeps only atom spheres. Generated
+children stay transient, but each molecule group, atom, bond, and backbone curve
+keeps importer provenance such as source record, source id, element, chain,
+residue, representation, and color scheme. Converting molecule source assets to
+shared mesh assets or cached mesh outputs is future work; today `renderMode`
+always reruns scene-primitive generation from the source file.
+
 ## Options
 
 [`ImportOptions`](../../../include/world/import/ImportOptions.h) stores
@@ -265,6 +279,7 @@ visible with the ghost material. The flags do not edit the saved scene.
 - `include/core/formats/molecule/MoleculeParser.h`
 - `include/world/import/MoleculeSceneImporter.h`
 - `include/world/import/MoleculeSceneBuilder.h`
+- `include/world/objects/SourceAsset.h`
 - `include/core/formats/AssetResolver.h`
 - `include/core/formats/gltf/GltfAsset.h`
 - `include/core/formats/gltf/GltfReader.h`
@@ -284,6 +299,9 @@ visible with the ghost material. The flags do not edit the saved scene.
 - `test/helpers/ImporterTestHelper.cpp`
 - `test/fixtures/groups/`
 - `test/fixtures/importers/`
+- `test/fixtures/molecules/`
+- `test/fixtures/rendercli/molecule_source_asset.json`
 - `test/unit/world/import/ImporterFixtureHarnessTest.cpp`
 - `test/unit/world/import/GltfSceneImporterTest.cpp`
+- `test/rendercli/ImportOptionTest.cmake`
 <!-- /source-anchors -->
