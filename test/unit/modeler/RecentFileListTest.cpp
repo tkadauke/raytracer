@@ -9,10 +9,18 @@
 namespace RecentFileListTest {
   class RecentFileListTest : public ::testing::Test {};
 
+  // `RecentFileList` constructs its `QSettings` with an explicit
+  // `(IniFormat, UserScope, org, app)` to bypass macOS cfprefsd. The
+  // test seed has to use the same explicit form so seeded values land
+  // in the file the production code will read.
+  QSettings settingsForTest() {
+    return QSettings(QSettings::IniFormat, QSettings::UserScope, QStringLiteral("Raytracer"),
+                     QStringLiteral("Modeler"));
+  }
+
   void configureSettingsPath(const QString& path) {
-    QSettings::setDefaultFormat(QSettings::IniFormat);
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, path);
-    QSettings settings(QStringLiteral("Raytracer"), QStringLiteral("Modeler"));
+    QSettings settings = settingsForTest();
     settings.clear();
   }
 
@@ -39,7 +47,7 @@ namespace RecentFileListTest {
     ASSERT_TRUE(settingsPath.isValid());
     configureSettingsPath(settingsPath.path());
     const QStringList files = recentFilesForCount(12);
-    QSettings settings(QStringLiteral("Raytracer"), QStringLiteral("Modeler"));
+    QSettings settings = settingsForTest();
     settings.setValue(QStringLiteral("recentOpenFiles"), files);
     settings.sync();
 
