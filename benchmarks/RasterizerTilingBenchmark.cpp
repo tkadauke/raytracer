@@ -37,6 +37,7 @@ namespace {
     Small,
     Medium,
     Large,
+    DenseImported,
   };
 
   struct RasterScene {
@@ -72,8 +73,12 @@ namespace {
 
   void addGrid(render::Scene& scene, ProjectedTriangleSize size) {
     const auto mat = material();
-    const int columns = size == ProjectedTriangleSize::Small ? 40 : 10;
-    const int rows = size == ProjectedTriangleSize::Small ? 30 : 8;
+    const int columns = size == ProjectedTriangleSize::DenseImported
+                          ? 120
+                          : (size == ProjectedTriangleSize::Small ? 40 : 10);
+    const int rows = size == ProjectedTriangleSize::DenseImported
+                       ? 90
+                       : (size == ProjectedTriangleSize::Small ? 30 : 8);
     const double viewWidth = 8.0;
     const double viewHeight = 6.0;
     const double cellWidth = viewWidth / static_cast<double>(columns);
@@ -215,3 +220,9 @@ BENCHMARK_CAPTURE(bm_rasterizerTiling, large_tiled_1x, ProjectedTriangleSize::La
 BENCHMARK_CAPTURE(bm_rasterizerTiling, medium_single_tile_4x, ProjectedTriangleSize::Medium, 1, 4);
 BENCHMARK_CAPTURE(bm_rasterizerTiling, medium_tiled_4x, ProjectedTriangleSize::Medium,
                   kTiledQueueSize, 4);
+BENCHMARK_CAPTURE(bm_rasterizerTiling, dense_imported_single_tile_1x,
+                  ProjectedTriangleSize::DenseImported, 1, 1);
+BENCHMARK_CAPTURE(bm_rasterizerTiling, dense_imported_coarse_tiles_1x,
+                  ProjectedTriangleSize::DenseImported, kThreads, 1);
+BENCHMARK_CAPTURE(bm_rasterizerTiling, dense_imported_candidate_tiles_1x,
+                  ProjectedTriangleSize::DenseImported, kTiledQueueSize, 1);

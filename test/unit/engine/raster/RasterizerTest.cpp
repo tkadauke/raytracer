@@ -38,6 +38,7 @@
 
 #include <QThreadPool>
 
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <cstdint>
@@ -306,6 +307,26 @@ namespace RasterizerTest {
     return scene;
   }
 
+  static std::shared_ptr<Scene> sceneWithRepeatedQuadrantTriangles(int repeats) {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    const std::array<std::pair<Vector3d, Vector3d>, 4> quadrants{
+      std::make_pair(Vector3d(-4.0, -3.0, 0.0), Vector3d(0.0, 0.0, 0.0)),
+      std::make_pair(Vector3d(0.0, -3.0, 0.0), Vector3d(4.0, 0.0, 0.0)),
+      std::make_pair(Vector3d(-4.0, 0.0, 0.0), Vector3d(0.0, 3.0, 0.0)),
+      std::make_pair(Vector3d(0.0, 0.0, 0.0), Vector3d(4.0, 3.0, 0.0))};
+    for (int i = 0; i != repeats; ++i) {
+      for (const auto& quadrant : quadrants) {
+        const Vector3d& min = quadrant.first;
+        const Vector3d& max = quadrant.second;
+        scene->add(std::make_shared<Triangle>(min, Vector3d(max.x(), min.y(), 0.0),
+                                              Vector3d(min.x(), max.y(), 0.0)));
+        scene->add(std::make_shared<Triangle>(Vector3d(max.x(), min.y(), 0.0), max,
+                                              Vector3d(min.x(), max.y(), 0.0)));
+      }
+    }
+    return scene;
+  }
+
   static std::shared_ptr<Scene> sceneWithBackFacingTriangle() {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(
@@ -528,11 +549,9 @@ namespace RasterizerTest {
   static std::shared_ptr<Scene> sceneWithFrontOccluderAndDenseBackLayer(int backRectangleCount) {
     auto scene = std::make_shared<Scene>(Colord::black());
     auto addRectangle = [&](double z) {
-      scene->add(std::make_shared<Triangle>(Vector3d(-100.0, -100.0, z),
-                                            Vector3d(100.0, -100.0, z),
+      scene->add(std::make_shared<Triangle>(Vector3d(-100.0, -100.0, z), Vector3d(100.0, -100.0, z),
                                             Vector3d(-100.0, 100.0, z)));
-      scene->add(std::make_shared<Triangle>(Vector3d(100.0, -100.0, z),
-                                            Vector3d(100.0, 100.0, z),
+      scene->add(std::make_shared<Triangle>(Vector3d(100.0, -100.0, z), Vector3d(100.0, 100.0, z),
                                             Vector3d(-100.0, 100.0, z)));
     };
 
@@ -1293,6 +1312,14 @@ namespace RasterizerTest {
     EXPECT_GE(metrics.tiling.triangleReferences, 2u);
     EXPECT_GT(metrics.tiling.maxTriangleReferencesPerTile, 0u);
     EXPECT_GE(metrics.tiling.p95TriangleReferencesPerTile, 1.0);
+
+    EXPECT_FALSE(metrics.scheduling.automaticQueueSize);
+    EXPECT_EQ(4u, metrics.scheduling.configuredQueueSize);
+    EXPECT_EQ(4u, metrics.scheduling.resolvedQueueSize);
+    ASSERT_EQ(1u, metrics.scheduling.evaluatedQueueSizes.size());
+    EXPECT_EQ(4u, metrics.scheduling.evaluatedQueueSizes.front());
+    EXPECT_EQ("explicit_queue_size", metrics.scheduling.decision);
+    EXPECT_EQ("caller_override", metrics.scheduling.reason);
 
     EXPECT_GT(metrics.fragments.coveredSamples, 0u);
     EXPECT_EQ(metrics.fragments.coveredSamples, metrics.fragments.stencilTests);
@@ -2234,6 +2261,11 @@ namespace RasterizerTest {
     EXPECT_FALSE(engine.hasExplicitQueueSize());
     EXPECT_EQ(16, engine.queueSize());
     EXPECT_EQ(16, engine.lastResolvedQueueSize());
+    EXPECT_TRUE(engine.lastMetrics().scheduling.automaticQueueSize);
+    EXPECT_EQ(16u, engine.lastMetrics().scheduling.configuredQueueSize);
+    EXPECT_EQ(16u, engine.lastMetrics().scheduling.resolvedQueueSize);
+    EXPECT_EQ("tiled", engine.lastMetrics().scheduling.decision);
+    EXPECT_EQ("metrics_accepted", engine.lastMetrics().scheduling.reason);
   }
 
   TEST(Rasterizer, AutomaticQueueSizeKeepsDenseTessellationSingleTile) {
@@ -2247,6 +2279,30 @@ namespace RasterizerTest {
     EXPECT_FALSE(engine.hasExplicitQueueSize());
     EXPECT_EQ(16, engine.queueSize());
     EXPECT_EQ(1, engine.lastResolvedQueueSize());
+    EXPECT_TRUE(engine.lastMetrics().scheduling.automaticQueueSize);
+    EXPECT_EQ(16u, engine.lastMetrics().scheduling.configuredQueueSize);
+    EXPECT_EQ(1u, engine.lastMetrics().scheduling.resolvedQueueSize);
+    EXPECT_EQ("single_tile", engine.lastMetrics().scheduling.decision);
+    EXPECT_EQ("dense_triangle_load", engine.lastMetrics().scheduling.reason);
+    EXPECT_GT(engine.lastMetrics().scheduling.evaluatedQueueSizes.size(), 1u);
+  }
+
+  TEST(Rasterizer, AutomaticQueueSizeUsesCoarseTilesWhenCandidateDuplicatesReferences) {
+    Rasterizer engine(headOnCamera(), sceneWithRepeatedQuadrantTriangles(8));
+    engine.setMaximumThreads(4);
+    engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
+    Buffer<Colord> buffer(128, 128);
+
+    engine.render(buffer);
+
+    EXPECT_FALSE(engine.hasExplicitQueueSize());
+    EXPECT_EQ(16, engine.queueSize());
+    EXPECT_EQ(4, engine.lastResolvedQueueSize());
+    EXPECT_TRUE(engine.lastMetrics().scheduling.automaticQueueSize);
+    EXPECT_EQ(4u, engine.lastMetrics().scheduling.resolvedQueueSize);
+    EXPECT_EQ("tiled", engine.lastMetrics().scheduling.decision);
+    EXPECT_EQ("metrics_accepted", engine.lastMetrics().scheduling.reason);
+    EXPECT_GT(engine.lastMetrics().scheduling.evaluatedQueueSizes.size(), 1u);
   }
 
   TEST(Rasterizer, AutomaticQueueSizeKeepsLargeTriangleDuplicationSingleTile) {
@@ -2258,6 +2314,10 @@ namespace RasterizerTest {
     engine.render(buffer);
 
     EXPECT_EQ(1, engine.lastResolvedQueueSize());
+    EXPECT_TRUE(engine.lastMetrics().scheduling.automaticQueueSize);
+    EXPECT_EQ("single_tile", engine.lastMetrics().scheduling.decision);
+    EXPECT_EQ("tile_reference_duplication", engine.lastMetrics().scheduling.reason);
+    EXPECT_GT(engine.lastMetrics().scheduling.evaluatedQueueSizes.size(), 1u);
   }
 
   TEST(Rasterizer, ExplicitQueueSizeOverridesAutomaticPolicy) {

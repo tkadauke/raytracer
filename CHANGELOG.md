@@ -21,6 +21,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   --depth_prepass off|on|auto` can now request an optional opaque CPU raster
   depth prepass, with trace metadata reporting whether it ran and the measured
   prepass/color-pass timing for Epic #356 Phase 5. — GPT-5
+- **Raster automatic queue scheduling.** Automatic raster queue selection now
+  records its evaluated and resolved queue sizes in metrics/summary output and
+  uses measured tile duplication/load balance to choose coarser tiles or fall
+  back from pathological tile bins for Epic #356 Phase 4. — GPT-5
 - **Raster conservative depth occlusion.** Opaque, depth-writing raster triangle
   batches now render front-to-back and use tile-level hierarchical depth
   summaries to skip fully occluded triangle/tile pairs, while alpha-tested,

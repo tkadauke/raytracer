@@ -108,6 +108,7 @@ namespace {
   void printRasterMetricsSummary(int run, const QString& passId, const QJsonObject& metrics) {
     const QJsonObject timings = metrics.value("timings").toObject();
     const QJsonObject tessellation = metrics.value("tessellation").toObject();
+    const QJsonObject scheduling = metrics.value("scheduling").toObject();
     const QJsonObject fragments = metrics.value("fragments").toObject();
     std::cout << std::fixed << std::setprecision(3) << "raster_metrics"
               << " run=" << run;
@@ -116,6 +117,9 @@ namespace {
     }
     std::cout
       << " total_ms=" << timings.value("totalRenderSeconds").toDouble() * 1000.0
+      << " queue=" << static_cast<std::uint64_t>(scheduling.value("resolvedQueueSize").toDouble())
+      << " queue_decision=" << scheduling.value("decision").toString().toStdString()
+      << " queue_reason=" << scheduling.value("reason").toString().toStdString()
       << " raster_ms=" << timings.value("rasterLoopSeconds").toDouble() * 1000.0 << " triangles="
       << static_cast<std::uint64_t>(tessellation.value("trianglesAfterClipping").toDouble())
       << " cull_rejects="
@@ -127,8 +131,7 @@ namespace {
       << static_cast<std::uint64_t>(fragments.value("coveredSamples").toDouble())
       << " depth_tests=" << static_cast<std::uint64_t>(fragments.value("depthTests").toDouble())
       << " coverage_minus_shaded="
-      << static_cast<std::uint64_t>(
-           fragments.value("coverageMinusShadedFragments").toDouble())
+      << static_cast<std::uint64_t>(fragments.value("coverageMinusShadedFragments").toDouble())
       << " depth_tests_minus_color_writes="
       << static_cast<std::uint64_t>(fragments.value("depthTestsMinusColorWrites").toDouble())
       << " coarse_depth_rejects="
