@@ -43,6 +43,12 @@ target_link_libraries(raytracer
     ZLIB::ZLIB
 )
 
+if(APPLE)
+  # CGLContext uses OpenGL.framework directly so that rendercli can
+  # open an offscreen GL context without Qt's QGuiApplication.
+  target_link_libraries(raytracer PUBLIC "-framework OpenGL")
+endif()
+
 if(RAYTRACER_ENABLE_STATS)
   # PUBLIC so headers like include/render/Stats.h see the same definition
   # in the library and in dependents (tests, tools, Modeler). Without that,
