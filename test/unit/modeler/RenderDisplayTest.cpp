@@ -168,4 +168,50 @@ namespace RenderDisplayTest {
     ASSERT_VECTOR_NEAR(draggedTarget, resolved->target(), 1e-9);
   }
 
+  // Regression guard: after the user orbits the preview camera, any
+  // subsequent `setScene(..., PreserveCurrent)` call (which every property
+  // edit triggers via MainWindow::redraw) ran bindSceneCameras() — which
+  // replaces every scene-camera entry with a fresh world-state copy — and
+  // then skipped the re-pin to the engine's runtime camera. The graph
+  // render path read the stale fresh copy on the next render even though
+  // the engine camera still held the orbit-mutated pose, so the Modeler
+  // preview froze after the first property change. The fix re-pins the
+  // active scene-camera entry to the engine's camera on every setScene.
+  TEST_F(RenderDisplayTest, PreserveCurrentRefreshKeepsEngineCameraBoundToGraphPass) {
+    auto scene = std::make_unique<Scene>();
+    auto* activeCamera = new PinholeCamera;
+    activeCamera->setId("active-camera");
+    activeCamera->setPosition(Vector3d(0, 0, -6));
+    activeCamera->setTarget(Vector3d::null);
+    scene->addChild(activeCamera);
+
+    RenderDisplay display(nullptr);
+    display.setRenderGraphPreviewEnabled(false);
+    display.setScene(scene.get());
+
+    const Vector3d draggedPosition(7, 8, 9);
+    const Vector3d draggedTarget(1, -1, 2);
+    display.renderEngine()->camera()->setPosition(draggedPosition);
+    display.renderEngine()->camera()->setTarget(draggedTarget);
+
+    // A property edit on a non-camera element triggers
+    // MainWindow::redraw → display.setScene with PreserveCurrent.
+    display.setScene(scene.get(), StepPlaybackStyle(),
+                     RenderDisplay::CameraPolicy::PreserveCurrent);
+
+    auto graph =
+      std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(display.renderEngine());
+    ASSERT_NE(nullptr, graph);
+
+    engine::graph::RenderPassNode pass;
+    pass.sceneView.camera = engine::graph::RenderCameraRef{"active-camera", std::nullopt};
+
+    EXPECT_EQ(display.renderEngine()->camera().get(), graph->cameraForPass(pass).get());
+
+    auto resolved = graph->cameraForPass(pass);
+    ASSERT_NE(nullptr, resolved);
+    ASSERT_VECTOR_NEAR(draggedPosition, resolved->position(), 1e-9);
+    ASSERT_VECTOR_NEAR(draggedTarget, resolved->target(), 1e-9);
+  }
+
 } // namespace RenderDisplayTest

@@ -159,6 +159,21 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Modeler preview camera no longer freezes after a property edit.**
+  `RenderDisplay::setScene` calls `bindSceneCameras()` on every refresh,
+  which clears the graph engine's scene-camera map and re-registers
+  every scene camera as a fresh `camera->toRaytracer()` copy. On the
+  first load the same call path then re-pins the active scene-camera
+  entry to the engine's runtime camera, so orbit drags mutate the same
+  `shared_ptr` the graph passes resolve to. On a `PreserveCurrent`
+  refresh (every `MainWindow::redraw` after a property edit), the
+  re-pin lived inside the `needsSceneCamera` branch and was skipped —
+  so the graph render path resolved to the fresh world-state copy
+  while mouse drags kept mutating the (now-ignored) engine camera. The
+  preview froze in place and didn't recover until a full scene reset.
+  Most visible on CIF / molecule imports (`ImportedSceneDefaults`
+  injects an active `id="camera"` element on every import). The
+  re-pin now runs on both paths. — Claude Opus 4.7
 - **OpenGL raster backend no longer renders vertically flipped.** GPU-side
   projection composed the project's perspective matrix directly into
   `gl_Position`, but the project's screen convention places world Y+ at

@@ -226,9 +226,17 @@ void RenderDisplay::setScene(Scene* scene, const StepPlaybackStyle& playbackStyl
     if (auto* camera = scene->activeCamera()) {
       m_engine->setCamera(camera->toRaytracer());
       setInteractiveCameraPose(camera->position(), camera->target());
-      if (m_graphEngine && !camera->id().isEmpty()) {
-        m_graphEngine->setSceneCamera(camera->id().toStdString(), m_engine->camera());
-      }
+    }
+  }
+  // Re-pin the active scene-camera entry to the engine's camera, even
+  // on the PreserveCurrent path. bindSceneCameras() above installs
+  // fresh world-state copies for every scene camera; without this
+  // re-pin, the graph render path keeps reading the stale world-state
+  // copy after a property edit while mouse drags still mutate the
+  // (now-ignored) engine camera, so the preview appears frozen.
+  if (m_graphEngine && m_engine->camera()) {
+    if (auto* camera = scene->activeCamera(); camera && !camera->id().isEmpty()) {
+      m_graphEngine->setSceneCamera(camera->id().toStdString(), m_engine->camera());
     }
   }
   setInteractive(true);
