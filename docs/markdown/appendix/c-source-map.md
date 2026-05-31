@@ -80,7 +80,7 @@
 | `include/engine/raster/Rasterizer.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[MSAA and attribute interpolation](../rasterization/msaa-and-attribute-interpolation.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/engine/raster/detail/RasterMaterial.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/engine/raster/detail/RasterPass.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md) |
-| `include/engine/raster/detail/RasterTriangleEmitter.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
+| `include/engine/raster/detail/RasterTriangleEmitter.h` | [Tessellation](../rasterization/tessellation.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/engine/raytracer/Raytracer.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/engine/wireframe/Wireframe.h` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `include/render/HomogeneousClipVolume.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |

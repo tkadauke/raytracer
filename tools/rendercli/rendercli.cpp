@@ -110,6 +110,7 @@ namespace {
     const QJsonObject tessellation = metrics.value("tessellation").toObject();
     const QJsonObject scheduling = metrics.value("scheduling").toObject();
     const QJsonObject fragments = metrics.value("fragments").toObject();
+    const QJsonObject depthPrepass = metrics.value("depthPrepass").toObject();
     std::cout << std::fixed << std::setprecision(3) << "raster_metrics"
               << " run=" << run;
     if (!passId.isEmpty()) {
@@ -120,6 +121,9 @@ namespace {
       << " queue=" << static_cast<std::uint64_t>(scheduling.value("resolvedQueueSize").toDouble())
       << " queue_decision=" << scheduling.value("decision").toString().toStdString()
       << " queue_reason=" << scheduling.value("reason").toString().toStdString()
+      << " depth_prepass=" << depthPrepass.value("requested").toString().toStdString()
+      << " depth_prepass_decision=" << depthPrepass.value("decision").toString().toStdString()
+      << " depth_prepass_ms=" << depthPrepass.value("totalMeasuredSeconds").toDouble() * 1000.0
       << " raster_ms=" << timings.value("rasterLoopSeconds").toDouble() * 1000.0 << " triangles="
       << static_cast<std::uint64_t>(tessellation.value("trianglesAfterClipping").toDouble())
       << " cull_rejects="
@@ -1055,6 +1059,10 @@ private:
   QString m_rasterBackend;
   bool m_rasterBackendSet;
   QString m_rasterVisibilityCulling;
+  QString m_rasterTessellationQuality;
+  bool m_rasterTessellationQualitySet;
+  double m_rasterMaxScreenSpaceError;
+  bool m_rasterMaxScreenSpaceErrorSet;
   QString m_rasterDepthPrepass;
   int m_rasterMsaaSamples;
   QString m_rasterMsaaShadingMode;
@@ -1204,6 +1212,10 @@ Renderer::Renderer()
       m_rasterBackend("cpu"),
       m_rasterBackendSet(false),
       m_rasterVisibilityCulling("off"),
+      m_rasterTessellationQuality("balanced"),
+      m_rasterTessellationQualitySet(false),
+      m_rasterMaxScreenSpaceError(0.0),
+      m_rasterMaxScreenSpaceErrorSet(false),
       m_rasterDepthPrepass("off"),
       m_rasterMsaaSamples(1),
       m_rasterMsaaShadingMode("per_sample"),
@@ -1526,6 +1538,10 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.rasterizer().setLod(m_wireframeLod);
     options.rasterizer().setTessellationQuality("final");
   }
+  if (m_rasterTessellationQualitySet)
+    options.rasterizer().setTessellationQuality(m_rasterTessellationQuality.toStdString());
+  if (m_rasterMaxScreenSpaceErrorSet)
+    options.rasterizer().setMaximumScreenSpaceError(m_rasterMaxScreenSpaceError);
   if (m_rasterBackendSet)
     options.rasterizer().setBackend(m_rasterBackend.toStdString());
   if (m_rasterCullModeSet)
@@ -1596,6 +1612,21 @@ Renderer::rasterBeautyPassState(engine::graph::RenderPostProcessAA postProcessAA
   state.geometry().setLod(m_wireframeLod);
   if (m_wireframeLod != 0) {
     state.geometry().setTessellationQuality(engine::raster::Rasterizer::TessellationQuality::Final);
+  }
+  if (m_rasterTessellationQualitySet) {
+    if (m_rasterTessellationQuality == "preview") {
+      state.geometry().setTessellationQuality(
+        engine::raster::Rasterizer::TessellationQuality::Preview);
+    } else if (m_rasterTessellationQuality == "final") {
+      state.geometry().setTessellationQuality(
+        engine::raster::Rasterizer::TessellationQuality::Final);
+    } else {
+      state.geometry().setTessellationQuality(
+        engine::raster::Rasterizer::TessellationQuality::Balanced);
+    }
+  }
+  if (m_rasterMaxScreenSpaceErrorSet) {
+    state.geometry().setMaximumScreenSpaceError(m_rasterMaxScreenSpaceError);
   }
   if (m_threadsSet) {
     state.execution().setMaximumThreads(m_threads);
@@ -2518,6 +2549,10 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"raster_backend", "Rasterizer backend for graph raster passes (cpu, opengl, gpu)", "backend"},
      {"cull", "Rasterizer face culling mode (both, back, front)", "mode"},
      {"raster_culling", "Request graph-visible raster visibility culling (off, on, auto)", "mode"},
+     {"raster_tessellation_quality",
+      "Rasterizer tessellation quality preset (preview, balanced, final)", "quality"},
+     {"raster_max_screen_space_error",
+      "Rasterizer maximum tessellation screen-space error in pixels", "pixels"},
      {"depth_prepass", "Request measured raster depth prepass (off, on, auto)", "mode"},
      {"msaa", "Rasterizer MSAA samples (1, 2, 4, or 8)", "samples"},
      {"msaa_shading", "Rasterizer MSAA shading mode (per_sample, per_fragment)", "mode"},
@@ -3057,6 +3092,27 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_rasterVisibilityCulling = mode;
+  }
+
+  if (parser.isSet("raster_tessellation_quality")) {
+    const QString quality = normalizedRasterOption(parser.value("raster_tessellation_quality"));
+    if (quality != "preview" && quality != "balanced" && quality != "final") {
+      *errorMessage = "Raster tessellation quality must be 'preview', 'balanced', or 'final'";
+      return CommandLineError;
+    }
+    m_rasterTessellationQuality = quality;
+    m_rasterTessellationQualitySet = true;
+  }
+
+  if (parser.isSet("raster_max_screen_space_error")) {
+    bool ok = false;
+    const double pixels = parser.value("raster_max_screen_space_error").toDouble(&ok);
+    if (!ok || pixels < 0.0) {
+      *errorMessage = "Raster max screen-space error must be a non-negative number";
+      return CommandLineError;
+    }
+    m_rasterMaxScreenSpaceError = pixels;
+    m_rasterMaxScreenSpaceErrorSet = true;
   }
 
   if (parser.isSet("depth_prepass")) {

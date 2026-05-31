@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Raster performance closeout.** Modeler Render Settings now expose the
+  raster depth-prepass mode, rendercli exposes raster tessellation quality and
+  max screen-space error controls, and raster metrics summaries include queue
+  and depth-prepass decisions for Epic #356 closeout. — GPT-5
 - **Raster screen-space tessellation LOD.** Raster graph intent now carries
   preview/balanced/final tessellation quality plus an advanced maximum
   screen-space error override; the shared raster front end records projected

@@ -291,6 +291,22 @@ visualization: rendering the same scene at LOD 0, 1, 2, 3
 shows the silhouette progression at the wire level, where
 faceting is most visible because there's no shading to hide it.
 
+Raster preview intent adds a second, screen-space control on top
+of the integer LOD. The `preview`, `balanced`, and `final`
+tessellation quality presets set a maximum projected error in
+pixels, and an advanced max screen-space error override can set
+that threshold directly. During raster triangle emission, finite
+primitives report their projected size; if the requested error
+budget allows a cheaper variant, the emitter asks for a lower LOD
+and records the reduction in raster metrics. Repeated source-backed
+parts share cached LOD variants, so a large imported model can avoid
+rebuilding the same small curved part many times.
+
+`final` quality preserves the explicitly requested LOD unless an
+override is set. That keeps high-quality output available while
+letting interactive previews spend fewer triangles on features that
+are only a few pixels wide.
+
 ## <a id="curves-ribbons-tubes-overlays"></a>Curves: ribbons, tubes, overlays
 [`core::Polyline`](../../../include/core/geometry/Polyline.h)
 stores path-like data as ordered 3D points, where segment `i`
@@ -358,6 +374,7 @@ default overlay color.
 - `include/core/geometry/Curve.h`
 - `include/core/geometry/Polyline.h`
 - `include/core/geometry/AttributeColorMap.h`
+- `include/engine/raster/detail/RasterTriangleEmitter.h`
 - `include/render/primitives/Primitive.h`
 - `include/render/primitives/Curve.h`
 - `include/render/primitives/Sphere.h`

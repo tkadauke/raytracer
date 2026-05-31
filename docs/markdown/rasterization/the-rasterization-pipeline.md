@@ -203,6 +203,27 @@ depth writes enabled. The full configurability — `Less`,
 `Lequal`, `Greater`, etc., plus stencil — is in
 [Clipping, depth, stencil](clipping-depth-stencil.md).
 
+For retained opaque tile renders, the rasterizer now tries to make
+that depth test useful earlier. Eligible batches are sorted roughly
+front-to-back before tile binning. After enough opaque geometry has
+filled a tile, the tile loop builds a conservative depth summary; if
+a later triangle's nearest possible depth is still behind that
+summary, the whole triangle/tile pair is skipped before coverage and
+per-sample depth tests run. The shortcut is intentionally narrow:
+alpha testing, blending, stencil writes, disabled depth writes,
+non-`Less` depth functions, and two-sided passes keep the ordinary
+fragment loop because their output can depend on order or on
+fragments that appear hidden to a simple depth bound.
+
+A separate depth prepass is available as a measured option rather
+than a default. `off` preserves the normal one-pass render, `on`
+requests an opaque 1x prepass when the fixed-function state supports
+it, and `auto` records why the prepass did or did not run. Raster
+metrics report the requested mode, the decision, the input triangle
+count, and the measured prepass/color-pass time so a scene can prove
+that the extra pass reduced total work instead of only reducing color
+writes.
+
 ## <a id="fragment-shading"></a>Fragment shading
 A pixel that survives the depth test has known barycentric
 weights, and from those, perspective-correct interpolated
@@ -361,6 +382,19 @@ inline expansion gets the per-pixel callback inlined into the
 prepared-triangle inner loop, so the entire `rasterize +
 depth-test + interpolate + shade + write` cycle runs as a
 single tight pixel loop with minimal indirect calls.
+
+The render also records aggregate metrics even when no counter AOV is
+requested. The tessellation block counts generated vertices/faces,
+triangles rejected by culling or degenerate winding, clipped
+triangles, screen-space LOD reductions, and LOD cache hits. The
+tiling and scheduling blocks record tile counts, triangle-reference
+duplication, evaluated queue sizes, the resolved queue, and the
+decision reason. The fragment block records coverage, stencil/depth
+tests and rejects, shaded fragments, alpha-test rejects, color
+writes, and conservative depth tile rejects. These totals are the
+text version of the raster counter views: they explain whether a slow
+preview is bottlenecked by tessellation, tile scheduling, hidden
+coverage, shading, or final writes.
 
 ## <a id="why-the-rasterizer-exists"></a>Why the rasterizer exists
 The chapter's introduction said the rasterizer and the

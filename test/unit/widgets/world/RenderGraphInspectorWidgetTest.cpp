@@ -620,6 +620,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(raster->text(4).contains(QStringLiteral("completed")));
     EXPECT_TRUE(raster->text(4).contains(QStringLiteral("shaded")));
     EXPECT_TRUE(raster->text(4).contains(QStringLiteral("writes")));
+    EXPECT_TRUE(raster->text(4).contains(QStringLiteral("queue")));
+    EXPECT_TRUE(raster->text(4).contains(QStringLiteral("prepass")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldEmitPassSelectedFromGraphNode) {

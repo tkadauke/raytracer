@@ -37,6 +37,7 @@ namespace RenderIntentElementTest {
     intent->setPostProcessAA("smaa");
     intent->setRasterizerBackend("opengl");
     intent->setRasterizerVisibilityCulling("auto");
+    intent->setRasterizerDepthPrepass("auto");
     intent->setRasterizerLod(3);
     intent->setRasterizerTessellationQuality("final");
     intent->setRasterizerMaxScreenSpaceError(0.25);
@@ -57,6 +58,8 @@ namespace RenderIntentElementTest {
     ASSERT_TRUE(scene.renderIntent().engineOptions.rasterizer().visibilityCulling().has_value());
     EXPECT_EQ(engine::graph::RenderVisibilityCulling::Auto,
               *scene.renderIntent().engineOptions.rasterizer().visibilityCulling());
+    ASSERT_TRUE(scene.renderIntent().engineOptions.rasterizer().depthPrepass().has_value());
+    EXPECT_EQ("auto", *scene.renderIntent().engineOptions.rasterizer().depthPrepass());
     ASSERT_TRUE(scene.renderIntent().engineOptions.rasterizer().lod().has_value());
     EXPECT_EQ(3, *scene.renderIntent().engineOptions.rasterizer().lod());
     ASSERT_TRUE(scene.renderIntent().engineOptions.rasterizer().tessellationQuality().has_value());
@@ -100,6 +103,7 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("stencil_composite"));
     EXPECT_TRUE(intent->propertyChoices("rasterizerBackend").contains("opengl"));
     EXPECT_TRUE(intent->propertyChoices("rasterizerVisibilityCulling").contains("auto"));
+    EXPECT_TRUE(intent->propertyChoices("rasterizerDepthPrepass").contains("auto"));
     EXPECT_TRUE(intent->propertyChoices("rasterizerTessellationQuality").contains("final"));
     EXPECT_FALSE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
     intent->setDefaultEngine("rasterizer");
@@ -111,12 +115,15 @@ namespace RenderIntentElementTest {
     EXPECT_EQ(QString("OpenGL"), intent->propertyChoiceDisplayName("rasterizerBackend", "opengl"));
     EXPECT_EQ(QString("Visibility Culling"),
               intent->propertyDisplayName("rasterizerVisibilityCulling"));
+    EXPECT_EQ(QString("Depth Prepass"), intent->propertyDisplayName("rasterizerDepthPrepass"));
     EXPECT_EQ(QString("Tessellation Quality"),
               intent->propertyDisplayName("rasterizerTessellationQuality"));
     EXPECT_EQ(QString("Final"),
               intent->propertyChoiceDisplayName("rasterizerTessellationQuality", "final"));
     EXPECT_EQ(QString("Auto"),
               intent->propertyChoiceDisplayName("rasterizerVisibilityCulling", "auto"));
+    EXPECT_EQ(QString("Auto"),
+              intent->propertyChoiceDisplayName("rasterizerDepthPrepass", "auto"));
     EXPECT_EQ((QList<int>{1, 2, 4, 8}), intent->propertyIntChoices("rasterizerMSAASamples"));
   }
 
@@ -150,6 +157,7 @@ namespace RenderIntentElementTest {
     EXPECT_FALSE(intent->isPropertyVisible("raytracerSampler"));
     EXPECT_TRUE(intent->isPropertyVisible("rasterizerLod"));
     EXPECT_TRUE(intent->isPropertyVisible("rasterizerVisibilityCulling"));
+    EXPECT_TRUE(intent->isPropertyVisible("rasterizerDepthPrepass"));
     EXPECT_TRUE(intent->isPropertyVisible("previewShadows"));
     EXPECT_FALSE(intent->isPropertyVisible("rasterizerShadowMapSize"));
 
