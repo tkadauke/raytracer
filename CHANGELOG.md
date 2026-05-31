@@ -45,6 +45,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   a deterministic first-site policy and warnings, and expose model, hydrogen,
   and water filtering controls without dropping coordinate provenance for Epic
   #408. — GPT-5
+- **Path-tracing sampling foundation docs.** Roadmap and textbook chapters now
+  describe `SampleStream` dimension ownership, BSDF/light sampling contracts,
+  and `render::mis` helpers as implemented foundations while explicitly noting
+  that the shipped renderer remains Whitted-only for Epic #358. — GPT-5
 - **BoundingBox Ray4 packet masks use the shared SIMD backend.**
   `BoundingBox::intersects4(Ray4)` now runs through the four-wide SIMD
   abstraction for SSE, NEON, and scalar builds, with explicit packet-mask tests

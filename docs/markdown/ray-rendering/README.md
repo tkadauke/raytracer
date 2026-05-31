@@ -20,13 +20,17 @@ the pipeline introduced in [The Whitted pipeline](the-whitted-pipeline.md).
    math; how UVs get filled in.
 - [Materials and BRDFs](materials-and-brdfs.md) — Matte, Phong,
    Reflective, Transparent, Portal. The new `BSDF` interface as the
-   container abstraction.
+   container abstraction, plus the MIS helper contracts future
+   direct-lighting integrators will consume.
 - [Lights and shading](lights-and-shading.md) — point lights,
-   directional lights, the shadow ray, ambient as cheap GI.
+   directional lights, the shadow ray, ambient as cheap GI, and
+   the light sampling/PDF metadata that preserves the current
+   Whitted path.
 - [Sampling and anti-aliasing](sampling-and-anti-aliasing.md) —
     regular vs jittered vs random, multi-sample-per-pixel as Monte
     Carlo over pixel area, the lens-sampler shared with the
-    thin-lens camera.
+    thin-lens camera, and named stream dimensions reserved for
+    future path tracing.
 - [Textures](textures.md) — `Texture` as `(s, t) → Colord`,
     constant / checker / UV-color, planar vs UV-direct mapping.
 - [Tone mapping](tone-mapping.md) — why HDR exists, the float

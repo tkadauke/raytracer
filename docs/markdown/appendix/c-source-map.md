@@ -85,6 +85,7 @@
 | `include/engine/wireframe/Wireframe.h` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `include/render/HomogeneousClipVolume.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/render/Integrator.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
+| `include/render/MIS.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `include/render/RayCaster.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/RenderEngine.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/SamplingSeed.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
@@ -297,7 +298,14 @@
 | `test/unit/engine/graph/RenderPlanTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/engine/graph/RenderResourceStorageTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/engine/graph/WireframePassStateTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `test/unit/render/MISTest.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `test/unit/render/WireframeTest.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
+| `test/unit/render/brdf/GlossySpecularTest.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
+| `test/unit/render/brdf/LambertianTest.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
+| `test/unit/render/brdf/PerfectSpecularTest.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
+| `test/unit/render/brdf/PerfectTransmitterTest.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
+| `test/unit/render/lights/DirectionalLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
+| `test/unit/render/lights/PointLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `test/unit/render/primitives/BVHPerformanceTest.cpp` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
 | `test/unit/render/samplers/JitteredSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `test/unit/render/samplers/RandomSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |

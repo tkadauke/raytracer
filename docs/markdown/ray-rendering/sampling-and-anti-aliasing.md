@@ -19,7 +19,10 @@ By the end of this chapter you should know:
   guarantees absolutely (not statistically),
 - the dual API the `Sampler` class exposes — flat 2D sets and
   on-demand streams — and why the thin-lens camera needs the
-  stream form.
+  stream form,
+- the named stream dimensions reserved for time, lens, BSDF,
+  light, and continuation sampling, and why those dimensions
+  must stay independent.
 
 ## <a id="aliasing-as-undersampling"></a>Aliasing as undersampling
 Every pixel in a rendered image is the answer to a question:
@@ -149,10 +152,10 @@ and the set-based API is enough for them.
 
 The **stream-based** API is `stream()`: it returns a
 `SampleStream` that the consumer pulls dimensions from on
-demand. `stream.next()` returns the next 2D sample; subsequent
-calls within the same pixel pull additional dimensions from
-*independent* sample sets, so the stream's outputs don't
-correlate. Thin-lens cameras
+demand. `next2D()` returns the next 2D sample and `next1D()`
+returns the next 1D sample; subsequent calls within the same
+pixel pull additional dimensions from *independent* sample sets,
+so the stream's outputs don't correlate. Thin-lens cameras
 ([Cameras: Thin-lens: depth of field](cameras.md#thin-lens-depth-of-field))
 need this — they consume one dimension for the pixel offset and
 *another* dimension for the lens-disc sample, and using
@@ -162,6 +165,56 @@ dimensions per ray ([BRDF](../appendix/a-glossary.md#b) importance sampling, lig
 Russian-roulette decisions); the stream API scales to that
 without forcing every consumer to know about every other
 consumer's dimensional needs.
+
+## <a id="named-stream-dimensions"></a>Named stream dimensions
+Sequential `next1D()` / `next2D()` pulls are useful for cameras:
+the camera can ask for the next stochastic input in the order its
+ray-construction code naturally needs it. Recursive integrators
+need a stricter ownership rule. A path tracer should not get a
+different BSDF sample merely because the implementation asked the
+light sampler first, skipped light sampling for a delta lobe, or
+added Russian roulette later.
+
+[`SampleStream`](../../../include/render/samplers/SampleStream.h)
+therefore exposes named dimensions:
+
+| Dimension | Numeric ownership | Intended consumer |
+|---|---:|---|
+| `SampleDimension::Pixel` | 0 | sub-pixel sample |
+| `SampleDimension::Time` | 1 | shutter-time sample for motion blur |
+| `SampleDimension::Lens` | 2 | aperture sample for thin-lens cameras |
+| `SampleDimension::BSDF` | `3 + bounce * 3` | direction sample for BSDF importance sampling |
+| `SampleDimension::Light` | `4 + bounce * 3` | light-surface or light-selection sample |
+| `SampleDimension::Continuation` | `5 + bounce * 3` | path-continuation / Russian-roulette sample |
+
+The `sample2D(dimension, index)` and `sample1D(dimension, index)`
+methods read those dimensions without advancing the sequential
+cursor. The index is normally the path bounce. Bounce 0's BSDF and
+light samples occupy dimensions 3 and 4; bounce 1's occupy 6 and 7.
+The unit tests pin this exact mapping in
+[`SamplerStream.NamedDimensionsMatchLegacyCameraDimensionOrder`](../../../test/unit/render/samplers/SamplerTest.cpp)
+and
+[`SamplerStream.PathTracingDimensionsDoNotReuseTheSamePattern`](../../../test/unit/render/samplers/SamplerTest.cpp).
+
+The independence requirement is not bookkeeping neatness; it is a
+Monte Carlo correctness issue. If two estimators reuse the same 2D
+pattern, their errors become correlated. A glossy BSDF sample and a
+light sample might both prefer the same corner of their domains, or
+a lens sample might line up with a pixel-offset sample and draw a
+structured blur pattern. The default `Sampler::stream(sampleIndex,
+pixelHash)` implementation avoids that by looking up dimension `d`
+in pre-baked set `(pixelHash + d) mod numSets` at the same
+`sampleIndex`. For jittered sampling, that means every named
+dimension still receives a stratified point, but it receives it from
+a different set. The `pixelHash` term shifts those set choices per
+pixel so the whole image does not share one visible set pattern.
+
+This is foundation API, not a completed path tracer. The shipped
+renderer currently consumes pixel, time, and lens dimensions for
+primary rays, motion blur, and thin-lens depth of field. BSDF,
+light, and continuation dimensions are reserved and tested so a
+future path-tracing integrator can use them without redefining the
+sampler contract.
 
 ## <a id="the-thin-lens-sampler-interaction"></a>The thin-lens / sampler interaction
 [Cameras](cameras.md) introduced the thin-lens camera and noted that it

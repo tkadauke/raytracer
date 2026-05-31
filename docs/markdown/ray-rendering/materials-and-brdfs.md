@@ -282,22 +282,36 @@ is
 
 ```cpp
 // include/render/bsdf/BSDF.h
-virtual Colord eval(const Vector3d& wi, const Vector3d& wo) const;
-virtual Colord sample(const Vector3d& wi, Vector3d& wo, double& pdf) const;
-virtual double pdf(const Vector3d& wi, const Vector3d& wo) const;
+virtual Colord eval(
+    const HitPoint& hitPoint,
+    const Vector3d& wi,
+    const Vector3d& wo) const;
+virtual Colord sample(
+    const HitPoint& hitPoint,
+    const Vector3d& wi,
+    Vector3d& wo,
+    double& pdf,
+    const Vector2d& sample) const;
+virtual double pdf(
+    const HitPoint& hitPoint,
+    const Vector3d& wi,
+    const Vector3d& wo) const;
 ```
 
 `eval(wi, wo)` returns the [BSDF](../appendix/a-glossary.md#b) value for a fully-specified
 direction pair. Used by direct-lighting loops (which know the
 light's direction and the eye's direction) and by importance-
-sampling integrators that need a probability for a draw.
+sampling integrators that need the BSDF value at a direction
+chosen by some other sampler.
 
-`sample(wi, wo, pdf)` generates an outgoing direction by
-importance-sampling the lobe — picks a $\mathbf{w}_o$, writes it
-to the out-parameter, writes the probability of having drawn it
-into `pdf`, and returns the BSDF value at that draw. Used by
-recursive integrators (Whitted, future path tracer) to spawn
-the next ray.
+`sample(wi, wo, pdf, sample)` generates an outgoing direction by
+importance-sampling the lobe from a caller-owned 2D sample in
+`[0, 1]^2` — picks a $\mathbf{w}_o$, writes it to the
+out-parameter, writes the probability of having drawn it into
+`pdf`, and returns the BSDF value at that draw. Used by recursive
+integrators to spawn the next ray. There is also a legacy
+no-sample overload that uses the center sample for deterministic
+callers.
 
 `pdf(wi, wo)` returns just the probability density without a
 new draw. Used by multiple-importance-sampling weights.
@@ -308,6 +322,51 @@ caller agnostic to which one fired. This abstraction is what
 the eventual path tracer will use; for the Whitted renderer
 shipped today, `BSDF` is mostly the unifying parent class for
 the existing BRDFs and BTDFs.
+
+The direction convention is deliberately stated in the header:
+both `wi` and `wo` are unit vectors pointing away from the
+surface. `wi` is the direction back toward the camera or previous
+surface; `wo` is the sampled next direction or the direction
+toward a light during direct lighting. The `HitPoint` argument
+carries the surface normal, UV coordinates, and material-local
+data needed by lobes whose value changes across the primitive.
+
+`flags()` classifies each lobe as diffuse, glossy, specular,
+reflection, transmission, and/or delta. Delta lobes are singular:
+a perfect mirror or perfect transmitter has no finite value for
+an arbitrary `eval(wi, wo)` direction and reports `pdf(wi, wo) ==
+0` for ordinary density queries. When a delta lobe is sampled,
+the sample routine writes the deterministic outgoing direction,
+sets `pdf = 1`, and returns the finite post-cancellation value the
+integrator should use for that sampled event. MIS code must treat
+delta draws specially instead of dividing by an ordinary density.
+
+## <a id="mis-helper-contracts"></a>MIS helper contracts
+[Multiple importance sampling](../appendix/a-glossary.md#m) combines
+two estimators for the same direct-lighting integral: sample a
+light and evaluate the BSDF in that direction, or sample the BSDF
+and evaluate the light/PDF for that direction. The small helper
+layer in [`render/MIS.h`](../../../include/render/MIS.h) captures
+the arithmetic common to those estimators:
+
+- `positivePdf(pdf)` clamps negative inputs to zero before they
+  can produce invalid weights.
+- `balanceHeuristic(...)` implements the one-power Veach balance
+  heuristic, including sample-count overloads for estimators that
+  take unequal numbers of samples.
+- `powerHeuristic(...)` implements the squared-power heuristic,
+  the default used by `directLightingEstimate(...)`.
+- `estimateDirectLightingFromLightSample(...)` and
+  `estimateDirectLightingFromBsdfSample(...)` multiply
+  `bsdfValue * lightRadiance * normalDotLight`, divide by the
+  sampled PDF, and apply the selected MIS weight. Delta samples
+  receive weight 1 because the competing continuous estimator
+  cannot sample the same singular event.
+
+Those helpers do not trace rays, choose lights, test visibility,
+or recurse. They are foundations for a future direct-lighting or
+path-tracing integrator. The current Whitted renderer still uses
+the material-owned per-light loops described above.
 
 ## <a id="the-four-brdfs-and-four-plus-one-materials-summarized"></a>The four BRDFs and four (plus one) materials, summarized
 | BRDF / BTDF | What it computes | Used by |
@@ -362,6 +421,12 @@ contribution and one optional recursive call.
 - Functional contract tests:
   [`MatteMaterialTest`](../../../test/functional/render/materials/MatteMaterialTest.cpp),
   [`PhongMaterialTest`](../../../test/functional/render/materials/PhongMaterialTest.cpp)
+- Sampling and MIS contract tests:
+  [`LambertianTest`](../../../test/unit/render/brdf/LambertianTest.cpp),
+  [`GlossySpecularTest`](../../../test/unit/render/brdf/GlossySpecularTest.cpp),
+  [`PerfectSpecularTest`](../../../test/unit/render/brdf/PerfectSpecularTest.cpp),
+  [`PerfectTransmitterTest`](../../../test/unit/render/brdf/PerfectTransmitterTest.cpp),
+  [`MISTest`](../../../test/unit/render/MISTest.cpp)
 
 ## Source anchors
 
@@ -379,6 +444,12 @@ contribution and one optional recursive call.
 - `include/render/brdf/PerfectSpecular.h`
 - `include/render/brdf/PerfectTransmitter.h`
 - `include/render/bsdf/BSDF.h`
+- `include/render/MIS.h`
+- `test/unit/render/brdf/LambertianTest.cpp`
+- `test/unit/render/brdf/GlossySpecularTest.cpp`
+- `test/unit/render/brdf/PerfectSpecularTest.cpp`
+- `test/unit/render/brdf/PerfectTransmitterTest.cpp`
+- `test/unit/render/MISTest.cpp`
 - `test/functional/render/materials/MatteMaterialTest.cpp`
 - `test/functional/render/materials/PhongMaterialTest.cpp`
 <!-- /source-anchors -->
