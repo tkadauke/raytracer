@@ -1,0 +1,317 @@
+{
+    "executionStages": [
+        {
+            "index": 1,
+            "passes": [
+                "raster_beauty",
+                "stencil_aov"
+            ]
+        },
+        {
+            "index": 2,
+            "passes": [
+                "beauty_readback",
+                "readback_stencil_aov"
+            ]
+        },
+        {
+            "index": 3,
+            "passes": [
+                "post_smaa",
+                "visualize_stencil_aov"
+            ]
+        },
+        {
+            "index": 4,
+            "passes": [
+                "tonemap"
+            ]
+        }
+    ],
+    "passes": [
+        {
+            "canRunConcurrently": false,
+            "disabledBehavior": "error",
+            "enabled": true,
+            "executor": "rasterizer",
+            "features": [
+                "main",
+                "beauty",
+                "rasterizer"
+            ],
+            "hasExternalSideEffects": false,
+            "id": "raster_beauty",
+            "kind": "beauty",
+            "name": "Raster beauty (full resolution)",
+            "parameters": {
+                "execution": {
+                    "backend": "opengl"
+                }
+            },
+            "reads": [],
+            "sceneCamera": {
+                "sceneCameraId": "{61000000-0000-0000-0000-000000000001}"
+            },
+            "sceneSelector": {
+                "kind": "all"
+            },
+            "writes": [
+                "beauty_color"
+            ]
+        },
+        {
+            "canRunConcurrently": false,
+            "disabledBehavior": "error",
+            "enabled": true,
+            "executor": "postprocess",
+            "features": [
+                "main",
+                "readback",
+                "transfer"
+            ],
+            "hasExternalSideEffects": false,
+            "id": "beauty_readback",
+            "kind": "readback",
+            "name": "Beauty readback",
+            "reads": [
+                "beauty_color"
+            ],
+            "sceneSelector": {
+                "kind": "all"
+            },
+            "supportedResourceDomains": [
+                "cpu",
+                "gpu"
+            ],
+            "writes": [
+                "beauty_readback_color"
+            ]
+        },
+        {
+            "canRunConcurrently": false,
+            "disabledBehavior": "passthrough",
+            "enabled": true,
+            "executor": "postprocess",
+            "features": [
+                "main",
+                "postprocess",
+                "post_aa",
+                "rasterizer",
+                "smaa"
+            ],
+            "hasExternalSideEffects": false,
+            "id": "post_smaa",
+            "kind": "postprocess",
+            "name": "SMAA",
+            "parameters": {
+                "mode": "smaa",
+                "type": "post_process_aa"
+            },
+            "reads": [
+                "beauty_readback_color"
+            ],
+            "sceneSelector": {
+                "kind": "all"
+            },
+            "writes": [
+                "post_aa_color"
+            ]
+        },
+        {
+            "canRunConcurrently": false,
+            "disabledBehavior": "passthrough",
+            "enabled": true,
+            "executor": "postprocess",
+            "features": [
+                "main",
+                "tonemap",
+                "postprocess"
+            ],
+            "hasExternalSideEffects": false,
+            "id": "tonemap",
+            "kind": "tonemap",
+            "name": "Tone map",
+            "reads": [
+                "post_aa_color"
+            ],
+            "sceneSelector": {
+                "kind": "all"
+            },
+            "writes": [
+                "main_color"
+            ]
+        },
+        {
+            "canRunConcurrently": false,
+            "disabledBehavior": "substitute_default",
+            "enabled": true,
+            "executor": "rasterizer",
+            "features": [
+                "aov",
+                "export",
+                "stencil",
+                "rasterizer"
+            ],
+            "hasExternalSideEffects": false,
+            "id": "stencil_aov",
+            "kind": "aov",
+            "name": "Stencil AOV (half resolution)",
+            "parameters": {
+                "execution": {
+                    "backend": "opengl"
+                },
+                "framebuffer": {
+                    "colorWriteMask": "none",
+                    "stencilPassOp": "replace",
+                    "stencilReference": 255,
+                    "stencilTest": true
+                }
+            },
+            "reads": [],
+            "sceneCamera": {
+                "sceneCameraId": "{61000000-0000-0000-0000-000000000001}"
+            },
+            "sceneSelector": {
+                "kind": "all"
+            },
+            "writes": [
+                "stencil_aov_source"
+            ]
+        },
+        {
+            "canRunConcurrently": false,
+            "disabledBehavior": "error",
+            "enabled": true,
+            "executor": "postprocess",
+            "features": [
+                "aov",
+                "export",
+                "stencil",
+                "readback",
+                "transfer"
+            ],
+            "hasExternalSideEffects": false,
+            "id": "readback_stencil_aov",
+            "kind": "readback",
+            "name": "Read back Stencil AOV",
+            "reads": [
+                "stencil_aov_source"
+            ],
+            "sceneSelector": {
+                "kind": "all"
+            },
+            "supportedResourceDomains": [
+                "cpu",
+                "gpu"
+            ],
+            "writes": [
+                "stencil_aov"
+            ]
+        },
+        {
+            "canRunConcurrently": false,
+            "disabledBehavior": "substitute_default",
+            "enabled": true,
+            "executor": "postprocess",
+            "features": [
+                "aov",
+                "export",
+                "stencil",
+                "visualization",
+                "postprocess"
+            ],
+            "hasExternalSideEffects": false,
+            "id": "visualize_stencil_aov",
+            "kind": "aov",
+            "name": "Visualize Stencil AOV",
+            "reads": [
+                "stencil_aov"
+            ],
+            "sceneSelector": {
+                "kind": "all"
+            },
+            "writes": [
+                "stencil_aov_color"
+            ]
+        }
+    ],
+    "resources": [
+        {
+            "domain": "cpu",
+            "format": "rgb_double",
+            "height": 192,
+            "id": "beauty_color",
+            "lifetime": "transient",
+            "name": "Beauty color",
+            "sampleCount": 1,
+            "type": "color",
+            "width": 256
+        },
+        {
+            "domain": "cpu",
+            "format": "rgb_double",
+            "height": 192,
+            "id": "beauty_readback_color",
+            "lifetime": "transient",
+            "name": "Beauty readback color",
+            "sampleCount": 1,
+            "type": "color",
+            "width": 256
+        },
+        {
+            "domain": "cpu",
+            "format": "rgb_double",
+            "height": 192,
+            "id": "main_color",
+            "lifetime": "exported",
+            "name": "Main color",
+            "sampleCount": 1,
+            "type": "color",
+            "width": 256
+        },
+        {
+            "domain": "cpu",
+            "format": "rgb_double",
+            "height": 192,
+            "id": "post_aa_color",
+            "lifetime": "transient",
+            "name": "Postprocess AA color",
+            "sampleCount": 1,
+            "type": "color",
+            "width": 256
+        },
+        {
+            "domain": "cpu",
+            "format": "uint8",
+            "height": 96,
+            "id": "stencil_aov_source",
+            "lifetime": "transient",
+            "name": "Stencil AOV source",
+            "sampleCount": 1,
+            "type": "stencil",
+            "width": 128
+        },
+        {
+            "domain": "cpu",
+            "format": "uint8",
+            "height": 96,
+            "id": "stencil_aov",
+            "lifetime": "exported",
+            "name": "Stencil AOV",
+            "sampleCount": 1,
+            "type": "stencil",
+            "width": 128
+        },
+        {
+            "domain": "cpu",
+            "format": "rgb_double",
+            "height": 96,
+            "id": "stencil_aov_color",
+            "lifetime": "exported",
+            "name": "Stencil AOV preview (half resolution)",
+            "sampleCount": 1,
+            "type": "color",
+            "width": 128
+        }
+    ]
+}
