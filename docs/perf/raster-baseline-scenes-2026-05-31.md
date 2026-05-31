@@ -38,6 +38,10 @@ benchmarks/raster_baseline_capture.sh --aovs all
 Outputs default to `tmp/raster-baselines/<scene>/`. Override the rendercli path
 or output directory with `RENDERCLI=/path/to/rendercli` and
 `RASTER_BASELINE_OUT=/path/to/output`.
+Set `RASTER_BASELINE_DEPTH_PREPASS=on` or `auto` to capture the same scene
+matrix with the optional measured depth prepass; compare
+`depthPrepass.totalMeasuredSeconds` and `timings.totalRenderSeconds` in the
+metrics JSON before treating the prepass as beneficial for a scene.
 
 Use the command without `--aovs` for timing baselines. The AOV mode executes and
 exports extra graph views, so its wall-clock totals are visual-reference

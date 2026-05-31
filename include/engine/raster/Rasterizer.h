@@ -563,6 +563,8 @@ namespace engine::raster {
 
     enum class TessellationQuality { Preview, Balanced, Final };
 
+    enum class DepthPrepassMode { Off, On, Auto };
+
     enum class AttachmentLoadOp { Clear, Load };
 
     enum class AttachmentStoreOp { Store, Discard };
@@ -654,6 +656,16 @@ namespace engine::raster {
         std::uint64_t coverageMinusShadedFragments = 0;
         std::uint64_t depthTestsMinusColorWrites = 0;
       } fragments;
+
+      struct DepthPrepassSummary {
+        std::string requested{"off"};
+        bool enabled = false;
+        std::string decision{"disabled"};
+        std::uint64_t inputTriangles = 0;
+        double prepassSeconds = 0.0;
+        double colorPassSeconds = 0.0;
+        double totalMeasuredSeconds = 0.0;
+      } depthPrepass;
 
       struct DiagnosticImageStatistics {
         MetricDistribution coverage;
@@ -1109,6 +1121,16 @@ namespace engine::raster {
       m_shadowFilterMode = mode;
     }
 
+    /// Optional measured depth prepass for opaque 1x raster passes.
+    /// Defaults to Off so existing raster output and timing stay unchanged
+    /// unless graph/CLI state explicitly requests it.
+    inline DepthPrepassMode depthPrepassMode() const {
+      return m_depthPrepassMode;
+    }
+    inline void setDepthPrepassMode(DepthPrepassMode mode) {
+      m_depthPrepassMode = mode;
+    }
+
     /// Face-culling mode used after near-plane clipping and before
     /// triangle rasterization. Without an explicit override, material
     /// sidedness chooses the default: front-sided materials cull back
@@ -1506,6 +1528,7 @@ namespace engine::raster {
     double m_shadowSlopeBias{0.0};
     int m_shadowFilterRadius{0};
     ShadowFilterMode m_shadowFilterMode{ShadowFilterMode::PCF};
+    DepthPrepassMode m_depthPrepassMode{DepthPrepassMode::Off};
     CullMode m_cullMode{CullMode::Both};
     bool m_hasCullModeOverride{false};
     bool m_viewportEnabled{false};

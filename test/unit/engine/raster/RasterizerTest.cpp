@@ -1426,6 +1426,67 @@ namespace RasterizerTest {
               engine.lastMetrics().fragments.depthTests);
   }
 
+  TEST(Rasterizer, DepthPrepassRunsOnlyWhenExplicitlyRequestedAndEligible) {
+    auto scene = sceneWithFrontOccluderAndDenseBackLayer(12);
+    Rasterizer baseline(headOnCamera(), scene);
+    baseline.setMaximumThreads(2);
+    baseline.setQueueSize(4);
+    baseline.setCullMode(Rasterizer::CullMode::Front);
+
+    Buffer<Colord> baselineColor(64, 64);
+    baseline.render(baselineColor);
+
+    Rasterizer prepass(headOnCamera(), scene);
+    prepass.setMaximumThreads(2);
+    prepass.setQueueSize(4);
+    prepass.setCullMode(Rasterizer::CullMode::Front);
+    prepass.setDepthPrepassMode(Rasterizer::DepthPrepassMode::On);
+
+    Buffer<Colord> prepassColor(64, 64);
+    prepass.render(prepassColor);
+
+    expectBuffersEqual(baselineColor, prepassColor);
+    EXPECT_FALSE(baseline.lastMetrics().depthPrepass.enabled);
+    EXPECT_EQ("disabled", baseline.lastMetrics().depthPrepass.decision);
+    EXPECT_TRUE(prepass.lastMetrics().depthPrepass.enabled);
+    EXPECT_EQ("on", prepass.lastMetrics().depthPrepass.requested);
+    EXPECT_EQ("enabled", prepass.lastMetrics().depthPrepass.decision);
+    EXPECT_GT(prepass.lastMetrics().depthPrepass.inputTriangles, 0u);
+    EXPECT_GT(prepass.lastMetrics().depthPrepass.prepassSeconds, 0.0);
+    EXPECT_GT(prepass.lastMetrics().depthPrepass.colorPassSeconds, 0.0);
+    EXPECT_GT(prepass.lastMetrics().depthPrepass.totalMeasuredSeconds, 0.0);
+  }
+
+  TEST(Rasterizer, DepthPrepassAutoSuppressesCheapOpaquePasses) {
+    Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
+    engine.setMaximumThreads(2);
+    engine.setQueueSize(4);
+    engine.setDepthPrepassMode(Rasterizer::DepthPrepassMode::Auto);
+
+    Buffer<Colord> color(64, 64);
+    engine.render(color);
+
+    EXPECT_FALSE(engine.lastMetrics().depthPrepass.enabled);
+    EXPECT_EQ("auto", engine.lastMetrics().depthPrepass.requested);
+    EXPECT_EQ("suppressed_auto_no_expensive_shading_or_hierarchical_consumer",
+              engine.lastMetrics().depthPrepass.decision);
+  }
+
+  TEST(Rasterizer, DepthPrepassSuppressesUnsupportedFixedFunctionState) {
+    Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
+    engine.setMaximumThreads(2);
+    engine.setQueueSize(4);
+    engine.setDepthPrepassMode(Rasterizer::DepthPrepassMode::On);
+    engine.setBlendingEnabled(true);
+
+    Buffer<Colord> color(64, 64);
+    engine.render(color);
+
+    EXPECT_FALSE(engine.lastMetrics().depthPrepass.enabled);
+    EXPECT_EQ("suppressed_non_opaque_or_unsupported_state",
+              engine.lastMetrics().depthPrepass.decision);
+  }
+
   TEST(Rasterizer, MetricsCaptureMaterialAndLightInputSummary) {
     auto tracked = sceneWithTrackedFrontFacingTriangle();
     tracked.scene->addLight(

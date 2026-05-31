@@ -17,6 +17,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   primitive size, selects cheaper LOD variants for small dense parts, and
   reuses cached variants across repeated source-part instances for Epic #356
   Phase 2. — GPT-5
+- **Measured raster depth prepass.** Raster graph state and `rendercli
+  --depth_prepass off|on|auto` can now request an optional opaque CPU raster
+  depth prepass, with trace metadata reporting whether it ran and the measured
+  prepass/color-pass timing for Epic #356 Phase 5. — GPT-5
 - **Raster conservative depth occlusion.** Opaque, depth-writing raster triangle
   batches now render front-to-back and use tile-level hierarchical depth
   summaries to skip fully occluded triangle/tile pairs, while alpha-tested,

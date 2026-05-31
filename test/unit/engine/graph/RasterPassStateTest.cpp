@@ -192,6 +192,7 @@ namespace RasterPassStateTest {
     state.sampling().setMSAASamples(4);
     state.sampling().setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
     state.sampling().setPostProcessAA(Rasterizer::PostProcessAA::FXAA);
+    state.depthPrepass().setMode(Rasterizer::DepthPrepassMode::Auto);
     state.framebuffer().setViewportRect(Recti(1, 2, 30, 40));
     state.framebuffer().setColorLoadOp(Rasterizer::AttachmentLoadOp::Load);
     state.framebuffer().setColorStoreOp(Rasterizer::AttachmentStoreOp::Discard);
@@ -207,6 +208,7 @@ namespace RasterPassStateTest {
     const QJsonObject json = state.toJson();
     const QJsonObject execution = json.value("execution").toObject();
     const QJsonObject sampling = json.value("sampling").toObject();
+    const QJsonObject depthPrepass = json.value("depthPrepass").toObject();
     const QJsonObject framebuffer = json.value("framebuffer").toObject();
     const QJsonObject shadows = json.value("shadows").toObject();
 
@@ -214,6 +216,7 @@ namespace RasterPassStateTest {
     EXPECT_EQ(4, sampling.value("msaaSamples").toInt());
     EXPECT_EQ("per_fragment", sampling.value("msaaShadingMode").toString().toStdString());
     EXPECT_EQ("fxaa", sampling.value("postProcessAA").toString().toStdString());
+    EXPECT_EQ("auto", depthPrepass.value("mode").toString().toStdString());
     EXPECT_TRUE(framebuffer.value("viewport").isArray());
     EXPECT_EQ("load", framebuffer.value("colorLoadOp").toString().toStdString());
     EXPECT_EQ("discard", framebuffer.value("colorStoreOp").toString().toStdString());
@@ -362,6 +365,8 @@ namespace RasterPassStateTest {
     sampling["msaaSamples"] = 4;
     sampling["msaaShadingMode"] = "per_fragment";
     sampling["postProcessAA"] = "smaa";
+    QJsonObject depthPrepass;
+    depthPrepass["mode"] = "on";
     QJsonObject framebuffer;
     framebuffer["colorLoadOp"] = "load";
     framebuffer["colorStoreOp"] = "discard";
@@ -407,6 +412,7 @@ namespace RasterPassStateTest {
     json["execution"] = execution;
     json["geometry"] = geometry;
     json["sampling"] = sampling;
+    json["depthPrepass"] = depthPrepass;
     json["framebuffer"] = framebuffer;
     json["shadows"] = shadows;
 
@@ -424,6 +430,7 @@ namespace RasterPassStateTest {
     EXPECT_EQ(4, rasterizer.msaaSamples());
     EXPECT_EQ(Rasterizer::MSAAShadingMode::PerFragment, rasterizer.msaaShadingMode());
     EXPECT_EQ(Rasterizer::PostProcessAA::SMAA, rasterizer.postProcessAA());
+    EXPECT_EQ(Rasterizer::DepthPrepassMode::On, rasterizer.depthPrepassMode());
     EXPECT_EQ(Rasterizer::AttachmentLoadOp::Load, rasterizer.colorLoadOp());
     EXPECT_EQ(Rasterizer::AttachmentStoreOp::Discard, rasterizer.colorStoreOp());
     EXPECT_EQ(Rasterizer::ColorWriteGreen, rasterizer.colorWriteMask());
@@ -489,6 +496,13 @@ namespace RasterPassStateTest {
     ASSERT_NE(nullptr, plan.passes()[0].state);
     EXPECT_EQ(2, RasterBeautyPassState::fromPass(plan.passes()[0])->sampling().msaaSamples());
     EXPECT_EQ(nullptr, plan.passes()[1].state);
+  }
+
+  TEST(RasterBeautyPassState, RejectsUnsupportedOpenGLDepthPrepass) {
+    RasterBeautyPassState state;
+    state.depthPrepass().setMode(Rasterizer::DepthPrepassMode::On);
+
+    expectOpenGLUnsupported(state, "measured depth prepass");
   }
 
   TEST(RasterBeautyPassState, IgnoresNonRasterPassState) {

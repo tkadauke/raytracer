@@ -115,6 +115,27 @@ namespace engine::graph {
   };
 
   /**
+    * Optional depth prepass controls for measured opaque raster passes.
+    */
+  class RasterDepthPrepassState {
+  public:
+    using Rasterizer = engine::raster::Rasterizer;
+
+    static RasterDepthPrepassState fromJson(const QJsonObject& object,
+                                            const std::string& path = "parameters.depthPrepass");
+    QJsonObject toJson() const;
+    bool empty() const;
+    void applyTo(Rasterizer& rasterizer) const;
+    void applyTo(engine::raster::OpenGLRasterizer& rasterizer) const;
+
+    void setMode(Rasterizer::DepthPrepassMode mode);
+    Rasterizer::DepthPrepassMode mode() const;
+
+  private:
+    Rasterizer::DepthPrepassMode m_mode{Rasterizer::DepthPrepassMode::Off};
+  };
+
+  /**
     * Framebuffer-space, depth-bias, stencil, alpha, and color-output controls.
     */
   class RasterFramebufferState {
@@ -322,12 +343,14 @@ namespace engine::graph {
     RasterExecutionState& execution();
     RasterGeometryState& geometry();
     RasterSamplingState& sampling();
+    RasterDepthPrepassState& depthPrepass();
     RasterFramebufferState& framebuffer();
     RasterShadowState& shadows();
 
     const RasterExecutionState& execution() const;
     const RasterGeometryState& geometry() const;
     const RasterSamplingState& sampling() const;
+    const RasterDepthPrepassState& depthPrepass() const;
     const RasterFramebufferState& framebuffer() const;
     const RasterShadowState& shadows() const;
 
@@ -335,6 +358,7 @@ namespace engine::graph {
     RasterExecutionState m_execution;
     RasterGeometryState m_geometry;
     RasterSamplingState m_sampling;
+    RasterDepthPrepassState m_depthPrepass;
     RasterFramebufferState m_framebuffer;
     RasterShadowState m_shadows;
   };

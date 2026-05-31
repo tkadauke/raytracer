@@ -676,6 +676,26 @@ if(NOT cull_both_graph_json MATCHES "\"cullMode\"[ \r\n]*:[ \r\n]*\"both\"")
                   "" "" "" "${cull_both_graph_json}")
 endif()
 
+set(depth_prepass_graph "${TEST_OUTPUT_DIR}/raster-depth-prepass-graph.json")
+rendercli_run(
+  NAME "rendercli --depth_prepass auto serializes graph state"
+  COMMAND
+    "${RENDERCLI}" --engine raster --render_graph_only --render_graph_format json
+    --depth_prepass auto
+    "${matte_scene}" "${depth_prepass_graph}"
+)
+file(READ "${depth_prepass_graph}" depth_prepass_graph_json)
+if(NOT depth_prepass_graph_json MATCHES "\"depthPrepass\"")
+  _rendercli_fail("rendercli --depth_prepass graph state"
+                  "compiled graph did not serialize depth prepass state"
+                  "" "" "" "${depth_prepass_graph_json}")
+endif()
+if(NOT depth_prepass_graph_json MATCHES "\"mode\"[ \r\n]*:[ \r\n]*\"auto\"")
+  _rendercli_fail("rendercli --depth_prepass auto graph state"
+                  "compiled graph did not serialize depthPrepass.mode=auto"
+                  "" "" "" "${depth_prepass_graph_json}")
+endif()
+
 foreach(msaa_samples IN ITEMS 1 2 4 8)
   set(msaa_render "${TEST_OUTPUT_DIR}/raster-msaa-${msaa_samples}.png")
   rendercli_run(
