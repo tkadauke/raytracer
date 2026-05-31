@@ -469,9 +469,13 @@ delta-per-pass to a benchmark report.
 
 Initial work has landed the `WavefrontRaytracer` `RenderEngine`, graph executor
 metadata, graph pass payload, rendercli selection, and Modeler render-settings
-selection. The current tile body still routes legacy material recursion through
-a private scalar adapter so the public executor surface can stabilize before
-explicit Whitted ray queues land.
+selection. Follow-up work moved camera primary-ray generation into an explicit
+wavefront-owned tile loop and added a virtual integrator batch API. The default
+batch path preserves scalar Whitted compatibility, while
+`PathTracingIntegrator::radianceBatch` now processes compatible path-tracing
+samples depth-major across the tile. Legacy materials that require synchronous
+`RayCaster` recursion still route through the private scalar adapter; explicit
+Whitted ray queues remain.
 
 **Goal**: prove the architecture without changing image output.
 **Gate**: macro benchmark output (sphere / torus / BVH scenes) RMS
@@ -487,12 +491,19 @@ visible quality loss.
 **Gate**: ≥30% wall-clock improvement on the BVH-heavy scene at
 matching quality (visual delta < ε).
 
-### Phase 5 — wavefront path-tracing semantics
+### Phase 5 — wavefront path-tracing semantics 🚧 **Started.**
 
 Re-host the scalar `PathTracingIntegrator` behavior in the depth-major
 scheduler. Do not call the scalar integrator wholesale for each ray; factor
 shared material/light-sampling behavior into reusable methods or small objects
 where needed so wavefront owns queues, active masks, and per-path state.
+
+The first slice is in place: `Integrator::radianceBatch` lets the wavefront
+executor submit a tile's primary samples as a batch, and
+`PathTracingIntegrator` overrides that hook with a depth-major loop over active
+path states. Remaining work is to expose convergence/pass metrics and decide
+how far Whitted compatibility should go before recursive legacy materials are
+ported to explicit scattering.
 
 Start with pure single-continuation path tracing (Option **B**) unless a
 measured scene proves deterministic specular split (Option **C**) is needed for

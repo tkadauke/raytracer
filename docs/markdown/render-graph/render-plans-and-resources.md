@@ -606,9 +606,11 @@ the beauty pass. That state can configure the integrator, sampler, samples per
 pixel, view-plane type, recursion depth, worker thread count, and queue size
 before the payload renders. Those choices therefore appear in graph JSON and
 replay with the plan instead of being hidden in rendercli camera setup. The
-first wavefront payload intentionally shares the scalar radiance integrators
-with the recursive raytracer while giving the graph, rendercli, and Modeler a
-separate executor surface for the depth-major scheduler work that follows.
+wavefront payload intentionally keeps Whitted scalar recursion compatible while
+submitting tile samples through the integrator batch API. The path-tracing
+integrator uses that batch hook for depth-major processing, giving the graph,
+rendercli, and Modeler a separate executor surface for the scheduler work that
+follows.
 
 When the selected beauty executor is the rasterizer, graph-backed rendercli
 raster controls are compiled into the raster beauty pass's typed state and

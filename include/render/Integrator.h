@@ -5,11 +5,19 @@
 
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace render {
   class RayCaster;
+  class SampleStream;
   class Scene;
   class State;
+
+  struct IntegratorRaySample {
+    Rayd ray;
+    double timeSample{0.0};
+    std::shared_ptr<SampleStream> sampleStream;
+  };
 
   /**
     * @brief Single-ray radiance evaluator.
@@ -62,6 +70,17 @@ namespace render {
       */
     virtual Colord radiance(const Scene& scene, const Rayd& ray, State& state,
                             const RayCaster& recursiveRayCaster) const = 0;
+
+    /**
+      * Evaluate a batch of primary ray samples.
+      *
+      * The default implementation loops over `radiance(...)` sample by sample.
+      * Integrators with a better scheduling strategy can override this; for
+      * example, `PathTracingIntegrator` processes the batch depth-major.
+      */
+    virtual std::vector<Colord> radianceBatch(const Scene& scene,
+                                              const std::vector<IntegratorRaySample>& samples,
+                                              const RayCaster& recursiveRayCaster) const;
 
     /**
       * Configure the maximum ray depth when this integrator has a bounded

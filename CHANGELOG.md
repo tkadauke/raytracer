@@ -17,6 +17,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Wavefront path-tracing batches.** The wavefront executor now submits tile
+  primary-ray samples through a virtual integrator batch API; the path-tracing
+  integrator processes those batches depth-major while Whitted compatibility
+  remains available through the scalar fallback. — GPT-5
 - **Raytracer integrator selection is graph-visible.** Render intent and
   raytracer beauty pass state now carry `whitted` / `pathtracer` integrator
   selection, so rendercli's `--integrator pathtracer` is represented in

@@ -60,6 +60,10 @@ namespace render {
     Colord radiance(const Scene& scene, const Rayd& ray, State& state,
                     const RayCaster& recursiveRayCaster) const override;
 
+    std::vector<Colord> radianceBatch(const Scene& scene,
+                                      const std::vector<IntegratorRaySample>& samples,
+                                      const RayCaster& recursiveRayCaster) const override;
+
     void setCancellationCallback(CancellationCallback callback) override;
 
     /// Maximum number of bounces along a single path. Includes the

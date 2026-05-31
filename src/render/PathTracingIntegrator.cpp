@@ -186,4 +186,136 @@ namespace render {
 
     return accumulated;
   }
+
+  std::vector<Colord>
+  PathTracingIntegrator::radianceBatch(const Scene& scene,
+                                       const std::vector<IntegratorRaySample>& samples,
+                                       const RayCaster& recursiveRayCaster) const {
+    struct PathState {
+      explicit PathState(const IntegratorRaySample& sample)
+          : ray(sample.ray) {
+        state.timeSample = sample.timeSample;
+        state.sampleStream = sample.sampleStream.get();
+      }
+
+      Rayd ray;
+      Colord throughput{Colord::white()};
+      Colord accumulated{Colord::black()};
+      State state;
+      bool active{true};
+    };
+
+    std::vector<PathState> paths;
+    paths.reserve(samples.size());
+    for (const auto& sample : samples) {
+      if (!sample.sampleStream) {
+        return Integrator::radianceBatch(scene, samples, recursiveRayCaster);
+      }
+
+      paths.emplace_back(sample);
+    }
+
+    for (int bounce = 0; bounce < m_maximumRecursionDepth; ++bounce) {
+      bool anyActive = false;
+      for (auto& path : paths) {
+        if (!path.active) {
+          continue;
+        }
+        anyActive = true;
+
+        if (isCancelled()) {
+          path.accumulated = scene.background();
+          path.active = false;
+          continue;
+        }
+
+        path.state.recurseIn();
+
+        HitPointInterval hitPoints;
+        const Primitive* primitive = scene.intersect(path.ray, hitPoints, path.state);
+        if (!primitive) {
+          path.accumulated += path.throughput * scene.background();
+          path.state.recurseOut();
+          path.active = false;
+          continue;
+        }
+
+        const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+        if (bounce == 0) {
+          path.state.hitPoint = hitPoint;
+        }
+
+        const auto material = primitive->material();
+        if (!material) {
+          path.state.recurseOut();
+          path.active = false;
+          continue;
+        }
+
+        const Vector3d wi = -path.ray.direction().normalized();
+        if (!material->supportsBsdfSampling()) {
+          const Colord whittedColor =
+            material->shade(&recursiveRayCaster, scene, path.ray, hitPoint, path.state);
+          path.accumulated += path.throughput * whittedColor;
+          path.state.recurseOut();
+          path.active = false;
+          continue;
+        }
+
+        for (const auto& light : scene.lights()) {
+          path.accumulated +=
+            path.throughput * directLighting(scene, *light, hitPoint, *material, wi, path.state);
+        }
+
+        const Vector2d bsdfSample = path.state.sampleStream->sample2D(
+          SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
+        const MaterialBsdfSample sampled = material->sampleBsdf(hitPoint, wi, bsdfSample);
+        if (sampled.pdf <= 0.0 || sampled.value == Colord::black()) {
+          path.state.recurseOut();
+          path.active = false;
+          continue;
+        }
+
+        const double normalDotWo = hitPoint.normal() * sampled.direction;
+        if (normalDotWo <= 0.0) {
+          path.state.recurseOut();
+          path.active = false;
+          continue;
+        }
+
+        if (sampled.isDelta) {
+          path.throughput = path.throughput * sampled.value;
+        } else {
+          path.throughput = path.throughput * (sampled.value * (normalDotWo / sampled.pdf));
+        }
+
+        if (bounce >= m_russianRouletteDepth) {
+          const double survival = std::clamp(
+            std::max({path.throughput.r(), path.throughput.g(), path.throughput.b()}), 0.05, 0.95);
+          const double roulette = path.state.sampleStream->sample1D(
+            SampleDimension::Continuation, static_cast<std::uint64_t>(bounce));
+          if (roulette >= survival) {
+            path.state.recurseOut();
+            path.active = false;
+            continue;
+          }
+          path.throughput = path.throughput * (1.0 / survival);
+        }
+
+        path.ray = Rayd(hitPoint.point(), sampled.direction).epsilonShifted();
+        path.state.recurseOut();
+      }
+
+      if (!anyActive) {
+        break;
+      }
+    }
+
+    std::vector<Colord> result;
+    result.reserve(paths.size());
+    for (const auto& path : paths) {
+      result.push_back(path.accumulated);
+    }
+    return result;
+  }
 }

@@ -15,6 +15,7 @@
 
 #include <cmath>
 #include <memory>
+#include <vector>
 
 namespace PathTracingIntegratorTest {
   using namespace render;
@@ -129,6 +130,25 @@ namespace PathTracingIntegratorTest {
     EXPECT_NEAR(first.g(), second.g(), 1e-9);
     EXPECT_NEAR(first.b(), second.b(), 1e-9);
     EXPECT_NEAR(first.r(), third.r(), 1e-9);
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadianceMatchesScalarRadiance) {
+    auto scene = simpleMatteScene(0.0, Colord(0.6, 0.3, 0.2));
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 11ull)});
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 29ull)});
+
+    FallbackRayCaster caster;
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster);
+
+    ASSERT_EQ(2u, batched.size());
+    ASSERT_COLOR_NEAR(traceWithSampleStream(integrator, *scene, 11ull, 0), batched[0], 1e-9);
+    ASSERT_COLOR_NEAR(traceWithSampleStream(integrator, *scene, 29ull, 0), batched[1], 1e-9);
   }
 
   TEST(PathTracingIntegrator, RussianRouletteEventuallyTerminatesPath) {

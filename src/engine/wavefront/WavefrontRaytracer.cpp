@@ -17,6 +17,7 @@
 #include <QThread>
 #include <QThreadPool>
 
+#include <functional>
 #include <iostream>
 #include <stdexcept>
 #include <utility>
@@ -55,123 +56,115 @@ namespace engine::wavefront {
     bool showProgressIndicators;
     std::optional<std::uint64_t> samplingSeed;
 
-    Colord tracePixel(const render::Camera& camera, const render::RayCaster& rayCaster,
-                      const render::ViewPlane::Iterator& pixel,
-                      std::optional<std::uint64_t> tileSeed) const {
-      const int sampleCount = camera.samplesPerPixel();
-      const double sampleScale = 1.0 / sampleCount;
+    struct TilePixel {
+      Recti footprint;
+      Colord color{Colord::black()};
+    };
 
-      Colord pixelColor;
-      for (int sampleIndex = 0; sampleIndex != sampleCount; ++sampleIndex) {
+    std::vector<TilePixel> traceTile(render::Camera& camera, const render::RayCaster& rayCaster,
+                                     const render::Scene& scene, const Recti& actualRect,
+                                     std::optional<std::uint64_t> tileSeed,
+                                     const std::function<void(const Recti&)>& markProgress) const {
+      std::vector<TilePixel> pixels;
+      std::vector<render::IntegratorRaySample> samples;
+      std::vector<std::size_t> samplePixelIndices;
+      const int sampleCount = camera.samplesPerPixel();
+
+      auto plane = camera.viewPlane();
+      for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
+                                       end = plane->end(actualRect);
+           pixel != end; ++pixel) {
         if (camera.isCancelled())
           break;
 
-        if (auto sample = camera.primaryRaySample(pixel, sampleIndex, tileSeed)) {
-          render::State state;
-          state.timeSample = sample->timeSample;
-          state.sampleStream = sample->sampleStream.get();
-          pixelColor += rayCaster.rayColor(sample->ray, state);
+        const std::size_t pixelIndex = pixels.size();
+        const Recti footprint = pixel.footprintWithin(actualRect);
+        if (showProgressIndicators) {
+          markProgress(footprint);
+        }
+        pixels.push_back(TilePixel{footprint, Colord::black()});
+
+        for (int sampleIndex = 0; sampleIndex != sampleCount; ++sampleIndex) {
+          if (camera.isCancelled())
+            break;
+
+          if (auto sample = camera.primaryRaySample(pixel, sampleIndex, tileSeed)) {
+            samples.push_back(
+              render::IntegratorRaySample{sample->ray, sample->timeSample, sample->sampleStream});
+            samplePixelIndices.push_back(pixelIndex);
+          }
         }
       }
 
-      return pixelColor * sampleScale;
+      const std::vector<Colord> sampleColors = integrator->radianceBatch(scene, samples, rayCaster);
+      const double sampleScale = 1.0 / sampleCount;
+      for (std::size_t index = 0; index != sampleColors.size(); ++index) {
+        pixels[samplePixelIndices[index]].color += sampleColors[index] * sampleScale;
+      }
+      return pixels;
     }
 
-    void writeColor(Buffer<Colord>& buffer, const Recti& rect,
-                    const render::ViewPlane::Iterator& pixel, const Colord& color) const {
-      const Recti footprint = pixel.footprintWithin(rect);
+    void writeColor(Buffer<Colord>& buffer, const Recti& footprint, const Colord& color) const {
       for (int y = footprint.top(); y != footprint.bottom(); ++y)
         for (int x = footprint.left(); x != footprint.right(); ++x)
           buffer[y][x] = color;
     }
 
-    void writeRGB(Buffer<unsigned int>& buffer, const Recti& rect,
-                  const render::ViewPlane::Iterator& pixel, unsigned int rgb) const {
-      const Recti footprint = pixel.footprintWithin(rect);
+    void writeRGB(Buffer<unsigned int>& buffer, const Recti& footprint, unsigned int rgb) const {
       for (int y = footprint.top(); y != footprint.bottom(); ++y)
         for (int x = footprint.left(); x != footprint.right(); ++x)
           buffer[y][x] = rgb;
     }
 
     void renderTile(render::Camera& camera, const render::RayCaster& rayCaster,
-                    Buffer<Colord>& buffer, const Recti& rect,
+                    const render::Scene& scene, Buffer<Colord>& buffer, const Recti& rect,
                     std::optional<std::uint64_t> tileSeed) const {
       const Recti actualRect = camera.renderableRect(rect);
       if (actualRect.width() <= 0 || actualRect.height() <= 0)
         return;
 
-      auto plane = camera.viewPlane();
-      for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
-                                       end = plane->end(actualRect);
-           pixel != end; ++pixel) {
-        if (camera.isCancelled())
-          break;
-
-        if (showProgressIndicators) {
-          writeColor(buffer, actualRect, pixel, Colord(1, 0, 0));
-        }
-
-        const Colord averaged = tracePixel(camera, rayCaster, pixel, tileSeed);
-        if (camera.isCancelled())
-          break;
-
-        writeColor(buffer, actualRect, pixel, averaged);
+      const auto pixels =
+        traceTile(camera, rayCaster, scene, actualRect, tileSeed,
+                  [&](const Recti& footprint) { writeColor(buffer, footprint, Colord(1, 0, 0)); });
+      for (const auto& pixel : pixels) {
+        writeColor(buffer, pixel.footprint, pixel.color);
       }
     }
 
     void renderTile(render::Camera& camera, const render::RayCaster& rayCaster,
-                    Buffer<unsigned int>& buffer, std::shared_ptr<render::Tonemap> tonemap,
-                    const Recti& rect, std::optional<std::uint64_t> tileSeed) const {
-      const Recti actualRect = camera.renderableRect(rect);
-      if (actualRect.width() <= 0 || actualRect.height() <= 0)
-        return;
-
-      auto plane = camera.viewPlane();
-      for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
-                                       end = plane->end(actualRect);
-           pixel != end; ++pixel) {
-        if (camera.isCancelled())
-          break;
-
-        if (showProgressIndicators) {
-          writeRGB(buffer, actualRect, pixel, 0xffff0000);
-        }
-
-        const Colord averaged = tracePixel(camera, rayCaster, pixel, tileSeed);
-        if (camera.isCancelled())
-          break;
-
-        writeRGB(buffer, actualRect, pixel, (tonemap ? tonemap->apply(averaged) : averaged).rgb());
-      }
-    }
-
-    void renderTile(render::Camera& camera, const render::RayCaster& rayCaster,
-                    Buffer<Colord>& hdrBuffer, Buffer<unsigned int>& displayBuffer,
+                    const render::Scene& scene, Buffer<unsigned int>& buffer,
                     std::shared_ptr<render::Tonemap> tonemap, const Recti& rect,
                     std::optional<std::uint64_t> tileSeed) const {
       const Recti actualRect = camera.renderableRect(rect);
       if (actualRect.width() <= 0 || actualRect.height() <= 0)
         return;
 
-      auto plane = camera.viewPlane();
-      for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
-                                       end = plane->end(actualRect);
-           pixel != end; ++pixel) {
-        if (camera.isCancelled())
-          break;
+      const auto pixels =
+        traceTile(camera, rayCaster, scene, actualRect, tileSeed,
+                  [&](const Recti& footprint) { writeRGB(buffer, footprint, 0xffff0000); });
+      for (const auto& pixel : pixels) {
+        writeRGB(buffer, pixel.footprint,
+                 (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
+      }
+    }
 
-        if (showProgressIndicators) {
-          writeColor(hdrBuffer, actualRect, pixel, Colord(1, 0, 0));
-          writeRGB(displayBuffer, actualRect, pixel, 0xffff0000);
-        }
+    void renderTile(render::Camera& camera, const render::RayCaster& rayCaster,
+                    const render::Scene& scene, Buffer<Colord>& hdrBuffer,
+                    Buffer<unsigned int>& displayBuffer, std::shared_ptr<render::Tonemap> tonemap,
+                    const Recti& rect, std::optional<std::uint64_t> tileSeed) const {
+      const Recti actualRect = camera.renderableRect(rect);
+      if (actualRect.width() <= 0 || actualRect.height() <= 0)
+        return;
 
-        const Colord averaged = tracePixel(camera, rayCaster, pixel, tileSeed);
-        if (camera.isCancelled())
-          break;
-
-        writeColor(hdrBuffer, actualRect, pixel, averaged);
-        writeRGB(displayBuffer, actualRect, pixel,
-                 (tonemap ? tonemap->apply(averaged) : averaged).rgb());
+      const auto pixels =
+        traceTile(camera, rayCaster, scene, actualRect, tileSeed, [&](const Recti& footprint) {
+          writeColor(hdrBuffer, footprint, Colord(1, 0, 0));
+          writeRGB(displayBuffer, footprint, 0xffff0000);
+        });
+      for (const auto& pixel : pixels) {
+        writeColor(hdrBuffer, pixel.footprint, pixel.color);
+        writeRGB(displayBuffer, pixel.footprint,
+                 (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
       }
     }
 
@@ -239,7 +232,7 @@ namespace engine::wavefront {
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
-        p->renderTile(*camera, *rayCaster, *bufferPtr, rect, tileSeed);
+        p->renderTile(*camera, *rayCaster, *m_scene, *bufferPtr, rect, tileSeed);
       });
 
 #ifdef RAYTRACER_ENABLE_STATS
@@ -278,7 +271,7 @@ namespace engine::wavefront {
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
-        p->renderTile(*camera, *rayCaster, *bufferPtr, tonemapOp, rect, tileSeed);
+        p->renderTile(*camera, *rayCaster, *m_scene, *bufferPtr, tonemapOp, rect, tileSeed);
       });
 
 #ifdef RAYTRACER_ENABLE_STATS
@@ -323,8 +316,8 @@ namespace engine::wavefront {
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
-        p->renderTile(*camera, *rayCaster, *hdrBufferPtr, *displayBufferPtr, displayTonemap, rect,
-                      tileSeed);
+        p->renderTile(*camera, *rayCaster, *m_scene, *hdrBufferPtr, *displayBufferPtr,
+                      displayTonemap, rect, tileSeed);
       });
 
 #ifdef RAYTRACER_ENABLE_STATS
