@@ -26,7 +26,12 @@ namespace render {
   class FlatMeshTriangle : public MeshTriangle {
   public:
     inline explicit FlatMeshTriangle(const Mesh* mesh, int index0, int index1, int index2)
-        : MeshTriangle(mesh, index0, index1, index2) {
+        : FlatMeshTriangle(mesh, index0, index1, index2, core::MeshFaceMetadata()) {
+    }
+
+    inline FlatMeshTriangle(const Mesh* mesh, int index0, int index1, int index2,
+                            core::MeshFaceMetadata faceMetadata)
+        : MeshTriangle(mesh, index0, index1, index2, faceMetadata) {
       m_normal = computeNormal();
     }
 

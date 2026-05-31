@@ -622,6 +622,8 @@ namespace engine::raster {
         std::uint64_t generatedMeshVertices = 0;
         std::uint64_t generatedMeshFaces = 0;
         std::uint64_t preparedTrianglesBeforeCulling = 0;
+        std::uint64_t trianglesRejectedByCulling = 0;
+        std::uint64_t trianglesRejectedByWindingOrDegeneracy = 0;
         std::uint64_t trianglesAfterCulling = 0;
         std::uint64_t trianglesAfterClipping = 0;
         std::uint64_t lodVariantCacheHits = 0;

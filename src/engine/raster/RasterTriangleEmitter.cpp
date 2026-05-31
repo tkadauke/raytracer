@@ -1,5 +1,7 @@
 #include "engine/raster/detail/RasterTriangleEmitter.h"
 
+#include "render/primitives/MeshTriangle.h"
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -34,9 +36,22 @@ namespace engine::raster::detail {
     return clipVolume.clipTriangle(input, clipped, clipOf, interpolateClipVert);
   }
 
+  bool TriangleCullPolicy::hasDegenerateScreenWinding(const ClipVert& v0, const ClipVert& v1,
+                                                      const ClipVert& v2) const {
+    return signedScreenArea(v0, v1, v2) == 0.0;
+  }
+
   bool TriangleCullPolicy::shouldCull(const RasterMaterialSource& materialSource,
-                                      const ClipVert& v0, const ClipVert& v1,
-                                      const ClipVert& v2) const {
+                                      const render::Primitive* primitive, const ClipVert& v0,
+                                      const ClipVert& v1, const ClipVert& v2) const {
+    if (!hasOverride) {
+      if (const auto* meshTriangle = dynamic_cast<const render::MeshTriangle*>(primitive)) {
+        if (!meshTriangle->faceMetadata().safeForInferredCulling()) {
+          return false;
+        }
+      }
+    }
+
     const Rasterizer::CullMode mode = hasOverride ? overrideMode : materialSource.defaultCullMode();
     return shouldCull(mode, v0, v1, v2);
   }
@@ -50,9 +65,6 @@ namespace engine::raster::detail {
     // the current camera projection, front-facing triangles have negative
     // projected area and back-facing triangles have positive projected area.
     const double area = signedScreenArea(v0, v1, v2);
-    if (area == 0.0)
-      return false;
-
     return mode == Rasterizer::CullMode::Back ? area > 0.0 : area < 0.0;
   }
 
@@ -197,6 +209,18 @@ namespace engine::raster::detail {
   void RasterTriangleEmitter::recordPreparedTriangleBeforeCulling() const {
     if (m_metrics) {
       ++m_metrics->tessellation.preparedTrianglesBeforeCulling;
+    }
+  }
+
+  void RasterTriangleEmitter::recordTriangleRejectedByCulling() const {
+    if (m_metrics) {
+      ++m_metrics->tessellation.trianglesRejectedByCulling;
+    }
+  }
+
+  void RasterTriangleEmitter::recordTriangleRejectedByWindingOrDegeneracy() const {
+    if (m_metrics) {
+      ++m_metrics->tessellation.trianglesRejectedByWindingOrDegeneracy;
     }
   }
 

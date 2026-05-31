@@ -141,10 +141,11 @@ std::shared_ptr<Mesh> Composite::tessellate(int lod) const {
       for (int idx : face)
         remapped.push_back(idx + vertexOffset);
       const auto color = childMesh->faceColor(faceIndex);
+      const auto metadata = childMesh->faceMetadata(faceIndex);
       if (color)
-        result->addFace(remapped, *color);
+        result->addFace(remapped, *color, metadata);
       else
-        result->addFace(remapped);
+        result->addFace(remapped, metadata);
     }
 
     vertexOffset += static_cast<int>(childMesh->vertices().size());

@@ -114,17 +114,22 @@ namespace {
     if (!passId.isEmpty()) {
       std::cout << " pass=" << passId.toStdString();
     }
-    std::cout << " total_ms=" << timings.value("totalRenderSeconds").toDouble() * 1000.0
-              << " raster_ms=" << timings.value("rasterLoopSeconds").toDouble() * 1000.0
-              << " triangles=" << static_cast<std::uint64_t>(
-                   tessellation.value("trianglesAfterClipping").toDouble())
-              << " covered_samples=" << static_cast<std::uint64_t>(
-                   fragments.value("coveredSamples").toDouble())
-              << " shaded_fragments=" << static_cast<std::uint64_t>(
-                   fragments.value("shadedFragments").toDouble())
-              << " color_writes=" << static_cast<std::uint64_t>(
-                   fragments.value("colorWrites").toDouble())
-              << '\n';
+    std::cout
+      << " total_ms=" << timings.value("totalRenderSeconds").toDouble() * 1000.0
+      << " raster_ms=" << timings.value("rasterLoopSeconds").toDouble() * 1000.0 << " triangles="
+      << static_cast<std::uint64_t>(tessellation.value("trianglesAfterClipping").toDouble())
+      << " cull_rejects="
+      << static_cast<std::uint64_t>(tessellation.value("trianglesRejectedByCulling").toDouble())
+      << " winding_degenerate_rejects="
+      << static_cast<std::uint64_t>(
+           tessellation.value("trianglesRejectedByWindingOrDegeneracy").toDouble())
+      << " covered_samples="
+      << static_cast<std::uint64_t>(fragments.value("coveredSamples").toDouble())
+      << " depth_tests=" << static_cast<std::uint64_t>(fragments.value("depthTests").toDouble())
+      << " shaded_fragments="
+      << static_cast<std::uint64_t>(fragments.value("shadedFragments").toDouble())
+      << " color_writes=" << static_cast<std::uint64_t>(fragments.value("colorWrites").toDouble())
+      << '\n';
   }
 
   QString normalizedRasterOption(QString value) {
@@ -1035,6 +1040,7 @@ private:
   engine::graph::RenderGraphOverrides m_renderGraphOverrides;
   int m_wireframeLod;
   QString m_rasterCullMode;
+  bool m_rasterCullModeSet;
   QString m_rasterBackend;
   bool m_rasterBackendSet;
   QString m_rasterVisibilityCulling;
@@ -1182,6 +1188,7 @@ Renderer::Renderer()
       m_renderGraphOverrides(),
       m_wireframeLod(0),
       m_rasterCullMode("both"),
+      m_rasterCullModeSet(false),
       m_rasterBackend("cpu"),
       m_rasterBackendSet(false),
       m_rasterVisibilityCulling("off"),
@@ -1508,7 +1515,7 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
   }
   if (m_rasterBackendSet)
     options.rasterizer().setBackend(m_rasterBackend.toStdString());
-  if (m_rasterCullMode != "both")
+  if (m_rasterCullModeSet)
     options.rasterizer().setCullMode(m_rasterCullMode.toStdString());
   if (m_rasterVisibilityCulling != "off")
     options.rasterizer().setVisibilityCulling(m_rasterVisibilityCulling.toStdString());
@@ -1581,10 +1588,14 @@ Renderer::rasterBeautyPassState(engine::graph::RenderPostProcessAA postProcessAA
   if (m_queueSizeSet) {
     state.execution().setQueueSize(m_queueSize);
   }
-  if (m_rasterCullMode == "back") {
-    state.geometry().setCullMode(engine::raster::Rasterizer::CullMode::Back);
-  } else if (m_rasterCullMode == "front") {
-    state.geometry().setCullMode(engine::raster::Rasterizer::CullMode::Front);
+  if (m_rasterCullModeSet) {
+    if (m_rasterCullMode == "back") {
+      state.geometry().setCullMode(engine::raster::Rasterizer::CullMode::Back);
+    } else if (m_rasterCullMode == "front") {
+      state.geometry().setCullMode(engine::raster::Rasterizer::CullMode::Front);
+    } else {
+      state.geometry().setCullMode(engine::raster::Rasterizer::CullMode::Both);
+    }
   }
 
   state.sampling().setMSAASamples(m_rasterMsaaSamples);
@@ -2086,8 +2097,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
             pass["metrics"] = passTrace.metadata();
             passes.push_back(pass);
             if (m_rasterMetricsSummary) {
-              printRasterMetricsSummary(i + 1, pass.value("pass").toString(),
-                                        passTrace.metadata());
+              printRasterMetricsSummary(i + 1, pass.value("pass").toString(), passTrace.metadata());
             }
           }
         }
@@ -3016,6 +3026,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_rasterCullMode = cull;
+    m_rasterCullModeSet = true;
   }
 
   if (parser.isSet("raster_culling")) {

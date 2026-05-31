@@ -10,7 +10,12 @@ using namespace render;
 static int mod3[] = {0, 1, 2, 0, 1, 2};
 
 SmoothMeshTriangle::SmoothMeshTriangle(const Mesh* mesh, int index0, int index1, int index2)
-    : MeshTriangle(mesh, index0, index1, index2) {
+    : SmoothMeshTriangle(mesh, index0, index1, index2, core::MeshFaceMetadata()) {
+}
+
+SmoothMeshTriangle::SmoothMeshTriangle(const Mesh* mesh, int index0, int index1, int index2,
+                                       core::MeshFaceMetadata faceMetadata)
+    : MeshTriangle(mesh, index0, index1, index2, faceMetadata) {
   const Vector3d& A = m_mesh->vertices()[m_index0].point;
   const Vector3d& B = m_mesh->vertices()[m_index1].point;
   const Vector3d& C = m_mesh->vertices()[m_index2].point;
@@ -140,7 +145,7 @@ std::shared_ptr<Mesh> SmoothMeshTriangle::tessellate(int) const {
   mesh->addVertex(v0.point, v0.normal, v0.uv);
   mesh->addVertex(v1.point, v1.normal, v1.uv);
   mesh->addVertex(v2.point, v2.normal, v2.uv);
-  mesh->addFace({0, 1, 2});
+  mesh->addFace({0, 1, 2}, m_faceMetadata);
   return mesh;
 }
 

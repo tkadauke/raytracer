@@ -62,7 +62,7 @@ void MeshPrimitive::buildLeaves() {
       if (!isBuildableTriangle(face[0], face[vertexIndex - 1], face[vertexIndex]))
         continue;
 
-      auto primitive = buildLeaf(face[0], face[vertexIndex - 1], face[vertexIndex]);
+      auto primitive = buildLeaf(faceIndex, face[0], face[vertexIndex - 1], face[vertexIndex]);
       if (auto material = materialForFace(faceIndex))
         primitive->setMaterial(std::move(material));
       m_leaves.push_back(std::move(primitive));
@@ -96,11 +96,13 @@ bool MeshPrimitive::hasValidVertexIndex(int index) const {
   return m_mesh && index >= 0 && static_cast<std::size_t>(index) < m_mesh->vertices().size();
 }
 
-std::shared_ptr<Primitive> MeshPrimitive::buildLeaf(int index0, int index1, int index2) const {
+std::shared_ptr<Primitive> MeshPrimitive::buildLeaf(std::size_t faceIndex, int index0, int index1,
+                                                    int index2) const {
+  const auto metadata = m_mesh->faceMetadata(faceIndex);
   if (m_normalMode == NormalMode::Flat)
-    return std::make_shared<FlatMeshTriangle>(m_mesh.get(), index0, index1, index2);
+    return std::make_shared<FlatMeshTriangle>(m_mesh.get(), index0, index1, index2, metadata);
 
-  return std::make_shared<SmoothMeshTriangle>(m_mesh.get(), index0, index1, index2);
+  return std::make_shared<SmoothMeshTriangle>(m_mesh.get(), index0, index1, index2, metadata);
 }
 
 std::shared_ptr<render::Material> MeshPrimitive::materialForFace(std::size_t faceIndex) const {
@@ -235,10 +237,11 @@ std::shared_ptr<Mesh> MeshPrimitive::tessellate(int lod) const {
       for (int idx : face)
         remapped.push_back(idx + vertexOffset);
       const auto color = childMesh->faceColor(faceIndex);
+      const auto metadata = childMesh->faceMetadata(faceIndex);
       if (color)
-        result->addFace(remapped, *color);
+        result->addFace(remapped, *color, metadata);
       else
-        result->addFace(remapped);
+        result->addFace(remapped, metadata);
     }
 
     vertexOffset += static_cast<int>(childMesh->vertices().size());

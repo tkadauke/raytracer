@@ -631,7 +631,7 @@ namespace engine::graph {
     } else {
       rasterizer.clearMaximumScreenSpaceErrorOverride();
     }
-    if (m_cullMode && *m_cullMode != Rasterizer::CullMode::Both) {
+    if (m_cullMode) {
       rasterizer.setCullMode(*m_cullMode);
     } else {
       rasterizer.clearCullModeOverride();
@@ -646,7 +646,7 @@ namespace engine::graph {
     } else {
       rasterizer.clearMaximumScreenSpaceErrorOverride();
     }
-    if (m_cullMode && *m_cullMode != Rasterizer::CullMode::Both) {
+    if (m_cullMode) {
       rasterizer.setCullMode(*m_cullMode);
     } else {
       rasterizer.clearCullModeOverride();
@@ -699,7 +699,7 @@ namespace engine::graph {
   }
 
   bool RasterGeometryState::hasCullModeOverride() const {
-    return m_cullMode.has_value() && *m_cullMode != Rasterizer::CullMode::Both;
+    return m_cullMode.has_value();
   }
 
   RasterSamplingState RasterSamplingState::fromJson(const QJsonObject& object,

@@ -27,6 +27,8 @@ namespace render {
   class SmoothMeshTriangle : public MeshTriangle {
   public:
     explicit SmoothMeshTriangle(const Mesh* mesh, int index0, int index1, int index2);
+    SmoothMeshTriangle(const Mesh* mesh, int index0, int index1, int index2,
+                       core::MeshFaceMetadata faceMetadata);
 
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                        render::State& state) const override;

@@ -88,3 +88,21 @@ Initial numbers are from the project release build in the Syrus Linux runner on
 | dense_ldraw | 4 | 0 | 61.440 ms | Generated dense curved import fixture with 4x MSAA. |
 | dense_ldraw | 1 | 2 | 54.040 ms | Import geometry is fixed, but this keeps the command matrix consistent. |
 | dense_ldraw | 4 | 2 | 60.723 ms | Import geometry is fixed, plus 4x MSAA. |
+
+## Phase 1 Sidedness Check
+
+Captured during the Epic #356 Phase 1 sidedness/culling change with
+`RASTER_BASELINE_REPEAT=1` on the same generated `dense_ldraw` fixture. The
+`--cull both` rows are an explicit no-cull comparison; the default rows use
+material-sidedness-driven inferred culling.
+
+| Mode | MSAA | LOD | Triangles | Cull rejects | Winding/degenerate rejects | Coverage samples | Depth tests |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| default | 1 | 0 | 2,328 | 1,128 | 0 | 28,232 | 28,232 |
+| `--cull both` | 1 | 0 | 3,456 | 0 | 0 | 56,754 | 56,754 |
+| default | 1 | 2 | 2,328 | 1,128 | 0 | 28,232 | 28,232 |
+| `--cull both` | 1 | 2 | 3,456 | 0 | 0 | 56,754 | 56,754 |
+| default | 4 | 0 | 2,328 | 1,128 | 0 | 113,743 | 113,743 |
+| `--cull both` | 4 | 0 | 3,456 | 0 | 0 | 230,281 | 230,281 |
+| default | 4 | 2 | 2,328 | 1,128 | 0 | 113,743 | 113,743 |
+| `--cull both` | 4 | 2 | 3,456 | 0 | 0 | 230,281 | 230,281 |
