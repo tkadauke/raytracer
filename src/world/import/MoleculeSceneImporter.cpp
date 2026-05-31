@@ -226,6 +226,29 @@ namespace world {
       return QStringLiteral("pdb");
     }
 
+    QJsonObject sourceParameters(const ImportOptions& options) {
+      return options.values().value(QStringLiteral("parameters")).toObject();
+    }
+
+    QVariant importOptionValue(const ImportOptions& options, const QString& name,
+                               const QVariant& fallback = QVariant()) {
+      const auto parameters = sourceParameters(options);
+      if (parameters.contains(name))
+        return parameters.value(name).toVariant();
+      return options.value(name, fallback);
+    }
+
+    QString representationFromRenderMode(QString renderMode) {
+      renderMode = renderMode.trimmed().toLower();
+      if (renderMode == QStringLiteral("ball_and_stick"))
+        return QStringLiteral("ball-and-stick");
+      if (renderMode == QStringLiteral("space_filling"))
+        return QStringLiteral("space-filling");
+      if (renderMode == QStringLiteral("atoms"))
+        return QStringLiteral("atoms");
+      return renderMode;
+    }
+
     bool emitsAtoms(const MoleculeSceneCompileOptions& options) {
       return options.representation != QStringLiteral("backbone");
     }
@@ -256,6 +279,29 @@ namespace world {
       renderOptions.bondRadius = options.bondRadius;
       renderOptions.inferBondsWhenMissing = options.inferBondsWhenMissing;
       return renderOptions;
+    }
+
+    bool isHydrogen(const molecule::Atom& atom) {
+      return normalizedElement(atom.element) == "H";
+    }
+
+    bool isWaterResidueName(const std::string& name) {
+      const QString normalized = qstr(name).trimmed().toUpper();
+      return normalized == QStringLiteral("HOH") || normalized == QStringLiteral("WAT") ||
+             normalized == QStringLiteral("H2O");
+    }
+
+    bool includesResidue(const molecule::Residue& residue,
+                         const MoleculeSceneCompileOptions& options) {
+      return options.includeWater || !isWaterResidueName(residue.name);
+    }
+
+    bool includesAtom(const molecule::Atom& atom, const MoleculeSceneCompileOptions& options) {
+      if (!options.includeHydrogens && isHydrogen(atom))
+        return false;
+      if (!options.includeWater && isWaterResidueName(atom.residueName))
+        return false;
+      return true;
     }
 
     std::unique_ptr<Curve> compileBackboneCurve(const molecule::Molecule& molecule,
@@ -334,6 +380,9 @@ namespace world {
     options.representation = options.representation.toLower();
     options.colorScheme = options.colorScheme.toLower();
     options.backboneMode = options.backboneMode.toLower();
+    if (options.representation == QStringLiteral("ball_and_stick") ||
+        options.representation == QStringLiteral("space_filling"))
+      options.representation = representationFromRenderMode(options.representation);
     const auto chainOrdinals = chainOrdinalsFor(molecule);
     const auto renderOptions = renderOptionsFor(options);
 
@@ -384,6 +433,9 @@ namespace world {
 
         for (const auto residueIndex : chain.residueIndices) {
           const auto& residue = molecule.residues()[residueIndex];
+          if (!includesResidue(residue, options))
+            continue;
+
           auto* residueGroup = new Group;
           residueGroup->setName(
             QString("%1 %2").arg(qstr(residue.name)).arg(residue.sequenceNumber));
@@ -409,6 +461,9 @@ namespace world {
 
           for (const auto atomIndex : residue.atomIndices) {
             const auto& atom = molecule.atoms()[atomIndex];
+            if (!includesAtom(atom, options))
+              continue;
+
             auto* atomSphere = new Sphere;
             atomSphere->setName(QString("%1 %2").arg(qstr(atom.name)).arg(atom.serialNumber));
             const auto elementStyle = moleculeElementStyle(atom.element);
@@ -458,6 +513,8 @@ namespace world {
             if (first.modelId != model.id || second.modelId != model.id ||
                 first.chainId != chain.id || second.chainId != chain.id)
               continue;
+            if (!includesAtom(first, options) || !includesAtom(second, options))
+              continue;
 
             const auto length = first.position.distanceTo(second.position);
             if (length <= std::numeric_limits<double>::epsilon())
@@ -499,17 +556,16 @@ namespace world {
             cylinder->setMetadataValue(QStringLiteral("secondAtomSerialNumber"),
                                        second.serialNumber);
             cylinder->setMetadataValue(QStringLiteral("moleculeBondInferred"), bond.inferred);
-            const QString bondRecord = bond.inferred
-                                         ? QStringLiteral("INFERRED BOND %1-%2")
-                                             .arg(first.serialNumber)
-                                             .arg(second.serialNumber)
-                                         : QStringLiteral("BOND %1-%2")
-                                             .arg(first.serialNumber)
-                                             .arg(second.serialNumber);
+            const QString bondRecord =
+              bond.inferred
+                ? QStringLiteral("INFERRED BOND %1-%2")
+                    .arg(first.serialNumber)
+                    .arg(second.serialNumber)
+                : QStringLiteral("BOND %1-%2").arg(first.serialNumber).arg(second.serialNumber);
             cylinder->setMetadataValue(QStringLiteral("sourceRecord"), bondRecord);
             auto bondProvenance = provenanceFor(
-              source, cylinder->metadataValue(GroupMetadata::sourceIdKey()).toString(),
-              bondRecord, QStringLiteral("bond"));
+              source, cylinder->metadataValue(GroupMetadata::sourceIdKey()).toString(), bondRecord,
+              QStringLiteral("bond"));
             bondProvenance.category["inferred"] = bond.inferred;
             setImportProvenance(*cylinder, bondProvenance);
             bondGroup->addChild(cylinder);
@@ -577,6 +633,20 @@ namespace world {
        true,
        false,
        {}},
+      {"includeHydrogens",
+       ImportOptionType::Boolean,
+       "Include hydrogens",
+       "Include hydrogen atoms and hydrogen bonds in generated molecule geometry.",
+       true,
+       false,
+       {}},
+      {"includeWater",
+       ImportOptionType::Boolean,
+       "Include water",
+       "Include water residues in generated molecule geometry.",
+       true,
+       false,
+       {}},
       {"backboneMode",
        ImportOptionType::Choice,
        "Backbone mode",
@@ -592,6 +662,69 @@ namespace world {
        0.35,
        false,
        {}}};
+  }
+
+  ImportOptionSchemas MoleculeSceneImporter::editableSourceParameters(const QString&,
+                                                                      const ImportOptions&) const {
+    return {
+      {"renderMode",
+       ImportOptionType::Choice,
+       "Render mode",
+       "Molecular render mode for generated source geometry.",
+       QStringLiteral("ball_and_stick"),
+       false,
+       {QStringLiteral("ball_and_stick"), QStringLiteral("space_filling"), QStringLiteral("atoms")},
+       QStringLiteral("Molecule Parameters")},
+      {"atomRadiusScale",
+       ImportOptionType::Double,
+       "Atom radius scale",
+       "Scale applied to element radii for generated atom spheres.",
+       0.25,
+       false,
+       {},
+       QStringLiteral("Molecule Parameters"),
+       0.01,
+       5.0,
+       0.05},
+      {"bondRadius",
+       ImportOptionType::Double,
+       "Bond radius",
+       "Radius used for generated ball-and-stick bond cylinders.",
+       0.08,
+       false,
+       {},
+       QStringLiteral("Molecule Parameters"),
+       0.0,
+       2.0,
+       0.01},
+      {"inferBondsWhenMissing",
+       ImportOptionType::Boolean,
+       "Infer missing bonds",
+       "Infer simple covalent bonds when the molecule file has no explicit connectivity records.",
+       true,
+       false,
+       {},
+       QStringLiteral("Molecule Parameters")},
+      {"includeHydrogens",
+       ImportOptionType::Boolean,
+       "Include hydrogens",
+       "Include hydrogen atoms and hydrogen bonds in generated molecule geometry.",
+       true,
+       false,
+       {},
+       QStringLiteral("Molecule Parameters")},
+      {"includeWater",
+       ImportOptionType::Boolean,
+       "Include water",
+       "Include water residues in generated molecule geometry.",
+       true,
+       false,
+       {},
+       QStringLiteral("Molecule Parameters")}};
+  }
+
+  bool MoleculeSceneImporter::wrapDirectImportInSourceAsset() const {
+    return true;
   }
 
   ImportResult MoleculeSceneImporter::importFile(const QString& filename,
@@ -621,19 +754,47 @@ namespace world {
 
     MoleculeSceneCompileOptions compileOptions;
     compileOptions.representation =
-      options.value("representation", compileOptions.representation).toString().toLower();
+      importOptionValue(options, QStringLiteral("representation"), compileOptions.representation)
+        .toString()
+        .toLower();
+    const auto renderMode =
+      importOptionValue(options, QStringLiteral("renderMode"), QVariant()).toString();
+    if (!renderMode.trimmed().isEmpty())
+      compileOptions.representation = representationFromRenderMode(renderMode);
     compileOptions.colorScheme =
-      options.value("colorScheme", compileOptions.colorScheme).toString().toLower();
-    compileOptions.atomRadius = options.value("atomRadius", compileOptions.atomRadius).toDouble();
+      importOptionValue(options, QStringLiteral("colorScheme"), compileOptions.colorScheme)
+        .toString()
+        .toLower();
+    compileOptions.atomRadius =
+      importOptionValue(options, QStringLiteral("atomRadius"), compileOptions.atomRadius)
+        .toDouble();
+    compileOptions.atomRadius =
+      importOptionValue(options, QStringLiteral("atomRadiusScale"), compileOptions.atomRadius)
+        .toDouble();
     compileOptions.spaceFillingScale =
-      options.value("spaceFillingScale", compileOptions.spaceFillingScale).toDouble();
-    compileOptions.bondRadius = options.value("bondRadius", compileOptions.bondRadius).toDouble();
+      importOptionValue(options, QStringLiteral("spaceFillingScale"),
+                        compileOptions.spaceFillingScale)
+        .toDouble();
+    compileOptions.bondRadius =
+      importOptionValue(options, QStringLiteral("bondRadius"), compileOptions.bondRadius)
+        .toDouble();
     compileOptions.inferBondsWhenMissing =
-      options.value("inferBondsWhenMissing", compileOptions.inferBondsWhenMissing).toBool();
+      importOptionValue(options, QStringLiteral("inferBondsWhenMissing"),
+                        compileOptions.inferBondsWhenMissing)
+        .toBool();
+    compileOptions.includeHydrogens = importOptionValue(options, QStringLiteral("includeHydrogens"),
+                                                        compileOptions.includeHydrogens)
+                                        .toBool();
+    compileOptions.includeWater =
+      importOptionValue(options, QStringLiteral("includeWater"), compileOptions.includeWater)
+        .toBool();
     compileOptions.backboneMode =
-      options.value("backboneMode", compileOptions.backboneMode).toString().toLower();
+      importOptionValue(options, QStringLiteral("backboneMode"), compileOptions.backboneMode)
+        .toString()
+        .toLower();
     compileOptions.backboneWidth =
-      options.value("backboneWidth", compileOptions.backboneWidth).toDouble();
+      importOptionValue(options, QStringLiteral("backboneWidth"), compileOptions.backboneWidth)
+        .toDouble();
     ImportResult result(MoleculeSceneCompiler().compile(parsed.molecule(), source, compileOptions),
                         source);
     for (const auto& diagnostic : diagnostics)
