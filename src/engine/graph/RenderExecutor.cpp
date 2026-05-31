@@ -51,6 +51,29 @@ namespace engine::graph {
       }
     };
 
+    class WavefrontExecutorDefinition : public RenderExecutorDefinition {
+    public:
+      RenderExecutorKind kind() const override {
+        return RenderExecutorKind::Wavefront;
+      }
+
+      RenderExecutorPreference preference() const override {
+        return RenderExecutorPreference::Wavefront;
+      }
+
+      RenderFeatureKind feature() const override {
+        return "wavefront";
+      }
+
+      std::string beautyPassId() const override {
+        return "wavefront_beauty";
+      }
+
+      std::string beautyPassName() const override {
+        return "Wavefront beauty";
+      }
+    };
+
     class WireframeExecutorDefinition : public RenderExecutorDefinition {
     public:
       RenderExecutorKind kind() const override {
@@ -76,10 +99,11 @@ namespace engine::graph {
 
     const std::vector<const RenderExecutorDefinition*>& definitions() {
       static const RaytracerExecutorDefinition raytracer;
+      static const WavefrontExecutorDefinition wavefront;
       static const RasterizerExecutorDefinition rasterizer;
       static const WireframeExecutorDefinition wireframe;
-      static const std::vector<const RenderExecutorDefinition*> result = {&raytracer, &rasterizer,
-                                                                          &wireframe};
+      static const std::vector<const RenderExecutorDefinition*> result = {&raytracer, &wavefront,
+                                                                          &rasterizer, &wireframe};
       return result;
     }
   }

@@ -84,6 +84,8 @@ set(raster_state_plan "${TEST_OUTPUT_DIR}/raster-state-graph.json")
 set(raster_state_render "${TEST_OUTPUT_DIR}/raster-state-render.png")
 set(raytracer_integrator_plan "${TEST_OUTPUT_DIR}/raytracer-integrator-graph.json")
 set(raytracer_integrator_render "${TEST_OUTPUT_DIR}/raytracer-integrator-render.png")
+set(wavefront_plan "${TEST_OUTPUT_DIR}/wavefront-graph.json")
+set(wavefront_render "${TEST_OUTPUT_DIR}/wavefront-render.png")
 set(raster_culling_plan "${TEST_OUTPUT_DIR}/raster-culling-graph.txt")
 set(raster_culling_trace "${TEST_OUTPUT_DIR}/raster-culling-trace.json")
 set(raster_culling_trace_render "${TEST_OUTPUT_DIR}/raster-culling-trace-render.png")
@@ -1329,6 +1331,30 @@ rendercli_run(
 )
 rendercli_assert_image_nonempty("${raytracer_integrator_render}"
                                 NAME "raytracer pathtracer graph render pixels")
+
+rendercli_run(
+  NAME "rendercli exports wavefront executor in render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --engine wavefront --width 32 --height 16
+    "${static_scene}" "${wavefront_plan}"
+)
+rendercli_assert_nonempty("${wavefront_plan}" NAME "wavefront graph output")
+file(READ "${wavefront_plan}" wavefront_graph)
+if(NOT wavefront_graph MATCHES "\"executor\": \"wavefront\"")
+  message(FATAL_ERROR "wavefront graph did not contain wavefront executor: ${wavefront_graph}")
+endif()
+if(NOT wavefront_graph MATCHES "\"id\": \"wavefront_beauty\"")
+  message(FATAL_ERROR "wavefront graph did not contain wavefront beauty pass: ${wavefront_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli renders graph wavefront executor"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 16 --height 16
+    "${static_scene}" "${wavefront_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_render}" NAME "wavefront graph render pixels")
 
 rendercli_expect_failure(
   NAME "rendercli rejects invalid render graph format"

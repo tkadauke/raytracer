@@ -92,7 +92,9 @@ struct RenderWindow::Private {
       intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wireframe;
       intent.engineOptions.wireframe().setLod(settingsWidget->lod());
     } else {
-      intent.defaultExecutor = engine::graph::RenderExecutorPreference::Raytracer;
+      intent.defaultExecutor = settingsWidget->engine() == "Wavefront"
+                                 ? engine::graph::RenderExecutorPreference::Wavefront
+                                 : engine::graph::RenderExecutorPreference::Raytracer;
       auto& options = intent.engineOptions.raytracer();
       options.setSampler(settingsWidget->sampler().toStdString());
       options.setSamplesPerPixel(settingsWidget->samplesPerPixel());
@@ -107,7 +109,8 @@ struct RenderWindow::Private {
   int fallbackSampleCount(const engine::graph::RenderIntent& intent) const {
     if (intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer)
       return settingsWidget->msaaSamples();
-    if (intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Raytracer)
+    if (intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Raytracer ||
+        intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Wavefront)
       return settingsWidget->samplesPerPixel();
     return 1;
   }

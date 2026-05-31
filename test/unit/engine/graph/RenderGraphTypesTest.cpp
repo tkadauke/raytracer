@@ -46,6 +46,25 @@ namespace RenderGraphTypesTest {
     EXPECT_FALSE(first.equivalentTo(different));
   }
 
+  TEST(RenderExecutor, SerializesWavefrontPreferenceAndKind) {
+    EXPECT_EQ(std::string("wavefront"), toString(RenderExecutorPreference::Wavefront));
+    EXPECT_EQ(std::string("wavefront"), toString(RenderExecutorKind::Wavefront));
+
+    QJsonObject intentJson;
+    intentJson["defaultExecutor"] = "wavefront";
+    const RenderIntent intent = RenderIntent::fromJson(intentJson);
+    EXPECT_EQ(RenderExecutorPreference::Wavefront, intent.defaultExecutor);
+    EXPECT_EQ(RenderExecutorKind::Wavefront, intent.defaultExecutorKind());
+
+    QJsonObject passJson;
+    passJson["id"] = "wavefront_beauty";
+    passJson["kind"] = "beauty";
+    passJson["executor"] = "wavefront";
+    passJson["writes"] = QJsonArray{"beauty_color"};
+    const RenderPassNode pass = RenderPassNode::fromJson(passJson);
+    EXPECT_EQ(RenderExecutorKind::Wavefront, pass.executor);
+  }
+
   TEST(ShadingProfileRef, FormatsDisplayTextAndDetectsDefaultProfile) {
     ShadingProfileRef profile;
     EXPECT_TRUE(profile.isDefault());
@@ -489,6 +508,9 @@ namespace RenderGraphTypesTest {
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
     EXPECT_EQ(4, intent.targetSampleCountHint(1));
 
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    EXPECT_EQ(8, intent.targetSampleCountHint(1));
+
     intent.defaultExecutor = RenderExecutorPreference::Wireframe;
     EXPECT_EQ(1, intent.targetSampleCountHint(1));
   }
@@ -498,6 +520,11 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ(RenderExecutorKind::Raytracer, raytracer.kind());
     EXPECT_EQ("raytracer", raytracer.feature());
     EXPECT_EQ("raytrace_beauty", raytracer.beautyPassId());
+
+    const auto& wavefront = renderExecutorDefinition(RenderExecutorPreference::Wavefront);
+    EXPECT_EQ(RenderExecutorKind::Wavefront, wavefront.kind());
+    EXPECT_EQ("wavefront", wavefront.feature());
+    EXPECT_EQ("wavefront_beauty", wavefront.beautyPassId());
 
     const auto& rasterizer = *renderExecutorDefinition(RenderExecutorKind::Rasterizer);
     EXPECT_EQ(RenderExecutorPreference::Rasterizer, rasterizer.preference());

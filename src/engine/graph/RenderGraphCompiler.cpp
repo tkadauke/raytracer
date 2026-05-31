@@ -28,7 +28,9 @@ namespace engine::graph {
 
     void applyEngineOptionsToPass(RenderPassNode& pass, int rasterTargetSampleCount,
                                   const RenderIntent& intent) {
-      if (pass.executor == RenderExecutorKind::Raytracer && pass.kind == RenderPassKind::Beauty) {
+      if ((pass.executor == RenderExecutorKind::Raytracer ||
+           pass.executor == RenderExecutorKind::Wavefront) &&
+          pass.kind == RenderPassKind::Beauty) {
         intent.engineOptions.raytracer().beautyPassState().writeTo(pass);
       } else if (pass.executor == RenderExecutorKind::Rasterizer) {
         intent.engineOptions.rasterizer()

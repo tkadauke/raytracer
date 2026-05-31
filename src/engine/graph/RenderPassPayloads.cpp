@@ -19,6 +19,7 @@
 #include "engine/raster/RasterVisibilitySet.h"
 #include "engine/raster/detail/RasterTriangleEmitter.h"
 #include "engine/raytracer/Raytracer.h"
+#include "engine/wavefront/WavefrontRaytracer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/Camera.h"
 #include "render/HomogeneousClipVolume.h"
@@ -364,6 +365,37 @@ namespace engine::graph {
           std::make_shared<::engine::raytracer::Raytracer>(std::move(camera), graph.scene());
         RaytracerBeautyPassState::valueFromPass(context.pass()).applyTo(*raytracer);
         return raytracer;
+      }
+    };
+
+    /**
+      * Whole-frame beauty payload backed by the wavefront ray executor.
+      */
+    class WavefrontBeautyPass : public BeautyPassPayload {
+    public:
+      bool executeDisplayAndStore(RenderExecutionContext& context, Buffer<unsigned int>& buffer,
+                                  std::shared_ptr<render::Tonemap> tonemap) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), write.resource, pass);
+
+        auto wavefront =
+          std::static_pointer_cast<::engine::wavefront::WavefrontRaytracer>(createEngine(context));
+        prepareEngine(*wavefront, context.graph(), context.cancelled(), std::move(tonemap));
+        context.setActiveEngine(wavefront);
+        wavefront->render(context.storage().color(write.resource), buffer, wavefront->tonemap());
+        return true;
+      }
+
+    private:
+      std::shared_ptr<render::RenderEngine>
+      createEngine(const RenderExecutionContext& context) const override {
+        const auto& graph = context.graph();
+        auto camera = context.camera() ? context.camera()->clone() : nullptr;
+        auto wavefront = std::make_shared<::engine::wavefront::WavefrontRaytracer>(
+          std::move(camera), graph.scene());
+        RaytracerBeautyPassState::valueFromPass(context.pass()).applyTo(*wavefront);
+        return wavefront;
       }
     };
 
@@ -2023,6 +2055,8 @@ namespace engine::graph {
     const std::vector<const BuiltinPassPayloadFactory*>& builtinPayloadFactories() {
       static const ExactPassPayloadFactory<RaytraceBeautyPass> raytraceBeauty(
         RenderPassKind::Beauty, RenderExecutorKind::Raytracer);
+      static const ExactPassPayloadFactory<WavefrontBeautyPass> wavefrontBeauty(
+        RenderPassKind::Beauty, RenderExecutorKind::Wavefront);
       static const ExactPassPayloadFactory<RasterBeautyPass> rasterBeauty(
         RenderPassKind::Beauty, RenderExecutorKind::Rasterizer);
       static const ExactPassPayloadFactory<WireframeBeautyPass> wireframeBeauty(
@@ -2039,6 +2073,8 @@ namespace engine::graph {
         RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"depth", "visualization"});
       static const FeaturePassPayloadFactory<DepthAOVPass> depthAOV(
         RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"depth"});
+      static const FeaturePassPayloadFactory<DepthAOVPass> depthAOVWavefront(
+        RenderPassKind::AOV, RenderExecutorKind::Wavefront, {"depth"});
       static const FeaturePassPayloadFactory<RasterDepthAOVPass> depthAOVRasterizer(
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"depth"});
       static const FeaturePassPayloadFactory<DepthAOVPass> depthAOVWireframe(
@@ -2047,12 +2083,16 @@ namespace engine::graph {
         RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"stencil", "visualization"});
       static const FeaturePassPayloadFactory<StencilAOVPass> stencilAOVRaytracer(
         RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"stencil"});
+      static const FeaturePassPayloadFactory<StencilAOVPass> stencilAOVWavefront(
+        RenderPassKind::AOV, RenderExecutorKind::Wavefront, {"stencil"});
       static const FeaturePassPayloadFactory<RasterStencilAOVPass> stencilAOVRasterizer(
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"stencil"});
       static const FeaturePassPayloadFactory<StencilAOVPass> stencilAOVWireframe(
         RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"stencil"});
       static const FeaturePassPayloadFactory<NormalAOVPass> normalAOVRaytracer(
         RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"normal"});
+      static const FeaturePassPayloadFactory<NormalAOVPass> normalAOVWavefront(
+        RenderPassKind::AOV, RenderExecutorKind::Wavefront, {"normal"});
       static const FeaturePassPayloadFactory<RasterNormalAOVPass> normalAOVRasterizer(
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"normal"});
       static const FeaturePassPayloadFactory<NormalAOVPass> normalAOVWireframe(
@@ -2063,6 +2103,8 @@ namespace engine::graph {
         RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"object_id", "visualization"});
       static const FeaturePassPayloadFactory<ObjectIdAOVPass> objectIdAOVRaytracer(
         RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"object_id"});
+      static const FeaturePassPayloadFactory<ObjectIdAOVPass> objectIdAOVWavefront(
+        RenderPassKind::AOV, RenderExecutorKind::Wavefront, {"object_id"});
       static const FeaturePassPayloadFactory<RasterObjectIdAOVPass> objectIdAOVRasterizer(
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"object_id"});
       static const FeaturePassPayloadFactory<ObjectIdAOVPass> objectIdAOVWireframe(
@@ -2071,6 +2113,8 @@ namespace engine::graph {
         RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"material_id", "visualization"});
       static const FeaturePassPayloadFactory<MaterialIdAOVPass> materialIdAOVRaytracer(
         RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"material_id"});
+      static const FeaturePassPayloadFactory<MaterialIdAOVPass> materialIdAOVWavefront(
+        RenderPassKind::AOV, RenderExecutorKind::Wavefront, {"material_id"});
       static const FeaturePassPayloadFactory<RasterMaterialIdAOVPass> materialIdAOVRasterizer(
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"material_id"});
       static const FeaturePassPayloadFactory<MaterialIdAOVPass> materialIdAOVWireframe(
@@ -2080,6 +2124,8 @@ namespace engine::graph {
                                    {"world_position", "visualization"});
       static const FeaturePassPayloadFactory<WorldPositionAOVPass> worldPositionAOVRaytracer(
         RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"world_position"});
+      static const FeaturePassPayloadFactory<WorldPositionAOVPass> worldPositionAOVWavefront(
+        RenderPassKind::AOV, RenderExecutorKind::Wavefront, {"world_position"});
       static const FeaturePassPayloadFactory<RasterWorldPositionAOVPass> worldPositionAOVRasterizer(
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"world_position"});
       static const FeaturePassPayloadFactory<WorldPositionAOVPass> worldPositionAOVWireframe(
@@ -2116,6 +2162,7 @@ namespace engine::graph {
         RenderPassKind::Overlay, RenderExecutorKind::Wireframe, {"curve_overlay"});
       static const std::vector<const BuiltinPassPayloadFactory*> result = {
         &raytraceBeauty,
+        &wavefrontBeauty,
         &rasterBeauty,
         &wireframeBeauty,
         &tonemap,
@@ -2124,26 +2171,32 @@ namespace engine::graph {
         &rasterPreviewShadows,
         &depthVisualization,
         &depthAOV,
+        &depthAOVWavefront,
         &depthAOVRasterizer,
         &depthAOVWireframe,
         &stencilVisualization,
         &stencilAOVRaytracer,
+        &stencilAOVWavefront,
         &stencilAOVRasterizer,
         &stencilAOVWireframe,
         &normalVisualization,
         &normalAOVRaytracer,
+        &normalAOVWavefront,
         &normalAOVRasterizer,
         &normalAOVWireframe,
         &objectIdVisualization,
         &objectIdAOVRaytracer,
+        &objectIdAOVWavefront,
         &objectIdAOVRasterizer,
         &objectIdAOVWireframe,
         &materialIdVisualization,
         &materialIdAOVRaytracer,
+        &materialIdAOVWavefront,
         &materialIdAOVRasterizer,
         &materialIdAOVWireframe,
         &worldPositionVisualization,
         &worldPositionAOVRaytracer,
+        &worldPositionAOVWavefront,
         &worldPositionAOVRasterizer,
         &worldPositionAOVWireframe,
         &rasterCoverageCountVisualization,

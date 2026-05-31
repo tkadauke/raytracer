@@ -445,6 +445,23 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(RenderExecutorKind::PostProcess, engine.lastPlan().passes()[1].executor);
   }
 
+  TEST(GraphRenderEngine, ExecutesWavefrontBeautyPass) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+    ASSERT_EQ(2u, engine.lastPlan().passes().size());
+    EXPECT_EQ(RenderExecutorKind::Wavefront, engine.lastPlan().passes()[0].executor);
+    EXPECT_EQ("wavefront_beauty", engine.lastPlan().passes()[0].id);
+  }
+
   TEST(GraphRenderEngine, ExecutesDepthAOVViewAndRecordsDepthTrace) {
     RenderIntent intent;
     intent.defaultViewMode = RenderViewMode::Depth;
@@ -1628,10 +1645,7 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("off", metadata.value("depthPrepass").toObject().value("requested").toString());
     EXPECT_EQ("disabled", metadata.value("depthPrepass").toObject().value("decision").toString());
     EXPECT_GT(metadata.value("timings").toObject().value("totalRenderSeconds").toDouble(), 0.0);
-    EXPECT_GT(metadata.value("tessellation")
-                .toObject()
-                .value("trianglesAfterClipping")
-                .toDouble(),
+    EXPECT_GT(metadata.value("tessellation").toObject().value("trianglesAfterClipping").toDouble(),
               0.0);
     EXPECT_GT(metadata.value("fragments").toObject().value("coveredSamples").toDouble(), 0.0);
     EXPECT_EQ(metadata, raster->toJson().value("metadata").toObject());

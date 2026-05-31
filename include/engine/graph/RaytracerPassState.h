@@ -13,6 +13,10 @@ namespace engine::raytracer {
   class Raytracer;
 }
 
+namespace engine::wavefront {
+  class WavefrontRaytracer;
+}
+
 namespace render {
   class Camera;
   class Integrator;
@@ -30,6 +34,7 @@ namespace engine::graph {
   class RaytracerBeautyPassState : public RenderPassState {
   public:
     using Raytracer = engine::raytracer::Raytracer;
+    using WavefrontRaytracer = engine::wavefront::WavefrontRaytracer;
 
     static RaytracerBeautyPassState fromJson(const QJsonObject& object,
                                              const std::string& path = "parameters");
@@ -40,6 +45,7 @@ namespace engine::graph {
     QJsonObject toJson() const override;
     bool empty() const;
     void applyTo(Raytracer& raytracer) const;
+    void applyTo(WavefrontRaytracer& wavefront) const;
 
     void writeTo(RenderPassNode& pass) const;
     std::size_t writeToRaytracerBeautyPasses(RenderPlan& plan) const;

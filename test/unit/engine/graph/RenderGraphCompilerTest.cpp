@@ -83,6 +83,29 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ("tonemap", plan.passes()[1].id);
   }
 
+  TEST(RenderGraphCompiler, UsesWavefrontExecutorPreference) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setSamplesPerPixel(4);
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+
+    const RenderPlan plan = compiler.compile({64, 64, 4}, intent);
+
+    ASSERT_EQ(2u, plan.passes().size());
+    EXPECT_EQ("wavefront_beauty", plan.passes()[0].id);
+    EXPECT_EQ(RenderExecutorKind::Wavefront, plan.passes()[0].executor);
+    EXPECT_TRUE(hasFeature(plan.passes()[0], "wavefront"));
+    const auto* state = RaytracerBeautyPassState::fromPass(plan.passes()[0]);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->integrator().has_value());
+    EXPECT_EQ("pathtracer", *state->integrator());
+    ASSERT_TRUE(state->samplesPerPixel().has_value());
+    EXPECT_EQ(4, *state->samplesPerPixel());
+    EXPECT_EQ("tonemap", plan.passes()[1].id);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, WireframeViewModeSelectsWireframeExecutor) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

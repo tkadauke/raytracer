@@ -40,19 +40,9 @@ struct Raytracer::Private {
   bool showProgressIndicators;
   std::optional<std::uint64_t> samplingSeed;
 
-  render::WhittedIntegrator* whittedIntegrator() {
-    return dynamic_cast<render::WhittedIntegrator*>(integrator.get());
-  }
-
-  const render::WhittedIntegrator* whittedIntegrator() const {
-    return dynamic_cast<const render::WhittedIntegrator*>(integrator.get());
-  }
-
   void configureIntegratorCancellation(const Raytracer& owner) {
-    if (auto* whitted = whittedIntegrator()) {
-      whitted->setCancellationCallback(
-        [&owner] { return owner.camera() && owner.camera()->isCancelled(); });
-    }
+    integrator->setCancellationCallback(
+      [&owner] { return owner.camera() && owner.camera()->isCancelled(); });
   }
 };
 
@@ -263,9 +253,7 @@ std::list<Recti> Raytracer::completedTiles() const {
 }
 
 void Raytracer::setMaximumRecursionDepth(int depth) {
-  if (auto* whitted = p->whittedIntegrator()) {
-    whitted->setMaximumRecursionDepth(depth);
-  }
+  p->integrator->setMaximumRecursionDepth(depth);
 }
 
 void Raytracer::setIntegrator(std::unique_ptr<render::Integrator> integrator) {

@@ -29,9 +29,9 @@ namespace engine::graph {
     */
   enum class RenderExecutorPreference {
     Raytracer,
+    Wavefront,
     Rasterizer,
     Wireframe,
-    // Add PathTracer here once a concrete path tracing engine exists.
   };
 
   /**
@@ -73,9 +73,9 @@ namespace engine::graph {
     */
   enum class RenderExecutorKind {
     Raytracer,
+    Wavefront,
     Rasterizer,
     Wireframe,
-    // Add PathTracer here once a concrete path tracing engine exists.
     Composite,
     PostProcess
   };

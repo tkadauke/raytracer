@@ -167,6 +167,8 @@ QString RenderGraphInspectorWidget::Private::displayText(RenderExecutorKind exec
   switch (executor) {
   case RenderExecutorKind::Raytracer:
     return QStringLiteral("Raytracer");
+  case RenderExecutorKind::Wavefront:
+    return QStringLiteral("Wavefront");
   case RenderExecutorKind::Rasterizer:
     return QStringLiteral("Rasterizer");
   case RenderExecutorKind::Wireframe:
@@ -359,15 +361,14 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
     return QString();
 
   QString line = QStringLiteral("%1, %2 ms")
-    .arg(toString(passTrace->status()))
-    .arg(passTrace->elapsed().count() / 1000000.0, 0, 'f', 2);
+                   .arg(toString(passTrace->status()))
+                   .arg(passTrace->elapsed().count() / 1000000.0, 0, 'f', 2);
   const QJsonObject fragments = passTrace->metadata().value(QStringLiteral("fragments")).toObject();
   if (!fragments.isEmpty()) {
-    line += QStringLiteral(", shaded %1, writes %2")
-              .arg(static_cast<qulonglong>(
-                fragments.value(QStringLiteral("shadedFragments")).toDouble()))
-              .arg(static_cast<qulonglong>(
-                fragments.value(QStringLiteral("colorWrites")).toDouble()));
+    line +=
+      QStringLiteral(", shaded %1, writes %2")
+        .arg(static_cast<qulonglong>(fragments.value(QStringLiteral("shadedFragments")).toDouble()))
+        .arg(static_cast<qulonglong>(fragments.value(QStringLiteral("colorWrites")).toDouble()));
   }
   const QJsonObject scheduling =
     passTrace->metadata().value(QStringLiteral("scheduling")).toObject();
@@ -380,8 +381,8 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
   const QJsonObject depthPrepass =
     passTrace->metadata().value(QStringLiteral("depthPrepass")).toObject();
   if (!depthPrepass.isEmpty()) {
-    line += QStringLiteral(", prepass %1")
-              .arg(depthPrepass.value(QStringLiteral("decision")).toString());
+    line +=
+      QStringLiteral(", prepass %1").arg(depthPrepass.value(QStringLiteral("decision")).toString());
   }
   return line;
 }
@@ -705,9 +706,8 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
   p->passes->setRootIsDecorated(false);
   p->passes->setAlternatingRowColors(true);
   p->passes->setHeaderLabels({tr("Enabled"), tr("Order"), tr("Stage"), tr("Pass"), tr("Trace"),
-                              tr("Kind"),
-                              tr("Executor"), tr("Selector"), tr("Camera"), tr("Shading"),
-                              tr("Reads"), tr("Writes"), tr("Disabled behavior")});
+                              tr("Kind"), tr("Executor"), tr("Selector"), tr("Camera"),
+                              tr("Shading"), tr("Reads"), tr("Writes"), tr("Disabled behavior")});
   p->passes->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
   p->passes->header()->setStretchLastSection(true);
   connect(p->passes, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this,

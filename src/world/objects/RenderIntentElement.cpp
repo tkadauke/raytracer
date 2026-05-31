@@ -28,7 +28,8 @@ bool RenderIntentElement::isPropertyVisible(const QString& propertyName) const {
 
   const auto executor = intent().defaultExecutorKind();
   if (isRaytracerProperty(propertyName))
-    return executor == engine::graph::RenderExecutorKind::Raytracer;
+    return executor == engine::graph::RenderExecutorKind::Raytracer ||
+           executor == engine::graph::RenderExecutorKind::Wavefront;
   if (isRasterizerShadowProperty(propertyName))
     return executor == engine::graph::RenderExecutorKind::Rasterizer && previewShadows();
   if (isRasterizerProperty(propertyName))
@@ -149,7 +150,8 @@ QString RenderIntentElement::propertyGroup(const QString& propertyName) const {
 
 QStringList RenderIntentElement::propertyChoices(const QString& propertyName) const {
   if (propertyName == QStringLiteral("defaultEngine"))
-    return {QStringLiteral("raytracer"), QStringLiteral("rasterizer"), QStringLiteral("wireframe")};
+    return {QStringLiteral("raytracer"), QStringLiteral("wavefront"), QStringLiteral("rasterizer"),
+            QStringLiteral("wireframe")};
   if (propertyName == QStringLiteral("viewMode")) {
     QStringList choices{QStringLiteral("default"),     QStringLiteral("beauty"),
                         QStringLiteral("wireframe"),   QStringLiteral("depth"),
@@ -226,6 +228,8 @@ RenderIntentElement::propertyDoubleRange(const QString& propertyName) const {
 
 QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyName,
                                                        const QString& choice) const {
+  if (propertyName == QStringLiteral("defaultEngine") && choice == QStringLiteral("wavefront"))
+    return QStringLiteral("Wavefront");
   if (propertyName == QStringLiteral("postProcessAA"))
     return choice == QStringLiteral("none") ? QStringLiteral("None") : choice.toUpper();
   if (propertyName == QStringLiteral("raytracerIntegrator")) {
@@ -653,6 +657,8 @@ void RenderIntentElement::setIntent(engine::graph::RenderIntent intent) {
 engine::graph::RenderExecutorPreference
 RenderIntentElement::executorFromText(const QString& text) const {
   const QString value = normalizedText(text);
+  if (value == QStringLiteral("wavefront"))
+    return engine::graph::RenderExecutorPreference::Wavefront;
   if (value == QStringLiteral("rasterizer") || value == QStringLiteral("raster"))
     return engine::graph::RenderExecutorPreference::Rasterizer;
   if (value == QStringLiteral("wireframe"))

@@ -16,8 +16,6 @@ namespace render {
     */
   class WhittedIntegrator final : public Integrator {
   public:
-    using CancellationCallback = std::function<bool()>;
-
     WhittedIntegrator();
 
     std::unique_ptr<Integrator> clone() const override;
@@ -25,10 +23,10 @@ namespace render {
     Colord radiance(const Scene& scene, const Rayd& ray, State& state,
                     const RayCaster& recursiveRayCaster) const override;
 
-    void setMaximumRecursionDepth(int depth);
+    void setMaximumRecursionDepth(int depth) override;
     int maximumRecursionDepth() const;
 
-    void setCancellationCallback(CancellationCallback callback);
+    void setCancellationCallback(CancellationCallback callback) override;
 
   private:
     bool isCancelled() const;

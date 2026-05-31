@@ -102,6 +102,7 @@ namespace RenderIntentElementTest {
     ASSERT_NE(nullptr, intent);
 
     EXPECT_EQ(QString("Default Engine"), intent->propertyDisplayName("defaultEngine"));
+    EXPECT_TRUE(intent->propertyChoices("defaultEngine").contains("wavefront"));
     EXPECT_TRUE(intent->propertyChoices("defaultEngine").contains("rasterizer"));
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("stencil_composite"));
     EXPECT_TRUE(intent->propertyChoices("rasterizerBackend").contains("opengl"));
@@ -125,6 +126,8 @@ namespace RenderIntentElementTest {
     EXPECT_EQ(QString("Integrator"), intent->propertyDisplayName("raytracerIntegrator"));
     EXPECT_EQ(QString("Path Tracer"),
               intent->propertyChoiceDisplayName("raytracerIntegrator", "pathtracer"));
+    EXPECT_EQ(QString("Wavefront"),
+              intent->propertyChoiceDisplayName("defaultEngine", "wavefront"));
     EXPECT_EQ(QString("Final"),
               intent->propertyChoiceDisplayName("rasterizerTessellationQuality", "final"));
     EXPECT_EQ(QString("Auto"),
@@ -169,6 +172,12 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->isPropertyVisible("previewShadows"));
     EXPECT_FALSE(intent->isPropertyVisible("rasterizerShadowMapSize"));
 
+    intent->setDefaultEngine("wavefront");
+    EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
+    EXPECT_TRUE(intent->isPropertyVisible("raytracerIntegrator"));
+    EXPECT_FALSE(intent->isPropertyVisible("rasterizerLod"));
+
+    intent->setDefaultEngine("rasterizer");
     intent->setPreviewShadows(true);
     EXPECT_TRUE(intent->isPropertyVisible("rasterizerShadowMapSize"));
   }

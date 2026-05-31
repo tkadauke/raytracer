@@ -57,6 +57,11 @@
         </item>
         <item>
          <property name="text">
+          <string>Wavefront</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
           <string>Wireframe</string>
          </property>
         </item>

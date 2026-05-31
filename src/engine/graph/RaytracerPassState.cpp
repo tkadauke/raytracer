@@ -3,6 +3,7 @@
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/graph/RenderPlan.h"
 #include "engine/raytracer/Raytracer.h"
+#include "engine/wavefront/WavefrontRaytracer.h"
 #include "render/PathTracingIntegrator.h"
 #include "render/WhittedIntegrator.h"
 #include "render/cameras/Camera.h"
@@ -108,7 +109,8 @@ namespace engine::graph {
   }
 
   const RaytracerBeautyPassState* RaytracerBeautyPassState::fromPass(const RenderPassNode& pass) {
-    if (pass.executor != RenderExecutorKind::Raytracer)
+    if (pass.executor != RenderExecutorKind::Raytracer &&
+        pass.executor != RenderExecutorKind::Wavefront)
       return nullptr;
     return pass.state ? pass.state->asRaytracerBeautyPassState() : nullptr;
   }
@@ -173,6 +175,21 @@ namespace engine::graph {
       raytracer.camera()->setViewPlane(std::move(viewPlane));
   }
 
+  void RaytracerBeautyPassState::applyTo(WavefrontRaytracer& wavefront) const {
+    if (auto integrator = createIntegratorForPass())
+      wavefront.setIntegrator(std::move(integrator));
+    if (m_maximumRecursionDepth)
+      wavefront.setMaximumRecursionDepth(*m_maximumRecursionDepth);
+    if (m_maximumThreads)
+      wavefront.setMaximumThreads(*m_maximumThreads);
+    if (m_queueSize)
+      wavefront.setQueueSize(*m_queueSize);
+
+    auto viewPlane = createViewPlaneForPass(wavefront.camera());
+    if (viewPlane && wavefront.camera())
+      wavefront.camera()->setViewPlane(std::move(viewPlane));
+  }
+
   void RaytracerBeautyPassState::writeTo(RenderPassNode& pass) const {
     if (empty()) {
       pass.state.reset();
@@ -182,8 +199,10 @@ namespace engine::graph {
   }
 
   std::size_t RaytracerBeautyPassState::writeToRaytracerBeautyPasses(RenderPlan& plan) const {
-    return plan.setPassState(RenderPassKind::Beauty, RenderExecutorKind::Raytracer,
-                             empty() ? nullptr : std::make_shared<RaytracerBeautyPassState>(*this));
+    const std::shared_ptr<const RenderPassState> state =
+      empty() ? nullptr : std::make_shared<RaytracerBeautyPassState>(*this);
+    return plan.setPassState(RenderPassKind::Beauty, RenderExecutorKind::Raytracer, state) +
+           plan.setPassState(RenderPassKind::Beauty, RenderExecutorKind::Wavefront, state);
   }
 
   void RaytracerBeautyPassState::setMaximumRecursionDepth(int depth) {

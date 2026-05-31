@@ -53,8 +53,6 @@ namespace render {
     */
   class PathTracingIntegrator : public Integrator {
   public:
-    using CancellationCallback = std::function<bool()>;
-
     PathTracingIntegrator();
 
     std::unique_ptr<Integrator> clone() const override;
@@ -62,14 +60,14 @@ namespace render {
     Colord radiance(const Scene& scene, const Rayd& ray, State& state,
                     const RayCaster& recursiveRayCaster) const override;
 
-    void setCancellationCallback(CancellationCallback callback);
+    void setCancellationCallback(CancellationCallback callback) override;
 
     /// Maximum number of bounces along a single path. Includes the
     /// primary ray. Default 8.
     int maximumRecursionDepth() const {
       return m_maximumRecursionDepth;
     }
-    void setMaximumRecursionDepth(int depth) {
+    void setMaximumRecursionDepth(int depth) override {
       m_maximumRecursionDepth = depth;
     }
 

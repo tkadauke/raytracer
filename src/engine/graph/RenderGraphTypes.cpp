@@ -105,6 +105,7 @@ namespace engine::graph {
       return enumValue<RenderExecutorPreference>(
         value,
         {{"raytracer", RenderExecutorPreference::Raytracer},
+         {"wavefront", RenderExecutorPreference::Wavefront},
          {"rasterizer", RenderExecutorPreference::Rasterizer},
          {"wireframe", RenderExecutorPreference::Wireframe}},
         path);
@@ -216,6 +217,7 @@ namespace engine::graph {
     RenderExecutorKind executorKindFromJson(const std::string& value, const std::string& path) {
       return enumValue<RenderExecutorKind>(value,
                                            {{"raytracer", RenderExecutorKind::Raytracer},
+                                            {"wavefront", RenderExecutorKind::Wavefront},
                                             {"rasterizer", RenderExecutorKind::Rasterizer},
                                             {"wireframe", RenderExecutorKind::Wireframe},
                                             {"composite", RenderExecutorKind::Composite},
@@ -743,6 +745,7 @@ namespace engine::graph {
   const char* toString(RenderExecutorPreference value) {
     return enumName<RenderExecutorPreference>(value,
                                               {{RenderExecutorPreference::Raytracer, "raytracer"},
+                                               {RenderExecutorPreference::Wavefront, "wavefront"},
                                                {RenderExecutorPreference::Rasterizer, "rasterizer"},
                                                {RenderExecutorPreference::Wireframe, "wireframe"}});
   }
@@ -775,6 +778,7 @@ namespace engine::graph {
 
   const char* toString(RenderExecutorKind value) {
     return enumName<RenderExecutorKind>(value, {{RenderExecutorKind::Raytracer, "raytracer"},
+                                                {RenderExecutorKind::Wavefront, "wavefront"},
                                                 {RenderExecutorKind::Rasterizer, "rasterizer"},
                                                 {RenderExecutorKind::Wireframe, "wireframe"},
                                                 {RenderExecutorKind::Composite, "composite"},
@@ -1144,7 +1148,8 @@ namespace engine::graph {
     std::optional<int> hint;
     if (defaultExecutorKind() == RenderExecutorKind::Rasterizer) {
       hint = engineOptions.rasterizer().msaaSamples();
-    } else if (defaultExecutorKind() == RenderExecutorKind::Raytracer) {
+    } else if (defaultExecutorKind() == RenderExecutorKind::Raytracer ||
+               defaultExecutorKind() == RenderExecutorKind::Wavefront) {
       hint = engineOptions.raytracer().samplesPerPixel();
     }
     return std::max(1, hint.value_or(fallback));

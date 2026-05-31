@@ -28,6 +28,7 @@
 #include "render/PathTracingIntegrator.h"
 #include "engine/raster/RasterBackend.h"
 #include "engine/raster/Rasterizer.h"
+#include "engine/wavefront/WavefrontRaytracer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/materials/Material.h"
 #include "render/primitives/Scene.h"
@@ -407,6 +408,8 @@ namespace {
     using RenderExecutorKind = engine::graph::RenderExecutorKind;
     if (normalized == "raytracer" || normalized == "raytrace") {
       *executor = RenderExecutorKind::Raytracer;
+    } else if (normalized == "wavefront") {
+      *executor = RenderExecutorKind::Wavefront;
     } else if (normalized == "rasterizer" || normalized == "raster") {
       *executor = RenderExecutorKind::Rasterizer;
     } else if (normalized == "wireframe") {
@@ -427,6 +430,8 @@ namespace {
     using RenderExecutorPreference = engine::graph::RenderExecutorPreference;
     if (normalized == "raytracer" || normalized == "raytrace") {
       *executor = RenderExecutorPreference::Raytracer;
+    } else if (normalized == "wavefront") {
+      *executor = RenderExecutorPreference::Wavefront;
     } else if (normalized == "rasterizer" || normalized == "raster") {
       *executor = RenderExecutorPreference::Rasterizer;
     } else if (normalized == "wireframe") {
@@ -1247,6 +1252,9 @@ std::optional<engine::graph::RenderExecutorPreference> Renderer::engineExecutorP
   if (m_engine == "wireframe") {
     return engine::graph::RenderExecutorPreference::Wireframe;
   }
+  if (m_engine == "wavefront") {
+    return engine::graph::RenderExecutorPreference::Wavefront;
+  }
   return engine::graph::RenderExecutorPreference::Raytracer;
 }
 
@@ -1881,6 +1889,24 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     rasterBeautyPassState(commandLinePostProcessAA(), true, true).applyTo(*raster);
     directRasterEngine = raster;
     engine = raster;
+  } else if (m_engine == "wavefront") {
+    auto wavefront = std::make_shared<engine::wavefront::WavefrontRaytracer>(raytracerScene);
+    wavefront->setMaximumRecursionDepth(m_maximumRecursionDepth);
+    if (m_integrator == "pathtracer" || m_integrator == "path_tracer" || m_integrator == "pt") {
+      auto pt = std::make_unique<render::PathTracingIntegrator>();
+      pt->setMaximumRecursionDepth(m_maximumRecursionDepth);
+      wavefront->setIntegrator(std::move(pt));
+    }
+    if (rtCamera) {
+      wavefront->setCamera(rtCamera);
+    } else {
+      wavefront->camera()->setPosition(Vector3d(0, 0, -5));
+    }
+    wavefront->camera()->setViewPlane(std::make_shared<render::TiledViewPlane>());
+    wavefront->camera()->viewPlane()->setSampler(sampler());
+    wavefront->setMaximumThreads(m_threads);
+    wavefront->setQueueSize(m_queueSize);
+    engine = wavefront;
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);
     rt->setMaximumRecursionDepth(m_maximumRecursionDepth);
@@ -2276,7 +2302,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"gcode_layer", "Render one G-code print layer index", "layer"},
      {"gcode_cumulative_layers", "Render G-code print layers cumulatively through --gcode_layer"},
      {"gcode_hide_travel", "Hide G-code travel moves during import"},
-     {"engine", "Render engine (raytracer, wireframe, raster)", "engine"},
+     {"engine", "Render engine (raytracer, wavefront, wireframe, raster)", "engine"},
      {"integrator", "Raytracer integrator (whitted, pathtracer)", "integrator"},
      {"render_graph", "Render through the compiled render graph; this is the default"},
      {{"direct_engine", "no_render_graph"},
@@ -2609,8 +2635,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
 
   if (parser.isSet("engine")) {
     const QString engine = parser.value("engine").toLower();
-    if (engine != "raytracer" && engine != "wireframe" && engine != "raster") {
-      *errorMessage = "Engine must be 'raytracer', 'wireframe', or 'raster'";
+    if (engine != "raytracer" && engine != "wavefront" && engine != "wireframe" &&
+        engine != "raster") {
+      *errorMessage = "Engine must be 'raytracer', 'wavefront', 'wireframe', or 'raster'";
       return CommandLineError;
     }
     m_engine = engine;
@@ -2755,7 +2782,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     m_renderGraph = true;
     if (!parseRenderExecutorPreference(parser.value("render_graph_executor"),
                                        &m_renderGraphExecutor)) {
-      *errorMessage = "Render graph executor must be 'raytracer', 'rasterizer', or 'wireframe'";
+      *errorMessage =
+        "Render graph executor must be 'raytracer', 'wavefront', 'rasterizer', or 'wireframe'";
       return CommandLineError;
     }
     m_renderGraphExecutorSet = true;

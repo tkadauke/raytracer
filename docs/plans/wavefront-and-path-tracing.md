@@ -10,10 +10,11 @@
 >
 > **Status:** Living document. Updated 2026-05-31 after the render graph,
 > render-intent, scalar path-tracing, packet-intersection, and OpenGL raster
-> work landed. Phase 1, the throughput-cutoff prerequisite, is done. A scalar
-> `PathTracingIntegrator` also exists now, but the wavefront sibling engine
-> itself is still unimplemented. The remaining work is therefore scheduler /
-> executor work, plus intent plumbing, not "invent path tracing from zero."
+> work landed. Phase 1, the throughput-cutoff prerequisite, is done, and Phase
+> 2 now makes ray integrator selection graph-visible. A scalar
+> `PathTracingIntegrator` also exists now. Phase 3 has started with the
+> `WavefrontRaytracer` engine and graph executor surface; explicit depth-major
+> queues and convergence instrumentation remain.
 >
 > **Rule:** the wavefront engine is a **sibling** to the existing
 > `Raytracer`, not a replacement. Both ship; the user chooses through render
@@ -143,15 +144,7 @@ already exist:
 - `SampleStream` reserves named stochastic dimensions for pixel, lens,
   time, BSDF, light, and continuation samples.
 - `RenderRaytracerOptions` / `RaytracerBeautyPassState` carry graph-visible
-  raytracer execution and sampling state, but they do **not** yet carry
-  integrator selection.
-
-The next refactor before a wavefront engine should be to make
-integrator selection intent-derived and graph-visible. Today
-rendercli has `--integrator whitted|pathtracer`, but that direct-engine
-choice is not represented in `RenderIntent`, `RenderRaytracerOptions`,
-or compiled raytracer pass state. Fix that before adding a new
-wavefront executor so graph and direct paths do not diverge again.
+  ray-family execution, sampling, view-plane, and integrator selection state.
 
 If wavefront grows enough to want SoA ray batches (Ray4/Ray8 per
 Phase 4 of `complete/core-math-optimization.md`), the shared
@@ -432,7 +425,7 @@ This does **not** replace wavefront. It narrows the future wavefront task: reuse
 these sampling/material semantics and replace the scalar megakernel loop with a
 depth-major scheduler once the scheduler is ready.
 
-### Phase 2 — render-intent and graph parity for ray integrators
+### ~~Phase 2 — render-intent and graph parity for ray integrators~~ ✅ **Done.**
 
 Before adding another engine, remove the current direct/graph divergence:
 rendercli can select `--integrator whitted|pathtracer` for the direct
@@ -458,7 +451,11 @@ Tasks:
 **Gate**: no direct-only integrator behavior remains except legacy
 `--no_render_graph` debugging.
 
-### Phase 3 — bare wavefront engine: same outputs as Raytracer
+Render intent, `RenderRaytracerOptions`, `RaytracerBeautyPassState`,
+rendercli graph compilation, Modeler Render Settings, and replayed graph JSON
+now carry `whitted` / `pathtracer` integrator choice. ✅ **Done.**
+
+### Phase 3 — bare wavefront engine: same outputs as Raytracer 🚧 **Started.**
 
 New `WavefrontRaytracer` sibling under `include/engine/wavefront/`.
 Whitted semantics with tree-flattening (Option **A** above) so the
@@ -469,6 +466,12 @@ executor definition, pass payload/state, rendercli selection, Modeler
 render settings, and graph inspector display names. Convergence test
 runs but doesn't yet drive any cutoff — instrumented to log
 delta-per-pass to a benchmark report.
+
+Initial work has landed the `WavefrontRaytracer` `RenderEngine`, graph executor
+metadata, graph pass payload, rendercli selection, and Modeler render-settings
+selection. The current tile body still routes legacy material recursion through
+a private scalar adapter so the public executor surface can stabilize before
+explicit Whitted ray queues land.
 
 **Goal**: prove the architecture without changing image output.
 **Gate**: macro benchmark output (sphere / torus / BVH scenes) RMS
@@ -534,10 +537,10 @@ intent. A wavefront implementation must therefore add graph-visible executor
 and pass state from the start; `--engine wavefront` as a direct-engine bypass is
 useful for focused debugging, but it is not the primary user surface.
 
-The immediate graph gap is ray integrator selection. `--integrator
-pathtracer` exists for direct rendercli, but `RenderIntent` /
-`RenderRaytracerOptions` / `RaytracerBeautyPassState` cannot yet represent it.
-Close that before adding a wavefront executor.
+The first wavefront slice now uses the same graph-visible
+`RaytracerBeautyPassState` for ray-family beauty passes. That keeps sampler,
+view-plane, recursion-depth, thread/queue, and integrator choices intent-derived
+instead of direct-engine-only.
 
 ### `complete/core-math-optimization.md`
 
@@ -698,9 +701,10 @@ starts.
 2. ~~Land the scalar path-tracing substrate.~~ ✅ **Done.**
    `PathTracingIntegrator`, `SampleStream`, material BSDF hooks, light
    sampling, and Russian-roulette support are now present.
-3. Do Phase 2 before the wavefront engine: make integrator choice part of
-   scene-backed render intent and compiled graph pass state.
-4. Resolve the remaining scheduler open questions before Phase 3 starts.
+3. ~~Do Phase 2 before the wavefront engine: make integrator choice part of
+   scene-backed render intent and compiled graph pass state.~~ ✅ **Done.**
+4. Resolve the remaining scheduler open questions as Phase 3 moves from the
+   executor shell to explicit depth-major queues.
 5. Phase 3 (bare wavefront) must produce byte-comparable output to
    `Raytracer` for the same maxDepth on the macro benchmark scenes.
    This is the regression gate.

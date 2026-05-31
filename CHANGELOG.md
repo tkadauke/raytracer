@@ -9,6 +9,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Added
+
+- **Wavefront ray executor surface.** Added an initial `WavefrontRaytracer`
+  render engine plus graph/rendercli/Modeler render-settings selection so the
+  ray-family scheduler can be exercised beside the recursive raytracer. — GPT-5
+
 ### Changed
 
 - **Raytracer integrator selection is graph-visible.** Render intent and

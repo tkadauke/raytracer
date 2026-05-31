@@ -35,9 +35,9 @@ such as "the color output for this subview."
 The same header defines the enum classes used by plan declarations:
 
 - `RenderExecutorPreference` names a user's broad engine preference:
-  raytracer, rasterizer, or wireframe.
+  raytracer, wavefront, rasterizer, or wireframe.
 - `RenderExecutorKind` names the executor required by a compiled pass:
-  raytracer, rasterizer, wireframe, composite, or postprocess.
+  raytracer, wavefront, rasterizer, wireframe, composite, or postprocess.
 - `RenderPassKind` groups passes as beauty, shadow, overlay, composite,
   tonemap, postprocess, readback, visibility, AOV, debug, or custom.
 - `RenderResourceType` classifies image-like graph products such as color,
@@ -577,6 +577,7 @@ resources:
 The first pass id depends on the selected executor:
 
 - `raytrace_beauty` for the default raytracer executor,
+- `wavefront_beauty` when the intent prefers the wavefront ray executor,
 - `raster_beauty` when the intent prefers the rasterizer,
 - `wireframe_beauty` when the intent requests a wireframe view.
 
@@ -599,12 +600,15 @@ the same tessellation density as direct wireframe renders.
 both resource descriptors. Compilation does not allocate buffers and does not
 render; it only produces the inspectable plan.
 
-When the selected beauty executor is the raytracer, typed raytracer options on
-the effective intent become `RaytracerBeautyPassState` on `raytrace_beauty`.
-That state can configure the sampler, samples per pixel, view-plane type,
-recursion depth, worker thread count, and queue size before the payload renders.
-Those choices therefore appear in graph JSON and replay with the plan instead
-of being hidden in rendercli camera setup.
+When the selected beauty executor is the raytracer or wavefront executor, typed
+ray-family options on the effective intent become `RaytracerBeautyPassState` on
+the beauty pass. That state can configure the integrator, sampler, samples per
+pixel, view-plane type, recursion depth, worker thread count, and queue size
+before the payload renders. Those choices therefore appear in graph JSON and
+replay with the plan instead of being hidden in rendercli camera setup. The
+first wavefront payload intentionally shares the scalar radiance integrators
+with the recursive raytracer while giving the graph, rendercli, and Modeler a
+separate executor surface for the depth-major scheduler work that follows.
 
 When the selected beauty executor is the rasterizer, graph-backed rendercli
 raster controls are compiled into the raster beauty pass's typed state and

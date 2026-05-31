@@ -89,13 +89,19 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ(9, raytracer.camera()->viewPlane()->sampler()->numSamples());
   }
 
-  TEST(RaytracerBeautyPassState, WritesOnlyToRaytracerBeautyPasses) {
+  TEST(RaytracerBeautyPassState, WritesOnlyToRayFamilyBeautyPasses) {
     RenderPlan plan;
     RenderPassNode raytracer;
     raytracer.id = "raytrace_beauty";
     raytracer.kind = RenderPassKind::Beauty;
     raytracer.executor = RenderExecutorKind::Raytracer;
     plan.addPass(raytracer);
+
+    RenderPassNode wavefront;
+    wavefront.id = "wavefront_beauty";
+    wavefront.kind = RenderPassKind::Beauty;
+    wavefront.executor = RenderExecutorKind::Wavefront;
+    plan.addPass(wavefront);
 
     RenderPassNode rasterizer;
     rasterizer.id = "raster_beauty";
@@ -106,9 +112,11 @@ namespace RaytracerPassStateTest {
     RaytracerBeautyPassState state;
     state.setSamplesPerPixel(4);
 
-    EXPECT_EQ(1u, state.writeToRaytracerBeautyPasses(plan));
+    EXPECT_EQ(2u, state.writeToRaytracerBeautyPasses(plan));
     ASSERT_NE(nullptr, plan.passes()[0].state);
+    ASSERT_NE(nullptr, plan.passes()[1].state);
     EXPECT_NE(nullptr, RaytracerBeautyPassState::fromPass(plan.passes()[0]));
-    EXPECT_EQ(nullptr, plan.passes()[1].state);
+    EXPECT_NE(nullptr, RaytracerBeautyPassState::fromPass(plan.passes()[1]));
+    EXPECT_EQ(nullptr, plan.passes()[2].state);
   }
 }

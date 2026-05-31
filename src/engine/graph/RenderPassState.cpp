@@ -68,13 +68,15 @@ namespace engine::graph {
         {RenderPassKind::Visibility}, RenderExecutorKind::Rasterizer);
       static const TypedRenderPassStateJsonFactory<RaytracerBeautyPassState> raytracerBeauty(
         {RenderPassKind::Beauty}, RenderExecutorKind::Raytracer);
+      static const TypedRenderPassStateJsonFactory<RaytracerBeautyPassState> wavefrontBeauty(
+        {RenderPassKind::Beauty}, RenderExecutorKind::Wavefront);
       static const PostProcessAAStateJsonFactory postProcessAA;
       static const TypedRenderPassStateJsonFactory<WireframePassState> wireframe(
         {RenderPassKind::Beauty, RenderPassKind::Overlay}, RenderExecutorKind::Wireframe);
 
       static const std::vector<const RenderPassStateJsonFactory*> result = {
-        &rasterBeauty,    &rasterShadow,  &rasterVisibility,
-        &raytracerBeauty, &postProcessAA, &wireframe};
+        &rasterBeauty,    &rasterShadow,  &rasterVisibility, &raytracerBeauty,
+        &wavefrontBeauty, &postProcessAA, &wireframe};
       return result;
     }
   }

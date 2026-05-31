@@ -174,6 +174,18 @@ rendercli_assert_image_dimensions("${pt_output}" 24 24
 rendercli_assert_image_nonempty("${pt_output}"
                                 NAME "raytracer --integrator pathtracer pixels")
 
+set(wavefront_output "${TEST_OUTPUT_DIR}/wavefront-direct.png")
+rendercli_run(
+  NAME "rendercli wavefront direct engine renders"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine wavefront
+    --width 24 --height 24 --sampler Regular --samples_per_pixel 4
+    "${raytracer_scene}" "${wavefront_output}"
+)
+rendercli_assert_image_dimensions("${wavefront_output}" 24 24
+                                  NAME "wavefront direct dimensions")
+rendercli_assert_image_nonempty("${wavefront_output}" NAME "wavefront direct pixels")
+
 set(samples_output "${TEST_OUTPUT_DIR}/samples-per-pixel.png")
 rendercli_run(
   NAME "rendercli raytracer accepts --samples_per_pixel"

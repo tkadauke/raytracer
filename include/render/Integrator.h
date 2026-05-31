@@ -3,6 +3,7 @@
 #include "core/Color.h"
 #include "core/math/Ray.h"
 
+#include <functional>
 #include <memory>
 
 namespace render {
@@ -36,6 +37,8 @@ namespace render {
     */
   class Integrator {
   public:
+    using CancellationCallback = std::function<bool()>;
+
     virtual ~Integrator() = default;
 
     /**
@@ -59,5 +62,18 @@ namespace render {
       */
     virtual Colord radiance(const Scene& scene, const Rayd& ray, State& state,
                             const RayCaster& recursiveRayCaster) const = 0;
+
+    /**
+      * Configure the maximum ray depth when this integrator has a bounded
+      * recursion / bounce count. Integrators that do not use this concept may
+      * ignore it.
+      */
+    virtual void setMaximumRecursionDepth(int depth);
+
+    /**
+      * Configure a cooperative cancellation callback. Integrators that do not
+      * perform long-running internal work may ignore it.
+      */
+    virtual void setCancellationCallback(CancellationCallback callback);
   };
 }

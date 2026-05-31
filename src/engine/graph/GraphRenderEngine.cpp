@@ -596,8 +596,7 @@ namespace engine::graph {
         throw;
       }
       if (recorder && traceSession) {
-        recorder->passCompleted(traceSession, pass, storage,
-                                metadata ? *metadata : QJsonObject());
+        recorder->passCompleted(traceSession, pass, storage, metadata ? *metadata : QJsonObject());
       }
       notifyPassFinished(graph, pass, renderGeneration);
     }
@@ -1043,7 +1042,8 @@ namespace engine::graph {
                       pass, storage, &context.traceMetadata(), [&] {
                         const bool executedForDisplay =
                           pass.kind == RenderPassKind::Beauty &&
-                          pass.executor == RenderExecutorKind::Raytracer &&
+                          (pass.executor == RenderExecutorKind::Raytracer ||
+                           pass.executor == RenderExecutorKind::Wavefront) &&
                           payload->executeDisplayAndStore(context, buffer, displayTonemap);
                         if (!executedForDisplay) {
                           payload->execute(context);
