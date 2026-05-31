@@ -11,6 +11,25 @@
 
 namespace render {
   /**
+    * @brief Result of sampling a light from one shading point.
+    *
+    * `direction` and `radiance` intentionally mirror the legacy direct-lighting
+    * API so existing materials can keep using `Light::direction()` and
+    * `Light::radiance()` until an integrator opts into sampling. `pdf` is the
+    * probability density of this sample in the light's native sampling measure.
+    * Delta lights (point and directional lights) report `pdf == 1` for their
+    * deterministic sample and `Light::pdf()` returns zero for ordinary
+    * solid-angle queries.
+    */
+  struct LightSample {
+    Vector3d direction;
+    Colord radiance;
+    double distance;
+    double pdf;
+    bool delta;
+  };
+
+  /**
     * @brief Abstract base for scene light sources.
     *
     * Materials iterate `Scene::lights()` and call two methods on
@@ -33,9 +52,11 @@ namespace render {
     * onto this flat list.
     *
     * Concrete subclasses: `PointLight`, `DirectionalLight`. Future
-    * work for area lights would also subclass here — the interface
-    * is already shaped right (the area-light case picks a sample
-    * point per shading call and returns its `direction` from there).
+    * work for area lights would also subclass here. New integrators
+    * can call `sample(point)` to get the same legacy contribution
+    * plus sampling metadata for soft shadows, direct-light sampling,
+    * and MIS. Delta lights document that explicitly through the
+    * returned sample and through `isDelta()`.
     *
     * @see PointLight, DirectionalLight — concrete subclasses.
     * @see Scene::lights() — where materials read these from.
@@ -69,6 +90,45 @@ namespace render {
       * runtime light only carries one Colord.
       */
     virtual Colord radiance() const = 0;
+
+    /**
+      * Samples this light from `point`.
+      *
+      * The default implementation preserves legacy direct-lighting behavior by
+      * returning `direction(point)`, `radiance()`, infinite distance, `pdf == 1`,
+      * and `delta == true`. Finite positional lights override this to report the
+      * actual distance. Future area lights should override this with stochastic
+      * samples and a non-delta PDF.
+      */
+    virtual LightSample sample(const Vector3d& point) const;
+
+    /**
+      * Evaluates the probability density for sampling `direction` from `point`
+      * in solid angle. Delta lights return zero here because their contribution
+      * is a discrete distribution rather than an ordinary density; use
+      * `sample(point).pdf` when evaluating the deterministic delta sample.
+      */
+    virtual double pdf(const Vector3d& point, const Vector3d& direction) const;
+
+    /**
+      * @returns whether this light is represented by a delta distribution.
+      * Point and directional lights are delta lights; area lights should return
+      * false.
+      */
+    virtual bool isDelta() const;
+
+    /**
+      * @returns an emission/intensity value suitable for light-selection
+      * heuristics. This is metadata only; `radiance()` remains the value used by
+      * the legacy direct-lighting path.
+      */
+    virtual Colord emission() const;
+
+    /**
+      * @returns a finite power estimate when the light has a bounded emitter.
+      * Infinite emitters such as directional lights return `std::nullopt`.
+      */
+    virtual std::optional<Colord> power() const;
 
     /**
       * Stable type name used by deterministic fingerprints. Unlike RTTI names,

@@ -221,6 +221,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   explicit delta flag plus caller-owned 2D sampling overloads, with cosine
   Lambertian and Phong glossy PDF implementations and delta reflection/
   transmission contract tests for Epic #358. — GPT-5
+- **Sampleable light metadata.** Runtime lights now expose deterministic sample,
+  PDF, delta-light, emission, and power metadata APIs while preserving
+  the existing direct-lighting path for Epic #358. — GPT-5
 - **Dimensioned sampler streams.** `SampleStream` now exposes named pixel,
   time, lens, BSDF, light, and continuation dimensions so future integrators
   can request independent samples deterministically without reusing one 2D

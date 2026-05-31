@@ -10,6 +10,15 @@ Colord PointLight::radiance() const {
   return color();
 }
 
+LightSample PointLight::sample(const Vector3d& point) const {
+  const Vector3d offset = position() - point;
+  return {offset.normalized(), radiance(), offset.length(), 1.0, true};
+}
+
+std::optional<Colord> PointLight::power() const {
+  return color();
+}
+
 const char* PointLight::fingerprintType() const {
   return "PointLight";
 }

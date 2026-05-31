@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include "render/lights/DirectionalLight.h"
 
+#include <cmath>
+
 namespace DirectionalLightTest {
   using namespace render;
   using namespace render;
@@ -31,6 +33,35 @@ namespace DirectionalLightTest {
   TEST(DirectionalLight, ShouldReturnRadiance) {
     DirectionalLight light(Vector3d(-0.5, -1, -0.5), Colord::white());
     ASSERT_EQ(Colord::white(), light.radiance());
+  }
+
+  TEST(DirectionalLight, ShouldReturnDeltaSampleAlongConstantDirection) {
+    const Vector3d dir = Vector3d(-0.5, -1, -0.5).normalized();
+    DirectionalLight light(dir, Colord(0.25, 0.5, 0.75));
+
+    const LightSample sample = light.sample(Vector3d(2, 3, 4));
+
+    EXPECT_EQ(dir, sample.direction);
+    EXPECT_EQ(light.radiance(), sample.radiance);
+    EXPECT_TRUE(std::isinf(sample.distance));
+    EXPECT_DOUBLE_EQ(1.0, sample.pdf);
+    EXPECT_TRUE(sample.delta);
+  }
+
+  TEST(DirectionalLight, ShouldExposeDeltaPdfBehavior) {
+    const Vector3d dir = Vector3d(-0.5, -1, -0.5).normalized();
+    DirectionalLight light(dir, Colord::white());
+
+    EXPECT_TRUE(light.isDelta());
+    EXPECT_DOUBLE_EQ(0.0, light.pdf(Vector3d::null, dir));
+  }
+
+  TEST(DirectionalLight, ShouldExposeEmissionAndUnboundedPowerMetadata) {
+    const Colord color(0.25, 0.5, 0.75);
+    DirectionalLight light(Vector3d(-0.5, -1, -0.5), color);
+
+    EXPECT_EQ(color, light.emission());
+    EXPECT_FALSE(light.power().has_value());
   }
 
   TEST(DirectionalLight, ShouldProvideDirectionalShadowMapDirection) {
