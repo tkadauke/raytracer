@@ -238,6 +238,10 @@ namespace world {
       return options.value(name, fallback);
     }
 
+    bool importOptionContains(const ImportOptions& options, const QString& name) {
+      return sourceParameters(options).contains(name) || options.contains(name);
+    }
+
     QString representationFromRenderMode(QString renderMode) {
       renderMode = renderMode.trimmed().toLower();
       if (renderMode == QStringLiteral("ball_and_stick"))
@@ -489,6 +493,8 @@ namespace world {
             atomSphere->setMetadataValue(QStringLiteral("residueIndex"), atom.residueSequence);
             atomSphere->setMetadataValue(QStringLiteral("atomName"), qstr(atom.name));
             atomSphere->setMetadataValue(QStringLiteral("atomSerialNumber"), atom.serialNumber);
+            atomSphere->setMetadataValue(QStringLiteral("moleculeAtomIndex"),
+                                         static_cast<int>(atomIndex));
             atomSphere->setMetadataValue(QStringLiteral("element"), qstr(atom.element));
             atomSphere->setMetadataValue(QStringLiteral("moleculeElement"),
                                          qstr(normalizedElement(atom.element)));
@@ -500,6 +506,11 @@ namespace world {
             atomProvenance.lineEnd = atomProvenance.lineStart;
             atomProvenance.category["recordType"] =
               atom.hetero ? QStringLiteral("HETATM") : QStringLiteral("ATOM");
+            atomProvenance.category["representation"] = options.representation;
+            atomProvenance.category["colorScheme"] = options.colorScheme;
+            atomProvenance.category["element"] = qstr(normalizedElement(atom.element));
+            atomProvenance.category["atomSerialNumber"] = atom.serialNumber;
+            atomProvenance.category["atomIndex"] = static_cast<int>(atomIndex);
             setImportProvenance(*atomSphere, atomProvenance);
             residueGroup->addChild(atomSphere);
           }
@@ -555,6 +566,10 @@ namespace world {
             cylinder->setMetadataValue(QStringLiteral("firstAtomSerialNumber"), first.serialNumber);
             cylinder->setMetadataValue(QStringLiteral("secondAtomSerialNumber"),
                                        second.serialNumber);
+            cylinder->setMetadataValue(QStringLiteral("firstMoleculeAtomIndex"),
+                                       static_cast<int>(bond.firstAtomIndex));
+            cylinder->setMetadataValue(QStringLiteral("secondMoleculeAtomIndex"),
+                                       static_cast<int>(bond.secondAtomIndex));
             cylinder->setMetadataValue(QStringLiteral("moleculeBondInferred"), bond.inferred);
             const QString bondRecord =
               bond.inferred
@@ -567,6 +582,12 @@ namespace world {
               source, cylinder->metadataValue(GroupMetadata::sourceIdKey()).toString(), bondRecord,
               QStringLiteral("bond"));
             bondProvenance.category["inferred"] = bond.inferred;
+            bondProvenance.category["representation"] = options.representation;
+            bondProvenance.category["colorScheme"] = options.colorScheme;
+            bondProvenance.category["firstAtomSerialNumber"] = first.serialNumber;
+            bondProvenance.category["secondAtomSerialNumber"] = second.serialNumber;
+            bondProvenance.category["firstAtomIndex"] = static_cast<int>(bond.firstAtomIndex);
+            bondProvenance.category["secondAtomIndex"] = static_cast<int>(bond.secondAtomIndex);
             setImportProvenance(*cylinder, bondProvenance);
             bondGroup->addChild(cylinder);
           }
@@ -759,6 +780,7 @@ namespace world {
         .toLower();
     const auto renderMode =
       importOptionValue(options, QStringLiteral("renderMode"), QVariant()).toString();
+    const bool hasRenderMode = !renderMode.trimmed().isEmpty();
     if (!renderMode.trimmed().isEmpty())
       compileOptions.representation = representationFromRenderMode(renderMode);
     compileOptions.colorScheme =
@@ -792,6 +814,8 @@ namespace world {
       importOptionValue(options, QStringLiteral("backboneMode"), compileOptions.backboneMode)
         .toString()
         .toLower();
+    if (hasRenderMode && !importOptionContains(options, QStringLiteral("backboneMode")))
+      compileOptions.backboneMode = QStringLiteral("none");
     compileOptions.backboneWidth =
       importOptionValue(options, QStringLiteral("backboneWidth"), compileOptions.backboneWidth)
         .toDouble();
