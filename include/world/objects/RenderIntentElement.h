@@ -35,6 +35,10 @@ class RenderIntentElement : public Element {
   Q_PROPERTY(int raytracerThreads READ raytracerThreads WRITE setRaytracerThreads)
   Q_PROPERTY(int raytracerQueueSize READ raytracerQueueSize WRITE setRaytracerQueueSize)
   Q_PROPERTY(int rasterizerLod READ rasterizerLod WRITE setRasterizerLod)
+  Q_PROPERTY(QString rasterizerTessellationQuality READ rasterizerTessellationQuality WRITE
+               setRasterizerTessellationQuality)
+  Q_PROPERTY(double rasterizerMaxScreenSpaceError READ rasterizerMaxScreenSpaceError WRITE
+               setRasterizerMaxScreenSpaceError)
   Q_PROPERTY(QString rasterizerBackend READ rasterizerBackend WRITE setRasterizerBackend)
   Q_PROPERTY(QString rasterizerVisibilityCulling READ rasterizerVisibilityCulling WRITE
                setRasterizerVisibilityCulling)
@@ -119,6 +123,12 @@ public:
 
   int rasterizerLod() const;
   void setRasterizerLod(int lod);
+
+  QString rasterizerTessellationQuality() const;
+  void setRasterizerTessellationQuality(const QString& quality);
+
+  double rasterizerMaxScreenSpaceError() const;
+  void setRasterizerMaxScreenSpaceError(double pixels);
 
   QString rasterizerBackend() const;
   void setRasterizerBackend(const QString& backend);

@@ -74,6 +74,10 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
     return QStringLiteral("Queue Size");
   if (propertyName == QStringLiteral("rasterizerLod"))
     return QStringLiteral("LOD");
+  if (propertyName == QStringLiteral("rasterizerTessellationQuality"))
+    return QStringLiteral("Tessellation Quality");
+  if (propertyName == QStringLiteral("rasterizerMaxScreenSpaceError"))
+    return QStringLiteral("Max Screen-Space Error");
   if (propertyName == QStringLiteral("rasterizerBackend"))
     return QStringLiteral("Backend");
   if (propertyName == QStringLiteral("rasterizerVisibilityCulling"))
@@ -107,6 +111,14 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
     return QStringLiteral(
       "Requests a graph-visible CPU culling pass. The current baseline records an all-visible "
       "resource; later frustum culling will skip offscreen raster work.");
+  if (propertyName == QStringLiteral("rasterizerTessellationQuality"))
+    return QStringLiteral(
+      "Preview allows larger projected tessellation error for dense scenes. Final keeps the "
+      "requested LOD unless an explicit screen-space error override is set.");
+  if (propertyName == QStringLiteral("rasterizerMaxScreenSpaceError"))
+    return QStringLiteral(
+      "Advanced override in pixels for choosing cheaper tessellation variants from projected "
+      "primitive size. Zero keeps the requested LOD.");
   return Element::propertyDescription(propertyName);
 }
 
@@ -155,6 +167,8 @@ QStringList RenderIntentElement::propertyChoices(const QString& propertyName) co
     return {QStringLiteral("cpu"), QStringLiteral("opengl")};
   if (propertyName == QStringLiteral("rasterizerVisibilityCulling"))
     return {QStringLiteral("off"), QStringLiteral("on"), QStringLiteral("auto")};
+  if (propertyName == QStringLiteral("rasterizerTessellationQuality"))
+    return {QStringLiteral("preview"), QStringLiteral("balanced"), QStringLiteral("final")};
   if (propertyName == QStringLiteral("rasterizerMSAAShading"))
     return {QStringLiteral("per_sample"), QStringLiteral("per_fragment")};
   if (propertyName == QStringLiteral("rasterizerShadowFilter"))
@@ -193,6 +207,8 @@ std::optional<QPair<double, double>>
 RenderIntentElement::propertyDoubleRange(const QString& propertyName) const {
   if (propertyName == QStringLiteral("rasterizerShadowBias"))
     return QPair<double, double>(0.0, 100.0);
+  if (propertyName == QStringLiteral("rasterizerMaxScreenSpaceError"))
+    return QPair<double, double>(0.0, 128.0);
   return std::nullopt;
 }
 
@@ -220,6 +236,14 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
     const auto backend =
       engine::raster::RasterBackend::fromString(choice.toStdString(), "rasterizerBackend");
     return QString::fromLatin1(backend.displayName());
+  }
+  if (propertyName == QStringLiteral("rasterizerTessellationQuality")) {
+    if (choice == QStringLiteral("preview"))
+      return QStringLiteral("Preview");
+    if (choice == QStringLiteral("balanced"))
+      return QStringLiteral("Balanced");
+    if (choice == QStringLiteral("final"))
+      return QStringLiteral("Final");
   }
   if (propertyName == QStringLiteral("rasterizerVisibilityCulling")) {
     if (choice == QStringLiteral("off"))
@@ -435,6 +459,26 @@ int RenderIntentElement::rasterizerLod() const {
 void RenderIntentElement::setRasterizerLod(int lod) {
   auto value = intent();
   value.engineOptions.rasterizer().setLod(lod);
+  setIntent(value);
+}
+
+QString RenderIntentElement::rasterizerTessellationQuality() const {
+  return toQString(intent().engineOptions.rasterizer().tessellationQuality().value_or("balanced"));
+}
+
+void RenderIntentElement::setRasterizerTessellationQuality(const QString& quality) {
+  auto value = intent();
+  value.engineOptions.rasterizer().setTessellationQuality(normalizedText(quality).toStdString());
+  setIntent(value);
+}
+
+double RenderIntentElement::rasterizerMaxScreenSpaceError() const {
+  return intent().engineOptions.rasterizer().maximumScreenSpaceError().value_or(0.0);
+}
+
+void RenderIntentElement::setRasterizerMaxScreenSpaceError(double pixels) {
+  auto value = intent();
+  value.engineOptions.rasterizer().setMaximumScreenSpaceError(pixels);
   setIntent(value);
 }
 

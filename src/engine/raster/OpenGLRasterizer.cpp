@@ -520,6 +520,10 @@ namespace engine::raster {
     }
     clone->setTonemap(tonemap());
     clone->setLod(m_lod);
+    clone->setTessellationQuality(m_tessellationQuality);
+    if (std::isfinite(m_maximumScreenSpaceError)) {
+      clone->setMaximumScreenSpaceError(m_maximumScreenSpaceError);
+    }
     clone->setMSAASamples(m_msaaSamples);
     clone->setMSAAShadingMode(m_msaaShadingMode);
     if (m_hasCullModeOverride) {
@@ -651,7 +655,29 @@ namespace engine::raster {
   }
 
   void OpenGLRasterizer::setLod(int lod) {
-    m_lod = lod;
+    m_lod = std::max(0, lod);
+  }
+
+  Rasterizer::TessellationQuality OpenGLRasterizer::tessellationQuality() const {
+    return m_tessellationQuality;
+  }
+
+  void OpenGLRasterizer::setTessellationQuality(Rasterizer::TessellationQuality quality) {
+    m_tessellationQuality = quality;
+  }
+
+  double OpenGLRasterizer::maximumScreenSpaceError() const {
+    return std::isfinite(m_maximumScreenSpaceError)
+             ? m_maximumScreenSpaceError
+             : Rasterizer::presetScreenSpaceError(m_tessellationQuality);
+  }
+
+  void OpenGLRasterizer::setMaximumScreenSpaceError(double pixels) {
+    m_maximumScreenSpaceError = std::isfinite(pixels) ? std::max(0.0, pixels) : 0.0;
+  }
+
+  void OpenGLRasterizer::clearMaximumScreenSpaceErrorOverride() {
+    m_maximumScreenSpaceError = std::numeric_limits<double>::quiet_NaN();
   }
 
   int OpenGLRasterizer::msaaSamples() const {
@@ -1155,14 +1181,17 @@ namespace engine::raster {
     detail::OpenGLRasterMesh* activeMesh = nullptr;
     std::ptrdiff_t activeMeshSlot = -1;
     if (viewport.width() > 0 && viewport.height() > 0) {
-      const detail::OpenGLRasterMeshBuilder builder(scene().get(), camera(), m_lod, viewport,
-                                                    m_cullMode, m_hasCullModeOverride, m_cancelled,
-                                                    meshShadowMaps, m_depthBias, m_visibilitySet);
+      const detail::OpenGLRasterMeshBuilder builder(
+        scene().get(), camera(), m_lod, m_tessellationQuality, maximumScreenSpaceError(), viewport,
+        m_cullMode, m_hasCullModeOverride, m_cancelled, meshShadowMaps, m_depthBias,
+        m_visibilitySet);
       detail::OpenGLMeshCacheKey key;
       key.scene = scene();
       key.visibilitySet = m_visibilitySet;
       key.shadowMaps = meshShadowMapsPtr;
       key.lod = m_lod;
+      key.tessellationQuality = m_tessellationQuality;
+      key.maximumScreenSpaceError = maximumScreenSpaceError();
       key.viewportWidth = viewport.width();
       key.viewportHeight = viewport.height();
       key.cullMode = m_cullMode;

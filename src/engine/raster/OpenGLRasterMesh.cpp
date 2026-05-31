@@ -155,9 +155,24 @@ namespace engine::raster::detail {
     const Recti& viewportRect, Rasterizer::CullMode cullMode, bool hasCullModeOverride,
     const std::atomic<bool>& cancelled, const ShadowMaps* shadowMaps, double depthBias,
     std::shared_ptr<const RasterVisibilitySet> visibilitySet)
+      : OpenGLRasterMeshBuilder(
+          scene, std::move(camera), lod, Rasterizer::TessellationQuality::Final,
+          Rasterizer::presetScreenSpaceError(Rasterizer::TessellationQuality::Final), viewportRect,
+          cullMode, hasCullModeOverride, cancelled, shadowMaps, depthBias,
+          std::move(visibilitySet)) {
+  }
+
+  OpenGLRasterMeshBuilder::OpenGLRasterMeshBuilder(
+    const render::Scene* scene, std::shared_ptr<render::Camera> camera, int lod,
+    Rasterizer::TessellationQuality quality, double maximumScreenSpaceError,
+    const Recti& viewportRect, Rasterizer::CullMode cullMode, bool hasCullModeOverride,
+    const std::atomic<bool>& cancelled, const ShadowMaps* shadowMaps, double depthBias,
+    std::shared_ptr<const RasterVisibilitySet> visibilitySet)
       : m_scene(scene),
         m_camera(std::move(camera)),
         m_lod(lod),
+        m_quality(quality),
+        m_maximumScreenSpaceError(maximumScreenSpaceError),
         m_viewportRect(viewportRect),
         m_cullMode(cullMode),
         m_hasCullModeOverride(hasCullModeOverride),
@@ -176,6 +191,8 @@ namespace engine::raster::detail {
     m_camera->viewPlane()->setup(m_camera->matrix(), m_viewportRect);
     Rasterizer rasterizer(m_camera, std::shared_ptr<render::Scene>());
     rasterizer.setLod(m_lod);
+    rasterizer.setTessellationQuality(m_quality);
+    rasterizer.setMaximumScreenSpaceError(m_maximumScreenSpaceError);
     const bool cameraIndependent = isCameraIndependentBuildAvailable();
     RasterTriangleEmitter emitter(m_scene, m_camera, m_lod, rasterizer, m_cancelled, m_cullMode,
                                   m_hasCullModeOverride, false, m_visibilitySet,

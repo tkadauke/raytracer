@@ -37,6 +37,9 @@ namespace RenderIntentElementTest {
     intent->setPostProcessAA("smaa");
     intent->setRasterizerBackend("opengl");
     intent->setRasterizerVisibilityCulling("auto");
+    intent->setRasterizerLod(3);
+    intent->setRasterizerTessellationQuality("final");
+    intent->setRasterizerMaxScreenSpaceError(0.25);
     intent->setRasterizerMSAASamples(4);
     intent->setRasterizerShadowMapSize(128);
     intent->setRaytracerSampler("Jittered");
@@ -54,6 +57,14 @@ namespace RenderIntentElementTest {
     ASSERT_TRUE(scene.renderIntent().engineOptions.rasterizer().visibilityCulling().has_value());
     EXPECT_EQ(engine::graph::RenderVisibilityCulling::Auto,
               *scene.renderIntent().engineOptions.rasterizer().visibilityCulling());
+    ASSERT_TRUE(scene.renderIntent().engineOptions.rasterizer().lod().has_value());
+    EXPECT_EQ(3, *scene.renderIntent().engineOptions.rasterizer().lod());
+    ASSERT_TRUE(scene.renderIntent().engineOptions.rasterizer().tessellationQuality().has_value());
+    EXPECT_EQ("final", *scene.renderIntent().engineOptions.rasterizer().tessellationQuality());
+    ASSERT_TRUE(
+      scene.renderIntent().engineOptions.rasterizer().maximumScreenSpaceError().has_value());
+    EXPECT_DOUBLE_EQ(0.25,
+                     *scene.renderIntent().engineOptions.rasterizer().maximumScreenSpaceError());
     ASSERT_TRUE(scene.renderIntent().engineOptions.rasterizer().msaaSamples().has_value());
     EXPECT_EQ(4, *scene.renderIntent().engineOptions.rasterizer().msaaSamples());
     ASSERT_TRUE(scene.renderIntent().engineOptions.rasterizer().shadowMapSize().has_value());
@@ -89,6 +100,7 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("stencil_composite"));
     EXPECT_TRUE(intent->propertyChoices("rasterizerBackend").contains("opengl"));
     EXPECT_TRUE(intent->propertyChoices("rasterizerVisibilityCulling").contains("auto"));
+    EXPECT_TRUE(intent->propertyChoices("rasterizerTessellationQuality").contains("final"));
     EXPECT_FALSE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
     intent->setDefaultEngine("rasterizer");
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
@@ -99,6 +111,10 @@ namespace RenderIntentElementTest {
     EXPECT_EQ(QString("OpenGL"), intent->propertyChoiceDisplayName("rasterizerBackend", "opengl"));
     EXPECT_EQ(QString("Visibility Culling"),
               intent->propertyDisplayName("rasterizerVisibilityCulling"));
+    EXPECT_EQ(QString("Tessellation Quality"),
+              intent->propertyDisplayName("rasterizerTessellationQuality"));
+    EXPECT_EQ(QString("Final"),
+              intent->propertyChoiceDisplayName("rasterizerTessellationQuality", "final"));
     EXPECT_EQ(QString("Auto"),
               intent->propertyChoiceDisplayName("rasterizerVisibilityCulling", "auto"));
     EXPECT_EQ((QList<int>{1, 2, 4, 8}), intent->propertyIntChoices("rasterizerMSAASamples"));
@@ -115,6 +131,8 @@ namespace RenderIntentElementTest {
     EXPECT_EQ(8192, intent->propertyIntRange("rasterizerShadowMapSize")->second);
     ASSERT_TRUE(intent->propertyDoubleRange("rasterizerShadowBias").has_value());
     EXPECT_DOUBLE_EQ(0.0, intent->propertyDoubleRange("rasterizerShadowBias")->first);
+    ASSERT_TRUE(intent->propertyDoubleRange("rasterizerMaxScreenSpaceError").has_value());
+    EXPECT_DOUBLE_EQ(128.0, intent->propertyDoubleRange("rasterizerMaxScreenSpaceError")->second);
   }
 
   TEST(RenderIntentElement, FiltersEngineSpecificProperties) {

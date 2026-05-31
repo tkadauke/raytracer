@@ -96,6 +96,11 @@ namespace engine::raster {
 
     int lod() const;
     void setLod(int lod);
+    Rasterizer::TessellationQuality tessellationQuality() const;
+    void setTessellationQuality(Rasterizer::TessellationQuality quality);
+    double maximumScreenSpaceError() const;
+    void setMaximumScreenSpaceError(double pixels);
+    void clearMaximumScreenSpaceErrorOverride();
 
     int msaaSamples() const;
     void setMSAASamples(int samples);
@@ -208,6 +213,9 @@ namespace engine::raster {
 
     std::atomic<bool> m_cancelled{false};
     int m_lod{0};
+    Rasterizer::TessellationQuality m_tessellationQuality{
+      Rasterizer::TessellationQuality::Balanced};
+    double m_maximumScreenSpaceError{std::numeric_limits<double>::quiet_NaN()};
     int m_msaaSamples{1};
     Rasterizer::MSAAShadingMode m_msaaShadingMode{Rasterizer::MSAAShadingMode::PerFragment};
     Rasterizer::CullMode m_cullMode{Rasterizer::CullMode::Both};

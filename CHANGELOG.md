@@ -11,6 +11,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Raster screen-space tessellation LOD.** Raster graph intent now carries
+  preview/balanced/final tessellation quality plus an advanced maximum
+  screen-space error override; the shared raster front end records projected
+  primitive size, selects cheaper LOD variants for small dense parts, and
+  reuses cached variants across repeated source-part instances for Epic #356
+  Phase 2. — GPT-5
 - **BoundingBox Ray4 packet masks use the shared SIMD backend.**
   `BoundingBox::intersects4(Ray4)` now runs through the four-wide SIMD
   abstraction for SSE, NEON, and scalar builds, with explicit packet-mask tests

@@ -131,6 +131,14 @@ namespace engine::raster::detail {
       double depthBias = 0.0,
       std::shared_ptr<const engine::raster::RasterVisibilitySet> visibilitySet = nullptr);
 
+    OpenGLRasterMeshBuilder(
+      const render::Scene* scene, std::shared_ptr<render::Camera> camera, int lod,
+      Rasterizer::TessellationQuality quality, double maximumScreenSpaceError,
+      const Recti& viewportRect, Rasterizer::CullMode cullMode, bool hasCullModeOverride,
+      const std::atomic<bool>& cancelled, const ShadowMaps* shadowMaps = nullptr,
+      double depthBias = 0.0,
+      std::shared_ptr<const engine::raster::RasterVisibilitySet> visibilitySet = nullptr);
+
     OpenGLRasterMesh build() const;
 
     /**
@@ -150,6 +158,8 @@ namespace engine::raster::detail {
     const render::Scene* m_scene;
     std::shared_ptr<render::Camera> m_camera;
     int m_lod;
+    Rasterizer::TessellationQuality m_quality;
+    double m_maximumScreenSpaceError;
     Recti m_viewportRect;
     Rasterizer::CullMode m_cullMode;
     bool m_hasCullModeOverride;

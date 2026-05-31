@@ -189,6 +189,17 @@ namespace engine::graph {
       optionsError(path, "expected both, back, or front");
     }
 
+    Rasterizer::TessellationQuality tessellationQualityFromString(const std::string& value,
+                                                                  const std::string& path) {
+      if (value == "preview")
+        return Rasterizer::TessellationQuality::Preview;
+      if (value == "balanced")
+        return Rasterizer::TessellationQuality::Balanced;
+      if (value == "final")
+        return Rasterizer::TessellationQuality::Final;
+      optionsError(path, "expected preview, balanced, or final");
+    }
+
     Rasterizer::MSAAShadingMode msaaShadingModeFromString(const std::string& value,
                                                           const std::string& path) {
       if (value == "per_sample")
@@ -415,6 +426,10 @@ namespace engine::graph {
     QJsonObject geometry;
     if (m_lod)
       geometry["lod"] = *m_lod;
+    if (m_tessellationQuality)
+      geometry["quality"] = qstr(*m_tessellationQuality);
+    if (m_maximumScreenSpaceError)
+      geometry["maxScreenSpaceError"] = *m_maximumScreenSpaceError;
     if (m_cullMode)
       geometry["cullMode"] = qstr(*m_cullMode);
     if (m_visibilityCulling)
@@ -499,9 +514,15 @@ namespace engine::graph {
         stringField(execution, "backend", path + ".execution"), path + ".execution.backend"));
 
     const QJsonObject geometry = objectField(object, "geometry", path);
-    rejectUnknownFields(geometry, path + ".geometry", {"lod", "cullMode", "visibilityCulling"});
+    rejectUnknownFields(geometry, path + ".geometry",
+                        {"lod", "quality", "maxScreenSpaceError", "cullMode", "visibilityCulling"});
     if (hasField(geometry, "lod"))
       options.setLod(intField(geometry, "lod", path + ".geometry"));
+    if (hasField(geometry, "quality"))
+      options.setTessellationQuality(stringField(geometry, "quality", path + ".geometry"));
+    if (hasField(geometry, "maxScreenSpaceError"))
+      options.setMaximumScreenSpaceError(
+        doubleField(geometry, "maxScreenSpaceError", path + ".geometry"));
     if (hasField(geometry, "cullMode"))
       options.setCullMode(stringField(geometry, "cullMode", path + ".geometry"));
     if (hasField(geometry, "visibilityCulling"))
@@ -593,6 +614,10 @@ namespace engine::graph {
     result.m_queueSize = overrideOptional(result.m_queueSize, overrides.m_queueSize);
     result.m_backend = overrideOptional(result.m_backend, overrides.m_backend);
     result.m_lod = overrideOptional(result.m_lod, overrides.m_lod);
+    result.m_tessellationQuality =
+      overrideOptional(result.m_tessellationQuality, overrides.m_tessellationQuality);
+    result.m_maximumScreenSpaceError =
+      overrideOptional(result.m_maximumScreenSpaceError, overrides.m_maximumScreenSpaceError);
     result.m_cullMode = overrideOptional(result.m_cullMode, overrides.m_cullMode);
     result.m_visibilityCulling =
       overrideOptional(result.m_visibilityCulling, overrides.m_visibilityCulling);
@@ -648,6 +673,12 @@ namespace engine::graph {
       state.execution().setBackend(*m_backend);
     if (m_lod)
       state.geometry().setLod(*m_lod);
+    if (m_tessellationQuality) {
+      state.geometry().setTessellationQuality(
+        tessellationQualityFromString(*m_tessellationQuality, "rasterizer.geometry.quality"));
+    }
+    if (m_maximumScreenSpaceError)
+      state.geometry().setMaximumScreenSpaceError(*m_maximumScreenSpaceError);
     if (m_cullMode)
       state.geometry().setCullMode(cullModeFromString(*m_cullMode, "rasterizer.geometry.cullMode"));
     if (m_msaaSamples)
@@ -736,6 +767,12 @@ namespace engine::graph {
     RasterVisibilityPassState state;
     if (m_lod)
       state.geometry().setLod(*m_lod);
+    if (m_tessellationQuality) {
+      state.geometry().setTessellationQuality(
+        tessellationQualityFromString(*m_tessellationQuality, "rasterizer.geometry.quality"));
+    }
+    if (m_maximumScreenSpaceError)
+      state.geometry().setMaximumScreenSpaceError(*m_maximumScreenSpaceError);
     if (m_cullMode)
       state.geometry().setCullMode(cullModeFromString(*m_cullMode, "rasterizer.geometry.cullMode"));
     const RasterBeautyPassState beautyState =
@@ -764,6 +801,15 @@ namespace engine::graph {
 
   void RenderRasterizerOptions::setLod(int lod) {
     m_lod = std::max(0, lod);
+  }
+
+  void RenderRasterizerOptions::setTessellationQuality(std::string quality) {
+    tessellationQualityFromString(quality, "rasterizer.geometry.quality");
+    m_tessellationQuality = std::move(quality);
+  }
+
+  void RenderRasterizerOptions::setMaximumScreenSpaceError(double pixels) {
+    m_maximumScreenSpaceError = std::isfinite(pixels) ? std::max(0.0, pixels) : 0.0;
   }
 
   void RenderRasterizerOptions::setCullMode(std::string mode) {
@@ -911,6 +957,14 @@ namespace engine::graph {
 
   std::optional<int> RenderRasterizerOptions::lod() const {
     return m_lod;
+  }
+
+  std::optional<std::string> RenderRasterizerOptions::tessellationQuality() const {
+    return m_tessellationQuality;
+  }
+
+  std::optional<double> RenderRasterizerOptions::maximumScreenSpaceError() const {
+    return m_maximumScreenSpaceError;
   }
 
   std::optional<std::string> RenderRasterizerOptions::cullMode() const {

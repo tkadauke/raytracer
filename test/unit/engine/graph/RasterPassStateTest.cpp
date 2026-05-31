@@ -121,6 +121,8 @@ namespace RasterPassStateTest {
   TEST(RasterVisibilityPassState, SerializesGeometryState) {
     RasterVisibilityPassState state;
     state.geometry().setLod(3);
+    state.geometry().setTessellationQuality(Rasterizer::TessellationQuality::Final);
+    state.geometry().setMaximumScreenSpaceError(0.25);
     state.geometry().setCullMode(Rasterizer::CullMode::Back);
     state.setFrontToBackOrderingEnabled(false);
 
@@ -128,6 +130,8 @@ namespace RasterPassStateTest {
     const QJsonObject geometry = json.value("geometry").toObject();
 
     EXPECT_EQ(3, geometry.value("lod").toInt());
+    EXPECT_EQ("final", geometry.value("quality").toString().toStdString());
+    EXPECT_DOUBLE_EQ(0.25, geometry.value("maxScreenSpaceError").toDouble());
     EXPECT_EQ("back", geometry.value("cullMode").toString().toStdString());
     EXPECT_FALSE(json.value("frontToBackOrdering").toBool(true));
     EXPECT_TRUE(state.geometry().hasCullModeOverride());
@@ -141,6 +145,8 @@ namespace RasterPassStateTest {
     const auto* visibility = decoded->asRasterVisibilityPassState();
     ASSERT_NE(nullptr, visibility);
     EXPECT_EQ(3, visibility->geometry().lod());
+    EXPECT_EQ(Rasterizer::TessellationQuality::Final, visibility->geometry().tessellationQuality());
+    EXPECT_DOUBLE_EQ(0.25, visibility->geometry().maximumScreenSpaceError());
     EXPECT_FALSE(visibility->frontToBackOrderingEnabled());
   }
 
@@ -349,6 +355,8 @@ namespace RasterPassStateTest {
     execution["backend"] = "opengl";
     QJsonObject geometry;
     geometry["lod"] = 3;
+    geometry["quality"] = "preview";
+    geometry["maxScreenSpaceError"] = 4.5;
     geometry["cullMode"] = "back";
     QJsonObject sampling;
     sampling["msaaSamples"] = 4;
@@ -407,6 +415,8 @@ namespace RasterPassStateTest {
     state.applyTo(rasterizer);
 
     EXPECT_EQ(3, rasterizer.lod());
+    EXPECT_EQ(Rasterizer::TessellationQuality::Preview, rasterizer.tessellationQuality());
+    EXPECT_DOUBLE_EQ(4.5, rasterizer.maximumScreenSpaceError());
     EXPECT_TRUE(state.execution().backend().isOpenGL());
     EXPECT_EQ(7, rasterizer.queueSize());
     EXPECT_EQ(Rasterizer::CullMode::Back, rasterizer.cullMode());
