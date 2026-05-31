@@ -28,6 +28,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   through `include/core/SimdFeatures.h` project macros for SSE, SSE2, SSE3, AVX,
   and NEON, preserving existing x86 behavior while preparing Epic #426 ARM SIMD
   work. — GPT-5
+- **ARM SIMD documentation and feature-macro validation.** Project performance
+  guidance now treats ARM NEON packet traversal as a supported SIMD surface,
+  `docs/perf/` indexes the Epic #426 benchmark evidence, and AArch64-specific
+  NEON helpers use the project feature macro layer instead of raw architecture
+  checks. — GPT-5
 - **Molecule importer visible styling.** Direct molecule imports now use shared
   element-aware atom radii/colors and bond inference options while preserving
   model, chain, residue, atom, and bond provenance metadata for Epic #408. —

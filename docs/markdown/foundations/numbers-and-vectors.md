@@ -18,7 +18,7 @@ its slots. By the end you should know:
   intuition,
 - the unit-length invariant that quietly underpins every shading
   computation in the rest of the book,
-- and where the [SSE3](../appendix/a-glossary.md#s) specializations slot in.
+- and where the [SIMD](../appendix/a-glossary.md#s) specializations slot in.
 
 ## <a id="scalars-double-is-the-default"></a>Scalars: `double` is the default
 The codebase is `double`-first. Every non-color geometric quantity
@@ -30,7 +30,7 @@ two exceptions:
    topic) is also `double`, but other color storage may be `float`
    or `unsigned int` depending on whether we're holding [HDR](../appendix/a-glossary.md#h) or [LDR](../appendix/a-glossary.md#l)
    data. That choice is independent of geometry.
-2. **The SSE3 specializations.** `Vector3<float>` and
+2. **The SIMD specializations.** `Vector3<float>` and
    `Vector4<float>` exist for cases where you specifically need
    the four-floats-per-XMM-register density. Geometry doesn't use
    them; some debug and instrumentation paths do.
@@ -94,9 +94,9 @@ extra parameters are where the design pays for itself.
 
 `StorageCellType` controls the *layout* of the components in
 memory. Most of the time it's the same as `T`, which gives you the
-naive packed-array layout. The SSE3 specializations override it to
+naive packed-array layout. The SIMD specializations override it to
 hold the components in an XMM register's worth of storage instead
-(see [The SSE3 specializations](#the-sse3-specializations)).
+(see [The SIMD specializations](#the-sse3-specializations)).
 
 `Derived` is the subclass that wants to inherit the
 dimension-agnostic operations. When you write
@@ -357,12 +357,15 @@ subsequent mutation," not "is this approximately unit length." For
 approximate checks, compute `length()` and compare against 1 with
 a tolerance.
 
-## <a id="the-sse3-specializations"></a>The SSE3 specializations
+## <a id="the-sse3-specializations"></a>The SIMD specializations
 The headers under
 [`include/core/math/vector/sse3/`](../../../include/core/math/vector/sse3/)
 override specific instantiations — `Vector3<float>`, `Vector4<float>`,
-and `Vector4<double>` — to use SSE / SSE3 intrinsics for storage and
-arithmetic.
+and `Vector4<double>` — to use x86 SSE / SSE3 intrinsics for storage
+and arithmetic. The shared packet backend under
+[`include/core/simd/`](../../../include/core/simd/) uses the same idea for
+four-wide ray packets, with x86 SSE, ARM NEON, and scalar implementations
+behind one API.
 
 The trick is in the storage type. The default `Vector3<float>`
 holds three floats in an array of three floats — 12 bytes. The SSE3
@@ -392,12 +395,14 @@ provides.
 The specializations are entirely transparent: you write `Vector3f
 a, b; auto c = a + b;` and the SSE3 path is selected automatically
 when you compile with `-msse3` (which the project's release preset
-does). When you compile without SSE3 — for a target that doesn't
-have it, or in a debug build — the generic template definition
-takes over and the same source code still works.
+does). On ARM, packet traversal selects NEON through the project
+`RAYTRACER_SIMD_NEON` feature gate when the compiler exposes it. When
+you compile for a target without a matching SIMD backend, the generic
+template or scalar packet backend takes over and the same source code
+still works.
 
 The book treats this as an implementation detail. The math is the
-same; the API is the same; the operators are the same. SSE3 only
+same; the API is the same; the operators are the same. SIMD only
 matters when you're optimizing a hot path or chasing a precision
 discrepancy.
 
@@ -416,7 +421,7 @@ discrepancy.
 3. Find one place in the codebase where `squaredLength` is used in
    preference to `length`. Why? Try replacing it with `length` and
    describe what would change in the rendered output.
-4. Read the SSE3 `Vector3<float>` operator implementations in
+4. Read the x86 SIMD `Vector3<float>` operator implementations in
    [`include/core/math/vector/sse3/Vector3f.h`](../../../include/core/math/vector/sse3/Vector3f.h).
    Do they produce the same result as the generic template bit-for-bit?
    Are there inputs where they wouldn't?

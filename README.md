@@ -63,7 +63,7 @@ Other useful Rake tasks: `rake docs:render` regenerates the Doxygen example imag
 * Shape compositions
   * Composition, Union, Intersection, Difference, Instancing
 * Support for the PLY mesh format
-* SSE3 optimizations
+* SIMD optimizations on supported x86 and ARM targets
 
 ## hack
 

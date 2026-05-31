@@ -42,13 +42,14 @@ option(RAYTRACER_ENABLE_NATIVE_TUNING "Tune release builds for the current CPU" 
 # positive for this intentional SIMD-specialization pattern.
 add_compile_options(-W -Wall -Werror -pedantic -Wno-extra-semi -Wno-ignored-attributes)
 
-# Enable SSE3 intrinsics on x86 across every config so the Vector3<float>
-# and Color<float> SSE3 specializations under include/core/math/vector/sse3/
-# and include/core/color/sse3/ are actually selected. -mtune=native alone
-# only changes scheduling, not the available instruction set, so without
-# this the specializations fall back to the generic templates and tests like
-# Vector3Test.ShouldHaveRightSize fail on x86 runners that don't ship -msse3
-# in their default ABI baseline.
+# Enable x86 SSE3 intrinsics across every config so the legacy vector/color
+# specializations under include/core/math/vector/sse3/ and
+# include/core/color/sse3/ are actually selected. ARM NEON is exposed through
+# the target's ABI/compiler feature macros and does not use this x86-only flag.
+# -mtune=native alone only changes scheduling, not the available instruction
+# set, so without this the specializations fall back to the generic templates
+# and tests like Vector3Test.ShouldHaveRightSize fail on x86 runners that don't
+# ship -msse3 in their default ABI baseline.
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|i[3-6]86)")
   add_compile_options(-msse3)
 endif()

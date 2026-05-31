@@ -1,16 +1,16 @@
 // SIMD regression tests.
 //
-// The SSE3 specialisations of Vector3<float>, Vector3<double>, Vector4<float>,
+// The x86 SIMD specializations of Vector3<float>, Vector4<float>,
 // Vector4<double>, Color<float>, and Color<double> live in
 // include/core/math/vector/sse3/ and include/core/color/sse3/. They are
 // gated on RAYTRACER_SIMD_SSE / RAYTRACER_SIMD_SSE3 at compile time. When
 // those project-level gates are enabled (i.e. on x86 with -msse3, which
-// CMakeLists.txt sets unconditionally for x86-family CPUs), the specialisations
+// CMakeLists.txt sets unconditionally for x86-family CPUs), the specializations
 // replace the generic Vector / Color templates for those particular
 // instantiations.
 //
 // Each test below takes a battery of inputs, runs each operation through both
-// the SSE3 specialisation and an explicit instantiation of the generic
+// the x86 SIMD specialization and an explicit instantiation of the generic
 // underlying template, and asserts the two results are equal within FP
 // tolerance.
 //
@@ -33,7 +33,7 @@ namespace SimdRegressionTest {
 
   namespace {
     // Explicitly-instantiated *generic* aliases. These bypass the Vector3<T>
-    // / Color<T> SSE3 specialisations and always use the underlying
+    // / Color<T> x86 SIMD specializations and always use the underlying
     // template's scalar implementation, regardless of whether
     // RAYTRACER_SIMD_SSE is enabled. They are the "expected" side of every
     // comparison below.
@@ -47,7 +47,7 @@ namespace SimdRegressionTest {
 
 #if RAYTRACER_SIMD_SSE
 
-  // Vector3<float> — SSE3 specialisation gated on RAYTRACER_SIMD_SSE.
+  // Vector3<float> — x86 SIMD specialization gated on RAYTRACER_SIMD_SSE.
   TEST(SimdRegression, Vector3fAddMatchesGeneric) {
     Vector3<float> s(1.5f, -2.0f, 3.5f);
     Vector3<float> t(0.25f, 4.0f, -1.5f);
@@ -121,7 +121,7 @@ namespace SimdRegressionTest {
     ASSERT_NEAR(g_s.length(), s.length(), kTol);
   }
 
-  // Vector4<float> — SSE3 specialisation gated on RAYTRACER_SIMD_SSE.
+  // Vector4<float> — x86 SIMD specialization gated on RAYTRACER_SIMD_SSE.
   TEST(SimdRegression, Vector4fAddMatchesGeneric) {
     Vector4<float> s(1.5f, -2.0f, 3.5f, 0.5f), t(0.25f, 4.0f, -1.5f, 0.25f);
     GenericVector4<float> g_s(1.5f, -2.0f, 3.5f, 0.5f), g_t(0.25f, 4.0f, -1.5f, 0.25f);
@@ -170,7 +170,8 @@ namespace SimdRegressionTest {
 
 #if RAYTRACER_SIMD_SSE3
 
-  // Vector3<double> — SSE3 specialisation gated on RAYTRACER_SIMD_SSE3.
+  // Vector3<double> — generic path under the SSE3 gate, retained here so the
+  // deleted specialization stays covered by the scalar-equivalence suite.
   TEST(SimdRegression, Vector3dAddMatchesGeneric) {
     Vector3<double> s(1.5, -2.0, 3.5), t(0.25, 4.0, -1.5);
     GenericVector3<double> g_s(1.5, -2.0, 3.5), g_t(0.25, 4.0, -1.5);
@@ -198,7 +199,7 @@ namespace SimdRegressionTest {
     ASSERT_NEAR(1.0, k.z(), kTol);
   }
 
-  // Vector4<double> — SSE3 specialisation gated on RAYTRACER_SIMD_SSE3.
+  // Vector4<double> — x86 SIMD specialization gated on RAYTRACER_SIMD_SSE3.
   TEST(SimdRegression, Vector4dAddMatchesGeneric) {
     Vector4<double> s(1.5, -2.0, 3.5, 0.5), t(0.25, 4.0, -1.5, 0.25);
     GenericVector4<double> g_s(1.5, -2.0, 3.5, 0.5), g_t(0.25, 4.0, -1.5, 0.25);
@@ -263,7 +264,7 @@ namespace SimdRegressionTest {
 
 #if RAYTRACER_SIMD_SSE3
 
-  // Color<double> SSE3 specialisation.
+  // Color<double> x86 SIMD specialization.
   TEST(SimdRegression, ColordAddMatchesScalar) {
     Color<double> a(0.25, 0.5, 0.75), b(0.5, 0.25, 0.125);
     auto sum = a + b;
@@ -314,6 +315,12 @@ namespace SimdRegressionTest {
     EXPECT_EQ(1, RAYTRACER_SIMD_NEON);
 #else
     EXPECT_EQ(0, RAYTRACER_SIMD_NEON);
+#endif
+
+#if defined(__aarch64__)
+    EXPECT_EQ(1, RAYTRACER_SIMD_AARCH64);
+#else
+    EXPECT_EQ(0, RAYTRACER_SIMD_AARCH64);
 #endif
   }
 }

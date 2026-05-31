@@ -547,7 +547,7 @@ namespace core::simd {
 
   template<>
   [[nodiscard]] inline Float4T<NeonBackend> sqrt<NeonBackend>(Float4T<NeonBackend> value) {
-#if defined(__aarch64__)
+#if RAYTRACER_SIMD_AARCH64
     return Float4T<NeonBackend>(vsqrtq_f32(value.value()));
 #else
     alignas(16) float lanes[4];
@@ -659,7 +659,7 @@ namespace core::simd {
   template<>
   [[nodiscard]] inline Float4T<NeonBackend> operator/
     <NeonBackend>(Float4T<NeonBackend> lhs, Float4T<NeonBackend> rhs) {
-#if defined(__aarch64__)
+#if RAYTRACER_SIMD_AARCH64
     return Float4T<NeonBackend>(vdivq_f32(lhs.value(), rhs.value()));
 #else
     alignas(16) float a[4];

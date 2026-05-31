@@ -48,3 +48,11 @@
 #define RAYTRACER_SIMD_NEON 0
 #endif
 #endif
+
+#ifndef RAYTRACER_SIMD_AARCH64
+#if defined(__aarch64__)
+#define RAYTRACER_SIMD_AARCH64 1
+#else
+#define RAYTRACER_SIMD_AARCH64 0
+#endif
+#endif
