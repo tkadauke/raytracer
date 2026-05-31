@@ -65,10 +65,10 @@ namespace render {
     * ### Sampling caveat
     *
     * Each call to `rayForPixel(x, y, stream)` pulls a single 2D
-    * sample on the lens disc from `stream.next2D()`. The renderer
-    * has already consumed dimension 0 for sub-pixel jitter, so the
-    * lens sample lives on dimension 1 — *independently stratified*
-    * from the sub-pixel jitter. The sample is routed through the
+    * sample on the lens disc from `stream.next2D()`. During normal
+    * rendering, the renderer has already consumed pixel jitter and
+    * shutter time, so this cursor read lands on the same stream slot
+    * named by `SampleDimension::Lens`. The sample is routed through the
     * concentric square-to-disc mapping (Shirley 1997) below; the
     * resulting disc points inherit whatever stratification the
     * active sampler provides (jittered, multi-jittered, future
@@ -133,16 +133,13 @@ namespace render {
       * Generate a primary ray for pixel `(x, y)`, pulling the lens-disc
       * sample from `stream.next2D()`. Called by the per-pixel render
       * loop; multiple invocations for the same pixel see different
-      * `sampleIndex` values and therefore different lens points,
-      * which is what produces the DOF blur in the final image.
+      * `sampleIndex` values and therefore different lens points, which is
+      * what produces the DOF blur in the final image.
       *
-      * The renderer guarantees the stream is positioned past
-      * dimension 0 (sub-pixel jitter is consumed by the renderer
-      * itself), so the `next2D` call here returns a fresh
-      * stratified dimension that's *independent* of the sub-pixel
-      * jitter — fixing the residual correlation that the previous
-      * "reuse the sub-pixel sample as the lens sample" hack lived
-      * with.
+      * The renderer positions the sequential cursor at the lens
+      * dimension before calling the camera, keeping lens ownership
+      * independent of renderer-owned pixel and time samples while
+      * preserving the direct-call `next2D()` behavior.
       *
       * @see rayForPixelWithLens for the deterministic-aperture overload
       *      used by tests.

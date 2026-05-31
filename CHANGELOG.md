@@ -49,6 +49,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Dimensioned sampler streams.** `SampleStream` now exposes named pixel,
+  time, lens, BSDF, light, and continuation dimensions so future integrators
+  can request independent samples deterministically without reusing one 2D
+  pattern accidentally for Epic #358. — GPT-5
 - **Shared four-wide SIMD backend.** Internal packet traversal code now has a
   shared `core::simd::Float4`/`Mask4` abstraction with SSE, NEON, and scalar
   backends, and BVH bounding-box packet tests use that backend instead of a

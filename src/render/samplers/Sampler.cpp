@@ -32,18 +32,30 @@ namespace {
     }
 
     Vector2d next2D() override {
-      const auto& set = m_sampler->setAt((m_pixelHash + m_dim) % m_sampler->numSets());
+      const auto& set = sampleSetForDimension(m_dim);
       ++m_dim;
       return set[m_sampleIndex];
     }
 
     double next1D() override {
-      const auto& set = m_sampler->setAt((m_pixelHash + m_dim) % m_sampler->numSets());
+      const auto& set = sampleSetForDimension(m_dim);
       ++m_dim;
       return set[m_sampleIndex].x();
     }
 
+    Vector2d sample2D(SampleDimension dimension, std::uint64_t index = 0) override {
+      return sampleSetForDimension(sampleDimensionIndex(dimension, index))[m_sampleIndex];
+    }
+
+    double sample1D(SampleDimension dimension, std::uint64_t index = 0) override {
+      return sampleSetForDimension(sampleDimensionIndex(dimension, index))[m_sampleIndex].x();
+    }
+
   private:
+    const std::vector<Vector2d>& sampleSetForDimension(std::uint64_t dimension) const {
+      return m_sampler->setAt((m_pixelHash + dimension) % m_sampler->numSets());
+    }
+
     const Sampler* m_sampler;
     int m_sampleIndex;
     std::uint64_t m_pixelHash;

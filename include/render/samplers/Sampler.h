@@ -30,6 +30,8 @@ namespace render {
     *
     *     auto stream = sampler->stream(sampleIndex, pixelHash);
     *     Vector2d lensSample = stream->next2D();
+    *     Vector2d bsdfSample =
+    *       stream->sample2D(SampleDimension::BSDF, bounce);
     *
     * The stream API is what cameras with extra stochastic dimensions
     * (thin-lens for lens samples, motion-blur cameras for shutter
@@ -38,9 +40,9 @@ namespace render {
     *
     * The default `stream` implementation reads from the pre-baked
     * sample sets, indexing each requested dimension at
-    * `(pixelHash + dim) mod numSets` so consecutive calls return
-    * stratified samples from *independent* sets — that's what
-    * decorrelates dimensions across a path. Concrete samplers that
+    * `(pixelHash + dim) mod numSets` so consecutive calls and explicit
+    * named dimensions return stratified samples from *independent* sets
+    * — that's what decorrelates dimensions across a path. Concrete samplers that
     * implement low-discrepancy sequences (Sobol, Halton, future
     * QMC samplers) will override `stream` to return a sequence-aware
     * stream rather than the default per-set look-up.
@@ -100,12 +102,13 @@ namespace render {
       *        and you'd see structured noise patterns aligned to the
       *        pixel grid.
       *
-      * The default implementation returns a stream that reads
-      * `next2D` from set `(pixelHash + dim) mod numSets` at
-      * sampleIndex, and `next1D` from the x-coordinate of the same
-      * lookup. Concrete samplers may override this to produce
-      * sequence-aware streams (Sobol, Halton, …); see SampleStream.h
-      * for the consumer-side contract.
+      * The default implementation returns a stream that reads `next2D`
+      * from set `(pixelHash + dim) mod numSets` at sampleIndex, and
+      * `next1D` from the x-coordinate of the same lookup. Explicit
+      * `SampleDimension` requests use the same mapping with stable
+      * renderer/path-tracing dimension ownership. Concrete samplers may
+      * override this to produce sequence-aware streams (Sobol, Halton,
+      * …); see SampleStream.h for the consumer-side contract.
       */
     virtual std::unique_ptr<SampleStream> stream(int sampleIndex, uint64_t pixelHash) const;
 

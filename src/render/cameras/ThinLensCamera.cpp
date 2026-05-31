@@ -53,13 +53,13 @@ const char* ThinLensCamera::fingerprintType() const {
 
 Rayd ThinLensCamera::rayForPixel(double x, double y, ::render::SampleStream& stream) const {
   // Pull the lens-disc sample from the stream's next 2D dimension.
-  // The renderer has already consumed dimension 0 for sub-pixel
-  // jitter, so this call returns dimension 1 — an *independent*
-  // stratified [0, 1]² sample that decorrelates lens position from
-  // sub-pixel position. Map [0, 1]² → [-1, 1]² and route through the
-  // concentric square-to-disc mapping (Shirley 1997) above; the disc
-  // samples inherit whatever stratification the active sampler
-  // provides (jittered, multi-jittered, future Sobol, …).
+  // During normal rendering, the renderer has already consumed pixel
+  // jitter and shutter time, so this cursor read reaches the same slot
+  // named by SampleDimension::Lens while preserving direct-call stream
+  // behavior. Map [0, 1]² → [-1, 1]² and route through the concentric
+  // square-to-disc mapping (Shirley 1997) above; the disc samples
+  // inherit whatever stratification the active sampler provides
+  // (jittered, multi-jittered, future Sobol, …).
   //
   // Why stratification matters: pure-random per-call lens sampling
   // gives O(1/√N) Monte Carlo noise on bokeh — at 1024 spp that's

@@ -172,16 +172,15 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
 
       auto stream = sampler->stream(sampleIndex, pixelHash);
 
-      // Dimensions 0 and 1 of the stream are owned by the renderer
-      // and consumed before the camera sees the stream:
-      //   dim 0 (2D) — sub-pixel jitter for anti-aliasing.
-      //   dim 1 (1D) — shutter-time sample, in [0, 1). Animatable
-      //                primitives (Instance with non-zero velocity)
-      //                read this from `state.timeSample` and
-      //                interpolate their transforms.
-      // Cameras therefore see a stream starting at dimension 2;
-      // whatever they pull (lens disc, future Kolb element index,
-      // ...) is decorrelated from sub-pixel and time.
+      // The renderer owns the pixel and time dimensions and consumes
+      // them before the camera sees the stream:
+      //   Pixel (2D) — sub-pixel jitter for anti-aliasing.
+      //   Time  (1D) — shutter-time sample, in [0, 1). Animatable
+      //                primitives read this from `state.timeSample`
+      //                and interpolate their transforms.
+      // The sequential cursor is therefore positioned at the historical
+      // lens/camera dimension; explicit `SampleDimension` accessors use
+      // the same stable ownership without depending on call order.
       Vector2d subPixel = stream->next2D();
       Vector2d xy = pixel.pixel() + subPixel;
       double timeSample = stream->next1D();
