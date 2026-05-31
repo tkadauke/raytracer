@@ -1,9 +1,9 @@
 #pragma once
 
 #include "core/math/Vector.h"
-#include "engine/raster/OpenGLOffscreenContext.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/raster/detail/OpenGLRasterMesh.h"
+#include "engine/raster/gl/Context.h"
 
 #include <array>
 #include <cstdint>
@@ -139,7 +139,12 @@ namespace engine::raster::detail {
   inline constexpr std::size_t kOpenGLMeshCacheSize = 4;
 
   struct OpenGLRasterResourceCache {
-    OpenGLOffscreenContext context;
+    // Held as `unique_ptr<gl::Context>` so the cache stays agnostic
+    // of which backend created it. `OpenGLRasterResourceCache`'s
+    // default constructor picks via `gl::createOffscreenContext()`:
+    // Qt-backed when a QGuiApplication is up (Modeler), CGL otherwise
+    // (rendercli).
+    std::unique_ptr<gl::Context> context;
     std::unique_ptr<QOpenGLShaderProgram> program;
     OpenGLRasterAttributeLocations locations;
     std::unique_ptr<OpenGLRasterImageTextureCache> imageTextures;

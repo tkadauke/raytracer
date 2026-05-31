@@ -93,13 +93,13 @@ namespace engine::raster {
                                        Buffer<std::uint8_t>* stencilTarget) {
         OpenGLRasterRenderTimings timings;
         const auto makeCurrentStarted = std::chrono::steady_clock::now();
-        if (!m_resources.context.makeCurrent()) {
-          throw std::runtime_error(m_resources.context.errorMessage());
+        if (!m_resources.context->makeCurrent()) {
+          throw std::runtime_error(m_resources.context->errorMessage());
         }
-        if (!m_resources.context.bindFramebuffer()) {
-          m_resources.context.doneCurrent();
-          m_resources.context.detachFromCurrentThread();
-          throw std::runtime_error(m_resources.context.errorMessage());
+        if (!m_resources.context->bindFramebuffer()) {
+          m_resources.context->doneCurrent();
+          m_resources.context->detachFromCurrentThread();
+          throw std::runtime_error(m_resources.context->errorMessage());
         }
         timings.makeCurrentElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::steady_clock::now() - makeCurrentStarted);
@@ -115,27 +115,27 @@ namespace engine::raster {
             std::chrono::steady_clock::now() - glFinishStarted);
           const auto readbackStarted = std::chrono::steady_clock::now();
           if (target && m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-            m_resources.context.copyColorTo(*target);
+            m_resources.context->copyColorTo(*target);
           }
           if (depthTarget && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-            m_resources.context.copyDepthTo(*depthTarget);
+            m_resources.context->copyDepthTo(*depthTarget);
           }
           if (stencilTarget && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-            m_resources.context.copyStencilTo(*stencilTarget);
+            m_resources.context->copyStencilTo(*stencilTarget);
           }
           timings.readbackElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - readbackStarted);
           const auto doneCurrentStarted = std::chrono::steady_clock::now();
-          m_resources.context.releaseFramebuffer();
-          m_resources.context.doneCurrent();
-          m_resources.context.detachFromCurrentThread();
+          m_resources.context->releaseFramebuffer();
+          m_resources.context->doneCurrent();
+          m_resources.context->detachFromCurrentThread();
           timings.doneCurrentElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - doneCurrentStarted);
           return timings;
         } catch (...) {
-          m_resources.context.releaseFramebuffer();
-          m_resources.context.doneCurrent();
-          m_resources.context.detachFromCurrentThread();
+          m_resources.context->releaseFramebuffer();
+          m_resources.context->doneCurrent();
+          m_resources.context->detachFromCurrentThread();
           throw;
         }
       }
@@ -1116,15 +1116,15 @@ namespace engine::raster {
     if (!m_resources) {
       m_resources = sharedResources();
     }
-    if (!m_resources->context.migrateToCurrentThread()) {
+    if (!m_resources->context->migrateToCurrentThread()) {
       // The cache's offscreen context was bound to a thread that has
       // since exited. Replace it locally so this render and future ones
       // start clean instead of retrying the failed migration every
       // frame.
       m_resources = std::make_shared<detail::OpenGLRasterResourceCache>();
     }
-    if (!m_resources->context.create(width, height, m_msaaSamples)) {
-      throw std::runtime_error(m_resources->context.errorMessage());
+    if (!m_resources->context->create(width, height, m_msaaSamples)) {
+      throw std::runtime_error(m_resources->context->errorMessage());
     }
 
     const Recti viewport = viewportRectFor(width, height);

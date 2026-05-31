@@ -1,6 +1,7 @@
 #include "engine/raster/detail/OpenGLRasterResourceCache.h"
 
 #include "engine/raster/detail/OpenGLRasterShaderSources.h"
+#include "engine/raster/gl/createContext.h"
 #include "render/textures/ImageTexture.h"
 
 #include <QOpenGLBuffer>
@@ -118,7 +119,9 @@ namespace engine::raster::detail {
            ambientLighting >= 0 && directLighting >= 0 && specular >= 0 && albedoMode >= 0;
   }
 
-  OpenGLRasterResourceCache::OpenGLRasterResourceCache() = default;
+  OpenGLRasterResourceCache::OpenGLRasterResourceCache()
+      : context(gl::createOffscreenContext()) {
+  }
 
   OpenGLRasterResourceCache::MeshSlotResult
   OpenGLRasterResourceCache::acquireMeshSlot(const OpenGLMeshCacheKey& key) {
@@ -159,8 +162,8 @@ namespace engine::raster::detail {
     if (!needsContext) {
       return;
     }
-    context.migrateToCurrentThread();
-    if (context.makeCurrent()) {
+    context->migrateToCurrentThread();
+    if (context->makeCurrent()) {
       if (imageTextures) {
         QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
         imageTextures->releaseAll(functions);
@@ -168,7 +171,7 @@ namespace engine::raster::detail {
       vertexBuffer.reset();
       indexBuffer.reset();
       program.reset();
-      context.doneCurrent();
+      context->doneCurrent();
     } else {
       // No usable context — leak the GL handles. The OS reclaims them.
       (void)vertexBuffer.release();
