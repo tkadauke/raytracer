@@ -4,6 +4,7 @@
 #include "engine/raster/OpenGLOffscreenContext.h"
 
 #include <mutex>
+#include "engine/raster/detail/OpenGLRasterAttributeBinder.h"
 #include "engine/raster/detail/OpenGLRasterMesh.h"
 #include "engine/raster/detail/OpenGLRasterResourceCache.h"
 #include "engine/raster/detail/OpenGLRasterShaderSources.h"
@@ -221,80 +222,7 @@ namespace engine::raster {
                                static_cast<int>(mesh.indices().size() * sizeof(std::uint32_t)));
         }
 
-        const int positionLocation = m_resources.locations.position;
-        const int worldPositionLocation = m_resources.locations.worldPosition;
-        const int normalLocation = m_resources.locations.normal;
-        const int colorLocation = m_resources.locations.color;
-        const int uvLocation = m_resources.locations.uv;
-        const int alphaScaleLocation = m_resources.locations.alphaScale;
-        const int materialDiffuseLocation = m_resources.locations.materialDiffuse;
-        const int materialSpecularColorLocation = m_resources.locations.materialSpecularColor;
-        const int materialSpecularCoefficientLocation =
-          m_resources.locations.materialSpecularCoefficient;
-        const int materialSpecularExponentLocation = m_resources.locations.materialSpecularExponent;
-        const int ambientLightingLocation = m_resources.locations.ambientLighting;
-        const int directLightingLocation = m_resources.locations.directLighting;
-        const int specularLocation = m_resources.locations.specular;
-        const int albedoModeLocation = m_resources.locations.albedoMode;
-
-        program.enableAttributeArray(positionLocation);
-        program.setAttributeBuffer(positionLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, x), 4,
-                                   sizeof(detail::OpenGLRasterMesh::Vertex));
-        program.enableAttributeArray(worldPositionLocation);
-        program.setAttributeBuffer(worldPositionLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, worldX), 3,
-                                   sizeof(detail::OpenGLRasterMesh::Vertex));
-        program.enableAttributeArray(normalLocation);
-        program.setAttributeBuffer(normalLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, normalX), 3,
-                                   sizeof(detail::OpenGLRasterMesh::Vertex));
-        program.enableAttributeArray(colorLocation);
-        program.setAttributeBuffer(colorLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, r), 4,
-                                   sizeof(detail::OpenGLRasterMesh::Vertex));
-        program.enableAttributeArray(uvLocation);
-        program.setAttributeBuffer(uvLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, u), 2,
-                                   sizeof(detail::OpenGLRasterMesh::Vertex));
-        program.enableAttributeArray(alphaScaleLocation);
-        program.setAttributeBuffer(alphaScaleLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, alphaScale), 1,
-                                   sizeof(detail::OpenGLRasterMesh::Vertex));
-        program.enableAttributeArray(materialDiffuseLocation);
-        program.setAttributeBuffer(materialDiffuseLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, materialDiffuse), 1,
-                                   sizeof(detail::OpenGLRasterMesh::Vertex));
-        program.enableAttributeArray(materialSpecularColorLocation);
-        program.setAttributeBuffer(materialSpecularColorLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, materialSpecularR), 3,
-                                   sizeof(detail::OpenGLRasterMesh::Vertex));
-        program.enableAttributeArray(materialSpecularCoefficientLocation);
-        program.setAttributeBuffer(
-          materialSpecularCoefficientLocation, GL_FLOAT,
-          offsetof(detail::OpenGLRasterMesh::Vertex, materialSpecularCoefficient), 1,
-          sizeof(detail::OpenGLRasterMesh::Vertex));
-        program.enableAttributeArray(materialSpecularExponentLocation);
-        program.setAttributeBuffer(
-          materialSpecularExponentLocation, GL_FLOAT,
-          offsetof(detail::OpenGLRasterMesh::Vertex, materialSpecularExponent), 1,
-          sizeof(detail::OpenGLRasterMesh::Vertex));
-        program.enableAttributeArray(ambientLightingLocation);
-        program.setAttributeBuffer(ambientLightingLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, ambientR), 3,
-                                   sizeof(detail::OpenGLRasterMesh::Vertex));
-        program.enableAttributeArray(directLightingLocation);
-        program.setAttributeBuffer(directLightingLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, directR), 3,
-                                   sizeof(detail::OpenGLRasterMesh::Vertex));
-        program.enableAttributeArray(specularLocation);
-        program.setAttributeBuffer(specularLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, specularR), 3,
-                                   sizeof(detail::OpenGLRasterMesh::Vertex));
-        program.enableAttributeArray(albedoModeLocation);
-        program.setAttributeBuffer(albedoModeLocation, GL_FLOAT,
-                                   offsetof(detail::OpenGLRasterMesh::Vertex, albedoMode), 1,
-                                   sizeof(detail::OpenGLRasterMesh::Vertex));
+        detail::bindVertexAttributes(program, m_resources.locations);
 
         if (!m_resources.imageTextures) {
           m_resources.imageTextures = std::make_unique<detail::OpenGLRasterImageTextureCache>();
@@ -340,20 +268,7 @@ namespace engine::raster {
 
         detail::resetFixedFunctionState();
 
-        program.disableAttributeArray(albedoModeLocation);
-        program.disableAttributeArray(specularLocation);
-        program.disableAttributeArray(directLightingLocation);
-        program.disableAttributeArray(ambientLightingLocation);
-        program.disableAttributeArray(materialSpecularExponentLocation);
-        program.disableAttributeArray(materialSpecularCoefficientLocation);
-        program.disableAttributeArray(materialSpecularColorLocation);
-        program.disableAttributeArray(materialDiffuseLocation);
-        program.disableAttributeArray(alphaScaleLocation);
-        program.disableAttributeArray(uvLocation);
-        program.disableAttributeArray(colorLocation);
-        program.disableAttributeArray(normalLocation);
-        program.disableAttributeArray(worldPositionLocation);
-        program.disableAttributeArray(positionLocation);
+        detail::unbindVertexAttributes(program, m_resources.locations);
         indexBuffer.release();
         vertexBuffer.release();
         program.release();
