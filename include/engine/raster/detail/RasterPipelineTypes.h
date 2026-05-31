@@ -164,6 +164,7 @@ namespace engine::raster::detail {
     Vector2d uvDx;
     Vector2d uvDy;
     std::uint64_t faceIdx;
+    bool conservativeDepthOcclusionEligible{false};
   };
 
   // Borrowed full-frame outputs used by diagnostics and picking experiments.
@@ -196,6 +197,7 @@ namespace engine::raster::detail {
     std::atomic<std::uint64_t>* shadedFragments = nullptr;
     std::atomic<std::uint64_t>* alphaTestFails = nullptr;
     std::atomic<std::uint64_t>* colorWrites = nullptr;
+    std::atomic<std::uint64_t>* conservativeDepthRejectedTriangleTiles = nullptr;
 
     void recordCoverage(int x, int y) const;
 
@@ -212,6 +214,8 @@ namespace engine::raster::detail {
     void recordAlphaTestFail() const;
 
     void recordColorWrite(int x, int y) const;
+
+    void recordConservativeDepthReject() const;
 
     void writeStencil(int x, int y, std::uint8_t value) const;
 

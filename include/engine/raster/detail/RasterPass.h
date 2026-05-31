@@ -15,10 +15,14 @@
 
 #include <QThreadPool>
 
+#include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdint>
 #include <list>
+#include <limits>
 #include <memory>
+#include <vector>
 
 namespace engine::raster::detail {
 
@@ -279,6 +283,64 @@ namespace engine::raster::detail {
       });
   }
 
+  inline double conservativeMinimumTriangleDepth(const RasterTriangle& triangle,
+                                                 const DepthState& state) {
+    return std::min({state.biasedDepth(triangle.vertices[0].depthOverW / triangle.vertices[0].invW),
+                     state.biasedDepth(triangle.vertices[1].depthOverW / triangle.vertices[1].invW),
+                     state.biasedDepth(triangle.vertices[2].depthOverW / triangle.vertices[2].invW)});
+  }
+
+  template<class Depth>
+  double conservativeMaximumStoredDepth(Depth depth, const Recti& rect) {
+    double maximum = -std::numeric_limits<double>::infinity();
+    for (int y = rect.top(); y != rect.bottom(); ++y) {
+      for (int x = rect.left(); x != rect.right(); ++x) {
+        maximum = std::max(maximum, depth.zBuffer.at(x, y));
+      }
+    }
+    return maximum;
+  }
+
+  template<class Depth>
+  struct TileDepthSummary {
+    static constexpr std::size_t buildThreshold = 8;
+    static constexpr std::size_t rebuildInterval = 8;
+
+    bool valid{false};
+    std::size_t renderedEligibleTriangles{0};
+    double maximumStoredDepth{std::numeric_limits<double>::infinity()};
+
+    bool rejects(const RasterTriangle& triangle, Depth depth, const Recti& rect) {
+      if (!triangle.conservativeDepthOcclusionEligible) {
+        return false;
+      }
+      if (!valid && renderedEligibleTriangles >= buildThreshold) {
+        rebuild(depth, rect);
+      }
+      if (!valid) {
+        return false;
+      }
+      const double nearestIncoming = conservativeMinimumTriangleDepth(triangle, depth.state);
+      return std::isfinite(nearestIncoming) && maximumStoredDepth <= nearestIncoming;
+    }
+
+    void recordRenderedEligibleTriangle(Depth depth, const Recti& rect) {
+      ++renderedEligibleTriangles;
+      if (renderedEligibleTriangles >= buildThreshold &&
+          ((renderedEligibleTriangles - buildThreshold) % rebuildInterval) == 0) {
+        rebuild(depth, rect);
+      } else {
+        valid = false;
+      }
+    }
+
+  private:
+    void rebuild(Depth depth, const Recti& rect) {
+      maximumStoredDepth = conservativeMaximumStoredDepth(depth, rect);
+      valid = true;
+    }
+  };
+
   template<class Fragment, class RenderFn>
   void withMSAAFragmentShadingPolicy(const Rasterizer& rasterizer,
                                      MSAAFragmentShadeCache* shadeCache, Fragment fragmentPolicy,
@@ -329,19 +391,28 @@ namespace engine::raster::detail {
                                  const Recti& clipRect, const Vector2d& sampleOffset,
                                  const std::atomic<bool>& cancelled, Stencil stencil, Depth depth,
                                  Fragment fragmentPolicy, AlphaTestState alphaTest,
-                                 Diagnostics diagnostics) {
+                                 bool conservativeDepthOcclusion, Diagnostics diagnostics) {
     const Recti rasterRect = intersectRasterRects(rect, clipRect);
     if (rasterRectEmpty(rasterRect))
       return;
 
     const auto& triangles = triangleSet.triangles();
     const auto& triangleIndices = triangleSet.tileGrid().triangleIndices(tileIndex);
+    TileDepthSummary<Depth> depthSummary;
     for (const std::size_t triangleIndex : triangleIndices) {
       if (cancelled.load())
         return;
+      const RasterTriangle& triangle = triangles[triangleIndex];
+      if (conservativeDepthOcclusion && depthSummary.rejects(triangle, depth, rasterRect)) {
+        diagnostics.recordConservativeDepthReject();
+        continue;
+      }
       rasterizePreparedTriangleWithPolicies(triangles[triangleIndex], rasterRect, colorBuffer,
                                             sampleOffset, stencil, depth, fragmentPolicy, alphaTest,
                                             diagnostics);
+      if (conservativeDepthOcclusion && triangle.conservativeDepthOcclusionEligible) {
+        depthSummary.recordRenderedEligibleTriangle(depth, rasterRect);
+      }
     }
   }
 
@@ -367,21 +438,24 @@ namespace engine::raster::detail {
                                         const std::atomic<bool>& cancelled, ColorBuffer colorBuffer,
                                         const Recti& clipRect, const Vector2d& sampleOffset,
                                         Stencil stencil, Depth depth, Fragment fragmentPolicy,
-                                        AlphaTestState alphaTest, Diagnostics diagnostics) {
+                                        AlphaTestState alphaTest,
+                                        bool conservativeDepthOcclusion, Diagnostics diagnostics) {
     if (tilePlan.isSingleTile()) {
       // Avoid QRunnable overhead for the common single-tile path.
       rasterizeTileWithPolicies(triangleSet, tilePlan.fullRect(), 0, colorBuffer, clipRect,
                                 sampleOffset, cancelled, stencil, depth, fragmentPolicy, alphaTest,
-                                diagnostics);
+                                conservativeDepthOcclusion, diagnostics);
       return;
     }
 
     engine::dispatchTileTasks(tilePlan, threadPool, tasks,
                               [&, sampleOffset, stencil, depth, fragmentPolicy, alphaTest,
+                               conservativeDepthOcclusion,
                                diagnostics](const Recti& rect, std::size_t tileIndex) {
                                 rasterizeTileWithPolicies(triangleSet, rect, tileIndex, colorBuffer,
                                                           clipRect, sampleOffset, cancelled,
-                                                          stencil, depth, fragmentPolicy, alphaTest,
+                                                          stencil, depth, fragmentPolicy,
+                                                          alphaTest, conservativeDepthOcclusion,
                                                           diagnostics);
                               });
   }

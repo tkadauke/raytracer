@@ -178,19 +178,30 @@ tests, the rasterizer needs earlier rejection.
 
 Tasks:
 
-- Sort opaque work roughly front-to-back at object, mesh, or per-tile level.
-- Add tile-level hierarchical depth summaries after enough opaque geometry has
-  rendered.
-- Reject whole triangle/tile combinations when conservative depth bounds prove
-  the triangle cannot pass.
-- Keep alpha-tested, blended, stencil-writing, and two-sided passes out of
-  unsafe occlusion shortcuts unless the state is explicitly supported.
+- ~~Sort opaque work roughly front-to-back at object, mesh, or per-tile level.~~
+  ✅ **Done.** Retained opaque, depth-writing raster batches are stably sorted
+  by nearest prepared-triangle depth before tile binning for Epic #356 Phase 3.
+- ~~Add tile-level hierarchical depth summaries after enough opaque geometry has
+  rendered.~~ ✅ **Done.** Eligible tile loops rebuild a conservative maximum
+  stored-depth summary after the warm-up threshold and at regular intervals.
+- ~~Reject whole triangle/tile combinations when conservative depth bounds prove
+  the triangle cannot pass.~~ ✅ **Done.** The CPU raster tile loop skips
+  triangle/tile pairs whose nearest incoming depth is still behind the tile's
+  conservative stored-depth bound.
+- ~~Keep alpha-tested, blended, stencil-writing, and two-sided passes out of
+  unsafe occlusion shortcuts unless the state is explicitly supported.~~ ✅
+  **Done.** The shortcut is disabled for alpha test, blending, stencil, non-Less
+  depth, disabled depth writes, and two-sided triangles.
 
 Acceptance:
 
-- Coverage/depth-test totals fall on occluded dense scenes, not just shaded
-  fragment or color-write totals.
-- Rendering remains identical for opaque test scenes.
+- ~~Coverage/depth-test totals fall on occluded dense scenes, not just shaded
+  fragment or color-write totals.~~ ✅ **Done.** Unit coverage compares the
+  shortcut with an alpha-test fallback and `rendercli --raster_metrics_summary`
+  now reports coverage/depth-test deltas.
+- ~~Rendering remains identical for opaque test scenes.~~ ✅ **Done.** Raster
+  unit coverage compares optimized and fallback color buffers and the full
+  `Rasterizer.*` suite covers tiled/MSAA/fixed-function parity.
 
 ## Phase 4 - binning and scheduling follow-up
 

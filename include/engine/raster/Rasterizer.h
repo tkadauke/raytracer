@@ -650,6 +650,9 @@ namespace engine::raster {
         std::uint64_t shadedFragments = 0;
         std::uint64_t alphaTestFails = 0;
         std::uint64_t colorWrites = 0;
+        std::uint64_t conservativeDepthRejectedTriangleTiles = 0;
+        std::uint64_t coverageMinusShadedFragments = 0;
+        std::uint64_t depthTestsMinusColorWrites = 0;
       } fragments;
 
       struct DiagnosticImageStatistics {

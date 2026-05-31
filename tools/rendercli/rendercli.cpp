@@ -126,6 +126,14 @@ namespace {
       << " covered_samples="
       << static_cast<std::uint64_t>(fragments.value("coveredSamples").toDouble())
       << " depth_tests=" << static_cast<std::uint64_t>(fragments.value("depthTests").toDouble())
+      << " coverage_minus_shaded="
+      << static_cast<std::uint64_t>(
+           fragments.value("coverageMinusShadedFragments").toDouble())
+      << " depth_tests_minus_color_writes="
+      << static_cast<std::uint64_t>(fragments.value("depthTestsMinusColorWrites").toDouble())
+      << " coarse_depth_rejects="
+      << static_cast<std::uint64_t>(
+           fragments.value("conservativeDepthRejectedTriangleTiles").toDouble())
       << " shaded_fragments="
       << static_cast<std::uint64_t>(fragments.value("shadedFragments").toDouble())
       << " color_writes=" << static_cast<std::uint64_t>(fragments.value("colorWrites").toDouble())

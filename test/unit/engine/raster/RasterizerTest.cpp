@@ -525,6 +525,24 @@ namespace RasterizerTest {
     return std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(color));
   }
 
+  static std::shared_ptr<Scene> sceneWithFrontOccluderAndDenseBackLayer(int backRectangleCount) {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    auto addRectangle = [&](double z) {
+      scene->add(std::make_shared<Triangle>(Vector3d(-100.0, -100.0, z),
+                                            Vector3d(100.0, -100.0, z),
+                                            Vector3d(-100.0, 100.0, z)));
+      scene->add(std::make_shared<Triangle>(Vector3d(100.0, -100.0, z),
+                                            Vector3d(100.0, 100.0, z),
+                                            Vector3d(-100.0, 100.0, z)));
+    };
+
+    addRectangle(0.0);
+    for (int i = 0; i != backRectangleCount; ++i) {
+      addRectangle(1.0);
+    }
+    return scene;
+  }
+
   static std::shared_ptr<Scene> sceneWithDirectionalShadowCaster() {
     auto scene = std::make_shared<Scene>(Colord(0.1, 0.1, 0.1));
 
@@ -1364,6 +1382,48 @@ namespace RasterizerTest {
     EXPECT_EQ(1u, requestedLods.size());
     EXPECT_EQ(1u, engine.lastMetrics().tessellation.lodVariantCacheMisses);
     EXPECT_EQ(1u, engine.lastMetrics().tessellation.lodVariantCacheHits);
+  }
+
+  TEST(Rasterizer, ConservativeDepthOcclusionReducesCoverageAndDepthTestsOnDenseOcclusion) {
+    auto scene = sceneWithFrontOccluderAndDenseBackLayer(24);
+    Rasterizer occluding(headOnCamera(), scene);
+    occluding.setMaximumThreads(2);
+    occluding.setQueueSize(4);
+    occluding.setCullMode(Rasterizer::CullMode::Front);
+
+    Buffer<Colord> occludingColor(64, 64);
+    occluding.render(occludingColor);
+
+    Rasterizer fallback(headOnCamera(), scene);
+    fallback.setMaximumThreads(2);
+    fallback.setQueueSize(4);
+    fallback.setCullMode(Rasterizer::CullMode::Front);
+    fallback.setAlphaTestEnabled(true);
+    fallback.setAlphaFunc(Rasterizer::AlphaFunc::Always, 0.0);
+
+    Buffer<Colord> fallbackColor(64, 64);
+    fallback.render(fallbackColor);
+
+    expectBuffersEqual(fallbackColor, occludingColor);
+    EXPECT_GT(occluding.lastMetrics().fragments.conservativeDepthRejectedTriangleTiles, 0u);
+    EXPECT_LT(occluding.lastMetrics().fragments.coveredSamples,
+              fallback.lastMetrics().fragments.coveredSamples);
+    EXPECT_LT(occluding.lastMetrics().fragments.depthTests,
+              fallback.lastMetrics().fragments.depthTests);
+    EXPECT_EQ(0u, fallback.lastMetrics().fragments.conservativeDepthRejectedTriangleTiles);
+  }
+
+  TEST(Rasterizer, ConservativeDepthOcclusionFallsBackForTwoSidedPasses) {
+    Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
+    engine.setMaximumThreads(2);
+    engine.setQueueSize(4);
+
+    Buffer<Colord> color(64, 64);
+    engine.render(color);
+
+    EXPECT_EQ(0u, engine.lastMetrics().fragments.conservativeDepthRejectedTriangleTiles);
+    EXPECT_EQ(engine.lastMetrics().fragments.coveredSamples,
+              engine.lastMetrics().fragments.depthTests);
   }
 
   TEST(Rasterizer, MetricsCaptureMaterialAndLightInputSummary) {

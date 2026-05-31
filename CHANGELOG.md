@@ -17,6 +17,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   primitive size, selects cheaper LOD variants for small dense parts, and
   reuses cached variants across repeated source-part instances for Epic #356
   Phase 2. — GPT-5
+- **Raster conservative depth occlusion.** Opaque, depth-writing raster triangle
+  batches now render front-to-back and use tile-level hierarchical depth
+  summaries to skip fully occluded triangle/tile pairs, while alpha-tested,
+  blended, stencil, and two-sided passes conservatively keep the old fragment
+  loop; raster metrics now report coarse depth rejects and coverage/depth-test
+  deltas for Epic #356 Phase 3. — GPT-5
 - **LDraw raster sidedness safety.** Imported LDraw mesh faces now preserve
   reliable, unknown, and corrected winding metadata so raster material
   sidedness only infers backface culling for trusted front-sided geometry;

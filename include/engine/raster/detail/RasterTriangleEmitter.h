@@ -290,6 +290,10 @@ namespace engine::raster::detail {
           recordTriangleRejectedByWindingOrDegeneracy();
           return;
         }
+        const Rasterizer::CullMode triangleCullMode =
+          m_cullPolicy.hasOverride ? m_cullPolicy.overrideMode : materialSource.defaultCullMode();
+        triangle.conservativeDepthOcclusionEligible =
+          triangleCullMode != Rasterizer::CullMode::Both;
         recordTriangleAfterCulling();
         recordTriangleAfterClipping();
         callback(triangle);
