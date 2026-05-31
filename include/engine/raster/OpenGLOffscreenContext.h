@@ -1,14 +1,9 @@
 #pragma once
 
-#include "core/Color.h"
 #include "engine/raster/gl/Context.h"
 
-#include <cstdint>
 #include <memory>
 #include <string>
-
-template<class T>
-class Buffer;
 
 namespace engine::raster {
   /**
@@ -49,19 +44,13 @@ namespace engine::raster {
 
     static OpenGLAvailability probe();
 
-    using gl::Context::create;
-    bool create(int width, int height, int samples) override;
+    bool create(int samples = 1) override;
 
     bool migrateToCurrentThread() override;
     void detachFromCurrentThread() override;
 
     bool makeCurrent() override;
     void doneCurrent() override;
-    bool bindFramebuffer() override;
-    void releaseFramebuffer() override;
-    void copyColorTo(Buffer<Colord>& target) const override;
-    void copyDepthTo(Buffer<double>& target) const override;
-    void copyStencilTo(Buffer<std::uint8_t>& target) const override;
     bool isValid() const override;
     const std::string& errorMessage() const override;
     std::string detailText() const override;

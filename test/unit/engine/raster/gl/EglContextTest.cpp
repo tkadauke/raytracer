@@ -4,15 +4,12 @@
 
 #include "core/Buffer.h"
 #include "core/Color.h"
+#include "engine/raster/gl/AttachmentSet.h"
 #include "engine/raster/gl/Bindings.h"
 #include "engine/raster/gl/EglContext.h"
 
 namespace engine::raster::gl::tests {
   TEST(EglContext, ProbeAnswersAvailability) {
-    // Mesa surfaceless EGL ships everywhere we test, but CI hosts
-    // without libEGL or with a broken driver legitimately fail the
-    // probe. The contract is that probe() returns the right
-    // Availability — not that it always succeeds.
     const Availability info = EglContext::probe();
     if (!info.available()) {
       GTEST_SKIP() << "EGL surfaceless context unavailable on this host: " << info.error();
@@ -20,28 +17,31 @@ namespace engine::raster::gl::tests {
     EXPECT_FALSE(info.detail().empty());
   }
 
-  TEST(EglContext, CreatesContextAndAllocatesFbo) {
+  TEST(EglContext, CreatesContext) {
     EglContext context;
-    if (!context.create(64, 48, 0)) {
+    if (!context.create()) {
       GTEST_SKIP() << "EGL surfaceless context unavailable on this host: "
                    << context.errorMessage();
     }
     EXPECT_TRUE(context.isValid());
   }
 
-  TEST(EglContext, ReadsBackClearedColorBuffer) {
+  TEST(EglContext, ReadsBackClearedColorBufferThroughAttachmentSet) {
     EglContext context;
-    if (!context.create(8, 8, 0)) {
+    if (!context.create()) {
       GTEST_SKIP() << "EGL surfaceless context unavailable on this host: "
                    << context.errorMessage();
     }
     ASSERT_TRUE(context.makeCurrent());
-    ASSERT_TRUE(context.bindFramebuffer());
+    AttachmentSet set;
+    ASSERT_TRUE(set.create(8, 8, 0)) << set.errorMessage();
+    set.bind();
     glClearColor(0.2f, 0.4f, 0.6f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     Buffer<Colord> buffer(8, 8);
-    context.copyColorTo(buffer);
-    context.releaseFramebuffer();
+    set.copyColorTo(buffer);
+    set.release();
+    set.destroy();
     context.doneCurrent();
 
     EXPECT_NEAR(0.2, buffer[0][0].r(), 1.0 / 255.0);
@@ -51,7 +51,7 @@ namespace engine::raster::gl::tests {
 
   TEST(EglContext, MakeCurrentMigrateDetachReroundtripWorks) {
     EglContext context;
-    if (!context.create(4, 4, 0)) {
+    if (!context.create()) {
       GTEST_SKIP() << "EGL surfaceless context unavailable on this host: "
                    << context.errorMessage();
     }

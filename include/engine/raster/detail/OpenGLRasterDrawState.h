@@ -24,7 +24,9 @@ namespace engine::raster::detail {
     * without re-introducing per-field accessors.
     */
   struct OpenGLRasterDrawState {
+    int width{0};
     int height{0};
+    int samples{0};
     Recti viewportRect;
     bool scissorEnabled{false};
     Recti scissorRect;

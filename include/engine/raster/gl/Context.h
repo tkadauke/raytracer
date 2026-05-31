@@ -1,13 +1,6 @@
 #pragma once
 
-#include "core/Color.h"
-
-#include <cstdint>
-#include <memory>
 #include <string>
-
-template<class T>
-class Buffer;
 
 namespace engine::raster::gl {
   /**
@@ -49,19 +42,23 @@ namespace engine::raster::gl {
   };
 
   /**
-    * Abstract offscreen OpenGL context + framebuffer-owner interface.
+    * Abstract offscreen OpenGL context interface — context lifecycle
+    * only, no framebuffer or attachment ownership.
     *
     * Concrete implementations:
-    *   `gl::QtContext`    — wraps Qt's QOpenGLContext/QOffscreenSurface/
-    *                        QOpenGLFramebufferObject; the only backend
-    *                        today.
-    *   `gl::CGLContext`   — macOS native (Phase 2 follow-up).
-    *   `gl::EGLContext`   — Linux/headless via Mesa EGL (Phase 2 follow-up).
+    *   `OpenGLOffscreenContext` — Qt-backed
+    *     (`QOpenGLContext`/`QOffscreenSurface`), used by the Modeler.
+    *   `gl::CGLContext`         — macOS native via `<OpenGL/CGL.h>`.
+    *   `gl::EglContext`         — Linux headless via Mesa surfaceless EGL.
     *
-    * The interface mirrors the surface `OpenGLOffscreenContext` used to
-    * publish directly. The Qt-decoupling rollout migrates callers to
-    * the abstract type one site at a time; `OpenGLOffscreenContext`
-    * itself becomes a thin facade over an owned `gl::Context` pointer.
+    * Per Phase 3 of `docs/plans/opengl-gpu-hardening.md`, the FBO +
+    * color/depth/stencil renderbuffers live on `gl::AttachmentSet`
+    * instances owned by `OpenGLRasterResourceCache`, not on the
+    * context. Multiple attachment sets can coexist (per-pass
+    * dimensions, per-AOV sample counts) without forcing the context
+    * to reallocate, and the residency work in
+    * `docs/plans/opengl-gpu-residency.md` slots in by registering the
+    * attachment sets with the graph storage.
     *
     * Threading semantics match Qt's per-thread context model:
     * `makeCurrent` ties the context to the calling thread until
@@ -75,29 +72,23 @@ namespace engine::raster::gl {
     virtual ~Context() = default;
 
     /**
-      * Allocate the underlying GL context and an FBO sized for the
-      * given pixels and MSAA sample count. Subsequent calls with the
-      * same dimensions and sample count reuse the existing FBO;
-      * differing dimensions trigger a fresh allocation. Calling with
-      * `samples <= 1` selects single-sample.
+      * Allocate the underlying GL context. `samples > 1` is a hint
+      * for backends whose context pixel format must agree with the
+      * MSAA renderbuffer (the legacy Qt path); the native backends
+      * (CGL, EGL surfaceless) ignore it because per-FBO multisample
+      * renderbuffers are independent of the context pixel format.
       *
       * @returns true on success. On failure, `errorMessage()` carries
       * an actionable diagnostic and `isValid()` returns false.
       */
-    virtual bool create(int width, int height, int samples) = 0;
+    virtual bool create(int samples = 1) = 0;
 
-    /// Convenience: `create(width, height, 1)`.
-    bool create(int width, int height) {
-      return create(width, height, 1);
-    }
-
-    /// True iff the context was created and the framebuffer is bound.
+    /// True iff the context was created.
     virtual bool isValid() const = 0;
 
-    /// Move the context (and its surface and FBO) onto the calling
-    /// thread. Returns false if the context still belongs to another
-    /// thread that didn't detach — caller should drop this context and
-    /// allocate a fresh one.
+    /// Move the context onto the calling thread. Returns false if the
+    /// context still belongs to another thread that didn't detach —
+    /// caller should drop this context and allocate a fresh one.
     virtual bool migrateToCurrentThread() = 0;
 
     /// Release thread affinity so the next render's worker thread can
@@ -113,32 +104,9 @@ namespace engine::raster::gl {
     /// Release the current-binding without changing thread affinity.
     virtual void doneCurrent() = 0;
 
-    /// Bind the FBO so subsequent GL calls render to it. Requires the
-    /// context to be current. Returns false if no FBO was allocated.
-    virtual bool bindFramebuffer() = 0;
-
-    /// Unbind the FBO; pair with `bindFramebuffer`.
-    virtual void releaseFramebuffer() = 0;
-
-    // `::Buffer<T>` is the global pixel-buffer template (core/Buffer.h);
-    // qualify it so the unqualified name doesn't resolve to
-    // `engine::raster::gl::Buffer` (the VBO/IBO wrapper) when the
-    // resource cache pulls both headers in.
-
-    /// Read the FBO's color attachment into `target`, flipping rows
-    /// so the buffer's row-0 is the visible top.
-    virtual void copyColorTo(::Buffer<Colord>& target) const = 0;
-
-    /// Read the FBO's depth attachment into `target` as normalized
-    /// [0, 1] doubles, with the same row-flip as `copyColorTo`.
-    virtual void copyDepthTo(::Buffer<double>& target) const = 0;
-
-    /// Read the FBO's stencil attachment as raw bytes, row-flipped.
-    virtual void copyStencilTo(::Buffer<std::uint8_t>& target) const = 0;
-
     /// Last operation's error message, set when `create`, `migrate*`,
-    /// `makeCurrent`, or `bindFramebuffer` return false. Empty when
-    /// the most recent operation succeeded.
+    /// or `makeCurrent` returns false. Empty when the most recent
+    /// operation succeeded.
     virtual const std::string& errorMessage() const = 0;
 
     /// Human-readable description of the active backend (GL version,

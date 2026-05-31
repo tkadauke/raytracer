@@ -244,25 +244,32 @@ Acceptance:
 - Parity tests run under both macOS CGL and Linux EGL backends
   (selectable at build time via `RAYTRACER_GL_BACKEND=cgl|egl|auto`).
 
-## Phase 3 — residency-ready substrate
+## Phase 3 — residency-ready substrate ✅ **Done.**
 
 Goals: prepare for `opengl-gpu-residency.md` Phase 0. Most of the
 work is the attachment-set carve-out; residency itself is then a
 short follow-up.
 
-Tasks:
+**Landed:**
 
-- **`OpenGLAttachmentSet` (color + depth + stencil triple)** lives on
-  the resource cache, replaces the single bound FBO. Addressable by
-  graph-resource id; one set per active resource group.
-- **`OpenGLOffscreenContext` stops owning attachments.** It becomes
-  pure context lifecycle.
-- **Per-render attachment-set selection.** The draw state struct
-  carries the attachment-set handle to use; the rasterizer binds it
-  before issuing draws.
-- **Trace messages name the attachment set + load/store ops** so a
-  Modeler/rendercli trace inspector can see when a pass keeps an
-  attachment resident vs allocates fresh.
+- `gl::AttachmentSet` (color renderbuffer + combined depth/stencil
+  renderbuffer behind one FBO) lives in `gl/AttachmentSet.h/.cpp`.
+  Allocates with raw GL via `gl/Bindings.h` so it's portable across
+  all three context backends (Qt, CGL, EGL) — no Qt OpenGL classes
+  involved.
+- `OpenGLRasterResourceCache` holds an LRU array of four attachment
+  sets keyed by `(width, height, samples)`. `acquireAttachmentSet`
+  is the lookup-or-evict entry point.
+- `OpenGLRasterDrawPass` carries `width`, `height`, `samples` on the
+  draw state, acquires the matching attachment set per render, binds
+  it before drawing, drives color/depth/stencil readback through it.
+- `gl::Context` interface dropped `bindFramebuffer` /
+  `releaseFramebuffer` / `copyColorTo` / `copyDepthTo` /
+  `copyStencilTo`; `create()` no longer takes dimensions. Each of
+  Qt-backed `OpenGLOffscreenContext`, `gl::CGLContext`, and
+  `gl::EglContext` shrank to pure context lifecycle — no more
+  per-backend FBO allocation, no more multisample resolve scaffolding,
+  no more readback paths.
 
 After this, `opengl-gpu-residency.md` Phase 0-2 work is mostly
 "register the attachment-set's texture with the graph storage" — the

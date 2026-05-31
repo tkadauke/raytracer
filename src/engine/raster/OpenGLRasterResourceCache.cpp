@@ -142,6 +142,34 @@ namespace engine::raster::detail {
     return {&entry, static_cast<std::ptrdiff_t>(victim), false};
   }
 
+  gl::AttachmentSet* OpenGLRasterResourceCache::acquireAttachmentSet(int width, int height,
+                                                                     int samples) {
+    const int normalizedSamples = samples > 1 ? samples : 0;
+    // Hit pass.
+    for (auto& entry : attachmentSetCache) {
+      if (entry.lastUsed != 0 && entry.set.isValid() && entry.set.width() == width &&
+          entry.set.height() == height && entry.set.samples() == normalizedSamples) {
+        entry.lastUsed = ++attachmentSetUseTick;
+        return &entry.set;
+      }
+    }
+    // Miss: pick LRU slot (smallest lastUsed; 0 = empty wins).
+    std::size_t victim = 0;
+    for (std::size_t i = 1; i < attachmentSetCache.size(); ++i) {
+      if (attachmentSetCache[i].lastUsed < attachmentSetCache[victim].lastUsed) {
+        victim = i;
+      }
+    }
+    auto& entry = attachmentSetCache[victim];
+    entry.set.destroy();
+    if (!entry.set.create(width, height, samples)) {
+      entry.lastUsed = 0;
+      return nullptr;
+    }
+    entry.lastUsed = ++attachmentSetUseTick;
+    return &entry.set;
+  }
+
   OpenGLRasterResourceCache::~OpenGLRasterResourceCache() {
     // The process-wide shared cache (`OpenGLRasterizer::sharedResources`)
     // is intentionally leaked and never runs this destructor — Qt's
@@ -152,7 +180,11 @@ namespace engine::raster::detail {
     // it cannot migrate the shared context to its thread) whose owning
     // thread is still alive.
     const bool hasTextures = imageTextures && !imageTextures->textures.empty();
-    const bool needsContext = program || hasTextures || vertexBuffer || indexBuffer;
+    const bool hasAttachmentSets =
+      std::any_of(attachmentSetCache.begin(), attachmentSetCache.end(),
+                  [](const OpenGLCachedAttachmentSetEntry& entry) { return entry.set.isValid(); });
+    const bool needsContext =
+      program || hasTextures || vertexBuffer || indexBuffer || hasAttachmentSets;
     if (!needsContext) {
       return;
     }
@@ -160,6 +192,10 @@ namespace engine::raster::detail {
     if (context->makeCurrent()) {
       if (imageTextures) {
         imageTextures->releaseAll();
+      }
+      for (auto& entry : attachmentSetCache) {
+        entry.set.destroy();
+        entry.lastUsed = 0;
       }
       vertexBuffer.reset();
       indexBuffer.reset();
@@ -172,6 +208,13 @@ namespace engine::raster::detail {
       (void)program.release();
       if (imageTextures) {
         imageTextures->textures.clear();
+      }
+      // Skip AttachmentSet::destroy — its dtor calls
+      // glDeleteFramebuffers which would segfault without a current
+      // context. The OS reclaims the GL handles at process exit.
+      for (auto& entry : attachmentSetCache) {
+        entry.set.abandon();
+        entry.lastUsed = 0;
       }
     }
     imageTextures.reset();

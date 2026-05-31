@@ -2,17 +2,13 @@
 
 #include "engine/raster/gl/EglContext.h"
 
-#include "core/Buffer.h"
-#include "core/Color.h"
 #include "engine/raster/gl/Bindings.h"
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
-#include <algorithm>
 #include <cstring>
 #include <sstream>
-#include <vector>
 
 namespace engine::raster::gl {
   namespace {
@@ -73,12 +69,6 @@ namespace engine::raster::gl {
     EGLDisplay display{EGL_NO_DISPLAY};
     EGLContext context{EGL_NO_CONTEXT};
     EGLConfig config{nullptr};
-    GLuint fbo{0};
-    GLuint colorRenderbuffer{0};
-    GLuint depthStencilRenderbuffer{0};
-    int width{0};
-    int height{0};
-    int samples{0};
     std::string errorMessage;
 
     ~Private() {
@@ -86,29 +76,10 @@ namespace engine::raster::gl {
     }
 
     void destroyResources() {
-      const EGLContext previouslyCurrent =
-        display != EGL_NO_DISPLAY ? eglGetCurrentContext() : EGL_NO_CONTEXT;
-      const bool wasCurrent = (previouslyCurrent != EGL_NO_CONTEXT && previouslyCurrent == context);
-      const bool madeCurrent = wasCurrent || (context != EGL_NO_CONTEXT &&
-                                              eglMakeCurrent(display, EGL_NO_SURFACE,
-                                                             EGL_NO_SURFACE, context) == EGL_TRUE);
-
-      if (madeCurrent) {
-        if (fbo)
-          glDeleteFramebuffers(1, &fbo);
-        if (colorRenderbuffer)
-          glDeleteRenderbuffers(1, &colorRenderbuffer);
-        if (depthStencilRenderbuffer)
-          glDeleteRenderbuffers(1, &depthStencilRenderbuffer);
-        if (!wasCurrent && display != EGL_NO_DISPLAY) {
+      if (context != EGL_NO_CONTEXT && display != EGL_NO_DISPLAY) {
+        if (eglGetCurrentContext() == context) {
           eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         }
-      }
-      fbo = 0;
-      colorRenderbuffer = 0;
-      depthStencilRenderbuffer = 0;
-
-      if (context != EGL_NO_CONTEXT && display != EGL_NO_DISPLAY) {
         eglDestroyContext(display, context);
         context = EGL_NO_CONTEXT;
       }
@@ -189,86 +160,15 @@ namespace engine::raster::gl {
         errorMessage = formatEglError("eglCreateContext failed");
         return false;
       }
-      // The surfaceless platform accepts EGL_NO_SURFACE for both draw
-      // and read targets; the rasterizer never targets a window.
       return true;
     }
 
-    bool create(int requestedWidth, int requestedHeight, int requestedSamples) {
+    bool create(int /*samples*/) {
       errorMessage.clear();
-      const int targetWidth = std::max(1, requestedWidth);
-      const int targetHeight = std::max(1, requestedHeight);
-      const int normalizedSamples = requestedSamples > 1 ? requestedSamples : 0;
-
-      if (context != EGL_NO_CONTEXT && width == targetWidth && height == targetHeight &&
-          samples == normalizedSamples) {
+      if (context != EGL_NO_CONTEXT) {
         return true;
       }
-
-      if (display == EGL_NO_DISPLAY) {
-        if (!initializeDisplay() || !chooseConfig() || !createContext()) {
-          return false;
-        }
-      }
-
-      if (eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context) != EGL_TRUE) {
-        errorMessage = formatEglError("eglMakeCurrent during FBO allocation failed");
-        return false;
-      }
-
-      if (fbo)
-        glDeleteFramebuffers(1, &fbo);
-      if (colorRenderbuffer)
-        glDeleteRenderbuffers(1, &colorRenderbuffer);
-      if (depthStencilRenderbuffer)
-        glDeleteRenderbuffers(1, &depthStencilRenderbuffer);
-      fbo = 0;
-      colorRenderbuffer = 0;
-      depthStencilRenderbuffer = 0;
-
-      glGenFramebuffers(1, &fbo);
-      glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
-      glGenRenderbuffers(1, &colorRenderbuffer);
-      glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
-      if (normalizedSamples > 0) {
-        glRenderbufferStorageMultisample(GL_RENDERBUFFER, normalizedSamples, GL_RGBA8, targetWidth,
-                                         targetHeight);
-      } else {
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, targetWidth, targetHeight);
-      }
-      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER,
-                                colorRenderbuffer);
-
-      glGenRenderbuffers(1, &depthStencilRenderbuffer);
-      glBindRenderbuffer(GL_RENDERBUFFER, depthStencilRenderbuffer);
-      if (normalizedSamples > 0) {
-        glRenderbufferStorageMultisample(GL_RENDERBUFFER, normalizedSamples, GL_DEPTH24_STENCIL8,
-                                         targetWidth, targetHeight);
-      } else {
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, targetWidth, targetHeight);
-      }
-      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
-                                depthStencilRenderbuffer);
-      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
-                                depthStencilRenderbuffer);
-
-      const GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-      glBindRenderbuffer(GL_RENDERBUFFER, 0);
-      glBindFramebuffer(GL_FRAMEBUFFER, 0);
-      eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-
-      if (status != GL_FRAMEBUFFER_COMPLETE) {
-        std::ostringstream out;
-        out << "EGL FBO incomplete: status=0x" << std::hex << status;
-        errorMessage = out.str();
-        return false;
-      }
-
-      width = targetWidth;
-      height = targetHeight;
-      samples = normalizedSamples;
-      return true;
+      return initializeDisplay() && chooseConfig() && createContext();
     }
   };
 
@@ -280,18 +180,18 @@ namespace engine::raster::gl {
 
   Availability EglContext::probe() {
     Private probeContext;
-    if (!probeContext.create(1, 1, 0)) {
+    if (!probeContext.create(0)) {
       return Availability::unavailable(probeContext.errorMessage);
     }
     return Availability::available("OpenGL (EGL surfaceless) on Linux");
   }
 
-  bool EglContext::create(int width, int height, int samples) {
-    return p->create(width, height, samples);
+  bool EglContext::create(int samples) {
+    return p->create(samples);
   }
 
   bool EglContext::isValid() const {
-    return p->context != EGL_NO_CONTEXT && p->fbo != 0;
+    return p->context != EGL_NO_CONTEXT;
   }
 
   bool EglContext::migrateToCurrentThread() {
@@ -319,122 +219,6 @@ namespace engine::raster::gl {
   void EglContext::doneCurrent() {
     if (p->display != EGL_NO_DISPLAY && eglGetCurrentContext() == p->context) {
       eglMakeCurrent(p->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-    }
-  }
-
-  bool EglContext::bindFramebuffer() {
-    if (!p->fbo) {
-      p->errorMessage = "EglContext::bindFramebuffer with no allocated FBO";
-      return false;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, p->fbo);
-    return true;
-  }
-
-  void EglContext::releaseFramebuffer() {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  }
-
-  void EglContext::copyColorTo(Buffer<Colord>& target) const {
-    if (!p->fbo || target.width() <= 0 || target.height() <= 0) {
-      return;
-    }
-    const int width = std::min(target.width(), p->width);
-    const int height = std::min(target.height(), p->height);
-
-    GLuint resolvedFbo = 0;
-    GLuint resolvedRb = 0;
-    if (p->samples > 0) {
-      glGenFramebuffers(1, &resolvedFbo);
-      glGenRenderbuffers(1, &resolvedRb);
-      glBindRenderbuffer(GL_RENDERBUFFER, resolvedRb);
-      glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, p->width, p->height);
-      glBindRenderbuffer(GL_RENDERBUFFER, 0);
-      glBindFramebuffer(GL_FRAMEBUFFER, resolvedFbo);
-      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, resolvedRb);
-      if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        glBindFramebuffer(GL_FRAMEBUFFER, p->fbo);
-        glDeleteFramebuffers(1, &resolvedFbo);
-        glDeleteRenderbuffers(1, &resolvedRb);
-        return;
-      }
-      glBindFramebuffer(GL_READ_FRAMEBUFFER, p->fbo);
-      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, resolvedFbo);
-      glBlitFramebuffer(0, 0, p->width, p->height, 0, 0, p->width, p->height, GL_COLOR_BUFFER_BIT,
-                        GL_NEAREST);
-      glBindFramebuffer(GL_FRAMEBUFFER, resolvedFbo);
-    } else {
-      glBindFramebuffer(GL_FRAMEBUFFER, p->fbo);
-    }
-
-    std::vector<GLfloat> pixels(static_cast<std::size_t>(width * height * 4), 0.0f);
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, pixels.data());
-
-    for (int y = 0; y != height; ++y) {
-      const int sourceY = height - 1 - y;
-      for (int x = 0; x != width; ++x) {
-        const auto offset = static_cast<std::size_t>((sourceY * width + x) * 4);
-        target[y][x] = Colord(std::clamp(static_cast<double>(pixels[offset]), 0.0, 1.0),
-                              std::clamp(static_cast<double>(pixels[offset + 1]), 0.0, 1.0),
-                              std::clamp(static_cast<double>(pixels[offset + 2]), 0.0, 1.0));
-      }
-    }
-
-    if (resolvedFbo) {
-      glBindFramebuffer(GL_FRAMEBUFFER, p->fbo);
-      glDeleteFramebuffers(1, &resolvedFbo);
-      glDeleteRenderbuffers(1, &resolvedRb);
-    }
-  }
-
-  void EglContext::copyDepthTo(Buffer<double>& target) const {
-    if (!p->fbo || target.width() <= 0 || target.height() <= 0) {
-      return;
-    }
-    const int width = std::min(target.width(), p->width);
-    const int height = std::min(target.height(), p->height);
-
-    // Multisample depth/stencil readback isn't supported; the
-    // resolve-via-blit path covers color but not depth/stencil
-    // portably across drivers. Matches CGLContext's behavior.
-    if (p->samples > 0) {
-      p->errorMessage = "EglContext::copyDepthTo not yet supported for multisample FBOs";
-      return;
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, p->fbo);
-    std::vector<GLfloat> pixels(static_cast<std::size_t>(width * height), 0.0f);
-    glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, pixels.data());
-
-    for (int y = 0; y != height; ++y) {
-      const int sourceY = height - 1 - y;
-      for (int x = 0; x != width; ++x) {
-        target[y][x] = static_cast<double>(pixels[sourceY * width + x]);
-      }
-    }
-  }
-
-  void EglContext::copyStencilTo(Buffer<std::uint8_t>& target) const {
-    if (!p->fbo || target.width() <= 0 || target.height() <= 0) {
-      return;
-    }
-    const int width = std::min(target.width(), p->width);
-    const int height = std::min(target.height(), p->height);
-
-    if (p->samples > 0) {
-      p->errorMessage = "EglContext::copyStencilTo not yet supported for multisample FBOs";
-      return;
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, p->fbo);
-    std::vector<GLubyte> pixels(static_cast<std::size_t>(width * height), 0);
-    glReadPixels(0, 0, width, height, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, pixels.data());
-
-    for (int y = 0; y != height; ++y) {
-      const int sourceY = height - 1 - y;
-      for (int x = 0; x != width; ++x) {
-        target[y][x] = pixels[sourceY * width + x];
-      }
     }
   }
 

@@ -4,6 +4,7 @@
 
 #include "core/Buffer.h"
 #include "core/Color.h"
+#include "engine/raster/gl/AttachmentSet.h"
 #include "engine/raster/gl/CGLContext.h"
 
 #define GL_SILENCE_DEPRECATION 1
@@ -18,26 +19,29 @@ namespace engine::raster::gl::tests {
     EXPECT_FALSE(info.detail().empty());
   }
 
-  TEST(CGLContext, CreatesContextAndAllocatesFbo) {
+  TEST(CGLContext, CreatesContext) {
     CGLContext context;
-    if (!context.create(64, 48, 0)) {
+    if (!context.create()) {
       GTEST_SKIP() << "CGL context unavailable on this host: " << context.errorMessage();
     }
     EXPECT_TRUE(context.isValid());
   }
 
-  TEST(CGLContext, ReadsBackClearedColorBuffer) {
+  TEST(CGLContext, ReadsBackClearedColorBufferThroughAttachmentSet) {
     CGLContext context;
-    if (!context.create(8, 8, 0)) {
+    if (!context.create()) {
       GTEST_SKIP() << "CGL context unavailable on this host: " << context.errorMessage();
     }
     ASSERT_TRUE(context.makeCurrent());
-    ASSERT_TRUE(context.bindFramebuffer());
+    AttachmentSet set;
+    ASSERT_TRUE(set.create(8, 8, 0)) << set.errorMessage();
+    set.bind();
     glClearColor(0.2f, 0.4f, 0.6f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     Buffer<Colord> buffer(8, 8);
-    context.copyColorTo(buffer);
-    context.releaseFramebuffer();
+    set.copyColorTo(buffer);
+    set.release();
+    set.destroy();
     context.doneCurrent();
 
     EXPECT_NEAR(0.2, buffer[0][0].r(), 1.0 / 255.0);
@@ -47,7 +51,7 @@ namespace engine::raster::gl::tests {
 
   TEST(CGLContext, MakeCurrentMigrateDetachReroundtripWorks) {
     CGLContext context;
-    if (!context.create(4, 4, 0)) {
+    if (!context.create()) {
       GTEST_SKIP() << "CGL context unavailable on this host: " << context.errorMessage();
     }
     ASSERT_TRUE(context.makeCurrent());

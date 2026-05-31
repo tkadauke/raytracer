@@ -14,8 +14,8 @@
 #include "render/textures/ConstantColorTexture.h"
 #include "test/helpers/GuiTestHelper.h"
 
-#include <QOpenGLContext>
-#include <QOpenGLFunctions>
+#include "engine/raster/gl/AttachmentSet.h"
+#include "engine/raster/gl/Bindings.h"
 
 #include <algorithm>
 #include <limits>
@@ -37,21 +37,28 @@ namespace OpenGLRasterizerTest {
 
   TEST(OpenGLOffscreenContext, CopiesRawColorChannelsWithoutUnpremultiplyingAlpha) {
     engine::raster::OpenGLOffscreenContext context;
-    if (!context.create(2, 2) || !context.makeCurrent() || !context.bindFramebuffer()) {
+    if (!context.create() || !context.makeCurrent()) {
       SUCCEED() << "OpenGL context unavailable on this host";
       return;
     }
+    engine::raster::gl::AttachmentSet set;
+    if (!set.create(2, 2, 0)) {
+      context.doneCurrent();
+      SUCCEED() << "AttachmentSet unavailable on this host: " << set.errorMessage();
+      return;
+    }
+    set.bind();
 
-    QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
-    functions->glViewport(0, 0, 2, 2);
-    functions->glDisable(GL_BLEND);
-    functions->glClearColor(0.24f, 0.27f, 0.30f, 0.30f);
-    functions->glClear(GL_COLOR_BUFFER_BIT);
+    glViewport(0, 0, 2, 2);
+    glDisable(GL_BLEND);
+    glClearColor(0.24f, 0.27f, 0.30f, 0.30f);
+    glClear(GL_COLOR_BUFFER_BIT);
 
     Buffer<Colord> buffer(2, 2);
-    context.copyColorTo(buffer);
+    set.copyColorTo(buffer);
 
-    context.releaseFramebuffer();
+    set.release();
+    set.destroy();
     context.doneCurrent();
 
     EXPECT_NEAR(0.24, buffer[0][0].r(), 1.0 / 255.0);

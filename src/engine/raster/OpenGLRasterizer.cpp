@@ -46,7 +46,9 @@ namespace engine::raster {
       OpenGLRasterDrawPass(detail::OpenGLRasterResourceCache& resources,
                            detail::OpenGLRasterDrawState state, const std::atomic<bool>& cancelled)
           : m_resources(resources),
+            m_width(state.width),
             m_height(state.height),
+            m_samples(state.samples),
             m_viewportRect(state.viewportRect),
             m_scissorEnabled(state.scissorEnabled),
             m_scissorRect(state.scissorRect),
@@ -93,11 +95,17 @@ namespace engine::raster {
         if (!m_resources.context->makeCurrent()) {
           throw std::runtime_error(m_resources.context->errorMessage());
         }
-        if (!m_resources.context->bindFramebuffer()) {
+        gl::AttachmentSet* attachmentSet =
+          m_resources.acquireAttachmentSet(m_width, m_height, m_samples);
+        if (!attachmentSet) {
+          const std::string error = "OpenGL raster backend could not allocate attachment set (" +
+                                    std::to_string(m_width) + "x" + std::to_string(m_height) +
+                                    " samples=" + std::to_string(m_samples) + ")";
           m_resources.context->doneCurrent();
           m_resources.context->detachFromCurrentThread();
-          throw std::runtime_error(m_resources.context->errorMessage());
+          throw std::runtime_error(error);
         }
+        attachmentSet->bind();
         timings.makeCurrentElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::steady_clock::now() - makeCurrentStarted);
 
@@ -112,25 +120,25 @@ namespace engine::raster {
             std::chrono::steady_clock::now() - glFinishStarted);
           const auto readbackStarted = std::chrono::steady_clock::now();
           if (target && m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-            m_resources.context->copyColorTo(*target);
+            attachmentSet->copyColorTo(*target);
           }
           if (depthTarget && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-            m_resources.context->copyDepthTo(*depthTarget);
+            attachmentSet->copyDepthTo(*depthTarget);
           }
           if (stencilTarget && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-            m_resources.context->copyStencilTo(*stencilTarget);
+            attachmentSet->copyStencilTo(*stencilTarget);
           }
           timings.readbackElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - readbackStarted);
           const auto doneCurrentStarted = std::chrono::steady_clock::now();
-          m_resources.context->releaseFramebuffer();
+          attachmentSet->release();
           m_resources.context->doneCurrent();
           m_resources.context->detachFromCurrentThread();
           timings.doneCurrentElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - doneCurrentStarted);
           return timings;
         } catch (...) {
-          m_resources.context->releaseFramebuffer();
+          attachmentSet->release();
           m_resources.context->doneCurrent();
           m_resources.context->detachFromCurrentThread();
           throw;
@@ -453,7 +461,9 @@ namespace engine::raster {
       }
 
       detail::OpenGLRasterResourceCache& m_resources;
+      int m_width;
       int m_height;
+      int m_samples;
       Recti m_viewportRect;
       bool m_scissorEnabled;
       Recti m_scissorRect;
@@ -1119,7 +1129,10 @@ namespace engine::raster {
       // frame.
       m_resources = std::make_shared<detail::OpenGLRasterResourceCache>();
     }
-    if (!m_resources->context->create(width, height, m_msaaSamples)) {
+    // The context only manages lifecycle now; attachment dimensions
+    // and sample counts live on the per-render attachment set (see
+    // OpenGLRasterDrawPass::render -> acquireAttachmentSet).
+    if (!m_resources->context->create()) {
       throw std::runtime_error(m_resources->context->errorMessage());
     }
 
@@ -1234,7 +1247,9 @@ namespace engine::raster {
     }
 
     detail::OpenGLRasterDrawState drawState;
+    drawState.width = width;
     drawState.height = height;
+    drawState.samples = m_msaaSamples;
     drawState.viewportRect = drawViewport;
     drawState.scissorEnabled = m_scissorTestEnabled;
     drawState.scissorRect = m_scissorRect;

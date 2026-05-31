@@ -3,6 +3,7 @@
 #include "core/math/Vector.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/raster/detail/OpenGLRasterMesh.h"
+#include "engine/raster/gl/AttachmentSet.h"
 #include "engine/raster/gl/Buffer.h"
 #include "engine/raster/gl/Context.h"
 #include "engine/raster/gl/ShaderProgram.h"
@@ -136,6 +137,24 @@ namespace engine::raster::detail {
     */
   inline constexpr std::size_t kOpenGLMeshCacheSize = 4;
 
+  /**
+    * One entry in the LRU attachment-set cache. `lastUsed` rises
+    * monotonically; the slot with the smallest value (or 0, empty)
+    * is evicted on the next miss. Slots that haven't been allocated
+    * yet hold an `AttachmentSet` whose `isValid()` returns false.
+    */
+  struct OpenGLCachedAttachmentSetEntry {
+    gl::AttachmentSet set;
+    std::uint64_t lastUsed{0};
+  };
+
+  /**
+    * LRU capacity for attachment sets. A multi-pass render graph that
+    * mixes a beauty pass + shadow pass + AOV pass with three different
+    * dimensions still fits without thrashing.
+    */
+  inline constexpr std::size_t kOpenGLAttachmentSetCacheSize = 4;
+
   struct OpenGLRasterResourceCache {
     // Held as `unique_ptr<gl::Context>` so the cache stays agnostic
     // of which backend created it. `OpenGLRasterResourceCache`'s
@@ -160,6 +179,15 @@ namespace engine::raster::detail {
     // re-upload. Keeps the per-frame upload off the LRU-hit path even
     // when multiple passes rotate through several cached meshes.
     std::ptrdiff_t uploadedMeshSlot{-1};
+
+    // LRU cache of FBO+RB attachment sets keyed by (width, height,
+    // samples). The draw pass acquires a slot per render; the same
+    // dimensions + samples reuse the slot's GL handles across
+    // renders. Sized at `kOpenGLAttachmentSetCacheSize` (4) so a
+    // multi-pass graph with several render targets doesn't thrash.
+    // Bumped tick lives in `attachmentSetUseTick`.
+    std::array<OpenGLCachedAttachmentSetEntry, kOpenGLAttachmentSetCacheSize> attachmentSetCache;
+    std::uint64_t attachmentSetUseTick{0};
 
     OpenGLRasterResourceCache();
     ~OpenGLRasterResourceCache();
@@ -211,5 +239,20 @@ namespace engine::raster::detail {
       * are stale).
       */
     MeshSlotResult acquireMeshSlot(const OpenGLMeshCacheKey& key);
+
+    /**
+      * Look up or evict an attachment-set slot for `(width, height,
+      * samples)`. On a hit the slot's `lastUsed` is bumped to the
+      * highest tick and the existing GL handles are returned. On a
+      * miss the LRU slot is destroyed and freshly allocated against
+      * the currently-current GL context.
+      *
+      * @returns pointer to the cache slot's `AttachmentSet` (valid
+      * for the lifetime of the cache), or nullptr if allocation
+      * failed. On nullptr the caller can read the error message
+      * from the evicted slot's `set.errorMessage()` via the returned
+      * `errorEntry` out-param (or just abort the render).
+      */
+    gl::AttachmentSet* acquireAttachmentSet(int width, int height, int samples);
   };
 }

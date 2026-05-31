@@ -44,6 +44,22 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   editable importer values under `importOptions.parameters`, while existing
   OpenSCAD `importOptions.define` scenes continue to edit and rebuild through
   the legacy define object for Epic #408. — GPT-5
+- **OpenGL raster framebuffers carved out of the context backends.**
+  New `engine::raster::gl::AttachmentSet` (color renderbuffer +
+  combined depth/stencil renderbuffer behind one FBO) owns the
+  attachment state via raw GL — portable across Qt, CGL, and EGL
+  backends without any Qt OpenGL classes. The cache holds an LRU
+  array of four sets keyed by `(width, height, samples)`; the draw
+  pass acquires the matching set per render, so a multi-pass graph
+  that mixes a 1920×1080 beauty pass + 512×512 shadow pass + 256×256
+  AOV pass no longer reallocates a single context-owned FBO every
+  pass. `gl::Context` shrank to pure lifecycle (no
+  `bindFramebuffer` / `copyColorTo` / `copyDepthTo` /
+  `copyStencilTo`); `Context::create()` no longer takes dimensions.
+  Modeler renders are unchanged; rendercli + CI lanes pick up the
+  multi-set behavior automatically. Closes opengl-gpu-hardening
+  Phase 3 and is the substrate `opengl-gpu-residency.md` needs.
+  — Claude Opus 4.7
 - **rendercli no longer needs `QGuiApplication` for the OpenGL raster
   backend on macOS or Linux.** `RenderCliApplication` always
   constructs a `QCoreApplication`; the new `gl::createOffscreenContext()`
