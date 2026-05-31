@@ -202,6 +202,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **OpenGL camera-independent raster mesh emission.** The GPU raster path no
+  longer rejects every camera-independent triangle as screen-degenerate before
+  handing projection to the shader, restoring OpenGL mesh preparation and GPU
+  rendercli raster output for Epic #356. — GPT-5
 - **Modeler preview camera no longer freezes after a property edit.**
   `RenderDisplay::setScene` calls `bindSceneCameras()` on every refresh,
   which clears the graph engine's scene-camera map and re-registers
