@@ -65,15 +65,24 @@ namespace engine::graph {
     void applyTo(engine::raster::OpenGLRasterizer& rasterizer) const;
 
     void setLod(int lod);
+    void setTessellationQuality(Rasterizer::TessellationQuality quality);
+    void setMaximumScreenSpaceError(double pixels);
+    void clearMaximumScreenSpaceErrorOverride();
     void setCullMode(Rasterizer::CullMode mode);
 
     int lod() const;
+    Rasterizer::TessellationQuality tessellationQuality() const;
+    double maximumScreenSpaceError() const;
+    bool hasMaximumScreenSpaceErrorOverride() const;
     std::optional<Rasterizer::CullMode> cullModeOverride() const;
     Rasterizer::CullMode cullMode() const;
     bool hasCullModeOverride() const;
 
   private:
     int m_lod{0};
+    Rasterizer::TessellationQuality m_tessellationQuality{
+      Rasterizer::TessellationQuality::Balanced};
+    std::optional<double> m_maximumScreenSpaceError;
     std::optional<Rasterizer::CullMode> m_cullMode;
   };
 

@@ -1,6 +1,8 @@
 #include "engine/raster/detail/RasterTriangleEmitter.h"
 
+#include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace engine::raster::detail {
   namespace {
@@ -102,15 +104,81 @@ namespace engine::raster::detail {
     return sharedOutCode != 0;
   }
 
+  double RasterTriangleEmitter::projectedPrimitiveExtentPixels(const BoundingBoxd& bounds) const {
+    if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite() || !m_camera ||
+        !m_camera->viewPlane()) {
+      return 0.0;
+    }
+
+    const auto& viewPlane = *m_camera->viewPlane();
+    bool hasProjectedCorner = false;
+    double minX = std::numeric_limits<double>::infinity();
+    double minY = std::numeric_limits<double>::infinity();
+    double maxX = -std::numeric_limits<double>::infinity();
+    double maxY = -std::numeric_limits<double>::infinity();
+    for (const Vector3d& corner : bounds.vertices()) {
+      const Vector4d clip = m_camera->projectPointToClipSpace(corner);
+      const Vector3d screen = viewPlane.screenFromClip(clip);
+      if (screen.isUndefined()) {
+        const double width = static_cast<double>(viewPlane.width());
+        const double height = static_cast<double>(viewPlane.height());
+        return std::sqrt(width * width + height * height);
+      }
+      hasProjectedCorner = true;
+      minX = std::min(minX, screen.x());
+      minY = std::min(minY, screen.y());
+      maxX = std::max(maxX, screen.x());
+      maxY = std::max(maxY, screen.y());
+    }
+    if (!hasProjectedCorner)
+      return 0.0;
+
+    const double width = std::max(0.0, maxX - minX);
+    const double height = std::max(0.0, maxY - minY);
+    return std::sqrt(width * width + height * height);
+  }
+
+  int RasterTriangleEmitter::effectiveLodFor(const render::Primitive::TransformedLeaf& leaf) const {
+    const double projectedPixels = projectedPrimitiveExtentPixels(leaf.boundingBox());
+    if (m_metrics) {
+      m_metrics->tessellation.maxProjectedPrimitivePixels =
+        std::max(m_metrics->tessellation.maxProjectedPrimitivePixels, projectedPixels);
+    }
+
+    const double maxError = m_rasterizer.maximumScreenSpaceError();
+    if (m_lod <= 0 || maxError <= 0.0 || projectedPixels <= 0.0) {
+      return m_lod;
+    }
+
+    int effective = m_lod;
+    double toleratedError = maxError;
+    while (effective > 0 && projectedPixels <= toleratedError * 32.0) {
+      --effective;
+      toleratedError *= 2.0;
+    }
+    if (m_metrics && effective < m_lod) {
+      m_metrics->tessellation.screenSpaceLodReductions +=
+        static_cast<std::uint64_t>(m_lod - effective);
+    }
+    return effective;
+  }
+
   std::shared_ptr<Mesh>
-  RasterTriangleEmitter::tessellatedMeshFor(const render::Primitive* primitive) const {
-    auto cached = m_tessellationCache.find(primitive);
+  RasterTriangleEmitter::tessellatedMeshFor(const render::Primitive::TransformedLeaf& leaf) const {
+    const render::Primitive* primitive = leaf.primitive;
+    const int effectiveLod = effectiveLodFor(leaf);
+    const TessellationCacheKey key{primitive, effectiveLod};
+    auto cached = m_tessellationCache.find(key);
     if (cached != m_tessellationCache.end()) {
+      if (m_metrics)
+        ++m_metrics->tessellation.lodVariantCacheHits;
       return cached->second;
     }
 
-    auto mesh = primitive->tessellate(m_lod);
-    m_tessellationCache.emplace(primitive, mesh);
+    if (m_metrics)
+      ++m_metrics->tessellation.lodVariantCacheMisses;
+    auto mesh = primitive->tessellate(effectiveLod);
+    m_tessellationCache.emplace(key, mesh);
     return mesh;
   }
 

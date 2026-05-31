@@ -78,7 +78,7 @@ namespace engine::raster::detail {
 
         const render::Primitive* primitive = leaf.primitive;
         std::shared_ptr<render::Material> material = leaf.material;
-        auto mesh = tessellatedMeshFor(primitive);
+        auto mesh = tessellatedMeshFor(leaf);
         if (!mesh) {
           return m_visibilitySet
                    ? static_cast<std::uint64_t>(m_visibilitySet->leafFaceCount(currentLeafIndex))
@@ -248,7 +248,11 @@ namespace engine::raster::detail {
 
     bool boundsOutsideClipVolume(const BoundingBoxd& bounds) const;
 
-    std::shared_ptr<Mesh> tessellatedMeshFor(const render::Primitive* primitive) const;
+    int effectiveLodFor(const render::Primitive::TransformedLeaf& leaf) const;
+
+    double projectedPrimitiveExtentPixels(const BoundingBoxd& bounds) const;
+
+    std::shared_ptr<Mesh> tessellatedMeshFor(const render::Primitive::TransformedLeaf& leaf) const;
 
     void recordMesh(const Mesh& mesh, const render::Material* material) const;
 
@@ -304,7 +308,25 @@ namespace engine::raster::detail {
     bool m_skipCameraProjection;
     const std::atomic<bool>& m_cancelled;
     Rasterizer::RasterRenderMetrics* m_metrics;
-    mutable std::unordered_map<const render::Primitive*, std::shared_ptr<Mesh>> m_tessellationCache;
+    struct TessellationCacheKey {
+      const render::Primitive* primitive = nullptr;
+      int lod = 0;
+
+      bool operator==(const TessellationCacheKey& other) const {
+        return primitive == other.primitive && lod == other.lod;
+      }
+    };
+    struct TessellationCacheKeyHash {
+      std::size_t operator()(const TessellationCacheKey& key) const {
+        return std::hash<const render::Primitive*>()(key.primitive) ^
+               (std::hash<int>()(key.lod) + 0x9e3779b9 +
+                (std::hash<const render::Primitive*>()(key.primitive) << 6) +
+                (std::hash<const render::Primitive*>()(key.primitive) >> 2));
+      }
+    };
+    mutable std::unordered_map<TessellationCacheKey, std::shared_ptr<Mesh>,
+                               TessellationCacheKeyHash>
+      m_tessellationCache;
     mutable std::unordered_set<const render::Material*> m_seenMaterials;
   };
 

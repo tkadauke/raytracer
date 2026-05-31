@@ -86,6 +86,8 @@ namespace engine::graph {
     void setBackend(engine::raster::RasterBackend backend);
     void setBackend(std::string backend);
     void setLod(int lod);
+    void setTessellationQuality(std::string quality);
+    void setMaximumScreenSpaceError(double pixels);
     void setCullMode(std::string mode);
     void setVisibilityCulling(RenderVisibilityCulling mode);
     void setVisibilityCulling(std::string mode);
@@ -113,6 +115,8 @@ namespace engine::graph {
     std::optional<int> queueSize() const;
     std::optional<engine::raster::RasterBackend> backend() const;
     std::optional<int> lod() const;
+    std::optional<std::string> tessellationQuality() const;
+    std::optional<double> maximumScreenSpaceError() const;
     std::optional<std::string> cullMode() const;
     std::optional<RenderVisibilityCulling> visibilityCulling() const;
     std::optional<int> msaaSamples() const;
@@ -128,6 +132,8 @@ namespace engine::graph {
     std::optional<int> m_queueSize;
     std::optional<engine::raster::RasterBackend> m_backend;
     std::optional<int> m_lod;
+    std::optional<std::string> m_tessellationQuality;
+    std::optional<double> m_maximumScreenSpaceError;
     std::optional<std::string> m_cullMode;
     std::optional<RenderVisibilityCulling> m_visibilityCulling;
     std::optional<int> m_msaaSamples;

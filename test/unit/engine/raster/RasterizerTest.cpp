@@ -21,6 +21,7 @@
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Curve.h"
+#include "render/primitives/Instance.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
@@ -124,6 +125,35 @@ namespace RasterizerTest {
   private:
     int m_id;
     std::vector<int>* m_tessellationOrder;
+  };
+
+  class LodRecordingPrimitive : public Primitive {
+  public:
+    explicit LodRecordingPrimitive(std::vector<int>* lods)
+        : m_lods(lods) {
+    }
+
+    const Primitive* intersect(const Rayd&, HitPointInterval&, render::State&) const override {
+      return nullptr;
+    }
+
+    std::shared_ptr<Mesh> tessellate(int lod = 0) const override {
+      m_lods->push_back(lod);
+      Mesh mesh;
+      mesh.addVertex(Vector3d(-1.0, -1.0, 0.0), Vector3d(0.0, 0.0, -1.0));
+      mesh.addVertex(Vector3d(1.0, -1.0, 0.0), Vector3d(0.0, 0.0, -1.0));
+      mesh.addVertex(Vector3d(0.0, 1.0, 0.0), Vector3d(0.0, 0.0, -1.0));
+      mesh.addFace({0, 1, 2});
+      return std::make_shared<Mesh>(std::move(mesh));
+    }
+
+  protected:
+    BoundingBoxd calculateBoundingBox() const override {
+      return BoundingBoxd(Vector3d(-1.0, -1.0, 0.0), Vector3d(1.0, 1.0, 0.0));
+    }
+
+  private:
+    std::vector<int>* m_lods;
   };
 
   class CountingComposite : public Composite {
@@ -1241,6 +1271,77 @@ namespace RasterizerTest {
     EXPECT_EQ(1u, metrics.diagnosticImages.shade.max);
     EXPECT_EQ(1u, metrics.diagnosticImages.colorWrite.max);
     EXPECT_GT(metrics.timings.totalRenderSeconds, 0.0);
+  }
+
+  TEST(Rasterizer, PreviewQualitySelectsLowerLodForSmallProjectedPrimitives) {
+    std::vector<int> requestedLods;
+    auto primitive = std::make_shared<LodRecordingPrimitive>(&requestedLods);
+    auto scene = std::make_shared<Scene>(Colord::white());
+    auto instance = std::make_shared<Instance>(primitive);
+    instance->setMatrix(Matrix4d::translate(0.0, 0.0, 60.0));
+    scene->add(instance);
+
+    Rasterizer preview(headOnCamera(), scene);
+    preview.setLod(3);
+    preview.setTessellationQuality(Rasterizer::TessellationQuality::Preview);
+    Buffer<Colord> previewColor(64, 64);
+    preview.render(previewColor);
+
+    ASSERT_EQ(1u, requestedLods.size());
+    EXPECT_LT(requestedLods.back(), 3);
+    EXPECT_GT(preview.lastMetrics().tessellation.screenSpaceLodReductions, 0u);
+    EXPECT_GT(preview.lastMetrics().tessellation.maxProjectedPrimitivePixels, 0.0);
+
+    requestedLods.clear();
+    Rasterizer final(headOnCamera(), scene);
+    final.setLod(3);
+    final.setTessellationQuality(Rasterizer::TessellationQuality::Final);
+    Buffer<Colord> finalColor(64, 64);
+    final.render(finalColor);
+
+    ASSERT_EQ(1u, requestedLods.size());
+    EXPECT_EQ(3, requestedLods.back());
+    EXPECT_EQ(0u, final.lastMetrics().tessellation.screenSpaceLodReductions);
+  }
+
+  TEST(Rasterizer, ScreenSpaceErrorOverrideCanForceFinalRenderReduction) {
+    std::vector<int> requestedLods;
+    auto primitive = std::make_shared<LodRecordingPrimitive>(&requestedLods);
+    auto scene = std::make_shared<Scene>(Colord::white());
+    auto instance = std::make_shared<Instance>(primitive);
+    instance->setMatrix(Matrix4d::translate(0.0, 0.0, 60.0));
+    scene->add(instance);
+
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setLod(3);
+    engine.setTessellationQuality(Rasterizer::TessellationQuality::Final);
+    engine.setMaximumScreenSpaceError(8.0);
+    Buffer<Colord> color(64, 64);
+    engine.render(color);
+
+    ASSERT_EQ(1u, requestedLods.size());
+    EXPECT_LT(requestedLods.back(), 3);
+  }
+
+  TEST(Rasterizer, RepeatedSourcePartInstancesReuseLodVariantCache) {
+    std::vector<int> requestedLods;
+    auto primitive = std::make_shared<LodRecordingPrimitive>(&requestedLods);
+    auto scene = std::make_shared<Scene>(Colord::white());
+    for (double x : {-0.2, 0.2}) {
+      auto instance = std::make_shared<Instance>(primitive);
+      instance->setMatrix(Matrix4d::translate(x, 0.0, 60.0));
+      scene->add(instance);
+    }
+
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setLod(3);
+    engine.setTessellationQuality(Rasterizer::TessellationQuality::Preview);
+    Buffer<Colord> color(64, 64);
+    engine.render(color);
+
+    EXPECT_EQ(1u, requestedLods.size());
+    EXPECT_EQ(1u, engine.lastMetrics().tessellation.lodVariantCacheMisses);
+    EXPECT_EQ(1u, engine.lastMetrics().tessellation.lodVariantCacheHits);
   }
 
   TEST(Rasterizer, MetricsCaptureMaterialAndLightInputSummary) {

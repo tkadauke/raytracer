@@ -561,6 +561,8 @@ namespace engine::raster {
 
     enum class ShadowFilterMode { PCF, PCSS };
 
+    enum class TessellationQuality { Preview, Balanced, Final };
+
     enum class AttachmentLoadOp { Clear, Load };
 
     enum class AttachmentStoreOp { Store, Discard };
@@ -622,6 +624,10 @@ namespace engine::raster {
         std::uint64_t preparedTrianglesBeforeCulling = 0;
         std::uint64_t trianglesAfterCulling = 0;
         std::uint64_t trianglesAfterClipping = 0;
+        std::uint64_t lodVariantCacheHits = 0;
+        std::uint64_t lodVariantCacheMisses = 0;
+        std::uint64_t screenSpaceLodReductions = 0;
+        double maxProjectedPrimitivePixels = 0.0;
       } tessellation;
 
       struct TileBinningSummary {
@@ -756,8 +762,31 @@ namespace engine::raster {
       return m_lod;
     }
     inline void setLod(int lod) {
-      m_lod = lod;
+      m_lod = std::max(0, lod);
     }
+
+    inline TessellationQuality tessellationQuality() const {
+      return m_tessellationQuality;
+    }
+    inline void setTessellationQuality(TessellationQuality quality) {
+      m_tessellationQuality = quality;
+    }
+
+    inline double maximumScreenSpaceError() const {
+      return std::isfinite(m_maximumScreenSpaceError)
+               ? m_maximumScreenSpaceError
+               : presetScreenSpaceError(m_tessellationQuality);
+    }
+    inline void setMaximumScreenSpaceError(double pixels) {
+      m_maximumScreenSpaceError = std::isfinite(pixels) ? std::max(0.0, pixels) : 0.0;
+    }
+    inline void clearMaximumScreenSpaceErrorOverride() {
+      m_maximumScreenSpaceError = std::numeric_limits<double>::quiet_NaN();
+    }
+    inline bool hasMaximumScreenSpaceErrorOverride() const {
+      return std::isfinite(m_maximumScreenSpaceError);
+    }
+    static double presetScreenSpaceError(TessellationQuality quality);
 
     void setVisibilitySet(std::shared_ptr<const RasterVisibilitySet> visibilitySet);
     void clearVisibilitySet();
@@ -1454,6 +1483,8 @@ namespace engine::raster {
     std::unique_ptr<Private> p;
     std::atomic<bool> m_cancelled{false};
     int m_lod{0};
+    TessellationQuality m_tessellationQuality{TessellationQuality::Balanced};
+    double m_maximumScreenSpaceError{std::numeric_limits<double>::quiet_NaN()};
     int m_msaaSamples{1};
     MSAAShadingMode m_msaaShadingMode{MSAAShadingMode::PerSample};
     double m_nearClipDepth{0.1};

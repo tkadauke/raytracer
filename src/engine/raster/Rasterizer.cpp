@@ -572,8 +572,8 @@ Rasterizer::Rasterizer(std::shared_ptr<render::Camera> camera, std::shared_ptr<r
 
 Rasterizer::~Rasterizer() = default;
 
-QJsonObject engine::raster::rasterRenderMetricsToJson(
-  const Rasterizer::RasterRenderMetrics& metrics) {
+QJsonObject
+engine::raster::rasterRenderMetricsToJson(const Rasterizer::RasterRenderMetrics& metrics) {
   auto distributionToJson = [](const Rasterizer::MetricDistribution& distribution) {
     QJsonObject object;
     object["max"] = static_cast<double>(distribution.max);
@@ -606,6 +606,13 @@ QJsonObject engine::raster::rasterRenderMetricsToJson(
     static_cast<double>(metrics.tessellation.trianglesAfterCulling);
   tessellation["trianglesAfterClipping"] =
     static_cast<double>(metrics.tessellation.trianglesAfterClipping);
+  tessellation["lodVariantCacheHits"] =
+    static_cast<double>(metrics.tessellation.lodVariantCacheHits);
+  tessellation["lodVariantCacheMisses"] =
+    static_cast<double>(metrics.tessellation.lodVariantCacheMisses);
+  tessellation["screenSpaceLodReductions"] =
+    static_cast<double>(metrics.tessellation.screenSpaceLodReductions);
+  tessellation["maxProjectedPrimitivePixels"] = metrics.tessellation.maxProjectedPrimitivePixels;
 
   QJsonObject tiling;
   tiling["tileCount"] = static_cast<double>(metrics.tiling.tileCount);
@@ -778,6 +785,10 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   auto result = std::make_shared<Rasterizer>(m_camera ? m_camera->clone() : nullptr, m_scene);
   result->setTonemap(tonemap());
   result->setLod(m_lod);
+  result->setTessellationQuality(m_tessellationQuality);
+  if (hasMaximumScreenSpaceErrorOverride()) {
+    result->setMaximumScreenSpaceError(m_maximumScreenSpaceError);
+  }
   result->setMaximumThreads(p->threadPool->maxThreadCount());
   if (p->automaticQueueSize) {
     result->p->queueSize = p->queueSize;
@@ -853,6 +864,18 @@ std::list<Recti> Rasterizer::activeTiles() const {
     }
   }
   return result;
+}
+
+double Rasterizer::presetScreenSpaceError(TessellationQuality quality) {
+  switch (quality) {
+  case TessellationQuality::Preview:
+    return 8.0;
+  case TessellationQuality::Balanced:
+    return 2.0;
+  case TessellationQuality::Final:
+    return 0.0;
+  }
+  return 2.0;
 }
 
 void Rasterizer::setMaximumThreads(int threads) {

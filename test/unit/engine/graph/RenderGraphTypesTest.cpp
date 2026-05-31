@@ -137,6 +137,9 @@ namespace RenderGraphTypesTest {
     intent.engineOptions.raytracer().setSamplesPerPixel(8);
     intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
     intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::Auto);
+    intent.engineOptions.rasterizer().setLod(3);
+    intent.engineOptions.rasterizer().setTessellationQuality("final");
+    intent.engineOptions.rasterizer().setMaximumScreenSpaceError(0.25);
     intent.engineOptions.rasterizer().setMSAASamples(4);
     intent.engineOptions.rasterizer().setShadowMapSize(128);
     intent.engineOptions.wireframe().setLod(2);
@@ -176,6 +179,16 @@ namespace RenderGraphTypesTest {
                         .toObject()["visibilityCulling"]
                         .toString()
                         .toStdString());
+    EXPECT_EQ(3, engineOptions["rasterizer"].toObject()["geometry"].toObject()["lod"].toInt());
+    EXPECT_EQ("final", engineOptions["rasterizer"]
+                         .toObject()["geometry"]
+                         .toObject()["quality"]
+                         .toString()
+                         .toStdString());
+    EXPECT_DOUBLE_EQ(0.25, engineOptions["rasterizer"]
+                             .toObject()["geometry"]
+                             .toObject()["maxScreenSpaceError"]
+                             .toDouble());
     EXPECT_EQ(4,
               engineOptions["rasterizer"].toObject()["sampling"].toObject()["msaaSamples"].toInt());
     EXPECT_EQ(128, engineOptions["rasterizer"].toObject()["shadows"].toObject()["mapSize"].toInt());
@@ -215,6 +228,9 @@ namespace RenderGraphTypesTest {
     rasterExecution["backend"] = "gpu";
     QJsonObject rasterGeometry;
     rasterGeometry["visibilityCulling"] = "on";
+    rasterGeometry["lod"] = 2;
+    rasterGeometry["quality"] = "preview";
+    rasterGeometry["maxScreenSpaceError"] = 4.5;
     QJsonObject rasterizerOptions;
     rasterizerOptions["execution"] = rasterExecution;
     rasterizerOptions["geometry"] = rasterGeometry;
@@ -253,6 +269,12 @@ namespace RenderGraphTypesTest {
     EXPECT_TRUE(intent.engineOptions.rasterizer().backend()->isOpenGL());
     ASSERT_TRUE(intent.engineOptions.rasterizer().visibilityCulling().has_value());
     EXPECT_EQ(RenderVisibilityCulling::On, *intent.engineOptions.rasterizer().visibilityCulling());
+    ASSERT_TRUE(intent.engineOptions.rasterizer().lod().has_value());
+    EXPECT_EQ(2, *intent.engineOptions.rasterizer().lod());
+    ASSERT_TRUE(intent.engineOptions.rasterizer().tessellationQuality().has_value());
+    EXPECT_EQ("preview", *intent.engineOptions.rasterizer().tessellationQuality());
+    ASSERT_TRUE(intent.engineOptions.rasterizer().maximumScreenSpaceError().has_value());
+    EXPECT_DOUBLE_EQ(4.5, *intent.engineOptions.rasterizer().maximumScreenSpaceError());
     ASSERT_EQ(4u, intent.exportedAOVs.size());
     EXPECT_EQ(RenderViewMode::Depth, intent.exportedAOVs[0]);
     EXPECT_EQ(RenderViewMode::Stencil, intent.exportedAOVs[1]);

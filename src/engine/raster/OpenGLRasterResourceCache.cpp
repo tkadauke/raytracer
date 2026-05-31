@@ -94,6 +94,8 @@ namespace engine::raster::detail {
     }
     if (visibilitySet.lock().get() != other.visibilitySet.lock().get() ||
         shadowMaps.lock().get() != other.shadowMaps.lock().get() || lod != other.lod ||
+        tessellationQuality != other.tessellationQuality ||
+        maximumScreenSpaceError != other.maximumScreenSpaceError ||
         viewportWidth != other.viewportWidth || viewportHeight != other.viewportHeight ||
         cullMode != other.cullMode || hasCullModeOverride != other.hasCullModeOverride ||
         depthBias != other.depthBias || cameraDependent != other.cameraDependent) {

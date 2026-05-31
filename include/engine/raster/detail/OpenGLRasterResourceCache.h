@@ -93,6 +93,8 @@ namespace engine::raster::detail {
     std::weak_ptr<const RasterVisibilitySet> visibilitySet;
     std::weak_ptr<const ShadowMaps> shadowMaps;
     int lod{0};
+    Rasterizer::TessellationQuality tessellationQuality{Rasterizer::TessellationQuality::Final};
+    double maximumScreenSpaceError{0.0};
     int viewportWidth{0};
     int viewportHeight{0};
     Rasterizer::CullMode cullMode{Rasterizer::CullMode::Both};
