@@ -43,10 +43,12 @@ namespace engine::raster::detail {
     Rasterizer::CullMode overrideMode;
     bool hasOverride;
 
+    bool hasDegenerateScreenWinding(const ClipVert& v0, const ClipVert& v1,
+                                    const ClipVert& v2) const;
     bool shouldCull(Rasterizer::CullMode mode, const ClipVert& v0, const ClipVert& v1,
                     const ClipVert& v2) const;
-    bool shouldCull(const RasterMaterialSource& materialSource, const ClipVert& v0,
-                    const ClipVert& v1, const ClipVert& v2) const;
+    bool shouldCull(const RasterMaterialSource& materialSource, const render::Primitive* primitive,
+                    const ClipVert& v0, const ClipVert& v1, const ClipVert& v2) const;
   };
 
   // Front-end of the software raster pipeline. It walks scene leaf primitives,
@@ -258,6 +260,10 @@ namespace engine::raster::detail {
 
     void recordPreparedTriangleBeforeCulling() const;
 
+    void recordTriangleRejectedByCulling() const;
+
+    void recordTriangleRejectedByWindingOrDegeneracy() const;
+
     void recordTriangleAfterCulling() const;
 
     void recordTriangleAfterClipping() const;
@@ -269,15 +275,26 @@ namespace engine::raster::detail {
                               const ClipVert& v0, const ClipVert& v1, const ClipVert& v2,
                               EmitFn& callback) const {
       recordPreparedTriangleBeforeCulling();
-      if (m_cullPolicy.shouldCull(materialSource, v0, v1, v2)) {
+      if (m_cullPolicy.hasDegenerateScreenWinding(v0, v1, v2)) {
+        recordTriangleRejectedByWindingOrDegeneracy();
         return;
       }
-      recordTriangleAfterCulling();
+      if (m_cullPolicy.shouldCull(materialSource, primitive, v0, v1, v2)) {
+        recordTriangleRejectedByCulling();
+        return;
+      }
 
       RasterTriangle triangle;
       if (makeTriangle(v0, v1, v2, primitive, material, materialSource, faceIdx, triangle)) {
+        if (hasDegenerateRasterWinding(triangle)) {
+          recordTriangleRejectedByWindingOrDegeneracy();
+          return;
+        }
+        recordTriangleAfterCulling();
         recordTriangleAfterClipping();
         callback(triangle);
+      } else {
+        recordTriangleRejectedByWindingOrDegeneracy();
       }
     }
 
@@ -296,6 +313,13 @@ namespace engine::raster::detail {
                       const std::shared_ptr<render::Material>& material,
                       const RasterMaterialSource& materialSource, std::uint64_t faceIdx,
                       RasterTriangle& out) const;
+
+    static bool hasDegenerateRasterWinding(const RasterTriangle& triangle) {
+      const auto& v0 = triangle.vertices[0];
+      const auto& v1 = triangle.vertices[1];
+      const auto& v2 = triangle.vertices[2];
+      return (v1.x - v0.x) * (v2.y - v0.y) - (v1.y - v0.y) * (v2.x - v0.x) == 0.0;
+    }
 
     const render::Scene* m_scene;
     std::shared_ptr<render::Camera> m_camera;

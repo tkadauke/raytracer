@@ -602,6 +602,10 @@ engine::raster::rasterRenderMetricsToJson(const Rasterizer::RasterRenderMetrics&
   tessellation["generatedMeshFaces"] = static_cast<double>(metrics.tessellation.generatedMeshFaces);
   tessellation["preparedTrianglesBeforeCulling"] =
     static_cast<double>(metrics.tessellation.preparedTrianglesBeforeCulling);
+  tessellation["trianglesRejectedByCulling"] =
+    static_cast<double>(metrics.tessellation.trianglesRejectedByCulling);
+  tessellation["trianglesRejectedByWindingOrDegeneracy"] =
+    static_cast<double>(metrics.tessellation.trianglesRejectedByWindingOrDegeneracy);
   tessellation["trianglesAfterCulling"] =
     static_cast<double>(metrics.tessellation.trianglesAfterCulling);
   tessellation["trianglesAfterClipping"] =

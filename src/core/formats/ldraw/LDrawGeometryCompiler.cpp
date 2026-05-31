@@ -45,6 +45,16 @@ namespace {
     return !counterClockwise != inheritedInverted;
   }
 
+  Mesh::FaceMetadata faceMetadataForBfc(const BfcState& bfc, bool correctedWinding) {
+    Mesh::FaceMetadata metadata;
+    if (!bfc.certified || !bfc.clip) {
+      metadata.windingReliability = Mesh::FaceMetadata::WindingReliability::Unknown;
+    } else if (correctedWinding) {
+      metadata.windingReliability = Mesh::FaceMetadata::WindingReliability::Corrected;
+    }
+    return metadata;
+  }
+
   bool isSupportedTexmap(const LDrawTexmap& texmap) {
     return texmap.projection == LDrawTexmapProjection::Planar && !texmap.textureFile.empty();
   }
@@ -202,7 +212,7 @@ namespace {
                                                           : Vector2d::null);
     }
     const bool reverse = shouldReverseFace(bfc.counterClockwise, inheritedInverted);
-    mesh.addFace({0, 1, 2}, reverse);
+    mesh.addFace({0, 1, 2}, reverse, faceMetadataForBfc(bfc, reverse));
     mesh.computeNormals();
 
     auto primitive = make_shared<render::MeshPrimitive>(
@@ -236,7 +246,7 @@ namespace {
                                                           : Vector2d::null);
     }
     const bool reverse = shouldReverseFace(bfc.counterClockwise, inheritedInverted);
-    mesh.addFace({0, 1, 2, 3}, reverse);
+    mesh.addFace({0, 1, 2, 3}, reverse, faceMetadataForBfc(bfc, reverse));
     mesh.computeNormals();
 
     auto primitive = make_shared<render::MeshPrimitive>(

@@ -188,10 +188,11 @@ std::shared_ptr<Mesh> Instance::tessellate(int lod) const {
 
   for (std::size_t i = 0; i != childMesh->faces().size(); ++i) {
     const auto color = childMesh->faceColor(i);
+    const auto metadata = childMesh->faceMetadata(i);
     if (color)
-      result->addFace(childMesh->faces()[i], *color);
+      result->addFace(childMesh->faces()[i], *color, metadata);
     else
-      result->addFace(childMesh->faces()[i]);
+      result->addFace(childMesh->faces()[i], metadata);
   }
 
   return result;

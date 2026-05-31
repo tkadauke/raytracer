@@ -275,6 +275,8 @@ namespace LDrawGeometryCompilerTest {
     auto primitive = onlyMeshPrimitive(geometry);
 
     EXPECT_EQ((Mesh::Face{0, 1, 2}), primitive->mesh()->faces()[0]);
+    EXPECT_EQ(Mesh::FaceMetadata::WindingReliability::Reliable,
+              primitive->mesh()->faceMetadata(0).windingReliability);
     expectFirstFaceNormal(primitive->tessellate(), Vector3d(0, 0, 1));
     EXPECT_EQ(Material::Sidedness::Front, primitive->material()->sidedness());
   }
@@ -287,6 +289,8 @@ namespace LDrawGeometryCompilerTest {
     auto primitive = onlyMeshPrimitive(geometry);
 
     EXPECT_EQ((Mesh::Face{0, 2, 1}), primitive->mesh()->faces()[0]);
+    EXPECT_EQ(Mesh::FaceMetadata::WindingReliability::Corrected,
+              primitive->mesh()->faceMetadata(0).windingReliability);
     expectFirstFaceNormal(primitive->tessellate(), Vector3d(0, 0, -1));
     EXPECT_EQ(Material::Sidedness::Front, primitive->material()->sidedness());
   }
@@ -306,6 +310,10 @@ namespace LDrawGeometryCompilerTest {
     ASSERT_NE(nullptr, second);
     EXPECT_EQ(Material::Sidedness::TwoSided, first->material()->sidedness());
     EXPECT_EQ(Material::Sidedness::TwoSided, second->material()->sidedness());
+    EXPECT_EQ(Mesh::FaceMetadata::WindingReliability::Unknown,
+              first->mesh()->faceMetadata(0).windingReliability);
+    EXPECT_EQ(Mesh::FaceMetadata::WindingReliability::Unknown,
+              second->mesh()->faceMetadata(0).windingReliability);
   }
 
   TEST(LDrawGeometryCompiler, InlineGeometryRendersThroughRaytracer) {
@@ -483,9 +491,28 @@ namespace LDrawGeometryCompilerTest {
 
     ASSERT_EQ(2u, mesh->faces().size());
     EXPECT_EQ(Vector3d(0, 0, -1), faceNormal(*mesh, mesh->faces()[0]));
+    EXPECT_EQ(Mesh::FaceMetadata::WindingReliability::Corrected,
+              mesh->faceMetadata(0).windingReliability);
     EXPECT_EQ(Vector3d(0, 0, -1), mesh->vertices()[0].normal);
     EXPECT_EQ(Vector3d(0, 0, 1), faceNormal(*mesh, mesh->faces()[1]));
+    EXPECT_EQ(Mesh::FaceMetadata::WindingReliability::Reliable,
+              mesh->faceMetadata(1).windingReliability);
     EXPECT_EQ(Vector3d(0, 0, 1), mesh->vertices()[3].normal);
+  }
+
+  TEST(LDrawGeometryCompiler, MirroredTypeOneTransformMarksCorrectedWinding) {
+    auto resolver =
+      make_shared<MemoryResolver>(map<string, string>{{"child.dat", "0 BFC CERTIFY CCW\n"
+                                                                    "3 16 0 0 0 0 1 0 1 0 0\n"}});
+    istringstream input("1 4 0 0 0 -1 0 0 0 1 0 0 0 1 child.dat\n");
+
+    auto geometry = LDrawGeometryCompiler(resolver).compile(input, colorTable());
+    auto mesh = geometry->tessellate();
+
+    ASSERT_EQ(1u, mesh->faces().size());
+    EXPECT_EQ(Mesh::FaceMetadata::WindingReliability::Corrected,
+              mesh->faceMetadata(0).windingReliability);
+    EXPECT_EQ(Vector3d(0, 0, 1), faceNormal(*mesh, mesh->faces()[0]));
   }
 
   TEST(LDrawGeometryCompiler, ReferencedFilesAreParsedThroughResolverOnlyOnce) {

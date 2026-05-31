@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/geometry/MeshFaceMetadata.h"
 #include "core/math/Vector.h"
 #include "core/Color.h"
 #include "core/Exception.h"
@@ -65,6 +66,7 @@ public:
     * lie in the same plane.
     */
   typedef std::vector<int> Face;
+  using FaceMetadata = core::MeshFaceMetadata;
 
   /**
     * Returns @p face with the opposite winding, preserving the first vertex as
@@ -201,6 +203,7 @@ public:
     }
     m_faces.push_back(face);
     m_faceColors.push_back(std::nullopt);
+    m_faceMetadata.push_back(FaceMetadata());
   }
 
   /**
@@ -226,6 +229,21 @@ public:
     m_faceColors.back() = color;
   }
 
+  inline void addFace(const Face& face, const Colord& color, const FaceMetadata& metadata) {
+    addFace(face, color);
+    m_faceMetadata.back() = metadata;
+  }
+
+  inline void addFace(const Face& face, const FaceMetadata& metadata) {
+    addFace(face);
+    m_faceMetadata.back() = metadata;
+  }
+
+  inline void addFace(const Face& face, bool reverseWinding, const FaceMetadata& metadata) {
+    addFace(face, reverseWinding);
+    m_faceMetadata.back() = metadata;
+  }
+
   /**
     * @returns a const reference to the vector of vertices.
     */
@@ -248,6 +266,14 @@ public:
     return m_faceColors.at(faceIndex);
   }
 
+  [[nodiscard]] inline const std::vector<FaceMetadata>& faceMetadata() const {
+    return m_faceMetadata;
+  }
+
+  [[nodiscard]] inline FaceMetadata faceMetadata(std::size_t faceIndex) const {
+    return m_faceMetadata.at(faceIndex);
+  }
+
   /**
     * @returns a TriangleIterator that points to the first triangle if the first
     * face in this mesh.
@@ -268,4 +294,5 @@ private:
   std::vector<Vertex> m_vertices;
   std::vector<Face> m_faces;
   std::vector<std::optional<Colord>> m_faceColors;
+  std::vector<FaceMetadata> m_faceMetadata;
 };

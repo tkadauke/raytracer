@@ -82,7 +82,7 @@ std::shared_ptr<Mesh> FlatMeshTriangle::tessellate(int) const {
   mesh->addVertex(v0.point, m_normal, v0.uv);
   mesh->addVertex(v1.point, m_normal, v1.uv);
   mesh->addVertex(v2.point, m_normal, v2.uv);
-  mesh->addFace({0, 1, 2});
+  mesh->addFace({0, 1, 2}, m_faceMetadata);
   return mesh;
 }
 

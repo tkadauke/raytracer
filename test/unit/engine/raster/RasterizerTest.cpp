@@ -22,6 +22,7 @@
 #include "render/primitives/Box.h"
 #include "render/primitives/Curve.h"
 #include "render/primitives/Instance.h"
+#include "render/primitives/MeshPrimitive.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
@@ -336,6 +337,25 @@ namespace RasterizerTest {
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));
     triangle->setMaterial(std::move(material));
     scene->add(triangle);
+    return scene;
+  }
+
+  static std::shared_ptr<Scene>
+  sceneWithMeshBackFacingTriangle(std::shared_ptr<render::Material> material,
+                                  Mesh::FaceMetadata::WindingReliability windingReliability) {
+    Mesh mesh;
+    mesh.addVertex(Vector3d(-1, -1, 0), Vector3d(0, 0, -1));
+    mesh.addVertex(Vector3d(1, -1, 0), Vector3d(0, 0, -1));
+    mesh.addVertex(Vector3d(0, 1, 0), Vector3d(0, 0, -1));
+    Mesh::FaceMetadata metadata;
+    metadata.windingReliability = windingReliability;
+    mesh.addFace({0, 1, 2}, metadata);
+
+    auto scene = std::make_shared<Scene>(Colord::black());
+    auto primitive =
+      std::make_shared<MeshPrimitive>(std::move(mesh), MeshPrimitive::NormalMode::Flat);
+    primitive->setMaterial(std::move(material));
+    scene->add(primitive);
     return scene;
   }
 
@@ -1245,6 +1265,8 @@ namespace RasterizerTest {
     EXPECT_EQ(6u, metrics.tessellation.generatedMeshVertices);
     EXPECT_EQ(2u, metrics.tessellation.generatedMeshFaces);
     EXPECT_EQ(2u, metrics.tessellation.preparedTrianglesBeforeCulling);
+    EXPECT_EQ(0u, metrics.tessellation.trianglesRejectedByCulling);
+    EXPECT_EQ(0u, metrics.tessellation.trianglesRejectedByWindingOrDegeneracy);
     EXPECT_EQ(2u, metrics.tessellation.trianglesAfterCulling);
     EXPECT_EQ(2u, metrics.tessellation.trianglesAfterClipping);
 
@@ -2615,6 +2637,56 @@ namespace RasterizerTest {
     engine.render(buffer);
 
     EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(1u, engine.lastMetrics().tessellation.trianglesRejectedByCulling);
+  }
+
+  TEST(Rasterizer, UnknownMeshWindingDisablesOnlyInferredBackfaceCulling) {
+    auto material = matte(Colord::white());
+    material->setSidedness(render::Material::Sidedness::Front);
+    auto scene =
+      sceneWithMeshBackFacingTriangle(material, Mesh::FaceMetadata::WindingReliability::Unknown);
+    scene->setAmbient(Colord::white());
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setBackgroundColor(Colord::black());
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+    EXPECT_EQ(0u, engine.lastMetrics().tessellation.trianglesRejectedByCulling);
+  }
+
+  TEST(Rasterizer, CorrectedMeshWindingDisablesOnlyInferredBackfaceCulling) {
+    auto material = matte(Colord::white());
+    material->setSidedness(render::Material::Sidedness::Front);
+    auto scene =
+      sceneWithMeshBackFacingTriangle(material, Mesh::FaceMetadata::WindingReliability::Corrected);
+    scene->setAmbient(Colord::white());
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setBackgroundColor(Colord::black());
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+    EXPECT_EQ(0u, engine.lastMetrics().tessellation.trianglesRejectedByCulling);
+  }
+
+  TEST(Rasterizer, ExplicitCullModeOverridesUnreliableMeshWinding) {
+    auto material = matte(Colord::white());
+    material->setSidedness(render::Material::Sidedness::Front);
+    auto scene =
+      sceneWithMeshBackFacingTriangle(material, Mesh::FaceMetadata::WindingReliability::Unknown);
+    scene->setAmbient(Colord::white());
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setBackgroundColor(Colord::black());
+    engine.setCullMode(Rasterizer::CullMode::Back);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(1u, engine.lastMetrics().tessellation.trianglesRejectedByCulling);
   }
 
   TEST(Rasterizer, BackSidedMaterialDefaultsToFrontfaceCulling) {
@@ -2659,6 +2731,22 @@ namespace RasterizerTest {
 
     EXPECT_TRUE(engine.hasCullModeOverride());
     EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+  }
+
+  TEST(Rasterizer, MetricsCountDegenerateProjectedTriangles) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
+      return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
+                                      vertex.clipPosition, Vector3d(32.0, 32.0, 1.0)};
+    });
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(1u, engine.lastMetrics().tessellation.preparedTrianglesBeforeCulling);
+    EXPECT_EQ(1u, engine.lastMetrics().tessellation.trianglesRejectedByWindingOrDegeneracy);
+    EXPECT_EQ(0u, engine.lastMetrics().tessellation.trianglesAfterCulling);
+    EXPECT_EQ(0u, engine.lastMetrics().tessellation.trianglesAfterClipping);
   }
 
   TEST(Rasterizer, BackfaceCullingSkipsBackFacingTriangles) {

@@ -661,6 +661,21 @@ foreach(cull_mode IN ITEMS both back front)
                                     NAME "rendercli --cull ${cull_mode} dimensions")
 endforeach()
 
+set(cull_both_graph "${TEST_OUTPUT_DIR}/raster-cull-both-graph.json")
+rendercli_run(
+  NAME "rendercli --cull both serializes explicit raster override"
+  COMMAND
+    "${RENDERCLI}" --engine raster --render_graph_only --render_graph_format json
+    --cull both
+    "${matte_scene}" "${cull_both_graph}"
+)
+file(READ "${cull_both_graph}" cull_both_graph_json)
+if(NOT cull_both_graph_json MATCHES "\"cullMode\"[ \r\n]*:[ \r\n]*\"both\"")
+  _rendercli_fail("rendercli --cull both graph state"
+                  "compiled graph did not serialize explicit cullMode=both"
+                  "" "" "" "${cull_both_graph_json}")
+endif()
+
 foreach(msaa_samples IN ITEMS 1 2 4 8)
   set(msaa_render "${TEST_OUTPUT_DIR}/raster-msaa-${msaa_samples}.png")
   rendercli_run(

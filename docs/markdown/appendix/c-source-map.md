@@ -40,6 +40,7 @@
 | `include/core/geometry/Curve.h` | [Tessellation](../rasterization/tessellation.md) |
 | `include/core/geometry/Mesh.h` | [Tessellation](../rasterization/tessellation.md) |
 | `include/core/geometry/MeshAsset.h` | [Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
+| `include/core/geometry/MeshFaceMetadata.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/core/geometry/Polyline.h` | [Tessellation](../rasterization/tessellation.md) |
 | `include/core/geometry/Rasterize.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[MSAA and attribute interpolation](../rasterization/msaa-and-attribute-interpolation.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/core/math/BoundingBox.h` | [Rays and geometry](../foundations/rays-and-geometry.md)<br>[Spatial acceleration](../scene-structure/spatial-acceleration.md) |

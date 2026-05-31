@@ -23,6 +23,12 @@ mapping meta commands, unofficial custom geometry extensions, and full
 LDraw-specific material fidelity are not implemented; unsupported records should
 produce diagnostics instead of silently changing the model.
 
+BFC certification and clipping metadata also control raster sidedness. Certified
+front-sided polygons can use inferred backface culling, while uncertified,
+`NOCLIP`, mirrored, or otherwise corrected winding stays visible by disabling
+that inferred cull decision for the affected mesh faces. Explicit raster cull
+state still wins over importer metadata.
+
 ## Library paths
 
 For direct LDraw input, pass the model file as the input scene and add
@@ -118,6 +124,7 @@ without external assets.
 - `include/core/formats/ldraw/LDrawColorTable.h`
 - `include/core/formats/ldraw/LDrawFileResolver.h`
 - `include/core/formats/ldraw/LDrawGeometryCompiler.h`
+- `include/core/geometry/MeshFaceMetadata.h`
 - `include/world/import/LDrawFileSceneImporter.h`
 - `include/world/import/LDrawSceneImporter.h`
 - `include/world/objects/PinholeCamera.h`
