@@ -28,6 +28,7 @@ namespace render {
     }
 
     Colord sample(const HitPoint& hitPoint, const Vector3d& out, Vector3d& in) const override;
+    using BTDF::sample;
     bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint) const override;
 
     /// BSDF::sample for the delta-transmission lobe — sets
@@ -39,6 +40,10 @@ namespace render {
                   double& pdf) const override {
       pdf = 1.0;
       return sample(hitPoint, wi, wo);
+    }
+    Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo, double& pdf,
+                  const Vector2d&) const override {
+      return sample(hitPoint, wi, wo, pdf);
     }
 
     inline double transmissionCoefficient() const {

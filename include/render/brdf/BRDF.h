@@ -111,18 +111,21 @@ namespace render {
     }
 
     /// BSDF::sample forwarder. Reports `pdf = 0` by default — the
-    /// finite-value BRDFs (Lambertian, GlossySpecular) don't yet
-    /// provide an importance-sampling density. Specular subclasses
-    /// override to set `pdf = 1` (delta).
+    /// finite-value BRDFs use their analytic density where one is
+    /// available. Delta subclasses override to set `pdf = 1`.
     Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo,
                   double& pdf) const override {
-      pdf = 0.0;
-      return sample(hitPoint, wi, wo);
+      return sample(hitPoint, wi, wo, pdf, Vector2d(0.5, 0.5));
     }
 
-    /// BSDF::pdf — defaults to 0 (no closed-form sampling density
-    /// for the finite-value BRDFs yet; delta lobes also return 0
-    /// by definition).
+    /// BSDF::sample forwarder using a caller-owned random sample.
+    /// Default reports an unsampleable lobe; finite subclasses
+    /// override where an analytic sampling density exists.
+    Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo, double& pdf,
+                  const Vector2d& sample) const override;
+
+    /// BSDF::pdf — defaults to 0 for unsampleable or delta lobes.
+    /// Finite subclasses override where an analytic density exists.
     double pdf(const HitPoint& hitPoint, const Vector3d& wi, const Vector3d& wo) const override;
   };
 }

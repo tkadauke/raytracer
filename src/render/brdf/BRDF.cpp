@@ -17,3 +17,9 @@ Colord BRDF::reflectance(const HitPoint&, const Vector3d&) const {
 double BRDF::pdf(const HitPoint&, const Vector3d&, const Vector3d&) const {
   return 0.0;
 }
+
+Colord BRDF::sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo, double& pdf,
+                    const Vector2d&) const {
+  pdf = 0.0;
+  return sample(hitPoint, wi, wo);
+}
