@@ -59,6 +59,20 @@ namespace render {
     virtual std::unique_ptr<Integrator> clone() const = 0;
 
     /**
+      * Stable diagnostic identifier for graph traces and render metrics.
+      */
+    virtual const char* diagnosticName() const;
+
+    /**
+      * Describes how `radianceBatch(...)` schedules samples.
+      *
+      * The base implementation loops over scalar `radiance(...)` calls.
+      * Integrators that override batch execution should override this too so
+      * callers can expose the scheduling mode without probing concrete types.
+      */
+    virtual const char* batchExecutionMode() const;
+
+    /**
       * Evaluate the radiance carried by `ray` in `scene`.
       *
       * Implementations may mutate `state` for recursion depth, hit-point

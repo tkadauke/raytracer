@@ -13,6 +13,8 @@
 
 #include "test/helpers/ColorTestHelper.h"
 
+#include <QJsonObject>
+
 namespace WavefrontRaytracerTest {
   using engine::wavefront::WavefrontRaytracer;
 
@@ -70,5 +72,38 @@ namespace WavefrontRaytracerTest {
         ASSERT_COLOR_NEAR(recursiveBuffer[y][x], wavefrontBuffer[y][x], 1e-12);
       }
     }
+  }
+
+  TEST(WavefrontRaytracer, RecordsLastRenderMetrics) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+
+    Buffer<Colord> buffer(8, 6);
+    renderer->render(buffer);
+
+    const auto metrics = renderer->lastMetrics();
+    EXPECT_EQ(8, metrics.input.width);
+    EXPECT_EQ(6, metrics.input.height);
+    EXPECT_EQ(1, metrics.input.samplesPerPixel);
+    EXPECT_EQ(48u, metrics.input.renderedPixels);
+    EXPECT_EQ(48u, metrics.input.primarySamples);
+    EXPECT_EQ(1u, metrics.tiling.tileCount);
+    EXPECT_EQ(1u, metrics.tiling.nonEmptyTileCount);
+    EXPECT_EQ(1u, metrics.scheduling.configuredQueueSize);
+    EXPECT_EQ(1u, metrics.scheduling.resolvedQueueSize);
+    EXPECT_EQ("single_tile", metrics.scheduling.decision);
+    EXPECT_EQ("whitted", metrics.batching.integrator);
+    EXPECT_EQ("scalar_loop", metrics.batching.executionMode);
+    EXPECT_EQ(1u, metrics.batching.batches);
+    EXPECT_EQ(48u, metrics.batching.samplesSubmitted);
+    EXPECT_EQ(48u, metrics.batching.maxBatchSize);
+    EXPECT_DOUBLE_EQ(48.0, metrics.batching.averageBatchSize);
+    EXPECT_GT(metrics.timings.totalRenderSeconds, 0.0);
+
+    const QJsonObject json = wavefrontRenderMetricsToJson(metrics);
+    EXPECT_EQ("whitted",
+              json.value("batching").toObject().value("integrator").toString().toStdString());
+    EXPECT_EQ(48.0, json.value("batching").toObject().value("samplesSubmitted").toDouble());
   }
 }

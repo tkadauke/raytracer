@@ -378,6 +378,13 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
                 scheduling.value(QStringLiteral("resolvedQueueSize")).toDouble()))
               .arg(scheduling.value(QStringLiteral("decision")).toString());
   }
+  const QJsonObject batching = passTrace->metadata().value(QStringLiteral("batching")).toObject();
+  if (!batching.isEmpty()) {
+    line +=
+      QStringLiteral(", samples %1, %2")
+        .arg(static_cast<qulonglong>(batching.value(QStringLiteral("samplesSubmitted")).toDouble()))
+        .arg(humanizeIdentifier(batching.value(QStringLiteral("executionMode")).toString()));
+  }
   const QJsonObject depthPrepass =
     passTrace->metadata().value(QStringLiteral("depthPrepass")).toObject();
   if (!depthPrepass.isEmpty()) {

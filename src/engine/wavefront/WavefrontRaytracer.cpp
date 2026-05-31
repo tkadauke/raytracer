@@ -14,16 +14,23 @@
 #include "render/primitives/Scene.h"
 #include "render/tonemap/Tonemap.h"
 
+#include <QJsonObject>
+#include <QString>
 #include <QThread>
 #include <QThreadPool>
 
+#include <algorithm>
+#include <chrono>
 #include <functional>
 #include <iostream>
+#include <mutex>
 #include <stdexcept>
 #include <utility>
 
 namespace engine::wavefront {
   namespace {
+    using WavefrontClock = std::chrono::steady_clock;
+
     class RecursiveRayCasterAdapter : public render::RayCaster {
     public:
       RecursiveRayCasterAdapter(const render::Scene& scene, const render::Integrator& integrator)
@@ -41,6 +48,43 @@ namespace engine::wavefront {
     };
   }
 
+  QJsonObject wavefrontRenderMetricsToJson(const WavefrontRenderMetrics& metrics) {
+    QJsonObject input;
+    input["width"] = metrics.input.width;
+    input["height"] = metrics.input.height;
+    input["samplesPerPixel"] = metrics.input.samplesPerPixel;
+    input["renderedPixels"] = static_cast<double>(metrics.input.renderedPixels);
+    input["primarySamples"] = static_cast<double>(metrics.input.primarySamples);
+
+    QJsonObject tiling;
+    tiling["tileCount"] = static_cast<double>(metrics.tiling.tileCount);
+    tiling["nonEmptyTileCount"] = static_cast<double>(metrics.tiling.nonEmptyTileCount);
+
+    QJsonObject scheduling;
+    scheduling["configuredQueueSize"] = static_cast<double>(metrics.scheduling.configuredQueueSize);
+    scheduling["resolvedQueueSize"] = static_cast<double>(metrics.scheduling.resolvedQueueSize);
+    scheduling["decision"] = QString::fromStdString(metrics.scheduling.decision);
+
+    QJsonObject batching;
+    batching["integrator"] = QString::fromStdString(metrics.batching.integrator);
+    batching["executionMode"] = QString::fromStdString(metrics.batching.executionMode);
+    batching["batches"] = static_cast<double>(metrics.batching.batches);
+    batching["samplesSubmitted"] = static_cast<double>(metrics.batching.samplesSubmitted);
+    batching["maxBatchSize"] = static_cast<double>(metrics.batching.maxBatchSize);
+    batching["averageBatchSize"] = metrics.batching.averageBatchSize;
+
+    QJsonObject timings;
+    timings["totalRenderSeconds"] = metrics.timings.totalRenderSeconds;
+
+    QJsonObject object;
+    object["input"] = input;
+    object["tiling"] = tiling;
+    object["scheduling"] = scheduling;
+    object["batching"] = batching;
+    object["timings"] = timings;
+    return object;
+  }
+
   struct WavefrontRaytracer::Private {
     Private()
         : threadPool(std::make_unique<QThreadPool>()),
@@ -55,17 +99,24 @@ namespace engine::wavefront {
     std::unique_ptr<render::Integrator> integrator;
     bool showProgressIndicators;
     std::optional<std::uint64_t> samplingSeed;
+    mutable WavefrontRenderMetrics lastMetrics;
+    mutable std::mutex metricsMutex;
 
     struct TilePixel {
       Recti footprint;
       Colord color{Colord::black()};
     };
 
-    std::vector<TilePixel> traceTile(render::Camera& camera, const render::RayCaster& rayCaster,
-                                     const render::Scene& scene, const Recti& actualRect,
-                                     std::optional<std::uint64_t> tileSeed,
-                                     const std::function<void(const Recti&)>& markProgress) const {
+    struct TileTraceResult {
       std::vector<TilePixel> pixels;
+      std::size_t sampleCount{0};
+    };
+
+    TileTraceResult traceTile(render::Camera& camera, const render::RayCaster& rayCaster,
+                              const render::Scene& scene, const Recti& actualRect,
+                              std::optional<std::uint64_t> tileSeed,
+                              const std::function<void(const Recti&)>& markProgress) const {
+      TileTraceResult result;
       std::vector<render::IntegratorRaySample> samples;
       std::vector<std::size_t> samplePixelIndices;
       const int sampleCount = camera.samplesPerPixel();
@@ -77,12 +128,12 @@ namespace engine::wavefront {
         if (camera.isCancelled())
           break;
 
-        const std::size_t pixelIndex = pixels.size();
+        const std::size_t pixelIndex = result.pixels.size();
         const Recti footprint = pixel.footprintWithin(actualRect);
         if (showProgressIndicators) {
           markProgress(footprint);
         }
-        pixels.push_back(TilePixel{footprint, Colord::black()});
+        result.pixels.push_back(TilePixel{footprint, Colord::black()});
 
         for (int sampleIndex = 0; sampleIndex != sampleCount; ++sampleIndex) {
           if (camera.isCancelled())
@@ -99,9 +150,10 @@ namespace engine::wavefront {
       const std::vector<Colord> sampleColors = integrator->radianceBatch(scene, samples, rayCaster);
       const double sampleScale = 1.0 / sampleCount;
       for (std::size_t index = 0; index != sampleColors.size(); ++index) {
-        pixels[samplePixelIndices[index]].color += sampleColors[index] * sampleScale;
+        result.pixels[samplePixelIndices[index]].color += sampleColors[index] * sampleScale;
       }
-      return pixels;
+      result.sampleCount = samples.size();
+      return result;
     }
 
     void writeColor(Buffer<Colord>& buffer, const Recti& footprint, const Colord& color) const {
@@ -116,6 +168,46 @@ namespace engine::wavefront {
           buffer[y][x] = rgb;
     }
 
+    void resetMetrics(render::Camera& camera, int width, int height,
+                      const render::TilePlan& tilePlan) {
+      std::lock_guard<std::mutex> lock(metricsMutex);
+      lastMetrics = WavefrontRenderMetrics();
+      lastMetrics.input.width = width;
+      lastMetrics.input.height = height;
+      lastMetrics.input.samplesPerPixel = camera.samplesPerPixel();
+      lastMetrics.tiling.tileCount = tilePlan.size();
+      lastMetrics.scheduling.configuredQueueSize =
+        static_cast<std::uint64_t>(std::max(0, queueSize));
+      lastMetrics.scheduling.resolvedQueueSize = tilePlan.size();
+      lastMetrics.scheduling.decision = tilePlan.isSingleTile() ? "single_tile" : "tiled";
+      lastMetrics.batching.integrator = integrator->diagnosticName();
+      lastMetrics.batching.executionMode = integrator->batchExecutionMode();
+    }
+
+    void recordTileMetrics(const TileTraceResult& result) const {
+      std::lock_guard<std::mutex> lock(metricsMutex);
+      lastMetrics.input.renderedPixels += result.pixels.size();
+      lastMetrics.input.primarySamples += result.sampleCount;
+      if (result.sampleCount > 0) {
+        ++lastMetrics.tiling.nonEmptyTileCount;
+        ++lastMetrics.batching.batches;
+        lastMetrics.batching.samplesSubmitted += result.sampleCount;
+        lastMetrics.batching.maxBatchSize = std::max(
+          lastMetrics.batching.maxBatchSize, static_cast<std::uint64_t>(result.sampleCount));
+      }
+    }
+
+    void finishMetrics(WavefrontClock::time_point start) {
+      std::lock_guard<std::mutex> lock(metricsMutex);
+      lastMetrics.timings.totalRenderSeconds =
+        std::chrono::duration<double>(WavefrontClock::now() - start).count();
+      lastMetrics.batching.averageBatchSize =
+        lastMetrics.batching.batches == 0
+          ? 0.0
+          : static_cast<double>(lastMetrics.batching.samplesSubmitted) /
+              static_cast<double>(lastMetrics.batching.batches);
+    }
+
     void renderTile(render::Camera& camera, const render::RayCaster& rayCaster,
                     const render::Scene& scene, Buffer<Colord>& buffer, const Recti& rect,
                     std::optional<std::uint64_t> tileSeed) const {
@@ -123,10 +215,11 @@ namespace engine::wavefront {
       if (actualRect.width() <= 0 || actualRect.height() <= 0)
         return;
 
-      const auto pixels =
+      const auto result =
         traceTile(camera, rayCaster, scene, actualRect, tileSeed,
                   [&](const Recti& footprint) { writeColor(buffer, footprint, Colord(1, 0, 0)); });
-      for (const auto& pixel : pixels) {
+      recordTileMetrics(result);
+      for (const auto& pixel : result.pixels) {
         writeColor(buffer, pixel.footprint, pixel.color);
       }
     }
@@ -139,10 +232,11 @@ namespace engine::wavefront {
       if (actualRect.width() <= 0 || actualRect.height() <= 0)
         return;
 
-      const auto pixels =
+      const auto result =
         traceTile(camera, rayCaster, scene, actualRect, tileSeed,
                   [&](const Recti& footprint) { writeRGB(buffer, footprint, 0xffff0000); });
-      for (const auto& pixel : pixels) {
+      recordTileMetrics(result);
+      for (const auto& pixel : result.pixels) {
         writeRGB(buffer, pixel.footprint,
                  (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
       }
@@ -156,12 +250,13 @@ namespace engine::wavefront {
       if (actualRect.width() <= 0 || actualRect.height() <= 0)
         return;
 
-      const auto pixels =
+      const auto result =
         traceTile(camera, rayCaster, scene, actualRect, tileSeed, [&](const Recti& footprint) {
           writeColor(hdrBuffer, footprint, Colord(1, 0, 0));
           writeRGB(displayBuffer, footprint, 0xffff0000);
         });
-      for (const auto& pixel : pixels) {
+      recordTileMetrics(result);
+      for (const auto& pixel : result.pixels) {
         writeColor(hdrBuffer, pixel.footprint, pixel.color);
         writeRGB(displayBuffer, pixel.footprint,
                  (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
@@ -224,6 +319,8 @@ namespace engine::wavefront {
 
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
+    const auto renderStart = WavefrontClock::now();
+    p->resetMetrics(*m_camera, buffer.width(), buffer.height(), tilePlan);
     const auto samplingSeed = p->samplingSeed;
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
@@ -234,6 +331,7 @@ namespace engine::wavefront {
             : std::nullopt;
         p->renderTile(*camera, *rayCaster, *m_scene, *bufferPtr, rect, tileSeed);
       });
+    p->finishMetrics(renderStart);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().dumpJson(std::cerr);
@@ -262,6 +360,8 @@ namespace engine::wavefront {
 
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
+    const auto renderStart = WavefrontClock::now();
+    p->resetMetrics(*m_camera, buffer.width(), buffer.height(), tilePlan);
     const auto samplingSeed = p->samplingSeed;
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
@@ -273,6 +373,7 @@ namespace engine::wavefront {
             : std::nullopt;
         p->renderTile(*camera, *rayCaster, *m_scene, *bufferPtr, tonemapOp, rect, tileSeed);
       });
+    p->finishMetrics(renderStart);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().dumpJson(std::cerr);
@@ -307,6 +408,8 @@ namespace engine::wavefront {
 
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(hdrBuffer.width(), hdrBuffer.height(), p->queueSize);
+    const auto renderStart = WavefrontClock::now();
+    p->resetMetrics(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan);
     const auto samplingSeed = p->samplingSeed;
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
@@ -319,6 +422,7 @@ namespace engine::wavefront {
         p->renderTile(*camera, *rayCaster, *m_scene, *hdrBufferPtr, *displayBufferPtr,
                       displayTonemap, rect, tileSeed);
       });
+    p->finishMetrics(renderStart);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().dumpJson(std::cerr);
@@ -395,5 +499,10 @@ namespace engine::wavefront {
 
   void WavefrontRaytracer::setShowProgressIndicators(bool show) {
     p->showProgressIndicators = show;
+  }
+
+  WavefrontRenderMetrics WavefrontRaytracer::lastMetrics() const {
+    std::lock_guard<std::mutex> lock(p->metricsMutex);
+    return p->lastMetrics;
   }
 }

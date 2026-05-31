@@ -7,9 +7,12 @@
 #include <list>
 #include <memory>
 #include <optional>
+#include <string>
 
 template<class T>
 class Buffer;
+
+class QJsonObject;
 
 namespace render {
   class Camera;
@@ -18,6 +21,41 @@ namespace render {
 }
 
 namespace engine::wavefront {
+  struct WavefrontRenderMetrics {
+    struct InputSummary {
+      int width = 0;
+      int height = 0;
+      int samplesPerPixel = 0;
+      std::uint64_t renderedPixels = 0;
+      std::uint64_t primarySamples = 0;
+    } input;
+
+    struct TilingSummary {
+      std::uint64_t tileCount = 0;
+      std::uint64_t nonEmptyTileCount = 0;
+    } tiling;
+
+    struct SchedulingSummary {
+      std::uint64_t configuredQueueSize = 0;
+      std::uint64_t resolvedQueueSize = 0;
+      std::string decision;
+    } scheduling;
+
+    struct BatchSummary {
+      std::string integrator;
+      std::string executionMode;
+      std::uint64_t batches = 0;
+      std::uint64_t samplesSubmitted = 0;
+      std::uint64_t maxBatchSize = 0;
+      double averageBatchSize = 0.0;
+    } batching;
+
+    struct TimingSummary {
+      double totalRenderSeconds = 0.0;
+    } timings;
+  };
+
+  QJsonObject wavefrontRenderMetricsToJson(const WavefrontRenderMetrics& metrics);
 
   /**
     * @brief Depth-major ray rendering engine scaffold.
@@ -64,6 +102,7 @@ namespace engine::wavefront {
     void setMaximumThreads(int threads);
     void setQueueSize(int queue);
     void setShowProgressIndicators(bool show);
+    WavefrontRenderMetrics lastMetrics() const;
 
   private:
     struct Private;

@@ -3,6 +3,13 @@
 #include "render/State.h"
 
 namespace render {
+  const char* Integrator::diagnosticName() const {
+    return "custom";
+  }
+
+  const char* Integrator::batchExecutionMode() const {
+    return "scalar_loop";
+  }
 
   std::vector<Colord> Integrator::radianceBatch(const Scene& scene,
                                                 const std::vector<IntegratorRaySample>& samples,

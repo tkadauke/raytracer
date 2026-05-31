@@ -73,6 +73,14 @@ namespace render {
     return result;
   }
 
+  const char* PathTracingIntegrator::diagnosticName() const {
+    return "pathtracer";
+  }
+
+  const char* PathTracingIntegrator::batchExecutionMode() const {
+    return "depth_major_paths";
+  }
+
   void PathTracingIntegrator::setCancellationCallback(CancellationCallback callback) {
     m_cancellationCallback = std::move(callback);
   }

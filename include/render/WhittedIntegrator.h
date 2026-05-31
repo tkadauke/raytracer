@@ -19,6 +19,7 @@ namespace render {
     WhittedIntegrator();
 
     std::unique_ptr<Integrator> clone() const override;
+    const char* diagnosticName() const override;
 
     Colord radiance(const Scene& scene, const Rayd& ray, State& state,
                     const RayCaster& recursiveRayCaster) const override;

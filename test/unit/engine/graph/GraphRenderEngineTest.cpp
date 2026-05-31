@@ -1651,6 +1651,41 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(metadata, raster->toJson().value("metadata").toObject());
   }
 
+  TEST(GraphRenderEngine, RecordsWavefrontMetricsInExecutionTraceMetadata) {
+    auto scene = std::make_shared<render::Scene>();
+    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 1.0);
+    sphere->setMaterial(std::make_shared<render::MatteMaterial>(
+      std::make_shared<render::ConstantColorTexture>(Colord::white())));
+    scene->add(sphere);
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setSamplesPerPixel(4);
+    RenderGraphCompiler compiler;
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({16, 16, 1}, intent));
+
+    Buffer<Colord> buffer(16, 16);
+    engine.render(buffer);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* wavefront = trace->findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, wavefront);
+    const QJsonObject metadata = wavefront->metadata();
+    const QJsonObject batching = metadata.value("batching").toObject();
+    const QJsonObject input = metadata.value("input").toObject();
+    EXPECT_EQ("pathtracer", batching.value("integrator").toString());
+    EXPECT_EQ("depth_major_paths", batching.value("executionMode").toString());
+    EXPECT_EQ(4, input.value("samplesPerPixel").toInt());
+    EXPECT_EQ(1024.0, input.value("primarySamples").toDouble());
+    EXPECT_GT(metadata.value("timings").toObject().value("totalRenderSeconds").toDouble(), 0.0);
+    EXPECT_EQ(metadata, wavefront->toJson().value("metadata").toObject());
+  }
+
   TEST(GraphRenderEngine, CompilePlanUsesSceneAnalysisAndClonesIt) {
     auto scene = std::make_shared<render::Scene>();
     RenderIntent intent;

@@ -373,29 +373,62 @@ namespace engine::graph {
       */
     class WavefrontBeautyPass : public BeautyPassPayload {
     public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), write.resource, pass);
+
+        auto wavefront = createWavefront(context);
+        prepareEngine(*wavefront, context.graph(), context.cancelled(), context.graph().tonemap());
+        context.setActiveEngine(wavefront);
+        wavefront->render(context.storage().color(write.resource));
+        recordWavefrontMetrics(context, *wavefront);
+      }
+
+      bool executeDisplay(RenderExecutionContext& context, Buffer<unsigned int>& buffer,
+                          std::shared_ptr<render::Tonemap> tonemap) override {
+        auto wavefront = createWavefront(context);
+        prepareEngine(*wavefront, context.graph(), context.cancelled(), std::move(tonemap));
+        context.setActiveEngine(wavefront);
+        wavefront->render(buffer);
+        recordWavefrontMetrics(context, *wavefront);
+        return true;
+      }
+
       bool executeDisplayAndStore(RenderExecutionContext& context, Buffer<unsigned int>& buffer,
                                   std::shared_ptr<render::Tonemap> tonemap) override {
         const auto& pass = context.pass();
         const auto& write = pass.singleWrite();
         requireColorResource(context.storage(), write.resource, pass);
 
-        auto wavefront =
-          std::static_pointer_cast<::engine::wavefront::WavefrontRaytracer>(createEngine(context));
+        auto wavefront = createWavefront(context);
         prepareEngine(*wavefront, context.graph(), context.cancelled(), std::move(tonemap));
         context.setActiveEngine(wavefront);
         wavefront->render(context.storage().color(write.resource), buffer, wavefront->tonemap());
+        recordWavefrontMetrics(context, *wavefront);
         return true;
       }
 
     private:
       std::shared_ptr<render::RenderEngine>
       createEngine(const RenderExecutionContext& context) const override {
+        return createWavefront(context);
+      }
+
+      std::shared_ptr<::engine::wavefront::WavefrontRaytracer>
+      createWavefront(const RenderExecutionContext& context) const {
         const auto& graph = context.graph();
         auto camera = context.camera() ? context.camera()->clone() : nullptr;
         auto wavefront = std::make_shared<::engine::wavefront::WavefrontRaytracer>(
           std::move(camera), graph.scene());
         RaytracerBeautyPassState::valueFromPass(context.pass()).applyTo(*wavefront);
         return wavefront;
+      }
+
+      void recordWavefrontMetrics(RenderExecutionContext& context,
+                                  const ::engine::wavefront::WavefrontRaytracer& wavefront) const {
+        context.setTraceMetadata(
+          ::engine::wavefront::wavefrontRenderMetricsToJson(wavefront.lastMetrics()));
       }
     };
 

@@ -24,6 +24,10 @@ namespace render {
     return result;
   }
 
+  const char* WhittedIntegrator::diagnosticName() const {
+    return "whitted";
+  }
+
   Colord WhittedIntegrator::radiance(const Scene& scene, const Rayd& ray, State& state,
                                      const RayCaster& recursiveRayCaster) const {
     if (isCancelled()) {

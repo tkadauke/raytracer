@@ -610,7 +610,10 @@ wavefront payload intentionally keeps Whitted scalar recursion compatible while
 submitting tile samples through the integrator batch API. The path-tracing
 integrator uses that batch hook for depth-major processing, giving the graph,
 rendercli, and Modeler a separate executor surface for the scheduler work that
-follows.
+follows. After a traced wavefront render, the pass metadata reports the selected
+integrator, whether batches used scalar fallback or depth-major path
+scheduling, primary sample totals, batch sizes, tile count, queue decision, and
+render timing.
 
 When the selected beauty executor is the rasterizer, graph-backed rendercli
 raster controls are compiled into the raster beauty pass's typed state and
@@ -771,6 +774,9 @@ queue decision, depth-prepass decision, and the full JSON metadata available in
 the property editor. The counter AOV views remain image previews, but these
 metadata totals are available even when the user does not request the counter
 images.
+After a traced wavefront render, wavefront pass nodes summarize primary sample
+count and the integrator batch execution mode; the property editor exposes the
+full JSON metadata for tile, queue, batch, and timing details.
 
 - the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
   vertically, shows resources between producer and consumer passes, and lets the
