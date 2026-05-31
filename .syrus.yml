@@ -33,11 +33,47 @@ grade:
       # display server (xvfb requires xauth, which is absent in the worker
       # image). Default compiler is g++-12 from build-essential —
       # CMakePresets.json's release preset doesn't pin a compiler.
+      # LIBGL_ALWAYS_SOFTWARE=1 forces Mesa's software rasterizer for any
+      # OpenGL-touching tests; without it the worker's headless GL stack
+      # would fall back to swrast probing, which is slower and noisier.
       run: |
         cmake --preset release && \
         cmake --build --preset release --parallel && \
-        QT_QPA_PLATFORM=offscreen ctest --preset release --parallel $(nproc) --output-on-failure
+        QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 \
+          ctest --preset release --parallel $(nproc) --output-on-failure
       timeout_minutes: 20
+
+    - name: opengl-egl
+      # Dedicated lane for the OpenGL-touching unit tests so we get
+      # explicit visibility into whether the GL pipeline is exercised
+      # in CI — without this, `build-test` runs the same tests but they
+      # silently `GTEST_SKIP` when no GL context is available.
+      #
+      # `unit_tests` has no `QGuiApplication`, so on Linux the
+      # `engine::raster::gl::createOffscreenContext()` factory picks
+      # `EglContext` (Mesa surfaceless EGL). `LIBGL_ALWAYS_SOFTWARE=1`
+      # forces software rasterization so results stay deterministic
+      # across worker generations.
+      #
+      # Fails the step (non-zero exit) if zero tests pass, which
+      # signals the worker image is missing Mesa's `libgl1-mesa-dri`
+      # runtime or `libegl-mesa0` and the GL lane is silently no-op.
+      run: |
+        cmake --build --preset release --target unit_tests --parallel && \
+        log=build/release/opengl-egl.log && \
+        QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 \
+          build/release/test/unit/unit_tests \
+            --gtest_filter='OpenGL*:*Egl*:*Cgl*:*GlAvailability*:*AttachmentSet*:*Parity*' \
+            2>&1 | tee "$log" && \
+        # gtest prints `[  PASSED  ] N tests.` exactly once at the end;
+        # if N is 0 the lane is silently no-op (Mesa runtime missing).
+        passed=$(sed -nE 's/^\[  PASSED  \] ([0-9]+) tests?\..*/\1/p' "$log" | tail -1) && \
+        if [ -z "$passed" ] || [ "$passed" -lt 1 ]; then \
+          echo "ERROR: opengl-egl lane ran but zero tests passed — Mesa runtime missing?"; \
+          exit 1; \
+        fi && \
+        echo "opengl-egl lane: $passed tests passed through EGL surfaceless"
+      timeout_minutes: 10
 
     - name: benchmark-build
       # Compile-only benchmark gate. Full benchmark timing runs are too
