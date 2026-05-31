@@ -9,7 +9,9 @@
 #include "render/RayCaster.h"
 
 #include <list>
+#include <cstdint>
 #include <memory>
+#include <optional>
 
 template<class T>
 class Buffer;
@@ -198,6 +200,21 @@ namespace engine::raytracer {
 
     /// @returns the currently configured single-ray radiance policy.
     const render::Integrator& integrator() const;
+
+    /**
+      * Sets an explicit root seed for stochastic sampling during render().
+      *
+      * The raytracer derives stable tile, pixel, and sample seeds from this
+      * value, so seeded renders are reproducible across worker scheduling.
+      * Leaving the seed unset preserves production defaults.
+      */
+    void setSamplingSeed(std::uint64_t seed);
+
+    /// Clears the explicit render seed so future renders use production defaults.
+    void clearSamplingSeed();
+
+    /// @returns the explicit render seed, if one is configured.
+    std::optional<std::uint64_t> samplingSeed() const;
 
     /**
       * Sets the worker-thread count. Defaults to

@@ -64,6 +64,7 @@ namespace {
 }
 
 void Sampler::setup(int numSamples, int numSets) {
+  m_sampleSets.clear();
   m_numSamples = numSamples;
   m_numSets = numSets;
 
@@ -81,6 +82,11 @@ void Sampler::setup(int numSamples, int numSets) {
   if (!m_sampleSets.empty()) {
     m_numSamples = static_cast<int>(m_sampleSets[0].size());
   }
+}
+
+void Sampler::setup(int numSamples, int numSets, std::uint64_t seed) {
+  RandomSeedScope scopedSeed(seed);
+  setup(numSamples, numSets);
 }
 
 std::unique_ptr<SampleStream> Sampler::stream(int sampleIndex, std::uint64_t pixelHash) const {

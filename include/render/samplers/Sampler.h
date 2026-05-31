@@ -62,6 +62,7 @@ namespace render {
     }
 
     void setup(int numSamples, int numSets);
+    void setup(int numSamples, int numSets, std::uint64_t seed);
 
     inline int numSamples() const {
       return m_numSamples;

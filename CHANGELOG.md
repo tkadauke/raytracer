@@ -224,6 +224,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Sampleable light metadata.** Runtime lights now expose deterministic sample,
   PDF, delta-light, emission, and power metadata APIs while preserving
   the existing direct-lighting path for Epic #358. — GPT-5
+- **Seeded sampling reproducibility hooks.** Samplers can now be set up with an
+  explicit seed, raytracer renders can opt into a root sampling seed, and shared
+  seed derivation documents render/tile/pixel/sample ownership for deterministic
+  sampling-heavy tests and future path-tracing regressions for Epic #358. —
+  GPT-5
 - **Dimensioned sampler streams.** `SampleStream` now exposes named pixel,
   time, lens, BSDF, light, and continuation dimensions so future integrators
   can request independent samples deterministically without reusing one 2D

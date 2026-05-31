@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <random>
 
 // Thread-local PCG32 PRNG — each thread owns its own state so concurrent
 // render threads never share state or contend on a lock.
@@ -29,8 +30,20 @@ namespace detail {
     }
   };
 
-  inline PCG32State& thread_rng() noexcept {
-    thread_local PCG32State rng;
+  inline uint64_t entropy_seed() {
+    std::random_device rd;
+    uint64_t hi = static_cast<uint64_t>(rd()) << 32u;
+    return hi ^ static_cast<uint64_t>(rd());
+  }
+
+  inline PCG32State make_entropy_seeded_rng() {
+    PCG32State rng;
+    rng.reseed(entropy_seed(), entropy_seed());
+    return rng;
+  }
+
+  inline PCG32State& thread_rng() {
+    thread_local PCG32State rng = make_entropy_seeded_rng();
     return rng;
   }
 }
@@ -43,9 +56,31 @@ namespace detail {
   * project no longer uses `std::rand`, so `std::srand` has no effect on
   * `random()` or `Range::random()`.
   */
-inline void seed(uint64_t s) noexcept {
+inline void seed(uint64_t s) {
   detail::thread_rng().reseed(s);
 }
+
+/**
+  * Temporarily seeds the calling thread's PRNG and restores its previous
+  * state when the scope exits.
+  */
+class RandomSeedScope {
+public:
+  explicit RandomSeedScope(uint64_t s)
+      : m_previous(detail::thread_rng()) {
+    seed(s);
+  }
+
+  RandomSeedScope(const RandomSeedScope&) = delete;
+  RandomSeedScope& operator=(const RandomSeedScope&) = delete;
+
+  ~RandomSeedScope() {
+    detail::thread_rng() = m_previous;
+  }
+
+private:
+  detail::PCG32State m_previous;
+};
 
 /**
   * @returns true if @p what is within @p epsilon of @p value, false otherwise.

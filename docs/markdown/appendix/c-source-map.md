@@ -86,6 +86,7 @@
 | `include/render/Integrator.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/RayCaster.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/RenderEngine.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
+| `include/render/SamplingSeed.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `include/render/State.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/TilePlan.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/render/WhittedIntegrator.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
@@ -297,6 +298,7 @@
 | `test/unit/render/primitives/BVHPerformanceTest.cpp` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
 | `test/unit/render/samplers/JitteredSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `test/unit/render/samplers/RandomSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
+| `test/unit/render/samplers/SamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `test/unit/widgets/world/RenderGraphInspectorWidgetTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/widgets/world/RenderGraphTracePreviewWidgetTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/world/animation/AnimationTrackTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |

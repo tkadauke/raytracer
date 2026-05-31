@@ -207,15 +207,28 @@ Useful for catching regressions that subtly perturb shading
 behavior.
 
 Random sampler reproducibility — the
-[`RandomSampler.SameSeedProducesIdenticalSets`](../../../test/unit/render/samplers/RandomSamplerTest.cpp)
-test calls `seed(uint64_t)` with a fixed value, builds a
-sampler, seeds again, builds another, and asserts the two
-samplers produce identical sets. The sampler's reproducibility
-hinges on the thread-local PCG32 stream in
+[`RandomSampler.ExplicitSetupSeedProducesIdenticalSets`](../../../test/unit/render/samplers/RandomSamplerTest.cpp)
+test builds two random samplers with the same explicit setup seed
+and asserts that every generated set matches. This scoped setup
+seed restores the caller's random stream afterward, so a
+test-only reproducibility hook does not perturb unrelated code.
+The sampler's reproducibility hinges on the thread-local PCG32
+stream in
 [`Number.h`](../../../include/core/math/Number.h); `std::srand`
 does not affect renderer sampling. Outside controlled tests, each
-thread owns its own default stream, so render workers do not
-contend on a shared global generator.
+thread owns its own entropy-seeded default stream, so render
+workers do not contend on a shared global generator and production
+noise is not accidentally locked to one process-wide pattern.
+
+Render reproducibility — the raytracer can opt into a root sampling
+seed for tests that need stochastic samples but still require
+byte-identical output. [`SamplingSeed`](../../../include/render/SamplingSeed.h)
+derives ownership hierarchically: a render seed produces a tile
+seed, the tile seed produces per-pixel seeds, and per-pixel seeds
+produce per-sample seeds for future path-tracing dimensions. The
+current camera path uses the seeded pixel value to choose stable
+sample-stream sets; the sample-level hook is present so future BSDF,
+light, and continuation samples have the same deterministic root.
 
 Determinism interacts with the cancellation hook from
 [The Whitted pipeline: The `RenderEngine` abstraction](the-whitted-pipeline.md#the-renderengine-abstraction):
@@ -303,11 +316,13 @@ the three samplers above are sufficient.
 
 <!-- source-anchors -->
 - `include/render/samplers/Sampler.h`
+- `include/render/SamplingSeed.h`
 - `include/render/samplers/SamplerFactory.h`
 - `include/render/samplers/RegularSampler.h`
 - `include/render/samplers/JitteredSampler.h`
 - `include/render/samplers/RandomSampler.h`
 - `include/render/samplers/SampleStream.h`
+- `test/unit/render/samplers/SamplerTest.cpp`
 - `test/unit/render/samplers/JitteredSamplerTest.cpp`
 - `test/unit/render/samplers/RandomSamplerTest.cpp`
 - `test/functional/render/samplers/SamplerDeterminismTest.cpp`

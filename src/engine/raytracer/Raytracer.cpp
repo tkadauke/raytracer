@@ -1,6 +1,7 @@
 #include "engine/raytracer/Raytracer.h"
 #include "render/State.h"
 #include "render/Stats.h"
+#include "render/SamplingSeed.h"
 #include "core/util/BufferUtils.h"
 #include "core/math/Vector.h"
 #include "core/math/Ray.h"
@@ -37,6 +38,7 @@ struct Raytracer::Private {
   int queueSize;
   std::unique_ptr<render::Integrator> integrator;
   bool showProgressIndicators;
+  std::optional<std::uint64_t> samplingSeed;
 
   render::WhittedIntegrator* whittedIntegrator() {
     return dynamic_cast<render::WhittedIntegrator*>(integrator.get());
@@ -76,6 +78,8 @@ std::shared_ptr<render::RenderEngine> Raytracer::cloneForRender() const {
   result->setMaximumThreads(p->threadPool->maxThreadCount());
   result->setQueueSize(p->queueSize);
   result->setShowProgressIndicators(p->showProgressIndicators);
+  if (p->samplingSeed)
+    result->setSamplingSeed(*p->samplingSeed);
   return result;
 }
 
@@ -104,10 +108,17 @@ void Raytracer::render(Buffer<Colord>& buffer) {
 
   const render::TilePlan tilePlan =
     render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
-  engine::dispatchTileTasks(tilePlan, *p->threadPool, p->tasks,
-                            [self, camera, bufferPtr](const Recti& rect, std::size_t) {
-                              camera->render(self, *bufferPtr, rect);
-                            });
+  const auto samplingSeed = p->samplingSeed;
+  engine::dispatchTileTasks(
+    tilePlan, *p->threadPool, p->tasks,
+    [self, camera, bufferPtr, samplingSeed](const Recti& rect, std::size_t tileIndex) {
+      if (samplingSeed) {
+        camera->render(self, *bufferPtr, rect,
+                       render::SamplingSeed::tileSeed(*samplingSeed, tileIndex));
+      } else {
+        camera->render(self, *bufferPtr, rect);
+      }
+    });
 
 #ifdef RAYTRACER_ENABLE_STATS
   // Sampling counters after waitForDone() returns means all worker writes are
@@ -142,10 +153,17 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
 
   const render::TilePlan tilePlan =
     render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
-  engine::dispatchTileTasks(tilePlan, *p->threadPool, p->tasks,
-                            [self, camera, bufferPtr, tonemapOp](const Recti& rect, std::size_t) {
-                              camera->render(self, *bufferPtr, tonemapOp, rect);
-                            });
+  const auto samplingSeed = p->samplingSeed;
+  engine::dispatchTileTasks(
+    tilePlan, *p->threadPool, p->tasks,
+    [self, camera, bufferPtr, tonemapOp, samplingSeed](const Recti& rect, std::size_t tileIndex) {
+      if (samplingSeed) {
+        camera->render(self, *bufferPtr, tonemapOp, rect,
+                       render::SamplingSeed::tileSeed(*samplingSeed, tileIndex));
+      } else {
+        camera->render(self, *bufferPtr, tonemapOp, rect);
+      }
+    });
 
 #ifdef RAYTRACER_ENABLE_STATS
   ::render::stats::Counters::instance().dumpJson(std::cerr);
@@ -180,10 +198,17 @@ void Raytracer::render(Buffer<Colord>& hdrBuffer, Buffer<unsigned int>& displayB
 
   const render::TilePlan tilePlan =
     render::TilePlan::forBuffer(hdrBuffer.width(), hdrBuffer.height(), p->queueSize);
+  const auto samplingSeed = p->samplingSeed;
   engine::dispatchTileTasks(
     tilePlan, *p->threadPool, p->tasks,
-    [self, camera, hdrBufferPtr, displayBufferPtr, displayTonemap](const Recti& rect, std::size_t) {
-      camera->render(self, *hdrBufferPtr, *displayBufferPtr, displayTonemap, rect);
+    [self, camera, hdrBufferPtr, displayBufferPtr, displayTonemap,
+     samplingSeed](const Recti& rect, std::size_t tileIndex) {
+      if (samplingSeed) {
+        camera->render(self, *hdrBufferPtr, *displayBufferPtr, displayTonemap, rect,
+                       render::SamplingSeed::tileSeed(*samplingSeed, tileIndex));
+      } else {
+        camera->render(self, *hdrBufferPtr, *displayBufferPtr, displayTonemap, rect);
+      }
     });
 
 #ifdef RAYTRACER_ENABLE_STATS
@@ -253,6 +278,18 @@ void Raytracer::setIntegrator(std::unique_ptr<render::Integrator> integrator) {
 
 const render::Integrator& Raytracer::integrator() const {
   return *p->integrator;
+}
+
+void Raytracer::setSamplingSeed(std::uint64_t seed) {
+  p->samplingSeed = seed;
+}
+
+void Raytracer::clearSamplingSeed() {
+  p->samplingSeed.reset();
+}
+
+std::optional<std::uint64_t> Raytracer::samplingSeed() const {
+  return p->samplingSeed;
 }
 
 void Raytracer::setMaximumThreads(int threads) {
