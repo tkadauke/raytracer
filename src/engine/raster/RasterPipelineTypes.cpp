@@ -157,6 +157,10 @@ namespace engine::raster::detail {
     increment(colorWrites);
   }
 
+  void RasterDiagnosticBufferViews::recordConservativeDepthReject() const {
+    increment(conservativeDepthRejectedTriangleTiles);
+  }
+
   void RasterDiagnosticBufferViews::writeStencil(int x, int y, std::uint8_t value) const {
     if (stencil.isValid()) {
       stencil.at(x, y) = value;
