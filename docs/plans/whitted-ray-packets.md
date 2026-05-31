@@ -100,7 +100,29 @@ the phases below address them deliberately:
    packet" event. The plan: events stay per-lane; the packet path
    emits four events when interesting, one event when not.
 
-## Phase 0 — measurement gate ⏳
+## Phase 0 — measurement gate ✅ **Done — decision: proceed, skip Phase 1, jump to Phase 3.**
+
+Baseline captured in
+`docs/perf/whitted-packet-phase0-2026-05-31.md`. spp scaling on
+three Phase-0 scenes (dice, glass_torus, molecule) shows 85-100%
+of wall time is per-ray work; fixed render overhead is negligible.
+Combined with the NEON `BVH::intersectPacket(Ray4)` 5.85× speedup
+documented in
+`docs/perf/arm-simd-phase5-ray8-policy-apple-silicon-2026-05-30.md`,
+the gate criterion (≥30% achievable end-to-end speedup on the
+mesh scene) is met.
+
+**Revised order:** when implementation resumes, **skip Phase 1
+(2×2 spatial pixel packets) and go straight to Phase 3 (per-pixel
+sample packets).** Sample packets are coherent by construction
+(same hit point, different sub-pixel jitter) — no material
+divergence, no recursion divergence, no rectangle-shape gotchas.
+The per-pixel sample loop already produces N samples sequentially;
+batching 4 of them as a Ray4 is a smaller change than gathering
+4 adjacent pixels into a packet. Phase 1 stays in the plan as
+"do this if Phase 3 measurements show extra room."
+
+## Phase 0 — measurement gate (original — now historical)
 
 **Goal:** decide whether to do this at all.
 
