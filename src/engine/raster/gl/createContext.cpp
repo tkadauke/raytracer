@@ -11,20 +11,17 @@
 
 namespace engine::raster::gl {
   std::unique_ptr<Context> createOffscreenContext() {
-#if defined(__APPLE__)
-    // Qt backend when QGuiApplication is up (Modeler), CGL when not
-    // (rendercli). The QGuiApplication check exists today inside the
-    // Qt backend's ensureContext as a refusal; making the decision
-    // up front here is cleaner and lets rendercli drop QGuiApplication
-    // entirely.
-    if (qobject_cast<QGuiApplication*>(QCoreApplication::instance())) {
-      return std::make_unique<OpenGLOffscreenContext>();
-    }
-    return std::make_unique<CGLContext>();
-#else
-    // Linux/headless: Qt backend until EGL lands. Tracked as Phase 2
-    // task #41.
+    // Today the OpenGL raster path still uses `QOpenGLBuffer`,
+    // `QOpenGLShaderProgram`, and `QOpenGLContext::currentContext()`
+    // downstream of the context type, so any caller needs a
+    // QGuiApplication regardless of which backend lives here. The
+    // factory therefore always returns the Qt-backed
+    // OpenGLOffscreenContext for now. Once the buffer/shader/
+    // framebuffer wrappers in opengl-gpu-hardening.md Phase 2 land,
+    // this factory selects CGL/EGL when no QGuiApplication is
+    // running — the CGLContext class exists and is tested
+    // standalone; only the rest of the rasterizer needs to catch
+    // up.
     return std::make_unique<OpenGLOffscreenContext>();
-#endif
   }
 }

@@ -1,8 +1,8 @@
 #include <QCoreApplication>
+#include <QGuiApplication>
 #include <QCommandLineParser>
 #include <QFile>
 #include <QFileInfo>
-#include <QGuiApplication>
 #include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -957,6 +957,15 @@ namespace {
     }
 
   private:
+    // Today the OpenGL raster backend still pulls in `QOpenGLBuffer`,
+    // `QOpenGLShaderProgram`, and `QOpenGLContext::currentContext()`
+    // downstream of the context type — those Qt classes require a
+    // QGuiApplication regardless of which `gl::Context` backend the
+    // resource cache picks. Once the buffer/shader/framebuffer
+    // wrappers in opengl-gpu-hardening.md Phase 2 land, this gate
+    // can collapse to `QCoreApplication` unconditionally and the
+    // CGL backend the resource cache's factory already selects (when
+    // QGuiApplication is absent) takes over.
     static bool requiresGuiApplication(int argc, char** argv) {
       for (int i = 1; i < argc; ++i) {
         const QString argument = QString::fromLocal8Bit(argv[i]);
