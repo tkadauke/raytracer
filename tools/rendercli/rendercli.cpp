@@ -1504,6 +1504,7 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
   if (m_wireframeLod != 0) {
     options.wireframe().setLod(m_wireframeLod);
     options.rasterizer().setLod(m_wireframeLod);
+    options.rasterizer().setTessellationQuality("final");
   }
   if (m_rasterBackendSet)
     options.rasterizer().setBackend(m_rasterBackend.toStdString());
@@ -1571,6 +1572,9 @@ Renderer::rasterBeautyPassState(engine::graph::RenderPostProcessAA postProcessAA
                                 bool includeImagePostProcessAA, bool includeShadowMapEnable) const {
   engine::graph::RasterBeautyPassState state;
   state.geometry().setLod(m_wireframeLod);
+  if (m_wireframeLod != 0) {
+    state.geometry().setTessellationQuality(engine::raster::Rasterizer::TessellationQuality::Final);
+  }
   if (m_threadsSet) {
     state.execution().setMaximumThreads(m_threads);
   }
