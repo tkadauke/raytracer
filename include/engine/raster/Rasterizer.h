@@ -1222,6 +1222,21 @@ namespace engine::raster {
       m_colorLoadOp = op;
     }
 
+    /// Source buffer for `AttachmentLoadOp::Load` on the color
+    /// attachment. The backend uploads these pixels to the color
+    /// target at pass start instead of clearing. Required when
+    /// `colorLoadOp() == Load`; backends throw when Load is set but
+    /// no source buffer is provided. CPU round-trip today; the
+    /// residency follow-up (`opengl-gpu-residency.md` Phase 0-1)
+    /// replaces this with a GPU handle when both producer and
+    /// consumer are GPU-domain.
+    inline const Buffer<Colord>* colorLoadSource() const {
+      return m_loadColorAttachment;
+    }
+    inline void setColorLoadSource(const Buffer<Colord>* buffer) {
+      m_loadColorAttachment = buffer;
+    }
+
     /// Color attachment store operation. `Store` leaves rendered color in the
     /// target buffer; `Discard` renders through transient storage and leaves the
     /// caller's color buffer unchanged. Defaults to `Store`.
@@ -1271,6 +1286,16 @@ namespace engine::raster {
     }
     inline void setDepthLoadOp(AttachmentLoadOp op) {
       m_depthLoadOp = op;
+    }
+
+    /// Source buffer for `AttachmentLoadOp::Load` on the depth
+    /// attachment. Same shape as `setLoadColorAttachment` — required
+    /// when `depthLoadOp() == Load`.
+    inline const Buffer<double>* depthLoadSource() const {
+      return m_loadDepthAttachment;
+    }
+    inline void setDepthLoadSource(const Buffer<double>* buffer) {
+      m_loadDepthAttachment = buffer;
     }
 
     /// Depth attachment store operation. `Store` copies the final pass depth into
@@ -1334,6 +1359,16 @@ namespace engine::raster {
     }
     inline void setStencilLoadOp(AttachmentLoadOp op) {
       m_stencilLoadOp = op;
+    }
+
+    /// Source buffer for `AttachmentLoadOp::Load` on the stencil
+    /// attachment. Same shape as the color/depth load attachments;
+    /// required when `stencilLoadOp() == Load`.
+    inline const Buffer<std::uint8_t>* stencilLoadSource() const {
+      return m_loadStencilAttachment;
+    }
+    inline void setStencilLoadSource(const Buffer<std::uint8_t>* buffer) {
+      m_loadStencilAttachment = buffer;
     }
 
     /// Stencil attachment store operation. `Store` copies final pass stencil into
@@ -1546,11 +1581,13 @@ namespace engine::raster {
     Recti m_scissorRect;
     AttachmentLoadOp m_colorLoadOp{AttachmentLoadOp::Clear};
     AttachmentStoreOp m_colorStoreOp{AttachmentStoreOp::Store};
+    const Buffer<Colord>* m_loadColorAttachment{nullptr};
     DepthFunc m_depthFunc{DepthFunc::Less};
     double m_depthBias{0.0};
     double m_depthClearValue{std::numeric_limits<double>::infinity()};
     AttachmentLoadOp m_depthLoadOp{AttachmentLoadOp::Clear};
     AttachmentStoreOp m_depthStoreOp{AttachmentStoreOp::Store};
+    const Buffer<double>* m_loadDepthAttachment{nullptr};
     bool m_depthWriteEnabled{true};
     bool m_stencilTestEnabled{false};
     StencilFunc m_stencilFunc{StencilFunc::Always};
@@ -1559,6 +1596,7 @@ namespace engine::raster {
     std::uint8_t m_stencilClearValue{0};
     AttachmentLoadOp m_stencilLoadOp{AttachmentLoadOp::Clear};
     AttachmentStoreOp m_stencilStoreOp{AttachmentStoreOp::Store};
+    const Buffer<std::uint8_t>* m_loadStencilAttachment{nullptr};
     std::uint8_t m_stencilWriteMask{0xFF};
     StencilOp m_stencilFailOp{StencilOp::Keep};
     StencilOp m_stencilDepthFailOp{StencilOp::Keep};

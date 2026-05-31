@@ -53,6 +53,21 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   describe `SampleStream` dimension ownership, BSDF/light sampling contracts,
   and `render::mis` helpers as implemented foundations while explicitly noting
   that the shipped renderer remains Whitted-only for Epic #358. — GPT-5
+- **OpenGL raster backend implements color `AttachmentLoadOp::Load`.**
+  The previous "does not support color attachment load yet" throw is
+  gone. Callers wanting to preserve the color buffer across a render
+  set the source via `OpenGLRasterizer::setColorLoadSource(buffer)`;
+  the backend uploads it through a temporary `GL_RGBA32F` texture and
+  `glBlitFramebuffer` into the AttachmentSet's color renderbuffer at
+  pass start, then masks off the color clear bit. Depth and stencil
+  Load remain unimplemented but now throw with narrower error messages
+  naming the missing slice (`opengl-gpu-residency.md` Phase 2
+  follow-up). Five new / updated unit tests cover the success path
+  (color with source), the contract path (Load without source →
+  throw), and the partial-implementation path (depth/stencil
+  Load → narrower throw). True GPU-resident Load that avoids the CPU
+  round-trip is `opengl-gpu-residency.md` Phase 0-1 follow-up work.
+  — Claude Opus 4.7
 - **BoundingBox Ray4 packet masks use the shared SIMD backend.**
   `BoundingBox::intersects4(Ray4)` now runs through the four-wide SIMD
   abstraction for SSE, NEON, and scalar builds, with explicit packet-mask tests

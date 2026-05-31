@@ -31,6 +31,7 @@ namespace engine::raster::detail {
     bool scissorEnabled{false};
     Recti scissorRect;
     Rasterizer::AttachmentLoadOp colorLoadOp{Rasterizer::AttachmentLoadOp::Clear};
+    const Buffer<Colord>* loadColorAttachment{nullptr};
     Rasterizer::AttachmentStoreOp colorStoreOp{Rasterizer::AttachmentStoreOp::Store};
     std::uint8_t colorWriteMask{Rasterizer::ColorWriteAll};
     bool blendingEnabled{false};

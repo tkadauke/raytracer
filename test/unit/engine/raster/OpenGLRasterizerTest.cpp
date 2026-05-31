@@ -480,7 +480,7 @@ namespace OpenGLRasterizerTest {
   // makes this implementable. When residency lands, flip this test to
   // assert that a two-pass plan with `Load` on the second pass actually
   // preserves the first pass's depth output instead of clearing.
-  TEST_F(OpenGLRasterizerAttachmentLoad, RejectsColorLoadOpUntilResidencyLands) {
+  TEST_F(OpenGLRasterizerAttachmentLoad, ColorLoadOpRequiresSourceBuffer) {
     if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
       GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
     }
@@ -492,7 +492,22 @@ namespace OpenGLRasterizerTest {
     EXPECT_THROW(rasterizer.render(buffer), std::runtime_error);
   }
 
-  TEST_F(OpenGLRasterizerAttachmentLoad, RejectsDepthLoadOpUntilResidencyLands) {
+  TEST_F(OpenGLRasterizerAttachmentLoad, ColorLoadOpAcceptsSourceBuffer) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    engine::raster::OpenGLRasterizer rasterizer(
+      std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
+    rasterizer.setColorLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
+    Buffer<Colord> source(8, 8);
+    source.clear(Colord(0.25, 0.5, 0.75));
+    rasterizer.setColorLoadSource(&source);
+    Buffer<Colord> buffer(8, 8);
+    EXPECT_NO_THROW(rasterizer.render(buffer));
+  }
+
+  TEST_F(OpenGLRasterizerAttachmentLoad, DepthLoadOpThrowsUntilResidencyFollowUp) {
     if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
       GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
     }
@@ -501,10 +516,16 @@ namespace OpenGLRasterizerTest {
       std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
     rasterizer.setDepthLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
     Buffer<Colord> buffer(8, 8);
+    // (a) no source buffer when Load → throws.
+    EXPECT_THROW(rasterizer.render(buffer), std::runtime_error);
+    // (b) source buffer set but depth Load upload deferred → throws
+    //     with a narrower message naming the missing slice.
+    Buffer<double> depthSource(8, 8);
+    rasterizer.setDepthLoadSource(&depthSource);
     EXPECT_THROW(rasterizer.render(buffer), std::runtime_error);
   }
 
-  TEST_F(OpenGLRasterizerAttachmentLoad, RejectsStencilLoadOpUntilResidencyLands) {
+  TEST_F(OpenGLRasterizerAttachmentLoad, StencilLoadOpThrowsUntilResidencyFollowUp) {
     if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
       GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
     }
@@ -513,6 +534,9 @@ namespace OpenGLRasterizerTest {
       std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
     rasterizer.setStencilLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
     Buffer<Colord> buffer(8, 8);
+    EXPECT_THROW(rasterizer.render(buffer), std::runtime_error);
+    Buffer<std::uint8_t> stencilSource(8, 8);
+    rasterizer.setStencilLoadSource(&stencilSource);
     EXPECT_THROW(rasterizer.render(buffer), std::runtime_error);
   }
 

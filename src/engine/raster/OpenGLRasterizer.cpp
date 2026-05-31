@@ -53,6 +53,8 @@ namespace engine::raster {
             m_viewportRect(state.viewportRect),
             m_scissorEnabled(state.scissorEnabled),
             m_scissorRect(state.scissorRect),
+            m_colorLoadOp(state.colorLoadOp),
+            m_loadColorAttachment(state.loadColorAttachment),
             m_colorStoreOp(state.colorStoreOp),
             m_colorWriteMask(state.colorWriteMask),
             m_blendingEnabled(state.blendingEnabled),
@@ -163,7 +165,12 @@ namespace engine::raster {
         glClearDepth(detail::normalizedDepthClearValue(m_depthClearValue));
         glStencilMask(0xff);
         glClearStencil(m_stencilClearValue);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        GLbitfield clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
+        if (m_colorLoadOp == Rasterizer::AttachmentLoadOp::Load && m_loadColorAttachment) {
+          uploadLoadColor(*m_loadColorAttachment);
+          clearMask &= ~static_cast<GLbitfield>(GL_COLOR_BUFFER_BIT);
+        }
+        glClear(clearMask);
         const detail::OpenGLRasterDrawState fixedState = fixedFunctionStateSlice();
         detail::applyDepth(fixedState);
         detail::applyColorWriteMask(fixedState);
@@ -278,6 +285,70 @@ namespace engine::raster {
         return m_height - rect.bottom();
       }
 
+      /**
+        * Upload a `Buffer<Colord>` into the currently-bound color
+        * attachment via a temporary `GL_RGBA32F` texture + FBO blit.
+        * Called by the draw pass when `colorLoadOp == Load` to
+        * preserve the previous pass's color contents before drawing.
+        * The source buffer is read row-flipped (the AttachmentSet
+        * stores its color attachment with row-0 at the GL bottom; the
+        * caller's `Buffer<Colord>` has row-0 at the visible top).
+        */
+      void uploadLoadColor(const Buffer<Colord>& source) {
+        const int width = std::min(source.width(), m_width);
+        const int height = std::min(source.height(), m_height);
+        if (width <= 0 || height <= 0) {
+          return;
+        }
+
+        std::vector<GLfloat> pixels(static_cast<std::size_t>(width * height * 4), 0.0f);
+        for (int y = 0; y != height; ++y) {
+          const int sourceY = height - 1 - y;
+          for (int x = 0; x != width; ++x) {
+            const auto offset = static_cast<std::size_t>((y * width + x) * 4);
+            const Colord& c = source[sourceY][x];
+            pixels[offset + 0] = static_cast<GLfloat>(c.r());
+            pixels[offset + 1] = static_cast<GLfloat>(c.g());
+            pixels[offset + 2] = static_cast<GLfloat>(c.b());
+            pixels[offset + 3] = 1.0f;
+          }
+        }
+
+        GLuint tex = 0;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        // GL_RGBA32F is GL 3.0+ / EXT_color_buffer_float; fall back to
+        // GL_RGBA8 on legacy contexts. The blit downstream resolves to
+        // GL_RGBA8 on the attachment renderbuffer anyway, so the
+        // precision drop is invisible in the final color attachment.
+#if defined(GL_RGBA32F)
+        const GLint internalFormat = GL_RGBA32F;
+#else
+        const GLint internalFormat = GL_RGBA8;
+#endif
+        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_RGBA, GL_FLOAT,
+                     pixels.data());
+
+        GLuint sourceFbo = 0;
+        glGenFramebuffers(1, &sourceFbo);
+        // Cache the currently-bound draw FBO so we can restore it after
+        // the blit; AttachmentSet::bind() bound it before draw() entry.
+        GLint drawFbo = 0;
+        glGetIntegerv(GL_FRAMEBUFFER_BINDING, &drawFbo);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, sourceFbo);
+        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(drawFbo));
+        glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT,
+                          GL_NEAREST);
+        glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(drawFbo));
+        glDeleteFramebuffers(1, &sourceFbo);
+        glDeleteTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, 0);
+      }
+
       // Fixed-function GL state translation lives in
       // engine/raster/detail/OpenGLFixedFunctionState.h. The thin
       // wrappers here adapt the draw-pass member view to the free
@@ -382,6 +453,8 @@ namespace engine::raster {
       Recti m_viewportRect;
       bool m_scissorEnabled;
       Recti m_scissorRect;
+      Rasterizer::AttachmentLoadOp m_colorLoadOp;
+      const Buffer<Colord>* m_loadColorAttachment;
       Rasterizer::AttachmentStoreOp m_colorStoreOp;
       std::uint8_t m_colorWriteMask;
       bool m_blendingEnabled;
@@ -457,6 +530,7 @@ namespace engine::raster {
       clone->clearScissorRect();
     }
     clone->setColorLoadOp(m_colorLoadOp);
+    clone->setColorLoadSource(m_loadColorAttachment);
     clone->setColorStoreOp(m_colorStoreOp);
     clone->setColorWriteMask(m_colorWriteMask);
     clone->setBlendingEnabled(m_blendingEnabled);
@@ -469,12 +543,14 @@ namespace engine::raster {
     clone->setDepthBias(m_depthBias);
     clone->setDepthClearValue(m_depthClearValue);
     clone->setDepthLoadOp(m_depthLoadOp);
+    clone->setDepthLoadSource(m_loadDepthAttachment);
     clone->setDepthStoreOp(m_depthStoreOp);
     clone->setDepthWriteEnabled(m_depthWriteEnabled);
     clone->setStencilTestEnabled(m_stencilTestEnabled);
     clone->setStencilFunc(m_stencilFunc, m_stencilReference, m_stencilMask);
     clone->setStencilClearValue(m_stencilClearValue);
     clone->setStencilLoadOp(m_stencilLoadOp);
+    clone->setStencilLoadSource(m_loadStencilAttachment);
     clone->setStencilStoreOp(m_stencilStoreOp);
     clone->setStencilWriteMask(m_stencilWriteMask);
     clone->setStencilOps(m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp);
@@ -682,6 +758,14 @@ namespace engine::raster {
     m_colorLoadOp = op;
   }
 
+  const Buffer<Colord>* OpenGLRasterizer::colorLoadSource() const {
+    return m_loadColorAttachment;
+  }
+
+  void OpenGLRasterizer::setColorLoadSource(const Buffer<Colord>* buffer) {
+    m_loadColorAttachment = buffer;
+  }
+
   Rasterizer::AttachmentStoreOp OpenGLRasterizer::colorStoreOp() const {
     return m_colorStoreOp;
   }
@@ -720,6 +804,14 @@ namespace engine::raster {
 
   void OpenGLRasterizer::setDepthLoadOp(Rasterizer::AttachmentLoadOp op) {
     m_depthLoadOp = op;
+  }
+
+  const Buffer<double>* OpenGLRasterizer::depthLoadSource() const {
+    return m_loadDepthAttachment;
+  }
+
+  void OpenGLRasterizer::setDepthLoadSource(const Buffer<double>* buffer) {
+    m_loadDepthAttachment = buffer;
   }
 
   Rasterizer::AttachmentStoreOp OpenGLRasterizer::depthStoreOp() const {
@@ -851,6 +943,14 @@ namespace engine::raster {
 
   void OpenGLRasterizer::setStencilLoadOp(Rasterizer::AttachmentLoadOp op) {
     m_stencilLoadOp = op;
+  }
+
+  const Buffer<std::uint8_t>* OpenGLRasterizer::stencilLoadSource() const {
+    return m_loadStencilAttachment;
+  }
+
+  void OpenGLRasterizer::setStencilLoadSource(const Buffer<std::uint8_t>* buffer) {
+    m_loadStencilAttachment = buffer;
   }
 
   Rasterizer::AttachmentStoreOp OpenGLRasterizer::stencilStoreOp() const {
@@ -1043,22 +1143,49 @@ namespace engine::raster {
     m_lastReadbackTraceMessage.clear();
     m_lastTraceMessages.clear();
 
-    // Reject `AttachmentLoadOp::Load` requests before touching the
-    // GL context. Honoring `Load` requires a GPU-resident attachment
-    // that earlier passes wrote to; that lands with Phase 3 residency.
+    // `AttachmentLoadOp::Load` requires the caller to provide a
+    // matching CPU source buffer via `setLoadColorAttachment` /
+    // `setLoadDepthAttachment` / `setLoadStencilAttachment`. The
+    // backend uploads that buffer to the attachment at pass start
+    // instead of clearing. The CPU round-trip here is the consumer
+    // side of `opengl-gpu-residency.md` Phase 2 — the producer side
+    // (publishing the FBO contents as a `Buffer<...>` on the graph
+    // storage) already exists via the readback path. Full GPU
+    // residency (no round-trip when both producer and consumer are
+    // GPU-domain) is Phase 0-1 follow-up work.
+    //
     // Throwing pre-bind keeps the failure observable as a render-graph
     // diagnostic rather than as a half-bound GL frame.
-    const auto rejectUnsupportedLoad = [](const char* attachment, Rasterizer::AttachmentLoadOp op) {
-      if (op == Rasterizer::AttachmentLoadOp::Load) {
-        std::string message = "OpenGL raster backend does not support ";
+    const auto requireLoadSource = [](const char* attachment, Rasterizer::AttachmentLoadOp op,
+                                      const void* source) {
+      if (op == Rasterizer::AttachmentLoadOp::Load && source == nullptr) {
+        std::string message = "OpenGL raster backend ";
         message += attachment;
-        message += " attachment load yet";
+        message += " attachment Load requires a source buffer set via setLoadColorAttachment / "
+                   "setLoadDepthAttachment / setLoadStencilAttachment";
         throw std::runtime_error(message);
       }
     };
-    rejectUnsupportedLoad("color", m_colorLoadOp);
-    rejectUnsupportedLoad("depth", m_depthLoadOp);
-    rejectUnsupportedLoad("stencil", m_stencilLoadOp);
+    requireLoadSource("color", m_colorLoadOp, m_loadColorAttachment);
+    requireLoadSource("depth", m_depthLoadOp, m_loadDepthAttachment);
+    requireLoadSource("stencil", m_stencilLoadOp, m_loadStencilAttachment);
+
+    // Depth and stencil Load are part of the same residency arc but
+    // need their own upload helpers (format conversions, blit masks);
+    // shipping them is opengl-gpu-residency.md Phase 2 follow-up.
+    // Throw with a narrow, named error rather than a generic
+    // "unsupported" message so the caller knows exactly which slice is
+    // missing.
+    if (m_depthLoadOp == Rasterizer::AttachmentLoadOp::Load) {
+      throw std::runtime_error(
+        "OpenGL raster backend depth attachment Load is not yet implemented; "
+        "tracked under opengl-gpu-residency.md Phase 2 follow-up");
+    }
+    if (m_stencilLoadOp == Rasterizer::AttachmentLoadOp::Load) {
+      throw std::runtime_error(
+        "OpenGL raster backend stencil attachment Load is not yet implemented; "
+        "tracked under opengl-gpu-residency.md Phase 2 follow-up");
+    }
 
     if (!m_resources) {
       m_resources = sharedResources();
@@ -1198,6 +1325,7 @@ namespace engine::raster {
     drawState.scissorEnabled = m_scissorTestEnabled;
     drawState.scissorRect = m_scissorRect;
     drawState.colorLoadOp = m_colorLoadOp;
+    drawState.loadColorAttachment = m_loadColorAttachment;
     drawState.colorStoreOp = m_colorStoreOp;
     drawState.colorWriteMask = m_colorWriteMask;
     drawState.blendingEnabled = m_blendingEnabled;
