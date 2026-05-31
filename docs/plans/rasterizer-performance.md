@@ -90,21 +90,31 @@ Expose the baseline in three places:
 
 Measure at least:
 
-- `~/Downloads/10018-1.mpd` or a checked-in smaller LDraw fixture with similar
-  dense curved geometry;
-- `benchmarks/scenes/rasterizer_baseline_materials.json`;
-- `benchmarks/scenes/rasterizer_baseline_dense_sphere.json`;
-- `benchmarks/scenes/rasterizer_baseline_offscreen_floor.json`;
-- one alpha/blend/stencil scene to prevent optimizations from silently breaking
-  fixed-function state.
+- ~~`~/Downloads/10018-1.mpd` or a checked-in smaller LDraw fixture with similar
+  dense curved geometry~~ ✅ **Done.** `benchmarks/raster_baseline_capture.sh
+  dense_ldraw` synthesizes a project-owned dense curved MPD fixture for repeatable
+  import benchmarking without redistributing third-party LDraw data.
+- ~~`benchmarks/scenes/rasterizer_baseline_materials.json`~~ ✅ **Done.**
+  Captured by `benchmarks/raster_baseline_capture.sh materials`.
+- ~~`benchmarks/scenes/rasterizer_baseline_dense_sphere.json`~~ ✅ **Done.**
+  Captured by `benchmarks/raster_baseline_capture.sh dense_sphere`.
+- ~~`benchmarks/scenes/rasterizer_baseline_offscreen_floor.json`~~ ✅ **Done.**
+  Captured by `benchmarks/raster_baseline_capture.sh offscreen_floor`.
+- ~~one alpha/blend/stencil scene to prevent optimizations from silently breaking
+  fixed-function state~~ ✅ **Done.**
+  `benchmarks/scenes/rasterizer_baseline_alpha_blend_stencil.json` runs through
+  source-alpha blending, alpha testing, and the stencil-composite graph view.
 
 For each scene, capture:
 
-- 1x and 4x MSAA where applicable;
-- default LOD and one lower/higher LOD;
-- wall-clock render time;
-- the metrics JSON;
-- the five raster counter AOVs as optional visual references.
+- ~~1x and 4x MSAA where applicable~~ ✅ **Done.** The capture wrapper runs both.
+- ~~default LOD and one lower/higher LOD~~ ✅ **Done.** The wrapper captures LOD 0
+  and LOD 2; lower-than-default is documented as deferred because current raster
+  LOD is non-negative and defaults to the minimum.
+- ~~wall-clock render time~~ ✅ **Done.** `--repeat` writes `render_ms` summaries.
+- ~~the metrics JSON~~ ✅ **Done.** Each variant writes `*.metrics.json`.
+- ~~the five raster counter AOVs as optional visual references~~ ✅ **Done.**
+  `benchmarks/raster_baseline_capture.sh --aovs ...` exports the counter previews.
 
 ### Acceptance criteria
 

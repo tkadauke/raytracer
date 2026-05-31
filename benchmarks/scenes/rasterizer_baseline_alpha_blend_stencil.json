@@ -1,0 +1,94 @@
+{
+  "ambient": [0.25, 0.25, 0.25],
+  "background": [0.04, 0.05, 0.07],
+  "children": [
+    {
+      "id": "{13000000-0000-0000-0000-000000000001}",
+      "name": "Camera",
+      "position": [0.2, -0.15, -5.6],
+      "target": [0, 0.05, 0],
+      "distance": 5,
+      "zoom": 1.45,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{13000000-0000-0000-0000-000000000002}",
+      "name": "Key Light",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "visible": true,
+      "color": [1, 1, 1],
+      "intensity": 1,
+      "direction": [-0.35, -0.8, -0.35],
+      "type": "DirectionalLight",
+      "children": []
+    },
+
+    { "id": "{13000000-0000-0000-0000-000000000010}", "name": "BackTex", "color": [0.16, 0.22, 0.32], "type": "ConstantColorTexture", "children": [] },
+    { "id": "{13000000-0000-0000-0000-000000000011}", "name": "FrontTex", "color": [0.95, 0.38, 0.12], "type": "ConstantColorTexture", "children": [] },
+    { "id": "{13000000-0000-0000-0000-000000000012}", "name": "StencilTex", "color": [0.2, 0.72, 0.38], "type": "ConstantColorTexture", "children": [] },
+
+    { "id": "{13000000-0000-0000-0000-000000000020}", "name": "BackMat", "diffuseTexture": "{13000000-0000-0000-0000-000000000010}", "ambientCoefficient": 1, "diffuseCoefficient": 1, "type": "MatteMaterial", "children": [] },
+    {
+      "id": "{13000000-0000-0000-0000-000000000021}",
+      "name": "TransparentFrontMat",
+      "diffuseTexture": "{13000000-0000-0000-0000-000000000011}",
+      "ambientCoefficient": 0.8,
+      "diffuseCoefficient": 1,
+      "specularColor": [1, 1, 1],
+      "specularCoefficient": 0.15,
+      "exponent": 12,
+      "transmissionCoefficient": 0.55,
+      "refractionIndex": 1.0,
+      "reflectionColor": [1, 1, 1],
+      "reflectionCoefficient": 0.0,
+      "type": "TransparentMaterial",
+      "children": []
+    },
+    { "id": "{13000000-0000-0000-0000-000000000022}", "name": "StencilMat", "diffuseTexture": "{13000000-0000-0000-0000-000000000012}", "ambientCoefficient": 1, "diffuseCoefficient": 1, "type": "MatteMaterial", "children": [] },
+
+    {
+      "id": "{13000000-0000-0000-0000-000000000030}",
+      "name": "Background Plate",
+      "position": [0, 0.15, 0.65],
+      "rotation": [0.05, 0, 0],
+      "scale": [1, 1, 1],
+      "visible": true,
+      "material": "{13000000-0000-0000-0000-000000000020}",
+      "size": [3.8, 2.2, 0.12],
+      "bevelRadius": 0,
+      "type": "Box",
+      "children": []
+    },
+    {
+      "id": "{13000000-0000-0000-0000-000000000031}",
+      "name": "Transparent Sphere",
+      "position": [-0.45, 0.0, 0.05],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "visible": true,
+      "material": "{13000000-0000-0000-0000-000000000021}",
+      "radius": 0.8,
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "{13000000-0000-0000-0000-000000000032}",
+      "name": "Stencil Torus",
+      "position": [0.72, 0.0, -0.1],
+      "rotation": [1.5707963267948966, 0.12, 0],
+      "scale": [0.58, 0.58, 0.58],
+      "visible": true,
+      "material": "{13000000-0000-0000-0000-000000000022}",
+      "sweptRadius": 1.0,
+      "tubeRadius": 0.24,
+      "type": "Torus",
+      "children": []
+    }
+  ],
+  "id": "{13000000-0000-0000-0000-000000000000}",
+  "name": "Rasterizer Baseline - Alpha Blend Stencil",
+  "type": "Scene"
+}
