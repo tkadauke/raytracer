@@ -179,10 +179,10 @@ namespace engine::raster::detail {
     void ensureProgram();
 
     /**
-      * Lazily allocates persistent vertex and index `QOpenGLBuffer`s on
+      * Lazily allocates persistent vertex and index `gl::Buffer`s on
       * first call. Subsequent calls reuse the existing GL buffer objects;
       * the draw pass re-uploads the current frame's vertex/index payload
-      * via `QOpenGLBuffer::allocate` (which calls `glBufferData`).
+      * via `gl::Buffer::allocate` (which calls `glBufferData`).
       *
       * The caller must have made the offscreen context current.
       *

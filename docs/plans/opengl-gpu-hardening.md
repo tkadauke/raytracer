@@ -150,13 +150,13 @@ Acceptance:
 - ✅ Failing-pending-residency tests exist
   (`OpenGLRasterizerAttachmentLoad.{Color,Depth,Stencil}LoadOp...`).
 
-## Phase 2 — Qt → native-GL decoupling ⏳ **In progress.**
+## Phase 2 — Qt → native-GL decoupling ✅ **Done on macOS.** (Linux EGL backend still TODO.)
 
 Goals: remove Qt OpenGL classes from the engine library. Modeler keeps
 Qt for UI; rendercli drops `QGuiApplication`. ~600-800 lines of
 mechanical wrapper code + 200-300 lines of per-platform context bring-up.
 
-**Done so far** (commits `d5f7d73a` → `06c4369f`):
+**Landed:**
 
 - `engine::raster::gl::Context` abstract interface (`d5f7d73a`).
 - `OpenGLOffscreenContext` implements `gl::Context` so the Qt-backed
@@ -166,21 +166,30 @@ mechanical wrapper code + 200-300 lines of per-platform context bring-up.
   thread cycle (`875263b7`).
 - `gl::createOffscreenContext()` factory + `OpenGLRasterResourceCache`
   holds `unique_ptr<gl::Context>` (`99349a96`).
-- Rendercli `QGuiApplication` removal is staged but gated on the
-  buffer/shader/framebuffer wrappers below — Qt OpenGL classes still
-  live downstream of the context type (`06c4369f`).
+- `gl::Buffer` RAII wrapper over `glGenBuffers`/`glBufferData`;
+  rasterizer VBO/IBO migrated off `QOpenGLBuffer` (`51e83c7f`).
+- `gl::ShaderProgram` RAII wrapper over `glCreateProgram` +
+  uniform/attrib helpers; rasterizer migrated off
+  `QOpenGLShaderProgram` (`bd9f9237`).
+- `QOpenGLContext::currentContext()->functions()->glX(…)` lookups
+  replaced with raw `glX(…)` everywhere in the engine library
+  (`67aa7c45`). The `<OpenGL/gl.h>` / `<GL/gl.h>` shim in
+  `gl/Bindings.h` is the only header the rasterizer needs for
+  function symbols.
+- `RenderCliApplication` constructs `QCoreApplication`
+  unconditionally; the factory selects CGL automatically when no
+  `QGuiApplication` is up.
 
-**Remaining, in this order**:
+**Remaining for full Phase 2 closure:**
 
-1. `gl::Buffer` / `gl::ShaderProgram` / `gl::Framebuffer` wrappers
-   over raw GL — replaces `QOpenGLBuffer`, `QOpenGLShaderProgram`,
-   `QOpenGLFramebufferObject` in the rasterizer / cache. Each is
-   ~200-400 lines including its test scaffold.
-2. `gl::EGLContext` native backend for Linux (mirrors CGLContext
-   structure; uses Mesa EGL surfaceless context).
-3. Rendercli flip: `RenderCliApplication` collapses to
-   `QCoreApplication` unconditionally; the factory's
-   "CGL-when-no-QGuiApplication" path lights up.
+1. `gl::EGLContext` native backend for Linux (mirrors CGLContext
+   structure; uses Mesa EGL surfaceless context). On macOS the factory
+   already takes the CGL path so rendercli is unblocked; Linux still
+   falls through to the Qt backend, which needs `QGuiApplication`.
+2. `gl::Framebuffer` wrapper — deferred to Phase 3 (residency); the
+   FBO is owned by the context backend (Qt and CGL each manage their
+   own) and a shared wrapper pays off when attachment-set carve-out
+   happens.
 
 New directory: `include/engine/raster/gl/`
 

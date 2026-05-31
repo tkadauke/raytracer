@@ -1,5 +1,4 @@
 #include <QCoreApplication>
-#include <QGuiApplication>
 #include <QCommandLineParser>
 #include <QFile>
 #include <QFileInfo>
@@ -947,58 +946,11 @@ namespace {
 
   class RenderCliApplication {
   public:
-    RenderCliApplication(int& argc, char** argv) {
-      if (requiresGuiApplication(argc, argv)) {
-        installOffscreenPlatformDefault();
-        m_application = std::make_unique<QGuiApplication>(argc, argv);
-      } else {
-        m_application = std::make_unique<QCoreApplication>(argc, argv);
-      }
+    RenderCliApplication(int& argc, char** argv)
+        : m_application(std::make_unique<QCoreApplication>(argc, argv)) {
     }
 
   private:
-    // Today the OpenGL raster backend still pulls in `QOpenGLBuffer`,
-    // `QOpenGLShaderProgram`, and `QOpenGLContext::currentContext()`
-    // downstream of the context type — those Qt classes require a
-    // QGuiApplication regardless of which `gl::Context` backend the
-    // resource cache picks. Once the buffer/shader/framebuffer
-    // wrappers in opengl-gpu-hardening.md Phase 2 land, this gate
-    // can collapse to `QCoreApplication` unconditionally and the
-    // CGL backend the resource cache's factory already selects (when
-    // QGuiApplication is absent) takes over.
-    static bool requiresGuiApplication(int argc, char** argv) {
-      for (int i = 1; i < argc; ++i) {
-        const QString argument = QString::fromLocal8Bit(argv[i]);
-        if (argument.startsWith(QStringLiteral("--raster_backend="))) {
-          return isOpenGLRasterBackend(argument.section(QLatin1Char('='), 1));
-        }
-        if (argument == QStringLiteral("--raster_backend") && i + 1 < argc) {
-          return isOpenGLRasterBackend(QString::fromLocal8Bit(argv[i + 1]));
-        }
-      }
-      return false;
-    }
-
-    static bool isOpenGLRasterBackend(QString value) {
-      value = normalizedRasterOption(value);
-      return value == QStringLiteral("opengl") || value == QStringLiteral("gl") ||
-             value == QStringLiteral("gpu");
-    }
-
-    static void installOffscreenPlatformDefault() {
-      if (!qEnvironmentVariableIsSet("QT_QPA_PLATFORM")) {
-#if defined(Q_OS_MACOS)
-        if (qEnvironmentVariableIsSet("RAYTRACER_ALLOW_RENDERCLI_COCOA_OPENGL")) {
-          qputenv("QT_QPA_PLATFORM", "cocoa");
-          return;
-        }
-#endif
-        // rendercli has no visible window; callers can override this when
-        // probing a specific platform plugin.
-        qputenv("QT_QPA_PLATFORM", "offscreen");
-      }
-    }
-
     std::unique_ptr<QCoreApplication> m_application;
   };
 }
