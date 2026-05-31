@@ -12,6 +12,7 @@
 #include "world/objects/Curve.h"
 #include "world/objects/MatteMaterial.h"
 #include "world/objects/Scene.h"
+#include "world/objects/SourceAsset.h"
 #include "world/objects/Sphere.h"
 
 #include <gtest/gtest.h>
@@ -94,6 +95,13 @@ namespace MoleculeSceneImporterTest {
         cylinders.push_back(cylinder);
       for (auto* child : root->childElements())
         collectCylinders(child, cylinders);
+    }
+
+    void collectSpheres(Element* root, std::vector<Sphere*>& spheres) {
+      if (auto* sphere = qobject_cast<Sphere*>(root))
+        spheres.push_back(sphere);
+      for (auto* child : root->childElements())
+        collectSpheres(child, spheres);
     }
   }
 
@@ -335,8 +343,7 @@ namespace MoleculeSceneImporterTest {
     ASSERT_GE(cylinders.size(), 1u);
     EXPECT_TRUE(cylinders[0]->metadataValue("moleculeBondInferred").toBool());
     EXPECT_EQ(QString("bond"), cylinders[0]->metadataValue("molecule.kind").toString());
-    EXPECT_EQ(QString("INFERRED BOND 1-2"),
-              cylinders[0]->metadataValue("sourceRecord").toString());
+    EXPECT_EQ(QString("INFERRED BOND 1-2"), cylinders[0]->metadataValue("sourceRecord").toString());
     EXPECT_EQ(QString("model/7/chain/A/bond/1-2"),
               cylinders[0]->metadataValue(GroupMetadata::sourceIdKey()).toString());
     const auto bondProvenance = world::importProvenance(*cylinders[0]);
@@ -364,7 +371,7 @@ namespace MoleculeSceneImporterTest {
     world::MoleculeSceneImporter importer;
 
     const auto schema = importer.optionSchema();
-    ASSERT_EQ(8u, schema.size());
+    ASSERT_EQ(10u, schema.size());
     EXPECT_EQ(QString("representation"), schema[0].name);
     EXPECT_EQ(world::ImportOptionType::Choice, schema[0].type);
     EXPECT_TRUE(schema[0].choices.contains(QStringLiteral("ball-and-stick")));
@@ -376,13 +383,90 @@ namespace MoleculeSceneImporterTest {
     EXPECT_TRUE(schema[1].choices.contains(QStringLiteral("residue-category")));
     EXPECT_EQ(QString("inferBondsWhenMissing"), schema[5].name);
     EXPECT_EQ(world::ImportOptionType::Boolean, schema[5].type);
-    EXPECT_EQ(QString("backboneMode"), schema[6].name);
-    EXPECT_EQ(world::ImportOptionType::Choice, schema[6].type);
-    EXPECT_TRUE(schema[6].choices.contains(QStringLiteral("overlay")));
-    EXPECT_TRUE(schema[6].choices.contains(QStringLiteral("ribbon")));
-    EXPECT_TRUE(schema[6].choices.contains(QStringLiteral("tube")));
-    EXPECT_EQ(QString("backboneWidth"), schema[7].name);
-    EXPECT_EQ(world::ImportOptionType::Double, schema[7].type);
+    EXPECT_EQ(QString("includeHydrogens"), schema[6].name);
+    EXPECT_EQ(world::ImportOptionType::Boolean, schema[6].type);
+    EXPECT_EQ(QString("includeWater"), schema[7].name);
+    EXPECT_EQ(world::ImportOptionType::Boolean, schema[7].type);
+    EXPECT_EQ(QString("backboneMode"), schema[8].name);
+    EXPECT_EQ(world::ImportOptionType::Choice, schema[8].type);
+    EXPECT_TRUE(schema[8].choices.contains(QStringLiteral("overlay")));
+    EXPECT_TRUE(schema[8].choices.contains(QStringLiteral("ribbon")));
+    EXPECT_TRUE(schema[8].choices.contains(QStringLiteral("tube")));
+    EXPECT_EQ(QString("backboneWidth"), schema[9].name);
+    EXPECT_EQ(world::ImportOptionType::Double, schema[9].type);
+  }
+
+  TEST(MoleculeSceneImporter, ShouldExposeEditableSourceAssetParameters) {
+    world::MoleculeSceneImporter importer;
+
+    EXPECT_TRUE(importer.wrapDirectImportInSourceAsset());
+    const auto schema = importer.editableSourceParameters("test/fixtures/molecules/small.cif", {});
+
+    ASSERT_EQ(6u, schema.size());
+    EXPECT_EQ(QString("renderMode"), schema[0].name);
+    EXPECT_EQ(world::ImportOptionType::Choice, schema[0].type);
+    EXPECT_EQ((QStringList{QStringLiteral("ball_and_stick"), QStringLiteral("space_filling"),
+                           QStringLiteral("atoms")}),
+              schema[0].choices);
+    EXPECT_EQ(QString("atomRadiusScale"), schema[1].name);
+    EXPECT_EQ(world::ImportOptionType::Double, schema[1].type);
+    EXPECT_EQ(QString("bondRadius"), schema[2].name);
+    EXPECT_EQ(QString("inferBondsWhenMissing"), schema[3].name);
+    EXPECT_EQ(QString("includeHydrogens"), schema[4].name);
+    EXPECT_EQ(QString("includeWater"), schema[5].name);
+  }
+
+  TEST(MoleculeSceneImporter, ShouldRebuildSourceAssetWhenRenderModeChanges) {
+    SourceAsset asset;
+    asset.setSourcePath(QStringLiteral("test/fixtures/molecules/small.cif"));
+    asset.setFormat(QStringLiteral("molecule"));
+    asset.setImportOptions(QJsonObject{{"representation", QStringLiteral("ball-and-stick")},
+                                       {"format", QStringLiteral("mmcif")}});
+
+    asset.rebuildGeneratedChildren();
+
+    EXPECT_EQ(QStringLiteral("ball_and_stick"), asset.property("renderMode").toString());
+    ASSERT_EQ(1, asset.childElements().size());
+    std::vector<Cylinder*> cylinders;
+    collectCylinders(asset.childElements().front(), cylinders);
+    ASSERT_FALSE(cylinders.empty());
+
+    asset.setProperty("renderMode", "atoms");
+    asset.propertyEdited("renderMode");
+
+    const auto parameters = asset.importOptions().value("parameters").toObject();
+    EXPECT_EQ(QStringLiteral("atoms"), parameters.value("renderMode").toString());
+    EXPECT_EQ(QStringLiteral("test/fixtures/molecules/small.cif"), asset.sourcePath());
+    EXPECT_EQ(QStringLiteral("molecule"), asset.format());
+    EXPECT_EQ(QStringLiteral("mmcif"), asset.importOptions().value("format").toString());
+    ASSERT_EQ(1, asset.childElements().size());
+    cylinders.clear();
+    collectCylinders(asset.childElements().front(), cylinders);
+    EXPECT_TRUE(cylinders.empty());
+    std::vector<Sphere*> spheres;
+    collectSpheres(asset.childElements().front(), spheres);
+    EXPECT_FALSE(spheres.empty());
+
+    QJsonObject json;
+    asset.write(json);
+    EXPECT_EQ(QStringLiteral("SourceAsset"), json.value("type").toString());
+    EXPECT_EQ(QStringLiteral("test/fixtures/molecules/small.cif"),
+              json.value("sourcePath").toString());
+    EXPECT_EQ(QStringLiteral("atoms"), json.value("importOptions")
+                                         .toObject()
+                                         .value("parameters")
+                                         .toObject()
+                                         .value("renderMode")
+                                         .toString());
+
+    SourceAsset decoded;
+    decoded.read(json);
+    ASSERT_EQ(1, decoded.childElements().size());
+    cylinders.clear();
+    collectCylinders(decoded.childElements().front(), cylinders);
+    EXPECT_TRUE(cylinders.empty());
+    EXPECT_EQ(QStringLiteral("test/fixtures/molecules/small.cif"), decoded.sourcePath());
+    EXPECT_EQ(QStringLiteral("molecule"), decoded.format());
   }
 
   TEST(MoleculeSceneImporter, ShouldImportSpaceFillingAndChainColorOptions) {

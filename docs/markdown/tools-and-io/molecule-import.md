@@ -21,8 +21,8 @@ chemical-component dictionaries are not imported.
 
 ## Representations
 
-`rendercli`, Modeler, and scene `SourceAsset` imports use the shared importer
-option surface:
+`rendercli` and command-line import flows use the shared importer option
+surface:
 
 - `representation=ball-and-stick` creates element-colored atom spheres and bond
   cylinders. PDB `CONECT` records are used directly; files without explicit
@@ -36,6 +36,13 @@ option surface:
 `colorScheme` accepts `element`, `chain`, and `residue-category`. Residues with
 `HETATM` atoms are categorized as ligands; residues with CA atoms are treated as
 polymer residues for backbone generation.
+
+Direct Modeler opens and imports keep `.pdb`, `.cif`, and `.mmcif` files as
+`SourceAsset` objects. Their editable source parameters are stored under
+`importOptions.parameters` and rebuild generated children from the original
+source path. `renderMode` accepts `ball_and_stick`, `space_filling`, and
+`atoms`; `atomRadiusScale`, `bondRadius`, `inferBondsWhenMissing`,
+`includeHydrogens`, and `includeWater` are safe regeneration controls.
 
 Example:
 

@@ -24,6 +24,8 @@ namespace world {
     double spaceFillingScale{1.0};
     double bondRadius{0.08};
     bool inferBondsWhenMissing{true};
+    bool includeHydrogens{true};
+    bool includeWater{true};
     QString backboneMode{QStringLiteral("overlay")};
     double backboneWidth{0.35};
   };
@@ -43,6 +45,9 @@ namespace world {
     [[nodiscard]] QString name() const override;
     [[nodiscard]] QStringList supportedExtensions() const override;
     [[nodiscard]] ImportOptionSchemas optionSchema() const override;
+    [[nodiscard]] ImportOptionSchemas
+    editableSourceParameters(const QString& filename, const ImportOptions& options) const override;
+    [[nodiscard]] bool wrapDirectImportInSourceAsset() const override;
     [[nodiscard]] ImportResult
     importFile(const QString& filename,
                const ImportOptions& options = ImportOptions()) const override;

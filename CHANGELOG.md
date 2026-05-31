@@ -37,6 +37,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   element-aware atom radii/colors and bond inference options while preserving
   model, chain, residue, atom, and bond provenance metadata for Epic #408. —
   GPT-5
+- **Molecule source assets.** Direct molecule imports now wrap as `SourceAsset`
+  objects with editable `renderMode` and regeneration-safe molecule parameters
+  stored under `importOptions.parameters` for Epic #408. — GPT-5
 - **Source asset editable import options.** Non-OpenSCAD source assets now store
   editable importer values under `importOptions.parameters`, while existing
   OpenSCAD `importOptions.define` scenes continue to edit and rebuild through
