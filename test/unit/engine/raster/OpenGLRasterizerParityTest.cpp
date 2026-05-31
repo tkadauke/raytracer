@@ -156,6 +156,119 @@ namespace OpenGLRasterizerParityTest {
       << "fraction of pixels with large channel divergence too large";
   }
 
+  namespace {
+    // Big bright colored sphere placed off-axis. The sphere covers a
+    // recognizable region of the image; tests check pixels at known
+    // positions to catch Y-flips / X-flips / aspect-mapping bugs that
+    // the loose CPU↔GPU mean-diff parity tests miss (we already saw a
+    // vertical flip slip past those).
+    std::shared_ptr<Scene> orientedSphereScene(const Vector3d& center, const Colord& color) {
+      auto scene = std::make_shared<Scene>(Colord::white());
+      // Radius 1.0 — large enough that at the project's default 8×6
+      // view plane and distance=5 camera the sphere covers ~10 pixels
+      // diameter in a 64×64 buffer, well clear of the half-edge rows
+      // the tests sample.
+      auto sphere = std::make_shared<Sphere>(center, 1.0);
+      sphere->setMaterial(
+        std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(color)));
+      scene->add(sphere);
+      scene->addLight(
+        std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord::white()));
+      return scene;
+    }
+
+    bool isColored(const Colord& color, double threshold = 0.5) {
+      // "Has any color" means at least one channel is below ~white-1.
+      // White background pixels are (1,1,1) (or close to it); a colored
+      // sphere pixel has at least one channel much lower.
+      const double minChannel = std::min({color.r(), color.g(), color.b()});
+      return minChannel < threshold;
+    }
+  }
+
+  namespace {
+    // Find the first column index where the center row is colored.
+    int firstColoredColAtCenter(const Buffer<Colord>& buffer) {
+      const int centerRow = buffer.height() / 2;
+      for (int x = 0; x < buffer.width(); ++x) {
+        if (isColored(buffer[centerRow][x])) {
+          return x;
+        }
+      }
+      return -1;
+    }
+
+    // Find the first row index where the center column is colored.
+    int firstColoredRowAtCenter(const Buffer<Colord>& buffer) {
+      const int centerCol = buffer.width() / 2;
+      for (int y = 0; y < buffer.height(); ++y) {
+        if (isColored(buffer[y][centerCol])) {
+          return y;
+        }
+      }
+      return -1;
+    }
+  }
+
+  // Per project convention, world Y+ maps to high screen rows (lower
+  // half of the buffer). The dice scene's floor at world Y+1.1 renders
+  // at the bottom of the rendered PNG; the test asserts the same.
+  // Using `firstColored...` keeps the test robust to small projection /
+  // sphere-tessellation rounding differences between CPU and GPU.
+  TEST_F(OpenGLRasterizerParity, RendersSphereInLowerHalfWhenCenteredAtPositiveY) {
+    if (!OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+
+    auto scene = orientedSphereScene(Vector3d(0, 1.5, 0), Colord(0.8, 0.2, 0.2));
+    auto cam = camera();
+
+    OpenGLRasterizer gpuEngine(cam, scene);
+    Buffer<Colord> gpuBuffer(kBufferSize, kBufferSize);
+    gpuEngine.render(gpuBuffer);
+
+    const int row = firstColoredRowAtCenter(gpuBuffer);
+    ASSERT_GE(row, 0) << "scaffold: sphere not rendering at all in the center column";
+    EXPECT_GT(row, kBufferSize / 2)
+      << "world Y+ sphere must render below the middle row (got first colored at " << row
+      << "); a Y-flip would put it in the upper half";
+  }
+
+  TEST_F(OpenGLRasterizerParity, RendersSphereInRightHalfWhenCenteredAtPositiveX) {
+    if (!OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+
+    auto scene = orientedSphereScene(Vector3d(1.5, 0, 0), Colord(0.2, 0.8, 0.2));
+    auto cam = camera();
+
+    OpenGLRasterizer gpuEngine(cam, scene);
+    Buffer<Colord> gpuBuffer(kBufferSize, kBufferSize);
+    gpuEngine.render(gpuBuffer);
+
+    const int col = firstColoredColAtCenter(gpuBuffer);
+    ASSERT_GE(col, 0) << "scaffold: sphere not rendering at all in the center row";
+    EXPECT_GT(col, kBufferSize / 2)
+      << "world X+ sphere must render right of the middle column (got first colored at " << col
+      << "); an X-flip would put it in the left half";
+  }
+
+  TEST_F(OpenGLRasterizerParity, CpuReferenceRendersSphereInLowerHalfWhenCenteredAtPositiveY) {
+    auto scene = orientedSphereScene(Vector3d(0, 1.5, 0), Colord(0.8, 0.2, 0.2));
+    auto cam = camera();
+
+    Rasterizer cpuEngine(cam, scene);
+    Buffer<Colord> cpuBuffer(kBufferSize, kBufferSize);
+    cpuEngine.render(cpuBuffer);
+
+    const int row = firstColoredRowAtCenter(cpuBuffer);
+    ASSERT_GE(row, 0) << "scaffold: the sphere isn't rendering at all in the center column";
+    EXPECT_GT(row, kBufferSize / 2)
+      << "CPU reference: world Y+ must render below the middle row (got first "
+         "colored pixel at row "
+      << row << "); a Y-flip would put it in the upper half";
+  }
+
   TEST_F(OpenGLRasterizerParity, BackCullModeMatchesCpuOnBackFacingGeometry) {
     if (!OpenGLOffscreenContext::probe().available()) {
       GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
