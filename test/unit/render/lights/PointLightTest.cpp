@@ -31,6 +31,35 @@ namespace PointLightTest {
     ASSERT_EQ(Colord::white(), light.radiance());
   }
 
+  TEST(PointLight, ShouldReturnDeltaSampleTowardPosition) {
+    PointLight light(Vector3d(1, 2, 3), Colord(0.25, 0.5, 0.75));
+    const Vector3d point(4, 6, 3);
+
+    const LightSample sample = light.sample(point);
+
+    EXPECT_EQ((light.position() - point).normalized(), sample.direction);
+    EXPECT_EQ(light.radiance(), sample.radiance);
+    EXPECT_DOUBLE_EQ(5.0, sample.distance);
+    EXPECT_DOUBLE_EQ(1.0, sample.pdf);
+    EXPECT_TRUE(sample.delta);
+  }
+
+  TEST(PointLight, ShouldExposeDeltaPdfBehavior) {
+    PointLight light(Vector3d(1, 2, 3), Colord::white());
+
+    EXPECT_TRUE(light.isDelta());
+    EXPECT_DOUBLE_EQ(0.0, light.pdf(Vector3d::null, light.direction(Vector3d::null)));
+  }
+
+  TEST(PointLight, ShouldExposeEmissionAndBoundedPowerMetadata) {
+    const Colord color(0.25, 0.5, 0.75);
+    PointLight light(Vector3d(1, 2, 3), color);
+
+    EXPECT_EQ(color, light.emission());
+    ASSERT_TRUE(light.power().has_value());
+    EXPECT_EQ(color, *light.power());
+  }
+
   TEST(PointLight, ShouldNotProvideDirectionalShadowMapDirection) {
     PointLight light(Vector3d(1, 0, 0), Colord::white());
     ASSERT_FALSE(light.directionalShadowMapDirection().has_value());

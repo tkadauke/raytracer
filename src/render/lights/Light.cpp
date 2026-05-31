@@ -1,5 +1,6 @@
 #include "render/lights/Light.h"
 
+#include <limits>
 #include <ostream>
 
 using namespace render;
@@ -7,6 +8,26 @@ using namespace render;
 void Light::writeFingerprint(std::ostream& out, const std::string& prefix) const {
   writeCommonFingerprint(out, prefix);
   writeFingerprintVector(out, prefix + "directionAtOrigin", direction(Vector3d::null));
+}
+
+LightSample Light::sample(const Vector3d& point) const {
+  return {direction(point), radiance(), std::numeric_limits<double>::infinity(), 1.0, true};
+}
+
+double Light::pdf(const Vector3d&, const Vector3d&) const {
+  return 0.0;
+}
+
+bool Light::isDelta() const {
+  return true;
+}
+
+Colord Light::emission() const {
+  return radiance();
+}
+
+std::optional<Colord> Light::power() const {
+  return std::nullopt;
 }
 
 std::optional<Vector3d> Light::directionalShadowMapDirection() const {
