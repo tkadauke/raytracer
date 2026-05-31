@@ -23,15 +23,16 @@ namespace render {
     *    evaluate per-light) and by multiple-importance-sampling
     *    integrators that need the BSDF value at a light-sampled
     *    direction.
-    *  - `sample(wi, wo, pdf)` — generate an `wo` by importance-
-    *    sampling the lobe, write the chosen direction into `wo`
-    *    and the pdf of having drawn it into `pdf`, return the BSDF
-    *    value at that draw. Used by recursive integrators to spawn
-    *    the next ray. Specular lobes report `pdf == 1` to mark the
-    *    delta case — the integrator must NOT divide by the pdf for
+    *  - `sample(wi, wo, pdf, sample)` — generate an `wo` by
+    *    importance-sampling the lobe using a 2D uniform sample,
+    *    write the chosen direction into `wo` and the pdf of having
+    *    drawn it into `pdf`, return the BSDF value at that draw.
+    *    Used by recursive integrators to spawn the next ray. Delta
+    *    lobes report `pdf == 1` for sampled events and set the
+    *    `Delta` flag — the integrator must NOT divide by the pdf for
     *    such draws (the delta and the implicit Dirac in the
-    *    rendering equation cancel, and the value returned is
-    *    already the post-cancellation finite result).
+    *    rendering equation cancel, and the value returned is already
+    *    the post-cancellation finite result).
     *  - `pdf(wi, wo)` — the probability density that `sample(wi)`
     *    would have produced this `wo`. Used by MIS weight
     *    calculations. Returns 0 for delta lobes.
@@ -51,10 +52,10 @@ namespace render {
     * model of the integrator, not the radiometric convention where
     * `wi` would be the incoming light direction.
     *
-    * `flags()` classifies the lobe along two independent axes:
-    * Diffuse / Glossy / Specular and Reflection / Transmission. The
-    * integrator uses these to skip MIS for specular lobes, to tag
-    * the wavelength for spectral path tracing, etc.
+    * `flags()` classifies the lobe along three independent axes:
+    * Diffuse / Glossy / Specular, Reflection / Transmission, and
+    * finite / Delta. The integrator uses `Delta` to skip MIS for
+    * singular lobes; `Specular` still describes the lobe shape.
     *
     * Concrete BSDFs in this codebase are the existing BRDF /
     * BTDF subclasses — `Lambertian`, `GlossySpecular`,
@@ -76,6 +77,7 @@ namespace render {
       Specular = 1 << 2,
       Reflection = 1 << 3,
       Transmission = 1 << 4,
+      Delta = 1 << 5,
     };
 
     virtual ~BSDF() = default;
@@ -89,6 +91,12 @@ namespace render {
     /// the BSDF value at that draw. Delta lobes set `pdf = 1`.
     virtual Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo,
                           double& pdf) const = 0;
+
+    /// Importance-sample an outgoing direction using a caller-owned
+    /// 2D random sample in `[0, 1]^2`. The no-sample overload uses
+    /// the centre sample and exists for legacy deterministic callers.
+    virtual Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo,
+                          double& pdf, const Vector2d& sample) const;
 
     /// Density that `sample(wi)` would have produced `wo`. 0 for
     /// delta lobes.
@@ -119,6 +127,9 @@ namespace render {
     }
     inline bool isTransmission() const {
       return (flags() & Transmission) != 0;
+    }
+    inline bool isDelta() const {
+      return (flags() & Delta) != 0;
     }
   };
 }

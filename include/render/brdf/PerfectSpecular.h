@@ -33,6 +33,7 @@ namespace render {
     }
 
     Colord sample(const HitPoint& hitPoint, const Vector3d& out, Vector3d& in) const override;
+    using BRDF::sample;
 
     /// BSDF::sample for the delta lobe — sets `pdf = 1` to flag the
     /// delta to MIS-aware integrators, then delegates to the
@@ -42,9 +43,13 @@ namespace render {
       pdf = 1.0;
       return sample(hitPoint, wi, wo);
     }
+    Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo, double& pdf,
+                  const Vector2d&) const override {
+      return sample(hitPoint, wi, wo, pdf);
+    }
 
     int flags() const override {
-      return BSDF::Specular | BSDF::Reflection;
+      return BSDF::Specular | BSDF::Reflection | BSDF::Delta;
     }
 
     inline const Colord& reflectionColor() const {

@@ -128,6 +128,28 @@ namespace PerfectTransmitterTest {
     ASSERT_NEAR(1.0, std::fabs(transmitted.normalized().y()), 1e-9);
   }
 
+  TEST(PerfectTransmitter, ShouldExposeDeltaTransmissionFlagsAndPdfContract) {
+    PerfectTransmitter btdf;
+    btdf.setRefractionIndex(1.5);
+    btdf.setTransmissionCoefficient(0.75);
+
+    Vector3d normal(0, 1, 0);
+    HitPoint hit = hitPointWithNormal(normal);
+    Vector3d transmitted;
+    double sampledPdf = 0.0;
+    Colord value = btdf.sample(hit, Vector3d(0, 1, 0), transmitted, sampledPdf);
+
+    ASSERT_TRUE(btdf.isSpecular());
+    ASSERT_TRUE(btdf.isTransmission());
+    ASSERT_TRUE(btdf.isDelta());
+    ASSERT_FALSE(btdf.isReflection());
+    ASSERT_NEAR(1.0, sampledPdf, 1e-12);
+    ASSERT_NEAR(0.0, btdf.pdf(hit, Vector3d(0, 1, 0), transmitted), 1e-12);
+    ASSERT_GT(value.r(), 0.0);
+    ASSERT_EQ(value.r(), value.g());
+    ASSERT_EQ(value.g(), value.b());
+  }
+
   TEST(PerfectTransmitter, ShouldRefractAccordingToSnellsLaw) {
     // n1 sin θ1 = n2 sin θ2. With air→glass (eta=1.5) and θ1=45°, the
     // transmitted angle should satisfy sin θ2 = sin 45° / 1.5.

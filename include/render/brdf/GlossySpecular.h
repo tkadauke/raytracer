@@ -28,6 +28,10 @@ namespace render {
 
     Colord calculate(const HitPoint& hitPoint, const Vector3d& out,
                      const Vector3d& in) const override;
+    using BRDF::sample;
+    Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo, double& pdf,
+                  const Vector2d& sample) const override;
+    double pdf(const HitPoint& hitPoint, const Vector3d& wi, const Vector3d& wo) const override;
 
     int flags() const override {
       return BSDF::Glossy | BSDF::Reflection;
