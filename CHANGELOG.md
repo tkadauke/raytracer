@@ -248,6 +248,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **rendercli option handling fixes.** `--timing`/`--repeat` now print one
+  timing summary instead of duplicating the line, comma-separated raster color
+  and rectangle options reject empty fields, and `--step sequence` reloads each
+  frame through the shared scene-import pipeline so imported formats keep their
+  importer options. — GPT-5
 - **OpenGL camera-independent raster mesh emission.** The GPU raster path no
   longer rejects every camera-independent triangle as screen-degenerate before
   handing projection to the shader, restoring OpenGL mesh preparation and GPU

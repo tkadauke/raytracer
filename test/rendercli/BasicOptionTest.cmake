@@ -129,20 +129,36 @@ endforeach()
 
 rendercli_run(
   NAME "rendercli --timing prints render timing"
+  OUTPUT_VARIABLE timing_stdout
   STDOUT_MATCHES "render_ms runs=1"
   COMMAND
     "${RENDERCLI}" --width 16 --height 16 --timing
     "${basic_scene}" "${timing_render}"
 )
+string(REGEX MATCHALL "render_ms runs=1" timing_lines "${timing_stdout}")
+list(LENGTH timing_lines timing_line_count)
+if(NOT timing_line_count EQUAL 1)
+  _rendercli_fail("rendercli --timing prints one timing line"
+                  "expected exactly one render_ms summary, got ${timing_line_count}"
+                  "" "" "${timing_stdout}" "")
+endif()
 rendercli_assert_image_nonempty("${timing_render}" NAME "rendercli --timing pixels")
 
 rendercli_run(
   NAME "rendercli --repeat 2 prints timing summary"
+  OUTPUT_VARIABLE repeat_stdout
   STDOUT_MATCHES "runs=2"
   COMMAND
     "${RENDERCLI}" --width 16 --height 16 --repeat 2
     "${basic_scene}" "${repeat_render}"
 )
+string(REGEX MATCHALL "render_ms runs=2" repeat_lines "${repeat_stdout}")
+list(LENGTH repeat_lines repeat_line_count)
+if(NOT repeat_line_count EQUAL 1)
+  _rendercli_fail("rendercli --repeat prints one timing line"
+                  "expected exactly one render_ms summary, got ${repeat_line_count}"
+                  "" "" "${repeat_stdout}" "")
+endif()
 rendercli_assert_image_nonempty("${repeat_render}" NAME "rendercli --repeat pixels")
 
 rendercli_run(

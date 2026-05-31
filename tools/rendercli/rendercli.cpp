@@ -1,23 +1,18 @@
 #include <QCoreApplication>
 #include <QCommandLineParser>
 #include <QFile>
-#include <QFileInfo>
 #include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
 
-#include "world/import/LDrawFileSceneImporter.h"
-#include "world/import/SceneImporterRegistry.h"
+#include "RenderCliSceneLoader.h"
+
 #include "world/objects/Scene.h"
 #include "world/objects/Camera.h"
-#include "world/objects/DirectionalLight.h"
-#include "world/import/LDrawSceneImporter.h"
 #include "world/objects/Group.h"
-#include "world/objects/LDrawSceneImporter.h"
 #include "world/objects/Material.h"
-#include "world/objects/PinholeCamera.h"
 #include "world/objects/StepVisibilityEvaluator.h"
 #include "world/objects/Texture.h"
 
@@ -56,7 +51,6 @@
 #include <iomanip>
 #include <initializer_list>
 #include <iostream>
-#include <map>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -324,7 +318,7 @@ namespace {
   }
 
   bool parseColorTriplet(const QString& value, Colord* color) {
-    const QStringList parts = value.split(',', Qt::SkipEmptyParts);
+    const QStringList parts = value.split(',', Qt::KeepEmptyParts);
     if (parts.size() != 3) {
       return false;
     }
@@ -343,7 +337,7 @@ namespace {
   }
 
   bool parseRasterRect(const QString& value, Recti* rect) {
-    const QStringList parts = value.split(',', Qt::SkipEmptyParts);
+    const QStringList parts = value.split(',', Qt::KeepEmptyParts);
     if (parts.size() != 4) {
       return false;
     }
@@ -731,55 +725,6 @@ namespace {
     return true;
   }
 
-  void printImportDiagnostics(const world::ImportResult& result) {
-    struct WarningSummary {
-      world::ImportDiagnostic first;
-      int count = 0;
-    };
-
-    std::map<QString, WarningSummary> warnings;
-    for (const auto& diagnostic : result.diagnostics()) {
-      if (!diagnostic.isError()) {
-        auto& summary = warnings[diagnostic.message];
-        if (summary.count == 0)
-          summary.first = diagnostic;
-        ++summary.count;
-        continue;
-      }
-
-      std::cerr << "import error";
-      if (!diagnostic.source.isEmpty()) {
-        std::cerr << " " << diagnostic.source.toStdString();
-        if (diagnostic.line > 0) {
-          std::cerr << ":" << diagnostic.line;
-          if (diagnostic.column > 0) {
-            std::cerr << ":" << diagnostic.column;
-          }
-        }
-      }
-      std::cerr << ": " << diagnostic.message.toStdString() << '\n';
-    }
-
-    for (const auto& entry : warnings) {
-      const auto& summary = entry.second;
-      const auto& diagnostic = summary.first;
-      std::cerr << "import warning";
-      if (!diagnostic.source.isEmpty()) {
-        std::cerr << " " << diagnostic.source.toStdString();
-        if (diagnostic.line > 0) {
-          std::cerr << ":" << diagnostic.line;
-          if (diagnostic.column > 0) {
-            std::cerr << ":" << diagnostic.column;
-          }
-        }
-      }
-      std::cerr << ": " << diagnostic.message.toStdString();
-      if (summary.count > 1)
-        std::cerr << " (" << (summary.count - 1) << " similar warnings suppressed)";
-      std::cerr << '\n';
-    }
-  }
-
   bool parseNonNegativeStepIndex(const QString& value, int* step, QString* errorMessage) {
     bool ok = false;
     const int parsed = value.trimmed().toInt(&ok);
@@ -1114,9 +1059,6 @@ private:
   bool m_gcodeCumulativeLayers;
 
   std::unique_ptr<Scene> loadScene() const;
-  std::unique_ptr<Scene> loadLDrawScene() const;
-  world::ImportOptions ldrawImportOptions() const;
-  void printLDrawDiagnostics(const std::vector<LDrawDiagnostic>& diagnostics) const;
   std::vector<double> renderScene(const Scene& scene, const QString& output) const;
   void renderAnimation(const Scene& scene) const;
   void renderStepSequence(const Scene& scene) const;
@@ -1272,183 +1214,23 @@ Renderer::Renderer()
 }
 
 std::unique_ptr<Scene> Renderer::loadScene() const {
-  if (m_ldrawInput) {
-    return loadLDrawScene();
-  }
-
-  std::unique_ptr<world::SceneImporter> importer;
-  if (!m_importFormat.isEmpty()) {
-    importer = world::SceneImporterRegistry::self().createByFormat(m_importFormat);
-    if (!importer) {
-      throw std::runtime_error(
-        QString("No scene importer registered for format: %1").arg(m_importFormat).toStdString());
-    }
-  } else if (world::SceneImporterRegistry::self().hasExtension(QFileInfo(m_filename).suffix())) {
-    importer = world::SceneImporterRegistry::self().createForFile(m_filename);
-  }
-
-  if (importer) {
-    world::ImportOptions importOptions =
-      importer->name() == "ldraw" ? ldrawImportOptions() : m_importOptions;
-    world::ImportResult result = importer->importFile(m_filename, importOptions);
-    printImportDiagnostics(result);
-    if (result.failed()) {
-      throw std::runtime_error(
-        QString("Unable to import input scene: %1").arg(m_filename).toStdString());
-    }
-    auto root = result.takeRoot();
-    if (auto* sceneRoot = qobject_cast<Scene*>(root.get())) {
-      root.release();
-      return std::unique_ptr<Scene>(sceneRoot);
-    }
-    auto scene = std::make_unique<Scene>(nullptr);
-    Element* importedRoot = root.get();
-    scene->addChild(std::move(root));
-    if (importedRoot && importer->configureImportedScene(*scene, *importedRoot, importOptions)) {
-      scene->resolveElementReferences();
-      return scene;
-    }
-    throw std::runtime_error(
-      QString("Importer did not return a scene root: %1").arg(m_filename).toStdString());
-  }
-
-  auto scene = std::make_unique<Scene>(nullptr);
-  if (!scene->load(m_filename, m_ldrawLibraryRoot))
-    throw std::runtime_error(
-      QString("Unable to load input scene: %1").arg(m_filename).toStdString());
-  printLDrawDiagnostics(scene->importDiagnostics());
-  return scene;
-}
-
-world::ImportOptions Renderer::ldrawImportOptions() const {
-  world::ImportOptions options = m_importOptions;
-  if (!m_ldrawLibraryRoot.isEmpty() && !options.contains("library_root")) {
-    options.setValue("library_root", m_ldrawLibraryRoot);
-  }
-  options.setValue("scale", m_ldrawScale);
-  options.setValue("coordinate_conversion", m_ldrawCoordinateConversion);
-  options.setValue("preserve_hierarchy", m_ldrawPreserveHierarchy);
-  options.setValue("normal_mode", m_ldrawNormalMode);
-  options.setValue("include_edge_overlays", m_ldrawIncludeEdgeOverlays);
-  options.setValue("max_recursion", m_ldrawMaxRecursion);
-  options.setValue("missing_part_policy", m_ldrawMissingPartPolicy);
-  if (!m_ldrawBackgroundColor.isEmpty()) {
-    options.setValue("background_color", m_ldrawBackgroundColor);
-  }
-  return options;
-}
-
-std::unique_ptr<Scene> Renderer::loadLDrawScene() const {
-  if (!m_ldrawPreserveAuthoringHierarchy) {
-    world::LDrawFileSceneImporter importer;
-    world::ImportResult result = importer.importFile(m_filename, ldrawImportOptions());
-    printImportDiagnostics(result);
-    if (result.failed()) {
-      throw std::runtime_error(
-        QString("Unable to import LDraw input: %1").arg(m_filename).toStdString());
-    }
-
-    auto root = result.takeRoot();
-    if (auto* sceneRoot = qobject_cast<Scene*>(root.get())) {
-      root.release();
-      return std::unique_ptr<Scene>(sceneRoot);
-    }
-
-    throw std::runtime_error(
-      QString("LDraw importer did not return a scene root: %1").arg(m_filename).toStdString());
-  }
-
-  auto scene = std::make_unique<Scene>(nullptr);
-  scene->setName("LDraw Import");
-  scene->setAmbient(Colord(0.8, 0.8, 0.8));
-  scene->setBackground(Colord::white());
-
-  auto camera = std::make_unique<PinholeCamera>();
-  camera->setId("camera");
-  camera->setName("Camera");
-  scene->addChild(std::move(camera));
-
-  auto light = std::make_unique<DirectionalLight>();
-  light->setId("light");
-  light->setName("Light");
-  light->setDirection(Vector3d(-0.35, 0.7, -1.0));
-  scene->addChild(std::move(light));
-
-  std::vector<LDrawDiagnostic> diagnostics;
-  if (m_ldrawPreserveAuthoringHierarchy) {
-    LDrawSceneImporter importer;
-    LDrawSceneImporter::Options options;
-    options.filePath = m_filename;
-    options.libraryPath = m_ldrawLibraryRoot;
-    options.preserveHierarchy = true;
-    options.smoothNormals = m_ldrawNormalMode == "smooth";
-    options.recursionLimit = m_ldrawMaxRecursion;
-    auto result = importer.importFile(options);
-    result.root->setId("ldraw-model");
-    result.root->setName("LDraw Model");
-    diagnostics = std::move(result.diagnostics);
-    scene->addChild(std::move(result.root));
-  } else {
-    auto model = std::make_unique<Group>();
-    model->setId("ldraw-model");
-    model->setName("LDraw Import");
-    model->setScale(Vector3d(1, 1, 1));
-    QJsonObject metadata;
-    metadata["sourceFormat"] = "LDraw";
-    metadata["sourcePath"] = m_filename;
-    metadata["normalMode"] = m_ldrawNormalMode;
-    metadata["scale"] = m_ldrawScale;
-    metadata["coordinateConversion"] = m_ldrawCoordinateConversion;
-    metadata["preserveHierarchy"] = m_ldrawPreserveHierarchy;
-    metadata["includeEdgeOverlays"] = m_ldrawIncludeEdgeOverlays;
-    metadata["maxRecursion"] = m_ldrawMaxRecursion;
-    metadata["missingPartPolicy"] = m_ldrawMissingPartPolicy;
-    if (!m_ldrawLibraryRoot.isEmpty()) {
-      metadata["libraryRoot"] = m_ldrawLibraryRoot;
-    }
-    model->setMetadata(metadata);
-    scene->addChild(std::move(model));
-  }
-
-  world::imports::resolveLDrawAuthoringImports(scene.get(), m_ldrawLibraryRoot, QString(),
-                                               &diagnostics);
-  scene->setImportDiagnostics(std::move(diagnostics));
-  printLDrawDiagnostics(scene->importDiagnostics());
-
-  if (!scene->frameActivePinholeCameraToContents(m_stepPlaybackStyle, Vector3d(0.0, 0.0, -1.0))) {
-    std::cerr << "LDraw warning: imported model bounds did not produce a camera frame\n";
-  }
-
-  return scene;
-}
-
-void Renderer::printLDrawDiagnostics(const std::vector<LDrawDiagnostic>& diagnostics) const {
-  struct WarningSummary {
-    LDrawDiagnostic first;
-    int count = 0;
-  };
-
-  std::map<std::pair<LDrawDiagnosticCode, std::string>, WarningSummary> warnings;
-  for (const auto& diagnostic : diagnostics) {
-    if (diagnostic.severity == LDrawDiagnosticSeverity::Error) {
-      std::cerr << diagnostic.toString() << '\n';
-      continue;
-    }
-
-    const auto key = std::make_pair(diagnostic.code, diagnostic.message);
-    auto& summary = warnings[key];
-    if (summary.count == 0)
-      summary.first = diagnostic;
-    ++summary.count;
-  }
-
-  for (const auto& entry : warnings) {
-    const auto& summary = entry.second;
-    std::cerr << summary.first.toString();
-    if (summary.count > 1)
-      std::cerr << " (" << (summary.count - 1) << " similar warnings suppressed)";
-    std::cerr << '\n';
-  }
+  RenderCliSceneLoadOptions options;
+  options.filename = m_filename;
+  options.importFormat = m_importFormat;
+  options.importOptions = m_importOptions;
+  options.ldrawLibraryRoot = m_ldrawLibraryRoot;
+  options.ldrawInput = m_ldrawInput;
+  options.ldrawPreserveAuthoringHierarchy = m_ldrawPreserveAuthoringHierarchy;
+  options.ldrawScale = m_ldrawScale;
+  options.ldrawCoordinateConversion = m_ldrawCoordinateConversion;
+  options.ldrawPreserveHierarchy = m_ldrawPreserveHierarchy;
+  options.ldrawNormalMode = m_ldrawNormalMode;
+  options.ldrawIncludeEdgeOverlays = m_ldrawIncludeEdgeOverlays;
+  options.ldrawMaxRecursion = m_ldrawMaxRecursion;
+  options.ldrawMissingPartPolicy = m_ldrawMissingPartPolicy;
+  options.ldrawBackgroundColor = m_ldrawBackgroundColor;
+  options.stepPlaybackStyle = m_stepPlaybackStyle;
+  return RenderCliSceneLoader(std::move(options)).load();
 }
 
 engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
@@ -2168,10 +1950,6 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     }
   }
 
-  if (m_timing || m_repeat > 1) {
-    printTimings(timings);
-  }
-
   if (!m_renderGraphTraceOut.isEmpty() || !m_renderGraphAOVOutputs.empty()) {
     if (!graphEngine) {
       throw std::runtime_error("render graph execution outputs require graph rendering");
@@ -2301,11 +2079,7 @@ void Renderer::renderStepSequence(const Scene& scene) const {
 
   for (std::size_t i = 0; i < steps.size(); ++i) {
     const int step = steps[i];
-    auto evaluatedScene = std::make_unique<Scene>(nullptr);
-    if (!evaluatedScene->load(m_filename)) {
-      throw std::runtime_error(
-        QString("Unable to load input scene: %1").arg(m_filename).toStdString());
-    }
+    auto evaluatedScene = loadScene();
     if (m_frameSet) {
       evaluatedScene->evaluateAnimationAtFrame(m_frame);
     }

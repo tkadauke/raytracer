@@ -137,6 +137,14 @@ rendercli_expect_failure(
 )
 
 rendercli_expect_failure(
+  NAME "rendercli rejects empty --blend_constant_color component"
+  STDERR_MATCHES "Blend constant color must be three comma-separated values in 0..1"
+  COMMAND
+    "${RENDERCLI}" --engine raster --blend_constant_color 0.1,,0.3
+    "${scene}" "${invalid_render}"
+)
+
+rendercli_expect_failure(
   NAME "rendercli rejects out-of-range --blend_constant_color"
   STDERR_MATCHES "Blend constant color must be three comma-separated values in 0..1"
   COMMAND
@@ -177,6 +185,14 @@ rendercli_expect_failure(
 )
 
 rendercli_expect_failure(
+  NAME "rendercli rejects empty --viewport component"
+  STDERR_MATCHES "Viewport must be four comma-separated integers x,y,width,height with non-negative size"
+  COMMAND
+    "${RENDERCLI}" --engine raster --viewport 0,,0,10,10
+    "${scene}" "${invalid_render}"
+)
+
+rendercli_expect_failure(
   NAME "rendercli rejects negative-size --viewport"
   STDERR_MATCHES "Viewport must be four comma-separated integers x,y,width,height with non-negative size"
   COMMAND
@@ -189,6 +205,14 @@ rendercli_expect_failure(
   STDERR_MATCHES "Scissor must be four comma-separated integers x,y,width,height with non-negative size"
   COMMAND
     "${RENDERCLI}" --engine raster --scissor 0,0,10
+    "${scene}" "${invalid_render}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects empty --scissor component"
+  STDERR_MATCHES "Scissor must be four comma-separated integers x,y,width,height with non-negative size"
+  COMMAND
+    "${RENDERCLI}" --engine raster --scissor 0,,0,10,10
     "${scene}" "${invalid_render}"
 )
 

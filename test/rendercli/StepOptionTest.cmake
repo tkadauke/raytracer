@@ -12,12 +12,16 @@ file(REMOVE_RECURSE "${TEST_OUTPUT_DIR}")
 file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 
 set(grouped_scene "${PROJECT_SOURCE_DIR}/test/fixtures/rendercli/grouped_steps.json")
+set(gcode_steps "${PROJECT_SOURCE_DIR}/test/fixtures/gcode/absolute_layers.gcode")
 set(single_render "${TEST_OUTPUT_DIR}/single-step.png")
 set(cumulative_render "${TEST_OUTPUT_DIR}/cumulative-step.png")
 set(sequence_render_pattern "${TEST_OUTPUT_DIR}/sequence-step-%02d.png")
 set(sequence_step_0 "${TEST_OUTPUT_DIR}/sequence-step-00.png")
 set(sequence_step_1 "${TEST_OUTPUT_DIR}/sequence-step-01.png")
 set(sequence_step_2 "${TEST_OUTPUT_DIR}/sequence-step-02.png")
+set(imported_sequence_render_pattern "${TEST_OUTPUT_DIR}/imported-sequence-step-%02d.png")
+set(imported_sequence_step_0 "${TEST_OUTPUT_DIR}/imported-sequence-step-00.png")
+set(imported_sequence_step_1 "${TEST_OUTPUT_DIR}/imported-sequence-step-01.png")
 
 rendercli_run(
   NAME "rendercli --step single renders one grouped step"
@@ -55,6 +59,18 @@ rendercli_assert_image_nonempty("${sequence_step_2}" NAME "rendercli sequence st
 rendercli_assert_image_hash_differs(
   "${sequence_step_0}" "${sequence_step_2}"
   NAME "rendercli sequence step outputs differ")
+
+rendercli_run(
+  NAME "rendercli --step sequence reloads through scene importers"
+  COMMAND
+    "${RENDERCLI}" --width 48 --height 32 --step sequence
+    "${gcode_steps}" "${imported_sequence_render_pattern}"
+  STDOUT_MATCHES "step 1/2 number=0" "step 2/2 number=1"
+)
+rendercli_assert_image_nonempty("${imported_sequence_step_0}"
+                                NAME "rendercli imported sequence step 0 pixels")
+rendercli_assert_image_nonempty("${imported_sequence_step_1}"
+                                NAME "rendercli imported sequence step 1 pixels")
 
 rendercli_expect_failure(
   NAME "rendercli rejects malformed --step selection"

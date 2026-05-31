@@ -42,11 +42,11 @@ function(_rendercli_check_output name stream_name text regexes command result st
   endforeach()
 endfunction()
 
-function(_rendercli_set_parent variable value)
-  if(NOT variable STREQUAL "")
+macro(_rendercli_set_parent variable value)
+  if(NOT "${variable}" STREQUAL "")
     set(${variable} "${value}" PARENT_SCOPE)
   endif()
-endfunction()
+endmacro()
 
 function(rendercli_run)
   set(one_value_args NAME RESULT_VARIABLE OUTPUT_VARIABLE ERROR_VARIABLE)
