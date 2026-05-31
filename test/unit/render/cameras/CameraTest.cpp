@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "render/cameras/Camera.h"
+#include "render/cameras/PinholeCamera.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "test/mocks/raytracer/MockViewPlane.h"
 
@@ -172,6 +173,33 @@ namespace CameraTest {
   TEST(Camera, ShouldReturnDefaultViewPlane) {
     ConcreteCamera camera;
     ASSERT_NE(static_cast<std::shared_ptr<render::ViewPlane>>(0), camera.viewPlane());
+  }
+
+  TEST(Camera, RenderableRectClipsToFitExactInnerRect) {
+    ConcreteCamera camera(Vector3d(0, 0, -5), Vector3d::null);
+    camera.setAspectMode(render::AspectMode::FitExact);
+    camera.setAspectRatio(4.0 / 3.0);
+    camera.viewPlane()->setup(camera.matrix(), Recti(16, 9));
+
+    const Recti actual = camera.renderableRect(Recti(0, 0, 16, 9));
+    ASSERT_EQ(2, actual.left());
+    ASSERT_EQ(0, actual.top());
+    ASSERT_EQ(12, actual.width());
+    ASSERT_EQ(9, actual.height());
+  }
+
+  TEST(Camera, PrimaryRaySampleConsumesPixelAndTimeDimensions) {
+    PinholeCamera camera(Vector3d(0, 0, -5), Vector3d::null);
+    camera.viewPlane()->setup(camera.matrix(), Recti(4, 4));
+    auto pixel = camera.viewPlane()->begin(Recti(0, 0, 4, 4));
+
+    auto sample = camera.primaryRaySample(pixel, 0, std::nullopt);
+
+    ASSERT_TRUE(sample.has_value());
+    ASSERT_TRUE(sample->ray.direction().isDefined());
+    ASSERT_NE(nullptr, sample->sampleStream);
+    ASSERT_GE(sample->timeSample, 0.0);
+    ASSERT_LT(sample->timeSample, 1.0);
   }
 
   TEST(Camera, ShouldNotBeCancelledAfterConstruction) {

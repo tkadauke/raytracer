@@ -31,6 +31,12 @@ namespace render {
 
     virtual ~Camera();
 
+    struct PrimaryRaySample {
+      Rayd ray;
+      double timeSample{0.0};
+      std::shared_ptr<render::SampleStream> sampleStream;
+    };
+
     /// Clone camera state for an isolated render job. The clone gets
     /// its own view-plane instance so render-thread setup does not race
     /// with the interactive camera being moved by the UI.
@@ -78,6 +84,30 @@ namespace render {
     inline bool showProgressIndicators() const {
       return m_showProgressIndicators;
     }
+
+    /**
+      * Return the part of `rect` that this camera should actively sample.
+      *
+      * In `FitExact` aspect mode, the outer letterbox/pillarbox area remains
+      * untouched; all other modes return `rect` unchanged.
+      */
+    Recti renderableRect(const Recti& rect) const;
+
+    /**
+      * Number of samples emitted for each iterated pixel footprint.
+      */
+    int samplesPerPixel() const;
+
+    /**
+      * Generate the `sampleIndex`-th primary ray sample for an iterator pixel.
+      *
+      * The camera consumes the renderer-owned pixel and time dimensions before
+      * delegating to `rayForPixel(...)`, then returns the remaining stream so
+      * the integrator can consume BSDF/light/continuation dimensions.
+      */
+    std::optional<PrimaryRaySample> primaryRaySample(const render::ViewPlane::Iterator& pixel,
+                                                     int sampleIndex,
+                                                     std::optional<std::uint64_t> tileSeed) const;
 
     /**
       * Set the aspect-ratio fit mode for this camera's view plane.

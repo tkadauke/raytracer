@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "render/viewplanes/ViewPlane.h"
+#include "render/viewplanes/PointInterlacedViewPlane.h"
 #include "test/abstract/AbstractViewPlaneIteratorTest.h"
 #include "test/helpers/VectorTestHelper.h"
 
@@ -115,6 +116,18 @@ namespace ViewPlaneTest {
     TEST_F(ViewPlane_Iterator, ShouldReturnZeroAsCurrentColumnForEndIterator) {
       ViewPlane plane(Matrix4d(), this->fullRect);
       ASSERT_EQ(0, plane.end(this->fullRect).column());
+    }
+
+    TEST_F(ViewPlane_Iterator, FootprintIsClippedToBounds) {
+      PointInterlacedViewPlane plane;
+      plane.setup(Matrix4d(), this->fullRect);
+      auto iterator = plane.begin(this->fullRect);
+
+      const Recti footprint = iterator.footprintWithin(Recti(0, 0, 1, 1));
+      ASSERT_EQ(0, footprint.left());
+      ASSERT_EQ(0, footprint.top());
+      ASSERT_EQ(1, footprint.width());
+      ASSERT_EQ(1, footprint.height());
     }
   }
 

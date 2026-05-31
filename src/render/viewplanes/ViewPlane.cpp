@@ -87,6 +87,17 @@ ViewPlane::Iterator ViewPlane::begin(const Recti& rect) const {
   return Iterator(new RegularIterator(this, rect));
 }
 
+Recti ViewPlane::Iterator::footprintWithin(const Recti& bounds) const {
+  const int left = std::max(column(), bounds.left());
+  const int top = std::max(row(), bounds.top());
+  const int right = std::min(column() + pixelSize(), bounds.right());
+  const int bottom = std::min(row() + pixelSize(), bounds.bottom());
+  if (left >= right || top >= bottom) {
+    return Recti(left, top, 0, 0);
+  }
+  return Recti(left, top, right - left, bottom - top);
+}
+
 ViewPlane::IteratorBase::IteratorBase(const ViewPlane* plane, const Recti& rect)
     : m_plane(plane),
       m_rect(rect),

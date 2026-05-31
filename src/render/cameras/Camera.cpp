@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <optional>
+#include <utility>
 
 using namespace render;
 
@@ -82,6 +83,53 @@ void Camera::setAspectMode(render::AspectMode mode) {
 
 render::AspectMode Camera::aspectMode() const {
   return m_aspectMode;
+}
+
+Recti Camera::renderableRect(const Recti& rect) const {
+  auto plane = viewPlane();
+  if (!plane || plane->aspectMode() != render::AspectMode::FitExact) {
+    return rect;
+  }
+
+  const Recti& inner = plane->innerRect();
+  const int left = std::max(rect.left(), inner.left());
+  const int top = std::max(rect.top(), inner.top());
+  const int right = std::min(rect.right(), inner.right());
+  const int bottom = std::min(rect.bottom(), inner.bottom());
+  if (left >= right || top >= bottom) {
+    return Recti(left, top, 0, 0);
+  }
+  return Recti(left, top, right - left, bottom - top);
+}
+
+int Camera::samplesPerPixel() const {
+  return viewPlane()->sampler()->numSamples();
+}
+
+std::optional<Camera::PrimaryRaySample>
+Camera::primaryRaySample(const render::ViewPlane::Iterator& pixel, int sampleIndex,
+                         std::optional<std::uint64_t> tileSeed) const {
+  auto stream = viewPlane()->sampler()->stream(sampleIndex, pixelHashFor(pixel, tileSeed));
+
+  // The renderer owns the pixel and time dimensions and consumes
+  // them before the camera sees the stream:
+  //   Pixel (2D) — sub-pixel jitter for anti-aliasing.
+  //   Time  (1D) — shutter-time sample, in [0, 1). Animatable
+  //                primitives read this from `state.timeSample`
+  //                and interpolate their transforms.
+  // The sequential cursor is therefore positioned at the historical
+  // lens/camera dimension; explicit `SampleDimension` accessors use
+  // the same stable ownership without depending on call order.
+  Vector2d subPixel = stream->next2D();
+  Vector2d xy = pixel.pixel() + subPixel;
+  double timeSample = stream->next1D();
+
+  Rayd ray = rayForPixel(xy.x(), xy.y(), *stream);
+  if (!ray.direction().isDefined()) {
+    return std::nullopt;
+  }
+
+  return PrimaryRaySample{ray, timeSample, std::move(stream)};
 }
 
 void Camera::setAspectRatio(double ratio) {
@@ -160,24 +208,12 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
     return;
 
   auto plane = viewPlane();
+  Recti actualRect = renderableRect(rect);
+  if (actualRect.width() <= 0 || actualRect.height() <= 0)
+    return;
 
-  // FitExact: bar area stays at the buffer's cleared value (black).
-  // Only render pixels inside the inner rect.
-  Recti actualRect = rect;
-  if (plane->aspectMode() == render::AspectMode::FitExact) {
-    const Recti& inner = plane->innerRect();
-    int left = std::max(rect.left(), inner.left());
-    int top = std::max(rect.top(), inner.top());
-    int right = std::min(rect.right(), inner.right());
-    int bottom = std::min(rect.bottom(), inner.bottom());
-    if (left >= right || top >= bottom)
-      return;
-    actualRect = Recti(left, top, right - left, bottom - top);
-  }
-
-  auto sampler = plane->sampler();
-  const int samplesPerPixel = sampler->numSamples();
-  const double sampleScale = 1.0 / samplesPerPixel;
+  const int sampleCount = samplesPerPixel();
+  const double sampleScale = 1.0 / sampleCount;
 
   for (render::ViewPlane::Iterator pixel = plane->begin(actualRect), end = plane->end(actualRect);
        pixel != end; ++pixel) {
@@ -192,34 +228,16 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
       plot(buffer, actualRect, pixel, Colord(1, 0, 0));
     }
 
-    const std::uint64_t pixelHash = pixelHashFor(pixel, tileSeed);
-
     Colord pixelColor;
-    for (int sampleIndex = 0; sampleIndex != samplesPerPixel; ++sampleIndex) {
+    for (int sampleIndex = 0; sampleIndex != sampleCount; ++sampleIndex) {
       if (isCancelled())
         break;
 
-      auto stream = sampler->stream(sampleIndex, pixelHash);
-
-      // The renderer owns the pixel and time dimensions and consumes
-      // them before the camera sees the stream:
-      //   Pixel (2D) — sub-pixel jitter for anti-aliasing.
-      //   Time  (1D) — shutter-time sample, in [0, 1). Animatable
-      //                primitives read this from `state.timeSample`
-      //                and interpolate their transforms.
-      // The sequential cursor is therefore positioned at the historical
-      // lens/camera dimension; explicit `SampleDimension` accessors use
-      // the same stable ownership without depending on call order.
-      Vector2d subPixel = stream->next2D();
-      Vector2d xy = pixel.pixel() + subPixel;
-      double timeSample = stream->next1D();
-
-      Rayd ray = rayForPixel(xy.x(), xy.y(), *stream);
-      if (ray.direction().isDefined()) {
+      if (auto sample = primaryRaySample(pixel, sampleIndex, tileSeed)) {
         render::State state;
-        state.timeSample = timeSample;
-        state.sampleStream = stream.get();
-        pixelColor += raycaster->rayColor(ray, state);
+        state.timeSample = sample->timeSample;
+        state.sampleStream = sample->sampleStream.get();
+        pixelColor += raycaster->rayColor(sample->ray, state);
       }
     }
 
@@ -240,26 +258,18 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
 
 void Camera::plot(Buffer<Colord>& buffer, const Recti& rect,
                   const render::ViewPlane::Iterator& pixel, const Colord& color) const {
-  int size = pixel.pixelSize();
-  if (size == 1) {
-    buffer[pixel.row()][pixel.column()] = color;
-  } else {
-    for (int x = pixel.column(); x != pixel.column() + size && x < rect.right(); ++x)
-      for (int y = pixel.row(); y != pixel.row() + size && y < rect.bottom(); ++y)
-        buffer[y][x] = color;
-  }
+  const Recti footprint = pixel.footprintWithin(rect);
+  for (int y = footprint.top(); y != footprint.bottom(); ++y)
+    for (int x = footprint.left(); x != footprint.right(); ++x)
+      buffer[y][x] = color;
 }
 
 void Camera::plotRGB(Buffer<unsigned int>& buffer, const Recti& rect,
                      const render::ViewPlane::Iterator& pixel, unsigned int rgb) const {
-  int size = pixel.pixelSize();
-  if (size == 1) {
-    buffer[pixel.row()][pixel.column()] = rgb;
-  } else {
-    for (int x = pixel.column(); x != pixel.column() + size && x < rect.right(); ++x)
-      for (int y = pixel.row(); y != pixel.row() + size && y < rect.bottom(); ++y)
-        buffer[y][x] = rgb;
-  }
+  const Recti footprint = pixel.footprintWithin(rect);
+  for (int y = footprint.top(); y != footprint.bottom(); ++y)
+    for (int x = footprint.left(); x != footprint.right(); ++x)
+      buffer[y][x] = rgb;
 }
 
 void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigned int>& buffer,
@@ -280,24 +290,12 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
     return;
 
   auto plane = viewPlane();
+  Recti actualRect = renderableRect(rect);
+  if (actualRect.width() <= 0 || actualRect.height() <= 0)
+    return;
 
-  // FitExact: bar area stays at the buffer's cleared value (black).
-  // Only render pixels inside the inner rect.
-  Recti actualRect = rect;
-  if (plane->aspectMode() == render::AspectMode::FitExact) {
-    const Recti& inner = plane->innerRect();
-    int left = std::max(rect.left(), inner.left());
-    int top = std::max(rect.top(), inner.top());
-    int right = std::min(rect.right(), inner.right());
-    int bottom = std::min(rect.bottom(), inner.bottom());
-    if (left >= right || top >= bottom)
-      return;
-    actualRect = Recti(left, top, right - left, bottom - top);
-  }
-
-  auto sampler = plane->sampler();
-  const int samplesPerPixel = sampler->numSamples();
-  const double sampleScale = 1.0 / samplesPerPixel;
+  const int sampleCount = samplesPerPixel();
+  const double sampleScale = 1.0 / sampleCount;
 
   // Mirrors the HDR-buffer render loop above; the only difference is
   // the per-pixel tonemap + pack to packed RGB so the LDR display
@@ -317,25 +315,16 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
       plotRGB(buffer, actualRect, pixel, 0xffff0000);
     }
 
-    const std::uint64_t pixelHash = pixelHashFor(pixel, tileSeed);
-
     Colord pixelColor;
-    for (int sampleIndex = 0; sampleIndex != samplesPerPixel; ++sampleIndex) {
+    for (int sampleIndex = 0; sampleIndex != sampleCount; ++sampleIndex) {
       if (isCancelled())
         break;
 
-      auto stream = sampler->stream(sampleIndex, pixelHash);
-
-      Vector2d subPixel = stream->next2D();
-      Vector2d xy = pixel.pixel() + subPixel;
-      double timeSample = stream->next1D();
-
-      Rayd ray = rayForPixel(xy.x(), xy.y(), *stream);
-      if (ray.direction().isDefined()) {
+      if (auto sample = primaryRaySample(pixel, sampleIndex, tileSeed)) {
         render::State state;
-        state.timeSample = timeSample;
-        state.sampleStream = stream.get();
-        pixelColor += raycaster->rayColor(ray, state);
+        state.timeSample = sample->timeSample;
+        state.sampleStream = sample->sampleStream.get();
+        pixelColor += raycaster->rayColor(sample->ray, state);
       }
     }
 
@@ -371,24 +360,12 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
     return;
 
   auto plane = viewPlane();
+  Recti actualRect = renderableRect(rect);
+  if (actualRect.width() <= 0 || actualRect.height() <= 0)
+    return;
 
-  // FitExact: bar area stays at the buffers' cleared value (black).
-  // Only render pixels inside the inner rect.
-  Recti actualRect = rect;
-  if (plane->aspectMode() == render::AspectMode::FitExact) {
-    const Recti& inner = plane->innerRect();
-    int left = std::max(rect.left(), inner.left());
-    int top = std::max(rect.top(), inner.top());
-    int right = std::min(rect.right(), inner.right());
-    int bottom = std::min(rect.bottom(), inner.bottom());
-    if (left >= right || top >= bottom)
-      return;
-    actualRect = Recti(left, top, right - left, bottom - top);
-  }
-
-  auto sampler = plane->sampler();
-  const int samplesPerPixel = sampler->numSamples();
-  const double sampleScale = 1.0 / samplesPerPixel;
+  const int sampleCount = samplesPerPixel();
+  const double sampleScale = 1.0 / sampleCount;
 
   for (render::ViewPlane::Iterator pixel = plane->begin(actualRect), end = plane->end(actualRect);
        pixel != end; ++pixel) {
@@ -400,25 +377,16 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
       plotRGB(displayBuffer, actualRect, pixel, 0xffff0000);
     }
 
-    const std::uint64_t pixelHash = pixelHashFor(pixel, tileSeed);
-
     Colord pixelColor;
-    for (int sampleIndex = 0; sampleIndex != samplesPerPixel; ++sampleIndex) {
+    for (int sampleIndex = 0; sampleIndex != sampleCount; ++sampleIndex) {
       if (isCancelled())
         break;
 
-      auto stream = sampler->stream(sampleIndex, pixelHash);
-
-      Vector2d subPixel = stream->next2D();
-      Vector2d xy = pixel.pixel() + subPixel;
-      double timeSample = stream->next1D();
-
-      Rayd ray = rayForPixel(xy.x(), xy.y(), *stream);
-      if (ray.direction().isDefined()) {
+      if (auto sample = primaryRaySample(pixel, sampleIndex, tileSeed)) {
         render::State state;
-        state.timeSample = timeSample;
-        state.sampleStream = stream.get();
-        pixelColor += raycaster->rayColor(ray, state);
+        state.timeSample = sample->timeSample;
+        state.sampleStream = sample->sampleStream.get();
+        pixelColor += raycaster->rayColor(sample->ray, state);
       }
     }
 

@@ -208,6 +208,8 @@ namespace render {
         return m_iteratorImpl->pixelSize();
       }
 
+      Recti footprintWithin(const Recti& bounds) const;
+
     protected:
       IteratorBase* m_iteratorImpl;
     };
