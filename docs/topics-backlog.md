@@ -282,7 +282,7 @@ Pillars of that future system:
 - A perf-regression in CI that the existing benchmark suite missed but that better counters would have caught.
 
 **Adjacent items already in the roadmap.** Worth coordinating with these so this doesn't fork:
-- `roadmap.md` §3.4 — Google Benchmark suite for SSE3 hot paths. Counters and benchmarks are complements, not competitors.
+- `roadmap.md` §3.4 — Google Benchmark suite for CPU SIMD hot paths. Counters and benchmarks are complements, not competitors.
 - `roadmap.md` §3.7 — current perf-counter section; this backlog entry is the long-tail vision, that section is the seed.
 
 

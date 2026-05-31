@@ -86,6 +86,8 @@ existing x86 SSE/SSE3/AVX call sites now use these macros:
 - `RAYTRACER_SIMD_SSE3`
 - `RAYTRACER_SIMD_AVX`
 - `RAYTRACER_SIMD_NEON`
+- `RAYTRACER_SIMD_AARCH64` for AArch64-only NEON intrinsics such as native
+  vector division and square root
 
 ~~Use compiler macros such as `__SSE__`, `__SSE2__`, `__SSE3__`, `__AVX__`,
 `__ARM_NEON`, and `__aarch64__` behind that one header. Existing code should
@@ -308,16 +310,23 @@ Acceptance:
 
 ## Documentation and maintenance
 
-When implementation begins:
+✅ **Done for the Epic #426 implementation slice.**
 
-- update comments and docs that say "SSE3 optimizations" when the concept is
-  now "SIMD optimizations";
-- update architecture guards in tests and benchmarks to use project feature
-  macros;
-- record benchmark numbers in PR descriptions and `docs/perf/`;
-- update the performance contract in project guidance if ARM SIMD becomes a
-  supported optimization surface;
-- add changelog entries for user-visible performance or build behavior changes.
+- Comments and docs now reserve x86-specific names (`SSE`, `SSE2`, `SSE3`,
+  `AVX`) for x86-only code and use "SIMD" for shared packet behavior that also
+  covers ARM NEON.
+- Architecture guards in maintained tests and benchmarks use
+  `RAYTRACER_SIMD_*` project feature macros where practical; raw compiler
+  macros are confined to `include/core/SimdFeatures.h` and the regression test
+  that verifies that mapping.
+- Benchmark evidence lives under `docs/perf/`; `docs/perf/README.md` indexes
+  the ARM SIMD baseline, packet-kernel evidence, float/double candidate
+  decisions, and Ray8 policy note.
+- Project performance guidance now treats ARM NEON packet traversal as a
+  supported optimization surface, with the same benchmark-before/after rule as
+  the existing x86 SIMD paths.
+- `CHANGELOG.md` records the shared SIMD backend, project feature gates, and
+  Ray4 packet behavior changes.
 
 ## Out of scope
 

@@ -4,7 +4,7 @@
 > under `include/core/math/` — `Vector`, `Matrix`, `Quaternion`,
 > `Polynomial`, `BoundingBox`, `HitPointInterval`, `Number`,
 > `Constants`. Companion doc to `roadmap.md` and `modernize.md`
-> (extends §3.4 "grow the benchmark suite to cover all SSE3 hot
+> (extends §3.4 "grow the benchmark suite to cover all CPU SIMD hot
 > paths").
 >
 > **Status:** Complete and archived. The 2026-05-28 audit confirmed the
@@ -75,7 +75,7 @@ We need broad coverage before touching anything.
 
 Each benchmark lives in `benchmarks/<name>Benchmark.cpp`, built
 via the existing `benchmark` CMake preset, and is templated where
-sensible so we can compare the generic and SSE3 paths side by side.
+sensible so we can compare the generic and SIMD-specialized paths side by side.
 
 1. **`VectorBenchmark.cpp` — expand.** Add: `cross`, `normalize`,
    `subtract`, scalar `multiply` / `divide`, `lerp`, `reflect`,
@@ -483,10 +483,10 @@ tracing arrives. Listed for completeness.
   baseline). Mitigation: take the median across 10+ runs; run on
   the dedicated CI runner for headline numbers.
 
-- **Compiler-version sensitivity.** SSE3 vs autovectorization
-  trade-offs can flip between Clang versions. Capture the toolchain
-  with every baseline (`clang --version`); re-baseline when CI
-  bumps the compiler.
+- **Compiler-version sensitivity.** Hand-written SIMD vs autovectorization
+  trade-offs can flip between Clang versions and target architectures. Capture
+  the toolchain and active `RAYTRACER_SIMD_*` gates with every baseline; re-baseline
+  when CI bumps the compiler.
 
 - **AVX2 portability.** Phase 2.3 option B requires AVX2, which
   some target hardware (older x86, some embedded) may not have.

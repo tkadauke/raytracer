@@ -42,10 +42,10 @@ the renderer is in HDR mode ([HDR vs LDR](#hdr-vs-ldr)). The class doesn't clamp
 write; it's expected to clamp at the boundary where pixels become
 display values.
 
-There's an SSE2 specialization of `Colord` under
+There's an x86 SIMD specialization of `Colord` under
 [`include/core/color/sse3/`](../../../include/core/color/sse3/),
-analogous to the [SSE3](../appendix/a-glossary.md#s) vector specialization from
-[Numbers and vectors: The SSE3 specializations](numbers-and-vectors.md#the-sse3-specializations).
+analogous to the [SIMD](../appendix/a-glossary.md#s) vector specialization from
+[Numbers and vectors: The SIMD specializations](numbers-and-vectors.md#the-sse3-specializations).
 The story is the same one: storage occupies an XMM register's
 worth, operators use intrinsics, and the API is unchanged.
 

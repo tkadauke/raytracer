@@ -305,10 +305,10 @@ by editing this file.
 - **Slab method** — ray-vs-AABB intersection algorithm using
   three pairs of parallel planes.
   [Primitives and intersection: Box: the slab method](../ray-rendering/primitives-and-intersection.md#box-the-slab-method).
-- **SSE3** — Streaming SIMD Extensions 3. Used for the
-  `Vector3<double>` / `Vector4<double>` and `Colord` hot-path
-  specializations.
-  [Numbers and vectors: The SSE3 specializations](../foundations/numbers-and-vectors.md#the-sse3-specializations).
+- **SIMD** — single-instruction, multiple-data execution. This project uses
+  x86 SSE/SSE2/SSE3/AVX where those features are available and ARM NEON for the
+  shared four-wide packet backend.
+  [Numbers and vectors: The SIMD specializations](../foundations/numbers-and-vectors.md#the-sse3-specializations).
 - **Stencil buffer** — per-pixel 8-bit buffer used as an
   application-defined fragment filter.
   [Clipping, depth, stencil: The stencil buffer](../rasterization/clipping-depth-stencil.md#the-stencil-buffer).

@@ -6,7 +6,7 @@ volume linearly; later chapters assume the vocabulary it sets up.
 ## Chapters
 
 - [Numbers and vectors](numbers-and-vectors.md) — `double` vs
-   `float`, the `Vector<N, T>` template, SSE3 specializations, dot
+   `float`, the `Vector<N, T>` template, SIMD specializations, dot
    and cross products, the unit-length invariant.
 - [Matrices and transforms](matrices-and-transforms.md) — 4×4
    homogeneous matrices, point-vs-direction transformation, the
