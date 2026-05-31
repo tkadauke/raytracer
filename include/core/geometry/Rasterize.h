@@ -305,12 +305,16 @@ namespace core {
     */
   template<typename EmitFn>
   inline void fanTriangulateRasterClipPolygon(const std::vector<RasterClipVertex>& polygon,
-                                              EmitFn&& emit) {
+                                              EmitFn&& callback) {
+    // `callback` (not `emit`): Qt's signal/slot machinery `#define`s
+    // `emit` to nothing, so when this header is pulled in after any
+    // Qt header the call `emit(...)` collapses to `(...)` and the
+    // build fails with -Werror=unused-value.
     if (polygon.size() < 3)
       return;
 
     for (std::size_t i = 2; i < polygon.size(); ++i) {
-      emit(RasterClipTriangle{polygon[0], polygon[i - 1], polygon[i]});
+      callback(RasterClipTriangle{polygon[0], polygon[i - 1], polygon[i]});
     }
   }
 

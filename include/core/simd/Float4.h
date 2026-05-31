@@ -564,6 +564,14 @@ namespace core::simd {
     return Mask4T<NeonBackend>(vceqq_f32(lhs.value(), rhs.value()));
   }
 
+  // Specialization of maskNot has to precede `cmpNe`, which calls it
+  // explicitly. Clang errors out otherwise with "explicit specialization
+  // after instantiation".
+  template<>
+  [[nodiscard]] inline Mask4T<NeonBackend> maskNot<NeonBackend>(Mask4T<NeonBackend> mask) {
+    return Mask4T<NeonBackend>(vmvnq_u32(mask.value()));
+  }
+
   template<>
   [[nodiscard]] inline Mask4T<NeonBackend> cmpNe<NeonBackend>(Float4T<NeonBackend> lhs,
                                                               Float4T<NeonBackend> rhs) {
@@ -623,11 +631,6 @@ namespace core::simd {
   [[nodiscard]] inline Mask4T<NeonBackend> maskAndNot<NeonBackend>(Mask4T<NeonBackend> mask,
                                                                    Mask4T<NeonBackend> value) {
     return Mask4T<NeonBackend>(vbicq_u32(value.value(), mask.value()));
-  }
-
-  template<>
-  [[nodiscard]] inline Mask4T<NeonBackend> maskNot<NeonBackend>(Mask4T<NeonBackend> mask) {
-    return Mask4T<NeonBackend>(vmvnq_u32(mask.value()));
   }
 
   template<>
