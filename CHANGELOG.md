@@ -142,6 +142,29 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Multiple-importance-sampling helpers.** Future direct-lighting integrators
   can now use tested balance/power heuristic utilities and small BSDF/light
   PDF estimator helpers without adopting a full path tracer. — GPT-5
+- **Path-tracing integrator (megakernel Monte Carlo).** New
+  `render::PathTracingIntegrator` slots into the existing `Integrator`
+  interface alongside `WhittedIntegrator`. Consumes the upstream Epic
+  #358 substrate end-to-end: `Material::sampleBsdf` /
+  `Material::evalBsdf` / `Material::bsdfPdf` for importance-sampled
+  continuations, `Light::sample` for next-event estimation,
+  `State::sampleStream` for the per-bounce 2D draws (BSDF, Light,
+  Continuation dimensions), Russian-roulette termination after
+  configurable depth. Selectable through rendercli:
+  `--integrator pathtracer` on the direct-engine path. `MatteMaterial`
+  is the first material implementing the BSDF surface (cosine-weighted
+  Lambertian, no ambient term — the path tracer computes indirect
+  properly through recursion). Other materials (`PhongMaterial`,
+  `ReflectiveMaterial`, `TransparentMaterial`) terminate the path at
+  the surface with their `Material::shade` output as a Whitted-style
+  fallback until they're refactored to expose `sampleBsdf`. The
+  render-graph path keeps Whitted as its integrator; the
+  `--integrator` flag only affects `--direct_engine` for now.
+  Functional rendercli smoke + 5 unit tests (analytic
+  Lambertian-via-NEE convergence, RR termination, clone semantics,
+  fallback path). Closes roadmap §3.R5 BSDF integrator-side work and
+  the "Whitted-only integrator" item in the reinforcement section.
+  — Claude Opus 4.7
 - **Modeler preview FPS overlay.** Render → Preview Engine → FPS Overlay
   toggles a small black-on-white box in the top-right of the preview window
   showing the rolling mean FPS and frame time over the last 30 finished

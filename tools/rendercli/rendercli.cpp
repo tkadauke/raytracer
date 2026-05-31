@@ -30,6 +30,7 @@
 #include "render/lights/PointLight.h"
 #include "render/RenderEngine.h"
 #include "engine/raytracer/Raytracer.h"
+#include "render/PathTracingIntegrator.h"
 #include "engine/raster/RasterBackend.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/wireframe/Wireframe.h"
@@ -1027,6 +1028,8 @@ private:
   world::ImportOptions m_importOptions;
   QString m_engine;
   bool m_engineSet;
+  QString m_integrator;
+  bool m_integratorSet;
   bool m_renderGraph;
   bool m_directEngine;
   bool m_renderGraphOnly;
@@ -1186,6 +1189,8 @@ Renderer::Renderer()
       m_importOptions(),
       m_engine("raytracer"),
       m_engineSet(false),
+      m_integrator("whitted"),
+      m_integratorSet(false),
       m_renderGraph(true),
       m_directEngine(false),
       m_renderGraphOnly(false),
@@ -2095,6 +2100,11 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);
     rt->setMaximumRecursionDepth(m_maximumRecursionDepth);
+    if (m_integrator == "pathtracer" || m_integrator == "path_tracer" || m_integrator == "pt") {
+      auto pt = std::make_unique<render::PathTracingIntegrator>();
+      pt->setMaximumRecursionDepth(m_maximumRecursionDepth);
+      rt->setIntegrator(std::move(pt));
+    }
     if (rtCamera) {
       rt->setCamera(rtCamera);
     } else {
@@ -2491,6 +2501,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"gcode_cumulative_layers", "Render G-code print layers cumulatively through --gcode_layer"},
      {"gcode_hide_travel", "Hide G-code travel moves during import"},
      {"engine", "Render engine (raytracer, wireframe, raster)", "engine"},
+     {"integrator", "Raytracer integrator (whitted, pathtracer)", "integrator"},
      {"render_graph", "Render through the compiled render graph; this is the default"},
      {{"direct_engine", "no_render_graph"},
       "Bypass the render graph and render with the selected engine directly"},
@@ -2828,6 +2839,17 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     }
     m_engine = engine;
     m_engineSet = true;
+  }
+
+  if (parser.isSet("integrator")) {
+    const QString integrator = parser.value("integrator").toLower();
+    if (integrator != "whitted" && integrator != "pathtracer" && integrator != "path_tracer" &&
+        integrator != "pt") {
+      *errorMessage = "Integrator must be 'whitted' or 'pathtracer'";
+      return CommandLineError;
+    }
+    m_integrator = integrator;
+    m_integratorSet = true;
   }
 
   if (parser.isSet("render_graph")) {

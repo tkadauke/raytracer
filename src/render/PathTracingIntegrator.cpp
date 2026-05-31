@@ -1,0 +1,189 @@
+#include "render/PathTracingIntegrator.h"
+
+#include "core/math/HitPoint.h"
+#include "core/math/HitPointInterval.h"
+#include "core/math/Ray.h"
+#include "render/RayCaster.h"
+#include "render/State.h"
+#include "render/lights/Light.h"
+#include "render/materials/Material.h"
+#include "render/primitives/Primitive.h"
+#include "render/primitives/Scene.h"
+#include "render/samplers/SampleStream.h"
+
+#include <algorithm>
+#include <cmath>
+
+namespace render {
+  namespace {
+    /**
+      * Single-light direct lighting contribution at `hitPoint` via
+      * next-event estimation. Returns the radiance contribution before
+      * any throughput weighting; caller multiplies by `state.throughput`.
+      *
+      * Delta lights (point, directional) contribute via the
+      * `LightSample` they return with `pdf == 1` and `delta == true`;
+      * the integrator must not MIS-weight those. Area lights would
+      * MIS-weight against the BSDF sample; we don't have area lights
+      * yet, so the MIS branch is documented as TODO and skipped for
+      * now.
+      */
+    Colord directLighting(const Scene& scene, const Light& light, const HitPoint& hitPoint,
+                          const Material& material, const Vector3d& wi, State& state) {
+      LightSample sample = light.sample(hitPoint.point());
+      if (sample.pdf <= 0.0 || sample.radiance == Colord::black()) {
+        return Colord::black();
+      }
+
+      const Vector3d wo = sample.direction;
+      const double normalDotOut = hitPoint.normal() * wo;
+      if (normalDotOut <= 0.0) {
+        return Colord::black();
+      }
+
+      // Shadow ray. The existing scalar `Scene::intersects` is the
+      // matching predicate; epsilon-shift to avoid self-intersection.
+      const Rayd shadowRay = Rayd(hitPoint.point(), wo).epsilonShifted();
+      if (scene.intersects(shadowRay, state)) {
+        state.shadowHit(nullptr, "PathTracingIntegrator");
+        return Colord::black();
+      }
+      state.shadowMiss(nullptr, "PathTracingIntegrator");
+
+      const Colord bsdfValue = material.evalBsdf(hitPoint, wi, wo);
+      if (bsdfValue == Colord::black()) {
+        return Colord::black();
+      }
+
+      // Delta lights: pdf encodes the discrete sample probability;
+      // the value `radiance / pdf` is the correct contribution.
+      // Finite-PDF area lights would add a MIS weight here; we have
+      // none yet so the branch is the same in both cases.
+      return bsdfValue * sample.radiance * (normalDotOut / sample.pdf);
+    }
+  }
+
+  PathTracingIntegrator::PathTracingIntegrator() = default;
+
+  std::unique_ptr<Integrator> PathTracingIntegrator::clone() const {
+    auto result = std::make_unique<PathTracingIntegrator>();
+    result->setMaximumRecursionDepth(m_maximumRecursionDepth);
+    result->setRussianRouletteDepth(m_russianRouletteDepth);
+    result->setCancellationCallback(m_cancellationCallback);
+    return result;
+  }
+
+  void PathTracingIntegrator::setCancellationCallback(CancellationCallback callback) {
+    m_cancellationCallback = std::move(callback);
+  }
+
+  bool PathTracingIntegrator::isCancelled() const {
+    return m_cancellationCallback && m_cancellationCallback();
+  }
+
+  Colord PathTracingIntegrator::radiance(const Scene& scene, const Rayd& primaryRay, State& state,
+                                         const RayCaster& recursiveRayCaster) const {
+    if (state.sampleStream == nullptr) {
+      state.recordEvent(nullptr,
+                        "PathTracing: no sample stream on state — falling back to Whitted");
+      // Recursive Whitted-style entry. Lets unit tests that construct a
+      // bare `State{}` still get a useful color out of the integrator
+      // for smoke purposes, even though they aren't really sampling.
+      return recursiveRayCaster.rayColor(primaryRay, state);
+    }
+
+    Colord accumulated = Colord::black();
+    Colord throughput = Colord::white();
+    Rayd ray = primaryRay;
+
+    for (int bounce = 0; bounce < m_maximumRecursionDepth; ++bounce) {
+      if (isCancelled()) {
+        return scene.background();
+      }
+
+      state.recurseIn();
+
+      HitPointInterval hitPoints;
+      const Primitive* primitive = scene.intersect(ray, hitPoints, state);
+      if (!primitive) {
+        accumulated += throughput * scene.background();
+        state.recurseOut();
+        break;
+      }
+
+      const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+      if (bounce == 0) {
+        state.hitPoint = hitPoint;
+      }
+
+      const auto material = primitive->material();
+      if (!material) {
+        state.recurseOut();
+        break;
+      }
+
+      // wi is the direction back along the incoming ray, pointing
+      // AWAY from the surface — matches the BSDF convention.
+      const Vector3d wi = -ray.direction().normalized();
+
+      // Materials without BSDF support fall back to Whitted. The
+      // contribution is the full shaded color (which includes direct
+      // lighting); we add it weighted by throughput and terminate
+      // this path. No further bounces past such a surface yet.
+      if (!material->supportsBsdfSampling()) {
+        const Colord whittedColor =
+          material->shade(&recursiveRayCaster, scene, ray, hitPoint, state);
+        accumulated += throughput * whittedColor;
+        state.recurseOut();
+        break;
+      }
+
+      // Direct lighting via NEE.
+      for (const auto& light : scene.lights()) {
+        accumulated += throughput * directLighting(scene, *light, hitPoint, *material, wi, state);
+      }
+
+      // Indirect: sample a continuation direction.
+      const Vector2d bsdfSample =
+        state.sampleStream->sample2D(SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
+      const MaterialBsdfSample sampled = material->sampleBsdf(hitPoint, wi, bsdfSample);
+      if (sampled.pdf <= 0.0 || sampled.value == Colord::black()) {
+        state.recurseOut();
+        break;
+      }
+
+      const double normalDotWo = hitPoint.normal() * sampled.direction;
+      if (normalDotWo <= 0.0) {
+        state.recurseOut();
+        break;
+      }
+
+      // For delta lobes the value is already the post-cancellation
+      // contribution; skip the pdf division and the cosine.
+      if (sampled.isDelta) {
+        throughput = throughput * sampled.value;
+      } else {
+        throughput = throughput * (sampled.value * (normalDotWo / sampled.pdf));
+      }
+
+      // Russian roulette beyond the configured depth.
+      if (bounce >= m_russianRouletteDepth) {
+        const double survival =
+          std::clamp(std::max({throughput.r(), throughput.g(), throughput.b()}), 0.05, 0.95);
+        const double roulette = state.sampleStream->sample1D(SampleDimension::Continuation,
+                                                             static_cast<std::uint64_t>(bounce));
+        if (roulette >= survival) {
+          state.recurseOut();
+          break;
+        }
+        throughput = throughput * (1.0 / survival);
+      }
+
+      // Continue along the sampled direction.
+      ray = Rayd(hitPoint.point(), sampled.direction).epsilonShifted();
+      state.recurseOut();
+    }
+
+    return accumulated;
+  }
+}

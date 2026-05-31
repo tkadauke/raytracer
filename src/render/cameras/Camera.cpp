@@ -218,6 +218,7 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
       if (ray.direction().isDefined()) {
         render::State state;
         state.timeSample = timeSample;
+        state.sampleStream = stream.get();
         pixelColor += raycaster->rayColor(ray, state);
       }
     }
@@ -333,6 +334,7 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
       if (ray.direction().isDefined()) {
         render::State state;
         state.timeSample = timeSample;
+        state.sampleStream = stream.get();
         pixelColor += raycaster->rayColor(ray, state);
       }
     }
@@ -415,6 +417,7 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
       if (ray.direction().isDefined()) {
         render::State state;
         state.timeSample = timeSample;
+        state.sampleStream = stream.get();
         pixelColor += raycaster->rayColor(ray, state);
       }
     }

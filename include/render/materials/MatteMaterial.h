@@ -155,8 +155,20 @@ namespace render {
       m_diffuseCoefficient = coeff;
     }
 
-    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene,
-                         const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
+    Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray,
+                 const HitPoint& hitPoint, render::State& state) const override;
+
+    bool supportsBsdfSampling() const override {
+      return true;
+    }
+
+    Colord evalBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                    const Vector3d& wo) const override;
+
+    MaterialBsdfSample sampleBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                                  const Vector2d& sample) const override;
+
+    double bsdfPdf(const HitPoint& hitPoint, const Vector3d& wi, const Vector3d& wo) const override;
 
   private:
     std::shared_ptr<render::Texturec> m_diffuseTexture;

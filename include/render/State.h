@@ -10,6 +10,7 @@
 
 namespace render {
   class Primitive;
+  class SampleStream;
 
   /**
     * @brief Per-ray state passed through the recursive shading
@@ -198,5 +199,13 @@ namespace render {
     /// the scene background when it drops below
     /// `RAYTRACER_THROUGHPUT_CUTOFF`.
     double throughput;
+
+    /// Per-primary-ray sample stream. Set by `Camera::render` before the
+    /// integrator runs; null on synthetic states constructed by tests
+    /// that don't draw stochastic samples (e.g. Whitted scenes with
+    /// only delta lighting). Path-tracing integrators consume
+    /// `sampleStream->sample2D(SampleDimension::BSDF, bounce)` etc. for
+    /// importance sampling; `WhittedIntegrator` ignores the field.
+    SampleStream* sampleStream{nullptr};
   };
 }

@@ -161,6 +161,19 @@ foreach(sampler IN ITEMS Regular Random Jittered)
                                   NAME "raytracer --sampler ${sampler} pixels")
 endforeach()
 
+set(pt_output "${TEST_OUTPUT_DIR}/pathtracer.png")
+rendercli_run(
+  NAME "rendercli raytracer accepts --integrator pathtracer"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine raytracer --integrator pathtracer
+    --width 24 --height 24 --sampler Regular --samples_per_pixel 4
+    "${raytracer_scene}" "${pt_output}"
+)
+rendercli_assert_image_dimensions("${pt_output}" 24 24
+                                  NAME "raytracer --integrator pathtracer dimensions")
+rendercli_assert_image_nonempty("${pt_output}"
+                                NAME "raytracer --integrator pathtracer pixels")
+
 set(samples_output "${TEST_OUTPUT_DIR}/samples-per-pixel.png")
 rendercli_run(
   NAME "rendercli raytracer accepts --samples_per_pixel"
