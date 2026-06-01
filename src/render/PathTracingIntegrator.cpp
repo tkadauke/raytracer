@@ -42,6 +42,8 @@ namespace render {
     bool trackRadianceDelta{false};
     std::uint64_t frontierRayHits{0};
     std::uint64_t frontierRayMisses{0};
+    std::uint64_t frontierPacketChunks{0};
+    std::uint64_t frontierScalarRays{0};
     double depthDeltaSquaredSum{0.0};
     double depthMaxDelta{0.0};
     IntegratorBatchMetrics* metrics{nullptr};
@@ -123,6 +125,7 @@ namespace render {
     }
 
     path.state.recurseIn();
+    ++depthMetrics.frontierScalarRays;
 
     HitPointInterval hitPoints;
     const Primitive* primitive = nullptr;
@@ -149,6 +152,7 @@ namespace render {
     std::array<Colord, Ray4::lanes> accumulatedBeforeDepths;
     PrimitivePacketState4 states{};
 
+    ++depthMetrics.frontierPacketChunks;
     for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
       const std::size_t pathIndex = activePathIndices[firstActivePathIndex + lane];
       auto& path = paths[pathIndex];
@@ -384,12 +388,16 @@ namespace render {
       }
 
       nextActivePathIndices.clear();
-      BatchDepthMetrics depthMetrics{trackRadianceDelta, 0, 0, 0.0, 0.0, metrics};
+      BatchDepthMetrics depthMetrics;
+      depthMetrics.trackRadianceDelta = trackRadianceDelta;
+      depthMetrics.metrics = metrics;
       intersectActiveFrontier(scene, activePathIndices, paths, activeHits, bounce, depthMetrics,
                               metrics);
       if (metrics) {
         metrics->recordFrontierIntersections(depthMetrics.frontierRayHits,
                                              depthMetrics.frontierRayMisses);
+        metrics->recordFrontierTraversal(depthMetrics.frontierPacketChunks,
+                                         depthMetrics.frontierScalarRays);
       }
 
       for (const auto& hit : activeHits) {

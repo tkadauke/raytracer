@@ -56,6 +56,8 @@ namespace engine::wavefront {
       std::vector<std::uint64_t> activeSamplesPerDepth;
       std::vector<std::uint64_t> frontierRayHitsPerDepth;
       std::vector<std::uint64_t> frontierRayMissesPerDepth;
+      std::vector<std::uint64_t> frontierPacketChunksPerDepth;
+      std::vector<std::uint64_t> frontierScalarRaysPerDepth;
       std::vector<double> radianceDeltaSquaredSumPerDepth;
       std::vector<double> maxRadianceDeltaPerDepth;
 

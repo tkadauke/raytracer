@@ -19,6 +19,8 @@ namespace render {
     activeSamplesPerDepth.clear();
     frontierRayHitsPerDepth.clear();
     frontierRayMissesPerDepth.clear();
+    frontierPacketChunksPerDepth.clear();
+    frontierScalarRaysPerDepth.clear();
     activeSampleDepthsProcessed = 0;
     radianceDeltaSquaredSumPerDepth.clear();
     maxRadianceDeltaPerDepth.clear();
@@ -38,6 +40,12 @@ namespace render {
                                                            std::uint64_t missRays) {
     frontierRayHitsPerDepth.push_back(hitRays);
     frontierRayMissesPerDepth.push_back(missRays);
+  }
+
+  void IntegratorBatchMetrics::recordFrontierTraversal(std::uint64_t packetChunks,
+                                                       std::uint64_t scalarRays) {
+    frontierPacketChunksPerDepth.push_back(packetChunks);
+    frontierScalarRaysPerDepth.push_back(scalarRays);
   }
 
   void IntegratorBatchMetrics::recordRadianceDeltaDepth(double squaredSum, double maxDelta) {

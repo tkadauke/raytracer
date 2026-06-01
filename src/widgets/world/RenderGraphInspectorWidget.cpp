@@ -407,6 +407,13 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
     if (frontierHits > 0 || frontierMisses > 0) {
       line += QStringLiteral(", frontier %1 hit/%2 miss").arg(frontierHits).arg(frontierMisses);
     }
+    const qulonglong packetChunks =
+      jsonIntegerArraySum(batching.value(QStringLiteral("frontierPacketChunksPerDepth")).toArray());
+    const qulonglong scalarRays =
+      jsonIntegerArraySum(batching.value(QStringLiteral("frontierScalarRaysPerDepth")).toArray());
+    if (packetChunks > 0 || scalarRays > 0) {
+      line += QStringLiteral(", packets %1x4/scalar %2").arg(packetChunks).arg(scalarRays);
+    }
   }
   const QJsonObject depthPrepass =
     passTrace->metadata().value(QStringLiteral("depthPrepass")).toObject();

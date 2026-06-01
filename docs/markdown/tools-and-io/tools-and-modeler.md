@@ -216,14 +216,16 @@ the pass id plus integrator, batch execution mode, active sample counts,
 radiance-delta RMS values, per-depth frontier hit/miss counts, compatibility
 fallback counts, convergence thresholds, stop decisions, denoiser diagnostics
 when enabled, and total render time. The compact summary prints total
-`frontier_hit_rays` and `frontier_miss_rays`, while the JSON report keeps the
-per-depth `frontierRayHitsPerDepth` and `frontierRayMissesPerDepth` arrays for
+`frontier_hit_rays`, `frontier_miss_rays`, `frontier_packet_chunks`,
+`frontier_packet_rays`, and `frontier_scalar_rays`, while the JSON report keeps
+the per-depth `frontierRayHitsPerDepth`, `frontierRayMissesPerDepth`,
+`frontierPacketChunksPerDepth`, and `frontierScalarRaysPerDepth` arrays for
 deeper captures. The timing payload also reports summed worker time for sample
 generation and integrator batch work, so performance captures can separate
 camera/sample setup from scene-intersection and material/shading transport even
-when parallel worker time exceeds wall-clock render time. Metrics capture is opt-in;
-requesting wavefront metrics enables graph trace collection for that render but
-does not require writing a separate trace file.
+when parallel worker time exceeds wall-clock render time. Metrics capture is
+opt-in; requesting wavefront metrics enables graph trace collection for that
+render but does not require writing a separate trace file.
 `--wavefront_denoiser box|bilateral` requests an opt-in wavefront denoiser.
 Box is a small HDR blur intended as the first graph-visible hook. Bilateral is
 a color-edge-preserving filter controlled by `--wavefront_denoise_radius N` and

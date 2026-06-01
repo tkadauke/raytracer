@@ -1544,6 +1544,21 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_miss_rays=")
                   "wavefront metrics summary did not contain frontier miss counters"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_chunks=")
+  _rendercli_fail("rendercli wavefront metrics frontier packet chunk summary"
+                  "wavefront metrics summary did not contain frontier packet chunk counters"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_rays=")
+  _rendercli_fail("rendercli wavefront metrics frontier packet ray summary"
+                  "wavefront metrics summary did not contain frontier packet ray counters"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_scalar_rays=")
+  _rendercli_fail("rendercli wavefront metrics frontier scalar ray summary"
+                  "wavefront metrics summary did not contain frontier scalar ray counters"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 rendercli_assert_exists("${wavefront_metrics_report}" NAME "wavefront metrics report exists")
 file(READ "${wavefront_metrics_report}" wavefront_metrics_json)
 if(NOT wavefront_metrics_json MATCHES "\"schema\"[^\n]*raytracer\\.wavefront_metrics\\.v1")
@@ -1569,6 +1584,16 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"frontierRayMissesPerDepth\"")
   _rendercli_fail("rendercli wavefront metrics frontier misses"
                   "wavefront metrics report did not contain frontier miss counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"frontierPacketChunksPerDepth\"")
+  _rendercli_fail("rendercli wavefront metrics frontier packet chunks"
+                  "wavefront metrics report did not contain frontier packet chunk counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"frontierScalarRaysPerDepth\"")
+  _rendercli_fail("rendercli wavefront metrics frontier scalar rays"
+                  "wavefront metrics report did not contain frontier scalar ray counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"sampleGenerationWorkerSeconds\"")

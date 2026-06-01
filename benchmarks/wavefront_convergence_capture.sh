@@ -212,13 +212,17 @@ def batching_metric_values(path)
   values = {
     active_sample_depths: [],
     frontier_hit_rays: [],
-    frontier_miss_rays: []
+    frontier_miss_rays: [],
+    frontier_packet_chunks: [],
+    frontier_scalar_rays: []
   }
   document.fetch("runs").each do |run|
     run_values = {
       active_sample_depths: 0.0,
       frontier_hit_rays: 0.0,
-      frontier_miss_rays: 0.0
+      frontier_miss_rays: 0.0,
+      frontier_packet_chunks: 0.0,
+      frontier_scalar_rays: 0.0
     }
     batchings = []
     if run["metrics"]
@@ -234,6 +238,10 @@ def batching_metric_values(path)
         batching.fetch("frontierRayHitsPerDepth", []).sum { |value| value.to_f }
       run_values[:frontier_miss_rays] +=
         batching.fetch("frontierRayMissesPerDepth", []).sum { |value| value.to_f }
+      run_values[:frontier_packet_chunks] +=
+        batching.fetch("frontierPacketChunksPerDepth", []).sum { |value| value.to_f }
+      run_values[:frontier_scalar_rays] +=
+        batching.fetch("frontierScalarRaysPerDepth", []).sum { |value| value.to_f }
     end
     next if batchings.compact.empty?
 
@@ -261,7 +269,7 @@ fraction = reference.zero? ? 0.0 : saved / reference
 puts format("active_sample_depths reference=%.0f candidate=%.0f saved=%.0f saved_fraction=%.6f",
             reference, candidate, saved, fraction)
 
-%i[frontier_hit_rays frontier_miss_rays].each do |key|
+%i[frontier_hit_rays frontier_miss_rays frontier_packet_chunks frontier_scalar_rays].each do |key|
   reference = median(reference_values[key])
   candidate = median(candidate_values[key])
   delta = candidate - reference

@@ -428,6 +428,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1, scene->packetHitCalls);
     EXPECT_EQ((std::vector<std::uint64_t>{4u}), metrics.frontierRayHitsPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierPacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierScalarRaysPerDepth);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceRecordsCompatibilityMaterialFallbacks) {

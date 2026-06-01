@@ -64,6 +64,8 @@ namespace engine::wavefront {
     addCounts(activeSamplesPerDepth, metrics.activeSamplesPerDepth);
     addCounts(frontierRayHitsPerDepth, metrics.frontierRayHitsPerDepth);
     addCounts(frontierRayMissesPerDepth, metrics.frontierRayMissesPerDepth);
+    addCounts(frontierPacketChunksPerDepth, metrics.frontierPacketChunksPerDepth);
+    addCounts(frontierScalarRaysPerDepth, metrics.frontierScalarRaysPerDepth);
 
     if (radianceDeltaSquaredSumPerDepth.size() < metrics.radianceDeltaSquaredSumPerDepth.size()) {
       radianceDeltaSquaredSumPerDepth.resize(metrics.radianceDeltaSquaredSumPerDepth.size());
@@ -109,6 +111,9 @@ namespace engine::wavefront {
     const QJsonArray activeSamplesPerDepth = integerArray(batching.activeSamplesPerDepth);
     const QJsonArray frontierRayHitsPerDepth = integerArray(batching.frontierRayHitsPerDepth);
     const QJsonArray frontierRayMissesPerDepth = integerArray(batching.frontierRayMissesPerDepth);
+    const QJsonArray frontierPacketChunksPerDepth =
+      integerArray(batching.frontierPacketChunksPerDepth);
+    const QJsonArray frontierScalarRaysPerDepth = integerArray(batching.frontierScalarRaysPerDepth);
     QJsonArray radianceDeltaL2PerDepth;
     QJsonArray radianceDeltaRmsPerDepth;
     for (std::size_t depth = 0; depth != batching.radianceDeltaSquaredSumPerDepth.size(); ++depth) {
@@ -136,6 +141,8 @@ namespace engine::wavefront {
     batchingJson["activeSamplesPerDepth"] = activeSamplesPerDepth;
     batchingJson["frontierRayHitsPerDepth"] = frontierRayHitsPerDepth;
     batchingJson["frontierRayMissesPerDepth"] = frontierRayMissesPerDepth;
+    batchingJson["frontierPacketChunksPerDepth"] = frontierPacketChunksPerDepth;
+    batchingJson["frontierScalarRaysPerDepth"] = frontierScalarRaysPerDepth;
     batchingJson["radianceDeltaL2PerDepth"] = radianceDeltaL2PerDepth;
     batchingJson["radianceDeltaRmsPerDepth"] = radianceDeltaRmsPerDepth;
     batchingJson["maxRadianceDeltaPerDepth"] = maxRadianceDeltaPerDepth;

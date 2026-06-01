@@ -27,6 +27,7 @@
 #include "render/RenderEngine.h"
 #include "engine/raytracer/Raytracer.h"
 #include "render/PathTracingIntegrator.h"
+#include "core/math/RayPacket.h"
 #include "engine/raster/RasterBackend.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/wavefront/WavefrontRaytracer.h"
@@ -162,6 +163,8 @@ namespace {
       const QJsonArray activeSamples = batching.value("activeSamplesPerDepth").toArray();
       const QJsonArray frontierHits = batching.value("frontierRayHitsPerDepth").toArray();
       const QJsonArray frontierMisses = batching.value("frontierRayMissesPerDepth").toArray();
+      const QJsonArray frontierPackets = batching.value("frontierPacketChunksPerDepth").toArray();
+      const QJsonArray frontierScalarRays = batching.value("frontierScalarRaysPerDepth").toArray();
       const QJsonArray rmsDelta = batching.value("radianceDeltaRmsPerDepth").toArray();
       std::cout << std::fixed << std::setprecision(3) << "wavefront_metrics"
                 << " run=" << run;
@@ -189,6 +192,9 @@ namespace {
         << " last_active=" << unsignedArrayBack(activeSamples)
         << " frontier_hit_rays=" << unsignedArraySum(frontierHits)
         << " frontier_miss_rays=" << unsignedArraySum(frontierMisses)
+        << " frontier_packet_chunks=" << unsignedArraySum(frontierPackets)
+        << " frontier_packet_rays=" << unsignedArraySum(frontierPackets) * Ray4::lanes
+        << " frontier_scalar_rays=" << unsignedArraySum(frontierScalarRays)
         << " last_rms_delta=" << doubleArrayBack(rmsDelta)
         << " compatibility_shade_samples=" << unsignedValue(batching, "compatibilityShadeSamples")
         << " convergence=" << convergence.value("decision").toString().toStdString()

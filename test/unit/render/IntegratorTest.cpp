@@ -67,6 +67,8 @@ namespace IntegratorTest {
     ASSERT_EQ(2u, colors.size());
     EXPECT_TRUE(metrics.usedScalarFallback);
     EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.activeSamplesPerDepth);
+    EXPECT_TRUE(metrics.frontierPacketChunksPerDepth.empty());
+    EXPECT_TRUE(metrics.frontierScalarRaysPerDepth.empty());
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
   }
 }
