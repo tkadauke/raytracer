@@ -91,6 +91,9 @@ set(wavefront_render "${TEST_OUTPUT_DIR}/wavefront-render.png")
 set(wavefront_parity_raytracer_render
     "${TEST_OUTPUT_DIR}/wavefront-parity-raytracer-render.png")
 set(wavefront_parity_render "${TEST_OUTPUT_DIR}/wavefront-parity-render.png")
+set(wavefront_glass_parity_raytracer_render
+    "${TEST_OUTPUT_DIR}/wavefront-glass-parity-raytracer-render.png")
+set(wavefront_glass_parity_render "${TEST_OUTPUT_DIR}/wavefront-glass-parity-render.png")
 set(wavefront_indirect_render "${TEST_OUTPUT_DIR}/wavefront-indirect-render.png")
 set(wavefront_indirect_whitted_render
     "${TEST_OUTPUT_DIR}/wavefront-indirect-whitted-render.png")
@@ -1387,6 +1390,22 @@ rendercli_run(
 rendercli_assert_image_hash_equals("${wavefront_parity_raytracer_render}"
                                    "${wavefront_parity_render}"
                                    NAME "wavefront graph matches recursive raytracer graph")
+
+rendercli_run(
+  NAME "rendercli renders recursive raytracer glass parity baseline"
+  COMMAND
+    "${RENDERCLI}" --engine raytracer --width 24 --height 24 --depth 4
+    "${PROJECT_SOURCE_DIR}/scenes/glass_torus.json" "${wavefront_glass_parity_raytracer_render}"
+)
+rendercli_run(
+  NAME "rendercli renders wavefront glass parity baseline"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 24 --height 24 --depth 4
+    "${PROJECT_SOURCE_DIR}/scenes/glass_torus.json" "${wavefront_glass_parity_render}"
+)
+rendercli_assert_image_hash_equals("${wavefront_glass_parity_raytracer_render}"
+                                   "${wavefront_glass_parity_render}"
+                                   NAME "wavefront graph matches recursive glass raytracer graph")
 
 rendercli_run(
   NAME "rendercli renders wavefront indirect environment scene from intent"

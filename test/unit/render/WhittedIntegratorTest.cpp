@@ -6,6 +6,7 @@
 #include "render/WhittedIntegrator.h"
 #include "render/materials/Material.h"
 #include "render/materials/ReflectiveMaterial.h"
+#include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Scene.h"
 #include "render/textures/ConstantColorTexture.h"
 
@@ -251,6 +252,33 @@ namespace WhittedIntegratorTest {
       std::make_shared<ReflectiveMaterial>(std::make_shared<ConstantColorTexture>(Colord::black()));
     material->setReflectionCoefficient(0.2);
     material->setReflectionColor(Colord::white());
+    material->setSpecularCoefficient(0.0);
+    primitive->setMaterial(material);
+    scene.add(primitive);
+    WhittedIntegrator integrator;
+    IntegratorRayCaster rayCaster(scene, integrator);
+    const Rayd primaryRay(Vector3d::null, Vector3d::forward());
+    State scalarState;
+    const Colord scalar = integrator.radiance(scene, primaryRay, scalarState, rayCaster);
+    std::vector<IntegratorRaySample> samples{IntegratorRaySample{primaryRay, 0.0, nullptr}};
+
+    const std::vector<Colord> batched = integrator.radianceBatch(scene, samples, rayCaster);
+
+    ASSERT_EQ(1u, batched.size());
+    ASSERT_COLOR_NEAR(scalar, batched[0], 1e-12);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceMatchesScalarTransparentContinuations) {
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    scene.setAmbient(Colord::black());
+    auto primitive = makePrimaryOnlyHit();
+    auto material = std::make_shared<TransparentMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord::black()));
+    material->setReflectionCoefficient(0.2);
+    material->setReflectionColor(Colord::white());
+    material->setTransmissionCoefficient(0.3);
+    material->setRefractionIndex(1.0);
     material->setSpecularCoefficient(0.0);
     primitive->setMaterial(material);
     scene.add(primitive);
