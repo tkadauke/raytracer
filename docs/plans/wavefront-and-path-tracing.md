@@ -608,7 +608,10 @@ can exceed total render time when tiles execute in parallel. The integrator
 batch bucket is now split further into intersection and shading worker time,
 so captures can distinguish BVH/primitive traversal cost from material, direct
 lighting, and continuation sampling cost before the next speed optimization is
-chosen. The Whitted
+chosen. Metrics also report the residual integrator overhead after the
+intersection and shading buckets are subtracted from total integrator worker
+time, making scheduler, progress, convergence, and frontier bookkeeping cost
+visible instead of implied by subtraction. The Whitted
 batch path now also avoids copying/scanning the full tile result buffer for
 radiance-delta metrics: metrics/convergence snapshots track only the unique
 active sample indices at each depth, and per-depth continuation queues reserve

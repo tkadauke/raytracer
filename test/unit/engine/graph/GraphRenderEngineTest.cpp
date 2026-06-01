@@ -1725,10 +1725,12 @@ namespace GraphRenderEngineTest {
     const QJsonObject timings = metadata.value("timings").toObject();
     EXPECT_TRUE(timings.contains("integratorIntersectionWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorShadingWorkerSeconds"));
+    EXPECT_TRUE(timings.contains("integratorOverheadWorkerSeconds"));
     EXPECT_GE(timings.value("sampleGenerationWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorBatchWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorIntersectionWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorShadingWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("integratorOverheadWorkerSeconds").toDouble(), 0.0);
     EXPECT_GT(timings.value("totalRenderSeconds").toDouble(), 0.0);
     EXPECT_EQ(metadata, wavefront->toJson().value("metadata").toObject());
   }

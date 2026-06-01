@@ -1534,6 +1534,11 @@ if(NOT wavefront_metrics_stdout MATCHES "integrator_shading_worker_ms=")
                   "wavefront metrics summary did not contain integrator shading worker timing"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "integrator_overhead_worker_ms=")
+  _rendercli_fail("rendercli wavefront metrics integrator overhead timing summary"
+                  "wavefront metrics summary did not contain integrator overhead worker timing"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_hit_rays=")
   _rendercli_fail("rendercli wavefront metrics frontier hit summary"
                   "wavefront metrics summary did not contain frontier hit counters"
@@ -1624,6 +1629,11 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"integratorShadingWorkerSeconds\"")
   _rendercli_fail("rendercli wavefront metrics integrator shading timing"
                   "wavefront metrics report did not contain integrator shading worker timing"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"integratorOverheadWorkerSeconds\"")
+  _rendercli_fail("rendercli wavefront metrics integrator overhead timing"
+                  "wavefront metrics report did not contain integrator overhead worker timing"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"radianceDeltaRmsPerDepth\"")

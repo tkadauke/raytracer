@@ -81,6 +81,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront integrator timing breakdowns.** Wavefront metrics now split
   integrator worker time into scene-intersection and material/shading buckets
   in JSON reports, graph traces, and compact rendercli summaries. — GPT-5
+- **Wavefront integrator overhead diagnostics.** Wavefront metrics now report
+  the residual integrator batch overhead after intersection and shading worker
+  time are subtracted, making scheduler/frontier bookkeeping cost visible in
+  JSON reports, graph traces, rendercli summaries, and convergence captures. — GPT-5
 - **Wavefront torus packet hits.** Torus primitives now materialize four-wide
   packet hits directly for wavefront path-frontier traversal instead of using
   the scalar packet fallback lane by lane. — GPT-5

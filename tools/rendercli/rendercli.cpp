@@ -183,6 +183,8 @@ namespace {
         << timings.value("integratorIntersectionWorkerSeconds").toDouble() * 1000.0
         << " integrator_shading_worker_ms="
         << timings.value("integratorShadingWorkerSeconds").toDouble() * 1000.0
+        << " integrator_overhead_worker_ms="
+        << timings.value("integratorOverheadWorkerSeconds").toDouble() * 1000.0
         << " integrator=" << batching.value("integrator").toString().toStdString()
         << " execution=" << batching.value("executionMode").toString().toStdString()
         << " samples=" << unsignedValue(input, "primarySamples")

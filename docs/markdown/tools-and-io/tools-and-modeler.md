@@ -225,7 +225,10 @@ per-depth `frontierRayHitsPerDepth`, `frontierRayMissesPerDepth`,
 timing payload also reports summed worker time for sample
 generation and integrator batch work, so performance captures can separate
 camera/sample setup from scene-intersection and material/shading transport even
-when parallel worker time exceeds wall-clock render time. Metrics capture is
+when parallel worker time exceeds wall-clock render time. The integrator timing
+split also reports the remaining batch overhead after intersection and shading
+worker time are subtracted, making scheduler and frontier bookkeeping cost
+visible. Metrics capture is
 opt-in; requesting wavefront metrics enables graph trace collection for that
 render but does not require writing a separate trace file.
 `--wavefront_denoiser box|bilateral` requests an opt-in wavefront denoiser.

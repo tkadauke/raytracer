@@ -47,6 +47,16 @@ namespace engine::wavefront {
     };
   }
 
+  void WavefrontRenderMetrics::TimingSummary::recordIntegratorBatch(double batchSeconds,
+                                                                    double intersectionSeconds,
+                                                                    double shadingSeconds) {
+    integratorBatchWorkerSeconds += batchSeconds;
+    integratorIntersectionWorkerSeconds += intersectionSeconds;
+    integratorShadingWorkerSeconds += shadingSeconds;
+    integratorOverheadWorkerSeconds +=
+      std::max(0.0, batchSeconds - intersectionSeconds - shadingSeconds);
+  }
+
   void WavefrontRenderMetrics::BatchSummary::addIntegratorMetrics(
     const render::IntegratorBatchMetrics& metrics) {
     activeSampleDepthsProcessed += metrics.activeSampleDepthsProcessed;
@@ -159,6 +169,7 @@ namespace engine::wavefront {
     timingsJson["integratorIntersectionWorkerSeconds"] =
       timings.integratorIntersectionWorkerSeconds;
     timingsJson["integratorShadingWorkerSeconds"] = timings.integratorShadingWorkerSeconds;
+    timingsJson["integratorOverheadWorkerSeconds"] = timings.integratorOverheadWorkerSeconds;
     timingsJson["totalRenderSeconds"] = timings.totalRenderSeconds;
 
     QJsonObject denoiseJson;

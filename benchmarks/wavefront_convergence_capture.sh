@@ -207,7 +207,7 @@ compare_wavefront_work() {
   fi
 
   ruby -rjson - "$reference_metrics" "$candidate_metrics" <<'RUBY' | tee "${output}"
-def batching_metric_values(path)
+def wavefront_metric_values(path)
   document = JSON.parse(File.read(path))
   values = {
     active_sample_depths: [],
@@ -215,7 +215,12 @@ def batching_metric_values(path)
     frontier_miss_rays: [],
     frontier_packet_chunks: [],
     frontier_scalar_rays: [],
-    frontier_packet_scalar_fallback_rays: []
+    frontier_packet_scalar_fallback_rays: [],
+    sample_generation_worker_seconds: [],
+    integrator_batch_worker_seconds: [],
+    integrator_intersection_worker_seconds: [],
+    integrator_shading_worker_seconds: [],
+    integrator_overhead_worker_seconds: []
   }
   document.fetch("runs").each do |run|
     run_values = {
@@ -224,14 +229,22 @@ def batching_metric_values(path)
       frontier_miss_rays: 0.0,
       frontier_packet_chunks: 0.0,
       frontier_scalar_rays: 0.0,
-      frontier_packet_scalar_fallback_rays: 0.0
+      frontier_packet_scalar_fallback_rays: 0.0,
+      sample_generation_worker_seconds: 0.0,
+      integrator_batch_worker_seconds: 0.0,
+      integrator_intersection_worker_seconds: 0.0,
+      integrator_shading_worker_seconds: 0.0,
+      integrator_overhead_worker_seconds: 0.0
     }
     batchings = []
+    timings = []
     if run["metrics"]
       batchings << run.dig("metrics", "batching")
+      timings << run.dig("metrics", "timings")
     end
     run.fetch("passes", []).each do |pass|
       batchings << pass.dig("metrics", "batching")
+      timings << pass.dig("metrics", "timings")
     end
 
     batchings.compact.each do |batching|
@@ -247,7 +260,19 @@ def batching_metric_values(path)
       run_values[:frontier_packet_scalar_fallback_rays] +=
         batching.fetch("frontierPacketScalarFallbackRaysPerDepth", []).sum { |value| value.to_f }
     end
-    next if batchings.compact.empty?
+    timings.compact.each do |timing|
+      run_values[:sample_generation_worker_seconds] +=
+        timing.fetch("sampleGenerationWorkerSeconds", 0).to_f
+      run_values[:integrator_batch_worker_seconds] +=
+        timing.fetch("integratorBatchWorkerSeconds", 0).to_f
+      run_values[:integrator_intersection_worker_seconds] +=
+        timing.fetch("integratorIntersectionWorkerSeconds", 0).to_f
+      run_values[:integrator_shading_worker_seconds] +=
+        timing.fetch("integratorShadingWorkerSeconds", 0).to_f
+      run_values[:integrator_overhead_worker_seconds] +=
+        timing.fetch("integratorOverheadWorkerSeconds", 0).to_f
+    end
+    next if batchings.compact.empty? && timings.compact.empty?
 
     run_values.each do |key, value|
       values[key] << value
@@ -263,8 +288,8 @@ def median(values)
   sorted[sorted.length / 2]
 end
 
-reference_values = batching_metric_values(ARGV.fetch(0))
-candidate_values = batching_metric_values(ARGV.fetch(1))
+reference_values = wavefront_metric_values(ARGV.fetch(0))
+candidate_values = wavefront_metric_values(ARGV.fetch(1))
 
 reference = median(reference_values[:active_sample_depths])
 candidate = median(candidate_values[:active_sample_depths])
@@ -273,12 +298,29 @@ fraction = reference.zero? ? 0.0 : saved / reference
 puts format("active_sample_depths reference=%.0f candidate=%.0f saved=%.0f saved_fraction=%.6f",
             reference, candidate, saved, fraction)
 
-%i[frontier_hit_rays frontier_miss_rays frontier_packet_chunks frontier_scalar_rays].each do |key|
+%i[frontier_hit_rays
+   frontier_miss_rays
+   frontier_packet_chunks
+   frontier_scalar_rays
+   frontier_packet_scalar_fallback_rays].each do |key|
   reference = median(reference_values[key])
   candidate = median(candidate_values[key])
   delta = candidate - reference
   puts format("%s reference=%.0f candidate=%.0f delta=%.0f",
               key, reference, candidate, delta)
+end
+
+%i[sample_generation_worker_seconds
+   integrator_batch_worker_seconds
+   integrator_intersection_worker_seconds
+   integrator_shading_worker_seconds
+   integrator_overhead_worker_seconds].each do |key|
+  reference = median(reference_values[key]) * 1000.0
+  candidate = median(candidate_values[key]) * 1000.0
+  delta = candidate - reference
+  label = key.to_s.sub(/_seconds\z/, "_ms")
+  puts format("%s reference=%.3f candidate=%.3f delta=%.3f",
+              label, reference, candidate, delta)
 end
 RUBY
 }

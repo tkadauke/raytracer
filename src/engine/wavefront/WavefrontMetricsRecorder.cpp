@@ -57,10 +57,9 @@ namespace engine::wavefront::detail {
     ++m_metrics.tiling.nonEmptyTileCount;
     ++m_metrics.batching.batches;
     m_metrics.timings.sampleGenerationWorkerSeconds += result.sampleGenerationWorkerSeconds;
-    m_metrics.timings.integratorBatchWorkerSeconds += result.integratorBatchWorkerSeconds;
-    m_metrics.timings.integratorIntersectionWorkerSeconds +=
-      result.batchMetrics.intersectionWorkerSeconds;
-    m_metrics.timings.integratorShadingWorkerSeconds += result.batchMetrics.shadingWorkerSeconds;
+    m_metrics.timings.recordIntegratorBatch(result.integratorBatchWorkerSeconds,
+                                            result.batchMetrics.intersectionWorkerSeconds,
+                                            result.batchMetrics.shadingWorkerSeconds);
     m_metrics.batching.samplesSubmitted += result.sampleCount;
     m_metrics.batching.addIntegratorMetrics(result.batchMetrics);
     m_metrics.batching.maxBatchSize =
