@@ -114,7 +114,7 @@
 | `include/render/lights/DirectionalLight.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/lights/Light.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/lights/PointLight.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
-| `include/render/materials/Material.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
+| `include/render/materials/Material.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/render/materials/MatteMaterial.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `include/render/materials/PhongMaterial.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `include/render/materials/PortalMaterial.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
@@ -241,7 +241,7 @@
 | `src/render/WhittedIntegrator.cpp` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `src/render/denoise/BilateralDenoiser.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/render/denoise/BoxDenoiser.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
-| `src/render/materials/MatteMaterial.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
+| `src/render/materials/MatteMaterial.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/render/materials/PhongMaterial.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `src/render/primitives/Scene.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `src/widgets/world/RenderGraphInspectorWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |

@@ -178,6 +178,8 @@ namespace render {
 
     double bsdfPdf(const HitPoint& hitPoint, const Vector3d& wi, const Vector3d& wo) const override;
 
+    Colord denoisingAlbedo(const Rayd& ray, const HitPoint& hitPoint) const override;
+
   protected:
     Lambertian diffuseLobe(const Rayd* ray, const HitPoint& hitPoint) const;
 

@@ -191,6 +191,17 @@ namespace render {
       return 0.0;
     }
 
+    /**
+      * Returns the material color a denoiser should treat as first-hit albedo.
+      *
+      * The default is black for materials that cannot expose a meaningful
+      * diffuse feature. Diffuse/glossy subclasses override this without the
+      * wavefront engine needing to inspect concrete material types.
+      */
+    virtual Colord denoisingAlbedo(const Rayd& /*ray*/, const HitPoint& /*hitPoint*/) const {
+      return Colord::black();
+    }
+
     virtual RasterRecursiveFallback rasterRecursiveFallback() const {
       return RasterRecursiveFallback::None;
     }

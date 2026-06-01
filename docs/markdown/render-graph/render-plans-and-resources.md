@@ -634,8 +634,10 @@ enabled, tile count, queue decision, and render timing.
 Wavefront also has an opt-in denoiser hook at the engine level:
 `render::Denoiser` instances receive a `DenoiserFrame` whose beauty buffer is
 filtered before the final display buffer is rewritten. The frame can also carry
-optional feature buffers such as albedo, normal, and depth, which gives future
-AOV-aware filters a typed surface without changing the engine hook again.
+optional feature buffers such as albedo, normal, and depth. Wavefront fills
+those buffers from primary-hit material albedo, surface normals, and ray depth
+when a denoiser is installed, which gives future AOV-aware filters typed inputs
+without coupling them to the wavefront engine.
 `render::BoxDenoiser` is deliberately simple and exists to pin the hook;
 `render::BilateralDenoiser` is the first useful edge-preserving filter,
 weighting neighbors by both pixel distance and color difference. The resolved
@@ -1050,6 +1052,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/render/denoise/Denoiser.h`
 - `include/render/denoise/BoxDenoiser.h`
 - `include/render/denoise/BilateralDenoiser.h`
+- `include/render/materials/Material.h`
 - `include/engine/graph/RenderResource.h`
 - `include/engine/graph/RenderResourceStorage.h`
 - `include/engine/graph/GraphRenderEngine.h`
@@ -1070,6 +1073,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `src/engine/graph/GraphRenderEngine.cpp`
 - `src/render/denoise/BoxDenoiser.cpp`
 - `src/render/denoise/BilateralDenoiser.cpp`
+- `src/render/materials/MatteMaterial.cpp`
 - `src/engine/graph/RenderPassPayloads.cpp`
 - `src/engine/graph/RenderPassState.cpp`
 - `src/engine/graph/PostProcessPassState.cpp`

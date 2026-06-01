@@ -18,6 +18,8 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
+#include <algorithm>
+
 namespace WavefrontRaytracerTest {
   using engine::wavefront::WavefrontRaytracer;
 
@@ -43,12 +45,59 @@ namespace WavefrontRaytracerTest {
     Colord m_color;
   };
 
+  class FeatureRecordingDenoiser final : public render::Denoiser {
+  public:
+    std::unique_ptr<render::Denoiser> clone() const override {
+      return std::make_unique<FeatureRecordingDenoiser>();
+    }
+
+    const char* diagnosticName() const override {
+      return "feature_recording";
+    }
+
+    void denoiseFrame(render::DenoiserFrame& frame) const override {
+      sawAlbedo = frame.features.albedo != nullptr;
+      sawNormal = frame.features.normal != nullptr;
+      sawDepth = frame.features.depth != nullptr;
+      if (sawAlbedo && sawNormal && sawDepth) {
+        featureWidth = frame.features.albedo->width();
+        featureHeight = frame.features.albedo->height();
+        for (int y = 0; y != featureHeight; ++y) {
+          for (int x = 0; x != featureWidth; ++x) {
+            maxAlbedo = std::max(maxAlbedo, (*frame.features.albedo)[y][x].max());
+            maxNormalLength = std::max(maxNormalLength, (*frame.features.normal)[y][x].length());
+            maxDepth = std::max(maxDepth, (*frame.features.depth)[y][x]);
+          }
+        }
+      }
+    }
+
+    mutable bool sawAlbedo{false};
+    mutable bool sawNormal{false};
+    mutable bool sawDepth{false};
+    mutable int featureWidth{0};
+    mutable int featureHeight{0};
+    mutable double maxAlbedo{0.0};
+    mutable double maxNormalLength{0.0};
+    mutable double maxDepth{0.0};
+  };
+
   std::shared_ptr<render::Scene> testScene() {
     auto scene = std::make_shared<render::Scene>(Colord(0.1, 0.2, 0.3));
     scene->setAmbient(Colord::white());
     auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 1.0);
     sphere->setMaterial(std::make_shared<render::MatteMaterial>(
       std::make_shared<render::ConstantColorTexture>(Colord::white())));
+    scene->add(sphere);
+    return scene;
+  }
+
+  std::shared_ptr<render::Scene> featureScene() {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    scene->setAmbient(Colord::white());
+    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 1.0e6);
+    sphere->setMaterial(std::make_shared<render::MatteMaterial>(
+      std::make_shared<render::ConstantColorTexture>(Colord(0.7, 0.5, 0.25))));
     scene->add(sphere);
     return scene;
   }
@@ -142,6 +191,27 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("box", denoise.value("denoiser").toString().toStdString());
     EXPECT_DOUBLE_EQ(2.0, denoise.value("parameters").toObject().value("radius").toDouble());
     EXPECT_GE(denoise.value("seconds").toDouble(), 0.0);
+  }
+
+  TEST(WavefrontRaytracer, SuppliesPrimaryHitFeatureBuffersToDenoiser) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), featureScene());
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    auto denoiser = std::make_unique<FeatureRecordingDenoiser>();
+    const auto* recordingDenoiser = denoiser.get();
+    renderer->setDenoiser(std::move(denoiser));
+
+    Buffer<Colord> buffer(8, 6);
+    renderer->render(buffer);
+
+    EXPECT_TRUE(recordingDenoiser->sawAlbedo);
+    EXPECT_TRUE(recordingDenoiser->sawNormal);
+    EXPECT_TRUE(recordingDenoiser->sawDepth);
+    EXPECT_EQ(8, recordingDenoiser->featureWidth);
+    EXPECT_EQ(6, recordingDenoiser->featureHeight);
+    EXPECT_GT(recordingDenoiser->maxAlbedo, 0.0);
+    EXPECT_GT(recordingDenoiser->maxNormalLength, 0.0);
+    EXPECT_GT(recordingDenoiser->maxDepth, 0.0);
   }
 
   TEST(WavefrontRaytracer, MatchesRecursiveRaytracerForSimpleWhittedScene) {

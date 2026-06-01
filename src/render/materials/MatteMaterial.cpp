@@ -72,6 +72,10 @@ double MatteMaterial::bsdfPdf(const HitPoint& hitPoint, const Vector3d& wi,
   return diffuseLobe(nullptr, hitPoint).pdf(hitPoint, wi, wo);
 }
 
+Colord MatteMaterial::denoisingAlbedo(const Rayd& ray, const HitPoint& hitPoint) const {
+  return diffuseLobe(&ray, hitPoint).reflectance(hitPoint, Vector3d::null);
+}
+
 Lambertian MatteMaterial::diffuseLobe(const Rayd* ray, const HitPoint& hitPoint) const {
   Colord texColor = Colord::black();
   if (auto texture = diffuseTexture()) {

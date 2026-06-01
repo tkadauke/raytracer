@@ -60,6 +60,16 @@ namespace MatteMaterialTest {
     ASSERT_EQ(0.6, material.diffuseCoefficient());
   }
 
+  TEST(MatteMaterial, ExposesDiffuseReflectanceAsDenoisingAlbedo) {
+    auto texture = std::make_shared<ConstantColorTexture>(Colord(0.2, 0.4, 0.8));
+    MatteMaterial material(texture);
+    material.setDiffuseCoefficient(0.5);
+    const HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+    const Rayd ray{Vector3d(0, 5, 0), Vector3d(0, -1, 0)};
+
+    ASSERT_COLOR_NEAR(Colord(0.1, 0.2, 0.4), material.denoisingAlbedo(ray, hitPoint), 1e-12);
+  }
+
   TEST(MatteMaterial, ShouldHaveNoRasterRecursiveFallback) {
     MatteMaterial material;
     ASSERT_EQ(Material::RasterRecursiveFallback::None, material.rasterRecursiveFallback());

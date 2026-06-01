@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
+#include "core/math/HitPointInterval.h"
 #include "core/util/BufferUtils.h"
 #include "engine/TileRenderTask.h"
 #include "render/Integrator.h"
@@ -13,6 +14,8 @@
 #include "render/WhittedIntegrator.h"
 #include "render/cameras/Camera.h"
 #include "render/denoise/Denoiser.h"
+#include "render/materials/Material.h"
+#include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 #include "render/tonemap/Tonemap.h"
 
@@ -177,6 +180,21 @@ namespace engine::wavefront {
 
     using TileProgressPublisher = std::function<void(const std::vector<TilePixel>&)>;
 
+    struct DenoiserFeatureSet {
+      explicit DenoiserFeatureSet(int width, int height)
+          : albedo(width, height),
+            normal(width, height),
+            depth(width, height) {
+        albedo.clear(Colord::black());
+        normal.clear(Vector3d::null);
+        depth.clear(0.0);
+      }
+
+      Buffer<Colord> albedo;
+      Buffer<Vector3d> normal;
+      Buffer<double> depth;
+    };
+
     class TileProgressObserver final : public render::IntegratorBatchObserver {
     public:
       TileProgressObserver(std::vector<TilePixel>& pixels,
@@ -299,17 +317,80 @@ namespace engine::wavefront {
       }
     }
 
-    void denoise(Buffer<Colord>& buffer) const {
+    void denoise(Buffer<Colord>& buffer, const DenoiserFeatureSet* features = nullptr) const {
       if (!denoiser) {
         return;
       }
 
       const auto denoiseStart = WavefrontClock::now();
-      denoiser->denoise(buffer);
+      render::DenoiserFrame frame(buffer);
+      if (features) {
+        frame.features.albedo = &features->albedo;
+        frame.features.normal = &features->normal;
+        frame.features.depth = &features->depth;
+      }
+      denoiser->denoiseFrame(frame);
       const double seconds =
         std::chrono::duration<double>(WavefrontClock::now() - denoiseStart).count();
       std::lock_guard<std::mutex> lock(metricsMutex);
       lastMetrics.denoise.seconds += seconds;
+    }
+
+    void writeDenoiserFeature(DenoiserFeatureSet& features, const Recti& footprint,
+                              const Colord& albedo, const Vector3d& normal, double depth) const {
+      for (int y = footprint.top(); y != footprint.bottom(); ++y) {
+        for (int x = footprint.left(); x != footprint.right(); ++x) {
+          features.albedo[y][x] = albedo;
+          features.normal[y][x] = normal;
+          features.depth[y][x] = depth;
+        }
+      }
+    }
+
+    std::unique_ptr<DenoiserFeatureSet> buildDenoiserFeatures(render::Camera& camera,
+                                                              const render::Scene& scene,
+                                                              const Recti& rect) const {
+      if (!denoiser) {
+        return nullptr;
+      }
+
+      auto features = std::make_unique<DenoiserFeatureSet>(rect.width(), rect.height());
+      const Recti actualRect = camera.renderableRect(rect);
+      if (actualRect.width() <= 0 || actualRect.height() <= 0) {
+        return features;
+      }
+
+      auto plane = camera.viewPlane();
+      for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
+                                       end = plane->end(actualRect);
+           pixel != end; ++pixel) {
+        if (camera.isCancelled()) {
+          break;
+        }
+
+        const auto sample = camera.primaryRaySample(pixel, /*sampleIndex=*/0, samplingSeed);
+        if (!sample) {
+          continue;
+        }
+
+        render::State state;
+        state.timeSample = sample->timeSample;
+        state.sampleStream = sample->sampleStream.get();
+        HitPointInterval hitPoints;
+        const render::Primitive* primitive = scene.intersect(sample->ray, hitPoints, state);
+        if (!primitive) {
+          continue;
+        }
+
+        const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+        Colord albedo = Colord::black();
+        if (const auto material = primitive->material()) {
+          albedo = material->denoisingAlbedo(sample->ray, hitPoint);
+        }
+        writeDenoiserFeature(*features, pixel.footprintWithin(actualRect), albedo,
+                             hitPoint.normal().normalizedOrZero(1e-12), hitPoint.distance());
+      }
+      return features;
     }
 
     void resetMetrics(render::Camera& camera, int width, int height,
@@ -556,6 +637,7 @@ namespace engine::wavefront {
       render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
     const auto renderStart = WavefrontClock::now();
     p->resetMetrics(*m_camera, buffer.width(), buffer.height(), tilePlan);
+    const auto denoiserFeatures = p->buildDenoiserFeatures(*m_camera, *m_scene, buffer.rect());
     const auto samplingSeed = p->samplingSeed;
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
@@ -566,7 +648,7 @@ namespace engine::wavefront {
             : std::nullopt;
         p->renderTile(*camera, *rayCaster, *m_scene, *bufferPtr, rect, tileSeed);
       });
-    p->denoise(buffer);
+    p->denoise(buffer, denoiserFeatures.get());
     p->finishMetrics(renderStart);
 
 #ifdef RAYTRACER_ENABLE_STATS
@@ -652,6 +734,7 @@ namespace engine::wavefront {
       render::TilePlan::forBuffer(hdrBuffer.width(), hdrBuffer.height(), p->queueSize);
     const auto renderStart = WavefrontClock::now();
     p->resetMetrics(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan);
+    const auto denoiserFeatures = p->buildDenoiserFeatures(*m_camera, *m_scene, hdrBuffer.rect());
     const auto samplingSeed = p->samplingSeed;
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
@@ -664,7 +747,7 @@ namespace engine::wavefront {
         p->renderTile(*camera, *rayCaster, *m_scene, *hdrBufferPtr, *displayBufferPtr,
                       displayTonemap, rect, tileSeed);
       });
-    p->denoise(hdrBuffer);
+    p->denoise(hdrBuffer, denoiserFeatures.get());
     p->writeDisplayBuffer(displayBuffer, hdrBuffer, displayTonemap);
     p->finishMetrics(renderStart);
 
