@@ -560,6 +560,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_DOUBLE_EQ(0.5, metrics.convergence.activeSampleFractionThreshold);
     EXPECT_DOUBLE_EQ(0.01, metrics.convergence.radianceDeltaRmsThreshold);
     EXPECT_EQ(0u, metrics.convergence.stoppedTileCount);
+    EXPECT_TRUE(metrics.convergence.stoppedTileDepthHistogram.empty());
     EXPECT_EQ("not_reached", metrics.convergence.decision);
     ASSERT_EQ(1u, metrics.batching.radianceDeltaSquaredSumPerDepth.size());
     EXPECT_GT(metrics.batching.radianceDeltaSquaredSumPerDepth[0], 0.0);
@@ -582,6 +583,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_DOUBLE_EQ(
       0.01, json.value("convergence").toObject().value("radianceDeltaRmsThreshold").toDouble());
     EXPECT_EQ(0.0, json.value("convergence").toObject().value("stoppedTileCount").toDouble());
+    EXPECT_TRUE(
+      json.value("convergence").toObject().value("stoppedTileDepthHistogram").toArray().empty());
     EXPECT_EQ("not_reached",
               json.value("convergence").toObject().value("decision").toString().toStdString());
     EXPECT_FALSE(json.value("denoise").toObject().value("enabled").toBool());

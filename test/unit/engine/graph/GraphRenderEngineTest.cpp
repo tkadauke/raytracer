@@ -1694,6 +1694,10 @@ namespace GraphRenderEngineTest {
     EXPECT_DOUBLE_EQ(1.0, convergence.value("activeSampleFractionThreshold").toDouble());
     EXPECT_DOUBLE_EQ(10.0, convergence.value("radianceDeltaRmsThreshold").toDouble());
     EXPECT_GT(convergence.value("stoppedTileCount").toDouble(), 0.0);
+    const QJsonArray stoppedTileDepthHistogram =
+      convergence.value("stoppedTileDepthHistogram").toArray();
+    ASSERT_GE(stoppedTileDepthHistogram.size(), 1);
+    EXPECT_GT(stoppedTileDepthHistogram.at(0).toDouble(), 0.0);
     EXPECT_EQ("stopped_some_tiles", convergence.value("decision").toString().toStdString());
     const QJsonObject denoise = metadata.value("denoise").toObject();
     EXPECT_TRUE(denoise.value("enabled").toBool());

@@ -90,14 +90,7 @@ namespace engine::wavefront::detail {
                  result.batchMetrics.maxRadianceDeltaPerDepth[depth]);
     }
     if (result.batchMetrics.stoppedByConvergence) {
-      ++m_metrics.convergence.stoppedTileCount;
-      const std::uint64_t depth = result.batchMetrics.stoppedAfterDepth;
-      if (m_metrics.convergence.earliestStoppedAfterDepth == 0 ||
-          depth < m_metrics.convergence.earliestStoppedAfterDepth) {
-        m_metrics.convergence.earliestStoppedAfterDepth = depth;
-      }
-      m_metrics.convergence.latestStoppedAfterDepth =
-        std::max(m_metrics.convergence.latestStoppedAfterDepth, depth);
+      m_metrics.convergence.recordStoppedTileAfterDepth(result.batchMetrics.stoppedAfterDepth);
     }
   }
 

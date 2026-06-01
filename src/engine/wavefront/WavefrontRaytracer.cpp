@@ -130,6 +130,10 @@ namespace engine::wavefront {
     }
 
     QJsonObject convergenceJson;
+    QJsonArray stoppedTileDepthHistogram;
+    for (const std::uint64_t count : convergence.stoppedTileDepthHistogram) {
+      stoppedTileDepthHistogram.push_back(static_cast<double>(count));
+    }
     convergenceJson["enabled"] = convergence.enabled;
     convergenceJson["activeSampleFractionThreshold"] = convergence.activeSampleFractionThreshold;
     convergenceJson["radianceDeltaRmsThreshold"] = convergence.radianceDeltaRmsThreshold;
@@ -138,6 +142,7 @@ namespace engine::wavefront {
       static_cast<double>(convergence.earliestStoppedAfterDepth);
     convergenceJson["latestStoppedAfterDepth"] =
       static_cast<double>(convergence.latestStoppedAfterDepth);
+    convergenceJson["stoppedTileDepthHistogram"] = stoppedTileDepthHistogram;
     convergenceJson["decision"] = QString::fromStdString(convergence.decision);
 
     QJsonObject object;
@@ -149,6 +154,21 @@ namespace engine::wavefront {
     object["denoise"] = denoiseJson;
     object["timings"] = timingsJson;
     return object;
+  }
+
+  void
+  WavefrontRenderMetrics::ConvergenceSummary::recordStoppedTileAfterDepth(std::uint64_t depth) {
+    ++stoppedTileCount;
+    if (earliestStoppedAfterDepth == 0 || depth < earliestStoppedAfterDepth) {
+      earliestStoppedAfterDepth = depth;
+    }
+    latestStoppedAfterDepth = std::max(latestStoppedAfterDepth, depth);
+    if (depth > 0) {
+      if (stoppedTileDepthHistogram.size() < depth) {
+        stoppedTileDepthHistogram.resize(depth);
+      }
+      ++stoppedTileDepthHistogram[depth - 1];
+    }
   }
 
   struct WavefrontRaytracer::Private {

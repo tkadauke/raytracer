@@ -178,7 +178,10 @@ namespace {
         << " last_rms_delta=" << doubleArrayBack(rmsDelta)
         << " compatibility_shade_samples=" << unsignedValue(batching, "compatibilityShadeSamples")
         << " convergence=" << convergence.value("decision").toString().toStdString()
-        << " stopped_tiles=" << unsignedValue(convergence, "stoppedTileCount") << " denoiser="
+        << " stopped_tiles=" << unsignedValue(convergence, "stoppedTileCount")
+        << " earliest_stop_depth=" << unsignedValue(convergence, "earliestStoppedAfterDepth")
+        << " latest_stop_depth=" << unsignedValue(convergence, "latestStoppedAfterDepth")
+        << " denoiser="
         << (denoise.value("enabled").toBool() ? denoise.value("denoiser").toString().toStdString()
                                               : std::string("none"))
         << " denoise_ms=" << denoise.value("seconds").toDouble() * 1000.0

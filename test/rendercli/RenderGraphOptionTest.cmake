@@ -1566,7 +1566,7 @@ rendercli_run(
   NAME "rendercli reports wavefront convergence-stopped tiles"
   OUTPUT_VARIABLE wavefront_converged_metrics_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*pass=wavefront_beauty.*integrator=pathtracer.*execution=depth_major_paths.*active_depths=1.*convergence=stopped_some_tiles.*stopped_tiles=[1-9]"
+    "wavefront_metrics.*pass=wavefront_beauty.*integrator=pathtracer.*execution=depth_major_paths.*active_depths=1.*convergence=stopped_some_tiles.*stopped_tiles=[1-9].*earliest_stop_depth=[1-9].*latest_stop_depth=[1-9]"
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
     --wavefront_convergence --wavefront_convergence_active_fraction 1
@@ -1587,6 +1587,11 @@ endif()
 if(NOT wavefront_converged_metrics_json MATCHES "\"stoppedTileCount\"[ \r\n]*:[ \r\n]*[1-9]")
   _rendercli_fail("rendercli wavefront convergence metrics stopped tile count"
                   "wavefront convergence metrics did not count stopped tiles"
+                  "" "" "${wavefront_converged_metrics_json}" "")
+endif()
+if(NOT wavefront_converged_metrics_json MATCHES "\"stoppedTileDepthHistogram\"[ \r\n]*:[ \r\n]*\\[[ \r\n]*[1-9]")
+  _rendercli_fail("rendercli wavefront convergence metrics stopped depth histogram"
+                  "wavefront convergence metrics did not report the stopped-depth histogram"
                   "" "" "${wavefront_converged_metrics_json}" "")
 endif()
 if(NOT wavefront_converged_metrics_json MATCHES "\"activeSamplesPerDepth\"[ \r\n]*:[ \r\n]*\\[[ \r\n]*[1-9]")
