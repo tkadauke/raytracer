@@ -60,6 +60,12 @@ namespace MatteMaterialTest {
     ASSERT_EQ(0.6, material.diffuseCoefficient());
   }
 
+  TEST(MatteMaterial, SupportsWavefrontMaterialInterfaces) {
+    MatteMaterial material;
+    EXPECT_TRUE(material.supportsWhittedContinuations());
+    EXPECT_TRUE(material.supportsBsdfSampling());
+  }
+
   TEST(MatteMaterial, ExposesDiffuseReflectanceAsDenoisingAlbedo) {
     auto texture = std::make_shared<ConstantColorTexture>(Colord(0.2, 0.4, 0.8));
     MatteMaterial material(texture);

@@ -44,6 +44,7 @@ namespace ReflectiveMaterialTest {
 
   TEST(ReflectiveMaterial, SupportsBsdfSamplingForPathTracing) {
     ReflectiveMaterial material;
+    EXPECT_TRUE(material.supportsWhittedContinuations());
     EXPECT_TRUE(material.supportsBsdfSampling());
   }
 

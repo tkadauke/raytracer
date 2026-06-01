@@ -16,8 +16,10 @@
 > `WavefrontRaytracer` engine and graph executor surface. Depth-major
 > path-tracing batches now report active-path and radiance-delta metrics,
 > graph-visible convergence thresholds can stop path batches early, and
-> Whitted batches now consume material-published continuation queues. Phase 3's
-> bare wavefront parity gate is covered by rendercli RMS checks for static
+> Whitted batches now consume material-published continuation queues, and all
+> built-in runtime materials now expose the wavefront material interfaces
+> needed by Whitted and path-tracing batches. Phase 3's bare wavefront parity
+> gate is covered by rendercli RMS checks for static
 > sphere/CSG, transparent torus, and BVH-heavy sphere fixtures. rendercli now
 > exposes convergence overrides as typed intent-derived graph state instead of
 > hidden direct-engine settings. Depth-major path batches also publish
@@ -585,7 +587,7 @@ visible quality loss.
 **Gate**: ≥30% wall-clock improvement on the BVH-heavy scene at
 matching quality (visual delta < ε).
 
-### Phase 5 — wavefront path-tracing semantics 🚧 **Started.**
+### Phase 5 — wavefront path-tracing semantics ✅ **Done.**
 
 Re-host the scalar `PathTracingIntegrator` behavior in the depth-major
 scheduler. Do not call the scalar integrator wholesale for each ray; factor
@@ -608,9 +610,12 @@ scheduler now compacts still-active path indices between depths, so later
 depths visit only live paths rather than scanning the full original sample set
 after most samples have terminated. Wavefront tiles also reserve their pixel
 and sample mapping buffers from the known tile dimensions before camera sample
-generation, reducing batch setup churn. Remaining work is to keep moving
-recursive legacy materials onto explicit scattering where that preserves their
-existing Whitted behavior.
+generation, reducing batch setup churn. All built-in runtime materials
+(`MatteMaterial`, `PhongMaterial`, `ReflectiveMaterial`, `TransparentMaterial`,
+and `PortalMaterial`) now expose both wavefront Whitted continuations and
+path-tracing BSDF sampling; compatibility fallback metrics remain in place for
+future custom materials or new built-ins that have not implemented those
+interfaces yet.
 `scenes/wavefront_indirect_environment_demo.json` is the first reusable Phase 5
 sanity scene: it has a wavefront/pathtracer render intent, black ambient, no
 direct lights, and a matte object that is visible only because diffuse BSDF

@@ -52,6 +52,7 @@ namespace PhongMaterialTest {
 
   TEST(PhongMaterial, SupportsBsdfSamplingForPathTracing) {
     PhongMaterial material;
+    EXPECT_TRUE(material.supportsWhittedContinuations());
     EXPECT_TRUE(material.supportsBsdfSampling());
   }
 

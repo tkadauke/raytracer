@@ -60,6 +60,7 @@ namespace PortalMaterialTest {
     const MaterialBsdfSample sampled =
       material.sampleBsdf(hitPoint, Vector3d(0, -1, 0), Vector2d(0.25, 0.5));
 
+    EXPECT_TRUE(material.supportsWhittedContinuations());
     EXPECT_TRUE(material.supportsBsdfSampling());
     EXPECT_TRUE(sampled.isDelta);
     EXPECT_DOUBLE_EQ(1.0, sampled.pdf);

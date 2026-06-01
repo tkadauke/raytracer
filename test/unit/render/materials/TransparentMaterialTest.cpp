@@ -61,6 +61,7 @@ namespace TransparentMaterialTest {
 
   TEST(TransparentMaterial, SupportsBsdfSamplingForPathTracing) {
     TransparentMaterial material;
+    EXPECT_TRUE(material.supportsWhittedContinuations());
     EXPECT_TRUE(material.supportsBsdfSampling());
   }
 
