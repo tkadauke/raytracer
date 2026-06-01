@@ -104,6 +104,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Sphere packet hit materialization.** `render::Sphere` now overrides the
   four-wide packet hit API directly, avoiding the generic `HitPointInterval`
   fallback while preserving per-lane hit/miss state. — GPT-5
+- **Plane packet hit materialization.** `render::Plane` now materializes
+  four-wide packet hits directly, giving wavefront floor/wall intersections
+  per-lane hit points without the generic scalar interval fallback. — GPT-5
 
 ### Changed
 

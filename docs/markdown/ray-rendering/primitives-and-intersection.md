@@ -59,8 +59,8 @@ BVH nodes keep the same materialized-hit contract while traversing their tree,
 so wavefront renderers can ask the accelerated scene for packet-shaped frontier
 hits without losing the primitive and hit-point data needed by material shading.
 Leaf primitives can then override the materialized packet form directly; `Sphere`
-already does this so common analytic geometry avoids the generic interval
-fallback on wavefront packet frontiers.
+and `Plane` already do this so common analytic geometry avoids the generic
+interval fallback on wavefront packet frontiers.
 
 Most primitives also override:
 

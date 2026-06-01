@@ -84,6 +84,24 @@ RayPacketIntersection4 Plane::intersectPacket(const Ray4& rays, render::State& s
 #endif
 }
 
+PrimitivePacketHit4 Plane::intersectPacketHits(const Ray4& rays,
+                                               const PrimitivePacketState4& states) const {
+  PrimitivePacketHit4 result;
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    const Rayd ray = rays.rayd(lane);
+    const double t = calculateIntersectionDistance(ray);
+    if (t > 0.0) {
+      result.setHit(lane, this, HitPoint(this, t, ray.at(t), m_normal));
+      state.hit(this, "Plane");
+    } else {
+      state.miss(this, "Plane, ray miss");
+    }
+  }
+  return result;
+}
+
 bool Plane::intersects(const Rayd& ray, render::State& state) const {
   if (calculateIntersectionDistance(ray) > 0) {
     state.shadowHit(this, "Plane");
