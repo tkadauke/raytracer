@@ -618,11 +618,10 @@ depth-major reflection/refraction queues and fall back to scalar recursion for
 legacy materials that do not expose continuations. The path-tracing integrator
 uses that same batch hook for depth-major processing; matte and Phong materials
 publish finite BSDF lobes and reflective materials publish a mirror delta lobe,
-while recursive transparent materials still report compatibility shading until
-their transmission/reflection split is represented explicitly. This gives the
-graph, rendercli, and Modeler a separate executor surface for the scheduler work
-that follows. After a traced wavefront render, the pass metadata reports the
-selected
+while transparent materials publish reflection, transmission, and
+total-internal-reflection delta lobes. This gives the graph, rendercli, and
+Modeler a separate executor surface for the scheduler work that follows. After
+a traced wavefront render, the pass metadata reports the selected
 integrator, whether batches used scalar fallback or depth-major path
 scheduling, primary sample totals, how many samples fell back to Whitted
 material compatibility shading, active sample counts per depth, batch sizes,

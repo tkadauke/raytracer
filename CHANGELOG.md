@@ -57,6 +57,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   their mirror branch as a delta BSDF sample, so wavefront path tracing can
   continue through reflections instead of falling back to Whitted material
   shading. — GPT-5
+- **Transparent BSDF sampling for path tracing.** Transparent materials now
+  expose reflection, transmission, and total-internal-reflection branches as
+  delta BSDF samples, so wavefront path tracing can continue through glass-like
+  surfaces without Whitted compatibility shading. — GPT-5
 - **Raytracer integrator selection is graph-visible.** Render intent and
   raytracer beauty pass state now carry `whitted` / `pathtracer` integrator
   selection, so rendercli's `--integrator pathtracer` is represented in

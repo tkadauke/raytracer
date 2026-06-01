@@ -174,8 +174,16 @@ namespace render {
                                     render::State& state) const override;
 
     bool supportsBsdfSampling() const override {
-      return false;
+      return true;
     }
+
+    Colord evalBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                    const Vector3d& wo) const override;
+
+    MaterialBsdfSample sampleBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                                  const Vector2d& sample) const override;
+
+    double bsdfPdf(const HitPoint& hitPoint, const Vector3d& wi, const Vector3d& wo) const override;
 
     RasterRecursiveFallback rasterRecursiveFallback() const override {
       return RasterRecursiveFallback::TransparentAlphaPhong;
@@ -192,9 +200,19 @@ namespace render {
     }
 
   private:
-    Vector3d refract(const Vector3d& direction, const Vector3d& normal, double outerRefractionIndex,
-                     double innerRefractionIndex);
-    bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint);
+    struct BsdfSamplingWeights {
+      double local{1.0};
+      double reflection{0.0};
+      double transmission{0.0};
+    };
+
+    BsdfSamplingWeights bsdfSamplingWeights(bool totalInternalReflection) const;
+    MaterialBsdfSample sampleReflectionBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                                            double selectionWeight) const;
+    MaterialBsdfSample sampleTransmissionBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                                              double selectionWeight) const;
+    MaterialBsdfSample sampleTotalInternalReflectionBsdf(const HitPoint& hitPoint,
+                                                         const Vector3d& wi) const;
 
     render::PerfectSpecular m_reflectiveBRDF;
     render::PerfectTransmitter m_specularBTDF;

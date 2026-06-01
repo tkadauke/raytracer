@@ -148,7 +148,7 @@ namespace render {
       }
 
       const double normalDotWo = hitPoint.normal() * sampled.direction;
-      if (normalDotWo <= 0.0) {
+      if (!sampled.isDelta && normalDotWo <= 0.0) {
         state.recurseOut();
         break;
       }
@@ -316,7 +316,7 @@ namespace render {
         }
 
         const double normalDotWo = hitPoint.normal() * sampled.direction;
-        if (normalDotWo <= 0.0) {
+        if (!sampled.isDelta && normalDotWo <= 0.0) {
           path.state.recurseOut();
           path.active = false;
           recordDepthDelta();

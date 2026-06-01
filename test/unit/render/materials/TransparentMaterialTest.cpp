@@ -59,6 +59,47 @@ namespace TransparentMaterialTest {
     ASSERT_EQ(0.5, material.reflectionCoefficient());
   }
 
+  TEST(TransparentMaterial, SupportsBsdfSamplingForPathTracing) {
+    TransparentMaterial material;
+    EXPECT_TRUE(material.supportsBsdfSampling());
+  }
+
+  TEST(TransparentMaterial, SamplesTransmissionAsDeltaBsdf) {
+    TransparentMaterial material;
+    material.setAmbientCoefficient(0.0);
+    material.setDiffuseCoefficient(0.0);
+    material.setSpecularCoefficient(0.0);
+    material.setReflectionCoefficient(0.0);
+    material.setTransmissionCoefficient(0.5);
+    material.setRefractionIndex(1.0);
+    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+
+    const MaterialBsdfSample sampled =
+      material.sampleBsdf(hitPoint, Vector3d(0, 1, 0), Vector2d(0.75, 0.5));
+
+    EXPECT_TRUE(sampled.isDelta);
+    EXPECT_DOUBLE_EQ(1.0, sampled.pdf);
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.5, 0.5), sampled.value, 1e-12);
+    EXPECT_NEAR(0.0, sampled.direction.x(), 1e-12);
+    EXPECT_NEAR(-1.0, sampled.direction.y(), 1e-12);
+    EXPECT_NEAR(0.0, sampled.direction.z(), 1e-12);
+  }
+
+  TEST(TransparentMaterial, SamplesTotalInternalReflectionAsFullMirrorDeltaBsdf) {
+    TransparentMaterial material;
+    material.setRefractionIndex(0.5);
+    constexpr double s = 0.7071067811865476;
+    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+
+    const MaterialBsdfSample sampled =
+      material.sampleBsdf(hitPoint, Vector3d(s, s, 0), Vector2d(0.75, 0.5));
+
+    EXPECT_TRUE(sampled.isDelta);
+    EXPECT_DOUBLE_EQ(1.0, sampled.pdf);
+    ASSERT_COLOR_NEAR(Colord::white(), sampled.value, 1e-12);
+    EXPECT_GT(sampled.direction.y(), 0.0);
+  }
+
   TEST(TransparentMaterial, ShouldDescribeRasterRecursiveFallback) {
     TransparentMaterial material;
     material.setTransmissionCoefficient(0.25);
