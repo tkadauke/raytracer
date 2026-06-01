@@ -506,9 +506,11 @@ can be authored in scene intent, adjusted in Modeler Render Settings, or passed
 through rendercli with `--wavefront_convergence`,
 `--wavefront_no_convergence`, `--wavefront_convergence_active_fraction`, and
 `--wavefront_convergence_rms_delta`; exported graph JSON carries the resolved
-pass state. Remaining work is to tune defaults against macro benchmarks, decide
-whether the same policy should drive explicit Whitted queues, and expose quality
-presets instead of only raw advanced thresholds.
+pass state. Modeler Render Settings now add Preview/Balanced/Final convergence
+quality presets over those same thresholds, with raw active-fraction and
+RMS-delta fields still available for advanced tuning. Remaining work is to tune
+defaults against macro benchmarks and decide whether the same policy should
+drive explicit Whitted queues.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.

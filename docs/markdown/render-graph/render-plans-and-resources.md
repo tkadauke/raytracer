@@ -608,7 +608,10 @@ before the payload renders. Wavefront convergence controls also flow through
 that state, so the compiled plan can report the active-sample fraction and RMS
 radiance-delta thresholds used by wavefront convergence termination. Those
 choices therefore appear in graph JSON and replay with the plan instead of
-being hidden in rendercli camera setup. The
+being hidden in rendercli camera setup. Modeler Render Settings presents those
+thresholds through Preview/Balanced/Final convergence quality presets while
+keeping the raw thresholds editable for advanced tuning; the compiled plan still
+receives only the typed, resolved thresholds. The
 wavefront payload intentionally keeps Whitted scalar recursion compatible while
 submitting tile samples through the integrator batch API. The path-tracing
 integrator uses that batch hook for depth-major processing, giving the graph,

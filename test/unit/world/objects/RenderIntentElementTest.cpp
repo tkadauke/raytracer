@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "core/math/Constants.h"
 #include "world/objects/RenderIntentElement.h"
 #include "world/objects/Scene.h"
 
@@ -129,6 +130,8 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->propertyChoices("rasterizerDepthPrepass").contains("auto"));
     EXPECT_TRUE(intent->propertyChoices("rasterizerTessellationQuality").contains("final"));
     EXPECT_TRUE(intent->propertyChoices("raytracerIntegrator").contains("pathtracer"));
+    EXPECT_TRUE(intent->propertyChoices("wavefrontConvergenceQuality").contains("balanced"));
+    EXPECT_TRUE(intent->propertyChoices("wavefrontConvergenceQuality").contains("custom"));
     EXPECT_FALSE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
     intent->setDefaultEngine("rasterizer");
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
@@ -144,10 +147,14 @@ namespace RenderIntentElementTest {
               intent->propertyDisplayName("rasterizerTessellationQuality"));
     EXPECT_EQ(QString("Integrator"), intent->propertyDisplayName("raytracerIntegrator"));
     EXPECT_EQ(QString("Convergence Stop"), intent->propertyDisplayName("wavefrontConvergence"));
+    EXPECT_EQ(QString("Convergence Quality"),
+              intent->propertyDisplayName("wavefrontConvergenceQuality"));
     EXPECT_EQ(QString("Path Tracer"),
               intent->propertyChoiceDisplayName("raytracerIntegrator", "pathtracer"));
     EXPECT_EQ(QString("Wavefront"),
               intent->propertyChoiceDisplayName("defaultEngine", "wavefront"));
+    EXPECT_EQ(QString("Balanced"),
+              intent->propertyChoiceDisplayName("wavefrontConvergenceQuality", "balanced"));
     EXPECT_EQ(QString("Final"),
               intent->propertyChoiceDisplayName("rasterizerTessellationQuality", "final"));
     EXPECT_EQ(QString("Auto"),
@@ -202,13 +209,51 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
     EXPECT_TRUE(intent->isPropertyVisible("raytracerIntegrator"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergence"));
+    EXPECT_FALSE(intent->isPropertyVisible("wavefrontConvergenceQuality"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontConvergenceRmsDelta"));
     EXPECT_FALSE(intent->isPropertyVisible("rasterizerLod"));
     intent->setWavefrontConvergence(true);
+    EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergenceQuality"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergenceRmsDelta"));
 
     intent->setDefaultEngine("rasterizer");
     intent->setPreviewShadows(true);
     EXPECT_TRUE(intent->isPropertyVisible("rasterizerShadowMapSize"));
+  }
+
+  TEST(RenderIntentElement, WavefrontConvergenceQualityPresetsWriteThresholds) {
+    Scene scene;
+    auto* intent = renderIntentElement(scene);
+    ASSERT_NE(nullptr, intent);
+
+    intent->setDefaultEngine("wavefront");
+    EXPECT_EQ(QString("off"), intent->wavefrontConvergenceQuality());
+
+    intent->setWavefrontConvergenceQuality("preview");
+    EXPECT_TRUE(intent->wavefrontConvergence());
+    EXPECT_EQ(QString("preview"), intent->wavefrontConvergenceQuality());
+    EXPECT_DOUBLE_EQ(0.05, intent->wavefrontConvergenceActiveFraction());
+    EXPECT_DOUBLE_EQ(0.02, intent->wavefrontConvergenceRmsDelta());
+
+    intent->setWavefrontConvergenceQuality("balanced");
+    EXPECT_EQ(QString("balanced"), intent->wavefrontConvergenceQuality());
+    EXPECT_DOUBLE_EQ(RAYTRACER_WAVEFRONT_ACTIVE_SAMPLE_FRACTION_THRESHOLD,
+                     intent->wavefrontConvergenceActiveFraction());
+    EXPECT_DOUBLE_EQ(RAYTRACER_WAVEFRONT_RADIANCE_DELTA_RMS_THRESHOLD,
+                     intent->wavefrontConvergenceRmsDelta());
+
+    intent->setWavefrontConvergenceQuality("final");
+    EXPECT_EQ(QString("final"), intent->wavefrontConvergenceQuality());
+    EXPECT_DOUBLE_EQ(0.0, intent->wavefrontConvergenceActiveFraction());
+    EXPECT_DOUBLE_EQ(0.0, intent->wavefrontConvergenceRmsDelta());
+
+    intent->setWavefrontConvergenceQuality("custom");
+    EXPECT_EQ(QString("final"), intent->wavefrontConvergenceQuality());
+    intent->setWavefrontConvergenceActiveFraction(0.25);
+    EXPECT_EQ(QString("custom"), intent->wavefrontConvergenceQuality());
+
+    intent->setWavefrontConvergenceQuality("off");
+    EXPECT_FALSE(intent->wavefrontConvergence());
+    EXPECT_EQ(QString("off"), intent->wavefrontConvergenceQuality());
   }
 }

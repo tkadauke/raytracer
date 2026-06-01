@@ -36,6 +36,8 @@ class RenderIntentElement : public Element {
   Q_PROPERTY(int raytracerThreads READ raytracerThreads WRITE setRaytracerThreads)
   Q_PROPERTY(int raytracerQueueSize READ raytracerQueueSize WRITE setRaytracerQueueSize)
   Q_PROPERTY(bool wavefrontConvergence READ wavefrontConvergence WRITE setWavefrontConvergence)
+  Q_PROPERTY(QString wavefrontConvergenceQuality READ wavefrontConvergenceQuality WRITE
+               setWavefrontConvergenceQuality)
   Q_PROPERTY(double wavefrontConvergenceActiveFraction READ wavefrontConvergenceActiveFraction WRITE
                setWavefrontConvergenceActiveFraction)
   Q_PROPERTY(double wavefrontConvergenceRmsDelta READ wavefrontConvergenceRmsDelta WRITE
@@ -135,6 +137,9 @@ public:
   bool wavefrontConvergence() const;
   void setWavefrontConvergence(bool enabled);
 
+  QString wavefrontConvergenceQuality() const;
+  void setWavefrontConvergenceQuality(const QString& quality);
+
   double wavefrontConvergenceActiveFraction() const;
   void setWavefrontConvergenceActiveFraction(double fraction);
 
@@ -192,6 +197,12 @@ private:
   engine::graph::RenderViewMode viewModeFromText(const QString& text) const;
   engine::graph::RenderPostProcessAA postProcessAAFromText(const QString& text) const;
   bool isRasterCounterView(engine::graph::RenderViewMode viewMode) const;
+  QString wavefrontConvergenceQualityFor(double activeFraction, double rmsDelta) const;
+  bool wavefrontConvergenceThresholdsMatch(double activeFraction, double rmsDelta,
+                                           double expectedActiveFraction,
+                                           double expectedRmsDelta) const;
+  void applyWavefrontConvergenceQuality(engine::graph::RenderIntent& intent,
+                                        const QString& quality) const;
   bool isRaytracerProperty(const QString& propertyName) const;
   bool isWavefrontProperty(const QString& propertyName) const;
   bool isRasterizerProperty(const QString& propertyName) const;
