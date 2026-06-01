@@ -103,6 +103,12 @@ namespace engine::wavefront::detail {
       std::vector<render::IntegratorRaySample> samples;
       std::vector<std::size_t> samplePixelIndices;
       const int sampleCount = camera.samplesPerPixel();
+      const std::size_t estimatedPixelCount =
+        static_cast<std::size_t>(std::max(0, actualRect.width())) *
+        static_cast<std::size_t>(std::max(0, actualRect.height()));
+      result.pixels.reserve(estimatedPixelCount);
+      samples.reserve(estimatedPixelCount * static_cast<std::size_t>(std::max(0, sampleCount)));
+      samplePixelIndices.reserve(samples.capacity());
 
       auto plane = camera.viewPlane();
       for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
