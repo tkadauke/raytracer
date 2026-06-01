@@ -51,9 +51,10 @@ ray groups. `intersectPacket(...)` is the lightweight distance-only form used
 when traversal only needs hit masks and near/far distances. `intersectPacketHits(...)`
 materializes the closest hit primitive and `HitPoint` for each lane, which is
 the shape needed by wavefront renderers before they hand hit lanes to the
-shading stage. The default packet-hit implementation falls back to scalar
-`intersect(...)`, while composites merge child packet hits and keep the closest
-positive hit per lane.
+shading stage. It also accepts per-lane `State` pointers, so hit/miss counters
+and trace events stay attached to the path that owned each ray. The default
+packet-hit implementation falls back to scalar `intersect(...)`, while
+composites merge child packet hits and keep the closest positive hit per lane.
 
 Most primitives also override:
 

@@ -90,6 +90,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Primitive packet hit materialization.** Primitives now expose a four-wide
   packet hit API that returns the closest hit primitive and `HitPoint` per lane,
   giving wavefront traversal a packet-shaped handoff to shading. — GPT-5
+- **Primitive packet lane states.** The packet hit API now carries per-lane
+  `State` pointers so future wavefront packet traversal can preserve path-local
+  hit/miss bookkeeping and trace events. — GPT-5
 - **Wavefront path batch scheduling.** Path-tracing batches now run each depth
   as an explicit active-frontier intersection phase followed by a hit-frontier
   shading phase, creating a cleaner insertion point for future packet

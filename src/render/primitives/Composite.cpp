@@ -78,7 +78,8 @@ RayPacketIntersection8 Composite::intersectPacket(const Ray8& rays, render::Stat
   return intersectPacketImpl<Ray8, RayPacketIntersection8>(rays, state);
 }
 
-PrimitivePacketHit4 Composite::intersectPacketHits(const Ray4& rays, render::State& state) const {
+PrimitivePacketHit4 Composite::intersectPacketHits(const Ray4& rays,
+                                                   const PrimitivePacketState4& states) const {
   PrimitivePacketHit4 result;
   std::array<bool, Ray4::lanes> activeLanes{};
   std::array<double, Ray4::lanes> minDistances;
@@ -89,7 +90,7 @@ PrimitivePacketHit4 Composite::intersectPacketHits(const Ray4& rays, render::Sta
   }
 
   for (const auto& primitive : m_primitives) {
-    const PrimitivePacketHit4 candidate = primitive->intersectPacketHits(rays, state);
+    const PrimitivePacketHit4 candidate = primitive->intersectPacketHits(rays, states);
     for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
       if (!activeLanes[lane] || !candidate.hit(lane)) {
         continue;

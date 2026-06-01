@@ -101,8 +101,9 @@ namespace CompositeTest {
       Rayd(Vector3d(0, 0, -10), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 100, -10), Vector3d(0, 0, 1)),
       Rayd(Vector3d(0, 0, 10), Vector3d(0, 0, -1)), Rayd(Vector3d(0, 0, -10), Vector3d(0, 1, 0))});
 
-    State state;
-    const auto result = composite.intersectPacketHits(rays, state);
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    const auto result = composite.intersectPacketHits(rays, states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(near.get(), result.primitive(0));

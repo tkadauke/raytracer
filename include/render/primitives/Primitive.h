@@ -45,6 +45,7 @@ namespace render {
     std::array<const Primitive*, Ray4::lanes> m_primitives{};
     std::array<HitPoint, Ray4::lanes> m_hitPoints{};
   };
+  using PrimitivePacketState4 = std::array<render::State*, Ray4::lanes>;
 
   /**
     * @brief Abstract base class for all geometric scene objects
@@ -129,7 +130,8 @@ namespace render {
       */
     virtual RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const;
     virtual RayPacketIntersection8 intersectPacket(const Ray8& rays, render::State& state) const;
-    virtual PrimitivePacketHit4 intersectPacketHits(const Ray4& rays, render::State& state) const;
+    virtual PrimitivePacketHit4 intersectPacketHits(const Ray4& rays,
+                                                    const PrimitivePacketState4& states) const;
 
     /**
       * Boolean flavour for shadow rays — "is anything between the

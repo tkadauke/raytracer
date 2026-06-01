@@ -69,8 +69,9 @@ namespace PrimitiveTest {
       Rayf(Vector3f(0, 0, 0), Vector3f(0, 0, 1)), Rayf(Vector3f(1, 0, 0), Vector3f(0, 0, 1)),
       Rayf(Vector3f(2, 0, 0), Vector3f(0, 0, 1)), Rayf(Vector3f(3, 0, 0), Vector3f(0, 0, 1))});
 
-    State state;
-    const auto result = primitive->Primitive::intersectPacketHits(rays, state);
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    const auto result = primitive->Primitive::intersectPacketHits(rays, states);
 
     for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
       ASSERT_TRUE(result.hit(lane)) << "lane " << lane;

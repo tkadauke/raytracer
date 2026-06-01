@@ -781,9 +781,11 @@ The first handoff slice is now in place: primitives expose a four-wide
 `intersectPacketHits(...)` API that returns the closest hit primitive and
 `HitPoint` per lane, and composites merge child packet hits by closest positive
 distance. The default implementation still falls back to scalar `intersect(...)`;
-the value is the contract shape. Wavefront frontier traversal can now ask the
-scene for packet-shaped hit materialization without losing the data needed by
-material shading, and later BVH/primitive overrides can make that path fast.
+the value is the contract shape. The API carries per-lane `State` pointers, so
+wavefront frontier traversal can ask the scene for packet-shaped hit
+materialization without losing the data needed by material shading, hit/miss
+bookkeeping, or trace events. Later BVH/primitive overrides can make that path
+fast.
 
 ---
 
