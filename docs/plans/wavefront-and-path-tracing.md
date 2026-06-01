@@ -546,9 +546,10 @@ direct lights, and a matte object that is visible only because diffuse BSDF
 sampling gathers environment radiance. rendercli now compares that scene
 against a Whitted override and requires the images to differ.
 Batch metrics also count material compatibility shading fallbacks. Phong now
-publishes a finite diffuse/glossy BSDF for path tracing, while Reflective and
-Transparent materials explicitly use the compatibility path for now. Graph
-traces can therefore show when path tracing terminated at a legacy
+publishes a finite diffuse/glossy BSDF for path tracing, and Reflective
+publishes its mirror branch as a delta BSDF sample. Transparent materials
+explicitly use the compatibility path for now. Graph traces can therefore show
+when path tracing terminated at a legacy
 Whitted-shaded surface instead of continuing through a sampled BSDF; rendercli
 has a graph-trace regression check that requires this metadata on a mixed
 material scene.

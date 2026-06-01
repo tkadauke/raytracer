@@ -6,6 +6,7 @@
 #include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/PhongMaterial.h"
+#include "render/materials/ReflectiveMaterial.h"
 #include "render/primitives/Plane.h"
 #include "render/primitives/Scene.h"
 #include "render/samplers/Sampler.h"
@@ -107,6 +108,26 @@ namespace PathTracingIntegratorTest {
 
       auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
       plane->setMaterial(std::make_shared<UnsupportedMaterial>());
+      scene->add(plane);
+
+      return scene;
+    }
+
+    std::unique_ptr<Scene> reflectiveBackgroundScene() {
+      auto scene = std::make_unique<Scene>();
+      scene->setAmbient(Colord::black());
+      scene->setBackground(Colord(1, 0, 0));
+
+      auto material = std::make_shared<ReflectiveMaterial>(
+        std::make_shared<ConstantColorTexture>(Colord::black()));
+      material->setAmbientCoefficient(0.0);
+      material->setDiffuseCoefficient(0.0);
+      material->setSpecularCoefficient(0.0);
+      material->setReflectionColor(Colord::white());
+      material->setReflectionCoefficient(0.5);
+
+      auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
+      plane->setMaterial(material);
       scene->add(plane);
 
       return scene;
@@ -252,6 +273,26 @@ namespace PathTracingIntegratorTest {
     EXPECT_GT(batched[0].max(), 0.0);
     EXPECT_EQ(0u, metrics.compatibilityShadeSamples);
     EXPECT_EQ(1u, metrics.activeSamplesPerDepth.size());
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadianceContinuesThroughReflectiveDeltaBsdf) {
+    auto scene = reflectiveBackgroundScene();
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 11ull)});
+
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster, &metrics);
+
+    ASSERT_EQ(1u, batched.size());
+    ASSERT_COLOR_NEAR(Colord(0.5, 0, 0), batched[0], 1e-12);
+    EXPECT_EQ(0u, metrics.compatibilityShadeSamples);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceStopsWhenConverged) {

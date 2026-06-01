@@ -42,6 +42,31 @@ namespace ReflectiveMaterialTest {
     ASSERT_EQ(0.4, material.reflectionCoefficient());
   }
 
+  TEST(ReflectiveMaterial, SupportsBsdfSamplingForPathTracing) {
+    ReflectiveMaterial material;
+    EXPECT_TRUE(material.supportsBsdfSampling());
+  }
+
+  TEST(ReflectiveMaterial, SamplesMirrorReflectionAsDeltaBsdf) {
+    ReflectiveMaterial material;
+    material.setAmbientCoefficient(0.0);
+    material.setDiffuseCoefficient(0.0);
+    material.setSpecularCoefficient(0.0);
+    material.setReflectionColor(Colord(0, 1, 0));
+    material.setReflectionCoefficient(0.25);
+    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+
+    const MaterialBsdfSample sampled =
+      material.sampleBsdf(hitPoint, Vector3d(0, 1, 0), Vector2d(0.75, 0.5));
+
+    EXPECT_TRUE(sampled.isDelta);
+    EXPECT_DOUBLE_EQ(1.0, sampled.pdf);
+    ASSERT_COLOR_NEAR(Colord(0, 0.25, 0), sampled.value, 1e-12);
+    EXPECT_NEAR(0.0, sampled.direction.x(), 1e-12);
+    EXPECT_NEAR(1.0, sampled.direction.y(), 1e-12);
+    EXPECT_NEAR(0.0, sampled.direction.z(), 1e-12);
+  }
+
   TEST(ReflectiveMaterial, ShouldDescribeRasterRecursiveFallback) {
     ReflectiveMaterial material;
     ASSERT_EQ(Material::RasterRecursiveFallback::ReflectiveLocalPhong,

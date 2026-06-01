@@ -43,12 +43,10 @@ namespace render {
     *     with probability `1 - throughput.max()`; otherwise rescale
     *     throughput to compensate.
     *
-    * Materials that don't yet expose a BSDF (PhongMaterial,
-    * ReflectiveMaterial, TransparentMaterial) terminate the path with
-    * the Whitted-shaded value; those surfaces don't yet receive
-    * indirect light from the path tracer. Refactoring those materials
-    * to expose `sampleBsdf` is follow-up work tracked alongside this
-    * integrator.
+    * Materials that don't yet expose a BSDF terminate the path with the
+    * Whitted-shaded value; those surfaces don't yet receive indirect light
+    * from the path tracer. Refactoring those materials to expose `sampleBsdf`
+    * is follow-up work tracked alongside this integrator.
     *
     * @see WhittedIntegrator — the recursive direct-lighting-only
     * sibling.

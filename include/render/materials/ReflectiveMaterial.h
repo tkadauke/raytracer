@@ -133,8 +133,16 @@ namespace render {
                                     render::State& state) const override;
 
     bool supportsBsdfSampling() const override {
-      return false;
+      return true;
     }
+
+    Colord evalBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                    const Vector3d& wo) const override;
+
+    MaterialBsdfSample sampleBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                                  const Vector2d& sample) const override;
+
+    double bsdfPdf(const HitPoint& hitPoint, const Vector3d& wi, const Vector3d& wo) const override;
 
     RasterRecursiveFallback rasterRecursiveFallback() const override {
       return RasterRecursiveFallback::ReflectiveLocalPhong;
@@ -147,5 +155,8 @@ namespace render {
 
   protected:
     render::PerfectSpecular m_reflectiveBRDF;
+
+  private:
+    double reflectionSamplingWeight() const;
   };
 }

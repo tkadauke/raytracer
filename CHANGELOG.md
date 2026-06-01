@@ -42,9 +42,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   previews copy those in-flight updates instead of waiting for the whole pass to
   finish. — GPT-5
 - **Wavefront material compatibility traces.** Wavefront path-tracing metadata
-  now reports how many samples fell back to Whitted material shading; Phong and
-  recursive Phong-derived materials use that compatibility path until they have
-  explicit glossy/specular BSDF sampling. — GPT-5
+  now reports how many samples fell back to Whitted material shading, so
+  transparent or otherwise unsupported materials remain visible in graph trace
+  metadata until they expose explicit BSDF sampling. — GPT-5
 - **Wavefront Whitted queues.** The Whitted integrator now exposes a
   depth-major batch path for materials that publish explicit Whitted
   continuations, so wavefront reflection/refraction work can run through queues
@@ -53,6 +53,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Phong BSDF sampling for path tracing.** Phong materials now expose their
   diffuse and glossy lobes to the path-tracing integrator instead of terminating
   through Whitted compatibility shading. — GPT-5
+- **Reflective BSDF sampling for path tracing.** Reflective materials now expose
+  their mirror branch as a delta BSDF sample, so wavefront path tracing can
+  continue through reflections instead of falling back to Whitted material
+  shading. — GPT-5
 - **Raytracer integrator selection is graph-visible.** Render intent and
   raytracer beauty pass state now carry `whitted` / `pathtracer` integrator
   selection, so rendercli's `--integrator pathtracer` is represented in
@@ -216,8 +220,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `--integrator pathtracer` on the direct-engine path. `MatteMaterial`
   is the first material implementing the BSDF surface (cosine-weighted
   Lambertian, no ambient term — the path tracer computes indirect
-  properly through recursion). Other materials (`PhongMaterial`,
-  `ReflectiveMaterial`, `TransparentMaterial`) terminate the path at
+  properly through recursion). Other materials terminate the path at
   the surface with their `Material::shade` output as a Whitted-style
   fallback until they're refactored to expose `sampleBsdf`. The
   render-graph path keeps Whitted as its integrator; the
