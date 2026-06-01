@@ -97,7 +97,8 @@ namespace engine::wavefront::detail {
                                        const render::Scene& scene, const Recti& actualRect,
                                        std::optional<std::uint64_t> tileSeed,
                                        const std::function<void(const Recti&)>& markProgress,
-                                       TileProgressPublisher publishProgress) {
+                                       TileProgressPublisher publishProgress,
+                                       bool publishProgressSnapshots) {
       WavefrontTileTraceResult result;
       std::vector<render::IntegratorRaySample> samples;
       std::vector<std::size_t> samplePixelIndices;
@@ -135,7 +136,8 @@ namespace engine::wavefront::detail {
       TileProgressObserver progressObserver(result.pixels, samplePixelIndices, sampleScale,
                                             std::move(publishProgress));
       render::IntegratorBatchSettings settings = batchSettings(config);
-      settings.progressObserver = samples.empty() ? nullptr : &progressObserver;
+      settings.progressObserver =
+        publishProgressSnapshots && !samples.empty() ? &progressObserver : nullptr;
 
       const std::vector<Colord> sampleColors =
         config.integrator.radianceBatch(scene, samples, rayCaster, &result.batchMetrics, settings);
@@ -278,6 +280,7 @@ namespace engine::wavefront::detail {
   WavefrontTileRenderer::renderHdrTile(render::Camera& camera, const render::RayCaster& rayCaster,
                                        const render::Scene& scene, Buffer<Colord>& buffer,
                                        const Recti& rect, std::optional<std::uint64_t> tileSeed,
+                                       bool publishProgressSnapshots,
                                        const WavefrontDenoiserFeatureSet* denoiserFeatures) const {
     const Recti actualRect = camera.renderableRect(rect);
     if (actualRect.width() <= 0 || actualRect.height() <= 0) {
@@ -296,7 +299,8 @@ namespace engine::wavefront::detail {
         for (const auto& pixel : displayPixels) {
           writeColor(buffer, pixel.footprint, pixel.color);
         }
-      });
+      },
+      publishProgressSnapshots);
     m_metrics.recordTile(result);
     for (const auto& pixel : result.pixels) {
       writeColor(buffer, pixel.footprint, pixel.color);
@@ -306,7 +310,7 @@ namespace engine::wavefront::detail {
   void WavefrontTileRenderer::renderDisplayTile(
     render::Camera& camera, const render::RayCaster& rayCaster, const render::Scene& scene,
     Buffer<unsigned int>& buffer, std::shared_ptr<render::Tonemap> tonemap, const Recti& rect,
-    std::optional<std::uint64_t> tileSeed) const {
+    std::optional<std::uint64_t> tileSeed, bool publishProgressSnapshots) const {
     const Recti actualRect = camera.renderableRect(rect);
     if (actualRect.width() <= 0 || actualRect.height() <= 0) {
       return;
@@ -320,7 +324,8 @@ namespace engine::wavefront::detail {
           writeRGB(buffer, pixel.footprint,
                    (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
         }
-      });
+      },
+      publishProgressSnapshots);
     m_metrics.recordTile(result);
     for (const auto& pixel : result.pixels) {
       writeRGB(buffer, pixel.footprint,
@@ -332,7 +337,7 @@ namespace engine::wavefront::detail {
     render::Camera& camera, const render::RayCaster& rayCaster, const render::Scene& scene,
     Buffer<Colord>& hdrBuffer, Buffer<unsigned int>& displayBuffer,
     std::shared_ptr<render::Tonemap> tonemap, const Recti& rect,
-    std::optional<std::uint64_t> tileSeed,
+    std::optional<std::uint64_t> tileSeed, bool publishProgressSnapshots,
     const WavefrontDenoiserFeatureSet* denoiserFeatures) const {
     const Recti actualRect = camera.renderableRect(rect);
     if (actualRect.width() <= 0 || actualRect.height() <= 0) {
@@ -356,7 +361,8 @@ namespace engine::wavefront::detail {
           writeRGB(displayBuffer, pixel.footprint,
                    (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
         }
-      });
+      },
+      publishProgressSnapshots);
     m_metrics.recordTile(result);
     for (const auto& pixel : result.pixels) {
       writeColor(hdrBuffer, pixel.footprint, pixel.color);

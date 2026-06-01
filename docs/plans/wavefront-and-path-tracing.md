@@ -542,7 +542,9 @@ there are no continuation queues to stop, and wavefront overhead is still
 higher than recursive raytracing. The batch integrators now skip radiance-delta
 diagnostic math unless metrics or convergence need it, but the Phase 4 gate
 still requires either a better representative fixture or further scheduler
-optimization.
+optimization. rendercli also disables progressive-display snapshots for final
+image writes, so wavefront command-line renders no longer pay the per-depth
+display-publishing cost that Modeler previews still need.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.

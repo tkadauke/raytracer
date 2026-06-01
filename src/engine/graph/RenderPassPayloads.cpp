@@ -288,6 +288,7 @@ namespace engine::graph {
     void prepareEngine(render::RenderEngine& engine, const GraphRenderEngine& graph, bool cancelled,
                        std::shared_ptr<render::Tonemap> tonemap) {
       engine.setTonemap(std::move(tonemap));
+      engine.setProgressiveDisplayEnabled(graph.progressiveDisplayEnabled());
       if (graph.hasBackgroundColorOverride()) {
         engine.setBackgroundColor(graph.backgroundColor());
       }

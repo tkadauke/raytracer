@@ -11,6 +11,7 @@ struct RenderEngine::Private {
   }
 
   std::shared_ptr<render::Tonemap> tonemap;
+  bool progressiveDisplayEnabled{true};
 };
 
 RenderEngine::RenderEngine(std::shared_ptr<render::Scene> scene)
@@ -60,6 +61,14 @@ void RenderEngine::setTonemap(std::shared_ptr<render::Tonemap> tonemap) {
   p->tonemap = std::move(tonemap);
 }
 
+void RenderEngine::setProgressiveDisplayEnabled(bool enabled) {
+  p->progressiveDisplayEnabled = enabled;
+}
+
+bool RenderEngine::progressiveDisplayEnabled() const {
+  return p->progressiveDisplayEnabled;
+}
+
 std::list<Recti> RenderEngine::activeTiles() const {
   return {};
 }
@@ -86,4 +95,12 @@ void RenderEngine::clearBackgroundColor() {
 
 bool RenderEngine::hasBackgroundColorOverride() const {
   return m_backgroundColorOverride.has_value();
+}
+
+void RenderEngine::copyRenderEngineStateTo(RenderEngine& engine) const {
+  engine.setTonemap(tonemap());
+  if (hasBackgroundColorOverride()) {
+    engine.setBackgroundColor(backgroundColor());
+  }
+  engine.setProgressiveDisplayEnabled(progressiveDisplayEnabled());
 }

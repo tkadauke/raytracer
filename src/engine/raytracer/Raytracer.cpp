@@ -63,7 +63,7 @@ Raytracer::~Raytracer() {
 
 std::shared_ptr<render::RenderEngine> Raytracer::cloneForRender() const {
   auto result = std::make_shared<Raytracer>(m_camera ? m_camera->clone() : nullptr, m_scene);
-  result->setTonemap(tonemap());
+  copyRenderEngineStateTo(*result);
   result->setIntegrator(p->integrator->clone());
   result->setMaximumThreads(p->threadPool->maxThreadCount());
   result->setQueueSize(p->queueSize);

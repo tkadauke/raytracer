@@ -87,10 +87,18 @@ namespace WavefrontRaytracerTest {
     mutable double maxDepth{0.0};
   };
 
+  struct SharedProgressState {
+    int batchesWithProgressObserver{0};
+  };
+
   class ProgressPublishingIntegrator final : public render::Integrator {
   public:
+    explicit ProgressPublishingIntegrator(std::shared_ptr<SharedProgressState> state = nullptr)
+        : m_state(std::move(state)) {
+    }
+
     std::unique_ptr<render::Integrator> clone() const override {
-      return std::make_unique<ProgressPublishingIntegrator>();
+      return std::make_unique<ProgressPublishingIntegrator>(m_state);
     }
 
     const char* diagnosticName() const override {
@@ -110,11 +118,17 @@ namespace WavefrontRaytracerTest {
         metrics->activeSamplesPerDepth = {static_cast<std::uint64_t>(samples.size())};
       }
       if (settings.progressObserver) {
+        if (m_state) {
+          ++m_state->batchesWithProgressObserver;
+        }
         settings.progressObserver->depthCompleted(
           1, std::vector<Colord>(samples.size(), Colord(1.0, 0.0, 0.0)), samples.size());
       }
       return std::vector<Colord>(samples.size(), Colord::black());
     }
+
+  private:
+    std::shared_ptr<SharedProgressState> m_state;
   };
 
   class DepthRecordingIntegrator final : public render::Integrator {
@@ -252,6 +266,7 @@ namespace WavefrontRaytracerTest {
     renderer->setQueueSize(3);
     renderer->setSamplingSeed(42);
     renderer->setShowProgressIndicators(true);
+    renderer->setProgressiveDisplayEnabled(false);
     renderer->setConvergenceEnabled(true);
     renderer->setConvergenceActiveSampleFractionThreshold(0.25);
     renderer->setConvergenceRadianceDeltaRmsThreshold(0.002);
@@ -264,6 +279,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(clone->convergenceEnabled());
     EXPECT_DOUBLE_EQ(0.25, clone->convergenceActiveSampleFractionThreshold());
     EXPECT_DOUBLE_EQ(0.002, clone->convergenceRadianceDeltaRmsThreshold());
+    EXPECT_FALSE(clone->progressiveDisplayEnabled());
     ASSERT_NE(nullptr, clone->denoiser());
     EXPECT_STREQ("box", clone->denoiser()->diagnosticName());
     EXPECT_NE(renderer->denoiser(), clone->denoiser());
@@ -445,6 +461,20 @@ namespace WavefrontRaytracerTest {
 
     EXPECT_GE(denoiserCalls->calls, 2);
     EXPECT_GE(denoiserCalls->featureCalls, 2);
+  }
+
+  TEST(WavefrontRaytracer, SkipsDepthProgressSnapshotsWhenProgressiveDisplayDisabled) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), featureScene());
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->setProgressiveDisplayEnabled(false);
+    auto progressState = std::make_shared<SharedProgressState>();
+    renderer->setIntegrator(std::make_unique<ProgressPublishingIntegrator>(progressState));
+
+    Buffer<unsigned int> buffer(4, 3);
+    renderer->render(buffer);
+
+    EXPECT_EQ(0, progressState->batchesWithProgressObserver);
   }
 
   TEST(WavefrontRaytracer, MatchesRecursiveRaytracerForSimpleWhittedScene) {

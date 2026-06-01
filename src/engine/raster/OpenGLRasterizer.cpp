@@ -503,10 +503,7 @@ namespace engine::raster {
 
   std::shared_ptr<render::RenderEngine> OpenGLRasterizer::cloneForRender() const {
     auto clone = std::make_shared<OpenGLRasterizer>(camera(), scene());
-    if (hasBackgroundColorOverride()) {
-      clone->setBackgroundColor(backgroundColor());
-    }
-    clone->setTonemap(tonemap());
+    copyRenderEngineStateTo(*clone);
     clone->setLod(m_lod);
     clone->setTessellationQuality(m_tessellationQuality);
     if (std::isfinite(m_maximumScreenSpaceError)) {

@@ -41,17 +41,19 @@ namespace engine::wavefront::detail {
 
     void renderHdrTile(render::Camera& camera, const render::RayCaster& rayCaster,
                        const render::Scene& scene, Buffer<Colord>& buffer, const Recti& rect,
-                       std::optional<std::uint64_t> tileSeed,
+                       std::optional<std::uint64_t> tileSeed, bool publishProgressSnapshots,
                        const WavefrontDenoiserFeatureSet* denoiserFeatures = nullptr) const;
     void renderDisplayTile(render::Camera& camera, const render::RayCaster& rayCaster,
                            const render::Scene& scene, Buffer<unsigned int>& buffer,
                            std::shared_ptr<render::Tonemap> tonemap, const Recti& rect,
-                           std::optional<std::uint64_t> tileSeed) const;
+                           std::optional<std::uint64_t> tileSeed,
+                           bool publishProgressSnapshots) const;
     void renderDualOutputTile(render::Camera& camera, const render::RayCaster& rayCaster,
                               const render::Scene& scene, Buffer<Colord>& hdrBuffer,
                               Buffer<unsigned int>& displayBuffer,
                               std::shared_ptr<render::Tonemap> tonemap, const Recti& rect,
                               std::optional<std::uint64_t> tileSeed,
+                              bool publishProgressSnapshots,
                               const WavefrontDenoiserFeatureSet* denoiserFeatures = nullptr) const;
 
     std::unique_ptr<WavefrontDenoiserFeatureSet>

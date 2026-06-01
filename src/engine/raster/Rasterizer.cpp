@@ -384,8 +384,7 @@ namespace {
            (scene && !scene->lights().empty());
   }
 
-  std::string depthPrepassDecision(const Rasterizer& rasterizer,
-                                   const render::TilePlan& tilePlan) {
+  std::string depthPrepassDecision(const Rasterizer& rasterizer, const render::TilePlan& tilePlan) {
     if (rasterizer.depthPrepassMode() == Rasterizer::DepthPrepassMode::Off)
       return "disabled";
     if (rasterizer.msaaSamples() != 1)
@@ -996,7 +995,7 @@ void Rasterizer::Private::publishDiagnosticImageStatistics(Rasterizer& rasterize
 
 std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   auto result = std::make_shared<Rasterizer>(m_camera ? m_camera->clone() : nullptr, m_scene);
-  result->setTonemap(tonemap());
+  copyRenderEngineStateTo(*result);
   result->setLod(m_lod);
   result->setTessellationQuality(m_tessellationQuality);
   if (hasMaximumScreenSpaceErrorOverride()) {
@@ -1056,9 +1055,6 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setBlendConstant(m_blendConstantColor, m_blendConstantAlpha);
   result->setVertexShader(m_vertexShader);
   result->setFragmentShader(m_fragmentShader);
-  if (hasBackgroundColorOverride()) {
-    result->setBackgroundColor(backgroundColor());
-  }
   return result;
 }
 
@@ -1405,8 +1401,7 @@ void Rasterizer::Private::renderTriangleSetPass(
                     metricCounterAtomics());
   const AlphaTestState alphaTest{rasterizer.alphaTestEnabled(), rasterizer.alphaFunc(),
                                  rasterizer.alphaReference()};
-  const bool conservativeDepthOcclusion =
-    passSupportsConservativeDepthOcclusion(rasterizer);
+  const bool conservativeDepthOcclusion = passSupportsConservativeDepthOcclusion(rasterizer);
   const std::string prepassDecision = depthPrepassDecision(rasterizer, tilePlan);
   auto& prepassMetrics = const_cast<Rasterizer&>(rasterizer).m_lastMetrics.depthPrepass;
   prepassMetrics.requested = depthPrepassModeName(rasterizer.depthPrepassMode());

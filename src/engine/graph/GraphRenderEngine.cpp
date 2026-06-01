@@ -687,10 +687,7 @@ namespace engine::graph {
   std::shared_ptr<render::RenderEngine> GraphRenderEngine::cloneForRender() const {
     auto result =
       std::make_shared<GraphRenderEngine>(m_camera ? m_camera->clone() : nullptr, m_scene);
-    result->setTonemap(tonemap());
-    if (hasBackgroundColorOverride()) {
-      result->setBackgroundColor(backgroundColor());
-    }
+    copyRenderEngineStateTo(*result);
     result->setIntent(p->intent);
     result->setSceneAnalysis(p->sceneAnalysis);
     if (p->explicitPlan) {

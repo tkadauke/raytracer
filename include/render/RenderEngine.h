@@ -172,6 +172,20 @@ namespace render {
     void setTonemap(std::shared_ptr<render::Tonemap> tonemap);
 
     /**
+      * Enables or disables in-flight writes meant only for interactive display.
+      *
+      * GUI preview widgets poll the render buffer while a render is running, so
+      * progressive-capable engines normally publish partial results before the
+      * final image is complete. Batch callers such as rendercli can disable
+      * those intermediate writes and keep the same final output with less
+      * scheduler overhead.
+      */
+    void setProgressiveDisplayEnabled(bool enabled);
+
+    /// @returns true when engines should publish in-flight display updates.
+    bool progressiveDisplayEnabled() const;
+
+    /**
       * Request cancellation of an in-flight render. Engines stop
       * scheduling new work after this; in-progress tiles or
       * subdivisions complete before the call returns. Idempotent.
@@ -221,6 +235,9 @@ namespace render {
     bool hasBackgroundColorOverride() const;
 
   protected:
+    /// Copies base render settings into a cloned concrete engine.
+    void copyRenderEngineStateTo(RenderEngine& engine) const;
+
     std::shared_ptr<render::Camera> m_camera;
     std::shared_ptr<render::Scene> m_scene;
     std::optional<Colord> m_backgroundColorOverride;

@@ -25,14 +25,11 @@ Wireframe::~Wireframe() = default;
 
 std::shared_ptr<render::RenderEngine> Wireframe::cloneForRender() const {
   auto result = std::make_shared<Wireframe>(m_camera ? m_camera->clone() : nullptr, m_scene);
-  result->setTonemap(tonemap());
+  copyRenderEngineStateTo(*result);
   result->setLod(m_lod);
   result->setEdgeColor(m_edgeColor);
   result->setNearClipDepth(m_nearClipDepth);
   result->setGeometryMode(m_geometryMode);
-  if (hasBackgroundColorOverride()) {
-    result->setBackgroundColor(backgroundColor());
-  }
   return result;
 }
 
@@ -146,8 +143,7 @@ void Wireframe::render(Buffer<Colord>& buffer) {
       [&](const Vector3d& start, const Vector3d& end, const std::optional<Colord>& color) {
         if (m_cancelled.load())
           return;
-        rasterizeEdge(buffer, *m_camera, start, end, color ? *color : m_edgeColor,
-                      m_nearClipDepth);
+        rasterizeEdge(buffer, *m_camera, start, end, color ? *color : m_edgeColor, m_nearClipDepth);
       });
     return;
   }

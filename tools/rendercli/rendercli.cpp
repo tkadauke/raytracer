@@ -2091,6 +2091,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   } else {
     qWarning("Unknown tonemap %s; falling back to Linear.", qPrintable(m_tonemap));
   }
+  engine->setProgressiveDisplayEnabled(false);
 
   Buffer<unsigned int> buffer(outputWidth, outputHeight);
   std::vector<double> timings;

@@ -214,7 +214,7 @@ namespace engine::wavefront {
   std::shared_ptr<render::RenderEngine> WavefrontRaytracer::cloneForRender() const {
     auto result =
       std::make_shared<WavefrontRaytracer>(m_camera ? m_camera->clone() : nullptr, m_scene);
-    result->setTonemap(tonemap());
+    copyRenderEngineStateTo(*result);
     result->setIntegrator(p->integrator->clone());
     if (p->maximumRecursionDepth) {
       result->setMaximumRecursionDepth(*p->maximumRecursionDepth);
@@ -267,16 +267,17 @@ namespace engine::wavefront {
       *m_camera, *m_scene, buffer.rect(), tilePlan, *p->threadPool, p->denoiserFeatureTasks);
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
     const auto samplingSeed = p->samplingSeed;
+    const bool publishProgressSnapshots = progressiveDisplayEnabled();
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
       [this, rayCaster, camera, bufferPtr, samplingSeed, tileRenderer,
-       denoiserFeaturePtr](const Recti& rect, std::size_t tileIndex) {
+       denoiserFeaturePtr, publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
         tileRenderer.renderHdrTile(*camera, *rayCaster, *m_scene, *bufferPtr, rect, tileSeed,
-                                   denoiserFeaturePtr);
+                                   publishProgressSnapshots, denoiserFeaturePtr);
       });
     tileRenderer.denoise(buffer, denoiserFeatures.get());
     p->metrics.finish(renderStart);
@@ -322,16 +323,17 @@ namespace engine::wavefront {
                      p->convergenceRadianceDeltaRmsThreshold);
     auto tileRenderer = p->tileRenderer();
     const auto samplingSeed = p->samplingSeed;
+    const bool publishProgressSnapshots = progressiveDisplayEnabled();
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
       [this, rayCaster, camera, bufferPtr, tonemapOp, samplingSeed,
-       tileRenderer](const Recti& rect, std::size_t tileIndex) {
+       tileRenderer, publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
         tileRenderer.renderDisplayTile(*camera, *rayCaster, *m_scene, *bufferPtr, tonemapOp, rect,
-                                       tileSeed);
+                                       tileSeed, publishProgressSnapshots);
       });
     p->metrics.finish(renderStart);
 
@@ -380,17 +382,19 @@ namespace engine::wavefront {
       p->denoiserFeatureTasks);
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
     const auto samplingSeed = p->samplingSeed;
+    const bool publishProgressSnapshots = progressiveDisplayEnabled();
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
       [this, rayCaster, camera, hdrBufferPtr, displayBufferPtr, displayTonemap, samplingSeed,
-       tileRenderer, denoiserFeaturePtr](const Recti& rect, std::size_t tileIndex) {
+       tileRenderer, denoiserFeaturePtr, publishProgressSnapshots](const Recti& rect,
+                                                                   std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
         tileRenderer.renderDualOutputTile(*camera, *rayCaster, *m_scene, *hdrBufferPtr,
                                           *displayBufferPtr, displayTonemap, rect, tileSeed,
-                                          denoiserFeaturePtr);
+                                          publishProgressSnapshots, denoiserFeaturePtr);
       });
     tileRenderer.denoise(hdrBuffer, denoiserFeatures.get());
     tileRenderer.writeDisplayBuffer(displayBuffer, hdrBuffer, displayTonemap);
