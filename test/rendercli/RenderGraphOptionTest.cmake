@@ -126,6 +126,11 @@ set(wavefront_denoise_plan "${TEST_OUTPUT_DIR}/wavefront-denoise-graph.json")
 set(wavefront_scene_denoise_plan "${TEST_OUTPUT_DIR}/wavefront-scene-denoise-graph.json")
 set(wavefront_scene_denoise_render "${TEST_OUTPUT_DIR}/wavefront-scene-denoise-render.png")
 set(wavefront_scene_denoise_trace "${TEST_OUTPUT_DIR}/wavefront-scene-denoise-trace.json")
+set(wavefront_denoise_quality_reference
+    "${TEST_OUTPUT_DIR}/wavefront-denoise-quality-reference.png")
+set(wavefront_denoise_quality_raw "${TEST_OUTPUT_DIR}/wavefront-denoise-quality-raw.png")
+set(wavefront_denoise_quality_filtered
+    "${TEST_OUTPUT_DIR}/wavefront-denoise-quality-filtered.png")
 set(wavefront_pathtracer_render "${TEST_OUTPUT_DIR}/wavefront-pathtracer-render.png")
 set(wavefront_compatibility_trace "${TEST_OUTPUT_DIR}/wavefront-compatibility-trace.json")
 set(wavefront_compatibility_trace_render
@@ -1867,6 +1872,55 @@ foreach(feature_name albedo normal depth)
             "scene wavefront denoise trace did not report ${feature_name} feature metadata: ${wavefront_scene_denoise_trace_json}")
   endif()
 endforeach()
+
+rendercli_run(
+  NAME "rendercli renders wavefront denoise quality reference"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --integrator pathtracer --wavefront_denoiser none
+    --samples_per_pixel 64 --width 32 --height 32
+    "${wavefront_denoise_scene}" "${wavefront_denoise_quality_reference}"
+)
+rendercli_assert_image_nonempty("${wavefront_denoise_quality_reference}"
+                                NAME "wavefront denoise quality reference pixels")
+rendercli_run(
+  NAME "rendercli renders raw low-spp wavefront denoise comparison"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --integrator pathtracer --wavefront_denoiser none
+    --samples_per_pixel 4 --width 32 --height 32
+    "${wavefront_denoise_scene}" "${wavefront_denoise_quality_raw}"
+)
+rendercli_assert_image_nonempty("${wavefront_denoise_quality_raw}"
+                                NAME "wavefront denoise quality raw pixels")
+rendercli_run(
+  NAME "rendercli renders filtered low-spp wavefront denoise comparison"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --integrator pathtracer --wavefront_denoiser bilateral
+    --wavefront_denoise_radius 3 --wavefront_denoise_color_sigma 0.25
+    --samples_per_pixel 4 --width 32 --height 32
+    "${wavefront_denoise_scene}" "${wavefront_denoise_quality_filtered}"
+)
+rendercli_assert_image_nonempty("${wavefront_denoise_quality_filtered}"
+                                NAME "wavefront denoise quality filtered pixels")
+rendercli_compare_images("${wavefront_denoise_quality_reference}"
+                         "${wavefront_denoise_quality_raw}"
+                         NAME "wavefront raw low-spp RMS against reference"
+                         RMS_DELTA_VARIABLE wavefront_denoise_raw_rms
+                         OUTPUT_VARIABLE wavefront_denoise_raw_compare)
+rendercli_compare_images("${wavefront_denoise_quality_reference}"
+                         "${wavefront_denoise_quality_filtered}"
+                         NAME "wavefront filtered low-spp RMS against reference"
+                         RMS_DELTA_VARIABLE wavefront_denoise_filtered_rms
+                         OUTPUT_VARIABLE wavefront_denoise_filtered_compare)
+if(NOT wavefront_denoise_filtered_rms LESS wavefront_denoise_raw_rms)
+  _rendercli_fail("wavefront bilateral denoise improves low-spp render"
+                  "expected filtered RMS (${wavefront_denoise_filtered_rms}) below raw RMS (${wavefront_denoise_raw_rms})"
+                  "" "" "${wavefront_denoise_raw_compare}\n${wavefront_denoise_filtered_compare}" "")
+endif()
+if(wavefront_denoise_filtered_rms GREATER 0.03)
+  _rendercli_fail("wavefront bilateral denoise quality threshold"
+                  "expected filtered RMS at most 0.03, got ${wavefront_denoise_filtered_rms}"
+                  "" "" "${wavefront_denoise_filtered_compare}" "")
+endif()
 
 rendercli_run(
   NAME "rendercli traces wavefront material compatibility counter"

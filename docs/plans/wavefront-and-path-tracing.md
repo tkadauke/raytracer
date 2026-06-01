@@ -626,11 +626,15 @@ raw progress followed by a final filtered jump. True scheduler-feedback
 between-depth denoising is still open Phase 6 work.
 `scenes/wavefront_denoise_demo.json` now provides a reusable low-sample,
 graph-backed bilateral-denoising scene so scene-authored denoiser intent can be
-tested in rendercli and inspected in Modeler.
+tested in rendercli and inspected in Modeler. The rendercli graph functional
+suite now uses that scene as a quality gate: a 4spp bilateral-denoised render
+must be closer by normalized RGB RMS to a 64spp reference than the raw 4spp
+render, with filtered RMS capped at 0.03.
 
 **Goal**: low-sample renders look acceptable.
 **Gate**: 4spp render with denoiser produces image visually comparable
-to 64spp without denoiser.
+to 64spp without denoiser. ✅ **Done.** Covered by the
+`wavefront_denoise_demo.json` rendercli RMS regression.
 
 ### Phase 7+ — SoA / GPU / packet traversal
 
