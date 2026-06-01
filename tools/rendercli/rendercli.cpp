@@ -167,8 +167,10 @@ namespace {
       }
       std::cout
         << " total_ms=" << timings.value("totalRenderSeconds").toDouble() * 1000.0
-        << " sample_gen_ms=" << timings.value("sampleGenerationSeconds").toDouble() * 1000.0
-        << " integrator_ms=" << timings.value("integratorBatchSeconds").toDouble() * 1000.0
+        << " sample_gen_worker_ms="
+        << timings.value("sampleGenerationWorkerSeconds").toDouble() * 1000.0
+        << " integrator_worker_ms="
+        << timings.value("integratorBatchWorkerSeconds").toDouble() * 1000.0
         << " integrator=" << batching.value("integrator").toString().toStdString()
         << " execution=" << batching.value("executionMode").toString().toStdString()
         << " samples=" << unsignedValue(input, "primarySamples")

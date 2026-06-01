@@ -99,8 +99,8 @@ namespace engine::wavefront {
     batchingJson["maxRadianceDeltaPerDepth"] = maxRadianceDeltaPerDepth;
 
     QJsonObject timingsJson;
-    timingsJson["sampleGenerationSeconds"] = timings.sampleGenerationSeconds;
-    timingsJson["integratorBatchSeconds"] = timings.integratorBatchSeconds;
+    timingsJson["sampleGenerationWorkerSeconds"] = timings.sampleGenerationWorkerSeconds;
+    timingsJson["integratorBatchWorkerSeconds"] = timings.integratorBatchWorkerSeconds;
     timingsJson["totalRenderSeconds"] = timings.totalRenderSeconds;
 
     QJsonObject denoiseJson;

@@ -138,7 +138,7 @@ namespace engine::wavefront::detail {
           }
         }
       }
-      result.sampleGenerationSeconds =
+      result.sampleGenerationWorkerSeconds =
         std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() -
                                       sampleGenerationStart)
           .count();
@@ -155,7 +155,7 @@ namespace engine::wavefront::detail {
         config.integrator.radianceBatch(scene, samples, rayCaster,
                                         config.metricsEnabled ? &result.batchMetrics : nullptr,
                                         settings);
-      result.integratorBatchSeconds =
+      result.integratorBatchWorkerSeconds =
         std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() -
                                       integratorBatchStart)
           .count();

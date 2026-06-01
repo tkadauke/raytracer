@@ -1514,14 +1514,14 @@ if(NOT wavefront_metrics_stdout MATCHES "denoise_feature_prepass_ms=")
                   "wavefront metrics summary did not contain denoiser feature timing"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
-if(NOT wavefront_metrics_stdout MATCHES "sample_gen_ms=")
-  _rendercli_fail("rendercli wavefront metrics sample generation timing summary"
-                  "wavefront metrics summary did not contain sample generation timing"
+if(NOT wavefront_metrics_stdout MATCHES "sample_gen_worker_ms=")
+  _rendercli_fail("rendercli wavefront metrics sample generation worker timing summary"
+                  "wavefront metrics summary did not contain sample generation worker timing"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
-if(NOT wavefront_metrics_stdout MATCHES "integrator_ms=")
-  _rendercli_fail("rendercli wavefront metrics integrator timing summary"
-                  "wavefront metrics summary did not contain integrator timing"
+if(NOT wavefront_metrics_stdout MATCHES "integrator_worker_ms=")
+  _rendercli_fail("rendercli wavefront metrics integrator worker timing summary"
+                  "wavefront metrics summary did not contain integrator worker timing"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 rendercli_assert_exists("${wavefront_metrics_report}" NAME "wavefront metrics report exists")
@@ -1541,14 +1541,14 @@ if(NOT wavefront_metrics_json MATCHES "\"activeSampleDepthsProcessed\"")
                   "wavefront metrics report did not contain active sample-depth work"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
-if(NOT wavefront_metrics_json MATCHES "\"sampleGenerationSeconds\"")
-  _rendercli_fail("rendercli wavefront metrics sample generation timing"
-                  "wavefront metrics report did not contain sample-generation timing"
+if(NOT wavefront_metrics_json MATCHES "\"sampleGenerationWorkerSeconds\"")
+  _rendercli_fail("rendercli wavefront metrics sample generation worker timing"
+                  "wavefront metrics report did not contain sample-generation worker timing"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
-if(NOT wavefront_metrics_json MATCHES "\"integratorBatchSeconds\"")
-  _rendercli_fail("rendercli wavefront metrics integrator timing"
-                  "wavefront metrics report did not contain integrator-batch timing"
+if(NOT wavefront_metrics_json MATCHES "\"integratorBatchWorkerSeconds\"")
+  _rendercli_fail("rendercli wavefront metrics integrator worker timing"
+                  "wavefront metrics report did not contain integrator-batch worker timing"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"radianceDeltaRmsPerDepth\"")

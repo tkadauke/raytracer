@@ -90,8 +90,8 @@ namespace engine::wavefront {
     } denoise;
 
     struct TimingSummary {
-      double sampleGenerationSeconds = 0.0;
-      double integratorBatchSeconds = 0.0;
+      double sampleGenerationWorkerSeconds = 0.0;
+      double integratorBatchWorkerSeconds = 0.0;
       double totalRenderSeconds = 0.0;
     } timings;
 

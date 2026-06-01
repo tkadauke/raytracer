@@ -1718,8 +1718,8 @@ namespace GraphRenderEngineTest {
     ASSERT_GE(maxDelta.size(), 1);
     EXPECT_GT(maxDelta.at(0).toDouble(), 0.0);
     const QJsonObject timings = metadata.value("timings").toObject();
-    EXPECT_GE(timings.value("sampleGenerationSeconds").toDouble(), 0.0);
-    EXPECT_GE(timings.value("integratorBatchSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("sampleGenerationWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("integratorBatchWorkerSeconds").toDouble(), 0.0);
     EXPECT_GT(timings.value("totalRenderSeconds").toDouble(), 0.0);
     EXPECT_EQ(metadata, wavefront->toJson().value("metadata").toObject());
   }

@@ -19,8 +19,8 @@ namespace engine::wavefront::detail {
     std::vector<WavefrontTilePixel> pixels;
     std::size_t sampleCount{0};
     render::IntegratorBatchMetrics batchMetrics;
-    double sampleGenerationSeconds{0.0};
-    double integratorBatchSeconds{0.0};
+    double sampleGenerationWorkerSeconds{0.0};
+    double integratorBatchWorkerSeconds{0.0};
   };
 
   struct WavefrontDenoiserFeatureSet {
