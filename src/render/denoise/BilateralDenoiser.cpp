@@ -8,6 +8,9 @@
 namespace render {
   namespace {
     constexpr double kMinimumColorSigma = 1e-6;
+    constexpr double kAlbedoSigma = 0.2;
+    constexpr double kNormalSigma = 0.25;
+    constexpr double kRelativeDepthSigma = 0.02;
   }
 
   BilateralDenoiser::BilateralDenoiser(int radius, double colorSigma)
@@ -57,12 +60,7 @@ namespace render {
         const int x1 = std::min(buffer.width() - 1, x + m_radius);
         for (int sy = y0; sy <= y1; ++sy) {
           for (int sx = x0; sx <= x1; ++sx) {
-            const double dx = static_cast<double>(sx - x);
-            const double dy = static_cast<double>(sy - y);
-            const double spatialWeight = gaussian(dx * dx + dy * dy, spatialSigma);
-            const double colorWeight =
-              gaussian(colorDistanceSquared(source[sy][sx], center), m_colorSigma);
-            const double weight = spatialWeight * colorWeight;
+            const double weight = sampleWeight(frame, source, x, y, sx, sy, spatialSigma);
             sum += source[sy][sx] * weight;
             weightSum += weight;
           }
@@ -88,7 +86,56 @@ namespace render {
     return m_colorSigma;
   }
 
-  double BilateralDenoiser::colorDistanceSquared(const Colord& a, const Colord& b) {
+  double BilateralDenoiser::sampleWeight(const DenoiserFrame& frame, const Buffer<Colord>& source,
+                                         int centerX, int centerY, int sampleX, int sampleY,
+                                         double spatialSigma) const {
+    const double dx = static_cast<double>(sampleX - centerX);
+    const double dy = static_cast<double>(sampleY - centerY);
+    const double spatialWeight = gaussian(dx * dx + dy * dy, spatialSigma);
+    const double colorWeight = gaussian(
+      colorDistanceSquared(source[sampleY][sampleX], source[centerY][centerX]), m_colorSigma);
+    return spatialWeight * colorWeight * albedoWeight(frame, centerX, centerY, sampleX, sampleY) *
+           normalWeight(frame, centerX, centerY, sampleX, sampleY) *
+           depthWeight(frame, centerX, centerY, sampleX, sampleY);
+  }
+
+  double BilateralDenoiser::albedoWeight(const DenoiserFrame& frame, int centerX, int centerY,
+                                         int sampleX, int sampleY) const {
+    const auto* albedo = frame.features.albedo;
+    if (!hasFeatureDimensions(albedo, frame)) {
+      return 1.0;
+    }
+
+    return gaussian(colorDistanceSquared((*albedo)[sampleY][sampleX], (*albedo)[centerY][centerX]),
+                    kAlbedoSigma);
+  }
+
+  double BilateralDenoiser::normalWeight(const DenoiserFrame& frame, int centerX, int centerY,
+                                         int sampleX, int sampleY) const {
+    const auto* normal = frame.features.normal;
+    if (!hasFeatureDimensions(normal, frame)) {
+      return 1.0;
+    }
+
+    return gaussian((*normal)[sampleY][sampleX].squaredDistanceTo((*normal)[centerY][centerX]),
+                    kNormalSigma);
+  }
+
+  double BilateralDenoiser::depthWeight(const DenoiserFrame& frame, int centerX, int centerY,
+                                        int sampleX, int sampleY) const {
+    const auto* depth = frame.features.depth;
+    if (!hasFeatureDimensions(depth, frame)) {
+      return 1.0;
+    }
+
+    const double centerDepth = (*depth)[centerY][centerX];
+    const double sampleDepth = (*depth)[sampleY][sampleX];
+    const double scale = std::max({std::abs(centerDepth), std::abs(sampleDepth), 1.0});
+    const double relativeDelta = (sampleDepth - centerDepth) / scale;
+    return gaussian(relativeDelta * relativeDelta, kRelativeDepthSigma);
+  }
+
+  double BilateralDenoiser::colorDistanceSquared(const Colord& a, const Colord& b) const {
     double sum = 0.0;
     for (int component = 0; component != 3; ++component) {
       const double delta = a[component] - b[component];
@@ -97,7 +144,25 @@ namespace render {
     return sum;
   }
 
-  double BilateralDenoiser::gaussian(double distanceSquared, double sigma) {
+  double BilateralDenoiser::gaussian(double distanceSquared, double sigma) const {
     return std::exp(-distanceSquared / (2.0 * sigma * sigma));
+  }
+
+  bool BilateralDenoiser::hasFeatureDimensions(const Buffer<Colord>* buffer,
+                                               const DenoiserFrame& frame) const {
+    return buffer && buffer->width() == frame.beauty.width() &&
+           buffer->height() == frame.beauty.height();
+  }
+
+  bool BilateralDenoiser::hasFeatureDimensions(const Buffer<Vector3d>* buffer,
+                                               const DenoiserFrame& frame) const {
+    return buffer && buffer->width() == frame.beauty.width() &&
+           buffer->height() == frame.beauty.height();
+  }
+
+  bool BilateralDenoiser::hasFeatureDimensions(const Buffer<double>* buffer,
+                                               const DenoiserFrame& frame) const {
+    return buffer && buffer->width() == frame.beauty.width() &&
+           buffer->height() == frame.beauty.height();
   }
 }

@@ -19,8 +19,19 @@ namespace render {
     double colorSigma() const;
 
   private:
-    static double colorDistanceSquared(const Colord& a, const Colord& b);
-    static double gaussian(double distanceSquared, double sigma);
+    double sampleWeight(const DenoiserFrame& frame, const Buffer<Colord>& source, int centerX,
+                        int centerY, int sampleX, int sampleY, double spatialSigma) const;
+    double albedoWeight(const DenoiserFrame& frame, int centerX, int centerY, int sampleX,
+                        int sampleY) const;
+    double normalWeight(const DenoiserFrame& frame, int centerX, int centerY, int sampleX,
+                        int sampleY) const;
+    double depthWeight(const DenoiserFrame& frame, int centerX, int centerY, int sampleX,
+                       int sampleY) const;
+    double colorDistanceSquared(const Colord& a, const Colord& b) const;
+    double gaussian(double distanceSquared, double sigma) const;
+    bool hasFeatureDimensions(const Buffer<Colord>* buffer, const DenoiserFrame& frame) const;
+    bool hasFeatureDimensions(const Buffer<Vector3d>* buffer, const DenoiserFrame& frame) const;
+    bool hasFeatureDimensions(const Buffer<double>* buffer, const DenoiserFrame& frame) const;
 
     int m_radius;
     double m_colorSigma;

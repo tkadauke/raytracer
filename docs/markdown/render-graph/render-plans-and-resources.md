@@ -636,12 +636,13 @@ Wavefront also has an opt-in denoiser hook at the engine level:
 filtered before the final display buffer is rewritten. The frame can also carry
 optional feature buffers such as albedo, normal, and depth. Wavefront fills
 those buffers from primary-hit material albedo, surface normals, and ray depth
-when a denoiser is installed, which gives future AOV-aware filters typed inputs
-without coupling them to the wavefront engine.
+when a denoiser is installed, and feature-aware filters can use them without
+coupling themselves to the wavefront engine.
 `render::BoxDenoiser` is deliberately simple and exists to pin the hook;
 `render::BilateralDenoiser` is the first useful edge-preserving filter,
-weighting neighbors by both pixel distance and color difference. The resolved
-ray-family pass state can now carry
+weighting neighbors by pixel distance, color difference, and any compatible
+albedo/normal/depth feature buffers present in the frame. The resolved
+ray-family pass state can carry
 `denoise: {type, radius, colorSigma}` for wavefront passes, where
 `type: "box"` installs the simple filter, `type: "bilateral"` installs the
 color-bilateral filter, and `type: "none"` explicitly disables an inherited

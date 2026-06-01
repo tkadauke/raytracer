@@ -614,7 +614,9 @@ through render intent, graph JSON, rendercli, and Modeler Render Settings.
 `DenoiserFrame` now carries the beauty buffer plus optional albedo, normal, and
 depth feature buffers, and the wavefront engine fills them from primary-hit
 material albedo, surface normals, and ray depth when a denoiser is installed.
-True between-depth denoising is still open Phase 6 work.
+`BilateralDenoiser` now uses compatible albedo/normal/depth feature buffers as
+additional edge-stopping weights. True between-depth denoising is still open
+Phase 6 work.
 `scenes/wavefront_denoise_demo.json` now provides a reusable low-sample,
 graph-backed bilateral-denoising scene so scene-authored denoiser intent can be
 tested in rendercli and inspected in Modeler.

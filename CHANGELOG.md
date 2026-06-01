@@ -43,6 +43,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront denoiser feature buffers.** Wavefront renders now populate
   primary-hit albedo, normal, and depth buffers when a denoiser is installed,
   giving denoisers typed AOV inputs beyond beauty color. — GPT-5
+- **Feature-aware bilateral denoising.** The wavefront bilateral denoiser now
+  uses compatible albedo, normal, and depth feature buffers as additional
+  edge-stopping inputs when they are available. — GPT-5
 
 ### Changed
 
