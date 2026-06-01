@@ -1717,7 +1717,10 @@ namespace GraphRenderEngineTest {
     const QJsonArray maxDelta = batching.value("maxRadianceDeltaPerDepth").toArray();
     ASSERT_GE(maxDelta.size(), 1);
     EXPECT_GT(maxDelta.at(0).toDouble(), 0.0);
-    EXPECT_GT(metadata.value("timings").toObject().value("totalRenderSeconds").toDouble(), 0.0);
+    const QJsonObject timings = metadata.value("timings").toObject();
+    EXPECT_GE(timings.value("sampleGenerationSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("integratorBatchSeconds").toDouble(), 0.0);
+    EXPECT_GT(timings.value("totalRenderSeconds").toDouble(), 0.0);
     EXPECT_EQ(metadata, wavefront->toJson().value("metadata").toObject());
   }
 

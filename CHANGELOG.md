@@ -75,6 +75,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront denoiser feature requests.** Denoisers now explicitly request
   albedo/normal/depth feature buffers, so featureless filters no longer pay the
   wavefront feature-prepass cost. — GPT-5
+- **Wavefront timing breakdowns.** Wavefront metrics now report
+  sample-generation and integrator-batch timings alongside total render time,
+  making scheduler/intersection costs easier to isolate. — GPT-5
 
 ### Changed
 

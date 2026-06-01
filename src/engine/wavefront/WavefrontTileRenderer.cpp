@@ -100,6 +100,7 @@ namespace engine::wavefront::detail {
                                        TileProgressPublisher publishProgress,
                                        bool publishProgressSnapshots) {
       WavefrontTileTraceResult result;
+      const auto sampleGenerationStart = WavefrontMetricsRecorder::Clock::now();
       std::vector<render::IntegratorRaySample> samples;
       std::vector<std::size_t> samplePixelIndices;
       const int sampleCount = camera.samplesPerPixel();
@@ -137,6 +138,10 @@ namespace engine::wavefront::detail {
           }
         }
       }
+      result.sampleGenerationSeconds =
+        std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() -
+                                      sampleGenerationStart)
+          .count();
 
       const double sampleScale = sampleCount > 0 ? 1.0 / sampleCount : 0.0;
       TileProgressObserver progressObserver(result.pixels, samplePixelIndices, sampleScale,
@@ -145,10 +150,15 @@ namespace engine::wavefront::detail {
       settings.progressObserver =
         publishProgressSnapshots && !samples.empty() ? &progressObserver : nullptr;
 
+      const auto integratorBatchStart = WavefrontMetricsRecorder::Clock::now();
       const std::vector<Colord> sampleColors =
         config.integrator.radianceBatch(scene, samples, rayCaster,
                                         config.metricsEnabled ? &result.batchMetrics : nullptr,
                                         settings);
+      result.integratorBatchSeconds =
+        std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() -
+                                      integratorBatchStart)
+          .count();
       progressObserver.applySampleColors(sampleColors);
       result.sampleCount = samples.size();
       return result;

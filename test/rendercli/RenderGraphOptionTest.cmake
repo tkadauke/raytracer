@@ -1514,6 +1514,16 @@ if(NOT wavefront_metrics_stdout MATCHES "denoise_feature_prepass_ms=")
                   "wavefront metrics summary did not contain denoiser feature timing"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "sample_gen_ms=")
+  _rendercli_fail("rendercli wavefront metrics sample generation timing summary"
+                  "wavefront metrics summary did not contain sample generation timing"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "integrator_ms=")
+  _rendercli_fail("rendercli wavefront metrics integrator timing summary"
+                  "wavefront metrics summary did not contain integrator timing"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 rendercli_assert_exists("${wavefront_metrics_report}" NAME "wavefront metrics report exists")
 file(READ "${wavefront_metrics_report}" wavefront_metrics_json)
 if(NOT wavefront_metrics_json MATCHES "\"schema\"[^\n]*raytracer\\.wavefront_metrics\\.v1")
@@ -1529,6 +1539,16 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"activeSampleDepthsProcessed\"")
   _rendercli_fail("rendercli wavefront metrics sample-depth work"
                   "wavefront metrics report did not contain active sample-depth work"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"sampleGenerationSeconds\"")
+  _rendercli_fail("rendercli wavefront metrics sample generation timing"
+                  "wavefront metrics report did not contain sample-generation timing"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"integratorBatchSeconds\"")
+  _rendercli_fail("rendercli wavefront metrics integrator timing"
+                  "wavefront metrics report did not contain integrator-batch timing"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"radianceDeltaRmsPerDepth\"")

@@ -631,7 +631,7 @@ material compatibility shading, active sample counts per depth, batch sizes,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
 convergence stop decisions, denoiser name/parameters/time when denoising is
 enabled, denoiser feature-prepass time, tile count, queue decision, and render
-timing.
+timing split into sample generation, integrator batch work, and total time.
 Wavefront also has an opt-in denoiser hook at the engine level:
 `render::Denoiser` instances receive a `DenoiserFrame` whose beauty buffer is
 filtered before the final display buffer is rewritten. The frame can also carry
@@ -837,7 +837,8 @@ images.
 After a traced wavefront render, wavefront pass nodes summarize primary sample
 count and the integrator batch execution mode; the property editor exposes the
 full JSON metadata for tile, queue, batch, active-depth, per-depth radiance
-delta, convergence-threshold/stop, and timing details.
+delta, convergence-threshold/stop, and sample-generation/integrator timing
+details.
 
 - the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
   vertically, shows resources between producer and consumer passes, and lets the

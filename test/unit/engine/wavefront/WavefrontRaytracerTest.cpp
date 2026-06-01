@@ -576,6 +576,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(metrics.batching.radianceDeltaSquaredSumPerDepth[0], 0.0);
     ASSERT_EQ(1u, metrics.batching.maxRadianceDeltaPerDepth.size());
     EXPECT_GT(metrics.batching.maxRadianceDeltaPerDepth[0], 0.0);
+    EXPECT_GE(metrics.timings.sampleGenerationSeconds, 0.0);
+    EXPECT_GE(metrics.timings.integratorBatchSeconds, 0.0);
     EXPECT_GT(metrics.timings.totalRenderSeconds, 0.0);
 
     const QJsonObject json = metrics.toJson();
@@ -612,5 +614,8 @@ namespace WavefrontRaytracerTest {
       json.value("batching").toObject().value("maxRadianceDeltaPerDepth").toArray();
     ASSERT_EQ(1, maxDelta.size());
     EXPECT_GT(maxDelta.at(0).toDouble(), 0.0);
+    const QJsonObject timings = json.value("timings").toObject();
+    EXPECT_GE(timings.value("sampleGenerationSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("integratorBatchSeconds").toDouble(), 0.0);
   }
 }

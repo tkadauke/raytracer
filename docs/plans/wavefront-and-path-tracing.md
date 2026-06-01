@@ -600,6 +600,10 @@ That makes convergence a useful graph-visible quality knob and diagnostic, but
 not the main near-term speed path. The next speed work should focus on
 scheduler/intersection cost (packet traversal, SoA state, or other Phase 7
 implementation work) before Phase 4 can honestly claim its 30% speed gate.
+Wavefront metrics now split total render time into sample-generation and
+integrator-batch timing as well, giving future captures a direct way to tell
+whether the bottleneck is camera/sample setup or intersection/material
+transport work.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.
