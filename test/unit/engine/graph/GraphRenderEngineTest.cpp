@@ -1699,6 +1699,9 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(denoise.value("enabled").toBool());
     EXPECT_EQ("box", denoise.value("denoiser").toString().toStdString());
     EXPECT_DOUBLE_EQ(2.0, denoise.value("parameters").toObject().value("radius").toDouble());
+    EXPECT_TRUE(denoise.value("features").toObject().value("albedo").toBool());
+    EXPECT_TRUE(denoise.value("features").toObject().value("normal").toBool());
+    EXPECT_TRUE(denoise.value("features").toObject().value("depth").toBool());
     EXPECT_GE(denoise.value("seconds").toDouble(), 0.0);
     const QJsonArray activeSamples = batching.value("activeSamplesPerDepth").toArray();
     ASSERT_GE(activeSamples.size(), 1);

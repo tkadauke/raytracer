@@ -184,12 +184,18 @@ namespace WavefrontRaytracerTest {
     ASSERT_EQ(1u, metrics.denoise.numericParameters.size());
     EXPECT_EQ("radius", metrics.denoise.numericParameters.front().name);
     EXPECT_DOUBLE_EQ(2.0, metrics.denoise.numericParameters.front().value);
+    EXPECT_TRUE(metrics.denoise.albedoFeature);
+    EXPECT_TRUE(metrics.denoise.normalFeature);
+    EXPECT_TRUE(metrics.denoise.depthFeature);
     EXPECT_GE(metrics.denoise.seconds, 0.0);
 
     const QJsonObject denoise = metrics.toJson().value("denoise").toObject();
     EXPECT_TRUE(denoise.value("enabled").toBool());
     EXPECT_EQ("box", denoise.value("denoiser").toString().toStdString());
     EXPECT_DOUBLE_EQ(2.0, denoise.value("parameters").toObject().value("radius").toDouble());
+    EXPECT_TRUE(denoise.value("features").toObject().value("albedo").toBool());
+    EXPECT_TRUE(denoise.value("features").toObject().value("normal").toBool());
+    EXPECT_TRUE(denoise.value("features").toObject().value("depth").toBool());
     EXPECT_GE(denoise.value("seconds").toDouble(), 0.0);
   }
 

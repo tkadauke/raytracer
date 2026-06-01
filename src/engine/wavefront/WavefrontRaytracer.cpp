@@ -120,6 +120,13 @@ namespace engine::wavefront {
     if (!denoiseParametersJson.isEmpty()) {
       denoiseJson["parameters"] = denoiseParametersJson;
     }
+    if (denoise.enabled) {
+      QJsonObject featureJson;
+      featureJson["albedo"] = denoise.albedoFeature;
+      featureJson["normal"] = denoise.normalFeature;
+      featureJson["depth"] = denoise.depthFeature;
+      denoiseJson["features"] = featureJson;
+    }
 
     QJsonObject convergenceJson;
     convergenceJson["enabled"] = convergence.enabled;
@@ -333,6 +340,9 @@ namespace engine::wavefront {
       const double seconds =
         std::chrono::duration<double>(WavefrontClock::now() - denoiseStart).count();
       std::lock_guard<std::mutex> lock(metricsMutex);
+      lastMetrics.denoise.albedoFeature = frame.features.albedo != nullptr;
+      lastMetrics.denoise.normalFeature = frame.features.normal != nullptr;
+      lastMetrics.denoise.depthFeature = frame.features.depth != nullptr;
       lastMetrics.denoise.seconds += seconds;
     }
 

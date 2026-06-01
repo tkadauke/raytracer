@@ -75,6 +75,9 @@ namespace engine::wavefront {
       bool enabled = false;
       std::string denoiser;
       std::vector<NumericParameter> numericParameters;
+      bool albedoFeature = false;
+      bool normalFeature = false;
+      bool depthFeature = false;
       double seconds = 0.0;
     } denoise;
 

@@ -649,7 +649,9 @@ color-bilateral filter, and `type: "none"` explicitly disables an inherited
 denoiser. rendercli and Modeler Render Settings expose the same controls, so
 denoising is part of compiled render intent rather than a hidden engine toggle.
 Denoisers publish their own diagnostics, so future filters can add trace
-metadata without a wavefront-engine type switch.
+metadata without a wavefront-engine type switch. Wavefront denoise metadata
+also reports which albedo/normal/depth feature buffers were supplied to the
+filter, making AOV-aware denoiser runs visible in graph traces.
 The reusable scene
 [`scenes/wavefront_indirect_environment_demo.json`](../../../scenes/wavefront_indirect_environment_demo.json)
 opens with a wavefront path-tracing intent and no direct lights; the matte
