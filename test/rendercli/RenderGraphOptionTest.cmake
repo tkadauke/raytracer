@@ -1473,6 +1473,9 @@ rendercli_run(
     "${RENDERCLI}" --engine wavefront --width 24 --height 24 --depth 4
     "${static_scene}" "${wavefront_parity_render}"
 )
+rendercli_assert_image_rms_at_most("${wavefront_parity_raytracer_render}"
+                                   "${wavefront_parity_render}" 0.001
+                                   NAME "wavefront static scene RMS matches recursive raytracer")
 rendercli_assert_image_hash_equals("${wavefront_parity_raytracer_render}"
                                    "${wavefront_parity_render}"
                                    NAME "wavefront graph matches recursive raytracer graph")

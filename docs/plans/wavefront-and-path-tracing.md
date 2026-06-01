@@ -499,7 +499,8 @@ RGB RMS delta, so future macro-scene parity gates do not have to rely on exact
 PNG hashes when harmless quantization/threading differences appear. A generated
 BVH-heavy sphere fixture now uses that RMS path as the first macro-scene parity
 gate, and the transparent torus parity fixture now also records an RMS gate
-before enforcing exact image parity.
+before enforcing exact image parity. The deterministic static-scene parity
+fixture records the same RMS gate for the simple sphere/CSG baseline.
 
 **Goal**: prove the architecture without changing image output.
 **Gate**: macro benchmark output (sphere / torus / BVH scenes) RMS
