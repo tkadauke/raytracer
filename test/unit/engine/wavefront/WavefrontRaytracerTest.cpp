@@ -35,8 +35,8 @@ namespace WavefrontRaytracerTest {
       return "fill";
     }
 
-    void denoise(Buffer<Colord>& buffer) const override {
-      buffer.clear(m_color);
+    void denoiseFrame(render::DenoiserFrame& frame) const override {
+      frame.beauty.clear(m_color);
     }
 
   private:

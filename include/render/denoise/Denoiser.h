@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/Color.h"
+#include "core/math/Vector.h"
 
 #include <memory>
 #include <string>
@@ -10,6 +11,21 @@ template<class T>
 class Buffer;
 
 namespace render {
+  struct DenoiserFeatureBuffers {
+    const Buffer<Colord>* albedo = nullptr;
+    const Buffer<Vector3d>* normal = nullptr;
+    const Buffer<double>* depth = nullptr;
+  };
+
+  struct DenoiserFrame {
+    explicit DenoiserFrame(Buffer<Colord>& beautyBuffer)
+        : beauty(beautyBuffer) {
+    }
+
+    Buffer<Colord>& beauty;
+    DenoiserFeatureBuffers features;
+  };
+
   struct DenoiserDiagnostics {
     struct NumericParameter {
       std::string name;
@@ -29,6 +45,10 @@ namespace render {
     virtual DenoiserDiagnostics diagnostics() const {
       return DenoiserDiagnostics{diagnosticName(), {}};
     }
-    virtual void denoise(Buffer<Colord>& buffer) const = 0;
+    void denoise(Buffer<Colord>& buffer) const {
+      DenoiserFrame frame(buffer);
+      denoiseFrame(frame);
+    }
+    virtual void denoiseFrame(DenoiserFrame& frame) const = 0;
   };
 }

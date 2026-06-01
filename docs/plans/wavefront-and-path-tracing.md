@@ -610,8 +610,11 @@ now also include denoiser diagnostics: whether filtering ran, the denoiser name,
 its published parameters, and denoise time. Better edge-aware/AOV-aware filters
 are now started with `render::BilateralDenoiser`, a color-bilateral filter that
 preserves strong color edges better than the original box filter and is exposed
-through render intent, graph JSON, rendercli, and Modeler Render Settings. AOV
-feature buffers and true between-depth denoising are still open Phase 6 work.
+through render intent, graph JSON, rendercli, and Modeler Render Settings.
+`DenoiserFrame` now carries the beauty buffer plus optional albedo, normal, and
+depth feature buffers, establishing the API surface for AOV-aware denoisers.
+Actually producing those feature buffers from the wavefront scheduler and true
+between-depth denoising are still open Phase 6 work.
 `scenes/wavefront_denoise_demo.json` now provides a reusable low-sample,
 graph-backed bilateral-denoising scene so scene-authored denoiser intent can be
 tested in rendercli and inspected in Modeler.

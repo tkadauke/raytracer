@@ -24,7 +24,8 @@ namespace render {
       {DenoiserDiagnostics::NumericParameter{"radius", static_cast<double>(m_radius)}}};
   }
 
-  void BoxDenoiser::denoise(Buffer<Colord>& buffer) const {
+  void BoxDenoiser::denoiseFrame(DenoiserFrame& frame) const {
+    Buffer<Colord>& buffer = frame.beauty;
     if (m_radius <= 0 || buffer.width() <= 0 || buffer.height() <= 0) {
       return;
     }

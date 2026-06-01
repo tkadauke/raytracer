@@ -632,11 +632,14 @@ per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
 convergence stop decisions, denoiser name/parameters/time when denoising is
 enabled, tile count, queue decision, and render timing.
 Wavefront also has an opt-in denoiser hook at the engine level:
-`render::Denoiser` instances can filter the HDR beauty buffer before the final
-display buffer is rewritten. `render::BoxDenoiser` is deliberately simple and
-exists to pin the hook; `render::BilateralDenoiser` is the first useful
-edge-preserving filter, weighting neighbors by both pixel distance and color
-difference. The resolved ray-family pass state can now carry
+`render::Denoiser` instances receive a `DenoiserFrame` whose beauty buffer is
+filtered before the final display buffer is rewritten. The frame can also carry
+optional feature buffers such as albedo, normal, and depth, which gives future
+AOV-aware filters a typed surface without changing the engine hook again.
+`render::BoxDenoiser` is deliberately simple and exists to pin the hook;
+`render::BilateralDenoiser` is the first useful edge-preserving filter,
+weighting neighbors by both pixel distance and color difference. The resolved
+ray-family pass state can now carry
 `denoise: {type, radius, colorSigma}` for wavefront passes, where
 `type: "box"` installs the simple filter, `type: "bilateral"` installs the
 color-bilateral filter, and `type: "none"` explicitly disables an inherited

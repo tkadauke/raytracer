@@ -37,6 +37,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront denoise demo scene.** Added
   `scenes/wavefront_denoise_demo.json`, a graph-backed low-sample path-tracing
   scene that enables bilateral denoising directly from scene render intent. — GPT-5
+- **Denoiser frame API.** `render::Denoiser` now receives a `DenoiserFrame`
+  that can carry optional albedo, normal, and depth feature buffers for future
+  AOV-aware wavefront denoisers. — GPT-5
 
 ### Changed
 
