@@ -48,6 +48,11 @@ namespace PhongMaterialTest {
     ASSERT_EQ(64, material.exponent());
   }
 
+  TEST(PhongMaterial, UsesCompatibilityShadingForPathTracing) {
+    PhongMaterial material;
+    EXPECT_FALSE(material.supportsBsdfSampling());
+  }
+
   // ---- shading-behaviour tests ---------------------------------------------
   //
   // PhongMaterial::shade extends MatteMaterial::shade with a glossy-specular

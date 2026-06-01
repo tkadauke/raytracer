@@ -384,6 +384,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
       QStringLiteral(", samples %1, %2")
         .arg(static_cast<qulonglong>(batching.value(QStringLiteral("samplesSubmitted")).toDouble()))
         .arg(humanizeIdentifier(batching.value(QStringLiteral("executionMode")).toString()));
+    const auto compatibilitySamples = static_cast<qulonglong>(
+      batching.value(QStringLiteral("compatibilityShadeSamples")).toDouble());
+    if (compatibilitySamples > 0) {
+      line += QStringLiteral(", compatibility shade %1").arg(compatibilitySamples);
+    }
   }
   const QJsonObject depthPrepass =
     passTrace->metadata().value(QStringLiteral("depthPrepass")).toObject();

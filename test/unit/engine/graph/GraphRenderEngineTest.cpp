@@ -1684,6 +1684,7 @@ namespace GraphRenderEngineTest {
     const QJsonObject input = metadata.value("input").toObject();
     EXPECT_EQ("pathtracer", batching.value("integrator").toString());
     EXPECT_EQ("depth_major_paths", batching.value("executionMode").toString());
+    EXPECT_EQ(0.0, batching.value("compatibilityShadeSamples").toDouble());
     EXPECT_EQ(4, input.value("samplesPerPixel").toInt());
     EXPECT_EQ(1024.0, input.value("primarySamples").toDouble());
     const QJsonObject convergence = metadata.value("convergence").toObject();

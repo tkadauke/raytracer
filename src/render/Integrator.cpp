@@ -24,6 +24,7 @@ namespace render {
       metrics->activeSamplesPerDepth.clear();
       metrics->radianceDeltaSquaredSumPerDepth.clear();
       metrics->maxRadianceDeltaPerDepth.clear();
+      metrics->compatibilityShadeSamples = 0;
       metrics->stoppedByConvergence = false;
       metrics->stoppedAfterDepth = 0;
     }

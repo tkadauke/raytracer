@@ -615,7 +615,8 @@ integrator uses that batch hook for depth-major processing, giving the graph,
 rendercli, and Modeler a separate executor surface for the scheduler work that
 follows. After a traced wavefront render, the pass metadata reports the selected
 integrator, whether batches used scalar fallback or depth-major path
-scheduling, primary sample totals, active sample counts per depth, batch sizes,
+scheduling, primary sample totals, how many samples fell back to Whitted
+material compatibility shading, active sample counts per depth, batch sizes,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
 convergence stop decisions, tile count, queue decision, and render timing.
 The reusable scene

@@ -225,6 +225,7 @@ namespace render {
       metrics->activeSamplesPerDepth.clear();
       metrics->radianceDeltaSquaredSumPerDepth.clear();
       metrics->maxRadianceDeltaPerDepth.clear();
+      metrics->compatibilityShadeSamples = 0;
       metrics->stoppedByConvergence = false;
       metrics->stoppedAfterDepth = 0;
     }
@@ -290,6 +291,9 @@ namespace render {
           const Colord whittedColor =
             material->shade(&recursiveRayCaster, scene, path.ray, hitPoint, path.state);
           path.accumulated += path.throughput * whittedColor;
+          if (metrics) {
+            ++metrics->compatibilityShadeSamples;
+          }
           path.state.recurseOut();
           path.active = false;
           recordDepthDelta();

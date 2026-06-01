@@ -95,6 +95,8 @@ namespace engine::wavefront {
     batching["samplesSubmitted"] = static_cast<double>(metrics.batching.samplesSubmitted);
     batching["maxBatchSize"] = static_cast<double>(metrics.batching.maxBatchSize);
     batching["averageBatchSize"] = metrics.batching.averageBatchSize;
+    batching["compatibilityShadeSamples"] =
+      static_cast<double>(metrics.batching.compatibilityShadeSamples);
     batching["activeSamplesPerDepth"] = activeSamplesPerDepth;
     batching["radianceDeltaL2PerDepth"] = radianceDeltaL2PerDepth;
     batching["radianceDeltaRmsPerDepth"] = radianceDeltaRmsPerDepth;
@@ -303,6 +305,8 @@ namespace engine::wavefront {
         ++lastMetrics.tiling.nonEmptyTileCount;
         ++lastMetrics.batching.batches;
         lastMetrics.batching.samplesSubmitted += result.sampleCount;
+        lastMetrics.batching.compatibilityShadeSamples +=
+          result.batchMetrics.compatibilityShadeSamples;
         lastMetrics.batching.maxBatchSize = std::max(
           lastMetrics.batching.maxBatchSize, static_cast<std::uint64_t>(result.sampleCount));
         if (lastMetrics.batching.activeSamplesPerDepth.size() <

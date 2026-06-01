@@ -25,6 +25,7 @@ namespace render {
     std::vector<std::uint64_t> activeSamplesPerDepth;
     std::vector<double> radianceDeltaSquaredSumPerDepth;
     std::vector<double> maxRadianceDeltaPerDepth;
+    std::uint64_t compatibilityShadeSamples{0};
     bool stoppedByConvergence{false};
     std::uint64_t stoppedAfterDepth{0};
   };

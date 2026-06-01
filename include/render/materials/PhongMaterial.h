@@ -22,6 +22,10 @@ namespace render {
     * highlights, while high values leave only view vectors close to
     * the mirror-reflection direction.
     *
+    * Path-tracing integrators currently treat Phong as a compatibility
+    * material: they call the Whitted `shade()` implementation and terminate
+    * that path until glossy BSDF sampling is implemented.
+    *
     * @htmlonly
     * <script type="text/javascript" src="figure.js"></script>
     * <script type="text/javascript" src="phong_lambertian_lobes.js"></script>
@@ -146,8 +150,12 @@ namespace render {
       m_specularBRDF.setExponent(exponent);
     }
 
-    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene,
-                         const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
+    Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray,
+                 const HitPoint& hitPoint, render::State& state) const override;
+
+    bool supportsBsdfSampling() const override {
+      return false;
+    }
 
   private:
     render::GlossySpecular m_specularBRDF;

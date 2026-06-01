@@ -37,6 +37,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   publishes sample-color snapshots after each depth pass, and Modeler wavefront
   previews copy those in-flight updates instead of waiting for the whole pass to
   finish. — GPT-5
+- **Wavefront material compatibility traces.** Wavefront path-tracing metadata
+  now reports how many samples fell back to Whitted material shading; Phong and
+  recursive Phong-derived materials use that compatibility path until they have
+  explicit glossy/specular BSDF sampling. — GPT-5
 - **Raytracer integrator selection is graph-visible.** Render intent and
   raytracer beauty pass state now carry `whitted` / `pathtracer` integrator
   selection, so rendercli's `--integrator pathtracer` is represented in
