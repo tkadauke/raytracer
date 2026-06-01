@@ -97,6 +97,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   as an explicit active-frontier intersection phase followed by a hit-frontier
   shading phase, creating a cleaner insertion point for future packet
   traversal. — GPT-5
+- **Wavefront packet frontier traversal.** Path-tracing batches now intersect
+  full four-ray active-frontier chunks through the packet hit API, and BVH
+  packet hits now preserve closest primitive and `HitPoint` materialization
+  through tree traversal. — GPT-5
 
 ### Changed
 

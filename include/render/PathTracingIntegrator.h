@@ -105,6 +105,22 @@ namespace render {
                           const Material& material, const Vector3d& wi, State& state) const;
     void recordDepthDelta(BatchDepthMetrics& depthMetrics, const Colord& before,
                           const Colord& after) const;
+    void recordFrontierHit(std::size_t pathIndex, BatchPath& path, const Primitive& primitive,
+                           const HitPoint& hitPoint, int bounce, BatchDepthMetrics& depthMetrics,
+                           std::vector<BatchHit>& activeHits,
+                           const Colord& accumulatedBeforeDepth) const;
+    void recordFrontierMiss(const Scene& scene, BatchPath& path, BatchDepthMetrics& depthMetrics,
+                            const Colord& accumulatedBeforeDepth) const;
+    void intersectActivePathScalar(const Scene& scene, std::size_t pathIndex,
+                                   std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits,
+                                   int bounce, BatchDepthMetrics& depthMetrics,
+                                   IntegratorBatchMetrics* metrics) const;
+    void intersectActivePathPacket(const Scene& scene,
+                                   const std::vector<std::size_t>& activePathIndices,
+                                   std::size_t firstActivePathIndex, std::vector<BatchPath>& paths,
+                                   std::vector<BatchHit>& activeHits, int bounce,
+                                   BatchDepthMetrics& depthMetrics,
+                                   IntegratorBatchMetrics* metrics) const;
     void intersectActiveFrontier(const Scene& scene,
                                  const std::vector<std::size_t>& activePathIndices,
                                  std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits,

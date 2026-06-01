@@ -86,6 +86,8 @@ namespace render {
       * scalar cost.
       */
     RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
+    PrimitivePacketHit4 intersectPacketHits(const Ray4& rays,
+                                            const PrimitivePacketState4& states) const override;
 
 #if RAYTRACER_SIMD_AVX
     /**
@@ -147,6 +149,10 @@ namespace render {
     void intersectPacketNode(const Node* node, const Ray4& rays, uint16_t activeMask,
                              std::array<float, Ray4::lanes>& tMin, uint16_t& hitMask,
                              render::State& state) const;
+    void intersectPacketHitNode(const Node* node, const Ray4& rays, uint16_t activeMask,
+                                std::array<double, Ray4::lanes>& minDistances,
+                                PrimitivePacketHit4& result,
+                                const PrimitivePacketState4& states) const;
 #if RAYTRACER_SIMD_AVX
     void intersectPacketNode(const Node* node, const Ray8& rays, uint16_t activeMask,
                              std::array<float, Ray8::lanes>& tMin, uint16_t& hitMask,

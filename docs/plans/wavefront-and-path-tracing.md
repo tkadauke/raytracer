@@ -784,8 +784,11 @@ distance. The default implementation still falls back to scalar `intersect(...)`
 the value is the contract shape. The API carries per-lane `State` pointers, so
 wavefront frontier traversal can ask the scene for packet-shaped hit
 materialization without losing the data needed by material shading, hit/miss
-bookkeeping, or trace events. Later BVH/primitive overrides can make that path
-fast.
+bookkeeping, or trace events. BVH now preserves that materialized-hit contract
+through packet tree traversal, and the path-tracing active-frontier stage
+submits full four-ray chunks through `Scene::intersectPacketHits(...)` before
+falling back to the scalar path for leftovers. Later primitive-specific
+overrides can make leaf packet materialization faster.
 
 ---
 

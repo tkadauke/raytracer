@@ -19,6 +19,7 @@
 
 #include "test/helpers/ColorTestHelper.h"
 
+#include <array>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -108,6 +109,17 @@ namespace PathTracingIntegratorTest {
 
     private:
       std::vector<std::string>* m_events;
+    };
+
+    class PacketCountingScene final : public Scene {
+    public:
+      PrimitivePacketHit4 intersectPacketHits(const Ray4& rays,
+                                              const PrimitivePacketState4& states) const override {
+        ++packetHitCalls;
+        return Scene::intersectPacketHits(rays, states);
+      }
+
+      mutable int packetHitCalls{0};
     };
 
     // Build a scene with a single Lambertian ground plane lit by one
@@ -382,6 +394,40 @@ namespace PathTracingIntegratorTest {
     ASSERT_EQ(2u, batched.size());
     const std::vector<std::string> expected{"intersect 1", "intersect 2", "shade 1", "shade 2"};
     EXPECT_EQ(expected, events);
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadianceUsesPacketFrontierForFourActivePaths) {
+    auto scene = std::make_unique<PacketCountingScene>();
+    scene->setAmbient(Colord::black());
+    scene->setBackground(Colord::black());
+
+    auto texture = std::make_shared<ConstantColorTexture>(Colord(0.6, 0.3, 0.2));
+    auto material = std::make_shared<MatteMaterial>(texture);
+    material->setAmbientCoefficient(0.0);
+    material->setDiffuseCoefficient(1.0);
+    auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
+    plane->setMaterial(material);
+    scene->add(plane);
+    scene->addLight(std::make_shared<DirectionalLight>(Vector3d(0, 1, 0), Colord::white()));
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    for (std::uint64_t sample = 0; sample != 4; ++sample) {
+      samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, sample + 1)});
+    }
+
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster, &metrics);
+
+    ASSERT_EQ(4u, batched.size());
+    EXPECT_EQ(1, scene->packetHitCalls);
+    EXPECT_EQ((std::vector<std::uint64_t>{4u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceRecordsCompatibilityMaterialFallbacks) {

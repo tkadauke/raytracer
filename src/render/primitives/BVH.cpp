@@ -302,6 +302,56 @@ void BVH::intersectPacketNode(const Node* node, const Ray4& rays, uint16_t activ
   intersectPacketNode(node->right.get(), rays, nodeMask, tMin, hitMask, state);
 }
 
+PrimitivePacketHit4 BVH::intersectPacketHits(const Ray4& rays,
+                                             const PrimitivePacketState4& states) const {
+  if (!m_root) {
+    return Composite::intersectPacketHits(rays, states);
+  }
+
+  PrimitivePacketHit4 result;
+  std::array<double, Ray4::lanes> minDistances;
+  minDistances.fill(std::numeric_limits<double>::infinity());
+  constexpr uint16_t allActive = static_cast<uint16_t>((1u << Ray4::lanes) - 1u);
+  intersectPacketHitNode(m_root.get(), rays, allActive, minDistances, result, states);
+  return result;
+}
+
+void BVH::intersectPacketHitNode(const Node* node, const Ray4& rays, uint16_t activeMask,
+                                 std::array<double, Ray4::lanes>& minDistances,
+                                 PrimitivePacketHit4& result,
+                                 const PrimitivePacketState4& states) const {
+  if (!node || activeMask == 0) {
+    return;
+  }
+
+  const uint16_t nodeMask = static_cast<uint16_t>(
+    activeMask & static_cast<uint16_t>(core::simd::movemask(node->bbox.intersects4(rays))));
+  if (!nodeMask) {
+    return;
+  }
+
+  if (node->isLeaf()) {
+    for (const auto& prim : node->primitives) {
+      const PrimitivePacketHit4 candidate = prim->intersectPacketHits(rays, states);
+      for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+        if ((nodeMask & (1u << lane)) == 0 || !candidate.hit(lane)) {
+          continue;
+        }
+
+        const HitPoint& hitPoint = candidate.hitPoint(lane);
+        if (hitPoint.distance() < minDistances[lane]) {
+          result.setHit(lane, candidate.primitive(lane), hitPoint);
+          minDistances[lane] = hitPoint.distance();
+        }
+      }
+    }
+    return;
+  }
+
+  intersectPacketHitNode(node->left.get(), rays, nodeMask, minDistances, result, states);
+  intersectPacketHitNode(node->right.get(), rays, nodeMask, minDistances, result, states);
+}
+
 #if RAYTRACER_SIMD_AVX
 RayPacketIntersection8 BVH::intersectPacket(const Ray8& rays, render::State& state) const {
   if (!m_root) {

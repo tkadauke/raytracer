@@ -55,6 +55,9 @@ shading stage. It also accepts per-lane `State` pointers, so hit/miss counters
 and trace events stay attached to the path that owned each ray. The default
 packet-hit implementation falls back to scalar `intersect(...)`, while
 composites merge child packet hits and keep the closest positive hit per lane.
+BVH nodes keep the same materialized-hit contract while traversing their tree,
+so wavefront renderers can ask the accelerated scene for packet-shaped frontier
+hits without losing the primitive and hit-point data needed by material shading.
 
 Most primitives also override:
 

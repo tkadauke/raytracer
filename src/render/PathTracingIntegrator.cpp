@@ -3,6 +3,7 @@
 #include "core/math/HitPoint.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 #include "core/util/ScopedTimer.h"
 #include "render/RayCaster.h"
 #include "render/State.h"
@@ -85,44 +86,124 @@ namespace render {
     }
   }
 
+  void PathTracingIntegrator::recordFrontierHit(std::size_t pathIndex, BatchPath& path,
+                                                const Primitive& primitive,
+                                                const HitPoint& hitPoint, int bounce,
+                                                BatchDepthMetrics& depthMetrics,
+                                                std::vector<BatchHit>& activeHits,
+                                                const Colord& accumulatedBeforeDepth) const {
+    ++depthMetrics.frontierRayHits;
+    if (bounce == 0) {
+      path.state.hitPoint = hitPoint;
+    }
+    activeHits.push_back(BatchHit{pathIndex, &primitive, hitPoint, accumulatedBeforeDepth});
+  }
+
+  void PathTracingIntegrator::recordFrontierMiss(const Scene& scene, BatchPath& path,
+                                                 BatchDepthMetrics& depthMetrics,
+                                                 const Colord& accumulatedBeforeDepth) const {
+    ++depthMetrics.frontierRayMisses;
+    path.accumulated += path.throughput * scene.background();
+    path.state.recurseOut();
+    path.active = false;
+    recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated);
+  }
+
+  void PathTracingIntegrator::intersectActivePathScalar(const Scene& scene, std::size_t pathIndex,
+                                                        std::vector<BatchPath>& paths,
+                                                        std::vector<BatchHit>& activeHits,
+                                                        int bounce, BatchDepthMetrics& depthMetrics,
+                                                        IntegratorBatchMetrics* metrics) const {
+    auto& path = paths[pathIndex];
+    const Colord accumulatedBeforeDepth = path.accumulated;
+    if (isCancelled()) {
+      path.active = false;
+      recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated);
+      return;
+    }
+
+    path.state.recurseIn();
+
+    HitPointInterval hitPoints;
+    const Primitive* primitive = nullptr;
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      primitive = scene.intersect(path.ray, hitPoints, path.state);
+    }
+    if (!primitive) {
+      recordFrontierMiss(scene, path, depthMetrics, accumulatedBeforeDepth);
+      return;
+    }
+
+    recordFrontierHit(pathIndex, path, *primitive, hitPoints.minWithPositiveDistance(), bounce,
+                      depthMetrics, activeHits, accumulatedBeforeDepth);
+  }
+
+  void PathTracingIntegrator::intersectActivePathPacket(
+    const Scene& scene, const std::vector<std::size_t>& activePathIndices,
+    std::size_t firstActivePathIndex, std::vector<BatchPath>& paths,
+    std::vector<BatchHit>& activeHits, int bounce, BatchDepthMetrics& depthMetrics,
+    IntegratorBatchMetrics* metrics) const {
+    std::array<Rayd, Ray4::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
+                                       Rayd::undefined};
+    std::array<Colord, Ray4::lanes> accumulatedBeforeDepths;
+    PrimitivePacketState4 states{};
+
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      const std::size_t pathIndex = activePathIndices[firstActivePathIndex + lane];
+      auto& path = paths[pathIndex];
+      accumulatedBeforeDepths[lane] = path.accumulated;
+      path.state.recurseIn();
+      rays[lane] = path.ray;
+      states[lane] = &path.state;
+    }
+
+    PrimitivePacketHit4 packetHits;
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      packetHits = scene.intersectPacketHits(Ray4(rays), states);
+    }
+
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      const std::size_t pathIndex = activePathIndices[firstActivePathIndex + lane];
+      auto& path = paths[pathIndex];
+      if (!packetHits.hit(lane)) {
+        recordFrontierMiss(scene, path, depthMetrics, accumulatedBeforeDepths[lane]);
+        continue;
+      }
+
+      recordFrontierHit(pathIndex, path, *packetHits.primitive(lane), packetHits.hitPoint(lane),
+                        bounce, depthMetrics, activeHits, accumulatedBeforeDepths[lane]);
+    }
+  }
+
   void PathTracingIntegrator::intersectActiveFrontier(
     const Scene& scene, const std::vector<std::size_t>& activePathIndices,
     std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits, int bounce,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     activeHits.clear();
 
-    for (const std::size_t pathIndex : activePathIndices) {
-      auto& path = paths[pathIndex];
-      const Colord accumulatedBeforeDepth = path.accumulated;
+    std::size_t activeIndex = 0;
+    while (activeIndex != activePathIndices.size()) {
       if (isCancelled()) {
+        const std::size_t pathIndex = activePathIndices[activeIndex];
+        auto& path = paths[pathIndex];
+        const Colord accumulatedBeforeDepth = path.accumulated;
         path.active = false;
         recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated);
+        ++activeIndex;
         continue;
       }
 
-      path.state.recurseIn();
-
-      HitPointInterval hitPoints;
-      const Primitive* primitive = nullptr;
-      {
-        core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-        primitive = scene.intersect(path.ray, hitPoints, path.state);
+      if (activeIndex + Ray4::lanes <= activePathIndices.size()) {
+        intersectActivePathPacket(scene, activePathIndices, activeIndex, paths, activeHits, bounce,
+                                  depthMetrics, metrics);
+        activeIndex += Ray4::lanes;
+      } else {
+        intersectActivePathScalar(scene, activePathIndices[activeIndex], paths, activeHits, bounce,
+                                  depthMetrics, metrics);
+        ++activeIndex;
       }
-      if (!primitive) {
-        ++depthMetrics.frontierRayMisses;
-        path.accumulated += path.throughput * scene.background();
-        path.state.recurseOut();
-        path.active = false;
-        recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated);
-        continue;
-      }
-
-      ++depthMetrics.frontierRayHits;
-      const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
-      if (bounce == 0) {
-        path.state.hitPoint = hitPoint;
-      }
-      activeHits.push_back(BatchHit{pathIndex, primitive, hitPoint, accumulatedBeforeDepth});
     }
   }
 

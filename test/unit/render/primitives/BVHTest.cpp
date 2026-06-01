@@ -49,6 +49,26 @@ namespace BVHTest {
     }
   }
 
+  static void expectPacketHitsMatchScalarLanes(const BVH& bvh, const std::array<Rayd, 4>& rays) {
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    const auto packet = bvh.intersectPacketHits(Ray4(rays), states);
+
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      State scalarState;
+      HitPointInterval scalarHits;
+      const Primitive* scalarPrimitive = bvh.intersect(rays[lane], scalarHits, scalarState);
+
+      ASSERT_EQ(scalarPrimitive != nullptr, packet.hit(lane)) << "lane " << lane;
+      if (scalarPrimitive) {
+        EXPECT_EQ(scalarPrimitive, packet.primitive(lane)) << "lane " << lane;
+        EXPECT_NEAR(scalarHits.minWithPositiveDistance().distance(),
+                    packet.hitPoint(lane).distance(), 1e-3)
+          << "lane " << lane;
+      }
+    }
+  }
+
   TEST(BVH, EmptyHierarchyMissesEverything) {
     BVH bvh;
     bvh.setup();
@@ -307,6 +327,19 @@ namespace BVHTest {
     expectPacketMatchesScalarLanes(*bvh, incoherentRays);
   }
 
+  TEST(BVH, PacketHitMaterializationMatchesScalarForRay4Traversal) {
+    auto bvh = gridSpheres(4);
+
+    const std::array<Rayd, 4> testRays = {
+      Rayd(Vector3d(-10, 0, 0), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(0, -10, 4), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(100, 100, 100), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(6, 6, -10), Vector3d(0, 0, 1)),
+    };
+
+    expectPacketHitsMatchScalarLanes(*bvh, testRays);
+  }
+
   TEST(BVH, PacketIntersectFallsBackToLinearScanIfSetupNotCalled) {
     BVH bvh;
     auto sphere = std::make_shared<Sphere>(Vector3d::null, 1.0);
@@ -325,6 +358,29 @@ namespace BVHTest {
     EXPECT_TRUE(result.hit(0));
     EXPECT_FALSE(result.hit(1));
     EXPECT_TRUE(result.hit(2));
+    EXPECT_FALSE(result.hit(3));
+  }
+
+  TEST(BVH, PacketHitMaterializationFallsBackToLinearScanIfSetupNotCalled) {
+    BVH bvh;
+    auto sphere = std::make_shared<Sphere>(Vector3d::null, 1.0);
+    bvh.add(sphere);
+
+    const std::array<Rayd, 4> testRays = {
+      Rayd(Vector3d(0, 0, -10), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(5, 0, -10), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, 0, -10), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(5, 0, -10), Vector3d(0, 0, 1)),
+    };
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    const auto result = bvh.intersectPacketHits(Ray4(testRays), states);
+
+    EXPECT_TRUE(result.hit(0));
+    EXPECT_EQ(sphere.get(), result.primitive(0));
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_TRUE(result.hit(2));
+    EXPECT_EQ(sphere.get(), result.primitive(2));
     EXPECT_FALSE(result.hit(3));
   }
 }
