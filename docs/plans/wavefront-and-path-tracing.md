@@ -531,7 +531,12 @@ for direct and graph-backed wavefront renders, which gives the default-tuning
 work a repeatable data source. The rendercli graph functional suite now has a
 metrics-backed regression that drives intentionally loose path-tracing
 thresholds and requires the report to show convergence-stopped tiles after the
-first depth. Remaining work is to tune defaults against macro benchmarks.
+first depth. `benchmarks/wavefront_convergence_capture.sh` now packages the
+Phase 4 macro capture loop: it generates a BVH-heavy Whitted scene, compares
+recursive and wavefront variants, captures wavefront metrics, and also compares
+path-tracing convergence against the non-converged indirect-bounce scene.
+Remaining work is to run that capture across representative dimensions and tune
+defaults from the measured timing/quality data.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.
