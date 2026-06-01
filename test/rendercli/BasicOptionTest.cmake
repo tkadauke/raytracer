@@ -88,7 +88,7 @@ rendercli_run(
 rendercli_assert_image_nonempty("${default_render}"
                                 NAME "default render contains pixels")
 
-foreach(engine IN ITEMS raytracer raster wireframe)
+foreach(engine IN ITEMS raytracer wavefront raster wireframe)
   set(engine_render "${TEST_OUTPUT_DIR}/engine-${engine}.png")
   rendercli_run(
     NAME "rendercli --engine ${engine} renders"
