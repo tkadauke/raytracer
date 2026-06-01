@@ -630,7 +630,8 @@ scheduling, primary sample totals, how many samples fell back to Whitted
 material compatibility shading, active sample counts per depth, batch sizes,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
 convergence stop decisions, denoiser name/parameters/time when denoising is
-enabled, tile count, queue decision, and render timing.
+enabled, denoiser feature-prepass time, tile count, queue decision, and render
+timing.
 Wavefront also has an opt-in denoiser hook at the engine level:
 `render::Denoiser` instances receive a `DenoiserFrame` whose beauty buffer is
 filtered before the final display buffer is rewritten. The frame can also carry
@@ -651,7 +652,8 @@ denoising is part of compiled render intent rather than a hidden engine toggle.
 Denoisers publish their own diagnostics, so future filters can add trace
 metadata without a wavefront-engine type switch. Wavefront denoise metadata
 also reports which albedo/normal/depth feature buffers were supplied to the
-filter, making AOV-aware denoiser runs visible in graph traces.
+filter and how long that feature prepass took, making AOV-aware denoiser runs
+visible in graph traces.
 The reusable scene
 [`scenes/wavefront_indirect_environment_demo.json`](../../../scenes/wavefront_indirect_environment_demo.json)
 opens with a wavefront path-tracing intent and no direct lights; the matte

@@ -48,7 +48,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   edge-stopping inputs when they are available. — GPT-5
 - **Wavefront denoiser feature diagnostics.** Wavefront denoise metrics,
   compact summaries, and graph traces now report which albedo, normal, and
-  depth feature buffers were supplied to the denoiser. — GPT-5
+  depth feature buffers were supplied to the denoiser and how long the feature
+  prepass took. — GPT-5
 
 ### Changed
 

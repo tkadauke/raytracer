@@ -165,25 +165,24 @@ namespace {
       if (!passId.isEmpty()) {
         std::cout << " pass=" << passId.toStdString();
       }
-      std::cout << " total_ms=" << timings.value("totalRenderSeconds").toDouble() * 1000.0
-                << " integrator=" << batching.value("integrator").toString().toStdString()
-                << " execution=" << batching.value("executionMode").toString().toStdString()
-                << " samples=" << unsignedValue(input, "primarySamples")
-                << " batches=" << unsignedValue(batching, "batches")
-                << " avg_batch=" << batching.value("averageBatchSize").toDouble()
-                << " max_batch=" << unsignedValue(batching, "maxBatchSize")
-                << " active_depths=" << activeSamples.size()
-                << " last_active=" << unsignedArrayBack(activeSamples)
-                << " last_rms_delta=" << doubleArrayBack(rmsDelta)
-                << " compatibility_shade_samples="
-                << unsignedValue(batching, "compatibilityShadeSamples")
-                << " convergence=" << convergence.value("decision").toString().toStdString()
-                << " stopped_tiles=" << unsignedValue(convergence, "stoppedTileCount")
-                << " denoiser="
-                << (denoise.value("enabled").toBool()
-                      ? denoise.value("denoiser").toString().toStdString()
-                      : std::string("none"))
-                << " denoise_ms=" << denoise.value("seconds").toDouble() * 1000.0;
+      std::cout
+        << " total_ms=" << timings.value("totalRenderSeconds").toDouble() * 1000.0
+        << " integrator=" << batching.value("integrator").toString().toStdString()
+        << " execution=" << batching.value("executionMode").toString().toStdString()
+        << " samples=" << unsignedValue(input, "primarySamples")
+        << " batches=" << unsignedValue(batching, "batches")
+        << " avg_batch=" << batching.value("averageBatchSize").toDouble()
+        << " max_batch=" << unsignedValue(batching, "maxBatchSize")
+        << " active_depths=" << activeSamples.size()
+        << " last_active=" << unsignedArrayBack(activeSamples)
+        << " last_rms_delta=" << doubleArrayBack(rmsDelta)
+        << " compatibility_shade_samples=" << unsignedValue(batching, "compatibilityShadeSamples")
+        << " convergence=" << convergence.value("decision").toString().toStdString()
+        << " stopped_tiles=" << unsignedValue(convergence, "stoppedTileCount") << " denoiser="
+        << (denoise.value("enabled").toBool() ? denoise.value("denoiser").toString().toStdString()
+                                              : std::string("none"))
+        << " denoise_ms=" << denoise.value("seconds").toDouble() * 1000.0
+        << " denoise_feature_prepass_ms=" << denoise.value("featureSeconds").toDouble() * 1000.0;
       const QJsonObject denoiseParameters = denoise.value("parameters").toObject();
       for (auto it = denoiseParameters.begin(); it != denoiseParameters.end(); ++it) {
         std::cout << " denoise_" << it.key().toStdString() << "=" << it.value().toDouble();

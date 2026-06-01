@@ -110,6 +110,7 @@ namespace engine::wavefront {
     QJsonObject denoiseJson;
     denoiseJson["enabled"] = denoise.enabled;
     denoiseJson["seconds"] = denoise.seconds;
+    denoiseJson["featureSeconds"] = denoise.featureSeconds;
     if (denoise.enabled) {
       denoiseJson["denoiser"] = QString::fromStdString(denoise.denoiser);
     }
@@ -357,6 +358,12 @@ namespace engine::wavefront {
       }
     }
 
+    void recordDenoiserFeatureSeconds(WavefrontClock::time_point start) const {
+      const double seconds = std::chrono::duration<double>(WavefrontClock::now() - start).count();
+      std::lock_guard<std::mutex> lock(metricsMutex);
+      lastMetrics.denoise.featureSeconds += seconds;
+    }
+
     std::unique_ptr<DenoiserFeatureSet> buildDenoiserFeatures(render::Camera& camera,
                                                               const render::Scene& scene,
                                                               const Recti& rect) const {
@@ -364,9 +371,11 @@ namespace engine::wavefront {
         return nullptr;
       }
 
+      const auto featureStart = WavefrontClock::now();
       auto features = std::make_unique<DenoiserFeatureSet>(rect.width(), rect.height());
       const Recti actualRect = camera.renderableRect(rect);
       if (actualRect.width() <= 0 || actualRect.height() <= 0) {
+        recordDenoiserFeatureSeconds(featureStart);
         return features;
       }
 
@@ -400,6 +409,7 @@ namespace engine::wavefront {
         writeDenoiserFeature(*features, pixel.footprintWithin(actualRect), albedo,
                              hitPoint.normal().normalizedOrZero(1e-12), hitPoint.distance());
       }
+      recordDenoiserFeatureSeconds(featureStart);
       return features;
     }
 

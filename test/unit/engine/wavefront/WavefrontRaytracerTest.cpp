@@ -187,6 +187,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(metrics.denoise.albedoFeature);
     EXPECT_TRUE(metrics.denoise.normalFeature);
     EXPECT_TRUE(metrics.denoise.depthFeature);
+    EXPECT_GE(metrics.denoise.featureSeconds, 0.0);
     EXPECT_GE(metrics.denoise.seconds, 0.0);
 
     const QJsonObject denoise = metrics.toJson().value("denoise").toObject();
@@ -196,6 +197,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(denoise.value("features").toObject().value("albedo").toBool());
     EXPECT_TRUE(denoise.value("features").toObject().value("normal").toBool());
     EXPECT_TRUE(denoise.value("features").toObject().value("depth").toBool());
+    EXPECT_GE(denoise.value("featureSeconds").toDouble(), 0.0);
     EXPECT_GE(denoise.value("seconds").toDouble(), 0.0);
   }
 

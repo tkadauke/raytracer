@@ -616,8 +616,9 @@ depth feature buffers, and the wavefront engine fills them from primary-hit
 material albedo, surface normals, and ray depth when a denoiser is installed.
 `BilateralDenoiser` now uses compatible albedo/normal/depth feature buffers as
 additional edge-stopping weights, and wavefront metrics report which feature
-buffers were supplied to the denoiser for graph trace inspection. True
-between-depth denoising is still open Phase 6 work.
+buffers were supplied to the denoiser plus how long the feature prepass took
+for graph trace inspection. True between-depth denoising is still open Phase 6
+work.
 `scenes/wavefront_denoise_demo.json` now provides a reusable low-sample,
 graph-backed bilateral-denoising scene so scene-authored denoiser intent can be
 tested in rendercli and inspected in Modeler.

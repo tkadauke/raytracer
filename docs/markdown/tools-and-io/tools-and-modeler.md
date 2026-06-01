@@ -225,8 +225,10 @@ a color-edge-preserving filter controlled by `--wavefront_denoise_radius N` and
 box, while giving a color sigma without a denoiser selects bilateral. `none`
 disables an inherited scene denoiser in the compiled intent. Wavefront metrics
 record the chosen denoiser, its published parameters, and how much time
-filtering took; the compact `--wavefront_metrics_summary` line prints those
-same denoiser fields as `denoiser`, `denoise_ms`, and `denoise_<parameter>`.
+filtering and feature-buffer prepass work took; the compact
+`--wavefront_metrics_summary` line prints those same denoiser fields as
+`denoiser`, `denoise_ms`, `denoise_feature_prepass_ms`, and
+`denoise_<parameter>`.
 
 That gives a two-step debugging loop:
 

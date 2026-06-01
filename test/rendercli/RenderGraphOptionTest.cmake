@@ -1500,6 +1500,11 @@ foreach(feature_name albedo normal depth)
                     "${wavefront_metrics_stdout}" "" "" "")
   endif()
 endforeach()
+if(NOT wavefront_metrics_stdout MATCHES "denoise_feature_prepass_ms=")
+  _rendercli_fail("rendercli wavefront metrics denoiser feature timing summary"
+                  "wavefront metrics summary did not contain denoiser feature timing"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 rendercli_assert_exists("${wavefront_metrics_report}" NAME "wavefront metrics report exists")
 file(READ "${wavefront_metrics_report}" wavefront_metrics_json)
 if(NOT wavefront_metrics_json MATCHES "\"schema\"[^\n]*raytracer\\.wavefront_metrics\\.v1")
@@ -1540,6 +1545,11 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"features\"")
   _rendercli_fail("rendercli wavefront metrics denoiser features"
                   "wavefront metrics report did not contain denoiser feature metadata"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"featureSeconds\"")
+  _rendercli_fail("rendercli wavefront metrics denoiser feature timing"
+                  "wavefront metrics report did not contain denoiser feature timing"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 
