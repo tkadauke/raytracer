@@ -39,6 +39,8 @@ namespace render {
 
   struct PathTracingIntegrator::BatchDepthMetrics {
     bool trackRadianceDelta{false};
+    std::uint64_t frontierRayHits{0};
+    std::uint64_t frontierRayMisses{0};
     double depthDeltaSquaredSum{0.0};
     double depthMaxDelta{0.0};
     IntegratorBatchMetrics* metrics{nullptr};
@@ -107,6 +109,7 @@ namespace render {
         primitive = scene.intersect(path.ray, hitPoints, path.state);
       }
       if (!primitive) {
+        ++depthMetrics.frontierRayMisses;
         path.accumulated += path.throughput * scene.background();
         path.state.recurseOut();
         path.active = false;
@@ -114,6 +117,7 @@ namespace render {
         continue;
       }
 
+      ++depthMetrics.frontierRayHits;
       const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
       if (bounce == 0) {
         path.state.hitPoint = hitPoint;
@@ -281,16 +285,7 @@ namespace render {
     }
 
     if (metrics) {
-      metrics->usedScalarFallback = false;
-      metrics->activeSamplesPerDepth.clear();
-      metrics->activeSampleDepthsProcessed = 0;
-      metrics->radianceDeltaSquaredSumPerDepth.clear();
-      metrics->maxRadianceDeltaPerDepth.clear();
-      metrics->compatibilityShadeSamples = 0;
-      metrics->stoppedByConvergence = false;
-      metrics->stoppedAfterDepth = 0;
-      metrics->intersectionWorkerSeconds = 0.0;
-      metrics->shadingWorkerSeconds = 0.0;
+      metrics->reset(/*scalarFallback=*/false);
     }
     const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
     std::vector<std::size_t> nextActivePathIndices;
@@ -304,14 +299,17 @@ namespace render {
         break;
       }
       if (metrics) {
-        metrics->activeSamplesPerDepth.push_back(activeCount);
-        metrics->activeSampleDepthsProcessed += activeCount;
+        metrics->recordActiveDepth(activeCount);
       }
 
       nextActivePathIndices.clear();
-      BatchDepthMetrics depthMetrics{trackRadianceDelta, 0.0, 0.0, metrics};
+      BatchDepthMetrics depthMetrics{trackRadianceDelta, 0, 0, 0.0, 0.0, metrics};
       intersectActiveFrontier(scene, activePathIndices, paths, activeHits, bounce, depthMetrics,
                               metrics);
+      if (metrics) {
+        metrics->recordFrontierIntersections(depthMetrics.frontierRayHits,
+                                             depthMetrics.frontierRayMisses);
+      }
 
       for (const auto& hit : activeHits) {
         auto& path = paths[hit.pathIndex];
@@ -391,8 +389,8 @@ namespace render {
       }
 
       if (metrics) {
-        metrics->radianceDeltaSquaredSumPerDepth.push_back(depthMetrics.depthDeltaSquaredSum);
-        metrics->maxRadianceDeltaPerDepth.push_back(depthMetrics.depthMaxDelta);
+        metrics->recordRadianceDeltaDepth(depthMetrics.depthDeltaSquaredSum,
+                                          depthMetrics.depthMaxDelta);
       }
 
       if (settings.progressObserver) {

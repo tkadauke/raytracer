@@ -47,6 +47,40 @@ namespace engine::wavefront {
     };
   }
 
+  void WavefrontRenderMetrics::BatchSummary::addIntegratorMetrics(
+    const render::IntegratorBatchMetrics& metrics) {
+    activeSampleDepthsProcessed += metrics.activeSampleDepthsProcessed;
+    compatibilityShadeSamples += metrics.compatibilityShadeSamples;
+
+    const auto addCounts = [](std::vector<std::uint64_t>& target,
+                              const std::vector<std::uint64_t>& source) {
+      if (target.size() < source.size()) {
+        target.resize(source.size());
+      }
+      for (std::size_t depth = 0; depth != source.size(); ++depth) {
+        target[depth] += source[depth];
+      }
+    };
+    addCounts(activeSamplesPerDepth, metrics.activeSamplesPerDepth);
+    addCounts(frontierRayHitsPerDepth, metrics.frontierRayHitsPerDepth);
+    addCounts(frontierRayMissesPerDepth, metrics.frontierRayMissesPerDepth);
+
+    if (radianceDeltaSquaredSumPerDepth.size() < metrics.radianceDeltaSquaredSumPerDepth.size()) {
+      radianceDeltaSquaredSumPerDepth.resize(metrics.radianceDeltaSquaredSumPerDepth.size());
+    }
+    for (std::size_t depth = 0; depth != metrics.radianceDeltaSquaredSumPerDepth.size(); ++depth) {
+      radianceDeltaSquaredSumPerDepth[depth] += metrics.radianceDeltaSquaredSumPerDepth[depth];
+    }
+
+    if (maxRadianceDeltaPerDepth.size() < metrics.maxRadianceDeltaPerDepth.size()) {
+      maxRadianceDeltaPerDepth.resize(metrics.maxRadianceDeltaPerDepth.size());
+    }
+    for (std::size_t depth = 0; depth != metrics.maxRadianceDeltaPerDepth.size(); ++depth) {
+      maxRadianceDeltaPerDepth[depth] =
+        std::max(maxRadianceDeltaPerDepth[depth], metrics.maxRadianceDeltaPerDepth[depth]);
+    }
+  }
+
   QJsonObject WavefrontRenderMetrics::toJson() const {
     QJsonObject inputJson;
     inputJson["width"] = input.width;
@@ -65,10 +99,16 @@ namespace engine::wavefront {
     schedulingJson["decision"] = QString::fromStdString(scheduling.decision);
 
     QJsonObject batchingJson;
-    QJsonArray activeSamplesPerDepth;
-    for (const std::uint64_t count : batching.activeSamplesPerDepth) {
-      activeSamplesPerDepth.push_back(static_cast<double>(count));
-    }
+    const auto integerArray = [](const std::vector<std::uint64_t>& values) {
+      QJsonArray result;
+      for (const std::uint64_t value : values) {
+        result.push_back(static_cast<double>(value));
+      }
+      return result;
+    };
+    const QJsonArray activeSamplesPerDepth = integerArray(batching.activeSamplesPerDepth);
+    const QJsonArray frontierRayHitsPerDepth = integerArray(batching.frontierRayHitsPerDepth);
+    const QJsonArray frontierRayMissesPerDepth = integerArray(batching.frontierRayMissesPerDepth);
     QJsonArray radianceDeltaL2PerDepth;
     QJsonArray radianceDeltaRmsPerDepth;
     for (std::size_t depth = 0; depth != batching.radianceDeltaSquaredSumPerDepth.size(); ++depth) {
@@ -94,6 +134,8 @@ namespace engine::wavefront {
     batchingJson["compatibilityShadeSamples"] =
       static_cast<double>(batching.compatibilityShadeSamples);
     batchingJson["activeSamplesPerDepth"] = activeSamplesPerDepth;
+    batchingJson["frontierRayHitsPerDepth"] = frontierRayHitsPerDepth;
+    batchingJson["frontierRayMissesPerDepth"] = frontierRayMissesPerDepth;
     batchingJson["radianceDeltaL2PerDepth"] = radianceDeltaL2PerDepth;
     batchingJson["radianceDeltaRmsPerDepth"] = radianceDeltaRmsPerDepth;
     batchingJson["maxRadianceDeltaPerDepth"] = maxRadianceDeltaPerDepth;

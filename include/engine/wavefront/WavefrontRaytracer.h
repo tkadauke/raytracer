@@ -19,6 +19,7 @@ namespace render {
   class Camera;
   class Denoiser;
   class Integrator;
+  struct IntegratorBatchMetrics;
   class Scene;
 }
 
@@ -53,8 +54,12 @@ namespace engine::wavefront {
       std::uint64_t activeSampleDepthsProcessed = 0;
       std::uint64_t compatibilityShadeSamples = 0;
       std::vector<std::uint64_t> activeSamplesPerDepth;
+      std::vector<std::uint64_t> frontierRayHitsPerDepth;
+      std::vector<std::uint64_t> frontierRayMissesPerDepth;
       std::vector<double> radianceDeltaSquaredSumPerDepth;
       std::vector<double> maxRadianceDeltaPerDepth;
+
+      void addIntegratorMetrics(const render::IntegratorBatchMetrics& metrics);
     } batching;
 
     struct ConvergenceSummary {

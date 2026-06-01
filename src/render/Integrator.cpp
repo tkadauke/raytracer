@@ -14,22 +14,44 @@ namespace render {
     return "scalar_loop";
   }
 
+  void IntegratorBatchMetrics::reset(bool scalarFallback) {
+    usedScalarFallback = scalarFallback;
+    activeSamplesPerDepth.clear();
+    frontierRayHitsPerDepth.clear();
+    frontierRayMissesPerDepth.clear();
+    activeSampleDepthsProcessed = 0;
+    radianceDeltaSquaredSumPerDepth.clear();
+    maxRadianceDeltaPerDepth.clear();
+    compatibilityShadeSamples = 0;
+    stoppedByConvergence = false;
+    stoppedAfterDepth = 0;
+    intersectionWorkerSeconds = 0.0;
+    shadingWorkerSeconds = 0.0;
+  }
+
+  void IntegratorBatchMetrics::recordActiveDepth(std::uint64_t activeSamples) {
+    activeSamplesPerDepth.push_back(activeSamples);
+    activeSampleDepthsProcessed += activeSamples;
+  }
+
+  void IntegratorBatchMetrics::recordFrontierIntersections(std::uint64_t hitRays,
+                                                           std::uint64_t missRays) {
+    frontierRayHitsPerDepth.push_back(hitRays);
+    frontierRayMissesPerDepth.push_back(missRays);
+  }
+
+  void IntegratorBatchMetrics::recordRadianceDeltaDepth(double squaredSum, double maxDelta) {
+    radianceDeltaSquaredSumPerDepth.push_back(squaredSum);
+    maxRadianceDeltaPerDepth.push_back(maxDelta);
+  }
+
   std::vector<Colord> Integrator::radianceBatch(const Scene& scene,
                                                 const std::vector<IntegratorRaySample>& samples,
                                                 const RayCaster& recursiveRayCaster,
                                                 IntegratorBatchMetrics* metrics,
                                                 const IntegratorBatchSettings& settings) const {
     if (metrics) {
-      metrics->usedScalarFallback = true;
-      metrics->activeSamplesPerDepth.clear();
-      metrics->activeSampleDepthsProcessed = 0;
-      metrics->radianceDeltaSquaredSumPerDepth.clear();
-      metrics->maxRadianceDeltaPerDepth.clear();
-      metrics->compatibilityShadeSamples = 0;
-      metrics->stoppedByConvergence = false;
-      metrics->stoppedAfterDepth = 0;
-      metrics->intersectionWorkerSeconds = 0.0;
-      metrics->shadingWorkerSeconds = 0.0;
+      metrics->reset(/*scalarFallback=*/true);
     }
 
     std::vector<Colord> result;
@@ -52,10 +74,8 @@ namespace render {
 
     if (!samples.empty()) {
       if (metrics) {
-        metrics->activeSamplesPerDepth.push_back(samples.size());
-        metrics->activeSampleDepthsProcessed += samples.size();
-        metrics->radianceDeltaSquaredSumPerDepth.push_back(deltaSquaredSum);
-        metrics->maxRadianceDeltaPerDepth.push_back(maxDelta);
+        metrics->recordActiveDepth(samples.size());
+        metrics->recordRadianceDeltaDepth(deltaSquaredSum, maxDelta);
       }
       if (settings.progressObserver) {
         settings.progressObserver->depthCompleted(/*completedDepth=*/1, result, samples.size());

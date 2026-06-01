@@ -242,6 +242,8 @@ namespace WhittedIntegratorTest {
     EXPECT_STREQ("depth_major_whitted", integrator.batchExecutionMode());
     EXPECT_FALSE(metrics.usedScalarFallback);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 1u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
     EXPECT_EQ(2u, metrics.radianceDeltaSquaredSumPerDepth.size());
     EXPECT_GT(metrics.intersectionWorkerSeconds, 0.0);
@@ -272,6 +274,8 @@ namespace WhittedIntegratorTest {
     EXPECT_TRUE(metrics.stoppedByConvergence);
     EXPECT_EQ(1u, metrics.stoppedAfterDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(1u, metrics.activeSampleDepthsProcessed);
     EXPECT_EQ(1u, metrics.radianceDeltaSquaredSumPerDepth.size());
   }
@@ -294,6 +298,8 @@ namespace WhittedIntegratorTest {
     ASSERT_EQ(1u, colors.size());
     ASSERT_COLOR_NEAR(Colord(0.2, 0.2, 0.3), colors[0], 1e-12);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 2u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
   }
 
@@ -321,6 +327,8 @@ namespace WhittedIntegratorTest {
     EXPECT_TRUE(metrics.stoppedByConvergence);
     EXPECT_EQ(1u, metrics.stoppedAfterDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(1u, metrics.activeSampleDepthsProcessed);
   }
 
@@ -343,6 +351,8 @@ namespace WhittedIntegratorTest {
     ASSERT_COLOR_NEAR(Colord(0.35, 0.7, 1.05), colors[0], 1e-12);
     EXPECT_TRUE(metrics.usedScalarFallback);
     EXPECT_EQ(1u, metrics.compatibilityShadeSamples);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceMatchesScalarReflectiveContinuations) {

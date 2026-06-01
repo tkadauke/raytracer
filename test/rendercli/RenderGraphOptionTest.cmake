@@ -1534,6 +1534,16 @@ if(NOT wavefront_metrics_stdout MATCHES "integrator_shading_worker_ms=")
                   "wavefront metrics summary did not contain integrator shading worker timing"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_hit_rays=")
+  _rendercli_fail("rendercli wavefront metrics frontier hit summary"
+                  "wavefront metrics summary did not contain frontier hit counters"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_miss_rays=")
+  _rendercli_fail("rendercli wavefront metrics frontier miss summary"
+                  "wavefront metrics summary did not contain frontier miss counters"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 rendercli_assert_exists("${wavefront_metrics_report}" NAME "wavefront metrics report exists")
 file(READ "${wavefront_metrics_report}" wavefront_metrics_json)
 if(NOT wavefront_metrics_json MATCHES "\"schema\"[^\n]*raytracer\\.wavefront_metrics\\.v1")
@@ -1549,6 +1559,16 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"activeSampleDepthsProcessed\"")
   _rendercli_fail("rendercli wavefront metrics sample-depth work"
                   "wavefront metrics report did not contain active sample-depth work"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"frontierRayHitsPerDepth\"")
+  _rendercli_fail("rendercli wavefront metrics frontier hits"
+                  "wavefront metrics report did not contain frontier hit counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"frontierRayMissesPerDepth\"")
+  _rendercli_fail("rendercli wavefront metrics frontier misses"
+                  "wavefront metrics report did not contain frontier miss counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"sampleGenerationWorkerSeconds\"")

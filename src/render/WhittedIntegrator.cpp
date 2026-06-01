@@ -92,16 +92,7 @@ namespace render {
     };
 
     if (metrics) {
-      metrics->usedScalarFallback = false;
-      metrics->activeSamplesPerDepth.clear();
-      metrics->activeSampleDepthsProcessed = 0;
-      metrics->radianceDeltaSquaredSumPerDepth.clear();
-      metrics->maxRadianceDeltaPerDepth.clear();
-      metrics->compatibilityShadeSamples = 0;
-      metrics->stoppedByConvergence = false;
-      metrics->stoppedAfterDepth = 0;
-      metrics->intersectionWorkerSeconds = 0.0;
-      metrics->shadingWorkerSeconds = 0.0;
+      metrics->reset(/*scalarFallback=*/false);
     }
 
     std::vector<Colord> result(samples.size(), Colord::black());
@@ -139,8 +130,7 @@ namespace render {
         currentActiveSamples = activeSampleIndices.size();
       }
       if (metrics) {
-        metrics->activeSamplesPerDepth.push_back(currentActiveSamples);
-        metrics->activeSampleDepthsProcessed += currentActiveSamples;
+        metrics->recordActiveDepth(currentActiveSamples);
       }
       if (trackRadianceDelta) {
         resultBeforeActiveSamples.clear();
@@ -155,6 +145,8 @@ namespace render {
       if (countNextActiveSamples) {
         std::fill(nextActiveSamples.begin(), nextActiveSamples.end(), 0);
       }
+      std::uint64_t frontierRayHits = 0;
+      std::uint64_t frontierRayMisses = 0;
 
       for (auto& queued : current) {
         if (isCancelled()) {
@@ -191,11 +183,13 @@ namespace render {
         }
 
         if (!primitive) {
+          ++frontierRayMisses;
           queued.state.recordEvent(nullptr, "Raytracer: Nothing hit, returning background color");
           result[queued.sampleIndex] += queued.weight * scene.background();
           continue;
         }
 
+        ++frontierRayHits;
         {
           core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
           const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
@@ -256,8 +250,8 @@ namespace render {
       }
 
       if (metrics) {
-        metrics->radianceDeltaSquaredSumPerDepth.push_back(depthDeltaSquaredSum);
-        metrics->maxRadianceDeltaPerDepth.push_back(depthMaxDelta);
+        metrics->recordFrontierIntersections(frontierRayHits, frontierRayMisses);
+        metrics->recordRadianceDeltaDepth(depthDeltaSquaredSum, depthMaxDelta);
       }
 
       const std::uint64_t nextActiveSampleCount =

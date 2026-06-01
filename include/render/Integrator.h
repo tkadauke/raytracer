@@ -28,6 +28,8 @@ namespace render {
   struct IntegratorBatchMetrics {
     bool usedScalarFallback{false};
     std::vector<std::uint64_t> activeSamplesPerDepth;
+    std::vector<std::uint64_t> frontierRayHitsPerDepth;
+    std::vector<std::uint64_t> frontierRayMissesPerDepth;
     std::uint64_t activeSampleDepthsProcessed{0};
     std::vector<double> radianceDeltaSquaredSumPerDepth;
     std::vector<double> maxRadianceDeltaPerDepth;
@@ -36,6 +38,11 @@ namespace render {
     std::uint64_t stoppedAfterDepth{0};
     double intersectionWorkerSeconds{0.0};
     double shadingWorkerSeconds{0.0};
+
+    void reset(bool scalarFallback);
+    void recordActiveDepth(std::uint64_t activeSamples);
+    void recordFrontierIntersections(std::uint64_t hitRays, std::uint64_t missRays);
+    void recordRadianceDeltaDepth(double squaredSum, double maxDelta);
   };
 
   class IntegratorBatchObserver {

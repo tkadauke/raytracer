@@ -6,6 +6,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QJsonValue>
 
 #include "RenderCliSceneLoader.h"
 
@@ -159,6 +160,8 @@ namespace {
       const QJsonObject convergence = metrics.value("convergence").toObject();
       const QJsonObject denoise = metrics.value("denoise").toObject();
       const QJsonArray activeSamples = batching.value("activeSamplesPerDepth").toArray();
+      const QJsonArray frontierHits = batching.value("frontierRayHitsPerDepth").toArray();
+      const QJsonArray frontierMisses = batching.value("frontierRayMissesPerDepth").toArray();
       const QJsonArray rmsDelta = batching.value("radianceDeltaRmsPerDepth").toArray();
       std::cout << std::fixed << std::setprecision(3) << "wavefront_metrics"
                 << " run=" << run;
@@ -184,6 +187,8 @@ namespace {
         << " max_batch=" << unsignedValue(batching, "maxBatchSize")
         << " active_depths=" << activeSamples.size()
         << " last_active=" << unsignedArrayBack(activeSamples)
+        << " frontier_hit_rays=" << unsignedArraySum(frontierHits)
+        << " frontier_miss_rays=" << unsignedArraySum(frontierMisses)
         << " last_rms_delta=" << doubleArrayBack(rmsDelta)
         << " compatibility_shade_samples=" << unsignedValue(batching, "compatibilityShadeSamples")
         << " convergence=" << convergence.value("decision").toString().toStdString()
@@ -217,6 +222,14 @@ namespace {
         return 0;
       }
       return static_cast<std::uint64_t>(array.at(array.size() - 1).toDouble());
+    }
+
+    std::uint64_t unsignedArraySum(const QJsonArray& array) const {
+      std::uint64_t result = 0;
+      for (const QJsonValue& value : array) {
+        result += static_cast<std::uint64_t>(value.toDouble());
+      }
+      return result;
     }
 
     double doubleArrayBack(const QJsonArray& array) const {

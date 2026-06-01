@@ -633,6 +633,12 @@ large enough to measure before packet traversal is introduced. The path tracer's
 active-frontier intersection stage now lives in an integrator-owned instance
 method with private batch-path/hit state, so a packet or SoA implementation can
 replace that stage without mixing traversal policy into the shading loop.
+Wavefront metrics now also publish per-depth frontier ray hit/miss arrays, and
+rendercli's compact metrics summary prints total frontier hit/miss rays. That
+adds a baseline diagnostic for the next scheduler/intersection slices: captures
+can now distinguish "we spent time testing many rays that missed" from "the
+frontier is still mostly shading-visible geometry" before changing traversal
+policy.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.

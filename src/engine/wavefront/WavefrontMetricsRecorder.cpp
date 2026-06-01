@@ -62,42 +62,9 @@ namespace engine::wavefront::detail {
       result.batchMetrics.intersectionWorkerSeconds;
     m_metrics.timings.integratorShadingWorkerSeconds += result.batchMetrics.shadingWorkerSeconds;
     m_metrics.batching.samplesSubmitted += result.sampleCount;
-    m_metrics.batching.activeSampleDepthsProcessed +=
-      result.batchMetrics.activeSampleDepthsProcessed;
-    m_metrics.batching.compatibilityShadeSamples += result.batchMetrics.compatibilityShadeSamples;
+    m_metrics.batching.addIntegratorMetrics(result.batchMetrics);
     m_metrics.batching.maxBatchSize =
       std::max(m_metrics.batching.maxBatchSize, static_cast<std::uint64_t>(result.sampleCount));
-    if (m_metrics.batching.activeSamplesPerDepth.size() <
-        result.batchMetrics.activeSamplesPerDepth.size()) {
-      m_metrics.batching.activeSamplesPerDepth.resize(
-        result.batchMetrics.activeSamplesPerDepth.size());
-    }
-    for (std::size_t depth = 0; depth != result.batchMetrics.activeSamplesPerDepth.size();
-         ++depth) {
-      m_metrics.batching.activeSamplesPerDepth[depth] +=
-        result.batchMetrics.activeSamplesPerDepth[depth];
-    }
-    if (m_metrics.batching.radianceDeltaSquaredSumPerDepth.size() <
-        result.batchMetrics.radianceDeltaSquaredSumPerDepth.size()) {
-      m_metrics.batching.radianceDeltaSquaredSumPerDepth.resize(
-        result.batchMetrics.radianceDeltaSquaredSumPerDepth.size());
-    }
-    for (std::size_t depth = 0; depth != result.batchMetrics.radianceDeltaSquaredSumPerDepth.size();
-         ++depth) {
-      m_metrics.batching.radianceDeltaSquaredSumPerDepth[depth] +=
-        result.batchMetrics.radianceDeltaSquaredSumPerDepth[depth];
-    }
-    if (m_metrics.batching.maxRadianceDeltaPerDepth.size() <
-        result.batchMetrics.maxRadianceDeltaPerDepth.size()) {
-      m_metrics.batching.maxRadianceDeltaPerDepth.resize(
-        result.batchMetrics.maxRadianceDeltaPerDepth.size());
-    }
-    for (std::size_t depth = 0; depth != result.batchMetrics.maxRadianceDeltaPerDepth.size();
-         ++depth) {
-      m_metrics.batching.maxRadianceDeltaPerDepth[depth] =
-        std::max(m_metrics.batching.maxRadianceDeltaPerDepth[depth],
-                 result.batchMetrics.maxRadianceDeltaPerDepth[depth]);
-    }
     if (result.batchMetrics.stoppedByConvergence) {
       m_metrics.convergence.recordStoppedTileAfterDepth(result.batchMetrics.stoppedAfterDepth);
     }

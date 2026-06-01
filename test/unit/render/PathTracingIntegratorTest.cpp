@@ -315,6 +315,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_FALSE(metrics.usedScalarFallback);
     ASSERT_EQ(1u, metrics.activeSamplesPerDepth.size());
     EXPECT_EQ(2u, metrics.activeSamplesPerDepth[0]);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
     ASSERT_EQ(1u, metrics.radianceDeltaSquaredSumPerDepth.size());
     EXPECT_GT(metrics.radianceDeltaSquaredSumPerDepth[0], 0.0);
@@ -442,6 +444,8 @@ namespace PathTracingIntegratorTest {
     ASSERT_COLOR_NEAR(Colord(0.5, 0, 0), batched[0], 1e-12);
     EXPECT_EQ(0u, metrics.compatibilityShadeSamples);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 1u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
   }
 
@@ -465,6 +469,8 @@ namespace PathTracingIntegratorTest {
     ASSERT_COLOR_NEAR(Colord(0.5, 0, 0), batched[0], 1e-12);
     ASSERT_COLOR_NEAR(Colord(1, 0, 0), batched[1], 1e-12);
     EXPECT_EQ((std::vector<std::uint64_t>{2u, 1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(3u, metrics.activeSampleDepthsProcessed);
   }
 
@@ -486,6 +492,8 @@ namespace PathTracingIntegratorTest {
     ASSERT_COLOR_NEAR(Colord(0.5, 0, 0), batched[0], 1e-12);
     EXPECT_EQ(0u, metrics.compatibilityShadeSamples);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 1u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
   }
 
@@ -507,6 +515,8 @@ namespace PathTracingIntegratorTest {
     ASSERT_COLOR_NEAR(Colord(0.25, 0, 0), batched[0], 1e-12);
     EXPECT_EQ(0u, metrics.compatibilityShadeSamples);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 1u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
   }
 
@@ -536,6 +546,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1u, metrics.stoppedAfterDepth);
     ASSERT_EQ(1u, metrics.activeSamplesPerDepth.size());
     EXPECT_EQ(2u, metrics.activeSamplesPerDepth[0]);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
   }
 

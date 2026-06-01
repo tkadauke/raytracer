@@ -13,8 +13,10 @@
 #include <QGraphicsView>
 #include <QHeaderView>
 #include <QHBoxLayout>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonValue>
 #include <QLabel>
 #include <QMetaObject>
 #include <QPainter>
@@ -105,6 +107,7 @@ struct RenderGraphInspectorWidget::Private {
   QString displayFeatureText(const RenderFeatureKind& feature) const;
   QString graphEnumText(const char* value) const;
   QString executionStateName(PassExecutionState state) const;
+  qulonglong jsonIntegerArraySum(const QJsonArray& array) const;
   QString passTraceLine(const RenderPassNode& pass) const;
   const RenderGraphResourceSnapshot*
   firstSnapshotForResource(const RenderResourceId& resourceId) const;
@@ -352,6 +355,14 @@ QString RenderGraphInspectorWidget::Private::executionStateName(PassExecutionSta
   return QStringLiteral("idle");
 }
 
+qulonglong RenderGraphInspectorWidget::Private::jsonIntegerArraySum(const QJsonArray& array) const {
+  qulonglong result = 0;
+  for (const QJsonValue& value : array) {
+    result += static_cast<qulonglong>(value.toDouble());
+  }
+  return result;
+}
+
 QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode& pass) const {
   if (!trace)
     return QString();
@@ -388,6 +399,13 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
       batching.value(QStringLiteral("compatibilityShadeSamples")).toDouble());
     if (compatibilitySamples > 0) {
       line += QStringLiteral(", compatibility shade %1").arg(compatibilitySamples);
+    }
+    const qulonglong frontierHits =
+      jsonIntegerArraySum(batching.value(QStringLiteral("frontierRayHitsPerDepth")).toArray());
+    const qulonglong frontierMisses =
+      jsonIntegerArraySum(batching.value(QStringLiteral("frontierRayMissesPerDepth")).toArray());
+    if (frontierHits > 0 || frontierMisses > 0) {
+      line += QStringLiteral(", frontier %1 hit/%2 miss").arg(frontierHits).arg(frontierMisses);
     }
   }
   const QJsonObject depthPrepass =
