@@ -222,6 +222,33 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ(2u, metrics.radianceDeltaSquaredSumPerDepth.size());
   }
 
+  TEST(WhittedIntegrator, BatchedRadianceStopsExplicitContinuationsWhenConverged) {
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    auto primitive = makePrimaryOnlyHit();
+    primitive->setMaterial(std::make_shared<ContinuationMaterial>());
+    scene.add(primitive);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    IntegratorBatchMetrics metrics;
+    IntegratorBatchSettings settings;
+    settings.convergenceEnabled = true;
+    settings.activeSampleFractionThreshold = 1.0;
+    settings.radianceDeltaRmsThreshold = 10.0;
+    std::vector<IntegratorRaySample> samples{
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr}};
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings);
+
+    ASSERT_EQ(1u, colors.size());
+    ASSERT_COLOR_NEAR(Colord(0.1, 0.0, 0.0), colors[0], 1e-12);
+    EXPECT_TRUE(metrics.stoppedByConvergence);
+    EXPECT_EQ(1u, metrics.stoppedAfterDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ(1u, metrics.radianceDeltaSquaredSumPerDepth.size());
+  }
+
   TEST(WhittedIntegrator, BatchedRadianceFallsBackForUnsupportedMaterials) {
     Scene scene;
     scene.setAmbient(Colord(0.1, 0.2, 0.3));

@@ -514,18 +514,19 @@ fixtures. The sphere/torus/BVH fixtures use normalized RGB RMS thresholds of
 
 Activate the convergence test as a stop condition. Active-pixel count
 + L2 over active subset. Threshold tuning via the macro benchmark.
-The first slice is active for depth-major path-tracing batches: graph-visible
-thresholds stop a tile when both the remaining active-sample fraction and the
-current RMS radiance delta are below their configured limits. Those thresholds
-can be authored in scene intent, adjusted in Modeler Render Settings, or passed
-through rendercli with `--wavefront_convergence`,
-`--wavefront_no_convergence`, `--wavefront_convergence_active_fraction`, and
+Graph-visible thresholds stop a tile when both the remaining active-sample
+fraction and the current RMS radiance delta are below their configured limits.
+The policy applies to depth-major path-tracing batches and explicit Whitted
+continuation queues; scalar compatibility fallback calls still run to completion
+because they are not queue-visible. Those thresholds can be authored in scene
+intent, adjusted in Modeler Render Settings, or passed through rendercli with
+`--wavefront_convergence`, `--wavefront_no_convergence`,
+`--wavefront_convergence_active_fraction`, and
 `--wavefront_convergence_rms_delta`; exported graph JSON carries the resolved
 pass state. Modeler Render Settings now add Preview/Balanced/Final convergence
 quality presets over those same thresholds, with raw active-fraction and
 RMS-delta fields still available for advanced tuning. Remaining work is to tune
-defaults against macro benchmarks and decide whether the same policy should
-remain enabled for explicit Whitted queues.
+defaults against macro benchmarks.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.
