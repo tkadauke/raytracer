@@ -17,12 +17,16 @@ namespace render {
   std::vector<Colord> Integrator::radianceBatch(const Scene& scene,
                                                 const std::vector<IntegratorRaySample>& samples,
                                                 const RayCaster& recursiveRayCaster,
-                                                IntegratorBatchMetrics* metrics) const {
+                                                IntegratorBatchMetrics* metrics,
+                                                const IntegratorBatchSettings& settings) const {
+    (void)settings;
     if (metrics) {
       metrics->usedScalarFallback = true;
       metrics->activeSamplesPerDepth.clear();
       metrics->radianceDeltaSquaredSumPerDepth.clear();
       metrics->maxRadianceDeltaPerDepth.clear();
+      metrics->stoppedByConvergence = false;
+      metrics->stoppedAfterDepth = 0;
     }
 
     std::vector<Colord> result;

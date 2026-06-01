@@ -23,8 +23,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   remains available through the scalar fallback. — GPT-5
 - **Wavefront graph trace metadata.** Wavefront renders now record tile,
   sample, integrator batch-mode, active-samples-per-depth, per-depth radiance
-  deltas, configured convergence thresholds, scheduling, and timing metrics in
-  graph execution traces, and the Modeler graph view summarizes the
+  deltas, convergence thresholds/stop decisions, scheduling, and timing metrics
+  in graph execution traces, and the Modeler graph view summarizes the
   sample/batch mode on wavefront pass nodes. — GPT-5
 - **Raytracer integrator selection is graph-visible.** Render intent and
   raytracer beauty pass state now carry `whitted` / `pathtracer` integrator

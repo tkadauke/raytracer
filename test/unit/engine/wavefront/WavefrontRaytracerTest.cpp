@@ -114,7 +114,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(metrics.convergence.enabled);
     EXPECT_DOUBLE_EQ(0.5, metrics.convergence.activeSampleFractionThreshold);
     EXPECT_DOUBLE_EQ(0.01, metrics.convergence.radianceDeltaRmsThreshold);
-    EXPECT_EQ("configured", metrics.convergence.decision);
+    EXPECT_EQ(0u, metrics.convergence.stoppedTileCount);
+    EXPECT_EQ("not_reached", metrics.convergence.decision);
     ASSERT_EQ(1u, metrics.batching.radianceDeltaSquaredSumPerDepth.size());
     EXPECT_GT(metrics.batching.radianceDeltaSquaredSumPerDepth[0], 0.0);
     ASSERT_EQ(1u, metrics.batching.maxRadianceDeltaPerDepth.size());
@@ -134,7 +135,8 @@ namespace WavefrontRaytracerTest {
       0.5, json.value("convergence").toObject().value("activeSampleFractionThreshold").toDouble());
     EXPECT_DOUBLE_EQ(
       0.01, json.value("convergence").toObject().value("radianceDeltaRmsThreshold").toDouble());
-    EXPECT_EQ("configured",
+    EXPECT_EQ(0.0, json.value("convergence").toObject().value("stoppedTileCount").toDouble());
+    EXPECT_EQ("not_reached",
               json.value("convergence").toObject().value("decision").toString().toStdString());
     const QJsonArray deltaL2 =
       json.value("batching").toObject().value("radianceDeltaL2PerDepth").toArray();

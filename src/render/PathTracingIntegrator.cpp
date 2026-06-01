@@ -197,7 +197,8 @@ namespace render {
 
   std::vector<Colord> PathTracingIntegrator::radianceBatch(
     const Scene& scene, const std::vector<IntegratorRaySample>& samples,
-    const RayCaster& recursiveRayCaster, IntegratorBatchMetrics* metrics) const {
+    const RayCaster& recursiveRayCaster, IntegratorBatchMetrics* metrics,
+    const IntegratorBatchSettings& settings) const {
     struct PathState {
       explicit PathState(const IntegratorRaySample& sample)
           : ray(sample.ray) {
@@ -216,26 +217,33 @@ namespace render {
     paths.reserve(samples.size());
     for (const auto& sample : samples) {
       if (!sample.sampleStream) {
-        return Integrator::radianceBatch(scene, samples, recursiveRayCaster, metrics);
+        return Integrator::radianceBatch(scene, samples, recursiveRayCaster, metrics, settings);
       }
 
       paths.emplace_back(sample);
     }
+
+    const auto activePathCount = [&paths] {
+      std::uint64_t activeCount = 0;
+      for (const auto& path : paths) {
+        if (path.active) {
+          ++activeCount;
+        }
+      }
+      return activeCount;
+    };
 
     if (metrics) {
       metrics->usedScalarFallback = false;
       metrics->activeSamplesPerDepth.clear();
       metrics->radianceDeltaSquaredSumPerDepth.clear();
       metrics->maxRadianceDeltaPerDepth.clear();
+      metrics->stoppedByConvergence = false;
+      metrics->stoppedAfterDepth = 0;
     }
 
     for (int bounce = 0; bounce < m_maximumRecursionDepth; ++bounce) {
-      std::uint64_t activeCount = 0;
-      for (auto& path : paths) {
-        if (path.active) {
-          ++activeCount;
-        }
-      }
+      const std::uint64_t activeCount = activePathCount();
       if (activeCount == 0) {
         break;
       }
@@ -352,6 +360,22 @@ namespace render {
       if (metrics) {
         metrics->radianceDeltaSquaredSumPerDepth.push_back(depthDeltaSquaredSum);
         metrics->maxRadianceDeltaPerDepth.push_back(depthMaxDelta);
+      }
+
+      if (settings.convergenceEnabled && !paths.empty()) {
+        const double activeFraction =
+          static_cast<double>(activePathCount()) / static_cast<double>(paths.size());
+        const double radianceDeltaRms =
+          activeCount == 0 ? 0.0
+                           : std::sqrt(depthDeltaSquaredSum / static_cast<double>(activeCount));
+        if (activeFraction <= settings.activeSampleFractionThreshold &&
+            radianceDeltaRms <= settings.radianceDeltaRmsThreshold) {
+          if (metrics) {
+            metrics->stoppedByConvergence = true;
+            metrics->stoppedAfterDepth = metrics->activeSamplesPerDepth.size();
+          }
+          break;
+        }
       }
     }
 

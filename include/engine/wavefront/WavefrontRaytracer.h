@@ -58,6 +58,9 @@ namespace engine::wavefront {
       bool enabled = false;
       double activeSampleFractionThreshold = 0.0;
       double radianceDeltaRmsThreshold = 0.0;
+      std::uint64_t stoppedTileCount = 0;
+      std::uint64_t earliestStoppedAfterDepth = 0;
+      std::uint64_t latestStoppedAfterDepth = 0;
       std::string decision;
     } convergence;
 

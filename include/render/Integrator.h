@@ -25,6 +25,14 @@ namespace render {
     std::vector<std::uint64_t> activeSamplesPerDepth;
     std::vector<double> radianceDeltaSquaredSumPerDepth;
     std::vector<double> maxRadianceDeltaPerDepth;
+    bool stoppedByConvergence{false};
+    std::uint64_t stoppedAfterDepth{0};
+  };
+
+  struct IntegratorBatchSettings {
+    bool convergenceEnabled{false};
+    double activeSampleFractionThreshold{0.0};
+    double radianceDeltaRmsThreshold{0.0};
   };
 
   /**
@@ -103,7 +111,8 @@ namespace render {
     virtual std::vector<Colord> radianceBatch(const Scene& scene,
                                               const std::vector<IntegratorRaySample>& samples,
                                               const RayCaster& recursiveRayCaster,
-                                              IntegratorBatchMetrics* metrics = nullptr) const;
+                                              IntegratorBatchMetrics* metrics = nullptr,
+                                              const IntegratorBatchSettings& settings = {}) const;
 
     /**
       * Configure the maximum ray depth when this integrator has a bounded

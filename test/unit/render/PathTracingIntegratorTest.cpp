@@ -159,6 +159,34 @@ namespace PathTracingIntegratorTest {
     EXPECT_GT(metrics.maxRadianceDeltaPerDepth[0], 0.0);
   }
 
+  TEST(PathTracingIntegrator, BatchedRadianceStopsWhenConverged) {
+    auto scene = simpleMatteScene(0.0, Colord(0.6, 0.3, 0.2));
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(8);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 11ull)});
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 29ull)});
+
+    IntegratorBatchSettings settings;
+    settings.convergenceEnabled = true;
+    settings.activeSampleFractionThreshold = 1.0;
+    settings.radianceDeltaRmsThreshold = 10.0;
+
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> batched =
+      integrator.radianceBatch(*scene, samples, caster, &metrics, settings);
+
+    ASSERT_EQ(2u, batched.size());
+    EXPECT_TRUE(metrics.stoppedByConvergence);
+    EXPECT_EQ(1u, metrics.stoppedAfterDepth);
+    ASSERT_EQ(1u, metrics.activeSamplesPerDepth.size());
+    EXPECT_EQ(2u, metrics.activeSamplesPerDepth[0]);
+  }
+
   TEST(PathTracingIntegrator, RussianRouletteEventuallyTerminatesPath) {
     // Maximum depth set very high; if Russian roulette didn't fire,
     // the loop would still bound at maxDepth, but we'd see many more

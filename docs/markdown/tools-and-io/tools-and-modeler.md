@@ -256,10 +256,11 @@ postprocess AA. Raster settings include an opt-in Visibility Culling selector;
 without changing submitted raster work. Selecting the node after a traced
 render shows leaf/triangle counts plus any frustum-rejected baseline counts in
 the graph inspector metadata. Wavefront settings include convergence thresholds
-for the active-sample fraction and RMS radiance delta; the current wavefront
-executor reports those values in trace metadata before the stop policy starts
-using them. Engine-specific fields only show for the selected default engine.
-The same property editor has a search field for filtering long
+for the active-sample fraction and RMS radiance delta; the wavefront executor
+uses those values as the current depth-major path-batch stop policy and reports
+the decision in trace metadata. Engine-specific fields only show for the
+selected default engine. The same property editor has a search field for
+filtering long
 property sets and collapsible groups so advanced scene/import settings can stay
 out of the way. Internal execution controls such as
 view-plane type, worker thread count, and queue size stay hidden in Modeler;

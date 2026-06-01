@@ -108,6 +108,11 @@ namespace engine::wavefront {
     convergence["activeSampleFractionThreshold"] =
       metrics.convergence.activeSampleFractionThreshold;
     convergence["radianceDeltaRmsThreshold"] = metrics.convergence.radianceDeltaRmsThreshold;
+    convergence["stoppedTileCount"] = static_cast<double>(metrics.convergence.stoppedTileCount);
+    convergence["earliestStoppedAfterDepth"] =
+      static_cast<double>(metrics.convergence.earliestStoppedAfterDepth);
+    convergence["latestStoppedAfterDepth"] =
+      static_cast<double>(metrics.convergence.latestStoppedAfterDepth);
     convergence["decision"] = QString::fromStdString(metrics.convergence.decision);
 
     QJsonObject object;
@@ -154,6 +159,14 @@ namespace engine::wavefront {
       render::IntegratorBatchMetrics batchMetrics;
     };
 
+    render::IntegratorBatchSettings batchSettings() const {
+      render::IntegratorBatchSettings settings;
+      settings.convergenceEnabled = convergenceEnabled;
+      settings.activeSampleFractionThreshold = convergenceActiveSampleFractionThreshold;
+      settings.radianceDeltaRmsThreshold = convergenceRadianceDeltaRmsThreshold;
+      return settings;
+    }
+
     TileTraceResult traceTile(render::Camera& camera, const render::RayCaster& rayCaster,
                               const render::Scene& scene, const Recti& actualRect,
                               std::optional<std::uint64_t> tileSeed,
@@ -190,7 +203,7 @@ namespace engine::wavefront {
       }
 
       const std::vector<Colord> sampleColors =
-        integrator->radianceBatch(scene, samples, rayCaster, &result.batchMetrics);
+        integrator->radianceBatch(scene, samples, rayCaster, &result.batchMetrics, batchSettings());
       const double sampleScale = 1.0 / sampleCount;
       for (std::size_t index = 0; index != sampleColors.size(); ++index) {
         result.pixels[samplePixelIndices[index]].color += sampleColors[index] * sampleScale;
@@ -273,6 +286,16 @@ namespace engine::wavefront {
             std::max(lastMetrics.batching.maxRadianceDeltaPerDepth[depth],
                      result.batchMetrics.maxRadianceDeltaPerDepth[depth]);
         }
+        if (result.batchMetrics.stoppedByConvergence) {
+          ++lastMetrics.convergence.stoppedTileCount;
+          const std::uint64_t depth = result.batchMetrics.stoppedAfterDepth;
+          if (lastMetrics.convergence.earliestStoppedAfterDepth == 0 ||
+              depth < lastMetrics.convergence.earliestStoppedAfterDepth) {
+            lastMetrics.convergence.earliestStoppedAfterDepth = depth;
+          }
+          lastMetrics.convergence.latestStoppedAfterDepth =
+            std::max(lastMetrics.convergence.latestStoppedAfterDepth, depth);
+        }
       }
     }
 
@@ -285,6 +308,13 @@ namespace engine::wavefront {
           ? 0.0
           : static_cast<double>(lastMetrics.batching.samplesSubmitted) /
               static_cast<double>(lastMetrics.batching.batches);
+      if (!lastMetrics.convergence.enabled) {
+        lastMetrics.convergence.decision = "disabled";
+      } else if (lastMetrics.convergence.stoppedTileCount > 0) {
+        lastMetrics.convergence.decision = "stopped_some_tiles";
+      } else {
+        lastMetrics.convergence.decision = "not_reached";
+      }
     }
 
     void renderTile(render::Camera& camera, const render::RayCaster& rayCaster,
