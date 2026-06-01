@@ -201,6 +201,13 @@ namespace render {
       bool active{true};
     };
 
+    struct PathHit {
+      std::size_t pathIndex{0};
+      const Primitive* primitive{nullptr};
+      HitPoint hitPoint;
+      Colord accumulatedBeforeDepth{Colord::black()};
+    };
+
     std::vector<PathState> paths;
     paths.reserve(samples.size());
     std::vector<std::size_t> activePathIndices;
@@ -229,6 +236,8 @@ namespace render {
     const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
     std::vector<std::size_t> nextActivePathIndices;
     nextActivePathIndices.reserve(samples.size());
+    std::vector<PathHit> activeHits;
+    activeHits.reserve(samples.size());
 
     for (int bounce = 0; bounce < m_maximumRecursionDepth; ++bounce) {
       const std::uint64_t activeCount = activePathIndices.size();
@@ -243,25 +252,24 @@ namespace render {
       double depthDeltaSquaredSum = 0.0;
       double depthMaxDelta = 0.0;
       nextActivePathIndices.clear();
+      activeHits.clear();
+      const auto recordDepthDelta = [&](const Colord& before, const Colord& after) {
+        if (!trackRadianceDelta) {
+          return;
+        }
+        const double deltaSquared = radianceDeltaSquared(before, after);
+        depthDeltaSquaredSum += deltaSquared;
+        if (metrics) {
+          depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
+        }
+      };
+
       for (const std::size_t pathIndex : activePathIndices) {
         auto& path = paths[pathIndex];
-
         const Colord accumulatedBeforeDepth = path.accumulated;
-        const auto recordDepthDelta = [&] {
-          if (!trackRadianceDelta) {
-            return;
-          }
-          const double deltaSquared =
-            radianceDeltaSquared(accumulatedBeforeDepth, path.accumulated);
-          depthDeltaSquaredSum += deltaSquared;
-          if (metrics) {
-            depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
-          }
-        };
-
         if (isCancelled()) {
           path.active = false;
-          recordDepthDelta();
+          recordDepthDelta(accumulatedBeforeDepth, path.accumulated);
           continue;
         }
 
@@ -277,59 +285,63 @@ namespace render {
           path.accumulated += path.throughput * scene.background();
           path.state.recurseOut();
           path.active = false;
-          recordDepthDelta();
+          recordDepthDelta(accumulatedBeforeDepth, path.accumulated);
           continue;
         }
 
+        const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+        if (bounce == 0) {
+          path.state.hitPoint = hitPoint;
+        }
+        activeHits.push_back(PathHit{pathIndex, primitive, hitPoint, accumulatedBeforeDepth});
+      }
+
+      for (const auto& hit : activeHits) {
+        auto& path = paths[hit.pathIndex];
         {
           core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
-          const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
-          if (bounce == 0) {
-            path.state.hitPoint = hitPoint;
-          }
-
-          const auto material = primitive->material();
+          const auto material = hit.primitive->material();
           if (!material) {
             path.state.recurseOut();
             path.active = false;
-            recordDepthDelta();
+            recordDepthDelta(hit.accumulatedBeforeDepth, path.accumulated);
             continue;
           }
 
           const Vector3d wi = -path.ray.direction().normalized();
           if (!material->supportsBsdfSampling()) {
             const Colord whittedColor =
-              material->shade(&recursiveRayCaster, scene, path.ray, hitPoint, path.state);
+              material->shade(&recursiveRayCaster, scene, path.ray, hit.hitPoint, path.state);
             path.accumulated += path.throughput * whittedColor;
             if (metrics) {
               ++metrics->compatibilityShadeSamples;
             }
             path.state.recurseOut();
             path.active = false;
-            recordDepthDelta();
+            recordDepthDelta(hit.accumulatedBeforeDepth, path.accumulated);
             continue;
           }
 
           for (const auto& light : scene.lights()) {
-            path.accumulated +=
-              path.throughput * directLighting(scene, *light, hitPoint, *material, wi, path.state);
+            path.accumulated += path.throughput * directLighting(scene, *light, hit.hitPoint,
+                                                                 *material, wi, path.state);
           }
 
           const Vector2d bsdfSample = path.state.sampleStream->sample2D(
             SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
-          const MaterialBsdfSample sampled = material->sampleBsdf(hitPoint, wi, bsdfSample);
+          const MaterialBsdfSample sampled = material->sampleBsdf(hit.hitPoint, wi, bsdfSample);
           if (sampled.pdf <= 0.0 || sampled.value == Colord::black()) {
             path.state.recurseOut();
             path.active = false;
-            recordDepthDelta();
+            recordDepthDelta(hit.accumulatedBeforeDepth, path.accumulated);
             continue;
           }
 
-          const double normalDotWo = hitPoint.normal() * sampled.direction;
+          const double normalDotWo = hit.hitPoint.normal() * sampled.direction;
           if (!sampled.isDelta && normalDotWo <= 0.0) {
             path.state.recurseOut();
             path.active = false;
-            recordDepthDelta();
+            recordDepthDelta(hit.accumulatedBeforeDepth, path.accumulated);
             continue;
           }
 
@@ -348,16 +360,16 @@ namespace render {
             if (roulette >= survival) {
               path.state.recurseOut();
               path.active = false;
-              recordDepthDelta();
+              recordDepthDelta(hit.accumulatedBeforeDepth, path.accumulated);
               continue;
             }
             path.throughput = path.throughput * (1.0 / survival);
           }
 
-          path.ray = sampled.rayFrom(hitPoint);
+          path.ray = sampled.rayFrom(hit.hitPoint);
           path.state.recurseOut();
-          recordDepthDelta();
-          nextActivePathIndices.push_back(pathIndex);
+          recordDepthDelta(hit.accumulatedBeforeDepth, path.accumulated);
+          nextActivePathIndices.push_back(hit.pathIndex);
         }
       }
 

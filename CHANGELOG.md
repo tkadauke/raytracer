@@ -81,6 +81,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront integrator timing breakdowns.** Wavefront metrics now split
   integrator worker time into scene-intersection and material/shading buckets
   in JSON reports, graph traces, and compact rendercli summaries. — GPT-5
+- **Wavefront path batch scheduling.** Path-tracing batches now run each depth
+  as an explicit active-frontier intersection phase followed by a hit-frontier
+  shading phase, creating a cleaner insertion point for future packet
+  traversal. — GPT-5
 
 ### Changed
 

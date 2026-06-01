@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "core/math/HitPointInterval.h"
 #include "render/PathTracingIntegrator.h"
 #include "render/RayCaster.h"
 #include "render/State.h"
@@ -10,6 +11,7 @@
 #include "render/materials/ReflectiveMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Plane.h"
+#include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 #include "render/samplers/Sampler.h"
 #include "render/samplers/SamplerFactory.h"
@@ -19,6 +21,7 @@
 
 #include <cmath>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace PathTracingIntegratorTest {
@@ -56,6 +59,55 @@ namespace PathTracingIntegratorTest {
                    State&) const override {
         return Colord(0.25, 0.5, 0.75);
       }
+    };
+
+    class RecordingMaterial final : public Material {
+    public:
+      explicit RecordingMaterial(std::vector<std::string>* events)
+          : m_events(events) {
+      }
+
+      Colord shade(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                   State&) const override {
+        return Colord::black();
+      }
+
+      bool supportsBsdfSampling() const override {
+        return true;
+      }
+
+      MaterialBsdfSample sampleBsdf(const HitPoint& hitPoint, const Vector3d&,
+                                    const Vector2d&) const override {
+        m_events->push_back("shade " + std::to_string(static_cast<int>(hitPoint.point().x())));
+        return MaterialBsdfSample();
+      }
+
+    private:
+      std::vector<std::string>* m_events;
+    };
+
+    class RecordingPrimitive final : public Primitive {
+    public:
+      explicit RecordingPrimitive(std::vector<std::string>* events)
+          : m_events(events) {
+      }
+
+      const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                 State& state) const override {
+        const int sampleId = static_cast<int>(ray.origin().x());
+        m_events->push_back("intersect " + std::to_string(sampleId));
+        state.hit(this, "RecordingPrimitive");
+        hitPoints.add(HitPoint(this, 1.0, ray.at(1.0), Vector3d(0, 1, 0)));
+        return this;
+      }
+
+    protected:
+      BoundingBoxd calculateBoundingBox() const override {
+        return BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(3, 1, 1));
+      }
+
+    private:
+      std::vector<std::string>* m_events;
     };
 
     // Build a scene with a single Lambertian ground plane lit by one
@@ -301,6 +353,33 @@ namespace PathTracingIntegratorTest {
     ASSERT_EQ(2u, metrics.radianceDeltaSquaredSumPerDepth.size());
     EXPECT_EQ(0.0, metrics.radianceDeltaSquaredSumPerDepth[1]);
     EXPECT_EQ(2, cancellationChecks);
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadianceIntersectsActiveFrontierBeforeShading) {
+    std::vector<std::string> events;
+    auto scene = std::make_unique<Scene>(Colord::black());
+    scene->setAmbient(Colord::black());
+    auto primitive = std::make_shared<RecordingPrimitive>(&events);
+    primitive->setMaterial(std::make_shared<RecordingMaterial>(&events));
+    scene->add(primitive);
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{Rayd(Vector3d(1, 5, 0), Vector3d(0, -1, 0)), 0.0,
+                                          sampler->stream(0, 11ull)});
+    samples.push_back(IntegratorRaySample{Rayd(Vector3d(2, 5, 0), Vector3d(0, -1, 0)), 0.0,
+                                          sampler->stream(0, 29ull)});
+
+    FallbackRayCaster caster;
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster);
+
+    ASSERT_EQ(2u, batched.size());
+    const std::vector<std::string> expected{"intersect 1", "intersect 2", "shade 1", "shade 2"};
+    EXPECT_EQ(expected, events);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceRecordsCompatibilityMaterialFallbacks) {

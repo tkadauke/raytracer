@@ -659,7 +659,11 @@ scheduler now compacts still-active path indices between depths, so later
 depths visit only live paths rather than scanning the full original sample set
 after most samples have terminated. Wavefront tiles also reserve their pixel
 and sample mapping buffers from the known tile dimensions before camera sample
-generation, reducing batch setup churn. All built-in runtime materials
+generation, reducing batch setup churn. The path-tracing batch loop now also
+separates each depth into an active-frontier intersection phase followed by a
+hit-frontier shading phase. Image output stays the same, but the scheduler
+shape now has an explicit insertion point for future packet traversal or
+intersection batching. All built-in runtime materials
 (`MatteMaterial`, `PhongMaterial`, `ReflectiveMaterial`, `TransparentMaterial`,
 and `PortalMaterial`) now expose both wavefront Whitted continuations and
 path-tracing BSDF sampling; compatibility fallback metrics remain in place for
