@@ -38,10 +38,7 @@ namespace render {
     */
   class Curve : public Primitive {
   public:
-    enum class TessellationMode {
-      Ribbon,
-      Tube
-    };
+    enum class TessellationMode { Ribbon, Tube };
 
     inline explicit Curve(const core::Polyline& polyline, double width = 0.0,
                           TessellationMode mode = TessellationMode::Ribbon)
@@ -70,13 +67,15 @@ namespace render {
       m_segmentColorMap.reset();
     }
 
-    [[nodiscard]] inline const std::optional<core::AttributeColorMap>& segmentColorMap() const
-      noexcept {
+    [[nodiscard]] inline const std::optional<core::AttributeColorMap>&
+    segmentColorMap() const noexcept {
       return m_segmentColorMap;
     }
 
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                        render::State& state) const override;
+    PrimitivePacketHit4 intersectPacketHits(const Ray4& rays,
+                                            const PrimitivePacketState4& states) const override;
 
     void forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const override;
 

@@ -84,6 +84,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront torus packet hits.** Torus primitives now materialize four-wide
   packet hits directly for wavefront path-frontier traversal instead of using
   the scalar packet fallback lane by lane. — GPT-5
+- **Wavefront curve packet misses.** Curve primitives now report four-wide
+  packet misses directly, matching their current no-ray-intersection behavior
+  without counting scalar packet fallback lanes. — GPT-5
 - **Wavefront mesh packet hits.** Mesh-backed flat and smooth triangle leaves
   now materialize four-wide packet hit points directly, keeping imported
   triangle meshes on the wavefront packet frontier. — GPT-5

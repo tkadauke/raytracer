@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "core/geometry/Mesh.h"
+#include "core/math/RayPacket.h"
+#include "render/State.h"
 #include "render/primitives/Curve.h"
 #include "test/helpers/MeshTestHelper.h"
 
@@ -18,17 +20,33 @@ namespace CurveTessellateTest {
   TEST(CurveTessellate, BoundingBoxIncludesHalfWidthAroundPolylinePoints) {
     Curve curve(core::Polyline({Vector3d(-1.0, 2.0, 3.0), Vector3d(4.0, -2.0, 5.0)}), 0.5);
 
-    const BoundingBoxd expected =
-      BoundingBoxd(Vector3d(-1.0, -2.0, 3.0), Vector3d(4.0, 2.0, 5.0))
-        .grownBy(Vector3d(0.25, 0.25, 0.25))
-        .grownByEpsilon();
+    const BoundingBoxd expected = BoundingBoxd(Vector3d(-1.0, -2.0, 3.0), Vector3d(4.0, 2.0, 5.0))
+                                    .grownBy(Vector3d(0.25, 0.25, 0.25))
+                                    .grownByEpsilon();
     EXPECT_EQ(expected, curve.boundingBox());
   }
 
+  TEST(CurveTessellate, Ray4PacketHitsReportMissesWithoutScalarFallback) {
+    Curve curve(core::Polyline({Vector3d(0.0, 0.0, 0.0), Vector3d(1.0, 0.0, 0.0)}), 0.2);
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 1, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, -1)), Rayd(Vector3d(2, 0, -2), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = curve.intersectPacketHits(rays, states);
+
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      EXPECT_FALSE(result.hit(lane));
+      EXPECT_EQ(1, laneStates[lane].intersectionMisses);
+      EXPECT_EQ(0u, laneStates[lane].packetHitScalarFallbacks);
+    }
+  }
+
   TEST(CurveTessellate, RibbonModeProducesOneQuadPerNonZeroSegment) {
-    Curve curve(core::Polyline({Vector3d(0.0, 0.0, 0.0), Vector3d(1.0, 0.0, 0.0),
-                                Vector3d(1.0, 1.0, 0.0)}),
-                0.2, Curve::TessellationMode::Ribbon);
+    Curve curve(
+      core::Polyline({Vector3d(0.0, 0.0, 0.0), Vector3d(1.0, 0.0, 0.0), Vector3d(1.0, 1.0, 0.0)}),
+      0.2, Curve::TessellationMode::Ribbon);
 
     auto mesh = curve.tessellate();
 
@@ -66,9 +84,9 @@ namespace CurveTessellateTest {
   }
 
   TEST(CurveTessellate, ZeroLengthSegmentsAreSkippedSafely) {
-    Curve curve(core::Polyline({Vector3d(0.0, 0.0, 0.0), Vector3d(0.0, 0.0, 0.0),
-                                Vector3d(1.0, 0.0, 0.0)}),
-                0.2, Curve::TessellationMode::Ribbon);
+    Curve curve(
+      core::Polyline({Vector3d(0.0, 0.0, 0.0), Vector3d(0.0, 0.0, 0.0), Vector3d(1.0, 0.0, 0.0)}),
+      0.2, Curve::TessellationMode::Ribbon);
 
     auto mesh = curve.tessellate();
 
@@ -106,8 +124,8 @@ namespace CurveTessellateTest {
     polyline.setSegmentAttribute(1, "temperature", 150.0);
 
     Curve curve(polyline, 0.2, Curve::TessellationMode::Ribbon);
-    curve.setSegmentColorMap(core::AttributeColorMap::scalar(
-      "temperature", 100.0, 200.0, Colord::blue(), Colord::red()));
+    curve.setSegmentColorMap(
+      core::AttributeColorMap::scalar("temperature", 100.0, 200.0, Colord::blue(), Colord::red()));
 
     auto mesh = curve.tessellate();
 
@@ -120,8 +138,8 @@ namespace CurveTessellateTest {
   }
 
   TEST(CurveTessellate, CategoricalSegmentAttributesUseConfiguredColors) {
-    core::Polyline polyline({Vector3d(0.0, 0.0, 0.0), Vector3d(1.0, 0.0, 0.0),
-                             Vector3d(2.0, 0.0, 0.0)});
+    core::Polyline polyline(
+      {Vector3d(0.0, 0.0, 0.0), Vector3d(1.0, 0.0, 0.0), Vector3d(2.0, 0.0, 0.0)});
     polyline.setSegmentAttribute(0, "route", std::string("travel"));
     polyline.setSegmentAttribute(1, "route", std::string("print"));
 

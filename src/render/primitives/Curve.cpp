@@ -3,6 +3,7 @@
 #include "core/geometry/Mesh.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 #include "render/State.h"
 
 #include <algorithm>
@@ -19,8 +20,7 @@ namespace {
   }
 
   Vector3d perpendicularTo(const Vector3d& direction) {
-    const Vector3d reference =
-      std::abs(direction.y()) < 0.9 ? Vector3d::up() : Vector3d::right();
+    const Vector3d reference = std::abs(direction.y()) < 0.9 ? Vector3d::up() : Vector3d::right();
     return (reference ^ direction).normalized();
   }
 
@@ -74,13 +74,24 @@ const Primitive* Curve::intersect(const Rayd&, HitPointInterval&, render::State&
   return nullptr;
 }
 
+PrimitivePacketHit4 Curve::intersectPacketHits(const Ray4&,
+                                               const PrimitivePacketState4& states) const {
+  PrimitivePacketHit4 result;
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    state.miss(this, "Curve, ray intersection not implemented");
+  }
+  return result;
+}
+
 void Curve::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const {
   for (const auto segment : m_polyline) {
     if (!isUsableSegment(segment.start, segment.end))
       continue;
 
-    const auto color = m_segmentColorMap ? m_segmentColorMap->colorFor(segment.attributes)
-                                         : std::optional<Colord>();
+    const auto color =
+      m_segmentColorMap ? m_segmentColorMap->colorFor(segment.attributes) : std::optional<Colord>();
     visitor(segment.start, segment.end, color);
   }
 }
@@ -103,8 +114,8 @@ std::shared_ptr<Mesh> Curve::tessellate(int lod) const {
     const double length = (end - start).length();
     const double v0 = traveled;
     const double v1 = traveled + length;
-    const auto color = m_segmentColorMap ? m_segmentColorMap->colorFor(segment.attributes)
-                                         : std::optional<Colord>();
+    const auto color =
+      m_segmentColorMap ? m_segmentColorMap->colorFor(segment.attributes) : std::optional<Colord>();
     if (m_mode == TessellationMode::Tube)
       addTubeSegment(*mesh, start, end, halfWidth, tubeSides, v0, v1, color);
     else

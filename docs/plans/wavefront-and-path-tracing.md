@@ -793,6 +793,9 @@ overrides can make leaf packet materialization faster. `Sphere`, `Plane`,
 first such leaf overrides: they materialize closest positive packet hit points
 directly and update per-lane state without building scalar `HitPointInterval`
 objects.
+`Curve` also has an explicit packet path, but only to report misses directly:
+runtime curves are currently raster/wireframe/overlay geometry and do not
+ray-intersect.
 Mesh-backed triangle leaves now participate too: `MeshTriangle` owns
 cross-platform four-wide barycentric packet solving and materializes flat or
 smooth hit normals through subclass hooks, so imported triangle meshes can stay
