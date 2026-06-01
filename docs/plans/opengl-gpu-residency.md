@@ -8,10 +8,12 @@
 > `docs/plans/complete/opengl-gpu-rasterizer.md` Phase 3.
 >
 > **Status:** planning. Prerequisite work — graph-side resource-domain
-> metadata, GPU descriptor surface in trace exports, and the
-> `RenderPassKind::Readback` node — is already in place; this plan adds
-> the concrete OpenGL backend resource type and integrates it with the
-> resource-storage layer.
+> metadata, GPU descriptor surface in trace exports, explicit
+> `RenderPassKind::Readback` nodes, and the OpenGL raster resource cache — is
+> already in place. Concrete graph-owned OpenGL resources are still missing,
+> and `OpenGLRasterizer` still rejects `AttachmentLoadOp::Load` for color,
+> depth, and stencil until residency can seed attachments from prior GPU
+> passes.
 >
 > **Related plans:** `docs/plans/complete/opengl-gpu-rasterizer.md` owns the
 > rasterizer pipeline; this plan handles the resource side.

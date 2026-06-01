@@ -4,9 +4,10 @@
 > graph, writes graph resources, and can accelerate raster passes without
 > becoming a separate viewport/rendering architecture.
 >
-> **Status:** planning. This plan is independent of CPU culling work. CPU
-> culling can improve what the GPU receives, but the first GPU executor should
-> be useful without it.
+> **Status:** complete and archived. The first OpenGL graph raster executor,
+> rendercli/Modeler backend selection, CPU readback path, core pass state, and
+> parity coverage landed. CPU culling remains an optional graph preprocessing
+> pass, and cross-pass GPU residency is tracked separately.
 >
 > **Related plans:** `docs/plans/render-graph.md` owns graph compilation,
 > resources, trace, and inspection. `docs/plans/cpu-culling-graph-pass.md`

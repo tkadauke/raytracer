@@ -8,7 +8,9 @@
 >   haven't landed in the codebase yet, *not* covered by this book until
 >   they do.
 >
-> **Status:** Decisions locked. Scaffolding is the next concrete step.
+> **Status:** complete and archived for the initial long-form textbook
+> scaffold. Ongoing chapter drift is tracked by the living instructions in
+> `docs/markdown/` and the source-map checks.
 
 ---
 

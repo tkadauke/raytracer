@@ -3,9 +3,11 @@
 > **Scope:** add native ARM/AArch64 SIMD support, primarily for Apple Silicon,
 > parallel to the existing x86 SSE/SSE2/SSE3/AVX paths.
 >
-> **Status:** living plan. The first implementation slice should be
-> measurement and infrastructure. Do not port every x86 intrinsic block
-> blindly.
+> **Status:** complete for the Epic #426 implementation slice. ARM NEON now
+> supports the four-wide packet traversal surface through the shared
+> `Float4`/`Mask4` backend, Phase 3-5 candidate work is benchmark-gated and
+> documented, and wider/double-precision follow-ups remain future proposals
+> rather than open work in this plan.
 >
 > **Related plans:** `docs/plans/complete/core-math-optimization.md` records the
 > existing benchmark-first math work. The packet and BVH work here builds on the
