@@ -118,6 +118,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   only active samples for radiance-delta metrics/convergence and reserve
   continuation queues per depth, reducing metrics/convergence overhead on
   reflection/refraction-heavy scenes. — GPT-5
+- **Wavefront sample stream setup.** `Sampler` now offers a retained
+  `sharedStream(...)` path, and camera primary-sample generation uses it so
+  wavefront batches do not allocate a unique stream and then wrap it in shared
+  ownership for every retained primary sample. — GPT-5
 - **Wavefront convergence diagnostics.** Wavefront metrics JSON now includes a
   stopped-tile depth histogram, and compact rendercli summaries report the
   earliest/latest stopped depths to make convergence preset tuning measurable.

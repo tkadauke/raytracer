@@ -109,7 +109,7 @@ int Camera::samplesPerPixel() const {
 std::optional<Camera::PrimaryRaySample>
 Camera::primaryRaySample(const render::ViewPlane::Iterator& pixel, int sampleIndex,
                          std::optional<std::uint64_t> tileSeed) const {
-  auto stream = viewPlane()->sampler()->stream(sampleIndex, pixelHashFor(pixel, tileSeed));
+  auto stream = viewPlane()->sampler()->sharedStream(sampleIndex, pixelHashFor(pixel, tileSeed));
 
   // The renderer owns the pixel and time dimensions and consumes
   // them before the camera sees the stream:

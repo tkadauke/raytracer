@@ -113,6 +113,17 @@ namespace render {
       */
     virtual std::unique_ptr<SampleStream> stream(int sampleIndex, uint64_t pixelHash) const;
 
+    /**
+      * Returns a retained `SampleStream` for render paths that need to keep
+      * streams alive after primary-ray generation.
+      *
+      * Wavefront batch renderers generate every primary sample first and then
+      * hand the retained streams to an integrator. This method preserves the
+      * same sample sequence as `stream(...)` while letting the default sampler
+      * allocate the stream object and shared control block together.
+      */
+    virtual std::shared_ptr<SampleStream> sharedStream(int sampleIndex, uint64_t pixelHash) const;
+
   protected:
     virtual std::vector<Vector2d> generateSet() = 0;
 

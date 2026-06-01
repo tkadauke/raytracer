@@ -92,3 +92,8 @@ void Sampler::setup(int numSamples, int numSets, std::uint64_t seed) {
 std::unique_ptr<SampleStream> Sampler::stream(int sampleIndex, std::uint64_t pixelHash) const {
   return std::make_unique<DefaultSampleStream>(this, sampleIndex, pixelHash);
 }
+
+std::shared_ptr<SampleStream> Sampler::sharedStream(int sampleIndex,
+                                                    std::uint64_t pixelHash) const {
+  return std::make_shared<DefaultSampleStream>(this, sampleIndex, pixelHash);
+}

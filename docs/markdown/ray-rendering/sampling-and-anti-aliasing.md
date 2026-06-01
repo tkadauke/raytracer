@@ -164,7 +164,11 @@ defocus blur. Future path tracers will pull even more
 dimensions per ray ([BRDF](../appendix/a-glossary.md#b) importance sampling, light sampling,
 Russian-roulette decisions); the stream API scales to that
 without forcing every consumer to know about every other
-consumer's dimensional needs.
+consumer's dimensional needs. `sharedStream()` produces the same
+sequence as `stream()` for render paths that retain primary-ray
+sample streams until a later batch integrator runs; wavefront uses
+that retained form to avoid wrapping a freshly allocated unique
+stream in a second shared allocation.
 
 ## <a id="named-stream-dimensions"></a>Named stream dimensions
 Sequential `next1D()` / `next2D()` pulls are useful for cameras:

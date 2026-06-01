@@ -115,6 +115,20 @@ namespace SamplerTest {
     ASSERT_DOUBLE_EQ(2.0 / 100.0, sample.x());
   }
 
+  TEST(SamplerStream, SharedStreamReturnsSameSequenceAsUniqueStream) {
+    IndexedSampler sampler;
+    sampler.setup(4, 8);
+
+    auto uniqueStream = sampler.stream(/*sampleIndex*/ 2, /*pixelHash*/ 3);
+    auto sharedStream = sampler.sharedStream(/*sampleIndex*/ 2, /*pixelHash*/ 3);
+
+    ASSERT_NE(nullptr, sharedStream);
+    ASSERT_EQ(uniqueStream->next2D(), sharedStream->next2D());
+    ASSERT_DOUBLE_EQ(uniqueStream->next1D(), sharedStream->next1D());
+    ASSERT_EQ(uniqueStream->sample2D(SampleDimension::BSDF, 1),
+              sharedStream->sample2D(SampleDimension::BSDF, 1));
+  }
+
   TEST(SamplerStream, ConsecutiveDimensionsReadFromDifferentSets) {
     IndexedSampler sampler;
     sampler.setup(4, 8);
