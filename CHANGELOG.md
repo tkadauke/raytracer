@@ -64,6 +64,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront convergence queue-size capture.** The convergence capture script
   now accepts `WAVEFRONT_CONVERGENCE_QUEUE_SIZE` so tile-count effects can be
   measured without hand-editing rendercli invocations. — GPT-5
+- **Wavefront convergence work comparison.** The convergence capture script now
+  compares active sample-depth work between converged and non-converged
+  wavefront variants, making convergence speedup potential visible even when
+  wall-clock timings are noisy. — GPT-5
 
 ### Changed
 

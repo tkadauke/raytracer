@@ -543,7 +543,9 @@ recursive and wavefront variants, captures the reflection-heavy Whitted scene
 with real secondary-ray queues, captures wavefront metrics, and also compares
 path-tracing convergence against the non-converged indirect-bounce scene. The
 script accepts `WAVEFRONT_CONVERGENCE_QUEUE_SIZE` so convergence captures can
-pin tile count while tuning thresholds and scheduler defaults.
+pin tile count while tuning thresholds and scheduler defaults, and it now
+writes active sample-depth work comparisons for converged vs. non-converged
+wavefront variants.
 Remaining work is to run that capture across representative dimensions and tune
 defaults from the measured timing/quality data. A first capture showed that a
 single-depth diffuse Whitted scene is not a useful convergence-speedup proof:

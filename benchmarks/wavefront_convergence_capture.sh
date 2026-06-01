@@ -185,6 +185,44 @@ compare_variant() {
     tee "${output}"
 }
 
+compare_wavefront_work() {
+  local scene_name="$1"
+  local reference="$2"
+  local candidate="$3"
+  local out_dir="${out_root}/${scene_name}"
+  local reference_metrics="${out_dir}/${reference}.metrics.json"
+  local candidate_metrics="${out_dir}/${candidate}.metrics.json"
+  local output="${out_dir}/${candidate}.vs-${reference}.work.txt"
+
+  if [[ ! -f "${reference_metrics}" || ! -f "${candidate_metrics}" ]]; then
+    return
+  fi
+
+  ruby -rjson - "$reference_metrics" "$candidate_metrics" <<'RUBY' | tee "${output}"
+def active_sample_depths(path)
+  document = JSON.parse(File.read(path))
+  values = []
+  document.fetch("runs").each do |run|
+    run.fetch("passes").each do |pass|
+      value = pass.dig("metrics", "batching", "activeSampleDepthsProcessed")
+      values << value.to_f if value
+    end
+  end
+  raise "no activeSampleDepthsProcessed metrics in #{path}" if values.empty?
+
+  sorted = values.sort
+  sorted[sorted.length / 2]
+end
+
+reference = active_sample_depths(ARGV.fetch(0))
+candidate = active_sample_depths(ARGV.fetch(1))
+saved = reference - candidate
+fraction = reference.zero? ? 0.0 : saved / reference
+puts format("active_sample_depths reference=%.0f candidate=%.0f saved=%.0f saved_fraction=%.6f",
+            reference, candidate, saved, fraction)
+RUBY
+}
+
 capture_bvh_whitted() {
   local fixture_dir="${out_root}/fixtures"
   mkdir -p "${fixture_dir}"
@@ -202,6 +240,8 @@ capture_bvh_whitted() {
 
   compare_variant bvh_whitted raytracer_whitted wavefront_whitted_no_convergence
   compare_variant bvh_whitted raytracer_whitted wavefront_whitted_convergence
+  compare_wavefront_work bvh_whitted wavefront_whitted_no_convergence \
+    wavefront_whitted_convergence
 }
 
 capture_reflection_whitted() {
@@ -217,6 +257,8 @@ capture_reflection_whitted() {
 
   compare_variant reflection_whitted raytracer_whitted wavefront_whitted_no_convergence
   compare_variant reflection_whitted raytracer_whitted wavefront_whitted_convergence
+  compare_wavefront_work reflection_whitted wavefront_whitted_no_convergence \
+    wavefront_whitted_convergence
 }
 
 capture_pathtracer_bounce() {
@@ -230,6 +272,8 @@ capture_pathtracer_bounce() {
     --wavefront_convergence_rms_delta "${rms_delta}" --samples_per_pixel "${samples}"
 
   compare_variant pathtracer_bounce wavefront_pathtracer_no_convergence \
+    wavefront_pathtracer_convergence
+  compare_wavefront_work pathtracer_bounce wavefront_pathtracer_no_convergence \
     wavefront_pathtracer_convergence
 }
 
