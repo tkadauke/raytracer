@@ -427,8 +427,7 @@ namespace engine::graph {
 
       void recordWavefrontMetrics(RenderExecutionContext& context,
                                   const ::engine::wavefront::WavefrontRaytracer& wavefront) const {
-        context.setTraceMetadata(
-          ::engine::wavefront::wavefrontRenderMetricsToJson(wavefront.lastMetrics()));
+        context.setTraceMetadata(wavefront.lastMetrics().toJson());
       }
     };
 

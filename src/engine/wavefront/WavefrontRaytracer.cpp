@@ -51,79 +51,76 @@ namespace engine::wavefront {
     };
   }
 
-  QJsonObject wavefrontRenderMetricsToJson(const WavefrontRenderMetrics& metrics) {
-    QJsonObject input;
-    input["width"] = metrics.input.width;
-    input["height"] = metrics.input.height;
-    input["samplesPerPixel"] = metrics.input.samplesPerPixel;
-    input["renderedPixels"] = static_cast<double>(metrics.input.renderedPixels);
-    input["primarySamples"] = static_cast<double>(metrics.input.primarySamples);
+  QJsonObject WavefrontRenderMetrics::toJson() const {
+    QJsonObject inputJson;
+    inputJson["width"] = input.width;
+    inputJson["height"] = input.height;
+    inputJson["samplesPerPixel"] = input.samplesPerPixel;
+    inputJson["renderedPixels"] = static_cast<double>(input.renderedPixels);
+    inputJson["primarySamples"] = static_cast<double>(input.primarySamples);
 
-    QJsonObject tiling;
-    tiling["tileCount"] = static_cast<double>(metrics.tiling.tileCount);
-    tiling["nonEmptyTileCount"] = static_cast<double>(metrics.tiling.nonEmptyTileCount);
+    QJsonObject tilingJson;
+    tilingJson["tileCount"] = static_cast<double>(tiling.tileCount);
+    tilingJson["nonEmptyTileCount"] = static_cast<double>(tiling.nonEmptyTileCount);
 
-    QJsonObject scheduling;
-    scheduling["configuredQueueSize"] = static_cast<double>(metrics.scheduling.configuredQueueSize);
-    scheduling["resolvedQueueSize"] = static_cast<double>(metrics.scheduling.resolvedQueueSize);
-    scheduling["decision"] = QString::fromStdString(metrics.scheduling.decision);
+    QJsonObject schedulingJson;
+    schedulingJson["configuredQueueSize"] = static_cast<double>(scheduling.configuredQueueSize);
+    schedulingJson["resolvedQueueSize"] = static_cast<double>(scheduling.resolvedQueueSize);
+    schedulingJson["decision"] = QString::fromStdString(scheduling.decision);
 
-    QJsonObject batching;
+    QJsonObject batchingJson;
     QJsonArray activeSamplesPerDepth;
-    for (const std::uint64_t count : metrics.batching.activeSamplesPerDepth) {
+    for (const std::uint64_t count : batching.activeSamplesPerDepth) {
       activeSamplesPerDepth.push_back(static_cast<double>(count));
     }
     QJsonArray radianceDeltaL2PerDepth;
     QJsonArray radianceDeltaRmsPerDepth;
-    for (std::size_t depth = 0; depth != metrics.batching.radianceDeltaSquaredSumPerDepth.size();
-         ++depth) {
-      const double squaredSum = metrics.batching.radianceDeltaSquaredSumPerDepth[depth];
+    for (std::size_t depth = 0; depth != batching.radianceDeltaSquaredSumPerDepth.size(); ++depth) {
+      const double squaredSum = batching.radianceDeltaSquaredSumPerDepth[depth];
       radianceDeltaL2PerDepth.push_back(std::sqrt(squaredSum));
-      const std::uint64_t activeSamples = depth < metrics.batching.activeSamplesPerDepth.size()
-                                            ? metrics.batching.activeSamplesPerDepth[depth]
-                                            : 0;
+      const std::uint64_t activeSamples =
+        depth < batching.activeSamplesPerDepth.size() ? batching.activeSamplesPerDepth[depth] : 0;
       radianceDeltaRmsPerDepth.push_back(
         activeSamples == 0 ? 0.0 : std::sqrt(squaredSum / static_cast<double>(activeSamples)));
     }
     QJsonArray maxRadianceDeltaPerDepth;
-    for (const double delta : metrics.batching.maxRadianceDeltaPerDepth) {
+    for (const double delta : batching.maxRadianceDeltaPerDepth) {
       maxRadianceDeltaPerDepth.push_back(delta);
     }
-    batching["integrator"] = QString::fromStdString(metrics.batching.integrator);
-    batching["executionMode"] = QString::fromStdString(metrics.batching.executionMode);
-    batching["batches"] = static_cast<double>(metrics.batching.batches);
-    batching["samplesSubmitted"] = static_cast<double>(metrics.batching.samplesSubmitted);
-    batching["maxBatchSize"] = static_cast<double>(metrics.batching.maxBatchSize);
-    batching["averageBatchSize"] = metrics.batching.averageBatchSize;
-    batching["compatibilityShadeSamples"] =
-      static_cast<double>(metrics.batching.compatibilityShadeSamples);
-    batching["activeSamplesPerDepth"] = activeSamplesPerDepth;
-    batching["radianceDeltaL2PerDepth"] = radianceDeltaL2PerDepth;
-    batching["radianceDeltaRmsPerDepth"] = radianceDeltaRmsPerDepth;
-    batching["maxRadianceDeltaPerDepth"] = maxRadianceDeltaPerDepth;
+    batchingJson["integrator"] = QString::fromStdString(batching.integrator);
+    batchingJson["executionMode"] = QString::fromStdString(batching.executionMode);
+    batchingJson["batches"] = static_cast<double>(batching.batches);
+    batchingJson["samplesSubmitted"] = static_cast<double>(batching.samplesSubmitted);
+    batchingJson["maxBatchSize"] = static_cast<double>(batching.maxBatchSize);
+    batchingJson["averageBatchSize"] = batching.averageBatchSize;
+    batchingJson["compatibilityShadeSamples"] =
+      static_cast<double>(batching.compatibilityShadeSamples);
+    batchingJson["activeSamplesPerDepth"] = activeSamplesPerDepth;
+    batchingJson["radianceDeltaL2PerDepth"] = radianceDeltaL2PerDepth;
+    batchingJson["radianceDeltaRmsPerDepth"] = radianceDeltaRmsPerDepth;
+    batchingJson["maxRadianceDeltaPerDepth"] = maxRadianceDeltaPerDepth;
 
-    QJsonObject timings;
-    timings["totalRenderSeconds"] = metrics.timings.totalRenderSeconds;
+    QJsonObject timingsJson;
+    timingsJson["totalRenderSeconds"] = timings.totalRenderSeconds;
 
-    QJsonObject convergence;
-    convergence["enabled"] = metrics.convergence.enabled;
-    convergence["activeSampleFractionThreshold"] =
-      metrics.convergence.activeSampleFractionThreshold;
-    convergence["radianceDeltaRmsThreshold"] = metrics.convergence.radianceDeltaRmsThreshold;
-    convergence["stoppedTileCount"] = static_cast<double>(metrics.convergence.stoppedTileCount);
-    convergence["earliestStoppedAfterDepth"] =
-      static_cast<double>(metrics.convergence.earliestStoppedAfterDepth);
-    convergence["latestStoppedAfterDepth"] =
-      static_cast<double>(metrics.convergence.latestStoppedAfterDepth);
-    convergence["decision"] = QString::fromStdString(metrics.convergence.decision);
+    QJsonObject convergenceJson;
+    convergenceJson["enabled"] = convergence.enabled;
+    convergenceJson["activeSampleFractionThreshold"] = convergence.activeSampleFractionThreshold;
+    convergenceJson["radianceDeltaRmsThreshold"] = convergence.radianceDeltaRmsThreshold;
+    convergenceJson["stoppedTileCount"] = static_cast<double>(convergence.stoppedTileCount);
+    convergenceJson["earliestStoppedAfterDepth"] =
+      static_cast<double>(convergence.earliestStoppedAfterDepth);
+    convergenceJson["latestStoppedAfterDepth"] =
+      static_cast<double>(convergence.latestStoppedAfterDepth);
+    convergenceJson["decision"] = QString::fromStdString(convergence.decision);
 
     QJsonObject object;
-    object["input"] = input;
-    object["tiling"] = tiling;
-    object["scheduling"] = scheduling;
-    object["batching"] = batching;
-    object["convergence"] = convergence;
-    object["timings"] = timings;
+    object["input"] = inputJson;
+    object["tiling"] = tilingJson;
+    object["scheduling"] = schedulingJson;
+    object["batching"] = batchingJson;
+    object["convergence"] = convergenceJson;
+    object["timings"] = timingsJson;
     return object;
   }
 

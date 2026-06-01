@@ -68,9 +68,9 @@ namespace engine::wavefront {
     struct TimingSummary {
       double totalRenderSeconds = 0.0;
     } timings;
-  };
 
-  QJsonObject wavefrontRenderMetricsToJson(const WavefrontRenderMetrics& metrics);
+    QJsonObject toJson() const;
+  };
 
   /**
     * @brief Depth-major ray rendering engine scaffold.

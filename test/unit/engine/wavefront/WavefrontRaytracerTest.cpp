@@ -123,7 +123,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(metrics.batching.maxRadianceDeltaPerDepth[0], 0.0);
     EXPECT_GT(metrics.timings.totalRenderSeconds, 0.0);
 
-    const QJsonObject json = wavefrontRenderMetricsToJson(metrics);
+    const QJsonObject json = metrics.toJson();
     EXPECT_EQ("whitted",
               json.value("batching").toObject().value("integrator").toString().toStdString());
     EXPECT_EQ(48.0, json.value("batching").toObject().value("samplesSubmitted").toDouble());
