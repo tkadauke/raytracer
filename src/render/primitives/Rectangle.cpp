@@ -2,7 +2,10 @@
 #include "render/primitives/Rectangle.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
+
+#include <cmath>
 
 using namespace render;
 
@@ -44,6 +47,44 @@ const Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoin
 
   state.hit(this, "Rectangle");
   return this;
+}
+
+PrimitivePacketHit4 Rectangle::intersectPacketHits(const Ray4& rays,
+                                                   const PrimitivePacketState4& states) const {
+  PrimitivePacketHit4 result;
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    const Rayd ray = rays.rayd(lane);
+    const double t = (m_corner - ray.origin()) * m_normal / (ray.direction() * m_normal);
+    if (std::isinf(t)) {
+      state.miss(this, "Rectangle, parallel");
+      continue;
+    }
+
+    const Vector3d hitPoint = ray.at(t);
+    const Vector3d difference = hitPoint - m_corner;
+    const double dot1 = difference * m_leg1;
+    if (dot1 < 0.0 || dot1 > m_squaredLength1) {
+      state.miss(this, "Rectangle, outside u axis");
+      continue;
+    }
+
+    const double dot2 = difference * m_leg2;
+    if (dot2 < 0.0 || dot2 > m_squaredLength2) {
+      state.miss(this, "Rectangle, outside v axis");
+      continue;
+    }
+
+    if (t < 0.0) {
+      state.miss(this, "Rectangle, behind ray");
+      continue;
+    }
+
+    state.hit(this, "Rectangle");
+    result.setHit(lane, this, HitPoint(this, t, hitPoint, m_normal));
+  }
+  return result;
 }
 
 std::shared_ptr<Mesh> Rectangle::tessellate(int) const {

@@ -123,6 +123,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Box packet hit materialization.** `render::Box` now materializes four-wide
   packet hits directly, including inside-box exit hits and per-lane state
   updates for wavefront frontiers. — GPT-5
+- **Disk and rectangle packet hit materialization.** `render::Disk` and
+  `render::Rectangle` now materialize four-wide packet hits directly, reducing
+  scalar interval fallback for common floor, wall, and disk primitives on
+  wavefront frontiers. — GPT-5
 
 ### Changed
 

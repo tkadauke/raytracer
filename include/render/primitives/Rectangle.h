@@ -34,6 +34,8 @@ namespace render {
 
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                        render::State& state) const override;
+    PrimitivePacketHit4 intersectPacketHits(const Ray4& rays,
+                                            const PrimitivePacketState4& states) const override;
 
     /**
       * Returns a Mesh with 4 vertices and 2 triangles covering the rectangle.

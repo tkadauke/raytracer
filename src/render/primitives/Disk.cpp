@@ -1,6 +1,7 @@
 #include "render/State.h"
 #include "render/primitives/Disk.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Number.h"
 #include "core/geometry/Mesh.h"
@@ -32,6 +33,32 @@ const Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints,
 
   state.miss(this, "Disk, ray miss");
   return nullptr;
+}
+
+PrimitivePacketHit4 Disk::intersectPacketHits(const Ray4& rays,
+                                              const PrimitivePacketState4& states) const {
+  PrimitivePacketHit4 result;
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    const Rayd ray = rays.rayd(lane);
+    const double t = (m_center - ray.origin()) * m_normal / (ray.direction() * m_normal);
+    const Vector4d hitPoint = ray.at(t);
+
+    if (hitPoint.squaredDistanceTo(m_center) >= m_squaredRadius) {
+      state.miss(this, "Disk, ray miss");
+      continue;
+    }
+
+    if (t < 0.0001) {
+      state.miss(this, "Disk behind ray");
+      continue;
+    }
+
+    state.hit(this, "Disk");
+    result.setHit(lane, this, HitPoint(this, t, hitPoint, m_normal));
+  }
+  return result;
 }
 
 BoundingBoxd Disk::calculateBoundingBox() const {
