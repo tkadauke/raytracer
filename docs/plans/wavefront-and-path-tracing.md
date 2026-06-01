@@ -16,11 +16,13 @@
 > `WavefrontRaytracer` engine and graph executor surface. Depth-major
 > path-tracing batches now report active-path and radiance-delta metrics,
 > graph-visible convergence thresholds can stop path batches early, and
-> Whitted batches now consume material-published continuation queues. rendercli
-> now exposes those convergence overrides as typed intent-derived graph state
-> instead of hidden direct-engine settings. Depth-major path batches also
-> publish per-depth sample-color snapshots so graph-backed Wavefront previews
-> can show progress before the pass finishes.
+> Whitted batches now consume material-published continuation queues. Phase 3's
+> bare wavefront parity gate is covered by rendercli RMS checks for static
+> sphere/CSG, transparent torus, and BVH-heavy sphere fixtures. rendercli now
+> exposes convergence overrides as typed intent-derived graph state instead of
+> hidden direct-engine settings. Depth-major path batches also publish
+> per-depth sample-color snapshots so graph-backed Wavefront previews can show
+> progress before the pass finishes.
 >
 > **Rule:** the wavefront engine is a **sibling** to the existing
 > `Raytracer`, not a replacement. Both ship; the user chooses through render
@@ -462,7 +464,7 @@ Render intent, `RenderRaytracerOptions`, `RaytracerBeautyPassState`,
 rendercli graph compilation, Modeler Render Settings, and replayed graph JSON
 now carry `whitted` / `pathtracer` integrator choice. ✅ **Done.**
 
-### Phase 3 — bare wavefront engine: same outputs as Raytracer 🚧 **Started.**
+### ~~Phase 3 — bare wavefront engine: same outputs as Raytracer~~ ✅ **Done.**
 
 New `WavefrontRaytracer` sibling under `include/engine/wavefront/`.
 Whitted semantics with tree-flattening (Option **A** above) so the
@@ -502,9 +504,11 @@ gate, and the transparent torus parity fixture now also records an RMS gate
 before enforcing exact image parity. The deterministic static-scene parity
 fixture records the same RMS gate for the simple sphere/CSG baseline.
 
-**Goal**: prove the architecture without changing image output.
-**Gate**: macro benchmark output (sphere / torus / BVH scenes) RMS
-within 1e-3 of `Raytracer` output for the same maxDepth.
+**Goal**: prove the architecture without changing image output. ✅ **Done.**
+rendercli now compares recursive raytracer and wavefront output for static
+sphere/CSG, transparent torus, reflective, transparent-glass, and BVH-heavy
+fixtures. The sphere/torus/BVH fixtures use normalized RGB RMS thresholds of
+1e-3 and currently produce zero delta.
 
 ### Phase 4 — image-wide adaptive depth via convergence detection 🚧 **Started.**
 
