@@ -51,3 +51,47 @@ render::WhittedShadeResult PhongMaterial::shadeWhitted(const render::RayCaster* 
   return render::WhittedShadeResult{PhongMaterial::shade(raycaster, scene, ray, hitPoint, state),
                                     {}};
 }
+
+Colord PhongMaterial::evalBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                               const Vector3d& wo) const {
+  return MatteMaterial::evalBsdf(hitPoint, wi, wo) + m_specularBRDF.eval(hitPoint, wi, wo);
+}
+
+render::MaterialBsdfSample PhongMaterial::sampleBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                                                     const Vector2d& sample) const {
+  render::MaterialBsdfSample result;
+  const double diffuseWeight = diffuseSamplingWeight();
+  const double specularWeight = 1.0 - diffuseWeight;
+  const double selector = std::clamp(sample.x(), 0.0, 1.0);
+  const double y = std::clamp(sample.y(), 0.0, 1.0);
+
+  if (specularWeight == 0.0 || selector < diffuseWeight) {
+    const double remappedX = diffuseWeight > 0.0 ? selector / diffuseWeight : selector;
+    Lambertian lobe = diffuseLobe(nullptr, hitPoint);
+    lobe.sample(hitPoint, wi, result.direction, result.pdf, Vector2d(remappedX, y));
+  } else {
+    const double remappedX =
+      specularWeight > 0.0 ? (selector - diffuseWeight) / specularWeight : selector;
+    m_specularBRDF.sample(hitPoint, wi, result.direction, result.pdf, Vector2d(remappedX, y));
+  }
+
+  result.value = evalBsdf(hitPoint, wi, result.direction);
+  result.pdf = bsdfPdf(hitPoint, wi, result.direction);
+  result.isDelta = false;
+  return result;
+}
+
+double PhongMaterial::bsdfPdf(const HitPoint& hitPoint, const Vector3d& wi,
+                              const Vector3d& wo) const {
+  const double diffuseWeight = diffuseSamplingWeight();
+  const double specularWeight = 1.0 - diffuseWeight;
+  return diffuseWeight * MatteMaterial::bsdfPdf(hitPoint, wi, wo) +
+         specularWeight * m_specularBRDF.pdf(hitPoint, wi, wo);
+}
+
+double PhongMaterial::diffuseSamplingWeight() const {
+  const double diffuse = std::max(0.0, diffuseCoefficient());
+  const double specular = std::max(0.0, specularCoefficient());
+  const double total = diffuse + specular;
+  return total <= 0.0 ? 1.0 : diffuse / total;
+}

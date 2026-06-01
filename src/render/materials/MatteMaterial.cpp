@@ -17,29 +17,6 @@
 using namespace std;
 using namespace render;
 
-namespace {
-  // The path-tracer-side BSDF for MatteMaterial uses only the diffuse
-  // lobe — the ambient term in `shade()` is the Whitted approximation
-  // of indirect light, but the path tracer computes indirect properly
-  // through recursion. Sample a Rayd with the matte's diffuse-tinted
-  // Lambertian BRDF.
-  Lambertian diffuseLobe(const MatteMaterial& material, const Rayd* ray, const HitPoint& hitPoint) {
-    Colord texColor = Colord::black();
-    if (auto texture = material.diffuseTexture()) {
-      // Texture::evaluate takes a Rayd; when called from the path
-      // tracer's BSDF path we don't have the incoming ray (BSDF
-      // evaluation is purely local). Synthesize a placeholder ray
-      // along the hit normal — image textures that depend on screen-
-      // space ray direction won't hit this code path because matte
-      // surfaces use UV-derived textures, but if they do, the result
-      // is still well-defined.
-      Rayd surrogate = ray ? *ray : Rayd(hitPoint.point() - hitPoint.normal(), hitPoint.normal());
-      texColor = texture->evaluate(surrogate, hitPoint);
-    }
-    return Lambertian(texColor, material.diffuseCoefficient());
-  }
-}
-
 Colord MatteMaterial::shade(const render::RayCaster*, const render::Scene& scene, const Rayd& ray,
                             const HitPoint& hitPoint, render::State& state) const {
   auto texColor = diffuseTexture() ? diffuseTexture()->evaluate(ray, hitPoint) : Colord::black();
@@ -77,13 +54,13 @@ render::WhittedShadeResult MatteMaterial::shadeWhitted(const render::RayCaster* 
 
 Colord MatteMaterial::evalBsdf(const HitPoint& hitPoint, const Vector3d& wi,
                                const Vector3d& wo) const {
-  return diffuseLobe(*this, nullptr, hitPoint).eval(hitPoint, wi, wo);
+  return diffuseLobe(nullptr, hitPoint).eval(hitPoint, wi, wo);
 }
 
 render::MaterialBsdfSample MatteMaterial::sampleBsdf(const HitPoint& hitPoint, const Vector3d& wi,
                                                      const Vector2d& sample) const {
   render::MaterialBsdfSample result;
-  Lambertian lobe = diffuseLobe(*this, nullptr, hitPoint);
+  Lambertian lobe = diffuseLobe(nullptr, hitPoint);
   result.value = lobe.sample(hitPoint, wi, result.direction, result.pdf, sample);
   result.isDelta = false;
   return result;
@@ -91,5 +68,17 @@ render::MaterialBsdfSample MatteMaterial::sampleBsdf(const HitPoint& hitPoint, c
 
 double MatteMaterial::bsdfPdf(const HitPoint& hitPoint, const Vector3d& wi,
                               const Vector3d& wo) const {
-  return diffuseLobe(*this, nullptr, hitPoint).pdf(hitPoint, wi, wo);
+  return diffuseLobe(nullptr, hitPoint).pdf(hitPoint, wi, wo);
+}
+
+Lambertian MatteMaterial::diffuseLobe(const Rayd* ray, const HitPoint& hitPoint) const {
+  Colord texColor = Colord::black();
+  if (auto texture = diffuseTexture()) {
+    // Texture::evaluate takes a Rayd; when called from the path tracer's BSDF
+    // path we don't have the incoming ray. Synthesize a placeholder ray along
+    // the hit normal so UV-derived textures still evaluate deterministically.
+    Rayd surrogate = ray ? *ray : Rayd(hitPoint.point() - hitPoint.normal(), hitPoint.normal());
+    texColor = texture->evaluate(surrogate, hitPoint);
+  }
+  return Lambertian(texColor, diffuseCoefficient());
 }

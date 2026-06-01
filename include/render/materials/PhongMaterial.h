@@ -22,9 +22,9 @@ namespace render {
     * highlights, while high values leave only view vectors close to
     * the mirror-reflection direction.
     *
-    * Path-tracing integrators currently treat Phong as a compatibility
-    * material: they call the Whitted `shade()` implementation and terminate
-    * that path until glossy BSDF sampling is implemented.
+    * Path-tracing integrators sample Phong as a finite diffuse/glossy BSDF:
+    * diffuse samples use the Lambertian lobe and glossy samples use the Phong
+    * lobe, with direct lighting evaluating both finite lobes.
     *
     * @htmlonly
     * <script type="text/javascript" src="figure.js"></script>
@@ -162,10 +162,19 @@ namespace render {
                                     render::State& state) const override;
 
     bool supportsBsdfSampling() const override {
-      return false;
+      return true;
     }
 
+    Colord evalBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                    const Vector3d& wo) const override;
+
+    MaterialBsdfSample sampleBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                                  const Vector2d& sample) const override;
+
+    double bsdfPdf(const HitPoint& hitPoint, const Vector3d& wi, const Vector3d& wo) const override;
+
   private:
+    double diffuseSamplingWeight() const;
     render::GlossySpecular m_specularBRDF;
   };
 }

@@ -48,9 +48,42 @@ namespace PhongMaterialTest {
     ASSERT_EQ(64, material.exponent());
   }
 
-  TEST(PhongMaterial, UsesCompatibilityShadingForPathTracing) {
+  TEST(PhongMaterial, SupportsBsdfSamplingForPathTracing) {
     PhongMaterial material;
-    EXPECT_FALSE(material.supportsBsdfSampling());
+    EXPECT_TRUE(material.supportsBsdfSampling());
+  }
+
+  TEST(PhongMaterial, EvaluatesDiffuseAndGlossyBsdfLobes) {
+    auto texture = std::make_shared<ConstantColorTexture>(Colord::white());
+    PhongMaterial material(texture);
+    material.setDiffuseCoefficient(1.0);
+    material.setSpecularCoefficient(1.0);
+    material.setSpecularColor(Colord::white());
+    material.setExponent(16);
+    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+
+    const Colord value = material.evalBsdf(hitPoint, Vector3d(0, 1, 0), Vector3d(0, 1, 0));
+
+    const double expected = 1.0 / M_PI + 1.0;
+    ASSERT_COLOR_NEAR(Colord(expected, expected, expected), value, 1e-12);
+  }
+
+  TEST(PhongMaterial, SamplesDiffuseAndGlossyBsdfWithMixturePdf) {
+    auto texture = std::make_shared<ConstantColorTexture>(Colord::white());
+    PhongMaterial material(texture);
+    material.setDiffuseCoefficient(1.0);
+    material.setSpecularCoefficient(1.0);
+    material.setSpecularColor(Colord::white());
+    material.setExponent(16);
+    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+
+    const MaterialBsdfSample sampled =
+      material.sampleBsdf(hitPoint, Vector3d(0, 1, 0), Vector2d(0.75, 0.5));
+
+    EXPECT_FALSE(sampled.isDelta);
+    EXPECT_GT(sampled.pdf, 0.0);
+    EXPECT_GT(sampled.value.max(), 0.0);
+    EXPECT_DOUBLE_EQ(material.bsdfPdf(hitPoint, Vector3d(0, 1, 0), sampled.direction), sampled.pdf);
   }
 
   // ---- shading-behaviour tests ---------------------------------------------

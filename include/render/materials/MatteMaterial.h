@@ -178,6 +178,9 @@ namespace render {
 
     double bsdfPdf(const HitPoint& hitPoint, const Vector3d& wi, const Vector3d& wo) const override;
 
+  protected:
+    Lambertian diffuseLobe(const Rayd* ray, const HitPoint& hitPoint) const;
+
   private:
     std::shared_ptr<render::Texturec> m_diffuseTexture;
     std::shared_ptr<render::Texturec> m_normalTexture;

@@ -132,6 +132,10 @@ namespace render {
                                     const Rayd& ray, const HitPoint& hitPoint,
                                     render::State& state) const override;
 
+    bool supportsBsdfSampling() const override {
+      return false;
+    }
+
     RasterRecursiveFallback rasterRecursiveFallback() const override {
       return RasterRecursiveFallback::ReflectiveLocalPhong;
     }

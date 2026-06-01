@@ -47,6 +47,14 @@ namespace PathTracingIntegratorTest {
       std::vector<std::uint64_t> activeSampleCounts;
     };
 
+    class UnsupportedMaterial final : public Material {
+    public:
+      Colord shade(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                   State&) const override {
+        return Colord(0.25, 0.5, 0.75);
+      }
+    };
+
     // Build a scene with a single Lambertian ground plane lit by one
     // directional light. Background is black so any radiance has to
     // come from the integrator's NEE direct-lighting step.
@@ -83,12 +91,23 @@ namespace PathTracingIntegratorTest {
       auto material = std::make_shared<PhongMaterial>(texture);
       material->setAmbientCoefficient(0.0);
       material->setDiffuseCoefficient(1.0);
-      material->setSpecularCoefficient(0.0);
+      material->setSpecularCoefficient(0.5);
 
       auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
       plane->setMaterial(material);
       scene->add(plane);
       scene->addLight(std::make_shared<DirectionalLight>(Vector3d(0, 1, 0), Colord::white()));
+
+      return scene;
+    }
+
+    std::unique_ptr<Scene> unsupportedMaterialScene() {
+      auto scene = std::make_unique<Scene>(Colord::black());
+      scene->setAmbient(Colord::black());
+
+      auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
+      plane->setMaterial(std::make_shared<UnsupportedMaterial>());
+      scene->add(plane);
 
       return scene;
     }
@@ -194,7 +213,7 @@ namespace PathTracingIntegratorTest {
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceRecordsCompatibilityMaterialFallbacks) {
-    auto scene = simplePhongScene();
+    auto scene = unsupportedMaterialScene();
     PathTracingIntegrator integrator;
     integrator.setMaximumRecursionDepth(2);
 
@@ -211,6 +230,27 @@ namespace PathTracingIntegratorTest {
     ASSERT_EQ(2u, batched.size());
     EXPECT_FALSE(metrics.usedScalarFallback);
     EXPECT_EQ(2u, metrics.compatibilityShadeSamples);
+    EXPECT_EQ(1u, metrics.activeSamplesPerDepth.size());
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadianceSamplesPhongWithoutCompatibilityFallback) {
+    auto scene = simplePhongScene();
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 11ull)});
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 29ull)});
+
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster, &metrics);
+
+    ASSERT_EQ(2u, batched.size());
+    EXPECT_GT(batched[0].max(), 0.0);
+    EXPECT_EQ(0u, metrics.compatibilityShadeSamples);
     EXPECT_EQ(1u, metrics.activeSamplesPerDepth.size());
   }
 

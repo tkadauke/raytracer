@@ -50,6 +50,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   continuations, so wavefront reflection/refraction work can run through queues
   instead of only scalar recursive samples; unsupported materials still use the
   scalar compatibility path. — GPT-5
+- **Phong BSDF sampling for path tracing.** Phong materials now expose their
+  diffuse and glossy lobes to the path-tracing integrator instead of terminating
+  through Whitted compatibility shading. — GPT-5
 - **Raytracer integrator selection is graph-visible.** Render intent and
   raytracer beauty pass state now carry `whitted` / `pathtracer` integrator
   selection, so rendercli's `--integrator pathtracer` is represented in

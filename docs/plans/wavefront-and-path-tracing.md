@@ -14,12 +14,13 @@
 > 2 now makes ray integrator selection graph-visible. A scalar
 > `PathTracingIntegrator` also exists now. Phase 3 has started with the
 > `WavefrontRaytracer` engine and graph executor surface. Depth-major
-> path-tracing batches now report active-path and radiance-delta metrics, and
-> graph-visible convergence thresholds can stop path batches early; explicit
-> Whitted queues remain. rendercli now exposes those convergence overrides as
-> typed intent-derived graph state instead of hidden direct-engine settings.
-> Depth-major path batches also publish per-depth sample-color snapshots so
-> graph-backed Wavefront previews can show progress before the pass finishes.
+> path-tracing batches now report active-path and radiance-delta metrics,
+> graph-visible convergence thresholds can stop path batches early, and
+> Whitted batches now consume material-published continuation queues. rendercli
+> now exposes those convergence overrides as typed intent-derived graph state
+> instead of hidden direct-engine settings. Depth-major path batches also
+> publish per-depth sample-color snapshots so graph-backed Wavefront previews
+> can show progress before the pass finishes.
 >
 > **Rule:** the wavefront engine is a **sibling** to the existing
 > `Raytracer`, not a replacement. Both ship; the user chooses through render
@@ -544,9 +545,10 @@ sanity scene: it has a wavefront/pathtracer render intent, black ambient, no
 direct lights, and a matte object that is visible only because diffuse BSDF
 sampling gathers environment radiance. rendercli now compares that scene
 against a Whitted override and requires the images to differ.
-Batch metrics also count material compatibility shading fallbacks. Phong,
-Reflective, and Transparent materials explicitly use the compatibility path for
-now, so graph traces can show when path tracing terminated at a legacy
+Batch metrics also count material compatibility shading fallbacks. Phong now
+publishes a finite diffuse/glossy BSDF for path tracing, while Reflective and
+Transparent materials explicitly use the compatibility path for now. Graph
+traces can therefore show when path tracing terminated at a legacy
 Whitted-shaded surface instead of continuing through a sampled BSDF; rendercli
 has a graph-trace regression check that requires this metadata on a mixed
 material scene.
