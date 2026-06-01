@@ -42,6 +42,11 @@ const Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoi
   }
 }
 
+PrimitivePacketHit4 Difference::intersectPacketHits(const Ray4& rays,
+                                                    const PrimitivePacketState4& states) const {
+  return Primitive::intersectPacketHits(rays, states);
+}
+
 // Shadow implementation of Composite, which generates spourious shadows of
 // differential objects
 bool Difference::intersects(const Rayd& ray, render::State& state) const {

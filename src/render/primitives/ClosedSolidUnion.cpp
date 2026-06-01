@@ -34,6 +34,11 @@ const Primitive* ClosedSolidUnion::intersect(const Rayd& ray, HitPointInterval& 
   }
 }
 
+PrimitivePacketHit4
+ClosedSolidUnion::intersectPacketHits(const Ray4& rays, const PrimitivePacketState4& states) const {
+  return Primitive::intersectPacketHits(rays, states);
+}
+
 Vector3d ClosedSolidUnion::farthestPoint(const Vector3d& direction) const {
   for (const auto& primitive : primitives()) {
     Vector3d point = primitive->farthestPoint(direction);

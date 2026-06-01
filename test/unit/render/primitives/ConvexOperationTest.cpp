@@ -3,6 +3,7 @@
 #include "render/State.h"
 #include "render/primitives/ConvexOperation.h"
 #include "render/materials/MatteMaterial.h"
+#include "core/math/RayPacket.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace testing {
@@ -40,6 +41,34 @@ namespace ConvexOperationTest {
     ASSERT_EQ(Vector3d(-2, 0, 0), hitPoints.min().point());
     ASSERT_EQ(Vector3d(2, 0, 0), hitPoints.max().point());
     ASSERT_EQ(&i, result);
+  }
+
+  TEST(ConvexOperation, ShouldUseScalarCsgSemanticsForRay4PacketHits) {
+    MockConvexOperation operation;
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
+    operation.add(primitive1);
+    operation.add(primitive2);
+    EXPECT_CALL(*primitive1, calculateBoundingBox())
+      .WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
+    EXPECT_CALL(*primitive2, calculateBoundingBox())
+      .WillOnce(Return(BoundingBoxd(Vector3d::one, Vector3d::one)));
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(-5, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(-5, 3, 0), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(5, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(0, 5, 0), Vector3d(1, 0, 0))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = operation.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(&operation, result.primitive(0));
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hit(2));
+    EXPECT_FALSE(result.hit(3));
+    for (const State& state : laneStates) {
+      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+    }
   }
 
   TEST(ConvexOperation, ShouldNotReturnAnyPrimitiveRayOutsideBoundingBox) {

@@ -53,6 +53,11 @@ const Primitive* ConvexOperation::intersect(const Rayd& ray, HitPointInterval& h
   return nullptr;
 }
 
+PrimitivePacketHit4
+ConvexOperation::intersectPacketHits(const Ray4& rays, const PrimitivePacketState4& states) const {
+  return Primitive::intersectPacketHits(rays, states);
+}
+
 bool ConvexOperation::intersects(const Rayd& ray, render::State&) const {
   if (!boundingBoxIntersects(ray)) {
     return false;

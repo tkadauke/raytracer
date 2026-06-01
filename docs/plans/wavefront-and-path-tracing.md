@@ -802,6 +802,11 @@ That contract now survives common imported-geometry wrappers: `Instance`
 transforms a static packet into local space and transforms materialized hits
 back to world space, while `MeshPrimitive` forwards packet hit requests to its
 triangle leaves and preserves mesh-level material fallback.
+Non-plain CSG composites (`Difference`, `Intersection`, `ClosedSolidUnion`,
+and `ConvexOperation` subclasses) explicitly keep using the scalar
+`Primitive::intersectPacketHits` fallback for now, because their scalar
+interval/set-operation semantics are not equivalent to plain child-hit merging.
+The fallback metric keeps that cost visible until real packet CSG exists.
 Wavefront metrics now also expose packet-frontier utilization:
 `frontierPacketChunksPerDepth`, `frontierScalarRaysPerDepth`, and
 `frontierPacketScalarFallbackRaysPerDepth` distinguish four-wide packet chunks,

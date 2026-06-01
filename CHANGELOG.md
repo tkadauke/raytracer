@@ -482,6 +482,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Path-tracing cancellation energy.** Depth-major path-tracing batches now preserve
   radiance already accumulated by an active path when cancellation stops the path.
   — GPT-5
+- **Wavefront packet CSG semantics.** Difference, intersection, closed-solid
+  union, and convex CSG operations now use their scalar interval logic for
+  packet hit materialization instead of inheriting plain composite child-hit
+  merging. — GPT-5
 - **Finite point-light shadow rays.** Whitted and path-tracing direct lighting
   now bound point-light shadow tests to the sampled light distance, so geometry
   behind a point light no longer incorrectly shadows the shaded surface.
