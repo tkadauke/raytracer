@@ -4,7 +4,12 @@
 
 #include <functional>
 
+class HitPoint;
+
 namespace render {
+  class Light;
+  class Material;
+
   /**
     * @brief Iterative megakernel Monte Carlo path tracer.
     *
@@ -92,6 +97,8 @@ namespace render {
 
   private:
     bool isCancelled() const;
+    Colord directLighting(const Scene& scene, const Light& light, const HitPoint& hitPoint,
+                          const Material& material, const Vector3d& wi, State& state) const;
 
     int m_maximumRecursionDepth{8};
     int m_russianRouletteDepth{3};

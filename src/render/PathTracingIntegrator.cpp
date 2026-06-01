@@ -15,54 +15,6 @@
 #include <cmath>
 
 namespace render {
-  namespace {
-    /**
-      * Single-light direct lighting contribution at `hitPoint` via
-      * next-event estimation. Returns the radiance contribution before
-      * any throughput weighting; caller multiplies by `state.throughput`.
-      *
-      * Delta lights (point, directional) contribute via the
-      * `LightSample` they return with `pdf == 1` and `delta == true`;
-      * the integrator must not MIS-weight those. Area lights would
-      * MIS-weight against the BSDF sample; we don't have area lights
-      * yet, so the MIS branch is documented as TODO and skipped for
-      * now.
-      */
-    Colord directLighting(const Scene& scene, const Light& light, const HitPoint& hitPoint,
-                          const Material& material, const Vector3d& wi, State& state) {
-      LightSample sample = light.sample(hitPoint.point());
-      if (sample.pdf <= 0.0 || sample.radiance == Colord::black()) {
-        return Colord::black();
-      }
-
-      const Vector3d wo = sample.direction;
-      const double normalDotOut = hitPoint.normal() * wo;
-      if (normalDotOut <= 0.0) {
-        return Colord::black();
-      }
-
-      // Shadow ray. The existing scalar `Scene::intersects` is the
-      // matching predicate; epsilon-shift to avoid self-intersection.
-      const Rayd shadowRay = Rayd(hitPoint.point(), wo).epsilonShifted();
-      if (scene.intersects(shadowRay, state)) {
-        state.shadowHit(nullptr, "PathTracingIntegrator");
-        return Colord::black();
-      }
-      state.shadowMiss(nullptr, "PathTracingIntegrator");
-
-      const Colord bsdfValue = material.evalBsdf(hitPoint, wi, wo);
-      if (bsdfValue == Colord::black()) {
-        return Colord::black();
-      }
-
-      // Delta lights: pdf encodes the discrete sample probability;
-      // the value `radiance / pdf` is the correct contribution.
-      // Finite-PDF area lights would add a MIS weight here; we have
-      // none yet so the branch is the same in both cases.
-      return bsdfValue * sample.radiance * (normalDotOut / sample.pdf);
-    }
-  }
-
   PathTracingIntegrator::PathTracingIntegrator() = default;
 
   std::unique_ptr<Integrator> PathTracingIntegrator::clone() const {
@@ -87,6 +39,41 @@ namespace render {
 
   bool PathTracingIntegrator::isCancelled() const {
     return m_cancellationCallback && m_cancellationCallback();
+  }
+
+  Colord PathTracingIntegrator::directLighting(const Scene& scene, const Light& light,
+                                               const HitPoint& hitPoint, const Material& material,
+                                               const Vector3d& wi, State& state) const {
+    LightSample sample = light.sample(hitPoint.point());
+    if (sample.pdf <= 0.0 || sample.radiance == Colord::black()) {
+      return Colord::black();
+    }
+
+    const Vector3d wo = sample.direction;
+    const double normalDotOut = hitPoint.normal() * wo;
+    if (normalDotOut <= 0.0) {
+      return Colord::black();
+    }
+
+    // Shadow ray. The existing scalar `Scene::intersects` is the
+    // matching predicate; epsilon-shift to avoid self-intersection.
+    const Rayd shadowRay = Rayd(hitPoint.point(), wo).epsilonShifted();
+    if (scene.intersects(shadowRay, state)) {
+      state.shadowHit(nullptr, "PathTracingIntegrator");
+      return Colord::black();
+    }
+    state.shadowMiss(nullptr, "PathTracingIntegrator");
+
+    const Colord bsdfValue = material.evalBsdf(hitPoint, wi, wo);
+    if (bsdfValue == Colord::black()) {
+      return Colord::black();
+    }
+
+    // Delta lights: pdf encodes the discrete sample probability; the
+    // value `radiance / pdf` is the correct contribution. Finite-PDF
+    // area lights would add a MIS weight here; we have none yet so the
+    // branch is the same in both cases.
+    return bsdfValue * sample.radiance * (normalDotOut / sample.pdf);
   }
 
   Colord PathTracingIntegrator::radiance(const Scene& scene, const Rayd& primaryRay, State& state,
