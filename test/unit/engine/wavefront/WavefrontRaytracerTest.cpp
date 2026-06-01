@@ -589,6 +589,10 @@ namespace WavefrontRaytracerTest {
     EXPECT_GE(metrics.timings.integratorIntersectionWorkerSeconds, 0.0);
     EXPECT_GE(metrics.timings.integratorShadingWorkerSeconds, 0.0);
     EXPECT_GE(metrics.timings.integratorOverheadWorkerSeconds, 0.0);
+    EXPECT_GE(metrics.timings.integratorPathSetupWorkerSeconds, 0.0);
+    EXPECT_GE(metrics.timings.integratorFrontierBookkeepingWorkerSeconds, 0.0);
+    EXPECT_GE(metrics.timings.integratorProgressSnapshotWorkerSeconds, 0.0);
+    EXPECT_GE(metrics.timings.integratorConvergenceTestWorkerSeconds, 0.0);
     EXPECT_GT(metrics.timings.totalRenderSeconds, 0.0);
 
     const QJsonObject json = metrics.toJson();
@@ -645,10 +649,18 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(timings.contains("integratorIntersectionWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorShadingWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorOverheadWorkerSeconds"));
+    EXPECT_TRUE(timings.contains("integratorPathSetupWorkerSeconds"));
+    EXPECT_TRUE(timings.contains("integratorFrontierBookkeepingWorkerSeconds"));
+    EXPECT_TRUE(timings.contains("integratorProgressSnapshotWorkerSeconds"));
+    EXPECT_TRUE(timings.contains("integratorConvergenceTestWorkerSeconds"));
     EXPECT_GE(timings.value("sampleGenerationWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorBatchWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorIntersectionWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorShadingWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorOverheadWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("integratorPathSetupWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("integratorFrontierBookkeepingWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("integratorProgressSnapshotWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("integratorConvergenceTestWorkerSeconds").toDouble(), 0.0);
   }
 }

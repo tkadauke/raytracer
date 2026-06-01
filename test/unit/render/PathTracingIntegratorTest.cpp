@@ -337,6 +337,10 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(0u, metrics.compatibilityShadeSamples);
     EXPECT_GT(metrics.intersectionWorkerSeconds, 0.0);
     EXPECT_GT(metrics.shadingWorkerSeconds, 0.0);
+    EXPECT_GT(metrics.pathSetupWorkerSeconds, 0.0);
+    EXPECT_GT(metrics.frontierBookkeepingWorkerSeconds, 0.0);
+    EXPECT_EQ(0.0, metrics.progressSnapshotWorkerSeconds);
+    EXPECT_EQ(0.0, metrics.convergenceTestWorkerSeconds);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceCancellationPreservesAccumulatedContribution) {

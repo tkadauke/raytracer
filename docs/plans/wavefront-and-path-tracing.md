@@ -611,7 +611,10 @@ lighting, and continuation sampling cost before the next speed optimization is
 chosen. Metrics also report the residual integrator overhead after the
 intersection and shading buckets are subtracted from total integrator worker
 time, making scheduler, progress, convergence, and frontier bookkeeping cost
-visible instead of implied by subtraction. The Whitted
+visible instead of implied by subtraction. Path-tracing batches now further
+break that residual down into path setup, frontier bookkeeping, progress
+snapshot publication, and convergence-test worker time, giving Phase 7 captures
+a direct way to choose the next scheduler optimization. The Whitted
 batch path now also avoids copying/scanning the full tile result buffer for
 radiance-delta metrics: metrics/convergence snapshots track only the unique
 active sample indices at each depth, and per-depth continuation queues reserve

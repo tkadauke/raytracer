@@ -41,6 +41,10 @@ namespace render {
     std::uint64_t stoppedAfterDepth{0};
     double intersectionWorkerSeconds{0.0};
     double shadingWorkerSeconds{0.0};
+    double pathSetupWorkerSeconds{0.0};
+    double frontierBookkeepingWorkerSeconds{0.0};
+    double progressSnapshotWorkerSeconds{0.0};
+    double convergenceTestWorkerSeconds{0.0};
 
     void reset(bool scalarFallback);
     void recordActiveDepth(std::uint64_t activeSamples);

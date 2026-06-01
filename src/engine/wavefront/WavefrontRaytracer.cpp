@@ -47,14 +47,18 @@ namespace engine::wavefront {
     };
   }
 
-  void WavefrontRenderMetrics::TimingSummary::recordIntegratorBatch(double batchSeconds,
-                                                                    double intersectionSeconds,
-                                                                    double shadingSeconds) {
+  void WavefrontRenderMetrics::TimingSummary::recordIntegratorBatch(
+    double batchSeconds, const render::IntegratorBatchMetrics& batchMetrics) {
     integratorBatchWorkerSeconds += batchSeconds;
-    integratorIntersectionWorkerSeconds += intersectionSeconds;
-    integratorShadingWorkerSeconds += shadingSeconds;
+    integratorIntersectionWorkerSeconds += batchMetrics.intersectionWorkerSeconds;
+    integratorShadingWorkerSeconds += batchMetrics.shadingWorkerSeconds;
     integratorOverheadWorkerSeconds +=
-      std::max(0.0, batchSeconds - intersectionSeconds - shadingSeconds);
+      std::max(0.0, batchSeconds - batchMetrics.intersectionWorkerSeconds -
+                      batchMetrics.shadingWorkerSeconds);
+    integratorPathSetupWorkerSeconds += batchMetrics.pathSetupWorkerSeconds;
+    integratorFrontierBookkeepingWorkerSeconds += batchMetrics.frontierBookkeepingWorkerSeconds;
+    integratorProgressSnapshotWorkerSeconds += batchMetrics.progressSnapshotWorkerSeconds;
+    integratorConvergenceTestWorkerSeconds += batchMetrics.convergenceTestWorkerSeconds;
   }
 
   void WavefrontRenderMetrics::BatchSummary::addIntegratorMetrics(
@@ -170,6 +174,13 @@ namespace engine::wavefront {
       timings.integratorIntersectionWorkerSeconds;
     timingsJson["integratorShadingWorkerSeconds"] = timings.integratorShadingWorkerSeconds;
     timingsJson["integratorOverheadWorkerSeconds"] = timings.integratorOverheadWorkerSeconds;
+    timingsJson["integratorPathSetupWorkerSeconds"] = timings.integratorPathSetupWorkerSeconds;
+    timingsJson["integratorFrontierBookkeepingWorkerSeconds"] =
+      timings.integratorFrontierBookkeepingWorkerSeconds;
+    timingsJson["integratorProgressSnapshotWorkerSeconds"] =
+      timings.integratorProgressSnapshotWorkerSeconds;
+    timingsJson["integratorConvergenceTestWorkerSeconds"] =
+      timings.integratorConvergenceTestWorkerSeconds;
     timingsJson["totalRenderSeconds"] = timings.totalRenderSeconds;
 
     QJsonObject denoiseJson;

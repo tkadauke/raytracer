@@ -119,14 +119,18 @@ namespace render {
                                                         IntegratorBatchMetrics* metrics) const {
     auto& path = paths[pathIndex];
     const Colord accumulatedBeforeDepth = path.accumulated;
-    if (isCancelled()) {
-      path.active = false;
-      recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated);
-      return;
-    }
 
-    path.state.recurseIn();
-    ++depthMetrics.frontierScalarRays;
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+      if (isCancelled()) {
+        path.active = false;
+        recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated);
+        return;
+      }
+
+      path.state.recurseIn();
+      ++depthMetrics.frontierScalarRays;
+    }
 
     HitPointInterval hitPoints;
     const Primitive* primitive = nullptr;
@@ -134,6 +138,8 @@ namespace render {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
       primitive = scene.intersect(path.ray, hitPoints, path.state);
     }
+
+    core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
     if (!primitive) {
       recordFrontierMiss(scene, path, depthMetrics, accumulatedBeforeDepth);
       return;
@@ -154,23 +160,27 @@ namespace render {
     std::array<std::uint64_t, Ray4::lanes> packetFallbacksBefore{};
     PrimitivePacketState4 states{};
 
-    ++depthMetrics.frontierPacketChunks;
-    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
-      const std::size_t pathIndex = activePathIndices[firstActivePathIndex + lane];
-      auto& path = paths[pathIndex];
-      accumulatedBeforeDepths[lane] = path.accumulated;
-      path.state.recurseIn();
-      packetFallbacksBefore[lane] = path.state.packetHitScalarFallbacks;
-      rays[lane] = path.ray;
-      states[lane] = &path.state;
+    PrimitivePacketHit4 packetHits;
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+      ++depthMetrics.frontierPacketChunks;
+      for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+        const std::size_t pathIndex = activePathIndices[firstActivePathIndex + lane];
+        auto& path = paths[pathIndex];
+        accumulatedBeforeDepths[lane] = path.accumulated;
+        path.state.recurseIn();
+        packetFallbacksBefore[lane] = path.state.packetHitScalarFallbacks;
+        rays[lane] = path.ray;
+        states[lane] = &path.state;
+      }
     }
 
-    PrimitivePacketHit4 packetHits;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
       packetHits = scene.intersectPacketHits(Ray4(rays), states);
     }
 
+    core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
     for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
       const std::size_t pathIndex = activePathIndices[firstActivePathIndex + lane];
       auto& path = paths[pathIndex];
@@ -361,22 +371,26 @@ namespace render {
     const Scene& scene, const std::vector<IntegratorRaySample>& samples,
     const RayCaster& recursiveRayCaster, IntegratorBatchMetrics* metrics,
     const IntegratorBatchSettings& settings) const {
-    std::vector<BatchPath> paths;
-    paths.reserve(samples.size());
-    std::vector<std::size_t> activePathIndices;
-    activePathIndices.reserve(samples.size());
-    for (const auto& sample : samples) {
-      if (!sample.sampleStream()) {
-        return Integrator::radianceBatch(scene, samples, recursiveRayCaster, metrics, settings);
-      }
-
-      paths.emplace_back(sample);
-      activePathIndices.push_back(paths.size() - 1);
-    }
-
     if (metrics) {
       metrics->reset(/*scalarFallback=*/false);
     }
+
+    std::vector<BatchPath> paths;
+    std::vector<std::size_t> activePathIndices;
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->pathSetupWorkerSeconds : nullptr);
+      paths.reserve(samples.size());
+      activePathIndices.reserve(samples.size());
+      for (const auto& sample : samples) {
+        if (!sample.sampleStream()) {
+          return Integrator::radianceBatch(scene, samples, recursiveRayCaster, metrics, settings);
+        }
+
+        paths.emplace_back(sample);
+        activePathIndices.push_back(paths.size() - 1);
+      }
+    }
+
     const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
     std::vector<std::size_t> nextActivePathIndices;
     nextActivePathIndices.reserve(samples.size());
@@ -489,6 +503,7 @@ namespace render {
       }
 
       if (settings.progressObserver) {
+        core::util::ScopedTimer timer(metrics ? &metrics->progressSnapshotWorkerSeconds : nullptr);
         std::vector<Colord> snapshot;
         snapshot.reserve(paths.size());
         for (const auto& path : paths) {
@@ -499,6 +514,7 @@ namespace render {
       }
 
       if (settings.convergenceEnabled && !paths.empty()) {
+        core::util::ScopedTimer timer(metrics ? &metrics->convergenceTestWorkerSeconds : nullptr);
         const double activeFraction =
           static_cast<double>(nextActivePathIndices.size()) / static_cast<double>(paths.size());
         const double radianceDeltaRms =

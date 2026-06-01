@@ -103,10 +103,14 @@ namespace engine::wavefront {
       double integratorIntersectionWorkerSeconds = 0.0;
       double integratorShadingWorkerSeconds = 0.0;
       double integratorOverheadWorkerSeconds = 0.0;
+      double integratorPathSetupWorkerSeconds = 0.0;
+      double integratorFrontierBookkeepingWorkerSeconds = 0.0;
+      double integratorProgressSnapshotWorkerSeconds = 0.0;
+      double integratorConvergenceTestWorkerSeconds = 0.0;
       double totalRenderSeconds = 0.0;
 
-      void recordIntegratorBatch(double batchSeconds, double intersectionSeconds,
-                                 double shadingSeconds);
+      void recordIntegratorBatch(double batchSeconds,
+                                 const render::IntegratorBatchMetrics& batchMetrics);
     } timings;
 
     QJsonObject toJson() const;

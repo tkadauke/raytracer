@@ -637,7 +637,9 @@ enabled, denoiser feature-prepass time, tile count, queue decision, and render
 timing split into summed worker time for sample generation and integrator batch
 work, with the integrator bucket further split into scene-intersection and
 material/shading worker time and the remaining batch overhead, plus total
-wall-clock time.
+wall-clock time. Path-tracing wavefront batches also split the overhead into
+path setup, frontier bookkeeping, progress snapshot publication, and
+convergence-test worker time.
 Wavefront also has an opt-in denoiser hook at the engine level:
 `render::Denoiser` instances receive a `DenoiserFrame` whose beauty buffer is
 filtered before the final display buffer is rewritten. The frame can also carry
@@ -845,7 +847,9 @@ count and the integrator batch execution mode; the property editor exposes the
 full JSON metadata for tile, queue, batch, active-depth, per-depth radiance
 delta, convergence-threshold/stop, and sample-generation/integrator worker
 timing details, including the intersection and shading split inside the
-integrator bucket and the residual batch-overhead bucket.
+integrator bucket, the residual batch-overhead bucket, and path-tracing
+overhead sub-buckets for setup, frontier bookkeeping, progress snapshots, and
+convergence checks.
 
 - the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
   vertically, shows resources between producer and consumer passes, and lets the

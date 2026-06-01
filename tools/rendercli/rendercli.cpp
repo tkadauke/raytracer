@@ -185,6 +185,14 @@ namespace {
         << timings.value("integratorShadingWorkerSeconds").toDouble() * 1000.0
         << " integrator_overhead_worker_ms="
         << timings.value("integratorOverheadWorkerSeconds").toDouble() * 1000.0
+        << " integrator_path_setup_worker_ms="
+        << timings.value("integratorPathSetupWorkerSeconds").toDouble() * 1000.0
+        << " integrator_frontier_bookkeeping_worker_ms="
+        << timings.value("integratorFrontierBookkeepingWorkerSeconds").toDouble() * 1000.0
+        << " integrator_progress_snapshot_worker_ms="
+        << timings.value("integratorProgressSnapshotWorkerSeconds").toDouble() * 1000.0
+        << " integrator_convergence_test_worker_ms="
+        << timings.value("integratorConvergenceTestWorkerSeconds").toDouble() * 1000.0
         << " integrator=" << batching.value("integrator").toString().toStdString()
         << " execution=" << batching.value("executionMode").toString().toStdString()
         << " samples=" << unsignedValue(input, "primarySamples")

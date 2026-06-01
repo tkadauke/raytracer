@@ -1539,6 +1539,17 @@ if(NOT wavefront_metrics_stdout MATCHES "integrator_overhead_worker_ms=")
                   "wavefront metrics summary did not contain integrator overhead worker timing"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+foreach(timing_name
+        path_setup
+        frontier_bookkeeping
+        progress_snapshot
+        convergence_test)
+  if(NOT wavefront_metrics_stdout MATCHES "integrator_${timing_name}_worker_ms=")
+    _rendercli_fail("rendercli wavefront metrics integrator ${timing_name} timing summary"
+                    "wavefront metrics summary did not contain integrator ${timing_name} worker timing"
+                    "${wavefront_metrics_stdout}" "" "" "")
+  endif()
+endforeach()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_hit_rays=")
   _rendercli_fail("rendercli wavefront metrics frontier hit summary"
                   "wavefront metrics summary did not contain frontier hit counters"
@@ -1636,6 +1647,17 @@ if(NOT wavefront_metrics_json MATCHES "\"integratorOverheadWorkerSeconds\"")
                   "wavefront metrics report did not contain integrator overhead worker timing"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+foreach(timing_field
+        integratorPathSetupWorkerSeconds
+        integratorFrontierBookkeepingWorkerSeconds
+        integratorProgressSnapshotWorkerSeconds
+        integratorConvergenceTestWorkerSeconds)
+  if(NOT wavefront_metrics_json MATCHES "\"${timing_field}\"")
+    _rendercli_fail("rendercli wavefront metrics ${timing_field}"
+                    "wavefront metrics report did not contain ${timing_field}"
+                    "" "" "${wavefront_metrics_json}" "")
+  endif()
+endforeach()
 if(NOT wavefront_metrics_json MATCHES "\"radianceDeltaRmsPerDepth\"")
   _rendercli_fail("rendercli wavefront metrics radiance delta"
                   "wavefront metrics report did not contain radiance-delta counters"

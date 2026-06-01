@@ -85,6 +85,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   the residual integrator batch overhead after intersection and shading worker
   time are subtracted, making scheduler/frontier bookkeeping cost visible in
   JSON reports, graph traces, rendercli summaries, and convergence captures. — GPT-5
+- **Wavefront batch overhead breakdowns.** Path-tracing wavefront metrics now
+  split integrator overhead further into path setup, frontier bookkeeping,
+  progress snapshot, and convergence-test worker-time buckets. — GPT-5
 - **Wavefront torus packet hits.** Torus primitives now materialize four-wide
   packet hits directly for wavefront path-frontier traversal instead of using
   the scalar packet fallback lane by lane. — GPT-5
