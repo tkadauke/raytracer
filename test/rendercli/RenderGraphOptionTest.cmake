@@ -1424,6 +1424,9 @@ rendercli_run(
     "${RENDERCLI}" --engine wavefront --width 24 --height 24 --depth 4
     "${PROJECT_SOURCE_DIR}/scenes/reflections.json" "${wavefront_reflection_parity_render}"
 )
+rendercli_assert_image_rms_at_most("${wavefront_reflection_parity_raytracer_render}"
+                                   "${wavefront_reflection_parity_render}" 0.001
+                                   NAME "wavefront reflection RMS matches recursive raytracer")
 rendercli_assert_image_hash_equals("${wavefront_reflection_parity_raytracer_render}"
                                    "${wavefront_reflection_parity_render}"
                                    NAME "wavefront graph matches recursive reflection raytracer graph")

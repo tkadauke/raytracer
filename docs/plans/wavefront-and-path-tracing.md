@@ -493,7 +493,10 @@ inspection. rendercli now carries a small graph-level parity check that renders
 the same deterministic scene through recursive raytracer and wavefront
 executors and requires matching image hashes, plus a glass-scene parity check
 that exercises transparent Whitted continuation queues and a reflection-heavy
-scene check that exercises recursive reflective continuation queues.
+scene check that exercises recursive reflective continuation queues. The
+rendercli image-probe helper can now compare two rendered images by normalized
+RGB RMS delta, so future macro-scene parity gates do not have to rely on exact
+PNG hashes when harmless quantization/threading differences appear.
 
 **Goal**: prove the architecture without changing image output.
 **Gate**: macro benchmark output (sphere / torus / BVH scenes) RMS

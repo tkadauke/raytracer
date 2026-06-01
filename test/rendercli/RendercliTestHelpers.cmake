@@ -255,6 +255,86 @@ function(rendercli_probe_image path)
   endif()
 endfunction()
 
+function(_rendercli_compare_images expected_path actual_path output_variable)
+  set(one_value_args NAME)
+  cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})
+  if(ARG_NAME)
+    set(name "${ARG_NAME}")
+  else()
+    set(name "image comparison")
+  endif()
+  if(NOT DEFINED RENDERCLI_IMAGE_PROBE)
+    _rendercli_fail("${name}" "RENDERCLI_IMAGE_PROBE is required for image assertions" "" "" "" "")
+  endif()
+
+  rendercli_assert_exists("${expected_path}" NAME "${name}")
+  rendercli_assert_exists("${actual_path}" NAME "${name}")
+  execute_process(
+    COMMAND "${RENDERCLI_IMAGE_PROBE}" --compare "${expected_path}" "${actual_path}"
+    RESULT_VARIABLE result
+    OUTPUT_VARIABLE stdout
+    ERROR_VARIABLE stderr
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE
+  )
+  _rendercli_command_text(command_text "${RENDERCLI_IMAGE_PROBE}" --compare "${expected_path}"
+                          "${actual_path}")
+  if(NOT result STREQUAL "0")
+    _rendercli_fail("${name}" "image comparison failed" "${command_text}" "${result}" "${stdout}"
+                    "${stderr}")
+  endif()
+  if(NOT stdout MATCHES "^width=([0-9]+) height=([0-9]+) rms_delta=([0-9]+\\.[0-9]+) max_delta=([0-9]+\\.[0-9]+) differing_pixels=([0-9]+)$")
+    _rendercli_fail("${name}" "image comparison printed an unexpected format" "${command_text}"
+                    "${result}" "${stdout}" "${stderr}")
+  endif()
+
+  set(${output_variable} "${stdout}" PARENT_SCOPE)
+endfunction()
+
+function(rendercli_compare_images expected_path actual_path)
+  set(one_value_args NAME OUTPUT_VARIABLE RMS_DELTA_VARIABLE MAX_DELTA_VARIABLE DIFFERING_PIXELS_VARIABLE)
+  cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})
+  if(ARG_UNPARSED_ARGUMENTS)
+    message(FATAL_ERROR "rendercli_compare_images received unexpected arguments: ${ARG_UNPARSED_ARGUMENTS}")
+  endif()
+
+  _rendercli_compare_images("${expected_path}" "${actual_path}" compare_output NAME "${ARG_NAME}")
+  _rendercli_probe_value("${compare_output}" "rms_delta" rms_delta)
+  _rendercli_probe_value("${compare_output}" "max_delta" max_delta)
+  _rendercli_probe_value("${compare_output}" "differing_pixels" differing_pixels)
+
+  if(NOT ARG_OUTPUT_VARIABLE STREQUAL "")
+    set(${ARG_OUTPUT_VARIABLE} "${compare_output}" PARENT_SCOPE)
+  endif()
+  if(NOT ARG_RMS_DELTA_VARIABLE STREQUAL "")
+    set(${ARG_RMS_DELTA_VARIABLE} "${rms_delta}" PARENT_SCOPE)
+  endif()
+  if(NOT ARG_MAX_DELTA_VARIABLE STREQUAL "")
+    set(${ARG_MAX_DELTA_VARIABLE} "${max_delta}" PARENT_SCOPE)
+  endif()
+  if(NOT ARG_DIFFERING_PIXELS_VARIABLE STREQUAL "")
+    set(${ARG_DIFFERING_PIXELS_VARIABLE} "${differing_pixels}" PARENT_SCOPE)
+  endif()
+endfunction()
+
+function(rendercli_assert_image_rms_at_most expected_path actual_path max_rms_delta)
+  set(one_value_args NAME)
+  cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})
+  if(ARG_NAME)
+    set(name "${ARG_NAME}")
+  else()
+    set(name "image RMS delta")
+  endif()
+
+  rendercli_compare_images("${expected_path}" "${actual_path}" NAME "${name}"
+                           RMS_DELTA_VARIABLE rms_delta OUTPUT_VARIABLE compare_output)
+  if(rms_delta GREATER max_rms_delta)
+    _rendercli_fail("${name}"
+                    "expected RMS delta at most ${max_rms_delta}, got ${rms_delta}: ${expected_path}, ${actual_path}"
+                    "" "" "${compare_output}" "")
+  endif()
+endfunction()
+
 function(rendercli_assert_image_dimensions path expected_width expected_height)
   set(one_value_args NAME)
   cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})
