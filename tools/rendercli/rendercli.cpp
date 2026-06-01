@@ -143,6 +143,58 @@ namespace {
       << '\n';
   }
 
+  class WavefrontMetricsFormatter {
+  public:
+    bool isMetricsObject(const QJsonObject& metadata) const {
+      return metadata.contains("timings") && metadata.contains("batching") &&
+             metadata.contains("convergence") && metadata.contains("input");
+    }
+
+    void printSummary(int run, const QString& passId, const QJsonObject& metrics) const {
+      const QJsonObject timings = metrics.value("timings").toObject();
+      const QJsonObject input = metrics.value("input").toObject();
+      const QJsonObject batching = metrics.value("batching").toObject();
+      const QJsonObject convergence = metrics.value("convergence").toObject();
+      const QJsonArray activeSamples = batching.value("activeSamplesPerDepth").toArray();
+      const QJsonArray rmsDelta = batching.value("radianceDeltaRmsPerDepth").toArray();
+      std::cout << std::fixed << std::setprecision(3) << "wavefront_metrics"
+                << " run=" << run;
+      if (!passId.isEmpty()) {
+        std::cout << " pass=" << passId.toStdString();
+      }
+      std::cout << " total_ms=" << timings.value("totalRenderSeconds").toDouble() * 1000.0
+                << " integrator=" << batching.value("integrator").toString().toStdString()
+                << " execution=" << batching.value("executionMode").toString().toStdString()
+                << " samples=" << unsignedValue(input, "primarySamples")
+                << " batches=" << unsignedValue(batching, "batches")
+                << " avg_batch=" << batching.value("averageBatchSize").toDouble()
+                << " max_batch=" << unsignedValue(batching, "maxBatchSize")
+                << " active_depths=" << activeSamples.size()
+                << " last_active=" << unsignedArrayBack(activeSamples)
+                << " last_rms_delta=" << doubleArrayBack(rmsDelta)
+                << " compatibility_shade_samples="
+                << unsignedValue(batching, "compatibilityShadeSamples")
+                << " convergence=" << convergence.value("decision").toString().toStdString()
+                << " stopped_tiles=" << unsignedValue(convergence, "stoppedTileCount") << '\n';
+    }
+
+  private:
+    std::uint64_t unsignedValue(const QJsonObject& object, const char* key) const {
+      return static_cast<std::uint64_t>(object.value(key).toDouble());
+    }
+
+    std::uint64_t unsignedArrayBack(const QJsonArray& array) const {
+      if (array.isEmpty()) {
+        return 0;
+      }
+      return static_cast<std::uint64_t>(array.at(array.size() - 1).toDouble());
+    }
+
+    double doubleArrayBack(const QJsonArray& array) const {
+      return array.isEmpty() ? 0.0 : array.at(array.size() - 1).toDouble();
+    }
+  };
+
   QString normalizedRasterOption(QString value) {
     value = value.trimmed().toLower();
     value.remove('_');
@@ -995,6 +1047,8 @@ private:
   QString m_renderGraphTraceOut;
   QString m_rasterMetricsOut;
   bool m_rasterMetricsSummary;
+  QString m_wavefrontMetricsOut;
+  bool m_wavefrontMetricsSummary;
   std::vector<RenderGraphAOVOutput> m_renderGraphAOVOutputs;
   std::vector<RenderGraphViewOverrideInput> m_renderGraphViewOverrides;
   std::vector<RenderGraphImageInput> m_renderGraphColorInputs;
@@ -1096,6 +1150,7 @@ private:
   void writeRenderGraphTrace(const engine::graph::RenderGraphExecutionTrace& trace,
                              const QString& output) const;
   void writeRasterMetricsReport(const QJsonArray& runs, const QString& output) const;
+  void writeWavefrontMetricsReport(const QJsonArray& runs, const QString& output) const;
   void writeRenderGraphAOVOutputs(const engine::graph::RenderGraphExecutionTrace& trace,
                                   const engine::graph::RenderIntent& intent) const;
   std::shared_ptr<Buffer<Colord>>
@@ -1159,6 +1214,8 @@ Renderer::Renderer()
       m_renderGraphTraceOut(),
       m_rasterMetricsOut(),
       m_rasterMetricsSummary(false),
+      m_wavefrontMetricsOut(),
+      m_wavefrontMetricsSummary(false),
       m_renderGraphAOVOutputs(),
       m_renderGraphExecutorSet(false),
       m_renderGraphExecutor(engine::graph::RenderExecutorPreference::Raytracer),
@@ -1671,6 +1728,24 @@ void Renderer::writeRasterMetricsReport(const QJsonArray& runs, const QString& o
   }
 }
 
+void Renderer::writeWavefrontMetricsReport(const QJsonArray& runs, const QString& output) const {
+  QJsonObject report;
+  report["schema"] = QStringLiteral("raytracer.wavefront_metrics.v1");
+  report["runs"] = runs;
+
+  QFile file(output);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    throw std::runtime_error(
+      QString("Unable to write wavefront metrics report: %1").arg(output).toStdString());
+  }
+
+  const QByteArray bytes = QJsonDocument(report).toJson(QJsonDocument::Indented);
+  if (file.write(bytes) != bytes.size()) {
+    throw std::runtime_error(
+      QString("Unable to write wavefront metrics report: %1").arg(output).toStdString());
+  }
+}
+
 void Renderer::writeRenderGraphAOVOutputs(const engine::graph::RenderGraphExecutionTrace& trace,
                                           const engine::graph::RenderIntent& intent) const {
   for (const auto& aovOutput : m_renderGraphAOVOutputs) {
@@ -1826,6 +1901,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   std::shared_ptr<render::RenderEngine> engine;
   std::shared_ptr<engine::graph::GraphRenderEngine> graphEngine;
   std::shared_ptr<engine::raster::Rasterizer> directRasterEngine;
+  std::shared_ptr<engine::wavefront::WavefrontRaytracer> directWavefrontEngine;
   engine::graph::RenderPlan graphPlan;
 
   if (m_renderGraph) {
@@ -1889,9 +1965,10 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     graphEngine->setSceneAnalysis(scene.renderGraphAnalysis());
     graphEngine->setPlan(graphPlan);
     bindRenderGraphExternalInputs(*graphEngine);
-    graphEngine->setExecutionTraceEnabled(!m_renderGraphTraceOut.isEmpty() ||
-                                          !m_renderGraphAOVOutputs.empty() ||
-                                          !m_rasterMetricsOut.isEmpty() || m_rasterMetricsSummary);
+    graphEngine->setExecutionTraceEnabled(
+      !m_renderGraphTraceOut.isEmpty() || !m_renderGraphAOVOutputs.empty() ||
+      !m_rasterMetricsOut.isEmpty() || m_rasterMetricsSummary || !m_wavefrontMetricsOut.isEmpty() ||
+      m_wavefrontMetricsSummary);
     engine = graphEngine;
   } else if (m_engine == "wireframe") {
     auto wireframe = std::make_shared<engine::wireframe::Wireframe>(raytracerScene);
@@ -1933,6 +2010,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     }
     if (m_wavefrontConvergenceRmsDeltaSet)
       wavefront->setConvergenceRadianceDeltaRmsThreshold(m_wavefrontConvergenceRmsDelta);
+    directWavefrontEngine = wavefront;
     engine = wavefront;
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);
@@ -1966,6 +2044,8 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   std::vector<double> timings;
   timings.reserve(static_cast<std::size_t>(m_repeat));
   QJsonArray rasterMetricRuns;
+  QJsonArray wavefrontMetricRuns;
+  const WavefrontMetricsFormatter wavefrontMetrics;
   for (int i = 0; i < m_repeat; ++i) {
     const auto start = Clock::now();
     engine->render(buffer);
@@ -2003,6 +2083,38 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
       }
       rasterMetricRuns.push_back(run);
     }
+
+    if (!m_wavefrontMetricsOut.isEmpty() || m_wavefrontMetricsSummary) {
+      QJsonObject run;
+      run["run"] = i + 1;
+      if (directWavefrontEngine) {
+        const QJsonObject metrics = directWavefrontEngine->lastMetrics().toJson();
+        run["metrics"] = metrics;
+        if (m_wavefrontMetricsSummary) {
+          wavefrontMetrics.printSummary(i + 1, QString(), metrics);
+        }
+      } else if (graphEngine) {
+        auto trace = graphEngine->lastExecutionTrace();
+        QJsonArray passes;
+        if (trace) {
+          for (const auto& passTrace : trace->passes()) {
+            if (!wavefrontMetrics.isMetricsObject(passTrace.metadata())) {
+              continue;
+            }
+            QJsonObject pass;
+            pass["pass"] = QString::fromStdString(passTrace.passId());
+            pass["metrics"] = passTrace.metadata();
+            passes.push_back(pass);
+            if (m_wavefrontMetricsSummary) {
+              wavefrontMetrics.printSummary(i + 1, pass.value("pass").toString(),
+                                            passTrace.metadata());
+            }
+          }
+        }
+        run["passes"] = passes;
+      }
+      wavefrontMetricRuns.push_back(run);
+    }
   }
 
   if (!m_renderGraphTraceOut.isEmpty() || !m_renderGraphAOVOutputs.empty()) {
@@ -2037,6 +2149,25 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
 
   if (!m_rasterMetricsOut.isEmpty()) {
     writeRasterMetricsReport(rasterMetricRuns, m_rasterMetricsOut);
+  }
+
+  if (!m_wavefrontMetricsOut.isEmpty() || m_wavefrontMetricsSummary) {
+    if (wavefrontMetricRuns.empty()) {
+      throw std::runtime_error("Wavefront metrics were requested but no wavefront render ran");
+    }
+    bool hasMetrics = false;
+    for (const auto& value : wavefrontMetricRuns) {
+      const QJsonObject run = value.toObject();
+      hasMetrics = hasMetrics || run.contains("metrics") || !run.value("passes").toArray().empty();
+    }
+    if (!hasMetrics) {
+      throw std::runtime_error(
+        "Wavefront metrics were requested but no wavefront pass produced metrics");
+    }
+  }
+
+  if (!m_wavefrontMetricsOut.isEmpty()) {
+    writeWavefrontMetricsReport(wavefrontMetricRuns, m_wavefrontMetricsOut);
   }
 
   QImage image = bufferToImage(buffer);
@@ -2347,6 +2478,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_trace_out", "Write the executed render graph trace to a JSON file", "file"},
      {"raster_metrics_out", "Write aggregate raster render metrics to a JSON file", "file"},
      {"raster_metrics_summary", "Print aggregate raster render metrics to stdout"},
+     {"wavefront_metrics_out", "Write aggregate wavefront render metrics to a JSON file", "file"},
+     {"wavefront_metrics_summary", "Print aggregate wavefront render metrics to stdout"},
      {"render_graph_aov_out",
       "Write an executed graph AOV preview image; repeat with view=file for multiple AOVs",
       "view=file"},
@@ -2769,6 +2902,14 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
 
   if (parser.isSet("raster_metrics_summary")) {
     m_rasterMetricsSummary = true;
+  }
+
+  if (parser.isSet("wavefront_metrics_out")) {
+    m_wavefrontMetricsOut = parser.value("wavefront_metrics_out");
+  }
+
+  if (parser.isSet("wavefront_metrics_summary")) {
+    m_wavefrontMetricsSummary = true;
   }
 
   if (parser.isSet("render_graph_aov_out")) {
@@ -3342,6 +3483,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     return CommandLineError;
   }
 
+  if (m_animation && (!m_wavefrontMetricsOut.isEmpty() || m_wavefrontMetricsSummary)) {
+    *errorMessage = "Cannot combine --animation with wavefront metrics output";
+    return CommandLineError;
+  }
+
   if (m_renderGraphOnly && m_repeat > 1) {
     *errorMessage = "Cannot combine --render_graph_only with --repeat";
     return CommandLineError;
@@ -3359,6 +3505,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
 
   if (m_renderGraphOnly && (!m_rasterMetricsOut.isEmpty() || m_rasterMetricsSummary)) {
     *errorMessage = "Cannot combine --render_graph_only with raster metrics output";
+    return CommandLineError;
+  }
+
+  if (m_renderGraphOnly && (!m_wavefrontMetricsOut.isEmpty() || m_wavefrontMetricsSummary)) {
+    *errorMessage = "Cannot combine --render_graph_only with wavefront metrics output";
     return CommandLineError;
   }
 
@@ -3394,6 +3545,12 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   if (m_stepSelectionSet && m_stepSelection.mode == CommandLineStepMode::Sequence &&
       (!m_rasterMetricsOut.isEmpty() || m_rasterMetricsSummary)) {
     *errorMessage = "Cannot combine --step sequence with raster metrics output";
+    return CommandLineError;
+  }
+
+  if (m_stepSelectionSet && m_stepSelection.mode == CommandLineStepMode::Sequence &&
+      (!m_wavefrontMetricsOut.isEmpty() || m_wavefrontMetricsSummary)) {
+    *errorMessage = "Cannot combine --step sequence with wavefront metrics output";
     return CommandLineError;
   }
 

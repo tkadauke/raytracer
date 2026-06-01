@@ -207,6 +207,17 @@ shadow-map artifact was used through shader-side texture sampling or a
 CPU-prepared visibility fallback. Graph-only mode cannot write a trace because
 no graph execution happened.
 
+`--wavefront_metrics_out metrics.json` writes aggregate wavefront metrics for
+each render run, and `--wavefront_metrics_summary` prints a compact
+`wavefront_metrics` line to stdout. Direct wavefront renders report the active
+engine's `lastMetrics()` payload. Graph-backed wavefront renders collect the
+same payload from matching graph pass trace metadata, so the report includes
+the pass id plus integrator, batch execution mode, active sample counts,
+radiance-delta RMS values, compatibility fallback counts, convergence
+thresholds, stop decisions, and total render time. Metrics capture is opt-in;
+requesting wavefront metrics enables graph trace collection for that render but
+does not require writing a separate trace file.
+
 That gives a two-step debugging loop:
 
 ```sh

@@ -33,6 +33,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront rendercli convergence controls.** rendercli now exposes
   wavefront convergence enable/disable plus active-sample-fraction and
   RMS-delta thresholds as intent-derived graph pass state. — GPT-5
+- **Wavefront rendercli metrics reports.** rendercli can now write aggregate
+  wavefront metrics JSON and print compact wavefront metrics summaries for
+  direct or graph-backed wavefront renders. — GPT-5
 - **Wavefront Render Settings presets.** Modeler Render Settings now expose
   Preview/Balanced/Final convergence quality presets for the wavefront executor
   while keeping the raw active-sample-fraction and RMS-delta thresholds editable

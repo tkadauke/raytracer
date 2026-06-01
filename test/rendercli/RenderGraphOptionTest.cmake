@@ -88,6 +88,11 @@ set(raytracer_integrator_plan "${TEST_OUTPUT_DIR}/raytracer-integrator-graph.jso
 set(raytracer_integrator_render "${TEST_OUTPUT_DIR}/raytracer-integrator-render.png")
 set(wavefront_plan "${TEST_OUTPUT_DIR}/wavefront-graph.json")
 set(wavefront_render "${TEST_OUTPUT_DIR}/wavefront-render.png")
+set(wavefront_metrics_render "${TEST_OUTPUT_DIR}/wavefront-metrics-render.png")
+set(wavefront_metrics_report "${TEST_OUTPUT_DIR}/wavefront-metrics.json")
+set(wavefront_direct_metrics_render
+    "${TEST_OUTPUT_DIR}/wavefront-direct-metrics-render.png")
+set(wavefront_direct_metrics_report "${TEST_OUTPUT_DIR}/wavefront-direct-metrics.json")
 set(wavefront_parity_raytracer_render
     "${TEST_OUTPUT_DIR}/wavefront-parity-raytracer-render.png")
 set(wavefront_parity_render "${TEST_OUTPUT_DIR}/wavefront-parity-render.png")
@@ -1460,6 +1465,67 @@ rendercli_run(
     "${static_scene}" "${wavefront_render}"
 )
 rendercli_assert_image_nonempty("${wavefront_render}" NAME "wavefront graph render pixels")
+
+rendercli_run(
+  NAME "rendercli writes graph wavefront metrics JSON and summary"
+  OUTPUT_VARIABLE wavefront_metrics_stdout
+  STDOUT_MATCHES
+    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*samples=.*compatibility_shade_samples=.*convergence=disabled"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 16 --height 16
+    --wavefront_metrics_out "${wavefront_metrics_report}" --wavefront_metrics_summary
+    "${static_scene}" "${wavefront_metrics_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_metrics_render}"
+                                NAME "wavefront metrics graph render pixels")
+rendercli_assert_exists("${wavefront_metrics_report}" NAME "wavefront metrics report exists")
+file(READ "${wavefront_metrics_report}" wavefront_metrics_json)
+if(NOT wavefront_metrics_json MATCHES "\"schema\"[^\n]*raytracer\\.wavefront_metrics\\.v1")
+  _rendercli_fail("rendercli wavefront metrics schema"
+                  "wavefront metrics report did not contain schema marker"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"activeSamplesPerDepth\"")
+  _rendercli_fail("rendercli wavefront metrics batching"
+                  "wavefront metrics report did not contain batch counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"radianceDeltaRmsPerDepth\"")
+  _rendercli_fail("rendercli wavefront metrics radiance delta"
+                  "wavefront metrics report did not contain radiance-delta counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"convergence\"")
+  _rendercli_fail("rendercli wavefront metrics convergence"
+                  "wavefront metrics report did not contain convergence metadata"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+
+rendercli_run(
+  NAME "rendercli writes direct wavefront metrics JSON and summary"
+  OUTPUT_VARIABLE wavefront_direct_metrics_stdout
+  STDOUT_MATCHES
+    "wavefront_metrics.*integrator=whitted.*execution=depth_major_whitted.*samples=.*convergence=disabled"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine wavefront --width 16 --height 16
+    --wavefront_metrics_out "${wavefront_direct_metrics_report}" --wavefront_metrics_summary
+    "${static_scene}" "${wavefront_direct_metrics_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_direct_metrics_render}"
+                                NAME "wavefront direct metrics render pixels")
+rendercli_assert_exists("${wavefront_direct_metrics_report}"
+                        NAME "wavefront direct metrics report exists")
+file(READ "${wavefront_direct_metrics_report}" wavefront_direct_metrics_json)
+if(NOT wavefront_direct_metrics_json MATCHES "\"schema\"[^\n]*raytracer\\.wavefront_metrics\\.v1")
+  _rendercli_fail("rendercli direct wavefront metrics schema"
+                  "direct wavefront metrics report did not contain schema marker"
+                  "" "" "${wavefront_direct_metrics_json}" "")
+endif()
+if(NOT wavefront_direct_metrics_json MATCHES "\"metrics\"")
+  _rendercli_fail("rendercli direct wavefront metrics payload"
+                  "direct wavefront metrics report did not contain direct metrics"
+                  "" "" "${wavefront_direct_metrics_json}" "")
+endif()
 
 rendercli_run(
   NAME "rendercli renders recursive raytracer parity baseline"
