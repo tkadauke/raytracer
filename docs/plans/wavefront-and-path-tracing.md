@@ -553,7 +553,12 @@ plain final-image renders avoid the batch metric accumulation path. rendercli
 now also resolves a size-aware default ray-family queue size and writes it into
 compiled graph pass state, so graph-backed wavefront renders do not silently
 fall back to a much coarser thread-count-sized queue than the direct engine
-path.
+path. A 320x240 `reflection_whitted` capture after that queue tuning showed
+wavefront roughly competitive with recursive Whitted (`raytracer_whitted`
+median ~588 ms, `wavefront_whitted_no_convergence` median ~499 ms on this
+MacBook), but the current default convergence thresholds only stopped one tile,
+so Phase 4 still needs threshold/policy work before convergence can be counted
+as a meaningful speedup.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.
