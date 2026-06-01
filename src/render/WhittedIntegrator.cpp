@@ -102,6 +102,15 @@ namespace render {
 
     std::vector<Colord> result(samples.size(), Colord::black());
     const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
+    const bool countCurrentActiveSamples = metrics || settings.convergenceEnabled;
+    const bool countNextActiveSamples = settings.progressObserver || settings.convergenceEnabled;
+    std::vector<Colord> resultBeforeDepth;
+    std::vector<unsigned char> activeSamples(countCurrentActiveSamples ? samples.size() : 0, 0);
+    std::vector<unsigned char> nextActiveSamples(countNextActiveSamples ? samples.size() : 0, 0);
+    const auto activeSampleCount = [](const std::vector<unsigned char>& flags) {
+      return static_cast<std::uint64_t>(std::count(flags.begin(), flags.end(), 1));
+    };
+
     std::vector<QueuedRay> current;
     current.reserve(samples.size());
     for (std::size_t index = 0; index != samples.size(); ++index) {
@@ -112,32 +121,29 @@ namespace render {
     }
 
     for (int depth = 0; depth != m_maximumRecursionDepth && !current.empty(); ++depth) {
+      std::uint64_t currentActiveSamples = current.size();
+      if (countCurrentActiveSamples) {
+        std::fill(activeSamples.begin(), activeSamples.end(), 0);
+        for (const auto& queued : current) {
+          activeSamples[queued.sampleIndex] = 1;
+        }
+        currentActiveSamples = activeSampleCount(activeSamples);
+      }
       if (metrics) {
-        metrics->activeSamplesPerDepth.push_back(current.size());
+        metrics->activeSamplesPerDepth.push_back(currentActiveSamples);
+      }
+      if (trackRadianceDelta) {
+        resultBeforeDepth = result;
       }
 
       std::vector<QueuedRay> next;
-      double depthDeltaSquaredSum = 0.0;
-      double depthMaxDelta = 0.0;
+      if (countNextActiveSamples) {
+        std::fill(nextActiveSamples.begin(), nextActiveSamples.end(), 0);
+      }
 
       for (auto& queued : current) {
-        const Colord sampleBeforeDepth =
-          trackRadianceDelta ? result[queued.sampleIndex] : Colord::black();
-        const auto recordDepthDelta = [&] {
-          if (!trackRadianceDelta) {
-            return;
-          }
-          const double deltaSquared =
-            radianceDeltaSquared(sampleBeforeDepth, result[queued.sampleIndex]);
-          depthDeltaSquaredSum += deltaSquared;
-          if (metrics) {
-            depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
-          }
-        };
-
         if (isCancelled()) {
           result[queued.sampleIndex] += queued.weight * scene.background();
-          recordDepthDelta();
           continue;
         }
 
@@ -148,7 +154,6 @@ namespace render {
           queued.state.recordEvent(
             nullptr, "Raytracer: maximum recursion depth reached, returning background");
           result[queued.sampleIndex] += queued.weight * scene.background();
-          recordDepthDelta();
           continue;
         }
 
@@ -156,7 +161,6 @@ namespace render {
           queued.state.recordEvent(nullptr,
                                    "Raytracer: throughput below cutoff, returning background");
           result[queued.sampleIndex] += queued.weight * scene.background();
-          recordDepthDelta();
           continue;
         }
 
@@ -164,14 +168,12 @@ namespace render {
         const Primitive* primitive = scene.intersect(queued.ray, hitPoints, queued.state);
         if (isCancelled()) {
           result[queued.sampleIndex] += queued.weight * scene.background();
-          recordDepthDelta();
           continue;
         }
 
         if (!primitive) {
           queued.state.recordEvent(nullptr, "Raytracer: Nothing hit, returning background color");
           result[queued.sampleIndex] += queued.weight * scene.background();
-          recordDepthDelta();
           continue;
         }
 
@@ -183,7 +185,6 @@ namespace render {
         const auto material = primitive->material();
         if (!material) {
           queued.state.recordEvent(nullptr, "Raytracer: no material found, returning black");
-          recordDepthDelta();
           continue;
         }
 
@@ -196,7 +197,6 @@ namespace render {
           result[queued.sampleIndex] +=
             queued.weight *
             material->shade(&recursiveRayCaster, scene, queued.ray, hitPoint, queued.state);
-          recordDepthDelta();
           continue;
         }
 
@@ -211,9 +211,25 @@ namespace render {
             queued.weight * continuation.weight,
             continuationState(queued.state, queued.state.throughput * continuation.throughputScale),
           });
+          if (countNextActiveSamples) {
+            nextActiveSamples[queued.sampleIndex] = 1;
+          }
         }
+      }
 
-        recordDepthDelta();
+      double depthDeltaSquaredSum = 0.0;
+      double depthMaxDelta = 0.0;
+      if (trackRadianceDelta) {
+        for (std::size_t index = 0; index != activeSamples.size(); ++index) {
+          if (!activeSamples[index]) {
+            continue;
+          }
+          const double deltaSquared = radianceDeltaSquared(resultBeforeDepth[index], result[index]);
+          depthDeltaSquaredSum += deltaSquared;
+          if (metrics) {
+            depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
+          }
+        }
       }
 
       if (metrics) {
@@ -221,17 +237,20 @@ namespace render {
         metrics->maxRadianceDeltaPerDepth.push_back(depthMaxDelta);
       }
 
+      const std::uint64_t nextActiveSampleCount =
+        countNextActiveSamples ? activeSampleCount(nextActiveSamples) : next.size();
       if (settings.progressObserver) {
         settings.progressObserver->depthCompleted(static_cast<std::uint64_t>(depth + 1), result,
-                                                  next.size());
+                                                  nextActiveSampleCount);
       }
 
       if (settings.convergenceEnabled && !samples.empty()) {
         const double activeFraction =
-          static_cast<double>(next.size()) / static_cast<double>(samples.size());
+          static_cast<double>(nextActiveSampleCount) / static_cast<double>(samples.size());
         const double radianceDeltaRms =
-          current.empty() ? 0.0
-                          : std::sqrt(depthDeltaSquaredSum / static_cast<double>(current.size()));
+          currentActiveSamples == 0
+            ? 0.0
+            : std::sqrt(depthDeltaSquaredSum / static_cast<double>(currentActiveSamples));
         if (activeFraction <= settings.activeSampleFractionThreshold &&
             radianceDeltaRms <= settings.radianceDeltaRmsThreshold) {
           if (metrics) {

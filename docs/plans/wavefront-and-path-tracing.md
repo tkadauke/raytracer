@@ -512,7 +512,7 @@ fixtures. The sphere/torus/BVH fixtures use normalized RGB RMS thresholds of
 
 ### Phase 4 — image-wide adaptive depth via convergence detection 🚧 **Started.**
 
-Activate the convergence test as a stop condition. Active-pixel count
+Activate the convergence test as a stop condition. Active-pixel/sample count
 + L2 over active subset. Threshold tuning via the macro benchmark.
 Graph-visible thresholds stop a tile when both the remaining active-sample
 fraction and the current RMS radiance delta are below their configured limits.
@@ -553,12 +553,17 @@ plain final-image renders avoid the batch metric accumulation path. rendercli
 now also resolves a size-aware default ray-family queue size and writes it into
 compiled graph pass state, so graph-backed wavefront renders do not silently
 fall back to a much coarser thread-count-sized queue than the direct engine
-path. A 320x240 `reflection_whitted` capture after that queue tuning showed
-wavefront roughly competitive with recursive Whitted (`raytracer_whitted`
-median ~588 ms, `wavefront_whitted_no_convergence` median ~499 ms on this
-MacBook), but the current default convergence thresholds only stopped one tile,
-so Phase 4 still needs threshold/policy work before convergence can be counted
-as a meaningful speedup.
+path. Whitted convergence accounting now tracks unique active sample indices
+per depth instead of continuation-ray fanout, so branched reflection/refraction
+trees no longer inflate the active fraction or radiance-delta RMS denominator.
+A 320x240 `reflection_whitted` capture after that change showed recursive
+Whitted and wavefront Whitted roughly tied on this MacBook
+(`raytracer_whitted` median ~473 ms,
+`wavefront_whitted_no_convergence` median ~479 ms,
+`wavefront_whitted_convergence` median ~487 ms), with `last_active=22073`
+unique active samples at depth 8 and only one convergence-stopped tile under
+the current defaults. Phase 4 still needs threshold/policy work before
+convergence can be counted as a meaningful speedup.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.

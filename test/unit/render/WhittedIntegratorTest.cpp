@@ -81,6 +81,29 @@ namespace WhittedIntegratorTest {
       }
     };
 
+    class BranchingContinuationMaterial final : public Material {
+    public:
+      bool supportsWhittedContinuations() const override {
+        return true;
+      }
+
+      Colord shade(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                   State&) const override {
+        return Colord::black();
+      }
+
+      WhittedShadeResult shadeWhitted(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                                      State&) const override {
+        WhittedShadeResult result;
+        result.localRadiance = Colord(0.1, 0.0, 0.0);
+        result.continuations.push_back(WhittedContinuation{
+          Rayd(Vector3d(10, 0, 0), Vector3d::forward()), Colord(0.25, 0.25, 0.25), 0.5});
+        result.continuations.push_back(WhittedContinuation{
+          Rayd(Vector3d(20, 0, 0), Vector3d::forward()), Colord(0.25, 0.25, 0.25), 0.5});
+        return result;
+      }
+    };
+
     std::shared_ptr<NiceMock<MockPrimitive>> makeAlwaysHit(double distance = 1.0) {
       auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
       BoundingBoxd bbox(Vector3d(-100, -100, -100), Vector3d(100, 100, 100));
@@ -247,6 +270,52 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ(1u, metrics.stoppedAfterDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.activeSamplesPerDepth);
     EXPECT_EQ(1u, metrics.radianceDeltaSquaredSumPerDepth.size());
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceCountsBranchedContinuationsAsOneActiveSample) {
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    auto primitive = makePrimaryOnlyHit();
+    primitive->setMaterial(std::make_shared<BranchingContinuationMaterial>());
+    scene.add(primitive);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples{
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr}};
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(scene, samples, rayCaster, &metrics);
+
+    ASSERT_EQ(1u, colors.size());
+    ASSERT_COLOR_NEAR(Colord(0.2, 0.2, 0.3), colors[0], 1e-12);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceConvergesBranchedContinuationsByActiveSampleCount) {
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    auto primitive = makePrimaryOnlyHit();
+    primitive->setMaterial(std::make_shared<BranchingContinuationMaterial>());
+    scene.add(primitive);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    IntegratorBatchMetrics metrics;
+    IntegratorBatchSettings settings;
+    settings.convergenceEnabled = true;
+    settings.activeSampleFractionThreshold = 1.0;
+    settings.radianceDeltaRmsThreshold = 10.0;
+    std::vector<IntegratorRaySample> samples{
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr}};
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings);
+
+    ASSERT_EQ(1u, colors.size());
+    ASSERT_COLOR_NEAR(Colord(0.1, 0.0, 0.0), colors[0], 1e-12);
+    EXPECT_TRUE(metrics.stoppedByConvergence);
+    EXPECT_EQ(1u, metrics.stoppedAfterDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.activeSamplesPerDepth);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceFallsBackForUnsupportedMaterials) {

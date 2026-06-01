@@ -87,6 +87,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   default ray-family queue size and carries it into compiled render graph pass
   state, keeping graph-backed wavefront scheduling aligned with the direct
   wavefront engine path. — GPT-5
+- **Wavefront Whitted convergence accounting.** Whitted wavefront metrics and
+  convergence now count unique active samples per depth instead of branched
+  continuation rays, so reflective/refractive fanout no longer inflates
+  active-sample fractions or per-depth RMS denominators. — GPT-5
 - **Wavefront graph trace metadata.** Wavefront renders now record tile,
   sample, integrator batch-mode, active-samples-per-depth, per-depth radiance
   deltas, convergence thresholds/stop decisions, scheduling, and timing metrics
