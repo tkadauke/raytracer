@@ -570,8 +570,13 @@ Whitted and wavefront Whitted roughly tied on this MacBook
 `wavefront_whitted_no_convergence` median ~479 ms,
 `wavefront_whitted_convergence` median ~487 ms), with `last_active=22073`
 unique active samples at depth 8 and only one convergence-stopped tile under
-the current defaults. Phase 4 still needs threshold/policy work before
-convergence can be counted as a meaningful speedup.
+the current defaults. A 160x120, 16spp, max-depth-16
+`pathtracer_bounce` capture with 300 tiles showed why stopped-tile count alone
+is a weak speedup signal: convergence stopped 295/300 tiles and kept the image
+delta small (`rms_delta=0.0019742863`), but active sample-depths only dropped
+from 336446 to 336002 (~0.13%). Phase 4 still needs threshold/policy work that
+cuts meaningful sample-depth work before convergence can be counted as a
+speedup.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.
