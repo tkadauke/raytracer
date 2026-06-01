@@ -105,12 +105,11 @@ namespace render {
     const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
     const bool countCurrentActiveSamples = metrics || settings.convergenceEnabled;
     const bool countNextActiveSamples = settings.progressObserver || settings.convergenceEnabled;
-    std::vector<Colord> resultBeforeDepth;
+    std::vector<Colord> resultBeforeActiveSamples;
+    std::vector<std::size_t> activeSampleIndices;
     std::vector<unsigned char> activeSamples(countCurrentActiveSamples ? samples.size() : 0, 0);
     std::vector<unsigned char> nextActiveSamples(countNextActiveSamples ? samples.size() : 0, 0);
-    const auto activeSampleCount = [](const std::vector<unsigned char>& flags) {
-      return static_cast<std::uint64_t>(std::count(flags.begin(), flags.end(), 1));
-    };
+    activeSampleIndices.reserve(samples.size());
 
     std::vector<QueuedRay> current;
     current.reserve(samples.size());
@@ -128,17 +127,28 @@ namespace render {
         for (const auto& queued : current) {
           activeSamples[queued.sampleIndex] = 1;
         }
-        currentActiveSamples = activeSampleCount(activeSamples);
+        activeSampleIndices.clear();
+        for (std::size_t sampleIndex = 0; sampleIndex != activeSamples.size(); ++sampleIndex) {
+          if (activeSamples[sampleIndex]) {
+            activeSampleIndices.push_back(sampleIndex);
+          }
+        }
+        currentActiveSamples = activeSampleIndices.size();
       }
       if (metrics) {
         metrics->activeSamplesPerDepth.push_back(currentActiveSamples);
         metrics->activeSampleDepthsProcessed += currentActiveSamples;
       }
       if (trackRadianceDelta) {
-        resultBeforeDepth = result;
+        resultBeforeActiveSamples.clear();
+        resultBeforeActiveSamples.reserve(activeSampleIndices.size());
+        for (const std::size_t sampleIndex : activeSampleIndices) {
+          resultBeforeActiveSamples.push_back(result[sampleIndex]);
+        }
       }
 
       std::vector<QueuedRay> next;
+      next.reserve(current.size());
       if (countNextActiveSamples) {
         std::fill(nextActiveSamples.begin(), nextActiveSamples.end(), 0);
       }
@@ -222,11 +232,11 @@ namespace render {
       double depthDeltaSquaredSum = 0.0;
       double depthMaxDelta = 0.0;
       if (trackRadianceDelta) {
-        for (std::size_t index = 0; index != activeSamples.size(); ++index) {
-          if (!activeSamples[index]) {
-            continue;
-          }
-          const double deltaSquared = radianceDeltaSquared(resultBeforeDepth[index], result[index]);
+        for (std::size_t activeIndex = 0; activeIndex != activeSampleIndices.size();
+             ++activeIndex) {
+          const std::size_t sampleIndex = activeSampleIndices[activeIndex];
+          const double deltaSquared =
+            radianceDeltaSquared(resultBeforeActiveSamples[activeIndex], result[sampleIndex]);
           depthDeltaSquaredSum += deltaSquared;
           if (metrics) {
             depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
@@ -240,7 +250,9 @@ namespace render {
       }
 
       const std::uint64_t nextActiveSampleCount =
-        countNextActiveSamples ? activeSampleCount(nextActiveSamples) : next.size();
+        countNextActiveSamples ? static_cast<std::uint64_t>(std::count(nextActiveSamples.begin(),
+                                                                       nextActiveSamples.end(), 1))
+                               : next.size();
       if (settings.progressObserver) {
         settings.progressObserver->depthCompleted(static_cast<std::uint64_t>(depth + 1), result,
                                                   nextActiveSampleCount);

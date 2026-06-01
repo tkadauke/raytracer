@@ -114,6 +114,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   convergence now count unique active samples per depth instead of branched
   continuation rays, so reflective/refractive fanout no longer inflates
   active-sample fractions or per-depth RMS denominators. — GPT-5
+- **Wavefront Whitted batch bookkeeping.** Whitted wavefront batches now snapshot
+  only active samples for radiance-delta metrics/convergence and reserve
+  continuation queues per depth, reducing metrics/convergence overhead on
+  reflection/refraction-heavy scenes. — GPT-5
 - **Wavefront convergence diagnostics.** Wavefront metrics JSON now includes a
   stopped-tile depth histogram, and compact rendercli summaries report the
   earliest/latest stopped depths to make convergence preset tuning measurable.

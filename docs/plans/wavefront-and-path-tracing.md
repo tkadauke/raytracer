@@ -604,7 +604,11 @@ Wavefront metrics now report summed worker time for sample generation and
 integrator batches as well, giving future captures a direct way to tell whether
 the worker bottleneck is camera/sample setup or intersection/material transport
 work. These worker-time counters are intentionally not wall-clock sub-spans and
-can exceed total render time when tiles execute in parallel.
+can exceed total render time when tiles execute in parallel. The Whitted
+batch path now also avoids copying/scanning the full tile result buffer for
+radiance-delta metrics: metrics/convergence snapshots track only the unique
+active sample indices at each depth, and per-depth continuation queues reserve
+capacity from the current frontier before material continuations are appended.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.
