@@ -38,7 +38,7 @@ namespace render {
     for (const auto& sample : samples) {
       State state;
       state.timeSample = sample.timeSample;
-      state.sampleStream = sample.sampleStream.get();
+      state.sampleStream = sample.sampleStream();
       const Colord color = radiance(scene, sample.ray, state, recursiveRayCaster);
       if (metrics) {
         const double deltaSquared = radianceDeltaSquared(Colord::black(), color);

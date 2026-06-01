@@ -1,7 +1,8 @@
 #include <gtest/gtest.h>
 #include "render/SamplingSeed.h"
-#include "render/samplers/Sampler.h"
+#include "render/samplers/RegularSampler.h"
 #include "render/samplers/SampleStream.h"
+#include "render/samplers/Sampler.h"
 
 namespace SamplerTest {
   using namespace ::testing;
@@ -34,6 +35,48 @@ namespace SamplerTest {
 
   private:
     int m_setIdx = 0;
+  };
+
+  class MarkerSampleStream : public SampleStream {
+  public:
+    Vector2d next2D() override {
+      return Vector2d(0.25, 0.75);
+    }
+
+    double next1D() override {
+      return 0.125;
+    }
+
+    Vector2d sample2D(SampleDimension, std::uint64_t = 0) override {
+      return Vector2d(0.5, 0.625);
+    }
+
+    double sample1D(SampleDimension, std::uint64_t = 0) override {
+      return 0.875;
+    }
+  };
+
+  class CustomStreamSampler : public Sampler {
+  public:
+    std::unique_ptr<SampleStream> stream(int, std::uint64_t) const override {
+      ++m_streamCalls;
+      return std::make_unique<MarkerSampleStream>();
+    }
+
+    int streamCalls() const {
+      return m_streamCalls;
+    }
+
+  protected:
+    std::vector<Vector2d> generateSet() override {
+      std::vector<Vector2d> result;
+      for (int i = 0; i != numSamples(); ++i)
+        result.push_back(Vector2d::null);
+      return result;
+    }
+
+  private:
+    mutable int m_streamCalls{0};
   };
 
   TEST(Sampler, ShouldSetupWithNumberOfSamples) {
@@ -127,6 +170,55 @@ namespace SamplerTest {
     ASSERT_DOUBLE_EQ(uniqueStream->next1D(), sharedStream->next1D());
     ASSERT_EQ(uniqueStream->sample2D(SampleDimension::BSDF, 1),
               sharedStream->sample2D(SampleDimension::BSDF, 1));
+  }
+
+  TEST(SamplerStream, StorageKeepsSamplerBackedStreamsStable) {
+    IndexedSampler sampler;
+    sampler.setup(4, 64);
+    SampleStreamStorage storage;
+    storage.reserve(32);
+
+    SampleStream* first = storage.appendSamplerBacked(sampler, /*sampleIndex*/ 2,
+                                                      /*pixelHash*/ 3);
+    for (int i = 0; i != 32; ++i)
+      storage.appendSamplerBacked(sampler, i % sampler.numSamples(), i);
+
+    ASSERT_NE(nullptr, first);
+    ASSERT_DOUBLE_EQ(5.0 / 100.0, first->next2D().x());
+    ASSERT_DOUBLE_EQ(6.0 / 100.0, first->next1D());
+  }
+
+  TEST(SamplerStream, BuiltInAppendStreamMatchesSharedStream) {
+    RegularSampler sampler;
+    sampler.setup(4, 16);
+    SampleStreamStorage storage;
+
+    SampleStream* retained = sampler.appendStream(storage, /*sampleIndex*/ 2,
+                                                  /*pixelHash*/ 7);
+    auto shared = sampler.sharedStream(/*sampleIndex*/ 2, /*pixelHash*/ 7);
+
+    ASSERT_NE(nullptr, retained);
+    ASSERT_NE(nullptr, shared);
+    ASSERT_EQ(shared->next2D(), retained->next2D());
+    ASSERT_DOUBLE_EQ(shared->next1D(), retained->next1D());
+    ASSERT_EQ(shared->sample2D(SampleDimension::BSDF, 1),
+              retained->sample2D(SampleDimension::BSDF, 1));
+  }
+
+  TEST(SamplerStream, AppendStreamPreservesCustomStreamOverrides) {
+    CustomStreamSampler sampler;
+    sampler.setup(4, 8);
+    SampleStreamStorage storage;
+
+    SampleStream* stream = sampler.appendStream(storage, /*sampleIndex*/ 2,
+                                                /*pixelHash*/ 3);
+
+    ASSERT_NE(nullptr, stream);
+    EXPECT_EQ(1, sampler.streamCalls());
+    ASSERT_EQ(Vector2d(0.25, 0.75), stream->next2D());
+    ASSERT_DOUBLE_EQ(0.125, stream->next1D());
+    ASSERT_EQ(Vector2d(0.5, 0.625), stream->sample2D(SampleDimension::BSDF));
+    ASSERT_DOUBLE_EQ(0.875, stream->sample1D(SampleDimension::Light));
   }
 
   TEST(SamplerStream, ConsecutiveDimensionsReadFromDifferentSets) {

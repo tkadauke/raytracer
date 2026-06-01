@@ -11,6 +11,7 @@
 #include "render/materials/Material.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
+#include "render/samplers/Sampler.h"
 #include "render/tonemap/Tonemap.h"
 
 #include <QThreadPool>
@@ -102,6 +103,7 @@ namespace engine::wavefront::detail {
       WavefrontTileTraceResult result;
       const auto sampleGenerationStart = WavefrontMetricsRecorder::Clock::now();
       std::vector<render::IntegratorRaySample> samples;
+      render::SampleStreamStorage sampleStreams;
       std::vector<std::size_t> samplePixelIndices;
       const int sampleCount = camera.samplesPerPixel();
       const std::size_t estimatedPixelCount =
@@ -109,9 +111,11 @@ namespace engine::wavefront::detail {
         static_cast<std::size_t>(std::max(0, actualRect.height()));
       result.pixels.reserve(estimatedPixelCount);
       samples.reserve(estimatedPixelCount * static_cast<std::size_t>(std::max(0, sampleCount)));
+      sampleStreams.reserve(samples.capacity());
       samplePixelIndices.reserve(samples.capacity());
 
       auto plane = camera.viewPlane();
+      const auto sampler = plane->sampler();
       for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
                                        end = plane->end(actualRect);
            pixel != end; ++pixel) {
@@ -131,9 +135,11 @@ namespace engine::wavefront::detail {
             break;
           }
 
-          if (auto sample = camera.primaryRaySample(pixel, sampleIndex, tileSeed)) {
+          render::SampleStream* stream = sampler->appendStream(
+            sampleStreams, sampleIndex, camera.primaryRayPixelHash(pixel, tileSeed));
+          if (auto sample = camera.primaryRaySample(pixel, *stream)) {
             samples.push_back(
-              render::IntegratorRaySample{sample->ray, sample->timeSample, sample->sampleStream});
+              render::IntegratorRaySample{sample->ray, sample->timeSample, nullptr, stream});
             samplePixelIndices.push_back(pixelIndex);
           }
         }
@@ -172,6 +178,10 @@ namespace engine::wavefront::detail {
       }
 
       auto plane = camera.viewPlane();
+      const auto sampler = plane->sampler();
+      render::SampleStreamStorage sampleStreams;
+      sampleStreams.reserve(static_cast<std::size_t>(std::max(0, actualRect.width())) *
+                            static_cast<std::size_t>(std::max(0, actualRect.height())));
       for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
                                        end = plane->end(actualRect);
            pixel != end; ++pixel) {
@@ -179,14 +189,16 @@ namespace engine::wavefront::detail {
           break;
         }
 
-        const auto sample = camera.primaryRaySample(pixel, /*sampleIndex=*/0, tileSeed);
+        render::SampleStream* stream = sampler->appendStream(
+          sampleStreams, /*sampleIndex=*/0, camera.primaryRayPixelHash(pixel, tileSeed));
+        const auto sample = camera.primaryRaySample(pixel, *stream);
         if (!sample) {
           continue;
         }
 
         render::State state;
         state.timeSample = sample->timeSample;
-        state.sampleStream = sample->sampleStream.get();
+        state.sampleStream = stream;
         HitPointInterval hitPoints;
         const render::Primitive* primitive = scene.intersect(sample->ray, hitPoints, state);
         if (!primitive) {

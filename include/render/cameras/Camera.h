@@ -37,6 +37,11 @@ namespace render {
       std::shared_ptr<render::SampleStream> sampleStream;
     };
 
+    struct PrimaryRay {
+      Rayd ray;
+      double timeSample{0.0};
+    };
+
     /// Clone camera state for an isolated render job. The clone gets
     /// its own view-plane instance so render-thread setup does not race
     /// with the interactive camera being moved by the UI.
@@ -108,6 +113,20 @@ namespace render {
     std::optional<PrimaryRaySample> primaryRaySample(const render::ViewPlane::Iterator& pixel,
                                                      int sampleIndex,
                                                      std::optional<std::uint64_t> tileSeed) const;
+
+    /**
+      * Generate a primary ray sample from a caller-owned stream.
+      *
+      * Batch renderers can keep stream storage outside the returned value and
+      * pass non-owning pointers to integrators, avoiding per-sample heap
+      * allocation while preserving the same pixel/time/camera dimension
+      * consumption as the retained-stream overload above.
+      */
+    std::optional<PrimaryRay> primaryRaySample(const render::ViewPlane::Iterator& pixel,
+                                               render::SampleStream& stream) const;
+
+    std::uint64_t primaryRayPixelHash(const render::ViewPlane::Iterator& pixel,
+                                      std::optional<std::uint64_t> tileSeed) const;
 
     /**
       * Set the aspect-ratio fit mode for this camera's view plane.

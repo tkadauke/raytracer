@@ -610,10 +610,16 @@ radiance-delta metrics: metrics/convergence snapshots track only the unique
 active sample indices at each depth, and per-depth continuation queues reserve
 capacity from the current frontier before material continuations are appended.
 For high-sample path-tracing batches, sample-generation metrics showed retained
-sample-stream setup was the larger worker-time bucket, so `Sampler::sharedStream`
-now lets camera primary-sample generation build the retained stream in one
-shared allocation rather than allocating a unique stream and wrapping it after
-the ray is generated.
+sample-stream setup was the larger worker-time bucket. Camera primary-sample
+generation now has a caller-owned stream overload, and wavefront tiles retain
+built-in sampler streams inside per-tile `SampleStreamStorage` instead of
+allocating one stream object per sample. Custom sampler subclasses still flow
+through the owning fallback path so their virtual `stream()` overrides remain
+observable. A follow-up 160x120, 16spp, max-depth-16 `pathtracer_bounce`
+capture with 300 tiles reported sample-generation worker time at ~198 ms
+without convergence and ~156 ms with convergence, down from the earlier
+~875 ms / ~710 ms retained-stream setup captures, while preserving the same
+`rms_delta=0.0019742863` convergence image delta.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.

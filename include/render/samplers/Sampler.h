@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <memory>
 #include <vector>
 
@@ -9,6 +11,46 @@
 #include "render/samplers/SampleStream.h"
 
 namespace render {
+  class Sampler;
+
+  /**
+    * @brief Default sample stream backed by a `Sampler`'s pre-baked sets.
+    *
+    * This is the concrete implementation returned by `Sampler::stream()` and
+    * `Sampler::sharedStream()` for ordinary samplers. Wavefront can also store
+    * these by value for a tile so retained primary-ray sample streams do not
+    * require one heap allocation per sample.
+    */
+  class SamplerSampleStream : public SampleStream {
+  public:
+    SamplerSampleStream(const Sampler& sampler, int sampleIndex, std::uint64_t pixelHash);
+
+    Vector2d next2D() override;
+    double next1D() override;
+    Vector2d sample2D(SampleDimension dimension, std::uint64_t index = 0) override;
+    double sample1D(SampleDimension dimension, std::uint64_t index = 0) override;
+
+  private:
+    const std::vector<Vector2d>& sampleSetForDimension(std::uint64_t dimension) const;
+
+    const Sampler* m_sampler;
+    int m_sampleIndex;
+    std::uint64_t m_pixelHash;
+    std::uint64_t m_dim;
+  };
+
+  class SampleStreamStorage {
+  public:
+    void reserve(std::size_t count);
+    SampleStream* appendOwned(std::shared_ptr<SampleStream> stream);
+    SampleStream* appendSamplerBacked(const Sampler& sampler, int sampleIndex,
+                                      std::uint64_t pixelHash);
+
+  private:
+    std::vector<std::shared_ptr<SampleStream>> m_ownedStreams;
+    std::deque<SamplerSampleStream> m_samplerBackedStreams;
+  };
+
   /**
     * @brief Stratified Monte-Carlo sampler — produces pre-baked sets of
     *        2D samples in `[0, 1]²` and exposes them through two
@@ -119,12 +161,30 @@ namespace render {
       *
       * Wavefront batch renderers generate every primary sample first and then
       * hand the retained streams to an integrator. This method preserves the
-      * same sample sequence as `stream(...)` while letting the default sampler
-      * allocate the stream object and shared control block together.
+      * same sample sequence as `stream(...)`; built-in sampler subclasses
+      * override it to allocate the stream object and shared control block
+      * together.
       */
     virtual std::shared_ptr<SampleStream> sharedStream(int sampleIndex, uint64_t pixelHash) const;
 
+    /**
+      * Appends a retained stream to caller-owned storage and returns a
+      * non-owning pointer valid for the storage lifetime.
+      *
+      * Built-in samplers use this to store their default stream by value in
+      * wavefront tile batches. Custom sampler subclasses can keep overriding
+      * `stream(...)`; the base implementation stores the resulting stream in
+      * owning storage.
+      */
+    virtual SampleStream* appendStream(SampleStreamStorage& storage, int sampleIndex,
+                                       uint64_t pixelHash) const;
+
   protected:
+    std::shared_ptr<SampleStream> sharedSamplerBackedStream(int sampleIndex,
+                                                            uint64_t pixelHash) const;
+    SampleStream* appendSamplerBackedStream(SampleStreamStorage& storage, int sampleIndex,
+                                            uint64_t pixelHash) const;
+
     virtual std::vector<Vector2d> generateSet() = 0;
 
   private:

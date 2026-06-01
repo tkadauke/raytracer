@@ -4,6 +4,16 @@
 using namespace render;
 using namespace std;
 
+std::shared_ptr<SampleStream> RegularSampler::sharedStream(int sampleIndex,
+                                                           uint64_t pixelHash) const {
+  return sharedSamplerBackedStream(sampleIndex, pixelHash);
+}
+
+SampleStream* RegularSampler::appendStream(SampleStreamStorage& storage, int sampleIndex,
+                                           uint64_t pixelHash) const {
+  return appendSamplerBackedStream(storage, sampleIndex, pixelHash);
+}
+
 std::vector<Vector2d> RegularSampler::generateSet() {
   vector<Vector2d> result;
 

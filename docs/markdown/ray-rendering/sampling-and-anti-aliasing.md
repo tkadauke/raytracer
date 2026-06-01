@@ -212,6 +212,12 @@ in pre-baked set `(pixelHash + d) mod numSets` at the same
 dimension still receives a stratified point, but it receives it from
 a different set. The `pixelHash` term shifts those set choices per
 pixel so the whole image does not share one visible set pattern.
+Batch renderers that need streams to outlive primary-ray generation
+can call `Sampler::appendStream(storage, sampleIndex, pixelHash)`.
+Built-in samplers append `SamplerSampleStream` objects to caller-owned
+`SampleStreamStorage`, avoiding one heap allocation per retained
+sample in wavefront tiles, while custom sampler subclasses still keep
+their overridden `stream()` behavior through the owning fallback path.
 
 This is foundation API, not a completed path tracer. The shipped
 renderer currently consumes pixel, time, and lens dimensions for

@@ -19,7 +19,12 @@ namespace render {
     * </tr></table>
     */
   class RegularSampler : public Sampler {
+  public:
+    std::shared_ptr<SampleStream> sharedStream(int sampleIndex, uint64_t pixelHash) const override;
+    SampleStream* appendStream(SampleStreamStorage& storage, int sampleIndex,
+                               uint64_t pixelHash) const override;
+
   protected:
-    virtual std::vector<Vector2d> generateSet();
+    std::vector<Vector2d> generateSet() override;
   };
 }

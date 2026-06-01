@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "render/cameras/Camera.h"
 #include "render/cameras/PinholeCamera.h"
+#include "render/samplers/RegularSampler.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "test/mocks/raytracer/MockViewPlane.h"
 
@@ -200,6 +201,26 @@ namespace CameraTest {
     ASSERT_NE(nullptr, sample->sampleStream);
     ASSERT_GE(sample->timeSample, 0.0);
     ASSERT_LT(sample->timeSample, 1.0);
+  }
+
+  TEST(Camera, PrimaryRaySampleUsesCallerOwnedStream) {
+    PinholeCamera camera(Vector3d(0, 0, -5), Vector3d::null);
+    auto sampler = std::make_shared<RegularSampler>();
+    sampler->setup(4, 16);
+    camera.viewPlane()->setSampler(sampler);
+    camera.viewPlane()->setup(camera.matrix(), Recti(4, 4));
+    auto pixel = camera.viewPlane()->begin(Recti(0, 0, 4, 4));
+    const auto tileSeed = std::optional<std::uint64_t>(1234);
+
+    auto retainedSample = camera.primaryRaySample(pixel, 2, tileSeed);
+    auto stream = sampler->stream(2, camera.primaryRayPixelHash(pixel, tileSeed));
+    auto borrowedSample = camera.primaryRaySample(pixel, *stream);
+
+    ASSERT_TRUE(retainedSample.has_value());
+    ASSERT_TRUE(borrowedSample.has_value());
+    ASSERT_EQ(retainedSample->ray.origin(), borrowedSample->ray.origin());
+    ASSERT_EQ(retainedSample->ray.direction(), borrowedSample->ray.direction());
+    ASSERT_DOUBLE_EQ(retainedSample->timeSample, borrowedSample->timeSample);
   }
 
   TEST(Camera, ShouldNotBeCancelledAfterConstruction) {

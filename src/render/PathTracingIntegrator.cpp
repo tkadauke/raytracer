@@ -190,7 +190,7 @@ namespace render {
       explicit PathState(const IntegratorRaySample& sample)
           : ray(sample.ray) {
         state.timeSample = sample.timeSample;
-        state.sampleStream = sample.sampleStream.get();
+        state.sampleStream = sample.sampleStream();
       }
 
       Rayd ray;
@@ -205,7 +205,7 @@ namespace render {
     std::vector<std::size_t> activePathIndices;
     activePathIndices.reserve(samples.size());
     for (const auto& sample : samples) {
-      if (!sample.sampleStream) {
+      if (!sample.sampleStream()) {
         return Integrator::radianceBatch(scene, samples, recursiveRayCaster, metrics, settings);
       }
 

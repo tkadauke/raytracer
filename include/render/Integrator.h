@@ -17,7 +17,12 @@ namespace render {
   struct IntegratorRaySample {
     Rayd ray;
     double timeSample{0.0};
-    std::shared_ptr<SampleStream> sampleStream;
+    std::shared_ptr<SampleStream> ownedSampleStream;
+    SampleStream* borrowedSampleStream{nullptr};
+
+    SampleStream* sampleStream() const {
+      return borrowedSampleStream ? borrowedSampleStream : ownedSampleStream.get();
+    }
   };
 
   struct IntegratorBatchMetrics {

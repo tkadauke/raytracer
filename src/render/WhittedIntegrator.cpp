@@ -116,7 +116,7 @@ namespace render {
     for (std::size_t index = 0; index != samples.size(); ++index) {
       State state;
       state.timeSample = samples[index].timeSample;
-      state.sampleStream = samples[index].sampleStream.get();
+      state.sampleStream = samples[index].sampleStream();
       current.push_back(QueuedRay{index, samples[index].ray, Colord::white(), std::move(state)});
     }
 

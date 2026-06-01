@@ -109,8 +109,17 @@ int Camera::samplesPerPixel() const {
 std::optional<Camera::PrimaryRaySample>
 Camera::primaryRaySample(const render::ViewPlane::Iterator& pixel, int sampleIndex,
                          std::optional<std::uint64_t> tileSeed) const {
-  auto stream = viewPlane()->sampler()->sharedStream(sampleIndex, pixelHashFor(pixel, tileSeed));
+  auto stream =
+    viewPlane()->sampler()->sharedStream(sampleIndex, primaryRayPixelHash(pixel, tileSeed));
 
+  if (auto sample = primaryRaySample(pixel, *stream)) {
+    return PrimaryRaySample{sample->ray, sample->timeSample, std::move(stream)};
+  }
+  return std::nullopt;
+}
+
+std::optional<Camera::PrimaryRay> Camera::primaryRaySample(const render::ViewPlane::Iterator& pixel,
+                                                           render::SampleStream& stream) const {
   // The renderer owns the pixel and time dimensions and consumes
   // them before the camera sees the stream:
   //   Pixel (2D) — sub-pixel jitter for anti-aliasing.
@@ -120,16 +129,21 @@ Camera::primaryRaySample(const render::ViewPlane::Iterator& pixel, int sampleInd
   // The sequential cursor is therefore positioned at the historical
   // lens/camera dimension; explicit `SampleDimension` accessors use
   // the same stable ownership without depending on call order.
-  Vector2d subPixel = stream->next2D();
+  Vector2d subPixel = stream.next2D();
   Vector2d xy = pixel.pixel() + subPixel;
-  double timeSample = stream->next1D();
+  double timeSample = stream.next1D();
 
-  Rayd ray = rayForPixel(xy.x(), xy.y(), *stream);
+  Rayd ray = rayForPixel(xy.x(), xy.y(), stream);
   if (!ray.direction().isDefined()) {
     return std::nullopt;
   }
 
-  return PrimaryRaySample{ray, timeSample, std::move(stream)};
+  return PrimaryRay{ray, timeSample};
+}
+
+std::uint64_t Camera::primaryRayPixelHash(const render::ViewPlane::Iterator& pixel,
+                                          std::optional<std::uint64_t> tileSeed) const {
+  return pixelHashFor(pixel, tileSeed);
 }
 
 void Camera::setAspectRatio(double ratio) {
