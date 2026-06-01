@@ -1156,6 +1156,7 @@ private:
   engine::graph::RenderGraphRequest renderGraphRequest(const Scene& scene) const;
   engine::graph::RenderIntent renderIntent(const Scene& scene) const;
   int renderGraphSampleCount(const engine::graph::RenderIntent& intent) const;
+  int rayFamilyQueueSize() const;
   engine::graph::RenderEngineOptions commandLineEngineOptions() const;
   engine::graph::RenderPostProcessAA commandLinePostProcessAA() const;
   engine::graph::RasterBeautyPassState
@@ -1408,6 +1409,20 @@ int Renderer::renderGraphSampleCount(const engine::graph::RenderIntent& intent) 
                                         : m_samplesPerPixel);
 }
 
+int Renderer::rayFamilyQueueSize() const {
+  if (m_queueSizeSet) {
+    return m_queueSize;
+  }
+  const long long samplePixels = static_cast<long long>(m_width) *
+                                 static_cast<long long>(m_height) *
+                                 static_cast<long long>(std::max(1, m_samplesPerPixel));
+  // Keep rendercli's historical 640x480 default cap, but avoid one-pixel
+  // tiles for small graph renders where tile-local sampling would dominate.
+  const long long pixelSizedQueue = std::max<long long>(1, samplePixels / 256);
+  const long long cappedQueue = std::min<long long>(std::max(1, m_queueSize), pixelSizedQueue);
+  return std::max(std::max(1, m_threads), static_cast<int>(cappedQueue));
+}
+
 engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
   engine::graph::RenderEngineOptions options;
 
@@ -1437,8 +1452,8 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.raytracer().setMaximumThreads(m_threads);
     options.rasterizer().setMaximumThreads(m_threads);
   }
+  options.raytracer().setQueueSize(rayFamilyQueueSize());
   if (m_queueSizeSet) {
-    options.raytracer().setQueueSize(m_queueSize);
     options.rasterizer().setQueueSize(m_queueSize);
   }
 
@@ -2040,7 +2055,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     wavefront->camera()->setViewPlane(std::make_shared<render::TiledViewPlane>());
     wavefront->camera()->viewPlane()->setSampler(sampler());
     wavefront->setMaximumThreads(m_threads);
-    wavefront->setQueueSize(m_queueSize);
+    wavefront->setQueueSize(rayFamilyQueueSize());
     wavefront->setMetricsEnabled(wavefrontMetricsRequested);
     if (m_wavefrontConvergenceSet)
       wavefront->setConvergenceEnabled(m_wavefrontConvergenceEnabled);
@@ -2086,7 +2101,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     rt->camera()->setViewPlane(std::make_shared<render::TiledViewPlane>());
     rt->camera()->viewPlane()->setSampler(sampler());
     rt->setMaximumThreads(m_threads);
-    rt->setQueueSize(m_queueSize);
+    rt->setQueueSize(rayFamilyQueueSize());
     engine = rt;
   }
 

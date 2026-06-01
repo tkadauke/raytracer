@@ -82,6 +82,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   interactive progressive-display publishing on render engines, so final-image
   command-line renders avoid wavefront per-depth preview snapshot work while
   Modeler previews keep it enabled. — GPT-5
+- **rendercli wavefront graph scheduling.** rendercli now uses a size-aware
+  default ray-family queue size and carries it into compiled render graph pass
+  state, keeping graph-backed wavefront scheduling aligned with the direct
+  wavefront engine path. — GPT-5
 - **Wavefront graph trace metadata.** Wavefront renders now record tile,
   sample, integrator batch-mode, active-samples-per-depth, per-depth radiance
   deltas, convergence thresholds/stop decisions, scheduling, and timing metrics

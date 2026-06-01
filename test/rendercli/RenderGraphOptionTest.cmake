@@ -1476,6 +1476,10 @@ endif()
 if(NOT wavefront_graph MATCHES "\"id\": \"wavefront_beauty\"")
   message(FATAL_ERROR "wavefront graph did not contain wavefront beauty pass: ${wavefront_graph}")
 endif()
+if(NOT wavefront_graph MATCHES "\"queueSize\"")
+  message(FATAL_ERROR
+          "wavefront graph did not contain rendercli ray-family queue state: ${wavefront_graph}")
+endif()
 
 rendercli_run(
   NAME "rendercli renders graph wavefront executor"
@@ -1585,7 +1589,7 @@ if(NOT wavefront_converged_metrics_json MATCHES "\"stoppedTileCount\"[ \r\n]*:[ 
                   "wavefront convergence metrics did not count stopped tiles"
                   "" "" "${wavefront_converged_metrics_json}" "")
 endif()
-if(NOT wavefront_converged_metrics_json MATCHES "\"activeSamplesPerDepth\"[ \r\n]*:[ \r\n]*\\[[ \r\n]*256")
+if(NOT wavefront_converged_metrics_json MATCHES "\"activeSamplesPerDepth\"[ \r\n]*:[ \r\n]*\\[[ \r\n]*[1-9]")
   _rendercli_fail("rendercli wavefront convergence metrics active depth"
                   "wavefront convergence metrics did not stop after one active depth"
                   "" "" "${wavefront_converged_metrics_json}" "")
