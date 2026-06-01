@@ -364,6 +364,79 @@ namespace engine::wavefront {
       lastMetrics.denoise.featureSeconds += seconds;
     }
 
+    void copyDenoiserFeatureTile(const DenoiserFeatureSet& source, DenoiserFeatureSet& target,
+                                 const Recti& actualRect) const {
+      for (int y = actualRect.top(); y != actualRect.bottom(); ++y) {
+        for (int x = actualRect.left(); x != actualRect.right(); ++x) {
+          const int tileX = x - actualRect.left();
+          const int tileY = y - actualRect.top();
+          if (x >= 0 && y >= 0 && x < source.albedo.width() && y < source.albedo.height()) {
+            target.albedo[tileY][tileX] = source.albedo[y][x];
+            target.normal[tileY][tileX] = source.normal[y][x];
+            target.depth[tileY][tileX] = source.depth[y][x];
+          }
+        }
+      }
+    }
+
+    Colord averageFootprintColor(const Buffer<Colord>& buffer, const Recti& footprint,
+                                 const Recti& actualRect) const {
+      Colord sum = Colord::black();
+      int count = 0;
+      for (int y = footprint.top(); y != footprint.bottom(); ++y) {
+        for (int x = footprint.left(); x != footprint.right(); ++x) {
+          const int tileX = x - actualRect.left();
+          const int tileY = y - actualRect.top();
+          if (tileX >= 0 && tileY >= 0 && tileX < buffer.width() && tileY < buffer.height()) {
+            sum += buffer[tileY][tileX];
+            ++count;
+          }
+        }
+      }
+      return count > 0 ? sum * (1.0 / static_cast<double>(count)) : Colord::black();
+    }
+
+    std::vector<TilePixel> denoisedProgressPixels(const std::vector<TilePixel>& pixels,
+                                                  const Recti& actualRect,
+                                                  const DenoiserFeatureSet* features,
+                                                  const render::Denoiser& progressDenoiser) const {
+      if (pixels.empty() || actualRect.width() <= 0 || actualRect.height() <= 0) {
+        return pixels;
+      }
+
+      Buffer<Colord> beauty(actualRect.width(), actualRect.height());
+      beauty.clear(Colord::black());
+      for (const auto& pixel : pixels) {
+        for (int y = pixel.footprint.top(); y != pixel.footprint.bottom(); ++y) {
+          for (int x = pixel.footprint.left(); x != pixel.footprint.right(); ++x) {
+            const int tileX = x - actualRect.left();
+            const int tileY = y - actualRect.top();
+            if (tileX >= 0 && tileY >= 0 && tileX < beauty.width() && tileY < beauty.height()) {
+              beauty[tileY][tileX] = pixel.color;
+            }
+          }
+        }
+      }
+
+      std::unique_ptr<DenoiserFeatureSet> tileFeatures;
+      render::DenoiserFrame frame(beauty);
+      if (features) {
+        tileFeatures =
+          std::make_unique<DenoiserFeatureSet>(actualRect.width(), actualRect.height());
+        copyDenoiserFeatureTile(*features, *tileFeatures, actualRect);
+        frame.features.albedo = &tileFeatures->albedo;
+        frame.features.normal = &tileFeatures->normal;
+        frame.features.depth = &tileFeatures->depth;
+      }
+      progressDenoiser.denoiseFrame(frame);
+
+      std::vector<TilePixel> result = pixels;
+      for (auto& pixel : result) {
+        pixel.color = averageFootprintColor(beauty, pixel.footprint, actualRect);
+      }
+      return result;
+    }
+
     std::unique_ptr<DenoiserFeatureSet> buildDenoiserFeatures(render::Camera& camera,
                                                               const render::Scene& scene,
                                                               const Recti& rect) const {
@@ -520,16 +593,22 @@ namespace engine::wavefront {
 
     void renderTile(render::Camera& camera, const render::RayCaster& rayCaster,
                     const render::Scene& scene, Buffer<Colord>& buffer, const Recti& rect,
-                    std::optional<std::uint64_t> tileSeed) const {
+                    std::optional<std::uint64_t> tileSeed,
+                    const DenoiserFeatureSet* denoiserFeatures = nullptr) const {
       const Recti actualRect = camera.renderableRect(rect);
       if (actualRect.width() <= 0 || actualRect.height() <= 0)
         return;
 
+      const auto progressDenoiser = denoiser ? denoiser->clone() : nullptr;
       const auto result = traceTile(
         camera, rayCaster, scene, actualRect, tileSeed,
         [&](const Recti& footprint) { writeColor(buffer, footprint, Colord(1, 0, 0)); },
         [&](const std::vector<TilePixel>& pixels) {
-          for (const auto& pixel : pixels) {
+          const std::vector<TilePixel> displayPixels =
+            progressDenoiser
+              ? denoisedProgressPixels(pixels, actualRect, denoiserFeatures, *progressDenoiser)
+              : pixels;
+          for (const auto& pixel : displayPixels) {
             writeColor(buffer, pixel.footprint, pixel.color);
           }
         });
@@ -566,11 +645,13 @@ namespace engine::wavefront {
     void renderTile(render::Camera& camera, const render::RayCaster& rayCaster,
                     const render::Scene& scene, Buffer<Colord>& hdrBuffer,
                     Buffer<unsigned int>& displayBuffer, std::shared_ptr<render::Tonemap> tonemap,
-                    const Recti& rect, std::optional<std::uint64_t> tileSeed) const {
+                    const Recti& rect, std::optional<std::uint64_t> tileSeed,
+                    const DenoiserFeatureSet* denoiserFeatures = nullptr) const {
       const Recti actualRect = camera.renderableRect(rect);
       if (actualRect.width() <= 0 || actualRect.height() <= 0)
         return;
 
+      const auto progressDenoiser = denoiser ? denoiser->clone() : nullptr;
       const auto result = traceTile(
         camera, rayCaster, scene, actualRect, tileSeed,
         [&](const Recti& footprint) {
@@ -578,7 +659,11 @@ namespace engine::wavefront {
           writeRGB(displayBuffer, footprint, 0xffff0000);
         },
         [&](const std::vector<TilePixel>& pixels) {
-          for (const auto& pixel : pixels) {
+          const std::vector<TilePixel> displayPixels =
+            progressDenoiser
+              ? denoisedProgressPixels(pixels, actualRect, denoiserFeatures, *progressDenoiser)
+              : pixels;
+          for (const auto& pixel : displayPixels) {
             writeColor(hdrBuffer, pixel.footprint, pixel.color);
             writeRGB(displayBuffer, pixel.footprint,
                      (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
@@ -658,16 +743,19 @@ namespace engine::wavefront {
     const auto renderStart = WavefrontClock::now();
     p->resetMetrics(*m_camera, buffer.width(), buffer.height(), tilePlan);
     const auto denoiserFeatures = p->buildDenoiserFeatures(*m_camera, *m_scene, buffer.rect());
+    const auto* denoiserFeaturePtr = denoiserFeatures.get();
     const auto samplingSeed = p->samplingSeed;
-    engine::dispatchTileTasks(
-      tilePlan, *p->threadPool, p->tasks,
-      [this, rayCaster, camera, bufferPtr, samplingSeed](const Recti& rect, std::size_t tileIndex) {
-        const std::optional<std::uint64_t> tileSeed =
-          samplingSeed
-            ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
-            : std::nullopt;
-        p->renderTile(*camera, *rayCaster, *m_scene, *bufferPtr, rect, tileSeed);
-      });
+    engine::dispatchTileTasks(tilePlan, *p->threadPool, p->tasks,
+                              [this, rayCaster, camera, bufferPtr, samplingSeed,
+                               denoiserFeaturePtr](const Recti& rect, std::size_t tileIndex) {
+                                const std::optional<std::uint64_t> tileSeed =
+                                  samplingSeed
+                                    ? std::optional<std::uint64_t>(
+                                        render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
+                                    : std::nullopt;
+                                p->renderTile(*camera, *rayCaster, *m_scene, *bufferPtr, rect,
+                                              tileSeed, denoiserFeaturePtr);
+                              });
     p->denoise(buffer, denoiserFeatures.get());
     p->finishMetrics(renderStart);
 
@@ -755,17 +843,18 @@ namespace engine::wavefront {
     const auto renderStart = WavefrontClock::now();
     p->resetMetrics(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan);
     const auto denoiserFeatures = p->buildDenoiserFeatures(*m_camera, *m_scene, hdrBuffer.rect());
+    const auto* denoiserFeaturePtr = denoiserFeatures.get();
     const auto samplingSeed = p->samplingSeed;
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
-      [this, rayCaster, camera, hdrBufferPtr, displayBufferPtr, displayTonemap,
-       samplingSeed](const Recti& rect, std::size_t tileIndex) {
+      [this, rayCaster, camera, hdrBufferPtr, displayBufferPtr, displayTonemap, samplingSeed,
+       denoiserFeaturePtr](const Recti& rect, std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
         p->renderTile(*camera, *rayCaster, *m_scene, *hdrBufferPtr, *displayBufferPtr,
-                      displayTonemap, rect, tileSeed);
+                      displayTonemap, rect, tileSeed, denoiserFeaturePtr);
       });
     p->denoise(hdrBuffer, denoiserFeatures.get());
     p->writeDisplayBuffer(displayBuffer, hdrBuffer, displayTonemap);

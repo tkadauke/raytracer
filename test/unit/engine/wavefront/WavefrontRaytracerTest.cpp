@@ -2,6 +2,7 @@
 
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wavefront/WavefrontRaytracer.h"
+#include "render/Integrator.h"
 #include "render/WhittedIntegrator.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/denoise/BoxDenoiser.h"
@@ -19,6 +20,7 @@
 #include <QJsonObject>
 
 #include <algorithm>
+#include <utility>
 
 namespace WavefrontRaytracerTest {
   using engine::wavefront::WavefrontRaytracer;
@@ -80,6 +82,67 @@ namespace WavefrontRaytracerTest {
     mutable double maxAlbedo{0.0};
     mutable double maxNormalLength{0.0};
     mutable double maxDepth{0.0};
+  };
+
+  class ProgressPublishingIntegrator final : public render::Integrator {
+  public:
+    std::unique_ptr<render::Integrator> clone() const override {
+      return std::make_unique<ProgressPublishingIntegrator>();
+    }
+
+    const char* diagnosticName() const override {
+      return "progress_publishing";
+    }
+
+    Colord radiance(const render::Scene&, const Rayd&, render::State&,
+                    const render::RayCaster&) const override {
+      return Colord::black();
+    }
+
+    std::vector<Colord>
+    radianceBatch(const render::Scene&, const std::vector<render::IntegratorRaySample>& samples,
+                  const render::RayCaster&, render::IntegratorBatchMetrics* metrics = nullptr,
+                  const render::IntegratorBatchSettings& settings = {}) const override {
+      if (metrics) {
+        metrics->activeSamplesPerDepth = {static_cast<std::uint64_t>(samples.size())};
+      }
+      if (settings.progressObserver) {
+        settings.progressObserver->depthCompleted(
+          1, std::vector<Colord>(samples.size(), Colord(1.0, 0.0, 0.0)), samples.size());
+      }
+      return std::vector<Colord>(samples.size(), Colord::black());
+    }
+  };
+
+  struct SharedDenoiserCallState {
+    int calls{0};
+    int featureCalls{0};
+  };
+
+  class SharedRecordingDenoiser final : public render::Denoiser {
+  public:
+    explicit SharedRecordingDenoiser(std::shared_ptr<SharedDenoiserCallState> state)
+        : m_state(std::move(state)) {
+    }
+
+    std::unique_ptr<render::Denoiser> clone() const override {
+      return std::make_unique<SharedRecordingDenoiser>(m_state);
+    }
+
+    const char* diagnosticName() const override {
+      return "shared_recording";
+    }
+
+    void denoiseFrame(render::DenoiserFrame& frame) const override {
+      ++m_state->calls;
+      if (frame.features.albedo && frame.features.normal && frame.features.depth) {
+        ++m_state->featureCalls;
+      }
+      frame.beauty.clear(Colord(0.25, 0.5, 0.75));
+    }
+
+  private:
+    std::shared_ptr<SharedDenoiserCallState> m_state;
   };
 
   std::shared_ptr<render::Scene> testScene() {
@@ -220,6 +283,21 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(recordingDenoiser->maxAlbedo, 0.0);
     EXPECT_GT(recordingDenoiser->maxNormalLength, 0.0);
     EXPECT_GT(recordingDenoiser->maxDepth, 0.0);
+  }
+
+  TEST(WavefrontRaytracer, DenoisesDepthProgressSnapshotsBeforeFinalDenoise) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), featureScene());
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->setIntegrator(std::make_unique<ProgressPublishingIntegrator>());
+    auto denoiserCalls = std::make_shared<SharedDenoiserCallState>();
+    renderer->setDenoiser(std::make_unique<SharedRecordingDenoiser>(denoiserCalls));
+
+    Buffer<Colord> buffer(4, 3);
+    renderer->render(buffer);
+
+    EXPECT_GE(denoiserCalls->calls, 2);
+    EXPECT_GE(denoiserCalls->featureCalls, 2);
   }
 
   TEST(WavefrontRaytracer, MatchesRecursiveRaytracerForSimpleWhittedScene) {

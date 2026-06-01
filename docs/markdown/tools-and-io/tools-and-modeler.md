@@ -228,7 +228,10 @@ record the chosen denoiser, its published parameters, and how much time
 filtering and feature-buffer prepass work took; the compact
 `--wavefront_metrics_summary` line prints those same denoiser fields as
 `denoiser`, `denoise_ms`, `denoise_feature_prepass_ms`, and
-`denoise_<parameter>`.
+`denoise_<parameter>`. In Modeler previews, wavefront depth-progress snapshots
+also run through the selected denoiser before the tile is published, so the
+live image no longer flips from raw noisy progress directly to a filtered final
+frame.
 
 That gives a two-step debugging loop:
 

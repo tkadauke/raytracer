@@ -50,6 +50,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   compact summaries, and graph traces now report which albedo, normal, and
   depth feature buffers were supplied to the denoiser and how long the feature
   prepass took. — GPT-5
+- **Wavefront denoised progress snapshots.** Denoiser-enabled wavefront renders
+  now filter depth-progress tile snapshots before publishing preview updates,
+  so progressive display better matches the final filtered image. — GPT-5
 
 ### Changed
 

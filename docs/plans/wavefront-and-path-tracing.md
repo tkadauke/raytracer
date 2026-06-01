@@ -617,8 +617,11 @@ material albedo, surface normals, and ray depth when a denoiser is installed.
 `BilateralDenoiser` now uses compatible albedo/normal/depth feature buffers as
 additional edge-stopping weights, and wavefront metrics report which feature
 buffers were supplied to the denoiser plus how long the feature prepass took
-for graph trace inspection. True between-depth denoising is still open Phase 6
-work.
+for graph trace inspection. Depth-progress tile snapshots are now run through
+a cloned denoiser before the preview buffers are published, so denoiser-enabled
+previews show filtered progress instead of raw progress followed by a final
+filtered jump. True scheduler-feedback between-depth denoising is still open
+Phase 6 work.
 `scenes/wavefront_denoise_demo.json` now provides a reusable low-sample,
 graph-backed bilateral-denoising scene so scene-authored denoiser intent can be
 tested in rendercli and inspected in Modeler.
