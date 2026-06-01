@@ -164,6 +164,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5
+- **Wavefront path sample-color storage.** Path-tracing batches now accumulate
+  directly into the returned sample-color buffer and reuse it for progress
+  snapshots, avoiding a final per-sample copy and preview snapshot allocation. — GPT-5
 - **Wavefront batch overhead.** Whitted and path-tracing batch integrators now
   skip per-sample radiance-delta diagnostics when neither metrics nor
   convergence are enabled, reducing plain wavefront render overhead. — GPT-5

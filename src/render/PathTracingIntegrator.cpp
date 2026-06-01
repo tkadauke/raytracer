@@ -18,17 +18,29 @@
 
 namespace render {
   struct PathTracingIntegrator::BatchPath {
-    explicit BatchPath(const IntegratorRaySample& sample)
-        : ray(sample.ray) {
+    BatchPath(const IntegratorRaySample& sample, Colord& accumulated)
+        : ray(sample.ray),
+          m_accumulated(&accumulated) {
+      this->accumulated() = Colord::black();
       state.timeSample = sample.timeSample;
       state.sampleStream = sample.sampleStream();
     }
 
+    Colord& accumulated() {
+      return *m_accumulated;
+    }
+
+    const Colord& accumulated() const {
+      return *m_accumulated;
+    }
+
     Rayd ray;
     Colord throughput{Colord::white()};
-    Colord accumulated{Colord::black()};
     State state;
     bool active{true};
+
+  private:
+    Colord* m_accumulated;
   };
 
   struct PathTracingIntegrator::BatchHit {
@@ -106,10 +118,10 @@ namespace render {
                                                  BatchDepthMetrics& depthMetrics,
                                                  const Colord& accumulatedBeforeDepth) const {
     ++depthMetrics.frontierRayMisses;
-    path.accumulated += path.throughput * scene.background();
+    path.accumulated() += path.throughput * scene.background();
     path.state.recurseOut();
     path.active = false;
-    recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated);
+    recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
   }
 
   void PathTracingIntegrator::intersectActivePathScalar(const Scene& scene, std::size_t pathIndex,
@@ -118,13 +130,13 @@ namespace render {
                                                         int bounce, BatchDepthMetrics& depthMetrics,
                                                         IntegratorBatchMetrics* metrics) const {
     auto& path = paths[pathIndex];
-    const Colord accumulatedBeforeDepth = path.accumulated;
+    const Colord accumulatedBeforeDepth = path.accumulated();
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
       if (isCancelled()) {
         path.active = false;
-        recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated);
+        recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
         return;
       }
 
@@ -167,7 +179,7 @@ namespace render {
       for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
         const std::size_t pathIndex = activePathIndices[firstActivePathIndex + lane];
         auto& path = paths[pathIndex];
-        accumulatedBeforeDepths[lane] = path.accumulated;
+        accumulatedBeforeDepths[lane] = path.accumulated();
         path.state.recurseIn();
         packetFallbacksBefore[lane] = path.state.packetHitScalarFallbacks;
         rays[lane] = path.ray;
@@ -207,9 +219,9 @@ namespace render {
       if (isCancelled()) {
         const std::size_t pathIndex = activePathIndices[activeIndex];
         auto& path = paths[pathIndex];
-        const Colord accumulatedBeforeDepth = path.accumulated;
+        const Colord accumulatedBeforeDepth = path.accumulated();
         path.active = false;
-        recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated);
+        recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
         ++activeIndex;
         continue;
       }
@@ -375,18 +387,21 @@ namespace render {
       metrics->reset(/*scalarFallback=*/false);
     }
 
+    std::vector<Colord> sampleColors;
     std::vector<BatchPath> paths;
     std::vector<std::size_t> activePathIndices;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->pathSetupWorkerSeconds : nullptr);
+      sampleColors.resize(samples.size(), Colord::black());
       paths.reserve(samples.size());
       activePathIndices.reserve(samples.size());
-      for (const auto& sample : samples) {
+      for (std::size_t index = 0; index != samples.size(); ++index) {
+        const auto& sample = samples[index];
         if (!sample.sampleStream()) {
           return Integrator::radianceBatch(scene, samples, recursiveRayCaster, metrics, settings);
         }
 
-        paths.emplace_back(sample);
+        paths.emplace_back(sample, sampleColors[index]);
         activePathIndices.push_back(paths.size() - 1);
       }
     }
@@ -428,7 +443,7 @@ namespace render {
           if (!material) {
             path.state.recurseOut();
             path.active = false;
-            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated);
+            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated());
             continue;
           }
 
@@ -436,19 +451,19 @@ namespace render {
           if (!material->supportsBsdfSampling()) {
             const Colord whittedColor =
               material->shade(&recursiveRayCaster, scene, path.ray, hit.hitPoint, path.state);
-            path.accumulated += path.throughput * whittedColor;
+            path.accumulated() += path.throughput * whittedColor;
             if (metrics) {
               ++metrics->compatibilityShadeSamples;
             }
             path.state.recurseOut();
             path.active = false;
-            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated);
+            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated());
             continue;
           }
 
           for (const auto& light : scene.lights()) {
-            path.accumulated += path.throughput * directLighting(scene, *light, hit.hitPoint,
-                                                                 *material, wi, path.state);
+            path.accumulated() += path.throughput * directLighting(scene, *light, hit.hitPoint,
+                                                                   *material, wi, path.state);
           }
 
           const Vector2d bsdfSample = path.state.sampleStream->sample2D(
@@ -457,7 +472,7 @@ namespace render {
           if (sampled.pdf <= 0.0 || sampled.value == Colord::black()) {
             path.state.recurseOut();
             path.active = false;
-            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated);
+            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated());
             continue;
           }
 
@@ -465,7 +480,7 @@ namespace render {
           if (!sampled.isDelta && normalDotWo <= 0.0) {
             path.state.recurseOut();
             path.active = false;
-            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated);
+            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated());
             continue;
           }
 
@@ -484,7 +499,7 @@ namespace render {
             if (roulette >= survival) {
               path.state.recurseOut();
               path.active = false;
-              recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated);
+              recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated());
               continue;
             }
             path.throughput = path.throughput * (1.0 / survival);
@@ -492,7 +507,7 @@ namespace render {
 
           path.ray = sampled.rayFrom(hit.hitPoint);
           path.state.recurseOut();
-          recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated);
+          recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated());
           nextActivePathIndices.push_back(hit.pathIndex);
         }
       }
@@ -504,13 +519,8 @@ namespace render {
 
       if (settings.progressObserver) {
         core::util::ScopedTimer timer(metrics ? &metrics->progressSnapshotWorkerSeconds : nullptr);
-        std::vector<Colord> snapshot;
-        snapshot.reserve(paths.size());
-        for (const auto& path : paths) {
-          snapshot.push_back(path.accumulated);
-        }
-        settings.progressObserver->depthCompleted(static_cast<std::uint64_t>(bounce + 1), snapshot,
-                                                  nextActivePathIndices.size());
+        settings.progressObserver->depthCompleted(static_cast<std::uint64_t>(bounce + 1),
+                                                  sampleColors, nextActivePathIndices.size());
       }
 
       if (settings.convergenceEnabled && !paths.empty()) {
@@ -534,11 +544,6 @@ namespace render {
       activePathIndices.swap(nextActivePathIndices);
     }
 
-    std::vector<Colord> result;
-    result.reserve(paths.size());
-    for (const auto& path : paths) {
-      result.push_back(path.accumulated);
-    }
-    return result;
+    return sampleColors;
   }
 }
