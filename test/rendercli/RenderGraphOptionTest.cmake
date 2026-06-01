@@ -1480,9 +1480,10 @@ rendercli_run(
   NAME "rendercli writes graph wavefront metrics JSON and summary"
   OUTPUT_VARIABLE wavefront_metrics_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*samples=.*compatibility_shade_samples=.*convergence=disabled"
+    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*samples=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
   COMMAND
     "${RENDERCLI}" --engine wavefront --width 16 --height 16
+    --wavefront_denoiser box --wavefront_denoise_radius 2
     --wavefront_metrics_out "${wavefront_metrics_report}" --wavefront_metrics_summary
     "${static_scene}" "${wavefront_metrics_render}"
 )
@@ -1508,6 +1509,21 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"convergence\"")
   _rendercli_fail("rendercli wavefront metrics convergence"
                   "wavefront metrics report did not contain convergence metadata"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"denoise\"")
+  _rendercli_fail("rendercli wavefront metrics denoise"
+                  "wavefront metrics report did not contain denoise metadata"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"denoiser\"[ \r\n]*:[ \r\n]*\"box\"")
+  _rendercli_fail("rendercli wavefront metrics denoiser"
+                  "wavefront metrics report did not contain denoiser name"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"radius\"[ \r\n]*:[ \r\n]*2")
+  _rendercli_fail("rendercli wavefront metrics denoiser parameters"
+                  "wavefront metrics report did not contain denoiser radius"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 

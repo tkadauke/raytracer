@@ -156,6 +156,7 @@ namespace {
       const QJsonObject input = metrics.value("input").toObject();
       const QJsonObject batching = metrics.value("batching").toObject();
       const QJsonObject convergence = metrics.value("convergence").toObject();
+      const QJsonObject denoise = metrics.value("denoise").toObject();
       const QJsonArray activeSamples = batching.value("activeSamplesPerDepth").toArray();
       const QJsonArray rmsDelta = batching.value("radianceDeltaRmsPerDepth").toArray();
       std::cout << std::fixed << std::setprecision(3) << "wavefront_metrics"
@@ -176,7 +177,17 @@ namespace {
                 << " compatibility_shade_samples="
                 << unsignedValue(batching, "compatibilityShadeSamples")
                 << " convergence=" << convergence.value("decision").toString().toStdString()
-                << " stopped_tiles=" << unsignedValue(convergence, "stoppedTileCount") << '\n';
+                << " stopped_tiles=" << unsignedValue(convergence, "stoppedTileCount")
+                << " denoiser="
+                << (denoise.value("enabled").toBool()
+                      ? denoise.value("denoiser").toString().toStdString()
+                      : std::string("none"))
+                << " denoise_ms=" << denoise.value("seconds").toDouble() * 1000.0;
+      const QJsonObject denoiseParameters = denoise.value("parameters").toObject();
+      for (auto it = denoiseParameters.begin(); it != denoiseParameters.end(); ++it) {
+        std::cout << " denoise_" << it.key().toStdString() << "=" << it.value().toDouble();
+      }
+      std::cout << '\n';
     }
 
   private:

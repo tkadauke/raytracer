@@ -49,6 +49,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront rendercli metrics reports.** rendercli can now write aggregate
   wavefront metrics JSON and print compact wavefront metrics summaries for
   direct or graph-backed wavefront renders. — GPT-5
+- **Wavefront rendercli denoiser metrics summaries.** Compact wavefront metrics
+  lines now include the denoiser, denoise time, and published denoiser numeric
+  parameters when filtering is enabled. — GPT-5
 - **Wavefront Render Settings presets.** Modeler Render Settings now expose
   Preview/Balanced/Final convergence quality presets for the wavefront executor
   while keeping the raw active-sample-fraction and RMS-delta thresholds editable

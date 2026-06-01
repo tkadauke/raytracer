@@ -223,7 +223,9 @@ small HDR box filter intended as the graph-visible hook for later edge-aware
 denoisers. `--wavefront_denoise_radius N` controls the radius in pixels; giving
 the radius without a denoiser also selects the box denoiser. `none` disables an
 inherited scene denoiser in the compiled intent. Wavefront metrics record the
-chosen denoiser, its published parameters, and how much time filtering took.
+chosen denoiser, its published parameters, and how much time filtering took;
+the compact `--wavefront_metrics_summary` line prints those same denoiser
+fields as `denoiser`, `denoise_ms`, and `denoise_<parameter>`.
 
 That gives a two-step debugging loop:
 
