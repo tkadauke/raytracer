@@ -225,16 +225,17 @@ a color-edge-preserving filter controlled by `--wavefront_denoise_radius N` and
 box, while giving a color sigma without a denoiser selects bilateral. `none`
 disables an inherited scene denoiser in the compiled intent. Wavefront metrics
 record the chosen denoiser, its published parameters, and how much time
-filtering and tile-parallel feature-buffer prepass work took; the compact
-`--wavefront_metrics_summary` line prints those same denoiser fields as
-`denoiser`, `denoise_ms`, `denoise_feature_prepass_ms`, and
-`denoise_<parameter>`. In Modeler previews, wavefront depth-progress snapshots
-also run through the selected denoiser before the tile is published, so the live
-image no longer flips from raw noisy progress directly to a filtered final
-frame. Before those beauty tiles start, the albedo/normal/depth feature prepass
-is shown as active render tiles in the normal progress overlay rather than an
-idle preview, and graph trace metadata separates that work under
-`denoise.featurePrepass`.
+filtering took. Feature-aware filters such as the bilateral denoiser can also
+request albedo/normal/depth buffers; simpler filters skip that tile-parallel
+feature prepass. The compact `--wavefront_metrics_summary` line prints those
+same denoiser fields as `denoiser`, `denoise_ms`,
+`denoise_feature_prepass_ms`, and `denoise_<parameter>`. In Modeler previews,
+wavefront depth-progress snapshots also run through the selected denoiser
+before the tile is published, so the live image no longer flips from raw noisy
+progress directly to a filtered final frame. Before feature-aware beauty tiles
+start, the feature prepass is shown as active render tiles in the normal
+progress overlay rather than an idle preview, and graph trace metadata
+separates that work under `denoise.featurePrepass`.
 
 That gives a two-step debugging loop:
 

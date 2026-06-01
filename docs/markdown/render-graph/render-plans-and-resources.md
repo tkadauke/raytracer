@@ -641,9 +641,10 @@ when a denoiser is installed, and feature-aware filters can use them without
 coupling themselves to the wavefront engine. The feature prepass uses the same
 tile scheduler and per-tile sampling seed derivation as the beauty pass, so the
 AOV samples line up with the first rendered sample without becoming a serial
-bottleneck. During graph-backed preview renders, depth-progress tile snapshots
-are passed through a cloned denoiser before they are published, while the final
-full-frame buffer still gets the ordinary end-of-render denoise.
+bottleneck; denoisers that do not request feature buffers skip the prepass.
+During graph-backed preview renders, depth-progress tile snapshots are passed
+through a cloned denoiser before they are published, while the final full-frame
+buffer still gets the ordinary end-of-render denoise.
 `render::BoxDenoiser` is deliberately simple and exists to pin the hook;
 `render::BilateralDenoiser` is the first useful edge-preserving filter,
 weighting neighbors by pixel distance, color difference, and any compatible
@@ -657,8 +658,8 @@ denoising is part of compiled render intent rather than a hidden engine toggle.
 Denoisers publish their own diagnostics, so future filters can add trace
 metadata without a wavefront-engine type switch. Wavefront denoise metadata
 also reports which albedo/normal/depth feature buffers were supplied to the
-filter and how long that feature prepass took, making AOV-aware denoiser runs
-visible in graph traces.
+filter and how long any requested feature prepass took, making AOV-aware
+denoiser runs visible in graph traces while keeping featureless filters cheap.
 The reusable scene
 [`scenes/wavefront_indirect_environment_demo.json`](../../../scenes/wavefront_indirect_environment_demo.json)
 opens with a wavefront path-tracing intent and no direct lights; the matte
