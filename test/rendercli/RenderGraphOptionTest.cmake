@@ -1835,6 +1835,16 @@ if(NOT wavefront_scene_denoise_trace_json MATCHES "\"color_sigma\"[ \r\n]*:[ \r\
   message(FATAL_ERROR
           "scene wavefront denoise trace did not contain bilateral color sigma metadata: ${wavefront_scene_denoise_trace_json}")
 endif()
+if(NOT wavefront_scene_denoise_trace_json MATCHES "\"features\"")
+  message(FATAL_ERROR
+          "scene wavefront denoise trace did not contain feature metadata: ${wavefront_scene_denoise_trace_json}")
+endif()
+foreach(feature_name albedo normal depth)
+  if(NOT wavefront_scene_denoise_trace_json MATCHES "\"${feature_name}\"[ \r\n]*:[ \r\n]*true")
+    message(FATAL_ERROR
+            "scene wavefront denoise trace did not report ${feature_name} feature metadata: ${wavefront_scene_denoise_trace_json}")
+  endif()
+endforeach()
 
 rendercli_run(
   NAME "rendercli traces wavefront material compatibility counter"
