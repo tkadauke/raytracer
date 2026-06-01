@@ -202,23 +202,16 @@ namespace render {
 
     std::vector<PathState> paths;
     paths.reserve(samples.size());
+    std::vector<std::size_t> activePathIndices;
+    activePathIndices.reserve(samples.size());
     for (const auto& sample : samples) {
       if (!sample.sampleStream) {
         return Integrator::radianceBatch(scene, samples, recursiveRayCaster, metrics, settings);
       }
 
       paths.emplace_back(sample);
+      activePathIndices.push_back(paths.size() - 1);
     }
-
-    const auto activePathCount = [&paths] {
-      std::uint64_t activeCount = 0;
-      for (const auto& path : paths) {
-        if (path.active) {
-          ++activeCount;
-        }
-      }
-      return activeCount;
-    };
 
     if (metrics) {
       metrics->usedScalarFallback = false;
@@ -231,9 +224,11 @@ namespace render {
       metrics->stoppedAfterDepth = 0;
     }
     const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
+    std::vector<std::size_t> nextActivePathIndices;
+    nextActivePathIndices.reserve(samples.size());
 
     for (int bounce = 0; bounce < m_maximumRecursionDepth; ++bounce) {
-      const std::uint64_t activeCount = activePathCount();
+      const std::uint64_t activeCount = activePathIndices.size();
       if (activeCount == 0) {
         break;
       }
@@ -244,10 +239,9 @@ namespace render {
 
       double depthDeltaSquaredSum = 0.0;
       double depthMaxDelta = 0.0;
-      for (auto& path : paths) {
-        if (!path.active) {
-          continue;
-        }
+      nextActivePathIndices.clear();
+      for (const std::size_t pathIndex : activePathIndices) {
+        auto& path = paths[pathIndex];
 
         const Colord accumulatedBeforeDepth = path.accumulated;
         const auto recordDepthDelta = [&] {
@@ -353,6 +347,7 @@ namespace render {
         path.ray = sampled.rayFrom(hitPoint);
         path.state.recurseOut();
         recordDepthDelta();
+        nextActivePathIndices.push_back(pathIndex);
       }
 
       if (metrics) {
@@ -367,12 +362,12 @@ namespace render {
           snapshot.push_back(path.accumulated);
         }
         settings.progressObserver->depthCompleted(static_cast<std::uint64_t>(bounce + 1), snapshot,
-                                                  activePathCount());
+                                                  nextActivePathIndices.size());
       }
 
       if (settings.convergenceEnabled && !paths.empty()) {
         const double activeFraction =
-          static_cast<double>(activePathCount()) / static_cast<double>(paths.size());
+          static_cast<double>(nextActivePathIndices.size()) / static_cast<double>(paths.size());
         const double radianceDeltaRms =
           activeCount == 0 ? 0.0
                            : std::sqrt(depthDeltaSquaredSum / static_cast<double>(activeCount));
@@ -385,6 +380,8 @@ namespace render {
           break;
         }
       }
+
+      activePathIndices.swap(nextActivePathIndices);
     }
 
     std::vector<Colord> result;

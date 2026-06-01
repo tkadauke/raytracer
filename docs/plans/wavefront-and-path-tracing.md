@@ -603,9 +603,12 @@ intent and pass state and now drive early termination for depth-major path
 batches. The batch settings also accept a progress observer; the path-tracing
 batch calls it after each completed depth with the current sample colors, and
 the Wavefront engine writes those snapshots into its current tile buffers so
-Modeler can show progress during a graph-backed Wavefront pass. Remaining work
-is to keep moving recursive legacy materials onto explicit scattering where
-that preserves their existing Whitted behavior.
+Modeler can show progress during a graph-backed Wavefront pass. The batch
+scheduler now compacts still-active path indices between depths, so later
+depths visit only live paths rather than scanning the full original sample set
+after most samples have terminated. Remaining work is to keep moving recursive
+legacy materials onto explicit scattering where that preserves their existing
+Whitted behavior.
 `scenes/wavefront_indirect_environment_demo.json` is the first reusable Phase 5
 sanity scene: it has a wavefront/pathtracer render intent, black ambient, no
 direct lights, and a matte object that is visible only because diffuse BSDF
