@@ -28,16 +28,17 @@ Colord MatteMaterial::shade(const render::RayCaster*, const render::Scene& scene
   auto color = ambientBRDF.reflectance(hitPoint, Vector3d::null) * scene.ambient();
 
   for (const auto& light : scene.lights()) {
-    Vector3d in = light->direction(hitPoint.point());
+    const LightSample sample = light->sample(hitPoint.point());
+    Vector3d in = sample.direction;
 
-    if (scene.intersects(Rayd(hitPoint.point(), in).epsilonShifted(), state)) {
+    if (scene.occludes(Rayd(hitPoint.point(), in).epsilonShifted(), state, sample.distance)) {
       state.shadowHit(this, "MatteMaterial");
     } else {
       state.shadowMiss(this, "MatteMaterial");
       double normalDotIn = hitPoint.normal() * in;
       if (normalDotIn > 0.0)
         color +=
-          diffuseBRDF(hitPoint, Vector3d::null, Vector3d::null) * light->radiance() * normalDotIn;
+          diffuseBRDF(hitPoint, Vector3d::null, Vector3d::null) * sample.radiance * normalDotIn;
     }
   }
 

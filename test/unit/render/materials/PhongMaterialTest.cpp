@@ -6,7 +6,9 @@
 #include "engine/raytracer/Raytracer.h"
 #include "render/State.h"
 #include "render/lights/DirectionalLight.h"
+#include "render/lights/PointLight.h"
 #include "render/primitives/Scene.h"
+#include "render/primitives/Sphere.h"
 
 #include "test/helpers/ColorTestHelper.h"
 
@@ -173,5 +175,20 @@ namespace PhongMaterialTest {
     constexpr double kInvPi = 1.0 / M_PI;
     double expected = 0.1 + kInvPi + 0.5;
     ASSERT_COLOR_NEAR(Colord(expected, expected, expected), colour, 0.001);
+  }
+
+  TEST(PhongMaterial, ShouldIgnorePointLightOccluderBehindTheLight) {
+    ShadeFixture f;
+    f.scene->setAmbient(Colord::black());
+    f.material.setAmbientCoefficient(0.0);
+    f.material.setDiffuseCoefficient(1.0);
+    f.material.setSpecularCoefficient(0.0);
+    f.scene->addLight(std::make_shared<PointLight>(Vector3d(0, 2, 0), Colord(0.5, 0.5, 0.5)));
+    f.scene->add(std::make_shared<Sphere>(Vector3d(0, 4, 0), 0.5));
+
+    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
+
+    constexpr double kInvPi = 1.0 / M_PI;
+    ASSERT_COLOR_NEAR(Colord(0.5 * kInvPi, 0.5 * kInvPi, 0.5 * kInvPi), colour, 0.001);
   }
 }

@@ -54,10 +54,10 @@ calls `rayColor` on the callback it was handed.
 
 The `Scene&` is the scene reference the shader needs for two
 specific operations: iterating the lights for direct illumination
-through [the `BSDF` interface](#the-bsdf-interface), and casting shadow rays via `scene.intersects(...)`. The
-shadow-ray cost is half of what a raytraced render spends per
-hit, which is why `intersects` is a separate cheap-boolean form
-on every primitive
+through [the `BSDF` interface](#the-bsdf-interface), and casting bounded shadow
+rays via `scene.occludes(...)`. The shadow-ray cost is half of what a raytraced
+render spends per hit, which is why unbounded directional-light shadows still
+use the separate cheap-boolean `intersects` form on every primitive
 ([Primitives and intersection: The `Primitive` interface](primitives-and-intersection.md#the-primitive-interface)).
 
 The `Rayd&` is the incoming ray; the `HitPoint&` is the
@@ -178,14 +178,16 @@ auto color = ambientBRDF.reflectance(hitPoint, Vector3d::null())
            * scene.ambient();
 
 for (const auto& light : scene.lights()) {
-  Vector3d in = light->direction(hitPoint.point());
+  LightSample sample = light->sample(hitPoint.point());
+  Vector3d in = sample.direction;
 
-  if (scene.intersects(Rayd(hitPoint.point(), in).epsilonShifted(), state)) {
+  if (scene.occludes(Rayd(hitPoint.point(), in).epsilonShifted(), state,
+                     sample.distance)) {
     // shadow: this light is blocked
   } else {
     double normalDotIn = hitPoint.normal() * in;
     if (normalDotIn > 0.0)
-      color += diffuseBRDF(hitPoint, ...) * light->radiance() * normalDotIn;
+      color += diffuseBRDF(hitPoint, ...) * sample.radiance * normalDotIn;
   }
 }
 
@@ -203,6 +205,8 @@ zero work, not just zero color. Third, the shadow ray is
 `epsilonShifted` to avoid the ray-spawned-at-its-own-surface
 self-intersection from
 [Rays and geometry: The `Ray` class, all of it](../foundations/rays-and-geometry.md#the-ray-class-all-of-it).
+For point lights, `scene.occludes(...)` bounds the query to the light's finite
+distance; for directional lights the sampled distance is infinite.
 
 The material's behavioral contracts (texture passthrough, the
 ambient-coefficient linearity, the no-illumination invariant)
@@ -440,6 +444,8 @@ continuation ray with a transformed origin and direction.
 - `include/render/materials/ReflectiveMaterial.h`
 - `include/render/materials/TransparentMaterial.h`
 - `include/render/materials/PortalMaterial.h`
+- `src/render/materials/MatteMaterial.cpp`
+- `src/render/materials/PhongMaterial.cpp`
 - `include/render/brdf/BRDF.h`
 - `include/render/brdf/BTDF.h`
 - `include/render/brdf/Lambertian.h`

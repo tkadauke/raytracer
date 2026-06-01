@@ -137,6 +137,7 @@
 | `include/render/primitives/Plane.h` | [Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/Primitive.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/Rectangle.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
+| `include/render/primitives/Scene.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/primitives/SmoothMeshTriangle.h` | [Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/SpatialIndex.h` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
 | `include/render/primitives/Sphere.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
@@ -233,6 +234,9 @@
 | `src/modeler/` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/modeler/MainWindow.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[LDraw import](../tools-and-io/ldraw-import.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/render/WhittedIntegrator.cpp` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
+| `src/render/materials/MatteMaterial.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
+| `src/render/materials/PhongMaterial.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
+| `src/render/primitives/Scene.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `src/widgets/world/RenderGraphInspectorWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/widgets/world/RenderGraphTracePreviewWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/world/animation/AnimationTrack.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
@@ -308,6 +312,7 @@
 | `test/unit/render/lights/DirectionalLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `test/unit/render/lights/PointLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `test/unit/render/primitives/BVHPerformanceTest.cpp` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
+| `test/unit/render/primitives/SceneTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `test/unit/render/samplers/JitteredSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `test/unit/render/samplers/RandomSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `test/unit/render/samplers/SamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |

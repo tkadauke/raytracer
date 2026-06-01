@@ -27,16 +27,17 @@ Colord PhongMaterial::shade(const render::RayCaster*, const render::Scene& scene
   auto color = ambientBRDF.reflectance(hitPoint, out) * scene.ambient();
 
   for (const auto& light : scene.lights()) {
-    Vector3d in = light->direction(hitPoint.point());
+    const LightSample sample = light->sample(hitPoint.point());
+    Vector3d in = sample.direction;
 
-    if (scene.intersects(Rayd(hitPoint.point(), in).epsilonShifted(), state)) {
+    if (scene.occludes(Rayd(hitPoint.point(), in).epsilonShifted(), state, sample.distance)) {
       state.shadowHit(this, "PhongMaterial");
     } else {
       state.shadowMiss(this, "PhongMaterial");
       double normalDotIn = hitPoint.normal() * in;
       if (normalDotIn > 0.0) {
         color += (diffuseBRDF(hitPoint, out, in) + m_specularBRDF(hitPoint, out, in)) *
-                 light->radiance() * normalDotIn;
+                 sample.radiance * normalDotIn;
       }
     }
   }

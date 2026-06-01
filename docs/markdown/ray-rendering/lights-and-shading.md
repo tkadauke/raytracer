@@ -159,8 +159,8 @@ ones.
 The important boundary is capability: these methods document how
 lights can be sampled, not that the renderer already performs soft
 shadows or path tracing. The shipped Whitted materials still iterate
-`Scene::lights()`, call `direction()` / `radiance()`, and cast the
-hard shadow ray described below.
+`Scene::lights()`, sample each light, and cast the hard shadow ray
+described below.
 
 ## <a id="the-shadow-ray"></a>The shadow ray
 The shading routine in
@@ -170,7 +170,10 @@ adding its contribution. The test is a single boolean ray cast
 from the surface point toward the light:
 
 ```cpp
-if (scene.intersects(Rayd(hitPoint.point(), in).epsilonShifted(), state)) {
+LightSample sample = light->sample(hitPoint.point());
+Rayd shadowRay = Rayd(hitPoint.point(), sample.direction).epsilonShifted();
+
+if (scene.occludes(shadowRay, state, sample.distance)) {
   // shadow: this light is blocked by an occluder
 } else {
   // visible: add the light's contribution to the surface color
@@ -182,11 +185,16 @@ along the direction by `Ray::epsilon` to prevent the ray from
 spuriously self-intersecting the surface it just bounced off of
 (see
 [Rays and geometry: The `Ray` class, all of it](../foundations/rays-and-geometry.md#the-ray-class-all-of-it)).
-It calls `scene.intersects(...)` rather than
-`scene.intersect(...)`: the cheaper boolean form from
+`scene.occludes(...)` keeps the shadow test bounded for finite point
+lights, so geometry behind the light does not accidentally shadow the
+surface. Directional lights pass an infinite distance and keep the old
+"any hit along the ray" behavior. Internally, the finite-distance path uses
+`scene.intersect(...)` to compare the nearest hit distance against the light
+sample's distance; the infinite path uses `scene.intersects(...)`, the cheaper
+boolean form from
 [Primitives and intersection: The `Primitive` interface](primitives-and-intersection.md#the-primitive-interface),
-since a shadow ray only needs to know *whether* it hits
-anything, not *where*.
+because an unbounded directional shadow ray only needs to know *whether* it
+hits anything, not *where*.
 
 The shadow ray is the single biggest cost the shading pipeline
 pays. A scene with $L$ lights spawns $L$ shadow rays per ray
@@ -406,13 +414,12 @@ together.
    point closest to each light. Now place the same sphere
    between two directional lights pointing in opposite
    directions. What's different?
-2. The shadow ray uses `scene.intersects(...)` (the boolean
-   form) instead of `scene.intersect(...)` (the
-   hit-point-emitting form). For a shadow ray that has to
-   traverse 100 primitives in a complex scene to find the
-   nearest occluder, how much work does the boolean form save
-   over the geometric form? How does the saving change with the
-   BVH from
+2. Directional-light shadow rays can use `scene.intersects(...)`
+   because any hit along the ray blocks the light. Point-light
+   shadow rays need `scene.occludes(...)` so they can ignore
+   geometry behind the light. Construct a case where the two
+   answers differ. Why is the bounded query more expensive in a
+   flat primitive list? How does the saving change with the BVH from
    [Spatial acceleration](../scene-structure/spatial-acceleration.md)
    in place?
 3. Set `Scene::ambient()` to pure white and render a sphere on
@@ -444,7 +451,10 @@ together.
 - `include/render/lights/Light.h`
 - `include/render/lights/PointLight.h`
 - `include/render/lights/DirectionalLight.h`
+- `include/render/primitives/Scene.h`
+- `src/render/primitives/Scene.cpp`
 - `test/unit/render/lights/PointLightTest.cpp`
 - `test/unit/render/lights/DirectionalLightTest.cpp`
+- `test/unit/render/primitives/SceneTest.cpp`
 - `test/functional/render/lights/PointLightTest.cpp`
 <!-- /source-anchors -->

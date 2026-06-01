@@ -6,9 +6,11 @@
 #include "render/primitives/Composite.h"
 #include "render/primitives/AccelerationPolicy.h"
 #include "core/Color.h"
+#include "core/math/Ray.h"
 
 namespace render {
   class Light;
+  class State;
 }
 
 namespace render {
@@ -82,6 +84,16 @@ namespace render {
     inline const Lights& lights() const {
       return m_lights;
     }
+
+    /**
+      * @returns true when scene geometry blocks @p ray before @p maxDistance.
+      *
+      * Use this for light-visibility tests. Directional lights pass an
+      * infinite distance and therefore keep the old "any hit along the ray"
+      * behavior; finite point lights only count occluders between the shaded
+      * point and the light itself.
+      */
+    bool occludes(const Rayd& ray, State& state, double maxDistance) const;
 
     /**
       * @returns the scene's ambient color.

@@ -32,8 +32,8 @@ namespace render {
   /**
     * @brief Abstract base for scene light sources.
     *
-    * Materials iterate `Scene::lights()` and call two methods on
-    * each light during direct-lighting evaluation:
+    * Materials iterate `Scene::lights()` and sample each light during
+    * direct-lighting evaluation. The legacy scalar accessors remain available:
     *
     *  - `direction(point)` — the unit vector from `point` toward
     *    the light. For a `PointLight` this is `(position - point).

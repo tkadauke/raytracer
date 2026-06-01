@@ -308,6 +308,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Finite point-light shadow rays.** Whitted and path-tracing direct lighting
+  now bound point-light shadow tests to the sampled light distance, so geometry
+  behind a point light no longer incorrectly shadows the shaded surface.
+  — GPT-5
 - **rendercli option handling fixes.** `--timing`/`--repeat` now print one
   timing summary instead of duplicating the line, comma-separated raster color
   and rectangle options reject empty fields, and `--step sequence` reloads each

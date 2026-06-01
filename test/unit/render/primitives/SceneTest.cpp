@@ -1,6 +1,9 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "core/math/Ray.h"
+#include "render/State.h"
 #include "render/primitives/Scene.h"
+#include "render/primitives/Sphere.h"
 #include "render/lights/PointLight.h"
 
 namespace SceneTest {
@@ -35,5 +38,21 @@ namespace SceneTest {
     scene.addLight(light);
     ASSERT_FALSE(scene.lights().empty());
     ASSERT_EQ(light, scene.lights().front());
+  }
+
+  TEST(Scene, ShouldOnlyOccludeFiniteLightDistanceBeforeTheLight) {
+    Scene scene(Colord::white());
+    scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 5), 0.5));
+
+    State state;
+    ASSERT_FALSE(scene.occludes(Rayd(Vector3d::null, Vector3d(0, 0, 1)), state, 4.0));
+  }
+
+  TEST(Scene, ShouldOccludeFiniteLightDistanceBeforeAnOccluder) {
+    Scene scene(Colord::white());
+    scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 5), 0.5));
+
+    State state;
+    ASSERT_TRUE(scene.occludes(Rayd(Vector3d::null, Vector3d(0, 0, 1)), state, 5.0));
   }
 }

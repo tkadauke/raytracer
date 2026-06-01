@@ -55,10 +55,10 @@ namespace render {
       return Colord::black();
     }
 
-    // Shadow ray. The existing scalar `Scene::intersects` is the
-    // matching predicate; epsilon-shift to avoid self-intersection.
+    // Shadow ray. `Scene::occludes` keeps point-light visibility bounded
+    // to the sampled light distance; epsilon-shift avoids self-intersection.
     const Rayd shadowRay = Rayd(hitPoint.point(), wo).epsilonShifted();
-    if (scene.intersects(shadowRay, state)) {
+    if (scene.occludes(shadowRay, state, sample.distance)) {
       state.shadowHit(nullptr, "PathTracingIntegrator");
       return Colord::black();
     }
