@@ -86,6 +86,9 @@ set(raytracer_integrator_plan "${TEST_OUTPUT_DIR}/raytracer-integrator-graph.jso
 set(raytracer_integrator_render "${TEST_OUTPUT_DIR}/raytracer-integrator-render.png")
 set(wavefront_plan "${TEST_OUTPUT_DIR}/wavefront-graph.json")
 set(wavefront_render "${TEST_OUTPUT_DIR}/wavefront-render.png")
+set(wavefront_parity_raytracer_render
+    "${TEST_OUTPUT_DIR}/wavefront-parity-raytracer-render.png")
+set(wavefront_parity_render "${TEST_OUTPUT_DIR}/wavefront-parity-render.png")
 set(wavefront_pathtracer_plan "${TEST_OUTPUT_DIR}/wavefront-pathtracer-graph.json")
 set(wavefront_convergence_plan "${TEST_OUTPUT_DIR}/wavefront-convergence-graph.json")
 set(wavefront_pathtracer_render "${TEST_OUTPUT_DIR}/wavefront-pathtracer-render.png")
@@ -1358,6 +1361,22 @@ rendercli_run(
     "${static_scene}" "${wavefront_render}"
 )
 rendercli_assert_image_nonempty("${wavefront_render}" NAME "wavefront graph render pixels")
+
+rendercli_run(
+  NAME "rendercli renders recursive raytracer parity baseline"
+  COMMAND
+    "${RENDERCLI}" --engine raytracer --width 24 --height 24 --depth 4
+    "${static_scene}" "${wavefront_parity_raytracer_render}"
+)
+rendercli_run(
+  NAME "rendercli renders wavefront parity baseline"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 24 --height 24 --depth 4
+    "${static_scene}" "${wavefront_parity_render}"
+)
+rendercli_assert_image_hash_equals("${wavefront_parity_raytracer_render}"
+                                   "${wavefront_parity_render}"
+                                   NAME "wavefront graph matches recursive raytracer graph")
 
 rendercli_run(
   NAME "rendercli exports wavefront pathtracer state in render graph"

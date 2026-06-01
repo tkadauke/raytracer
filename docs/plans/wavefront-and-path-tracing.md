@@ -487,7 +487,9 @@ batch execution mode, batch sizes, active sample counts per depth,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
 convergence stop decisions, and total render time; graph execution traces
 attach those metrics to the `wavefront_beauty` pass for Modeler and rendercli
-inspection.
+inspection. rendercli now carries a small graph-level parity check that renders
+the same deterministic scene through recursive raytracer and wavefront
+executors and requires matching image hashes.
 
 **Goal**: prove the architecture without changing image output.
 **Gate**: macro benchmark output (sphere / torus / BVH scenes) RMS
