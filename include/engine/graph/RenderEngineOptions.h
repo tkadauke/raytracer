@@ -51,6 +51,8 @@ namespace engine::graph {
     void setConvergenceEnabled(bool enabled);
     void setConvergenceActiveSampleFractionThreshold(double fraction);
     void setConvergenceRadianceDeltaRmsThreshold(double threshold);
+    void setDenoiser(std::string denoiser);
+    void setDenoiseRadius(int radius);
 
     std::optional<int> maximumRecursionDepth() const;
     std::optional<int> maximumThreads() const;
@@ -62,6 +64,8 @@ namespace engine::graph {
     std::optional<bool> convergenceEnabled() const;
     std::optional<double> convergenceActiveSampleFractionThreshold() const;
     std::optional<double> convergenceRadianceDeltaRmsThreshold() const;
+    std::optional<std::string> denoiser() const;
+    std::optional<int> denoiseRadius() const;
 
   private:
     std::optional<int> m_maximumRecursionDepth;
@@ -74,6 +78,8 @@ namespace engine::graph {
     std::optional<bool> m_convergenceEnabled;
     std::optional<double> m_convergenceActiveSampleFractionThreshold;
     std::optional<double> m_convergenceRadianceDeltaRmsThreshold;
+    std::optional<std::string> m_denoiser;
+    std::optional<int> m_denoiseRadius;
   };
 
   /**

@@ -30,6 +30,7 @@
 #include "engine/raster/Rasterizer.h"
 #include "engine/wavefront/WavefrontRaytracer.h"
 #include "engine/wireframe/Wireframe.h"
+#include "render/denoise/BoxDenoiser.h"
 #include "render/materials/Material.h"
 #include "render/primitives/Scene.h"
 #include "render/cameras/Camera.h"
@@ -1038,6 +1039,10 @@ private:
   bool m_wavefrontConvergenceActiveFractionSet;
   double m_wavefrontConvergenceRmsDelta;
   bool m_wavefrontConvergenceRmsDeltaSet;
+  QString m_wavefrontDenoiser;
+  bool m_wavefrontDenoiserSet;
+  int m_wavefrontDenoiseRadius;
+  bool m_wavefrontDenoiseRadiusSet;
   bool m_renderGraph;
   bool m_directEngine;
   bool m_renderGraphOnly;
@@ -1205,6 +1210,10 @@ Renderer::Renderer()
       m_wavefrontConvergenceActiveFractionSet(false),
       m_wavefrontConvergenceRmsDelta(0.0),
       m_wavefrontConvergenceRmsDeltaSet(false),
+      m_wavefrontDenoiser("none"),
+      m_wavefrontDenoiserSet(false),
+      m_wavefrontDenoiseRadius(1),
+      m_wavefrontDenoiseRadiusSet(false),
       m_renderGraph(true),
       m_directEngine(false),
       m_renderGraphOnly(false),
@@ -1398,6 +1407,10 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
   }
   if (m_wavefrontConvergenceRmsDeltaSet)
     options.raytracer().setConvergenceRadianceDeltaRmsThreshold(m_wavefrontConvergenceRmsDelta);
+  if (m_wavefrontDenoiserSet)
+    options.raytracer().setDenoiser(m_wavefrontDenoiser.toStdString());
+  if (m_wavefrontDenoiseRadiusSet)
+    options.raytracer().setDenoiseRadius(m_wavefrontDenoiseRadius);
   if (m_threadsSet) {
     options.raytracer().setMaximumThreads(m_threads);
     options.rasterizer().setMaximumThreads(m_threads);
@@ -2010,6 +2023,13 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     }
     if (m_wavefrontConvergenceRmsDeltaSet)
       wavefront->setConvergenceRadianceDeltaRmsThreshold(m_wavefrontConvergenceRmsDelta);
+    if (m_wavefrontDenoiserSet && m_wavefrontDenoiser == "none") {
+      wavefront->clearDenoiser();
+    } else if (m_wavefrontDenoiserSet && m_wavefrontDenoiser == "box") {
+      wavefront->setDenoiser(std::make_unique<render::BoxDenoiser>(m_wavefrontDenoiseRadius));
+    } else if (m_wavefrontDenoiseRadiusSet) {
+      wavefront->setDenoiser(std::make_unique<render::BoxDenoiser>(m_wavefrontDenoiseRadius));
+    }
     directWavefrontEngine = wavefront;
     engine = wavefront;
   } else {
@@ -2468,6 +2488,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "Wavefront convergence active-sample fraction threshold in 0..1", "fraction"},
      {"wavefront_convergence_rms_delta",
       "Wavefront convergence per-depth RMS radiance delta threshold", "delta"},
+     {"wavefront_denoiser", "Wavefront denoiser (none, box)", "denoiser"},
+     {"wavefront_denoise_radius", "Wavefront box denoiser radius in pixels", "radius"},
      {"render_graph", "Render through the compiled render graph; this is the default"},
      {{"direct_engine", "no_render_graph"},
       "Bypass the render graph and render with the selected engine directly"},
@@ -2856,6 +2878,31 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     }
     m_wavefrontConvergenceRmsDelta = threshold;
     m_wavefrontConvergenceRmsDeltaSet = true;
+  }
+
+  if (parser.isSet("wavefront_denoiser")) {
+    const QString denoiser = parser.value("wavefront_denoiser").trimmed().toLower();
+    const QString normalized = normalizedRasterOption(denoiser);
+    if (normalized != "none" && normalized != "off" && normalized != "disabled" &&
+        normalized != "box" && normalized != "boxfilter") {
+      *errorMessage = "Wavefront denoiser must be 'none' or 'box'";
+      return CommandLineError;
+    }
+    m_wavefrontDenoiser = normalized == "boxfilter" ? QStringLiteral("box") : denoiser;
+    if (normalized == "off" || normalized == "disabled")
+      m_wavefrontDenoiser = QStringLiteral("none");
+    m_wavefrontDenoiserSet = true;
+  }
+
+  if (parser.isSet("wavefront_denoise_radius")) {
+    bool ok = false;
+    const int radius = parser.value("wavefront_denoise_radius").toInt(&ok);
+    if (!ok || radius < 0) {
+      *errorMessage = "Wavefront denoise radius must be a non-negative integer";
+      return CommandLineError;
+    }
+    m_wavefrontDenoiseRadius = radius;
+    m_wavefrontDenoiseRadiusSet = true;
   }
 
   if (parser.isSet("render_graph")) {

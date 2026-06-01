@@ -601,10 +601,13 @@ The first hook is now in place: `render::Denoiser` defines the cloneable
 postprocess interface, `render::BoxDenoiser` provides a tiny deterministic
 spatial filter for tests and early experimentation, and
 `WavefrontRaytracer` can apply an explicitly installed denoiser to the HDR
-buffer before the final display buffer is rewritten. This is intentionally an
-engine hook only; graph pass state, rendercli options, Modeler controls,
-better edge-aware/AOV-aware filters, and true between-depth denoising are still
-open Phase 6 work.
+buffer before the final display buffer is rewritten. The next slice connected
+that hook to graph-visible ray-family pass state: render intent serializes
+`denoise: {type, radius}`, rendercli exposes `--wavefront_denoiser` and
+`--wavefront_denoise_radius`, and Modeler Render Settings exposes the same box
+denoiser controls when the wavefront executor is selected. Better
+edge-aware/AOV-aware filters and true between-depth denoising are still open
+Phase 6 work.
 
 **Goal**: low-sample renders look acceptable.
 **Gate**: 4spp render with denoiser produces image visually comparable

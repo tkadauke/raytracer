@@ -302,7 +302,8 @@ namespace engine::graph {
   bool RenderRaytracerOptions::empty() const {
     return !m_maximumRecursionDepth && !m_maximumThreads && !m_queueSize && !m_integrator &&
            !m_sampler && !m_samplesPerPixel && !m_viewPlane && !m_convergenceEnabled &&
-           !m_convergenceActiveSampleFractionThreshold && !m_convergenceRadianceDeltaRmsThreshold;
+           !m_convergenceActiveSampleFractionThreshold && !m_convergenceRadianceDeltaRmsThreshold &&
+           !m_denoiser && !m_denoiseRadius;
   }
 
   QJsonObject RenderRaytracerOptions::toJson() const {
@@ -336,6 +337,10 @@ namespace engine::graph {
     if (state.convergenceRadianceDeltaRmsThreshold())
       options.setConvergenceRadianceDeltaRmsThreshold(
         *state.convergenceRadianceDeltaRmsThreshold());
+    if (state.denoiser())
+      options.setDenoiser(*state.denoiser());
+    if (state.denoiseRadius())
+      options.setDenoiseRadius(*state.denoiseRadius());
     return options;
   }
 
@@ -359,6 +364,8 @@ namespace engine::graph {
     result.m_convergenceRadianceDeltaRmsThreshold =
       overrideOptional(result.m_convergenceRadianceDeltaRmsThreshold,
                        overrides.m_convergenceRadianceDeltaRmsThreshold);
+    result.m_denoiser = overrideOptional(result.m_denoiser, overrides.m_denoiser);
+    result.m_denoiseRadius = overrideOptional(result.m_denoiseRadius, overrides.m_denoiseRadius);
     return result;
   }
 
@@ -385,6 +392,10 @@ namespace engine::graph {
         *m_convergenceActiveSampleFractionThreshold);
     if (m_convergenceRadianceDeltaRmsThreshold)
       state.setConvergenceRadianceDeltaRmsThreshold(*m_convergenceRadianceDeltaRmsThreshold);
+    if (m_denoiser)
+      state.setDenoiser(*m_denoiser);
+    if (m_denoiseRadius)
+      state.setDenoiseRadius(*m_denoiseRadius);
     return state;
   }
 
@@ -430,6 +441,16 @@ namespace engine::graph {
     m_convergenceRadianceDeltaRmsThreshold = std::max(0.0, threshold);
   }
 
+  void RenderRaytracerOptions::setDenoiser(std::string denoiser) {
+    RaytracerBeautyPassState state;
+    state.setDenoiser(std::move(denoiser));
+    m_denoiser = state.denoiser();
+  }
+
+  void RenderRaytracerOptions::setDenoiseRadius(int radius) {
+    m_denoiseRadius = std::max(0, radius);
+  }
+
   std::optional<int> RenderRaytracerOptions::maximumRecursionDepth() const {
     return m_maximumRecursionDepth;
   }
@@ -468,6 +489,14 @@ namespace engine::graph {
 
   std::optional<double> RenderRaytracerOptions::convergenceRadianceDeltaRmsThreshold() const {
     return m_convergenceRadianceDeltaRmsThreshold;
+  }
+
+  std::optional<std::string> RenderRaytracerOptions::denoiser() const {
+    return m_denoiser;
+  }
+
+  std::optional<int> RenderRaytracerOptions::denoiseRadius() const {
+    return m_denoiseRadius;
   }
 
   bool RenderRasterizerOptions::empty() const {

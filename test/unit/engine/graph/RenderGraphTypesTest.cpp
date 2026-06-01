@@ -155,6 +155,8 @@ namespace RenderGraphTypesTest {
     intent.engineOptions.raytracer().setIntegrator("pathtracer");
     intent.engineOptions.raytracer().setSampler("Jittered");
     intent.engineOptions.raytracer().setSamplesPerPixel(8);
+    intent.engineOptions.raytracer().setDenoiser("box");
+    intent.engineOptions.raytracer().setDenoiseRadius(2);
     intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
     intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::Auto);
     intent.engineOptions.rasterizer().setLod(3);
@@ -194,6 +196,10 @@ namespace RenderGraphTypesTest {
                             .toStdString());
     EXPECT_EQ(
       8, engineOptions["raytracer"].toObject()["sampling"].toObject()["samplesPerPixel"].toInt());
+    EXPECT_EQ(
+      "box",
+      engineOptions["raytracer"].toObject()["denoise"].toObject()["type"].toString().toStdString());
+    EXPECT_EQ(2, engineOptions["raytracer"].toObject()["denoise"].toObject()["radius"].toInt());
     EXPECT_EQ("opengl", engineOptions["rasterizer"]
                           .toObject()["execution"]
                           .toObject()["backend"]
@@ -247,9 +253,13 @@ namespace RenderGraphTypesTest {
     raytracerExecution["integrator"] = "pt";
     QJsonObject raytracerSampling;
     raytracerSampling["samplesPerPixel"] = 12;
+    QJsonObject raytracerDenoise;
+    raytracerDenoise["type"] = "box";
+    raytracerDenoise["radius"] = 5;
     QJsonObject raytracerOptions;
     raytracerOptions["execution"] = raytracerExecution;
     raytracerOptions["sampling"] = raytracerSampling;
+    raytracerOptions["denoise"] = raytracerDenoise;
     QJsonObject rasterSampling;
     rasterSampling["msaaSamples"] = 4;
     QJsonObject rasterExecution;
@@ -293,6 +303,10 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("pathtracer", *intent.engineOptions.raytracer().integrator());
     ASSERT_TRUE(intent.engineOptions.raytracer().samplesPerPixel().has_value());
     EXPECT_EQ(12, *intent.engineOptions.raytracer().samplesPerPixel());
+    ASSERT_TRUE(intent.engineOptions.raytracer().denoiser().has_value());
+    EXPECT_EQ("box", *intent.engineOptions.raytracer().denoiser());
+    ASSERT_TRUE(intent.engineOptions.raytracer().denoiseRadius().has_value());
+    EXPECT_EQ(5, *intent.engineOptions.raytracer().denoiseRadius());
     ASSERT_TRUE(intent.engineOptions.rasterizer().msaaSamples().has_value());
     EXPECT_EQ(4, *intent.engineOptions.rasterizer().msaaSamples());
     ASSERT_TRUE(intent.engineOptions.rasterizer().backend().has_value());
@@ -477,16 +491,23 @@ namespace RenderGraphTypesTest {
   TEST(RenderSubviewIntent, ResolvesInheritedAndIndependentEngineOptions) {
     RenderEngineOptions global;
     global.raytracer().setSamplesPerPixel(8);
+    global.raytracer().setDenoiser("box");
+    global.raytracer().setDenoiseRadius(3);
     global.rasterizer().setMSAASamples(4);
 
     RenderSubviewIntent inherited;
     inherited.name = "reflection_probe";
+    inherited.view.engineOptions.raytracer().setDenoiseRadius(1);
     inherited.view.engineOptions.rasterizer().setMSAASamples(1);
 
     const RenderEngineOptions inheritedOptions = inherited.resolvedEngineOptions(global);
     ASSERT_TRUE(inheritedOptions.raytracer().samplesPerPixel().has_value());
+    ASSERT_TRUE(inheritedOptions.raytracer().denoiser().has_value());
+    ASSERT_TRUE(inheritedOptions.raytracer().denoiseRadius().has_value());
     ASSERT_TRUE(inheritedOptions.rasterizer().msaaSamples().has_value());
     EXPECT_EQ(8, *inheritedOptions.raytracer().samplesPerPixel());
+    EXPECT_EQ("box", *inheritedOptions.raytracer().denoiser());
+    EXPECT_EQ(1, *inheritedOptions.raytracer().denoiseRadius());
     EXPECT_EQ(1, *inheritedOptions.rasterizer().msaaSamples());
 
     RenderSubviewIntent independent = inherited;
@@ -494,6 +515,9 @@ namespace RenderGraphTypesTest {
 
     const RenderEngineOptions independentOptions = independent.resolvedEngineOptions(global);
     EXPECT_FALSE(independentOptions.raytracer().samplesPerPixel().has_value());
+    EXPECT_FALSE(independentOptions.raytracer().denoiser().has_value());
+    ASSERT_TRUE(independentOptions.raytracer().denoiseRadius().has_value());
+    EXPECT_EQ(1, *independentOptions.raytracer().denoiseRadius());
     ASSERT_TRUE(independentOptions.rasterizer().msaaSamples().has_value());
     EXPECT_EQ(1, *independentOptions.rasterizer().msaaSamples());
   }

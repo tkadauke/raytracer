@@ -121,6 +121,7 @@ set(wavefront_indirect_bounce_whitted_render
     "${TEST_OUTPUT_DIR}/wavefront-indirect-bounce-whitted-render.png")
 set(wavefront_pathtracer_plan "${TEST_OUTPUT_DIR}/wavefront-pathtracer-graph.json")
 set(wavefront_convergence_plan "${TEST_OUTPUT_DIR}/wavefront-convergence-graph.json")
+set(wavefront_denoise_plan "${TEST_OUTPUT_DIR}/wavefront-denoise-graph.json")
 set(wavefront_pathtracer_render "${TEST_OUTPUT_DIR}/wavefront-pathtracer-render.png")
 set(wavefront_compatibility_trace "${TEST_OUTPUT_DIR}/wavefront-compatibility-trace.json")
 set(wavefront_compatibility_trace_render
@@ -1738,6 +1739,28 @@ rendercli_assert_image_nonempty("${wavefront_pathtracer_render}"
                                 NAME "wavefront pathtracer graph render pixels")
 
 rendercli_run(
+  NAME "rendercli exports wavefront denoiser state in render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --engine wavefront --wavefront_denoiser box --wavefront_denoise_radius 2
+    --width 32 --height 16 "${static_scene}" "${wavefront_denoise_plan}"
+)
+rendercli_assert_nonempty("${wavefront_denoise_plan}" NAME "wavefront denoise graph output")
+file(READ "${wavefront_denoise_plan}" wavefront_denoise_graph)
+if(NOT wavefront_denoise_graph MATCHES "\"denoise\"")
+  message(FATAL_ERROR
+          "wavefront denoise graph did not contain denoise state: ${wavefront_denoise_graph}")
+endif()
+if(NOT wavefront_denoise_graph MATCHES "\"type\"[ \r\n]*:[ \r\n]*\"box\"")
+  message(FATAL_ERROR
+          "wavefront denoise graph did not contain box denoiser: ${wavefront_denoise_graph}")
+endif()
+if(NOT wavefront_denoise_graph MATCHES "\"radius\"[ \r\n]*:[ \r\n]*2")
+  message(FATAL_ERROR
+          "wavefront denoise graph did not contain denoise radius: ${wavefront_denoise_graph}")
+endif()
+
+rendercli_run(
   NAME "rendercli traces wavefront material compatibility counter"
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --samples_per_pixel 2
@@ -1815,6 +1838,22 @@ rendercli_expect_failure(
   STDERR_MATCHES "Wavefront convergence RMS delta must be"
   COMMAND
     "${RENDERCLI}" --engine wavefront --wavefront_convergence_rms_delta -0.1
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid wavefront denoiser"
+  STDERR_MATCHES "Wavefront denoiser must be"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --wavefront_denoiser bilateral
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid wavefront denoise radius"
+  STDERR_MATCHES "Wavefront denoise radius must be"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --wavefront_denoise_radius -1
     "${static_scene}" "${invalid_plan}"
 )
 

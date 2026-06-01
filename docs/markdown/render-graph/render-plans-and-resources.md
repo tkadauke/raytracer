@@ -633,9 +633,12 @@ convergence stop decisions, tile count, queue decision, and render timing.
 Wavefront also has an opt-in denoiser hook at the engine level:
 `render::Denoiser` instances can filter the HDR beauty buffer before the final
 display buffer is rewritten. The first implementation, `render::BoxDenoiser`,
-is deliberately simple and exists to pin the hook; graph-visible denoising
-state and user-facing render controls are the next step before denoising becomes
-part of compiled render intent.
+is deliberately simple and exists to pin the hook. The resolved ray-family pass
+state can now carry `denoise: {type, radius}` for wavefront passes, where
+`type: "box"` installs the filter and `type: "none"` explicitly disables an
+inherited denoiser. rendercli and Modeler Render Settings expose the same
+controls, so denoising is part of compiled render intent rather than a hidden
+engine toggle.
 The reusable scene
 [`scenes/wavefront_indirect_environment_demo.json`](../../../scenes/wavefront_indirect_environment_demo.json)
 opens with a wavefront path-tracing intent and no direct lights; the matte

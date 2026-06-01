@@ -7,6 +7,8 @@
 #include "render/PathTracingIntegrator.h"
 #include "render/WhittedIntegrator.h"
 #include "render/cameras/Camera.h"
+#include "render/denoise/BoxDenoiser.h"
+#include "render/denoise/Denoiser.h"
 #include "render/samplers/Sampler.h"
 #include "render/samplers/SamplerFactory.h"
 #include "render/viewplanes/ViewPlane.h"
@@ -96,7 +98,8 @@ namespace engine::graph {
 
   RaytracerBeautyPassState RaytracerBeautyPassState::fromJson(const QJsonObject& object,
                                                               const std::string& path) {
-    rejectUnknownFields(object, path, {"execution", "sampling", "viewPlane", "convergence"});
+    rejectUnknownFields(object, path,
+                        {"execution", "sampling", "viewPlane", "convergence", "denoise"});
 
     RaytracerBeautyPassState state;
     const QJsonObject execution = objectField(object, "execution", path);
@@ -136,6 +139,13 @@ namespace engine::graph {
       state.setConvergenceRadianceDeltaRmsThreshold(
         doubleField(convergence, "radianceDeltaRmsThreshold", path + ".convergence"));
     }
+
+    const QJsonObject denoise = objectField(object, "denoise", path);
+    rejectUnknownFields(denoise, path + ".denoise", {"type", "radius"});
+    if (hasField(denoise, "type"))
+      state.setDenoiser(stringField(denoise, "type", path + ".denoise"));
+    if (hasField(denoise, "radius"))
+      state.setDenoiseRadius(intField(denoise, "radius", path + ".denoise"));
 
     return state;
   }
@@ -196,6 +206,17 @@ namespace engine::graph {
     if (!convergence.isEmpty())
       object["convergence"] = convergence;
 
+    QJsonObject denoise;
+    if (m_denoiser) {
+      denoise["type"] = qstr(*m_denoiser);
+    } else if (m_denoiseRadius) {
+      denoise["type"] = QStringLiteral("box");
+    }
+    if (m_denoiseRadius && (!m_denoiser || *m_denoiser != "none"))
+      denoise["radius"] = *m_denoiseRadius;
+    if (!denoise.isEmpty())
+      object["denoise"] = denoise;
+
     return object;
   }
 
@@ -235,6 +256,11 @@ namespace engine::graph {
     }
     if (m_convergenceRadianceDeltaRmsThreshold)
       wavefront.setConvergenceRadianceDeltaRmsThreshold(*m_convergenceRadianceDeltaRmsThreshold);
+    if (m_denoiser && *m_denoiser == "none") {
+      wavefront.clearDenoiser();
+    } else if (auto denoiser = createDenoiserForPass()) {
+      wavefront.setDenoiser(std::move(denoiser));
+    }
 
     auto viewPlane = createViewPlaneForPass(wavefront.camera());
     if (viewPlane && wavefront.camera())
@@ -297,6 +323,14 @@ namespace engine::graph {
     m_convergenceRadianceDeltaRmsThreshold = std::max(0.0, threshold);
   }
 
+  void RaytracerBeautyPassState::setDenoiser(std::string denoiser) {
+    m_denoiser = normalizedDenoiserName(std::move(denoiser), "parameters.denoise.type");
+  }
+
+  void RaytracerBeautyPassState::setDenoiseRadius(int radius) {
+    m_denoiseRadius = std::max(0, radius);
+  }
+
   std::optional<int> RaytracerBeautyPassState::maximumRecursionDepth() const {
     return m_maximumRecursionDepth;
   }
@@ -337,6 +371,14 @@ namespace engine::graph {
     return m_convergenceRadianceDeltaRmsThreshold;
   }
 
+  std::optional<std::string> RaytracerBeautyPassState::denoiser() const {
+    return m_denoiser;
+  }
+
+  std::optional<int> RaytracerBeautyPassState::denoiseRadius() const {
+    return m_denoiseRadius;
+  }
+
   std::string RaytracerBeautyPassState::normalizedIntegratorName(std::string integrator,
                                                                  const std::string& path) {
     std::transform(integrator.begin(), integrator.end(), integrator.begin(),
@@ -349,6 +391,18 @@ namespace engine::graph {
     stateError(path, "expected whitted or pathtracer");
   }
 
+  std::string RaytracerBeautyPassState::normalizedDenoiserName(std::string denoiser,
+                                                               const std::string& path) {
+    std::transform(denoiser.begin(), denoiser.end(), denoiser.begin(),
+                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+    std::replace(denoiser.begin(), denoiser.end(), '-', '_');
+    if (denoiser == "none" || denoiser == "off" || denoiser == "disabled")
+      return "none";
+    if (denoiser == "box" || denoiser == "box_filter")
+      return "box";
+    stateError(path, "expected none or box");
+  }
+
   std::unique_ptr<render::Integrator> RaytracerBeautyPassState::createIntegratorForPass() const {
     if (!m_integrator)
       return nullptr;
@@ -359,6 +413,14 @@ namespace engine::graph {
       return integrator;
     }
     return std::make_unique<render::WhittedIntegrator>();
+  }
+
+  std::unique_ptr<render::Denoiser> RaytracerBeautyPassState::createDenoiserForPass() const {
+    if (m_denoiser && *m_denoiser == "none")
+      return nullptr;
+    if ((m_denoiser && *m_denoiser == "box") || (!m_denoiser && m_denoiseRadius))
+      return std::make_unique<render::BoxDenoiser>(m_denoiseRadius.value_or(1));
+    return nullptr;
   }
 
   std::shared_ptr<render::Sampler> RaytracerBeautyPassState::createSamplerForPass() const {

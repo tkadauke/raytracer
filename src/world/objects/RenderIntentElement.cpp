@@ -45,6 +45,10 @@ bool RenderIntentElement::isPropertyVisible(const QString& propertyName) const {
       return false;
     if (propertyName == QStringLiteral("wavefrontConvergence"))
       return true;
+    if (propertyName == QStringLiteral("wavefrontDenoiser"))
+      return true;
+    if (propertyName == QStringLiteral("wavefrontDenoiseRadius"))
+      return wavefrontDenoiser() == QStringLiteral("box");
     if (propertyName == QStringLiteral("wavefrontConvergenceQuality"))
       return wavefrontConvergence();
     return wavefrontConvergence();
@@ -102,6 +106,10 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
     return QStringLiteral("Active Fraction");
   if (propertyName == QStringLiteral("wavefrontConvergenceRmsDelta"))
     return QStringLiteral("RMS Delta");
+  if (propertyName == QStringLiteral("wavefrontDenoiser"))
+    return QStringLiteral("Denoiser");
+  if (propertyName == QStringLiteral("wavefrontDenoiseRadius"))
+    return QStringLiteral("Denoise Radius");
   if (propertyName == QStringLiteral("rasterizerLod"))
     return QStringLiteral("LOD");
   if (propertyName == QStringLiteral("rasterizerTessellationQuality"))
@@ -168,6 +176,12 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
       "Fraction of primary samples allowed to remain active before convergence can stop.");
   if (propertyName == QStringLiteral("wavefrontConvergenceRmsDelta"))
     return QStringLiteral("Per-depth RMS radiance delta threshold for convergence.");
+  if (propertyName == QStringLiteral("wavefrontDenoiser"))
+    return QStringLiteral(
+      "Optional HDR denoising pass for low-sample wavefront renders. Box is a simple spatial "
+      "filter and mainly useful as the first graph-visible denoising hook.");
+  if (propertyName == QStringLiteral("wavefrontDenoiseRadius"))
+    return QStringLiteral("Box denoiser radius in pixels.");
   return Element::propertyDescription(propertyName);
 }
 
@@ -220,6 +234,8 @@ QStringList RenderIntentElement::propertyChoices(const QString& propertyName) co
   if (propertyName == QStringLiteral("wavefrontConvergenceQuality"))
     return {QStringLiteral("off"), QStringLiteral("preview"), QStringLiteral("balanced"),
             QStringLiteral("final"), QStringLiteral("custom")};
+  if (propertyName == QStringLiteral("wavefrontDenoiser"))
+    return {QStringLiteral("none"), QStringLiteral("box")};
   if (propertyName == QStringLiteral("rasterizerBackend"))
     return {QStringLiteral("cpu"), QStringLiteral("opengl")};
   if (propertyName == QStringLiteral("rasterizerVisibilityCulling"))
@@ -259,6 +275,8 @@ RenderIntentElement::propertyIntRange(const QString& propertyName) const {
     return QPair<int, int>(1, 4);
   if (propertyName == QStringLiteral("rasterizerShadowFilterRadius"))
     return QPair<int, int>(0, 16);
+  if (propertyName == QStringLiteral("wavefrontDenoiseRadius"))
+    return QPair<int, int>(0, 32);
   return std::nullopt;
 }
 
@@ -298,6 +316,12 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
       return QStringLiteral("Final");
     if (choice == QStringLiteral("custom"))
       return QStringLiteral("Custom");
+  }
+  if (propertyName == QStringLiteral("wavefrontDenoiser")) {
+    if (choice == QStringLiteral("none"))
+      return QStringLiteral("None");
+    if (choice == QStringLiteral("box"))
+      return QStringLiteral("Box");
   }
   if (propertyName == QStringLiteral("viewMode")) {
     if (choice == QStringLiteral("object_id"))
@@ -359,7 +383,8 @@ bool RenderIntentElement::rebuildPropertyEditorAfterChange(const QString& proper
   return propertyName == QStringLiteral("defaultEngine") ||
          propertyName == QStringLiteral("previewShadows") ||
          propertyName == QStringLiteral("wavefrontConvergence") ||
-         propertyName == QStringLiteral("wavefrontConvergenceQuality");
+         propertyName == QStringLiteral("wavefrontConvergenceQuality") ||
+         propertyName == QStringLiteral("wavefrontDenoiser");
 }
 
 bool RenderIntentElement::saveIntent() const {
@@ -600,6 +625,31 @@ double RenderIntentElement::wavefrontConvergenceRmsDelta() const {
 void RenderIntentElement::setWavefrontConvergenceRmsDelta(double threshold) {
   auto value = intent();
   value.engineOptions.raytracer().setConvergenceRadianceDeltaRmsThreshold(threshold);
+  setIntent(value);
+}
+
+QString RenderIntentElement::wavefrontDenoiser() const {
+  const auto options = intent().engineOptions.raytracer();
+  if (options.denoiser())
+    return toQString(*options.denoiser());
+  if (options.denoiseRadius())
+    return QStringLiteral("box");
+  return QStringLiteral("none");
+}
+
+void RenderIntentElement::setWavefrontDenoiser(const QString& denoiser) {
+  auto value = intent();
+  value.engineOptions.raytracer().setDenoiser(normalizedText(denoiser).toStdString());
+  setIntent(value);
+}
+
+int RenderIntentElement::wavefrontDenoiseRadius() const {
+  return intent().engineOptions.raytracer().denoiseRadius().value_or(1);
+}
+
+void RenderIntentElement::setWavefrontDenoiseRadius(int radius) {
+  auto value = intent();
+  value.engineOptions.raytracer().setDenoiseRadius(radius);
   setIntent(value);
 }
 

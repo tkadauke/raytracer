@@ -19,6 +19,7 @@ namespace engine::wavefront {
 
 namespace render {
   class Camera;
+  class Denoiser;
   class Integrator;
   class Sampler;
   class ViewPlane;
@@ -60,6 +61,8 @@ namespace engine::graph {
     void setConvergenceEnabled(bool enabled);
     void setConvergenceActiveSampleFractionThreshold(double fraction);
     void setConvergenceRadianceDeltaRmsThreshold(double threshold);
+    void setDenoiser(std::string denoiser);
+    void setDenoiseRadius(int radius);
 
     std::optional<int> maximumRecursionDepth() const;
     std::optional<int> maximumThreads() const;
@@ -71,10 +74,14 @@ namespace engine::graph {
     std::optional<bool> convergenceEnabled() const;
     std::optional<double> convergenceActiveSampleFractionThreshold() const;
     std::optional<double> convergenceRadianceDeltaRmsThreshold() const;
+    std::optional<std::string> denoiser() const;
+    std::optional<int> denoiseRadius() const;
 
   private:
     static std::string normalizedIntegratorName(std::string integrator, const std::string& path);
+    static std::string normalizedDenoiserName(std::string denoiser, const std::string& path);
     [[nodiscard]] std::unique_ptr<render::Integrator> createIntegratorForPass() const;
+    [[nodiscard]] std::unique_ptr<render::Denoiser> createDenoiserForPass() const;
     std::shared_ptr<render::Sampler> createSamplerForPass() const;
     std::shared_ptr<render::ViewPlane>
     createViewPlaneForPass(const std::shared_ptr<render::Camera>& camera) const;
@@ -89,5 +96,7 @@ namespace engine::graph {
     std::optional<bool> m_convergenceEnabled;
     std::optional<double> m_convergenceActiveSampleFractionThreshold;
     std::optional<double> m_convergenceRadianceDeltaRmsThreshold;
+    std::optional<std::string> m_denoiser;
+    std::optional<int> m_denoiseRadius;
   };
 }

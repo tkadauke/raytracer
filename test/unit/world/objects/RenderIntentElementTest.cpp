@@ -50,6 +50,8 @@ namespace RenderIntentElementTest {
     intent->setWavefrontConvergence(true);
     intent->setWavefrontConvergenceActiveFraction(0.25);
     intent->setWavefrontConvergenceRmsDelta(0.005);
+    intent->setWavefrontDenoiser("box");
+    intent->setWavefrontDenoiseRadius(3);
     intent->setWireframeLod(2);
 
     ASSERT_TRUE(scene.hasRenderIntent());
@@ -99,6 +101,10 @@ namespace RenderIntentElementTest {
     EXPECT_DOUBLE_EQ(
       0.005,
       *scene.renderIntent().engineOptions.raytracer().convergenceRadianceDeltaRmsThreshold());
+    ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().denoiser().has_value());
+    EXPECT_EQ("box", *scene.renderIntent().engineOptions.raytracer().denoiser());
+    ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().denoiseRadius().has_value());
+    EXPECT_EQ(3, *scene.renderIntent().engineOptions.raytracer().denoiseRadius());
     ASSERT_TRUE(scene.renderIntent().engineOptions.wireframe().lod().has_value());
     EXPECT_EQ(2, *scene.renderIntent().engineOptions.wireframe().lod());
   }
@@ -132,6 +138,7 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->propertyChoices("raytracerIntegrator").contains("pathtracer"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontConvergenceQuality").contains("balanced"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontConvergenceQuality").contains("custom"));
+    EXPECT_TRUE(intent->propertyChoices("wavefrontDenoiser").contains("box"));
     EXPECT_FALSE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
     intent->setDefaultEngine("rasterizer");
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
@@ -149,12 +156,14 @@ namespace RenderIntentElementTest {
     EXPECT_EQ(QString("Convergence Stop"), intent->propertyDisplayName("wavefrontConvergence"));
     EXPECT_EQ(QString("Convergence Quality"),
               intent->propertyDisplayName("wavefrontConvergenceQuality"));
+    EXPECT_EQ(QString("Denoiser"), intent->propertyDisplayName("wavefrontDenoiser"));
     EXPECT_EQ(QString("Path Tracer"),
               intent->propertyChoiceDisplayName("raytracerIntegrator", "pathtracer"));
     EXPECT_EQ(QString("Wavefront"),
               intent->propertyChoiceDisplayName("defaultEngine", "wavefront"));
     EXPECT_EQ(QString("Balanced"),
               intent->propertyChoiceDisplayName("wavefrontConvergenceQuality", "balanced"));
+    EXPECT_EQ(QString("Box"), intent->propertyChoiceDisplayName("wavefrontDenoiser", "box"));
     EXPECT_EQ(QString("Final"),
               intent->propertyChoiceDisplayName("rasterizerTessellationQuality", "final"));
     EXPECT_EQ(QString("Auto"),
@@ -181,6 +190,8 @@ namespace RenderIntentElementTest {
                      intent->propertyDoubleRange("wavefrontConvergenceActiveFraction")->second);
     ASSERT_TRUE(intent->propertyDoubleRange("wavefrontConvergenceRmsDelta").has_value());
     EXPECT_DOUBLE_EQ(0.0, intent->propertyDoubleRange("wavefrontConvergenceRmsDelta")->first);
+    ASSERT_TRUE(intent->propertyIntRange("wavefrontDenoiseRadius").has_value());
+    EXPECT_EQ(0, intent->propertyIntRange("wavefrontDenoiseRadius")->first);
   }
 
   TEST(RenderIntentElement, FiltersEngineSpecificProperties) {
@@ -209,9 +220,13 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
     EXPECT_TRUE(intent->isPropertyVisible("raytracerIntegrator"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergence"));
+    EXPECT_TRUE(intent->isPropertyVisible("wavefrontDenoiser"));
+    EXPECT_FALSE(intent->isPropertyVisible("wavefrontDenoiseRadius"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontConvergenceQuality"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontConvergenceRmsDelta"));
     EXPECT_FALSE(intent->isPropertyVisible("rasterizerLod"));
+    intent->setWavefrontDenoiser("box");
+    EXPECT_TRUE(intent->isPropertyVisible("wavefrontDenoiseRadius"));
     intent->setWavefrontConvergence(true);
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergenceQuality"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergenceRmsDelta"));

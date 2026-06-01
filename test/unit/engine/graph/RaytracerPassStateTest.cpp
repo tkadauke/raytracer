@@ -3,9 +3,11 @@
 #include "engine/graph/RaytracerPassState.h"
 #include "engine/graph/RenderPlan.h"
 #include "engine/raytracer/Raytracer.h"
+#include "engine/wavefront/WavefrontRaytracer.h"
 #include "render/PathTracingIntegrator.h"
 #include "render/WhittedIntegrator.h"
 #include "render/cameras/Camera.h"
+#include "render/denoise/BoxDenoiser.h"
 #include "render/samplers/JitteredSampler.h"
 #include "render/viewplanes/TiledViewPlane.h"
 
@@ -26,6 +28,8 @@ namespace RaytracerPassStateTest {
     state.setConvergenceEnabled(true);
     state.setConvergenceActiveSampleFractionThreshold(0.125);
     state.setConvergenceRadianceDeltaRmsThreshold(0.0025);
+    state.setDenoiser("box");
+    state.setDenoiseRadius(3);
 
     const QJsonObject json = state.toJson();
 
@@ -45,6 +49,8 @@ namespace RaytracerPassStateTest {
       json.value("convergence").toObject().value("activeSampleFractionThreshold").toDouble());
     EXPECT_DOUBLE_EQ(
       0.0025, json.value("convergence").toObject().value("radianceDeltaRmsThreshold").toDouble());
+    EXPECT_EQ("box", json.value("denoise").toObject().value("type").toString().toStdString());
+    EXPECT_EQ(3, json.value("denoise").toObject().value("radius").toInt());
 
     const RaytracerBeautyPassState decoded = RaytracerBeautyPassState::fromJson(json);
     ASSERT_TRUE(decoded.maximumRecursionDepth().has_value());
@@ -57,6 +63,8 @@ namespace RaytracerPassStateTest {
     ASSERT_TRUE(decoded.convergenceEnabled().has_value());
     ASSERT_TRUE(decoded.convergenceActiveSampleFractionThreshold().has_value());
     ASSERT_TRUE(decoded.convergenceRadianceDeltaRmsThreshold().has_value());
+    ASSERT_TRUE(decoded.denoiser().has_value());
+    ASSERT_TRUE(decoded.denoiseRadius().has_value());
     EXPECT_EQ(7, *decoded.maximumRecursionDepth());
     EXPECT_EQ(3, *decoded.maximumThreads());
     EXPECT_EQ(11, *decoded.queueSize());
@@ -67,6 +75,8 @@ namespace RaytracerPassStateTest {
     EXPECT_TRUE(*decoded.convergenceEnabled());
     EXPECT_DOUBLE_EQ(0.125, *decoded.convergenceActiveSampleFractionThreshold());
     EXPECT_DOUBLE_EQ(0.0025, *decoded.convergenceRadianceDeltaRmsThreshold());
+    EXPECT_EQ("box", *decoded.denoiser());
+    EXPECT_EQ(3, *decoded.denoiseRadius());
   }
 
   TEST(RaytracerBeautyPassState, AppliesPathTracingIntegratorToRaytracer) {
@@ -102,6 +112,25 @@ namespace RaytracerPassStateTest {
     EXPECT_NE(nullptr, dynamic_cast<render::JitteredSampler*>(
                          raytracer.camera()->viewPlane()->sampler().get()));
     EXPECT_EQ(9, raytracer.camera()->viewPlane()->sampler()->numSamples());
+  }
+
+  TEST(RaytracerBeautyPassState, AppliesDenoiserToWavefront) {
+    RaytracerBeautyPassState state;
+    state.setDenoiser("box");
+    state.setDenoiseRadius(4);
+
+    engine::wavefront::WavefrontRaytracer wavefront{std::shared_ptr<render::Scene>()};
+
+    state.applyTo(wavefront);
+
+    const auto* box = dynamic_cast<const render::BoxDenoiser*>(wavefront.denoiser());
+    ASSERT_NE(nullptr, box);
+    EXPECT_EQ(4, box->radius());
+
+    state.setDenoiser("none");
+    state.applyTo(wavefront);
+
+    EXPECT_EQ(nullptr, wavefront.denoiser());
   }
 
   TEST(RaytracerBeautyPassState, WritesOnlyToRayFamilyBeautyPasses) {

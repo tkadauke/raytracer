@@ -25,6 +25,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront denoiser hook.** Added a reusable `render::Denoiser` interface,
   a simple box denoiser implementation, and an opt-in WavefrontRaytracer hook
   that filters the HDR result before final display conversion. — GPT-5
+- **Wavefront denoiser controls.** Render intent, graph pass state, rendercli,
+  and Modeler Render Settings can now request the wavefront box denoiser and
+  choose its pixel radius. — GPT-5
 
 ### Changed
 

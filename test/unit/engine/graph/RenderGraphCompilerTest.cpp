@@ -91,6 +91,8 @@ namespace RenderGraphCompilerTest {
     intent.engineOptions.raytracer().setIntegrator("pathtracer");
     intent.engineOptions.raytracer().setConvergenceEnabled(true);
     intent.engineOptions.raytracer().setConvergenceActiveSampleFractionThreshold(0.25);
+    intent.engineOptions.raytracer().setDenoiser("box");
+    intent.engineOptions.raytracer().setDenoiseRadius(2);
 
     const RenderPlan plan = compiler.compile({64, 64, 4}, intent);
 
@@ -108,6 +110,10 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(*state->convergenceEnabled());
     ASSERT_TRUE(state->convergenceActiveSampleFractionThreshold().has_value());
     EXPECT_DOUBLE_EQ(0.25, *state->convergenceActiveSampleFractionThreshold());
+    ASSERT_TRUE(state->denoiser().has_value());
+    EXPECT_EQ("box", *state->denoiser());
+    ASSERT_TRUE(state->denoiseRadius().has_value());
+    EXPECT_EQ(2, *state->denoiseRadius());
     EXPECT_EQ("tonemap", plan.passes()[1].id);
     EXPECT_TRUE(plan.validate().valid());
   }
