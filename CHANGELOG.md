@@ -14,6 +14,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront ray executor surface.** Added an initial `WavefrontRaytracer`
   render engine plus graph/rendercli/Modeler render-settings selection so the
   ray-family scheduler can be exercised beside the recursive raytracer. — GPT-5
+- **Wavefront indirect-lighting demo scene.** Added
+  `scenes/wavefront_indirect_environment_demo.json`, a graph-backed wavefront
+  path-tracing scene with no direct lights so diffuse environment lighting is
+  visible in rendercli and Modeler. — GPT-5
 
 ### Changed
 

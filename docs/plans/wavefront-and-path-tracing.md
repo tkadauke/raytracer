@@ -536,6 +536,11 @@ the Wavefront engine writes those snapshots into its current tile buffers so
 Modeler can show progress during a graph-backed Wavefront pass. Remaining work
 is to decide how far Whitted compatibility should go before recursive legacy
 materials are ported to explicit scattering.
+`scenes/wavefront_indirect_environment_demo.json` is the first reusable Phase 5
+sanity scene: it has a wavefront/pathtracer render intent, black ambient, no
+direct lights, and a matte object that is visible only because diffuse BSDF
+sampling gathers environment radiance. rendercli now compares that scene
+against a Whitted override and requires the images to differ.
 
 Start with pure single-continuation path tracing (Option **B**) unless a
 measured scene proves deterministic specular split (Option **C**) is needed for

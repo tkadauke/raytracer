@@ -15,6 +15,8 @@ set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(graph_demo_scene "${PROJECT_SOURCE_DIR}/scenes/render_graph_aov_demo.json")
 set(stencil_composite_demo_scene
     "${PROJECT_SOURCE_DIR}/scenes/render_graph_stencil_composite_demo.json")
+set(wavefront_indirect_scene
+    "${PROJECT_SOURCE_DIR}/scenes/wavefront_indirect_environment_demo.json")
 set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
 set(camera_override_runtime_scene "${TEST_OUTPUT_DIR}/camera-override-runtime-scene.json")
 set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
@@ -89,6 +91,9 @@ set(wavefront_render "${TEST_OUTPUT_DIR}/wavefront-render.png")
 set(wavefront_parity_raytracer_render
     "${TEST_OUTPUT_DIR}/wavefront-parity-raytracer-render.png")
 set(wavefront_parity_render "${TEST_OUTPUT_DIR}/wavefront-parity-render.png")
+set(wavefront_indirect_render "${TEST_OUTPUT_DIR}/wavefront-indirect-render.png")
+set(wavefront_indirect_whitted_render
+    "${TEST_OUTPUT_DIR}/wavefront-indirect-whitted-render.png")
 set(wavefront_pathtracer_plan "${TEST_OUTPUT_DIR}/wavefront-pathtracer-graph.json")
 set(wavefront_convergence_plan "${TEST_OUTPUT_DIR}/wavefront-convergence-graph.json")
 set(wavefront_pathtracer_render "${TEST_OUTPUT_DIR}/wavefront-pathtracer-render.png")
@@ -1377,6 +1382,24 @@ rendercli_run(
 rendercli_assert_image_hash_equals("${wavefront_parity_raytracer_render}"
                                    "${wavefront_parity_render}"
                                    NAME "wavefront graph matches recursive raytracer graph")
+
+rendercli_run(
+  NAME "rendercli renders wavefront indirect environment scene from intent"
+  COMMAND
+    "${RENDERCLI}" --width 32 --height 32
+    "${wavefront_indirect_scene}" "${wavefront_indirect_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_indirect_render}"
+                                NAME "wavefront indirect environment render pixels")
+rendercli_run(
+  NAME "rendercli renders Whitted comparison for indirect environment scene"
+  COMMAND
+    "${RENDERCLI}" --engine raytracer --integrator whitted --width 32 --height 32
+    "${wavefront_indirect_scene}" "${wavefront_indirect_whitted_render}"
+)
+rendercli_assert_image_hash_differs("${wavefront_indirect_whitted_render}"
+                                    "${wavefront_indirect_render}"
+                                    NAME "wavefront path tracing shows indirect environment light")
 
 rendercli_run(
   NAME "rendercli exports wavefront pathtracer state in render graph"

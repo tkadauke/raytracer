@@ -354,7 +354,8 @@ data. The current checked-in scenes cover camera demos, depth of field,
 animation frame evaluation, camera panning, light sweeps, material fades,
 motion-blur velocity sweeps, visibility-step timelines, transparent materials,
 reflections, raster material previews, render-graph AOV and stencil-composite
-demos, and small geometry fixtures used by tests.
+demos, a wavefront path-tracing environment-lighting demo, and small geometry
+fixtures used by tests.
 
 [`scenes/render_graph_aov_demo.json`](../../../scenes/render_graph_aov_demo.json)
 is a focused Modeler graph-inspection scene. Its saved render intent asks for a
@@ -366,6 +367,10 @@ opens with the rasterizer preview and Stencil Composite view selected from its
 saved render intent. The compiler synthesizes raster beauty, wireframe beauty,
 stencil AOV, composite, tonemap, and exported stencil-preview nodes; the scene
 does not name those nodes directly.
+[`scenes/wavefront_indirect_environment_demo.json`](../../../scenes/wavefront_indirect_environment_demo.json)
+opens with wavefront path tracing selected in render intent. It contains no
+direct lights, so it is a compact sanity scene for environment/indirect
+lighting through the graph path.
 When a scene's render intent is ahead of the current compiler, Modeler reports
 the graph compile error in the Render Graph dock and pauses the live preview
 instead of drawing from a stale plan.

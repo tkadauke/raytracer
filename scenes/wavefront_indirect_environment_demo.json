@@ -1,0 +1,67 @@
+{
+  "id": "{68000000-0000-0000-0000-000000000000}",
+  "name": "Wavefront Indirect Environment Demo",
+  "ambient": [0.0, 0.0, 0.0],
+  "background": [0.86, 0.91, 1.0],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "wavefront",
+    "defaultViewMode": "beauty",
+    "defaultCamera": {
+      "sceneCameraId": "{68000000-0000-0000-0000-000000000001}"
+    },
+    "engineOptions": {
+      "raytracer": {
+        "execution": {
+          "integrator": "pathtracer",
+          "maxRecursionDepth": 3
+        },
+        "sampling": {
+          "sampler": "Regular",
+          "samplesPerPixel": 16
+        }
+      }
+    }
+  },
+  "children": [
+    {
+      "id": "{68000000-0000-0000-0000-000000000001}",
+      "name": "Camera",
+      "position": [0.0, 0.0, -3.25],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 2.15,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{68000000-0000-0000-0000-000000000010}",
+      "name": "Warm Diffuse",
+      "color": [0.95, 0.70, 0.42],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{68000000-0000-0000-0000-000000000020}",
+      "name": "Diffuse Path Material",
+      "diffuseTexture": "{68000000-0000-0000-0000-000000000010}",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{68000000-0000-0000-0000-000000000030}",
+      "name": "Environment Lit Sphere",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{68000000-0000-0000-0000-000000000020}",
+      "radius": 1.0,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    }
+  ]
+}
