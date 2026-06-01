@@ -13,6 +13,7 @@ samples="${WAVEFRONT_CONVERGENCE_SAMPLES:-8}"
 active_fraction="${WAVEFRONT_CONVERGENCE_ACTIVE_FRACTION:-0.05}"
 rms_delta="${WAVEFRONT_CONVERGENCE_RMS_DELTA:-0.002}"
 bvh_grid="${WAVEFRONT_CONVERGENCE_BVH_GRID:-9}"
+queue_size="${WAVEFRONT_CONVERGENCE_QUEUE_SIZE:-}"
 
 usage() {
   cat <<'USAGE'
@@ -36,6 +37,7 @@ Environment:
   WAVEFRONT_CONVERGENCE_ACTIVE_FRACTION convergence active-fraction threshold
   WAVEFRONT_CONVERGENCE_RMS_DELTA      convergence RMS-delta threshold
   WAVEFRONT_CONVERGENCE_BVH_GRID       generated sphere grid width/height
+  WAVEFRONT_CONVERGENCE_QUEUE_SIZE     optional rendercli --queue_size for every variant
 
 The capture writes images, stdout timing summaries, wavefront metrics JSON, and
 image-probe comparisons under the output directory. Use it to tune Phase 4
@@ -158,6 +160,9 @@ run_variant() {
     --repeat "${repeat}"
     --timing
   )
+  if [[ -n "${queue_size}" ]]; then
+    args+=(--queue_size "${queue_size}")
+  fi
 
   args+=("$@")
 

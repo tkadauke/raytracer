@@ -539,7 +539,9 @@ depths so tuning captures can distinguish "most tiles stopped immediately" from
 capture loop: it generates a BVH-heavy Whitted scene, compares
 recursive and wavefront variants, captures the reflection-heavy Whitted scene
 with real secondary-ray queues, captures wavefront metrics, and also compares
-path-tracing convergence against the non-converged indirect-bounce scene.
+path-tracing convergence against the non-converged indirect-bounce scene. The
+script accepts `WAVEFRONT_CONVERGENCE_QUEUE_SIZE` so convergence captures can
+pin tile count while tuning thresholds and scheduler defaults.
 Remaining work is to run that capture across representative dimensions and tune
 defaults from the measured timing/quality data. A first capture showed that a
 single-depth diffuse Whitted scene is not a useful convergence-speedup proof:

@@ -61,6 +61,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   reflection-heavy Whitted, and indirect-bounce path-tracing macro captures
   with timing, metrics, and image-delta reports for convergence default
   tuning. — GPT-5
+- **Wavefront convergence queue-size capture.** The convergence capture script
+  now accepts `WAVEFRONT_CONVERGENCE_QUEUE_SIZE` so tile-count effects can be
+  measured without hand-editing rendercli invocations. — GPT-5
 
 ### Changed
 
