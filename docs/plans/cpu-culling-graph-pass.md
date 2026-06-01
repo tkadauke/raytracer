@@ -4,12 +4,18 @@
 > visibility sets before raster execution, reducing unnecessary raster work
 > without changing final image semantics.
 >
-> **Status:** Phase 0 baseline started. This plan is independent of the OpenGL GPU rasterizer.
-> The visibility resource should be consumable by CPU raster first and later by
-> GPU raster, but neither backend should depend on the other.
+> **Status:** partially complete. Phase 0 visibility resources, Phase 1
+> frustum culling, Phase 2 front-to-back ordering, the conservative Phase 3
+> backface path, Phase 4 tile diagnostics, and Phase 5 graph artifact caching
+> have landed. Remaining work is explicit tile-occlusion rejection,
+> importer/source-provenance reliability in the visibility cache, full
+> invalidation rules, and auto-insertion thresholds. This plan is independent
+> of the OpenGL GPU rasterizer. The visibility resource is consumable by CPU
+> raster and OpenGL mesh preparation, but neither backend depends on the other.
 >
-> **Related plans:** `docs/plans/rasterizer-performance.md` tracks raster
-> performance diagnostics and optimization phases. `docs/plans/render-graph.md`
+> **Related plans:** `docs/plans/complete/rasterizer-performance.md` archives
+> the raster performance diagnostics and optimization phases.
+> `docs/plans/render-graph.md`
 > owns pass/resource inspection. `docs/plans/complete/opengl-gpu-rasterizer.md` tracks a
 > separate GPU executor.
 

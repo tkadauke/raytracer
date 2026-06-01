@@ -5,15 +5,14 @@
 > roadmap §4.7 and connects it to the existing velocity-only motion-blur model
 > in chapter 16.
 >
-> **Status:** Phase 1 shared timeline math is implemented under
-> `include/core/animation/`, with reusable interpolation policies under
-> `include/core/math/interpolation/`. Phase 2 world-scene JSON loading,
-> saving, and frame evaluation is implemented under `include/world/animation/`
-> and `Scene`'s top-level `animation` block handling. Phase 3 `rendercli
-> --frame` single-frame evaluation and Phase 4 `rendercli --animation`
-> image-sequence output are implemented. Phase 5 Modeler read-only
-> timeline awareness is implemented. Update this file as API shape, JSON
-> format, or implementation order changes.
+> **Status:** partially complete. Phase 1 shared timeline math is implemented
+> under `include/core/animation/`, with reusable interpolation policies under
+> `include/core/math/interpolation/`. Phase 2 world-scene JSON loading, saving,
+> and frame evaluation is implemented under `include/world/animation/` and
+> `Scene`'s top-level `animation` block handling. Phase 3 `rendercli --frame`,
+> Phase 4 `rendercli --animation`, and Phase 5 Modeler read-only timeline
+> awareness are implemented. Phase 6 render-side track compilation and
+> shutter-time sampling from arbitrary keyframed properties remain open.
 
 ---
 

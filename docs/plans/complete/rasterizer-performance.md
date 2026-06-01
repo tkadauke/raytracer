@@ -4,9 +4,10 @@
 > LEGO/LDraw models, without reducing the value of the rasterizer as an
 > inspectable teaching implementation.
 >
-> **Status:** living plan. The first implementation slice is diagnostic, not an
-> optimization. Every later change should be measured against the same counters
-> and representative scenes.
+> **Status:** complete. The diagnostic baseline, importer/culling correctness
+> pass, screen-space LOD, front-to-back/coarse occlusion shortcuts, adaptive
+> scheduling, and optional depth prepass have all landed with metrics,
+> rendercli/Modeler surfaces, and benchmark notes.
 >
 > **Related plans:** `docs/plans/render-graph.md` owns graph-visible AOVs and
 > trace inspection. `docs/plans/complete/rasterizer-v2.md` archives the

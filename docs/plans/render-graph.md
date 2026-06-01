@@ -4,10 +4,13 @@
 > CPU renderers in one frame, expose the graph for teaching/debugging, and keep
 > the design open to future GPU-backed resources and executors.
 >
-> **Status:** living design proposal. This plan captures the intended shape
-> before implementation issues are filed. The first implementation should stay
-> CPU-only, but the resource and pass contracts must not assume CPU buffers are
-> the only possible storage.
+> **Status:** active and partially implemented. The first graph foundation,
+> whole-frame beauty execution, graph inspection/export, trace capture,
+> graph-backed raster shadows, AOV views, readback nodes, and several
+> composite/history-adjacent slices have landed. Remaining major work includes
+> scene-feature expansion, render-to-texture material consumption, portal and
+> mirror synthesis, selector-derived routing, concrete GPU-resident resources,
+> motion-vector/history resources, and parallel graph scheduling.
 >
 > **Roadmap link:** implements the architecture sketched in
 > `docs/roadmap.md` section 4.1.a, "Render-pass graph and hybrid execution."

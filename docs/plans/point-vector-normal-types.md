@@ -13,7 +13,9 @@
 > to `complete/core-math-optimization.md`. Captured 2026-05-10 from the
 > conversation that motivated the idea; design refined 2026-05-11.
 >
-> **Status:** Living document — design proposal, not yet committed.
+> **Status:** Living document — design proposal, not yet committed. The current
+> codebase still uses `Vector3<T>` / `Matrix4<T>` directly; no committed
+> `Point3`, `Direction3`, or `Normal3` type split exists yet.
 > Most open questions from the original draft are resolved (see
 > [Resolved design decisions](#resolved-design-decisions) below); the
 > few remaining are tagged as such.

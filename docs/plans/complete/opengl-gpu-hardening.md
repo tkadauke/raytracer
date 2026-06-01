@@ -5,11 +5,10 @@
 > sound foundation, AND remove the Qt-OpenGL dependency from the engine
 > library so `rendercli` stops dragging in `QGuiApplication`.
 >
-> **Status:** planning. The OpenGL backend works end-to-end and ships in
-> rendercli/Modeler today; this plan covers technical-debt cleanup,
-> robustness fixes, and the Qt → native-GL migration that the open
-> questions in `opengl-gpu-rasterizer.md` and `opengl-gpu-residency.md`
-> have been waiting on.
+> **Status:** complete and archived. The OpenGL backend cleanup, robustness
+> fixes, and Qt-OpenGL decoupling work landed; remaining multi-pass GPU
+> resource lifetime work is tracked in
+> `docs/plans/opengl-gpu-residency.md`.
 >
 > **Related plans:** `docs/plans/complete/opengl-gpu-rasterizer.md` (pipeline),
 > `docs/plans/opengl-gpu-residency.md` (resource lifetime),

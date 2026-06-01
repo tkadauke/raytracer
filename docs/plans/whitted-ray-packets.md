@@ -11,8 +11,8 @@
 > entry gate for everything past Phase 1.
 >
 > **Related plans:**
-> `docs/plans/arm-simd.md` (the substrate — Float4/Mask4/Ray4 backends,
-> all phases done). `docs/plans/rasterizer-performance.md` (different
+> `docs/plans/complete/arm-simd.md` (the substrate — Float4/Mask4/Ray4 backends,
+> all phases done). `docs/plans/complete/rasterizer-performance.md` (different
 > code path entirely — that one targets the OpenGL/CPU rasterizer; this
 > one targets the path-tracer-style integrator).
 

@@ -6,12 +6,12 @@
 > tightens it to the point where a graph-driven render produces a CPU-faithful
 > image at a cost that is at least competitive with the software path.
 >
-> **Status:** planning. Builds on `docs/plans/opengl-gpu-rasterizer.md`. The
-> phase boundaries here are commit boundaries — each phase is one self-contained
-> change that builds, ships a test where applicable, and updates the changelog.
+> **Status:** complete and archived. The correctness, parity, cache, and
+> pipeline-cost hardening phases landed on top of the OpenGL graph raster
+> backend.
 >
-> **Related plans:** `docs/plans/opengl-gpu-rasterizer.md` owns backend scope
-> and graph integration. `docs/plans/rasterizer-performance.md` tracks raster
+> **Related plans:** `docs/plans/complete/opengl-gpu-rasterizer.md` owns backend scope
+> and graph integration. `docs/plans/complete/rasterizer-performance.md` tracks raster
 > performance diagnostics. `docs/plans/cpu-culling-graph-pass.md` is unrelated
 > and proceeds independently.
 >

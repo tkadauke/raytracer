@@ -4,9 +4,9 @@
 > `docs/roadmap.md`. This is a working plan, not a commitment; update it when
 > measurements or implementation details change the order.
 >
-> **Status:** Living document. Completed items should be marked here, reflected
-> in `docs/roadmap.md` where needed, and measured in `CHANGELOG.md` when they
-> affect performance.
+> **Status:** complete and archived. The initial software rasterizer execution
+> plan landed; follow-up feature and performance work now lives in more focused
+> archived or active plans.
 
 ---
 
