@@ -1,7 +1,9 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "render/State.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/primitives/Instance.h"
+#include "render/primitives/Sphere.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace InstanceTest {
@@ -164,5 +166,50 @@ namespace InstanceTest {
 
     // Ray should pass through identity-transformed: still at (5,0,0).
     ASSERT_NEAR(5.0, capturedRay.origin().x(), 1e-9);
+  }
+
+  TEST(Instance, ShouldMaterializeRay4PacketHitsThroughStaticTransform) {
+    auto primitive = std::make_shared<Sphere>(Vector3d(), 1);
+    Instance instance(primitive);
+    instance.setMatrix(Matrix4d::translate(10.0, 0.0, 0.0));
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(10, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(10, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(10, 0, 0), Vector3d(0, 0, 1)), Rayd(Vector3d(12, 0, -2), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = instance.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(primitive.get(), result.primitive(0));
+    EXPECT_EQ(Vector3d(10, 0, -1), result.hitPoint(0).point());
+    EXPECT_EQ(Vector3d(0, 0, -1), result.hitPoint(0).normal());
+    EXPECT_EQ(1, result.hitPoint(0).distance());
+    EXPECT_FALSE(result.hit(1));
+    ASSERT_TRUE(result.hit(2));
+    EXPECT_EQ(primitive.get(), result.primitive(2));
+    EXPECT_EQ(Vector3d(10, 0, 1), result.hitPoint(2).point());
+    EXPECT_EQ(Vector3d(0, 0, 1), result.hitPoint(2).normal());
+    EXPECT_FALSE(result.hit(3));
+  }
+
+  TEST(Instance, ShouldUseInstanceMaterialForRay4PacketHitsWhenOverridden) {
+    auto primitive = std::make_shared<Sphere>(Vector3d(), 1);
+    Instance instance(primitive);
+    instance.setMaterial(std::make_shared<MatteMaterial>());
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(0, 0, 0), Vector3d(0, 0, 1)), Rayd(Vector3d(2, 0, -2), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = instance.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(&instance, result.primitive(0));
+    EXPECT_FALSE(result.hit(1));
+    ASSERT_TRUE(result.hit(2));
+    EXPECT_EQ(&instance, result.primitive(2));
+    EXPECT_FALSE(result.hit(3));
   }
 }

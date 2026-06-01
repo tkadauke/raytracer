@@ -10,6 +10,7 @@
 #include "render/primitives/SmoothMeshTriangle.h"
 
 #include <algorithm>
+#include <array>
 #include <limits>
 #include <utility>
 
@@ -160,6 +161,41 @@ RayPacketIntersection4 MeshPrimitive::intersectPacket(const Ray4& rays,
       result.setHit(lane, static_cast<float>(hit.distance()), static_cast<float>(hit.distance()));
     }
   }
+  return result;
+}
+
+PrimitivePacketHit4 MeshPrimitive::intersectPacketHits(const Ray4& rays,
+                                                       const PrimitivePacketState4& states) const {
+  PrimitivePacketHit4 result;
+  std::array<bool, Ray4::lanes> activeLanes{};
+  bool hasActiveLane = false;
+
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    activeLanes[lane] = boundingBoxIntersects(rays.rayd(lane));
+    hasActiveLane = hasActiveLane || activeLanes[lane];
+  }
+
+  if (!hasActiveLane) {
+    return result;
+  }
+
+  for (const auto& leaf : m_leaves) {
+    const PrimitivePacketHit4 candidate = leaf->intersectPacketHits(rays, states);
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      if (activeLanes[lane] && candidate.hit(lane)) {
+        result.setHitIfCloser(lane, candidate.primitive(lane), candidate.hitPoint(lane));
+      }
+    }
+  }
+
+  if (Primitive::material()) {
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      if (result.hit(lane) && !result.primitive(lane)->material()) {
+        result.setHit(lane, this, result.hitPoint(lane));
+      }
+    }
+  }
+
   return result;
 }
 

@@ -59,9 +59,13 @@ BVH nodes keep the same materialized-hit contract while traversing their tree,
 so wavefront renderers can ask the accelerated scene for packet-shaped frontier
 hits without losing the primitive and hit-point data needed by material shading.
 Leaf primitives can then override the materialized packet form directly;
-`Sphere`, `Plane`, `Triangle`, and `Box` already do this so common analytic
-geometry and triangle-heavy BVHs avoid the generic interval fallback on
-wavefront packet frontiers.
+`Sphere`, `Plane`, `Triangle`, `Box`, and mesh-backed triangle leaves already
+do this so common analytic geometry and triangle-heavy BVHs avoid the generic
+interval fallback on wavefront packet frontiers. Wrapper primitives matter too:
+`Instance` transforms static ray packets into local space before delegating and
+then transforms materialized hits back to world space, while `MeshPrimitive`
+forwards packet-hit requests to its triangle leaves and preserves mesh-level
+material fallback.
 
 Most primitives also override:
 
@@ -447,6 +451,7 @@ The renderer treats them all the same: it asks each primitive's
 - `include/render/primitives/FlatMeshTriangle.h`
 - `include/render/primitives/SmoothMeshTriangle.h`
 - `include/render/primitives/MeshPrimitive.h`
+- `include/render/primitives/Instance.h`
 - `include/core/geometry/MeshAsset.h`
 - `include/core/math/Quartic.h`
 - `include/core/math/Quadric.h`

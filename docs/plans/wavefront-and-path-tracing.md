@@ -796,6 +796,10 @@ participate too: `MeshTriangle` owns cross-platform four-wide barycentric
 packet solving and materializes flat or smooth hit normals through subclass
 hooks, so imported triangle meshes can stay on the materialized packet frontier
 instead of falling back to scalar `HitPointInterval` construction per lane.
+That contract now survives common imported-geometry wrappers: `Instance`
+transforms a static packet into local space and transforms materialized hits
+back to world space, while `MeshPrimitive` forwards packet hit requests to its
+triangle leaves and preserves mesh-level material fallback.
 Wavefront metrics now also expose packet-frontier utilization:
 `frontierPacketChunksPerDepth` and `frontierScalarRaysPerDepth` distinguish
 four-wide packet chunks from scalar tail rays in JSON reports, graph trace

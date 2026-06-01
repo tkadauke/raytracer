@@ -228,6 +228,47 @@ namespace MeshPrimitiveTest {
     EXPECT_EQ(2, leafCount);
   }
 
+  TEST(MeshPrimitive, ShouldMaterializeRay4PacketHitsFromTriangleLeaves) {
+    MeshPrimitive primitive(makeQuadMesh(), MeshPrimitive::NormalMode::Flat);
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(0, 0, -1), Vector3d(0, 0, 1)), Rayd(Vector3d(2, 0, -1), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(-0.5, 0, -1), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 1), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = primitive.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_NE(nullptr, result.primitive(0));
+    EXPECT_EQ(Vector3d(0, 0, 0), result.hitPoint(0).point());
+    EXPECT_EQ(1, result.hitPoint(0).distance());
+    EXPECT_FALSE(result.hit(1));
+    ASSERT_TRUE(result.hit(2));
+    EXPECT_NE(nullptr, result.primitive(2));
+    EXPECT_EQ(Vector3d(-0.5, 0, 0), result.hitPoint(2).point());
+    EXPECT_EQ(1, result.hitPoint(2).distance());
+    EXPECT_FALSE(result.hit(3));
+  }
+
+  TEST(MeshPrimitive, ShouldUsePrimitiveMaterialFallbackForRay4PacketHits) {
+    MeshPrimitive primitive(makeQuadMesh(), MeshPrimitive::NormalMode::Flat);
+    primitive.setMaterial(std::make_shared<MatteMaterial>());
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(0, 0, -1), Vector3d(0, 0, 1)), Rayd(Vector3d(2, 0, -1), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(-0.5, 0, -1), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 1), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = primitive.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(&primitive, result.primitive(0));
+    EXPECT_FALSE(result.hit(1));
+    ASSERT_TRUE(result.hit(2));
+    EXPECT_EQ(&primitive, result.primitive(2));
+    EXPECT_FALSE(result.hit(3));
+  }
+
   TEST(MeshPrimitive, FaceMaterialsOverridePrimitiveMaterialOnHitsAndLeaves) {
     auto red = matte(Colord::red());
     auto blue = matte(Colord::blue());

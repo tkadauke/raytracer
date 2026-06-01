@@ -4,6 +4,7 @@
 #include "core/math/HitPointInterval.h"
 #include "core/geometry/Mesh.h"
 
+#include <array>
 #include <vector>
 
 using namespace std;
@@ -53,6 +54,31 @@ const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoint
     }
   }
   return nullptr;
+}
+
+PrimitivePacketHit4 Instance::intersectPacketHits(const Ray4& rays,
+                                                  const PrimitivePacketState4& states) const {
+  if (m_velocity != Vector3d::null) {
+    return Primitive::intersectPacketHits(rays, states);
+  }
+
+  std::array<Rayd, Ray4::lanes> localRays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
+                                          Rayd::undefined};
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    localRays[lane] = instancedRay(rays.rayd(lane));
+  }
+
+  const PrimitivePacketHit4 childHits = m_primitive->intersectPacketHits(Ray4(localRays), states);
+  PrimitivePacketHit4 result;
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    if (!childHits.hit(lane)) {
+      continue;
+    }
+
+    result.setHit(lane, Primitive::material() ? this : childHits.primitive(lane),
+                  childHits.hitPoint(lane).transform(m_pointMatrix, m_normalMatrix));
+  }
+  return result;
 }
 
 bool Instance::intersects(const Rayd& ray, render::State& state) const {

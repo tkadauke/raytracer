@@ -41,6 +41,19 @@ namespace render {
       m_hitPoints[lane] = hitPoint;
     }
 
+    bool setHitIfCloser(std::size_t lane, const Primitive* primitive, const HitPoint& hitPoint) {
+      if (!primitive || hitPoint.isUndefined()) {
+        return false;
+      }
+
+      if (!hit(lane) || hitPoint.distance() < m_hitPoints[lane].distance()) {
+        setHit(lane, primitive, hitPoint);
+        return true;
+      }
+
+      return false;
+    }
+
   private:
     std::array<const Primitive*, Ray4::lanes> m_primitives{};
     std::array<HitPoint, Ray4::lanes> m_hitPoints{};

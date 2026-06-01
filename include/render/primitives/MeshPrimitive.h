@@ -52,6 +52,8 @@ namespace render {
                                render::State& state) const override;
     bool intersects(const Rayd& ray, render::State& state) const override;
     RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
+    PrimitivePacketHit4 intersectPacketHits(const Ray4& rays,
+                                            const PrimitivePacketState4& states) const override;
 
     void forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,
                      const LeafVisitor& visitor) const override;

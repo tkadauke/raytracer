@@ -87,6 +87,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront packet frontier diagnostics.** Wavefront metrics now report
   per-depth packet chunk and scalar-tail ray counts in JSON reports, graph
   traces, rendercli summaries, and convergence captures. — GPT-5
+- **Wavefront wrapper packet hits.** `render::Instance` and
+  `render::MeshPrimitive` now preserve materialized four-wide packet hits
+  through transforms and imported mesh wrappers, so packet-capable leaves do
+  not drop back to scalar traversal at those nodes. — GPT-5
 - **Wavefront frontier diagnostics.** Wavefront metrics now report per-depth
   frontier ray hit/miss counts in JSON reports and graph traces, with compact
   rendercli summaries printing total hit/miss rays. — GPT-5
