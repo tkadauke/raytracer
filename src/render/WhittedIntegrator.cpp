@@ -10,6 +10,8 @@
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 
+#include <algorithm>
+#include <cmath>
 #include <utility>
 
 namespace render {
@@ -26,6 +28,10 @@ namespace render {
 
   const char* WhittedIntegrator::diagnosticName() const {
     return "whitted";
+  }
+
+  const char* WhittedIntegrator::batchExecutionMode() const {
+    return "depth_major_whitted";
   }
 
   Colord WhittedIntegrator::radiance(const Scene& scene, const Rayd& ray, State& state,
@@ -73,6 +79,168 @@ namespace render {
     return primitive->material()->shade(&recursiveRayCaster, scene, ray, hitPoint, state);
   }
 
+  std::vector<Colord> WhittedIntegrator::radianceBatch(
+    const Scene& scene, const std::vector<IntegratorRaySample>& samples,
+    const RayCaster& recursiveRayCaster, IntegratorBatchMetrics* metrics,
+    const IntegratorBatchSettings& settings) const {
+    struct QueuedRay {
+      std::size_t sampleIndex{0};
+      Rayd ray;
+      Colord weight{Colord::white()};
+      State state;
+    };
+
+    if (metrics) {
+      metrics->usedScalarFallback = false;
+      metrics->activeSamplesPerDepth.clear();
+      metrics->radianceDeltaSquaredSumPerDepth.clear();
+      metrics->maxRadianceDeltaPerDepth.clear();
+      metrics->compatibilityShadeSamples = 0;
+      metrics->stoppedByConvergence = false;
+      metrics->stoppedAfterDepth = 0;
+    }
+
+    std::vector<Colord> result(samples.size(), Colord::black());
+    std::vector<QueuedRay> current;
+    current.reserve(samples.size());
+    for (std::size_t index = 0; index != samples.size(); ++index) {
+      State state;
+      state.timeSample = samples[index].timeSample;
+      state.sampleStream = samples[index].sampleStream.get();
+      current.push_back(QueuedRay{index, samples[index].ray, Colord::white(), std::move(state)});
+    }
+
+    for (int depth = 0; depth != m_maximumRecursionDepth && !current.empty(); ++depth) {
+      if (metrics) {
+        metrics->activeSamplesPerDepth.push_back(current.size());
+      }
+
+      std::vector<QueuedRay> next;
+      double depthDeltaSquaredSum = 0.0;
+      double depthMaxDelta = 0.0;
+
+      for (auto& queued : current) {
+        const Colord sampleBeforeDepth = result[queued.sampleIndex];
+        const auto recordDepthDelta = [&] {
+          const double deltaSquared =
+            radianceDeltaSquared(sampleBeforeDepth, result[queued.sampleIndex]);
+          depthDeltaSquaredSum += deltaSquared;
+          depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
+        };
+
+        if (isCancelled()) {
+          result[queued.sampleIndex] += queued.weight * scene.background();
+          recordDepthDelta();
+          continue;
+        }
+
+        queued.state.recurseIn();
+        ScopeExit recurseOut([&] { queued.state.recurseOut(); });
+
+        if (queued.state.recursionDepth == m_maximumRecursionDepth) {
+          queued.state.recordEvent(
+            nullptr, "Raytracer: maximum recursion depth reached, returning background");
+          result[queued.sampleIndex] += queued.weight * scene.background();
+          recordDepthDelta();
+          continue;
+        }
+
+        if (queued.state.throughput < RAYTRACER_THROUGHPUT_CUTOFF) {
+          queued.state.recordEvent(nullptr,
+                                   "Raytracer: throughput below cutoff, returning background");
+          result[queued.sampleIndex] += queued.weight * scene.background();
+          recordDepthDelta();
+          continue;
+        }
+
+        HitPointInterval hitPoints;
+        const Primitive* primitive = scene.intersect(queued.ray, hitPoints, queued.state);
+        if (isCancelled()) {
+          result[queued.sampleIndex] += queued.weight * scene.background();
+          recordDepthDelta();
+          continue;
+        }
+
+        if (!primitive) {
+          queued.state.recordEvent(nullptr, "Raytracer: Nothing hit, returning background color");
+          result[queued.sampleIndex] += queued.weight * scene.background();
+          recordDepthDelta();
+          continue;
+        }
+
+        const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+        if (queued.state.recursionDepth == 1) {
+          queued.state.hitPoint = hitPoint;
+        }
+
+        const auto material = primitive->material();
+        if (!material) {
+          queued.state.recordEvent(nullptr, "Raytracer: no material found, returning black");
+          recordDepthDelta();
+          continue;
+        }
+
+        queued.state.recordEvent(nullptr, "Raytracer: shading material");
+        if (!material->supportsWhittedContinuations()) {
+          if (metrics) {
+            metrics->usedScalarFallback = true;
+            ++metrics->compatibilityShadeSamples;
+          }
+          result[queued.sampleIndex] +=
+            queued.weight *
+            material->shade(&recursiveRayCaster, scene, queued.ray, hitPoint, queued.state);
+          recordDepthDelta();
+          continue;
+        }
+
+        const WhittedShadeResult shaded =
+          material->shadeWhitted(&recursiveRayCaster, scene, queued.ray, hitPoint, queued.state);
+        result[queued.sampleIndex] += queued.weight * shaded.localRadiance;
+
+        for (const auto& continuation : shaded.continuations) {
+          next.push_back(QueuedRay{
+            queued.sampleIndex,
+            continuation.ray,
+            queued.weight * continuation.weight,
+            continuationState(queued.state, queued.state.throughput * continuation.throughputScale),
+          });
+        }
+
+        recordDepthDelta();
+      }
+
+      if (metrics) {
+        metrics->radianceDeltaSquaredSumPerDepth.push_back(depthDeltaSquaredSum);
+        metrics->maxRadianceDeltaPerDepth.push_back(depthMaxDelta);
+      }
+
+      if (settings.progressObserver) {
+        settings.progressObserver->depthCompleted(static_cast<std::uint64_t>(depth + 1), result,
+                                                  next.size());
+      }
+
+      if (settings.convergenceEnabled && !samples.empty()) {
+        const double activeFraction =
+          static_cast<double>(next.size()) / static_cast<double>(samples.size());
+        const double radianceDeltaRms =
+          current.empty() ? 0.0
+                          : std::sqrt(depthDeltaSquaredSum / static_cast<double>(current.size()));
+        if (activeFraction <= settings.activeSampleFractionThreshold &&
+            radianceDeltaRms <= settings.radianceDeltaRmsThreshold) {
+          if (metrics) {
+            metrics->stoppedByConvergence = true;
+            metrics->stoppedAfterDepth = metrics->activeSamplesPerDepth.size();
+          }
+          break;
+        }
+      }
+
+      current = std::move(next);
+    }
+
+    return result;
+  }
+
   void WhittedIntegrator::setMaximumRecursionDepth(int depth) {
     m_maximumRecursionDepth = depth;
   }
@@ -87,5 +255,15 @@ namespace render {
 
   bool WhittedIntegrator::isCancelled() const {
     return m_cancellationCallback && m_cancellationCallback();
+  }
+
+  State WhittedIntegrator::continuationState(const State& parent, double throughput) const {
+    State result;
+    result.recursionDepth = parent.recursionDepth;
+    result.maxRecursionDepth = parent.maxRecursionDepth;
+    result.timeSample = parent.timeSample;
+    result.throughput = throughput;
+    result.sampleStream = parent.sampleStream;
+    return result;
   }
 }

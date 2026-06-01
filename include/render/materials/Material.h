@@ -6,6 +6,8 @@
 
 #include "render/Object.h"
 
+#include <vector>
+
 class HitPoint;
 
 namespace render {
@@ -26,6 +28,17 @@ namespace render {
     Colord value{Colord::black()};
     double pdf{0.0};
     bool isDelta{false};
+  };
+
+  struct WhittedContinuation {
+    Rayd ray;
+    Colord weight{Colord::black()};
+    double throughputScale{0.0};
+  };
+
+  struct WhittedShadeResult {
+    Colord localRadiance{Colord::black()};
+    std::vector<WhittedContinuation> continuations;
   };
 }
 
@@ -113,6 +126,29 @@ namespace render {
       */
     virtual bool supportsBsdfSampling() const {
       return false;
+    }
+
+    /**
+      * Reports whether this material can expose Whitted recursion as explicit
+      * continuation rays. The wavefront Whitted batch scheduler uses this to
+      * keep reflection/refraction queues depth-major without asking material
+      * code to recurse through `RayCaster`.
+      */
+    virtual bool supportsWhittedContinuations() const {
+      return false;
+    }
+
+    /**
+      * Evaluate local Whitted radiance and return explicit recursive
+      * continuations. Implementations that return `true` from
+      * `supportsWhittedContinuations()` must put every reflected, refracted,
+      * or redirected ray into `continuations` instead of calling
+      * `raycaster->rayColor(...)`.
+      */
+    virtual WhittedShadeResult shadeWhitted(const render::RayCaster* raycaster,
+                                            const render::Scene& scene, const Rayd& ray,
+                                            const HitPoint& hitPoint, render::State& state) const {
+      return WhittedShadeResult{shade(raycaster, scene, ray, hitPoint, state), {}};
     }
 
     /**

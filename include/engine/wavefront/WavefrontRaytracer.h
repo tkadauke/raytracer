@@ -81,10 +81,11 @@ namespace engine::wavefront {
     * the public `RayCaster` probe API (`rayColor`, `rayState`,
     * `primitiveForRay`). Single-ray picking stays on the recursive raytracer.
     *
-    * The first implementation reuses the existing camera/sample-stream
-    * contract and a private recursive adapter for legacy Whitted material
-    * callbacks. Follow-up work can move the tile body to explicit per-depth
-    * queues without changing the graph, CLI, or UI executor surface.
+    * The implementation reuses the existing camera/sample-stream contract and
+    * submits tile samples through the selected integrator's batch API. Whitted
+    * batches process material-published continuation rays as explicit
+    * depth-major queues and keep a private recursive adapter for legacy
+    * material callbacks that have not exposed continuations yet.
     */
   class WavefrontRaytracer : public render::RenderEngine {
   public:

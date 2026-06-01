@@ -5,7 +5,9 @@
 #include "render/State.h"
 #include "render/WhittedIntegrator.h"
 #include "render/materials/Material.h"
+#include "render/materials/ReflectiveMaterial.h"
 #include "render/primitives/Scene.h"
+#include "render/textures/ConstantColorTexture.h"
 
 #include "core/math/BoundingBox.h"
 #include "core/math/HitPoint.h"
@@ -27,6 +29,22 @@ namespace WhittedIntegratorTest {
       }
     };
 
+    class IntegratorRayCaster final : public RayCaster {
+    public:
+      IntegratorRayCaster(const Scene& scene, const WhittedIntegrator& integrator)
+          : m_scene(scene),
+            m_integrator(integrator) {
+      }
+
+      Colord rayColor(const Rayd& ray, State& state) const override {
+        return m_integrator.radiance(m_scene, ray, state, *this);
+      }
+
+    private:
+      const Scene& m_scene;
+      const WhittedIntegrator& m_integrator;
+    };
+
     class RecursiveProbeMaterial final : public Material {
     public:
       Colord shade(const RayCaster* raycaster, const Scene& scene, const Rayd&,
@@ -41,6 +59,27 @@ namespace WhittedIntegratorTest {
       mutable HitPoint sawHitPoint;
     };
 
+    class ContinuationMaterial final : public Material {
+    public:
+      bool supportsWhittedContinuations() const override {
+        return true;
+      }
+
+      Colord shade(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                   State&) const override {
+        return Colord::black();
+      }
+
+      WhittedShadeResult shadeWhitted(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                                      State&) const override {
+        WhittedShadeResult result;
+        result.localRadiance = Colord(0.1, 0.0, 0.0);
+        result.continuations.push_back(WhittedContinuation{
+          Rayd(Vector3d(10, 0, 0), Vector3d::forward()), Colord(0.5, 0.5, 0.5), 0.5});
+        return result;
+      }
+    };
+
     std::shared_ptr<NiceMock<MockPrimitive>> makeAlwaysHit(double distance = 1.0) {
       auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
       BoundingBoxd bbox(Vector3d(-100, -100, -100), Vector3d(100, 100, 100));
@@ -48,6 +87,24 @@ namespace WhittedIntegratorTest {
       ON_CALL(*primitive, calculateBoundingBox()).WillByDefault(Return(bbox));
       ON_CALL(*primitive, intersect(_, _, _))
         .WillByDefault(DoAll(AddHitPoint(hit), Return(primitive.get())));
+      return primitive;
+    }
+
+    std::shared_ptr<NiceMock<MockPrimitive>> makePrimaryOnlyHit() {
+      auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
+      BoundingBoxd bbox(Vector3d(-100, -100, -100), Vector3d(100, 100, 100));
+      HitPoint hit(primitive.get(), 1.0, Vector4d(0, 0, 1, 1), Vector3d(0, 0, -1));
+      ON_CALL(*primitive, calculateBoundingBox()).WillByDefault(Return(bbox));
+      ON_CALL(*primitive, intersect(_, _, _))
+        .WillByDefault(
+          Invoke([primitive = primitive.get(), hit](const Rayd& ray, HitPointInterval& hits,
+                                                    State&) -> const Primitive* {
+            if (ray.origin() == Vector3d::null) {
+              hits.add(hit);
+              return primitive;
+            }
+            return nullptr;
+          }));
       return primitive;
     }
   }
@@ -139,5 +196,74 @@ namespace WhittedIntegratorTest {
 
     ASSERT_COLOR_NEAR(scene.background(), color, 1e-12);
     EXPECT_EQ(1, state.numRays);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceProcessesExplicitContinuationsDepthMajor) {
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    auto primitive = makePrimaryOnlyHit();
+    primitive->setMaterial(std::make_shared<ContinuationMaterial>());
+    scene.add(primitive);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples{
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr}};
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(scene, samples, rayCaster, &metrics);
+
+    ASSERT_EQ(1u, colors.size());
+    ASSERT_COLOR_NEAR(Colord(0.2, 0.2, 0.3), colors[0], 1e-12);
+    EXPECT_STREQ("depth_major_whitted", integrator.batchExecutionMode());
+    EXPECT_FALSE(metrics.usedScalarFallback);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ(2u, metrics.radianceDeltaSquaredSumPerDepth.size());
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceFallsBackForUnsupportedMaterials) {
+    Scene scene;
+    scene.setAmbient(Colord(0.1, 0.2, 0.3));
+    auto primitive = makeAlwaysHit(2.0);
+    primitive->setMaterial(std::make_shared<RecursiveProbeMaterial>());
+    scene.add(primitive);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples{
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr}};
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(scene, samples, rayCaster, &metrics);
+
+    ASSERT_EQ(1u, colors.size());
+    ASSERT_COLOR_NEAR(Colord(0.35, 0.7, 1.05), colors[0], 1e-12);
+    EXPECT_TRUE(metrics.usedScalarFallback);
+    EXPECT_EQ(1u, metrics.compatibilityShadeSamples);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceMatchesScalarReflectiveContinuations) {
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    scene.setAmbient(Colord::black());
+    auto primitive = makePrimaryOnlyHit();
+    auto material =
+      std::make_shared<ReflectiveMaterial>(std::make_shared<ConstantColorTexture>(Colord::black()));
+    material->setReflectionCoefficient(0.2);
+    material->setReflectionColor(Colord::white());
+    material->setSpecularCoefficient(0.0);
+    primitive->setMaterial(material);
+    scene.add(primitive);
+    WhittedIntegrator integrator;
+    IntegratorRayCaster rayCaster(scene, integrator);
+    const Rayd primaryRay(Vector3d::null, Vector3d::forward());
+    State scalarState;
+    const Colord scalar = integrator.radiance(scene, primaryRay, scalarState, rayCaster);
+    std::vector<IntegratorRaySample> samples{IntegratorRaySample{primaryRay, 0.0, nullptr}};
+
+    const std::vector<Colord> batched = integrator.radianceBatch(scene, samples, rayCaster);
+
+    ASSERT_EQ(1u, batched.size());
+    ASSERT_COLOR_NEAR(scalar, batched[0], 1e-12);
   }
 }

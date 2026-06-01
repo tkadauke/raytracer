@@ -27,3 +27,21 @@ Colord ReflectiveMaterial::shade(const render::RayCaster* raycaster, const rende
 
   return color;
 }
+
+render::WhittedShadeResult ReflectiveMaterial::shadeWhitted(const render::RayCaster* raycaster,
+                                                            const render::Scene& scene,
+                                                            const Rayd& ray,
+                                                            const HitPoint& hitPoint,
+                                                            render::State& state) const {
+  render::WhittedShadeResult result =
+    PhongMaterial::shadeWhitted(raycaster, scene, ray, hitPoint, state);
+
+  Vector3d out = -ray.direction();
+  Vector3d in;
+  Colord refl = m_reflectiveBRDF.sample(hitPoint, out, in);
+  double normalDotIn = hitPoint.normal() * in;
+
+  result.continuations.push_back(render::WhittedContinuation{
+    Rayd(hitPoint.point(), in).epsilonShifted(), refl * normalDotIn, refl.max() * normalDotIn});
+  return result;
+}

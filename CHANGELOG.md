@@ -45,6 +45,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   now reports how many samples fell back to Whitted material shading; Phong and
   recursive Phong-derived materials use that compatibility path until they have
   explicit glossy/specular BSDF sampling. — GPT-5
+- **Wavefront Whitted queues.** The Whitted integrator now exposes a
+  depth-major batch path for materials that publish explicit Whitted
+  continuations, so wavefront reflection/refraction work can run through queues
+  instead of only scalar recursive samples; unsupported materials still use the
+  scalar compatibility path. — GPT-5
 - **Raytracer integrator selection is graph-visible.** Render intent and
   raytracer beauty pass state now carry `whitted` / `pathtracer` integrator
   selection, so rendercli's `--integrator pathtracer` is represented in

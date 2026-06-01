@@ -20,3 +20,14 @@ Colord PortalMaterial::shade(const render::RayCaster* raycaster, const render::S
            m_filterColor;
   });
 }
+
+render::WhittedShadeResult PortalMaterial::shadeWhitted(const render::RayCaster*,
+                                                        const render::Scene&, const Rayd& ray,
+                                                        const HitPoint& hitPoint,
+                                                        render::State&) const {
+  render::WhittedShadeResult result;
+  result.continuations.push_back(
+    render::WhittedContinuation{transformedRay(ray.from(hitPoint.point()).epsilonShifted()),
+                                m_filterColor, m_filterColor.max()});
+  return result;
+}

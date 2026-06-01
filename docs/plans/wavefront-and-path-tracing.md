@@ -476,12 +476,13 @@ delta-per-pass to a benchmark report.
 Initial work has landed the `WavefrontRaytracer` `RenderEngine`, graph executor
 metadata, graph pass payload, rendercli selection, and Modeler render-settings
 selection. Follow-up work moved camera primary-ray generation into an explicit
-wavefront-owned tile loop and added a virtual integrator batch API. The default
-batch path preserves scalar Whitted compatibility, while
-`PathTracingIntegrator::radianceBatch` now processes compatible path-tracing
-samples depth-major across the tile. Legacy materials that require synchronous
-`RayCaster` recursion still route through the private scalar adapter; explicit
-Whitted ray queues remain. The engine also records per-render metrics for
+wavefront-owned tile loop and added a virtual integrator batch API.
+`WhittedIntegrator::radianceBatch` now processes material-published
+reflection/refraction continuations as explicit depth-major queues, falling
+back to scalar compatibility only for materials that still require synchronous
+`RayCaster` recursion. `PathTracingIntegrator::radianceBatch` now processes
+compatible path-tracing samples depth-major across the tile. The engine also
+records per-render metrics for
 rendered pixels, primary samples, tile count, queue decision, integrator name,
 batch execution mode, batch sizes, active sample counts per depth,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
@@ -510,7 +511,7 @@ pass state. Modeler Render Settings now add Preview/Balanced/Final convergence
 quality presets over those same thresholds, with raw active-fraction and
 RMS-delta fields still available for advanced tuning. Remaining work is to tune
 defaults against macro benchmarks and decide whether the same policy should
-drive explicit Whitted queues.
+remain enabled for explicit Whitted queues.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.
@@ -536,8 +537,8 @@ batches. The batch settings also accept a progress observer; the path-tracing
 batch calls it after each completed depth with the current sample colors, and
 the Wavefront engine writes those snapshots into its current tile buffers so
 Modeler can show progress during a graph-backed Wavefront pass. Remaining work
-is to decide how far Whitted compatibility should go before recursive legacy
-materials are ported to explicit scattering.
+is to keep moving recursive legacy materials onto explicit scattering where
+that preserves their existing Whitted behavior.
 `scenes/wavefront_indirect_environment_demo.json` is the first reusable Phase 5
 sanity scene: it has a wavefront/pathtracer render intent, black ambient, no
 direct lights, and a matte object that is visible only because diffuse BSDF

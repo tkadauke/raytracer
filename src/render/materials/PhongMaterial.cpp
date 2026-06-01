@@ -43,3 +43,11 @@ Colord PhongMaterial::shade(const render::RayCaster*, const render::Scene& scene
 
   return color;
 }
+
+render::WhittedShadeResult PhongMaterial::shadeWhitted(const render::RayCaster* raycaster,
+                                                       const render::Scene& scene, const Rayd& ray,
+                                                       const HitPoint& hitPoint,
+                                                       render::State& state) const {
+  return render::WhittedShadeResult{PhongMaterial::shade(raycaster, scene, ray, hitPoint, state),
+                                    {}};
+}

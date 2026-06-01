@@ -20,9 +20,16 @@ namespace render {
 
     std::unique_ptr<Integrator> clone() const override;
     const char* diagnosticName() const override;
+    const char* batchExecutionMode() const override;
 
     Colord radiance(const Scene& scene, const Rayd& ray, State& state,
                     const RayCaster& recursiveRayCaster) const override;
+
+    std::vector<Colord> radianceBatch(const Scene& scene,
+                                      const std::vector<IntegratorRaySample>& samples,
+                                      const RayCaster& recursiveRayCaster,
+                                      IntegratorBatchMetrics* metrics = nullptr,
+                                      const IntegratorBatchSettings& settings = {}) const override;
 
     void setMaximumRecursionDepth(int depth) override;
     int maximumRecursionDepth() const;
@@ -31,6 +38,7 @@ namespace render {
 
   private:
     bool isCancelled() const;
+    State continuationState(const State& parent, double throughput) const;
 
     int m_maximumRecursionDepth;
     CancellationCallback m_cancellationCallback;

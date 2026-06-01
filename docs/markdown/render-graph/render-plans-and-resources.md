@@ -612,9 +612,11 @@ being hidden in rendercli camera setup. Modeler Render Settings presents those
 thresholds through Preview/Balanced/Final convergence quality presets while
 keeping the raw thresholds editable for advanced tuning; the compiled plan still
 receives only the typed, resolved thresholds. The
-wavefront payload intentionally keeps Whitted scalar recursion compatible while
-submitting tile samples through the integrator batch API. The path-tracing
-integrator uses that batch hook for depth-major processing, giving the graph,
+wavefront payload submits tile samples through the integrator batch API.
+Whitted batches use material-published continuation rays for explicit
+depth-major reflection/refraction queues and fall back to scalar recursion for
+legacy materials that do not expose continuations. The path-tracing integrator
+uses that same batch hook for depth-major processing, giving the graph,
 rendercli, and Modeler a separate executor surface for the scheduler work that
 follows. After a traced wavefront render, the pass metadata reports the selected
 integrator, whether batches used scalar fallback or depth-major path

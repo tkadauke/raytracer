@@ -104,7 +104,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1u, metrics.scheduling.resolvedQueueSize);
     EXPECT_EQ("single_tile", metrics.scheduling.decision);
     EXPECT_EQ("whitted", metrics.batching.integrator);
-    EXPECT_EQ("scalar_loop", metrics.batching.executionMode);
+    EXPECT_EQ("depth_major_whitted", metrics.batching.executionMode);
     EXPECT_EQ(1u, metrics.batching.batches);
     EXPECT_EQ(48u, metrics.batching.samplesSubmitted);
     EXPECT_EQ(48u, metrics.batching.maxBatchSize);

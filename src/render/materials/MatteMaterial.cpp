@@ -67,6 +67,14 @@ Colord MatteMaterial::shade(const render::RayCaster*, const render::Scene& scene
   return color;
 }
 
+render::WhittedShadeResult MatteMaterial::shadeWhitted(const render::RayCaster* raycaster,
+                                                       const render::Scene& scene, const Rayd& ray,
+                                                       const HitPoint& hitPoint,
+                                                       render::State& state) const {
+  return render::WhittedShadeResult{MatteMaterial::shade(raycaster, scene, ray, hitPoint, state),
+                                    {}};
+}
+
 Colord MatteMaterial::evalBsdf(const HitPoint& hitPoint, const Vector3d& wi,
                                const Vector3d& wo) const {
   return diffuseLobe(*this, nullptr, hitPoint).eval(hitPoint, wi, wo);
