@@ -66,6 +66,18 @@ namespace engine::wavefront {
       std::string decision;
     } convergence;
 
+    struct DenoiseSummary {
+      struct NumericParameter {
+        std::string name;
+        double value = 0.0;
+      };
+
+      bool enabled = false;
+      std::string denoiser;
+      std::vector<NumericParameter> numericParameters;
+      double seconds = 0.0;
+    } denoise;
+
     struct TimingSummary {
       double totalRenderSeconds = 0.0;
     } timings;

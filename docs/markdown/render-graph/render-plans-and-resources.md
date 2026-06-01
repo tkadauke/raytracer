@@ -629,7 +629,8 @@ integrator, whether batches used scalar fallback or depth-major path
 scheduling, primary sample totals, how many samples fell back to Whitted
 material compatibility shading, active sample counts per depth, batch sizes,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
-convergence stop decisions, tile count, queue decision, and render timing.
+convergence stop decisions, denoiser name/parameters/time when denoising is
+enabled, tile count, queue decision, and render timing.
 Wavefront also has an opt-in denoiser hook at the engine level:
 `render::Denoiser` instances can filter the HDR beauty buffer before the final
 display buffer is rewritten. The first implementation, `render::BoxDenoiser`,
@@ -638,7 +639,8 @@ state can now carry `denoise: {type, radius}` for wavefront passes, where
 `type: "box"` installs the filter and `type: "none"` explicitly disables an
 inherited denoiser. rendercli and Modeler Render Settings expose the same
 controls, so denoising is part of compiled render intent rather than a hidden
-engine toggle.
+engine toggle. Denoisers publish their own diagnostics, so future filters can
+add trace metadata without a wavefront-engine type switch.
 The reusable scene
 [`scenes/wavefront_indirect_environment_demo.json`](../../../scenes/wavefront_indirect_environment_demo.json)
 opens with a wavefront path-tracing intent and no direct lights; the matte

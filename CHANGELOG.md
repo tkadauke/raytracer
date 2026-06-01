@@ -28,6 +28,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront denoiser controls.** Render intent, graph pass state, rendercli,
   and Modeler Render Settings can now request the wavefront box denoiser and
   choose its pixel radius. — GPT-5
+- **Wavefront denoiser metrics.** Wavefront render metrics and graph trace
+  metadata now report whether denoising ran, the selected denoiser, its
+  published parameters, and denoise time. — GPT-5
 
 ### Changed
 

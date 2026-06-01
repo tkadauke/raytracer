@@ -214,14 +214,16 @@ engine's `lastMetrics()` payload. Graph-backed wavefront renders collect the
 same payload from matching graph pass trace metadata, so the report includes
 the pass id plus integrator, batch execution mode, active sample counts,
 radiance-delta RMS values, compatibility fallback counts, convergence
-thresholds, stop decisions, and total render time. Metrics capture is opt-in;
-requesting wavefront metrics enables graph trace collection for that render but
-does not require writing a separate trace file.
+thresholds, stop decisions, denoiser diagnostics when enabled, and total render
+time. Metrics capture is opt-in; requesting wavefront metrics enables graph
+trace collection for that render but does not require writing a separate trace
+file.
 `--wavefront_denoiser box` requests the first opt-in wavefront denoiser, a
 small HDR box filter intended as the graph-visible hook for later edge-aware
 denoisers. `--wavefront_denoise_radius N` controls the radius in pixels; giving
 the radius without a denoiser also selects the box denoiser. `none` disables an
-inherited scene denoiser in the compiled intent.
+inherited scene denoiser in the compiled intent. Wavefront metrics record the
+chosen denoiser, its published parameters, and how much time filtering took.
 
 That gives a two-step debugging loop:
 

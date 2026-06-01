@@ -605,9 +605,10 @@ buffer before the final display buffer is rewritten. The next slice connected
 that hook to graph-visible ray-family pass state: render intent serializes
 `denoise: {type, radius}`, rendercli exposes `--wavefront_denoiser` and
 `--wavefront_denoise_radius`, and Modeler Render Settings exposes the same box
-denoiser controls when the wavefront executor is selected. Better
-edge-aware/AOV-aware filters and true between-depth denoising are still open
-Phase 6 work.
+denoiser controls when the wavefront executor is selected. Wavefront metrics
+now also include denoiser diagnostics: whether filtering ran, the denoiser name,
+its published parameters, and denoise time. Better edge-aware/AOV-aware filters
+and true between-depth denoising are still open Phase 6 work.
 
 **Goal**: low-sample renders look acceptable.
 **Gate**: 4spp render with denoiser produces image visually comparable

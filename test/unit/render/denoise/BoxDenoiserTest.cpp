@@ -37,4 +37,15 @@ namespace BoxDenoiserTest {
     ASSERT_NE(nullptr, box);
     EXPECT_EQ(2, box->radius());
   }
+
+  TEST(BoxDenoiser, ReportsDiagnostics) {
+    render::BoxDenoiser denoiser(3);
+
+    const render::DenoiserDiagnostics diagnostics = denoiser.diagnostics();
+
+    EXPECT_EQ("box", diagnostics.name);
+    ASSERT_EQ(1u, diagnostics.numericParameters.size());
+    EXPECT_EQ("radius", diagnostics.numericParameters.front().name);
+    EXPECT_DOUBLE_EQ(3.0, diagnostics.numericParameters.front().value);
+  }
 }

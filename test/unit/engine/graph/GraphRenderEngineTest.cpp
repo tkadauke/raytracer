@@ -1666,6 +1666,8 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.raytracer().setConvergenceEnabled(true);
     intent.engineOptions.raytracer().setConvergenceActiveSampleFractionThreshold(1.0);
     intent.engineOptions.raytracer().setConvergenceRadianceDeltaRmsThreshold(10.0);
+    intent.engineOptions.raytracer().setDenoiser("box");
+    intent.engineOptions.raytracer().setDenoiseRadius(2);
     RenderGraphCompiler compiler;
 
     GraphRenderEngine engine(camera(), scene);
@@ -1693,6 +1695,11 @@ namespace GraphRenderEngineTest {
     EXPECT_DOUBLE_EQ(10.0, convergence.value("radianceDeltaRmsThreshold").toDouble());
     EXPECT_GT(convergence.value("stoppedTileCount").toDouble(), 0.0);
     EXPECT_EQ("stopped_some_tiles", convergence.value("decision").toString().toStdString());
+    const QJsonObject denoise = metadata.value("denoise").toObject();
+    EXPECT_TRUE(denoise.value("enabled").toBool());
+    EXPECT_EQ("box", denoise.value("denoiser").toString().toStdString());
+    EXPECT_DOUBLE_EQ(2.0, denoise.value("parameters").toObject().value("radius").toDouble());
+    EXPECT_GE(denoise.value("seconds").toDouble(), 0.0);
     const QJsonArray activeSamples = batching.value("activeSamplesPerDepth").toArray();
     ASSERT_GE(activeSamples.size(), 1);
     EXPECT_EQ(1024.0, activeSamples.at(0).toDouble());

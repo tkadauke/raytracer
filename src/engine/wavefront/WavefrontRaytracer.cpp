@@ -104,6 +104,20 @@ namespace engine::wavefront {
     QJsonObject timingsJson;
     timingsJson["totalRenderSeconds"] = timings.totalRenderSeconds;
 
+    QJsonObject denoiseJson;
+    denoiseJson["enabled"] = denoise.enabled;
+    denoiseJson["seconds"] = denoise.seconds;
+    if (denoise.enabled) {
+      denoiseJson["denoiser"] = QString::fromStdString(denoise.denoiser);
+    }
+    QJsonObject denoiseParametersJson;
+    for (const auto& parameter : denoise.numericParameters) {
+      denoiseParametersJson[QString::fromStdString(parameter.name)] = parameter.value;
+    }
+    if (!denoiseParametersJson.isEmpty()) {
+      denoiseJson["parameters"] = denoiseParametersJson;
+    }
+
     QJsonObject convergenceJson;
     convergenceJson["enabled"] = convergence.enabled;
     convergenceJson["activeSampleFractionThreshold"] = convergence.activeSampleFractionThreshold;
@@ -121,6 +135,7 @@ namespace engine::wavefront {
     object["scheduling"] = schedulingJson;
     object["batching"] = batchingJson;
     object["convergence"] = convergenceJson;
+    object["denoise"] = denoiseJson;
     object["timings"] = timingsJson;
     return object;
   }
@@ -285,9 +300,16 @@ namespace engine::wavefront {
     }
 
     void denoise(Buffer<Colord>& buffer) const {
-      if (denoiser) {
-        denoiser->denoise(buffer);
+      if (!denoiser) {
+        return;
       }
+
+      const auto denoiseStart = WavefrontClock::now();
+      denoiser->denoise(buffer);
+      const double seconds =
+        std::chrono::duration<double>(WavefrontClock::now() - denoiseStart).count();
+      std::lock_guard<std::mutex> lock(metricsMutex);
+      lastMetrics.denoise.seconds += seconds;
     }
 
     void resetMetrics(render::Camera& camera, int width, int height,
@@ -304,6 +326,16 @@ namespace engine::wavefront {
       lastMetrics.scheduling.decision = tilePlan.isSingleTile() ? "single_tile" : "tiled";
       lastMetrics.batching.integrator = integrator->diagnosticName();
       lastMetrics.batching.executionMode = integrator->batchExecutionMode();
+      if (denoiser) {
+        const render::DenoiserDiagnostics diagnostics = denoiser->diagnostics();
+        lastMetrics.denoise.enabled = true;
+        lastMetrics.denoise.denoiser = diagnostics.name;
+        for (const auto& parameter : diagnostics.numericParameters) {
+          lastMetrics.denoise.numericParameters.push_back(
+            WavefrontRenderMetrics::DenoiseSummary::NumericParameter{parameter.name,
+                                                                     parameter.value});
+        }
+      }
       lastMetrics.convergence.enabled = convergenceEnabled;
       lastMetrics.convergence.activeSampleFractionThreshold =
         convergenceActiveSampleFractionThreshold;

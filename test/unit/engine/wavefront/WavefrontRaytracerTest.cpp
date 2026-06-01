@@ -120,6 +120,30 @@ namespace WavefrontRaytracerTest {
     }
   }
 
+  TEST(WavefrontRaytracer, RecordsDenoiserMetrics) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->setDenoiser(std::make_unique<render::BoxDenoiser>(2));
+
+    Buffer<Colord> buffer(4, 3);
+    renderer->render(buffer);
+
+    const auto metrics = renderer->lastMetrics();
+    EXPECT_TRUE(metrics.denoise.enabled);
+    EXPECT_EQ("box", metrics.denoise.denoiser);
+    ASSERT_EQ(1u, metrics.denoise.numericParameters.size());
+    EXPECT_EQ("radius", metrics.denoise.numericParameters.front().name);
+    EXPECT_DOUBLE_EQ(2.0, metrics.denoise.numericParameters.front().value);
+    EXPECT_GE(metrics.denoise.seconds, 0.0);
+
+    const QJsonObject denoise = metrics.toJson().value("denoise").toObject();
+    EXPECT_TRUE(denoise.value("enabled").toBool());
+    EXPECT_EQ("box", denoise.value("denoiser").toString().toStdString());
+    EXPECT_DOUBLE_EQ(2.0, denoise.value("parameters").toObject().value("radius").toDouble());
+    EXPECT_GE(denoise.value("seconds").toDouble(), 0.0);
+  }
+
   TEST(WavefrontRaytracer, MatchesRecursiveRaytracerForSimpleWhittedScene) {
     auto scene = testScene();
     auto recursive = std::make_shared<engine::raytracer::Raytracer>(camera(), scene);
@@ -200,6 +224,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(0.0, json.value("convergence").toObject().value("stoppedTileCount").toDouble());
     EXPECT_EQ("not_reached",
               json.value("convergence").toObject().value("decision").toString().toStdString());
+    EXPECT_FALSE(json.value("denoise").toObject().value("enabled").toBool());
     const QJsonArray deltaL2 =
       json.value("batching").toObject().value("radianceDeltaL2PerDepth").toArray();
     ASSERT_EQ(1, deltaL2.size());

@@ -18,6 +18,12 @@ namespace render {
     return "box";
   }
 
+  DenoiserDiagnostics BoxDenoiser::diagnostics() const {
+    return DenoiserDiagnostics{
+      diagnosticName(),
+      {DenoiserDiagnostics::NumericParameter{"radius", static_cast<double>(m_radius)}}};
+  }
+
   void BoxDenoiser::denoise(Buffer<Colord>& buffer) const {
     if (m_radius <= 0 || buffer.width() <= 0 || buffer.height() <= 0) {
       return;
