@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cstdint>
 #include <list>
 #include <memory>
 #include <string>
@@ -57,6 +58,7 @@ namespace render {
           intersectionMisses(0),
           shadowIntersectionHits(0),
           shadowIntersectionMisses(0),
+          packetHitScalarFallbacks(0),
           timeSample(0.0),
           throughput(1.0) {
     }
@@ -135,6 +137,14 @@ namespace render {
       recordEvent(obj, "Shadow intersection miss: " + info);
     }
 
+    /// Record a packet-hit materialization lane that had to fall back to the
+    /// scalar `intersect` contract. Used by wavefront diagnostics to decide
+    /// whether another primitive needs a direct packet-hit override.
+    inline void packetHitScalarFallback(const render::Object* obj, const std::string& info) {
+      packetHitScalarFallbacks++;
+      recordEvent(obj, "Packet hit scalar fallback: " + info);
+    }
+
     /// Whether `events` is being populated. Set by `startTrace()`.
     bool traceEvents;
 
@@ -155,6 +165,7 @@ namespace render {
     int intersectionMisses;
     int shadowIntersectionHits;
     int shadowIntersectionMisses;
+    std::uint64_t packetHitScalarFallbacks;
 
     /// The most recent (or final, after a top-level
     /// `Raytracer::rayState`) hit point along this trace.

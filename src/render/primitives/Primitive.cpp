@@ -67,6 +67,7 @@ PrimitivePacketHit4 Primitive::intersectPacketHits(const Ray4& rays,
   for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
     State fallbackState;
     State& state = states[lane] ? *states[lane] : fallbackState;
+    state.packetHitScalarFallback(this, "Primitive::intersectPacketHits");
     HitPointInterval hitPoints;
     const Primitive* primitive = intersect(rays.rayd(lane), hitPoints, state);
     if (!primitive) {

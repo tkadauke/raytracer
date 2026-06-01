@@ -214,7 +214,8 @@ def batching_metric_values(path)
     frontier_hit_rays: [],
     frontier_miss_rays: [],
     frontier_packet_chunks: [],
-    frontier_scalar_rays: []
+    frontier_scalar_rays: [],
+    frontier_packet_scalar_fallback_rays: []
   }
   document.fetch("runs").each do |run|
     run_values = {
@@ -222,7 +223,8 @@ def batching_metric_values(path)
       frontier_hit_rays: 0.0,
       frontier_miss_rays: 0.0,
       frontier_packet_chunks: 0.0,
-      frontier_scalar_rays: 0.0
+      frontier_scalar_rays: 0.0,
+      frontier_packet_scalar_fallback_rays: 0.0
     }
     batchings = []
     if run["metrics"]
@@ -242,6 +244,8 @@ def batching_metric_values(path)
         batching.fetch("frontierPacketChunksPerDepth", []).sum { |value| value.to_f }
       run_values[:frontier_scalar_rays] +=
         batching.fetch("frontierScalarRaysPerDepth", []).sum { |value| value.to_f }
+      run_values[:frontier_packet_scalar_fallback_rays] +=
+        batching.fetch("frontierPacketScalarFallbackRaysPerDepth", []).sum { |value| value.to_f }
     end
     next if batchings.compact.empty?
 

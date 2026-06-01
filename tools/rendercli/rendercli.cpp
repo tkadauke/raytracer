@@ -165,6 +165,8 @@ namespace {
       const QJsonArray frontierMisses = batching.value("frontierRayMissesPerDepth").toArray();
       const QJsonArray frontierPackets = batching.value("frontierPacketChunksPerDepth").toArray();
       const QJsonArray frontierScalarRays = batching.value("frontierScalarRaysPerDepth").toArray();
+      const QJsonArray frontierPacketScalarFallbackRays =
+        batching.value("frontierPacketScalarFallbackRaysPerDepth").toArray();
       const QJsonArray rmsDelta = batching.value("radianceDeltaRmsPerDepth").toArray();
       std::cout << std::fixed << std::setprecision(3) << "wavefront_metrics"
                 << " run=" << run;
@@ -195,6 +197,8 @@ namespace {
         << " frontier_packet_chunks=" << unsignedArraySum(frontierPackets)
         << " frontier_packet_rays=" << unsignedArraySum(frontierPackets) * Ray4::lanes
         << " frontier_scalar_rays=" << unsignedArraySum(frontierScalarRays)
+        << " frontier_packet_scalar_fallback_rays="
+        << unsignedArraySum(frontierPacketScalarFallbackRays)
         << " last_rms_delta=" << doubleArrayBack(rmsDelta)
         << " compatibility_shade_samples=" << unsignedValue(batching, "compatibilityShadeSamples")
         << " convergence=" << convergence.value("decision").toString().toStdString()

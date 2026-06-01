@@ -802,12 +802,13 @@ transforms a static packet into local space and transforms materialized hits
 back to world space, while `MeshPrimitive` forwards packet hit requests to its
 triangle leaves and preserves mesh-level material fallback.
 Wavefront metrics now also expose packet-frontier utilization:
-`frontierPacketChunksPerDepth` and `frontierScalarRaysPerDepth` distinguish
-four-wide packet chunks from scalar tail rays in JSON reports, graph trace
-metadata, rendercli compact summaries, and convergence capture work
-comparisons. That gives Phase 7 captures a direct signal for whether the next
-speed slice should improve packet filling, scalar-tail handling, or leaf packet
-traversal cost.
+`frontierPacketChunksPerDepth`, `frontierScalarRaysPerDepth`, and
+`frontierPacketScalarFallbackRaysPerDepth` distinguish four-wide packet chunks,
+scalar tail rays, and packet lanes that still had to use base scalar hit
+materialization in JSON reports, graph trace metadata, rendercli compact
+summaries, and convergence capture work comparisons. That gives Phase 7
+captures a direct signal for whether the next speed slice should improve packet
+filling, scalar-tail handling, or remaining leaf packet traversal cost.
 
 ---
 

@@ -44,6 +44,7 @@ namespace render {
     std::uint64_t frontierRayMisses{0};
     std::uint64_t frontierPacketChunks{0};
     std::uint64_t frontierScalarRays{0};
+    std::uint64_t frontierPacketScalarFallbackRays{0};
     double depthDeltaSquaredSum{0.0};
     double depthMaxDelta{0.0};
     IntegratorBatchMetrics* metrics{nullptr};
@@ -150,6 +151,7 @@ namespace render {
     std::array<Rayd, Ray4::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined};
     std::array<Colord, Ray4::lanes> accumulatedBeforeDepths;
+    std::array<std::uint64_t, Ray4::lanes> packetFallbacksBefore{};
     PrimitivePacketState4 states{};
 
     ++depthMetrics.frontierPacketChunks;
@@ -158,6 +160,7 @@ namespace render {
       auto& path = paths[pathIndex];
       accumulatedBeforeDepths[lane] = path.accumulated;
       path.state.recurseIn();
+      packetFallbacksBefore[lane] = path.state.packetHitScalarFallbacks;
       rays[lane] = path.ray;
       states[lane] = &path.state;
     }
@@ -171,6 +174,8 @@ namespace render {
     for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
       const std::size_t pathIndex = activePathIndices[firstActivePathIndex + lane];
       auto& path = paths[pathIndex];
+      depthMetrics.frontierPacketScalarFallbackRays +=
+        path.state.packetHitScalarFallbacks - packetFallbacksBefore[lane];
       if (!packetHits.hit(lane)) {
         recordFrontierMiss(scene, path, depthMetrics, accumulatedBeforeDepths[lane]);
         continue;
@@ -397,7 +402,8 @@ namespace render {
         metrics->recordFrontierIntersections(depthMetrics.frontierRayHits,
                                              depthMetrics.frontierRayMisses);
         metrics->recordFrontierTraversal(depthMetrics.frontierPacketChunks,
-                                         depthMetrics.frontierScalarRays);
+                                         depthMetrics.frontierScalarRays,
+                                         depthMetrics.frontierPacketScalarFallbackRays);
       }
 
       for (const auto& hit : activeHits) {

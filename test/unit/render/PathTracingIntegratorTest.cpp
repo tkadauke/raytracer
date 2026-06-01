@@ -430,6 +430,39 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierPacketChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierScalarRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketScalarFallbackRaysPerDepth);
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadianceReportsPacketScalarMaterializationFallbacks) {
+    std::vector<std::string> events;
+    auto scene = std::make_unique<Scene>(Colord::black());
+    scene->setAmbient(Colord::black());
+    auto primitive = std::make_shared<RecordingPrimitive>(&events);
+    primitive->setMaterial(std::make_shared<RecordingMaterial>(&events));
+    scene->add(primitive);
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    for (std::uint64_t sample = 0; sample != 4; ++sample) {
+      samples.push_back(
+        IntegratorRaySample{Rayd(Vector3d(static_cast<double>(sample), 5, 0), Vector3d(0, -1, 0)),
+                            0.0, sampler->stream(0, sample + 1)});
+    }
+
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster, &metrics);
+
+    ASSERT_EQ(4u, batched.size());
+    EXPECT_EQ((std::vector<std::uint64_t>{4u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierPacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierScalarRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{4u}), metrics.frontierPacketScalarFallbackRaysPerDepth);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceRecordsCompatibilityMaterialFallbacks) {
