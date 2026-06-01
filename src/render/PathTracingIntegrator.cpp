@@ -229,6 +229,7 @@ namespace render {
       metrics->stoppedByConvergence = false;
       metrics->stoppedAfterDepth = 0;
     }
+    const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
 
     for (int bounce = 0; bounce < m_maximumRecursionDepth; ++bounce) {
       const std::uint64_t activeCount = activePathCount();
@@ -248,10 +249,15 @@ namespace render {
 
         const Colord accumulatedBeforeDepth = path.accumulated;
         const auto recordDepthDelta = [&] {
+          if (!trackRadianceDelta) {
+            return;
+          }
           const double deltaSquared =
             radianceDeltaSquared(accumulatedBeforeDepth, path.accumulated);
           depthDeltaSquaredSum += deltaSquared;
-          depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
+          if (metrics) {
+            depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
+          }
         };
 
         if (isCancelled()) {

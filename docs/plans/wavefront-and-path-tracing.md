@@ -536,7 +536,13 @@ Phase 4 macro capture loop: it generates a BVH-heavy Whitted scene, compares
 recursive and wavefront variants, captures wavefront metrics, and also compares
 path-tracing convergence against the non-converged indirect-bounce scene.
 Remaining work is to run that capture across representative dimensions and tune
-defaults from the measured timing/quality data.
+defaults from the measured timing/quality data. A first capture showed that a
+single-depth diffuse Whitted scene is not a useful convergence-speedup proof:
+there are no continuation queues to stop, and wavefront overhead is still
+higher than recursive raytracing. The batch integrators now skip radiance-delta
+diagnostic math unless metrics or convergence need it, but the Phase 4 gate
+still requires either a better representative fixture or further scheduler
+optimization.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.

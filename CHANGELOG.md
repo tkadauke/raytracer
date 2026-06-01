@@ -71,6 +71,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   primary-ray samples through a virtual integrator batch API; the path-tracing
   integrator processes those batches depth-major while Whitted compatibility
   remains available through the scalar fallback. — GPT-5
+- **Wavefront batch overhead.** Whitted and path-tracing batch integrators now
+  skip per-sample radiance-delta diagnostics when neither metrics nor
+  convergence are enabled, reducing plain wavefront render overhead. — GPT-5
 - **Wavefront graph trace metadata.** Wavefront renders now record tile,
   sample, integrator batch-mode, active-samples-per-depth, per-depth radiance
   deltas, convergence thresholds/stop decisions, scheduling, and timing metrics

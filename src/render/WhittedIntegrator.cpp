@@ -101,6 +101,7 @@ namespace render {
     }
 
     std::vector<Colord> result(samples.size(), Colord::black());
+    const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
     std::vector<QueuedRay> current;
     current.reserve(samples.size());
     for (std::size_t index = 0; index != samples.size(); ++index) {
@@ -120,12 +121,18 @@ namespace render {
       double depthMaxDelta = 0.0;
 
       for (auto& queued : current) {
-        const Colord sampleBeforeDepth = result[queued.sampleIndex];
+        const Colord sampleBeforeDepth =
+          trackRadianceDelta ? result[queued.sampleIndex] : Colord::black();
         const auto recordDepthDelta = [&] {
+          if (!trackRadianceDelta) {
+            return;
+          }
           const double deltaSquared =
             radianceDeltaSquared(sampleBeforeDepth, result[queued.sampleIndex]);
           depthDeltaSquaredSum += deltaSquared;
-          depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
+          if (metrics) {
+            depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
+          }
         };
 
         if (isCancelled()) {
