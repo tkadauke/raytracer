@@ -159,6 +159,52 @@ namespace engine::wavefront {
       render::IntegratorBatchMetrics batchMetrics;
     };
 
+    using TileProgressPublisher = std::function<void(const std::vector<TilePixel>&)>;
+
+    class TileProgressObserver final : public render::IntegratorBatchObserver {
+    public:
+      TileProgressObserver(std::vector<TilePixel>& pixels,
+                           const std::vector<std::size_t>& samplePixelIndices, double sampleScale,
+                           TileProgressPublisher publisher)
+          : m_pixels(pixels),
+            m_samplePixelIndices(samplePixelIndices),
+            m_sampleScale(sampleScale),
+            m_publisher(std::move(publisher)) {
+      }
+
+      void depthCompleted(std::uint64_t completedDepth, const std::vector<Colord>& sampleColors,
+                          std::uint64_t activeSamples) override {
+        (void)completedDepth;
+        (void)activeSamples;
+        if (!m_publisher) {
+          return;
+        }
+
+        applySampleColors(sampleColors);
+        m_publisher(m_pixels);
+      }
+
+      void applySampleColors(const std::vector<Colord>& sampleColors) const {
+        for (auto& pixel : m_pixels) {
+          pixel.color = Colord::black();
+        }
+
+        const std::size_t count = std::min(sampleColors.size(), m_samplePixelIndices.size());
+        for (std::size_t index = 0; index != count; ++index) {
+          const std::size_t pixelIndex = m_samplePixelIndices[index];
+          if (pixelIndex < m_pixels.size()) {
+            m_pixels[pixelIndex].color += sampleColors[index] * m_sampleScale;
+          }
+        }
+      }
+
+    private:
+      std::vector<TilePixel>& m_pixels;
+      const std::vector<std::size_t>& m_samplePixelIndices;
+      double m_sampleScale;
+      TileProgressPublisher m_publisher;
+    };
+
     render::IntegratorBatchSettings batchSettings() const {
       render::IntegratorBatchSettings settings;
       settings.convergenceEnabled = convergenceEnabled;
@@ -170,7 +216,8 @@ namespace engine::wavefront {
     TileTraceResult traceTile(render::Camera& camera, const render::RayCaster& rayCaster,
                               const render::Scene& scene, const Recti& actualRect,
                               std::optional<std::uint64_t> tileSeed,
-                              const std::function<void(const Recti&)>& markProgress) const {
+                              const std::function<void(const Recti&)>& markProgress,
+                              TileProgressPublisher publishProgress) const {
       TileTraceResult result;
       std::vector<render::IntegratorRaySample> samples;
       std::vector<std::size_t> samplePixelIndices;
@@ -202,12 +249,15 @@ namespace engine::wavefront {
         }
       }
 
+      const double sampleScale = sampleCount > 0 ? 1.0 / sampleCount : 0.0;
+      TileProgressObserver progressObserver(result.pixels, samplePixelIndices, sampleScale,
+                                            std::move(publishProgress));
+      render::IntegratorBatchSettings settings = batchSettings();
+      settings.progressObserver = samples.empty() ? nullptr : &progressObserver;
+
       const std::vector<Colord> sampleColors =
-        integrator->radianceBatch(scene, samples, rayCaster, &result.batchMetrics, batchSettings());
-      const double sampleScale = 1.0 / sampleCount;
-      for (std::size_t index = 0; index != sampleColors.size(); ++index) {
-        result.pixels[samplePixelIndices[index]].color += sampleColors[index] * sampleScale;
-      }
+        integrator->radianceBatch(scene, samples, rayCaster, &result.batchMetrics, settings);
+      progressObserver.applySampleColors(sampleColors);
       result.sampleCount = samples.size();
       return result;
     }
@@ -324,9 +374,14 @@ namespace engine::wavefront {
       if (actualRect.width() <= 0 || actualRect.height() <= 0)
         return;
 
-      const auto result =
-        traceTile(camera, rayCaster, scene, actualRect, tileSeed,
-                  [&](const Recti& footprint) { writeColor(buffer, footprint, Colord(1, 0, 0)); });
+      const auto result = traceTile(
+        camera, rayCaster, scene, actualRect, tileSeed,
+        [&](const Recti& footprint) { writeColor(buffer, footprint, Colord(1, 0, 0)); },
+        [&](const std::vector<TilePixel>& pixels) {
+          for (const auto& pixel : pixels) {
+            writeColor(buffer, pixel.footprint, pixel.color);
+          }
+        });
       recordTileMetrics(result);
       for (const auto& pixel : result.pixels) {
         writeColor(buffer, pixel.footprint, pixel.color);
@@ -341,9 +396,15 @@ namespace engine::wavefront {
       if (actualRect.width() <= 0 || actualRect.height() <= 0)
         return;
 
-      const auto result =
-        traceTile(camera, rayCaster, scene, actualRect, tileSeed,
-                  [&](const Recti& footprint) { writeRGB(buffer, footprint, 0xffff0000); });
+      const auto result = traceTile(
+        camera, rayCaster, scene, actualRect, tileSeed,
+        [&](const Recti& footprint) { writeRGB(buffer, footprint, 0xffff0000); },
+        [&](const std::vector<TilePixel>& pixels) {
+          for (const auto& pixel : pixels) {
+            writeRGB(buffer, pixel.footprint,
+                     (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
+          }
+        });
       recordTileMetrics(result);
       for (const auto& pixel : result.pixels) {
         writeRGB(buffer, pixel.footprint,
@@ -359,10 +420,18 @@ namespace engine::wavefront {
       if (actualRect.width() <= 0 || actualRect.height() <= 0)
         return;
 
-      const auto result =
-        traceTile(camera, rayCaster, scene, actualRect, tileSeed, [&](const Recti& footprint) {
+      const auto result = traceTile(
+        camera, rayCaster, scene, actualRect, tileSeed,
+        [&](const Recti& footprint) {
           writeColor(hdrBuffer, footprint, Colord(1, 0, 0));
           writeRGB(displayBuffer, footprint, 0xffff0000);
+        },
+        [&](const std::vector<TilePixel>& pixels) {
+          for (const auto& pixel : pixels) {
+            writeColor(hdrBuffer, pixel.footprint, pixel.color);
+            writeRGB(displayBuffer, pixel.footprint,
+                     (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
+          }
         });
       recordTileMetrics(result);
       for (const auto& pixel : result.pixels) {

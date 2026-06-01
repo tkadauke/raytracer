@@ -29,6 +29,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront rendercli convergence controls.** rendercli now exposes
   wavefront convergence enable/disable plus active-sample-fraction and
   RMS-delta thresholds as intent-derived graph pass state. — GPT-5
+- **Wavefront depth-pass preview updates.** The path-tracing batch API now
+  publishes sample-color snapshots after each depth pass, and Modeler wavefront
+  previews copy those in-flight updates instead of waiting for the whole pass to
+  finish. — GPT-5
 - **Raytracer integrator selection is graph-visible.** Render intent and
   raytracer beauty pass state now carry `whitted` / `pathtracer` integrator
   selection, so rendercli's `--integrator pathtracer` is represented in

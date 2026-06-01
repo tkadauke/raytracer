@@ -68,7 +68,7 @@ public:
   /// Engine kinds supported by the modeling preview. The render
   /// dialog has its own selector — this one only affects the
   /// always-on preview pane.
-  enum class EngineKind { Raytracer, Wireframe, Rasterizer };
+  enum class EngineKind { Raytracer, Wavefront, Wireframe, Rasterizer };
 
 public slots:
   /// Swap the live preview engine. The new engine inherits the

@@ -32,6 +32,20 @@ namespace PathTracingIntegratorTest {
       mutable bool sawCall{false};
     };
 
+    class RecordingBatchObserver final : public IntegratorBatchObserver {
+    public:
+      void depthCompleted(std::uint64_t completedDepth, const std::vector<Colord>& sampleColors,
+                          std::uint64_t activeSamples) override {
+        completedDepths.push_back(completedDepth);
+        snapshots.push_back(sampleColors);
+        activeSampleCounts.push_back(activeSamples);
+      }
+
+      std::vector<std::uint64_t> completedDepths;
+      std::vector<std::vector<Colord>> snapshots;
+      std::vector<std::uint64_t> activeSampleCounts;
+    };
+
     // Build a scene with a single Lambertian ground plane lit by one
     // directional light. Background is black so any radiance has to
     // come from the integrator's NEE direct-lighting step.
@@ -185,6 +199,36 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1u, metrics.stoppedAfterDepth);
     ASSERT_EQ(1u, metrics.activeSamplesPerDepth.size());
     EXPECT_EQ(2u, metrics.activeSamplesPerDepth[0]);
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadiancePublishesDepthProgress) {
+    auto scene = simpleMatteScene(0.0, Colord(0.6, 0.3, 0.2));
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 11ull)});
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 29ull)});
+
+    RecordingBatchObserver observer;
+    IntegratorBatchSettings settings;
+    settings.progressObserver = &observer;
+
+    FallbackRayCaster caster;
+    const std::vector<Colord> batched =
+      integrator.radianceBatch(*scene, samples, caster, nullptr, settings);
+
+    ASSERT_EQ(2u, observer.completedDepths.size());
+    EXPECT_EQ(1u, observer.completedDepths[0]);
+    EXPECT_EQ(2u, observer.completedDepths[1]);
+    ASSERT_EQ(2u, observer.snapshots.size());
+    ASSERT_EQ(samples.size(), observer.snapshots[0].size());
+    ASSERT_EQ(samples.size(), observer.snapshots[1].size());
+    EXPECT_GT(observer.activeSampleCounts[0], 0u);
+    ASSERT_COLOR_NEAR(batched[0], observer.snapshots.back()[0], 1e-9);
+    ASSERT_COLOR_NEAR(batched[1], observer.snapshots.back()[1], 1e-9);
   }
 
   TEST(PathTracingIntegrator, RussianRouletteEventuallyTerminatesPath) {

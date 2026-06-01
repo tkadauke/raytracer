@@ -19,7 +19,6 @@ namespace render {
                                                 const RayCaster& recursiveRayCaster,
                                                 IntegratorBatchMetrics* metrics,
                                                 const IntegratorBatchSettings& settings) const {
-    (void)settings;
     if (metrics) {
       metrics->usedScalarFallback = true;
       metrics->activeSamplesPerDepth.clear();
@@ -47,10 +46,15 @@ namespace render {
       result.push_back(color);
     }
 
-    if (metrics && !samples.empty()) {
-      metrics->activeSamplesPerDepth.push_back(samples.size());
-      metrics->radianceDeltaSquaredSumPerDepth.push_back(deltaSquaredSum);
-      metrics->maxRadianceDeltaPerDepth.push_back(maxDelta);
+    if (!samples.empty()) {
+      if (metrics) {
+        metrics->activeSamplesPerDepth.push_back(samples.size());
+        metrics->radianceDeltaSquaredSumPerDepth.push_back(deltaSquaredSum);
+        metrics->maxRadianceDeltaPerDepth.push_back(maxDelta);
+      }
+      if (settings.progressObserver) {
+        settings.progressObserver->depthCompleted(/*completedDepth=*/1, result, samples.size());
+      }
     }
 
     return result;

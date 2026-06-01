@@ -29,10 +29,19 @@ namespace render {
     std::uint64_t stoppedAfterDepth{0};
   };
 
+  class IntegratorBatchObserver {
+  public:
+    virtual ~IntegratorBatchObserver() = default;
+    virtual void depthCompleted(std::uint64_t completedDepth,
+                                const std::vector<Colord>& sampleColors,
+                                std::uint64_t activeSamples) = 0;
+  };
+
   struct IntegratorBatchSettings {
     bool convergenceEnabled{false};
     double activeSampleFractionThreshold{0.0};
     double radianceDeltaRmsThreshold{0.0};
+    IntegratorBatchObserver* progressObserver{nullptr};
   };
 
   /**

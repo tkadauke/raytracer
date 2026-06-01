@@ -362,6 +362,16 @@ namespace render {
         metrics->maxRadianceDeltaPerDepth.push_back(depthMaxDelta);
       }
 
+      if (settings.progressObserver) {
+        std::vector<Colord> snapshot;
+        snapshot.reserve(paths.size());
+        for (const auto& path : paths) {
+          snapshot.push_back(path.accumulated);
+        }
+        settings.progressObserver->depthCompleted(static_cast<std::uint64_t>(bounce + 1), snapshot,
+                                                  activePathCount());
+      }
+
       if (settings.convergenceEnabled && !paths.empty()) {
         const double activeFraction =
           static_cast<double>(activePathCount()) / static_cast<double>(paths.size());

@@ -399,6 +399,19 @@ namespace {
     }
   };
 
+  class WavefrontPreviewIntentDefinition : public PreviewEngineIntentDefinition {
+  public:
+    bool matches(RenderDisplay::EngineKind kind) const override {
+      return kind == RenderDisplay::EngineKind::Wavefront;
+    }
+
+    void apply(engine::graph::RenderGraphRequest& request,
+               engine::graph::RenderViewMode previewViewMode) const override {
+      request.setExecutorOverride(engine::graph::RenderExecutorPreference::Wavefront)
+        .setViewModeOverride(previewViewMode);
+    }
+  };
+
   class WireframePreviewIntentDefinition : public PreviewEngineIntentDefinition {
   public:
     bool matches(RenderDisplay::EngineKind kind) const override {
@@ -416,10 +429,11 @@ namespace {
 
   const std::vector<const PreviewEngineIntentDefinition*>& previewEngineIntentDefinitions() {
     static const RaytracerPreviewIntentDefinition raytracer;
+    static const WavefrontPreviewIntentDefinition wavefront;
     static const RasterizerPreviewIntentDefinition rasterizer;
     static const WireframePreviewIntentDefinition wireframe;
     static const std::vector<const PreviewEngineIntentDefinition*> result = {
-      &raytracer, &rasterizer, &wireframe};
+      &raytracer, &wavefront, &rasterizer, &wireframe};
     return result;
   }
 
@@ -634,6 +648,7 @@ struct MainWindow::Private {
   QAction* renderAct;
   QAction* previewUseSceneIntentAct;
   QAction* previewRaytracerAct;
+  QAction* previewWavefrontAct;
   QAction* previewWireframeAct;
   QAction* previewRasterizerAct;
   QAction* previewRasterizerShadowsAct;
@@ -962,6 +977,12 @@ void MainWindow::createActions() {
   p->previewRaytracerAct->setChecked(true);
   connect(p->previewRaytracerAct, SIGNAL(triggered()), this, SLOT(usePreviewRaytracer()));
 
+  p->previewWavefrontAct = new QAction(tr("Wave&front"), this);
+  p->previewWavefrontAct->setStatusTip(
+    tr("Show the modeling preview through the depth-major wavefront ray executor"));
+  p->previewWavefrontAct->setCheckable(true);
+  connect(p->previewWavefrontAct, SIGNAL(triggered()), this, SLOT(usePreviewWavefront()));
+
   p->previewWireframeAct = new QAction(tr("&Wireframe"), this);
   p->previewWireframeAct->setStatusTip(
     tr("Show the modeling preview as a wireframe (faster, geometry-only)"));
@@ -1135,6 +1156,7 @@ void MainWindow::createActions() {
 
   auto previewGroup = new QActionGroup(this);
   previewGroup->addAction(p->previewRaytracerAct);
+  previewGroup->addAction(p->previewWavefrontAct);
   previewGroup->addAction(p->previewWireframeAct);
   previewGroup->addAction(p->previewRasterizerAct);
 
@@ -1292,6 +1314,7 @@ void MainWindow::createMenus() {
   previewMenu->addAction(p->previewUseSceneIntentAct);
   previewMenu->addSeparator();
   previewMenu->addAction(p->previewRaytracerAct);
+  previewMenu->addAction(p->previewWavefrontAct);
   previewMenu->addAction(p->previewWireframeAct);
   previewMenu->addAction(p->previewRasterizerAct);
   previewMenu->addSeparator();
@@ -1829,6 +1852,11 @@ void MainWindow::useSceneRenderIntentPreview(bool enabled) {
 void MainWindow::usePreviewRaytracer() {
   setPreviewOverrideMode();
   p->display->setEngineKind(RenderDisplay::EngineKind::Raytracer);
+}
+
+void MainWindow::usePreviewWavefront() {
+  setPreviewOverrideMode();
+  p->display->setEngineKind(RenderDisplay::EngineKind::Wavefront);
 }
 
 void MainWindow::usePreviewRasterizer() {
@@ -2486,6 +2514,8 @@ void MainWindow::applySceneRenderIntentToPreviewControls() {
   const std::vector<EngineChoice> engines = {
     {engine::graph::RenderExecutorPreference::Raytracer, RenderDisplay::EngineKind::Raytracer,
      p->previewRaytracerAct},
+    {engine::graph::RenderExecutorPreference::Wavefront, RenderDisplay::EngineKind::Wavefront,
+     p->previewWavefrontAct},
     {engine::graph::RenderExecutorPreference::Rasterizer, RenderDisplay::EngineKind::Rasterizer,
      p->previewRasterizerAct},
     {engine::graph::RenderExecutorPreference::Wireframe, RenderDisplay::EngineKind::Wireframe,

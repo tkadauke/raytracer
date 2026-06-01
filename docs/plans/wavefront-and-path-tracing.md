@@ -18,6 +18,8 @@
 > graph-visible convergence thresholds can stop path batches early; explicit
 > Whitted queues remain. rendercli now exposes those convergence overrides as
 > typed intent-derived graph state instead of hidden direct-engine settings.
+> Depth-major path batches also publish per-depth sample-color snapshots so
+> graph-backed Wavefront previews can show progress before the pass finishes.
 >
 > **Rule:** the wavefront engine is a **sibling** to the existing
 > `Raytracer`, not a replacement. Both ship; the user chooses through render
@@ -526,8 +528,12 @@ whether the batch ran through scalar fallback or depth-major path scheduling,
 aggregate active-path counts per depth, and per-depth radiance-delta metrics.
 The RMS-delta and active-sample-fraction thresholds are configurable through
 intent and pass state and now drive early termination for depth-major path
-batches. Remaining work is to decide how far Whitted compatibility should go
-before recursive legacy materials are ported to explicit scattering.
+batches. The batch settings also accept a progress observer; the path-tracing
+batch calls it after each completed depth with the current sample colors, and
+the Wavefront engine writes those snapshots into its current tile buffers so
+Modeler can show progress during a graph-backed Wavefront pass. Remaining work
+is to decide how far Whitted compatibility should go before recursive legacy
+materials are ported to explicit scattering.
 
 Start with pure single-continuation path tracing (Option **B**) unless a
 measured scene proves deterministic specular split (Option **C**) is needed for
