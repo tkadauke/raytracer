@@ -1,6 +1,7 @@
 #pragma once
 
 #include "render/primitives/Primitive.h"
+#include "core/math/Polynomial.h"
 #include "core/math/Vector.h"
 
 namespace render {
@@ -22,6 +23,8 @@ namespace render {
 
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                        render::State& state) const override;
+    virtual PrimitivePacketHit4
+    intersectPacketHits(const Ray4& rays, const PrimitivePacketState4& states) const override;
 
     /**
       * Mesh approximation. The torus is aligned with its hole along
@@ -66,6 +69,10 @@ namespace render {
     virtual BoundingBoxd calculateBoundingBox() const override;
 
   private:
+    SortedResult<double, 4> sortedIntersectionDistances(const Rayd& ray) const;
+    void addIntersectionHits(const Rayd& ray, const SortedResult<double, 4>& distances,
+                             HitPointInterval& hitPoints) const;
+    HitPoint closestPositiveHit(const Rayd& ray, const SortedResult<double, 4>& distances) const;
     Vector3d computeNormal(const Vector3d& p) const;
 
     double m_sweptRadius;
