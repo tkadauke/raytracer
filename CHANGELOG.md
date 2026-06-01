@@ -81,6 +81,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront integrator timing breakdowns.** Wavefront metrics now split
   integrator worker time into scene-intersection and material/shading buckets
   in JSON reports, graph traces, and compact rendercli summaries. — GPT-5
+- **Wavefront mesh packet hits.** Mesh-backed flat and smooth triangle leaves
+  now materialize four-wide packet hit points directly, keeping imported
+  triangle meshes on the wavefront packet frontier. — GPT-5
 - **Wavefront frontier diagnostics.** Wavefront metrics now report per-depth
   frontier ray hit/miss counts in JSON reports and graph traces, with compact
   rendercli summaries printing total hit/miss rays. — GPT-5

@@ -14,8 +14,13 @@ namespace MeshTriangleTest {
         : MeshTriangle(mesh, index0, index1, index2) {
     }
 
-    inline virtual const Primitive* intersect(const Rayd&, HitPointInterval&, State&) const {
+    const Primitive* intersect(const Rayd&, HitPointInterval&, State&) const override {
       return nullptr;
+    }
+
+  protected:
+    Vector3d normalAtBarycentric(double, double) const override {
+      return Vector3d::null;
     }
   };
 

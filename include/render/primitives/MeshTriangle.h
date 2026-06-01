@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "core/geometry/MeshFaceMetadata.h"
 #include "render/primitives/Primitive.h"
 
@@ -23,6 +25,8 @@ namespace render {
     }
 
     RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
+    PrimitivePacketHit4 intersectPacketHits(const Ray4& rays,
+                                            const PrimitivePacketState4& states) const override;
 
     [[nodiscard]] const core::MeshFaceMetadata& faceMetadata() const {
       return m_faceMetadata;
@@ -30,10 +34,27 @@ namespace render {
 
   protected:
     virtual BoundingBoxd calculateBoundingBox() const override;
+    virtual Vector3d normalAtBarycentric(double beta, double gamma) const = 0;
+    virtual double minimumHitDistance() const;
+
+    Vector2d uvAtBarycentric(double beta, double gamma) const;
 
   protected:
     const Mesh* m_mesh;
     int m_index0, m_index1, m_index2;
     core::MeshFaceMetadata m_faceMetadata;
+
+  private:
+    struct PacketBarycentricIntersection4 {
+      int hitMask = 0;
+      alignas(16) std::array<float, Ray4::lanes> distances{};
+      alignas(16) std::array<float, Ray4::lanes> betas{};
+      alignas(16) std::array<float, Ray4::lanes> gammas{};
+    };
+
+    PacketBarycentricIntersection4 intersectPacketBarycentric(const Ray4& rays) const;
+    HitPoint materializeHitPoint(const Rayd& ray, double distance, double beta, double gamma) const;
+    void recordPacketHit(render::State& state, const char* reason) const;
+    void recordPacketMiss(render::State& state, const char* reason) const;
   };
 }

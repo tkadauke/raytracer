@@ -149,6 +149,10 @@ std::shared_ptr<Mesh> SmoothMeshTriangle::tessellate(int) const {
   return mesh;
 }
 
+Vector3d SmoothMeshTriangle::normalAtBarycentric(double beta, double gamma) const {
+  return interpolateNormal(static_cast<float>(beta), static_cast<float>(gamma));
+}
+
 Vector3d SmoothMeshTriangle::interpolateNormal(float beta, float gamma) const {
   Vector3d normal(m_mesh->vertices()[m_index0].normal * (1 - beta - gamma) +
                   m_mesh->vertices()[m_index1].normal * beta +

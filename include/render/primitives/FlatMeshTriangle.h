@@ -45,8 +45,12 @@ namespace render {
       * Returns a single-triangle Mesh with vertex positions and UVs copied from
       * the parent mesh. All three vertices share the precomputed face normal
       * (@p m_normal). The @p lod parameter is ignored.
-      */
+    */
     virtual std::shared_ptr<Mesh> tessellate(int lod) const override;
+
+  protected:
+    Vector3d normalAtBarycentric(double beta, double gamma) const override;
+    double minimumHitDistance() const override;
 
   private:
     Vector3d computeNormal() const;

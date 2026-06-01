@@ -1,98 +1,127 @@
 #include "render/primitives/MeshTriangle.h"
-#include "core/SimdFeatures.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/RayPacket.h"
+#include "core/simd/Float4.h"
 #include "render/State.h"
-#if RAYTRACER_SIMD_SSE
-#include <xmmintrin.h>
-#endif
 
 using namespace render;
 
-#if RAYTRACER_SIMD_SSE
-namespace {
-  void packetHit(State& state, const Primitive* primitive, const std::string& reason) {
-    if (state.traceEvents) {
-      state.hit(primitive, reason);
-    } else {
-      ++state.intersectionHits;
-    }
-  }
-
-  void packetMiss(State& state, const Primitive* primitive, const std::string& reason) {
-    if (state.traceEvents) {
-      state.miss(primitive, reason);
-    } else {
-      ++state.intersectionMisses;
-    }
+void MeshTriangle::recordPacketHit(State& state, const char* reason) const {
+  if (state.traceEvents) {
+    state.hit(this, reason);
+  } else {
+    ++state.intersectionHits;
   }
 }
-#endif
 
-RayPacketIntersection4 MeshTriangle::intersectPacket(const Ray4& rays, render::State& state) const {
-#if !RAYTRACER_SIMD_SSE
-  return Primitive::intersectPacket(rays, state);
-#else
-  RayPacketIntersection4 result;
+void MeshTriangle::recordPacketMiss(State& state, const char* reason) const {
+  if (state.traceEvents) {
+    state.miss(this, reason);
+  } else {
+    ++state.intersectionMisses;
+  }
+}
 
+double MeshTriangle::minimumHitDistance() const {
+  return 0.0;
+}
+
+Vector2d MeshTriangle::uvAtBarycentric(double beta, double gamma) const {
+  const double alpha = 1.0 - beta - gamma;
+  return m_mesh->vertices()[m_index0].uv * alpha + m_mesh->vertices()[m_index1].uv * beta +
+         m_mesh->vertices()[m_index2].uv * gamma;
+}
+
+HitPoint MeshTriangle::materializeHitPoint(const Rayd& ray, double distance, double beta,
+                                           double gamma) const {
+  return HitPoint(this, distance, ray.at(distance), normalAtBarycentric(beta, gamma),
+                  uvAtBarycentric(beta, gamma));
+}
+
+MeshTriangle::PacketBarycentricIntersection4
+MeshTriangle::intersectPacketBarycentric(const Ray4& rays) const {
+  using namespace core::simd;
+
+  PacketBarycentricIntersection4 result;
   const Vector3d& v0 = m_mesh->vertices()[m_index0].point;
   const Vector3d& v1 = m_mesh->vertices()[m_index1].point;
   const Vector3d& v2 = m_mesh->vertices()[m_index2].point;
 
-  const __m128 a = _mm_set1_ps(static_cast<float>(v0.x() - v1.x()));
-  const __m128 b = _mm_set1_ps(static_cast<float>(v0.x() - v2.x()));
-  const __m128 d =
-    _mm_sub_ps(_mm_set1_ps(static_cast<float>(v0.x())), _mm_load_ps(rays.originX.data()));
-  const __m128 e = _mm_set1_ps(static_cast<float>(v0.y() - v1.y()));
-  const __m128 f = _mm_set1_ps(static_cast<float>(v0.y() - v2.y()));
-  const __m128 h =
-    _mm_sub_ps(_mm_set1_ps(static_cast<float>(v0.y())), _mm_load_ps(rays.originY.data()));
-  const __m128 i = _mm_set1_ps(static_cast<float>(v0.z() - v1.z()));
-  const __m128 j = _mm_set1_ps(static_cast<float>(v0.z() - v2.z()));
-  const __m128 l =
-    _mm_sub_ps(_mm_set1_ps(static_cast<float>(v0.z())), _mm_load_ps(rays.originZ.data()));
-  const __m128 c = _mm_load_ps(rays.directionX.data());
-  const __m128 g = _mm_load_ps(rays.directionY.data());
-  const __m128 k = _mm_load_ps(rays.directionZ.data());
+  const Float4 a = set1(static_cast<float>(v0.x() - v1.x()));
+  const Float4 b = set1(static_cast<float>(v0.x() - v2.x()));
+  const Float4 c = load4(rays.directionX.data());
+  const Float4 d = set1(static_cast<float>(v0.x())) - load4(rays.originX.data());
+  const Float4 e = set1(static_cast<float>(v0.y() - v1.y()));
+  const Float4 f = set1(static_cast<float>(v0.y() - v2.y()));
+  const Float4 g = load4(rays.directionY.data());
+  const Float4 h = set1(static_cast<float>(v0.y())) - load4(rays.originY.data());
+  const Float4 i = set1(static_cast<float>(v0.z() - v1.z()));
+  const Float4 j = set1(static_cast<float>(v0.z() - v2.z()));
+  const Float4 k = load4(rays.directionZ.data());
+  const Float4 l = set1(static_cast<float>(v0.z())) - load4(rays.originZ.data());
 
-  const __m128 mm = _mm_sub_ps(_mm_mul_ps(f, k), _mm_mul_ps(g, j));
-  const __m128 n = _mm_sub_ps(_mm_mul_ps(h, k), _mm_mul_ps(g, l));
-  const __m128 p = _mm_sub_ps(_mm_mul_ps(f, l), _mm_mul_ps(h, j));
-  const __m128 q = _mm_sub_ps(_mm_mul_ps(g, i), _mm_mul_ps(e, k));
-  const __m128 r = _mm_sub_ps(_mm_mul_ps(e, l), _mm_mul_ps(h, i));
-  const __m128 s = _mm_sub_ps(_mm_mul_ps(e, j), _mm_mul_ps(f, i));
-  const __m128 invDenom =
-    _mm_div_ps(_mm_set1_ps(1.0f),
-               _mm_add_ps(_mm_add_ps(_mm_mul_ps(a, mm), _mm_mul_ps(b, q)), _mm_mul_ps(c, s)));
+  const Float4 m = f * k - g * j;
+  const Float4 n = h * k - g * l;
+  const Float4 p = f * l - h * j;
+  const Float4 q = g * i - e * k;
+  const Float4 r = e * l - h * i;
+  const Float4 s = e * j - f * i;
+  const Float4 invDenom = set1(1.0f) / (a * m + b * q + c * s);
 
-  const __m128 beta = _mm_mul_ps(
-    _mm_sub_ps(_mm_sub_ps(_mm_mul_ps(d, mm), _mm_mul_ps(b, n)), _mm_mul_ps(c, p)), invDenom);
-  const __m128 gamma = _mm_mul_ps(
-    _mm_add_ps(_mm_add_ps(_mm_mul_ps(a, n), _mm_mul_ps(d, q)), _mm_mul_ps(c, r)), invDenom);
-  const __m128 t = _mm_mul_ps(
-    _mm_add_ps(_mm_sub_ps(_mm_mul_ps(a, p), _mm_mul_ps(b, r)), _mm_mul_ps(d, s)), invDenom);
+  const Float4 beta = (d * m - b * n - c * p) * invDenom;
+  const Float4 gamma = (a * n + d * q + c * r) * invDenom;
+  const Float4 distance = (a * p - b * r + d * s) * invDenom;
 
-  const __m128 zero = _mm_setzero_ps();
-  const __m128 one = _mm_set1_ps(1.0f);
-  __m128 hit = _mm_and_ps(_mm_cmpge_ps(beta, zero), _mm_cmple_ps(beta, one));
-  hit = _mm_and_ps(hit, _mm_cmpge_ps(gamma, zero));
-  hit = _mm_and_ps(hit, _mm_cmple_ps(_mm_add_ps(beta, gamma), one));
-  hit = _mm_and_ps(hit, _mm_cmpge_ps(t, zero));
+  const Float4 zeroValue = zero();
+  const Float4 oneValue = set1(1.0f);
+  const Float4 minimumDistance = set1(static_cast<float>(minimumHitDistance()));
+  Mask4 hit = maskAnd(cmpGe(beta, zeroValue), cmpLe(beta, oneValue));
+  hit = maskAnd(hit, cmpGe(gamma, zeroValue));
+  hit = maskAnd(hit, cmpLe(beta + gamma, oneValue));
+  hit = maskAnd(hit, cmpGe(distance, minimumDistance));
 
-  alignas(16) float distances[4];
-  _mm_store_ps(distances, t);
-  const int hitMask = _mm_movemask_ps(hit);
+  store4(result.distances.data(), distance);
+  store4(result.betas.data(), beta);
+  store4(result.gammas.data(), gamma);
+  result.hitMask = movemask(hit);
+  return result;
+}
+
+RayPacketIntersection4 MeshTriangle::intersectPacket(const Ray4& rays, render::State& state) const {
+  RayPacketIntersection4 result;
+  const PacketBarycentricIntersection4 intersections = intersectPacketBarycentric(rays);
+
   for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
-    if ((hitMask & (1 << lane)) != 0) {
-      result.setHit(lane, distances[lane], distances[lane]);
-      packetHit(state, this, "MeshTriangle");
+    if ((intersections.hitMask & (1 << lane)) != 0) {
+      result.setHit(lane, intersections.distances[lane], intersections.distances[lane]);
+      recordPacketHit(state, "MeshTriangle");
     } else {
-      packetMiss(state, this, "MeshTriangle, ray miss");
+      recordPacketMiss(state, "MeshTriangle, ray miss");
     }
   }
 
   return result;
-#endif
+}
+
+PrimitivePacketHit4 MeshTriangle::intersectPacketHits(const Ray4& rays,
+                                                      const PrimitivePacketState4& states) const {
+  PrimitivePacketHit4 result;
+  const PacketBarycentricIntersection4 intersections = intersectPacketBarycentric(rays);
+
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    if ((intersections.hitMask & (1 << lane)) == 0) {
+      recordPacketMiss(state, "MeshTriangle, ray miss");
+      continue;
+    }
+
+    result.setHit(lane, this,
+                  materializeHitPoint(rays.rayd(lane), intersections.distances[lane],
+                                      intersections.betas[lane], intersections.gammas[lane]));
+    recordPacketHit(state, "MeshTriangle");
+  }
+  return result;
 }
 
 BoundingBoxd MeshTriangle::calculateBoundingBox() const {

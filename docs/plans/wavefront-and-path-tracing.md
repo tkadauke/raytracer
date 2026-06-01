@@ -791,7 +791,11 @@ falling back to the scalar path for leftovers. Later primitive-specific
 overrides can make leaf packet materialization faster. `Sphere`, `Plane`,
 `Triangle`, and `Box` are the first such leaf overrides: they materialize
 closest positive packet hit points directly and update per-lane state without
-building scalar `HitPointInterval` objects.
+building scalar `HitPointInterval` objects. Mesh-backed triangle leaves now
+participate too: `MeshTriangle` owns cross-platform four-wide barycentric
+packet solving and materializes flat or smooth hit normals through subclass
+hooks, so imported triangle meshes can stay on the materialized packet frontier
+instead of falling back to scalar `HitPointInterval` construction per lane.
 
 ---
 

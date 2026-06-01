@@ -42,8 +42,11 @@ namespace render {
       * the parent mesh. Each vertex carries its own per-vertex normal from the
       * source mesh, preserving smooth shading data. The @p lod parameter is
       * ignored.
-      */
+    */
     virtual std::shared_ptr<Mesh> tessellate(int lod) const override;
+
+  protected:
+    Vector3d normalAtBarycentric(double beta, double gamma) const override;
 
   private:
     Vector3d interpolateNormal(float beta, float gamma) const;

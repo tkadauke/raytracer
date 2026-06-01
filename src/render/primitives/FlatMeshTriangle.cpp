@@ -86,6 +86,14 @@ std::shared_ptr<Mesh> FlatMeshTriangle::tessellate(int) const {
   return mesh;
 }
 
+Vector3d FlatMeshTriangle::normalAtBarycentric(double, double) const {
+  return m_normal;
+}
+
+double FlatMeshTriangle::minimumHitDistance() const {
+  return 0.0001;
+}
+
 Vector3d FlatMeshTriangle::computeNormal() const {
   Vector3d n0(m_mesh->vertices()[m_index0].normal);
   Vector3d n1(m_mesh->vertices()[m_index1].normal);

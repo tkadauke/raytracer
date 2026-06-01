@@ -6,6 +6,8 @@
 #include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
 #include "render/State.h"
+#include "render/primitives/Primitive.h"
+#include "test/helpers/VectorTestHelper.h"
 
 namespace testing {
   using namespace render;
@@ -18,9 +20,9 @@ namespace testing {
   template<class MT>
   struct AbstractMeshTriangleTest : public ::testing::Test {
     inline void SetUp() {
-      mesh.addVertex(Vector3d(-1, -1, 0), Vector3d(0, 0, 1));
-      mesh.addVertex(Vector3d(-1, 1, 0), Vector3d(0, 0, 1));
-      mesh.addVertex(Vector3d(1, -1, 0), Vector3d(0, 0, 1));
+      mesh.addVertex(Vector3d(-1, -1, 0), Vector3d(0, 0, 1), Vector2d(0, 0));
+      mesh.addVertex(Vector3d(-1, 1, 0), Vector3d(0, 0, 1), Vector2d(0, 1));
+      mesh.addVertex(Vector3d(1, -1, 0), Vector3d(0, 0, 1), Vector2d(1, 0));
     }
 
     Mesh mesh;
@@ -98,6 +100,40 @@ namespace testing {
     ASSERT_EQ(2, packetState.intersectionMisses);
   }
 
+  TYPED_TEST_P(AbstractMeshTriangleTest, ShouldMaterializeRay4PacketHitsLikeScalarRays) {
+    TypeParam triangle(&this->mesh, 0, 1, 2);
+    const std::array<Rayf, 4> rayArray{Rayf(Vector3f(0, 0, -1), Vector3f(0, 0, 1)),
+                                       Rayf(Vector3f(0, 4, -1), Vector3f(0, 0, 1)),
+                                       Rayf(Vector3f(0, 0, -1), Vector3f(0, 0, -1)),
+                                       Rayf(Vector3f(-0.5f, -0.5f, -1), Vector3f(0, 0, 1))};
+
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    const auto result = triangle.intersectPacketHits(Ray4(rayArray), states);
+
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      State scalarState;
+      HitPointInterval hitPoints;
+      const auto primitive = triangle.intersect(toRayd(rayArray[lane]), hitPoints, scalarState);
+      ASSERT_EQ(primitive != nullptr, result.hit(lane)) << "lane " << lane;
+      if (primitive == nullptr) {
+        continue;
+      }
+
+      const HitPoint& expected = hitPoints.min();
+      const HitPoint& actual = result.hitPoint(lane);
+      ASSERT_EQ(&triangle, result.primitive(lane)) << "lane " << lane;
+      ASSERT_NEAR(expected.distance(), actual.distance(), 1e-5) << "lane " << lane;
+      ASSERT_VECTOR_NEAR(expected.point(), actual.point(), 1e-5);
+      ASSERT_VECTOR_NEAR(expected.normal(), actual.normal(), 1e-5);
+      ASSERT_VECTOR_NEAR(expected.uv(), actual.uv(), 1e-5);
+      ASSERT_EQ(1, laneStates[lane].intersectionHits) << "lane " << lane;
+      ASSERT_EQ(0, laneStates[lane].intersectionMisses) << "lane " << lane;
+    }
+    ASSERT_EQ(1, laneStates[1].intersectionMisses);
+    ASSERT_EQ(1, laneStates[2].intersectionMisses);
+  }
+
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
     Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
@@ -118,6 +154,7 @@ namespace testing {
                               ShouldIntersectWithRay, ShouldNotIntersectWithMissingRay,
                               ShouldNotIntersectIfPointIsBehindRayOrigin,
                               ShouldIntersectRay4PacketLikeScalarRays,
+                              ShouldMaterializeRay4PacketHitsLikeScalarRays,
                               ShouldReturnTrueForIntersectsIfThereIsAIntersection,
                               ShouldReturnFalseForIntersectsIfThereIsNoIntersection);
 }
