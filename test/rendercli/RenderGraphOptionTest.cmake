@@ -87,6 +87,7 @@ set(raytracer_integrator_render "${TEST_OUTPUT_DIR}/raytracer-integrator-render.
 set(wavefront_plan "${TEST_OUTPUT_DIR}/wavefront-graph.json")
 set(wavefront_render "${TEST_OUTPUT_DIR}/wavefront-render.png")
 set(wavefront_pathtracer_plan "${TEST_OUTPUT_DIR}/wavefront-pathtracer-graph.json")
+set(wavefront_convergence_plan "${TEST_OUTPUT_DIR}/wavefront-convergence-graph.json")
 set(wavefront_pathtracer_render "${TEST_OUTPUT_DIR}/wavefront-pathtracer-render.png")
 set(raster_culling_plan "${TEST_OUTPUT_DIR}/raster-culling-graph.txt")
 set(raster_culling_trace "${TEST_OUTPUT_DIR}/raster-culling-trace.json")
@@ -1378,6 +1379,36 @@ if(NOT wavefront_pathtracer_graph MATCHES "\"integrator\": \"pathtracer\"")
 endif()
 
 rendercli_run(
+  NAME "rendercli exports wavefront convergence state in render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --engine wavefront --integrator pathtracer --wavefront_convergence
+    --wavefront_convergence_active_fraction 0.25 --wavefront_convergence_rms_delta 0.125
+    --width 32 --height 16 "${static_scene}" "${wavefront_convergence_plan}"
+)
+rendercli_assert_nonempty("${wavefront_convergence_plan}"
+                          NAME "wavefront convergence graph output")
+file(READ "${wavefront_convergence_plan}" wavefront_convergence_graph)
+if(NOT wavefront_convergence_graph MATCHES "\"convergence\"")
+  message(FATAL_ERROR
+          "wavefront convergence graph did not contain convergence state: ${wavefront_convergence_graph}")
+endif()
+if(NOT wavefront_convergence_graph MATCHES "\"enabled\"[ \r\n]*:[ \r\n]*true")
+  message(FATAL_ERROR
+          "wavefront convergence graph did not enable convergence: ${wavefront_convergence_graph}")
+endif()
+if(NOT wavefront_convergence_graph
+   MATCHES "\"activeSampleFractionThreshold\"[ \r\n]*:[ \r\n]*0\\.25")
+  message(FATAL_ERROR
+          "wavefront convergence graph did not contain active fraction threshold: ${wavefront_convergence_graph}")
+endif()
+if(NOT wavefront_convergence_graph
+   MATCHES "\"radianceDeltaRmsThreshold\"[ \r\n]*:[ \r\n]*0\\.125")
+  message(FATAL_ERROR
+          "wavefront convergence graph did not contain RMS delta threshold: ${wavefront_convergence_graph}")
+endif()
+
+rendercli_run(
   NAME "rendercli renders graph wavefront with pathtracer integrator"
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
@@ -1399,6 +1430,30 @@ rendercli_expect_failure(
   STDERR_MATCHES "Render graph executor must be"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_executor pathtracer
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects conflicting wavefront convergence switches"
+  STDERR_MATCHES "Cannot combine --wavefront_convergence"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --wavefront_convergence --wavefront_no_convergence
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid wavefront convergence active fraction"
+  STDERR_MATCHES "Wavefront convergence active fraction must be"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --wavefront_convergence_active_fraction 1.5
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid wavefront convergence RMS delta"
+  STDERR_MATCHES "Wavefront convergence RMS delta must be"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --wavefront_convergence_rms_delta -0.1
     "${static_scene}" "${invalid_plan}"
 )
 

@@ -980,6 +980,12 @@ private:
   bool m_engineSet;
   QString m_integrator;
   bool m_integratorSet;
+  bool m_wavefrontConvergenceEnabled;
+  bool m_wavefrontConvergenceSet;
+  double m_wavefrontConvergenceActiveFraction;
+  bool m_wavefrontConvergenceActiveFractionSet;
+  double m_wavefrontConvergenceRmsDelta;
+  bool m_wavefrontConvergenceRmsDeltaSet;
   bool m_renderGraph;
   bool m_directEngine;
   bool m_renderGraphOnly;
@@ -1138,6 +1144,12 @@ Renderer::Renderer()
       m_engineSet(false),
       m_integrator("whitted"),
       m_integratorSet(false),
+      m_wavefrontConvergenceEnabled(false),
+      m_wavefrontConvergenceSet(false),
+      m_wavefrontConvergenceActiveFraction(0.0),
+      m_wavefrontConvergenceActiveFractionSet(false),
+      m_wavefrontConvergenceRmsDelta(0.0),
+      m_wavefrontConvergenceRmsDeltaSet(false),
       m_renderGraph(true),
       m_directEngine(false),
       m_renderGraphOnly(false),
@@ -1321,6 +1333,14 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.raytracer().setSampler(m_sampler.toStdString());
   if (m_samplesPerPixelSet)
     options.raytracer().setSamplesPerPixel(m_samplesPerPixel);
+  if (m_wavefrontConvergenceSet)
+    options.raytracer().setConvergenceEnabled(m_wavefrontConvergenceEnabled);
+  if (m_wavefrontConvergenceActiveFractionSet) {
+    options.raytracer().setConvergenceActiveSampleFractionThreshold(
+      m_wavefrontConvergenceActiveFraction);
+  }
+  if (m_wavefrontConvergenceRmsDeltaSet)
+    options.raytracer().setConvergenceRadianceDeltaRmsThreshold(m_wavefrontConvergenceRmsDelta);
   if (m_threadsSet) {
     options.raytracer().setMaximumThreads(m_threads);
     options.rasterizer().setMaximumThreads(m_threads);
@@ -1906,6 +1926,13 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     wavefront->camera()->viewPlane()->setSampler(sampler());
     wavefront->setMaximumThreads(m_threads);
     wavefront->setQueueSize(m_queueSize);
+    if (m_wavefrontConvergenceSet)
+      wavefront->setConvergenceEnabled(m_wavefrontConvergenceEnabled);
+    if (m_wavefrontConvergenceActiveFractionSet) {
+      wavefront->setConvergenceActiveSampleFractionThreshold(m_wavefrontConvergenceActiveFraction);
+    }
+    if (m_wavefrontConvergenceRmsDeltaSet)
+      wavefront->setConvergenceRadianceDeltaRmsThreshold(m_wavefrontConvergenceRmsDelta);
     engine = wavefront;
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);
@@ -2304,6 +2331,12 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"gcode_hide_travel", "Hide G-code travel moves during import"},
      {"engine", "Render engine (raytracer, wavefront, wireframe, raster)", "engine"},
      {"integrator", "Raytracer integrator (whitted, pathtracer)", "integrator"},
+     {"wavefront_convergence", "Enable wavefront path-batch convergence stopping"},
+     {"wavefront_no_convergence", "Disable wavefront path-batch convergence stopping"},
+     {"wavefront_convergence_active_fraction",
+      "Wavefront convergence active-sample fraction threshold in 0..1", "fraction"},
+     {"wavefront_convergence_rms_delta",
+      "Wavefront convergence per-depth RMS radiance delta threshold", "delta"},
      {"render_graph", "Render through the compiled render graph; this is the default"},
      {{"direct_engine", "no_render_graph"},
       "Bypass the render graph and render with the selected engine directly"},
@@ -2332,8 +2365,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_material_id_in",
       "Bind an imported/history graph material-id resource from an image file as resource=file",
       "resource=file"},
-     {"render_graph_executor", "Override graph intent executor (raytracer, rasterizer, wireframe)",
-      "executor"},
+     {"render_graph_executor",
+      "Override graph intent executor (raytracer, wavefront, rasterizer, wireframe)", "executor"},
      {"render_graph_view",
       "Override graph intent view mode (default, beauty, wireframe, depth, stencil, normal, "
       "stencil_composite, object_id, material_id, world_position, raster_*_count)",
@@ -2653,6 +2686,43 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     }
     m_integrator = integrator;
     m_integratorSet = true;
+  }
+
+  if (parser.isSet("wavefront_convergence") && parser.isSet("wavefront_no_convergence")) {
+    *errorMessage = "Cannot combine --wavefront_convergence with --wavefront_no_convergence";
+    return CommandLineError;
+  }
+
+  if (parser.isSet("wavefront_convergence")) {
+    m_wavefrontConvergenceEnabled = true;
+    m_wavefrontConvergenceSet = true;
+  }
+
+  if (parser.isSet("wavefront_no_convergence")) {
+    m_wavefrontConvergenceEnabled = false;
+    m_wavefrontConvergenceSet = true;
+  }
+
+  if (parser.isSet("wavefront_convergence_active_fraction")) {
+    bool ok = false;
+    const double fraction = parser.value("wavefront_convergence_active_fraction").toDouble(&ok);
+    if (!ok || !std::isfinite(fraction) || fraction < 0.0 || fraction > 1.0) {
+      *errorMessage = "Wavefront convergence active fraction must be a number from 0 to 1";
+      return CommandLineError;
+    }
+    m_wavefrontConvergenceActiveFraction = fraction;
+    m_wavefrontConvergenceActiveFractionSet = true;
+  }
+
+  if (parser.isSet("wavefront_convergence_rms_delta")) {
+    bool ok = false;
+    const double threshold = parser.value("wavefront_convergence_rms_delta").toDouble(&ok);
+    if (!ok || !std::isfinite(threshold) || threshold < 0.0) {
+      *errorMessage = "Wavefront convergence RMS delta must be a non-negative number";
+      return CommandLineError;
+    }
+    m_wavefrontConvergenceRmsDelta = threshold;
+    m_wavefrontConvergenceRmsDeltaSet = true;
   }
 
   if (parser.isSet("render_graph")) {

@@ -26,6 +26,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   deltas, convergence thresholds/stop decisions, scheduling, and timing metrics
   in graph execution traces, and the Modeler graph view summarizes the
   sample/batch mode on wavefront pass nodes. — GPT-5
+- **Wavefront rendercli convergence controls.** rendercli now exposes
+  wavefront convergence enable/disable plus active-sample-fraction and
+  RMS-delta thresholds as intent-derived graph pass state. — GPT-5
 - **Raytracer integrator selection is graph-visible.** Render intent and
   raytracer beauty pass state now carry `whitted` / `pathtracer` integrator
   selection, so rendercli's `--integrator pathtracer` is represented in

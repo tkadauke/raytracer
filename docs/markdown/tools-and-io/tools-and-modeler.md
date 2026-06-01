@@ -93,7 +93,11 @@ General render controls that affect an underlying engine are also translated
 into typed intent engine options before compilation. For example,
 `--sampler`, `--samples_per_pixel`, `--depth`, `--threads`, and
 `--queue_size` become raytracer pass state when the graph contains
-`raytrace_beauty`; raster controls such as `--lod`, `--msaa`,
+`raytrace_beauty` or `wavefront_beauty`. Wavefront controls such as
+`--wavefront_convergence`, `--wavefront_no_convergence`,
+`--wavefront_convergence_active_fraction`, and
+`--wavefront_convergence_rms_delta` become graph-visible convergence state for
+depth-major path batches. Raster controls such as `--lod`, `--msaa`,
 `--msaa_shading`, `--raster_backend`, viewport/scissor, blending, alpha test,
 depth bias, shadow-map quality, and `--raster_culling on|auto|off` become
 raster pass, shadow-node, or visibility-node state; wireframe `--lod` becomes

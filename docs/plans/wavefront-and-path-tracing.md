@@ -16,7 +16,8 @@
 > `WavefrontRaytracer` engine and graph executor surface. Depth-major
 > path-tracing batches now report active-path and radiance-delta metrics, and
 > graph-visible convergence thresholds can stop path batches early; explicit
-> Whitted queues remain.
+> Whitted queues remain. rendercli now exposes those convergence overrides as
+> typed intent-derived graph state instead of hidden direct-engine settings.
 >
 > **Rule:** the wavefront engine is a **sibling** to the existing
 > `Raytracer`, not a replacement. Both ship; the user chooses through render
@@ -496,10 +497,14 @@ Activate the convergence test as a stop condition. Active-pixel count
 + L2 over active subset. Threshold tuning via the macro benchmark.
 The first slice is active for depth-major path-tracing batches: graph-visible
 thresholds stop a tile when both the remaining active-sample fraction and the
-current RMS radiance delta are below their configured limits. Remaining work is
-to tune defaults against macro benchmarks, decide whether the same policy should
-drive explicit Whitted queues, and expose quality presets instead of only raw
-advanced thresholds.
+current RMS radiance delta are below their configured limits. Those thresholds
+can be authored in scene intent, adjusted in Modeler Render Settings, or passed
+through rendercli with `--wavefront_convergence`,
+`--wavefront_no_convergence`, `--wavefront_convergence_active_fraction`, and
+`--wavefront_convergence_rms_delta`; exported graph JSON carries the resolved
+pass state. Remaining work is to tune defaults against macro benchmarks, decide
+whether the same policy should drive explicit Whitted queues, and expose quality
+presets instead of only raw advanced thresholds.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.
