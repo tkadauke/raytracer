@@ -18,6 +18,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `scenes/wavefront_indirect_environment_demo.json`, a graph-backed wavefront
   path-tracing scene with no direct lights so diffuse environment lighting is
   visible in rendercli and Modeler. — GPT-5
+- **Wavefront indirect-bounce demo scene.** Added
+  `scenes/wavefront_indirect_bounce_demo.json`, a graph-backed wavefront
+  path-tracing scene where a side-lit red wall bounces light onto neutral
+  receivers and differs from a Whitted override. — GPT-5
 
 ### Changed
 

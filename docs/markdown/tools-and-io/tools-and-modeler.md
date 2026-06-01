@@ -366,7 +366,7 @@ data. The current checked-in scenes cover camera demos, depth of field,
 animation frame evaluation, camera panning, light sweeps, material fades,
 motion-blur velocity sweeps, visibility-step timelines, transparent materials,
 reflections, raster material previews, render-graph AOV and stencil-composite
-demos, a wavefront path-tracing environment-lighting demo, and small geometry
+demos, wavefront path-tracing indirect-lighting demos, and small geometry
 fixtures used by tests.
 
 [`scenes/render_graph_aov_demo.json`](../../../scenes/render_graph_aov_demo.json)
@@ -383,6 +383,10 @@ does not name those nodes directly.
 opens with wavefront path tracing selected in render intent. It contains no
 direct lights, so it is a compact sanity scene for environment/indirect
 lighting through the graph path.
+[`scenes/wavefront_indirect_bounce_demo.json`](../../../scenes/wavefront_indirect_bounce_demo.json)
+uses the same graph-backed wavefront path-tracing intent for a small
+diffuse-bounce setup: a side-lit red wall bounces light onto otherwise-dark
+neutral receivers, while a Whitted override misses that bounce.
 When a scene's render intent is ahead of the current compiler, Modeler reports
 the graph compile error in the Render Graph dock and pauses the live preview
 instead of drawing from a stale plan.

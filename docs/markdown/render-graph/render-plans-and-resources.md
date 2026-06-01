@@ -636,6 +636,10 @@ opens with a wavefront path-tracing intent and no direct lights; the matte
 sphere is visible because the path tracer gathers background radiance through
 a diffuse bounce, while a Whitted override leaves the object black except for
 the unchanged background.
+[`scenes/wavefront_indirect_bounce_demo.json`](../../../scenes/wavefront_indirect_bounce_demo.json)
+keeps that same graph-backed wavefront intent but uses a side-lit red wall and
+neutral receivers, so the path-traced render shows a visible diffuse bounce
+that the Whitted override lacks.
 
 When the selected beauty executor is the rasterizer, graph-backed rendercli
 raster controls are compiled into the raster beauty pass's typed state and
@@ -1030,6 +1034,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `scenes/render_graph_aov_demo.json`
 - `scenes/render_graph_stencil_composite_demo.json`
 - `scenes/wavefront_indirect_environment_demo.json`
+- `scenes/wavefront_indirect_bounce_demo.json`
 - `src/modeler/`
 - `src/engine/graph/RenderExecutionContext.cpp`
 - `src/engine/graph/RenderGraphCompiler.cpp`

@@ -564,6 +564,10 @@ sanity scene: it has a wavefront/pathtracer render intent, black ambient, no
 direct lights, and a matte object that is visible only because diffuse BSDF
 sampling gathers environment radiance. rendercli now compares that scene
 against a Whitted override and requires the images to differ.
+`scenes/wavefront_indirect_bounce_demo.json` adds the stronger diffuse-bounce
+gate: a side-lit red wall bounces light onto otherwise-dark neutral receivers,
+and rendercli compares the graph-backed wavefront/pathtracer result against a
+Whitted override to require the visible indirect contribution.
 Batch metrics also count material compatibility shading fallbacks. Phong now
 publishes a finite diffuse/glossy BSDF for path tracing, Reflective publishes
 its mirror branch as a delta BSDF sample, Transparent publishes reflection,
@@ -582,7 +586,9 @@ per-(pixel, sample) state in the wavefront scheduler.
 **Goal**: indirect lighting on diffuse surfaces (the path-tracing
 payoff).
 **Gate**: a Cornell-box-style scene with indirect bounce produces
-the visual difference path tracing is famous for.
+the visual difference path tracing is famous for. ✅ **Done.** The
+`wavefront_indirect_bounce_demo.json` rendercli gate now requires a visible
+diffuse-bounce difference from Whitted.
 
 ### Phase 6 — denoising hook between passes
 

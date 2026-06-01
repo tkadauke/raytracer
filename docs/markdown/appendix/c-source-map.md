@@ -197,6 +197,7 @@
 | `scenes/animation_frame_demo.json` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `scenes/render_graph_aov_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scenes/render_graph_stencil_composite_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `scenes/wavefront_indirect_bounce_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scenes/wavefront_indirect_environment_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/core/formats/AssetResolver.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/gcode/GCodeParser.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
