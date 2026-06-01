@@ -654,6 +654,10 @@ the unchanged background.
 keeps that same graph-backed wavefront intent but uses a side-lit red wall and
 neutral receivers, so the path-traced render shows a visible diffuse bounce
 that the Whitted override lacks.
+[`scenes/wavefront_denoise_demo.json`](../../../scenes/wavefront_denoise_demo.json)
+adds a low-sample wavefront path-tracing setup with scene-authored bilateral
+denoising, so opening the scene or exporting its graph shows the denoiser as
+typed render intent rather than a rendercli-only option.
 
 When the selected beauty executor is the rasterizer, graph-backed rendercli
 raster controls are compiled into the raster beauty pass's typed state and
@@ -1052,6 +1056,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `scenes/render_graph_stencil_composite_demo.json`
 - `scenes/wavefront_indirect_environment_demo.json`
 - `scenes/wavefront_indirect_bounce_demo.json`
+- `scenes/wavefront_denoise_demo.json`
 - `src/modeler/`
 - `src/engine/graph/RenderExecutionContext.cpp`
 - `src/engine/graph/RenderGraphCompiler.cpp`

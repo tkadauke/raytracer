@@ -398,6 +398,10 @@ lighting through the graph path.
 uses the same graph-backed wavefront path-tracing intent for a small
 diffuse-bounce setup: a side-lit red wall bounces light onto otherwise-dark
 neutral receivers, while a Whitted override misses that bounce.
+[`scenes/wavefront_denoise_demo.json`](../../../scenes/wavefront_denoise_demo.json)
+keeps the wavefront/path-tracer setup at low samples per pixel and enables the
+bilateral denoiser in scene render intent, making it a compact Modeler sanity
+scene for denoiser controls and graph trace metadata.
 When a scene's render intent is ahead of the current compiler, Modeler reports
 the graph compile error in the Render Graph dock and pauses the live preview
 instead of drawing from a stale plan.

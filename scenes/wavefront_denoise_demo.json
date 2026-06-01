@@ -1,0 +1,145 @@
+{
+  "id": "{68200000-0000-0000-0000-000000000000}",
+  "name": "Wavefront Denoise Demo",
+  "ambient": [0.0, 0.0, 0.0],
+  "background": [0.78, 0.84, 0.94],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "wavefront",
+    "defaultViewMode": "beauty",
+    "defaultCamera": {
+      "sceneCameraId": "{68200000-0000-0000-0000-000000000001}"
+    },
+    "engineOptions": {
+      "raytracer": {
+        "execution": {
+          "integrator": "pathtracer",
+          "maxRecursionDepth": 4
+        },
+        "sampling": {
+          "sampler": "Jittered",
+          "samplesPerPixel": 4
+        },
+        "denoise": {
+          "type": "bilateral",
+          "radius": 2,
+          "colorSigma": 0.18
+        }
+      }
+    }
+  },
+  "children": [
+    {
+      "id": "{68200000-0000-0000-0000-000000000001}",
+      "name": "Camera",
+      "position": [0.0, 0.45, -4.0],
+      "target": [0.0, -0.25, 0.4],
+      "distance": 5.0,
+      "zoom": 1.6,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000002}",
+      "name": "Soft Key Light",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 0.95, 0.85],
+      "intensity": 1.6,
+      "direction": [0.35, -0.65, 0.55],
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000010}",
+      "name": "Warm Wall Texture",
+      "color": [0.98, 0.22, 0.12],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000011}",
+      "name": "Cool Floor Texture",
+      "color": [0.32, 0.62, 0.88],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000012}",
+      "name": "Neutral Ball Texture",
+      "color": [0.78, 0.78, 0.72],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000020}",
+      "name": "Warm Matte Material",
+      "diffuseTexture": "{68200000-0000-0000-0000-000000000010}",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000021}",
+      "name": "Cool Matte Material",
+      "diffuseTexture": "{68200000-0000-0000-0000-000000000011}",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000022}",
+      "name": "Neutral Matte Material",
+      "diffuseTexture": "{68200000-0000-0000-0000-000000000012}",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000030}",
+      "name": "Warm Bounce Wall",
+      "position": [-1.75, -1.0, -0.35],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{68200000-0000-0000-0000-000000000020}",
+      "leg1": [0.0, 2.65, 0.0],
+      "leg2": [0.0, 0.0, 3.5],
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Rectangle",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000031}",
+      "name": "Cool Floor",
+      "position": [-1.75, -1.0, -0.35],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{68200000-0000-0000-0000-000000000021}",
+      "leg1": [0.0, 0.0, 3.5],
+      "leg2": [3.5, 0.0, 0.0],
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Rectangle",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000032}",
+      "name": "Denoised Receiver",
+      "position": [0.55, -0.28, 0.85],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{68200000-0000-0000-0000-000000000022}",
+      "radius": 0.48,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    }
+  ]
+}

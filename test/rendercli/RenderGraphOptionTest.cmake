@@ -19,6 +19,7 @@ set(wavefront_indirect_scene
     "${PROJECT_SOURCE_DIR}/scenes/wavefront_indirect_environment_demo.json")
 set(wavefront_indirect_bounce_scene
     "${PROJECT_SOURCE_DIR}/scenes/wavefront_indirect_bounce_demo.json")
+set(wavefront_denoise_scene "${PROJECT_SOURCE_DIR}/scenes/wavefront_denoise_demo.json")
 set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
 set(camera_override_runtime_scene "${TEST_OUTPUT_DIR}/camera-override-runtime-scene.json")
 set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
@@ -122,6 +123,9 @@ set(wavefront_indirect_bounce_whitted_render
 set(wavefront_pathtracer_plan "${TEST_OUTPUT_DIR}/wavefront-pathtracer-graph.json")
 set(wavefront_convergence_plan "${TEST_OUTPUT_DIR}/wavefront-convergence-graph.json")
 set(wavefront_denoise_plan "${TEST_OUTPUT_DIR}/wavefront-denoise-graph.json")
+set(wavefront_scene_denoise_plan "${TEST_OUTPUT_DIR}/wavefront-scene-denoise-graph.json")
+set(wavefront_scene_denoise_render "${TEST_OUTPUT_DIR}/wavefront-scene-denoise-render.png")
+set(wavefront_scene_denoise_trace "${TEST_OUTPUT_DIR}/wavefront-scene-denoise-trace.json")
 set(wavefront_pathtracer_render "${TEST_OUTPUT_DIR}/wavefront-pathtracer-render.png")
 set(wavefront_compatibility_trace "${TEST_OUTPUT_DIR}/wavefront-compatibility-trace.json")
 set(wavefront_compatibility_trace_render
@@ -1779,6 +1783,57 @@ endif()
 if(NOT wavefront_denoise_graph MATCHES "\"colorSigma\"[ \r\n]*:[ \r\n]*0\\.2")
   message(FATAL_ERROR
           "wavefront denoise graph did not contain denoise color sigma: ${wavefront_denoise_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli exports scene-authored wavefront denoiser state in render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --width 32 --height 16 "${wavefront_denoise_scene}" "${wavefront_scene_denoise_plan}"
+)
+rendercli_assert_nonempty("${wavefront_scene_denoise_plan}"
+                          NAME "scene wavefront denoise graph output")
+file(READ "${wavefront_scene_denoise_plan}" wavefront_scene_denoise_graph)
+if(NOT wavefront_scene_denoise_graph MATCHES "\"denoise\"")
+  message(FATAL_ERROR
+          "scene wavefront denoise graph did not contain denoise state: ${wavefront_scene_denoise_graph}")
+endif()
+if(NOT wavefront_scene_denoise_graph MATCHES "\"type\"[ \r\n]*:[ \r\n]*\"bilateral\"")
+  message(FATAL_ERROR
+          "scene wavefront denoise graph did not contain bilateral denoiser: ${wavefront_scene_denoise_graph}")
+endif()
+if(NOT wavefront_scene_denoise_graph MATCHES "\"radius\"[ \r\n]*:[ \r\n]*2")
+  message(FATAL_ERROR
+          "scene wavefront denoise graph did not contain denoise radius: ${wavefront_scene_denoise_graph}")
+endif()
+if(NOT wavefront_scene_denoise_graph MATCHES "\"colorSigma\"[ \r\n]*:[ \r\n]*0\\.18")
+  message(FATAL_ERROR
+          "scene wavefront denoise graph did not contain denoise color sigma: ${wavefront_scene_denoise_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli traces scene-authored wavefront bilateral denoiser"
+  COMMAND
+    "${RENDERCLI}" --width 32 --height 32
+    --render_graph_trace_out "${wavefront_scene_denoise_trace}"
+    "${wavefront_denoise_scene}" "${wavefront_scene_denoise_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_scene_denoise_render}"
+                                NAME "scene wavefront denoise render pixels")
+rendercli_assert_nonempty("${wavefront_scene_denoise_trace}"
+                          NAME "scene wavefront denoise trace JSON")
+file(READ "${wavefront_scene_denoise_trace}" wavefront_scene_denoise_trace_json)
+if(NOT wavefront_scene_denoise_trace_json MATCHES "\"id\": \"wavefront_beauty\"")
+  message(FATAL_ERROR
+          "scene wavefront denoise trace did not contain wavefront pass: ${wavefront_scene_denoise_trace_json}")
+endif()
+if(NOT wavefront_scene_denoise_trace_json MATCHES "\"denoiser\"[ \r\n]*:[ \r\n]*\"bilateral\"")
+  message(FATAL_ERROR
+          "scene wavefront denoise trace did not contain bilateral denoiser metadata: ${wavefront_scene_denoise_trace_json}")
+endif()
+if(NOT wavefront_scene_denoise_trace_json MATCHES "\"color_sigma\"[ \r\n]*:[ \r\n]*0\\.18")
+  message(FATAL_ERROR
+          "scene wavefront denoise trace did not contain bilateral color sigma metadata: ${wavefront_scene_denoise_trace_json}")
 endif()
 
 rendercli_run(

@@ -612,6 +612,9 @@ are now started with `render::BilateralDenoiser`, a color-bilateral filter that
 preserves strong color edges better than the original box filter and is exposed
 through render intent, graph JSON, rendercli, and Modeler Render Settings. AOV
 feature buffers and true between-depth denoising are still open Phase 6 work.
+`scenes/wavefront_denoise_demo.json` now provides a reusable low-sample,
+graph-backed bilateral-denoising scene so scene-authored denoiser intent can be
+tested in rendercli and inspected in Modeler.
 
 **Goal**: low-sample renders look acceptable.
 **Gate**: 4spp render with denoiser produces image visually comparable
