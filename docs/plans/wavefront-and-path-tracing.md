@@ -585,6 +585,22 @@ from 336446 to 336002 (~0.13%). Phase 4 still needs threshold/policy work that
 cuts meaningful sample-depth work before convergence can be counted as a
 speedup.
 
+A follow-up 160x120, 16spp, max-depth-16 `pathtracer_bounce` threshold sweep
+with 300 tiles showed the same tradeoff:
+
+| active fraction | RMS threshold | sample-depths saved | image RMS delta |
+| --- | --- | --- | --- |
+| 0.05 | 0.002 | 444 / 336446 (0.13%) | 0.0019742863 |
+| 0.25 | 0.005 | 2287 / 336446 (0.68%) | 0.0059664692 |
+| 0.50 | 0.005 | 4018 / 336446 (1.19%) | 0.0073844098 |
+| 1.00 | 0.002 | 8815 / 336446 (2.62%) | 0.0160156144 |
+| 1.00 | 0.0005 | 8563 / 336446 (2.55%) | 0.0159527258 |
+
+That makes convergence a useful graph-visible quality knob and diagnostic, but
+not the main near-term speed path. The next speed work should focus on
+scheduler/intersection cost (packet traversal, SoA state, or other Phase 7
+implementation work) before Phase 4 can honestly claim its 30% speed gate.
+
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.
 **Gate**: ≥30% wall-clock improvement on the BVH-heavy scene at
