@@ -41,9 +41,11 @@ Environment:
   WAVEFRONT_CONVERGENCE_QUEUE_SIZE     optional rendercli --queue_size for every variant
   WAVEFRONT_CONVERGENCE_SWEEP          optional comma-separated active:rms pairs
 
-The capture writes images, stdout timing summaries, wavefront metrics JSON, and
-image-probe comparisons under the output directory. Use it to tune Phase 4
-wavefront convergence defaults before changing shipped presets.
+The capture writes images, stdout timing summaries, wavefront metrics JSON,
+image-probe comparisons, active sample-depth work comparisons, and frontier
+hit/miss summaries under the output directory. Use it to tune Phase 4
+wavefront convergence defaults and to baseline Phase 7 scheduler/intersection
+work before changing shipped presets.
 
 When WAVEFRONT_CONVERGENCE_SWEEP is set, the script reuses the non-converged
 baseline and captures one convergence variant per pair, for example:
@@ -205,27 +207,67 @@ compare_wavefront_work() {
   fi
 
   ruby -rjson - "$reference_metrics" "$candidate_metrics" <<'RUBY' | tee "${output}"
-def active_sample_depths(path)
+def batching_metric_values(path)
   document = JSON.parse(File.read(path))
-  values = []
+  values = {
+    active_sample_depths: [],
+    frontier_hit_rays: [],
+    frontier_miss_rays: []
+  }
   document.fetch("runs").each do |run|
-    run.fetch("passes").each do |pass|
-      value = pass.dig("metrics", "batching", "activeSampleDepthsProcessed")
-      values << value.to_f if value
+    run_values = {
+      active_sample_depths: 0.0,
+      frontier_hit_rays: 0.0,
+      frontier_miss_rays: 0.0
+    }
+    batchings = []
+    if run["metrics"]
+      batchings << run.dig("metrics", "batching")
+    end
+    run.fetch("passes", []).each do |pass|
+      batchings << pass.dig("metrics", "batching")
+    end
+
+    batchings.compact.each do |batching|
+      run_values[:active_sample_depths] += batching.fetch("activeSampleDepthsProcessed", 0).to_f
+      run_values[:frontier_hit_rays] +=
+        batching.fetch("frontierRayHitsPerDepth", []).sum { |value| value.to_f }
+      run_values[:frontier_miss_rays] +=
+        batching.fetch("frontierRayMissesPerDepth", []).sum { |value| value.to_f }
+    end
+    next if batchings.compact.empty?
+
+    run_values.each do |key, value|
+      values[key] << value
     end
   end
-  raise "no activeSampleDepthsProcessed metrics in #{path}" if values.empty?
+  raise "no batching metrics in #{path}" if values[:active_sample_depths].empty?
 
+  values
+end
+
+def median(values)
   sorted = values.sort
   sorted[sorted.length / 2]
 end
 
-reference = active_sample_depths(ARGV.fetch(0))
-candidate = active_sample_depths(ARGV.fetch(1))
+reference_values = batching_metric_values(ARGV.fetch(0))
+candidate_values = batching_metric_values(ARGV.fetch(1))
+
+reference = median(reference_values[:active_sample_depths])
+candidate = median(candidate_values[:active_sample_depths])
 saved = reference - candidate
 fraction = reference.zero? ? 0.0 : saved / reference
 puts format("active_sample_depths reference=%.0f candidate=%.0f saved=%.0f saved_fraction=%.6f",
             reference, candidate, saved, fraction)
+
+%i[frontier_hit_rays frontier_miss_rays].each do |key|
+  reference = median(reference_values[key])
+  candidate = median(candidate_values[key])
+  delta = candidate - reference
+  puts format("%s reference=%.0f candidate=%.0f delta=%.0f",
+              key, reference, candidate, delta)
+end
 RUBY
 }
 

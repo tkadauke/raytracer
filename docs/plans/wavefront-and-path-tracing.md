@@ -638,7 +638,9 @@ rendercli's compact metrics summary prints total frontier hit/miss rays. That
 adds a baseline diagnostic for the next scheduler/intersection slices: captures
 can now distinguish "we spent time testing many rays that missed" from "the
 frontier is still mostly shading-visible geometry" before changing traversal
-policy.
+policy. The convergence capture script now includes those same median
+frontier-hit/frontier-miss totals in its work comparison files, so performance
+captures retain the diagnostic alongside active sample-depth savings.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.
