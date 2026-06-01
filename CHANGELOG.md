@@ -46,9 +46,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Feature-aware bilateral denoising.** The wavefront bilateral denoiser now
   uses compatible albedo, normal, and depth feature buffers as additional
   edge-stopping inputs when they are available. — GPT-5
-- **Wavefront denoiser feature diagnostics.** Wavefront denoise metrics and
-  graph traces now report which albedo, normal, and depth feature buffers were
-  supplied to the denoiser. — GPT-5
+- **Wavefront denoiser feature diagnostics.** Wavefront denoise metrics,
+  compact summaries, and graph traces now report which albedo, normal, and
+  depth feature buffers were supplied to the denoiser. — GPT-5
 
 ### Changed
 

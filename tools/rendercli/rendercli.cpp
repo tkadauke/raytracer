@@ -188,6 +188,11 @@ namespace {
       for (auto it = denoiseParameters.begin(); it != denoiseParameters.end(); ++it) {
         std::cout << " denoise_" << it.key().toStdString() << "=" << it.value().toDouble();
       }
+      const QJsonObject denoiseFeatures = denoise.value("features").toObject();
+      for (auto it = denoiseFeatures.begin(); it != denoiseFeatures.end(); ++it) {
+        std::cout << " denoise_feature_" << it.key().toStdString() << "="
+                  << (it.value().toBool() ? 1 : 0);
+      }
       std::cout << '\n';
     }
 

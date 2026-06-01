@@ -1493,6 +1493,13 @@ rendercli_run(
 )
 rendercli_assert_image_nonempty("${wavefront_metrics_render}"
                                 NAME "wavefront metrics graph render pixels")
+foreach(feature_name albedo normal depth)
+  if(NOT wavefront_metrics_stdout MATCHES "denoise_feature_${feature_name}=1")
+    _rendercli_fail("rendercli wavefront metrics denoiser feature summary"
+                    "wavefront metrics summary did not contain ${feature_name} feature metadata"
+                    "${wavefront_metrics_stdout}" "" "" "")
+  endif()
+endforeach()
 rendercli_assert_exists("${wavefront_metrics_report}" NAME "wavefront metrics report exists")
 file(READ "${wavefront_metrics_report}" wavefront_metrics_json)
 if(NOT wavefront_metrics_json MATCHES "\"schema\"[^\n]*raytracer\\.wavefront_metrics\\.v1")
@@ -1528,6 +1535,11 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"radius\"[ \r\n]*:[ \r\n]*2")
   _rendercli_fail("rendercli wavefront metrics denoiser parameters"
                   "wavefront metrics report did not contain denoiser radius"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"features\"")
+  _rendercli_fail("rendercli wavefront metrics denoiser features"
+                  "wavefront metrics report did not contain denoiser feature metadata"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 
