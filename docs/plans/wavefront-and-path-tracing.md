@@ -629,7 +629,10 @@ integrator worker time around ~633 ms, with ~97 ms in scene intersection and
 ~30 ms in material/shading for the non-converged variant. That means the next
 speed slice should not assume BVH traversal alone dominates; path-state loop,
 active-frontier, progress/convergence, and batch bookkeeping overhead remain
-large enough to measure before packet traversal is introduced.
+large enough to measure before packet traversal is introduced. The path tracer's
+active-frontier intersection stage now lives in an integrator-owned instance
+method with private batch-path/hit state, so a packet or SoA implementation can
+replace that stage without mixing traversal policy into the shading loop.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.

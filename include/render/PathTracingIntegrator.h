@@ -2,6 +2,7 @@
 
 #include "render/Integrator.h"
 
+#include <cstddef>
 #include <functional>
 
 class HitPoint;
@@ -9,6 +10,7 @@ class HitPoint;
 namespace render {
   class Light;
   class Material;
+  class Primitive;
 
   /**
     * @brief Iterative megakernel Monte Carlo path tracer.
@@ -94,9 +96,20 @@ namespace render {
     }
 
   private:
+    struct BatchDepthMetrics;
+    struct BatchHit;
+    struct BatchPath;
+
     bool isCancelled() const;
     Colord directLighting(const Scene& scene, const Light& light, const HitPoint& hitPoint,
                           const Material& material, const Vector3d& wi, State& state) const;
+    void recordDepthDelta(BatchDepthMetrics& depthMetrics, const Colord& before,
+                          const Colord& after) const;
+    void intersectActiveFrontier(const Scene& scene,
+                                 const std::vector<std::size_t>& activePathIndices,
+                                 std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits,
+                                 int bounce, BatchDepthMetrics& depthMetrics,
+                                 IntegratorBatchMetrics* metrics) const;
 
     int m_maximumRecursionDepth{8};
     int m_russianRouletteDepth{3};

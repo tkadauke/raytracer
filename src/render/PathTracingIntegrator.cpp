@@ -16,6 +16,34 @@
 #include <cmath>
 
 namespace render {
+  struct PathTracingIntegrator::BatchPath {
+    explicit BatchPath(const IntegratorRaySample& sample)
+        : ray(sample.ray) {
+      state.timeSample = sample.timeSample;
+      state.sampleStream = sample.sampleStream();
+    }
+
+    Rayd ray;
+    Colord throughput{Colord::white()};
+    Colord accumulated{Colord::black()};
+    State state;
+    bool active{true};
+  };
+
+  struct PathTracingIntegrator::BatchHit {
+    std::size_t pathIndex{0};
+    const Primitive* primitive{nullptr};
+    HitPoint hitPoint;
+    Colord accumulatedBeforeDepth{Colord::black()};
+  };
+
+  struct PathTracingIntegrator::BatchDepthMetrics {
+    bool trackRadianceDelta{false};
+    double depthDeltaSquaredSum{0.0};
+    double depthMaxDelta{0.0};
+    IntegratorBatchMetrics* metrics{nullptr};
+  };
+
   PathTracingIntegrator::PathTracingIntegrator() = default;
 
   std::unique_ptr<Integrator> PathTracingIntegrator::clone() const {
@@ -40,6 +68,58 @@ namespace render {
 
   bool PathTracingIntegrator::isCancelled() const {
     return m_cancellationCallback && m_cancellationCallback();
+  }
+
+  void PathTracingIntegrator::recordDepthDelta(BatchDepthMetrics& depthMetrics,
+                                               const Colord& before, const Colord& after) const {
+    if (!depthMetrics.trackRadianceDelta) {
+      return;
+    }
+
+    const double deltaSquared = radianceDeltaSquared(before, after);
+    depthMetrics.depthDeltaSquaredSum += deltaSquared;
+    if (depthMetrics.metrics) {
+      depthMetrics.depthMaxDelta = std::max(depthMetrics.depthMaxDelta, std::sqrt(deltaSquared));
+    }
+  }
+
+  void PathTracingIntegrator::intersectActiveFrontier(
+    const Scene& scene, const std::vector<std::size_t>& activePathIndices,
+    std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits, int bounce,
+    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
+    activeHits.clear();
+
+    for (const std::size_t pathIndex : activePathIndices) {
+      auto& path = paths[pathIndex];
+      const Colord accumulatedBeforeDepth = path.accumulated;
+      if (isCancelled()) {
+        path.active = false;
+        recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated);
+        continue;
+      }
+
+      path.state.recurseIn();
+
+      HitPointInterval hitPoints;
+      const Primitive* primitive = nullptr;
+      {
+        core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+        primitive = scene.intersect(path.ray, hitPoints, path.state);
+      }
+      if (!primitive) {
+        path.accumulated += path.throughput * scene.background();
+        path.state.recurseOut();
+        path.active = false;
+        recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated);
+        continue;
+      }
+
+      const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+      if (bounce == 0) {
+        path.state.hitPoint = hitPoint;
+      }
+      activeHits.push_back(BatchHit{pathIndex, primitive, hitPoint, accumulatedBeforeDepth});
+    }
   }
 
   Colord PathTracingIntegrator::directLighting(const Scene& scene, const Light& light,
@@ -187,28 +267,7 @@ namespace render {
     const Scene& scene, const std::vector<IntegratorRaySample>& samples,
     const RayCaster& recursiveRayCaster, IntegratorBatchMetrics* metrics,
     const IntegratorBatchSettings& settings) const {
-    struct PathState {
-      explicit PathState(const IntegratorRaySample& sample)
-          : ray(sample.ray) {
-        state.timeSample = sample.timeSample;
-        state.sampleStream = sample.sampleStream();
-      }
-
-      Rayd ray;
-      Colord throughput{Colord::white()};
-      Colord accumulated{Colord::black()};
-      State state;
-      bool active{true};
-    };
-
-    struct PathHit {
-      std::size_t pathIndex{0};
-      const Primitive* primitive{nullptr};
-      HitPoint hitPoint;
-      Colord accumulatedBeforeDepth{Colord::black()};
-    };
-
-    std::vector<PathState> paths;
+    std::vector<BatchPath> paths;
     paths.reserve(samples.size());
     std::vector<std::size_t> activePathIndices;
     activePathIndices.reserve(samples.size());
@@ -236,7 +295,7 @@ namespace render {
     const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
     std::vector<std::size_t> nextActivePathIndices;
     nextActivePathIndices.reserve(samples.size());
-    std::vector<PathHit> activeHits;
+    std::vector<BatchHit> activeHits;
     activeHits.reserve(samples.size());
 
     for (int bounce = 0; bounce < m_maximumRecursionDepth; ++bounce) {
@@ -249,52 +308,10 @@ namespace render {
         metrics->activeSampleDepthsProcessed += activeCount;
       }
 
-      double depthDeltaSquaredSum = 0.0;
-      double depthMaxDelta = 0.0;
       nextActivePathIndices.clear();
-      activeHits.clear();
-      const auto recordDepthDelta = [&](const Colord& before, const Colord& after) {
-        if (!trackRadianceDelta) {
-          return;
-        }
-        const double deltaSquared = radianceDeltaSquared(before, after);
-        depthDeltaSquaredSum += deltaSquared;
-        if (metrics) {
-          depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
-        }
-      };
-
-      for (const std::size_t pathIndex : activePathIndices) {
-        auto& path = paths[pathIndex];
-        const Colord accumulatedBeforeDepth = path.accumulated;
-        if (isCancelled()) {
-          path.active = false;
-          recordDepthDelta(accumulatedBeforeDepth, path.accumulated);
-          continue;
-        }
-
-        path.state.recurseIn();
-
-        HitPointInterval hitPoints;
-        const Primitive* primitive = nullptr;
-        {
-          core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-          primitive = scene.intersect(path.ray, hitPoints, path.state);
-        }
-        if (!primitive) {
-          path.accumulated += path.throughput * scene.background();
-          path.state.recurseOut();
-          path.active = false;
-          recordDepthDelta(accumulatedBeforeDepth, path.accumulated);
-          continue;
-        }
-
-        const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
-        if (bounce == 0) {
-          path.state.hitPoint = hitPoint;
-        }
-        activeHits.push_back(PathHit{pathIndex, primitive, hitPoint, accumulatedBeforeDepth});
-      }
+      BatchDepthMetrics depthMetrics{trackRadianceDelta, 0.0, 0.0, metrics};
+      intersectActiveFrontier(scene, activePathIndices, paths, activeHits, bounce, depthMetrics,
+                              metrics);
 
       for (const auto& hit : activeHits) {
         auto& path = paths[hit.pathIndex];
@@ -304,7 +321,7 @@ namespace render {
           if (!material) {
             path.state.recurseOut();
             path.active = false;
-            recordDepthDelta(hit.accumulatedBeforeDepth, path.accumulated);
+            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated);
             continue;
           }
 
@@ -318,7 +335,7 @@ namespace render {
             }
             path.state.recurseOut();
             path.active = false;
-            recordDepthDelta(hit.accumulatedBeforeDepth, path.accumulated);
+            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated);
             continue;
           }
 
@@ -333,7 +350,7 @@ namespace render {
           if (sampled.pdf <= 0.0 || sampled.value == Colord::black()) {
             path.state.recurseOut();
             path.active = false;
-            recordDepthDelta(hit.accumulatedBeforeDepth, path.accumulated);
+            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated);
             continue;
           }
 
@@ -341,7 +358,7 @@ namespace render {
           if (!sampled.isDelta && normalDotWo <= 0.0) {
             path.state.recurseOut();
             path.active = false;
-            recordDepthDelta(hit.accumulatedBeforeDepth, path.accumulated);
+            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated);
             continue;
           }
 
@@ -360,7 +377,7 @@ namespace render {
             if (roulette >= survival) {
               path.state.recurseOut();
               path.active = false;
-              recordDepthDelta(hit.accumulatedBeforeDepth, path.accumulated);
+              recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated);
               continue;
             }
             path.throughput = path.throughput * (1.0 / survival);
@@ -368,14 +385,14 @@ namespace render {
 
           path.ray = sampled.rayFrom(hit.hitPoint);
           path.state.recurseOut();
-          recordDepthDelta(hit.accumulatedBeforeDepth, path.accumulated);
+          recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated);
           nextActivePathIndices.push_back(hit.pathIndex);
         }
       }
 
       if (metrics) {
-        metrics->radianceDeltaSquaredSumPerDepth.push_back(depthDeltaSquaredSum);
-        metrics->maxRadianceDeltaPerDepth.push_back(depthMaxDelta);
+        metrics->radianceDeltaSquaredSumPerDepth.push_back(depthMetrics.depthDeltaSquaredSum);
+        metrics->maxRadianceDeltaPerDepth.push_back(depthMetrics.depthMaxDelta);
       }
 
       if (settings.progressObserver) {
@@ -392,8 +409,9 @@ namespace render {
         const double activeFraction =
           static_cast<double>(nextActivePathIndices.size()) / static_cast<double>(paths.size());
         const double radianceDeltaRms =
-          activeCount == 0 ? 0.0
-                           : std::sqrt(depthDeltaSquaredSum / static_cast<double>(activeCount));
+          activeCount == 0
+            ? 0.0
+            : std::sqrt(depthMetrics.depthDeltaSquaredSum / static_cast<double>(activeCount));
         if (activeFraction <= settings.activeSampleFractionThreshold &&
             radianceDeltaRms <= settings.radianceDeltaRmsThreshold) {
           if (metrics) {
