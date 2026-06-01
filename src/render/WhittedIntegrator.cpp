@@ -4,6 +4,7 @@
 #include "core/math/Constants.h"
 #include "core/math/HitPoint.h"
 #include "core/math/HitPointInterval.h"
+#include "core/util/ScopedTimer.h"
 #include "render/RayCaster.h"
 #include "render/State.h"
 #include "render/materials/Material.h"
@@ -99,6 +100,8 @@ namespace render {
       metrics->compatibilityShadeSamples = 0;
       metrics->stoppedByConvergence = false;
       metrics->stoppedAfterDepth = 0;
+      metrics->intersectionWorkerSeconds = 0.0;
+      metrics->shadingWorkerSeconds = 0.0;
     }
 
     std::vector<Colord> result(samples.size(), Colord::black());
@@ -177,7 +180,11 @@ namespace render {
         }
 
         HitPointInterval hitPoints;
-        const Primitive* primitive = scene.intersect(queued.ray, hitPoints, queued.state);
+        const Primitive* primitive = nullptr;
+        {
+          core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+          primitive = scene.intersect(queued.ray, hitPoints, queued.state);
+        }
         if (isCancelled()) {
           result[queued.sampleIndex] += queued.weight * scene.background();
           continue;
@@ -189,42 +196,46 @@ namespace render {
           continue;
         }
 
-        const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
-        if (queued.state.recursionDepth == 1) {
-          queued.state.hitPoint = hitPoint;
-        }
-
-        const auto material = primitive->material();
-        if (!material) {
-          queued.state.recordEvent(nullptr, "Raytracer: no material found, returning black");
-          continue;
-        }
-
-        queued.state.recordEvent(nullptr, "Raytracer: shading material");
-        if (!material->supportsWhittedContinuations()) {
-          if (metrics) {
-            metrics->usedScalarFallback = true;
-            ++metrics->compatibilityShadeSamples;
+        {
+          core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
+          const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+          if (queued.state.recursionDepth == 1) {
+            queued.state.hitPoint = hitPoint;
           }
-          result[queued.sampleIndex] +=
-            queued.weight *
-            material->shade(&recursiveRayCaster, scene, queued.ray, hitPoint, queued.state);
-          continue;
-        }
 
-        const WhittedShadeResult shaded =
-          material->shadeWhitted(&recursiveRayCaster, scene, queued.ray, hitPoint, queued.state);
-        result[queued.sampleIndex] += queued.weight * shaded.localRadiance;
+          const auto material = primitive->material();
+          if (!material) {
+            queued.state.recordEvent(nullptr, "Raytracer: no material found, returning black");
+            continue;
+          }
 
-        for (const auto& continuation : shaded.continuations) {
-          next.push_back(QueuedRay{
-            queued.sampleIndex,
-            continuation.ray,
-            queued.weight * continuation.weight,
-            continuationState(queued.state, queued.state.throughput * continuation.throughputScale),
-          });
-          if (countNextActiveSamples) {
-            nextActiveSamples[queued.sampleIndex] = 1;
+          queued.state.recordEvent(nullptr, "Raytracer: shading material");
+          if (!material->supportsWhittedContinuations()) {
+            if (metrics) {
+              metrics->usedScalarFallback = true;
+              ++metrics->compatibilityShadeSamples;
+            }
+            result[queued.sampleIndex] +=
+              queued.weight *
+              material->shade(&recursiveRayCaster, scene, queued.ray, hitPoint, queued.state);
+            continue;
+          }
+
+          const WhittedShadeResult shaded =
+            material->shadeWhitted(&recursiveRayCaster, scene, queued.ray, hitPoint, queued.state);
+          result[queued.sampleIndex] += queued.weight * shaded.localRadiance;
+
+          for (const auto& continuation : shaded.continuations) {
+            next.push_back(QueuedRay{
+              queued.sampleIndex,
+              continuation.ray,
+              queued.weight * continuation.weight,
+              continuationState(queued.state,
+                                queued.state.throughput * continuation.throughputScale),
+            });
+            if (countNextActiveSamples) {
+              nextActiveSamples[queued.sampleIndex] = 1;
+            }
           }
         }
       }

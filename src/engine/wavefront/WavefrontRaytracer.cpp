@@ -101,6 +101,9 @@ namespace engine::wavefront {
     QJsonObject timingsJson;
     timingsJson["sampleGenerationWorkerSeconds"] = timings.sampleGenerationWorkerSeconds;
     timingsJson["integratorBatchWorkerSeconds"] = timings.integratorBatchWorkerSeconds;
+    timingsJson["integratorIntersectionWorkerSeconds"] =
+      timings.integratorIntersectionWorkerSeconds;
+    timingsJson["integratorShadingWorkerSeconds"] = timings.integratorShadingWorkerSeconds;
     timingsJson["totalRenderSeconds"] = timings.totalRenderSeconds;
 
     QJsonObject denoiseJson;

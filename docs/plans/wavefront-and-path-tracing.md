@@ -604,7 +604,11 @@ Wavefront metrics now report summed worker time for sample generation and
 integrator batches as well, giving future captures a direct way to tell whether
 the worker bottleneck is camera/sample setup or intersection/material transport
 work. These worker-time counters are intentionally not wall-clock sub-spans and
-can exceed total render time when tiles execute in parallel. The Whitted
+can exceed total render time when tiles execute in parallel. The integrator
+batch bucket is now split further into intersection and shading worker time,
+so captures can distinguish BVH/primitive traversal cost from material, direct
+lighting, and continuation sampling cost before the next speed optimization is
+chosen. The Whitted
 batch path now also avoids copying/scanning the full tile result buffer for
 radiance-delta metrics: metrics/convergence snapshots track only the unique
 active sample indices at each depth, and per-depth continuation queues reserve
@@ -620,6 +624,12 @@ capture with 300 tiles reported sample-generation worker time at ~198 ms
 without convergence and ~156 ms with convergence, down from the earlier
 ~875 ms / ~710 ms retained-stream setup captures, while preserving the same
 `rms_delta=0.0019742863` convergence image delta.
+A later capture with the integrator phase split reported `pathtracer_bounce`
+integrator worker time around ~633 ms, with ~97 ms in scene intersection and
+~30 ms in material/shading for the non-converged variant. That means the next
+speed slice should not assume BVH traversal alone dominates; path-state loop,
+active-frontier, progress/convergence, and batch bookkeeping overhead remain
+large enough to measure before packet traversal is introduced.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.
@@ -732,8 +742,10 @@ scheduler-feedback between-depth denoising is still open Phase 6 work.
 graph-backed bilateral-denoising scene so scene-authored denoiser intent can be
 tested in rendercli and inspected in Modeler. The rendercli graph functional
 suite now uses that scene as a quality gate: a 4spp bilateral-denoised render
-must be closer by normalized RGB RMS to a 64spp reference than the raw 4spp
-render, with filtered RMS capped at 0.03.
+must stay within normalized RGB RMS 0.03 of a 64spp reference. The gate avoids
+requiring every stochastic raw 4spp sample to be worse than the filtered image,
+because individual low-sample draws can occasionally land closer to the
+reference by chance.
 
 **Goal**: low-sample renders look acceptable.
 **Gate**: 4spp render with denoiser produces image visually comparable

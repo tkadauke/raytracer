@@ -3,6 +3,7 @@
 #include "core/math/HitPoint.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
+#include "core/util/ScopedTimer.h"
 #include "render/RayCaster.h"
 #include "render/State.h"
 #include "render/lights/Light.h"
@@ -222,6 +223,8 @@ namespace render {
       metrics->compatibilityShadeSamples = 0;
       metrics->stoppedByConvergence = false;
       metrics->stoppedAfterDepth = 0;
+      metrics->intersectionWorkerSeconds = 0.0;
+      metrics->shadingWorkerSeconds = 0.0;
     }
     const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
     std::vector<std::size_t> nextActivePathIndices;
@@ -265,7 +268,11 @@ namespace render {
         path.state.recurseIn();
 
         HitPointInterval hitPoints;
-        const Primitive* primitive = scene.intersect(path.ray, hitPoints, path.state);
+        const Primitive* primitive = nullptr;
+        {
+          core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+          primitive = scene.intersect(path.ray, hitPoints, path.state);
+        }
         if (!primitive) {
           path.accumulated += path.throughput * scene.background();
           path.state.recurseOut();
@@ -274,80 +281,84 @@ namespace render {
           continue;
         }
 
-        const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
-        if (bounce == 0) {
-          path.state.hitPoint = hitPoint;
-        }
-
-        const auto material = primitive->material();
-        if (!material) {
-          path.state.recurseOut();
-          path.active = false;
-          recordDepthDelta();
-          continue;
-        }
-
-        const Vector3d wi = -path.ray.direction().normalized();
-        if (!material->supportsBsdfSampling()) {
-          const Colord whittedColor =
-            material->shade(&recursiveRayCaster, scene, path.ray, hitPoint, path.state);
-          path.accumulated += path.throughput * whittedColor;
-          if (metrics) {
-            ++metrics->compatibilityShadeSamples;
+        {
+          core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
+          const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+          if (bounce == 0) {
+            path.state.hitPoint = hitPoint;
           }
-          path.state.recurseOut();
-          path.active = false;
-          recordDepthDelta();
-          continue;
-        }
 
-        for (const auto& light : scene.lights()) {
-          path.accumulated +=
-            path.throughput * directLighting(scene, *light, hitPoint, *material, wi, path.state);
-        }
-
-        const Vector2d bsdfSample = path.state.sampleStream->sample2D(
-          SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
-        const MaterialBsdfSample sampled = material->sampleBsdf(hitPoint, wi, bsdfSample);
-        if (sampled.pdf <= 0.0 || sampled.value == Colord::black()) {
-          path.state.recurseOut();
-          path.active = false;
-          recordDepthDelta();
-          continue;
-        }
-
-        const double normalDotWo = hitPoint.normal() * sampled.direction;
-        if (!sampled.isDelta && normalDotWo <= 0.0) {
-          path.state.recurseOut();
-          path.active = false;
-          recordDepthDelta();
-          continue;
-        }
-
-        if (sampled.isDelta) {
-          path.throughput = path.throughput * sampled.value;
-        } else {
-          path.throughput = path.throughput * (sampled.value * (normalDotWo / sampled.pdf));
-        }
-
-        if (bounce >= m_russianRouletteDepth) {
-          const double survival = std::clamp(
-            std::max({path.throughput.r(), path.throughput.g(), path.throughput.b()}), 0.05, 0.95);
-          const double roulette = path.state.sampleStream->sample1D(
-            SampleDimension::Continuation, static_cast<std::uint64_t>(bounce));
-          if (roulette >= survival) {
+          const auto material = primitive->material();
+          if (!material) {
             path.state.recurseOut();
             path.active = false;
             recordDepthDelta();
             continue;
           }
-          path.throughput = path.throughput * (1.0 / survival);
-        }
 
-        path.ray = sampled.rayFrom(hitPoint);
-        path.state.recurseOut();
-        recordDepthDelta();
-        nextActivePathIndices.push_back(pathIndex);
+          const Vector3d wi = -path.ray.direction().normalized();
+          if (!material->supportsBsdfSampling()) {
+            const Colord whittedColor =
+              material->shade(&recursiveRayCaster, scene, path.ray, hitPoint, path.state);
+            path.accumulated += path.throughput * whittedColor;
+            if (metrics) {
+              ++metrics->compatibilityShadeSamples;
+            }
+            path.state.recurseOut();
+            path.active = false;
+            recordDepthDelta();
+            continue;
+          }
+
+          for (const auto& light : scene.lights()) {
+            path.accumulated +=
+              path.throughput * directLighting(scene, *light, hitPoint, *material, wi, path.state);
+          }
+
+          const Vector2d bsdfSample = path.state.sampleStream->sample2D(
+            SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
+          const MaterialBsdfSample sampled = material->sampleBsdf(hitPoint, wi, bsdfSample);
+          if (sampled.pdf <= 0.0 || sampled.value == Colord::black()) {
+            path.state.recurseOut();
+            path.active = false;
+            recordDepthDelta();
+            continue;
+          }
+
+          const double normalDotWo = hitPoint.normal() * sampled.direction;
+          if (!sampled.isDelta && normalDotWo <= 0.0) {
+            path.state.recurseOut();
+            path.active = false;
+            recordDepthDelta();
+            continue;
+          }
+
+          if (sampled.isDelta) {
+            path.throughput = path.throughput * sampled.value;
+          } else {
+            path.throughput = path.throughput * (sampled.value * (normalDotWo / sampled.pdf));
+          }
+
+          if (bounce >= m_russianRouletteDepth) {
+            const double survival =
+              std::clamp(std::max({path.throughput.r(), path.throughput.g(), path.throughput.b()}),
+                         0.05, 0.95);
+            const double roulette = path.state.sampleStream->sample1D(
+              SampleDimension::Continuation, static_cast<std::uint64_t>(bounce));
+            if (roulette >= survival) {
+              path.state.recurseOut();
+              path.active = false;
+              recordDepthDelta();
+              continue;
+            }
+            path.throughput = path.throughput * (1.0 / survival);
+          }
+
+          path.ray = sampled.rayFrom(hitPoint);
+          path.state.recurseOut();
+          recordDepthDelta();
+          nextActivePathIndices.push_back(pathIndex);
+        }
       }
 
       if (metrics) {

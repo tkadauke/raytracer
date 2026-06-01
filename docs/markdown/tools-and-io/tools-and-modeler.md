@@ -217,10 +217,10 @@ radiance-delta RMS values, compatibility fallback counts, convergence
 thresholds, stop decisions, denoiser diagnostics when enabled, and total render
 time. The timing payload also reports summed worker time for sample generation
 and integrator batch work, so performance captures can separate camera/sample
-setup from intersection and material transport even when parallel worker time
-exceeds wall-clock render time. Metrics capture is opt-in; requesting wavefront
-metrics enables graph trace collection for that render but does not require
-writing a separate trace file.
+setup from scene-intersection and material/shading transport even when parallel
+worker time exceeds wall-clock render time. Metrics capture is opt-in;
+requesting wavefront metrics enables graph trace collection for that render but
+does not require writing a separate trace file.
 `--wavefront_denoiser box|bilateral` requests an opt-in wavefront denoiser.
 Box is a small HDR blur intended as the first graph-visible hook. Bilateral is
 a color-edge-preserving filter controlled by `--wavefront_denoise_radius N` and

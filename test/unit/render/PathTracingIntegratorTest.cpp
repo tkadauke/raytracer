@@ -269,6 +269,8 @@ namespace PathTracingIntegratorTest {
     ASSERT_EQ(1u, metrics.maxRadianceDeltaPerDepth.size());
     EXPECT_GT(metrics.maxRadianceDeltaPerDepth[0], 0.0);
     EXPECT_EQ(0u, metrics.compatibilityShadeSamples);
+    EXPECT_GT(metrics.intersectionWorkerSeconds, 0.0);
+    EXPECT_GT(metrics.shadingWorkerSeconds, 0.0);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceCancellationPreservesAccumulatedContribution) {

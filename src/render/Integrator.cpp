@@ -28,6 +28,8 @@ namespace render {
       metrics->compatibilityShadeSamples = 0;
       metrics->stoppedByConvergence = false;
       metrics->stoppedAfterDepth = 0;
+      metrics->intersectionWorkerSeconds = 0.0;
+      metrics->shadingWorkerSeconds = 0.0;
     }
 
     std::vector<Colord> result;

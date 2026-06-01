@@ -34,6 +34,8 @@ namespace render {
     std::uint64_t compatibilityShadeSamples{0};
     bool stoppedByConvergence{false};
     std::uint64_t stoppedAfterDepth{0};
+    double intersectionWorkerSeconds{0.0};
+    double shadingWorkerSeconds{0.0};
   };
 
   class IntegratorBatchObserver {

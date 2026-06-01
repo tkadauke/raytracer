@@ -244,6 +244,8 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
     EXPECT_EQ(2u, metrics.radianceDeltaSquaredSumPerDepth.size());
+    EXPECT_GT(metrics.intersectionWorkerSeconds, 0.0);
+    EXPECT_GT(metrics.shadingWorkerSeconds, 0.0);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceStopsExplicitContinuationsWhenConverged) {

@@ -1524,6 +1524,16 @@ if(NOT wavefront_metrics_stdout MATCHES "integrator_worker_ms=")
                   "wavefront metrics summary did not contain integrator worker timing"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "integrator_intersection_worker_ms=")
+  _rendercli_fail("rendercli wavefront metrics integrator intersection timing summary"
+                  "wavefront metrics summary did not contain integrator intersection worker timing"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "integrator_shading_worker_ms=")
+  _rendercli_fail("rendercli wavefront metrics integrator shading timing summary"
+                  "wavefront metrics summary did not contain integrator shading worker timing"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 rendercli_assert_exists("${wavefront_metrics_report}" NAME "wavefront metrics report exists")
 file(READ "${wavefront_metrics_report}" wavefront_metrics_json)
 if(NOT wavefront_metrics_json MATCHES "\"schema\"[^\n]*raytracer\\.wavefront_metrics\\.v1")
@@ -1549,6 +1559,16 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"integratorBatchWorkerSeconds\"")
   _rendercli_fail("rendercli wavefront metrics integrator worker timing"
                   "wavefront metrics report did not contain integrator-batch worker timing"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"integratorIntersectionWorkerSeconds\"")
+  _rendercli_fail("rendercli wavefront metrics integrator intersection timing"
+                  "wavefront metrics report did not contain integrator intersection worker timing"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"integratorShadingWorkerSeconds\"")
+  _rendercli_fail("rendercli wavefront metrics integrator shading timing"
+                  "wavefront metrics report did not contain integrator shading worker timing"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"radianceDeltaRmsPerDepth\"")
