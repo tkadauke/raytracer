@@ -50,6 +50,8 @@ namespace engine::wavefront {
       std::uint64_t maxBatchSize = 0;
       double averageBatchSize = 0.0;
       std::vector<std::uint64_t> activeSamplesPerDepth;
+      std::vector<double> radianceDeltaSquaredSumPerDepth;
+      std::vector<double> maxRadianceDeltaPerDepth;
     } batching;
 
     struct TimingSummary {

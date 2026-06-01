@@ -13,8 +13,9 @@
 > work landed. Phase 1, the throughput-cutoff prerequisite, is done, and Phase
 > 2 now makes ray integrator selection graph-visible. A scalar
 > `PathTracingIntegrator` also exists now. Phase 3 has started with the
-> `WavefrontRaytracer` engine and graph executor surface; explicit depth-major
-> queues and convergence instrumentation remain.
+> `WavefrontRaytracer` engine and graph executor surface. Depth-major
+> path-tracing batches now report active-path and radiance-delta metrics;
+> explicit Whitted queues and convergence stop policy remain.
 >
 > **Rule:** the wavefront engine is a **sibling** to the existing
 > `Raytracer`, not a replacement. Both ship; the user chooses through render
@@ -477,9 +478,10 @@ samples depth-major across the tile. Legacy materials that require synchronous
 `RayCaster` recursion still route through the private scalar adapter; explicit
 Whitted ray queues remain. The engine also records per-render metrics for
 rendered pixels, primary samples, tile count, queue decision, integrator name,
-batch execution mode, batch sizes, active sample counts per depth, and total
-render time; graph execution traces attach those metrics to the
-`wavefront_beauty` pass for Modeler and rendercli inspection.
+batch execution mode, batch sizes, active sample counts per depth,
+per-depth radiance-delta L2/RMS/max values, and total render time; graph
+execution traces attach those metrics to the `wavefront_beauty` pass for
+Modeler and rendercli inspection.
 
 **Goal**: prove the architecture without changing image output.
 **Gate**: macro benchmark output (sphere / torus / BVH scenes) RMS
@@ -507,10 +509,10 @@ executor submit a tile's primary samples as a batch, and
 `PathTracingIntegrator` overrides that hook with a depth-major loop over active
 path states. Wavefront pass trace metadata now exposes the selected integrator,
 whether the batch ran through scalar fallback or depth-major path scheduling,
-and aggregate active-path counts per depth. Remaining work is to turn those
-depth counters into convergence decisions and decide how far Whitted
-compatibility should go before recursive legacy materials are ported to
-explicit scattering.
+aggregate active-path counts per depth, and per-depth radiance-delta metrics.
+Remaining work is to turn those depth counters and deltas into convergence
+decisions and decide how far Whitted compatibility should go before recursive
+legacy materials are ported to explicit scattering.
 
 Start with pure single-continuation path tracing (Option **B**) unless a
 measured scene proves deterministic specular split (Option **C**) is needed for

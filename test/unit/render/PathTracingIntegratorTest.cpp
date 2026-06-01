@@ -153,6 +153,10 @@ namespace PathTracingIntegratorTest {
     EXPECT_FALSE(metrics.usedScalarFallback);
     ASSERT_EQ(1u, metrics.activeSamplesPerDepth.size());
     EXPECT_EQ(2u, metrics.activeSamplesPerDepth[0]);
+    ASSERT_EQ(1u, metrics.radianceDeltaSquaredSumPerDepth.size());
+    EXPECT_GT(metrics.radianceDeltaSquaredSumPerDepth[0], 0.0);
+    ASSERT_EQ(1u, metrics.maxRadianceDeltaPerDepth.size());
+    EXPECT_GT(metrics.maxRadianceDeltaPerDepth[0], 0.0);
   }
 
   TEST(PathTracingIntegrator, RussianRouletteEventuallyTerminatesPath) {

@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <functional>
 #include <iostream>
 #include <mutex>
@@ -71,6 +72,22 @@ namespace engine::wavefront {
     for (const std::uint64_t count : metrics.batching.activeSamplesPerDepth) {
       activeSamplesPerDepth.push_back(static_cast<double>(count));
     }
+    QJsonArray radianceDeltaL2PerDepth;
+    QJsonArray radianceDeltaRmsPerDepth;
+    for (std::size_t depth = 0; depth != metrics.batching.radianceDeltaSquaredSumPerDepth.size();
+         ++depth) {
+      const double squaredSum = metrics.batching.radianceDeltaSquaredSumPerDepth[depth];
+      radianceDeltaL2PerDepth.push_back(std::sqrt(squaredSum));
+      const std::uint64_t activeSamples = depth < metrics.batching.activeSamplesPerDepth.size()
+                                            ? metrics.batching.activeSamplesPerDepth[depth]
+                                            : 0;
+      radianceDeltaRmsPerDepth.push_back(
+        activeSamples == 0 ? 0.0 : std::sqrt(squaredSum / static_cast<double>(activeSamples)));
+    }
+    QJsonArray maxRadianceDeltaPerDepth;
+    for (const double delta : metrics.batching.maxRadianceDeltaPerDepth) {
+      maxRadianceDeltaPerDepth.push_back(delta);
+    }
     batching["integrator"] = QString::fromStdString(metrics.batching.integrator);
     batching["executionMode"] = QString::fromStdString(metrics.batching.executionMode);
     batching["batches"] = static_cast<double>(metrics.batching.batches);
@@ -78,6 +95,9 @@ namespace engine::wavefront {
     batching["maxBatchSize"] = static_cast<double>(metrics.batching.maxBatchSize);
     batching["averageBatchSize"] = metrics.batching.averageBatchSize;
     batching["activeSamplesPerDepth"] = activeSamplesPerDepth;
+    batching["radianceDeltaL2PerDepth"] = radianceDeltaL2PerDepth;
+    batching["radianceDeltaRmsPerDepth"] = radianceDeltaRmsPerDepth;
+    batching["maxRadianceDeltaPerDepth"] = maxRadianceDeltaPerDepth;
 
     QJsonObject timings;
     timings["totalRenderSeconds"] = metrics.timings.totalRenderSeconds;
@@ -211,6 +231,27 @@ namespace engine::wavefront {
              ++depth) {
           lastMetrics.batching.activeSamplesPerDepth[depth] +=
             result.batchMetrics.activeSamplesPerDepth[depth];
+        }
+        if (lastMetrics.batching.radianceDeltaSquaredSumPerDepth.size() <
+            result.batchMetrics.radianceDeltaSquaredSumPerDepth.size()) {
+          lastMetrics.batching.radianceDeltaSquaredSumPerDepth.resize(
+            result.batchMetrics.radianceDeltaSquaredSumPerDepth.size());
+        }
+        for (std::size_t depth = 0;
+             depth != result.batchMetrics.radianceDeltaSquaredSumPerDepth.size(); ++depth) {
+          lastMetrics.batching.radianceDeltaSquaredSumPerDepth[depth] +=
+            result.batchMetrics.radianceDeltaSquaredSumPerDepth[depth];
+        }
+        if (lastMetrics.batching.maxRadianceDeltaPerDepth.size() <
+            result.batchMetrics.maxRadianceDeltaPerDepth.size()) {
+          lastMetrics.batching.maxRadianceDeltaPerDepth.resize(
+            result.batchMetrics.maxRadianceDeltaPerDepth.size());
+        }
+        for (std::size_t depth = 0; depth != result.batchMetrics.maxRadianceDeltaPerDepth.size();
+             ++depth) {
+          lastMetrics.batching.maxRadianceDeltaPerDepth[depth] =
+            std::max(lastMetrics.batching.maxRadianceDeltaPerDepth[depth],
+                     result.batchMetrics.maxRadianceDeltaPerDepth[depth]);
         }
       }
     }

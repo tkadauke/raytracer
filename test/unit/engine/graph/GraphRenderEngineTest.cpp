@@ -1686,6 +1686,12 @@ namespace GraphRenderEngineTest {
     const QJsonArray activeSamples = batching.value("activeSamplesPerDepth").toArray();
     ASSERT_GE(activeSamples.size(), 1);
     EXPECT_EQ(1024.0, activeSamples.at(0).toDouble());
+    const QJsonArray deltaRms = batching.value("radianceDeltaRmsPerDepth").toArray();
+    ASSERT_GE(deltaRms.size(), 1);
+    EXPECT_GT(deltaRms.at(0).toDouble(), 0.0);
+    const QJsonArray maxDelta = batching.value("maxRadianceDeltaPerDepth").toArray();
+    ASSERT_GE(maxDelta.size(), 1);
+    EXPECT_GT(maxDelta.at(0).toDouble(), 0.0);
     EXPECT_GT(metadata.value("timings").toObject().value("totalRenderSeconds").toDouble(), 0.0);
     EXPECT_EQ(metadata, wavefront->toJson().value("metadata").toObject());
   }

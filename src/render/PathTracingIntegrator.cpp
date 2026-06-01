@@ -225,6 +225,8 @@ namespace render {
     if (metrics) {
       metrics->usedScalarFallback = false;
       metrics->activeSamplesPerDepth.clear();
+      metrics->radianceDeltaSquaredSumPerDepth.clear();
+      metrics->maxRadianceDeltaPerDepth.clear();
     }
 
     for (int bounce = 0; bounce < m_maximumRecursionDepth; ++bounce) {
@@ -241,14 +243,25 @@ namespace render {
         metrics->activeSamplesPerDepth.push_back(activeCount);
       }
 
+      double depthDeltaSquaredSum = 0.0;
+      double depthMaxDelta = 0.0;
       for (auto& path : paths) {
         if (!path.active) {
           continue;
         }
 
+        const Colord accumulatedBeforeDepth = path.accumulated;
+        const auto recordDepthDelta = [&] {
+          const double deltaSquared =
+            radianceDeltaSquared(accumulatedBeforeDepth, path.accumulated);
+          depthDeltaSquaredSum += deltaSquared;
+          depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
+        };
+
         if (isCancelled()) {
           path.accumulated = scene.background();
           path.active = false;
+          recordDepthDelta();
           continue;
         }
 
@@ -260,6 +273,7 @@ namespace render {
           path.accumulated += path.throughput * scene.background();
           path.state.recurseOut();
           path.active = false;
+          recordDepthDelta();
           continue;
         }
 
@@ -272,6 +286,7 @@ namespace render {
         if (!material) {
           path.state.recurseOut();
           path.active = false;
+          recordDepthDelta();
           continue;
         }
 
@@ -282,6 +297,7 @@ namespace render {
           path.accumulated += path.throughput * whittedColor;
           path.state.recurseOut();
           path.active = false;
+          recordDepthDelta();
           continue;
         }
 
@@ -296,6 +312,7 @@ namespace render {
         if (sampled.pdf <= 0.0 || sampled.value == Colord::black()) {
           path.state.recurseOut();
           path.active = false;
+          recordDepthDelta();
           continue;
         }
 
@@ -303,6 +320,7 @@ namespace render {
         if (normalDotWo <= 0.0) {
           path.state.recurseOut();
           path.active = false;
+          recordDepthDelta();
           continue;
         }
 
@@ -320,6 +338,7 @@ namespace render {
           if (roulette >= survival) {
             path.state.recurseOut();
             path.active = false;
+            recordDepthDelta();
             continue;
           }
           path.throughput = path.throughput * (1.0 / survival);
@@ -327,6 +346,12 @@ namespace render {
 
         path.ray = Rayd(hitPoint.point(), sampled.direction).epsilonShifted();
         path.state.recurseOut();
+        recordDepthDelta();
+      }
+
+      if (metrics) {
+        metrics->radianceDeltaSquaredSumPerDepth.push_back(depthDeltaSquaredSum);
+        metrics->maxRadianceDeltaPerDepth.push_back(depthMaxDelta);
       }
     }
 

@@ -613,7 +613,8 @@ rendercli, and Modeler a separate executor surface for the scheduler work that
 follows. After a traced wavefront render, the pass metadata reports the selected
 integrator, whether batches used scalar fallback or depth-major path
 scheduling, primary sample totals, active sample counts per depth, batch sizes,
-tile count, queue decision, and render timing.
+per-depth radiance-delta L2/RMS/max values, tile count, queue decision, and
+render timing.
 
 When the selected beauty executor is the rasterizer, graph-backed rendercli
 raster controls are compiled into the raster beauty pass's typed state and
@@ -776,7 +777,8 @@ metadata totals are available even when the user does not request the counter
 images.
 After a traced wavefront render, wavefront pass nodes summarize primary sample
 count and the integrator batch execution mode; the property editor exposes the
-full JSON metadata for tile, queue, batch, active-depth, and timing details.
+full JSON metadata for tile, queue, batch, active-depth, per-depth radiance
+delta, and timing details.
 
 - the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
   vertically, shows resources between producer and consumer passes, and lets the

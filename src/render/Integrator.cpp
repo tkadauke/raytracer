@@ -2,6 +2,9 @@
 
 #include "render/State.h"
 
+#include <algorithm>
+#include <cmath>
+
 namespace render {
   const char* Integrator::diagnosticName() const {
     return "custom";
@@ -18,19 +21,32 @@ namespace render {
     if (metrics) {
       metrics->usedScalarFallback = true;
       metrics->activeSamplesPerDepth.clear();
-      if (!samples.empty()) {
-        metrics->activeSamplesPerDepth.push_back(samples.size());
-      }
+      metrics->radianceDeltaSquaredSumPerDepth.clear();
+      metrics->maxRadianceDeltaPerDepth.clear();
     }
 
     std::vector<Colord> result;
     result.reserve(samples.size());
 
+    double deltaSquaredSum = 0.0;
+    double maxDelta = 0.0;
     for (const auto& sample : samples) {
       State state;
       state.timeSample = sample.timeSample;
       state.sampleStream = sample.sampleStream.get();
-      result.push_back(radiance(scene, sample.ray, state, recursiveRayCaster));
+      const Colord color = radiance(scene, sample.ray, state, recursiveRayCaster);
+      if (metrics) {
+        const double deltaSquared = radianceDeltaSquared(Colord::black(), color);
+        deltaSquaredSum += deltaSquared;
+        maxDelta = std::max(maxDelta, std::sqrt(deltaSquared));
+      }
+      result.push_back(color);
+    }
+
+    if (metrics && !samples.empty()) {
+      metrics->activeSamplesPerDepth.push_back(samples.size());
+      metrics->radianceDeltaSquaredSumPerDepth.push_back(deltaSquaredSum);
+      metrics->maxRadianceDeltaPerDepth.push_back(maxDelta);
     }
 
     return result;
@@ -40,5 +56,10 @@ namespace render {
   }
 
   void Integrator::setCancellationCallback(CancellationCallback) {
+  }
+
+  double Integrator::radianceDeltaSquared(const Colord& before, const Colord& after) const {
+    const Colord delta = after - before;
+    return delta.r() * delta.r() + delta.g() * delta.g() + delta.b() * delta.b();
   }
 }

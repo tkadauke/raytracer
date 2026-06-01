@@ -102,6 +102,10 @@ namespace WavefrontRaytracerTest {
     EXPECT_DOUBLE_EQ(48.0, metrics.batching.averageBatchSize);
     ASSERT_EQ(1u, metrics.batching.activeSamplesPerDepth.size());
     EXPECT_EQ(48u, metrics.batching.activeSamplesPerDepth[0]);
+    ASSERT_EQ(1u, metrics.batching.radianceDeltaSquaredSumPerDepth.size());
+    EXPECT_GT(metrics.batching.radianceDeltaSquaredSumPerDepth[0], 0.0);
+    ASSERT_EQ(1u, metrics.batching.maxRadianceDeltaPerDepth.size());
+    EXPECT_GT(metrics.batching.maxRadianceDeltaPerDepth[0], 0.0);
     EXPECT_GT(metrics.timings.totalRenderSeconds, 0.0);
 
     const QJsonObject json = wavefrontRenderMetricsToJson(metrics);
@@ -112,5 +116,17 @@ namespace WavefrontRaytracerTest {
       json.value("batching").toObject().value("activeSamplesPerDepth").toArray();
     ASSERT_EQ(1, activeSamples.size());
     EXPECT_EQ(48.0, activeSamples.at(0).toDouble());
+    const QJsonArray deltaL2 =
+      json.value("batching").toObject().value("radianceDeltaL2PerDepth").toArray();
+    ASSERT_EQ(1, deltaL2.size());
+    EXPECT_GT(deltaL2.at(0).toDouble(), 0.0);
+    const QJsonArray deltaRms =
+      json.value("batching").toObject().value("radianceDeltaRmsPerDepth").toArray();
+    ASSERT_EQ(1, deltaRms.size());
+    EXPECT_GT(deltaRms.at(0).toDouble(), 0.0);
+    const QJsonArray maxDelta =
+      json.value("batching").toObject().value("maxRadianceDeltaPerDepth").toArray();
+    ASSERT_EQ(1, maxDelta.size());
+    EXPECT_GT(maxDelta.at(0).toDouble(), 0.0);
   }
 }

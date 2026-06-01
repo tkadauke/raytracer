@@ -23,6 +23,8 @@ namespace render {
   struct IntegratorBatchMetrics {
     bool usedScalarFallback{false};
     std::vector<std::uint64_t> activeSamplesPerDepth;
+    std::vector<double> radianceDeltaSquaredSumPerDepth;
+    std::vector<double> maxRadianceDeltaPerDepth;
   };
 
   /**
@@ -115,5 +117,8 @@ namespace render {
       * perform long-running internal work may ignore it.
       */
     virtual void setCancellationCallback(CancellationCallback callback);
+
+  protected:
+    double radianceDeltaSquared(const Colord& before, const Colord& after) const;
   };
 }
