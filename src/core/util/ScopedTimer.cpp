@@ -3,7 +3,8 @@
 namespace core::util {
   ScopedTimer::ScopedTimer(double* seconds)
       : m_seconds(seconds),
-        m_start(std::chrono::steady_clock::now()),
+        m_start(seconds ? std::chrono::steady_clock::now()
+                        : std::chrono::steady_clock::time_point{}),
         m_running(seconds != nullptr) {
   }
 

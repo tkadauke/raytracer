@@ -167,6 +167,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront path sample-color storage.** Path-tracing batches now accumulate
   directly into the returned sample-color buffer and reuse it for progress
   snapshots, avoiding a final per-sample copy and preview snapshot allocation. — GPT-5
+- **Disabled timing overhead.** `ScopedTimer` no longer reads the clock when
+  constructed with a null output target, reducing normal wavefront render
+  overhead when metrics are disabled. — GPT-5
 - **Wavefront batch overhead.** Whitted and path-tracing batch integrators now
   skip per-sample radiance-delta diagnostics when neither metrics nor
   convergence are enabled, reducing plain wavefront render overhead. — GPT-5

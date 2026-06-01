@@ -628,7 +628,9 @@ through the owning fallback path so their virtual `stream()` overrides remain
 observable. Path-tracing batches also now accumulate directly into the
 sample-color buffer returned to the wavefront tile, so final result assembly no
 longer copies every sample and progress snapshots can publish the same live
-buffer instead of allocating a per-depth copy. A follow-up 160x120, 16spp,
+buffer instead of allocating a per-depth copy. Disabled `ScopedTimer` instances
+also skip clock reads now, so ordinary renders do not pay timing overhead when
+no metric bucket is requested. A follow-up 160x120, 16spp,
 max-depth-16 `pathtracer_bounce`
 capture with 300 tiles reported sample-generation worker time at ~198 ms
 without convergence and ~156 ms with convergence, down from the earlier
