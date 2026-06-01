@@ -107,6 +107,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Plane packet hit materialization.** `render::Plane` now materializes
   four-wide packet hits directly, giving wavefront floor/wall intersections
   per-lane hit points without the generic scalar interval fallback. — GPT-5
+- **Triangle packet hit materialization.** `render::Triangle` now materializes
+  four-wide packet hits directly, moving triangle-heavy BVH frontiers closer to
+  packet-shaped wavefront shading. — GPT-5
 
 ### Changed
 

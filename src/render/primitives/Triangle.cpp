@@ -140,6 +140,66 @@ RayPacketIntersection4 Triangle::intersectPacket(const Ray4& rays, render::State
 #endif
 }
 
+PrimitivePacketHit4 Triangle::intersectPacketHits(const Ray4& rays,
+                                                  const PrimitivePacketState4& states) const {
+  PrimitivePacketHit4 result;
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    const Rayd ray = rays.rayd(lane);
+
+    const double a = m_point0.x() - m_point1.x();
+    const double b = m_point0.x() - m_point2.x();
+    const double c = ray.direction().x();
+    const double d = m_point0.x() - ray.origin().x();
+    const double e = m_point0.y() - m_point1.y();
+    const double f = m_point0.y() - m_point2.y();
+    const double g = ray.direction().y();
+    const double h = m_point0.y() - ray.origin().y();
+    const double i = m_point0.z() - m_point1.z();
+    const double j = m_point0.z() - m_point2.z();
+    const double k = ray.direction().z();
+    const double l = m_point0.z() - ray.origin().z();
+
+    const double m = f * k - g * j;
+    const double n = h * k - g * l;
+    const double p = f * l - h * j;
+    const double q = g * i - e * k;
+    const double r = e * l - h * i;
+    const double s = e * j - f * i;
+
+    const double invDenom = 1.0 / (a * m + b * q + c * s);
+    const double beta = (d * m - b * n - c * p) * invDenom;
+    if (beta < 0.0 || beta > 1.0) {
+      state.miss(this, "Triangle, beta not in [0, 1]");
+      continue;
+    }
+
+    const double gamma = (a * n + d * q + c * r) * invDenom;
+    if (gamma < 0.0 || gamma > 1.0) {
+      state.miss(this, "Triangle, gamma not in [0, 1]");
+      continue;
+    }
+
+    if (beta + gamma > 1.0) {
+      state.miss(this, "Triangle, beta + gamma > 1");
+      continue;
+    }
+
+    const double t = (a * p - b * r + d * s) * invDenom;
+    if (t < 0.0) {
+      state.miss(this, "Triangle, behind ray");
+      continue;
+    }
+
+    state.hit(this, "Triangle");
+    if (t > 0.0) {
+      result.setHit(lane, this, HitPoint(this, t, ray.at(t), m_normal));
+    }
+  }
+  return result;
+}
+
 std::shared_ptr<Mesh> Triangle::tessellate(int) const {
   auto mesh = std::make_shared<Mesh>();
   mesh->addVertex(m_point0, m_normal, Vector2d(0, 0));
