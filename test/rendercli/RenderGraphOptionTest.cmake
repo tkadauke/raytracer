@@ -98,6 +98,10 @@ set(wavefront_reflection_parity_raytracer_render
     "${TEST_OUTPUT_DIR}/wavefront-reflection-parity-raytracer-render.png")
 set(wavefront_reflection_parity_render
     "${TEST_OUTPUT_DIR}/wavefront-reflection-parity-render.png")
+set(wavefront_bvh_macro_scene "${TEST_OUTPUT_DIR}/wavefront-bvh-macro-scene.json")
+set(wavefront_bvh_macro_raytracer_render
+    "${TEST_OUTPUT_DIR}/wavefront-bvh-macro-raytracer-render.png")
+set(wavefront_bvh_macro_render "${TEST_OUTPUT_DIR}/wavefront-bvh-macro-render.png")
 set(wavefront_indirect_render "${TEST_OUTPUT_DIR}/wavefront-indirect-render.png")
 set(wavefront_indirect_whitted_render
     "${TEST_OUTPUT_DIR}/wavefront-indirect-whitted-render.png")
@@ -282,6 +286,84 @@ file(WRITE "${default_graph_scene}" [=[
       "type": "Sphere",
       "children": []
     }
+  ]
+}
+]=])
+
+file(WRITE "${wavefront_bvh_macro_scene}" [=[
+{
+  "id": "{9a000000-0000-0000-0000-000000000000}",
+  "name": "Wavefront BVH Macro Fixture",
+  "ambient": [0.45, 0.45, 0.45],
+  "background": [0.02, 0.02, 0.03],
+  "accelerationMode": 3,
+  "type": "Scene",
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 1.0, -5.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.3,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "light",
+      "name": "Light",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 1.0,
+      "direction": [-0.35, -1.0, -0.45],
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "warm",
+      "name": "Warm",
+      "color": [0.9, 0.45, 0.18],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "matte",
+      "name": "Matte",
+      "diffuseTexture": "warm",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+]=])
+set(wavefront_bvh_positions -1.4 -0.7 0.0 0.7 1.4)
+set(wavefront_bvh_sphere_index 0)
+foreach(z IN LISTS wavefront_bvh_positions)
+  foreach(x IN LISTS wavefront_bvh_positions)
+    if(NOT wavefront_bvh_sphere_index EQUAL 0)
+      file(APPEND "${wavefront_bvh_macro_scene}" ",\n")
+    endif()
+    file(APPEND "${wavefront_bvh_macro_scene}"
+"    {
+      \"id\": \"bvh-sphere-${wavefront_bvh_sphere_index}\",
+      \"name\": \"BVH Sphere ${wavefront_bvh_sphere_index}\",
+      \"position\": [${x}, 0.0, ${z}],
+      \"rotation\": [0.0, 0.0, 0.0],
+      \"scale\": [1.0, 1.0, 1.0],
+      \"visible\": true,
+      \"material\": \"matte\",
+      \"radius\": 0.28,
+      \"type\": \"Sphere\",
+      \"children\": []
+    }")
+    math(EXPR wavefront_bvh_sphere_index "${wavefront_bvh_sphere_index} + 1")
+  endforeach()
+endforeach()
+file(APPEND "${wavefront_bvh_macro_scene}" [=[
+
   ]
 }
 ]=])
@@ -1430,6 +1512,22 @@ rendercli_assert_image_rms_at_most("${wavefront_reflection_parity_raytracer_rend
 rendercli_assert_image_hash_equals("${wavefront_reflection_parity_raytracer_render}"
                                    "${wavefront_reflection_parity_render}"
                                    NAME "wavefront graph matches recursive reflection raytracer graph")
+
+rendercli_run(
+  NAME "rendercli renders recursive raytracer BVH macro baseline"
+  COMMAND
+    "${RENDERCLI}" --engine raytracer --width 32 --height 32 --depth 3
+    "${wavefront_bvh_macro_scene}" "${wavefront_bvh_macro_raytracer_render}"
+)
+rendercli_run(
+  NAME "rendercli renders wavefront BVH macro baseline"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 32 --height 32 --depth 3
+    "${wavefront_bvh_macro_scene}" "${wavefront_bvh_macro_render}"
+)
+rendercli_assert_image_rms_at_most("${wavefront_bvh_macro_raytracer_render}"
+                                   "${wavefront_bvh_macro_render}" 0.001
+                                   NAME "wavefront BVH macro RMS matches recursive raytracer")
 
 rendercli_run(
   NAME "rendercli renders wavefront indirect environment scene from intent"

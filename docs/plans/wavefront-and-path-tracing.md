@@ -496,7 +496,9 @@ that exercises transparent Whitted continuation queues and a reflection-heavy
 scene check that exercises recursive reflective continuation queues. The
 rendercli image-probe helper can now compare two rendered images by normalized
 RGB RMS delta, so future macro-scene parity gates do not have to rely on exact
-PNG hashes when harmless quantization/threading differences appear.
+PNG hashes when harmless quantization/threading differences appear. A generated
+BVH-heavy sphere fixture now uses that RMS path as the first macro-scene parity
+gate.
 
 **Goal**: prove the architecture without changing image output.
 **Gate**: macro benchmark output (sphere / torus / BVH scenes) RMS
