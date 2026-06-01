@@ -56,6 +56,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Wavefront denoiser feature prepass scheduling.** Wavefront now builds
+  denoiser albedo/normal/depth feature buffers through the same tile scheduler
+  and per-tile sampling seeds as the beauty pass, reducing serial prepass cost
+  and keeping feature samples aligned with rendered samples. — GPT-5
 - **Wavefront path-tracing batches.** The wavefront executor now submits tile
   primary-ray samples through a virtual integrator batch API; the path-tracing
   integrator processes those batches depth-major while Whitted compatibility

@@ -364,6 +364,45 @@ namespace engine::wavefront {
       lastMetrics.denoise.featureSeconds += seconds;
     }
 
+    void buildDenoiserFeatureTile(DenoiserFeatureSet& features, render::Camera& camera,
+                                  const render::Scene& scene, const Recti& actualRect,
+                                  std::optional<std::uint64_t> tileSeed) const {
+      if (actualRect.width() <= 0 || actualRect.height() <= 0) {
+        return;
+      }
+
+      auto plane = camera.viewPlane();
+      for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
+                                       end = plane->end(actualRect);
+           pixel != end; ++pixel) {
+        if (camera.isCancelled()) {
+          break;
+        }
+
+        const auto sample = camera.primaryRaySample(pixel, /*sampleIndex=*/0, tileSeed);
+        if (!sample) {
+          continue;
+        }
+
+        render::State state;
+        state.timeSample = sample->timeSample;
+        state.sampleStream = sample->sampleStream.get();
+        HitPointInterval hitPoints;
+        const render::Primitive* primitive = scene.intersect(sample->ray, hitPoints, state);
+        if (!primitive) {
+          continue;
+        }
+
+        const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+        Colord albedo = Colord::black();
+        if (const auto material = primitive->material()) {
+          albedo = material->denoisingAlbedo(sample->ray, hitPoint);
+        }
+        writeDenoiserFeature(features, pixel.footprintWithin(actualRect), albedo,
+                             hitPoint.normal().normalizedOrZero(1e-12), hitPoint.distance());
+      }
+    }
+
     void copyDenoiserFeatureTile(const DenoiserFeatureSet& source, DenoiserFeatureSet& target,
                                  const Recti& actualRect) const {
       for (int y = actualRect.top(); y != actualRect.bottom(); ++y) {
@@ -439,49 +478,25 @@ namespace engine::wavefront {
 
     std::unique_ptr<DenoiserFeatureSet> buildDenoiserFeatures(render::Camera& camera,
                                                               const render::Scene& scene,
-                                                              const Recti& rect) const {
+                                                              const Recti& rect,
+                                                              const render::TilePlan& tilePlan) {
       if (!denoiser) {
         return nullptr;
       }
 
       const auto featureStart = WavefrontClock::now();
       auto features = std::make_unique<DenoiserFeatureSet>(rect.width(), rect.height());
-      const Recti actualRect = camera.renderableRect(rect);
-      if (actualRect.width() <= 0 || actualRect.height() <= 0) {
-        recordDenoiserFeatureSeconds(featureStart);
-        return features;
-      }
-
-      auto plane = camera.viewPlane();
-      for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
-                                       end = plane->end(actualRect);
-           pixel != end; ++pixel) {
-        if (camera.isCancelled()) {
-          break;
-        }
-
-        const auto sample = camera.primaryRaySample(pixel, /*sampleIndex=*/0, samplingSeed);
-        if (!sample) {
-          continue;
-        }
-
-        render::State state;
-        state.timeSample = sample->timeSample;
-        state.sampleStream = sample->sampleStream.get();
-        HitPointInterval hitPoints;
-        const render::Primitive* primitive = scene.intersect(sample->ray, hitPoints, state);
-        if (!primitive) {
-          continue;
-        }
-
-        const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
-        Colord albedo = Colord::black();
-        if (const auto material = primitive->material()) {
-          albedo = material->denoisingAlbedo(sample->ray, hitPoint);
-        }
-        writeDenoiserFeature(*features, pixel.footprintWithin(actualRect), albedo,
-                             hitPoint.normal().normalizedOrZero(1e-12), hitPoint.distance());
-      }
+      std::list<std::shared_ptr<engine::TileRenderTask>> featureTasks;
+      const auto renderSeed = samplingSeed;
+      engine::dispatchTileTasks(
+        tilePlan, *threadPool, featureTasks, [&](const Recti& tileRect, std::size_t tileIndex) {
+          const std::optional<std::uint64_t> tileSeed =
+            renderSeed
+              ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*renderSeed, tileIndex))
+              : std::nullopt;
+          buildDenoiserFeatureTile(*features, camera, scene, camera.renderableRect(tileRect),
+                                   tileSeed);
+        });
       recordDenoiserFeatureSeconds(featureStart);
       return features;
     }
@@ -742,7 +757,8 @@ namespace engine::wavefront {
       render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
     const auto renderStart = WavefrontClock::now();
     p->resetMetrics(*m_camera, buffer.width(), buffer.height(), tilePlan);
-    const auto denoiserFeatures = p->buildDenoiserFeatures(*m_camera, *m_scene, buffer.rect());
+    const auto denoiserFeatures =
+      p->buildDenoiserFeatures(*m_camera, *m_scene, buffer.rect(), tilePlan);
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
     const auto samplingSeed = p->samplingSeed;
     engine::dispatchTileTasks(tilePlan, *p->threadPool, p->tasks,
@@ -842,7 +858,8 @@ namespace engine::wavefront {
       render::TilePlan::forBuffer(hdrBuffer.width(), hdrBuffer.height(), p->queueSize);
     const auto renderStart = WavefrontClock::now();
     p->resetMetrics(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan);
-    const auto denoiserFeatures = p->buildDenoiserFeatures(*m_camera, *m_scene, hdrBuffer.rect());
+    const auto denoiserFeatures =
+      p->buildDenoiserFeatures(*m_camera, *m_scene, hdrBuffer.rect(), tilePlan);
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
     const auto samplingSeed = p->samplingSeed;
     engine::dispatchTileTasks(

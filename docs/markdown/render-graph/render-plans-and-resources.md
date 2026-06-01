@@ -638,10 +638,12 @@ filtered before the final display buffer is rewritten. The frame can also carry
 optional feature buffers such as albedo, normal, and depth. Wavefront fills
 those buffers from primary-hit material albedo, surface normals, and ray depth
 when a denoiser is installed, and feature-aware filters can use them without
-coupling themselves to the wavefront engine. During graph-backed preview
-renders, depth-progress tile snapshots are passed through a cloned denoiser
-before they are published, while the final full-frame buffer still gets the
-ordinary end-of-render denoise.
+coupling themselves to the wavefront engine. The feature prepass uses the same
+tile scheduler and per-tile sampling seed derivation as the beauty pass, so the
+AOV samples line up with the first rendered sample without becoming a serial
+bottleneck. During graph-backed preview renders, depth-progress tile snapshots
+are passed through a cloned denoiser before they are published, while the final
+full-frame buffer still gets the ordinary end-of-render denoise.
 `render::BoxDenoiser` is deliberately simple and exists to pin the hook;
 `render::BilateralDenoiser` is the first useful edge-preserving filter,
 weighting neighbors by pixel distance, color difference, and any compatible
