@@ -108,6 +108,7 @@
 | `include/render/cameras/SphericalCamera.h` | [Cameras](../ray-rendering/cameras.md) |
 | `include/render/cameras/ThinLensCamera.h` | [Cameras](../ray-rendering/cameras.md) |
 | `include/render/cameras/TiltShiftCamera.h` | [Cameras](../ray-rendering/cameras.md) |
+| `include/render/denoise/BilateralDenoiser.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/render/denoise/BoxDenoiser.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/render/denoise/Denoiser.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/render/lights/DirectionalLight.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
@@ -237,6 +238,7 @@
 | `src/modeler/` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/modeler/MainWindow.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[LDraw import](../tools-and-io/ldraw-import.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/render/WhittedIntegrator.cpp` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
+| `src/render/denoise/BilateralDenoiser.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/render/denoise/BoxDenoiser.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/render/materials/MatteMaterial.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `src/render/materials/PhongMaterial.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |

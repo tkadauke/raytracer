@@ -44,6 +44,8 @@ class RenderIntentElement : public Element {
                setWavefrontConvergenceRmsDelta)
   Q_PROPERTY(QString wavefrontDenoiser READ wavefrontDenoiser WRITE setWavefrontDenoiser)
   Q_PROPERTY(int wavefrontDenoiseRadius READ wavefrontDenoiseRadius WRITE setWavefrontDenoiseRadius)
+  Q_PROPERTY(double wavefrontDenoiseColorSigma READ wavefrontDenoiseColorSigma WRITE
+               setWavefrontDenoiseColorSigma)
   Q_PROPERTY(int rasterizerLod READ rasterizerLod WRITE setRasterizerLod)
   Q_PROPERTY(QString rasterizerTessellationQuality READ rasterizerTessellationQuality WRITE
                setRasterizerTessellationQuality)
@@ -153,6 +155,8 @@ public:
 
   int wavefrontDenoiseRadius() const;
   void setWavefrontDenoiseRadius(int radius);
+  double wavefrontDenoiseColorSigma() const;
+  void setWavefrontDenoiseColorSigma(double sigma);
 
   int rasterizerLod() const;
   void setRasterizerLod(int lod);

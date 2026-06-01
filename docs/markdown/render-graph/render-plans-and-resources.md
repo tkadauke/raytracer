@@ -633,14 +633,17 @@ convergence stop decisions, denoiser name/parameters/time when denoising is
 enabled, tile count, queue decision, and render timing.
 Wavefront also has an opt-in denoiser hook at the engine level:
 `render::Denoiser` instances can filter the HDR beauty buffer before the final
-display buffer is rewritten. The first implementation, `render::BoxDenoiser`,
-is deliberately simple and exists to pin the hook. The resolved ray-family pass
-state can now carry `denoise: {type, radius}` for wavefront passes, where
-`type: "box"` installs the filter and `type: "none"` explicitly disables an
-inherited denoiser. rendercli and Modeler Render Settings expose the same
-controls, so denoising is part of compiled render intent rather than a hidden
-engine toggle. Denoisers publish their own diagnostics, so future filters can
-add trace metadata without a wavefront-engine type switch.
+display buffer is rewritten. `render::BoxDenoiser` is deliberately simple and
+exists to pin the hook; `render::BilateralDenoiser` is the first useful
+edge-preserving filter, weighting neighbors by both pixel distance and color
+difference. The resolved ray-family pass state can now carry
+`denoise: {type, radius, colorSigma}` for wavefront passes, where
+`type: "box"` installs the simple filter, `type: "bilateral"` installs the
+color-bilateral filter, and `type: "none"` explicitly disables an inherited
+denoiser. rendercli and Modeler Render Settings expose the same controls, so
+denoising is part of compiled render intent rather than a hidden engine toggle.
+Denoisers publish their own diagnostics, so future filters can add trace
+metadata without a wavefront-engine type switch.
 The reusable scene
 [`scenes/wavefront_indirect_environment_demo.json`](../../../scenes/wavefront_indirect_environment_demo.json)
 opens with a wavefront path-tracing intent and no direct lights; the matte
@@ -1039,6 +1042,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/engine/graph/WireframePassState.h`
 - `include/render/denoise/Denoiser.h`
 - `include/render/denoise/BoxDenoiser.h`
+- `include/render/denoise/BilateralDenoiser.h`
 - `include/engine/graph/RenderResource.h`
 - `include/engine/graph/RenderResourceStorage.h`
 - `include/engine/graph/GraphRenderEngine.h`
@@ -1057,6 +1061,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `src/engine/graph/RenderGraphTypes.cpp`
 - `src/engine/graph/GraphRenderEngine.cpp`
 - `src/render/denoise/BoxDenoiser.cpp`
+- `src/render/denoise/BilateralDenoiser.cpp`
 - `src/engine/graph/RenderPassPayloads.cpp`
 - `src/engine/graph/RenderPassState.cpp`
 - `src/engine/graph/PostProcessPassState.cpp`

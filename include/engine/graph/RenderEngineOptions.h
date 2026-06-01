@@ -53,6 +53,7 @@ namespace engine::graph {
     void setConvergenceRadianceDeltaRmsThreshold(double threshold);
     void setDenoiser(std::string denoiser);
     void setDenoiseRadius(int radius);
+    void setDenoiseColorSigma(double sigma);
 
     std::optional<int> maximumRecursionDepth() const;
     std::optional<int> maximumThreads() const;
@@ -66,6 +67,7 @@ namespace engine::graph {
     std::optional<double> convergenceRadianceDeltaRmsThreshold() const;
     std::optional<std::string> denoiser() const;
     std::optional<int> denoiseRadius() const;
+    std::optional<double> denoiseColorSigma() const;
 
   private:
     std::optional<int> m_maximumRecursionDepth;
@@ -80,6 +82,7 @@ namespace engine::graph {
     std::optional<double> m_convergenceRadianceDeltaRmsThreshold;
     std::optional<std::string> m_denoiser;
     std::optional<int> m_denoiseRadius;
+    std::optional<double> m_denoiseColorSigma;
   };
 
   /**

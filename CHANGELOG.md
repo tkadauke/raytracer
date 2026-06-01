@@ -31,6 +31,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront denoiser metrics.** Wavefront render metrics and graph trace
   metadata now report whether denoising ran, the selected denoiser, its
   published parameters, and denoise time. — GPT-5
+- **Wavefront bilateral denoiser.** Added an opt-in color-bilateral wavefront
+  denoiser with render intent, graph JSON, rendercli, and Modeler Render
+  Settings controls. — GPT-5
 
 ### Changed
 

@@ -7,6 +7,7 @@
 #include "render/PathTracingIntegrator.h"
 #include "render/WhittedIntegrator.h"
 #include "render/cameras/Camera.h"
+#include "render/denoise/BilateralDenoiser.h"
 #include "render/denoise/BoxDenoiser.h"
 #include "render/denoise/Denoiser.h"
 #include "render/samplers/Sampler.h"
@@ -141,11 +142,13 @@ namespace engine::graph {
     }
 
     const QJsonObject denoise = objectField(object, "denoise", path);
-    rejectUnknownFields(denoise, path + ".denoise", {"type", "radius"});
+    rejectUnknownFields(denoise, path + ".denoise", {"type", "radius", "colorSigma"});
     if (hasField(denoise, "type"))
       state.setDenoiser(stringField(denoise, "type", path + ".denoise"));
     if (hasField(denoise, "radius"))
       state.setDenoiseRadius(intField(denoise, "radius", path + ".denoise"));
+    if (hasField(denoise, "colorSigma"))
+      state.setDenoiseColorSigma(doubleField(denoise, "colorSigma", path + ".denoise"));
 
     return state;
   }
@@ -209,11 +212,17 @@ namespace engine::graph {
     QJsonObject denoise;
     if (m_denoiser) {
       denoise["type"] = qstr(*m_denoiser);
+    } else if (m_denoiseColorSigma) {
+      denoise["type"] = QStringLiteral("bilateral");
     } else if (m_denoiseRadius) {
       denoise["type"] = QStringLiteral("box");
     }
     if (m_denoiseRadius && (!m_denoiser || *m_denoiser != "none"))
       denoise["radius"] = *m_denoiseRadius;
+    const bool denoiseIsBilateral =
+      (m_denoiser && *m_denoiser == "bilateral") || (!m_denoiser && m_denoiseColorSigma);
+    if (m_denoiseColorSigma && denoiseIsBilateral)
+      denoise["colorSigma"] = *m_denoiseColorSigma;
     if (!denoise.isEmpty())
       object["denoise"] = denoise;
 
@@ -331,6 +340,10 @@ namespace engine::graph {
     m_denoiseRadius = std::max(0, radius);
   }
 
+  void RaytracerBeautyPassState::setDenoiseColorSigma(double sigma) {
+    m_denoiseColorSigma = std::max(0.0, sigma);
+  }
+
   std::optional<int> RaytracerBeautyPassState::maximumRecursionDepth() const {
     return m_maximumRecursionDepth;
   }
@@ -379,6 +392,10 @@ namespace engine::graph {
     return m_denoiseRadius;
   }
 
+  std::optional<double> RaytracerBeautyPassState::denoiseColorSigma() const {
+    return m_denoiseColorSigma;
+  }
+
   std::string RaytracerBeautyPassState::normalizedIntegratorName(std::string integrator,
                                                                  const std::string& path) {
     std::transform(integrator.begin(), integrator.end(), integrator.begin(),
@@ -400,7 +417,9 @@ namespace engine::graph {
       return "none";
     if (denoiser == "box" || denoiser == "box_filter")
       return "box";
-    stateError(path, "expected none or box");
+    if (denoiser == "bilateral" || denoiser == "bilateral_filter" || denoiser == "color_bilateral")
+      return "bilateral";
+    stateError(path, "expected none, box, or bilateral");
   }
 
   std::unique_ptr<render::Integrator> RaytracerBeautyPassState::createIntegratorForPass() const {
@@ -418,6 +437,10 @@ namespace engine::graph {
   std::unique_ptr<render::Denoiser> RaytracerBeautyPassState::createDenoiserForPass() const {
     if (m_denoiser && *m_denoiser == "none")
       return nullptr;
+    if ((m_denoiser && *m_denoiser == "bilateral") || (!m_denoiser && m_denoiseColorSigma)) {
+      return std::make_unique<render::BilateralDenoiser>(m_denoiseRadius.value_or(2),
+                                                         m_denoiseColorSigma.value_or(0.1));
+    }
     if ((m_denoiser && *m_denoiser == "box") || (!m_denoiser && m_denoiseRadius))
       return std::make_unique<render::BoxDenoiser>(m_denoiseRadius.value_or(1));
     return nullptr;

@@ -218,14 +218,15 @@ thresholds, stop decisions, denoiser diagnostics when enabled, and total render
 time. Metrics capture is opt-in; requesting wavefront metrics enables graph
 trace collection for that render but does not require writing a separate trace
 file.
-`--wavefront_denoiser box` requests the first opt-in wavefront denoiser, a
-small HDR box filter intended as the graph-visible hook for later edge-aware
-denoisers. `--wavefront_denoise_radius N` controls the radius in pixels; giving
-the radius without a denoiser also selects the box denoiser. `none` disables an
-inherited scene denoiser in the compiled intent. Wavefront metrics record the
-chosen denoiser, its published parameters, and how much time filtering took;
-the compact `--wavefront_metrics_summary` line prints those same denoiser
-fields as `denoiser`, `denoise_ms`, and `denoise_<parameter>`.
+`--wavefront_denoiser box|bilateral` requests an opt-in wavefront denoiser.
+Box is a small HDR blur intended as the first graph-visible hook. Bilateral is
+a color-edge-preserving filter controlled by `--wavefront_denoise_radius N` and
+`--wavefront_denoise_color_sigma S`; giving a radius without a denoiser selects
+box, while giving a color sigma without a denoiser selects bilateral. `none`
+disables an inherited scene denoiser in the compiled intent. Wavefront metrics
+record the chosen denoiser, its published parameters, and how much time
+filtering took; the compact `--wavefront_metrics_summary` line prints those
+same denoiser fields as `denoiser`, `denoise_ms`, and `denoise_<parameter>`.
 
 That gives a two-step debugging loop:
 
@@ -285,9 +286,9 @@ radiance-delta thresholds for advanced tuning; the wavefront executor uses the
 resolved values as the current depth-major path-batch stop policy, reports the
 decision in trace metadata, and publishes depth-pass preview updates while a
 graph-backed Wavefront pass is still running. The same wavefront section can
-request the box denoiser and choose its pixel radius. Engine-specific fields only
-show for the selected default engine. The same property editor has a search field for
-filtering long
+request the box or bilateral denoiser, choose its pixel radius, and set the
+bilateral color sigma. Engine-specific fields only show for the selected
+default engine. The same property editor has a search field for filtering long
 property sets and collapsible groups so advanced scene/import settings can stay
 out of the way. Internal execution controls such as
 view-plane type, worker thread count, and queue size stay hidden in Modeler;

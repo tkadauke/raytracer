@@ -203,9 +203,9 @@ set(wavefront_denoise_output "${TEST_OUTPUT_DIR}/wavefront-denoise-direct.png")
 rendercli_run(
   NAME "rendercli wavefront direct engine accepts denoiser"
   COMMAND
-    "${RENDERCLI}" --direct_engine --engine wavefront --wavefront_denoiser box
-    --wavefront_denoise_radius 1 --width 24 --height 24 --sampler Regular
-    --samples_per_pixel 4 "${raytracer_scene}" "${wavefront_denoise_output}"
+    "${RENDERCLI}" --direct_engine --engine wavefront --wavefront_denoiser bilateral
+    --wavefront_denoise_radius 2 --wavefront_denoise_color_sigma 0.2 --width 24 --height 24
+    --sampler Regular --samples_per_pixel 4 "${raytracer_scene}" "${wavefront_denoise_output}"
 )
 rendercli_assert_image_dimensions("${wavefront_denoise_output}" 24 24
                                   NAME "wavefront denoise direct dimensions")

@@ -608,7 +608,10 @@ that hook to graph-visible ray-family pass state: render intent serializes
 denoiser controls when the wavefront executor is selected. Wavefront metrics
 now also include denoiser diagnostics: whether filtering ran, the denoiser name,
 its published parameters, and denoise time. Better edge-aware/AOV-aware filters
-and true between-depth denoising are still open Phase 6 work.
+are now started with `render::BilateralDenoiser`, a color-bilateral filter that
+preserves strong color edges better than the original box filter and is exposed
+through render intent, graph JSON, rendercli, and Modeler Render Settings. AOV
+feature buffers and true between-depth denoising are still open Phase 6 work.
 
 **Goal**: low-sample renders look acceptable.
 **Gate**: 4spp render with denoiser produces image visually comparable

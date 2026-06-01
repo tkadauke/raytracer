@@ -303,7 +303,7 @@ namespace engine::graph {
     return !m_maximumRecursionDepth && !m_maximumThreads && !m_queueSize && !m_integrator &&
            !m_sampler && !m_samplesPerPixel && !m_viewPlane && !m_convergenceEnabled &&
            !m_convergenceActiveSampleFractionThreshold && !m_convergenceRadianceDeltaRmsThreshold &&
-           !m_denoiser && !m_denoiseRadius;
+           !m_denoiser && !m_denoiseRadius && !m_denoiseColorSigma;
   }
 
   QJsonObject RenderRaytracerOptions::toJson() const {
@@ -341,6 +341,8 @@ namespace engine::graph {
       options.setDenoiser(*state.denoiser());
     if (state.denoiseRadius())
       options.setDenoiseRadius(*state.denoiseRadius());
+    if (state.denoiseColorSigma())
+      options.setDenoiseColorSigma(*state.denoiseColorSigma());
     return options;
   }
 
@@ -366,6 +368,8 @@ namespace engine::graph {
                        overrides.m_convergenceRadianceDeltaRmsThreshold);
     result.m_denoiser = overrideOptional(result.m_denoiser, overrides.m_denoiser);
     result.m_denoiseRadius = overrideOptional(result.m_denoiseRadius, overrides.m_denoiseRadius);
+    result.m_denoiseColorSigma =
+      overrideOptional(result.m_denoiseColorSigma, overrides.m_denoiseColorSigma);
     return result;
   }
 
@@ -396,6 +400,8 @@ namespace engine::graph {
       state.setDenoiser(*m_denoiser);
     if (m_denoiseRadius)
       state.setDenoiseRadius(*m_denoiseRadius);
+    if (m_denoiseColorSigma)
+      state.setDenoiseColorSigma(*m_denoiseColorSigma);
     return state;
   }
 
@@ -451,6 +457,10 @@ namespace engine::graph {
     m_denoiseRadius = std::max(0, radius);
   }
 
+  void RenderRaytracerOptions::setDenoiseColorSigma(double sigma) {
+    m_denoiseColorSigma = std::max(0.0, sigma);
+  }
+
   std::optional<int> RenderRaytracerOptions::maximumRecursionDepth() const {
     return m_maximumRecursionDepth;
   }
@@ -497,6 +507,10 @@ namespace engine::graph {
 
   std::optional<int> RenderRaytracerOptions::denoiseRadius() const {
     return m_denoiseRadius;
+  }
+
+  std::optional<double> RenderRaytracerOptions::denoiseColorSigma() const {
+    return m_denoiseColorSigma;
   }
 
   bool RenderRasterizerOptions::empty() const {

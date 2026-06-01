@@ -30,6 +30,7 @@
 #include "engine/raster/Rasterizer.h"
 #include "engine/wavefront/WavefrontRaytracer.h"
 #include "engine/wireframe/Wireframe.h"
+#include "render/denoise/BilateralDenoiser.h"
 #include "render/denoise/BoxDenoiser.h"
 #include "render/materials/Material.h"
 #include "render/primitives/Scene.h"
@@ -1054,6 +1055,8 @@ private:
   bool m_wavefrontDenoiserSet;
   int m_wavefrontDenoiseRadius;
   bool m_wavefrontDenoiseRadiusSet;
+  double m_wavefrontDenoiseColorSigma;
+  bool m_wavefrontDenoiseColorSigmaSet;
   bool m_renderGraph;
   bool m_directEngine;
   bool m_renderGraphOnly;
@@ -1225,6 +1228,8 @@ Renderer::Renderer()
       m_wavefrontDenoiserSet(false),
       m_wavefrontDenoiseRadius(1),
       m_wavefrontDenoiseRadiusSet(false),
+      m_wavefrontDenoiseColorSigma(0.1),
+      m_wavefrontDenoiseColorSigmaSet(false),
       m_renderGraph(true),
       m_directEngine(false),
       m_renderGraphOnly(false),
@@ -1422,6 +1427,8 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.raytracer().setDenoiser(m_wavefrontDenoiser.toStdString());
   if (m_wavefrontDenoiseRadiusSet)
     options.raytracer().setDenoiseRadius(m_wavefrontDenoiseRadius);
+  if (m_wavefrontDenoiseColorSigmaSet)
+    options.raytracer().setDenoiseColorSigma(m_wavefrontDenoiseColorSigma);
   if (m_threadsSet) {
     options.raytracer().setMaximumThreads(m_threads);
     options.rasterizer().setMaximumThreads(m_threads);
@@ -2034,10 +2041,20 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     }
     if (m_wavefrontConvergenceRmsDeltaSet)
       wavefront->setConvergenceRadianceDeltaRmsThreshold(m_wavefrontConvergenceRmsDelta);
+    const int denoiseRadius = !m_wavefrontDenoiseRadiusSet && (m_wavefrontDenoiser == "bilateral" ||
+                                                               m_wavefrontDenoiseColorSigmaSet)
+                                ? 2
+                                : m_wavefrontDenoiseRadius;
     if (m_wavefrontDenoiserSet && m_wavefrontDenoiser == "none") {
       wavefront->clearDenoiser();
+    } else if (m_wavefrontDenoiserSet && m_wavefrontDenoiser == "bilateral") {
+      wavefront->setDenoiser(
+        std::make_unique<render::BilateralDenoiser>(denoiseRadius, m_wavefrontDenoiseColorSigma));
     } else if (m_wavefrontDenoiserSet && m_wavefrontDenoiser == "box") {
       wavefront->setDenoiser(std::make_unique<render::BoxDenoiser>(m_wavefrontDenoiseRadius));
+    } else if (m_wavefrontDenoiseColorSigmaSet) {
+      wavefront->setDenoiser(
+        std::make_unique<render::BilateralDenoiser>(denoiseRadius, m_wavefrontDenoiseColorSigma));
     } else if (m_wavefrontDenoiseRadiusSet) {
       wavefront->setDenoiser(std::make_unique<render::BoxDenoiser>(m_wavefrontDenoiseRadius));
     }
@@ -2499,8 +2516,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "Wavefront convergence active-sample fraction threshold in 0..1", "fraction"},
      {"wavefront_convergence_rms_delta",
       "Wavefront convergence per-depth RMS radiance delta threshold", "delta"},
-     {"wavefront_denoiser", "Wavefront denoiser (none, box)", "denoiser"},
-     {"wavefront_denoise_radius", "Wavefront box denoiser radius in pixels", "radius"},
+     {"wavefront_denoiser", "Wavefront denoiser (none, box, bilateral)", "denoiser"},
+     {"wavefront_denoise_radius", "Wavefront denoiser radius in pixels", "radius"},
+     {"wavefront_denoise_color_sigma", "Wavefront bilateral denoiser color sigma", "sigma"},
      {"render_graph", "Render through the compiled render graph; this is the default"},
      {{"direct_engine", "no_render_graph"},
       "Bypass the render graph and render with the selected engine directly"},
@@ -2895,11 +2913,15 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     const QString denoiser = parser.value("wavefront_denoiser").trimmed().toLower();
     const QString normalized = normalizedRasterOption(denoiser);
     if (normalized != "none" && normalized != "off" && normalized != "disabled" &&
-        normalized != "box" && normalized != "boxfilter") {
-      *errorMessage = "Wavefront denoiser must be 'none' or 'box'";
+        normalized != "box" && normalized != "boxfilter" && normalized != "bilateral" &&
+        normalized != "bilateralfilter" && normalized != "colorbilateral") {
+      *errorMessage = "Wavefront denoiser must be 'none', 'box', or 'bilateral'";
       return CommandLineError;
     }
-    m_wavefrontDenoiser = normalized == "boxfilter" ? QStringLiteral("box") : denoiser;
+    m_wavefrontDenoiser = normalized == "boxfilter" ? QStringLiteral("box")
+                          : normalized == "bilateralfilter" || normalized == "colorbilateral"
+                            ? QStringLiteral("bilateral")
+                            : denoiser;
     if (normalized == "off" || normalized == "disabled")
       m_wavefrontDenoiser = QStringLiteral("none");
     m_wavefrontDenoiserSet = true;
@@ -2914,6 +2936,17 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     }
     m_wavefrontDenoiseRadius = radius;
     m_wavefrontDenoiseRadiusSet = true;
+  }
+
+  if (parser.isSet("wavefront_denoise_color_sigma")) {
+    bool ok = false;
+    const double sigma = parser.value("wavefront_denoise_color_sigma").toDouble(&ok);
+    if (!ok || sigma <= 0.0) {
+      *errorMessage = "Wavefront denoise color sigma must be positive";
+      return CommandLineError;
+    }
+    m_wavefrontDenoiseColorSigma = sigma;
+    m_wavefrontDenoiseColorSigmaSet = true;
   }
 
   if (parser.isSet("render_graph")) {

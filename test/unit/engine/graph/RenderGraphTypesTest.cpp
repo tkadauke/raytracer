@@ -155,8 +155,9 @@ namespace RenderGraphTypesTest {
     intent.engineOptions.raytracer().setIntegrator("pathtracer");
     intent.engineOptions.raytracer().setSampler("Jittered");
     intent.engineOptions.raytracer().setSamplesPerPixel(8);
-    intent.engineOptions.raytracer().setDenoiser("box");
+    intent.engineOptions.raytracer().setDenoiser("bilateral");
     intent.engineOptions.raytracer().setDenoiseRadius(2);
+    intent.engineOptions.raytracer().setDenoiseColorSigma(0.2);
     intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
     intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::Auto);
     intent.engineOptions.rasterizer().setLod(3);
@@ -197,9 +198,11 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ(
       8, engineOptions["raytracer"].toObject()["sampling"].toObject()["samplesPerPixel"].toInt());
     EXPECT_EQ(
-      "box",
+      "bilateral",
       engineOptions["raytracer"].toObject()["denoise"].toObject()["type"].toString().toStdString());
     EXPECT_EQ(2, engineOptions["raytracer"].toObject()["denoise"].toObject()["radius"].toInt());
+    EXPECT_DOUBLE_EQ(
+      0.2, engineOptions["raytracer"].toObject()["denoise"].toObject()["colorSigma"].toDouble());
     EXPECT_EQ("opengl", engineOptions["rasterizer"]
                           .toObject()["execution"]
                           .toObject()["backend"]
@@ -254,8 +257,9 @@ namespace RenderGraphTypesTest {
     QJsonObject raytracerSampling;
     raytracerSampling["samplesPerPixel"] = 12;
     QJsonObject raytracerDenoise;
-    raytracerDenoise["type"] = "box";
+    raytracerDenoise["type"] = "bilateral";
     raytracerDenoise["radius"] = 5;
+    raytracerDenoise["colorSigma"] = 0.3;
     QJsonObject raytracerOptions;
     raytracerOptions["execution"] = raytracerExecution;
     raytracerOptions["sampling"] = raytracerSampling;
@@ -304,9 +308,11 @@ namespace RenderGraphTypesTest {
     ASSERT_TRUE(intent.engineOptions.raytracer().samplesPerPixel().has_value());
     EXPECT_EQ(12, *intent.engineOptions.raytracer().samplesPerPixel());
     ASSERT_TRUE(intent.engineOptions.raytracer().denoiser().has_value());
-    EXPECT_EQ("box", *intent.engineOptions.raytracer().denoiser());
+    EXPECT_EQ("bilateral", *intent.engineOptions.raytracer().denoiser());
     ASSERT_TRUE(intent.engineOptions.raytracer().denoiseRadius().has_value());
     EXPECT_EQ(5, *intent.engineOptions.raytracer().denoiseRadius());
+    ASSERT_TRUE(intent.engineOptions.raytracer().denoiseColorSigma().has_value());
+    EXPECT_DOUBLE_EQ(0.3, *intent.engineOptions.raytracer().denoiseColorSigma());
     ASSERT_TRUE(intent.engineOptions.rasterizer().msaaSamples().has_value());
     EXPECT_EQ(4, *intent.engineOptions.rasterizer().msaaSamples());
     ASSERT_TRUE(intent.engineOptions.rasterizer().backend().has_value());
@@ -491,23 +497,27 @@ namespace RenderGraphTypesTest {
   TEST(RenderSubviewIntent, ResolvesInheritedAndIndependentEngineOptions) {
     RenderEngineOptions global;
     global.raytracer().setSamplesPerPixel(8);
-    global.raytracer().setDenoiser("box");
+    global.raytracer().setDenoiser("bilateral");
     global.raytracer().setDenoiseRadius(3);
+    global.raytracer().setDenoiseColorSigma(0.25);
     global.rasterizer().setMSAASamples(4);
 
     RenderSubviewIntent inherited;
     inherited.name = "reflection_probe";
     inherited.view.engineOptions.raytracer().setDenoiseRadius(1);
+    inherited.view.engineOptions.raytracer().setDenoiseColorSigma(0.1);
     inherited.view.engineOptions.rasterizer().setMSAASamples(1);
 
     const RenderEngineOptions inheritedOptions = inherited.resolvedEngineOptions(global);
     ASSERT_TRUE(inheritedOptions.raytracer().samplesPerPixel().has_value());
     ASSERT_TRUE(inheritedOptions.raytracer().denoiser().has_value());
     ASSERT_TRUE(inheritedOptions.raytracer().denoiseRadius().has_value());
+    ASSERT_TRUE(inheritedOptions.raytracer().denoiseColorSigma().has_value());
     ASSERT_TRUE(inheritedOptions.rasterizer().msaaSamples().has_value());
     EXPECT_EQ(8, *inheritedOptions.raytracer().samplesPerPixel());
-    EXPECT_EQ("box", *inheritedOptions.raytracer().denoiser());
+    EXPECT_EQ("bilateral", *inheritedOptions.raytracer().denoiser());
     EXPECT_EQ(1, *inheritedOptions.raytracer().denoiseRadius());
+    EXPECT_DOUBLE_EQ(0.1, *inheritedOptions.raytracer().denoiseColorSigma());
     EXPECT_EQ(1, *inheritedOptions.rasterizer().msaaSamples());
 
     RenderSubviewIntent independent = inherited;
@@ -518,6 +528,8 @@ namespace RenderGraphTypesTest {
     EXPECT_FALSE(independentOptions.raytracer().denoiser().has_value());
     ASSERT_TRUE(independentOptions.raytracer().denoiseRadius().has_value());
     EXPECT_EQ(1, *independentOptions.raytracer().denoiseRadius());
+    ASSERT_TRUE(independentOptions.raytracer().denoiseColorSigma().has_value());
+    EXPECT_DOUBLE_EQ(0.1, *independentOptions.raytracer().denoiseColorSigma());
     ASSERT_TRUE(independentOptions.rasterizer().msaaSamples().has_value());
     EXPECT_EQ(1, *independentOptions.rasterizer().msaaSamples());
   }

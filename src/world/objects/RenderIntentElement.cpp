@@ -48,7 +48,9 @@ bool RenderIntentElement::isPropertyVisible(const QString& propertyName) const {
     if (propertyName == QStringLiteral("wavefrontDenoiser"))
       return true;
     if (propertyName == QStringLiteral("wavefrontDenoiseRadius"))
-      return wavefrontDenoiser() == QStringLiteral("box");
+      return wavefrontDenoiser() != QStringLiteral("none");
+    if (propertyName == QStringLiteral("wavefrontDenoiseColorSigma"))
+      return wavefrontDenoiser() == QStringLiteral("bilateral");
     if (propertyName == QStringLiteral("wavefrontConvergenceQuality"))
       return wavefrontConvergence();
     return wavefrontConvergence();
@@ -110,6 +112,8 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
     return QStringLiteral("Denoiser");
   if (propertyName == QStringLiteral("wavefrontDenoiseRadius"))
     return QStringLiteral("Denoise Radius");
+  if (propertyName == QStringLiteral("wavefrontDenoiseColorSigma"))
+    return QStringLiteral("Color Sigma");
   if (propertyName == QStringLiteral("rasterizerLod"))
     return QStringLiteral("LOD");
   if (propertyName == QStringLiteral("rasterizerTessellationQuality"))
@@ -178,10 +182,13 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
     return QStringLiteral("Per-depth RMS radiance delta threshold for convergence.");
   if (propertyName == QStringLiteral("wavefrontDenoiser"))
     return QStringLiteral(
-      "Optional HDR denoising pass for low-sample wavefront renders. Box is a simple spatial "
-      "filter and mainly useful as the first graph-visible denoising hook.");
+      "Optional HDR denoising pass for low-sample wavefront renders. Bilateral is a "
+      "color-edge-preserving spatial filter; Box is a simple blur mostly useful for debugging.");
   if (propertyName == QStringLiteral("wavefrontDenoiseRadius"))
-    return QStringLiteral("Box denoiser radius in pixels.");
+    return QStringLiteral("Denoiser radius in pixels.");
+  if (propertyName == QStringLiteral("wavefrontDenoiseColorSigma"))
+    return QStringLiteral("Bilateral color difference threshold; lower values preserve stronger "
+                          "color edges.");
   return Element::propertyDescription(propertyName);
 }
 
@@ -235,7 +242,7 @@ QStringList RenderIntentElement::propertyChoices(const QString& propertyName) co
     return {QStringLiteral("off"), QStringLiteral("preview"), QStringLiteral("balanced"),
             QStringLiteral("final"), QStringLiteral("custom")};
   if (propertyName == QStringLiteral("wavefrontDenoiser"))
-    return {QStringLiteral("none"), QStringLiteral("box")};
+    return {QStringLiteral("none"), QStringLiteral("box"), QStringLiteral("bilateral")};
   if (propertyName == QStringLiteral("rasterizerBackend"))
     return {QStringLiteral("cpu"), QStringLiteral("opengl")};
   if (propertyName == QStringLiteral("rasterizerVisibilityCulling"))
@@ -290,6 +297,8 @@ RenderIntentElement::propertyDoubleRange(const QString& propertyName) const {
     return QPair<double, double>(0.0, 1.0);
   if (propertyName == QStringLiteral("wavefrontConvergenceRmsDelta"))
     return QPair<double, double>(0.0, 10.0);
+  if (propertyName == QStringLiteral("wavefrontDenoiseColorSigma"))
+    return QPair<double, double>(0.001, 10.0);
   return std::nullopt;
 }
 
@@ -322,6 +331,8 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
       return QStringLiteral("None");
     if (choice == QStringLiteral("box"))
       return QStringLiteral("Box");
+    if (choice == QStringLiteral("bilateral"))
+      return QStringLiteral("Bilateral");
   }
   if (propertyName == QStringLiteral("viewMode")) {
     if (choice == QStringLiteral("object_id"))
@@ -632,6 +643,8 @@ QString RenderIntentElement::wavefrontDenoiser() const {
   const auto options = intent().engineOptions.raytracer();
   if (options.denoiser())
     return toQString(*options.denoiser());
+  if (options.denoiseColorSigma())
+    return QStringLiteral("bilateral");
   if (options.denoiseRadius())
     return QStringLiteral("box");
   return QStringLiteral("none");
@@ -644,12 +657,23 @@ void RenderIntentElement::setWavefrontDenoiser(const QString& denoiser) {
 }
 
 int RenderIntentElement::wavefrontDenoiseRadius() const {
-  return intent().engineOptions.raytracer().denoiseRadius().value_or(1);
+  return intent().engineOptions.raytracer().denoiseRadius().value_or(
+    wavefrontDenoiser() == QStringLiteral("bilateral") ? 2 : 1);
 }
 
 void RenderIntentElement::setWavefrontDenoiseRadius(int radius) {
   auto value = intent();
   value.engineOptions.raytracer().setDenoiseRadius(radius);
+  setIntent(value);
+}
+
+double RenderIntentElement::wavefrontDenoiseColorSigma() const {
+  return intent().engineOptions.raytracer().denoiseColorSigma().value_or(0.1);
+}
+
+void RenderIntentElement::setWavefrontDenoiseColorSigma(double sigma) {
+  auto value = intent();
+  value.engineOptions.raytracer().setDenoiseColorSigma(sigma);
   setIntent(value);
 }
 
