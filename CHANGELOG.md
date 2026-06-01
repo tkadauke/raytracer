@@ -22,9 +22,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   integrator processes those batches depth-major while Whitted compatibility
   remains available through the scalar fallback. — GPT-5
 - **Wavefront graph trace metadata.** Wavefront renders now record tile,
-  sample, integrator batch-mode, scheduling, and timing metrics in graph
-  execution traces, and the Modeler graph view summarizes the sample/batch
-  mode on wavefront pass nodes. — GPT-5
+  sample, integrator batch-mode, active-samples-per-depth, scheduling, and
+  timing metrics in graph execution traces, and the Modeler graph view
+  summarizes the sample/batch mode on wavefront pass nodes. — GPT-5
 - **Raytracer integrator selection is graph-visible.** Render intent and
   raytracer beauty pass state now carry `whitted` / `pathtracer` integrator
   selection, so rendercli's `--integrator pathtracer` is represented in

@@ -25,8 +25,9 @@
 #include "render/tonemap/ReinhardTonemap.h"
 #include "test/helpers/ColorTestHelper.h"
 
-#include <QString>
+#include <QJsonArray>
 #include <QJsonObject>
+#include <QString>
 
 #include <chrono>
 #include <cmath>
@@ -1682,6 +1683,9 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("depth_major_paths", batching.value("executionMode").toString());
     EXPECT_EQ(4, input.value("samplesPerPixel").toInt());
     EXPECT_EQ(1024.0, input.value("primarySamples").toDouble());
+    const QJsonArray activeSamples = batching.value("activeSamplesPerDepth").toArray();
+    ASSERT_GE(activeSamples.size(), 1);
+    EXPECT_EQ(1024.0, activeSamples.at(0).toDouble());
     EXPECT_GT(metadata.value("timings").toObject().value("totalRenderSeconds").toDouble(), 0.0);
     EXPECT_EQ(metadata, wavefront->toJson().value("metadata").toObject());
   }

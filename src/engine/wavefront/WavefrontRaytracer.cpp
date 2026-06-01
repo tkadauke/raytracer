@@ -14,6 +14,7 @@
 #include "render/primitives/Scene.h"
 #include "render/tonemap/Tonemap.h"
 
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QString>
 #include <QThread>
@@ -66,12 +67,17 @@ namespace engine::wavefront {
     scheduling["decision"] = QString::fromStdString(metrics.scheduling.decision);
 
     QJsonObject batching;
+    QJsonArray activeSamplesPerDepth;
+    for (const std::uint64_t count : metrics.batching.activeSamplesPerDepth) {
+      activeSamplesPerDepth.push_back(static_cast<double>(count));
+    }
     batching["integrator"] = QString::fromStdString(metrics.batching.integrator);
     batching["executionMode"] = QString::fromStdString(metrics.batching.executionMode);
     batching["batches"] = static_cast<double>(metrics.batching.batches);
     batching["samplesSubmitted"] = static_cast<double>(metrics.batching.samplesSubmitted);
     batching["maxBatchSize"] = static_cast<double>(metrics.batching.maxBatchSize);
     batching["averageBatchSize"] = metrics.batching.averageBatchSize;
+    batching["activeSamplesPerDepth"] = activeSamplesPerDepth;
 
     QJsonObject timings;
     timings["totalRenderSeconds"] = metrics.timings.totalRenderSeconds;
@@ -110,6 +116,7 @@ namespace engine::wavefront {
     struct TileTraceResult {
       std::vector<TilePixel> pixels;
       std::size_t sampleCount{0};
+      render::IntegratorBatchMetrics batchMetrics;
     };
 
     TileTraceResult traceTile(render::Camera& camera, const render::RayCaster& rayCaster,
@@ -147,7 +154,8 @@ namespace engine::wavefront {
         }
       }
 
-      const std::vector<Colord> sampleColors = integrator->radianceBatch(scene, samples, rayCaster);
+      const std::vector<Colord> sampleColors =
+        integrator->radianceBatch(scene, samples, rayCaster, &result.batchMetrics);
       const double sampleScale = 1.0 / sampleCount;
       for (std::size_t index = 0; index != sampleColors.size(); ++index) {
         result.pixels[samplePixelIndices[index]].color += sampleColors[index] * sampleScale;
@@ -194,6 +202,16 @@ namespace engine::wavefront {
         lastMetrics.batching.samplesSubmitted += result.sampleCount;
         lastMetrics.batching.maxBatchSize = std::max(
           lastMetrics.batching.maxBatchSize, static_cast<std::uint64_t>(result.sampleCount));
+        if (lastMetrics.batching.activeSamplesPerDepth.size() <
+            result.batchMetrics.activeSamplesPerDepth.size()) {
+          lastMetrics.batching.activeSamplesPerDepth.resize(
+            result.batchMetrics.activeSamplesPerDepth.size());
+        }
+        for (std::size_t depth = 0; depth != result.batchMetrics.activeSamplesPerDepth.size();
+             ++depth) {
+          lastMetrics.batching.activeSamplesPerDepth[depth] +=
+            result.batchMetrics.activeSamplesPerDepth[depth];
+        }
       }
     }
 

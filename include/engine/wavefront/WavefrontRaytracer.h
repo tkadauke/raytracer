@@ -8,6 +8,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 template<class T>
 class Buffer;
@@ -48,6 +49,7 @@ namespace engine::wavefront {
       std::uint64_t samplesSubmitted = 0;
       std::uint64_t maxBatchSize = 0;
       double averageBatchSize = 0.0;
+      std::vector<std::uint64_t> activeSamplesPerDepth;
     } batching;
 
     struct TimingSummary {

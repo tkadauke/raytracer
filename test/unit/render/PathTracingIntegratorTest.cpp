@@ -144,11 +144,15 @@ namespace PathTracingIntegratorTest {
     samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 29ull)});
 
     FallbackRayCaster caster;
-    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster);
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster, &metrics);
 
     ASSERT_EQ(2u, batched.size());
     ASSERT_COLOR_NEAR(traceWithSampleStream(integrator, *scene, 11ull, 0), batched[0], 1e-9);
     ASSERT_COLOR_NEAR(traceWithSampleStream(integrator, *scene, 29ull, 0), batched[1], 1e-9);
+    EXPECT_FALSE(metrics.usedScalarFallback);
+    ASSERT_EQ(1u, metrics.activeSamplesPerDepth.size());
+    EXPECT_EQ(2u, metrics.activeSamplesPerDepth[0]);
   }
 
   TEST(PathTracingIntegrator, RussianRouletteEventuallyTerminatesPath) {

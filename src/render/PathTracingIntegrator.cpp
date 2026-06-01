@@ -195,10 +195,9 @@ namespace render {
     return accumulated;
   }
 
-  std::vector<Colord>
-  PathTracingIntegrator::radianceBatch(const Scene& scene,
-                                       const std::vector<IntegratorRaySample>& samples,
-                                       const RayCaster& recursiveRayCaster) const {
+  std::vector<Colord> PathTracingIntegrator::radianceBatch(
+    const Scene& scene, const std::vector<IntegratorRaySample>& samples,
+    const RayCaster& recursiveRayCaster, IntegratorBatchMetrics* metrics) const {
     struct PathState {
       explicit PathState(const IntegratorRaySample& sample)
           : ray(sample.ray) {
@@ -217,19 +216,35 @@ namespace render {
     paths.reserve(samples.size());
     for (const auto& sample : samples) {
       if (!sample.sampleStream) {
-        return Integrator::radianceBatch(scene, samples, recursiveRayCaster);
+        return Integrator::radianceBatch(scene, samples, recursiveRayCaster, metrics);
       }
 
       paths.emplace_back(sample);
     }
 
+    if (metrics) {
+      metrics->usedScalarFallback = false;
+      metrics->activeSamplesPerDepth.clear();
+    }
+
     for (int bounce = 0; bounce < m_maximumRecursionDepth; ++bounce) {
-      bool anyActive = false;
+      std::uint64_t activeCount = 0;
+      for (auto& path : paths) {
+        if (path.active) {
+          ++activeCount;
+        }
+      }
+      if (activeCount == 0) {
+        break;
+      }
+      if (metrics) {
+        metrics->activeSamplesPerDepth.push_back(activeCount);
+      }
+
       for (auto& path : paths) {
         if (!path.active) {
           continue;
         }
-        anyActive = true;
 
         if (isCancelled()) {
           path.accumulated = scene.background();
@@ -312,10 +327,6 @@ namespace render {
 
         path.ray = Rayd(hitPoint.point(), sampled.direction).epsilonShifted();
         path.state.recurseOut();
-      }
-
-      if (!anyActive) {
-        break;
       }
     }
 

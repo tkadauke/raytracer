@@ -13,6 +13,7 @@
 
 #include "test/helpers/ColorTestHelper.h"
 
+#include <QJsonArray>
 #include <QJsonObject>
 
 namespace WavefrontRaytracerTest {
@@ -99,11 +100,17 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48u, metrics.batching.samplesSubmitted);
     EXPECT_EQ(48u, metrics.batching.maxBatchSize);
     EXPECT_DOUBLE_EQ(48.0, metrics.batching.averageBatchSize);
+    ASSERT_EQ(1u, metrics.batching.activeSamplesPerDepth.size());
+    EXPECT_EQ(48u, metrics.batching.activeSamplesPerDepth[0]);
     EXPECT_GT(metrics.timings.totalRenderSeconds, 0.0);
 
     const QJsonObject json = wavefrontRenderMetricsToJson(metrics);
     EXPECT_EQ("whitted",
               json.value("batching").toObject().value("integrator").toString().toStdString());
     EXPECT_EQ(48.0, json.value("batching").toObject().value("samplesSubmitted").toDouble());
+    const QJsonArray activeSamples =
+      json.value("batching").toObject().value("activeSamplesPerDepth").toArray();
+    ASSERT_EQ(1, activeSamples.size());
+    EXPECT_EQ(48.0, activeSamples.at(0).toDouble());
   }
 }

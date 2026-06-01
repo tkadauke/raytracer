@@ -3,6 +3,7 @@
 #include "core/Color.h"
 #include "core/math/Ray.h"
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -17,6 +18,11 @@ namespace render {
     Rayd ray;
     double timeSample{0.0};
     std::shared_ptr<SampleStream> sampleStream;
+  };
+
+  struct IntegratorBatchMetrics {
+    bool usedScalarFallback{false};
+    std::vector<std::uint64_t> activeSamplesPerDepth;
   };
 
   /**
@@ -94,7 +100,8 @@ namespace render {
       */
     virtual std::vector<Colord> radianceBatch(const Scene& scene,
                                               const std::vector<IntegratorRaySample>& samples,
-                                              const RayCaster& recursiveRayCaster) const;
+                                              const RayCaster& recursiveRayCaster,
+                                              IntegratorBatchMetrics* metrics = nullptr) const;
 
     /**
       * Configure the maximum ray depth when this integrator has a bounded

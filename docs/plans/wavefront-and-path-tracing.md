@@ -477,9 +477,9 @@ samples depth-major across the tile. Legacy materials that require synchronous
 `RayCaster` recursion still route through the private scalar adapter; explicit
 Whitted ray queues remain. The engine also records per-render metrics for
 rendered pixels, primary samples, tile count, queue decision, integrator name,
-batch execution mode, batch sizes, and total render time; graph execution traces
-attach those metrics to the `wavefront_beauty` pass for Modeler and rendercli
-inspection.
+batch execution mode, batch sizes, active sample counts per depth, and total
+render time; graph execution traces attach those metrics to the
+`wavefront_beauty` pass for Modeler and rendercli inspection.
 
 **Goal**: prove the architecture without changing image output.
 **Gate**: macro benchmark output (sphere / torus / BVH scenes) RMS
@@ -505,11 +505,12 @@ where needed so wavefront owns queues, active masks, and per-path state.
 The first slice is in place: `Integrator::radianceBatch` lets the wavefront
 executor submit a tile's primary samples as a batch, and
 `PathTracingIntegrator` overrides that hook with a depth-major loop over active
-path states. Wavefront pass trace metadata now exposes the selected integrator
-and whether the batch ran through scalar fallback or depth-major path
-scheduling. Remaining work is to expose per-bounce active-path/convergence
-metrics and decide how far Whitted compatibility should go before recursive
-legacy materials are ported to explicit scattering.
+path states. Wavefront pass trace metadata now exposes the selected integrator,
+whether the batch ran through scalar fallback or depth-major path scheduling,
+and aggregate active-path counts per depth. Remaining work is to turn those
+depth counters into convergence decisions and decide how far Whitted
+compatibility should go before recursive legacy materials are ported to
+explicit scattering.
 
 Start with pure single-continuation path tracing (Option **B**) unless a
 measured scene proves deterministic specular split (Option **C**) is needed for

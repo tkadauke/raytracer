@@ -64,7 +64,8 @@ namespace render {
 
     std::vector<Colord> radianceBatch(const Scene& scene,
                                       const std::vector<IntegratorRaySample>& samples,
-                                      const RayCaster& recursiveRayCaster) const override;
+                                      const RayCaster& recursiveRayCaster,
+                                      IntegratorBatchMetrics* metrics = nullptr) const override;
 
     void setCancellationCallback(CancellationCallback callback) override;
 
