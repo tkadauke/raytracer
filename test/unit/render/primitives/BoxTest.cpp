@@ -148,6 +148,33 @@ namespace BoxTest {
     ASSERT_EQ(2, packetState.intersectionMisses);
   }
 
+  TEST(Box, ShouldMaterializeRay4PacketHits) {
+    Box box(Vector3d(), Vector3d(1, 1, 1));
+    const std::array<Rayd, 4> rayArray{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 0), Vector3d(0, 0, 1))};
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = box.intersectPacketHits(Ray4(rayArray), states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(&box, result.primitive(0));
+    EXPECT_EQ(Vector3d(0, 0, -1), result.hitPoint(0).point());
+    EXPECT_EQ(Vector3d(0, 0, -1), result.hitPoint(0).normal());
+    EXPECT_EQ(1, result.hitPoint(0).distance());
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hit(2));
+    ASSERT_TRUE(result.hit(3));
+    EXPECT_EQ(Vector3d(0, 0, 1), result.hitPoint(3).point());
+    EXPECT_EQ(Vector3d(0, 0, 1), result.hitPoint(3).normal());
+    EXPECT_EQ(1, result.hitPoint(3).distance());
+    EXPECT_EQ(1, laneStates[0].intersectionHits);
+    EXPECT_EQ(1, laneStates[1].intersectionMisses);
+    EXPECT_EQ(1, laneStates[2].intersectionMisses);
+    EXPECT_EQ(1, laneStates[3].intersectionHits);
+  }
+
   TEST(Box, ShouldReturnFarthestPoint) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
     auto direction = Vector3d(0.1, -0.1, 0.1).normalized();
