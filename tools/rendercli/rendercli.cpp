@@ -1418,7 +1418,7 @@ int Renderer::rayFamilyQueueSize() const {
                                  static_cast<long long>(std::max(1, m_samplesPerPixel));
   // Keep rendercli's historical 640x480 default cap, but avoid one-pixel
   // tiles for small graph renders where tile-local sampling would dominate.
-  const long long pixelSizedQueue = std::max<long long>(1, samplePixels / 256);
+  const long long pixelSizedQueue = std::max<long long>(1, samplePixels / 384);
   const long long cappedQueue = std::min<long long>(std::max(1, m_queueSize), pixelSizedQueue);
   return std::max(std::max(1, m_threads), static_cast<int>(cappedQueue));
 }
