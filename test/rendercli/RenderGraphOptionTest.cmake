@@ -1489,6 +1489,9 @@ rendercli_run(
     "${RENDERCLI}" --engine wavefront --width 24 --height 24 --depth 4
     "${PROJECT_SOURCE_DIR}/scenes/glass_torus.json" "${wavefront_glass_parity_render}"
 )
+rendercli_assert_image_rms_at_most("${wavefront_glass_parity_raytracer_render}"
+                                   "${wavefront_glass_parity_render}" 0.001
+                                   NAME "wavefront glass torus RMS matches recursive raytracer")
 rendercli_assert_image_hash_equals("${wavefront_glass_parity_raytracer_render}"
                                    "${wavefront_glass_parity_render}"
                                    NAME "wavefront graph matches recursive glass raytracer graph")
