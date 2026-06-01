@@ -127,6 +127,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `render::Rectangle` now materialize four-wide packet hits directly, reducing
   scalar interval fallback for common floor, wall, and disk primitives on
   wavefront frontiers. — GPT-5
+- **Open cylinder packet hit materialization.** `render::OpenCylinder` now
+  materializes four-wide side-surface packet hits directly, including inside
+  cylinder exits and per-lane state updates for wavefront frontiers. — GPT-5
 
 ### Changed
 

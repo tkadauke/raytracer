@@ -1,11 +1,13 @@
 #include "render/State.h"
 #include "render/primitives/OpenCylinder.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 #include "core/math/Range.h"
 #include "core/math/Quadric.h"
 #include "core/math/HitPointInterval.h"
 #include "core/geometry/Mesh.h"
 #include <cmath>
+#include <limits>
 
 using namespace std;
 using namespace render;
@@ -54,6 +56,66 @@ const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitP
       return this;
     }
   }
+}
+
+PrimitivePacketHit4 OpenCylinder::intersectPacketHits(const Ray4& rays,
+                                                      const PrimitivePacketState4& states) const {
+  PrimitivePacketHit4 result;
+  const Range<double> yRange(-m_halfHeight, m_halfHeight);
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    const Rayd ray = rays.rayd(lane);
+
+    const double ox = ray.origin().x();
+    const double oz = ray.origin().z();
+    const double dx = ray.direction().x();
+    const double dz = ray.direction().z();
+
+    const double a = dx * dx + dz * dz;
+    const double b = 2.0 * (ox * dx + oz * dz);
+    const double c = ox * ox + oz * oz - m_radius * m_radius;
+
+    double t[2] = {};
+    const int roots = Quadric<double>(a, b, c).solveInto(t);
+    if (roots < 2) {
+      state.miss(this, "OpenCylinder, ray miss");
+      continue;
+    }
+
+    bool hasInRangeSideHit = false;
+    double bestDistance = std::numeric_limits<double>::infinity();
+    HitPoint bestHit;
+    for (double distance : t) {
+      const Vector3d point = ray.at(distance);
+      if (!yRange.contains(point.y())) {
+        continue;
+      }
+
+      hasInRangeSideHit = true;
+      if (distance > 0.0 && distance < bestDistance) {
+        bestDistance = distance;
+        bestHit = HitPoint(this, distance, point,
+                           Vector3d(point.x() * m_invRadius, 0.0, point.z() * m_invRadius));
+      }
+    }
+
+    if (t[0] <= 0.0 && t[1] <= 0.0) {
+      state.miss(this, "OpenCylinder, behind ray");
+      continue;
+    }
+
+    if (!hasInRangeSideHit) {
+      state.miss(this, "OpenCylinder, outside of y boundary");
+      continue;
+    }
+
+    state.hit(this, "OpenCylinder");
+    if (bestDistance < std::numeric_limits<double>::infinity()) {
+      result.setHit(lane, this, bestHit);
+    }
+  }
+  return result;
 }
 
 bool OpenCylinder::intersects(const Rayd& ray, render::State& state) const {
