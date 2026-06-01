@@ -74,6 +74,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront batch overhead.** Whitted and path-tracing batch integrators now
   skip per-sample radiance-delta diagnostics when neither metrics nor
   convergence are enabled, reducing plain wavefront render overhead. — GPT-5
+- **Wavefront metrics overhead.** `WavefrontRaytracer` metrics collection is
+  now opt-in: graph passes enable it for execution trace/metrics output, and
+  direct rendercli wavefront renders enable it only when wavefront metrics are
+  requested. — GPT-5
 - **rendercli progressive display overhead.** rendercli now disables
   interactive progressive-display publishing on render engines, so final-image
   command-line renders avoid wavefront per-depth preview snapshot work while

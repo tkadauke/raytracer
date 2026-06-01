@@ -169,6 +169,7 @@ namespace engine::wavefront {
     std::unique_ptr<render::Integrator> integrator;
     std::unique_ptr<render::Denoiser> denoiser;
     bool showProgressIndicators;
+    bool metricsEnabled{false};
     bool convergenceEnabled{false};
     double convergenceActiveSampleFractionThreshold;
     double convergenceRadianceDeltaRmsThreshold;
@@ -183,6 +184,7 @@ namespace engine::wavefront {
                                                convergenceEnabled,
                                                convergenceActiveSampleFractionThreshold,
                                                convergenceRadianceDeltaRmsThreshold,
+                                               metricsEnabled,
                                                samplingSeed};
     }
 
@@ -225,6 +227,7 @@ namespace engine::wavefront {
     result->setMaximumThreads(p->threadPool->maxThreadCount());
     result->setQueueSize(p->queueSize);
     result->setShowProgressIndicators(p->showProgressIndicators);
+    result->setMetricsEnabled(p->metricsEnabled);
     result->setConvergenceEnabled(p->convergenceEnabled);
     result->setConvergenceActiveSampleFractionThreshold(
       p->convergenceActiveSampleFractionThreshold);
@@ -258,10 +261,12 @@ namespace engine::wavefront {
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
-    p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
-                     *p->integrator, p->denoiser.get(), p->convergenceEnabled,
-                     p->convergenceActiveSampleFractionThreshold,
-                     p->convergenceRadianceDeltaRmsThreshold);
+    if (p->metricsEnabled) {
+      p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
+                       *p->integrator, p->denoiser.get(), p->convergenceEnabled,
+                       p->convergenceActiveSampleFractionThreshold,
+                       p->convergenceRadianceDeltaRmsThreshold);
+    }
     auto tileRenderer = p->tileRenderer();
     const auto denoiserFeatures = tileRenderer.buildDenoiserFeatures(
       *m_camera, *m_scene, buffer.rect(), tilePlan, *p->threadPool, p->denoiserFeatureTasks);
@@ -278,9 +283,11 @@ namespace engine::wavefront {
             : std::nullopt;
         tileRenderer.renderHdrTile(*camera, *rayCaster, *m_scene, *bufferPtr, rect, tileSeed,
                                    publishProgressSnapshots, denoiserFeaturePtr);
-      });
+    });
     tileRenderer.denoise(buffer, denoiserFeatures.get());
-    p->metrics.finish(renderStart);
+    if (p->metricsEnabled) {
+      p->metrics.finish(renderStart);
+    }
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().dumpJson(std::cerr);
@@ -317,10 +324,12 @@ namespace engine::wavefront {
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
-    p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
-                     *p->integrator, p->denoiser.get(), p->convergenceEnabled,
-                     p->convergenceActiveSampleFractionThreshold,
-                     p->convergenceRadianceDeltaRmsThreshold);
+    if (p->metricsEnabled) {
+      p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
+                       *p->integrator, p->denoiser.get(), p->convergenceEnabled,
+                       p->convergenceActiveSampleFractionThreshold,
+                       p->convergenceRadianceDeltaRmsThreshold);
+    }
     auto tileRenderer = p->tileRenderer();
     const auto samplingSeed = p->samplingSeed;
     const bool publishProgressSnapshots = progressiveDisplayEnabled();
@@ -334,8 +343,10 @@ namespace engine::wavefront {
             : std::nullopt;
         tileRenderer.renderDisplayTile(*camera, *rayCaster, *m_scene, *bufferPtr, tonemapOp, rect,
                                        tileSeed, publishProgressSnapshots);
-      });
-    p->metrics.finish(renderStart);
+    });
+    if (p->metricsEnabled) {
+      p->metrics.finish(renderStart);
+    }
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().dumpJson(std::cerr);
@@ -372,10 +383,12 @@ namespace engine::wavefront {
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(hdrBuffer.width(), hdrBuffer.height(), p->queueSize);
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
-    p->metrics.reset(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan, p->queueSize,
-                     *p->integrator, p->denoiser.get(), p->convergenceEnabled,
-                     p->convergenceActiveSampleFractionThreshold,
-                     p->convergenceRadianceDeltaRmsThreshold);
+    if (p->metricsEnabled) {
+      p->metrics.reset(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan, p->queueSize,
+                       *p->integrator, p->denoiser.get(), p->convergenceEnabled,
+                       p->convergenceActiveSampleFractionThreshold,
+                       p->convergenceRadianceDeltaRmsThreshold);
+    }
     auto tileRenderer = p->tileRenderer();
     const auto denoiserFeatures = tileRenderer.buildDenoiserFeatures(
       *m_camera, *m_scene, hdrBuffer.rect(), tilePlan, *p->threadPool,
@@ -395,10 +408,12 @@ namespace engine::wavefront {
         tileRenderer.renderDualOutputTile(*camera, *rayCaster, *m_scene, *hdrBufferPtr,
                                           *displayBufferPtr, displayTonemap, rect, tileSeed,
                                           publishProgressSnapshots, denoiserFeaturePtr);
-      });
+    });
     tileRenderer.denoise(hdrBuffer, denoiserFeatures.get());
     tileRenderer.writeDisplayBuffer(displayBuffer, hdrBuffer, displayTonemap);
-    p->metrics.finish(renderStart);
+    if (p->metricsEnabled) {
+      p->metrics.finish(renderStart);
+    }
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().dumpJson(std::cerr);
@@ -467,6 +482,14 @@ namespace engine::wavefront {
 
   const render::Denoiser* WavefrontRaytracer::denoiser() const {
     return p->denoiser.get();
+  }
+
+  void WavefrontRaytracer::setMetricsEnabled(bool enabled) {
+    p->metricsEnabled = enabled;
+  }
+
+  bool WavefrontRaytracer::metricsEnabled() const {
+    return p->metricsEnabled;
   }
 
   void WavefrontRaytracer::setMaximumRecursionDepth(int depth) {

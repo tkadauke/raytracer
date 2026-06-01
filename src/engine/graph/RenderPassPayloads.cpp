@@ -422,6 +422,7 @@ namespace engine::graph {
         auto camera = context.camera() ? context.camera()->clone() : nullptr;
         auto wavefront = std::make_shared<::engine::wavefront::WavefrontRaytracer>(
           std::move(camera), graph.scene());
+        wavefront->setMetricsEnabled(graph.executionTraceEnabled());
         RaytracerBeautyPassState::valueFromPass(context.pass()).applyTo(*wavefront);
         return wavefront;
       }

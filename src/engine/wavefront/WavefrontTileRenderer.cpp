@@ -140,7 +140,9 @@ namespace engine::wavefront::detail {
         publishProgressSnapshots && !samples.empty() ? &progressObserver : nullptr;
 
       const std::vector<Colord> sampleColors =
-        config.integrator.radianceBatch(scene, samples, rayCaster, &result.batchMetrics, settings);
+        config.integrator.radianceBatch(scene, samples, rayCaster,
+                                        config.metricsEnabled ? &result.batchMetrics : nullptr,
+                                        settings);
       progressObserver.applySampleColors(sampleColors);
       result.sampleCount = samples.size();
       return result;
@@ -301,7 +303,9 @@ namespace engine::wavefront::detail {
         }
       },
       publishProgressSnapshots);
-    m_metrics.recordTile(result);
+    if (m_config.metricsEnabled) {
+      m_metrics.recordTile(result);
+    }
     for (const auto& pixel : result.pixels) {
       writeColor(buffer, pixel.footprint, pixel.color);
     }
@@ -326,7 +330,9 @@ namespace engine::wavefront::detail {
         }
       },
       publishProgressSnapshots);
-    m_metrics.recordTile(result);
+    if (m_config.metricsEnabled) {
+      m_metrics.recordTile(result);
+    }
     for (const auto& pixel : result.pixels) {
       writeRGB(buffer, pixel.footprint,
                (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
@@ -363,7 +369,9 @@ namespace engine::wavefront::detail {
         }
       },
       publishProgressSnapshots);
-    m_metrics.recordTile(result);
+    if (m_config.metricsEnabled) {
+      m_metrics.recordTile(result);
+    }
     for (const auto& pixel : result.pixels) {
       writeColor(hdrBuffer, pixel.footprint, pixel.color);
       writeRGB(displayBuffer, pixel.footprint,
@@ -390,9 +398,13 @@ namespace engine::wavefront::detail {
             : std::nullopt;
         const Recti actualRect = camera.renderableRect(tileRect);
         buildDenoiserFeatureTile(*features, camera, scene, actualRect, tileSeed);
-        m_metrics.recordDenoiserFeatureTile(actualRect);
+        if (m_config.metricsEnabled) {
+          m_metrics.recordDenoiserFeatureTile(actualRect);
+        }
       });
-    m_metrics.recordDenoiserFeatureSeconds(featureStart);
+    if (m_config.metricsEnabled) {
+      m_metrics.recordDenoiserFeatureSeconds(featureStart);
+    }
     return features;
   }
 
@@ -412,8 +424,10 @@ namespace engine::wavefront::detail {
     m_config.denoiser->denoiseFrame(frame);
     const double seconds =
       std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() - denoiseStart).count();
-    m_metrics.recordDenoise(frame.features.albedo != nullptr, frame.features.normal != nullptr,
-                            frame.features.depth != nullptr, seconds);
+    if (m_config.metricsEnabled) {
+      m_metrics.recordDenoise(frame.features.albedo != nullptr, frame.features.normal != nullptr,
+                              frame.features.depth != nullptr, seconds);
+    }
   }
 
   void WavefrontTileRenderer::writeDisplayBuffer(Buffer<unsigned int>& displayBuffer,

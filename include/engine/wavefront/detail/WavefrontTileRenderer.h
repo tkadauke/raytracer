@@ -32,6 +32,7 @@ namespace engine::wavefront::detail {
     bool convergenceEnabled{false};
     double convergenceActiveSampleFractionThreshold{0.0};
     double convergenceRadianceDeltaRmsThreshold{0.0};
+    bool metricsEnabled{false};
     std::optional<std::uint64_t> samplingSeed;
   };
 

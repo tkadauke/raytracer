@@ -132,6 +132,8 @@ namespace engine::wavefront {
     void setDenoiser(std::unique_ptr<render::Denoiser> denoiser);
     void clearDenoiser();
     const render::Denoiser* denoiser() const;
+    void setMetricsEnabled(bool enabled);
+    bool metricsEnabled() const;
 
     /**
       * Configure the maximum ray recursion / bounce depth for the selected

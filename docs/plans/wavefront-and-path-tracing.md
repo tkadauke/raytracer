@@ -544,7 +544,11 @@ diagnostic math unless metrics or convergence need it, but the Phase 4 gate
 still requires either a better representative fixture or further scheduler
 optimization. rendercli also disables progressive-display snapshots for final
 image writes, so wavefront command-line renders no longer pay the per-depth
-display-publishing cost that Modeler previews still need.
+display-publishing cost that Modeler previews still need. Wavefront metrics
+collection is now opt-in as well: graph-backed passes enable it when execution
+trace or metrics output is requested, direct rendercli wavefront renders enable
+it only for `--wavefront_metrics_out` / `--wavefront_metrics_summary`, and
+plain final-image renders avoid the batch metric accumulation path.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.

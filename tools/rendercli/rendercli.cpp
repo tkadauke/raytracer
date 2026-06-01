@@ -1987,6 +1987,10 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     qWarning("No camera found. Defaulting to Pinhole camera looking at the origin");
   }
 
+  const bool rasterMetricsRequested = !m_rasterMetricsOut.isEmpty() || m_rasterMetricsSummary;
+  const bool wavefrontMetricsRequested =
+    !m_wavefrontMetricsOut.isEmpty() || m_wavefrontMetricsSummary;
+
   if (m_renderGraph) {
     graphEngine = rtCamera
                     ? std::make_shared<engine::graph::GraphRenderEngine>(rtCamera, raytracerScene)
@@ -2000,10 +2004,9 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     graphEngine->setSceneAnalysis(scene.renderGraphAnalysis());
     graphEngine->setPlan(graphPlan);
     bindRenderGraphExternalInputs(*graphEngine);
-    graphEngine->setExecutionTraceEnabled(
-      !m_renderGraphTraceOut.isEmpty() || !m_renderGraphAOVOutputs.empty() ||
-      !m_rasterMetricsOut.isEmpty() || m_rasterMetricsSummary || !m_wavefrontMetricsOut.isEmpty() ||
-      m_wavefrontMetricsSummary);
+    graphEngine->setExecutionTraceEnabled(!m_renderGraphTraceOut.isEmpty() ||
+                                          !m_renderGraphAOVOutputs.empty() ||
+                                          rasterMetricsRequested || wavefrontMetricsRequested);
     engine = graphEngine;
   } else if (m_engine == "wireframe") {
     auto wireframe = std::make_shared<engine::wireframe::Wireframe>(raytracerScene);
@@ -2038,6 +2041,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     wavefront->camera()->viewPlane()->setSampler(sampler());
     wavefront->setMaximumThreads(m_threads);
     wavefront->setQueueSize(m_queueSize);
+    wavefront->setMetricsEnabled(wavefrontMetricsRequested);
     if (m_wavefrontConvergenceSet)
       wavefront->setConvergenceEnabled(m_wavefrontConvergenceEnabled);
     if (m_wavefrontConvergenceActiveFractionSet) {
