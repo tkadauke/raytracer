@@ -61,6 +61,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   expose reflection, transmission, and total-internal-reflection branches as
   delta BSDF samples, so wavefront path tracing can continue through glass-like
   surfaces without Whitted compatibility shading. — GPT-5
+- **Portal continuations for path tracing.** Portal materials now expose their
+  redirected ray as a delta continuation sample, letting wavefront path tracing
+  traverse portals without Whitted compatibility shading. — GPT-5
 - **Raytracer integrator selection is graph-visible.** Render intent and
   raytracer beauty pass state now carry `whitted` / `pathtracer` integrator
   selection, so rendercli's `--integrator pathtracer` is represented in

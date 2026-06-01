@@ -14,6 +14,8 @@ namespace render {
     * transform to the shifted hit-point ray origin and to the ray direction,
     * asks the scene what that transformed ray sees, then multiplies the
     * returned color by the configured filter.
+    * Path-tracing integrators see the same redirection as a delta continuation
+    * sample because portals change the next ray's origin as well as direction.
     *
     * @htmlonly
     * <script type="text/javascript" src="figure.js"></script>
@@ -44,7 +46,21 @@ namespace render {
                                     const Rayd& ray, const HitPoint& hitPoint,
                                     render::State& state) const override;
 
+    bool supportsBsdfSampling() const override {
+      return true;
+    }
+
+    Colord evalBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                    const Vector3d& wo) const override;
+
+    MaterialBsdfSample sampleBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                                  const Vector2d& sample) const override;
+
+    double bsdfPdf(const HitPoint& hitPoint, const Vector3d& wi, const Vector3d& wo) const override;
+
   private:
+    Rayd redirectedRay(const HitPoint& hitPoint, const Vector3d& wi) const;
+
     inline Rayd transformedRay(const Rayd& ray) const {
       return Rayd(Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()))),
                   m_directionMatrix * ray.direction());

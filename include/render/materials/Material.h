@@ -6,6 +6,7 @@
 
 #include "render/Object.h"
 
+#include <optional>
 #include <vector>
 
 class HitPoint;
@@ -28,6 +29,9 @@ namespace render {
     Colord value{Colord::black()};
     double pdf{0.0};
     bool isDelta{false};
+    std::optional<Rayd> continuationRay;
+
+    Rayd rayFrom(const HitPoint& hitPoint) const;
   };
 
   struct WhittedContinuation {

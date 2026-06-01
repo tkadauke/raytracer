@@ -175,7 +175,7 @@ namespace render {
       }
 
       // Continue along the sampled direction.
-      ray = Rayd(hitPoint.point(), sampled.direction).epsilonShifted();
+      ray = sampled.rayFrom(hitPoint);
       state.recurseOut();
     }
 
@@ -343,7 +343,7 @@ namespace render {
           path.throughput = path.throughput * (1.0 / survival);
         }
 
-        path.ray = Rayd(hitPoint.point(), sampled.direction).epsilonShifted();
+        path.ray = sampled.rayFrom(hitPoint);
         path.state.recurseOut();
         recordDepthDelta();
       }

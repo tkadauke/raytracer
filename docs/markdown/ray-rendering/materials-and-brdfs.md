@@ -364,9 +364,9 @@ the arithmetic common to those estimators:
   cannot sample the same singular event.
 
 Those helpers do not trace rays, choose lights, test visibility,
-or recurse. They are foundations for a future direct-lighting or
-path-tracing integrator. The current Whitted renderer still uses
-the material-owned per-light loops described above.
+or recurse. They are foundations used by the path-tracing integrator,
+while the Whitted renderer still uses the material-owned per-light loops
+described above.
 
 ## <a id="the-four-brdfs-and-four-plus-one-materials-summarized"></a>The four BRDFs and four (plus one) materials, summarized
 | BRDF / BTDF | What it computes | Used by |
@@ -382,13 +382,16 @@ the material-owned per-light loops described above.
 | PhongMaterial | Matte + GlossySpecular | plastic / painted metal |
 | ReflectiveMaterial | Phong + PerfectSpecular | mirror, polished metal |
 | TransparentMaterial | Phong + PerfectSpecular + PerfectTransmitter | glass, water, gem |
-| PortalMaterial | matrix-transformed recursion | non-physical effect |
+| PortalMaterial | matrix-transformed continuation ray | non-physical portal / redirection effect |
 
 The four materials in the first four rows compose for a clean
 "phototgraphy-style" hierarchy: Phong is Matte plus highlights,
 Reflective is Phong plus mirror recursion, Transparent is
 Reflective plus refraction. Each step adds one BRDF / BTDF
-contribution and one optional recursive call.
+contribution and one optional recursive call. The portal row is the
+intentional exception: it is not a local light-transport material, but
+it still fits the wavefront/path-tracing scheduler by publishing a delta
+continuation ray with a transformed origin and direction.
 
 ## <a id="exercises"></a>Exercises
 1. Build a `MatteMaterial` with a black diffuse texture and

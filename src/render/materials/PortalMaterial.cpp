@@ -1,7 +1,6 @@
 #include "render/RayCaster.h"
 #include "render/State.h"
 #include "render/materials/PortalMaterial.h"
-#include "render/RayCaster.h"
 #include "core/math/HitPoint.h"
 
 using namespace std;
@@ -16,8 +15,7 @@ Colord PortalMaterial::shade(const render::RayCaster* raycaster, const render::S
                              const Rayd& ray, const HitPoint& hitPoint,
                              render::State& state) const {
   return state.withThroughput(state.throughput * m_filterColor.max(), [&] {
-    return raycaster->rayColor(transformedRay(ray.from(hitPoint.point()).epsilonShifted()), state) *
-           m_filterColor;
+    return raycaster->rayColor(redirectedRay(hitPoint, -ray.direction()), state) * m_filterColor;
   });
 }
 
@@ -26,8 +24,30 @@ render::WhittedShadeResult PortalMaterial::shadeWhitted(const render::RayCaster*
                                                         const HitPoint& hitPoint,
                                                         render::State&) const {
   render::WhittedShadeResult result;
-  result.continuations.push_back(
-    render::WhittedContinuation{transformedRay(ray.from(hitPoint.point()).epsilonShifted()),
-                                m_filterColor, m_filterColor.max()});
+  result.continuations.push_back(render::WhittedContinuation{
+    redirectedRay(hitPoint, -ray.direction()), m_filterColor, m_filterColor.max()});
   return result;
+}
+
+Colord PortalMaterial::evalBsdf(const HitPoint&, const Vector3d&, const Vector3d&) const {
+  return Colord::black();
+}
+
+render::MaterialBsdfSample PortalMaterial::sampleBsdf(const HitPoint& hitPoint, const Vector3d& wi,
+                                                      const Vector2d&) const {
+  render::MaterialBsdfSample result;
+  result.continuationRay = redirectedRay(hitPoint, wi);
+  result.direction = result.continuationRay->direction().normalized();
+  result.value = m_filterColor;
+  result.pdf = 1.0;
+  result.isDelta = true;
+  return result;
+}
+
+double PortalMaterial::bsdfPdf(const HitPoint&, const Vector3d&, const Vector3d&) const {
+  return 0.0;
+}
+
+Rayd PortalMaterial::redirectedRay(const HitPoint& hitPoint, const Vector3d& wi) const {
+  return transformedRay(Rayd(hitPoint.point(), -wi).epsilonShifted());
 }

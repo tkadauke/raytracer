@@ -16,6 +16,8 @@
   * transform to the shifted hit-point ray origin and to the ray direction,
   * asks the scene what that transformed ray sees, then multiplies the
   * returned color by the configured filter.
+  * Path-tracing integrators see the same redirection as a delta continuation
+  * sample because portals change the next ray's origin as well as direction.
   *
   * @htmlonly
   * <script type="text/javascript" src="figure.js"></script>

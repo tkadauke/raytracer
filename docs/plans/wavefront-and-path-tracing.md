@@ -548,12 +548,13 @@ sampling gathers environment radiance. rendercli now compares that scene
 against a Whitted override and requires the images to differ.
 Batch metrics also count material compatibility shading fallbacks. Phong now
 publishes a finite diffuse/glossy BSDF for path tracing, Reflective publishes
-its mirror branch as a delta BSDF sample, and Transparent publishes reflection,
-transmission, and total-internal-reflection delta samples. Graph traces still
-publish compatibility counters for custom or future materials that terminate at
-a legacy Whitted-shaded surface instead of continuing through a sampled BSDF;
-rendercli has graph-trace regression checks that require this metadata and pin
-transparent glass scenes to zero compatibility material samples.
+its mirror branch as a delta BSDF sample, Transparent publishes reflection,
+transmission, and total-internal-reflection delta samples, and Portal publishes
+its redirected ray as a delta continuation sample. Graph traces still publish
+compatibility counters for custom or future materials that terminate at a legacy
+Whitted-shaded surface instead of continuing through a sampled BSDF; rendercli
+has graph-trace regression checks that require this metadata and pin transparent
+glass scenes to zero compatibility material samples.
 
 Start with pure single-continuation path tracing (Option **B**) unless a
 measured scene proves deterministic specular split (Option **C**) is needed for

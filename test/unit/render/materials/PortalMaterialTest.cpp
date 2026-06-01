@@ -52,4 +52,27 @@ namespace PortalMaterialTest {
     EXPECT_NEAR(1.0, raycaster.rays.front().direction().y(), 0.001);
     EXPECT_NEAR(0.0, raycaster.rays.front().direction().z(), 0.001);
   }
+
+  TEST(PortalMaterial, SamplesRedirectedRayAsDeltaBsdf) {
+    PortalMaterial material(Matrix4d::translate(10, 0, 0), Colord(0.5, 0.25, 1.0));
+    const HitPoint hitPoint(nullptr, 1.0, Vector4d(12, 0, 0, 1), Vector3d(0, 1, 0));
+
+    const MaterialBsdfSample sampled =
+      material.sampleBsdf(hitPoint, Vector3d(0, -1, 0), Vector2d(0.25, 0.5));
+
+    EXPECT_TRUE(material.supportsBsdfSampling());
+    EXPECT_TRUE(sampled.isDelta);
+    EXPECT_DOUBLE_EQ(1.0, sampled.pdf);
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.25, 1.0), sampled.value, 1e-12);
+    ASSERT_TRUE(sampled.continuationRay.has_value());
+    EXPECT_NEAR(2.0, sampled.continuationRay->origin().x(), 1e-12);
+    EXPECT_NEAR(Rayd::epsilon, sampled.continuationRay->origin().y(), 1e-12);
+    EXPECT_NEAR(0.0, sampled.continuationRay->origin().z(), 1e-12);
+    EXPECT_NEAR(0.0, sampled.direction.x(), 1e-12);
+    EXPECT_NEAR(1.0, sampled.direction.y(), 1e-12);
+    EXPECT_NEAR(0.0, sampled.direction.z(), 1e-12);
+    ASSERT_COLOR_NEAR(Colord::black(),
+                      material.evalBsdf(hitPoint, Vector3d(0, -1, 0), Vector3d(0, 1, 0)), 1e-12);
+    EXPECT_DOUBLE_EQ(0.0, material.bsdfPdf(hitPoint, Vector3d(0, -1, 0), Vector3d(0, 1, 0)));
+  }
 }

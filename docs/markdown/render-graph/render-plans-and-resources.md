@@ -619,9 +619,12 @@ legacy materials that do not expose continuations. The path-tracing integrator
 uses that same batch hook for depth-major processing; matte and Phong materials
 publish finite BSDF lobes and reflective materials publish a mirror delta lobe,
 while transparent materials publish reflection, transmission, and
-total-internal-reflection delta lobes. This gives the graph, rendercli, and
-Modeler a separate executor surface for the scheduler work that follows. After
-a traced wavefront render, the pass metadata reports the selected
+total-internal-reflection delta lobes. Portal materials publish their redirected
+ray as a delta continuation so the path scheduler can change the next ray's
+origin as well as direction without returning to recursive Whitted callbacks.
+This gives the graph, rendercli, and Modeler a separate executor surface for
+the scheduler work that follows. After a traced wavefront render, the pass
+metadata reports the selected
 integrator, whether batches used scalar fallback or depth-major path
 scheduling, primary sample totals, how many samples fell back to Whitted
 material compatibility shading, active sample counts per depth, batch sizes,
