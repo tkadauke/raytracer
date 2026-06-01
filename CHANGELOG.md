@@ -68,6 +68,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   compares active sample-depth work between converged and non-converged
   wavefront variants, making convergence speedup potential visible even when
   wall-clock timings are noisy. — GPT-5
+- **Wavefront convergence threshold sweeps.** The convergence capture script can
+  now run multiple active-fraction/RMS threshold pairs against the same
+  non-converged baseline via `WAVEFRONT_CONVERGENCE_SWEEP`, making Phase 4
+  policy tuning less manual. — GPT-5
 
 ### Changed
 

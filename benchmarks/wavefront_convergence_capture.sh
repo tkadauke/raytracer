@@ -14,6 +14,7 @@ active_fraction="${WAVEFRONT_CONVERGENCE_ACTIVE_FRACTION:-0.05}"
 rms_delta="${WAVEFRONT_CONVERGENCE_RMS_DELTA:-0.002}"
 bvh_grid="${WAVEFRONT_CONVERGENCE_BVH_GRID:-9}"
 queue_size="${WAVEFRONT_CONVERGENCE_QUEUE_SIZE:-}"
+convergence_sweep="${WAVEFRONT_CONVERGENCE_SWEEP:-}"
 
 usage() {
   cat <<'USAGE'
@@ -38,10 +39,15 @@ Environment:
   WAVEFRONT_CONVERGENCE_RMS_DELTA      convergence RMS-delta threshold
   WAVEFRONT_CONVERGENCE_BVH_GRID       generated sphere grid width/height
   WAVEFRONT_CONVERGENCE_QUEUE_SIZE     optional rendercli --queue_size for every variant
+  WAVEFRONT_CONVERGENCE_SWEEP          optional comma-separated active:rms pairs
 
 The capture writes images, stdout timing summaries, wavefront metrics JSON, and
 image-probe comparisons under the output directory. Use it to tune Phase 4
 wavefront convergence defaults before changing shipped presets.
+
+When WAVEFRONT_CONVERGENCE_SWEEP is set, the script reuses the non-converged
+baseline and captures one convergence variant per pair, for example:
+  WAVEFRONT_CONVERGENCE_SWEEP="0.05:0.002,0.25:0.01,1.0:0.002"
 USAGE
 }
 
@@ -223,6 +229,34 @@ puts format("active_sample_depths reference=%.0f candidate=%.0f saved=%.0f saved
 RUBY
 }
 
+safe_suffix_number() {
+  local value="$1"
+  value="${value//./p}"
+  value="${value//-/m}"
+  value="${value//+/p}"
+  echo "${value}"
+}
+
+convergence_specs() {
+  if [[ -z "${convergence_sweep}" ]]; then
+    printf '%s\t%s\t%s\n' "convergence" "${active_fraction}" "${rms_delta}"
+    return
+  fi
+
+  local specs
+  IFS=',' read -r -a specs <<<"${convergence_sweep}"
+  for spec in "${specs[@]}"; do
+    local fraction threshold suffix
+    IFS=':' read -r fraction threshold <<<"${spec}"
+    if [[ -z "${fraction}" || -z "${threshold}" ]]; then
+      echo "invalid WAVEFRONT_CONVERGENCE_SWEEP entry: ${spec}" >&2
+      exit 1
+    fi
+    suffix="convergence_af$(safe_suffix_number "${fraction}")_rms$(safe_suffix_number "${threshold}")"
+    printf '%s\t%s\t%s\n' "${suffix}" "${fraction}" "${threshold}"
+  done
+}
+
 capture_bvh_whitted() {
   local fixture_dir="${out_root}/fixtures"
   mkdir -p "${fixture_dir}"
@@ -233,15 +267,17 @@ capture_bvh_whitted() {
     --engine raytracer --integrator whitted --samples_per_pixel 1
   run_variant bvh_whitted wavefront_whitted_no_convergence "${fixture}" \
     --engine wavefront --integrator whitted --wavefront_no_convergence --samples_per_pixel 1
-  run_variant bvh_whitted wavefront_whitted_convergence "${fixture}" \
-    --engine wavefront --integrator whitted --wavefront_convergence \
-    --wavefront_convergence_active_fraction "${active_fraction}" \
-    --wavefront_convergence_rms_delta "${rms_delta}" --samples_per_pixel 1
 
   compare_variant bvh_whitted raytracer_whitted wavefront_whitted_no_convergence
-  compare_variant bvh_whitted raytracer_whitted wavefront_whitted_convergence
-  compare_wavefront_work bvh_whitted wavefront_whitted_no_convergence \
-    wavefront_whitted_convergence
+  while IFS=$'\t' read -r suffix fraction threshold; do
+    local variant="wavefront_whitted_${suffix}"
+    run_variant bvh_whitted "${variant}" "${fixture}" \
+      --engine wavefront --integrator whitted --wavefront_convergence \
+      --wavefront_convergence_active_fraction "${fraction}" \
+      --wavefront_convergence_rms_delta "${threshold}" --samples_per_pixel 1
+    compare_variant bvh_whitted raytracer_whitted "${variant}"
+    compare_wavefront_work bvh_whitted wavefront_whitted_no_convergence "${variant}"
+  done < <(convergence_specs)
 }
 
 capture_reflection_whitted() {
@@ -250,15 +286,17 @@ capture_reflection_whitted() {
     --engine raytracer --integrator whitted --samples_per_pixel 1
   run_variant reflection_whitted wavefront_whitted_no_convergence "${scene}" \
     --engine wavefront --integrator whitted --wavefront_no_convergence --samples_per_pixel 1
-  run_variant reflection_whitted wavefront_whitted_convergence "${scene}" \
-    --engine wavefront --integrator whitted --wavefront_convergence \
-    --wavefront_convergence_active_fraction "${active_fraction}" \
-    --wavefront_convergence_rms_delta "${rms_delta}" --samples_per_pixel 1
 
   compare_variant reflection_whitted raytracer_whitted wavefront_whitted_no_convergence
-  compare_variant reflection_whitted raytracer_whitted wavefront_whitted_convergence
-  compare_wavefront_work reflection_whitted wavefront_whitted_no_convergence \
-    wavefront_whitted_convergence
+  while IFS=$'\t' read -r suffix fraction threshold; do
+    local variant="wavefront_whitted_${suffix}"
+    run_variant reflection_whitted "${variant}" "${scene}" \
+      --engine wavefront --integrator whitted --wavefront_convergence \
+      --wavefront_convergence_active_fraction "${fraction}" \
+      --wavefront_convergence_rms_delta "${threshold}" --samples_per_pixel 1
+    compare_variant reflection_whitted raytracer_whitted "${variant}"
+    compare_wavefront_work reflection_whitted wavefront_whitted_no_convergence "${variant}"
+  done < <(convergence_specs)
 }
 
 capture_pathtracer_bounce() {
@@ -266,15 +304,16 @@ capture_pathtracer_bounce() {
   run_variant pathtracer_bounce wavefront_pathtracer_no_convergence "${scene}" \
     --engine wavefront --integrator pathtracer --wavefront_no_convergence \
     --samples_per_pixel "${samples}"
-  run_variant pathtracer_bounce wavefront_pathtracer_convergence "${scene}" \
-    --engine wavefront --integrator pathtracer --wavefront_convergence \
-    --wavefront_convergence_active_fraction "${active_fraction}" \
-    --wavefront_convergence_rms_delta "${rms_delta}" --samples_per_pixel "${samples}"
 
-  compare_variant pathtracer_bounce wavefront_pathtracer_no_convergence \
-    wavefront_pathtracer_convergence
-  compare_wavefront_work pathtracer_bounce wavefront_pathtracer_no_convergence \
-    wavefront_pathtracer_convergence
+  while IFS=$'\t' read -r suffix fraction threshold; do
+    local variant="wavefront_pathtracer_${suffix}"
+    run_variant pathtracer_bounce "${variant}" "${scene}" \
+      --engine wavefront --integrator pathtracer --wavefront_convergence \
+      --wavefront_convergence_active_fraction "${fraction}" \
+      --wavefront_convergence_rms_delta "${threshold}" --samples_per_pixel "${samples}"
+    compare_variant pathtracer_bounce wavefront_pathtracer_no_convergence "${variant}"
+    compare_wavefront_work pathtracer_bounce wavefront_pathtracer_no_convergence "${variant}"
+  done < <(convergence_specs)
 }
 
 scene="${1:-}"

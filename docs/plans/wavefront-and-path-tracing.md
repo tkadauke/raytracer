@@ -547,7 +547,10 @@ path-tracing convergence against the non-converged indirect-bounce scene. The
 script accepts `WAVEFRONT_CONVERGENCE_QUEUE_SIZE` so convergence captures can
 pin tile count while tuning thresholds and scheduler defaults, and it now
 writes active sample-depth work comparisons for converged vs. non-converged
-wavefront variants.
+wavefront variants. `WAVEFRONT_CONVERGENCE_SWEEP` can run multiple
+active-fraction/RMS threshold pairs against that same baseline, producing
+threshold-named image comparisons and work-saved reports so Phase 4 policy
+tuning does not require hand-editing the script between captures.
 Remaining work is to run that capture across representative dimensions and tune
 defaults from the measured timing/quality data. A first capture showed that a
 single-depth diffuse Whitted scene is not a useful convergence-speedup proof:
