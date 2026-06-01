@@ -118,6 +118,42 @@ RayPacketIntersection4 Sphere::intersectPacket(const Ray4& rays, render::State& 
 #endif
 }
 
+PrimitivePacketHit4 Sphere::intersectPacketHits(const Ray4& rays,
+                                                const PrimitivePacketState4& states) const {
+  PrimitivePacketHit4 result;
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    RAYTRACER_STATS_INC(raySphereIntersect);
+    const Rayd ray = rays.rayd(lane);
+    const Vector3d o = ray.origin() - m_origin;
+    const Vector3d d = ray.direction();
+
+    const double od = o * d;
+    const double dd = d * d;
+    const double discriminant = od * od - dd * (o * o - m_radius * m_radius);
+
+    if (discriminant <= 0.0) {
+      state.miss(this, "Sphere, ray miss");
+      continue;
+    }
+
+    const double discriminantRoot = sqrt(discriminant);
+    const double t1 = (-od - discriminantRoot) / dd;
+    const double t2 = (-od + discriminantRoot) / dd;
+    if (t1 <= 0.0 && t2 <= 0.0) {
+      state.miss(this, "Sphere, behind ray");
+      continue;
+    }
+
+    const double t = t1 > 0.0 ? t1 : t2;
+    const Vector3d hitPoint = ray.at(t);
+    result.setHit(lane, this, HitPoint(this, t, hitPoint, (hitPoint - m_origin) / m_radius));
+    state.hit(this, "Sphere");
+  }
+  return result;
+}
+
 bool Sphere::intersects(const Rayd& ray, render::State& state) const {
   RAYTRACER_STATS_INC(raySphereIntersects);
   const Vector3d &o = ray.origin() - m_origin, d = ray.direction();

@@ -101,6 +101,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   full four-ray active-frontier chunks through the packet hit API, and BVH
   packet hits now preserve closest primitive and `HitPoint` materialization
   through tree traversal. — GPT-5
+- **Sphere packet hit materialization.** `render::Sphere` now overrides the
+  four-wide packet hit API directly, avoiding the generic `HitPointInterval`
+  fallback while preserving per-lane hit/miss state. — GPT-5
 
 ### Changed
 

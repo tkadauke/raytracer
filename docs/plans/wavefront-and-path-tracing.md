@@ -788,7 +788,9 @@ bookkeeping, or trace events. BVH now preserves that materialized-hit contract
 through packet tree traversal, and the path-tracing active-frontier stage
 submits full four-ray chunks through `Scene::intersectPacketHits(...)` before
 falling back to the scalar path for leftovers. Later primitive-specific
-overrides can make leaf packet materialization faster.
+overrides can make leaf packet materialization faster. `Sphere` is the first
+such leaf override: it materializes closest positive packet hit points directly
+and updates per-lane state without building scalar `HitPointInterval` objects.
 
 ---
 
