@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -6,6 +7,7 @@
 #include "core/Color.h"
 #include "core/math/Matrix.h"
 #include "core/math/BoundingBox.h"
+#include "core/math/HitPoint.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
 #include "core/MemoizedValue.h"
@@ -17,7 +19,32 @@ class Mesh;
 
 namespace render {
   class Material;
+  class Primitive;
   class State;
+
+  class PrimitivePacketHit4 {
+  public:
+    bool hit(std::size_t lane) const {
+      return m_primitives[lane] != nullptr;
+    }
+
+    const Primitive* primitive(std::size_t lane) const {
+      return m_primitives[lane];
+    }
+
+    const HitPoint& hitPoint(std::size_t lane) const {
+      return m_hitPoints[lane];
+    }
+
+    void setHit(std::size_t lane, const Primitive* primitive, const HitPoint& hitPoint) {
+      m_primitives[lane] = primitive;
+      m_hitPoints[lane] = hitPoint;
+    }
+
+  private:
+    std::array<const Primitive*, Ray4::lanes> m_primitives{};
+    std::array<HitPoint, Ray4::lanes> m_hitPoints{};
+  };
 
   /**
     * @brief Abstract base class for all geometric scene objects
@@ -102,6 +129,7 @@ namespace render {
       */
     virtual RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const;
     virtual RayPacketIntersection8 intersectPacket(const Ray8& rays, render::State& state) const;
+    virtual PrimitivePacketHit4 intersectPacketHits(const Ray4& rays, render::State& state) const;
 
     /**
       * Boolean flavour for shadow rays — "is anything between the

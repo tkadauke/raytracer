@@ -56,6 +56,29 @@ namespace PrimitiveTest {
     ASSERT_EQ(3.0f, result.tFar[3]);
   }
 
+  TEST(Primitive, ShouldMaterializeRay4PacketHitsWithScalarFallback) {
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
+    EXPECT_CALL(*primitive, intersect(_, _, _))
+      .Times(4)
+      .WillRepeatedly(
+        DoAll(AddHitPoints(HitPoint(primitive.get(), 1.0, Vector3d(0, 0, 1), Vector3d(0, 0, -1)),
+                           HitPoint(primitive.get(), 3.0, Vector3d(0, 0, 3), Vector3d(0, 0, 1))),
+              Return(primitive.get())));
+
+    const Ray4 rays(std::array<Rayf, 4>{
+      Rayf(Vector3f(0, 0, 0), Vector3f(0, 0, 1)), Rayf(Vector3f(1, 0, 0), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(2, 0, 0), Vector3f(0, 0, 1)), Rayf(Vector3f(3, 0, 0), Vector3f(0, 0, 1))});
+
+    State state;
+    const auto result = primitive->Primitive::intersectPacketHits(rays, state);
+
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      ASSERT_TRUE(result.hit(lane)) << "lane " << lane;
+      ASSERT_EQ(primitive.get(), result.primitive(lane));
+      ASSERT_EQ(1.0, result.hitPoint(lane).distance());
+    }
+  }
+
   TEST(Primitive, ShouldReturnFarthestPoint) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     ON_CALL(*primitive, farthestPoint(_))

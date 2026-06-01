@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
 #include "render/State.h"
+#include "core/math/RayPacket.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Composite.h"
+#include "render/primitives/Sphere.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 #include <vector>
@@ -86,6 +88,30 @@ namespace CompositeTest {
     auto result = composite.intersect(ray, hitPoints, state);
 
     ASSERT_EQ(primitive2.get(), result);
+  }
+
+  TEST(Composite, ShouldMaterializeRay4PacketHitsWithClosestPrimitivePerLane) {
+    Composite composite;
+    auto near = std::make_shared<Sphere>(Vector3d(0, 0, -2), 0.5);
+    auto far = std::make_shared<Sphere>(Vector3d(0, 0, 2), 0.5);
+    composite.add(far);
+    composite.add(near);
+
+    const Ray4 rays(std::array<Rayd, 4>{
+      Rayd(Vector3d(0, 0, -10), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 100, -10), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, 0, 10), Vector3d(0, 0, -1)), Rayd(Vector3d(0, 0, -10), Vector3d(0, 1, 0))});
+
+    State state;
+    const auto result = composite.intersectPacketHits(rays, state);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(near.get(), result.primitive(0));
+    EXPECT_NEAR(7.5, result.hitPoint(0).distance(), 1e-6);
+    ASSERT_FALSE(result.hit(1));
+    ASSERT_TRUE(result.hit(2));
+    EXPECT_EQ(far.get(), result.primitive(2));
+    EXPECT_NEAR(7.5, result.hitPoint(2).distance(), 1e-6);
+    ASSERT_FALSE(result.hit(3));
   }
 
   TEST(Composite, ShouldReturnTrueForIntersectsIfThereIsAnIntersection) {
