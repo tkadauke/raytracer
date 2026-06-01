@@ -630,6 +630,12 @@ scheduling, primary sample totals, how many samples fell back to Whitted
 material compatibility shading, active sample counts per depth, batch sizes,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
 convergence stop decisions, tile count, queue decision, and render timing.
+Wavefront also has an opt-in denoiser hook at the engine level:
+`render::Denoiser` instances can filter the HDR beauty buffer before the final
+display buffer is rewritten. The first implementation, `render::BoxDenoiser`,
+is deliberately simple and exists to pin the hook; graph-visible denoising
+state and user-facing render controls are the next step before denoising becomes
+part of compiled render intent.
 The reusable scene
 [`scenes/wavefront_indirect_environment_demo.json`](../../../scenes/wavefront_indirect_environment_demo.json)
 opens with a wavefront path-tracing intent and no direct lights; the matte
@@ -1026,6 +1032,8 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/engine/graph/PostProcessPassState.h`
 - `include/engine/graph/RasterPassState.h`
 - `include/engine/graph/WireframePassState.h`
+- `include/render/denoise/Denoiser.h`
+- `include/render/denoise/BoxDenoiser.h`
 - `include/engine/graph/RenderResource.h`
 - `include/engine/graph/RenderResourceStorage.h`
 - `include/engine/graph/GraphRenderEngine.h`
@@ -1043,6 +1051,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `src/engine/graph/RenderGraphExecutionTrace.cpp`
 - `src/engine/graph/RenderGraphTypes.cpp`
 - `src/engine/graph/GraphRenderEngine.cpp`
+- `src/render/denoise/BoxDenoiser.cpp`
 - `src/engine/graph/RenderPassPayloads.cpp`
 - `src/engine/graph/RenderPassState.cpp`
 - `src/engine/graph/PostProcessPassState.cpp`

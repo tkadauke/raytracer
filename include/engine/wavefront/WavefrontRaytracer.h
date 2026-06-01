@@ -17,6 +17,7 @@ class QJsonObject;
 
 namespace render {
   class Camera;
+  class Denoiser;
   class Integrator;
   class Scene;
 }
@@ -109,6 +110,9 @@ namespace engine::wavefront {
 
     void setIntegrator(std::unique_ptr<render::Integrator> integrator);
     const render::Integrator& integrator() const;
+    void setDenoiser(std::unique_ptr<render::Denoiser> denoiser);
+    void clearDenoiser();
+    const render::Denoiser* denoiser() const;
     void setMaximumRecursionDepth(int depth);
 
     void setSamplingSeed(std::uint64_t seed);

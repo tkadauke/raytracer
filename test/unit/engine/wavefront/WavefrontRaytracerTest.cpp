@@ -4,6 +4,8 @@
 #include "engine/wavefront/WavefrontRaytracer.h"
 #include "render/WhittedIntegrator.h"
 #include "render/cameras/PinholeCamera.h"
+#include "render/denoise/BoxDenoiser.h"
+#include "render/denoise/Denoiser.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
@@ -18,6 +20,28 @@
 
 namespace WavefrontRaytracerTest {
   using engine::wavefront::WavefrontRaytracer;
+
+  class FillDenoiser final : public render::Denoiser {
+  public:
+    explicit FillDenoiser(const Colord& color)
+        : m_color(color) {
+    }
+
+    std::unique_ptr<render::Denoiser> clone() const override {
+      return std::make_unique<FillDenoiser>(m_color);
+    }
+
+    const char* diagnosticName() const override {
+      return "fill";
+    }
+
+    void denoise(Buffer<Colord>& buffer) const override {
+      buffer.clear(m_color);
+    }
+
+  private:
+    Colord m_color;
+  };
 
   std::shared_ptr<render::Scene> testScene() {
     auto scene = std::make_shared<render::Scene>(Colord(0.1, 0.2, 0.3));
@@ -48,6 +72,7 @@ namespace WavefrontRaytracerTest {
     renderer->setConvergenceEnabled(true);
     renderer->setConvergenceActiveSampleFractionThreshold(0.25);
     renderer->setConvergenceRadianceDeltaRmsThreshold(0.002);
+    renderer->setDenoiser(std::make_unique<render::BoxDenoiser>(2));
 
     auto clone = std::dynamic_pointer_cast<WavefrontRaytracer>(renderer->cloneForRender());
     ASSERT_NE(nullptr, clone);
@@ -56,8 +81,43 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(clone->convergenceEnabled());
     EXPECT_DOUBLE_EQ(0.25, clone->convergenceActiveSampleFractionThreshold());
     EXPECT_DOUBLE_EQ(0.002, clone->convergenceRadianceDeltaRmsThreshold());
+    ASSERT_NE(nullptr, clone->denoiser());
+    EXPECT_STREQ("box", clone->denoiser()->diagnosticName());
+    EXPECT_NE(renderer->denoiser(), clone->denoiser());
     EXPECT_NE(renderer->camera(), clone->camera());
     EXPECT_EQ(renderer->scene(), clone->scene());
+  }
+
+  TEST(WavefrontRaytracer, AppliesDenoiserAfterHdrRender) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->setDenoiser(std::make_unique<FillDenoiser>(Colord(0.25, 0.5, 0.75)));
+
+    Buffer<Colord> buffer(4, 3);
+    renderer->render(buffer);
+
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        ASSERT_COLOR_NEAR(Colord(0.25, 0.5, 0.75), buffer[y][x], 1e-12);
+      }
+    }
+  }
+
+  TEST(WavefrontRaytracer, AppliesDenoiserBeforeDisplayConversion) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->setDenoiser(std::make_unique<FillDenoiser>(Colord(0.25, 0.5, 0.75)));
+
+    Buffer<unsigned int> buffer(4, 3);
+    renderer->render(buffer);
+
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        EXPECT_EQ(Colord(0.25, 0.5, 0.75).rgb(), buffer[y][x]);
+      }
+    }
   }
 
   TEST(WavefrontRaytracer, MatchesRecursiveRaytracerForSimpleWhittedScene) {

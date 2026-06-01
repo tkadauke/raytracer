@@ -22,6 +22,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `scenes/wavefront_indirect_bounce_demo.json`, a graph-backed wavefront
   path-tracing scene where a side-lit red wall bounces light onto neutral
   receivers and differs from a Whitted override. — GPT-5
+- **Wavefront denoiser hook.** Added a reusable `render::Denoiser` interface,
+  a simple box denoiser implementation, and an opt-in WavefrontRaytracer hook
+  that filters the HDR result before final display conversion. — GPT-5
 
 ### Changed
 

@@ -12,6 +12,7 @@
 #include "render/TilePlan.h"
 #include "render/WhittedIntegrator.h"
 #include "render/cameras/Camera.h"
+#include "render/denoise/Denoiser.h"
 #include "render/primitives/Scene.h"
 #include "render/tonemap/Tonemap.h"
 
@@ -139,6 +140,7 @@ namespace engine::wavefront {
     std::list<std::shared_ptr<engine::TileRenderTask>> tasks;
     int queueSize;
     std::unique_ptr<render::Integrator> integrator;
+    std::unique_ptr<render::Denoiser> denoiser;
     bool showProgressIndicators;
     bool convergenceEnabled{false};
     double convergenceActiveSampleFractionThreshold;
@@ -271,6 +273,21 @@ namespace engine::wavefront {
       for (int y = footprint.top(); y != footprint.bottom(); ++y)
         for (int x = footprint.left(); x != footprint.right(); ++x)
           buffer[y][x] = rgb;
+    }
+
+    void writeDisplayBuffer(Buffer<unsigned int>& displayBuffer, const Buffer<Colord>& hdrBuffer,
+                            std::shared_ptr<render::Tonemap> tonemap) const {
+      for (int y = 0; y != hdrBuffer.height(); ++y) {
+        for (int x = 0; x != hdrBuffer.width(); ++x) {
+          displayBuffer[y][x] = (tonemap ? tonemap->apply(hdrBuffer[y][x]) : hdrBuffer[y][x]).rgb();
+        }
+      }
+    }
+
+    void denoise(Buffer<Colord>& buffer) const {
+      if (denoiser) {
+        denoiser->denoise(buffer);
+      }
     }
 
     void resetMetrics(render::Camera& camera, int width, int height,
@@ -468,6 +485,9 @@ namespace engine::wavefront {
       std::make_shared<WavefrontRaytracer>(m_camera ? m_camera->clone() : nullptr, m_scene);
     result->setTonemap(tonemap());
     result->setIntegrator(p->integrator->clone());
+    if (p->denoiser) {
+      result->setDenoiser(p->denoiser->clone());
+    }
     result->setMaximumThreads(p->threadPool->maxThreadCount());
     result->setQueueSize(p->queueSize);
     result->setShowProgressIndicators(p->showProgressIndicators);
@@ -514,6 +534,7 @@ namespace engine::wavefront {
             : std::nullopt;
         p->renderTile(*camera, *rayCaster, *m_scene, *bufferPtr, rect, tileSeed);
       });
+    p->denoise(buffer);
     p->finishMetrics(renderStart);
 
 #ifdef RAYTRACER_ENABLE_STATS
@@ -524,6 +545,12 @@ namespace engine::wavefront {
   void WavefrontRaytracer::render(Buffer<unsigned int>& buffer) {
     if (!m_scene || !m_camera) {
       buffer.clear();
+      return;
+    }
+
+    if (p->denoiser) {
+      Buffer<Colord> hdrBuffer(buffer.width(), buffer.height());
+      render(hdrBuffer, buffer, tonemap());
       return;
     }
 
@@ -605,6 +632,8 @@ namespace engine::wavefront {
         p->renderTile(*camera, *rayCaster, *m_scene, *hdrBufferPtr, *displayBufferPtr,
                       displayTonemap, rect, tileSeed);
       });
+    p->denoise(hdrBuffer);
+    p->writeDisplayBuffer(displayBuffer, hdrBuffer, displayTonemap);
     p->finishMetrics(renderStart);
 
 #ifdef RAYTRACER_ENABLE_STATS
@@ -654,6 +683,18 @@ namespace engine::wavefront {
 
   const render::Integrator& WavefrontRaytracer::integrator() const {
     return *p->integrator;
+  }
+
+  void WavefrontRaytracer::setDenoiser(std::unique_ptr<render::Denoiser> denoiser) {
+    p->denoiser = std::move(denoiser);
+  }
+
+  void WavefrontRaytracer::clearDenoiser() {
+    p->denoiser.reset();
+  }
+
+  const render::Denoiser* WavefrontRaytracer::denoiser() const {
+    return p->denoiser.get();
   }
 
   void WavefrontRaytracer::setMaximumRecursionDepth(int depth) {
