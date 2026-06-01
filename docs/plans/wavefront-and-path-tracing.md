@@ -492,7 +492,8 @@ attach those metrics to the `wavefront_beauty` pass for Modeler and rendercli
 inspection. rendercli now carries a small graph-level parity check that renders
 the same deterministic scene through recursive raytracer and wavefront
 executors and requires matching image hashes, plus a glass-scene parity check
-that exercises transparent Whitted continuation queues.
+that exercises transparent Whitted continuation queues and a reflection-heavy
+scene check that exercises recursive reflective continuation queues.
 
 **Goal**: prove the architecture without changing image output.
 **Gate**: macro benchmark output (sphere / torus / BVH scenes) RMS
