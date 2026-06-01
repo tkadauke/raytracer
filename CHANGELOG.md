@@ -72,6 +72,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   now run multiple active-fraction/RMS threshold pairs against the same
   non-converged baseline via `WAVEFRONT_CONVERGENCE_SWEEP`, making Phase 4
   policy tuning less manual. — GPT-5
+- **Wavefront denoiser feature requests.** Denoisers now explicitly request
+  albedo/normal/depth feature buffers, so featureless filters no longer pay the
+  wavefront feature-prepass cost. — GPT-5
 
 ### Changed
 

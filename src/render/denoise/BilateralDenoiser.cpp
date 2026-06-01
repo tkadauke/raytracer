@@ -35,6 +35,10 @@ namespace render {
        DenoiserDiagnostics::NumericParameter{"color_sigma", m_colorSigma}}};
   }
 
+  DenoiserFeatureRequest BilateralDenoiser::requestedFeatures() const {
+    return DenoiserFeatureRequest{true, true, true};
+  }
+
   void BilateralDenoiser::denoiseFrame(DenoiserFrame& frame) const {
     Buffer<Colord>& buffer = frame.beauty;
     if (m_radius <= 0 || buffer.width() <= 0 || buffer.height() <= 0) {

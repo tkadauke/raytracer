@@ -31,7 +31,9 @@ namespace engine::wavefront::detail {
       const render::DenoiserDiagnostics diagnostics = denoiser->diagnostics();
       m_metrics.denoise.enabled = true;
       m_metrics.denoise.denoiser = diagnostics.name;
-      m_metrics.denoise.featureTileCount = tilePlan.size();
+      if (denoiser->requestedFeatures().any()) {
+        m_metrics.denoise.featureTileCount = tilePlan.size();
+      }
       for (const auto& parameter : diagnostics.numericParameters) {
         m_metrics.denoise.numericParameters.push_back(
           WavefrontRenderMetrics::DenoiseSummary::NumericParameter{parameter.name,

@@ -87,4 +87,14 @@ namespace BilateralDenoiserTest {
     EXPECT_EQ("color_sigma", diagnostics.numericParameters[1].name);
     EXPECT_DOUBLE_EQ(0.2, diagnostics.numericParameters[1].value);
   }
+
+  TEST(BilateralDenoiser, RequestsFeatureBuffers) {
+    const render::BilateralDenoiser denoiser;
+
+    const render::DenoiserFeatureRequest request = denoiser.requestedFeatures();
+
+    EXPECT_TRUE(request.albedo);
+    EXPECT_TRUE(request.normal);
+    EXPECT_TRUE(request.depth);
+  }
 }

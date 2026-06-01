@@ -154,17 +154,6 @@ namespace engine::wavefront::detail {
       return result;
     }
 
-    void writeDenoiserFeature(WavefrontDenoiserFeatureSet& features, const Recti& footprint,
-                              const Colord& albedo, const Vector3d& normal, double depth) {
-      for (int y = footprint.top(); y != footprint.bottom(); ++y) {
-        for (int x = footprint.left(); x != footprint.right(); ++x) {
-          features.albedo[y][x] = albedo;
-          features.normal[y][x] = normal;
-          features.depth[y][x] = depth;
-        }
-      }
-    }
-
     void buildDenoiserFeatureTile(WavefrontDenoiserFeatureSet& features, render::Camera& camera,
                                   const render::Scene& scene, const Recti& actualRect,
                                   std::optional<std::uint64_t> tileSeed) {
@@ -199,8 +188,8 @@ namespace engine::wavefront::detail {
         if (const auto material = primitive->material()) {
           albedo = material->denoisingAlbedo(sample->ray, hitPoint);
         }
-        writeDenoiserFeature(features, pixel.footprintWithin(actualRect), albedo,
-                             hitPoint.normal().normalizedOrZero(1e-12), hitPoint.distance());
+        features.write(pixel.footprintWithin(actualRect), albedo,
+                       hitPoint.normal().normalizedOrZero(1e-12), hitPoint.distance());
       }
     }
 
@@ -210,10 +199,8 @@ namespace engine::wavefront::detail {
         for (int x = actualRect.left(); x != actualRect.right(); ++x) {
           const int tileX = x - actualRect.left();
           const int tileY = y - actualRect.top();
-          if (x >= 0 && y >= 0 && x < source.albedo.width() && y < source.albedo.height()) {
-            target.albedo[tileY][tileX] = source.albedo[y][x];
-            target.normal[tileY][tileX] = source.normal[y][x];
-            target.depth[tileY][tileX] = source.depth[y][x];
+          if (source.hasSourcePixel(x, y)) {
+            target.copyPixelFrom(source, tileX, tileY, x, y);
           }
         }
       }
@@ -262,11 +249,10 @@ namespace engine::wavefront::detail {
       render::DenoiserFrame frame(beauty);
       if (features) {
         tileFeatures =
-          std::make_unique<WavefrontDenoiserFeatureSet>(actualRect.width(), actualRect.height());
+          std::make_unique<WavefrontDenoiserFeatureSet>(actualRect.width(), actualRect.height(),
+                                                        features->requestedFeatures());
         copyDenoiserFeatureTile(*features, *tileFeatures, actualRect);
-        frame.features.albedo = &tileFeatures->albedo;
-        frame.features.normal = &tileFeatures->normal;
-        frame.features.depth = &tileFeatures->depth;
+        frame.features = tileFeatures->buffers();
       }
       progressDenoiser.denoiseFrame(frame);
 
@@ -393,8 +379,14 @@ namespace engine::wavefront::detail {
       return nullptr;
     }
 
+    const render::DenoiserFeatureRequest requestedFeatures = m_config.denoiser->requestedFeatures();
+    if (!requestedFeatures.any()) {
+      return nullptr;
+    }
+
     const auto featureStart = WavefrontMetricsRecorder::Clock::now();
-    auto features = std::make_unique<WavefrontDenoiserFeatureSet>(rect.width(), rect.height());
+    auto features =
+      std::make_unique<WavefrontDenoiserFeatureSet>(rect.width(), rect.height(), requestedFeatures);
     const auto renderSeed = m_config.samplingSeed;
     engine::dispatchTileTasks(
       tilePlan, threadPool, tasks, [&](const Recti& tileRect, std::size_t tileIndex) {
@@ -423,9 +415,7 @@ namespace engine::wavefront::detail {
     const auto denoiseStart = WavefrontMetricsRecorder::Clock::now();
     render::DenoiserFrame frame(buffer);
     if (features) {
-      frame.features.albedo = &features->albedo;
-      frame.features.normal = &features->normal;
-      frame.features.depth = &features->depth;
+      frame.features = features->buffers();
     }
     m_config.denoiser->denoiseFrame(frame);
     const double seconds =

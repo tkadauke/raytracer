@@ -11,6 +11,16 @@ template<class T>
 class Buffer;
 
 namespace render {
+  struct DenoiserFeatureRequest {
+    bool albedo = false;
+    bool normal = false;
+    bool depth = false;
+
+    bool any() const {
+      return albedo || normal || depth;
+    }
+  };
+
   struct DenoiserFeatureBuffers {
     const Buffer<Colord>* albedo = nullptr;
     const Buffer<Vector3d>* normal = nullptr;
@@ -44,6 +54,9 @@ namespace render {
     virtual const char* diagnosticName() const = 0;
     virtual DenoiserDiagnostics diagnostics() const {
       return DenoiserDiagnostics{diagnosticName(), {}};
+    }
+    virtual DenoiserFeatureRequest requestedFeatures() const {
+      return {};
     }
     void denoise(Buffer<Colord>& buffer) const {
       DenoiserFrame frame(buffer);

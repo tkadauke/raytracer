@@ -60,6 +60,10 @@ namespace WavefrontRaytracerTest {
       return "feature_recording";
     }
 
+    render::DenoiserFeatureRequest requestedFeatures() const override {
+      return render::DenoiserFeatureRequest{true, true, true};
+    }
+
     void denoiseFrame(render::DenoiserFrame& frame) const override {
       sawAlbedo = frame.features.albedo != nullptr;
       sawNormal = frame.features.normal != nullptr;
@@ -178,6 +182,10 @@ namespace WavefrontRaytracerTest {
 
     const char* diagnosticName() const override {
       return "shared_recording";
+    }
+
+    render::DenoiserFeatureRequest requestedFeatures() const override {
+      return render::DenoiserFeatureRequest{true, true, true};
     }
 
     void denoiseFrame(render::DenoiserFrame& frame) const override {
@@ -379,28 +387,28 @@ namespace WavefrontRaytracerTest {
     ASSERT_EQ(1u, metrics.denoise.numericParameters.size());
     EXPECT_EQ("radius", metrics.denoise.numericParameters.front().name);
     EXPECT_DOUBLE_EQ(2.0, metrics.denoise.numericParameters.front().value);
-    EXPECT_TRUE(metrics.denoise.albedoFeature);
-    EXPECT_TRUE(metrics.denoise.normalFeature);
-    EXPECT_TRUE(metrics.denoise.depthFeature);
-    EXPECT_EQ(1u, metrics.denoise.featureTileCount);
-    EXPECT_EQ(1u, metrics.denoise.completedFeatureTileCount);
-    EXPECT_EQ(12u, metrics.denoise.featurePixels);
-    EXPECT_GE(metrics.denoise.featureSeconds, 0.0);
+    EXPECT_FALSE(metrics.denoise.albedoFeature);
+    EXPECT_FALSE(metrics.denoise.normalFeature);
+    EXPECT_FALSE(metrics.denoise.depthFeature);
+    EXPECT_EQ(0u, metrics.denoise.featureTileCount);
+    EXPECT_EQ(0u, metrics.denoise.completedFeatureTileCount);
+    EXPECT_EQ(0u, metrics.denoise.featurePixels);
+    EXPECT_DOUBLE_EQ(0.0, metrics.denoise.featureSeconds);
     EXPECT_GE(metrics.denoise.seconds, 0.0);
 
     const QJsonObject denoise = metrics.toJson().value("denoise").toObject();
     EXPECT_TRUE(denoise.value("enabled").toBool());
     EXPECT_EQ("box", denoise.value("denoiser").toString().toStdString());
     EXPECT_DOUBLE_EQ(2.0, denoise.value("parameters").toObject().value("radius").toDouble());
-    EXPECT_TRUE(denoise.value("features").toObject().value("albedo").toBool());
-    EXPECT_TRUE(denoise.value("features").toObject().value("normal").toBool());
-    EXPECT_TRUE(denoise.value("features").toObject().value("depth").toBool());
+    EXPECT_FALSE(denoise.value("features").toObject().value("albedo").toBool());
+    EXPECT_FALSE(denoise.value("features").toObject().value("normal").toBool());
+    EXPECT_FALSE(denoise.value("features").toObject().value("depth").toBool());
     const QJsonObject prepass = denoise.value("featurePrepass").toObject();
-    EXPECT_EQ(1.0, prepass.value("tileCount").toDouble());
-    EXPECT_EQ(1.0, prepass.value("completedTileCount").toDouble());
-    EXPECT_EQ(12.0, prepass.value("pixels").toDouble());
-    EXPECT_GE(prepass.value("seconds").toDouble(), 0.0);
-    EXPECT_GE(denoise.value("featureSeconds").toDouble(), 0.0);
+    EXPECT_EQ(0.0, prepass.value("tileCount").toDouble());
+    EXPECT_EQ(0.0, prepass.value("completedTileCount").toDouble());
+    EXPECT_EQ(0.0, prepass.value("pixels").toDouble());
+    EXPECT_DOUBLE_EQ(0.0, prepass.value("seconds").toDouble());
+    EXPECT_DOUBLE_EQ(0.0, denoise.value("featureSeconds").toDouble());
     EXPECT_GE(denoise.value("seconds").toDouble(), 0.0);
   }
 
@@ -410,7 +418,7 @@ namespace WavefrontRaytracerTest {
     auto renderer = std::make_shared<WavefrontRaytracer>(camera(), scene);
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
-    renderer->setDenoiser(std::make_unique<render::BoxDenoiser>(1));
+    renderer->setDenoiser(std::make_unique<FeatureRecordingDenoiser>());
 
     Buffer<unsigned int> buffer(8, 8);
     std::atomic<bool> done{false};

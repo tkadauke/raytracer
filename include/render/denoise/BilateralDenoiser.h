@@ -10,6 +10,7 @@ namespace render {
     std::unique_ptr<Denoiser> clone() const override;
     const char* diagnosticName() const override;
     DenoiserDiagnostics diagnostics() const override;
+    DenoiserFeatureRequest requestedFeatures() const override;
     void denoiseFrame(DenoiserFrame& frame) const override;
 
     void setRadius(int radius);

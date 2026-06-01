@@ -1503,9 +1503,9 @@ rendercli_run(
 rendercli_assert_image_nonempty("${wavefront_metrics_render}"
                                 NAME "wavefront metrics graph render pixels")
 foreach(feature_name albedo normal depth)
-  if(NOT wavefront_metrics_stdout MATCHES "denoise_feature_${feature_name}=1")
+  if(NOT wavefront_metrics_stdout MATCHES "denoise_feature_${feature_name}=0")
     _rendercli_fail("rendercli wavefront metrics denoiser feature summary"
-                    "wavefront metrics summary did not contain ${feature_name} feature metadata"
+                    "wavefront metrics summary did not report skipped ${feature_name} feature metadata"
                     "${wavefront_metrics_stdout}" "" "" "")
   endif()
 endforeach()

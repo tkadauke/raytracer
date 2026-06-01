@@ -41,6 +41,17 @@ namespace DenoiserTest {
     EXPECT_FALSE(denoiser.sawDepth);
   }
 
+  TEST(Denoiser, DoesNotRequestFeatureBuffersByDefault) {
+    const RecordingDenoiser denoiser;
+
+    const render::DenoiserFeatureRequest request = denoiser.requestedFeatures();
+
+    EXPECT_FALSE(request.any());
+    EXPECT_FALSE(request.albedo);
+    EXPECT_FALSE(request.normal);
+    EXPECT_FALSE(request.depth);
+  }
+
   TEST(DenoiserFrame, CarriesOptionalFeatureBuffers) {
     RecordingDenoiser denoiser;
     Buffer<Colord> beauty(1, 1);
