@@ -20,8 +20,9 @@ Usage: benchmarks/wavefront_convergence_capture.sh <scene|all>
 
 Scenes:
   bvh_whitted          generated BVH-heavy Whitted parity/performance fixture
+  reflection_whitted   scenes/reflections.json secondary-ray Whitted fixture
   pathtracer_bounce    scenes/wavefront_indirect_bounce_demo.json
-  all                  run both scenes above
+  all                  run all scenes above
 
 Environment:
   RENDERCLI                             rendercli binary path
@@ -198,6 +199,21 @@ capture_bvh_whitted() {
   compare_variant bvh_whitted raytracer_whitted wavefront_whitted_convergence
 }
 
+capture_reflection_whitted() {
+  local scene="${repo_root}/scenes/reflections.json"
+  run_variant reflection_whitted raytracer_whitted "${scene}" \
+    --engine raytracer --integrator whitted --samples_per_pixel 1
+  run_variant reflection_whitted wavefront_whitted_no_convergence "${scene}" \
+    --engine wavefront --integrator whitted --wavefront_no_convergence --samples_per_pixel 1
+  run_variant reflection_whitted wavefront_whitted_convergence "${scene}" \
+    --engine wavefront --integrator whitted --wavefront_convergence \
+    --wavefront_convergence_active_fraction "${active_fraction}" \
+    --wavefront_convergence_rms_delta "${rms_delta}" --samples_per_pixel 1
+
+  compare_variant reflection_whitted raytracer_whitted wavefront_whitted_no_convergence
+  compare_variant reflection_whitted raytracer_whitted wavefront_whitted_convergence
+}
+
 capture_pathtracer_bounce() {
   local scene="${repo_root}/scenes/wavefront_indirect_bounce_demo.json"
   run_variant pathtracer_bounce wavefront_pathtracer_no_convergence "${scene}" \
@@ -224,11 +240,15 @@ case "${scene}" in
   bvh_whitted)
     capture_bvh_whitted
     ;;
+  reflection_whitted)
+    capture_reflection_whitted
+    ;;
   pathtracer_bounce)
     capture_pathtracer_bounce
     ;;
   all)
     capture_bvh_whitted
+    capture_reflection_whitted
     capture_pathtracer_bounce
     ;;
   *)

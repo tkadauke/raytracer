@@ -57,9 +57,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   now report active feature-prepass tiles and graph trace metadata separates
   denoiser feature-prepass tile counts from beauty tile progress. — GPT-5
 - **Wavefront convergence capture script.** Added
-  `benchmarks/wavefront_convergence_capture.sh` to generate BVH-heavy Whitted
-  and indirect-bounce path-tracing macro captures with timing, metrics, and
-  image-delta reports for convergence default tuning. — GPT-5
+  `benchmarks/wavefront_convergence_capture.sh` to generate BVH-heavy Whitted,
+  reflection-heavy Whitted, and indirect-bounce path-tracing macro captures
+  with timing, metrics, and image-delta reports for convergence default
+  tuning. — GPT-5
 
 ### Changed
 
