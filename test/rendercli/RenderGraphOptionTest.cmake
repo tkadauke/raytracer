@@ -100,6 +100,8 @@ set(wavefront_pathtracer_render "${TEST_OUTPUT_DIR}/wavefront-pathtracer-render.
 set(wavefront_compatibility_trace "${TEST_OUTPUT_DIR}/wavefront-compatibility-trace.json")
 set(wavefront_compatibility_trace_render
     "${TEST_OUTPUT_DIR}/wavefront-compatibility-trace-render.png")
+set(wavefront_glass_trace "${TEST_OUTPUT_DIR}/wavefront-glass-trace.json")
+set(wavefront_glass_trace_render "${TEST_OUTPUT_DIR}/wavefront-glass-trace-render.png")
 set(raster_culling_plan "${TEST_OUTPUT_DIR}/raster-culling-graph.txt")
 set(raster_culling_trace "${TEST_OUTPUT_DIR}/raster-culling-trace.json")
 set(raster_culling_trace_render "${TEST_OUTPUT_DIR}/raster-culling-trace-render.png")
@@ -1481,6 +1483,26 @@ endif()
 if(NOT wavefront_compatibility_trace_json MATCHES "\"compatibilityShadeSamples\"")
   message(FATAL_ERROR
           "wavefront compatibility trace did not publish material compatibility counter: ${wavefront_compatibility_trace_json}")
+endif()
+
+rendercli_run(
+  NAME "rendercli traces transparent wavefront path without compatibility shading"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --integrator pathtracer --samples_per_pixel 2
+    --width 16 --height 16 --render_graph_trace_out "${wavefront_glass_trace}"
+    "${PROJECT_SOURCE_DIR}/scenes/glass_torus.json" "${wavefront_glass_trace_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_glass_trace_render}"
+                                NAME "wavefront transparent glass trace render pixels")
+rendercli_assert_nonempty("${wavefront_glass_trace}" NAME "wavefront transparent glass trace JSON")
+file(READ "${wavefront_glass_trace}" wavefront_glass_trace_json)
+if(NOT wavefront_glass_trace_json MATCHES "\"id\": \"wavefront_beauty\"")
+  message(FATAL_ERROR
+          "wavefront transparent glass trace did not contain wavefront pass: ${wavefront_glass_trace_json}")
+endif()
+if(NOT wavefront_glass_trace_json MATCHES "\"compatibilityShadeSamples\"[ \r\n]*:[ \r\n]*0")
+  message(FATAL_ERROR
+          "wavefront transparent glass path used compatibility material shading: ${wavefront_glass_trace_json}")
 endif()
 
 rendercli_expect_failure(
