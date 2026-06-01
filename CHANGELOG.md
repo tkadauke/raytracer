@@ -98,6 +98,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   stopped-tile depth histogram, and compact rendercli summaries report the
   earliest/latest stopped depths to make convergence preset tuning measurable.
   — GPT-5
+- **Wavefront sample-depth diagnostics.** Wavefront metrics now report the
+  total active sample-depths processed by the selected integrator, giving
+  convergence captures a direct work-saved counter beside wall-clock timings.
+  — GPT-5
 - **Wavefront graph trace metadata.** Wavefront renders now record tile,
   sample, integrator batch-mode, active-samples-per-depth, per-depth radiance
   deltas, convergence thresholds/stop decisions, scheduling, and timing metrics

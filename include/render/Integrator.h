@@ -23,6 +23,7 @@ namespace render {
   struct IntegratorBatchMetrics {
     bool usedScalarFallback{false};
     std::vector<std::uint64_t> activeSamplesPerDepth;
+    std::uint64_t activeSampleDepthsProcessed{0};
     std::vector<double> radianceDeltaSquaredSumPerDepth;
     std::vector<double> maxRadianceDeltaPerDepth;
     std::uint64_t compatibilityShadeSamples{0};

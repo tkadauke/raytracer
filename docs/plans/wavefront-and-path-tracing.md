@@ -534,7 +534,9 @@ thresholds and requires the report to show convergence-stopped tiles after the
 first depth. Wavefront convergence metrics now also include a stopped-depth
 histogram, and rendercli's compact metrics line reports earliest/latest stopped
 depths so tuning captures can distinguish "most tiles stopped immediately" from
-"only a few late-depth tiles stopped".
+"only a few late-depth tiles stopped". Metrics also report total active
+sample-depths processed, giving captures a direct work-saved counter beside
+wall-clock timings.
 `benchmarks/wavefront_convergence_capture.sh` now packages the Phase 4 macro
 capture loop: it generates a BVH-heavy Whitted scene, compares
 recursive and wavefront variants, captures the reflection-heavy Whitted scene

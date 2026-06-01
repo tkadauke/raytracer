@@ -263,6 +263,7 @@ namespace PathTracingIntegratorTest {
     EXPECT_FALSE(metrics.usedScalarFallback);
     ASSERT_EQ(1u, metrics.activeSamplesPerDepth.size());
     EXPECT_EQ(2u, metrics.activeSamplesPerDepth[0]);
+    EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
     ASSERT_EQ(1u, metrics.radianceDeltaSquaredSumPerDepth.size());
     EXPECT_GT(metrics.radianceDeltaSquaredSumPerDepth[0], 0.0);
     ASSERT_EQ(1u, metrics.maxRadianceDeltaPerDepth.size());
@@ -360,6 +361,7 @@ namespace PathTracingIntegratorTest {
     ASSERT_COLOR_NEAR(Colord(0.5, 0, 0), batched[0], 1e-12);
     EXPECT_EQ(0u, metrics.compatibilityShadeSamples);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceContinuesThroughTransparentDeltaBsdf) {
@@ -380,6 +382,7 @@ namespace PathTracingIntegratorTest {
     ASSERT_COLOR_NEAR(Colord(0.5, 0, 0), batched[0], 1e-12);
     EXPECT_EQ(0u, metrics.compatibilityShadeSamples);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceContinuesThroughPortalDeltaBsdf) {
@@ -400,6 +403,7 @@ namespace PathTracingIntegratorTest {
     ASSERT_COLOR_NEAR(Colord(0.25, 0, 0), batched[0], 1e-12);
     EXPECT_EQ(0u, metrics.compatibilityShadeSamples);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceStopsWhenConverged) {
@@ -428,6 +432,7 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1u, metrics.stoppedAfterDepth);
     ASSERT_EQ(1u, metrics.activeSamplesPerDepth.size());
     EXPECT_EQ(2u, metrics.activeSamplesPerDepth[0]);
+    EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
   }
 
   TEST(PathTracingIntegrator, BatchedRadiancePublishesDepthProgress) {

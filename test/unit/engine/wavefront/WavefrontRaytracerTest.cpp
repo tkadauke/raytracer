@@ -117,6 +117,7 @@ namespace WavefrontRaytracerTest {
                   const render::IntegratorBatchSettings& settings = {}) const override {
       if (metrics) {
         metrics->activeSamplesPerDepth = {static_cast<std::uint64_t>(samples.size())};
+        metrics->activeSampleDepthsProcessed = samples.size();
         if (m_state) {
           ++m_state->batchesWithMetrics;
         }
@@ -551,6 +552,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("depth_major_whitted", metrics.batching.executionMode);
     EXPECT_EQ(1u, metrics.batching.batches);
     EXPECT_EQ(48u, metrics.batching.samplesSubmitted);
+    EXPECT_EQ(48u, metrics.batching.activeSampleDepthsProcessed);
     EXPECT_EQ(48u, metrics.batching.maxBatchSize);
     EXPECT_DOUBLE_EQ(48.0, metrics.batching.averageBatchSize);
     EXPECT_EQ(0u, metrics.batching.compatibilityShadeSamples);
@@ -572,6 +574,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("whitted",
               json.value("batching").toObject().value("integrator").toString().toStdString());
     EXPECT_EQ(48.0, json.value("batching").toObject().value("samplesSubmitted").toDouble());
+    EXPECT_EQ(48.0,
+              json.value("batching").toObject().value("activeSampleDepthsProcessed").toDouble());
     EXPECT_EQ(0.0, json.value("batching").toObject().value("compatibilityShadeSamples").toDouble());
     const QJsonArray activeSamples =
       json.value("batching").toObject().value("activeSamplesPerDepth").toArray();

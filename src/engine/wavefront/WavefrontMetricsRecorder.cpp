@@ -55,6 +55,8 @@ namespace engine::wavefront::detail {
     ++m_metrics.tiling.nonEmptyTileCount;
     ++m_metrics.batching.batches;
     m_metrics.batching.samplesSubmitted += result.sampleCount;
+    m_metrics.batching.activeSampleDepthsProcessed +=
+      result.batchMetrics.activeSampleDepthsProcessed;
     m_metrics.batching.compatibilityShadeSamples += result.batchMetrics.compatibilityShadeSamples;
     m_metrics.batching.maxBatchSize =
       std::max(m_metrics.batching.maxBatchSize, static_cast<std::uint64_t>(result.sampleCount));

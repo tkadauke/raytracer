@@ -50,4 +50,23 @@ namespace IntegratorTest {
     EXPECT_EQ(1, state.maxRecursionDepth);
     ASSERT_COLOR_NEAR(Colord(0.35, 0.7, 1.05), color, 1e-12);
   }
+
+  TEST(Integrator, BatchedRadianceReportsScalarSampleDepthWork) {
+    Scene scene;
+    scene.setBackground(Colord(0.1, 0.2, 0.3));
+    FixedRayCaster rayCaster;
+    RecursiveProbeIntegrator integrator;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples{
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr},
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::right()), 0.0, nullptr}};
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(scene, samples, rayCaster, &metrics);
+
+    ASSERT_EQ(2u, colors.size());
+    EXPECT_TRUE(metrics.usedScalarFallback);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
+  }
 }

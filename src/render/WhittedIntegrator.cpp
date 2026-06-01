@@ -93,6 +93,7 @@ namespace render {
     if (metrics) {
       metrics->usedScalarFallback = false;
       metrics->activeSamplesPerDepth.clear();
+      metrics->activeSampleDepthsProcessed = 0;
       metrics->radianceDeltaSquaredSumPerDepth.clear();
       metrics->maxRadianceDeltaPerDepth.clear();
       metrics->compatibilityShadeSamples = 0;
@@ -131,6 +132,7 @@ namespace render {
       }
       if (metrics) {
         metrics->activeSamplesPerDepth.push_back(currentActiveSamples);
+        metrics->activeSampleDepthsProcessed += currentActiveSamples;
       }
       if (trackRadianceDelta) {
         resultBeforeDepth = result;

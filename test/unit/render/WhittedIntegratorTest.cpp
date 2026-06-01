@@ -242,6 +242,7 @@ namespace WhittedIntegratorTest {
     EXPECT_STREQ("depth_major_whitted", integrator.batchExecutionMode());
     EXPECT_FALSE(metrics.usedScalarFallback);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
     EXPECT_EQ(2u, metrics.radianceDeltaSquaredSumPerDepth.size());
   }
 
@@ -269,6 +270,7 @@ namespace WhittedIntegratorTest {
     EXPECT_TRUE(metrics.stoppedByConvergence);
     EXPECT_EQ(1u, metrics.stoppedAfterDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ(1u, metrics.activeSampleDepthsProcessed);
     EXPECT_EQ(1u, metrics.radianceDeltaSquaredSumPerDepth.size());
   }
 
@@ -290,6 +292,7 @@ namespace WhittedIntegratorTest {
     ASSERT_EQ(1u, colors.size());
     ASSERT_COLOR_NEAR(Colord(0.2, 0.2, 0.3), colors[0], 1e-12);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceConvergesBranchedContinuationsByActiveSampleCount) {
@@ -316,6 +319,7 @@ namespace WhittedIntegratorTest {
     EXPECT_TRUE(metrics.stoppedByConvergence);
     EXPECT_EQ(1u, metrics.stoppedAfterDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ(1u, metrics.activeSampleDepthsProcessed);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceFallsBackForUnsupportedMaterials) {

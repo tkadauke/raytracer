@@ -22,6 +22,7 @@ namespace render {
     if (metrics) {
       metrics->usedScalarFallback = true;
       metrics->activeSamplesPerDepth.clear();
+      metrics->activeSampleDepthsProcessed = 0;
       metrics->radianceDeltaSquaredSumPerDepth.clear();
       metrics->maxRadianceDeltaPerDepth.clear();
       metrics->compatibilityShadeSamples = 0;
@@ -50,6 +51,7 @@ namespace render {
     if (!samples.empty()) {
       if (metrics) {
         metrics->activeSamplesPerDepth.push_back(samples.size());
+        metrics->activeSampleDepthsProcessed += samples.size();
         metrics->radianceDeltaSquaredSumPerDepth.push_back(deltaSquaredSum);
         metrics->maxRadianceDeltaPerDepth.push_back(maxDelta);
       }

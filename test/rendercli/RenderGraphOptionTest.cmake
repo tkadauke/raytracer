@@ -1493,7 +1493,7 @@ rendercli_run(
   NAME "rendercli writes graph wavefront metrics JSON and summary"
   OUTPUT_VARIABLE wavefront_metrics_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*samples=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
+    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
   COMMAND
     "${RENDERCLI}" --engine wavefront --width 16 --height 16
     --wavefront_denoiser box --wavefront_denoise_radius 2
@@ -1524,6 +1524,11 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"activeSamplesPerDepth\"")
   _rendercli_fail("rendercli wavefront metrics batching"
                   "wavefront metrics report did not contain batch counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"activeSampleDepthsProcessed\"")
+  _rendercli_fail("rendercli wavefront metrics sample-depth work"
+                  "wavefront metrics report did not contain active sample-depth work"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"radianceDeltaRmsPerDepth\"")
@@ -1566,7 +1571,7 @@ rendercli_run(
   NAME "rendercli reports wavefront convergence-stopped tiles"
   OUTPUT_VARIABLE wavefront_converged_metrics_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*pass=wavefront_beauty.*integrator=pathtracer.*execution=depth_major_paths.*active_depths=1.*convergence=stopped_some_tiles.*stopped_tiles=[1-9].*earliest_stop_depth=[1-9].*latest_stop_depth=[1-9]"
+    "wavefront_metrics.*pass=wavefront_beauty.*integrator=pathtracer.*execution=depth_major_paths.*active_sample_depths=.*active_depths=1.*convergence=stopped_some_tiles.*stopped_tiles=[1-9].*earliest_stop_depth=[1-9].*latest_stop_depth=[1-9]"
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
     --wavefront_convergence --wavefront_convergence_active_fraction 1

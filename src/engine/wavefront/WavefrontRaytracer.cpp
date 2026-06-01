@@ -89,6 +89,8 @@ namespace engine::wavefront {
     batchingJson["samplesSubmitted"] = static_cast<double>(batching.samplesSubmitted);
     batchingJson["maxBatchSize"] = static_cast<double>(batching.maxBatchSize);
     batchingJson["averageBatchSize"] = batching.averageBatchSize;
+    batchingJson["activeSampleDepthsProcessed"] =
+      static_cast<double>(batching.activeSampleDepthsProcessed);
     batchingJson["compatibilityShadeSamples"] =
       static_cast<double>(batching.compatibilityShadeSamples);
     batchingJson["activeSamplesPerDepth"] = activeSamplesPerDepth;
