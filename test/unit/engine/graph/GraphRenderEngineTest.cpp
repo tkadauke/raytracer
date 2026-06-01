@@ -1663,6 +1663,8 @@ namespace GraphRenderEngineTest {
     intent.defaultExecutor = RenderExecutorPreference::Wavefront;
     intent.engineOptions.raytracer().setIntegrator("pathtracer");
     intent.engineOptions.raytracer().setSamplesPerPixel(4);
+    intent.engineOptions.raytracer().setConvergenceEnabled(true);
+    intent.engineOptions.raytracer().setConvergenceRadianceDeltaRmsThreshold(0.01);
     RenderGraphCompiler compiler;
 
     GraphRenderEngine engine(camera(), scene);
@@ -1683,6 +1685,10 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("depth_major_paths", batching.value("executionMode").toString());
     EXPECT_EQ(4, input.value("samplesPerPixel").toInt());
     EXPECT_EQ(1024.0, input.value("primarySamples").toDouble());
+    const QJsonObject convergence = metadata.value("convergence").toObject();
+    EXPECT_TRUE(convergence.value("enabled").toBool());
+    EXPECT_DOUBLE_EQ(0.01, convergence.value("radianceDeltaRmsThreshold").toDouble());
+    EXPECT_EQ("configured", convergence.value("decision").toString().toStdString());
     const QJsonArray activeSamples = batching.value("activeSamplesPerDepth").toArray();
     ASSERT_GE(activeSamples.size(), 1);
     EXPECT_EQ(1024.0, activeSamples.at(0).toDouble());

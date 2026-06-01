@@ -23,6 +23,9 @@ namespace RaytracerPassStateTest {
     state.setSampler("Jittered");
     state.setSamplesPerPixel(16);
     state.setViewPlane("TiledViewPlane");
+    state.setConvergenceEnabled(true);
+    state.setConvergenceActiveSampleFractionThreshold(0.125);
+    state.setConvergenceRadianceDeltaRmsThreshold(0.0025);
 
     const QJsonObject json = state.toJson();
 
@@ -36,6 +39,12 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ(16, json.value("sampling").toObject().value("samplesPerPixel").toInt());
     EXPECT_EQ("TiledViewPlane",
               json.value("viewPlane").toObject().value("type").toString().toStdString());
+    EXPECT_TRUE(json.value("convergence").toObject().value("enabled").toBool());
+    EXPECT_DOUBLE_EQ(
+      0.125,
+      json.value("convergence").toObject().value("activeSampleFractionThreshold").toDouble());
+    EXPECT_DOUBLE_EQ(
+      0.0025, json.value("convergence").toObject().value("radianceDeltaRmsThreshold").toDouble());
 
     const RaytracerBeautyPassState decoded = RaytracerBeautyPassState::fromJson(json);
     ASSERT_TRUE(decoded.maximumRecursionDepth().has_value());
@@ -45,6 +54,9 @@ namespace RaytracerPassStateTest {
     ASSERT_TRUE(decoded.sampler().has_value());
     ASSERT_TRUE(decoded.samplesPerPixel().has_value());
     ASSERT_TRUE(decoded.viewPlane().has_value());
+    ASSERT_TRUE(decoded.convergenceEnabled().has_value());
+    ASSERT_TRUE(decoded.convergenceActiveSampleFractionThreshold().has_value());
+    ASSERT_TRUE(decoded.convergenceRadianceDeltaRmsThreshold().has_value());
     EXPECT_EQ(7, *decoded.maximumRecursionDepth());
     EXPECT_EQ(3, *decoded.maximumThreads());
     EXPECT_EQ(11, *decoded.queueSize());
@@ -52,6 +64,9 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ("Jittered", *decoded.sampler());
     EXPECT_EQ(16, *decoded.samplesPerPixel());
     EXPECT_EQ("TiledViewPlane", *decoded.viewPlane());
+    EXPECT_TRUE(*decoded.convergenceEnabled());
+    EXPECT_DOUBLE_EQ(0.125, *decoded.convergenceActiveSampleFractionThreshold());
+    EXPECT_DOUBLE_EQ(0.0025, *decoded.convergenceRadianceDeltaRmsThreshold());
   }
 
   TEST(RaytracerBeautyPassState, AppliesPathTracingIntegratorToRaytracer) {

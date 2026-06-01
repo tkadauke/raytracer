@@ -45,11 +45,17 @@ namespace WavefrontRaytracerTest {
     renderer->setQueueSize(3);
     renderer->setSamplingSeed(42);
     renderer->setShowProgressIndicators(true);
+    renderer->setConvergenceEnabled(true);
+    renderer->setConvergenceActiveSampleFractionThreshold(0.25);
+    renderer->setConvergenceRadianceDeltaRmsThreshold(0.002);
 
     auto clone = std::dynamic_pointer_cast<WavefrontRaytracer>(renderer->cloneForRender());
     ASSERT_NE(nullptr, clone);
     ASSERT_TRUE(clone->samplingSeed().has_value());
     EXPECT_EQ(42u, *clone->samplingSeed());
+    EXPECT_TRUE(clone->convergenceEnabled());
+    EXPECT_DOUBLE_EQ(0.25, clone->convergenceActiveSampleFractionThreshold());
+    EXPECT_DOUBLE_EQ(0.002, clone->convergenceRadianceDeltaRmsThreshold());
     EXPECT_NE(renderer->camera(), clone->camera());
     EXPECT_EQ(renderer->scene(), clone->scene());
   }
@@ -79,6 +85,9 @@ namespace WavefrontRaytracerTest {
     auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
+    renderer->setConvergenceEnabled(true);
+    renderer->setConvergenceActiveSampleFractionThreshold(0.5);
+    renderer->setConvergenceRadianceDeltaRmsThreshold(0.01);
 
     Buffer<Colord> buffer(8, 6);
     renderer->render(buffer);
@@ -102,6 +111,10 @@ namespace WavefrontRaytracerTest {
     EXPECT_DOUBLE_EQ(48.0, metrics.batching.averageBatchSize);
     ASSERT_EQ(1u, metrics.batching.activeSamplesPerDepth.size());
     EXPECT_EQ(48u, metrics.batching.activeSamplesPerDepth[0]);
+    EXPECT_TRUE(metrics.convergence.enabled);
+    EXPECT_DOUBLE_EQ(0.5, metrics.convergence.activeSampleFractionThreshold);
+    EXPECT_DOUBLE_EQ(0.01, metrics.convergence.radianceDeltaRmsThreshold);
+    EXPECT_EQ("configured", metrics.convergence.decision);
     ASSERT_EQ(1u, metrics.batching.radianceDeltaSquaredSumPerDepth.size());
     EXPECT_GT(metrics.batching.radianceDeltaSquaredSumPerDepth[0], 0.0);
     ASSERT_EQ(1u, metrics.batching.maxRadianceDeltaPerDepth.size());
@@ -116,6 +129,13 @@ namespace WavefrontRaytracerTest {
       json.value("batching").toObject().value("activeSamplesPerDepth").toArray();
     ASSERT_EQ(1, activeSamples.size());
     EXPECT_EQ(48.0, activeSamples.at(0).toDouble());
+    EXPECT_TRUE(json.value("convergence").toObject().value("enabled").toBool());
+    EXPECT_DOUBLE_EQ(
+      0.5, json.value("convergence").toObject().value("activeSampleFractionThreshold").toDouble());
+    EXPECT_DOUBLE_EQ(
+      0.01, json.value("convergence").toObject().value("radianceDeltaRmsThreshold").toDouble());
+    EXPECT_EQ("configured",
+              json.value("convergence").toObject().value("decision").toString().toStdString());
     const QJsonArray deltaL2 =
       json.value("batching").toObject().value("radianceDeltaL2PerDepth").toArray();
     ASSERT_EQ(1, deltaL2.size());

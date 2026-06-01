@@ -89,6 +89,8 @@ namespace RenderGraphCompilerTest {
     intent.defaultExecutor = RenderExecutorPreference::Wavefront;
     intent.engineOptions.raytracer().setSamplesPerPixel(4);
     intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setConvergenceEnabled(true);
+    intent.engineOptions.raytracer().setConvergenceActiveSampleFractionThreshold(0.25);
 
     const RenderPlan plan = compiler.compile({64, 64, 4}, intent);
 
@@ -102,6 +104,10 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ("pathtracer", *state->integrator());
     ASSERT_TRUE(state->samplesPerPixel().has_value());
     EXPECT_EQ(4, *state->samplesPerPixel());
+    ASSERT_TRUE(state->convergenceEnabled().has_value());
+    EXPECT_TRUE(*state->convergenceEnabled());
+    ASSERT_TRUE(state->convergenceActiveSampleFractionThreshold().has_value());
+    EXPECT_DOUBLE_EQ(0.25, *state->convergenceActiveSampleFractionThreshold());
     EXPECT_EQ("tonemap", plan.passes()[1].id);
     EXPECT_TRUE(plan.validate().valid());
   }

@@ -57,6 +57,9 @@ namespace engine::graph {
     void setSampler(std::string sampler);
     void setSamplesPerPixel(int samples);
     void setViewPlane(std::string viewPlane);
+    void setConvergenceEnabled(bool enabled);
+    void setConvergenceActiveSampleFractionThreshold(double fraction);
+    void setConvergenceRadianceDeltaRmsThreshold(double threshold);
 
     std::optional<int> maximumRecursionDepth() const;
     std::optional<int> maximumThreads() const;
@@ -65,6 +68,9 @@ namespace engine::graph {
     std::optional<std::string> sampler() const;
     std::optional<int> samplesPerPixel() const;
     std::optional<std::string> viewPlane() const;
+    std::optional<bool> convergenceEnabled() const;
+    std::optional<double> convergenceActiveSampleFractionThreshold() const;
+    std::optional<double> convergenceRadianceDeltaRmsThreshold() const;
 
   private:
     static std::string normalizedIntegratorName(std::string integrator, const std::string& path);
@@ -80,5 +86,8 @@ namespace engine::graph {
     std::optional<std::string> m_sampler;
     std::optional<int> m_samplesPerPixel;
     std::optional<std::string> m_viewPlane;
+    std::optional<bool> m_convergenceEnabled;
+    std::optional<double> m_convergenceActiveSampleFractionThreshold;
+    std::optional<double> m_convergenceRadianceDeltaRmsThreshold;
   };
 }

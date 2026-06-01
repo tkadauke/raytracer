@@ -46,6 +46,9 @@ namespace RenderIntentElementTest {
     intent->setRaytracerIntegrator("path_tracer");
     intent->setRaytracerSampler("Jittered");
     intent->setRaytracerSamplesPerPixel(9);
+    intent->setWavefrontConvergence(true);
+    intent->setWavefrontConvergenceActiveFraction(0.25);
+    intent->setWavefrontConvergenceRmsDelta(0.005);
     intent->setWireframeLod(2);
 
     ASSERT_TRUE(scene.hasRenderIntent());
@@ -79,6 +82,22 @@ namespace RenderIntentElementTest {
     EXPECT_EQ("Jittered", *scene.renderIntent().engineOptions.raytracer().sampler());
     ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().samplesPerPixel().has_value());
     EXPECT_EQ(9, *scene.renderIntent().engineOptions.raytracer().samplesPerPixel());
+    ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().convergenceEnabled().has_value());
+    EXPECT_TRUE(*scene.renderIntent().engineOptions.raytracer().convergenceEnabled());
+    ASSERT_TRUE(scene.renderIntent()
+                  .engineOptions.raytracer()
+                  .convergenceActiveSampleFractionThreshold()
+                  .has_value());
+    EXPECT_DOUBLE_EQ(
+      0.25,
+      *scene.renderIntent().engineOptions.raytracer().convergenceActiveSampleFractionThreshold());
+    ASSERT_TRUE(scene.renderIntent()
+                  .engineOptions.raytracer()
+                  .convergenceRadianceDeltaRmsThreshold()
+                  .has_value());
+    EXPECT_DOUBLE_EQ(
+      0.005,
+      *scene.renderIntent().engineOptions.raytracer().convergenceRadianceDeltaRmsThreshold());
     ASSERT_TRUE(scene.renderIntent().engineOptions.wireframe().lod().has_value());
     EXPECT_EQ(2, *scene.renderIntent().engineOptions.wireframe().lod());
   }
@@ -124,6 +143,7 @@ namespace RenderIntentElementTest {
     EXPECT_EQ(QString("Tessellation Quality"),
               intent->propertyDisplayName("rasterizerTessellationQuality"));
     EXPECT_EQ(QString("Integrator"), intent->propertyDisplayName("raytracerIntegrator"));
+    EXPECT_EQ(QString("Convergence Stop"), intent->propertyDisplayName("wavefrontConvergence"));
     EXPECT_EQ(QString("Path Tracer"),
               intent->propertyChoiceDisplayName("raytracerIntegrator", "pathtracer"));
     EXPECT_EQ(QString("Wavefront"),
@@ -149,6 +169,11 @@ namespace RenderIntentElementTest {
     EXPECT_DOUBLE_EQ(0.0, intent->propertyDoubleRange("rasterizerShadowBias")->first);
     ASSERT_TRUE(intent->propertyDoubleRange("rasterizerMaxScreenSpaceError").has_value());
     EXPECT_DOUBLE_EQ(128.0, intent->propertyDoubleRange("rasterizerMaxScreenSpaceError")->second);
+    ASSERT_TRUE(intent->propertyDoubleRange("wavefrontConvergenceActiveFraction").has_value());
+    EXPECT_DOUBLE_EQ(1.0,
+                     intent->propertyDoubleRange("wavefrontConvergenceActiveFraction")->second);
+    ASSERT_TRUE(intent->propertyDoubleRange("wavefrontConvergenceRmsDelta").has_value());
+    EXPECT_DOUBLE_EQ(0.0, intent->propertyDoubleRange("wavefrontConvergenceRmsDelta")->first);
   }
 
   TEST(RenderIntentElement, FiltersEngineSpecificProperties) {
@@ -161,6 +186,7 @@ namespace RenderIntentElementTest {
     EXPECT_FALSE(intent->isPropertyVisible("raytracerViewPlane"));
     EXPECT_FALSE(intent->isPropertyVisible("raytracerThreads"));
     EXPECT_FALSE(intent->isPropertyVisible("raytracerQueueSize"));
+    EXPECT_FALSE(intent->isPropertyVisible("wavefrontConvergence"));
     EXPECT_FALSE(intent->isPropertyVisible("rasterizerLod"));
 
     intent->setDefaultEngine("rasterizer");
@@ -175,7 +201,11 @@ namespace RenderIntentElementTest {
     intent->setDefaultEngine("wavefront");
     EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
     EXPECT_TRUE(intent->isPropertyVisible("raytracerIntegrator"));
+    EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergence"));
+    EXPECT_FALSE(intent->isPropertyVisible("wavefrontConvergenceRmsDelta"));
     EXPECT_FALSE(intent->isPropertyVisible("rasterizerLod"));
+    intent->setWavefrontConvergence(true);
+    EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergenceRmsDelta"));
 
     intent->setDefaultEngine("rasterizer");
     intent->setPreviewShadows(true);

@@ -35,6 +35,11 @@ class RenderIntentElement : public Element {
   Q_PROPERTY(QString raytracerViewPlane READ raytracerViewPlane WRITE setRaytracerViewPlane)
   Q_PROPERTY(int raytracerThreads READ raytracerThreads WRITE setRaytracerThreads)
   Q_PROPERTY(int raytracerQueueSize READ raytracerQueueSize WRITE setRaytracerQueueSize)
+  Q_PROPERTY(bool wavefrontConvergence READ wavefrontConvergence WRITE setWavefrontConvergence)
+  Q_PROPERTY(double wavefrontConvergenceActiveFraction READ wavefrontConvergenceActiveFraction WRITE
+               setWavefrontConvergenceActiveFraction)
+  Q_PROPERTY(double wavefrontConvergenceRmsDelta READ wavefrontConvergenceRmsDelta WRITE
+               setWavefrontConvergenceRmsDelta)
   Q_PROPERTY(int rasterizerLod READ rasterizerLod WRITE setRasterizerLod)
   Q_PROPERTY(QString rasterizerTessellationQuality READ rasterizerTessellationQuality WRITE
                setRasterizerTessellationQuality)
@@ -127,6 +132,15 @@ public:
   int raytracerQueueSize() const;
   void setRaytracerQueueSize(int queueSize);
 
+  bool wavefrontConvergence() const;
+  void setWavefrontConvergence(bool enabled);
+
+  double wavefrontConvergenceActiveFraction() const;
+  void setWavefrontConvergenceActiveFraction(double fraction);
+
+  double wavefrontConvergenceRmsDelta() const;
+  void setWavefrontConvergenceRmsDelta(double threshold);
+
   int rasterizerLod() const;
   void setRasterizerLod(int lod);
 
@@ -179,6 +193,7 @@ private:
   engine::graph::RenderPostProcessAA postProcessAAFromText(const QString& text) const;
   bool isRasterCounterView(engine::graph::RenderViewMode viewMode) const;
   bool isRaytracerProperty(const QString& propertyName) const;
+  bool isWavefrontProperty(const QString& propertyName) const;
   bool isRasterizerProperty(const QString& propertyName) const;
   bool isRasterizerShadowProperty(const QString& propertyName) const;
   bool isWireframeProperty(const QString& propertyName) const;

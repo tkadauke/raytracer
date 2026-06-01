@@ -1,6 +1,7 @@
 #include "engine/wavefront/WavefrontRaytracer.h"
 
 #include "core/Buffer.h"
+#include "core/math/Constants.h"
 #include "core/util/BufferUtils.h"
 #include "engine/TileRenderTask.h"
 #include "render/Integrator.h"
@@ -102,11 +103,19 @@ namespace engine::wavefront {
     QJsonObject timings;
     timings["totalRenderSeconds"] = metrics.timings.totalRenderSeconds;
 
+    QJsonObject convergence;
+    convergence["enabled"] = metrics.convergence.enabled;
+    convergence["activeSampleFractionThreshold"] =
+      metrics.convergence.activeSampleFractionThreshold;
+    convergence["radianceDeltaRmsThreshold"] = metrics.convergence.radianceDeltaRmsThreshold;
+    convergence["decision"] = QString::fromStdString(metrics.convergence.decision);
+
     QJsonObject object;
     object["input"] = input;
     object["tiling"] = tiling;
     object["scheduling"] = scheduling;
     object["batching"] = batching;
+    object["convergence"] = convergence;
     object["timings"] = timings;
     return object;
   }
@@ -116,7 +125,10 @@ namespace engine::wavefront {
         : threadPool(std::make_unique<QThreadPool>()),
           queueSize(QThread::idealThreadCount()),
           integrator(std::make_unique<render::WhittedIntegrator>()),
-          showProgressIndicators(false) {
+          showProgressIndicators(false),
+          convergenceActiveSampleFractionThreshold(
+            RAYTRACER_WAVEFRONT_ACTIVE_SAMPLE_FRACTION_THRESHOLD),
+          convergenceRadianceDeltaRmsThreshold(RAYTRACER_WAVEFRONT_RADIANCE_DELTA_RMS_THRESHOLD) {
     }
 
     std::unique_ptr<QThreadPool> threadPool;
@@ -124,6 +136,9 @@ namespace engine::wavefront {
     int queueSize;
     std::unique_ptr<render::Integrator> integrator;
     bool showProgressIndicators;
+    bool convergenceEnabled{false};
+    double convergenceActiveSampleFractionThreshold;
+    double convergenceRadianceDeltaRmsThreshold;
     std::optional<std::uint64_t> samplingSeed;
     mutable WavefrontRenderMetrics lastMetrics;
     mutable std::mutex metricsMutex;
@@ -210,6 +225,11 @@ namespace engine::wavefront {
       lastMetrics.scheduling.decision = tilePlan.isSingleTile() ? "single_tile" : "tiled";
       lastMetrics.batching.integrator = integrator->diagnosticName();
       lastMetrics.batching.executionMode = integrator->batchExecutionMode();
+      lastMetrics.convergence.enabled = convergenceEnabled;
+      lastMetrics.convergence.activeSampleFractionThreshold =
+        convergenceActiveSampleFractionThreshold;
+      lastMetrics.convergence.radianceDeltaRmsThreshold = convergenceRadianceDeltaRmsThreshold;
+      lastMetrics.convergence.decision = convergenceEnabled ? "configured" : "disabled";
     }
 
     void recordTileMetrics(const TileTraceResult& result) const {
@@ -351,6 +371,10 @@ namespace engine::wavefront {
     result->setMaximumThreads(p->threadPool->maxThreadCount());
     result->setQueueSize(p->queueSize);
     result->setShowProgressIndicators(p->showProgressIndicators);
+    result->setConvergenceEnabled(p->convergenceEnabled);
+    result->setConvergenceActiveSampleFractionThreshold(
+      p->convergenceActiveSampleFractionThreshold);
+    result->setConvergenceRadianceDeltaRmsThreshold(p->convergenceRadianceDeltaRmsThreshold);
     if (p->samplingSeed) {
       result->setSamplingSeed(*p->samplingSeed);
     }
@@ -558,6 +582,30 @@ namespace engine::wavefront {
 
   void WavefrontRaytracer::setShowProgressIndicators(bool show) {
     p->showProgressIndicators = show;
+  }
+
+  void WavefrontRaytracer::setConvergenceEnabled(bool enabled) {
+    p->convergenceEnabled = enabled;
+  }
+
+  bool WavefrontRaytracer::convergenceEnabled() const {
+    return p->convergenceEnabled;
+  }
+
+  void WavefrontRaytracer::setConvergenceActiveSampleFractionThreshold(double fraction) {
+    p->convergenceActiveSampleFractionThreshold = std::clamp(fraction, 0.0, 1.0);
+  }
+
+  double WavefrontRaytracer::convergenceActiveSampleFractionThreshold() const {
+    return p->convergenceActiveSampleFractionThreshold;
+  }
+
+  void WavefrontRaytracer::setConvergenceRadianceDeltaRmsThreshold(double threshold) {
+    p->convergenceRadianceDeltaRmsThreshold = std::max(0.0, threshold);
+  }
+
+  double WavefrontRaytracer::convergenceRadianceDeltaRmsThreshold() const {
+    return p->convergenceRadianceDeltaRmsThreshold;
   }
 
   WavefrontRenderMetrics WavefrontRaytracer::lastMetrics() const {

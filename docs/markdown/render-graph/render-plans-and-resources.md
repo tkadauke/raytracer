@@ -604,8 +604,11 @@ When the selected beauty executor is the raytracer or wavefront executor, typed
 ray-family options on the effective intent become `RaytracerBeautyPassState` on
 the beauty pass. That state can configure the integrator, sampler, samples per
 pixel, view-plane type, recursion depth, worker thread count, and queue size
-before the payload renders. Those choices therefore appear in graph JSON and
-replay with the plan instead of being hidden in rendercli camera setup. The
+before the payload renders. Wavefront convergence controls also flow through
+that state, so the compiled plan can report the active-sample fraction and RMS
+radiance-delta thresholds that later stop-policy work will use. Those choices
+therefore appear in graph JSON and replay with the plan instead of being hidden
+in rendercli camera setup. The
 wavefront payload intentionally keeps Whitted scalar recursion compatible while
 submitting tile samples through the integrator batch API. The path-tracing
 integrator uses that batch hook for depth-major processing, giving the graph,
@@ -613,8 +616,8 @@ rendercli, and Modeler a separate executor surface for the scheduler work that
 follows. After a traced wavefront render, the pass metadata reports the selected
 integrator, whether batches used scalar fallback or depth-major path
 scheduling, primary sample totals, active sample counts per depth, batch sizes,
-per-depth radiance-delta L2/RMS/max values, tile count, queue decision, and
-render timing.
+per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
+tile count, queue decision, and render timing.
 
 When the selected beauty executor is the rasterizer, graph-backed rendercli
 raster controls are compiled into the raster beauty pass's typed state and
@@ -778,7 +781,7 @@ images.
 After a traced wavefront render, wavefront pass nodes summarize primary sample
 count and the integrator batch execution mode; the property editor exposes the
 full JSON metadata for tile, queue, batch, active-depth, per-depth radiance
-delta, and timing details.
+delta, convergence-threshold, and timing details.
 
 - the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
   vertically, shows resources between producer and consumer passes, and lets the

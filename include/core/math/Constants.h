@@ -78,3 +78,16 @@ inline constexpr double GOLDEN_RATIO = 1.6180339887498948482;
   * aggressive cutoff.
   */
 inline constexpr double RAYTRACER_THROUGHPUT_CUTOFF = 1e-4;
+
+/**
+  * Default per-depth RMS radiance delta threshold for future wavefront
+  * convergence termination. The first wavefront slices expose and report this
+  * setting before using it as a stop condition.
+  */
+inline constexpr double RAYTRACER_WAVEFRONT_RADIANCE_DELTA_RMS_THRESHOLD = 1e-4;
+
+/**
+  * Default fraction of samples allowed to remain active before future
+  * wavefront convergence termination may stop a tile.
+  */
+inline constexpr double RAYTRACER_WAVEFRONT_ACTIVE_SAMPLE_FRACTION_THRESHOLD = 0.001;

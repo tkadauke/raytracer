@@ -14,8 +14,9 @@
 > 2 now makes ray integrator selection graph-visible. A scalar
 > `PathTracingIntegrator` also exists now. Phase 3 has started with the
 > `WavefrontRaytracer` engine and graph executor surface. Depth-major
-> path-tracing batches now report active-path and radiance-delta metrics;
-> explicit Whitted queues and convergence stop policy remain.
+> path-tracing batches now report active-path and radiance-delta metrics, and
+> convergence thresholds are graph-visible; explicit Whitted queues and the
+> convergence stop policy remain.
 >
 > **Rule:** the wavefront engine is a **sibling** to the existing
 > `Raytracer`, not a replacement. Both ship; the user chooses through render
@@ -145,7 +146,8 @@ already exist:
 - `SampleStream` reserves named stochastic dimensions for pixel, lens,
   time, BSDF, light, and continuation samples.
 - `RenderRaytracerOptions` / `RaytracerBeautyPassState` carry graph-visible
-  ray-family execution, sampling, view-plane, and integrator selection state.
+  ray-family execution, sampling, view-plane, integrator selection, and
+  wavefront convergence-threshold state.
 
 If wavefront grows enough to want SoA ray batches (Ray4/Ray8 per
 Phase 4 of `complete/core-math-optimization.md`), the shared
@@ -479,9 +481,9 @@ samples depth-major across the tile. Legacy materials that require synchronous
 Whitted ray queues remain. The engine also records per-render metrics for
 rendered pixels, primary samples, tile count, queue decision, integrator name,
 batch execution mode, batch sizes, active sample counts per depth,
-per-depth radiance-delta L2/RMS/max values, and total render time; graph
-execution traces attach those metrics to the `wavefront_beauty` pass for
-Modeler and rendercli inspection.
+per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
+and total render time; graph execution traces attach those metrics to the
+`wavefront_beauty` pass for Modeler and rendercli inspection.
 
 **Goal**: prove the architecture without changing image output.
 **Gate**: macro benchmark output (sphere / torus / BVH scenes) RMS
@@ -491,6 +493,9 @@ within 1e-3 of `Raytracer` output for the same maxDepth.
 
 Activate the convergence test as a stop condition. Active-pixel count
 + L2 over active subset. Threshold tuning via the macro benchmark.
+The thresholds are already graph-visible and reported in wavefront trace
+metadata; this phase turns them from configuration/diagnostics into an actual
+tile stop policy.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.
@@ -510,9 +515,10 @@ executor submit a tile's primary samples as a batch, and
 path states. Wavefront pass trace metadata now exposes the selected integrator,
 whether the batch ran through scalar fallback or depth-major path scheduling,
 aggregate active-path counts per depth, and per-depth radiance-delta metrics.
-Remaining work is to turn those depth counters and deltas into convergence
-decisions and decide how far Whitted compatibility should go before recursive
-legacy materials are ported to explicit scattering.
+The RMS-delta and active-sample-fraction thresholds are configurable through
+intent and pass state. Remaining work is to turn those depth counters and
+deltas into convergence decisions and decide how far Whitted compatibility
+should go before recursive legacy materials are ported to explicit scattering.
 
 Start with pure single-continuation path tracing (Option **B**) unless a
 measured scene proves deterministic specular split (Option **C**) is needed for

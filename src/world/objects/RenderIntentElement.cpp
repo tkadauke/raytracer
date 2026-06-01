@@ -1,5 +1,6 @@
 #include "world/objects/RenderIntentElement.h"
 
+#include "core/math/Constants.h"
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/raster/RasterBackend.h"
 #include "render/samplers/SamplerFactory.h"
@@ -30,6 +31,10 @@ bool RenderIntentElement::isPropertyVisible(const QString& propertyName) const {
   if (isRaytracerProperty(propertyName))
     return executor == engine::graph::RenderExecutorKind::Raytracer ||
            executor == engine::graph::RenderExecutorKind::Wavefront;
+  if (isWavefrontProperty(propertyName)) {
+    return executor == engine::graph::RenderExecutorKind::Wavefront &&
+           (propertyName == QStringLiteral("wavefrontConvergence") || wavefrontConvergence());
+  }
   if (isRasterizerShadowProperty(propertyName))
     return executor == engine::graph::RenderExecutorKind::Rasterizer && previewShadows();
   if (isRasterizerProperty(propertyName))
@@ -75,6 +80,12 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
     return QStringLiteral("Threads");
   if (propertyName == QStringLiteral("raytracerQueueSize"))
     return QStringLiteral("Queue Size");
+  if (propertyName == QStringLiteral("wavefrontConvergence"))
+    return QStringLiteral("Convergence Stop");
+  if (propertyName == QStringLiteral("wavefrontConvergenceActiveFraction"))
+    return QStringLiteral("Active Fraction");
+  if (propertyName == QStringLiteral("wavefrontConvergenceRmsDelta"))
+    return QStringLiteral("RMS Delta");
   if (propertyName == QStringLiteral("rasterizerLod"))
     return QStringLiteral("LOD");
   if (propertyName == QStringLiteral("rasterizerTessellationQuality"))
@@ -128,10 +139,21 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
     return QStringLiteral(
       "Requests an optional measured opaque depth prepass. Auto currently suppresses cheap or "
       "unsupported passes and records the decision in raster metrics.");
+  if (propertyName == QStringLiteral("wavefrontConvergence"))
+    return QStringLiteral(
+      "Requests future wavefront early termination from active sample count and per-depth "
+      "radiance-delta metrics. The current implementation records the configured thresholds.");
+  if (propertyName == QStringLiteral("wavefrontConvergenceActiveFraction"))
+    return QStringLiteral(
+      "Fraction of primary samples allowed to remain active before convergence can stop.");
+  if (propertyName == QStringLiteral("wavefrontConvergenceRmsDelta"))
+    return QStringLiteral("Per-depth RMS radiance delta threshold for convergence.");
   return Element::propertyDescription(propertyName);
 }
 
 QString RenderIntentElement::propertyGroup(const QString& propertyName) const {
+  if (isWavefrontProperty(propertyName))
+    return QStringLiteral("Wavefront");
   if (isRaytracerProperty(propertyName))
     return QStringLiteral("Raytracer");
   if (isRasterizerShadowProperty(propertyName))
@@ -223,6 +245,10 @@ RenderIntentElement::propertyDoubleRange(const QString& propertyName) const {
     return QPair<double, double>(0.0, 100.0);
   if (propertyName == QStringLiteral("rasterizerMaxScreenSpaceError"))
     return QPair<double, double>(0.0, 128.0);
+  if (propertyName == QStringLiteral("wavefrontConvergenceActiveFraction"))
+    return QPair<double, double>(0.0, 1.0);
+  if (propertyName == QStringLiteral("wavefrontConvergenceRmsDelta"))
+    return QPair<double, double>(0.0, 10.0);
   return std::nullopt;
 }
 
@@ -296,7 +322,8 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
 
 bool RenderIntentElement::rebuildPropertyEditorAfterChange(const QString& propertyName) const {
   return propertyName == QStringLiteral("defaultEngine") ||
-         propertyName == QStringLiteral("previewShadows");
+         propertyName == QStringLiteral("previewShadows") ||
+         propertyName == QStringLiteral("wavefrontConvergence");
 }
 
 bool RenderIntentElement::saveIntent() const {
@@ -491,6 +518,38 @@ int RenderIntentElement::raytracerQueueSize() const {
 void RenderIntentElement::setRaytracerQueueSize(int queueSize) {
   auto value = intent();
   value.engineOptions.raytracer().setQueueSize(queueSize);
+  setIntent(value);
+}
+
+bool RenderIntentElement::wavefrontConvergence() const {
+  return intent().engineOptions.raytracer().convergenceEnabled().value_or(false);
+}
+
+void RenderIntentElement::setWavefrontConvergence(bool enabled) {
+  auto value = intent();
+  value.engineOptions.raytracer().setConvergenceEnabled(enabled);
+  setIntent(value);
+}
+
+double RenderIntentElement::wavefrontConvergenceActiveFraction() const {
+  return intent().engineOptions.raytracer().convergenceActiveSampleFractionThreshold().value_or(
+    RAYTRACER_WAVEFRONT_ACTIVE_SAMPLE_FRACTION_THRESHOLD);
+}
+
+void RenderIntentElement::setWavefrontConvergenceActiveFraction(double fraction) {
+  auto value = intent();
+  value.engineOptions.raytracer().setConvergenceActiveSampleFractionThreshold(fraction);
+  setIntent(value);
+}
+
+double RenderIntentElement::wavefrontConvergenceRmsDelta() const {
+  return intent().engineOptions.raytracer().convergenceRadianceDeltaRmsThreshold().value_or(
+    RAYTRACER_WAVEFRONT_RADIANCE_DELTA_RMS_THRESHOLD);
+}
+
+void RenderIntentElement::setWavefrontConvergenceRmsDelta(double threshold) {
+  auto value = intent();
+  value.engineOptions.raytracer().setConvergenceRadianceDeltaRmsThreshold(threshold);
   setIntent(value);
 }
 
@@ -736,6 +795,10 @@ QString RenderIntentElement::normalizedText(const QString& text) const {
 
 bool RenderIntentElement::isRaytracerProperty(const QString& propertyName) const {
   return propertyName.startsWith(QStringLiteral("raytracer"));
+}
+
+bool RenderIntentElement::isWavefrontProperty(const QString& propertyName) const {
+  return propertyName.startsWith(QStringLiteral("wavefront"));
 }
 
 bool RenderIntentElement::isRasterizerProperty(const QString& propertyName) const {

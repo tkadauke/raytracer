@@ -301,7 +301,8 @@ namespace engine::graph {
 
   bool RenderRaytracerOptions::empty() const {
     return !m_maximumRecursionDepth && !m_maximumThreads && !m_queueSize && !m_integrator &&
-           !m_sampler && !m_samplesPerPixel && !m_viewPlane;
+           !m_sampler && !m_samplesPerPixel && !m_viewPlane && !m_convergenceEnabled &&
+           !m_convergenceActiveSampleFractionThreshold && !m_convergenceRadianceDeltaRmsThreshold;
   }
 
   QJsonObject RenderRaytracerOptions::toJson() const {
@@ -326,6 +327,15 @@ namespace engine::graph {
       options.setSamplesPerPixel(*state.samplesPerPixel());
     if (state.viewPlane())
       options.setViewPlane(*state.viewPlane());
+    if (state.convergenceEnabled())
+      options.setConvergenceEnabled(*state.convergenceEnabled());
+    if (state.convergenceActiveSampleFractionThreshold()) {
+      options.setConvergenceActiveSampleFractionThreshold(
+        *state.convergenceActiveSampleFractionThreshold());
+    }
+    if (state.convergenceRadianceDeltaRmsThreshold())
+      options.setConvergenceRadianceDeltaRmsThreshold(
+        *state.convergenceRadianceDeltaRmsThreshold());
     return options;
   }
 
@@ -341,6 +351,14 @@ namespace engine::graph {
     result.m_samplesPerPixel =
       overrideOptional(result.m_samplesPerPixel, overrides.m_samplesPerPixel);
     result.m_viewPlane = overrideOptional(result.m_viewPlane, overrides.m_viewPlane);
+    result.m_convergenceEnabled =
+      overrideOptional(result.m_convergenceEnabled, overrides.m_convergenceEnabled);
+    result.m_convergenceActiveSampleFractionThreshold =
+      overrideOptional(result.m_convergenceActiveSampleFractionThreshold,
+                       overrides.m_convergenceActiveSampleFractionThreshold);
+    result.m_convergenceRadianceDeltaRmsThreshold =
+      overrideOptional(result.m_convergenceRadianceDeltaRmsThreshold,
+                       overrides.m_convergenceRadianceDeltaRmsThreshold);
     return result;
   }
 
@@ -360,6 +378,13 @@ namespace engine::graph {
       state.setSamplesPerPixel(*m_samplesPerPixel);
     if (m_viewPlane)
       state.setViewPlane(*m_viewPlane);
+    if (m_convergenceEnabled)
+      state.setConvergenceEnabled(*m_convergenceEnabled);
+    if (m_convergenceActiveSampleFractionThreshold)
+      state.setConvergenceActiveSampleFractionThreshold(
+        *m_convergenceActiveSampleFractionThreshold);
+    if (m_convergenceRadianceDeltaRmsThreshold)
+      state.setConvergenceRadianceDeltaRmsThreshold(*m_convergenceRadianceDeltaRmsThreshold);
     return state;
   }
 
@@ -393,6 +418,18 @@ namespace engine::graph {
     m_viewPlane = std::move(viewPlane);
   }
 
+  void RenderRaytracerOptions::setConvergenceEnabled(bool enabled) {
+    m_convergenceEnabled = enabled;
+  }
+
+  void RenderRaytracerOptions::setConvergenceActiveSampleFractionThreshold(double fraction) {
+    m_convergenceActiveSampleFractionThreshold = std::clamp(fraction, 0.0, 1.0);
+  }
+
+  void RenderRaytracerOptions::setConvergenceRadianceDeltaRmsThreshold(double threshold) {
+    m_convergenceRadianceDeltaRmsThreshold = std::max(0.0, threshold);
+  }
+
   std::optional<int> RenderRaytracerOptions::maximumRecursionDepth() const {
     return m_maximumRecursionDepth;
   }
@@ -419,6 +456,18 @@ namespace engine::graph {
 
   std::optional<std::string> RenderRaytracerOptions::viewPlane() const {
     return m_viewPlane;
+  }
+
+  std::optional<bool> RenderRaytracerOptions::convergenceEnabled() const {
+    return m_convergenceEnabled;
+  }
+
+  std::optional<double> RenderRaytracerOptions::convergenceActiveSampleFractionThreshold() const {
+    return m_convergenceActiveSampleFractionThreshold;
+  }
+
+  std::optional<double> RenderRaytracerOptions::convergenceRadianceDeltaRmsThreshold() const {
+    return m_convergenceRadianceDeltaRmsThreshold;
   }
 
   bool RenderRasterizerOptions::empty() const {

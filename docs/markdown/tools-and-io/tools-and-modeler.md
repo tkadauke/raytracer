@@ -238,8 +238,9 @@ chain reflects the responsibilities:
   selection, rasterizer-preview shadow toggling, and the Ctrl-click ray-state
   probe.
 
-The editor can swap the live preview intent between Raytracer, Rasterizer, and
-[Wireframe](../appendix/a-glossary.md#w). The preview itself is graph-backed:
+The editor can swap the live preview intent between Raytracer, Wavefront,
+Rasterizer, and [Wireframe](../appendix/a-glossary.md#w). The preview itself is
+graph-backed:
 the selected kind becomes the default executor in the compiled render graph,
 while the scene and camera stay shared so the preview keeps looking at the same
 thing across the swap. Property edits refresh preview geometry and materials
@@ -254,8 +255,11 @@ postprocess AA. Raster settings include an opt-in Visibility Culling selector;
 `On` and `Auto` currently synthesize the graph-visible baseline culling node
 without changing submitted raster work. Selecting the node after a traced
 render shows leaf/triangle counts plus any frustum-rejected baseline counts in
-the graph inspector metadata. Engine-specific fields only show for the selected
-default engine. The same property editor has a search field for filtering long
+the graph inspector metadata. Wavefront settings include convergence thresholds
+for the active-sample fraction and RMS radiance delta; the current wavefront
+executor reports those values in trace metadata before the stop policy starts
+using them. Engine-specific fields only show for the selected default engine.
+The same property editor has a search field for filtering long
 property sets and collapsible groups so advanced scene/import settings can stay
 out of the way. Internal execution controls such as
 view-plane type, worker thread count, and queue size stay hidden in Modeler;

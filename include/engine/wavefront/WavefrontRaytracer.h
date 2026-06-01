@@ -54,6 +54,13 @@ namespace engine::wavefront {
       std::vector<double> maxRadianceDeltaPerDepth;
     } batching;
 
+    struct ConvergenceSummary {
+      bool enabled = false;
+      double activeSampleFractionThreshold = 0.0;
+      double radianceDeltaRmsThreshold = 0.0;
+      std::string decision;
+    } convergence;
+
     struct TimingSummary {
       double totalRenderSeconds = 0.0;
     } timings;
@@ -106,6 +113,12 @@ namespace engine::wavefront {
     void setMaximumThreads(int threads);
     void setQueueSize(int queue);
     void setShowProgressIndicators(bool show);
+    void setConvergenceEnabled(bool enabled);
+    bool convergenceEnabled() const;
+    void setConvergenceActiveSampleFractionThreshold(double fraction);
+    double convergenceActiveSampleFractionThreshold() const;
+    void setConvergenceRadianceDeltaRmsThreshold(double threshold);
+    double convergenceRadianceDeltaRmsThreshold() const;
     WavefrontRenderMetrics lastMetrics() const;
 
   private:

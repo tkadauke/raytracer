@@ -59,6 +59,24 @@ namespace engine::graph {
       return static_cast<int>(number);
     }
 
+    double doubleField(const QJsonObject& object, const char* key, const std::string& path) {
+      const auto value = object.value(key);
+      if (!value.isDouble())
+        stateError(path + "." + key, "expected number");
+
+      const double number = value.toDouble();
+      if (!std::isfinite(number))
+        stateError(path + "." + key, "expected finite number");
+      return number;
+    }
+
+    bool boolField(const QJsonObject& object, const char* key, const std::string& path) {
+      const auto value = object.value(key);
+      if (!value.isBool())
+        stateError(path + "." + key, "expected boolean");
+      return value.toBool();
+    }
+
     std::string stringField(const QJsonObject& object, const char* key, const std::string& path) {
       const auto value = object.value(key);
       if (!value.isString())
@@ -78,7 +96,7 @@ namespace engine::graph {
 
   RaytracerBeautyPassState RaytracerBeautyPassState::fromJson(const QJsonObject& object,
                                                               const std::string& path) {
-    rejectUnknownFields(object, path, {"execution", "sampling", "viewPlane"});
+    rejectUnknownFields(object, path, {"execution", "sampling", "viewPlane", "convergence"});
 
     RaytracerBeautyPassState state;
     const QJsonObject execution = objectField(object, "execution", path);
@@ -104,6 +122,20 @@ namespace engine::graph {
     rejectUnknownFields(viewPlane, path + ".viewPlane", {"type"});
     if (hasField(viewPlane, "type"))
       state.setViewPlane(stringField(viewPlane, "type", path + ".viewPlane"));
+
+    const QJsonObject convergence = objectField(object, "convergence", path);
+    rejectUnknownFields(convergence, path + ".convergence",
+                        {"enabled", "activeSampleFractionThreshold", "radianceDeltaRmsThreshold"});
+    if (hasField(convergence, "enabled"))
+      state.setConvergenceEnabled(boolField(convergence, "enabled", path + ".convergence"));
+    if (hasField(convergence, "activeSampleFractionThreshold")) {
+      state.setConvergenceActiveSampleFractionThreshold(
+        doubleField(convergence, "activeSampleFractionThreshold", path + ".convergence"));
+    }
+    if (hasField(convergence, "radianceDeltaRmsThreshold")) {
+      state.setConvergenceRadianceDeltaRmsThreshold(
+        doubleField(convergence, "radianceDeltaRmsThreshold", path + ".convergence"));
+    }
 
     return state;
   }
@@ -153,6 +185,17 @@ namespace engine::graph {
     if (!viewPlane.isEmpty())
       object["viewPlane"] = viewPlane;
 
+    QJsonObject convergence;
+    if (m_convergenceEnabled)
+      convergence["enabled"] = *m_convergenceEnabled;
+    if (m_convergenceActiveSampleFractionThreshold) {
+      convergence["activeSampleFractionThreshold"] = *m_convergenceActiveSampleFractionThreshold;
+    }
+    if (m_convergenceRadianceDeltaRmsThreshold)
+      convergence["radianceDeltaRmsThreshold"] = *m_convergenceRadianceDeltaRmsThreshold;
+    if (!convergence.isEmpty())
+      object["convergence"] = convergence;
+
     return object;
   }
 
@@ -184,6 +227,14 @@ namespace engine::graph {
       wavefront.setMaximumThreads(*m_maximumThreads);
     if (m_queueSize)
       wavefront.setQueueSize(*m_queueSize);
+    if (m_convergenceEnabled)
+      wavefront.setConvergenceEnabled(*m_convergenceEnabled);
+    if (m_convergenceActiveSampleFractionThreshold) {
+      wavefront.setConvergenceActiveSampleFractionThreshold(
+        *m_convergenceActiveSampleFractionThreshold);
+    }
+    if (m_convergenceRadianceDeltaRmsThreshold)
+      wavefront.setConvergenceRadianceDeltaRmsThreshold(*m_convergenceRadianceDeltaRmsThreshold);
 
     auto viewPlane = createViewPlaneForPass(wavefront.camera());
     if (viewPlane && wavefront.camera())
@@ -234,6 +285,18 @@ namespace engine::graph {
     m_viewPlane = std::move(viewPlane);
   }
 
+  void RaytracerBeautyPassState::setConvergenceEnabled(bool enabled) {
+    m_convergenceEnabled = enabled;
+  }
+
+  void RaytracerBeautyPassState::setConvergenceActiveSampleFractionThreshold(double fraction) {
+    m_convergenceActiveSampleFractionThreshold = std::clamp(fraction, 0.0, 1.0);
+  }
+
+  void RaytracerBeautyPassState::setConvergenceRadianceDeltaRmsThreshold(double threshold) {
+    m_convergenceRadianceDeltaRmsThreshold = std::max(0.0, threshold);
+  }
+
   std::optional<int> RaytracerBeautyPassState::maximumRecursionDepth() const {
     return m_maximumRecursionDepth;
   }
@@ -260,6 +323,18 @@ namespace engine::graph {
 
   std::optional<std::string> RaytracerBeautyPassState::viewPlane() const {
     return m_viewPlane;
+  }
+
+  std::optional<bool> RaytracerBeautyPassState::convergenceEnabled() const {
+    return m_convergenceEnabled;
+  }
+
+  std::optional<double> RaytracerBeautyPassState::convergenceActiveSampleFractionThreshold() const {
+    return m_convergenceActiveSampleFractionThreshold;
+  }
+
+  std::optional<double> RaytracerBeautyPassState::convergenceRadianceDeltaRmsThreshold() const {
+    return m_convergenceRadianceDeltaRmsThreshold;
   }
 
   std::string RaytracerBeautyPassState::normalizedIntegratorName(std::string integrator,
