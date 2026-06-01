@@ -90,6 +90,9 @@ set(wavefront_plan "${TEST_OUTPUT_DIR}/wavefront-graph.json")
 set(wavefront_render "${TEST_OUTPUT_DIR}/wavefront-render.png")
 set(wavefront_metrics_render "${TEST_OUTPUT_DIR}/wavefront-metrics-render.png")
 set(wavefront_metrics_report "${TEST_OUTPUT_DIR}/wavefront-metrics.json")
+set(wavefront_converged_metrics_render
+    "${TEST_OUTPUT_DIR}/wavefront-converged-metrics-render.png")
+set(wavefront_converged_metrics_report "${TEST_OUTPUT_DIR}/wavefront-converged-metrics.json")
 set(wavefront_direct_metrics_render
     "${TEST_OUTPUT_DIR}/wavefront-direct-metrics-render.png")
 set(wavefront_direct_metrics_report "${TEST_OUTPUT_DIR}/wavefront-direct-metrics.json")
@@ -1499,6 +1502,39 @@ if(NOT wavefront_metrics_json MATCHES "\"convergence\"")
   _rendercli_fail("rendercli wavefront metrics convergence"
                   "wavefront metrics report did not contain convergence metadata"
                   "" "" "${wavefront_metrics_json}" "")
+endif()
+
+rendercli_run(
+  NAME "rendercli reports wavefront convergence-stopped tiles"
+  OUTPUT_VARIABLE wavefront_converged_metrics_stdout
+  STDOUT_MATCHES
+    "wavefront_metrics.*pass=wavefront_beauty.*integrator=pathtracer.*execution=depth_major_paths.*active_depths=1.*convergence=stopped_some_tiles.*stopped_tiles=[1-9]"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
+    --wavefront_convergence --wavefront_convergence_active_fraction 1
+    --wavefront_convergence_rms_delta 10
+    --wavefront_metrics_out "${wavefront_converged_metrics_report}"
+    --wavefront_metrics_summary "${static_scene}" "${wavefront_converged_metrics_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_converged_metrics_render}"
+                                NAME "wavefront converged metrics render pixels")
+rendercli_assert_exists("${wavefront_converged_metrics_report}"
+                        NAME "wavefront converged metrics report exists")
+file(READ "${wavefront_converged_metrics_report}" wavefront_converged_metrics_json)
+if(NOT wavefront_converged_metrics_json MATCHES "\"decision\"[ \r\n]*:[ \r\n]*\"stopped_some_tiles\"")
+  _rendercli_fail("rendercli wavefront convergence metrics decision"
+                  "wavefront convergence metrics did not report stopped tiles"
+                  "" "" "${wavefront_converged_metrics_json}" "")
+endif()
+if(NOT wavefront_converged_metrics_json MATCHES "\"stoppedTileCount\"[ \r\n]*:[ \r\n]*[1-9]")
+  _rendercli_fail("rendercli wavefront convergence metrics stopped tile count"
+                  "wavefront convergence metrics did not count stopped tiles"
+                  "" "" "${wavefront_converged_metrics_json}" "")
+endif()
+if(NOT wavefront_converged_metrics_json MATCHES "\"activeSamplesPerDepth\"[ \r\n]*:[ \r\n]*\\[[ \r\n]*256")
+  _rendercli_fail("rendercli wavefront convergence metrics active depth"
+                  "wavefront convergence metrics did not stop after one active depth"
+                  "" "" "${wavefront_converged_metrics_json}" "")
 endif()
 
 rendercli_run(

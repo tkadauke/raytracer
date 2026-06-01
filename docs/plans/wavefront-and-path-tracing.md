@@ -528,8 +528,10 @@ quality presets over those same thresholds, with raw active-fraction and
 RMS-delta fields still available for advanced tuning. rendercli can now export
 the same wavefront metrics as a dedicated JSON report or compact stdout summary
 for direct and graph-backed wavefront renders, which gives the default-tuning
-work a repeatable data source. Remaining work is to tune defaults against macro
-benchmarks.
+work a repeatable data source. The rendercli graph functional suite now has a
+metrics-backed regression that drives intentionally loose path-tracing
+thresholds and requires the report to show convergence-stopped tiles after the
+first depth. Remaining work is to tune defaults against macro benchmarks.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.
