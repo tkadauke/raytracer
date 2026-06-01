@@ -97,6 +97,9 @@ set(wavefront_indirect_whitted_render
 set(wavefront_pathtracer_plan "${TEST_OUTPUT_DIR}/wavefront-pathtracer-graph.json")
 set(wavefront_convergence_plan "${TEST_OUTPUT_DIR}/wavefront-convergence-graph.json")
 set(wavefront_pathtracer_render "${TEST_OUTPUT_DIR}/wavefront-pathtracer-render.png")
+set(wavefront_compatibility_trace "${TEST_OUTPUT_DIR}/wavefront-compatibility-trace.json")
+set(wavefront_compatibility_trace_render
+    "${TEST_OUTPUT_DIR}/wavefront-compatibility-trace-render.png")
 set(raster_culling_plan "${TEST_OUTPUT_DIR}/raster-culling-graph.txt")
 set(raster_culling_trace "${TEST_OUTPUT_DIR}/raster-culling-trace.json")
 set(raster_culling_trace_render "${TEST_OUTPUT_DIR}/raster-culling-trace-render.png")
@@ -1458,6 +1461,28 @@ rendercli_run(
 )
 rendercli_assert_image_nonempty("${wavefront_pathtracer_render}"
                                 NAME "wavefront pathtracer graph render pixels")
+
+rendercli_run(
+  NAME "rendercli traces wavefront material compatibility shading"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --integrator pathtracer --samples_per_pixel 2
+    --width 16 --height 16 --render_graph_trace_out "${wavefront_compatibility_trace}"
+    "${static_scene}" "${wavefront_compatibility_trace_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_compatibility_trace_render}"
+                                NAME "wavefront compatibility trace render pixels")
+rendercli_assert_nonempty("${wavefront_compatibility_trace}"
+                          NAME "wavefront compatibility trace JSON")
+file(READ "${wavefront_compatibility_trace}" wavefront_compatibility_trace_json)
+if(NOT wavefront_compatibility_trace_json MATCHES "\"id\": \"wavefront_beauty\"")
+  message(FATAL_ERROR
+          "wavefront compatibility trace did not contain wavefront pass: ${wavefront_compatibility_trace_json}")
+endif()
+if(NOT wavefront_compatibility_trace_json
+   MATCHES "\"compatibilityShadeSamples\"[ \r\n]*:[ \r\n]*[1-9]")
+  message(FATAL_ERROR
+          "wavefront compatibility trace did not record material compatibility shading: ${wavefront_compatibility_trace_json}")
+endif()
 
 rendercli_expect_failure(
   NAME "rendercli rejects invalid render graph format"

@@ -544,7 +544,9 @@ against a Whitted override and requires the images to differ.
 Batch metrics also count material compatibility shading fallbacks. Phong,
 Reflective, and Transparent materials explicitly use the compatibility path for
 now, so graph traces can show when path tracing terminated at a legacy
-Whitted-shaded surface instead of continuing through a sampled BSDF.
+Whitted-shaded surface instead of continuing through a sampled BSDF; rendercli
+has a graph-trace regression check that requires this metadata on a mixed
+material scene.
 
 Start with pure single-continuation path tracing (Option **B**) unless a
 measured scene proves deterministic specular split (Option **C**) is needed for
