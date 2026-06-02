@@ -63,7 +63,7 @@ const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoint
 PrimitivePacketHit4 Instance::intersectPacketHits(const Ray4& rays,
                                                   const PrimitivePacketState4& states) const {
   if (m_velocity != Vector3d::null) {
-    return Primitive::intersectPacketHits(rays, states);
+    return intersectMovingRay4PacketHits(rays, states);
   }
 
   std::array<Rayd, Ray4::lanes> localRays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
@@ -89,7 +89,7 @@ PrimitivePacketHit4 Instance::intersectPacketHits(const Ray4& rays,
 PrimitivePacketHit8 Instance::intersectPacketHits(const Ray8& rays,
                                                   const PrimitivePacketState8& states) const {
   if (m_velocity != Vector3d::null) {
-    return Primitive::intersectPacketHits(rays, states);
+    return intersectMovingRay8PacketHits(rays, states);
   }
 
   std::array<Rayd, Ray8::lanes> localRays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
@@ -116,7 +116,7 @@ PrimitivePacketHit8 Instance::intersectPacketHits(const Ray8& rays,
 PrimitivePacketInterval4
 Instance::intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4& states) const {
   if (m_velocity != Vector3d::null) {
-    return Primitive::intersectPacketIntervals(rays, states);
+    return intersectMovingRay4PacketIntervals(rays, states);
   }
 
   std::array<Rayd, Ray4::lanes> localRays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
@@ -149,7 +149,7 @@ Instance::intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4
 PrimitivePacketInterval8
 Instance::intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const {
   if (m_velocity != Vector3d::null) {
-    return Primitive::intersectPacketIntervals(rays, states);
+    return intersectMovingRay8PacketIntervals(rays, states);
   }
 
   std::array<Rayd, Ray8::lanes> localRays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
@@ -176,6 +176,80 @@ Instance::intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8
 
     result.setInterval(lane, materialOverride ? this : childIntervals.primitive(lane), interval,
                        childIntervals.scalarFallback(lane));
+  }
+  return result;
+}
+
+PrimitivePacketHit4
+Instance::intersectMovingRay4PacketHits(const Ray4& rays,
+                                        const PrimitivePacketState4& states) const {
+  PrimitivePacketHit4 result;
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    HitPointInterval hitPoints;
+    const Primitive* primitive = intersect(rays.rayd(lane), hitPoints, state);
+    const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+    if (primitive && !hitPoint.isUndefined()) {
+      result.setHit(lane, primitive, hitPoint);
+    }
+  }
+  return result;
+}
+
+PrimitivePacketHit8
+Instance::intersectMovingRay8PacketHits(const Ray8& rays,
+                                        const PrimitivePacketState8& states) const {
+  PrimitivePacketHit8 result;
+  for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    HitPointInterval hitPoints;
+    const Primitive* primitive = intersect(rays.rayd(lane), hitPoints, state);
+    const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+    if (primitive && !hitPoint.isUndefined()) {
+      result.setHit(lane, primitive, hitPoint);
+    }
+  }
+  return result;
+}
+
+PrimitivePacketInterval4
+Instance::intersectMovingRay4PacketIntervals(const Ray4& rays,
+                                             const PrimitivePacketState4& states) const {
+  PrimitivePacketInterval4 result;
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    HitPointInterval interval;
+    const Primitive* primitive = intersect(rays.rayd(lane), interval, state);
+    if (primitive || !interval.empty()) {
+      const bool materialOverride = Primitive::material() && primitive;
+      if (materialOverride) {
+        interval.setPrimitive(this);
+      }
+      result.setInterval(lane, materialOverride ? this : primitive, interval);
+    }
+  }
+  return result;
+}
+
+PrimitivePacketInterval8
+Instance::intersectMovingRay8PacketIntervals(const Ray8& rays,
+                                             const PrimitivePacketState8& states) const {
+  PrimitivePacketInterval8 result;
+  for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    HitPointInterval interval;
+    const Primitive* primitive = intersect(rays.rayd(lane), interval, state);
+    if (primitive || !interval.empty()) {
+      const bool materialOverride = Primitive::material() && primitive;
+      if (materialOverride) {
+        interval.setPrimitive(this);
+      }
+      result.setInterval(lane, materialOverride ? this : primitive, interval);
+    }
   }
   return result;
 }

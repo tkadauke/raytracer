@@ -290,6 +290,171 @@ namespace InstanceTest {
     }
   }
 
+  TEST(Instance, ShouldMaterializeRay4PacketHitsThroughMovingTransform) {
+    auto primitive = std::make_shared<Sphere>(Vector3d(), 1);
+    Instance instance(primitive);
+    instance.setMatrix(Matrix4d::translate(10.0, 0.0, 0.0));
+    instance.setVelocity(Vector3d(2, 0, 0));
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(11, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(10, 0, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(12, 0, 2), Vector3d(0, 0, -1)), Rayd(Vector3d(14, 0, -2), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    laneStates[0].timeSample = 0.5;
+    laneStates[1].timeSample = 0.0;
+    laneStates[2].timeSample = 1.0;
+    laneStates[3].timeSample = 0.5;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = instance.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(primitive.get(), result.primitive(0));
+    EXPECT_EQ(Vector3d(11, 0, -1), result.hitPoint(0).point());
+    EXPECT_FALSE(result.scalarFallback(0));
+    ASSERT_TRUE(result.hit(1));
+    EXPECT_EQ(Vector3d(10, 0, -1), result.hitPoint(1).point());
+    EXPECT_FALSE(result.scalarFallback(1));
+    ASSERT_TRUE(result.hit(2));
+    EXPECT_EQ(Vector3d(12, 0, 1), result.hitPoint(2).point());
+    EXPECT_FALSE(result.scalarFallback(2));
+    EXPECT_FALSE(result.hit(3));
+    for (const auto& state : laneStates) {
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
+    }
+  }
+
+  TEST(Instance, ShouldMaterializeRay4PacketIntervalsThroughMovingTransform) {
+    auto primitive = std::make_shared<Sphere>(Vector3d(), 1);
+    Instance instance(primitive);
+    instance.setMatrix(Matrix4d::translate(10.0, 0.0, 0.0));
+    instance.setVelocity(Vector3d(2, 0, 0));
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(11, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(10, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(12, 0, 2), Vector3d(0, 0, 1)), Rayd(Vector3d(11, 0, 0), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    laneStates[0].timeSample = 0.5;
+    laneStates[1].timeSample = 0.0;
+    laneStates[2].timeSample = 1.0;
+    laneStates[3].timeSample = 0.5;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = instance.intersectPacketIntervals(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    ASSERT_TRUE(result.hasInterval(0));
+    EXPECT_EQ(primitive.get(), result.primitive(0));
+    EXPECT_EQ(Vector3d(11, 0, -1), result.interval(0).min().point());
+    EXPECT_EQ(Vector3d(11, 0, 1), result.interval(0).max().point());
+    EXPECT_FALSE(result.scalarFallback(0));
+
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hasInterval(1));
+
+    EXPECT_FALSE(result.hit(2));
+    ASSERT_TRUE(result.hasInterval(2));
+    EXPECT_EQ(Vector3d(12, 0, -1), result.interval(2).min().point());
+    EXPECT_EQ(Vector3d(12, 0, 1), result.interval(2).max().point());
+    EXPECT_FALSE(result.scalarFallback(2));
+
+    ASSERT_TRUE(result.hit(3));
+    ASSERT_TRUE(result.hasInterval(3));
+    EXPECT_EQ(Vector3d(11, 0, -1), result.interval(3).min().point());
+    EXPECT_EQ(Vector3d(11, 0, 1), result.interval(3).max().point());
+    EXPECT_FALSE(result.scalarFallback(3));
+
+    for (const auto& state : laneStates) {
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
+    }
+  }
+
+  TEST(Instance, ShouldMaterializeRay8PacketIntervalsThroughMovingTransform) {
+    auto primitive = std::make_shared<Sphere>(Vector3d(), 1);
+    Instance instance(primitive);
+    instance.setMatrix(Matrix4d::translate(10.0, 0.0, 0.0));
+    instance.setVelocity(Vector3d(2, 0, 0));
+    const Ray8 rays(std::array<Rayd, Ray8::lanes>{
+      Rayd(Vector3d(11, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(10, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(12, 0, 2), Vector3d(0, 0, 1)), Rayd(Vector3d(11, 0, 0), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(11, 0, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(12, 0, 3), Vector3d(0, 0, -1)),
+      Rayd(Vector3d(10, 0, 0), Vector3d(0, 0, -1)), Rayd(Vector3d(11, 2, -2), Vector3d(0, 0, 1))});
+    std::array<State, Ray8::lanes> laneStates;
+    laneStates[0].timeSample = 0.5;
+    laneStates[1].timeSample = 0.0;
+    laneStates[2].timeSample = 1.0;
+    laneStates[3].timeSample = 0.5;
+    laneStates[4].timeSample = 0.5;
+    laneStates[5].timeSample = 1.0;
+    laneStates[6].timeSample = 0.0;
+    laneStates[7].timeSample = 0.5;
+    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
+                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+
+    const auto result = instance.intersectPacketIntervals(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(Vector3d(11, 0, -1), result.interval(0).min().point());
+    EXPECT_FALSE(result.scalarFallback(0));
+    EXPECT_FALSE(result.hit(1));
+    ASSERT_TRUE(result.hasInterval(2));
+    EXPECT_FALSE(result.hit(2));
+    EXPECT_EQ(Vector3d(12, 0, -1), result.interval(2).min().point());
+    ASSERT_TRUE(result.hit(3));
+    EXPECT_EQ(Vector3d(11, 0, -1), result.interval(3).min().point());
+    ASSERT_TRUE(result.hit(4));
+    EXPECT_EQ(Vector3d(11, 0, -1), result.interval(4).min().point());
+    ASSERT_TRUE(result.hit(5));
+    EXPECT_EQ(Vector3d(12, 0, 1), result.interval(5).minWithPositiveDistance().point());
+    ASSERT_TRUE(result.hit(6));
+    EXPECT_EQ(Vector3d(10, 0, -1), result.interval(6).minWithPositiveDistance().point());
+    EXPECT_FALSE(result.hit(7));
+    for (const auto& state : laneStates) {
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
+    }
+  }
+
+  TEST(Instance, ShouldMaterializeRay8PacketHitsThroughMovingTransform) {
+    auto primitive = std::make_shared<Sphere>(Vector3d(), 1);
+    Instance instance(primitive);
+    instance.setMatrix(Matrix4d::translate(10.0, 0.0, 0.0));
+    instance.setVelocity(Vector3d(2, 0, 0));
+    const Ray8 rays(std::array<Rayd, Ray8::lanes>{
+      Rayd(Vector3d(11, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(10, 0, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(12, 0, 2), Vector3d(0, 0, -1)), Rayd(Vector3d(14, 0, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(11, 0, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(12, 0, 3), Vector3d(0, 0, -1)),
+      Rayd(Vector3d(10, 0, 0), Vector3d(0, 0, -1)), Rayd(Vector3d(11, 2, -2), Vector3d(0, 0, 1))});
+    std::array<State, Ray8::lanes> laneStates;
+    laneStates[0].timeSample = 0.5;
+    laneStates[1].timeSample = 0.0;
+    laneStates[2].timeSample = 1.0;
+    laneStates[3].timeSample = 0.5;
+    laneStates[4].timeSample = 0.5;
+    laneStates[5].timeSample = 1.0;
+    laneStates[6].timeSample = 0.0;
+    laneStates[7].timeSample = 0.5;
+    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
+                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+
+    const auto result = instance.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(Vector3d(11, 0, -1), result.hitPoint(0).point());
+    ASSERT_TRUE(result.hit(1));
+    EXPECT_EQ(Vector3d(10, 0, -1), result.hitPoint(1).point());
+    ASSERT_TRUE(result.hit(2));
+    EXPECT_EQ(Vector3d(12, 0, 1), result.hitPoint(2).point());
+    EXPECT_FALSE(result.hit(3));
+    ASSERT_TRUE(result.hit(4));
+    EXPECT_EQ(Vector3d(11, 0, -1), result.hitPoint(4).point());
+    ASSERT_TRUE(result.hit(5));
+    EXPECT_EQ(Vector3d(12, 0, 1), result.hitPoint(5).point());
+    ASSERT_TRUE(result.hit(6));
+    EXPECT_EQ(Vector3d(10, 0, -1), result.hitPoint(6).point());
+    EXPECT_FALSE(result.hit(7));
+    for (const auto& state : laneStates) {
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
+    }
+  }
+
   TEST(Instance, ShouldUseInstanceMaterialForRay4PacketHitsWhenOverridden) {
     auto primitive = std::make_shared<Sphere>(Vector3d(), 1);
     Instance instance(primitive);

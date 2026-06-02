@@ -74,8 +74,9 @@ packet frontier no longer has to use the generic scalar materialization
 fallback. Wrapper
 primitives matter too: `Instance` transforms static ray packets into local
 space before delegating and then transforms materialized hits or intervals back
-to world space, while `MeshPrimitive` forwards packet-hit requests to its
-triangle leaves and preserves mesh-level material fallback.
+to world space. Animated instances use lane-local transforms so each packet
+lane keeps its own shutter-time sample. `MeshPrimitive` forwards packet-hit
+requests to its triangle leaves and preserves mesh-level material fallback.
 
 Most primitives also override:
 

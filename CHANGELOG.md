@@ -147,9 +147,13 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   without counting the lanes as generic scalar packet fallback. — GPT-5
 - **CSG packet intervals.** Boolean and closed-solid CSG nodes now compose
   Ray4/Ray8 child hit intervals through a packet interval contract, while
-  Sphere, Box, OpenCylinder, Torus, and static Instance wrappers expose packet
+  Sphere, Box, OpenCylinder, Torus, and Instance wrappers expose packet
   intervals so common beveled dice-style CSG avoids scalar materialization
   fallback. — GPT-5
+- **Moving Instance packet materialization.** Animated `render::Instance`
+  wrappers now own Ray4/Ray8 packet hit and interval materialization through
+  lane-local `timeSample` transforms, preserving motion blur without reporting
+  generic scalar packet fallback. — GPT-5
 - **Support-map CSG packet materialization.** `ConvexOperation` now owns
   Ray4/Ray8 packet hit and interval materialization for convex-hull and
   Minkowski-sum shapes, avoiding the generic scalar packet fallback while

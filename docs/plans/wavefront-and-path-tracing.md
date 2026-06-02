@@ -943,9 +943,13 @@ Boolean and closed-solid CSG composites (`Union`, `Difference`,
 children materialize lane-local `HitPointInterval`s, the CSG node applies the
 same union/difference/intersection/closed-solid set operation per lane, and the
 closest positive hit is then projected back to the packet-hit contract. Sphere,
-Box, OpenCylinder, Torus, and static Instance wrappers publish direct Ray4/Ray8
-packet intervals, so common beveled dice/cylinder/ring-style CSG avoids scalar
-materialization fallback at both the CSG node and its key leaves.
+Box, OpenCylinder, Torus, and static and moving Instance wrappers publish direct
+Ray4/Ray8 packet intervals, so common beveled dice/cylinder/ring-style CSG
+avoids scalar materialization fallback at both the CSG node and its key leaves.
+Moving `Instance` wrappers now own lane-local Ray4/Ray8 packet hits and
+intervals too: each lane keeps its `State::timeSample` when transforming into
+the wrapped primitive, so motion-blurred instances preserve shutter-time
+semantics without inheriting the generic packet fallback.
 `ConvexOperation` subclasses now own Ray4/Ray8 packet hit and interval
 materialization for support-map CSG. That path still evaluates the GJK-style
 support query per lane rather than claiming a true SIMD support-map kernel, but

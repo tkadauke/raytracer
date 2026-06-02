@@ -183,6 +183,15 @@ namespace render {
       return Rayd(m_originMatrix * ray.origin(), m_directionMatrix * ray.direction());
     }
 
+    PrimitivePacketHit4 intersectMovingRay4PacketHits(const Ray4& rays,
+                                                      const PrimitivePacketState4& states) const;
+    PrimitivePacketHit8 intersectMovingRay8PacketHits(const Ray8& rays,
+                                                      const PrimitivePacketState8& states) const;
+    PrimitivePacketInterval4
+    intersectMovingRay4PacketIntervals(const Ray4& rays, const PrimitivePacketState4& states) const;
+    PrimitivePacketInterval8
+    intersectMovingRay8PacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const;
+
     std::shared_ptr<Primitive> m_primitive;
     Matrix4d m_pointMatrix;
     Matrix4d m_originMatrix;

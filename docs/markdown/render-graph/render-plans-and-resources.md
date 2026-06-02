@@ -638,7 +638,7 @@ Sphere/Plane/Box/Triangle/Disk/Rectangle/OpenCylinder/Torus leaf kernels while
 imported mesh leaves and static instance/mesh wrappers preserve Ray8
 materialized hits and Curve reports Ray8 misses directly. Boolean and
 closed-solid CSG nodes compose packet child intervals, with Sphere, Box,
-OpenCylinder, Torus, and static Instance wrappers providing packet intervals
+OpenCylinder, Torus, and static and moving Instance wrappers providing packet intervals
 for common beveled CSG scenes. ConvexOperation support-map CSG nodes also
 materialize packet hits and intervals per lane, which removes them from the
 generic scalar packet-fallback bucket without claiming a vectorized GJK kernel.
