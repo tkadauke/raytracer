@@ -1,8 +1,9 @@
 #include <gtest/gtest.h>
 
-#include "widgets/world/RenderSettingsWidget.h"
+#include "render/RayFamilyQueuePolicy.h"
 #include "render/samplers/SamplerFactory.h"
 #include "render/viewplanes/ViewPlaneFactory.h"
+#include "widgets/world/RenderSettingsWidget.h"
 
 #include "test/helpers/GuiTestHelper.h"
 #include "test/helpers/Slot.h"
@@ -42,9 +43,13 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(QThread::idealThreadCount(), widget.renderThreads());
   }
 
-  TEST_F(RenderSettingsWidgetTest, ShouldDefaultQueueSizeToEightTimesIdealThreadCount) {
+  TEST_F(RenderSettingsWidgetTest, ShouldDefaultQueueSizeToRayFamilyPolicy) {
     RenderSettingsWidget widget;
-    EXPECT_EQ(QThread::idealThreadCount() * 8, widget.queueSize());
+    const QSize size = widget.resolution();
+    EXPECT_EQ(render::RayFamilyQueuePolicy(size.width(), size.height(), widget.samplesPerPixel(),
+                                           widget.renderThreads())
+                .queueSize(),
+              widget.queueSize());
   }
 
   TEST_F(RenderSettingsWidgetTest, ShouldHideInternalExecutionControls) {

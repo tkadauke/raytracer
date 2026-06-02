@@ -1,4 +1,5 @@
 #include "engine/raster/OpenGLRasterizer.h"
+#include "render/RayFamilyQueuePolicy.h"
 #include "render/samplers/SamplerFactory.h"
 #include "render/viewplanes/ViewPlaneFactory.h"
 #include "widgets/world/RenderSettingsWidget.h"
@@ -59,7 +60,7 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
                                        p->ui.wireframeGridLayout->rowCount(), 0, 1, 2);
 
   p->ui.renderThreads->setValue(QThread::idealThreadCount());
-  p->ui.queueSize->setValue(QThread::idealThreadCount() * 8);
+  p->ui.queueSize->setValue(queueSize());
   p->ui.label_5->setVisible(false);
   p->ui.viewPlaneType->setVisible(false);
   p->ui.label_6->setVisible(false);
@@ -130,7 +131,10 @@ int RenderSettingsWidget::renderThreads() const {
 }
 
 int RenderSettingsWidget::queueSize() const {
-  return p->ui.queueSize->value();
+  const QSize size = resolution();
+  return render::RayFamilyQueuePolicy(size.width(), size.height(), samplesPerPixel(),
+                                      renderThreads())
+    .queueSize();
 }
 
 int RenderSettingsWidget::lod() const {

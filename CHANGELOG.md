@@ -264,6 +264,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Shared ray-family queue defaults.** rendercli and Modeler final renders now
+  use the same automatic ray-family queue policy, preserving explicit
+  `--queue_size` / scene-authored overrides while removing a hidden fixed
+  Modeler queue default from graph-backed Raytracer and Wavefront renders.
+  — GPT-5
 - **Wavefront terminal continuations.** Whitted wavefront batches now resolve
   max-depth and throughput-cutoff continuations when material shading creates
   them instead of queueing a next-depth frontier that can only terminate. — GPT-5

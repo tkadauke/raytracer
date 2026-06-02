@@ -359,8 +359,8 @@ property sets and collapsible groups so advanced scene/import settings can stay
 out of the way. Internal execution controls such as
 view-plane type, worker thread count, and queue size stay hidden in Modeler;
 Modeler's own preview/final controls keep using the point-interlaced view
-plane and automatic execution defaults, while lower-level values can still be
-authored through scene JSON or rendercli.
+plane and the same automatic ray-family queue policy as rendercli, while
+lower-level values can still be authored through scene JSON or rendercli.
 `Render -> Preview Engine -> Use Scene Render Settings`
 compiles the live preview from that saved intent. Choosing a preview engine,
 preview view, overlay, shadows, or preview FXAA/SMAA switches the preview into

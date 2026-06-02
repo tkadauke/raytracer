@@ -27,6 +27,7 @@
 #include "render/RenderEngine.h"
 #include "engine/raytracer/Raytracer.h"
 #include "render/PathTracingIntegrator.h"
+#include "render/RayFamilyQueuePolicy.h"
 #include "engine/raster/RasterBackend.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/wavefront/WavefrontRaytracer.h"
@@ -1339,7 +1340,7 @@ Renderer::Renderer()
       m_samplesPerPixelSet(false),
       m_samplingSeed(),
       m_threads(QThread::idealThreadCount()),
-      m_queueSize(m_width * m_height * m_samplesPerPixel / 1024),
+      m_queueSize(render::RayFamilyQueuePolicy::DefaultMaximumQueueSize),
       m_threadsSet(false),
       m_queueSizeSet(false),
       m_tonemap("Linear"),
@@ -1553,14 +1554,7 @@ int Renderer::rayFamilyQueueSize(int samplesPerPixel) const {
   if (m_queueSizeSet) {
     return m_queueSize;
   }
-  const long long samplePixels = static_cast<long long>(m_width) *
-                                 static_cast<long long>(m_height) *
-                                 static_cast<long long>(std::max(1, samplesPerPixel));
-  // Keep rendercli's historical 640x480 default cap, but avoid one-pixel
-  // tiles for small graph renders where tile-local sampling would dominate.
-  const long long pixelSizedQueue = std::max<long long>(1, samplePixels / 384);
-  const long long cappedQueue = std::min<long long>(std::max(1, m_queueSize), pixelSizedQueue);
-  return std::max(std::max(1, m_threads), static_cast<int>(cappedQueue));
+  return render::RayFamilyQueuePolicy(m_width, m_height, samplesPerPixel, m_threads).queueSize();
 }
 
 engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
