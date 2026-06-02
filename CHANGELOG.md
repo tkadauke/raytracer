@@ -204,6 +204,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   convergence preset now uses the conservative capture-sweep thresholds
   `active_fraction=0.05` and `rms_delta=0.002`, matching the benchmark script's
   default tuning baseline instead of the earlier placeholder limits. — GPT-5
+- **Wavefront convergence capture defaults.** The convergence benchmark script
+  now reads its default active-fraction/RMS thresholds from the shipped
+  Balanced convergence constants unless explicitly overridden. — GPT-5
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5

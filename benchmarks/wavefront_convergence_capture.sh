@@ -2,6 +2,24 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+wavefront_constant() {
+  local name="$1"
+  ruby - "$repo_root/include/core/math/Constants.h" "$name" <<'RUBY'
+path = ARGV.fetch(0)
+name = ARGV.fetch(1)
+pattern = /^\s*inline\s+constexpr\s+double\s+#{Regexp.escape(name)}\s*=\s*([^;]+);/
+File.readlines(path).each do |line|
+  match = line.match(pattern)
+  next unless match
+  puts Float(match[1]).to_s
+  exit 0
+end
+warn "constant not found: #{name}"
+exit 1
+RUBY
+}
+
 rendercli="${RENDERCLI:-${repo_root}/build/release/tools/rendercli/rendercli}"
 image_probe="${RENDERCLI_IMAGE_PROBE:-${repo_root}/build/release/test/rendercli/rendercli_image_probe}"
 out_root="${WAVEFRONT_CONVERGENCE_OUT:-${repo_root}/tmp/wavefront-convergence}"
@@ -10,8 +28,14 @@ width="${WAVEFRONT_CONVERGENCE_WIDTH:-160}"
 height="${WAVEFRONT_CONVERGENCE_HEIGHT:-120}"
 depth="${WAVEFRONT_CONVERGENCE_DEPTH:-5}"
 samples="${WAVEFRONT_CONVERGENCE_SAMPLES:-8}"
-active_fraction="${WAVEFRONT_CONVERGENCE_ACTIVE_FRACTION:-0.05}"
-rms_delta="${WAVEFRONT_CONVERGENCE_RMS_DELTA:-0.002}"
+active_fraction="${WAVEFRONT_CONVERGENCE_ACTIVE_FRACTION:-}"
+if [[ -z "${active_fraction}" ]]; then
+  active_fraction="$(wavefront_constant RAYTRACER_WAVEFRONT_ACTIVE_SAMPLE_FRACTION_THRESHOLD)"
+fi
+rms_delta="${WAVEFRONT_CONVERGENCE_RMS_DELTA:-}"
+if [[ -z "${rms_delta}" ]]; then
+  rms_delta="$(wavefront_constant RAYTRACER_WAVEFRONT_RADIANCE_DELTA_RMS_THRESHOLD)"
+fi
 bvh_grid="${WAVEFRONT_CONVERGENCE_BVH_GRID:-9}"
 queue_size="${WAVEFRONT_CONVERGENCE_QUEUE_SIZE:-}"
 convergence_sweep="${WAVEFRONT_CONVERGENCE_SWEEP:-}"
@@ -36,7 +60,9 @@ Environment:
   WAVEFRONT_CONVERGENCE_DEPTH          max ray depth
   WAVEFRONT_CONVERGENCE_SAMPLES        pathtracer samples per pixel
   WAVEFRONT_CONVERGENCE_ACTIVE_FRACTION convergence active-fraction threshold
+                                      (default: shipped balanced constant)
   WAVEFRONT_CONVERGENCE_RMS_DELTA      convergence RMS-delta threshold
+                                      (default: shipped balanced constant)
   WAVEFRONT_CONVERGENCE_BVH_GRID       generated sphere grid width/height
   WAVEFRONT_CONVERGENCE_QUEUE_SIZE     optional rendercli --queue_size for every variant
   WAVEFRONT_CONVERGENCE_SWEEP          optional comma-separated active:rms pairs
