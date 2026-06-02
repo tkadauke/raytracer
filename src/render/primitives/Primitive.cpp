@@ -124,6 +124,28 @@ Primitive::intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState
                                                 PrimitivePacketInterval8>(*this, rays, states);
 }
 
+PrimitivePacketState4 Primitive::activePacketStates(const PrimitivePacketState4& states,
+                                                    std::uint16_t activeMask) {
+  PrimitivePacketState4 result = states;
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    if ((activeMask & (1u << lane)) == 0) {
+      result[lane] = nullptr;
+    }
+  }
+  return result;
+}
+
+PrimitivePacketState8 Primitive::activePacketStates(const PrimitivePacketState8& states,
+                                                    std::uint16_t activeMask) {
+  PrimitivePacketState8 result = states;
+  for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    if ((activeMask & (1u << lane)) == 0) {
+      result[lane] = nullptr;
+    }
+  }
+  return result;
+}
+
 void Primitive::forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,
                             const LeafVisitor& visitor) const {
   auto own = material();

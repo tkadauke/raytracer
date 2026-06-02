@@ -345,8 +345,9 @@ void BVH::intersectPacketHitNode(const Node* node, const Ray4& rays, uint16_t ac
   }
 
   if (node->isLeaf()) {
+    const PrimitivePacketState4 activeStates = activePacketStates(states, nodeMask);
     for (const auto& prim : node->primitives) {
-      const PrimitivePacketHit4 candidate = prim->intersectPacketHits(rays, states);
+      const PrimitivePacketHit4 candidate = prim->intersectPacketHits(rays, activeStates);
       for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
         if ((nodeMask & (1u << lane)) == 0 || !candidate.hit(lane)) {
           continue;
@@ -385,8 +386,9 @@ void BVH::intersectPacketHitNode(const Node* node, const Ray8& rays, uint16_t ac
   }
 
   if (node->isLeaf()) {
+    const PrimitivePacketState8 activeStates = activePacketStates(states, nodeMask);
     for (const auto& prim : node->primitives) {
-      const PrimitivePacketHit8 candidate = prim->intersectPacketHits(rays, states);
+      const PrimitivePacketHit8 candidate = prim->intersectPacketHits(rays, activeStates);
       for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
         if ((nodeMask & (1u << lane)) == 0 || !candidate.hit(lane)) {
           continue;

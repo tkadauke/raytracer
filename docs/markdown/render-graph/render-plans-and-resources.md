@@ -642,6 +642,9 @@ OpenCylinder, Torus, and static Instance wrappers providing packet intervals
 for common beveled CSG scenes. ConvexOperation support-map CSG nodes also
 materialize packet hits and intervals per lane, which removes them from the
 generic scalar packet-fallback bucket without claiming a vectorized GJK kernel.
+Composite, BVH, and CSG packet traversal mask lanes rejected by the parent
+before handing state to children, so graph trace fallback counters are attached
+to lanes that actually reached the child materializer.
 The rest of the primitive leaves are made eight-wide in later performance
 slices. Grid keeps a scalar packet-hit fallback for now so packet wavefront
 traversal still uses its DDA cell walk instead of a plain linear composite scan.

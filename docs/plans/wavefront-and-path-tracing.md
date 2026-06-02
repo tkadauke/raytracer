@@ -962,9 +962,13 @@ Wavefront metrics now also expose packet-frontier utilization:
 distinguish packet chunks, the exact ray count carried by those chunks, scalar
 tail rays, and packet lanes that still had to use base scalar hit
 materialization in JSON reports, graph trace metadata, rendercli compact
-summaries, and convergence capture work comparisons. Whitted batches now also
-publish `frontierPacketRefinedRaysPerDepth`, the packet-hit lanes that were
-materialized through the packet path but then scalar-refined before shading.
+summaries, and convergence capture work comparisons. Composite, BVH, and CSG
+packet traversal now mask inactive lanes before forwarding per-lane state to
+child materializers, so those fallback counters describe work that survived the
+parent traversal instead of lanes the parent had already rejected. Whitted
+batches now also publish `frontierPacketRefinedRaysPerDepth`, the packet-hit
+lanes that were materialized through the packet path but then scalar-refined
+before shading.
 Keeping packet rays explicit instead of deriving them from chunk count prepares
 the metrics for mixed Ray4/Ray8 frontiers.
 That mixed-width frontier is now underway: primitive packet-hit results are

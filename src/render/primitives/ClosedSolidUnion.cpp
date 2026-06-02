@@ -3,6 +3,7 @@
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 #include <array>
+#include <cstdint>
 
 using namespace render;
 
@@ -52,13 +53,21 @@ Result ClosedSolidUnion::intersectPacketIntervalsFor(const Packet& rays,
   std::array<bool, Packet::lanes> activeLanes{};
   std::array<HitPointInterval, Packet::lanes> intervals{};
   std::array<bool, Packet::lanes> scalarFallbacks{};
+  std::uint16_t activeMask = 0;
 
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
     activeLanes[lane] = boundingBoxIntersects(rays.rayd(lane));
+    if (activeLanes[lane]) {
+      activeMask |= static_cast<std::uint16_t>(1u << lane);
+    }
+  }
+  if (activeMask == 0) {
+    return result;
   }
 
+  const StateArray activeStates = activePacketStates(states, activeMask);
   for (const auto& primitive : primitives()) {
-    const auto candidate = primitive->intersectPacketIntervals(rays, states);
+    const auto candidate = primitive->intersectPacketIntervals(rays, activeStates);
     for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
       if (!activeLanes[lane] || !candidate.hasInterval(lane)) {
         continue;

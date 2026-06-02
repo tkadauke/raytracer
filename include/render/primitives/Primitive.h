@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -380,6 +381,11 @@ namespace render {
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 
   protected:
+    static PrimitivePacketState4 activePacketStates(const PrimitivePacketState4& states,
+                                                    std::uint16_t activeMask);
+    static PrimitivePacketState8 activePacketStates(const PrimitivePacketState8& states,
+                                                    std::uint16_t activeMask);
+
     /**
       * Compute the axis-aligned bounding box. Called lazily by
       * `boundingBox()` and cached. Must be a function of static

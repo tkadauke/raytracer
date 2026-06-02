@@ -158,6 +158,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   per-depth packet lanes that fell back to scalar hit materialization, exposing
   remaining primitive packet-kernel gaps in graph traces, rendercli summaries,
   and convergence captures. — GPT-5
+- **Packet fallback metric masking.** Composite, BVH, and CSG packet traversal
+  now mask inactive lanes before forwarding per-lane state to child packet
+  materializers, so packet fallback counters and traces only account for lanes
+  the parent traversal actually kept alive. — GPT-5
 - **Wavefront wrapper packet hits.** `render::Instance` and
   `render::MeshPrimitive` now preserve materialized four-wide packet hits
   through transforms and imported mesh wrappers, so packet-capable leaves do

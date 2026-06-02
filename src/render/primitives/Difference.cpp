@@ -5,6 +5,7 @@
 #include "core/math/Ray.h"
 #include <QDebug>
 #include <array>
+#include <cstdint>
 
 using namespace render;
 
@@ -60,14 +61,35 @@ Result Difference::intersectPacketIntervalsFor(const Packet& rays, const StateAr
   std::array<bool, Packet::lanes> firstChildHit{};
   std::array<HitPointInterval, Packet::lanes> intervals{};
   std::array<bool, Packet::lanes> scalarFallbacks{};
+  std::uint16_t activeMask = 0;
 
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
     activeLanes[lane] = boundingBoxIntersects(rays.rayd(lane));
+    if (activeLanes[lane]) {
+      activeMask |= static_cast<std::uint16_t>(1u << lane);
+    }
+  }
+  if (activeMask == 0) {
+    return result;
   }
 
   bool firstElement = true;
   for (const auto& primitive : primitives()) {
-    const auto candidate = primitive->intersectPacketIntervals(rays, states);
+    std::uint16_t childMask = activeMask;
+    if (!firstElement) {
+      childMask = 0;
+      for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
+        if (activeLanes[lane] && firstChildHit[lane]) {
+          childMask |= static_cast<std::uint16_t>(1u << lane);
+        }
+      }
+    }
+    if (childMask == 0) {
+      break;
+    }
+
+    const StateArray childStates = activePacketStates(states, childMask);
+    const auto candidate = primitive->intersectPacketIntervals(rays, childStates);
     for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
       if (!activeLanes[lane]) {
         continue;

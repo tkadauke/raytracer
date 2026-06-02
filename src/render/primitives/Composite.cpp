@@ -6,6 +6,7 @@
 #include "core/geometry/Mesh.h"
 
 #include <array>
+#include <cstdint>
 #include <limits>
 
 using namespace std;
@@ -84,13 +85,21 @@ PrimitivePacketHit4 Composite::intersectPacketHits(const Ray4& rays,
   std::array<bool, Ray4::lanes> activeLanes{};
   std::array<double, Ray4::lanes> minDistances;
   minDistances.fill(numeric_limits<double>::infinity());
+  std::uint16_t activeMask = 0;
 
   for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
     activeLanes[lane] = boundingBoxIntersects(rays.rayd(lane));
+    if (activeLanes[lane]) {
+      activeMask |= static_cast<std::uint16_t>(1u << lane);
+    }
+  }
+  if (activeMask == 0) {
+    return result;
   }
 
+  const PrimitivePacketState4 activeStates = activePacketStates(states, activeMask);
   for (const auto& primitive : m_primitives) {
-    const PrimitivePacketHit4 candidate = primitive->intersectPacketHits(rays, states);
+    const PrimitivePacketHit4 candidate = primitive->intersectPacketHits(rays, activeStates);
     for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
       if (!activeLanes[lane] || !candidate.hit(lane)) {
         continue;
@@ -113,13 +122,21 @@ PrimitivePacketHit8 Composite::intersectPacketHits(const Ray8& rays,
   std::array<bool, Ray8::lanes> activeLanes{};
   std::array<double, Ray8::lanes> minDistances;
   minDistances.fill(numeric_limits<double>::infinity());
+  std::uint16_t activeMask = 0;
 
   for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
     activeLanes[lane] = boundingBoxIntersects(rays.rayd(lane));
+    if (activeLanes[lane]) {
+      activeMask |= static_cast<std::uint16_t>(1u << lane);
+    }
+  }
+  if (activeMask == 0) {
+    return result;
   }
 
+  const PrimitivePacketState8 activeStates = activePacketStates(states, activeMask);
   for (const auto& primitive : m_primitives) {
-    const PrimitivePacketHit8 candidate = primitive->intersectPacketHits(rays, states);
+    const PrimitivePacketHit8 candidate = primitive->intersectPacketHits(rays, activeStates);
     for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
       if (!activeLanes[lane] || !candidate.hit(lane)) {
         continue;

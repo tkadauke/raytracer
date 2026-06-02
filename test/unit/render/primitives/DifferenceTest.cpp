@@ -122,6 +122,27 @@ namespace DifferenceTest {
     }
   }
 
+  TEST(Difference, ShouldMaskLanesThatMissFirstOperandBeforeLaterPacketOperands) {
+    Difference difference;
+    difference.add(std::make_shared<Sphere>(Vector3d(), 1));
+    auto cutter = std::make_shared<NiceMock<MockPrimitive>>();
+    difference.add(cutter);
+    ON_CALL(*cutter, intersect(_, _, _)).WillByDefault(Return(nullptr));
+
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 3, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, -1)), Rayd(Vector3d(3, 0, -2), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    difference.intersectPacketHits(rays, states);
+
+    EXPECT_EQ(1u, laneStates[0].packetHitScalarFallbacks);
+    EXPECT_EQ(0u, laneStates[1].packetHitScalarFallbacks);
+    EXPECT_EQ(1u, laneStates[2].packetHitScalarFallbacks);
+    EXPECT_EQ(0u, laneStates[3].packetHitScalarFallbacks);
+  }
+
   TEST(Difference, ShouldNotReturnAnyPrimitiveRayOutsideBoundingBox) {
     Difference i;
     i.setMaterial(std::make_shared<MatteMaterial>());
