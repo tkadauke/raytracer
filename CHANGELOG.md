@@ -216,6 +216,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront thin-lens sample setup.** `ThinLensCamera` now uses the same
   per-tile primary-ray generator hook to precompute eye, basis, and focal
   constants for wavefront renders while preserving lens sample behavior. — GPT-5
+- **Wavefront denoiser feature setup.** Wavefront denoiser feature prepasses now
+  use camera primary-ray generators too, so albedo/normal/depth sampling shares
+  the same precomputed camera setup as the beauty pass. — GPT-5
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5

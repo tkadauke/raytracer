@@ -207,6 +207,7 @@ namespace engine::wavefront::detail {
 
       auto plane = camera.viewPlane();
       const auto sampler = plane->sampler();
+      const auto primaryRayGenerator = camera.primaryRayGenerator();
       render::SampleStreamStorage sampleStreams;
       sampleStreams.reserve(static_cast<std::size_t>(std::max(0, actualRect.width())) *
                             static_cast<std::size_t>(std::max(0, actualRect.height())));
@@ -219,7 +220,7 @@ namespace engine::wavefront::detail {
 
         render::SampleStream* stream = sampler->appendStream(
           sampleStreams, /*sampleIndex=*/0, camera.primaryRayPixelHash(pixel, tileSeed));
-        const auto sample = camera.primaryRaySample(pixel, *stream);
+        const auto sample = primaryRayGenerator->sample(pixel, *stream);
         if (!sample) {
           continue;
         }

@@ -655,6 +655,9 @@ mostly outside camera primary-ray math.
 `ThinLensCamera` now uses the same hook to precompute its eye origin, camera
 basis, and focal constants before the tile sample loop while preserving the
 existing pixel/time/lens sample-stream order.
+Wavefront denoiser feature prepasses also use the camera generator now, so
+albedo/normal/depth collection does not fall back to the slower generic
+primary-ray path when the beauty pass has a camera-specific generator.
 The integrator batch bucket is now split further into
 intersection and shading worker time, so captures can distinguish BVH/primitive
 traversal cost from material, direct lighting, and continuation sampling cost
