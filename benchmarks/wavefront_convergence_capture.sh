@@ -74,10 +74,10 @@ Environment:
 The capture writes images, stdout timing summaries, wavefront metrics JSON,
 image-probe comparisons, active sample-depth work comparisons, tile
 load-balance summaries, frontier hit/miss summaries, packet width summaries,
-packet scalar-fallback reason breakdowns, and packet-hit refinement material
-breakdowns under the output directory. Queue sweeps also write a compact
-queue_sweep.summary.txt per scene. Use it to tune Phase 4 wavefront
-convergence defaults and to baseline Phase 7
+packet-fill and scalar-tail ratios, packet scalar-fallback reason breakdowns,
+and packet-hit refinement material breakdowns under the output directory. Queue
+sweeps also write a compact queue_sweep.summary.txt per scene. Use it to tune
+Phase 4 wavefront convergence defaults and to baseline Phase 7
 scheduler/intersection work before changing shipped presets.
 
 When WAVEFRONT_CONVERGENCE_SWEEP is set, the script reuses the non-converged
@@ -569,6 +569,7 @@ def aggregate_run(run)
     max_tile_samples: 0.0,
     ray8_chunks: 0.0,
     ray4_chunks: 0.0,
+    packet_rays: 0.0,
     scalar_rays: 0.0,
     fallback_rays: 0.0,
     sample_generation_ms: 0.0,
@@ -593,6 +594,7 @@ def aggregate_run(run)
                                  tiling.fetch("maxTileSamples", 0).to_f].max
     values[:ray8_chunks] += sum_array(batching, "frontierRay8PacketChunksPerDepth")
     values[:ray4_chunks] += sum_array(batching, "frontierRay4PacketChunksPerDepth")
+    values[:packet_rays] += sum_array(batching, "frontierPacketRaysPerDepth")
     values[:scalar_rays] += sum_array(batching, "frontierScalarRaysPerDepth")
     values[:fallback_rays] += sum_array(batching, "frontierPacketScalarFallbackRaysPerDepth")
     values[:sample_generation_ms] +=
@@ -620,7 +622,7 @@ scene_dir = ARGV.fetch(0)
 queue_dirs = Dir.glob(File.join(scene_dir, "queue_*")).select { |path| File.directory?(path) }
 queue_dirs.sort_by! { |path| File.basename(path).delete_prefix("queue_").to_i }
 
-puts "queue_size variant render_ms primary_samples tile_count avg_tile_samples max_tile_samples ray8_chunks ray4_chunks scalar_rays fallback_rays sample_generation_worker_ms integrator_worker_ms integrator_residual_worker_ms"
+puts "queue_size variant render_ms primary_samples tile_count avg_tile_samples max_tile_samples ray8_chunks ray4_chunks packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays sample_generation_worker_ms integrator_worker_ms integrator_residual_worker_ms"
 queue_dirs.each do |queue_dir|
   queue_size = File.basename(queue_dir).delete_prefix("queue_")
   Dir.glob(File.join(queue_dir, "wavefront_*.metrics.json")).sort.each do |metrics_path|
@@ -630,9 +632,19 @@ queue_dirs.each do |queue_dir|
     next if runs.empty?
 
     median_for = lambda { |key| median(runs.map { |run| run.fetch(key) }) }
+    ray8_chunks = median_for.call(:ray8_chunks)
+    ray4_chunks = median_for.call(:ray4_chunks)
+    packet_rays = median_for.call(:packet_rays)
+    scalar_rays = median_for.call(:scalar_rays)
+    fallback_rays = median_for.call(:fallback_rays)
+    packet_capacity = ray8_chunks * 8.0 + ray4_chunks * 4.0
+    packet_fill = packet_capacity.zero? ? 0.0 : packet_rays / packet_capacity
+    frontier_rays = packet_rays + scalar_rays
+    scalar_tail_fraction = frontier_rays.zero? ? 0.0 : scalar_rays / frontier_rays
+    fallback_fraction = packet_rays.zero? ? 0.0 : fallback_rays / packet_rays
     stdout_path = File.join(queue_dir, "#{variant}.stdout.txt")
     puts format(
-      "%s %s %.3f %.0f %.0f %.3f %.0f %.0f %.0f %.0f %.0f %.3f %.3f %.3f",
+      "%s %s %.3f %.0f %.0f %.3f %.0f %.0f %.0f %.6f %.6f %.6f %.0f %.0f %.3f %.3f %.3f",
       queue_size,
       variant,
       render_median_ms(stdout_path),
@@ -640,10 +652,13 @@ queue_dirs.each do |queue_dir|
       median_for.call(:tile_count),
       median_for.call(:average_tile_samples),
       median_for.call(:max_tile_samples),
-      median_for.call(:ray8_chunks),
-      median_for.call(:ray4_chunks),
-      median_for.call(:scalar_rays),
-      median_for.call(:fallback_rays),
+      ray8_chunks,
+      ray4_chunks,
+      packet_fill,
+      scalar_tail_fraction,
+      fallback_fraction,
+      scalar_rays,
+      fallback_rays,
       median_for.call(:sample_generation_ms),
       median_for.call(:integrator_ms),
       median_for.call(:residual_ms)

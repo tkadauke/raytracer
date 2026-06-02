@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Wavefront queue-sweep packet ratios.** Queue-size convergence captures now
+  add packet-fill, scalar-tail, and packet-fallback fractions to
+  `queue_sweep.summary.txt`, making scheduler-default tuning easier to compare
+  across tile counts. — GPT-5
 - **Wavefront ray executor surface.** Added an initial `WavefrontRaytracer`
   render engine plus graph/rendercli/Modeler render-settings selection so the
   ray-family scheduler can be exercised beside the recursive raytracer. — GPT-5

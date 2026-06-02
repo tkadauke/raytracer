@@ -1038,8 +1038,9 @@ capture across multiple queue sizes and writes each result under a separate
 `queue_<size>` output directory, so tile-count defaults can be compared without
 hand-editing the script or overwriting earlier captures. Queue sweeps also
 write a per-scene `queue_sweep.summary.txt` with median render time, primary
-samples, tile load, Ray8/Ray4 packet chunks, scalar tails, packet fallback
-lanes, and worker-time buckets for each queue/variant pair.
+samples, tile load, Ray8/Ray4 packet chunks, packet-fill ratio, scalar-tail
+fraction, packet-fallback fraction, raw scalar tails, packet fallback lanes,
+and worker-time buckets for each queue/variant pair.
 A first 160x120 BVH queue sweep also exposed a rendercli graph-path mismatch:
 graph-backed ray-family renders inherited the scene camera's progressive view
 plane while direct rendercli final renders used `TiledViewPlane`. Very small
