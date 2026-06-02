@@ -48,7 +48,8 @@ namespace render {
 
   private:
     std::vector<std::shared_ptr<SampleStream>> m_ownedStreams;
-    std::deque<SamplerSampleStream> m_samplerBackedStreams;
+    std::vector<SamplerSampleStream> m_samplerBackedStreams;
+    std::deque<SamplerSampleStream> m_samplerBackedOverflowStreams;
   };
 
   /**

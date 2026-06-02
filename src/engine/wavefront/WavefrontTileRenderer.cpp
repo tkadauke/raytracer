@@ -129,14 +129,15 @@ namespace engine::wavefront::detail {
           markProgress(footprint);
         }
         result.pixels.push_back(WavefrontTilePixel{footprint, Colord::black()});
+        const std::uint64_t pixelHash = camera.primaryRayPixelHash(pixel, tileSeed);
 
         for (int sampleIndex = 0; sampleIndex != sampleCount; ++sampleIndex) {
           if (camera.isCancelled()) {
             break;
           }
 
-          render::SampleStream* stream = sampler->appendStream(
-            sampleStreams, sampleIndex, camera.primaryRayPixelHash(pixel, tileSeed));
+          render::SampleStream* stream =
+            sampler->appendStream(sampleStreams, sampleIndex, pixelHash);
           if (auto sample = camera.primaryRaySample(pixel, *stream)) {
             samples.push_back(
               render::IntegratorRaySample{sample->ray, sample->timeSample, nullptr, stream});

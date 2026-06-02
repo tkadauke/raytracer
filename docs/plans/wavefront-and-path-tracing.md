@@ -625,10 +625,19 @@ generation now has a caller-owned stream overload, and wavefront tiles retain
 built-in sampler streams inside per-tile `SampleStreamStorage` instead of
 allocating one stream object per sample. Custom sampler subclasses still flow
 through the owning fallback path so their virtual `stream()` overrides remain
-observable. Path-tracing batches also now accumulate directly into the
-sample-color buffer returned to the wavefront tile, so final result assembly no
-longer copies every sample and progress snapshots can publish the same live
-buffer instead of allocating a per-depth copy. Disabled `ScopedTimer` instances
+observable. The built-in sampler stream storage now reserves contiguous tile
+storage for the known primary-sample count and spills any late or excess streams
+to a deque fallback, preserving stable `SampleStream*` pointers while removing
+deque block churn from the normal wavefront tile path. A follow-up capture with
+the same 160x120, 16spp, max-depth-16 `pathtracer_bounce` shape still showed
+no stable macro speed-gate win: non-converged sample-generation worker time
+ranged from ~331 ms to ~428 ms, while the converged variant ranged from ~203 ms
+to ~330 ms. Treat this as allocation-churn cleanup, not as completion of the
+Phase 4 performance target. Path-tracing batches also now accumulate directly
+into the sample-color buffer returned to the wavefront tile, so final result
+assembly no longer copies every sample and progress snapshots can publish the
+same live buffer instead of allocating a per-depth copy. Disabled
+`ScopedTimer` instances
 also skip clock reads now, so ordinary renders do not pay timing overhead when
 no metric bucket is requested. A follow-up 160x120, 16spp,
 max-depth-16 `pathtracer_bounce`

@@ -188,6 +188,38 @@ namespace SamplerTest {
     ASSERT_DOUBLE_EQ(6.0 / 100.0, first->next1D());
   }
 
+  TEST(SamplerStream, StorageKeepsUnreservedSamplerBackedStreamsStable) {
+    IndexedSampler sampler;
+    sampler.setup(4, 64);
+    SampleStreamStorage storage;
+
+    SampleStream* first = storage.appendSamplerBacked(sampler, /*sampleIndex*/ 2,
+                                                      /*pixelHash*/ 3);
+    for (int i = 0; i != 32; ++i)
+      storage.appendSamplerBacked(sampler, i % sampler.numSamples(), i);
+
+    ASSERT_NE(nullptr, first);
+    ASSERT_DOUBLE_EQ(5.0 / 100.0, first->next2D().x());
+    ASSERT_DOUBLE_EQ(6.0 / 100.0, first->next1D());
+  }
+
+  TEST(SamplerStream, StorageKeepsSamplerBackedStreamsStableAfterLateReserve) {
+    IndexedSampler sampler;
+    sampler.setup(4, 64);
+    SampleStreamStorage storage;
+    storage.reserve(1);
+
+    SampleStream* first = storage.appendSamplerBacked(sampler, /*sampleIndex*/ 2,
+                                                      /*pixelHash*/ 3);
+    storage.reserve(64);
+    for (int i = 0; i != 32; ++i)
+      storage.appendSamplerBacked(sampler, i % sampler.numSamples(), i);
+
+    ASSERT_NE(nullptr, first);
+    ASSERT_DOUBLE_EQ(5.0 / 100.0, first->next2D().x());
+    ASSERT_DOUBLE_EQ(6.0 / 100.0, first->next1D());
+  }
+
   TEST(SamplerStream, BuiltInAppendStreamMatchesSharedStream) {
     RegularSampler sampler;
     sampler.setup(4, 16);

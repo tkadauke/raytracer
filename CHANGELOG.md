@@ -206,6 +206,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   sampler streams in tile-local storage so high-sample batches avoid one stream
   allocation per primary sample while custom sampler overrides still use the
   owning fallback path. — GPT-5
+- **Wavefront sample stream storage.** Wavefront's retained built-in sampler
+  streams now use reserved contiguous tile storage with stable deque overflow,
+  reducing sample-generation allocation churn without invalidating retained
+  stream pointers. — GPT-5
 - **Wavefront convergence diagnostics.** Wavefront metrics JSON now includes a
   stopped-tile depth histogram, and compact rendercli summaries report the
   earliest/latest stopped depths to make convergence preset tuning measurable.

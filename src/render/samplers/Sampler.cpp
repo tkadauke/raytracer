@@ -53,6 +53,8 @@ namespace render {
 
   void SampleStreamStorage::reserve(std::size_t count) {
     m_ownedStreams.reserve(count);
+    if (m_samplerBackedStreams.empty())
+      m_samplerBackedStreams.reserve(count);
   }
 
   SampleStream* SampleStreamStorage::appendOwned(std::shared_ptr<SampleStream> stream) {
@@ -62,8 +64,13 @@ namespace render {
 
   SampleStream* SampleStreamStorage::appendSamplerBacked(const Sampler& sampler, int sampleIndex,
                                                          std::uint64_t pixelHash) {
-    m_samplerBackedStreams.emplace_back(sampler, sampleIndex, pixelHash);
-    return &m_samplerBackedStreams.back();
+    if (m_samplerBackedStreams.size() < m_samplerBackedStreams.capacity()) {
+      m_samplerBackedStreams.emplace_back(sampler, sampleIndex, pixelHash);
+      return &m_samplerBackedStreams.back();
+    }
+
+    m_samplerBackedOverflowStreams.emplace_back(sampler, sampleIndex, pixelHash);
+    return &m_samplerBackedOverflowStreams.back();
   }
 
   void Sampler::setup(int numSamples, int numSets) {
