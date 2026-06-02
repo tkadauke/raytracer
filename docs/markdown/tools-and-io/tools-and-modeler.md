@@ -243,7 +243,8 @@ Wavefront batches further break that residual down into path setup, frontier
 bookkeeping, progress snapshot publication, and convergence-test worker time so
 tuning captures can see which scheduler phase is consuming the unexplained
 cost; Whitted uses the setup bucket for initial queued-ray and result-buffer
-construction. Metrics capture is
+construction. `integrator_residual_worker_ms` is the still-unclassified
+remainder after those named buckets are subtracted. Metrics capture is
 opt-in; requesting wavefront metrics enables graph trace collection for that
 render but does not require writing a separate trace file.
 The Modeler Balanced convergence preset uses `active_fraction=0.05` and

@@ -219,6 +219,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront denoiser feature setup.** Wavefront denoiser feature prepasses now
   use camera primary-ray generators too, so albedo/normal/depth sampling shares
   the same precomputed camera setup as the beauty pass. — GPT-5
+- **Wavefront residual timing diagnostics.** Wavefront metrics, rendercli
+  summaries, and convergence captures now report integrator residual worker time
+  after subtracting intersection, shading, setup, frontier, progress, and
+  convergence buckets. — GPT-5
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5

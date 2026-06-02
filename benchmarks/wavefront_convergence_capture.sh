@@ -255,7 +255,8 @@ def wavefront_metric_values(path)
     integrator_path_setup_worker_seconds: [],
     integrator_frontier_bookkeeping_worker_seconds: [],
     integrator_progress_snapshot_worker_seconds: [],
-    integrator_convergence_test_worker_seconds: []
+    integrator_convergence_test_worker_seconds: [],
+    integrator_residual_worker_seconds: []
   }
   document.fetch("runs").each do |run|
     run_values = {
@@ -278,7 +279,8 @@ def wavefront_metric_values(path)
       integrator_path_setup_worker_seconds: 0.0,
       integrator_frontier_bookkeeping_worker_seconds: 0.0,
       integrator_progress_snapshot_worker_seconds: 0.0,
-      integrator_convergence_test_worker_seconds: 0.0
+      integrator_convergence_test_worker_seconds: 0.0,
+      integrator_residual_worker_seconds: 0.0
     }
     batchings = []
     timings = []
@@ -333,6 +335,8 @@ def wavefront_metric_values(path)
         timing.fetch("integratorProgressSnapshotWorkerSeconds", 0).to_f
       run_values[:integrator_convergence_test_worker_seconds] +=
         timing.fetch("integratorConvergenceTestWorkerSeconds", 0).to_f
+      run_values[:integrator_residual_worker_seconds] +=
+        timing.fetch("integratorResidualWorkerSeconds", 0).to_f
     end
     next if batchings.compact.empty? && timings.compact.empty?
 
@@ -385,7 +389,8 @@ end
    integrator_path_setup_worker_seconds
    integrator_frontier_bookkeeping_worker_seconds
    integrator_progress_snapshot_worker_seconds
-   integrator_convergence_test_worker_seconds].each do |key|
+   integrator_convergence_test_worker_seconds
+   integrator_residual_worker_seconds].each do |key|
   reference = median(reference_values[key]) * 1000.0
   candidate = median(candidate_values[key]) * 1000.0
   delta = candidate - reference

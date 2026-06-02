@@ -111,6 +111,7 @@ namespace engine::wavefront {
       double integratorFrontierBookkeepingWorkerSeconds = 0.0;
       double integratorProgressSnapshotWorkerSeconds = 0.0;
       double integratorConvergenceTestWorkerSeconds = 0.0;
+      double integratorResidualWorkerSeconds = 0.0;
       double totalRenderSeconds = 0.0;
 
       void recordIntegratorBatch(double batchSeconds,

@@ -1734,6 +1734,7 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(timings.contains("integratorFrontierBookkeepingWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorProgressSnapshotWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorConvergenceTestWorkerSeconds"));
+    EXPECT_TRUE(timings.contains("integratorResidualWorkerSeconds"));
     EXPECT_GE(timings.value("sampleGenerationWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("sampleStreamWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("primaryRayWorkerSeconds").toDouble(), 0.0);
@@ -1747,6 +1748,7 @@ namespace GraphRenderEngineTest {
     EXPECT_GE(timings.value("integratorFrontierBookkeepingWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorProgressSnapshotWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorConvergenceTestWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("integratorResidualWorkerSeconds").toDouble(), 0.0);
     EXPECT_GT(timings.value("totalRenderSeconds").toDouble(), 0.0);
     EXPECT_EQ(metadata, wavefront->toJson().value("metadata").toObject());
   }

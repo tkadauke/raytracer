@@ -205,6 +205,8 @@ namespace {
         << timings.value("integratorProgressSnapshotWorkerSeconds").toDouble() * 1000.0
         << " integrator_convergence_test_worker_ms="
         << timings.value("integratorConvergenceTestWorkerSeconds").toDouble() * 1000.0
+        << " integrator_residual_worker_ms="
+        << timings.value("integratorResidualWorkerSeconds").toDouble() * 1000.0
         << " integrator=" << batching.value("integrator").toString().toStdString()
         << " execution=" << batching.value("executionMode").toString().toStdString()
         << " samples=" << unsignedValue(input, "primarySamples")

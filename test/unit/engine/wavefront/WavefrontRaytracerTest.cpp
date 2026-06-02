@@ -608,6 +608,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_GE(metrics.timings.integratorFrontierBookkeepingWorkerSeconds, 0.0);
     EXPECT_GE(metrics.timings.integratorProgressSnapshotWorkerSeconds, 0.0);
     EXPECT_GE(metrics.timings.integratorConvergenceTestWorkerSeconds, 0.0);
+    EXPECT_GE(metrics.timings.integratorResidualWorkerSeconds, 0.0);
     EXPECT_GT(metrics.timings.totalRenderSeconds, 0.0);
 
     const QJsonObject json = metrics.toJson();
@@ -679,6 +680,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(timings.contains("integratorFrontierBookkeepingWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorProgressSnapshotWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorConvergenceTestWorkerSeconds"));
+    EXPECT_TRUE(timings.contains("integratorResidualWorkerSeconds"));
     EXPECT_GE(timings.value("sampleGenerationWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("sampleStreamWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("primaryRayWorkerSeconds").toDouble(), 0.0);
@@ -692,5 +694,6 @@ namespace WavefrontRaytracerTest {
     EXPECT_GE(timings.value("integratorFrontierBookkeepingWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorProgressSnapshotWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorConvergenceTestWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("integratorResidualWorkerSeconds").toDouble(), 0.0);
   }
 }

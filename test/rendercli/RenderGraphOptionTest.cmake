@@ -1556,7 +1556,8 @@ foreach(timing_name
         path_setup
         frontier_bookkeeping
         progress_snapshot
-        convergence_test)
+        convergence_test
+        residual)
   if(NOT wavefront_metrics_stdout MATCHES "integrator_${timing_name}_worker_ms=")
     _rendercli_fail("rendercli wavefront metrics integrator ${timing_name} timing summary"
                     "wavefront metrics summary did not contain integrator ${timing_name} worker timing"
@@ -1685,7 +1686,8 @@ foreach(timing_field
         integratorPathSetupWorkerSeconds
         integratorFrontierBookkeepingWorkerSeconds
         integratorProgressSnapshotWorkerSeconds
-        integratorConvergenceTestWorkerSeconds)
+        integratorConvergenceTestWorkerSeconds
+        integratorResidualWorkerSeconds)
   if(NOT wavefront_metrics_json MATCHES "\"${timing_field}\"")
     _rendercli_fail("rendercli wavefront metrics ${timing_field}"
                     "wavefront metrics report did not contain ${timing_field}"

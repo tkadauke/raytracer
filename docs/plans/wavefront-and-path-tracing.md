@@ -677,6 +677,12 @@ the full tile result buffer for radiance-delta metrics: metrics/convergence
 snapshots track only the unique active sample indices at each depth, and
 per-depth continuation queues reserve capacity from the current frontier before
 material continuations are appended.
+Wavefront metrics now also publish an explicit integrator residual worker-time
+bucket after subtracting intersection, shading, path setup, frontier
+bookkeeping, progress snapshots, and convergence tests from the tile batch
+time. rendercli compact summaries and the convergence capture work comparison
+include the same value, so Phase 7 captures can see how much scheduler cost is
+still unclassified before choosing the next optimization.
 For high-sample path-tracing batches, sample-generation metrics showed retained
 sample-stream setup was the larger worker-time bucket. Camera primary-sample
 generation now has a caller-owned stream overload, and wavefront tiles retain
