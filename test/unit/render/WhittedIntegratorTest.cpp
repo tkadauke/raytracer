@@ -526,6 +526,44 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ(2u, metrics.frontierPacketRefinedRaysByMaterial.at("custom"));
   }
 
+  TEST(WhittedIntegrator, BatchedRadianceUsesPartialRay8FrontierForFiveQueuedRays) {
+    auto scene = std::make_unique<PacketCountingScene>();
+    scene->setBackground(Colord(0.2, 0.4, 0.6));
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0);
+    sphere->setMaterial(std::make_shared<ContinuationMaterial>());
+    scene->add(sphere);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples;
+    for (std::size_t sample = 0; sample != 5; ++sample) {
+      samples.push_back(
+        IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr});
+    }
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(*scene, samples, rayCaster, &metrics);
+
+    ASSERT_EQ(5u, colors.size());
+    for (const auto& color : colors) {
+      ASSERT_COLOR_NEAR(Colord(0.2, 0.2, 0.3), color, 1e-12);
+    }
+    EXPECT_EQ(0, scene->packet4HitCalls);
+    EXPECT_EQ(2, scene->packet8HitCalls);
+    EXPECT_EQ((std::vector<std::uint64_t>{5u, 5u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{5u, 0u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 5u}), metrics.frontierRayMissesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.frontierPacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{5u, 5u}), metrics.frontierPacketRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierRay4PacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.frontierRay8PacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierScalarRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}),
+              metrics.frontierPacketScalarFallbackRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{5u, 0u}), metrics.frontierPacketRefinedRaysPerDepth);
+    EXPECT_EQ(5u, metrics.frontierPacketRefinedRaysByMaterial.at("custom"));
+  }
+
   TEST(WhittedIntegrator, BatchedRadianceUsesRay8PacketFrontierForEightQueuedRays) {
     auto scene = std::make_unique<PacketCountingScene>();
     scene->setBackground(Colord(0.2, 0.4, 0.6));

@@ -245,9 +245,9 @@ namespace render {
   }
 
   void PathTracingIntegrator::intersectActivePathPacket8(
-    const Scene& scene, std::size_t firstPathIndex, std::vector<BatchPath>& paths,
-    std::vector<BatchHit>& activeHits, int bounce, BatchDepthMetrics& depthMetrics,
-    IntegratorBatchMetrics* metrics) const {
+    const Scene& scene, std::size_t firstPathIndex, std::size_t laneCount,
+    std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits, int bounce,
+    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     std::array<Rayd, Ray8::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined};
@@ -262,10 +262,10 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics()) {
         ++depthMetrics.frontierPacketChunks;
         ++depthMetrics.frontierRay8PacketChunks;
-        depthMetrics.frontierPacketRays += Ray8::lanes;
+        depthMetrics.frontierPacketRays += laneCount;
         packetFallbacksBefore.emplace();
       }
-      for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+      for (std::size_t lane = 0; lane != laneCount; ++lane) {
         const std::size_t pathIndex = firstPathIndex + lane;
         auto& path = paths[pathIndex];
         if (depthMetrics.trackRadianceDelta) {
@@ -286,7 +286,7 @@ namespace render {
     }
 
     core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-    for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    for (std::size_t lane = 0; lane != laneCount; ++lane) {
       const std::size_t pathIndex = firstPathIndex + lane;
       auto& path = paths[pathIndex];
       if (depthMetrics.trackFrontierMetrics()) {
@@ -321,9 +321,17 @@ namespace render {
       }
 
       if (activeIndex + Ray8::lanes <= paths.size()) {
-        intersectActivePathPacket8(scene, activeIndex, paths, activeHits, bounce, depthMetrics,
-                                   metrics);
+        intersectActivePathPacket8(scene, activeIndex, Ray8::lanes, paths, activeHits, bounce,
+                                   depthMetrics, metrics);
         activeIndex += Ray8::lanes;
+        continue;
+      }
+
+      const std::size_t remainingPaths = paths.size() - activeIndex;
+      if (remainingPaths > Ray4::lanes) {
+        intersectActivePathPacket8(scene, activeIndex, remainingPaths, paths, activeHits, bounce,
+                                   depthMetrics, metrics);
+        activeIndex += remainingPaths;
         continue;
       }
 
@@ -334,7 +342,6 @@ namespace render {
         continue;
       }
 
-      const std::size_t remainingPaths = paths.size() - activeIndex;
       if (remainingPaths > 1) {
         intersectActivePathPacket(scene, activeIndex, remainingPaths, paths, activeHits, bounce,
                                   depthMetrics, metrics);

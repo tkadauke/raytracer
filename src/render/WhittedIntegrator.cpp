@@ -335,7 +335,7 @@ namespace render {
 
   void WhittedIntegrator::intersectQueuedRayPacket8(
     const Scene& scene, std::vector<QueuedRay>& current, std::size_t firstQueuedIndex,
-    std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
+    std::size_t laneCount, std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     std::array<Rayd, Ray8::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined, Rayd::undefined,
@@ -349,10 +349,10 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics) {
         ++depthMetrics.frontierPacketChunks;
         ++depthMetrics.frontierRay8PacketChunks;
-        depthMetrics.frontierPacketRays += Ray8::lanes;
+        depthMetrics.frontierPacketRays += laneCount;
         packetFallbacksBefore.emplace();
       }
-      for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+      for (std::size_t lane = 0; lane != laneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
         queued.state.recurseIn();
         if (depthMetrics.trackFrontierMetrics) {
@@ -371,7 +371,7 @@ namespace render {
 
     if (isCancelled()) {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-      for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+      for (std::size_t lane = 0; lane != laneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
         result[queued.sampleIndex] += queued.weight * scene.background();
         queued.state.recurseOut();
@@ -379,7 +379,7 @@ namespace render {
       return;
     }
 
-    for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    for (std::size_t lane = 0; lane != laneCount; ++lane) {
       auto& queued = current[firstQueuedIndex + lane];
       if (depthMetrics.trackFrontierMetrics) {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
@@ -449,9 +449,17 @@ namespace render {
     while (queuedIndex != traceableCount) {
       const bool canUsePacket8 = !isCancelled() && queuedIndex + Ray8::lanes <= traceableCount;
       if (canUsePacket8) {
-        intersectQueuedRayPacket8(scene, current, queuedIndex, activeHits, result, depthMetrics,
-                                  metrics);
+        intersectQueuedRayPacket8(scene, current, queuedIndex, Ray8::lanes, activeHits, result,
+                                  depthMetrics, metrics);
         queuedIndex += Ray8::lanes;
+        continue;
+      }
+
+      const std::size_t remainingTraceable = traceableCount - queuedIndex;
+      if (!isCancelled() && remainingTraceable > Ray4::lanes) {
+        intersectQueuedRayPacket8(scene, current, queuedIndex, remainingTraceable, activeHits,
+                                  result, depthMetrics, metrics);
+        queuedIndex += remainingTraceable;
         continue;
       }
 
@@ -463,7 +471,6 @@ namespace render {
         continue;
       }
 
-      const std::size_t remainingTraceable = traceableCount - queuedIndex;
       if (!isCancelled() && remainingTraceable > 1) {
         intersectQueuedRayPacket(scene, current, queuedIndex, remainingTraceable, activeHits,
                                  result, depthMetrics, metrics);

@@ -1051,15 +1051,17 @@ capture reported the expected `samples=19200`, `tile_count=512`,
 `average_nonempty_tile_samples=37.5`, and exact image parity, so queue-size
 tuning can use the fixed graph path without confusing iterator oversampling
 with scheduler cost.
-The first scalar-tail handling slice is now in place too: when a Whitted or
-path-tracing wavefront frontier has two or three traceable rays left after full
-Ray8/Ray4 chunks, the integrator submits those rays as active lanes in one Ray4
-packet and leaves inactive lanes masked by the existing packet-state contract.
-`frontierPacketRaysPerDepth` still reports the exact active-lane count, so
-captures can distinguish "one partial Ray4 chunk carrying two rays" from "one
-full Ray4 chunk carrying four rays." Queue-size defaults and broader tile-size
-tuning remain open; this only removes avoidable scalar tails caused by small
-frontier remainders.
+The first scalar-tail handling slices are now in place too: when a Whitted or
+path-tracing wavefront frontier has five to seven traceable rays left after
+full Ray8 chunks, the integrator submits those rays as active lanes in one
+Ray8 packet. Two- and three-ray remainders use one partial Ray4 packet, while a
+single tail ray remains scalar. Inactive lanes stay masked by the existing
+packet-state contract. `frontierPacketRaysPerDepth` still reports the exact
+active-lane count, so captures can distinguish "one partial Ray8 chunk carrying
+five rays" from "one full Ray8 chunk carrying eight rays" and from "one partial
+Ray4 chunk carrying two rays." Queue-size defaults and broader tile-size tuning
+remain open; this only removes avoidable scalar tails caused by small frontier
+remainders.
 
 ---
 

@@ -494,6 +494,48 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketRefinedRaysPerDepth);
   }
 
+  TEST(PathTracingIntegrator, BatchedRadianceUsesPartialRay8FrontierForFiveActivePaths) {
+    auto scene = std::make_unique<PacketCountingScene>();
+    scene->setAmbient(Colord::black());
+    scene->setBackground(Colord::black());
+
+    auto texture = std::make_shared<ConstantColorTexture>(Colord(0.6, 0.3, 0.2));
+    auto material = std::make_shared<MatteMaterial>(texture);
+    material->setAmbientCoefficient(0.0);
+    material->setDiffuseCoefficient(1.0);
+    auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
+    plane->setMaterial(material);
+    scene->add(plane);
+    scene->addLight(std::make_shared<DirectionalLight>(Vector3d(0, 1, 0), Colord::white()));
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    for (std::uint64_t sample = 0; sample != 5; ++sample) {
+      samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, sample + 1)});
+    }
+
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster, &metrics);
+
+    ASSERT_EQ(5u, batched.size());
+    EXPECT_EQ(0, scene->packet4HitCalls);
+    EXPECT_EQ(1, scene->packet8HitCalls);
+    EXPECT_EQ((std::vector<std::uint64_t>{5u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierPacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{5u}), metrics.frontierPacketRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRay4PacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierRay8PacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierScalarRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketScalarFallbackRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketRefinedRaysPerDepth);
+  }
+
   TEST(PathTracingIntegrator, BatchedRadianceUsesRay8PacketFrontierForEightActivePaths) {
     auto scene = simpleMatteScene(0.0, Colord(0.6, 0.3, 0.2));
     auto countingScene = std::make_unique<PacketCountingScene>();

@@ -254,6 +254,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Wavefront partial Ray8 tails.** Whitted and path-tracing wavefront
+  frontiers now submit five- to seven-ray remainders as active lanes in one
+  Ray8 packet instead of splitting them into Ray4 and scalar or partial-Ray4
+  work. — GPT-5
 - **Wavefront metric snapshot gating.** Wavefront packet frontiers now allocate
   packet-fallback reason snapshots only when metrics are active, avoiding
   per-packet diagnostic map construction in ordinary Whitted and path-tracing
