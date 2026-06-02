@@ -96,6 +96,9 @@ set(wavefront_metrics_report "${TEST_OUTPUT_DIR}/wavefront-metrics.json")
 set(wavefront_converged_metrics_render
     "${TEST_OUTPUT_DIR}/wavefront-converged-metrics-render.png")
 set(wavefront_converged_metrics_report "${TEST_OUTPUT_DIR}/wavefront-converged-metrics.json")
+set(wavefront_feedback_metrics_render
+    "${TEST_OUTPUT_DIR}/wavefront-feedback-metrics-render.png")
+set(wavefront_feedback_metrics_report "${TEST_OUTPUT_DIR}/wavefront-feedback-metrics.json")
 set(wavefront_direct_metrics_render
     "${TEST_OUTPUT_DIR}/wavefront-direct-metrics-render.png")
 set(wavefront_direct_metrics_report "${TEST_OUTPUT_DIR}/wavefront-direct-metrics.json")
@@ -1776,6 +1779,30 @@ if(NOT wavefront_converged_metrics_json MATCHES "\"activeSamplesPerDepth\"[ \r\n
   _rendercli_fail("rendercli wavefront convergence metrics active depth"
                   "wavefront convergence metrics did not stop after one active depth"
                   "" "" "${wavefront_converged_metrics_json}" "")
+endif()
+
+rendercli_run(
+  NAME "rendercli reports wavefront denoised convergence feedback"
+  OUTPUT_VARIABLE wavefront_feedback_metrics_stdout
+  STDOUT_MATCHES
+    "wavefront_metrics.*pass=wavefront_beauty.*convergence=stopped_some_tiles.*feedback_depths=[1-9].*denoiser=box"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
+    --wavefront_denoiser box --wavefront_denoise_radius 1
+    --wavefront_convergence --wavefront_convergence_active_fraction 1
+    --wavefront_convergence_rms_delta 10
+    --wavefront_metrics_out "${wavefront_feedback_metrics_report}"
+    --wavefront_metrics_summary "${static_scene}" "${wavefront_feedback_metrics_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_feedback_metrics_render}"
+                                NAME "wavefront feedback metrics render pixels")
+rendercli_assert_exists("${wavefront_feedback_metrics_report}"
+                        NAME "wavefront feedback metrics report exists")
+file(READ "${wavefront_feedback_metrics_report}" wavefront_feedback_metrics_json)
+if(NOT wavefront_feedback_metrics_json MATCHES "\"feedbackDepthCount\"[ \r\n]*:[ \r\n]*[1-9]")
+  _rendercli_fail("rendercli wavefront denoised convergence feedback metrics"
+                  "wavefront convergence metrics did not count denoised feedback depths"
+                  "${wavefront_feedback_metrics_stdout}" "" "${wavefront_feedback_metrics_json}" "")
 endif()
 
 rendercli_run(
