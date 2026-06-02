@@ -799,8 +799,12 @@ materialization without losing the data needed by material shading, hit/miss
 bookkeeping, or trace events. BVH now preserves that materialized-hit contract
 through packet tree traversal, and the path-tracing active-frontier stage
 submits full four-ray chunks through `Scene::intersectPacketHits(...)` before
-falling back to the scalar path for leftovers. Later primitive-specific
-overrides can make leaf packet materialization faster. `Sphere`, `Plane`,
+falling back to the scalar path for leftovers. Whitted batches now use the same
+four-ray queued-frontier submission shape; packet miss lanes stay on the packet
+path, while packet hit lanes are scalar-refined before material shading so the
+strict recursive-Whitted parity gates remain stable at reflective edges. Later
+primitive-specific overrides can make leaf packet materialization faster.
+`Sphere`, `Plane`,
 `Triangle`, `Box`, `Disk`, `Rectangle`, `OpenCylinder`, and `Torus` are the
 first such leaf overrides: they materialize closest positive packet hit points
 directly and update per-lane state without building scalar `HitPointInterval`

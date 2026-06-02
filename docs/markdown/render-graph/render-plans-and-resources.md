@@ -622,9 +622,12 @@ while transparent materials publish reflection, transmission, and
 total-internal-reflection delta lobes. Portal materials publish their redirected
 ray as a delta continuation so the path scheduler can change the next ray's
 origin as well as direction without returning to recursive Whitted callbacks.
-Within each path-tracing depth, the scheduler now runs active-path scene
-intersection first and then shades the hit frontier, which keeps the code shape
-ready for future packet traversal without changing the rendered image.
+Within each path-tracing depth, the scheduler runs active-path scene
+intersection first and then shades the hit frontier, and path-tracing batches
+submit full four-ray chunks through the packet hit API before scalar tails.
+Whitted batches use the same packet frontier shape for queued rays, but refine
+packet hits scalarly before shading so recursive Whitted parity remains stable
+at reflective edges.
 This gives the graph, rendercli, and Modeler a separate executor surface for
 the scheduler work that follows. After a traced wavefront render, the pass
 metadata reports the selected
