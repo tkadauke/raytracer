@@ -46,6 +46,23 @@ namespace {
     }
     return result;
   }
+
+  template<typename Packet, typename StateArray, typename Result>
+  Result intersectPacketIntervalsScalarFallback(const Primitive& primitive, const Packet& rays,
+                                                const StateArray& states) {
+    Result result;
+    for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
+      State fallbackState;
+      State& state = states[lane] ? *states[lane] : fallbackState;
+      state.packetHitScalarFallback(&primitive, "Primitive::intersectPacketIntervals");
+      HitPointInterval hitPoints;
+      const Primitive* hitPrimitive = primitive.intersect(rays.rayd(lane), hitPoints, state);
+      if (hitPrimitive || !hitPoints.empty()) {
+        result.setInterval(lane, hitPrimitive, hitPoints, true);
+      }
+    }
+    return result;
+  }
 }
 
 Vector3d Primitive::TransformedLeaf::transformPoint(const Vector3d& point) const {
@@ -93,6 +110,18 @@ PrimitivePacketHit8 Primitive::intersectPacketHits(const Ray8& rays,
                                                    const PrimitivePacketState8& states) const {
   return intersectPacketHitsScalarFallback<Ray8, PrimitivePacketState8, PrimitivePacketHit8>(
     *this, rays, states);
+}
+
+PrimitivePacketInterval4
+Primitive::intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4& states) const {
+  return intersectPacketIntervalsScalarFallback<Ray4, PrimitivePacketState4,
+                                                PrimitivePacketInterval4>(*this, rays, states);
+}
+
+PrimitivePacketInterval8
+Primitive::intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const {
+  return intersectPacketIntervalsScalarFallback<Ray8, PrimitivePacketState8,
+                                                PrimitivePacketInterval8>(*this, rays, states);
 }
 
 void Primitive::forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,

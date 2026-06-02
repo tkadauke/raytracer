@@ -82,6 +82,34 @@ namespace PrimitiveTest {
     }
   }
 
+  TEST(Primitive, ShouldMaterializeRay4PacketIntervalsWithScalarFallback) {
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
+    EXPECT_CALL(*primitive, intersect(_, _, _))
+      .Times(4)
+      .WillRepeatedly(
+        DoAll(AddHitPoints(HitPoint(primitive.get(), 1.0, Vector3d(0, 0, 1), Vector3d(0, 0, -1)),
+                           HitPoint(primitive.get(), 3.0, Vector3d(0, 0, 3), Vector3d(0, 0, 1))),
+              Return(primitive.get())));
+
+    const Ray4 rays(std::array<Rayf, 4>{
+      Rayf(Vector3f(0, 0, 0), Vector3f(0, 0, 1)), Rayf(Vector3f(1, 0, 0), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(2, 0, 0), Vector3f(0, 0, 1)), Rayf(Vector3f(3, 0, 0), Vector3f(0, 0, 1))});
+
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    const auto result = primitive->Primitive::intersectPacketIntervals(rays, states);
+
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      ASSERT_TRUE(result.hit(lane)) << "lane " << lane;
+      ASSERT_TRUE(result.hasInterval(lane)) << "lane " << lane;
+      ASSERT_EQ(primitive.get(), result.primitive(lane));
+      ASSERT_EQ(1.0, result.interval(lane).min().distance());
+      ASSERT_EQ(3.0, result.interval(lane).max().distance());
+      EXPECT_TRUE(result.scalarFallback(lane));
+      EXPECT_EQ(1u, laneStates[lane].packetHitScalarFallbacks);
+    }
+  }
+
   TEST(Primitive, ShouldReturnFarthestPoint) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     ON_CALL(*primitive, farthestPoint(_))

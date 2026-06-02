@@ -55,6 +55,10 @@ shading stage. It also accepts per-lane `State` pointers, so hit/miss counters
 and trace events stay attached to the path that owned each ray. The default
 packet-hit implementation falls back to scalar `intersect(...)`, while
 composites merge child packet hits and keep the closest positive hit per lane.
+Boolean CSG nodes use a richer packet interval form internally so union,
+difference, intersection, and closed-solid union can preserve their
+`HitPointInterval` set semantics instead of pretending CSG is just a closest
+child-hit merge.
 BVH nodes keep the same materialized-hit contract while traversing their tree,
 so wavefront renderers can ask the accelerated scene for packet-shaped frontier
 hits without losing the primitive and hit-point data needed by material shading.
@@ -62,10 +66,12 @@ Leaf primitives can then override the materialized packet form directly;
 `Sphere`, `Plane`, `Triangle`, `Box`, `Disk`, `Rectangle`, `OpenCylinder`, and
 mesh-backed triangle leaves already do this so common analytic geometry and
 triangle-heavy BVHs avoid the generic interval fallback on wavefront packet
-frontiers. Wrapper primitives matter too: `Instance` transforms static ray
-packets into local space before delegating and then transforms materialized
-hits back to world space, while `MeshPrimitive` forwards packet-hit requests to
-its triangle leaves and preserves mesh-level material fallback.
+frontiers. Sphere, Box, and OpenCylinder also expose packet intervals, which
+keeps common beveled box-minus-sphere CSG on the packet path. Wrapper
+primitives matter too: `Instance` transforms static ray packets into local
+space before delegating and then transforms materialized hits or intervals back
+to world space, while `MeshPrimitive` forwards packet-hit requests to its
+triangle leaves and preserves mesh-level material fallback.
 
 Most primitives also override:
 

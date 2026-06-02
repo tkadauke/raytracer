@@ -8,13 +8,13 @@
 #include "core/math/Matrix.h"
 #include "core/math/BoundingBox.h"
 #include "core/math/HitPoint.h"
+#include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
 #include "core/MemoizedValue.h"
 
 #include "render/Object.h"
 
-class HitPointInterval;
 class Mesh;
 
 namespace render {
@@ -71,6 +71,65 @@ namespace render {
   using PrimitivePacketHit8 = PrimitivePacketHit<Ray8>;
   using PrimitivePacketState4 = std::array<render::State*, Ray4::lanes>;
   using PrimitivePacketState8 = std::array<render::State*, Ray8::lanes>;
+
+  template<typename Packet>
+  class PrimitivePacketInterval {
+  public:
+    bool hit(std::size_t lane) const {
+      return m_primitives[lane] != nullptr;
+    }
+
+    bool hasInterval(std::size_t lane) const {
+      return !m_intervals[lane].empty();
+    }
+
+    const Primitive* primitive(std::size_t lane) const {
+      return m_primitives[lane];
+    }
+
+    const HitPointInterval& interval(std::size_t lane) const {
+      return m_intervals[lane];
+    }
+
+    bool scalarFallback(std::size_t lane) const {
+      return m_scalarFallbacks[lane];
+    }
+
+    void setInterval(std::size_t lane, const Primitive* primitive, const HitPointInterval& interval,
+                     bool scalarFallback = false) {
+      m_primitives[lane] = primitive;
+      m_intervals[lane] = interval;
+      m_scalarFallbacks[lane] = scalarFallback;
+    }
+
+    PrimitivePacketHit<Packet> closestHits(const Primitive* overridePrimitive = nullptr) const {
+      PrimitivePacketHit<Packet> result;
+      for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
+        HitPoint hitPoint = m_intervals[lane].minWithPositiveDistance();
+        if (hitPoint.isUndefined()) {
+          continue;
+        }
+
+        if (overridePrimitive) {
+          hitPoint.setPrimitive(overridePrimitive);
+          result.setHit(lane, overridePrimitive, hitPoint, m_scalarFallbacks[lane]);
+          continue;
+        }
+
+        if (hitPoint.primitive()) {
+          result.setHit(lane, hitPoint.primitive(), hitPoint, m_scalarFallbacks[lane]);
+        }
+      }
+      return result;
+    }
+
+  private:
+    std::array<const Primitive*, Packet::lanes> m_primitives{};
+    std::array<HitPointInterval, Packet::lanes> m_intervals{};
+    std::array<bool, Packet::lanes> m_scalarFallbacks{};
+  };
+  using PrimitivePacketInterval4 = PrimitivePacketInterval<Ray4>;
+  using PrimitivePacketInterval8 = PrimitivePacketInterval<Ray8>;
 
   /**
     * @brief Abstract base class for all geometric scene objects
@@ -159,6 +218,10 @@ namespace render {
                                                     const PrimitivePacketState4& states) const;
     virtual PrimitivePacketHit8 intersectPacketHits(const Ray8& rays,
                                                     const PrimitivePacketState8& states) const;
+    virtual PrimitivePacketInterval4
+    intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4& states) const;
+    virtual PrimitivePacketInterval8
+    intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const;
 
     /**
       * Boolean flavour for shadow rays — "is anything between the

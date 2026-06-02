@@ -74,6 +74,10 @@ namespace render {
                                             const PrimitivePacketState4& states) const override;
     PrimitivePacketHit8 intersectPacketHits(const Ray8& rays,
                                             const PrimitivePacketState8& states) const override;
+    PrimitivePacketInterval4
+    intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4& states) const override;
+    PrimitivePacketInterval8
+    intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const override;
 
     /// Boolean variant — same transform-and-delegate pattern.
     virtual bool intersects(const Rayd& ray, render::State& state) const override;

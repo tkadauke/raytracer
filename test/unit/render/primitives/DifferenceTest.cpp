@@ -63,7 +63,7 @@ namespace DifferenceTest {
     ASSERT_EQ(&i, result);
   }
 
-  TEST(Difference, ShouldUseScalarCsgSemanticsForRay4PacketHits) {
+  TEST(Difference, ShouldComposeRay4PacketIntervalsForPacketHits) {
     Difference difference;
     difference.setMaterial(std::make_shared<MatteMaterial>());
     difference.add(std::make_shared<Sphere>(Vector3d(), 1));
@@ -78,15 +78,16 @@ namespace DifferenceTest {
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&difference, result.primitive(0));
+    EXPECT_FALSE(result.scalarFallback(0));
     EXPECT_FALSE(result.hit(1));
     EXPECT_FALSE(result.hit(2));
     EXPECT_FALSE(result.hit(3));
     for (const State& state : laneStates) {
-      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
 
-  TEST(Difference, ShouldUseScalarCsgSemanticsForRay8PacketHits) {
+  TEST(Difference, ShouldComposeRay8PacketIntervalsForPacketHits) {
     Difference difference;
     difference.setMaterial(std::make_shared<MatteMaterial>());
     difference.add(std::make_shared<Sphere>(Vector3d(), 1));
@@ -104,17 +105,20 @@ namespace DifferenceTest {
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&difference, result.primitive(0));
+    EXPECT_FALSE(result.scalarFallback(0));
     EXPECT_FALSE(result.hit(1));
     EXPECT_FALSE(result.hit(2));
     EXPECT_FALSE(result.hit(3));
     ASSERT_TRUE(result.hit(4));
     EXPECT_EQ(&difference, result.primitive(4));
+    EXPECT_FALSE(result.scalarFallback(4));
     ASSERT_TRUE(result.hit(5));
     EXPECT_EQ(&difference, result.primitive(5));
+    EXPECT_FALSE(result.scalarFallback(5));
     EXPECT_FALSE(result.hit(6));
     EXPECT_FALSE(result.hit(7));
     for (const State& state : laneStates) {
-      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
 

@@ -145,6 +145,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Grid packet-hit fallback.** Grid now routes Ray4/Ray8 packet-hit requests
   through its scalar DDA traversal fallback, preserving grid acceleration until
   a true packet-grid walker exists. — GPT-5
+- **CSG packet intervals.** Boolean and closed-solid CSG nodes now compose
+  Ray4/Ray8 child hit intervals through a packet interval contract, while
+  Sphere, Box, OpenCylinder, and static Instance wrappers expose packet
+  intervals so common beveled dice-style CSG avoids scalar materialization
+  fallback. — GPT-5
 - **Wavefront packet fallback diagnostics.** Wavefront metrics now report
   per-depth packet lanes that fell back to scalar hit materialization, exposing
   remaining primitive packet-kernel gaps in graph traces, rendercli summaries,
@@ -621,6 +626,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   union, and convex CSG operations now use their scalar interval logic for
   packet hit materialization instead of inheriting plain composite child-hit
   merging. — GPT-5
+- **Instance CSG interval transforms.** Static and motion-blurred runtime
+  instances now transform child hit intervals even when the child intersection
+  is behind the ray origin, preserving closed-solid CSG interval composition
+  through transformed children. — GPT-5
 - **Finite point-light shadow rays.** Whitted and path-tracing direct lighting
   now bound point-light shadow tests to the sampled light distance, so geometry
   behind a point light no longer incorrectly shadows the shaded surface.

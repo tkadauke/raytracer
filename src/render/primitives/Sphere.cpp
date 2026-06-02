@@ -164,6 +164,58 @@ PrimitivePacketHit8 Sphere::intersectPacketHits(const Ray8& rays,
   return intersectPacketHitsFor<Ray8, PrimitivePacketState8, PrimitivePacketHit8>(rays, states);
 }
 
+template<typename Packet, typename StateArray, typename Result>
+Result Sphere::intersectPacketIntervalsFor(const Packet& rays, const StateArray& states) const {
+  Result result;
+  for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    RAYTRACER_STATS_INC(raySphereIntersect);
+    const Rayd ray = rays.rayd(lane);
+    const Vector3d o = ray.origin() - m_origin;
+    const Vector3d d = ray.direction();
+
+    const double od = o * d;
+    const double dd = d * d;
+    const double discriminant = od * od - dd * (o * o - m_radius * m_radius);
+
+    if (discriminant <= 0.0) {
+      state.miss(this, "Sphere, ray miss");
+      continue;
+    }
+
+    const double discriminantRoot = sqrt(discriminant);
+    const double t1 = (-od - discriminantRoot) / dd;
+    const double t2 = (-od + discriminantRoot) / dd;
+    const Vector3d hitPoint1 = ray.at(t1);
+    const Vector3d hitPoint2 = ray.at(t2);
+    HitPointInterval hitPoints(HitPoint(this, t1, hitPoint1, (hitPoint1 - m_origin) / m_radius),
+                               HitPoint(this, t2, hitPoint2, (hitPoint2 - m_origin) / m_radius));
+
+    if (t1 <= 0.0 && t2 <= 0.0) {
+      result.setInterval(lane, nullptr, hitPoints);
+      state.miss(this, "Sphere, behind ray");
+      continue;
+    }
+
+    result.setInterval(lane, this, hitPoints);
+    state.hit(this, "Sphere");
+  }
+  return result;
+}
+
+PrimitivePacketInterval4
+Sphere::intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4& states) const {
+  return intersectPacketIntervalsFor<Ray4, PrimitivePacketState4, PrimitivePacketInterval4>(rays,
+                                                                                            states);
+}
+
+PrimitivePacketInterval8
+Sphere::intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const {
+  return intersectPacketIntervalsFor<Ray8, PrimitivePacketState8, PrimitivePacketInterval8>(rays,
+                                                                                            states);
+}
+
 bool Sphere::intersects(const Rayd& ray, render::State& state) const {
   RAYTRACER_STATS_INC(raySphereIntersects);
   const Vector3d &o = ray.origin() - m_origin, d = ray.direction();

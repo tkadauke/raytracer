@@ -175,6 +175,47 @@ namespace BoxTest {
     EXPECT_EQ(1, laneStates[3].intersectionHits);
   }
 
+  TEST(Box, ShouldMaterializeRay4PacketIntervals) {
+    Box box(Vector3d(), Vector3d(1, 1, 1));
+    const std::array<Rayd, 4> rayArray{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 0), Vector3d(0, 0, 1))};
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = box.intersectPacketIntervals(Ray4(rayArray), states);
+
+    ASSERT_TRUE(result.hit(0));
+    ASSERT_TRUE(result.hasInterval(0));
+    EXPECT_EQ(&box, result.primitive(0));
+    EXPECT_EQ(1, result.interval(0).min().distance());
+    EXPECT_EQ(3, result.interval(0).max().distance());
+    EXPECT_FALSE(result.scalarFallback(0));
+
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hasInterval(1));
+
+    EXPECT_FALSE(result.hit(2));
+    ASSERT_TRUE(result.hasInterval(2));
+    EXPECT_EQ(-3, result.interval(2).min().distance());
+    EXPECT_EQ(-1, result.interval(2).max().distance());
+    EXPECT_FALSE(result.scalarFallback(2));
+
+    ASSERT_TRUE(result.hit(3));
+    ASSERT_TRUE(result.hasInterval(3));
+    EXPECT_EQ(-1, result.interval(3).min().distance());
+    EXPECT_EQ(1, result.interval(3).max().distance());
+    EXPECT_FALSE(result.scalarFallback(3));
+
+    EXPECT_EQ(1, laneStates[0].intersectionHits);
+    EXPECT_EQ(1, laneStates[1].intersectionMisses);
+    EXPECT_EQ(1, laneStates[2].intersectionMisses);
+    EXPECT_EQ(1, laneStates[3].intersectionHits);
+    for (const auto& state : laneStates) {
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
+    }
+  }
+
   TEST(Box, ShouldMaterializeRay8PacketHits) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
     const std::array<Rayd, 8> rayArray{

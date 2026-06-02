@@ -938,14 +938,21 @@ Those imported-geometry paths now preserve Ray8 packet hits too:
 an eight-wide packet, `MeshPrimitive` merges Ray8 child hits by closest
 distance, and static `Instance` transforms Ray8 child hits back to world space
 without dropping to base scalar materialization.
-Non-plain CSG composites (`Union`, `Difference`, `Intersection`,
-`ClosedSolidUnion`, and `ConvexOperation` subclasses) explicitly keep using the
-scalar `Primitive::intersectPacketHits` fallback for now, because their scalar
-interval/set-operation semantics are not equivalent to plain child-hit merging.
+Boolean and closed-solid CSG composites (`Union`, `Difference`,
+`Intersection`, and `ClosedSolidUnion`) now expose packet interval composition:
+children materialize lane-local `HitPointInterval`s, the CSG node applies the
+same union/difference/intersection/closed-solid set operation per lane, and the
+closest positive hit is then projected back to the packet-hit contract. Sphere,
+Box, OpenCylinder, and static Instance wrappers publish direct Ray4/Ray8 packet
+intervals, so common beveled dice-style CSG avoids scalar materialization
+fallback at both the CSG node and its key leaves. `ConvexOperation` subclasses
+still keep the scalar fallback until support-map CSG gets its own packet
+contract.
 `Grid` also keeps the scalar fallback for packet-hit materialization, but does
 so deliberately to preserve its DDA cell traversal instead of inheriting
 plain-composite linear child scans.
-The fallback metric keeps that cost visible until real packet CSG exists.
+The fallback metric keeps the remaining unsupported leaves, convex CSG, and
+grid-walker gaps visible.
 Wavefront metrics now also expose packet-frontier utilization:
 `frontierPacketChunksPerDepth`, `frontierPacketRaysPerDepth`,
 `frontierScalarRaysPerDepth`, and `frontierPacketScalarFallbackRaysPerDepth`

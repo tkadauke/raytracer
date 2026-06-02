@@ -155,6 +155,47 @@ namespace OpenCylinderTest {
     EXPECT_EQ(1, laneStates[3].intersectionHits);
   }
 
+  TEST(OpenCylinder, ShouldMaterializeRay4PacketIntervals) {
+    OpenCylinder cylinder(1, 2);
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, -2, 0), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 0), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = cylinder.intersectPacketIntervals(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    ASSERT_TRUE(result.hasInterval(0));
+    EXPECT_EQ(&cylinder, result.primitive(0));
+    EXPECT_EQ(1, result.interval(0).min().distance());
+    EXPECT_EQ(3, result.interval(0).max().distance());
+    EXPECT_FALSE(result.scalarFallback(0));
+
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hasInterval(1));
+
+    EXPECT_FALSE(result.hit(2));
+    ASSERT_TRUE(result.hasInterval(2));
+    EXPECT_EQ(-3, result.interval(2).min().distance());
+    EXPECT_EQ(-1, result.interval(2).max().distance());
+    EXPECT_FALSE(result.scalarFallback(2));
+
+    ASSERT_TRUE(result.hit(3));
+    ASSERT_TRUE(result.hasInterval(3));
+    EXPECT_EQ(-1, result.interval(3).min().distance());
+    EXPECT_EQ(1, result.interval(3).max().distance());
+    EXPECT_FALSE(result.scalarFallback(3));
+
+    EXPECT_EQ(1, laneStates[0].intersectionHits);
+    EXPECT_EQ(1, laneStates[1].intersectionMisses);
+    EXPECT_EQ(1, laneStates[2].intersectionMisses);
+    EXPECT_EQ(1, laneStates[3].intersectionHits);
+    for (const auto& state : laneStates) {
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
+    }
+  }
+
   TEST(OpenCylinder, ShouldMaterializeRay8PacketHits) {
     OpenCylinder cylinder(1, 2);
     const Ray8 rays(std::array<Rayd, Ray8::lanes>{

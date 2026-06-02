@@ -129,7 +129,7 @@ namespace UnionTest {
     ASSERT_FALSE(u.intersects(ray, state));
   }
 
-  TEST(Union, ShouldUseScalarCsgSemanticsForRay4PacketHits) {
+  TEST(Union, ShouldComposeRay4PacketIntervalsForPacketHits) {
     Union unionPrimitive;
     unionPrimitive.setMaterial(std::make_shared<MatteMaterial>());
     unionPrimitive.add(std::make_shared<Sphere>(Vector3d(), 1));
@@ -144,15 +144,36 @@ namespace UnionTest {
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&unionPrimitive, result.primitive(0));
+    EXPECT_FALSE(result.scalarFallback(0));
     EXPECT_FALSE(result.hit(1));
     EXPECT_FALSE(result.hit(2));
     EXPECT_FALSE(result.hit(3));
     for (const State& state : laneStates) {
-      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
 
-  TEST(Union, ShouldUseScalarCsgSemanticsForRay8PacketHits) {
+  TEST(Union, ShouldApplyMaterialOverrideToRay4PacketIntervals) {
+    Union unionPrimitive;
+    unionPrimitive.setMaterial(std::make_shared<MatteMaterial>());
+    unionPrimitive.add(std::make_shared<Sphere>(Vector3d(), 1));
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(0, 0, 3), Vector3d(0, 0, 1)), Rayd(Vector3d(3, 0, -2), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = unionPrimitive.intersectPacketIntervals(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    ASSERT_TRUE(result.hasInterval(0));
+    EXPECT_EQ(&unionPrimitive, result.primitive(0));
+    EXPECT_EQ(&unionPrimitive, result.interval(0).min().primitive());
+    EXPECT_EQ(&unionPrimitive, result.interval(0).max().primitive());
+    EXPECT_FALSE(result.scalarFallback(0));
+  }
+
+  TEST(Union, ShouldComposeRay8PacketIntervalsForPacketHits) {
     Union unionPrimitive;
     unionPrimitive.setMaterial(std::make_shared<MatteMaterial>());
     unionPrimitive.add(std::make_shared<Sphere>(Vector3d(), 1));
@@ -170,22 +191,26 @@ namespace UnionTest {
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&unionPrimitive, result.primitive(0));
+    EXPECT_FALSE(result.scalarFallback(0));
     EXPECT_FALSE(result.hit(1));
     EXPECT_FALSE(result.hit(2));
     EXPECT_FALSE(result.hit(3));
     ASSERT_TRUE(result.hit(4));
     EXPECT_EQ(&unionPrimitive, result.primitive(4));
+    EXPECT_FALSE(result.scalarFallback(4));
     ASSERT_TRUE(result.hit(5));
     EXPECT_EQ(&unionPrimitive, result.primitive(5));
+    EXPECT_FALSE(result.scalarFallback(5));
     EXPECT_FALSE(result.hit(6));
     ASSERT_TRUE(result.hit(7));
     EXPECT_EQ(&unionPrimitive, result.primitive(7));
+    EXPECT_FALSE(result.scalarFallback(7));
     for (const State& state : laneStates) {
-      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
 
-  TEST(ClosedSolidUnion, ShouldUseScalarCsgSemanticsForRay4PacketHits) {
+  TEST(ClosedSolidUnion, ShouldComposeRay4PacketIntervalsForPacketHits) {
     ClosedSolidUnion unionPrimitive;
     unionPrimitive.setMaterial(std::make_shared<MatteMaterial>());
     unionPrimitive.add(std::make_shared<Sphere>(Vector3d(), 1));
@@ -200,15 +225,36 @@ namespace UnionTest {
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&unionPrimitive, result.primitive(0));
+    EXPECT_FALSE(result.scalarFallback(0));
     EXPECT_FALSE(result.hit(1));
     EXPECT_FALSE(result.hit(2));
     EXPECT_FALSE(result.hit(3));
     for (const State& state : laneStates) {
-      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
 
-  TEST(ClosedSolidUnion, ShouldUseScalarCsgSemanticsForRay8PacketHits) {
+  TEST(ClosedSolidUnion, ShouldApplyMaterialOverrideToRay4PacketIntervals) {
+    ClosedSolidUnion unionPrimitive;
+    unionPrimitive.setMaterial(std::make_shared<MatteMaterial>());
+    unionPrimitive.add(std::make_shared<Sphere>(Vector3d(), 1));
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(0, 0, 3), Vector3d(0, 0, 1)), Rayd(Vector3d(3, 0, -2), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = unionPrimitive.intersectPacketIntervals(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    ASSERT_TRUE(result.hasInterval(0));
+    EXPECT_EQ(&unionPrimitive, result.primitive(0));
+    EXPECT_EQ(&unionPrimitive, result.interval(0).min().primitive());
+    EXPECT_EQ(&unionPrimitive, result.interval(0).max().primitive());
+    EXPECT_FALSE(result.scalarFallback(0));
+  }
+
+  TEST(ClosedSolidUnion, ShouldComposeRay8PacketIntervalsForPacketHits) {
     ClosedSolidUnion unionPrimitive;
     unionPrimitive.setMaterial(std::make_shared<MatteMaterial>());
     unionPrimitive.add(std::make_shared<Sphere>(Vector3d(), 1));
@@ -226,17 +272,20 @@ namespace UnionTest {
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&unionPrimitive, result.primitive(0));
+    EXPECT_FALSE(result.scalarFallback(0));
     EXPECT_FALSE(result.hit(1));
     EXPECT_FALSE(result.hit(2));
     EXPECT_FALSE(result.hit(3));
     ASSERT_TRUE(result.hit(4));
     EXPECT_EQ(&unionPrimitive, result.primitive(4));
+    EXPECT_FALSE(result.scalarFallback(4));
     ASSERT_TRUE(result.hit(5));
     EXPECT_EQ(&unionPrimitive, result.primitive(5));
+    EXPECT_FALSE(result.scalarFallback(5));
     EXPECT_FALSE(result.hit(6));
     EXPECT_FALSE(result.hit(7));
     for (const State& state : laneStates) {
-      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
 }

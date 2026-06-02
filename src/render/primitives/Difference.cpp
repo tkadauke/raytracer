@@ -4,6 +4,7 @@
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 #include <QDebug>
+#include <array>
 
 using namespace render;
 
@@ -44,12 +45,76 @@ const Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoi
 
 PrimitivePacketHit4 Difference::intersectPacketHits(const Ray4& rays,
                                                     const PrimitivePacketState4& states) const {
-  return Primitive::intersectPacketHits(rays, states);
+  return intersectPacketIntervals(rays, states).closestHits(material() ? this : nullptr);
 }
 
 PrimitivePacketHit8 Difference::intersectPacketHits(const Ray8& rays,
                                                     const PrimitivePacketState8& states) const {
-  return Primitive::intersectPacketHits(rays, states);
+  return intersectPacketIntervals(rays, states).closestHits(material() ? this : nullptr);
+}
+
+template<typename Packet, typename StateArray, typename Result>
+Result Difference::intersectPacketIntervalsFor(const Packet& rays, const StateArray& states) const {
+  Result result;
+  std::array<bool, Packet::lanes> activeLanes{};
+  std::array<bool, Packet::lanes> firstChildHit{};
+  std::array<HitPointInterval, Packet::lanes> intervals{};
+  std::array<bool, Packet::lanes> scalarFallbacks{};
+
+  for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
+    activeLanes[lane] = boundingBoxIntersects(rays.rayd(lane));
+  }
+
+  bool firstElement = true;
+  for (const auto& primitive : primitives()) {
+    const auto candidate = primitive->intersectPacketIntervals(rays, states);
+    for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
+      if (!activeLanes[lane]) {
+        continue;
+      }
+
+      if (firstElement) {
+        if (candidate.hit(lane)) {
+          intervals[lane] = candidate.interval(lane);
+          scalarFallbacks[lane] = scalarFallbacks[lane] || candidate.scalarFallback(lane);
+          firstChildHit[lane] = true;
+        }
+        continue;
+      }
+
+      if (firstChildHit[lane] && candidate.hit(lane)) {
+        intervals[lane] = intervals[lane] - candidate.interval(lane);
+        scalarFallbacks[lane] = scalarFallbacks[lane] || candidate.scalarFallback(lane);
+      }
+    }
+    firstElement = false;
+  }
+
+  for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
+    if (firstChildHit[lane] && !intervals[lane].empty()) {
+      HitPointInterval interval = intervals[lane];
+      const HitPoint& hitPoint = interval.minWithPositiveDistance();
+      const Primitive* primitive = hitPoint.primitive();
+      if (!hitPoint.isUndefined() && material()) {
+        interval.setPrimitive(this);
+        primitive = this;
+      }
+      result.setInterval(lane, primitive, interval, scalarFallbacks[lane]);
+    }
+  }
+  return result;
+}
+
+PrimitivePacketInterval4
+Difference::intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4& states) const {
+  return intersectPacketIntervalsFor<Ray4, PrimitivePacketState4, PrimitivePacketInterval4>(rays,
+                                                                                            states);
+}
+
+PrimitivePacketInterval8
+Difference::intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const {
+  return intersectPacketIntervalsFor<Ray8, PrimitivePacketState8, PrimitivePacketInterval8>(rays,
+                                                                                            states);
 }
 
 // Shadow implementation of Composite, which generates spourious shadows of

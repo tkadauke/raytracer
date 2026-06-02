@@ -128,6 +128,79 @@ PrimitivePacketHit8 OpenCylinder::intersectPacketHits(const Ray8& rays,
   return intersectPacketHitsFor<Ray8, PrimitivePacketState8, PrimitivePacketHit8>(rays, states);
 }
 
+template<typename Packet, typename StateArray, typename Result>
+Result OpenCylinder::intersectPacketIntervalsFor(const Packet& rays,
+                                                 const StateArray& states) const {
+  Result result;
+  const Range<double> yRange(-m_halfHeight, m_halfHeight);
+  for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    const Rayd ray = rays.rayd(lane);
+
+    const double ox = ray.origin().x();
+    const double oz = ray.origin().z();
+    const double dx = ray.direction().x();
+    const double dz = ray.direction().z();
+
+    const double a = dx * dx + dz * dz;
+    const double b = 2.0 * (ox * dx + oz * dz);
+    const double c = ox * ox + oz * oz - m_radius * m_radius;
+
+    double t[2] = {};
+    const int roots = Quadric<double>(a, b, c).solveInto(t);
+    if (roots < 2) {
+      state.miss(this, "OpenCylinder, ray miss");
+      continue;
+    }
+
+    HitPointInterval hitPoints;
+    const Vector3d point1 = ray.at(t[0]);
+    const Vector3d point2 = ray.at(t[1]);
+
+    if (yRange.contains(point1.y())) {
+      hitPoints.addIn(HitPoint(this, t[0], point1,
+                               Vector3d(point1.x() * m_invRadius, 0.0, point1.z() * m_invRadius)));
+    }
+
+    if (yRange.contains(point2.y())) {
+      hitPoints.addOut(HitPoint(this, t[1], point2,
+                                Vector3d(point2.x() * m_invRadius, 0.0, point2.z() * m_invRadius)));
+    }
+
+    if (t[0] <= 0.0 && t[1] <= 0.0) {
+      if (!hitPoints.empty()) {
+        result.setInterval(lane, nullptr, hitPoints);
+      }
+      state.miss(this, "OpenCylinder, behind ray");
+      continue;
+    }
+
+    if (hitPoints.empty()) {
+      state.miss(this, "OpenCylinder, outside of y boundary");
+      continue;
+    }
+
+    result.setInterval(lane, this, hitPoints);
+    state.hit(this, "OpenCylinder");
+  }
+  return result;
+}
+
+PrimitivePacketInterval4
+OpenCylinder::intersectPacketIntervals(const Ray4& rays,
+                                       const PrimitivePacketState4& states) const {
+  return intersectPacketIntervalsFor<Ray4, PrimitivePacketState4, PrimitivePacketInterval4>(rays,
+                                                                                            states);
+}
+
+PrimitivePacketInterval8
+OpenCylinder::intersectPacketIntervals(const Ray8& rays,
+                                       const PrimitivePacketState8& states) const {
+  return intersectPacketIntervalsFor<Ray8, PrimitivePacketState8, PrimitivePacketInterval8>(rays,
+                                                                                            states);
+}
+
 bool OpenCylinder::intersects(const Rayd& ray, render::State& state) const {
   double ox = ray.origin().x();
   double oz = ray.origin().z();

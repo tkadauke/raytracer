@@ -18,8 +18,10 @@ const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoint
   // ray for unanimated geometry.
   if (m_velocity == Vector3d::null) {
     const Primitive* result = m_primitive->intersect(instancedRay(ray), hitPoints, state);
-    if (result) {
+    if (!hitPoints.empty()) {
       hitPoints = hitPoints.transform(m_pointMatrix, m_normalMatrix);
+    }
+    if (result) {
       if (Primitive::material()) {
         return this;
       } else {
@@ -41,12 +43,14 @@ const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoint
                 m_directionMatrix * ray.direction());
 
   const Primitive* result = m_primitive->intersect(localRay, hitPoints, state);
-  if (result) {
-    Matrix4d pointMatrixAtTime = m_pointMatrix;
-    pointMatrixAtTime.setCell(0, 3, m_pointMatrix.cell(0, 3) + shift.x());
-    pointMatrixAtTime.setCell(1, 3, m_pointMatrix.cell(1, 3) + shift.y());
-    pointMatrixAtTime.setCell(2, 3, m_pointMatrix.cell(2, 3) + shift.z());
+  Matrix4d pointMatrixAtTime = m_pointMatrix;
+  pointMatrixAtTime.setCell(0, 3, m_pointMatrix.cell(0, 3) + shift.x());
+  pointMatrixAtTime.setCell(1, 3, m_pointMatrix.cell(1, 3) + shift.y());
+  pointMatrixAtTime.setCell(2, 3, m_pointMatrix.cell(2, 3) + shift.z());
+  if (!hitPoints.empty()) {
     hitPoints = hitPoints.transform(pointMatrixAtTime, m_normalMatrix);
+  }
+  if (result) {
     if (Primitive::material()) {
       return this;
     } else {
@@ -105,6 +109,73 @@ PrimitivePacketHit8 Instance::intersectPacketHits(const Ray8& rays,
     result.setHit(lane, Primitive::material() ? this : childHits.primitive(lane),
                   childHits.hitPoint(lane).transform(m_pointMatrix, m_normalMatrix),
                   childHits.scalarFallback(lane));
+  }
+  return result;
+}
+
+PrimitivePacketInterval4
+Instance::intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4& states) const {
+  if (m_velocity != Vector3d::null) {
+    return Primitive::intersectPacketIntervals(rays, states);
+  }
+
+  std::array<Rayd, Ray4::lanes> localRays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
+                                          Rayd::undefined};
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    localRays[lane] = instancedRay(rays.rayd(lane));
+  }
+
+  const PrimitivePacketInterval4 childIntervals =
+    m_primitive->intersectPacketIntervals(Ray4(localRays), states);
+  PrimitivePacketInterval4 result;
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    if (!childIntervals.hasInterval(lane)) {
+      continue;
+    }
+
+    HitPointInterval interval =
+      childIntervals.interval(lane).transform(m_pointMatrix, m_normalMatrix);
+    const bool materialOverride = Primitive::material() && childIntervals.hit(lane);
+    if (materialOverride) {
+      interval.setPrimitive(this);
+    }
+
+    result.setInterval(lane, materialOverride ? this : childIntervals.primitive(lane), interval,
+                       childIntervals.scalarFallback(lane));
+  }
+  return result;
+}
+
+PrimitivePacketInterval8
+Instance::intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const {
+  if (m_velocity != Vector3d::null) {
+    return Primitive::intersectPacketIntervals(rays, states);
+  }
+
+  std::array<Rayd, Ray8::lanes> localRays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
+                                          Rayd::undefined, Rayd::undefined, Rayd::undefined,
+                                          Rayd::undefined, Rayd::undefined};
+  for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    localRays[lane] = instancedRay(rays.rayd(lane));
+  }
+
+  const PrimitivePacketInterval8 childIntervals =
+    m_primitive->intersectPacketIntervals(Ray8(localRays), states);
+  PrimitivePacketInterval8 result;
+  for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    if (!childIntervals.hasInterval(lane)) {
+      continue;
+    }
+
+    HitPointInterval interval =
+      childIntervals.interval(lane).transform(m_pointMatrix, m_normalMatrix);
+    const bool materialOverride = Primitive::material() && childIntervals.hit(lane);
+    if (materialOverride) {
+      interval.setPrimitive(this);
+    }
+
+    result.setInterval(lane, materialOverride ? this : childIntervals.primitive(lane), interval,
+                       childIntervals.scalarFallback(lane));
   }
   return result;
 }

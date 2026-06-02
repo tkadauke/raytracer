@@ -254,6 +254,106 @@ PrimitivePacketHit8 Box::intersectPacketHits(const Ray8& rays,
   return intersectPacketHitsFor<Ray8, PrimitivePacketState8, PrimitivePacketHit8>(rays, states);
 }
 
+template<typename Packet, typename StateArray, typename Result>
+Result Box::intersectPacketIntervalsFor(const Packet& rays, const StateArray& states) const {
+  Result result;
+  for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    const Rayd ray = rays.rayd(lane);
+
+    int parallel = 0;
+    bool found = false;
+    bool rejected = false;
+    const Vector3d d = m_center - ray.origin();
+    double t1 = 0.0;
+    double t2 = 0.0;
+    Vector3d normal1;
+    Vector3d normal2;
+
+    for (int i = 0; i < 3; ++i) {
+      if (fabs(ray.direction()[i]) < 0.0001) {
+        parallel |= 1 << i;
+      } else {
+        const double dir = (ray.direction()[i] > 0.0) ? 1.0 : -1.0;
+        const double es = (ray.direction()[i] > 0.0) ? m_edge[i] : -m_edge[i];
+        const double invDi = 1.0 / ray.direction()[i];
+
+        if (!found) {
+          normal1[i] = -dir;
+          normal2[i] = dir;
+          t1 = (d[i] - es) * invDi;
+          t2 = (d[i] + es) * invDi;
+          found = true;
+        } else {
+          const double s1 = (d[i] - es) * invDi;
+          if (s1 > t1) {
+            normal1 = Vector3d();
+            normal1[i] = -dir;
+            t1 = s1;
+          }
+          const double s2 = (d[i] + es) * invDi;
+          if (s2 < t2) {
+            normal2 = Vector3d();
+            normal2[i] = dir;
+            t2 = s2;
+          }
+          if (t1 > t2) {
+            state.miss(this, "Box, ray miss");
+            rejected = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (rejected) {
+      continue;
+    }
+    if (!found) {
+      state.miss(this, "Box, ray parallel");
+      continue;
+    }
+
+    bool parallelMiss = false;
+    for (int i = 0; i < 3; ++i) {
+      if ((parallel & (1 << i)) && (fabs(d[i] - t1 * ray.direction()[i]) > m_edge[i] ||
+                                    fabs(d[i] - t2 * ray.direction()[i]) > m_edge[i])) {
+        parallelMiss = true;
+      }
+    }
+    if (parallelMiss) {
+      state.miss(this, "Box, ray parallel");
+      continue;
+    }
+
+    HitPointInterval hitPoints(HitPoint(this, t1, ray.at(t1), normal1),
+                               HitPoint(this, t2, ray.at(t2), normal2));
+
+    if (t1 < 0.0 && t2 < 0.0) {
+      result.setInterval(lane, nullptr, hitPoints);
+      state.miss(this, "Box, behind ray");
+      continue;
+    }
+
+    result.setInterval(lane, this, hitPoints);
+    state.hit(this, "Box");
+  }
+  return result;
+}
+
+PrimitivePacketInterval4 Box::intersectPacketIntervals(const Ray4& rays,
+                                                       const PrimitivePacketState4& states) const {
+  return intersectPacketIntervalsFor<Ray4, PrimitivePacketState4, PrimitivePacketInterval4>(rays,
+                                                                                            states);
+}
+
+PrimitivePacketInterval8 Box::intersectPacketIntervals(const Ray8& rays,
+                                                       const PrimitivePacketState8& states) const {
+  return intersectPacketIntervalsFor<Ray8, PrimitivePacketState8, PrimitivePacketInterval8>(rays,
+                                                                                            states);
+}
+
 bool Box::intersects(const Rayd& ray, render::State&) const {
   return boundingBox().intersects(ray);
 }
