@@ -237,7 +237,7 @@ namespace render {
 
   void WhittedIntegrator::intersectQueuedRayPacket(
     const Scene& scene, std::vector<QueuedRay>& current, std::size_t firstQueuedIndex,
-    std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
+    std::size_t laneCount, std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     std::array<Rayd, Ray4::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined};
@@ -249,9 +249,9 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics) {
         ++depthMetrics.frontierPacketChunks;
         ++depthMetrics.frontierRay4PacketChunks;
-        depthMetrics.frontierPacketRays += Ray4::lanes;
+        depthMetrics.frontierPacketRays += laneCount;
       }
-      for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      for (std::size_t lane = 0; lane != laneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
         queued.state.recurseIn();
         if (depthMetrics.trackFrontierMetrics) {
@@ -270,7 +270,7 @@ namespace render {
 
     if (isCancelled()) {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-      for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      for (std::size_t lane = 0; lane != laneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
         result[queued.sampleIndex] += queued.weight * scene.background();
         queued.state.recurseOut();
@@ -278,7 +278,7 @@ namespace render {
       return;
     }
 
-    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    for (std::size_t lane = 0; lane != laneCount; ++lane) {
       auto& queued = current[firstQueuedIndex + lane];
       if (depthMetrics.trackFrontierMetrics) {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
@@ -452,9 +452,17 @@ namespace render {
 
       const bool canUsePacket = !isCancelled() && queuedIndex + Ray4::lanes <= traceableCount;
       if (canUsePacket) {
-        intersectQueuedRayPacket(scene, current, queuedIndex, activeHits, result, depthMetrics,
-                                 metrics);
+        intersectQueuedRayPacket(scene, current, queuedIndex, Ray4::lanes, activeHits, result,
+                                 depthMetrics, metrics);
         queuedIndex += Ray4::lanes;
+        continue;
+      }
+
+      const std::size_t remainingTraceable = traceableCount - queuedIndex;
+      if (!isCancelled() && remainingTraceable > 1) {
+        intersectQueuedRayPacket(scene, current, queuedIndex, remainingTraceable, activeHits,
+                                 result, depthMetrics, metrics);
+        queuedIndex += remainingTraceable;
         continue;
       }
 

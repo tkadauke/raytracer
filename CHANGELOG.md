@@ -254,6 +254,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Wavefront partial packet tails.** Whitted and path-tracing wavefront
+  frontiers now submit two- and three-ray tails as active lanes in a Ray4 packet
+  instead of forcing those tails through scalar traversal, while packet-ray
+  metrics still report the exact active lane count. — GPT-5
 - **Wavefront denoiser feature prepass scheduling.** Wavefront now builds
   denoiser albedo/normal/depth feature buffers through the same tile scheduler
   and per-tile sampling seeds as the beauty pass, reducing serial prepass cost

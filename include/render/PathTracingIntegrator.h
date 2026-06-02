@@ -115,8 +115,9 @@ namespace render {
                                    int bounce, BatchDepthMetrics& depthMetrics,
                                    IntegratorBatchMetrics* metrics) const;
     void intersectActivePathPacket(const Scene& scene, std::size_t firstPathIndex,
-                                   std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits,
-                                   int bounce, BatchDepthMetrics& depthMetrics,
+                                   std::size_t laneCount, std::vector<BatchPath>& paths,
+                                   std::vector<BatchHit>& activeHits, int bounce,
+                                   BatchDepthMetrics& depthMetrics,
                                    IntegratorBatchMetrics* metrics) const;
     void intersectActivePathPacket8(const Scene& scene, std::size_t firstPathIndex,
                                     std::vector<BatchPath>& paths,
