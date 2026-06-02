@@ -1053,7 +1053,9 @@ hand-editing the script or overwriting earlier captures. Queue sweeps also
 write a per-scene `queue_sweep.summary.txt` with median render time, primary
 samples, tile load, Ray8/Ray4 packet chunks, packet-fill ratio, scalar-tail
 fraction, packet-fallback fraction, raw scalar tails, packet fallback lanes,
-and worker-time buckets for each queue/variant pair.
+and worker-time buckets for each queue/variant pair. The sweep list accepts
+`auto`/`default` as entries too, so captures can include the shipped automatic
+ray-family queue policy beside explicit queue-size candidates.
 rendercli's compact wavefront metrics line now prints those same derived
 packet-fill, scalar-tail, and packet-fallback fractions next to the raw frontier
 counters, so one-off captures and queue sweeps use the same tuning vocabulary.

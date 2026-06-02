@@ -88,6 +88,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront denoiser feature requests.** Denoisers now explicitly request
   albedo/normal/depth feature buffers, so featureless filters no longer pay the
   wavefront feature-prepass cost. — GPT-5
+- **Wavefront queue sweep auto baseline.** The convergence capture script now
+  accepts `auto` / `default` entries in `WAVEFRONT_CONVERGENCE_QUEUE_SWEEP`,
+  running one sweep arm through the shipped automatic ray-family queue policy.
+  — GPT-5
 - **Wavefront worker timing breakdowns.** Wavefront metrics now report summed
   sample-generation and integrator-batch worker time alongside total render
   time, making scheduler/intersection costs easier to isolate. — GPT-5

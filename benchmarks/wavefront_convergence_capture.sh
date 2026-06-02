@@ -68,7 +68,8 @@ Environment:
                                       (default: shipped balanced constant)
   WAVEFRONT_CONVERGENCE_BVH_GRID       generated sphere grid width/height
   WAVEFRONT_CONVERGENCE_QUEUE_SIZE     optional rendercli --queue_size for every variant
-  WAVEFRONT_CONVERGENCE_QUEUE_SWEEP    optional comma-separated queue sizes
+  WAVEFRONT_CONVERGENCE_QUEUE_SWEEP    optional comma-separated queue sizes;
+                                      use auto/default for shipped automatic queue policy
   WAVEFRONT_CONVERGENCE_SWEEP          optional comma-separated active:rms pairs
 
 The capture writes images, stdout timing summaries, wavefront metrics JSON,
@@ -85,8 +86,9 @@ baseline and captures one convergence variant per pair, for example:
   WAVEFRONT_CONVERGENCE_SWEEP="0.05:0.002,0.25:0.01,1.0:0.002"
 
 When WAVEFRONT_CONVERGENCE_QUEUE_SWEEP is set, the script runs the selected
-scene once per queue size and writes each run under scene/queue_<size>. This
-mode ignores WAVEFRONT_CONVERGENCE_QUEUE_SIZE.
+scene once per queue size and writes each run under scene/queue_<size>. The
+special entries auto/default omit --queue_size and write under scene/queue_auto.
+This mode ignores WAVEFRONT_CONVERGENCE_QUEUE_SIZE.
 USAGE
 }
 
@@ -751,6 +753,10 @@ queue_specs() {
       echo "invalid WAVEFRONT_CONVERGENCE_QUEUE_SWEEP entry: ${queue_sweep}" >&2
       exit 1
     fi
+    if [[ "${spec}" == "auto" || "${spec}" == "default" ]]; then
+      printf '%s=%s\n' "/queue_auto" ""
+      continue
+    fi
     require_positive_integer "${spec}" "WAVEFRONT_CONVERGENCE_QUEUE_SWEEP"
     printf '%s=%s\n' "/queue_$(safe_suffix_number "${spec}")" "${spec}"
   done
@@ -865,7 +871,7 @@ while IFS='=' read -r queue_suffix queue_value; do
   queue_output_suffix="${queue_suffix}"
   current_queue_size="${queue_value}"
   if [[ -n "${queue_suffix}" ]]; then
-    echo "queue sweep: queue_size=${current_queue_size}"
+    echo "queue sweep: queue_size=${current_queue_size:-auto}"
   fi
 
   case "${scene}" in
