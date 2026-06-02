@@ -1597,6 +1597,11 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_scalar_fallback_rays=")
                   "wavefront metrics summary did not contain frontier packet scalar fallback counters"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_scalar_fallback_by_reason=")
+  _rendercli_fail("rendercli wavefront metrics frontier packet scalar fallback reason summary"
+                  "wavefront metrics summary did not contain frontier packet scalar fallback reason counters"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_refined_rays=")
   _rendercli_fail("rendercli wavefront metrics frontier packet refined summary"
                   "wavefront metrics summary did not contain frontier packet refined counters"
@@ -1662,6 +1667,11 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"frontierPacketScalarFallbackRaysPerDepth\"")
   _rendercli_fail("rendercli wavefront metrics frontier packet scalar fallback rays"
                   "wavefront metrics report did not contain frontier packet scalar fallback counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"frontierPacketScalarFallbackRaysByReason\"")
+  _rendercli_fail("rendercli wavefront metrics frontier packet scalar fallback reasons"
+                  "wavefront metrics report did not contain frontier packet scalar fallback reason counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"frontierPacketRefinedRaysPerDepth\"")

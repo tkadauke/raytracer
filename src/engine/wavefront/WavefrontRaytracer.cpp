@@ -88,6 +88,9 @@ namespace engine::wavefront {
     addCounts(frontierScalarRaysPerDepth, metrics.frontierScalarRaysPerDepth);
     addCounts(frontierPacketScalarFallbackRaysPerDepth,
               metrics.frontierPacketScalarFallbackRaysPerDepth);
+    for (const auto& [reason, count] : metrics.frontierPacketScalarFallbackRaysByReason) {
+      frontierPacketScalarFallbackRaysByReason[reason] += count;
+    }
     addCounts(frontierPacketRefinedRaysPerDepth, metrics.frontierPacketRefinedRaysPerDepth);
     for (const auto& [material, count] : metrics.frontierPacketRefinedRaysByMaterial) {
       frontierPacketRefinedRaysByMaterial[material] += count;
@@ -145,11 +148,17 @@ namespace engine::wavefront {
       integerArray(batching.frontierPacketScalarFallbackRaysPerDepth);
     const QJsonArray frontierPacketRefinedRaysPerDepth =
       integerArray(batching.frontierPacketRefinedRaysPerDepth);
-    QJsonObject frontierPacketRefinedRaysByMaterial;
-    for (const auto& [material, count] : batching.frontierPacketRefinedRaysByMaterial) {
-      frontierPacketRefinedRaysByMaterial[QString::fromStdString(material)] =
-        static_cast<double>(count);
-    }
+    const auto integerObject = [](const std::map<std::string, std::uint64_t>& values) {
+      QJsonObject result;
+      for (const auto& [key, count] : values) {
+        result[QString::fromStdString(key)] = static_cast<double>(count);
+      }
+      return result;
+    };
+    const QJsonObject frontierPacketScalarFallbackRaysByReason =
+      integerObject(batching.frontierPacketScalarFallbackRaysByReason);
+    const QJsonObject frontierPacketRefinedRaysByMaterial =
+      integerObject(batching.frontierPacketRefinedRaysByMaterial);
     QJsonArray radianceDeltaL2PerDepth;
     QJsonArray radianceDeltaRmsPerDepth;
     for (std::size_t depth = 0; depth != batching.radianceDeltaSquaredSumPerDepth.size(); ++depth) {
@@ -182,6 +191,8 @@ namespace engine::wavefront {
     batchingJson["frontierScalarRaysPerDepth"] = frontierScalarRaysPerDepth;
     batchingJson["frontierPacketScalarFallbackRaysPerDepth"] =
       frontierPacketScalarFallbackRaysPerDepth;
+    batchingJson["frontierPacketScalarFallbackRaysByReason"] =
+      frontierPacketScalarFallbackRaysByReason;
     batchingJson["frontierPacketRefinedRaysPerDepth"] = frontierPacketRefinedRaysPerDepth;
     batchingJson["frontierPacketRefinedRaysByMaterial"] = frontierPacketRefinedRaysByMaterial;
     batchingJson["radianceDeltaL2PerDepth"] = radianceDeltaL2PerDepth;

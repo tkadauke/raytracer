@@ -439,8 +439,13 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
                 .arg(packetRefinedRays);
       const QString refinedByMaterial = jsonIntegerObjectSummary(
         batching.value(QStringLiteral("frontierPacketRefinedRaysByMaterial")).toObject());
+      const QString fallbackByReason = jsonIntegerObjectSummary(
+        batching.value(QStringLiteral("frontierPacketScalarFallbackRaysByReason")).toObject());
+      if (!fallbackByReason.isEmpty()) {
+        line += QStringLiteral(" fallback (%1)").arg(fallbackByReason);
+      }
       if (!refinedByMaterial.isEmpty()) {
-        line += QStringLiteral(" (%1)").arg(refinedByMaterial);
+        line += QStringLiteral(" refined (%1)").arg(refinedByMaterial);
       }
     }
   }

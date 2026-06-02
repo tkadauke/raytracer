@@ -23,6 +23,7 @@ namespace render {
     frontierPacketRaysPerDepth.clear();
     frontierScalarRaysPerDepth.clear();
     frontierPacketScalarFallbackRaysPerDepth.clear();
+    frontierPacketScalarFallbackRaysByReason.clear();
     frontierPacketRefinedRaysPerDepth.clear();
     frontierPacketRefinedRaysByMaterial.clear();
     activeSampleDepthsProcessed = 0;
@@ -61,6 +62,14 @@ namespace render {
     frontierScalarRaysPerDepth.push_back(scalarRays);
     frontierPacketScalarFallbackRaysPerDepth.push_back(packetScalarFallbackRays);
     frontierPacketRefinedRaysPerDepth.push_back(packetRefinedRays);
+  }
+
+  void IntegratorBatchMetrics::recordPacketScalarFallbacksByReason(
+    const std::map<std::string, std::uint64_t>& reasons) {
+    for (const auto& [reason, count] : reasons) {
+      const std::string label = reason.empty() ? "unknown" : reason;
+      frontierPacketScalarFallbackRaysByReason[label] += count;
+    }
   }
 
   void IntegratorBatchMetrics::recordPacketHitRefinement(const std::string& materialLabel) {

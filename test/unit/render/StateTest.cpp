@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "render/Object.h"
 #include "render/State.h"
 
 namespace StateTest {
@@ -50,5 +51,18 @@ namespace StateTest {
     State state;
     state.miss(nullptr, "Box");
     ASSERT_EQ(1, state.intersectionMisses);
+  }
+
+  TEST(State, ShouldRecordPacketHitScalarFallbackReasons) {
+    Object primitive;
+    State state;
+
+    state.packetHitScalarFallback(&primitive, "Primitive::intersectPacketHits");
+    state.packetHitScalarFallback(&primitive, "Primitive::intersectPacketHits");
+    state.packetHitScalarFallback(&primitive, "");
+
+    EXPECT_EQ(3u, state.packetHitScalarFallbacks);
+    EXPECT_EQ(2u, state.packetHitScalarFallbacksByReason.at("Primitive::intersectPacketHits"));
+    EXPECT_EQ(1u, state.packetHitScalarFallbacksByReason.at("unknown"));
   }
 }

@@ -91,6 +91,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   double-precision rays for hit materialization, letting built-in Whitted
   continuation materials consume packet hits without full-scene scalar
   refinement. — GPT-5
+- **Wavefront packet fallback reason diagnostics.** Wavefront metrics now break
+  packet scalar materialization fallbacks down by reason in JSON reports,
+  compact rendercli summaries, graph trace text, and convergence captures.
+  — GPT-5
 - **Wavefront sample-generation diagnostics.** Wavefront metrics now split the
   sample-generation worker bucket into sampler stream creation, camera
   primary-ray sampling, sample enqueueing, and residual overhead in graph

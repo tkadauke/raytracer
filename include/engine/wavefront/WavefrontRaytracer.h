@@ -61,6 +61,7 @@ namespace engine::wavefront {
       std::vector<std::uint64_t> frontierPacketRaysPerDepth;
       std::vector<std::uint64_t> frontierScalarRaysPerDepth;
       std::vector<std::uint64_t> frontierPacketScalarFallbackRaysPerDepth;
+      std::map<std::string, std::uint64_t> frontierPacketScalarFallbackRaysByReason;
       std::vector<std::uint64_t> frontierPacketRefinedRaysPerDepth;
       std::map<std::string, std::uint64_t> frontierPacketRefinedRaysByMaterial;
       std::vector<double> radianceDeltaSquaredSumPerDepth;

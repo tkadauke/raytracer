@@ -656,6 +656,8 @@ metadata reports the selected
 integrator, whether batches used scalar fallback or depth-major path
 scheduling, primary sample totals, how many samples fell back to Whitted
 material compatibility shading, active sample counts per depth, batch sizes,
+frontier hit/miss and packet/scalar traversal counts, packet scalar-fallback
+reason buckets, Whitted packet-refinement material buckets,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
 convergence stop decisions, observer feedback depth count, denoiser
 name/parameters/time when denoising is enabled, denoiser feature-prepass time,

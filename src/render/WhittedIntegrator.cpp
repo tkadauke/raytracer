@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <utility>
 
 namespace render {
@@ -58,8 +59,22 @@ namespace render {
     std::uint64_t frontierPacketRays{0};
     std::uint64_t frontierScalarRays{0};
     std::uint64_t frontierPacketScalarFallbackRays{0};
+    std::map<std::string, std::uint64_t> frontierPacketScalarFallbackRaysByReason;
     std::uint64_t frontierPacketRefinedRays{0};
     bool trackFrontierMetrics{false};
+
+    void recordPacketScalarFallbacks(const State& state,
+                                     const std::map<std::string, std::uint64_t>& reasonsBefore) {
+      for (const auto& [reason, count] : state.packetHitScalarFallbacksByReason) {
+        const auto before = reasonsBefore.find(reason);
+        const std::uint64_t previous = before == reasonsBefore.end() ? 0 : before->second;
+        if (count > previous) {
+          const std::uint64_t delta = count - previous;
+          frontierPacketScalarFallbackRays += delta;
+          frontierPacketScalarFallbackRaysByReason[reason] += delta;
+        }
+      }
+    }
   };
 
   Colord WhittedIntegrator::radiance(const Scene& scene, const Rayd& ray, State& state,
@@ -224,7 +239,7 @@ namespace render {
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     std::array<Rayd, Ray4::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined};
-    std::array<std::uint64_t, Ray4::lanes> packetFallbacksBefore{};
+    std::array<std::map<std::string, std::uint64_t>, Ray4::lanes> packetFallbacksBefore{};
     PrimitivePacketState4 states{};
 
     {
@@ -237,7 +252,7 @@ namespace render {
         auto& queued = current[firstQueuedIndex + lane];
         queued.state.recurseIn();
         if (depthMetrics.trackFrontierMetrics) {
-          packetFallbacksBefore[lane] = queued.state.packetHitScalarFallbacks;
+          packetFallbacksBefore[lane] = queued.state.packetHitScalarFallbacksByReason;
         }
         rays[lane] = queued.ray;
         states[lane] = &queued.state;
@@ -265,8 +280,7 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics) {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
                                               : nullptr);
-        depthMetrics.frontierPacketScalarFallbackRays +=
-          queued.state.packetHitScalarFallbacks - packetFallbacksBefore[lane];
+        depthMetrics.recordPacketScalarFallbacks(queued.state, packetFallbacksBefore[lane]);
       }
       if (!packetHits.hit(lane)) {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
@@ -320,7 +334,7 @@ namespace render {
     std::array<Rayd, Ray8::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined};
-    std::array<std::uint64_t, Ray8::lanes> packetFallbacksBefore{};
+    std::array<std::map<std::string, std::uint64_t>, Ray8::lanes> packetFallbacksBefore{};
     PrimitivePacketState8 states{};
 
     {
@@ -333,7 +347,7 @@ namespace render {
         auto& queued = current[firstQueuedIndex + lane];
         queued.state.recurseIn();
         if (depthMetrics.trackFrontierMetrics) {
-          packetFallbacksBefore[lane] = queued.state.packetHitScalarFallbacks;
+          packetFallbacksBefore[lane] = queued.state.packetHitScalarFallbacksByReason;
         }
         rays[lane] = queued.ray;
         states[lane] = &queued.state;
@@ -361,8 +375,7 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics) {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
                                               : nullptr);
-        depthMetrics.frontierPacketScalarFallbackRays +=
-          queued.state.packetHitScalarFallbacks - packetFallbacksBefore[lane];
+        depthMetrics.recordPacketScalarFallbacks(queued.state, packetFallbacksBefore[lane]);
       }
       if (!packetHits.hit(lane)) {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
@@ -580,6 +593,8 @@ namespace render {
           depthMetrics.frontierPacketChunks, depthMetrics.frontierPacketRays,
           depthMetrics.frontierScalarRays, depthMetrics.frontierPacketScalarFallbackRays,
           depthMetrics.frontierPacketRefinedRays);
+        metrics->recordPacketScalarFallbacksByReason(
+          depthMetrics.frontierPacketScalarFallbackRaysByReason);
       }
 
       for (const auto& hit : activeHits) {

@@ -973,6 +973,10 @@ parent traversal instead of lanes the parent had already rejected. Whitted
 batches now also publish `frontierPacketRefinedRaysPerDepth`, the packet-hit
 lanes that were materialized through the packet path but then scalar-refined
 before shading.
+Metrics also aggregate `frontierPacketScalarFallbackRaysByReason`, which keeps
+the base packet-hit fallback path visible in JSON reports, rendercli summaries,
+graph pass trace text, and convergence capture comparisons when a primitive or
+wrapper still reaches the conservative scalar materialization contract.
 Keeping packet rays explicit instead of deriving them from chunk count prepares
 the metrics for mixed Ray4/Ray8 frontiers.
 That mixed-width frontier is now underway: primitive packet-hit results are

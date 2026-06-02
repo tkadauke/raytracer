@@ -517,6 +517,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{4u}), metrics.frontierPacketRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierScalarRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{4u}), metrics.frontierPacketScalarFallbackRaysPerDepth);
+    EXPECT_EQ(
+      4u, metrics.frontierPacketScalarFallbackRaysByReason.at("Primitive::intersectPacketHits"));
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketRefinedRaysPerDepth);
   }
 

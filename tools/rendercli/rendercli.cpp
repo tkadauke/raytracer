@@ -169,6 +169,8 @@ namespace {
       const QJsonArray frontierScalarRays = batching.value("frontierScalarRaysPerDepth").toArray();
       const QJsonArray frontierPacketScalarFallbackRays =
         batching.value("frontierPacketScalarFallbackRaysPerDepth").toArray();
+      const QJsonObject frontierPacketScalarFallbackByReason =
+        batching.value("frontierPacketScalarFallbackRaysByReason").toObject();
       const QJsonArray frontierPacketRefinedRays =
         batching.value("frontierPacketRefinedRaysPerDepth").toArray();
       const QJsonObject frontierPacketRefinedByMaterial =
@@ -225,6 +227,8 @@ namespace {
         << " frontier_scalar_rays=" << unsignedArraySum(frontierScalarRays)
         << " frontier_packet_scalar_fallback_rays="
         << unsignedArraySum(frontierPacketScalarFallbackRays)
+        << " frontier_packet_scalar_fallback_by_reason="
+        << unsignedObjectPairs(frontierPacketScalarFallbackByReason)
         << " frontier_packet_refined_rays=" << unsignedArraySum(frontierPacketRefinedRays)
         << " frontier_packet_refined_by_material="
         << unsignedObjectPairs(frontierPacketRefinedByMaterial)

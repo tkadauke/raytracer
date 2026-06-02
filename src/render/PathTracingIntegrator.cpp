@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
 #include <utility>
 
 namespace render {
@@ -57,12 +58,26 @@ namespace render {
     std::uint64_t frontierPacketRays{0};
     std::uint64_t frontierScalarRays{0};
     std::uint64_t frontierPacketScalarFallbackRays{0};
+    std::map<std::string, std::uint64_t> frontierPacketScalarFallbackRaysByReason;
     double depthDeltaSquaredSum{0.0};
     double depthMaxDelta{0.0};
     IntegratorBatchMetrics* metrics{nullptr};
 
     bool trackFrontierMetrics() const {
       return metrics != nullptr;
+    }
+
+    void recordPacketScalarFallbacks(const State& state,
+                                     const std::map<std::string, std::uint64_t>& reasonsBefore) {
+      for (const auto& [reason, count] : state.packetHitScalarFallbacksByReason) {
+        const auto before = reasonsBefore.find(reason);
+        const std::uint64_t previous = before == reasonsBefore.end() ? 0 : before->second;
+        if (count > previous) {
+          const std::uint64_t delta = count - previous;
+          frontierPacketScalarFallbackRays += delta;
+          frontierPacketScalarFallbackRaysByReason[reason] += delta;
+        }
+      }
     }
   };
 
@@ -178,7 +193,7 @@ namespace render {
     std::array<Rayd, Ray4::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined};
     std::array<Colord, Ray4::lanes> accumulatedBeforeDepths;
-    std::array<std::uint64_t, Ray4::lanes> packetFallbacksBefore{};
+    std::array<std::map<std::string, std::uint64_t>, Ray4::lanes> packetFallbacksBefore{};
     PrimitivePacketState4 states{};
 
     PrimitivePacketHit4 packetHits;
@@ -196,7 +211,7 @@ namespace render {
         }
         path.state.recurseIn();
         if (depthMetrics.trackFrontierMetrics()) {
-          packetFallbacksBefore[lane] = path.state.packetHitScalarFallbacks;
+          packetFallbacksBefore[lane] = path.state.packetHitScalarFallbacksByReason;
         }
         rays[lane] = path.ray;
         states[lane] = &path.state;
@@ -213,8 +228,7 @@ namespace render {
       const std::size_t pathIndex = firstPathIndex + lane;
       auto& path = paths[pathIndex];
       if (depthMetrics.trackFrontierMetrics()) {
-        depthMetrics.frontierPacketScalarFallbackRays +=
-          path.state.packetHitScalarFallbacks - packetFallbacksBefore[lane];
+        depthMetrics.recordPacketScalarFallbacks(path.state, packetFallbacksBefore[lane]);
       }
       if (!packetHits.hit(lane)) {
         recordFrontierMiss(scene, path, depthMetrics, accumulatedBeforeDepths[lane]);
@@ -234,7 +248,7 @@ namespace render {
                                        Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined};
     std::array<Colord, Ray8::lanes> accumulatedBeforeDepths;
-    std::array<std::uint64_t, Ray8::lanes> packetFallbacksBefore{};
+    std::array<std::map<std::string, std::uint64_t>, Ray8::lanes> packetFallbacksBefore{};
     PrimitivePacketState8 states{};
 
     PrimitivePacketHit8 packetHits;
@@ -252,7 +266,7 @@ namespace render {
         }
         path.state.recurseIn();
         if (depthMetrics.trackFrontierMetrics()) {
-          packetFallbacksBefore[lane] = path.state.packetHitScalarFallbacks;
+          packetFallbacksBefore[lane] = path.state.packetHitScalarFallbacksByReason;
         }
         rays[lane] = path.ray;
         states[lane] = &path.state;
@@ -269,8 +283,7 @@ namespace render {
       const std::size_t pathIndex = firstPathIndex + lane;
       auto& path = paths[pathIndex];
       if (depthMetrics.trackFrontierMetrics()) {
-        depthMetrics.frontierPacketScalarFallbackRays +=
-          path.state.packetHitScalarFallbacks - packetFallbacksBefore[lane];
+        depthMetrics.recordPacketScalarFallbacks(path.state, packetFallbacksBefore[lane]);
       }
       if (!packetHits.hit(lane)) {
         recordFrontierMiss(scene, path, depthMetrics, accumulatedBeforeDepths[lane]);
@@ -519,6 +532,8 @@ namespace render {
           depthMetrics.frontierPacketChunks, depthMetrics.frontierPacketRays,
           depthMetrics.frontierScalarRays, depthMetrics.frontierPacketScalarFallbackRays,
           /*packetRefinedRays=*/0);
+        metrics->recordPacketScalarFallbacksByReason(
+          depthMetrics.frontierPacketScalarFallbackRaysByReason);
       }
 
       for (const auto& hit : activeHits) {

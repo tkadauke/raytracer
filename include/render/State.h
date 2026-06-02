@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <list>
+#include <map>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -142,6 +143,7 @@ namespace render {
     /// whether another primitive needs a direct packet-hit override.
     inline void packetHitScalarFallback(const render::Object* obj, const std::string& info) {
       packetHitScalarFallbacks++;
+      packetHitScalarFallbacksByReason[info.empty() ? "unknown" : info]++;
       recordEvent(obj, "Packet hit scalar fallback: " + info);
     }
 
@@ -166,6 +168,7 @@ namespace render {
     int shadowIntersectionHits;
     int shadowIntersectionMisses;
     std::uint64_t packetHitScalarFallbacks;
+    std::map<std::string, std::uint64_t> packetHitScalarFallbacksByReason;
 
     /// The most recent (or final, after a top-level
     /// `Raytracer::rayState`) hit point along this trace.

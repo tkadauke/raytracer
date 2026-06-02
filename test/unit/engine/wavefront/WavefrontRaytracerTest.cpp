@@ -611,6 +611,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48u, metrics.batching.frontierPacketRaysPerDepth[0]);
     EXPECT_EQ(0u, metrics.batching.frontierScalarRaysPerDepth[0]);
     EXPECT_EQ(0u, metrics.batching.frontierPacketScalarFallbackRaysPerDepth[0]);
+    EXPECT_TRUE(metrics.batching.frontierPacketScalarFallbackRaysByReason.empty());
     EXPECT_EQ(0u, metrics.batching.frontierPacketRefinedRaysPerDepth[0]);
     EXPECT_TRUE(metrics.batching.frontierPacketRefinedRaysByMaterial.empty());
     EXPECT_TRUE(metrics.convergence.enabled);
@@ -677,6 +678,11 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(0.0, frontierScalarRays.at(0).toDouble());
     EXPECT_EQ(0.0, frontierPacketScalarFallbackRays.at(0).toDouble());
     EXPECT_EQ(0.0, frontierPacketRefinedRays.at(0).toDouble());
+    EXPECT_TRUE(json.value("batching")
+                  .toObject()
+                  .value("frontierPacketScalarFallbackRaysByReason")
+                  .toObject()
+                  .isEmpty());
     EXPECT_TRUE(json.value("batching")
                   .toObject()
                   .value("frontierPacketRefinedRaysByMaterial")
