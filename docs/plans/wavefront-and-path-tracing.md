@@ -1030,7 +1030,10 @@ captures a direct load-balance baseline before changing queue-size defaults,
 tile dimensions, or work-stealing behavior. The convergence capture script now
 carries both the tile metrics and the Ray4/Ray8 packet chunk split into
 work-comparison reports, so a tuning run records those signals beside timing
-and active-depth work.
+and active-depth work. `WAVEFRONT_CONVERGENCE_QUEUE_SWEEP` now runs the same
+capture across multiple queue sizes and writes each result under a separate
+`queue_<size>` output directory, so tile-count defaults can be compared without
+hand-editing the script or overwriting earlier captures.
 
 ---
 

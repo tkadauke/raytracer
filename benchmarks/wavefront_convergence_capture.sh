@@ -38,7 +38,10 @@ if [[ -z "${rms_delta}" ]]; then
 fi
 bvh_grid="${WAVEFRONT_CONVERGENCE_BVH_GRID:-9}"
 queue_size="${WAVEFRONT_CONVERGENCE_QUEUE_SIZE:-}"
+queue_sweep="${WAVEFRONT_CONVERGENCE_QUEUE_SWEEP:-}"
 convergence_sweep="${WAVEFRONT_CONVERGENCE_SWEEP:-}"
+current_queue_size="${queue_size}"
+queue_output_suffix=""
 
 usage() {
   cat <<'USAGE'
@@ -65,6 +68,7 @@ Environment:
                                       (default: shipped balanced constant)
   WAVEFRONT_CONVERGENCE_BVH_GRID       generated sphere grid width/height
   WAVEFRONT_CONVERGENCE_QUEUE_SIZE     optional rendercli --queue_size for every variant
+  WAVEFRONT_CONVERGENCE_QUEUE_SWEEP    optional comma-separated queue sizes
   WAVEFRONT_CONVERGENCE_SWEEP          optional comma-separated active:rms pairs
 
 The capture writes images, stdout timing summaries, wavefront metrics JSON,
@@ -78,6 +82,10 @@ scheduler/intersection work before changing shipped presets.
 When WAVEFRONT_CONVERGENCE_SWEEP is set, the script reuses the non-converged
 baseline and captures one convergence variant per pair, for example:
   WAVEFRONT_CONVERGENCE_SWEEP="0.05:0.002,0.25:0.01,1.0:0.002"
+
+When WAVEFRONT_CONVERGENCE_QUEUE_SWEEP is set, the script runs the selected
+scene once per queue size and writes each run under scene/queue_<size>. This
+mode ignores WAVEFRONT_CONVERGENCE_QUEUE_SIZE.
 USAGE
 }
 
@@ -176,13 +184,19 @@ end
 RUBY
 }
 
+scene_output_dir() {
+  local scene_name="$1"
+  echo "${out_root}/${scene_name}${queue_output_suffix}"
+}
+
 run_variant() {
   local scene_name="$1"
   local variant="$2"
   local input="$3"
   shift 3
 
-  local out_dir="${out_root}/${scene_name}"
+  local out_dir
+  out_dir="$(scene_output_dir "${scene_name}")"
   mkdir -p "${out_dir}"
   local image="${out_dir}/${variant}.png"
   local stdout="${out_dir}/${variant}.stdout.txt"
@@ -196,8 +210,8 @@ run_variant() {
     --repeat "${repeat}"
     --timing
   )
-  if [[ -n "${queue_size}" ]]; then
-    args+=(--queue_size "${queue_size}")
+  if [[ -n "${current_queue_size}" ]]; then
+    args+=(--queue_size "${current_queue_size}")
   fi
 
   args+=("$@")
@@ -215,7 +229,8 @@ compare_variant() {
   local scene_name="$1"
   local reference="$2"
   local candidate="$3"
-  local out_dir="${out_root}/${scene_name}"
+  local out_dir
+  out_dir="$(scene_output_dir "${scene_name}")"
   local output="${out_dir}/${candidate}.vs-${reference}.compare.txt"
   "${image_probe}" --compare "${out_dir}/${reference}.png" "${out_dir}/${candidate}.png" |
     tee "${output}"
@@ -225,7 +240,8 @@ compare_wavefront_work() {
   local scene_name="$1"
   local reference="$2"
   local candidate="$3"
-  local out_dir="${out_root}/${scene_name}"
+  local out_dir
+  out_dir="$(scene_output_dir "${scene_name}")"
   local reference_metrics="${out_dir}/${reference}.metrics.json"
   local candidate_metrics="${out_dir}/${candidate}.metrics.json"
   local output="${out_dir}/${candidate}.vs-${reference}.work.txt"
@@ -524,6 +540,36 @@ safe_suffix_number() {
   echo "${value}"
 }
 
+require_positive_integer() {
+  local value="$1"
+  local label="$2"
+  if [[ ! "${value}" =~ ^[1-9][0-9]*$ ]]; then
+    echo "${label} must be a positive integer: ${value}" >&2
+    exit 1
+  fi
+}
+
+queue_specs() {
+  if [[ -z "${queue_sweep}" ]]; then
+    if [[ -n "${queue_size}" ]]; then
+      require_positive_integer "${queue_size}" "WAVEFRONT_CONVERGENCE_QUEUE_SIZE"
+    fi
+    printf '%s=%s\n' "" "${queue_size}"
+    return
+  fi
+
+  local specs
+  IFS=',' read -r -a specs <<<"${queue_sweep}"
+  for spec in "${specs[@]}"; do
+    if [[ -z "${spec}" ]]; then
+      echo "invalid WAVEFRONT_CONVERGENCE_QUEUE_SWEEP entry: ${queue_sweep}" >&2
+      exit 1
+    fi
+    require_positive_integer "${spec}" "WAVEFRONT_CONVERGENCE_QUEUE_SWEEP"
+    printf '%s=%s\n' "/queue_$(safe_suffix_number "${spec}")" "${spec}"
+  done
+}
+
 convergence_specs() {
   if [[ -z "${convergence_sweep}" ]]; then
     printf '%s\t%s\t%s\n' "convergence" "${active_fraction}" "${rms_delta}"
@@ -611,24 +657,33 @@ fi
 
 require_tools
 
-case "${scene}" in
-  bvh_whitted)
-    capture_bvh_whitted
-    ;;
-  reflection_whitted)
-    capture_reflection_whitted
-    ;;
-  pathtracer_bounce)
-    capture_pathtracer_bounce
-    ;;
-  all)
-    capture_bvh_whitted
-    capture_reflection_whitted
-    capture_pathtracer_bounce
-    ;;
-  *)
-    echo "unknown scene: ${scene}" >&2
-    usage >&2
-    exit 1
-    ;;
-esac
+queue_spec_lines="$(queue_specs)"
+while IFS='=' read -r queue_suffix queue_value; do
+  queue_output_suffix="${queue_suffix}"
+  current_queue_size="${queue_value}"
+  if [[ -n "${queue_suffix}" ]]; then
+    echo "queue sweep: queue_size=${current_queue_size}"
+  fi
+
+  case "${scene}" in
+    bvh_whitted)
+      capture_bvh_whitted
+      ;;
+    reflection_whitted)
+      capture_reflection_whitted
+      ;;
+    pathtracer_bounce)
+      capture_pathtracer_bounce
+      ;;
+    all)
+      capture_bvh_whitted
+      capture_reflection_whitted
+      capture_pathtracer_bounce
+      ;;
+    *)
+      echo "unknown scene: ${scene}" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done <<<"${queue_spec_lines}"

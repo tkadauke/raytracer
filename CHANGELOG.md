@@ -93,6 +93,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   now carries tile load-balance metrics and Ray4/Ray8 packet chunk totals into
   work-comparison reports, so Phase 7 tuning runs preserve the new diagnostics.
   — GPT-5
+- **Wavefront queue-size sweeps.** The convergence capture script can now run
+  the selected scene across multiple render queue sizes via
+  `WAVEFRONT_CONVERGENCE_QUEUE_SWEEP`, writing each run under a separate
+  `queue_<size>` output directory for scheduler default tuning. — GPT-5
 - **Wavefront refinement material diagnostics.** Whitted wavefront metrics now
   break packet-hit scalar refinement counts down by material family in JSON
   reports, compact rendercli summaries, and graph pass trace text. — GPT-5
