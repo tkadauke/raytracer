@@ -1088,6 +1088,17 @@ to `avg_tile_pixels=64` and introduces Ray4 packet chunks. Treat this as
 directional evidence only because the repeat count is deliberately small, but
 it says the current small-image path should not blindly prefer the 300-tile cap
 when the pixel-sized policy would choose coarser ~384-pixel tiles.
+A follow-up 320x240, max-depth-5, repeat-3 BVH queue sweep compared automatic
+queue sizing with explicit queue sizes 128 and 200. Automatic sizing selected
+200 tiles (`avg_tile_pixels=384`, `max_tile_pixels=390`) and exact image
+parity. The two 200-tile runs differed mostly by run order
+(`wavefront_whitted_no_convergence` medians ~7.516 ms for the automatic leg
+and ~6.641 ms for the explicit-200 leg), while explicit 128 tiles produced
+larger 600-pixel tiles and mixed timings (`~8.578 ms` non-converged,
+`~6.894 ms` converged). The capture supports leaving the current automatic
+policy unchanged for now: the shipped policy is already on the intended
+~384-sample-pixel tile size, and this short run is not stable enough to justify
+retuning the cap or target tile area.
 The first scalar-tail handling slices are now in place too: when a Whitted or
 path-tracing wavefront frontier has five to seven traceable rays left after
 full Ray8 chunks, the integrator submits those rays as active lanes in one
