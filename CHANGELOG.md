@@ -218,6 +218,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   scaled pixel basis after setup and pixel-size changes, reducing repeated
   primary-ray pixel math and keeping iterator dereference aligned with
   `pixelAt()` for translated zoomed cameras. — GPT-5
+- **Camera primary-ray transforms.** Camera `rayForPixel` implementations now
+  use affine point/direction transform helpers instead of per-ray homogeneous
+  vector and temporary 3x3 matrix transforms, reducing wavefront primary-ray
+  setup work. — GPT-5
 - **Wavefront convergence diagnostics.** Wavefront metrics JSON now includes a
   stopped-tile depth histogram, and compact rendercli summaries report the
   earliest/latest stopped depths to make convergence preset tuning measurable.

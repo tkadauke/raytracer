@@ -39,7 +39,7 @@ Vector3d EquirectangularCamera::direction(double x, double y) const {
   double cosLat = cos(lat);
   Vector3d local(cosLat * sin(lon), -sin(lat), cosLat * cos(lon));
 
-  return Matrix3d(matrix()) * local;
+  return matrix().transformDirection(local);
 }
 
 Rayd EquirectangularCamera::rayForPixel(double x, double y, render::SampleStream&) const {

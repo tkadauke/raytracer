@@ -20,7 +20,7 @@ const char* PinholeCamera::fingerprintType() const {
 }
 
 Rayd PinholeCamera::rayForPixel(double x, double y, render::SampleStream&) const {
-  Vector3d position = matrix() * Vector4d(0, 0, -m_distance);
+  Vector3d position = matrix().transformPoint(Vector3d(0, 0, -m_distance));
   Vector3d pixel = viewPlane()->pixelAt(x, y);
   return Rayd(position, (pixel - position).normalized());
 }

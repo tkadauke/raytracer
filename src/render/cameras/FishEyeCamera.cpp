@@ -29,7 +29,7 @@ Vector3d FishEyeCamera::direction(double x, double y) const {
     double cosPsi = cos(psi);
     double sinAlpha = point.y() / r;
     double cosAlpha = point.x() / r;
-    return Matrix3d(matrix()) * Vector3d(sinPsi * cosAlpha, sinPsi * sinAlpha, cosPsi);
+    return matrix().transformDirection(Vector3d(sinPsi * cosAlpha, sinPsi * sinAlpha, cosPsi));
   } else
     return Vector3d::undefined;
 }

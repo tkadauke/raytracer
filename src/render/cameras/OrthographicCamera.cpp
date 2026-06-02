@@ -17,7 +17,7 @@ const char* OrthographicCamera::fingerprintType() const {
 }
 
 Rayd OrthographicCamera::rayForPixel(double x, double y, render::SampleStream&) const {
-  Vector3d direction = Matrix3d(matrix()) * Vector3d::forward();
+  Vector3d direction = matrix().transformDirection(Vector3d::forward());
   Vector3d pixel = viewPlane()->pixelAt(x, y);
   return Rayd(pixel, direction);
 }

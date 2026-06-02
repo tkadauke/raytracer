@@ -619,7 +619,14 @@ right, and down vectors instead of rebuilding that transform for every sample.
 A repeat of the same small capture after that cache reported ~13.5 ms
 sample-generation worker time with ~11.7 ms in camera primary-ray sampling for
 the non-converged run and identical output; keep treating these small captures
-as directional, not as a Phase 4 speed-gate result.
+as directional, not as a Phase 4 speed-gate result. Camera `rayForPixel`
+implementations now also use affine `Matrix4::transformPoint` and
+`transformDirection` helpers for primary ray origins/directions, avoiding
+per-ray homogeneous vector transforms and temporary 3x3 matrices in the
+wavefront sample setup path. A small post-transform capture remained around
+~13.0 ms sample-generation worker time with ~11.2 ms in primary-ray sampling,
+so the remaining primary-ray cost is deeper camera math such as direction
+normalization and per-sample pinhole setup rather than just transform wrappers.
 The integrator batch bucket is now split further into
 intersection and shading worker time, so captures can distinguish BVH/primitive
 traversal cost from material, direct lighting, and continuation sampling cost

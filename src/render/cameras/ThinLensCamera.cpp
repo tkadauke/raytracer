@@ -79,7 +79,8 @@ Rayd ThinLensCamera::rayForPixel(double x, double y, ::render::SampleStream& str
 Rayd ThinLensCamera::rayForPixelWithLens(double x, double y, double lensU, double lensV) const {
   // Pinhole reference ray — origin at lens centre, target through the
   // pixel on the viewplane at +z=distance from the eye.
-  Vector3d eyeOrigin = matrix() * Vector4d(0, 0, -m_distance);
+  const Matrix4d& cameraMatrix = matrix();
+  Vector3d eyeOrigin = cameraMatrix.transformPoint(Vector3d(0, 0, -m_distance));
   Vector3d pixel = viewPlane()->pixelAt(x, y);
   Vector3d pinholeDir = (pixel - eyeOrigin).normalized();
 
@@ -97,7 +98,7 @@ Rayd ThinLensCamera::rayForPixelWithLens(double x, double y, double lensU, doubl
   // m_focalDistance). Project the pinhole ray onto the forward axis to
   // get t — that's how far along the ray we have to travel to reach
   // the focal plane.
-  Vector3d forward = Matrix3d(matrix()) * Vector3d(0, 0, 1);
+  Vector3d forward = cameraMatrix.transformDirection(Vector3d(0, 0, 1));
   double t = (m_distance + m_focalDistance) / (pinholeDir * forward);
   Vector3d focalPoint = eyeOrigin + pinholeDir * t;
 
@@ -105,8 +106,8 @@ Rayd ThinLensCamera::rayForPixelWithLens(double x, double y, double lensU, doubl
   // through focalPoint so that focal-distance geometry stays sharp. The
   // displaced origin lives on a disc of radius apertureRadius oriented
   // along the camera's local x/y plane.
-  Vector3d right = Matrix3d(matrix()) * Vector3d(1, 0, 0);
-  Vector3d up = Matrix3d(matrix()) * Vector3d(0, 1, 0);
+  Vector3d right = cameraMatrix.transformDirection(Vector3d(1, 0, 0));
+  Vector3d up = cameraMatrix.transformDirection(Vector3d(0, 1, 0));
   Vector3d lensOffset = (right * lensU + up * lensV) * m_apertureRadius;
   Vector3d lensOrigin = eyeOrigin + lensOffset;
 

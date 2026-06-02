@@ -32,11 +32,11 @@ Vector3d SphericalCamera::direction(double x, double y) const {
   double cosPhi = cos(phi);
   double sinTheta = sin(theta);
   double cosTheta = cos(theta);
-  return Matrix3d(matrix()) * Vector3d(sinTheta * sinPhi, cosTheta, sinTheta * cosPhi);
+  return matrix().transformDirection(Vector3d(sinTheta * sinPhi, cosTheta, sinTheta * cosPhi));
 }
 
 Rayd SphericalCamera::rayForPixel(double x, double y, render::SampleStream&) const {
-  Vector3d position = matrix() * Vector4d(0, 0, -5);
+  Vector3d position = matrix().transformPoint(Vector3d(0, 0, -5));
   return Rayd(position, direction(x, y));
 }
 
