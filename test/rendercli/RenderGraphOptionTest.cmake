@@ -1602,6 +1602,16 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_scalar_fallback_by_reas
                   "wavefront metrics summary did not contain frontier packet scalar fallback reason counters"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_scalar_fallback_rays=0")
+  _rendercli_fail("rendercli wavefront metrics zero packet scalar fallback summary"
+                  "wavefront metrics summary reported scalar packet fallback work for the stable wavefront fixture"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_scalar_fallback_by_reason=none")
+  _rendercli_fail("rendercli wavefront metrics empty packet scalar fallback reason summary"
+                  "wavefront metrics summary reported packet scalar fallback reasons for the stable wavefront fixture"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_refined_rays=")
   _rendercli_fail("rendercli wavefront metrics frontier packet refined summary"
                   "wavefront metrics summary did not contain frontier packet refined counters"
@@ -1610,6 +1620,16 @@ endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_refined_by_material=")
   _rendercli_fail("rendercli wavefront metrics frontier packet refined material summary"
                   "wavefront metrics summary did not contain frontier packet refined material counters"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_refined_rays=0")
+  _rendercli_fail("rendercli wavefront metrics zero packet refined summary"
+                  "wavefront metrics summary reported packet hit refinement for the stable wavefront fixture"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_refined_by_material=none")
+  _rendercli_fail("rendercli wavefront metrics empty packet refined material summary"
+                  "wavefront metrics summary reported packet hit refinement material buckets for the stable wavefront fixture"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES "feedback_depths=")
