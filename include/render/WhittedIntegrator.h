@@ -71,6 +71,10 @@ namespace render {
                                   std::size_t firstQueuedIndex, std::vector<QueuedHit>& activeHits,
                                   std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
                                   IntegratorBatchMetrics* metrics) const;
+    void intersectQueuedRayPacket8(const Scene& scene, std::vector<QueuedRay>& current,
+                                   std::size_t firstQueuedIndex, std::vector<QueuedHit>& activeHits,
+                                   std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
+                                   IntegratorBatchMetrics* metrics) const;
     void intersectActiveFrontier(const Scene& scene, std::vector<QueuedRay>& current,
                                  std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
                                  BatchDepthMetrics& depthMetrics,

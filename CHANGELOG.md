@@ -110,6 +110,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront packet ray diagnostics.** Wavefront metrics now report explicit
   per-depth packet-ray counts instead of deriving them from four-wide chunk
   counts, preparing diagnostics for mixed packet widths. — GPT-5
+- **Wavefront Ray8 frontier chunks.** Whitted and path-tracing wavefront
+  batches now submit eight-ray frontier chunks before falling back to Ray4 and
+  scalar tails, with BVH/composite packet-hit traversal preserving the
+  materialized-hit contract for mixed-width diagnostics. — GPT-5
 - **Wavefront packet fallback diagnostics.** Wavefront metrics now report
   per-depth packet lanes that fell back to scalar hit materialization, exposing
   remaining primitive packet-kernel gaps in graph traces, rendercli summaries,

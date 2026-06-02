@@ -107,6 +107,35 @@ PrimitivePacketHit4 Composite::intersectPacketHits(const Ray4& rays,
   return result;
 }
 
+PrimitivePacketHit8 Composite::intersectPacketHits(const Ray8& rays,
+                                                   const PrimitivePacketState8& states) const {
+  PrimitivePacketHit8 result;
+  std::array<bool, Ray8::lanes> activeLanes{};
+  std::array<double, Ray8::lanes> minDistances;
+  minDistances.fill(numeric_limits<double>::infinity());
+
+  for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    activeLanes[lane] = boundingBoxIntersects(rays.rayd(lane));
+  }
+
+  for (const auto& primitive : m_primitives) {
+    const PrimitivePacketHit8 candidate = primitive->intersectPacketHits(rays, states);
+    for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+      if (!activeLanes[lane] || !candidate.hit(lane)) {
+        continue;
+      }
+
+      const HitPoint& hitPoint = candidate.hitPoint(lane);
+      if (hitPoint.distance() < minDistances[lane]) {
+        result.setHit(lane, candidate.primitive(lane), hitPoint);
+        minDistances[lane] = hitPoint.distance();
+      }
+    }
+  }
+
+  return result;
+}
+
 bool Composite::intersects(const Rayd& ray, render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return false;

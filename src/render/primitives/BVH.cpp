@@ -316,6 +316,20 @@ PrimitivePacketHit4 BVH::intersectPacketHits(const Ray4& rays,
   return result;
 }
 
+PrimitivePacketHit8 BVH::intersectPacketHits(const Ray8& rays,
+                                             const PrimitivePacketState8& states) const {
+  if (!m_root) {
+    return Composite::intersectPacketHits(rays, states);
+  }
+
+  PrimitivePacketHit8 result;
+  std::array<double, Ray8::lanes> minDistances;
+  minDistances.fill(std::numeric_limits<double>::infinity());
+  constexpr uint16_t allActive = static_cast<uint16_t>((1u << Ray8::lanes) - 1u);
+  intersectPacketHitNode(m_root.get(), rays, allActive, minDistances, result, states);
+  return result;
+}
+
 void BVH::intersectPacketHitNode(const Node* node, const Ray4& rays, uint16_t activeMask,
                                  std::array<double, Ray4::lanes>& minDistances,
                                  PrimitivePacketHit4& result,
@@ -334,6 +348,46 @@ void BVH::intersectPacketHitNode(const Node* node, const Ray4& rays, uint16_t ac
     for (const auto& prim : node->primitives) {
       const PrimitivePacketHit4 candidate = prim->intersectPacketHits(rays, states);
       for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+        if ((nodeMask & (1u << lane)) == 0 || !candidate.hit(lane)) {
+          continue;
+        }
+
+        const HitPoint& hitPoint = candidate.hitPoint(lane);
+        if (hitPoint.distance() < minDistances[lane]) {
+          result.setHit(lane, candidate.primitive(lane), hitPoint);
+          minDistances[lane] = hitPoint.distance();
+        }
+      }
+    }
+    return;
+  }
+
+  intersectPacketHitNode(node->left.get(), rays, nodeMask, minDistances, result, states);
+  intersectPacketHitNode(node->right.get(), rays, nodeMask, minDistances, result, states);
+}
+
+void BVH::intersectPacketHitNode(const Node* node, const Ray8& rays, uint16_t activeMask,
+                                 std::array<double, Ray8::lanes>& minDistances,
+                                 PrimitivePacketHit8& result,
+                                 const PrimitivePacketState8& states) const {
+  if (!node || activeMask == 0) {
+    return;
+  }
+
+  uint16_t nodeMask = 0;
+  for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    if ((activeMask & (1u << lane)) && node->bbox.intersects(rays.rayd(lane))) {
+      nodeMask |= static_cast<uint16_t>(1u << lane);
+    }
+  }
+  if (!nodeMask) {
+    return;
+  }
+
+  if (node->isLeaf()) {
+    for (const auto& prim : node->primitives) {
+      const PrimitivePacketHit8 candidate = prim->intersectPacketHits(rays, states);
+      for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
         if ((nodeMask & (1u << lane)) == 0 || !candidate.hit(lane)) {
           continue;
         }

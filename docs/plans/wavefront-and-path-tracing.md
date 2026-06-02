@@ -948,7 +948,16 @@ summaries, and convergence capture work comparisons. Whitted batches now also
 publish `frontierPacketRefinedRaysPerDepth`, the packet-hit lanes that were
 materialized through the packet path but then scalar-refined before shading.
 Keeping packet rays explicit instead of deriving them from chunk count prepares
-the metrics for future mixed Ray4/Ray8 frontiers.
+the metrics for mixed Ray4/Ray8 frontiers.
+That mixed-width frontier is now underway: primitive packet-hit results are
+width-generic, `Primitive` exposes an eight-wide scalar fallback, plain
+composites merge eight-wide child hits, BVH preserves materialized eight-wide
+hits through active-mask tree traversal, and Whitted/path-tracing batches try
+full Ray8 frontier chunks before Ray4 chunks and scalar tails. The Ray8 slice is
+currently a scheduler and BVH/composite contract, not a claim that every leaf
+primitive has an eight-wide materialization kernel; the packet scalar-fallback
+metric intentionally reports those remaining leaf gaps so the next performance
+slice can target them directly.
 Materials now own that decision: local Matte/Phong shading consumes packet hits
 directly, while reflective, transparent, portal, and custom materials keep the
 scalar refinement default because their secondary rays depend on scalar

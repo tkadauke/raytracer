@@ -226,6 +226,62 @@ namespace render {
     }
   }
 
+  void PathTracingIntegrator::intersectActivePathPacket8(
+    const Scene& scene, std::size_t firstPathIndex, std::vector<BatchPath>& paths,
+    std::vector<BatchHit>& activeHits, int bounce, BatchDepthMetrics& depthMetrics,
+    IntegratorBatchMetrics* metrics) const {
+    std::array<Rayd, Ray8::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
+                                       Rayd::undefined, Rayd::undefined, Rayd::undefined,
+                                       Rayd::undefined, Rayd::undefined};
+    std::array<Colord, Ray8::lanes> accumulatedBeforeDepths;
+    std::array<std::uint64_t, Ray8::lanes> packetFallbacksBefore{};
+    PrimitivePacketState8 states{};
+
+    PrimitivePacketHit8 packetHits;
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+      if (depthMetrics.trackFrontierMetrics()) {
+        ++depthMetrics.frontierPacketChunks;
+        depthMetrics.frontierPacketRays += Ray8::lanes;
+      }
+      for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+        const std::size_t pathIndex = firstPathIndex + lane;
+        auto& path = paths[pathIndex];
+        if (depthMetrics.trackRadianceDelta) {
+          accumulatedBeforeDepths[lane] = path.accumulated();
+        }
+        path.state.recurseIn();
+        if (depthMetrics.trackFrontierMetrics()) {
+          packetFallbacksBefore[lane] = path.state.packetHitScalarFallbacks;
+        }
+        rays[lane] = path.ray;
+        states[lane] = &path.state;
+      }
+    }
+
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      packetHits = scene.intersectPacketHits(Ray8(rays), states);
+    }
+
+    core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+    for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+      const std::size_t pathIndex = firstPathIndex + lane;
+      auto& path = paths[pathIndex];
+      if (depthMetrics.trackFrontierMetrics()) {
+        depthMetrics.frontierPacketScalarFallbackRays +=
+          path.state.packetHitScalarFallbacks - packetFallbacksBefore[lane];
+      }
+      if (!packetHits.hit(lane)) {
+        recordFrontierMiss(scene, path, depthMetrics, accumulatedBeforeDepths[lane]);
+        continue;
+      }
+
+      recordFrontierHit(pathIndex, path, *packetHits.primitive(lane), packetHits.hitPoint(lane),
+                        bounce, depthMetrics, activeHits);
+    }
+  }
+
   void PathTracingIntegrator::intersectActiveFrontier(const Scene& scene,
                                                       std::vector<BatchPath>& paths,
                                                       std::vector<BatchHit>& activeHits, int bounce,
@@ -244,15 +300,23 @@ namespace render {
         continue;
       }
 
+      if (activeIndex + Ray8::lanes <= paths.size()) {
+        intersectActivePathPacket8(scene, activeIndex, paths, activeHits, bounce, depthMetrics,
+                                   metrics);
+        activeIndex += Ray8::lanes;
+        continue;
+      }
+
       if (activeIndex + Ray4::lanes <= paths.size()) {
         intersectActivePathPacket(scene, activeIndex, paths, activeHits, bounce, depthMetrics,
                                   metrics);
         activeIndex += Ray4::lanes;
-      } else {
-        intersectActivePathScalar(scene, activeIndex, paths, activeHits, bounce, depthMetrics,
-                                  metrics);
-        ++activeIndex;
+        continue;
       }
+
+      intersectActivePathScalar(scene, activeIndex, paths, activeHits, bounce, depthMetrics,
+                                metrics);
+      ++activeIndex;
     }
   }
 

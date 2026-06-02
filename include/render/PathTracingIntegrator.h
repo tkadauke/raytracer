@@ -118,6 +118,11 @@ namespace render {
                                    std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits,
                                    int bounce, BatchDepthMetrics& depthMetrics,
                                    IntegratorBatchMetrics* metrics) const;
+    void intersectActivePathPacket8(const Scene& scene, std::size_t firstPathIndex,
+                                    std::vector<BatchPath>& paths,
+                                    std::vector<BatchHit>& activeHits, int bounce,
+                                    BatchDepthMetrics& depthMetrics,
+                                    IntegratorBatchMetrics* metrics) const;
     void intersectActiveFrontier(const Scene& scene, std::vector<BatchPath>& paths,
                                  std::vector<BatchHit>& activeHits, int bounce,
                                  BatchDepthMetrics& depthMetrics,

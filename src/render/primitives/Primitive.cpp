@@ -24,6 +24,28 @@ namespace {
     }
     return result;
   }
+
+  template<typename Packet, typename StateArray, typename Result>
+  Result intersectPacketHitsScalarFallback(const Primitive& primitive, const Packet& rays,
+                                           const StateArray& states) {
+    Result result;
+    for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
+      State fallbackState;
+      State& state = states[lane] ? *states[lane] : fallbackState;
+      state.packetHitScalarFallback(&primitive, "Primitive::intersectPacketHits");
+      HitPointInterval hitPoints;
+      const Primitive* hitPrimitive = primitive.intersect(rays.rayd(lane), hitPoints, state);
+      if (!hitPrimitive) {
+        continue;
+      }
+
+      const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+      if (!hitPoint.isUndefined()) {
+        result.setHit(lane, hitPrimitive, hitPoint);
+      }
+    }
+    return result;
+  }
 }
 
 Vector3d Primitive::TransformedLeaf::transformPoint(const Vector3d& point) const {
@@ -63,23 +85,14 @@ RayPacketIntersection8 Primitive::intersectPacket(const Ray8& rays, render::Stat
 
 PrimitivePacketHit4 Primitive::intersectPacketHits(const Ray4& rays,
                                                    const PrimitivePacketState4& states) const {
-  PrimitivePacketHit4 result;
-  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
-    State fallbackState;
-    State& state = states[lane] ? *states[lane] : fallbackState;
-    state.packetHitScalarFallback(this, "Primitive::intersectPacketHits");
-    HitPointInterval hitPoints;
-    const Primitive* primitive = intersect(rays.rayd(lane), hitPoints, state);
-    if (!primitive) {
-      continue;
-    }
+  return intersectPacketHitsScalarFallback<Ray4, PrimitivePacketState4, PrimitivePacketHit4>(
+    *this, rays, states);
+}
 
-    const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
-    if (!hitPoint.isUndefined()) {
-      result.setHit(lane, primitive, hitPoint);
-    }
-  }
-  return result;
+PrimitivePacketHit8 Primitive::intersectPacketHits(const Ray8& rays,
+                                                   const PrimitivePacketState8& states) const {
+  return intersectPacketHitsScalarFallback<Ray8, PrimitivePacketState8, PrimitivePacketHit8>(
+    *this, rays, states);
 }
 
 void Primitive::forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,

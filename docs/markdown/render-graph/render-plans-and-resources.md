@@ -625,10 +625,13 @@ ray as a delta continuation so the path scheduler can change the next ray's
 origin as well as direction without returning to recursive Whitted callbacks.
 Within each path-tracing depth, the scheduler runs active-path scene
 intersection first and then shades the hit frontier, and path-tracing batches
-submit full four-ray chunks through the packet hit API before scalar tails.
-Whitted batches use the same packet frontier shape for queued rays, but refine
-packet hits scalarly before shading so recursive Whitted parity remains stable
-at reflective edges.
+submit full eight-ray chunks through the packet hit API before four-ray chunks
+and scalar tails. Whitted batches use the same mixed-width packet frontier shape
+for queued rays, but refine packet hits scalarly before shading so recursive
+Whitted parity remains stable at reflective edges. The packet scalar-fallback
+counter remains important because Ray8 traversal currently proves the
+scheduler/BVH/composite contract while leaf primitives are made eight-wide in
+later performance slices.
 This gives the graph, rendercli, and Modeler a separate executor surface for
 the scheduler work that follows. After a traced wavefront render, the pass
 metadata reports the selected

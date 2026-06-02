@@ -221,11 +221,12 @@ when enabled, convergence feedback depth counts, and total render time. The
 compact summary prints total
 `frontier_hit_rays`, `frontier_miss_rays`, `frontier_packet_chunks`,
 `frontier_packet_rays`, `frontier_scalar_rays`, and
-`frontier_packet_scalar_fallback_rays`, and `frontier_packet_refined_rays`,
-while the JSON report keeps the
+`frontier_packet_scalar_fallback_rays`, and `frontier_packet_refined_rays`.
+Packet chunks can be mixed Ray8/Ray4 chunks, so `frontier_packet_rays` is the
+exact packet-lane work count. The JSON report keeps the
 per-depth `frontierRayHitsPerDepth`, `frontierRayMissesPerDepth`,
 `frontierPacketChunksPerDepth`, `frontierPacketRaysPerDepth`,
-`frontierScalarRaysPerDepth`, and `frontierPacketScalarFallbackRaysPerDepth`, and
+`frontierScalarRaysPerDepth`, `frontierPacketScalarFallbackRaysPerDepth`, and
 `frontierPacketRefinedRaysPerDepth` arrays for deeper captures. The refined
 counter is Whitted-specific diagnostic work: it counts packet-hit lanes that
 still need scalar hit refinement for strict secondary-ray parity. Local

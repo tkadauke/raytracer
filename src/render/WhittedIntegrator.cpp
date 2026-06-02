@@ -311,6 +311,100 @@ namespace render {
     }
   }
 
+  void WhittedIntegrator::intersectQueuedRayPacket8(
+    const Scene& scene, std::vector<QueuedRay>& current, std::size_t firstQueuedIndex,
+    std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
+    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
+    std::array<Rayd, Ray8::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
+                                       Rayd::undefined, Rayd::undefined, Rayd::undefined,
+                                       Rayd::undefined, Rayd::undefined};
+    std::array<std::uint64_t, Ray8::lanes> packetFallbacksBefore{};
+    PrimitivePacketState8 states{};
+
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+      if (depthMetrics.trackFrontierMetrics) {
+        ++depthMetrics.frontierPacketChunks;
+        depthMetrics.frontierPacketRays += Ray8::lanes;
+      }
+      for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+        auto& queued = current[firstQueuedIndex + lane];
+        queued.state.recurseIn();
+        if (depthMetrics.trackFrontierMetrics) {
+          packetFallbacksBefore[lane] = queued.state.packetHitScalarFallbacks;
+        }
+        rays[lane] = queued.ray;
+        states[lane] = &queued.state;
+      }
+    }
+
+    PrimitivePacketHit8 packetHits;
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      packetHits = scene.intersectPacketHits(Ray8(rays), states);
+    }
+
+    if (isCancelled()) {
+      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+      for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+        auto& queued = current[firstQueuedIndex + lane];
+        result[queued.sampleIndex] += queued.weight * scene.background();
+        queued.state.recurseOut();
+      }
+      return;
+    }
+
+    for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+      auto& queued = current[firstQueuedIndex + lane];
+      if (depthMetrics.trackFrontierMetrics) {
+        core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
+                                              : nullptr);
+        depthMetrics.frontierPacketScalarFallbackRays +=
+          queued.state.packetHitScalarFallbacks - packetFallbacksBefore[lane];
+      }
+      if (!packetHits.hit(lane)) {
+        core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
+                                              : nullptr);
+        recordQueuedRayMiss(scene, queued, result, depthMetrics);
+        continue;
+      }
+
+      const Primitive* hitPrimitive = packetHits.primitive(lane);
+      HitPoint hitPoint = packetHits.hitPoint(lane);
+      const auto hitMaterial = hitPrimitive ? hitPrimitive->material() : nullptr;
+      if (hitMaterial && hitMaterial->requiresWhittedPacketHitRefinement()) {
+        if (depthMetrics.trackFrontierMetrics) {
+          ++depthMetrics.frontierPacketRefinedRays;
+        }
+        HitPointInterval refinedHitPoints;
+        const Primitive* refinedPrimitive = nullptr;
+        {
+          core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+          refinedPrimitive = scene.intersect(queued.ray, refinedHitPoints, queued.state);
+        }
+        hitPrimitive = refinedPrimitive;
+        if (refinedPrimitive) {
+          hitPoint = refinedHitPoints.minWithPositiveDistance();
+        }
+      }
+      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+      if (isCancelled()) {
+        result[queued.sampleIndex] += queued.weight * scene.background();
+        queued.state.recurseOut();
+        continue;
+      }
+      if (!hitPrimitive) {
+        recordQueuedRayMiss(scene, queued, result, depthMetrics);
+        continue;
+      }
+
+      if (depthMetrics.trackFrontierMetrics) {
+        ++depthMetrics.frontierRayHits;
+      }
+      activeHits.push_back(QueuedHit{firstQueuedIndex + lane, hitPrimitive, hitPoint});
+    }
+  }
+
   void WhittedIntegrator::intersectActiveFrontier(const Scene& scene,
                                                   std::vector<QueuedRay>& current,
                                                   std::vector<QueuedHit>& activeHits,
@@ -320,6 +414,18 @@ namespace render {
     activeHits.clear();
     std::size_t queuedIndex = 0;
     while (queuedIndex != current.size()) {
+      const bool canUsePacket8 =
+        !isCancelled() && queuedIndex + Ray8::lanes <= current.size() &&
+        std::all_of(current.begin() + static_cast<std::ptrdiff_t>(queuedIndex),
+                    current.begin() + static_cast<std::ptrdiff_t>(queuedIndex + Ray8::lanes),
+                    [this](const QueuedRay& queued) { return queuedRayShouldTrace(queued); });
+      if (canUsePacket8) {
+        intersectQueuedRayPacket8(scene, current, queuedIndex, activeHits, result, depthMetrics,
+                                  metrics);
+        queuedIndex += Ray8::lanes;
+        continue;
+      }
+
       const bool canUsePacket =
         !isCancelled() && queuedIndex + Ray4::lanes <= current.size() &&
         std::all_of(current.begin() + static_cast<std::ptrdiff_t>(queuedIndex),
