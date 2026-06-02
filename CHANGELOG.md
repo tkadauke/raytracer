@@ -268,6 +268,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Wavefront traceable frontier partitioning.** Whitted wavefront batches now
+  skip stable queue partitioning when all queued rays are still traceable, and
+  only partition the terminal suffix otherwise. — GPT-5
 - **Shared ray-family queue defaults.** rendercli and Modeler final renders now
   use the same automatic ray-family queue policy, preserving explicit
   `--queue_size` / scene-authored overrides while removing a hidden fixed

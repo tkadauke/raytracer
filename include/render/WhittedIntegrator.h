@@ -64,6 +64,7 @@ namespace render {
     std::uint64_t collectCurrentActiveSamples(const std::vector<QueuedRay>& current,
                                               std::vector<unsigned char>& activeSamples,
                                               std::vector<std::size_t>& activeSampleIndices) const;
+    std::size_t partitionTraceableQueuedRays(std::vector<QueuedRay>& current) const;
     void intersectQueuedRayScalar(const Scene& scene, std::vector<QueuedRay>& current,
                                   std::size_t queuedIndex, std::vector<QueuedHit>& activeHits,
                                   std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,

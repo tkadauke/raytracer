@@ -186,6 +186,22 @@ namespace render {
     return activeSampleIndices.size();
   }
 
+  std::size_t
+  WhittedIntegrator::partitionTraceableQueuedRays(std::vector<QueuedRay>& current) const {
+    const auto firstTerminal =
+      std::find_if_not(current.begin(), current.end(),
+                       [this](const QueuedRay& queued) { return queuedRayShouldTrace(queued); });
+    if (firstTerminal == current.end()) {
+      return current.size();
+    }
+
+    const auto traceableEnd =
+      std::stable_partition(firstTerminal, current.end(), [this](const QueuedRay& queued) {
+        return queuedRayShouldTrace(queued);
+      });
+    return static_cast<std::size_t>(std::distance(current.begin(), traceableEnd));
+  }
+
   void WhittedIntegrator::intersectQueuedRayScalar(
     const Scene& scene, std::vector<QueuedRay>& current, std::size_t queuedIndex,
     std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
@@ -438,12 +454,7 @@ namespace render {
                                                   BatchDepthMetrics& depthMetrics,
                                                   IntegratorBatchMetrics* metrics) const {
     activeHits.clear();
-    const auto traceableEnd =
-      std::stable_partition(current.begin(), current.end(), [this](const QueuedRay& queued) {
-        return queuedRayShouldTrace(queued);
-      });
-    const std::size_t traceableCount =
-      static_cast<std::size_t>(std::distance(current.begin(), traceableEnd));
+    const std::size_t traceableCount = partitionTraceableQueuedRays(current);
 
     std::size_t queuedIndex = 0;
     while (queuedIndex != traceableCount) {

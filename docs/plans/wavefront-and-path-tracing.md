@@ -729,6 +729,11 @@ Whitted continuations that already fail the next-depth trace predicate because
 of maximum depth or throughput cutoff are also resolved during shading now,
 which preserves their background contribution while avoiding a successor queue
 entry, one extra depth-progress snapshot, and a terminal frontier pass.
+Whitted frontier partitioning now also skips the stable-partition step entirely
+when the current frontier is already fully traceable, and only partitions the
+suffix after the first terminal ray otherwise. That preserves the traceable
+queue order needed for deterministic accumulation while avoiding avoidable
+queue movement on primary-only and early-depth frontier passes.
 Disabled `ScopedTimer` instances also skip clock reads now, so ordinary renders
 do not pay timing overhead when no metric bucket is requested. A follow-up
 160x120, 16spp,
