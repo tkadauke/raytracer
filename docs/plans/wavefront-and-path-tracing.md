@@ -999,6 +999,12 @@ imported-mesh leaf/wrapper path also preserves Ray8 materialized hits,
 `Grid` materializes Ray8 hits through DDA traversal, and `Curve` reports Ray8
 misses directly. The packet scalar-fallback metric intentionally reports the
 remaining leaf gaps so the next performance slices can target them directly.
+The graph-backed wavefront metrics functional test now pins the stable wavefront
+fixture at `frontier_packet_scalar_fallback_rays=0`,
+`frontier_packet_scalar_fallback_by_reason=none`,
+`frontier_packet_refined_rays=0`, and
+`frontier_packet_refined_by_material=none`, so regressions in the common packet
+frontier path are caught even when they do not change the final image.
 Materials now own that decision: local Matte/Phong shading and built-in
 reflective, transparent, and portal continuations consume packet hits directly.
 The packet carries the original double-precision ray alongside the float SoA
