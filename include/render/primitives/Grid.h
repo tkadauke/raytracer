@@ -59,6 +59,10 @@ namespace render {
       */
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                        render::State& state) const override;
+    PrimitivePacketHit4 intersectPacketHits(const Ray4& rays,
+                                            const PrimitivePacketState4& states) const override;
+    PrimitivePacketHit8 intersectPacketHits(const Ray8& rays,
+                                            const PrimitivePacketState8& states) const override;
 
     /**
       * Boolean shadow-ray variant — same DDA traversal but

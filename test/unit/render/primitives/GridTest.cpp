@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
 
+#include "core/math/RayPacket.h"
 #include "render/State.h"
 #include "render/primitives/Grid.h"
+#include "render/primitives/Sphere.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace GridTest {
@@ -211,6 +213,71 @@ namespace GridTest {
     State state;
     HitPointInterval hits;
     ASSERT_EQ(p.get(), grid.intersect(ray, hits, state));
+  }
+
+  TEST(Grid, ShouldMaterializeRay4PacketHitsThroughDdaScalarFallback) {
+    Grid grid;
+    auto sphere = std::make_shared<Sphere>(Vector3d(), 1.0);
+    grid.add(sphere);
+    grid.setup();
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(0, 0, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 3, -3), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, 0, 3), Vector3d(0, 0, -1)), Rayd(Vector3d(3, 0, -3), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = grid.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(sphere.get(), result.primitive(0));
+    EXPECT_TRUE(result.scalarFallback(0));
+    EXPECT_FALSE(result.hit(1));
+    ASSERT_TRUE(result.hit(2));
+    EXPECT_EQ(sphere.get(), result.primitive(2));
+    EXPECT_TRUE(result.scalarFallback(2));
+    EXPECT_FALSE(result.hit(3));
+    for (const State& state : laneStates) {
+      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+    }
+  }
+
+  TEST(Grid, ShouldMaterializeRay8PacketHitsThroughDdaScalarFallback) {
+    Grid grid;
+    auto sphere = std::make_shared<Sphere>(Vector3d(), 1.0);
+    grid.add(sphere);
+    grid.setup();
+    const Ray8 rays(std::array<Rayd, Ray8::lanes>{
+      Rayd(Vector3d(0, 0, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 3, -3), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, 0, 3), Vector3d(0, 0, -1)), Rayd(Vector3d(3, 0, -3), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 4), Vector3d(0, 0, -1)),
+      Rayd(Vector3d(0, 2, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(0.5, 0, -3), Vector3d(0, 0, 1))});
+    std::array<State, Ray8::lanes> laneStates;
+    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
+                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+
+    const auto result = grid.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(sphere.get(), result.primitive(0));
+    EXPECT_TRUE(result.scalarFallback(0));
+    EXPECT_FALSE(result.hit(1));
+    ASSERT_TRUE(result.hit(2));
+    EXPECT_EQ(sphere.get(), result.primitive(2));
+    EXPECT_TRUE(result.scalarFallback(2));
+    EXPECT_FALSE(result.hit(3));
+    ASSERT_TRUE(result.hit(4));
+    EXPECT_EQ(sphere.get(), result.primitive(4));
+    EXPECT_TRUE(result.scalarFallback(4));
+    ASSERT_TRUE(result.hit(5));
+    EXPECT_EQ(sphere.get(), result.primitive(5));
+    EXPECT_TRUE(result.scalarFallback(5));
+    EXPECT_FALSE(result.hit(6));
+    ASSERT_TRUE(result.hit(7));
+    EXPECT_EQ(sphere.get(), result.primitive(7));
+    EXPECT_TRUE(result.scalarFallback(7));
+    for (const State& state : laneStates) {
+      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+    }
   }
 
   TEST(Grid, ShouldIgnorePrimitivesWithEmptyBoundingBoxOnSetup) {

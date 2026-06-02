@@ -942,6 +942,9 @@ Non-plain CSG composites (`Union`, `Difference`, `Intersection`,
 `ClosedSolidUnion`, and `ConvexOperation` subclasses) explicitly keep using the
 scalar `Primitive::intersectPacketHits` fallback for now, because their scalar
 interval/set-operation semantics are not equivalent to plain child-hit merging.
+`Grid` also keeps the scalar fallback for packet-hit materialization, but does
+so deliberately to preserve its DDA cell traversal instead of inheriting
+plain-composite linear child scans.
 The fallback metric keeps that cost visible until real packet CSG exists.
 Wavefront metrics now also expose packet-frontier utilization:
 `frontierPacketChunksPerDepth`, `frontierPacketRaysPerDepth`,

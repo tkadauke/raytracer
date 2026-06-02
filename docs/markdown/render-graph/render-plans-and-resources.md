@@ -637,7 +637,9 @@ scheduler/BVH/composite contract and the first
 Sphere/Plane/Box/Triangle/Disk/Rectangle/OpenCylinder/Torus leaf kernels while
 imported mesh leaves and static instance/mesh wrappers preserve Ray8
 materialized hits and Curve reports Ray8 misses directly. The rest of the
-primitive leaves are made eight-wide in later performance slices.
+primitive leaves are made eight-wide in later performance slices. Grid keeps a
+scalar packet-hit fallback for now so packet wavefront traversal still uses its
+DDA cell walk instead of a plain linear composite scan.
 This gives the graph, rendercli, and Modeler a separate executor surface for
 the scheduler work that follows. After a traced wavefront render, the pass
 metadata reports the selected

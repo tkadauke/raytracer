@@ -142,6 +142,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   tails when terminated rays are interleaved with active ones, and avoids
   re-refining packet hits that were already materialized through scalar
   fallback. — GPT-5
+- **Grid packet-hit fallback.** Grid now routes Ray4/Ray8 packet-hit requests
+  through its scalar DDA traversal fallback, preserving grid acceleration until
+  a true packet-grid walker exists. — GPT-5
 - **Wavefront packet fallback diagnostics.** Wavefront metrics now report
   per-depth packet lanes that fell back to scalar hit materialization, exposing
   remaining primitive packet-kernel gaps in graph traces, rendercli summaries,

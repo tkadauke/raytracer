@@ -227,6 +227,16 @@ bool Grid::intersects(const Rayd& ray, render::State& state) const {
     [&](const Primitive* cell, double /*tNext*/) { return cell->intersects(ray, state); });
 }
 
+PrimitivePacketHit4 Grid::intersectPacketHits(const Ray4& rays,
+                                              const PrimitivePacketState4& states) const {
+  return Primitive::intersectPacketHits(rays, states);
+}
+
+PrimitivePacketHit8 Grid::intersectPacketHits(const Ray8& rays,
+                                              const PrimitivePacketState8& states) const {
+  return Primitive::intersectPacketHits(rays, states);
+}
+
 void Grid::setup() {
   m_boundingBox = boundingBox();
   if (m_boundingBox.isInfinite()) {
