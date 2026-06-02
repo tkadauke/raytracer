@@ -123,6 +123,31 @@ namespace WhittedIntegratorTest {
       }
     };
 
+    class AlternatingContinuationMaterial final : public Material {
+    public:
+      bool supportsWhittedContinuations() const override {
+        return true;
+      }
+
+      Colord shade(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                   State&) const override {
+        return Colord::black();
+      }
+
+      WhittedShadeResult shadeWhitted(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                                      State&) const override {
+        const bool traceableContinuation = (m_shadeCalls++ % 2) == 0;
+        WhittedShadeResult result;
+        result.continuations.push_back(
+          WhittedContinuation{Rayd(Vector3d(10, 0, 0), Vector3d::forward()), Colord::white(),
+                              traceableContinuation ? 1.0 : 1e-6});
+        return result;
+      }
+
+    private:
+      mutable int m_shadeCalls{0};
+    };
+
     class PacketCountingScene final : public Scene {
     public:
       PrimitivePacketHit4 intersectPacketHits(const Ray4& rays,
@@ -493,6 +518,35 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}),
               metrics.frontierPacketScalarFallbackRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{8u, 0u}), metrics.frontierPacketRefinedRaysPerDepth);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceCompactsTraceableContinuationsBeforePacketFrontier) {
+    auto scene = std::make_unique<PacketCountingScene>();
+    scene->setBackground(Colord(0.2, 0.4, 0.6));
+    auto primitive = makePrimaryOnlyHit();
+    primitive->setMaterial(std::make_shared<AlternatingContinuationMaterial>());
+    scene->add(primitive);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples;
+    for (std::size_t sample = 0; sample != 8; ++sample) {
+      samples.push_back(
+        IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr});
+    }
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(*scene, samples, rayCaster, &metrics);
+
+    ASSERT_EQ(8u, colors.size());
+    EXPECT_EQ(1, scene->packet4HitCalls);
+    EXPECT_EQ(1, scene->packet8HitCalls);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.frontierPacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{8u, 4u}), metrics.frontierPacketRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierScalarRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{8u, 4u}),
+              metrics.frontierPacketScalarFallbackRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierPacketRefinedRaysPerDepth);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceLeavesLocalMaterialPacketHitsUnrefined) {

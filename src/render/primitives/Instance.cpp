@@ -76,7 +76,8 @@ PrimitivePacketHit4 Instance::intersectPacketHits(const Ray4& rays,
     }
 
     result.setHit(lane, Primitive::material() ? this : childHits.primitive(lane),
-                  childHits.hitPoint(lane).transform(m_pointMatrix, m_normalMatrix));
+                  childHits.hitPoint(lane).transform(m_pointMatrix, m_normalMatrix),
+                  childHits.scalarFallback(lane));
   }
   return result;
 }
@@ -102,7 +103,8 @@ PrimitivePacketHit8 Instance::intersectPacketHits(const Ray8& rays,
     }
 
     result.setHit(lane, Primitive::material() ? this : childHits.primitive(lane),
-                  childHits.hitPoint(lane).transform(m_pointMatrix, m_normalMatrix));
+                  childHits.hitPoint(lane).transform(m_pointMatrix, m_normalMatrix),
+                  childHits.scalarFallback(lane));
   }
   return result;
 }

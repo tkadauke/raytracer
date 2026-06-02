@@ -958,7 +958,13 @@ That mixed-width frontier is now underway: primitive packet-hit results are
 width-generic, `Primitive` exposes an eight-wide scalar fallback, plain
 composites merge eight-wide child hits, BVH preserves materialized eight-wide
 hits through active-mask tree traversal, and Whitted/path-tracing batches try
-full Ray8 frontier chunks before Ray4 chunks and scalar tails. The Ray8 slice is
+full Ray8 frontier chunks before Ray4 chunks and scalar tails. Whitted batches
+now compact traceable continuations ahead of terminated continuation rays before
+choosing packet chunks, so interleaved throughput/max-depth terminations do not
+force otherwise traceable rays down the scalar tail path. Packet hits now carry
+a per-lane scalar-fallback flag through composites, BVH, mesh wrappers, and
+instances, so Whitted reflective materials do not repeat scalar refinement when
+the packet hit was already produced by scalar materialization. The Ray8 slice is
 currently a scheduler and BVH/composite contract plus first leaf kernels for
 `Sphere`, `Plane`, `Box`, `Triangle`, `Disk`, and `Rectangle`, not a claim that
 every primitive has an eight-wide materialization kernel. `OpenCylinder` and

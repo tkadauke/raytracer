@@ -628,8 +628,11 @@ intersection first and then shades the hit frontier, and path-tracing batches
 submit full eight-ray chunks through the packet hit API before four-ray chunks
 and scalar tails. Whitted batches use the same mixed-width packet frontier shape
 for queued rays, but refine packet hits scalarly before shading so recursive
-Whitted parity remains stable at reflective edges. The packet scalar-fallback
-counter remains important because Ray8 traversal currently proves the
+Whitted parity remains stable at reflective edges. Whitted continuations are
+compacted before packet traversal so terminated rays do not split otherwise
+packetable active runs, and scalar-fallback packet hits are not refined a
+second time. The packet scalar-fallback counter remains important because Ray8
+traversal currently proves the
 scheduler/BVH/composite contract and the first
 Sphere/Plane/Box/Triangle/Disk/Rectangle/OpenCylinder/Torus leaf kernels while
 imported mesh leaves and static instance/mesh wrappers preserve Ray8

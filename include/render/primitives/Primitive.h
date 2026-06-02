@@ -37,18 +37,25 @@ namespace render {
       return m_hitPoints[lane];
     }
 
-    void setHit(std::size_t lane, const Primitive* primitive, const HitPoint& hitPoint) {
-      m_primitives[lane] = primitive;
-      m_hitPoints[lane] = hitPoint;
+    bool scalarFallback(std::size_t lane) const {
+      return m_scalarFallbacks[lane];
     }
 
-    bool setHitIfCloser(std::size_t lane, const Primitive* primitive, const HitPoint& hitPoint) {
+    void setHit(std::size_t lane, const Primitive* primitive, const HitPoint& hitPoint,
+                bool scalarFallback = false) {
+      m_primitives[lane] = primitive;
+      m_hitPoints[lane] = hitPoint;
+      m_scalarFallbacks[lane] = scalarFallback;
+    }
+
+    bool setHitIfCloser(std::size_t lane, const Primitive* primitive, const HitPoint& hitPoint,
+                        bool scalarFallback = false) {
       if (!primitive || hitPoint.isUndefined()) {
         return false;
       }
 
       if (!hit(lane) || hitPoint.distance() < m_hitPoints[lane].distance()) {
-        setHit(lane, primitive, hitPoint);
+        setHit(lane, primitive, hitPoint, scalarFallback);
         return true;
       }
 
@@ -58,6 +65,7 @@ namespace render {
   private:
     std::array<const Primitive*, Packet::lanes> m_primitives{};
     std::array<HitPoint, Packet::lanes> m_hitPoints{};
+    std::array<bool, Packet::lanes> m_scalarFallbacks{};
   };
   using PrimitivePacketHit4 = PrimitivePacketHit<Ray4>;
   using PrimitivePacketHit8 = PrimitivePacketHit<Ray8>;

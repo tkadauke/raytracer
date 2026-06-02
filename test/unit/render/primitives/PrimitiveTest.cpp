@@ -77,6 +77,7 @@ namespace PrimitiveTest {
       ASSERT_TRUE(result.hit(lane)) << "lane " << lane;
       ASSERT_EQ(primitive.get(), result.primitive(lane));
       ASSERT_EQ(1.0, result.hitPoint(lane).distance());
+      EXPECT_TRUE(result.scalarFallback(lane));
       EXPECT_EQ(1u, laneStates[lane].packetHitScalarFallbacks);
     }
   }

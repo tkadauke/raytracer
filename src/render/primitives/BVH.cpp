@@ -354,7 +354,7 @@ void BVH::intersectPacketHitNode(const Node* node, const Ray4& rays, uint16_t ac
 
         const HitPoint& hitPoint = candidate.hitPoint(lane);
         if (hitPoint.distance() < minDistances[lane]) {
-          result.setHit(lane, candidate.primitive(lane), hitPoint);
+          result.setHit(lane, candidate.primitive(lane), hitPoint, candidate.scalarFallback(lane));
           minDistances[lane] = hitPoint.distance();
         }
       }
@@ -394,7 +394,7 @@ void BVH::intersectPacketHitNode(const Node* node, const Ray8& rays, uint16_t ac
 
         const HitPoint& hitPoint = candidate.hitPoint(lane);
         if (hitPoint.distance() < minDistances[lane]) {
-          result.setHit(lane, candidate.primitive(lane), hitPoint);
+          result.setHit(lane, candidate.primitive(lane), hitPoint, candidate.scalarFallback(lane));
           minDistances[lane] = hitPoint.distance();
         }
       }

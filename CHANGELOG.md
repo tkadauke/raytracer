@@ -137,6 +137,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Curve Ray8 packet misses.** Runtime curves now report eight-wide
   packet-hit misses directly, avoiding scalar fallback accounting for geometry
   that is intentionally non-ray-intersectable. — GPT-5
+- **Whitted packet frontier compaction.** The wavefront Whitted scheduler now
+  groups traceable continuation rays before packet traversal, reducing scalar
+  tails when terminated rays are interleaved with active ones, and avoids
+  re-refining packet hits that were already materialized through scalar
+  fallback. — GPT-5
 - **Wavefront packet fallback diagnostics.** Wavefront metrics now report
   per-depth packet lanes that fell back to scalar hit materialization, exposing
   remaining primitive packet-kernel gaps in graph traces, rendercli summaries,

@@ -98,7 +98,7 @@ PrimitivePacketHit4 Composite::intersectPacketHits(const Ray4& rays,
 
       const HitPoint& hitPoint = candidate.hitPoint(lane);
       if (hitPoint.distance() < minDistances[lane]) {
-        result.setHit(lane, candidate.primitive(lane), hitPoint);
+        result.setHit(lane, candidate.primitive(lane), hitPoint, candidate.scalarFallback(lane));
         minDistances[lane] = hitPoint.distance();
       }
     }
@@ -127,7 +127,7 @@ PrimitivePacketHit8 Composite::intersectPacketHits(const Ray8& rays,
 
       const HitPoint& hitPoint = candidate.hitPoint(lane);
       if (hitPoint.distance() < minDistances[lane]) {
-        result.setHit(lane, candidate.primitive(lane), hitPoint);
+        result.setHit(lane, candidate.primitive(lane), hitPoint, candidate.scalarFallback(lane));
         minDistances[lane] = hitPoint.distance();
       }
     }

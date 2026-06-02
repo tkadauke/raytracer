@@ -41,7 +41,7 @@ namespace {
 
       const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
       if (!hitPoint.isUndefined()) {
-        result.setHit(lane, hitPrimitive, hitPoint);
+        result.setHit(lane, hitPrimitive, hitPoint, true);
       }
     }
     return result;

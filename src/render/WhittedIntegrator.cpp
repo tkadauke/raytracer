@@ -278,7 +278,8 @@ namespace render {
       const Primitive* hitPrimitive = packetHits.primitive(lane);
       HitPoint hitPoint = packetHits.hitPoint(lane);
       const auto hitMaterial = hitPrimitive ? hitPrimitive->material() : nullptr;
-      if (hitMaterial && hitMaterial->requiresWhittedPacketHitRefinement()) {
+      if (hitMaterial && hitMaterial->requiresWhittedPacketHitRefinement() &&
+          !packetHits.scalarFallback(lane)) {
         if (depthMetrics.trackFrontierMetrics) {
           ++depthMetrics.frontierPacketRefinedRays;
         }
@@ -372,7 +373,8 @@ namespace render {
       const Primitive* hitPrimitive = packetHits.primitive(lane);
       HitPoint hitPoint = packetHits.hitPoint(lane);
       const auto hitMaterial = hitPrimitive ? hitPrimitive->material() : nullptr;
-      if (hitMaterial && hitMaterial->requiresWhittedPacketHitRefinement()) {
+      if (hitMaterial && hitMaterial->requiresWhittedPacketHitRefinement() &&
+          !packetHits.scalarFallback(lane)) {
         if (depthMetrics.trackFrontierMetrics) {
           ++depthMetrics.frontierPacketRefinedRays;
         }
@@ -412,13 +414,16 @@ namespace render {
                                                   BatchDepthMetrics& depthMetrics,
                                                   IntegratorBatchMetrics* metrics) const {
     activeHits.clear();
+    const auto traceableEnd =
+      std::stable_partition(current.begin(), current.end(), [this](const QueuedRay& queued) {
+        return queuedRayShouldTrace(queued);
+      });
+    const std::size_t traceableCount =
+      static_cast<std::size_t>(std::distance(current.begin(), traceableEnd));
+
     std::size_t queuedIndex = 0;
-    while (queuedIndex != current.size()) {
-      const bool canUsePacket8 =
-        !isCancelled() && queuedIndex + Ray8::lanes <= current.size() &&
-        std::all_of(current.begin() + static_cast<std::ptrdiff_t>(queuedIndex),
-                    current.begin() + static_cast<std::ptrdiff_t>(queuedIndex + Ray8::lanes),
-                    [this](const QueuedRay& queued) { return queuedRayShouldTrace(queued); });
+    while (queuedIndex != traceableCount) {
+      const bool canUsePacket8 = !isCancelled() && queuedIndex + Ray8::lanes <= traceableCount;
       if (canUsePacket8) {
         intersectQueuedRayPacket8(scene, current, queuedIndex, activeHits, result, depthMetrics,
                                   metrics);
@@ -426,11 +431,7 @@ namespace render {
         continue;
       }
 
-      const bool canUsePacket =
-        !isCancelled() && queuedIndex + Ray4::lanes <= current.size() &&
-        std::all_of(current.begin() + static_cast<std::ptrdiff_t>(queuedIndex),
-                    current.begin() + static_cast<std::ptrdiff_t>(queuedIndex + Ray4::lanes),
-                    [this](const QueuedRay& queued) { return queuedRayShouldTrace(queued); });
+      const bool canUsePacket = !isCancelled() && queuedIndex + Ray4::lanes <= traceableCount;
       if (canUsePacket) {
         intersectQueuedRayPacket(scene, current, queuedIndex, activeHits, result, depthMetrics,
                                  metrics);
@@ -438,6 +439,12 @@ namespace render {
         continue;
       }
 
+      intersectQueuedRayScalar(scene, current, queuedIndex, activeHits, result, depthMetrics,
+                               metrics);
+      ++queuedIndex;
+    }
+
+    while (queuedIndex != current.size()) {
       intersectQueuedRayScalar(scene, current, queuedIndex, activeHits, result, depthMetrics,
                                metrics);
       ++queuedIndex;

@@ -183,7 +183,8 @@ Result MeshPrimitive::intersectPacketHitsFor(const Packet& rays, const StateArra
     const Result candidate = leaf->intersectPacketHits(rays, states);
     for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
       if (activeLanes[lane] && candidate.hit(lane)) {
-        result.setHitIfCloser(lane, candidate.primitive(lane), candidate.hitPoint(lane));
+        result.setHitIfCloser(lane, candidate.primitive(lane), candidate.hitPoint(lane),
+                              candidate.scalarFallback(lane));
       }
     }
   }
@@ -191,7 +192,7 @@ Result MeshPrimitive::intersectPacketHitsFor(const Packet& rays, const StateArra
   if (Primitive::material()) {
     for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
       if (result.hit(lane) && !result.primitive(lane)->material()) {
-        result.setHit(lane, this, result.hitPoint(lane));
+        result.setHit(lane, this, result.hitPoint(lane), result.scalarFallback(lane));
       }
     }
   }
