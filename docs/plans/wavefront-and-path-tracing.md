@@ -489,8 +489,9 @@ back to scalar compatibility only for materials that still require synchronous
 `RayCaster` recursion. `PathTracingIntegrator::radianceBatch` now processes
 compatible path-tracing samples depth-major across the tile. The engine also
 records per-render metrics for
-rendered pixels, primary samples, tile count, queue decision, integrator name,
-batch execution mode, batch sizes, active sample counts per depth,
+rendered pixels, primary samples, tile count, min/average/max non-empty tile
+sample counts, queue decision, integrator name, batch execution mode, batch
+sizes, active sample counts per depth,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
 convergence stop decisions, and total render time; graph execution traces
 attach those metrics to the `wavefront_beauty` pass for Modeler and rendercli
@@ -1019,6 +1020,10 @@ material buckets into its work-comparison output when both compared variants
 include wavefront metrics. These counters give Phase 7 captures a direct signal
 for whether the next speed slice should improve packet filling, scalar-tail
 handling, packet-hit precision, or remaining leaf packet traversal cost.
+Wavefront metrics now also include min/average/max non-empty tile sample counts
+in the tiling block and rendercli compact summaries. That gives Phase 7
+captures a direct load-balance baseline before changing queue-size defaults,
+tile dimensions, or work-stealing behavior.
 
 ---
 
@@ -1127,8 +1132,9 @@ than prerequisites for the engine surface.
    cores — same reason the existing `Raytracer` is tile-based. See
    [Parallelism: tile-based by default](#parallelism-tile-based-by-default).
    The remaining question is the right tile size; default to whatever
-   the recursive engine uses, retune in Phase 3 if profiling shows
-   load imbalance.
+   the recursive engine uses, retune in Phase 7 from metrics-backed captures.
+   The tiling metrics now expose min/average/max non-empty tile sample counts
+   so tuning can distinguish image size effects from real load imbalance.
 2. ~~**Convergence-detection scheme.**~~ **Resolved for v1**: use active
    sample fraction plus RMS radiance delta over the active subset. Preview,
    Balanced, and Final presets ship through render intent, Modeler Render

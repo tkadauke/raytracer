@@ -661,13 +661,14 @@ reason buckets, Whitted packet-refinement material buckets,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
 convergence stop decisions, observer feedback depth count, denoiser
 name/parameters/time when denoising is enabled, denoiser feature-prepass time,
-tile count, queue decision, and render timing split into summed worker time for
-sample generation and integrator batch work. The sample-generation bucket is
-further split into sampler stream creation, camera primary-ray sampling, sample
-enqueueing, and residual bookkeeping overhead. The integrator bucket is split
-into scene-intersection and material/shading worker time and the remaining
-batch overhead, plus total wall-clock time. Path-tracing wavefront batches also
-split the overhead into path setup, frontier bookkeeping, progress snapshot
+tile count, min/average/max non-empty tile sample counts, queue decision, and
+render timing split into summed worker time for sample generation and
+integrator batch work. The sample-generation bucket is further split into
+sampler stream creation, camera primary-ray sampling, sample enqueueing, and
+residual bookkeeping overhead. The integrator bucket is split into
+scene-intersection and material/shading worker time and the remaining batch
+overhead, plus total wall-clock time. Path-tracing wavefront batches also split
+the overhead into path setup, frontier bookkeeping, progress snapshot
 publication, and convergence-test worker time.
 Wavefront also has an opt-in denoiser hook at the engine level:
 `render::Denoiser` instances receive a `DenoiserFrame` whose beauty buffer is
@@ -881,11 +882,11 @@ images.
 After a traced wavefront render, wavefront pass nodes summarize primary sample
 count and the integrator batch execution mode; the property editor exposes the
 full JSON metadata for tile, queue, batch, active-depth, per-depth radiance
-delta, packet chunk/ray frontier utilization, convergence-threshold/stop, and
-sample-generation/integrator worker timing details, including the intersection
-and shading split inside the integrator bucket, the residual batch-overhead
-bucket, and path-tracing overhead sub-buckets for setup, frontier bookkeeping,
-progress snapshots, and convergence checks.
+delta, packet chunk/ray frontier utilization, convergence-threshold/stop, tile
+load-balance counts, and sample-generation/integrator worker timing details,
+including the intersection and shading split inside the integrator bucket, the
+residual batch-overhead bucket, and path-tracing overhead sub-buckets for setup,
+frontier bookkeeping, progress snapshots, and convergence checks.
 
 - the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
   vertically, shows resources between producer and consumer passes, and lets the

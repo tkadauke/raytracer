@@ -37,6 +37,9 @@ namespace engine::wavefront {
     struct TilingSummary {
       std::uint64_t tileCount = 0;
       std::uint64_t nonEmptyTileCount = 0;
+      std::uint64_t minNonEmptyTileSamples = 0;
+      std::uint64_t maxTileSamples = 0;
+      double averageNonEmptyTileSamples = 0.0;
     } tiling;
 
     struct SchedulingSummary {

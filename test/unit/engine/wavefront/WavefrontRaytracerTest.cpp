@@ -585,6 +585,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48u, metrics.input.primarySamples);
     EXPECT_EQ(1u, metrics.tiling.tileCount);
     EXPECT_EQ(1u, metrics.tiling.nonEmptyTileCount);
+    EXPECT_EQ(48u, metrics.tiling.minNonEmptyTileSamples);
+    EXPECT_EQ(48u, metrics.tiling.maxTileSamples);
+    EXPECT_DOUBLE_EQ(48.0, metrics.tiling.averageNonEmptyTileSamples);
     EXPECT_EQ(1u, metrics.scheduling.configuredQueueSize);
     EXPECT_EQ(1u, metrics.scheduling.resolvedQueueSize);
     EXPECT_EQ("single_tile", metrics.scheduling.decision);
@@ -641,6 +644,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(metrics.timings.totalRenderSeconds, 0.0);
 
     const QJsonObject json = metrics.toJson();
+    const QJsonObject tiling = json.value("tiling").toObject();
+    EXPECT_EQ(1.0, tiling.value("tileCount").toDouble());
+    EXPECT_EQ(1.0, tiling.value("nonEmptyTileCount").toDouble());
+    EXPECT_EQ(48.0, tiling.value("minNonEmptyTileSamples").toDouble());
+    EXPECT_EQ(48.0, tiling.value("maxTileSamples").toDouble());
+    EXPECT_DOUBLE_EQ(48.0, tiling.value("averageNonEmptyTileSamples").toDouble());
     EXPECT_EQ("whitted",
               json.value("batching").toObject().value("integrator").toString().toStdString());
     EXPECT_EQ(48.0, json.value("batching").toObject().value("samplesSubmitted").toDouble());

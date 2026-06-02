@@ -1514,6 +1514,18 @@ foreach(feature_name albedo normal depth)
                     "${wavefront_metrics_stdout}" "" "" "")
   endif()
 endforeach()
+foreach(tiling_name
+        tiles
+        nonempty_tiles
+        min_tile_samples
+        avg_tile_samples
+        max_tile_samples)
+  if(NOT wavefront_metrics_stdout MATCHES "${tiling_name}=")
+    _rendercli_fail("rendercli wavefront metrics ${tiling_name} summary"
+                    "wavefront metrics summary did not contain ${tiling_name}"
+                    "${wavefront_metrics_stdout}" "" "" "")
+  endif()
+endforeach()
 if(NOT wavefront_metrics_stdout MATCHES "denoise_feature_prepass_ms=")
   _rendercli_fail("rendercli wavefront metrics denoiser feature timing summary"
                   "wavefront metrics summary did not contain denoiser feature timing"
@@ -1654,6 +1666,16 @@ if(NOT wavefront_metrics_json MATCHES "\"activeSampleDepthsProcessed\"")
                   "wavefront metrics report did not contain active sample-depth work"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+foreach(tiling_field
+        minNonEmptyTileSamples
+        maxTileSamples
+        averageNonEmptyTileSamples)
+  if(NOT wavefront_metrics_json MATCHES "\"${tiling_field}\"")
+    _rendercli_fail("rendercli wavefront metrics ${tiling_field}"
+                    "wavefront metrics report did not contain ${tiling_field}"
+                    "" "" "${wavefront_metrics_json}" "")
+  endif()
+endforeach()
 if(NOT wavefront_metrics_json MATCHES "\"feedbackDepthCount\"")
   _rendercli_fail("rendercli wavefront metrics convergence feedback"
                   "wavefront metrics report did not contain convergence feedback counters"

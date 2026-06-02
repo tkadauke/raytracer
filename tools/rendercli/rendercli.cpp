@@ -158,6 +158,7 @@ namespace {
     void printSummary(int run, const QString& passId, const QJsonObject& metrics) const {
       const QJsonObject timings = metrics.value("timings").toObject();
       const QJsonObject input = metrics.value("input").toObject();
+      const QJsonObject tiling = metrics.value("tiling").toObject();
       const QJsonObject batching = metrics.value("batching").toObject();
       const QJsonObject convergence = metrics.value("convergence").toObject();
       const QJsonObject denoise = metrics.value("denoise").toObject();
@@ -214,6 +215,11 @@ namespace {
         << " integrator=" << batching.value("integrator").toString().toStdString()
         << " execution=" << batching.value("executionMode").toString().toStdString()
         << " samples=" << unsignedValue(input, "primarySamples")
+        << " tiles=" << unsignedValue(tiling, "tileCount")
+        << " nonempty_tiles=" << unsignedValue(tiling, "nonEmptyTileCount")
+        << " min_tile_samples=" << unsignedValue(tiling, "minNonEmptyTileSamples")
+        << " avg_tile_samples=" << tiling.value("averageNonEmptyTileSamples").toDouble()
+        << " max_tile_samples=" << unsignedValue(tiling, "maxTileSamples")
         << " active_sample_depths=" << unsignedValue(batching, "activeSampleDepthsProcessed")
         << " batches=" << unsignedValue(batching, "batches")
         << " avg_batch=" << batching.value("averageBatchSize").toDouble()

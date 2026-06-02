@@ -123,6 +123,9 @@ namespace engine::wavefront {
     QJsonObject tilingJson;
     tilingJson["tileCount"] = static_cast<double>(tiling.tileCount);
     tilingJson["nonEmptyTileCount"] = static_cast<double>(tiling.nonEmptyTileCount);
+    tilingJson["minNonEmptyTileSamples"] = static_cast<double>(tiling.minNonEmptyTileSamples);
+    tilingJson["maxTileSamples"] = static_cast<double>(tiling.maxTileSamples);
+    tilingJson["averageNonEmptyTileSamples"] = tiling.averageNonEmptyTileSamples;
 
     QJsonObject schedulingJson;
     schedulingJson["configuredQueueSize"] = static_cast<double>(scheduling.configuredQueueSize);

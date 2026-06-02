@@ -217,8 +217,10 @@ same payload from matching graph pass trace metadata, so the report includes
 the pass id plus integrator, batch execution mode, active sample counts,
 radiance-delta RMS values, per-depth frontier hit/miss counts, compatibility
 fallback counts, convergence thresholds, stop decisions, denoiser diagnostics
-when enabled, convergence feedback depth counts, and total render time. The
-compact summary prints total
+when enabled, convergence feedback depth counts, tile load-balance counts, and
+total render time. The compact summary prints total
+`tiles`, `nonempty_tiles`, `min_tile_samples`, `avg_tile_samples`,
+`max_tile_samples`,
 `frontier_hit_rays`, `frontier_miss_rays`, `frontier_packet_chunks`,
 `frontier_packet_rays`, `frontier_scalar_rays`, and
 `frontier_packet_scalar_fallback_rays`,

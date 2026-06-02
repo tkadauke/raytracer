@@ -55,6 +55,12 @@ namespace engine::wavefront::detail {
     }
 
     ++m_metrics.tiling.nonEmptyTileCount;
+    const std::uint64_t tileSamples = static_cast<std::uint64_t>(result.sampleCount);
+    if (m_metrics.tiling.minNonEmptyTileSamples == 0 ||
+        tileSamples < m_metrics.tiling.minNonEmptyTileSamples) {
+      m_metrics.tiling.minNonEmptyTileSamples = tileSamples;
+    }
+    m_metrics.tiling.maxTileSamples = std::max(m_metrics.tiling.maxTileSamples, tileSamples);
     ++m_metrics.batching.batches;
     m_metrics.timings.sampleGenerationWorkerSeconds += result.sampleGenerationWorkerSeconds;
     m_metrics.timings.sampleStreamWorkerSeconds += result.sampleStreamWorkerSeconds;
@@ -104,6 +110,11 @@ namespace engine::wavefront::detail {
       m_metrics.batching.batches == 0 ? 0.0
                                       : static_cast<double>(m_metrics.batching.samplesSubmitted) /
                                           static_cast<double>(m_metrics.batching.batches);
+    m_metrics.tiling.averageNonEmptyTileSamples =
+      m_metrics.tiling.nonEmptyTileCount == 0
+        ? 0.0
+        : static_cast<double>(m_metrics.input.primarySamples) /
+            static_cast<double>(m_metrics.tiling.nonEmptyTileCount);
     if (!m_metrics.convergence.enabled) {
       m_metrics.convergence.decision = "disabled";
     } else if (m_metrics.convergence.stoppedTileCount > 0) {
