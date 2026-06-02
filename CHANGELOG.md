@@ -179,6 +179,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront path hit records.** Path-tracing batch hit records no longer
   carry before-depth radiance colors when radiance-delta tracking is disabled,
   reducing hot-loop state for plain wavefront path renders. — GPT-5
+- **Wavefront frontier diagnostics overhead.** Whitted and path-tracing
+  batches now update frontier hit/miss, packet, and scalar-fallback counters
+  only when wavefront metrics are requested. — GPT-5
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5

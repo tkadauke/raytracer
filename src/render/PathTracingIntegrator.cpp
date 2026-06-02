@@ -59,6 +59,10 @@ namespace render {
     double depthDeltaSquaredSum{0.0};
     double depthMaxDelta{0.0};
     IntegratorBatchMetrics* metrics{nullptr};
+
+    bool trackFrontierMetrics() const {
+      return metrics != nullptr;
+    }
   };
 
   PathTracingIntegrator::PathTracingIntegrator() = default;
@@ -105,7 +109,9 @@ namespace render {
                                                 const HitPoint& hitPoint, int bounce,
                                                 BatchDepthMetrics& depthMetrics,
                                                 std::vector<BatchHit>& activeHits) const {
-    ++depthMetrics.frontierRayHits;
+    if (depthMetrics.trackFrontierMetrics()) {
+      ++depthMetrics.frontierRayHits;
+    }
     if (bounce == 0) {
       path.state.hitPoint = hitPoint;
     }
@@ -115,7 +121,9 @@ namespace render {
   void PathTracingIntegrator::recordFrontierMiss(const Scene& scene, BatchPath& path,
                                                  BatchDepthMetrics& depthMetrics,
                                                  const Colord& accumulatedBeforeDepth) const {
-    ++depthMetrics.frontierRayMisses;
+    if (depthMetrics.trackFrontierMetrics()) {
+      ++depthMetrics.frontierRayMisses;
+    }
     path.accumulated() += path.throughput * scene.background();
     path.state.recurseOut();
     recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
@@ -138,7 +146,9 @@ namespace render {
       }
 
       path.state.recurseIn();
-      ++depthMetrics.frontierScalarRays;
+      if (depthMetrics.trackFrontierMetrics()) {
+        ++depthMetrics.frontierScalarRays;
+      }
     }
 
     HitPointInterval hitPoints;
@@ -173,7 +183,9 @@ namespace render {
     PrimitivePacketHit4 packetHits;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-      ++depthMetrics.frontierPacketChunks;
+      if (depthMetrics.trackFrontierMetrics()) {
+        ++depthMetrics.frontierPacketChunks;
+      }
       for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
         const std::size_t pathIndex = firstPathIndex + lane;
         auto& path = paths[pathIndex];
@@ -181,7 +193,9 @@ namespace render {
           accumulatedBeforeDepths[lane] = path.accumulated();
         }
         path.state.recurseIn();
-        packetFallbacksBefore[lane] = path.state.packetHitScalarFallbacks;
+        if (depthMetrics.trackFrontierMetrics()) {
+          packetFallbacksBefore[lane] = path.state.packetHitScalarFallbacks;
+        }
         rays[lane] = path.ray;
         states[lane] = &path.state;
       }
@@ -196,8 +210,10 @@ namespace render {
     for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
       const std::size_t pathIndex = firstPathIndex + lane;
       auto& path = paths[pathIndex];
-      depthMetrics.frontierPacketScalarFallbackRays +=
-        path.state.packetHitScalarFallbacks - packetFallbacksBefore[lane];
+      if (depthMetrics.trackFrontierMetrics()) {
+        depthMetrics.frontierPacketScalarFallbackRays +=
+          path.state.packetHitScalarFallbacks - packetFallbacksBefore[lane];
+      }
       if (!packetHits.hit(lane)) {
         recordFrontierMiss(scene, path, depthMetrics, accumulatedBeforeDepths[lane]);
         continue;

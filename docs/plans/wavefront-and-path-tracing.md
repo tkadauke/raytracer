@@ -673,7 +673,10 @@ buffer. This reduces retained queue memory and one move/push path in the hot
 depth loop, but it is still scheduler cleanup rather than proof of the Phase 4
 speed gate. Hit-frontier records also no longer carry before-depth radiance
 colors; those colors are computed only at the miss/shading sites where
-radiance-delta metrics or convergence can consume them. Disabled
+radiance-delta metrics or convergence can consume them. Whitted and
+path-tracing frontier hit/miss, packet, and packet-fallback counters are now
+metric-gated too, so plain wavefront renders do not maintain diagnostic
+counters that only JSON/trace/summary output can consume. Disabled
 `ScopedTimer` instances
 also skip clock reads now, so ordinary renders do not pay timing overhead when
 no metric bucket is requested. A follow-up 160x120, 16spp,
