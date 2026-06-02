@@ -25,6 +25,8 @@ namespace render {
                                        render::State& state) const override;
     virtual PrimitivePacketHit4
     intersectPacketHits(const Ray4& rays, const PrimitivePacketState4& states) const override;
+    PrimitivePacketHit8 intersectPacketHits(const Ray8& rays,
+                                            const PrimitivePacketState8& states) const override;
 
     /**
       * Mesh approximation. The torus is aligned with its hole along
@@ -69,6 +71,9 @@ namespace render {
     virtual BoundingBoxd calculateBoundingBox() const override;
 
   private:
+    template<typename Packet, typename StateArray, typename Result>
+    Result intersectPacketHitsFor(const Packet& rays, const StateArray& states) const;
+
     SortedResult<double, 4> sortedIntersectionDistances(const Rayd& ray) const;
     void addIntersectionHits(const Rayd& ray, const SortedResult<double, 4>& distances,
                              HitPointInterval& hitPoints) const;

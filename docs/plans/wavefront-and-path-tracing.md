@@ -956,9 +956,10 @@ hits through active-mask tree traversal, and Whitted/path-tracing batches try
 full Ray8 frontier chunks before Ray4 chunks and scalar tails. The Ray8 slice is
 currently a scheduler and BVH/composite contract plus first leaf kernels for
 `Sphere`, `Plane`, `Box`, `Triangle`, `Disk`, and `Rectangle`, not a claim that
-every primitive has an eight-wide materialization kernel; the packet
-scalar-fallback metric intentionally reports the remaining leaf gaps so the next
-performance slices can target them directly.
+every primitive has an eight-wide materialization kernel. `OpenCylinder` and
+`Torus` now join that eight-wide leaf set for curved analytic frontiers; the
+packet scalar-fallback metric intentionally reports the remaining leaf gaps so
+the next performance slices can target them directly.
 Materials now own that decision: local Matte/Phong shading consumes packet hits
 directly, while reflective, transparent, portal, and custom materials keep the
 scalar refinement default because their secondary rays depend on scalar

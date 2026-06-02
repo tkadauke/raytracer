@@ -124,6 +124,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Disk and Rectangle Ray8 packet hits.** Disk and Rectangle primitives now
   materialize eight-wide packet hits directly, keeping flat finite-surface
   frontiers on the packet materialization path. — GPT-5
+- **OpenCylinder and Torus Ray8 packet hits.** OpenCylinder and Torus
+  primitives now materialize eight-wide packet hits directly, reducing scalar
+  materialization fallback for curved analytic frontiers. — GPT-5
 - **Wavefront packet fallback diagnostics.** Wavefront metrics now report
   per-depth packet lanes that fell back to scalar hit materialization, exposing
   remaining primitive packet-kernel gaps in graph traces, rendercli summaries,

@@ -631,8 +631,9 @@ for queued rays, but refine packet hits scalarly before shading so recursive
 Whitted parity remains stable at reflective edges. The packet scalar-fallback
 counter remains important because Ray8 traversal currently proves the
 scheduler/BVH/composite contract and the first
-Sphere/Plane/Box/Triangle/Disk/Rectangle leaf kernels while the rest of the
-primitive leaves are made eight-wide in later performance slices.
+Sphere/Plane/Box/Triangle/Disk/Rectangle/OpenCylinder/Torus leaf kernels while
+the rest of the primitive leaves are made eight-wide in later performance
+slices.
 This gives the graph, rendercli, and Modeler a separate executor surface for
 the scheduler work that follows. After a traced wavefront render, the pass
 metadata reports the selected
