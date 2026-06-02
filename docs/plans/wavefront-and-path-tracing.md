@@ -995,22 +995,19 @@ imported-mesh leaf/wrapper path also preserves Ray8 materialized hits,
 `Grid` materializes Ray8 hits through DDA traversal, and `Curve` reports Ray8
 misses directly. The packet scalar-fallback metric intentionally reports the
 remaining leaf gaps so the next performance slices can target them directly.
-Materials now own that decision: local Matte/Phong shading consumes packet hits
-directly, while reflective, transparent, portal, and custom materials keep the
-scalar refinement default because their secondary rays depend on scalar
-double-precision hit points and normals for strict recursive parity. A trial
-removal of all refinement broke the reflection parity fixture because packet
-hits currently carry float-lane hit points while scalar reflection uses
-double-precision hits; keeping the counter visible makes the remaining
-secondary-ray cost explicit until packet materialization is precise enough for
-strict Whitted parity. Metrics also aggregate refined packet lanes by
-material-family label (`reflective`, `transparent`, `portal`, or conservative
-`custom`) in JSON reports, rendercli summaries, and graph pass trace text, so
-captures can show which continuation material owns the remaining refinement
-cost. The convergence capture script carries those material buckets into its
-work-comparison output when both compared variants include wavefront metrics.
-These counters give Phase 7 captures a direct signal for whether the next speed
-slice should improve packet filling, scalar-tail
+Materials now own that decision: local Matte/Phong shading and built-in
+reflective, transparent, and portal continuations consume packet hits directly.
+The packet carries the original double-precision ray alongside the float SoA
+lanes used for traversal, so packet hit materialization can recover the
+double-precision origin/direction that strict Whitted secondary-ray parity
+needs. Custom materials keep the conservative scalar-refinement default. Metrics
+also aggregate refined packet lanes by material-family label (`reflective`,
+`transparent`, `portal`, or conservative `custom`) in JSON reports, rendercli
+summaries, and graph pass trace text, so captures can show which material owns
+any remaining refinement cost. The convergence capture script carries those
+material buckets into its work-comparison output when both compared variants
+include wavefront metrics. These counters give Phase 7 captures a direct signal
+for whether the next speed slice should improve packet filling, scalar-tail
 handling, packet-hit precision, or remaining leaf packet traversal cost.
 
 ---

@@ -35,6 +35,12 @@ public:
     directionX[lane] = ray.direction().x();
     directionY[lane] = ray.direction().y();
     directionZ[lane] = ray.direction().z();
+    preciseOriginX[lane] = ray.origin().x();
+    preciseOriginY[lane] = ray.origin().y();
+    preciseOriginZ[lane] = ray.origin().z();
+    preciseDirectionX[lane] = ray.direction().x();
+    preciseDirectionY[lane] = ray.direction().y();
+    preciseDirectionZ[lane] = ray.direction().z();
   }
 
   void set(std::size_t lane, const Rayd& ray) {
@@ -44,6 +50,12 @@ public:
     directionX[lane] = static_cast<float>(ray.direction().x());
     directionY[lane] = static_cast<float>(ray.direction().y());
     directionZ[lane] = static_cast<float>(ray.direction().z());
+    preciseOriginX[lane] = ray.origin().x();
+    preciseOriginY[lane] = ray.origin().y();
+    preciseOriginZ[lane] = ray.origin().z();
+    preciseDirectionX[lane] = ray.direction().x();
+    preciseDirectionY[lane] = ray.direction().y();
+    preciseDirectionZ[lane] = ray.direction().z();
   }
 
   [[nodiscard]] Rayf ray(std::size_t lane) const {
@@ -52,8 +64,9 @@ public:
   }
 
   [[nodiscard]] Rayd rayd(std::size_t lane) const {
-    return Rayd(Vector3d(originX[lane], originY[lane], originZ[lane]),
-                Vector3d(directionX[lane], directionY[lane], directionZ[lane]));
+    return Rayd(
+      Vector3d(preciseOriginX[lane], preciseOriginY[lane], preciseOriginZ[lane]),
+      Vector3d(preciseDirectionX[lane], preciseDirectionY[lane], preciseDirectionZ[lane]));
   }
 
   alignas(Alignment) LaneArray originX{};
@@ -62,6 +75,14 @@ public:
   alignas(Alignment) LaneArray directionX{};
   alignas(Alignment) LaneArray directionY{};
   alignas(Alignment) LaneArray directionZ{};
+  // Packet traversal uses the float SoA lanes above; hit materialization uses
+  // the original ray to preserve strict Whitted secondary-ray parity.
+  alignas(Alignment) std::array<double, Lanes> preciseOriginX{};
+  alignas(Alignment) std::array<double, Lanes> preciseOriginY{};
+  alignas(Alignment) std::array<double, Lanes> preciseOriginZ{};
+  alignas(Alignment) std::array<double, Lanes> preciseDirectionX{};
+  alignas(Alignment) std::array<double, Lanes> preciseDirectionY{};
+  alignas(Alignment) std::array<double, Lanes> preciseDirectionZ{};
 };
 
 template<std::size_t Lanes, std::size_t Alignment>

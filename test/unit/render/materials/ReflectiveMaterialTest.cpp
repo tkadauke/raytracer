@@ -46,7 +46,7 @@ namespace ReflectiveMaterialTest {
     ReflectiveMaterial material;
     EXPECT_TRUE(material.supportsWhittedContinuations());
     EXPECT_TRUE(material.supportsBsdfSampling());
-    EXPECT_TRUE(material.requiresWhittedPacketHitRefinement());
+    EXPECT_FALSE(material.requiresWhittedPacketHitRefinement());
     EXPECT_STREQ("reflective", material.whittedPacketHitRefinementLabel());
   }
 

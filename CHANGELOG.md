@@ -87,6 +87,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront capture refinement breakdowns.** The wavefront convergence capture
   script now compares packet-hit scalar refinement counts by material family
   when metric reports include that data. — GPT-5
+- **Wavefront precise packet rays.** Ray packets now preserve original
+  double-precision rays for hit materialization, letting built-in Whitted
+  continuation materials consume packet hits without full-scene scalar
+  refinement. — GPT-5
 - **Wavefront sample-generation diagnostics.** Wavefront metrics now split the
   sample-generation worker bucket into sampler stream creation, camera
   primary-ray sampling, sample enqueueing, and residual overhead in graph

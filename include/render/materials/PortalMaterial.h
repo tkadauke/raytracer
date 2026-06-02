@@ -43,7 +43,7 @@ namespace render {
     }
 
     bool requiresWhittedPacketHitRefinement() const override {
-      return true;
+      return false;
     }
 
     const char* whittedPacketHitRefinementLabel() const override {

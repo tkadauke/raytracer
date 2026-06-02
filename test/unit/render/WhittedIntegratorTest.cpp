@@ -588,6 +588,44 @@ namespace WhittedIntegratorTest {
     EXPECT_TRUE(metrics.frontierPacketRefinedRaysByMaterial.empty());
   }
 
+  TEST(WhittedIntegrator, BatchedRadianceLeavesBuiltInContinuationPacketHitsUnrefined) {
+    auto scene = std::make_unique<PacketCountingScene>();
+    scene->setBackground(Colord(0.2, 0.4, 0.6));
+    scene->setAmbient(Colord::black());
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0);
+    auto material =
+      std::make_shared<ReflectiveMaterial>(std::make_shared<ConstantColorTexture>(Colord::black()));
+    material->setAmbientCoefficient(0.0);
+    material->setDiffuseCoefficient(0.0);
+    material->setSpecularCoefficient(0.0);
+    material->setReflectionCoefficient(0.5);
+    material->setReflectionColor(Colord::white());
+    sphere->setMaterial(material);
+    scene->add(sphere);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples;
+    for (std::size_t sample = 0; sample != 4; ++sample) {
+      samples.push_back(
+        IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr});
+    }
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(*scene, samples, rayCaster, &metrics);
+
+    ASSERT_EQ(4u, colors.size());
+    for (const auto& color : colors) {
+      ASSERT_COLOR_NEAR(Colord(0.1, 0.2, 0.3), color, 1e-12);
+    }
+    EXPECT_EQ(2, scene->packet4HitCalls);
+    EXPECT_EQ((std::vector<std::uint64_t>{4u, 4u}), metrics.frontierPacketRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}),
+              metrics.frontierPacketScalarFallbackRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierPacketRefinedRaysPerDepth);
+    EXPECT_TRUE(metrics.frontierPacketRefinedRaysByMaterial.empty());
+  }
+
   TEST(WhittedIntegrator, BatchedRadianceConvergesBranchedContinuationsByActiveSampleCount) {
     Scene scene;
     scene.setBackground(Colord(0.2, 0.4, 0.6));

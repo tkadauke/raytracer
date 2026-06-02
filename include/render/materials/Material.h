@@ -144,10 +144,11 @@ namespace render {
 
     /**
       * Reports whether a Whitted packet hit should be scalar-refined before
-      * this material shades it. Materials that spawn secondary rays need the
-      * scalar hit's double-precision point/normal for strict recursive parity.
-      * Purely local materials can opt out and shade from the packet-
-      * materialized hit directly.
+      * this material shades it. Packet lanes preserve the original double-
+      * precision ray alongside their float SoA traversal data, so built-in
+      * materials that know their packet-hit contract can shade from the
+      * packet-materialized hit directly. The conservative default remains
+      * scalar refinement for custom materials.
       */
     virtual bool requiresWhittedPacketHitRefinement() const {
       return true;
