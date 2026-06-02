@@ -35,6 +35,8 @@ namespace render {
     std::vector<std::uint64_t> frontierRayMissesPerDepth;
     std::vector<std::uint64_t> frontierPacketChunksPerDepth;
     std::vector<std::uint64_t> frontierPacketRaysPerDepth;
+    std::vector<std::uint64_t> frontierRay4PacketChunksPerDepth;
+    std::vector<std::uint64_t> frontierRay8PacketChunksPerDepth;
     std::vector<std::uint64_t> frontierScalarRaysPerDepth;
     std::vector<std::uint64_t> frontierPacketScalarFallbackRaysPerDepth;
     std::map<std::string, std::uint64_t> frontierPacketScalarFallbackRaysByReason;
@@ -58,6 +60,7 @@ namespace render {
     void recordActiveDepth(std::uint64_t activeSamples);
     void recordFrontierIntersections(std::uint64_t hitRays, std::uint64_t missRays);
     void recordFrontierTraversal(std::uint64_t packetChunks, std::uint64_t packetRays,
+                                 std::uint64_t ray4PacketChunks, std::uint64_t ray8PacketChunks,
                                  std::uint64_t scalarRays, std::uint64_t packetScalarFallbackRays,
                                  std::uint64_t packetRefinedRays);
     void recordPacketScalarFallbacksByReason(const std::map<std::string, std::uint64_t>& reasons);

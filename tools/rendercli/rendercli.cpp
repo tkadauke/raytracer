@@ -167,6 +167,10 @@ namespace {
       const QJsonArray frontierMisses = batching.value("frontierRayMissesPerDepth").toArray();
       const QJsonArray frontierPackets = batching.value("frontierPacketChunksPerDepth").toArray();
       const QJsonArray frontierPacketRays = batching.value("frontierPacketRaysPerDepth").toArray();
+      const QJsonArray frontierRay4Packets =
+        batching.value("frontierRay4PacketChunksPerDepth").toArray();
+      const QJsonArray frontierRay8Packets =
+        batching.value("frontierRay8PacketChunksPerDepth").toArray();
       const QJsonArray frontierScalarRays = batching.value("frontierScalarRaysPerDepth").toArray();
       const QJsonArray frontierPacketScalarFallbackRays =
         batching.value("frontierPacketScalarFallbackRaysPerDepth").toArray();
@@ -230,6 +234,8 @@ namespace {
         << " frontier_miss_rays=" << unsignedArraySum(frontierMisses)
         << " frontier_packet_chunks=" << unsignedArraySum(frontierPackets)
         << " frontier_packet_rays=" << unsignedArraySum(frontierPacketRays)
+        << " frontier_ray4_packet_chunks=" << unsignedArraySum(frontierRay4Packets)
+        << " frontier_ray8_packet_chunks=" << unsignedArraySum(frontierRay8Packets)
         << " frontier_scalar_rays=" << unsignedArraySum(frontierScalarRays)
         << " frontier_packet_scalar_fallback_rays="
         << unsignedArraySum(frontierPacketScalarFallbackRays)

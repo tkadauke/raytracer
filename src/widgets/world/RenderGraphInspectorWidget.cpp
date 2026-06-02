@@ -424,6 +424,10 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
       jsonIntegerArraySum(batching.value(QStringLiteral("frontierPacketChunksPerDepth")).toArray());
     const qulonglong packetRays =
       jsonIntegerArraySum(batching.value(QStringLiteral("frontierPacketRaysPerDepth")).toArray());
+    const qulonglong ray4PacketChunks = jsonIntegerArraySum(
+      batching.value(QStringLiteral("frontierRay4PacketChunksPerDepth")).toArray());
+    const qulonglong ray8PacketChunks = jsonIntegerArraySum(
+      batching.value(QStringLiteral("frontierRay8PacketChunksPerDepth")).toArray());
     const qulonglong scalarRays =
       jsonIntegerArraySum(batching.value(QStringLiteral("frontierScalarRaysPerDepth")).toArray());
     const qulonglong packetScalarFallbackRays = jsonIntegerArraySum(
@@ -431,9 +435,12 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
     const qulonglong packetRefinedRays = jsonIntegerArraySum(
       batching.value(QStringLiteral("frontierPacketRefinedRaysPerDepth")).toArray());
     if (packetChunks > 0 || scalarRays > 0) {
-      line += QStringLiteral(", packets %1 rays/%2 chunks/scalar %3/fallback %4/refined %5")
+      line += QStringLiteral(
+                ", packets %1 rays/%2 chunks (Ray8 %3, Ray4 %4)/scalar %5/fallback %6/refined %7")
                 .arg(packetRays)
                 .arg(packetChunks)
+                .arg(ray8PacketChunks)
+                .arg(ray4PacketChunks)
                 .arg(scalarRays)
                 .arg(packetScalarFallbackRays)
                 .arg(packetRefinedRays);

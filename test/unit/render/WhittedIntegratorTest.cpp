@@ -479,6 +479,8 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 4u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.frontierPacketChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{4u, 4u}), metrics.frontierPacketRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.frontierRay4PacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierRay8PacketChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierScalarRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}),
               metrics.frontierPacketScalarFallbackRaysPerDepth);
@@ -515,6 +517,8 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 8u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.frontierPacketChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{8u, 8u}), metrics.frontierPacketRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierRay4PacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.frontierRay8PacketChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierScalarRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}),
               metrics.frontierPacketScalarFallbackRaysPerDepth);
@@ -545,6 +549,8 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ(1, scene->packet8HitCalls);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.frontierPacketChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{8u, 4u}), metrics.frontierPacketRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 1u}), metrics.frontierRay4PacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRay8PacketChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierScalarRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{8u, 4u}),
               metrics.frontierPacketScalarFallbackRaysPerDepth);
@@ -582,6 +588,8 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierPacketChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{4u}), metrics.frontierPacketRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierRay4PacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRay8PacketChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierScalarRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketScalarFallbackRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketRefinedRaysPerDepth);
@@ -620,6 +628,8 @@ namespace WhittedIntegratorTest {
     }
     EXPECT_EQ(2, scene->packet4HitCalls);
     EXPECT_EQ((std::vector<std::uint64_t>{4u, 4u}), metrics.frontierPacketRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.frontierRay4PacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierRay8PacketChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}),
               metrics.frontierPacketScalarFallbackRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierPacketRefinedRaysPerDepth);

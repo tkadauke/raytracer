@@ -963,9 +963,11 @@ reported as generic scalar packet fallback.
 The fallback metric keeps the remaining unsupported leaves visible.
 Wavefront metrics now also expose packet-frontier utilization:
 `frontierPacketChunksPerDepth`, `frontierPacketRaysPerDepth`,
+`frontierRay4PacketChunksPerDepth`, `frontierRay8PacketChunksPerDepth`,
 `frontierScalarRaysPerDepth`, and `frontierPacketScalarFallbackRaysPerDepth`
-distinguish packet chunks, the exact ray count carried by those chunks, scalar
-tail rays, and packet lanes that still had to use base scalar hit
+distinguish packet chunks, the exact ray count carried by those chunks, the
+Ray4/Ray8 chunk split, scalar tail rays, and packet lanes that still had to use
+base scalar hit
 materialization in JSON reports, graph trace metadata, rendercli compact
 summaries, and convergence capture work comparisons. Composite, BVH, and CSG
 packet traversal now mask inactive lanes before forwarding per-lane state to
@@ -979,7 +981,9 @@ the base packet-hit fallback path visible in JSON reports, rendercli summaries,
 graph pass trace text, and convergence capture comparisons when a primitive or
 wrapper still reaches the conservative scalar materialization contract.
 Keeping packet rays explicit instead of deriving them from chunk count prepares
-the metrics for mixed Ray4/Ray8 frontiers.
+the metrics for mixed Ray4/Ray8 frontiers. The packet chunk metric is now split
+by width too, so captures can see whether frontiers are mostly full Ray8
+packets, Ray4 tails, or scalar leftovers.
 That mixed-width frontier is now underway: primitive packet-hit results are
 width-generic, `Primitive` exposes an eight-wide scalar fallback, plain
 composites merge eight-wide child hits, BVH preserves materialized eight-wide

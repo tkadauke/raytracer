@@ -69,6 +69,8 @@ namespace IntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.activeSamplesPerDepth);
     EXPECT_TRUE(metrics.frontierPacketChunksPerDepth.empty());
     EXPECT_TRUE(metrics.frontierPacketRaysPerDepth.empty());
+    EXPECT_TRUE(metrics.frontierRay4PacketChunksPerDepth.empty());
+    EXPECT_TRUE(metrics.frontierRay8PacketChunksPerDepth.empty());
     EXPECT_TRUE(metrics.frontierScalarRaysPerDepth.empty());
     EXPECT_TRUE(metrics.frontierPacketScalarFallbackRaysPerDepth.empty());
     EXPECT_TRUE(metrics.frontierPacketScalarFallbackRaysByReason.empty());

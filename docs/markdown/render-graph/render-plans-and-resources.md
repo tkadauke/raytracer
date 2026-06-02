@@ -656,8 +656,9 @@ metadata reports the selected
 integrator, whether batches used scalar fallback or depth-major path
 scheduling, primary sample totals, how many samples fell back to Whitted
 material compatibility shading, active sample counts per depth, batch sizes,
-frontier hit/miss and packet/scalar traversal counts, packet scalar-fallback
-reason buckets, Whitted packet-refinement material buckets,
+frontier hit/miss and packet/scalar traversal counts, Ray4/Ray8 packet chunk
+counts, packet scalar-fallback reason buckets, Whitted packet-refinement
+material buckets,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
 convergence stop decisions, observer feedback depth count, denoiser
 name/parameters/time when denoising is enabled, denoiser feature-prepass time,
@@ -882,8 +883,9 @@ images.
 After a traced wavefront render, wavefront pass nodes summarize primary sample
 count and the integrator batch execution mode; the property editor exposes the
 full JSON metadata for tile, queue, batch, active-depth, per-depth radiance
-delta, packet chunk/ray frontier utilization, convergence-threshold/stop, tile
-load-balance counts, and sample-generation/integrator worker timing details,
+delta, packet chunk/ray and Ray4/Ray8 frontier utilization,
+convergence-threshold/stop, tile load-balance counts, and
+sample-generation/integrator worker timing details,
 including the intersection and shading split inside the integrator bucket, the
 residual batch-overhead bucket, and path-tracing overhead sub-buckets for setup,
 frontier bookkeeping, progress snapshots, and convergence checks.

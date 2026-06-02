@@ -85,6 +85,8 @@ namespace engine::wavefront {
     addCounts(frontierRayMissesPerDepth, metrics.frontierRayMissesPerDepth);
     addCounts(frontierPacketChunksPerDepth, metrics.frontierPacketChunksPerDepth);
     addCounts(frontierPacketRaysPerDepth, metrics.frontierPacketRaysPerDepth);
+    addCounts(frontierRay4PacketChunksPerDepth, metrics.frontierRay4PacketChunksPerDepth);
+    addCounts(frontierRay8PacketChunksPerDepth, metrics.frontierRay8PacketChunksPerDepth);
     addCounts(frontierScalarRaysPerDepth, metrics.frontierScalarRaysPerDepth);
     addCounts(frontierPacketScalarFallbackRaysPerDepth,
               metrics.frontierPacketScalarFallbackRaysPerDepth);
@@ -146,6 +148,10 @@ namespace engine::wavefront {
     const QJsonArray frontierPacketChunksPerDepth =
       integerArray(batching.frontierPacketChunksPerDepth);
     const QJsonArray frontierPacketRaysPerDepth = integerArray(batching.frontierPacketRaysPerDepth);
+    const QJsonArray frontierRay4PacketChunksPerDepth =
+      integerArray(batching.frontierRay4PacketChunksPerDepth);
+    const QJsonArray frontierRay8PacketChunksPerDepth =
+      integerArray(batching.frontierRay8PacketChunksPerDepth);
     const QJsonArray frontierScalarRaysPerDepth = integerArray(batching.frontierScalarRaysPerDepth);
     const QJsonArray frontierPacketScalarFallbackRaysPerDepth =
       integerArray(batching.frontierPacketScalarFallbackRaysPerDepth);
@@ -191,6 +197,8 @@ namespace engine::wavefront {
     batchingJson["frontierRayMissesPerDepth"] = frontierRayMissesPerDepth;
     batchingJson["frontierPacketChunksPerDepth"] = frontierPacketChunksPerDepth;
     batchingJson["frontierPacketRaysPerDepth"] = frontierPacketRaysPerDepth;
+    batchingJson["frontierRay4PacketChunksPerDepth"] = frontierRay4PacketChunksPerDepth;
+    batchingJson["frontierRay8PacketChunksPerDepth"] = frontierRay8PacketChunksPerDepth;
     batchingJson["frontierScalarRaysPerDepth"] = frontierScalarRaysPerDepth;
     batchingJson["frontierPacketScalarFallbackRaysPerDepth"] =
       frontierPacketScalarFallbackRaysPerDepth;

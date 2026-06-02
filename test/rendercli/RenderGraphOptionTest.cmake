@@ -1599,6 +1599,16 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_rays=")
                   "wavefront metrics summary did not contain frontier packet ray counters"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_ray4_packet_chunks=")
+  _rendercli_fail("rendercli wavefront metrics frontier Ray4 packet chunk summary"
+                  "wavefront metrics summary did not contain frontier Ray4 packet chunk counters"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_ray8_packet_chunks=")
+  _rendercli_fail("rendercli wavefront metrics frontier Ray8 packet chunk summary"
+                  "wavefront metrics summary did not contain frontier Ray8 packet chunk counters"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_scalar_rays=")
   _rendercli_fail("rendercli wavefront metrics frontier scalar ray summary"
                   "wavefront metrics summary did not contain frontier scalar ray counters"
@@ -1699,6 +1709,16 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"frontierPacketRaysPerDepth\"")
   _rendercli_fail("rendercli wavefront metrics frontier packet rays"
                   "wavefront metrics report did not contain frontier packet ray counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"frontierRay4PacketChunksPerDepth\"")
+  _rendercli_fail("rendercli wavefront metrics frontier Ray4 packet chunks"
+                  "wavefront metrics report did not contain frontier Ray4 packet chunk counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"frontierRay8PacketChunksPerDepth\"")
+  _rendercli_fail("rendercli wavefront metrics frontier Ray8 packet chunks"
+                  "wavefront metrics report did not contain frontier Ray8 packet chunk counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"frontierScalarRaysPerDepth\"")

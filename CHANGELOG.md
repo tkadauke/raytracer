@@ -85,6 +85,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   compact summaries now report min/average/max non-empty tile sample counts, so
   queue-size and tile-size tuning can see load-balance shape beside total tile
   count. — GPT-5
+- **Wavefront packet-width metrics.** Wavefront frontier metrics now split
+  packet chunk counts into Ray4 and Ray8 buckets in JSON reports, rendercli
+  compact summaries, and Modeler graph trace summaries, making packet fill
+  quality visible for Phase 7 tuning. — GPT-5
 - **Wavefront refinement material diagnostics.** Whitted wavefront metrics now
   break packet-hit scalar refinement counts down by material family in JSON
   reports, compact rendercli summaries, and graph pass trace text. — GPT-5

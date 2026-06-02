@@ -56,6 +56,8 @@ namespace render {
     std::uint64_t frontierRayMisses{0};
     std::uint64_t frontierPacketChunks{0};
     std::uint64_t frontierPacketRays{0};
+    std::uint64_t frontierRay4PacketChunks{0};
+    std::uint64_t frontierRay8PacketChunks{0};
     std::uint64_t frontierScalarRays{0};
     std::uint64_t frontierPacketScalarFallbackRays{0};
     std::map<std::string, std::uint64_t> frontierPacketScalarFallbackRaysByReason;
@@ -201,6 +203,7 @@ namespace render {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
       if (depthMetrics.trackFrontierMetrics()) {
         ++depthMetrics.frontierPacketChunks;
+        ++depthMetrics.frontierRay4PacketChunks;
         depthMetrics.frontierPacketRays += Ray4::lanes;
       }
       for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
@@ -256,6 +259,7 @@ namespace render {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
       if (depthMetrics.trackFrontierMetrics()) {
         ++depthMetrics.frontierPacketChunks;
+        ++depthMetrics.frontierRay8PacketChunks;
         depthMetrics.frontierPacketRays += Ray8::lanes;
       }
       for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
@@ -530,6 +534,7 @@ namespace render {
                                              depthMetrics.frontierRayMisses);
         metrics->recordFrontierTraversal(
           depthMetrics.frontierPacketChunks, depthMetrics.frontierPacketRays,
+          depthMetrics.frontierRay4PacketChunks, depthMetrics.frontierRay8PacketChunks,
           depthMetrics.frontierScalarRays, depthMetrics.frontierPacketScalarFallbackRays,
           /*packetRefinedRays=*/0);
         metrics->recordPacketScalarFallbacksByReason(
