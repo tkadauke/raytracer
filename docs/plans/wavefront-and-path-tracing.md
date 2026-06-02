@@ -943,11 +943,11 @@ Boolean and closed-solid CSG composites (`Union`, `Difference`,
 children materialize lane-local `HitPointInterval`s, the CSG node applies the
 same union/difference/intersection/closed-solid set operation per lane, and the
 closest positive hit is then projected back to the packet-hit contract. Sphere,
-Box, OpenCylinder, and static Instance wrappers publish direct Ray4/Ray8 packet
-intervals, so common beveled dice-style CSG avoids scalar materialization
-fallback at both the CSG node and its key leaves. `ConvexOperation` subclasses
-still keep the scalar fallback until support-map CSG gets its own packet
-contract.
+Box, OpenCylinder, Torus, and static Instance wrappers publish direct Ray4/Ray8
+packet intervals, so common beveled dice/cylinder/ring-style CSG avoids scalar
+materialization fallback at both the CSG node and its key leaves.
+`ConvexOperation` subclasses still keep the scalar fallback until support-map
+CSG gets its own packet contract.
 `Grid` also keeps the scalar fallback for packet-hit materialization, but does
 so deliberately to preserve its DDA cell traversal instead of inheriting
 plain-composite linear child scans.

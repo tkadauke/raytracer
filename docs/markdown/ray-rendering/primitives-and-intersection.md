@@ -66,8 +66,8 @@ Leaf primitives can then override the materialized packet form directly;
 `Sphere`, `Plane`, `Triangle`, `Box`, `Disk`, `Rectangle`, `OpenCylinder`, and
 mesh-backed triangle leaves already do this so common analytic geometry and
 triangle-heavy BVHs avoid the generic interval fallback on wavefront packet
-frontiers. Sphere, Box, and OpenCylinder also expose packet intervals, which
-keeps common beveled box-minus-sphere CSG on the packet path. Wrapper
+frontiers. Sphere, Box, OpenCylinder, and Torus also expose packet intervals,
+which keeps common beveled CSG on the packet path. Wrapper
 primitives matter too: `Instance` transforms static ray packets into local
 space before delegating and then transforms materialized hits or intervals back
 to world space, while `MeshPrimitive` forwards packet-hit requests to its

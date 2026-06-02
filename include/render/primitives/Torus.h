@@ -27,6 +27,10 @@ namespace render {
     intersectPacketHits(const Ray4& rays, const PrimitivePacketState4& states) const override;
     PrimitivePacketHit8 intersectPacketHits(const Ray8& rays,
                                             const PrimitivePacketState8& states) const override;
+    PrimitivePacketInterval4
+    intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4& states) const override;
+    PrimitivePacketInterval8
+    intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const override;
 
     /**
       * Mesh approximation. The torus is aligned with its hole along
@@ -73,6 +77,8 @@ namespace render {
   private:
     template<typename Packet, typename StateArray, typename Result>
     Result intersectPacketHitsFor(const Packet& rays, const StateArray& states) const;
+    template<typename Packet, typename StateArray, typename Result>
+    Result intersectPacketIntervalsFor(const Packet& rays, const StateArray& states) const;
 
     SortedResult<double, 4> sortedIntersectionDistances(const Rayd& ray) const;
     void addIntersectionHits(const Rayd& ray, const SortedResult<double, 4>& distances,

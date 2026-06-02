@@ -77,6 +77,53 @@ PrimitivePacketHit8 Torus::intersectPacketHits(const Ray8& rays,
   return intersectPacketHitsFor<Ray8, PrimitivePacketState8, PrimitivePacketHit8>(rays, states);
 }
 
+template<typename Packet, typename StateArray, typename Result>
+Result Torus::intersectPacketIntervalsFor(const Packet& rays, const StateArray& states) const {
+  Result result;
+  for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    const Rayd ray = rays.rayd(lane);
+
+    if (!boundingBoxIntersects(ray)) {
+      state.miss(this, "Torus, bounding box miss");
+      continue;
+    }
+
+    const auto distances = sortedIntersectionDistances(ray);
+    HitPointInterval hitPoints;
+    addIntersectionHits(ray, distances, hitPoints);
+
+    if (hitPoints.empty()) {
+      state.miss(this, "Torus, ray miss");
+      continue;
+    }
+
+    const HitPoint& hitPoint = hitPoints.minWithPositiveDistance();
+    if (hitPoint.isUndefined()) {
+      result.setInterval(lane, nullptr, hitPoints);
+      state.miss(this, "Torus, behind Ray");
+      continue;
+    }
+
+    result.setInterval(lane, this, hitPoints);
+    state.hit(this, "Torus");
+  }
+  return result;
+}
+
+PrimitivePacketInterval4
+Torus::intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4& states) const {
+  return intersectPacketIntervalsFor<Ray4, PrimitivePacketState4, PrimitivePacketInterval4>(rays,
+                                                                                            states);
+}
+
+PrimitivePacketInterval8
+Torus::intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const {
+  return intersectPacketIntervalsFor<Ray8, PrimitivePacketState8, PrimitivePacketInterval8>(rays,
+                                                                                            states);
+}
+
 shared_ptr<Mesh> Torus::tessellate(int lod) const {
   const int majorSegs = 16 << lod; // 16, 32, 64, …
   const int minorSegs = 16 << lod;

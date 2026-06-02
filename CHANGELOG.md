@@ -147,7 +147,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   a true packet-grid walker exists. — GPT-5
 - **CSG packet intervals.** Boolean and closed-solid CSG nodes now compose
   Ray4/Ray8 child hit intervals through a packet interval contract, while
-  Sphere, Box, OpenCylinder, and static Instance wrappers expose packet
+  Sphere, Box, OpenCylinder, Torus, and static Instance wrappers expose packet
   intervals so common beveled dice-style CSG avoids scalar materialization
   fallback. — GPT-5
 - **Wavefront packet fallback diagnostics.** Wavefront metrics now report

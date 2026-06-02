@@ -122,6 +122,46 @@ namespace TorusTest {
     }
   }
 
+  TEST(Torus, ShouldMaterializeRay4PacketIntervals) {
+    Torus torus(2, 1);
+    const Ray4 rays(std::array<Rayd, 4>{
+      Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -4), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(0, 0, 4), Vector3d(0, 0, 1)), Rayd(Vector3d(), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = torus.intersectPacketIntervals(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    ASSERT_TRUE(result.hasInterval(0));
+    EXPECT_EQ(&torus, result.primitive(0));
+    EXPECT_EQ(4u, result.interval(0).points().size());
+    EXPECT_EQ(1, result.interval(0).min().distance());
+    EXPECT_EQ(7, result.interval(0).max().distance());
+    EXPECT_FALSE(result.scalarFallback(0));
+
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hasInterval(1));
+    EXPECT_FALSE(result.hit(2));
+    EXPECT_FALSE(result.hasInterval(2));
+
+    ASSERT_TRUE(result.hit(3));
+    ASSERT_TRUE(result.hasInterval(3));
+    EXPECT_EQ(4u, result.interval(3).points().size());
+    EXPECT_NEAR(-3, result.interval(3).min().distance(), 1e-12);
+    EXPECT_NEAR(1, result.interval(3).minWithPositiveDistance().distance(), 1e-12);
+    EXPECT_NEAR(3, result.interval(3).max().distance(), 1e-12);
+    EXPECT_FALSE(result.scalarFallback(3));
+
+    EXPECT_EQ(1, laneStates[0].intersectionHits);
+    EXPECT_EQ(1, laneStates[1].intersectionMisses);
+    EXPECT_EQ(1, laneStates[2].intersectionMisses);
+    EXPECT_EQ(1, laneStates[3].intersectionHits);
+    for (const State& state : laneStates) {
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
+    }
+  }
+
   TEST(Torus, ShouldMaterializeRay8PacketHits) {
     Torus torus(2, 1);
     const Ray8 rays(std::array<Rayd, 8>{
