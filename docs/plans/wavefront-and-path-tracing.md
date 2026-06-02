@@ -605,7 +605,10 @@ capture-script baseline from that sweep: active fraction `0.05` and RMS delta
 `0.002`. Preview remains looser (`0.05` / `0.02`) and Final remains exact
 (`0.0` / `0.0`). The capture script reads those shipped constants when its
 threshold environment overrides are unset, so future default tuning only has
-one source of truth.
+one source of truth. rendercli graph export also resolves
+`--wavefront_convergence` without explicit numeric thresholds to those shipped
+defaults, so exported graph JSON shows the concrete pass state the engine will
+execute.
 Wavefront metrics now report summed worker time for sample generation and
 integrator batches as well, giving future captures a direct way to tell whether
 the worker bottleneck is camera/sample setup or intersection/material transport

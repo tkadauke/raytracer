@@ -42,6 +42,7 @@
 #include "render/viewplanes/TiledViewPlane.h"
 
 #include "core/Buffer.h"
+#include "core/math/Constants.h"
 
 #include "engine/graph/RenderAOV.h"
 
@@ -1495,8 +1496,15 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.raytracer().setSamplesPerPixel(m_samplesPerPixel);
   if (m_samplingSeed)
     options.raytracer().setSamplingSeed(*m_samplingSeed);
-  if (m_wavefrontConvergenceSet)
+  if (m_wavefrontConvergenceSet) {
     options.raytracer().setConvergenceEnabled(m_wavefrontConvergenceEnabled);
+    if (m_wavefrontConvergenceEnabled) {
+      options.raytracer().setConvergenceActiveSampleFractionThreshold(
+        RAYTRACER_WAVEFRONT_ACTIVE_SAMPLE_FRACTION_THRESHOLD);
+      options.raytracer().setConvergenceRadianceDeltaRmsThreshold(
+        RAYTRACER_WAVEFRONT_RADIANCE_DELTA_RMS_THRESHOLD);
+    }
+  }
   if (m_wavefrontConvergenceActiveFractionSet) {
     options.raytracer().setConvergenceActiveSampleFractionThreshold(
       m_wavefrontConvergenceActiveFraction);

@@ -207,6 +207,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront convergence capture defaults.** The convergence benchmark script
   now reads its default active-fraction/RMS thresholds from the shipped
   Balanced convergence constants unless explicitly overridden. — GPT-5
+- **rendercli wavefront convergence graph state.** `--wavefront_convergence`
+  now writes the shipped default active-fraction/RMS thresholds into exported
+  graph pass state when the user does not supply explicit threshold overrides. — GPT-5
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5

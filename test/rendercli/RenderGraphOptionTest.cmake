@@ -122,6 +122,8 @@ set(wavefront_indirect_bounce_whitted_render
     "${TEST_OUTPUT_DIR}/wavefront-indirect-bounce-whitted-render.png")
 set(wavefront_pathtracer_plan "${TEST_OUTPUT_DIR}/wavefront-pathtracer-graph.json")
 set(wavefront_convergence_plan "${TEST_OUTPUT_DIR}/wavefront-convergence-graph.json")
+set(wavefront_default_convergence_plan
+    "${TEST_OUTPUT_DIR}/wavefront-default-convergence-graph.json")
 set(wavefront_denoise_plan "${TEST_OUTPUT_DIR}/wavefront-denoise-graph.json")
 set(wavefront_scene_denoise_plan "${TEST_OUTPUT_DIR}/wavefront-scene-denoise-graph.json")
 set(wavefront_scene_denoise_render "${TEST_OUTPUT_DIR}/wavefront-scene-denoise-render.png")
@@ -1947,6 +1949,31 @@ if(NOT wavefront_convergence_graph
    MATCHES "\"radianceDeltaRmsThreshold\"[ \r\n]*:[ \r\n]*0\\.125")
   message(FATAL_ERROR
           "wavefront convergence graph did not contain RMS delta threshold: ${wavefront_convergence_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli exports wavefront default convergence thresholds"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --engine wavefront --integrator pathtracer --wavefront_convergence
+    --width 32 --height 16 "${static_scene}" "${wavefront_default_convergence_plan}"
+)
+rendercli_assert_nonempty("${wavefront_default_convergence_plan}"
+                          NAME "wavefront default convergence graph output")
+file(READ "${wavefront_default_convergence_plan}" wavefront_default_convergence_graph)
+if(NOT wavefront_default_convergence_graph
+   MATCHES "\"activeSampleFractionThreshold\"[ \r\n]*:[ \r\n]*0\\.05")
+  message(
+    FATAL_ERROR
+      "wavefront default convergence graph did not contain active fraction threshold: ${wavefront_default_convergence_graph}"
+  )
+endif()
+if(NOT wavefront_default_convergence_graph
+   MATCHES "\"radianceDeltaRmsThreshold\"[ \r\n]*:[ \r\n]*0\\.002")
+  message(
+    FATAL_ERROR
+      "wavefront default convergence graph did not contain RMS delta threshold: ${wavefront_default_convergence_graph}"
+  )
 endif()
 
 rendercli_run(
