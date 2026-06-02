@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Wavefront graph packet ratios.** Modeler render graph pass tooltips now
+  show packet-fill and scalar-tail percentages for wavefront packet frontiers.
+  — GPT-5
 - **Wavefront compact packet ratios.** rendercli wavefront metrics summaries
   now print packet-fill, scalar-tail, and packet scalar-fallback fractions
   beside the raw packet counters. — GPT-5

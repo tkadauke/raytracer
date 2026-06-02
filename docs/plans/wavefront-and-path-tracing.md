@@ -1044,6 +1044,9 @@ and worker-time buckets for each queue/variant pair.
 rendercli's compact wavefront metrics line now prints those same derived
 packet-fill, scalar-tail, and packet-fallback fractions next to the raw frontier
 counters, so one-off captures and queue sweeps use the same tuning vocabulary.
+Modeler graph-node tooltips now show the packet-fill and scalar-tail
+percentages too, keeping the interactive graph trace aligned with rendercli's
+compact diagnostic language.
 A first 160x120 BVH queue sweep also exposed a rendercli graph-path mismatch:
 graph-backed ray-family renders inherited the scene camera's progressive view
 plane while direct rendercli final renders used `TiledViewPlane`. Very small

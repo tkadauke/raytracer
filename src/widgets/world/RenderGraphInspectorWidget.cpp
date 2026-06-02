@@ -109,6 +109,7 @@ struct RenderGraphInspectorWidget::Private {
   QString executionStateName(PassExecutionState state) const;
   qulonglong jsonIntegerArraySum(const QJsonArray& array) const;
   QString jsonIntegerObjectSummary(const QJsonObject& object) const;
+  QString percentage(double numerator, double denominator) const;
   QString passTraceLine(const RenderPassNode& pass) const;
   const RenderGraphResourceSnapshot*
   firstSnapshotForResource(const RenderResourceId& resourceId) const;
@@ -376,6 +377,12 @@ RenderGraphInspectorWidget::Private::jsonIntegerObjectSummary(const QJsonObject&
   return values.join(QStringLiteral("/"));
 }
 
+QString RenderGraphInspectorWidget::Private::percentage(double numerator,
+                                                        double denominator) const {
+  const double ratio = denominator == 0.0 ? 0.0 : numerator / denominator;
+  return QStringLiteral("%1%").arg(ratio * 100.0, 0, 'f', 2);
+}
+
 QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode& pass) const {
   if (!trace)
     return QString();
@@ -435,15 +442,21 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
     const qulonglong packetRefinedRays = jsonIntegerArraySum(
       batching.value(QStringLiteral("frontierPacketRefinedRaysPerDepth")).toArray());
     if (packetChunks > 0 || scalarRays > 0) {
-      line += QStringLiteral(
-                ", packets %1 rays/%2 chunks (Ray8 %3, Ray4 %4)/scalar %5/fallback %6/refined %7")
-                .arg(packetRays)
-                .arg(packetChunks)
-                .arg(ray8PacketChunks)
-                .arg(ray4PacketChunks)
-                .arg(scalarRays)
-                .arg(packetScalarFallbackRays)
-                .arg(packetRefinedRays);
+      const double packetLaneCapacity =
+        static_cast<double>(ray8PacketChunks) * 8.0 + static_cast<double>(ray4PacketChunks) * 4.0;
+      line +=
+        QStringLiteral(", packets %1 rays/%2 chunks (Ray8 %3, Ray4 %4), fill %5, scalar tail %6, "
+                       "scalar %7/fallback %8 (%9)/refined %10")
+          .arg(packetRays)
+          .arg(packetChunks)
+          .arg(ray8PacketChunks)
+          .arg(ray4PacketChunks)
+          .arg(percentage(packetRays, packetLaneCapacity))
+          .arg(percentage(scalarRays, static_cast<double>(packetRays + scalarRays)))
+          .arg(scalarRays)
+          .arg(packetScalarFallbackRays)
+          .arg(percentage(packetScalarFallbackRays, packetRays))
+          .arg(packetRefinedRays);
       const QString refinedByMaterial = jsonIntegerObjectSummary(
         batching.value(QStringLiteral("frontierPacketRefinedRaysByMaterial")).toObject());
       const QString fallbackByReason = jsonIntegerObjectSummary(

@@ -644,6 +644,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("packets")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("Ray8")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("Ray4")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("fill")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("scalar tail")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowRasterMetricsOnSelectedPassRow) {
