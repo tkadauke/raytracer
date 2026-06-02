@@ -100,6 +100,50 @@ namespace RectangleTest {
     EXPECT_EQ(1, laneStates[3].intersectionMisses);
   }
 
+  TEST(Rectangle, ShouldMaterializeRay8PacketHits) {
+    Rectangle rectangle(Vector3d(-1, -1, 0), Vector3d(2, 0, 0), Vector3d(0, 2, 0));
+    const Ray8 rays(std::array<Rayd, Ray8::lanes>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(2, 2, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(-0.5, -0.5, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0.5, -0.5, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(-0.5, 0.5, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0.5, 0.5, -2), Vector3d(0, 0, 1))});
+    std::array<State, Ray8::lanes> laneStates;
+    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
+                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+
+    const auto result = rectangle.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(&rectangle, result.primitive(0));
+    EXPECT_EQ(Vector3d(0, 0, 0), result.hitPoint(0).point());
+    EXPECT_EQ(Vector3d(0, 0, 1), result.hitPoint(0).normal());
+    EXPECT_EQ(2, result.hitPoint(0).distance());
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hit(2));
+    EXPECT_FALSE(result.hit(3));
+    ASSERT_TRUE(result.hit(4));
+    EXPECT_EQ(Vector3d(-0.5, -0.5, 0), result.hitPoint(4).point());
+    ASSERT_TRUE(result.hit(5));
+    EXPECT_EQ(Vector3d(0.5, -0.5, 0), result.hitPoint(5).point());
+    ASSERT_TRUE(result.hit(6));
+    EXPECT_EQ(Vector3d(-0.5, 0.5, 0), result.hitPoint(6).point());
+    ASSERT_TRUE(result.hit(7));
+    EXPECT_EQ(Vector3d(0.5, 0.5, 0), result.hitPoint(7).point());
+    EXPECT_EQ(1, laneStates[0].intersectionHits);
+    EXPECT_EQ(1, laneStates[1].intersectionMisses);
+    EXPECT_EQ(1, laneStates[2].intersectionMisses);
+    EXPECT_EQ(1, laneStates[3].intersectionMisses);
+    EXPECT_EQ(1, laneStates[4].intersectionHits);
+    EXPECT_EQ(1, laneStates[5].intersectionHits);
+    EXPECT_EQ(1, laneStates[6].intersectionHits);
+    EXPECT_EQ(1, laneStates[7].intersectionHits);
+    for (const auto& state : laneStates) {
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
+    }
+  }
+
   TEST(Rectangle, ShouldReturnBoundingBox) {
     Rectangle rectangle(Vector3d(-1, -1, 0), Vector3d(1, 0, 0), Vector3d(0, 1, 0));
     BoundingBoxd expected = BoundingBoxd(Vector3d(-1, -1, 0), Vector3d(0, 0, 0)).grownByEpsilon();

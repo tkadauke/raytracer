@@ -28,6 +28,8 @@ namespace render {
                                        render::State& state) const override;
     PrimitivePacketHit4 intersectPacketHits(const Ray4& rays,
                                             const PrimitivePacketState4& states) const override;
+    PrimitivePacketHit8 intersectPacketHits(const Ray8& rays,
+                                            const PrimitivePacketState8& states) const override;
     virtual Vector3d farthestPoint(const Vector3d& direction) const override;
 
     /**
@@ -61,6 +63,9 @@ namespace render {
     virtual BoundingBoxd calculateBoundingBox() const override;
 
   private:
+    template<typename Packet, typename StateArray, typename Result>
+    Result intersectPacketHitsFor(const Packet& rays, const StateArray& states) const;
+
     Vector4d m_center;
     Vector3d m_normal;
     double m_radius, m_squaredRadius;

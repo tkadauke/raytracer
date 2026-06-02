@@ -49,10 +49,10 @@ const Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoin
   return this;
 }
 
-PrimitivePacketHit4 Rectangle::intersectPacketHits(const Ray4& rays,
-                                                   const PrimitivePacketState4& states) const {
-  PrimitivePacketHit4 result;
-  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+template<typename Packet, typename StateArray, typename Result>
+Result Rectangle::intersectPacketHitsFor(const Packet& rays, const StateArray& states) const {
+  Result result;
+  for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
     State fallbackState;
     State& state = states[lane] ? *states[lane] : fallbackState;
     const Rayd ray = rays.rayd(lane);
@@ -85,6 +85,16 @@ PrimitivePacketHit4 Rectangle::intersectPacketHits(const Ray4& rays,
     result.setHit(lane, this, HitPoint(this, t, hitPoint, m_normal));
   }
   return result;
+}
+
+PrimitivePacketHit4 Rectangle::intersectPacketHits(const Ray4& rays,
+                                                   const PrimitivePacketState4& states) const {
+  return intersectPacketHitsFor<Ray4, PrimitivePacketState4, PrimitivePacketHit4>(rays, states);
+}
+
+PrimitivePacketHit8 Rectangle::intersectPacketHits(const Ray8& rays,
+                                                   const PrimitivePacketState8& states) const {
+  return intersectPacketHitsFor<Ray8, PrimitivePacketState8, PrimitivePacketHit8>(rays, states);
 }
 
 std::shared_ptr<Mesh> Rectangle::tessellate(int) const {

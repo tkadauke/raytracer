@@ -121,6 +121,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   materialize eight-wide packet hits directly, moving analytic boxes and
   triangle-heavy frontiers further off the scalar materialization fallback path.
   — GPT-5
+- **Disk and Rectangle Ray8 packet hits.** Disk and Rectangle primitives now
+  materialize eight-wide packet hits directly, keeping flat finite-surface
+  frontiers on the packet materialization path. — GPT-5
 - **Wavefront packet fallback diagnostics.** Wavefront metrics now report
   per-depth packet lanes that fell back to scalar hit materialization, exposing
   remaining primitive packet-kernel gaps in graph traces, rendercli summaries,
