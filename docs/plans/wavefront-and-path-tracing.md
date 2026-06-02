@@ -676,7 +676,10 @@ colors; those colors are computed only at the miss/shading sites where
 radiance-delta metrics or convergence can consume them. Whitted and
 path-tracing frontier hit/miss, packet, and packet-fallback counters are now
 metric-gated too, so plain wavefront renders do not maintain diagnostic
-counters that only JSON/trace/summary output can consume. Disabled
+counters that only JSON/trace/summary output can consume. Whitted continuation
+queues now retain their storage across depth passes as well, so explicit
+reflection/refraction frontiers reuse the same two queue buffers instead of
+constructing a fresh successor queue each pass. Disabled
 `ScopedTimer` instances
 also skip clock reads now, so ordinary renders do not pay timing overhead when
 no metric bucket is requested. A follow-up 160x120, 16spp,

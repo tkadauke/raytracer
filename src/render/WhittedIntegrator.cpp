@@ -289,6 +289,14 @@ namespace render {
     }
   }
 
+  void WhittedIntegrator::prepareContinuationQueue(std::vector<QueuedRay>& next,
+                                                   std::size_t currentQueueSize) const {
+    next.clear();
+    if (next.capacity() < currentQueueSize) {
+      next.reserve(currentQueueSize);
+    }
+  }
+
   void WhittedIntegrator::shadeQueuedHit(const Scene& scene, const RayCaster& recursiveRayCaster,
                                          const QueuedHit& hit, std::vector<QueuedRay>& current,
                                          std::vector<QueuedRay>& next, std::vector<Colord>& result,
@@ -358,6 +366,8 @@ namespace render {
 
     std::vector<QueuedRay> current;
     current.reserve(samples.size());
+    std::vector<QueuedRay> next;
+    next.reserve(samples.size());
     std::vector<QueuedHit> activeHits;
     activeHits.reserve(samples.size());
     for (std::size_t index = 0; index != samples.size(); ++index) {
@@ -393,8 +403,7 @@ namespace render {
         }
       }
 
-      std::vector<QueuedRay> next;
-      next.reserve(current.size());
+      prepareContinuationQueue(next, current.size());
       if (countNextActiveSamples) {
         std::fill(nextActiveSamples.begin(), nextActiveSamples.end(), 0);
       }
@@ -460,7 +469,7 @@ namespace render {
         }
       }
 
-      current = std::move(next);
+      current.swap(next);
     }
 
     return result;

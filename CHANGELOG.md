@@ -182,6 +182,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront frontier diagnostics overhead.** Whitted and path-tracing
   batches now update frontier hit/miss, packet, and scalar-fallback counters
   only when wavefront metrics are requested. — GPT-5
+- **Wavefront Whitted continuation queues.** Whitted batches now retain and
+  reuse the next-depth continuation queue across depth passes instead of
+  constructing a fresh queue each pass. — GPT-5
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5

@@ -66,6 +66,7 @@ namespace render {
                                  std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
                                  BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;
+    void prepareContinuationQueue(std::vector<QueuedRay>& next, std::size_t currentQueueSize) const;
     void shadeQueuedHit(const Scene& scene, const RayCaster& recursiveRayCaster,
                         const QueuedHit& hit, std::vector<QueuedRay>& current,
                         std::vector<QueuedRay>& next, std::vector<Colord>& result,
