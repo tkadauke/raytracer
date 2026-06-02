@@ -85,6 +85,17 @@ PrimitivePacketHit4 Curve::intersectPacketHits(const Ray4&,
   return result;
 }
 
+PrimitivePacketHit8 Curve::intersectPacketHits(const Ray8&,
+                                               const PrimitivePacketState8& states) const {
+  PrimitivePacketHit8 result;
+  for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    state.miss(this, "Curve, ray intersection not implemented");
+  }
+  return result;
+}
+
 void Curve::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const {
   for (const auto segment : m_polyline) {
     if (!isUsableSegment(segment.start, segment.end))

@@ -921,9 +921,9 @@ primitive-specific overrides can make leaf packet materialization faster.
 first such leaf overrides: they materialize closest positive packet hit points
 directly and update per-lane state without building scalar `HitPointInterval`
 objects.
-`Curve` also has an explicit packet path, but only to report misses directly:
-runtime curves are currently raster/wireframe/overlay geometry and do not
-ray-intersect.
+`Curve` also has explicit Ray4/Ray8 packet paths, but only to report misses
+directly: runtime curves are currently raster/wireframe/overlay geometry and do
+not ray-intersect.
 Mesh-backed triangle leaves now participate too: `MeshTriangle` owns
 cross-platform four-wide barycentric packet solving and materializes flat or
 smooth hit normals through subclass hooks, so imported triangle meshes can stay
@@ -963,9 +963,10 @@ currently a scheduler and BVH/composite contract plus first leaf kernels for
 `Sphere`, `Plane`, `Box`, `Triangle`, `Disk`, and `Rectangle`, not a claim that
 every primitive has an eight-wide materialization kernel. `OpenCylinder` and
 `Torus` now join that eight-wide leaf set for curved analytic frontiers; the
-imported-mesh leaf/wrapper path also preserves Ray8 materialized hits. The
-packet scalar-fallback metric intentionally reports the remaining leaf gaps so
-the next performance slices can target them directly.
+imported-mesh leaf/wrapper path also preserves Ray8 materialized hits, and
+`Curve` reports Ray8 misses directly. The packet scalar-fallback metric
+intentionally reports the remaining leaf gaps so the next performance slices can
+target them directly.
 Materials now own that decision: local Matte/Phong shading consumes packet hits
 directly, while reflective, transparent, portal, and custom materials keep the
 scalar refinement default because their secondary rays depend on scalar

@@ -134,6 +134,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Ray8 CSG packet semantics.** CSG and convex-operation nodes now explicitly
   preserve scalar interval semantics for eight-wide packet-hit requests instead
   of inheriting plain composite child-hit merging. — GPT-5
+- **Curve Ray8 packet misses.** Runtime curves now report eight-wide
+  packet-hit misses directly, avoiding scalar fallback accounting for geometry
+  that is intentionally non-ray-intersectable. — GPT-5
 - **Wavefront packet fallback diagnostics.** Wavefront metrics now report
   per-depth packet lanes that fell back to scalar hit materialization, exposing
   remaining primitive packet-kernel gaps in graph traces, rendercli summaries,
