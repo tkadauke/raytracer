@@ -13,6 +13,7 @@
 #include "render/textures/ConstantColorTexture.h"
 
 #include "core/Buffer.h"
+#include "core/math/Constants.h"
 
 #include "test/helpers/ColorTestHelper.h"
 
@@ -251,6 +252,11 @@ namespace WavefrontRaytracerTest {
 
     EXPECT_NE(nullptr, dynamic_cast<const render::WhittedIntegrator*>(&renderer.integrator()));
     EXPECT_FALSE(renderer.metricsEnabled());
+    EXPECT_FALSE(renderer.convergenceEnabled());
+    EXPECT_DOUBLE_EQ(RAYTRACER_WAVEFRONT_ACTIVE_SAMPLE_FRACTION_THRESHOLD,
+                     renderer.convergenceActiveSampleFractionThreshold());
+    EXPECT_DOUBLE_EQ(RAYTRACER_WAVEFRONT_RADIANCE_DELTA_RMS_THRESHOLD,
+                     renderer.convergenceRadianceDeltaRmsThreshold());
   }
 
   TEST(WavefrontRaytracer, AppliesMaximumRecursionDepthToCurrentIntegrator) {

@@ -80,14 +80,15 @@ inline constexpr double GOLDEN_RATIO = 1.6180339887498948482;
 inline constexpr double RAYTRACER_THROUGHPUT_CUTOFF = 1e-4;
 
 /**
-  * Default per-depth RMS radiance delta threshold for future wavefront
-  * convergence termination. The first wavefront slices expose and report this
-  * setting before using it as a stop condition.
+  * Default per-depth RMS radiance delta threshold for opt-in wavefront
+  * convergence termination. The value comes from the conservative
+  * `pathtracer_bounce` capture sweep: it kept normalized RGB RMS delta below
+  * 0.002 while allowing some early tile stops.
   */
-inline constexpr double RAYTRACER_WAVEFRONT_RADIANCE_DELTA_RMS_THRESHOLD = 1e-4;
+inline constexpr double RAYTRACER_WAVEFRONT_RADIANCE_DELTA_RMS_THRESHOLD = 0.002;
 
 /**
-  * Default fraction of samples allowed to remain active before future
+  * Default fraction of samples allowed to remain active before opt-in
   * wavefront convergence termination may stop a tile.
   */
-inline constexpr double RAYTRACER_WAVEFRONT_ACTIVE_SAMPLE_FRACTION_THRESHOLD = 0.001;
+inline constexpr double RAYTRACER_WAVEFRONT_ACTIVE_SAMPLE_FRACTION_THRESHOLD = 0.05;

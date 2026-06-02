@@ -200,6 +200,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront Whitted setup timing.** Whitted batches now charge initial result
   buffers, active-sample marks, hit queues, and queued primary rays to the
   setup worker-time bucket instead of leaving them in generic batch overhead. — GPT-5
+- **Wavefront convergence defaults.** The opt-in Balanced wavefront
+  convergence preset now uses the conservative capture-sweep thresholds
+  `active_fraction=0.05` and `rms_delta=0.002`, matching the benchmark script's
+  default tuning baseline instead of the earlier placeholder limits. — GPT-5
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5

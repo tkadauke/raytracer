@@ -246,7 +246,10 @@ cost; Whitted uses the setup bucket for initial queued-ray and result-buffer
 construction. Metrics capture is
 opt-in; requesting wavefront metrics enables graph trace collection for that
 render but does not require writing a separate trace file.
-`--wavefront_denoiser box|bilateral` requests an opt-in wavefront denoiser.
+The Modeler Balanced convergence preset uses `active_fraction=0.05` and
+`rms_delta=0.002`, matching the benchmark capture default; Preview is looser
+and Final waits for inactive paths. `--wavefront_denoiser box|bilateral`
+requests an opt-in wavefront denoiser.
 Box is a small HDR blur intended as the first graph-visible hook. Bilateral is
 a color-edge-preserving filter controlled by `--wavefront_denoise_radius N` and
 `--wavefront_denoise_color_sigma S`; giving a radius without a denoiser selects
