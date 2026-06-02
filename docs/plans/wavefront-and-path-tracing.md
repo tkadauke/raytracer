@@ -1112,8 +1112,9 @@ plan should not wait for packetized Whitted rendering.
 
 ## Open questions
 
-These need decisions before Phase 3 (the bare wavefront engine)
-starts.
+Most of these decisions are now locked by the implemented wavefront engine.
+The entries that remain open are Phase 7+ performance/layout questions rather
+than prerequisites for the engine surface.
 
 1. ~~**Whole-image or tile-based as the default?**~~ **Resolved**:
    tile-based, always. That's how the engine exploits multiple CPU
@@ -1122,17 +1123,20 @@ starts.
    The remaining question is the right tile size; default to whatever
    the recursive engine uses, retune in Phase 3 if profiling shows
    load imbalance.
-2. **Convergence-detection scheme.** L2, max, percentile,
-   active-pixel count, or combination. Lean active-pixel count + L2
-   over active subset; not locked.
+2. ~~**Convergence-detection scheme.**~~ **Resolved for v1**: use active
+   sample fraction plus RMS radiance delta over the active subset. Preview,
+   Balanced, and Final presets ship through render intent, Modeler Render
+   Settings, graph JSON, and rendercli. Phase 4 tuning remains open as a
+   performance-policy question, not as an API decision.
 3. ~~**Tree-branching strategy for v1.**~~ **Resolved for sequencing**:
    use **A** for the Whitted-parity scheduler proof, then start
    wavefront path tracing with **B** because scalar path tracing already
    landed with that shape. Revisit **C** only after variance/performance
    data says deterministic specular splitting is worth the complexity.
-4. **`PixelState` memory layout.** AoS (`std::vector<PixelState>`),
-   SoA (parallel arrays per field), or hybrid. AoS for v1; profile and
-   migrate to SoA in Phase 7 if needed.
+4. **`PixelState` memory layout.** AoS for v1. Path tracing currently keeps
+   compact per-path records plus separate sample-color storage; Phase 7 remains
+   the place to migrate hot frontier state to SoA or hybrid storage if captures
+   prove the scheduler is memory-layout bound.
 5. ~~**Samples-per-pixel control.**~~ **Resolved for v1**: global
    samples-per-pixel already exists in rendercli and render intent.
    Wavefront consumes the same setting. Per-pixel adaptive sampling is
@@ -1147,17 +1151,15 @@ starts.
    file-format-specific scene loaders. Importers may suggest sensible
    cameras/lights/backgrounds, but they should not prescribe graph
    executors except through ordinary render intent metadata.
-8. **Resume / progressive rendering.** Should the wavefront engine
-   produce a usable image after every depth pass for progressive
-   display? (It naturally can — the `accumulated` field is already a
-   valid image at every pass.) Yes, ship it. Probably want a "preview
-   on" flag for the GUI.
-9. **Integrator factoring.** How much of `PathTracingIntegrator` should
-   be factored into reusable methods/classes before wavefront path
-   tracing? Keep this OOP and behavior-owned: direct-lighting and BSDF
-   continuation behavior can move behind small transport helpers if the
-   wavefront scheduler needs them, but avoid free-function utility piles
-   or operation type switches.
+8. ~~**Resume / progressive rendering.**~~ **Resolved for v1**: wavefront
+   batches publish per-depth sample-color snapshots through the batch observer,
+   and graph-backed Modeler previews can display those intermediate images while
+   final-image rendercli paths can disable snapshot publication.
+9. ~~**Integrator factoring.**~~ **Resolved for current scope**: direct
+   lighting, active-frontier intersection, packet/scalar traversal accounting,
+   hit/miss bookkeeping, and active-path compaction now live on the owning
+   integrator types. Keep future scheduler changes on instance methods or
+   dedicated behavior-owning classes rather than helper-function piles.
 
 ---
 
