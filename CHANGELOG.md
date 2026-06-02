@@ -142,9 +142,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   tails when terminated rays are interleaved with active ones, and avoids
   re-refining packet hits that were already materialized through scalar
   fallback. — GPT-5
-- **Grid packet-hit fallback.** Grid now routes Ray4/Ray8 packet-hit requests
-  through its scalar DDA traversal fallback, preserving grid acceleration until
-  a true packet-grid walker exists. — GPT-5
+- **Grid packet-hit materialization.** Grid now owns Ray4/Ray8 packet-hit
+  materialization through its DDA traversal, preserving grid acceleration
+  without counting the lanes as generic scalar packet fallback. — GPT-5
 - **CSG packet intervals.** Boolean and closed-solid CSG nodes now compose
   Ray4/Ray8 child hit intervals through a packet interval contract, while
   Sphere, Box, OpenCylinder, Torus, and static Instance wrappers expose packet

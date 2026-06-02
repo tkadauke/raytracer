@@ -645,9 +645,11 @@ generic scalar packet-fallback bucket without claiming a vectorized GJK kernel.
 Composite, BVH, and CSG packet traversal mask lanes rejected by the parent
 before handing state to children, so graph trace fallback counters are attached
 to lanes that actually reached the child materializer.
-The rest of the primitive leaves are made eight-wide in later performance
-slices. Grid keeps a scalar packet-hit fallback for now so packet wavefront
-traversal still uses its DDA cell walk instead of a plain linear composite scan.
+Grid also owns Ray4/Ray8 packet-hit materialization through lane-local DDA
+traversal, so packet wavefront traversal still uses its cell walk instead of a
+plain linear composite scan without counting those lanes as generic scalar
+packet fallback. The rest of the primitive leaves are made eight-wide in later
+performance slices.
 This gives the graph, rendercli, and Modeler a separate executor surface for
 the scheduler work that follows. After a traced wavefront render, the pass
 metadata reports the selected

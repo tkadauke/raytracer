@@ -86,6 +86,11 @@ namespace render {
     void setup() override;
 
   private:
+    PrimitivePacketHit4
+    intersectRay4PacketHitsThroughDda(const Ray4& rays, const PrimitivePacketState4& states) const;
+    PrimitivePacketHit8
+    intersectRay8PacketHitsThroughDda(const Ray8& rays, const PrimitivePacketState8& states) const;
+
     std::vector<std::shared_ptr<Primitive>> m_cells;
     int m_numX, m_numY, m_numZ;
 

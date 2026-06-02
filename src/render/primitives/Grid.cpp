@@ -229,12 +229,46 @@ bool Grid::intersects(const Rayd& ray, render::State& state) const {
 
 PrimitivePacketHit4 Grid::intersectPacketHits(const Ray4& rays,
                                               const PrimitivePacketState4& states) const {
-  return Primitive::intersectPacketHits(rays, states);
+  return intersectRay4PacketHitsThroughDda(rays, states);
 }
 
 PrimitivePacketHit8 Grid::intersectPacketHits(const Ray8& rays,
                                               const PrimitivePacketState8& states) const {
-  return Primitive::intersectPacketHits(rays, states);
+  return intersectRay8PacketHitsThroughDda(rays, states);
+}
+
+PrimitivePacketHit4
+Grid::intersectRay4PacketHitsThroughDda(const Ray4& rays,
+                                        const PrimitivePacketState4& states) const {
+  PrimitivePacketHit4 result;
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    HitPointInterval hitPoints;
+    const Primitive* primitive = intersect(rays.rayd(lane), hitPoints, state);
+    const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+    if (primitive && !hitPoint.isUndefined()) {
+      result.setHit(lane, primitive, hitPoint);
+    }
+  }
+  return result;
+}
+
+PrimitivePacketHit8
+Grid::intersectRay8PacketHitsThroughDda(const Ray8& rays,
+                                        const PrimitivePacketState8& states) const {
+  PrimitivePacketHit8 result;
+  for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    HitPointInterval hitPoints;
+    const Primitive* primitive = intersect(rays.rayd(lane), hitPoints, state);
+    const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+    if (primitive && !hitPoint.isUndefined()) {
+      result.setHit(lane, primitive, hitPoint);
+    }
+  }
+  return result;
 }
 
 void Grid::setup() {

@@ -215,7 +215,7 @@ namespace GridTest {
     ASSERT_EQ(p.get(), grid.intersect(ray, hits, state));
   }
 
-  TEST(Grid, ShouldMaterializeRay4PacketHitsThroughDdaScalarFallback) {
+  TEST(Grid, ShouldMaterializeRay4PacketHitsThroughDdaWithoutScalarFallback) {
     Grid grid;
     auto sphere = std::make_shared<Sphere>(Vector3d(), 1.0);
     grid.add(sphere);
@@ -230,18 +230,18 @@ namespace GridTest {
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(sphere.get(), result.primitive(0));
-    EXPECT_TRUE(result.scalarFallback(0));
+    EXPECT_FALSE(result.scalarFallback(0));
     EXPECT_FALSE(result.hit(1));
     ASSERT_TRUE(result.hit(2));
     EXPECT_EQ(sphere.get(), result.primitive(2));
-    EXPECT_TRUE(result.scalarFallback(2));
+    EXPECT_FALSE(result.scalarFallback(2));
     EXPECT_FALSE(result.hit(3));
     for (const State& state : laneStates) {
-      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
 
-  TEST(Grid, ShouldMaterializeRay8PacketHitsThroughDdaScalarFallback) {
+  TEST(Grid, ShouldMaterializeRay8PacketHitsThroughDdaWithoutScalarFallback) {
     Grid grid;
     auto sphere = std::make_shared<Sphere>(Vector3d(), 1.0);
     grid.add(sphere);
@@ -259,24 +259,24 @@ namespace GridTest {
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(sphere.get(), result.primitive(0));
-    EXPECT_TRUE(result.scalarFallback(0));
+    EXPECT_FALSE(result.scalarFallback(0));
     EXPECT_FALSE(result.hit(1));
     ASSERT_TRUE(result.hit(2));
     EXPECT_EQ(sphere.get(), result.primitive(2));
-    EXPECT_TRUE(result.scalarFallback(2));
+    EXPECT_FALSE(result.scalarFallback(2));
     EXPECT_FALSE(result.hit(3));
     ASSERT_TRUE(result.hit(4));
     EXPECT_EQ(sphere.get(), result.primitive(4));
-    EXPECT_TRUE(result.scalarFallback(4));
+    EXPECT_FALSE(result.scalarFallback(4));
     ASSERT_TRUE(result.hit(5));
     EXPECT_EQ(sphere.get(), result.primitive(5));
-    EXPECT_TRUE(result.scalarFallback(5));
+    EXPECT_FALSE(result.scalarFallback(5));
     EXPECT_FALSE(result.hit(6));
     ASSERT_TRUE(result.hit(7));
     EXPECT_EQ(sphere.get(), result.primitive(7));
-    EXPECT_TRUE(result.scalarFallback(7));
+    EXPECT_FALSE(result.scalarFallback(7));
     for (const State& state : laneStates) {
-      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
 
