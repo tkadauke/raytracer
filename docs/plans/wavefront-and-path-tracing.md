@@ -1041,6 +1041,9 @@ write a per-scene `queue_sweep.summary.txt` with median render time, primary
 samples, tile load, Ray8/Ray4 packet chunks, packet-fill ratio, scalar-tail
 fraction, packet-fallback fraction, raw scalar tails, packet fallback lanes,
 and worker-time buckets for each queue/variant pair.
+rendercli's compact wavefront metrics line now prints those same derived
+packet-fill, scalar-tail, and packet-fallback fractions next to the raw frontier
+counters, so one-off captures and queue sweeps use the same tuning vocabulary.
 A first 160x120 BVH queue sweep also exposed a rendercli graph-path mismatch:
 graph-backed ray-family renders inherited the scene camera's progressive view
 plane while direct rendercli final renders used `TiledViewPlane`. Very small

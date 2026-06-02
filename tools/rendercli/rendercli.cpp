@@ -181,6 +181,15 @@ namespace {
       const QJsonObject frontierPacketRefinedByMaterial =
         batching.value("frontierPacketRefinedRaysByMaterial").toObject();
       const QJsonArray rmsDelta = batching.value("radianceDeltaRmsPerDepth").toArray();
+      const std::uint64_t frontierPacketRayCount = unsignedArraySum(frontierPacketRays);
+      const std::uint64_t frontierRay4PacketChunkCount = unsignedArraySum(frontierRay4Packets);
+      const std::uint64_t frontierRay8PacketChunkCount = unsignedArraySum(frontierRay8Packets);
+      const std::uint64_t frontierScalarRayCount = unsignedArraySum(frontierScalarRays);
+      const std::uint64_t frontierPacketScalarFallbackRayCount =
+        unsignedArraySum(frontierPacketScalarFallbackRays);
+      const double frontierPacketLaneCapacity =
+        static_cast<double>(frontierRay8PacketChunkCount) * 8.0 +
+        static_cast<double>(frontierRay4PacketChunkCount) * 4.0;
       std::cout << std::fixed << std::setprecision(3) << "wavefront_metrics"
                 << " run=" << run;
       if (!passId.isEmpty()) {
@@ -233,12 +242,19 @@ namespace {
         << " frontier_hit_rays=" << unsignedArraySum(frontierHits)
         << " frontier_miss_rays=" << unsignedArraySum(frontierMisses)
         << " frontier_packet_chunks=" << unsignedArraySum(frontierPackets)
-        << " frontier_packet_rays=" << unsignedArraySum(frontierPacketRays)
-        << " frontier_ray4_packet_chunks=" << unsignedArraySum(frontierRay4Packets)
-        << " frontier_ray8_packet_chunks=" << unsignedArraySum(frontierRay8Packets)
-        << " frontier_scalar_rays=" << unsignedArraySum(frontierScalarRays)
-        << " frontier_packet_scalar_fallback_rays="
-        << unsignedArraySum(frontierPacketScalarFallbackRays)
+        << " frontier_packet_rays=" << frontierPacketRayCount
+        << " frontier_ray4_packet_chunks=" << frontierRay4PacketChunkCount
+        << " frontier_ray8_packet_chunks=" << frontierRay8PacketChunkCount
+        << " frontier_packet_fill="
+        << ratio(static_cast<double>(frontierPacketRayCount), frontierPacketLaneCapacity)
+        << " frontier_scalar_tail_fraction="
+        << ratio(static_cast<double>(frontierScalarRayCount),
+                 static_cast<double>(frontierPacketRayCount + frontierScalarRayCount))
+        << " frontier_scalar_rays=" << frontierScalarRayCount
+        << " frontier_packet_scalar_fallback_rays=" << frontierPacketScalarFallbackRayCount
+        << " frontier_packet_scalar_fallback_fraction="
+        << ratio(static_cast<double>(frontierPacketScalarFallbackRayCount),
+                 static_cast<double>(frontierPacketRayCount))
         << " frontier_packet_scalar_fallback_by_reason="
         << unsignedObjectPairs(frontierPacketScalarFallbackByReason)
         << " frontier_packet_refined_rays=" << unsignedArraySum(frontierPacketRefinedRays)
@@ -285,6 +301,10 @@ namespace {
         result += static_cast<std::uint64_t>(value.toDouble());
       }
       return result;
+    }
+
+    double ratio(double numerator, double denominator) const {
+      return denominator == 0.0 ? 0.0 : numerator / denominator;
     }
 
     std::string unsignedObjectPairs(const QJsonObject& object) const {

@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Wavefront compact packet ratios.** rendercli wavefront metrics summaries
+  now print packet-fill, scalar-tail, and packet scalar-fallback fractions
+  beside the raw packet counters. — GPT-5
 - **Wavefront queue-sweep packet ratios.** Queue-size convergence captures now
   add packet-fill, scalar-tail, and packet-fallback fractions to
   `queue_sweep.summary.txt`, making scheduler-default tuning easier to compare

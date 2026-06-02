@@ -1667,6 +1667,16 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_ray8_packet_chunks=")
                   "wavefront metrics summary did not contain frontier Ray8 packet chunk counters"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_fill=")
+  _rendercli_fail("rendercli wavefront metrics frontier packet fill summary"
+                  "wavefront metrics summary did not contain frontier packet fill ratio"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_scalar_tail_fraction=")
+  _rendercli_fail("rendercli wavefront metrics frontier scalar tail fraction summary"
+                  "wavefront metrics summary did not contain frontier scalar tail fraction"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_scalar_rays=")
   _rendercli_fail("rendercli wavefront metrics frontier scalar ray summary"
                   "wavefront metrics summary did not contain frontier scalar ray counters"
@@ -1675,6 +1685,11 @@ endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_scalar_fallback_rays=")
   _rendercli_fail("rendercli wavefront metrics frontier packet scalar fallback summary"
                   "wavefront metrics summary did not contain frontier packet scalar fallback counters"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_scalar_fallback_fraction=")
+  _rendercli_fail("rendercli wavefront metrics frontier packet scalar fallback fraction summary"
+                  "wavefront metrics summary did not contain frontier packet scalar fallback fraction"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_scalar_fallback_by_reason=")
