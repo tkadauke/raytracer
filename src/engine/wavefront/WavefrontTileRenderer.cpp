@@ -114,6 +114,27 @@ namespace engine::wavefront::detail {
       sampleStreams.reserve(samples.capacity());
       samplePixelIndices.reserve(samples.capacity());
 
+      const auto measureValue = [&config](double& target, const auto& operation) {
+        if (!config.metricsEnabled) {
+          return operation();
+        }
+        const auto start = WavefrontMetricsRecorder::Clock::now();
+        auto value = operation();
+        target +=
+          std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() - start).count();
+        return value;
+      };
+      const auto measureVoid = [&config](double& target, const auto& operation) {
+        if (!config.metricsEnabled) {
+          operation();
+          return;
+        }
+        const auto start = WavefrontMetricsRecorder::Clock::now();
+        operation();
+        target +=
+          std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() - start).count();
+      };
+
       auto plane = camera.viewPlane();
       const auto sampler = plane->sampler();
       for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
@@ -136,12 +157,17 @@ namespace engine::wavefront::detail {
             break;
           }
 
-          render::SampleStream* stream =
-            sampler->appendStream(sampleStreams, sampleIndex, pixelHash);
-          if (auto sample = camera.primaryRaySample(pixel, *stream)) {
-            samples.push_back(
-              render::IntegratorRaySample{sample->ray, sample->timeSample, nullptr, stream});
-            samplePixelIndices.push_back(pixelIndex);
+          render::SampleStream* stream = measureValue(result.sampleStreamWorkerSeconds, [&] {
+            return sampler->appendStream(sampleStreams, sampleIndex, pixelHash);
+          });
+          auto sample = measureValue(result.primaryRayWorkerSeconds,
+                                     [&] { return camera.primaryRaySample(pixel, *stream); });
+          if (sample) {
+            measureVoid(result.sampleEnqueueWorkerSeconds, [&] {
+              samples.push_back(
+                render::IntegratorRaySample{sample->ray, sample->timeSample, nullptr, stream});
+              samplePixelIndices.push_back(pixelIndex);
+            });
           }
         }
       }

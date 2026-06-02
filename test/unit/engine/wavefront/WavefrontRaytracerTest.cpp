@@ -588,6 +588,9 @@ namespace WavefrontRaytracerTest {
     ASSERT_EQ(1u, metrics.batching.maxRadianceDeltaPerDepth.size());
     EXPECT_GT(metrics.batching.maxRadianceDeltaPerDepth[0], 0.0);
     EXPECT_GE(metrics.timings.sampleGenerationWorkerSeconds, 0.0);
+    EXPECT_GE(metrics.timings.sampleStreamWorkerSeconds, 0.0);
+    EXPECT_GE(metrics.timings.primaryRayWorkerSeconds, 0.0);
+    EXPECT_GE(metrics.timings.sampleEnqueueWorkerSeconds, 0.0);
     EXPECT_GE(metrics.timings.integratorBatchWorkerSeconds, 0.0);
     EXPECT_GE(metrics.timings.integratorIntersectionWorkerSeconds, 0.0);
     EXPECT_GE(metrics.timings.integratorShadingWorkerSeconds, 0.0);
@@ -652,6 +655,10 @@ namespace WavefrontRaytracerTest {
     ASSERT_EQ(1, maxDelta.size());
     EXPECT_GT(maxDelta.at(0).toDouble(), 0.0);
     const QJsonObject timings = json.value("timings").toObject();
+    EXPECT_TRUE(timings.contains("sampleStreamWorkerSeconds"));
+    EXPECT_TRUE(timings.contains("primaryRayWorkerSeconds"));
+    EXPECT_TRUE(timings.contains("sampleEnqueueWorkerSeconds"));
+    EXPECT_TRUE(timings.contains("sampleGenerationOverheadWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorIntersectionWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorShadingWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorOverheadWorkerSeconds"));
@@ -660,6 +667,10 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(timings.contains("integratorProgressSnapshotWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorConvergenceTestWorkerSeconds"));
     EXPECT_GE(timings.value("sampleGenerationWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("sampleStreamWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("primaryRayWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("sampleEnqueueWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("sampleGenerationOverheadWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorBatchWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorIntersectionWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorShadingWorkerSeconds").toDouble(), 0.0);

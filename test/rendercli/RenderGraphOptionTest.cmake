@@ -1519,6 +1519,17 @@ if(NOT wavefront_metrics_stdout MATCHES "sample_gen_worker_ms=")
                   "wavefront metrics summary did not contain sample generation worker timing"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+foreach(timing_name
+        stream
+        primary_ray
+        enqueue
+        gen_overhead)
+  if(NOT wavefront_metrics_stdout MATCHES "sample_${timing_name}_worker_ms=")
+    _rendercli_fail("rendercli wavefront metrics sample ${timing_name} timing summary"
+                    "wavefront metrics summary did not contain sample ${timing_name} worker timing"
+                    "${wavefront_metrics_stdout}" "" "" "")
+  endif()
+endforeach()
 if(NOT wavefront_metrics_stdout MATCHES "integrator_worker_ms=")
   _rendercli_fail("rendercli wavefront metrics integrator worker timing summary"
                   "wavefront metrics summary did not contain integrator worker timing"
@@ -1627,6 +1638,17 @@ if(NOT wavefront_metrics_json MATCHES "\"sampleGenerationWorkerSeconds\"")
                   "wavefront metrics report did not contain sample-generation worker timing"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+foreach(timing_field
+        sampleStreamWorkerSeconds
+        primaryRayWorkerSeconds
+        sampleEnqueueWorkerSeconds
+        sampleGenerationOverheadWorkerSeconds)
+  if(NOT wavefront_metrics_json MATCHES "\"${timing_field}\"")
+    _rendercli_fail("rendercli wavefront metrics ${timing_field}"
+                    "wavefront metrics report did not contain ${timing_field}"
+                    "" "" "${wavefront_metrics_json}" "")
+  endif()
+endforeach()
 if(NOT wavefront_metrics_json MATCHES "\"integratorBatchWorkerSeconds\"")
   _rendercli_fail("rendercli wavefront metrics integrator worker timing"
                   "wavefront metrics report did not contain integrator-batch worker timing"

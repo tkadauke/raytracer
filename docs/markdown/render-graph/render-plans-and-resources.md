@@ -639,8 +639,10 @@ per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
 convergence stop decisions, denoiser name/parameters/time when denoising is
 enabled, denoiser feature-prepass time, tile count, queue decision, and render
 timing split into summed worker time for sample generation and integrator batch
-work, with the integrator bucket further split into scene-intersection and
-material/shading worker time and the remaining batch overhead, plus total
+work. The sample-generation bucket is further split into sampler stream
+creation, camera primary-ray sampling, sample enqueueing, and residual
+bookkeeping overhead. The integrator bucket is split into scene-intersection
+and material/shading worker time and the remaining batch overhead, plus total
 wall-clock time. Path-tracing wavefront batches also split the overhead into
 path setup, frontier bookkeeping, progress snapshot publication, and
 convergence-test worker time.

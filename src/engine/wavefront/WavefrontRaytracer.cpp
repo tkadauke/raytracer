@@ -169,6 +169,12 @@ namespace engine::wavefront {
 
     QJsonObject timingsJson;
     timingsJson["sampleGenerationWorkerSeconds"] = timings.sampleGenerationWorkerSeconds;
+    timingsJson["sampleStreamWorkerSeconds"] = timings.sampleStreamWorkerSeconds;
+    timingsJson["primaryRayWorkerSeconds"] = timings.primaryRayWorkerSeconds;
+    timingsJson["sampleEnqueueWorkerSeconds"] = timings.sampleEnqueueWorkerSeconds;
+    timingsJson["sampleGenerationOverheadWorkerSeconds"] =
+      std::max(0.0, timings.sampleGenerationWorkerSeconds - timings.sampleStreamWorkerSeconds -
+                      timings.primaryRayWorkerSeconds - timings.sampleEnqueueWorkerSeconds);
     timingsJson["integratorBatchWorkerSeconds"] = timings.integratorBatchWorkerSeconds;
     timingsJson["integratorIntersectionWorkerSeconds"] =
       timings.integratorIntersectionWorkerSeconds;

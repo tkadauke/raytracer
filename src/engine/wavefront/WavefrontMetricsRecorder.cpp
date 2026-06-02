@@ -57,6 +57,9 @@ namespace engine::wavefront::detail {
     ++m_metrics.tiling.nonEmptyTileCount;
     ++m_metrics.batching.batches;
     m_metrics.timings.sampleGenerationWorkerSeconds += result.sampleGenerationWorkerSeconds;
+    m_metrics.timings.sampleStreamWorkerSeconds += result.sampleStreamWorkerSeconds;
+    m_metrics.timings.primaryRayWorkerSeconds += result.primaryRayWorkerSeconds;
+    m_metrics.timings.sampleEnqueueWorkerSeconds += result.sampleEnqueueWorkerSeconds;
     m_metrics.timings.recordIntegratorBatch(result.integratorBatchWorkerSeconds,
                                             result.batchMetrics);
     m_metrics.batching.samplesSubmitted += result.sampleCount;

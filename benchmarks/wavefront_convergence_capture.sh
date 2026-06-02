@@ -217,6 +217,10 @@ def wavefront_metric_values(path)
     frontier_scalar_rays: [],
     frontier_packet_scalar_fallback_rays: [],
     sample_generation_worker_seconds: [],
+    sample_stream_worker_seconds: [],
+    sample_primary_ray_worker_seconds: [],
+    sample_enqueue_worker_seconds: [],
+    sample_generation_overhead_worker_seconds: [],
     integrator_batch_worker_seconds: [],
     integrator_intersection_worker_seconds: [],
     integrator_shading_worker_seconds: [],
@@ -235,6 +239,10 @@ def wavefront_metric_values(path)
       frontier_scalar_rays: 0.0,
       frontier_packet_scalar_fallback_rays: 0.0,
       sample_generation_worker_seconds: 0.0,
+      sample_stream_worker_seconds: 0.0,
+      sample_primary_ray_worker_seconds: 0.0,
+      sample_enqueue_worker_seconds: 0.0,
+      sample_generation_overhead_worker_seconds: 0.0,
       integrator_batch_worker_seconds: 0.0,
       integrator_intersection_worker_seconds: 0.0,
       integrator_shading_worker_seconds: 0.0,
@@ -271,6 +279,14 @@ def wavefront_metric_values(path)
     timings.compact.each do |timing|
       run_values[:sample_generation_worker_seconds] +=
         timing.fetch("sampleGenerationWorkerSeconds", 0).to_f
+      run_values[:sample_stream_worker_seconds] +=
+        timing.fetch("sampleStreamWorkerSeconds", 0).to_f
+      run_values[:sample_primary_ray_worker_seconds] +=
+        timing.fetch("primaryRayWorkerSeconds", 0).to_f
+      run_values[:sample_enqueue_worker_seconds] +=
+        timing.fetch("sampleEnqueueWorkerSeconds", 0).to_f
+      run_values[:sample_generation_overhead_worker_seconds] +=
+        timing.fetch("sampleGenerationOverheadWorkerSeconds", 0).to_f
       run_values[:integrator_batch_worker_seconds] +=
         timing.fetch("integratorBatchWorkerSeconds", 0).to_f
       run_values[:integrator_intersection_worker_seconds] +=
@@ -327,6 +343,10 @@ puts format("active_sample_depths reference=%.0f candidate=%.0f saved=%.0f saved
 end
 
 %i[sample_generation_worker_seconds
+   sample_stream_worker_seconds
+   sample_primary_ray_worker_seconds
+   sample_enqueue_worker_seconds
+   sample_generation_overhead_worker_seconds
    integrator_batch_worker_seconds
    integrator_intersection_worker_seconds
    integrator_shading_worker_seconds

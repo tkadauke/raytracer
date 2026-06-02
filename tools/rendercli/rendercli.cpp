@@ -178,6 +178,14 @@ namespace {
         << " total_ms=" << timings.value("totalRenderSeconds").toDouble() * 1000.0
         << " sample_gen_worker_ms="
         << timings.value("sampleGenerationWorkerSeconds").toDouble() * 1000.0
+        << " sample_stream_worker_ms="
+        << timings.value("sampleStreamWorkerSeconds").toDouble() * 1000.0
+        << " sample_primary_ray_worker_ms="
+        << timings.value("primaryRayWorkerSeconds").toDouble() * 1000.0
+        << " sample_enqueue_worker_ms="
+        << timings.value("sampleEnqueueWorkerSeconds").toDouble() * 1000.0
+        << " sample_gen_overhead_worker_ms="
+        << timings.value("sampleGenerationOverheadWorkerSeconds").toDouble() * 1000.0
         << " integrator_worker_ms="
         << timings.value("integratorBatchWorkerSeconds").toDouble() * 1000.0
         << " integrator_intersection_worker_ms="

@@ -227,10 +227,12 @@ per-depth `frontierRayHitsPerDepth`, `frontierRayMissesPerDepth`,
 timing payload also reports summed worker time for sample
 generation and integrator batch work, so performance captures can separate
 camera/sample setup from scene-intersection and material/shading transport even
-when parallel worker time exceeds wall-clock render time. The integrator timing
-split also reports the remaining batch overhead after intersection and shading
-worker time are subtracted, making scheduler and frontier bookkeeping cost
-visible. Path-tracing wavefront batches further break that residual down into
+when parallel worker time exceeds wall-clock render time. The sample-generation
+timing split reports sampler stream creation, camera primary-ray sampling,
+sample enqueueing, and residual setup overhead. The integrator timing split also
+reports the remaining batch overhead after intersection and shading worker time
+are subtracted, making scheduler and frontier bookkeeping cost visible.
+Path-tracing wavefront batches further break that residual down into
 path setup, frontier bookkeeping, progress snapshot publication, and convergence
 test worker time so tuning captures can see which scheduler phase is consuming
 the unexplained cost. Metrics capture is

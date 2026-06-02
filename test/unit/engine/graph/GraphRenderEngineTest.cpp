@@ -1723,6 +1723,10 @@ namespace GraphRenderEngineTest {
     ASSERT_GE(maxDelta.size(), 1);
     EXPECT_GT(maxDelta.at(0).toDouble(), 0.0);
     const QJsonObject timings = metadata.value("timings").toObject();
+    EXPECT_TRUE(timings.contains("sampleStreamWorkerSeconds"));
+    EXPECT_TRUE(timings.contains("primaryRayWorkerSeconds"));
+    EXPECT_TRUE(timings.contains("sampleEnqueueWorkerSeconds"));
+    EXPECT_TRUE(timings.contains("sampleGenerationOverheadWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorIntersectionWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorShadingWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorOverheadWorkerSeconds"));
@@ -1731,6 +1735,10 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(timings.contains("integratorProgressSnapshotWorkerSeconds"));
     EXPECT_TRUE(timings.contains("integratorConvergenceTestWorkerSeconds"));
     EXPECT_GE(timings.value("sampleGenerationWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("sampleStreamWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("primaryRayWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("sampleEnqueueWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GE(timings.value("sampleGenerationOverheadWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorBatchWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorIntersectionWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorShadingWorkerSeconds").toDouble(), 0.0);

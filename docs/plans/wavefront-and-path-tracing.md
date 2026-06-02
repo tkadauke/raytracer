@@ -604,11 +604,20 @@ Wavefront metrics now report summed worker time for sample generation and
 integrator batches as well, giving future captures a direct way to tell whether
 the worker bottleneck is camera/sample setup or intersection/material transport
 work. These worker-time counters are intentionally not wall-clock sub-spans and
-can exceed total render time when tiles execute in parallel. The integrator
-batch bucket is now split further into intersection and shading worker time,
-so captures can distinguish BVH/primitive traversal cost from material, direct
-lighting, and continuation sampling cost before the next speed optimization is
-chosen. Metrics also report the residual integrator overhead after the
+can exceed total render time when tiles execute in parallel. The
+sample-generation bucket is now split into sampler stream creation, camera
+primary-ray sampling, sample enqueueing, and residual loop/bookkeeping overhead,
+so captures can distinguish stream setup from camera math before optimizing the
+tile setup path again. A small 64x48, 4spp, max-depth-4 `pathtracer_bounce`
+capture reported ~15.6 ms sample-generation worker time with ~13.9 ms in
+camera primary-ray sampling, ~0.3 ms in stream creation, ~0.4 ms in sample
+enqueueing, and ~1.1 ms residual overhead. That points the next sample-setup
+optimization at camera primary-ray generation rather than sampler allocation.
+The integrator batch bucket is now split further into
+intersection and shading worker time, so captures can distinguish BVH/primitive
+traversal cost from material, direct lighting, and continuation sampling cost
+before the next speed optimization is chosen. Metrics also report the residual
+integrator overhead after the
 intersection and shading buckets are subtracted from total integrator worker
 time, making scheduler, progress, convergence, and frontier bookkeeping cost
 visible instead of implied by subtraction. Path-tracing batches now further

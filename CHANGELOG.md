@@ -78,6 +78,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront worker timing breakdowns.** Wavefront metrics now report summed
   sample-generation and integrator-batch worker time alongside total render
   time, making scheduler/intersection costs easier to isolate. — GPT-5
+- **Wavefront sample-generation diagnostics.** Wavefront metrics now split the
+  sample-generation worker bucket into sampler stream creation, camera
+  primary-ray sampling, sample enqueueing, and residual overhead in graph
+  traces, rendercli summaries, and convergence captures. — GPT-5
 - **Wavefront integrator timing breakdowns.** Wavefront metrics now split
   integrator worker time into scene-intersection and material/shading buckets
   in JSON reports, graph traces, and compact rendercli summaries. — GPT-5

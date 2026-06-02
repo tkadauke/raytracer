@@ -99,6 +99,9 @@ namespace engine::wavefront {
 
     struct TimingSummary {
       double sampleGenerationWorkerSeconds = 0.0;
+      double sampleStreamWorkerSeconds = 0.0;
+      double primaryRayWorkerSeconds = 0.0;
+      double sampleEnqueueWorkerSeconds = 0.0;
       double integratorBatchWorkerSeconds = 0.0;
       double integratorIntersectionWorkerSeconds = 0.0;
       double integratorShadingWorkerSeconds = 0.0;
