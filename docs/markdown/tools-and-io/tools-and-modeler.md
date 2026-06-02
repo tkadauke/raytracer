@@ -239,10 +239,10 @@ timing split reports sampler stream creation, camera primary-ray sampling,
 sample enqueueing, and residual setup overhead. The integrator timing split also
 reports the remaining batch overhead after intersection and shading worker time
 are subtracted, making scheduler and frontier bookkeeping cost visible.
-Path-tracing wavefront batches further break that residual down into
-path setup, frontier bookkeeping, progress snapshot publication, and convergence
-test worker time so tuning captures can see which scheduler phase is consuming
-the unexplained cost. Metrics capture is
+Wavefront batches further break that residual down into path setup, frontier
+bookkeeping, progress snapshot publication, and convergence-test worker time so
+tuning captures can see which scheduler phase is consuming the unexplained
+cost. Metrics capture is
 opt-in; requesting wavefront metrics enables graph trace collection for that
 render but does not require writing a separate trace file.
 `--wavefront_denoiser box|bilateral` requests an opt-in wavefront denoiser.

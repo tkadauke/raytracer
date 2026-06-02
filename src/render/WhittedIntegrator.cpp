@@ -485,11 +485,13 @@ namespace render {
       const std::uint64_t nextActiveSampleCount =
         countNextActiveSamples ? nextActiveSampleIndices.size() : next.size();
       if (settings.progressObserver) {
+        core::util::ScopedTimer timer(metrics ? &metrics->progressSnapshotWorkerSeconds : nullptr);
         settings.progressObserver->depthCompleted(static_cast<std::uint64_t>(depth + 1), result,
                                                   nextActiveSampleCount);
       }
 
       if (settings.convergenceEnabled && !samples.empty()) {
+        core::util::ScopedTimer timer(metrics ? &metrics->convergenceTestWorkerSeconds : nullptr);
         const double activeFraction =
           static_cast<double>(nextActiveSampleCount) / static_cast<double>(samples.size());
         const double radianceDeltaRms =

@@ -644,11 +644,14 @@ time, making scheduler, progress, convergence, and frontier bookkeeping cost
 visible instead of implied by subtraction. Path-tracing batches now further
 break that residual down into path setup, frontier bookkeeping, progress
 snapshot publication, and convergence-test worker time, giving Phase 7 captures
-a direct way to choose the next scheduler optimization. The Whitted
-batch path now also avoids copying/scanning the full tile result buffer for
-radiance-delta metrics: metrics/convergence snapshots track only the unique
-active sample indices at each depth, and per-depth continuation queues reserve
-capacity from the current frontier before material continuations are appended.
+a direct way to choose the next scheduler optimization. Whitted batches now
+report the same progress snapshot and convergence-test timing buckets when
+those hooks are enabled, keeping scheduler diagnostics comparable across
+wavefront integrators. The Whitted batch path now also avoids copying/scanning
+the full tile result buffer for radiance-delta metrics: metrics/convergence
+snapshots track only the unique active sample indices at each depth, and
+per-depth continuation queues reserve capacity from the current frontier before
+material continuations are appended.
 For high-sample path-tracing batches, sample-generation metrics showed retained
 sample-stream setup was the larger worker-time bucket. Camera primary-sample
 generation now has a caller-owned stream overload, and wavefront tiles retain

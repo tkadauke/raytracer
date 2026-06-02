@@ -48,6 +48,20 @@ namespace WhittedIntegratorTest {
       const WhittedIntegrator& m_integrator;
     };
 
+    class RecordingBatchObserver final : public IntegratorBatchObserver {
+    public:
+      void depthCompleted(std::uint64_t completedDepth, const std::vector<Colord>& sampleColors,
+                          std::uint64_t activeSamples) override {
+        completedDepths.push_back(completedDepth);
+        snapshots.push_back(sampleColors);
+        activeSampleCounts.push_back(activeSamples);
+      }
+
+      std::vector<std::uint64_t> completedDepths;
+      std::vector<std::vector<Colord>> snapshots;
+      std::vector<std::uint64_t> activeSampleCounts;
+    };
+
     class RecursiveProbeMaterial final : public Material {
     public:
       Colord shade(const RayCaster* raycaster, const Scene& scene, const Rayd&,
@@ -291,6 +305,39 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(1u, metrics.activeSampleDepthsProcessed);
     EXPECT_EQ(1u, metrics.radianceDeltaSquaredSumPerDepth.size());
+    EXPECT_EQ(0.0, metrics.progressSnapshotWorkerSeconds);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceReportsProgressSnapshotTiming) {
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    auto primitive = makePrimaryOnlyHit();
+    primitive->setMaterial(std::make_shared<ContinuationMaterial>());
+    scene.add(primitive);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    IntegratorBatchMetrics metrics;
+    RecordingBatchObserver observer;
+    IntegratorBatchSettings settings;
+    settings.progressObserver = &observer;
+    std::vector<IntegratorRaySample> samples{
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr}};
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings);
+
+    ASSERT_EQ(1u, colors.size());
+    ASSERT_EQ(2u, observer.completedDepths.size());
+    EXPECT_EQ(1u, observer.completedDepths[0]);
+    EXPECT_EQ(2u, observer.completedDepths[1]);
+    ASSERT_EQ(2u, observer.snapshots.size());
+    ASSERT_EQ(samples.size(), observer.snapshots[0].size());
+    ASSERT_EQ(samples.size(), observer.snapshots[1].size());
+    EXPECT_EQ(1u, observer.activeSampleCounts[0]);
+    EXPECT_EQ(0u, observer.activeSampleCounts[1]);
+    ASSERT_COLOR_NEAR(colors[0], observer.snapshots.back()[0], 1e-12);
+    EXPECT_GT(metrics.progressSnapshotWorkerSeconds, 0.0);
+    EXPECT_EQ(0.0, metrics.convergenceTestWorkerSeconds);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceCountsBranchedContinuationsAsOneActiveSample) {

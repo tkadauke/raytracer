@@ -193,6 +193,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   materials consume packet-materialized hits directly, while reflective,
   transparent, portal, and custom materials keep scalar refinement for strict
   secondary-ray parity. — GPT-5
+- **Wavefront Whitted scheduler timing.** Whitted batch metrics now attribute
+  progress snapshot publication and convergence tests to the same worker-time
+  buckets as path-tracing batches, making graph/rendercli timing diagnostics
+  consistent across wavefront integrators. — GPT-5
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5
