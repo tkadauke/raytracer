@@ -75,7 +75,8 @@ The capture writes images, stdout timing summaries, wavefront metrics JSON,
 image-probe comparisons, active sample-depth work comparisons, tile
 load-balance summaries, frontier hit/miss summaries, packet width summaries,
 packet scalar-fallback reason breakdowns, and packet-hit refinement material
-breakdowns under the output directory. Use it to tune Phase 4 wavefront
+breakdowns under the output directory. Queue sweeps also write a compact
+queue_sweep.summary.txt per scene. Use it to tune Phase 4 wavefront
 convergence defaults and to baseline Phase 7
 scheduler/intersection work before changing shipped presets.
 
@@ -532,6 +533,126 @@ end
 RUBY
 }
 
+write_queue_sweep_summary() {
+  local scene_name="$1"
+  local scene_dir="${out_root}/${scene_name}"
+  local output="${scene_dir}/queue_sweep.summary.txt"
+  if [[ -z "${queue_sweep}" || ! -d "${scene_dir}" ]]; then
+    return
+  fi
+
+  ruby -rjson - "$scene_dir" <<'RUBY' | tee "${output}"
+def median(values)
+  sorted = values.sort
+  sorted[sorted.length / 2]
+end
+
+def sum_array(object, key)
+  object.fetch(key, []).sum { |value| value.to_f }
+end
+
+def metric_objects_for(run)
+  objects = []
+  objects << run["metrics"] if run["metrics"]
+  run.fetch("passes", []).each do |pass|
+    objects << pass["metrics"] if pass["metrics"]
+  end
+  objects
+end
+
+def aggregate_run(run)
+  values = {
+    primary_samples: 0.0,
+    tile_count: 0.0,
+    nonempty_tile_count: 0.0,
+    average_tile_samples: 0.0,
+    max_tile_samples: 0.0,
+    ray8_chunks: 0.0,
+    ray4_chunks: 0.0,
+    scalar_rays: 0.0,
+    fallback_rays: 0.0,
+    sample_generation_ms: 0.0,
+    integrator_ms: 0.0,
+    residual_ms: 0.0
+  }
+  weighted_tile_sample_sum = 0.0
+  metric_objects_for(run).each do |metrics|
+    input = metrics.fetch("input", {})
+    tiling = metrics.fetch("tiling", {})
+    batching = metrics.fetch("batching", {})
+    timings = metrics.fetch("timings", {})
+    primary_samples = input.fetch("primarySamples", 0).to_f
+    nonempty_tile_count = tiling.fetch("nonEmptyTileCount", 0).to_f
+    average_tile_samples = tiling.fetch("averageNonEmptyTileSamples", 0).to_f
+
+    values[:primary_samples] += primary_samples
+    values[:tile_count] += tiling.fetch("tileCount", 0).to_f
+    values[:nonempty_tile_count] += nonempty_tile_count
+    weighted_tile_sample_sum += average_tile_samples * nonempty_tile_count
+    values[:max_tile_samples] = [values[:max_tile_samples],
+                                 tiling.fetch("maxTileSamples", 0).to_f].max
+    values[:ray8_chunks] += sum_array(batching, "frontierRay8PacketChunksPerDepth")
+    values[:ray4_chunks] += sum_array(batching, "frontierRay4PacketChunksPerDepth")
+    values[:scalar_rays] += sum_array(batching, "frontierScalarRaysPerDepth")
+    values[:fallback_rays] += sum_array(batching, "frontierPacketScalarFallbackRaysPerDepth")
+    values[:sample_generation_ms] +=
+      timings.fetch("sampleGenerationWorkerSeconds", 0).to_f * 1000.0
+    values[:integrator_ms] += timings.fetch("integratorBatchWorkerSeconds", 0).to_f * 1000.0
+    values[:residual_ms] += timings.fetch("integratorResidualWorkerSeconds", 0).to_f * 1000.0
+  end
+  if values[:nonempty_tile_count].positive?
+    values[:average_tile_samples] = weighted_tile_sample_sum / values[:nonempty_tile_count]
+  end
+  values
+end
+
+def render_median_ms(stdout_path)
+  return 0.0 unless File.exist?(stdout_path)
+
+  File.readlines(stdout_path).reverse_each do |line|
+    match = line.match(/render_ms\s+.*\bmedian=([0-9.]+)/)
+    return match[1].to_f if match
+  end
+  0.0
+end
+
+scene_dir = ARGV.fetch(0)
+queue_dirs = Dir.glob(File.join(scene_dir, "queue_*")).select { |path| File.directory?(path) }
+queue_dirs.sort_by! { |path| File.basename(path).delete_prefix("queue_").to_i }
+
+puts "queue_size variant render_ms primary_samples tile_count avg_tile_samples max_tile_samples ray8_chunks ray4_chunks scalar_rays fallback_rays sample_generation_worker_ms integrator_worker_ms integrator_residual_worker_ms"
+queue_dirs.each do |queue_dir|
+  queue_size = File.basename(queue_dir).delete_prefix("queue_")
+  Dir.glob(File.join(queue_dir, "wavefront_*.metrics.json")).sort.each do |metrics_path|
+    variant = File.basename(metrics_path, ".metrics.json")
+    document = JSON.parse(File.read(metrics_path))
+    runs = document.fetch("runs").map { |run| aggregate_run(run) }
+    next if runs.empty?
+
+    median_for = lambda { |key| median(runs.map { |run| run.fetch(key) }) }
+    stdout_path = File.join(queue_dir, "#{variant}.stdout.txt")
+    puts format(
+      "%s %s %.3f %.0f %.0f %.3f %.0f %.0f %.0f %.0f %.0f %.3f %.3f %.3f",
+      queue_size,
+      variant,
+      render_median_ms(stdout_path),
+      median_for.call(:primary_samples),
+      median_for.call(:tile_count),
+      median_for.call(:average_tile_samples),
+      median_for.call(:max_tile_samples),
+      median_for.call(:ray8_chunks),
+      median_for.call(:ray4_chunks),
+      median_for.call(:scalar_rays),
+      median_for.call(:fallback_rays),
+      median_for.call(:sample_generation_ms),
+      median_for.call(:integrator_ms),
+      median_for.call(:residual_ms)
+    )
+  end
+end
+RUBY
+}
+
 safe_suffix_number() {
   local value="$1"
   value="${value//./p}"
@@ -649,6 +770,23 @@ capture_pathtracer_bounce() {
   done < <(convergence_specs)
 }
 
+selected_scene_names() {
+  case "${scene}" in
+    bvh_whitted)
+      echo "bvh_whitted"
+      ;;
+    reflection_whitted)
+      echo "reflection_whitted"
+      ;;
+    pathtracer_bounce)
+      echo "pathtracer_bounce"
+      ;;
+    all)
+      printf '%s\n' "bvh_whitted" "reflection_whitted" "pathtracer_bounce"
+      ;;
+  esac
+}
+
 scene="${1:-}"
 if [[ -z "${scene}" || "${scene}" == "-h" || "${scene}" == "--help" ]]; then
   usage
@@ -687,3 +825,9 @@ while IFS='=' read -r queue_suffix queue_value; do
       ;;
   esac
 done <<<"${queue_spec_lines}"
+
+if [[ -n "${queue_sweep}" ]]; then
+  while read -r summary_scene; do
+    write_queue_sweep_summary "${summary_scene}"
+  done < <(selected_scene_names)
+fi

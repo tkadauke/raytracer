@@ -97,6 +97,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   the selected scene across multiple render queue sizes via
   `WAVEFRONT_CONVERGENCE_QUEUE_SWEEP`, writing each run under a separate
   `queue_<size>` output directory for scheduler default tuning. — GPT-5
+- **Wavefront queue-sweep summaries.** Queue-size convergence captures now
+  write a per-scene `queue_sweep.summary.txt` with timing, tile, packet-width,
+  scalar-tail, fallback, and worker-time medians for each queue/variant pair.
+  — GPT-5
 - **Wavefront refinement material diagnostics.** Whitted wavefront metrics now
   break packet-hit scalar refinement counts down by material family in JSON
   reports, compact rendercli summaries, and graph pass trace text. — GPT-5
