@@ -41,6 +41,8 @@ namespace engine::wavefront {
       std::uint64_t tileColumns = 0;
       std::uint64_t maxTileWidth = 0;
       std::uint64_t maxTileHeight = 0;
+      std::uint64_t maxTilePixels = 0;
+      double averageTilePixels = 0.0;
       std::uint64_t nonEmptyTileCount = 0;
       std::uint64_t minNonEmptyTileSamples = 0;
       std::uint64_t maxTileSamples = 0;

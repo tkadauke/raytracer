@@ -1629,6 +1629,8 @@ foreach(tiling_name
         tile_grid
         max_tile_width
         max_tile_height
+        max_tile_pixels
+        avg_tile_pixels
         nonempty_tiles
         min_tile_samples
         avg_tile_samples
@@ -1809,6 +1811,8 @@ foreach(tiling_field
         tileColumns
         maxTileWidth
         maxTileHeight
+        maxTilePixels
+        averageTilePixels
         minNonEmptyTileSamples
         maxTileSamples
         averageNonEmptyTileSamples)

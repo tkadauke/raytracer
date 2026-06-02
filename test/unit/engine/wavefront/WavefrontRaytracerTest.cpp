@@ -588,6 +588,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1u, metrics.tiling.tileColumns);
     EXPECT_EQ(8u, metrics.tiling.maxTileWidth);
     EXPECT_EQ(6u, metrics.tiling.maxTileHeight);
+    EXPECT_EQ(48u, metrics.tiling.maxTilePixels);
+    EXPECT_DOUBLE_EQ(48.0, metrics.tiling.averageTilePixels);
     EXPECT_EQ(1u, metrics.tiling.nonEmptyTileCount);
     EXPECT_EQ(48u, metrics.tiling.minNonEmptyTileSamples);
     EXPECT_EQ(48u, metrics.tiling.maxTileSamples);
@@ -658,6 +660,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1.0, tiling.value("tileColumns").toDouble());
     EXPECT_EQ(8.0, tiling.value("maxTileWidth").toDouble());
     EXPECT_EQ(6.0, tiling.value("maxTileHeight").toDouble());
+    EXPECT_EQ(48.0, tiling.value("maxTilePixels").toDouble());
+    EXPECT_DOUBLE_EQ(48.0, tiling.value("averageTilePixels").toDouble());
     EXPECT_EQ(1.0, tiling.value("nonEmptyTileCount").toDouble());
     EXPECT_EQ(48.0, tiling.value("minNonEmptyTileSamples").toDouble());
     EXPECT_EQ(48.0, tiling.value("maxTileSamples").toDouble());

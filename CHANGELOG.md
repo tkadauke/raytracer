@@ -269,6 +269,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `--queue_size` / scene-authored overrides while removing a hidden fixed
   Modeler queue default from graph-backed Raytracer and Wavefront renders.
   — GPT-5
+- **Wavefront tile pixel diagnostics.** Wavefront metrics JSON, rendercli
+  compact summaries, and convergence capture summaries now report maximum and
+  average tile pixel area beside the tile grid, making queue-size/tile-size
+  tuning less dependent on manual resolution math. — GPT-5
 - **Wavefront terminal continuations.** Whitted wavefront batches now resolve
   max-depth and throughput-cutoff continuations when material shading creates
   them instead of queueing a next-depth frontier that can only terminate. — GPT-5

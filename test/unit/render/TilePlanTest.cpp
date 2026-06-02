@@ -64,8 +64,21 @@ namespace TilePlanTest {
     const TilePlan plan = TilePlan::forBuffer(4, 3, 1);
 
     ASSERT_TRUE(plan.isSingleTile());
+    EXPECT_EQ(4, plan.maxTileWidth());
+    EXPECT_EQ(3, plan.maxTileHeight());
+    EXPECT_EQ(12, plan.maxTilePixels());
+    EXPECT_DOUBLE_EQ(12.0, plan.averageTilePixels());
     expectRect(plan.rect(0, 0), 0, 0, 4, 3);
     expectRect(plan.fullRect(), 0, 0, 4, 3);
+  }
+
+  TEST(TilePlan, ShouldReportTilePixelShape) {
+    const TilePlan plan = TilePlan::forBuffer(7, 5, 6);
+
+    EXPECT_EQ(3, plan.maxTileWidth());
+    EXPECT_EQ(3, plan.maxTileHeight());
+    EXPECT_EQ(9, plan.maxTilePixels());
+    EXPECT_DOUBLE_EQ(35.0 / 6.0, plan.averageTilePixels());
   }
 
   TEST(TilePlan, ShouldReturnEmptyPlanForEmptyBuffer) {
@@ -73,5 +86,9 @@ namespace TilePlanTest {
 
     ASSERT_TRUE(plan.empty());
     ASSERT_EQ(0u, plan.size());
+    EXPECT_EQ(0, plan.maxTileWidth());
+    EXPECT_EQ(0, plan.maxTileHeight());
+    EXPECT_EQ(0, plan.maxTilePixels());
+    EXPECT_DOUBLE_EQ(0.0, plan.averageTilePixels());
   }
 }

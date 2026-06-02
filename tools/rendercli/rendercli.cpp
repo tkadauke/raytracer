@@ -234,6 +234,8 @@ namespace {
         << unsignedValue(tiling, "tileRows")
         << " max_tile_width=" << unsignedValue(tiling, "maxTileWidth")
         << " max_tile_height=" << unsignedValue(tiling, "maxTileHeight")
+        << " max_tile_pixels=" << unsignedValue(tiling, "maxTilePixels")
+        << " avg_tile_pixels=" << tiling.value("averageTilePixels").toDouble()
         << " nonempty_tiles=" << unsignedValue(tiling, "nonEmptyTileCount")
         << " min_tile_samples=" << unsignedValue(tiling, "minNonEmptyTileSamples")
         << " avg_tile_samples=" << tiling.value("averageNonEmptyTileSamples").toDouble()

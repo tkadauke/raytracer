@@ -1034,13 +1034,14 @@ material buckets into its work-comparison output when both compared variants
 include wavefront metrics. These counters give Phase 7 captures a direct signal
 for whether the next speed slice should improve packet filling, scalar-tail
 handling, packet-hit precision, or remaining leaf packet traversal cost.
-Wavefront metrics now also include tile rows, columns, maximum tile extents, and
-min/average/max non-empty tile sample counts in the tiling block and rendercli
-compact summaries. That gives Phase 7 captures a direct tile-shape and
-load-balance baseline before changing queue-size defaults, tile dimensions, or
-work-stealing behavior. The convergence capture script now carries both the
-tile metrics and the Ray4/Ray8 packet chunk split into work-comparison reports,
-so a tuning run records those signals beside timing and active-depth work.
+Wavefront metrics now also include tile rows, columns, maximum tile extents,
+maximum/average tile pixel area, and min/average/max non-empty tile sample
+counts in the tiling block and rendercli compact summaries. That gives Phase 7
+captures a direct tile-shape and load-balance baseline before changing
+queue-size defaults, tile dimensions, or work-stealing behavior. The convergence
+capture script now carries both the tile metrics and the Ray4/Ray8 packet chunk
+split into work-comparison reports, so a tuning run records those signals beside
+timing and active-depth work.
 rendercli and Modeler final renders now share the same automatic ray-family
 queue policy, so graph-backed Wavefront captures no longer differ just because
 the render was launched from the dialog instead of the command line.

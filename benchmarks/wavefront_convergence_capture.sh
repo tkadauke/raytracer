@@ -260,6 +260,8 @@ def wavefront_metric_values(path)
     tile_columns: [],
     max_tile_width: [],
     max_tile_height: [],
+    max_tile_pixels: [],
+    average_tile_pixels: [],
     nonempty_tile_count: [],
     min_nonempty_tile_samples: [],
     average_nonempty_tile_samples: [],
@@ -299,6 +301,8 @@ def wavefront_metric_values(path)
       tile_columns: 0.0,
       max_tile_width: 0.0,
       max_tile_height: 0.0,
+      max_tile_pixels: 0.0,
+      average_tile_pixels: 0.0,
       nonempty_tile_count: 0.0,
       min_nonempty_tile_samples: nil,
       average_nonempty_tile_samples: 0.0,
@@ -363,6 +367,10 @@ def wavefront_metric_values(path)
         [run_values[:max_tile_width], tiling.fetch("maxTileWidth", 0).to_f].max
       run_values[:max_tile_height] =
         [run_values[:max_tile_height], tiling.fetch("maxTileHeight", 0).to_f].max
+      run_values[:max_tile_pixels] =
+        [run_values[:max_tile_pixels], tiling.fetch("maxTilePixels", 0).to_f].max
+      run_values[:average_tile_pixels] =
+        [run_values[:average_tile_pixels], tiling.fetch("averageTilePixels", 0).to_f].max
       run_values[:nonempty_tile_count] += nonempty_tile_count
       if min_tile_samples.positive?
         current_min = run_values[:min_nonempty_tile_samples]
@@ -476,6 +484,8 @@ puts format("active_sample_depths reference=%.0f candidate=%.0f saved=%.0f saved
    tile_columns
    max_tile_width
    max_tile_height
+   max_tile_pixels
+   average_tile_pixels
    nonempty_tile_count
    min_nonempty_tile_samples
    average_nonempty_tile_samples
@@ -587,6 +597,8 @@ def aggregate_run(run)
     tile_columns: 0.0,
     max_tile_width: 0.0,
     max_tile_height: 0.0,
+    max_tile_pixels: 0.0,
+    average_tile_pixels: 0.0,
     nonempty_tile_count: 0.0,
     average_tile_samples: 0.0,
     max_tile_samples: 0.0,
@@ -616,6 +628,10 @@ def aggregate_run(run)
     values[:max_tile_width] = [values[:max_tile_width], tiling.fetch("maxTileWidth", 0).to_f].max
     values[:max_tile_height] =
       [values[:max_tile_height], tiling.fetch("maxTileHeight", 0).to_f].max
+    values[:max_tile_pixels] = [values[:max_tile_pixels],
+                                tiling.fetch("maxTilePixels", 0).to_f].max
+    values[:average_tile_pixels] = [values[:average_tile_pixels],
+                                    tiling.fetch("averageTilePixels", 0).to_f].max
     values[:nonempty_tile_count] += nonempty_tile_count
     weighted_tile_sample_sum += average_tile_samples * nonempty_tile_count
     values[:max_tile_samples] = [values[:max_tile_samples],
@@ -650,7 +666,7 @@ scene_dir = ARGV.fetch(0)
 queue_dirs = Dir.glob(File.join(scene_dir, "queue_*")).select { |path| File.directory?(path) }
 queue_dirs.sort_by! { |path| File.basename(path).delete_prefix("queue_").to_i }
 
-puts "queue_size variant render_ms primary_samples tile_count tile_grid max_tile_width max_tile_height avg_tile_samples max_tile_samples ray8_chunks ray4_chunks packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays sample_generation_worker_ms integrator_worker_ms integrator_residual_worker_ms"
+puts "queue_size variant render_ms primary_samples tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays sample_generation_worker_ms integrator_worker_ms integrator_residual_worker_ms"
 queue_dirs.each do |queue_dir|
   queue_size = File.basename(queue_dir).delete_prefix("queue_")
   Dir.glob(File.join(queue_dir, "wavefront_*.metrics.json")).sort.each do |metrics_path|
@@ -673,7 +689,7 @@ queue_dirs.each do |queue_dir|
     fallback_fraction = packet_rays.zero? ? 0.0 : fallback_rays / packet_rays
     stdout_path = File.join(queue_dir, "#{variant}.stdout.txt")
     puts format(
-      "%s %s %.3f %.0f %.0f %s %.0f %.0f %.3f %.0f %.0f %.0f %.6f %.6f %.6f %.0f %.0f %.3f %.3f %.3f",
+      "%s %s %.3f %.0f %.0f %s %.0f %.0f %.0f %.3f %.3f %.0f %.0f %.0f %.6f %.6f %.6f %.0f %.0f %.3f %.3f %.3f",
       queue_size,
       variant,
       render_median_ms(stdout_path),
@@ -682,6 +698,8 @@ queue_dirs.each do |queue_dir|
       tile_grid,
       median_for.call(:max_tile_width),
       median_for.call(:max_tile_height),
+      median_for.call(:max_tile_pixels),
+      median_for.call(:average_tile_pixels),
       median_for.call(:average_tile_samples),
       median_for.call(:max_tile_samples),
       ray8_chunks,

@@ -49,6 +49,29 @@ namespace render {
       return size() == 1;
     }
 
+    int maxTileWidth() const {
+      if (empty())
+        return 0;
+      return (m_width + m_cols - 1) / m_cols;
+    }
+
+    int maxTileHeight() const {
+      if (empty())
+        return 0;
+      return (m_height + m_rows - 1) / m_rows;
+    }
+
+    int maxTilePixels() const {
+      return maxTileWidth() * maxTileHeight();
+    }
+
+    double averageTilePixels() const {
+      if (empty())
+        return 0.0;
+      return static_cast<double>(m_width) * static_cast<double>(m_height) /
+             static_cast<double>(size());
+    }
+
     Recti fullRect() const {
       return Recti(0, 0, m_width, m_height);
     }
