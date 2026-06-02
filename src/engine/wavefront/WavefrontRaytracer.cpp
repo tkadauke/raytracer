@@ -242,6 +242,7 @@ namespace engine::wavefront {
       static_cast<double>(convergence.earliestStoppedAfterDepth);
     convergenceJson["latestStoppedAfterDepth"] =
       static_cast<double>(convergence.latestStoppedAfterDepth);
+    convergenceJson["feedbackDepthCount"] = static_cast<double>(convergence.feedbackDepthCount);
     convergenceJson["stoppedTileDepthHistogram"] = stoppedTileDepthHistogram;
     convergenceJson["decision"] = QString::fromStdString(convergence.decision);
 

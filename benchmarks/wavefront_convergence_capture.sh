@@ -243,6 +243,7 @@ def wavefront_metric_values(path)
     frontier_scalar_rays: [],
     frontier_packet_scalar_fallback_rays: [],
     frontier_packet_refined_rays: [],
+    convergence_feedback_depths: [],
     sample_generation_worker_seconds: [],
     sample_stream_worker_seconds: [],
     sample_primary_ray_worker_seconds: [],
@@ -267,6 +268,7 @@ def wavefront_metric_values(path)
       frontier_scalar_rays: 0.0,
       frontier_packet_scalar_fallback_rays: 0.0,
       frontier_packet_refined_rays: 0.0,
+      convergence_feedback_depths: 0.0,
       sample_generation_worker_seconds: 0.0,
       sample_stream_worker_seconds: 0.0,
       sample_primary_ray_worker_seconds: 0.0,
@@ -283,13 +285,16 @@ def wavefront_metric_values(path)
       integrator_residual_worker_seconds: 0.0
     }
     batchings = []
+    convergences = []
     timings = []
     if run["metrics"]
       batchings << run.dig("metrics", "batching")
+      convergences << run.dig("metrics", "convergence")
       timings << run.dig("metrics", "timings")
     end
     run.fetch("passes", []).each do |pass|
       batchings << pass.dig("metrics", "batching")
+      convergences << pass.dig("metrics", "convergence")
       timings << pass.dig("metrics", "timings")
     end
 
@@ -307,6 +312,9 @@ def wavefront_metric_values(path)
         batching.fetch("frontierPacketScalarFallbackRaysPerDepth", []).sum { |value| value.to_f }
       run_values[:frontier_packet_refined_rays] +=
         batching.fetch("frontierPacketRefinedRaysPerDepth", []).sum { |value| value.to_f }
+    end
+    convergences.compact.each do |convergence|
+      run_values[:convergence_feedback_depths] += convergence.fetch("feedbackDepthCount", 0).to_f
     end
     timings.compact.each do |timing|
       run_values[:sample_generation_worker_seconds] +=
@@ -338,7 +346,7 @@ def wavefront_metric_values(path)
       run_values[:integrator_residual_worker_seconds] +=
         timing.fetch("integratorResidualWorkerSeconds", 0).to_f
     end
-    next if batchings.compact.empty? && timings.compact.empty?
+    next if batchings.compact.empty? && convergences.compact.empty? && timings.compact.empty?
 
     run_values.each do |key, value|
       values[key] << value
@@ -376,6 +384,11 @@ puts format("active_sample_depths reference=%.0f candidate=%.0f saved=%.0f saved
   puts format("%s reference=%.0f candidate=%.0f delta=%.0f",
               key, reference, candidate, delta)
 end
+
+reference = median(reference_values[:convergence_feedback_depths])
+candidate = median(candidate_values[:convergence_feedback_depths])
+puts format("convergence_feedback_depths reference=%.0f candidate=%.0f delta=%.0f",
+            reference, candidate, candidate - reference)
 
 %i[sample_generation_worker_seconds
    sample_stream_worker_seconds

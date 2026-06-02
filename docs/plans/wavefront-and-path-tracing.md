@@ -24,7 +24,8 @@
 > exposes convergence overrides as typed intent-derived graph state instead of
 > hidden direct-engine settings. Depth-major path batches also publish
 > per-depth sample-color snapshots so graph-backed Wavefront previews can show
-> progress before the pass finishes.
+> progress before the pass finishes, and denoiser-enabled wavefront batches can
+> use filtered between-depth snapshots as convergence feedback.
 >
 > **Rule:** the wavefront engine is a **sibling** to the existing
 > `Raytracer`, not a replacement. Both ship; the user chooses through render
@@ -741,6 +742,18 @@ frontier is still mostly shading-visible geometry" before changing traversal
 policy. The convergence capture script now includes those same median
 frontier-hit/frontier-miss totals in its work comparison files, so performance
 captures retain the diagnostic alongside active sample-depth savings.
+A 160x120, max-depth-5 `bvh_whitted` capture with metrics enabled showed the
+current packet frontier on the BVH-heavy parity fixture comfortably clearing
+the Phase 4 wall-clock speed gate at matching quality:
+`raytracer_whitted` median ~10.34 ms,
+`wavefront_whitted_no_convergence` median ~3.32 ms, and
+`rms_delta=0.0` / `differing_pixels=0`. The converged variant reported
+`wavefront_whitted_convergence` median ~3.64 ms with the same exact image and
+no active-sample-depth savings, because this fixture terminates after the
+primary depth (`active_sample_depths=19200` in both wavefront variants).
+Treat this as evidence that packet-frontier wavefront scheduling is now fast
+on BVH-heavy primary-ray scenes, not as evidence that the convergence policy is
+complete; meaningful adaptive-depth savings still need multi-depth scenes.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss.
@@ -815,7 +828,7 @@ the visual difference path tracing is famous for. ✅ **Done.** The
 `wavefront_indirect_bounce_demo.json` rendercli gate now requires a visible
 diffuse-bounce difference from Whitted.
 
-### Phase 6 — denoising hook between passes 🚧 **Started.**
+### Phase 6 — denoising hook between passes ✅ **Done.**
 
 Add a `Denoiser` interface that runs between depth passes (or just at
 the end). v1: simple spatiotemporal filter (a-trous or bilateral on
@@ -849,14 +862,18 @@ same tile scheduler and per-tile sampling seed derivation as the beauty pass,
 keeping AOV samples aligned without making the prepass a serial bottleneck.
 Depth-progress tile snapshots are now run through a cloned denoiser before the
 preview buffers are published, so denoiser-enabled previews show filtered
-progress instead of raw progress followed by a final filtered jump. The
-feature-buffer prepass is also graph-visible as its own denoise `featurePrepass`
-metric block and reports active tiles through the render engine while it is
-running, so large denoiser-enabled previews no longer look idle before the first
-beauty tile. Completed-tile publication still only copies beauty tiles; the
-prepass overlay does not publish blank feature-buffer work into the display
-image. True
-scheduler-feedback between-depth denoising is still open Phase 6 work.
+progress instead of raw progress followed by a final filtered jump. The same
+denoised tile snapshots can now feed the scheduler's convergence decision even
+when progressive display is disabled: integrators ask their observer for an
+optional convergence RMS override after each depth, and Wavefront supplies that
+feedback from denoised progress pixels without feeding filtered color back into
+light transport. The feature-buffer prepass is also graph-visible as its own
+denoise `featurePrepass` metric block and reports active tiles through the
+render engine while it is running, so large denoiser-enabled previews no longer
+look idle before the first beauty tile. Completed-tile publication still only
+copies beauty tiles; the prepass overlay does not publish blank feature-buffer
+work into the display image. Metrics and compact rendercli summaries report how
+many depths used observer convergence feedback.
 `scenes/wavefront_denoise_demo.json` now provides a reusable low-sample,
 graph-backed bilateral-denoising scene so scene-authored denoiser intent can be
 tested in rendercli and inspected in Modeler. The rendercli graph functional

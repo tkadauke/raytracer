@@ -1599,6 +1599,11 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_refined_rays=")
                   "wavefront metrics summary did not contain frontier packet refined counters"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "feedback_depths=")
+  _rendercli_fail("rendercli wavefront metrics convergence feedback summary"
+                  "wavefront metrics summary did not contain convergence feedback counters"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 rendercli_assert_exists("${wavefront_metrics_report}" NAME "wavefront metrics report exists")
 file(READ "${wavefront_metrics_report}" wavefront_metrics_json)
 if(NOT wavefront_metrics_json MATCHES "\"schema\"[^\n]*raytracer\\.wavefront_metrics\\.v1")
@@ -1614,6 +1619,11 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"activeSampleDepthsProcessed\"")
   _rendercli_fail("rendercli wavefront metrics sample-depth work"
                   "wavefront metrics report did not contain active sample-depth work"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"feedbackDepthCount\"")
+  _rendercli_fail("rendercli wavefront metrics convergence feedback"
+                  "wavefront metrics report did not contain convergence feedback counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"frontierRayHitsPerDepth\"")

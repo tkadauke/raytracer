@@ -217,7 +217,8 @@ same payload from matching graph pass trace metadata, so the report includes
 the pass id plus integrator, batch execution mode, active sample counts,
 radiance-delta RMS values, per-depth frontier hit/miss counts, compatibility
 fallback counts, convergence thresholds, stop decisions, denoiser diagnostics
-when enabled, and total render time. The compact summary prints total
+when enabled, convergence feedback depth counts, and total render time. The
+compact summary prints total
 `frontier_hit_rays`, `frontier_miss_rays`, `frontier_packet_chunks`,
 `frontier_packet_rays`, `frontier_scalar_rays`, and
 `frontier_packet_scalar_fallback_rays`, and `frontier_packet_refined_rays`,
@@ -263,13 +264,17 @@ filtering took. Feature-aware filters such as the bilateral denoiser can also
 request albedo/normal/depth buffers; simpler filters skip that tile-parallel
 feature prepass. The compact `--wavefront_metrics_summary` line prints those
 same denoiser fields as `denoiser`, `denoise_ms`,
-`denoise_feature_prepass_ms`, and `denoise_<parameter>`. In Modeler previews,
-wavefront depth-progress snapshots also run through the selected denoiser
-before the tile is published, so the live image no longer flips from raw noisy
-progress directly to a filtered final frame. Before feature-aware beauty tiles
-start, the feature prepass is shown as active render tiles in the normal
-progress overlay rather than an idle preview, and graph trace metadata
-separates that work under `denoise.featurePrepass`.
+`denoise_feature_prepass_ms`, and `denoise_<parameter>`, plus
+`feedback_depths` for convergence decisions that used observer feedback. In
+Modeler previews, wavefront depth-progress snapshots also run through the
+selected denoiser before the tile is published, so the live image no longer
+flips from raw noisy progress directly to a filtered final frame. Before
+feature-aware beauty tiles start, the feature prepass is shown as active render
+tiles in the normal progress overlay rather than an idle preview, and graph
+trace metadata separates that work under `denoise.featurePrepass`. When
+convergence is enabled, denoised snapshots can also provide the per-depth RMS
+delta used by the scheduler; the filtered color is not written back into path
+transport state.
 
 That gives a two-step debugging loop:
 

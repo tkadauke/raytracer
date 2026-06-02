@@ -35,6 +35,7 @@ namespace render {
     frontierBookkeepingWorkerSeconds = 0.0;
     progressSnapshotWorkerSeconds = 0.0;
     convergenceTestWorkerSeconds = 0.0;
+    observerConvergenceFeedbackDepths = 0;
   }
 
   void IntegratorBatchMetrics::recordActiveDepth(std::uint64_t activeSamples) {
@@ -96,7 +97,8 @@ namespace render {
         metrics->recordRadianceDeltaDepth(deltaSquaredSum, maxDelta);
       }
       if (settings.progressObserver) {
-        settings.progressObserver->depthCompleted(/*completedDepth=*/1, result, samples.size());
+        (void)settings.progressObserver->depthCompleted(/*completedDepth=*/1, result,
+                                                        samples.size());
       }
     }
 

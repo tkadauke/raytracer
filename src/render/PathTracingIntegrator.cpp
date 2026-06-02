@@ -534,20 +534,26 @@ namespace render {
                                           depthMetrics.depthMaxDelta);
       }
 
+      IntegratorBatchFeedback feedback;
       if (settings.progressObserver) {
         core::util::ScopedTimer timer(metrics ? &metrics->progressSnapshotWorkerSeconds : nullptr);
-        settings.progressObserver->depthCompleted(static_cast<std::uint64_t>(bounce + 1),
-                                                  sampleColors, retainedPathCount);
+        feedback = settings.progressObserver->depthCompleted(static_cast<std::uint64_t>(bounce + 1),
+                                                             sampleColors, retainedPathCount);
       }
 
       if (settings.convergenceEnabled && totalSampleCount != 0) {
         core::util::ScopedTimer timer(metrics ? &metrics->convergenceTestWorkerSeconds : nullptr);
         const double activeFraction =
           static_cast<double>(retainedPathCount) / static_cast<double>(totalSampleCount);
-        const double radianceDeltaRms =
+        const double rawRadianceDeltaRms =
           activeCount == 0
             ? 0.0
             : std::sqrt(depthMetrics.depthDeltaSquaredSum / static_cast<double>(activeCount));
+        const double radianceDeltaRms =
+          feedback.convergenceRadianceDeltaRms.value_or(rawRadianceDeltaRms);
+        if (metrics && feedback.convergenceRadianceDeltaRms) {
+          ++metrics->observerConvergenceFeedbackDepths;
+        }
         if (activeFraction <= settings.activeSampleFractionThreshold &&
             radianceDeltaRms <= settings.radianceDeltaRmsThreshold) {
           if (metrics) {

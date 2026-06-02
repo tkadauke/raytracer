@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace render {
@@ -46,6 +47,7 @@ namespace render {
     double frontierBookkeepingWorkerSeconds{0.0};
     double progressSnapshotWorkerSeconds{0.0};
     double convergenceTestWorkerSeconds{0.0};
+    std::uint64_t observerConvergenceFeedbackDepths{0};
 
     void reset(bool scalarFallback);
     void recordActiveDepth(std::uint64_t activeSamples);
@@ -56,12 +58,16 @@ namespace render {
     void recordRadianceDeltaDepth(double squaredSum, double maxDelta);
   };
 
+  struct IntegratorBatchFeedback {
+    std::optional<double> convergenceRadianceDeltaRms;
+  };
+
   class IntegratorBatchObserver {
   public:
     virtual ~IntegratorBatchObserver() = default;
-    virtual void depthCompleted(std::uint64_t completedDepth,
-                                const std::vector<Colord>& sampleColors,
-                                std::uint64_t activeSamples) = 0;
+    virtual IntegratorBatchFeedback depthCompleted(std::uint64_t completedDepth,
+                                                   const std::vector<Colord>& sampleColors,
+                                                   std::uint64_t activeSamples) = 0;
   };
 
   struct IntegratorBatchSettings {

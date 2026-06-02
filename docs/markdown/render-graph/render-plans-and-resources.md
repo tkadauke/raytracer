@@ -636,16 +636,16 @@ integrator, whether batches used scalar fallback or depth-major path
 scheduling, primary sample totals, how many samples fell back to Whitted
 material compatibility shading, active sample counts per depth, batch sizes,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
-convergence stop decisions, denoiser name/parameters/time when denoising is
-enabled, denoiser feature-prepass time, tile count, queue decision, and render
-timing split into summed worker time for sample generation and integrator batch
-work. The sample-generation bucket is further split into sampler stream
-creation, camera primary-ray sampling, sample enqueueing, and residual
-bookkeeping overhead. The integrator bucket is split into scene-intersection
-and material/shading worker time and the remaining batch overhead, plus total
-wall-clock time. Path-tracing wavefront batches also split the overhead into
-path setup, frontier bookkeeping, progress snapshot publication, and
-convergence-test worker time.
+convergence stop decisions, observer feedback depth count, denoiser
+name/parameters/time when denoising is enabled, denoiser feature-prepass time,
+tile count, queue decision, and render timing split into summed worker time for
+sample generation and integrator batch work. The sample-generation bucket is
+further split into sampler stream creation, camera primary-ray sampling, sample
+enqueueing, and residual bookkeeping overhead. The integrator bucket is split
+into scene-intersection and material/shading worker time and the remaining
+batch overhead, plus total wall-clock time. Path-tracing wavefront batches also
+split the overhead into path setup, frontier bookkeeping, progress snapshot
+publication, and convergence-test worker time.
 Wavefront also has an opt-in denoiser hook at the engine level:
 `render::Denoiser` instances receive a `DenoiserFrame` whose beauty buffer is
 filtered before the final display buffer is rewritten. The frame can also carry
@@ -658,7 +658,11 @@ AOV samples line up with the first rendered sample without becoming a serial
 bottleneck; denoisers that do not request feature buffers skip the prepass.
 During graph-backed preview renders, depth-progress tile snapshots are passed
 through a cloned denoiser before they are published, while the final full-frame
-buffer still gets the ordinary end-of-render denoise.
+buffer still gets the ordinary end-of-render denoise. When convergence is
+enabled, Wavefront can also use those denoised depth snapshots as scheduler
+feedback: the filtered per-tile RMS delta replaces the raw radiance-delta RMS
+for the convergence decision, but the filtered color is not fed back into the
+path state or material transport.
 `render::BoxDenoiser` is deliberately simple and exists to pin the hook;
 `render::BilateralDenoiser` is the first useful edge-preserving filter,
 weighting neighbors by pixel distance, color difference, and any compatible
@@ -674,6 +678,9 @@ metadata without a wavefront-engine type switch. Wavefront denoise metadata
 also reports which albedo/normal/depth feature buffers were supplied to the
 filter and how long any requested feature prepass took, making AOV-aware
 denoiser runs visible in graph traces while keeping featureless filters cheap.
+Convergence metadata reports the number of depths that used observer feedback,
+so graph traces and rendercli metrics can distinguish raw convergence from
+denoiser-informed convergence.
 The reusable scene
 [`scenes/wavefront_indirect_environment_demo.json`](../../../scenes/wavefront_indirect_environment_demo.json)
 opens with a wavefront path-tracing intent and no direct lights; the matte

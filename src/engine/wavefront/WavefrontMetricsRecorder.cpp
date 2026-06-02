@@ -66,6 +66,8 @@ namespace engine::wavefront::detail {
     m_metrics.batching.addIntegratorMetrics(result.batchMetrics);
     m_metrics.batching.maxBatchSize =
       std::max(m_metrics.batching.maxBatchSize, static_cast<std::uint64_t>(result.sampleCount));
+    m_metrics.convergence.feedbackDepthCount +=
+      result.batchMetrics.observerConvergenceFeedbackDepths;
     if (result.batchMetrics.stoppedByConvergence) {
       m_metrics.convergence.recordStoppedTileAfterDepth(result.batchMetrics.stoppedAfterDepth);
     }

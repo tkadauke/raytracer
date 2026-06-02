@@ -132,8 +132,11 @@ namespace WavefrontRaytracerTest {
         if (m_state) {
           ++m_state->batchesWithProgressObserver;
         }
-        settings.progressObserver->depthCompleted(
+        const render::IntegratorBatchFeedback feedback = settings.progressObserver->depthCompleted(
           1, std::vector<Colord>(samples.size(), Colord(1.0, 0.0, 0.0)), samples.size());
+        if (metrics && feedback.convergenceRadianceDeltaRms) {
+          ++metrics->observerConvergenceFeedbackDepths;
+        }
       }
       return std::vector<Colord>(samples.size(), Colord::black());
     }
@@ -501,6 +504,28 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(0, progressState->batchesWithProgressObserver);
   }
 
+  TEST(WavefrontRaytracer, UsesDenoisedProgressForConvergenceFeedbackWhenDisplayIsDisabled) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), featureScene());
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->setProgressiveDisplayEnabled(false);
+    renderer->setConvergenceEnabled(true);
+    renderer->setMetricsEnabled(true);
+    auto progressState = std::make_shared<SharedProgressState>();
+    renderer->setIntegrator(std::make_unique<ProgressPublishingIntegrator>(progressState));
+    renderer->setDenoiser(std::make_unique<render::BoxDenoiser>(1));
+
+    Buffer<Colord> buffer(4, 3);
+    renderer->render(buffer);
+
+    EXPECT_GT(progressState->batchesWithProgressObserver, 0);
+    const auto metrics = renderer->lastMetrics();
+    EXPECT_GT(metrics.convergence.feedbackDepthCount, 0u);
+    EXPECT_EQ(
+      metrics.convergence.feedbackDepthCount,
+      metrics.toJson().value("convergence").toObject().value("feedbackDepthCount").toDouble());
+  }
+
   TEST(WavefrontRaytracer, SendsBatchMetricsOnlyWhenMetricsEnabled) {
     auto renderer = std::make_shared<WavefrontRaytracer>(camera(), featureScene());
     renderer->setMaximumThreads(1);
@@ -590,6 +615,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_DOUBLE_EQ(0.5, metrics.convergence.activeSampleFractionThreshold);
     EXPECT_DOUBLE_EQ(0.01, metrics.convergence.radianceDeltaRmsThreshold);
     EXPECT_EQ(0u, metrics.convergence.stoppedTileCount);
+    EXPECT_EQ(0u, metrics.convergence.feedbackDepthCount);
     EXPECT_TRUE(metrics.convergence.stoppedTileDepthHistogram.empty());
     EXPECT_EQ("not_reached", metrics.convergence.decision);
     ASSERT_EQ(1u, metrics.batching.radianceDeltaSquaredSumPerDepth.size());
@@ -651,6 +677,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_DOUBLE_EQ(
       0.01, json.value("convergence").toObject().value("radianceDeltaRmsThreshold").toDouble());
     EXPECT_EQ(0.0, json.value("convergence").toObject().value("stoppedTileCount").toDouble());
+    EXPECT_EQ(0.0, json.value("convergence").toObject().value("feedbackDepthCount").toDouble());
     EXPECT_TRUE(
       json.value("convergence").toObject().value("stoppedTileDepthHistogram").toArray().empty());
     EXPECT_EQ("not_reached",

@@ -73,6 +73,7 @@ namespace engine::wavefront {
       std::uint64_t stoppedTileCount = 0;
       std::uint64_t earliestStoppedAfterDepth = 0;
       std::uint64_t latestStoppedAfterDepth = 0;
+      std::uint64_t feedbackDepthCount = 0;
       std::vector<std::uint64_t> stoppedTileDepthHistogram;
       std::string decision;
 

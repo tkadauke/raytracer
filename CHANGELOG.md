@@ -56,6 +56,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront denoiser prepass progress.** Denoiser-enabled wavefront previews
   now report active feature-prepass tiles and graph trace metadata separates
   denoiser feature-prepass tile counts from beauty tile progress. — GPT-5
+- **Wavefront denoised convergence feedback.** Denoiser-enabled wavefront
+  batches can now use filtered between-depth snapshots for convergence
+  decisions, and metrics report how many depths used that feedback. — GPT-5
 - **Wavefront convergence capture script.** Added
   `benchmarks/wavefront_convergence_capture.sh` to generate BVH-heavy Whitted,
   reflection-heavy Whitted, and indirect-bounce path-tracing macro captures

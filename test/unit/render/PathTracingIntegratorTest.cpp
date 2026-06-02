@@ -42,13 +42,16 @@ namespace PathTracingIntegratorTest {
 
     class RecordingBatchObserver final : public IntegratorBatchObserver {
     public:
-      void depthCompleted(std::uint64_t completedDepth, const std::vector<Colord>& sampleColors,
-                          std::uint64_t activeSamples) override {
+      IntegratorBatchFeedback depthCompleted(std::uint64_t completedDepth,
+                                             const std::vector<Colord>& sampleColors,
+                                             std::uint64_t activeSamples) override {
         completedDepths.push_back(completedDepth);
         snapshots.push_back(sampleColors);
         activeSampleCounts.push_back(activeSamples);
+        return feedback;
       }
 
+      IntegratorBatchFeedback feedback;
       std::vector<std::uint64_t> completedDepths;
       std::vector<std::vector<Colord>> snapshots;
       std::vector<std::uint64_t> activeSampleCounts;
@@ -661,6 +664,38 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.frontierRayHitsPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadianceUsesObserverFeedbackForConvergenceDelta) {
+    auto scene = simpleMatteScene(0.0, Colord(0.6, 0.3, 0.2));
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(8);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 11ull)});
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 29ull)});
+
+    RecordingBatchObserver observer;
+    observer.feedback.convergenceRadianceDeltaRms = 0.0;
+    IntegratorBatchSettings settings;
+    settings.convergenceEnabled = true;
+    settings.activeSampleFractionThreshold = 1.0;
+    settings.radianceDeltaRmsThreshold = 0.0;
+    settings.progressObserver = &observer;
+
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> batched =
+      integrator.radianceBatch(*scene, samples, caster, &metrics, settings);
+
+    ASSERT_EQ(2u, batched.size());
+    EXPECT_TRUE(metrics.stoppedByConvergence);
+    EXPECT_EQ(1u, metrics.stoppedAfterDepth);
+    EXPECT_EQ(1u, metrics.observerConvergenceFeedbackDepths);
+    ASSERT_EQ(1u, observer.completedDepths.size());
+    EXPECT_EQ(1u, observer.completedDepths[0]);
   }
 
   TEST(PathTracingIntegrator, BatchedRadiancePublishesDepthProgress) {

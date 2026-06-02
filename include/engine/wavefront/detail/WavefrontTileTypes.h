@@ -5,6 +5,7 @@
 #include "render/Integrator.h"
 #include "render/denoise/Denoiser.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <vector>
@@ -13,6 +14,10 @@ namespace engine::wavefront::detail {
   struct WavefrontTilePixel {
     Recti footprint;
     Colord color{Colord::black()};
+
+    int area() const {
+      return std::max(0, footprint.width()) * std::max(0, footprint.height());
+    }
   };
 
   struct WavefrontTileTraceResult {

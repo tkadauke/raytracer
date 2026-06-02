@@ -18,34 +18,83 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
+#include <cstdint>
 #include <functional>
 #include <utility>
 
 namespace engine::wavefront::detail {
   namespace {
+    using TileProgressTransform =
+      std::function<std::vector<WavefrontTilePixel>(const std::vector<WavefrontTilePixel>&)>;
     using TileProgressPublisher = std::function<void(const std::vector<WavefrontTilePixel>&)>;
+
+    class TileProgressFeedback {
+    public:
+      render::IntegratorBatchFeedback update(const std::vector<WavefrontTilePixel>& pixels) {
+        render::IntegratorBatchFeedback feedback;
+        feedback.convergenceRadianceDeltaRms = radianceDeltaRms(pixels);
+        m_previous = pixels;
+        m_hasPrevious = true;
+        return feedback;
+      }
+
+    private:
+      double radianceDeltaRms(const std::vector<WavefrontTilePixel>& pixels) const {
+        double squaredSum = 0.0;
+        std::uint64_t weightedPixelCount = 0;
+        for (std::size_t index = 0; index != pixels.size(); ++index) {
+          const Colord before =
+            m_hasPrevious && index < m_previous.size() ? m_previous[index].color : Colord::black();
+          const int area = std::max(1, pixels[index].area());
+          squaredSum += colorDeltaSquared(before, pixels[index].color) * static_cast<double>(area);
+          weightedPixelCount += static_cast<std::uint64_t>(area);
+        }
+        return weightedPixelCount == 0
+                 ? 0.0
+                 : std::sqrt(squaredSum / static_cast<double>(weightedPixelCount));
+      }
+
+      double colorDeltaSquared(const Colord& before, const Colord& after) const {
+        const Colord delta = after - before;
+        return delta.r() * delta.r() + delta.g() * delta.g() + delta.b() * delta.b();
+      }
+
+      bool m_hasPrevious{false};
+      std::vector<WavefrontTilePixel> m_previous;
+    };
 
     class TileProgressObserver final : public render::IntegratorBatchObserver {
     public:
       TileProgressObserver(std::vector<WavefrontTilePixel>& pixels,
                            const std::vector<std::size_t>& samplePixelIndices, double sampleScale,
-                           TileProgressPublisher publisher)
+                           TileProgressTransform transform, TileProgressPublisher publisher,
+                           bool feedbackEnabled)
           : m_pixels(pixels),
             m_samplePixelIndices(samplePixelIndices),
             m_sampleScale(sampleScale),
+            m_transform(std::move(transform)),
+            m_feedbackEnabled(feedbackEnabled),
             m_publisher(std::move(publisher)) {
       }
 
-      void depthCompleted(std::uint64_t completedDepth, const std::vector<Colord>& sampleColors,
-                          std::uint64_t activeSamples) override {
+      render::IntegratorBatchFeedback depthCompleted(std::uint64_t completedDepth,
+                                                     const std::vector<Colord>& sampleColors,
+                                                     std::uint64_t activeSamples) override {
         (void)completedDepth;
         (void)activeSamples;
-        if (!m_publisher) {
-          return;
+        if (!m_publisher && !m_feedbackEnabled) {
+          return {};
         }
 
         applySampleColors(sampleColors);
-        m_publisher(m_pixels);
+        const std::vector<WavefrontTilePixel> progressPixels =
+          m_transform ? m_transform(m_pixels) : m_pixels;
+        if (m_publisher) {
+          m_publisher(progressPixels);
+        }
+        return m_feedbackEnabled ? m_feedback.update(progressPixels)
+                                 : render::IntegratorBatchFeedback{};
       }
 
       void applySampleColors(const std::vector<Colord>& sampleColors) const {
@@ -66,6 +115,9 @@ namespace engine::wavefront::detail {
       std::vector<WavefrontTilePixel>& m_pixels;
       const std::vector<std::size_t>& m_samplePixelIndices;
       double m_sampleScale;
+      TileProgressTransform m_transform;
+      bool m_feedbackEnabled;
+      TileProgressFeedback m_feedback;
       TileProgressPublisher m_publisher;
     };
 
@@ -98,8 +150,10 @@ namespace engine::wavefront::detail {
                                        const render::Scene& scene, const Recti& actualRect,
                                        std::optional<std::uint64_t> tileSeed,
                                        const std::function<void(const Recti&)>& markProgress,
+                                       TileProgressTransform transformProgress,
                                        TileProgressPublisher publishProgress,
-                                       bool publishProgressSnapshots) {
+                                       bool publishProgressSnapshots,
+                                       bool useProgressFeedback) {
       WavefrontTileTraceResult result;
       const auto sampleGenerationStart = WavefrontMetricsRecorder::Clock::now();
       std::vector<render::IntegratorRaySample> samples;
@@ -179,10 +233,12 @@ namespace engine::wavefront::detail {
 
       const double sampleScale = sampleCount > 0 ? 1.0 / sampleCount : 0.0;
       TileProgressObserver progressObserver(result.pixels, samplePixelIndices, sampleScale,
-                                            std::move(publishProgress));
+                                            std::move(transformProgress),
+                                            std::move(publishProgress), useProgressFeedback);
       render::IntegratorBatchSettings settings = batchSettings(config);
       settings.progressObserver =
-        publishProgressSnapshots && !samples.empty() ? &progressObserver : nullptr;
+        (publishProgressSnapshots || useProgressFeedback) && !samples.empty() ? &progressObserver
+                                                                              : nullptr;
 
       const auto integratorBatchStart = WavefrontMetricsRecorder::Clock::now();
       const std::vector<Colord> sampleColors =
@@ -333,19 +389,27 @@ namespace engine::wavefront::detail {
     }
 
     const auto progressDenoiser = m_config.denoiser ? m_config.denoiser->clone() : nullptr;
+    TileProgressTransform transformProgress;
+    if (progressDenoiser) {
+      const render::Denoiser* denoiser = progressDenoiser.get();
+      transformProgress = [actualRect, denoiserFeatures,
+                           denoiser](const std::vector<WavefrontTilePixel>& pixels) {
+        return denoisedProgressPixels(pixels, actualRect, denoiserFeatures, *denoiser);
+      };
+    }
+    TileProgressPublisher publishProgress;
+    if (publishProgressSnapshots) {
+      publishProgress = [&buffer](const std::vector<WavefrontTilePixel>& pixels) {
+        for (const auto& pixel : pixels) {
+          writeColor(buffer, pixel.footprint, pixel.color);
+        }
+      };
+    }
     const auto result = traceTile(
       m_config, camera, rayCaster, scene, actualRect, tileSeed,
       [&](const Recti& footprint) { writeColor(buffer, footprint, Colord(1, 0, 0)); },
-      [&](const std::vector<WavefrontTilePixel>& pixels) {
-        const std::vector<WavefrontTilePixel> displayPixels =
-          progressDenoiser
-            ? denoisedProgressPixels(pixels, actualRect, denoiserFeatures, *progressDenoiser)
-            : pixels;
-        for (const auto& pixel : displayPixels) {
-          writeColor(buffer, pixel.footprint, pixel.color);
-        }
-      },
-      publishProgressSnapshots);
+      std::move(transformProgress), std::move(publishProgress), publishProgressSnapshots,
+      progressDenoiser && m_config.convergenceEnabled);
     if (m_config.metricsEnabled) {
       m_metrics.recordTile(result);
     }
@@ -366,13 +430,16 @@ namespace engine::wavefront::detail {
     const auto result = traceTile(
       m_config, camera, rayCaster, scene, actualRect, tileSeed,
       [&](const Recti& footprint) { writeRGB(buffer, footprint, 0xffff0000); },
-      [&](const std::vector<WavefrontTilePixel>& pixels) {
-        for (const auto& pixel : pixels) {
-          writeRGB(buffer, pixel.footprint,
-                   (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
-        }
-      },
-      publishProgressSnapshots);
+      TileProgressTransform{},
+      publishProgressSnapshots
+        ? TileProgressPublisher([&buffer, tonemap](const std::vector<WavefrontTilePixel>& pixels) {
+            for (const auto& pixel : pixels) {
+              writeRGB(buffer, pixel.footprint,
+                       (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
+            }
+          })
+        : TileProgressPublisher{},
+      publishProgressSnapshots, /*useProgressFeedback=*/false);
     if (m_config.metricsEnabled) {
       m_metrics.recordTile(result);
     }
@@ -394,24 +461,33 @@ namespace engine::wavefront::detail {
     }
 
     const auto progressDenoiser = m_config.denoiser ? m_config.denoiser->clone() : nullptr;
+    TileProgressTransform transformProgress;
+    if (progressDenoiser) {
+      const render::Denoiser* denoiser = progressDenoiser.get();
+      transformProgress = [actualRect, denoiserFeatures,
+                           denoiser](const std::vector<WavefrontTilePixel>& pixels) {
+        return denoisedProgressPixels(pixels, actualRect, denoiserFeatures, *denoiser);
+      };
+    }
+    TileProgressPublisher publishProgress;
+    if (publishProgressSnapshots) {
+      publishProgress = [&hdrBuffer, &displayBuffer,
+                         tonemap](const std::vector<WavefrontTilePixel>& pixels) {
+        for (const auto& pixel : pixels) {
+          writeColor(hdrBuffer, pixel.footprint, pixel.color);
+          writeRGB(displayBuffer, pixel.footprint,
+                   (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
+        }
+      };
+    }
     const auto result = traceTile(
       m_config, camera, rayCaster, scene, actualRect, tileSeed,
       [&](const Recti& footprint) {
         writeColor(hdrBuffer, footprint, Colord(1, 0, 0));
         writeRGB(displayBuffer, footprint, 0xffff0000);
       },
-      [&](const std::vector<WavefrontTilePixel>& pixels) {
-        const std::vector<WavefrontTilePixel> displayPixels =
-          progressDenoiser
-            ? denoisedProgressPixels(pixels, actualRect, denoiserFeatures, *progressDenoiser)
-            : pixels;
-        for (const auto& pixel : displayPixels) {
-          writeColor(hdrBuffer, pixel.footprint, pixel.color);
-          writeRGB(displayBuffer, pixel.footprint,
-                   (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
-        }
-      },
-      publishProgressSnapshots);
+      std::move(transformProgress), std::move(publishProgress), publishProgressSnapshots,
+      progressDenoiser && m_config.convergenceEnabled);
     if (m_config.metricsEnabled) {
       m_metrics.recordTile(result);
     }

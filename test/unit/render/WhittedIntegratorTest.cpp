@@ -50,13 +50,16 @@ namespace WhittedIntegratorTest {
 
     class RecordingBatchObserver final : public IntegratorBatchObserver {
     public:
-      void depthCompleted(std::uint64_t completedDepth, const std::vector<Colord>& sampleColors,
-                          std::uint64_t activeSamples) override {
+      IntegratorBatchFeedback depthCompleted(std::uint64_t completedDepth,
+                                             const std::vector<Colord>& sampleColors,
+                                             std::uint64_t activeSamples) override {
         completedDepths.push_back(completedDepth);
         snapshots.push_back(sampleColors);
         activeSampleCounts.push_back(activeSamples);
+        return feedback;
       }
 
+      IntegratorBatchFeedback feedback;
       std::vector<std::uint64_t> completedDepths;
       std::vector<std::vector<Colord>> snapshots;
       std::vector<std::uint64_t> activeSampleCounts;
@@ -328,6 +331,36 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ(1u, metrics.activeSampleDepthsProcessed);
     EXPECT_EQ(1u, metrics.radianceDeltaSquaredSumPerDepth.size());
     EXPECT_EQ(0.0, metrics.progressSnapshotWorkerSeconds);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceUsesObserverFeedbackForConvergenceDelta) {
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    auto primitive = makePrimaryOnlyHit();
+    primitive->setMaterial(std::make_shared<ContinuationMaterial>());
+    scene.add(primitive);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    IntegratorBatchMetrics metrics;
+    RecordingBatchObserver observer;
+    observer.feedback.convergenceRadianceDeltaRms = 0.0;
+    IntegratorBatchSettings settings;
+    settings.convergenceEnabled = true;
+    settings.activeSampleFractionThreshold = 1.0;
+    settings.radianceDeltaRmsThreshold = 0.0;
+    settings.progressObserver = &observer;
+    std::vector<IntegratorRaySample> samples{
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr}};
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings);
+
+    ASSERT_EQ(1u, colors.size());
+    ASSERT_COLOR_NEAR(Colord(0.1, 0.0, 0.0), colors[0], 1e-12);
+    EXPECT_TRUE(metrics.stoppedByConvergence);
+    EXPECT_EQ(1u, metrics.stoppedAfterDepth);
+    EXPECT_EQ(1u, metrics.observerConvergenceFeedbackDepths);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), observer.completedDepths);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceReportsProgressSnapshotTiming) {

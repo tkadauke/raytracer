@@ -230,7 +230,7 @@ namespace {
         << " stopped_tiles=" << unsignedValue(convergence, "stoppedTileCount")
         << " earliest_stop_depth=" << unsignedValue(convergence, "earliestStoppedAfterDepth")
         << " latest_stop_depth=" << unsignedValue(convergence, "latestStoppedAfterDepth")
-        << " denoiser="
+        << " feedback_depths=" << unsignedValue(convergence, "feedbackDepthCount") << " denoiser="
         << (denoise.value("enabled").toBool() ? denoise.value("denoiser").toString().toStdString()
                                               : std::string("none"))
         << " denoise_ms=" << denoise.value("seconds").toDouble() * 1000.0
