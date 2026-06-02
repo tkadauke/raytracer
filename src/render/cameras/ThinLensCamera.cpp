@@ -6,6 +6,8 @@
 #include "render/samplers/JitteredSampler.h"
 
 #include <cmath>
+#include <optional>
+#include <utility>
 
 using namespace render;
 
@@ -51,6 +53,13 @@ const char* ThinLensCamera::fingerprintType() const {
   return "ThinLensCamera";
 }
 
+Vector3d ThinLensCamera::eyeOrigin() const {
+  const Matrix4d& cameraMatrix = matrix();
+  return Vector3d(cameraMatrix.cell(0, 3) - cameraMatrix.cell(0, 2) * m_distance,
+                  cameraMatrix.cell(1, 3) - cameraMatrix.cell(1, 2) * m_distance,
+                  cameraMatrix.cell(2, 3) - cameraMatrix.cell(2, 2) * m_distance);
+}
+
 Rayd ThinLensCamera::rayForPixel(double x, double y, ::render::SampleStream& stream) const {
   // Pull the lens-disc sample from the stream's next 2D dimension.
   // During normal rendering, the renderer has already consumed pixel
@@ -80,7 +89,7 @@ Rayd ThinLensCamera::rayForPixelWithLens(double x, double y, double lensU, doubl
   // Pinhole reference ray — origin at lens centre, target through the
   // pixel on the viewplane at +z=distance from the eye.
   const Matrix4d& cameraMatrix = matrix();
-  Vector3d eyeOrigin = cameraMatrix.transformPoint(Vector3d(0, 0, -m_distance));
+  Vector3d eyeOrigin = this->eyeOrigin();
   Vector3d pixel = viewPlane()->pixelAt(x, y);
   Vector3d pinholeDir = (pixel - eyeOrigin).normalized();
 
@@ -112,6 +121,65 @@ Rayd ThinLensCamera::rayForPixelWithLens(double x, double y, double lensU, doubl
   Vector3d lensOrigin = eyeOrigin + lensOffset;
 
   return Rayd(lensOrigin, (focalPoint - lensOrigin).normalized());
+}
+
+std::unique_ptr<Camera::PrimaryRayGenerator> ThinLensCamera::primaryRayGenerator() const {
+  class ThinLensPrimaryRayGenerator final : public Camera::PrimaryRayGenerator {
+  public:
+    ThinLensPrimaryRayGenerator(std::shared_ptr<render::ViewPlane> plane, const Vector3d& eyeOrigin,
+                                const Vector3d& forward, const Vector3d& right, const Vector3d& up,
+                                double distance, double focalDistance, double apertureRadius)
+        : m_plane(std::move(plane)),
+          m_eyeOrigin(eyeOrigin),
+          m_forward(forward),
+          m_right(right),
+          m_up(up),
+          m_distance(distance),
+          m_focalDistance(focalDistance),
+          m_apertureRadius(apertureRadius) {
+    }
+
+    std::optional<Camera::PrimaryRay> sample(const render::ViewPlane::Iterator& pixel,
+                                             render::SampleStream& stream) const override {
+      const render::SampleStream::PrimarySample primarySample = stream.primarySample();
+      const Vector2d xy = pixel.pixel() + primarySample.pixel;
+
+      const Vector2d lens = stream.next2D();
+      double lensU = 0.0;
+      double lensV = 0.0;
+      concentricMapToDisc(2.0 * lens.x() - 1.0, 2.0 * lens.y() - 1.0, lensU, lensV);
+
+      const Vector3d pixelPoint = m_plane->pixelAt(xy.x(), xy.y());
+      const Vector3d pinholeDirection = (pixelPoint - m_eyeOrigin).normalized();
+      const double t = (m_distance + m_focalDistance) / (pinholeDirection * m_forward);
+      const Vector3d focalPoint = m_eyeOrigin + pinholeDirection * t;
+      const Vector3d lensOffset = (m_right * lensU + m_up * lensV) * m_apertureRadius;
+      const Vector3d lensOrigin = m_eyeOrigin + lensOffset;
+      const Rayd ray(lensOrigin, (focalPoint - lensOrigin).normalized());
+      if (!ray.direction().isDefined()) {
+        return std::nullopt;
+      }
+
+      return Camera::PrimaryRay{ray, primarySample.time};
+    }
+
+  private:
+    std::shared_ptr<render::ViewPlane> m_plane;
+    Vector3d m_eyeOrigin;
+    Vector3d m_forward;
+    Vector3d m_right;
+    Vector3d m_up;
+    double m_distance;
+    double m_focalDistance;
+    double m_apertureRadius;
+  };
+
+  const Matrix4d& cameraMatrix = matrix();
+  return std::make_unique<ThinLensPrimaryRayGenerator>(
+    viewPlane(), eyeOrigin(), cameraMatrix.transformDirection(Vector3d(0, 0, 1)),
+    cameraMatrix.transformDirection(Vector3d(1, 0, 0)),
+    cameraMatrix.transformDirection(Vector3d(0, 1, 0)), m_distance, m_focalDistance,
+    m_apertureRadius);
 }
 
 Vector2d ThinLensCamera::projectPoint(const Vector3d& worldPoint) const {

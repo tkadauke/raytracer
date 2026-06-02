@@ -11,6 +11,8 @@
 
 #include "test/helpers/VectorTestHelper.h"
 
+#include <optional>
+
 namespace ThinLensCameraTest {
   using namespace render;
   using namespace engine::raytracer;
@@ -153,6 +155,35 @@ namespace ThinLensCameraTest {
     ASSERT_VECTOR_NEAR(pinhole.projectPointToClipSpace(point),
                        camera.projectPointToClipSpace(point), 1e-9);
     EXPECT_NEAR(pinhole.eyeRelativeDepth(point), camera.eyeRelativeDepth(point), 1e-9);
+  }
+
+  TEST(ThinLensCamera, PrimaryRayGeneratorMatchesCallerOwnedStream) {
+    ThinLensCamera camera(Vector3d(0.5, -0.25, -4.0), Vector3d(0.0, 0.0, 1.0));
+    camera.setDistance(4.0);
+    camera.setZoom(1.25);
+    camera.setApertureRadius(0.7);
+    camera.setFocalDistance(2.5);
+    auto sampler = std::make_shared<JitteredSampler>();
+    sampler->setup(4, 16);
+    camera.viewPlane()->setSampler(sampler);
+    initViewPlane(camera, 160, 90);
+
+    auto pixel = camera.viewPlane()->begin(Recti(0, 0, 160, 90));
+    ++pixel;
+    ++pixel;
+    const auto tileSeed = std::optional<std::uint64_t>(1234);
+    const std::uint64_t pixelHash = camera.primaryRayPixelHash(pixel, tileSeed);
+    auto stream = sampler->stream(2, pixelHash);
+    auto generatorStream = sampler->stream(2, pixelHash);
+
+    const auto borrowedSample = camera.primaryRaySample(pixel, *stream);
+    const auto generatedSample = camera.primaryRayGenerator()->sample(pixel, *generatorStream);
+
+    ASSERT_TRUE(borrowedSample.has_value());
+    ASSERT_TRUE(generatedSample.has_value());
+    ASSERT_VECTOR_NEAR(borrowedSample->ray.origin(), generatedSample->ray.origin(), 1e-12);
+    ASSERT_VECTOR_NEAR(borrowedSample->ray.direction(), generatedSample->ray.direction(), 1e-12);
+    ASSERT_DOUBLE_EQ(borrowedSample->timeSample, generatedSample->timeSample);
   }
 
   TEST(ThinLensCamera, ShouldRender) {

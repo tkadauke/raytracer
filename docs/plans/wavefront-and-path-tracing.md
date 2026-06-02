@@ -652,6 +652,9 @@ type-switch-free while reducing repeated setup inside the sample loop. A
 primary-ray worker time dropping from ~14.4 ms to ~0.7 ms, with identical
 submitted sample/frontier counts; remaining sample-generation overhead is now
 mostly outside camera primary-ray math.
+`ThinLensCamera` now uses the same hook to precompute its eye origin, camera
+basis, and focal constants before the tile sample loop while preserving the
+existing pixel/time/lens sample-stream order.
 The integrator batch bucket is now split further into
 intersection and shading worker time, so captures can distinguish BVH/primitive
 traversal cost from material, direct lighting, and continuation sampling cost
