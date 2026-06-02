@@ -24,6 +24,7 @@ namespace engine::wavefront::detail {
                const render::Integrator& integrator, const render::Denoiser* denoiser,
                bool convergenceEnabled, double activeSampleFractionThreshold,
                double radianceDeltaRmsThreshold);
+    void clear();
     void recordTile(const WavefrontTileTraceResult& result);
     void recordDenoiserFeatureTile(const Recti& rect);
     void recordDenoise(bool albedoFeature, bool normalFeature, bool depthFeature, double seconds);

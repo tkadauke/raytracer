@@ -273,6 +273,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   compact summaries, and convergence capture summaries now report maximum and
   average tile pixel area beside the tile grid, making queue-size/tile-size
   tuning less dependent on manual resolution math. — GPT-5
+- **Wavefront metrics opt-in setup.** Wavefront renders now clear stale metrics
+  and skip full metrics initialization when metrics are disabled, so ordinary
+  final-image renders avoid more of the diagnostics path. — GPT-5
 - **Wavefront terminal continuations.** Whitted wavefront batches now resolve
   max-depth and throughput-cutoff continuations when material shading creates
   them instead of queueing a next-depth frontier that can only terminate. — GPT-5

@@ -46,6 +46,11 @@ namespace engine::wavefront::detail {
     m_metrics.convergence.decision = convergenceEnabled ? "configured" : "disabled";
   }
 
+  void WavefrontMetricsRecorder::clear() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_metrics = WavefrontRenderMetrics();
+  }
+
   void WavefrontMetricsRecorder::recordTile(const WavefrontTileTraceResult& result) {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_metrics.input.renderedPixels += result.pixels.size();

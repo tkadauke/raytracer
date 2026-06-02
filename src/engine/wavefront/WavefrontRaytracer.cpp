@@ -438,6 +438,8 @@ namespace engine::wavefront {
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
                        p->convergenceActiveSampleFractionThreshold,
                        p->convergenceRadianceDeltaRmsThreshold);
+    } else {
+      p->metrics.clear();
     }
     auto tileRenderer = p->tileRenderer();
     const auto denoiserFeatures = tileRenderer.buildDenoiserFeatures(
@@ -501,6 +503,8 @@ namespace engine::wavefront {
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
                        p->convergenceActiveSampleFractionThreshold,
                        p->convergenceRadianceDeltaRmsThreshold);
+    } else {
+      p->metrics.clear();
     }
     auto tileRenderer = p->tileRenderer();
     const auto samplingSeed = p->samplingSeed;
@@ -560,6 +564,8 @@ namespace engine::wavefront {
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
                        p->convergenceActiveSampleFractionThreshold,
                        p->convergenceRadianceDeltaRmsThreshold);
+    } else {
+      p->metrics.clear();
     }
     auto tileRenderer = p->tileRenderer();
     const auto denoiserFeatures = tileRenderer.buildDenoiserFeatures(

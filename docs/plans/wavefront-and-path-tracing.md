@@ -566,7 +566,8 @@ display-publishing cost that Modeler previews still need. Wavefront metrics
 collection is now opt-in as well: graph-backed passes enable it when execution
 trace or metrics output is requested, direct rendercli wavefront renders enable
 it only for `--wavefront_metrics_out` / `--wavefront_metrics_summary`, and
-plain final-image renders avoid the batch metric accumulation path. rendercli
+plain final-image renders clear stale metrics and avoid both full metrics setup
+and batch metric accumulation. rendercli
 now also resolves a size-aware default ray-family queue size and writes it into
 compiled graph pass state, so graph-backed wavefront renders do not silently
 fall back to a much coarser thread-count-sized queue than the direct engine

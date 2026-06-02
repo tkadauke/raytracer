@@ -544,6 +544,26 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(progressState->batchesWithMetrics, 0);
   }
 
+  TEST(WavefrontRaytracer, ClearsLastMetricsWhenMetricsAreDisabled) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+
+    Buffer<unsigned int> buffer(4, 3);
+    renderer->setMetricsEnabled(true);
+    renderer->render(buffer);
+    EXPECT_GT(renderer->lastMetrics().input.primarySamples, 0u);
+
+    renderer->setMetricsEnabled(false);
+    renderer->render(buffer);
+
+    const auto metrics = renderer->lastMetrics();
+    EXPECT_EQ(0, metrics.input.width);
+    EXPECT_EQ(0, metrics.input.height);
+    EXPECT_EQ(0u, metrics.input.primarySamples);
+    EXPECT_EQ(0u, metrics.tiling.tileCount);
+  }
+
   TEST(WavefrontRaytracer, MatchesRecursiveRaytracerForSimpleWhittedScene) {
     auto scene = testScene();
     auto recursive = std::make_shared<engine::raytracer::Raytracer>(camera(), scene);
