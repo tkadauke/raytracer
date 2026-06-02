@@ -71,6 +71,7 @@ Q_DECLARE_METATYPE(Colord);
 
 namespace {
   using Clock = std::chrono::steady_clock;
+  constexpr std::uint64_t maxExactJsonInteger = 9007199254740991ULL;
 
   struct TimingStats {
     double minMs;
@@ -1083,6 +1084,7 @@ private:
   bool m_samplerSet;
   int m_samplesPerPixel;
   bool m_samplesPerPixelSet;
+  std::optional<std::uint64_t> m_samplingSeed;
   int m_threads;
   int m_queueSize;
   bool m_threadsSet;
@@ -1257,6 +1259,7 @@ Renderer::Renderer()
       m_samplerSet(false),
       m_samplesPerPixel(1),
       m_samplesPerPixelSet(false),
+      m_samplingSeed(),
       m_threads(QThread::idealThreadCount()),
       m_queueSize(m_width * m_height * m_samplesPerPixel / 1024),
       m_threadsSet(false),
@@ -1479,6 +1482,8 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.raytracer().setSampler(m_sampler.toStdString());
   if (m_samplesPerPixelSet)
     options.raytracer().setSamplesPerPixel(m_samplesPerPixel);
+  if (m_samplingSeed)
+    options.raytracer().setSamplingSeed(*m_samplingSeed);
   if (m_wavefrontConvergenceSet)
     options.raytracer().setConvergenceEnabled(m_wavefrontConvergenceEnabled);
   if (m_wavefrontConvergenceActiveFractionSet) {
@@ -2101,6 +2106,8 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     wavefront->camera()->viewPlane()->setSampler(sampler());
     wavefront->setMaximumThreads(m_threads);
     wavefront->setQueueSize(rayFamilyQueueSize());
+    if (m_samplingSeed)
+      wavefront->setSamplingSeed(*m_samplingSeed);
     wavefront->setMetricsEnabled(wavefrontMetricsRequested);
     if (m_wavefrontConvergenceSet)
       wavefront->setConvergenceEnabled(m_wavefrontConvergenceEnabled);
@@ -2147,6 +2154,8 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     rt->camera()->viewPlane()->setSampler(sampler());
     rt->setMaximumThreads(m_threads);
     rt->setQueueSize(rayFamilyQueueSize());
+    if (m_samplingSeed)
+      rt->setSamplingSeed(*m_samplingSeed);
     engine = rt;
   }
 
@@ -2566,6 +2575,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"ldraw-background-color", "Background color for direct LDraw imports (name or hex)", "color"},
      {"sampler", "Sampler type", "sampler"},
      {"samples_per_pixel", "Samples per pixel", "samples"},
+     {"sampling_seed", "Deterministic render sampling seed for ray-family engines", "seed"},
      {{"j", "threads"}, "Number of threads", "threads"},
      {"queue_size", "Explicit queue size for thread pool; raster defaults to automatic",
       "queue_size"},
@@ -2838,6 +2848,16 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_samplesPerPixelSet = true;
+  }
+
+  if (parser.isSet("sampling_seed")) {
+    bool ok = false;
+    const qulonglong seed = parser.value("sampling_seed").toULongLong(&ok);
+    if (!ok || seed > maxExactJsonInteger) {
+      *errorMessage = "Sampling seed must be a non-negative integer <= 9007199254740991";
+      return CommandLineError;
+    }
+    m_samplingSeed = static_cast<std::uint64_t>(seed);
   }
 
   if (parser.isSet("threads")) {

@@ -603,15 +603,16 @@ render; it only produces the inspectable plan.
 When the selected beauty executor is the raytracer or wavefront executor, typed
 ray-family options on the effective intent become `RaytracerBeautyPassState` on
 the beauty pass. That state can configure the integrator, sampler, samples per
-pixel, view-plane type, recursion depth, worker thread count, and queue size
-before the payload renders. Wavefront convergence controls also flow through
-that state, so the compiled plan can report the active-sample fraction and RMS
-radiance-delta thresholds used by wavefront convergence termination. Those
-choices therefore appear in graph JSON and replay with the plan instead of
-being hidden in rendercli camera setup. Modeler Render Settings presents those
-thresholds through Preview/Balanced/Final convergence quality presets while
-keeping the raw thresholds editable for advanced tuning; the compiled plan still
-receives only the typed, resolved thresholds. The
+pixel, deterministic sampling seed, view-plane type, recursion depth, worker
+thread count, and queue size before the payload renders. Wavefront convergence
+controls also flow through that state, so the compiled plan can report the
+active-sample fraction and RMS radiance-delta thresholds used by wavefront
+convergence termination. Those choices therefore appear in graph JSON and
+replay with the plan instead of being hidden in rendercli camera setup. Modeler
+Render Settings presents those thresholds through Preview/Balanced/Final
+convergence quality presets while keeping the raw thresholds editable for
+advanced tuning; the compiled plan still receives only the typed, resolved
+thresholds. The
 wavefront payload submits tile samples through the integrator batch API.
 Whitted batches use material-published continuation rays for explicit
 depth-major reflection/refraction queues and fall back to scalar recursion for

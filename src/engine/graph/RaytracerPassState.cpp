@@ -18,12 +18,15 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstdint>
 #include <initializer_list>
 #include <stdexcept>
 #include <utility>
 
 namespace engine::graph {
   namespace {
+    constexpr std::uint64_t maxExactJsonInteger = 9007199254740991ULL;
+
     [[noreturn]] void stateError(const std::string& path, const std::string& message) {
       throw std::runtime_error("Invalid raytracer pass state at " + path + ": " + message);
     }
@@ -60,6 +63,19 @@ namespace engine::graph {
       if (!std::isfinite(number) || std::floor(number) != number)
         stateError(path + "." + key, "expected integer");
       return static_cast<int>(number);
+    }
+
+    std::uint64_t uint64Field(const QJsonObject& object, const char* key, const std::string& path) {
+      const auto value = object.value(key);
+      if (!value.isDouble())
+        stateError(path + "." + key, "expected non-negative integer");
+
+      const double number = value.toDouble();
+      if (!std::isfinite(number) || number < 0.0 ||
+          number > static_cast<double>(maxExactJsonInteger) || std::floor(number) != number) {
+        stateError(path + "." + key, "expected non-negative integer");
+      }
+      return static_cast<std::uint64_t>(number);
     }
 
     double doubleField(const QJsonObject& object, const char* key, const std::string& path) {
@@ -116,11 +132,13 @@ namespace engine::graph {
       state.setIntegrator(stringField(execution, "integrator", path + ".execution"));
 
     const QJsonObject sampling = objectField(object, "sampling", path);
-    rejectUnknownFields(sampling, path + ".sampling", {"sampler", "samplesPerPixel"});
+    rejectUnknownFields(sampling, path + ".sampling", {"sampler", "samplesPerPixel", "seed"});
     if (hasField(sampling, "sampler"))
       state.setSampler(stringField(sampling, "sampler", path + ".sampling"));
     if (hasField(sampling, "samplesPerPixel"))
       state.setSamplesPerPixel(intField(sampling, "samplesPerPixel", path + ".sampling"));
+    if (hasField(sampling, "seed"))
+      state.setSamplingSeed(uint64Field(sampling, "seed", path + ".sampling"));
 
     const QJsonObject viewPlane = objectField(object, "viewPlane", path);
     rejectUnknownFields(viewPlane, path + ".viewPlane", {"type"});
@@ -189,6 +207,8 @@ namespace engine::graph {
       sampling["sampler"] = qstr(*m_sampler);
     if (m_samplesPerPixel)
       sampling["samplesPerPixel"] = *m_samplesPerPixel;
+    if (m_samplingSeed)
+      sampling["seed"] = static_cast<double>(*m_samplingSeed);
     if (!sampling.isEmpty())
       object["sampling"] = sampling;
 
@@ -242,6 +262,8 @@ namespace engine::graph {
       raytracer.setMaximumThreads(*m_maximumThreads);
     if (m_queueSize)
       raytracer.setQueueSize(*m_queueSize);
+    if (m_samplingSeed)
+      raytracer.setSamplingSeed(*m_samplingSeed);
 
     auto viewPlane = createViewPlaneForPass(raytracer.camera());
     if (viewPlane && raytracer.camera())
@@ -257,6 +279,8 @@ namespace engine::graph {
       wavefront.setMaximumThreads(*m_maximumThreads);
     if (m_queueSize)
       wavefront.setQueueSize(*m_queueSize);
+    if (m_samplingSeed)
+      wavefront.setSamplingSeed(*m_samplingSeed);
     if (m_convergenceEnabled)
       wavefront.setConvergenceEnabled(*m_convergenceEnabled);
     if (m_convergenceActiveSampleFractionThreshold) {
@@ -316,6 +340,13 @@ namespace engine::graph {
     m_samplesPerPixel = std::max(1, samples);
   }
 
+  void RaytracerBeautyPassState::setSamplingSeed(std::uint64_t seed) {
+    if (seed > maxExactJsonInteger) {
+      stateError("parameters.sampling.seed", "expected exactly representable JSON integer");
+    }
+    m_samplingSeed = seed;
+  }
+
   void RaytracerBeautyPassState::setViewPlane(std::string viewPlane) {
     m_viewPlane = std::move(viewPlane);
   }
@@ -366,6 +397,10 @@ namespace engine::graph {
 
   std::optional<int> RaytracerBeautyPassState::samplesPerPixel() const {
     return m_samplesPerPixel;
+  }
+
+  std::optional<std::uint64_t> RaytracerBeautyPassState::samplingSeed() const {
+    return m_samplingSeed;
   }
 
   std::optional<std::string> RaytracerBeautyPassState::viewPlane() const {

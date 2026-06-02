@@ -301,9 +301,10 @@ namespace engine::graph {
 
   bool RenderRaytracerOptions::empty() const {
     return !m_maximumRecursionDepth && !m_maximumThreads && !m_queueSize && !m_integrator &&
-           !m_sampler && !m_samplesPerPixel && !m_viewPlane && !m_convergenceEnabled &&
-           !m_convergenceActiveSampleFractionThreshold && !m_convergenceRadianceDeltaRmsThreshold &&
-           !m_denoiser && !m_denoiseRadius && !m_denoiseColorSigma;
+           !m_sampler && !m_samplesPerPixel && !m_samplingSeed && !m_viewPlane &&
+           !m_convergenceEnabled && !m_convergenceActiveSampleFractionThreshold &&
+           !m_convergenceRadianceDeltaRmsThreshold && !m_denoiser && !m_denoiseRadius &&
+           !m_denoiseColorSigma;
   }
 
   QJsonObject RenderRaytracerOptions::toJson() const {
@@ -326,6 +327,8 @@ namespace engine::graph {
       options.setSampler(*state.sampler());
     if (state.samplesPerPixel())
       options.setSamplesPerPixel(*state.samplesPerPixel());
+    if (state.samplingSeed())
+      options.setSamplingSeed(*state.samplingSeed());
     if (state.viewPlane())
       options.setViewPlane(*state.viewPlane());
     if (state.convergenceEnabled())
@@ -357,6 +360,7 @@ namespace engine::graph {
     result.m_sampler = overrideOptional(result.m_sampler, overrides.m_sampler);
     result.m_samplesPerPixel =
       overrideOptional(result.m_samplesPerPixel, overrides.m_samplesPerPixel);
+    result.m_samplingSeed = overrideOptional(result.m_samplingSeed, overrides.m_samplingSeed);
     result.m_viewPlane = overrideOptional(result.m_viewPlane, overrides.m_viewPlane);
     result.m_convergenceEnabled =
       overrideOptional(result.m_convergenceEnabled, overrides.m_convergenceEnabled);
@@ -387,6 +391,8 @@ namespace engine::graph {
       state.setSampler(*m_sampler);
     if (m_samplesPerPixel)
       state.setSamplesPerPixel(*m_samplesPerPixel);
+    if (m_samplingSeed)
+      state.setSamplingSeed(*m_samplingSeed);
     if (m_viewPlane)
       state.setViewPlane(*m_viewPlane);
     if (m_convergenceEnabled)
@@ -429,6 +435,12 @@ namespace engine::graph {
 
   void RenderRaytracerOptions::setSamplesPerPixel(int samples) {
     m_samplesPerPixel = std::max(1, samples);
+  }
+
+  void RenderRaytracerOptions::setSamplingSeed(std::uint64_t seed) {
+    RaytracerBeautyPassState state;
+    state.setSamplingSeed(seed);
+    m_samplingSeed = state.samplingSeed();
   }
 
   void RenderRaytracerOptions::setViewPlane(std::string viewPlane) {
@@ -483,6 +495,10 @@ namespace engine::graph {
 
   std::optional<int> RenderRaytracerOptions::samplesPerPixel() const {
     return m_samplesPerPixel;
+  }
+
+  std::optional<std::uint64_t> RenderRaytracerOptions::samplingSeed() const {
+    return m_samplingSeed;
   }
 
   std::optional<std::string> RenderRaytracerOptions::viewPlane() const {

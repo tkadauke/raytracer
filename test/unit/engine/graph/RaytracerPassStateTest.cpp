@@ -13,6 +13,8 @@
 
 #include <QJsonObject>
 
+#include <stdexcept>
+
 namespace RaytracerPassStateTest {
   using namespace engine::graph;
 
@@ -24,6 +26,7 @@ namespace RaytracerPassStateTest {
     state.setIntegrator("path_tracer");
     state.setSampler("Jittered");
     state.setSamplesPerPixel(16);
+    state.setSamplingSeed(12345);
     state.setViewPlane("TiledViewPlane");
     state.setConvergenceEnabled(true);
     state.setConvergenceActiveSampleFractionThreshold(0.125);
@@ -42,6 +45,7 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ("Jittered",
               json.value("sampling").toObject().value("sampler").toString().toStdString());
     EXPECT_EQ(16, json.value("sampling").toObject().value("samplesPerPixel").toInt());
+    EXPECT_EQ(12345.0, json.value("sampling").toObject().value("seed").toDouble());
     EXPECT_EQ("TiledViewPlane",
               json.value("viewPlane").toObject().value("type").toString().toStdString());
     EXPECT_TRUE(json.value("convergence").toObject().value("enabled").toBool());
@@ -61,6 +65,7 @@ namespace RaytracerPassStateTest {
     ASSERT_TRUE(decoded.integrator().has_value());
     ASSERT_TRUE(decoded.sampler().has_value());
     ASSERT_TRUE(decoded.samplesPerPixel().has_value());
+    ASSERT_TRUE(decoded.samplingSeed().has_value());
     ASSERT_TRUE(decoded.viewPlane().has_value());
     ASSERT_TRUE(decoded.convergenceEnabled().has_value());
     ASSERT_TRUE(decoded.convergenceActiveSampleFractionThreshold().has_value());
@@ -74,6 +79,7 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ("pathtracer", *decoded.integrator());
     EXPECT_EQ("Jittered", *decoded.sampler());
     EXPECT_EQ(16, *decoded.samplesPerPixel());
+    EXPECT_EQ(12345u, *decoded.samplingSeed());
     EXPECT_EQ("TiledViewPlane", *decoded.viewPlane());
     EXPECT_TRUE(*decoded.convergenceEnabled());
     EXPECT_DOUBLE_EQ(0.125, *decoded.convergenceActiveSampleFractionThreshold());
@@ -81,6 +87,15 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ("bilateral", *decoded.denoiser());
     EXPECT_EQ(3, *decoded.denoiseRadius());
     EXPECT_DOUBLE_EQ(0.2, *decoded.denoiseColorSigma());
+  }
+
+  TEST(RaytracerBeautyPassState, RejectsSamplingSeedOutsideExactJsonIntegerRange) {
+    QJsonObject sampling;
+    sampling["seed"] = 9007199254740992.0;
+    QJsonObject json;
+    json["sampling"] = sampling;
+
+    EXPECT_THROW(RaytracerBeautyPassState::fromJson(json), std::runtime_error);
   }
 
   TEST(RaytracerBeautyPassState, AppliesPathTracingIntegratorToRaytracer) {
@@ -137,6 +152,22 @@ namespace RaytracerPassStateTest {
     state.applyTo(wavefront);
 
     EXPECT_EQ(nullptr, wavefront.denoiser());
+  }
+
+  TEST(RaytracerBeautyPassState, AppliesSamplingSeedToRayFamilyEngines) {
+    RaytracerBeautyPassState state;
+    state.setSamplingSeed(6789);
+
+    engine::raytracer::Raytracer raytracer(nullptr);
+    engine::wavefront::WavefrontRaytracer wavefront{std::shared_ptr<render::Scene>()};
+
+    state.applyTo(raytracer);
+    state.applyTo(wavefront);
+
+    ASSERT_TRUE(raytracer.samplingSeed().has_value());
+    ASSERT_TRUE(wavefront.samplingSeed().has_value());
+    EXPECT_EQ(6789u, *raytracer.samplingSeed());
+    EXPECT_EQ(6789u, *wavefront.samplingSeed());
   }
 
   TEST(RaytracerBeautyPassState, WritesOnlyToRayFamilyBeautyPasses) {

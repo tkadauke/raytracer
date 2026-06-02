@@ -155,6 +155,7 @@ namespace RenderGraphTypesTest {
     intent.engineOptions.raytracer().setIntegrator("pathtracer");
     intent.engineOptions.raytracer().setSampler("Jittered");
     intent.engineOptions.raytracer().setSamplesPerPixel(8);
+    intent.engineOptions.raytracer().setSamplingSeed(12345);
     intent.engineOptions.raytracer().setDenoiser("bilateral");
     intent.engineOptions.raytracer().setDenoiseRadius(2);
     intent.engineOptions.raytracer().setDenoiseColorSigma(0.2);
@@ -197,6 +198,8 @@ namespace RenderGraphTypesTest {
                             .toStdString());
     EXPECT_EQ(
       8, engineOptions["raytracer"].toObject()["sampling"].toObject()["samplesPerPixel"].toInt());
+    EXPECT_EQ(12345.0,
+              engineOptions["raytracer"].toObject()["sampling"].toObject()["seed"].toDouble());
     EXPECT_EQ(
       "bilateral",
       engineOptions["raytracer"].toObject()["denoise"].toObject()["type"].toString().toStdString());
@@ -256,6 +259,7 @@ namespace RenderGraphTypesTest {
     raytracerExecution["integrator"] = "pt";
     QJsonObject raytracerSampling;
     raytracerSampling["samplesPerPixel"] = 12;
+    raytracerSampling["seed"] = 67890;
     QJsonObject raytracerDenoise;
     raytracerDenoise["type"] = "bilateral";
     raytracerDenoise["radius"] = 5;
@@ -307,6 +311,8 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("pathtracer", *intent.engineOptions.raytracer().integrator());
     ASSERT_TRUE(intent.engineOptions.raytracer().samplesPerPixel().has_value());
     EXPECT_EQ(12, *intent.engineOptions.raytracer().samplesPerPixel());
+    ASSERT_TRUE(intent.engineOptions.raytracer().samplingSeed().has_value());
+    EXPECT_EQ(67890u, *intent.engineOptions.raytracer().samplingSeed());
     ASSERT_TRUE(intent.engineOptions.raytracer().denoiser().has_value());
     EXPECT_EQ("bilateral", *intent.engineOptions.raytracer().denoiser());
     ASSERT_TRUE(intent.engineOptions.raytracer().denoiseRadius().has_value());
@@ -497,6 +503,7 @@ namespace RenderGraphTypesTest {
   TEST(RenderSubviewIntent, ResolvesInheritedAndIndependentEngineOptions) {
     RenderEngineOptions global;
     global.raytracer().setSamplesPerPixel(8);
+    global.raytracer().setSamplingSeed(24680);
     global.raytracer().setDenoiser("bilateral");
     global.raytracer().setDenoiseRadius(3);
     global.raytracer().setDenoiseColorSigma(0.25);
@@ -510,11 +517,13 @@ namespace RenderGraphTypesTest {
 
     const RenderEngineOptions inheritedOptions = inherited.resolvedEngineOptions(global);
     ASSERT_TRUE(inheritedOptions.raytracer().samplesPerPixel().has_value());
+    ASSERT_TRUE(inheritedOptions.raytracer().samplingSeed().has_value());
     ASSERT_TRUE(inheritedOptions.raytracer().denoiser().has_value());
     ASSERT_TRUE(inheritedOptions.raytracer().denoiseRadius().has_value());
     ASSERT_TRUE(inheritedOptions.raytracer().denoiseColorSigma().has_value());
     ASSERT_TRUE(inheritedOptions.rasterizer().msaaSamples().has_value());
     EXPECT_EQ(8, *inheritedOptions.raytracer().samplesPerPixel());
+    EXPECT_EQ(24680u, *inheritedOptions.raytracer().samplingSeed());
     EXPECT_EQ("bilateral", *inheritedOptions.raytracer().denoiser());
     EXPECT_EQ(1, *inheritedOptions.raytracer().denoiseRadius());
     EXPECT_DOUBLE_EQ(0.1, *inheritedOptions.raytracer().denoiseColorSigma());
@@ -525,6 +534,7 @@ namespace RenderGraphTypesTest {
 
     const RenderEngineOptions independentOptions = independent.resolvedEngineOptions(global);
     EXPECT_FALSE(independentOptions.raytracer().samplesPerPixel().has_value());
+    EXPECT_FALSE(independentOptions.raytracer().samplingSeed().has_value());
     EXPECT_FALSE(independentOptions.raytracer().denoiser().has_value());
     ASSERT_TRUE(independentOptions.raytracer().denoiseRadius().has_value());
     EXPECT_EQ(1, *independentOptions.raytracer().denoiseRadius());

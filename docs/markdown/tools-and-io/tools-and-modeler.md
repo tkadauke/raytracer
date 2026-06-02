@@ -91,9 +91,11 @@ uses, so engine, view, AA, shadow, overlay, camera, shading, and AOV choices
 share one interpretation before plan compilation.
 General render controls that affect an underlying engine are also translated
 into typed intent engine options before compilation. For example,
-`--sampler`, `--samples_per_pixel`, `--depth`, `--threads`, and
-`--queue_size` become raytracer pass state when the graph contains
-`raytrace_beauty` or `wavefront_beauty`. Wavefront controls such as
+`--sampler`, `--samples_per_pixel`, `--sampling_seed`, `--depth`, `--threads`,
+and `--queue_size` become raytracer pass state when the graph contains
+`raytrace_beauty` or `wavefront_beauty`. The seed is optional, but when present
+it makes stochastic ray-family renders repeatable and is serialized into
+exported graph JSON. Wavefront controls such as
 `--wavefront_convergence`, `--wavefront_no_convergence`,
 `--wavefront_convergence_active_fraction`, and
 `--wavefront_convergence_rms_delta` become graph-visible convergence state for

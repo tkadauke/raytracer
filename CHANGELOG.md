@@ -132,6 +132,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   four-ray queued-frontier chunks through the packet hit API and report packet
   utilization metrics, while scalar-refining packet hits before shading to
   preserve recursive Whitted parity. — GPT-5
+- **Deterministic rendercli sampling seed.** `rendercli --sampling_seed` now
+  seeds raytracer and wavefront sampling, and graph exports preserve that seed
+  in ray-family beauty pass state for repeatable stochastic renders. — GPT-5
 - **Sphere packet hit materialization.** `render::Sphere` now overrides the
   four-wide packet hit API directly, avoiding the generic `HitPointInterval`
   fallback while preserving per-lane hit/miss state. — GPT-5

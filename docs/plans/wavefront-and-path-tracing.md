@@ -778,6 +778,9 @@ reference by chance.
 **Gate**: 4spp render with denoiser produces image visually comparable
 to 64spp without denoiser. ✅ **Done.** Covered by the
 `wavefront_denoise_demo.json` rendercli RMS regression.
+The rendercli denoiser regression now also pins the stochastic seed for its
+reference, raw, and filtered renders, so the quality gate measures the denoiser
+instead of incidental sample-stream differences.
 
 ### Phase 7+ — SoA / GPU / packet traversal
 

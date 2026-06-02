@@ -2018,7 +2018,7 @@ rendercli_run(
   NAME "rendercli renders wavefront denoise quality reference"
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --wavefront_denoiser none
-    --samples_per_pixel 64 --width 32 --height 32
+    --sampling_seed 1337 --samples_per_pixel 64 --width 32 --height 32
     "${wavefront_denoise_scene}" "${wavefront_denoise_quality_reference}"
 )
 rendercli_assert_image_nonempty("${wavefront_denoise_quality_reference}"
@@ -2027,7 +2027,7 @@ rendercli_run(
   NAME "rendercli renders raw low-spp wavefront denoise comparison"
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --wavefront_denoiser none
-    --samples_per_pixel 4 --width 32 --height 32
+    --sampling_seed 1337 --samples_per_pixel 4 --width 32 --height 32
     "${wavefront_denoise_scene}" "${wavefront_denoise_quality_raw}"
 )
 rendercli_assert_image_nonempty("${wavefront_denoise_quality_raw}"
@@ -2037,7 +2037,7 @@ rendercli_run(
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --wavefront_denoiser bilateral
     --wavefront_denoise_radius 3 --wavefront_denoise_color_sigma 0.25
-    --samples_per_pixel 4 --width 32 --height 32
+    --sampling_seed 1337 --samples_per_pixel 4 --width 32 --height 32
     "${wavefront_denoise_scene}" "${wavefront_denoise_quality_filtered}"
 )
 rendercli_assert_image_nonempty("${wavefront_denoise_quality_filtered}"
@@ -2960,7 +2960,8 @@ rendercli_run(
   NAME "rendercli writes raytracer pass state through graph intent"
   COMMAND
     "${RENDERCLI}" --engine raytracer --render_graph_only --render_graph_format json
-    --width 32 --height 16 --sampler Jittered --samples_per_pixel 9 --depth 6
+    --width 32 --height 16 --sampler Jittered --samples_per_pixel 9 --sampling_seed 12345
+    --depth 6
     "${static_scene}" "${raytracer_state_plan}"
 )
 rendercli_assert_nonempty("${raytracer_state_plan}" NAME "graph raytracer state plan")
@@ -2974,9 +2975,21 @@ endif()
 if(NOT raytracer_state_graph MATCHES "Jittered")
   message(FATAL_ERROR "raytracer state graph did not contain sampler: ${raytracer_state_graph}")
 endif()
+if(NOT raytracer_state_graph MATCHES "\"seed\"[ \r\n]*:[ \r\n]*12345")
+  message(FATAL_ERROR "raytracer state graph did not contain sampling seed: ${raytracer_state_graph}")
+endif()
 if(NOT raytracer_state_graph MATCHES "maxRecursionDepth")
   message(FATAL_ERROR "raytracer state graph did not contain recursion depth: ${raytracer_state_graph}")
 endif()
+
+rendercli_expect_failure(
+  NAME "rendercli rejects sampling seed outside exact JSON integer range"
+  STDERR_MATCHES "Sampling seed must be a non-negative integer <= 9007199254740991"
+  COMMAND
+    "${RENDERCLI}" --engine raytracer --render_graph_only --render_graph_format json
+    --sampling_seed 9007199254740992
+    "${static_scene}" "${invalid_plan}"
+)
 
 rendercli_run(
   NAME "rendercli compiles raytracer FXAA as graph postprocess"
