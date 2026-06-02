@@ -122,6 +122,50 @@ namespace TriangleTest {
     EXPECT_EQ(1, laneStates[3].intersectionHits);
   }
 
+  TEST_F(TriangleTest, ShouldMaterializeRay8PacketHits) {
+    Triangle triangle(this->point0, this->point1, this->point2);
+    const std::array<Rayd, 8> rayArray{Rayd(Vector3d(0, 0, -1), Vector3d(0, 0, 1)),
+                                       Rayd(Vector3d(0, 4, -1), Vector3d(0, 0, 1)),
+                                       Rayd(Vector3d(0, 0, -1), Vector3d(0, 0, -1)),
+                                       Rayd(Vector3d(-0.5, -0.5, -1), Vector3d(0, 0, 1)),
+                                       Rayd(Vector3d(-0.75, 0.75, -1), Vector3d(0, 0, 1)),
+                                       Rayd(Vector3d(0.75, 0.75, -1), Vector3d(0, 0, 1)),
+                                       Rayd(Vector3d(1.1, -0.75, -1), Vector3d(0, 0, 1)),
+                                       Rayd(Vector3d(-0.25, -0.25, -2), Vector3d(0, 0, 2))};
+    std::array<State, Ray8::lanes> laneStates;
+    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
+                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+
+    const auto result = triangle.intersectPacketHits(Ray8(rayArray), states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(&triangle, result.primitive(0));
+    EXPECT_EQ(Vector3d(0, 0, 0), result.hitPoint(0).point());
+    EXPECT_EQ(Vector3d(0, 0, -1), result.hitPoint(0).normal());
+    EXPECT_EQ(1, result.hitPoint(0).distance());
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hit(2));
+    ASSERT_TRUE(result.hit(3));
+    EXPECT_EQ(Vector3d(-0.5, -0.5, 0), result.hitPoint(3).point());
+    ASSERT_TRUE(result.hit(4));
+    EXPECT_EQ(Vector3d(-0.75, 0.75, 0), result.hitPoint(4).point());
+    EXPECT_FALSE(result.hit(5));
+    EXPECT_FALSE(result.hit(6));
+    ASSERT_TRUE(result.hit(7));
+    EXPECT_EQ(Vector3d(-0.25, -0.25, 0), result.hitPoint(7).point());
+    EXPECT_EQ(1, laneStates[0].intersectionHits);
+    EXPECT_EQ(1, laneStates[1].intersectionMisses);
+    EXPECT_EQ(1, laneStates[2].intersectionMisses);
+    EXPECT_EQ(1, laneStates[3].intersectionHits);
+    EXPECT_EQ(1, laneStates[4].intersectionHits);
+    EXPECT_EQ(1, laneStates[5].intersectionMisses);
+    EXPECT_EQ(1, laneStates[6].intersectionMisses);
+    EXPECT_EQ(1, laneStates[7].intersectionHits);
+    for (const auto& state : laneStates) {
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
+    }
+  }
+
   TEST_F(TriangleTest, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
     Triangle triangle(this->point0, this->point1, this->point2);
     Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));

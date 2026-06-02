@@ -42,6 +42,8 @@ namespace render {
     RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
     PrimitivePacketHit4 intersectPacketHits(const Ray4& rays,
                                             const PrimitivePacketState4& states) const override;
+    PrimitivePacketHit8 intersectPacketHits(const Ray8& rays,
+                                            const PrimitivePacketState8& states) const override;
 
     /**
       * Returns a single-triangle Mesh identical to this Triangle. All three
@@ -57,6 +59,9 @@ namespace render {
     virtual BoundingBoxd calculateBoundingBox() const override;
 
   private:
+    template<typename Packet, typename StateArray, typename Result>
+    Result intersectPacketHitsFor(const Packet& rays, const StateArray& states) const;
+
     Vector3d computeNormal() const;
 
     Vector3d m_point0, m_point1, m_point2;

@@ -117,6 +117,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Sphere and Plane Ray8 packet hits.** Sphere and Plane primitives now
   materialize eight-wide packet hits directly for wavefront frontiers, reducing
   scalar materialization fallback in common ray and path-tracing scenes. — GPT-5
+- **Box and Triangle Ray8 packet hits.** Box and Triangle primitives now
+  materialize eight-wide packet hits directly, moving analytic boxes and
+  triangle-heavy frontiers further off the scalar materialization fallback path.
+  — GPT-5
 - **Wavefront packet fallback diagnostics.** Wavefront metrics now report
   per-depth packet lanes that fell back to scalar hit materialization, exposing
   remaining primitive packet-kernel gaps in graph traces, rendercli summaries,

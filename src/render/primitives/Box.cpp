@@ -156,10 +156,10 @@ RayPacketIntersection4 Box::intersectPacket(const Ray4& rays, render::State& sta
 #endif
 }
 
-PrimitivePacketHit4 Box::intersectPacketHits(const Ray4& rays,
-                                             const PrimitivePacketState4& states) const {
-  PrimitivePacketHit4 result;
-  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+template<typename Packet, typename StateArray, typename Result>
+Result Box::intersectPacketHitsFor(const Packet& rays, const StateArray& states) const {
+  Result result;
+  for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
     State fallbackState;
     State& state = states[lane] ? *states[lane] : fallbackState;
     const Rayd ray = rays.rayd(lane);
@@ -242,6 +242,16 @@ PrimitivePacketHit4 Box::intersectPacketHits(const Ray4& rays,
     }
   }
   return result;
+}
+
+PrimitivePacketHit4 Box::intersectPacketHits(const Ray4& rays,
+                                             const PrimitivePacketState4& states) const {
+  return intersectPacketHitsFor<Ray4, PrimitivePacketState4, PrimitivePacketHit4>(rays, states);
+}
+
+PrimitivePacketHit8 Box::intersectPacketHits(const Ray8& rays,
+                                             const PrimitivePacketState8& states) const {
+  return intersectPacketHitsFor<Ray8, PrimitivePacketState8, PrimitivePacketHit8>(rays, states);
 }
 
 bool Box::intersects(const Rayd& ray, render::State&) const {

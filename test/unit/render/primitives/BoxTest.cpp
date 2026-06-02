@@ -175,6 +175,49 @@ namespace BoxTest {
     EXPECT_EQ(1, laneStates[3].intersectionHits);
   }
 
+  TEST(Box, ShouldMaterializeRay8PacketHits) {
+    Box box(Vector3d(), Vector3d(1, 1, 1));
+    const std::array<Rayd, 8> rayArray{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, 1)),  Rayd(Vector3d(0, 0, 0), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(-2, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(2, 0, 0), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(0, -2, 0), Vector3d(0, 1, 0)), Rayd(Vector3d(0, 2, 0), Vector3d(0, -1, 0))};
+    std::array<State, Ray8::lanes> laneStates;
+    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
+                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+
+    const auto result = box.intersectPacketHits(Ray8(rayArray), states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(&box, result.primitive(0));
+    EXPECT_EQ(Vector3d(0, 0, -1), result.hitPoint(0).point());
+    EXPECT_EQ(Vector3d(0, 0, -1), result.hitPoint(0).normal());
+    EXPECT_EQ(1, result.hitPoint(0).distance());
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hit(2));
+    ASSERT_TRUE(result.hit(3));
+    EXPECT_EQ(Vector3d(0, 0, 1), result.hitPoint(3).point());
+    ASSERT_TRUE(result.hit(4));
+    EXPECT_EQ(Vector3d(-1, 0, 0), result.hitPoint(4).point());
+    EXPECT_EQ(Vector3d(-1, 0, 0), result.hitPoint(4).normal());
+    EXPECT_FALSE(result.hit(5));
+    ASSERT_TRUE(result.hit(6));
+    EXPECT_EQ(Vector3d(0, -1, 0), result.hitPoint(6).point());
+    ASSERT_TRUE(result.hit(7));
+    EXPECT_EQ(Vector3d(0, 1, 0), result.hitPoint(7).point());
+    EXPECT_EQ(1, laneStates[0].intersectionHits);
+    EXPECT_EQ(1, laneStates[1].intersectionMisses);
+    EXPECT_EQ(1, laneStates[2].intersectionMisses);
+    EXPECT_EQ(1, laneStates[3].intersectionHits);
+    EXPECT_EQ(1, laneStates[4].intersectionHits);
+    EXPECT_EQ(1, laneStates[5].intersectionMisses);
+    EXPECT_EQ(1, laneStates[6].intersectionHits);
+    EXPECT_EQ(1, laneStates[7].intersectionHits);
+    for (const auto& state : laneStates) {
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
+    }
+  }
+
   TEST(Box, ShouldReturnFarthestPoint) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
     auto direction = Vector3d(0.1, -0.1, 0.1).normalized();
