@@ -52,6 +52,8 @@ Camera::Camera(const Vector3d& position, const Vector3d& target)
 Camera::~Camera() {
 }
 
+Camera::PrimaryRayGenerator::~PrimaryRayGenerator() = default;
+
 void Camera::copyBaseStateTo(Camera& camera) const {
   camera.m_cancelled.store(false, std::memory_order_release);
   camera.m_showProgressIndicators = m_showProgressIndicators;
@@ -138,6 +140,25 @@ std::optional<Camera::PrimaryRay> Camera::primaryRaySample(const render::ViewPla
   }
 
   return PrimaryRay{ray, primarySample.time};
+}
+
+std::unique_ptr<Camera::PrimaryRayGenerator> Camera::primaryRayGenerator() const {
+  class DefaultPrimaryRayGenerator final : public Camera::PrimaryRayGenerator {
+  public:
+    explicit DefaultPrimaryRayGenerator(const Camera& camera)
+        : m_camera(camera) {
+    }
+
+    std::optional<Camera::PrimaryRay> sample(const render::ViewPlane::Iterator& pixel,
+                                             render::SampleStream& stream) const override {
+      return m_camera.primaryRaySample(pixel, stream);
+    }
+
+  private:
+    const Camera& m_camera;
+  };
+
+  return std::make_unique<DefaultPrimaryRayGenerator>(*this);
 }
 
 std::uint64_t Camera::primaryRayPixelHash(const render::ViewPlane::Iterator& pixel,

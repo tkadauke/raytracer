@@ -42,6 +42,14 @@ namespace render {
       double timeSample{0.0};
     };
 
+    class PrimaryRayGenerator {
+    public:
+      virtual ~PrimaryRayGenerator();
+
+      virtual std::optional<PrimaryRay> sample(const render::ViewPlane::Iterator& pixel,
+                                               render::SampleStream& stream) const = 0;
+    };
+
     /// Clone camera state for an isolated render job. The clone gets
     /// its own view-plane instance so render-thread setup does not race
     /// with the interactive camera being moved by the UI.
@@ -124,6 +132,15 @@ namespace render {
       */
     std::optional<PrimaryRay> primaryRaySample(const render::ViewPlane::Iterator& pixel,
                                                render::SampleStream& stream) const;
+
+    /**
+      * Create a per-render primary-ray generator.
+      *
+      * Wavefront batch renderers call this once per tile so concrete cameras can
+      * precompute camera-local constants while preserving the same sample-stream
+      * ownership as `primaryRaySample(pixel, stream)`.
+      */
+    virtual std::unique_ptr<PrimaryRayGenerator> primaryRayGenerator() const;
 
     std::uint64_t primaryRayPixelHash(const render::ViewPlane::Iterator& pixel,
                                       std::optional<std::uint64_t> tileSeed) const;

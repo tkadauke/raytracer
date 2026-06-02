@@ -137,6 +137,7 @@ namespace engine::wavefront::detail {
 
       auto plane = camera.viewPlane();
       const auto sampler = plane->sampler();
+      const auto primaryRayGenerator = camera.primaryRayGenerator();
       for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
                                        end = plane->end(actualRect);
            pixel != end; ++pixel) {
@@ -161,7 +162,7 @@ namespace engine::wavefront::detail {
             return sampler->appendStream(sampleStreams, sampleIndex, pixelHash);
           });
           auto sample = measureValue(result.primaryRayWorkerSeconds,
-                                     [&] { return camera.primaryRaySample(pixel, *stream); });
+                                     [&] { return primaryRayGenerator->sample(pixel, *stream); });
           if (sample) {
             measureVoid(result.sampleEnqueueWorkerSeconds, [&] {
               samples.push_back(

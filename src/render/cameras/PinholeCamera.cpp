@@ -5,6 +5,9 @@
 #include "core/math/Ray.h"
 #include "render/viewplanes/ViewPlane.h"
 
+#include <optional>
+#include <utility>
+
 using namespace render;
 
 std::shared_ptr<Camera> PinholeCamera::clone() const {
@@ -19,10 +22,46 @@ const char* PinholeCamera::fingerprintType() const {
   return "PinholeCamera";
 }
 
+Vector3d PinholeCamera::rayOrigin() const {
+  const Matrix4d& cameraMatrix = matrix();
+  return Vector3d(cameraMatrix.cell(0, 3) - cameraMatrix.cell(0, 2) * m_distance,
+                  cameraMatrix.cell(1, 3) - cameraMatrix.cell(1, 2) * m_distance,
+                  cameraMatrix.cell(2, 3) - cameraMatrix.cell(2, 2) * m_distance);
+}
+
 Rayd PinholeCamera::rayForPixel(double x, double y, render::SampleStream&) const {
-  Vector3d position = matrix().transformPoint(Vector3d(0, 0, -m_distance));
+  Vector3d position = rayOrigin();
   Vector3d pixel = viewPlane()->pixelAt(x, y);
   return Rayd(position, (pixel - position).normalized());
+}
+
+std::unique_ptr<Camera::PrimaryRayGenerator> PinholeCamera::primaryRayGenerator() const {
+  class PinholePrimaryRayGenerator final : public Camera::PrimaryRayGenerator {
+  public:
+    PinholePrimaryRayGenerator(std::shared_ptr<render::ViewPlane> plane, const Vector3d& origin)
+        : m_plane(std::move(plane)),
+          m_origin(origin) {
+    }
+
+    std::optional<Camera::PrimaryRay> sample(const render::ViewPlane::Iterator& pixel,
+                                             render::SampleStream& stream) const override {
+      const render::SampleStream::PrimarySample primarySample = stream.primarySample();
+      const Vector2d xy = pixel.pixel() + primarySample.pixel;
+      const Vector3d pixelPoint = m_plane->pixelAt(xy.x(), xy.y());
+      const Rayd ray(m_origin, (pixelPoint - m_origin).normalized());
+      if (!ray.direction().isDefined()) {
+        return std::nullopt;
+      }
+
+      return Camera::PrimaryRay{ray, primarySample.time};
+    }
+
+  private:
+    std::shared_ptr<render::ViewPlane> m_plane;
+    Vector3d m_origin;
+  };
+
+  return std::make_unique<PinholePrimaryRayGenerator>(viewPlane(), rayOrigin());
 }
 
 Vector2d PinholeCamera::projectPoint(const Vector3d& worldPoint) const {

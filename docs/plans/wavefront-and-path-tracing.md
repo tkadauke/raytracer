@@ -643,6 +643,15 @@ custom sampler streams keep their default sequential behavior. A small
 post-change capture remained around ~13.4 ms sample-generation worker time with
 ~11.6 ms in primary-ray sampling, so this is API/dispatch cleanup rather than a
 standalone macro-speed solution.
+Wavefront tile rendering now asks each camera for a per-tile primary-ray
+generator. The default generator preserves `Camera::primaryRaySample(...)`, and
+`PinholeCamera` overrides it to precompute its constant ray origin once per
+tile before emitting sampled rays. This keeps the common pinhole path
+type-switch-free while reducing repeated setup inside the sample loop. A
+96x64, 8spp, max-depth-8 `wavefront_indirect_bounce_demo` capture reported
+primary-ray worker time dropping from ~14.4 ms to ~0.7 ms, with identical
+submitted sample/frontier counts; remaining sample-generation overhead is now
+mostly outside camera primary-ray math.
 The integrator batch bucket is now split further into
 intersection and shading worker time, so captures can distinguish BVH/primitive
 traversal cost from material, direct lighting, and continuation sampling cost

@@ -221,6 +221,14 @@ namespace CameraTest {
     ASSERT_EQ(retainedSample->ray.origin(), borrowedSample->ray.origin());
     ASSERT_EQ(retainedSample->ray.direction(), borrowedSample->ray.direction());
     ASSERT_DOUBLE_EQ(retainedSample->timeSample, borrowedSample->timeSample);
+
+    auto generatorStream = sampler->stream(2, camera.primaryRayPixelHash(pixel, tileSeed));
+    auto generatedSample = camera.primaryRayGenerator()->sample(pixel, *generatorStream);
+
+    ASSERT_TRUE(generatedSample.has_value());
+    ASSERT_EQ(borrowedSample->ray.origin(), generatedSample->ray.origin());
+    ASSERT_EQ(borrowedSample->ray.direction(), generatedSample->ray.direction());
+    ASSERT_DOUBLE_EQ(borrowedSample->timeSample, generatedSample->timeSample);
   }
 
   TEST(Camera, ShouldNotBeCancelledAfterConstruction) {

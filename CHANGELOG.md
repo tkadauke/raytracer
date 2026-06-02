@@ -210,6 +210,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **rendercli wavefront convergence graph state.** `--wavefront_convergence`
   now writes the shipped default active-fraction/RMS thresholds into exported
   graph pass state when the user does not supply explicit threshold overrides. — GPT-5
+- **Wavefront pinhole sample setup.** Wavefront tile rendering now asks cameras
+  for a per-tile primary-ray generator, letting `PinholeCamera` precompute its
+  constant ray origin while preserving the same sampled rays. — GPT-5
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5

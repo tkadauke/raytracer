@@ -38,6 +38,7 @@ namespace render {
     }
 
     Rayd rayForPixel(double x, double y, render::SampleStream& stream) const override;
+    std::unique_ptr<PrimaryRayGenerator> primaryRayGenerator() const override;
     std::shared_ptr<Camera> clone() const override;
     const char* fingerprintType() const override;
 
@@ -156,6 +157,8 @@ namespace render {
     void setViewPlane(std::shared_ptr<render::ViewPlane> plane) override;
 
   private:
+    Vector3d rayOrigin() const;
+
     double m_distance;
     double m_zoom;
   };
