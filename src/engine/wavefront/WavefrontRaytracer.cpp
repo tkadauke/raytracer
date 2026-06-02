@@ -56,14 +56,15 @@ namespace engine::wavefront {
                                             batchMetrics.shadingWorkerSeconds);
     integratorOverheadWorkerSeconds += overhead;
     integratorPathSetupWorkerSeconds += batchMetrics.pathSetupWorkerSeconds;
+    integratorFrontierPartitionWorkerSeconds += batchMetrics.frontierPartitionWorkerSeconds;
     integratorFrontierBookkeepingWorkerSeconds += batchMetrics.frontierBookkeepingWorkerSeconds;
     integratorProgressSnapshotWorkerSeconds += batchMetrics.progressSnapshotWorkerSeconds;
     integratorConvergenceTestWorkerSeconds += batchMetrics.convergenceTestWorkerSeconds;
-    integratorResidualWorkerSeconds +=
-      std::max(0.0, overhead - batchMetrics.pathSetupWorkerSeconds -
-                      batchMetrics.frontierBookkeepingWorkerSeconds -
-                      batchMetrics.progressSnapshotWorkerSeconds -
-                      batchMetrics.convergenceTestWorkerSeconds);
+    integratorResidualWorkerSeconds += std::max(
+      0.0,
+      overhead - batchMetrics.pathSetupWorkerSeconds - batchMetrics.frontierPartitionWorkerSeconds -
+        batchMetrics.frontierBookkeepingWorkerSeconds - batchMetrics.progressSnapshotWorkerSeconds -
+        batchMetrics.convergenceTestWorkerSeconds);
   }
 
   void WavefrontRenderMetrics::BatchSummary::addIntegratorMetrics(
@@ -245,6 +246,8 @@ namespace engine::wavefront {
     timingsJson["integratorShadingWorkerSeconds"] = timings.integratorShadingWorkerSeconds;
     timingsJson["integratorOverheadWorkerSeconds"] = timings.integratorOverheadWorkerSeconds;
     timingsJson["integratorPathSetupWorkerSeconds"] = timings.integratorPathSetupWorkerSeconds;
+    timingsJson["integratorFrontierPartitionWorkerSeconds"] =
+      timings.integratorFrontierPartitionWorkerSeconds;
     timingsJson["integratorFrontierBookkeepingWorkerSeconds"] =
       timings.integratorFrontierBookkeepingWorkerSeconds;
     timingsJson["integratorProgressSnapshotWorkerSeconds"] =

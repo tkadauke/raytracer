@@ -268,6 +268,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Wavefront frontier partition diagnostics.** Wavefront metrics JSON,
+  rendercli summaries, and convergence capture reports now split Whitted
+  frontier partition worker time out of the residual scheduler bucket. — GPT-5
 - **Wavefront traceable frontier partitioning.** Whitted wavefront batches now
   skip stable queue partitioning when all queued rays are still traceable, and
   only partition the terminal suffix otherwise. — GPT-5

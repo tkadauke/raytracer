@@ -697,10 +697,13 @@ per-depth continuation queues reserve capacity from the current frontier before
 material continuations are appended.
 Wavefront metrics now also publish an explicit integrator residual worker-time
 bucket after subtracting intersection, shading, path setup, frontier
-bookkeeping, progress snapshots, and convergence tests from the tile batch
-time. rendercli compact summaries and the convergence capture work comparison
-include the same value, so Phase 7 captures can see how much scheduler cost is
-still unclassified before choosing the next optimization.
+partitioning, frontier bookkeeping, progress snapshots, and convergence tests
+from the tile batch time. rendercli compact summaries and the convergence
+capture work comparison include the same value, so Phase 7 captures can see how
+much scheduler cost is still unclassified before choosing the next
+optimization. The Whitted frontier partition bucket is reported separately too,
+which keeps terminal-queue compaction cost visible after the common
+fully-traceable frontier path stopped running a stable partition.
 For high-sample path-tracing batches, sample-generation metrics showed retained
 sample-stream setup was the larger worker-time bucket. Camera primary-sample
 generation now has a caller-owned stream overload, and wavefront tiles retain

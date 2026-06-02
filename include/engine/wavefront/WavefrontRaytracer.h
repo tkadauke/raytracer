@@ -128,6 +128,7 @@ namespace engine::wavefront {
       double integratorShadingWorkerSeconds = 0.0;
       double integratorOverheadWorkerSeconds = 0.0;
       double integratorPathSetupWorkerSeconds = 0.0;
+      double integratorFrontierPartitionWorkerSeconds = 0.0;
       double integratorFrontierBookkeepingWorkerSeconds = 0.0;
       double integratorProgressSnapshotWorkerSeconds = 0.0;
       double integratorConvergenceTestWorkerSeconds = 0.0;

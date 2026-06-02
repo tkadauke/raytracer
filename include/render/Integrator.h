@@ -51,6 +51,7 @@ namespace render {
     double intersectionWorkerSeconds{0.0};
     double shadingWorkerSeconds{0.0};
     double pathSetupWorkerSeconds{0.0};
+    double frontierPartitionWorkerSeconds{0.0};
     double frontierBookkeepingWorkerSeconds{0.0};
     double progressSnapshotWorkerSeconds{0.0};
     double convergenceTestWorkerSeconds{0.0};

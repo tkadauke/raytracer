@@ -454,7 +454,11 @@ namespace render {
                                                   BatchDepthMetrics& depthMetrics,
                                                   IntegratorBatchMetrics* metrics) const {
     activeHits.clear();
-    const std::size_t traceableCount = partitionTraceableQueuedRays(current);
+    std::size_t traceableCount = 0;
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->frontierPartitionWorkerSeconds : nullptr);
+      traceableCount = partitionTraceableQueuedRays(current);
+    }
 
     std::size_t queuedIndex = 0;
     while (queuedIndex != traceableCount) {

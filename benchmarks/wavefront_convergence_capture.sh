@@ -292,6 +292,7 @@ def wavefront_metric_values(path)
     integrator_shading_worker_seconds: [],
     integrator_overhead_worker_seconds: [],
     integrator_path_setup_worker_seconds: [],
+    integrator_frontier_partition_worker_seconds: [],
     integrator_frontier_bookkeeping_worker_seconds: [],
     integrator_progress_snapshot_worker_seconds: [],
     integrator_convergence_test_worker_seconds: [],
@@ -334,6 +335,7 @@ def wavefront_metric_values(path)
       integrator_shading_worker_seconds: 0.0,
       integrator_overhead_worker_seconds: 0.0,
       integrator_path_setup_worker_seconds: 0.0,
+      integrator_frontier_partition_worker_seconds: 0.0,
       integrator_frontier_bookkeeping_worker_seconds: 0.0,
       integrator_progress_snapshot_worker_seconds: 0.0,
       integrator_convergence_test_worker_seconds: 0.0,
@@ -442,6 +444,8 @@ def wavefront_metric_values(path)
         timing.fetch("integratorOverheadWorkerSeconds", 0).to_f
       run_values[:integrator_path_setup_worker_seconds] +=
         timing.fetch("integratorPathSetupWorkerSeconds", 0).to_f
+      run_values[:integrator_frontier_partition_worker_seconds] +=
+        timing.fetch("integratorFrontierPartitionWorkerSeconds", 0).to_f
       run_values[:integrator_frontier_bookkeeping_worker_seconds] +=
         timing.fetch("integratorFrontierBookkeepingWorkerSeconds", 0).to_f
       run_values[:integrator_progress_snapshot_worker_seconds] +=
@@ -558,6 +562,7 @@ puts format("convergence_feedback_depths reference=%.0f candidate=%.0f delta=%.0
    integrator_shading_worker_seconds
    integrator_overhead_worker_seconds
    integrator_path_setup_worker_seconds
+   integrator_frontier_partition_worker_seconds
    integrator_frontier_bookkeeping_worker_seconds
    integrator_progress_snapshot_worker_seconds
    integrator_convergence_test_worker_seconds
@@ -620,6 +625,7 @@ def aggregate_run(run)
     fallback_rays: 0.0,
     sample_generation_ms: 0.0,
     integrator_ms: 0.0,
+    partition_ms: 0.0,
     residual_ms: 0.0
   }
   weighted_tile_sample_sum = 0.0
@@ -657,6 +663,8 @@ def aggregate_run(run)
     values[:sample_generation_ms] +=
       timings.fetch("sampleGenerationWorkerSeconds", 0).to_f * 1000.0
     values[:integrator_ms] += timings.fetch("integratorBatchWorkerSeconds", 0).to_f * 1000.0
+    values[:partition_ms] +=
+      timings.fetch("integratorFrontierPartitionWorkerSeconds", 0).to_f * 1000.0
     values[:residual_ms] += timings.fetch("integratorResidualWorkerSeconds", 0).to_f * 1000.0
   end
   if values[:nonempty_tile_count].positive?
@@ -679,7 +687,7 @@ scene_dir = ARGV.fetch(0)
 queue_dirs = Dir.glob(File.join(scene_dir, "queue_*")).select { |path| File.directory?(path) }
 queue_dirs.sort_by! { |path| File.basename(path).delete_prefix("queue_").to_i }
 
-puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays sample_generation_worker_ms integrator_worker_ms integrator_residual_worker_ms"
+puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
 queue_dirs.each do |queue_dir|
   queue_size = File.basename(queue_dir).delete_prefix("queue_")
   Dir.glob(File.join(queue_dir, "wavefront_*.metrics.json")).sort.each do |metrics_path|
@@ -702,7 +710,7 @@ queue_dirs.each do |queue_dir|
     fallback_fraction = packet_rays.zero? ? 0.0 : fallback_rays / packet_rays
     stdout_path = File.join(queue_dir, "#{variant}.stdout.txt")
     puts format(
-      "%s %s %.3f %.0f %.0f %.0f %s %.0f %.0f %.0f %.3f %.3f %.0f %.0f %.0f %.6f %.6f %.6f %.0f %.0f %.3f %.3f %.3f",
+      "%s %s %.3f %.0f %.0f %.0f %s %.0f %.0f %.0f %.3f %.3f %.0f %.0f %.0f %.6f %.6f %.6f %.0f %.0f %.3f %.3f %.3f %.3f",
       queue_size,
       variant,
       render_median_ms(stdout_path),
@@ -725,6 +733,7 @@ queue_dirs.each do |queue_dir|
       fallback_rays,
       median_for.call(:sample_generation_ms),
       median_for.call(:integrator_ms),
+      median_for.call(:partition_ms),
       median_for.call(:residual_ms)
     )
   end

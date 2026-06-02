@@ -1789,6 +1789,11 @@ if(NOT wavefront_metrics_stdout MATCHES "feedback_depths=")
                   "wavefront metrics summary did not contain convergence feedback counters"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "integrator_frontier_partition_worker_ms=")
+  _rendercli_fail("rendercli wavefront metrics frontier partition summary"
+                  "wavefront metrics summary did not contain frontier partition timing"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 rendercli_assert_exists("${wavefront_metrics_report}" NAME "wavefront metrics report exists")
 file(READ "${wavefront_metrics_report}" wavefront_metrics_json)
 if(NOT wavefront_metrics_json MATCHES "\"schema\"[^\n]*raytracer\\.wavefront_metrics\\.v1")
@@ -1809,6 +1814,11 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"retainedActiveSamplesPerDepth\"")
   _rendercli_fail("rendercli wavefront metrics retained active samples"
                   "wavefront metrics report did not contain retained active sample counts"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"integratorFrontierPartitionWorkerSeconds\"")
+  _rendercli_fail("rendercli wavefront metrics frontier partition timing"
+                  "wavefront metrics report did not contain frontier partition timing"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES "last_retained_active=")

@@ -38,6 +38,7 @@ namespace render {
     intersectionWorkerSeconds = 0.0;
     shadingWorkerSeconds = 0.0;
     pathSetupWorkerSeconds = 0.0;
+    frontierPartitionWorkerSeconds = 0.0;
     frontierBookkeepingWorkerSeconds = 0.0;
     progressSnapshotWorkerSeconds = 0.0;
     convergenceTestWorkerSeconds = 0.0;

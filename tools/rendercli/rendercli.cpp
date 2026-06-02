@@ -220,6 +220,8 @@ namespace {
         << timings.value("integratorOverheadWorkerSeconds").toDouble() * 1000.0
         << " integrator_path_setup_worker_ms="
         << timings.value("integratorPathSetupWorkerSeconds").toDouble() * 1000.0
+        << " integrator_frontier_partition_worker_ms="
+        << timings.value("integratorFrontierPartitionWorkerSeconds").toDouble() * 1000.0
         << " integrator_frontier_bookkeeping_worker_ms="
         << timings.value("integratorFrontierBookkeepingWorkerSeconds").toDouble() * 1000.0
         << " integrator_progress_snapshot_worker_ms="
