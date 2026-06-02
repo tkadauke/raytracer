@@ -402,29 +402,35 @@ namespace render {
       metrics->reset(/*scalarFallback=*/false);
     }
 
-    std::vector<Colord> result(samples.size(), Colord::black());
     const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
     const bool countCurrentActiveSamples = metrics || settings.convergenceEnabled;
     const bool countNextActiveSamples = settings.progressObserver || settings.convergenceEnabled;
+    std::vector<Colord> result;
     std::vector<Colord> resultBeforeActiveSamples;
     std::vector<std::size_t> activeSampleIndices;
     std::vector<std::size_t> nextActiveSampleIndices;
-    std::vector<unsigned char> activeSamples(countCurrentActiveSamples ? samples.size() : 0, 0);
-    std::vector<unsigned char> nextActiveSamples(countNextActiveSamples ? samples.size() : 0, 0);
+    std::vector<unsigned char> activeSamples;
+    std::vector<unsigned char> nextActiveSamples;
     activeSampleIndices.reserve(samples.size());
     nextActiveSampleIndices.reserve(samples.size());
 
     std::vector<QueuedRay> current;
-    current.reserve(samples.size());
     std::vector<QueuedRay> next;
-    next.reserve(samples.size());
     std::vector<QueuedHit> activeHits;
-    activeHits.reserve(samples.size());
-    for (std::size_t index = 0; index != samples.size(); ++index) {
-      State state;
-      state.timeSample = samples[index].timeSample;
-      state.sampleStream = samples[index].sampleStream();
-      current.push_back(QueuedRay{index, samples[index].ray, Colord::white(), std::move(state)});
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->pathSetupWorkerSeconds : nullptr);
+      result.resize(samples.size(), Colord::black());
+      activeSamples.assign(countCurrentActiveSamples ? samples.size() : 0, 0);
+      nextActiveSamples.assign(countNextActiveSamples ? samples.size() : 0, 0);
+      current.reserve(samples.size());
+      next.reserve(samples.size());
+      activeHits.reserve(samples.size());
+      for (std::size_t index = 0; index != samples.size(); ++index) {
+        State state;
+        state.timeSample = samples[index].timeSample;
+        state.sampleStream = samples[index].sampleStream();
+        current.push_back(QueuedRay{index, samples[index].ray, Colord::white(), std::move(state)});
+      }
     }
 
     for (int depth = 0; depth != m_maximumRecursionDepth && !current.empty(); ++depth) {

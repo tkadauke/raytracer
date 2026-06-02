@@ -277,6 +277,28 @@ namespace WhittedIntegratorTest {
     EXPECT_GT(metrics.shadingWorkerSeconds, 0.0);
   }
 
+  TEST(WhittedIntegrator, BatchedRadianceReportsSetupTiming) {
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples;
+    samples.reserve(256);
+    for (std::size_t sample = 0; sample != 256; ++sample) {
+      samples.push_back(
+        IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr});
+    }
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(scene, samples, rayCaster, &metrics);
+
+    ASSERT_EQ(samples.size(), colors.size());
+    EXPECT_GT(metrics.pathSetupWorkerSeconds, 0.0);
+    EXPECT_EQ(0.0, metrics.progressSnapshotWorkerSeconds);
+    EXPECT_EQ(0.0, metrics.convergenceTestWorkerSeconds);
+  }
+
   TEST(WhittedIntegrator, BatchedRadianceStopsExplicitContinuationsWhenConverged) {
     Scene scene;
     scene.setBackground(Colord(0.2, 0.4, 0.6));

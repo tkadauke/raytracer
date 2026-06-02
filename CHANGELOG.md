@@ -197,6 +197,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   progress snapshot publication and convergence tests to the same worker-time
   buckets as path-tracing batches, making graph/rendercli timing diagnostics
   consistent across wavefront integrators. — GPT-5
+- **Wavefront Whitted setup timing.** Whitted batches now charge initial result
+  buffers, active-sample marks, hit queues, and queued primary rays to the
+  setup worker-time bucket instead of leaving them in generic batch overhead. — GPT-5
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5

@@ -645,6 +645,7 @@ visible instead of implied by subtraction. Path-tracing batches now further
 break that residual down into path setup, frontier bookkeeping, progress
 snapshot publication, and convergence-test worker time, giving Phase 7 captures
 a direct way to choose the next scheduler optimization. Whitted batches now
+charge initial queued-ray/result/mark-buffer setup to the setup bucket and
 report the same progress snapshot and convergence-test timing buckets when
 those hooks are enabled, keeping scheduler diagnostics comparable across
 wavefront integrators. The Whitted batch path now also avoids copying/scanning

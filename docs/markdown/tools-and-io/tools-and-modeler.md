@@ -242,7 +242,8 @@ are subtracted, making scheduler and frontier bookkeeping cost visible.
 Wavefront batches further break that residual down into path setup, frontier
 bookkeeping, progress snapshot publication, and convergence-test worker time so
 tuning captures can see which scheduler phase is consuming the unexplained
-cost. Metrics capture is
+cost; Whitted uses the setup bucket for initial queued-ray and result-buffer
+construction. Metrics capture is
 opt-in; requesting wavefront metrics enables graph trace collection for that
 render but does not require writing a separate trace file.
 `--wavefront_denoiser box|bilateral` requests an opt-in wavefront denoiser.
