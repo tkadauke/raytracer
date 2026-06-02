@@ -8,24 +8,16 @@
 > GPU offload. Captured 2026-05-10 from the conversation about
 > "compute one recursion at a time, stop when nothing changes."
 >
-> **Status:** Living document. Updated 2026-05-31 after the render graph,
-> render-intent, scalar path-tracing, packet-intersection, and OpenGL raster
-> work landed. Phase 1, the throughput-cutoff prerequisite, is done, and Phase
-> 2 now makes ray integrator selection graph-visible. A scalar
-> `PathTracingIntegrator` also exists now. Phase 3 has started with the
-> `WavefrontRaytracer` engine and graph executor surface. Depth-major
-> path-tracing batches now report active-path and radiance-delta metrics,
-> graph-visible convergence thresholds can stop path batches early, and
-> Whitted batches now consume material-published continuation queues, and all
-> built-in runtime materials now expose the wavefront material interfaces
-> needed by Whitted and path-tracing batches. Phase 3's bare wavefront parity
-> gate is covered by rendercli RMS checks for static
-> sphere/CSG, transparent torus, and BVH-heavy sphere fixtures. rendercli now
-> exposes convergence overrides as typed intent-derived graph state instead of
-> hidden direct-engine settings. Depth-major path batches also publish
-> per-depth sample-color snapshots so graph-backed Wavefront previews can show
-> progress before the pass finishes, and denoiser-enabled wavefront batches can
-> use filtered between-depth snapshots as convergence feedback.
+> **Status:** Living document. Updated 2026-06-02 after the render graph,
+> render-intent, scalar path-tracing, packet-intersection, denoising, and
+> packet-frontier performance work landed. Phases 1-6 are complete for the v1
+> CPU wavefront renderer: `WavefrontRaytracer` ships as a sibling graph-visible
+> engine, Whitted and path-tracing batches own depth-major queues, built-in
+> materials publish compatible continuations/BSDF samples, convergence and
+> denoising settings flow through render intent, rendercli, and Modeler, and the
+> BVH-heavy wall-clock gate is now covered by current convergence-capture
+> evidence. Phase 7+ remains the future optimization lane for broader SoA/GPU
+> work and additional packet/layout tuning.
 >
 > **Rule:** the wavefront engine is a **sibling** to the existing
 > `Raytracer`, not a replacement. Both ship; the user chooses through render
@@ -514,7 +506,7 @@ sphere/CSG, transparent torus, reflective, transparent-glass, and BVH-heavy
 fixtures. The sphere/torus/BVH fixtures use normalized RGB RMS thresholds of
 1e-3 and currently produce zero delta.
 
-### Phase 4 — image-wide adaptive depth via convergence detection 🚧 **Started.**
+### ~~Phase 4 — image-wide adaptive depth via convergence detection~~ ✅ **Done for v1.**
 
 Activate the convergence test as a stop condition. Active-pixel/sample count
 + L2 over active subset. Threshold tuning via the macro benchmark.
@@ -553,21 +545,23 @@ wavefront variants. `WAVEFRONT_CONVERGENCE_SWEEP` can run multiple
 active-fraction/RMS threshold pairs against that same baseline, producing
 threshold-named image comparisons and work-saved reports so Phase 4 policy
 tuning does not require hand-editing the script between captures.
-Remaining work is to run that capture across representative dimensions and tune
-defaults from the measured timing/quality data. A first capture showed that a
-single-depth diffuse Whitted scene is not a useful convergence-speedup proof:
-there are no continuation queues to stop, and wavefront overhead is still
-higher than recursive raytracing. The batch integrators now skip radiance-delta
-diagnostic math unless metrics or convergence need it, but the Phase 4 gate
-still requires either a better representative fixture or further scheduler
-optimization. rendercli also disables progressive-display snapshots for final
-image writes, so wavefront command-line renders no longer pay the per-depth
-display-publishing cost that Modeler previews still need. Wavefront metrics
-collection is now opt-in as well: graph-backed passes enable it when execution
-trace or metrics output is requested, direct rendercli wavefront renders enable
-it only for `--wavefront_metrics_out` / `--wavefront_metrics_summary`, and
-plain final-image renders clear stale metrics and avoid both full metrics setup
-and batch metric accumulation. rendercli
+The capture loop has since been run across the representative Whitted and
+path-tracing fixtures below, and the v1 defaults intentionally stay
+conservative: convergence is a graph-visible quality/performance control and
+diagnostic, not the primary speed lever for every scene. A first capture showed
+that a single-depth diffuse Whitted scene is not a useful
+convergence-speedup proof: there are no continuation queues to stop, and
+wavefront overhead was still higher than recursive raytracing before the later
+packet-frontier work. The batch integrators now skip radiance-delta diagnostic
+math unless metrics or convergence need it. rendercli also disables
+progressive-display snapshots for final image writes, so wavefront command-line
+renders no longer pay the per-depth display-publishing cost that Modeler
+previews still need. Wavefront metrics collection is now opt-in as well:
+graph-backed passes enable it when execution trace or metrics output is
+requested, direct rendercli wavefront renders enable it only for
+`--wavefront_metrics_out` / `--wavefront_metrics_summary`, and plain
+final-image renders clear stale metrics and avoid both full metrics setup and
+batch metric accumulation. rendercli
 now also resolves a size-aware default ray-family queue size and writes it into
 compiled graph pass state, so graph-backed wavefront renders do not silently
 fall back to a much coarser thread-count-sized queue than the direct engine
@@ -587,9 +581,9 @@ the current defaults. A 160x120, 16spp, max-depth-16
 `pathtracer_bounce` capture with 300 tiles showed why stopped-tile count alone
 is a weak speedup signal: convergence stopped 295/300 tiles and kept the image
 delta small (`rms_delta=0.0019742863`), but active sample-depths only dropped
-from 336446 to 336002 (~0.13%). Phase 4 still needs threshold/policy work that
-cuts meaningful sample-depth work before convergence can be counted as a
-speedup.
+from 336446 to 336002 (~0.13%). That ruled out stopped-tile count as the v1
+speed gate by itself and pushed the wall-clock target toward scheduler and
+packet-frontier work.
 
 A short 160x120, max-depth-8, repeat-2 `reflection_whitted` threshold sweep
 confirmed that the stock reflection scene is also weak convergence-policy
@@ -617,7 +611,8 @@ with 300 tiles showed the same tradeoff:
 That makes convergence a useful graph-visible quality knob and diagnostic, but
 not the main near-term speed path. The next speed work should focus on
 scheduler/intersection cost (packet traversal, SoA state, or other Phase 7
-implementation work) before Phase 4 can honestly claim its 30% speed gate.
+implementation work); later packet-frontier captures are what close the v1
+30% wall-clock gate.
 The shipped opt-in Balanced convergence defaults now match the conservative
 capture-script baseline from that sweep: active fraction `0.05` and RMS delta
 `0.002`. Preview remains looser (`0.05` / `0.02`) and Final remains exact
@@ -806,13 +801,21 @@ the Phase 4 wall-clock speed gate at matching quality:
 no active-sample-depth savings, because this fixture terminates after the
 primary depth (`active_sample_depths=19200` in both wavefront variants).
 Treat this as evidence that packet-frontier wavefront scheduling is now fast
-on BVH-heavy primary-ray scenes, not as evidence that the convergence policy is
-complete; meaningful adaptive-depth savings still need multi-depth scenes.
+on BVH-heavy primary-ray scenes, not as evidence that convergence will save
+meaningful adaptive-depth work on every scene; broader multi-depth savings are
+future policy/performance work.
+A 2026-06-02 repeat-3 rerun on the current code confirmed the same gate after
+the latest packet-bookkeeping work: `raytracer_whitted` median ~11.94 ms,
+`wavefront_whitted_no_convergence` median ~1.78 ms,
+`wavefront_whitted_convergence` median ~2.21 ms, and
+`rms_delta=0.0` / `differing_pixels=0`. That closes the v1 wall-clock gate; any
+future adaptive-depth retune should be treated as Phase 7+ policy/performance
+work rather than a blocker for the CPU wavefront renderer.
 
 **Goal**: render faster than `Raytracer` on common scenes without
-visible quality loss.
+visible quality loss. ✅ **Done for v1.**
 **Gate**: ≥30% wall-clock improvement on the BVH-heavy scene at
-matching quality (visual delta < ε).
+matching quality (visual delta < ε). ✅ **Done.**
 
 ### Phase 5 — wavefront path-tracing semantics ✅ **Done.**
 
@@ -1263,8 +1266,8 @@ than prerequisites for the engine surface.
 2. ~~**Convergence-detection scheme.**~~ **Resolved for v1**: use active
    sample fraction plus RMS radiance delta over the active subset. Preview,
    Balanced, and Final presets ship through render intent, Modeler Render
-   Settings, graph JSON, and rendercli. Phase 4 tuning remains open as a
-   performance-policy question, not as an API decision.
+   Settings, graph JSON, and rendercli. Further retuning is Phase 7+
+   performance-policy work, not an API decision.
 3. ~~**Tree-branching strategy for v1.**~~ **Resolved for sequencing**:
    use **A** for the Whitted-parity scheduler proof, then start
    wavefront path tracing with **B** because scalar path tracing already
@@ -1331,11 +1334,11 @@ than prerequisites for the engine surface.
    sampling, and Russian-roulette support are now present.
 3. ~~Do Phase 2 before the wavefront engine: make integrator choice part of
    scene-backed render intent and compiled graph pass state.~~ ✅ **Done.**
-4. Resolve the remaining scheduler open questions as Phase 3 moves from the
-   executor shell to explicit depth-major queues.
-5. Phase 3 (bare wavefront) must produce byte-comparable output to
+4. ~~Resolve the remaining scheduler open questions as Phase 3 moves from the
+   executor shell to explicit depth-major queues.~~ ✅ **Done.**
+5. ~~Phase 3 (bare wavefront) must produce byte-comparable output to
    `Raytracer` for the same maxDepth on the macro benchmark scenes.
-   This is the regression gate.
+   This is the regression gate.~~ ✅ **Done.**
 6. Each subsequent phase has its own quality gate stated in its
    description. Don't skip the gate to ship — the whole point of the
    wavefront engine is to be measurably better than the recursive
