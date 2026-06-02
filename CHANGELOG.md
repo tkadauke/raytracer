@@ -84,6 +84,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront refinement material diagnostics.** Whitted wavefront metrics now
   break packet-hit scalar refinement counts down by material family in JSON
   reports, compact rendercli summaries, and graph pass trace text. — GPT-5
+- **Wavefront capture refinement breakdowns.** The wavefront convergence capture
+  script now compares packet-hit scalar refinement counts by material family
+  when metric reports include that data. — GPT-5
 - **Wavefront sample-generation diagnostics.** Wavefront metrics now split the
   sample-generation worker bucket into sampler stream creation, camera
   primary-ray sampling, sample enqueueing, and residual overhead in graph

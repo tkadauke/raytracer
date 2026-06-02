@@ -68,10 +68,10 @@ Environment:
   WAVEFRONT_CONVERGENCE_SWEEP          optional comma-separated active:rms pairs
 
 The capture writes images, stdout timing summaries, wavefront metrics JSON,
-image-probe comparisons, active sample-depth work comparisons, and frontier
-hit/miss summaries under the output directory. Use it to tune Phase 4
-wavefront convergence defaults and to baseline Phase 7 scheduler/intersection
-work before changing shipped presets.
+image-probe comparisons, active sample-depth work comparisons, frontier
+hit/miss summaries, and packet-hit refinement material breakdowns under the
+output directory. Use it to tune Phase 4 wavefront convergence defaults and to
+baseline Phase 7 scheduler/intersection work before changing shipped presets.
 
 When WAVEFRONT_CONVERGENCE_SWEEP is set, the script reuses the non-converged
 baseline and captures one convergence variant per pair, for example:
@@ -244,6 +244,7 @@ def wavefront_metric_values(path)
     frontier_scalar_rays: [],
     frontier_packet_scalar_fallback_rays: [],
     frontier_packet_refined_rays: [],
+    frontier_packet_refined_rays_by_material: [],
     convergence_feedback_depths: [],
     sample_generation_worker_seconds: [],
     sample_stream_worker_seconds: [],
@@ -270,6 +271,7 @@ def wavefront_metric_values(path)
       frontier_scalar_rays: 0.0,
       frontier_packet_scalar_fallback_rays: 0.0,
       frontier_packet_refined_rays: 0.0,
+      frontier_packet_refined_rays_by_material: Hash.new(0.0),
       convergence_feedback_depths: 0.0,
       sample_generation_worker_seconds: 0.0,
       sample_stream_worker_seconds: 0.0,
@@ -316,6 +318,9 @@ def wavefront_metric_values(path)
         batching.fetch("frontierPacketScalarFallbackRaysPerDepth", []).sum { |value| value.to_f }
       run_values[:frontier_packet_refined_rays] +=
         batching.fetch("frontierPacketRefinedRaysPerDepth", []).sum { |value| value.to_f }
+      batching.fetch("frontierPacketRefinedRaysByMaterial", {}).each do |material, value|
+        run_values[:frontier_packet_refined_rays_by_material][material] += value.to_f
+      end
     end
     convergences.compact.each do |convergence|
       run_values[:convergence_feedback_depths] += convergence.fetch("feedbackDepthCount", 0).to_f
@@ -366,6 +371,13 @@ def median(values)
   sorted[sorted.length / 2]
 end
 
+def median_map_values(values)
+  keys = values.flat_map(&:keys).uniq.sort
+  keys.to_h do |key|
+    [key, median(values.map { |map| map.fetch(key, 0.0) })]
+  end
+end
+
 reference_values = wavefront_metric_values(ARGV.fetch(0))
 candidate_values = wavefront_metric_values(ARGV.fetch(1))
 
@@ -388,6 +400,16 @@ puts format("active_sample_depths reference=%.0f candidate=%.0f saved=%.0f saved
   delta = candidate - reference
   puts format("%s reference=%.0f candidate=%.0f delta=%.0f",
               key, reference, candidate, delta)
+end
+
+reference_by_material = median_map_values(reference_values[:frontier_packet_refined_rays_by_material])
+candidate_by_material = median_map_values(candidate_values[:frontier_packet_refined_rays_by_material])
+(reference_by_material.keys + candidate_by_material.keys).uniq.sort.each do |material|
+  reference = reference_by_material.fetch(material, 0.0)
+  candidate = candidate_by_material.fetch(material, 0.0)
+  delta = candidate - reference
+  puts format("frontier_packet_refined_rays_by_material material=%s reference=%.0f candidate=%.0f delta=%.0f",
+              material, reference, candidate, delta)
 end
 
 reference = median(reference_values[:convergence_feedback_depths])
