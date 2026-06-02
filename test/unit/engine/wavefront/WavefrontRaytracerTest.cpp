@@ -610,7 +610,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(6u, metrics.batching.frontierPacketChunksPerDepth[0]);
     EXPECT_EQ(48u, metrics.batching.frontierPacketRaysPerDepth[0]);
     EXPECT_EQ(0u, metrics.batching.frontierScalarRaysPerDepth[0]);
-    EXPECT_EQ(48u, metrics.batching.frontierPacketScalarFallbackRaysPerDepth[0]);
+    EXPECT_EQ(0u, metrics.batching.frontierPacketScalarFallbackRaysPerDepth[0]);
     EXPECT_EQ(metrics.batching.frontierRayHitsPerDepth[0],
               metrics.batching.frontierPacketRefinedRaysPerDepth[0]);
     EXPECT_TRUE(metrics.convergence.enabled);
@@ -675,7 +675,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(6.0, frontierPacketChunks.at(0).toDouble());
     EXPECT_EQ(48.0, frontierPacketRays.at(0).toDouble());
     EXPECT_EQ(0.0, frontierScalarRays.at(0).toDouble());
-    EXPECT_EQ(48.0, frontierPacketScalarFallbackRays.at(0).toDouble());
+    EXPECT_EQ(0.0, frontierPacketScalarFallbackRays.at(0).toDouble());
     EXPECT_EQ(frontierHits.at(0).toDouble(), frontierPacketRefinedRays.at(0).toDouble());
     EXPECT_TRUE(json.value("convergence").toObject().value("enabled").toBool());
     EXPECT_DOUBLE_EQ(

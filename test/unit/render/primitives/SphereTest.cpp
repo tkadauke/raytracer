@@ -127,6 +127,51 @@ namespace SphereTest {
     EXPECT_EQ(1, laneStates[3].intersectionHits);
   }
 
+  TEST(Sphere, ShouldMaterializeRay8PacketHits) {
+    Sphere sphere(Vector3d(), 1);
+    const Ray8 rays(std::array<Rayd, 8>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 0), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, 0, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -3), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(0, 0, 3), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 0), Vector3d(0, 0, -1))});
+    std::array<State, Ray8::lanes> laneStates;
+    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
+                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+
+    const auto result = sphere.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(&sphere, result.primitive(0));
+    EXPECT_EQ(Vector3d(0, 0, -1), result.hitPoint(0).point());
+    EXPECT_EQ(Vector3d(0, 0, -1), result.hitPoint(0).normal());
+    EXPECT_EQ(1, result.hitPoint(0).distance());
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hit(2));
+    ASSERT_TRUE(result.hit(3));
+    EXPECT_EQ(Vector3d(0, 0, 1), result.hitPoint(3).point());
+    EXPECT_EQ(Vector3d(0, 0, 1), result.hitPoint(3).normal());
+    EXPECT_EQ(1, result.hitPoint(3).distance());
+    ASSERT_TRUE(result.hit(4));
+    EXPECT_EQ(2, result.hitPoint(4).distance());
+    EXPECT_FALSE(result.hit(5));
+    EXPECT_FALSE(result.hit(6));
+    ASSERT_TRUE(result.hit(7));
+    EXPECT_EQ(Vector3d(0, 0, -1), result.hitPoint(7).point());
+    EXPECT_EQ(Vector3d(0, 0, -1), result.hitPoint(7).normal());
+    EXPECT_EQ(1, result.hitPoint(7).distance());
+    EXPECT_EQ(1, laneStates[0].intersectionHits);
+    EXPECT_EQ(1, laneStates[1].intersectionMisses);
+    EXPECT_EQ(1, laneStates[2].intersectionMisses);
+    EXPECT_EQ(1, laneStates[3].intersectionHits);
+    EXPECT_EQ(1, laneStates[4].intersectionHits);
+    EXPECT_EQ(1, laneStates[5].intersectionMisses);
+    EXPECT_EQ(1, laneStates[6].intersectionMisses);
+    EXPECT_EQ(1, laneStates[7].intersectionHits);
+    for (const auto& state : laneStates) {
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
+    }
+  }
+
   TEST(Sphere, ShouldReturnTrueForIntersectsIfThereIsAIntersectionWithRay) {
     Sphere sphere(Vector3d(), 1);
     Rayd ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
