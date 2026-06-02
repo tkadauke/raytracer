@@ -44,6 +44,13 @@ namespace ViewPlaneTest {
     ASSERT_VECTOR_NEAR(Vector3d(4, 3, 0), plane.pixelAt(10, 10), 0.001);
   }
 
+  TEST(ViewPlane, ShouldScalePixelPositionAroundCameraPosition) {
+    ViewPlane plane(Matrix4d::translate(Vector3d(10, 0, 0)), Recti(8, 6));
+    plane.setPixelSize(2);
+
+    ASSERT_VECTOR_NEAR(Vector3d(2, -6, 0), plane.pixelAt(0, 0), 0.001);
+  }
+
   TEST(ViewPlane, ShouldConvertClipCoordinatesToScreenCoordinates) {
     ViewPlane plane(Matrix4d(), Recti(200, 150));
     ASSERT_VECTOR_NEAR(Vector3d(150, 37.5, 4.0),
@@ -81,6 +88,13 @@ namespace ViewPlaneTest {
       plane.setPixelSize(2);
       auto iterator = plane.begin(this->fullRect);
       ASSERT_EQ(Vector3d(-8, -6, 0), *iterator);
+    }
+
+    TEST_F(ViewPlane_Iterator, ShouldScaleCurrentAroundCameraPosition) {
+      ViewPlane plane(Matrix4d::translate(Vector3d(10, 0, 0)), this->fullRect);
+      plane.setPixelSize(2);
+      auto iterator = plane.begin(this->fullRect);
+      ASSERT_VECTOR_NEAR(Vector3d(2, -6, 0), *iterator, 0.001);
     }
 
     TEST_F(ViewPlane_Iterator, ShouldReturnTrueWhenTwoBeginIteratorsAreCompared) {

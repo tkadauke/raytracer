@@ -613,6 +613,13 @@ capture reported ~15.6 ms sample-generation worker time with ~13.9 ms in
 camera primary-ray sampling, ~0.3 ms in stream creation, ~0.4 ms in sample
 enqueueing, and ~1.1 ms residual overhead. That points the next sample-setup
 optimization at camera primary-ray generation rather than sampler allocation.
+View planes now cache their camera-centered scaled pixel basis whenever setup or
+pixel size changes, so primary-ray generation can reuse pre-scaled top-left,
+right, and down vectors instead of rebuilding that transform for every sample.
+A repeat of the same small capture after that cache reported ~13.5 ms
+sample-generation worker time with ~11.7 ms in camera primary-ray sampling for
+the non-converged run and identical output; keep treating these small captures
+as directional, not as a Phase 4 speed-gate result.
 The integrator batch bucket is now split further into
 intersection and shading worker time, so captures can distinguish BVH/primitive
 traversal cost from material, direct lighting, and continuation sampling cost

@@ -56,6 +56,7 @@ void ViewPlane::setupVectors() {
     m_right = r;
     m_down = d;
     m_topLeft = tlCam - r * m_innerRect.left() - d * m_innerRect.top();
+    setupScaledVectors();
     return;
   }
 
@@ -81,6 +82,14 @@ void ViewPlane::setupVectors() {
   m_topLeft = m_matrix * Vector4d(-m_hSpan / 2.0, -m_vSpan / 2.0, 0) - m_right * m_window.left() -
               m_down * m_window.top();
   m_innerRect = m_window;
+  setupScaledVectors();
+}
+
+void ViewPlane::setupScaledVectors() {
+  const Vector3d cameraPos = m_matrix.translationVector();
+  m_scaledTopLeft = cameraPos + (m_topLeft - cameraPos) * m_pixelSize;
+  m_scaledRight = m_right * m_pixelSize;
+  m_scaledDown = m_down * m_pixelSize;
 }
 
 ViewPlane::Iterator ViewPlane::begin(const Recti& rect) const {
@@ -115,8 +124,7 @@ ViewPlane::IteratorBase::IteratorBase(const ViewPlane* plane, const Recti& rect,
 }
 
 Vector3d ViewPlane::IteratorBase::current() const {
-  return (m_plane->m_topLeft + m_plane->m_right * column() + m_plane->m_down * row()) *
-         m_plane->pixelSize();
+  return m_plane->pixelAt(column(), row());
 }
 
 ViewPlane::RegularIterator::RegularIterator(const ViewPlane* plane, const Recti& rect)

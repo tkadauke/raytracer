@@ -214,6 +214,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   streams now use reserved contiguous tile storage with stable deque overflow,
   reducing sample-generation allocation churn without invalidating retained
   stream pointers. — GPT-5
+- **ViewPlane pixel lookup cache.** View planes now cache their camera-centered
+  scaled pixel basis after setup and pixel-size changes, reducing repeated
+  primary-ray pixel math and keeping iterator dereference aligned with
+  `pixelAt()` for translated zoomed cameras. — GPT-5
 - **Wavefront convergence diagnostics.** Wavefront metrics JSON now includes a
   stopped-tile depth histogram, and compact rendercli summaries report the
   earliest/latest stopped depths to make convergence preset tuning measurable.

@@ -319,6 +319,7 @@ namespace render {
     /// zoomed cameras. Larger values render a wider field of view.
     inline void setPixelSize(double pixelSize) {
       m_pixelSize = pixelSize;
+      setupScaledVectors();
     }
 
     /**
@@ -337,9 +338,8 @@ namespace render {
       * = narrower FOV (zoomed in) regardless of where the camera
       * sits.
       */
-    inline Vector3d pixelAt(double x, double y) {
-      const Vector3d cameraPos = m_matrix.translationVector();
-      return cameraPos + (m_topLeft - cameraPos + m_right * x + m_down * y) * m_pixelSize;
+    inline Vector3d pixelAt(double x, double y) const {
+      return m_scaledTopLeft + m_scaledRight * x + m_scaledDown * y;
     }
 
     /**
@@ -407,12 +407,14 @@ namespace render {
     /// Recompute `m_topLeft` / `m_right` / `m_down` after a
     /// `setup` call. Called automatically; not for direct use.
     void setupVectors();
+    void setupScaledVectors();
 
     friend class Iterator;
 
     Matrix4d m_matrix;
     Recti m_window;
     Vector3d m_topLeft, m_right, m_down;
+    Vector3d m_scaledTopLeft, m_scaledRight, m_scaledDown;
     float m_pixelSize;
     AspectMode m_aspectMode;
     double m_aspectRatio;
