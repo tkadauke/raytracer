@@ -115,16 +115,13 @@ namespace render {
                                    std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits,
                                    int bounce, BatchDepthMetrics& depthMetrics,
                                    IntegratorBatchMetrics* metrics) const;
-    void intersectActivePathPacket(const Scene& scene,
-                                   const std::vector<std::size_t>& activePathIndices,
-                                   std::size_t firstActivePathIndex, std::vector<BatchPath>& paths,
-                                   std::vector<BatchHit>& activeHits, int bounce,
-                                   BatchDepthMetrics& depthMetrics,
+    void intersectActivePathPacket(const Scene& scene, std::size_t firstPathIndex,
+                                   std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits,
+                                   int bounce, BatchDepthMetrics& depthMetrics,
                                    IntegratorBatchMetrics* metrics) const;
-    void intersectActiveFrontier(const Scene& scene,
-                                 const std::vector<std::size_t>& activePathIndices,
-                                 std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits,
-                                 int bounce, BatchDepthMetrics& depthMetrics,
+    void intersectActiveFrontier(const Scene& scene, std::vector<BatchPath>& paths,
+                                 std::vector<BatchHit>& activeHits, int bounce,
+                                 BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;
 
     int m_maximumRecursionDepth{8};

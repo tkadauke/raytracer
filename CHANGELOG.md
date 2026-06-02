@@ -166,9 +166,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   primary-ray samples through a virtual integrator batch API; the path-tracing
   integrator processes those batches depth-major while Whitted compatibility
   remains available through the scalar fallback. — GPT-5
-- **Wavefront path active queues.** Path-tracing batches now compact still-active
-  paths between depths, avoiding full-batch scans after most samples have
-  already terminated. — GPT-5
+- **Wavefront path active queues.** Path-tracing batches now compact
+  still-active path state between depths, avoiding full-batch scans and the
+  separate active-index frontier after samples terminate. — GPT-5
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5
