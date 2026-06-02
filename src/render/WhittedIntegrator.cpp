@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <utility>
 
 namespace render {
@@ -241,7 +242,8 @@ namespace render {
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     std::array<Rayd, Ray4::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined};
-    std::array<std::map<std::string, std::uint64_t>, Ray4::lanes> packetFallbacksBefore{};
+    std::optional<std::array<std::map<std::string, std::uint64_t>, Ray4::lanes>>
+      packetFallbacksBefore;
     PrimitivePacketState4 states{};
 
     {
@@ -250,12 +252,13 @@ namespace render {
         ++depthMetrics.frontierPacketChunks;
         ++depthMetrics.frontierRay4PacketChunks;
         depthMetrics.frontierPacketRays += laneCount;
+        packetFallbacksBefore.emplace();
       }
       for (std::size_t lane = 0; lane != laneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
         queued.state.recurseIn();
         if (depthMetrics.trackFrontierMetrics) {
-          packetFallbacksBefore[lane] = queued.state.packetHitScalarFallbacksByReason;
+          (*packetFallbacksBefore)[lane] = queued.state.packetHitScalarFallbacksByReason;
         }
         rays[lane] = queued.ray;
         states[lane] = &queued.state;
@@ -283,7 +286,7 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics) {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
                                               : nullptr);
-        depthMetrics.recordPacketScalarFallbacks(queued.state, packetFallbacksBefore[lane]);
+        depthMetrics.recordPacketScalarFallbacks(queued.state, (*packetFallbacksBefore)[lane]);
       }
       if (!packetHits.hit(lane)) {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
@@ -337,7 +340,8 @@ namespace render {
     std::array<Rayd, Ray8::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined};
-    std::array<std::map<std::string, std::uint64_t>, Ray8::lanes> packetFallbacksBefore{};
+    std::optional<std::array<std::map<std::string, std::uint64_t>, Ray8::lanes>>
+      packetFallbacksBefore;
     PrimitivePacketState8 states{};
 
     {
@@ -346,12 +350,13 @@ namespace render {
         ++depthMetrics.frontierPacketChunks;
         ++depthMetrics.frontierRay8PacketChunks;
         depthMetrics.frontierPacketRays += Ray8::lanes;
+        packetFallbacksBefore.emplace();
       }
       for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
         queued.state.recurseIn();
         if (depthMetrics.trackFrontierMetrics) {
-          packetFallbacksBefore[lane] = queued.state.packetHitScalarFallbacksByReason;
+          (*packetFallbacksBefore)[lane] = queued.state.packetHitScalarFallbacksByReason;
         }
         rays[lane] = queued.ray;
         states[lane] = &queued.state;
@@ -379,7 +384,7 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics) {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
                                               : nullptr);
-        depthMetrics.recordPacketScalarFallbacks(queued.state, packetFallbacksBefore[lane]);
+        depthMetrics.recordPacketScalarFallbacks(queued.state, (*packetFallbacksBefore)[lane]);
       }
       if (!packetHits.hit(lane)) {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds

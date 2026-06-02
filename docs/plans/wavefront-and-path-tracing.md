@@ -712,8 +712,11 @@ colors; those colors are computed only at the miss/shading sites where
 radiance-delta metrics or convergence can consume them. Whitted and
 path-tracing frontier hit/miss, packet, and packet-fallback counters are now
 metric-gated too, so plain wavefront renders do not maintain diagnostic
-counters that only JSON/trace/summary output can consume. Whitted continuation
-queues now retain their storage across depth passes as well, so explicit
+counters that only JSON/trace/summary output can consume. Packet fallback
+reason snapshots are also allocated only while those metrics are active,
+removing per-packet `std::map` construction from ordinary Whitted and
+path-tracing wavefront renders. Whitted continuation queues now retain their
+storage across depth passes as well, so explicit
 reflection/refraction frontiers reuse the same two queue buffers instead of
 constructing a fresh successor queue each pass. Whitted convergence/metrics
 also now collect active samples from sparse frontier marks, avoiding a full
