@@ -451,7 +451,8 @@ namespace render {
                                              depthMetrics.frontierRayMisses);
         metrics->recordFrontierTraversal(depthMetrics.frontierPacketChunks,
                                          depthMetrics.frontierScalarRays,
-                                         depthMetrics.frontierPacketScalarFallbackRays);
+                                         depthMetrics.frontierPacketScalarFallbackRays,
+                                         /*packetRefinedRays=*/0);
       }
 
       for (const auto& hit : activeHits) {

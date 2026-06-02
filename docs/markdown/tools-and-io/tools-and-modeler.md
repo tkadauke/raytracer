@@ -220,10 +220,14 @@ fallback counts, convergence thresholds, stop decisions, denoiser diagnostics
 when enabled, and total render time. The compact summary prints total
 `frontier_hit_rays`, `frontier_miss_rays`, `frontier_packet_chunks`,
 `frontier_packet_rays`, `frontier_scalar_rays`, and
-`frontier_packet_scalar_fallback_rays`, while the JSON report keeps the
+`frontier_packet_scalar_fallback_rays`, and `frontier_packet_refined_rays`,
+while the JSON report keeps the
 per-depth `frontierRayHitsPerDepth`, `frontierRayMissesPerDepth`,
 `frontierPacketChunksPerDepth`, `frontierScalarRaysPerDepth`, and
-`frontierPacketScalarFallbackRaysPerDepth` arrays for deeper captures. The
+`frontierPacketScalarFallbackRaysPerDepth`, and
+`frontierPacketRefinedRaysPerDepth` arrays for deeper captures. The refined
+counter is Whitted-specific diagnostic work: it counts packet-hit lanes that
+still need scalar hit refinement for strict reflective parity. The
 timing payload also reports summed worker time for sample
 generation and integrator batch work, so performance captures can separate
 camera/sample setup from scene-intersection and material/shading transport even

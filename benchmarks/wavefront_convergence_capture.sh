@@ -216,6 +216,7 @@ def wavefront_metric_values(path)
     frontier_packet_chunks: [],
     frontier_scalar_rays: [],
     frontier_packet_scalar_fallback_rays: [],
+    frontier_packet_refined_rays: [],
     sample_generation_worker_seconds: [],
     sample_stream_worker_seconds: [],
     sample_primary_ray_worker_seconds: [],
@@ -238,6 +239,7 @@ def wavefront_metric_values(path)
       frontier_packet_chunks: 0.0,
       frontier_scalar_rays: 0.0,
       frontier_packet_scalar_fallback_rays: 0.0,
+      frontier_packet_refined_rays: 0.0,
       sample_generation_worker_seconds: 0.0,
       sample_stream_worker_seconds: 0.0,
       sample_primary_ray_worker_seconds: 0.0,
@@ -275,6 +277,8 @@ def wavefront_metric_values(path)
         batching.fetch("frontierScalarRaysPerDepth", []).sum { |value| value.to_f }
       run_values[:frontier_packet_scalar_fallback_rays] +=
         batching.fetch("frontierPacketScalarFallbackRaysPerDepth", []).sum { |value| value.to_f }
+      run_values[:frontier_packet_refined_rays] +=
+        batching.fetch("frontierPacketRefinedRaysPerDepth", []).sum { |value| value.to_f }
     end
     timings.compact.each do |timing|
       run_values[:sample_generation_worker_seconds] +=
@@ -334,7 +338,8 @@ puts format("active_sample_depths reference=%.0f candidate=%.0f saved=%.0f saved
    frontier_miss_rays
    frontier_packet_chunks
    frontier_scalar_rays
-   frontier_packet_scalar_fallback_rays].each do |key|
+   frontier_packet_scalar_fallback_rays
+   frontier_packet_refined_rays].each do |key|
   reference = median(reference_values[key])
   candidate = median(candidate_values[key])
   delta = candidate - reference

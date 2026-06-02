@@ -70,6 +70,7 @@ namespace IntegratorTest {
     EXPECT_TRUE(metrics.frontierPacketChunksPerDepth.empty());
     EXPECT_TRUE(metrics.frontierScalarRaysPerDepth.empty());
     EXPECT_TRUE(metrics.frontierPacketScalarFallbackRaysPerDepth.empty());
+    EXPECT_TRUE(metrics.frontierPacketRefinedRaysPerDepth.empty());
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
   }
 }

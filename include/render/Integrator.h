@@ -33,6 +33,7 @@ namespace render {
     std::vector<std::uint64_t> frontierPacketChunksPerDepth;
     std::vector<std::uint64_t> frontierScalarRaysPerDepth;
     std::vector<std::uint64_t> frontierPacketScalarFallbackRaysPerDepth;
+    std::vector<std::uint64_t> frontierPacketRefinedRaysPerDepth;
     std::uint64_t activeSampleDepthsProcessed{0};
     std::vector<double> radianceDeltaSquaredSumPerDepth;
     std::vector<double> maxRadianceDeltaPerDepth;
@@ -50,7 +51,8 @@ namespace render {
     void recordActiveDepth(std::uint64_t activeSamples);
     void recordFrontierIntersections(std::uint64_t hitRays, std::uint64_t missRays);
     void recordFrontierTraversal(std::uint64_t packetChunks, std::uint64_t scalarRays,
-                                 std::uint64_t packetScalarFallbackRays);
+                                 std::uint64_t packetScalarFallbackRays,
+                                 std::uint64_t packetRefinedRays);
     void recordRadianceDeltaDepth(double squaredSum, double maxDelta);
   };
 

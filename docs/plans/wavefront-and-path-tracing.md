@@ -892,9 +892,16 @@ Wavefront metrics now also expose packet-frontier utilization:
 `frontierPacketScalarFallbackRaysPerDepth` distinguish four-wide packet chunks,
 scalar tail rays, and packet lanes that still had to use base scalar hit
 materialization in JSON reports, graph trace metadata, rendercli compact
-summaries, and convergence capture work comparisons. That gives Phase 7
-captures a direct signal for whether the next speed slice should improve packet
-filling, scalar-tail handling, or remaining leaf packet traversal cost.
+summaries, and convergence capture work comparisons. Whitted batches now also
+publish `frontierPacketRefinedRaysPerDepth`, the packet-hit lanes that were
+materialized through the packet path but then scalar-refined before shading.
+A trial removal of that refinement broke the reflection parity fixture because
+packet hits currently carry float-lane hit points while scalar reflection uses
+double-precision hits; keeping the counter visible makes that cost explicit
+until packet materialization is precise enough for strict Whitted parity. These
+counters give Phase 7 captures a direct signal for whether the next speed slice
+should improve packet filling, scalar-tail handling, packet-hit precision, or
+remaining leaf packet traversal cost.
 
 ---
 

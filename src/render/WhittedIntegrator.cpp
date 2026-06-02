@@ -57,6 +57,7 @@ namespace render {
     std::uint64_t frontierPacketChunks{0};
     std::uint64_t frontierScalarRays{0};
     std::uint64_t frontierPacketScalarFallbackRays{0};
+    std::uint64_t frontierPacketRefinedRays{0};
     bool trackFrontierMetrics{false};
   };
 
@@ -272,6 +273,9 @@ namespace render {
         continue;
       }
 
+      if (depthMetrics.trackFrontierMetrics) {
+        ++depthMetrics.frontierPacketRefinedRays;
+      }
       HitPointInterval refinedHitPoints;
       const Primitive* refinedPrimitive = nullptr;
       {
@@ -441,9 +445,9 @@ namespace render {
       if (metrics) {
         metrics->recordFrontierIntersections(depthMetrics.frontierRayHits,
                                              depthMetrics.frontierRayMisses);
-        metrics->recordFrontierTraversal(depthMetrics.frontierPacketChunks,
-                                         depthMetrics.frontierScalarRays,
-                                         depthMetrics.frontierPacketScalarFallbackRays);
+        metrics->recordFrontierTraversal(
+          depthMetrics.frontierPacketChunks, depthMetrics.frontierScalarRays,
+          depthMetrics.frontierPacketScalarFallbackRays, depthMetrics.frontierPacketRefinedRays);
       }
 
       for (const auto& hit : activeHits) {

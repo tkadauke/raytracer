@@ -345,6 +345,7 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierScalarRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}),
               metrics.frontierPacketScalarFallbackRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{4u, 0u}), metrics.frontierPacketRefinedRaysPerDepth);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceConvergesBranchedContinuationsByActiveSampleCount) {

@@ -2,8 +2,11 @@
 
 #include "core/math/HitPointInterval.h"
 #include "render/State.h"
+#include "render/primitives/Box.h"
 #include "render/primitives/BVH.h"
 #include "render/primitives/Sphere.h"
+
+#include "test/helpers/VectorTestHelper.h"
 
 #include <array>
 #include <cmath>
@@ -64,6 +67,12 @@ namespace BVHTest {
         EXPECT_EQ(scalarPrimitive, packet.primitive(lane)) << "lane " << lane;
         EXPECT_NEAR(scalarHits.minWithPositiveDistance().distance(),
                     packet.hitPoint(lane).distance(), 1e-3)
+          << "lane " << lane;
+        ASSERT_VECTOR_NEAR(scalarHits.minWithPositiveDistance().point(),
+                           packet.hitPoint(lane).point(), 1e-7)
+          << "lane " << lane;
+        ASSERT_VECTOR_NEAR(scalarHits.minWithPositiveDistance().normal(),
+                           packet.hitPoint(lane).normal(), 1e-7)
           << "lane " << lane;
       }
     }
@@ -338,6 +347,35 @@ namespace BVHTest {
     };
 
     expectPacketHitsMatchScalarLanes(*bvh, testRays);
+  }
+
+  TEST(BVH, PacketHitMaterializationMatchesScalarForReflectionStyleGeometry) {
+    auto bvh = std::make_shared<BVH>();
+    bvh->add(std::make_shared<Box>(Vector3d(0, 2.1, 0), Vector3d(6, 0.05, 6)));
+    bvh->add(std::make_shared<Box>(Vector3d(0, 0.001, 0), Vector3d(1, 1, 0.05)));
+    bvh->add(std::make_shared<Box>(Vector3d(0, 0.001, 0.5), Vector3d(1, 1, 0.05)));
+    bvh->add(std::make_shared<Box>(Vector3d(0, 0.001, -0.5), Vector3d(1, 1, 0.05)));
+    bvh->add(std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0));
+    bvh->add(std::make_shared<Sphere>(Vector3d(0, 0, -3), 1.0));
+    bvh->setup();
+
+    const std::array<Rayd, 4> primaryLikeRays = {
+      Rayd(Vector3d(-1, -1, -1), Vector3d(1, 1, 4).normalized()),
+      Rayd(Vector3d(-1, -1, -1), Vector3d(1, 1, -2).normalized()),
+      Rayd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1.45).normalized()),
+      Rayd(Vector3d(-1, -1, -1), Vector3d(1, 3.1, 1).normalized()),
+    };
+
+    expectPacketHitsMatchScalarLanes(*bvh, primaryLikeRays);
+
+    const std::array<Rayd, 4> reflectionLikeRays = {
+      Rayd(Vector3d(-0.25, -0.25, 2.1), Vector3d(0.2, 0.1, -1).normalized()),
+      Rayd(Vector3d(0.25, -0.1, -2.2), Vector3d(-0.1, 0.05, 1).normalized()),
+      Rayd(Vector3d(0.7, 0.5, 0.2), Vector3d(-0.2, -0.3, 1).normalized()),
+      Rayd(Vector3d(-0.7, 0.5, -0.2), Vector3d(0.2, -0.3, -1).normalized()),
+    };
+
+    expectPacketHitsMatchScalarLanes(*bvh, reflectionLikeRays);
   }
 
   TEST(BVH, PacketIntersectFallsBackToLinearScanIfSetupNotCalled) {
