@@ -273,14 +273,23 @@ namespace render {
         continue;
       }
 
-      if (depthMetrics.trackFrontierMetrics) {
-        ++depthMetrics.frontierPacketRefinedRays;
-      }
-      HitPointInterval refinedHitPoints;
-      const Primitive* refinedPrimitive = nullptr;
-      {
-        core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-        refinedPrimitive = scene.intersect(queued.ray, refinedHitPoints, queued.state);
+      const Primitive* hitPrimitive = packetHits.primitive(lane);
+      HitPoint hitPoint = packetHits.hitPoint(lane);
+      const auto hitMaterial = hitPrimitive ? hitPrimitive->material() : nullptr;
+      if (hitMaterial && hitMaterial->requiresWhittedPacketHitRefinement()) {
+        if (depthMetrics.trackFrontierMetrics) {
+          ++depthMetrics.frontierPacketRefinedRays;
+        }
+        HitPointInterval refinedHitPoints;
+        const Primitive* refinedPrimitive = nullptr;
+        {
+          core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+          refinedPrimitive = scene.intersect(queued.ray, refinedHitPoints, queued.state);
+        }
+        hitPrimitive = refinedPrimitive;
+        if (refinedPrimitive) {
+          hitPoint = refinedHitPoints.minWithPositiveDistance();
+        }
       }
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
       if (isCancelled()) {
@@ -288,7 +297,7 @@ namespace render {
         queued.state.recurseOut();
         continue;
       }
-      if (!refinedPrimitive) {
+      if (!hitPrimitive) {
         recordQueuedRayMiss(scene, queued, result, depthMetrics);
         continue;
       }
@@ -296,8 +305,7 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics) {
         ++depthMetrics.frontierRayHits;
       }
-      activeHits.push_back(QueuedHit{firstQueuedIndex + lane, refinedPrimitive,
-                                     refinedHitPoints.minWithPositiveDistance()});
+      activeHits.push_back(QueuedHit{firstQueuedIndex + lane, hitPrimitive, hitPoint});
     }
   }
 

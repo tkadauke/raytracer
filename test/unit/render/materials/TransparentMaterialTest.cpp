@@ -63,6 +63,7 @@ namespace TransparentMaterialTest {
     TransparentMaterial material;
     EXPECT_TRUE(material.supportsWhittedContinuations());
     EXPECT_TRUE(material.supportsBsdfSampling());
+    EXPECT_TRUE(material.requiresWhittedPacketHitRefinement());
   }
 
   TEST(TransparentMaterial, SamplesTransmissionAsDeltaBsdf) {

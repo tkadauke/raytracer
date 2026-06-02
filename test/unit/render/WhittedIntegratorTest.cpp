@@ -5,6 +5,7 @@
 #include "render/State.h"
 #include "render/WhittedIntegrator.h"
 #include "render/materials/Material.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/materials/ReflectiveMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Scene.h"
@@ -346,6 +347,39 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}),
               metrics.frontierPacketScalarFallbackRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{4u, 0u}), metrics.frontierPacketRefinedRaysPerDepth);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceLeavesLocalMaterialPacketHitsUnrefined) {
+    auto scene = std::make_unique<PacketCountingScene>();
+    scene->setAmbient(Colord(0.2, 0.3, 0.4));
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0);
+    sphere->setMaterial(
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white())));
+    scene->add(sphere);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples;
+    for (std::size_t sample = 0; sample != 4; ++sample) {
+      samples.push_back(
+        IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr});
+    }
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(*scene, samples, rayCaster, &metrics);
+
+    ASSERT_EQ(4u, colors.size());
+    for (const auto& color : colors) {
+      ASSERT_COLOR_NEAR(scene->ambient(), color, 1e-12);
+    }
+    EXPECT_EQ(1, scene->packetHitCalls);
+    EXPECT_EQ((std::vector<std::uint64_t>{4u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{4u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierPacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierScalarRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketScalarFallbackRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketRefinedRaysPerDepth);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceConvergesBranchedContinuationsByActiveSampleCount) {

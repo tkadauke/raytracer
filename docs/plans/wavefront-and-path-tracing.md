@@ -895,13 +895,17 @@ materialization in JSON reports, graph trace metadata, rendercli compact
 summaries, and convergence capture work comparisons. Whitted batches now also
 publish `frontierPacketRefinedRaysPerDepth`, the packet-hit lanes that were
 materialized through the packet path but then scalar-refined before shading.
-A trial removal of that refinement broke the reflection parity fixture because
-packet hits currently carry float-lane hit points while scalar reflection uses
-double-precision hits; keeping the counter visible makes that cost explicit
-until packet materialization is precise enough for strict Whitted parity. These
-counters give Phase 7 captures a direct signal for whether the next speed slice
-should improve packet filling, scalar-tail handling, packet-hit precision, or
-remaining leaf packet traversal cost.
+Materials now own that decision: local Matte/Phong shading consumes packet hits
+directly, while reflective, transparent, portal, and custom materials keep the
+scalar refinement default because their secondary rays depend on scalar
+double-precision hit points and normals for strict recursive parity. A trial
+removal of all refinement broke the reflection parity fixture because packet
+hits currently carry float-lane hit points while scalar reflection uses
+double-precision hits; keeping the counter visible makes the remaining
+secondary-ray cost explicit until packet materialization is precise enough for
+strict Whitted parity. These counters give Phase 7 captures a direct signal for
+whether the next speed slice should improve packet filling, scalar-tail
+handling, packet-hit precision, or remaining leaf packet traversal cost.
 
 ---
 

@@ -227,7 +227,10 @@ per-depth `frontierRayHitsPerDepth`, `frontierRayMissesPerDepth`,
 `frontierPacketScalarFallbackRaysPerDepth`, and
 `frontierPacketRefinedRaysPerDepth` arrays for deeper captures. The refined
 counter is Whitted-specific diagnostic work: it counts packet-hit lanes that
-still need scalar hit refinement for strict reflective parity. The
+still need scalar hit refinement for strict secondary-ray parity. Local
+Matte/Phong packet hits can therefore report zero refined rays, while
+reflective, transparent, portal, and custom materials keep the conservative
+scalar-refinement default. The
 timing payload also reports summed worker time for sample
 generation and integrator batch work, so performance captures can separate
 camera/sample setup from scene-intersection and material/shading transport even

@@ -162,6 +162,10 @@ namespace render {
       return true;
     }
 
+    bool requiresWhittedPacketHitRefinement() const override {
+      return false;
+    }
+
     WhittedShadeResult shadeWhitted(const render::RayCaster* raycaster, const render::Scene& scene,
                                     const Rayd& ray, const HitPoint& hitPoint,
                                     render::State& state) const override;

@@ -143,6 +143,17 @@ namespace render {
     }
 
     /**
+      * Reports whether a Whitted packet hit should be scalar-refined before
+      * this material shades it. Materials that spawn secondary rays need the
+      * scalar hit's double-precision point/normal for strict recursive parity.
+      * Purely local materials can opt out and shade from the packet-
+      * materialized hit directly.
+      */
+    virtual bool requiresWhittedPacketHitRefinement() const {
+      return true;
+    }
+
+    /**
       * Evaluate local Whitted radiance and return explicit recursive
       * continuations. Implementations that return `true` from
       * `supportsWhittedContinuations()` must put every reflected, refracted,

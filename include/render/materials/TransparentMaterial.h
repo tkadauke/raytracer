@@ -173,6 +173,10 @@ namespace render {
                                     const Rayd& ray, const HitPoint& hitPoint,
                                     render::State& state) const override;
 
+    bool requiresWhittedPacketHitRefinement() const override {
+      return true;
+    }
+
     bool supportsBsdfSampling() const override {
       return true;
     }

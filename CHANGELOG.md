@@ -188,10 +188,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront Whitted active-sample counting.** Whitted convergence and metrics
   now count active samples from sparse frontier marks instead of scanning the
   full sample tile every depth. — GPT-5
-- **Wavefront Whitted packet-refinement diagnostics.** Wavefront metrics now
-  report packet-hit lanes that Whitted scalar-refines for strict reflective
-  parity, making that remaining packet traversal cost visible in rendercli,
-  graph traces, Modeler metadata, and benchmark captures. — GPT-5
+- **Wavefront Whitted packet-refinement policy.** Wavefront metrics now report
+  packet-hit lanes that Whitted actually scalar-refines. Local Matte/Phong
+  materials consume packet-materialized hits directly, while reflective,
+  transparent, portal, and custom materials keep scalar refinement for strict
+  secondary-ray parity. — GPT-5
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5
