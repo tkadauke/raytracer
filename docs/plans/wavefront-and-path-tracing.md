@@ -451,9 +451,9 @@ Tasks:
   integrator and that graph rendering and direct rendering honor the same
   choice.
 
-**Goal**: the graph can represent and replay raytracer integrator choice.
+**Goal**: the graph can represent and replay raytracer integrator choice. ✅ **Done.**
 **Gate**: no direct-only integrator behavior remains except legacy
-`--no_render_graph` debugging.
+`--no_render_graph` debugging. ✅ **Done.**
 
 Render intent, `RenderRaytracerOptions`, `RaytracerBeautyPassState`,
 rendercli graph compilation, Modeler Render Settings, and replayed graph JSON
@@ -948,7 +948,7 @@ The rendercli denoiser regression now also pins the stochastic seed for its
 reference, raw, and filtered renders, so the quality gate measures the denoiser
 instead of incidental sample-stream differences.
 
-### Phase 7+ — SoA / GPU / packet traversal
+### Phase 7+ — future SoA / GPU / packet traversal optimization
 
 Partially pre-landed. The SoA / Ray4 / Ray8 substrate from
 `complete/core-math-optimization.md` Phase 4 is already available: packet ray
@@ -956,7 +956,7 @@ transport, primitive packet entry points, `BoundingBox::intersects4`, packet
 primitive kernels, and BVH Ray4/Ray8 active-mask traversal. Once the wavefront
 engine is stable and path-tracing semantics are locked in, this work plugs into
 the scheduler as a performance optimization. GPU offload remains a major lift;
-not committed.
+it is intentionally future work, not a CPU wavefront v1 blocker.
 
 The first handoff slice is now in place: primitives expose a four-wide
 `intersectPacketHits(...)` API that returns the closest hit primitive and
@@ -1281,11 +1281,11 @@ than prerequisites for the engine surface.
    samples-per-pixel already exists in rendercli and render intent.
    Wavefront consumes the same setting. Per-pixel adaptive sampling is
    later work.
-6. ~~**CLI / UI surface.**~~ **Partially resolved**: render intent /
+6. ~~**CLI / UI surface.**~~ **Resolved for v1**: render intent /
    render graph are the primary surface; direct `--engine wavefront`
-   remains useful as a debug bypass. Modeler should expose the same
-   choice in Render Settings, and render dialogs should preview the
-   compiled graph before rendering.
+   remains useful as a debug bypass. rendercli, Modeler preview overrides,
+   Modeler Render Settings, and render dialogs expose the wavefront executor
+   and graph-visible ray-family pass state.
 7. ~~**Where do scene-format defaults live?**~~ **Resolved**: engine and
    integrator preferences live in scene-backed render intent, not in
    file-format-specific scene loaders. Importers may suggest sensible
