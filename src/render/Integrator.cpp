@@ -20,6 +20,7 @@ namespace render {
     frontierRayHitsPerDepth.clear();
     frontierRayMissesPerDepth.clear();
     frontierPacketChunksPerDepth.clear();
+    frontierPacketRaysPerDepth.clear();
     frontierScalarRaysPerDepth.clear();
     frontierPacketScalarFallbackRaysPerDepth.clear();
     frontierPacketRefinedRaysPerDepth.clear();
@@ -50,10 +51,12 @@ namespace render {
   }
 
   void IntegratorBatchMetrics::recordFrontierTraversal(std::uint64_t packetChunks,
+                                                       std::uint64_t packetRays,
                                                        std::uint64_t scalarRays,
                                                        std::uint64_t packetScalarFallbackRays,
                                                        std::uint64_t packetRefinedRays) {
     frontierPacketChunksPerDepth.push_back(packetChunks);
+    frontierPacketRaysPerDepth.push_back(packetRays);
     frontierScalarRaysPerDepth.push_back(scalarRays);
     frontierPacketScalarFallbackRaysPerDepth.push_back(packetScalarFallbackRays);
     frontierPacketRefinedRaysPerDepth.push_back(packetRefinedRays);

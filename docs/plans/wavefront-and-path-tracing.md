@@ -939,13 +939,16 @@ and `ConvexOperation` subclasses) explicitly keep using the scalar
 interval/set-operation semantics are not equivalent to plain child-hit merging.
 The fallback metric keeps that cost visible until real packet CSG exists.
 Wavefront metrics now also expose packet-frontier utilization:
-`frontierPacketChunksPerDepth`, `frontierScalarRaysPerDepth`, and
-`frontierPacketScalarFallbackRaysPerDepth` distinguish four-wide packet chunks,
-scalar tail rays, and packet lanes that still had to use base scalar hit
+`frontierPacketChunksPerDepth`, `frontierPacketRaysPerDepth`,
+`frontierScalarRaysPerDepth`, and `frontierPacketScalarFallbackRaysPerDepth`
+distinguish packet chunks, the exact ray count carried by those chunks, scalar
+tail rays, and packet lanes that still had to use base scalar hit
 materialization in JSON reports, graph trace metadata, rendercli compact
 summaries, and convergence capture work comparisons. Whitted batches now also
 publish `frontierPacketRefinedRaysPerDepth`, the packet-hit lanes that were
 materialized through the packet path but then scalar-refined before shading.
+Keeping packet rays explicit instead of deriving them from chunk count prepares
+the metrics for future mixed Ray4/Ray8 frontiers.
 Materials now own that decision: local Matte/Phong shading consumes packet hits
 directly, while reflective, transparent, portal, and custom materials keep the
 scalar refinement default because their secondary rays depend on scalar

@@ -107,6 +107,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront packet frontier diagnostics.** Wavefront metrics now report
   per-depth packet chunk and scalar-tail ray counts in JSON reports, graph
   traces, rendercli summaries, and convergence captures. — GPT-5
+- **Wavefront packet ray diagnostics.** Wavefront metrics now report explicit
+  per-depth packet-ray counts instead of deriving them from four-wide chunk
+  counts, preparing diagnostics for mixed packet widths. — GPT-5
 - **Wavefront packet fallback diagnostics.** Wavefront metrics now report
   per-depth packet lanes that fell back to scalar hit materialization, exposing
   remaining primitive packet-kernel gaps in graph traces, rendercli summaries,

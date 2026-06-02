@@ -858,11 +858,11 @@ images.
 After a traced wavefront render, wavefront pass nodes summarize primary sample
 count and the integrator batch execution mode; the property editor exposes the
 full JSON metadata for tile, queue, batch, active-depth, per-depth radiance
-delta, convergence-threshold/stop, and sample-generation/integrator worker
-timing details, including the intersection and shading split inside the
-integrator bucket, the residual batch-overhead bucket, and path-tracing
-overhead sub-buckets for setup, frontier bookkeeping, progress snapshots, and
-convergence checks.
+delta, packet chunk/ray frontier utilization, convergence-threshold/stop, and
+sample-generation/integrator worker timing details, including the intersection
+and shading split inside the integrator bucket, the residual batch-overhead
+bucket, and path-tracing overhead sub-buckets for setup, frontier bookkeeping,
+progress snapshots, and convergence checks.
 
 - the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
   vertically, shows resources between producer and consumer passes, and lets the

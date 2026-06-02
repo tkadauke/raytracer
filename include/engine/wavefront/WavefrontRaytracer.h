@@ -57,6 +57,7 @@ namespace engine::wavefront {
       std::vector<std::uint64_t> frontierRayHitsPerDepth;
       std::vector<std::uint64_t> frontierRayMissesPerDepth;
       std::vector<std::uint64_t> frontierPacketChunksPerDepth;
+      std::vector<std::uint64_t> frontierPacketRaysPerDepth;
       std::vector<std::uint64_t> frontierScalarRaysPerDepth;
       std::vector<std::uint64_t> frontierPacketScalarFallbackRaysPerDepth;
       std::vector<std::uint64_t> frontierPacketRefinedRaysPerDepth;

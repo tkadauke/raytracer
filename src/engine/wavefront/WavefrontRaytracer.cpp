@@ -84,6 +84,7 @@ namespace engine::wavefront {
     addCounts(frontierRayHitsPerDepth, metrics.frontierRayHitsPerDepth);
     addCounts(frontierRayMissesPerDepth, metrics.frontierRayMissesPerDepth);
     addCounts(frontierPacketChunksPerDepth, metrics.frontierPacketChunksPerDepth);
+    addCounts(frontierPacketRaysPerDepth, metrics.frontierPacketRaysPerDepth);
     addCounts(frontierScalarRaysPerDepth, metrics.frontierScalarRaysPerDepth);
     addCounts(frontierPacketScalarFallbackRaysPerDepth,
               metrics.frontierPacketScalarFallbackRaysPerDepth);
@@ -135,6 +136,7 @@ namespace engine::wavefront {
     const QJsonArray frontierRayMissesPerDepth = integerArray(batching.frontierRayMissesPerDepth);
     const QJsonArray frontierPacketChunksPerDepth =
       integerArray(batching.frontierPacketChunksPerDepth);
+    const QJsonArray frontierPacketRaysPerDepth = integerArray(batching.frontierPacketRaysPerDepth);
     const QJsonArray frontierScalarRaysPerDepth = integerArray(batching.frontierScalarRaysPerDepth);
     const QJsonArray frontierPacketScalarFallbackRaysPerDepth =
       integerArray(batching.frontierPacketScalarFallbackRaysPerDepth);
@@ -168,6 +170,7 @@ namespace engine::wavefront {
     batchingJson["frontierRayHitsPerDepth"] = frontierRayHitsPerDepth;
     batchingJson["frontierRayMissesPerDepth"] = frontierRayMissesPerDepth;
     batchingJson["frontierPacketChunksPerDepth"] = frontierPacketChunksPerDepth;
+    batchingJson["frontierPacketRaysPerDepth"] = frontierPacketRaysPerDepth;
     batchingJson["frontierScalarRaysPerDepth"] = frontierScalarRaysPerDepth;
     batchingJson["frontierPacketScalarFallbackRaysPerDepth"] =
       frontierPacketScalarFallbackRaysPerDepth;

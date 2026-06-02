@@ -224,8 +224,8 @@ compact summary prints total
 `frontier_packet_scalar_fallback_rays`, and `frontier_packet_refined_rays`,
 while the JSON report keeps the
 per-depth `frontierRayHitsPerDepth`, `frontierRayMissesPerDepth`,
-`frontierPacketChunksPerDepth`, `frontierScalarRaysPerDepth`, and
-`frontierPacketScalarFallbackRaysPerDepth`, and
+`frontierPacketChunksPerDepth`, `frontierPacketRaysPerDepth`,
+`frontierScalarRaysPerDepth`, and `frontierPacketScalarFallbackRaysPerDepth`, and
 `frontierPacketRefinedRaysPerDepth` arrays for deeper captures. The refined
 counter is Whitted-specific diagnostic work: it counts packet-hit lanes that
 still need scalar hit refinement for strict secondary-ray parity. Local

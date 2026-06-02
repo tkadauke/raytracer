@@ -27,7 +27,6 @@
 #include "render/RenderEngine.h"
 #include "engine/raytracer/Raytracer.h"
 #include "render/PathTracingIntegrator.h"
-#include "core/math/RayPacket.h"
 #include "engine/raster/RasterBackend.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/wavefront/WavefrontRaytracer.h"
@@ -166,6 +165,7 @@ namespace {
       const QJsonArray frontierHits = batching.value("frontierRayHitsPerDepth").toArray();
       const QJsonArray frontierMisses = batching.value("frontierRayMissesPerDepth").toArray();
       const QJsonArray frontierPackets = batching.value("frontierPacketChunksPerDepth").toArray();
+      const QJsonArray frontierPacketRays = batching.value("frontierPacketRaysPerDepth").toArray();
       const QJsonArray frontierScalarRays = batching.value("frontierScalarRaysPerDepth").toArray();
       const QJsonArray frontierPacketScalarFallbackRays =
         batching.value("frontierPacketScalarFallbackRaysPerDepth").toArray();
@@ -219,7 +219,7 @@ namespace {
         << " frontier_hit_rays=" << unsignedArraySum(frontierHits)
         << " frontier_miss_rays=" << unsignedArraySum(frontierMisses)
         << " frontier_packet_chunks=" << unsignedArraySum(frontierPackets)
-        << " frontier_packet_rays=" << unsignedArraySum(frontierPackets) * Ray4::lanes
+        << " frontier_packet_rays=" << unsignedArraySum(frontierPacketRays)
         << " frontier_scalar_rays=" << unsignedArraySum(frontierScalarRays)
         << " frontier_packet_scalar_fallback_rays="
         << unsignedArraySum(frontierPacketScalarFallbackRays)

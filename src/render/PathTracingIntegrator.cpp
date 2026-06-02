@@ -54,6 +54,7 @@ namespace render {
     std::uint64_t frontierRayHits{0};
     std::uint64_t frontierRayMisses{0};
     std::uint64_t frontierPacketChunks{0};
+    std::uint64_t frontierPacketRays{0};
     std::uint64_t frontierScalarRays{0};
     std::uint64_t frontierPacketScalarFallbackRays{0};
     double depthDeltaSquaredSum{0.0};
@@ -185,6 +186,7 @@ namespace render {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
       if (depthMetrics.trackFrontierMetrics()) {
         ++depthMetrics.frontierPacketChunks;
+        depthMetrics.frontierPacketRays += Ray4::lanes;
       }
       for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
         const std::size_t pathIndex = firstPathIndex + lane;
@@ -449,10 +451,10 @@ namespace render {
       if (metrics) {
         metrics->recordFrontierIntersections(depthMetrics.frontierRayHits,
                                              depthMetrics.frontierRayMisses);
-        metrics->recordFrontierTraversal(depthMetrics.frontierPacketChunks,
-                                         depthMetrics.frontierScalarRays,
-                                         depthMetrics.frontierPacketScalarFallbackRays,
-                                         /*packetRefinedRays=*/0);
+        metrics->recordFrontierTraversal(
+          depthMetrics.frontierPacketChunks, depthMetrics.frontierPacketRays,
+          depthMetrics.frontierScalarRays, depthMetrics.frontierPacketScalarFallbackRays,
+          /*packetRefinedRays=*/0);
       }
 
       for (const auto& hit : activeHits) {

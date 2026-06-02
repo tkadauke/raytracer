@@ -603,10 +603,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48u, metrics.batching.frontierRayHitsPerDepth[0] +
                      metrics.batching.frontierRayMissesPerDepth[0]);
     ASSERT_EQ(1u, metrics.batching.frontierPacketChunksPerDepth.size());
+    ASSERT_EQ(1u, metrics.batching.frontierPacketRaysPerDepth.size());
     ASSERT_EQ(1u, metrics.batching.frontierScalarRaysPerDepth.size());
     ASSERT_EQ(1u, metrics.batching.frontierPacketScalarFallbackRaysPerDepth.size());
     ASSERT_EQ(1u, metrics.batching.frontierPacketRefinedRaysPerDepth.size());
     EXPECT_EQ(12u, metrics.batching.frontierPacketChunksPerDepth[0]);
+    EXPECT_EQ(48u, metrics.batching.frontierPacketRaysPerDepth[0]);
     EXPECT_EQ(0u, metrics.batching.frontierScalarRaysPerDepth[0]);
     EXPECT_EQ(0u, metrics.batching.frontierPacketScalarFallbackRaysPerDepth[0]);
     EXPECT_EQ(metrics.batching.frontierRayHitsPerDepth[0],
@@ -657,6 +659,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48.0, frontierHits.at(0).toDouble() + frontierMisses.at(0).toDouble());
     const QJsonArray frontierPacketChunks =
       json.value("batching").toObject().value("frontierPacketChunksPerDepth").toArray();
+    const QJsonArray frontierPacketRays =
+      json.value("batching").toObject().value("frontierPacketRaysPerDepth").toArray();
     const QJsonArray frontierScalarRays =
       json.value("batching").toObject().value("frontierScalarRaysPerDepth").toArray();
     const QJsonArray frontierPacketScalarFallbackRays =
@@ -664,10 +668,12 @@ namespace WavefrontRaytracerTest {
     const QJsonArray frontierPacketRefinedRays =
       json.value("batching").toObject().value("frontierPacketRefinedRaysPerDepth").toArray();
     ASSERT_EQ(1, frontierPacketChunks.size());
+    ASSERT_EQ(1, frontierPacketRays.size());
     ASSERT_EQ(1, frontierScalarRays.size());
     ASSERT_EQ(1, frontierPacketScalarFallbackRays.size());
     ASSERT_EQ(1, frontierPacketRefinedRays.size());
     EXPECT_EQ(12.0, frontierPacketChunks.at(0).toDouble());
+    EXPECT_EQ(48.0, frontierPacketRays.at(0).toDouble());
     EXPECT_EQ(0.0, frontierScalarRays.at(0).toDouble());
     EXPECT_EQ(0.0, frontierPacketScalarFallbackRays.at(0).toDouble());
     EXPECT_EQ(frontierHits.at(0).toDouble(), frontierPacketRefinedRays.at(0).toDouble());

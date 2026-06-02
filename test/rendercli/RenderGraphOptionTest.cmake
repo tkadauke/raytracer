@@ -1644,6 +1644,11 @@ if(NOT wavefront_metrics_json MATCHES "\"frontierPacketChunksPerDepth\"")
                   "wavefront metrics report did not contain frontier packet chunk counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+if(NOT wavefront_metrics_json MATCHES "\"frontierPacketRaysPerDepth\"")
+  _rendercli_fail("rendercli wavefront metrics frontier packet rays"
+                  "wavefront metrics report did not contain frontier packet ray counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
 if(NOT wavefront_metrics_json MATCHES "\"frontierScalarRaysPerDepth\"")
   _rendercli_fail("rendercli wavefront metrics frontier scalar rays"
                   "wavefront metrics report did not contain frontier scalar ray counters"

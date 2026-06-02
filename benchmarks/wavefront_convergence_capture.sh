@@ -240,6 +240,7 @@ def wavefront_metric_values(path)
     frontier_hit_rays: [],
     frontier_miss_rays: [],
     frontier_packet_chunks: [],
+    frontier_packet_rays: [],
     frontier_scalar_rays: [],
     frontier_packet_scalar_fallback_rays: [],
     frontier_packet_refined_rays: [],
@@ -265,6 +266,7 @@ def wavefront_metric_values(path)
       frontier_hit_rays: 0.0,
       frontier_miss_rays: 0.0,
       frontier_packet_chunks: 0.0,
+      frontier_packet_rays: 0.0,
       frontier_scalar_rays: 0.0,
       frontier_packet_scalar_fallback_rays: 0.0,
       frontier_packet_refined_rays: 0.0,
@@ -306,6 +308,8 @@ def wavefront_metric_values(path)
         batching.fetch("frontierRayMissesPerDepth", []).sum { |value| value.to_f }
       run_values[:frontier_packet_chunks] +=
         batching.fetch("frontierPacketChunksPerDepth", []).sum { |value| value.to_f }
+      run_values[:frontier_packet_rays] +=
+        batching.fetch("frontierPacketRaysPerDepth", []).sum { |value| value.to_f }
       run_values[:frontier_scalar_rays] +=
         batching.fetch("frontierScalarRaysPerDepth", []).sum { |value| value.to_f }
       run_values[:frontier_packet_scalar_fallback_rays] +=
@@ -375,6 +379,7 @@ puts format("active_sample_depths reference=%.0f candidate=%.0f saved=%.0f saved
 %i[frontier_hit_rays
    frontier_miss_rays
    frontier_packet_chunks
+   frontier_packet_rays
    frontier_scalar_rays
    frontier_packet_scalar_fallback_rays
    frontier_packet_refined_rays].each do |key|
