@@ -133,6 +133,28 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ(9, raytracer.camera()->viewPlane()->sampler()->numSamples());
   }
 
+  TEST(RaytracerBeautyPassState, AppliesSamplingSeedToGeneratedSamplerSets) {
+    RaytracerBeautyPassState state;
+    state.setSampler("Jittered");
+    state.setSamplesPerPixel(4);
+    state.setSamplingSeed(1234);
+
+    engine::raytracer::Raytracer first(nullptr);
+    engine::raytracer::Raytracer second(nullptr);
+    state.applyTo(first);
+    state.applyTo(second);
+
+    ASSERT_NE(nullptr, first.camera());
+    ASSERT_NE(nullptr, second.camera());
+    const auto firstSampler = first.camera()->viewPlane()->sampler();
+    const auto secondSampler = second.camera()->viewPlane()->sampler();
+    ASSERT_NE(nullptr, firstSampler);
+    ASSERT_NE(nullptr, secondSampler);
+    ASSERT_FALSE(firstSampler->setAt(0).empty());
+    ASSERT_FALSE(secondSampler->setAt(0).empty());
+    EXPECT_EQ(firstSampler->setAt(0), secondSampler->setAt(0));
+  }
+
   TEST(RaytracerBeautyPassState, AppliesDenoiserToWavefront) {
     RaytracerBeautyPassState state;
     state.setDenoiser("bilateral");

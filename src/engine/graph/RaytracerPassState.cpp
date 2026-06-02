@@ -491,7 +491,11 @@ namespace engine::graph {
       throw std::runtime_error("raytracer pass state requested unknown sampler '" + factoryId +
                                "'");
     }
-    sampler->setup(m_samplesPerPixel.value_or(1), 83);
+    if (m_samplingSeed) {
+      sampler->setup(m_samplesPerPixel.value_or(1), 83, *m_samplingSeed);
+    } else {
+      sampler->setup(m_samplesPerPixel.value_or(1), 83);
+    }
     return sampler;
   }
 

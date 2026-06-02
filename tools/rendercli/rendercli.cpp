@@ -2518,7 +2518,11 @@ bool Renderer::isKnownSampler(const QString& sampler) {
 std::shared_ptr<render::Sampler> Renderer::sampler() const {
   auto samplerClass = m_sampler.toStdString() + "Sampler";
   auto sampler = render::SamplerFactory::self().createShared(samplerClass);
-  sampler->setup(m_samplesPerPixel, 83);
+  if (m_samplingSeed) {
+    sampler->setup(m_samplesPerPixel, 83, *m_samplingSeed);
+  } else {
+    sampler->setup(m_samplesPerPixel, 83);
+  }
 
   return sampler;
 }
