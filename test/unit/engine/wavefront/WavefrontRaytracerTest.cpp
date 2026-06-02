@@ -611,8 +611,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48u, metrics.batching.frontierPacketRaysPerDepth[0]);
     EXPECT_EQ(0u, metrics.batching.frontierScalarRaysPerDepth[0]);
     EXPECT_EQ(0u, metrics.batching.frontierPacketScalarFallbackRaysPerDepth[0]);
-    EXPECT_EQ(metrics.batching.frontierRayHitsPerDepth[0],
-              metrics.batching.frontierPacketRefinedRaysPerDepth[0]);
+    EXPECT_EQ(0u, metrics.batching.frontierPacketRefinedRaysPerDepth[0]);
+    EXPECT_TRUE(metrics.batching.frontierPacketRefinedRaysByMaterial.empty());
     EXPECT_TRUE(metrics.convergence.enabled);
     EXPECT_DOUBLE_EQ(0.5, metrics.convergence.activeSampleFractionThreshold);
     EXPECT_DOUBLE_EQ(0.01, metrics.convergence.radianceDeltaRmsThreshold);
@@ -676,7 +676,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48.0, frontierPacketRays.at(0).toDouble());
     EXPECT_EQ(0.0, frontierScalarRays.at(0).toDouble());
     EXPECT_EQ(0.0, frontierPacketScalarFallbackRays.at(0).toDouble());
-    EXPECT_EQ(frontierHits.at(0).toDouble(), frontierPacketRefinedRays.at(0).toDouble());
+    EXPECT_EQ(0.0, frontierPacketRefinedRays.at(0).toDouble());
+    EXPECT_TRUE(json.value("batching")
+                  .toObject()
+                  .value("frontierPacketRefinedRaysByMaterial")
+                  .toObject()
+                  .isEmpty());
     EXPECT_TRUE(json.value("convergence").toObject().value("enabled").toBool());
     EXPECT_DOUBLE_EQ(
       0.5, json.value("convergence").toObject().value("activeSampleFractionThreshold").toDouble());

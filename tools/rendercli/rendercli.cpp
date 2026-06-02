@@ -171,6 +171,8 @@ namespace {
         batching.value("frontierPacketScalarFallbackRaysPerDepth").toArray();
       const QJsonArray frontierPacketRefinedRays =
         batching.value("frontierPacketRefinedRaysPerDepth").toArray();
+      const QJsonObject frontierPacketRefinedByMaterial =
+        batching.value("frontierPacketRefinedRaysByMaterial").toObject();
       const QJsonArray rmsDelta = batching.value("radianceDeltaRmsPerDepth").toArray();
       std::cout << std::fixed << std::setprecision(3) << "wavefront_metrics"
                 << " run=" << run;
@@ -224,6 +226,8 @@ namespace {
         << " frontier_packet_scalar_fallback_rays="
         << unsignedArraySum(frontierPacketScalarFallbackRays)
         << " frontier_packet_refined_rays=" << unsignedArraySum(frontierPacketRefinedRays)
+        << " frontier_packet_refined_by_material="
+        << unsignedObjectPairs(frontierPacketRefinedByMaterial)
         << " last_rms_delta=" << doubleArrayBack(rmsDelta)
         << " compatibility_shade_samples=" << unsignedValue(batching, "compatibilityShadeSamples")
         << " convergence=" << convergence.value("decision").toString().toStdString()
@@ -263,6 +267,25 @@ namespace {
       std::uint64_t result = 0;
       for (const QJsonValue& value : array) {
         result += static_cast<std::uint64_t>(value.toDouble());
+      }
+      return result;
+    }
+
+    std::string unsignedObjectPairs(const QJsonObject& object) const {
+      if (object.isEmpty()) {
+        return "none";
+      }
+      std::vector<std::string> pairs;
+      pairs.reserve(object.size());
+      for (auto it = object.begin(); it != object.end(); ++it) {
+        pairs.push_back(it.key().toStdString() + ":" +
+                        std::to_string(static_cast<std::uint64_t>(it.value().toDouble())));
+      }
+      std::sort(pairs.begin(), pairs.end());
+      std::string result = pairs.front();
+      for (std::size_t index = 1; index != pairs.size(); ++index) {
+        result += ",";
+        result += pairs[index];
       }
       return result;
     }

@@ -108,6 +108,7 @@ struct RenderGraphInspectorWidget::Private {
   QString graphEnumText(const char* value) const;
   QString executionStateName(PassExecutionState state) const;
   qulonglong jsonIntegerArraySum(const QJsonArray& array) const;
+  QString jsonIntegerObjectSummary(const QJsonObject& object) const;
   QString passTraceLine(const RenderPassNode& pass) const;
   const RenderGraphResourceSnapshot*
   firstSnapshotForResource(const RenderResourceId& resourceId) const;
@@ -363,6 +364,18 @@ qulonglong RenderGraphInspectorWidget::Private::jsonIntegerArraySum(const QJsonA
   return result;
 }
 
+QString
+RenderGraphInspectorWidget::Private::jsonIntegerObjectSummary(const QJsonObject& object) const {
+  QStringList values;
+  for (auto it = object.begin(); it != object.end(); ++it) {
+    values.push_back(QStringLiteral("%1 %2")
+                       .arg(humanizeIdentifier(it.key()))
+                       .arg(static_cast<qulonglong>(it.value().toDouble())));
+  }
+  values.sort();
+  return values.join(QStringLiteral("/"));
+}
+
 QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode& pass) const {
   if (!trace)
     return QString();
@@ -424,6 +437,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
                 .arg(scalarRays)
                 .arg(packetScalarFallbackRays)
                 .arg(packetRefinedRays);
+      const QString refinedByMaterial = jsonIntegerObjectSummary(
+        batching.value(QStringLiteral("frontierPacketRefinedRaysByMaterial")).toObject());
+      if (!refinedByMaterial.isEmpty()) {
+        line += QStringLiteral(" (%1)").arg(refinedByMaterial);
+      }
     }
   }
   const QJsonObject depthPrepass =

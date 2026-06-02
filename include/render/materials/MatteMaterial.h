@@ -166,6 +166,10 @@ namespace render {
       return false;
     }
 
+    const char* whittedPacketHitRefinementLabel() const override {
+      return "local";
+    }
+
     WhittedShadeResult shadeWhitted(const render::RayCaster* raycaster, const render::Scene& scene,
                                     const Rayd& ray, const HitPoint& hitPoint,
                                     render::State& state) const override;

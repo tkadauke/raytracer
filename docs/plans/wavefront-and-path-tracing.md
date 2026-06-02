@@ -1003,8 +1003,12 @@ removal of all refinement broke the reflection parity fixture because packet
 hits currently carry float-lane hit points while scalar reflection uses
 double-precision hits; keeping the counter visible makes the remaining
 secondary-ray cost explicit until packet materialization is precise enough for
-strict Whitted parity. These counters give Phase 7 captures a direct signal for
-whether the next speed slice should improve packet filling, scalar-tail
+strict Whitted parity. Metrics also aggregate refined packet lanes by
+material-family label (`reflective`, `transparent`, `portal`, or conservative
+`custom`) in JSON reports, rendercli summaries, and graph pass trace text, so
+captures can show which continuation material owns the remaining refinement
+cost. These counters give Phase 7 captures a direct signal for whether the next
+speed slice should improve packet filling, scalar-tail
 handling, packet-hit precision, or remaining leaf packet traversal cost.
 
 ---

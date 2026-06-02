@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <list>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -61,6 +62,7 @@ namespace engine::wavefront {
       std::vector<std::uint64_t> frontierScalarRaysPerDepth;
       std::vector<std::uint64_t> frontierPacketScalarFallbackRaysPerDepth;
       std::vector<std::uint64_t> frontierPacketRefinedRaysPerDepth;
+      std::map<std::string, std::uint64_t> frontierPacketRefinedRaysByMaterial;
       std::vector<double> radianceDeltaSquaredSumPerDepth;
       std::vector<double> maxRadianceDeltaPerDepth;
 

@@ -1602,6 +1602,11 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_refined_rays=")
                   "wavefront metrics summary did not contain frontier packet refined counters"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_refined_by_material=")
+  _rendercli_fail("rendercli wavefront metrics frontier packet refined material summary"
+                  "wavefront metrics summary did not contain frontier packet refined material counters"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 if(NOT wavefront_metrics_stdout MATCHES "feedback_depths=")
   _rendercli_fail("rendercli wavefront metrics convergence feedback summary"
                   "wavefront metrics summary did not contain convergence feedback counters"
@@ -1662,6 +1667,11 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"frontierPacketRefinedRaysPerDepth\"")
   _rendercli_fail("rendercli wavefront metrics frontier packet refined rays"
                   "wavefront metrics report did not contain frontier packet refined counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"frontierPacketRefinedRaysByMaterial\"")
+  _rendercli_fail("rendercli wavefront metrics frontier packet refined material rays"
+                  "wavefront metrics report did not contain frontier packet refined material counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"sampleGenerationWorkerSeconds\"")

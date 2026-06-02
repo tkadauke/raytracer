@@ -55,6 +55,7 @@ namespace PhongMaterialTest {
     EXPECT_TRUE(material.supportsWhittedContinuations());
     EXPECT_TRUE(material.supportsBsdfSampling());
     EXPECT_FALSE(material.requiresWhittedPacketHitRefinement());
+    EXPECT_STREQ("local", material.whittedPacketHitRefinementLabel());
   }
 
   TEST(PhongMaterial, EvaluatesDiffuseAndGlossyBsdfLobes) {

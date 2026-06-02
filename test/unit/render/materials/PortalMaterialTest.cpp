@@ -63,6 +63,7 @@ namespace PortalMaterialTest {
     EXPECT_TRUE(material.supportsWhittedContinuations());
     EXPECT_TRUE(material.supportsBsdfSampling());
     EXPECT_TRUE(material.requiresWhittedPacketHitRefinement());
+    EXPECT_STREQ("portal", material.whittedPacketHitRefinementLabel());
     EXPECT_TRUE(sampled.isDelta);
     EXPECT_DOUBLE_EQ(1.0, sampled.pdf);
     ASSERT_COLOR_NEAR(Colord(0.5, 0.25, 1.0), sampled.value, 1e-12);

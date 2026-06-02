@@ -154,6 +154,16 @@ namespace render {
     }
 
     /**
+      * Stable diagnostic bucket used when packet hits are scalar-refined before
+      * Whitted shading. Subclasses that keep the conservative refinement
+      * default should override this with a material-family label so wavefront
+      * metrics can show where the remaining refinement work comes from.
+      */
+    virtual const char* whittedPacketHitRefinementLabel() const {
+      return "custom";
+    }
+
+    /**
       * Evaluate local Whitted radiance and return explicit recursive
       * continuations. Implementations that return `true` from
       * `supportsWhittedContinuations()` must put every reflected, refracted,

@@ -483,6 +483,7 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}),
               metrics.frontierPacketScalarFallbackRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{4u, 0u}), metrics.frontierPacketRefinedRaysPerDepth);
+    EXPECT_EQ(4u, metrics.frontierPacketRefinedRaysByMaterial.at("custom"));
   }
 
   TEST(WhittedIntegrator, BatchedRadianceUsesRay8PacketFrontierForEightQueuedRays) {
@@ -518,6 +519,7 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}),
               metrics.frontierPacketScalarFallbackRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{8u, 0u}), metrics.frontierPacketRefinedRaysPerDepth);
+    EXPECT_EQ(8u, metrics.frontierPacketRefinedRaysByMaterial.at("custom"));
   }
 
   TEST(WhittedIntegrator, BatchedRadianceCompactsTraceableContinuationsBeforePacketFrontier) {
@@ -547,6 +549,7 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{8u, 4u}),
               metrics.frontierPacketScalarFallbackRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierPacketRefinedRaysPerDepth);
+    EXPECT_TRUE(metrics.frontierPacketRefinedRaysByMaterial.empty());
   }
 
   TEST(WhittedIntegrator, BatchedRadianceLeavesLocalMaterialPacketHitsUnrefined) {
@@ -582,6 +585,7 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierScalarRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketScalarFallbackRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketRefinedRaysPerDepth);
+    EXPECT_TRUE(metrics.frontierPacketRefinedRaysByMaterial.empty());
   }
 
   TEST(WhittedIntegrator, BatchedRadianceConvergesBranchedContinuationsByActiveSampleCount) {

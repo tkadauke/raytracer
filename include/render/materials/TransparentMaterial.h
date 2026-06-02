@@ -177,6 +177,10 @@ namespace render {
       return true;
     }
 
+    const char* whittedPacketHitRefinementLabel() const override {
+      return "transparent";
+    }
+
     bool supportsBsdfSampling() const override {
       return true;
     }

@@ -136,6 +136,10 @@ namespace render {
       return true;
     }
 
+    const char* whittedPacketHitRefinementLabel() const override {
+      return "reflective";
+    }
+
     bool supportsBsdfSampling() const override {
       return true;
     }

@@ -5,8 +5,10 @@
 
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace render {
@@ -36,6 +38,7 @@ namespace render {
     std::vector<std::uint64_t> frontierScalarRaysPerDepth;
     std::vector<std::uint64_t> frontierPacketScalarFallbackRaysPerDepth;
     std::vector<std::uint64_t> frontierPacketRefinedRaysPerDepth;
+    std::map<std::string, std::uint64_t> frontierPacketRefinedRaysByMaterial;
     std::uint64_t activeSampleDepthsProcessed{0};
     std::vector<double> radianceDeltaSquaredSumPerDepth;
     std::vector<double> maxRadianceDeltaPerDepth;
@@ -56,6 +59,7 @@ namespace render {
     void recordFrontierTraversal(std::uint64_t packetChunks, std::uint64_t packetRays,
                                  std::uint64_t scalarRays, std::uint64_t packetScalarFallbackRays,
                                  std::uint64_t packetRefinedRays);
+    void recordPacketHitRefinement(const std::string& materialLabel);
     void recordRadianceDeltaDepth(double squaredSum, double maxDelta);
   };
 

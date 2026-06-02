@@ -282,6 +282,7 @@ namespace render {
           !packetHits.scalarFallback(lane)) {
         if (depthMetrics.trackFrontierMetrics) {
           ++depthMetrics.frontierPacketRefinedRays;
+          metrics->recordPacketHitRefinement(hitMaterial->whittedPacketHitRefinementLabel());
         }
         HitPointInterval refinedHitPoints;
         const Primitive* refinedPrimitive = nullptr;
@@ -377,6 +378,7 @@ namespace render {
           !packetHits.scalarFallback(lane)) {
         if (depthMetrics.trackFrontierMetrics) {
           ++depthMetrics.frontierPacketRefinedRays;
+          metrics->recordPacketHitRefinement(hitMaterial->whittedPacketHitRefinementLabel());
         }
         HitPointInterval refinedHitPoints;
         const Primitive* refinedPrimitive = nullptr;

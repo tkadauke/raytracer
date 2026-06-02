@@ -24,6 +24,7 @@ namespace render {
     frontierScalarRaysPerDepth.clear();
     frontierPacketScalarFallbackRaysPerDepth.clear();
     frontierPacketRefinedRaysPerDepth.clear();
+    frontierPacketRefinedRaysByMaterial.clear();
     activeSampleDepthsProcessed = 0;
     radianceDeltaSquaredSumPerDepth.clear();
     maxRadianceDeltaPerDepth.clear();
@@ -60,6 +61,11 @@ namespace render {
     frontierScalarRaysPerDepth.push_back(scalarRays);
     frontierPacketScalarFallbackRaysPerDepth.push_back(packetScalarFallbackRays);
     frontierPacketRefinedRaysPerDepth.push_back(packetRefinedRays);
+  }
+
+  void IntegratorBatchMetrics::recordPacketHitRefinement(const std::string& materialLabel) {
+    const std::string label = materialLabel.empty() ? "unknown" : materialLabel;
+    ++frontierPacketRefinedRaysByMaterial[label];
   }
 
   void IntegratorBatchMetrics::recordRadianceDeltaDepth(double squaredSum, double maxDelta) {
