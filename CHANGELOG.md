@@ -185,6 +185,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront Whitted continuation queues.** Whitted batches now retain and
   reuse the next-depth continuation queue across depth passes instead of
   constructing a fresh queue each pass. — GPT-5
+- **Wavefront Whitted active-sample counting.** Whitted convergence and metrics
+  now count active samples from sparse frontier marks instead of scanning the
+  full sample tile every depth. — GPT-5
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5

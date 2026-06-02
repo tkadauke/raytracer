@@ -3,6 +3,7 @@
 #include "render/Integrator.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
@@ -54,6 +55,14 @@ namespace render {
                                     std::vector<Colord>& result, const std::string& event) const;
     void recordQueuedRayMiss(const Scene& scene, QueuedRay& queued, std::vector<Colord>& result,
                              BatchDepthMetrics& depthMetrics) const;
+    void clearActiveSampleMarks(std::vector<unsigned char>& sampleMarks,
+                                const std::vector<std::size_t>& activeSampleIndices) const;
+    void markActiveSample(std::vector<unsigned char>& sampleMarks,
+                          std::vector<std::size_t>& activeSampleIndices,
+                          std::size_t sampleIndex) const;
+    std::uint64_t collectCurrentActiveSamples(const std::vector<QueuedRay>& current,
+                                              std::vector<unsigned char>& activeSamples,
+                                              std::vector<std::size_t>& activeSampleIndices) const;
     void intersectQueuedRayScalar(const Scene& scene, std::vector<QueuedRay>& current,
                                   std::size_t queuedIndex, std::vector<QueuedHit>& activeHits,
                                   std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
@@ -71,6 +80,7 @@ namespace render {
                         const QueuedHit& hit, std::vector<QueuedRay>& current,
                         std::vector<QueuedRay>& next, std::vector<Colord>& result,
                         std::vector<unsigned char>& nextActiveSamples, bool countNextActiveSamples,
+                        std::vector<std::size_t>& nextActiveSampleIndices,
                         IntegratorBatchMetrics* metrics) const;
 
     int m_maximumRecursionDepth;
