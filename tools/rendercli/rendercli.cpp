@@ -1277,6 +1277,7 @@ private:
   engine::graph::RenderIntent renderIntent(const Scene& scene) const;
   int renderGraphSampleCount(const engine::graph::RenderIntent& intent) const;
   int rayFamilyQueueSize() const;
+  int rayFamilyQueueSize(int samplesPerPixel) const;
   engine::graph::RenderEngineOptions commandLineEngineOptions() const;
   engine::graph::RenderPostProcessAA commandLinePostProcessAA() const;
   engine::graph::RasterBeautyPassState
@@ -1486,6 +1487,11 @@ engine::graph::RenderGraphRequest Renderer::renderGraphRequest(const Scene& scen
     commandLineOptions.raytracer().setViewPlane("TiledViewPlane");
   }
   baseIntent.engineOptions = baseIntent.engineOptions.mergedWith(commandLineOptions);
+  if (!baseIntent.engineOptions.raytracer().queueSize()) {
+    const int raySamples =
+      baseIntent.engineOptions.raytracer().samplesPerPixel().value_or(m_samplesPerPixel);
+    baseIntent.engineOptions.raytracer().setQueueSize(rayFamilyQueueSize(raySamples));
+  }
   engine::graph::RenderGraphRequest request(baseIntent);
   request.setSceneAnalysis(scene.renderGraphAnalysis());
   if (m_renderGraphExecutorSet) {
@@ -1536,12 +1542,16 @@ int Renderer::renderGraphSampleCount(const engine::graph::RenderIntent& intent) 
 }
 
 int Renderer::rayFamilyQueueSize() const {
+  return rayFamilyQueueSize(m_samplesPerPixel);
+}
+
+int Renderer::rayFamilyQueueSize(int samplesPerPixel) const {
   if (m_queueSizeSet) {
     return m_queueSize;
   }
   const long long samplePixels = static_cast<long long>(m_width) *
                                  static_cast<long long>(m_height) *
-                                 static_cast<long long>(std::max(1, m_samplesPerPixel));
+                                 static_cast<long long>(std::max(1, samplesPerPixel));
   // Keep rendercli's historical 640x480 default cap, but avoid one-pixel
   // tiles for small graph renders where tile-local sampling would dominate.
   const long long pixelSizedQueue = std::max<long long>(1, samplePixels / 384);
@@ -1587,8 +1597,8 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.raytracer().setMaximumThreads(m_threads);
     options.rasterizer().setMaximumThreads(m_threads);
   }
-  options.raytracer().setQueueSize(rayFamilyQueueSize());
   if (m_queueSizeSet) {
+    options.raytracer().setQueueSize(m_queueSize);
     options.rasterizer().setQueueSize(m_queueSize);
   }
 

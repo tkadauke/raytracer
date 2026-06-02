@@ -267,6 +267,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront terminal continuations.** Whitted wavefront batches now resolve
   max-depth and throughput-cutoff continuations when material shading creates
   them instead of queueing a next-depth frontier that can only terminate. — GPT-5
+- **Ray-family graph queue defaults.** rendercli now fills automatic ray-family
+  graph queue size only when scene render intent leaves queue size unresolved,
+  while explicit `--queue_size` remains an override. — GPT-5
 - **Wavefront partial Ray8 tails.** Whitted and path-tracing wavefront
   frontiers now submit five- to seven-ray remainders as active lanes in one
   Ray8 packet instead of splitting them into Ray4 and scalar or partial-Ray4

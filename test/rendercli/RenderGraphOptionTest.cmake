@@ -22,6 +22,7 @@ set(wavefront_indirect_bounce_scene
 set(wavefront_denoise_scene "${PROJECT_SOURCE_DIR}/scenes/wavefront_denoise_demo.json")
 set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
 set(scene_viewplane_intent_scene "${TEST_OUTPUT_DIR}/scene-viewplane-intent.json")
+set(scene_queue_intent_scene "${TEST_OUTPUT_DIR}/scene-queue-intent.json")
 set(camera_override_runtime_scene "${TEST_OUTPUT_DIR}/camera-override-runtime-scene.json")
 set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
 set(invalid_exported_aov_scene "${TEST_OUTPUT_DIR}/invalid-exported-aov-scene.json")
@@ -130,6 +131,8 @@ set(wavefront_default_convergence_plan
     "${TEST_OUTPUT_DIR}/wavefront-default-convergence-graph.json")
 set(wavefront_scene_viewplane_plan
     "${TEST_OUTPUT_DIR}/wavefront-scene-viewplane-graph.json")
+set(wavefront_scene_queue_plan "${TEST_OUTPUT_DIR}/wavefront-scene-queue-graph.json")
+set(wavefront_cli_queue_plan "${TEST_OUTPUT_DIR}/wavefront-cli-queue-graph.json")
 set(wavefront_denoise_plan "${TEST_OUTPUT_DIR}/wavefront-denoise-graph.json")
 set(wavefront_scene_denoise_plan "${TEST_OUTPUT_DIR}/wavefront-scene-denoise-graph.json")
 set(wavefront_scene_denoise_render "${TEST_OUTPUT_DIR}/wavefront-scene-denoise-render.png")
@@ -206,6 +209,24 @@ file(WRITE "${scene_viewplane_intent_scene}" [=[
     "engineOptions": {
       "raytracer": {
         "viewPlane": {"type": "ViewPlane"}
+      }
+    }
+  },
+  "children": []
+}
+]=])
+
+file(WRITE "${scene_queue_intent_scene}" [=[
+{
+  "id": "{90200000-0000-0000-0000-000000000000}",
+  "name": "Scene Queue Intent Fixture",
+  "ambient": [0.4, 0.4, 0.4],
+  "background": [0.4, 0.8, 1.0],
+  "type": "Scene",
+  "renderIntent": {
+    "engineOptions": {
+      "raytracer": {
+        "execution": {"queueSize": 7}
       }
     }
   },
@@ -1542,6 +1563,37 @@ if(wavefront_scene_viewplane_graph MATCHES "\"type\"[ \r\n]*:[ \r\n]*\"TiledView
     FATAL_ERROR
       "rendercli TiledViewPlane default overrode scene-authored ViewPlane state: ${wavefront_scene_viewplane_graph}"
   )
+endif()
+
+rendercli_run(
+  NAME "rendercli preserves scene-authored wavefront queue size"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --engine wavefront --width 32 --height 16 "${scene_queue_intent_scene}"
+    "${wavefront_scene_queue_plan}"
+)
+rendercli_assert_nonempty("${wavefront_scene_queue_plan}"
+                          NAME "scene-authored wavefront queue graph output")
+file(READ "${wavefront_scene_queue_plan}" wavefront_scene_queue_graph)
+if(NOT wavefront_scene_queue_graph MATCHES "\"queueSize\"[ \r\n]*:[ \r\n]*7")
+  message(
+    FATAL_ERROR
+      "scene-authored wavefront graph did not preserve queueSize 7: ${wavefront_scene_queue_graph}"
+  )
+endif()
+
+rendercli_run(
+  NAME "rendercli explicit queue size overrides scene-authored wavefront queue size"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --engine wavefront --queue_size 11 --width 32 --height 16 "${scene_queue_intent_scene}"
+    "${wavefront_cli_queue_plan}"
+)
+rendercli_assert_nonempty("${wavefront_cli_queue_plan}" NAME "CLI wavefront queue graph output")
+file(READ "${wavefront_cli_queue_plan}" wavefront_cli_queue_graph)
+if(NOT wavefront_cli_queue_graph MATCHES "\"queueSize\"[ \r\n]*:[ \r\n]*11")
+  message(FATAL_ERROR
+          "explicit rendercli queueSize 11 did not override scene intent: ${wavefront_cli_queue_graph}")
 endif()
 
 rendercli_run(

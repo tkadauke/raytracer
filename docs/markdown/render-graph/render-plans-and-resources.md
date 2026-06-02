@@ -609,9 +609,10 @@ controls also flow through that state, so the compiled plan can report the
 active-sample fraction and RMS radiance-delta thresholds used by wavefront
 convergence termination. Those choices therefore appear in graph JSON and
 replay with the plan instead of being hidden in rendercli camera setup.
-rendercli fills in `TiledViewPlane` for ray-family graph renders when the scene
-intent leaves view-plane state unresolved, matching its direct final-render
-path without overriding scene-authored view-plane intent. Modeler
+rendercli fills in `TiledViewPlane` and its automatic ray-family queue size for
+ray-family graph renders when the scene intent leaves those fields unresolved,
+matching its direct final-render path without overriding scene-authored
+view-plane or queue intent. Modeler
 Render Settings presents those thresholds through Preview/Balanced/Final
 convergence quality presets while keeping the raw thresholds editable for
 advanced tuning; the compiled plan still receives only the typed, resolved

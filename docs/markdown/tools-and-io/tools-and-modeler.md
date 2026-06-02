@@ -92,13 +92,15 @@ share one interpretation before plan compilation.
 General render controls that affect an underlying engine are also translated
 into typed intent engine options before compilation. For example,
 `--sampler`, `--samples_per_pixel`, `--sampling_seed`, `--depth`, `--threads`,
-and `--queue_size` become raytracer pass state when the graph contains
+and explicit `--queue_size` values become raytracer pass state when the graph
+contains
 `raytrace_beauty` or `wavefront_beauty`. The seed is optional, but when present
 it makes stochastic ray-family renders repeatable and is serialized into
 exported graph JSON. When the scene intent does not specify a ray-family view
-plane, rendercli also writes `TiledViewPlane` into compiled raytracer or
-wavefront pass state so graph-backed final renders use the same tiled pixel
-walk as the direct command-line path; scene-authored view-plane intent is left
+plane or queue size, rendercli also writes `TiledViewPlane` and its automatic
+ray-family queue size into compiled raytracer or wavefront pass state so
+graph-backed final renders use the same tiled pixel walk as the direct
+command-line path; scene-authored view-plane and queue intent are left
 unchanged. Wavefront controls such as
 `--wavefront_convergence`, `--wavefront_no_convergence`,
 `--wavefront_convergence_active_fraction`, and

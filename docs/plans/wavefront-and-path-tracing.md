@@ -570,7 +570,10 @@ plain final-image renders avoid the batch metric accumulation path. rendercli
 now also resolves a size-aware default ray-family queue size and writes it into
 compiled graph pass state, so graph-backed wavefront renders do not silently
 fall back to a much coarser thread-count-sized queue than the direct engine
-path. Whitted convergence accounting now tracks unique active sample indices
+path. That automatic queue fill is now applied only when neither the scene
+intent nor an explicit command-line override supplied queue state, keeping
+scene-authored scheduler intent intact. Whitted convergence accounting now
+tracks unique active sample indices
 per depth instead of continuation-ray fanout, so branched reflection/refraction
 trees no longer inflate the active fraction or radiance-delta RMS denominator.
 A 320x240 `reflection_whitted` capture after that change showed recursive
@@ -1057,11 +1060,13 @@ plane while direct rendercli final renders used `TiledViewPlane`. Very small
 queue tiles made the progressive iterator visit extra samples, so high
 queue-count metrics overstated primary work. rendercli now fills in
 `TiledViewPlane` as a graph pass default only when scene intent leaves the
-ray-family view plane unresolved. A follow-up 160x120, queue-size-512 BVH
-capture reported the expected `samples=19200`, `tile_count=512`,
-`average_nonempty_tile_samples=37.5`, and exact image parity, so queue-size
-tuning can use the fixed graph path without confusing iterator oversampling
-with scheduler cost.
+ray-family view plane unresolved. The same preservation rule now applies to
+automatic ray-family queue sizes: rendercli fills in its resolved default only
+when scene intent leaves queue size unresolved. A follow-up 160x120,
+queue-size-512 BVH capture reported the expected `samples=19200`,
+`tile_count=512`, `average_nonempty_tile_samples=37.5`, and exact image parity,
+so queue-size tuning can use the fixed graph path without confusing iterator
+oversampling with scheduler cost.
 The first scalar-tail handling slices are now in place too: when a Whitted or
 path-tracing wavefront frontier has five to seven traceable rays left after
 full Ray8 chunks, the integrator submits those rays as active lanes in one
