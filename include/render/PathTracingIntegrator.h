@@ -123,6 +123,8 @@ namespace render {
                                  std::vector<BatchHit>& activeHits, int bounce,
                                  BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;
+    void retainActivePath(std::vector<BatchPath>& paths, std::size_t pathIndex,
+                          std::size_t& retainedPathCount) const;
 
     int m_maximumRecursionDepth{8};
     int m_russianRouletteDepth{3};

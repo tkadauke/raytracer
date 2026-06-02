@@ -236,6 +236,14 @@ namespace render {
     }
   }
 
+  void PathTracingIntegrator::retainActivePath(std::vector<BatchPath>& paths, std::size_t pathIndex,
+                                               std::size_t& retainedPathCount) const {
+    if (pathIndex != retainedPathCount) {
+      paths[retainedPathCount] = std::move(paths[pathIndex]);
+    }
+    ++retainedPathCount;
+  }
+
   Colord PathTracingIntegrator::directLighting(const Scene& scene, const Light& light,
                                                const HitPoint& hitPoint, const Material& material,
                                                const Vector3d& wi, State& state) const {
@@ -403,8 +411,6 @@ namespace render {
 
     const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
     const std::uint64_t totalSampleCount = sampleColors.size();
-    std::vector<BatchPath> nextPaths;
-    nextPaths.reserve(samples.size());
     std::vector<BatchHit> activeHits;
     activeHits.reserve(samples.size());
 
@@ -417,7 +423,7 @@ namespace render {
         metrics->recordActiveDepth(activeCount);
       }
 
-      nextPaths.clear();
+      std::size_t retainedPathCount = 0;
       BatchDepthMetrics depthMetrics;
       depthMetrics.trackRadianceDelta = trackRadianceDelta;
       depthMetrics.metrics = metrics;
@@ -498,7 +504,7 @@ namespace render {
           path.ray = sampled.rayFrom(hit.hitPoint);
           path.state.recurseOut();
           recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated());
-          nextPaths.push_back(std::move(path));
+          retainActivePath(paths, hit.pathIndex, retainedPathCount);
         }
       }
 
@@ -510,13 +516,13 @@ namespace render {
       if (settings.progressObserver) {
         core::util::ScopedTimer timer(metrics ? &metrics->progressSnapshotWorkerSeconds : nullptr);
         settings.progressObserver->depthCompleted(static_cast<std::uint64_t>(bounce + 1),
-                                                  sampleColors, nextPaths.size());
+                                                  sampleColors, retainedPathCount);
       }
 
       if (settings.convergenceEnabled && totalSampleCount != 0) {
         core::util::ScopedTimer timer(metrics ? &metrics->convergenceTestWorkerSeconds : nullptr);
         const double activeFraction =
-          static_cast<double>(nextPaths.size()) / static_cast<double>(totalSampleCount);
+          static_cast<double>(retainedPathCount) / static_cast<double>(totalSampleCount);
         const double radianceDeltaRms =
           activeCount == 0
             ? 0.0
@@ -531,7 +537,9 @@ namespace render {
         }
       }
 
-      paths.swap(nextPaths);
+      while (paths.size() != retainedPathCount) {
+        paths.pop_back();
+      }
     }
 
     return sampleColors;

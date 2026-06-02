@@ -666,7 +666,12 @@ to ~330 ms. Treat this as allocation-churn cleanup, not as completion of the
 Phase 4 performance target. Path-tracing batches also now accumulate directly
 into the sample-color buffer returned to the wavefront tile, so final result
 assembly no longer copies every sample and progress snapshots can publish the
-same live buffer instead of allocating a per-depth copy. Disabled
+same live buffer instead of allocating a per-depth copy. The path-tracing
+survivor queue now compacts in place as well, removing the second per-batch
+`nextPaths` vector while preserving each path's pointer into the sample-color
+buffer. This reduces retained queue memory and one move/push path in the hot
+depth loop, but it is still scheduler cleanup rather than proof of the Phase 4
+speed gate. Disabled
 `ScopedTimer` instances
 also skip clock reads now, so ordinary renders do not pay timing overhead when
 no metric bucket is requested. A follow-up 160x120, 16spp,

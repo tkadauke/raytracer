@@ -173,6 +173,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront path active queues.** Path-tracing batches now compact
   still-active path state between depths, avoiding full-batch scans and the
   separate active-index frontier after samples terminate. — GPT-5
+- **Wavefront path survivor compaction.** Path-tracing batches now compact
+  surviving paths in place between depths, avoiding a second survivor vector in
+  the hot wavefront batch loop. — GPT-5
 - **Wavefront tile setup overhead.** Wavefront tiles now reserve their pixel,
   sample, and sample-to-pixel buffers from the known tile size before tracing,
   reducing per-tile vector growth during batch setup. — GPT-5

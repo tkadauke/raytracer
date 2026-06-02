@@ -559,6 +559,31 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(3u, metrics.activeSampleDepthsProcessed);
   }
 
+  TEST(PathTracingIntegrator, BatchedRadianceKeepsSampleColorsWhenCompactingMovedPaths) {
+    auto scene = reflectiveBackgroundScene();
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{Rayd(Vector3d(0, 5, 0), Vector3d(0, 1, 0)), 0.0,
+                                          sampler->stream(0, 11ull)});
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 29ull)});
+
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster, &metrics);
+
+    ASSERT_EQ(2u, batched.size());
+    ASSERT_COLOR_NEAR(Colord(1, 0, 0), batched[0], 1e-12);
+    ASSERT_COLOR_NEAR(Colord(0.5, 0, 0), batched[1], 1e-12);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u, 1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.frontierRayMissesPerDepth);
+    EXPECT_EQ(3u, metrics.activeSampleDepthsProcessed);
+  }
+
   TEST(PathTracingIntegrator, BatchedRadianceContinuesThroughTransparentDeltaBsdf) {
     auto scene = transparentBackgroundScene();
     PathTracingIntegrator integrator;
