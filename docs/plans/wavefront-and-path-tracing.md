@@ -1073,6 +1073,15 @@ queue-size-512 BVH capture reported the expected `samples=19200`,
 `tile_count=512`, `average_nonempty_tile_samples=37.5`, and exact image parity,
 so queue-size tuning can use the fixed graph path without confusing iterator
 oversampling with scheduler cost.
+An exploratory 160x120, max-depth-5, repeat-2 BVH queue sweep after adding tile
+pixel metrics compared queue sizes 16, 50, 128, and 300. The non-converged
+wavefront medians were ~2.335 ms, ~2.116 ms, ~2.303 ms, and ~2.477 ms
+respectively; the convergence variants were noisy but stayed in the same
+~2.2-2.5 ms band. Queue 50 maps to `max_tile_pixels=384`, while queue 300 maps
+to `avg_tile_pixels=64` and introduces Ray4 packet chunks. Treat this as
+directional evidence only because the repeat count is deliberately small, but
+it says the current small-image path should not blindly prefer the 300-tile cap
+when the pixel-sized policy would choose coarser ~384-pixel tiles.
 The first scalar-tail handling slices are now in place too: when a Whitted or
 path-tracing wavefront frontier has five to seven traceable rays left after
 full Ray8 chunks, the integrator submits those rays as active lanes in one
