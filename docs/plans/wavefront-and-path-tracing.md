@@ -749,6 +749,25 @@ when the current frontier is already fully traceable, and only partitions the
 suffix after the first terminal ray otherwise. That preserves the traceable
 queue order needed for deterministic accumulation while avoiding avoidable
 queue movement on primary-only and early-depth frontier passes.
+A 160x120, max-depth-8, repeat-2 `reflection_whitted` capture after adding the
+partition timing bucket showed that this path is now a small fraction of the
+remaining scheduler cost: `integrator_frontier_partition_worker_ms` was
+~0.25-0.30 ms, while frontier bookkeeping remained ~20-24 ms and the residual
+bucket remained ~34-35 ms. That rules out further partition tuning as the next
+major speed lever for this fixture.
+Whitted packet result bookkeeping now has a no-refinement fast path too:
+packets whose materialized hits can all be consumed directly use one
+bookkeeping timer for the whole lane loop instead of starting a timing scope
+for each lane. Packets that still require custom-material scalar refinement
+keep the precise per-lane timing path so scalar re-intersection stays charged
+to the intersection bucket.
+A follow-up 160x120, max-depth-8, repeat-2 `reflection_whitted` capture on the
+same fixture kept exact image parity (`rms_delta=0.0000766408`,
+`differing_pixels=11`) and reported no scalar packet fallback or refinement
+lanes. Frontier bookkeeping fell to ~3.3-4.0 ms worker time, while partition
+time remained ~0.26-0.30 ms. Treat this as a targeted confirmation that
+metric-time bookkeeping was the avoidable overhead in the common no-refinement
+packet path, not as a full performance retune.
 Disabled `ScopedTimer` instances also skip clock reads now, so ordinary renders
 do not pay timing overhead when no metric bucket is requested. A follow-up
 160x120, 16spp,

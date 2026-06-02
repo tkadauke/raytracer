@@ -297,6 +297,38 @@ namespace render {
       return;
     }
 
+    const auto packetNeedsRefinement = [&] {
+      for (std::size_t lane = 0; lane != laneCount; ++lane) {
+        const Primitive* hitPrimitive = packetHits.primitive(lane);
+        const auto hitMaterial = hitPrimitive ? hitPrimitive->material() : nullptr;
+        if (hitMaterial && hitMaterial->requiresWhittedPacketHitRefinement() &&
+            !packetHits.scalarFallback(lane)) {
+          return true;
+        }
+      }
+      return false;
+    };
+    if (!packetNeedsRefinement()) {
+      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+      for (std::size_t lane = 0; lane != laneCount; ++lane) {
+        auto& queued = current[firstQueuedIndex + lane];
+        if (depthMetrics.trackFrontierMetrics) {
+          depthMetrics.recordPacketScalarFallbacks(queued.state, (*packetFallbacksBefore)[lane]);
+        }
+        if (!packetHits.hit(lane)) {
+          recordQueuedRayMiss(scene, queued, result, depthMetrics);
+          continue;
+        }
+
+        if (depthMetrics.trackFrontierMetrics) {
+          ++depthMetrics.frontierRayHits;
+        }
+        activeHits.push_back(QueuedHit{firstQueuedIndex + lane, packetHits.primitive(lane),
+                                       packetHits.hitPoint(lane)});
+      }
+      return;
+    }
+
     for (std::size_t lane = 0; lane != laneCount; ++lane) {
       auto& queued = current[firstQueuedIndex + lane];
       if (depthMetrics.trackFrontierMetrics) {
@@ -391,6 +423,38 @@ namespace render {
         auto& queued = current[firstQueuedIndex + lane];
         result[queued.sampleIndex] += queued.weight * scene.background();
         queued.state.recurseOut();
+      }
+      return;
+    }
+
+    const auto packetNeedsRefinement = [&] {
+      for (std::size_t lane = 0; lane != laneCount; ++lane) {
+        const Primitive* hitPrimitive = packetHits.primitive(lane);
+        const auto hitMaterial = hitPrimitive ? hitPrimitive->material() : nullptr;
+        if (hitMaterial && hitMaterial->requiresWhittedPacketHitRefinement() &&
+            !packetHits.scalarFallback(lane)) {
+          return true;
+        }
+      }
+      return false;
+    };
+    if (!packetNeedsRefinement()) {
+      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+      for (std::size_t lane = 0; lane != laneCount; ++lane) {
+        auto& queued = current[firstQueuedIndex + lane];
+        if (depthMetrics.trackFrontierMetrics) {
+          depthMetrics.recordPacketScalarFallbacks(queued.state, (*packetFallbacksBefore)[lane]);
+        }
+        if (!packetHits.hit(lane)) {
+          recordQueuedRayMiss(scene, queued, result, depthMetrics);
+          continue;
+        }
+
+        if (depthMetrics.trackFrontierMetrics) {
+          ++depthMetrics.frontierRayHits;
+        }
+        activeHits.push_back(QueuedHit{firstQueuedIndex + lane, packetHits.primitive(lane),
+                                       packetHits.hitPoint(lane)});
       }
       return;
     }

@@ -268,6 +268,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Wavefront no-refinement packet bookkeeping.** Whitted wavefront packet
+  frontiers now use one bookkeeping timing scope for packet hits that do not
+  need scalar material refinement, reducing metric-time scheduler overhead on
+  common packet lanes. — GPT-5
 - **Wavefront frontier partition diagnostics.** Wavefront metrics JSON,
   rendercli summaries, and convergence capture reports now split Whitted
   frontier partition worker time out of the residual scheduler bucket. — GPT-5
