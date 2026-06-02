@@ -47,7 +47,6 @@ namespace render {
     std::size_t pathIndex{0};
     const Primitive* primitive{nullptr};
     HitPoint hitPoint;
-    Colord accumulatedBeforeDepth{Colord::black()};
   };
 
   struct PathTracingIntegrator::BatchDepthMetrics {
@@ -105,13 +104,12 @@ namespace render {
                                                 const Primitive& primitive,
                                                 const HitPoint& hitPoint, int bounce,
                                                 BatchDepthMetrics& depthMetrics,
-                                                std::vector<BatchHit>& activeHits,
-                                                const Colord& accumulatedBeforeDepth) const {
+                                                std::vector<BatchHit>& activeHits) const {
     ++depthMetrics.frontierRayHits;
     if (bounce == 0) {
       path.state.hitPoint = hitPoint;
     }
-    activeHits.push_back(BatchHit{pathIndex, &primitive, hitPoint, accumulatedBeforeDepth});
+    activeHits.push_back(BatchHit{pathIndex, &primitive, hitPoint});
   }
 
   void PathTracingIntegrator::recordFrontierMiss(const Scene& scene, BatchPath& path,
@@ -129,7 +127,8 @@ namespace render {
                                                         int bounce, BatchDepthMetrics& depthMetrics,
                                                         IntegratorBatchMetrics* metrics) const {
     auto& path = paths[pathIndex];
-    const Colord accumulatedBeforeDepth = path.accumulated();
+    const Colord accumulatedBeforeDepth =
+      depthMetrics.trackRadianceDelta ? path.accumulated() : Colord::black();
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
@@ -156,7 +155,7 @@ namespace render {
     }
 
     recordFrontierHit(pathIndex, path, *primitive, hitPoints.minWithPositiveDistance(), bounce,
-                      depthMetrics, activeHits, accumulatedBeforeDepth);
+                      depthMetrics, activeHits);
   }
 
   void PathTracingIntegrator::intersectActivePathPacket(const Scene& scene,
@@ -178,7 +177,9 @@ namespace render {
       for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
         const std::size_t pathIndex = firstPathIndex + lane;
         auto& path = paths[pathIndex];
-        accumulatedBeforeDepths[lane] = path.accumulated();
+        if (depthMetrics.trackRadianceDelta) {
+          accumulatedBeforeDepths[lane] = path.accumulated();
+        }
         path.state.recurseIn();
         packetFallbacksBefore[lane] = path.state.packetHitScalarFallbacks;
         rays[lane] = path.ray;
@@ -203,7 +204,7 @@ namespace render {
       }
 
       recordFrontierHit(pathIndex, path, *packetHits.primitive(lane), packetHits.hitPoint(lane),
-                        bounce, depthMetrics, activeHits, accumulatedBeforeDepths[lane]);
+                        bounce, depthMetrics, activeHits);
     }
   }
 
@@ -218,7 +219,8 @@ namespace render {
     while (activeIndex != paths.size()) {
       if (isCancelled()) {
         auto& path = paths[activeIndex];
-        const Colord accumulatedBeforeDepth = path.accumulated();
+        const Colord accumulatedBeforeDepth =
+          depthMetrics.trackRadianceDelta ? path.accumulated() : Colord::black();
         recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
         ++activeIndex;
         continue;
@@ -438,12 +440,14 @@ namespace render {
 
       for (const auto& hit : activeHits) {
         auto& path = paths[hit.pathIndex];
+        const Colord accumulatedBeforeDepth =
+          depthMetrics.trackRadianceDelta ? path.accumulated() : Colord::black();
         {
           core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
           const auto material = hit.primitive->material();
           if (!material) {
             path.state.recurseOut();
-            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated());
+            recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
             continue;
           }
 
@@ -456,7 +460,7 @@ namespace render {
               ++metrics->compatibilityShadeSamples;
             }
             path.state.recurseOut();
-            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated());
+            recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
             continue;
           }
 
@@ -470,14 +474,14 @@ namespace render {
           const MaterialBsdfSample sampled = material->sampleBsdf(hit.hitPoint, wi, bsdfSample);
           if (sampled.pdf <= 0.0 || sampled.value == Colord::black()) {
             path.state.recurseOut();
-            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated());
+            recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
             continue;
           }
 
           const double normalDotWo = hit.hitPoint.normal() * sampled.direction;
           if (!sampled.isDelta && normalDotWo <= 0.0) {
             path.state.recurseOut();
-            recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated());
+            recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
             continue;
           }
 
@@ -495,7 +499,7 @@ namespace render {
               SampleDimension::Continuation, static_cast<std::uint64_t>(bounce));
             if (roulette >= survival) {
               path.state.recurseOut();
-              recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated());
+              recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
               continue;
             }
             path.throughput = path.throughput * (1.0 / survival);
@@ -503,7 +507,7 @@ namespace render {
 
           path.ray = sampled.rayFrom(hit.hitPoint);
           path.state.recurseOut();
-          recordDepthDelta(depthMetrics, hit.accumulatedBeforeDepth, path.accumulated());
+          recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
           retainActivePath(paths, hit.pathIndex, retainedPathCount);
         }
       }

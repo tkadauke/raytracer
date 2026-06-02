@@ -107,8 +107,7 @@ namespace render {
                           const Colord& after) const;
     void recordFrontierHit(std::size_t pathIndex, BatchPath& path, const Primitive& primitive,
                            const HitPoint& hitPoint, int bounce, BatchDepthMetrics& depthMetrics,
-                           std::vector<BatchHit>& activeHits,
-                           const Colord& accumulatedBeforeDepth) const;
+                           std::vector<BatchHit>& activeHits) const;
     void recordFrontierMiss(const Scene& scene, BatchPath& path, BatchDepthMetrics& depthMetrics,
                             const Colord& accumulatedBeforeDepth) const;
     void intersectActivePathScalar(const Scene& scene, std::size_t pathIndex,
