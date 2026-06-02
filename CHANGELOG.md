@@ -127,6 +127,13 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **OpenCylinder and Torus Ray8 packet hits.** OpenCylinder and Torus
   primitives now materialize eight-wide packet hits directly, reducing scalar
   materialization fallback for curved analytic frontiers. — GPT-5
+- **Imported mesh Ray8 packet hits.** MeshTriangle, MeshPrimitive, and Instance
+  now preserve eight-wide packet-hit materialization, keeping imported mesh
+  frontiers off the scalar fallback path through mesh aggregation and static
+  transforms. — GPT-5
+- **Ray8 CSG packet semantics.** CSG and convex-operation nodes now explicitly
+  preserve scalar interval semantics for eight-wide packet-hit requests instead
+  of inheriting plain composite child-hit merging. — GPT-5
 - **Wavefront packet fallback diagnostics.** Wavefront metrics now report
   per-depth packet lanes that fell back to scalar hit materialization, exposing
   remaining primitive packet-kernel gaps in graph traces, rendercli summaries,

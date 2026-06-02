@@ -250,6 +250,42 @@ namespace MeshPrimitiveTest {
     EXPECT_FALSE(result.hit(3));
   }
 
+  TEST(MeshPrimitive, ShouldMaterializeRay8PacketHitsFromTriangleLeaves) {
+    MeshPrimitive primitive(makeQuadMesh(), MeshPrimitive::NormalMode::Flat);
+    const Ray8 rays(std::array<Rayd, Ray8::lanes>{
+      Rayd(Vector3d(0, 0, -1), Vector3d(0, 0, 1)), Rayd(Vector3d(2, 0, -1), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(-0.5, 0, -1), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 1), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0.5, 0, -1), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0.5, -1), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, -0.5, -1), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(-2, 0, -1), Vector3d(0, 0, 1))});
+    std::array<State, Ray8::lanes> laneStates;
+    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
+                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+
+    const auto result = primitive.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_NE(nullptr, result.primitive(0));
+    EXPECT_EQ(Vector3d(0, 0, 0), result.hitPoint(0).point());
+    EXPECT_EQ(1, result.hitPoint(0).distance());
+    EXPECT_FALSE(result.hit(1));
+    ASSERT_TRUE(result.hit(2));
+    EXPECT_NE(nullptr, result.primitive(2));
+    EXPECT_EQ(Vector3d(-0.5, 0, 0), result.hitPoint(2).point());
+    EXPECT_EQ(1, result.hitPoint(2).distance());
+    EXPECT_FALSE(result.hit(3));
+    ASSERT_TRUE(result.hit(4));
+    EXPECT_EQ(Vector3d(0.5, 0, 0), result.hitPoint(4).point());
+    ASSERT_TRUE(result.hit(5));
+    EXPECT_EQ(Vector3d(0, 0.5, 0), result.hitPoint(5).point());
+    ASSERT_TRUE(result.hit(6));
+    EXPECT_EQ(Vector3d(0, -0.5, 0), result.hitPoint(6).point());
+    EXPECT_FALSE(result.hit(7));
+    for (const State& state : laneStates) {
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
+    }
+  }
+
   TEST(MeshPrimitive, ShouldUsePrimitiveMaterialFallbackForRay4PacketHits) {
     MeshPrimitive primitive(makeQuadMesh(), MeshPrimitive::NormalMode::Flat);
     primitive.setMaterial(std::make_shared<MatteMaterial>());

@@ -933,9 +933,14 @@ That contract now survives common imported-geometry wrappers: `Instance`
 transforms a static packet into local space and transforms materialized hits
 back to world space, while `MeshPrimitive` forwards packet hit requests to its
 triangle leaves and preserves mesh-level material fallback.
-Non-plain CSG composites (`Difference`, `Intersection`, `ClosedSolidUnion`,
-and `ConvexOperation` subclasses) explicitly keep using the scalar
-`Primitive::intersectPacketHits` fallback for now, because their scalar
+Those imported-geometry paths now preserve Ray8 packet hits too:
+`MeshTriangle` materializes closest positive barycentric hits for each lane in
+an eight-wide packet, `MeshPrimitive` merges Ray8 child hits by closest
+distance, and static `Instance` transforms Ray8 child hits back to world space
+without dropping to base scalar materialization.
+Non-plain CSG composites (`Union`, `Difference`, `Intersection`,
+`ClosedSolidUnion`, and `ConvexOperation` subclasses) explicitly keep using the
+scalar `Primitive::intersectPacketHits` fallback for now, because their scalar
 interval/set-operation semantics are not equivalent to plain child-hit merging.
 The fallback metric keeps that cost visible until real packet CSG exists.
 Wavefront metrics now also expose packet-frontier utilization:
@@ -958,6 +963,7 @@ currently a scheduler and BVH/composite contract plus first leaf kernels for
 `Sphere`, `Plane`, `Box`, `Triangle`, `Disk`, and `Rectangle`, not a claim that
 every primitive has an eight-wide materialization kernel. `OpenCylinder` and
 `Torus` now join that eight-wide leaf set for curved analytic frontiers; the
+imported-mesh leaf/wrapper path also preserves Ray8 materialized hits. The
 packet scalar-fallback metric intentionally reports the remaining leaf gaps so
 the next performance slices can target them directly.
 Materials now own that decision: local Matte/Phong shading consumes packet hits

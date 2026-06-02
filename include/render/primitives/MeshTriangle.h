@@ -27,6 +27,8 @@ namespace render {
     RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
     PrimitivePacketHit4 intersectPacketHits(const Ray4& rays,
                                             const PrimitivePacketState4& states) const override;
+    PrimitivePacketHit8 intersectPacketHits(const Ray8& rays,
+                                            const PrimitivePacketState8& states) const override;
 
     [[nodiscard]] const core::MeshFaceMetadata& faceMetadata() const {
       return m_faceMetadata;

@@ -54,6 +54,8 @@ namespace render {
     RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
     PrimitivePacketHit4 intersectPacketHits(const Ray4& rays,
                                             const PrimitivePacketState4& states) const override;
+    PrimitivePacketHit8 intersectPacketHits(const Ray8& rays,
+                                            const PrimitivePacketState8& states) const override;
 
     void forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,
                      const LeafVisitor& visitor) const override;
@@ -96,6 +98,8 @@ namespace render {
     std::shared_ptr<Primitive> buildLeaf(std::size_t faceIndex, int index0, int index1,
                                          int index2) const;
     std::shared_ptr<render::Material> materialForFace(std::size_t faceIndex) const;
+    template<typename Packet, typename StateArray, typename Result>
+    Result intersectPacketHitsFor(const Packet& rays, const StateArray& states) const;
 
     std::shared_ptr<const core::MeshAsset> m_asset;
     std::shared_ptr<const Mesh> m_mesh;

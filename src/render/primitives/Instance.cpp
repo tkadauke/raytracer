@@ -81,6 +81,32 @@ PrimitivePacketHit4 Instance::intersectPacketHits(const Ray4& rays,
   return result;
 }
 
+PrimitivePacketHit8 Instance::intersectPacketHits(const Ray8& rays,
+                                                  const PrimitivePacketState8& states) const {
+  if (m_velocity != Vector3d::null) {
+    return Primitive::intersectPacketHits(rays, states);
+  }
+
+  std::array<Rayd, Ray8::lanes> localRays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
+                                          Rayd::undefined, Rayd::undefined, Rayd::undefined,
+                                          Rayd::undefined, Rayd::undefined};
+  for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    localRays[lane] = instancedRay(rays.rayd(lane));
+  }
+
+  const PrimitivePacketHit8 childHits = m_primitive->intersectPacketHits(Ray8(localRays), states);
+  PrimitivePacketHit8 result;
+  for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    if (!childHits.hit(lane)) {
+      continue;
+    }
+
+    result.setHit(lane, Primitive::material() ? this : childHits.primitive(lane),
+                  childHits.hitPoint(lane).transform(m_pointMatrix, m_normalMatrix));
+  }
+  return result;
+}
+
 bool Instance::intersects(const Rayd& ray, render::State& state) const {
   if (m_velocity == Vector3d::null) {
     return m_primitive->intersects(instancedRay(ray), state);

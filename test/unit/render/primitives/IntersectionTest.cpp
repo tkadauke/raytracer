@@ -94,6 +94,39 @@ namespace IntersectionTest {
     }
   }
 
+  TEST(Intersection, ShouldUseScalarCsgSemanticsForRay8PacketHits) {
+    Intersection intersection;
+    intersection.setMaterial(std::make_shared<MatteMaterial>());
+    intersection.add(std::make_shared<Sphere>(Vector3d(), 1));
+    intersection.add(std::make_shared<Sphere>(Vector3d(), 1));
+    const Ray8 rays(std::array<Rayd, Ray8::lanes>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, 1)), Rayd(Vector3d(3, 0, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, 0, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 3), Vector3d(0, 0, -1)),
+      Rayd(Vector3d(0, 2, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0.25, 0, -2), Vector3d(0, 0, 1))});
+    std::array<State, Ray8::lanes> laneStates;
+    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
+                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+
+    const auto result = intersection.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(&intersection, result.primitive(0));
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hit(2));
+    EXPECT_FALSE(result.hit(3));
+    ASSERT_TRUE(result.hit(4));
+    EXPECT_EQ(&intersection, result.primitive(4));
+    ASSERT_TRUE(result.hit(5));
+    EXPECT_EQ(&intersection, result.primitive(5));
+    EXPECT_FALSE(result.hit(6));
+    ASSERT_TRUE(result.hit(7));
+    EXPECT_EQ(&intersection, result.primitive(7));
+    for (const State& state : laneStates) {
+      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+    }
+  }
+
   TEST(Intersection, ShouldNotReturnAnyPrimitiveIfThereIsNoIntersection) {
     Intersection i;
     auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();

@@ -86,6 +86,38 @@ namespace DifferenceTest {
     }
   }
 
+  TEST(Difference, ShouldUseScalarCsgSemanticsForRay8PacketHits) {
+    Difference difference;
+    difference.setMaterial(std::make_shared<MatteMaterial>());
+    difference.add(std::make_shared<Sphere>(Vector3d(), 1));
+    difference.add(std::make_shared<Sphere>(Vector3d(4, 0, 0), 1));
+    const Ray8 rays(std::array<Rayd, Ray8::lanes>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, 1)), Rayd(Vector3d(3, 0, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, 0, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 3), Vector3d(0, 0, -1)),
+      Rayd(Vector3d(0, 2, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(4, 0, -2), Vector3d(0, 0, 1))});
+    std::array<State, Ray8::lanes> laneStates;
+    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
+                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+
+    const auto result = difference.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(&difference, result.primitive(0));
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hit(2));
+    EXPECT_FALSE(result.hit(3));
+    ASSERT_TRUE(result.hit(4));
+    EXPECT_EQ(&difference, result.primitive(4));
+    ASSERT_TRUE(result.hit(5));
+    EXPECT_EQ(&difference, result.primitive(5));
+    EXPECT_FALSE(result.hit(6));
+    EXPECT_FALSE(result.hit(7));
+    for (const State& state : laneStates) {
+      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+    }
+  }
+
   TEST(Difference, ShouldNotReturnAnyPrimitiveRayOutsideBoundingBox) {
     Difference i;
     i.setMaterial(std::make_shared<MatteMaterial>());

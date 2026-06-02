@@ -43,6 +43,11 @@ PrimitivePacketHit4 Intersection::intersectPacketHits(const Ray4& rays,
   return Primitive::intersectPacketHits(rays, states);
 }
 
+PrimitivePacketHit8 Intersection::intersectPacketHits(const Ray8& rays,
+                                                      const PrimitivePacketState8& states) const {
+  return Primitive::intersectPacketHits(rays, states);
+}
+
 bool Intersection::intersects(const Rayd& ray, render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return false;

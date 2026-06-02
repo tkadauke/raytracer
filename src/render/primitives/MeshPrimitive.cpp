@@ -164,13 +164,13 @@ RayPacketIntersection4 MeshPrimitive::intersectPacket(const Ray4& rays,
   return result;
 }
 
-PrimitivePacketHit4 MeshPrimitive::intersectPacketHits(const Ray4& rays,
-                                                       const PrimitivePacketState4& states) const {
-  PrimitivePacketHit4 result;
-  std::array<bool, Ray4::lanes> activeLanes{};
+template<typename Packet, typename StateArray, typename Result>
+Result MeshPrimitive::intersectPacketHitsFor(const Packet& rays, const StateArray& states) const {
+  Result result;
+  std::array<bool, Packet::lanes> activeLanes{};
   bool hasActiveLane = false;
 
-  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+  for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
     activeLanes[lane] = boundingBoxIntersects(rays.rayd(lane));
     hasActiveLane = hasActiveLane || activeLanes[lane];
   }
@@ -180,8 +180,8 @@ PrimitivePacketHit4 MeshPrimitive::intersectPacketHits(const Ray4& rays,
   }
 
   for (const auto& leaf : m_leaves) {
-    const PrimitivePacketHit4 candidate = leaf->intersectPacketHits(rays, states);
-    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    const Result candidate = leaf->intersectPacketHits(rays, states);
+    for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
       if (activeLanes[lane] && candidate.hit(lane)) {
         result.setHitIfCloser(lane, candidate.primitive(lane), candidate.hitPoint(lane));
       }
@@ -189,7 +189,7 @@ PrimitivePacketHit4 MeshPrimitive::intersectPacketHits(const Ray4& rays,
   }
 
   if (Primitive::material()) {
-    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
       if (result.hit(lane) && !result.primitive(lane)->material()) {
         result.setHit(lane, this, result.hitPoint(lane));
       }
@@ -197,6 +197,16 @@ PrimitivePacketHit4 MeshPrimitive::intersectPacketHits(const Ray4& rays,
   }
 
   return result;
+}
+
+PrimitivePacketHit4 MeshPrimitive::intersectPacketHits(const Ray4& rays,
+                                                       const PrimitivePacketState4& states) const {
+  return intersectPacketHitsFor<Ray4, PrimitivePacketState4, PrimitivePacketHit4>(rays, states);
+}
+
+PrimitivePacketHit8 MeshPrimitive::intersectPacketHits(const Ray8& rays,
+                                                       const PrimitivePacketState8& states) const {
+  return intersectPacketHitsFor<Ray8, PrimitivePacketState8, PrimitivePacketHit8>(rays, states);
 }
 
 void MeshPrimitive::forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,

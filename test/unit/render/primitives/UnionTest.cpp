@@ -129,6 +129,62 @@ namespace UnionTest {
     ASSERT_FALSE(u.intersects(ray, state));
   }
 
+  TEST(Union, ShouldUseScalarCsgSemanticsForRay4PacketHits) {
+    Union unionPrimitive;
+    unionPrimitive.setMaterial(std::make_shared<MatteMaterial>());
+    unionPrimitive.add(std::make_shared<Sphere>(Vector3d(), 1));
+    unionPrimitive.add(std::make_shared<Sphere>(Vector3d(0, 0, 1), 1));
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(0, 0, 3), Vector3d(0, 0, 1)), Rayd(Vector3d(3, 0, -2), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = unionPrimitive.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(&unionPrimitive, result.primitive(0));
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hit(2));
+    EXPECT_FALSE(result.hit(3));
+    for (const State& state : laneStates) {
+      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+    }
+  }
+
+  TEST(Union, ShouldUseScalarCsgSemanticsForRay8PacketHits) {
+    Union unionPrimitive;
+    unionPrimitive.setMaterial(std::make_shared<MatteMaterial>());
+    unionPrimitive.add(std::make_shared<Sphere>(Vector3d(), 1));
+    unionPrimitive.add(std::make_shared<Sphere>(Vector3d(0, 0, 1), 1));
+    const Ray8 rays(std::array<Rayd, Ray8::lanes>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(0, 0, 3), Vector3d(0, 0, 1)), Rayd(Vector3d(3, 0, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, 0, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 3), Vector3d(0, 0, -1)),
+      Rayd(Vector3d(0, 2, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0.25, -2), Vector3d(0, 0, 1))});
+    std::array<State, Ray8::lanes> laneStates;
+    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
+                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+
+    const auto result = unionPrimitive.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(&unionPrimitive, result.primitive(0));
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hit(2));
+    EXPECT_FALSE(result.hit(3));
+    ASSERT_TRUE(result.hit(4));
+    EXPECT_EQ(&unionPrimitive, result.primitive(4));
+    ASSERT_TRUE(result.hit(5));
+    EXPECT_EQ(&unionPrimitive, result.primitive(5));
+    EXPECT_FALSE(result.hit(6));
+    ASSERT_TRUE(result.hit(7));
+    EXPECT_EQ(&unionPrimitive, result.primitive(7));
+    for (const State& state : laneStates) {
+      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+    }
+  }
+
   TEST(ClosedSolidUnion, ShouldUseScalarCsgSemanticsForRay4PacketHits) {
     ClosedSolidUnion unionPrimitive;
     unionPrimitive.setMaterial(std::make_shared<MatteMaterial>());
@@ -147,6 +203,38 @@ namespace UnionTest {
     EXPECT_FALSE(result.hit(1));
     EXPECT_FALSE(result.hit(2));
     EXPECT_FALSE(result.hit(3));
+    for (const State& state : laneStates) {
+      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+    }
+  }
+
+  TEST(ClosedSolidUnion, ShouldUseScalarCsgSemanticsForRay8PacketHits) {
+    ClosedSolidUnion unionPrimitive;
+    unionPrimitive.setMaterial(std::make_shared<MatteMaterial>());
+    unionPrimitive.add(std::make_shared<Sphere>(Vector3d(), 1));
+    unionPrimitive.add(std::make_shared<Sphere>(Vector3d(3, 0, 0), 1));
+    const Ray8 rays(std::array<Rayd, Ray8::lanes>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 1, 0)),
+      Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, 1)), Rayd(Vector3d(6, 0, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, 0, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(3, 0, -3), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(3, 2, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(6, 0, 2), Vector3d(0, 0, -1))});
+    std::array<State, Ray8::lanes> laneStates;
+    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
+                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+
+    const auto result = unionPrimitive.intersectPacketHits(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(&unionPrimitive, result.primitive(0));
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hit(2));
+    EXPECT_FALSE(result.hit(3));
+    ASSERT_TRUE(result.hit(4));
+    EXPECT_EQ(&unionPrimitive, result.primitive(4));
+    ASSERT_TRUE(result.hit(5));
+    EXPECT_EQ(&unionPrimitive, result.primitive(5));
+    EXPECT_FALSE(result.hit(6));
+    EXPECT_FALSE(result.hit(7));
     for (const State& state : laneStates) {
       EXPECT_EQ(1u, state.packetHitScalarFallbacks);
     }
