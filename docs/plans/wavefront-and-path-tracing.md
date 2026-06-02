@@ -1027,7 +1027,10 @@ handling, packet-hit precision, or remaining leaf packet traversal cost.
 Wavefront metrics now also include min/average/max non-empty tile sample counts
 in the tiling block and rendercli compact summaries. That gives Phase 7
 captures a direct load-balance baseline before changing queue-size defaults,
-tile dimensions, or work-stealing behavior.
+tile dimensions, or work-stealing behavior. The convergence capture script now
+carries both the tile metrics and the Ray4/Ray8 packet chunk split into
+work-comparison reports, so a tuning run records those signals beside timing
+and active-depth work.
 
 ---
 

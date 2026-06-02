@@ -68,10 +68,11 @@ Environment:
   WAVEFRONT_CONVERGENCE_SWEEP          optional comma-separated active:rms pairs
 
 The capture writes images, stdout timing summaries, wavefront metrics JSON,
-image-probe comparisons, active sample-depth work comparisons, frontier
-hit/miss summaries, packet scalar-fallback reason breakdowns, and packet-hit
-refinement material breakdowns under the output directory. Use it to tune Phase
-4 wavefront convergence defaults and to baseline Phase 7
+image-probe comparisons, active sample-depth work comparisons, tile
+load-balance summaries, frontier hit/miss summaries, packet width summaries,
+packet scalar-fallback reason breakdowns, and packet-hit refinement material
+breakdowns under the output directory. Use it to tune Phase 4 wavefront
+convergence defaults and to baseline Phase 7
 scheduler/intersection work before changing shipped presets.
 
 When WAVEFRONT_CONVERGENCE_SWEEP is set, the script reuses the non-converged
@@ -237,11 +238,18 @@ compare_wavefront_work() {
 def wavefront_metric_values(path)
   document = JSON.parse(File.read(path))
   values = {
+    tile_count: [],
+    nonempty_tile_count: [],
+    min_nonempty_tile_samples: [],
+    average_nonempty_tile_samples: [],
+    max_tile_samples: [],
     active_sample_depths: [],
     frontier_hit_rays: [],
     frontier_miss_rays: [],
     frontier_packet_chunks: [],
     frontier_packet_rays: [],
+    frontier_ray4_packet_chunks: [],
+    frontier_ray8_packet_chunks: [],
     frontier_scalar_rays: [],
     frontier_packet_scalar_fallback_rays: [],
     frontier_packet_scalar_fallback_rays_by_reason: [],
@@ -265,11 +273,18 @@ def wavefront_metric_values(path)
   }
   document.fetch("runs").each do |run|
     run_values = {
+      tile_count: 0.0,
+      nonempty_tile_count: 0.0,
+      min_nonempty_tile_samples: nil,
+      average_nonempty_tile_samples: 0.0,
+      max_tile_samples: 0.0,
       active_sample_depths: 0.0,
       frontier_hit_rays: 0.0,
       frontier_miss_rays: 0.0,
       frontier_packet_chunks: 0.0,
       frontier_packet_rays: 0.0,
+      frontier_ray4_packet_chunks: 0.0,
+      frontier_ray8_packet_chunks: 0.0,
       frontier_scalar_rays: 0.0,
       frontier_packet_scalar_fallback_rays: 0.0,
       frontier_packet_scalar_fallback_rays_by_reason: Hash.new(0.0),
@@ -291,18 +306,43 @@ def wavefront_metric_values(path)
       integrator_convergence_test_worker_seconds: 0.0,
       integrator_residual_worker_seconds: 0.0
     }
+    tilings = []
     batchings = []
     convergences = []
     timings = []
     if run["metrics"]
+      tilings << run.dig("metrics", "tiling")
       batchings << run.dig("metrics", "batching")
       convergences << run.dig("metrics", "convergence")
       timings << run.dig("metrics", "timings")
     end
     run.fetch("passes", []).each do |pass|
+      tilings << pass.dig("metrics", "tiling")
       batchings << pass.dig("metrics", "batching")
       convergences << pass.dig("metrics", "convergence")
       timings << pass.dig("metrics", "timings")
+    end
+
+    weighted_tile_sample_sum = 0.0
+    tilings.compact.each do |tiling|
+      tile_count = tiling.fetch("tileCount", 0).to_f
+      nonempty_tile_count = tiling.fetch("nonEmptyTileCount", 0).to_f
+      min_tile_samples = tiling.fetch("minNonEmptyTileSamples", 0).to_f
+      max_tile_samples = tiling.fetch("maxTileSamples", 0).to_f
+      average_tile_samples = tiling.fetch("averageNonEmptyTileSamples", 0).to_f
+      run_values[:tile_count] += tile_count
+      run_values[:nonempty_tile_count] += nonempty_tile_count
+      if min_tile_samples.positive?
+        current_min = run_values[:min_nonempty_tile_samples]
+        run_values[:min_nonempty_tile_samples] =
+          current_min.nil? ? min_tile_samples : [current_min, min_tile_samples].min
+      end
+      run_values[:max_tile_samples] = [run_values[:max_tile_samples], max_tile_samples].max
+      weighted_tile_sample_sum += average_tile_samples * nonempty_tile_count
+    end
+    if run_values[:nonempty_tile_count].positive?
+      run_values[:average_nonempty_tile_samples] =
+        weighted_tile_sample_sum / run_values[:nonempty_tile_count]
     end
 
     batchings.compact.each do |batching|
@@ -315,6 +355,10 @@ def wavefront_metric_values(path)
         batching.fetch("frontierPacketChunksPerDepth", []).sum { |value| value.to_f }
       run_values[:frontier_packet_rays] +=
         batching.fetch("frontierPacketRaysPerDepth", []).sum { |value| value.to_f }
+      run_values[:frontier_ray4_packet_chunks] +=
+        batching.fetch("frontierRay4PacketChunksPerDepth", []).sum { |value| value.to_f }
+      run_values[:frontier_ray8_packet_chunks] +=
+        batching.fetch("frontierRay8PacketChunksPerDepth", []).sum { |value| value.to_f }
       run_values[:frontier_scalar_rays] +=
         batching.fetch("frontierScalarRaysPerDepth", []).sum { |value| value.to_f }
       run_values[:frontier_packet_scalar_fallback_rays] +=
@@ -361,10 +405,11 @@ def wavefront_metric_values(path)
       run_values[:integrator_residual_worker_seconds] +=
         timing.fetch("integratorResidualWorkerSeconds", 0).to_f
     end
-    next if batchings.compact.empty? && convergences.compact.empty? && timings.compact.empty?
+    next if tilings.compact.empty? && batchings.compact.empty? && convergences.compact.empty? &&
+            timings.compact.empty?
 
     run_values.each do |key, value|
-      values[key] << value
+      values[key] << (value || 0.0)
     end
   end
   raise "no batching metrics in #{path}" if values[:active_sample_depths].empty?
@@ -394,10 +439,24 @@ fraction = reference.zero? ? 0.0 : saved / reference
 puts format("active_sample_depths reference=%.0f candidate=%.0f saved=%.0f saved_fraction=%.6f",
             reference, candidate, saved, fraction)
 
+%i[tile_count
+   nonempty_tile_count
+   min_nonempty_tile_samples
+   average_nonempty_tile_samples
+   max_tile_samples].each do |key|
+  reference = median(reference_values[key])
+  candidate = median(candidate_values[key])
+  delta = candidate - reference
+  puts format("%s reference=%.3f candidate=%.3f delta=%.3f",
+              key, reference, candidate, delta)
+end
+
 %i[frontier_hit_rays
    frontier_miss_rays
    frontier_packet_chunks
    frontier_packet_rays
+   frontier_ray4_packet_chunks
+   frontier_ray8_packet_chunks
    frontier_scalar_rays
    frontier_packet_scalar_fallback_rays
    frontier_packet_refined_rays].each do |key|
