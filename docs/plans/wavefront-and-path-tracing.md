@@ -720,10 +720,14 @@ storage across depth passes as well, so explicit
 reflection/refraction frontiers reuse the same two queue buffers instead of
 constructing a fresh successor queue each pass. Whitted convergence/metrics
 also now collect active samples from sparse frontier marks, avoiding a full
-sample-tile scan when only a few branched continuations remain active. Disabled
-`ScopedTimer` instances
-also skip clock reads now, so ordinary renders do not pay timing overhead when
-no metric bucket is requested. A follow-up 160x120, 16spp,
+sample-tile scan when only a few branched continuations remain active. Terminal
+Whitted continuations that already fail the next-depth trace predicate because
+of maximum depth or throughput cutoff are also resolved during shading now,
+which preserves their background contribution while avoiding a successor queue
+entry, one extra depth-progress snapshot, and a terminal frontier pass.
+Disabled `ScopedTimer` instances also skip clock reads now, so ordinary renders
+do not pay timing overhead when no metric bucket is requested. A follow-up
+160x120, 16spp,
 max-depth-16 `pathtracer_bounce`
 capture with 300 tiles reported sample-generation worker time at ~198 ms
 without convergence and ~156 ms with convergence, down from the earlier

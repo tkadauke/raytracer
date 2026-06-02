@@ -12,6 +12,7 @@ class HitPoint;
 
 namespace render {
   class Primitive;
+  struct WhittedContinuation;
 
   /**
     * @brief Recursive Whitted single-ray radiance evaluator.
@@ -82,6 +83,12 @@ namespace render {
                                  BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;
     void prepareContinuationQueue(std::vector<QueuedRay>& next, std::size_t currentQueueSize) const;
+    void queueOrResolveContinuation(const Scene& scene, const WhittedContinuation& continuation,
+                                    const QueuedRay& parent, std::vector<QueuedRay>& next,
+                                    std::vector<Colord>& result,
+                                    std::vector<unsigned char>& nextActiveSamples,
+                                    bool countNextActiveSamples,
+                                    std::vector<std::size_t>& nextActiveSampleIndices) const;
     void shadeQueuedHit(const Scene& scene, const RayCaster& recursiveRayCaster,
                         const QueuedHit& hit, std::vector<QueuedRay>& current,
                         std::vector<QueuedRay>& next, std::vector<Colord>& result,

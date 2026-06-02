@@ -498,6 +498,37 @@ namespace render {
     }
   }
 
+  void WhittedIntegrator::queueOrResolveContinuation(
+    const Scene& scene, const WhittedContinuation& continuation, const QueuedRay& parent,
+    std::vector<QueuedRay>& next, std::vector<Colord>& result,
+    std::vector<unsigned char>& nextActiveSamples, bool countNextActiveSamples,
+    std::vector<std::size_t>& nextActiveSampleIndices) const {
+    QueuedRay queued{
+      parent.sampleIndex,
+      continuation.ray,
+      parent.weight * continuation.weight,
+      continuationState(parent.state, parent.state.throughput * continuation.throughputScale),
+    };
+
+    if (queuedRayShouldTrace(queued)) {
+      next.push_back(std::move(queued));
+      if (countNextActiveSamples) {
+        markActiveSample(nextActiveSamples, nextActiveSampleIndices, parent.sampleIndex);
+      }
+      return;
+    }
+
+    queued.state.recurseIn();
+    if (queued.state.recursionDepth == m_maximumRecursionDepth) {
+      recordQueuedRayTermination(
+        scene, queued, result, "Raytracer: maximum recursion depth reached, returning background");
+      return;
+    }
+
+    recordQueuedRayTermination(scene, queued, result,
+                               "Raytracer: throughput below cutoff, returning background");
+  }
+
   void WhittedIntegrator::shadeQueuedHit(const Scene& scene, const RayCaster& recursiveRayCaster,
                                          const QueuedHit& hit, std::vector<QueuedRay>& current,
                                          std::vector<QueuedRay>& next, std::vector<Colord>& result,
@@ -536,15 +567,8 @@ namespace render {
     result[queued.sampleIndex] += queued.weight * shaded.localRadiance;
 
     for (const auto& continuation : shaded.continuations) {
-      next.push_back(QueuedRay{
-        queued.sampleIndex,
-        continuation.ray,
-        queued.weight * continuation.weight,
-        continuationState(queued.state, queued.state.throughput * continuation.throughputScale),
-      });
-      if (countNextActiveSamples) {
-        markActiveSample(nextActiveSamples, nextActiveSampleIndices, queued.sampleIndex);
-      }
+      queueOrResolveContinuation(scene, continuation, queued, next, result, nextActiveSamples,
+                                 countNextActiveSamples, nextActiveSampleIndices);
     }
   }
 

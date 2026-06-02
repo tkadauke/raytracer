@@ -123,6 +123,27 @@ namespace WhittedIntegratorTest {
       }
     };
 
+    class TerminalContinuationMaterial final : public Material {
+    public:
+      bool supportsWhittedContinuations() const override {
+        return true;
+      }
+
+      Colord shade(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                   State&) const override {
+        return Colord::black();
+      }
+
+      WhittedShadeResult shadeWhitted(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                                      State&) const override {
+        WhittedShadeResult result;
+        result.localRadiance = Colord(0.1, 0.0, 0.0);
+        result.continuations.push_back(WhittedContinuation{
+          Rayd(Vector3d(10, 0, 0), Vector3d::forward()), Colord(0.5, 0.5, 0.5), 1e-6});
+        return result;
+      }
+    };
+
     class AlternatingContinuationMaterial final : public Material {
     public:
       bool supportsWhittedContinuations() const override {
@@ -448,6 +469,37 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 2u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceResolvesTerminalContinuationsWithoutNextDepthFrontier) {
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    auto primitive = makePrimaryOnlyHit();
+    primitive->setMaterial(std::make_shared<TerminalContinuationMaterial>());
+    scene.add(primitive);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    IntegratorBatchMetrics metrics;
+    RecordingBatchObserver observer;
+    IntegratorBatchSettings settings;
+    settings.progressObserver = &observer;
+    std::vector<IntegratorRaySample> samples{
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr}};
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings);
+
+    ASSERT_EQ(1u, colors.size());
+    ASSERT_COLOR_NEAR(Colord(0.2, 0.2, 0.3), colors[0], 1e-12);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
+    EXPECT_EQ(1u, metrics.activeSampleDepthsProcessed);
+    ASSERT_EQ(1u, observer.completedDepths.size());
+    EXPECT_EQ(1u, observer.completedDepths[0]);
+    EXPECT_EQ(0u, observer.activeSampleCounts[0]);
+    ASSERT_EQ(1u, observer.snapshots.size());
+    ASSERT_COLOR_NEAR(colors[0], observer.snapshots[0][0], 1e-12);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceUsesPacketFrontierForFourQueuedRays) {
