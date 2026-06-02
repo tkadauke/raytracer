@@ -242,8 +242,10 @@ Grid::intersectRay4PacketHitsThroughDda(const Ray4& rays,
                                         const PrimitivePacketState4& states) const {
   PrimitivePacketHit4 result;
   for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
-    State fallbackState;
-    State& state = states[lane] ? *states[lane] : fallbackState;
+    if (!states[lane]) {
+      continue;
+    }
+    State& state = *states[lane];
     HitPointInterval hitPoints;
     const Primitive* primitive = intersect(rays.rayd(lane), hitPoints, state);
     const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
@@ -259,8 +261,10 @@ Grid::intersectRay8PacketHitsThroughDda(const Ray8& rays,
                                         const PrimitivePacketState8& states) const {
   PrimitivePacketHit8 result;
   for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
-    State fallbackState;
-    State& state = states[lane] ? *states[lane] : fallbackState;
+    if (!states[lane]) {
+      continue;
+    }
+    State& state = *states[lane];
     HitPointInterval hitPoints;
     const Primitive* primitive = intersect(rays.rayd(lane), hitPoints, state);
     const HitPoint hitPoint = hitPoints.minWithPositiveDistance();

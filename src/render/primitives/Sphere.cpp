@@ -122,8 +122,10 @@ template<typename Packet, typename StateArray, typename Result>
 Result Sphere::intersectPacketHitsFor(const Packet& rays, const StateArray& states) const {
   Result result;
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
-    State fallbackState;
-    State& state = states[lane] ? *states[lane] : fallbackState;
+    if (!states[lane]) {
+      continue;
+    }
+    State& state = *states[lane];
     RAYTRACER_STATS_INC(raySphereIntersect);
     const Rayd ray = rays.rayd(lane);
     const Vector3d o = ray.origin() - m_origin;
@@ -168,8 +170,10 @@ template<typename Packet, typename StateArray, typename Result>
 Result Sphere::intersectPacketIntervalsFor(const Packet& rays, const StateArray& states) const {
   Result result;
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
-    State fallbackState;
-    State& state = states[lane] ? *states[lane] : fallbackState;
+    if (!states[lane]) {
+      continue;
+    }
+    State& state = *states[lane];
     RAYTRACER_STATS_INC(raySphereIntersect);
     const Rayd ray = rays.rayd(lane);
     const Vector3d o = ray.origin() - m_origin;

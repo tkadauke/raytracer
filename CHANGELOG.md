@@ -648,6 +648,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Path-tracing cancellation energy.** Depth-major path-tracing batches now preserve
   radiance already accumulated by an active path when cancellation stops the path.
   — GPT-5
+- **Wavefront inactive packet lanes.** Packet hit and interval materializers now
+  treat null per-lane state pointers as inactive work, avoiding hidden
+  intersections and fallback counters for lanes a parent node already masked. — GPT-5
 - **Wavefront packet CSG semantics.** Difference, intersection, closed-solid
   union, and convex CSG operations now use their scalar interval logic for
   packet hit materialization instead of inheriting plain composite child-hit

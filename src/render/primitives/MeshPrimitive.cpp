@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <limits>
 #include <utility>
 
@@ -168,19 +169,22 @@ template<typename Packet, typename StateArray, typename Result>
 Result MeshPrimitive::intersectPacketHitsFor(const Packet& rays, const StateArray& states) const {
   Result result;
   std::array<bool, Packet::lanes> activeLanes{};
-  bool hasActiveLane = false;
+  std::uint16_t activeMask = 0;
 
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
-    activeLanes[lane] = boundingBoxIntersects(rays.rayd(lane));
-    hasActiveLane = hasActiveLane || activeLanes[lane];
+    activeLanes[lane] = states[lane] && boundingBoxIntersects(rays.rayd(lane));
+    if (activeLanes[lane]) {
+      activeMask |= static_cast<std::uint16_t>(1u << lane);
+    }
   }
 
-  if (!hasActiveLane) {
+  if (activeMask == 0) {
     return result;
   }
 
+  const StateArray activeStates = activePacketStates(states, activeMask);
   for (const auto& leaf : m_leaves) {
-    const Result candidate = leaf->intersectPacketHits(rays, states);
+    const Result candidate = leaf->intersectPacketHits(rays, activeStates);
     for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
       if (activeLanes[lane] && candidate.hit(lane)) {
         result.setHitIfCloser(lane, candidate.primitive(lane), candidate.hitPoint(lane),

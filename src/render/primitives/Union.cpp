@@ -54,7 +54,7 @@ Result Union::intersectPacketIntervalsFor(const Packet& rays, const StateArray& 
   std::uint16_t activeMask = 0;
 
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
-    activeLanes[lane] = boundingBoxIntersects(rays.rayd(lane));
+    activeLanes[lane] = states[lane] && boundingBoxIntersects(rays.rayd(lane));
     if (activeLanes[lane]) {
       activeMask |= static_cast<std::uint16_t>(1u << lane);
     }

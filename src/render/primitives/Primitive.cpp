@@ -30,8 +30,10 @@ namespace {
                                            const StateArray& states) {
     Result result;
     for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
-      State fallbackState;
-      State& state = states[lane] ? *states[lane] : fallbackState;
+      if (!states[lane]) {
+        continue;
+      }
+      State& state = *states[lane];
       state.packetHitScalarFallback(&primitive, "Primitive::intersectPacketHits");
       HitPointInterval hitPoints;
       const Primitive* hitPrimitive = primitive.intersect(rays.rayd(lane), hitPoints, state);
@@ -52,8 +54,10 @@ namespace {
                                                 const StateArray& states) {
     Result result;
     for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
-      State fallbackState;
-      State& state = states[lane] ? *states[lane] : fallbackState;
+      if (!states[lane]) {
+        continue;
+      }
+      State& state = *states[lane];
       state.packetHitScalarFallback(&primitive, "Primitive::intersectPacketIntervals");
       HitPointInterval hitPoints;
       const Primitive* hitPrimitive = primitive.intersect(rays.rayd(lane), hitPoints, state);

@@ -88,7 +88,7 @@ PrimitivePacketHit4 Composite::intersectPacketHits(const Ray4& rays,
   std::uint16_t activeMask = 0;
 
   for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
-    activeLanes[lane] = boundingBoxIntersects(rays.rayd(lane));
+    activeLanes[lane] = states[lane] && boundingBoxIntersects(rays.rayd(lane));
     if (activeLanes[lane]) {
       activeMask |= static_cast<std::uint16_t>(1u << lane);
     }
@@ -125,7 +125,7 @@ PrimitivePacketHit8 Composite::intersectPacketHits(const Ray8& rays,
   std::uint16_t activeMask = 0;
 
   for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
-    activeLanes[lane] = boundingBoxIntersects(rays.rayd(lane));
+    activeLanes[lane] = states[lane] && boundingBoxIntersects(rays.rayd(lane));
     if (activeLanes[lane]) {
       activeMask |= static_cast<std::uint16_t>(1u << lane);
     }

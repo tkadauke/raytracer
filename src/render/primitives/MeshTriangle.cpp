@@ -109,8 +109,10 @@ PrimitivePacketHit4 MeshTriangle::intersectPacketHits(const Ray4& rays,
   const PacketBarycentricIntersection4 intersections = intersectPacketBarycentric(rays);
 
   for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
-    State fallbackState;
-    State& state = states[lane] ? *states[lane] : fallbackState;
+    if (!states[lane]) {
+      continue;
+    }
+    State& state = *states[lane];
     if ((intersections.hitMask & (1 << lane)) == 0) {
       recordPacketMiss(state, "MeshTriangle, ray miss");
       continue;
@@ -132,8 +134,10 @@ PrimitivePacketHit8 MeshTriangle::intersectPacketHits(const Ray8& rays,
   const Vector3d& v2 = m_mesh->vertices()[m_index2].point;
 
   for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
-    State fallbackState;
-    State& state = states[lane] ? *states[lane] : fallbackState;
+    if (!states[lane]) {
+      continue;
+    }
+    State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
 
     const double a = v0.x() - v1.x();

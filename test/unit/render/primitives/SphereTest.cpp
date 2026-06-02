@@ -127,6 +127,28 @@ namespace SphereTest {
     EXPECT_EQ(1, laneStates[3].intersectionHits);
   }
 
+  TEST(Sphere, ShouldSkipInactiveRay4PacketHitLanes) {
+    Sphere sphere(Vector3d(), 1);
+    const Ray4 rays(std::array<Rayd, 4>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, -1)), Rayd(Vector3d(0, 0, 0), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], nullptr, &laneStates[2], nullptr};
+
+    const auto result = sphere.intersectPacketHits(rays, states);
+
+    EXPECT_TRUE(result.hit(0));
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_TRUE(result.hit(2));
+    EXPECT_FALSE(result.hit(3));
+    EXPECT_EQ(1, laneStates[0].intersectionHits);
+    EXPECT_EQ(0, laneStates[1].intersectionHits);
+    EXPECT_EQ(0, laneStates[1].intersectionMisses);
+    EXPECT_EQ(1, laneStates[2].intersectionHits);
+    EXPECT_EQ(0, laneStates[3].intersectionHits);
+    EXPECT_EQ(0, laneStates[3].intersectionMisses);
+  }
+
   TEST(Sphere, ShouldMaterializeRay4PacketIntervals) {
     Sphere sphere(Vector3d(), 1);
     const Ray4 rays(std::array<Rayd, 4>{
@@ -166,6 +188,28 @@ namespace SphereTest {
     for (const auto& state : laneStates) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
+  }
+
+  TEST(Sphere, ShouldSkipInactiveRay4PacketIntervalLanes) {
+    Sphere sphere(Vector3d(), 1);
+    const Ray4 rays(std::array<Rayd, 4>{
+      Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, -1)), Rayd(Vector3d(0, 0, 0), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], nullptr, &laneStates[2], nullptr};
+
+    const auto result = sphere.intersectPacketIntervals(rays, states);
+
+    EXPECT_TRUE(result.hasInterval(0));
+    EXPECT_FALSE(result.hasInterval(1));
+    EXPECT_TRUE(result.hasInterval(2));
+    EXPECT_FALSE(result.hasInterval(3));
+    EXPECT_EQ(1, laneStates[0].intersectionHits);
+    EXPECT_EQ(0, laneStates[1].intersectionHits);
+    EXPECT_EQ(0, laneStates[1].intersectionMisses);
+    EXPECT_EQ(1, laneStates[2].intersectionHits);
+    EXPECT_EQ(0, laneStates[3].intersectionHits);
+    EXPECT_EQ(0, laneStates[3].intersectionMisses);
   }
 
   TEST(Sphere, ShouldMaterializeRay8PacketHits) {

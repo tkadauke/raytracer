@@ -144,8 +144,10 @@ template<typename Packet, typename StateArray, typename Result>
 Result Triangle::intersectPacketHitsFor(const Packet& rays, const StateArray& states) const {
   Result result;
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
-    State fallbackState;
-    State& state = states[lane] ? *states[lane] : fallbackState;
+    if (!states[lane]) {
+      continue;
+    }
+    State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
 
     const double a = m_point0.x() - m_point1.x();

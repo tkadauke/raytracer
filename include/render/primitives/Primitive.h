@@ -215,6 +215,11 @@ namespace render {
       */
     virtual RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const;
     virtual RayPacketIntersection8 intersectPacket(const Ray8& rays, render::State& state) const;
+    /**
+      * Materialized packet intersections for wavefront/frontier traversal.
+      * A null pointer in `states` marks that lane inactive; implementations
+      * must leave that lane empty and skip all intersection/counter work for it.
+      */
     virtual PrimitivePacketHit4 intersectPacketHits(const Ray4& rays,
                                                     const PrimitivePacketState4& states) const;
     virtual PrimitivePacketHit8 intersectPacketHits(const Ray8& rays,

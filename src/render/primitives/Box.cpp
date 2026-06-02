@@ -160,8 +160,10 @@ template<typename Packet, typename StateArray, typename Result>
 Result Box::intersectPacketHitsFor(const Packet& rays, const StateArray& states) const {
   Result result;
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
-    State fallbackState;
-    State& state = states[lane] ? *states[lane] : fallbackState;
+    if (!states[lane]) {
+      continue;
+    }
+    State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
 
     int parallel = 0;
@@ -258,8 +260,10 @@ template<typename Packet, typename StateArray, typename Result>
 Result Box::intersectPacketIntervalsFor(const Packet& rays, const StateArray& states) const {
   Result result;
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
-    State fallbackState;
-    State& state = states[lane] ? *states[lane] : fallbackState;
+    if (!states[lane]) {
+      continue;
+    }
+    State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
 
     int parallel = 0;

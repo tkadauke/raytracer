@@ -63,8 +63,10 @@ Result OpenCylinder::intersectPacketHitsFor(const Packet& rays, const StateArray
   Result result;
   const Range<double> yRange(-m_halfHeight, m_halfHeight);
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
-    State fallbackState;
-    State& state = states[lane] ? *states[lane] : fallbackState;
+    if (!states[lane]) {
+      continue;
+    }
+    State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
 
     const double ox = ray.origin().x();
@@ -134,8 +136,10 @@ Result OpenCylinder::intersectPacketIntervalsFor(const Packet& rays,
   Result result;
   const Range<double> yRange(-m_halfHeight, m_halfHeight);
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
-    State fallbackState;
-    State& state = states[lane] ? *states[lane] : fallbackState;
+    if (!states[lane]) {
+      continue;
+    }
+    State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
 
     const double ox = ray.origin().x();

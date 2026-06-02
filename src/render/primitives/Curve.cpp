@@ -78,8 +78,10 @@ PrimitivePacketHit4 Curve::intersectPacketHits(const Ray4&,
                                                const PrimitivePacketState4& states) const {
   PrimitivePacketHit4 result;
   for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
-    State fallbackState;
-    State& state = states[lane] ? *states[lane] : fallbackState;
+    if (!states[lane]) {
+      continue;
+    }
+    State& state = *states[lane];
     state.miss(this, "Curve, ray intersection not implemented");
   }
   return result;
@@ -89,8 +91,10 @@ PrimitivePacketHit8 Curve::intersectPacketHits(const Ray8&,
                                                const PrimitivePacketState8& states) const {
   PrimitivePacketHit8 result;
   for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
-    State fallbackState;
-    State& state = states[lane] ? *states[lane] : fallbackState;
+    if (!states[lane]) {
+      continue;
+    }
+    State& state = *states[lane];
     state.miss(this, "Curve, ray intersection not implemented");
   }
   return result;
