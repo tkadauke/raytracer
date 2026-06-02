@@ -43,7 +43,7 @@ namespace ConvexOperationTest {
     ASSERT_EQ(&i, result);
   }
 
-  TEST(ConvexOperation, ShouldUseScalarCsgSemanticsForRay4PacketHits) {
+  TEST(ConvexOperation, ShouldMaterializeRay4PacketHitsWithoutScalarFallback) {
     MockConvexOperation operation;
     auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
@@ -63,15 +63,16 @@ namespace ConvexOperationTest {
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&operation, result.primitive(0));
+    EXPECT_FALSE(result.scalarFallback(0));
     EXPECT_FALSE(result.hit(1));
     EXPECT_FALSE(result.hit(2));
     EXPECT_FALSE(result.hit(3));
     for (const State& state : laneStates) {
-      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
 
-  TEST(ConvexOperation, ShouldUseScalarCsgSemanticsForRay8PacketHits) {
+  TEST(ConvexOperation, ShouldMaterializeRay8PacketHitsWithoutScalarFallback) {
     MockConvexOperation operation;
     auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
@@ -94,18 +95,96 @@ namespace ConvexOperationTest {
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&operation, result.primitive(0));
+    EXPECT_FALSE(result.scalarFallback(0));
     EXPECT_FALSE(result.hit(1));
     EXPECT_FALSE(result.hit(2));
     EXPECT_FALSE(result.hit(3));
     ASSERT_TRUE(result.hit(4));
     EXPECT_EQ(&operation, result.primitive(4));
+    EXPECT_FALSE(result.scalarFallback(4));
     ASSERT_TRUE(result.hit(5));
     EXPECT_EQ(&operation, result.primitive(5));
+    EXPECT_FALSE(result.scalarFallback(5));
     EXPECT_FALSE(result.hit(6));
     ASSERT_TRUE(result.hit(7));
     EXPECT_EQ(&operation, result.primitive(7));
+    EXPECT_FALSE(result.scalarFallback(7));
     for (const State& state : laneStates) {
-      EXPECT_EQ(1u, state.packetHitScalarFallbacks);
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
+    }
+  }
+
+  TEST(ConvexOperation, ShouldMaterializeRay4PacketIntervalsWithoutScalarFallback) {
+    MockConvexOperation operation;
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
+    operation.add(primitive1);
+    operation.add(primitive2);
+    EXPECT_CALL(*primitive1, calculateBoundingBox())
+      .WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
+    EXPECT_CALL(*primitive2, calculateBoundingBox())
+      .WillOnce(Return(BoundingBoxd(Vector3d::one, Vector3d::one)));
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(-5, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(-5, 3, 0), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(5, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(0, 5, 0), Vector3d(1, 0, 0))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = operation.intersectPacketIntervals(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    ASSERT_TRUE(result.hasInterval(0));
+    EXPECT_EQ(&operation, result.primitive(0));
+    EXPECT_FALSE(result.scalarFallback(0));
+    EXPECT_EQ(Vector3d(-2, 0, 0), result.interval(0).min().point());
+    EXPECT_EQ(Vector3d(2, 0, 0), result.interval(0).max().point());
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hit(2));
+    EXPECT_FALSE(result.hit(3));
+    for (const State& state : laneStates) {
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
+    }
+  }
+
+  TEST(ConvexOperation, ShouldMaterializeRay8PacketIntervalsWithoutScalarFallback) {
+    MockConvexOperation operation;
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
+    operation.add(primitive1);
+    operation.add(primitive2);
+    EXPECT_CALL(*primitive1, calculateBoundingBox())
+      .WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
+    EXPECT_CALL(*primitive2, calculateBoundingBox())
+      .WillOnce(Return(BoundingBoxd(Vector3d::one, Vector3d::one)));
+    const Ray8 rays(std::array<Rayd, Ray8::lanes>{
+      Rayd(Vector3d(-5, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(-5, 3, 0), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(5, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(0, 5, 0), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(-6, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(6, 0, 0), Vector3d(-1, 0, 0)),
+      Rayd(Vector3d(0, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(-4, 0, 0), Vector3d(1, 0, 0))});
+    std::array<State, Ray8::lanes> laneStates;
+    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
+                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+
+    const auto result = operation.intersectPacketIntervals(rays, states);
+
+    ASSERT_TRUE(result.hit(0));
+    EXPECT_EQ(&operation, result.primitive(0));
+    EXPECT_FALSE(result.scalarFallback(0));
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_FALSE(result.hit(2));
+    EXPECT_FALSE(result.hit(3));
+    ASSERT_TRUE(result.hit(4));
+    EXPECT_EQ(&operation, result.primitive(4));
+    EXPECT_FALSE(result.scalarFallback(4));
+    ASSERT_TRUE(result.hit(5));
+    EXPECT_EQ(&operation, result.primitive(5));
+    EXPECT_FALSE(result.scalarFallback(5));
+    EXPECT_FALSE(result.hit(6));
+    ASSERT_TRUE(result.hit(7));
+    EXPECT_EQ(&operation, result.primitive(7));
+    EXPECT_FALSE(result.scalarFallback(7));
+    for (const State& state : laneStates) {
+      EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
 

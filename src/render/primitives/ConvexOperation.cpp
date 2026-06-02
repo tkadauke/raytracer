@@ -7,6 +7,11 @@ using namespace render;
 
 const Primitive* ConvexOperation::intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                             render::State& state) const {
+  return intersectConvexRay(ray, hitPoints, state);
+}
+
+const Primitive* ConvexOperation::intersectConvexRay(const Rayd& ray, HitPointInterval& hitPoints,
+                                                     render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     state.miss(this, "ConvexOperation, bounding box miss");
     return nullptr;
@@ -55,12 +60,66 @@ const Primitive* ConvexOperation::intersect(const Rayd& ray, HitPointInterval& h
 
 PrimitivePacketHit4
 ConvexOperation::intersectPacketHits(const Ray4& rays, const PrimitivePacketState4& states) const {
-  return Primitive::intersectPacketHits(rays, states);
+  PrimitivePacketHit4 result;
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    HitPointInterval hitPoints;
+    const Primitive* primitive = intersectConvexRay(rays.rayd(lane), hitPoints, state);
+    const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+    if (primitive && !hitPoint.isUndefined()) {
+      result.setHit(lane, primitive, hitPoint);
+    }
+  }
+  return result;
 }
 
 PrimitivePacketHit8
 ConvexOperation::intersectPacketHits(const Ray8& rays, const PrimitivePacketState8& states) const {
-  return Primitive::intersectPacketHits(rays, states);
+  PrimitivePacketHit8 result;
+  for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    HitPointInterval hitPoints;
+    const Primitive* primitive = intersectConvexRay(rays.rayd(lane), hitPoints, state);
+    const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+    if (primitive && !hitPoint.isUndefined()) {
+      result.setHit(lane, primitive, hitPoint);
+    }
+  }
+  return result;
+}
+
+PrimitivePacketInterval4
+ConvexOperation::intersectPacketIntervals(const Ray4& rays,
+                                          const PrimitivePacketState4& states) const {
+  PrimitivePacketInterval4 result;
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    HitPointInterval hitPoints;
+    const Primitive* primitive = intersectConvexRay(rays.rayd(lane), hitPoints, state);
+    if (primitive || !hitPoints.empty()) {
+      result.setInterval(lane, primitive, hitPoints);
+    }
+  }
+  return result;
+}
+
+PrimitivePacketInterval8
+ConvexOperation::intersectPacketIntervals(const Ray8& rays,
+                                          const PrimitivePacketState8& states) const {
+  PrimitivePacketInterval8 result;
+  for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+    State fallbackState;
+    State& state = states[lane] ? *states[lane] : fallbackState;
+    HitPointInterval hitPoints;
+    const Primitive* primitive = intersectConvexRay(rays.rayd(lane), hitPoints, state);
+    if (primitive || !hitPoints.empty()) {
+      result.setInterval(lane, primitive, hitPoints);
+    }
+  }
+  return result;
 }
 
 bool ConvexOperation::intersects(const Rayd& ray, render::State&) const {

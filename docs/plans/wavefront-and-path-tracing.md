@@ -946,13 +946,16 @@ closest positive hit is then projected back to the packet-hit contract. Sphere,
 Box, OpenCylinder, Torus, and static Instance wrappers publish direct Ray4/Ray8
 packet intervals, so common beveled dice/cylinder/ring-style CSG avoids scalar
 materialization fallback at both the CSG node and its key leaves.
-`ConvexOperation` subclasses still keep the scalar fallback until support-map
-CSG gets its own packet contract.
+`ConvexOperation` subclasses now own Ray4/Ray8 packet hit and interval
+materialization for support-map CSG. That path still evaluates the GJK-style
+support query per lane rather than claiming a true SIMD support-map kernel, but
+convex-hull and Minkowski-sum frontiers no longer inherit the generic scalar
+packet fallback.
 `Grid` also keeps the scalar fallback for packet-hit materialization, but does
 so deliberately to preserve its DDA cell traversal instead of inheriting
 plain-composite linear child scans.
-The fallback metric keeps the remaining unsupported leaves, convex CSG, and
-grid-walker gaps visible.
+The fallback metric keeps the remaining unsupported leaves and grid-walker gaps
+visible.
 Wavefront metrics now also expose packet-frontier utilization:
 `frontierPacketChunksPerDepth`, `frontierPacketRaysPerDepth`,
 `frontierScalarRaysPerDepth`, and `frontierPacketScalarFallbackRaysPerDepth`
@@ -979,10 +982,11 @@ currently a scheduler and BVH/composite contract plus first leaf kernels for
 `Sphere`, `Plane`, `Box`, `Triangle`, `Disk`, and `Rectangle`, not a claim that
 every primitive has an eight-wide materialization kernel. `OpenCylinder` and
 `Torus` now join that eight-wide leaf set for curved analytic frontiers; the
-imported-mesh leaf/wrapper path also preserves Ray8 materialized hits, and
-`Curve` reports Ray8 misses directly. The packet scalar-fallback metric
-intentionally reports the remaining leaf gaps so the next performance slices can
-target them directly.
+imported-mesh leaf/wrapper path also preserves Ray8 materialized hits,
+`ConvexOperation` materializes Ray8 support-map CSG hits and intervals per lane,
+and `Curve` reports Ray8 misses directly. The packet scalar-fallback metric
+intentionally reports the remaining leaf/grid gaps so the next performance
+slices can target them directly.
 Materials now own that decision: local Matte/Phong shading consumes packet hits
 directly, while reflective, transparent, portal, and custom materials keep the
 scalar refinement default because their secondary rays depend on scalar

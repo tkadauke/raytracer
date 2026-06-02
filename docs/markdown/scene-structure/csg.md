@@ -199,6 +199,10 @@ is the shared base class for `MinkowskiSum` and `ConvexHull`.
 Both override `farthestPoint(direction)` (the support
 function) and inherit the `intersect` / `intersects`
 implementation that drives GJK.
+Wavefront packet rendering uses the same base class for Ray4/Ray8
+hit and interval materialization. The support query is still evaluated
+per lane, so this is not a vectorized GJK kernel, but convex composites
+do not have to fall back to the generic scalar packet materializer.
 
 The algorithm's strength is the dimensionality independence: a
 support function is a single scalar input and a single vector

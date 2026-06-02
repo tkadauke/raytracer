@@ -639,10 +639,12 @@ imported mesh leaves and static instance/mesh wrappers preserve Ray8
 materialized hits and Curve reports Ray8 misses directly. Boolean and
 closed-solid CSG nodes compose packet child intervals, with Sphere, Box,
 OpenCylinder, Torus, and static Instance wrappers providing packet intervals
-for common beveled CSG scenes. The rest of the primitive leaves are made
-eight-wide in later performance slices. Grid keeps a scalar packet-hit
-fallback for now so packet wavefront traversal still uses its DDA cell walk
-instead of a plain linear composite scan.
+for common beveled CSG scenes. ConvexOperation support-map CSG nodes also
+materialize packet hits and intervals per lane, which removes them from the
+generic scalar packet-fallback bucket without claiming a vectorized GJK kernel.
+The rest of the primitive leaves are made eight-wide in later performance
+slices. Grid keeps a scalar packet-hit fallback for now so packet wavefront
+traversal still uses its DDA cell walk instead of a plain linear composite scan.
 This gives the graph, rendercli, and Modeler a separate executor surface for
 the scheduler work that follows. After a traced wavefront render, the pass
 metadata reports the selected

@@ -67,7 +67,11 @@ Leaf primitives can then override the materialized packet form directly;
 mesh-backed triangle leaves already do this so common analytic geometry and
 triangle-heavy BVHs avoid the generic interval fallback on wavefront packet
 frontiers. Sphere, Box, OpenCylinder, and Torus also expose packet intervals,
-which keeps common beveled CSG on the packet path. Wrapper
+which keeps common beveled CSG on the packet path. Support-map CSG
+(`ConvexOperation`, used by convex hulls and Minkowski sums) also exposes packet
+hits and intervals; it still evaluates the support query per lane, but the
+packet frontier no longer has to use the generic scalar materialization
+fallback. Wrapper
 primitives matter too: `Instance` transforms static ray packets into local
 space before delegating and then transforms materialized hits or intervals back
 to world space, while `MeshPrimitive` forwards packet-hit requests to its

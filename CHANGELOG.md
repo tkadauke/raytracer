@@ -150,6 +150,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   Sphere, Box, OpenCylinder, Torus, and static Instance wrappers expose packet
   intervals so common beveled dice-style CSG avoids scalar materialization
   fallback. — GPT-5
+- **Support-map CSG packet materialization.** `ConvexOperation` now owns
+  Ray4/Ray8 packet hit and interval materialization for convex-hull and
+  Minkowski-sum shapes, avoiding the generic scalar packet fallback while
+  preserving the existing support-map intersection semantics per lane. — GPT-5
 - **Wavefront packet fallback diagnostics.** Wavefront metrics now report
   per-depth packet lanes that fell back to scalar hit materialization, exposing
   remaining primitive packet-kernel gaps in graph traces, rendercli summaries,
