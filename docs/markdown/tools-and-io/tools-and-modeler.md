@@ -95,7 +95,11 @@ into typed intent engine options before compilation. For example,
 and `--queue_size` become raytracer pass state when the graph contains
 `raytrace_beauty` or `wavefront_beauty`. The seed is optional, but when present
 it makes stochastic ray-family renders repeatable and is serialized into
-exported graph JSON. Wavefront controls such as
+exported graph JSON. When the scene intent does not specify a ray-family view
+plane, rendercli also writes `TiledViewPlane` into compiled raytracer or
+wavefront pass state so graph-backed final renders use the same tiled pixel
+walk as the direct command-line path; scene-authored view-plane intent is left
+unchanged. Wavefront controls such as
 `--wavefront_convergence`, `--wavefront_no_convergence`,
 `--wavefront_convergence_active_fraction`, and
 `--wavefront_convergence_rms_delta` become graph-visible convergence state for

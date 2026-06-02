@@ -1034,6 +1034,17 @@ and active-depth work. `WAVEFRONT_CONVERGENCE_QUEUE_SWEEP` now runs the same
 capture across multiple queue sizes and writes each result under a separate
 `queue_<size>` output directory, so tile-count defaults can be compared without
 hand-editing the script or overwriting earlier captures.
+A first 160x120 BVH queue sweep also exposed a rendercli graph-path mismatch:
+graph-backed ray-family renders inherited the scene camera's progressive view
+plane while direct rendercli final renders used `TiledViewPlane`. Very small
+queue tiles made the progressive iterator visit extra samples, so high
+queue-count metrics overstated primary work. rendercli now fills in
+`TiledViewPlane` as a graph pass default only when scene intent leaves the
+ray-family view plane unresolved. A follow-up 160x120, queue-size-512 BVH
+capture reported the expected `samples=19200`, `tile_count=512`,
+`average_nonempty_tile_samples=37.5`, and exact image parity, so queue-size
+tuning can use the fixed graph path without confusing iterator oversampling
+with scheduler cost.
 
 ---
 

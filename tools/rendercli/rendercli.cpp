@@ -1460,7 +1460,12 @@ std::optional<engine::graph::RenderExecutorPreference> Renderer::engineExecutorP
 
 engine::graph::RenderGraphRequest Renderer::renderGraphRequest(const Scene& scene) const {
   engine::graph::RenderIntent baseIntent = scene.renderIntentWithActiveCameraDefault();
-  baseIntent.engineOptions = baseIntent.engineOptions.mergedWith(commandLineEngineOptions());
+  engine::graph::RenderEngineOptions commandLineOptions = commandLineEngineOptions();
+  if (!baseIntent.engineOptions.raytracer().viewPlane() &&
+      !commandLineOptions.raytracer().viewPlane()) {
+    commandLineOptions.raytracer().setViewPlane("TiledViewPlane");
+  }
+  baseIntent.engineOptions = baseIntent.engineOptions.mergedWith(commandLineOptions);
   engine::graph::RenderGraphRequest request(baseIntent);
   request.setSceneAnalysis(scene.renderGraphAnalysis());
   if (m_renderGraphExecutorSet) {

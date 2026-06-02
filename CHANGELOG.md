@@ -335,6 +335,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   default ray-family queue size and carries it into compiled render graph pass
   state, keeping graph-backed wavefront scheduling aligned with the direct
   wavefront engine path. — GPT-5
+- **rendercli ray-family graph view plane.** Graph-backed rendercli raytracer
+  and wavefront renders now default unresolved ray-family view-plane state to
+  `TiledViewPlane`, matching the direct final-render path while preserving
+  scene-authored view-plane intent. — GPT-5
 - **Wavefront Whitted convergence accounting.** Whitted wavefront metrics and
   convergence now count unique active samples per depth instead of branched
   continuation rays, so reflective/refractive fanout no longer inflates

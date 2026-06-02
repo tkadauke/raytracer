@@ -21,6 +21,7 @@ set(wavefront_indirect_bounce_scene
     "${PROJECT_SOURCE_DIR}/scenes/wavefront_indirect_bounce_demo.json")
 set(wavefront_denoise_scene "${PROJECT_SOURCE_DIR}/scenes/wavefront_denoise_demo.json")
 set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
+set(scene_viewplane_intent_scene "${TEST_OUTPUT_DIR}/scene-viewplane-intent.json")
 set(camera_override_runtime_scene "${TEST_OUTPUT_DIR}/camera-override-runtime-scene.json")
 set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
 set(invalid_exported_aov_scene "${TEST_OUTPUT_DIR}/invalid-exported-aov-scene.json")
@@ -127,6 +128,8 @@ set(wavefront_pathtracer_plan "${TEST_OUTPUT_DIR}/wavefront-pathtracer-graph.jso
 set(wavefront_convergence_plan "${TEST_OUTPUT_DIR}/wavefront-convergence-graph.json")
 set(wavefront_default_convergence_plan
     "${TEST_OUTPUT_DIR}/wavefront-default-convergence-graph.json")
+set(wavefront_scene_viewplane_plan
+    "${TEST_OUTPUT_DIR}/wavefront-scene-viewplane-graph.json")
 set(wavefront_denoise_plan "${TEST_OUTPUT_DIR}/wavefront-denoise-graph.json")
 set(wavefront_scene_denoise_plan "${TEST_OUTPUT_DIR}/wavefront-scene-denoise-graph.json")
 set(wavefront_scene_denoise_render "${TEST_OUTPUT_DIR}/wavefront-scene-denoise-render.png")
@@ -187,6 +190,24 @@ file(WRITE "${scene_intent_scene}" [=[
         "camera": {"sceneCameraId": "inspection-camera"}
       }
     ]
+  },
+  "children": []
+}
+]=])
+
+file(WRITE "${scene_viewplane_intent_scene}" [=[
+{
+  "id": "{90100000-0000-0000-0000-000000000000}",
+  "name": "Scene View Plane Intent Fixture",
+  "ambient": [0.4, 0.4, 0.4],
+  "background": [0.4, 0.8, 1.0],
+  "type": "Scene",
+  "renderIntent": {
+    "engineOptions": {
+      "raytracer": {
+        "viewPlane": {"type": "ViewPlane"}
+      }
+    }
   },
   "children": []
 }
@@ -1484,6 +1505,43 @@ endif()
 if(NOT wavefront_graph MATCHES "\"queueSize\"")
   message(FATAL_ERROR
           "wavefront graph did not contain rendercli ray-family queue state: ${wavefront_graph}")
+endif()
+if(NOT wavefront_graph MATCHES "\"viewPlane\"")
+  message(FATAL_ERROR
+          "wavefront graph did not contain rendercli ray-family view-plane state: ${wavefront_graph}")
+endif()
+if(NOT wavefront_graph MATCHES "\"type\"[ \r\n]*:[ \r\n]*\"TiledViewPlane\"")
+  message(FATAL_ERROR
+          "wavefront graph did not default rendercli ray-family view plane to TiledViewPlane: ${wavefront_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli preserves scene-authored wavefront view plane"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --engine wavefront --width 32 --height 16
+    "${scene_viewplane_intent_scene}" "${wavefront_scene_viewplane_plan}"
+)
+rendercli_assert_nonempty("${wavefront_scene_viewplane_plan}"
+                          NAME "scene-authored wavefront view plane graph output")
+file(READ "${wavefront_scene_viewplane_plan}" wavefront_scene_viewplane_graph)
+if(NOT wavefront_scene_viewplane_graph MATCHES "\"viewPlane\"")
+  message(
+    FATAL_ERROR
+      "scene-authored wavefront graph did not contain ray-family view-plane state: ${wavefront_scene_viewplane_graph}"
+  )
+endif()
+if(NOT wavefront_scene_viewplane_graph MATCHES "\"type\"[ \r\n]*:[ \r\n]*\"ViewPlane\"")
+  message(
+    FATAL_ERROR
+      "scene-authored wavefront graph did not preserve ViewPlane state: ${wavefront_scene_viewplane_graph}"
+  )
+endif()
+if(wavefront_scene_viewplane_graph MATCHES "\"type\"[ \r\n]*:[ \r\n]*\"TiledViewPlane\"")
+  message(
+    FATAL_ERROR
+      "rendercli TiledViewPlane default overrode scene-authored ViewPlane state: ${wavefront_scene_viewplane_graph}"
+  )
 endif()
 
 rendercli_run(
