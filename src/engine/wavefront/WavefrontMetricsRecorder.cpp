@@ -20,7 +20,7 @@ namespace engine::wavefront::detail {
     m_metrics.input.width = width;
     m_metrics.input.height = height;
     m_metrics.input.samplesPerPixel = camera.samplesPerPixel();
-    m_metrics.tiling.tileCount = tilePlan.size();
+    m_metrics.tiling.resetFromTilePlan(tilePlan);
     m_metrics.scheduling.configuredQueueSize =
       static_cast<std::uint64_t>(std::max(0, configuredQueueSize));
     m_metrics.scheduling.resolvedQueueSize = tilePlan.size();

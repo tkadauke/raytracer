@@ -229,6 +229,10 @@ namespace {
         << " execution=" << batching.value("executionMode").toString().toStdString()
         << " samples=" << unsignedValue(input, "primarySamples")
         << " tiles=" << unsignedValue(tiling, "tileCount")
+        << " tile_grid=" << unsignedValue(tiling, "tileColumns") << "x"
+        << unsignedValue(tiling, "tileRows")
+        << " max_tile_width=" << unsignedValue(tiling, "maxTileWidth")
+        << " max_tile_height=" << unsignedValue(tiling, "maxTileHeight")
         << " nonempty_tiles=" << unsignedValue(tiling, "nonEmptyTileCount")
         << " min_tile_samples=" << unsignedValue(tiling, "minNonEmptyTileSamples")
         << " avg_tile_samples=" << tiling.value("averageNonEmptyTileSamples").toDouble()

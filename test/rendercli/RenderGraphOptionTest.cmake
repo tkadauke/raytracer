@@ -1626,6 +1626,9 @@ foreach(feature_name albedo normal depth)
 endforeach()
 foreach(tiling_name
         tiles
+        tile_grid
+        max_tile_width
+        max_tile_height
         nonempty_tiles
         min_tile_samples
         avg_tile_samples
@@ -1802,6 +1805,10 @@ if(NOT wavefront_metrics_json MATCHES "\"activeSampleDepthsProcessed\"")
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 foreach(tiling_field
+        tileRows
+        tileColumns
+        maxTileWidth
+        maxTileHeight
         minNonEmptyTileSamples
         maxTileSamples
         averageNonEmptyTileSamples)

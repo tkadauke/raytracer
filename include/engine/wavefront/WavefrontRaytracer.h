@@ -22,6 +22,7 @@ namespace render {
   class Integrator;
   struct IntegratorBatchMetrics;
   class Scene;
+  class TilePlan;
 }
 
 namespace engine::wavefront {
@@ -36,10 +37,16 @@ namespace engine::wavefront {
 
     struct TilingSummary {
       std::uint64_t tileCount = 0;
+      std::uint64_t tileRows = 0;
+      std::uint64_t tileColumns = 0;
+      std::uint64_t maxTileWidth = 0;
+      std::uint64_t maxTileHeight = 0;
       std::uint64_t nonEmptyTileCount = 0;
       std::uint64_t minNonEmptyTileSamples = 0;
       std::uint64_t maxTileSamples = 0;
       double averageNonEmptyTileSamples = 0.0;
+
+      void resetFromTilePlan(const render::TilePlan& tilePlan);
     } tiling;
 
     struct SchedulingSummary {

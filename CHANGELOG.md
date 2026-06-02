@@ -270,6 +270,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Ray-family graph queue defaults.** rendercli now fills automatic ray-family
   graph queue size only when scene render intent leaves queue size unresolved,
   while explicit `--queue_size` remains an override. — GPT-5
+- **Wavefront tile-shape metrics.** Wavefront metrics JSON and rendercli compact
+  summaries now report tile grid dimensions and maximum tile extents for
+  tile-size tuning. — GPT-5
 - **Wavefront partial Ray8 tails.** Whitted and path-tracing wavefront
   frontiers now submit five- to seven-ray remainders as active lanes in one
   Ray8 packet instead of splitting them into Ray4 and scalar or partial-Ray4

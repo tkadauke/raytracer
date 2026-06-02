@@ -224,9 +224,9 @@ the pass id plus integrator, batch execution mode, active sample counts,
 radiance-delta RMS values, per-depth frontier hit/miss counts, compatibility
 fallback counts, convergence thresholds, stop decisions, denoiser diagnostics
 when enabled, convergence feedback depth counts, tile load-balance counts, and
-total render time. The compact summary prints total
-`tiles`, `nonempty_tiles`, `min_tile_samples`, `avg_tile_samples`,
-`max_tile_samples`,
+total render time. The compact summary prints total `tiles`, `tile_grid`,
+`max_tile_width`, `max_tile_height`, `nonempty_tiles`, `min_tile_samples`,
+`avg_tile_samples`, `max_tile_samples`,
 `frontier_hit_rays`, `frontier_miss_rays`, `frontier_packet_chunks`,
 `frontier_packet_rays`, `frontier_ray4_packet_chunks`,
 `frontier_ray8_packet_chunks`, `frontier_scalar_rays`, and

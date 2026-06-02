@@ -114,6 +114,22 @@ namespace engine::wavefront {
     }
   }
 
+  void WavefrontRenderMetrics::TilingSummary::resetFromTilePlan(const render::TilePlan& tilePlan) {
+    *this = TilingSummary();
+    tileCount = tilePlan.size();
+    tileRows = static_cast<std::uint64_t>(std::max(0, tilePlan.rows()));
+    tileColumns = static_cast<std::uint64_t>(std::max(0, tilePlan.cols()));
+    for (int row = 0; row != tilePlan.rows(); ++row) {
+      for (int column = 0; column != tilePlan.cols(); ++column) {
+        const Recti tile = tilePlan.rect(row, column);
+        maxTileWidth =
+          std::max(maxTileWidth, static_cast<std::uint64_t>(std::max(0, tile.width())));
+        maxTileHeight =
+          std::max(maxTileHeight, static_cast<std::uint64_t>(std::max(0, tile.height())));
+      }
+    }
+  }
+
   QJsonObject WavefrontRenderMetrics::toJson() const {
     QJsonObject inputJson;
     inputJson["width"] = input.width;
@@ -124,6 +140,10 @@ namespace engine::wavefront {
 
     QJsonObject tilingJson;
     tilingJson["tileCount"] = static_cast<double>(tiling.tileCount);
+    tilingJson["tileRows"] = static_cast<double>(tiling.tileRows);
+    tilingJson["tileColumns"] = static_cast<double>(tiling.tileColumns);
+    tilingJson["maxTileWidth"] = static_cast<double>(tiling.maxTileWidth);
+    tilingJson["maxTileHeight"] = static_cast<double>(tiling.maxTileHeight);
     tilingJson["nonEmptyTileCount"] = static_cast<double>(tiling.nonEmptyTileCount);
     tilingJson["minNonEmptyTileSamples"] = static_cast<double>(tiling.minNonEmptyTileSamples);
     tilingJson["maxTileSamples"] = static_cast<double>(tiling.maxTileSamples);

@@ -584,6 +584,10 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48u, metrics.input.renderedPixels);
     EXPECT_EQ(48u, metrics.input.primarySamples);
     EXPECT_EQ(1u, metrics.tiling.tileCount);
+    EXPECT_EQ(1u, metrics.tiling.tileRows);
+    EXPECT_EQ(1u, metrics.tiling.tileColumns);
+    EXPECT_EQ(8u, metrics.tiling.maxTileWidth);
+    EXPECT_EQ(6u, metrics.tiling.maxTileHeight);
     EXPECT_EQ(1u, metrics.tiling.nonEmptyTileCount);
     EXPECT_EQ(48u, metrics.tiling.minNonEmptyTileSamples);
     EXPECT_EQ(48u, metrics.tiling.maxTileSamples);
@@ -650,6 +654,10 @@ namespace WavefrontRaytracerTest {
     const QJsonObject json = metrics.toJson();
     const QJsonObject tiling = json.value("tiling").toObject();
     EXPECT_EQ(1.0, tiling.value("tileCount").toDouble());
+    EXPECT_EQ(1.0, tiling.value("tileRows").toDouble());
+    EXPECT_EQ(1.0, tiling.value("tileColumns").toDouble());
+    EXPECT_EQ(8.0, tiling.value("maxTileWidth").toDouble());
+    EXPECT_EQ(6.0, tiling.value("maxTileHeight").toDouble());
     EXPECT_EQ(1.0, tiling.value("nonEmptyTileCount").toDouble());
     EXPECT_EQ(48.0, tiling.value("minNonEmptyTileSamples").toDouble());
     EXPECT_EQ(48.0, tiling.value("maxTileSamples").toDouble());
