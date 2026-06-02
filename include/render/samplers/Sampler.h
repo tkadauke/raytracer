@@ -27,6 +27,7 @@ namespace render {
 
     Vector2d next2D() override;
     double next1D() override;
+    PrimarySample primarySample() override;
     Vector2d sample2D(SampleDimension dimension, std::uint64_t index = 0) override;
     double sample1D(SampleDimension dimension, std::uint64_t index = 0) override;
 

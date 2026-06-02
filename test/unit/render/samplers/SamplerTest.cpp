@@ -172,6 +172,28 @@ namespace SamplerTest {
               sharedStream->sample2D(SampleDimension::BSDF, 1));
   }
 
+  TEST(SamplerStream, PrimarySampleMatchesSequentialPixelAndTimeDimensions) {
+    IndexedSampler sampler;
+    sampler.setup(4, 8);
+
+    auto stream = sampler.stream(/*sampleIndex*/ 2, /*pixelHash*/ 3);
+    const auto primary = stream->primarySample();
+
+    EXPECT_DOUBLE_EQ(5.0 / 100.0, primary.pixel.x());
+    EXPECT_DOUBLE_EQ(0.0, primary.pixel.y());
+    EXPECT_DOUBLE_EQ(6.0 / 100.0, primary.time);
+    EXPECT_DOUBLE_EQ(7.0 / 100.0, stream->next2D().x());
+  }
+
+  TEST(SamplerStream, PrimarySampleUsesDefaultSequentialReadsForCustomStreams) {
+    MarkerSampleStream stream;
+
+    const auto primary = stream.primarySample();
+
+    EXPECT_EQ(Vector2d(0.25, 0.75), primary.pixel);
+    EXPECT_DOUBLE_EQ(0.125, primary.time);
+  }
+
   TEST(SamplerStream, StorageKeepsSamplerBackedStreamsStable) {
     IndexedSampler sampler;
     sampler.setup(4, 64);

@@ -129,16 +129,15 @@ std::optional<Camera::PrimaryRay> Camera::primaryRaySample(const render::ViewPla
   // The sequential cursor is therefore positioned at the historical
   // lens/camera dimension; explicit `SampleDimension` accessors use
   // the same stable ownership without depending on call order.
-  Vector2d subPixel = stream.next2D();
-  Vector2d xy = pixel.pixel() + subPixel;
-  double timeSample = stream.next1D();
+  const render::SampleStream::PrimarySample primarySample = stream.primarySample();
+  Vector2d xy = pixel.pixel() + primarySample.pixel;
 
   Rayd ray = rayForPixel(xy.x(), xy.y(), stream);
   if (!ray.direction().isDefined()) {
     return std::nullopt;
   }
 
-  return PrimaryRay{ray, timeSample};
+  return PrimaryRay{ray, primarySample.time};
 }
 
 std::uint64_t Camera::primaryRayPixelHash(const render::ViewPlane::Iterator& pixel,

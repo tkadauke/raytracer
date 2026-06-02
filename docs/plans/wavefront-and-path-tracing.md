@@ -627,6 +627,13 @@ wavefront sample setup path. A small post-transform capture remained around
 ~13.0 ms sample-generation worker time with ~11.2 ms in primary-ray sampling,
 so the remaining primary-ray cost is deeper camera math such as direction
 normalization and per-sample pinhole setup rather than just transform wrappers.
+`SampleStream::primarySample()` now gives cameras a single renderer-owned
+pixel/time read, and sampler-backed streams override it so wavefront primary-ray
+setup does not dispatch separately for pixel jitter and shutter time while
+custom sampler streams keep their default sequential behavior. A small
+post-change capture remained around ~13.4 ms sample-generation worker time with
+~11.6 ms in primary-ray sampling, so this is API/dispatch cleanup rather than a
+standalone macro-speed solution.
 The integrator batch bucket is now split further into
 intersection and shading worker time, so captures can distinguish BVH/primitive
 traversal cost from material, direct lighting, and continuation sampling cost

@@ -210,6 +210,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   sampler streams in tile-local storage so high-sample batches avoid one stream
   allocation per primary sample while custom sampler overrides still use the
   owning fallback path. — GPT-5
+- **Primary sample stream reads.** `SampleStream` now exposes a
+  renderer-owned `primarySample()` read for pixel jitter and shutter time, and
+  built-in sampler-backed streams override it to reduce wavefront primary-ray
+  setup dispatch overhead while preserving custom stream behavior. — GPT-5
 - **Wavefront sample stream storage.** Wavefront's retained built-in sampler
   streams now use reserved contiguous tile storage with stable deque overflow,
   reducing sample-generation allocation churn without invalidating retained

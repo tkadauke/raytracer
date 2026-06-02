@@ -155,7 +155,12 @@ The **stream-based** API is `stream()`: it returns a
 demand. `next2D()` returns the next 2D sample and `next1D()`
 returns the next 1D sample; subsequent calls within the same
 pixel pull additional dimensions from *independent* sample sets,
-so the stream's outputs don't correlate. Thin-lens cameras
+so the stream's outputs don't correlate. `primarySample()` is the
+renderer-owned convenience read for the first two dimensions:
+sub-pixel jitter and shutter time. Its default implementation is
+exactly `next2D()` followed by `next1D()`, while built-in
+sampler-backed streams override it so batch renderers can extract the
+primary-ray pair with one virtual dispatch. Thin-lens cameras
 ([Cameras: Thin-lens: depth of field](cameras.md#thin-lens-depth-of-field))
 need this — they consume one dimension for the pixel offset and
 *another* dimension for the lens-disc sample, and using
@@ -216,8 +221,10 @@ Batch renderers that need streams to outlive primary-ray generation
 can call `Sampler::appendStream(storage, sampleIndex, pixelHash)`.
 Built-in samplers append `SamplerSampleStream` objects to caller-owned
 `SampleStreamStorage`, avoiding one heap allocation per retained
-sample in wavefront tiles, while custom sampler subclasses still keep
-their overridden `stream()` behavior through the owning fallback path.
+sample in wavefront tiles. Those streams also override
+`primarySample()` for the renderer-owned pixel/time pair, while custom
+sampler subclasses still keep their overridden `stream()` behavior
+through the owning fallback path.
 
 This is foundation API, not a completed path tracer. The shipped
 renderer currently consumes pixel, time, and lens dimensions for

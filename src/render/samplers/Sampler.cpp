@@ -38,6 +38,13 @@ namespace render {
     return set[m_sampleIndex].x();
   }
 
+  SampleStream::PrimarySample SamplerSampleStream::primarySample() {
+    const auto& pixelSet = sampleSetForDimension(m_dim);
+    const auto& timeSet = sampleSetForDimension(m_dim + 1);
+    m_dim += 2;
+    return SampleStream::PrimarySample{pixelSet[m_sampleIndex], timeSet[m_sampleIndex].x()};
+  }
+
   Vector2d SamplerSampleStream::sample2D(SampleDimension dimension, std::uint64_t index) {
     return sampleSetForDimension(sampleDimensionIndex(dimension, index))[m_sampleIndex];
   }

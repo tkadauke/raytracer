@@ -77,6 +77,11 @@ namespace render {
     */
   class SampleStream {
   public:
+    struct PrimarySample {
+      Vector2d pixel;
+      double time{0.0};
+    };
+
     virtual ~SampleStream() = default;
 
     /**
@@ -105,6 +110,16 @@ namespace render {
       *  - Russian-roulette decisions in a path tracer
       */
     virtual double next1D() = 0;
+
+    /**
+      * Pull the renderer-owned primary-ray dimensions as one operation:
+      * sub-pixel jitter followed by shutter time. The default preserves the
+      * legacy sequential cursor behavior; sampler-backed streams can override
+      * it to avoid multiple virtual dispatches in wavefront batch setup.
+      */
+    virtual PrimarySample primarySample() {
+      return PrimarySample{next2D(), next1D()};
+    }
 
     /**
       * Pull a 2D sample from a named dimension without advancing the
