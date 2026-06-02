@@ -67,6 +67,18 @@ namespace RenderGraphInspectorWidgetTest {
     return false;
   }
 
+  bool nodeLineTooltipContains(QGraphicsItem* node, const QString& text) {
+    if (!node)
+      return false;
+
+    for (QGraphicsItem* child : node->childItems()) {
+      auto* label = dynamic_cast<QGraphicsSimpleTextItem*>(child);
+      if (label && label->toolTip().contains(text))
+        return true;
+    }
+    return false;
+  }
+
   RenderPlan simplePlan() {
     RenderPlan plan;
 
@@ -205,6 +217,25 @@ namespace RenderGraphInspectorWidgetTest {
   std::shared_ptr<const RenderGraphExecutionTrace> rasterTrace() {
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({24, 24, 1}, intent));
+
+    Buffer<unsigned int> buffer(24, 24);
+    engine.render(buffer);
+    return engine.lastExecutionTrace();
+  }
+
+  std::shared_ptr<const RenderGraphExecutionTrace> wavefrontTrace() {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setSamplesPerPixel(4);
+    intent.engineOptions.raytracer().setConvergenceEnabled(true);
+    intent.engineOptions.raytracer().setConvergenceActiveSampleFractionThreshold(1.0);
+    intent.engineOptions.raytracer().setConvergenceRadianceDeltaRmsThreshold(10.0);
 
     RenderGraphCompiler compiler;
     GraphRenderEngine engine(camera(), highContrastScene());
@@ -593,6 +624,26 @@ namespace RenderGraphInspectorWidgetTest {
 
     EXPECT_TRUE(nodeTextContains(pass, QStringLiteral("completed")));
     EXPECT_TRUE(nodeTextContains(resource, QStringLiteral("trace: color")));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldExposeWavefrontPacketWidthSummaryOnGraphNode) {
+    auto trace = wavefrontTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+
+    QGraphicsItem* pass = graphNodeItem(graph->scene(), "pass", "wavefront_beauty");
+    ASSERT_NE(nullptr, pass);
+
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("packets")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("Ray8")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("Ray4")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowRasterMetricsOnSelectedPassRow) {
