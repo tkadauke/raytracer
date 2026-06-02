@@ -591,6 +591,18 @@ from 336446 to 336002 (~0.13%). Phase 4 still needs threshold/policy work that
 cuts meaningful sample-depth work before convergence can be counted as a
 speedup.
 
+A short 160x120, max-depth-8, repeat-2 `reflection_whitted` threshold sweep
+confirmed that the stock reflection scene is also weak convergence-policy
+evidence. Conservative thresholds (`0.05` / `0.002`) and looser `0.25` or
+`0.50` active-fraction thresholds with RMS `0.005` saved no active
+sample-depth work at all (`62959` vs. `62959`). A very loose `1.00` / `0.002`
+run stopped two tiles after depth 1 and saved only `960 / 62959` sample-depths
+(~1.5%), while the image delta jumped to `rms_delta=0.0697127363`,
+`max_delta=0.8117647059`, and `647` differing pixels. That rules out simply
+loosening the Whitted convergence defaults on this scene; the next useful work
+is still scheduler/intersection cost or a better multi-depth convergence
+fixture.
+
 A follow-up 160x120, 16spp, max-depth-16 `pathtracer_bounce` threshold sweep
 with 300 tiles showed the same tradeoff:
 
