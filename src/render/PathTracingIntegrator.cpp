@@ -636,6 +636,7 @@ namespace render {
       if (metrics) {
         metrics->recordRadianceDeltaDepth(depthMetrics.depthDeltaSquaredSum,
                                           depthMetrics.depthMaxDelta);
+        metrics->recordRetainedActiveDepth(retainedPathCount);
       }
 
       IntegratorBatchFeedback feedback;

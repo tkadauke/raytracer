@@ -67,6 +67,7 @@ namespace engine::wavefront {
       std::uint64_t activeSampleDepthsProcessed = 0;
       std::uint64_t compatibilityShadeSamples = 0;
       std::vector<std::uint64_t> activeSamplesPerDepth;
+      std::vector<std::uint64_t> retainedActiveSamplesPerDepth;
       std::vector<std::uint64_t> frontierRayHitsPerDepth;
       std::vector<std::uint64_t> frontierRayMissesPerDepth;
       std::vector<std::uint64_t> frontierPacketChunksPerDepth;

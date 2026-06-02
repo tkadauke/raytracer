@@ -672,6 +672,9 @@ namespace render {
 
       const std::uint64_t nextActiveSampleCount =
         countNextActiveSamples ? nextActiveSampleIndices.size() : next.size();
+      if (metrics) {
+        metrics->recordRetainedActiveDepth(nextActiveSampleCount);
+      }
       IntegratorBatchFeedback feedback;
       if (settings.progressObserver) {
         core::util::ScopedTimer timer(metrics ? &metrics->progressSnapshotWorkerSeconds : nullptr);

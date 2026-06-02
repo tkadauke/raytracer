@@ -164,6 +164,8 @@ namespace {
       const QJsonObject convergence = metrics.value("convergence").toObject();
       const QJsonObject denoise = metrics.value("denoise").toObject();
       const QJsonArray activeSamples = batching.value("activeSamplesPerDepth").toArray();
+      const QJsonArray retainedActiveSamples =
+        batching.value("retainedActiveSamplesPerDepth").toArray();
       const QJsonArray frontierHits = batching.value("frontierRayHitsPerDepth").toArray();
       const QJsonArray frontierMisses = batching.value("frontierRayMissesPerDepth").toArray();
       const QJsonArray frontierPackets = batching.value("frontierPacketChunksPerDepth").toArray();
@@ -246,6 +248,7 @@ namespace {
         << " max_batch=" << unsignedValue(batching, "maxBatchSize")
         << " active_depths=" << activeSamples.size()
         << " last_active=" << unsignedArrayBack(activeSamples)
+        << " last_retained_active=" << unsignedArrayBack(retainedActiveSamples)
         << " frontier_hit_rays=" << unsignedArraySum(frontierHits)
         << " frontier_miss_rays=" << unsignedArraySum(frontierMisses)
         << " frontier_packet_chunks=" << unsignedArraySum(frontierPackets)

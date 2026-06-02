@@ -1806,6 +1806,16 @@ if(NOT wavefront_metrics_json MATCHES "\"activeSampleDepthsProcessed\"")
                   "wavefront metrics report did not contain active sample-depth work"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+if(NOT wavefront_metrics_json MATCHES "\"retainedActiveSamplesPerDepth\"")
+  _rendercli_fail("rendercli wavefront metrics retained active samples"
+                  "wavefront metrics report did not contain retained active sample counts"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "last_retained_active=")
+  _rendercli_fail("rendercli wavefront metrics retained active summary"
+                  "wavefront metrics summary did not contain last_retained_active"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 foreach(tiling_field
         tileRows
         tileColumns

@@ -799,6 +799,7 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1u, metrics.stoppedAfterDepth);
     ASSERT_EQ(1u, metrics.activeSamplesPerDepth.size());
     EXPECT_EQ(2u, metrics.activeSamplesPerDepth[0]);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.retainedActiveSamplesPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.frontierRayHitsPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
@@ -832,6 +833,7 @@ namespace PathTracingIntegratorTest {
     EXPECT_TRUE(metrics.stoppedByConvergence);
     EXPECT_EQ(1u, metrics.stoppedAfterDepth);
     EXPECT_EQ(1u, metrics.observerConvergenceFeedbackDepths);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.retainedActiveSamplesPerDepth);
     ASSERT_EQ(1u, observer.completedDepths.size());
     EXPECT_EQ(1u, observer.completedDepths[0]);
   }

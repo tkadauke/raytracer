@@ -123,6 +123,7 @@ namespace WavefrontRaytracerTest {
       if (metrics) {
         metrics->reset(/*scalarFallback=*/false);
         metrics->recordActiveDepth(samples.size());
+        metrics->recordRetainedActiveDepth(samples.size());
         metrics->recordFrontierIntersections(samples.size(), 0);
         if (m_state) {
           ++m_state->batchesWithMetrics;
@@ -627,6 +628,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(0u, metrics.batching.compatibilityShadeSamples);
     ASSERT_EQ(1u, metrics.batching.activeSamplesPerDepth.size());
     EXPECT_EQ(48u, metrics.batching.activeSamplesPerDepth[0]);
+    ASSERT_EQ(1u, metrics.batching.retainedActiveSamplesPerDepth.size());
+    EXPECT_EQ(0u, metrics.batching.retainedActiveSamplesPerDepth[0]);
     ASSERT_EQ(1u, metrics.batching.frontierRayHitsPerDepth.size());
     ASSERT_EQ(1u, metrics.batching.frontierRayMissesPerDepth.size());
     EXPECT_EQ(48u, metrics.batching.frontierRayHitsPerDepth[0] +
@@ -696,6 +699,10 @@ namespace WavefrontRaytracerTest {
       json.value("batching").toObject().value("activeSamplesPerDepth").toArray();
     ASSERT_EQ(1, activeSamples.size());
     EXPECT_EQ(48.0, activeSamples.at(0).toDouble());
+    const QJsonArray retainedActiveSamples =
+      json.value("batching").toObject().value("retainedActiveSamplesPerDepth").toArray();
+    ASSERT_EQ(1, retainedActiveSamples.size());
+    EXPECT_EQ(0.0, retainedActiveSamples.at(0).toDouble());
     const QJsonArray frontierHits =
       json.value("batching").toObject().value("frontierRayHitsPerDepth").toArray();
     const QJsonArray frontierMisses =

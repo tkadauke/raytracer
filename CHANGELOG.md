@@ -277,6 +277,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   compact summaries, and convergence capture summaries now report maximum and
   average tile pixel area beside the tile grid, making queue-size/tile-size
   tuning less dependent on manual resolution math. — GPT-5
+- **Wavefront retained-active diagnostics.** Wavefront metrics now report
+  retained active samples after each depth, and rendercli/capture summaries
+  surface the final retained count used by the convergence stop policy.
+  — GPT-5
 - **Wavefront metrics opt-in setup.** Wavefront renders now clear stale metrics
   and skip full metrics initialization when metrics are disabled, so ordinary
   final-image renders avoid more of the diagnostics path. — GPT-5

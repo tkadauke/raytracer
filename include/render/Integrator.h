@@ -55,9 +55,11 @@ namespace render {
     double progressSnapshotWorkerSeconds{0.0};
     double convergenceTestWorkerSeconds{0.0};
     std::uint64_t observerConvergenceFeedbackDepths{0};
+    std::vector<std::uint64_t> retainedActiveSamplesPerDepth;
 
     void reset(bool scalarFallback);
     void recordActiveDepth(std::uint64_t activeSamples);
+    void recordRetainedActiveDepth(std::uint64_t activeSamples);
     void recordFrontierIntersections(std::uint64_t hitRays, std::uint64_t missRays);
     void recordFrontierTraversal(std::uint64_t packetChunks, std::uint64_t packetRays,
                                  std::uint64_t ray4PacketChunks, std::uint64_t ray8PacketChunks,

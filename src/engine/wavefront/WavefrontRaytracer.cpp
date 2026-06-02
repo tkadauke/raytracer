@@ -81,6 +81,7 @@ namespace engine::wavefront {
       }
     };
     addCounts(activeSamplesPerDepth, metrics.activeSamplesPerDepth);
+    addCounts(retainedActiveSamplesPerDepth, metrics.retainedActiveSamplesPerDepth);
     addCounts(frontierRayHitsPerDepth, metrics.frontierRayHitsPerDepth);
     addCounts(frontierRayMissesPerDepth, metrics.frontierRayMissesPerDepth);
     addCounts(frontierPacketChunksPerDepth, metrics.frontierPacketChunksPerDepth);
@@ -160,6 +161,8 @@ namespace engine::wavefront {
       return result;
     };
     const QJsonArray activeSamplesPerDepth = integerArray(batching.activeSamplesPerDepth);
+    const QJsonArray retainedActiveSamplesPerDepth =
+      integerArray(batching.retainedActiveSamplesPerDepth);
     const QJsonArray frontierRayHitsPerDepth = integerArray(batching.frontierRayHitsPerDepth);
     const QJsonArray frontierRayMissesPerDepth = integerArray(batching.frontierRayMissesPerDepth);
     const QJsonArray frontierPacketChunksPerDepth =
@@ -210,6 +213,7 @@ namespace engine::wavefront {
     batchingJson["compatibilityShadeSamples"] =
       static_cast<double>(batching.compatibilityShadeSamples);
     batchingJson["activeSamplesPerDepth"] = activeSamplesPerDepth;
+    batchingJson["retainedActiveSamplesPerDepth"] = retainedActiveSamplesPerDepth;
     batchingJson["frontierRayHitsPerDepth"] = frontierRayHitsPerDepth;
     batchingJson["frontierRayMissesPerDepth"] = frontierRayMissesPerDepth;
     batchingJson["frontierPacketChunksPerDepth"] = frontierPacketChunksPerDepth;

@@ -751,7 +751,10 @@ rendercli's compact metrics summary prints total frontier hit/miss rays. That
 adds a baseline diagnostic for the next scheduler/intersection slices: captures
 can now distinguish "we spent time testing many rays that missed" from "the
 frontier is still mostly shading-visible geometry" before changing traversal
-policy. The convergence capture script now includes those same median
+policy. Metrics also publish retained active sample counts after each depth, so
+Phase 4 tuning can inspect the exact active-fraction input used by the
+convergence stop policy instead of deriving it indirectly from shifted active
+depth arrays. The convergence capture script now includes those same median
 frontier-hit/frontier-miss totals in its work comparison files, so performance
 captures retain the diagnostic alongside active sample-depth savings.
 A 160x120, max-depth-5 `bvh_whitted` capture with metrics enabled showed the
@@ -1051,9 +1054,10 @@ capture across multiple queue sizes and writes each result under a separate
 `queue_<size>` output directory, so tile-count defaults can be compared without
 hand-editing the script or overwriting earlier captures. Queue sweeps also
 write a per-scene `queue_sweep.summary.txt` with median render time, primary
-samples, tile load, Ray8/Ray4 packet chunks, packet-fill ratio, scalar-tail
-fraction, packet-fallback fraction, raw scalar tails, packet fallback lanes,
-and worker-time buckets for each queue/variant pair. The sweep list accepts
+samples, final retained-active counts, tile load, Ray8/Ray4 packet chunks,
+packet-fill ratio, scalar-tail fraction, packet-fallback fraction, raw scalar
+tails, packet fallback lanes, and worker-time buckets for each queue/variant
+pair. The sweep list accepts
 `auto`/`default` as entries too, so captures can include the shipped automatic
 ray-family queue policy beside explicit queue-size candidates.
 rendercli's compact wavefront metrics line now prints those same derived

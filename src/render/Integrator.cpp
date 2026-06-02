@@ -29,6 +29,7 @@ namespace render {
     frontierPacketRefinedRaysPerDepth.clear();
     frontierPacketRefinedRaysByMaterial.clear();
     activeSampleDepthsProcessed = 0;
+    retainedActiveSamplesPerDepth.clear();
     radianceDeltaSquaredSumPerDepth.clear();
     maxRadianceDeltaPerDepth.clear();
     compatibilityShadeSamples = 0;
@@ -46,6 +47,10 @@ namespace render {
   void IntegratorBatchMetrics::recordActiveDepth(std::uint64_t activeSamples) {
     activeSamplesPerDepth.push_back(activeSamples);
     activeSampleDepthsProcessed += activeSamples;
+  }
+
+  void IntegratorBatchMetrics::recordRetainedActiveDepth(std::uint64_t activeSamples) {
+    retainedActiveSamplesPerDepth.push_back(activeSamples);
   }
 
   void IntegratorBatchMetrics::recordFrontierIntersections(std::uint64_t hitRays,
@@ -115,6 +120,7 @@ namespace render {
     if (!samples.empty()) {
       if (metrics) {
         metrics->recordActiveDepth(samples.size());
+        metrics->recordRetainedActiveDepth(0);
         metrics->recordRadianceDeltaDepth(deltaSquaredSum, maxDelta);
       }
       if (settings.progressObserver) {

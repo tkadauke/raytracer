@@ -379,6 +379,7 @@ namespace WhittedIntegratorTest {
     EXPECT_TRUE(metrics.stoppedByConvergence);
     EXPECT_EQ(1u, metrics.stoppedAfterDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.retainedActiveSamplesPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierRayHitsPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(1u, metrics.activeSampleDepthsProcessed);
@@ -413,6 +414,7 @@ namespace WhittedIntegratorTest {
     EXPECT_TRUE(metrics.stoppedByConvergence);
     EXPECT_EQ(1u, metrics.stoppedAfterDepth);
     EXPECT_EQ(1u, metrics.observerConvergenceFeedbackDepths);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.retainedActiveSamplesPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), observer.completedDepths);
   }
 

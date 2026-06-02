@@ -1711,6 +1711,10 @@ namespace GraphRenderEngineTest {
     const QJsonArray activeSamples = batching.value("activeSamplesPerDepth").toArray();
     ASSERT_GE(activeSamples.size(), 1);
     EXPECT_EQ(1024.0, activeSamples.at(0).toDouble());
+    const QJsonArray retainedActiveSamples =
+      batching.value("retainedActiveSamplesPerDepth").toArray();
+    ASSERT_GE(retainedActiveSamples.size(), 1);
+    EXPECT_LE(retainedActiveSamples.at(0).toDouble(), activeSamples.at(0).toDouble());
     const QJsonArray frontierHits = batching.value("frontierRayHitsPerDepth").toArray();
     const QJsonArray frontierMisses = batching.value("frontierRayMissesPerDepth").toArray();
     ASSERT_GE(frontierHits.size(), 1);
