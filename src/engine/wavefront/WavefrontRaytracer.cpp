@@ -119,6 +119,14 @@ namespace engine::wavefront {
       featureJson["normal"] = denoise.normalFeature;
       featureJson["depth"] = denoise.depthFeature;
       denoiseJson["features"] = featureJson;
+
+      QJsonObject featurePrepassJson;
+      featurePrepassJson["tileCount"] = static_cast<double>(denoise.featureTileCount);
+      featurePrepassJson["completedTileCount"] =
+        static_cast<double>(denoise.completedFeatureTileCount);
+      featurePrepassJson["pixels"] = static_cast<double>(denoise.featurePixels);
+      featurePrepassJson["seconds"] = denoise.featureSeconds;
+      denoiseJson["featurePrepass"] = featurePrepassJson;
     }
 
     QJsonObject convergenceJson;
@@ -156,6 +164,7 @@ namespace engine::wavefront {
 
     std::unique_ptr<QThreadPool> threadPool;
     std::list<std::shared_ptr<engine::TileRenderTask>> tasks;
+    std::list<std::shared_ptr<engine::TileRenderTask>> denoiserFeatureTasks;
     int queueSize;
     std::unique_ptr<render::Integrator> integrator;
     std::unique_ptr<render::Denoiser> denoiser;
@@ -233,6 +242,7 @@ namespace engine::wavefront {
     }
 
     p->tasks.clear();
+    p->denoiserFeatureTasks.clear();
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();
@@ -253,9 +263,8 @@ namespace engine::wavefront {
                      p->convergenceActiveSampleFractionThreshold,
                      p->convergenceRadianceDeltaRmsThreshold);
     auto tileRenderer = p->tileRenderer();
-    std::list<std::shared_ptr<engine::TileRenderTask>> featureTasks;
     const auto denoiserFeatures = tileRenderer.buildDenoiserFeatures(
-      *m_camera, *m_scene, buffer.rect(), tilePlan, *p->threadPool, featureTasks);
+      *m_camera, *m_scene, buffer.rect(), tilePlan, *p->threadPool, p->denoiserFeatureTasks);
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
     const auto samplingSeed = p->samplingSeed;
     engine::dispatchTileTasks(
@@ -290,6 +299,7 @@ namespace engine::wavefront {
     }
 
     p->tasks.clear();
+    p->denoiserFeatureTasks.clear();
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();
@@ -343,6 +353,7 @@ namespace engine::wavefront {
     }
 
     p->tasks.clear();
+    p->denoiserFeatureTasks.clear();
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();
@@ -364,9 +375,9 @@ namespace engine::wavefront {
                      p->convergenceActiveSampleFractionThreshold,
                      p->convergenceRadianceDeltaRmsThreshold);
     auto tileRenderer = p->tileRenderer();
-    std::list<std::shared_ptr<engine::TileRenderTask>> featureTasks;
     const auto denoiserFeatures = tileRenderer.buildDenoiserFeatures(
-      *m_camera, *m_scene, hdrBuffer.rect(), tilePlan, *p->threadPool, featureTasks);
+      *m_camera, *m_scene, hdrBuffer.rect(), tilePlan, *p->threadPool,
+      p->denoiserFeatureTasks);
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
     const auto samplingSeed = p->samplingSeed;
     engine::dispatchTileTasks(
@@ -404,6 +415,11 @@ namespace engine::wavefront {
 
   std::list<Recti> WavefrontRaytracer::activeTiles() const {
     std::list<Recti> result;
+    for (const auto& task : p->denoiserFeatureTasks) {
+      if (task->active.load(std::memory_order_acquire)) {
+        result.push_back(task->rect);
+      }
+    }
     for (const auto& task : p->tasks) {
       if (task->active.load(std::memory_order_acquire)) {
         result.push_back(task->rect);

@@ -53,6 +53,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront denoised progress snapshots.** Denoiser-enabled wavefront renders
   now filter depth-progress tile snapshots before publishing preview updates,
   so progressive display better matches the final filtered image. — GPT-5
+- **Wavefront denoiser prepass progress.** Denoiser-enabled wavefront previews
+  now report active feature-prepass tiles and graph trace metadata separates
+  denoiser feature-prepass tile counts from beauty tile progress. — GPT-5
 
 ### Changed
 

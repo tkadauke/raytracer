@@ -78,6 +78,9 @@ namespace engine::wavefront {
       bool albedoFeature = false;
       bool normalFeature = false;
       bool depthFeature = false;
+      std::uint64_t featureTileCount = 0;
+      std::uint64_t completedFeatureTileCount = 0;
+      std::uint64_t featurePixels = 0;
       double featureSeconds = 0.0;
       double seconds = 0.0;
     } denoise;

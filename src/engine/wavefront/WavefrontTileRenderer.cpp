@@ -382,8 +382,9 @@ namespace engine::wavefront::detail {
           renderSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*renderSeed, tileIndex))
             : std::nullopt;
-        buildDenoiserFeatureTile(*features, camera, scene, camera.renderableRect(tileRect),
-                                 tileSeed);
+        const Recti actualRect = camera.renderableRect(tileRect);
+        buildDenoiserFeatureTile(*features, camera, scene, actualRect, tileSeed);
+        m_metrics.recordDenoiserFeatureTile(actualRect);
       });
     m_metrics.recordDenoiserFeatureSeconds(featureStart);
     return features;
