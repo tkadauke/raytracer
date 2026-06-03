@@ -270,6 +270,36 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(0u, metrics.compatibilityShadeSamples);
   }
 
+  TEST(PathTracingIntegrator, BatchedRadianceCancellationPreservesAccumulatedContribution) {
+    const Colord diffuse(0.6, 0.3, 0.2);
+    auto scene = simpleMatteScene(0.0, diffuse);
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(8);
+
+    int cancellationChecks = 0;
+    integrator.setCancellationCallback([&cancellationChecks] {
+      ++cancellationChecks;
+      return cancellationChecks >= 2;
+    });
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 11ull)});
+
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster, &metrics);
+
+    ASSERT_EQ(1u, batched.size());
+    ASSERT_COLOR_NEAR(Colord(diffuse.r() / M_PI, diffuse.g() / M_PI, diffuse.b() / M_PI),
+                      batched[0], 1e-4);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
+    ASSERT_EQ(2u, metrics.radianceDeltaSquaredSumPerDepth.size());
+    EXPECT_EQ(0.0, metrics.radianceDeltaSquaredSumPerDepth[1]);
+    EXPECT_EQ(2, cancellationChecks);
+  }
+
   TEST(PathTracingIntegrator, BatchedRadianceRecordsCompatibilityMaterialFallbacks) {
     auto scene = unsupportedMaterialScene();
     PathTracingIntegrator integrator;

@@ -255,7 +255,6 @@ namespace render {
         };
 
         if (isCancelled()) {
-          path.accumulated = scene.background();
           path.active = false;
           recordDepthDelta();
           continue;
