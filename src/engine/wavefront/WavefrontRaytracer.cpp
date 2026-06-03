@@ -2,20 +2,18 @@
 
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
-#include "core/math/HitPointInterval.h"
 #include "core/util/BufferUtils.h"
 #include "engine/TileRenderTask.h"
+#include "engine/wavefront/detail/WavefrontMetricsRecorder.h"
+#include "engine/wavefront/detail/WavefrontTileRenderer.h"
 #include "render/Integrator.h"
 #include "render/RayCaster.h"
 #include "render/SamplingSeed.h"
-#include "render/State.h"
 #include "render/Stats.h"
 #include "render/TilePlan.h"
 #include "render/WhittedIntegrator.h"
 #include "render/cameras/Camera.h"
 #include "render/denoise/Denoiser.h"
-#include "render/materials/Material.h"
-#include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 #include "render/tonemap/Tonemap.h"
 
@@ -25,19 +23,13 @@
 #include <QThread>
 #include <QThreadPool>
 
-#include <algorithm>
-#include <chrono>
 #include <cmath>
-#include <functional>
 #include <iostream>
-#include <mutex>
 #include <stdexcept>
 #include <utility>
 
 namespace engine::wavefront {
   namespace {
-    using WavefrontClock = std::chrono::steady_clock;
-
     class RecursiveRayCasterAdapter : public render::RayCaster {
     public:
       RecursiveRayCasterAdapter(const render::Scene& scene, const render::Integrator& integrator)
@@ -173,524 +165,20 @@ namespace engine::wavefront {
     double convergenceRadianceDeltaRmsThreshold;
     std::optional<int> maximumRecursionDepth;
     std::optional<std::uint64_t> samplingSeed;
-    mutable WavefrontRenderMetrics lastMetrics;
-    mutable std::mutex metricsMutex;
+    detail::WavefrontMetricsRecorder metrics;
 
-    struct TilePixel {
-      Recti footprint;
-      Colord color{Colord::black()};
-    };
-
-    struct TileTraceResult {
-      std::vector<TilePixel> pixels;
-      std::size_t sampleCount{0};
-      render::IntegratorBatchMetrics batchMetrics;
-    };
-
-    using TileProgressPublisher = std::function<void(const std::vector<TilePixel>&)>;
-
-    struct DenoiserFeatureSet {
-      explicit DenoiserFeatureSet(int width, int height)
-          : albedo(width, height),
-            normal(width, height),
-            depth(width, height) {
-        albedo.clear(Colord::black());
-        normal.clear(Vector3d::null);
-        depth.clear(0.0);
-      }
-
-      Buffer<Colord> albedo;
-      Buffer<Vector3d> normal;
-      Buffer<double> depth;
-    };
-
-    class TileProgressObserver final : public render::IntegratorBatchObserver {
-    public:
-      TileProgressObserver(std::vector<TilePixel>& pixels,
-                           const std::vector<std::size_t>& samplePixelIndices, double sampleScale,
-                           TileProgressPublisher publisher)
-          : m_pixels(pixels),
-            m_samplePixelIndices(samplePixelIndices),
-            m_sampleScale(sampleScale),
-            m_publisher(std::move(publisher)) {
-      }
-
-      void depthCompleted(std::uint64_t completedDepth, const std::vector<Colord>& sampleColors,
-                          std::uint64_t activeSamples) override {
-        (void)completedDepth;
-        (void)activeSamples;
-        if (!m_publisher) {
-          return;
-        }
-
-        applySampleColors(sampleColors);
-        m_publisher(m_pixels);
-      }
-
-      void applySampleColors(const std::vector<Colord>& sampleColors) const {
-        for (auto& pixel : m_pixels) {
-          pixel.color = Colord::black();
-        }
-
-        const std::size_t count = std::min(sampleColors.size(), m_samplePixelIndices.size());
-        for (std::size_t index = 0; index != count; ++index) {
-          const std::size_t pixelIndex = m_samplePixelIndices[index];
-          if (pixelIndex < m_pixels.size()) {
-            m_pixels[pixelIndex].color += sampleColors[index] * m_sampleScale;
-          }
-        }
-      }
-
-    private:
-      std::vector<TilePixel>& m_pixels;
-      const std::vector<std::size_t>& m_samplePixelIndices;
-      double m_sampleScale;
-      TileProgressPublisher m_publisher;
-    };
-
-    render::IntegratorBatchSettings batchSettings() const {
-      render::IntegratorBatchSettings settings;
-      settings.convergenceEnabled = convergenceEnabled;
-      settings.activeSampleFractionThreshold = convergenceActiveSampleFractionThreshold;
-      settings.radianceDeltaRmsThreshold = convergenceRadianceDeltaRmsThreshold;
-      return settings;
+    detail::WavefrontTileRenderConfig tileRenderConfig() const {
+      return detail::WavefrontTileRenderConfig{*integrator,
+                                               denoiser.get(),
+                                               showProgressIndicators,
+                                               convergenceEnabled,
+                                               convergenceActiveSampleFractionThreshold,
+                                               convergenceRadianceDeltaRmsThreshold,
+                                               samplingSeed};
     }
 
-    TileTraceResult traceTile(render::Camera& camera, const render::RayCaster& rayCaster,
-                              const render::Scene& scene, const Recti& actualRect,
-                              std::optional<std::uint64_t> tileSeed,
-                              const std::function<void(const Recti&)>& markProgress,
-                              TileProgressPublisher publishProgress) const {
-      TileTraceResult result;
-      std::vector<render::IntegratorRaySample> samples;
-      std::vector<std::size_t> samplePixelIndices;
-      const int sampleCount = camera.samplesPerPixel();
-
-      auto plane = camera.viewPlane();
-      for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
-                                       end = plane->end(actualRect);
-           pixel != end; ++pixel) {
-        if (camera.isCancelled())
-          break;
-
-        const std::size_t pixelIndex = result.pixels.size();
-        const Recti footprint = pixel.footprintWithin(actualRect);
-        if (showProgressIndicators) {
-          markProgress(footprint);
-        }
-        result.pixels.push_back(TilePixel{footprint, Colord::black()});
-
-        for (int sampleIndex = 0; sampleIndex != sampleCount; ++sampleIndex) {
-          if (camera.isCancelled())
-            break;
-
-          if (auto sample = camera.primaryRaySample(pixel, sampleIndex, tileSeed)) {
-            samples.push_back(
-              render::IntegratorRaySample{sample->ray, sample->timeSample, sample->sampleStream});
-            samplePixelIndices.push_back(pixelIndex);
-          }
-        }
-      }
-
-      const double sampleScale = sampleCount > 0 ? 1.0 / sampleCount : 0.0;
-      TileProgressObserver progressObserver(result.pixels, samplePixelIndices, sampleScale,
-                                            std::move(publishProgress));
-      render::IntegratorBatchSettings settings = batchSettings();
-      settings.progressObserver = samples.empty() ? nullptr : &progressObserver;
-
-      const std::vector<Colord> sampleColors =
-        integrator->radianceBatch(scene, samples, rayCaster, &result.batchMetrics, settings);
-      progressObserver.applySampleColors(sampleColors);
-      result.sampleCount = samples.size();
-      return result;
-    }
-
-    void writeColor(Buffer<Colord>& buffer, const Recti& footprint, const Colord& color) const {
-      for (int y = footprint.top(); y != footprint.bottom(); ++y)
-        for (int x = footprint.left(); x != footprint.right(); ++x)
-          buffer[y][x] = color;
-    }
-
-    void writeRGB(Buffer<unsigned int>& buffer, const Recti& footprint, unsigned int rgb) const {
-      for (int y = footprint.top(); y != footprint.bottom(); ++y)
-        for (int x = footprint.left(); x != footprint.right(); ++x)
-          buffer[y][x] = rgb;
-    }
-
-    void writeDisplayBuffer(Buffer<unsigned int>& displayBuffer, const Buffer<Colord>& hdrBuffer,
-                            std::shared_ptr<render::Tonemap> tonemap) const {
-      for (int y = 0; y != hdrBuffer.height(); ++y) {
-        for (int x = 0; x != hdrBuffer.width(); ++x) {
-          displayBuffer[y][x] = (tonemap ? tonemap->apply(hdrBuffer[y][x]) : hdrBuffer[y][x]).rgb();
-        }
-      }
-    }
-
-    void denoise(Buffer<Colord>& buffer, const DenoiserFeatureSet* features = nullptr) const {
-      if (!denoiser) {
-        return;
-      }
-
-      const auto denoiseStart = WavefrontClock::now();
-      render::DenoiserFrame frame(buffer);
-      if (features) {
-        frame.features.albedo = &features->albedo;
-        frame.features.normal = &features->normal;
-        frame.features.depth = &features->depth;
-      }
-      denoiser->denoiseFrame(frame);
-      const double seconds =
-        std::chrono::duration<double>(WavefrontClock::now() - denoiseStart).count();
-      std::lock_guard<std::mutex> lock(metricsMutex);
-      lastMetrics.denoise.albedoFeature = frame.features.albedo != nullptr;
-      lastMetrics.denoise.normalFeature = frame.features.normal != nullptr;
-      lastMetrics.denoise.depthFeature = frame.features.depth != nullptr;
-      lastMetrics.denoise.seconds += seconds;
-    }
-
-    void writeDenoiserFeature(DenoiserFeatureSet& features, const Recti& footprint,
-                              const Colord& albedo, const Vector3d& normal, double depth) const {
-      for (int y = footprint.top(); y != footprint.bottom(); ++y) {
-        for (int x = footprint.left(); x != footprint.right(); ++x) {
-          features.albedo[y][x] = albedo;
-          features.normal[y][x] = normal;
-          features.depth[y][x] = depth;
-        }
-      }
-    }
-
-    void recordDenoiserFeatureSeconds(WavefrontClock::time_point start) const {
-      const double seconds = std::chrono::duration<double>(WavefrontClock::now() - start).count();
-      std::lock_guard<std::mutex> lock(metricsMutex);
-      lastMetrics.denoise.featureSeconds += seconds;
-    }
-
-    void buildDenoiserFeatureTile(DenoiserFeatureSet& features, render::Camera& camera,
-                                  const render::Scene& scene, const Recti& actualRect,
-                                  std::optional<std::uint64_t> tileSeed) const {
-      if (actualRect.width() <= 0 || actualRect.height() <= 0) {
-        return;
-      }
-
-      auto plane = camera.viewPlane();
-      for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
-                                       end = plane->end(actualRect);
-           pixel != end; ++pixel) {
-        if (camera.isCancelled()) {
-          break;
-        }
-
-        const auto sample = camera.primaryRaySample(pixel, /*sampleIndex=*/0, tileSeed);
-        if (!sample) {
-          continue;
-        }
-
-        render::State state;
-        state.timeSample = sample->timeSample;
-        state.sampleStream = sample->sampleStream.get();
-        HitPointInterval hitPoints;
-        const render::Primitive* primitive = scene.intersect(sample->ray, hitPoints, state);
-        if (!primitive) {
-          continue;
-        }
-
-        const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
-        Colord albedo = Colord::black();
-        if (const auto material = primitive->material()) {
-          albedo = material->denoisingAlbedo(sample->ray, hitPoint);
-        }
-        writeDenoiserFeature(features, pixel.footprintWithin(actualRect), albedo,
-                             hitPoint.normal().normalizedOrZero(1e-12), hitPoint.distance());
-      }
-    }
-
-    void copyDenoiserFeatureTile(const DenoiserFeatureSet& source, DenoiserFeatureSet& target,
-                                 const Recti& actualRect) const {
-      for (int y = actualRect.top(); y != actualRect.bottom(); ++y) {
-        for (int x = actualRect.left(); x != actualRect.right(); ++x) {
-          const int tileX = x - actualRect.left();
-          const int tileY = y - actualRect.top();
-          if (x >= 0 && y >= 0 && x < source.albedo.width() && y < source.albedo.height()) {
-            target.albedo[tileY][tileX] = source.albedo[y][x];
-            target.normal[tileY][tileX] = source.normal[y][x];
-            target.depth[tileY][tileX] = source.depth[y][x];
-          }
-        }
-      }
-    }
-
-    Colord averageFootprintColor(const Buffer<Colord>& buffer, const Recti& footprint,
-                                 const Recti& actualRect) const {
-      Colord sum = Colord::black();
-      int count = 0;
-      for (int y = footprint.top(); y != footprint.bottom(); ++y) {
-        for (int x = footprint.left(); x != footprint.right(); ++x) {
-          const int tileX = x - actualRect.left();
-          const int tileY = y - actualRect.top();
-          if (tileX >= 0 && tileY >= 0 && tileX < buffer.width() && tileY < buffer.height()) {
-            sum += buffer[tileY][tileX];
-            ++count;
-          }
-        }
-      }
-      return count > 0 ? sum * (1.0 / static_cast<double>(count)) : Colord::black();
-    }
-
-    std::vector<TilePixel> denoisedProgressPixels(const std::vector<TilePixel>& pixels,
-                                                  const Recti& actualRect,
-                                                  const DenoiserFeatureSet* features,
-                                                  const render::Denoiser& progressDenoiser) const {
-      if (pixels.empty() || actualRect.width() <= 0 || actualRect.height() <= 0) {
-        return pixels;
-      }
-
-      Buffer<Colord> beauty(actualRect.width(), actualRect.height());
-      beauty.clear(Colord::black());
-      for (const auto& pixel : pixels) {
-        for (int y = pixel.footprint.top(); y != pixel.footprint.bottom(); ++y) {
-          for (int x = pixel.footprint.left(); x != pixel.footprint.right(); ++x) {
-            const int tileX = x - actualRect.left();
-            const int tileY = y - actualRect.top();
-            if (tileX >= 0 && tileY >= 0 && tileX < beauty.width() && tileY < beauty.height()) {
-              beauty[tileY][tileX] = pixel.color;
-            }
-          }
-        }
-      }
-
-      std::unique_ptr<DenoiserFeatureSet> tileFeatures;
-      render::DenoiserFrame frame(beauty);
-      if (features) {
-        tileFeatures =
-          std::make_unique<DenoiserFeatureSet>(actualRect.width(), actualRect.height());
-        copyDenoiserFeatureTile(*features, *tileFeatures, actualRect);
-        frame.features.albedo = &tileFeatures->albedo;
-        frame.features.normal = &tileFeatures->normal;
-        frame.features.depth = &tileFeatures->depth;
-      }
-      progressDenoiser.denoiseFrame(frame);
-
-      std::vector<TilePixel> result = pixels;
-      for (auto& pixel : result) {
-        pixel.color = averageFootprintColor(beauty, pixel.footprint, actualRect);
-      }
-      return result;
-    }
-
-    std::unique_ptr<DenoiserFeatureSet> buildDenoiserFeatures(render::Camera& camera,
-                                                              const render::Scene& scene,
-                                                              const Recti& rect,
-                                                              const render::TilePlan& tilePlan) {
-      if (!denoiser) {
-        return nullptr;
-      }
-
-      const auto featureStart = WavefrontClock::now();
-      auto features = std::make_unique<DenoiserFeatureSet>(rect.width(), rect.height());
-      std::list<std::shared_ptr<engine::TileRenderTask>> featureTasks;
-      const auto renderSeed = samplingSeed;
-      engine::dispatchTileTasks(
-        tilePlan, *threadPool, featureTasks, [&](const Recti& tileRect, std::size_t tileIndex) {
-          const std::optional<std::uint64_t> tileSeed =
-            renderSeed
-              ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*renderSeed, tileIndex))
-              : std::nullopt;
-          buildDenoiserFeatureTile(*features, camera, scene, camera.renderableRect(tileRect),
-                                   tileSeed);
-        });
-      recordDenoiserFeatureSeconds(featureStart);
-      return features;
-    }
-
-    void resetMetrics(render::Camera& camera, int width, int height,
-                      const render::TilePlan& tilePlan) {
-      std::lock_guard<std::mutex> lock(metricsMutex);
-      lastMetrics = WavefrontRenderMetrics();
-      lastMetrics.input.width = width;
-      lastMetrics.input.height = height;
-      lastMetrics.input.samplesPerPixel = camera.samplesPerPixel();
-      lastMetrics.tiling.tileCount = tilePlan.size();
-      lastMetrics.scheduling.configuredQueueSize =
-        static_cast<std::uint64_t>(std::max(0, queueSize));
-      lastMetrics.scheduling.resolvedQueueSize = tilePlan.size();
-      lastMetrics.scheduling.decision = tilePlan.isSingleTile() ? "single_tile" : "tiled";
-      lastMetrics.batching.integrator = integrator->diagnosticName();
-      lastMetrics.batching.executionMode = integrator->batchExecutionMode();
-      if (denoiser) {
-        const render::DenoiserDiagnostics diagnostics = denoiser->diagnostics();
-        lastMetrics.denoise.enabled = true;
-        lastMetrics.denoise.denoiser = diagnostics.name;
-        for (const auto& parameter : diagnostics.numericParameters) {
-          lastMetrics.denoise.numericParameters.push_back(
-            WavefrontRenderMetrics::DenoiseSummary::NumericParameter{parameter.name,
-                                                                     parameter.value});
-        }
-      }
-      lastMetrics.convergence.enabled = convergenceEnabled;
-      lastMetrics.convergence.activeSampleFractionThreshold =
-        convergenceActiveSampleFractionThreshold;
-      lastMetrics.convergence.radianceDeltaRmsThreshold = convergenceRadianceDeltaRmsThreshold;
-      lastMetrics.convergence.decision = convergenceEnabled ? "configured" : "disabled";
-    }
-
-    void recordTileMetrics(const TileTraceResult& result) const {
-      std::lock_guard<std::mutex> lock(metricsMutex);
-      lastMetrics.input.renderedPixels += result.pixels.size();
-      lastMetrics.input.primarySamples += result.sampleCount;
-      if (result.sampleCount > 0) {
-        ++lastMetrics.tiling.nonEmptyTileCount;
-        ++lastMetrics.batching.batches;
-        lastMetrics.batching.samplesSubmitted += result.sampleCount;
-        lastMetrics.batching.compatibilityShadeSamples +=
-          result.batchMetrics.compatibilityShadeSamples;
-        lastMetrics.batching.maxBatchSize = std::max(
-          lastMetrics.batching.maxBatchSize, static_cast<std::uint64_t>(result.sampleCount));
-        if (lastMetrics.batching.activeSamplesPerDepth.size() <
-            result.batchMetrics.activeSamplesPerDepth.size()) {
-          lastMetrics.batching.activeSamplesPerDepth.resize(
-            result.batchMetrics.activeSamplesPerDepth.size());
-        }
-        for (std::size_t depth = 0; depth != result.batchMetrics.activeSamplesPerDepth.size();
-             ++depth) {
-          lastMetrics.batching.activeSamplesPerDepth[depth] +=
-            result.batchMetrics.activeSamplesPerDepth[depth];
-        }
-        if (lastMetrics.batching.radianceDeltaSquaredSumPerDepth.size() <
-            result.batchMetrics.radianceDeltaSquaredSumPerDepth.size()) {
-          lastMetrics.batching.radianceDeltaSquaredSumPerDepth.resize(
-            result.batchMetrics.radianceDeltaSquaredSumPerDepth.size());
-        }
-        for (std::size_t depth = 0;
-             depth != result.batchMetrics.radianceDeltaSquaredSumPerDepth.size(); ++depth) {
-          lastMetrics.batching.radianceDeltaSquaredSumPerDepth[depth] +=
-            result.batchMetrics.radianceDeltaSquaredSumPerDepth[depth];
-        }
-        if (lastMetrics.batching.maxRadianceDeltaPerDepth.size() <
-            result.batchMetrics.maxRadianceDeltaPerDepth.size()) {
-          lastMetrics.batching.maxRadianceDeltaPerDepth.resize(
-            result.batchMetrics.maxRadianceDeltaPerDepth.size());
-        }
-        for (std::size_t depth = 0; depth != result.batchMetrics.maxRadianceDeltaPerDepth.size();
-             ++depth) {
-          lastMetrics.batching.maxRadianceDeltaPerDepth[depth] =
-            std::max(lastMetrics.batching.maxRadianceDeltaPerDepth[depth],
-                     result.batchMetrics.maxRadianceDeltaPerDepth[depth]);
-        }
-        if (result.batchMetrics.stoppedByConvergence) {
-          ++lastMetrics.convergence.stoppedTileCount;
-          const std::uint64_t depth = result.batchMetrics.stoppedAfterDepth;
-          if (lastMetrics.convergence.earliestStoppedAfterDepth == 0 ||
-              depth < lastMetrics.convergence.earliestStoppedAfterDepth) {
-            lastMetrics.convergence.earliestStoppedAfterDepth = depth;
-          }
-          lastMetrics.convergence.latestStoppedAfterDepth =
-            std::max(lastMetrics.convergence.latestStoppedAfterDepth, depth);
-        }
-      }
-    }
-
-    void finishMetrics(WavefrontClock::time_point start) {
-      std::lock_guard<std::mutex> lock(metricsMutex);
-      lastMetrics.timings.totalRenderSeconds =
-        std::chrono::duration<double>(WavefrontClock::now() - start).count();
-      lastMetrics.batching.averageBatchSize =
-        lastMetrics.batching.batches == 0
-          ? 0.0
-          : static_cast<double>(lastMetrics.batching.samplesSubmitted) /
-              static_cast<double>(lastMetrics.batching.batches);
-      if (!lastMetrics.convergence.enabled) {
-        lastMetrics.convergence.decision = "disabled";
-      } else if (lastMetrics.convergence.stoppedTileCount > 0) {
-        lastMetrics.convergence.decision = "stopped_some_tiles";
-      } else {
-        lastMetrics.convergence.decision = "not_reached";
-      }
-    }
-
-    void renderTile(render::Camera& camera, const render::RayCaster& rayCaster,
-                    const render::Scene& scene, Buffer<Colord>& buffer, const Recti& rect,
-                    std::optional<std::uint64_t> tileSeed,
-                    const DenoiserFeatureSet* denoiserFeatures = nullptr) const {
-      const Recti actualRect = camera.renderableRect(rect);
-      if (actualRect.width() <= 0 || actualRect.height() <= 0)
-        return;
-
-      const auto progressDenoiser = denoiser ? denoiser->clone() : nullptr;
-      const auto result = traceTile(
-        camera, rayCaster, scene, actualRect, tileSeed,
-        [&](const Recti& footprint) { writeColor(buffer, footprint, Colord(1, 0, 0)); },
-        [&](const std::vector<TilePixel>& pixels) {
-          const std::vector<TilePixel> displayPixels =
-            progressDenoiser
-              ? denoisedProgressPixels(pixels, actualRect, denoiserFeatures, *progressDenoiser)
-              : pixels;
-          for (const auto& pixel : displayPixels) {
-            writeColor(buffer, pixel.footprint, pixel.color);
-          }
-        });
-      recordTileMetrics(result);
-      for (const auto& pixel : result.pixels) {
-        writeColor(buffer, pixel.footprint, pixel.color);
-      }
-    }
-
-    void renderTile(render::Camera& camera, const render::RayCaster& rayCaster,
-                    const render::Scene& scene, Buffer<unsigned int>& buffer,
-                    std::shared_ptr<render::Tonemap> tonemap, const Recti& rect,
-                    std::optional<std::uint64_t> tileSeed) const {
-      const Recti actualRect = camera.renderableRect(rect);
-      if (actualRect.width() <= 0 || actualRect.height() <= 0)
-        return;
-
-      const auto result = traceTile(
-        camera, rayCaster, scene, actualRect, tileSeed,
-        [&](const Recti& footprint) { writeRGB(buffer, footprint, 0xffff0000); },
-        [&](const std::vector<TilePixel>& pixels) {
-          for (const auto& pixel : pixels) {
-            writeRGB(buffer, pixel.footprint,
-                     (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
-          }
-        });
-      recordTileMetrics(result);
-      for (const auto& pixel : result.pixels) {
-        writeRGB(buffer, pixel.footprint,
-                 (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
-      }
-    }
-
-    void renderTile(render::Camera& camera, const render::RayCaster& rayCaster,
-                    const render::Scene& scene, Buffer<Colord>& hdrBuffer,
-                    Buffer<unsigned int>& displayBuffer, std::shared_ptr<render::Tonemap> tonemap,
-                    const Recti& rect, std::optional<std::uint64_t> tileSeed,
-                    const DenoiserFeatureSet* denoiserFeatures = nullptr) const {
-      const Recti actualRect = camera.renderableRect(rect);
-      if (actualRect.width() <= 0 || actualRect.height() <= 0)
-        return;
-
-      const auto progressDenoiser = denoiser ? denoiser->clone() : nullptr;
-      const auto result = traceTile(
-        camera, rayCaster, scene, actualRect, tileSeed,
-        [&](const Recti& footprint) {
-          writeColor(hdrBuffer, footprint, Colord(1, 0, 0));
-          writeRGB(displayBuffer, footprint, 0xffff0000);
-        },
-        [&](const std::vector<TilePixel>& pixels) {
-          const std::vector<TilePixel> displayPixels =
-            progressDenoiser
-              ? denoisedProgressPixels(pixels, actualRect, denoiserFeatures, *progressDenoiser)
-              : pixels;
-          for (const auto& pixel : displayPixels) {
-            writeColor(hdrBuffer, pixel.footprint, pixel.color);
-            writeRGB(displayBuffer, pixel.footprint,
-                     (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
-          }
-        });
-      recordTileMetrics(result);
-      for (const auto& pixel : result.pixels) {
-        writeColor(hdrBuffer, pixel.footprint, pixel.color);
-        writeRGB(displayBuffer, pixel.footprint,
-                 (tonemap ? tonemap->apply(pixel.color) : pixel.color).rgb());
-      }
+    detail::WavefrontTileRenderer tileRenderer() {
+      return detail::WavefrontTileRenderer(tileRenderConfig(), metrics);
     }
 
     void configureIntegratorCancellation(const WavefrontRaytracer& owner) {
@@ -759,25 +247,30 @@ namespace engine::wavefront {
 
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
-    const auto renderStart = WavefrontClock::now();
-    p->resetMetrics(*m_camera, buffer.width(), buffer.height(), tilePlan);
-    const auto denoiserFeatures =
-      p->buildDenoiserFeatures(*m_camera, *m_scene, buffer.rect(), tilePlan);
+    const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
+    p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
+                     *p->integrator, p->denoiser.get(), p->convergenceEnabled,
+                     p->convergenceActiveSampleFractionThreshold,
+                     p->convergenceRadianceDeltaRmsThreshold);
+    auto tileRenderer = p->tileRenderer();
+    std::list<std::shared_ptr<engine::TileRenderTask>> featureTasks;
+    const auto denoiserFeatures = tileRenderer.buildDenoiserFeatures(
+      *m_camera, *m_scene, buffer.rect(), tilePlan, *p->threadPool, featureTasks);
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
     const auto samplingSeed = p->samplingSeed;
-    engine::dispatchTileTasks(tilePlan, *p->threadPool, p->tasks,
-                              [this, rayCaster, camera, bufferPtr, samplingSeed,
-                               denoiserFeaturePtr](const Recti& rect, std::size_t tileIndex) {
-                                const std::optional<std::uint64_t> tileSeed =
-                                  samplingSeed
-                                    ? std::optional<std::uint64_t>(
-                                        render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
-                                    : std::nullopt;
-                                p->renderTile(*camera, *rayCaster, *m_scene, *bufferPtr, rect,
-                                              tileSeed, denoiserFeaturePtr);
-                              });
-    p->denoise(buffer, denoiserFeatures.get());
-    p->finishMetrics(renderStart);
+    engine::dispatchTileTasks(
+      tilePlan, *p->threadPool, p->tasks,
+      [this, rayCaster, camera, bufferPtr, samplingSeed, tileRenderer,
+       denoiserFeaturePtr](const Recti& rect, std::size_t tileIndex) {
+        const std::optional<std::uint64_t> tileSeed =
+          samplingSeed
+            ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
+            : std::nullopt;
+        tileRenderer.renderHdrTile(*camera, *rayCaster, *m_scene, *bufferPtr, rect, tileSeed,
+                                   denoiserFeaturePtr);
+      });
+    tileRenderer.denoise(buffer, denoiserFeatures.get());
+    p->metrics.finish(renderStart);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().dumpJson(std::cerr);
@@ -812,20 +305,25 @@ namespace engine::wavefront {
 
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
-    const auto renderStart = WavefrontClock::now();
-    p->resetMetrics(*m_camera, buffer.width(), buffer.height(), tilePlan);
+    const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
+    p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
+                     *p->integrator, p->denoiser.get(), p->convergenceEnabled,
+                     p->convergenceActiveSampleFractionThreshold,
+                     p->convergenceRadianceDeltaRmsThreshold);
+    auto tileRenderer = p->tileRenderer();
     const auto samplingSeed = p->samplingSeed;
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
-      [this, rayCaster, camera, bufferPtr, tonemapOp, samplingSeed](const Recti& rect,
-                                                                    std::size_t tileIndex) {
+      [this, rayCaster, camera, bufferPtr, tonemapOp, samplingSeed,
+       tileRenderer](const Recti& rect, std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
-        p->renderTile(*camera, *rayCaster, *m_scene, *bufferPtr, tonemapOp, rect, tileSeed);
+        tileRenderer.renderDisplayTile(*camera, *rayCaster, *m_scene, *bufferPtr, tonemapOp, rect,
+                                       tileSeed);
       });
-    p->finishMetrics(renderStart);
+    p->metrics.finish(renderStart);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().dumpJson(std::cerr);
@@ -860,26 +358,32 @@ namespace engine::wavefront {
 
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(hdrBuffer.width(), hdrBuffer.height(), p->queueSize);
-    const auto renderStart = WavefrontClock::now();
-    p->resetMetrics(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan);
-    const auto denoiserFeatures =
-      p->buildDenoiserFeatures(*m_camera, *m_scene, hdrBuffer.rect(), tilePlan);
+    const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
+    p->metrics.reset(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan, p->queueSize,
+                     *p->integrator, p->denoiser.get(), p->convergenceEnabled,
+                     p->convergenceActiveSampleFractionThreshold,
+                     p->convergenceRadianceDeltaRmsThreshold);
+    auto tileRenderer = p->tileRenderer();
+    std::list<std::shared_ptr<engine::TileRenderTask>> featureTasks;
+    const auto denoiserFeatures = tileRenderer.buildDenoiserFeatures(
+      *m_camera, *m_scene, hdrBuffer.rect(), tilePlan, *p->threadPool, featureTasks);
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
     const auto samplingSeed = p->samplingSeed;
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
       [this, rayCaster, camera, hdrBufferPtr, displayBufferPtr, displayTonemap, samplingSeed,
-       denoiserFeaturePtr](const Recti& rect, std::size_t tileIndex) {
+       tileRenderer, denoiserFeaturePtr](const Recti& rect, std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
-        p->renderTile(*camera, *rayCaster, *m_scene, *hdrBufferPtr, *displayBufferPtr,
-                      displayTonemap, rect, tileSeed, denoiserFeaturePtr);
+        tileRenderer.renderDualOutputTile(*camera, *rayCaster, *m_scene, *hdrBufferPtr,
+                                          *displayBufferPtr, displayTonemap, rect, tileSeed,
+                                          denoiserFeaturePtr);
       });
-    p->denoise(hdrBuffer, denoiserFeatures.get());
-    p->writeDisplayBuffer(displayBuffer, hdrBuffer, displayTonemap);
-    p->finishMetrics(renderStart);
+    tileRenderer.denoise(hdrBuffer, denoiserFeatures.get());
+    tileRenderer.writeDisplayBuffer(displayBuffer, hdrBuffer, displayTonemap);
+    p->metrics.finish(renderStart);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().dumpJson(std::cerr);
@@ -999,7 +503,6 @@ namespace engine::wavefront {
   }
 
   WavefrontRenderMetrics WavefrontRaytracer::lastMetrics() const {
-    std::lock_guard<std::mutex> lock(p->metricsMutex);
-    return p->lastMetrics;
+    return p->metrics.snapshot();
   }
 }

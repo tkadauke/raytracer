@@ -279,6 +279,42 @@ namespace WavefrontRaytracerTest {
     }
   }
 
+  TEST(WavefrontRaytracer, DenoisesDualOutputHdrBeforeDisplayConversion) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->setDenoiser(std::make_unique<FillDenoiser>(Colord(0.25, 0.5, 0.75)));
+
+    Buffer<Colord> hdrBuffer(4, 3);
+    Buffer<unsigned int> displayBuffer(4, 3);
+    renderer->render(hdrBuffer, displayBuffer, nullptr);
+
+    for (int y = 0; y != hdrBuffer.height(); ++y) {
+      for (int x = 0; x != hdrBuffer.width(); ++x) {
+        ASSERT_COLOR_NEAR(Colord(0.25, 0.5, 0.75), hdrBuffer[y][x], 1e-12);
+        EXPECT_EQ(Colord(0.25, 0.5, 0.75).rgb(), displayBuffer[y][x]);
+      }
+    }
+  }
+
+  TEST(WavefrontRaytracer, CancellationStopsTileSampleSubmission) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->cancel();
+
+    Buffer<Colord> buffer(4, 3);
+    renderer->render(buffer);
+
+    const auto metrics = renderer->lastMetrics();
+    EXPECT_EQ(1u, metrics.tiling.tileCount);
+    EXPECT_EQ(0u, metrics.tiling.nonEmptyTileCount);
+    EXPECT_EQ(0u, metrics.input.renderedPixels);
+    EXPECT_EQ(0u, metrics.input.primarySamples);
+    EXPECT_EQ(0u, metrics.batching.batches);
+    EXPECT_EQ(0.0, metrics.batching.averageBatchSize);
+  }
+
   TEST(WavefrontRaytracer, RecordsDenoiserMetrics) {
     auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
     renderer->setMaximumThreads(1);
