@@ -350,6 +350,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Wavefront integrator depth replacement.** `WavefrontRaytracer` now retains
+  the configured maximum recursion depth and reapplies it when callers replace
+  the integrator, so API order no longer changes wavefront bounce limits. — GPT-5
 - **Finite point-light shadow rays.** Whitted and path-tracing direct lighting
   now bound point-light shadow tests to the sampled light distance, so geometry
   behind a point light no longer incorrectly shadows the shaded surface.

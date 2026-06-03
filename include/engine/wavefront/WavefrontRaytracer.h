@@ -129,6 +129,12 @@ namespace engine::wavefront {
     void setDenoiser(std::unique_ptr<render::Denoiser> denoiser);
     void clearDenoiser();
     const render::Denoiser* denoiser() const;
+
+    /**
+      * Configure the maximum ray recursion / bounce depth for the selected
+      * integrator. The configured value is retained by the raytracer and
+      * applied again when `setIntegrator(...)` installs a replacement.
+      */
     void setMaximumRecursionDepth(int depth);
 
     void setSamplingSeed(std::uint64_t seed);
