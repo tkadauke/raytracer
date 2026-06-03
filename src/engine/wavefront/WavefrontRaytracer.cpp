@@ -171,6 +171,7 @@ namespace engine::wavefront {
     bool convergenceEnabled{false};
     double convergenceActiveSampleFractionThreshold;
     double convergenceRadianceDeltaRmsThreshold;
+    std::optional<int> maximumRecursionDepth;
     std::optional<std::uint64_t> samplingSeed;
     mutable WavefrontRenderMetrics lastMetrics;
     mutable std::mutex metricsMutex;
@@ -718,6 +719,9 @@ namespace engine::wavefront {
       std::make_shared<WavefrontRaytracer>(m_camera ? m_camera->clone() : nullptr, m_scene);
     result->setTonemap(tonemap());
     result->setIntegrator(p->integrator->clone());
+    if (p->maximumRecursionDepth) {
+      result->setMaximumRecursionDepth(*p->maximumRecursionDepth);
+    }
     if (p->denoiser) {
       result->setDenoiser(p->denoiser->clone());
     }
@@ -919,6 +923,9 @@ namespace engine::wavefront {
       throw std::invalid_argument("WavefrontRaytracer integrator cannot be null");
     }
     p->integrator = std::move(integrator);
+    if (p->maximumRecursionDepth) {
+      p->integrator->setMaximumRecursionDepth(*p->maximumRecursionDepth);
+    }
     p->configureIntegratorCancellation(*this);
   }
 
@@ -939,6 +946,7 @@ namespace engine::wavefront {
   }
 
   void WavefrontRaytracer::setMaximumRecursionDepth(int depth) {
+    p->maximumRecursionDepth = depth;
     p->integrator->setMaximumRecursionDepth(depth);
   }
 

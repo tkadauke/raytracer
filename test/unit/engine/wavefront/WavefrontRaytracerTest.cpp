@@ -114,6 +114,31 @@ namespace WavefrontRaytracerTest {
     }
   };
 
+  class DepthRecordingIntegrator final : public render::Integrator {
+  public:
+    std::unique_ptr<render::Integrator> clone() const override {
+      auto result = std::make_unique<DepthRecordingIntegrator>();
+      result->m_maximumRecursionDepth = m_maximumRecursionDepth;
+      return result;
+    }
+
+    Colord radiance(const render::Scene&, const Rayd&, render::State&,
+                    const render::RayCaster&) const override {
+      return Colord::black();
+    }
+
+    void setMaximumRecursionDepth(int depth) override {
+      m_maximumRecursionDepth = depth;
+    }
+
+    int maximumRecursionDepth() const {
+      return m_maximumRecursionDepth;
+    }
+
+  private:
+    int m_maximumRecursionDepth{0};
+  };
+
   struct SharedDenoiserCallState {
     int calls{0};
     int featureCalls{0};
@@ -173,6 +198,28 @@ namespace WavefrontRaytracerTest {
     WavefrontRaytracer renderer(std::make_shared<render::Scene>());
 
     EXPECT_NE(nullptr, dynamic_cast<const render::WhittedIntegrator*>(&renderer.integrator()));
+  }
+
+  TEST(WavefrontRaytracer, AppliesMaximumRecursionDepthToCurrentIntegrator) {
+    WavefrontRaytracer renderer(std::make_shared<render::Scene>());
+    renderer.setIntegrator(std::make_unique<DepthRecordingIntegrator>());
+
+    renderer.setMaximumRecursionDepth(7);
+
+    const auto* integrator = dynamic_cast<const DepthRecordingIntegrator*>(&renderer.integrator());
+    ASSERT_NE(nullptr, integrator);
+    EXPECT_EQ(7, integrator->maximumRecursionDepth());
+  }
+
+  TEST(WavefrontRaytracer, ReappliesMaximumRecursionDepthWhenIntegratorChanges) {
+    WavefrontRaytracer renderer(std::make_shared<render::Scene>());
+
+    renderer.setMaximumRecursionDepth(6);
+    renderer.setIntegrator(std::make_unique<DepthRecordingIntegrator>());
+
+    const auto* integrator = dynamic_cast<const DepthRecordingIntegrator*>(&renderer.integrator());
+    ASSERT_NE(nullptr, integrator);
+    EXPECT_EQ(6, integrator->maximumRecursionDepth());
   }
 
   TEST(WavefrontRaytracer, ClonesConfigurationForRenderThreadSnapshots) {
