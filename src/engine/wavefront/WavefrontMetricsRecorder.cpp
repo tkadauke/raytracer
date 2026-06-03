@@ -31,6 +31,7 @@ namespace engine::wavefront::detail {
       const render::DenoiserDiagnostics diagnostics = denoiser->diagnostics();
       m_metrics.denoise.enabled = true;
       m_metrics.denoise.denoiser = diagnostics.name;
+      m_metrics.denoise.featureTileCount = tilePlan.size();
       for (const auto& parameter : diagnostics.numericParameters) {
         m_metrics.denoise.numericParameters.push_back(
           WavefrontRenderMetrics::DenoiseSummary::NumericParameter{parameter.name,
@@ -98,6 +99,14 @@ namespace engine::wavefront::detail {
       m_metrics.convergence.latestStoppedAfterDepth =
         std::max(m_metrics.convergence.latestStoppedAfterDepth, depth);
     }
+  }
+
+  void WavefrontMetricsRecorder::recordDenoiserFeatureTile(const Recti& rect) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    ++m_metrics.denoise.completedFeatureTileCount;
+    m_metrics.denoise.featurePixels +=
+      static_cast<std::uint64_t>(std::max(0, rect.width())) *
+      static_cast<std::uint64_t>(std::max(0, rect.height()));
   }
 
   void WavefrontMetricsRecorder::recordDenoise(bool albedoFeature, bool normalFeature,

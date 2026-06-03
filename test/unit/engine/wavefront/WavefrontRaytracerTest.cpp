@@ -20,6 +20,9 @@
 #include <QJsonObject>
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <thread>
 #include <utility>
 
 namespace WavefrontRaytracerTest {
@@ -168,6 +171,27 @@ namespace WavefrontRaytracerTest {
 
   private:
     std::shared_ptr<SharedDenoiserCallState> m_state;
+  };
+
+  class SlowMissPrimitive final : public render::Primitive {
+  public:
+    explicit SlowMissPrimitive(std::chrono::milliseconds delay)
+        : m_delay(delay) {
+    }
+
+    const render::Primitive* intersect(const Rayd&, HitPointInterval&,
+                                       render::State&) const override {
+      std::this_thread::sleep_for(m_delay);
+      return nullptr;
+    }
+
+  protected:
+    BoundingBoxd calculateBoundingBox() const override {
+      return BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+    }
+
+  private:
+    std::chrono::milliseconds m_delay;
   };
 
   std::shared_ptr<render::Scene> testScene() {
@@ -333,6 +357,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(metrics.denoise.albedoFeature);
     EXPECT_TRUE(metrics.denoise.normalFeature);
     EXPECT_TRUE(metrics.denoise.depthFeature);
+    EXPECT_EQ(1u, metrics.denoise.featureTileCount);
+    EXPECT_EQ(1u, metrics.denoise.completedFeatureTileCount);
+    EXPECT_EQ(12u, metrics.denoise.featurePixels);
     EXPECT_GE(metrics.denoise.featureSeconds, 0.0);
     EXPECT_GE(metrics.denoise.seconds, 0.0);
 
@@ -343,8 +370,45 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(denoise.value("features").toObject().value("albedo").toBool());
     EXPECT_TRUE(denoise.value("features").toObject().value("normal").toBool());
     EXPECT_TRUE(denoise.value("features").toObject().value("depth").toBool());
+    const QJsonObject prepass = denoise.value("featurePrepass").toObject();
+    EXPECT_EQ(1.0, prepass.value("tileCount").toDouble());
+    EXPECT_EQ(1.0, prepass.value("completedTileCount").toDouble());
+    EXPECT_EQ(12.0, prepass.value("pixels").toDouble());
+    EXPECT_GE(prepass.value("seconds").toDouble(), 0.0);
     EXPECT_GE(denoise.value("featureSeconds").toDouble(), 0.0);
     EXPECT_GE(denoise.value("seconds").toDouble(), 0.0);
+  }
+
+  TEST(WavefrontRaytracer, ReportsActiveTilesDuringDenoiserFeaturePrepass) {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    scene->add(std::make_shared<SlowMissPrimitive>(std::chrono::milliseconds(2)));
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), scene);
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->setDenoiser(std::make_unique<render::BoxDenoiser>(1));
+
+    Buffer<unsigned int> buffer(8, 8);
+    std::atomic<bool> done{false};
+    std::thread renderThread([&] {
+      renderer->render(buffer);
+      done.store(true, std::memory_order_release);
+    });
+
+    bool sawFeaturePrepassTile = false;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    while (!done.load(std::memory_order_acquire) && std::chrono::steady_clock::now() < deadline) {
+      const auto metrics = renderer->lastMetrics();
+      if (!renderer->activeTiles().empty() && metrics.input.renderedPixels == 0 &&
+          metrics.denoise.completedFeatureTileCount < metrics.denoise.featureTileCount) {
+        sawFeaturePrepassTile = true;
+        break;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    renderThread.join();
+    EXPECT_TRUE(sawFeaturePrepassTile);
+    EXPECT_EQ(64u, renderer->lastMetrics().denoise.featurePixels);
   }
 
   TEST(WavefrontRaytracer, SuppliesPrimaryHitFeatureBuffersToDenoiser) {

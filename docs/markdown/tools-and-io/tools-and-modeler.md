@@ -231,7 +231,10 @@ filtering and tile-parallel feature-buffer prepass work took; the compact
 `denoise_<parameter>`. In Modeler previews, wavefront depth-progress snapshots
 also run through the selected denoiser before the tile is published, so the live
 image no longer flips from raw noisy progress directly to a filtered final
-frame.
+frame. Before those beauty tiles start, the albedo/normal/depth feature prepass
+is shown as active render tiles in the normal progress overlay rather than an
+idle preview, and graph trace metadata separates that work under
+`denoise.featurePrepass`.
 
 That gives a two-step debugging loop:
 

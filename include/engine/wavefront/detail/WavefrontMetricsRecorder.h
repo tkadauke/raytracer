@@ -25,6 +25,7 @@ namespace engine::wavefront::detail {
                bool convergenceEnabled, double activeSampleFractionThreshold,
                double radianceDeltaRmsThreshold);
     void recordTile(const WavefrontTileTraceResult& result);
+    void recordDenoiserFeatureTile(const Recti& rect);
     void recordDenoise(bool albedoFeature, bool normalFeature, bool depthFeature, double seconds);
     void recordDenoiserFeatureSeconds(Clock::time_point start);
     void finish(Clock::time_point start);
