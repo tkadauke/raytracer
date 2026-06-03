@@ -103,7 +103,7 @@ rendercli_expect_parser_failure(
 
 rendercli_expect_parser_failure(
   "rendercli rejects invalid engine"
-  "Engine must be 'raytracer', 'wireframe', or 'raster'"
+  "Engine must be 'raytracer', 'wavefront', 'wireframe', or 'raster'"
   --engine invalid
   "${basic_scene}" "${valid_output}"
 )
