@@ -57,6 +57,8 @@ namespace render {
       */
     const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                render::State& state) const override;
+    RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
+    RayPacketIntersection8 intersectPacket(const Ray8& rays, render::State& state) const override;
 
     /**
       * Boolean shadow-ray check across every child. Short-circuits
@@ -124,6 +126,9 @@ namespace render {
     BoundingBoxd calculateBoundingBox() const override;
 
   private:
+    template<typename Packet, typename Result>
+    Result intersectPacketImpl(const Packet& rays, render::State& state) const;
+
     Primitives m_primitives;
   };
 }
