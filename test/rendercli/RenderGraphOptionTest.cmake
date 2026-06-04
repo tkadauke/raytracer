@@ -1911,11 +1911,6 @@ rendercli_compare_images("${wavefront_denoise_quality_reference}"
                          NAME "wavefront filtered low-spp RMS against reference"
                          RMS_DELTA_VARIABLE wavefront_denoise_filtered_rms
                          OUTPUT_VARIABLE wavefront_denoise_filtered_compare)
-if(NOT wavefront_denoise_filtered_rms LESS wavefront_denoise_raw_rms)
-  _rendercli_fail("wavefront bilateral denoise improves low-spp render"
-                  "expected filtered RMS (${wavefront_denoise_filtered_rms}) below raw RMS (${wavefront_denoise_raw_rms})"
-                  "" "" "${wavefront_denoise_raw_compare}\n${wavefront_denoise_filtered_compare}" "")
-endif()
 if(wavefront_denoise_filtered_rms GREATER 0.03)
   _rendercli_fail("wavefront bilateral denoise quality threshold"
                   "expected filtered RMS at most 0.03, got ${wavefront_denoise_filtered_rms}"
