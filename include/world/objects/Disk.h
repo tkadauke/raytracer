@@ -37,6 +37,9 @@ public:
 
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
 
+protected:
+  bool supportsPlanarSceneMarker() const override;
+
 private:
   double m_radius;
 };

@@ -15,4 +15,8 @@ std::shared_ptr<render::Primitive> Rectangle::toRaytracerPrimitive() const {
   return make_named<render::Rectangle>(Vector3d::null, m_leg1, m_leg2);
 }
 
+bool Rectangle::supportsPlanarSceneMarker() const {
+  return true;
+}
+
 static bool dummy = ElementFactory::self().registerClass<Rectangle>("Rectangle");

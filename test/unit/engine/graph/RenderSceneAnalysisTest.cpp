@@ -40,6 +40,20 @@ namespace RenderSceneAnalysisTest {
     EXPECT_TRUE(analysis.hasVisibleLights());
   }
 
+  TEST(RenderSceneAnalysis, RecordsSceneSurfaceMarkers) {
+    RenderSceneAnalysis analysis;
+
+    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel");
+    analysis.recordPlanarMirrorSurface("mirror-panel", "Mirror Panel");
+
+    ASSERT_EQ(1u, analysis.portalReceiverSurfaceCount());
+    ASSERT_EQ(1u, analysis.planarMirrorSurfaceCount());
+    EXPECT_EQ("portal-panel", analysis.portalReceiverSurfaces()[0].surfaceId);
+    EXPECT_EQ("Portal Panel", analysis.portalReceiverSurfaces()[0].surfaceName);
+    EXPECT_EQ("mirror-panel", analysis.planarMirrorSurfaces()[0].surfaceId);
+    EXPECT_EQ("Mirror Panel", analysis.planarMirrorSurfaces()[0].surfaceName);
+  }
+
   TEST(RenderSceneAnalysis, RasterPreviewShadowsNeedRasterIntentSurfacesAndLights) {
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;

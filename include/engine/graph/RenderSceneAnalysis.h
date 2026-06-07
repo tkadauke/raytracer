@@ -4,6 +4,8 @@
 
 #include <optional>
 #include <cstddef>
+#include <string>
+#include <vector>
 
 namespace engine::graph {
   /**
@@ -16,6 +18,11 @@ namespace engine::graph {
     */
   class RenderSceneAnalysis {
   public:
+    struct SceneSurfaceMarker {
+      std::string surfaceId;
+      std::string surfaceName;
+    };
+
     RenderSceneAnalysis();
 
     /**
@@ -28,11 +35,18 @@ namespace engine::graph {
 
     void recordVisibleSurface();
     void recordVisibleLight();
+    void recordPortalReceiverSurface(std::string surfaceId, std::string surfaceName);
+    void recordPlanarMirrorSurface(std::string surfaceId, std::string surfaceName);
 
     bool hasKnownVisibleSurfaceCount() const;
     bool hasKnownVisibleLightCount() const;
     std::size_t visibleSurfaceCount() const;
     std::size_t visibleLightCount() const;
+    std::size_t portalReceiverSurfaceCount() const;
+    std::size_t planarMirrorSurfaceCount() const;
+
+    const std::vector<SceneSurfaceMarker>& portalReceiverSurfaces() const;
+    const std::vector<SceneSurfaceMarker>& planarMirrorSurfaces() const;
 
     bool hasVisibleSurfaces() const;
     bool hasVisibleLights() const;
@@ -43,6 +57,8 @@ namespace engine::graph {
   private:
     std::optional<std::size_t> m_visibleSurfaceCount{0};
     std::optional<std::size_t> m_visibleLightCount{0};
+    std::vector<SceneSurfaceMarker> m_portalReceiverSurfaces;
+    std::vector<SceneSurfaceMarker> m_planarMirrorSurfaces;
     bool m_rasterShadowMapsSupported{true};
   };
 }

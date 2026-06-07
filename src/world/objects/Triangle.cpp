@@ -13,4 +13,8 @@ std::shared_ptr<render::Primitive> Triangle::toRaytracerPrimitive() const {
   return make_named<render::Triangle>(m_vertexA, m_vertexB, m_vertexC);
 }
 
+bool Triangle::supportsPlanarSceneMarker() const {
+  return true;
+}
+
 static bool dummy = ElementFactory::self().registerClass<Triangle>("Triangle");
