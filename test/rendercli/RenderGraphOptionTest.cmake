@@ -2782,7 +2782,7 @@ rendercli_expect_failure(
 
 rendercli_expect_failure(
   NAME "rendercli rejects unsupported selector-specific scene intent"
-  STDERR_MATCHES "selector-specific render intent"
+  STDERR_MATCHES "cannot resolve scene selector object_name: Monitor"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format json
     "${selector_specific_intent_scene}" "${invalid_plan}"
@@ -2826,7 +2826,7 @@ rendercli_expect_failure(
 
 rendercli_expect_failure(
   NAME "rendercli rejects unsupported selector-specific CLI intent"
-  STDERR_MATCHES "selector-specific render intent.*tag: debug"
+  STDERR_MATCHES "cannot resolve scene selector tag: debug"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_view_override "tag:debug,view=wireframe"
     "${static_scene}" "${invalid_plan}"
