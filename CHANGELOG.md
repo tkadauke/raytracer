@@ -349,6 +349,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Render graph dependency-ready scheduling.** `GraphRenderEngine` now runs
+  dependency-ready CPU-safe passes concurrently while preserving serial and
+  limited executor caps, and skips queued dependents when cancellation or pass
+  failures stop graph execution. — GPT-5
 - **Modeler final render engine choices.** The final render dialog now exposes
   Raytracer, Path Tracer, Rasterizer, and Wireframe as user-facing engines;
   wavefront path tracing is selected through the Path Tracer schedule instead
