@@ -15,9 +15,27 @@
 struct RenderSettingsWidget::Private {
   Ui::RenderSettingsWidget ui;
   QLabel* rasterBackendStatus{nullptr};
+  bool samplerDefaultManaged{true};
+  bool updatingSamplerDefault{false};
 
   bool openGLBackendSelected() const {
     return ui.rasterBackend->currentText() == QStringLiteral("OpenGL");
+  }
+
+  void selectSamplerDefaultForEngine(const QString& engine) {
+    if (!samplerDefaultManaged) {
+      return;
+    }
+
+    const QString sampler = engine == QStringLiteral("Path Tracer") ? QStringLiteral("Halton")
+                                                                    : QStringLiteral("Regular");
+    if (ui.samplerType->findText(sampler) < 0) {
+      return;
+    }
+
+    updatingSamplerDefault = true;
+    ui.samplerType->setCurrentText(sampler);
+    updatingSamplerDefault = false;
   }
 
   void updateRasterBackendStatus(bool visible) {
@@ -75,7 +93,16 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
   connect(p->ui.rasterBackend, SIGNAL(currentTextChanged(const QString&)), this,
           SLOT(updateEngineControls()));
   connect(p->ui.rasterShadowMaps, SIGNAL(toggled(bool)), this, SLOT(updateEngineControls()));
+  connect(p->ui.samplerType, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this] {
+    if (!p->updatingSamplerDefault) {
+      p->samplerDefaultManaged = false;
+    }
+    emit settingsChanged();
+  });
   for (auto* comboBox : findChildren<QComboBox*>()) {
+    if (comboBox == p->ui.samplerType) {
+      continue;
+    }
     connect(comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
             &RenderSettingsWidget::settingsChanged);
   }
@@ -199,6 +226,8 @@ RenderWidget::DisplayMode RenderSettingsWidget::displayMode() const {
 }
 
 void RenderSettingsWidget::engineChanged() {
+  p->selectSamplerDefaultForEngine(engine());
+
   if (engine() == "Raytracer" || engine() == "Path Tracer" || engine() == "Wavefront") {
     p->ui.displayUpdateMode->setCurrentText("Periodic update");
     p->ui.showProgressIndicators->setChecked(true);

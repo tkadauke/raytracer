@@ -23,8 +23,8 @@ namespace RenderSettingsWidgetTest {
   }
 
   TEST_F(RenderSettingsWidgetTest, ShouldDefaultSamplerToRegular) {
-    // The constructor calls setCurrentText("Regular") on the sampler combo
-    // box; pin it so a future "default to MultiJittered" change is loud.
+    // The constructor starts in Raytracer mode; pin the ray-family baseline
+    // default separately from the Path Tracer-specific default below.
     RenderSettingsWidget widget;
     EXPECT_EQ(QString("Regular"), widget.sampler());
   }
@@ -34,6 +34,41 @@ namespace RenderSettingsWidgetTest {
     auto samplerType = widget.findChild<QComboBox*>("samplerType");
     ASSERT_NE(nullptr, samplerType);
     EXPECT_NE(-1, samplerType->findText("Halton"));
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldDefaultPathTracerSamplerToHalton) {
+    RenderSettingsWidget widget;
+    auto engineType = widget.findChild<QComboBox*>("engineType");
+    ASSERT_NE(nullptr, engineType);
+
+    engineType->setCurrentText("Path Tracer");
+
+    EXPECT_EQ(QString("Halton"), widget.sampler());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldRestoreRaytracerSamplerDefaultWhenUnmodified) {
+    RenderSettingsWidget widget;
+    auto engineType = widget.findChild<QComboBox*>("engineType");
+    ASSERT_NE(nullptr, engineType);
+
+    engineType->setCurrentText("Path Tracer");
+    engineType->setCurrentText("Raytracer");
+
+    EXPECT_EQ(QString("Regular"), widget.sampler());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldPreserveManualSamplerChoiceAcrossEngineChanges) {
+    RenderSettingsWidget widget;
+    auto engineType = widget.findChild<QComboBox*>("engineType");
+    auto samplerType = widget.findChild<QComboBox*>("samplerType");
+    ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, samplerType);
+
+    samplerType->setCurrentText("Jittered");
+    engineType->setCurrentText("Path Tracer");
+    engineType->setCurrentText("Raytracer");
+
+    EXPECT_EQ(QString("Jittered"), widget.sampler());
   }
 
   TEST_F(RenderSettingsWidgetTest, ShouldDefaultViewPlaneToPointInterlaced) {

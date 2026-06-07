@@ -885,6 +885,10 @@ The same gate also renders the deterministic direct-light diagnostic scene once
 through the Whitted raytracer and once through the pathtracer at 1 spp, then
 keeps their RMS delta below a loose parity threshold so direct-light behavior
 does not drift while path tracing internals evolve.
+Modeler final renders now also pick the sampler default in line with the
+selected ray-family engine: Raytracer stays on Regular for deterministic
+baseline behavior, while default-managed Path Tracer renders switch to Halton.
+Explicit sampler choices are preserved across later engine changes.
 The current 40x30 baselines are direct 4spp vs. 32spp at `0.0064857550`,
 glass 4spp vs. 32spp at `0.0798974363`, and area light 8spp vs. 64spp at
 `0.0093491472`. Those thresholds are intentionally loose enough to be a

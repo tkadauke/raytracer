@@ -360,7 +360,9 @@ dimensions a path tracer consumes and usually reduces clumping noise
 versus random sampling at the same sample count. It is still not a
 substitute for a better estimator: direct-light sampling, MIS,
 adaptive sampling, and denoising all address different parts of the
-variance problem.
+variance problem. Modeler's final render dialog follows the same
+guidance by switching default-managed Path Tracer renders to Halton
+sampling; an explicit sampler choice in that dialog is still preserved.
 
 ## <a id="what-this-chapter-does-not-cover"></a>What this chapter does *not* cover
 Many advanced sampling topics are queued under
