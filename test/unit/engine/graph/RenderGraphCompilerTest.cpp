@@ -995,6 +995,46 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, ConnectsSubviewOutputsToRenderTextureReceiverPasses) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+
+    RenderSubviewIntent subview;
+    subview.name = "monitor-feed";
+    subview.view.selector = SceneSelector::all();
+    subview.view.executor = RenderExecutorPreference::Rasterizer;
+    subview.view.camera = RenderCameraRef{"monitor-camera", std::nullopt};
+    intent.subviews.push_back(subview);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordRenderTextureReceiver("monitor-feed");
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    const auto* receiver = plan.findPass("raytrace_beauty");
+    ASSERT_NE(nullptr, receiver);
+    EXPECT_TRUE(receiver->readsResource("subview_monitor_feed_main_color"));
+    EXPECT_TRUE(receiver->readsResource("subview_monitor_feed_depth_aov"));
+
+    const auto dependencies = plan.dependenciesInto("raytrace_beauty");
+    EXPECT_NE(dependencies.end(),
+              std::find_if(dependencies.begin(), dependencies.end(), [](const auto& dependency) {
+                return dependency.resource == "subview_monitor_feed_main_color" &&
+                       dependency.producer->id == "subview_monitor_feed_tonemap";
+              }));
+    EXPECT_NE(dependencies.end(),
+              std::find_if(dependencies.begin(), dependencies.end(), [](const auto& dependency) {
+                return dependency.resource == "subview_monitor_feed_depth_aov" &&
+                       dependency.producer->id == "subview_monitor_feed_depth_aov";
+              }));
+    ASSERT_TRUE(plan.executionOrderNumber("subview_monitor_feed_tonemap").has_value());
+    ASSERT_TRUE(plan.executionOrderNumber("raytrace_beauty").has_value());
+    EXPECT_LT(*plan.executionOrderNumber("subview_monitor_feed_tonemap"),
+              *plan.executionOrderNumber("raytrace_beauty"));
+    EXPECT_TRUE(plan.resourceCanReach("subview_monitor_feed_main_color", "main_color"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, OpenGLSubviewIntentRoutesRasterProductsThroughReadbackPasses) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
@@ -1134,7 +1174,7 @@ namespace RenderGraphCompilerTest {
     }
   }
 
-  TEST(RenderGraphCompiler, RejectsWholeSceneRenderTextureReceiverCycle) {
+  TEST(RenderGraphCompiler, WholeSceneRenderTextureReceiversCompileAsBoundedDependencies) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
     RenderSubviewIntent subview;
@@ -1145,14 +1185,12 @@ namespace RenderGraphCompilerTest {
     RenderSceneAnalysis analysis;
     analysis.recordRenderTextureReceiver("monitor-feed");
 
-    try {
-      compiler.compile({64, 32, 1}, intent, analysis);
-      FAIL() << "Expected cyclic render-to-texture receiver rejection";
-    } catch (const std::runtime_error& error) {
-      const std::string message = error.what();
-      EXPECT_NE(std::string::npos, message.find("receiver for subview 'monitor-feed' is cyclic"));
-      EXPECT_NE(std::string::npos, message.find("renders the whole scene"));
-    }
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    const auto* receiver = plan.findPass("raytrace_beauty");
+    ASSERT_NE(nullptr, receiver);
+    EXPECT_TRUE(receiver->readsResource("subview_monitor_feed_main_color"));
+    EXPECT_TRUE(plan.validate().valid());
   }
 
   TEST(RenderGraphCompiler, NormalizesNonPositiveSampleCount) {

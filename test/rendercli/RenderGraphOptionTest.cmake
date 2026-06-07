@@ -501,7 +501,15 @@ file(WRITE "${subview_intent_scene}" [=[
       }
     ]
   },
-  "children": []
+  "children": [
+    {
+      "id": "{94000000-0000-0000-0000-000000000010}",
+      "name": "Subview Receiver Material",
+      "type": "MatteMaterial",
+      "renderTextureSubview": "mirror_probe",
+      "children": []
+    }
+  ]
 }
 ]=])
 
@@ -2949,6 +2957,12 @@ if(NOT subview_graph MATCHES "subview_mirror_probe_depth_aov")
 endif()
 if(NOT subview_graph MATCHES "subview_mirror_probe_readback_depth_aov")
   message(FATAL_ERROR "OpenGL scene subview intent did not route depth through readback: ${subview_graph}")
+endif()
+if(NOT subview_graph MATCHES "\"reads\": \\[[^]]*\"subview_mirror_probe_main_color\"")
+  message(FATAL_ERROR "scene subview receiver did not read the subview color output: ${subview_graph}")
+endif()
+if(NOT subview_graph MATCHES "\"reads\": \\[[^]]*\"subview_mirror_probe_depth_aov\"")
+  message(FATAL_ERROR "scene subview receiver did not read the subview depth output: ${subview_graph}")
 endif()
 if(NOT subview_graph MATCHES "render_to_texture")
   message(FATAL_ERROR "scene subview intent did not mark render-to-texture features: ${subview_graph}")

@@ -124,6 +124,13 @@ namespace engine::graph {
     std::size_t setResourceDescriptor(RenderResourceDescriptor descriptor);
     void addPass(RenderPassNode pass);
     /**
+      * Adds a resource read edge to an existing pass.
+      *
+      * This is used by feature planners that discover cross-branch inputs after
+      * both producer and consumer passes have been synthesized.
+      */
+    void addReadToPass(const RenderPassId& passId, RenderResourceId resource);
+    /**
       * Adds @p resource and @p producer as the pass that writes it.
       *
       * If the pass does not already declare the write edge, this method adds
