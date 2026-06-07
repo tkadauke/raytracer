@@ -216,11 +216,6 @@ namespace engine::graph {
       return point - normal * (2.0 * ((point - planePoint) * normal));
     }
 
-    bool passRequiresUnsupportedReceiverClip(const RenderPassNode& pass) {
-      return pass.sceneView.camera && pass.sceneView.camera->derived &&
-             pass.sceneView.camera->derived->requiresReceiverClip;
-    }
-
     void writeColorFingerprint(std::ostream& out, const char* name, const Colord& color) {
       out << name << '=' << color.r() << ',' << color.g() << ',' << color.b() << ';';
     }
@@ -1319,11 +1314,6 @@ namespace engine::graph {
         return handler.publishesWrites() ? ScheduledPassResult::SkippedWithWrites
                                          : ScheduledPassResult::SkippedWithoutWrites;
       }
-      if (passRequiresUnsupportedReceiverClip(pass)) {
-        throw std::runtime_error("GraphRenderEngine cannot execute pass '" + pass.id +
-                                 "' because derived camera receiver clipping is not supported by "
-                                 "this backend path yet");
-      }
       auto recordTraceMessage = [recorder = p->executionTraceRecorder,
                                  session = traceSession.session, &pass](std::string message) {
         if (recorder && session) {
@@ -1410,12 +1400,6 @@ namespace engine::graph {
         return handler.publishesWrites() ? ScheduledPassResult::SkippedWithWrites
                                          : ScheduledPassResult::SkippedWithoutWrites;
       }
-      if (passRequiresUnsupportedReceiverClip(pass)) {
-        throw std::runtime_error("GraphRenderEngine cannot execute pass '" + pass.id +
-                                 "' because derived camera receiver clipping is not supported by "
-                                 "this backend path yet");
-      }
-
       auto recordTraceMessage = [recorder = p->executionTraceRecorder,
                                  session = traceSession.session, &pass](std::string message) {
         if (recorder && session) {

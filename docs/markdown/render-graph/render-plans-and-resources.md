@@ -138,6 +138,21 @@ that rejects all render-to-texture expansion. Imported or hand-authored graph
 JSON still runs through normal graph validation, so cyclic dependencies such as
 a screen receiver reading `screen_color` while the screen-feed pass reads
 `main_color` are rejected as dependency cycles before execution.
+Portal and planar mirror surfaces use the same subview machinery, but users do
+not author those branches by hand. The editable scene marks a planar receiver
+surface with `portalReceiverMarker` or `planarMirrorMarker`; then
+`RenderSceneAnalysis` records the visible receiver, its object id, and either
+the portal transform pair or the mirror plane. When automatic features are
+enabled, `RenderGraphCompiler` synthesizes a branch named from that receiver.
+The branch contains an alternate-camera beauty pass whose `SceneView` camera is
+derived from the active scene camera, a raster receiver-mask AOV pass selecting
+the marked surface by object id, and a composite pass that reads the current
+base color, the subview color, and the receiver stencil mask. The composite
+writes a new color resource that becomes the base image for the next automatic
+portal or mirror branch, and the final tonemap reads the last composited
+resource. If both the base frame and subview exported depth resources are
+available, the composite also reads both depths so occlusion remains a graph
+dependency instead of hidden state.
 When the effective frame intent names a default camera or non-default shading
 profile, synthesized scene-rendering passes carry those references in their
 `SceneView` and in exported plan JSON. Shading-profile parameters are parsed
@@ -1215,12 +1230,15 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/engine/graph/RenderResource.h`
 - `include/engine/graph/RenderResourceStorage.h`
 - `include/engine/graph/GraphRenderEngine.h`
+- `include/world/objects/Surface.h`
 - `include/widgets/world/RenderGraphInspectorWidget.h`
 - `include/widgets/world/RenderGraphTracePreviewWidget.h`
 - `scenes/render_graph_aov_demo.json`
 - `scenes/render_graph_stencil_composite_demo.json`
 - `scenes/render_graph_selector_routing_demo.json`
 - `scenes/render_texture_screen_demo.json`
+- `scenes/render_graph_portal_demo.json`
+- `scenes/render_graph_planar_mirror_demo.json`
 - `scenes/wavefront_indirect_environment_demo.json`
 - `scenes/wavefront_indirect_bounce_demo.json`
 - `scenes/wavefront_denoise_demo.json`
@@ -1232,6 +1250,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `src/engine/graph/RenderGraphExecutionTrace.cpp`
 - `src/engine/graph/RenderGraphTypes.cpp`
 - `src/engine/graph/GraphRenderEngine.cpp`
+- `src/world/objects/Surface.cpp`
 - `src/render/denoise/BoxDenoiser.cpp`
 - `src/render/denoise/BilateralDenoiser.cpp`
 - `src/render/materials/MatteMaterial.cpp`

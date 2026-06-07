@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Portal and mirror graph demos.** Added reusable rendercli/Modeler scenes
+  plus textbook coverage for graph-synthesized portal and planar mirror
+  branches. — GPT-5
 - **Portal and mirror recursion diagnostics.** Automatic portal and planar
   mirror graph expansion now stops at the configured render-to-texture
   recursion depth and emits deterministic truncated-branch diagnostics in graph
@@ -25,8 +28,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   coverage. — GPT-5
 - **Portal and mirror derived cameras.** Render graph subview branches now
   derive portal cameras from receiver/source transforms and mirror cameras from
-  planar reflection, carrying explicit receiver-clipping state that fails
-  clearly on unsupported execution paths. — GPT-5
+  planar reflection, carrying explicit receiver-clipping state through graph
+  inspection and execution. — GPT-5
 - **Portal and planar mirror scene markers.** Scene JSON and Modeler surface
   properties can now mark planar portal receivers and mirror surfaces for
   render graph discovery. — GPT-5

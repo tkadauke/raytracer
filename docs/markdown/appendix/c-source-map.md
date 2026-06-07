@@ -203,10 +203,13 @@
 | `include/world/objects/Scene.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/world/objects/SourceAsset.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/world/objects/StepVisibilityEvaluator.h` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `include/world/objects/Surface.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scenes/` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `scenes/animation_frame_demo.json` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `scenes/render_graph_aov_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scenes/render_graph_selector_routing_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `scenes/render_graph_planar_mirror_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `scenes/render_graph_portal_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scenes/render_graph_stencil_composite_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scenes/render_texture_screen_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scenes/wavefront_denoise_demo.json` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
@@ -274,6 +277,7 @@
 | `src/world/import/StlSceneImporter.cpp` | [STL import](../tools-and-io/stl-import.md) |
 | `src/world/objects/PinholeCamera.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/objects/Scene.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
+| `src/world/objects/Surface.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/fixtures/additive/` | [Additive manufacturing import](../tools-and-io/additive-manufacturing-import.md) |
 | `test/fixtures/gcode/` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `test/fixtures/gltf/` | [glTF import](../tools-and-io/gltf-import.md) |

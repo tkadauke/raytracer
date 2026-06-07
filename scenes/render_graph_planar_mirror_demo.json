@@ -1,0 +1,134 @@
+{
+  "id": "{64000000-0000-0000-0000-000000000000}",
+  "name": "Render Graph Planar Mirror Demo",
+  "ambient": [0.34, 0.34, 0.36],
+  "background": [0.10, 0.12, 0.15],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "raytracer",
+    "defaultViewMode": "beauty",
+    "defaultCamera": {
+      "sceneCameraId": "{64000000-0000-0000-0000-000000000001}"
+    },
+    "enableAutomaticFeatures": true,
+    "maxRenderToTextureRecursionDepth": 1
+  },
+  "children": [
+    {
+      "id": "{64000000-0000-0000-0000-000000000001}",
+      "name": "Mirror Demo Camera",
+      "position": [0.0, -0.35, -5.4],
+      "target": [0.0, 0.0, 0.1],
+      "distance": 5.0,
+      "zoom": 1.75,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{64000000-0000-0000-0000-000000000002}",
+      "name": "Mirror Demo Light",
+      "position": [0.0, -3.4, -3.2],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 0.96, 0.86],
+      "intensity": 2.1,
+      "type": "PointLight",
+      "children": []
+    },
+    {
+      "id": "{64000000-0000-0000-0000-000000000010}",
+      "name": "Mirror Surface Color",
+      "color": [0.78, 0.82, 0.86],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{64000000-0000-0000-0000-000000000011}",
+      "name": "Mirror Subject Color",
+      "color": [0.20, 0.64, 0.95],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{64000000-0000-0000-0000-000000000012}",
+      "name": "Mirror Floor Color",
+      "color": [0.36, 0.34, 0.30],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{64000000-0000-0000-0000-000000000020}",
+      "name": "Graph Mirror Material",
+      "diffuseTexture": "{64000000-0000-0000-0000-000000000010}",
+      "ambientCoefficient": 0.35,
+      "diffuseCoefficient": 0.45,
+      "specularColor": [1.0, 1.0, 1.0],
+      "specularCoefficient": 0.85,
+      "exponent": 48.0,
+      "reflectionColor": [1.0, 1.0, 1.0],
+      "reflectionCoefficient": 0.55,
+      "type": "ReflectiveMaterial",
+      "children": []
+    },
+    {
+      "id": "{64000000-0000-0000-0000-000000000021}",
+      "name": "Mirror Subject Material",
+      "diffuseTexture": "{64000000-0000-0000-0000-000000000011}",
+      "ambientCoefficient": 0.38,
+      "diffuseCoefficient": 0.90,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{64000000-0000-0000-0000-000000000022}",
+      "name": "Mirror Floor Material",
+      "diffuseTexture": "{64000000-0000-0000-0000-000000000012}",
+      "ambientCoefficient": 0.36,
+      "diffuseCoefficient": 0.84,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{64000000-0000-0000-0000-000000000030}",
+      "name": "Mirror Panel",
+      "position": [-0.88, -0.88, 0.05],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{64000000-0000-0000-0000-000000000020}",
+      "planarMirrorMarker": true,
+      "leg1": [1.76, 0.0, 0.0],
+      "leg2": [0.0, 1.76, 0.0],
+      "type": "Rectangle",
+      "children": []
+    },
+    {
+      "id": "{64000000-0000-0000-0000-000000000031}",
+      "name": "Mirror Subject Sphere",
+      "position": [0.0, -0.12, -1.15],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{64000000-0000-0000-0000-000000000021}",
+      "radius": 0.52,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "{64000000-0000-0000-0000-000000000032}",
+      "name": "Mirror Demo Floor",
+      "position": [0.0, 1.22, 0.7],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{64000000-0000-0000-0000-000000000022}",
+      "size": [4.5, 0.08, 3.2],
+      "bevelRadius": 0.0,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Box",
+      "children": []
+    }
+  ]
+}
