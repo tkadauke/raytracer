@@ -136,6 +136,37 @@ namespace GraphRenderEngineTest {
     mutable bool m_releaseSecondCall{false};
   };
 
+  class GateMaterial : public render::Material {
+  public:
+    Colord shade(const render::RayCaster*, const render::Scene&, const Rayd&, const HitPoint&,
+                 render::State&) const override {
+      std::unique_lock<std::mutex> lock(m_mutex);
+      ++m_calls;
+      m_changed.notify_all();
+      m_changed.wait(lock, [&] { return m_release; });
+      return Colord(0.25, 0.5, 0.75);
+    }
+
+    bool waitForCallCount(int count, std::chrono::milliseconds timeout) {
+      std::unique_lock<std::mutex> lock(m_mutex);
+      return m_changed.wait_for(lock, timeout, [&] { return m_calls >= count; });
+    }
+
+    void releaseAll() {
+      {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_release = true;
+      }
+      m_changed.notify_all();
+    }
+
+  private:
+    mutable std::mutex m_mutex;
+    mutable std::condition_variable m_changed;
+    mutable int m_calls{0};
+    mutable bool m_release{false};
+  };
+
   class RecordingObserver : public RenderGraphExecutionObserver {
   public:
     void passStarted(const RenderPassId& passId) override {
@@ -2172,6 +2203,133 @@ namespace GraphRenderEngineTest {
     ASSERT_NE(events.end(), firstFinish);
     ASSERT_NE(events.end(), secondStart);
     EXPECT_LT(firstFinish, secondStart);
+  }
+
+  TEST(GraphRenderEngine, LimitedExecutorCapKeepsExtraReadyPassQueued) {
+    auto material = std::make_shared<GateMaterial>();
+    auto scene = std::make_shared<render::Scene>();
+    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 100.0);
+    sphere->setMaterial(material);
+    scene->add(sphere);
+
+    RenderPlan plan;
+    plan.addResource(colorResource("side_a", RenderResourceLifetime::Transient, 1, 1));
+    plan.addResource(colorResource("side_b", RenderResourceLifetime::Transient, 1, 1));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported, 1, 1));
+
+    RenderPassNode first;
+    first.id = "beauty_a";
+    first.kind = RenderPassKind::Beauty;
+    first.executor = RenderExecutorKind::Raytracer;
+    first.writes.push_back({"side_a"});
+    first.concurrency = RenderConcurrencyLimit::limited(2);
+    plan.addPass(first);
+
+    RenderPassNode second = first;
+    second.id = "beauty_b";
+    second.writes = {{"side_b"}};
+    plan.addPass(second);
+
+    RenderPassNode third = first;
+    third.id = "beauty_c";
+    third.writes = {{"display_color"}};
+    plan.addPass(third);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    auto observer = std::make_shared<BlockingObserver>();
+    engine.setExecutionObserver(observer);
+
+    Buffer<Colord> buffer(1, 1);
+    std::exception_ptr renderFailure;
+    std::thread renderThread([&] {
+      try {
+        engine.render(buffer);
+      } catch (...) {
+        renderFailure = std::current_exception();
+      }
+    });
+
+    const bool firstTwoBlocked = material->waitForCallCount(2, std::chrono::seconds(2));
+    EXPECT_TRUE(firstTwoBlocked);
+    if (firstTwoBlocked) {
+      EXPECT_TRUE(observer->waitForStartedCount(2, std::chrono::seconds(2)));
+      EXPECT_TRUE(observer->waitForActiveSet({"beauty_a", "beauty_b"}, std::chrono::seconds(2)));
+      EXPECT_FALSE(observer->waitForEvent("start:beauty_c", std::chrono::milliseconds(100)));
+    }
+    material->releaseAll();
+    renderThread.join();
+    if (renderFailure) {
+      std::rethrow_exception(renderFailure);
+    }
+
+    const auto events = observer->events();
+    EXPECT_NE(events.end(), std::find(events.begin(), events.end(), "start:beauty_c"));
+    EXPECT_EQ(Colord(0.25, 0.5, 0.75), buffer[0][0]);
+  }
+
+  TEST(GraphRenderEngine, DependentsReadyInSameWaveCanOverlap) {
+    auto material = std::make_shared<GateMaterial>();
+    auto scene = std::make_shared<render::Scene>();
+    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 100.0);
+    sphere->setMaterial(material);
+    scene->add(sphere);
+
+    RenderPlan plan;
+    plan.addResource(colorResource("seed", RenderResourceLifetime::Transient, 1, 1));
+    plan.addResource(colorResource("side_color", RenderResourceLifetime::Transient, 1, 1));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported, 1, 1));
+
+    RenderPassNode seed;
+    seed.id = "seed";
+    seed.kind = RenderPassKind::Beauty;
+    seed.executor = RenderExecutorKind::Raytracer;
+    seed.writes.push_back({"seed"});
+    seed.disabledBehavior = DisabledBehavior::SubstituteDefault;
+    seed.enabled = false;
+    plan.addPass(seed);
+
+    RenderPassNode first;
+    first.id = "beauty_a";
+    first.kind = RenderPassKind::Beauty;
+    first.executor = RenderExecutorKind::Raytracer;
+    first.reads.push_back({"seed"});
+    first.writes.push_back({"side_color"});
+    first.concurrency = RenderConcurrencyLimit::parallel();
+    plan.addPass(first);
+
+    RenderPassNode second = first;
+    second.id = "beauty_b";
+    second.writes = {{"display_color"}};
+    plan.addPass(second);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    auto observer = std::make_shared<BlockingObserver>();
+    engine.setExecutionObserver(observer);
+
+    Buffer<Colord> buffer(1, 1);
+    std::exception_ptr renderFailure;
+    std::thread renderThread([&] {
+      try {
+        engine.render(buffer);
+      } catch (...) {
+        renderFailure = std::current_exception();
+      }
+    });
+
+    const bool dependentsBlocked = material->waitForCallCount(2, std::chrono::seconds(2));
+    EXPECT_TRUE(dependentsBlocked);
+    if (dependentsBlocked) {
+      EXPECT_TRUE(observer->waitForActiveSet({"beauty_a", "beauty_b"}, std::chrono::seconds(2)));
+    }
+    material->releaseAll();
+    renderThread.join();
+    if (renderFailure) {
+      std::rethrow_exception(renderFailure);
+    }
+
+    EXPECT_EQ(Colord(0.25, 0.5, 0.75), buffer[0][0]);
   }
 
   TEST(GraphRenderEngine, FailingPassSkipsDependentsDeterministically) {

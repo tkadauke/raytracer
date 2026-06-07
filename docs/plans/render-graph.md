@@ -10,7 +10,7 @@
 > composite/history-adjacent slices have landed. Remaining major work includes
 > scene-feature expansion, render-to-texture material consumption, portal and
 > mirror synthesis, selector-derived routing, concrete GPU-resident resources,
-> motion-vector/history resources, and parallel graph scheduling.
+> and motion-vector/history resources.
 >
 > **Roadmap link:** implements the architecture sketched in
 > `docs/roadmap.md` section 4.1.a, "Render-pass graph and hybrid execution."
@@ -1318,8 +1318,8 @@ beauty-pass controls, a display-buffer fast path for progressive simple previews
 dual HDR/display raytracer beauty output for progressive previews with
 postprocess passes, typed raster preview shadow-pass state, optional scene JSON
 render intent, and the textbook's render-graph volume.
-Scene-feature expansion, arbitrary postprocess/composite execution, and real
-parallel graph scheduling remain TODO.
+Scene-feature expansion, arbitrary history-dependent postprocess execution, and
+history resources remain TODO.
 
 Implement the smallest graph that proves the architecture:
 
@@ -1537,11 +1537,14 @@ inputs exist.
 
 ### Parallel scheduler
 
-Replace single-threaded dependency execution with parallel dependency-ready
-scheduling. Keep executor concurrency limits explicit. ✅ **Partial.**
-`RenderPlan::executionStages()` now groups dependency-ready passes into stable
-layers used by text exports and the Modeler graph layout; execution remains
-serial until executor concurrency limits and worker scheduling are added.
+~~Replace single-threaded dependency execution with parallel dependency-ready
+scheduling. Keep executor concurrency limits explicit.~~ ✅ **Done.**
+`GraphRenderEngine` now runs dependency-ready CPU-safe passes through graph
+workers, observes serial/limited/parallel per-pass executor caps, and
+deterministically skips queued dependents after cancellation or failure.
+Verification commands:
+`build/release/test/unit/unit_tests --gtest_filter='GraphRenderEngine.RunsIndependentCpuSafePassesConcurrently:GraphRenderEngine.DependentsReadyInSameWaveCanOverlap:GraphRenderEngine.LimitedExecutorCapKeepsExtraReadyPassQueued:GraphRenderEngine.SerialExecutorLimitPreservesPassOrder:GraphRenderEngine.CancellationSkipsQueuedDependentPasses:GraphRenderEngine.FailingPassSkipsDependentsDeterministically'`
+and `ctest --preset release --output-on-failure`.
 
 ### History resources
 

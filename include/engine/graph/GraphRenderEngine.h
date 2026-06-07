@@ -23,9 +23,10 @@ namespace engine::graph {
     * enabled whole-frame beauty pass using the existing raytracer, rasterizer,
     * or wireframe engine, optional color overlays such as the first wireframe
     * overlay pass, followed by simple color postprocess passes such as tonemap.
-    * Passes execute serially in dependency order. It preserves the graph-facing
-    * workflow: callers can compile a plan, inspect or override it, then execute
-    * that plan.
+    * Passes become schedulable when their resource dependencies are ready, and
+    * dependency-independent passes may overlap when their executor concurrency
+    * limits allow it. It preserves the graph-facing workflow: callers can
+    * compile a plan, inspect or override it, then execute that plan.
     */
   class GraphRenderEngine : public render::RenderEngine {
   public:

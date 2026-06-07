@@ -285,9 +285,10 @@ its output. `Passthrough` is validated more strictly because the disabled pass
 still runs a copy operation: it must have one input and at least one
 shape-compatible output.
 
-The current executor is serial, but it is not list-driven. Before execution,
+Execution is dependency-ready rather than list-driven. Before drawing pixels,
 `GraphRenderEngine` asks the plan for a dependency order derived from resource
-producer/consumer edges. A replayed JSON plan can declare `tonemap` before
+producer/consumer edges, then schedules any pass whose producers have already
+published their outputs. A replayed JSON plan can declare `tonemap` before
 `beauty`, for example, as long as `beauty` writes the resource that `tonemap`
 reads. Validation still catches missing producers, disabled producers that
 cannot substitute output, duplicate writers, and dependency cycles.
@@ -296,6 +297,22 @@ Tools can inspect declared pass-to-pass edges through
 `RenderPlan::dependenciesInto(passId)` and
 `RenderPlan::dependenciesOutOf(passId)` provide the same edge records filtered
 to that pass.
+
+The scheduler treats each dependency stage as a frontier, not a barrier. If a
+pass finishes and makes new dependents ready, those dependents can start while
+other independent work from the earlier frontier is still running. This matters
+for branches such as independent shadow maps, AOV producers, and render-to-texture
+sub-scenes: the graph does not need to wait for unrelated siblings before
+starting a now-ready consumer.
+
+Executor limits still apply. Each pass carries a `RenderConcurrencyLimit`:
+`serial` allows only one pass of that executor kind to run at a time, `limited`
+allows a fixed number of same-executor passes, and `parallel` leaves the graph
+worker count as the practical cap. A serial raster or composite pass can
+therefore preserve fallback/debug behavior, while CPU-safe raytracer or
+postprocess branches can overlap when their resources are independent. If a pass
+fails or graph execution is cancelled, queued dependents are skipped
+deterministically instead of starting with incomplete inputs.
 
 The pass declaration is separate from execution code. Executor-specific work
 lives behind
@@ -345,12 +362,11 @@ the same resource is also reported as a cycle.
 
 The same dependency walk exposes execution stages: each stage is the set of
 passes whose producer dependencies are already satisfied by earlier stages.
-The current `GraphRenderEngine` still executes serially, but text, DOT, and
-JSON exports plus the Modeler graph layout use these stages to make independent
-AOV or cache branches appear as parallel candidates rather than a misleading
-list. DOT exports also group pass nodes by execution stage with rank hints,
-include stage/order labels on each pass, and show resource format/lifetime
-labels on resource nodes.
+Text, DOT, and JSON exports plus the Modeler graph layout use these stages to
+make independent AOV or cache branches appear as parallel candidates rather than
+a misleading list. DOT exports also group pass nodes by execution stage with
+rank hints, include stage/order labels on each pass, and show resource
+format/lifetime labels on resource nodes.
 Code that needs to annotate individual pass rows can ask the plan for a pass's
 stage number directly instead of duplicating the stage walk.
 
@@ -1050,7 +1066,7 @@ therefore issues a session token for each render and ignores pass events from
 older sessions once a newer render starts. That keeps a cancelled or retired
 worker from publishing stale snapshots over the trace for the latest preview.
 
-## <a id="the-first-graph-engine-executes-one-pass"></a>The first graph engine executes simple plans
+## <a id="the-first-graph-engine-executes-simple-plans"></a>The first graph engine executes simple plans
 [`GraphRenderEngine`](../../../include/engine/graph/GraphRenderEngine.h) is a
 `RenderEngine` facade over the graph path. It can compile from its current
 intent or execute a caller-provided plan. The compiler emits a beauty pass, an
@@ -1068,7 +1084,9 @@ that small dependency-ordered color resource chain:
 The graph engine writes pass results into `RenderResourceStorage` and then
 copies the first exported color resource into the caller's output buffer.
 `lastPlan()` remains available after rendering, so tools can render and then
-inspect the exact graph shape that produced the image.
+inspect the exact graph shape that produced the image. Live observers and traces
+report start/finish/failure events per pass, so tools can see multiple active
+pass nodes when the scheduler overlaps independent work.
 
 For packed RGB output, the graph engine uses the payload display fast path when
 the plan is the default beauty-to-tonemap chain or the same chain with tonemap
@@ -1077,8 +1095,8 @@ disabled as a passthrough. That path lets `Raytracer`, `Rasterizer`, and
 complex plans still execute into graph resources first and pack the exported
 color after the graph completes.
 
-Composite passes, parallel scheduling, arbitrary history-dependent postprocess
-effects, and history resources are not executed by this first slice.
+Arbitrary history-dependent postprocess effects and history resources are not
+executed by this first slice.
 
 ## <a id="a-small-plan-by-hand"></a>A small plan by hand
 The unit tests build plans directly. A simple producer-consumer graph looks
@@ -1121,6 +1139,9 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
    disabled pass whose `DisabledBehavior` is `CullDependents`?
 4. Build a three-pass plan by hand: one pass writes `object_id`, one pass
    writes `main_color`, and one postprocess pass reads both resources.
+5. In a plan where two independent shadow-map passes both read the same imported
+   scene snapshot and write different depth resources, what concurrency limit
+   would keep them serial for debugging, and what limit would let them overlap?
 
 ## See also
 
