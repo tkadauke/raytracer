@@ -105,6 +105,8 @@ public:
 protected:
   std::shared_ptr<render::Primitive> toRaytracerPrimitive() const override;
   bool event(QEvent* e) override;
+  std::optional<AnimationPropertyInfo>
+  animationPropertyInfo(const QString& propertyName) const override;
 
   inline bool engineReady() const {
     return m_engine != nullptr;

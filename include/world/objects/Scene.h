@@ -102,6 +102,14 @@ public:
   bool hasAnimation() const;
 
   /**
+    * @returns classification results for the current animation timeline.
+    *
+    * Static scenes return an empty vector. Animated scenes preserve timeline
+    * track order so render engines can align diagnostics with authored tracks.
+    */
+  std::vector<world::AnimationTrackClassification> animationTrackClassifications() const;
+
+  /**
     * @returns the scene's saved render intent. If the scene JSON did not carry
     *   a `renderIntent` block, this is the default intent.
     */

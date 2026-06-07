@@ -160,4 +160,32 @@ namespace TimelineTest {
     EXPECT_EQ(Vector3d(5.0, 0.0, 0.0), camera->position());
     EXPECT_EQ(Vector3d(0.0, 0.0, -6.0), camera->target());
   }
+
+  TEST(Timeline, ClassifiesTracksAgainstSceneTargets) {
+    Scene scene;
+    auto* camera = new PinholeCamera;
+    camera->setId("camera-id");
+    scene.addChild(camera);
+
+    const world::Timeline timeline(1, 11, 24.0,
+                                   std::vector<world::AnimationTrack>({
+                                     world::AnimationTrack("camera-id", "position",
+                                                           {
+                                                             {1, vectorValue(0.0, 0.0, 0.0)},
+                                                             {11, vectorValue(10.0, 0.0, 0.0)},
+                                                           }),
+                                     world::AnimationTrack("missing-id", "position",
+                                                           {
+                                                             {1, vectorValue(0.0, 0.0, 0.0)},
+                                                             {11, vectorValue(10.0, 0.0, 0.0)},
+                                                           }),
+                                   }));
+
+    const auto classifications = timeline.classifyTracks(scene);
+
+    ASSERT_EQ(2u, classifications.size());
+    EXPECT_EQ(world::AnimationTrackClass::RuntimeContinuous, classifications[0].trackClass);
+    EXPECT_EQ(world::AnimationTrackClass::Rejected, classifications[1].trackClass);
+    EXPECT_THAT(classifications[1].diagnostic.toStdString(), HasSubstr("target element"));
+  }
 }

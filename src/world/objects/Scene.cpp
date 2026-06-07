@@ -294,6 +294,13 @@ bool Scene::hasAnimation() const {
   return static_cast<bool>(m_animation);
 }
 
+std::vector<world::AnimationTrackClassification> Scene::animationTrackClassifications() const {
+  if (!m_animation)
+    return {};
+
+  return m_animation->classifyTracks(*this);
+}
+
 const engine::graph::RenderIntent& Scene::renderIntent() const {
   return m_renderIntent;
 }
