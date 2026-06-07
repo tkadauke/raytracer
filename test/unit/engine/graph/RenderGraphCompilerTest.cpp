@@ -1174,7 +1174,7 @@ namespace RenderGraphCompilerTest {
     }
   }
 
-  TEST(RenderGraphCompiler, RejectsWholeSceneRenderTextureReceiverCycle) {
+  TEST(RenderGraphCompiler, WholeSceneRenderTextureReceiversCompileAsBoundedDependencies) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
     RenderSubviewIntent subview;
@@ -1185,14 +1185,12 @@ namespace RenderGraphCompilerTest {
     RenderSceneAnalysis analysis;
     analysis.recordRenderTextureReceiver("monitor-feed");
 
-    try {
-      compiler.compile({64, 32, 1}, intent, analysis);
-      FAIL() << "Expected cyclic render-to-texture receiver rejection";
-    } catch (const std::runtime_error& error) {
-      const std::string message = error.what();
-      EXPECT_NE(std::string::npos, message.find("receiver for subview 'monitor-feed' is cyclic"));
-      EXPECT_NE(std::string::npos, message.find("renders the whole scene"));
-    }
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    const auto* receiver = plan.findPass("raytrace_beauty");
+    ASSERT_NE(nullptr, receiver);
+    EXPECT_TRUE(receiver->readsResource("subview_monitor_feed_main_color"));
+    EXPECT_TRUE(plan.validate().valid());
   }
 
   TEST(RenderGraphCompiler, NormalizesNonPositiveSampleCount) {
