@@ -3,6 +3,16 @@
 #include <cmath>
 
 namespace engine::wavefront::detail {
+  void WavefrontTilePixel::writeSampleRadianceStddevTo(Buffer<double>& buffer) const {
+    for (int y = footprint.top(); y != footprint.bottom(); ++y) {
+      for (int x = footprint.left(); x != footprint.right(); ++x) {
+        if (y >= 0 && x >= 0 && y < buffer.height() && x < buffer.width()) {
+          buffer[y][x] = sampleRadianceStddev;
+        }
+      }
+    }
+  }
+
   void WavefrontTileTraceResult::recordSampleVariance(
     const std::vector<Colord>& sampleColors, const std::vector<std::size_t>& samplePixelIndices) {
     if (pixels.empty() || sampleColors.empty()) {
@@ -46,9 +56,17 @@ namespace engine::wavefront::detail {
       const int area = std::max(1, pixels[pixelIndex].area());
       const double variance =
         varianceSums[pixelIndex] * (1.0 / static_cast<double>(counts[pixelIndex]));
+      pixels[pixelIndex].sampleRadianceStddev = std::sqrt(variance);
       sampleVariancePixelArea += static_cast<std::uint64_t>(area);
       sampleRadianceVarianceSum += variance * static_cast<double>(area);
-      maxSampleRadianceStddev = std::max(maxSampleRadianceStddev, std::sqrt(variance));
+      maxSampleRadianceStddev =
+        std::max(maxSampleRadianceStddev, pixels[pixelIndex].sampleRadianceStddev);
+    }
+  }
+
+  void WavefrontTileTraceResult::writeSampleRadianceStddevTo(Buffer<double>& buffer) const {
+    for (const auto& pixel : pixels) {
+      pixel.writeSampleRadianceStddevTo(buffer);
     }
   }
 

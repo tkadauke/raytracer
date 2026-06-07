@@ -361,10 +361,12 @@ namespace engine::wavefront {
     bool showProgressIndicators;
     bool metricsEnabled{false};
     bool convergenceEnabled{false};
+    bool sampleRadianceStddevCaptureEnabled{false};
     double convergenceActiveSampleFractionThreshold;
     double convergenceRadianceDeltaRmsThreshold;
     std::optional<int> maximumRecursionDepth;
     std::optional<std::uint64_t> samplingSeed;
+    std::shared_ptr<Buffer<double>> lastSampleRadianceStddev;
     detail::WavefrontMetricsRecorder metrics;
 
     detail::WavefrontTileRenderConfig tileRenderConfig() const {
@@ -380,6 +382,17 @@ namespace engine::wavefront {
 
     detail::WavefrontTileRenderer tileRenderer() {
       return detail::WavefrontTileRenderer(tileRenderConfig(), metrics);
+    }
+
+    Buffer<double>* prepareSampleRadianceStddevBuffer(int width, int height) {
+      if (!sampleRadianceStddevCaptureEnabled) {
+        lastSampleRadianceStddev.reset();
+        return nullptr;
+      }
+
+      lastSampleRadianceStddev = std::make_shared<Buffer<double>>(width, height);
+      lastSampleRadianceStddev->clear(0.0);
+      return lastSampleRadianceStddev.get();
     }
 
     void configureIntegratorCancellation(const WavefrontRaytracer& owner) {
@@ -422,6 +435,7 @@ namespace engine::wavefront {
     result->setConvergenceActiveSampleFractionThreshold(
       p->convergenceActiveSampleFractionThreshold);
     result->setConvergenceRadianceDeltaRmsThreshold(p->convergenceRadianceDeltaRmsThreshold);
+    result->setSampleRadianceStddevCaptureEnabled(p->sampleRadianceStddevCaptureEnabled);
     if (p->samplingSeed) {
       result->setSamplingSeed(*p->samplingSeed);
     }
@@ -430,6 +444,7 @@ namespace engine::wavefront {
 
   void WavefrontRaytracer::render(Buffer<Colord>& buffer) {
     if (!m_scene || !m_camera) {
+      p->lastSampleRadianceStddev.reset();
       buffer.clear();
       return;
     }
@@ -465,18 +480,21 @@ namespace engine::wavefront {
     const auto denoiserFeatures = tileRenderer.buildDenoiserFeatures(
       *m_camera, *m_scene, buffer.rect(), tilePlan, *p->threadPool, p->denoiserFeatureTasks);
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
+    Buffer<double>* sampleRadianceStddevBuffer =
+      p->prepareSampleRadianceStddevBuffer(buffer.width(), buffer.height());
     const auto samplingSeed = p->samplingSeed;
     const bool publishProgressSnapshots = progressiveDisplayEnabled();
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
-      [this, rayCaster, camera, bufferPtr, samplingSeed, tileRenderer, denoiserFeaturePtr,
-       publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
+      [this, rayCaster, camera, bufferPtr, sampleRadianceStddevBuffer, samplingSeed, tileRenderer,
+       denoiserFeaturePtr, publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
         tileRenderer.renderHdrTile(*camera, *rayCaster, *m_scene, *bufferPtr, rect, tileSeed,
-                                   publishProgressSnapshots, denoiserFeaturePtr);
+                                   publishProgressSnapshots, sampleRadianceStddevBuffer,
+                                   denoiserFeaturePtr);
       });
     tileRenderer.denoise(buffer, denoiserFeatures.get());
     if (recordMetrics) {
@@ -490,6 +508,7 @@ namespace engine::wavefront {
 
   void WavefrontRaytracer::render(Buffer<unsigned int>& buffer) {
     if (!m_scene || !m_camera) {
+      p->lastSampleRadianceStddev.reset();
       buffer.clear();
       return;
     }
@@ -529,18 +548,21 @@ namespace engine::wavefront {
       p->metrics.clear();
     }
     auto tileRenderer = p->tileRenderer();
+    Buffer<double>* sampleRadianceStddevBuffer =
+      p->prepareSampleRadianceStddevBuffer(buffer.width(), buffer.height());
     const auto samplingSeed = p->samplingSeed;
     const bool publishProgressSnapshots = progressiveDisplayEnabled();
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
-      [this, rayCaster, camera, bufferPtr, tonemapOp, samplingSeed, tileRenderer,
-       publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
+      [this, rayCaster, camera, bufferPtr, tonemapOp, sampleRadianceStddevBuffer, samplingSeed,
+       tileRenderer, publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
         tileRenderer.renderDisplayTile(*camera, *rayCaster, *m_scene, *bufferPtr, tonemapOp, rect,
-                                       tileSeed, publishProgressSnapshots);
+                                       tileSeed, publishProgressSnapshots,
+                                       sampleRadianceStddevBuffer);
       });
     if (recordMetrics) {
       p->metrics.finish(renderStart);
@@ -558,6 +580,7 @@ namespace engine::wavefront {
     }
 
     if (!m_scene || !m_camera) {
+      p->lastSampleRadianceStddev.reset();
       hdrBuffer.clear();
       displayBuffer.clear();
       return;
@@ -595,20 +618,22 @@ namespace engine::wavefront {
     const auto denoiserFeatures = tileRenderer.buildDenoiserFeatures(
       *m_camera, *m_scene, hdrBuffer.rect(), tilePlan, *p->threadPool, p->denoiserFeatureTasks);
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
+    Buffer<double>* sampleRadianceStddevBuffer =
+      p->prepareSampleRadianceStddevBuffer(hdrBuffer.width(), hdrBuffer.height());
     const auto samplingSeed = p->samplingSeed;
     const bool publishProgressSnapshots = progressiveDisplayEnabled();
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
-      [this, rayCaster, camera, hdrBufferPtr, displayBufferPtr, displayTonemap, samplingSeed,
-       tileRenderer, denoiserFeaturePtr,
+      [this, rayCaster, camera, hdrBufferPtr, displayBufferPtr, displayTonemap,
+       sampleRadianceStddevBuffer, samplingSeed, tileRenderer, denoiserFeaturePtr,
        publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
-        tileRenderer.renderDualOutputTile(*camera, *rayCaster, *m_scene, *hdrBufferPtr,
-                                          *displayBufferPtr, displayTonemap, rect, tileSeed,
-                                          publishProgressSnapshots, denoiserFeaturePtr);
+        tileRenderer.renderDualOutputTile(
+          *camera, *rayCaster, *m_scene, *hdrBufferPtr, *displayBufferPtr, displayTonemap, rect,
+          tileSeed, publishProgressSnapshots, sampleRadianceStddevBuffer, denoiserFeaturePtr);
       });
     tileRenderer.denoise(hdrBuffer, denoiserFeatures.get());
     tileRenderer.writeDisplayBuffer(displayBuffer, hdrBuffer, displayTonemap);
@@ -744,6 +769,21 @@ namespace engine::wavefront {
 
   double WavefrontRaytracer::convergenceRadianceDeltaRmsThreshold() const {
     return p->convergenceRadianceDeltaRmsThreshold;
+  }
+
+  void WavefrontRaytracer::setSampleRadianceStddevCaptureEnabled(bool enabled) {
+    p->sampleRadianceStddevCaptureEnabled = enabled;
+    if (!enabled) {
+      p->lastSampleRadianceStddev.reset();
+    }
+  }
+
+  bool WavefrontRaytracer::sampleRadianceStddevCaptureEnabled() const {
+    return p->sampleRadianceStddevCaptureEnabled;
+  }
+
+  std::shared_ptr<const Buffer<double>> WavefrontRaytracer::lastSampleRadianceStddev() const {
+    return p->lastSampleRadianceStddev;
   }
 
   WavefrontRenderMetrics WavefrontRaytracer::lastMetrics() const {

@@ -224,6 +224,29 @@ rendercli_assert_image_dimensions("${area_light_output}" 32 24
                                   NAME "pathtracer area light dimensions")
 rendercli_assert_image_nonempty("${area_light_output}" NAME "pathtracer area light pixels")
 
+set(sample_stddev_output "${TEST_OUTPUT_DIR}/pathtracer-sample-stddev.png")
+set(sample_stddev_render "${TEST_OUTPUT_DIR}/pathtracer-sample-stddev-render.png")
+rendercli_run(
+  NAME "rendercli pathtracer writes sample standard-deviation image"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine pathtracer --wavefront_sample_stddev_out
+    "${sample_stddev_output}" --width 32 --height 24 --sampler Halton --samples_per_pixel 8
+    --sampling_seed 17 --depth 3 "${area_light_scene}" "${sample_stddev_render}"
+)
+rendercli_assert_image_dimensions("${sample_stddev_output}" 32 24
+                                  NAME "pathtracer sample stddev dimensions")
+rendercli_assert_image_nonempty("${sample_stddev_output}"
+                                NAME "pathtracer sample stddev pixels")
+
+rendercli_expect_failure(
+  NAME "rendercli sample standard-deviation output requires direct engine"
+  COMMAND
+    "${RENDERCLI}" --engine pathtracer --wavefront_sample_stddev_out "${sample_stddev_output}"
+    --width 16 --height 12 --sampler Halton --samples_per_pixel 4
+    "${area_light_scene}" "${sample_stddev_render}"
+  STDERR_MATCHES "requires --direct_engine"
+)
+
 set(wavefront_denoise_output "${TEST_OUTPUT_DIR}/wavefront-denoise-direct.png")
 rendercli_run(
   NAME "rendercli wavefront direct engine accepts denoiser"

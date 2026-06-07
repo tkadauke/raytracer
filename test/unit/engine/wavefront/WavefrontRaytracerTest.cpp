@@ -877,4 +877,34 @@ namespace WavefrontRaytracerTest {
     EXPECT_NEAR(std::sqrt(0.5), batching.value("sampleRadianceStddevRms").toDouble(), 1e-12);
     EXPECT_NEAR(std::sqrt(0.5), batching.value("maxSampleRadianceStddev").toDouble(), 1e-12);
   }
+
+  TEST(WavefrontRaytracer, CapturesPerPixelSampleRadianceStddevWithoutMetrics) {
+    auto renderCamera = camera();
+    auto sampler = std::make_shared<render::HaltonSampler>();
+    sampler->setup(/*numSamples=*/2, /*numSets=*/1);
+    renderCamera->viewPlane()->setSampler(sampler);
+
+    auto renderer = std::make_shared<WavefrontRaytracer>(renderCamera, testScene());
+    renderer->setIntegrator(std::make_unique<AlternatingSampleIntegrator>());
+    renderer->setQueueSize(1);
+    renderer->setSampleRadianceStddevCaptureEnabled(true);
+
+    Buffer<Colord> buffer(2, 1);
+    renderer->render(buffer);
+
+    const auto sampleStddev = renderer->lastSampleRadianceStddev();
+    ASSERT_NE(nullptr, sampleStddev);
+    EXPECT_EQ(2, sampleStddev->width());
+    EXPECT_EQ(1, sampleStddev->height());
+    EXPECT_NEAR(std::sqrt(0.5), (*sampleStddev)[0][0], 1e-12);
+    EXPECT_NEAR(std::sqrt(0.5), (*sampleStddev)[0][1], 1e-12);
+
+    EXPECT_FALSE(renderer->metricsEnabled());
+    EXPECT_EQ(0u, renderer->lastMetrics().batching.sampleVariancePixelArea);
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.5, 0.0), buffer[0][0], 1e-12);
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.5, 0.0), buffer[0][1], 1e-12);
+
+    renderer->setSampleRadianceStddevCaptureEnabled(false);
+    EXPECT_EQ(nullptr, renderer->lastSampleRadianceStddev());
+  }
 }

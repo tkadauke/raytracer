@@ -145,14 +145,12 @@ namespace engine::wavefront::detail {
       return settings;
     }
 
-    WavefrontTileTraceResult traceTile(const WavefrontTileRenderConfig& config,
-                                       render::Camera& camera, const render::RayCaster& rayCaster,
-                                       const render::Scene& scene, const Recti& actualRect,
-                                       std::optional<std::uint64_t> tileSeed,
-                                       const std::function<void(const Recti&)>& markProgress,
-                                       TileProgressTransform transformProgress,
-                                       TileProgressPublisher publishProgress,
-                                       bool publishProgressSnapshots, bool useProgressFeedback) {
+    WavefrontTileTraceResult traceTile(
+      const WavefrontTileRenderConfig& config, render::Camera& camera,
+      const render::RayCaster& rayCaster, const render::Scene& scene, const Recti& actualRect,
+      std::optional<std::uint64_t> tileSeed, const std::function<void(const Recti&)>& markProgress,
+      TileProgressTransform transformProgress, TileProgressPublisher publishProgress,
+      bool publishProgressSnapshots, bool useProgressFeedback, bool captureSampleRadianceStddev) {
       WavefrontTileTraceResult result;
       const auto sampleGenerationStart = WavefrontMetricsRecorder::Clock::now();
       std::vector<render::IntegratorRaySample> samples;
@@ -246,7 +244,7 @@ namespace engine::wavefront::detail {
       result.integratorBatchWorkerSeconds =
         std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() - integratorBatchStart)
           .count();
-      if (config.metricsEnabled) {
+      if (config.metricsEnabled || captureSampleRadianceStddev) {
         result.recordSampleVariance(sampleColors, samplePixelIndices);
       }
       progressObserver.applySampleColors(sampleColors);
@@ -379,7 +377,8 @@ namespace engine::wavefront::detail {
   void WavefrontTileRenderer::renderHdrTile(
     render::Camera& camera, const render::RayCaster& rayCaster, const render::Scene& scene,
     Buffer<Colord>& buffer, const Recti& rect, std::optional<std::uint64_t> tileSeed,
-    bool publishProgressSnapshots, const WavefrontDenoiserFeatureSet* denoiserFeatures) const {
+    bool publishProgressSnapshots, Buffer<double>* sampleRadianceStddevBuffer,
+    const WavefrontDenoiserFeatureSet* denoiserFeatures) const {
     const Recti actualRect = camera.renderableRect(rect);
     if (actualRect.width() <= 0 || actualRect.height() <= 0) {
       return;
@@ -406,9 +405,12 @@ namespace engine::wavefront::detail {
       m_config, camera, rayCaster, scene, actualRect, tileSeed,
       [&](const Recti& footprint) { writeColor(buffer, footprint, Colord(1, 0, 0)); },
       std::move(transformProgress), std::move(publishProgress), publishProgressSnapshots,
-      progressDenoiser && m_config.convergenceEnabled);
+      progressDenoiser && m_config.convergenceEnabled, sampleRadianceStddevBuffer != nullptr);
     if (m_config.metricsEnabled) {
       m_metrics.recordTile(result);
+    }
+    if (sampleRadianceStddevBuffer) {
+      result.writeSampleRadianceStddevTo(*sampleRadianceStddevBuffer);
     }
     for (const auto& pixel : result.pixels) {
       writeColor(buffer, pixel.footprint, pixel.color);
@@ -418,7 +420,8 @@ namespace engine::wavefront::detail {
   void WavefrontTileRenderer::renderDisplayTile(
     render::Camera& camera, const render::RayCaster& rayCaster, const render::Scene& scene,
     Buffer<unsigned int>& buffer, std::shared_ptr<render::Tonemap> tonemap, const Recti& rect,
-    std::optional<std::uint64_t> tileSeed, bool publishProgressSnapshots) const {
+    std::optional<std::uint64_t> tileSeed, bool publishProgressSnapshots,
+    Buffer<double>* sampleRadianceStddevBuffer) const {
     const Recti actualRect = camera.renderableRect(rect);
     if (actualRect.width() <= 0 || actualRect.height() <= 0) {
       return;
@@ -436,9 +439,13 @@ namespace engine::wavefront::detail {
             }
           })
         : TileProgressPublisher{},
-      publishProgressSnapshots, /*useProgressFeedback=*/false);
+      publishProgressSnapshots, /*useProgressFeedback=*/false,
+      sampleRadianceStddevBuffer != nullptr);
     if (m_config.metricsEnabled) {
       m_metrics.recordTile(result);
+    }
+    if (sampleRadianceStddevBuffer) {
+      result.writeSampleRadianceStddevTo(*sampleRadianceStddevBuffer);
     }
     for (const auto& pixel : result.pixels) {
       writeRGB(buffer, pixel.footprint,
@@ -451,6 +458,7 @@ namespace engine::wavefront::detail {
     Buffer<Colord>& hdrBuffer, Buffer<unsigned int>& displayBuffer,
     std::shared_ptr<render::Tonemap> tonemap, const Recti& rect,
     std::optional<std::uint64_t> tileSeed, bool publishProgressSnapshots,
+    Buffer<double>* sampleRadianceStddevBuffer,
     const WavefrontDenoiserFeatureSet* denoiserFeatures) const {
     const Recti actualRect = camera.renderableRect(rect);
     if (actualRect.width() <= 0 || actualRect.height() <= 0) {
@@ -484,9 +492,12 @@ namespace engine::wavefront::detail {
         writeRGB(displayBuffer, footprint, 0xffff0000);
       },
       std::move(transformProgress), std::move(publishProgress), publishProgressSnapshots,
-      progressDenoiser && m_config.convergenceEnabled);
+      progressDenoiser && m_config.convergenceEnabled, sampleRadianceStddevBuffer != nullptr);
     if (m_config.metricsEnabled) {
       m_metrics.recordTile(result);
+    }
+    if (sampleRadianceStddevBuffer) {
+      result.writeSampleRadianceStddevTo(*sampleRadianceStddevBuffer);
     }
     for (const auto& pixel : result.pixels) {
       writeColor(hdrBuffer, pixel.footprint, pixel.color);

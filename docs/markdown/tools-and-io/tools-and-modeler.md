@@ -251,6 +251,13 @@ breakdown and
 also includes `sampleVariancePixelArea`, `sampleRadianceStddevRms`, and
 `maxSampleRadianceStddev`, which measure disagreement between samples of the
 same pixel and complement the between-depth radiance-delta convergence fields.
+For direct wavefront or pathtracer debugging,
+`--wavefront_sample_stddev_out FILE` writes a grayscale image of the same
+per-pixel sample radiance standard-deviation data. Bright pixels are the noisiest
+pixels in that render, normalized against the maximum standard deviation in the
+captured frame. This is intentionally a direct-engine diagnostic for now; graph
+exports should grow a declared variance resource before the graph-backed default
+path writes the same image.
 The
 refined counter is Whitted-specific diagnostic work: it counts packet-hit lanes
 that still need scalar hit refinement for strict secondary-ray parity. Local

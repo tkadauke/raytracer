@@ -1146,6 +1146,7 @@ public:
   std::shared_ptr<render::Sampler> sampler() const;
   QImage bufferToImage(const Buffer<unsigned int>& buffer) const;
   QImage colorBufferToImage(const Buffer<Colord>& buffer) const;
+  QImage scalarBufferToImage(const Buffer<double>& buffer) const;
 
   QCommandLineParser parser;
 
@@ -1209,6 +1210,7 @@ private:
   bool m_rasterMetricsSummary;
   QString m_wavefrontMetricsOut;
   bool m_wavefrontMetricsSummary;
+  QString m_wavefrontSampleStddevOut;
   std::vector<RenderGraphAOVOutput> m_renderGraphAOVOutputs;
   std::vector<RenderGraphViewOverrideInput> m_renderGraphViewOverrides;
   std::vector<RenderGraphImageInput> m_renderGraphColorInputs;
@@ -1385,6 +1387,7 @@ Renderer::Renderer()
       m_rasterMetricsSummary(false),
       m_wavefrontMetricsOut(),
       m_wavefrontMetricsSummary(false),
+      m_wavefrontSampleStddevOut(),
       m_renderGraphAOVOutputs(),
       m_renderGraphExecutorSet(false),
       m_renderGraphExecutor(engine::graph::RenderExecutorPreference::Raytracer),
@@ -2166,6 +2169,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   const bool rasterMetricsRequested = !m_rasterMetricsOut.isEmpty() || m_rasterMetricsSummary;
   const bool wavefrontMetricsRequested =
     !m_wavefrontMetricsOut.isEmpty() || m_wavefrontMetricsSummary;
+  const bool wavefrontSampleStddevRequested = !m_wavefrontSampleStddevOut.isEmpty();
 
   if (m_renderGraph) {
     graphEngine = rtCamera
@@ -2221,6 +2225,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     if (m_samplingSeed)
       wavefront->setSamplingSeed(*m_samplingSeed);
     wavefront->setMetricsEnabled(wavefrontMetricsRequested);
+    wavefront->setSampleRadianceStddevCaptureEnabled(wavefrontSampleStddevRequested);
     if (m_wavefrontConvergenceSet)
       wavefront->setConvergenceEnabled(m_wavefrontConvergenceEnabled);
     if (m_wavefrontConvergenceActiveFractionSet) {
@@ -2406,6 +2411,25 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
 
   if (!m_wavefrontMetricsOut.isEmpty()) {
     writeWavefrontMetricsReport(wavefrontMetricRuns, m_wavefrontMetricsOut);
+  }
+
+  if (wavefrontSampleStddevRequested) {
+    if (!directWavefrontEngine) {
+      throw std::runtime_error(
+        "Wavefront sample standard-deviation output requires a direct wavefront/pathtracer render");
+    }
+    const auto sampleStddev = directWavefrontEngine->lastSampleRadianceStddev();
+    if (!sampleStddev) {
+      throw std::runtime_error(
+        "Wavefront render did not produce a sample standard-deviation image");
+    }
+    const QImage sampleStddevImage = scalarBufferToImage(*sampleStddev);
+    if (!sampleStddevImage.save(m_wavefrontSampleStddevOut)) {
+      throw std::runtime_error(
+        QString("Unable to write wavefront sample standard-deviation image: %1")
+          .arg(m_wavefrontSampleStddevOut)
+          .toStdString());
+    }
   }
 
   QImage image = bufferToImage(buffer);
@@ -2663,6 +2687,30 @@ QImage Renderer::colorBufferToImage(const Buffer<Colord>& buffer) const {
   return image;
 }
 
+QImage Renderer::scalarBufferToImage(const Buffer<double>& buffer) const {
+  double maximum = 0.0;
+  for (int y = 0; y != buffer.height(); ++y) {
+    for (int x = 0; x != buffer.width(); ++x) {
+      const double value = buffer[y][x];
+      if (std::isfinite(value)) {
+        maximum = std::max(maximum, value);
+      }
+    }
+  }
+
+  QImage image(buffer.width(), buffer.height(), QImage::Format_RGB32);
+  for (int y = 0; y != buffer.height(); ++y) {
+    for (int x = 0; x != buffer.width(); ++x) {
+      const double value = buffer[y][x];
+      const double normalized =
+        maximum > 0.0 && std::isfinite(value) ? std::clamp(value / maximum, 0.0, 1.0) : 0.0;
+      const int gray = static_cast<int>(std::round(normalized * 255.0));
+      image.setPixel(x, y, qRgb(gray, gray, gray));
+    }
+  }
+  return image;
+}
+
 Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessage) {
   parser.setApplicationDescription(
     QCoreApplication::translate("rendercli", "Command line renderer."));
@@ -2726,6 +2774,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"raster_metrics_summary", "Print aggregate raster render metrics to stdout"},
      {"wavefront_metrics_out", "Write aggregate wavefront render metrics to a JSON file", "file"},
      {"wavefront_metrics_summary", "Print aggregate wavefront render metrics to stdout"},
+     {"wavefront_sample_stddev_out",
+      "Write a grayscale per-pixel wavefront sample radiance standard-deviation image", "file"},
      {"render_graph_aov_out",
       "Write an executed graph AOV preview image; repeat with view=file for multiple AOVs",
       "view=file"},
@@ -3210,6 +3260,14 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
 
   if (parser.isSet("wavefront_metrics_summary")) {
     m_wavefrontMetricsSummary = true;
+  }
+
+  if (parser.isSet("wavefront_sample_stddev_out")) {
+    m_wavefrontSampleStddevOut = parser.value("wavefront_sample_stddev_out").trimmed();
+    if (m_wavefrontSampleStddevOut.isEmpty()) {
+      *errorMessage = "Wavefront sample standard-deviation output path must not be empty";
+      return CommandLineError;
+    }
   }
 
   if (parser.isSet("render_graph_aov_out")) {
@@ -3789,6 +3847,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     return CommandLineError;
   }
 
+  if (m_animation && !m_wavefrontSampleStddevOut.isEmpty()) {
+    *errorMessage = "Cannot combine --animation with wavefront sample standard-deviation output";
+    return CommandLineError;
+  }
+
   if (m_renderGraphOnly && m_repeat > 1) {
     *errorMessage = "Cannot combine --render_graph_only with --repeat";
     return CommandLineError;
@@ -3811,6 +3874,12 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
 
   if (m_renderGraphOnly && (!m_wavefrontMetricsOut.isEmpty() || m_wavefrontMetricsSummary)) {
     *errorMessage = "Cannot combine --render_graph_only with wavefront metrics output";
+    return CommandLineError;
+  }
+
+  if (m_renderGraphOnly && !m_wavefrontSampleStddevOut.isEmpty()) {
+    *errorMessage =
+      "Cannot combine --render_graph_only with wavefront sample standard-deviation output";
     return CommandLineError;
   }
 
@@ -3853,6 +3922,26 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       (!m_wavefrontMetricsOut.isEmpty() || m_wavefrontMetricsSummary)) {
     *errorMessage = "Cannot combine --step sequence with wavefront metrics output";
     return CommandLineError;
+  }
+
+  if (m_stepSelectionSet && m_stepSelection.mode == CommandLineStepMode::Sequence &&
+      !m_wavefrontSampleStddevOut.isEmpty()) {
+    *errorMessage =
+      "Cannot combine --step sequence with wavefront sample standard-deviation output";
+    return CommandLineError;
+  }
+
+  if (!m_wavefrontSampleStddevOut.isEmpty()) {
+    if (!m_directEngine) {
+      *errorMessage =
+        "Wavefront sample standard-deviation output currently requires --direct_engine";
+      return CommandLineError;
+    }
+    if (m_engine != "wavefront" && m_engine != "pathtracer" && m_engine != "pt") {
+      *errorMessage =
+        "Wavefront sample standard-deviation output requires --engine wavefront or pathtracer";
+      return CommandLineError;
+    }
   }
 
   if (m_directEngine &&

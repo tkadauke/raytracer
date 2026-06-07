@@ -893,6 +893,12 @@ render-wide noise diagnostic for path-traced samples: it measures disagreement
 between samples of the same pixel, complements the existing between-depth
 radiance-delta convergence metrics, and gives adaptive sampling a concrete
 signal to build on.
+Direct wavefront/pathtracer rendercli runs can also write that same per-pixel
+sample standard-deviation signal as a grayscale diagnostic image with
+`--wavefront_sample_stddev_out`; bright pixels identify regions that need
+adaptive sampling or better sampling distributions. Graph-backed export remains
+TODO until sample variance is represented as a declared graph resource rather
+than hidden engine-side state.
 
 Start with pure single-continuation path tracing (Option **B**) unless a
 measured scene proves deterministic specular split (Option **C**) is needed for
