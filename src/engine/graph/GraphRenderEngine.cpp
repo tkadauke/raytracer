@@ -1324,7 +1324,6 @@ namespace engine::graph {
                                  "' because derived camera receiver clipping is not supported by "
                                  "this backend path yet");
       }
-
       auto recordTraceMessage = [recorder = p->executionTraceRecorder,
                                  session = traceSession.session, &pass](std::string message) {
         if (recorder && session) {
