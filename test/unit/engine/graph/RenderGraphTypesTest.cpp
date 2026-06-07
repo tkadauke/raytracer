@@ -625,6 +625,59 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("Raster beauty", rasterizer.beautyPassName());
   }
 
+  TEST(RenderExecutorDefinition, DeclaresDefaultConcurrencyLimits) {
+    EXPECT_EQ(
+      RenderConcurrencyMode::Parallel,
+      renderExecutorDefinition(RenderExecutorPreference::Raytracer).defaultConcurrencyLimit().mode);
+    EXPECT_EQ(RenderConcurrencyMode::Parallel,
+              renderExecutorDefinition(RenderExecutorPreference::Rasterizer)
+                .defaultConcurrencyLimit()
+                .mode);
+    EXPECT_EQ(RenderConcurrencyMode::Serial,
+              defaultConcurrencyLimit(RenderExecutorKind::Composite).mode);
+  }
+
+  TEST(RenderConcurrencyLimit, SerializesLimits) {
+    const RenderConcurrencyLimit serial = RenderConcurrencyLimit::serial();
+    EXPECT_EQ(RenderConcurrencyMode::Serial, serial.mode);
+    EXPECT_EQ(1, serial.maxConcurrentPasses);
+    EXPECT_FALSE(serial.allowsParallelExecution());
+    EXPECT_EQ("serial", serial.displayText());
+
+    const RenderConcurrencyLimit limited = RenderConcurrencyLimit::limited(3);
+    EXPECT_EQ(RenderConcurrencyMode::Limited, limited.mode);
+    EXPECT_EQ(3, limited.maxConcurrentPasses);
+    EXPECT_TRUE(limited.allowsParallelExecution());
+    EXPECT_EQ("limited(3)", limited.displayText());
+
+    const RenderConcurrencyLimit decoded = RenderConcurrencyLimit::fromJson(limited.toJson());
+    EXPECT_EQ(RenderConcurrencyMode::Limited, decoded.mode);
+    EXPECT_EQ(3, decoded.maxConcurrentPasses);
+  }
+
+  TEST(RenderPassNode, ImportsStructuredAndLegacyConcurrencyMetadata) {
+    QJsonObject limited;
+    limited["mode"] = "limited";
+    limited["maxPasses"] = 2;
+
+    QJsonObject passJson;
+    passJson["id"] = "gpu";
+    passJson["concurrency"] = limited;
+    const RenderPassNode pass = RenderPassNode::fromJson(passJson);
+    EXPECT_EQ(RenderConcurrencyMode::Limited, pass.concurrency.mode);
+    EXPECT_EQ(2, pass.concurrency.maxConcurrentPasses);
+    EXPECT_TRUE(pass.canRunConcurrently);
+    EXPECT_EQ("limited", pass.toJson()["concurrency"].toObject()["mode"].toString().toStdString());
+    EXPECT_EQ(2, pass.toJson()["concurrency"].toObject()["maxPasses"].toInt());
+
+    QJsonObject legacyJson;
+    legacyJson["id"] = "legacy";
+    legacyJson["canRunConcurrently"] = false;
+    const RenderPassNode legacy = RenderPassNode::fromJson(legacyJson);
+    EXPECT_EQ(RenderConcurrencyMode::Serial, legacy.concurrency.mode);
+    EXPECT_FALSE(legacy.canRunConcurrently);
+  }
+
   TEST(RenderIntent, RejectsUnknownPostProcessAA) {
     QJsonObject json;
     json["postProcessAA"] = "mlaa";

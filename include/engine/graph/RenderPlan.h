@@ -30,6 +30,7 @@ namespace engine::graph {
       InvalidPassIO,
       InvalidResourceShape,
       ResourceDomainMismatch,
+      InvalidConcurrencyLimit,
       Cycle
     };
 

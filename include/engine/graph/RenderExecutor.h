@@ -19,6 +19,7 @@ namespace engine::graph {
     virtual RenderExecutorKind kind() const = 0;
     virtual RenderExecutorPreference preference() const = 0;
     virtual RenderFeatureKind feature() const = 0;
+    virtual RenderConcurrencyLimit defaultConcurrencyLimit() const;
     virtual std::string beautyPassId() const = 0;
     virtual std::string beautyPassName() const = 0;
     virtual void configureBeautyPassState(RenderPassNode& pass, int targetSampleCount,
@@ -30,5 +31,6 @@ namespace engine::graph {
 
   const RenderExecutorDefinition& renderExecutorDefinition(RenderExecutorPreference executor);
   const RenderExecutorDefinition* renderExecutorDefinition(RenderExecutorKind executor);
+  RenderConcurrencyLimit defaultConcurrencyLimit(RenderExecutorKind executor);
   std::vector<const RenderExecutorDefinition*> renderExecutorDefinitions();
 }

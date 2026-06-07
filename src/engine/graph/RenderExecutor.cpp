@@ -170,6 +170,10 @@ namespace engine::graph {
     return kind() == executor;
   }
 
+  RenderConcurrencyLimit RenderExecutorDefinition::defaultConcurrencyLimit() const {
+    return RenderConcurrencyLimit::parallel();
+  }
+
   bool RenderExecutorDefinition::matches(RenderExecutorPreference executor) const {
     return preference() == executor;
   }
@@ -191,6 +195,16 @@ namespace engine::graph {
       return definition->matches(executor);
     });
     return it == all.end() ? nullptr : *it;
+  }
+
+  RenderConcurrencyLimit defaultConcurrencyLimit(RenderExecutorKind executor) {
+    if (const auto* definition = renderExecutorDefinition(executor)) {
+      return definition->defaultConcurrencyLimit();
+    }
+    if (executor == RenderExecutorKind::Composite) {
+      return RenderConcurrencyLimit::serial();
+    }
+    return RenderConcurrencyLimit::parallel();
   }
 
   std::vector<const RenderExecutorDefinition*> renderExecutorDefinitions() {

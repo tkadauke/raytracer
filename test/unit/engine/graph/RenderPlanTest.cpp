@@ -756,6 +756,7 @@ namespace RenderPlanTest {
     EXPECT_NE(std::string::npos,
               text.find("scene: selector=object_name: hero, camera=shot-camera, shading=toon"));
     EXPECT_NE(std::string::npos, text.find("resource domains: cpu gpu"));
+    EXPECT_NE(std::string::npos, text.find("concurrency: parallel"));
     EXPECT_NE(std::string::npos, text.find("Execution order"));
     EXPECT_NE(std::string::npos, text.find("Dependencies"));
 
@@ -772,6 +773,7 @@ namespace RenderPlanTest {
     EXPECT_NE(std::string::npos, dot.find("camera shot-camera"));
     EXPECT_NE(std::string::npos, dot.find("shading toon"));
     EXPECT_NE(std::string::npos, dot.find("domains cpu,gpu"));
+    EXPECT_NE(std::string::npos, dot.find("concurrency parallel"));
 
     const QJsonObject json = plan.toJson();
     ASSERT_TRUE(json["resources"].isArray());
@@ -782,6 +784,13 @@ namespace RenderPlanTest {
     ASSERT_TRUE(resource["features"].isArray());
     EXPECT_EQ("display", resource["features"].toArray().at(0).toString().toStdString());
     EXPECT_EQ(1, json["passes"].toArray().size());
+    EXPECT_EQ("parallel", json["passes"]
+                            .toArray()
+                            .at(0)
+                            .toObject()["concurrency"]
+                            .toObject()["mode"]
+                            .toString()
+                            .toStdString());
     ASSERT_EQ(1, json["executionStages"].toArray().size());
     const auto stage = json["executionStages"].toArray().at(0).toObject();
     EXPECT_EQ(1, stage["index"].toInt());
@@ -804,6 +813,33 @@ namespace RenderPlanTest {
     EXPECT_NE(std::string::npos, dot.find("pass:main"));
     EXPECT_NE(std::string::npos, dot.find("style=dashed"));
     EXPECT_NE(std::string::npos, dot.find("color=gray50"));
+  }
+
+  TEST(RenderPlan, OpenGLRasterStateLimitsPassConcurrency) {
+    RenderPlan plan;
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported));
+
+    auto main = pass("main");
+    main.executor = RenderExecutorKind::Rasterizer;
+    main.writes.push_back({"main_color"});
+    plan.addPass(main);
+
+    auto state = std::make_shared<RasterBeautyPassState>();
+    state->execution().setBackend(engine::raster::RasterBackend::openGL());
+
+    EXPECT_EQ(1u, plan.setPassState(RenderPassKind::Beauty, RenderExecutorKind::Rasterizer, state));
+
+    ASSERT_EQ(1u, plan.passes().size());
+    EXPECT_EQ(RenderConcurrencyMode::Limited, plan.passes().front().concurrency.mode);
+    EXPECT_EQ(1, plan.passes().front().concurrency.maxConcurrentPasses);
+    EXPECT_FALSE(plan.passes().front().canRunConcurrently);
+    EXPECT_EQ("limited", plan.toJson()["passes"]
+                           .toArray()
+                           .at(0)
+                           .toObject()["concurrency"]
+                           .toObject()["mode"]
+                           .toString()
+                           .toStdString());
   }
 
   TEST(RenderPlan, ImportsJsonExportRoundTrip) {
@@ -833,7 +869,8 @@ namespace RenderPlanTest {
     node.disabledBehavior = DisabledBehavior::Passthrough;
     node.enabled = false;
     node.hasExternalSideEffects = true;
-    node.canRunConcurrently = false;
+    node.concurrency = RenderConcurrencyLimit::limited(2);
+    node.canRunConcurrently = node.concurrency.allowsParallelExecution();
     auto state = std::make_shared<RasterBeautyPassState>();
     state->sampling().setPostProcessAA(Rasterizer::PostProcessAA::FXAA);
     state->sampling().setMSAASamples(4);
@@ -868,7 +905,28 @@ namespace RenderPlanTest {
                         .toObject()["name"]
                         .toString()
                         .toStdString());
+    EXPECT_EQ("limited", json["passes"]
+                           .toArray()
+                           .at(0)
+                           .toObject()["concurrency"]
+                           .toObject()["mode"]
+                           .toString()
+                           .toStdString());
+    EXPECT_EQ(
+      2, json["passes"].toArray().at(0).toObject()["concurrency"].toObject()["maxPasses"].toInt());
     EXPECT_EQ(json, imported.toJson());
+  }
+
+  TEST(RenderPlan, ReportsInvalidLimitedConcurrency) {
+    RenderPlan plan;
+    auto main = pass("main");
+    main.concurrency = {RenderConcurrencyMode::Limited, 0};
+    plan.addPass(main);
+
+    const auto validation = plan.validate();
+
+    ASSERT_FALSE(validation.valid());
+    EXPECT_TRUE(hasError(validation, RenderPlanValidationError::Code::InvalidConcurrencyLimit));
   }
 
   TEST(RenderPlan, ImportsJsonRecomputesExecutionStages) {

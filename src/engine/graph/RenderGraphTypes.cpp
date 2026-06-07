@@ -242,6 +242,15 @@ namespace engine::graph {
         path);
     }
 
+    RenderConcurrencyMode concurrencyModeFromJson(const std::string& value,
+                                                  const std::string& path) {
+      return enumValue<RenderConcurrencyMode>(value,
+                                              {{"serial", RenderConcurrencyMode::Serial},
+                                               {"limited", RenderConcurrencyMode::Limited},
+                                               {"parallel", RenderConcurrencyMode::Parallel}},
+                                              path);
+    }
+
     QJsonArray stringArray(const std::vector<RenderFeatureKind>& values) {
       QJsonArray array;
       for (const auto& value : values)
@@ -817,6 +826,12 @@ namespace engine::graph {
                                        {DisabledBehavior::Passthrough, "passthrough"}});
   }
 
+  const char* toString(RenderConcurrencyMode value) {
+    return enumName<RenderConcurrencyMode>(value, {{RenderConcurrencyMode::Serial, "serial"},
+                                                   {RenderConcurrencyMode::Limited, "limited"},
+                                                   {RenderConcurrencyMode::Parallel, "parallel"}});
+  }
+
   const char* toString(RenderResourceType value) {
     return enumName<RenderResourceType>(value,
                                         {{RenderResourceType::Color, "color"},
@@ -1233,6 +1248,54 @@ namespace engine::graph {
     return resource;
   }
 
+  RenderConcurrencyLimit RenderConcurrencyLimit::serial() {
+    return {RenderConcurrencyMode::Serial, 1};
+  }
+
+  RenderConcurrencyLimit RenderConcurrencyLimit::limited(int maxConcurrentPasses) {
+    return {RenderConcurrencyMode::Limited, std::max(1, maxConcurrentPasses)};
+  }
+
+  RenderConcurrencyLimit RenderConcurrencyLimit::parallel() {
+    return {RenderConcurrencyMode::Parallel, 0};
+  }
+
+  bool RenderConcurrencyLimit::allowsParallelExecution() const {
+    return mode == RenderConcurrencyMode::Parallel ||
+           (mode == RenderConcurrencyMode::Limited && maxConcurrentPasses > 1);
+  }
+
+  std::string RenderConcurrencyLimit::displayText() const {
+    if (mode == RenderConcurrencyMode::Limited) {
+      return std::string(toString(mode)) + "(" + std::to_string(maxConcurrentPasses) + ")";
+    }
+    return toString(mode);
+  }
+
+  QJsonObject RenderConcurrencyLimit::toJson() const {
+    QJsonObject object;
+    object["mode"] = toString(mode);
+    if (mode == RenderConcurrencyMode::Limited) {
+      object["maxPasses"] = maxConcurrentPasses;
+    }
+    return object;
+  }
+
+  RenderConcurrencyLimit RenderConcurrencyLimit::fromJson(const QJsonObject& object,
+                                                          std::string path) {
+    RenderConcurrencyLimit limit;
+    limit.mode =
+      concurrencyModeFromJson(stringField(object, "mode", path, "parallel"), path + ".mode");
+    if (limit.mode == RenderConcurrencyMode::Serial) {
+      limit.maxConcurrentPasses = 1;
+    } else if (limit.mode == RenderConcurrencyMode::Limited) {
+      limit.maxConcurrentPasses = intField(object, "maxPasses", path, 1);
+    } else {
+      limit.maxConcurrentPasses = 0;
+    }
+    return limit;
+  }
+
   bool RenderPassNode::hasFeature(const RenderFeatureKind& feature) const {
     return std::find(features.begin(), features.end(), feature) != features.end();
   }
@@ -1323,7 +1386,8 @@ namespace engine::graph {
     object["disabledBehavior"] = toString(disabledBehavior);
     object["enabled"] = enabled;
     object["hasExternalSideEffects"] = hasExternalSideEffects;
-    object["canRunConcurrently"] = canRunConcurrently;
+    object["concurrency"] = concurrency.toJson();
+    object["canRunConcurrently"] = concurrency.allowsParallelExecution();
     return object;
   }
 
@@ -1373,7 +1437,16 @@ namespace engine::graph {
       stringField(object, "disabledBehavior", path, "error"), path + ".disabledBehavior");
     pass.enabled = boolField(object, "enabled", path, true);
     pass.hasExternalSideEffects = boolField(object, "hasExternalSideEffects", path, false);
-    pass.canRunConcurrently = boolField(object, "canRunConcurrently", path, true);
+    const auto concurrency = object.value("concurrency");
+    if (!concurrency.isUndefined()) {
+      if (!concurrency.isObject())
+        jsonError(path + ".concurrency", "expected object");
+      pass.concurrency =
+        RenderConcurrencyLimit::fromJson(concurrency.toObject(), path + ".concurrency");
+    } else if (!boolField(object, "canRunConcurrently", path, true)) {
+      pass.concurrency = RenderConcurrencyLimit::serial();
+    }
+    pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
     return pass;
   }
 }

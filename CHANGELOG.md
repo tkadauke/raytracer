@@ -17,6 +17,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render animation tracks.** Added Qt-free render-side animation value and
   continuous-time track primitives for scalar, vector, color, transform, and
   step-only switch payloads. — GPT-5
+- **Render graph concurrency metadata.** Render graph passes and executor
+  families now declare serial, limited, or parallel-safe scheduling limits,
+  export them through text/DOT/JSON graph inspection, and mark OpenGL raster
+  pass state as limited to one concurrent pass by default. — GPT-5
 - Direct wavefront/pathtracer rendercli runs can export a grayscale per-pixel
   sample radiance standard-deviation diagnostic image for path-tracing noise
   analysis. — GPT-5

@@ -65,7 +65,8 @@ namespace engine::graph {
                                                                 executorDefinition->feature()};
       pass.sceneView = sceneView;
       pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      pass.canRunConcurrently = false;
+      pass.concurrency = RenderConcurrencyLimit::serial();
+      pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
       applyEngineOptionsToPass(pass, aov.usesRasterTargetSampling() ? target.sampleCount : 1,
                                intent);
       if (aov.usesRaytracerPassState()) {
@@ -91,7 +92,8 @@ namespace engine::graph {
       pass.addWrite(outputResource);
       pass.sceneView.selector = SceneSelector::all();
       pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      pass.canRunConcurrently = false;
+      pass.concurrency = RenderConcurrencyLimit::serial();
+      pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
       return pass;
     }
   }
@@ -131,7 +133,8 @@ namespace engine::graph {
     pass.features.insert(pass.features.end(), extraFeatures.begin(), extraFeatures.end());
     pass.sceneView = sceneView;
     pass.disabledBehavior = DisabledBehavior::Error;
-    pass.canRunConcurrently = false;
+    pass.concurrency = RenderConcurrencyLimit::serial();
+    pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
     executorDefinition.configureBeautyPassState(pass, target.sampleCount, intent);
     return pass;
   }
@@ -178,7 +181,8 @@ namespace engine::graph {
     pass.features = {"main", "visibility", "culling", "rasterizer"};
     pass.sceneView = sceneView;
     pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
-    pass.canRunConcurrently = false;
+    pass.concurrency = RenderConcurrencyLimit::serial();
+    pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
     intent.engineOptions.rasterizer().visibilityPassState().writeTo(pass);
     return pass;
   }
@@ -230,7 +234,8 @@ namespace engine::graph {
     pass.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
     pass.sceneView.selector = SceneSelector::all();
     pass.disabledBehavior = DisabledBehavior::Error;
-    pass.canRunConcurrently = false;
+    pass.concurrency = RenderConcurrencyLimit::serial();
+    pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
     return pass;
   }
 
@@ -252,7 +257,8 @@ namespace engine::graph {
     pass.addWrite(std::move(outputResource));
     pass.sceneView.selector = SceneSelector::all();
     pass.disabledBehavior = DisabledBehavior::Passthrough;
-    pass.canRunConcurrently = false;
+    pass.concurrency = RenderConcurrencyLimit::serial();
+    pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
     return pass;
   }
 
@@ -427,7 +433,8 @@ namespace engine::graph {
     composite.addWrite("composited_color");
     composite.sceneView.selector = SceneSelector::all();
     composite.disabledBehavior = DisabledBehavior::SubstituteDefault;
-    composite.canRunConcurrently = false;
+    composite.concurrency = RenderConcurrencyLimit::serial();
+    composite.canRunConcurrently = composite.concurrency.allowsParallelExecution();
     plan.addResourceProducer(std::move(composite),
                              target.colorResource("composited_color", "Composited color",
                                                   RenderResourceLifetime::Transient));
@@ -522,7 +529,8 @@ namespace engine::graph {
         frameIntent.engineOptions.rasterizer().shadowPassState();
       shadowState.writeTo(shadows);
       shadows.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      shadows.canRunConcurrently = false;
+      shadows.concurrency = RenderConcurrencyLimit::serial();
+      shadows.canRunConcurrently = shadows.concurrency.allowsParallelExecution();
       plan.connectProducerToConsumer(
         shadows,
         shadowState.shadows().resourceDescriptor("preview_shadow_map", "Raster preview shadow map"),
@@ -550,7 +558,8 @@ namespace engine::graph {
       postAA.sceneView.selector = SceneSelector::all();
       postAA.state = postAADefinition->createState();
       postAA.disabledBehavior = DisabledBehavior::Passthrough;
-      postAA.canRunConcurrently = false;
+      postAA.concurrency = RenderConcurrencyLimit::serial();
+      postAA.canRunConcurrently = postAA.concurrency.allowsParallelExecution();
       plan.routeResourceThroughPass(inputResource, postAAColor, postAA);
     }
 
@@ -569,7 +578,8 @@ namespace engine::graph {
       overlay.sceneView = frameIntent.defaultSceneView();
       frameIntent.engineOptions.wireframe().passState().writeTo(overlay);
       overlay.disabledBehavior = DisabledBehavior::Passthrough;
-      overlay.canRunConcurrently = false;
+      overlay.concurrency = RenderConcurrencyLimit::serial();
+      overlay.canRunConcurrently = overlay.concurrency.allowsParallelExecution();
       plan.routeResourceThroughPass(inputResource, overlayColor, overlay);
     }
 
@@ -588,7 +598,8 @@ namespace engine::graph {
       overlay.sceneView = frameIntent.defaultSceneView();
       frameIntent.engineOptions.wireframe().passState().writeTo(overlay);
       overlay.disabledBehavior = DisabledBehavior::Passthrough;
-      overlay.canRunConcurrently = false;
+      overlay.concurrency = RenderConcurrencyLimit::serial();
+      overlay.canRunConcurrently = overlay.concurrency.allowsParallelExecution();
       plan.routeResourceThroughPass(inputResource, overlayColor, overlay);
     }
 

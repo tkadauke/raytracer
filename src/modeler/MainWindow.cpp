@@ -2387,7 +2387,7 @@ void MainWindow::showRenderGraphPassDetails(const QString& passId, bool activate
   addRow(rows, tr("Outgoing dependencies"), dependencyText(plan.dependenciesOutOf(pass->id)));
   addRow(rows, tr("External side effects"),
          pass->hasExternalSideEffects ? tr("true") : tr("false"));
-  addRow(rows, tr("Concurrent"), pass->canRunConcurrently ? tr("true") : tr("false"));
+  addRow(rows, tr("Concurrency"), qstr(pass->concurrency.displayText()));
   addRow(rows, tr("State"), passStateText(*pass));
 
   const auto trace = p->display ? p->display->lastRenderGraphExecutionTraceForPlan(plan) : nullptr;
