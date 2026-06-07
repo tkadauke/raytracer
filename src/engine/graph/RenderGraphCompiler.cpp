@@ -1271,6 +1271,46 @@ namespace engine::graph {
     return pass;
   }
 
+  void RenderGraphCompiler::addSubviewRecursionLimitDiagnostics(RenderPlan& plan,
+                                                                const RenderIntent& intent) const {
+    std::set<std::string> usedPrefixes;
+    for (std::size_t i = 0; i != intent.subviews.size(); ++i) {
+      plan.addPass(subviewRecursionLimitDiagnosticPass(
+        intent.subviews[i], i, intent.maxRenderToTextureRecursionDepth, usedPrefixes));
+    }
+  }
+
+  RenderPassNode RenderGraphCompiler::subviewRecursionLimitDiagnosticPass(
+    const RenderSubviewIntent& subview, std::size_t index, int recursionLimit,
+    std::set<std::string>& usedPrefixes) const {
+    const std::string prefix = subviewPrefix(subview, index, usedPrefixes);
+    const std::string displayName = subviewDisplayName(subview, index);
+    const RenderFeatureKind feature = subviewFeature(prefix);
+
+    std::ostringstream name;
+    name << displayName << " truncated at render-to-texture recursion limit " << recursionLimit;
+
+    RenderPassNode pass;
+    pass.id = prefixedPassId(prefix, "recursion_limit");
+    pass.name = name.str();
+    pass.kind = RenderPassKind::Debug;
+    pass.executor = RenderExecutorKind::PostProcess;
+    pass.features = {"diagnostic",
+                     "truncated",
+                     "recursion_limit",
+                     "render_to_texture_recursion_limit",
+                     "subview",
+                     "render_to_texture",
+                     feature};
+    pass.sceneView.selector = subview.view.selector;
+    pass.sceneView.camera = subview.view.camera;
+    pass.sceneView.shadingProfile = subview.view.shadingProfile;
+    pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
+    pass.enabled = false;
+    pass.canRunConcurrently = false;
+    return pass;
+  }
+
   void RenderGraphCompiler::addAutomaticFeatureSubviewComposites(
     RenderPlan& plan, const RenderTargetSpec& target, const RenderIntent& intent,
     const RenderSceneAnalysis& sceneAnalysis, RenderResourceId& mainInputResource) const {
