@@ -21,6 +21,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   families now declare serial, limited, or parallel-safe scheduling limits,
   export them through text/DOT/JSON graph inspection, and mark OpenGL raster
   pass state as limited to one concurrent pass by default. — GPT-5
+- **Render graph selector override branches.** Graph compilation now turns
+  resolvable selector-specific executor, view-mode, shading-profile, camera,
+  and engine-option overrides into prefixed branch passes, stencil-mask
+  composites, and exported selector AOV previews, while duplicate selector
+  overrides fail clearly. — GPT-5
 - **Render graph selector analysis.** `RenderSceneAnalysis` now records stable
   selectable subsets for visible object ids, object names, tags, and layers,
   and graph compilation reports missing or ambiguous selector-specific intent
