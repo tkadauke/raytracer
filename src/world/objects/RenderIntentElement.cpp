@@ -42,6 +42,8 @@ bool RenderIntentElement::isPropertyVisible(const QString& propertyName) const {
   if (propertyName == QStringLiteral("raytracerIntegrator") &&
       intent().defaultExecutor == engine::graph::RenderExecutorPreference::PathTracer)
     return false;
+  if (isPathTracerProperty(propertyName))
+    return isPathTracerSelected();
   if (isRaytracerProperty(propertyName))
     return executor == engine::graph::RenderExecutorKind::Raytracer ||
            executor == engine::graph::RenderExecutorKind::Wavefront;
@@ -104,6 +106,8 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
     return QStringLiteral("Samples Per Pixel");
   if (propertyName == QStringLiteral("raytracerMaxRecursionDepth"))
     return QStringLiteral("Max Recursion Depth");
+  if (propertyName == QStringLiteral("pathTracerRussianRouletteDepth"))
+    return QStringLiteral("Russian Roulette Depth");
   if (propertyName == QStringLiteral("raytracerViewPlane"))
     return QStringLiteral("View Plane");
   if (propertyName == QStringLiteral("raytracerThreads"))
@@ -207,6 +211,8 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
     return QStringLiteral(
       "Per-pixel sample radiance standard-deviation threshold. Pixels above this value receive "
       "the remaining configured samples.");
+  if (propertyName == QStringLiteral("pathTracerRussianRouletteDepth"))
+    return QStringLiteral("Bounce depth where path tracing starts Russian-roulette termination.");
   if (propertyName == QStringLiteral("wavefrontDenoiser"))
     return QStringLiteral(
       "Optional HDR denoising pass for low-sample wavefront renders. Bilateral is a "
@@ -222,6 +228,8 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
 QString RenderIntentElement::propertyGroup(const QString& propertyName) const {
   if (isWavefrontProperty(propertyName))
     return QStringLiteral("Wavefront");
+  if (isPathTracerProperty(propertyName))
+    return QStringLiteral("Path Tracer");
   if (isRaytracerProperty(propertyName) &&
       intent().defaultExecutor == engine::graph::RenderExecutorPreference::PathTracer)
     return QStringLiteral("Path Tracer");
@@ -300,7 +308,8 @@ QList<int> RenderIntentElement::propertyIntChoices(const QString& propertyName) 
 std::optional<QPair<int, int>>
 RenderIntentElement::propertyIntRange(const QString& propertyName) const {
   if (propertyName == QStringLiteral("raytracerSamplesPerPixel") ||
-      propertyName == QStringLiteral("raytracerMaxRecursionDepth"))
+      propertyName == QStringLiteral("raytracerMaxRecursionDepth") ||
+      propertyName == QStringLiteral("pathTracerRussianRouletteDepth"))
     return QPair<int, int>(1, 1024);
   if (propertyName == QStringLiteral("raytracerThreads"))
     return QPair<int, int>(1, 1024);
@@ -605,6 +614,16 @@ int RenderIntentElement::raytracerMaxRecursionDepth() const {
 void RenderIntentElement::setRaytracerMaxRecursionDepth(int depth) {
   auto value = intent();
   value.engineOptions.raytracer().setMaximumRecursionDepth(depth);
+  setIntent(value);
+}
+
+int RenderIntentElement::pathTracerRussianRouletteDepth() const {
+  return intent().engineOptions.raytracer().russianRouletteDepth().value_or(3);
+}
+
+void RenderIntentElement::setPathTracerRussianRouletteDepth(int depth) {
+  auto value = intent();
+  value.engineOptions.raytracer().setRussianRouletteDepth(depth);
   setIntent(value);
 }
 
@@ -1084,6 +1103,20 @@ bool RenderIntentElement::isRasterizerShadowProperty(const QString& propertyName
 bool RenderIntentElement::isWireframeProperty(const QString& propertyName) const {
   return propertyName.startsWith(QStringLiteral("wireframe")) &&
          propertyName != QStringLiteral("wireframeOverlay");
+}
+
+bool RenderIntentElement::isPathTracerProperty(const QString& propertyName) const {
+  return propertyName.startsWith(QStringLiteral("pathTracer"));
+}
+
+bool RenderIntentElement::isPathTracerSelected() const {
+  const auto executor = intent().defaultExecutorKind();
+  if (executor != engine::graph::RenderExecutorKind::Raytracer &&
+      executor != engine::graph::RenderExecutorKind::Wavefront) {
+    return false;
+  }
+  return intent().defaultExecutor == engine::graph::RenderExecutorPreference::PathTracer ||
+         raytracerIntegrator() == QStringLiteral("pathtracer");
 }
 
 QStringList RenderIntentElement::raytracerSamplerChoices() const {

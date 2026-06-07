@@ -301,8 +301,8 @@ namespace engine::graph {
 
   bool RenderRaytracerOptions::empty() const {
     return !m_maximumRecursionDepth && !m_maximumThreads && !m_queueSize && !m_integrator &&
-           !m_sampler && !m_samplesPerPixel && !m_samplingSeed && !m_viewPlane &&
-           !m_convergenceEnabled && !m_convergenceActiveSampleFractionThreshold &&
+           !m_russianRouletteDepth && !m_sampler && !m_samplesPerPixel && !m_samplingSeed &&
+           !m_viewPlane && !m_convergenceEnabled && !m_convergenceActiveSampleFractionThreshold &&
            !m_convergenceRadianceDeltaRmsThreshold && !m_adaptiveSamplingEnabled &&
            !m_adaptiveMinimumSamples && !m_adaptiveStddevThreshold && !m_denoiser &&
            !m_denoiseRadius && !m_denoiseColorSigma;
@@ -324,6 +324,8 @@ namespace engine::graph {
       options.setQueueSize(*state.queueSize());
     if (state.integrator())
       options.setIntegrator(*state.integrator());
+    if (state.russianRouletteDepth())
+      options.setRussianRouletteDepth(*state.russianRouletteDepth());
     if (state.sampler())
       options.setSampler(*state.sampler());
     if (state.samplesPerPixel())
@@ -364,6 +366,8 @@ namespace engine::graph {
     result.m_maximumThreads = overrideOptional(result.m_maximumThreads, overrides.m_maximumThreads);
     result.m_queueSize = overrideOptional(result.m_queueSize, overrides.m_queueSize);
     result.m_integrator = overrideOptional(result.m_integrator, overrides.m_integrator);
+    result.m_russianRouletteDepth =
+      overrideOptional(result.m_russianRouletteDepth, overrides.m_russianRouletteDepth);
     result.m_sampler = overrideOptional(result.m_sampler, overrides.m_sampler);
     result.m_samplesPerPixel =
       overrideOptional(result.m_samplesPerPixel, overrides.m_samplesPerPixel);
@@ -400,6 +404,8 @@ namespace engine::graph {
       state.setQueueSize(*m_queueSize);
     if (m_integrator)
       state.setIntegrator(*m_integrator);
+    if (m_russianRouletteDepth)
+      state.setRussianRouletteDepth(*m_russianRouletteDepth);
     if (m_sampler)
       state.setSampler(*m_sampler);
     if (m_samplesPerPixel)
@@ -446,6 +452,10 @@ namespace engine::graph {
     RaytracerBeautyPassState state;
     state.setIntegrator(std::move(integrator));
     m_integrator = state.integrator();
+  }
+
+  void RenderRaytracerOptions::setRussianRouletteDepth(int depth) {
+    m_russianRouletteDepth = std::max(1, depth);
   }
 
   void RenderRaytracerOptions::setSampler(std::string sampler) {
@@ -518,6 +528,10 @@ namespace engine::graph {
 
   std::optional<std::string> RenderRaytracerOptions::integrator() const {
     return m_integrator;
+  }
+
+  std::optional<int> RenderRaytracerOptions::russianRouletteDepth() const {
+    return m_russianRouletteDepth;
   }
 
   std::optional<std::string> RenderRaytracerOptions::sampler() const {

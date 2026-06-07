@@ -121,8 +121,9 @@ namespace engine::graph {
 
     RaytracerBeautyPassState state;
     const QJsonObject execution = objectField(object, "execution", path);
-    rejectUnknownFields(execution, path + ".execution",
-                        {"maxRecursionDepth", "threads", "queueSize", "integrator"});
+    rejectUnknownFields(
+      execution, path + ".execution",
+      {"maxRecursionDepth", "threads", "queueSize", "integrator", "russianRouletteDepth"});
     if (hasField(execution, "maxRecursionDepth"))
       state.setMaximumRecursionDepth(intField(execution, "maxRecursionDepth", path + ".execution"));
     if (hasField(execution, "threads"))
@@ -131,6 +132,10 @@ namespace engine::graph {
       state.setQueueSize(intField(execution, "queueSize", path + ".execution"));
     if (hasField(execution, "integrator"))
       state.setIntegrator(stringField(execution, "integrator", path + ".execution"));
+    if (hasField(execution, "russianRouletteDepth")) {
+      state.setRussianRouletteDepth(
+        intField(execution, "russianRouletteDepth", path + ".execution"));
+    }
 
     const QJsonObject sampling = objectField(object, "sampling", path);
     rejectUnknownFields(sampling, path + ".sampling", {"sampler", "samplesPerPixel", "seed"});
@@ -214,6 +219,8 @@ namespace engine::graph {
       execution["queueSize"] = *m_queueSize;
     if (m_integrator)
       execution["integrator"] = qstr(*m_integrator);
+    if (m_russianRouletteDepth)
+      execution["russianRouletteDepth"] = *m_russianRouletteDepth;
     if (!execution.isEmpty())
       object["execution"] = execution;
 
@@ -363,6 +370,10 @@ namespace engine::graph {
       normalizedIntegratorName(std::move(integrator), "parameters.execution.integrator");
   }
 
+  void RaytracerBeautyPassState::setRussianRouletteDepth(int depth) {
+    m_russianRouletteDepth = std::max(1, depth);
+  }
+
   void RaytracerBeautyPassState::setSampler(std::string sampler) {
     m_sampler = std::move(sampler);
   }
@@ -432,6 +443,10 @@ namespace engine::graph {
 
   std::optional<std::string> RaytracerBeautyPassState::integrator() const {
     return m_integrator;
+  }
+
+  std::optional<int> RaytracerBeautyPassState::russianRouletteDepth() const {
+    return m_russianRouletteDepth;
   }
 
   std::optional<std::string> RaytracerBeautyPassState::sampler() const {
@@ -519,6 +534,8 @@ namespace engine::graph {
       auto integrator = std::make_unique<render::PathTracingIntegrator>();
       if (m_maximumRecursionDepth)
         integrator->setMaximumRecursionDepth(*m_maximumRecursionDepth);
+      if (m_russianRouletteDepth)
+        integrator->setRussianRouletteDepth(*m_russianRouletteDepth);
       return integrator;
     }
     return std::make_unique<render::WhittedIntegrator>();

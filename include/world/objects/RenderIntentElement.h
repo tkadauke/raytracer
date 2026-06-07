@@ -32,6 +32,8 @@ class RenderIntentElement : public Element {
     int raytracerSamplesPerPixel READ raytracerSamplesPerPixel WRITE setRaytracerSamplesPerPixel)
   Q_PROPERTY(int raytracerMaxRecursionDepth READ raytracerMaxRecursionDepth WRITE
                setRaytracerMaxRecursionDepth)
+  Q_PROPERTY(int pathTracerRussianRouletteDepth READ pathTracerRussianRouletteDepth WRITE
+               setPathTracerRussianRouletteDepth)
   Q_PROPERTY(QString raytracerViewPlane READ raytracerViewPlane WRITE setRaytracerViewPlane)
   Q_PROPERTY(int raytracerThreads READ raytracerThreads WRITE setRaytracerThreads)
   Q_PROPERTY(int raytracerQueueSize READ raytracerQueueSize WRITE setRaytracerQueueSize)
@@ -135,6 +137,9 @@ public:
   int raytracerMaxRecursionDepth() const;
   void setRaytracerMaxRecursionDepth(int depth);
 
+  int pathTracerRussianRouletteDepth() const;
+  void setPathTracerRussianRouletteDepth(int depth);
+
   QString raytracerViewPlane() const;
   void setRaytracerViewPlane(const QString& viewPlane);
 
@@ -236,6 +241,8 @@ private:
   bool isRasterizerProperty(const QString& propertyName) const;
   bool isRasterizerShadowProperty(const QString& propertyName) const;
   bool isWireframeProperty(const QString& propertyName) const;
+  bool isPathTracerProperty(const QString& propertyName) const;
+  bool isPathTracerSelected() const;
   QStringList raytracerSamplerChoices() const;
   QStringList raytracerViewPlaneChoices() const;
   QString visibilityCullingText(engine::graph::RenderVisibilityCulling mode) const;

@@ -29,6 +29,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   trace metadata, and rendercli compact summaries now report the adaptive
   sampling policy plus maximum, skipped, and skipped-fraction primary samples.
   — GPT-5
+- **Path tracer Russian roulette controls.** Render intent, graph JSON,
+  rendercli, and Modeler Render Settings now expose the path tracer bounce
+  depth where Russian-roulette termination begins. — GPT-5
 - Wavefront/pathtracer graph renders can export a `sample_stddev` AOV, and
   rendercli can write it through `--wavefront_sample_stddev_out` for
   path-tracing noise analysis. — GPT-5

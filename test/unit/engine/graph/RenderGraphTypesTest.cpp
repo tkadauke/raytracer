@@ -163,6 +163,7 @@ namespace RenderGraphTypesTest {
     intent.postProcessAA = RenderPostProcessAA::SMAA;
     intent.setMaxRenderToTextureRecursionDepth(3);
     intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setRussianRouletteDepth(4);
     intent.engineOptions.raytracer().setSampler("Jittered");
     intent.engineOptions.raytracer().setSamplesPerPixel(8);
     intent.engineOptions.raytracer().setSamplingSeed(12345);
@@ -201,6 +202,10 @@ namespace RenderGraphTypesTest {
                               .toObject()["integrator"]
                               .toString()
                               .toStdString());
+    EXPECT_EQ(4, engineOptions["raytracer"]
+                   .toObject()["execution"]
+                   .toObject()["russianRouletteDepth"]
+                   .toInt());
     EXPECT_EQ("Jittered", engineOptions["raytracer"]
                             .toObject()["sampling"]
                             .toObject()["sampler"]
@@ -268,6 +273,7 @@ namespace RenderGraphTypesTest {
     json["defaultShadingProfile"] = "toon";
     QJsonObject raytracerExecution;
     raytracerExecution["integrator"] = "pt";
+    raytracerExecution["russianRouletteDepth"] = 5;
     QJsonObject raytracerSampling;
     raytracerSampling["samplesPerPixel"] = 12;
     raytracerSampling["seed"] = 67890;
@@ -320,6 +326,8 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ(4, intent.maxRenderToTextureRecursionDepth);
     ASSERT_TRUE(intent.engineOptions.raytracer().integrator().has_value());
     EXPECT_EQ("pathtracer", *intent.engineOptions.raytracer().integrator());
+    ASSERT_TRUE(intent.engineOptions.raytracer().russianRouletteDepth().has_value());
+    EXPECT_EQ(5, *intent.engineOptions.raytracer().russianRouletteDepth());
     ASSERT_TRUE(intent.engineOptions.raytracer().samplesPerPixel().has_value());
     EXPECT_EQ(12, *intent.engineOptions.raytracer().samplesPerPixel());
     ASSERT_TRUE(intent.engineOptions.raytracer().samplingSeed().has_value());

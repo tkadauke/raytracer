@@ -1178,6 +1178,8 @@ private:
 
   int m_maximumRecursionDepth;
   bool m_maximumRecursionDepthSet;
+  int m_pathTracerRussianRouletteDepth;
+  bool m_pathTracerRussianRouletteDepthSet;
   int m_width;
   int m_height;
   bool m_widthSet;
@@ -1361,6 +1363,8 @@ Renderer::Renderer()
       m_ldrawMissingPartPolicy("skip"),
       m_maximumRecursionDepth(10),
       m_maximumRecursionDepthSet(false),
+      m_pathTracerRussianRouletteDepth(3),
+      m_pathTracerRussianRouletteDepthSet(false),
       m_width(640),
       m_height(480),
       m_widthSet(false),
@@ -1603,6 +1607,8 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
 
   if (m_maximumRecursionDepthSet)
     options.raytracer().setMaximumRecursionDepth(m_maximumRecursionDepth);
+  if (m_pathTracerRussianRouletteDepthSet)
+    options.raytracer().setRussianRouletteDepth(m_pathTracerRussianRouletteDepth);
   if (engineExecutorPreference() == engine::graph::RenderExecutorPreference::PathTracer) {
     options.raytracer().setIntegrator("pathtracer");
   } else if (m_integratorSet) {
@@ -2244,6 +2250,8 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
         m_integrator == "path_tracer" || m_integrator == "pt") {
       auto pt = std::make_unique<render::PathTracingIntegrator>();
       pt->setMaximumRecursionDepth(m_maximumRecursionDepth);
+      if (m_pathTracerRussianRouletteDepthSet)
+        pt->setRussianRouletteDepth(m_pathTracerRussianRouletteDepth);
       wavefront->setIntegrator(std::move(pt));
     }
     if (rtCamera) {
@@ -2301,6 +2309,8 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     if (m_integrator == "pathtracer" || m_integrator == "path_tracer" || m_integrator == "pt") {
       auto pt = std::make_unique<render::PathTracingIntegrator>();
       pt->setMaximumRecursionDepth(m_maximumRecursionDepth);
+      if (m_pathTracerRussianRouletteDepthSet)
+        pt->setRussianRouletteDepth(m_pathTracerRussianRouletteDepth);
       rt->setIntegrator(std::move(pt));
     }
     if (rtCamera) {
@@ -2779,6 +2789,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"sampler", "Sampler type", "sampler"},
      {"samples_per_pixel", "Samples per pixel", "samples"},
      {"sampling_seed", "Deterministic render sampling seed for ray-family engines", "seed"},
+     {"pathtracer_russian_roulette_depth",
+      "Path-tracer bounce depth where Russian-roulette termination starts", "depth"},
      {{"j", "threads"}, "Number of threads", "threads"},
      {"queue_size", "Explicit queue size for thread pool; raster defaults to automatic",
       "queue_size"},
@@ -3071,6 +3083,16 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_samplingSeed = static_cast<std::uint64_t>(seed);
+  }
+
+  if (parser.isSet("pathtracer_russian_roulette_depth")) {
+    const QString depthValue = parser.value("pathtracer_russian_roulette_depth");
+    m_pathTracerRussianRouletteDepth = depthValue.toInt();
+    if (m_pathTracerRussianRouletteDepth <= 0) {
+      *errorMessage = "Path tracer Russian roulette depth must be > 0";
+      return CommandLineError;
+    }
+    m_pathTracerRussianRouletteDepthSet = true;
   }
 
   if (parser.isSet("threads")) {

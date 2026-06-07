@@ -425,6 +425,10 @@ This was not in the original plan, but it landed before the wavefront engine:
 - Russian-roulette termination,
 - Whitted fallback for materials that do not yet support BSDF sampling.
 
+Render intent, graph JSON, rendercli, and Modeler Render Settings now expose
+the Russian-roulette start depth as typed path-tracer execution state, so the
+canonical termination policy can be tuned without bypassing the graph.
+
 This does **not** replace wavefront. It narrows the future wavefront task: reuse
 these sampling/material semantics and replace the scalar megakernel loop with a
 depth-major scheduler once the scheduler is ready.

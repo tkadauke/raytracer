@@ -2239,7 +2239,8 @@ rendercli_run(
   NAME "rendercli exports wavefront pathtracer state in render graph"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format json
-    --engine wavefront --integrator pathtracer --width 32 --height 16
+    --engine wavefront --integrator pathtracer --pathtracer_russian_roulette_depth 4
+    --width 32 --height 16
     "${static_scene}" "${wavefront_pathtracer_plan}"
 )
 rendercli_assert_nonempty("${wavefront_pathtracer_plan}"
@@ -2252,6 +2253,10 @@ endif()
 if(NOT wavefront_pathtracer_graph MATCHES "\"integrator\": \"pathtracer\"")
   message(FATAL_ERROR
           "wavefront pathtracer graph did not contain pathtracer state: ${wavefront_pathtracer_graph}")
+endif()
+if(NOT wavefront_pathtracer_graph MATCHES "\"russianRouletteDepth\"[ \r\n]*:[ \r\n]*4")
+  message(FATAL_ERROR
+          "wavefront pathtracer graph did not contain Russian roulette depth: ${wavefront_pathtracer_graph}")
 endif()
 
 rendercli_run(
@@ -2576,6 +2581,14 @@ rendercli_expect_failure(
   STDERR_MATCHES "Wavefront convergence active fraction must be"
   COMMAND
     "${RENDERCLI}" --engine wavefront --wavefront_convergence_active_fraction 1.5
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid pathtracer Russian roulette depth"
+  STDERR_MATCHES "Path tracer Russian roulette depth must be"
+  COMMAND
+    "${RENDERCLI}" --engine pathtracer --pathtracer_russian_roulette_depth 0
     "${static_scene}" "${invalid_plan}"
 )
 

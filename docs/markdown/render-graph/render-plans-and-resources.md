@@ -607,8 +607,9 @@ render; it only produces the inspectable plan.
 When the selected beauty executor is the raytracer or wavefront executor, typed
 ray-family options on the effective intent become `RaytracerBeautyPassState` on
 the beauty pass. That state can configure the integrator, sampler, samples per
-pixel, deterministic sampling seed, view-plane type, recursion depth, worker
-thread count, and queue size before the payload renders. Wavefront convergence
+pixel, deterministic sampling seed, view-plane type, recursion depth, path
+tracer Russian-roulette start depth, worker thread count, and queue size before
+the payload renders. Wavefront convergence
 controls also flow through that state, so the compiled plan can report the
 active-sample fraction and RMS radiance-delta thresholds used by wavefront
 convergence termination. Wavefront adaptive sampling controls use the same

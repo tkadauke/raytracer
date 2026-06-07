@@ -47,6 +47,7 @@ namespace RenderIntentElementTest {
     intent->setRaytracerIntegrator("path_tracer");
     intent->setRaytracerSampler("Jittered");
     intent->setRaytracerSamplesPerPixel(9);
+    intent->setPathTracerRussianRouletteDepth(4);
     intent->setWavefrontConvergence(true);
     intent->setWavefrontConvergenceActiveFraction(0.25);
     intent->setWavefrontConvergenceRmsDelta(0.005);
@@ -89,6 +90,8 @@ namespace RenderIntentElementTest {
     EXPECT_EQ("Jittered", *scene.renderIntent().engineOptions.raytracer().sampler());
     ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().samplesPerPixel().has_value());
     EXPECT_EQ(9, *scene.renderIntent().engineOptions.raytracer().samplesPerPixel());
+    ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().russianRouletteDepth().has_value());
+    EXPECT_EQ(4, *scene.renderIntent().engineOptions.raytracer().russianRouletteDepth());
     ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().convergenceEnabled().has_value());
     EXPECT_TRUE(*scene.renderIntent().engineOptions.raytracer().convergenceEnabled());
     ASSERT_TRUE(scene.renderIntent()
@@ -186,6 +189,8 @@ namespace RenderIntentElementTest {
               intent->propertyDisplayName("wavefrontAdaptiveMinimumSamples"));
     EXPECT_EQ(QString("Stddev Threshold"),
               intent->propertyDisplayName("wavefrontAdaptiveStddevThreshold"));
+    EXPECT_EQ(QString("Russian Roulette Depth"),
+              intent->propertyDisplayName("pathTracerRussianRouletteDepth"));
     EXPECT_EQ(QString("Denoiser"), intent->propertyDisplayName("wavefrontDenoiser"));
     EXPECT_EQ(QString("Path Tracer"),
               intent->propertyChoiceDisplayName("raytracerIntegrator", "pathtracer"));
@@ -213,6 +218,8 @@ namespace RenderIntentElementTest {
 
     ASSERT_TRUE(intent->propertyIntRange("raytracerSamplesPerPixel").has_value());
     EXPECT_EQ(1, intent->propertyIntRange("raytracerSamplesPerPixel")->first);
+    ASSERT_TRUE(intent->propertyIntRange("pathTracerRussianRouletteDepth").has_value());
+    EXPECT_EQ(1024, intent->propertyIntRange("pathTracerRussianRouletteDepth")->second);
     ASSERT_TRUE(intent->propertyIntRange("rasterizerShadowMapSize").has_value());
     EXPECT_EQ(8192, intent->propertyIntRange("rasterizerShadowMapSize")->second);
     ASSERT_TRUE(intent->propertyDoubleRange("rasterizerShadowBias").has_value());
@@ -244,6 +251,7 @@ namespace RenderIntentElementTest {
     EXPECT_FALSE(intent->isPropertyVisible("raytracerViewPlane"));
     EXPECT_FALSE(intent->isPropertyVisible("raytracerThreads"));
     EXPECT_FALSE(intent->isPropertyVisible("raytracerQueueSize"));
+    EXPECT_FALSE(intent->isPropertyVisible("pathTracerRussianRouletteDepth"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontConvergence"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontAdaptiveSampling"));
     EXPECT_FALSE(intent->isPropertyVisible("rasterizerLod"));
@@ -273,8 +281,10 @@ namespace RenderIntentElementTest {
     intent->setDefaultEngine("path tracer");
     EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
     EXPECT_FALSE(intent->isPropertyVisible("raytracerIntegrator"));
+    EXPECT_TRUE(intent->isPropertyVisible("pathTracerRussianRouletteDepth"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergence"));
     EXPECT_EQ(QString("Path Tracer"), intent->propertyGroup("raytracerSampler"));
+    EXPECT_EQ(QString("Path Tracer"), intent->propertyGroup("pathTracerRussianRouletteDepth"));
     EXPECT_FALSE(intent->isPropertyVisible("rasterizerLod"));
     intent->setWavefrontAdaptiveSampling(true);
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontAdaptiveMinimumSamples"));
