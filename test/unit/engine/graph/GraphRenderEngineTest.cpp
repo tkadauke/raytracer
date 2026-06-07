@@ -488,6 +488,35 @@ namespace GraphRenderEngineTest {
     EXPECT_GT(countFiniteDepths(outputs.front()->depthPreview()), 0);
   }
 
+  TEST(GraphRenderEngine, ExecutesSampleStddevAOVViewAndRecordsColorTrace) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::PathTracer;
+    intent.defaultViewMode = RenderViewMode::SampleStddev;
+    intent.engineOptions.raytracer().setSamplesPerPixel(2);
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    ASSERT_EQ(2u, engine.lastPlan().passes().size());
+    EXPECT_EQ("sample_stddev_aov", engine.lastPlan().passes()[0].id);
+    EXPECT_EQ("visualize_sample_stddev_aov", engine.lastPlan().passes()[1].id);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const auto aovOutputs = trace->outputSnapshotsForResource("sample_stddev_aov");
+    ASSERT_EQ(1u, aovOutputs.size());
+    ASSERT_TRUE(aovOutputs.front()->hasColorPreview());
+
+    const auto mainOutputs = trace->outputSnapshotsForResource("main_color");
+    ASSERT_EQ(1u, mainOutputs.size());
+    ASSERT_TRUE(mainOutputs.front()->hasColorPreview());
+  }
+
   TEST(GraphRenderEngine, RejectsExplicitPlanWithMultipleSceneCameras) {
     RenderPlan plan;
     plan.addResource(colorResource("beauty_color", RenderResourceLifetime::Transient));

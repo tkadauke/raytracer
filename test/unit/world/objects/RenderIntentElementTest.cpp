@@ -145,7 +145,12 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->propertyChoices("wavefrontConvergenceQuality").contains("custom"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontDenoiser").contains("box"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontDenoiser").contains("bilateral"));
+    EXPECT_FALSE(intent->propertyChoices("viewMode").contains("sample_stddev"));
     EXPECT_FALSE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
+    intent->setDefaultEngine("pathtracer");
+    EXPECT_TRUE(intent->propertyChoices("viewMode").contains("sample_stddev"));
+    EXPECT_EQ(QString("Sample Stddev"),
+              intent->propertyChoiceDisplayName("viewMode", "sample_stddev"));
     intent->setDefaultEngine("rasterizer");
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
     EXPECT_EQ(QString("Stencil Composite"),

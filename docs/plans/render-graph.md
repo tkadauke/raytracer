@@ -1510,7 +1510,8 @@ Add `depth`, `stencil`, `normal`, `world_position`, `object_id`,
 `--render_graph_view depth`, `--render_graph_view stencil`,
 `--render_graph_view stencil_composite`, `--render_graph_view normal`,
 `--render_graph_view object_id`, `--render_graph_view material_id`,
-`--render_graph_view world_position`, `--render_graph_view
+`--render_graph_view world_position`, `--render_graph_view sample_stddev`,
+`--render_graph_view
 raster_coverage_count`, `--render_graph_view raster_depth_test_count`,
 `--render_graph_view raster_depth_pass_count`, `--render_graph_view
 raster_shade_count`, and `--render_graph_view raster_color_write_count`.
@@ -1523,7 +1524,9 @@ buffers or a raster stencil-marking pass, so they reflect tessellated raster
 geometry and raster pass state instead of analytic primary-ray intersections.
 Raster counter AOV payloads extend that diagnostic path with graph-visible
 heatmaps for per-pixel coverage, depth tests, depth passes, shading calls, and
-color writes.
+color writes. Wavefront/pathtracer renders can also produce a graph-visible
+`sample_stddev_aov` for per-pixel sample radiance standard-deviation
+diagnostics.
 rendercli can also provide imported/history color, depth, stencil, object-id,
 and material-id resources to replayed graph JSON with
 `--render_graph_color_in`, `--render_graph_depth_in`,

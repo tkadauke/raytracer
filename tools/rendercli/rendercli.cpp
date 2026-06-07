@@ -671,6 +671,8 @@ namespace {
       *viewMode = RenderViewMode::MaterialId;
     } else if (normalized == "worldposition") {
       *viewMode = RenderViewMode::WorldPosition;
+    } else if (normalized == "samplestddev" || normalized == "sampleradiancestddev") {
+      *viewMode = RenderViewMode::SampleStddev;
     } else if (normalized == "rastercoveragecount") {
       *viewMode = RenderViewMode::RasterCoverageCount;
     } else if (normalized == "rasterdepthtestcount") {
@@ -793,9 +795,8 @@ namespace {
       if (normalizedKey == "executor") {
         engine::graph::RenderExecutorPreference executor;
         if (!parseRenderExecutorPreference(rawValue, &executor)) {
-          *errorMessage =
-            "Render graph view override executor must be 'raytracer', 'rasterizer', or "
-            "'wireframe'";
+          *errorMessage = "Render graph view override executor must be 'raytracer', 'pathtracer', "
+                          "'wavefront', 'rasterizer', or 'wireframe'";
           return false;
         }
         viewOverride.executor = executor;
@@ -805,7 +806,7 @@ namespace {
           *errorMessage =
             "Render graph view override view must be 'default', 'beauty', 'wireframe', "
             "'depth', 'stencil', 'stencil_composite', 'normal', 'object_id', "
-            "'material_id', 'world_position', 'raster_coverage_count', "
+            "'material_id', 'world_position', 'sample_stddev', 'raster_coverage_count', "
             "'raster_depth_test_count', 'raster_depth_pass_count', 'raster_shade_count', "
             "or 'raster_color_write_count'";
           return false;
@@ -871,9 +872,9 @@ namespace {
     if (separator <= 0 || separator == value.size() - 1) {
       *errorMessage =
         "Render graph AOV output must use view=file syntax with view 'depth', 'stencil', "
-        "'normal', 'object_id', 'material_id', 'world_position', 'raster_coverage_count', "
-        "'raster_depth_test_count', 'raster_depth_pass_count', 'raster_shade_count', or "
-        "'raster_color_write_count'";
+        "'normal', 'object_id', 'material_id', 'world_position', 'sample_stddev', "
+        "'raster_coverage_count', 'raster_depth_test_count', 'raster_depth_pass_count', "
+        "'raster_shade_count', or 'raster_color_write_count'";
       return false;
     }
 
@@ -882,7 +883,7 @@ namespace {
     if (!aov) {
       *errorMessage =
         "Render graph AOV output view must be 'depth', 'stencil', 'normal', 'object_id', "
-        "'material_id', 'world_position', 'raster_coverage_count', "
+        "'material_id', 'world_position', 'sample_stddev', 'raster_coverage_count', "
         "'raster_depth_test_count', 'raster_depth_pass_count', 'raster_shade_count', or "
         "'raster_color_write_count'";
       return false;
@@ -2413,11 +2414,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     writeWavefrontMetricsReport(wavefrontMetricRuns, m_wavefrontMetricsOut);
   }
 
-  if (wavefrontSampleStddevRequested) {
-    if (!directWavefrontEngine) {
-      throw std::runtime_error(
-        "Wavefront sample standard-deviation output requires a direct wavefront/pathtracer render");
-    }
+  if (wavefrontSampleStddevRequested && directWavefrontEngine) {
     const auto sampleStddev = directWavefrontEngine->lastSampleRadianceStddev();
     if (!sampleStddev) {
       throw std::runtime_error(
@@ -2799,7 +2796,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "executor"},
      {"render_graph_view",
       "Override graph intent view mode (default, beauty, wireframe, depth, stencil, normal, "
-      "stencil_composite, object_id, material_id, world_position, raster_*_count)",
+      "stencil_composite, object_id, material_id, world_position, sample_stddev, "
+      "raster_*_count)",
       "mode"},
      {"render_graph_camera", "Override graph intent camera with a scene camera id", "camera_id"},
      {"render_graph_shading_profile", "Override graph intent shading profile", "profile"},
@@ -3268,6 +3266,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       *errorMessage = "Wavefront sample standard-deviation output path must not be empty";
       return CommandLineError;
     }
+    if (!m_directEngine) {
+      m_renderGraph = true;
+      m_renderGraphAOVOutputs.push_back(
+        {engine::graph::RenderViewMode::SampleStddev, m_wavefrontSampleStddevOut});
+    }
   }
 
   if (parser.isSet("render_graph_aov_out")) {
@@ -3366,8 +3369,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       *errorMessage =
         "Render graph view mode must be 'default', 'beauty', 'wireframe', 'depth', 'stencil', "
         "'stencil_composite', 'normal', 'object_id', 'material_id', 'world_position', "
-        "'raster_coverage_count', 'raster_depth_test_count', 'raster_depth_pass_count', "
-        "'raster_shade_count', or 'raster_color_write_count'";
+        "'sample_stddev', 'raster_coverage_count', 'raster_depth_test_count', "
+        "'raster_depth_pass_count', 'raster_shade_count', or 'raster_color_write_count'";
       return CommandLineError;
     }
     m_renderGraphViewModeSet = true;
@@ -3931,12 +3934,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     return CommandLineError;
   }
 
-  if (!m_wavefrontSampleStddevOut.isEmpty()) {
-    if (!m_directEngine) {
-      *errorMessage =
-        "Wavefront sample standard-deviation output currently requires --direct_engine";
-      return CommandLineError;
-    }
+  if (!m_wavefrontSampleStddevOut.isEmpty() && m_directEngine) {
     if (m_engine != "wavefront" && m_engine != "pathtracer" && m_engine != "pt") {
       *errorMessage =
         "Wavefront sample standard-deviation output requires --engine wavefront or pathtracer";

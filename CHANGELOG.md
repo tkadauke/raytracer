@@ -17,6 +17,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Direct wavefront/pathtracer rendercli runs can export a grayscale per-pixel
   sample radiance standard-deviation diagnostic image for path-tracing noise
   analysis. — GPT-5
+- Wavefront/pathtracer graph renders can export a `sample_stddev` AOV, and
+  rendercli can write it through `--wavefront_sample_stddev_out` for
+  path-tracing noise analysis. — GPT-5
 - **Halton sampler.** Added a low-discrepancy `HaltonSampler` for path-tracing
   dimensions, with deterministic per-pixel Cranley rotation and automatic
   rendercli/Modeler exposure through the sampler factory. — GPT-5

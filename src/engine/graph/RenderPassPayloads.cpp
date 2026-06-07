@@ -369,10 +369,29 @@ namespace engine::graph {
       }
     };
 
+    class WavefrontPassSupport {
+    protected:
+      std::shared_ptr<::engine::wavefront::WavefrontRaytracer>
+      createWavefront(const RenderExecutionContext& context) const {
+        const auto& graph = context.graph();
+        auto camera = context.camera() ? context.camera()->clone() : nullptr;
+        auto wavefront = std::make_shared<::engine::wavefront::WavefrontRaytracer>(
+          std::move(camera), graph.scene());
+        wavefront->setMetricsEnabled(graph.executionTraceEnabled());
+        RaytracerBeautyPassState::valueFromPass(context.pass()).applyTo(*wavefront);
+        return wavefront;
+      }
+
+      void recordWavefrontMetrics(RenderExecutionContext& context,
+                                  const ::engine::wavefront::WavefrontRaytracer& wavefront) const {
+        context.setTraceMetadata(wavefront.lastMetrics().toJson());
+      }
+    };
+
     /**
       * Whole-frame beauty payload backed by the wavefront ray executor.
       */
-    class WavefrontBeautyPass : public BeautyPassPayload {
+    class WavefrontBeautyPass : public BeautyPassPayload, private WavefrontPassSupport {
     public:
       void execute(RenderExecutionContext& context) override {
         const auto& pass = context.pass();
@@ -415,21 +434,58 @@ namespace engine::graph {
       createEngine(const RenderExecutionContext& context) const override {
         return createWavefront(context);
       }
+    };
 
-      std::shared_ptr<::engine::wavefront::WavefrontRaytracer>
-      createWavefront(const RenderExecutionContext& context) const {
-        const auto& graph = context.graph();
-        auto camera = context.camera() ? context.camera()->clone() : nullptr;
-        auto wavefront = std::make_shared<::engine::wavefront::WavefrontRaytracer>(
-          std::move(camera), graph.scene());
-        wavefront->setMetricsEnabled(graph.executionTraceEnabled());
-        RaytracerBeautyPassState::valueFromPass(context.pass()).applyTo(*wavefront);
-        return wavefront;
+    class SampleStddevAOVPass : public RenderPassPayload, private WavefrontPassSupport {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), write.resource, pass);
+
+        Buffer<Colord>& output = context.storage().color(write.resource);
+        Buffer<Colord> beauty(output.width(), output.height());
+
+        auto wavefront = createWavefront(context);
+        wavefront->setSampleRadianceStddevCaptureEnabled(true);
+        prepareEngine(*wavefront, context.graph(), context.cancelled(), context.graph().tonemap());
+        context.setActiveEngine(wavefront);
+        wavefront->render(beauty);
+        recordWavefrontMetrics(context, *wavefront);
+
+        const auto sampleStddev = wavefront->lastSampleRadianceStddev();
+        if (!sampleStddev) {
+          throw passError(pass, "wavefront did not produce sample standard-deviation output");
+        }
+        writePreview(*sampleStddev, output, pass);
       }
 
-      void recordWavefrontMetrics(RenderExecutionContext& context,
-                                  const ::engine::wavefront::WavefrontRaytracer& wavefront) const {
-        context.setTraceMetadata(wavefront.lastMetrics().toJson());
+    private:
+      void writePreview(const Buffer<double>& source, Buffer<Colord>& destination,
+                        const RenderPassNode& pass) const {
+        if (source.width() != destination.width() || source.height() != destination.height()) {
+          throw passError(pass,
+                          "sample standard-deviation visualization requires matching dimensions");
+        }
+
+        double maximum = 0.0;
+        for (int y = 0; y != source.height(); ++y) {
+          for (int x = 0; x != source.width(); ++x) {
+            const double value = source[y][x];
+            if (std::isfinite(value)) {
+              maximum = std::max(maximum, value);
+            }
+          }
+        }
+
+        for (int y = 0; y != source.height(); ++y) {
+          for (int x = 0; x != source.width(); ++x) {
+            const double value = source[y][x];
+            const double normalized =
+              maximum > 0.0 && std::isfinite(value) ? std::clamp(value / maximum, 0.0, 1.0) : 0.0;
+            destination[y][x] = Colord(normalized, normalized, normalized);
+          }
+        }
       }
     };
 
@@ -2164,6 +2220,10 @@ namespace engine::graph {
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"world_position"});
       static const FeaturePassPayloadFactory<WorldPositionAOVPass> worldPositionAOVWireframe(
         RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"world_position"});
+      static const FeaturePassPayloadFactory<ColorCopyPass> sampleStddevVisualization(
+        RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"sample_stddev", "visualization"});
+      static const FeaturePassPayloadFactory<SampleStddevAOVPass> sampleStddevAOVWavefront(
+        RenderPassKind::AOV, RenderExecutorKind::Wavefront, {"sample_stddev"});
       static const FeaturePassPayloadFactory<RasterCoverageCountAOVPass> rasterCoverageCountAOV(
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"raster_coverage_count"});
       static const FeaturePassPayloadFactory<RasterDepthTestCountAOVPass> rasterDepthTestCountAOV(
@@ -2233,6 +2293,8 @@ namespace engine::graph {
         &worldPositionAOVWavefront,
         &worldPositionAOVRasterizer,
         &worldPositionAOVWireframe,
+        &sampleStddevVisualization,
+        &sampleStddevAOVWavefront,
         &rasterCoverageCountVisualization,
         &rasterCoverageCountAOV,
         &rasterDepthTestCountVisualization,

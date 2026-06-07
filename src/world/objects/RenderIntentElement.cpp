@@ -233,6 +233,9 @@ QStringList RenderIntentElement::propertyChoices(const QString& propertyName) co
               << QStringLiteral("raster_depth_pass_count") << QStringLiteral("raster_shade_count")
               << QStringLiteral("raster_color_write_count");
     }
+    if (intent().defaultExecutorKind() == engine::graph::RenderExecutorKind::Wavefront) {
+      choices << QStringLiteral("sample_stddev");
+    }
     return choices;
   }
   if (propertyName == QStringLiteral("postProcessAA"))
@@ -347,6 +350,8 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
       return QStringLiteral("Object ID");
     if (choice == QStringLiteral("material_id"))
       return QStringLiteral("Material ID");
+    if (choice == QStringLiteral("sample_stddev"))
+      return QStringLiteral("Sample Stddev");
     if (choice == QStringLiteral("raster_coverage_count"))
       return QStringLiteral("Raster Coverage Count");
     if (choice == QStringLiteral("raster_depth_test_count"))
@@ -430,6 +435,10 @@ void RenderIntentElement::setDefaultEngine(const QString& engine) {
   value.defaultExecutor = executorFromText(engine);
   if (value.defaultExecutor != engine::graph::RenderExecutorPreference::Rasterizer &&
       isRasterCounterView(value.defaultViewMode)) {
+    value.defaultViewMode = engine::graph::RenderViewMode::Beauty;
+  }
+  if (value.defaultExecutorKind() != engine::graph::RenderExecutorKind::Wavefront &&
+      isWavefrontDiagnosticView(value.defaultViewMode)) {
     value.defaultViewMode = engine::graph::RenderViewMode::Beauty;
   }
   setIntent(value);
@@ -879,6 +888,8 @@ engine::graph::RenderViewMode RenderIntentElement::viewModeFromText(const QStrin
     return engine::graph::RenderViewMode::MaterialId;
   if (value == QStringLiteral("world_position"))
     return engine::graph::RenderViewMode::WorldPosition;
+  if (value == QStringLiteral("sample_stddev") || value == QStringLiteral("sample_radiance_stddev"))
+    return engine::graph::RenderViewMode::SampleStddev;
   if (value == QStringLiteral("raster_coverage_count"))
     return engine::graph::RenderViewMode::RasterCoverageCount;
   if (value == QStringLiteral("raster_depth_test_count"))
@@ -910,6 +921,10 @@ bool RenderIntentElement::isRasterCounterView(engine::graph::RenderViewMode view
          viewMode == engine::graph::RenderViewMode::RasterDepthPassCount ||
          viewMode == engine::graph::RenderViewMode::RasterShadeCount ||
          viewMode == engine::graph::RenderViewMode::RasterColorWriteCount;
+}
+
+bool RenderIntentElement::isWavefrontDiagnosticView(engine::graph::RenderViewMode viewMode) const {
+  return viewMode == engine::graph::RenderViewMode::SampleStddev;
 }
 
 QString RenderIntentElement::wavefrontConvergenceQualityFor(double activeFraction,

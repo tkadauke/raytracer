@@ -68,6 +68,9 @@ namespace engine::graph {
       pass.canRunConcurrently = false;
       applyEngineOptionsToPass(pass, aov.usesRasterTargetSampling() ? target.sampleCount : 1,
                                intent);
+      if (aov.usesRaytracerPassState()) {
+        intent.engineOptions.raytracer().beautyPassState().writeTo(pass);
+      }
       aov.configureProducerPass(pass);
       return pass;
     }

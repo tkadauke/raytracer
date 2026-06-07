@@ -400,11 +400,12 @@ bool, number, or string parameters to that profile.
 applies to today's whole-frame compiler, while selector-specific values such as
 `tag:debug,view=wireframe` are preserved in intent and rejected clearly until
 scene-partitioning planners exist. The `depth`, `stencil`, `normal`,
-`object_id`, `material_id`, and `world_position` views compile real
-resource-producing AOV nodes followed by visualization passes, so the exported
-plan and the Modeler inspector can show AOVs as graph resources rather than
-hiding them inside a direct engine. Raster diagnostics add raster-only heatmap
-views for `raster_coverage_count`, `raster_depth_test_count`,
+`object_id`, `material_id`, `world_position`, and wavefront-only
+`sample_stddev` views compile real resource-producing AOV nodes followed by
+visualization passes, so the exported plan and the Modeler inspector can show
+AOVs as graph resources rather than hiding them inside a direct engine. Raster
+diagnostics add raster-only heatmap views for `raster_coverage_count`,
+`raster_depth_test_count`,
 `raster_depth_pass_count`, `raster_shade_count`, and
 `raster_color_write_count`. The `stencil_composite` view mode is also
 synthesized from intent: it compiles raster beauty, wireframe beauty, stencil

@@ -209,6 +209,7 @@ private:
   engine::graph::RenderViewMode viewModeFromText(const QString& text) const;
   engine::graph::RenderPostProcessAA postProcessAAFromText(const QString& text) const;
   bool isRasterCounterView(engine::graph::RenderViewMode viewMode) const;
+  bool isWavefrontDiagnosticView(engine::graph::RenderViewMode viewMode) const;
   QString wavefrontConvergenceQualityFor(double activeFraction, double rmsDelta) const;
   bool wavefrontConvergenceThresholdsMatch(double activeFraction, double rmsDelta,
                                            double expectedActiveFraction,

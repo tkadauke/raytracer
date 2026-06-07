@@ -238,14 +238,34 @@ rendercli_assert_image_dimensions("${sample_stddev_output}" 32 24
 rendercli_assert_image_nonempty("${sample_stddev_output}"
                                 NAME "pathtracer sample stddev pixels")
 
-rendercli_expect_failure(
-  NAME "rendercli sample standard-deviation output requires direct engine"
+set(sample_stddev_graph_output "${TEST_OUTPUT_DIR}/pathtracer-sample-stddev-graph.png")
+set(sample_stddev_graph_render "${TEST_OUTPUT_DIR}/pathtracer-sample-stddev-graph-render.png")
+rendercli_run(
+  NAME "rendercli pathtracer graph writes sample standard-deviation image"
   COMMAND
-    "${RENDERCLI}" --engine pathtracer --wavefront_sample_stddev_out "${sample_stddev_output}"
+    "${RENDERCLI}" --engine pathtracer --wavefront_sample_stddev_out
+    "${sample_stddev_graph_output}"
     --width 16 --height 12 --sampler Halton --samples_per_pixel 4
-    "${area_light_scene}" "${sample_stddev_render}"
-  STDERR_MATCHES "requires --direct_engine"
+    "${area_light_scene}" "${sample_stddev_graph_render}"
 )
+rendercli_assert_image_dimensions("${sample_stddev_graph_output}" 16 12
+                                  NAME "pathtracer graph sample stddev dimensions")
+rendercli_assert_image_nonempty("${sample_stddev_graph_output}"
+                                NAME "pathtracer graph sample stddev pixels")
+
+set(sample_stddev_aov_output "${TEST_OUTPUT_DIR}/pathtracer-sample-stddev-aov.png")
+set(sample_stddev_aov_render "${TEST_OUTPUT_DIR}/pathtracer-sample-stddev-aov-render.png")
+rendercli_run(
+  NAME "rendercli graph AOV output accepts sample standard-deviation view"
+  COMMAND
+    "${RENDERCLI}" --engine pathtracer --render_graph_aov_out
+    "sample_stddev=${sample_stddev_aov_output}" --width 16 --height 12 --sampler Halton
+    --samples_per_pixel 4 "${area_light_scene}" "${sample_stddev_aov_render}"
+)
+rendercli_assert_image_dimensions("${sample_stddev_aov_output}" 16 12
+                                  NAME "pathtracer graph AOV sample stddev dimensions")
+rendercli_assert_image_nonempty("${sample_stddev_aov_output}"
+                                NAME "pathtracer graph AOV sample stddev pixels")
 
 set(wavefront_denoise_output "${TEST_OUTPUT_DIR}/wavefront-denoise-direct.png")
 rendercli_run(

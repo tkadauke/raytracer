@@ -53,6 +53,10 @@ namespace engine::graph {
         return m_usesRasterTargetSampling;
       }
 
+      bool usesRaytracerPassState() const override {
+        return false;
+      }
+
       bool supportsExecutor(RenderExecutorKind executor) const override {
         return m_supportedExecutors.empty() ||
                std::find(m_supportedExecutors.begin(), m_supportedExecutors.end(), executor) !=
@@ -89,6 +93,20 @@ namespace engine::graph {
       }
     };
 
+    class SampleStddevRenderAOVDefinition : public BasicRenderAOVDefinition {
+    public:
+      SampleStddevRenderAOVDefinition()
+          : BasicRenderAOVDefinition(RenderViewMode::SampleStddev, "sample_stddev",
+                                     "Sample standard deviation", RenderResourceType::Color,
+                                     RenderResourceFormat::RGBDouble, false,
+                                     {RenderExecutorKind::Wavefront}) {
+      }
+
+      bool usesRaytracerPassState() const override {
+        return true;
+      }
+    };
+
     const std::vector<const RenderAOVDefinition*>& definitions() {
       static const BasicRenderAOVDefinition depth(RenderViewMode::Depth, "depth", "Depth",
                                                   RenderResourceType::Depth,
@@ -106,6 +124,7 @@ namespace engine::graph {
       static const BasicRenderAOVDefinition worldPosition(
         RenderViewMode::WorldPosition, "world_position", "World position",
         RenderResourceType::WorldPosition, RenderResourceFormat::RGBDouble);
+      static const SampleStddevRenderAOVDefinition sampleStddev;
       static const BasicRenderAOVDefinition rasterCoverageCount(
         RenderViewMode::RasterCoverageCount, "raster_coverage_count", "Raster coverage count",
         RenderResourceType::CustomTexture, RenderResourceFormat::RGBDouble, true,
@@ -132,6 +151,7 @@ namespace engine::graph {
                                                                      &objectId,
                                                                      &materialId,
                                                                      &worldPosition,
+                                                                     &sampleStddev,
                                                                      &rasterCoverageCount,
                                                                      &rasterDepthTestCount,
                                                                      &rasterDepthPassCount,

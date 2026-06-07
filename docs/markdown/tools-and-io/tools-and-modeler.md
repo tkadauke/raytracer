@@ -137,7 +137,7 @@ scene-partitioning and composition passes.
 When compiling a plan, `--render_graph_executor raytracer|pathtracer|wavefront|rasterizer|wireframe`
 overrides the graph intent's default executor, and
 `--render_graph_view
-default|beauty|wireframe|depth|stencil|stencil_composite|normal|object_id|material_id|world_position|raster_coverage_count|raster_depth_test_count|raster_depth_pass_count|raster_shade_count|raster_color_write_count`
+default|beauty|wireframe|depth|stencil|stencil_composite|normal|object_id|material_id|world_position|sample_stddev|raster_coverage_count|raster_depth_test_count|raster_depth_pass_count|raster_shade_count|raster_color_write_count`
 overrides the graph intent's structural view mode. `--render_graph_camera
 camera_id` overrides the intent's default scene-camera reference; current
 executors still render with the active runtime camera, but the compiled graph
@@ -251,13 +251,12 @@ breakdown and
 also includes `sampleVariancePixelArea`, `sampleRadianceStddevRms`, and
 `maxSampleRadianceStddev`, which measure disagreement between samples of the
 same pixel and complement the between-depth radiance-delta convergence fields.
-For direct wavefront or pathtracer debugging,
 `--wavefront_sample_stddev_out FILE` writes a grayscale image of the same
-per-pixel sample radiance standard-deviation data. Bright pixels are the noisiest
-pixels in that render, normalized against the maximum standard deviation in the
-captured frame. This is intentionally a direct-engine diagnostic for now; graph
-exports should grow a declared variance resource before the graph-backed default
-path writes the same image.
+per-pixel sample radiance standard-deviation data. In graph-backed renders this
+requests the `sample_stddev` AOV and exports its preview image; in
+`--direct_engine` wavefront or pathtracer renders it writes the engine-side
+diagnostic buffer directly. Bright pixels are the noisiest pixels in that render,
+normalized against the maximum standard deviation in the captured frame.
 The
 refined counter is Whitted-specific diagnostic work: it counts packet-hit lanes
 that still need scalar hit refinement for strict secondary-ray parity. Local
