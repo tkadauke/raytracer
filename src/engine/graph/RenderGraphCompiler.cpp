@@ -834,11 +834,9 @@ namespace engine::graph {
     return plan;
   }
 
-  std::vector<RenderGraphCompiler::SubviewOutputBinding>
-  RenderGraphCompiler::addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,
-                                          const RenderIntent& intent,
-                                          const RenderSceneAnalysis& sceneAnalysis,
-                                          int renderToTextureDepth) const {
+  std::vector<RenderGraphCompiler::SubviewOutputBinding> RenderGraphCompiler::addSubviewBranches(
+    RenderPlan& plan, const RenderTargetSpec& target, const RenderIntent& intent,
+    const RenderSceneAnalysis& sceneAnalysis, int renderToTextureDepth) const {
     std::vector<SubviewOutputBinding> outputs;
     if (intent.subviews.empty()) {
       return outputs;
@@ -929,8 +927,9 @@ namespace engine::graph {
     }
   }
 
-  void RenderGraphCompiler::validateSubviewReceivers(
-    const RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis) const {
+  void
+  RenderGraphCompiler::validateSubviewReceivers(const RenderIntent& intent,
+                                                const RenderSceneAnalysis& sceneAnalysis) const {
     const auto& receivers = sceneAnalysis.renderTextureSubviewReceivers();
     if (receivers.empty()) {
       return;
