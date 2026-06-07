@@ -419,6 +419,7 @@ namespace engine::wavefront {
     std::optional<int> maximumRecursionDepth;
     std::optional<std::uint64_t> samplingSeed;
     std::shared_ptr<Buffer<double>> lastSampleRadianceStddev;
+    std::shared_ptr<Buffer<Colord>> lastSampleRadianceStddevColor;
     detail::WavefrontMetricsRecorder metrics;
 
     detail::WavefrontTileRenderConfig tileRenderConfig() const {
@@ -442,12 +443,24 @@ namespace engine::wavefront {
     Buffer<double>* prepareSampleRadianceStddevBuffer(int width, int height) {
       if (!sampleRadianceStddevCaptureEnabled) {
         lastSampleRadianceStddev.reset();
+        lastSampleRadianceStddevColor.reset();
         return nullptr;
       }
 
       lastSampleRadianceStddev = std::make_shared<Buffer<double>>(width, height);
       lastSampleRadianceStddev->clear(0.0);
       return lastSampleRadianceStddev.get();
+    }
+
+    Buffer<Colord>* prepareSampleRadianceStddevColorBuffer(int width, int height) {
+      if (!sampleRadianceStddevCaptureEnabled) {
+        lastSampleRadianceStddevColor.reset();
+        return nullptr;
+      }
+
+      lastSampleRadianceStddevColor = std::make_shared<Buffer<Colord>>(width, height);
+      lastSampleRadianceStddevColor->clear(Colord::black());
+      return lastSampleRadianceStddevColor.get();
     }
 
     void configureIntegratorCancellation(const WavefrontRaytracer& owner) {
@@ -503,6 +516,7 @@ namespace engine::wavefront {
   void WavefrontRaytracer::render(Buffer<Colord>& buffer) {
     if (!m_scene || !m_camera) {
       p->lastSampleRadianceStddev.reset();
+      p->lastSampleRadianceStddevColor.reset();
       buffer.clear();
       return;
     }
@@ -541,19 +555,22 @@ namespace engine::wavefront {
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
     Buffer<double>* sampleRadianceStddevBuffer =
       p->prepareSampleRadianceStddevBuffer(buffer.width(), buffer.height());
+    Buffer<Colord>* sampleRadianceStddevColorBuffer =
+      p->prepareSampleRadianceStddevColorBuffer(buffer.width(), buffer.height());
     const auto samplingSeed = p->samplingSeed;
     const bool publishProgressSnapshots = progressiveDisplayEnabled();
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
-      [this, rayCaster, camera, bufferPtr, sampleRadianceStddevBuffer, samplingSeed, tileRenderer,
-       denoiserFeaturePtr, publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
+      [this, rayCaster, camera, bufferPtr, sampleRadianceStddevBuffer,
+       sampleRadianceStddevColorBuffer, samplingSeed, tileRenderer, denoiserFeaturePtr,
+       publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
         tileRenderer.renderHdrTile(*camera, *rayCaster, *m_scene, *bufferPtr, rect, tileSeed,
                                    publishProgressSnapshots, sampleRadianceStddevBuffer,
-                                   denoiserFeaturePtr);
+                                   sampleRadianceStddevColorBuffer, denoiserFeaturePtr);
       });
     tileRenderer.denoise(buffer, denoiserFeatures.get());
     if (recordMetrics) {
@@ -568,6 +585,7 @@ namespace engine::wavefront {
   void WavefrontRaytracer::render(Buffer<unsigned int>& buffer) {
     if (!m_scene || !m_camera) {
       p->lastSampleRadianceStddev.reset();
+      p->lastSampleRadianceStddevColor.reset();
       buffer.clear();
       return;
     }
@@ -610,19 +628,22 @@ namespace engine::wavefront {
     auto tileRenderer = p->tileRenderer();
     Buffer<double>* sampleRadianceStddevBuffer =
       p->prepareSampleRadianceStddevBuffer(buffer.width(), buffer.height());
+    Buffer<Colord>* sampleRadianceStddevColorBuffer =
+      p->prepareSampleRadianceStddevColorBuffer(buffer.width(), buffer.height());
     const auto samplingSeed = p->samplingSeed;
     const bool publishProgressSnapshots = progressiveDisplayEnabled();
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
-      [this, rayCaster, camera, bufferPtr, tonemapOp, sampleRadianceStddevBuffer, samplingSeed,
-       tileRenderer, publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
+      [this, rayCaster, camera, bufferPtr, tonemapOp, sampleRadianceStddevBuffer,
+       sampleRadianceStddevColorBuffer, samplingSeed, tileRenderer,
+       publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
         tileRenderer.renderDisplayTile(*camera, *rayCaster, *m_scene, *bufferPtr, tonemapOp, rect,
                                        tileSeed, publishProgressSnapshots,
-                                       sampleRadianceStddevBuffer);
+                                       sampleRadianceStddevBuffer, sampleRadianceStddevColorBuffer);
       });
     if (recordMetrics) {
       p->metrics.finish(renderStart);
@@ -641,6 +662,7 @@ namespace engine::wavefront {
 
     if (!m_scene || !m_camera) {
       p->lastSampleRadianceStddev.reset();
+      p->lastSampleRadianceStddevColor.reset();
       hdrBuffer.clear();
       displayBuffer.clear();
       return;
@@ -681,20 +703,23 @@ namespace engine::wavefront {
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
     Buffer<double>* sampleRadianceStddevBuffer =
       p->prepareSampleRadianceStddevBuffer(hdrBuffer.width(), hdrBuffer.height());
+    Buffer<Colord>* sampleRadianceStddevColorBuffer =
+      p->prepareSampleRadianceStddevColorBuffer(hdrBuffer.width(), hdrBuffer.height());
     const auto samplingSeed = p->samplingSeed;
     const bool publishProgressSnapshots = progressiveDisplayEnabled();
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
       [this, rayCaster, camera, hdrBufferPtr, displayBufferPtr, displayTonemap,
-       sampleRadianceStddevBuffer, samplingSeed, tileRenderer, denoiserFeaturePtr,
-       publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
+       sampleRadianceStddevBuffer, sampleRadianceStddevColorBuffer, samplingSeed, tileRenderer,
+       denoiserFeaturePtr, publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
-        tileRenderer.renderDualOutputTile(
-          *camera, *rayCaster, *m_scene, *hdrBufferPtr, *displayBufferPtr, displayTonemap, rect,
-          tileSeed, publishProgressSnapshots, sampleRadianceStddevBuffer, denoiserFeaturePtr);
+        tileRenderer.renderDualOutputTile(*camera, *rayCaster, *m_scene, *hdrBufferPtr,
+                                          *displayBufferPtr, displayTonemap, rect, tileSeed,
+                                          publishProgressSnapshots, sampleRadianceStddevBuffer,
+                                          sampleRadianceStddevColorBuffer, denoiserFeaturePtr);
       });
     tileRenderer.denoise(hdrBuffer, denoiserFeatures.get());
     tileRenderer.writeDisplayBuffer(displayBuffer, hdrBuffer, displayTonemap);
@@ -860,6 +885,7 @@ namespace engine::wavefront {
     p->sampleRadianceStddevCaptureEnabled = enabled;
     if (!enabled) {
       p->lastSampleRadianceStddev.reset();
+      p->lastSampleRadianceStddevColor.reset();
     }
   }
 
@@ -869,6 +895,10 @@ namespace engine::wavefront {
 
   std::shared_ptr<const Buffer<double>> WavefrontRaytracer::lastSampleRadianceStddev() const {
     return p->lastSampleRadianceStddev;
+  }
+
+  std::shared_ptr<const Buffer<Colord>> WavefrontRaytracer::lastSampleRadianceStddevColor() const {
+    return p->lastSampleRadianceStddevColor;
   }
 
   WavefrontRenderMetrics WavefrontRaytracer::lastMetrics() const {

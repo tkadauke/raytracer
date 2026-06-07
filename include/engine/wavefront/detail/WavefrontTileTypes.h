@@ -17,12 +17,14 @@ namespace engine::wavefront::detail {
     Colord color{Colord::black()};
     std::uint64_t sampleCount{0};
     double sampleRadianceStddev{0.0};
+    Colord sampleRadianceStddevColor{Colord::black()};
 
     int area() const {
       return std::max(0, footprint.width()) * std::max(0, footprint.height());
     }
 
     void writeSampleRadianceStddevTo(Buffer<double>& buffer) const;
+    void writeSampleRadianceStddevColorTo(Buffer<Colord>& buffer) const;
   };
 
   struct WavefrontTileTraceResult {
@@ -43,6 +45,7 @@ namespace engine::wavefront::detail {
     void recordSampleVariance(const std::vector<Colord>& sampleColors,
                               const std::vector<std::size_t>& samplePixelIndices);
     void writeSampleRadianceStddevTo(Buffer<double>& buffer) const;
+    void writeSampleRadianceStddevColorTo(Buffer<Colord>& buffer) const;
   };
 
   struct WavefrontDenoiserFeatureSet {

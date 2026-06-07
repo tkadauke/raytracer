@@ -180,7 +180,8 @@ namespace RenderGraphTypesTest {
     intent.engineOptions.rasterizer().setShadowMapSize(128);
     intent.engineOptions.wireframe().setLod(2);
     intent.exportedAOVs = {RenderViewMode::Depth, RenderViewMode::Normal,
-                           RenderViewMode::SampleStddev, RenderViewMode::RasterDepthTestCount};
+                           RenderViewMode::SampleStddev, RenderViewMode::SampleStddevColor,
+                           RenderViewMode::RasterDepthTestCount};
     RenderViewOverride override;
     override.selector = SceneSelector::tag("debug");
     override.executor = RenderExecutorPreference::Wireframe;
@@ -250,11 +251,12 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ(128, engineOptions["rasterizer"].toObject()["shadows"].toObject()["mapSize"].toInt());
     EXPECT_EQ(2, engineOptions["wireframe"].toObject()["lod"].toInt());
     const auto exportedAOVs = json["exportedAOVs"].toArray();
-    ASSERT_EQ(4, exportedAOVs.size());
+    ASSERT_EQ(5, exportedAOVs.size());
     EXPECT_EQ("depth", exportedAOVs.at(0).toString().toStdString());
     EXPECT_EQ("normal", exportedAOVs.at(1).toString().toStdString());
     EXPECT_EQ("sample_stddev", exportedAOVs.at(2).toString().toStdString());
-    EXPECT_EQ("raster_depth_test_count", exportedAOVs.at(3).toString().toStdString());
+    EXPECT_EQ("sample_stddev_color", exportedAOVs.at(3).toString().toStdString());
+    EXPECT_EQ("raster_depth_test_count", exportedAOVs.at(4).toString().toStdString());
 
     const auto profile = json["defaultShadingProfile"].toObject();
     EXPECT_EQ("toon", profile["name"].toString().toStdString());
@@ -315,8 +317,12 @@ namespace RenderGraphTypesTest {
     viewOverride["selector"] = selector;
     viewOverride["executor"] = "wireframe";
     json["viewOverrides"] = QJsonArray{viewOverride};
-    json["exportedAOVs"] =
-      QJsonArray{"depth", "stencil", "world_position", "sample_stddev", "raster_color_write_count"};
+    json["exportedAOVs"] = QJsonArray{"depth",
+                                      "stencil",
+                                      "world_position",
+                                      "sample_stddev",
+                                      "sample_stddev_color",
+                                      "raster_color_write_count"};
     json["maxRenderToTextureRecursionDepth"] = 4;
 
     const RenderIntent intent = RenderIntent::fromJson(json);
@@ -357,12 +363,13 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("preview", *intent.engineOptions.rasterizer().tessellationQuality());
     ASSERT_TRUE(intent.engineOptions.rasterizer().maximumScreenSpaceError().has_value());
     EXPECT_DOUBLE_EQ(4.5, *intent.engineOptions.rasterizer().maximumScreenSpaceError());
-    ASSERT_EQ(5u, intent.exportedAOVs.size());
+    ASSERT_EQ(6u, intent.exportedAOVs.size());
     EXPECT_EQ(RenderViewMode::Depth, intent.exportedAOVs[0]);
     EXPECT_EQ(RenderViewMode::Stencil, intent.exportedAOVs[1]);
     EXPECT_EQ(RenderViewMode::WorldPosition, intent.exportedAOVs[2]);
     EXPECT_EQ(RenderViewMode::SampleStddev, intent.exportedAOVs[3]);
-    EXPECT_EQ(RenderViewMode::RasterColorWriteCount, intent.exportedAOVs[4]);
+    EXPECT_EQ(RenderViewMode::SampleStddevColor, intent.exportedAOVs[4]);
+    EXPECT_EQ(RenderViewMode::RasterColorWriteCount, intent.exportedAOVs[5]);
     ASSERT_EQ(1u, intent.viewOverrides.size());
     EXPECT_EQ(SceneSelector::Kind::ObjectName, intent.viewOverrides.front().selector.kind);
     EXPECT_EQ("Monitor", intent.viewOverrides.front().selector.value);

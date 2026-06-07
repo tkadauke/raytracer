@@ -51,6 +51,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   rendercli, and Modeler Render Settings now expose how many
   next-event-estimation light samples the path tracer averages at each
   non-delta hit. — GPT-5
+- **Path-tracing color variance diagnostics.** Wavefront/pathtracer renders now
+  expose a per-channel sample standard-deviation diagnostic through rendercli,
+  render graph AOVs, and Modeler render settings. — GPT-5
 - **Modeler path tracer denoiser override.** The final render dialog can now
   preserve scene denoiser settings or explicitly override Path Tracer/Wavefront
   renders to None, Box, or Bilateral with radius and color-sigma controls.

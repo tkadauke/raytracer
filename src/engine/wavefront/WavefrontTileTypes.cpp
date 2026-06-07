@@ -34,6 +34,16 @@ namespace engine::wavefront::detail {
     }
   }
 
+  void WavefrontTilePixel::writeSampleRadianceStddevColorTo(Buffer<Colord>& buffer) const {
+    for (int y = footprint.top(); y != footprint.bottom(); ++y) {
+      for (int x = footprint.left(); x != footprint.right(); ++x) {
+        if (y >= 0 && x >= 0 && y < buffer.height() && x < buffer.width()) {
+          buffer[y][x] = sampleRadianceStddevColor;
+        }
+      }
+    }
+  }
+
   void
   WavefrontTileTraceResult::applySampleColors(const std::vector<Colord>& sampleColors,
                                               const std::vector<std::size_t>& samplePixelIndices) {
@@ -69,6 +79,7 @@ namespace engine::wavefront::detail {
     maxSampleRadianceStddev = 0.0;
     for (auto& pixel : pixels) {
       pixel.sampleRadianceStddev = 0.0;
+      pixel.sampleRadianceStddevColor = Colord::black();
     }
 
     if (pixels.empty() || sampleColors.empty()) {
@@ -94,7 +105,7 @@ namespace engine::wavefront::detail {
       }
     }
 
-    std::vector<double> varianceSums(pixels.size(), 0.0);
+    std::vector<Colord> varianceSums(pixels.size(), Colord::black());
     for (std::size_t index = 0; index != count; ++index) {
       const std::size_t pixelIndex = samplePixelIndices[index];
       if (pixelIndex >= pixels.size() || counts[pixelIndex] <= 1) {
@@ -102,7 +113,7 @@ namespace engine::wavefront::detail {
       }
       const Colord delta = sampleColors[index] - means[pixelIndex];
       varianceSums[pixelIndex] +=
-        delta.r() * delta.r() + delta.g() * delta.g() + delta.b() * delta.b();
+        Colord(delta.r() * delta.r(), delta.g() * delta.g(), delta.b() * delta.b());
     }
 
     for (std::size_t pixelIndex = 0; pixelIndex != pixels.size(); ++pixelIndex) {
@@ -110,9 +121,12 @@ namespace engine::wavefront::detail {
         continue;
       }
       const int area = std::max(1, pixels[pixelIndex].area());
-      const double variance =
+      const Colord varianceColor =
         varianceSums[pixelIndex] * (1.0 / static_cast<double>(counts[pixelIndex]));
+      const double variance = varianceColor.r() + varianceColor.g() + varianceColor.b();
       pixels[pixelIndex].sampleRadianceStddev = std::sqrt(variance);
+      pixels[pixelIndex].sampleRadianceStddevColor = Colord(
+        std::sqrt(varianceColor.r()), std::sqrt(varianceColor.g()), std::sqrt(varianceColor.b()));
       sampleVariancePixelArea += static_cast<std::uint64_t>(area);
       sampleRadianceVarianceSum += variance * static_cast<double>(area);
       maxSampleRadianceStddev =
@@ -123,6 +137,12 @@ namespace engine::wavefront::detail {
   void WavefrontTileTraceResult::writeSampleRadianceStddevTo(Buffer<double>& buffer) const {
     for (const auto& pixel : pixels) {
       pixel.writeSampleRadianceStddevTo(buffer);
+    }
+  }
+
+  void WavefrontTileTraceResult::writeSampleRadianceStddevColorTo(Buffer<Colord>& buffer) const {
+    for (const auto& pixel : pixels) {
+      pixel.writeSampleRadianceStddevColorTo(buffer);
     }
   }
 

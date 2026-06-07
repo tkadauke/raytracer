@@ -705,6 +705,9 @@ namespace {
       *viewMode = RenderViewMode::WorldPosition;
     } else if (normalized == "samplestddev" || normalized == "sampleradiancestddev") {
       *viewMode = RenderViewMode::SampleStddev;
+    } else if (normalized == "samplestddevcolor" || normalized == "samplecolorstddev" ||
+               normalized == "sampleradiancestddevcolor") {
+      *viewMode = RenderViewMode::SampleStddevColor;
     } else if (normalized == "rastercoveragecount") {
       *viewMode = RenderViewMode::RasterCoverageCount;
     } else if (normalized == "rasterdepthtestcount") {
@@ -838,9 +841,9 @@ namespace {
           *errorMessage =
             "Render graph view override view must be 'default', 'beauty', 'wireframe', "
             "'depth', 'stencil', 'stencil_composite', 'normal', 'object_id', "
-            "'material_id', 'world_position', 'sample_stddev', 'raster_coverage_count', "
-            "'raster_depth_test_count', 'raster_depth_pass_count', 'raster_shade_count', "
-            "or 'raster_color_write_count'";
+            "'material_id', 'world_position', 'sample_stddev', 'sample_stddev_color', "
+            "'raster_coverage_count', 'raster_depth_test_count', 'raster_depth_pass_count', "
+            "'raster_shade_count', or 'raster_color_write_count'";
           return false;
         }
         viewOverride.viewMode = viewMode;
@@ -905,8 +908,8 @@ namespace {
       *errorMessage =
         "Render graph AOV output must use view=file syntax with view 'depth', 'stencil', "
         "'normal', 'object_id', 'material_id', 'world_position', 'sample_stddev', "
-        "'raster_coverage_count', 'raster_depth_test_count', 'raster_depth_pass_count', "
-        "'raster_shade_count', or 'raster_color_write_count'";
+        "'sample_stddev_color', 'raster_coverage_count', 'raster_depth_test_count', "
+        "'raster_depth_pass_count', 'raster_shade_count', or 'raster_color_write_count'";
       return false;
     }
 
@@ -915,9 +918,9 @@ namespace {
     if (!aov) {
       *errorMessage =
         "Render graph AOV output view must be 'depth', 'stencil', 'normal', 'object_id', "
-        "'material_id', 'world_position', 'sample_stddev', 'raster_coverage_count', "
-        "'raster_depth_test_count', 'raster_depth_pass_count', 'raster_shade_count', or "
-        "'raster_color_write_count'";
+        "'material_id', 'world_position', 'sample_stddev', 'sample_stddev_color', "
+        "'raster_coverage_count', 'raster_depth_test_count', 'raster_depth_pass_count', "
+        "'raster_shade_count', or 'raster_color_write_count'";
       return false;
     }
 
@@ -1180,6 +1183,7 @@ public:
   QImage bufferToImage(const Buffer<unsigned int>& buffer) const;
   QImage colorBufferToImage(const Buffer<Colord>& buffer) const;
   QImage scalarBufferToImage(const Buffer<double>& buffer) const;
+  QImage normalizedColorBufferToImage(const Buffer<Colord>& buffer) const;
 
   QCommandLineParser parser;
 
@@ -1254,6 +1258,7 @@ private:
   QString m_wavefrontMetricsOut;
   bool m_wavefrontMetricsSummary;
   QString m_wavefrontSampleStddevOut;
+  QString m_wavefrontSampleStddevColorOut;
   std::vector<RenderGraphAOVOutput> m_renderGraphAOVOutputs;
   std::vector<RenderGraphViewOverrideInput> m_renderGraphViewOverrides;
   std::vector<RenderGraphImageInput> m_renderGraphColorInputs;
@@ -1441,6 +1446,7 @@ Renderer::Renderer()
       m_wavefrontMetricsOut(),
       m_wavefrontMetricsSummary(false),
       m_wavefrontSampleStddevOut(),
+      m_wavefrontSampleStddevColorOut(),
       m_renderGraphAOVOutputs(),
       m_renderGraphExecutorSet(false),
       m_renderGraphExecutor(engine::graph::RenderExecutorPreference::Raytracer),
@@ -2236,7 +2242,8 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   const bool rasterMetricsRequested = !m_rasterMetricsOut.isEmpty() || m_rasterMetricsSummary;
   const bool wavefrontMetricsRequested =
     !m_wavefrontMetricsOut.isEmpty() || m_wavefrontMetricsSummary;
-  const bool wavefrontSampleStddevRequested = !m_wavefrontSampleStddevOut.isEmpty();
+  const bool wavefrontSampleStddevRequested =
+    !m_wavefrontSampleStddevOut.isEmpty() || !m_wavefrontSampleStddevColorOut.isEmpty();
 
   if (m_renderGraph) {
     graphEngine = rtCamera
@@ -2498,7 +2505,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     writeWavefrontMetricsReport(wavefrontMetricRuns, m_wavefrontMetricsOut);
   }
 
-  if (wavefrontSampleStddevRequested && directWavefrontEngine) {
+  if (!m_wavefrontSampleStddevOut.isEmpty() && directWavefrontEngine) {
     const auto sampleStddev = directWavefrontEngine->lastSampleRadianceStddev();
     if (!sampleStddev) {
       throw std::runtime_error(
@@ -2509,6 +2516,21 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
       throw std::runtime_error(
         QString("Unable to write wavefront sample standard-deviation image: %1")
           .arg(m_wavefrontSampleStddevOut)
+          .toStdString());
+    }
+  }
+
+  if (!m_wavefrontSampleStddevColorOut.isEmpty() && directWavefrontEngine) {
+    const auto sampleStddevColor = directWavefrontEngine->lastSampleRadianceStddevColor();
+    if (!sampleStddevColor) {
+      throw std::runtime_error(
+        "Wavefront render did not produce a color sample standard-deviation image");
+    }
+    const QImage sampleStddevColorImage = normalizedColorBufferToImage(*sampleStddevColor);
+    if (!sampleStddevColorImage.save(m_wavefrontSampleStddevColorOut)) {
+      throw std::runtime_error(
+        QString("Unable to write wavefront color sample standard-deviation image: %1")
+          .arg(m_wavefrontSampleStddevColorOut)
           .toStdString());
     }
   }
@@ -2792,6 +2814,36 @@ QImage Renderer::scalarBufferToImage(const Buffer<double>& buffer) const {
   return image;
 }
 
+QImage Renderer::normalizedColorBufferToImage(const Buffer<Colord>& buffer) const {
+  double maximum = 0.0;
+  for (int y = 0; y != buffer.height(); ++y) {
+    for (int x = 0; x != buffer.width(); ++x) {
+      const Colord value = buffer[y][x];
+      if (std::isfinite(value.r()))
+        maximum = std::max(maximum, value.r());
+      if (std::isfinite(value.g()))
+        maximum = std::max(maximum, value.g());
+      if (std::isfinite(value.b()))
+        maximum = std::max(maximum, value.b());
+    }
+  }
+
+  QImage image(buffer.width(), buffer.height(), QImage::Format_RGB32);
+  for (int y = 0; y != buffer.height(); ++y) {
+    for (int x = 0; x != buffer.width(); ++x) {
+      const Colord value = buffer[y][x];
+      const double scale = maximum > 0.0 ? 255.0 / maximum : 0.0;
+      const auto normalized = [scale](double channel) {
+        const double scaled = std::isfinite(channel) ? channel * scale : 0.0;
+        return static_cast<int>(std::round(std::clamp(scaled, 0.0, 255.0)));
+      };
+      image.setPixel(x, y,
+                     qRgb(normalized(value.r()), normalized(value.g()), normalized(value.b())));
+    }
+  }
+  return image;
+}
+
 Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessage) {
   parser.setApplicationDescription(
     QCoreApplication::translate("rendercli", "Command line renderer."));
@@ -2867,6 +2919,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"wavefront_metrics_summary", "Print aggregate wavefront render metrics to stdout"},
      {"wavefront_sample_stddev_out",
       "Write a grayscale per-pixel wavefront sample radiance standard-deviation image", "file"},
+     {"wavefront_sample_stddev_color_out",
+      "Write a color per-channel wavefront sample radiance standard-deviation image", "file"},
      {"render_graph_aov_out",
       "Write an executed graph AOV preview image; repeat with view=file for multiple AOVs",
       "view=file"},
@@ -2891,7 +2945,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_view",
       "Override graph intent view mode (default, beauty, wireframe, depth, stencil, normal, "
       "stencil_composite, object_id, material_id, world_position, sample_stddev, "
-      "raster_*_count)",
+      "sample_stddev_color, raster_*_count)",
       "mode"},
      {"render_graph_camera", "Override graph intent camera with a scene camera id", "camera_id"},
      {"render_graph_shading_profile", "Override graph intent shading profile", "profile"},
@@ -3427,6 +3481,19 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     }
   }
 
+  if (parser.isSet("wavefront_sample_stddev_color_out")) {
+    m_wavefrontSampleStddevColorOut = parser.value("wavefront_sample_stddev_color_out").trimmed();
+    if (m_wavefrontSampleStddevColorOut.isEmpty()) {
+      *errorMessage = "Wavefront color sample standard-deviation output path must not be empty";
+      return CommandLineError;
+    }
+    if (!m_directEngine) {
+      m_renderGraph = true;
+      m_renderGraphAOVOutputs.push_back(
+        {engine::graph::RenderViewMode::SampleStddevColor, m_wavefrontSampleStddevColorOut});
+    }
+  }
+
   if (parser.isSet("render_graph_aov_out")) {
     m_renderGraph = true;
     for (const QString& value : parser.values("render_graph_aov_out")) {
@@ -3523,8 +3590,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       *errorMessage =
         "Render graph view mode must be 'default', 'beauty', 'wireframe', 'depth', 'stencil', "
         "'stencil_composite', 'normal', 'object_id', 'material_id', 'world_position', "
-        "'sample_stddev', 'raster_coverage_count', 'raster_depth_test_count', "
-        "'raster_depth_pass_count', 'raster_shade_count', or 'raster_color_write_count'";
+        "'sample_stddev', 'sample_stddev_color', 'raster_coverage_count', "
+        "'raster_depth_test_count', 'raster_depth_pass_count', 'raster_shade_count', or "
+        "'raster_color_write_count'";
       return CommandLineError;
     }
     m_renderGraphViewModeSet = true;
@@ -4004,7 +4072,10 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     return CommandLineError;
   }
 
-  if (m_animation && !m_wavefrontSampleStddevOut.isEmpty()) {
+  const bool wavefrontSampleStddevOutputSet =
+    !m_wavefrontSampleStddevOut.isEmpty() || !m_wavefrontSampleStddevColorOut.isEmpty();
+
+  if (m_animation && wavefrontSampleStddevOutputSet) {
     *errorMessage = "Cannot combine --animation with wavefront sample standard-deviation output";
     return CommandLineError;
   }
@@ -4034,7 +4105,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     return CommandLineError;
   }
 
-  if (m_renderGraphOnly && !m_wavefrontSampleStddevOut.isEmpty()) {
+  if (m_renderGraphOnly && wavefrontSampleStddevOutputSet) {
     *errorMessage =
       "Cannot combine --render_graph_only with wavefront sample standard-deviation output";
     return CommandLineError;
@@ -4082,13 +4153,13 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   }
 
   if (m_stepSelectionSet && m_stepSelection.mode == CommandLineStepMode::Sequence &&
-      !m_wavefrontSampleStddevOut.isEmpty()) {
+      wavefrontSampleStddevOutputSet) {
     *errorMessage =
       "Cannot combine --step sequence with wavefront sample standard-deviation output";
     return CommandLineError;
   }
 
-  if (!m_wavefrontSampleStddevOut.isEmpty() && m_directEngine) {
+  if (wavefrontSampleStddevOutputSet && m_directEngine) {
     if (m_engine != "wavefront" && m_engine != "pathtracer" && m_engine != "pt") {
       *errorMessage =
         "Wavefront sample standard-deviation output requires --engine wavefront or pathtracer";

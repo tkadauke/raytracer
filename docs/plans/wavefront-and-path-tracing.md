@@ -941,8 +941,12 @@ The graph now exposes that same per-pixel sample standard-deviation signal as a
 wavefront-only `sample_stddev` AOV. rendercli can export it with
 `--render_graph_aov_out sample_stddev=FILE` or with the convenience
 `--wavefront_sample_stddev_out FILE`; bright pixels identify regions that need
-adaptive sampling or better sampling distributions. Direct wavefront/pathtracer
-runs keep the same convenience flag for focused engine debugging.
+adaptive sampling or better sampling distributions. A companion
+`sample_stddev_color` AOV and `--wavefront_sample_stddev_color_out FILE`
+convenience export preserve the per-channel variance color, so colored outliers
+from caustics, colored emitters, or sampler correlation are easier to diagnose.
+Direct wavefront/pathtracer runs keep the same convenience flags for focused
+engine debugging.
 `WavefrontRaytracer` now also has the first adaptive sampling core: it renders
 an initial per-pixel batch, measures each pixel's sample radiance standard
 deviation, and spends the remaining samples only on pixels above the configured

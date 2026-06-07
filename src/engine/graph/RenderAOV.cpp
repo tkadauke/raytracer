@@ -95,11 +95,11 @@ namespace engine::graph {
 
     class SampleStddevRenderAOVDefinition : public BasicRenderAOVDefinition {
     public:
-      SampleStddevRenderAOVDefinition()
-          : BasicRenderAOVDefinition(RenderViewMode::SampleStddev, "sample_stddev",
-                                     "Sample standard deviation", RenderResourceType::Color,
-                                     RenderResourceFormat::RGBDouble, false,
-                                     {RenderExecutorKind::Wavefront}) {
+      SampleStddevRenderAOVDefinition(RenderViewMode viewMode, std::string feature,
+                                      std::string title)
+          : BasicRenderAOVDefinition(viewMode, std::move(feature), std::move(title),
+                                     RenderResourceType::Color, RenderResourceFormat::RGBDouble,
+                                     false, {RenderExecutorKind::Wavefront}) {
       }
 
       bool usesRaytracerPassState() const override {
@@ -124,7 +124,11 @@ namespace engine::graph {
       static const BasicRenderAOVDefinition worldPosition(
         RenderViewMode::WorldPosition, "world_position", "World position",
         RenderResourceType::WorldPosition, RenderResourceFormat::RGBDouble);
-      static const SampleStddevRenderAOVDefinition sampleStddev;
+      static const SampleStddevRenderAOVDefinition sampleStddev(
+        RenderViewMode::SampleStddev, "sample_stddev", "Sample standard deviation");
+      static const SampleStddevRenderAOVDefinition sampleStddevColor(
+        RenderViewMode::SampleStddevColor, "sample_stddev_color",
+        "Sample standard deviation color");
       static const BasicRenderAOVDefinition rasterCoverageCount(
         RenderViewMode::RasterCoverageCount, "raster_coverage_count", "Raster coverage count",
         RenderResourceType::CustomTexture, RenderResourceFormat::RGBDouble, true,
@@ -152,6 +156,7 @@ namespace engine::graph {
                                                                      &materialId,
                                                                      &worldPosition,
                                                                      &sampleStddev,
+                                                                     &sampleStddevColor,
                                                                      &rasterCoverageCount,
                                                                      &rasterDepthTestCount,
                                                                      &rasterDepthPassCount,

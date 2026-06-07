@@ -53,6 +53,7 @@ namespace engine::graph {
     MaterialId,
     WorldPosition,
     SampleStddev,
+    SampleStddevColor,
     RasterCoverageCount,
     RasterDepthTestCount,
     RasterDepthPassCount,

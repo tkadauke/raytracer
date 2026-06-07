@@ -272,7 +272,7 @@ QStringList RenderIntentElement::propertyChoices(const QString& propertyName) co
               << QStringLiteral("raster_color_write_count");
     }
     if (intent().defaultExecutorKind() == engine::graph::RenderExecutorKind::Wavefront) {
-      choices << QStringLiteral("sample_stddev");
+      choices << QStringLiteral("sample_stddev") << QStringLiteral("sample_stddev_color");
     }
     return choices;
   }
@@ -396,6 +396,8 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
       return QStringLiteral("Material ID");
     if (choice == QStringLiteral("sample_stddev"))
       return QStringLiteral("Sample Stddev");
+    if (choice == QStringLiteral("sample_stddev_color"))
+      return QStringLiteral("Sample Stddev Color");
     if (choice == QStringLiteral("raster_coverage_count"))
       return QStringLiteral("Raster Coverage Count");
     if (choice == QStringLiteral("raster_depth_test_count"))
@@ -994,6 +996,10 @@ engine::graph::RenderViewMode RenderIntentElement::viewModeFromText(const QStrin
     return engine::graph::RenderViewMode::WorldPosition;
   if (value == QStringLiteral("sample_stddev") || value == QStringLiteral("sample_radiance_stddev"))
     return engine::graph::RenderViewMode::SampleStddev;
+  if (value == QStringLiteral("sample_stddev_color") ||
+      value == QStringLiteral("sample_color_stddev") ||
+      value == QStringLiteral("sample_radiance_stddev_color"))
+    return engine::graph::RenderViewMode::SampleStddevColor;
   if (value == QStringLiteral("raster_coverage_count"))
     return engine::graph::RenderViewMode::RasterCoverageCount;
   if (value == QStringLiteral("raster_depth_test_count"))
@@ -1028,7 +1034,8 @@ bool RenderIntentElement::isRasterCounterView(engine::graph::RenderViewMode view
 }
 
 bool RenderIntentElement::isWavefrontDiagnosticView(engine::graph::RenderViewMode viewMode) const {
-  return viewMode == engine::graph::RenderViewMode::SampleStddev;
+  return viewMode == engine::graph::RenderViewMode::SampleStddev ||
+         viewMode == engine::graph::RenderViewMode::SampleStddevColor;
 }
 
 QString RenderIntentElement::wavefrontConvergenceQualityFor(double activeFraction,

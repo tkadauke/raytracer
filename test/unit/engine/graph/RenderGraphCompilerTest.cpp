@@ -466,6 +466,60 @@ namespace RenderGraphCompilerTest {
     EXPECT_THROW(compiler.compile({64, 32, 1}, intent), std::runtime_error);
   }
 
+  TEST(RenderGraphCompiler, SampleStddevColorViewModeCompilesWavefrontAOVPlan) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::PathTracer;
+    intent.defaultViewMode = RenderViewMode::SampleStddevColor;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setSamplesPerPixel(4);
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_EQ(2u, plan.resources().size());
+    ASSERT_NE(nullptr, plan.findResource("sample_stddev_color_aov"));
+    EXPECT_EQ(RenderResourceType::Color, plan.findResource("sample_stddev_color_aov")->type);
+    EXPECT_EQ(RenderResourceFormat::RGBDouble,
+              plan.findResource("sample_stddev_color_aov")->format);
+    EXPECT_EQ(RenderResourceLifetime::Transient,
+              plan.findResource("sample_stddev_color_aov")->lifetime);
+    ASSERT_NE(nullptr, plan.findResource("main_color"));
+
+    ASSERT_EQ(2u, plan.passes().size());
+    EXPECT_EQ("sample_stddev_color_aov", plan.passes()[0].id);
+    EXPECT_EQ(RenderPassKind::AOV, plan.passes()[0].kind);
+    EXPECT_EQ(RenderExecutorKind::Wavefront, plan.passes()[0].executor);
+    EXPECT_TRUE(hasFeature(plan.passes()[0], "sample_stddev_color"));
+    EXPECT_TRUE(hasFeature(plan.passes()[0], "wavefront"));
+    const auto* state = RaytracerBeautyPassState::fromPass(plan.passes()[0]);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->integrator().has_value());
+    EXPECT_EQ("pathtracer", *state->integrator());
+    ASSERT_TRUE(state->samplesPerPixel().has_value());
+    EXPECT_EQ(4, *state->samplesPerPixel());
+    ASSERT_EQ(1u, plan.passes()[0].writes.size());
+    EXPECT_EQ("sample_stddev_color_aov", plan.passes()[0].writes[0].resource);
+
+    EXPECT_EQ("visualize_sample_stddev_color_aov", plan.passes()[1].id);
+    EXPECT_EQ(RenderPassKind::AOV, plan.passes()[1].kind);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, plan.passes()[1].executor);
+    EXPECT_TRUE(hasFeature(plan.passes()[1], "visualization"));
+    ASSERT_EQ(1u, plan.passes()[1].reads.size());
+    ASSERT_EQ(1u, plan.passes()[1].writes.size());
+    EXPECT_EQ("sample_stddev_color_aov", plan.passes()[1].reads[0].resource);
+    EXPECT_EQ("main_color", plan.passes()[1].writes[0].resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, SampleStddevColorAOVRejectsNonWavefrontExecutor) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Raytracer;
+    intent.defaultViewMode = RenderViewMode::SampleStddevColor;
+
+    EXPECT_THROW(compiler.compile({64, 32, 1}, intent), std::runtime_error);
+  }
+
   TEST(RenderGraphCompiler, ObjectIdViewModeCompilesObjectIdAOVPlan) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

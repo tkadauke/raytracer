@@ -145,7 +145,7 @@ scene-partitioning and composition passes.
 When compiling a plan, `--render_graph_executor raytracer|pathtracer|wavefront|rasterizer|wireframe`
 overrides the graph intent's default executor, and
 `--render_graph_view
-default|beauty|wireframe|depth|stencil|stencil_composite|normal|object_id|material_id|world_position|sample_stddev|raster_coverage_count|raster_depth_test_count|raster_depth_pass_count|raster_shade_count|raster_color_write_count`
+default|beauty|wireframe|depth|stencil|stencil_composite|normal|object_id|material_id|world_position|sample_stddev|sample_stddev_color|raster_coverage_count|raster_depth_test_count|raster_depth_pass_count|raster_shade_count|raster_color_write_count`
 overrides the graph intent's structural view mode. `--render_graph_camera
 camera_id` overrides the intent's default scene-camera reference; current
 executors still render with the active runtime camera, but the compiled graph
@@ -281,6 +281,12 @@ requests the `sample_stddev` AOV and exports its preview image; in
 `--direct_engine` wavefront or pathtracer renders it writes the engine-side
 diagnostic buffer directly. Bright pixels are the noisiest pixels in that render,
 normalized against the maximum standard deviation in the captured frame.
+`--wavefront_sample_stddev_color_out FILE` writes the companion per-channel
+standard-deviation diagnostic. In graph-backed renders this requests
+`sample_stddev_color`; in direct wavefront/pathtracer renders it writes the
+engine-side color diagnostic buffer. Hue identifies which color channel is
+producing the variance, which is useful for diagnosing colored caustic or
+emitter outliers.
 The
 refined counter is Whitted-specific diagnostic work: it counts packet-hit lanes
 that still need scalar hit refinement for strict secondary-ray parity. Local

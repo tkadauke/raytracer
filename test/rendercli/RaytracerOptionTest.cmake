@@ -238,6 +238,20 @@ rendercli_assert_image_dimensions("${sample_stddev_output}" 32 24
 rendercli_assert_image_nonempty("${sample_stddev_output}"
                                 NAME "pathtracer sample stddev pixels")
 
+set(sample_stddev_color_output "${TEST_OUTPUT_DIR}/pathtracer-sample-stddev-color.png")
+set(sample_stddev_color_render "${TEST_OUTPUT_DIR}/pathtracer-sample-stddev-color-render.png")
+rendercli_run(
+  NAME "rendercli pathtracer writes color sample standard-deviation image"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine pathtracer --wavefront_sample_stddev_color_out
+    "${sample_stddev_color_output}" --width 32 --height 24 --sampler Halton --samples_per_pixel 8
+    --sampling_seed 17 --depth 3 "${area_light_scene}" "${sample_stddev_color_render}"
+)
+rendercli_assert_image_dimensions("${sample_stddev_color_output}" 32 24
+                                  NAME "pathtracer sample stddev color dimensions")
+rendercli_assert_image_nonempty("${sample_stddev_color_output}"
+                                NAME "pathtracer sample stddev color pixels")
+
 set(sample_stddev_graph_output "${TEST_OUTPUT_DIR}/pathtracer-sample-stddev-graph.png")
 set(sample_stddev_graph_render "${TEST_OUTPUT_DIR}/pathtracer-sample-stddev-graph-render.png")
 rendercli_run(
@@ -266,6 +280,23 @@ rendercli_assert_image_dimensions("${sample_stddev_aov_output}" 16 12
                                   NAME "pathtracer graph AOV sample stddev dimensions")
 rendercli_assert_image_nonempty("${sample_stddev_aov_output}"
                                 NAME "pathtracer graph AOV sample stddev pixels")
+
+set(sample_stddev_color_aov_output
+    "${TEST_OUTPUT_DIR}/pathtracer-sample-stddev-color-aov.png")
+set(sample_stddev_color_aov_render
+    "${TEST_OUTPUT_DIR}/pathtracer-sample-stddev-color-aov-render.png")
+rendercli_run(
+  NAME "rendercli graph AOV output accepts color sample standard-deviation view"
+  COMMAND
+    "${RENDERCLI}" --engine pathtracer --render_graph_aov_out
+    "sample_stddev_color=${sample_stddev_color_aov_output}" --width 16 --height 12
+    --sampler Halton --samples_per_pixel 4 "${area_light_scene}"
+    "${sample_stddev_color_aov_render}"
+)
+rendercli_assert_image_dimensions("${sample_stddev_color_aov_output}" 16 12
+                                  NAME "pathtracer graph AOV sample stddev color dimensions")
+rendercli_assert_image_nonempty("${sample_stddev_color_aov_output}"
+                                NAME "pathtracer graph AOV sample stddev color pixels")
 
 set(wavefront_denoise_output "${TEST_OUTPUT_DIR}/wavefront-denoise-direct.png")
 rendercli_run(

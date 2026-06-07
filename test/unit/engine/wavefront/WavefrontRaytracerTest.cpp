@@ -1028,6 +1028,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1, sampleStddev->height());
     EXPECT_NEAR(std::sqrt(0.5), (*sampleStddev)[0][0], 1e-12);
     EXPECT_NEAR(std::sqrt(0.5), (*sampleStddev)[0][1], 1e-12);
+    const auto sampleStddevColor = renderer->lastSampleRadianceStddevColor();
+    ASSERT_NE(nullptr, sampleStddevColor);
+    EXPECT_EQ(2, sampleStddevColor->width());
+    EXPECT_EQ(1, sampleStddevColor->height());
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.5, 0.0), (*sampleStddevColor)[0][0], 1e-12);
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.5, 0.0), (*sampleStddevColor)[0][1], 1e-12);
 
     EXPECT_FALSE(renderer->metricsEnabled());
     EXPECT_EQ(0u, renderer->lastMetrics().batching.sampleVariancePixelArea);
@@ -1036,6 +1042,7 @@ namespace WavefrontRaytracerTest {
 
     renderer->setSampleRadianceStddevCaptureEnabled(false);
     EXPECT_EQ(nullptr, renderer->lastSampleRadianceStddev());
+    EXPECT_EQ(nullptr, renderer->lastSampleRadianceStddevColor());
   }
 
   TEST(WavefrontRaytracer, AdaptiveSamplingStopsStablePixelsAtMinimumSamples) {

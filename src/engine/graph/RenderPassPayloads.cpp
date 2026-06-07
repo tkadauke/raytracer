@@ -489,6 +489,66 @@ namespace engine::graph {
       }
     };
 
+    class SampleStddevColorAOVPass : public RenderPassPayload, private WavefrontPassSupport {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), write.resource, pass);
+
+        Buffer<Colord>& output = context.storage().color(write.resource);
+        Buffer<Colord> beauty(output.width(), output.height());
+
+        auto wavefront = createWavefront(context);
+        wavefront->setSampleRadianceStddevCaptureEnabled(true);
+        prepareEngine(*wavefront, context.graph(), context.cancelled(), context.graph().tonemap());
+        context.setActiveEngine(wavefront);
+        wavefront->render(beauty);
+        recordWavefrontMetrics(context, *wavefront);
+
+        const auto sampleStddevColor = wavefront->lastSampleRadianceStddevColor();
+        if (!sampleStddevColor) {
+          throw passError(pass, "wavefront did not produce color sample standard-deviation output");
+        }
+        writePreview(*sampleStddevColor, output, pass);
+      }
+
+    private:
+      void writePreview(const Buffer<Colord>& source, Buffer<Colord>& destination,
+                        const RenderPassNode& pass) const {
+        if (source.width() != destination.width() || source.height() != destination.height()) {
+          throw passError(
+            pass, "color sample standard-deviation visualization requires matching dimensions");
+        }
+
+        double maximum = 0.0;
+        for (int y = 0; y != source.height(); ++y) {
+          for (int x = 0; x != source.width(); ++x) {
+            const Colord value = source[y][x];
+            if (std::isfinite(value.r()))
+              maximum = std::max(maximum, value.r());
+            if (std::isfinite(value.g()))
+              maximum = std::max(maximum, value.g());
+            if (std::isfinite(value.b()))
+              maximum = std::max(maximum, value.b());
+          }
+        }
+
+        for (int y = 0; y != source.height(); ++y) {
+          for (int x = 0; x != source.width(); ++x) {
+            const Colord value = source[y][x];
+            const double scale = maximum > 0.0 ? 1.0 / maximum : 0.0;
+            destination[y][x] = Colord(normalized(value.r(), scale), normalized(value.g(), scale),
+                                       normalized(value.b(), scale));
+          }
+        }
+      }
+
+      double normalized(double value, double scale) const {
+        return std::isfinite(value) ? std::clamp(value * scale, 0.0, 1.0) : 0.0;
+      }
+    };
+
     /**
       * Whole-frame beauty payload backed by the software rasterizer.
       */
@@ -2224,6 +2284,12 @@ namespace engine::graph {
         RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"sample_stddev", "visualization"});
       static const FeaturePassPayloadFactory<SampleStddevAOVPass> sampleStddevAOVWavefront(
         RenderPassKind::AOV, RenderExecutorKind::Wavefront, {"sample_stddev"});
+      static const FeaturePassPayloadFactory<ColorCopyPass> sampleStddevColorVisualization(
+        RenderPassKind::AOV, RenderExecutorKind::PostProcess,
+        {"sample_stddev_color", "visualization"});
+      static const FeaturePassPayloadFactory<SampleStddevColorAOVPass>
+        sampleStddevColorAOVWavefront(RenderPassKind::AOV, RenderExecutorKind::Wavefront,
+                                      {"sample_stddev_color"});
       static const FeaturePassPayloadFactory<RasterCoverageCountAOVPass> rasterCoverageCountAOV(
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"raster_coverage_count"});
       static const FeaturePassPayloadFactory<RasterDepthTestCountAOVPass> rasterDepthTestCountAOV(
@@ -2295,6 +2361,8 @@ namespace engine::graph {
         &worldPositionAOVWireframe,
         &sampleStddevVisualization,
         &sampleStddevAOVWavefront,
+        &sampleStddevColorVisualization,
+        &sampleStddevColorAOVWavefront,
         &rasterCoverageCountVisualization,
         &rasterCoverageCountAOV,
         &rasterDepthTestCountVisualization,

@@ -241,6 +241,7 @@ namespace engine::wavefront {
     void setSampleRadianceStddevCaptureEnabled(bool enabled);
     bool sampleRadianceStddevCaptureEnabled() const;
     std::shared_ptr<const Buffer<double>> lastSampleRadianceStddev() const;
+    std::shared_ptr<const Buffer<Colord>> lastSampleRadianceStddevColor() const;
     WavefrontRenderMetrics lastMetrics() const;
 
   private:

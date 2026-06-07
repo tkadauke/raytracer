@@ -47,18 +47,21 @@ namespace engine::wavefront::detail {
                        const render::Scene& scene, Buffer<Colord>& buffer, const Recti& rect,
                        std::optional<std::uint64_t> tileSeed, bool publishProgressSnapshots,
                        Buffer<double>* sampleRadianceStddevBuffer = nullptr,
+                       Buffer<Colord>* sampleRadianceStddevColorBuffer = nullptr,
                        const WavefrontDenoiserFeatureSet* denoiserFeatures = nullptr) const;
     void renderDisplayTile(render::Camera& camera, const render::RayCaster& rayCaster,
                            const render::Scene& scene, Buffer<unsigned int>& buffer,
                            std::shared_ptr<render::Tonemap> tonemap, const Recti& rect,
                            std::optional<std::uint64_t> tileSeed, bool publishProgressSnapshots,
-                           Buffer<double>* sampleRadianceStddevBuffer = nullptr) const;
+                           Buffer<double>* sampleRadianceStddevBuffer = nullptr,
+                           Buffer<Colord>* sampleRadianceStddevColorBuffer = nullptr) const;
     void renderDualOutputTile(render::Camera& camera, const render::RayCaster& rayCaster,
                               const render::Scene& scene, Buffer<Colord>& hdrBuffer,
                               Buffer<unsigned int>& displayBuffer,
                               std::shared_ptr<render::Tonemap> tonemap, const Recti& rect,
                               std::optional<std::uint64_t> tileSeed, bool publishProgressSnapshots,
                               Buffer<double>* sampleRadianceStddevBuffer = nullptr,
+                              Buffer<Colord>* sampleRadianceStddevColorBuffer = nullptr,
                               const WavefrontDenoiserFeatureSet* denoiserFeatures = nullptr) const;
 
     std::unique_ptr<WavefrontDenoiserFeatureSet>
