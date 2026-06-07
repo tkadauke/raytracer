@@ -21,6 +21,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   families now declare serial, limited, or parallel-safe scheduling limits,
   export them through text/DOT/JSON graph inspection, and mark OpenGL raster
   pass state as limited to one concurrent pass by default. — GPT-5
+- **Modeler selector routing controls.** Render Settings now expose a
+  high-level selector route editor, and the Render Graph inspector labels
+  compiler-generated selector branches with routing context. — GPT-5
 - **Render graph selector override branches.** Graph compilation now turns
   resolvable selector-specific executor, view-mode, shading-profile, camera,
   and engine-option overrides into prefixed branch passes, stencil-mask

@@ -67,6 +67,11 @@ namespace {
     return value.isEmpty() ? QStringLiteral("-") : value;
   }
 
+  bool hasFeature(const std::vector<RenderFeatureKind>& features, const char* feature) {
+    return std::find(features.begin(), features.end(), RenderFeatureKind(feature)) !=
+           features.end();
+  }
+
   enum class PassExecutionState { Idle, Running, Completed, Failed };
 }
 
@@ -577,6 +582,9 @@ QString RenderGraphInspectorWidget::Private::shadingProfileText(
 QStringList
 RenderGraphInspectorWidget::Private::passSceneViewLines(const RenderPassNode& pass) const {
   QStringList parts;
+  if (hasFeature(pass.features, "selector_override")) {
+    parts << QStringLiteral("routed selector");
+  }
   if (!pass.sceneView.selector.selectsWholeFrame()) {
     parts << QStringLiteral("selector %1").arg(sceneSelectorText(pass.sceneView.selector));
   }
@@ -642,6 +650,10 @@ QString RenderGraphInspectorWidget::Private::passTooltip(const RenderPlan& plan,
     lines << executionMessage;
   }
   lines << QStringLiteral("Double-click to enable or disable this pass");
+  if (hasFeature(pass.features, "selector_override")) {
+    lines << QStringLiteral("Selector route: compiler-generated branch for %1")
+               .arg(sceneSelectorText(pass.sceneView.selector));
+  }
   lines << QStringLiteral("Scene selector: %1").arg(sceneSelectorText(pass.sceneView.selector));
   lines << QStringLiteral("Scene camera: %1").arg(cameraText(pass.sceneView.camera));
   lines
@@ -674,15 +686,18 @@ RenderGraphInspectorWidget::Private::resourceConsumers(const RenderPlan& plan,
 
 QString RenderGraphInspectorWidget::Private::resourceTooltip(
   const RenderPlan& plan, const RenderResourceDescriptor& resource) const {
-  return QStringLiteral("Resource ID: %1\nProducer: %2\nConsumers: %3\nFeatures: %4\nFormat: "
-                        "%5\nLifetime: %6\nSize: %7")
-    .arg(qstr(resource.id))
-    .arg(resourceProducer(plan, resource.id))
-    .arg(resourceConsumers(plan, resource.id))
-    .arg(resourceFeatures(resource))
-    .arg(displayText(resource.format))
-    .arg(displayText(resource.lifetime))
-    .arg(sizeText(resource));
+  QStringList lines;
+  lines << QStringLiteral("Resource ID: %1").arg(qstr(resource.id));
+  if (hasFeature(resource.features, "selector_override")) {
+    lines << QStringLiteral("Selector route: compiler-generated branch resource");
+  }
+  lines << QStringLiteral("Producer: %1").arg(resourceProducer(plan, resource.id));
+  lines << QStringLiteral("Consumers: %1").arg(resourceConsumers(plan, resource.id));
+  lines << QStringLiteral("Features: %1").arg(resourceFeatures(resource));
+  lines << QStringLiteral("Format: %1").arg(displayText(resource.format));
+  lines << QStringLiteral("Lifetime: %1").arg(displayText(resource.lifetime));
+  lines << QStringLiteral("Size: %1").arg(sizeText(resource));
+  return lines.join(QStringLiteral("\n"));
 }
 
 std::map<RenderPassId, QPointF>
@@ -1296,6 +1311,8 @@ void RenderGraphInspectorWidget::rebuildGraph() {
                       p->displayText(resource.type) + QStringLiteral("/") +
                         p->displayText(resource.format),
                       p->displayText(resource.lifetime), p->sizeText(resource)};
+    if (hasFeature(resource.features, "selector_override"))
+      lines << tr("routed selector");
     const QString traceLine = trace ? p->resourceTraceLine(resource) : QString();
     if (!traceLine.isEmpty())
       lines << traceLine;

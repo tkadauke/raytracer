@@ -186,6 +186,20 @@ namespace RenderGraphInspectorWidgetTest {
     return replacement;
   }
 
+  RenderPlan selectorRoutePlan() {
+    RenderIntent intent;
+    RenderViewOverride route;
+    route.selector = SceneSelector::tag("hero");
+    route.viewMode = RenderViewMode::Wireframe;
+    intent.viewOverrides.push_back(route);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordSelectableObject("sphere-1", "Hero Sphere", {"hero"}, {});
+
+    RenderGraphCompiler compiler;
+    return compiler.compile({64, 64, 1}, intent, analysis);
+  }
+
   std::shared_ptr<render::Camera> camera() {
     return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
   }
@@ -426,6 +440,28 @@ namespace RenderGraphInspectorWidgetTest {
     const auto overrides = widget.overrides();
     EXPECT_TRUE(overrides.disabledFeatures.count("post_aa"));
     EXPECT_FALSE(overrides.disabledFeatures.count("Post AA"));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldLabelSelectorRouteBranches) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(selectorRoutePlan());
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+
+    QGraphicsItem* branch = graphNodeItem(graph->scene(), "pass", "selector_1_wireframe_beauty");
+    ASSERT_NE(nullptr, branch);
+    EXPECT_TRUE(nodeTextContains(branch, QStringLiteral("routed selector")));
+    EXPECT_TRUE(nodeTextContains(branch, QStringLiteral("selector tag: hero")));
+    EXPECT_TRUE(branch->toolTip().contains("Selector route: compiler-generated branch"));
+    EXPECT_TRUE(branch->toolTip().contains("tag: hero"));
+
+    QGraphicsItem* resource =
+      graphNodeItem(graph->scene(), "resource", "selector_1_composited_color");
+    ASSERT_NE(nullptr, resource);
+    EXPECT_TRUE(nodeTextContains(resource, QStringLiteral("routed selector")));
+    EXPECT_TRUE(resource->toolTip().contains("Selector route: compiler-generated branch resource"));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowResourceEdgeRows) {
