@@ -1,5 +1,7 @@
 #include "engine/graph/RenderPlan.h"
 
+#include "engine/graph/RasterPassState.h"
+#include "engine/graph/RenderExecutor.h"
 #include "engine/graph/RenderPassState.h"
 
 #include <QJsonArray>
@@ -124,7 +126,8 @@ namespace engine::graph {
              sameSceneView(a.sceneView, b.sceneView) && samePassState(a.state, b.state) &&
              a.disabledBehavior == b.disabledBehavior && a.enabled == b.enabled &&
              a.hasExternalSideEffects == b.hasExternalSideEffects &&
-             a.canRunConcurrently == b.canRunConcurrently;
+             a.concurrency.mode == b.concurrency.mode &&
+             a.concurrency.maxConcurrentPasses == b.concurrency.maxConcurrentPasses;
     }
 
     bool hasNonDefaultSceneView(const SceneView& sceneView) {
@@ -255,20 +258,22 @@ namespace engine::graph {
 
   const char* toString(RenderPlanValidationError::Code value) {
     return enumName<RenderPlanValidationError::Code>(
-      value, {{RenderPlanValidationError::Code::EmptyPassId, "empty_pass_id"},
-              {RenderPlanValidationError::Code::DuplicatePassId, "duplicate_pass_id"},
-              {RenderPlanValidationError::Code::EmptyResourceId, "empty_resource_id"},
-              {RenderPlanValidationError::Code::DuplicateResourceId, "duplicate_resource_id"},
-              {RenderPlanValidationError::Code::UnknownResource, "unknown_resource"},
-              {RenderPlanValidationError::Code::DuplicateWriter, "duplicate_writer"},
-              {RenderPlanValidationError::Code::MissingProducer, "missing_producer"},
-              {RenderPlanValidationError::Code::UnproducedExport, "unproduced_export"},
-              {RenderPlanValidationError::Code::DisabledDependency, "disabled_dependency"},
-              {RenderPlanValidationError::Code::DisabledRequiredPass, "disabled_required_pass"},
-              {RenderPlanValidationError::Code::InvalidPassIO, "invalid_pass_io"},
-              {RenderPlanValidationError::Code::InvalidResourceShape, "invalid_resource_shape"},
-              {RenderPlanValidationError::Code::ResourceDomainMismatch, "resource_domain_mismatch"},
-              {RenderPlanValidationError::Code::Cycle, "cycle"}});
+      value,
+      {{RenderPlanValidationError::Code::EmptyPassId, "empty_pass_id"},
+       {RenderPlanValidationError::Code::DuplicatePassId, "duplicate_pass_id"},
+       {RenderPlanValidationError::Code::EmptyResourceId, "empty_resource_id"},
+       {RenderPlanValidationError::Code::DuplicateResourceId, "duplicate_resource_id"},
+       {RenderPlanValidationError::Code::UnknownResource, "unknown_resource"},
+       {RenderPlanValidationError::Code::DuplicateWriter, "duplicate_writer"},
+       {RenderPlanValidationError::Code::MissingProducer, "missing_producer"},
+       {RenderPlanValidationError::Code::UnproducedExport, "unproduced_export"},
+       {RenderPlanValidationError::Code::DisabledDependency, "disabled_dependency"},
+       {RenderPlanValidationError::Code::DisabledRequiredPass, "disabled_required_pass"},
+       {RenderPlanValidationError::Code::InvalidPassIO, "invalid_pass_io"},
+       {RenderPlanValidationError::Code::InvalidResourceShape, "invalid_resource_shape"},
+       {RenderPlanValidationError::Code::ResourceDomainMismatch, "resource_domain_mismatch"},
+       {RenderPlanValidationError::Code::InvalidConcurrencyLimit, "invalid_concurrency_limit"},
+       {RenderPlanValidationError::Code::Cycle, "cycle"}});
   }
 
   bool RenderPlanValidation::valid() const {
@@ -693,6 +698,16 @@ namespace engine::graph {
     for (auto& pass : m_passes) {
       if (pass.kind == kind && pass.executor == executor) {
         pass.state = state;
+        pass.concurrency = defaultConcurrencyLimit(pass.executor);
+        const bool rasterBeautyState =
+          (pass.kind == RenderPassKind::Beauty || pass.kind == RenderPassKind::AOV) &&
+          pass.executor == RenderExecutorKind::Rasterizer;
+        if (const auto* raster =
+              rasterBeautyState ? RasterBeautyPassState::fromPass(pass) : nullptr;
+            raster && raster->execution().backend().isOpenGL()) {
+          pass.concurrency = RenderConcurrencyLimit::limited(1);
+        }
+        pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
         ++updated;
       }
     }
@@ -739,6 +754,12 @@ namespace engine::graph {
       if (!pass.enabled && pass.disabledBehavior == DisabledBehavior::Error) {
         result.add({RenderPlanValidationError::Code::DisabledRequiredPass,
                     "required pass '" + pass.id + "' is disabled", pass.id, ""});
+      }
+
+      if (pass.concurrency.mode == RenderConcurrencyMode::Limited &&
+          pass.concurrency.maxConcurrentPasses <= 0) {
+        result.add({RenderPlanValidationError::Code::InvalidConcurrencyLimit,
+                    "pass '" + pass.id + "' has invalid limited concurrency", pass.id, ""});
       }
 
       for (const auto& write : pass.writes) {
@@ -938,6 +959,7 @@ namespace engine::graph {
       if (stage && order) {
         out << "  schedule: stage=" << *stage << ", order=" << *order << "\n";
       }
+      out << "  concurrency: " << pass.concurrency.displayText() << "\n";
       out << "  scene: selector=" << pass.sceneView.selector.displayText()
           << ", camera=" << (pass.sceneView.camera ? pass.sceneView.camera->displayText() : "-")
           << ", shading="
@@ -1003,6 +1025,7 @@ namespace engine::graph {
       if (stage && order) {
         out << "\\nstage " << *stage << ", order " << *order;
       }
+      out << "\\nconcurrency " << dotEscape(pass.concurrency.displayText());
       if (hasNonDefaultSceneView(pass.sceneView)) {
         out << "\\nselector " << dotEscape(pass.sceneView.selector.displayText());
         if (pass.sceneView.camera) {

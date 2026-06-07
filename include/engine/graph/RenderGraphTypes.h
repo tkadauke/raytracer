@@ -107,6 +107,30 @@ namespace engine::graph {
   enum class DisabledBehavior { Error, CullDependents, SubstituteDefault, Passthrough };
 
   /**
+    * Scheduler-visible concurrency class for a pass or executor family.
+    */
+  enum class RenderConcurrencyMode { Serial, Limited, Parallel };
+
+  /**
+    * Declares how many dependency-ready passes sharing this scheduling class
+    * may run at once.
+    */
+  struct RenderConcurrencyLimit {
+    RenderConcurrencyMode mode{RenderConcurrencyMode::Parallel};
+    int maxConcurrentPasses{0};
+
+    static RenderConcurrencyLimit serial();
+    static RenderConcurrencyLimit limited(int maxConcurrentPasses);
+    static RenderConcurrencyLimit parallel();
+
+    bool allowsParallelExecution() const;
+    std::string displayText() const;
+    QJsonObject toJson() const;
+    static RenderConcurrencyLimit fromJson(const QJsonObject& object,
+                                           std::string path = "concurrency");
+  };
+
+  /**
     * Type of data stored behind a render resource handle.
     *
     * Keep this enum limited to resource families that the graph can allocate or
@@ -515,6 +539,7 @@ namespace engine::graph {
     DisabledBehavior disabledBehavior{DisabledBehavior::Error};
     bool enabled{true};
     bool hasExternalSideEffects{false};
+    RenderConcurrencyLimit concurrency;
     bool canRunConcurrently{true};
 
     bool hasFeature(const RenderFeatureKind& feature) const;
@@ -538,6 +563,7 @@ namespace engine::graph {
   const char* toString(RenderExecutorKind value);
   const char* toString(RenderPassKind value);
   const char* toString(DisabledBehavior value);
+  const char* toString(RenderConcurrencyMode value);
   const char* toString(RenderResourceType value);
   const char* toString(RenderResourceDomain value);
   const char* toString(RenderResourceLifetime value);

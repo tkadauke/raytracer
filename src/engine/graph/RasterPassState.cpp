@@ -224,12 +224,11 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::DepthPrepassMode mode) {
-      return enumName<Rasterizer::DepthPrepassMode>(
-        mode,
-        {{Rasterizer::DepthPrepassMode::Off, "off"},
-         {Rasterizer::DepthPrepassMode::On, "on"},
-         {Rasterizer::DepthPrepassMode::Auto, "auto"}},
-        "off");
+      return enumName<Rasterizer::DepthPrepassMode>(mode,
+                                                    {{Rasterizer::DepthPrepassMode::Off, "off"},
+                                                     {Rasterizer::DepthPrepassMode::On, "on"},
+                                                     {Rasterizer::DepthPrepassMode::Auto, "auto"}},
+                                                    "off");
     }
 
     Rasterizer::DepthPrepassMode depthPrepassModeFromString(const std::string& value,
@@ -803,8 +802,7 @@ namespace engine::graph {
     rejectUnknownFields(object, path, {"mode"});
     RasterDepthPrepassState state;
     if (hasField(object, "mode"))
-      state.setMode(
-        depthPrepassModeFromString(stringField(object, "mode", path), path + ".mode"));
+      state.setMode(depthPrepassModeFromString(stringField(object, "mode", path), path + ".mode"));
     return state;
   }
 
@@ -1554,9 +1552,9 @@ namespace engine::graph {
 
   RasterBeautyPassState RasterBeautyPassState::fromJson(const QJsonObject& object,
                                                         const std::string& path) {
-    rejectUnknownFields(object, path,
-                        {"execution", "geometry", "sampling", "depthPrepass", "framebuffer",
-                         "shadows"});
+    rejectUnknownFields(
+      object, path,
+      {"execution", "geometry", "sampling", "depthPrepass", "framebuffer", "shadows"});
     RasterBeautyPassState state;
     QJsonObject samplingObject;
     if (hasField(object, "execution"))
@@ -1651,6 +1649,9 @@ namespace engine::graph {
     } else {
       pass.state = std::make_shared<RasterBeautyPassState>(*this);
     }
+    pass.concurrency = m_execution.backend().isOpenGL() ? RenderConcurrencyLimit::limited(1)
+                                                        : RenderConcurrencyLimit::parallel();
+    pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
   }
 
   std::size_t RasterBeautyPassState::writeToRasterBeautyPasses(RenderPlan& plan) const {
