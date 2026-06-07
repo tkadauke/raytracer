@@ -5,6 +5,10 @@
 
 #include <QWidget>
 
+namespace engine::graph {
+  struct RenderIntent;
+}
+
 class RenderSettingsWidget : public QWidget {
   Q_OBJECT
 
@@ -41,6 +45,7 @@ public:
 
   bool showProgressIndicators() const;
 
+  void setRenderIntent(const engine::graph::RenderIntent& intent);
   void setBusy(bool busy);
   void setElapsedTime(int milliseconds);
 

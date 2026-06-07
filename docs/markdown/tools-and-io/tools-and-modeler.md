@@ -398,14 +398,14 @@ graph-backed Wavefront pass is still running. The same wavefront section can
 enable adaptive sampling, choose its initial sample count and standard-deviation
 threshold, request the box or bilateral denoiser, choose its pixel radius, and
 set the bilateral color sigma. Path Tracer settings include the
-Russian-roulette start depth. The final render dialog keeps Regular as the
-Raytracer sampler default and one sample per pixel, but switches
-default-managed Path Tracer renders to Halton and 64 samples per pixel,
-matching the sampler guidance for stochastic transport; once the user picks a
-sampler or sample count explicitly, later engine changes preserve that choice.
-For Path Tracer and Wavefront final renders, the same dialog can leave the
-scene's saved denoiser intent alone or explicitly override it to None, Box, or
-Bilateral with radius and bilateral color-sigma controls.
+Russian-roulette start depth. The final render dialog starts from the scene's
+saved Render Settings, then acts as a one-off override surface for that render.
+When the scene omits sampler or sample-count intent, it keeps Regular as the
+Raytracer default and switches default-managed Path Tracer renders to Halton
+and 64 samples per pixel, matching the sampler guidance for stochastic
+transport. For Path Tracer and Wavefront final renders, the same dialog can
+leave the scene's saved denoiser intent alone or explicitly override it to
+None, Box, or Bilateral with radius and bilateral color-sigma controls.
 Engine-specific fields only show for the selected default engine. The same
 property editor has a search field for filtering long property sets and
 collapsible groups so advanced scene/import settings can stay out of the way.

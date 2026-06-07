@@ -891,10 +891,11 @@ baseline behavior, while default-managed Path Tracer renders switch to Halton.
 The same default-management rule applies to samples per pixel: Path Tracer
 switches to 64 spp, while Raytracer/Wavefront keep the lightweight 1 spp
 default. Explicit sampler and sample-count choices are preserved across later
-engine changes. The final render dialog can also override scene denoiser intent
-for Path Tracer and Wavefront renders: "Scene settings" preserves the saved
-intent, while None, Box, and Bilateral write graph-visible denoise pass state
-for the one-off render.
+engine changes. The final render dialog now initializes its engine-specific
+controls from scene render intent, then can override scene denoiser intent for
+Path Tracer and Wavefront renders: "Scene settings" preserves the saved intent,
+while None, Box, and Bilateral write graph-visible denoise pass state for the
+one-off render.
 The current 40x30 baselines are direct 4spp vs. 32spp at `0.0064857550`,
 glass 4spp vs. 32spp at `0.0798974363`, and area light 8spp vs. 64spp at
 `0.0093491472`. Those thresholds are intentionally loose enough to be a

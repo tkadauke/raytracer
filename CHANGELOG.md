@@ -321,6 +321,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler final render intent initialization.** The final render dialog now
+  initializes engine, raster, ray-family, and denoiser controls from the
+  scene's saved Render Settings before applying one-off render overrides.
+  — GPT-5
 - **Modeler path tracer sampler default.** The final render dialog now switches
   default-managed Path Tracer renders to Halton sampling while preserving
   explicit sampler choices across later engine changes. — GPT-5

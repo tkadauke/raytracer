@@ -161,7 +161,9 @@ namespace engine::graph {
     std::optional<std::string> msaaShadingMode() const;
     std::optional<int> shadowMapSize() const;
     std::optional<int> shadowCascadeCount() const;
+    std::optional<double> shadowCascadeSplitLambda() const;
     std::optional<double> shadowBias() const;
+    std::optional<double> shadowSlopeBias() const;
     std::optional<int> shadowFilterRadius() const;
     std::optional<std::string> shadowFilterMode() const;
 

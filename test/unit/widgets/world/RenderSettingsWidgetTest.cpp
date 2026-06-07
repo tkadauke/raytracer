@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "engine/graph/RenderGraphTypes.h"
 #include "render/RayFamilyQueuePolicy.h"
 #include "render/samplers/SamplerFactory.h"
 #include "render/viewplanes/ViewPlaneFactory.h"
@@ -223,6 +224,106 @@ namespace RenderSettingsWidgetTest {
     EXPECT_TRUE(denoiser->isHidden());
     EXPECT_TRUE(radius->isHidden());
     EXPECT_TRUE(colorSigma->isHidden());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldInitializeRayControlsFromRenderIntent) {
+    RenderSettingsWidget widget;
+    engine::graph::RenderIntent intent;
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::PathTracer;
+    auto& options = intent.engineOptions.raytracer();
+    options.setSampler("Jittered");
+    options.setSamplesPerPixel(9);
+    options.setMaximumRecursionDepth(12);
+    options.setDenoiser("bilateral");
+    options.setDenoiseRadius(4);
+    options.setDenoiseColorSigma(0.25);
+
+    widget.setRenderIntent(intent);
+
+    EXPECT_EQ(QString("Path Tracer"), widget.engine());
+    EXPECT_EQ(QString("Jittered"), widget.sampler());
+    EXPECT_EQ(9, widget.samplesPerPixel());
+    EXPECT_EQ(12, widget.maxRecursionDepth());
+    EXPECT_TRUE(widget.denoiserOverrideEnabled());
+    EXPECT_EQ(QString("Bilateral"), widget.denoiser());
+    EXPECT_EQ(4, widget.denoiseRadius());
+    EXPECT_DOUBLE_EQ(0.25, widget.denoiseColorSigma());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldRestoreEngineManagedRayDefaultsWhenIntentOmitsThem) {
+    RenderSettingsWidget widget;
+    engine::graph::RenderIntent explicitIntent;
+    explicitIntent.defaultExecutor = engine::graph::RenderExecutorPreference::PathTracer;
+    explicitIntent.engineOptions.raytracer().setSampler("Jittered");
+    explicitIntent.engineOptions.raytracer().setSamplesPerPixel(7);
+    widget.setRenderIntent(explicitIntent);
+
+    engine::graph::RenderIntent defaultIntent;
+    defaultIntent.defaultExecutor = engine::graph::RenderExecutorPreference::PathTracer;
+    widget.setRenderIntent(defaultIntent);
+
+    EXPECT_EQ(QString("Path Tracer"), widget.engine());
+    EXPECT_EQ(QString("Halton"), widget.sampler());
+    EXPECT_EQ(64, widget.samplesPerPixel());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldInitializeImplicitDenoiserParametersFromRenderIntent) {
+    RenderSettingsWidget widget;
+    engine::graph::RenderIntent boxIntent;
+    boxIntent.defaultExecutor = engine::graph::RenderExecutorPreference::PathTracer;
+    boxIntent.engineOptions.raytracer().setDenoiser("box");
+
+    widget.setRenderIntent(boxIntent);
+
+    EXPECT_EQ(QString("Box"), widget.denoiser());
+    EXPECT_EQ(1, widget.denoiseRadius());
+
+    engine::graph::RenderIntent bilateralIntent;
+    bilateralIntent.defaultExecutor = engine::graph::RenderExecutorPreference::PathTracer;
+    bilateralIntent.engineOptions.raytracer().setDenoiser("bilateral");
+
+    widget.setRenderIntent(bilateralIntent);
+
+    EXPECT_EQ(QString("Bilateral"), widget.denoiser());
+    EXPECT_EQ(2, widget.denoiseRadius());
+    EXPECT_DOUBLE_EQ(0.1, widget.denoiseColorSigma());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldInitializeRasterControlsFromRenderIntent) {
+    RenderSettingsWidget widget;
+    engine::graph::RenderIntent intent;
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
+    intent.enablePreviewShadows = true;
+    intent.postProcessAA = engine::graph::RenderPostProcessAA::SMAA;
+    auto& options = intent.engineOptions.rasterizer();
+    options.setBackend(engine::raster::RasterBackend::openGL());
+    options.setLod(4);
+    options.setMSAASamples(8);
+    options.setMSAAShadingMode("per_fragment");
+    options.setShadowMapSize(1024);
+    options.setShadowCascadeCount(3);
+    options.setShadowCascadeSplitLambda(0.75);
+    options.setShadowBias(0.125);
+    options.setShadowSlopeBias(0.03);
+    options.setShadowFilterRadius(2);
+    options.setShadowFilterMode("pcss");
+
+    widget.setRenderIntent(intent);
+
+    EXPECT_EQ(QString("Rasterizer"), widget.engine());
+    EXPECT_EQ(QString("OpenGL"), widget.rasterBackend());
+    EXPECT_EQ(4, widget.lod());
+    EXPECT_EQ(8, widget.msaaSamples());
+    EXPECT_EQ(QString("Per fragment"), widget.msaaShadingMode());
+    EXPECT_EQ(QString("SMAA"), widget.postProcessAA());
+    EXPECT_TRUE(widget.shadowMapsEnabled());
+    EXPECT_EQ(1024, widget.shadowMapSize());
+    EXPECT_EQ(3, widget.shadowCascadeCount());
+    EXPECT_DOUBLE_EQ(0.75, widget.shadowCascadeSplitLambda());
+    EXPECT_DOUBLE_EQ(0.125, widget.shadowBias());
+    EXPECT_DOUBLE_EQ(0.03, widget.shadowSlopeBias());
+    EXPECT_EQ(2, widget.shadowFilterRadius());
+    EXPECT_EQ(QString("PCSS"), widget.shadowFilterMode());
   }
 
   TEST_F(RenderSettingsWidgetTest, ShouldDefaultRasterMSAAToOneSample) {

@@ -1205,8 +1205,16 @@ namespace engine::graph {
     return m_shadowCascadeCount;
   }
 
+  std::optional<double> RenderRasterizerOptions::shadowCascadeSplitLambda() const {
+    return m_shadowCascadeSplitLambda;
+  }
+
   std::optional<double> RenderRasterizerOptions::shadowBias() const {
     return m_shadowBias;
+  }
+
+  std::optional<double> RenderRasterizerOptions::shadowSlopeBias() const {
+    return m_shadowSlopeBias;
   }
 
   std::optional<int> RenderRasterizerOptions::shadowFilterRadius() const {

@@ -253,6 +253,7 @@ void RenderWindow::setScene(::Scene* scene) {
   auto raytracerScene = scene->toRaytracerScene();
   p->sceneAnalysis = scene->renderGraphAnalysis();
   p->baseIntent = scene->renderIntentWithActiveCameraDefault();
+  p->settingsWidget->setRenderIntent(p->baseIntent);
 
   p->graph->setScene(raytracerScene);
   p->graph->setSceneAnalysis(p->sceneAnalysis);

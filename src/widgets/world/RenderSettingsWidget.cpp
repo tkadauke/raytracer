@@ -1,3 +1,4 @@
+#include "engine/graph/RenderGraphTypes.h"
 #include "engine/raster/OpenGLRasterizer.h"
 #include "render/RayFamilyQueuePolicy.h"
 #include "render/samplers/SamplerFactory.h"
@@ -9,6 +10,7 @@
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QLabel>
+#include <QSignalBlocker>
 #include <QSpinBox>
 #include <QThread>
 
@@ -22,8 +24,173 @@ struct RenderSettingsWidget::Private {
   bool samplesPerPixelDefaultManaged{true};
   bool updatingSamplesPerPixelDefault{false};
 
+  void setComboBoxText(QComboBox* comboBox, const QString& text) const {
+    const int index = comboBox->findText(text);
+    if (index >= 0) {
+      comboBox->setCurrentIndex(index);
+    }
+  }
+
+  void setSpinBoxValue(QSpinBox* spinBox, int value) const {
+    spinBox->setValue(std::clamp(value, spinBox->minimum(), spinBox->maximum()));
+  }
+
+  void setDoubleSpinBoxValue(QDoubleSpinBox* spinBox, double value) const {
+    spinBox->setValue(std::clamp(value, spinBox->minimum(), spinBox->maximum()));
+  }
+
   bool openGLBackendSelected() const {
     return ui.rasterBackend->currentText() == QStringLiteral("OpenGL");
+  }
+
+  QString engineText(engine::graph::RenderExecutorPreference executor) const {
+    using engine::graph::RenderExecutorPreference;
+    switch (executor) {
+    case RenderExecutorPreference::PathTracer:
+      return QStringLiteral("Path Tracer");
+    case RenderExecutorPreference::Wavefront:
+      return QStringLiteral("Wavefront");
+    case RenderExecutorPreference::Rasterizer:
+      return QStringLiteral("Rasterizer");
+    case RenderExecutorPreference::Wireframe:
+      return QStringLiteral("Wireframe");
+    case RenderExecutorPreference::Raytracer:
+      return QStringLiteral("Raytracer");
+    }
+    return QStringLiteral("Raytracer");
+  }
+
+  QString postProcessAAText(engine::graph::RenderPostProcessAA aa) const {
+    using engine::graph::RenderPostProcessAA;
+    switch (aa) {
+    case RenderPostProcessAA::FXAA:
+      return QStringLiteral("FXAA");
+    case RenderPostProcessAA::SMAA:
+      return QStringLiteral("SMAA");
+    case RenderPostProcessAA::TAA:
+      return QStringLiteral("TAA");
+    case RenderPostProcessAA::None:
+      return QStringLiteral("None");
+    }
+    return QStringLiteral("None");
+  }
+
+  QString denoiserText(const engine::graph::RenderRaytracerOptions& options) const {
+    if (options.denoiser()) {
+      if (*options.denoiser() == "none") {
+        return QStringLiteral("None");
+      }
+      if (*options.denoiser() == "box") {
+        return QStringLiteral("Box");
+      }
+      if (*options.denoiser() == "bilateral") {
+        return QStringLiteral("Bilateral");
+      }
+    }
+    if (options.denoiseColorSigma()) {
+      return QStringLiteral("Bilateral");
+    }
+    if (options.denoiseRadius()) {
+      return QStringLiteral("Box");
+    }
+    return QStringLiteral("Scene settings");
+  }
+
+  void applyRaytracerOptions(const engine::graph::RenderRaytracerOptions& options) {
+    samplerDefaultManaged = !options.sampler().has_value();
+    samplesPerPixelDefaultManaged = !options.samplesPerPixel().has_value();
+
+    if (options.sampler()) {
+      updatingSamplerDefault = true;
+      setComboBoxText(ui.samplerType, QString::fromStdString(*options.sampler()));
+      updatingSamplerDefault = false;
+    } else {
+      selectSamplerDefaultForEngine(ui.engineType->currentText());
+    }
+    if (options.samplesPerPixel()) {
+      updatingSamplesPerPixelDefault = true;
+      setSpinBoxValue(ui.samplesPerPixel, *options.samplesPerPixel());
+      updatingSamplesPerPixelDefault = false;
+    } else {
+      selectSamplesPerPixelDefaultForEngine(ui.engineType->currentText());
+    }
+    if (options.maximumRecursionDepth()) {
+      setSpinBoxValue(ui.maxRecursionDepth, *options.maximumRecursionDepth());
+    }
+    if (options.maximumThreads()) {
+      setSpinBoxValue(ui.renderThreads, *options.maximumThreads());
+    }
+    if (options.queueSize()) {
+      setSpinBoxValue(ui.queueSize, *options.queueSize());
+    }
+    if (options.viewPlane()) {
+      setComboBoxText(ui.viewPlaneType, QString::fromStdString(*options.viewPlane()));
+    }
+
+    const QString denoiser = denoiserText(options);
+    setComboBoxText(ui.rayDenoiser, denoiser);
+    if (options.denoiseRadius()) {
+      setSpinBoxValue(ui.rayDenoiseRadius, *options.denoiseRadius());
+    } else {
+      setSpinBoxValue(ui.rayDenoiseRadius, denoiser == QStringLiteral("Box") ? 1 : 2);
+    }
+    if (options.denoiseColorSigma()) {
+      setDoubleSpinBoxValue(ui.rayDenoiseColorSigma, *options.denoiseColorSigma());
+    } else {
+      setDoubleSpinBoxValue(ui.rayDenoiseColorSigma, 0.1);
+    }
+  }
+
+  void applyRasterizerOptions(const engine::graph::RenderIntent& intent) {
+    const auto& options = intent.engineOptions.rasterizer();
+    setComboBoxText(ui.rasterPostProcessAA, postProcessAAText(intent.postProcessAA));
+    ui.rasterShadowMaps->setChecked(intent.enablePreviewShadows);
+    if (options.backend()) {
+      setComboBoxText(ui.rasterBackend, QString::fromUtf8(options.backend()->displayName()));
+    }
+    if (options.lod()) {
+      setSpinBoxValue(ui.lod, *options.lod());
+    }
+    if (options.msaaSamples()) {
+      setComboBoxText(ui.rasterMsaaSamples, QString::number(*options.msaaSamples()));
+    }
+    if (options.msaaShadingMode()) {
+      setComboBoxText(ui.rasterMsaaShadingMode, *options.msaaShadingMode() == "per_fragment"
+                                                  ? QStringLiteral("Per fragment")
+                                                  : QStringLiteral("Per sample"));
+    }
+    if (options.maximumThreads()) {
+      setSpinBoxValue(ui.renderThreads, *options.maximumThreads());
+    }
+    if (options.shadowMapSize()) {
+      setSpinBoxValue(ui.rasterShadowMapSize, *options.shadowMapSize());
+    }
+    if (options.shadowCascadeCount()) {
+      setSpinBoxValue(ui.rasterShadowCascadeCount, *options.shadowCascadeCount());
+    }
+    if (options.shadowCascadeSplitLambda()) {
+      setDoubleSpinBoxValue(ui.rasterShadowCascadeSplitLambda, *options.shadowCascadeSplitLambda());
+    }
+    if (options.shadowBias()) {
+      setDoubleSpinBoxValue(ui.rasterShadowBias, *options.shadowBias());
+    }
+    if (options.shadowSlopeBias()) {
+      setDoubleSpinBoxValue(ui.rasterShadowSlopeBias, *options.shadowSlopeBias());
+    }
+    if (options.shadowFilterRadius()) {
+      setSpinBoxValue(ui.rasterShadowFilterRadius, *options.shadowFilterRadius());
+    }
+    if (options.shadowFilterMode()) {
+      setComboBoxText(ui.rasterShadowFilterMode, *options.shadowFilterMode() == "pcss"
+                                                   ? QStringLiteral("PCSS")
+                                                   : QStringLiteral("PCF"));
+    }
+  }
+
+  void applyWireframeOptions(const engine::graph::RenderWireframeOptions& options) {
+    if (options.lod()) {
+      setSpinBoxValue(ui.lod, *options.lod());
+    }
   }
 
   void selectSamplerDefaultForEngine(const QString& engine) {
@@ -333,6 +500,19 @@ void RenderSettingsWidget::updateEngineControls() {
 
 bool RenderSettingsWidget::showProgressIndicators() const {
   return p->ui.showProgressIndicators->isChecked();
+}
+
+void RenderSettingsWidget::setRenderIntent(const engine::graph::RenderIntent& intent) {
+  const QSignalBlocker signalBlocker(this);
+  const auto& raytracerOptions = intent.engineOptions.raytracer();
+  p->samplerDefaultManaged = !raytracerOptions.sampler().has_value();
+  p->samplesPerPixelDefaultManaged = !raytracerOptions.samplesPerPixel().has_value();
+
+  p->setComboBoxText(p->ui.engineType, p->engineText(intent.defaultExecutor));
+  p->applyRaytracerOptions(raytracerOptions);
+  p->applyRasterizerOptions(intent);
+  p->applyWireframeOptions(intent.engineOptions.wireframe());
+  updateEngineControls();
 }
 
 void RenderSettingsWidget::setBusy(bool busy) {

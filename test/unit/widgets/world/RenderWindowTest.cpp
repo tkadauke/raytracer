@@ -192,20 +192,33 @@ namespace RenderWindowTest {
     EXPECT_DOUBLE_EQ(0.3, *state->denoiseColorSigma());
   }
 
-  TEST_F(RenderWindowTest, ShouldPreserveSceneDenoiserWhenFinalDialogUsesSceneSettings) {
+  TEST_F(RenderWindowTest, ShouldInitializeFinalDialogAndGraphFromSceneRenderIntent) {
     RenderWindow window;
     Scene scene;
     engine::graph::RenderIntent intent;
     intent.defaultExecutor = engine::graph::RenderExecutorPreference::PathTracer;
+    intent.engineOptions.raytracer().setSampler("Jittered");
+    intent.engineOptions.raytracer().setSamplesPerPixel(9);
     intent.engineOptions.raytracer().setDenoiser("box");
     intent.engineOptions.raytracer().setDenoiseRadius(3);
     scene.setRenderIntent(intent);
     window.setScene(&scene);
 
     auto* engineType = window.findChild<QComboBox*>("engineType");
+    auto* sampler = window.findChild<QComboBox*>("samplerType");
+    auto* samples = window.findChild<QSpinBox*>("samplesPerPixel");
+    auto* denoiser = window.findChild<QComboBox*>("rayDenoiser");
+    auto* radius = window.findChild<QSpinBox*>("rayDenoiseRadius");
     ASSERT_NE(nullptr, engineType);
-    engineType->setCurrentText("Path Tracer");
-    QCoreApplication::processEvents();
+    ASSERT_NE(nullptr, sampler);
+    ASSERT_NE(nullptr, samples);
+    ASSERT_NE(nullptr, denoiser);
+    ASSERT_NE(nullptr, radius);
+    EXPECT_EQ(QString("Path Tracer"), engineType->currentText());
+    EXPECT_EQ(QString("Jittered"), sampler->currentText());
+    EXPECT_EQ(9, samples->value());
+    EXPECT_EQ(QString("Box"), denoiser->currentText());
+    EXPECT_EQ(3, radius->value());
 
     auto* graphInspector = window.findChild<RenderGraphInspectorWidget*>();
     ASSERT_NE(nullptr, graphInspector);
@@ -214,6 +227,12 @@ namespace RenderWindowTest {
     ASSERT_NE(nullptr, beautyPass);
     const auto* state = engine::graph::RaytracerBeautyPassState::fromPass(*beautyPass);
     ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->integrator().has_value());
+    EXPECT_EQ("pathtracer", *state->integrator());
+    ASSERT_TRUE(state->sampler().has_value());
+    EXPECT_EQ("Jittered", *state->sampler());
+    ASSERT_TRUE(state->samplesPerPixel().has_value());
+    EXPECT_EQ(9, *state->samplesPerPixel());
     ASSERT_TRUE(state->denoiser().has_value());
     EXPECT_EQ("box", *state->denoiser());
     ASSERT_TRUE(state->denoiseRadius().has_value());
