@@ -20,6 +20,16 @@ file(GLOB BENCHMARK_SOURCES CONFIGURE_DEPENDS
 )
 
 add_executable(benchmarks ${BENCHMARK_SOURCES})
+set_source_files_properties(
+  "${CMAKE_CURRENT_SOURCE_DIR}/BVHPacketBenchmark.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/BatchedRayBenchmark.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/BoundingBoxBenchmark.cpp"
+  PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON
+)
+set_target_properties(benchmarks PROPERTIES
+  UNITY_BUILD ON
+  UNITY_BUILD_BATCH_SIZE 4
+)
 target_include_directories(benchmarks PRIVATE
   "${PROJECT_SOURCE_DIR}/src"
 )
