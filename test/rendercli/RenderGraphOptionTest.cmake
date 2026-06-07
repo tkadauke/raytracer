@@ -3109,13 +3109,24 @@ if(NOT render_texture_screen_trace_json MATCHES "bound [0-9]+ render-to-texture 
           "hybrid screen trace did not record receiver material binding: ${render_texture_screen_trace_json}")
 endif()
 
-rendercli_expect_failure(
-  NAME "rendercli rejects subview recursion limit"
-  STDERR_MATCHES "render-to-texture recursion limit 0 reached.*mirror_probe"
+set(subview_recursion_limit_plan "${TEST_OUTPUT_DIR}/subview-recursion-limit-plan.json")
+rendercli_run(
+  NAME "rendercli exports subview recursion limit diagnostics"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format json
-    "${subview_recursion_limit_scene}" "${invalid_plan}"
+    "${subview_recursion_limit_scene}" "${subview_recursion_limit_plan}"
 )
+rendercli_assert_nonempty("${subview_recursion_limit_plan}" NAME "subview recursion limit graph output")
+file(READ "${subview_recursion_limit_plan}" subview_recursion_limit_graph)
+if(NOT subview_recursion_limit_graph MATCHES "subview_mirror_probe_recursion_limit")
+  message(FATAL_ERROR "subview recursion limit did not export a diagnostic pass: ${subview_recursion_limit_graph}")
+endif()
+if(NOT subview_recursion_limit_graph MATCHES "render_to_texture_recursion_limit")
+  message(FATAL_ERROR "subview recursion limit diagnostic did not mark the recursion-limit feature: ${subview_recursion_limit_graph}")
+endif()
+if(NOT subview_recursion_limit_graph MATCHES "truncated at render-to-texture recursion limit 0")
+  message(FATAL_ERROR "subview recursion limit diagnostic did not describe the truncated branch: ${subview_recursion_limit_graph}")
+endif()
 
 rendercli_expect_failure(
   NAME "rendercli rejects unsupported selector-specific CLI intent"
