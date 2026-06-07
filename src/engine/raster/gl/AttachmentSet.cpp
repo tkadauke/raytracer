@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "core/Color.h"
+#include "engine/graph/RenderGraphTypes.h"
 #include "engine/raster/detail/OpenGLRasterResource.h"
 
 #include <algorithm>
@@ -70,6 +71,28 @@ namespace engine::raster::gl {
       return std::make_shared<detail::OpenGLRasterResource>(
         resourceType, detail::OpenGLRasterResource::HandleKind::Renderbuffer,
         destinationRenderbuffer, width, height, samples > 1 ? samples : 1, std::move(sourceContext));
+    }
+
+    GLenum attachmentPoint(engine::graph::RenderResourceType type) {
+      switch (type) {
+      case engine::graph::RenderResourceType::Color:
+      case engine::graph::RenderResourceType::Normal:
+      case engine::graph::RenderResourceType::WorldPosition:
+      case engine::graph::RenderResourceType::ShadowMask:
+      case engine::graph::RenderResourceType::CustomTexture:
+        return GL_COLOR_ATTACHMENT0;
+      case engine::graph::RenderResourceType::Depth:
+      case engine::graph::RenderResourceType::ShadowMap:
+        return GL_DEPTH_ATTACHMENT;
+      case engine::graph::RenderResourceType::Stencil:
+        return GL_STENCIL_ATTACHMENT;
+      default:
+        return GL_COLOR_ATTACHMENT0;
+      }
+    }
+
+    int normalizedSamples(int samples) {
+      return samples > 1 ? samples : 0;
     }
   }
 
@@ -159,6 +182,65 @@ namespace engine::raster::gl {
 
   void AttachmentSet::release() const {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  }
+
+  void AttachmentSet::loadColorFrom(
+    const ::engine::raster::detail::OpenGLRasterResource& source) {
+    loadFrom(source, GL_COLOR_BUFFER_BIT);
+  }
+
+  void AttachmentSet::loadDepthFrom(
+    const ::engine::raster::detail::OpenGLRasterResource& source) {
+    loadFrom(source, GL_DEPTH_BUFFER_BIT);
+  }
+
+  void AttachmentSet::loadStencilFrom(
+    const ::engine::raster::detail::OpenGLRasterResource& source) {
+    loadFrom(source, GL_STENCIL_BUFFER_BIT);
+  }
+
+  void AttachmentSet::loadFrom(const ::engine::raster::detail::OpenGLRasterResource& source,
+                               GLbitfield mask) {
+    m_errorMessage.clear();
+    if (!m_fbo || !source.valid()) {
+      return;
+    }
+    if (source.width() != m_width || source.height() != m_height ||
+        normalizedSamples(source.sampleCount()) != m_samples) {
+      m_errorMessage = "AttachmentSet resident load source shape does not match destination";
+      return;
+    }
+
+    GLuint sourceFbo = 0;
+    glGenFramebuffers(1, &sourceFbo);
+    GLint drawFbo = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &drawFbo);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, sourceFbo);
+
+    const GLenum sourceAttachment = attachmentPoint(source.resourceType());
+    if (source.handleKind() ==
+        ::engine::raster::detail::OpenGLRasterResource::HandleKind::Texture) {
+      glFramebufferTexture2D(GL_READ_FRAMEBUFFER, sourceAttachment, GL_TEXTURE_2D,
+                             source.handle(), 0);
+    } else {
+      glFramebufferRenderbuffer(GL_READ_FRAMEBUFFER, sourceAttachment, GL_RENDERBUFFER,
+                                source.handle());
+    }
+
+    const GLenum status = glCheckFramebufferStatus(GL_READ_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+      std::ostringstream out;
+      out << "AttachmentSet resident load source FBO incomplete: status=0x" << std::hex << status;
+      m_errorMessage = out.str();
+      glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(drawFbo));
+      glDeleteFramebuffers(1, &sourceFbo);
+      return;
+    }
+
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
+    glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, m_width, m_height, mask, GL_NEAREST);
+    glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(drawFbo));
+    glDeleteFramebuffers(1, &sourceFbo);
   }
 
   void AttachmentSet::copyColorTo(::Buffer<Colord>& target) {

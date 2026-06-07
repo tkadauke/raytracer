@@ -111,6 +111,15 @@ namespace engine::raster::gl {
     /// Unbind the FBO (binds the default framebuffer object 0).
     void release() const;
 
+    /// Blit a resident OpenGL color resource into this set's color attachment.
+    void loadColorFrom(const ::engine::raster::detail::OpenGLRasterResource& source);
+
+    /// Blit a resident OpenGL depth resource into this set's depth attachment.
+    void loadDepthFrom(const ::engine::raster::detail::OpenGLRasterResource& source);
+
+    /// Blit a resident OpenGL stencil resource into this set's stencil attachment.
+    void loadStencilFrom(const ::engine::raster::detail::OpenGLRasterResource& source);
+
     /// Read the color attachment into `target` with row-0 at the
     /// visible top. Multisample sources are resolved via
     /// `glBlitFramebuffer` into a temporary single-sample read FBO.
@@ -139,6 +148,8 @@ namespace engine::raster::gl {
     }
 
   private:
+    void loadFrom(const ::engine::raster::detail::OpenGLRasterResource& source, GLbitfield mask);
+
     GLuint m_fbo{0};
     GLuint m_colorRenderbuffer{0};
     GLuint m_depthStencilRenderbuffer{0};

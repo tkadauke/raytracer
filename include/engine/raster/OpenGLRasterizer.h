@@ -136,6 +136,8 @@ namespace engine::raster {
     void setColorLoadOp(Rasterizer::AttachmentLoadOp op);
     const Buffer<Colord>* colorLoadSource() const;
     void setColorLoadSource(const Buffer<Colord>* buffer);
+    std::shared_ptr<const detail::OpenGLRasterResource> residentColorLoadSource() const;
+    void setResidentColorLoadSource(std::shared_ptr<const detail::OpenGLRasterResource> resource);
     Rasterizer::AttachmentStoreOp colorStoreOp() const;
     void setColorStoreOp(Rasterizer::AttachmentStoreOp op);
 
@@ -149,6 +151,8 @@ namespace engine::raster {
     void setDepthLoadOp(Rasterizer::AttachmentLoadOp op);
     const Buffer<double>* depthLoadSource() const;
     void setDepthLoadSource(const Buffer<double>* buffer);
+    std::shared_ptr<const detail::OpenGLRasterResource> residentDepthLoadSource() const;
+    void setResidentDepthLoadSource(std::shared_ptr<const detail::OpenGLRasterResource> resource);
     Rasterizer::AttachmentStoreOp depthStoreOp() const;
     void setDepthStoreOp(Rasterizer::AttachmentStoreOp op);
     bool depthWriteEnabled() const;
@@ -187,6 +191,9 @@ namespace engine::raster {
     void setStencilLoadOp(Rasterizer::AttachmentLoadOp op);
     const Buffer<std::uint8_t>* stencilLoadSource() const;
     void setStencilLoadSource(const Buffer<std::uint8_t>* buffer);
+    std::shared_ptr<const detail::OpenGLRasterResource> residentStencilLoadSource() const;
+    void
+    setResidentStencilLoadSource(std::shared_ptr<const detail::OpenGLRasterResource> resource);
     Rasterizer::AttachmentStoreOp stencilStoreOp() const;
     void setStencilStoreOp(Rasterizer::AttachmentStoreOp op);
     std::uint8_t stencilWriteMask() const;
@@ -243,12 +250,14 @@ namespace engine::raster {
     Recti m_scissorRect;
     Rasterizer::AttachmentLoadOp m_colorLoadOp{Rasterizer::AttachmentLoadOp::Clear};
     const Buffer<Colord>* m_loadColorAttachment{nullptr};
+    std::shared_ptr<const detail::OpenGLRasterResource> m_residentColorLoadAttachment;
     Rasterizer::AttachmentStoreOp m_colorStoreOp{Rasterizer::AttachmentStoreOp::Store};
     Rasterizer::DepthFunc m_depthFunc{Rasterizer::DepthFunc::Less};
     double m_depthBias{0.0};
     double m_depthClearValue{std::numeric_limits<double>::infinity()};
     Rasterizer::AttachmentLoadOp m_depthLoadOp{Rasterizer::AttachmentLoadOp::Clear};
     const Buffer<double>* m_loadDepthAttachment{nullptr};
+    std::shared_ptr<const detail::OpenGLRasterResource> m_residentDepthLoadAttachment;
     Rasterizer::AttachmentStoreOp m_depthStoreOp{Rasterizer::AttachmentStoreOp::Store};
     bool m_depthWriteEnabled{true};
     std::uint8_t m_colorWriteMask{Rasterizer::ColorWriteAll};
@@ -268,6 +277,7 @@ namespace engine::raster {
     std::uint8_t m_stencilClearValue{0};
     Rasterizer::AttachmentLoadOp m_stencilLoadOp{Rasterizer::AttachmentLoadOp::Clear};
     const Buffer<std::uint8_t>* m_loadStencilAttachment{nullptr};
+    std::shared_ptr<const detail::OpenGLRasterResource> m_residentStencilLoadAttachment;
     Rasterizer::AttachmentStoreOp m_stencilStoreOp{Rasterizer::AttachmentStoreOp::Store};
     std::uint8_t m_stencilWriteMask{0xff};
     Rasterizer::StencilOp m_stencilFailOp{Rasterizer::StencilOp::Keep};

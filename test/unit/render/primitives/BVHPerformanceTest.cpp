@@ -38,6 +38,7 @@ namespace BVHPerformanceTest {
   using namespace render;
 
   using Clock = std::chrono::steady_clock;
+  constexpr int kMeasuredRounds = 5;
 
   // 3D-grid scene of spheres: side³ primitives, spacing 2.0,
   // radius 0.5. Identical layout to the Google Benchmark in
@@ -92,13 +93,20 @@ namespace BVHPerformanceTest {
       container->intersect(ray, hits, state);
     }
 
-    const auto start = Clock::now();
-    for (const auto& ray : rays) {
-      State state;
-      HitPointInterval hits;
-      container->intersect(ray, hits, state);
+    auto best = std::chrono::nanoseconds::max();
+    for (int round = 0; round != kMeasuredRounds; ++round) {
+      const auto start = Clock::now();
+      for (const auto& ray : rays) {
+        State state;
+        HitPointInterval hits;
+        container->intersect(ray, hits, state);
+      }
+      const auto elapsed = Clock::now() - start;
+      if (elapsed < best) {
+        best = elapsed;
+      }
     }
-    return Clock::now() - start;
+    return best;
   }
 
   template<class Container>
@@ -110,12 +118,19 @@ namespace BVHPerformanceTest {
       container->intersects(ray, state);
     }
 
-    const auto start = Clock::now();
-    for (const auto& ray : rays) {
-      State state;
-      container->intersects(ray, state);
+    auto best = std::chrono::nanoseconds::max();
+    for (int round = 0; round != kMeasuredRounds; ++round) {
+      const auto start = Clock::now();
+      for (const auto& ray : rays) {
+        State state;
+        container->intersects(ray, state);
+      }
+      const auto elapsed = Clock::now() - start;
+      if (elapsed < best) {
+        best = elapsed;
+      }
     }
-    return Clock::now() - start;
+    return best;
   }
 
   // Conservative thresholds — observed ratios on dev hardware

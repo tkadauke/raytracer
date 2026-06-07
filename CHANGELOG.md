@@ -24,6 +24,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   add packet-fill, scalar-tail, and packet-fallback fractions to
   `queue_sweep.summary.txt`, making scheduler-default tuning easier to compare
   across tile counts. — GPT-5
+- **OpenGL resident attachment loads.** OpenGL raster passes can now seed
+  color, depth, and stencil `AttachmentLoadOp::Load` attachments directly from
+  resident OpenGL graph inputs, with CPU color-buffer load retained as a
+  fallback. — GPT-5
 - **OpenGL graph resource residency.** Added typed OpenGL resident raster
   resources and graph storage binding/retrieval hooks so GPU-domain graph
   resources can remain explicit without CPU buffer materialization. — GPT-5

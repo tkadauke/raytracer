@@ -1,6 +1,7 @@
 #include "engine/raster/OpenGLRasterizer.h"
 
 #include "core/Buffer.h"
+#include "engine/graph/RenderGraphTypes.h"
 #include "engine/raster/OpenGLOffscreenContext.h"
 
 #include <mutex>
@@ -56,6 +57,7 @@ namespace engine::raster {
             m_scissorRect(state.scissorRect),
             m_colorLoadOp(state.colorLoadOp),
             m_loadColorAttachment(state.loadColorAttachment),
+            m_residentColorLoadAttachment(std::move(state.residentColorLoadAttachment)),
             m_colorStoreOp(state.colorStoreOp),
             m_colorWriteMask(state.colorWriteMask),
             m_blendingEnabled(state.blendingEnabled),
@@ -69,6 +71,8 @@ namespace engine::raster {
             m_alphaReference(state.alphaReference),
             m_depthFunc(state.depthFunc),
             m_depthClearValue(state.depthClearValue),
+            m_depthLoadOp(state.depthLoadOp),
+            m_residentDepthLoadAttachment(std::move(state.residentDepthLoadAttachment)),
             m_depthStoreOp(state.depthStoreOp),
             m_depthWriteEnabled(state.depthWriteEnabled),
             m_stencilTestEnabled(state.stencilTestEnabled),
@@ -76,6 +80,8 @@ namespace engine::raster {
             m_stencilReference(state.stencilReference),
             m_stencilMask(state.stencilMask),
             m_stencilClearValue(state.stencilClearValue),
+            m_stencilLoadOp(state.stencilLoadOp),
+            m_residentStencilLoadAttachment(std::move(state.residentStencilLoadAttachment)),
             m_stencilStoreOp(state.stencilStoreOp),
             m_stencilWriteMask(state.stencilWriteMask),
             m_stencilFailOp(state.stencilFailOp),
@@ -111,6 +117,7 @@ namespace engine::raster {
           throw std::runtime_error(error);
         }
         attachmentSet->bind();
+        m_attachmentSet = attachmentSet;
         timings.makeCurrentElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::steady_clock::now() - makeCurrentStarted);
 
@@ -151,6 +158,7 @@ namespace engine::raster {
           timings.readbackElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - readbackStarted);
           const auto doneCurrentStarted = std::chrono::steady_clock::now();
+          m_attachmentSet = nullptr;
           attachmentSet->release();
           m_resources.context->doneCurrent();
           m_resources.context->detachFromCurrentThread();
@@ -158,6 +166,7 @@ namespace engine::raster {
             std::chrono::steady_clock::now() - doneCurrentStarted);
           return timings;
         } catch (...) {
+          m_attachmentSet = nullptr;
           attachmentSet->release();
           m_resources.context->doneCurrent();
           m_resources.context->detachFromCurrentThread();
@@ -167,10 +176,6 @@ namespace engine::raster {
 
     private:
       void draw(const detail::OpenGLRasterMesh& mesh, const Colord& background) {
-        // Attachment-load support is checked in
-        // `OpenGLRasterizer::renderOpenGL` before the context is bound;
-        // by the time we reach `draw()`, color/depth/stencil load ops
-        // are all guaranteed to be `Clear` or `DontCare`.
         glViewport(m_viewportRect.left(), openGLY(m_viewportRect), m_viewportRect.width(),
                    m_viewportRect.height());
         glDisable(GL_SCISSOR_TEST);
@@ -183,9 +188,24 @@ namespace engine::raster {
         glStencilMask(0xff);
         glClearStencil(m_stencilClearValue);
         GLbitfield clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
-        if (m_colorLoadOp == Rasterizer::AttachmentLoadOp::Load && m_loadColorAttachment) {
-          uploadLoadColor(*m_loadColorAttachment);
+        if (m_colorLoadOp == Rasterizer::AttachmentLoadOp::Load) {
+          if (m_residentColorLoadAttachment) {
+            m_attachmentSet->loadColorFrom(*m_residentColorLoadAttachment);
+            throwOnAttachmentError("color");
+          } else if (m_loadColorAttachment) {
+            uploadLoadColor(*m_loadColorAttachment);
+          }
           clearMask &= ~static_cast<GLbitfield>(GL_COLOR_BUFFER_BIT);
+        }
+        if (m_depthLoadOp == Rasterizer::AttachmentLoadOp::Load) {
+          m_attachmentSet->loadDepthFrom(*m_residentDepthLoadAttachment);
+          throwOnAttachmentError("depth");
+          clearMask &= ~static_cast<GLbitfield>(GL_DEPTH_BUFFER_BIT);
+        }
+        if (m_stencilLoadOp == Rasterizer::AttachmentLoadOp::Load) {
+          m_attachmentSet->loadStencilFrom(*m_residentStencilLoadAttachment);
+          throwOnAttachmentError("stencil");
+          clearMask &= ~static_cast<GLbitfield>(GL_STENCIL_BUFFER_BIT);
         }
         glClear(clearMask);
         const detail::OpenGLRasterDrawState fixedState = fixedFunctionStateSlice();
@@ -296,6 +316,17 @@ namespace engine::raster {
         indexBuffer.release();
         vertexBuffer.release();
         program.release();
+      }
+
+      void throwOnAttachmentError(const char* attachment) const {
+        if (m_attachmentSet->errorMessage().empty()) {
+          return;
+        }
+        std::string message = "OpenGL raster backend ";
+        message += attachment;
+        message += " resident attachment Load failed: ";
+        message += m_attachmentSet->errorMessage();
+        throw std::runtime_error(message);
       }
 
       int openGLY(const Recti& rect) const {
@@ -472,6 +503,7 @@ namespace engine::raster {
       Recti m_scissorRect;
       Rasterizer::AttachmentLoadOp m_colorLoadOp;
       const Buffer<Colord>* m_loadColorAttachment;
+      std::shared_ptr<const detail::OpenGLRasterResource> m_residentColorLoadAttachment;
       Rasterizer::AttachmentStoreOp m_colorStoreOp;
       std::uint8_t m_colorWriteMask;
       bool m_blendingEnabled;
@@ -485,6 +517,8 @@ namespace engine::raster {
       double m_alphaReference;
       Rasterizer::DepthFunc m_depthFunc;
       double m_depthClearValue;
+      Rasterizer::AttachmentLoadOp m_depthLoadOp;
+      std::shared_ptr<const detail::OpenGLRasterResource> m_residentDepthLoadAttachment;
       Rasterizer::AttachmentStoreOp m_depthStoreOp;
       bool m_depthWriteEnabled;
       bool m_stencilTestEnabled;
@@ -492,6 +526,8 @@ namespace engine::raster {
       std::uint8_t m_stencilReference;
       std::uint8_t m_stencilMask;
       std::uint8_t m_stencilClearValue;
+      Rasterizer::AttachmentLoadOp m_stencilLoadOp;
+      std::shared_ptr<const detail::OpenGLRasterResource> m_residentStencilLoadAttachment;
       Rasterizer::AttachmentStoreOp m_stencilStoreOp;
       std::uint8_t m_stencilWriteMask;
       Rasterizer::StencilOp m_stencilFailOp;
@@ -503,6 +539,7 @@ namespace engine::raster {
       Rasterizer::CullMode m_cullMode;
       bool m_hasCullModeOverride;
       bool m_skipMeshUpload;
+      gl::AttachmentSet* m_attachmentSet{nullptr};
       const std::atomic<bool>& m_cancelled;
     };
   }
@@ -545,6 +582,7 @@ namespace engine::raster {
     }
     clone->setColorLoadOp(m_colorLoadOp);
     clone->setColorLoadSource(m_loadColorAttachment);
+    clone->setResidentColorLoadSource(m_residentColorLoadAttachment);
     clone->setColorStoreOp(m_colorStoreOp);
     clone->setColorWriteMask(m_colorWriteMask);
     clone->setBlendingEnabled(m_blendingEnabled);
@@ -558,6 +596,7 @@ namespace engine::raster {
     clone->setDepthClearValue(m_depthClearValue);
     clone->setDepthLoadOp(m_depthLoadOp);
     clone->setDepthLoadSource(m_loadDepthAttachment);
+    clone->setResidentDepthLoadSource(m_residentDepthLoadAttachment);
     clone->setDepthStoreOp(m_depthStoreOp);
     clone->setDepthWriteEnabled(m_depthWriteEnabled);
     clone->setStencilTestEnabled(m_stencilTestEnabled);
@@ -565,6 +604,7 @@ namespace engine::raster {
     clone->setStencilClearValue(m_stencilClearValue);
     clone->setStencilLoadOp(m_stencilLoadOp);
     clone->setStencilLoadSource(m_loadStencilAttachment);
+    clone->setResidentStencilLoadSource(m_residentStencilLoadAttachment);
     clone->setStencilStoreOp(m_stencilStoreOp);
     clone->setStencilWriteMask(m_stencilWriteMask);
     clone->setStencilOps(m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp);
@@ -805,6 +845,16 @@ namespace engine::raster {
     m_loadColorAttachment = buffer;
   }
 
+  std::shared_ptr<const detail::OpenGLRasterResource>
+  OpenGLRasterizer::residentColorLoadSource() const {
+    return m_residentColorLoadAttachment;
+  }
+
+  void OpenGLRasterizer::setResidentColorLoadSource(
+    std::shared_ptr<const detail::OpenGLRasterResource> resource) {
+    m_residentColorLoadAttachment = std::move(resource);
+  }
+
   Rasterizer::AttachmentStoreOp OpenGLRasterizer::colorStoreOp() const {
     return m_colorStoreOp;
   }
@@ -851,6 +901,16 @@ namespace engine::raster {
 
   void OpenGLRasterizer::setDepthLoadSource(const Buffer<double>* buffer) {
     m_loadDepthAttachment = buffer;
+  }
+
+  std::shared_ptr<const detail::OpenGLRasterResource>
+  OpenGLRasterizer::residentDepthLoadSource() const {
+    return m_residentDepthLoadAttachment;
+  }
+
+  void OpenGLRasterizer::setResidentDepthLoadSource(
+    std::shared_ptr<const detail::OpenGLRasterResource> resource) {
+    m_residentDepthLoadAttachment = std::move(resource);
   }
 
   Rasterizer::AttachmentStoreOp OpenGLRasterizer::depthStoreOp() const {
@@ -990,6 +1050,16 @@ namespace engine::raster {
 
   void OpenGLRasterizer::setStencilLoadSource(const Buffer<std::uint8_t>* buffer) {
     m_loadStencilAttachment = buffer;
+  }
+
+  std::shared_ptr<const detail::OpenGLRasterResource>
+  OpenGLRasterizer::residentStencilLoadSource() const {
+    return m_residentStencilLoadAttachment;
+  }
+
+  void OpenGLRasterizer::setResidentStencilLoadSource(
+    std::shared_ptr<const detail::OpenGLRasterResource> resource) {
+    m_residentStencilLoadAttachment = std::move(resource);
   }
 
   Rasterizer::AttachmentStoreOp OpenGLRasterizer::stencilStoreOp() const {
@@ -1183,50 +1253,6 @@ namespace engine::raster {
     m_lastReadbackTraceMessage.clear();
     m_lastTraceMessages.clear();
 
-    // `AttachmentLoadOp::Load` requires the caller to provide a
-    // matching CPU source buffer via `setLoadColorAttachment` /
-    // `setLoadDepthAttachment` / `setLoadStencilAttachment`. The
-    // backend uploads that buffer to the attachment at pass start
-    // instead of clearing. The CPU round-trip here is the consumer
-    // side of `opengl-gpu-residency.md` Phase 2 — the producer side
-    // (publishing the FBO contents as a `Buffer<...>` on the graph
-    // storage) already exists via the readback path. Full GPU
-    // residency (no round-trip when both producer and consumer are
-    // GPU-domain) is Phase 0-1 follow-up work.
-    //
-    // Throwing pre-bind keeps the failure observable as a render-graph
-    // diagnostic rather than as a half-bound GL frame.
-    const auto requireLoadSource = [](const char* attachment, Rasterizer::AttachmentLoadOp op,
-                                      const void* source) {
-      if (op == Rasterizer::AttachmentLoadOp::Load && source == nullptr) {
-        std::string message = "OpenGL raster backend ";
-        message += attachment;
-        message += " attachment Load requires a source buffer set via setLoadColorAttachment / "
-                   "setLoadDepthAttachment / setLoadStencilAttachment";
-        throw std::runtime_error(message);
-      }
-    };
-    requireLoadSource("color", m_colorLoadOp, m_loadColorAttachment);
-    requireLoadSource("depth", m_depthLoadOp, m_loadDepthAttachment);
-    requireLoadSource("stencil", m_stencilLoadOp, m_loadStencilAttachment);
-
-    // Depth and stencil Load are part of the same residency arc but
-    // need their own upload helpers (format conversions, blit masks);
-    // shipping them is opengl-gpu-residency.md Phase 2 follow-up.
-    // Throw with a narrow, named error rather than a generic
-    // "unsupported" message so the caller knows exactly which slice is
-    // missing.
-    if (m_depthLoadOp == Rasterizer::AttachmentLoadOp::Load) {
-      throw std::runtime_error(
-        "OpenGL raster backend depth attachment Load is not yet implemented; "
-        "tracked under opengl-gpu-residency.md Phase 2 follow-up");
-    }
-    if (m_stencilLoadOp == Rasterizer::AttachmentLoadOp::Load) {
-      throw std::runtime_error(
-        "OpenGL raster backend stencil attachment Load is not yet implemented; "
-        "tracked under opengl-gpu-residency.md Phase 2 follow-up");
-    }
-
     if (!m_resources) {
       m_resources = sharedResources();
     }
@@ -1243,6 +1269,64 @@ namespace engine::raster {
     if (!m_resources->context->create()) {
       throw std::runtime_error(m_resources->context->errorMessage());
     }
+
+    const auto requireResidentLoadSource =
+      [&](const char* attachment, Rasterizer::AttachmentLoadOp op,
+          const std::shared_ptr<const detail::OpenGLRasterResource>& source,
+          engine::graph::RenderResourceType expectedType, bool cpuFallbackAvailable) {
+        if (op != Rasterizer::AttachmentLoadOp::Load) {
+          return;
+        }
+        if (!source) {
+          if (cpuFallbackAvailable && m_loadColorAttachment) {
+            return;
+          }
+          std::string message = "OpenGL raster backend ";
+          message += attachment;
+          message += " attachment Load requires a resident OpenGL source";
+          if (cpuFallbackAvailable) {
+            message += " or a CPU source buffer";
+          }
+          throw std::runtime_error(message);
+        }
+        if (!source->valid()) {
+          throw std::runtime_error(std::string("OpenGL raster backend ") + attachment +
+                                   " attachment Load source is not a valid GL handle");
+        }
+        if (source->resourceType() != expectedType) {
+          throw std::runtime_error(std::string("OpenGL raster backend ") + attachment +
+                                   " attachment Load source kind mismatch: got " +
+                                   engine::graph::toString(source->resourceType()) + ", expected " +
+                                   engine::graph::toString(expectedType));
+        }
+        if (source->width() != width || source->height() != height) {
+          throw std::runtime_error(std::string("OpenGL raster backend ") + attachment +
+                                   " attachment Load source dimension mismatch: got " +
+                                   std::to_string(source->width()) + "x" +
+                                   std::to_string(source->height()) + ", expected " +
+                                   std::to_string(width) + "x" + std::to_string(height));
+        }
+        if (source->sampleCount() != m_msaaSamples) {
+          throw std::runtime_error(std::string("OpenGL raster backend ") + attachment +
+                                   " attachment Load source sample-count mismatch: got " +
+                                   std::to_string(source->sampleCount()) + ", expected " +
+                                   std::to_string(m_msaaSamples));
+        }
+        if (source->sourceContextIdentity() == nullptr) {
+          throw std::runtime_error(std::string("OpenGL raster backend ") + attachment +
+                                   " attachment Load source has no source context");
+        }
+        if (source->sourceContextIdentity() != m_resources->context.get()) {
+          throw std::runtime_error(std::string("OpenGL raster backend ") + attachment +
+                                   " attachment Load source context mismatch");
+        }
+      };
+    requireResidentLoadSource("color", m_colorLoadOp, m_residentColorLoadAttachment,
+                              engine::graph::RenderResourceType::Color, true);
+    requireResidentLoadSource("depth", m_depthLoadOp, m_residentDepthLoadAttachment,
+                              engine::graph::RenderResourceType::Depth, false);
+    requireResidentLoadSource("stencil", m_stencilLoadOp, m_residentStencilLoadAttachment,
+                              engine::graph::RenderResourceType::Stencil, false);
 
     const Recti viewport = viewportRectFor(width, height);
     const std::shared_ptr<const detail::ShadowMaps> shadowMapsPtr =
@@ -1366,6 +1450,7 @@ namespace engine::raster {
     drawState.scissorRect = m_scissorRect;
     drawState.colorLoadOp = m_colorLoadOp;
     drawState.loadColorAttachment = m_loadColorAttachment;
+    drawState.residentColorLoadAttachment = m_residentColorLoadAttachment;
     drawState.colorStoreOp = m_colorStoreOp;
     drawState.colorWriteMask = m_colorWriteMask;
     drawState.blendingEnabled = m_blendingEnabled;
@@ -1380,6 +1465,7 @@ namespace engine::raster {
     drawState.depthFunc = m_depthFunc;
     drawState.depthClearValue = m_depthClearValue;
     drawState.depthLoadOp = m_depthLoadOp;
+    drawState.residentDepthLoadAttachment = m_residentDepthLoadAttachment;
     drawState.depthStoreOp = m_depthStoreOp;
     drawState.depthWriteEnabled = m_depthWriteEnabled;
     drawState.stencilTestEnabled = m_stencilTestEnabled;
@@ -1388,6 +1474,7 @@ namespace engine::raster {
     drawState.stencilMask = m_stencilMask;
     drawState.stencilClearValue = m_stencilClearValue;
     drawState.stencilLoadOp = m_stencilLoadOp;
+    drawState.residentStencilLoadAttachment = m_residentStencilLoadAttachment;
     drawState.stencilStoreOp = m_stencilStoreOp;
     drawState.stencilWriteMask = m_stencilWriteMask;
     drawState.stencilFailOp = m_stencilFailOp;

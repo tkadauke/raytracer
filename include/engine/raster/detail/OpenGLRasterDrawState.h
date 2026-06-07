@@ -8,7 +8,12 @@
 #include "engine/raster/detail/OpenGLShadowTextureData.h"
 
 #include <cstdint>
+#include <memory>
 #include <optional>
+
+namespace engine::raster::detail {
+  class OpenGLRasterResource;
+}
 
 namespace engine::raster::detail {
   /**
@@ -32,6 +37,7 @@ namespace engine::raster::detail {
     Recti scissorRect;
     Rasterizer::AttachmentLoadOp colorLoadOp{Rasterizer::AttachmentLoadOp::Clear};
     const Buffer<Colord>* loadColorAttachment{nullptr};
+    std::shared_ptr<const OpenGLRasterResource> residentColorLoadAttachment;
     Rasterizer::AttachmentStoreOp colorStoreOp{Rasterizer::AttachmentStoreOp::Store};
     std::uint8_t colorWriteMask{Rasterizer::ColorWriteAll};
     bool blendingEnabled{false};
@@ -46,6 +52,7 @@ namespace engine::raster::detail {
     Rasterizer::DepthFunc depthFunc{Rasterizer::DepthFunc::Less};
     double depthClearValue{1.0};
     Rasterizer::AttachmentLoadOp depthLoadOp{Rasterizer::AttachmentLoadOp::Clear};
+    std::shared_ptr<const OpenGLRasterResource> residentDepthLoadAttachment;
     Rasterizer::AttachmentStoreOp depthStoreOp{Rasterizer::AttachmentStoreOp::Store};
     bool depthWriteEnabled{true};
     bool stencilTestEnabled{false};
@@ -54,6 +61,7 @@ namespace engine::raster::detail {
     std::uint8_t stencilMask{0xff};
     std::uint8_t stencilClearValue{0};
     Rasterizer::AttachmentLoadOp stencilLoadOp{Rasterizer::AttachmentLoadOp::Clear};
+    std::shared_ptr<const OpenGLRasterResource> residentStencilLoadAttachment;
     Rasterizer::AttachmentStoreOp stencilStoreOp{Rasterizer::AttachmentStoreOp::Store};
     std::uint8_t stencilWriteMask{0xff};
     Rasterizer::StencilOp stencilFailOp{Rasterizer::StencilOp::Keep};

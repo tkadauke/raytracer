@@ -6,6 +6,8 @@
 #include "engine/raster/OpenGLOffscreenContext.h"
 #include "engine/raster/OpenGLRasterizer.h"
 #include "engine/raster/RasterVisibilitySet.h"
+#include "engine/raster/detail/OpenGLRasterResource.h"
+#include "engine/raster/detail/OpenGLRasterResourceCache.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
@@ -24,6 +26,85 @@
 #include <string>
 
 namespace OpenGLRasterizerTest {
+  using ResidentResource = engine::raster::detail::OpenGLRasterResource;
+
+  class MismatchedContext : public engine::raster::gl::Context {
+  public:
+    bool create(int = 1) override {
+      return true;
+    }
+    bool isValid() const override {
+      return true;
+    }
+    bool migrateToCurrentThread() override {
+      return true;
+    }
+    void detachFromCurrentThread() override {
+    }
+    bool makeCurrent() override {
+      m_error = "mismatched test context is not current-capable";
+      return false;
+    }
+    void doneCurrent() override {
+    }
+    const std::string& errorMessage() const override {
+      return m_error;
+    }
+    std::string detailText() const override {
+      return "mismatched test context";
+    }
+
+  private:
+    std::string m_error;
+  };
+
+  std::shared_ptr<ResidentResource> createResidentRenderbuffer(
+    engine::graph::RenderResourceType type, GLenum internalFormat, GLenum attachment,
+    GLbitfield clearMask, int width, int height, float depthClear = 1.0f,
+    std::uint8_t stencilClear = 0, int reportedSampleCount = 1, bool keepContext = true) {
+    auto resources = engine::raster::OpenGLRasterizer::sharedResources();
+    if (!resources->context->migrateToCurrentThread() || !resources->context->create() ||
+        !resources->context->makeCurrent()) {
+      return nullptr;
+    }
+
+    GLuint rb = 0;
+    glGenRenderbuffers(1, &rb);
+    glBindRenderbuffer(GL_RENDERBUFFER, rb);
+    glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, width, height);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+    GLuint fbo = 0;
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachment, GL_RENDERBUFFER, rb);
+    if (attachment == GL_DEPTH_STENCIL_ATTACHMENT) {
+      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rb);
+      glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rb);
+    }
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+      glBindFramebuffer(GL_FRAMEBUFFER, 0);
+      glDeleteFramebuffers(1, &fbo);
+      glDeleteRenderbuffers(1, &rb);
+      resources->context->doneCurrent();
+      resources->context->detachFromCurrentThread();
+      return nullptr;
+    }
+
+    glClearDepth(depthClear);
+    glClearStencil(stencilClear);
+    glClearColor(0.25f, 0.5f, 0.75f, 1.0f);
+    glClear(clearMask);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDeleteFramebuffers(1, &fbo);
+    resources->context->doneCurrent();
+    resources->context->detachFromCurrentThread();
+
+    return std::make_shared<ResidentResource>(
+      type, ResidentResource::HandleKind::Renderbuffer, rb, width, height, reportedSampleCount,
+      keepContext ? resources->context : nullptr);
+  }
+
   TEST(OpenGLOffscreenContext, ProbeReportsAvailabilityOrActionableError) {
     const engine::raster::OpenGLAvailability availability =
       engine::raster::OpenGLOffscreenContext::probe();
@@ -507,7 +588,68 @@ namespace OpenGLRasterizerTest {
     EXPECT_NO_THROW(rasterizer.render(buffer));
   }
 
-  TEST_F(OpenGLRasterizerAttachmentLoad, DepthLoadOpThrowsUntilResidencyFollowUp) {
+  TEST_F(OpenGLRasterizerAttachmentLoad, ColorLoadOpAcceptsResidentSource) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    engine::raster::OpenGLRasterizer rasterizer(
+      std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
+    rasterizer.setColorLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
+    auto source = createResidentRenderbuffer(engine::graph::RenderResourceType::Color, GL_RGBA8,
+                                             GL_COLOR_ATTACHMENT0, GL_COLOR_BUFFER_BIT, 8, 8);
+    ASSERT_NE(nullptr, source);
+    rasterizer.setResidentColorLoadSource(source);
+
+    Buffer<Colord> buffer(8, 8);
+    rasterizer.render(buffer);
+
+    EXPECT_NEAR(0.25, buffer[0][0].r(), 1.0 / 255.0);
+    EXPECT_NEAR(0.5, buffer[0][0].g(), 1.0 / 255.0);
+    EXPECT_NEAR(0.75, buffer[0][0].b(), 1.0 / 255.0);
+  }
+
+  TEST_F(OpenGLRasterizerAttachmentLoad, DepthLoadOpAcceptsResidentSource) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    engine::raster::OpenGLRasterizer rasterizer(
+      std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
+    rasterizer.setDepthLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
+    auto source = createResidentRenderbuffer(engine::graph::RenderResourceType::Depth,
+                                             GL_DEPTH_COMPONENT24, GL_DEPTH_ATTACHMENT,
+                                             GL_DEPTH_BUFFER_BIT, 8, 8, 0.5f);
+    ASSERT_NE(nullptr, source);
+    rasterizer.setResidentDepthLoadSource(source);
+
+    Buffer<double> depth(8, 8);
+    rasterizer.renderDepth(depth);
+
+    EXPECT_NEAR(1.0, depth[0][0], 1.0e-3);
+  }
+
+  TEST_F(OpenGLRasterizerAttachmentLoad, StencilLoadOpAcceptsResidentSource) {
+    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
+    }
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    engine::raster::OpenGLRasterizer rasterizer(
+      std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
+    rasterizer.setStencilLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
+    auto source = createResidentRenderbuffer(engine::graph::RenderResourceType::Stencil,
+                                             GL_STENCIL_INDEX8, GL_STENCIL_ATTACHMENT,
+                                             GL_STENCIL_BUFFER_BIT, 8, 8, 1.0f, 0x7b);
+    ASSERT_NE(nullptr, source);
+    rasterizer.setResidentStencilLoadSource(source);
+
+    Buffer<std::uint8_t> stencil(8, 8);
+    rasterizer.renderStencil(stencil);
+
+    EXPECT_EQ(0x7b, stencil[0][0]);
+  }
+
+  TEST_F(OpenGLRasterizerAttachmentLoad, DepthLoadOpRequiresResidentSource) {
     if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
       GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
     }
@@ -516,28 +658,86 @@ namespace OpenGLRasterizerTest {
       std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
     rasterizer.setDepthLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
     Buffer<Colord> buffer(8, 8);
-    // (a) no source buffer when Load → throws.
-    EXPECT_THROW(rasterizer.render(buffer), std::runtime_error);
-    // (b) source buffer set but depth Load upload deferred → throws
-    //     with a narrower message naming the missing slice.
-    Buffer<double> depthSource(8, 8);
-    rasterizer.setDepthLoadSource(&depthSource);
-    EXPECT_THROW(rasterizer.render(buffer), std::runtime_error);
+    try {
+      rasterizer.render(buffer);
+      FAIL() << "render should reject missing resident depth source";
+    } catch (const std::runtime_error& error) {
+      EXPECT_NE(std::string(error.what()).find("depth attachment Load requires a resident"),
+                std::string::npos);
+    }
   }
 
-  TEST_F(OpenGLRasterizerAttachmentLoad, StencilLoadOpThrowsUntilResidencyFollowUp) {
+  TEST_F(OpenGLRasterizerAttachmentLoad, ResidentLoadReportsMismatchesClearly) {
     if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
       GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
     }
     auto scene = std::make_shared<render::Scene>(Colord::black());
     engine::raster::OpenGLRasterizer rasterizer(
       std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
-    rasterizer.setStencilLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
+    rasterizer.setColorLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
+
+    auto wrongKind = createResidentRenderbuffer(engine::graph::RenderResourceType::Depth,
+                                               GL_DEPTH_COMPONENT24, GL_DEPTH_ATTACHMENT,
+                                               GL_DEPTH_BUFFER_BIT, 8, 8);
+    ASSERT_NE(nullptr, wrongKind);
+    rasterizer.setResidentColorLoadSource(wrongKind);
     Buffer<Colord> buffer(8, 8);
-    EXPECT_THROW(rasterizer.render(buffer), std::runtime_error);
-    Buffer<std::uint8_t> stencilSource(8, 8);
-    rasterizer.setStencilLoadSource(&stencilSource);
-    EXPECT_THROW(rasterizer.render(buffer), std::runtime_error);
+    try {
+      rasterizer.render(buffer);
+      FAIL() << "render should reject kind mismatch";
+    } catch (const std::runtime_error& error) {
+      EXPECT_NE(std::string(error.what()).find("kind mismatch"), std::string::npos);
+    }
+
+    auto wrongSize = createResidentRenderbuffer(engine::graph::RenderResourceType::Color, GL_RGBA8,
+                                               GL_COLOR_ATTACHMENT0, GL_COLOR_BUFFER_BIT, 4, 8);
+    ASSERT_NE(nullptr, wrongSize);
+    rasterizer.setResidentColorLoadSource(wrongSize);
+    try {
+      rasterizer.render(buffer);
+      FAIL() << "render should reject dimension mismatch";
+    } catch (const std::runtime_error& error) {
+      EXPECT_NE(std::string(error.what()).find("dimension mismatch"), std::string::npos);
+    }
+
+    auto wrongSamples = createResidentRenderbuffer(engine::graph::RenderResourceType::Color,
+                                                  GL_RGBA8, GL_COLOR_ATTACHMENT0,
+                                                  GL_COLOR_BUFFER_BIT, 8, 8, 1.0f, 0, 4);
+    ASSERT_NE(nullptr, wrongSamples);
+    rasterizer.setResidentColorLoadSource(wrongSamples);
+    try {
+      rasterizer.render(buffer);
+      FAIL() << "render should reject sample mismatch";
+    } catch (const std::runtime_error& error) {
+      EXPECT_NE(std::string(error.what()).find("sample-count mismatch"), std::string::npos);
+    }
+
+    auto validContext = createResidentRenderbuffer(engine::graph::RenderResourceType::Color,
+                                                  GL_RGBA8, GL_COLOR_ATTACHMENT0,
+                                                  GL_COLOR_BUFFER_BIT, 8, 8);
+    ASSERT_NE(nullptr, validContext);
+    auto wrongContext = std::make_shared<ResidentResource>(
+      engine::graph::RenderResourceType::Color, ResidentResource::HandleKind::Renderbuffer,
+      validContext->handle(), 8, 8, 1, std::make_shared<MismatchedContext>());
+    rasterizer.setResidentColorLoadSource(wrongContext);
+    try {
+      rasterizer.render(buffer);
+      FAIL() << "render should reject context mismatch";
+    } catch (const std::runtime_error& error) {
+      EXPECT_NE(std::string(error.what()).find("context mismatch"), std::string::npos);
+    }
+
+    auto missingContext = createResidentRenderbuffer(engine::graph::RenderResourceType::Color,
+                                                    GL_RGBA8, GL_COLOR_ATTACHMENT0,
+                                                    GL_COLOR_BUFFER_BIT, 8, 8, 1.0f, 0, 1, false);
+    ASSERT_NE(nullptr, missingContext);
+    rasterizer.setResidentColorLoadSource(missingContext);
+    try {
+      rasterizer.render(buffer);
+      FAIL() << "render should reject missing context";
+    } catch (const std::runtime_error& error) {
+      EXPECT_NE(std::string(error.what()).find("source context"), std::string::npos);
+    }
   }
 
   class OpenGLRasterizerAspect : public ::testing::GuiTest {};

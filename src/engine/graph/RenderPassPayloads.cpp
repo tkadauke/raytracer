@@ -319,6 +319,39 @@ namespace engine::graph {
       return applied;
     }
 
+    bool applyOpenGLResidentAttachmentInputs(
+      const RenderExecutionContext& context, ::engine::raster::OpenGLRasterizer& rasterizer) {
+      bool applied = false;
+      for (const auto& read : context.pass().reads) {
+        const auto& descriptor = context.storage().descriptor(read.resource);
+        if (descriptor.domain != RenderResourceDomain::GPU ||
+            context.storage().resource(read.resource).substituteDefault()) {
+          continue;
+        }
+
+        switch (descriptor.type) {
+        case RenderResourceType::Color:
+          rasterizer.setResidentColorLoadSource(
+            context.storage().openGLResource(read.resource, RenderResourceType::Color));
+          applied = true;
+          break;
+        case RenderResourceType::Depth:
+          rasterizer.setResidentDepthLoadSource(
+            context.storage().openGLResource(read.resource, RenderResourceType::Depth));
+          applied = true;
+          break;
+        case RenderResourceType::Stencil:
+          rasterizer.setResidentStencilLoadSource(
+            context.storage().openGLResource(read.resource, RenderResourceType::Stencil));
+          applied = true;
+          break;
+        default:
+          break;
+        }
+      }
+      return applied;
+    }
+
     void prepareEngine(render::RenderEngine& engine, const GraphRenderEngine& graph, bool cancelled,
                        std::shared_ptr<render::Tonemap> tonemap) {
       engine.setTonemap(std::move(tonemap));
@@ -527,6 +560,10 @@ namespace engine::graph {
         } else if (backend.isOpenGL()) {
           auto rasterizer = std::static_pointer_cast<::engine::raster::OpenGLRasterizer>(engine);
           state.applyTo(*rasterizer);
+          if (applyOpenGLResidentAttachmentInputs(context, *rasterizer)) {
+            context.recordTraceMessage(
+              "OpenGL raster backend consumed resident graph attachments for load operations");
+          }
           if (RasterVisibilityInput(context).applyTo(*rasterizer)) {
             context.recordTraceMessage(
               "OpenGL raster backend consumed graph visibility set during mesh preparation");
@@ -903,6 +940,7 @@ namespace engine::graph {
         auto rasterizer = std::make_shared<::engine::raster::OpenGLRasterizer>(
           std::move(camera), context.graph().scene());
         state.applyTo(*rasterizer);
+        applyOpenGLResidentAttachmentInputs(context, *rasterizer);
 
         const auto& write = context.pass().singleWrite();
         const auto& descriptor = context.storage().descriptor(write.resource);
@@ -961,6 +999,7 @@ namespace engine::graph {
         auto rasterizer = std::make_shared<::engine::raster::OpenGLRasterizer>(
           std::move(camera), context.graph().scene());
         state.applyTo(*rasterizer);
+        applyOpenGLResidentAttachmentInputs(context, *rasterizer);
 
         const auto& write = context.pass().singleWrite();
         const auto& descriptor = context.storage().descriptor(write.resource);
