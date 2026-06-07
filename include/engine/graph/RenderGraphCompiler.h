@@ -85,6 +85,26 @@ namespace engine::graph {
                                 RenderResourceId outputResource) const;
     RenderPassNode tonemapPass(RenderResourceId inputResource,
                                RenderResourceId outputResource) const;
+    RenderResourceId addSelectorOverrideBranches(RenderPlan& plan, const RenderTargetSpec& target,
+                                                 RenderResourceId baseInputResource,
+                                                 const RenderIntent& frameIntent,
+                                                 const RenderSceneAnalysis& sceneAnalysis) const;
+    RenderResourceId addSelectorOverrideBranch(RenderPlan& plan, const RenderTargetSpec& target,
+                                               RenderResourceId baseInputResource,
+                                               const RenderIntent& frameIntent,
+                                               const RenderViewOverride& viewOverride,
+                                               std::size_t overrideIndex) const;
+    RenderIntent selectorOverrideIntent(const RenderIntent& frameIntent,
+                                        const RenderViewOverride& viewOverride) const;
+    SceneView selectorOverrideSceneView(const RenderIntent& branchIntent,
+                                        const RenderViewOverride& viewOverride) const;
+    RenderPassNode
+    selectorCompositePass(RenderPassId id, std::string name, RenderResourceId baseResource,
+                          RenderResourceId foregroundResource, RenderResourceId stencilResource,
+                          RenderResourceId outputResource, const SceneView& sceneView,
+                          std::vector<RenderFeatureKind> features) const;
+    RenderResourceDescriptor selectorColorResource(const RenderTargetSpec& target,
+                                                   RenderResourceId id, std::string name) const;
     RenderPlan aovViewPlan(const RenderTargetSpec& target, RenderExecutorKind executor,
                            const RenderAOVDefinition& aov, const SceneView& sceneView,
                            const RenderIntent& intent) const;

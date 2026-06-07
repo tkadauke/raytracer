@@ -263,6 +263,195 @@ namespace engine::graph {
     return pass;
   }
 
+  RenderResourceDescriptor
+  RenderGraphCompiler::selectorColorResource(const RenderTargetSpec& target, RenderResourceId id,
+                                             std::string name) const {
+    RenderResourceDescriptor resource =
+      target.colorResource(std::move(id), std::move(name), RenderResourceLifetime::Transient);
+    resource.addFeature("selector_override");
+    return resource;
+  }
+
+  RenderIntent
+  RenderGraphCompiler::selectorOverrideIntent(const RenderIntent& frameIntent,
+                                              const RenderViewOverride& viewOverride) const {
+    RenderIntent branchIntent = frameIntent;
+    branchIntent.viewOverrides.clear();
+    branchIntent.subviews.clear();
+    if (viewOverride.executor) {
+      branchIntent.setDefaultExecutor(*viewOverride.executor);
+    }
+    if (viewOverride.viewMode && *viewOverride.viewMode != RenderViewMode::Default) {
+      branchIntent.setDefaultViewMode(*viewOverride.viewMode);
+    }
+    if (viewOverride.shadingProfile) {
+      branchIntent.setDefaultShadingProfile(*viewOverride.shadingProfile);
+    }
+    if (viewOverride.camera) {
+      branchIntent.setDefaultCamera(*viewOverride.camera);
+    }
+    if (!viewOverride.engineOptions.empty()) {
+      branchIntent.engineOptions =
+        viewOverride.inheritEngineOptions.value_or(true)
+          ? branchIntent.engineOptions.mergedWith(viewOverride.engineOptions)
+          : viewOverride.engineOptions;
+    }
+    return branchIntent;
+  }
+
+  SceneView
+  RenderGraphCompiler::selectorOverrideSceneView(const RenderIntent& branchIntent,
+                                                 const RenderViewOverride& viewOverride) const {
+    SceneView sceneView = branchIntent.defaultSceneView();
+    sceneView.selector = viewOverride.selector;
+    return sceneView;
+  }
+
+  RenderPassNode RenderGraphCompiler::selectorCompositePass(
+    RenderPassId id, std::string name, RenderResourceId baseResource,
+    RenderResourceId foregroundResource, RenderResourceId stencilResource,
+    RenderResourceId outputResource, const SceneView& sceneView,
+    std::vector<RenderFeatureKind> features) const {
+    RenderPassNode composite;
+    composite.id = std::move(id);
+    composite.name = std::move(name);
+    composite.kind = RenderPassKind::Composite;
+    composite.executor = RenderExecutorKind::Composite;
+    composite.features = {"main", "composite", "selector_override"};
+    composite.features.insert(composite.features.end(), features.begin(), features.end());
+    composite.addRead(std::move(baseResource));
+    composite.addRead(std::move(foregroundResource));
+    composite.addRead(std::move(stencilResource));
+    composite.addWrite(std::move(outputResource));
+    composite.sceneView = sceneView;
+    composite.disabledBehavior = DisabledBehavior::SubstituteDefault;
+    composite.canRunConcurrently = false;
+    return composite;
+  }
+
+  RenderResourceId RenderGraphCompiler::addSelectorOverrideBranches(
+    RenderPlan& plan, const RenderTargetSpec& target, RenderResourceId baseInputResource,
+    const RenderIntent& frameIntent, const RenderSceneAnalysis& sceneAnalysis) const {
+    const auto overrides = frameIntent.selectorSpecificOverrides();
+    if (overrides.empty()) {
+      return baseInputResource;
+    }
+
+    std::set<std::pair<SceneSelector::Kind, std::string>> seenSelectors;
+    for (const auto& viewOverride : overrides) {
+      const auto key = std::make_pair(viewOverride.selector.kind, viewOverride.selector.value);
+      if (!seenSelectors.insert(key).second) {
+        throw std::runtime_error("RenderGraphCompiler has conflicting selector-specific render "
+                                 "intent for " +
+                                 viewOverride.selector.displayText());
+      }
+    }
+
+    RenderResourceId currentBase = std::move(baseInputResource);
+    for (std::size_t i = 0; i != overrides.size(); ++i) {
+      const auto match = sceneAnalysis.matchSelector(overrides[i].selector);
+      if (!match.matched()) {
+        continue;
+      }
+      currentBase = addSelectorOverrideBranch(plan, target, std::move(currentBase), frameIntent,
+                                              overrides[i], i);
+    }
+    return currentBase;
+  }
+
+  RenderResourceId RenderGraphCompiler::addSelectorOverrideBranch(
+    RenderPlan& plan, const RenderTargetSpec& target, RenderResourceId baseInputResource,
+    const RenderIntent& frameIntent, const RenderViewOverride& viewOverride,
+    std::size_t overrideIndex) const {
+    const RenderIntent branchIntent = selectorOverrideIntent(frameIntent, viewOverride);
+    const SceneView sceneView = selectorOverrideSceneView(branchIntent, viewOverride);
+    const std::string prefix = "selector_" + std::to_string(overrideIndex + 1);
+
+    if (branchIntent.defaultViewMode == RenderViewMode::StencilComposite) {
+      throw std::runtime_error("RenderGraphCompiler does not support selector-specific "
+                               "stencil_composite view yet (" +
+                               viewOverride.selector.displayText() + ")");
+    }
+
+    const auto* stencilAOV = renderAOVDefinition(RenderViewMode::Stencil);
+    if (!stencilAOV) {
+      throw std::runtime_error("selector-specific render intent requires a stencil AOV definition");
+    }
+
+    const RenderResourceId stencilId = prefix + "_stencil_aov";
+    RenderPassNode stencilProducer = aovProducerPass(*stencilAOV, RenderExecutorKind::Rasterizer,
+                                                     sceneView, false, target, branchIntent);
+    stencilProducer.id = stencilId;
+    stencilProducer.name = "Selector " + std::to_string(overrideIndex + 1) + " stencil mask";
+    stencilProducer.features.push_back("selector_override");
+    addRasterVisibilityInput(plan, target, stencilProducer, sceneView, branchIntent);
+    RenderResourceDescriptor stencilResource =
+      stencilAOV->resourceDescriptor(target, RenderResourceLifetime::Transient);
+    stencilResource.id = stencilId;
+    stencilResource.name = stencilProducer.name;
+    stencilResource.addFeature("selector_override");
+    plan.addResourceProducer(std::move(stencilProducer), std::move(stencilResource));
+
+    RenderResourceId foregroundInput;
+    std::vector<RenderFeatureKind> compositeFeatures;
+    if (const auto* aov = renderAOVDefinition(branchIntent.defaultViewMode)) {
+      const RenderExecutorKind executor = branchIntent.defaultExecutorKind();
+      const RenderResourceId aovId = prefix + "_" + aov->resourceId();
+      RenderPassNode producer =
+        aovProducerPass(*aov, executor, sceneView, false, target, branchIntent);
+      producer.id = aovId;
+      producer.name = "Selector " + std::to_string(overrideIndex + 1) + " " + aov->title() + " AOV";
+      producer.features.push_back("selector_override");
+      addRasterVisibilityInput(plan, target, producer, sceneView, branchIntent);
+      RenderResourceDescriptor aovResource =
+        aov->resourceDescriptor(target, RenderResourceLifetime::Exported);
+      aovResource.id = aovId;
+      aovResource.name = producer.name;
+      aovResource.addFeature("selector_override");
+      plan.addResourceProducer(std::move(producer), std::move(aovResource));
+
+      const RenderResourceId previewId = prefix + "_" + aov->previewColorResourceId();
+      RenderPassNode visualization = aovVisualizationPass(*aov, aovId, previewId, false);
+      visualization.id = prefix + "_" + visualization.id;
+      visualization.name =
+        "Selector " + std::to_string(overrideIndex + 1) + " " + visualization.name;
+      visualization.sceneView = sceneView;
+      visualization.features.push_back("selector_override");
+      RenderResourceDescriptor preview = target.colorResource(
+        previewId,
+        "Selector " + std::to_string(overrideIndex + 1) + " " + aov->title() + " AOV preview",
+        RenderResourceLifetime::Exported);
+      preview.addFeature("selector_override");
+      plan.addResourceProducer(std::move(visualization), std::move(preview));
+      foregroundInput = previewId;
+      compositeFeatures = {"aov", aov->feature()};
+    } else {
+      const RenderExecutorKind executor = branchIntent.defaultExecutorKind();
+      const RenderResourceId colorId = prefix + "_beauty_color";
+      RenderPassNode foreground =
+        beautyPass(executor, sceneView, target, branchIntent, {"selector_override"});
+      foreground.id = prefix + "_" + foreground.id;
+      foreground.name = "Selector " + std::to_string(overrideIndex + 1) + " " + foreground.name;
+      addRasterVisibilityInput(plan, target, foreground, sceneView, branchIntent);
+      plan.addResourceProducer(
+        std::move(foreground),
+        selectorColorResource(target, colorId,
+                              "Selector " + std::to_string(overrideIndex + 1) + " beauty color"));
+      foregroundInput = colorId;
+      compositeFeatures = {"beauty"};
+    }
+
+    const RenderResourceId outputId = prefix + "_composited_color";
+    RenderPassNode composite = selectorCompositePass(
+      prefix + "_composite", "Selector " + std::to_string(overrideIndex + 1) + " composite",
+      baseInputResource, foregroundInput, stencilId, outputId, sceneView, compositeFeatures);
+    plan.addResourceProducer(
+      std::move(composite),
+      selectorColorResource(target, outputId,
+                            "Selector " + std::to_string(overrideIndex + 1) + " composited color"));
+    return outputId;
+  }
+
   RenderPlan RenderGraphCompiler::aovViewPlan(const RenderTargetSpec& target,
                                               RenderExecutorKind executor,
                                               const RenderAOVDefinition& aov,
@@ -515,6 +704,9 @@ namespace engine::graph {
       plan.addResourceProducer(std::move(readback), readbackColor);
       mainInputResource = "beauty_readback_color";
     }
+
+    mainInputResource = addSelectorOverrideBranches(plan, target, std::move(mainInputResource),
+                                                    frameIntent, sceneAnalysis);
 
     RenderResourceDescriptor mainColor =
       target.colorResource("main_color", "Main color", RenderResourceLifetime::Exported);
