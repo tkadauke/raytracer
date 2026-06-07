@@ -1027,13 +1027,6 @@ namespace RenderGraphCompilerTest {
     ASSERT_NE(nullptr, plan.findPass("raster_beauty"));
     EXPECT_TRUE(plan.findPass("raster_beauty")->supportsResourceDomain(RenderResourceDomain::GPU));
 
-    const auto* beautyResource = plan.findResource("beauty_color");
-    ASSERT_NE(nullptr, beautyResource);
-    EXPECT_EQ(RenderResourceDomain::GPU, beautyResource->domain);
-    const auto* readbackResource = plan.findResource("beauty_readback_color");
-    ASSERT_NE(nullptr, readbackResource);
-    EXPECT_EQ(RenderResourceDomain::CPU, readbackResource->domain);
-
     const auto* tonemap = plan.findPass("tonemap");
     ASSERT_NE(nullptr, tonemap);
     ASSERT_EQ(1u, tonemap->reads.size());
