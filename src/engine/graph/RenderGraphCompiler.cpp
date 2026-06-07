@@ -1271,6 +1271,77 @@ namespace engine::graph {
     return pass;
   }
 
+  void RenderGraphCompiler::addReceiverMaskDependency(
+    RenderPlan& plan, const RenderTargetSpec& target, const RenderIntent& intent,
+    const RenderSceneAnalysis::SceneSurfaceMarker& receiver, const std::string& prefix,
+    const std::string& displayName, const RenderFeatureKind& receiverFeature,
+    const RenderPassId& consumerPassId) const {
+    const bool conservative = receiverMaskRequiresConservativeRasterState(intent);
+    plan.connectProducerToConsumer(
+      receiverMaskPass(intent, receiver, prefix, displayName, receiverFeature, conservative),
+      receiverMaskResource(target, prefix, displayName, receiverFeature, conservative),
+      consumerPassId);
+  }
+
+  RenderResourceDescriptor RenderGraphCompiler::receiverMaskResource(
+    const RenderTargetSpec& target, const std::string& prefix, const std::string& displayName,
+    const RenderFeatureKind& receiverFeature, bool conservative) const {
+    RenderResourceDescriptor resource;
+    resource.id = prefixedResourceId(prefix, "receiver_mask");
+    resource.name = displayName + " receiver mask";
+    resource.addFeature("receiver_mask");
+    resource.addFeature("mask");
+    resource.addFeature("stencil");
+    resource.addFeature("rasterizer");
+    resource.addFeature(receiverFeature);
+    if (conservative) {
+      resource.addFeature("conservative_receiver_mask");
+    }
+    resource.type = RenderResourceType::Stencil;
+    resource.format = RenderResourceFormat::UInt8;
+    resource.width = target.width;
+    resource.height = target.height;
+    resource.sampleCount = 1;
+    resource.domain = RenderResourceDomain::CPU;
+    resource.lifetime = RenderResourceLifetime::Transient;
+    return resource;
+  }
+
+  RenderPassNode RenderGraphCompiler::receiverMaskPass(
+    const RenderIntent& intent, const RenderSceneAnalysis::SceneSurfaceMarker& receiver,
+    const std::string& prefix, const std::string& displayName,
+    const RenderFeatureKind& receiverFeature, bool conservative) const {
+    RenderPassNode pass;
+    pass.id = prefixedPassId(prefix, "receiver_mask");
+    pass.name = displayName + " receiver mask";
+    pass.kind = RenderPassKind::AOV;
+    pass.executor = RenderExecutorKind::Rasterizer;
+    pass.features = {"receiver_mask", "mask", "stencil", "rasterizer", receiverFeature};
+    if (conservative) {
+      pass.features.push_back("conservative_receiver_mask");
+    }
+    pass.sceneView = intent.defaultSceneView();
+    pass.sceneView.selector = conservative || receiver.surfaceId.empty()
+                                ? SceneSelector::all()
+                                : SceneSelector::objectId(receiver.surfaceId);
+    pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
+    pass.canRunConcurrently = false;
+
+    RasterBeautyPassState state =
+      intent.engineOptions.rasterizer().beautyPassState(1, RenderPostProcessAA::None, false, false);
+    state.framebuffer().setColorWriteMask(0);
+    state.framebuffer().configureStencilWritePass(0xff);
+    state.writeTo(pass);
+    return pass;
+  }
+
+  bool RenderGraphCompiler::receiverMaskRequiresConservativeRasterState(
+    const RenderIntent& intent) const {
+    const RasterBeautyPassState state =
+      intent.engineOptions.rasterizer().beautyPassState(1, RenderPostProcessAA::None, false, false);
+    return !state.framebuffer().supportsFrontToBackVisibilityOrdering();
+  }
+
   RenderIntent RenderGraphCompiler::subviewRenderIntent(const RenderIntent& frameIntent,
                                                         const RenderSubviewIntent& subview) const {
     RenderIntent result;
