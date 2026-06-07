@@ -840,8 +840,7 @@ namespace GraphRenderEngineTest {
     GraphRenderEngine engine(camera(), highContrastScene());
 
     auto activeCamera =
-      std::make_shared<render::PinholeCamera>(Vector3d(2.0, 3.0, -5.0),
-                                              Vector3d(2.0, 3.0, 0.0));
+      std::make_shared<render::PinholeCamera>(Vector3d(2.0, 3.0, -5.0), Vector3d(2.0, 3.0, 0.0));
     engine.setSceneCamera("active-camera", activeCamera);
 
     DerivedCameraRef derived;
@@ -867,8 +866,7 @@ namespace GraphRenderEngineTest {
     GraphRenderEngine engine(camera(), highContrastScene());
 
     auto activeCamera =
-      std::make_shared<render::PinholeCamera>(Vector3d(1.0, 3.0, -4.0),
-                                              Vector3d(1.0, 1.0, 0.0));
+      std::make_shared<render::PinholeCamera>(Vector3d(1.0, 3.0, -4.0), Vector3d(1.0, 1.0, 0.0));
     engine.setSceneCamera("active-camera", activeCamera);
 
     DerivedCameraRef derived;
@@ -2968,6 +2966,51 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[0][1]);
     EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[1][0]);
     EXPECT_EQ(Colord(1.0, 0.0, 0.0), buffer[1][1]);
+  }
+
+  TEST(GraphRenderEngine, DisabledCompositePassesThroughBaseColorResource) {
+    auto scene = std::make_shared<render::Scene>();
+
+    RenderPlan plan;
+    plan.addResource(colorResource("base_color", RenderResourceLifetime::History));
+    plan.addResource(colorResource("foreground_color", RenderResourceLifetime::History));
+    plan.addResource(stencilResource("stencil_mask", RenderResourceLifetime::History));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    RenderPassNode composite;
+    composite.id = "portal_composite";
+    composite.kind = RenderPassKind::Composite;
+    composite.executor = RenderExecutorKind::Composite;
+    composite.features = {"stencil_composite"};
+    composite.enabled = false;
+    composite.disabledBehavior = DisabledBehavior::Passthrough;
+    composite.reads.push_back({"base_color"});
+    composite.reads.push_back({"foreground_color"});
+    composite.reads.push_back({"stencil_mask"});
+    composite.writes.push_back({"display_color"});
+    plan.addPass(composite);
+    ASSERT_TRUE(plan.validate().valid());
+
+    auto baseColor = std::make_shared<Buffer<Colord>>(2, 2);
+    auto foregroundColor = std::make_shared<Buffer<Colord>>(2, 2);
+    auto stencil = std::make_shared<Buffer<std::uint8_t>>(2, 2);
+    baseColor->clear(Colord(0.0, 0.0, 1.0));
+    foregroundColor->clear(Colord(1.0, 0.0, 0.0));
+    stencil->clear(1);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    engine.setExternalColorResource("base_color", baseColor);
+    engine.setExternalColorResource("foreground_color", foregroundColor);
+    engine.setExternalStencilResource("stencil_mask", stencil);
+
+    Buffer<Colord> buffer(2, 2);
+    engine.render(buffer);
+
+    EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[0][0]);
+    EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[0][1]);
+    EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[1][0]);
+    EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[1][1]);
   }
 
   TEST(GraphRenderEngine, LdrRenderPacksGraphOutputWithoutApplyingTonemapAgain) {

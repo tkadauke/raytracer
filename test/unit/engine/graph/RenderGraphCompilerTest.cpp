@@ -1079,6 +1079,25 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(portalMaskResource->hasFeature("receiver_mask"));
     EXPECT_TRUE(portalMaskResource->hasFeature("portal_receiver"));
 
+    const auto* portalComposite = plan.findPass("subview_portal_portal_panel_composite");
+    ASSERT_NE(nullptr, portalComposite);
+    EXPECT_EQ(RenderPassKind::Composite, portalComposite->kind);
+    EXPECT_EQ(RenderExecutorKind::Composite, portalComposite->executor);
+    EXPECT_EQ(DisabledBehavior::Passthrough, portalComposite->disabledBehavior);
+    EXPECT_TRUE(hasFeature(*portalComposite, "subview_composite"));
+    EXPECT_TRUE(hasFeature(*portalComposite, "stencil_composite"));
+    EXPECT_TRUE(hasFeature(*portalComposite, "portal_receiver"));
+    ASSERT_EQ(3u, portalComposite->reads.size());
+    EXPECT_EQ("beauty_color", portalComposite->reads[0].resource);
+    EXPECT_EQ("subview_portal_portal_panel_main_color", portalComposite->reads[1].resource);
+    EXPECT_EQ("subview_portal_portal_panel_receiver_mask", portalComposite->reads[2].resource);
+    ASSERT_EQ(1u, portalComposite->writes.size());
+    EXPECT_EQ("subview_portal_portal_panel_composited_color",
+              portalComposite->writes.front().resource);
+    ASSERT_NE(nullptr, plan.findResource("subview_portal_portal_panel_composited_color"));
+    EXPECT_TRUE(plan.findResource("subview_portal_portal_panel_composited_color")
+                  ->hasFeature("portal_receiver"));
+
     const auto* mirrorPass = plan.findPass("subview_mirror_mirror_panel_raytrace_beauty");
     ASSERT_NE(nullptr, mirrorPass);
     ASSERT_TRUE(mirrorPass->sceneView.camera.has_value());
@@ -1097,6 +1116,24 @@ namespace RenderGraphCompilerTest {
     ASSERT_EQ(1u, mirrorMask->writes.size());
     EXPECT_EQ("subview_mirror_mirror_panel_receiver_mask", mirrorMask->writes.front().resource);
 
+    const auto* mirrorComposite = plan.findPass("subview_mirror_mirror_panel_composite");
+    ASSERT_NE(nullptr, mirrorComposite);
+    EXPECT_TRUE(hasFeature(*mirrorComposite, "subview_composite"));
+    EXPECT_TRUE(hasFeature(*mirrorComposite, "stencil_composite"));
+    EXPECT_TRUE(hasFeature(*mirrorComposite, "mirror_receiver"));
+    ASSERT_EQ(3u, mirrorComposite->reads.size());
+    EXPECT_EQ("subview_portal_portal_panel_composited_color", mirrorComposite->reads[0].resource);
+    EXPECT_EQ("subview_mirror_mirror_panel_main_color", mirrorComposite->reads[1].resource);
+    EXPECT_EQ("subview_mirror_mirror_panel_receiver_mask", mirrorComposite->reads[2].resource);
+    ASSERT_EQ(1u, mirrorComposite->writes.size());
+    EXPECT_EQ("subview_mirror_mirror_panel_composited_color",
+              mirrorComposite->writes.front().resource);
+
+    const auto* tonemap = plan.findPass("tonemap");
+    ASSERT_NE(nullptr, tonemap);
+    ASSERT_EQ(1u, tonemap->reads.size());
+    EXPECT_EQ("subview_mirror_mirror_panel_composited_color", tonemap->reads.front().resource);
+
     ASSERT_TRUE(plan.executionOrderNumber("subview_portal_portal_panel_receiver_mask").has_value());
     ASSERT_TRUE(
       plan.executionOrderNumber("subview_portal_portal_panel_raytrace_beauty").has_value());
@@ -1104,6 +1141,36 @@ namespace RenderGraphCompilerTest {
               *plan.executionOrderNumber("subview_portal_portal_panel_raytrace_beauty"));
     EXPECT_TRUE(plan.resourceCanReach("subview_portal_portal_panel_receiver_mask",
                                       "subview_portal_portal_panel_main_color"));
+    EXPECT_TRUE(plan.resourceCanReach("subview_portal_portal_panel_main_color", "main_color"));
+    EXPECT_TRUE(plan.resourceCanReach("subview_mirror_mirror_panel_main_color", "main_color"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, AutomaticRasterSubviewCompositeUsesDepthWhenAvailable) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.requestExportedAOV(RenderViewMode::Depth);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordPlanarMirrorSurface("mirror-panel", "Mirror Panel", Vector3d(0.0, 0.0, 0.0),
+                                       Vector3d(0.0, 1.0, 0.0));
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    const auto* composite = plan.findPass("subview_mirror_mirror_panel_composite");
+    ASSERT_NE(nullptr, composite);
+    EXPECT_TRUE(hasFeature(*composite, "stencil_composite"));
+    EXPECT_TRUE(hasFeature(*composite, "depth_composite"));
+    ASSERT_EQ(5u, composite->reads.size());
+    EXPECT_EQ("beauty_color", composite->reads[0].resource);
+    EXPECT_EQ("subview_mirror_mirror_panel_main_color", composite->reads[1].resource);
+    EXPECT_EQ("depth_aov", composite->reads[2].resource);
+    EXPECT_EQ("subview_mirror_mirror_panel_depth_aov", composite->reads[3].resource);
+    EXPECT_EQ("subview_mirror_mirror_panel_receiver_mask", composite->reads[4].resource);
+    EXPECT_TRUE(plan.resourceCanReach("depth_aov", "subview_mirror_mirror_panel_composited_color"));
+    EXPECT_TRUE(plan.resourceCanReach("subview_mirror_mirror_panel_depth_aov",
+                                      "subview_mirror_mirror_panel_composited_color"));
     EXPECT_TRUE(plan.validate().valid());
   }
 

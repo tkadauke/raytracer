@@ -374,7 +374,10 @@ namespace engine::graph {
     }
 
     void passthroughColorOutput(const RenderPassNode& pass, RenderResourceStorage& storage) {
-      const auto& read = pass.singleRead();
+      if (pass.reads.empty()) {
+        throw passError(pass, "disabled passthrough pass has no input resource");
+      }
+      const auto& read = pass.reads.front();
       requireColorResource(storage, read.resource, pass);
       const Buffer<Colord>& source = storage.color(read.resource);
 
@@ -1137,12 +1140,10 @@ namespace engine::graph {
         result->setPosition(transform.transformPoint(base->position()));
         result->setTarget(transform.transformPoint(base->target()));
       } else {
-        result->setPosition(
-          reflectPointAcrossPlane(base->position(), derived.mirrorPlanePoint,
-                                  derived.mirrorPlaneNormal));
-        result->setTarget(
-          reflectPointAcrossPlane(base->target(), derived.mirrorPlanePoint,
-                                  derived.mirrorPlaneNormal));
+        result->setPosition(reflectPointAcrossPlane(base->position(), derived.mirrorPlanePoint,
+                                                    derived.mirrorPlaneNormal));
+        result->setTarget(reflectPointAcrossPlane(base->target(), derived.mirrorPlanePoint,
+                                                  derived.mirrorPlaneNormal));
       }
       return result;
     }
