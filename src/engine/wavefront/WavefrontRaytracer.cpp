@@ -45,10 +45,6 @@ namespace engine::wavefront {
       const render::Scene& m_scene;
       const render::Integrator& m_integrator;
     };
-
-    bool recordsLightweightMetrics(const render::Camera& camera, const render::Denoiser* denoiser) {
-      return camera.isCancelled() || (denoiser && denoiser->requestedFeatures().any());
-    }
   }
 
   void WavefrontRenderMetrics::TimingSummary::recordIntegratorBatch(
@@ -425,7 +421,15 @@ namespace engine::wavefront {
     std::shared_ptr<Buffer<Colord>> lastSampleRadianceStddevColor;
     detail::WavefrontMetricsRecorder metrics;
 
-    detail::WavefrontTileRenderConfig tileRenderConfig() const {
+    bool denoiserRequestsFeatures() const {
+      return denoiser && denoiser->requestedFeatures().any();
+    }
+
+    bool shouldRecordLastMetrics(const render::Camera& camera) const {
+      return metricsEnabled || camera.isCancelled() || denoiserRequestsFeatures();
+    }
+
+    detail::WavefrontTileRenderConfig tileRenderConfig(bool recordMetrics) const {
       return detail::WavefrontTileRenderConfig{*integrator,
                                                denoiser.get(),
                                                showProgressIndicators,
@@ -435,12 +439,12 @@ namespace engine::wavefront {
                                                adaptiveSamplingEnabled,
                                                adaptiveMinimumSamples,
                                                adaptiveStddevThreshold,
-                                               metricsEnabled,
+                                               recordMetrics,
                                                samplingSeed};
     }
 
-    detail::WavefrontTileRenderer tileRenderer() {
-      return detail::WavefrontTileRenderer(tileRenderConfig(), metrics);
+    detail::WavefrontTileRenderer tileRenderer(bool recordMetrics) {
+      return detail::WavefrontTileRenderer(tileRenderConfig(recordMetrics), metrics);
     }
 
     Buffer<double>* prepareSampleRadianceStddevBuffer(int width, int height) {
@@ -541,8 +545,7 @@ namespace engine::wavefront {
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
-    const bool recordMetrics =
-      p->metricsEnabled || recordsLightweightMetrics(*m_camera, p->denoiser.get());
+    const bool recordMetrics = p->shouldRecordLastMetrics(*m_camera);
     if (recordMetrics) {
       p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
@@ -552,7 +555,7 @@ namespace engine::wavefront {
     } else {
       p->metrics.clear();
     }
-    auto tileRenderer = p->tileRenderer();
+    auto tileRenderer = p->tileRenderer(recordMetrics);
     const auto denoiserFeatures = tileRenderer.buildDenoiserFeatures(
       *m_camera, *m_scene, buffer.rect(), tilePlan, *p->threadPool, p->denoiserFeatureTasks);
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
@@ -617,8 +620,7 @@ namespace engine::wavefront {
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
-    const bool recordMetrics =
-      p->metricsEnabled || recordsLightweightMetrics(*m_camera, p->denoiser.get());
+    const bool recordMetrics = p->shouldRecordLastMetrics(*m_camera);
     if (recordMetrics) {
       p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
@@ -628,7 +630,7 @@ namespace engine::wavefront {
     } else {
       p->metrics.clear();
     }
-    auto tileRenderer = p->tileRenderer();
+    auto tileRenderer = p->tileRenderer(recordMetrics);
     Buffer<double>* sampleRadianceStddevBuffer =
       p->prepareSampleRadianceStddevBuffer(buffer.width(), buffer.height());
     Buffer<Colord>* sampleRadianceStddevColorBuffer =
@@ -689,8 +691,7 @@ namespace engine::wavefront {
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(hdrBuffer.width(), hdrBuffer.height(), p->queueSize);
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
-    const bool recordMetrics =
-      p->metricsEnabled || recordsLightweightMetrics(*m_camera, p->denoiser.get());
+    const bool recordMetrics = p->shouldRecordLastMetrics(*m_camera);
     if (recordMetrics) {
       p->metrics.reset(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
@@ -700,7 +701,7 @@ namespace engine::wavefront {
     } else {
       p->metrics.clear();
     }
-    auto tileRenderer = p->tileRenderer();
+    auto tileRenderer = p->tileRenderer(recordMetrics);
     const auto denoiserFeatures = tileRenderer.buildDenoiserFeatures(
       *m_camera, *m_scene, hdrBuffer.rect(), tilePlan, *p->threadPool, p->denoiserFeatureTasks);
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
