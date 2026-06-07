@@ -111,6 +111,23 @@ render::MaterialBsdfSample TransparentMaterial::sampleBsdf(const HitPoint& hitPo
   return MaterialBsdfSample();
 }
 
+std::vector<render::MaterialBsdfSample>
+TransparentMaterial::deltaBsdfSamples(const HitPoint& hitPoint, const Vector3d& wi) const {
+  const Rayd incidentRay(hitPoint.point(), -wi);
+  if (m_specularBTDF.totalInternalReflection(incidentRay, hitPoint)) {
+    return {sampleTotalInternalReflectionBsdf(hitPoint, wi)};
+  }
+
+  std::vector<MaterialBsdfSample> samples;
+  if (reflectionCoefficient() > 0.0 && reflectionColor() != Colord::black()) {
+    samples.push_back(sampleReflectionBsdf(hitPoint, wi, /*selectionWeight=*/1.0));
+  }
+  if (transmissionCoefficient() > 0.0) {
+    samples.push_back(sampleTransmissionBsdf(hitPoint, wi, /*selectionWeight=*/1.0));
+  }
+  return samples;
+}
+
 double TransparentMaterial::bsdfPdf(const HitPoint& hitPoint, const Vector3d& wi,
                                     const Vector3d& wo) const {
   (void)hitPoint;

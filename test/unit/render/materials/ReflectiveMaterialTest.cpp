@@ -9,6 +9,8 @@
 #include "test/helpers/ColorTestHelper.h"
 #include "test/helpers/RecordingRayCaster.h"
 
+#include <vector>
+
 namespace ReflectiveMaterialTest {
   using namespace render;
   using test::helpers::RecordingRayCaster;
@@ -85,6 +87,21 @@ namespace ReflectiveMaterialTest {
     EXPECT_DOUBLE_EQ(1.0, sampled.pdf);
     ASSERT_COLOR_NEAR(Colord(0, 0.25, 0), sampled.value, 1e-12);
     EXPECT_DOUBLE_EQ(0.0, material.bsdfPdf(hitPoint, Vector3d(0, 1, 0), sampled.direction));
+  }
+
+  TEST(ReflectiveMaterial, ExposesMirrorReflectionAsExactDeltaBranch) {
+    ReflectiveMaterial material;
+    material.setReflectionColor(Colord(0, 1, 0));
+    material.setReflectionCoefficient(0.25);
+    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+
+    const std::vector<MaterialBsdfSample> branches =
+      material.deltaBsdfSamples(hitPoint, Vector3d(0, 1, 0));
+
+    ASSERT_EQ(1u, branches.size());
+    EXPECT_TRUE(branches[0].isDelta);
+    EXPECT_DOUBLE_EQ(1.0, branches[0].pdf);
+    ASSERT_COLOR_NEAR(Colord(0, 0.25, 0), branches[0].value, 1e-12);
   }
 
   TEST(ReflectiveMaterial, ShouldDescribeRasterRecursiveFallback) {

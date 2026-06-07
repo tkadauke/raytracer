@@ -44,6 +44,11 @@ render::MaterialBsdfSample PortalMaterial::sampleBsdf(const HitPoint& hitPoint, 
   return result;
 }
 
+std::vector<render::MaterialBsdfSample> PortalMaterial::deltaBsdfSamples(const HitPoint& hitPoint,
+                                                                         const Vector3d& wi) const {
+  return {sampleBsdf(hitPoint, wi, Vector2d(0.5, 0.5))};
+}
+
 double PortalMaterial::bsdfPdf(const HitPoint&, const Vector3d&, const Vector3d&) const {
   return 0.0;
 }

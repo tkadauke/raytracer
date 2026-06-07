@@ -16,7 +16,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <list>
 #include <map>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <utility>
@@ -29,6 +31,15 @@ namespace render {
       this->accumulated() = Colord::black();
       state.timeSample = sample.timeSample;
       state.sampleStream = sample.sampleStream();
+    }
+
+    BatchPath(Rayd nextRay, Colord nextThroughput, bool nextBackgroundVisible, State nextState,
+              Colord& accumulated)
+        : ray(std::move(nextRay)),
+          throughput(nextThroughput),
+          backgroundVisible(nextBackgroundVisible),
+          state(std::move(nextState)),
+          m_accumulated(&accumulated) {
     }
 
     Colord& accumulated() {
@@ -46,6 +57,34 @@ namespace render {
 
   private:
     Colord* m_accumulated;
+  };
+
+  struct PathTracingIntegrator::ScalarPath {
+    ScalarPath(const Rayd& primaryRay, State& primaryState)
+        : ray(primaryRay),
+          state(&primaryState) {
+    }
+
+    ScalarPath(Rayd nextRay, Colord nextThroughput, bool nextBackgroundVisible, State nextState)
+        : ray(std::move(nextRay)),
+          throughput(nextThroughput),
+          backgroundVisible(nextBackgroundVisible),
+          ownedState(std::make_unique<State>(std::move(nextState))),
+          state(ownedState.get()) {
+    }
+
+    ScalarPath(ScalarPath&&) noexcept = default;
+    ScalarPath& operator=(ScalarPath&&) noexcept = default;
+
+    State& pathState() {
+      return *state;
+    }
+
+    Rayd ray;
+    Colord throughput{Colord::white()};
+    bool backgroundVisible{true};
+    std::unique_ptr<State> ownedState;
+    State* state{nullptr};
   };
 
   struct PathTracingIntegrator::BatchHit {
@@ -113,8 +152,69 @@ namespace render {
     return m_cancellationCallback && m_cancellationCallback();
   }
 
+  State PathTracingIntegrator::clonePathState(const State& state) const {
+    State result;
+    result.traceEvents = state.traceEvents;
+    result.numRays = state.numRays;
+    result.recursionDepth = state.recursionDepth;
+    result.maxRecursionDepth = state.maxRecursionDepth;
+    result.intersectionHits = state.intersectionHits;
+    result.intersectionMisses = state.intersectionMisses;
+    result.shadowIntersectionHits = state.shadowIntersectionHits;
+    result.shadowIntersectionMisses = state.shadowIntersectionMisses;
+    result.packetHitScalarFallbacks = state.packetHitScalarFallbacks;
+    result.packetHitScalarFallbacksByReason = state.packetHitScalarFallbacksByReason;
+    result.hitPoint = state.hitPoint;
+    result.timeSample = state.timeSample;
+    result.throughput = state.throughput;
+    result.sampleStream = state.sampleStream;
+    if (state.events) {
+      result.events = std::make_unique<std::list<std::string>>(*state.events);
+    }
+    return result;
+  }
+
   Colord PathTracingIntegrator::missRadiance(const Scene& scene, bool backgroundVisible) const {
     return backgroundVisible ? scene.background() : scene.environmentRadiance();
+  }
+
+  bool PathTracingIntegrator::canContinueWithSample(const MaterialBsdfSample& sample,
+                                                    const HitPoint& hitPoint) const {
+    if (sample.pdf <= 0.0 || sample.value == Colord::black()) {
+      return false;
+    }
+
+    const double normalDotWo = hitPoint.normal() * sample.direction;
+    return sample.isDelta || normalDotWo > 0.0;
+  }
+
+  Colord PathTracingIntegrator::continuedThroughput(const Colord& throughput,
+                                                    const MaterialBsdfSample& sample,
+                                                    const HitPoint& hitPoint) const {
+    if (sample.isDelta) {
+      return throughput * sample.value;
+    }
+
+    const double normalDotWo = hitPoint.normal() * sample.direction;
+    return throughput * (sample.value * (normalDotWo / sample.pdf));
+  }
+
+  bool PathTracingIntegrator::survivesRussianRoulette(Colord& throughput, State& state,
+                                                      int bounce) const {
+    if (bounce < m_russianRouletteDepth) {
+      return true;
+    }
+
+    const double survival =
+      std::clamp(std::max({throughput.r(), throughput.g(), throughput.b()}), 0.05, 0.95);
+    const double roulette = state.sampleStream->sample1D(SampleDimension::Continuation,
+                                                         static_cast<std::uint64_t>(bounce));
+    if (roulette >= survival) {
+      return false;
+    }
+
+    throughput = throughput * (1.0 / survival);
+    return true;
   }
 
   void PathTracingIntegrator::recordDepthDelta(BatchDepthMetrics& depthMetrics,
@@ -417,99 +517,110 @@ namespace render {
     }
 
     Colord accumulated = Colord::black();
-    Colord throughput = Colord::white();
-    bool backgroundVisible = true;
-    Rayd ray = primaryRay;
+    std::vector<ScalarPath> paths;
+    paths.emplace_back(primaryRay, state);
 
-    for (int bounce = 0; bounce < m_maximumRecursionDepth; ++bounce) {
-      if (isCancelled()) {
-        return accumulated;
-      }
+    for (int bounce = 0; bounce < m_maximumRecursionDepth && !paths.empty(); ++bounce) {
+      std::vector<ScalarPath> nextPaths;
+      nextPaths.reserve(paths.size() * 2);
 
-      state.recurseIn();
-
-      HitPointInterval hitPoints;
-      const Primitive* primitive = scene.intersect(ray, hitPoints, state);
-      if (!primitive) {
-        accumulated += throughput * missRadiance(scene, backgroundVisible);
-        state.recurseOut();
-        break;
-      }
-
-      const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
-      if (bounce == 0) {
-        state.hitPoint = hitPoint;
-      }
-
-      const auto material = primitive->material();
-      if (!material) {
-        state.recurseOut();
-        break;
-      }
-
-      // wi is the direction back along the incoming ray, pointing
-      // AWAY from the surface — matches the BSDF convention.
-      const Vector3d wi = -ray.direction().normalized();
-
-      // Materials without BSDF support fall back to Whitted. The
-      // contribution is the full shaded color (which includes direct
-      // lighting); we add it weighted by throughput and terminate
-      // this path. No further bounces past such a surface yet.
-      if (!material->supportsBsdfSampling()) {
-        const Colord whittedColor =
-          material->shade(&recursiveRayCaster, scene, ray, hitPoint, state);
-        accumulated += throughput * whittedColor;
-        state.recurseOut();
-        break;
-      }
-
-      accumulated += throughput * material->ambientRadiance(scene, ray, hitPoint);
-
-      // Direct lighting via NEE.
-      for (const auto& light : scene.lights()) {
-        accumulated += throughput * directLighting(scene, *light, hitPoint, *material, wi, state);
-      }
-
-      // Indirect: sample a continuation direction.
-      const Vector2d bsdfSample =
-        state.sampleStream->sample2D(SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
-      const MaterialBsdfSample sampled = material->sampleBsdf(hitPoint, wi, bsdfSample);
-      if (sampled.pdf <= 0.0 || sampled.value == Colord::black()) {
-        state.recurseOut();
-        break;
-      }
-
-      const double normalDotWo = hitPoint.normal() * sampled.direction;
-      if (!sampled.isDelta && normalDotWo <= 0.0) {
-        state.recurseOut();
-        break;
-      }
-
-      // For delta lobes the value is already the post-cancellation
-      // contribution; skip the pdf division and the cosine.
-      if (sampled.isDelta) {
-        throughput = throughput * sampled.value;
-      } else {
-        throughput = throughput * (sampled.value * (normalDotWo / sampled.pdf));
-        backgroundVisible = false;
-      }
-
-      // Russian roulette beyond the configured depth.
-      if (bounce >= m_russianRouletteDepth) {
-        const double survival =
-          std::clamp(std::max({throughput.r(), throughput.g(), throughput.b()}), 0.05, 0.95);
-        const double roulette = state.sampleStream->sample1D(SampleDimension::Continuation,
-                                                             static_cast<std::uint64_t>(bounce));
-        if (roulette >= survival) {
-          state.recurseOut();
-          break;
+      for (auto& path : paths) {
+        if (isCancelled()) {
+          return accumulated;
         }
-        throughput = throughput * (1.0 / survival);
+
+        State& pathState = path.pathState();
+        pathState.recurseIn();
+
+        HitPointInterval hitPoints;
+        const Primitive* primitive = scene.intersect(path.ray, hitPoints, pathState);
+        if (!primitive) {
+          accumulated += path.throughput * missRadiance(scene, path.backgroundVisible);
+          pathState.recurseOut();
+          continue;
+        }
+
+        const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+        if (bounce == 0) {
+          pathState.hitPoint = hitPoint;
+        }
+
+        const auto material = primitive->material();
+        if (!material) {
+          pathState.recurseOut();
+          continue;
+        }
+
+        // wi is the direction back along the incoming ray, pointing
+        // AWAY from the surface — matches the BSDF convention.
+        const Vector3d wi = -path.ray.direction().normalized();
+
+        // Materials without BSDF support fall back to Whitted. The
+        // contribution is the full shaded color (which includes direct
+        // lighting); we add it weighted by throughput and terminate
+        // this path. No further bounces past such a surface yet.
+        if (!material->supportsBsdfSampling()) {
+          const Colord whittedColor =
+            material->shade(&recursiveRayCaster, scene, path.ray, hitPoint, pathState);
+          accumulated += path.throughput * whittedColor;
+          pathState.recurseOut();
+          continue;
+        }
+
+        accumulated += path.throughput * material->ambientRadiance(scene, path.ray, hitPoint);
+
+        // Direct lighting via NEE.
+        for (const auto& light : scene.lights()) {
+          accumulated +=
+            path.throughput * directLighting(scene, *light, hitPoint, *material, wi, pathState);
+        }
+
+        const std::vector<MaterialBsdfSample> deltaSamples =
+          material->deltaBsdfSamples(hitPoint, wi);
+        if (!deltaSamples.empty()) {
+          State baseState = clonePathState(pathState);
+          baseState.recurseOut();
+          for (const MaterialBsdfSample& sampled : deltaSamples) {
+            if (!canContinueWithSample(sampled, hitPoint)) {
+              continue;
+            }
+
+            Colord nextThroughput = continuedThroughput(path.throughput, sampled, hitPoint);
+            State childState = clonePathState(baseState);
+            if (!survivesRussianRoulette(nextThroughput, childState, bounce)) {
+              continue;
+            }
+            nextPaths.emplace_back(sampled.rayFrom(hitPoint), nextThroughput,
+                                   path.backgroundVisible, std::move(childState));
+          }
+          pathState.recurseOut();
+          continue;
+        }
+
+        // Indirect: sample a continuation direction.
+        const Vector2d bsdfSample = pathState.sampleStream->sample2D(
+          SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
+        const MaterialBsdfSample sampled = material->sampleBsdf(hitPoint, wi, bsdfSample);
+        if (!canContinueWithSample(sampled, hitPoint)) {
+          pathState.recurseOut();
+          continue;
+        }
+
+        Colord nextThroughput = continuedThroughput(path.throughput, sampled, hitPoint);
+        if (!survivesRussianRoulette(nextThroughput, pathState, bounce)) {
+          pathState.recurseOut();
+          continue;
+        }
+
+        State childState = clonePathState(pathState);
+        childState.recurseOut();
+        pathState.recurseOut();
+        nextPaths.emplace_back(sampled.rayFrom(hitPoint), nextThroughput,
+                               sampled.isDelta ? path.backgroundVisible : false,
+                               std::move(childState));
       }
 
-      // Continue along the sampled direction.
-      ray = sampled.rayFrom(hitPoint);
-      state.recurseOut();
+      paths = std::move(nextPaths);
     }
 
     return accumulated;
@@ -570,6 +681,9 @@ namespace render {
           depthMetrics.frontierPacketScalarFallbackRaysByReason);
       }
 
+      std::vector<BatchPath> spawnedPaths;
+      spawnedPaths.reserve(activeHits.size() * 2);
+
       for (const auto& hit : activeHits) {
         auto& path = paths[hit.pathIndex];
         const Colord accumulatedBeforeDepth =
@@ -604,41 +718,48 @@ namespace render {
                                                                    *material, wi, path.state);
           }
 
+          const std::vector<MaterialBsdfSample> deltaSamples =
+            material->deltaBsdfSamples(hit.hitPoint, wi);
+          if (!deltaSamples.empty()) {
+            State baseState = clonePathState(path.state);
+            baseState.recurseOut();
+            for (const MaterialBsdfSample& sampled : deltaSamples) {
+              if (!canContinueWithSample(sampled, hit.hitPoint)) {
+                continue;
+              }
+
+              Colord nextThroughput = continuedThroughput(path.throughput, sampled, hit.hitPoint);
+              State childState = clonePathState(baseState);
+              if (!survivesRussianRoulette(nextThroughput, childState, bounce)) {
+                continue;
+              }
+              spawnedPaths.emplace_back(sampled.rayFrom(hit.hitPoint), nextThroughput,
+                                        path.backgroundVisible, std::move(childState),
+                                        path.accumulated());
+            }
+            path.state.recurseOut();
+            recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
+            continue;
+          }
+
           const Vector2d bsdfSample = path.state.sampleStream->sample2D(
             SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
           const MaterialBsdfSample sampled = material->sampleBsdf(hit.hitPoint, wi, bsdfSample);
-          if (sampled.pdf <= 0.0 || sampled.value == Colord::black()) {
+          if (!canContinueWithSample(sampled, hit.hitPoint)) {
             path.state.recurseOut();
             recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
             continue;
           }
 
-          const double normalDotWo = hit.hitPoint.normal() * sampled.direction;
-          if (!sampled.isDelta && normalDotWo <= 0.0) {
-            path.state.recurseOut();
-            recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
-            continue;
-          }
-
-          if (sampled.isDelta) {
-            path.throughput = path.throughput * sampled.value;
-          } else {
-            path.throughput = path.throughput * (sampled.value * (normalDotWo / sampled.pdf));
+          path.throughput = continuedThroughput(path.throughput, sampled, hit.hitPoint);
+          if (!sampled.isDelta) {
             path.backgroundVisible = false;
           }
 
-          if (bounce >= m_russianRouletteDepth) {
-            const double survival =
-              std::clamp(std::max({path.throughput.r(), path.throughput.g(), path.throughput.b()}),
-                         0.05, 0.95);
-            const double roulette = path.state.sampleStream->sample1D(
-              SampleDimension::Continuation, static_cast<std::uint64_t>(bounce));
-            if (roulette >= survival) {
-              path.state.recurseOut();
-              recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
-              continue;
-            }
-            path.throughput = path.throughput * (1.0 / survival);
+          if (!survivesRussianRoulette(path.throughput, path.state, bounce)) {
+            path.state.recurseOut();
+            recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
+            continue;
           }
 
           path.ray = sampled.rayFrom(hit.hitPoint);
@@ -647,6 +768,14 @@ namespace render {
           retainActivePath(paths, hit.pathIndex, retainedPathCount);
         }
       }
+
+      while (paths.size() != retainedPathCount) {
+        paths.pop_back();
+      }
+      for (auto& spawnedPath : spawnedPaths) {
+        paths.push_back(std::move(spawnedPath));
+      }
+      retainedPathCount = paths.size();
 
       if (metrics) {
         metrics->recordRadianceDeltaDepth(depthMetrics.depthDeltaSquaredSum,
@@ -682,10 +811,6 @@ namespace render {
           }
           break;
         }
-      }
-
-      while (paths.size() != retainedPathCount) {
-        paths.pop_back();
       }
     }
 

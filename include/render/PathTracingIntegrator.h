@@ -10,6 +10,7 @@ class HitPoint;
 namespace render {
   class Light;
   class Material;
+  struct MaterialBsdfSample;
   class Primitive;
 
   /**
@@ -41,9 +42,10 @@ namespace render {
     *  5. Direct lighting (next-event estimation): for each light, draw
     *     a `LightSample`, shadow-test, accumulate
     *     `throughput · BSDF.eval(wi, wo_light) · L_i / pdf_light`.
-    *  6. Indirect: `Material::sampleBsdf(...)` for the next direction
-    *     and BSDF value, update `throughput · value / pdf · |cos|`,
-    *     advance the ray.
+    *  6. Indirect: if the material publishes enumerable delta branches
+    *     (`Material::deltaBsdfSamples(...)`), split them exactly; otherwise
+    *     use `Material::sampleBsdf(...)` for one sampled continuation and
+    *     update `throughput · value / pdf · |cos|`.
     *  7. Russian roulette beyond `russianRouletteDepth()` — terminate
     *     with probability `1 - throughput.max()`; otherwise rescale
     *     throughput to compensate.
@@ -102,11 +104,17 @@ namespace render {
     struct BatchDepthMetrics;
     struct BatchHit;
     struct BatchPath;
+    struct ScalarPath;
 
     bool isCancelled() const;
+    State clonePathState(const State& state) const;
     Colord missRadiance(const Scene& scene, bool backgroundVisible) const;
     Colord directLighting(const Scene& scene, const Light& light, const HitPoint& hitPoint,
                           const Material& material, const Vector3d& wi, State& state) const;
+    bool canContinueWithSample(const MaterialBsdfSample& sample, const HitPoint& hitPoint) const;
+    Colord continuedThroughput(const Colord& throughput, const MaterialBsdfSample& sample,
+                               const HitPoint& hitPoint) const;
+    bool survivesRussianRoulette(Colord& throughput, State& state, int bounce) const;
     void recordDepthDelta(BatchDepthMetrics& depthMetrics, const Colord& before,
                           const Colord& after) const;
     void recordFrontierHit(std::size_t pathIndex, BatchPath& path, const Primitive& primitive,

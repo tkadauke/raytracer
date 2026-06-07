@@ -64,6 +64,9 @@ namespace render {
     MaterialBsdfSample sampleBsdf(const HitPoint& hitPoint, const Vector3d& wi,
                                   const Vector2d& sample) const override;
 
+    std::vector<MaterialBsdfSample> deltaBsdfSamples(const HitPoint& hitPoint,
+                                                     const Vector3d& wi) const override;
+
     double bsdfPdf(const HitPoint& hitPoint, const Vector3d& wi, const Vector3d& wo) const override;
 
   private:

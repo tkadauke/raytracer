@@ -275,6 +275,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Path tracing exact delta branches.** Path tracing now asks materials for
+  enumerable delta continuations and splits perfect mirror/refraction/portal
+  branches exactly, reducing glass variance without adding type switches in the
+  integrator. — GPT-5
 - **Path tracing ambient compatibility.** BSDF-capable path-traced materials now
   contribute their authored scene-ambient term, bringing legacy-scene brightness
   closer to the Whitted raytracer while preserving sampled direct and indirect

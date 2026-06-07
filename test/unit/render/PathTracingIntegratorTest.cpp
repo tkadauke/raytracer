@@ -330,6 +330,28 @@ namespace PathTracingIntegratorTest {
       return scene;
     }
 
+    std::unique_ptr<Scene> transparentReflectionTransmissionBackgroundScene() {
+      auto scene = std::make_unique<Scene>();
+      scene->setAmbient(Colord::black());
+      scene->setBackground(Colord(1, 0, 0));
+
+      auto material = std::make_shared<TransparentMaterial>(
+        std::make_shared<ConstantColorTexture>(Colord::black()));
+      material->setAmbientCoefficient(0.0);
+      material->setDiffuseCoefficient(0.0);
+      material->setSpecularCoefficient(0.0);
+      material->setReflectionColor(Colord::white());
+      material->setReflectionCoefficient(0.25);
+      material->setTransmissionCoefficient(0.5);
+      material->setRefractionIndex(1.0);
+
+      auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
+      plane->setMaterial(material);
+      scene->add(plane);
+
+      return scene;
+    }
+
     std::unique_ptr<Scene> portalBackgroundScene() {
       auto scene = std::make_unique<Scene>();
       scene->setAmbient(Colord::black());
@@ -962,6 +984,46 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 1u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadianceSplitsTransparentDeltaBranches) {
+    auto scene = transparentReflectionTransmissionBackgroundScene();
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 11ull)});
+
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster, &metrics);
+
+    ASSERT_EQ(1u, batched.size());
+    ASSERT_COLOR_NEAR(Colord(0.75, 0, 0), batched[0], 1e-12);
+    EXPECT_EQ(0u, metrics.compatibilityShadeSamples);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 2u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 2u}), metrics.frontierRayMissesPerDepth);
+    EXPECT_EQ(3u, metrics.activeSampleDepthsProcessed);
+  }
+
+  TEST(PathTracingIntegrator, ScalarRadianceSplitsTransparentDeltaBranches) {
+    auto scene = transparentReflectionTransmissionBackgroundScene();
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    auto stream = sampler->stream(0, 11ull);
+    State state;
+    state.sampleStream = stream.get();
+    FallbackRayCaster caster;
+
+    const Colord pixel = integrator.radiance(*scene, primaryRay(), state, caster);
+
+    ASSERT_COLOR_NEAR(Colord(0.75, 0, 0), pixel, 1e-12);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceContinuesThroughPortalDeltaBsdf) {

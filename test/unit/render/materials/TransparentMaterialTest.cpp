@@ -7,6 +7,7 @@
 #include "core/math/HitPoint.h"
 
 #include <cmath>
+#include <vector>
 
 #include "test/helpers/ColorTestHelper.h"
 #include "test/helpers/RecordingRayCaster.h"
@@ -129,6 +130,27 @@ namespace TransparentMaterialTest {
     EXPECT_TRUE(transmitted.isDelta);
     ASSERT_COLOR_NEAR(Colord(1.0, 1.0, 1.0), transmitted.value, 1e-12);
     EXPECT_NEAR(-1.0, transmitted.direction.y(), 1e-12);
+  }
+
+  TEST(TransparentMaterial, ExposesReflectionAndTransmissionAsExactDeltaBranches) {
+    TransparentMaterial material(std::make_shared<ConstantColorTexture>(Colord::white()));
+    material.setReflectionColor(Colord::white());
+    material.setReflectionCoefficient(0.25);
+    material.setTransmissionCoefficient(0.75);
+    material.setRefractionIndex(1.0);
+    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+
+    const std::vector<MaterialBsdfSample> branches =
+      material.deltaBsdfSamples(hitPoint, Vector3d(0, 1, 0));
+
+    ASSERT_EQ(2u, branches.size());
+    EXPECT_TRUE(branches[0].isDelta);
+    ASSERT_COLOR_NEAR(Colord(0.25, 0.25, 0.25), branches[0].value, 1e-12);
+    EXPECT_NEAR(1.0, branches[0].direction.y(), 1e-12);
+
+    EXPECT_TRUE(branches[1].isDelta);
+    ASSERT_COLOR_NEAR(Colord(0.75, 0.75, 0.75), branches[1].value, 1e-12);
+    EXPECT_NEAR(-1.0, branches[1].direction.y(), 1e-12);
   }
 
   TEST(TransparentMaterial, SamplesTotalInternalReflectionAsFullMirrorDeltaBsdf) {

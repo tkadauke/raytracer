@@ -54,6 +54,24 @@ Colord ReflectiveMaterial::evalBsdf(const HitPoint& hitPoint, const Vector3d& wi
 render::MaterialBsdfSample ReflectiveMaterial::sampleBsdf(const HitPoint& hitPoint,
                                                           const Vector3d& wi,
                                                           const Vector2d&) const {
+  return reflectionDeltaBsdfSample(hitPoint, wi);
+}
+
+std::vector<render::MaterialBsdfSample>
+ReflectiveMaterial::deltaBsdfSamples(const HitPoint& hitPoint, const Vector3d& wi) const {
+  const MaterialBsdfSample sample = reflectionDeltaBsdfSample(hitPoint, wi);
+  if (sample.pdf <= 0.0 || sample.value == Colord::black()) {
+    return {};
+  }
+  return {sample};
+}
+
+double ReflectiveMaterial::bsdfPdf(const HitPoint&, const Vector3d&, const Vector3d&) const {
+  return 0.0;
+}
+
+render::MaterialBsdfSample ReflectiveMaterial::reflectionDeltaBsdfSample(const HitPoint& hitPoint,
+                                                                         const Vector3d& wi) const {
   render::MaterialBsdfSample result;
   if (reflectionCoefficient() <= 0.0 || reflectionColor() == Colord::black()) {
     return result;
@@ -67,8 +85,4 @@ render::MaterialBsdfSample ReflectiveMaterial::sampleBsdf(const HitPoint& hitPoi
   result.pdf = 1.0;
   result.isDelta = true;
   return result;
-}
-
-double ReflectiveMaterial::bsdfPdf(const HitPoint&, const Vector3d&, const Vector3d&) const {
-  return 0.0;
 }

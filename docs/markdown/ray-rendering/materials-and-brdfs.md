@@ -389,13 +389,22 @@ described above.
 | PortalMaterial | matrix-transformed continuation ray | non-physical portal / redirection effect |
 
 The four materials in the first four rows compose for a clean
-"phototgraphy-style" hierarchy: Phong is Matte plus highlights,
+"photography-style" hierarchy: Phong is Matte plus highlights,
 Reflective is Phong plus mirror recursion, Transparent is
 Reflective plus refraction. Each step adds one BRDF / BTDF
-contribution and one optional recursive call. The portal row is the
-intentional exception: it is not a local light-transport material, but
-it still fits the wavefront/path-tracing scheduler by publishing a delta
-continuation ray with a transformed origin and direction.
+contribution and one optional recursive call.
+
+The path tracer uses the same material-owned model without asking the
+integrator to inspect concrete material types. Rough and finite lobes
+are sampled through `sampleBsdf(...)`; perfect mirror, refraction, and
+portal lobes publish exact delta continuations through
+`deltaBsdfSamples(...)`. That lets the integrator split finite
+reflection/refraction branch sets exactly, which reduces glass noise
+without turning the path tracer into a material-specific Whitted
+special case. The portal row is the intentional exception to local
+light transport: it is not a local shading material, but it still fits
+the same scheduler by publishing a delta continuation ray with a
+transformed origin and direction.
 
 ## <a id="exercises"></a>Exercises
 1. Build a `MatteMaterial` with a black diffuse texture and

@@ -218,6 +218,23 @@ namespace render {
     }
 
     /**
+      * Return every exactly enumerable delta continuation from this material.
+      *
+      * Perfect mirrors, perfect refraction, and portals have a finite set of
+      * discrete outgoing branches. A path tracer can split those branches
+      * exactly instead of randomly selecting one and compensating by
+      * probability. Returned sample values must be the physical branch
+      * weights, not probability-compensated stochastic weights.
+      *
+      * Materials with rough/finite lobes return an empty list and rely on
+      * `sampleBsdf(...)`.
+      */
+    virtual std::vector<MaterialBsdfSample> deltaBsdfSamples(const HitPoint& /*hitPoint*/,
+                                                             const Vector3d& /*wi*/) const {
+      return {};
+    }
+
+    /**
       * Probability density that `sampleBsdf(wi)` would have produced
       * `wo`. Used by MIS weight calculations. Returns 0 for delta
       * lobes or for materials without BSDF support. Default returns 0.
