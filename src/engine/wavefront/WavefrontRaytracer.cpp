@@ -45,6 +45,10 @@ namespace engine::wavefront {
       const render::Scene& m_scene;
       const render::Integrator& m_integrator;
     };
+
+    bool recordsLightweightMetrics(const render::Camera& camera, const render::Denoiser* denoiser) {
+      return camera.isCancelled() || (denoiser && denoiser->requestedFeatures().any());
+    }
   }
 
   void WavefrontRenderMetrics::TimingSummary::recordIntegratorBatch(
@@ -440,7 +444,9 @@ namespace engine::wavefront {
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
-    if (p->metricsEnabled) {
+    const bool recordMetrics =
+      p->metricsEnabled || recordsLightweightMetrics(*m_camera, p->denoiser.get());
+    if (recordMetrics) {
       p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
                        p->convergenceActiveSampleFractionThreshold,
@@ -456,17 +462,17 @@ namespace engine::wavefront {
     const bool publishProgressSnapshots = progressiveDisplayEnabled();
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
-      [this, rayCaster, camera, bufferPtr, samplingSeed, tileRenderer,
-       denoiserFeaturePtr, publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
+      [this, rayCaster, camera, bufferPtr, samplingSeed, tileRenderer, denoiserFeaturePtr,
+       publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
         tileRenderer.renderHdrTile(*camera, *rayCaster, *m_scene, *bufferPtr, rect, tileSeed,
                                    publishProgressSnapshots, denoiserFeaturePtr);
-    });
+      });
     tileRenderer.denoise(buffer, denoiserFeatures.get());
-    if (p->metricsEnabled) {
+    if (recordMetrics) {
       p->metrics.finish(renderStart);
     }
 
@@ -505,7 +511,9 @@ namespace engine::wavefront {
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
-    if (p->metricsEnabled) {
+    const bool recordMetrics =
+      p->metricsEnabled || recordsLightweightMetrics(*m_camera, p->denoiser.get());
+    if (recordMetrics) {
       p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
                        p->convergenceActiveSampleFractionThreshold,
@@ -518,16 +526,16 @@ namespace engine::wavefront {
     const bool publishProgressSnapshots = progressiveDisplayEnabled();
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
-      [this, rayCaster, camera, bufferPtr, tonemapOp, samplingSeed,
-       tileRenderer, publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
+      [this, rayCaster, camera, bufferPtr, tonemapOp, samplingSeed, tileRenderer,
+       publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
             : std::nullopt;
         tileRenderer.renderDisplayTile(*camera, *rayCaster, *m_scene, *bufferPtr, tonemapOp, rect,
                                        tileSeed, publishProgressSnapshots);
-    });
-    if (p->metricsEnabled) {
+      });
+    if (recordMetrics) {
       p->metrics.finish(renderStart);
     }
 
@@ -566,7 +574,9 @@ namespace engine::wavefront {
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(hdrBuffer.width(), hdrBuffer.height(), p->queueSize);
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
-    if (p->metricsEnabled) {
+    const bool recordMetrics =
+      p->metricsEnabled || recordsLightweightMetrics(*m_camera, p->denoiser.get());
+    if (recordMetrics) {
       p->metrics.reset(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
                        p->convergenceActiveSampleFractionThreshold,
@@ -576,16 +586,15 @@ namespace engine::wavefront {
     }
     auto tileRenderer = p->tileRenderer();
     const auto denoiserFeatures = tileRenderer.buildDenoiserFeatures(
-      *m_camera, *m_scene, hdrBuffer.rect(), tilePlan, *p->threadPool,
-      p->denoiserFeatureTasks);
+      *m_camera, *m_scene, hdrBuffer.rect(), tilePlan, *p->threadPool, p->denoiserFeatureTasks);
     const auto* denoiserFeaturePtr = denoiserFeatures.get();
     const auto samplingSeed = p->samplingSeed;
     const bool publishProgressSnapshots = progressiveDisplayEnabled();
     engine::dispatchTileTasks(
       tilePlan, *p->threadPool, p->tasks,
       [this, rayCaster, camera, hdrBufferPtr, displayBufferPtr, displayTonemap, samplingSeed,
-       tileRenderer, denoiserFeaturePtr, publishProgressSnapshots](const Recti& rect,
-                                                                   std::size_t tileIndex) {
+       tileRenderer, denoiserFeaturePtr,
+       publishProgressSnapshots](const Recti& rect, std::size_t tileIndex) {
         const std::optional<std::uint64_t> tileSeed =
           samplingSeed
             ? std::optional<std::uint64_t>(render::SamplingSeed::tileSeed(*samplingSeed, tileIndex))
@@ -593,10 +602,10 @@ namespace engine::wavefront {
         tileRenderer.renderDualOutputTile(*camera, *rayCaster, *m_scene, *hdrBufferPtr,
                                           *displayBufferPtr, displayTonemap, rect, tileSeed,
                                           publishProgressSnapshots, denoiserFeaturePtr);
-    });
+      });
     tileRenderer.denoise(hdrBuffer, denoiserFeatures.get());
     tileRenderer.writeDisplayBuffer(displayBuffer, hdrBuffer, displayTonemap);
-    if (p->metricsEnabled) {
+    if (recordMetrics) {
       p->metrics.finish(renderStart);
     }
 

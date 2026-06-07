@@ -152,8 +152,7 @@ namespace engine::wavefront::detail {
                                        const std::function<void(const Recti&)>& markProgress,
                                        TileProgressTransform transformProgress,
                                        TileProgressPublisher publishProgress,
-                                       bool publishProgressSnapshots,
-                                       bool useProgressFeedback) {
+                                       bool publishProgressSnapshots, bool useProgressFeedback) {
       WavefrontTileTraceResult result;
       const auto sampleGenerationStart = WavefrontMetricsRecorder::Clock::now();
       std::vector<render::IntegratorRaySample> samples;
@@ -241,13 +240,11 @@ namespace engine::wavefront::detail {
                                                                               : nullptr;
 
       const auto integratorBatchStart = WavefrontMetricsRecorder::Clock::now();
-      const std::vector<Colord> sampleColors =
-        config.integrator.radianceBatch(scene, samples, rayCaster,
-                                        config.metricsEnabled ? &result.batchMetrics : nullptr,
-                                        settings);
+      const std::vector<Colord> sampleColors = config.integrator.radianceBatch(
+        scene, samples, rayCaster, config.metricsEnabled ? &result.batchMetrics : nullptr,
+        settings);
       result.integratorBatchWorkerSeconds =
-        std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() -
-                                      integratorBatchStart)
+        std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() - integratorBatchStart)
           .count();
       progressObserver.applySampleColors(sampleColors);
       result.sampleCount = samples.size();
@@ -355,9 +352,8 @@ namespace engine::wavefront::detail {
       std::unique_ptr<WavefrontDenoiserFeatureSet> tileFeatures;
       render::DenoiserFrame frame(beauty);
       if (features) {
-        tileFeatures =
-          std::make_unique<WavefrontDenoiserFeatureSet>(actualRect.width(), actualRect.height(),
-                                                        features->requestedFeatures());
+        tileFeatures = std::make_unique<WavefrontDenoiserFeatureSet>(
+          actualRect.width(), actualRect.height(), features->requestedFeatures());
         copyDenoiserFeatureTile(*features, *tileFeatures, actualRect);
         frame.features = tileFeatures->buffers();
       }
@@ -377,12 +373,10 @@ namespace engine::wavefront::detail {
         m_metrics(metrics) {
   }
 
-  void
-  WavefrontTileRenderer::renderHdrTile(render::Camera& camera, const render::RayCaster& rayCaster,
-                                       const render::Scene& scene, Buffer<Colord>& buffer,
-                                       const Recti& rect, std::optional<std::uint64_t> tileSeed,
-                                       bool publishProgressSnapshots,
-                                       const WavefrontDenoiserFeatureSet* denoiserFeatures) const {
+  void WavefrontTileRenderer::renderHdrTile(
+    render::Camera& camera, const render::RayCaster& rayCaster, const render::Scene& scene,
+    Buffer<Colord>& buffer, const Recti& rect, std::optional<std::uint64_t> tileSeed,
+    bool publishProgressSnapshots, const WavefrontDenoiserFeatureSet* denoiserFeatures) const {
     const Recti actualRect = camera.renderableRect(rect);
     if (actualRect.width() <= 0 || actualRect.height() <= 0) {
       return;
@@ -523,9 +517,7 @@ namespace engine::wavefront::detail {
             : std::nullopt;
         const Recti actualRect = camera.renderableRect(tileRect);
         buildDenoiserFeatureTile(*features, camera, scene, actualRect, tileSeed);
-        if (m_config.metricsEnabled) {
-          m_metrics.recordDenoiserFeatureTile(actualRect);
-        }
+        m_metrics.recordDenoiserFeatureTile(actualRect);
       });
     if (m_config.metricsEnabled) {
       m_metrics.recordDenoiserFeatureSeconds(featureStart);

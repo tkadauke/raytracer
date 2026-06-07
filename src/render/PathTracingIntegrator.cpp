@@ -17,6 +17,7 @@
 #include <cmath>
 #include <map>
 #include <optional>
+#include <stdexcept>
 #include <utility>
 
 namespace render {
@@ -191,6 +192,10 @@ namespace render {
     const Scene& scene, std::size_t firstPathIndex, std::size_t laneCount,
     std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits, int bounce,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
+    if (laneCount > Ray4::lanes) {
+      throw std::logic_error("Ray4 path packet lane count exceeds packet width");
+    }
+    const std::size_t packetLaneCount = std::min(laneCount, Ray4::lanes);
     std::array<Rayd, Ray4::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined};
     std::array<Colord, Ray4::lanes> accumulatedBeforeDepths;
@@ -204,10 +209,12 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics()) {
         ++depthMetrics.frontierPacketChunks;
         ++depthMetrics.frontierRay4PacketChunks;
-        depthMetrics.frontierPacketRays += laneCount;
+        depthMetrics.frontierPacketRays += packetLaneCount;
         packetFallbacksBefore.emplace();
       }
-      for (std::size_t lane = 0; lane != laneCount; ++lane) {
+      for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+        if (lane == packetLaneCount)
+          break;
         const std::size_t pathIndex = firstPathIndex + lane;
         auto& path = paths[pathIndex];
         if (depthMetrics.trackRadianceDelta) {
@@ -228,7 +235,9 @@ namespace render {
     }
 
     core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-    for (std::size_t lane = 0; lane != laneCount; ++lane) {
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      if (lane == packetLaneCount)
+        break;
       const std::size_t pathIndex = firstPathIndex + lane;
       auto& path = paths[pathIndex];
       if (depthMetrics.trackFrontierMetrics()) {
@@ -248,6 +257,10 @@ namespace render {
     const Scene& scene, std::size_t firstPathIndex, std::size_t laneCount,
     std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits, int bounce,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
+    if (laneCount > Ray8::lanes) {
+      throw std::logic_error("Ray8 path packet lane count exceeds packet width");
+    }
+    const std::size_t packetLaneCount = std::min(laneCount, Ray8::lanes);
     std::array<Rayd, Ray8::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined};
@@ -262,10 +275,12 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics()) {
         ++depthMetrics.frontierPacketChunks;
         ++depthMetrics.frontierRay8PacketChunks;
-        depthMetrics.frontierPacketRays += laneCount;
+        depthMetrics.frontierPacketRays += packetLaneCount;
         packetFallbacksBefore.emplace();
       }
-      for (std::size_t lane = 0; lane != laneCount; ++lane) {
+      for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+        if (lane == packetLaneCount)
+          break;
         const std::size_t pathIndex = firstPathIndex + lane;
         auto& path = paths[pathIndex];
         if (depthMetrics.trackRadianceDelta) {
@@ -286,7 +301,9 @@ namespace render {
     }
 
     core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-    for (std::size_t lane = 0; lane != laneCount; ++lane) {
+    for (std::size_t lane = 0; lane != Ray8::lanes; ++lane) {
+      if (lane == packetLaneCount)
+        break;
       const std::size_t pathIndex = firstPathIndex + lane;
       auto& path = paths[pathIndex];
       if (depthMetrics.trackFrontierMetrics()) {
@@ -311,15 +328,6 @@ namespace render {
 
     std::size_t activeIndex = 0;
     while (activeIndex != paths.size()) {
-      if (isCancelled()) {
-        auto& path = paths[activeIndex];
-        const Colord accumulatedBeforeDepth =
-          depthMetrics.trackRadianceDelta ? path.accumulated() : Colord::black();
-        recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
-        ++activeIndex;
-        continue;
-      }
-
       if (activeIndex + Ray8::lanes <= paths.size()) {
         intersectActivePathPacket8(scene, activeIndex, Ray8::lanes, paths, activeHits, bounce,
                                    depthMetrics, metrics);
