@@ -186,6 +186,20 @@ namespace RenderGraphInspectorWidgetTest {
     return replacement;
   }
 
+  RenderPlan truncatedSubviewPlan() {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.setMaxRenderToTextureRecursionDepth(0);
+
+    RenderSubviewIntent subview;
+    subview.name = "mirror probe";
+    subview.view.selector = SceneSelector::all();
+    subview.view.executor = RenderExecutorPreference::Rasterizer;
+    intent.subviews.push_back(subview);
+
+    return compiler.compile({64, 32, 1}, intent);
+  }
+
   std::shared_ptr<render::Camera> camera() {
     return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
   }
@@ -426,6 +440,44 @@ namespace RenderGraphInspectorWidgetTest {
     const auto overrides = widget.overrides();
     EXPECT_TRUE(overrides.disabledFeatures.count("post_aa"));
     EXPECT_FALSE(overrides.disabledFeatures.count("Post AA"));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowTruncatedSubviewDiagnostics) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(truncatedSubviewPlan());
+
+    auto* passes = widget.findChild<QTreeWidget*>("renderGraphPasses");
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, passes);
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+
+    QTreeWidgetItem* diagnosticRow = nullptr;
+    for (int row = 0; row != passes->topLevelItemCount(); ++row) {
+      if (passes->topLevelItem(row)->data(0, Qt::UserRole).toString() ==
+          QStringLiteral("subview_mirror_probe_recursion_limit")) {
+        diagnosticRow = passes->topLevelItem(row);
+        break;
+      }
+    }
+
+    ASSERT_NE(nullptr, diagnosticRow);
+    EXPECT_EQ(Qt::Unchecked, diagnosticRow->checkState(0));
+    EXPECT_EQ(
+      QStringLiteral("Subview mirror probe truncated at render-to-texture recursion limit 0"),
+      diagnosticRow->text(3));
+    EXPECT_EQ(QStringLiteral("Debug"), diagnosticRow->text(5));
+
+    QGraphicsItem* diagnosticNode =
+      graphNodeItem(graph->scene(), "pass", "subview_mirror_probe_recursion_limit");
+    ASSERT_NE(nullptr, diagnosticNode);
+    EXPECT_TRUE(nodeLineTooltipContains(diagnosticNode, QStringLiteral("truncated")));
+    EXPECT_TRUE(diagnosticNode->toolTip().contains(QStringLiteral("recursion_limit")));
+
+    QTreeWidgetItem* diagnosticFeature = groupItem(
+      widget, QStringLiteral("Feature"), QStringLiteral("Render To Texture Recursion Limit"));
+    ASSERT_NE(nullptr, diagnosticFeature);
+    EXPECT_EQ(QStringLiteral("render_to_texture_recursion_limit"), diagnosticFeature->toolTip(2));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowResourceEdgeRows) {

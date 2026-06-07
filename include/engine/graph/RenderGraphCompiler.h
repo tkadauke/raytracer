@@ -99,6 +99,10 @@ namespace engine::graph {
     void addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,
                             const RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis,
                             int renderToTextureDepth) const;
+    void addSubviewRecursionLimitDiagnostics(RenderPlan& plan, const RenderIntent& intent) const;
+    RenderPassNode subviewRecursionLimitDiagnosticPass(const RenderSubviewIntent& subview,
+                                                       std::size_t index, int recursionLimit,
+                                                       std::set<std::string>& usedPrefixes) const;
     void addAutomaticFeatureSubviewComposites(RenderPlan& plan, const RenderTargetSpec& target,
                                               const RenderIntent& intent,
                                               const RenderSceneAnalysis& sceneAnalysis,
