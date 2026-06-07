@@ -410,9 +410,9 @@ namespace engine::graph {
     /**
       * Applies whole-frame view overrides to the default intent fields.
       *
-      * The first compiler slices can only synthesize whole-frame graphs.
-      * Selector-specific overrides remain in `viewOverrides` for later
-      * scene-partitioning planners.
+      * Selector-specific overrides remain in `viewOverrides` so callers that
+      * can synthesize scene-subset routes still see the local intent after
+      * whole-frame defaults are folded in.
     */
     RenderIntent withWholeFrameOverridesApplied() const;
 

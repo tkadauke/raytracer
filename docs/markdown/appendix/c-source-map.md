@@ -206,6 +206,7 @@
 | `scenes/` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `scenes/animation_frame_demo.json` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `scenes/render_graph_aov_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `scenes/render_graph_selector_routing_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scenes/render_graph_stencil_composite_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scenes/wavefront_denoise_demo.json` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scenes/wavefront_indirect_bounce_demo.json` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |

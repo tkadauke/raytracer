@@ -9,8 +9,8 @@
 > graph-backed raster shadows, AOV views, readback nodes, and several
 > composite/history-adjacent slices have landed. Remaining major work includes
 > scene-feature expansion, render-to-texture material consumption, portal and
-> mirror synthesis, selector-derived routing, concrete GPU-resident resources,
-> motion-vector/history resources, and parallel graph scheduling.
+> mirror synthesis, concrete GPU-resident resources, motion-vector/history
+> resources, and parallel graph scheduling.
 >
 > **Roadmap link:** implements the architecture sketched in
 > `docs/roadmap.md` section 4.1.a, "Render-pass graph and hybrid execution."
@@ -313,9 +313,12 @@ The exact API can evolve, but it should stay high-level. It should not require
 the caller to manually describe "stencil first, then reflected camera, then
 composite" for a planar mirror.
 Whole-frame (`selector: all`) overrides are applied to the default frame intent
-before the compiler synthesizes nodes. More specific selector overrides remain
-intent for later scene-partitioning planners; users should not author pass
-nodes directly as the normal API.
+before the compiler synthesizes nodes. More specific selector overrides become
+scene-subset routes when `RenderSceneAnalysis` can resolve them: the compiler
+adds a stencil mask, a selector-scoped foreground pass using the requested
+executor/view/camera/profile/options, and a composite pass that writes the
+running color input for later graph stages. Users should not author pass nodes
+directly as the normal API.
 Render tools that attach executor-specific pass state should use this effective
 frame intent too, so a scene-authored whole-frame raster override receives the
 same raster MSAA, shadow, and postprocess state as an explicit raster default.
@@ -329,10 +332,12 @@ render-to-texture quality controls in the same model without asking users to
 directly author graph nodes. Whole-scene subview intents now compile into
 prefixed offscreen color branches with exported graph resources for inspection;
 raster subviews also synthesize prefixed depth AOV resources.
-Selector-specific subviews still fail clearly until scene partitioning can
-drive those branches safely; alternate-camera execution and final composites
-remain TODO. `maxRenderToTextureRecursionDepth` now bounds expansion in render
-intent and graph compilation, with zero explicitly disabling subview expansion.
+Selector-specific subviews still fail clearly until render-to-texture scene
+partitioning can drive those branches safely. Ordinary selector-specific view
+routes already support alternate cameras and final composites through generated
+selector branches. `maxRenderToTextureRecursionDepth` now bounds expansion in
+render intent and graph compilation, with zero explicitly disabling subview
+expansion.
 The effective default camera is carried on synthesized scene-rendering pass
 `SceneView` records and serialized in exported plan JSON, even though current
 executors still render with the engine's active camera until alternate-camera
@@ -1371,8 +1376,10 @@ Implement the smallest graph that proves the architecture:
    depth, stencil, normal, object-id, material-id, world-position, and raster
    counter AOV views, and
    validate the manipulated plan.
-   Selector-specific scene and command-line intent now fail compilation clearly
-   instead of being silently ignored until scene-partitioning planners exist.
+   Selector-specific scene and command-line intent now compiles to generated
+   stencil, foreground, and composite branches when analysis resolves the
+   selector, and unresolved selectors fail clearly instead of being silently
+   ignored.
 9. Add a Modeler graph inspector that compiles the plan before rendering and
    toggles nodes. ✅ Partial: Modeler now has a Render Graph dock that compiles
    the current live-preview plan before preview renders, lists the default
@@ -1407,7 +1414,13 @@ Add selectors, tags/layers, and planner rules that can route a subset of the
 scene through a different executor, view mode, shading profile, or camera, such
 as wireframe diagnostic geometry, toon-shaded objects, or rasterized inset
 content inside a
-path-traced frame.
+path-traced frame. ✅ **Done.** `RenderSceneAnalysis` records visible
+object-id, object-name, tag, and layer selectors; `RenderGraphCompiler`
+resolves selector-specific overrides into generated stencil, foreground, and
+composite branches; `RenderGraphCompilerTest` pins executor/camera routing plus
+missing, ambiguous, and duplicate selector diagnostics; the textbook documents
+the synthesis; and `scenes/render_graph_selector_routing_demo.json` provides a
+loadable raster-plus-wireframe route.
 
 ### Raster shadow maps as graph clients
 

@@ -118,6 +118,46 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, RoutesSelectorOverridesThroughRequestedExecutorAndCamera) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.defaultCamera = RenderCameraRef{"main-camera", std::nullopt};
+
+    RenderViewOverride override;
+    override.selector = SceneSelector::objectId("diagnostic-box");
+    override.executor = RenderExecutorPreference::Wireframe;
+    override.viewMode = RenderViewMode::Beauty;
+    override.camera = RenderCameraRef{"inspection-camera", std::nullopt};
+    intent.viewOverrides.push_back(override);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordSelectableObject("diagnostic-box", "Diagnostic Box", {"debug"}, {});
+
+    const RenderPlan plan = compiler.compile({64, 64, 1}, intent, analysis);
+
+    const auto* base = plan.findPass("raster_beauty");
+    ASSERT_NE(nullptr, base);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, base->executor);
+    ASSERT_TRUE(base->sceneView.camera.has_value());
+    EXPECT_EQ("main-camera", *base->sceneView.camera->sceneCameraId);
+
+    const auto* route = plan.findPass("selector_1_wireframe_beauty");
+    ASSERT_NE(nullptr, route);
+    EXPECT_EQ(RenderExecutorKind::Wireframe, route->executor);
+    EXPECT_EQ(SceneSelector::Kind::ObjectId, route->sceneView.selector.kind);
+    EXPECT_EQ("diagnostic-box", route->sceneView.selector.value);
+    ASSERT_TRUE(route->sceneView.camera.has_value());
+    EXPECT_EQ("inspection-camera", *route->sceneView.camera->sceneCameraId);
+
+    const auto* composite = plan.findPass("selector_1_composite");
+    ASSERT_NE(nullptr, composite);
+    EXPECT_EQ("selector_1_composited_color", composite->writes.front().resource);
+    ASSERT_EQ(1u, plan.findPass("tonemap")->reads.size());
+    EXPECT_EQ("selector_1_composited_color", plan.findPass("tonemap")->reads.front().resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, CompilesSelectorSpecificAOVOverride) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
