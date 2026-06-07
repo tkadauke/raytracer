@@ -33,6 +33,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   render graph trace metadata, Modeler graph tooltips, and rendercli compact
   summaries now count primary, delta/specular, finite BSDF, and MIS-weighted
   visible emitter hits. — GPT-5
+- **Path-tracing parity diagnostic.** The rendercli path-tracer diagnostic test
+  now compares a deterministic direct-light scene against the Whitted raytracer
+  so simple direct lighting stays aligned while path tracing evolves. — GPT-5
 - **Path tracer Russian roulette controls.** Render intent, graph JSON,
   rendercli, and Modeler Render Settings now expose the path tracer bounce
   depth where Russian-roulette termination begins. — GPT-5

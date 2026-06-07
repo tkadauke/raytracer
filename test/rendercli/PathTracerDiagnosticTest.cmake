@@ -155,6 +155,40 @@ function(pathtracer_diagnostic_compare name scene low_samples reference_samples 
   )
 endfunction()
 
+function(pathtracer_diagnostic_compare_raytracer_parity name scene max_rms)
+  set(raytracer_output "${TEST_OUTPUT_DIR}/${name}-raytracer.png")
+  set(pathtracer_output "${TEST_OUTPUT_DIR}/${name}-pathtracer.png")
+
+  rendercli_run(
+    NAME "pathtracer diagnostic ${name} raytracer parity reference"
+    COMMAND
+      "${RENDERCLI}" --direct_engine --engine raytracer
+      --width 40 --height 30 --samples_per_pixel 1 --depth 4
+      "${scene}" "${raytracer_output}"
+  )
+  rendercli_run(
+    NAME "pathtracer diagnostic ${name} pathtracer parity candidate"
+    COMMAND
+      "${RENDERCLI}" --direct_engine --engine pathtracer
+      --width 40 --height 30 --sampler Regular --sampling_seed 12345
+      --samples_per_pixel 1 --depth 4
+      "${scene}" "${pathtracer_output}"
+  )
+  rendercli_assert_image_dimensions("${raytracer_output}" 40 30
+                                    NAME "pathtracer diagnostic ${name} raytracer dimensions")
+  rendercli_assert_image_dimensions("${pathtracer_output}" 40 30
+                                    NAME "pathtracer diagnostic ${name} pathtracer dimensions")
+  rendercli_assert_image_nonempty("${raytracer_output}"
+                                  NAME "pathtracer diagnostic ${name} raytracer pixels")
+  rendercli_assert_image_nonempty("${pathtracer_output}"
+                                  NAME "pathtracer diagnostic ${name} pathtracer pixels")
+  rendercli_assert_image_rms_at_most(
+    "${raytracer_output}" "${pathtracer_output}" "${max_rms}"
+    NAME "pathtracer diagnostic ${name} raytracer/pathtracer RMS"
+  )
+endfunction()
+
+pathtracer_diagnostic_compare_raytracer_parity("direct-parity" "${direct_scene}" 0.03)
 pathtracer_diagnostic_compare("direct" "${direct_scene}" 4 32 0.08)
 pathtracer_diagnostic_compare("glass" "${glass_scene}" 4 32 0.10)
 pathtracer_diagnostic_compare("area-light" "${area_light_scene}" 8 64 0.12)
