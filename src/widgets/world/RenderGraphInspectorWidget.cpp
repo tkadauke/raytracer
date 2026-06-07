@@ -420,6 +420,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
     if (compatibilitySamples > 0) {
       line += QStringLiteral(", compatibility shade %1").arg(compatibilitySamples);
     }
+    const auto unsupportedPathMaterials = static_cast<qulonglong>(
+      batching.value(QStringLiteral("unsupportedPathMaterialSamples")).toDouble());
+    if (unsupportedPathMaterials > 0) {
+      line += QStringLiteral(", unsupported path materials %1").arg(unsupportedPathMaterials);
+    }
     const auto emitterHits =
       static_cast<qulonglong>(batching.value(QStringLiteral("emitterHitSamples")).toDouble());
     if (emitterHits > 0) {

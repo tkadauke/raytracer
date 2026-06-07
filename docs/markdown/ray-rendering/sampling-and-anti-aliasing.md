@@ -204,16 +204,16 @@ therefore exposes named dimensions:
 | `SampleDimension::Pixel` | 0 | sub-pixel sample |
 | `SampleDimension::Time` | 1 | shutter-time sample for motion blur |
 | `SampleDimension::Lens` | 2 | aperture sample for thin-lens cameras |
-| `SampleDimension::BSDF` | `3 + bounce * 3` | direction sample for BSDF importance sampling |
-| `SampleDimension::Light` | `4 + lightSlot * 3` | selected-light surface/direction sample |
-| `SampleDimension::LightSelection` | `1000019 + bounce` | selected-light draw for direct lighting |
-| `SampleDimension::Continuation` | `5 + bounce * 3` | path-continuation / Russian-roulette sample |
+| `SampleDimension::BSDF` | `3 + bounce * 4` | direction sample for BSDF importance sampling |
+| `SampleDimension::Light` | `4 + lightSlot * 4` | selected-light surface/direction sample |
+| `SampleDimension::LightSelection` | `5 + selectionSlot * 4` | selected-light draw for direct lighting |
+| `SampleDimension::Continuation` | `6 + bounce * 4` | path-continuation / Russian-roulette sample |
 
 The `sample2D(dimension, index)` and `sample1D(dimension, index)`
 methods read those dimensions without advancing the sequential
 cursor. For BSDF and continuation samples, the index is the path
 bounce. Bounce 0's BSDF and continuation samples occupy dimensions 3
-and 5; bounce 1's occupy 6 and 8. Direct lighting uses a two-stage
+and 6; bounce 1's occupy 7 and 10. Direct lighting uses a two-stage
 draw. `SampleDimension::LightSelection` picks which light the
 estimator samples at that bounce. `SampleDimension::Light` then owns
 the selected light's surface/direction sample. A one-light path still
@@ -221,14 +221,15 @@ reads `SampleDimension::Light` index 0 at dimension 4 for
 compatibility. When multiple lights are possible, the path tracer uses
 `SampleStream::lightSampleIndex(bounce, lightIndex)` so each light
 owns a distinct light slot. For example, bounce 0 light 0 uses slot 0
-/ dimension 4, bounce 0 light 1 uses slot 2 / dimension 10, and bounce
-1 light 0 uses slot 1 / dimension 7. If the path tracer draws more
+/ dimension 4, bounce 0 light 1 uses slot 2 / dimension 12, and bounce
+1 light 0 uses slot 1 / dimension 8. If the path tracer draws more
 than one direct-light sample per hit,
 `SampleStream::lightSelectionSampleIndex(bounce, directSample)` and
 the three-argument
 `lightSampleIndex(bounce, lightIndex, directSample)` reserve
-independent dimensions for each next-event-estimation sample before
-the integrator averages them.
+independent compact dimensions for each next-event-estimation sample before
+the integrator averages them, avoiding the large absolute dimension indices
+that can make low-discrepancy samplers reuse base patterns.
 The unit tests pin this exact mapping in
 [`SamplerStream.NamedDimensionsMatchLegacyCameraDimensionOrder`](../../../test/unit/render/samplers/SamplerTest.cpp)
 and

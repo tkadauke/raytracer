@@ -64,6 +64,20 @@ namespace render {
           throughput(1.0) {
     }
 
+    inline State(const State& other) {
+      copyFrom(other);
+    }
+
+    inline State& operator=(const State& other) {
+      if (this != &other) {
+        copyFrom(other);
+      }
+      return *this;
+    }
+
+    State(State&&) noexcept = default;
+    State& operator=(State&&) noexcept = default;
+
     /**
       * Enable event recording for this state. Allocates the
       * `events` list lazily so production states (which never call
@@ -72,6 +86,21 @@ namespace render {
     inline void startTrace() {
       events = std::make_unique<std::list<std::string>>();
       traceEvents = true;
+    }
+
+    /**
+      * Clone this state for a child path after the current ray scope exits.
+      *
+      * Path-tracing integrators branch from an already-entered ray scope:
+      * they need the counters, current hit point, tracing log, sample stream,
+      * and throughput, but the child path should resume at the parent's caller
+      * recursion depth. Keeping that copy policy here prevents integrators from
+      * manually mirroring every State field.
+      */
+    inline State cloneForPathContinuation() const {
+      State result(*this);
+      result.recurseOut();
+      return result;
     }
 
     /**
@@ -222,5 +251,28 @@ namespace render {
     /// by `SampleStream::lightSampleIndex(bounce, lightIndex)`; the
     /// `WhittedIntegrator` ignores the field.
     SampleStream* sampleStream{nullptr};
+
+  private:
+    inline void copyFrom(const State& other) {
+      traceEvents = other.traceEvents;
+      numRays = other.numRays;
+      recursionDepth = other.recursionDepth;
+      maxRecursionDepth = other.maxRecursionDepth;
+      intersectionHits = other.intersectionHits;
+      intersectionMisses = other.intersectionMisses;
+      shadowIntersectionHits = other.shadowIntersectionHits;
+      shadowIntersectionMisses = other.shadowIntersectionMisses;
+      packetHitScalarFallbacks = other.packetHitScalarFallbacks;
+      packetHitScalarFallbacksByReason = other.packetHitScalarFallbacksByReason;
+      hitPoint = other.hitPoint;
+      timeSample = other.timeSample;
+      throughput = other.throughput;
+      sampleStream = other.sampleStream;
+      if (other.events) {
+        events = std::make_unique<std::list<std::string>>(*other.events);
+      } else {
+        events.reset();
+      }
+    }
   };
 }

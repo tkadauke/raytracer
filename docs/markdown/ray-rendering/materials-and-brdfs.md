@@ -394,11 +394,14 @@ Reflective is Phong plus mirror recursion, Transparent is
 Reflective plus refraction. Each step adds one BRDF / BTDF
 contribution and one optional recursive call.
 
-The path tracer uses the same material-owned model without asking the
-integrator to inspect concrete material types. Rough and finite lobes
-are sampled through `sampleBsdf(...)`; perfect mirror, refraction, and
-portal lobes publish exact delta continuations through
-`deltaBsdfSamples(...)`. That lets the integrator split finite
+The path tracer uses the material's `PathMaterialTransport` interface without
+asking the integrator to inspect concrete material types. `supportsPathTracing()`
+declares that a material can participate without calling the legacy Whitted
+`shade()` method; rough and finite lobes are sampled through `sampleBsdf(...)`;
+perfect mirror, refraction, and portal lobes publish exact delta continuations
+through `deltaBsdfSamples(...)`. Emissive surfaces are path-traceable endpoints
+even though they expose no BSDF continuation. That lets the integrator split
+finite
 reflection/refraction branch sets exactly, which reduces glass noise
 without turning the path tracer into a material-specific Whitted
 special case. Because those delta branches are already enumerated, the

@@ -41,6 +41,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   render graph trace metadata, Modeler graph tooltips, and rendercli compact
   summaries now report luminance sums for emitted, direct-light,
   miss/background, ambient, and compatibility-shaded contributions. — GPT-5
+- **Path-tracing unsupported-material diagnostics.** Wavefront/pathtracer metrics,
+  render graph trace metadata, Modeler graph tooltips, and rendercli compact
+  summaries now count samples that hit a material without path-tracing transport.
+  — GPT-5
 - **Path-tracing parity diagnostic.** The rendercli path-tracer diagnostic test
   now compares a deterministic direct-light scene against the Whitted raytracer
   so simple direct lighting stays aligned while path tracing evolves. — GPT-5
@@ -341,9 +345,16 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Path tracer per-light sample slots.** Path tracing now assigns each light
   its own deterministic `SampleDimension::Light` slot per bounce, preventing
   multiple stochastic lights from reusing the same 2D sample. — GPT-5
+- **Path tracer compact sample slots.** Path-tracing light-selection and
+  direct-light sample dimensions now use compact paired slots instead of a large
+  fixed stride, reducing low-discrepancy sampler base-pattern reuse. — GPT-5
 - **Path tracer light selection.** Path tracing now selects one light per
   next-event-estimation step with power/emission-weighted PDFs instead of
   casting a shadow ray to every light at every hit. — GPT-5
+- **Path tracer material transport.** Path tracing now consumes materials through
+  `PathMaterialTransport` and terminates materials that do not expose
+  path-tracing transport instead of calling their legacy Whitted `shade()`
+  fallback. — GPT-5
 - **Visible rectangular area emitters.** Rectangular area lights now publish
   one-sided emissive rectangle geometry so camera, reflection, and refraction
   rays can see the light source while direct-light sampling still uses the

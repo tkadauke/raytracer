@@ -75,6 +75,7 @@ namespace engine::wavefront {
     const render::IntegratorBatchMetrics& metrics) {
     activeSampleDepthsProcessed += metrics.activeSampleDepthsProcessed;
     compatibilityShadeSamples += metrics.compatibilityShadeSamples;
+    unsupportedPathMaterialSamples += metrics.unsupportedPathMaterialSamples;
     emitterHitSamples += metrics.emitterHitSamples;
     primaryEmitterHitSamples += metrics.primaryEmitterHitSamples;
     deltaEmitterHitSamples += metrics.deltaEmitterHitSamples;
@@ -232,6 +233,8 @@ namespace engine::wavefront {
       static_cast<double>(batching.activeSampleDepthsProcessed);
     batchingJson["compatibilityShadeSamples"] =
       static_cast<double>(batching.compatibilityShadeSamples);
+    batchingJson["unsupportedPathMaterialSamples"] =
+      static_cast<double>(batching.unsupportedPathMaterialSamples);
     batchingJson["emitterHitSamples"] = static_cast<double>(batching.emitterHitSamples);
     batchingJson["primaryEmitterHitSamples"] =
       static_cast<double>(batching.primaryEmitterHitSamples);

@@ -44,96 +44,41 @@ namespace render {
     Colord localRadiance{Colord::black()};
     std::vector<WhittedContinuation> continuations;
   };
-}
 
-namespace render {
-
-  /**
-    * @brief Abstract base for everything that can be assigned to a
-    *        primitive and shaded.
-    *
-    * The renderer's contract is one method: `shade` takes the
-    * primary ray, the hit point along it, and a mutable `State`,
-    * and returns a colour. Subclasses are responsible for
-    * synthesising the BRDF / BTDF lobes, calling `RayCaster::rayColor`
-    * recursively for reflections / refractions, and reading the
-    * `Scene::lights` for direct lighting.
-    *
-    * Concrete materials in this codebase:
-    *
-    *  - `MatteMaterial` — render::Lambertian diffuse only.
-    *  - `PhongMaterial` — render::Lambertian + Phong specular highlight.
-    *  - `ReflectiveMaterial` — `PhongMaterial` + perfect mirror
-    *    reflection.
-    *  - `TransparentMaterial` — `PhongMaterial` + perfect specular
-    *    + perfect refraction (with TIR fallback).
-    *
-    * `shade` may not call other methods on the same material in a
-    * way that would re-enter the recursion limit unguarded — the
-    * active recursive `RayCaster` callback updates the `State` for
-    * each `rayColor` call, so a well-formed `shade` either returns a
-    * direct-lit colour or delegates further work back through
-    * `raycaster->rayColor(...)`.
-    *
-    * @see PhongMaterial — the canonical worked example.
-    * @see BRDF / BTDF — the reflectance / transmittance lobes
-    *      composed by these materials.
-    */
-  class Material : public render::Object {
+  class PathMaterialTransport {
   public:
-    enum class Sidedness { Front, Back, TwoSided };
-    enum class RasterRecursiveFallback { None, ReflectiveLocalPhong, TransparentAlphaPhong };
-
-    virtual ~Material() {
-    }
-
-    inline Sidedness sidedness() const {
-      return m_sidedness;
-    }
-
-    inline void setSidedness(Sidedness sidedness) {
-      m_sidedness = sidedness;
-    }
+    virtual ~PathMaterialTransport() = default;
 
     /**
-      * Shade `hitPoint` along `ray`. Returns the colour produced by
-      * this material — direct lighting, recursive reflection,
-      * refraction, and any combination thereof.
+      * Reports whether this material can be consumed by a path-tracing
+      * integrator without invoking the legacy Whitted `shade()` contract.
       *
-      * Implementations should:
-      *
-      *  - Read `scene.lights()` and `ambient()` for direct lighting.
-      *  - Use `raycaster->rayColor(reflected, state)` for any
-      *    recursive components.
-      *  - Bump shadow-ray counters on `state` via the appropriate
-      *    `state.shadowHit`/`shadowMiss` calls.
-      *
-      * `state.events` (when populated) is the right place to record
-      * material-level branch decisions — `TransparentMaterial`
-      * emits "TIR" / "Tracing reflection" / "Tracing transmission"
-      * events here.
+      * Path-traceable materials must expose all transport-relevant behavior
+      * through `emittedRadiance`, `ambientRadiance`, `evalBsdf`,
+      * `sampleBsdf`, `deltaBsdfSamples`, and `bsdfPdf`. Emissive-only
+      * materials can return true here even though they do not scatter
+      * continuation rays. The default delegates to `supportsBsdfSampling()` so
+      * existing custom materials that already implemented the older BSDF hook
+      * remain path-traceable.
       */
-    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene,
-                         const Rayd& ray, const HitPoint& hitPoint, render::State& state) const = 0;
+    virtual bool supportsPathTracing() const {
+      return supportsBsdfSampling();
+    }
 
     /**
-      * Reports whether this material can be sampled directly by a
-      * path-tracing integrator. Defaults to `false`; the path tracer
-      * falls back to `shade()` (Whitted behavior, no further bounces)
-      * for materials that haven't been refactored yet.
+      * Reports whether this material exposes a BSDF or delta-scattering model
+      * for path continuations. Defaults to `false`.
       *
-      * Materials returning `true` must implement `evalBsdf`,
-      * `sampleBsdf`, and `bsdfPdf`. A material whose `shade()` does
-      * its own recursion must expose those recursive branches through
-      * `sampleBsdf`; the path tracer owns recursion once it starts
-      * sampling the material.
+      * Materials returning `true` must implement `evalBsdf`, `sampleBsdf`, and
+      * `bsdfPdf`; perfect specular materials should also implement
+      * `deltaBsdfSamples` when all branches are exactly enumerable.
       */
     virtual bool supportsBsdfSampling() const {
       return false;
     }
 
     /**
-      * Local scene-ambient contribution used by compatibility path tracing.
+      * Local scene-ambient contribution used by path tracing.
       *
       * Whitted materials historically include `Scene::ambient()` directly in
       * `shade()`. Path-tracing integrators own recursive BSDF transport
@@ -156,51 +101,6 @@ namespace render {
       */
     virtual Colord emittedRadiance(const Rayd& /*ray*/, const HitPoint& /*hitPoint*/) const {
       return Colord::black();
-    }
-
-    /**
-      * Reports whether this material can expose Whitted recursion as explicit
-      * continuation rays. The wavefront Whitted batch scheduler uses this to
-      * keep reflection/refraction queues depth-major without asking material
-      * code to recurse through `RayCaster`.
-      */
-    virtual bool supportsWhittedContinuations() const {
-      return false;
-    }
-
-    /**
-      * Reports whether a Whitted packet hit should be scalar-refined before
-      * this material shades it. Packet lanes preserve the original double-
-      * precision ray alongside their float SoA traversal data, so built-in
-      * materials that know their packet-hit contract can shade from the
-      * packet-materialized hit directly. The conservative default remains
-      * scalar refinement for custom materials.
-      */
-    virtual bool requiresWhittedPacketHitRefinement() const {
-      return true;
-    }
-
-    /**
-      * Stable diagnostic bucket used when packet hits are scalar-refined before
-      * Whitted shading. Subclasses that keep the conservative refinement
-      * default should override this with a material-family label so wavefront
-      * metrics can show where the remaining refinement work comes from.
-      */
-    virtual const char* whittedPacketHitRefinementLabel() const {
-      return "custom";
-    }
-
-    /**
-      * Evaluate local Whitted radiance and return explicit recursive
-      * continuations. Implementations that return `true` from
-      * `supportsWhittedContinuations()` must put every reflected, refracted,
-      * or redirected ray into `continuations` instead of calling
-      * `raycaster->rayColor(...)`.
-      */
-    virtual WhittedShadeResult shadeWhitted(const render::RayCaster* raycaster,
-                                            const render::Scene& scene, const Rayd& ray,
-                                            const HitPoint& hitPoint, render::State& state) const {
-      return WhittedShadeResult{shade(raycaster, scene, ray, hitPoint, state), {}};
     }
 
     /**
@@ -265,6 +165,127 @@ namespace render {
       */
     virtual Colord denoisingAlbedo(const Rayd& /*ray*/, const HitPoint& /*hitPoint*/) const {
       return Colord::black();
+    }
+  };
+}
+
+namespace render {
+
+  /**
+    * @brief Abstract base for everything that can be assigned to a
+    *        primitive and shaded.
+    *
+    * The renderer's contract is one method: `shade` takes the
+    * primary ray, the hit point along it, and a mutable `State`,
+    * and returns a colour. Subclasses are responsible for
+    * synthesising the BRDF / BTDF lobes, calling `RayCaster::rayColor`
+    * recursively for reflections / refractions, and reading the
+    * `Scene::lights` for direct lighting.
+    *
+    * Concrete materials in this codebase:
+    *
+    *  - `MatteMaterial` — render::Lambertian diffuse only.
+    *  - `PhongMaterial` — render::Lambertian + Phong specular highlight.
+    *  - `ReflectiveMaterial` — `PhongMaterial` + perfect mirror
+    *    reflection.
+    *  - `TransparentMaterial` — `PhongMaterial` + perfect specular
+    *    + perfect refraction (with TIR fallback).
+    *
+    * `shade` may not call other methods on the same material in a
+    * way that would re-enter the recursion limit unguarded — the
+    * active recursive `RayCaster` callback updates the `State` for
+    * each `rayColor` call, so a well-formed `shade` either returns a
+    * direct-lit colour or delegates further work back through
+    * `raycaster->rayColor(...)`.
+    *
+    * @see PhongMaterial — the canonical worked example.
+    * @see BRDF / BTDF — the reflectance / transmittance lobes
+    *      composed by these materials.
+    */
+  class Material : public render::Object, public PathMaterialTransport {
+  public:
+    enum class Sidedness { Front, Back, TwoSided };
+    enum class RasterRecursiveFallback { None, ReflectiveLocalPhong, TransparentAlphaPhong };
+
+    virtual ~Material() {
+    }
+
+    inline Sidedness sidedness() const {
+      return m_sidedness;
+    }
+
+    inline void setSidedness(Sidedness sidedness) {
+      m_sidedness = sidedness;
+    }
+
+    /**
+      * Shade `hitPoint` along `ray`. Returns the colour produced by
+      * this material — direct lighting, recursive reflection,
+      * refraction, and any combination thereof.
+      *
+      * Implementations should:
+      *
+      *  - Read `scene.lights()` and `ambient()` for direct lighting.
+      *  - Use `raycaster->rayColor(reflected, state)` for any
+      *    recursive components.
+      *  - Bump shadow-ray counters on `state` via the appropriate
+      *    `state.shadowHit`/`shadowMiss` calls.
+      *
+      * `state.events` (when populated) is the right place to record
+      * material-level branch decisions — `TransparentMaterial`
+      * emits "TIR" / "Tracing reflection" / "Tracing transmission"
+      * events here.
+      */
+    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene,
+                         const Rayd& ray, const HitPoint& hitPoint, render::State& state) const = 0;
+
+    const PathMaterialTransport& pathTransport() const {
+      return *this;
+    }
+
+    /**
+      * Reports whether this material can expose Whitted recursion as explicit
+      * continuation rays. The wavefront Whitted batch scheduler uses this to
+      * keep reflection/refraction queues depth-major without asking material
+      * code to recurse through `RayCaster`.
+      */
+    virtual bool supportsWhittedContinuations() const {
+      return false;
+    }
+
+    /**
+      * Reports whether a Whitted packet hit should be scalar-refined before
+      * this material shades it. Packet lanes preserve the original double-
+      * precision ray alongside their float SoA traversal data, so built-in
+      * materials that know their packet-hit contract can shade from the
+      * packet-materialized hit directly. The conservative default remains
+      * scalar refinement for custom materials.
+      */
+    virtual bool requiresWhittedPacketHitRefinement() const {
+      return true;
+    }
+
+    /**
+      * Stable diagnostic bucket used when packet hits are scalar-refined before
+      * Whitted shading. Subclasses that keep the conservative refinement
+      * default should override this with a material-family label so wavefront
+      * metrics can show where the remaining refinement work comes from.
+      */
+    virtual const char* whittedPacketHitRefinementLabel() const {
+      return "custom";
+    }
+
+    /**
+      * Evaluate local Whitted radiance and return explicit recursive
+      * continuations. Implementations that return `true` from
+      * `supportsWhittedContinuations()` must put every reflected, refracted,
+      * or redirected ray into `continuations` instead of calling
+      * `raycaster->rayColor(...)`.
+      */
+    virtual WhittedShadeResult shadeWhitted(const render::RayCaster* raycaster,
+                                            const render::Scene& scene, const Rayd& ray,
+                                            const HitPoint& hitPoint, render::State& state) const {
+      return WhittedShadeResult{shade(raycaster, scene, ray, hitPoint, state), {}};
     }
 
     virtual RasterRecursiveFallback rasterRecursiveFallback() const {

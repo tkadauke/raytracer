@@ -33,6 +33,7 @@ namespace render {
     radianceDeltaSquaredSumPerDepth.clear();
     maxRadianceDeltaPerDepth.clear();
     compatibilityShadeSamples = 0;
+    unsupportedPathMaterialSamples = 0;
     emitterHitSamples = 0;
     primaryEmitterHitSamples = 0;
     deltaEmitterHitSamples = 0;
@@ -104,6 +105,10 @@ namespace render {
   void IntegratorBatchMetrics::recordRadianceDeltaDepth(double squaredSum, double maxDelta) {
     radianceDeltaSquaredSumPerDepth.push_back(squaredSum);
     maxRadianceDeltaPerDepth.push_back(maxDelta);
+  }
+
+  void IntegratorBatchMetrics::recordUnsupportedPathMaterial() {
+    ++unsupportedPathMaterialSamples;
   }
 
   void IntegratorBatchMetrics::recordEmitterHit(bool sampledFromBsdf, bool bsdfSampleDelta,

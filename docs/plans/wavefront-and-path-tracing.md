@@ -142,8 +142,11 @@ already exist:
 - `render::Integrator` is the scalar single-ray radiance policy seam.
 - `PathTracingIntegrator` is an iterative scalar path tracer and a good
   reference for BSDF, direct-lighting, and Russian-roulette behavior.
-- `Material::supportsBsdfSampling`, `evalBsdf`, `sampleBsdf`, and
-  `bsdfPdf` are the material-side path-tracing hooks.
+- `PathMaterialTransport` is the path-tracing contract that `Material`
+  implements. `supportsPathTracing` declares whether a material can be consumed
+  without calling the legacy Whitted `shade()` contract; `supportsBsdfSampling`,
+  `evalBsdf`, `sampleBsdf`, `deltaBsdfSamples`, and `bsdfPdf` are the
+  material-side scattering hooks.
 - `SampleStream` reserves named stochastic dimensions for pixel, lens,
   time, BSDF, light, and continuation samples.
 - `RenderRaytracerOptions` / `RaytracerBeautyPassState` carry graph-visible
@@ -867,9 +870,10 @@ scheduler shape now has an explicit insertion point for future packet traversal
 or intersection batching. All built-in runtime materials
 (`MatteMaterial`, `PhongMaterial`, `ReflectiveMaterial`, `TransparentMaterial`,
 and `PortalMaterial`) now expose both wavefront Whitted continuations and
-path-tracing BSDF sampling; compatibility fallback metrics remain in place for
-future custom materials or new built-ins that have not implemented those
-interfaces yet.
+path-tracing BSDF sampling; `EmissiveMaterial` is path-traceable as an emitting
+endpoint without pretending to expose a BSDF. The path tracer records unsupported
+path-material metrics for future custom materials or new built-ins that have not
+implemented those interfaces yet.
 `scenes/wavefront_indirect_environment_demo.json` is the first reusable Phase 5
 sanity scene: it has a pathtracer render intent, black ambient, no
 direct lights, explicit environment radiance, and a matte object that is
@@ -880,15 +884,16 @@ images to differ.
 gate: a side-lit red wall bounces light onto otherwise-dark neutral receivers,
 and rendercli compares the graph-backed pathtracer result against a
 Whitted override to require the visible indirect contribution.
-Batch metrics also count material compatibility shading fallbacks. Phong now
+Batch metrics also count unsupported path materials separately from Whitted
+material compatibility shading. Phong now
 publishes a finite diffuse/glossy BSDF for path tracing, Reflective publishes
 its mirror branch as a delta BSDF sample, Transparent publishes reflection,
 transmission, and total-internal-reflection delta samples, and Portal publishes
 its redirected ray as a delta continuation sample. Graph traces still publish
-compatibility counters for custom or future materials that terminate at a legacy
-Whitted-shaded surface instead of continuing through a sampled BSDF; rendercli
-has graph-trace regression checks that require this metadata and pin transparent
-glass scenes to zero compatibility material samples.
+compatibility counters for Whitted recursion fallbacks and unsupported-material
+counters for path-tracing surfaces that terminate instead of continuing through
+sampled transport; rendercli has graph-trace regression checks that require this
+metadata and pin transparent glass scenes to zero compatibility material samples.
 Path tracing now also has a small rendercli diagnostics gate,
 `rendercli_pathtracer_diagnostics`, that renders direct diffuse/mirror, glass,
 and rectangular-area-light scenes with pinned Halton samples and compares
@@ -933,6 +938,9 @@ work: selected direct-light samples, samples that contributed nonzero radiance,
 and samples rejected by shadow visibility. Those counters make dark or noisy
 path-traced renders easier to separate into light-selection, visibility, and
 BSDF/PDF issues.
+It also reports unsupported path-material samples, which identify surfaces where
+the path tracer had to terminate because the material has not exposed
+path-tracing transport yet.
 Batch metrics also accumulate weighted contribution luminance sums for emitted
 surfaces, direct-light estimates (split into primary-hit and secondary-bounce
 subsets), ambient compatibility, miss/background radiance, and legacy
@@ -1313,13 +1321,12 @@ plan should not wait for packetized Whitted rendering.
   specular/transmission branch trees use deterministic throughput cutoff rather
   than Russian-roulette weighting, so their expected low-spp noise does not turn
   into rare extreme fireflies.
-- **Material BSDF coverage.** The scalar path tracer falls back to
-  Whitted shading for materials that do not implement BSDF sampling.
-  A wavefront path tracer can make the same compatibility choice, but
-  it will not get true indirect lighting through those materials until
-  the material side is refactored. Mitigation: track material BSDF
-  support explicitly and keep graph/pass trace metadata visible so
-  users can see when a pass used compatibility shading.
+- **Material path-tracing coverage.** The scalar path tracer terminates
+  unsupported materials instead of calling their Whitted `shade()` fallback, so
+  it will not get true indirect lighting through those materials until the
+  material side is refactored. Mitigation: track path-tracing support explicitly
+  and keep graph/pass trace metadata visible so users can see when a pass hit an
+  unsupported material.
 - **Graph/direct divergence.** rendercli has historically grown
   direct-engine switches faster than graph-visible intent. Mitigation:
   Phase 2 makes integrator selection graph-visible before wavefront

@@ -231,7 +231,8 @@ same payload from matching graph pass trace metadata, so the report includes
 the pass id plus integrator, batch execution mode, active sample counts,
 radiance-delta RMS values, retained active sample counts after each depth,
 per-depth frontier hit/miss counts, compatibility fallback counts, convergence
-thresholds, stop decisions, denoiser diagnostics when enabled, convergence
+thresholds, unsupported path-material counts, stop decisions, denoiser
+diagnostics when enabled, convergence
 feedback depth counts, tile load-balance counts, per-pixel sample radiance
 standard-deviation diagnostics, path-tracing emitter-hit counts, sampled
 direct-light counts, contribution luminance sums for emitted, direct-light,
@@ -254,7 +255,7 @@ compact summary prints total `tiles`, `tile_grid`,
 `direct_light_occluded_samples`, `emitted_luminance`,
 `direct_light_luminance`, `primary_direct_light_luminance`,
 `secondary_direct_light_luminance`, `ambient_luminance`, `miss_luminance`,
-`compatibility_shade_luminance`, `adaptive`,
+`compatibility_shade_luminance`, `unsupported_path_material_samples`, `adaptive`,
 `adaptive_min_samples`, `adaptive_stddev_threshold`,
 `adaptive_max_samples`, `adaptive_skipped_samples`, and
 `adaptive_skipped_fraction`.

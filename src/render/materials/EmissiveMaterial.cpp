@@ -21,7 +21,7 @@ Colord EmissiveMaterial::emittedRadiance(const Rayd& ray, const HitPoint& hitPoi
   return emitsToward(ray, hitPoint) ? radiance() : Colord::black();
 }
 
-bool EmissiveMaterial::supportsBsdfSampling() const {
+bool EmissiveMaterial::supportsPathTracing() const {
   return true;
 }
 

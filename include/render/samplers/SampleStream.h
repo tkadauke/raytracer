@@ -35,13 +35,13 @@ namespace render {
     case SampleDimension::Lens:
       return 2;
     case SampleDimension::BSDF:
-      return 3 + index * 3;
+      return 3 + index * 4;
     case SampleDimension::Light:
-      return 4 + index * 3;
+      return 4 + index * 4;
     case SampleDimension::LightSelection:
-      return 1000019ull + index;
+      return 5 + index * 4;
     case SampleDimension::Continuation:
-      return 5 + index * 3;
+      return 6 + index * 4;
     }
     return 0;
   }
@@ -93,17 +93,16 @@ namespace render {
       *
       * The first light at bounce 0 intentionally maps to index 0 so existing
       * callers/tests that use `sample2D(SampleDimension::Light, 0)` keep the
-      * same sample. Additional lights and later bounces use Cantor pairing so
-      * every `(bounce, lightIndex)` pair owns a distinct light-sampling
-      * dimension without colliding with BSDF or continuation dimensions.
+      * same sample. Additional lights, later bounces, and additional
+      * direct-light samples use compact Cantor-paired slots so every
+      * `(bounce, directSampleIndex, lightIndex)` tuple owns a distinct
+      * light-sampling dimension without colliding with BSDF, light-selection,
+      * or continuation dimensions.
       */
-    static constexpr std::uint64_t directLightSampleIndexStride() {
-      return 1048576ull;
-    }
-
     static constexpr std::uint64_t lightSelectionSampleIndex(std::uint64_t bounce,
                                                              std::uint64_t directSampleIndex = 0) {
-      return bounce + directSampleIndex * directLightSampleIndexStride();
+      const std::uint64_t sum = bounce + directSampleIndex;
+      return sum * (sum + 1u) / 2u + directSampleIndex;
     }
 
     static constexpr std::uint64_t lightSampleIndex(std::uint64_t bounce, std::uint64_t lightIndex,

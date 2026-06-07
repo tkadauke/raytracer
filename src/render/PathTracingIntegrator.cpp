@@ -7,6 +7,7 @@
 #include "core/math/RayPacket.h"
 #include "core/util/ScopedTimer.h"
 #include "render/MIS.h"
+#include "render/PathTermination.h"
 #include "render/RayCaster.h"
 #include "render/State.h"
 #include "render/lights/Light.h"
@@ -178,28 +179,6 @@ namespace render {
     return m_cancellationCallback && m_cancellationCallback();
   }
 
-  State PathTracingIntegrator::clonePathState(const State& state) const {
-    State result;
-    result.traceEvents = state.traceEvents;
-    result.numRays = state.numRays;
-    result.recursionDepth = state.recursionDepth;
-    result.maxRecursionDepth = state.maxRecursionDepth;
-    result.intersectionHits = state.intersectionHits;
-    result.intersectionMisses = state.intersectionMisses;
-    result.shadowIntersectionHits = state.shadowIntersectionHits;
-    result.shadowIntersectionMisses = state.shadowIntersectionMisses;
-    result.packetHitScalarFallbacks = state.packetHitScalarFallbacks;
-    result.packetHitScalarFallbacksByReason = state.packetHitScalarFallbacksByReason;
-    result.hitPoint = state.hitPoint;
-    result.timeSample = state.timeSample;
-    result.throughput = state.throughput;
-    result.sampleStream = state.sampleStream;
-    if (state.events) {
-      result.events = std::make_unique<std::list<std::string>>(*state.events);
-    }
-    return result;
-  }
-
   Colord PathTracingIntegrator::missRadiance(const Scene& scene, bool backgroundVisible) const {
     return backgroundVisible ? scene.background() : scene.environmentRadiance();
   }
@@ -224,8 +203,8 @@ namespace render {
   Colord PathTracingIntegrator::sampleDirectLighting(const Scene& scene,
                                                      const LightSampler& lightSampler,
                                                      const HitPoint& hitPoint,
-                                                     const Material& material, const Vector3d& wi,
-                                                     State& state, int bounce,
+                                                     const PathMaterialTransport& material,
+                                                     const Vector3d& wi, State& state, int bounce,
                                                      IntegratorBatchMetrics* metrics) const {
     Colord contribution = Colord::black();
     for (int sampleIndex = 0; sampleIndex != m_directLightSamples; ++sampleIndex) {
@@ -275,6 +254,15 @@ namespace render {
     state.throughput = throughput.max();
   }
 
+  void PathTracingIntegrator::recordUnsupportedPathMaterial(State& state,
+                                                            IntegratorBatchMetrics* metrics) const {
+    state.recordEvent(nullptr,
+                      "PathTracing: material does not support path tracing; terminating path");
+    if (metrics) {
+      metrics->recordUnsupportedPathMaterial();
+    }
+  }
+
   bool PathTracingIntegrator::survivesRussianRoulette(Colord& throughput, State& state,
                                                       int bounce) const {
     if (bounce < m_russianRouletteDepth) {
@@ -282,16 +270,15 @@ namespace render {
       return true;
     }
 
-    const double survival =
-      std::clamp(std::max({throughput.r(), throughput.g(), throughput.b()}), 0.05, 0.95);
     const double roulette = state.sampleStream->sample1D(SampleDimension::Continuation,
                                                          static_cast<std::uint64_t>(bounce));
-    if (roulette >= survival) {
+    const PathContinuation continuation = pathContinuation(throughput, roulette);
+    throughput = render::continuedThroughput(throughput, continuation);
+    setStateThroughput(state, throughput);
+    if (!continuation.continues) {
       return false;
     }
 
-    throughput = throughput * (1.0 / survival);
-    setStateThroughput(state, throughput);
     return true;
   }
 
@@ -555,9 +542,10 @@ namespace render {
   }
 
   Colord PathTracingIntegrator::emittedRadiance(const LightSampler& lightSampler,
-                                                const Material& material, const Rayd& ray,
-                                                const HitPoint& hitPoint, bool sampledFromBsdf,
-                                                double bsdfSamplePdf, bool bsdfSampleDelta,
+                                                const PathMaterialTransport& material,
+                                                const Rayd& ray, const HitPoint& hitPoint,
+                                                bool sampledFromBsdf, double bsdfSamplePdf,
+                                                bool bsdfSampleDelta,
                                                 IntegratorBatchMetrics* metrics) const {
     const Colord emitted = material.emittedRadiance(ray, hitPoint);
     if (emitted == Colord::black()) {
@@ -576,9 +564,11 @@ namespace render {
     return emitted * mis::weight(mis::Heuristic::Power, bsdfSamplePdf, lightPdf);
   }
 
-  PathTracingIntegrator::DirectLightingSample PathTracingIntegrator::directLighting(
-    const Scene& scene, const Light& light, const HitPoint& hitPoint, const Material& material,
-    const Vector3d& wi, const Vector2d& lightSample, State& state) const {
+  PathTracingIntegrator::DirectLightingSample
+  PathTracingIntegrator::directLighting(const Scene& scene, const Light& light,
+                                        const HitPoint& hitPoint,
+                                        const PathMaterialTransport& material, const Vector3d& wi,
+                                        const Vector2d& lightSample, State& state) const {
     LightSample sample = light.sample(hitPoint.point(), lightSample);
     if (sample.pdf <= 0.0 || sample.radiance == Colord::black()) {
       return {};
@@ -656,8 +646,9 @@ namespace render {
           pathState.recurseOut();
           continue;
         }
+        const PathMaterialTransport& transport = material->pathTransport();
 
-        accumulated += path.throughput * emittedRadiance(lightSampler, *material, path.ray,
+        accumulated += path.throughput * emittedRadiance(lightSampler, transport, path.ray,
                                                          hitPoint, path.sampledFromBsdf,
                                                          path.bsdfSamplePdf, path.bsdfSampleDelta);
 
@@ -665,29 +656,22 @@ namespace render {
         // AWAY from the surface — matches the BSDF convention.
         const Vector3d wi = -path.ray.direction().normalized();
 
-        // Materials without BSDF support fall back to Whitted. The
-        // contribution is the full shaded color (which includes direct
-        // lighting); we add it weighted by throughput and terminate
-        // this path. No further bounces past such a surface yet.
-        if (!material->supportsBsdfSampling()) {
-          const Colord whittedColor =
-            material->shade(&recursiveRayCaster, scene, path.ray, hitPoint, pathState);
-          accumulated += path.throughput * whittedColor;
+        if (!transport.supportsPathTracing()) {
+          recordUnsupportedPathMaterial(pathState);
           pathState.recurseOut();
           continue;
         }
 
-        accumulated += path.throughput * material->ambientRadiance(scene, path.ray, hitPoint);
+        accumulated += path.throughput * transport.ambientRadiance(scene, path.ray, hitPoint);
 
         // Direct lighting via NEE.
         accumulated += path.throughput * sampleDirectLighting(scene, lightSampler, hitPoint,
-                                                              *material, wi, pathState, bounce);
+                                                              transport, wi, pathState, bounce);
 
         const std::vector<MaterialBsdfSample> deltaSamples =
-          material->deltaBsdfSamples(hitPoint, wi);
+          transport.deltaBsdfSamples(hitPoint, wi);
         if (!deltaSamples.empty()) {
-          State baseState = clonePathState(pathState);
-          baseState.recurseOut();
+          State baseState = pathState.cloneForPathContinuation();
           for (const MaterialBsdfSample& sampled : deltaSamples) {
             if (!canContinueWithSample(sampled, hitPoint)) {
               continue;
@@ -697,7 +681,7 @@ namespace render {
             if (!continuesExactDeltaBranch(nextThroughput)) {
               continue;
             }
-            State childState = clonePathState(baseState);
+            State childState = baseState;
             setStateThroughput(childState, nextThroughput);
             nextPaths.emplace_back(sampled.rayFrom(hitPoint), nextThroughput,
                                    path.backgroundVisible, std::move(childState),
@@ -711,7 +695,7 @@ namespace render {
         // Indirect: sample a continuation direction.
         const Vector2d bsdfSample = pathState.sampleStream->sample2D(
           SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
-        const MaterialBsdfSample sampled = material->sampleBsdf(hitPoint, wi, bsdfSample);
+        const MaterialBsdfSample sampled = transport.sampleBsdf(hitPoint, wi, bsdfSample);
         if (!canContinueWithSample(sampled, hitPoint)) {
           pathState.recurseOut();
           continue;
@@ -723,8 +707,7 @@ namespace render {
           continue;
         }
 
-        State childState = clonePathState(pathState);
-        childState.recurseOut();
+        State childState = pathState.cloneForPathContinuation();
         pathState.recurseOut();
         nextPaths.emplace_back(sampled.rayFrom(hitPoint), nextThroughput,
                                sampled.isDelta ? path.backgroundVisible : false,
@@ -809,9 +792,10 @@ namespace render {
             recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
             continue;
           }
+          const PathMaterialTransport& transport = material->pathTransport();
 
           const Colord emittedContribution =
-            path.throughput * emittedRadiance(lightSampler, *material, path.ray, hit.hitPoint,
+            path.throughput * emittedRadiance(lightSampler, transport, path.ray, hit.hitPoint,
                                               path.sampledFromBsdf, path.bsdfSamplePdf,
                                               path.bsdfSampleDelta, metrics);
           path.accumulated() += emittedContribution;
@@ -820,29 +804,22 @@ namespace render {
           }
 
           const Vector3d wi = -path.ray.direction().normalized();
-          if (!material->supportsBsdfSampling()) {
-            const Colord whittedColor =
-              material->shade(&recursiveRayCaster, scene, path.ray, hit.hitPoint, path.state);
-            const Colord compatibilityContribution = path.throughput * whittedColor;
-            path.accumulated() += compatibilityContribution;
-            if (metrics) {
-              ++metrics->compatibilityShadeSamples;
-              metrics->recordCompatibilityShadeRadiance(compatibilityContribution);
-            }
+          if (!transport.supportsPathTracing()) {
+            recordUnsupportedPathMaterial(path.state, metrics);
             path.state.recurseOut();
             recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
             continue;
           }
 
           const Colord ambientContribution =
-            path.throughput * material->ambientRadiance(scene, path.ray, hit.hitPoint);
+            path.throughput * transport.ambientRadiance(scene, path.ray, hit.hitPoint);
           path.accumulated() += ambientContribution;
           if (metrics) {
             metrics->recordAmbientRadiance(ambientContribution);
           }
 
           const Colord directLightContribution =
-            path.throughput * sampleDirectLighting(scene, lightSampler, hit.hitPoint, *material, wi,
+            path.throughput * sampleDirectLighting(scene, lightSampler, hit.hitPoint, transport, wi,
                                                    path.state, bounce, metrics);
           path.accumulated() += directLightContribution;
           if (metrics) {
@@ -850,10 +827,9 @@ namespace render {
           }
 
           const std::vector<MaterialBsdfSample> deltaSamples =
-            material->deltaBsdfSamples(hit.hitPoint, wi);
+            transport.deltaBsdfSamples(hit.hitPoint, wi);
           if (!deltaSamples.empty()) {
-            State baseState = clonePathState(path.state);
-            baseState.recurseOut();
+            State baseState = path.state.cloneForPathContinuation();
             for (const MaterialBsdfSample& sampled : deltaSamples) {
               if (!canContinueWithSample(sampled, hit.hitPoint)) {
                 continue;
@@ -863,7 +839,7 @@ namespace render {
               if (!continuesExactDeltaBranch(nextThroughput)) {
                 continue;
               }
-              State childState = clonePathState(baseState);
+              State childState = baseState;
               setStateThroughput(childState, nextThroughput);
               spawnedPaths.emplace_back(sampled.rayFrom(hit.hitPoint), nextThroughput,
                                         path.backgroundVisible, std::move(childState),
@@ -877,7 +853,7 @@ namespace render {
 
           const Vector2d bsdfSample = path.state.sampleStream->sample2D(
             SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
-          const MaterialBsdfSample sampled = material->sampleBsdf(hit.hitPoint, wi, bsdfSample);
+          const MaterialBsdfSample sampled = transport.sampleBsdf(hit.hitPoint, wi, bsdfSample);
           if (!canContinueWithSample(sampled, hit.hitPoint)) {
             path.state.recurseOut();
             recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());

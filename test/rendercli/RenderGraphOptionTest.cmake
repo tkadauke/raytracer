@@ -1806,9 +1806,14 @@ foreach(emitter_name
                     "wavefront metrics summary did not contain ${emitter_name}"
                     "${wavefront_metrics_stdout}" "" "" "")
   endif()
-endforeach()
-foreach(direct_light_name
-        direct_light_samples
+	endforeach()
+	if(NOT wavefront_metrics_stdout MATCHES "unsupported_path_material_samples=")
+	  _rendercli_fail("rendercli wavefront metrics unsupported path material summary"
+	                  "wavefront metrics summary did not contain unsupported_path_material_samples"
+	                  "${wavefront_metrics_stdout}" "" "" "")
+	endif()
+	foreach(direct_light_name
+	        direct_light_samples
         direct_light_contributing_samples
         direct_light_occluded_samples)
   if(NOT wavefront_metrics_stdout MATCHES "${direct_light_name}=")
@@ -1866,12 +1871,17 @@ if(NOT wavefront_metrics_json MATCHES "\"activeSamplesPerDepth\"")
                   "wavefront metrics report did not contain batch counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
-if(NOT wavefront_metrics_json MATCHES "\"activeSampleDepthsProcessed\"")
-  _rendercli_fail("rendercli wavefront metrics sample-depth work"
-                  "wavefront metrics report did not contain active sample-depth work"
-                  "" "" "${wavefront_metrics_json}" "")
-endif()
-if(NOT wavefront_metrics_json MATCHES "\"retainedActiveSamplesPerDepth\"")
+	if(NOT wavefront_metrics_json MATCHES "\"activeSampleDepthsProcessed\"")
+	  _rendercli_fail("rendercli wavefront metrics sample-depth work"
+	                  "wavefront metrics report did not contain active sample-depth work"
+	                  "" "" "${wavefront_metrics_json}" "")
+	endif()
+	if(NOT wavefront_metrics_json MATCHES "\"unsupportedPathMaterialSamples\"")
+	  _rendercli_fail("rendercli wavefront metrics unsupported path materials"
+	                  "wavefront metrics report did not contain unsupported path material samples"
+	                  "" "" "${wavefront_metrics_json}" "")
+	endif()
+	if(NOT wavefront_metrics_json MATCHES "\"retainedActiveSamplesPerDepth\"")
   _rendercli_fail("rendercli wavefront metrics retained active samples"
                   "wavefront metrics report did not contain retained active sample counts"
                   "" "" "${wavefront_metrics_json}" "")
@@ -2544,6 +2554,10 @@ if(NOT wavefront_compatibility_trace_json MATCHES "\"compatibilityShadeSamples\"
   message(FATAL_ERROR
           "wavefront compatibility trace did not publish material compatibility counter: ${wavefront_compatibility_trace_json}")
 endif()
+if(NOT wavefront_compatibility_trace_json MATCHES "\"unsupportedPathMaterialSamples\"")
+  message(FATAL_ERROR
+          "wavefront compatibility trace did not publish unsupported path material counter: ${wavefront_compatibility_trace_json}")
+endif()
 
 rendercli_run(
   NAME "rendercli traces transparent wavefront path without compatibility shading"
@@ -2563,6 +2577,10 @@ endif()
 if(NOT wavefront_glass_trace_json MATCHES "\"compatibilityShadeSamples\"[ \r\n]*:[ \r\n]*0")
   message(FATAL_ERROR
           "wavefront transparent glass path used compatibility material shading: ${wavefront_glass_trace_json}")
+endif()
+if(NOT wavefront_glass_trace_json MATCHES "\"unsupportedPathMaterialSamples\"[ \r\n]*:[ \r\n]*0")
+  message(FATAL_ERROR
+          "wavefront transparent glass path hit unsupported path materials: ${wavefront_glass_trace_json}")
 endif()
 
 rendercli_expect_failure(

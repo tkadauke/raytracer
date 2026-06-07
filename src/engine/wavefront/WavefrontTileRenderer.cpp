@@ -195,6 +195,7 @@ namespace engine::wavefront::detail {
           std::max(target.maxRadianceDeltaPerDepth[index], source.maxRadianceDeltaPerDepth[index]);
       }
       target.compatibilityShadeSamples += source.compatibilityShadeSamples;
+      target.unsupportedPathMaterialSamples += source.unsupportedPathMaterialSamples;
       target.emitterHitSamples += source.emitterHitSamples;
       target.primaryEmitterHitSamples += source.primaryEmitterHitSamples;
       target.deltaEmitterHitSamples += source.deltaEmitterHitSamples;

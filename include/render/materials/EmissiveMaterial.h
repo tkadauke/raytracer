@@ -21,7 +21,7 @@ namespace render {
 
     Colord emittedRadiance(const Rayd& ray, const HitPoint& hitPoint) const override;
 
-    bool supportsBsdfSampling() const override;
+    bool supportsPathTracing() const override;
 
   private:
     static constexpr double emissionTolerance = 1e-9;

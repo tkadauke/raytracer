@@ -28,7 +28,8 @@ namespace EmissiveMaterialTest {
     EmissiveMaterial material(Colord(2.0, 3.0, 4.0));
     const HitPoint hitPoint(nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, -1, 0));
 
-    EXPECT_TRUE(material.supportsBsdfSampling());
+    EXPECT_TRUE(material.supportsPathTracing());
+    EXPECT_FALSE(material.supportsBsdfSampling());
     EXPECT_EQ(Colord::black(), material.evalBsdf(hitPoint, Vector3d(0, 1, 0), Vector3d(1, 0, 0)));
     EXPECT_DOUBLE_EQ(0.0, material.bsdfPdf(hitPoint, Vector3d(0, 1, 0), Vector3d(1, 0, 0)));
     EXPECT_DOUBLE_EQ(0.0, material.sampleBsdf(hitPoint, Vector3d(0, 1, 0), Vector2d(0.5, 0.5)).pdf);

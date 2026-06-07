@@ -935,6 +935,16 @@ namespace PathTracingIntegratorTest {
     ASSERT_COLOR_NEAR(Colord(0.1, 0.1, 0.1), batched[0], 1e-12);
   }
 
+  TEST(PathTracingIntegrator, ScalarRadianceTerminatesUnsupportedPathMaterialWithoutShade) {
+    auto scene = unsupportedMaterialScene();
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+
+    const Colord pixel = traceWithSampleStream(integrator, *scene, 1234ull, 0);
+
+    ASSERT_COLOR_NEAR(Colord::black(), pixel, 1e-12);
+  }
+
   TEST(PathTracingIntegrator, ScalarRadianceAddsVisibleEmitterHit) {
     auto scene = std::make_unique<Scene>();
     scene->setAmbient(Colord::black());
@@ -1414,7 +1424,7 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketRefinedRaysPerDepth);
   }
 
-  TEST(PathTracingIntegrator, BatchedRadianceRecordsCompatibilityMaterialFallbacks) {
+  TEST(PathTracingIntegrator, BatchedRadianceRecordsUnsupportedPathMaterials) {
     auto scene = unsupportedMaterialScene();
     PathTracingIntegrator integrator;
     integrator.setMaximumRecursionDepth(2);
@@ -1430,8 +1440,11 @@ namespace PathTracingIntegratorTest {
     const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster, &metrics);
 
     ASSERT_EQ(2u, batched.size());
+    EXPECT_EQ(Colord::black(), batched[0]);
+    EXPECT_EQ(Colord::black(), batched[1]);
     EXPECT_FALSE(metrics.usedScalarFallback);
-    EXPECT_EQ(2u, metrics.compatibilityShadeSamples);
+    EXPECT_EQ(0u, metrics.compatibilityShadeSamples);
+    EXPECT_EQ(2u, metrics.unsupportedPathMaterialSamples);
     EXPECT_EQ(1u, metrics.activeSamplesPerDepth.size());
   }
 

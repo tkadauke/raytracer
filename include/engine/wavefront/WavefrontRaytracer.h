@@ -66,6 +66,7 @@ namespace engine::wavefront {
       double averageBatchSize = 0.0;
       std::uint64_t activeSampleDepthsProcessed = 0;
       std::uint64_t compatibilityShadeSamples = 0;
+      std::uint64_t unsupportedPathMaterialSamples = 0;
       std::uint64_t emitterHitSamples = 0;
       std::uint64_t primaryEmitterHitSamples = 0;
       std::uint64_t deltaEmitterHitSamples = 0;

@@ -309,6 +309,8 @@ namespace {
         << adaptiveSampling.value("skippedPrimarySampleFraction").toDouble()
         << " last_rms_delta=" << doubleArrayBack(rmsDelta)
         << " compatibility_shade_samples=" << unsignedValue(batching, "compatibilityShadeSamples")
+        << " unsupported_path_material_samples="
+        << unsignedValue(batching, "unsupportedPathMaterialSamples")
         << " convergence=" << convergence.value("decision").toString().toStdString()
         << " stopped_tiles=" << unsignedValue(convergence, "stoppedTileCount")
         << " earliest_stop_depth=" << unsignedValue(convergence, "earliestStoppedAfterDepth")

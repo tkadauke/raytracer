@@ -13,6 +13,7 @@ namespace render {
   class LightSampler;
   class Material;
   struct MaterialBsdfSample;
+  class PathMaterialTransport;
   class Primitive;
 
   /**
@@ -26,11 +27,11 @@ namespace render {
     *
     *   `L(x, ω) = Σ_bounces throughput · (direct lighting + recursive radiance)`
     *
-    * The classic megakernel shape: one function walks the entire path
-    * iteratively, no separate stages, no ray queue. Simpler than a
-    * wavefront tracer and the canonical teaching algorithm. See
-    * `docs/plans/whitted-ray-packets.md` for why packets and wavefront
-    * are deliberately out of scope here.
+    * The scalar entry point walks a small list of active path branches
+    * iteratively. The batch entry point uses the same transport rules but
+    * groups active rays by bounce depth so scene traversal can use packet
+    * intersections before each shading step. Both forms remain a single
+    * integrator policy: they do not hand recursion back to materials.
     *
     * Algorithm at each bounce:
     *
@@ -38,9 +39,10 @@ namespace render {
     *  2. Miss → add `throughput · background` while the path is still a
     *     camera/specular chain, otherwise add explicit environment radiance;
     *     terminate.
-    *  3. Material doesn't support BSDF sampling → fall back to
-    *     `Material::shade(...)` (Whitted compatibility), terminate.
-    *  4. Add the material's compatibility ambient radiance.
+    *  3. Material is not path-traceable → record the unsupported-material
+    *     diagnostic and terminate. The path tracer does not call the
+    *     material's Whitted `shade(...)` fallback.
+    *  4. Add the material's local ambient radiance.
     *  5. Direct lighting (next-event estimation): select
     *     `directLightSamples()` lights from `LightSampler`, draw one
     *     `LightSample` from each light's `SampleDimension::Light` slot,
@@ -56,10 +58,10 @@ namespace render {
     *     cutoff instead, because they are split branches rather than
     *     probability-compensated samples.
     *
-    * Materials that don't yet expose a BSDF terminate the path with the
-    * Whitted-shaded value; those surfaces don't yet receive indirect light
-    * from the path tracer. Refactoring those materials to expose `sampleBsdf`
-    * is follow-up work tracked alongside this integrator.
+    * Materials that don't yet expose path-tracing transport terminate the path
+    * explicitly. Refactoring those materials to expose `supportsPathTracing`
+    * plus emitted/scattering contracts is follow-up work tracked alongside
+    * this integrator.
     *
     * @see WhittedIntegrator — the recursive direct-lighting-only
     * sibling.
@@ -125,28 +127,29 @@ namespace render {
     struct ScalarPath;
 
     bool isCancelled() const;
-    State clonePathState(const State& state) const;
     Colord missRadiance(const Scene& scene, bool backgroundVisible) const;
     double lightSelectionSample(State& state, int bounce, int directSampleIndex) const;
     Vector2d lightSample(State& state, int bounce, std::size_t lightIndex,
                          int directSampleIndex) const;
     Colord sampleDirectLighting(const Scene& scene, const LightSampler& lightSampler,
-                                const HitPoint& hitPoint, const Material& material,
+                                const HitPoint& hitPoint, const PathMaterialTransport& material,
                                 const Vector3d& wi, State& state, int bounce,
                                 IntegratorBatchMetrics* metrics = nullptr) const;
-    Colord emittedRadiance(const LightSampler& lightSampler, const Material& material,
+    Colord emittedRadiance(const LightSampler& lightSampler, const PathMaterialTransport& material,
                            const Rayd& ray, const HitPoint& hitPoint, bool sampledFromBsdf,
                            double bsdfSamplePdf, bool bsdfSampleDelta,
                            IntegratorBatchMetrics* metrics = nullptr) const;
     DirectLightingSample directLighting(const Scene& scene, const Light& light,
-                                        const HitPoint& hitPoint, const Material& material,
-                                        const Vector3d& wi, const Vector2d& lightSample,
-                                        State& state) const;
+                                        const HitPoint& hitPoint,
+                                        const PathMaterialTransport& material, const Vector3d& wi,
+                                        const Vector2d& lightSample, State& state) const;
     bool canContinueWithSample(const MaterialBsdfSample& sample, const HitPoint& hitPoint) const;
     Colord continuedThroughput(const Colord& throughput, const MaterialBsdfSample& sample,
                                const HitPoint& hitPoint) const;
     bool continuesExactDeltaBranch(const Colord& throughput) const;
     void setStateThroughput(State& state, const Colord& throughput) const;
+    void recordUnsupportedPathMaterial(State& state,
+                                       IntegratorBatchMetrics* metrics = nullptr) const;
     bool survivesRussianRoulette(Colord& throughput, State& state, int bounce) const;
     void recordDepthDelta(BatchDepthMetrics& depthMetrics, const Colord& before,
                           const Colord& after) const;
