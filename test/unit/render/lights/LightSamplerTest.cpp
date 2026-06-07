@@ -1,12 +1,47 @@
 #include <gtest/gtest.h>
 
 #include "render/lights/DirectionalLight.h"
+#include "render/lights/Light.h"
 #include "render/lights/LightSampler.h"
 #include "render/lights/PointLight.h"
 #include "render/primitives/Scene.h"
 
 namespace LightSamplerTest {
   using namespace render;
+
+  namespace {
+    class FixedPdfLight final : public Light {
+    public:
+      FixedPdfLight(double weight, double density)
+          : m_weight(weight),
+            m_density(density) {
+      }
+
+      Vector3d direction(const Vector3d&) const override {
+        return Vector3d(0, 1, 0);
+      }
+
+      Colord radiance() const override {
+        return Colord(m_weight, 0.0, 0.0);
+      }
+
+      double pdf(const Vector3d&, const Vector3d&) const override {
+        return m_density;
+      }
+
+      bool isDelta() const override {
+        return false;
+      }
+
+      const char* fingerprintType() const override {
+        return "FixedPdfLight";
+      }
+
+    private:
+      double m_weight;
+      double m_density;
+    };
+  }
 
   TEST(LightSampler, ReturnsEmptySelectionForEmptyScene) {
     Scene scene;
@@ -61,5 +96,15 @@ namespace LightSamplerTest {
     EXPECT_EQ(1u, sampler.select(0.50).lightIndex);
     EXPECT_DOUBLE_EQ(0.5, sampler.selectionPdf(0));
     EXPECT_DOUBLE_EQ(0.5, sampler.selectionPdf(1));
+  }
+
+  TEST(LightSampler, CombinesLightPdfWithSelectionPdf) {
+    Scene scene;
+    scene.addLight(std::make_shared<FixedPdfLight>(1.0, 0.2));
+    scene.addLight(std::make_shared<FixedPdfLight>(3.0, 0.4));
+
+    LightSampler sampler(scene.lights());
+
+    EXPECT_DOUBLE_EQ(0.35, sampler.pdf(Vector3d::null, Vector3d(0, 1, 0)));
   }
 }

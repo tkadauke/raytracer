@@ -26,6 +26,7 @@ namespace render {
     std::size_t size() const;
     Selection select(double unitSample) const;
     double selectionPdf(std::size_t entryIndex) const;
+    double pdf(const Vector3d& point, const Vector3d& direction) const;
 
   private:
     struct Entry {

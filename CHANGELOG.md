@@ -802,6 +802,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Path-tracing emitter-hit MIS.** Non-delta BSDF continuation rays that hit
+  visible emitters now weight emitted radiance against the combined light PDF,
+  reducing double counting with next-event estimation. — GPT-5
 - **Wavefront integrator depth replacement.** `WavefrontRaytracer` now retains
   the configured maximum recursion depth and reapplies it when callers replace
   the integrator, so API order no longer changes wavefront bounce limits. — GPT-5

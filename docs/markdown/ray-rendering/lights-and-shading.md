@@ -213,8 +213,14 @@ location or direction and returns a non-delta PDF. The path tracer
 passes the selected light's `SampleDimension::Light` slot into this
 overload during next-event estimation, then combines the light PDF with
 the material's `bsdfPdf(...)` through the MIS helper. The
-integrator-side weighting and sample-ownership contract is shared by
-all non-delta emitters.
+integrator uses the same rule in the other direction: when a non-delta
+BSDF continuation ray hits visible emitter geometry, the emitted radiance
+is weighted against `LightSampler::pdf(...)`, which includes both the
+selected light's PDF and the light-selection probability. Camera-visible
+emitters and specular/delta continuations keep weight 1 because the
+competing continuous estimator cannot sample those events. This
+integrator-side weighting and sample-ownership contract is shared by all
+non-delta emitters.
 
 The important boundary is capability: these methods document how
 lights can be sampled, not that the Whitted renderer already performs

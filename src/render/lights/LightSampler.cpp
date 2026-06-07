@@ -59,6 +59,15 @@ double LightSampler::selectionPdf(std::size_t entryIndex) const {
   return m_entries[entryIndex].weight / m_totalWeight;
 }
 
+double LightSampler::pdf(const Vector3d& point, const Vector3d& direction) const {
+  double result = 0.0;
+  for (std::size_t entryIndex = 0; entryIndex != m_entries.size(); ++entryIndex) {
+    const Entry& entry = m_entries[entryIndex];
+    result += selectionPdf(entryIndex) * entry.light->pdf(point, direction);
+  }
+  return result;
+}
+
 double LightSampler::weightFor(const Light& light) const {
   const std::optional<Colord> power = light.power();
   const Colord weightColor = power.has_value() ? *power : light.emission();

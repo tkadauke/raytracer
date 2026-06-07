@@ -891,6 +891,11 @@ primitive tree, while the light list remains the sampling surface for next-event
 estimation. Path tracing adds `Material::emittedRadiance(...)` on light-card
 hits before BSDF sampling, and the bounded shadow query leaves a small endpoint
 tolerance so a sampled area light does not occlude itself.
+BSDF-sampled non-delta continuations that hit emitter geometry now apply the
+matching MIS weight against `LightSampler::pdf(...)`, including light-selection
+probability. Primary/camera-visible emitters and delta/specular continuations
+still use weight 1; the finite BSDF and finite light estimators are the only
+paths that compete.
 Wavefront metrics now also aggregate per-pixel sample radiance variance into
 `sampleRadianceStddevRms` and `maxSampleRadianceStddev`. That is the first
 render-wide noise diagnostic for path-traced samples: it measures disagreement

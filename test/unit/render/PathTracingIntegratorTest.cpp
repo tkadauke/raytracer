@@ -170,6 +170,38 @@ namespace PathTracingIntegratorTest {
       }
     };
 
+    class EmitterHitSamplingMaterial final : public Material {
+    public:
+      explicit EmitterHitSamplingMaterial(double pdf)
+          : m_pdf(pdf) {
+      }
+
+      Colord shade(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                   State&) const override {
+        return Colord::black();
+      }
+
+      bool supportsBsdfSampling() const override {
+        return true;
+      }
+
+      Colord evalBsdf(const HitPoint&, const Vector3d&, const Vector3d&) const override {
+        return Colord::black();
+      }
+
+      MaterialBsdfSample sampleBsdf(const HitPoint&, const Vector3d&,
+                                    const Vector2d&) const override {
+        MaterialBsdfSample sample;
+        sample.direction = Vector3d(0, 1, 0);
+        sample.value = Colord(m_pdf, m_pdf, m_pdf);
+        sample.pdf = m_pdf;
+        return sample;
+      }
+
+    private:
+      double m_pdf;
+    };
+
     class FixedLightSampleStream final : public SampleStream {
     public:
       explicit FixedLightSampleStream(const Vector2d& lightSample)
@@ -492,6 +524,40 @@ namespace PathTracingIntegratorTest {
       return scene;
     }
 
+    constexpr double emitterHitBsdfPdf = 0.25;
+
+    Rayd emitterHitPrimaryRay() {
+      return Rayd(Vector3d(0, -5, 0), Vector3d(0, 1, 0));
+    }
+
+    std::shared_ptr<RectangularAreaLight> emitterHitAreaLight() {
+      return std::make_shared<RectangularAreaLight>(Vector3d(0, 2, 0), Vector3d(2, 0, 0),
+                                                    Vector3d(0, 0, 2), Colord(0.25, 0.5, 0.75));
+    }
+
+    std::unique_ptr<Scene> emitterHitMisScene(const std::shared_ptr<RectangularAreaLight>& light) {
+      auto scene = std::make_unique<Scene>();
+      scene->setAmbient(Colord::black());
+      scene->setBackground(Colord::black());
+
+      auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
+      plane->setMaterial(std::make_shared<EmitterHitSamplingMaterial>(emitterHitBsdfPdf));
+      scene->add(plane);
+      scene->addLight(light);
+
+      return scene;
+    }
+
+    Colord expectedEmitterHitMisRadiance(const RectangularAreaLight& light) {
+      const Rayd continuation = Rayd(Vector3d::null, Vector3d(0, 1, 0)).epsilonShifted();
+      const double lightPdf =
+        light.pdf(Vector3d(continuation.origin()), continuation.direction().normalized());
+      const double bsdfPdfSquared = emitterHitBsdfPdf * emitterHitBsdfPdf;
+      const double lightPdfSquared = lightPdf * lightPdf;
+      const double misWeight = bsdfPdfSquared / (bsdfPdfSquared + lightPdfSquared);
+      return light.color() * misWeight;
+    }
+
     // A primary ray straight down at the floor — for a horizontal
     // ground plane with the light coming from directly above, the
     // expected reflected radiance is diffuse_color / pi (Lambertian
@@ -703,6 +769,39 @@ namespace PathTracingIntegratorTest {
 
     ASSERT_EQ(1u, pixels.size());
     ASSERT_COLOR_NEAR(Colord(0.25, 0.5, 0.75), pixels[0], 1e-12);
+  }
+
+  TEST(PathTracingIntegrator, ScalarRadianceMisWeightsBsdfSampledEmitterHit) {
+    auto light = emitterHitAreaLight();
+    auto scene = emitterHitMisScene(light);
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+    FixedLightSampleStream stream(Vector2d(0.5, 0.5));
+    State state;
+    state.sampleStream = &stream;
+    FallbackRayCaster caster;
+
+    const Colord pixel = integrator.radiance(*scene, emitterHitPrimaryRay(), state, caster);
+
+    ASSERT_COLOR_NEAR(expectedEmitterHitMisRadiance(*light), pixel, 1e-12);
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadianceMisWeightsBsdfSampledEmitterHit) {
+    auto light = emitterHitAreaLight();
+    auto scene = emitterHitMisScene(light);
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{
+      emitterHitPrimaryRay(), 0.0, std::make_unique<FixedLightSampleStream>(Vector2d(0.5, 0.5))});
+    FallbackRayCaster caster;
+
+    const std::vector<Colord> pixels = integrator.radianceBatch(*scene, samples, caster);
+
+    ASSERT_EQ(1u, pixels.size());
+    ASSERT_COLOR_NEAR(expectedEmitterHitMisRadiance(*light), pixels[0], 1e-12);
   }
 
   TEST(PathTracingIntegrator, PrimaryMissReturnsBackgroundColor) {
