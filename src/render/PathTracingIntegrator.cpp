@@ -18,6 +18,7 @@
 #include "render/samplers/SampleStream.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <list>
 #include <map>
@@ -376,6 +377,8 @@ namespace render {
     std::optional<std::array<std::map<std::string, std::uint64_t>, Ray4::lanes>>
       packetFallbacksBefore;
     PrimitivePacketState4 states{};
+    assert(laneCount <= Ray4::lanes);
+    const std::size_t activeLaneCount = std::min(laneCount, Ray4::lanes);
 
     PrimitivePacketHit4 packetHits;
     {
@@ -383,7 +386,7 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics()) {
         ++depthMetrics.frontierPacketChunks;
         ++depthMetrics.frontierRay4PacketChunks;
-        depthMetrics.frontierPacketRays += packetLaneCount;
+        depthMetrics.frontierPacketRays += activeLaneCount;
         packetFallbacksBefore.emplace();
       }
       const auto prepareLane = [&](std::size_t lane) {
@@ -450,6 +453,8 @@ namespace render {
     std::optional<std::array<std::map<std::string, std::uint64_t>, Ray8::lanes>>
       packetFallbacksBefore;
     PrimitivePacketState8 states{};
+    assert(laneCount <= Ray8::lanes);
+    const std::size_t activeLaneCount = std::min(laneCount, Ray8::lanes);
 
     PrimitivePacketHit8 packetHits;
     {
@@ -457,7 +462,7 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics()) {
         ++depthMetrics.frontierPacketChunks;
         ++depthMetrics.frontierRay8PacketChunks;
-        depthMetrics.frontierPacketRays += packetLaneCount;
+        depthMetrics.frontierPacketRays += activeLaneCount;
         packetFallbacksBefore.emplace();
       }
       const auto prepareLane = [&](std::size_t lane) {
