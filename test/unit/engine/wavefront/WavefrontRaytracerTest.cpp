@@ -927,6 +927,8 @@ namespace WavefrontRaytracerTest {
                            /*misWeighted=*/false);
     batch.recordEmitterHit(/*sampledFromBsdf=*/true, /*bsdfSampleDelta=*/false,
                            /*misWeighted=*/true);
+    batch.recordDirectLightSample(/*occluded=*/false, /*contributing=*/true);
+    batch.recordDirectLightSample(/*occluded=*/true, /*contributing=*/false);
 
     metrics.batching.addIntegratorMetrics(batch);
 
@@ -935,6 +937,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1u, metrics.batching.deltaEmitterHitSamples);
     EXPECT_EQ(1u, metrics.batching.bsdfEmitterHitSamples);
     EXPECT_EQ(1u, metrics.batching.misWeightedEmitterHitSamples);
+    EXPECT_EQ(2u, metrics.batching.directLightSamples);
+    EXPECT_EQ(1u, metrics.batching.directLightContributingSamples);
+    EXPECT_EQ(1u, metrics.batching.directLightOccludedSamples);
 
     const QJsonObject batching = metrics.toJson().value("batching").toObject();
     EXPECT_EQ(3.0, batching.value("emitterHitSamples").toDouble());
@@ -942,6 +947,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1.0, batching.value("deltaEmitterHitSamples").toDouble());
     EXPECT_EQ(1.0, batching.value("bsdfEmitterHitSamples").toDouble());
     EXPECT_EQ(1.0, batching.value("misWeightedEmitterHitSamples").toDouble());
+    EXPECT_EQ(2.0, batching.value("directLightSamples").toDouble());
+    EXPECT_EQ(1.0, batching.value("directLightContributingSamples").toDouble());
+    EXPECT_EQ(1.0, batching.value("directLightOccludedSamples").toDouble());
   }
 
   TEST(WavefrontRaytracer, MetricsRecordPerPixelSampleRadianceVariance) {

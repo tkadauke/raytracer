@@ -108,6 +108,15 @@ namespace render {
     HitPoint hitPoint;
   };
 
+  struct PathTracingIntegrator::DirectLightingSample {
+    Colord contribution{Colord::black()};
+    bool occluded{false};
+
+    bool contributing() const {
+      return contribution != Colord::black();
+    }
+  };
+
   struct PathTracingIntegrator::BatchDepthMetrics {
     bool trackRadianceDelta{false};
     std::uint64_t frontierRayHits{0};
@@ -210,17 +219,21 @@ namespace render {
                                                      const LightSampler& lightSampler,
                                                      const HitPoint& hitPoint,
                                                      const Material& material, const Vector3d& wi,
-                                                     State& state, int bounce) const {
+                                                     State& state, int bounce,
+                                                     IntegratorBatchMetrics* metrics) const {
     const LightSampler::Selection selection =
       lightSampler.select(lightSelectionSample(state, bounce));
     if (!selection) {
       return Colord::black();
     }
 
-    const Colord contribution =
+    const DirectLightingSample sample =
       directLighting(scene, *selection.light, hitPoint, material, wi,
                      lightSample(state, bounce, selection.lightIndex), state);
-    return contribution / selection.pdf;
+    if (metrics) {
+      metrics->recordDirectLightSample(sample.occluded, sample.contributing());
+    }
+    return sample.contribution / selection.pdf;
   }
 
   bool PathTracingIntegrator::canContinueWithSample(const MaterialBsdfSample& sample,
@@ -539,19 +552,18 @@ namespace render {
     return emitted * mis::weight(mis::Heuristic::Power, bsdfSamplePdf, lightPdf);
   }
 
-  Colord PathTracingIntegrator::directLighting(const Scene& scene, const Light& light,
-                                               const HitPoint& hitPoint, const Material& material,
-                                               const Vector3d& wi, const Vector2d& lightSample,
-                                               State& state) const {
+  PathTracingIntegrator::DirectLightingSample PathTracingIntegrator::directLighting(
+    const Scene& scene, const Light& light, const HitPoint& hitPoint, const Material& material,
+    const Vector3d& wi, const Vector2d& lightSample, State& state) const {
     LightSample sample = light.sample(hitPoint.point(), lightSample);
     if (sample.pdf <= 0.0 || sample.radiance == Colord::black()) {
-      return Colord::black();
+      return {};
     }
 
     const Vector3d wo = sample.direction;
     const double normalDotOut = hitPoint.normal() * wo;
     if (normalDotOut <= 0.0) {
-      return Colord::black();
+      return {};
     }
 
     // Shadow ray. `Scene::occludes` keeps point-light visibility bounded
@@ -559,18 +571,19 @@ namespace render {
     const Rayd shadowRay = Rayd(hitPoint.point(), wo).epsilonShifted();
     if (scene.occludes(shadowRay, state, sample.distance)) {
       state.shadowHit(nullptr, "PathTracingIntegrator");
-      return Colord::black();
+      return {Colord::black(), true};
     }
     state.shadowMiss(nullptr, "PathTracingIntegrator");
 
     const Colord bsdfValue = material.evalBsdf(hitPoint, wi, wo);
     if (bsdfValue == Colord::black()) {
-      return Colord::black();
+      return {};
     }
 
     const double bsdfPdf = sample.delta ? 0.0 : material.bsdfPdf(hitPoint, wi, wo);
-    return mis::estimateDirectLightingFromLightSample(bsdfValue, sample.radiance, normalDotOut,
-                                                      sample.pdf, bsdfPdf, sample.delta);
+    return {mis::estimateDirectLightingFromLightSample(bsdfValue, sample.radiance, normalDotOut,
+                                                       sample.pdf, bsdfPdf, sample.delta),
+            false};
   }
 
   Colord PathTracingIntegrator::radiance(const Scene& scene, const Rayd& primaryRay, State& state,
@@ -795,7 +808,7 @@ namespace render {
 
           path.accumulated() +=
             path.throughput * sampleDirectLighting(scene, lightSampler, hit.hitPoint, *material, wi,
-                                                   path.state, bounce);
+                                                   path.state, bounce, metrics);
 
           const std::vector<MaterialBsdfSample> deltaSamples =
             material->deltaBsdfSamples(hit.hitPoint, wi);

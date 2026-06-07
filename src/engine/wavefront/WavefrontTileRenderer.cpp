@@ -200,6 +200,9 @@ namespace engine::wavefront::detail {
       target.deltaEmitterHitSamples += source.deltaEmitterHitSamples;
       target.bsdfEmitterHitSamples += source.bsdfEmitterHitSamples;
       target.misWeightedEmitterHitSamples += source.misWeightedEmitterHitSamples;
+      target.directLightSamples += source.directLightSamples;
+      target.directLightContributingSamples += source.directLightContributingSamples;
+      target.directLightOccludedSamples += source.directLightOccludedSamples;
       target.stoppedByConvergence = target.stoppedByConvergence || source.stoppedByConvergence;
       target.stoppedAfterDepth = std::max(target.stoppedAfterDepth, source.stoppedAfterDepth);
       target.intersectionWorkerSeconds += source.intersectionWorkerSeconds;

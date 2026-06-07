@@ -106,6 +106,7 @@ namespace render {
     struct BatchDepthMetrics;
     struct BatchHit;
     struct BatchPath;
+    struct DirectLightingSample;
     struct ScalarPath;
 
     bool isCancelled() const;
@@ -115,14 +116,16 @@ namespace render {
     Vector2d lightSample(State& state, int bounce, std::size_t lightIndex) const;
     Colord sampleDirectLighting(const Scene& scene, const LightSampler& lightSampler,
                                 const HitPoint& hitPoint, const Material& material,
-                                const Vector3d& wi, State& state, int bounce) const;
+                                const Vector3d& wi, State& state, int bounce,
+                                IntegratorBatchMetrics* metrics = nullptr) const;
     Colord emittedRadiance(const LightSampler& lightSampler, const Material& material,
                            const Rayd& ray, const HitPoint& hitPoint, bool sampledFromBsdf,
                            double bsdfSamplePdf, bool bsdfSampleDelta,
                            IntegratorBatchMetrics* metrics = nullptr) const;
-    Colord directLighting(const Scene& scene, const Light& light, const HitPoint& hitPoint,
-                          const Material& material, const Vector3d& wi, const Vector2d& lightSample,
-                          State& state) const;
+    DirectLightingSample directLighting(const Scene& scene, const Light& light,
+                                        const HitPoint& hitPoint, const Material& material,
+                                        const Vector3d& wi, const Vector2d& lightSample,
+                                        State& state) const;
     bool canContinueWithSample(const MaterialBsdfSample& sample, const HitPoint& hitPoint) const;
     Colord continuedThroughput(const Colord& throughput, const MaterialBsdfSample& sample,
                                const HitPoint& hitPoint) const;

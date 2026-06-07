@@ -909,6 +909,11 @@ classes: total emitter hits, primary emitter hits, delta/specular emitter hits,
 finite BSDF emitter hits, and MIS-weighted emitter hits. The counters appear in
 the batching JSON, render graph trace metadata, Modeler graph tooltips, and the
 rendercli compact `--wavefront_metrics_summary` line.
+The same metrics surface now also reports path-tracer next-event-estimation
+work: selected direct-light samples, samples that contributed nonzero radiance,
+and samples rejected by shadow visibility. Those counters make dark or noisy
+path-traced renders easier to separate into light-selection, visibility, and
+BSDF/PDF issues.
 Wavefront metrics now also aggregate per-pixel sample radiance variance into
 `sampleRadianceStddevRms` and `maxSampleRadianceStddev`. That is the first
 render-wide noise diagnostic for path-traced samples: it measures disagreement

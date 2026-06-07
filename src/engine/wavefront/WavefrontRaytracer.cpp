@@ -80,6 +80,9 @@ namespace engine::wavefront {
     deltaEmitterHitSamples += metrics.deltaEmitterHitSamples;
     bsdfEmitterHitSamples += metrics.bsdfEmitterHitSamples;
     misWeightedEmitterHitSamples += metrics.misWeightedEmitterHitSamples;
+    directLightSamples += metrics.directLightSamples;
+    directLightContributingSamples += metrics.directLightContributingSamples;
+    directLightOccludedSamples += metrics.directLightOccludedSamples;
 
     const auto addCounts = [](std::vector<std::uint64_t>& target,
                               const std::vector<std::uint64_t>& source) {
@@ -229,6 +232,11 @@ namespace engine::wavefront {
     batchingJson["bsdfEmitterHitSamples"] = static_cast<double>(batching.bsdfEmitterHitSamples);
     batchingJson["misWeightedEmitterHitSamples"] =
       static_cast<double>(batching.misWeightedEmitterHitSamples);
+    batchingJson["directLightSamples"] = static_cast<double>(batching.directLightSamples);
+    batchingJson["directLightContributingSamples"] =
+      static_cast<double>(batching.directLightContributingSamples);
+    batchingJson["directLightOccludedSamples"] =
+      static_cast<double>(batching.directLightOccludedSamples);
     batchingJson["activeSamplesPerDepth"] = activeSamplesPerDepth;
     batchingJson["retainedActiveSamplesPerDepth"] = retainedActiveSamplesPerDepth;
     batchingJson["frontierRayHitsPerDepth"] = frontierRayHitsPerDepth;

@@ -682,6 +682,7 @@ material compatibility shading, active sample counts per depth, batch sizes,
 frontier hit/miss and packet/scalar traversal counts, Ray4/Ray8 packet chunk
 counts, packet scalar-fallback reason buckets, Whitted packet-refinement
 material buckets,
+sampled direct-light counts with contributing and shadow-occluded subsets,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
 convergence stop decisions, observer feedback depth count, denoiser
 name/parameters/time when denoising is enabled, denoiser feature-prepass time,

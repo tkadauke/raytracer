@@ -38,6 +38,9 @@ namespace render {
     deltaEmitterHitSamples = 0;
     bsdfEmitterHitSamples = 0;
     misWeightedEmitterHitSamples = 0;
+    directLightSamples = 0;
+    directLightContributingSamples = 0;
+    directLightOccludedSamples = 0;
     stoppedByConvergence = false;
     stoppedAfterDepth = 0;
     intersectionWorkerSeconds = 0.0;
@@ -108,6 +111,16 @@ namespace render {
     }
     if (misWeighted) {
       ++misWeightedEmitterHitSamples;
+    }
+  }
+
+  void IntegratorBatchMetrics::recordDirectLightSample(bool occluded, bool contributing) {
+    ++directLightSamples;
+    if (contributing) {
+      ++directLightContributingSamples;
+    }
+    if (occluded) {
+      ++directLightOccludedSamples;
     }
   }
 

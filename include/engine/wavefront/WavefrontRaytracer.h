@@ -71,6 +71,9 @@ namespace engine::wavefront {
       std::uint64_t deltaEmitterHitSamples = 0;
       std::uint64_t bsdfEmitterHitSamples = 0;
       std::uint64_t misWeightedEmitterHitSamples = 0;
+      std::uint64_t directLightSamples = 0;
+      std::uint64_t directLightContributingSamples = 0;
+      std::uint64_t directLightOccludedSamples = 0;
       std::vector<std::uint64_t> activeSamplesPerDepth;
       std::vector<std::uint64_t> retainedActiveSamplesPerDepth;
       std::vector<std::uint64_t> frontierRayHitsPerDepth;

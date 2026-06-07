@@ -668,13 +668,17 @@ namespace PathTracingIntegratorTest {
     samples.push_back(IntegratorRaySample{
       primaryRay(), 0.0, std::make_unique<FixedLightSampleStream>(Vector2d(0.125, 0.625))});
     FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
 
-    const std::vector<Colord> pixels = integrator.radianceBatch(*scene, samples, caster);
+    const std::vector<Colord> pixels = integrator.radianceBatch(*scene, samples, caster, &metrics);
 
     ASSERT_EQ(1u, pixels.size());
     ASSERT_COLOR_NEAR(Colord(0.125, 0.625, 0.0), pixels[0], 1e-12);
     ASSERT_EQ(1u, light->samples.size());
     EXPECT_EQ(Vector2d(0.125, 0.625), light->samples[0]);
+    EXPECT_EQ(1u, metrics.directLightSamples);
+    EXPECT_EQ(1u, metrics.directLightContributingSamples);
+    EXPECT_EQ(0u, metrics.directLightOccludedSamples);
   }
 
   TEST(PathTracingIntegrator, BatchedDirectLightingScalesSelectedLightBySelectionPdf) {

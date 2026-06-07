@@ -430,6 +430,18 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         line += QStringLiteral(" (%1 MIS)").arg(misWeightedEmitterHits);
       }
     }
+    const auto directLightSamples =
+      static_cast<qulonglong>(batching.value(QStringLiteral("directLightSamples")).toDouble());
+    if (directLightSamples > 0) {
+      const auto directLightContributing = static_cast<qulonglong>(
+        batching.value(QStringLiteral("directLightContributingSamples")).toDouble());
+      const auto directLightOccluded = static_cast<qulonglong>(
+        batching.value(QStringLiteral("directLightOccludedSamples")).toDouble());
+      line += QStringLiteral(", direct light %1 (%2 lit, %3 shadowed)")
+                .arg(directLightSamples)
+                .arg(directLightContributing)
+                .arg(directLightOccluded);
+    }
     const qulonglong frontierHits =
       jsonIntegerArraySum(batching.value(QStringLiteral("frontierRayHitsPerDepth")).toArray());
     const qulonglong frontierMisses =

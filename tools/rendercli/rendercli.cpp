@@ -284,6 +284,11 @@ namespace {
         << " bsdf_emitter_hit_samples=" << unsignedValue(batching, "bsdfEmitterHitSamples")
         << " mis_weighted_emitter_hit_samples="
         << unsignedValue(batching, "misWeightedEmitterHitSamples")
+        << " direct_light_samples=" << unsignedValue(batching, "directLightSamples")
+        << " direct_light_contributing_samples="
+        << unsignedValue(batching, "directLightContributingSamples")
+        << " direct_light_occluded_samples="
+        << unsignedValue(batching, "directLightOccludedSamples")
         << " adaptive=" << (adaptiveSampling.value("enabled").toBool() ? "enabled" : "disabled")
         << " adaptive_min_samples=" << unsignedValue(adaptiveSampling, "minimumSamples")
         << " adaptive_stddev_threshold=" << adaptiveSampling.value("stddevThreshold").toDouble()

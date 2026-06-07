@@ -1807,6 +1807,16 @@ foreach(emitter_name
                     "${wavefront_metrics_stdout}" "" "" "")
   endif()
 endforeach()
+foreach(direct_light_name
+        direct_light_samples
+        direct_light_contributing_samples
+        direct_light_occluded_samples)
+  if(NOT wavefront_metrics_stdout MATCHES "${direct_light_name}=")
+    _rendercli_fail("rendercli wavefront metrics ${direct_light_name} summary"
+                    "wavefront metrics summary did not contain ${direct_light_name}"
+                    "${wavefront_metrics_stdout}" "" "" "")
+  endif()
+endforeach()
 foreach(adaptive_name
         adaptive
         adaptive_min_samples

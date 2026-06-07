@@ -231,7 +231,8 @@ radiance-delta RMS values, retained active sample counts after each depth,
 per-depth frontier hit/miss counts, compatibility fallback counts, convergence
 thresholds, stop decisions, denoiser diagnostics when enabled, convergence
 feedback depth counts, tile load-balance counts, per-pixel sample radiance
-standard-deviation diagnostics, and total render time. The
+standard-deviation diagnostics, path-tracing emitter-hit counts, sampled
+direct-light counts, and total render time. The
 compact summary prints total `tiles`, `tile_grid`,
 `max_tile_width`, `max_tile_height`, `max_tile_pixels`, `avg_tile_pixels`,
 `nonempty_tiles`, `min_tile_samples`, `avg_tile_samples`, `max_tile_samples`,
@@ -244,7 +245,9 @@ compact summary prints total `tiles`, `tile_grid`,
 `frontier_packet_refined_by_material`, `sample_variance_pixels`,
 `sample_stddev_rms`, `max_sample_stddev`, `emitter_hit_samples`,
 `primary_emitter_hit_samples`, `delta_emitter_hit_samples`,
-`bsdf_emitter_hit_samples`, `mis_weighted_emitter_hit_samples`, `adaptive`,
+`bsdf_emitter_hit_samples`, `mis_weighted_emitter_hit_samples`,
+`direct_light_samples`, `direct_light_contributing_samples`,
+`direct_light_occluded_samples`, `adaptive`,
 `adaptive_min_samples`, `adaptive_stddev_threshold`,
 `adaptive_max_samples`, `adaptive_skipped_samples`, and
 `adaptive_skipped_fraction`.

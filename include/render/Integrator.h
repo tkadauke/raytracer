@@ -51,6 +51,9 @@ namespace render {
     std::uint64_t deltaEmitterHitSamples{0};
     std::uint64_t bsdfEmitterHitSamples{0};
     std::uint64_t misWeightedEmitterHitSamples{0};
+    std::uint64_t directLightSamples{0};
+    std::uint64_t directLightContributingSamples{0};
+    std::uint64_t directLightOccludedSamples{0};
     bool stoppedByConvergence{false};
     std::uint64_t stoppedAfterDepth{0};
     double intersectionWorkerSeconds{0.0};
@@ -75,6 +78,7 @@ namespace render {
     void recordPacketHitRefinement(const std::string& materialLabel);
     void recordRadianceDeltaDepth(double squaredSum, double maxDelta);
     void recordEmitterHit(bool sampledFromBsdf, bool bsdfSampleDelta, bool misWeighted);
+    void recordDirectLightSample(bool occluded, bool contributing);
   };
 
   struct IntegratorBatchFeedback {
