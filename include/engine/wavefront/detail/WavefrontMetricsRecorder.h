@@ -23,7 +23,8 @@ namespace engine::wavefront::detail {
                const render::TilePlan& tilePlan, int configuredQueueSize,
                const render::Integrator& integrator, const render::Denoiser* denoiser,
                bool convergenceEnabled, double activeSampleFractionThreshold,
-               double radianceDeltaRmsThreshold);
+               double radianceDeltaRmsThreshold, bool adaptiveSamplingEnabled,
+               int adaptiveMinimumSamples, double adaptiveStddevThreshold);
     void clear();
     void recordTile(const WavefrontTileTraceResult& result);
     void recordDenoiserFeatureTile(const Recti& rect);

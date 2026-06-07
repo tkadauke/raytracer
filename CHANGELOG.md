@@ -25,6 +25,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   rendercli, and Modeler Render Settings now expose wavefront adaptive sampling
   enablement, minimum samples, and per-pixel standard-deviation threshold.
   — GPT-5
+- **Wavefront adaptive sampling diagnostics.** Wavefront metrics, render graph
+  trace metadata, and rendercli compact summaries now report the adaptive
+  sampling policy plus maximum, skipped, and skipped-fraction primary samples.
+  — GPT-5
 - Wavefront/pathtracer graph renders can export a `sample_stddev` AOV, and
   rendercli can write it through `--wavefront_sample_stddev_out` for
   path-tracing noise analysis. — GPT-5

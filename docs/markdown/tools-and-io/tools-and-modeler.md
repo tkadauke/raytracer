@@ -240,7 +240,10 @@ compact summary prints total `tiles`, `tile_grid`,
 `frontier_packet_scalar_fallback_rays`,
 `frontier_packet_scalar_fallback_by_reason`, `frontier_packet_refined_rays`,
 `frontier_packet_refined_by_material`, `sample_variance_pixels`,
-`sample_stddev_rms`, and `max_sample_stddev`.
+`sample_stddev_rms`, `max_sample_stddev`, `adaptive`,
+`adaptive_min_samples`, `adaptive_stddev_threshold`,
+`adaptive_max_samples`, `adaptive_skipped_samples`, and
+`adaptive_skipped_fraction`.
 Packet chunks can be mixed Ray8/Ray4 chunks, so `frontier_packet_rays` is the
 exact packet-lane work count, while the Ray4/Ray8 chunk counters expose packet
 fill directly. The JSON report keeps the

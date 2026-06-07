@@ -164,6 +164,7 @@ namespace {
       const QJsonObject tiling = metrics.value("tiling").toObject();
       const QJsonObject batching = metrics.value("batching").toObject();
       const QJsonObject convergence = metrics.value("convergence").toObject();
+      const QJsonObject adaptiveSampling = metrics.value("adaptiveSampling").toObject();
       const QJsonObject denoise = metrics.value("denoise").toObject();
       const QJsonArray activeSamples = batching.value("activeSamplesPerDepth").toArray();
       const QJsonArray retainedActiveSamples =
@@ -277,6 +278,13 @@ namespace {
         << " sample_variance_pixels=" << unsignedValue(batching, "sampleVariancePixelArea")
         << " sample_stddev_rms=" << batching.value("sampleRadianceStddevRms").toDouble()
         << " max_sample_stddev=" << batching.value("maxSampleRadianceStddev").toDouble()
+        << " adaptive=" << (adaptiveSampling.value("enabled").toBool() ? "enabled" : "disabled")
+        << " adaptive_min_samples=" << unsignedValue(adaptiveSampling, "minimumSamples")
+        << " adaptive_stddev_threshold=" << adaptiveSampling.value("stddevThreshold").toDouble()
+        << " adaptive_max_samples=" << unsignedValue(adaptiveSampling, "maximumPrimarySamples")
+        << " adaptive_skipped_samples=" << unsignedValue(adaptiveSampling, "skippedPrimarySamples")
+        << " adaptive_skipped_fraction="
+        << adaptiveSampling.value("skippedPrimarySampleFraction").toDouble()
         << " last_rms_delta=" << doubleArrayBack(rmsDelta)
         << " compatibility_shade_samples=" << unsignedValue(batching, "compatibilityShadeSamples")
         << " convergence=" << convergence.value("decision").toString().toStdString()

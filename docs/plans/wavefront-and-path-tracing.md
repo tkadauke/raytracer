@@ -904,8 +904,10 @@ an initial per-pixel batch, measures each pixel's sample radiance standard
 deviation, and spends the remaining samples only on pixels above the configured
 threshold. Render intent, rendercli, Modeler Render Settings, and graph JSON
 now expose that policy as `adaptiveSampling: {enabled, minimumSamples,
-stddevThreshold}` on ray-family pass state. Trace metadata and richer
-adaptive-specific diagnostic AOVs remain the next integration slice.
+stddevThreshold}` on ray-family pass state. Wavefront metrics, graph trace
+metadata, and rendercli compact summaries also report the adaptive policy plus
+maximum, skipped, and skipped-fraction primary samples. Richer
+adaptive-specific diagnostic AOVs remain a later slice.
 
 Start with pure single-continuation path tracing (Option **B**) unless a
 measured scene proves deterministic specular split (Option **C**) is needed for

@@ -9,12 +9,11 @@
 #include <algorithm>
 
 namespace engine::wavefront::detail {
-  void WavefrontMetricsRecorder::reset(const render::Camera& camera, int width, int height,
-                                       const render::TilePlan& tilePlan, int configuredQueueSize,
-                                       const render::Integrator& integrator,
-                                       const render::Denoiser* denoiser, bool convergenceEnabled,
-                                       double activeSampleFractionThreshold,
-                                       double radianceDeltaRmsThreshold) {
+  void WavefrontMetricsRecorder::reset(
+    const render::Camera& camera, int width, int height, const render::TilePlan& tilePlan,
+    int configuredQueueSize, const render::Integrator& integrator, const render::Denoiser* denoiser,
+    bool convergenceEnabled, double activeSampleFractionThreshold, double radianceDeltaRmsThreshold,
+    bool adaptiveSamplingEnabled, int adaptiveMinimumSamples, double adaptiveStddevThreshold) {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_metrics = WavefrontRenderMetrics();
     m_metrics.input.width = width;
@@ -44,6 +43,9 @@ namespace engine::wavefront::detail {
     m_metrics.convergence.activeSampleFractionThreshold = activeSampleFractionThreshold;
     m_metrics.convergence.radianceDeltaRmsThreshold = radianceDeltaRmsThreshold;
     m_metrics.convergence.decision = convergenceEnabled ? "configured" : "disabled";
+    m_metrics.adaptiveSampling.enabled = adaptiveSamplingEnabled;
+    m_metrics.adaptiveSampling.minimumSamples = std::max(1, adaptiveMinimumSamples);
+    m_metrics.adaptiveSampling.stddevThreshold = std::max(0.0, adaptiveStddevThreshold);
   }
 
   void WavefrontMetricsRecorder::clear() {
@@ -130,6 +132,21 @@ namespace engine::wavefront::detail {
     } else {
       m_metrics.convergence.decision = "not_reached";
     }
+    m_metrics.adaptiveSampling.maximumPrimarySamples =
+      m_metrics.input.renderedPixels *
+      static_cast<std::uint64_t>(std::max(0, m_metrics.input.samplesPerPixel));
+    if (m_metrics.adaptiveSampling.enabled &&
+        m_metrics.adaptiveSampling.maximumPrimarySamples > m_metrics.input.primarySamples) {
+      m_metrics.adaptiveSampling.skippedPrimarySamples =
+        m_metrics.adaptiveSampling.maximumPrimarySamples - m_metrics.input.primarySamples;
+    } else {
+      m_metrics.adaptiveSampling.skippedPrimarySamples = 0;
+    }
+    m_metrics.adaptiveSampling.skippedPrimarySampleFraction =
+      m_metrics.adaptiveSampling.maximumPrimarySamples == 0
+        ? 0.0
+        : static_cast<double>(m_metrics.adaptiveSampling.skippedPrimarySamples) /
+            static_cast<double>(m_metrics.adaptiveSampling.maximumPrimarySamples);
   }
 
   WavefrontRenderMetrics WavefrontMetricsRecorder::snapshot() const {

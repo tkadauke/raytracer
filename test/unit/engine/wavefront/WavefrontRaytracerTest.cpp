@@ -745,6 +745,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(metrics.batching.radianceDeltaSquaredSumPerDepth[0], 0.0);
     ASSERT_EQ(1u, metrics.batching.maxRadianceDeltaPerDepth.size());
     EXPECT_GT(metrics.batching.maxRadianceDeltaPerDepth[0], 0.0);
+    EXPECT_FALSE(metrics.adaptiveSampling.enabled);
+    EXPECT_EQ(1, metrics.adaptiveSampling.minimumSamples);
+    EXPECT_DOUBLE_EQ(0.0, metrics.adaptiveSampling.stddevThreshold);
+    EXPECT_EQ(48u, metrics.adaptiveSampling.maximumPrimarySamples);
+    EXPECT_EQ(0u, metrics.adaptiveSampling.skippedPrimarySamples);
+    EXPECT_DOUBLE_EQ(0.0, metrics.adaptiveSampling.skippedPrimarySampleFraction);
     EXPECT_GE(metrics.timings.sampleGenerationWorkerSeconds, 0.0);
     EXPECT_GE(metrics.timings.sampleStreamWorkerSeconds, 0.0);
     EXPECT_GE(metrics.timings.primaryRayWorkerSeconds, 0.0);
@@ -849,6 +855,13 @@ namespace WavefrontRaytracerTest {
       json.value("convergence").toObject().value("stoppedTileDepthHistogram").toArray().empty());
     EXPECT_EQ("not_reached",
               json.value("convergence").toObject().value("decision").toString().toStdString());
+    const QJsonObject adaptiveSampling = json.value("adaptiveSampling").toObject();
+    EXPECT_FALSE(adaptiveSampling.value("enabled").toBool());
+    EXPECT_EQ(1.0, adaptiveSampling.value("minimumSamples").toDouble());
+    EXPECT_DOUBLE_EQ(0.0, adaptiveSampling.value("stddevThreshold").toDouble());
+    EXPECT_EQ(48.0, adaptiveSampling.value("maximumPrimarySamples").toDouble());
+    EXPECT_EQ(0.0, adaptiveSampling.value("skippedPrimarySamples").toDouble());
+    EXPECT_DOUBLE_EQ(0.0, adaptiveSampling.value("skippedPrimarySampleFraction").toDouble());
     EXPECT_FALSE(json.value("denoise").toObject().value("enabled").toBool());
     const QJsonArray deltaL2 =
       json.value("batching").toObject().value("radianceDeltaL2PerDepth").toArray();
@@ -976,6 +989,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(4, metrics.input.samplesPerPixel);
     EXPECT_EQ(4u, metrics.input.primarySamples);
     EXPECT_EQ(4u, metrics.batching.samplesSubmitted);
+    EXPECT_TRUE(metrics.adaptiveSampling.enabled);
+    EXPECT_EQ(2, metrics.adaptiveSampling.minimumSamples);
+    EXPECT_DOUBLE_EQ(0.0, metrics.adaptiveSampling.stddevThreshold);
+    EXPECT_EQ(8u, metrics.adaptiveSampling.maximumPrimarySamples);
+    EXPECT_EQ(4u, metrics.adaptiveSampling.skippedPrimarySamples);
+    EXPECT_DOUBLE_EQ(0.5, metrics.adaptiveSampling.skippedPrimarySampleFraction);
     EXPECT_EQ(2u, metrics.batching.sampleVariancePixelArea);
     EXPECT_DOUBLE_EQ(0.0, metrics.batching.sampleRadianceVarianceSum);
     EXPECT_DOUBLE_EQ(0.0, metrics.batching.maxSampleRadianceStddev);
@@ -1004,6 +1023,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(4, metrics.input.samplesPerPixel);
     EXPECT_EQ(8u, metrics.input.primarySamples);
     EXPECT_EQ(8u, metrics.batching.samplesSubmitted);
+    EXPECT_TRUE(metrics.adaptiveSampling.enabled);
+    EXPECT_EQ(2, metrics.adaptiveSampling.minimumSamples);
+    EXPECT_DOUBLE_EQ(0.1, metrics.adaptiveSampling.stddevThreshold);
+    EXPECT_EQ(8u, metrics.adaptiveSampling.maximumPrimarySamples);
+    EXPECT_EQ(0u, metrics.adaptiveSampling.skippedPrimarySamples);
+    EXPECT_DOUBLE_EQ(0.0, metrics.adaptiveSampling.skippedPrimarySampleFraction);
     EXPECT_EQ(2u, metrics.batching.sampleVariancePixelArea);
     EXPECT_NEAR(1.0, metrics.batching.sampleRadianceVarianceSum, 1e-12);
     EXPECT_NEAR(std::sqrt(0.5), metrics.batching.maxSampleRadianceStddev, 1e-12);

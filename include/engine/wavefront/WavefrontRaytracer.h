@@ -102,6 +102,15 @@ namespace engine::wavefront {
       void recordStoppedTileAfterDepth(std::uint64_t depth);
     } convergence;
 
+    struct AdaptiveSamplingSummary {
+      bool enabled = false;
+      int minimumSamples = 1;
+      double stddevThreshold = 0.0;
+      std::uint64_t maximumPrimarySamples = 0;
+      std::uint64_t skippedPrimarySamples = 0;
+      double skippedPrimarySampleFraction = 0.0;
+    } adaptiveSampling;
+
     struct DenoiseSummary {
       struct NumericParameter {
         std::string name;

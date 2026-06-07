@@ -315,12 +315,24 @@ namespace engine::wavefront {
     convergenceJson["stoppedTileDepthHistogram"] = stoppedTileDepthHistogram;
     convergenceJson["decision"] = QString::fromStdString(convergence.decision);
 
+    QJsonObject adaptiveSamplingJson;
+    adaptiveSamplingJson["enabled"] = adaptiveSampling.enabled;
+    adaptiveSamplingJson["minimumSamples"] = adaptiveSampling.minimumSamples;
+    adaptiveSamplingJson["stddevThreshold"] = adaptiveSampling.stddevThreshold;
+    adaptiveSamplingJson["maximumPrimarySamples"] =
+      static_cast<double>(adaptiveSampling.maximumPrimarySamples);
+    adaptiveSamplingJson["skippedPrimarySamples"] =
+      static_cast<double>(adaptiveSampling.skippedPrimarySamples);
+    adaptiveSamplingJson["skippedPrimarySampleFraction"] =
+      adaptiveSampling.skippedPrimarySampleFraction;
+
     QJsonObject object;
     object["input"] = inputJson;
     object["tiling"] = tilingJson;
     object["scheduling"] = schedulingJson;
     object["batching"] = batchingJson;
     object["convergence"] = convergenceJson;
+    object["adaptiveSampling"] = adaptiveSamplingJson;
     object["denoise"] = denoiseJson;
     object["timings"] = timingsJson;
     return object;
@@ -481,7 +493,8 @@ namespace engine::wavefront {
       p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
                        p->convergenceActiveSampleFractionThreshold,
-                       p->convergenceRadianceDeltaRmsThreshold);
+                       p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
+                       p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
     } else {
       p->metrics.clear();
     }
@@ -552,7 +565,8 @@ namespace engine::wavefront {
       p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
                        p->convergenceActiveSampleFractionThreshold,
-                       p->convergenceRadianceDeltaRmsThreshold);
+                       p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
+                       p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
     } else {
       p->metrics.clear();
     }
@@ -619,7 +633,8 @@ namespace engine::wavefront {
       p->metrics.reset(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
                        p->convergenceActiveSampleFractionThreshold,
-                       p->convergenceRadianceDeltaRmsThreshold);
+                       p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
+                       p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
     } else {
       p->metrics.clear();
     }

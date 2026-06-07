@@ -1795,6 +1795,19 @@ foreach(variance_name
                     "${wavefront_metrics_stdout}" "" "" "")
   endif()
 endforeach()
+foreach(adaptive_name
+        adaptive
+        adaptive_min_samples
+        adaptive_stddev_threshold
+        adaptive_max_samples
+        adaptive_skipped_samples
+        adaptive_skipped_fraction)
+  if(NOT wavefront_metrics_stdout MATCHES "${adaptive_name}=")
+    _rendercli_fail("rendercli wavefront metrics ${adaptive_name} summary"
+                    "wavefront metrics summary did not contain ${adaptive_name}"
+                    "${wavefront_metrics_stdout}" "" "" "")
+  endif()
+endforeach()
 if(NOT wavefront_metrics_stdout MATCHES "feedback_depths=")
   _rendercli_fail("rendercli wavefront metrics convergence feedback summary"
                   "wavefront metrics summary did not contain convergence feedback counters"
@@ -1920,6 +1933,23 @@ foreach(variance_field
   if(NOT wavefront_metrics_json MATCHES "\"${variance_field}\"")
     _rendercli_fail("rendercli wavefront metrics ${variance_field}"
                     "wavefront metrics report did not contain ${variance_field}"
+                    "" "" "${wavefront_metrics_json}" "")
+  endif()
+endforeach()
+if(NOT wavefront_metrics_json MATCHES "\"adaptiveSampling\"")
+  _rendercli_fail("rendercli wavefront metrics adaptive sampling"
+                  "wavefront metrics report did not contain adaptive sampling metadata"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+foreach(adaptive_field
+        minimumSamples
+        stddevThreshold
+        maximumPrimarySamples
+        skippedPrimarySamples
+        skippedPrimarySampleFraction)
+  if(NOT wavefront_metrics_json MATCHES "\"${adaptive_field}\"")
+    _rendercli_fail("rendercli wavefront metrics adaptive ${adaptive_field}"
+                    "wavefront metrics report did not contain adaptive ${adaptive_field}"
                     "" "" "${wavefront_metrics_json}" "")
   endif()
 endforeach()
