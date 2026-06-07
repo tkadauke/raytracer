@@ -217,9 +217,10 @@ namespace render {
     /// Per-primary-ray sample stream. Set by `Camera::render` before the
     /// integrator runs; null on synthetic states constructed by tests
     /// that don't draw stochastic samples (e.g. Whitted scenes with
-    /// only delta lighting). Path-tracing integrators consume
-    /// `sampleStream->sample2D(SampleDimension::BSDF, bounce)` etc. for
-    /// importance sampling; `WhittedIntegrator` ignores the field.
+    /// only delta lighting). Path-tracing integrators consume named dimensions
+    /// such as `SampleDimension::BSDF` by bounce and `SampleDimension::Light`
+    /// by `SampleStream::lightSampleIndex(bounce, lightIndex)`; the
+    /// `WhittedIntegrator` ignores the field.
     SampleStream* sampleStream{nullptr};
   };
 }

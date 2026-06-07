@@ -113,6 +113,7 @@
 | `include/render/denoise/Denoiser.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/render/lights/DirectionalLight.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/lights/Light.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
+| `include/render/lights/LightSampler.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/lights/PointLight.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/lights/RectangularAreaLight.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/materials/Material.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
@@ -319,6 +320,7 @@
 | `test/unit/render/brdf/PerfectSpecularTest.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `test/unit/render/brdf/PerfectTransmitterTest.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `test/unit/render/lights/DirectionalLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
+| `test/unit/render/lights/LightSamplerTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `test/unit/render/lights/PointLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `test/unit/render/lights/RectangularAreaLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `test/unit/render/primitives/BVHPerformanceTest.cpp` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |

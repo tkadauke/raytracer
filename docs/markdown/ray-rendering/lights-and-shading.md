@@ -177,17 +177,26 @@ Their ordinary `pdf(point, direction)` methods return zero, because
 a delta distribution is not an ordinary solid-angle density.
 
 That distinction is what the path tracer's direct-light estimator
-uses. When the light sampler draws a delta light, the integrator uses
-the sampled event directly and gives it MIS weight 1; the competing
-BSDF sampler cannot hit an infinitely small point or direction with
-nonzero probability. For non-delta lights — the shipped rectangular area light
+uses. [`LightSampler`](../../../include/render/lights/LightSampler.h)
+first selects one light from the scene using virtual light metadata:
+bounded emitters publish `power()`, unbounded emitters fall back to
+`emission()`, and all-zero metadata falls back to uniform selection.
+The estimator divides the selected light's contribution by that
+selection PDF, so the result stays unbiased while avoiding a shadow ray
+to every light at every hit.
+
+When the selected light is a delta light, the integrator uses the
+sampled event directly and gives it MIS weight 1; the competing BSDF
+sampler cannot hit an infinitely small point or direction with nonzero
+probability. For non-delta lights — the shipped rectangular area light
 today, and later spheres, environment maps, and mesh emitters —
 `sample(point, sample2D)` maps the caller-owned 2D sample to an emitter
-location or direction and returns a non-delta PDF. The path tracer passes
-`SampleDimension::Light` into this overload during next-event estimation, then
-combines the light PDF with the material's `bsdfPdf(...)` through the MIS
-helper. The integrator-side weighting and sample-ownership contract is shared
-by all non-delta emitters.
+location or direction and returns a non-delta PDF. The path tracer
+passes the selected light's `SampleDimension::Light` slot into this
+overload during next-event estimation, then combines the light PDF with
+the material's `bsdfPdf(...)` through the MIS helper. The
+integrator-side weighting and sample-ownership contract is shared by
+all non-delta emitters.
 
 The important boundary is capability: these methods document how
 lights can be sampled, not that the Whitted renderer already performs
@@ -483,6 +492,7 @@ together.
 
 <!-- source-anchors -->
 - `include/render/lights/Light.h`
+- `include/render/lights/LightSampler.h`
 - `include/render/lights/PointLight.h`
 - `include/render/lights/DirectionalLight.h`
 - `include/render/lights/RectangularAreaLight.h`
@@ -490,6 +500,7 @@ together.
 - `src/render/primitives/Scene.cpp`
 - `test/unit/render/lights/PointLightTest.cpp`
 - `test/unit/render/lights/DirectionalLightTest.cpp`
+- `test/unit/render/lights/LightSamplerTest.cpp`
 - `test/unit/render/lights/RectangularAreaLightTest.cpp`
 - `test/unit/render/primitives/SceneTest.cpp`
 - `test/functional/render/lights/PointLightTest.cpp`

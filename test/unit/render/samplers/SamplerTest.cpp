@@ -141,10 +141,28 @@ namespace SamplerTest {
     ASSERT_EQ(3u, sampleDimensionIndex(SampleDimension::BSDF));
     ASSERT_EQ(4u, sampleDimensionIndex(SampleDimension::Light));
     ASSERT_EQ(5u, sampleDimensionIndex(SampleDimension::Continuation));
+    ASSERT_EQ(1000019u, sampleDimensionIndex(SampleDimension::LightSelection));
 
     ASSERT_EQ(6u, sampleDimensionIndex(SampleDimension::BSDF, 1));
     ASSERT_EQ(7u, sampleDimensionIndex(SampleDimension::Light, 1));
     ASSERT_EQ(8u, sampleDimensionIndex(SampleDimension::Continuation, 1));
+    ASSERT_EQ(1000020u, sampleDimensionIndex(SampleDimension::LightSelection, 1));
+  }
+
+  TEST(SampleDimension, ShouldExposeStablePerLightSampleIndices) {
+    ASSERT_EQ(0u, SampleStream::lightSampleIndex(/*bounce=*/0, /*lightIndex=*/0));
+    ASSERT_EQ(2u, SampleStream::lightSampleIndex(/*bounce=*/0, /*lightIndex=*/1));
+    ASSERT_EQ(1u, SampleStream::lightSampleIndex(/*bounce=*/1, /*lightIndex=*/0));
+    ASSERT_EQ(4u, SampleStream::lightSampleIndex(/*bounce=*/1, /*lightIndex=*/1));
+
+    ASSERT_EQ(4u,
+              sampleDimensionIndex(SampleDimension::Light, SampleStream::lightSampleIndex(0, 0)));
+    ASSERT_EQ(10u,
+              sampleDimensionIndex(SampleDimension::Light, SampleStream::lightSampleIndex(0, 1)));
+    ASSERT_EQ(7u,
+              sampleDimensionIndex(SampleDimension::Light, SampleStream::lightSampleIndex(1, 0)));
+    ASSERT_EQ(16u,
+              sampleDimensionIndex(SampleDimension::Light, SampleStream::lightSampleIndex(1, 1)));
   }
 
   TEST(SamplerStream, DefaultStreamReturnsSamplesFromCorrectSet) {
@@ -342,17 +360,39 @@ namespace SamplerTest {
 
   TEST(SamplerStream, PathTracingDimensionsDoNotReuseTheSamePattern) {
     IndexedSampler sampler;
-    sampler.setup(4, 16);
+    sampler.setup(4, 32);
 
     auto stream = sampler.stream(0, 0);
 
     ASSERT_DOUBLE_EQ(3.0 / 100.0, stream->sample2D(SampleDimension::BSDF, 0).x());
     ASSERT_DOUBLE_EQ(4.0 / 100.0, stream->sample2D(SampleDimension::Light, 0).x());
     ASSERT_DOUBLE_EQ(5.0 / 100.0, stream->sample1D(SampleDimension::Continuation, 0));
+    ASSERT_DOUBLE_EQ(19.0 / 100.0, stream->sample1D(SampleDimension::LightSelection, 0));
 
     ASSERT_DOUBLE_EQ(6.0 / 100.0, stream->sample2D(SampleDimension::BSDF, 1).x());
     ASSERT_DOUBLE_EQ(7.0 / 100.0, stream->sample2D(SampleDimension::Light, 1).x());
     ASSERT_DOUBLE_EQ(8.0 / 100.0, stream->sample1D(SampleDimension::Continuation, 1));
+    ASSERT_DOUBLE_EQ(20.0 / 100.0, stream->sample1D(SampleDimension::LightSelection, 1));
+  }
+
+  TEST(SamplerStream, LightSamplesDoNotReuseTheSamePatternAcrossLights) {
+    IndexedSampler sampler;
+    sampler.setup(4, 32);
+
+    auto stream = sampler.stream(0, 0);
+
+    ASSERT_DOUBLE_EQ(
+      4.0 / 100.0,
+      stream->sample2D(SampleDimension::Light, SampleStream::lightSampleIndex(0, 0)).x());
+    ASSERT_DOUBLE_EQ(
+      10.0 / 100.0,
+      stream->sample2D(SampleDimension::Light, SampleStream::lightSampleIndex(0, 1)).x());
+    ASSERT_DOUBLE_EQ(
+      7.0 / 100.0,
+      stream->sample2D(SampleDimension::Light, SampleStream::lightSampleIndex(1, 0)).x());
+    ASSERT_DOUBLE_EQ(
+      16.0 / 100.0,
+      stream->sample2D(SampleDimension::Light, SampleStream::lightSampleIndex(1, 1)).x());
   }
 
   TEST(RegularSampler, CameraDimensionsRemainRegularAcrossPixels) {

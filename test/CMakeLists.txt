@@ -147,6 +147,16 @@ if(TARGET rendercli)
       -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RaytracerOptionTest.cmake
   )
   add_test(
+    NAME rendercli_pathtracer_diagnostics
+    COMMAND
+      ${CMAKE_COMMAND}
+      -DRENDERCLI=$<TARGET_FILE:rendercli>
+      -DRENDERCLI_IMAGE_PROBE=$<TARGET_FILE:rendercli_image_probe>
+      -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/rendercli-pathtracer-diagnostics
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/PathTracerDiagnosticTest.cmake
+  )
+  add_test(
     NAME rendercli_wireframe
     COMMAND
       ${CMAKE_COMMAND}

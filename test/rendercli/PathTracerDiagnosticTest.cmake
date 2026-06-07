@@ -1,0 +1,160 @@
+if(NOT DEFINED RENDERCLI)
+  message(FATAL_ERROR "RENDERCLI is required")
+endif()
+
+if(NOT DEFINED TEST_OUTPUT_DIR)
+  message(FATAL_ERROR "TEST_OUTPUT_DIR is required")
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/RendercliTestHelpers.cmake")
+
+file(REMOVE_RECURSE "${TEST_OUTPUT_DIR}")
+file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
+
+set(direct_scene "${TEST_OUTPUT_DIR}/pathtracer-diagnostic-direct.json")
+set(glass_scene "${PROJECT_SOURCE_DIR}/scenes/glass_torus.json")
+set(area_light_scene "${PROJECT_SOURCE_DIR}/scenes/pathtracer_area_light_demo.json")
+
+file(WRITE "${direct_scene}" [=[
+{
+  "id": "pathtracer-diagnostic-direct",
+  "name": "Path Tracer Diagnostic Direct",
+  "ambient": [0.0, 0.0, 0.0],
+  "background": [0.02, 0.03, 0.04],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 1.0, -5.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.2,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "key",
+      "name": "Key Light",
+      "position": [-3.0, -4.0, -4.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 0.8,
+      "type": "PointLight",
+      "children": []
+    },
+    {
+      "id": "fill",
+      "name": "Fill Light",
+      "position": [4.0, -3.0, -2.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [0.7, 0.85, 1.0],
+      "intensity": 0.35,
+      "type": "PointLight",
+      "children": []
+    },
+    {
+      "id": "red_texture",
+      "name": "Red Texture",
+      "color": [0.85, 0.12, 0.08],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "floor_texture",
+      "name": "Floor Texture",
+      "color": [0.72, 0.72, 0.68],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "matte",
+      "name": "Matte",
+      "diffuseTexture": "red_texture",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "mirror",
+      "name": "Mirror",
+      "diffuseTexture": "floor_texture",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 0.2,
+      "reflectionCoefficient": 0.8,
+      "reflectionColor": [1.0, 1.0, 1.0],
+      "specularCoefficient": 0.2,
+      "specularColor": [1.0, 1.0, 1.0],
+      "exponent": 64,
+      "type": "ReflectiveMaterial",
+      "children": []
+    },
+    {
+      "id": "sphere",
+      "name": "Sphere",
+      "position": [-0.7, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "matte",
+      "radius": 0.8,
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "mirror_sphere",
+      "name": "Mirror Sphere",
+      "position": [1.0, -0.1, 0.6],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "mirror",
+      "radius": 0.7,
+      "type": "Sphere",
+      "children": []
+    }
+  ]
+}
+]=])
+
+function(pathtracer_diagnostic_compare name scene low_samples reference_samples max_rms)
+  set(low_output "${TEST_OUTPUT_DIR}/${name}-low.png")
+  set(reference_output "${TEST_OUTPUT_DIR}/${name}-reference.png")
+
+  rendercli_run(
+    NAME "pathtracer diagnostic ${name} low samples"
+    COMMAND
+      "${RENDERCLI}" --direct_engine --engine pathtracer
+      --width 40 --height 30 --sampler Halton --sampling_seed 12345
+      --samples_per_pixel "${low_samples}" --depth 4
+      "${scene}" "${low_output}"
+  )
+  rendercli_run(
+    NAME "pathtracer diagnostic ${name} reference samples"
+    COMMAND
+      "${RENDERCLI}" --direct_engine --engine pathtracer
+      --width 40 --height 30 --sampler Halton --sampling_seed 12345
+      --samples_per_pixel "${reference_samples}" --depth 4
+      "${scene}" "${reference_output}"
+  )
+  rendercli_assert_image_dimensions("${low_output}" 40 30
+                                    NAME "pathtracer diagnostic ${name} low dimensions")
+  rendercli_assert_image_dimensions("${reference_output}" 40 30
+                                    NAME "pathtracer diagnostic ${name} reference dimensions")
+  rendercli_assert_image_nonempty("${low_output}" NAME "pathtracer diagnostic ${name} low pixels")
+  rendercli_assert_image_nonempty("${reference_output}"
+                                  NAME "pathtracer diagnostic ${name} reference pixels")
+  rendercli_assert_image_rms_at_most(
+    "${reference_output}" "${low_output}" "${max_rms}"
+    NAME "pathtracer diagnostic ${name} low/reference RMS"
+  )
+endfunction()
+
+pathtracer_diagnostic_compare("direct" "${direct_scene}" 4 32 0.08)
+pathtracer_diagnostic_compare("glass" "${glass_scene}" 4 32 0.10)
+pathtracer_diagnostic_compare("area-light" "${area_light_scene}" 8 64 0.12)

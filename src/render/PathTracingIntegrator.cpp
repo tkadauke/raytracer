@@ -9,6 +9,7 @@
 #include "render/RayCaster.h"
 #include "render/State.h"
 #include "render/lights/Light.h"
+#include "render/lights/LightSampler.h"
 #include "render/materials/Material.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
@@ -176,6 +177,36 @@ namespace render {
 
   Colord PathTracingIntegrator::missRadiance(const Scene& scene, bool backgroundVisible) const {
     return backgroundVisible ? scene.background() : scene.environmentRadiance();
+  }
+
+  double PathTracingIntegrator::lightSelectionSample(State& state, int bounce) const {
+    return state.sampleStream->sample1D(SampleDimension::LightSelection,
+                                        static_cast<std::uint64_t>(bounce));
+  }
+
+  Vector2d PathTracingIntegrator::lightSample(State& state, int bounce,
+                                              std::size_t lightIndex) const {
+    return state.sampleStream->sample2D(
+      SampleDimension::Light,
+      SampleStream::lightSampleIndex(static_cast<std::uint64_t>(bounce),
+                                     static_cast<std::uint64_t>(lightIndex)));
+  }
+
+  Colord PathTracingIntegrator::sampleDirectLighting(const Scene& scene,
+                                                     const LightSampler& lightSampler,
+                                                     const HitPoint& hitPoint,
+                                                     const Material& material, const Vector3d& wi,
+                                                     State& state, int bounce) const {
+    const LightSampler::Selection selection =
+      lightSampler.select(lightSelectionSample(state, bounce));
+    if (!selection) {
+      return Colord::black();
+    }
+
+    const Colord contribution =
+      directLighting(scene, *selection.light, hitPoint, material, wi,
+                     lightSample(state, bounce, selection.lightIndex), state);
+    return contribution / selection.pdf;
   }
 
   bool PathTracingIntegrator::canContinueWithSample(const MaterialBsdfSample& sample,
@@ -518,6 +549,7 @@ namespace render {
     }
 
     Colord accumulated = Colord::black();
+    const LightSampler lightSampler(scene.lights());
     std::vector<ScalarPath> paths;
     paths.emplace_back(primaryRay, state);
 
@@ -571,12 +603,8 @@ namespace render {
         accumulated += path.throughput * material->ambientRadiance(scene, path.ray, hitPoint);
 
         // Direct lighting via NEE.
-        const Vector2d lightSample = pathState.sampleStream->sample2D(
-          SampleDimension::Light, static_cast<std::uint64_t>(bounce));
-        for (const auto& light : scene.lights()) {
-          accumulated += path.throughput * directLighting(scene, *light, hitPoint, *material, wi,
-                                                          lightSample, pathState);
-        }
+        accumulated += path.throughput * sampleDirectLighting(scene, lightSampler, hitPoint,
+                                                              *material, wi, pathState, bounce);
 
         const std::vector<MaterialBsdfSample> deltaSamples =
           material->deltaBsdfSamples(hitPoint, wi);
@@ -638,6 +666,7 @@ namespace render {
     }
 
     std::vector<Colord> sampleColors;
+    const LightSampler lightSampler(scene.lights());
     std::vector<BatchPath> paths;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->pathSetupWorkerSeconds : nullptr);
@@ -716,13 +745,9 @@ namespace render {
           path.accumulated() +=
             path.throughput * material->ambientRadiance(scene, path.ray, hit.hitPoint);
 
-          const Vector2d lightSample = path.state.sampleStream->sample2D(
-            SampleDimension::Light, static_cast<std::uint64_t>(bounce));
-          for (const auto& light : scene.lights()) {
-            path.accumulated() +=
-              path.throughput *
-              directLighting(scene, *light, hit.hitPoint, *material, wi, lightSample, path.state);
-          }
+          path.accumulated() +=
+            path.throughput * sampleDirectLighting(scene, lightSampler, hit.hitPoint, *material, wi,
+                                                   path.state, bounce);
 
           const std::vector<MaterialBsdfSample> deltaSamples =
             material->deltaBsdfSamples(hit.hitPoint, wi);

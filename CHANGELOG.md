@@ -281,6 +281,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Path tracer per-light sample slots.** Path tracing now assigns each light
+  its own deterministic `SampleDimension::Light` slot per bounce, preventing
+  multiple stochastic lights from reusing the same 2D sample. — GPT-5
+- **Path tracer light selection.** Path tracing now selects one light per
+  next-event-estimation step with power/emission-weighted PDFs instead of
+  casting a shadow ray to every light at every hit. — GPT-5
 - **Sampler-owned light samples.** The path tracer now draws next-event
   estimation samples from `SampleDimension::Light` and passes them into the
   light API, keeping stochastic light samples under deterministic sampler

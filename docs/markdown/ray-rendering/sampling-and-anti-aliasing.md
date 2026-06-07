@@ -205,24 +205,39 @@ therefore exposes named dimensions:
 | `SampleDimension::Time` | 1 | shutter-time sample for motion blur |
 | `SampleDimension::Lens` | 2 | aperture sample for thin-lens cameras |
 | `SampleDimension::BSDF` | `3 + bounce * 3` | direction sample for BSDF importance sampling |
-| `SampleDimension::Light` | `4 + bounce * 3` | light-surface or light-selection sample |
+| `SampleDimension::Light` | `4 + lightSlot * 3` | selected-light surface/direction sample |
+| `SampleDimension::LightSelection` | `1000019 + bounce` | selected-light draw for direct lighting |
 | `SampleDimension::Continuation` | `5 + bounce * 3` | path-continuation / Russian-roulette sample |
 
 The `sample2D(dimension, index)` and `sample1D(dimension, index)`
 methods read those dimensions without advancing the sequential
-cursor. The index is normally the path bounce. Bounce 0's BSDF and
-light samples occupy dimensions 3 and 4; bounce 1's occupy 6 and 7.
+cursor. For BSDF and continuation samples, the index is the path
+bounce. Bounce 0's BSDF and continuation samples occupy dimensions 3
+and 5; bounce 1's occupy 6 and 8. Direct lighting uses a two-stage
+draw. `SampleDimension::LightSelection` picks which light the
+estimator samples at that bounce. `SampleDimension::Light` then owns
+the selected light's surface/direction sample. A one-light path still
+reads `SampleDimension::Light` index 0 at dimension 4 for
+compatibility. When multiple lights are possible, the path tracer uses
+`SampleStream::lightSampleIndex(bounce, lightIndex)` so each light
+owns a distinct light slot. For example, bounce 0 light 0 uses slot 0
+/ dimension 4, bounce 0 light 1 uses slot 2 / dimension 10, and bounce
+1 light 0 uses slot 1 / dimension 7.
 The unit tests pin this exact mapping in
 [`SamplerStream.NamedDimensionsMatchLegacyCameraDimensionOrder`](../../../test/unit/render/samplers/SamplerTest.cpp)
 and
-[`SamplerStream.PathTracingDimensionsDoNotReuseTheSamePattern`](../../../test/unit/render/samplers/SamplerTest.cpp).
+[`SamplerStream.PathTracingDimensionsDoNotReuseTheSamePattern`](../../../test/unit/render/samplers/SamplerTest.cpp),
+with per-light coverage in
+[`SamplerStream.LightSamplesDoNotReuseTheSamePatternAcrossLights`](../../../test/unit/render/samplers/SamplerTest.cpp).
 
 The independence requirement is not bookkeeping neatness; it is a
 Monte Carlo correctness issue. If two estimators reuse the same 2D
 pattern, their errors become correlated. A glossy BSDF sample and a
 light sample might both prefer the same corner of their domains, or
-a lens sample might line up with a pixel-offset sample and draw a
-structured blur pattern. The default `Sampler::stream(sampleIndex,
+a pair of area lights might sample matching corners of their emitter
+surfaces and create structured multi-light noise. A lens sample might
+also line up with a pixel-offset sample and draw a structured blur
+pattern. The default `Sampler::stream(sampleIndex,
 pixelHash)` implementation avoids that by looking up dimension `d`
 in pre-baked set `(pixelHash + d) mod numSets` at the same
 `sampleIndex`. For jittered sampling, that means every named

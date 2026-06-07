@@ -873,6 +873,14 @@ compatibility counters for custom or future materials that terminate at a legacy
 Whitted-shaded surface instead of continuing through a sampled BSDF; rendercli
 has graph-trace regression checks that require this metadata and pin transparent
 glass scenes to zero compatibility material samples.
+Path tracing now also has a small rendercli diagnostics gate,
+`rendercli_pathtracer_diagnostics`, that renders direct diffuse/mirror, glass,
+and rectangular-area-light scenes with pinned Halton samples and compares
+low-sample output against higher-sample references through normalized RGB RMS.
+The current 40x30 baselines are direct 4spp vs. 32spp at `0.0064857550`,
+glass 4spp vs. 32spp at `0.0798974363`, and area light 8spp vs. 64spp at
+`0.0093491472`. Those thresholds are intentionally loose enough to be a
+diagnostic floor, not a claim that the low-sample images are final quality.
 
 Start with pure single-continuation path tracing (Option **B**) unless a
 measured scene proves deterministic specular split (Option **C**) is needed for

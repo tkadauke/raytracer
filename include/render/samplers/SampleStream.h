@@ -14,10 +14,13 @@ namespace render {
     * the render loop consumes pixel jitter first, shutter time second, and
     * thin-lens cameras consume aperture samples after that. Path-tracing
     * dimensions are indexed by bounce/sample depth so BSDF, light, and
-    * continuation requests for one bounce cannot accidentally reuse the same
-    * 2D pattern.
+    * continuation requests cannot accidentally reuse the same 2D pattern.
+    * Light selection uses `SampleDimension::LightSelection`; selected-light
+    * surface samples include the light index through
+    * `SampleStream::lightSampleIndex(...)` so multiple stochastic lights at one
+    * bounce do not share a surface sample.
     */
-  enum class SampleDimension { Pixel, Time, Lens, BSDF, Light, Continuation };
+  enum class SampleDimension { Pixel, Time, Lens, BSDF, Light, LightSelection, Continuation };
 
   /**
     * Maps a named dimension and optional depth/index to the stream's stable
@@ -35,6 +38,8 @@ namespace render {
       return 3 + index * 3;
     case SampleDimension::Light:
       return 4 + index * 3;
+    case SampleDimension::LightSelection:
+      return 1000019ull + index;
     case SampleDimension::Continuation:
       return 5 + index * 3;
     }
@@ -81,6 +86,22 @@ namespace render {
       Vector2d pixel;
       double time{0.0};
     };
+
+    /**
+      * Returns the stable `SampleDimension::Light` index for one light sample
+      * at one path bounce.
+      *
+      * The first light at bounce 0 intentionally maps to index 0 so existing
+      * callers/tests that use `sample2D(SampleDimension::Light, 0)` keep the
+      * same sample. Additional lights and later bounces use Cantor pairing so
+      * every `(bounce, lightIndex)` pair owns a distinct light-sampling
+      * dimension without colliding with BSDF or continuation dimensions.
+      */
+    static constexpr std::uint64_t lightSampleIndex(std::uint64_t bounce,
+                                                    std::uint64_t lightIndex) {
+      const std::uint64_t sum = bounce + lightIndex;
+      return sum * (sum + 1u) / 2u + lightIndex;
+    }
 
     virtual ~SampleStream() = default;
 

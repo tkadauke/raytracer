@@ -9,6 +9,7 @@ class HitPoint;
 
 namespace render {
   class Light;
+  class LightSampler;
   class Material;
   struct MaterialBsdfSample;
   class Primitive;
@@ -39,9 +40,10 @@ namespace render {
     *  3. Material doesn't support BSDF sampling → fall back to
     *     `Material::shade(...)` (Whitted compatibility), terminate.
     *  4. Add the material's compatibility ambient radiance.
-    *  5. Direct lighting (next-event estimation): for each light, draw
-    *     a `LightSample` from `SampleDimension::Light`, shadow-test, accumulate
-    *     `throughput · BSDF.eval(wi, wo_light) · L_i / pdf_light`.
+    *  5. Direct lighting (next-event estimation): select one light from
+    *     `LightSampler`, draw a `LightSample` from that light's
+    *     `SampleDimension::Light` slot, shadow-test, accumulate
+    *     `throughput · BSDF.eval(wi, wo_light) · L_i / (pdf_light · pdf_select)`.
     *  6. Indirect: if the material publishes enumerable delta branches
     *     (`Material::deltaBsdfSamples(...)`), split them exactly; otherwise
     *     use `Material::sampleBsdf(...)` for one sampled continuation and
@@ -58,7 +60,7 @@ namespace render {
     * @see WhittedIntegrator — the recursive direct-lighting-only
     * sibling.
     * @see SampleStream — the per-pixel sample provider; the path
-    * tracer consumes `SampleDimension::BSDF`, `Light`, and
+    * tracer consumes `SampleDimension::BSDF`, `LightSelection`, `Light`, and
     * `Continuation` per bounce.
     */
   class PathTracingIntegrator : public Integrator {
@@ -109,6 +111,11 @@ namespace render {
     bool isCancelled() const;
     State clonePathState(const State& state) const;
     Colord missRadiance(const Scene& scene, bool backgroundVisible) const;
+    double lightSelectionSample(State& state, int bounce) const;
+    Vector2d lightSample(State& state, int bounce, std::size_t lightIndex) const;
+    Colord sampleDirectLighting(const Scene& scene, const LightSampler& lightSampler,
+                                const HitPoint& hitPoint, const Material& material,
+                                const Vector3d& wi, State& state, int bounce) const;
     Colord directLighting(const Scene& scene, const Light& light, const HitPoint& hitPoint,
                           const Material& material, const Vector3d& wi, const Vector2d& lightSample,
                           State& state) const;
