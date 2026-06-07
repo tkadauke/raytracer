@@ -1,5 +1,6 @@
 #include "render/PathTracingIntegrator.h"
 
+#include "core/math/Constants.h"
 #include "core/math/HitPoint.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
@@ -266,9 +267,18 @@ namespace render {
     return throughput * (sample.value * (normalDotWo / sample.pdf));
   }
 
+  bool PathTracingIntegrator::continuesExactDeltaBranch(const Colord& throughput) const {
+    return throughput.max() >= RAYTRACER_THROUGHPUT_CUTOFF;
+  }
+
+  void PathTracingIntegrator::setStateThroughput(State& state, const Colord& throughput) const {
+    state.throughput = throughput.max();
+  }
+
   bool PathTracingIntegrator::survivesRussianRoulette(Colord& throughput, State& state,
                                                       int bounce) const {
     if (bounce < m_russianRouletteDepth) {
+      setStateThroughput(state, throughput);
       return true;
     }
 
@@ -281,6 +291,7 @@ namespace render {
     }
 
     throughput = throughput * (1.0 / survival);
+    setStateThroughput(state, throughput);
     return true;
   }
 
@@ -683,10 +694,11 @@ namespace render {
             }
 
             Colord nextThroughput = continuedThroughput(path.throughput, sampled, hitPoint);
-            State childState = clonePathState(baseState);
-            if (!survivesRussianRoulette(nextThroughput, childState, bounce)) {
+            if (!continuesExactDeltaBranch(nextThroughput)) {
               continue;
             }
+            State childState = clonePathState(baseState);
+            setStateThroughput(childState, nextThroughput);
             nextPaths.emplace_back(sampled.rayFrom(hitPoint), nextThroughput,
                                    path.backgroundVisible, std::move(childState),
                                    /*nextSampledFromBsdf=*/true, sampled.pdf,
@@ -848,10 +860,11 @@ namespace render {
               }
 
               Colord nextThroughput = continuedThroughput(path.throughput, sampled, hit.hitPoint);
-              State childState = clonePathState(baseState);
-              if (!survivesRussianRoulette(nextThroughput, childState, bounce)) {
+              if (!continuesExactDeltaBranch(nextThroughput)) {
                 continue;
               }
+              State childState = clonePathState(baseState);
+              setStateThroughput(childState, nextThroughput);
               spawnedPaths.emplace_back(sampled.rayFrom(hit.hitPoint), nextThroughput,
                                         path.backgroundVisible, std::move(childState),
                                         path.accumulated(), /*nextSampledFromBsdf=*/true,

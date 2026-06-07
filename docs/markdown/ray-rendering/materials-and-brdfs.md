@@ -401,10 +401,13 @@ portal lobes publish exact delta continuations through
 `deltaBsdfSamples(...)`. That lets the integrator split finite
 reflection/refraction branch sets exactly, which reduces glass noise
 without turning the path tracer into a material-specific Whitted
-special case. The portal row is the intentional exception to local
-light transport: it is not a local shading material, but it still fits
-the same scheduler by publishing a delta continuation ray with a
-transformed origin and direction.
+special case. Because those delta branches are already enumerated, the
+path tracer terminates them with the deterministic throughput cutoff used by
+Whitted recursion instead of Russian-roulette survival weighting; sampled
+finite lobes still use roulette. The portal row is the intentional exception
+to local light transport: it is not a local shading material, but it still fits
+the same scheduler by publishing a delta continuation ray with a transformed
+origin and direction.
 
 ## <a id="exercises"></a>Exercises
 1. Build a `MatteMaterial` with a black diffuse texture and

@@ -422,7 +422,8 @@ This was not in the original plan, but it landed before the wavefront engine:
 - named BSDF/light/continuation sample dimensions,
 - material BSDF hooks (`sampleBsdf`, `evalBsdf`, `bsdfPdf`),
 - next-event estimation through `Light::sample`,
-- Russian-roulette termination,
+- Russian-roulette termination for sampled finite-lobe continuations,
+- deterministic throughput-cutoff termination for exact split delta branches,
 - Whitted fallback for materials that do not yet support BSDF sampling.
 
 Render intent, graph JSON, rendercli, and Modeler Render Settings now expose
@@ -432,6 +433,13 @@ They also expose the direct-light sample count as typed path-tracer execution
 state. Increasing it draws and averages more next-event-estimation samples per
 non-delta hit, reducing direct-light variance without changing the canonical
 estimator.
+Exact enumerable delta branches, such as perfect mirror/refraction/portal
+continuations, deliberately bypass Russian-roulette survival weighting. They are
+not probability-compensated samples; the integrator has already split the finite
+branch set exactly. Applying roulette to those branches caused rare high-weight
+survivors and visible glass fireflies. Those branches now use the same
+`RAYTRACER_THROUGHPUT_CUTOFF` policy as Whitted recursion, while sampled
+finite-lobe continuations continue to use canonical Russian roulette.
 
 This does **not** replace wavefront. It narrows the future wavefront task: reuse
 these sampling/material semantics and replace the scalar megakernel loop with a
@@ -1301,7 +1309,10 @@ plan should not wait for packetized Whitted rendering.
 - **Path-tracing variance.** When Phase 5 lands, low-spp renders will
   look noisy compared to Whitted's smooth output. Mitigation: ship
   with sensible default spp; document that denoising (Phase 6)
-  follows; keep `Raytracer` as the noise-free fallback.
+  follows; keep `Raytracer` as the noise-free fallback. Exact split
+  specular/transmission branch trees use deterministic throughput cutoff rather
+  than Russian-roulette weighting, so their expected low-spp noise does not turn
+  into rare extreme fireflies.
 - **Material BSDF coverage.** The scalar path tracer falls back to
   Whitted shading for materials that do not implement BSDF sampling.
   A wavefront path tracer can make the same compatibility choice, but

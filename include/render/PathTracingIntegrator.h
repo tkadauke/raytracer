@@ -50,9 +50,11 @@ namespace render {
     *     (`Material::deltaBsdfSamples(...)`), split them exactly; otherwise
     *     use `Material::sampleBsdf(...)` for one sampled continuation and
     *     update `throughput · value / pdf · |cos|`.
-    *  7. Russian roulette beyond `russianRouletteDepth()` — terminate
-    *     with probability `1 - throughput.max()`; otherwise rescale
-    *     throughput to compensate.
+    *  7. Termination: sampled BSDF continuations use Russian roulette beyond
+    *     `russianRouletteDepth()` and rescale surviving throughput. Exact
+    *     enumerable delta branches use the deterministic Whitted throughput
+    *     cutoff instead, because they are split branches rather than
+    *     probability-compensated samples.
     *
     * Materials that don't yet expose a BSDF terminate the path with the
     * Whitted-shaded value; those surfaces don't yet receive indirect light
@@ -143,6 +145,8 @@ namespace render {
     bool canContinueWithSample(const MaterialBsdfSample& sample, const HitPoint& hitPoint) const;
     Colord continuedThroughput(const Colord& throughput, const MaterialBsdfSample& sample,
                                const HitPoint& hitPoint) const;
+    bool continuesExactDeltaBranch(const Colord& throughput) const;
+    void setStateThroughput(State& state, const Colord& throughput) const;
     bool survivesRussianRoulette(Colord& throughput, State& state, int bounce) const;
     void recordDepthDelta(BatchDepthMetrics& depthMetrics, const Colord& before,
                           const Colord& after) const;

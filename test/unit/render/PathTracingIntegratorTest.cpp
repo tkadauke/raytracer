@@ -287,6 +287,35 @@ namespace PathTracingIntegratorTest {
       std::vector<Vector2d> m_lightSamples;
     };
 
+    class FixedContinuationSampleStream final : public SampleStream {
+    public:
+      explicit FixedContinuationSampleStream(double continuationSample)
+          : m_continuationSample(continuationSample) {
+      }
+
+      Vector2d next2D() override {
+        return Vector2d(0.5, 0.5);
+      }
+
+      double next1D() override {
+        return 0.5;
+      }
+
+      Vector2d sample2D(SampleDimension, std::uint64_t = 0) override {
+        return Vector2d(0.5, 0.5);
+      }
+
+      double sample1D(SampleDimension dimension, std::uint64_t = 0) override {
+        if (dimension == SampleDimension::Continuation) {
+          return m_continuationSample;
+        }
+        return 0.5;
+      }
+
+    private:
+      double m_continuationSample;
+    };
+
     class RecordingMaterial final : public Material {
     public:
       explicit RecordingMaterial(std::vector<std::string>* events)
@@ -334,6 +363,71 @@ namespace PathTracingIntegratorTest {
 
     private:
       std::vector<std::string>* m_events;
+    };
+
+    class FixedDeltaMaterial final : public Material {
+    public:
+      explicit FixedDeltaMaterial(const Colord& branchWeight)
+          : m_branchWeight(branchWeight) {
+      }
+
+      Colord shade(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                   State&) const override {
+        return Colord::black();
+      }
+
+      bool supportsBsdfSampling() const override {
+        return true;
+      }
+
+      MaterialBsdfSample sampleBsdf(const HitPoint&, const Vector3d&,
+                                    const Vector2d&) const override {
+        return MaterialBsdfSample();
+      }
+
+      std::vector<MaterialBsdfSample> deltaBsdfSamples(const HitPoint&,
+                                                       const Vector3d&) const override {
+        MaterialBsdfSample sample;
+        sample.direction = Vector3d(1, 0, 0);
+        sample.value = m_branchWeight;
+        sample.pdf = 1.0;
+        sample.isDelta = true;
+        return {sample};
+      }
+
+    private:
+      Colord m_branchWeight;
+    };
+
+    class TwoHitDeltaPrimitive final : public Primitive {
+    public:
+      explicit TwoHitDeltaPrimitive(const Colord& branchWeight) {
+        setMaterial(std::make_shared<FixedDeltaMaterial>(branchWeight));
+      }
+
+      const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                 State& state) const override {
+        if (ray.direction().x() <= 0.0 || ray.origin().x() >= 1.5) {
+          state.miss(this, "TwoHitDeltaPrimitive, ray miss");
+          return nullptr;
+        }
+
+        const double hitX = ray.origin().x() < 0.5 ? 1.0 : 2.0;
+        const double distance = (hitX - ray.origin().x()) / ray.direction().x();
+        if (distance <= 0.0) {
+          state.miss(this, "TwoHitDeltaPrimitive, ray miss");
+          return nullptr;
+        }
+
+        hitPoints.add(HitPoint(this, distance, ray.at(distance), Vector3d(-1, 0, 0)));
+        state.hit(this, "TwoHitDeltaPrimitive");
+        return this;
+      }
+
+    protected:
+      BoundingBoxd calculateBoundingBox() const override {
+        return BoundingBoxd(Vector3d(1, -1, -1), Vector3d(2, 1, 1));
+      }
     };
 
     class PacketCountingScene final : public Scene {
@@ -534,6 +628,14 @@ namespace PathTracingIntegratorTest {
       return scene;
     }
 
+    std::unique_ptr<Scene> twoHitDeltaBackgroundScene(const Colord& branchWeight) {
+      auto scene = std::make_unique<Scene>();
+      scene->setAmbient(Colord::black());
+      scene->setBackground(Colord(1, 0, 0));
+      scene->add(std::make_shared<TwoHitDeltaPrimitive>(branchWeight));
+      return scene;
+    }
+
     std::unique_ptr<Scene> sampleEchoLightScene(std::shared_ptr<SampleEchoLight> light) {
       auto scene = std::make_unique<Scene>();
       scene->setAmbient(Colord::black());
@@ -606,6 +708,10 @@ namespace PathTracingIntegratorTest {
     // radiance (white).
     Rayd primaryRay() {
       return Rayd(Vector3d(0, 5, 0), Vector3d(0, -1, 0));
+    }
+
+    Rayd twoHitDeltaPrimaryRay() {
+      return Rayd(Vector3d::null, Vector3d(1, 0, 0));
     }
 
     Colord traceWithSampleStream(const PathTracingIntegrator& integrator, const Scene& scene,
@@ -1484,6 +1590,44 @@ namespace PathTracingIntegratorTest {
     const Colord pixel = integrator.radiance(*scene, primaryRay(), state, caster);
 
     ASSERT_COLOR_NEAR(Colord(0.75, 0, 0), pixel, 1e-12);
+  }
+
+  TEST(PathTracingIntegrator, ScalarExactDeltaBranchesUseDeterministicCutoffAfterRouletteDepth) {
+    auto scene = twoHitDeltaBackgroundScene(Colord(0.5, 0.5, 0.5));
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(3);
+    integrator.setRussianRouletteDepth(1);
+
+    FixedContinuationSampleStream stream(/*continuationSample=*/0.5);
+    State state;
+    state.sampleStream = &stream;
+    FallbackRayCaster caster;
+
+    const Colord pixel = integrator.radiance(*scene, twoHitDeltaPrimaryRay(), state, caster);
+
+    ASSERT_COLOR_NEAR(Colord(0.25, 0, 0), pixel, 1e-12);
+  }
+
+  TEST(PathTracingIntegrator, BatchedExactDeltaBranchesUseDeterministicCutoffAfterRouletteDepth) {
+    auto scene = twoHitDeltaBackgroundScene(Colord(0.5, 0.5, 0.5));
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(3);
+    integrator.setRussianRouletteDepth(1);
+
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{twoHitDeltaPrimaryRay(), 0.0,
+                                          std::make_unique<FixedContinuationSampleStream>(
+                                            /*continuationSample=*/0.5)});
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster, &metrics);
+
+    ASSERT_EQ(1u, batched.size());
+    ASSERT_COLOR_NEAR(Colord(0.25, 0, 0), batched[0], 1e-12);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u, 1u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u, 0u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u, 1u}), metrics.frontierRayMissesPerDepth);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceContinuesThroughPortalDeltaBsdf) {

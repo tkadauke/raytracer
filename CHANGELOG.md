@@ -741,6 +741,14 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   LDraw, molecular, and procedural scenes instead of preserving the old Grid
   default for Epic #360. — GPT-5
 
+### Fixed
+
+- **Path tracer glass fireflies.** Exact split delta branches for perfect
+  reflection/refraction/portal continuations now use deterministic throughput
+  cutoff instead of Russian-roulette survival weighting, removing rare
+  high-energy survivors in transparent multi-surface scenes while leaving
+  sampled finite-lobe Russian roulette unchanged. — GPT-5
+
 ### Added
 
 - **Russian-roulette path-continuation helpers.** New

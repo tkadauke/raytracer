@@ -13,6 +13,7 @@ file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 
 set(direct_scene "${TEST_OUTPUT_DIR}/pathtracer-diagnostic-direct.json")
 set(glass_scene "${PROJECT_SOURCE_DIR}/scenes/glass_torus.json")
+set(reflections_scene "${PROJECT_SOURCE_DIR}/scenes/reflections.json")
 set(area_light_scene "${PROJECT_SOURCE_DIR}/scenes/pathtracer_area_light_demo.json")
 
 file(WRITE "${direct_scene}" [=[
@@ -188,7 +189,41 @@ function(pathtracer_diagnostic_compare_raytracer_parity name scene max_rms)
   )
 endfunction()
 
+function(pathtracer_diagnostic_assert_metric_at_most name stdout metric threshold)
+  string(REGEX MATCH "${metric}=([0-9]+\\.[0-9]+)" metric_match "${stdout}")
+  if(NOT metric_match)
+    _rendercli_fail("${name}" "stdout did not contain ${metric}" "" "" "${stdout}" "")
+  endif()
+  set(value "${CMAKE_MATCH_1}")
+  if(value GREATER threshold)
+    _rendercli_fail("${name}" "expected ${metric} at most ${threshold}, got ${value}"
+                    "" "" "${stdout}" "")
+  endif()
+endfunction()
+
+function(pathtracer_diagnostic_assert_low_variance name scene)
+  set(output "${TEST_OUTPUT_DIR}/${name}.png")
+
+  rendercli_run(
+    NAME "pathtracer diagnostic ${name} low variance"
+    OUTPUT_VARIABLE metrics_stdout
+    COMMAND
+      "${RENDERCLI}" --direct_engine --engine pathtracer
+      --width 80 --height 60 --sampler Jittered --sampling_seed 12345
+      --samples_per_pixel 16 --depth 10 --wavefront_denoiser none
+      --wavefront_metrics_summary "${scene}" "${output}"
+  )
+  rendercli_assert_image_dimensions("${output}" 80 60
+                                    NAME "pathtracer diagnostic ${name} dimensions")
+  rendercli_assert_image_nonempty("${output}" NAME "pathtracer diagnostic ${name} pixels")
+  pathtracer_diagnostic_assert_metric_at_most(
+    "pathtracer diagnostic ${name} variance threshold"
+    "${metrics_stdout}" "sample_stddev_rms" 1.0
+  )
+endfunction()
+
 pathtracer_diagnostic_compare_raytracer_parity("direct-parity" "${direct_scene}" 0.03)
 pathtracer_diagnostic_compare("direct" "${direct_scene}" 4 32 0.08)
 pathtracer_diagnostic_compare("glass" "${glass_scene}" 4 32 0.10)
 pathtracer_diagnostic_compare("area-light" "${area_light_scene}" 8 64 0.12)
+pathtracer_diagnostic_assert_low_variance("exact-delta-reflections" "${reflections_scene}")
