@@ -2,6 +2,7 @@
 #include "world/objects/Material.h"
 #include "world/objects/Group.h"
 #include "world/objects/Light.h"
+#include "world/objects/PortalMaterial.h"
 #include "world/objects/StepVisibilityEvaluator.h"
 #include "engine/graph/RenderSceneAnalysis.h"
 #include "render/primitives/Instance.h"
@@ -95,10 +96,18 @@ void Surface::contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis
   validateSceneMarkers();
   analysis.recordVisibleSurface();
   if (portalReceiverMarker()) {
-    analysis.recordPortalReceiverSurface(id().toStdString(), name().toStdString());
+    Matrix4d sourceTransform;
+    if (const auto* portalMaterial = dynamic_cast<const PortalMaterial*>(material())) {
+      sourceTransform = portalMaterial->portalTransform();
+    }
+    analysis.recordPortalReceiverSurface(id().toStdString(), name().toStdString(),
+                                         globalTransform(), sourceTransform);
   }
   if (planarMirrorMarker()) {
-    analysis.recordPlanarMirrorSurface(id().toStdString(), name().toStdString());
+    const Matrix4d transform = globalTransform();
+    analysis.recordPlanarMirrorSurface(
+      id().toStdString(), name().toStdString(), transform.transformPoint(Vector3d::null),
+      transform.transformDirection(Vector3d(0.0, -1.0, 0.0)).normalizedOrZero(1e-12));
   }
   Element::contributeToRenderGraphAnalysis(analysis);
 }

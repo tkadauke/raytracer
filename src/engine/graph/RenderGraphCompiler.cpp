@@ -449,8 +449,11 @@ namespace engine::graph {
                                                           const RenderSceneAnalysis& sceneAnalysis,
                                                           int renderToTextureDepth) const {
     const RenderTargetSpec target = rawTarget.normalized();
-    const RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
+    RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
     frameIntent.requireWholeFrameOnly("RenderGraphCompiler");
+    if (renderToTextureDepth == 0) {
+      addAutomaticFeatureSubviews(frameIntent, sceneAnalysis);
+    }
 
     if (frameIntent.defaultViewMode == RenderViewMode::StencilComposite) {
       RenderPlan plan = compileStencilCompositeView(target, frameIntent);
@@ -584,6 +587,51 @@ namespace engine::graph {
     addSubviewBranches(plan, target, frameIntent, sceneAnalysis, renderToTextureDepth);
 
     return plan;
+  }
+
+  void RenderGraphCompiler::addAutomaticFeatureSubviews(
+    RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis) const {
+    if (!intent.enableAutomaticFeatures) {
+      return;
+    }
+
+    for (const auto& portal : sceneAnalysis.portalReceiverSurfaces()) {
+      RenderSubviewIntent subview;
+      subview.name =
+        "portal " + (!portal.surfaceName.empty() ? portal.surfaceName : portal.surfaceId);
+      subview.view.selector = SceneSelector::all();
+      DerivedCameraRef derived;
+      derived.kind = DerivedCameraRef::Kind::Portal;
+      if (intent.defaultCamera && intent.defaultCamera->sceneCameraId) {
+        derived.baseSceneCameraId = intent.defaultCamera->sceneCameraId;
+      }
+      derived.receiverTransform = portal.receiverTransform;
+      derived.sourceTransform = portal.sourceTransform;
+      derived.requiresReceiverClip = true;
+      RenderCameraRef camera;
+      camera.derived = derived;
+      subview.view.camera = camera;
+      intent.subviews.push_back(std::move(subview));
+    }
+
+    for (const auto& mirror : sceneAnalysis.planarMirrorSurfaces()) {
+      RenderSubviewIntent subview;
+      subview.name =
+        "mirror " + (!mirror.surfaceName.empty() ? mirror.surfaceName : mirror.surfaceId);
+      subview.view.selector = SceneSelector::all();
+      DerivedCameraRef derived;
+      derived.kind = DerivedCameraRef::Kind::PlanarMirror;
+      if (intent.defaultCamera && intent.defaultCamera->sceneCameraId) {
+        derived.baseSceneCameraId = intent.defaultCamera->sceneCameraId;
+      }
+      derived.mirrorPlanePoint = mirror.planePoint;
+      derived.mirrorPlaneNormal = mirror.planeNormal;
+      derived.requiresReceiverClip = true;
+      RenderCameraRef camera;
+      camera.derived = derived;
+      subview.view.camera = camera;
+      intent.subviews.push_back(std::move(subview));
+    }
   }
 
   void RenderGraphCompiler::addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,

@@ -270,6 +270,77 @@ namespace engine::graph {
       return array;
     }
 
+    QJsonArray vectorToJson(const Vector3d& value) {
+      return QJsonArray{value.x(), value.y(), value.z()};
+    }
+
+    Vector3d vectorFromJson(const QJsonValue& value, const std::string& path) {
+      if (!value.isArray())
+        jsonError(path, "expected array");
+      const auto array = value.toArray();
+      if (array.size() != 3)
+        jsonError(path, "expected 3 numbers");
+      for (int i = 0; i != 3; ++i) {
+        if (!array.at(i).isDouble())
+          jsonError(path + "[" + std::to_string(i) + "]", "expected number");
+      }
+      return Vector3d(array.at(0).toDouble(), array.at(1).toDouble(), array.at(2).toDouble());
+    }
+
+    QJsonArray matrixToJson(const Matrix4d& value) {
+      QJsonArray rows;
+      for (int row = 0; row != 4; ++row) {
+        QJsonArray cells;
+        for (int col = 0; col != 4; ++col) {
+          cells.append(value[row][col]);
+        }
+        rows.append(cells);
+      }
+      return rows;
+    }
+
+    Matrix4d matrixFromJson(const QJsonValue& value, const std::string& path) {
+      if (!value.isArray())
+        jsonError(path, "expected array");
+      const auto rows = value.toArray();
+      if (rows.size() != 4)
+        jsonError(path, "expected 4 rows");
+      Matrix4d result;
+      for (int row = 0; row != 4; ++row) {
+        if (!rows.at(row).isArray())
+          jsonError(path + "[" + std::to_string(row) + "]", "expected array");
+        const auto cells = rows.at(row).toArray();
+        if (cells.size() != 4)
+          jsonError(path + "[" + std::to_string(row) + "]", "expected 4 numbers");
+        for (int col = 0; col != 4; ++col) {
+          if (!cells.at(col).isDouble())
+            jsonError(path + "[" + std::to_string(row) + "][" + std::to_string(col) + "]",
+                      "expected number");
+          result[row][col] = cells.at(col).toDouble();
+        }
+      }
+      return result;
+    }
+
+    const char* derivedCameraKindName(DerivedCameraRef::Kind kind) {
+      switch (kind) {
+      case DerivedCameraRef::Kind::Portal:
+        return "portal";
+      case DerivedCameraRef::Kind::PlanarMirror:
+        return "planar_mirror";
+      }
+      return "unknown";
+    }
+
+    DerivedCameraRef::Kind derivedCameraKindFromJson(const std::string& value,
+                                                     const std::string& path) {
+      return enumValue<DerivedCameraRef::Kind>(
+        value,
+        {{"portal", DerivedCameraRef::Kind::Portal},
+         {"planar_mirror", DerivedCameraRef::Kind::PlanarMirror}},
+        path);
+    }
+
     std::vector<RenderFeatureKind> featureArrayFromJson(const QJsonObject& object, const char* key,
                                                         const std::string& path) {
       std::vector<RenderFeatureKind> result;
@@ -579,10 +650,87 @@ namespace engine::graph {
     return profile;
   }
 
+  bool DerivedCameraRef::equivalentTo(const DerivedCameraRef& other) const {
+    return kind == other.kind && baseSceneCameraId == other.baseSceneCameraId &&
+           receiverTransform == other.receiverTransform &&
+           sourceTransform == other.sourceTransform &&
+           mirrorPlanePoint == other.mirrorPlanePoint &&
+           mirrorPlaneNormal == other.mirrorPlaneNormal &&
+           requiresReceiverClip == other.requiresReceiverClip;
+  }
+
+  std::string DerivedCameraRef::displayText() const {
+    std::string result = std::string("derived ") + derivedCameraKindName(kind);
+    if (baseSceneCameraId) {
+      result += " from " + *baseSceneCameraId;
+    }
+    if (requiresReceiverClip) {
+      result += ", clipped";
+    }
+    return result;
+  }
+
+  QJsonObject DerivedCameraRef::toJson() const {
+    QJsonObject result;
+    result["kind"] = derivedCameraKindName(kind);
+    if (baseSceneCameraId) {
+      result["baseSceneCameraId"] = qstr(*baseSceneCameraId);
+    }
+    if (kind == Kind::Portal) {
+      result["receiverTransform"] = matrixToJson(receiverTransform);
+      result["sourceTransform"] = matrixToJson(sourceTransform);
+    } else {
+      result["mirrorPlanePoint"] = vectorToJson(mirrorPlanePoint);
+      result["mirrorPlaneNormal"] = vectorToJson(mirrorPlaneNormal);
+    }
+    result["requiresReceiverClip"] = requiresReceiverClip;
+    return result;
+  }
+
+  DerivedCameraRef DerivedCameraRef::fromJson(const QJsonObject& object, std::string path) {
+    DerivedCameraRef result;
+    result.kind = derivedCameraKindFromJson(stringField(object, "kind", path), path + ".kind");
+
+    const auto baseSceneCameraId = object.value("baseSceneCameraId");
+    if (!baseSceneCameraId.isUndefined()) {
+      if (!baseSceneCameraId.isString())
+        jsonError(path + ".baseSceneCameraId", "expected string");
+      result.baseSceneCameraId = baseSceneCameraId.toString().toStdString();
+    }
+
+    const auto requiresReceiverClip = object.value("requiresReceiverClip");
+    if (!requiresReceiverClip.isUndefined()) {
+      if (!requiresReceiverClip.isBool())
+        jsonError(path + ".requiresReceiverClip", "expected boolean");
+      result.requiresReceiverClip = requiresReceiverClip.toBool();
+    }
+
+    if (result.kind == Kind::Portal) {
+      result.receiverTransform =
+        matrixFromJson(object.value("receiverTransform"), path + ".receiverTransform");
+      result.sourceTransform =
+        matrixFromJson(object.value("sourceTransform"), path + ".sourceTransform");
+    } else {
+      result.mirrorPlanePoint =
+        vectorFromJson(object.value("mirrorPlanePoint"), path + ".mirrorPlanePoint");
+      result.mirrorPlaneNormal =
+        vectorFromJson(object.value("mirrorPlaneNormal"), path + ".mirrorPlaneNormal");
+    }
+    return result;
+  }
+
+  RenderCameraRef::RenderCameraRef(std::optional<std::string> sceneCameraId_,
+                                   std::optional<CameraSnapshot> snapshot_)
+      : sceneCameraId(std::move(sceneCameraId_)),
+        snapshot(std::move(snapshot_)) {
+  }
+
   bool RenderCameraRef::equivalentTo(const RenderCameraRef& other) const {
     return sceneCameraId == other.sceneCameraId &&
            snapshot.has_value() == other.snapshot.has_value() &&
-           (!snapshot || snapshot->parameters == other.snapshot->parameters);
+           (!snapshot || snapshot->parameters == other.snapshot->parameters) &&
+           derived.has_value() == other.derived.has_value() &&
+           (!derived || derived->equivalentTo(*other.derived));
   }
 
   std::string RenderCameraRef::displayText() const {
@@ -596,6 +744,12 @@ namespace engine::graph {
       }
       result += "snapshot";
     }
+    if (derived) {
+      if (!result.empty()) {
+        result += ", ";
+      }
+      result += derived->displayText();
+    }
     return result.empty() ? "-" : result;
   }
 
@@ -605,6 +759,8 @@ namespace engine::graph {
       result["sceneCameraId"] = qstr(*sceneCameraId);
     if (snapshot)
       result["snapshot"] = snapshot->parameters;
+    if (derived)
+      result["derived"] = derived->toJson();
     return result;
   }
 
@@ -626,6 +782,12 @@ namespace engine::graph {
       if (!snapshot.isObject())
         jsonError(path + ".snapshot", "expected object");
       camera.snapshot = CameraSnapshot{snapshot.toObject()};
+    }
+    const auto derived = object.value("derived");
+    if (!derived.isUndefined()) {
+      if (!derived.isObject())
+        jsonError(path + ".derived", "expected object");
+      camera.derived = DerivedCameraRef::fromJson(derived.toObject(), path + ".derived");
     }
     return camera;
   }

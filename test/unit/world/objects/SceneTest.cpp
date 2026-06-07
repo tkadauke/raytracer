@@ -9,6 +9,7 @@
 #include "world/objects/Rectangle.h"
 #include "world/objects/Sphere.h"
 #include "world/objects/Material.h"
+#include "world/objects/PortalMaterial.h"
 #include "world/objects/Texture.h"
 #include "world/animation/AnimationTrack.h"
 #include "world/animation/Timeline.h"
@@ -22,6 +23,7 @@
 #include "core/math/Vector.h"
 #include "core/math/Angle.h"
 #include "core/Color.h"
+#include "test/helpers/VectorTestHelper.h"
 
 #include <memory>
 #include <optional>
@@ -399,11 +401,16 @@ namespace SceneTest {
     auto* portalReceiver = new Rectangle;
     portalReceiver->setId("portal-panel");
     portalReceiver->setName("Portal Panel");
+    portalReceiver->setPosition(Vector3d(2.0, 0.0, 0.0));
+    auto* portalMaterial = new PortalMaterial;
+    portalMaterial->setPosition(Vector3d(12.0, 0.0, 0.0));
+    portalReceiver->setMaterial(portalMaterial);
     portalReceiver->setPortalReceiverMarker(true);
     scene.addChild(portalReceiver);
     auto* mirror = new Rectangle;
     mirror->setId("mirror-panel");
     mirror->setName("Mirror Panel");
+    mirror->setPosition(Vector3d(0.0, 3.0, 0.0));
     mirror->setPlanarMirrorMarker(true);
     scene.addChild(mirror);
 
@@ -414,8 +421,18 @@ namespace SceneTest {
     ASSERT_EQ(1u, analysis.planarMirrorSurfaceCount());
     EXPECT_EQ("portal-panel", analysis.portalReceiverSurfaces()[0].surfaceId);
     EXPECT_EQ("Portal Panel", analysis.portalReceiverSurfaces()[0].surfaceName);
+    ASSERT_VECTOR_NEAR(Vector3d(2.0, 0.0, 0.0),
+                       analysis.portalReceiverSurfaces()[0].receiverTransform.translationVector(),
+                       1e-9);
+    ASSERT_VECTOR_NEAR(Vector3d(12.0, 0.0, 0.0),
+                       analysis.portalReceiverSurfaces()[0].sourceTransform.translationVector(),
+                       1e-9);
     EXPECT_EQ("mirror-panel", analysis.planarMirrorSurfaces()[0].surfaceId);
     EXPECT_EQ("Mirror Panel", analysis.planarMirrorSurfaces()[0].surfaceName);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 3.0, 0.0),
+                       analysis.planarMirrorSurfaces()[0].planePoint, 1e-9);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, -1.0, 0.0),
+                       analysis.planarMirrorSurfaces()[0].planeNormal, 1e-9);
   }
 
   TEST(Scene, ShouldRejectSurfaceWithConflictingSceneMarkers) {

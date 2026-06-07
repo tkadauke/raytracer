@@ -100,12 +100,12 @@ public:
     m_filterColor = filterColor;
   }
 
+  Matrix4d portalTransform() const;
+
 protected:
   virtual std::shared_ptr<render::Material> toRaytracerMaterial() const;
 
 private:
-  Matrix4d transformation() const;
-
   Vector3d m_position;
   Vector3d m_rotation;
   Vector3d m_scale;

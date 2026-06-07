@@ -12,12 +12,12 @@ PortalMaterial::PortalMaterial(Element* parent)
 }
 
 std::shared_ptr<render::Material> PortalMaterial::toRaytracerMaterial() const {
-  auto material = make_named<render::PortalMaterial>(transformation(), filterColor());
+  auto material = make_named<render::PortalMaterial>(portalTransform(), filterColor());
   applyMaterialProperties(material);
   return material;
 }
 
-Matrix4d PortalMaterial::transformation() const {
+Matrix4d PortalMaterial::portalTransform() const {
   return Matrix4d::translate(position()) * Matrix3d::rotate(rotation()) * Matrix3d::scale(scale());
 }
 

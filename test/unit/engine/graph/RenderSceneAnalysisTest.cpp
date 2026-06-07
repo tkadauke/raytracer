@@ -43,15 +43,20 @@ namespace RenderSceneAnalysisTest {
   TEST(RenderSceneAnalysis, RecordsSceneSurfaceMarkers) {
     RenderSceneAnalysis analysis;
 
-    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel");
-    analysis.recordPlanarMirrorSurface("mirror-panel", "Mirror Panel");
+    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel",
+                                         Matrix4d::translate(1.0, 2.0, 3.0),
+                                         Matrix4d::translate(10.0, 0.0, 0.0));
+    analysis.recordPlanarMirrorSurface("mirror-panel", "Mirror Panel", Vector3d(0.0, 2.0, 0.0),
+                                       Vector3d(0.0, 2.0, 0.0));
 
     ASSERT_EQ(1u, analysis.portalReceiverSurfaceCount());
     ASSERT_EQ(1u, analysis.planarMirrorSurfaceCount());
     EXPECT_EQ("portal-panel", analysis.portalReceiverSurfaces()[0].surfaceId);
     EXPECT_EQ("Portal Panel", analysis.portalReceiverSurfaces()[0].surfaceName);
+    EXPECT_EQ(Vector3d(1.0, 2.0, 3.0), analysis.portalReceiverSurfaces()[0].planePoint);
     EXPECT_EQ("mirror-panel", analysis.planarMirrorSurfaces()[0].surfaceId);
     EXPECT_EQ("Mirror Panel", analysis.planarMirrorSurfaces()[0].surfaceName);
+    EXPECT_EQ(Vector3d(0.0, 1.0, 0.0), analysis.planarMirrorSurfaces()[0].planeNormal);
   }
 
   TEST(RenderSceneAnalysis, RasterPreviewShadowsNeedRasterIntentSurfacesAndLights) {

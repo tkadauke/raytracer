@@ -24,6 +24,7 @@
 #include "render/textures/ConstantColorTexture.h"
 #include "render/tonemap/ReinhardTonemap.h"
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/VectorTestHelper.h"
 
 #include <QJsonArray>
 #include <QJsonObject>
@@ -554,6 +555,99 @@ namespace GraphRenderEngineTest {
     engine.render(buffer);
 
     EXPECT_GT(countNonBlackPixels(buffer), 0);
+  }
+
+  TEST(GraphRenderEngine, DerivesPortalCameraFromReceiverSourceAndBaseCamera) {
+    GraphRenderEngine engine(camera(), highContrastScene());
+
+    auto activeCamera =
+      std::make_shared<render::PinholeCamera>(Vector3d(2.0, 3.0, -5.0),
+                                              Vector3d(2.0, 3.0, 0.0));
+    engine.setSceneCamera("active-camera", activeCamera);
+
+    DerivedCameraRef derived;
+    derived.kind = DerivedCameraRef::Kind::Portal;
+    derived.baseSceneCameraId = "active-camera";
+    derived.receiverTransform = Matrix4d::translate(2.0, 0.0, 0.0);
+    derived.sourceTransform = Matrix4d::translate(12.0, 4.0, 0.0);
+
+    RenderPassNode pass;
+    RenderCameraRef cameraRef;
+    cameraRef.derived = derived;
+    pass.sceneView.camera = cameraRef;
+
+    auto resolved = engine.cameraForPass(pass);
+
+    ASSERT_NE(nullptr, resolved);
+    ASSERT_VECTOR_NEAR(Vector3d(12.0, 7.0, -5.0), resolved->position(), 1e-9);
+    ASSERT_VECTOR_NEAR(Vector3d(12.0, 7.0, 0.0), resolved->target(), 1e-9);
+    EXPECT_NE(activeCamera.get(), resolved.get());
+  }
+
+  TEST(GraphRenderEngine, DerivesMirrorCameraByReflectingAcrossPlane) {
+    GraphRenderEngine engine(camera(), highContrastScene());
+
+    auto activeCamera =
+      std::make_shared<render::PinholeCamera>(Vector3d(1.0, 3.0, -4.0),
+                                              Vector3d(1.0, 1.0, 0.0));
+    engine.setSceneCamera("active-camera", activeCamera);
+
+    DerivedCameraRef derived;
+    derived.kind = DerivedCameraRef::Kind::PlanarMirror;
+    derived.baseSceneCameraId = "active-camera";
+    derived.mirrorPlanePoint = Vector3d(0.0, 0.0, 0.0);
+    derived.mirrorPlaneNormal = Vector3d(0.0, 1.0, 0.0);
+
+    RenderPassNode pass;
+    RenderCameraRef cameraRef;
+    cameraRef.derived = derived;
+    pass.sceneView.camera = cameraRef;
+
+    auto resolved = engine.cameraForPass(pass);
+
+    ASSERT_NE(nullptr, resolved);
+    ASSERT_VECTOR_NEAR(Vector3d(1.0, -3.0, -4.0), resolved->position(), 1e-9);
+    ASSERT_VECTOR_NEAR(Vector3d(1.0, -1.0, 0.0), resolved->target(), 1e-9);
+    EXPECT_NE(activeCamera.get(), resolved.get());
+  }
+
+  TEST(GraphRenderEngine, RejectsDerivedCameraReceiverClippingDuringExecution) {
+    RenderPlan plan;
+    plan.addResource(colorResource("beauty_color", RenderResourceLifetime::Transient, 16, 16));
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported, 16, 16));
+
+    DerivedCameraRef derived;
+    derived.kind = DerivedCameraRef::Kind::PlanarMirror;
+    derived.requiresReceiverClip = true;
+    RenderCameraRef cameraRef;
+    cameraRef.derived = derived;
+
+    RenderPassNode beauty;
+    beauty.id = "beauty";
+    beauty.kind = RenderPassKind::Beauty;
+    beauty.executor = RenderExecutorKind::Raytracer;
+    beauty.sceneView.camera = cameraRef;
+    beauty.addWrite("beauty_color");
+    plan.addPass(beauty);
+
+    RenderPassNode tonemap;
+    tonemap.id = "tonemap";
+    tonemap.kind = RenderPassKind::Tonemap;
+    tonemap.executor = RenderExecutorKind::PostProcess;
+    tonemap.addRead("beauty_color");
+    tonemap.addWrite("main_color");
+    plan.addPass(tonemap);
+
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setPlan(plan);
+    Buffer<unsigned int> buffer(16, 16);
+
+    try {
+      engine.render(buffer);
+      FAIL() << "expected derived camera clipping rejection";
+    } catch (const std::runtime_error& error) {
+      EXPECT_NE(std::string::npos, std::string(error.what()).find("receiver clipping"));
+    }
   }
 
   TEST(GraphRenderEngine, ExecutesRasterVisibilityCullingBaseline) {
