@@ -929,9 +929,8 @@ namespace engine::graph {
     }
   }
 
-  void
-  RenderGraphCompiler::validateSubviewReceivers(const RenderIntent& intent,
-                                                const RenderSceneAnalysis& sceneAnalysis) const {
+  void RenderGraphCompiler::validateSubviewReceivers(
+    const RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis) const {
     const auto& receivers = sceneAnalysis.renderTextureSubviewReceivers();
     if (receivers.empty()) {
       return;
