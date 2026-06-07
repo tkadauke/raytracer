@@ -743,19 +743,6 @@ namespace engine::graph {
                                  "unknown subview '" +
                                  receiver + "'");
       }
-      if (intent.maxRenderToTextureRecursionDepth > 0) {
-        const auto matchingSubview =
-          std::find_if(intent.subviews.begin(), intent.subviews.end(),
-                       [&receiver](const RenderSubviewIntent& subview) {
-                         return subview.name == receiver;
-                       });
-        if (matchingSubview != intent.subviews.end() &&
-            matchingSubview->view.selector.selectsWholeFrame()) {
-          throw std::runtime_error("RenderGraphCompiler render-to-texture receiver for subview '" +
-                                   receiver +
-                                   "' is cyclic because that subview renders the whole scene");
-        }
-      }
     }
   }
 
