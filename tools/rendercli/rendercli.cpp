@@ -73,6 +73,8 @@ Q_DECLARE_METATYPE(Colord);
 namespace {
   using Clock = std::chrono::steady_clock;
   constexpr std::uint64_t maxExactJsonInteger = 9007199254740991ULL;
+  constexpr int defaultWavefrontAdaptiveMinimumSamples = 2;
+  constexpr double defaultWavefrontAdaptiveStddevThreshold = 0.05;
 
   struct TimingStats {
     double minMs;
@@ -1194,6 +1196,12 @@ private:
   bool m_wavefrontConvergenceActiveFractionSet;
   double m_wavefrontConvergenceRmsDelta;
   bool m_wavefrontConvergenceRmsDeltaSet;
+  bool m_wavefrontAdaptiveSamplingEnabled;
+  bool m_wavefrontAdaptiveSamplingSet;
+  int m_wavefrontAdaptiveMinimumSamples;
+  bool m_wavefrontAdaptiveMinimumSamplesSet;
+  double m_wavefrontAdaptiveStddevThreshold;
+  bool m_wavefrontAdaptiveStddevThresholdSet;
   QString m_wavefrontDenoiser;
   bool m_wavefrontDenoiserSet;
   int m_wavefrontDenoiseRadius;
@@ -1371,6 +1379,12 @@ Renderer::Renderer()
       m_wavefrontConvergenceActiveFractionSet(false),
       m_wavefrontConvergenceRmsDelta(0.0),
       m_wavefrontConvergenceRmsDeltaSet(false),
+      m_wavefrontAdaptiveSamplingEnabled(false),
+      m_wavefrontAdaptiveSamplingSet(false),
+      m_wavefrontAdaptiveMinimumSamples(defaultWavefrontAdaptiveMinimumSamples),
+      m_wavefrontAdaptiveMinimumSamplesSet(false),
+      m_wavefrontAdaptiveStddevThreshold(defaultWavefrontAdaptiveStddevThreshold),
+      m_wavefrontAdaptiveStddevThresholdSet(false),
       m_wavefrontDenoiser("none"),
       m_wavefrontDenoiserSet(false),
       m_wavefrontDenoiseRadius(1),
@@ -1607,6 +1621,16 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
   }
   if (m_wavefrontConvergenceRmsDeltaSet)
     options.raytracer().setConvergenceRadianceDeltaRmsThreshold(m_wavefrontConvergenceRmsDelta);
+  if (m_wavefrontAdaptiveSamplingSet)
+    options.raytracer().setAdaptiveSamplingEnabled(m_wavefrontAdaptiveSamplingEnabled);
+  if (m_wavefrontAdaptiveSamplingSet && m_wavefrontAdaptiveSamplingEnabled) {
+    options.raytracer().setAdaptiveMinimumSamples(defaultWavefrontAdaptiveMinimumSamples);
+    options.raytracer().setAdaptiveStddevThreshold(defaultWavefrontAdaptiveStddevThreshold);
+  }
+  if (m_wavefrontAdaptiveMinimumSamplesSet)
+    options.raytracer().setAdaptiveMinimumSamples(m_wavefrontAdaptiveMinimumSamples);
+  if (m_wavefrontAdaptiveStddevThresholdSet)
+    options.raytracer().setAdaptiveStddevThreshold(m_wavefrontAdaptiveStddevThreshold);
   if (m_wavefrontDenoiserSet)
     options.raytracer().setDenoiser(m_wavefrontDenoiser.toStdString());
   if (m_wavefrontDenoiseRadiusSet)
@@ -2234,6 +2258,16 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     }
     if (m_wavefrontConvergenceRmsDeltaSet)
       wavefront->setConvergenceRadianceDeltaRmsThreshold(m_wavefrontConvergenceRmsDelta);
+    if (m_wavefrontAdaptiveSamplingSet)
+      wavefront->setAdaptiveSamplingEnabled(m_wavefrontAdaptiveSamplingEnabled);
+    if (m_wavefrontAdaptiveSamplingSet && m_wavefrontAdaptiveSamplingEnabled) {
+      wavefront->setAdaptiveMinimumSamples(defaultWavefrontAdaptiveMinimumSamples);
+      wavefront->setAdaptiveStddevThreshold(defaultWavefrontAdaptiveStddevThreshold);
+    }
+    if (m_wavefrontAdaptiveMinimumSamplesSet)
+      wavefront->setAdaptiveMinimumSamples(m_wavefrontAdaptiveMinimumSamples);
+    if (m_wavefrontAdaptiveStddevThresholdSet)
+      wavefront->setAdaptiveStddevThreshold(m_wavefrontAdaptiveStddevThreshold);
     const int denoiseRadius = !m_wavefrontDenoiseRadiusSet && (m_wavefrontDenoiser == "bilateral" ||
                                                                m_wavefrontDenoiseColorSigmaSet)
                                 ? 2
@@ -2756,6 +2790,12 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "Wavefront convergence active-sample fraction threshold in 0..1", "fraction"},
      {"wavefront_convergence_rms_delta",
       "Wavefront convergence per-depth RMS radiance delta threshold", "delta"},
+     {"wavefront_adaptive_sampling", "Enable wavefront per-pixel adaptive sampling"},
+     {"wavefront_no_adaptive_sampling", "Disable wavefront per-pixel adaptive sampling"},
+     {"wavefront_adaptive_min_samples", "Wavefront adaptive sampling minimum samples per pixel",
+      "samples"},
+     {"wavefront_adaptive_stddev_threshold",
+      "Wavefront adaptive sampling per-pixel radiance standard-deviation threshold", "threshold"},
      {"wavefront_denoiser", "Wavefront denoiser (none, box, bilateral)", "denoiser"},
      {"wavefront_denoise_radius", "Wavefront denoiser radius in pixels", "radius"},
      {"wavefront_denoise_color_sigma", "Wavefront bilateral denoiser color sigma", "sigma"},
@@ -3164,6 +3204,46 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     }
     m_wavefrontConvergenceRmsDelta = threshold;
     m_wavefrontConvergenceRmsDeltaSet = true;
+  }
+
+  if (parser.isSet("wavefront_adaptive_sampling") &&
+      parser.isSet("wavefront_no_adaptive_sampling")) {
+    *errorMessage = "Cannot combine --wavefront_adaptive_sampling with "
+                    "--wavefront_no_adaptive_sampling";
+    return CommandLineError;
+  }
+
+  if (parser.isSet("wavefront_adaptive_sampling")) {
+    m_wavefrontAdaptiveSamplingEnabled = true;
+    m_wavefrontAdaptiveSamplingSet = true;
+  }
+
+  if (parser.isSet("wavefront_no_adaptive_sampling")) {
+    m_wavefrontAdaptiveSamplingEnabled = false;
+    m_wavefrontAdaptiveSamplingSet = true;
+  }
+
+  if (parser.isSet("wavefront_adaptive_min_samples")) {
+    bool ok = false;
+    const int samples = parser.value("wavefront_adaptive_min_samples").toInt(&ok);
+    if (!ok || samples <= 0) {
+      *errorMessage = "Wavefront adaptive minimum samples must be > 0";
+      return CommandLineError;
+    }
+    m_wavefrontAdaptiveMinimumSamples = samples;
+    m_wavefrontAdaptiveMinimumSamplesSet = true;
+  }
+
+  if (parser.isSet("wavefront_adaptive_stddev_threshold")) {
+    bool ok = false;
+    const double threshold = parser.value("wavefront_adaptive_stddev_threshold").toDouble(&ok);
+    if (!ok || !std::isfinite(threshold) || threshold < 0.0) {
+      *errorMessage = "Wavefront adaptive standard-deviation threshold must be a non-negative "
+                      "number";
+      return CommandLineError;
+    }
+    m_wavefrontAdaptiveStddevThreshold = threshold;
+    m_wavefrontAdaptiveStddevThresholdSet = true;
   }
 
   if (parser.isSet("wavefront_denoiser")) {

@@ -105,7 +105,11 @@ unchanged. Wavefront controls such as
 `--wavefront_convergence`, `--wavefront_no_convergence`,
 `--wavefront_convergence_active_fraction`, and
 `--wavefront_convergence_rms_delta` become graph-visible convergence state for
-depth-major path batches. Raster controls such as `--lod`, `--msaa`,
+depth-major path batches. `--wavefront_adaptive_sampling`,
+`--wavefront_no_adaptive_sampling`, `--wavefront_adaptive_min_samples`, and
+`--wavefront_adaptive_stddev_threshold` become graph-visible per-pixel
+adaptive sampling state for wavefront path tracing. Raster controls such as
+`--lod`, `--msaa`,
 `--msaa_shading`, `--raster_backend`, viewport/scissor, blending, alpha test,
 depth bias, shadow-map quality, and `--raster_culling on|auto|off` become
 raster pass, shadow-node, or visibility-node state; wireframe `--lod` becomes
@@ -285,8 +289,12 @@ The Modeler Balanced convergence preset uses `active_fraction=0.05` and
 `rms_delta=0.002`, matching the benchmark capture default; Preview is looser
 and Final waits for inactive paths. In rendercli, `--wavefront_convergence`
 without explicit numeric thresholds resolves to the same Balanced defaults in
-exported graph JSON. `--wavefront_denoiser box|bilateral` requests an opt-in
-wavefront denoiser.
+exported graph JSON. Adaptive sampling renders an initial sample batch for
+each pixel, then spends remaining samples only where the per-pixel sample
+radiance standard deviation remains above the configured threshold; use
+`--wavefront_adaptive_min_samples N` and
+`--wavefront_adaptive_stddev_threshold T` to tune that policy.
+`--wavefront_denoiser box|bilateral` requests an opt-in wavefront denoiser.
 Box is a small HDR blur intended as the first graph-visible hook. Bilateral is
 a color-edge-preserving filter controlled by `--wavefront_denoise_radius N` and
 `--wavefront_denoise_color_sigma S`; giving a radius without a denoiser selects
@@ -367,8 +375,9 @@ radiance-delta thresholds for advanced tuning; the wavefront executor uses the
 resolved values as the current depth-major path-batch stop policy, reports the
 decision in trace metadata, and publishes depth-pass preview updates while a
 graph-backed Wavefront pass is still running. The same wavefront section can
-request the box or bilateral denoiser, choose its pixel radius, and set the
-bilateral color sigma. Engine-specific fields only show for the selected
+enable adaptive sampling, choose its initial sample count and standard-deviation
+threshold, request the box or bilateral denoiser, choose its pixel radius, and
+set the bilateral color sigma. Engine-specific fields only show for the selected
 default engine. The same property editor has a search field for filtering long
 property sets and collapsible groups so advanced scene/import settings can stay
 out of the way. Internal execution controls such as

@@ -16,6 +16,8 @@ namespace {
   constexpr double kWavefrontFinalActiveFraction = 0.0;
   constexpr double kWavefrontFinalRmsDelta = 0.0;
   constexpr double kWavefrontConvergencePresetEpsilon = 1e-12;
+  constexpr int kWavefrontAdaptiveMinimumSamples = 2;
+  constexpr double kWavefrontAdaptiveStddevThreshold = 0.05;
 }
 
 RenderIntentElement::RenderIntentElement(Scene* parent)
@@ -48,6 +50,11 @@ bool RenderIntentElement::isPropertyVisible(const QString& propertyName) const {
       return false;
     if (propertyName == QStringLiteral("wavefrontConvergence"))
       return true;
+    if (propertyName == QStringLiteral("wavefrontAdaptiveSampling"))
+      return true;
+    if (propertyName == QStringLiteral("wavefrontAdaptiveMinimumSamples") ||
+        propertyName == QStringLiteral("wavefrontAdaptiveStddevThreshold"))
+      return wavefrontAdaptiveSampling();
     if (propertyName == QStringLiteral("wavefrontDenoiser"))
       return true;
     if (propertyName == QStringLiteral("wavefrontDenoiseRadius"))
@@ -111,6 +118,12 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
     return QStringLiteral("Active Fraction");
   if (propertyName == QStringLiteral("wavefrontConvergenceRmsDelta"))
     return QStringLiteral("RMS Delta");
+  if (propertyName == QStringLiteral("wavefrontAdaptiveSampling"))
+    return QStringLiteral("Adaptive Sampling");
+  if (propertyName == QStringLiteral("wavefrontAdaptiveMinimumSamples"))
+    return QStringLiteral("Minimum Samples");
+  if (propertyName == QStringLiteral("wavefrontAdaptiveStddevThreshold"))
+    return QStringLiteral("Stddev Threshold");
   if (propertyName == QStringLiteral("wavefrontDenoiser"))
     return QStringLiteral("Denoiser");
   if (propertyName == QStringLiteral("wavefrontDenoiseRadius"))
@@ -183,6 +196,17 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
       "Fraction of primary samples allowed to remain active before convergence can stop.");
   if (propertyName == QStringLiteral("wavefrontConvergenceRmsDelta"))
     return QStringLiteral("Per-depth RMS radiance delta threshold for convergence.");
+  if (propertyName == QStringLiteral("wavefrontAdaptiveSampling"))
+    return QStringLiteral(
+      "Stops stable pixels after an initial sample batch and spends remaining samples only on "
+      "pixels whose per-pixel radiance standard deviation remains above the threshold.");
+  if (propertyName == QStringLiteral("wavefrontAdaptiveMinimumSamples"))
+    return QStringLiteral(
+      "Initial samples per pixel used before the adaptive standard-deviation test.");
+  if (propertyName == QStringLiteral("wavefrontAdaptiveStddevThreshold"))
+    return QStringLiteral(
+      "Per-pixel sample radiance standard-deviation threshold. Pixels above this value receive "
+      "the remaining configured samples.");
   if (propertyName == QStringLiteral("wavefrontDenoiser"))
     return QStringLiteral(
       "Optional HDR denoising pass for low-sample wavefront renders. Bilateral is a "
@@ -293,6 +317,8 @@ RenderIntentElement::propertyIntRange(const QString& propertyName) const {
     return QPair<int, int>(0, 16);
   if (propertyName == QStringLiteral("wavefrontDenoiseRadius"))
     return QPair<int, int>(0, 32);
+  if (propertyName == QStringLiteral("wavefrontAdaptiveMinimumSamples"))
+    return QPair<int, int>(1, 1024);
   return std::nullopt;
 }
 
@@ -305,6 +331,8 @@ RenderIntentElement::propertyDoubleRange(const QString& propertyName) const {
   if (propertyName == QStringLiteral("wavefrontConvergenceActiveFraction"))
     return QPair<double, double>(0.0, 1.0);
   if (propertyName == QStringLiteral("wavefrontConvergenceRmsDelta"))
+    return QPair<double, double>(0.0, 10.0);
+  if (propertyName == QStringLiteral("wavefrontAdaptiveStddevThreshold"))
     return QPair<double, double>(0.0, 10.0);
   if (propertyName == QStringLiteral("wavefrontDenoiseColorSigma"))
     return QPair<double, double>(0.001, 10.0);
@@ -408,6 +436,7 @@ bool RenderIntentElement::rebuildPropertyEditorAfterChange(const QString& proper
          propertyName == QStringLiteral("previewShadows") ||
          propertyName == QStringLiteral("wavefrontConvergence") ||
          propertyName == QStringLiteral("wavefrontConvergenceQuality") ||
+         propertyName == QStringLiteral("wavefrontAdaptiveSampling") ||
          propertyName == QStringLiteral("wavefrontDenoiser");
 }
 
@@ -653,6 +682,45 @@ double RenderIntentElement::wavefrontConvergenceRmsDelta() const {
 void RenderIntentElement::setWavefrontConvergenceRmsDelta(double threshold) {
   auto value = intent();
   value.engineOptions.raytracer().setConvergenceRadianceDeltaRmsThreshold(threshold);
+  setIntent(value);
+}
+
+bool RenderIntentElement::wavefrontAdaptiveSampling() const {
+  return intent().engineOptions.raytracer().adaptiveSamplingEnabled().value_or(false);
+}
+
+void RenderIntentElement::setWavefrontAdaptiveSampling(bool enabled) {
+  auto value = intent();
+  auto& raytracer = value.engineOptions.raytracer();
+  raytracer.setAdaptiveSamplingEnabled(enabled);
+  if (enabled) {
+    if (!raytracer.adaptiveMinimumSamples())
+      raytracer.setAdaptiveMinimumSamples(kWavefrontAdaptiveMinimumSamples);
+    if (!raytracer.adaptiveStddevThreshold())
+      raytracer.setAdaptiveStddevThreshold(kWavefrontAdaptiveStddevThreshold);
+  }
+  setIntent(value);
+}
+
+int RenderIntentElement::wavefrontAdaptiveMinimumSamples() const {
+  return intent().engineOptions.raytracer().adaptiveMinimumSamples().value_or(
+    kWavefrontAdaptiveMinimumSamples);
+}
+
+void RenderIntentElement::setWavefrontAdaptiveMinimumSamples(int samples) {
+  auto value = intent();
+  value.engineOptions.raytracer().setAdaptiveMinimumSamples(samples);
+  setIntent(value);
+}
+
+double RenderIntentElement::wavefrontAdaptiveStddevThreshold() const {
+  return intent().engineOptions.raytracer().adaptiveStddevThreshold().value_or(
+    kWavefrontAdaptiveStddevThreshold);
+}
+
+void RenderIntentElement::setWavefrontAdaptiveStddevThreshold(double threshold) {
+  auto value = intent();
+  value.engineOptions.raytracer().setAdaptiveStddevThreshold(threshold);
   setIntent(value);
 }
 

@@ -63,6 +63,9 @@ namespace engine::graph {
     void setConvergenceEnabled(bool enabled);
     void setConvergenceActiveSampleFractionThreshold(double fraction);
     void setConvergenceRadianceDeltaRmsThreshold(double threshold);
+    void setAdaptiveSamplingEnabled(bool enabled);
+    void setAdaptiveMinimumSamples(int samples);
+    void setAdaptiveStddevThreshold(double threshold);
     void setDenoiser(std::string denoiser);
     void setDenoiseRadius(int radius);
     void setDenoiseColorSigma(double sigma);
@@ -78,6 +81,9 @@ namespace engine::graph {
     std::optional<bool> convergenceEnabled() const;
     std::optional<double> convergenceActiveSampleFractionThreshold() const;
     std::optional<double> convergenceRadianceDeltaRmsThreshold() const;
+    std::optional<bool> adaptiveSamplingEnabled() const;
+    std::optional<int> adaptiveMinimumSamples() const;
+    std::optional<double> adaptiveStddevThreshold() const;
     std::optional<std::string> denoiser() const;
     std::optional<int> denoiseRadius() const;
     std::optional<double> denoiseColorSigma() const;
@@ -102,6 +108,9 @@ namespace engine::graph {
     std::optional<bool> m_convergenceEnabled;
     std::optional<double> m_convergenceActiveSampleFractionThreshold;
     std::optional<double> m_convergenceRadianceDeltaRmsThreshold;
+    std::optional<bool> m_adaptiveSamplingEnabled;
+    std::optional<int> m_adaptiveMinimumSamples;
+    std::optional<double> m_adaptiveStddevThreshold;
     std::optional<std::string> m_denoiser;
     std::optional<int> m_denoiseRadius;
     std::optional<double> m_denoiseColorSigma;

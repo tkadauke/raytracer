@@ -91,6 +91,9 @@ namespace RenderGraphCompilerTest {
     intent.engineOptions.raytracer().setIntegrator("pathtracer");
     intent.engineOptions.raytracer().setConvergenceEnabled(true);
     intent.engineOptions.raytracer().setConvergenceActiveSampleFractionThreshold(0.25);
+    intent.engineOptions.raytracer().setAdaptiveSamplingEnabled(true);
+    intent.engineOptions.raytracer().setAdaptiveMinimumSamples(3);
+    intent.engineOptions.raytracer().setAdaptiveStddevThreshold(0.05);
     intent.engineOptions.raytracer().setDenoiser("box");
     intent.engineOptions.raytracer().setDenoiseRadius(2);
 
@@ -110,6 +113,12 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(*state->convergenceEnabled());
     ASSERT_TRUE(state->convergenceActiveSampleFractionThreshold().has_value());
     EXPECT_DOUBLE_EQ(0.25, *state->convergenceActiveSampleFractionThreshold());
+    ASSERT_TRUE(state->adaptiveSamplingEnabled().has_value());
+    EXPECT_TRUE(*state->adaptiveSamplingEnabled());
+    ASSERT_TRUE(state->adaptiveMinimumSamples().has_value());
+    EXPECT_EQ(3, *state->adaptiveMinimumSamples());
+    ASSERT_TRUE(state->adaptiveStddevThreshold().has_value());
+    EXPECT_DOUBLE_EQ(0.05, *state->adaptiveStddevThreshold());
     ASSERT_TRUE(state->denoiser().has_value());
     EXPECT_EQ("box", *state->denoiser());
     ASSERT_TRUE(state->denoiseRadius().has_value());

@@ -42,6 +42,12 @@ class RenderIntentElement : public Element {
                setWavefrontConvergenceActiveFraction)
   Q_PROPERTY(double wavefrontConvergenceRmsDelta READ wavefrontConvergenceRmsDelta WRITE
                setWavefrontConvergenceRmsDelta)
+  Q_PROPERTY(bool wavefrontAdaptiveSampling READ wavefrontAdaptiveSampling WRITE
+               setWavefrontAdaptiveSampling)
+  Q_PROPERTY(int wavefrontAdaptiveMinimumSamples READ wavefrontAdaptiveMinimumSamples WRITE
+               setWavefrontAdaptiveMinimumSamples)
+  Q_PROPERTY(double wavefrontAdaptiveStddevThreshold READ wavefrontAdaptiveStddevThreshold WRITE
+               setWavefrontAdaptiveStddevThreshold)
   Q_PROPERTY(QString wavefrontDenoiser READ wavefrontDenoiser WRITE setWavefrontDenoiser)
   Q_PROPERTY(int wavefrontDenoiseRadius READ wavefrontDenoiseRadius WRITE setWavefrontDenoiseRadius)
   Q_PROPERTY(double wavefrontDenoiseColorSigma READ wavefrontDenoiseColorSigma WRITE
@@ -149,6 +155,15 @@ public:
 
   double wavefrontConvergenceRmsDelta() const;
   void setWavefrontConvergenceRmsDelta(double threshold);
+
+  bool wavefrontAdaptiveSampling() const;
+  void setWavefrontAdaptiveSampling(bool enabled);
+
+  int wavefrontAdaptiveMinimumSamples() const;
+  void setWavefrontAdaptiveMinimumSamples(int samples);
+
+  double wavefrontAdaptiveStddevThreshold() const;
+  void setWavefrontAdaptiveStddevThreshold(double threshold);
 
   QString wavefrontDenoiser() const;
   void setWavefrontDenoiser(const QString& denoiser);

@@ -21,6 +21,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   stable pixels after a minimum sample batch and spend the remaining samples on
   pixels whose per-pixel radiance standard deviation exceeds a threshold.
   — GPT-5
+- **Wavefront adaptive sampling controls.** Render intent, graph JSON,
+  rendercli, and Modeler Render Settings now expose wavefront adaptive sampling
+  enablement, minimum samples, and per-pixel standard-deviation threshold.
+  — GPT-5
 - Wavefront/pathtracer graph renders can export a `sample_stddev` AOV, and
   rendercli can write it through `--wavefront_sample_stddev_out` for
   path-tracing noise analysis. — GPT-5

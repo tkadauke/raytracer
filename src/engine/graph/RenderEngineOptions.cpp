@@ -303,8 +303,9 @@ namespace engine::graph {
     return !m_maximumRecursionDepth && !m_maximumThreads && !m_queueSize && !m_integrator &&
            !m_sampler && !m_samplesPerPixel && !m_samplingSeed && !m_viewPlane &&
            !m_convergenceEnabled && !m_convergenceActiveSampleFractionThreshold &&
-           !m_convergenceRadianceDeltaRmsThreshold && !m_denoiser && !m_denoiseRadius &&
-           !m_denoiseColorSigma;
+           !m_convergenceRadianceDeltaRmsThreshold && !m_adaptiveSamplingEnabled &&
+           !m_adaptiveMinimumSamples && !m_adaptiveStddevThreshold && !m_denoiser &&
+           !m_denoiseRadius && !m_denoiseColorSigma;
   }
 
   QJsonObject RenderRaytracerOptions::toJson() const {
@@ -340,6 +341,12 @@ namespace engine::graph {
     if (state.convergenceRadianceDeltaRmsThreshold())
       options.setConvergenceRadianceDeltaRmsThreshold(
         *state.convergenceRadianceDeltaRmsThreshold());
+    if (state.adaptiveSamplingEnabled())
+      options.setAdaptiveSamplingEnabled(*state.adaptiveSamplingEnabled());
+    if (state.adaptiveMinimumSamples())
+      options.setAdaptiveMinimumSamples(*state.adaptiveMinimumSamples());
+    if (state.adaptiveStddevThreshold())
+      options.setAdaptiveStddevThreshold(*state.adaptiveStddevThreshold());
     if (state.denoiser())
       options.setDenoiser(*state.denoiser());
     if (state.denoiseRadius())
@@ -370,6 +377,12 @@ namespace engine::graph {
     result.m_convergenceRadianceDeltaRmsThreshold =
       overrideOptional(result.m_convergenceRadianceDeltaRmsThreshold,
                        overrides.m_convergenceRadianceDeltaRmsThreshold);
+    result.m_adaptiveSamplingEnabled =
+      overrideOptional(result.m_adaptiveSamplingEnabled, overrides.m_adaptiveSamplingEnabled);
+    result.m_adaptiveMinimumSamples =
+      overrideOptional(result.m_adaptiveMinimumSamples, overrides.m_adaptiveMinimumSamples);
+    result.m_adaptiveStddevThreshold =
+      overrideOptional(result.m_adaptiveStddevThreshold, overrides.m_adaptiveStddevThreshold);
     result.m_denoiser = overrideOptional(result.m_denoiser, overrides.m_denoiser);
     result.m_denoiseRadius = overrideOptional(result.m_denoiseRadius, overrides.m_denoiseRadius);
     result.m_denoiseColorSigma =
@@ -402,6 +415,12 @@ namespace engine::graph {
         *m_convergenceActiveSampleFractionThreshold);
     if (m_convergenceRadianceDeltaRmsThreshold)
       state.setConvergenceRadianceDeltaRmsThreshold(*m_convergenceRadianceDeltaRmsThreshold);
+    if (m_adaptiveSamplingEnabled)
+      state.setAdaptiveSamplingEnabled(*m_adaptiveSamplingEnabled);
+    if (m_adaptiveMinimumSamples)
+      state.setAdaptiveMinimumSamples(*m_adaptiveMinimumSamples);
+    if (m_adaptiveStddevThreshold)
+      state.setAdaptiveStddevThreshold(*m_adaptiveStddevThreshold);
     if (m_denoiser)
       state.setDenoiser(*m_denoiser);
     if (m_denoiseRadius)
@@ -457,6 +476,18 @@ namespace engine::graph {
 
   void RenderRaytracerOptions::setConvergenceRadianceDeltaRmsThreshold(double threshold) {
     m_convergenceRadianceDeltaRmsThreshold = std::max(0.0, threshold);
+  }
+
+  void RenderRaytracerOptions::setAdaptiveSamplingEnabled(bool enabled) {
+    m_adaptiveSamplingEnabled = enabled;
+  }
+
+  void RenderRaytracerOptions::setAdaptiveMinimumSamples(int samples) {
+    m_adaptiveMinimumSamples = std::max(1, samples);
+  }
+
+  void RenderRaytracerOptions::setAdaptiveStddevThreshold(double threshold) {
+    m_adaptiveStddevThreshold = std::max(0.0, threshold);
   }
 
   void RenderRaytracerOptions::setDenoiser(std::string denoiser) {
@@ -515,6 +546,18 @@ namespace engine::graph {
 
   std::optional<double> RenderRaytracerOptions::convergenceRadianceDeltaRmsThreshold() const {
     return m_convergenceRadianceDeltaRmsThreshold;
+  }
+
+  std::optional<bool> RenderRaytracerOptions::adaptiveSamplingEnabled() const {
+    return m_adaptiveSamplingEnabled;
+  }
+
+  std::optional<int> RenderRaytracerOptions::adaptiveMinimumSamples() const {
+    return m_adaptiveMinimumSamples;
+  }
+
+  std::optional<double> RenderRaytracerOptions::adaptiveStddevThreshold() const {
+    return m_adaptiveStddevThreshold;
   }
 
   std::optional<std::string> RenderRaytracerOptions::denoiser() const {

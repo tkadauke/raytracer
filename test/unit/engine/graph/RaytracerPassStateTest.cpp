@@ -31,6 +31,9 @@ namespace RaytracerPassStateTest {
     state.setConvergenceEnabled(true);
     state.setConvergenceActiveSampleFractionThreshold(0.125);
     state.setConvergenceRadianceDeltaRmsThreshold(0.0025);
+    state.setAdaptiveSamplingEnabled(true);
+    state.setAdaptiveMinimumSamples(4);
+    state.setAdaptiveStddevThreshold(0.05);
     state.setDenoiser("bilateral");
     state.setDenoiseRadius(3);
     state.setDenoiseColorSigma(0.2);
@@ -54,6 +57,10 @@ namespace RaytracerPassStateTest {
       json.value("convergence").toObject().value("activeSampleFractionThreshold").toDouble());
     EXPECT_DOUBLE_EQ(
       0.0025, json.value("convergence").toObject().value("radianceDeltaRmsThreshold").toDouble());
+    EXPECT_TRUE(json.value("adaptiveSampling").toObject().value("enabled").toBool());
+    EXPECT_EQ(4, json.value("adaptiveSampling").toObject().value("minimumSamples").toInt());
+    EXPECT_DOUBLE_EQ(0.05,
+                     json.value("adaptiveSampling").toObject().value("stddevThreshold").toDouble());
     EXPECT_EQ("bilateral", json.value("denoise").toObject().value("type").toString().toStdString());
     EXPECT_EQ(3, json.value("denoise").toObject().value("radius").toInt());
     EXPECT_DOUBLE_EQ(0.2, json.value("denoise").toObject().value("colorSigma").toDouble());
@@ -70,6 +77,9 @@ namespace RaytracerPassStateTest {
     ASSERT_TRUE(decoded.convergenceEnabled().has_value());
     ASSERT_TRUE(decoded.convergenceActiveSampleFractionThreshold().has_value());
     ASSERT_TRUE(decoded.convergenceRadianceDeltaRmsThreshold().has_value());
+    ASSERT_TRUE(decoded.adaptiveSamplingEnabled().has_value());
+    ASSERT_TRUE(decoded.adaptiveMinimumSamples().has_value());
+    ASSERT_TRUE(decoded.adaptiveStddevThreshold().has_value());
     ASSERT_TRUE(decoded.denoiser().has_value());
     ASSERT_TRUE(decoded.denoiseRadius().has_value());
     ASSERT_TRUE(decoded.denoiseColorSigma().has_value());
@@ -84,6 +94,9 @@ namespace RaytracerPassStateTest {
     EXPECT_TRUE(*decoded.convergenceEnabled());
     EXPECT_DOUBLE_EQ(0.125, *decoded.convergenceActiveSampleFractionThreshold());
     EXPECT_DOUBLE_EQ(0.0025, *decoded.convergenceRadianceDeltaRmsThreshold());
+    EXPECT_TRUE(*decoded.adaptiveSamplingEnabled());
+    EXPECT_EQ(4, *decoded.adaptiveMinimumSamples());
+    EXPECT_DOUBLE_EQ(0.05, *decoded.adaptiveStddevThreshold());
     EXPECT_EQ("bilateral", *decoded.denoiser());
     EXPECT_EQ(3, *decoded.denoiseRadius());
     EXPECT_DOUBLE_EQ(0.2, *decoded.denoiseColorSigma());
@@ -174,6 +187,21 @@ namespace RaytracerPassStateTest {
     state.applyTo(wavefront);
 
     EXPECT_EQ(nullptr, wavefront.denoiser());
+  }
+
+  TEST(RaytracerBeautyPassState, AppliesAdaptiveSamplingToWavefront) {
+    RaytracerBeautyPassState state;
+    state.setAdaptiveSamplingEnabled(true);
+    state.setAdaptiveMinimumSamples(3);
+    state.setAdaptiveStddevThreshold(0.125);
+
+    engine::wavefront::WavefrontRaytracer wavefront{std::shared_ptr<render::Scene>()};
+
+    state.applyTo(wavefront);
+
+    EXPECT_TRUE(wavefront.adaptiveSamplingEnabled());
+    EXPECT_EQ(3, wavefront.adaptiveMinimumSamples());
+    EXPECT_DOUBLE_EQ(0.125, wavefront.adaptiveStddevThreshold());
   }
 
   TEST(RaytracerBeautyPassState, AppliesSamplingSeedToRayFamilyEngines) {

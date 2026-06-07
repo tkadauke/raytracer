@@ -50,6 +50,9 @@ namespace RenderIntentElementTest {
     intent->setWavefrontConvergence(true);
     intent->setWavefrontConvergenceActiveFraction(0.25);
     intent->setWavefrontConvergenceRmsDelta(0.005);
+    intent->setWavefrontAdaptiveSampling(true);
+    intent->setWavefrontAdaptiveMinimumSamples(3);
+    intent->setWavefrontAdaptiveStddevThreshold(0.05);
     intent->setWavefrontDenoiser("bilateral");
     intent->setWavefrontDenoiseRadius(3);
     intent->setWavefrontDenoiseColorSigma(0.2);
@@ -102,6 +105,16 @@ namespace RenderIntentElementTest {
     EXPECT_DOUBLE_EQ(
       0.005,
       *scene.renderIntent().engineOptions.raytracer().convergenceRadianceDeltaRmsThreshold());
+    ASSERT_TRUE(
+      scene.renderIntent().engineOptions.raytracer().adaptiveSamplingEnabled().has_value());
+    EXPECT_TRUE(*scene.renderIntent().engineOptions.raytracer().adaptiveSamplingEnabled());
+    ASSERT_TRUE(
+      scene.renderIntent().engineOptions.raytracer().adaptiveMinimumSamples().has_value());
+    EXPECT_EQ(3, *scene.renderIntent().engineOptions.raytracer().adaptiveMinimumSamples());
+    ASSERT_TRUE(
+      scene.renderIntent().engineOptions.raytracer().adaptiveStddevThreshold().has_value());
+    EXPECT_DOUBLE_EQ(0.05,
+                     *scene.renderIntent().engineOptions.raytracer().adaptiveStddevThreshold());
     ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().denoiser().has_value());
     EXPECT_EQ("bilateral", *scene.renderIntent().engineOptions.raytracer().denoiser());
     ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().denoiseRadius().has_value());
@@ -167,6 +180,12 @@ namespace RenderIntentElementTest {
     EXPECT_EQ(QString("Convergence Stop"), intent->propertyDisplayName("wavefrontConvergence"));
     EXPECT_EQ(QString("Convergence Quality"),
               intent->propertyDisplayName("wavefrontConvergenceQuality"));
+    EXPECT_EQ(QString("Adaptive Sampling"),
+              intent->propertyDisplayName("wavefrontAdaptiveSampling"));
+    EXPECT_EQ(QString("Minimum Samples"),
+              intent->propertyDisplayName("wavefrontAdaptiveMinimumSamples"));
+    EXPECT_EQ(QString("Stddev Threshold"),
+              intent->propertyDisplayName("wavefrontAdaptiveStddevThreshold"));
     EXPECT_EQ(QString("Denoiser"), intent->propertyDisplayName("wavefrontDenoiser"));
     EXPECT_EQ(QString("Path Tracer"),
               intent->propertyChoiceDisplayName("raytracerIntegrator", "pathtracer"));
@@ -205,6 +224,10 @@ namespace RenderIntentElementTest {
                      intent->propertyDoubleRange("wavefrontConvergenceActiveFraction")->second);
     ASSERT_TRUE(intent->propertyDoubleRange("wavefrontConvergenceRmsDelta").has_value());
     EXPECT_DOUBLE_EQ(0.0, intent->propertyDoubleRange("wavefrontConvergenceRmsDelta")->first);
+    ASSERT_TRUE(intent->propertyIntRange("wavefrontAdaptiveMinimumSamples").has_value());
+    EXPECT_EQ(1, intent->propertyIntRange("wavefrontAdaptiveMinimumSamples")->first);
+    ASSERT_TRUE(intent->propertyDoubleRange("wavefrontAdaptiveStddevThreshold").has_value());
+    EXPECT_DOUBLE_EQ(0.0, intent->propertyDoubleRange("wavefrontAdaptiveStddevThreshold")->first);
     ASSERT_TRUE(intent->propertyIntRange("wavefrontDenoiseRadius").has_value());
     EXPECT_EQ(0, intent->propertyIntRange("wavefrontDenoiseRadius")->first);
     ASSERT_TRUE(intent->propertyDoubleRange("wavefrontDenoiseColorSigma").has_value());
@@ -222,6 +245,7 @@ namespace RenderIntentElementTest {
     EXPECT_FALSE(intent->isPropertyVisible("raytracerThreads"));
     EXPECT_FALSE(intent->isPropertyVisible("raytracerQueueSize"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontConvergence"));
+    EXPECT_FALSE(intent->isPropertyVisible("wavefrontAdaptiveSampling"));
     EXPECT_FALSE(intent->isPropertyVisible("rasterizerLod"));
 
     intent->setDefaultEngine("rasterizer");
@@ -237,6 +261,9 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
     EXPECT_TRUE(intent->isPropertyVisible("raytracerIntegrator"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergence"));
+    EXPECT_TRUE(intent->isPropertyVisible("wavefrontAdaptiveSampling"));
+    EXPECT_FALSE(intent->isPropertyVisible("wavefrontAdaptiveMinimumSamples"));
+    EXPECT_FALSE(intent->isPropertyVisible("wavefrontAdaptiveStddevThreshold"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontDenoiser"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontDenoiseRadius"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontDenoiseColorSigma"));
@@ -249,6 +276,9 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergence"));
     EXPECT_EQ(QString("Path Tracer"), intent->propertyGroup("raytracerSampler"));
     EXPECT_FALSE(intent->isPropertyVisible("rasterizerLod"));
+    intent->setWavefrontAdaptiveSampling(true);
+    EXPECT_TRUE(intent->isPropertyVisible("wavefrontAdaptiveMinimumSamples"));
+    EXPECT_TRUE(intent->isPropertyVisible("wavefrontAdaptiveStddevThreshold"));
     intent->setWavefrontDenoiser("box");
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontDenoiseRadius"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontDenoiseColorSigma"));

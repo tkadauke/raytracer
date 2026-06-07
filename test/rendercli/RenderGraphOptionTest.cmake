@@ -129,6 +129,7 @@ set(wavefront_pathtracer_plan "${TEST_OUTPUT_DIR}/wavefront-pathtracer-graph.jso
 set(wavefront_convergence_plan "${TEST_OUTPUT_DIR}/wavefront-convergence-graph.json")
 set(wavefront_default_convergence_plan
     "${TEST_OUTPUT_DIR}/wavefront-default-convergence-graph.json")
+set(wavefront_adaptive_plan "${TEST_OUTPUT_DIR}/wavefront-adaptive-graph.json")
 set(wavefront_scene_viewplane_plan
     "${TEST_OUTPUT_DIR}/wavefront-scene-viewplane-graph.json")
 set(wavefront_scene_queue_plan "${TEST_OUTPUT_DIR}/wavefront-scene-queue-graph.json")
@@ -2254,6 +2255,34 @@ if(NOT wavefront_convergence_graph
 endif()
 
 rendercli_run(
+  NAME "rendercli exports wavefront adaptive sampling state in render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --engine wavefront --integrator pathtracer --wavefront_adaptive_sampling
+    --wavefront_adaptive_min_samples 3 --wavefront_adaptive_stddev_threshold 0.05
+    --width 32 --height 16 "${static_scene}" "${wavefront_adaptive_plan}"
+)
+rendercli_assert_nonempty("${wavefront_adaptive_plan}"
+                          NAME "wavefront adaptive sampling graph output")
+file(READ "${wavefront_adaptive_plan}" wavefront_adaptive_graph)
+if(NOT wavefront_adaptive_graph MATCHES "\"adaptiveSampling\"")
+  message(FATAL_ERROR
+          "wavefront adaptive graph did not contain adaptive state: ${wavefront_adaptive_graph}")
+endif()
+if(NOT wavefront_adaptive_graph MATCHES "\"enabled\"[ \r\n]*:[ \r\n]*true")
+  message(FATAL_ERROR
+          "wavefront adaptive graph did not enable adaptive sampling: ${wavefront_adaptive_graph}")
+endif()
+if(NOT wavefront_adaptive_graph MATCHES "\"minimumSamples\"[ \r\n]*:[ \r\n]*3")
+  message(FATAL_ERROR
+          "wavefront adaptive graph did not contain minimum samples: ${wavefront_adaptive_graph}")
+endif()
+if(NOT wavefront_adaptive_graph MATCHES "\"stddevThreshold\"[ \r\n]*:[ \r\n]*0\\.05")
+  message(FATAL_ERROR
+          "wavefront adaptive graph did not contain stddev threshold: ${wavefront_adaptive_graph}")
+endif()
+
+rendercli_run(
   NAME "rendercli exports wavefront default convergence thresholds"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format json
@@ -2525,6 +2554,30 @@ rendercli_expect_failure(
   STDERR_MATCHES "Wavefront convergence RMS delta must be"
   COMMAND
     "${RENDERCLI}" --engine wavefront --wavefront_convergence_rms_delta -0.1
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects conflicting wavefront adaptive sampling switches"
+  STDERR_MATCHES "Cannot combine --wavefront_adaptive_sampling"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --wavefront_adaptive_sampling
+    --wavefront_no_adaptive_sampling "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid wavefront adaptive minimum samples"
+  STDERR_MATCHES "Wavefront adaptive minimum samples must be"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --wavefront_adaptive_min_samples 0
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid wavefront adaptive stddev threshold"
+  STDERR_MATCHES "Wavefront adaptive standard-deviation threshold must be"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --wavefront_adaptive_stddev_threshold -0.1
     "${static_scene}" "${invalid_plan}"
 )
 

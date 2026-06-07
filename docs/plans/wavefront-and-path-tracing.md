@@ -902,9 +902,10 @@ runs keep the same convenience flag for focused engine debugging.
 `WavefrontRaytracer` now also has the first adaptive sampling core: it renders
 an initial per-pixel batch, measures each pixel's sample radiance standard
 deviation, and spends the remaining samples only on pixels above the configured
-threshold. That is still an engine API surface; render intent, rendercli,
-Modeler Render Settings, graph JSON, and trace metadata wiring are the next
-integration slice.
+threshold. Render intent, rendercli, Modeler Render Settings, and graph JSON
+now expose that policy as `adaptiveSampling: {enabled, minimumSamples,
+stddevThreshold}` on ray-family pass state. Trace metadata and richer
+adaptive-specific diagnostic AOVs remain the next integration slice.
 
 Start with pure single-continuation path tracing (Option **B**) unless a
 measured scene proves deterministic specular split (Option **C**) is needed for
@@ -1312,9 +1313,9 @@ than prerequisites for the engine surface.
    prove the scheduler is memory-layout bound.
 5. ~~**Samples-per-pixel control.**~~ **Resolved for v1**: global
    samples-per-pixel already exists in rendercli and render intent.
-   Wavefront consumes the same setting. Per-pixel adaptive sampling has
-   an engine-core implementation; graph/intent/UI exposure remains the
-   follow-up integration work.
+   Wavefront consumes the same setting. Per-pixel adaptive sampling now has
+   engine-core, graph/intent, rendercli, and Modeler exposure; trace metadata
+   and sample-count/mask diagnostics remain follow-up work.
 6. ~~**CLI / UI surface.**~~ **Resolved for v1**: render intent /
    render graph are the primary surface; direct `--engine wavefront`
    remains useful as a debug bypass. rendercli, Modeler preview overrides,

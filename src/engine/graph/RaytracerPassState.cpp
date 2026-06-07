@@ -115,8 +115,9 @@ namespace engine::graph {
 
   RaytracerBeautyPassState RaytracerBeautyPassState::fromJson(const QJsonObject& object,
                                                               const std::string& path) {
-    rejectUnknownFields(object, path,
-                        {"execution", "sampling", "viewPlane", "convergence", "denoise"});
+    rejectUnknownFields(
+      object, path,
+      {"execution", "sampling", "viewPlane", "convergence", "adaptiveSampling", "denoise"});
 
     RaytracerBeautyPassState state;
     const QJsonObject execution = objectField(object, "execution", path);
@@ -157,6 +158,20 @@ namespace engine::graph {
     if (hasField(convergence, "radianceDeltaRmsThreshold")) {
       state.setConvergenceRadianceDeltaRmsThreshold(
         doubleField(convergence, "radianceDeltaRmsThreshold", path + ".convergence"));
+    }
+
+    const QJsonObject adaptiveSampling = objectField(object, "adaptiveSampling", path);
+    rejectUnknownFields(adaptiveSampling, path + ".adaptiveSampling",
+                        {"enabled", "minimumSamples", "stddevThreshold"});
+    if (hasField(adaptiveSampling, "enabled"))
+      state.setAdaptiveSamplingEnabled(
+        boolField(adaptiveSampling, "enabled", path + ".adaptiveSampling"));
+    if (hasField(adaptiveSampling, "minimumSamples"))
+      state.setAdaptiveMinimumSamples(
+        intField(adaptiveSampling, "minimumSamples", path + ".adaptiveSampling"));
+    if (hasField(adaptiveSampling, "stddevThreshold")) {
+      state.setAdaptiveStddevThreshold(
+        doubleField(adaptiveSampling, "stddevThreshold", path + ".adaptiveSampling"));
     }
 
     const QJsonObject denoise = objectField(object, "denoise", path);
@@ -229,6 +244,16 @@ namespace engine::graph {
     if (!convergence.isEmpty())
       object["convergence"] = convergence;
 
+    QJsonObject adaptiveSampling;
+    if (m_adaptiveSamplingEnabled)
+      adaptiveSampling["enabled"] = *m_adaptiveSamplingEnabled;
+    if (m_adaptiveMinimumSamples)
+      adaptiveSampling["minimumSamples"] = *m_adaptiveMinimumSamples;
+    if (m_adaptiveStddevThreshold)
+      adaptiveSampling["stddevThreshold"] = *m_adaptiveStddevThreshold;
+    if (!adaptiveSampling.isEmpty())
+      object["adaptiveSampling"] = adaptiveSampling;
+
     QJsonObject denoise;
     if (m_denoiser) {
       denoise["type"] = qstr(*m_denoiser);
@@ -289,6 +314,12 @@ namespace engine::graph {
     }
     if (m_convergenceRadianceDeltaRmsThreshold)
       wavefront.setConvergenceRadianceDeltaRmsThreshold(*m_convergenceRadianceDeltaRmsThreshold);
+    if (m_adaptiveSamplingEnabled)
+      wavefront.setAdaptiveSamplingEnabled(*m_adaptiveSamplingEnabled);
+    if (m_adaptiveMinimumSamples)
+      wavefront.setAdaptiveMinimumSamples(*m_adaptiveMinimumSamples);
+    if (m_adaptiveStddevThreshold)
+      wavefront.setAdaptiveStddevThreshold(*m_adaptiveStddevThreshold);
     if (m_denoiser && *m_denoiser == "none") {
       wavefront.clearDenoiser();
     } else if (auto denoiser = createDenoiserForPass()) {
@@ -363,6 +394,18 @@ namespace engine::graph {
     m_convergenceRadianceDeltaRmsThreshold = std::max(0.0, threshold);
   }
 
+  void RaytracerBeautyPassState::setAdaptiveSamplingEnabled(bool enabled) {
+    m_adaptiveSamplingEnabled = enabled;
+  }
+
+  void RaytracerBeautyPassState::setAdaptiveMinimumSamples(int samples) {
+    m_adaptiveMinimumSamples = std::max(1, samples);
+  }
+
+  void RaytracerBeautyPassState::setAdaptiveStddevThreshold(double threshold) {
+    m_adaptiveStddevThreshold = std::max(0.0, threshold);
+  }
+
   void RaytracerBeautyPassState::setDenoiser(std::string denoiser) {
     m_denoiser = normalizedDenoiserName(std::move(denoiser), "parameters.denoise.type");
   }
@@ -417,6 +460,18 @@ namespace engine::graph {
 
   std::optional<double> RaytracerBeautyPassState::convergenceRadianceDeltaRmsThreshold() const {
     return m_convergenceRadianceDeltaRmsThreshold;
+  }
+
+  std::optional<bool> RaytracerBeautyPassState::adaptiveSamplingEnabled() const {
+    return m_adaptiveSamplingEnabled;
+  }
+
+  std::optional<int> RaytracerBeautyPassState::adaptiveMinimumSamples() const {
+    return m_adaptiveMinimumSamples;
+  }
+
+  std::optional<double> RaytracerBeautyPassState::adaptiveStddevThreshold() const {
+    return m_adaptiveStddevThreshold;
   }
 
   std::optional<std::string> RaytracerBeautyPassState::denoiser() const {
