@@ -56,6 +56,7 @@ your head before starting it.
 - [Materials and BRDFs](ray-rendering/materials-and-brdfs.md)
 - [Lights and shading](ray-rendering/lights-and-shading.md)
 - [Sampling and anti-aliasing](ray-rendering/sampling-and-anti-aliasing.md)
+- [Wavefront and path tracing](ray-rendering/wavefront-and-path-tracing.md)
 - [Textures](ray-rendering/textures.md)
 - [Tone mapping](ray-rendering/tone-mapping.md)
 
@@ -143,7 +144,7 @@ works if you have time and want the full picture.
 ### "I just want to understand the raytracer"
 
 Foundations, then Ray rendering in full, then Scene structure. Skip
-rasterization and CV.
+rasterization and CV unless you specifically need the raster engines.
 
 ### "I just want to understand the rasterizer"
 

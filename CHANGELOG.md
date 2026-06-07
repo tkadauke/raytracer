@@ -17,6 +17,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Direct wavefront/pathtracer rendercli runs can export a grayscale per-pixel
   sample radiance standard-deviation diagnostic image for path-tracing noise
   analysis. — GPT-5
+- **Wavefront/path tracing textbook chapter.** Added rendered Whitted/scalar
+  path-tracer/wavefront path-tracer comparison images plus an interactive
+  scheduling widget that explains path-state frontiers. — GPT-5
 - **Wavefront adaptive sampling core.** `WavefrontRaytracer` can now stop
   stable pixels after a minimum sample batch and spend the remaining samples on
   pixels whose per-pixel radiance standard deviation exceeds a threshold.
@@ -754,6 +757,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Interactive widget arrow rerenders.** Shared SVG figure widgets now rebuild
+  arrowhead marker definitions after a rerender, so arrows stay visible after
+  changing segmented controls or sliders. — GPT-5
 - **Path tracer glass fireflies.** Exact split delta branches for perfect
   reflection/refraction/portal continuations now use deterministic throughput
   cutoff instead of Russian-roulette survival weighting, removing rare

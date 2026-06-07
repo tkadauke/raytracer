@@ -458,6 +458,11 @@ class DirectionalLight < Light
   property :direction => [0, 0, 1]
 end
 
+class RectangularAreaLight < Light
+  property :width => 2,
+           :height => 2
+end
+
 class Camera < Element
   property :position => [0, 0, -5],
            :target => [0, 0, 0]

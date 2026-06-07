@@ -418,7 +418,7 @@ the three samplers above are sufficient.
 
 - Volume index: [Ray rendering](README.md)
 - Previous: [Lights and shading](lights-and-shading.md)
-- Next: [Textures](textures.md)
+- Next: [Wavefront and path tracing](wavefront-and-path-tracing.md)
 - Stream-API consumer:
   [Thin-lens: depth of field](cameras.md#thin-lens-depth-of-field)
 - Set-API consumer:

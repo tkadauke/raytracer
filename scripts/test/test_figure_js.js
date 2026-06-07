@@ -807,6 +807,24 @@ test('Farthest-point widgets use explicit angle sliders', () => {
   });
 });
 
+test('Wavefront path tracing widget exposes schedule and bounce controls', () => {
+  const body = loadWidget('wavefront_path_tracing.js');
+  let text = textContents(body).join(' ');
+
+  assert.equal(countElements(body, 'button'), 7,
+    'widget should expose schedule mode and bounce-depth segmented controls');
+  assert.ok(text.includes('wavefront'), 'widget should expose the wavefront schedule mode');
+  assert.ok(text.includes('depth 0'), 'default wavefront view should label depth frontiers');
+  assert.ok(text.includes('intersect'), 'default wavefront view should show intersection batches');
+  assert.ok(text.includes('shade'), 'default wavefront view should show shading batches');
+
+  elementsByTag(body, 'button')
+    .find(button => button.textContent === 'scalar path tracer')
+    .click();
+  text = textContents(body).join(' ');
+  assert.ok(text.includes('sample light'), 'scalar view legend should spell out light sampling');
+});
+
 test('Angle widgets use the shared scalar angle slider', () => {
   [
     'angle_from_clock.js',
@@ -1410,7 +1428,7 @@ test('Slider: defaults step to 1/100th of range', () => {
 // --- Figure v2 primitives --------------------------------------------------
 
 test('FigureSvg: creates scoped SVGs and can clear children', () => {
-  const { FigureSvg } = loadFigure();
+  const { FigureSvg, Vector } = loadFigure();
   const canvas = new FigureSvg({ width: 100, height: 50 });
   assert.equal(canvas.element.tagName, 'svg');
   assert.equal(canvas.element.getAttribute('class'), 'figure-widget-svg');
@@ -1419,6 +1437,13 @@ test('FigureSvg: creates scoped SVGs and can clear children', () => {
   assert.equal(canvas.element.children.length, 2);
   canvas.clear();
   assert.equal(canvas.element.children.length, 0);
+
+  canvas.arrow(new Vector(0, 0), new Vector(10, 0), { markerId: 'rerender-arrow' });
+  assert.equal(elementsByTag(canvas.element, 'marker').length, 1);
+  canvas.clear();
+  canvas.arrow(new Vector(0, 0), new Vector(10, 0), { markerId: 'rerender-arrow' });
+  assert.equal(elementsByTag(canvas.element, 'marker').length, 1,
+    'clear should let an arrow marker be recreated on rerender');
 });
 
 test('FigureSvg: convenience helpers emit text, lines, arrows, rays, and panels', () => {

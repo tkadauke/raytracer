@@ -67,11 +67,11 @@
 | `include/engine/graph/RenderExecutionContext.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderGraphCompiler.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderGraphExecutionObserver.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
-| `include/engine/graph/RenderGraphExecutionTrace.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `include/engine/graph/RenderGraphExecutionTrace.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderGraphRequest.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `include/engine/graph/RenderGraphTypes.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderPassPayload.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
-| `include/engine/graph/RenderPassState.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `include/engine/graph/RenderPassState.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderPlan.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderResource.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderResourceStorage.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
@@ -82,14 +82,17 @@
 | `include/engine/raster/detail/RasterPass.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md) |
 | `include/engine/raster/detail/RasterTriangleEmitter.h` | [Tessellation](../rasterization/tessellation.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/engine/raytracer/Raytracer.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
+| `include/engine/wavefront/WavefrontRaytracer.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/engine/wireframe/Wireframe.h` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `include/render/HomogeneousClipVolume.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
-| `include/render/Integrator.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
+| `include/render/Integrator.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md)<br>[Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/MIS.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
+| `include/render/PathTermination.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `include/render/PathTracingIntegrator.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/RayCaster.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/RenderEngine.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/SamplingSeed.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
-| `include/render/State.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
+| `include/render/State.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md)<br>[Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/TilePlan.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/render/WhittedIntegrator.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/brdf/BRDF.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
@@ -113,11 +116,11 @@
 | `include/render/denoise/Denoiser.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/render/lights/DirectionalLight.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/lights/Light.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
-| `include/render/lights/LightSampler.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
+| `include/render/lights/LightSampler.h` | [Lights and shading](../ray-rendering/lights-and-shading.md)<br>[Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/lights/PointLight.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/lights/RectangularAreaLight.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/materials/EmissiveMaterial.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
-| `include/render/materials/Material.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `include/render/materials/Material.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md)<br>[Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/render/materials/MatteMaterial.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `include/render/materials/PhongMaterial.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `include/render/materials/PortalMaterial.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
@@ -154,7 +157,7 @@
 | `include/render/samplers/JitteredSampler.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `include/render/samplers/RandomSampler.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `include/render/samplers/RegularSampler.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
-| `include/render/samplers/SampleStream.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
+| `include/render/samplers/SampleStream.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md)<br>[Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/samplers/Sampler.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `include/render/samplers/SamplerFactory.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `include/render/textures/CheckerBoardTexture.h` | [Textures](../ray-rendering/textures.md) |
@@ -204,8 +207,8 @@
 | `scenes/animation_frame_demo.json` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `scenes/render_graph_aov_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scenes/render_graph_stencil_composite_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
-| `scenes/wavefront_denoise_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
-| `scenes/wavefront_indirect_bounce_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `scenes/wavefront_denoise_demo.json` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `scenes/wavefront_indirect_bounce_demo.json` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scenes/wavefront_indirect_environment_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/core/formats/AssetResolver.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/gcode/GCodeParser.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
@@ -239,16 +242,20 @@
 | `src/engine/graph/WireframePassState.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/raster/Rasterizer.cpp` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[MSAA and attribute interpolation](../rasterization/msaa-and-attribute-interpolation.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `src/engine/raytracer/Raytracer.cpp` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
+| `src/engine/wavefront/WavefrontRaytracer.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `src/engine/wavefront/WavefrontTileRenderer.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/engine/wireframe/Wireframe.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `src/modeler/` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/modeler/MainWindow.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[LDraw import](../tools-and-io/ldraw-import.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
+| `src/render/Integrator.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `src/render/PathTracingIntegrator.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/WhittedIntegrator.cpp` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `src/render/denoise/BilateralDenoiser.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/render/denoise/BoxDenoiser.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/render/materials/MatteMaterial.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/render/materials/PhongMaterial.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `src/render/primitives/Scene.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
-| `src/widgets/world/RenderGraphInspectorWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
+| `src/widgets/world/RenderGraphInspectorWidget.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/widgets/world/RenderGraphTracePreviewWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/world/animation/AnimationTrack.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `src/world/animation/Timeline.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
@@ -293,7 +300,7 @@
 | `test/helpers/Silhouette.h` | [Blob analysis and silhouettes](../image-and-vision/blob-analysis-and-silhouettes.md)<br>[Image buffers and pixel formats](../image-and-vision/image-buffers-and-pixel-formats.md)<br>[Shape classification](../image-and-vision/shape-classification.md) |
 | `test/rendercli/FrameOptionTest.cmake` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/rendercli/ImportOptionTest.cmake` | [Additive manufacturing import](../tools-and-io/additive-manufacturing-import.md)<br>[glTF import](../tools-and-io/gltf-import.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[Molecule import](../tools-and-io/molecule-import.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
-| `test/rendercli/RaytracerOptionTest.cmake` | [LDraw import](../tools-and-io/ldraw-import.md) |
+| `test/rendercli/RaytracerOptionTest.cmake` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md)<br>[LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/rendercli/RenderGraphOptionTest.cmake` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `test/rendercli/StepOptionTest.cmake` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `test/unit/core/animation/AnimationTrackTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
@@ -314,7 +321,11 @@
 | `test/unit/engine/graph/RenderPlanTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/engine/graph/RenderResourceStorageTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/engine/graph/WireframePassStateTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `test/unit/engine/wavefront/WavefrontRaytracerTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/MISTest.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
+| `test/unit/render/PathTerminationTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `test/unit/render/PathTracingIntegratorTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `test/unit/render/StateTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/WireframeTest.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `test/unit/render/brdf/GlossySpecularTest.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `test/unit/render/brdf/LambertianTest.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
@@ -346,7 +357,7 @@
 | `test/unit/world/objects/LDrawSceneImporterTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/world/objects/SceneTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `tools/rendercli/` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
-| `tools/rendercli/rendercli.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `tools/rendercli/rendercli.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
 
 ## See also
 

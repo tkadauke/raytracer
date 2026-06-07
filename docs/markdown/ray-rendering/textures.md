@@ -227,7 +227,7 @@ surfaces.
 ## See also
 
 - Volume index: [Ray rendering](README.md)
-- Previous: [Sampling and anti-aliasing](sampling-and-anti-aliasing.md)
+- Previous: [Wavefront and path tracing](wavefront-and-path-tracing.md)
 - Next: [Tone mapping](tone-mapping.md)
 - Consumer: [Materials and BRDFs](materials-and-brdfs.md) —
   every shipped material wraps a `Texturec`

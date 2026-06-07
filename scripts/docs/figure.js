@@ -769,6 +769,7 @@ class FigureSvg {
     while (this.element.children.length > 0) {
       this.element.removeChild(this.element.children[0]);
     }
+    this.markerIds.clear();
   }
 
   add(name, attrs = {}) {

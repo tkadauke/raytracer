@@ -5,7 +5,9 @@ The Whitted pipeline as it actually runs through
 and its default
 [`render::WhittedIntegrator`](../../../include/render/WhittedIntegrator.h).
 The longest volume in the book: every chapter expands one step of
-the pipeline introduced in [The Whitted pipeline](the-whitted-pipeline.md).
+the pipeline introduced in [The Whitted pipeline](the-whitted-pipeline.md),
+then extends that vocabulary into stochastic path tracing and
+wavefront scheduling.
 
 ## Chapters
 
@@ -31,6 +33,10 @@ the pipeline introduced in [The Whitted pipeline](the-whitted-pipeline.md).
     Carlo over pixel area, the lens-sampler shared with the
     thin-lens camera, and named stream dimensions reserved for
     future path tracing.
+- [Wavefront and path tracing](wavefront-and-path-tracing.md) —
+    stochastic light transport, next-event estimation, path-state
+    throughput, Russian roulette, wavefront depth frontiers, and the
+    diagnostics that make the implementation inspectable.
 - [Textures](textures.md) — `Texture` as `(s, t) → Colord`,
     constant / checker / UV-color, planar vs UV-direct mapping.
 - [Tone mapping](tone-mapping.md) — why HDR exists, the float
