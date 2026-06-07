@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Portal and mirror receiver masks.** Automatic portal and mirror graph
+  subviews now compile receiver stencil mask passes and resources, skip
+  offscreen receivers, and mark unsupported raster state as conservative mask
+  coverage. — GPT-5
 - **Portal and mirror derived cameras.** Render graph subview branches now
   derive portal cameras from receiver/source transforms and mirror cameras from
   planar reflection, carrying explicit receiver-clipping state that fails

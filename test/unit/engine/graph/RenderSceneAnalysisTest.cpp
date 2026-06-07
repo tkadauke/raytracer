@@ -56,9 +56,24 @@ namespace RenderSceneAnalysisTest {
     EXPECT_EQ("portal-panel", analysis.portalReceiverSurfaces()[0].surfaceId);
     EXPECT_EQ("Portal Panel", analysis.portalReceiverSurfaces()[0].surfaceName);
     EXPECT_EQ(Vector3d(1.0, 2.0, 3.0), analysis.portalReceiverSurfaces()[0].planePoint);
+    EXPECT_TRUE(analysis.portalReceiverSurfaces()[0].receiverVisibleInPrimaryView);
     EXPECT_EQ("mirror-panel", analysis.planarMirrorSurfaces()[0].surfaceId);
     EXPECT_EQ("Mirror Panel", analysis.planarMirrorSurfaces()[0].surfaceName);
     EXPECT_EQ(Vector3d(0.0, 1.0, 0.0), analysis.planarMirrorSurfaces()[0].planeNormal);
+  }
+
+  TEST(RenderSceneAnalysis, RecordsOffscreenSceneSurfaceMarkers) {
+    RenderSceneAnalysis analysis;
+
+    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel", Matrix4d(), Matrix4d(),
+                                         false);
+    analysis.recordPlanarMirrorSurface("mirror-panel", "Mirror Panel", Vector3d::null,
+                                       Vector3d(0.0, 1.0, 0.0), false);
+
+    ASSERT_EQ(1u, analysis.portalReceiverSurfaceCount());
+    ASSERT_EQ(1u, analysis.planarMirrorSurfaceCount());
+    EXPECT_FALSE(analysis.portalReceiverSurfaces()[0].receiverVisibleInPrimaryView);
+    EXPECT_FALSE(analysis.planarMirrorSurfaces()[0].receiverVisibleInPrimaryView);
   }
 
   TEST(RenderSceneAnalysis, RecordsSelectableObjectTagAndLayerSubsets) {

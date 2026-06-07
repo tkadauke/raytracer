@@ -28,6 +28,7 @@ namespace engine::graph {
       Matrix4d sourceTransform;
       Vector3d planePoint{Vector3d::null};
       Vector3d planeNormal{0.0, 1.0, 0.0};
+      bool receiverVisibleInPrimaryView{true};
     };
 
     struct SelectableSubset {
@@ -60,9 +61,11 @@ namespace engine::graph {
     void recordVisibleSurface();
     void recordVisibleLight();
     void recordPortalReceiverSurface(std::string surfaceId, std::string surfaceName,
-                                     Matrix4d receiverTransform, Matrix4d sourceTransform);
+                                     Matrix4d receiverTransform, Matrix4d sourceTransform,
+                                     bool receiverVisibleInPrimaryView = true);
     void recordPlanarMirrorSurface(std::string surfaceId, std::string surfaceName,
-                                   Vector3d planePoint, Vector3d planeNormal);
+                                   Vector3d planePoint, Vector3d planeNormal,
+                                   bool receiverVisibleInPrimaryView = true);
     void recordRenderTextureReceiver(std::string subviewName);
     void recordSelectableObject(std::string objectId, std::string objectName,
                                 std::vector<std::string> tags = {},

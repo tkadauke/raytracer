@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <memory>
 #include <map>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -25,6 +26,18 @@ namespace engine::graph {
         throw std::runtime_error("compiled render graph is missing tonemap pass");
       }
       return tonemap->singleRead().resource;
+    }
+
+    std::string markerName(const RenderSceneAnalysis::SceneSurfaceMarker& marker) {
+      return !marker.surfaceName.empty() ? marker.surfaceName : marker.surfaceId;
+    }
+
+    std::string portalSubviewName(const RenderSceneAnalysis::SceneSurfaceMarker& marker) {
+      return "portal " + markerName(marker);
+    }
+
+    std::string mirrorSubviewName(const RenderSceneAnalysis::SceneSurfaceMarker& marker) {
+      return "mirror " + markerName(marker);
     }
 
     void applyEngineOptionsToPass(RenderPassNode& pass, int rasterTargetSampleCount,
@@ -678,7 +691,6 @@ namespace engine::graph {
                                                           int renderToTextureDepth) const {
     const RenderTargetSpec target = rawTarget.normalized();
     RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
-    frameIntent.requireWholeFrameOnly("RenderGraphCompiler");
     sceneAnalysis.requireResolvableSelectors(frameIntent, "RenderGraphCompiler");
     if (renderToTextureDepth == 0) {
       addAutomaticFeatureSubviews(frameIntent, sceneAnalysis);
@@ -836,16 +848,19 @@ namespace engine::graph {
     return plan;
   }
 
-  void RenderGraphCompiler::addAutomaticFeatureSubviews(
-    RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis) const {
+  void
+  RenderGraphCompiler::addAutomaticFeatureSubviews(RenderIntent& intent,
+                                                   const RenderSceneAnalysis& sceneAnalysis) const {
     if (!intent.enableAutomaticFeatures) {
       return;
     }
 
     for (const auto& portal : sceneAnalysis.portalReceiverSurfaces()) {
+      if (!portal.receiverVisibleInPrimaryView) {
+        continue;
+      }
       RenderSubviewIntent subview;
-      subview.name =
-        "portal " + (!portal.surfaceName.empty() ? portal.surfaceName : portal.surfaceId);
+      subview.name = portalSubviewName(portal);
       subview.view.selector = SceneSelector::all();
       DerivedCameraRef derived;
       derived.kind = DerivedCameraRef::Kind::Portal;
@@ -862,9 +877,11 @@ namespace engine::graph {
     }
 
     for (const auto& mirror : sceneAnalysis.planarMirrorSurfaces()) {
+      if (!mirror.receiverVisibleInPrimaryView) {
+        continue;
+      }
       RenderSubviewIntent subview;
-      subview.name =
-        "mirror " + (!mirror.surfaceName.empty() ? mirror.surfaceName : mirror.surfaceId);
+      subview.name = mirrorSubviewName(mirror);
       subview.view.selector = SceneSelector::all();
       DerivedCameraRef derived;
       derived.kind = DerivedCameraRef::Kind::PlanarMirror;
@@ -919,20 +936,47 @@ namespace engine::graph {
         compileWithSubviewDepth(target, subIntent, sceneAnalysis, renderToTextureDepth + 1);
       const std::string prefix = subviewPrefix(subview, i, usedPrefixes);
       const std::string displayName = subviewDisplayName(subview, i);
+      const RenderFeatureKind feature = subviewFeature(prefix);
       RenderPlan prefixed =
-        prefixedSubviewPlan(branch, prefix, displayName, subview.name, subviewFeature(prefix));
+        prefixedSubviewPlan(branch, prefix, displayName, subview.name, feature);
 
       SubviewOutputBinding binding;
       binding.name = subview.name;
       binding.colorResource = prefixedResourceId(prefix, "main_color");
       binding.depthResource = prefixedResourceId(prefix, "depth_aov");
       outputs.push_back(binding);
+      const RenderPassId maskConsumerId =
+        prefixed.passes().empty() ? "" : prefixed.passes().front().id;
 
       for (const auto& resource : prefixed.resources()) {
         plan.addResource(resource);
       }
       for (const auto& pass : prefixed.passes()) {
         plan.addPass(pass);
+      }
+
+      const auto derivedKind =
+        subview.view.camera && subview.view.camera->derived &&
+            subview.view.camera->derived->requiresReceiverClip
+          ? std::optional<DerivedCameraRef::Kind>(subview.view.camera->derived->kind)
+          : std::nullopt;
+      if (!maskConsumerId.empty() && derivedKind) {
+        for (const auto& portal : sceneAnalysis.portalReceiverSurfaces()) {
+          if (*derivedKind == DerivedCameraRef::Kind::Portal &&
+              portal.receiverVisibleInPrimaryView && subview.name == portalSubviewName(portal)) {
+            addReceiverMaskDependency(plan, target, intent, portal, prefix, displayName,
+                                      "portal_receiver", maskConsumerId);
+            break;
+          }
+        }
+        for (const auto& mirror : sceneAnalysis.planarMirrorSurfaces()) {
+          if (*derivedKind == DerivedCameraRef::Kind::PlanarMirror &&
+              mirror.receiverVisibleInPrimaryView && subview.name == mirrorSubviewName(mirror)) {
+            addReceiverMaskDependency(plan, target, intent, mirror, prefix, displayName,
+                                      "mirror_receiver", maskConsumerId);
+            break;
+          }
+        }
       }
     }
     return outputs;
@@ -1006,6 +1050,77 @@ namespace engine::graph {
                                  receiver + "'");
       }
     }
+  }
+
+  void RenderGraphCompiler::addReceiverMaskDependency(
+    RenderPlan& plan, const RenderTargetSpec& target, const RenderIntent& intent,
+    const RenderSceneAnalysis::SceneSurfaceMarker& receiver, const std::string& prefix,
+    const std::string& displayName, const RenderFeatureKind& receiverFeature,
+    const RenderPassId& consumerPassId) const {
+    const bool conservative = receiverMaskRequiresConservativeRasterState(intent);
+    plan.connectProducerToConsumer(
+      receiverMaskPass(intent, receiver, prefix, displayName, receiverFeature, conservative),
+      receiverMaskResource(target, prefix, displayName, receiverFeature, conservative),
+      consumerPassId);
+  }
+
+  RenderResourceDescriptor RenderGraphCompiler::receiverMaskResource(
+    const RenderTargetSpec& target, const std::string& prefix, const std::string& displayName,
+    const RenderFeatureKind& receiverFeature, bool conservative) const {
+    RenderResourceDescriptor resource;
+    resource.id = prefixedResourceId(prefix, "receiver_mask");
+    resource.name = displayName + " receiver mask";
+    resource.addFeature("receiver_mask");
+    resource.addFeature("mask");
+    resource.addFeature("stencil");
+    resource.addFeature("rasterizer");
+    resource.addFeature(receiverFeature);
+    if (conservative) {
+      resource.addFeature("conservative_receiver_mask");
+    }
+    resource.type = RenderResourceType::Stencil;
+    resource.format = RenderResourceFormat::UInt8;
+    resource.width = target.width;
+    resource.height = target.height;
+    resource.sampleCount = 1;
+    resource.domain = RenderResourceDomain::CPU;
+    resource.lifetime = RenderResourceLifetime::Transient;
+    return resource;
+  }
+
+  RenderPassNode RenderGraphCompiler::receiverMaskPass(
+    const RenderIntent& intent, const RenderSceneAnalysis::SceneSurfaceMarker& receiver,
+    const std::string& prefix, const std::string& displayName,
+    const RenderFeatureKind& receiverFeature, bool conservative) const {
+    RenderPassNode pass;
+    pass.id = prefixedPassId(prefix, "receiver_mask");
+    pass.name = displayName + " receiver mask";
+    pass.kind = RenderPassKind::AOV;
+    pass.executor = RenderExecutorKind::Rasterizer;
+    pass.features = {"receiver_mask", "mask", "stencil", "rasterizer", receiverFeature};
+    if (conservative) {
+      pass.features.push_back("conservative_receiver_mask");
+    }
+    pass.sceneView = intent.defaultSceneView();
+    pass.sceneView.selector = conservative || receiver.surfaceId.empty()
+                                ? SceneSelector::all()
+                                : SceneSelector::objectId(receiver.surfaceId);
+    pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
+    pass.canRunConcurrently = false;
+
+    RasterBeautyPassState state =
+      intent.engineOptions.rasterizer().beautyPassState(1, RenderPostProcessAA::None, false, false);
+    state.framebuffer().setColorWriteMask(0);
+    state.framebuffer().configureStencilWritePass(0xff);
+    state.writeTo(pass);
+    return pass;
+  }
+
+  bool RenderGraphCompiler::receiverMaskRequiresConservativeRasterState(
+    const RenderIntent& intent) const {
+    const RasterBeautyPassState state =
+      intent.engineOptions.rasterizer().beautyPassState(1, RenderPostProcessAA::None, false, false);
+    return !state.framebuffer().supportsFrontToBackVisibilityOrdering();
   }
 
   RenderIntent RenderGraphCompiler::subviewRenderIntent(const RenderIntent& frameIntent,
