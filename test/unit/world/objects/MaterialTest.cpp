@@ -80,6 +80,17 @@ namespace MaterialTest {
     EXPECT_TRUE(analysis.renderTextureSubviewReceivers().count("monitor-feed"));
   }
 
+  TEST(MatteMaterial, ShouldConvertRenderTextureSubviewReceiverNameToRaytracerMaterial) {
+    MatteMaterial m;
+    m.setRenderTextureSubview("monitor-feed");
+    Material* base = &m;
+
+    auto rt = base->toRaytracerMaterial();
+
+    ASSERT_NE(nullptr, rt);
+    EXPECT_EQ("monitor-feed", rt->renderTextureSubview());
+  }
+
   TEST(MatteMaterial, ShouldSetAndGetCoefficients) {
     MatteMaterial m;
     m.setAmbientCoefficient(0.3);

@@ -23,9 +23,12 @@
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/Camera.h"
 #include "render/HomogeneousClipVolume.h"
+#include "render/materials/MatteMaterial.h"
+#include "render/materials/PhongMaterial.h"
 #include "render/primitives/Scene.h"
 #include "render/samplers/SampleStream.h"
 #include "render/State.h"
+#include "render/textures/Texture.h"
 #include "render/tonemap/Tonemap.h"
 #include "render/viewplanes/ViewPlane.h"
 
@@ -229,6 +232,188 @@ namespace engine::graph {
       const RenderExecutionContext& m_context;
     };
 
+    class RenderResourceTexture : public render::Texturec {
+    public:
+      explicit RenderResourceTexture(const Buffer<Colord>& color)
+          : m_color(color) {
+      }
+
+      Colord evaluate(const Rayd&, const HitPoint& hitPoint) const override {
+        if (m_color.width() <= 0 || m_color.height() <= 0) {
+          return Colord::black();
+        }
+
+        const Vector2d& uv = hitPoint.uv();
+        const double u = std::clamp(uv.x(), 0.0, 1.0);
+        const double v = std::clamp(uv.y(), 0.0, 1.0);
+        const int x =
+          std::clamp(static_cast<int>(std::floor(u * m_color.width())), 0, m_color.width() - 1);
+        const int y =
+          std::clamp(static_cast<int>(std::floor(v * m_color.height())), 0, m_color.height() - 1);
+        return m_color[y][x];
+      }
+
+    private:
+      const Buffer<Colord>& m_color;
+    };
+
+    std::optional<std::string> subviewNameForColorResource(const RenderResourceDescriptor& desc) {
+      if (desc.type != RenderResourceType::Color || !desc.hasFeature("subview_color_output")) {
+        return std::nullopt;
+      }
+      const std::string prefix = "subview_name:";
+      for (const auto& feature : desc.features) {
+        if (feature.rfind(prefix, 0) == 0) {
+          return feature.substr(prefix.size());
+        }
+      }
+      return std::nullopt;
+    }
+
+    std::map<std::string, std::shared_ptr<render::Texturec>>
+    renderTextureInputsForPass(const RenderExecutionContext& context) {
+      std::map<std::string, std::shared_ptr<render::Texturec>> result;
+      for (const auto& read : context.pass().reads) {
+        const auto& resource = context.storage().resource(read.resource);
+        const auto name = subviewNameForColorResource(resource.descriptor());
+        if (!name || resource.substituteDefault()) {
+          continue;
+        }
+        if (!resource.colorBacked()) {
+          throw passError(context.pass(),
+                          "render-to-texture input '" + read.resource + "' is not color-backed");
+        }
+        result[*name] = std::make_shared<RenderResourceTexture>(resource.color());
+      }
+      return result;
+    }
+
+    std::shared_ptr<render::Material>
+    materialWithRenderTexture(std::shared_ptr<render::Material> material,
+                              std::shared_ptr<render::Texturec> texture,
+                              const std::string& receiverName) {
+      if (!texture) {
+        return material;
+      }
+
+      auto matte = std::dynamic_pointer_cast<render::MatteMaterial>(material);
+      if (!matte) {
+        auto result = std::make_shared<render::MatteMaterial>(texture);
+        if (material) {
+          result->setSidedness(material->sidedness());
+        }
+        result->setRenderTextureSubview(receiverName);
+        return result;
+      }
+
+      auto phong = std::dynamic_pointer_cast<render::PhongMaterial>(material);
+      if (phong) {
+        auto result = std::make_shared<render::PhongMaterial>(texture, phong->specularColor(),
+                                                              phong->exponent());
+        result->setAmbientCoefficient(phong->ambientCoefficient());
+        result->setDiffuseCoefficient(phong->diffuseCoefficient());
+        result->setSpecularCoefficient(phong->specularCoefficient());
+        result->setNormalTexture(phong->normalTexture());
+        result->setSidedness(phong->sidedness());
+        result->setRenderTextureSubview(receiverName);
+        return result;
+      }
+
+      auto result = std::make_shared<render::MatteMaterial>(texture);
+      result->setAmbientCoefficient(matte->ambientCoefficient());
+      result->setDiffuseCoefficient(matte->diffuseCoefficient());
+      result->setNormalTexture(matte->normalTexture());
+      result->setSidedness(matte->sidedness());
+      result->setRenderTextureSubview(receiverName);
+      return result;
+    }
+
+    class ScopedRenderTextureMaterialBindings {
+    public:
+      explicit ScopedRenderTextureMaterialBindings(RenderExecutionContext& context)
+          : m_textures(renderTextureInputsForPass(context)) {
+        if (m_textures.empty()) {
+          return;
+        }
+
+        auto scene = context.graph().scene();
+        if (!scene) {
+          return;
+        }
+
+        static_cast<const render::Primitive&>(*scene).forEachTransformedLeaf(
+          [&](const render::Primitive::TransformedLeaf& leaf) {
+            if (!leaf.primitive) {
+              return;
+            }
+
+            const std::string receiver = receiverNameForLeaf(leaf);
+            if (receiver.empty()) {
+              return;
+            }
+
+            const auto texture = m_textures.find(receiver);
+            if (texture == m_textures.end()) {
+              return;
+            }
+
+            auto* primitive = const_cast<render::Primitive*>(leaf.primitive);
+            m_originalMaterials.push_back({primitive, primitive->material()});
+            primitive->setMaterial(
+              materialWithRenderTexture(leaf.material, texture->second, receiver));
+            ++m_boundCount;
+          });
+
+        if (m_boundCount > 0) {
+          context.recordTraceMessage("bound " + std::to_string(m_boundCount) +
+                                     " render-to-texture receiver material(s)");
+        }
+      }
+
+      ScopedRenderTextureMaterialBindings(const ScopedRenderTextureMaterialBindings&) = delete;
+      ScopedRenderTextureMaterialBindings&
+      operator=(const ScopedRenderTextureMaterialBindings&) = delete;
+
+      ~ScopedRenderTextureMaterialBindings() {
+        for (auto it = m_originalMaterials.rbegin(); it != m_originalMaterials.rend(); ++it) {
+          it->primitive->setMaterial(std::move(it->material));
+        }
+      }
+
+      bool hasInputs() const {
+        return !m_textures.empty();
+      }
+
+      bool boundAnyReceiver() const {
+        return m_boundCount > 0;
+      }
+
+    private:
+      struct OriginalMaterial {
+        render::Primitive* primitive;
+        std::shared_ptr<render::Material> material;
+      };
+
+      static std::string receiverNameForLeaf(const render::Primitive::TransformedLeaf& leaf) {
+        if (!leaf.primitive->renderTextureSubview().empty()) {
+          return leaf.primitive->renderTextureSubview();
+        }
+        if (leaf.material && !leaf.material->renderTextureSubview().empty()) {
+          return leaf.material->renderTextureSubview();
+        }
+        return {};
+      }
+
+      std::map<std::string, std::shared_ptr<render::Texturec>> m_textures;
+      std::vector<OriginalMaterial> m_originalMaterials;
+      std::size_t m_boundCount{0};
+    };
+
+    ScopedRenderTextureMaterialBindings
+    bindRenderTextureMaterials(RenderExecutionContext& context) {
+      return ScopedRenderTextureMaterialBindings(context);
+    }
+
     void applyRasterShadowInputs(const RenderExecutionContext& context,
                                  const RasterBeautyPassState& beautyState,
                                  ::engine::raster::Rasterizer& rasterizer) {
@@ -307,6 +492,7 @@ namespace engine::graph {
         const auto& write = pass.singleWrite();
         requireColorResource(context.storage(), write.resource, pass);
 
+        auto renderTextureBindings = bindRenderTextureMaterials(context);
         auto engine = createEngine(context);
         prepareEngine(*engine, context.graph(), context.cancelled(), context.graph().tonemap());
         context.setActiveEngine(engine);
@@ -315,6 +501,7 @@ namespace engine::graph {
 
       bool executeDisplay(RenderExecutionContext& context, Buffer<unsigned int>& buffer,
                           std::shared_ptr<render::Tonemap> tonemap) override {
+        auto renderTextureBindings = bindRenderTextureMaterials(context);
         auto engine = createEngine(context);
         prepareEngine(*engine, context.graph(), context.cancelled(), std::move(tonemap));
         context.setActiveEngine(engine);
@@ -349,6 +536,7 @@ namespace engine::graph {
         const auto& write = pass.singleWrite();
         requireColorResource(context.storage(), write.resource, pass);
 
+        auto renderTextureBindings = bindRenderTextureMaterials(context);
         auto raytracer =
           std::static_pointer_cast<::engine::raytracer::Raytracer>(createEngine(context));
         prepareEngine(*raytracer, context.graph(), context.cancelled(), std::move(tonemap));
@@ -398,6 +586,7 @@ namespace engine::graph {
         const auto& write = pass.singleWrite();
         requireColorResource(context.storage(), write.resource, pass);
 
+        auto renderTextureBindings = bindRenderTextureMaterials(context);
         auto wavefront = createWavefront(context);
         prepareEngine(*wavefront, context.graph(), context.cancelled(), context.graph().tonemap());
         context.setActiveEngine(wavefront);
@@ -407,6 +596,7 @@ namespace engine::graph {
 
       bool executeDisplay(RenderExecutionContext& context, Buffer<unsigned int>& buffer,
                           std::shared_ptr<render::Tonemap> tonemap) override {
+        auto renderTextureBindings = bindRenderTextureMaterials(context);
         auto wavefront = createWavefront(context);
         prepareEngine(*wavefront, context.graph(), context.cancelled(), std::move(tonemap));
         context.setActiveEngine(wavefront);
@@ -421,6 +611,7 @@ namespace engine::graph {
         const auto& write = pass.singleWrite();
         requireColorResource(context.storage(), write.resource, pass);
 
+        auto renderTextureBindings = bindRenderTextureMaterials(context);
         auto wavefront = createWavefront(context);
         prepareEngine(*wavefront, context.graph(), context.cancelled(), std::move(tonemap));
         context.setActiveEngine(wavefront);
@@ -559,6 +750,8 @@ namespace engine::graph {
         const auto& write = pass.singleWrite();
         requireColorResource(context.storage(), write.resource, pass);
 
+        auto renderTextureBindings = bindRenderTextureMaterials(context);
+        recordRenderTextureBackendDiagnostic(context, renderTextureBindings);
         auto engine = createEngine(context);
         prepareEngine(*engine, context.graph(), context.cancelled(), context.graph().tonemap());
         context.setActiveEngine(engine);
@@ -569,6 +762,8 @@ namespace engine::graph {
 
       bool executeDisplay(RenderExecutionContext& context, Buffer<unsigned int>& buffer,
                           std::shared_ptr<render::Tonemap> tonemap) override {
+        auto renderTextureBindings = bindRenderTextureMaterials(context);
+        recordRenderTextureBackendDiagnostic(context, renderTextureBindings);
         auto engine = createEngine(context);
         prepareEngine(*engine, context.graph(), context.cancelled(), std::move(tonemap));
         context.setActiveEngine(engine);
@@ -632,6 +827,20 @@ namespace engine::graph {
         const auto rasterizer = std::static_pointer_cast<::engine::raster::Rasterizer>(engine);
         context.setTraceMetadata(
           ::engine::raster::rasterRenderMetricsToJson(rasterizer->lastMetrics()));
+      }
+
+      void recordRenderTextureBackendDiagnostic(
+        RenderExecutionContext& context,
+        const ScopedRenderTextureMaterialBindings& bindings) const {
+        if (!bindings.hasInputs()) {
+          return;
+        }
+        const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(context.pass());
+        if (state.execution().backend().isOpenGL()) {
+          context.recordTraceMessage(
+            "OpenGL raster backend cannot sample graph render-to-texture outputs directly; "
+            "receiver materials use the CPU-backed texture fallback when available");
+        }
       }
 
       bool readsShadowMap(const RenderExecutionContext& context) const {

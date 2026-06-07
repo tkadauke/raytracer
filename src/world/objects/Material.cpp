@@ -4,6 +4,8 @@
 #include "engine/graph/RenderSceneAnalysis.h"
 #include "render/materials/Material.h"
 
+#include <string>
+
 Material* Material::defaultMaterial() {
   static MatteMaterial result(nullptr);
   return &result;
@@ -68,4 +70,5 @@ void Material::applyMaterialProperties(const std::shared_ptr<render::Material>& 
     material->setSidedness(render::Material::Sidedness::TwoSided);
     break;
   }
+  material->setRenderTextureSubview(m_renderTextureSubview.toStdString());
 }

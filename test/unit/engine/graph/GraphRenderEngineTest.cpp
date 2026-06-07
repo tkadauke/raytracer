@@ -64,6 +64,15 @@ namespace GraphRenderEngineTest {
     return color;
   }
 
+  RenderResourceDescriptor subviewColorResource(const std::string& id,
+                                                const std::string& subviewName, int width = 1,
+                                                int height = 1) {
+    auto color = colorResource(id, RenderResourceLifetime::Imported, width, height);
+    color.features = {"subview", "render_to_texture", "subview_output", "subview_color_output",
+                      "subview_name:" + subviewName};
+    return color;
+  }
+
   RenderResourceDescriptor depthResource(const std::string& id, RenderResourceLifetime lifetime,
                                          int width = 2, int height = 2) {
     RenderResourceDescriptor depth;
@@ -279,6 +288,38 @@ namespace GraphRenderEngineTest {
     return scene;
   }
 
+  std::shared_ptr<render::Scene> renderTextureReceiverScene(const std::string& subviewName) {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord::black());
+    scene->setAmbient(Colord::white());
+
+    auto rectangle = std::make_shared<render::Rectangle>(
+      Vector3d(-1.0, -1.0, 0.0), Vector3d(0.0, 2.0, 0.0), Vector3d(2.0, 0.0, 0.0));
+    rectangle->setRenderTextureSubview(subviewName);
+    auto material = std::make_shared<render::MatteMaterial>(
+      std::make_shared<render::ConstantColorTexture>(Colord::black()));
+    material->setAmbientCoefficient(1.0);
+    material->setDiffuseCoefficient(0.0);
+    rectangle->setMaterial(material);
+    scene->add(rectangle);
+    return scene;
+  }
+
+  RenderPlan renderTextureReceiverPlan(RenderExecutorKind executor) {
+    RenderPlan plan;
+    plan.addResource(subviewColorResource("subview_monitor_feed_main_color", "monitor-feed"));
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported, 16, 16));
+
+    RenderPassNode beauty;
+    beauty.id = "receiver_beauty";
+    beauty.kind = RenderPassKind::Beauty;
+    beauty.executor = executor;
+    beauty.addRead("subview_monitor_feed_main_color");
+    beauty.addWrite("main_color");
+    plan.addPass(beauty);
+    return plan;
+  }
+
   std::shared_ptr<render::Scene> visibleAndOffscreenBoxScene() {
     auto scene = std::make_shared<render::Scene>();
     scene->setBackground(Colord::black());
@@ -461,6 +502,48 @@ namespace GraphRenderEngineTest {
     ASSERT_EQ(2u, engine.lastPlan().passes().size());
     EXPECT_EQ(RenderExecutorKind::Wavefront, engine.lastPlan().passes()[0].executor);
     EXPECT_EQ("wavefront_beauty", engine.lastPlan().passes()[0].id);
+  }
+
+  TEST(GraphRenderEngine, RasterBeautySamplesRenderTextureReceiverMaterial) {
+    auto input = std::make_shared<Buffer<Colord>>(1, 1);
+    (*input)[0][0] = Colord(0.75, 0.25, 0.125);
+
+    GraphRenderEngine engine(camera(), renderTextureReceiverScene("monitor-feed"));
+    engine.setPlan(renderTextureReceiverPlan(RenderExecutorKind::Rasterizer));
+    engine.setExternalColorResource("subview_monitor_feed_main_color", input);
+
+    Buffer<Colord> buffer(16, 16);
+    engine.render(buffer);
+
+    ASSERT_COLOR_NEAR(Colord(0.75, 0.25, 0.125), buffer[8][8], 0.02);
+  }
+
+  TEST(GraphRenderEngine, RaytracerBeautySamplesRenderTextureReceiverMaterial) {
+    auto input = std::make_shared<Buffer<Colord>>(1, 1);
+    (*input)[0][0] = Colord(0.2, 0.6, 0.9);
+
+    GraphRenderEngine engine(camera(), renderTextureReceiverScene("monitor-feed"));
+    engine.setPlan(renderTextureReceiverPlan(RenderExecutorKind::Raytracer));
+    engine.setExternalColorResource("subview_monitor_feed_main_color", input);
+
+    Buffer<Colord> buffer(16, 16);
+    engine.render(buffer);
+
+    ASSERT_COLOR_NEAR(Colord(0.2, 0.6, 0.9), buffer[8][8], 0.02);
+  }
+
+  TEST(GraphRenderEngine, RenderTextureInputDoesNotChangeUnmatchedReceivers) {
+    auto input = std::make_shared<Buffer<Colord>>(1, 1);
+    (*input)[0][0] = Colord::red();
+
+    GraphRenderEngine engine(camera(), renderTextureReceiverScene("other-feed"));
+    engine.setPlan(renderTextureReceiverPlan(RenderExecutorKind::Rasterizer));
+    engine.setExternalColorResource("subview_monitor_feed_main_color", input);
+
+    Buffer<Colord> buffer(16, 16);
+    engine.render(buffer);
+
+    ASSERT_COLOR_NEAR(Colord::black(), buffer[8][8], 0.02);
   }
 
   TEST(GraphRenderEngine, ExecutesDepthAOVViewAndRecordsDepthTrace) {

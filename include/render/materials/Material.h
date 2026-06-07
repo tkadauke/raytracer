@@ -7,6 +7,8 @@
 #include "render/Object.h"
 
 #include <optional>
+#include <string>
+#include <utility>
 #include <vector>
 
 class HitPoint;
@@ -218,6 +220,14 @@ namespace render {
       m_sidedness = sidedness;
     }
 
+    const std::string& renderTextureSubview() const {
+      return m_renderTextureSubview;
+    }
+
+    void setRenderTextureSubview(std::string subviewName) {
+      m_renderTextureSubview = std::move(subviewName);
+    }
+
     /**
       * Shade `hitPoint` along `ray`. Returns the colour produced by
       * this material — direct lighting, recursive reflection,
@@ -302,5 +312,6 @@ namespace render {
 
   private:
     Sidedness m_sidedness{Sidedness::TwoSided};
+    std::string m_renderTextureSubview;
   };
 }

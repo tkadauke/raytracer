@@ -105,6 +105,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   preview/render settings, and graph compilation now expose `pathtracer` as a
   user-facing executor preference that compiles to a wavefront-backed
   path-traced beauty pass. — GPT-5
+- **Render-to-texture material binding.** Graph execution now binds CPU-backed
+  render-to-texture color outputs into marked receiver surface/material
+  diffuse inputs for raytracer and CPU raster beauty passes, with OpenGL raster
+  tracing its CPU fallback instead of silently ignoring the generated subview.
+  — GPT-5
 - **Render-to-texture receiver dependencies.** Render graph compilation now
   connects scene passes that sample render-to-texture subviews to the prefixed
   subview color and depth outputs, so graph-only exports show the dependency
