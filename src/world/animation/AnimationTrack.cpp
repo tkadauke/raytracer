@@ -9,7 +9,13 @@
 #include "core/Color.h"
 #include "core/animation/AnimationTrack.h"
 #include "core/math/Vector.h"
+#include "world/objects/Camera.h"
 #include "world/objects/Element.h"
+#include "world/objects/Light.h"
+#include "world/objects/Material.h"
+#include "world/objects/ScriptedSurface.h"
+#include "world/objects/SourceAsset.h"
+#include "world/objects/Transformable.h"
 
 Q_DECLARE_METATYPE(Vector3d);
 Q_DECLARE_METATYPE(Colord);
@@ -30,6 +36,68 @@ namespace {
   std::runtime_error evaluationError(const world::AnimationTrack& track, const QString& message) {
     return std::runtime_error(
       QString("animation track for %1: %2").arg(trackDescription(track), message).toStdString());
+  }
+
+  world::AnimationTrackClassification classified(world::AnimationTrackClass trackClass,
+                                                 QString diagnostic) {
+    return world::AnimationTrackClassification{trackClass, std::move(diagnostic)};
+  }
+
+  bool isInterpolatable(Element::AnimationPropertyType type) {
+    switch (type) {
+    case Element::AnimationPropertyType::Double:
+    case Element::AnimationPropertyType::Integer:
+    case Element::AnimationPropertyType::Vector3:
+    case Element::AnimationPropertyType::Color:
+      return true;
+    case Element::AnimationPropertyType::Boolean:
+    case Element::AnimationPropertyType::String:
+    case Element::AnimationPropertyType::Unsupported:
+      return false;
+    }
+
+    return false;
+  }
+
+  bool isDynamicProperty(const Element& target, const QString& propertyName) {
+    const QByteArray propertyKey = propertyName.toUtf8();
+    return target.dynamicPropertyNames().contains(propertyKey);
+  }
+
+  bool isTransformProperty(const QString& propertyName) {
+    return propertyName == QStringLiteral("position") ||
+           propertyName == QStringLiteral("rotation") || propertyName == QStringLiteral("scale") ||
+           propertyName == QStringLiteral("velocity");
+  }
+
+  bool isCameraPoseProperty(const QString& propertyName) {
+    return propertyName == QStringLiteral("position") || propertyName == QStringLiteral("target");
+  }
+
+  bool isLightRuntimeProperty(const QString& propertyName) {
+    return propertyName == QStringLiteral("direction") || propertyName == QStringLiteral("color") ||
+           propertyName == QStringLiteral("intensity") || isTransformProperty(propertyName);
+  }
+
+  bool isRuntimeContinuousTargetProperty(const Element& target, const QString& propertyName,
+                                         Element::AnimationPropertyType type) {
+    if (!isInterpolatable(type))
+      return false;
+
+    if (qobject_cast<const Light*>(&target))
+      return isLightRuntimeProperty(propertyName);
+
+    if (qobject_cast<const Camera*>(&target))
+      return isCameraPoseProperty(propertyName) || type == Element::AnimationPropertyType::Double;
+
+    if (qobject_cast<const Material*>(&target))
+      return type == Element::AnimationPropertyType::Double ||
+             type == Element::AnimationPropertyType::Color;
+
+    if (qobject_cast<const Transformable*>(&target))
+      return isTransformProperty(propertyName);
+
+    return false;
   }
 
   QString requiredString(const QJsonObject& json, const QString& name) {
@@ -239,6 +307,54 @@ namespace world {
 
   const std::vector<AnimationKeyframe>& AnimationTrack::keyframes() const noexcept {
     return m_keyframes;
+  }
+
+  AnimationTrackClassification AnimationTrack::classify(const Element& target) const {
+    const auto propertyInfo = target.animationPropertyInfo(m_propertyName);
+    if (!propertyInfo) {
+      return classified(AnimationTrackClass::Rejected, "target property does not exist");
+    }
+
+    if (!propertyInfo->writable) {
+      return classified(AnimationTrackClass::Rejected, "target property is not writable");
+    }
+
+    if (propertyInfo->type == Element::AnimationPropertyType::Unsupported) {
+      return classified(
+        AnimationTrackClass::Rejected,
+        QString("unsupported or structural property type '%1'").arg(propertyInfo->typeName));
+    }
+
+    if (propertyInfo->type == Element::AnimationPropertyType::Boolean) {
+      return classified(AnimationTrackClass::StepOnly,
+                        "boolean properties require step-only frame evaluation");
+    }
+
+    if (propertyInfo->type == Element::AnimationPropertyType::String) {
+      return classified(AnimationTrackClass::StepOnly,
+                        "string, enum, and choice properties require step-only frame evaluation");
+    }
+
+    if (m_interpolationMode == InterpolationMode::Step) {
+      return classified(AnimationTrackClass::StepOnly,
+                        "step interpolation requires discrete frame evaluation");
+    }
+
+    if ((qobject_cast<const SourceAsset*>(&target) ||
+         qobject_cast<const ScriptedSurface*>(&target)) &&
+        isDynamicProperty(target, m_propertyName)) {
+      return classified(
+        AnimationTrackClass::FrameBaked,
+        "generated asset and scripted surface parameters can change generated topology");
+    }
+
+    if (isRuntimeContinuousTargetProperty(target, m_propertyName, propertyInfo->type)) {
+      return classified(AnimationTrackClass::RuntimeContinuous,
+                        "property can be sampled continuously by the render runtime");
+    }
+
+    return classified(AnimationTrackClass::FrameBaked,
+                      "property changes render-scene state that must be baked per frame");
   }
 
   QVariant AnimationTrack::sample(const Element& target, int frame) const {

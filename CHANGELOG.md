@@ -14,6 +14,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Portal and planar mirror scene markers.** Scene JSON and Modeler surface
   properties can now mark planar portal receivers and mirror surfaces for
   render graph discovery. — GPT-5
+- **World animation track classification.** World animation tracks now report
+  runtime-continuous, frame-baked, step-only, or rejected classifications with
+  diagnostics so render engines can choose continuous sampling or ordinary
+  frame evaluation. — GPT-5
 - **Render animation tracks.** Added Qt-free render-side animation value and
   continuous-time track primitives for scalar, vector, color, transform, and
   step-only switch payloads. — GPT-5

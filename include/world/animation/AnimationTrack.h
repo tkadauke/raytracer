@@ -14,6 +14,19 @@ class Element;
 namespace world {
 
   /**
+  * How a world animation track can be consumed by render engines.
+  */
+  enum class AnimationTrackClass { RuntimeContinuous, FrameBaked, StepOnly, Rejected };
+
+  /**
+  * Classification result for one world animation track.
+  */
+  struct AnimationTrackClassification {
+    AnimationTrackClass trackClass{AnimationTrackClass::Rejected};
+    QString diagnostic;
+  };
+
+  /**
   * One serialized keyframe on a world animation track.
   *
   * Values stay in JSON form until evaluation, because the target property's
@@ -87,6 +100,17 @@ namespace world {
     * @returns sorted keyframes owned by the track.
     */
     [[nodiscard]] const std::vector<AnimationKeyframe>& keyframes() const noexcept;
+
+    /**
+    * Classifies this track for runtime compilation against @p target.
+    *
+    * Runtime-continuous tracks can be converted to render-side continuous-time
+    * tracks. Frame-baked tracks must still be evaluated on ordinary integer
+    * frames before world-to-render conversion. Step-only tracks can be sampled
+    * only at key boundaries or as discrete switches. Rejected tracks have clear
+    * diagnostics and should not be compiled.
+    */
+    [[nodiscard]] AnimationTrackClassification classify(const Element& target) const;
 
     /**
     * Samples this track for @p target at @p frame.

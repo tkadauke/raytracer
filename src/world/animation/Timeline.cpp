@@ -102,6 +102,22 @@ namespace world {
     return m_tracks;
   }
 
+  std::vector<AnimationTrackClassification> Timeline::classifyTracks(const Scene& scene) const {
+    std::vector<AnimationTrackClassification> result;
+    result.reserve(m_tracks.size());
+    for (const auto& track : m_tracks) {
+      const Element* target = scene.findById(track.targetId());
+      if (!target) {
+        result.push_back(
+          {AnimationTrackClass::Rejected, QStringLiteral("target element was not found")});
+        continue;
+      }
+
+      result.push_back(track.classify(*target));
+    }
+    return result;
+  }
+
   void Timeline::apply(Scene& scene, int frame) const {
     for (const auto& track : m_tracks) {
       track.apply(scene, frame);

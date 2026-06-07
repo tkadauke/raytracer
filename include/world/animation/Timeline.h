@@ -76,6 +76,15 @@ namespace world {
     [[nodiscard]] const std::vector<AnimationTrack>& tracks() const noexcept;
 
     /**
+    * Classifies every track against @p scene.
+    *
+    * Tracks whose target id cannot be resolved are returned as rejected with a
+    * diagnostic. Result order matches `tracks()`.
+    */
+    [[nodiscard]] std::vector<AnimationTrackClassification>
+    classifyTracks(const Scene& scene) const;
+
+    /**
     * Applies every track to @p scene at @p frame.
     *
     * Tracks clamp outside their own keyframe ranges. The timeline frame range
