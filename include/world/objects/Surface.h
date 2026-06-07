@@ -4,8 +4,6 @@
 
 #include <QString>
 
-#include <QString>
-
 #include "world/objects/Transformable.h"
 
 namespace render {
