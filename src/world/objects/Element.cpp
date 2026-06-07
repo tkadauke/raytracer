@@ -20,6 +20,7 @@
 #include <QUuid>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 
 Q_DECLARE_METATYPE(Vector3d);
 Q_DECLARE_METATYPE(Angled);
@@ -391,6 +392,8 @@ void Element::attachRuntimeAnimationTracks(render::Object& object) const {
     return;
 
   object.setMetadataValue("world:id", id().toStdString());
+  const int frame = scene->evaluatedAnimationFrame().value_or(scene->animation()->startFrame());
+  object.setMetadataValue("animation:evaluatedFrame", std::to_string(frame));
   for (const auto& track : scene->animation()->tracks()) {
     if (track.targetId() != id())
       continue;

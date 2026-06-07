@@ -871,12 +871,11 @@ namespace SceneTest {
     scene.setAnimation(std::make_unique<world::Timeline>(
       1, 11, 24.0,
       std::vector<world::AnimationTrack>({
-        world::AnimationTrack("camera-id", "position",
-                              {{1, vectorValue(0.0, 0.0, -5.0)},
-                               {11, vectorValue(10.0, 0.0, -5.0)}}),
+        world::AnimationTrack(
+          "camera-id", "position",
+          {{1, vectorValue(0.0, 0.0, -5.0)}, {11, vectorValue(10.0, 0.0, -5.0)}}),
         world::AnimationTrack("camera-id", "target",
-                              {{1, vectorValue(0.0, 0.0, 0.0)},
-                               {11, vectorValue(0.0, 5.0, 0.0)}}),
+                              {{1, vectorValue(0.0, 0.0, 0.0)}, {11, vectorValue(0.0, 5.0, 0.0)}}),
       })));
 
     const auto runtimeCamera = camera->toRaytracer();
@@ -899,8 +898,7 @@ namespace SceneTest {
       1, 11, 24.0,
       std::vector<world::AnimationTrack>({
         world::AnimationTrack("sphere-id", "position",
-                              {{1, vectorValue(0.0, 0.0, 0.0)},
-                               {11, vectorValue(10.0, 0.0, 0.0)}}),
+                              {{1, vectorValue(0.0, 0.0, 0.0)}, {11, vectorValue(10.0, 0.0, 0.0)}}),
         world::AnimationTrack("sphere-id", "visible",
                               {{1, QJsonValue(true)}, {11, QJsonValue(false)}},
                               core::math::interpolation::InterpolationMode::Step),
@@ -915,6 +913,27 @@ namespace SceneTest {
     EXPECT_EQ(Vector3d(5.0, 0.0, 0.0),
               instance->animationTrack("position")->sample(6.0).get<Vector3d>());
     EXPECT_EQ(nullptr, instance->animationTrack("visible"));
+    EXPECT_EQ("1", instance->metadataValue("animation:evaluatedFrame"));
+  }
+
+  TEST(Scene, ShouldTagRuntimeSurfaceTracksWithEvaluatedFrame) {
+    Scene scene;
+    auto* sphere = new Sphere;
+    sphere->setId("sphere-id");
+    scene.addChild(sphere);
+    scene.setAnimation(std::make_unique<world::Timeline>(
+      1, 11, 24.0,
+      std::vector<world::AnimationTrack>({world::AnimationTrack(
+        "sphere-id", "position",
+        {{1, vectorValue(0.0, 0.0, 0.0)}, {11, vectorValue(10.0, 0.0, 0.0)}})})));
+    scene.evaluateAnimationAtFrame(6);
+
+    auto runtimeScene = std::make_shared<render::Scene>();
+    const auto primitive = sphere->toRaytracer(runtimeScene.get());
+    const auto instance = std::dynamic_pointer_cast<render::Instance>(primitive);
+
+    ASSERT_NE(nullptr, instance);
+    EXPECT_EQ("6", instance->metadataValue("animation:evaluatedFrame"));
   }
 
   TEST(Scene, ShouldCompileEligibleLightTracksToRuntimeLight) {
@@ -926,8 +945,7 @@ namespace SceneTest {
       1, 11, 24.0,
       std::vector<world::AnimationTrack>({
         world::AnimationTrack("light-id", "color",
-                              {{1, colorValue(0.0, 0.0, 0.0)},
-                               {11, colorValue(1.0, 0.5, 0.0)}}),
+                              {{1, colorValue(0.0, 0.0, 0.0)}, {11, colorValue(1.0, 0.5, 0.0)}}),
         world::AnimationTrack("light-id", "intensity",
                               {{1, QJsonValue(0.0)}, {11, QJsonValue(1.0)}}),
       })));

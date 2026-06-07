@@ -374,9 +374,14 @@ encoder, not a hard dependency for animation support.
   - frame time + sample's shutter offset -> continuous time
   - transforms/cameras/lights sampled per ray where needed
 - Revisit the current `Surface::velocity` motion-blur model:
-  - Preserve it as a convenience property or compile it as a two-key transform
-    track.
-  - Document how velocity and explicit transform keyframes interact.
+  - ~~Preserve it as a convenience property or compile it as a two-key transform
+    track.~~ ✅ **Done.** Runtime `Instance` transform sampling keeps
+    velocity-only scenes on the legacy per-shutter translation path and lets an
+    explicit `velocity` track override the static convenience value.
+  - ~~Document how velocity and explicit transform keyframes interact.~~ ✅
+    **Done.** Explicit `position`/`rotation`/`scale` keyframes define the base
+    sampled transform; velocity composes afterward as a world-space shutter
+    offset.
 
 ---
 

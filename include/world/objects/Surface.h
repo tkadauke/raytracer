@@ -107,6 +107,11 @@ public:
     * For the runtime intersection diagram, see
     * `render::Instance::setVelocity`: the same `velocity` value is
     * converted into per-ray time-offset primitive intersections.
+    * If this surface also has explicit transform keyframes, those
+    * keyframes define the base transform at the sampled frame time
+    * and velocity is composed afterward as the per-shutter world-space
+    * translation. An explicit `velocity` keyframe track replaces this
+    * static convenience value for the sampled frame.
     *
     * <table><tr>
     * <td>@image html motion_blur_velocity_0.png "velocity=(0, 0, 0) — static"</td>

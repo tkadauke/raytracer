@@ -350,6 +350,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Surface velocity and keyframes.** Runtime instances now sample explicit
+  transform keyframes as the base motion-blur transform and compose
+  `Surface::velocity` afterward as a world-space shutter offset, with animated
+  `velocity` tracks overriding the static convenience property. — GPT-5
 - **Modeler final render engine choices.** The final render dialog now exposes
   Raytracer, Path Tracer, Rasterizer, and Wireframe as user-facing engines;
   wavefront path tracing is selected through the Path Tracer schedule instead
