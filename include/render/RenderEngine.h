@@ -144,9 +144,7 @@ namespace render {
     /// snapshot keeps its old camera; otherwise callers must not
     /// mutate the engine while `render` is executing on another
     /// thread.
-    inline void setCamera(std::shared_ptr<render::Camera> camera) {
-      m_camera = std::move(camera);
-    }
+    void setCamera(std::shared_ptr<render::Camera> camera);
 
     /// @returns the active scene (shared ownership).
     inline std::shared_ptr<render::Scene> scene() const {
@@ -184,6 +182,12 @@ namespace render {
 
     /// @returns true when engines should publish in-flight display updates.
     bool progressiveDisplayEnabled() const;
+
+    void setAnimationFrame(double frame);
+    double animationFrame() const;
+    void setShutterInterval(double open, double close);
+    double shutterOpen() const;
+    double shutterClose() const;
 
     /**
       * Request cancellation of an in-flight render. Engines stop

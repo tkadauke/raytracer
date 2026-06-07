@@ -33,6 +33,8 @@ namespace render {
           m_accumulated(&accumulated) {
       this->accumulated() = Colord::black();
       state.timeSample = sample.timeSample;
+      state.animationFrame = sample.animationFrame;
+      state.animationTime = sample.animationTime;
       state.sampleStream = sample.sampleStream();
     }
 

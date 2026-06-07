@@ -304,8 +304,13 @@ namespace engine::wavefront::detail {
                                      [&] { return primaryRayGenerator->sample(pixel, *stream); });
           if (sample) {
             measureVoid(result.sampleEnqueueWorkerSeconds, [&] {
-              samples.push_back(
-                render::IntegratorRaySample{sample->ray, sample->timeSample, nullptr, stream});
+              render::IntegratorRaySample integratorSample;
+              integratorSample.ray = sample->ray;
+              integratorSample.timeSample = sample->timeSample;
+              integratorSample.borrowedSampleStream = stream;
+              integratorSample.animationFrame = camera.animationFrame();
+              integratorSample.animationTime = sample->animationTime;
+              samples.push_back(integratorSample);
               samplePixelIndices.push_back(pixelIndex);
             });
           }
@@ -440,6 +445,8 @@ namespace engine::wavefront::detail {
 
         render::State state;
         state.timeSample = sample->timeSample;
+        state.animationFrame = camera.animationFrame();
+        state.animationTime = sample->animationTime;
         state.sampleStream = stream;
         HitPointInterval hitPoints;
         const render::Primitive* primitive = scene.intersect(sample->ray, hitPoints, state);

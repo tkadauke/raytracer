@@ -10,13 +10,29 @@
 using namespace std;
 using namespace render;
 
+namespace {
+  Vector3d sampledPositionOffset(const Instance& instance, const render::State& state) {
+    const auto* positionTrack = instance.animationTrack("position");
+    if (!positionTrack) {
+      return Vector3d::null;
+    }
+
+    return positionTrack->sample(state.animationTime).get<Vector3d>() -
+           positionTrack->sample(state.animationFrame).get<Vector3d>();
+  }
+
+  bool hasRuntimeMotion(const Instance& instance) {
+    return instance.velocity() != Vector3d::null || instance.animationTrack("position") != nullptr;
+  }
+}
+
 const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                      render::State& state) const {
   // Static fast path — no motion blur math when velocity is zero.
   // Most instances in any given scene fall through here, so the
   // branch keeps the cost of the new feature to one comparison per
   // ray for unanimated geometry.
-  if (m_velocity == Vector3d::null) {
+  if (!hasRuntimeMotion(*this)) {
     const Primitive* result = m_primitive->intersect(instancedRay(ray), hitPoints, state);
     if (!hitPoints.empty()) {
       hitPoints = hitPoints.transform(m_pointMatrix, m_normalMatrix);
@@ -38,7 +54,7 @@ const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoint
   // into local space (direction is unaffected by translation), then
   // build a `pointMatrix_at_t = pointMatrix + translate(velocity *
   // timeSample)` to map the resulting hit points back to world.
-  Vector3d shift = m_velocity * state.timeSample;
+  Vector3d shift = m_velocity * state.timeSample + sampledPositionOffset(*this, state);
   Rayd localRay(Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()) - shift)),
                 m_directionMatrix * ray.direction());
 
@@ -62,7 +78,7 @@ const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoint
 
 PrimitivePacketHit4 Instance::intersectPacketHits(const Ray4& rays,
                                                   const PrimitivePacketState4& states) const {
-  if (m_velocity != Vector3d::null) {
+  if (hasRuntimeMotion(*this)) {
     return intersectMovingRay4PacketHits(rays, states);
   }
 
@@ -88,7 +104,7 @@ PrimitivePacketHit4 Instance::intersectPacketHits(const Ray4& rays,
 
 PrimitivePacketHit8 Instance::intersectPacketHits(const Ray8& rays,
                                                   const PrimitivePacketState8& states) const {
-  if (m_velocity != Vector3d::null) {
+  if (hasRuntimeMotion(*this)) {
     return intersectMovingRay8PacketHits(rays, states);
   }
 
@@ -115,7 +131,7 @@ PrimitivePacketHit8 Instance::intersectPacketHits(const Ray8& rays,
 
 PrimitivePacketInterval4
 Instance::intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4& states) const {
-  if (m_velocity != Vector3d::null) {
+  if (hasRuntimeMotion(*this)) {
     return intersectMovingRay4PacketIntervals(rays, states);
   }
 
@@ -148,7 +164,7 @@ Instance::intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4
 
 PrimitivePacketInterval8
 Instance::intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const {
-  if (m_velocity != Vector3d::null) {
+  if (hasRuntimeMotion(*this)) {
     return intersectMovingRay8PacketIntervals(rays, states);
   }
 
@@ -263,10 +279,10 @@ Instance::intersectMovingRay8PacketIntervals(const Ray8& rays,
 }
 
 bool Instance::intersects(const Rayd& ray, render::State& state) const {
-  if (m_velocity == Vector3d::null) {
+  if (!hasRuntimeMotion(*this)) {
     return m_primitive->intersects(instancedRay(ray), state);
   }
-  Vector3d shift = m_velocity * state.timeSample;
+  Vector3d shift = m_velocity * state.timeSample + sampledPositionOffset(*this, state);
   Rayd localRay(Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()) - shift)),
                 m_directionMatrix * ray.direction());
   return m_primitive->intersects(localRay, state);

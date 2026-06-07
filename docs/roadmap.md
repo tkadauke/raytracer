@@ -787,7 +787,7 @@ A scene-script DSL for parametric/procedural geometry. See §7 open question on 
   runtime objects during world-to-render conversion; frame-baked and step-only
   tracks stay on the existing evaluated-world path.
 - Interpolation curves: linear, Bezier, ease-in/out, hold.
-- ✅ **Time-sampled rendering for motion blur** (multiple time samples per frame within shutter-open). First pass landed in 7c81d11 — `State::timeSample` drawn from `SampleStream::next1D` (dim 1 in the renderer's stream allocation), `world::Surface::velocity` Q_PROPERTY, `Instance` interpolates linear translation. Rotation/scale animation, full timeline, and keyframe interpolation curves still TODO.
+- ✅ **Time-sampled rendering for motion blur** (multiple time samples per frame within shutter-open). First pass landed in 7c81d11 — `State::timeSample` drawn from `SampleStream::next1D` (dim 1 in the renderer's stream allocation), `world::Surface::velocity` Q_PROPERTY, `Instance` interpolates linear translation. Runtime-continuous position and pinhole-camera pose tracks now sample at `State::animationTime` (`animationFrame + shutter offset`) without rebuilding the world scene per ray. Rotation/scale animation, full timeline, and keyframe interpolation curves still TODO.
 - Output: image sequence or piped to ffmpeg for video (configurable codec).
 - Eventually (defer): rigid body simulation, particle systems, simple IK skeletons.
 

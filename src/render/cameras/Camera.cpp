@@ -56,12 +56,20 @@ Camera::~Camera() {
 Camera::PrimaryRayGenerator::~PrimaryRayGenerator() = default;
 
 void Camera::copyBaseStateTo(Camera& camera) const {
+  camera.setName(name());
+  camera.setMetadata(metadata());
+  for (const auto& [propertyName, track] : animationTracks()) {
+    camera.setAnimationTrack(propertyName, track);
+  }
   camera.m_cancelled.store(false, std::memory_order_release);
   camera.m_showProgressIndicators = m_showProgressIndicators;
   camera.m_aspectMode = m_aspectMode;
   camera.m_aspectRatio = m_aspectRatio;
   camera.m_position = m_position;
   camera.m_target = m_target;
+  camera.m_animationFrame = m_animationFrame;
+  camera.m_shutterOpen = m_shutterOpen;
+  camera.m_shutterClose = m_shutterClose;
   camera.m_matrix.reset();
   camera.m_inverseMatrix.reset();
   // The cloned view plane already carries m_aspectMode / m_aspectRatio
@@ -116,7 +124,8 @@ Camera::primaryRaySample(const render::ViewPlane::Iterator& pixel, int sampleInd
     viewPlane()->sampler()->sharedStream(sampleIndex, primaryRayPixelHash(pixel, tileSeed));
 
   if (auto sample = primaryRaySample(pixel, *stream)) {
-    return PrimaryRaySample{sample->ray, sample->timeSample, std::move(stream)};
+    return PrimaryRaySample{sample->ray, sample->timeSample, sample->animationTime,
+                            std::move(stream)};
   }
   return std::nullopt;
 }
@@ -140,7 +149,7 @@ std::optional<Camera::PrimaryRay> Camera::primaryRaySample(const render::ViewPla
     return std::nullopt;
   }
 
-  return PrimaryRay{ray, primarySample.time};
+  return PrimaryRay{ray, primarySample.time, animationTimeForSample(primarySample.time)};
 }
 
 std::unique_ptr<Camera::PrimaryRayGenerator> Camera::primaryRayGenerator() const {
@@ -175,6 +184,31 @@ void Camera::setAspectRatio(double ratio) {
 
 double Camera::aspectRatio() const {
   return m_aspectRatio;
+}
+
+void Camera::setAnimationFrame(double frame) {
+  m_animationFrame = frame;
+}
+
+double Camera::animationFrame() const {
+  return m_animationFrame;
+}
+
+void Camera::setShutterInterval(double open, double close) {
+  m_shutterOpen = open;
+  m_shutterClose = close;
+}
+
+double Camera::shutterOpen() const {
+  return m_shutterOpen;
+}
+
+double Camera::shutterClose() const {
+  return m_shutterClose;
+}
+
+double Camera::animationTimeForSample(double timeSample) const {
+  return m_animationFrame + m_shutterOpen + (m_shutterClose - m_shutterOpen) * timeSample;
 }
 
 Vector2d Camera::projectPoint(const Vector3d&) const {
@@ -276,6 +310,8 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
       if (auto sample = primaryRaySample(pixel, sampleIndex, tileSeed)) {
         render::State state;
         state.timeSample = sample->timeSample;
+        state.animationFrame = animationFrame();
+        state.animationTime = sample->animationTime;
         state.sampleStream = sample->sampleStream.get();
         pixelColor += raycaster->rayColor(sample->ray, state);
       }
@@ -497,6 +533,8 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
       if (auto sample = primaryRaySample(pixel, sampleIndex, tileSeed)) {
         render::State state;
         state.timeSample = sample->timeSample;
+        state.animationFrame = animationFrame();
+        state.animationTime = sample->animationTime;
         state.sampleStream = sample->sampleStream.get();
         pixelColor += raycaster->rayColor(sample->ray, state);
       }
@@ -564,6 +602,8 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
       if (auto sample = primaryRaySample(pixel, sampleIndex, tileSeed)) {
         render::State state;
         state.timeSample = sample->timeSample;
+        state.animationFrame = animationFrame();
+        state.animationTime = sample->animationTime;
         state.sampleStream = sample->sampleStream.get();
         pixelColor += raycaster->rayColor(sample->ray, state);
       }
