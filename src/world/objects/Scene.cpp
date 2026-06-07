@@ -184,6 +184,7 @@ void Scene::read(const QJsonObject& json) {
   const auto animationValue = json["animation"];
   if (animationValue.isUndefined()) {
     m_animation.reset();
+    m_evaluatedAnimationFrame.reset();
     return;
   }
 
@@ -191,6 +192,7 @@ void Scene::read(const QJsonObject& json) {
     throw std::invalid_argument("scene animation must be an object");
 
   m_animation = std::make_unique<world::Timeline>(world::Timeline::read(animationValue.toObject()));
+  m_evaluatedAnimationFrame.reset();
 }
 
 void Scene::write(QJsonObject& json) {
@@ -288,10 +290,15 @@ const world::Timeline* Scene::animation() const {
 
 void Scene::setAnimation(std::unique_ptr<world::Timeline> animation) {
   m_animation = std::move(animation);
+  m_evaluatedAnimationFrame.reset();
 }
 
 bool Scene::hasAnimation() const {
   return static_cast<bool>(m_animation);
+}
+
+std::optional<int> Scene::evaluatedAnimationFrame() const {
+  return m_evaluatedAnimationFrame;
 }
 
 std::vector<world::AnimationTrackClassification> Scene::animationTrackClassifications() const {
@@ -335,8 +342,10 @@ engine::graph::RenderSceneAnalysis Scene::renderGraphAnalysis() const {
 }
 
 void Scene::evaluateAnimationAtFrame(int frame) {
-  if (m_animation)
+  if (m_animation) {
     m_animation->apply(*this, frame);
+    m_evaluatedAnimationFrame = frame;
+  }
 }
 
 std::unique_ptr<Scene> Scene::evaluatedAtFrame(int frame) const {

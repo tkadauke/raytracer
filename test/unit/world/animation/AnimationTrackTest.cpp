@@ -247,6 +247,19 @@ namespace AnimationTrackTest {
     EXPECT_THAT(classification.diagnostic.toStdString(), HasSubstr("sampled continuously"));
   }
 
+  TEST(AnimationTrack, ClassifiesSurfaceVelocityAsRuntimeContinuous) {
+    Sphere sphere;
+    const world::AnimationTrack track("sphere-id", "velocity",
+                                      {
+                                        {1, vectorValue(0.0, 0.0, 0.0)},
+                                        {11, vectorValue(2.0, 0.0, 0.0)},
+                                      });
+
+    const auto classification = track.classify(sphere);
+
+    EXPECT_EQ(world::AnimationTrackClass::RuntimeContinuous, classification.trackClass);
+  }
+
   TEST(AnimationTrack, ClassifiesSimpleMaterialScalarsAsRuntimeContinuous) {
     PhongMaterial material;
     const world::AnimationTrack track("material-id", "specularCoefficient",

@@ -256,6 +256,26 @@ translation: the instance, viewed at this `timeSample`, lives
 at the original position plus the shift. The rest of the
 matrix dance proceeds unchanged.
 
+## <a id="velocity-and-keyframes"></a>Velocity and keyframes
+The scene graph now has two ways to describe transform motion:
+explicit animation tracks on `position`, `rotation`, and `scale`,
+and the older `Surface::velocity` convenience property. The rule is:
+
+1. Explicit transform keyframes define the base transform sampled at
+   the current frame plus the per-ray shutter `timeSample`.
+2. `velocity` is composed after that base transform as a world-space
+   shutter translation: `positionAtSample + velocity * timeSample`.
+3. If an explicit `velocity` track exists, it replaces the static
+   `Surface::velocity` value for that sampled frame.
+
+This preserves existing velocity-only scenes. A surface with no
+transform keyframes and `velocity = (2, 0, 0)` still moves from its
+authored position to authored position plus `(2, 0, 0)` over the
+shutter. A keyframed surface, however, treats the keyframes as the
+primary animation model: the sampled keyframe transform answers "where
+is the object at this subframe?", then velocity adds any short shutter
+streak the author requested on top.
+
 ## <a id="the-bounding-box-has-to-expand"></a>The bounding box has to expand
 There's one more piece to motion blur. The [BVH](../appendix/a-glossary.md#b) traversal from
 [Spatial acceleration](spatial-acceleration.md) prunes by [AABB](../appendix/a-glossary.md#a)

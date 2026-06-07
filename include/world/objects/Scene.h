@@ -102,6 +102,12 @@ public:
   bool hasAnimation() const;
 
   /**
+    * @returns the integer animation frame most recently baked into this scene,
+    * or empty when the scene is still in authoring state.
+    */
+  std::optional<int> evaluatedAnimationFrame() const;
+
+  /**
     * @returns classification results for the current animation timeline.
     *
     * Static scenes return an empty vector. Animated scenes preserve timeline
@@ -309,6 +315,7 @@ private:
   Colord m_environmentRadiance;
   render::AccelerationMode m_accelerationMode{render::AccelerationMode::Automatic};
   std::unique_ptr<world::Timeline> m_animation;
+  std::optional<int> m_evaluatedAnimationFrame;
   engine::graph::RenderIntent m_renderIntent;
   bool m_hasRenderIntent{false};
   std::vector<LDrawDiagnostic> m_importDiagnostics;
