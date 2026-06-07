@@ -724,6 +724,9 @@ ray-family pass state can carry
 color-bilateral filter, and `type: "none"` explicitly disables an inherited
 denoiser. rendercli and Modeler Render Settings expose the same controls, so
 denoising is part of compiled render intent rather than a hidden engine toggle.
+Modeler final renders can also apply a one-off Path Tracer/Wavefront denoiser
+override, while the default "Scene settings" choice preserves whatever denoise
+state the scene intent already compiled.
 Denoisers publish their own diagnostics, so future filters can add trace
 metadata without a wavefront-engine type switch. Wavefront denoise metadata
 also reports which albedo/normal/depth feature buffers were supplied to the

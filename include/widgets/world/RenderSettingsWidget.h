@@ -18,6 +18,10 @@ public:
   QString engine() const;
   int samplesPerPixel() const;
   int maxRecursionDepth() const;
+  bool denoiserOverrideEnabled() const;
+  QString denoiser() const;
+  int denoiseRadius() const;
+  double denoiseColorSigma() const;
   int renderThreads() const;
   int queueSize() const;
   int lod() const;

@@ -323,6 +323,92 @@
         </property>
        </widget>
       </item>
+      <item row="6" column="0">
+       <widget class="QLabel" name="label_rayDenoiser">
+        <property name="text">
+         <string>Denoiser</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="1">
+       <widget class="QComboBox" name="rayDenoiser">
+        <property name="toolTip">
+         <string>Final-render denoiser override for wavefront and path-traced renders. Scene settings preserves the scene's saved render intent.</string>
+        </property>
+        <item>
+         <property name="text">
+          <string>Scene settings</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>None</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Box</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Bilateral</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="7" column="0">
+       <widget class="QLabel" name="label_rayDenoiseRadius">
+        <property name="text">
+         <string>Denoise radius</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="1">
+       <widget class="QSpinBox" name="rayDenoiseRadius">
+        <property name="toolTip">
+         <string>Spatial denoiser radius in pixels.</string>
+        </property>
+        <property name="minimum">
+         <number>0</number>
+        </property>
+        <property name="maximum">
+         <number>16</number>
+        </property>
+        <property name="value">
+         <number>2</number>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="0">
+       <widget class="QLabel" name="label_rayDenoiseColorSigma">
+        <property name="text">
+         <string>Color sigma</string>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="1">
+       <widget class="QDoubleSpinBox" name="rayDenoiseColorSigma">
+        <property name="toolTip">
+         <string>Bilateral denoiser color edge threshold. Lower values preserve stronger color edges.</string>
+        </property>
+        <property name="decimals">
+         <number>3</number>
+        </property>
+        <property name="minimum">
+         <double>0.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>10.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>0.050000000000000</double>
+        </property>
+        <property name="value">
+         <double>0.100000000000000</double>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

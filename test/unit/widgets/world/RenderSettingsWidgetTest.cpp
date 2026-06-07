@@ -153,6 +153,78 @@ namespace RenderSettingsWidgetTest {
     EXPECT_GT(widget.maxRecursionDepth(), 0);
   }
 
+  TEST_F(RenderSettingsWidgetTest, ShouldDefaultRayDenoiserToSceneSettings) {
+    RenderSettingsWidget widget;
+
+    EXPECT_FALSE(widget.denoiserOverrideEnabled());
+    EXPECT_EQ(QString("Scene settings"), widget.denoiser());
+    EXPECT_EQ(2, widget.denoiseRadius());
+    EXPECT_DOUBLE_EQ(0.1, widget.denoiseColorSigma());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldReadRayDenoiserControls) {
+    RenderSettingsWidget widget;
+    auto denoiser = widget.findChild<QComboBox*>("rayDenoiser");
+    auto radius = widget.findChild<QSpinBox*>("rayDenoiseRadius");
+    auto colorSigma = widget.findChild<QDoubleSpinBox*>("rayDenoiseColorSigma");
+    ASSERT_NE(nullptr, denoiser);
+    ASSERT_NE(nullptr, radius);
+    ASSERT_NE(nullptr, colorSigma);
+
+    denoiser->setCurrentText("Bilateral");
+    radius->setValue(4);
+    colorSigma->setValue(0.25);
+
+    EXPECT_TRUE(widget.denoiserOverrideEnabled());
+    EXPECT_EQ(QString("Bilateral"), widget.denoiser());
+    EXPECT_EQ(4, widget.denoiseRadius());
+    EXPECT_DOUBLE_EQ(0.25, widget.denoiseColorSigma());
+
+    denoiser->setCurrentText("None");
+
+    EXPECT_TRUE(widget.denoiserOverrideEnabled());
+    EXPECT_EQ(QString("None"), widget.denoiser());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldShowRayDenoiserControlsOnlyForPathTracerAndWavefront) {
+    RenderSettingsWidget widget;
+    auto engineType = widget.findChild<QComboBox*>("engineType");
+    auto denoiser = widget.findChild<QComboBox*>("rayDenoiser");
+    auto radius = widget.findChild<QSpinBox*>("rayDenoiseRadius");
+    auto colorSigma = widget.findChild<QDoubleSpinBox*>("rayDenoiseColorSigma");
+    ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, denoiser);
+    ASSERT_NE(nullptr, radius);
+    ASSERT_NE(nullptr, colorSigma);
+
+    EXPECT_TRUE(denoiser->isHidden());
+    EXPECT_TRUE(radius->isHidden());
+    EXPECT_TRUE(colorSigma->isHidden());
+
+    engineType->setCurrentText("Path Tracer");
+    EXPECT_FALSE(denoiser->isHidden());
+    EXPECT_TRUE(radius->isHidden());
+    EXPECT_TRUE(colorSigma->isHidden());
+
+    denoiser->setCurrentText("Box");
+    EXPECT_FALSE(radius->isHidden());
+    EXPECT_TRUE(colorSigma->isHidden());
+
+    denoiser->setCurrentText("Bilateral");
+    EXPECT_FALSE(radius->isHidden());
+    EXPECT_FALSE(colorSigma->isHidden());
+
+    engineType->setCurrentText("Wavefront");
+    EXPECT_FALSE(denoiser->isHidden());
+    EXPECT_FALSE(radius->isHidden());
+    EXPECT_FALSE(colorSigma->isHidden());
+
+    engineType->setCurrentText("Raytracer");
+    EXPECT_TRUE(denoiser->isHidden());
+    EXPECT_TRUE(radius->isHidden());
+    EXPECT_TRUE(colorSigma->isHidden());
+  }
+
   TEST_F(RenderSettingsWidgetTest, ShouldDefaultRasterMSAAToOneSample) {
     RenderSettingsWidget widget;
     EXPECT_EQ(QString("CPU"), widget.rasterBackend());

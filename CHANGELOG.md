@@ -47,6 +47,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Path tracer Russian roulette controls.** Render intent, graph JSON,
   rendercli, and Modeler Render Settings now expose the path tracer bounce
   depth where Russian-roulette termination begins. — GPT-5
+- **Modeler path tracer denoiser override.** The final render dialog can now
+  preserve scene denoiser settings or explicitly override Path Tracer/Wavefront
+  renders to None, Box, or Bilateral with radius and color-sigma controls.
+  — GPT-5
 - Wavefront/pathtracer graph renders can export a `sample_stddev` AOV, and
   rendercli can write it through `--wavefront_sample_stddev_out` for
   path-tracing noise analysis. — GPT-5

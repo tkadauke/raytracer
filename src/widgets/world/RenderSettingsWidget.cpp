@@ -110,6 +110,8 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
   connect(p->ui.rasterBackend, SIGNAL(currentTextChanged(const QString&)), this,
           SLOT(updateEngineControls()));
   connect(p->ui.rasterShadowMaps, SIGNAL(toggled(bool)), this, SLOT(updateEngineControls()));
+  connect(p->ui.rayDenoiser, SIGNAL(currentTextChanged(const QString&)), this,
+          SLOT(updateEngineControls()));
   connect(p->ui.samplerType, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this] {
     if (!p->updatingSamplerDefault) {
       p->samplerDefaultManaged = false;
@@ -177,6 +179,22 @@ int RenderSettingsWidget::samplesPerPixel() const {
 
 int RenderSettingsWidget::maxRecursionDepth() const {
   return p->ui.maxRecursionDepth->value();
+}
+
+bool RenderSettingsWidget::denoiserOverrideEnabled() const {
+  return p->ui.rayDenoiser->currentText() != QStringLiteral("Scene settings");
+}
+
+QString RenderSettingsWidget::denoiser() const {
+  return p->ui.rayDenoiser->currentText();
+}
+
+int RenderSettingsWidget::denoiseRadius() const {
+  return p->ui.rayDenoiseRadius->value();
+}
+
+double RenderSettingsWidget::denoiseColorSigma() const {
+  return p->ui.rayDenoiseColorSigma->value();
 }
 
 int RenderSettingsWidget::renderThreads() const {
@@ -272,9 +290,20 @@ void RenderSettingsWidget::updateEngineControls() {
   // Rasterizer shares Wireframe's LOD knob, and adds raster-only quality controls.
   const QString eng = engine();
   const bool isRayFamily = (eng == "Raytracer" || eng == "Path Tracer" || eng == "Wavefront");
+  const bool supportsRayDenoiser = (eng == "Path Tracer" || eng == "Wavefront");
+  const bool denoiserIsBox = p->ui.rayDenoiser->currentText() == QStringLiteral("Box");
+  const bool denoiserIsBilateral = p->ui.rayDenoiser->currentText() == QStringLiteral("Bilateral");
+  const bool showRayDenoiseRadius = supportsRayDenoiser && (denoiserIsBox || denoiserIsBilateral);
+  const bool showRayDenoiseColorSigma = supportsRayDenoiser && denoiserIsBilateral;
   const bool isRasterizer = (eng == "Rasterizer");
   const bool showShadowDetails = isRasterizer && shadowMapsEnabled();
   p->ui.raytracerFrame->setVisible(isRayFamily);
+  p->ui.label_rayDenoiser->setVisible(supportsRayDenoiser);
+  p->ui.rayDenoiser->setVisible(supportsRayDenoiser);
+  p->ui.label_rayDenoiseRadius->setVisible(showRayDenoiseRadius);
+  p->ui.rayDenoiseRadius->setVisible(showRayDenoiseRadius);
+  p->ui.label_rayDenoiseColorSigma->setVisible(showRayDenoiseColorSigma);
+  p->ui.rayDenoiseColorSigma->setVisible(showRayDenoiseColorSigma);
   p->ui.wireframeFrame->setVisible(!isRayFamily);
   p->ui.label_rasterBackend->setVisible(isRasterizer);
   p->ui.rasterBackend->setVisible(isRasterizer);
@@ -313,6 +342,9 @@ void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.engineType->setEnabled(!busy);
   p->ui.samplesPerPixel->setEnabled(!busy);
   p->ui.maxRecursionDepth->setEnabled(!busy);
+  p->ui.rayDenoiser->setEnabled(!busy);
+  p->ui.rayDenoiseRadius->setEnabled(!busy);
+  p->ui.rayDenoiseColorSigma->setEnabled(!busy);
   p->ui.renderThreads->setEnabled(!busy);
   p->ui.queueSize->setEnabled(!busy);
   p->ui.lod->setEnabled(!busy);

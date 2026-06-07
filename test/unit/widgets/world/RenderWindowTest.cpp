@@ -2,6 +2,7 @@
 
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/RasterPassState.h"
+#include "engine/graph/RaytracerPassState.h"
 #include "render/cameras/Camera.h"
 #include "widgets/RenderWidget.h"
 #include "widgets/world/RenderGraphInspectorWidget.h"
@@ -152,6 +153,71 @@ namespace RenderWindowTest {
     engineType->setCurrentText("Wireframe");
 
     EXPECT_NE(nullptr, graphInspector->effectivePlan().findPass("wireframe_beauty"));
+  }
+
+  TEST_F(RenderWindowTest, ShouldCompilePathTracerDenoiserOverrideIntoRenderGraph) {
+    RenderWindow window;
+    Scene scene;
+    window.setScene(&scene);
+
+    auto* engineType = window.findChild<QComboBox*>("engineType");
+    auto* denoiser = window.findChild<QComboBox*>("rayDenoiser");
+    auto* radius = window.findChild<QSpinBox*>("rayDenoiseRadius");
+    auto* colorSigma = window.findChild<QDoubleSpinBox*>("rayDenoiseColorSigma");
+    ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, denoiser);
+    ASSERT_NE(nullptr, radius);
+    ASSERT_NE(nullptr, colorSigma);
+
+    engineType->setCurrentText("Path Tracer");
+    denoiser->setCurrentText("Bilateral");
+    radius->setValue(5);
+    colorSigma->setValue(0.3);
+    QCoreApplication::processEvents();
+
+    auto* graphInspector = window.findChild<RenderGraphInspectorWidget*>();
+    ASSERT_NE(nullptr, graphInspector);
+    const auto plan = graphInspector->effectivePlan();
+    const auto* beautyPass = plan.findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, beautyPass);
+    const auto* state = engine::graph::RaytracerBeautyPassState::fromPass(*beautyPass);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->integrator().has_value());
+    EXPECT_EQ("pathtracer", *state->integrator());
+    ASSERT_TRUE(state->denoiser().has_value());
+    EXPECT_EQ("bilateral", *state->denoiser());
+    ASSERT_TRUE(state->denoiseRadius().has_value());
+    EXPECT_EQ(5, *state->denoiseRadius());
+    ASSERT_TRUE(state->denoiseColorSigma().has_value());
+    EXPECT_DOUBLE_EQ(0.3, *state->denoiseColorSigma());
+  }
+
+  TEST_F(RenderWindowTest, ShouldPreserveSceneDenoiserWhenFinalDialogUsesSceneSettings) {
+    RenderWindow window;
+    Scene scene;
+    engine::graph::RenderIntent intent;
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::PathTracer;
+    intent.engineOptions.raytracer().setDenoiser("box");
+    intent.engineOptions.raytracer().setDenoiseRadius(3);
+    scene.setRenderIntent(intent);
+    window.setScene(&scene);
+
+    auto* engineType = window.findChild<QComboBox*>("engineType");
+    ASSERT_NE(nullptr, engineType);
+    engineType->setCurrentText("Path Tracer");
+    QCoreApplication::processEvents();
+
+    auto* graphInspector = window.findChild<RenderGraphInspectorWidget*>();
+    ASSERT_NE(nullptr, graphInspector);
+    const auto plan = graphInspector->effectivePlan();
+    const auto* beautyPass = plan.findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, beautyPass);
+    const auto* state = engine::graph::RaytracerBeautyPassState::fromPass(*beautyPass);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->denoiser().has_value());
+    EXPECT_EQ("box", *state->denoiser());
+    ASSERT_TRUE(state->denoiseRadius().has_value());
+    EXPECT_EQ(3, *state->denoiseRadius());
   }
 
   TEST_F(RenderWindowTest, ShouldCompileRasterShadowsIntoRenderGraph) {

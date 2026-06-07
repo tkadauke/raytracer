@@ -5,6 +5,7 @@
 #include "widgets/RenderWidget.h"
 
 #include "engine/graph/GraphRenderEngine.h"
+#include "engine/graph/RenderEngineOptions.h"
 #include "engine/graph/RenderGraphRequest.h"
 #include "engine/raster/RasterBackend.h"
 #include "render/primitives/Scene.h"
@@ -61,6 +62,24 @@ struct RenderWindow::Private {
     return engine::graph::RenderPostProcessAA::None;
   }
 
+  void applyRayDenoiserOverride(engine::graph::RenderRaytracerOptions& options) const {
+    if (!settingsWidget->denoiserOverrideEnabled()) {
+      return;
+    }
+
+    const QString denoiser = settingsWidget->denoiser();
+    if (denoiser == "None") {
+      options.setDenoiser("none");
+    } else if (denoiser == "Box") {
+      options.setDenoiser("box");
+      options.setDenoiseRadius(settingsWidget->denoiseRadius());
+    } else if (denoiser == "Bilateral") {
+      options.setDenoiser("bilateral");
+      options.setDenoiseRadius(settingsWidget->denoiseRadius());
+      options.setDenoiseColorSigma(settingsWidget->denoiseColorSigma());
+    }
+  }
+
   engine::graph::RenderIntent renderIntent() const {
     engine::graph::RenderIntent intent = baseIntent;
 
@@ -106,6 +125,7 @@ struct RenderWindow::Private {
       options.setMaximumRecursionDepth(settingsWidget->maxRecursionDepth());
       options.setMaximumThreads(settingsWidget->renderThreads());
       options.setQueueSize(settingsWidget->queueSize());
+      applyRayDenoiserOverride(options);
     }
     return intent;
   }

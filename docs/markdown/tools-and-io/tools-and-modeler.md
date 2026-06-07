@@ -403,6 +403,9 @@ Raytracer sampler default and one sample per pixel, but switches
 default-managed Path Tracer renders to Halton and 64 samples per pixel,
 matching the sampler guidance for stochastic transport; once the user picks a
 sampler or sample count explicitly, later engine changes preserve that choice.
+For Path Tracer and Wavefront final renders, the same dialog can leave the
+scene's saved denoiser intent alone or explicitly override it to None, Box, or
+Bilateral with radius and bilateral color-sigma controls.
 Engine-specific fields only show for the selected default engine. The same
 property editor has a search field for filtering long property sets and
 collapsible groups so advanced scene/import settings can stay out of the way.
