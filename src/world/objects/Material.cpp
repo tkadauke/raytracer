@@ -71,4 +71,6 @@ void Material::applyMaterialProperties(const std::shared_ptr<render::Material>& 
     break;
   }
   material->setRenderTextureSubview(m_renderTextureSubview.toStdString());
+
+  attachRuntimeAnimationTracks(*material);
 }

@@ -71,6 +71,9 @@ public:
 
   virtual std::shared_ptr<render::Camera> toRaytracer() const = 0;
 
+protected:
+  void applyCameraProperties(const std::shared_ptr<render::Camera>& camera) const;
+
 private:
   Vector3d m_position;
   Vector3d m_target;

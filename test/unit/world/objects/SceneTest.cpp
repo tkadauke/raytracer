@@ -7,6 +7,7 @@
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/PointLight.h"
 #include "world/objects/Group.h"
+#include "world/objects/PhongMaterial.h"
 #include "world/objects/Rectangle.h"
 #include "world/objects/Sphere.h"
 #include "world/objects/Material.h"
@@ -17,9 +18,13 @@
 #include "render/primitives/BVH.h"
 #include "render/primitives/Composite.h"
 #include "render/primitives/Grid.h"
+#include "render/primitives/Instance.h"
 #include "render/primitives/MeshPrimitive.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/SpatialIndexFactory.h"
+#include "render/cameras/Camera.h"
+#include "render/lights/Light.h"
+#include "render/materials/Material.h"
 #include "core/math/Vector.h"
 #include "core/math/Angle.h"
 #include "core/Color.h"
@@ -956,6 +961,114 @@ namespace SceneTest {
     auto* evaluatedCamera = qobject_cast<PinholeCamera*>(evaluated->findById("camera-id"));
     ASSERT_NE(nullptr, evaluatedCamera);
     EXPECT_EQ(Vector3d(5.0, 0.0, 0.0), evaluatedCamera->position());
+  }
+
+  TEST(Scene, ShouldCompileEligibleCameraTracksToRuntimeCamera) {
+    Scene scene;
+    auto* camera = new PinholeCamera;
+    camera->setId("camera-id");
+    scene.addChild(camera);
+    scene.setAnimation(std::make_unique<world::Timeline>(
+      1, 11, 24.0,
+      std::vector<world::AnimationTrack>({
+        world::AnimationTrack("camera-id", "position",
+                              {{1, vectorValue(0.0, 0.0, -5.0)},
+                               {11, vectorValue(10.0, 0.0, -5.0)}}),
+        world::AnimationTrack("camera-id", "target",
+                              {{1, vectorValue(0.0, 0.0, 0.0)},
+                               {11, vectorValue(0.0, 5.0, 0.0)}}),
+      })));
+
+    const auto runtimeCamera = camera->toRaytracer();
+
+    ASSERT_NE(nullptr, runtimeCamera->animationTrack("position"));
+    EXPECT_EQ(Vector3d(5.0, 0.0, -5.0),
+              runtimeCamera->animationTrack("position")->sample(6.0).get<Vector3d>());
+    ASSERT_NE(nullptr, runtimeCamera->animationTrack("target"));
+    EXPECT_EQ(Vector3d(0.0, 2.5, 0.0),
+              runtimeCamera->animationTrack("target")->sample(6.0).get<Vector3d>());
+    EXPECT_EQ("camera-id", runtimeCamera->metadataValue("world:id"));
+  }
+
+  TEST(Scene, ShouldCompileEligibleSurfaceTracksToRuntimeInstanceOnly) {
+    Scene scene;
+    auto* sphere = new Sphere;
+    sphere->setId("sphere-id");
+    scene.addChild(sphere);
+    scene.setAnimation(std::make_unique<world::Timeline>(
+      1, 11, 24.0,
+      std::vector<world::AnimationTrack>({
+        world::AnimationTrack("sphere-id", "position",
+                              {{1, vectorValue(0.0, 0.0, 0.0)},
+                               {11, vectorValue(10.0, 0.0, 0.0)}}),
+        world::AnimationTrack("sphere-id", "visible",
+                              {{1, QJsonValue(true)}, {11, QJsonValue(false)}},
+                              core::math::interpolation::InterpolationMode::Step),
+      })));
+
+    auto runtimeScene = std::make_shared<render::Scene>();
+    const auto primitive = sphere->toRaytracer(runtimeScene.get());
+    const auto instance = std::dynamic_pointer_cast<render::Instance>(primitive);
+
+    ASSERT_NE(nullptr, instance);
+    ASSERT_NE(nullptr, instance->animationTrack("position"));
+    EXPECT_EQ(Vector3d(5.0, 0.0, 0.0),
+              instance->animationTrack("position")->sample(6.0).get<Vector3d>());
+    EXPECT_EQ(nullptr, instance->animationTrack("visible"));
+  }
+
+  TEST(Scene, ShouldCompileEligibleLightTracksToRuntimeLight) {
+    Scene scene;
+    auto* light = new PointLight;
+    light->setId("light-id");
+    scene.addChild(light);
+    scene.setAnimation(std::make_unique<world::Timeline>(
+      1, 11, 24.0,
+      std::vector<world::AnimationTrack>({
+        world::AnimationTrack("light-id", "color",
+                              {{1, colorValue(0.0, 0.0, 0.0)},
+                               {11, colorValue(1.0, 0.5, 0.0)}}),
+        world::AnimationTrack("light-id", "intensity",
+                              {{1, QJsonValue(0.0)}, {11, QJsonValue(1.0)}}),
+      })));
+
+    const auto runtimeLight = light->toRaytracer();
+
+    ASSERT_NE(nullptr, runtimeLight->animationTrack("color"));
+    EXPECT_EQ(Colord(0.5, 0.25, 0.0),
+              runtimeLight->animationTrack("color")->sample(6.0).get<Colord>());
+    ASSERT_NE(nullptr, runtimeLight->animationTrack("intensity"));
+    EXPECT_DOUBLE_EQ(0.5, runtimeLight->animationTrack("intensity")->sample(6.0).get<double>());
+  }
+
+  TEST(Scene, ShouldCompileEligibleMaterialTracksToRuntimeMaterial) {
+    Scene scene;
+    auto* material = new PhongMaterial;
+    material->setId("material-id");
+    scene.addChild(material);
+    auto* sphere = new Sphere;
+    sphere->setId("sphere-id");
+    sphere->setMaterial(material);
+    scene.addChild(sphere);
+    scene.setAnimation(std::make_unique<world::Timeline>(
+      1, 11, 24.0,
+      std::vector<world::AnimationTrack>({
+        world::AnimationTrack("material-id", "specularCoefficient",
+                              {{1, QJsonValue(0.0)}, {11, QJsonValue(1.0)}}),
+        world::AnimationTrack("material-id", "sidedness",
+                              {{1, QJsonValue("Front")}, {11, QJsonValue("Back")}},
+                              core::math::interpolation::InterpolationMode::Step),
+      })));
+
+    auto runtimeScene = std::make_shared<render::Scene>();
+    const auto primitive = sphere->toRaytracer(runtimeScene.get());
+    ASSERT_NE(nullptr, primitive);
+    const auto runtimeMaterial = primitive->material();
+
+    ASSERT_NE(nullptr, runtimeMaterial->animationTrack("specularCoefficient"));
+    EXPECT_DOUBLE_EQ(
+      0.5, runtimeMaterial->animationTrack("specularCoefficient")->sample(6.0).get<double>());
+    EXPECT_EQ(nullptr, runtimeMaterial->animationTrack("sidedness"));
   }
 
   TEST(Scene, ShouldRejectNonObjectAnimationJson) {

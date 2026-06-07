@@ -18,6 +18,7 @@ std::shared_ptr<render::Camera> TiltShiftCamera::toRaytracer() const {
   camera->setFocalDistance(focalDistance());
   camera->setTilt(m_tilt);
   camera->setShift(Vector2d(m_shiftX, m_shiftY));
+  applyCameraProperties(camera);
   return camera;
 }
 

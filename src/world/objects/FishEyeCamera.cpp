@@ -11,6 +11,7 @@ FishEyeCamera::FishEyeCamera(Element* parent)
 std::shared_ptr<render::Camera> FishEyeCamera::toRaytracer() const {
   auto camera = make_named<render::FishEyeCamera>(position(), target());
   camera->setFieldOfView(fieldOfView());
+  applyCameraProperties(camera);
   return camera;
 }
 

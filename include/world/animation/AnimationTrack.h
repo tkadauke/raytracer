@@ -8,6 +8,7 @@
 #include <QVariant>
 
 #include "core/math/interpolation/Interpolation.h"
+#include "render/animation/AnimationTrack.h"
 
 class Element;
 
@@ -111,6 +112,18 @@ namespace world {
     * diagnostics and should not be compiled.
     */
     [[nodiscard]] AnimationTrackClassification classify(const Element& target) const;
+
+    /**
+    * Compiles this world track into a Qt-free render animation track.
+    *
+    * The target property metadata selects the same value decoder used by
+    * `sample()`, but key times remain continuous doubles so render code can
+    * sample subframes without going back through the editable world scene.
+    *
+    * @throws std::runtime_error if the property is missing, unsupported, or
+    *   cannot be represented by render-time animation values.
+    */
+    [[nodiscard]] render::animation::AnimationTrack toRenderTrack(const Element& target) const;
 
     /**
     * Samples this track for @p target at @p frame.

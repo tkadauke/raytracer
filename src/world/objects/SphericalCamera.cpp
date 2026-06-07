@@ -12,6 +12,7 @@ SphericalCamera::SphericalCamera(Element* parent)
 std::shared_ptr<render::Camera> SphericalCamera::toRaytracer() const {
   auto camera = make_named<render::SphericalCamera>(position(), target());
   camera->setFieldOfView(horizontalFieldOfView(), verticalFieldOfView());
+  applyCameraProperties(camera);
   return camera;
 }
 

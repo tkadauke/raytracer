@@ -47,6 +47,8 @@ Surface::applyTransform(std::shared_ptr<render::Primitive> primitive) const {
   result->setMatrix(localTransform());
   result->setVelocity(m_velocity);
   result->setRenderTextureSubview(primitive->renderTextureSubview());
+  result->setName(name().toStdString());
+  attachRuntimeAnimationTracks(*result);
   return result;
 }
 
