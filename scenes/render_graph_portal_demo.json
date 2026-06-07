@@ -1,0 +1,130 @@
+{
+  "id": "{63000000-0000-0000-0000-000000000000}",
+  "name": "Render Graph Portal Demo",
+  "ambient": [0.32, 0.32, 0.34],
+  "background": [0.08, 0.10, 0.14],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "raytracer",
+    "defaultViewMode": "beauty",
+    "defaultCamera": {
+      "sceneCameraId": "{63000000-0000-0000-0000-000000000001}"
+    },
+    "enableAutomaticFeatures": true,
+    "maxRenderToTextureRecursionDepth": 1
+  },
+  "children": [
+    {
+      "id": "{63000000-0000-0000-0000-000000000001}",
+      "name": "Portal Demo Camera",
+      "position": [0.0, 0.0, -5.2],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.8,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{63000000-0000-0000-0000-000000000002}",
+      "name": "Portal Demo Light",
+      "position": [-1.8, -3.2, -3.4],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 0.96, 0.88],
+      "intensity": 2.2,
+      "type": "PointLight",
+      "children": []
+    },
+    {
+      "id": "{63000000-0000-0000-0000-000000000010}",
+      "name": "Portal Surface Tint",
+      "color": [0.72, 0.86, 1.0],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{63000000-0000-0000-0000-000000000011}",
+      "name": "Portal Target Color",
+      "color": [0.95, 0.28, 0.16],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{63000000-0000-0000-0000-000000000012}",
+      "name": "Portal Floor Color",
+      "color": [0.32, 0.36, 0.34],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{63000000-0000-0000-0000-000000000020}",
+      "name": "Portal Material",
+      "position": [2.4, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "filterColor": [0.85, 0.95, 1.0],
+      "type": "PortalMaterial",
+      "children": []
+    },
+    {
+      "id": "{63000000-0000-0000-0000-000000000021}",
+      "name": "Portal Target Material",
+      "diffuseTexture": "{63000000-0000-0000-0000-000000000011}",
+      "ambientCoefficient": 0.40,
+      "diffuseCoefficient": 0.95,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{63000000-0000-0000-0000-000000000022}",
+      "name": "Portal Floor Material",
+      "diffuseTexture": "{63000000-0000-0000-0000-000000000012}",
+      "ambientCoefficient": 0.35,
+      "diffuseCoefficient": 0.85,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{63000000-0000-0000-0000-000000000030}",
+      "name": "Portal Window",
+      "position": [-0.78, -0.78, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{63000000-0000-0000-0000-000000000020}",
+      "portalReceiverMarker": true,
+      "leg1": [1.56, 0.0, 0.0],
+      "leg2": [0.0, 1.56, 0.0],
+      "type": "Rectangle",
+      "children": []
+    },
+    {
+      "id": "{63000000-0000-0000-0000-000000000031}",
+      "name": "Portal Target Sphere",
+      "position": [2.4, 0.0, 0.15],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{63000000-0000-0000-0000-000000000021}",
+      "radius": 0.62,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "{63000000-0000-0000-0000-000000000032}",
+      "name": "Portal Demo Floor",
+      "position": [-2.2, 1.25, 1.4],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{63000000-0000-0000-0000-000000000022}",
+      "size": [5.0, 0.08, 3.2],
+      "bevelRadius": 0.0,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Box",
+      "children": []
+    }
+  ]
+}

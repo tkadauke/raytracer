@@ -609,7 +609,7 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(activeCamera.get(), resolved.get());
   }
 
-  TEST(GraphRenderEngine, RejectsDerivedCameraReceiverClippingDuringExecution) {
+  TEST(GraphRenderEngine, ExecutesDerivedCameraReceiverClippingPasses) {
     RenderPlan plan;
     plan.addResource(colorResource("beauty_color", RenderResourceLifetime::Transient, 16, 16));
     plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported, 16, 16));
@@ -640,12 +640,9 @@ namespace GraphRenderEngineTest {
     engine.setPlan(plan);
     Buffer<unsigned int> buffer(16, 16);
 
-    try {
-      engine.render(buffer);
-      FAIL() << "expected derived camera clipping rejection";
-    } catch (const std::runtime_error& error) {
-      EXPECT_NE(std::string::npos, std::string(error.what()).find("receiver clipping"));
-    }
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
   }
 
   TEST(GraphRenderEngine, ExecutesRasterVisibilityCullingBaseline) {
