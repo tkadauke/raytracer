@@ -4,10 +4,19 @@
 #include "engine/raster/gl/Bindings.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
 template<class T>
 class Buffer;
+
+namespace engine::raster::detail {
+  class OpenGLRasterResource;
+}
+
+namespace engine::raster::gl {
+  class Context;
+}
 
 namespace engine::raster::gl {
   /**
@@ -115,6 +124,13 @@ namespace engine::raster::gl {
     /// Read the stencil attachment as raw bytes with the same
     /// row-flip. Sets `errorMessage()` and no-ops when `samples() > 0`.
     void copyStencilTo(::Buffer<std::uint8_t>& target);
+
+    std::shared_ptr<detail::OpenGLRasterResource>
+    copyColorToOpenGLResource(std::shared_ptr<Context> sourceContext);
+    std::shared_ptr<detail::OpenGLRasterResource>
+    copyDepthToOpenGLResource(std::shared_ptr<Context> sourceContext);
+    std::shared_ptr<detail::OpenGLRasterResource>
+    copyStencilToOpenGLResource(std::shared_ptr<Context> sourceContext);
 
     /// Last operation's error message; empty when the most recent
     /// operation succeeded.

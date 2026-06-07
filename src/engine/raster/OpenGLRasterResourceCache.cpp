@@ -116,7 +116,7 @@ namespace engine::raster::detail {
   }
 
   OpenGLRasterResourceCache::OpenGLRasterResourceCache()
-      : context(gl::createOffscreenContext()) {
+      : context(std::shared_ptr<gl::Context>(gl::createOffscreenContext().release())) {
   }
 
   OpenGLRasterResourceCache::MeshSlotResult

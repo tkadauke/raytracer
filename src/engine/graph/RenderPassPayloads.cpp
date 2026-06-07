@@ -15,6 +15,7 @@
 #include "engine/graph/WireframePassState.h"
 #include "engine/raster/OpenGLRasterizer.h"
 #include "engine/raster/Rasterizer.h"
+#include "engine/raster/detail/OpenGLRasterResource.h"
 #include "engine/raster/RasterVisibilitySceneCache.h"
 #include "engine/raster/RasterVisibilitySet.h"
 #include "engine/raster/detail/RasterTriangleEmitter.h"
@@ -72,6 +73,39 @@ namespace engine::graph {
       if (!storage.resource(resource).objectIdBacked()) {
         throw passError(pass, "resource '" + resource + "' is not object-id-backed");
       }
+    }
+
+    bool isGpuResourceOfType(const RenderResourceStorage& storage, const RenderResourceId& resource,
+                             RenderResourceType type) {
+      const auto& descriptor = storage.descriptor(resource);
+      return descriptor.domain == RenderResourceDomain::GPU && descriptor.type == type;
+    }
+
+    void requireColorOrGpuColorResource(const RenderResourceStorage& storage,
+                                        const RenderResourceId& resource,
+                                        const RenderPassNode& pass) {
+      if (isGpuResourceOfType(storage, resource, RenderResourceType::Color)) {
+        return;
+      }
+      requireColorResource(storage, resource, pass);
+    }
+
+    void requireDepthOrGpuDepthResource(const RenderResourceStorage& storage,
+                                        const RenderResourceId& resource,
+                                        const RenderPassNode& pass) {
+      if (isGpuResourceOfType(storage, resource, RenderResourceType::Depth)) {
+        return;
+      }
+      requireDepthResource(storage, resource, pass);
+    }
+
+    void requireStencilOrGpuStencilResource(const RenderResourceStorage& storage,
+                                           const RenderResourceId& resource,
+                                           const RenderPassNode& pass) {
+      if (isGpuResourceOfType(storage, resource, RenderResourceType::Stencil)) {
+        return;
+      }
+      requireStencilResource(storage, resource, pass);
     }
 
     void requireMatchingSize(const Buffer<Colord>& source, const Buffer<Colord>& destination,
@@ -441,11 +475,26 @@ namespace engine::graph {
       void execute(RenderExecutionContext& context) override {
         const auto& pass = context.pass();
         const auto& write = pass.singleWrite();
-        requireColorResource(context.storage(), write.resource, pass);
+        requireColorOrGpuColorResource(context.storage(), write.resource, pass);
 
         auto engine = createEngine(context);
         prepareEngine(*engine, context.graph(), context.cancelled(), context.graph().tonemap());
         context.setActiveEngine(engine);
+        const auto& descriptor = context.storage().descriptor(write.resource);
+        const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(pass);
+        if (state.execution().backend().isOpenGL() &&
+            descriptor.domain == RenderResourceDomain::GPU) {
+          auto rasterizer =
+            std::static_pointer_cast<::engine::raster::OpenGLRasterizer>(engine);
+          auto outputs = rasterizer->renderResident(descriptor.width, descriptor.height, true,
+                                                    false, false);
+          if (!outputs.color) {
+            throw passError(pass, "OpenGL raster color resident publication failed");
+          }
+          context.storage().bindOpenGLResource(write.resource, std::move(outputs.color));
+          recordTraceMessages(context, engine);
+          return;
+        }
         engine->render(context.storage().color(write.resource));
         recordTraceMessages(context, engine);
         recordRasterMetrics(context, engine);
@@ -834,7 +883,7 @@ namespace engine::graph {
       void execute(RenderExecutionContext& context) override {
         const auto& pass = context.pass();
         const auto& write = pass.singleWrite();
-        requireDepthResource(context.storage(), write.resource, pass);
+        requireDepthOrGpuDepthResource(context.storage(), write.resource, pass);
 
         const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(pass);
         if (state.execution().backend().isOpenGL()) {
@@ -856,8 +905,19 @@ namespace engine::graph {
         state.applyTo(*rasterizer);
 
         const auto& write = context.pass().singleWrite();
+        const auto& descriptor = context.storage().descriptor(write.resource);
         prepareEngine(*rasterizer, context.graph(), context.cancelled(), context.graph().tonemap());
         context.setActiveEngine(rasterizer);
+        if (descriptor.domain == RenderResourceDomain::GPU) {
+          auto outputs =
+            rasterizer->renderResident(descriptor.width, descriptor.height, false, true, false);
+          if (!outputs.depth) {
+            throw passError(context.pass(), "OpenGL raster depth resident publication failed");
+          }
+          context.storage().bindOpenGLResource(write.resource, std::move(outputs.depth));
+          recordOpenGLRasterTraceMessages(context, rasterizer);
+          return;
+        }
         rasterizer->renderDepth(context.storage().depth(write.resource));
         recordOpenGLRasterTraceMessages(context, rasterizer);
       }
@@ -869,15 +929,15 @@ namespace engine::graph {
       void execute(RenderExecutionContext& context) override {
         const auto& pass = context.pass();
         const auto& write = pass.singleWrite();
-        requireStencilResource(context.storage(), write.resource, pass);
+        requireStencilOrGpuStencilResource(context.storage(), write.resource, pass);
 
-        Buffer<std::uint8_t>& stencil = context.storage().stencil(write.resource);
         const RasterBeautyPassState state = stencilAOVState(pass);
         if (state.execution().backend().isOpenGL()) {
-          renderOpenGLStencil(context, state, stencil);
+          renderOpenGLStencil(context, state);
           return;
         }
 
+        Buffer<std::uint8_t>& stencil = context.storage().stencil(write.resource);
         auto camera = context.camera() ? context.camera()->clone() : nullptr;
         auto rasterizer = std::make_shared<::engine::raster::Rasterizer>(std::move(camera),
                                                                          context.graph().scene());
@@ -895,15 +955,28 @@ namespace engine::graph {
       }
 
     private:
-      void renderOpenGLStencil(RenderExecutionContext& context, const RasterBeautyPassState& state,
-                               Buffer<std::uint8_t>& stencil) const {
+      void renderOpenGLStencil(RenderExecutionContext& context,
+                               const RasterBeautyPassState& state) const {
         auto camera = context.camera() ? context.camera()->clone() : nullptr;
         auto rasterizer = std::make_shared<::engine::raster::OpenGLRasterizer>(
           std::move(camera), context.graph().scene());
         state.applyTo(*rasterizer);
 
+        const auto& write = context.pass().singleWrite();
+        const auto& descriptor = context.storage().descriptor(write.resource);
         prepareEngine(*rasterizer, context.graph(), context.cancelled(), context.graph().tonemap());
         context.setActiveEngine(rasterizer);
+        if (descriptor.domain == RenderResourceDomain::GPU) {
+          auto outputs =
+            rasterizer->renderResident(descriptor.width, descriptor.height, false, false, true);
+          if (!outputs.stencil) {
+            throw passError(context.pass(), "OpenGL raster stencil resident publication failed");
+          }
+          context.storage().bindOpenGLResource(write.resource, std::move(outputs.stencil));
+          recordOpenGLRasterTraceMessages(context, rasterizer);
+          return;
+        }
+        Buffer<std::uint8_t>& stencil = context.storage().stencil(write.resource);
         rasterizer->renderStencil(stencil);
         recordOpenGLRasterTraceMessages(context, rasterizer);
       }
@@ -1238,14 +1311,42 @@ namespace engine::graph {
         const auto& read = pass.singleRead();
         const auto& write = pass.singleWrite();
         const RenderResource& source = context.storage().resource(read.resource);
-        if (!source.hasBuffer()) {
-          throw passError(pass, "resource '" + read.resource +
-                                  "' has no CPU buffer; GPU readback is not implemented yet");
+        if (source.hasBuffer()) {
+          context.storage().copy(read.resource, write.resource, "readback");
+          context.recordTraceMessage("readback copied CPU-materialized resource '" + read.resource +
+                                     "' to '" + write.resource + "'");
+          return;
         }
 
-        context.storage().copy(read.resource, write.resource, "readback");
-        context.recordTraceMessage("readback copied CPU-materialized resource '" + read.resource +
-                                   "' to '" + write.resource + "'");
+        if (!source.openGLResident()) {
+          throw passError(pass, "resource '" + read.resource +
+                                  "' has no CPU buffer or OpenGL resident resource");
+        }
+
+        auto resident = context.storage().openGLResource(read.resource);
+        std::string attachmentName;
+        switch (resident->resourceType()) {
+        case RenderResourceType::Color:
+          resident->copyTo(context.storage().color(write.resource));
+          attachmentName = "color";
+          break;
+        case RenderResourceType::Depth:
+          resident->copyTo(context.storage().depth(write.resource));
+          attachmentName = "depth";
+          break;
+        case RenderResourceType::Stencil:
+          resident->copyTo(context.storage().stencil(write.resource));
+          attachmentName = "stencil";
+          break;
+        default:
+          throw passError(pass, "OpenGL resident readback is not supported for resource '" +
+                                  read.resource + "'");
+        }
+        context.storage().resource(write.resource).markProduced();
+        context.recordTraceMessage("OpenGL raster readback copied " + attachmentName +
+                                   " attachment from OpenGL-resident resource '" + read.resource +
+                                   "' to CPU resource '" + write.resource + "'; "
+                                   "readback copied OpenGL-resident resource");
       }
     };
 

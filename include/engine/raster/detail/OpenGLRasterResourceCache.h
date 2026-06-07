@@ -158,12 +158,14 @@ namespace engine::raster::detail {
   inline constexpr std::size_t kOpenGLAttachmentSetCacheSize = 4;
 
   struct OpenGLRasterResourceCache {
-    // Held as `unique_ptr<gl::Context>` so the cache stays agnostic
+    // Held as `shared_ptr<gl::Context>` so graph-published resident
+    // resources can keep the producing context alive long enough to
+    // delete their handles against the right context.
     // of which backend created it. `OpenGLRasterResourceCache`'s
     // default constructor picks via `gl::createOffscreenContext()`:
     // Qt-backed when a QGuiApplication is up (Modeler), CGL otherwise
     // (rendercli).
-    std::unique_ptr<gl::Context> context;
+    std::shared_ptr<gl::Context> context;
     std::unique_ptr<gl::ShaderProgram> program;
     OpenGLRasterAttributeLocations locations;
     std::unique_ptr<OpenGLRasterImageTextureCache> imageTextures;

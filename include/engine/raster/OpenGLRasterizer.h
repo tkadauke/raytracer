@@ -18,6 +18,7 @@ namespace engine::raster {
   class RasterVisibilitySet;
 
   namespace detail {
+    class OpenGLRasterResource;
     class ShadowMaps;
     struct OpenGLRasterResourceCache;
   }
@@ -68,6 +69,15 @@ namespace engine::raster {
     void render(Buffer<Colord>& buffer) override;
     void renderDepth(Buffer<double>& buffer);
     void renderStencil(Buffer<std::uint8_t>& buffer);
+
+    struct ResidentOutputs {
+      std::shared_ptr<detail::OpenGLRasterResource> color;
+      std::shared_ptr<detail::OpenGLRasterResource> depth;
+      std::shared_ptr<detail::OpenGLRasterResource> stencil;
+    };
+
+    ResidentOutputs renderResident(int width, int height, bool publishColor, bool publishDepth,
+                                   bool publishStencil);
     void cancel() override;
     void uncancel() override;
 
@@ -204,7 +214,8 @@ namespace engine::raster {
   private:
     Recti viewportRectFor(int width, int height) const;
     void renderOpenGL(int width, int height, Buffer<Colord>* colorTarget,
-                      Buffer<double>* depthTarget, Buffer<std::uint8_t>* stencilTarget) const;
+                      Buffer<double>* depthTarget, Buffer<std::uint8_t>* stencilTarget,
+                      ResidentOutputs* residentOutputs = nullptr) const;
     std::string readbackTraceMessage(std::chrono::nanoseconds elapsed, bool copiedColor,
                                      bool copiedDepth, bool copiedStencil) const;
     std::string drawTraceMessage(std::chrono::nanoseconds elapsed, std::size_t triangleCount,

@@ -1,10 +1,14 @@
 #pragma once
 
+#include "core/Color.h"
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/raster/gl/Bindings.h"
 
 #include <memory>
 #include <string>
+
+template<class T>
+class Buffer;
 
 namespace engine::raster::gl {
   class Context;
@@ -72,6 +76,10 @@ namespace engine::raster::detail {
     }
 
     std::string description() const;
+
+    void copyTo(::Buffer<Colord>& target) const;
+    void copyTo(::Buffer<double>& target) const;
+    void copyTo(::Buffer<std::uint8_t>& target) const;
 
     /**
       * Releases the GL handle now. Returns false when release had to abandon
