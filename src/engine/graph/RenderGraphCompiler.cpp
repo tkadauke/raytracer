@@ -26,6 +26,11 @@ namespace engine::graph {
       return tonemap->singleRead().resource;
     }
 
+    bool supportsOpenGLResidentRasterOutput(RenderResourceType type) {
+      return type == RenderResourceType::Color || type == RenderResourceType::Depth ||
+             type == RenderResourceType::Stencil;
+    }
+
     void applyEngineOptionsToPass(RenderPassNode& pass, int rasterTargetSampleCount,
                                   const RenderIntent& intent) {
       if ((pass.executor == RenderExecutorKind::Raytracer ||
@@ -68,6 +73,10 @@ namespace engine::graph {
       pass.canRunConcurrently = false;
       applyEngineOptionsToPass(pass, aov.usesRasterTargetSampling() ? target.sampleCount : 1,
                                intent);
+      if (const auto* state = RasterBeautyPassState::fromPass(pass);
+          state && state->execution().backend().isOpenGL()) {
+        pass.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
+      }
       aov.configureProducerPass(pass);
       return pass;
     }
@@ -134,6 +143,9 @@ namespace engine::graph {
     pass.disabledBehavior = DisabledBehavior::Error;
     pass.canRunConcurrently = false;
     applyEngineOptionsToPass(pass, target.sampleCount, intent);
+    if (passNeedsExplicitReadback(pass)) {
+      pass.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
+    }
     return pass;
   }
 
@@ -208,6 +220,7 @@ namespace engine::graph {
     RenderResourceDescriptor result = source;
     result.id = std::move(id);
     result.name = std::move(name);
+    result.domain = RenderResourceDomain::CPU;
     result.lifetime = lifetime;
     return result;
   }
@@ -267,12 +280,16 @@ namespace engine::graph {
     const RenderResourceId aovId = aov.resourceId();
     RenderPassNode producer = aovProducerPass(aov, executor, sceneView, true, target, intent);
     addRasterVisibilityInput(plan, target, producer, sceneView, intent);
+    const bool needsReadback = passNeedsExplicitReadback(producer);
     RenderResourceDescriptor aovResource =
       aov.resourceDescriptor(target, RenderResourceLifetime::Transient);
+    if (needsReadback && supportsOpenGLResidentRasterOutput(aovResource.type)) {
+      aovResource.domain = RenderResourceDomain::GPU;
+    }
     plan.addResourceProducer(producer, aovResource);
 
     RenderResourceId visualizationInput = aovId;
-    if (passNeedsExplicitReadback(producer)) {
+    if (needsReadback) {
       const RenderResourceId readbackId = aovId + "_readback";
       RenderResourceDescriptor readbackDescriptor = readbackResource(
         aovResource, readbackId, aov.title() + " AOV readback", RenderResourceLifetime::Transient);
@@ -315,9 +332,13 @@ namespace engine::graph {
       addRasterVisibilityInput(plan, target, producer, sceneView, intent);
       if (passNeedsExplicitReadback(producer)) {
         const RenderResourceId sourceId = aovId + "_source";
-        RenderResourceDescriptor sourceDescriptor = readbackResource(
-          aov->resourceDescriptor(target, RenderResourceLifetime::Transient), sourceId,
-          aov->title() + " AOV source", RenderResourceLifetime::Transient);
+        RenderResourceDescriptor sourceDescriptor =
+          aov->resourceDescriptor(target, RenderResourceLifetime::Transient);
+        sourceDescriptor.id = sourceId;
+        sourceDescriptor.name = aov->title() + " AOV source";
+        if (supportsOpenGLResidentRasterOutput(sourceDescriptor.type)) {
+          sourceDescriptor.domain = RenderResourceDomain::GPU;
+        }
         plan.addResourceProducer(producer, std::move(sourceDescriptor));
 
         RenderPassNode readback =
@@ -359,6 +380,9 @@ namespace engine::graph {
     addRasterVisibilityInput(plan, target, base, sceneView, intent);
     RenderResourceDescriptor baseColor =
       target.colorResource("base_color", "Base color", RenderResourceLifetime::Transient);
+    if (beautyPassNeedsExplicitReadback(base)) {
+      baseColor.domain = RenderResourceDomain::GPU;
+    }
     plan.addResourceProducer(base, baseColor);
     RenderResourceId baseCompositeInput = baseColor.id;
     if (beautyPassNeedsExplicitReadback(base)) {
@@ -393,6 +417,7 @@ namespace engine::graph {
       stencilProducer.features.push_back("stencil_composite_mask");
       stencilResource.id = "stencil_composite_mask_source";
       stencilResource.name = "Stencil composite mask source";
+      stencilResource.domain = RenderResourceDomain::GPU;
       plan.addResourceProducer(std::move(stencilProducer), stencilResource);
 
       RenderResourceDescriptor stencilReadback =
@@ -482,6 +507,9 @@ namespace engine::graph {
     RenderPassNode beauty =
       beautyPass(executor, frameIntent.defaultSceneView(), target, frameIntent);
     addRasterVisibilityInput(plan, target, beauty, frameIntent.defaultSceneView(), frameIntent);
+    if (beautyPassNeedsExplicitReadback(beauty)) {
+      beautyColor.domain = RenderResourceDomain::GPU;
+    }
     plan.addResourceProducer(beauty, beautyColor);
 
     RenderResourceId mainInputResource = beautyColor.id;

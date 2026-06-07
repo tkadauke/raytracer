@@ -1947,6 +1947,113 @@ namespace GraphRenderEngineTest {
               passTrace->message().find("readback copied CPU-materialized resource"));
   }
 
+  TEST(GraphRenderEngine, PublishesOpenGLRasterColorResidentUntilExplicitReadback) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
+
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setIntent(intent);
+
+    Buffer<Colord> buffer(8, 8);
+    try {
+      engine.render(buffer);
+    } catch (const std::runtime_error& error) {
+      GTEST_SKIP() << error.what();
+    }
+
+    const auto* resident = engine.lastPlan().findResource("beauty_color");
+    ASSERT_NE(nullptr, resident);
+    EXPECT_EQ(RenderResourceDomain::GPU, resident->domain);
+
+    const auto trace = engine.lastExecutionTrace();
+    ASSERT_NE(nullptr, trace);
+    const auto* beauty = trace->findPass("raster_beauty");
+    ASSERT_NE(nullptr, beauty);
+    ASSERT_EQ(1u, beauty->outputs().size());
+    EXPECT_FALSE(beauty->outputs().front().hasPreview());
+    EXPECT_NE(std::string::npos,
+              beauty->outputs().front().unavailableReason().find("resident on opengl"));
+    EXPECT_NE(std::string::npos, beauty->message().find("published resident color"));
+    EXPECT_NE(std::string::npos, beauty->message().find("readback skipped CPU attachment copies"));
+
+    const auto* readback = trace->findPass("beauty_readback");
+    ASSERT_NE(nullptr, readback);
+    ASSERT_EQ(1u, readback->outputs().size());
+    EXPECT_TRUE(readback->outputs().front().hasColorPreview());
+    EXPECT_NE(std::string::npos,
+              readback->message().find("readback copied OpenGL-resident resource"));
+  }
+
+  TEST(GraphRenderEngine, PublishesOpenGLRasterDepthResidentUntilExplicitReadback) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.defaultViewMode = RenderViewMode::Depth;
+    intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
+
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setIntent(intent);
+
+    Buffer<Colord> buffer(8, 8);
+    try {
+      engine.render(buffer);
+    } catch (const std::runtime_error& error) {
+      GTEST_SKIP() << error.what();
+    }
+
+    const auto trace = engine.lastExecutionTrace();
+    ASSERT_NE(nullptr, trace);
+    const auto* depth = trace->findPass("depth_aov");
+    ASSERT_NE(nullptr, depth);
+    ASSERT_EQ(1u, depth->outputs().size());
+    EXPECT_FALSE(depth->outputs().front().hasPreview());
+    EXPECT_NE(std::string::npos,
+              depth->outputs().front().unavailableReason().find("resident on opengl"));
+    EXPECT_NE(std::string::npos, depth->message().find("published resident depth"));
+
+    const auto* readback = trace->findPass("readback_depth_aov");
+    ASSERT_NE(nullptr, readback);
+    ASSERT_EQ(1u, readback->outputs().size());
+    EXPECT_TRUE(readback->outputs().front().hasDepthPreview());
+    EXPECT_NE(std::string::npos,
+              readback->message().find("readback copied OpenGL-resident resource"));
+  }
+
+  TEST(GraphRenderEngine, PublishesOpenGLRasterStencilResidentUntilExplicitReadback) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.defaultViewMode = RenderViewMode::Stencil;
+    intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
+
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setIntent(intent);
+
+    Buffer<Colord> buffer(8, 8);
+    try {
+      engine.render(buffer);
+    } catch (const std::runtime_error& error) {
+      GTEST_SKIP() << error.what();
+    }
+
+    const auto trace = engine.lastExecutionTrace();
+    ASSERT_NE(nullptr, trace);
+    const auto* stencil = trace->findPass("stencil_aov");
+    ASSERT_NE(nullptr, stencil);
+    ASSERT_EQ(1u, stencil->outputs().size());
+    EXPECT_FALSE(stencil->outputs().front().hasPreview());
+    EXPECT_NE(std::string::npos,
+              stencil->outputs().front().unavailableReason().find("resident on opengl"));
+    EXPECT_NE(std::string::npos, stencil->message().find("published resident stencil"));
+
+    const auto* readback = trace->findPass("readback_stencil_aov");
+    ASSERT_NE(nullptr, readback);
+    EXPECT_NE(std::string::npos,
+              readback->message().find("readback copied OpenGL-resident resource"));
+  }
+
   TEST(GraphRenderEngine, RejectsReadbackFromDescriptorOnlyGpuResource) {
     auto scene = std::make_shared<render::Scene>();
 
@@ -1975,8 +2082,9 @@ namespace GraphRenderEngineTest {
       FAIL() << "Expected descriptor-only GPU readback rejection";
     } catch (const std::runtime_error& error) {
       const std::string message = error.what();
-      EXPECT_NE(std::string::npos, message.find("resource 'resident_color' has no CPU buffer"));
-      EXPECT_NE(std::string::npos, message.find("GPU readback is not implemented yet"));
+      EXPECT_NE(std::string::npos,
+                message.find("resource 'resident_color' has no CPU buffer or OpenGL resident "
+                             "resource"));
     }
   }
 

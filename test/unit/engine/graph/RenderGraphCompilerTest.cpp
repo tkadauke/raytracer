@@ -307,6 +307,10 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ("base_color", baseReadback->reads.front().resource);
     EXPECT_EQ("base_readback_color", baseReadback->writes.front().resource);
     EXPECT_TRUE(hasFeature(*baseReadback, "stencil_composite"));
+    ASSERT_NE(nullptr, plan.findResource("base_color"));
+    EXPECT_EQ(RenderResourceDomain::GPU, plan.findResource("base_color")->domain);
+    ASSERT_NE(nullptr, plan.findResource("base_readback_color"));
+    EXPECT_EQ(RenderResourceDomain::CPU, plan.findResource("base_readback_color")->domain);
 
     const auto* stencilProducer = plan.findPass("stencil_composite_mask");
     ASSERT_NE(nullptr, stencilProducer);
@@ -314,6 +318,9 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(RenderExecutorKind::Rasterizer, stencilProducer->executor);
     ASSERT_EQ(1u, stencilProducer->writes.size());
     EXPECT_EQ("stencil_composite_mask_source", stencilProducer->writes.front().resource);
+    ASSERT_NE(nullptr, plan.findResource("stencil_composite_mask_source"));
+    EXPECT_EQ(RenderResourceDomain::GPU,
+              plan.findResource("stencil_composite_mask_source")->domain);
 
     const auto* stencilReadback = plan.findPass("readback_stencil_composite_mask");
     ASSERT_NE(nullptr, stencilReadback);
@@ -322,6 +329,8 @@ namespace RenderGraphCompilerTest {
     ASSERT_EQ(1u, stencilReadback->writes.size());
     EXPECT_EQ("stencil_composite_mask_source", stencilReadback->reads.front().resource);
     EXPECT_EQ("stencil_composite_mask", stencilReadback->writes.front().resource);
+    ASSERT_NE(nullptr, plan.findResource("stencil_composite_mask"));
+    EXPECT_EQ(RenderResourceDomain::CPU, plan.findResource("stencil_composite_mask")->domain);
     EXPECT_TRUE(hasFeature(*stencilReadback, "stencil_composite"));
     EXPECT_TRUE(hasFeature(*stencilReadback, "stencil"));
 
@@ -1004,6 +1013,13 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(hasFeature(*readback, "readback"));
     EXPECT_TRUE(hasFeature(*readback, "transfer"));
 
+    const auto* beautyResource = plan.findResource("beauty_color");
+    ASSERT_NE(nullptr, beautyResource);
+    EXPECT_EQ(RenderResourceDomain::GPU, beautyResource->domain);
+    const auto* readbackResource = plan.findResource("beauty_readback_color");
+    ASSERT_NE(nullptr, readbackResource);
+    EXPECT_EQ(RenderResourceDomain::CPU, readbackResource->domain);
+
     const auto* tonemap = plan.findPass("tonemap");
     ASSERT_NE(nullptr, tonemap);
     ASSERT_EQ(1u, tonemap->reads.size());
@@ -1039,7 +1055,11 @@ namespace RenderGraphCompilerTest {
     ASSERT_NE(nullptr, readbackResource);
     EXPECT_EQ(RenderResourceType::Depth, readbackResource->type);
     EXPECT_EQ(RenderResourceFormat::DepthDouble, readbackResource->format);
+    EXPECT_EQ(RenderResourceDomain::CPU, readbackResource->domain);
     EXPECT_EQ(RenderResourceLifetime::Transient, readbackResource->lifetime);
+    const auto* residentResource = plan.findResource("depth_aov");
+    ASSERT_NE(nullptr, residentResource);
+    EXPECT_EQ(RenderResourceDomain::GPU, residentResource->domain);
 
     const auto* visualization = plan.findPass("visualize_depth_aov");
     ASSERT_NE(nullptr, visualization);

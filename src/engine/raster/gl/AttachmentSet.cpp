@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "core/Color.h"
+#include "engine/raster/detail/OpenGLRasterResource.h"
 
 #include <algorithm>
 #include <cmath>
@@ -20,6 +21,55 @@ namespace engine::raster::gl {
         return std::numeric_limits<double>::infinity();
       }
       return clamped / (1.0 - clamped);
+    }
+
+    std::shared_ptr<detail::OpenGLRasterResource>
+    copyAttachmentToRenderbuffer(GLuint sourceFbo, int width, int height, int samples,
+                                 GLenum internalFormat, GLenum attachment,
+                                 GLbitfield blitMask,
+                                 engine::graph::RenderResourceType resourceType,
+                                 std::shared_ptr<Context> sourceContext) {
+      if (!sourceFbo || !sourceContext) {
+        return nullptr;
+      }
+
+      GLuint destinationFbo = 0;
+      GLuint destinationRenderbuffer = 0;
+      glGenFramebuffers(1, &destinationFbo);
+      glGenRenderbuffers(1, &destinationRenderbuffer);
+      glBindRenderbuffer(GL_RENDERBUFFER, destinationRenderbuffer);
+      if (samples > 0) {
+        glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, internalFormat, width, height);
+      } else {
+        glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, width, height);
+      }
+      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, destinationFbo);
+      glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, attachment, GL_RENDERBUFFER,
+                                destinationRenderbuffer);
+      if (internalFormat == GL_DEPTH24_STENCIL8) {
+        glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
+                                  destinationRenderbuffer);
+        glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
+                                  destinationRenderbuffer);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+      }
+
+      if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        glBindFramebuffer(GL_FRAMEBUFFER, sourceFbo);
+        glDeleteFramebuffers(1, &destinationFbo);
+        glDeleteRenderbuffers(1, &destinationRenderbuffer);
+        return nullptr;
+      }
+
+      glBindFramebuffer(GL_READ_FRAMEBUFFER, sourceFbo);
+      glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, blitMask, GL_NEAREST);
+      glBindFramebuffer(GL_FRAMEBUFFER, sourceFbo);
+      glDeleteFramebuffers(1, &destinationFbo);
+
+      return std::make_shared<detail::OpenGLRasterResource>(
+        resourceType, detail::OpenGLRasterResource::HandleKind::Renderbuffer,
+        destinationRenderbuffer, width, height, samples > 1 ? samples : 1, std::move(sourceContext));
     }
   }
 
@@ -209,5 +259,41 @@ namespace engine::raster::gl {
         target[y][x] = pixels[static_cast<std::size_t>(sourceY * width + x)];
       }
     }
+  }
+
+  std::shared_ptr<detail::OpenGLRasterResource>
+  AttachmentSet::copyColorToOpenGLResource(std::shared_ptr<Context> sourceContext) {
+    m_errorMessage.clear();
+    auto result = copyAttachmentToRenderbuffer(
+      m_fbo, m_width, m_height, m_samples, GL_RGBA8, GL_COLOR_ATTACHMENT0, GL_COLOR_BUFFER_BIT,
+      engine::graph::RenderResourceType::Color, std::move(sourceContext));
+    if (!result) {
+      m_errorMessage = "AttachmentSet color resident copy FBO incomplete";
+    }
+    return result;
+  }
+
+  std::shared_ptr<detail::OpenGLRasterResource>
+  AttachmentSet::copyDepthToOpenGLResource(std::shared_ptr<Context> sourceContext) {
+    m_errorMessage.clear();
+    auto result = copyAttachmentToRenderbuffer(
+      m_fbo, m_width, m_height, m_samples, GL_DEPTH24_STENCIL8, GL_DEPTH_ATTACHMENT,
+      GL_DEPTH_BUFFER_BIT, engine::graph::RenderResourceType::Depth, std::move(sourceContext));
+    if (!result) {
+      m_errorMessage = "AttachmentSet depth resident copy FBO incomplete";
+    }
+    return result;
+  }
+
+  std::shared_ptr<detail::OpenGLRasterResource>
+  AttachmentSet::copyStencilToOpenGLResource(std::shared_ptr<Context> sourceContext) {
+    m_errorMessage.clear();
+    auto result = copyAttachmentToRenderbuffer(
+      m_fbo, m_width, m_height, m_samples, GL_DEPTH24_STENCIL8, GL_STENCIL_ATTACHMENT,
+      GL_STENCIL_BUFFER_BIT, engine::graph::RenderResourceType::Stencil, std::move(sourceContext));
+    if (!result) {
+      m_errorMessage = "AttachmentSet stencil resident copy FBO incomplete";
+    }
+    return result;
   }
 }
