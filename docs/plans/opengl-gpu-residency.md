@@ -7,13 +7,14 @@
 > between every pass" acceptance criterion from
 > `docs/plans/complete/opengl-gpu-rasterizer.md` Phase 3.
 >
-> **Status:** planning. Prerequisite work — graph-side resource-domain
-> metadata, GPU descriptor surface in trace exports, explicit
-> `RenderPassKind::Readback` nodes, and the OpenGL raster resource cache — is
-> already in place. Concrete graph-owned OpenGL resources are still missing,
-> and `OpenGLRasterizer` still rejects `AttachmentLoadOp::Load` for color,
-> depth, and stencil until residency can seed attachments from prior GPU
-> passes.
+> **Status:** graph scheduling, inspection, output publication, and explicit
+> readback are in place. Graph-side resource-domain metadata, GPU descriptor
+> trace/export surfaces, explicit `RenderPassKind::Readback` nodes, OpenGL
+> raster resource storage hooks, resident attachment loads, compiler scheduling
+> for OpenGL-domain producer outputs, and `OpenGLRasterizer` attachment
+> publication into graph-owned resident resources have landed. Remaining work is
+> broader compatible-pass-chain coverage, including true GPU-resident attachment
+> load between passes.
 >
 > **Related plans:** `docs/plans/complete/opengl-gpu-rasterizer.md` owns the
 > rasterizer pipeline; this plan handles the resource side.
@@ -101,14 +102,20 @@ Tasks:
 
 Tasks:
 
-- Teach `OpenGLRasterizer` to publish its FBO color attachment as an
+- ~~Teach `OpenGLRasterizer` to publish its FBO color attachment as an
   `OpenGLRasterResource` on the storage when a downstream consumer pass
   declares OpenGL-domain input. Skip the `copyColorTo` readback for that
-  case.
-- Same for depth attachment and the stencil-attached path.
-- The existing per-render CPU-readback path stays as the fallback when
+  case.~~ ✅ **Done.** OpenGL raster beauty passes can publish a
+  graph-owned resident color attachment when the compiled resource is
+  GPU-domain.
+- ~~Same for depth attachment and the stencil-attached path.~~ ✅ **Done.**
+  Depth and stencil AOV passes publish resident attachments for GPU-domain
+  graph resources.
+- ~~The existing per-render CPU-readback path stays as the fallback when
   the consumer is CPU-only or when an explicit `Readback` node is
-  scheduled.
+  scheduled.~~ ✅ **Done.** Explicit readback passes copy resident OpenGL
+  resources into CPU buffers, while CPU-domain raster outputs keep the
+  existing readback path.
 - Parity test variant: two OpenGL raster passes in a plan, second reads
   the first's color as albedo input; total pixels still match the CPU
   reference within the parity tolerance.
@@ -145,13 +152,17 @@ Tasks:
 
 Tasks:
 
-- When the graph compiles a pass chain, mark the intermediate resources
+- ~~When the graph compiles a pass chain, mark the intermediate resources
   with their preferred domain (`OpenGL` if all producers and consumers
   support it). The storage layer already follows the markings; this just
-  populates them.
-- Trace messages distinguish "kept resident on GPU" from "round-tripped
+  populates them.~~ ✅ **Done.** OpenGL raster producer outputs are
+  GPU-domain until an explicit readback node writes a CPU-domain boundary
+  resource.
+- ~~Trace messages distinguish "kept resident on GPU" from "round-tripped
   via readback" so a user inspecting a plan can see the optimization
-  paid off.
+  paid off.~~ ✅ **Done.** Plan exports, trace snapshot JSON, and Modeler
+  graph/resource inspection expose OpenGL-resident, explicit-readback, and
+  CPU-buffer decisions.
 - rendercli functional test: a multi-pass GPU plan reports zero implicit
   readback nodes between compatible passes.
 

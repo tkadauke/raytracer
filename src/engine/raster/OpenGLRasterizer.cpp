@@ -42,6 +42,9 @@ namespace engine::raster {
       std::chrono::nanoseconds glFinishElapsed{0};
       std::chrono::nanoseconds readbackElapsed{0};
       std::chrono::nanoseconds doneCurrentElapsed{0};
+      std::shared_ptr<detail::OpenGLRasterResource> residentColor;
+      std::shared_ptr<detail::OpenGLRasterResource> residentDepth;
+      std::shared_ptr<detail::OpenGLRasterResource> residentStencil;
     };
 
     class OpenGLRasterDrawPass {
@@ -100,7 +103,8 @@ namespace engine::raster {
                                        const Colord& background, Buffer<Colord>* target,
                                        Buffer<double>* depthTarget,
                                        Buffer<std::uint8_t>* stencilTarget,
-                                       OpenGLRasterizer::ResidentOutputs* residentOutputs) {
+                                       bool residentColorTarget, bool residentDepthTarget,
+                                       bool residentStencilTarget) {
         OpenGLRasterRenderTimings timings;
         const auto makeCurrentStarted = std::chrono::steady_clock::now();
         if (!m_resources.context->makeCurrent()) {
@@ -140,20 +144,17 @@ namespace engine::raster {
           if (stencilTarget && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store) {
             attachmentSet->copyStencilTo(*stencilTarget);
           }
-          if (residentOutputs) {
-            if (residentOutputs->color && m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-              residentOutputs->color =
-                attachmentSet->copyColorToOpenGLResource(m_resources.context);
-            }
-            if (residentOutputs->depth && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-              residentOutputs->depth =
-                attachmentSet->copyDepthToOpenGLResource(m_resources.context);
-            }
-            if (residentOutputs->stencil &&
-                m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-              residentOutputs->stencil =
-                attachmentSet->copyStencilToOpenGLResource(m_resources.context);
-            }
+          if (residentColorTarget && m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store) {
+            timings.residentColor = attachmentSet->residentCopy(
+              engine::graph::RenderResourceType::Color, m_resources.context);
+          }
+          if (residentDepthTarget && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store) {
+            timings.residentDepth = attachmentSet->residentCopy(
+              engine::graph::RenderResourceType::Depth, m_resources.context);
+          }
+          if (residentStencilTarget && m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store) {
+            timings.residentStencil = attachmentSet->residentCopy(
+              engine::graph::RenderResourceType::Stencil, m_resources.context);
           }
           timings.readbackElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - readbackStarted);
@@ -633,29 +634,34 @@ namespace engine::raster {
     renderOpenGL(buffer.width(), buffer.height(), nullptr, nullptr, &buffer);
   }
 
-  OpenGLRasterizer::ResidentOutputs OpenGLRasterizer::renderResident(
-    int width, int height, bool publishColor, bool publishDepth, bool publishStencil) {
-    ResidentOutputs outputs;
-    if (publishColor) {
-      outputs.color = std::make_shared<detail::OpenGLRasterResource>(
-        engine::graph::RenderResourceType::Color,
-        detail::OpenGLRasterResource::HandleKind::Renderbuffer, 0, width, height,
-        m_msaaSamples > 1 ? m_msaaSamples : 1, nullptr);
+  std::shared_ptr<detail::OpenGLRasterResource>
+  OpenGLRasterizer::renderResidentColor(int width, int height) {
+    renderOpenGL(width, height, nullptr, nullptr, nullptr, true, false, false);
+    if (!m_lastResidentColor) {
+      throw std::runtime_error("OpenGL raster backend did not publish resident color output");
     }
-    if (publishDepth) {
-      outputs.depth = std::make_shared<detail::OpenGLRasterResource>(
-        engine::graph::RenderResourceType::Depth,
-        detail::OpenGLRasterResource::HandleKind::Renderbuffer, 0, width, height,
-        m_msaaSamples > 1 ? m_msaaSamples : 1, nullptr);
+    m_lastTraceMessages.push_back("OpenGL raster backend kept color output resident on GPU");
+    return m_lastResidentColor;
+  }
+
+  std::shared_ptr<detail::OpenGLRasterResource>
+  OpenGLRasterizer::renderResidentDepth(int width, int height) {
+    renderOpenGL(width, height, nullptr, nullptr, nullptr, false, true, false);
+    if (!m_lastResidentDepth) {
+      throw std::runtime_error("OpenGL raster backend did not publish resident depth output");
     }
-    if (publishStencil) {
-      outputs.stencil = std::make_shared<detail::OpenGLRasterResource>(
-        engine::graph::RenderResourceType::Stencil,
-        detail::OpenGLRasterResource::HandleKind::Renderbuffer, 0, width, height,
-        m_msaaSamples > 1 ? m_msaaSamples : 1, nullptr);
+    m_lastTraceMessages.push_back("OpenGL raster backend kept depth output resident on GPU");
+    return m_lastResidentDepth;
+  }
+
+  std::shared_ptr<detail::OpenGLRasterResource>
+  OpenGLRasterizer::renderResidentStencil(int width, int height) {
+    renderOpenGL(width, height, nullptr, nullptr, nullptr, false, false, true);
+    if (!m_lastResidentStencil) {
+      throw std::runtime_error("OpenGL raster backend did not publish resident stencil output");
     }
-    renderOpenGL(width, height, nullptr, nullptr, nullptr, &outputs);
-    return outputs;
+    m_lastTraceMessages.push_back("OpenGL raster backend kept stencil output resident on GPU");
+    return m_lastResidentStencil;
   }
 
   void OpenGLRasterizer::cancel() {
@@ -1249,9 +1255,13 @@ namespace engine::raster {
   void OpenGLRasterizer::renderOpenGL(int width, int height, Buffer<Colord>* colorTarget,
                                       Buffer<double>* depthTarget,
                                       Buffer<std::uint8_t>* stencilTarget,
-                                      ResidentOutputs* residentOutputs) const {
+                                      bool residentColorTarget, bool residentDepthTarget,
+                                      bool residentStencilTarget) const {
     m_lastReadbackTraceMessage.clear();
     m_lastTraceMessages.clear();
+    m_lastResidentColor.reset();
+    m_lastResidentDepth.reset();
+    m_lastResidentStencil.reset();
 
     if (!m_resources) {
       m_resources = sharedResources();
@@ -1496,7 +1506,11 @@ namespace engine::raster {
     drawState.skipMeshUpload = !uploadedFreshMesh;
     const auto timings =
       OpenGLRasterDrawPass(*m_resources, std::move(drawState), m_cancelled)
-        .render(mesh, backgroundColor(), colorTarget, depthTarget, stencilTarget, residentOutputs);
+        .render(mesh, backgroundColor(), colorTarget, depthTarget, stencilTarget,
+                residentColorTarget, residentDepthTarget, residentStencilTarget);
+    m_lastResidentColor = timings.residentColor;
+    m_lastResidentDepth = timings.residentDepth;
+    m_lastResidentStencil = timings.residentStencil;
     if (uploadedFreshMesh) {
       m_resources->uploadedMeshSlot = activeMeshSlot;
     }

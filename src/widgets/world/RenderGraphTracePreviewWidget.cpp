@@ -87,9 +87,13 @@ namespace {
 
   QString snapshotTitle(const RenderGraphResourceSnapshot& snapshot) {
     const auto& descriptor = snapshot.descriptor();
-    return QStringLiteral("%1 (%2, %3x%4)")
+    const QString domain = descriptor.domain == RenderResourceDomain::GPU
+                             ? QStringLiteral("OpenGL resident")
+                             : QStringLiteral("CPU");
+    return QStringLiteral("%1 (%2, %3, %4x%5)")
       .arg(qstr(snapshot.resourceId()))
       .arg(toString(descriptor.type))
+      .arg(domain)
       .arg(descriptor.width)
       .arg(descriptor.height);
   }

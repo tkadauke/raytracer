@@ -141,7 +141,8 @@ if(opengl_trace_result STREQUAL "0")
   rendercli_assert_nonempty("${opengl_trace}"
                             NAME "rendercli --raster_backend gpu trace JSON")
   file(READ "${opengl_trace}" opengl_trace_json)
-  if(NOT opengl_trace_json MATCHES "OpenGL raster readback copied color attachment")
+  if(NOT opengl_trace_json MATCHES "OpenGL raster readback copied color attachment" AND
+     NOT opengl_trace_json MATCHES "readback copied OpenGL-resident resource")
     _rendercli_fail("rendercli --raster_backend gpu readback trace"
                     "OpenGL graph trace did not include readback timing"
                     "" "${opengl_trace_result}" "${opengl_trace_stdout}" "${opengl_trace_json}")

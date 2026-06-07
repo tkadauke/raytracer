@@ -24,55 +24,6 @@ namespace engine::raster::gl {
       return clamped / (1.0 - clamped);
     }
 
-    std::shared_ptr<detail::OpenGLRasterResource>
-    copyAttachmentToRenderbuffer(GLuint sourceFbo, int width, int height, int samples,
-                                 GLenum internalFormat, GLenum attachment,
-                                 GLbitfield blitMask,
-                                 engine::graph::RenderResourceType resourceType,
-                                 std::shared_ptr<Context> sourceContext) {
-      if (!sourceFbo || !sourceContext) {
-        return nullptr;
-      }
-
-      GLuint destinationFbo = 0;
-      GLuint destinationRenderbuffer = 0;
-      glGenFramebuffers(1, &destinationFbo);
-      glGenRenderbuffers(1, &destinationRenderbuffer);
-      glBindRenderbuffer(GL_RENDERBUFFER, destinationRenderbuffer);
-      if (samples > 0) {
-        glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, internalFormat, width, height);
-      } else {
-        glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, width, height);
-      }
-      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, destinationFbo);
-      glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, attachment, GL_RENDERBUFFER,
-                                destinationRenderbuffer);
-      if (internalFormat == GL_DEPTH24_STENCIL8) {
-        glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
-                                  destinationRenderbuffer);
-        glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
-                                  destinationRenderbuffer);
-        glDrawBuffer(GL_NONE);
-        glReadBuffer(GL_NONE);
-      }
-
-      if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        glBindFramebuffer(GL_FRAMEBUFFER, sourceFbo);
-        glDeleteFramebuffers(1, &destinationFbo);
-        glDeleteRenderbuffers(1, &destinationRenderbuffer);
-        return nullptr;
-      }
-
-      glBindFramebuffer(GL_READ_FRAMEBUFFER, sourceFbo);
-      glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, blitMask, GL_NEAREST);
-      glBindFramebuffer(GL_FRAMEBUFFER, sourceFbo);
-      glDeleteFramebuffers(1, &destinationFbo);
-
-      return std::make_shared<detail::OpenGLRasterResource>(
-        resourceType, detail::OpenGLRasterResource::HandleKind::Renderbuffer,
-        destinationRenderbuffer, width, height, samples > 1 ? samples : 1, std::move(sourceContext));
-    }
-
     GLenum attachmentPoint(engine::graph::RenderResourceType type) {
       switch (type) {
       case engine::graph::RenderResourceType::Color:
@@ -88,6 +39,30 @@ namespace engine::raster::gl {
         return GL_STENCIL_ATTACHMENT;
       default:
         return GL_COLOR_ATTACHMENT0;
+      }
+    }
+
+    GLenum renderbufferFormat(engine::graph::RenderResourceType type) {
+      switch (type) {
+      case engine::graph::RenderResourceType::Depth:
+      case engine::graph::RenderResourceType::ShadowMap:
+        return GL_DEPTH_COMPONENT24;
+      case engine::graph::RenderResourceType::Stencil:
+        return GL_STENCIL_INDEX8;
+      default:
+        return GL_RGBA8;
+      }
+    }
+
+    GLbitfield blitMask(engine::graph::RenderResourceType type) {
+      switch (type) {
+      case engine::graph::RenderResourceType::Depth:
+      case engine::graph::RenderResourceType::ShadowMap:
+        return GL_DEPTH_BUFFER_BIT;
+      case engine::graph::RenderResourceType::Stencil:
+        return GL_STENCIL_BUFFER_BIT;
+      default:
+        return GL_COLOR_BUFFER_BIT;
       }
     }
 
@@ -343,39 +318,52 @@ namespace engine::raster::gl {
     }
   }
 
-  std::shared_ptr<detail::OpenGLRasterResource>
-  AttachmentSet::copyColorToOpenGLResource(std::shared_ptr<Context> sourceContext) {
+  std::shared_ptr<::engine::raster::detail::OpenGLRasterResource>
+  AttachmentSet::residentCopy(engine::graph::RenderResourceType type,
+                              std::shared_ptr<::engine::raster::gl::Context> sourceContext) {
     m_errorMessage.clear();
-    auto result = copyAttachmentToRenderbuffer(
-      m_fbo, m_width, m_height, m_samples, GL_RGBA8, GL_COLOR_ATTACHMENT0, GL_COLOR_BUFFER_BIT,
-      engine::graph::RenderResourceType::Color, std::move(sourceContext));
-    if (!result) {
-      m_errorMessage = "AttachmentSet color resident copy FBO incomplete";
+    if (!m_fbo || !sourceContext) {
+      return nullptr;
     }
-    return result;
-  }
 
-  std::shared_ptr<detail::OpenGLRasterResource>
-  AttachmentSet::copyDepthToOpenGLResource(std::shared_ptr<Context> sourceContext) {
-    m_errorMessage.clear();
-    auto result = copyAttachmentToRenderbuffer(
-      m_fbo, m_width, m_height, m_samples, GL_DEPTH24_STENCIL8, GL_DEPTH_ATTACHMENT,
-      GL_DEPTH_BUFFER_BIT, engine::graph::RenderResourceType::Depth, std::move(sourceContext));
-    if (!result) {
-      m_errorMessage = "AttachmentSet depth resident copy FBO incomplete";
-    }
-    return result;
-  }
+    GLuint renderbuffer = 0;
+    GLuint destinationFbo = 0;
+    GLint previousFbo = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFbo);
 
-  std::shared_ptr<detail::OpenGLRasterResource>
-  AttachmentSet::copyStencilToOpenGLResource(std::shared_ptr<Context> sourceContext) {
-    m_errorMessage.clear();
-    auto result = copyAttachmentToRenderbuffer(
-      m_fbo, m_width, m_height, m_samples, GL_DEPTH24_STENCIL8, GL_STENCIL_ATTACHMENT,
-      GL_STENCIL_BUFFER_BIT, engine::graph::RenderResourceType::Stencil, std::move(sourceContext));
-    if (!result) {
-      m_errorMessage = "AttachmentSet stencil resident copy FBO incomplete";
+    glGenRenderbuffers(1, &renderbuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
+    if (m_samples > 0) {
+      glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, renderbufferFormat(type),
+                                       m_width, m_height);
+    } else {
+      glRenderbufferStorage(GL_RENDERBUFFER, renderbufferFormat(type), m_width, m_height);
     }
-    return result;
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+    glGenFramebuffers(1, &destinationFbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, destinationFbo);
+    glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, attachmentPoint(type), GL_RENDERBUFFER,
+                              renderbuffer);
+    const GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+      std::ostringstream out;
+      out << "AttachmentSet resident copy FBO incomplete: status=0x" << std::hex << status;
+      m_errorMessage = out.str();
+      glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(previousFbo));
+      glDeleteFramebuffers(1, &destinationFbo);
+      glDeleteRenderbuffers(1, &renderbuffer);
+      return nullptr;
+    }
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, destinationFbo);
+    glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, m_width, m_height, blitMask(type), GL_NEAREST);
+    glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(previousFbo));
+    glDeleteFramebuffers(1, &destinationFbo);
+
+    return std::make_shared<::engine::raster::detail::OpenGLRasterResource>(
+      type, ::engine::raster::detail::OpenGLRasterResource::HandleKind::Renderbuffer,
+      renderbuffer, m_width, m_height, m_samples > 0 ? m_samples : 1, std::move(sourceContext));
   }
 }

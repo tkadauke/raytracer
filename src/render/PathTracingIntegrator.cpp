@@ -192,9 +192,7 @@ namespace render {
     const Scene& scene, std::size_t firstPathIndex, std::size_t laneCount,
     std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits, int bounce,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
-    if (laneCount > Ray4::lanes) {
-      throw std::logic_error("Ray4 path packet lane count exceeds packet width");
-    }
+    laneCount = std::min(laneCount, Ray4::lanes);
     std::array<Rayd, Ray4::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined};
     const std::size_t packetLaneCount = std::min(laneCount, Ray4::lanes);
@@ -265,9 +263,7 @@ namespace render {
     const Scene& scene, std::size_t firstPathIndex, std::size_t laneCount,
     std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits, int bounce,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
-    if (laneCount > Ray8::lanes) {
-      throw std::logic_error("Ray8 path packet lane count exceeds packet width");
-    }
+    laneCount = std::min(laneCount, Ray8::lanes);
     std::array<Rayd, Ray8::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined};

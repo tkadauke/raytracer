@@ -221,6 +221,10 @@ namespace RenderResourceStorageTest {
     EXPECT_FALSE(tracedPass->outputs().front().hasPreview());
     EXPECT_NE(std::string::npos,
               tracedPass->outputs().front().unavailableReason().find("resident on opengl"));
+    const QJsonObject json = tracedPass->outputs().front().toJson();
+    EXPECT_EQ("gpu", json.value("domain").toString().toStdString());
+    EXPECT_EQ("opengl_resident",
+              json.value("residencyDecision").toString().toStdString());
   }
 
   TEST(RenderResourceStorage, ThrowsForWrongTypedAccess) {

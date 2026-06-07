@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/Color.h"
+#include "engine/graph/RenderGraphTypes.h"
 #include "engine/raster/gl/Bindings.h"
 
 #include <cstdint>
@@ -134,12 +135,10 @@ namespace engine::raster::gl {
     /// row-flip. Sets `errorMessage()` and no-ops when `samples() > 0`.
     void copyStencilTo(::Buffer<std::uint8_t>& target);
 
-    std::shared_ptr<detail::OpenGLRasterResource>
-    copyColorToOpenGLResource(std::shared_ptr<Context> sourceContext);
-    std::shared_ptr<detail::OpenGLRasterResource>
-    copyDepthToOpenGLResource(std::shared_ptr<Context> sourceContext);
-    std::shared_ptr<detail::OpenGLRasterResource>
-    copyStencilToOpenGLResource(std::shared_ptr<Context> sourceContext);
+    /// Copy one attachment into a graph-owned resident OpenGL renderbuffer.
+    std::shared_ptr<::engine::raster::detail::OpenGLRasterResource>
+    residentCopy(engine::graph::RenderResourceType type,
+                 std::shared_ptr<::engine::raster::gl::Context> sourceContext);
 
     /// Last operation's error message; empty when the most recent
     /// operation succeeded.

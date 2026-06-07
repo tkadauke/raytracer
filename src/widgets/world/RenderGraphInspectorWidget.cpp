@@ -263,7 +263,7 @@ QString RenderGraphInspectorWidget::Private::displayText(RenderResourceDomain do
   case RenderResourceDomain::CPU:
     return QStringLiteral("CPU");
   case RenderResourceDomain::GPU:
-    return QStringLiteral("GPU");
+    return QStringLiteral("OpenGL resident");
   }
   return graphEnumText(toString(domain));
 }
@@ -504,6 +504,8 @@ QString RenderGraphInspectorWidget::Private::resourceTraceLine(
     return QStringLiteral("trace: color");
   if (snapshot->hasDepthPreview())
     return QStringLiteral("trace: depth");
+  if (resource.domain == RenderResourceDomain::GPU)
+    return QStringLiteral("trace: OpenGL resident");
   return QStringLiteral("trace: metadata");
 }
 
@@ -629,12 +631,13 @@ RenderGraphInspectorWidget::Private::resourceConsumers(const RenderPlan& plan,
 QString RenderGraphInspectorWidget::Private::resourceTooltip(
   const RenderPlan& plan, const RenderResourceDescriptor& resource) const {
   return QStringLiteral("Resource ID: %1\nProducer: %2\nConsumers: %3\nFeatures: %4\nFormat: "
-                        "%5\nLifetime: %6\nSize: %7")
+                        "%5\nDomain: %6\nLifetime: %7\nSize: %8")
     .arg(qstr(resource.id))
     .arg(resourceProducer(plan, resource.id))
     .arg(resourceConsumers(plan, resource.id))
     .arg(resourceFeatures(resource))
     .arg(displayText(resource.format))
+    .arg(displayText(resource.domain))
     .arg(displayText(resource.lifetime))
     .arg(sizeText(resource));
 }

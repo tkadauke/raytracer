@@ -69,15 +69,9 @@ namespace engine::raster {
     void render(Buffer<Colord>& buffer) override;
     void renderDepth(Buffer<double>& buffer);
     void renderStencil(Buffer<std::uint8_t>& buffer);
-
-    struct ResidentOutputs {
-      std::shared_ptr<detail::OpenGLRasterResource> color;
-      std::shared_ptr<detail::OpenGLRasterResource> depth;
-      std::shared_ptr<detail::OpenGLRasterResource> stencil;
-    };
-
-    ResidentOutputs renderResident(int width, int height, bool publishColor, bool publishDepth,
-                                   bool publishStencil);
+    std::shared_ptr<detail::OpenGLRasterResource> renderResidentColor(int width, int height);
+    std::shared_ptr<detail::OpenGLRasterResource> renderResidentDepth(int width, int height);
+    std::shared_ptr<detail::OpenGLRasterResource> renderResidentStencil(int width, int height);
     void cancel() override;
     void uncancel() override;
 
@@ -222,7 +216,8 @@ namespace engine::raster {
     Recti viewportRectFor(int width, int height) const;
     void renderOpenGL(int width, int height, Buffer<Colord>* colorTarget,
                       Buffer<double>* depthTarget, Buffer<std::uint8_t>* stencilTarget,
-                      ResidentOutputs* residentOutputs = nullptr) const;
+                      bool residentColorTarget = false, bool residentDepthTarget = false,
+                      bool residentStencilTarget = false) const;
     std::string readbackTraceMessage(std::chrono::nanoseconds elapsed, bool copiedColor,
                                      bool copiedDepth, bool copiedStencil) const;
     std::string drawTraceMessage(std::chrono::nanoseconds elapsed, std::size_t triangleCount,
@@ -288,6 +283,9 @@ namespace engine::raster {
     std::shared_ptr<const RasterVisibilitySet> m_visibilitySet;
     mutable std::string m_lastReadbackTraceMessage;
     mutable std::vector<std::string> m_lastTraceMessages;
+    mutable std::shared_ptr<detail::OpenGLRasterResource> m_lastResidentColor;
+    mutable std::shared_ptr<detail::OpenGLRasterResource> m_lastResidentDepth;
+    mutable std::shared_ptr<detail::OpenGLRasterResource> m_lastResidentStencil;
     mutable std::shared_ptr<detail::OpenGLRasterResourceCache> m_resources;
   };
 }

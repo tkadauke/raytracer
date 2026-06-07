@@ -26,9 +26,41 @@ namespace engine::graph {
       return tonemap->singleRead().resource;
     }
 
-    bool supportsOpenGLResidentRasterOutput(RenderResourceType type) {
-      return type == RenderResourceType::Color || type == RenderResourceType::Depth ||
-             type == RenderResourceType::Stencil;
+    bool passUsesOpenGLRasterBackend(const RenderPassNode& pass) {
+      const auto* state = RasterBeautyPassState::fromPass(pass);
+      return state && state->execution().backend().isOpenGL();
+    }
+
+    bool passProducesOpenGLResidentOutput(const RenderPassNode& pass) {
+      if (!passUsesOpenGLRasterBackend(pass)) {
+        return false;
+      }
+      if (pass.kind == RenderPassKind::Beauty) {
+        return true;
+      }
+      return pass.kind == RenderPassKind::AOV &&
+             (pass.hasFeature("depth") || pass.hasFeature("stencil"));
+    }
+
+    void markOpenGLCompatible(RenderPassNode& pass) {
+      if (passUsesOpenGLRasterBackend(pass)) {
+        pass.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
+      }
+    }
+
+    RenderResourceDescriptor openGLResidentResource(RenderResourceDescriptor resource) {
+      resource.domain = RenderResourceDomain::GPU;
+      resource.addFeature("opengl_resident");
+      return resource;
+    }
+
+    RenderResourceDescriptor cpuReadbackResource(RenderResourceDescriptor resource) {
+      resource.domain = RenderResourceDomain::CPU;
+      resource.features.erase(std::remove(resource.features.begin(), resource.features.end(),
+                                          "opengl_resident"),
+                              resource.features.end());
+      resource.addFeature("readback");
+      return resource;
     }
 
     void applyEngineOptionsToPass(RenderPassNode& pass, int rasterTargetSampleCount,
@@ -45,6 +77,7 @@ namespace engine::graph {
       } else if (pass.executor == RenderExecutorKind::Wireframe) {
         intent.engineOptions.wireframe().passState().writeTo(pass);
       }
+      markOpenGLCompatible(pass);
     }
 
     RenderPassNode aovProducerPass(const RenderAOVDefinition& aov, RenderExecutorKind executor,
@@ -154,8 +187,7 @@ namespace engine::graph {
   }
 
   bool RenderGraphCompiler::passNeedsExplicitReadback(const RenderPassNode& pass) const {
-    const auto* state = RasterBeautyPassState::fromPass(pass);
-    return state && state->execution().backend().isOpenGL();
+    return passProducesOpenGLResidentOutput(pass);
   }
 
   bool RenderGraphCompiler::rasterVisibilityCullingRequested(const RenderIntent& intent) const {
@@ -222,6 +254,7 @@ namespace engine::graph {
     result.name = std::move(name);
     result.domain = RenderResourceDomain::CPU;
     result.lifetime = lifetime;
+    result = cpuReadbackResource(std::move(result));
     return result;
   }
 
@@ -283,8 +316,8 @@ namespace engine::graph {
     const bool needsReadback = passNeedsExplicitReadback(producer);
     RenderResourceDescriptor aovResource =
       aov.resourceDescriptor(target, RenderResourceLifetime::Transient);
-    if (needsReadback && supportsOpenGLResidentRasterOutput(aovResource.type)) {
-      aovResource.domain = RenderResourceDomain::GPU;
+    if (needsReadback) {
+      aovResource = openGLResidentResource(std::move(aovResource));
     }
     plan.addResourceProducer(producer, aovResource);
 
@@ -336,9 +369,7 @@ namespace engine::graph {
           aov->resourceDescriptor(target, RenderResourceLifetime::Transient);
         sourceDescriptor.id = sourceId;
         sourceDescriptor.name = aov->title() + " AOV source";
-        if (supportsOpenGLResidentRasterOutput(sourceDescriptor.type)) {
-          sourceDescriptor.domain = RenderResourceDomain::GPU;
-        }
+        sourceDescriptor = openGLResidentResource(std::move(sourceDescriptor));
         plan.addResourceProducer(producer, std::move(sourceDescriptor));
 
         RenderPassNode readback =
@@ -381,7 +412,7 @@ namespace engine::graph {
     RenderResourceDescriptor baseColor =
       target.colorResource("base_color", "Base color", RenderResourceLifetime::Transient);
     if (beautyPassNeedsExplicitReadback(base)) {
-      baseColor.domain = RenderResourceDomain::GPU;
+      baseColor = openGLResidentResource(std::move(baseColor));
     }
     plan.addResourceProducer(base, baseColor);
     RenderResourceId baseCompositeInput = baseColor.id;
@@ -417,7 +448,7 @@ namespace engine::graph {
       stencilProducer.features.push_back("stencil_composite_mask");
       stencilResource.id = "stencil_composite_mask_source";
       stencilResource.name = "Stencil composite mask source";
-      stencilResource.domain = RenderResourceDomain::GPU;
+      stencilResource = openGLResidentResource(std::move(stencilResource));
       plan.addResourceProducer(std::move(stencilProducer), stencilResource);
 
       RenderResourceDescriptor stencilReadback =
@@ -508,14 +539,15 @@ namespace engine::graph {
       beautyPass(executor, frameIntent.defaultSceneView(), target, frameIntent);
     addRasterVisibilityInput(plan, target, beauty, frameIntent.defaultSceneView(), frameIntent);
     if (beautyPassNeedsExplicitReadback(beauty)) {
-      beautyColor.domain = RenderResourceDomain::GPU;
+      beautyColor = openGLResidentResource(std::move(beautyColor));
     }
     plan.addResourceProducer(beauty, beautyColor);
 
     RenderResourceId mainInputResource = beautyColor.id;
     if (beautyPassNeedsExplicitReadback(beauty)) {
-      RenderResourceDescriptor readbackColor = target.colorResource(
-        "beauty_readback_color", "Beauty readback color", RenderResourceLifetime::Transient);
+      RenderResourceDescriptor readbackColor =
+        readbackResource(beautyColor, "beauty_readback_color", "Beauty readback color",
+                         RenderResourceLifetime::Transient);
       RenderPassNode readback = readbackPass(beautyColor.id, readbackColor.id);
       plan.addResourceProducer(std::move(readback), readbackColor);
       mainInputResource = "beauty_readback_color";

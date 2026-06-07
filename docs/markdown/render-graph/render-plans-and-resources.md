@@ -181,10 +181,13 @@ rasterizer features so text, DOT, JSON, and the Modeler resource table make its
 purpose clear before the graph runs.
 
 Resource domains are `CPU` and `GPU`. `CPU` resources can be allocated by
-`RenderResourceStorage`; `GPU` resources are descriptors without CPU buffers in
-that storage object. Current executors are CPU-backed, so validation rejects a
-pass that reads or writes a `GPU` resource until a GPU-capable executor is
-introduced. Resource lifetimes are:
+`RenderResourceStorage` as typed image buffers. `GPU` resources represent
+OpenGL-resident graph products for compatible OpenGL raster passes; they do not
+allocate CPU buffers unless a later explicit `readback` pass crosses the
+boundary. Validation still rejects CPU-only passes that read or write a `GPU`
+resource, so an exported plan shows whether an edge stayed resident on OpenGL,
+crossed through a named readback pass, or stayed on ordinary CPU buffers.
+Resource lifetimes are:
 
 - `Transient` -- produced inside the plan and consumed by other passes.
 - `Imported` -- available before the plan starts.
@@ -210,11 +213,14 @@ ready for shadow maps, reflection probes, and similar resources once those
 artifacts are represented outside the direct engines.
 
 Readback is modeled as an explicit graph pass kind rather than hidden final
-state. The first `readback` payload copies CPU-materialized resources through
-the resource instances themselves and reports a clear error for descriptor-only
-GPU resources. That gives future OpenGL/Vulkan resource subclasses one
-execution hook for GPU-to-CPU transfer while keeping dependencies visible in
-text, DOT, JSON, and the Modeler graph view.
+state. OpenGL raster producer outputs are marked as GPU-domain resources when
+the compiler schedules an OpenGL path; the readback node writes a separate
+CPU-domain resource consumed by tonemap, visualization, composite, or export
+passes. The current `readback` payload copies CPU-materialized resources
+through the resource instances themselves and reports a clear error for GPU
+resources that have not been materialized yet. That keeps dependencies visible
+in text, DOT, JSON, graph traces, and the Modeler graph view while the backend
+resource transfer path continues to grow.
 
 ## <a id="pass-nodes-declare-reads-and-writes"></a>Pass nodes declare reads and writes
 `RenderPassNode` is the declarative node in the graph:

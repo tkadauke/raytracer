@@ -14,6 +14,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Portal and planar mirror scene markers.** Scene JSON and Modeler surface
   properties can now mark planar portal receivers and mirror surfaces for
   render graph discovery. — GPT-5
+- **OpenGL graph residency scheduling.** Compiled OpenGL raster producer
+  outputs now use GPU-domain resource descriptors until an explicit readback
+  pass crosses back to CPU storage, and graph traces/export surfaces label the
+  residency decision. — GPT-5
 - **Wavefront graph packet ratios.** Modeler render graph pass tooltips now
   show packet-fill and scalar-tail percentages for wavefront packet frontiers.
   — GPT-5

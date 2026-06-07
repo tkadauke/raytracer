@@ -222,6 +222,17 @@ namespace engine::graph {
              " resources";
     }
 
+    const char* residencyDecisionFor(const RenderResourceDescriptor& descriptor,
+                                     bool previewAvailable) {
+      if (descriptor.domain == RenderResourceDomain::GPU) {
+        return "opengl_resident";
+      }
+      if (previewAvailable) {
+        return "cpu_buffer";
+      }
+      return "metadata_only";
+    }
+
     QJsonArray featureArray(const std::vector<RenderFeatureKind>& features) {
       QJsonArray array;
       for (const auto& feature : features) {
@@ -376,6 +387,8 @@ namespace engine::graph {
     object["resource"] = QString::fromStdString(m_resourceId);
     object["type"] = toString(m_descriptor.type);
     object["format"] = toString(m_descriptor.format);
+    object["domain"] = toString(m_descriptor.domain);
+    object["residencyDecision"] = residencyDecisionFor(m_descriptor, hasPreview());
     if (!m_descriptor.features.empty()) {
       object["features"] = featureArray(m_descriptor.features);
     }

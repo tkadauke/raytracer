@@ -333,6 +333,11 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(RenderResourceDomain::CPU, plan.findResource("stencil_composite_mask")->domain);
     EXPECT_TRUE(hasFeature(*stencilReadback, "stencil_composite"));
     EXPECT_TRUE(hasFeature(*stencilReadback, "stencil"));
+    ASSERT_NE(nullptr, plan.findResource("stencil_composite_mask_source"));
+    EXPECT_EQ(RenderResourceDomain::GPU,
+              plan.findResource("stencil_composite_mask_source")->domain);
+    ASSERT_NE(nullptr, plan.findResource("stencil_composite_mask"));
+    EXPECT_EQ(RenderResourceDomain::CPU, plan.findResource("stencil_composite_mask")->domain);
 
     const auto* composite = plan.findPass("stencil_composite");
     ASSERT_NE(nullptr, composite);
@@ -344,6 +349,7 @@ namespace RenderGraphCompilerTest {
     const auto* exportedStencil = plan.findResource("stencil_aov");
     ASSERT_NE(nullptr, exportedStencil);
     EXPECT_EQ(RenderResourceLifetime::Exported, exportedStencil->lifetime);
+    EXPECT_EQ(RenderResourceDomain::CPU, exportedStencil->domain);
     const auto* exportedStencilReadback = plan.findPass("readback_stencil_aov");
     ASSERT_NE(nullptr, exportedStencilReadback);
     EXPECT_TRUE(hasFeature(*exportedStencilReadback, "export"));
@@ -1012,6 +1018,14 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(hasFeature(*readback, "main"));
     EXPECT_TRUE(hasFeature(*readback, "readback"));
     EXPECT_TRUE(hasFeature(*readback, "transfer"));
+    ASSERT_NE(nullptr, plan.findResource("beauty_color"));
+    EXPECT_EQ(RenderResourceDomain::GPU, plan.findResource("beauty_color")->domain);
+    EXPECT_TRUE(plan.findResource("beauty_color")->hasFeature("opengl_resident"));
+    ASSERT_NE(nullptr, plan.findResource("beauty_readback_color"));
+    EXPECT_EQ(RenderResourceDomain::CPU, plan.findResource("beauty_readback_color")->domain);
+    EXPECT_TRUE(plan.findResource("beauty_readback_color")->hasFeature("readback"));
+    ASSERT_NE(nullptr, plan.findPass("raster_beauty"));
+    EXPECT_TRUE(plan.findPass("raster_beauty")->supportsResourceDomain(RenderResourceDomain::GPU));
 
     const auto* beautyResource = plan.findResource("beauty_color");
     ASSERT_NE(nullptr, beautyResource);
@@ -1057,9 +1071,10 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(RenderResourceFormat::DepthDouble, readbackResource->format);
     EXPECT_EQ(RenderResourceDomain::CPU, readbackResource->domain);
     EXPECT_EQ(RenderResourceLifetime::Transient, readbackResource->lifetime);
-    const auto* residentResource = plan.findResource("depth_aov");
-    ASSERT_NE(nullptr, residentResource);
-    EXPECT_EQ(RenderResourceDomain::GPU, residentResource->domain);
+    ASSERT_NE(nullptr, plan.findResource("depth_aov"));
+    EXPECT_EQ(RenderResourceDomain::GPU, plan.findResource("depth_aov")->domain);
+    ASSERT_NE(nullptr, plan.findPass("depth_aov"));
+    EXPECT_TRUE(plan.findPass("depth_aov")->supportsResourceDomain(RenderResourceDomain::GPU));
 
     const auto* visualization = plan.findPass("visualize_depth_aov");
     ASSERT_NE(nullptr, visualization);
@@ -1081,11 +1096,13 @@ namespace RenderGraphCompilerTest {
     const auto* source = plan.findResource("depth_aov_source");
     ASSERT_NE(nullptr, source);
     EXPECT_EQ(RenderResourceType::Depth, source->type);
+    EXPECT_EQ(RenderResourceDomain::GPU, source->domain);
     EXPECT_EQ(RenderResourceLifetime::Transient, source->lifetime);
 
     const auto* exported = plan.findResource("depth_aov");
     ASSERT_NE(nullptr, exported);
     EXPECT_EQ(RenderResourceType::Depth, exported->type);
+    EXPECT_EQ(RenderResourceDomain::CPU, exported->domain);
     EXPECT_EQ(RenderResourceLifetime::Exported, exported->lifetime);
 
     const auto* producer = plan.findPass("depth_aov");
