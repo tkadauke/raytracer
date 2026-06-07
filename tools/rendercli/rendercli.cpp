@@ -2983,7 +2983,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "Set a default graph shading profile parameter; may be repeated with key=value", "key=value"},
      {"render_graph_view_override",
       "Add a render-intent view override as selector,key=value; selectors include all, "
-      "tag:value, object_name:value, object_id:value, layer:value, and material_role:value",
+      "tag:value, object_name:value, object_id:value, layer:value, and material_role:value; "
+      "fields include executor, view, camera, shading_profile, and parameter:name",
       "selector,key=value"},
      {"render_graph_wireframe_overlay", "Add a wireframe overlay pass to the compiled graph"},
      {"render_graph_curve_overlay", "Add a curve center-line overlay pass to the compiled graph"},
