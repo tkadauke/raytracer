@@ -7,6 +7,8 @@
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderGraphCompiler.h"
 #include "engine/graph/RenderResourceStorage.h"
+#include "engine/graph/RasterPassState.h"
+#include "engine/raster/OpenGLOffscreenContext.h"
 #include "engine/raster/RasterBackend.h"
 #include "engine/raster/RasterVisibilitySceneCache.h"
 #include "engine/raster/detail/RasterShadowMapBuilder.h"
@@ -2086,6 +2088,82 @@ namespace GraphRenderEngineTest {
                 message.find("resource 'resident_color' has no CPU buffer or OpenGL resident "
                              "resource"));
     }
+  }
+
+  TEST(GraphRenderEngine, ExecutesOpenGLResidentRasterChainBeforeExplicitReadback) {
+    const auto availability = engine::raster::OpenGLOffscreenContext::probe();
+    if (!availability.available()) {
+      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host: "
+                   << availability.error();
+    }
+
+    RenderPlan plan;
+    auto firstColor = colorResource("first_color", RenderResourceLifetime::Transient, 16, 16);
+    firstColor.domain = RenderResourceDomain::GPU;
+    firstColor.addFeature("opengl_resident");
+    plan.addResource(firstColor);
+    auto secondColor = colorResource("second_color", RenderResourceLifetime::Transient, 16, 16);
+    secondColor.domain = RenderResourceDomain::GPU;
+    secondColor.addFeature("opengl_resident");
+    plan.addResource(secondColor);
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported, 16, 16));
+
+    RenderPassNode first;
+    first.id = "first_opengl";
+    first.kind = RenderPassKind::Beauty;
+    first.executor = RenderExecutorKind::Rasterizer;
+    first.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
+    first.writes.push_back({"first_color"});
+    RasterBeautyPassState firstState;
+    firstState.execution().setBackend(engine::raster::RasterBackend::openGL());
+    first.state = std::make_shared<RasterBeautyPassState>(firstState);
+    plan.addPass(first);
+
+    RenderPassNode second;
+    second.id = "second_opengl";
+    second.kind = RenderPassKind::Beauty;
+    second.executor = RenderExecutorKind::Rasterizer;
+    second.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
+    second.reads.push_back({"first_color"});
+    second.writes.push_back({"second_color"});
+    RasterBeautyPassState secondState;
+    secondState.execution().setBackend(engine::raster::RasterBackend::openGL());
+    secondState.framebuffer().setColorLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
+    second.state = std::make_shared<RasterBeautyPassState>(secondState);
+    plan.addPass(second);
+
+    RenderPassNode readback;
+    readback.id = "readback";
+    readback.kind = RenderPassKind::Readback;
+    readback.executor = RenderExecutorKind::PostProcess;
+    readback.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
+    readback.reads.push_back({"second_color"});
+    readback.writes.push_back({"main_color"});
+    plan.addPass(readback);
+    ASSERT_TRUE(plan.validate().valid());
+
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(plan);
+
+    Buffer<unsigned int> buffer(16, 16);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+    const auto trace = engine.lastExecutionTrace();
+    ASSERT_NE(nullptr, trace);
+    const auto* firstTrace = trace->findPass("first_opengl");
+    ASSERT_NE(nullptr, firstTrace);
+    EXPECT_EQ(std::string::npos, firstTrace->message().find("readback copied"));
+    const auto* secondTrace = trace->findPass("second_opengl");
+    ASSERT_NE(nullptr, secondTrace);
+    EXPECT_NE(std::string::npos,
+              secondTrace->message().find("consumed resident graph attachments"));
+    EXPECT_EQ(std::string::npos, secondTrace->message().find("readback copied"));
+    const auto* readbackTrace = trace->findPass("readback");
+    ASSERT_NE(nullptr, readbackTrace);
+    EXPECT_NE(std::string::npos,
+              readbackTrace->message().find("readback copied OpenGL-resident resource"));
   }
 
   TEST(GraphRenderEngine, RejectsUnboundExternalInputResources) {

@@ -216,11 +216,16 @@ Readback is modeled as an explicit graph pass kind rather than hidden final
 state. OpenGL raster producer outputs are marked as GPU-domain resources when
 the compiler schedules an OpenGL path; the readback node writes a separate
 CPU-domain resource consumed by tonemap, visualization, composite, or export
-passes. The current `readback` payload copies CPU-materialized resources
-through the resource instances themselves and reports a clear error for GPU
-resources that have not been materialized yet. That keeps dependencies visible
-in text, DOT, JSON, graph traces, and the Modeler graph view while the backend
-resource transfer path continues to grow.
+passes. Compatible OpenGL graph inputs do not need to cross that boundary:
+preview shadow maps are produced by `raster_preview_shadows`, consumed by the
+OpenGL `raster_beauty` pass during mesh preparation, and traced as shader-side
+shadow sampling. The only readback in that display chain is the named
+`beauty_readback` pass before CPU tonemapping. The current `readback` payload
+copies CPU-materialized resources through the resource instances themselves,
+copies materialized OpenGL resources through the OpenGL attachment path, and
+reports a clear error for descriptor-only GPU resources. That keeps
+dependencies visible in text, DOT, JSON, graph traces, and the Modeler graph
+view.
 
 ## <a id="pass-nodes-declare-reads-and-writes"></a>Pass nodes declare reads and writes
 `RenderPassNode` is the declarative node in the graph:
@@ -747,18 +752,17 @@ per-sample default. In rendercli, that explicit selection starts a
 GUI-capable Qt application and requests Qt's offscreen platform by default; in
 Modeler, the existing GUI application owns that bootstrap. The OpenGL executor
 then creates an offscreen context and depth/stencil framebuffer when the host
-platform supports it, renders the initial lit mesh pass, and reads
-color back into the graph resource; unsupported hosts still fail with an
-explicit capability error. Graph traces report both the CPU mesh-preparation
-time, OpenGL setup and draw-submission time, prepared vertex/index and image
-texture upload byte counts, and the current eager color/depth/stencil readback
-time. Beauty, depth AOV, and stencil AOV passes all publish those OpenGL timing
-messages. OpenGL
-raster beauty plans also route the beauty color through an
-explicit `beauty_readback` node before tonemap, so the graph already shows the
-transfer boundary that will become the real GPU-to-CPU copy once resident
-OpenGL resources are kept across passes. OpenGL-backed raster AOV view plans
-use the same shape between the raw AOV resource and its visualization pass;
+platform supports it, renders the initial lit mesh pass, and publishes the
+OpenGL attachment as a graph resource; unsupported hosts still fail with an
+explicit capability error. Graph traces report CPU mesh-preparation time,
+OpenGL setup and draw-submission time, prepared vertex/index and image texture
+upload byte counts, shader-side shadow-map binding, resident attachment-load
+consumption, and explicit readback timing. Beauty, depth AOV, and stencil AOV
+passes all publish those OpenGL timing messages. OpenGL raster beauty plans
+also route the beauty color through an explicit `beauty_readback` node before
+tonemap, so the graph shows the GPU-to-CPU transfer boundary instead of hiding
+it in final output publication. OpenGL-backed raster AOV view plans use the
+same shape between the raw AOV resource and its visualization pass;
 exported side AOV branches keep the public exported resource on the readback
 side of that boundary and classify that transfer as an exported AOV branch
 rather than part of the main display chain. OpenGL-backed stencil-composite

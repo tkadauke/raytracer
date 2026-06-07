@@ -893,6 +893,61 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(128, plan.findResource("preview_shadow_map")->width);
   }
 
+  TEST(RenderGraphCompiler, OpenGLRasterShadowMapChainKeepsCompatibleEdgeBeforeReadback) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.enablePreviewShadows = true;
+    intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
+
+    const RenderPlan plan = compiler.compile({64, 64, 1}, intent);
+
+    const auto* shadow = plan.findPass("raster_preview_shadows");
+    ASSERT_NE(nullptr, shadow);
+    EXPECT_EQ(RenderPassKind::Shadow, shadow->kind);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, shadow->executor);
+    ASSERT_EQ(1u, shadow->writes.size());
+    EXPECT_EQ("preview_shadow_map", shadow->writes.front().resource);
+
+    const auto* shadowMap = plan.findResource("preview_shadow_map");
+    ASSERT_NE(nullptr, shadowMap);
+    EXPECT_EQ(RenderResourceType::ShadowMap, shadowMap->type);
+    EXPECT_EQ(RenderResourceDomain::CPU, shadowMap->domain);
+    EXPECT_EQ(RenderResourceLifetime::PersistentCache, shadowMap->lifetime);
+
+    const auto* beauty = plan.findPass("raster_beauty");
+    ASSERT_NE(nullptr, beauty);
+    EXPECT_TRUE(beauty->supportsResourceDomain(RenderResourceDomain::GPU));
+    ASSERT_EQ(1u, beauty->reads.size());
+    EXPECT_EQ("preview_shadow_map", beauty->reads.front().resource);
+    ASSERT_EQ(1u, beauty->writes.size());
+    EXPECT_EQ("beauty_color", beauty->writes.front().resource);
+
+    const auto* beautyColor = plan.findResource("beauty_color");
+    ASSERT_NE(nullptr, beautyColor);
+    EXPECT_EQ(RenderResourceDomain::GPU, beautyColor->domain);
+    EXPECT_TRUE(beautyColor->hasFeature("opengl_resident"));
+
+    const auto* readback = plan.findPass("beauty_readback");
+    ASSERT_NE(nullptr, readback);
+    EXPECT_EQ(RenderPassKind::Readback, readback->kind);
+    ASSERT_EQ(1u, readback->reads.size());
+    EXPECT_EQ("beauty_color", readback->reads.front().resource);
+    EXPECT_FALSE(readback->readsResource("preview_shadow_map"));
+
+    ASSERT_EQ(1u, plan.consumersOf("preview_shadow_map").size());
+    EXPECT_EQ("raster_beauty", plan.consumersOf("preview_shadow_map").front()->id);
+    ASSERT_TRUE(plan.executionOrderNumber("raster_preview_shadows").has_value());
+    ASSERT_TRUE(plan.executionOrderNumber("raster_beauty").has_value());
+    ASSERT_TRUE(plan.executionOrderNumber("beauty_readback").has_value());
+    EXPECT_LT(*plan.executionOrderNumber("raster_preview_shadows"),
+              *plan.executionOrderNumber("raster_beauty"));
+    EXPECT_LT(*plan.executionOrderNumber("raster_beauty"),
+              *plan.executionOrderNumber("beauty_readback"));
+    EXPECT_TRUE(plan.resourceCanReach("preview_shadow_map", "main_color"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, RasterVisibilityCullingOptionAddsVisibilityDependency) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

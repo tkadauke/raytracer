@@ -26,6 +26,7 @@ set(textured_gltf_scene "${TEST_OUTPUT_DIR}/textured_triangle.gltf")
 configure_file("${textured_gltf_scene_template}" "${textured_gltf_scene}" @ONLY)
 set(basic_render "${TEST_OUTPUT_DIR}/raster-basic.png")
 set(opengl_graph "${TEST_OUTPUT_DIR}/raster-opengl-graph.json")
+set(opengl_shadow_graph "${TEST_OUTPUT_DIR}/raster-opengl-shadow-graph.json")
 set(opengl_trace "${TEST_OUTPUT_DIR}/raster-opengl-trace.json")
 set(opengl_trace_render "${TEST_OUTPUT_DIR}/raster-opengl-trace.png")
 set(lod_0_render "${TEST_OUTPUT_DIR}/raster-lod-0.png")
@@ -98,6 +99,45 @@ if(NOT opengl_graph_json MATCHES "\"backend\"[ \r\n]*:[ \r\n]*\"opengl\"")
   _rendercli_fail("rendercli --raster_backend opengl graph state"
                   "compiled graph did not serialize the OpenGL raster backend"
                   "" "" "" "${opengl_graph_json}")
+endif()
+
+rendercli_run(
+  NAME "rendercli --raster_backend opengl shadow graph exposes resident chain"
+  COMMAND
+    "${RENDERCLI}" --engine raster --render_graph_only --render_graph_format json
+    --raster_backend opengl --shadow_maps --shadow_map_size 64 --shadow_bias 0.1
+    "${shadow_scene}" "${opengl_shadow_graph}"
+)
+file(READ "${opengl_shadow_graph}" opengl_shadow_graph_json)
+if(NOT opengl_shadow_graph_json MATCHES "\"id\"[ \r\n]*:[ \r\n]*\"raster_preview_shadows\"")
+  _rendercli_fail("rendercli --raster_backend opengl shadow graph"
+                  "compiled graph did not contain the shadow-map producer pass"
+                  "" "" "" "${opengl_shadow_graph_json}")
+endif()
+if(NOT opengl_shadow_graph_json MATCHES "\"id\"[ \r\n]*:[ \r\n]*\"raster_beauty\"")
+  _rendercli_fail("rendercli --raster_backend opengl shadow graph"
+                  "compiled graph did not contain the OpenGL beauty consumer pass"
+                  "" "" "" "${opengl_shadow_graph_json}")
+endif()
+if(NOT opengl_shadow_graph_json MATCHES "\"preview_shadow_map\"")
+  _rendercli_fail("rendercli --raster_backend opengl shadow graph"
+                  "compiled graph did not expose the graph shadow-map edge"
+                  "" "" "" "${opengl_shadow_graph_json}")
+endif()
+if(NOT opengl_shadow_graph_json MATCHES "\"id\"[ \r\n]*:[ \r\n]*\"beauty_readback\"")
+  _rendercli_fail("rendercli --raster_backend opengl shadow graph"
+                  "compiled graph did not contain the explicit final beauty readback"
+                  "" "" "" "${opengl_shadow_graph_json}")
+endif()
+if(NOT opengl_shadow_graph_json MATCHES "\"domain\"[ \r\n]*:[ \r\n]*\"gpu\"[^}]*\"id\"[ \r\n]*:[ \r\n]*\"beauty_color\"")
+  _rendercli_fail("rendercli --raster_backend opengl shadow graph"
+                  "OpenGL beauty output was not serialized as a GPU-domain resource"
+                  "" "" "" "${opengl_shadow_graph_json}")
+endif()
+if(opengl_shadow_graph_json MATCHES "readback_preview_shadow_map|preview_shadow_map_readback")
+  _rendercli_fail("rendercli --raster_backend opengl shadow graph"
+                  "shadow-map edge unexpectedly crossed an implicit readback boundary"
+                  "" "" "" "${opengl_shadow_graph_json}")
 endif()
 
 set(opengl_render "${TEST_OUTPUT_DIR}/raster-opengl.png")
@@ -493,6 +533,24 @@ if(opengl_shadow_trace_result STREQUAL "0")
   if(NOT opengl_shadow_trace_json MATCHES "OpenGL raster shadow texture prepared")
     _rendercli_fail("rendercli --raster_backend gpu shadow trace"
                     "OpenGL shadow-map trace did not record texture payload preparation"
+                    "" "${opengl_shadow_trace_result}" "${opengl_shadow_trace_stdout}"
+                    "${opengl_shadow_trace_json}")
+  endif()
+  if(opengl_shadow_trace_json MATCHES "found a shadow-map edge without a materialized artifact")
+    _rendercli_fail("rendercli --raster_backend gpu shadow trace"
+                    "OpenGL shadow-map chain fell back after graph compilation"
+                    "" "${opengl_shadow_trace_result}" "${opengl_shadow_trace_stdout}"
+                    "${opengl_shadow_trace_json}")
+  endif()
+  if(opengl_shadow_trace_json MATCHES "readback copied[^\"]*preview_shadow_map")
+    _rendercli_fail("rendercli --raster_backend gpu shadow trace"
+                    "OpenGL shadow-map chain reported an implicit readback between compatible passes"
+                    "" "${opengl_shadow_trace_result}" "${opengl_shadow_trace_stdout}"
+                    "${opengl_shadow_trace_json}")
+  endif()
+  if(NOT opengl_shadow_trace_json MATCHES "readback copied OpenGL-resident resource 'beauty_color'")
+    _rendercli_fail("rendercli --raster_backend gpu shadow trace"
+                    "OpenGL shadow-map trace did not record the explicit final readback boundary"
                     "" "${opengl_shadow_trace_result}" "${opengl_shadow_trace_stdout}"
                     "${opengl_shadow_trace_json}")
   endif()

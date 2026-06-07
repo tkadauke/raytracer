@@ -163,8 +163,13 @@ Tasks:
   paid off.~~ ✅ **Done.** Plan exports, trace snapshot JSON, and Modeler
   graph/resource inspection expose OpenGL-resident, explicit-readback, and
   CPU-buffer decisions.
-- rendercli functional test: a multi-pass GPU plan reports zero implicit
-  readback nodes between compatible passes.
+- ~~rendercli functional test: a multi-pass GPU plan reports zero implicit
+  readback nodes between compatible passes.~~ ✅ **Done.** The
+  `rendercli --raster_backend opengl --shadow_maps --render_graph_only`
+  export asserts the `raster_preview_shadows` to `raster_beauty` edge stays a
+  graph shadow-map edge with no `preview_shadow_map` readback, and the
+  `--render_graph_trace_out` OpenGL shadow render asserts shader-side shadow
+  consumption plus the separate explicit `beauty_readback` boundary.
 
 ## Out of scope (deferred)
 
@@ -181,9 +186,11 @@ Tasks:
 
 ## How to verify
 
-- New unit tests cover storage type discrimination and resource
-  destructor lifecycle.
-- New parity test variants cover producer→consumer GPU chains.
-- Existing OpenGL parity tests stay green (single-pass behavior is
-  unchanged).
-- rendercli trace inspection shows the load/store transitions.
+- Unit/resource coverage:
+  `build/release/test/unit/unit_tests --gtest_filter='RenderResourceStorage*:*OpenGLRasterResource*:*RenderGraphCompiler.OpenGLRasterShadowMapChainKeepsCompatibleEdgeBeforeReadback:*GraphRenderEngine.*Readback*'`
+- Rendercli plan/trace coverage:
+  `ctest --preset release --output-on-failure -R rendercli`
+- OpenGL runtime capability lane:
+  `QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 build/release/test/unit/unit_tests --gtest_filter='OpenGL*:*Egl*:*Cgl*:*GlAvailability*:*AttachmentSet*:*Parity*'`
+- Benchmark build smoke for the OpenGL-adjacent release lane:
+  `cmake --preset benchmark && cmake --build --preset benchmark --target benchmarks --parallel && ./build/benchmark/benchmarks/benchmarks --benchmark_list_tests=true >/dev/null`
