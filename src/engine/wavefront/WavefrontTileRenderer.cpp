@@ -705,9 +705,7 @@ namespace engine::wavefront::detail {
         buildDenoiserFeatureTile(*features, camera, scene, actualRect, tileSeed);
         m_metrics.recordDenoiserFeatureTile(actualRect);
       });
-    if (m_config.metricsEnabled) {
-      m_metrics.recordDenoiserFeatureSeconds(featureStart);
-    }
+    m_metrics.recordDenoiserFeatureSeconds(featureStart);
     return features;
   }
 
