@@ -578,6 +578,9 @@ namespace engine::wavefront {
     tileRenderer.denoise(buffer, denoiserFeatures.get());
     if (recordMetrics) {
       p->metrics.finish(renderStart);
+      if (!p->metricsEnabled && !m_camera->isCancelled() && !denoiserFeatures) {
+        p->metrics.clear();
+      }
     }
 
 #ifdef RAYTRACER_ENABLE_STATS
@@ -650,6 +653,9 @@ namespace engine::wavefront {
       });
     if (recordMetrics) {
       p->metrics.finish(renderStart);
+      if (!p->metricsEnabled && !m_camera->isCancelled()) {
+        p->metrics.clear();
+      }
     }
 
 #ifdef RAYTRACER_ENABLE_STATS
@@ -728,6 +734,9 @@ namespace engine::wavefront {
     tileRenderer.writeDisplayBuffer(displayBuffer, hdrBuffer, displayTonemap);
     if (recordMetrics) {
       p->metrics.finish(renderStart);
+      if (!p->metricsEnabled && !m_camera->isCancelled() && !denoiserFeatures) {
+        p->metrics.clear();
+      }
     }
 
 #ifdef RAYTRACER_ENABLE_STATS
