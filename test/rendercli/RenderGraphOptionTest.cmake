@@ -71,6 +71,10 @@ set(shading_profile_override_plan "${TEST_OUTPUT_DIR}/graph-shading-profile-over
 set(shading_profile_override_text_plan "${TEST_OUTPUT_DIR}/graph-shading-profile-override.txt")
 set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
 set(curve_overlay_plan "${TEST_OUTPUT_DIR}/graph-curve-overlay.txt")
+set(selector_routed_text_plan "${TEST_OUTPUT_DIR}/graph-selector-routed.txt")
+set(selector_routed_dot_plan "${TEST_OUTPUT_DIR}/graph-selector-routed.dot")
+set(selector_routed_json_plan "${TEST_OUTPUT_DIR}/graph-selector-routed.json")
+set(selector_routed_replayed_dot_plan "${TEST_OUTPUT_DIR}/graph-selector-routed-replayed.dot")
 set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
 set(replayed_dot_plan "${TEST_OUTPUT_DIR}/graph-replayed.dot")
 set(external_input_text_plan "${TEST_OUTPUT_DIR}/graph-external-input.txt")
@@ -1259,6 +1263,121 @@ endif()
 if(NOT intent_view_override_graph MATCHES "shading=toon\\(levels=3")
   message(FATAL_ERROR
     "graph view override intent did not carry shading metadata: ${intent_view_override_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli graph view override routes selector branch in text export"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text
+    --render_graph_view_override "object_id:12,executor=wireframe,view=wireframe"
+    --width 32 --height 16
+    "${static_scene}" "${selector_routed_text_plan}"
+)
+rendercli_assert_nonempty("${selector_routed_text_plan}"
+                          NAME "selector-routed text graph output")
+file(READ "${selector_routed_text_plan}" selector_routed_text_graph)
+if(NOT selector_routed_text_graph MATCHES "selector_1_wireframe_beauty")
+  message(FATAL_ERROR
+    "selector-routed text graph did not contain routed wireframe pass: ${selector_routed_text_graph}")
+endif()
+if(NOT selector_routed_text_graph MATCHES "selector_1_composite")
+  message(FATAL_ERROR
+    "selector-routed text graph did not contain routed composite pass: ${selector_routed_text_graph}")
+endif()
+if(NOT selector_routed_text_graph MATCHES "selector_1_composited_color")
+  message(FATAL_ERROR
+    "selector-routed text graph did not route tonemap through composited color: ${selector_routed_text_graph}")
+endif()
+if(NOT selector_routed_text_graph MATCHES "scene: selector=object_id: 12")
+  message(FATAL_ERROR
+    "selector-routed text graph did not show selector metadata: ${selector_routed_text_graph}")
+endif()
+if(NOT selector_routed_text_graph MATCHES "features: .*selector_override")
+  message(FATAL_ERROR
+    "selector-routed text graph did not mark routed resources or passes: ${selector_routed_text_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli graph view override routes selector branch in DOT export"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format dot
+    --render_graph_view_override "object_id:12,view=normal"
+    --width 32 --height 16
+    "${static_scene}" "${selector_routed_dot_plan}"
+)
+rendercli_assert_nonempty("${selector_routed_dot_plan}"
+                          NAME "selector-routed DOT graph output")
+file(READ "${selector_routed_dot_plan}" selector_routed_dot_graph)
+if(NOT selector_routed_dot_graph MATCHES "selector_1_normal_aov")
+  message(FATAL_ERROR
+    "selector-routed DOT graph did not contain routed normal AOV: ${selector_routed_dot_graph}")
+endif()
+if(NOT selector_routed_dot_graph MATCHES "selector object_id: 12")
+  message(FATAL_ERROR
+    "selector-routed DOT graph did not show selector metadata: ${selector_routed_dot_graph}")
+endif()
+if(NOT selector_routed_dot_graph MATCHES "selector_1_composite")
+  message(FATAL_ERROR
+    "selector-routed DOT graph did not contain routed composite pass: ${selector_routed_dot_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli graph view override routes selector branch in JSON export"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --render_graph_view_override "object_id:12,executor=wavefront"
+    --width 32 --height 16
+    "${static_scene}" "${selector_routed_json_plan}"
+)
+rendercli_assert_nonempty("${selector_routed_json_plan}"
+                          NAME "selector-routed JSON graph output")
+file(READ "${selector_routed_json_plan}" selector_routed_json_graph)
+if(NOT selector_routed_json_graph MATCHES "\"id\": \"selector_1_wavefront_beauty\"")
+  message(FATAL_ERROR
+    "selector-routed JSON graph did not contain routed wavefront pass: ${selector_routed_json_graph}")
+endif()
+if(NOT selector_routed_json_graph MATCHES "\"id\": \"selector_1_composite\"")
+  message(FATAL_ERROR
+    "selector-routed JSON graph did not contain routed composite pass: ${selector_routed_json_graph}")
+endif()
+if(NOT selector_routed_json_graph MATCHES "\"sceneSelector\"")
+  message(FATAL_ERROR
+    "selector-routed JSON graph did not carry sceneSelector metadata: ${selector_routed_json_graph}")
+endif()
+if(NOT selector_routed_json_graph MATCHES "\"kind\": \"object_id\"")
+  message(FATAL_ERROR
+    "selector-routed JSON graph did not carry selector kind: ${selector_routed_json_graph}")
+endif()
+if(NOT selector_routed_json_graph MATCHES "\"value\": \"12\"")
+  message(FATAL_ERROR
+    "selector-routed JSON graph did not carry selector value: ${selector_routed_json_graph}")
+endif()
+if(NOT selector_routed_json_graph MATCHES "\"selector_override\"")
+  message(FATAL_ERROR
+    "selector-routed JSON graph did not mark selector_override metadata: ${selector_routed_json_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli replays selector-routed graph JSON"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format dot
+    --render_graph_in "${selector_routed_json_plan}"
+    "${static_scene}" "${selector_routed_replayed_dot_plan}"
+)
+rendercli_assert_nonempty("${selector_routed_replayed_dot_plan}"
+                          NAME "selector-routed replay DOT graph output")
+file(READ "${selector_routed_replayed_dot_plan}" selector_routed_replayed_dot_graph)
+if(NOT selector_routed_replayed_dot_graph MATCHES "selector_1_wavefront_beauty")
+  message(FATAL_ERROR
+    "replayed selector-routed DOT graph did not preserve routed wavefront pass: ${selector_routed_replayed_dot_graph}")
+endif()
+if(NOT selector_routed_replayed_dot_graph MATCHES "selector object_id: 12")
+  message(FATAL_ERROR
+    "replayed selector-routed DOT graph did not preserve selector metadata: ${selector_routed_replayed_dot_graph}")
+endif()
+if(NOT selector_routed_replayed_dot_graph MATCHES "selector_1_composite")
+  message(FATAL_ERROR
+    "replayed selector-routed DOT graph did not preserve routed composite pass: ${selector_routed_replayed_dot_graph}")
 endif()
 
 rendercli_run(
@@ -2769,6 +2888,25 @@ rendercli_expect_failure(
   STDERR_MATCHES "Render graph view override selector must use"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_view_override "unknown:debug,view=wireframe"
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects duplicate selector-specific graph overrides"
+  STDERR_MATCHES "conflicting selector-specific render intent"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only
+    --render_graph_view_override "object_id:12,view=wireframe"
+    --render_graph_view_override "object_id:12,executor=wireframe"
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects unsupported selector-specific stencil composite view"
+  STDERR_MATCHES "does not support selector-specific stencil_composite view"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only
+    --render_graph_view_override "object_id:12,view=stencil_composite"
     "${static_scene}" "${invalid_plan}"
 )
 

@@ -428,6 +428,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Path tracing direct-light MIS.** Path tracer direct-light sampling now uses
   material BSDF PDFs to MIS-weight non-delta light samples while preserving
   delta light behavior. — GPT-5
+- **Rendercli selector override routing.** rendercli now documents wavefront as
+  a selector-specific graph executor and its graph export/replay tests cover
+  routed selector branch pass/resource ids and selector metadata. — GPT-5
 - **Wavefront no-refinement packet bookkeeping.** Whitted wavefront packet
   frontiers now use one bookkeeping timing scope for packet hits that do not
   need scalar material refinement, reducing metric-time scheduler overhead on
