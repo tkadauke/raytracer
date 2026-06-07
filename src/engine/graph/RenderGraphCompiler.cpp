@@ -620,11 +620,9 @@ namespace engine::graph {
     return plan;
   }
 
-  std::vector<RenderGraphCompiler::SubviewOutputBinding>
-  RenderGraphCompiler::addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,
-                                          const RenderIntent& intent,
-                                          const RenderSceneAnalysis& sceneAnalysis,
-                                          int renderToTextureDepth) const {
+  std::vector<RenderGraphCompiler::SubviewOutputBinding> RenderGraphCompiler::addSubviewBranches(
+    RenderPlan& plan, const RenderTargetSpec& target, const RenderIntent& intent,
+    const RenderSceneAnalysis& sceneAnalysis, int renderToTextureDepth) const {
     std::vector<SubviewOutputBinding> outputs;
     if (intent.subviews.empty()) {
       return outputs;
@@ -659,7 +657,7 @@ namespace engine::graph {
       const std::string prefix = subviewPrefix(subview, i, usedPrefixes);
       const std::string displayName = subviewDisplayName(subview, i);
       RenderPlan prefixed =
-        prefixedSubviewPlan(branch, prefix, displayName, subviewFeature(prefix));
+        prefixedSubviewPlan(branch, prefix, displayName, subview.name, subviewFeature(prefix));
 
       SubviewOutputBinding binding;
       binding.name = subview.name;
@@ -715,8 +713,9 @@ namespace engine::graph {
     }
   }
 
-  void RenderGraphCompiler::validateSubviewReceivers(
-    const RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis) const {
+  void
+  RenderGraphCompiler::validateSubviewReceivers(const RenderIntent& intent,
+                                                const RenderSceneAnalysis& sceneAnalysis) const {
     const auto& receivers = sceneAnalysis.renderTextureSubviewReceivers();
     if (receivers.empty()) {
       return;
@@ -743,6 +742,19 @@ namespace engine::graph {
                                  "unknown subview '" +
                                  receiver + "'");
       }
+      if (intent.maxRenderToTextureRecursionDepth > 0) {
+        const auto matchingSubview =
+          std::find_if(intent.subviews.begin(), intent.subviews.end(),
+                       [&receiver](const RenderSubviewIntent& subview) {
+                         return subview.name == receiver;
+                       });
+        if (matchingSubview != intent.subviews.end() &&
+            matchingSubview->view.selector.selectsWholeFrame()) {
+          throw std::runtime_error("RenderGraphCompiler render-to-texture receiver for subview '" +
+                                   receiver +
+                                   "' is cyclic because that subview renders the whole scene");
+        }
+      }
     }
   }
 
@@ -766,10 +778,9 @@ namespace engine::graph {
     return result;
   }
 
-  RenderPlan
-  RenderGraphCompiler::prefixedSubviewPlan(const RenderPlan& branch, const std::string& prefix,
-                                           const std::string& displayName,
-                                           const RenderFeatureKind& subviewFeature) const {
+  RenderPlan RenderGraphCompiler::prefixedSubviewPlan(
+    const RenderPlan& branch, const std::string& prefix, const std::string& displayName,
+    const std::string& subviewName, const RenderFeatureKind& subviewFeature) const {
     RenderPlan result;
     for (auto resource : branch.resources()) {
       const RenderResourceId originalId = resource.id;
@@ -778,6 +789,9 @@ namespace engine::graph {
       resource.addFeature("subview");
       resource.addFeature(subviewFeature);
       resource.addFeature("render_to_texture");
+      if (!subviewName.empty()) {
+        resource.addFeature("subview_name:" + subviewName);
+      }
       if (resource.lifetime == RenderResourceLifetime::Exported &&
           (originalId == "main_color" || resource.type == RenderResourceType::Depth)) {
         resource.addFeature("subview_output");
@@ -796,6 +810,9 @@ namespace engine::graph {
       addFeature(pass, "subview");
       addFeature(pass, subviewFeature);
       addFeature(pass, "render_to_texture");
+      if (!subviewName.empty()) {
+        addFeature(pass, "subview_name:" + subviewName);
+      }
       for (auto& read : pass.reads) {
         read.resource = prefixedResourceId(prefix, read.resource);
       }

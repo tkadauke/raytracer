@@ -42,6 +42,7 @@ Surface::applyTransform(std::shared_ptr<render::Primitive> primitive) const {
   auto result = std::make_shared<render::Instance>(primitive);
   result->setMatrix(localTransform());
   result->setVelocity(m_velocity);
+  result->setRenderTextureSubview(primitive->renderTextureSubview());
   return result;
 }
 
@@ -63,6 +64,7 @@ std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene,
   if (!primitive) {
     return primitive;
   }
+  primitive->setRenderTextureSubview(m_renderTextureSubview.toStdString());
 
   if (material()) {
     primitive->setMaterial(material()->toRaytracerMaterial());
