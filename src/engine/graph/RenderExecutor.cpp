@@ -1,5 +1,9 @@
 #include "engine/graph/RenderExecutor.h"
 
+#include "engine/graph/RasterPassState.h"
+#include "engine/graph/RaytracerPassState.h"
+#include "engine/graph/WireframePassState.h"
+
 #include <algorithm>
 #include <stdexcept>
 
@@ -26,6 +30,11 @@ namespace engine::graph {
       std::string beautyPassName() const override {
         return "Raytraced beauty";
       }
+
+      void configureBeautyPassState(RenderPassNode& pass, int,
+                                    const RenderIntent& intent) const override {
+        intent.engineOptions.raytracer().beautyPassState().writeTo(pass);
+      }
     };
 
     class RasterizerExecutorDefinition : public RenderExecutorDefinition {
@@ -48,6 +57,14 @@ namespace engine::graph {
 
       std::string beautyPassName() const override {
         return "Raster beauty";
+      }
+
+      void configureBeautyPassState(RenderPassNode& pass, int targetSampleCount,
+                                    const RenderIntent& intent) const override {
+        intent.engineOptions.rasterizer()
+          .beautyPassState(targetSampleCount, intent.postProcessAA,
+                           !intent.usesGraphImagePostProcessAA(), false)
+          .writeTo(pass);
       }
     };
 
@@ -72,6 +89,41 @@ namespace engine::graph {
       std::string beautyPassName() const override {
         return "Wavefront beauty";
       }
+
+      void configureBeautyPassState(RenderPassNode& pass, int,
+                                    const RenderIntent& intent) const override {
+        intent.engineOptions.raytracer().beautyPassState().writeTo(pass);
+      }
+    };
+
+    class PathTracerExecutorDefinition : public RenderExecutorDefinition {
+    public:
+      RenderExecutorKind kind() const override {
+        return RenderExecutorKind::Wavefront;
+      }
+
+      RenderExecutorPreference preference() const override {
+        return RenderExecutorPreference::PathTracer;
+      }
+
+      RenderFeatureKind feature() const override {
+        return "pathtracer";
+      }
+
+      std::string beautyPassId() const override {
+        return "wavefront_beauty";
+      }
+
+      std::string beautyPassName() const override {
+        return "Path traced beauty";
+      }
+
+      void configureBeautyPassState(RenderPassNode& pass, int,
+                                    const RenderIntent& intent) const override {
+        RaytracerBeautyPassState state = intent.engineOptions.raytracer().beautyPassState();
+        state.setIntegrator("pathtracer");
+        state.writeTo(pass);
+      }
     };
 
     class WireframeExecutorDefinition : public RenderExecutorDefinition {
@@ -95,15 +147,21 @@ namespace engine::graph {
       std::string beautyPassName() const override {
         return "Wireframe beauty";
       }
+
+      void configureBeautyPassState(RenderPassNode& pass, int,
+                                    const RenderIntent& intent) const override {
+        intent.engineOptions.wireframe().passState().writeTo(pass);
+      }
     };
 
     const std::vector<const RenderExecutorDefinition*>& definitions() {
       static const RaytracerExecutorDefinition raytracer;
       static const WavefrontExecutorDefinition wavefront;
+      static const PathTracerExecutorDefinition pathTracer;
       static const RasterizerExecutorDefinition rasterizer;
       static const WireframeExecutorDefinition wireframe;
-      static const std::vector<const RenderExecutorDefinition*> result = {&raytracer, &wavefront,
-                                                                          &rasterizer, &wireframe};
+      static const std::vector<const RenderExecutorDefinition*> result = {
+        &raytracer, &wavefront, &pathTracer, &rasterizer, &wireframe};
       return result;
     }
   }

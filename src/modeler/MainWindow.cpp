@@ -412,6 +412,19 @@ namespace {
     }
   };
 
+  class PathTracerPreviewIntentDefinition : public PreviewEngineIntentDefinition {
+  public:
+    bool matches(RenderDisplay::EngineKind kind) const override {
+      return kind == RenderDisplay::EngineKind::PathTracer;
+    }
+
+    void apply(engine::graph::RenderGraphRequest& request,
+               engine::graph::RenderViewMode previewViewMode) const override {
+      request.setExecutorOverride(engine::graph::RenderExecutorPreference::PathTracer)
+        .setViewModeOverride(previewViewMode);
+    }
+  };
+
   class WireframePreviewIntentDefinition : public PreviewEngineIntentDefinition {
   public:
     bool matches(RenderDisplay::EngineKind kind) const override {
@@ -430,10 +443,11 @@ namespace {
   const std::vector<const PreviewEngineIntentDefinition*>& previewEngineIntentDefinitions() {
     static const RaytracerPreviewIntentDefinition raytracer;
     static const WavefrontPreviewIntentDefinition wavefront;
+    static const PathTracerPreviewIntentDefinition pathTracer;
     static const RasterizerPreviewIntentDefinition rasterizer;
     static const WireframePreviewIntentDefinition wireframe;
     static const std::vector<const PreviewEngineIntentDefinition*> result = {
-      &raytracer, &wavefront, &rasterizer, &wireframe};
+      &raytracer, &pathTracer, &wavefront, &rasterizer, &wireframe};
     return result;
   }
 
@@ -648,6 +662,7 @@ struct MainWindow::Private {
   QAction* renderAct;
   QAction* previewUseSceneIntentAct;
   QAction* previewRaytracerAct;
+  QAction* previewPathTracerAct;
   QAction* previewWavefrontAct;
   QAction* previewWireframeAct;
   QAction* previewRasterizerAct;
@@ -983,6 +998,12 @@ void MainWindow::createActions() {
   p->previewWavefrontAct->setCheckable(true);
   connect(p->previewWavefrontAct, SIGNAL(triggered()), this, SLOT(usePreviewWavefront()));
 
+  p->previewPathTracerAct = new QAction(tr("Path &Tracer"), this);
+  p->previewPathTracerAct->setStatusTip(
+    tr("Show the modeling preview as a graph-backed path-traced render"));
+  p->previewPathTracerAct->setCheckable(true);
+  connect(p->previewPathTracerAct, SIGNAL(triggered()), this, SLOT(usePreviewPathTracer()));
+
   p->previewWireframeAct = new QAction(tr("&Wireframe"), this);
   p->previewWireframeAct->setStatusTip(
     tr("Show the modeling preview as a wireframe (faster, geometry-only)"));
@@ -1156,6 +1177,7 @@ void MainWindow::createActions() {
 
   auto previewGroup = new QActionGroup(this);
   previewGroup->addAction(p->previewRaytracerAct);
+  previewGroup->addAction(p->previewPathTracerAct);
   previewGroup->addAction(p->previewWavefrontAct);
   previewGroup->addAction(p->previewWireframeAct);
   previewGroup->addAction(p->previewRasterizerAct);
@@ -1314,6 +1336,7 @@ void MainWindow::createMenus() {
   previewMenu->addAction(p->previewUseSceneIntentAct);
   previewMenu->addSeparator();
   previewMenu->addAction(p->previewRaytracerAct);
+  previewMenu->addAction(p->previewPathTracerAct);
   previewMenu->addAction(p->previewWavefrontAct);
   previewMenu->addAction(p->previewWireframeAct);
   previewMenu->addAction(p->previewRasterizerAct);
@@ -1852,6 +1875,11 @@ void MainWindow::useSceneRenderIntentPreview(bool enabled) {
 void MainWindow::usePreviewRaytracer() {
   setPreviewOverrideMode();
   p->display->setEngineKind(RenderDisplay::EngineKind::Raytracer);
+}
+
+void MainWindow::usePreviewPathTracer() {
+  setPreviewOverrideMode();
+  p->display->setEngineKind(RenderDisplay::EngineKind::PathTracer);
 }
 
 void MainWindow::usePreviewWavefront() {
@@ -2514,6 +2542,8 @@ void MainWindow::applySceneRenderIntentToPreviewControls() {
   const std::vector<EngineChoice> engines = {
     {engine::graph::RenderExecutorPreference::Raytracer, RenderDisplay::EngineKind::Raytracer,
      p->previewRaytracerAct},
+    {engine::graph::RenderExecutorPreference::PathTracer, RenderDisplay::EngineKind::PathTracer,
+     p->previewPathTracerAct},
     {engine::graph::RenderExecutorPreference::Wavefront, RenderDisplay::EngineKind::Wavefront,
      p->previewWavefrontAct},
     {engine::graph::RenderExecutorPreference::Rasterizer, RenderDisplay::EngineKind::Rasterizer,

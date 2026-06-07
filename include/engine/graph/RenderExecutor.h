@@ -21,6 +21,8 @@ namespace engine::graph {
     virtual RenderFeatureKind feature() const = 0;
     virtual std::string beautyPassId() const = 0;
     virtual std::string beautyPassName() const = 0;
+    virtual void configureBeautyPassState(RenderPassNode& pass, int targetSampleCount,
+                                          const RenderIntent& intent) const = 0;
 
     bool matches(RenderExecutorKind executor) const;
     bool matches(RenderExecutorPreference executor) const;

@@ -105,6 +105,8 @@ namespace engine::graph {
       return enumValue<RenderExecutorPreference>(
         value,
         {{"raytracer", RenderExecutorPreference::Raytracer},
+         {"pathtracer", RenderExecutorPreference::PathTracer},
+         {"path_tracer", RenderExecutorPreference::PathTracer},
          {"wavefront", RenderExecutorPreference::Wavefront},
          {"rasterizer", RenderExecutorPreference::Rasterizer},
          {"wireframe", RenderExecutorPreference::Wireframe}},
@@ -745,6 +747,7 @@ namespace engine::graph {
   const char* toString(RenderExecutorPreference value) {
     return enumName<RenderExecutorPreference>(value,
                                               {{RenderExecutorPreference::Raytracer, "raytracer"},
+                                               {RenderExecutorPreference::PathTracer, "pathtracer"},
                                                {RenderExecutorPreference::Wavefront, "wavefront"},
                                                {RenderExecutorPreference::Rasterizer, "rasterizer"},
                                                {RenderExecutorPreference::Wireframe, "wireframe"}});

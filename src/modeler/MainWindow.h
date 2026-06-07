@@ -106,6 +106,7 @@ private slots:
   void render();
   void useSceneRenderIntentPreview(bool enabled);
   void usePreviewRaytracer();
+  void usePreviewPathTracer();
   void usePreviewWavefront();
   void usePreviewWireframe();
   void usePreviewRasterizer();

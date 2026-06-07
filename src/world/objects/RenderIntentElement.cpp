@@ -37,6 +37,9 @@ bool RenderIntentElement::isPropertyVisible(const QString& propertyName) const {
     return false;
 
   const auto executor = intent().defaultExecutorKind();
+  if (propertyName == QStringLiteral("raytracerIntegrator") &&
+      intent().defaultExecutor == engine::graph::RenderExecutorPreference::PathTracer)
+    return false;
   if (isRaytracerProperty(propertyName))
     return executor == engine::graph::RenderExecutorKind::Raytracer ||
            executor == engine::graph::RenderExecutorKind::Wavefront;
@@ -195,6 +198,9 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
 QString RenderIntentElement::propertyGroup(const QString& propertyName) const {
   if (isWavefrontProperty(propertyName))
     return QStringLiteral("Wavefront");
+  if (isRaytracerProperty(propertyName) &&
+      intent().defaultExecutor == engine::graph::RenderExecutorPreference::PathTracer)
+    return QStringLiteral("Path Tracer");
   if (isRaytracerProperty(propertyName))
     return QStringLiteral("Raytracer");
   if (isRasterizerShadowProperty(propertyName))
@@ -213,8 +219,8 @@ QString RenderIntentElement::propertyGroup(const QString& propertyName) const {
 
 QStringList RenderIntentElement::propertyChoices(const QString& propertyName) const {
   if (propertyName == QStringLiteral("defaultEngine"))
-    return {QStringLiteral("raytracer"), QStringLiteral("wavefront"), QStringLiteral("rasterizer"),
-            QStringLiteral("wireframe")};
+    return {QStringLiteral("raytracer"), QStringLiteral("pathtracer"), QStringLiteral("wavefront"),
+            QStringLiteral("rasterizer"), QStringLiteral("wireframe")};
   if (propertyName == QStringLiteral("viewMode")) {
     QStringList choices{QStringLiteral("default"),     QStringLiteral("beauty"),
                         QStringLiteral("wireframe"),   QStringLiteral("depth"),
@@ -306,6 +312,8 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
                                                        const QString& choice) const {
   if (propertyName == QStringLiteral("defaultEngine") && choice == QStringLiteral("wavefront"))
     return QStringLiteral("Wavefront");
+  if (propertyName == QStringLiteral("defaultEngine") && choice == QStringLiteral("pathtracer"))
+    return QStringLiteral("Path Tracer");
   if (propertyName == QStringLiteral("postProcessAA"))
     return choice == QStringLiteral("none") ? QStringLiteral("None") : choice.toUpper();
   if (propertyName == QStringLiteral("raytracerIntegrator")) {
@@ -840,6 +848,8 @@ void RenderIntentElement::setIntent(engine::graph::RenderIntent intent) {
 engine::graph::RenderExecutorPreference
 RenderIntentElement::executorFromText(const QString& text) const {
   const QString value = normalizedText(text);
+  if (value == QStringLiteral("pathtracer") || value == QStringLiteral("path_tracer"))
+    return engine::graph::RenderExecutorPreference::PathTracer;
   if (value == QStringLiteral("wavefront"))
     return engine::graph::RenderExecutorPreference::Wavefront;
   if (value == QStringLiteral("rasterizer") || value == QStringLiteral("raster"))

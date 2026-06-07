@@ -199,7 +199,7 @@ RenderWidget::DisplayMode RenderSettingsWidget::displayMode() const {
 }
 
 void RenderSettingsWidget::engineChanged() {
-  if (engine() == "Raytracer" || engine() == "Wavefront") {
+  if (engine() == "Raytracer" || engine() == "Path Tracer" || engine() == "Wavefront") {
     p->ui.displayUpdateMode->setCurrentText("Periodic update");
     p->ui.showProgressIndicators->setChecked(true);
   } else {
@@ -215,7 +215,7 @@ void RenderSettingsWidget::updateEngineControls() {
   // engine selector + progress indicators stay visible regardless.
   // Rasterizer shares Wireframe's LOD knob, and adds raster-only quality controls.
   const QString eng = engine();
-  const bool isRayFamily = (eng == "Raytracer" || eng == "Wavefront");
+  const bool isRayFamily = (eng == "Raytracer" || eng == "Path Tracer" || eng == "Wavefront");
   const bool isRasterizer = (eng == "Rasterizer");
   const bool showShadowDetails = isRasterizer && shadowMapsEnabled();
   p->ui.raytracerFrame->setVisible(isRayFamily);

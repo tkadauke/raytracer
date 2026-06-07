@@ -124,9 +124,11 @@ namespace RenderSettingsWidgetTest {
     ASSERT_NE(nullptr, engineType);
     ASSERT_NE(nullptr, displayMode);
     EXPECT_NE(-1, engineType->findText("Wavefront"));
+    EXPECT_NE(-1, engineType->findText("Path Tracer"));
 
-    for (const QString& engine : {QString("Raytracer"), QString("Wavefront"), QString("Wireframe"),
-                                  QString("Rasterizer")}) {
+    for (const QString& engine :
+         {QString("Raytracer"), QString("Path Tracer"), QString("Wavefront"), QString("Wireframe"),
+          QString("Rasterizer")}) {
       engineType->setCurrentText(engine);
       EXPECT_FALSE(displayMode->isHidden()) << engine.toStdString();
     }
@@ -250,6 +252,13 @@ namespace RenderSettingsWidgetTest {
     EXPECT_TRUE(shadowMaps->isHidden());
 
     engineType->setCurrentText("Wavefront");
+    EXPECT_TRUE(backend->isHidden());
+    EXPECT_TRUE(msaa->isHidden());
+    EXPECT_TRUE(msaaShading->isHidden());
+    EXPECT_TRUE(postAA->isHidden());
+    EXPECT_TRUE(shadowMaps->isHidden());
+
+    engineType->setCurrentText("Path Tracer");
     EXPECT_TRUE(backend->isHidden());
     EXPECT_TRUE(msaa->isHidden());
     EXPECT_TRUE(msaaShading->isHidden());

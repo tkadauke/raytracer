@@ -146,21 +146,23 @@ and `delta == true`. Their ordinary `pdf(point, direction)` methods
 return zero, because a delta distribution is not an ordinary
 solid-angle density.
 
-That distinction is what a future MIS integrator needs. When the
-light sampler draws a delta light, the integrator uses the sampled
-event directly and gives it MIS weight 1; the competing BSDF sampler
-cannot hit an infinitely small point or direction with nonzero
-probability. When non-delta lights land later — rectangles, spheres,
-environment maps, mesh emitters — `sample(point)` will return
-stochastic directions and non-delta PDFs, and `pdf(point, direction)`
-will let BSDF-sampled directions be weighted against light-sampled
-ones.
+That distinction is what the path tracer's direct-light estimator
+uses. When the light sampler draws a delta light, the integrator uses
+the sampled event directly and gives it MIS weight 1; the competing
+BSDF sampler cannot hit an infinitely small point or direction with
+nonzero probability. For non-delta lights — rectangles, spheres,
+environment maps, mesh emitters — `sample(point)` returns stochastic
+directions and non-delta PDFs, and the path tracer combines the light
+PDF with the material's `bsdfPdf(...)` through the MIS helper. The
+concrete non-delta light classes are still future work, but the
+integrator-side weighting contract is in place.
 
 The important boundary is capability: these methods document how
-lights can be sampled, not that the renderer already performs soft
-shadows or path tracing. The shipped Whitted materials still iterate
+lights can be sampled, not that the Whitted renderer already performs
+soft shadows. The shipped Whitted materials still iterate
 `Scene::lights()`, sample each light, and cast the hard shadow ray
-described below.
+described below; stochastic light integration belongs to the path
+tracer.
 
 ## <a id="the-shadow-ray"></a>The shadow ray
 The shading routine in

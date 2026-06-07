@@ -251,9 +251,10 @@ shadow maps are meaningful for this scene.
 ```cpp
 enum class RenderExecutorPreference {
   Raytracer,
+  PathTracer,  // Compiles to the Wavefront executor with path-tracing state.
+  Wavefront,
   Rasterizer,
   Wireframe,
-  // Add PathTracer once a concrete path tracing engine exists.
 };
 
 enum class RenderViewMode {
@@ -407,9 +408,9 @@ A pass node declares its resource access and execution constraints:
 ```cpp
 enum class RenderExecutorKind {
   Raytracer,
+  Wavefront,
   Rasterizer,
   Wireframe,
-  // Add PathTracer once a concrete path tracing engine exists.
   Composite,
   PostProcess
 };

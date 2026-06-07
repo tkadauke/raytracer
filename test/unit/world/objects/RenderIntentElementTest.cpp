@@ -131,6 +131,7 @@ namespace RenderIntentElementTest {
     ASSERT_NE(nullptr, intent);
 
     EXPECT_EQ(QString("Default Engine"), intent->propertyDisplayName("defaultEngine"));
+    EXPECT_TRUE(intent->propertyChoices("defaultEngine").contains("pathtracer"));
     EXPECT_TRUE(intent->propertyChoices("defaultEngine").contains("wavefront"));
     EXPECT_TRUE(intent->propertyChoices("defaultEngine").contains("rasterizer"));
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("stencil_composite"));
@@ -165,6 +166,8 @@ namespace RenderIntentElementTest {
               intent->propertyChoiceDisplayName("raytracerIntegrator", "pathtracer"));
     EXPECT_EQ(QString("Wavefront"),
               intent->propertyChoiceDisplayName("defaultEngine", "wavefront"));
+    EXPECT_EQ(QString("Path Tracer"),
+              intent->propertyChoiceDisplayName("defaultEngine", "pathtracer"));
     EXPECT_EQ(QString("Balanced"),
               intent->propertyChoiceDisplayName("wavefrontConvergenceQuality", "balanced"));
     EXPECT_EQ(QString("Box"), intent->propertyChoiceDisplayName("wavefrontDenoiser", "box"));
@@ -233,6 +236,12 @@ namespace RenderIntentElementTest {
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontDenoiseColorSigma"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontConvergenceQuality"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontConvergenceRmsDelta"));
+
+    intent->setDefaultEngine("path tracer");
+    EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
+    EXPECT_FALSE(intent->isPropertyVisible("raytracerIntegrator"));
+    EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergence"));
+    EXPECT_EQ(QString("Path Tracer"), intent->propertyGroup("raytracerSampler"));
     EXPECT_FALSE(intent->isPropertyVisible("rasterizerLod"));
     intent->setWavefrontDenoiser("box");
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontDenoiseRadius"));

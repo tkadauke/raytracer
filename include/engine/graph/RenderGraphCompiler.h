@@ -9,6 +9,7 @@
 
 namespace engine::graph {
   class RenderAOVDefinition;
+  class RenderExecutorDefinition;
 
   /**
     * Dimensions and sampling shape of the image a render plan targets.
@@ -57,8 +58,9 @@ namespace engine::graph {
                        const RenderSceneAnalysis& sceneAnalysis) const;
 
   private:
-    RenderPassNode beautyPass(RenderExecutorKind executor, const SceneView& sceneView,
-                              const RenderTargetSpec& target, const RenderIntent& intent,
+    RenderPassNode beautyPass(const RenderExecutorDefinition& executorDefinition,
+                              const SceneView& sceneView, const RenderTargetSpec& target,
+                              const RenderIntent& intent,
                               std::vector<RenderFeatureKind> extraFeatures = {}) const;
     RenderPlan compileWithSubviewDepth(const RenderTargetSpec& target, const RenderIntent& intent,
                                        const RenderSceneAnalysis& sceneAnalysis,

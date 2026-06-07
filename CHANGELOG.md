@@ -14,6 +14,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Portal and planar mirror scene markers.** Scene JSON and Modeler surface
   properties can now mark planar portal receivers and mirror surfaces for
   render graph discovery. — GPT-5
+- **Path tracer render preference.** Render intent JSON, rendercli, Modeler
+  preview/render settings, and graph compilation now expose `pathtracer` as a
+  user-facing executor preference that compiles to a wavefront-backed
+  path-traced beauty pass. — GPT-5
 - **Wavefront graph packet ratios.** Modeler render graph pass tooltips now
   show packet-fill and scalar-tail percentages for wavefront packet frontiers.
   — GPT-5
@@ -271,6 +275,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Path tracing direct-light MIS.** Path tracer direct-light sampling now uses
+  material BSDF PDFs to MIS-weight non-delta light samples while preserving
+  delta light behavior. — GPT-5
 - **Wavefront no-refinement packet bookkeeping.** Whitted wavefront packet
   frontiers now use one bookkeeping timing scope for packet hits that do not
   need scalar material refinement, reducing metric-time scheduler overhead on

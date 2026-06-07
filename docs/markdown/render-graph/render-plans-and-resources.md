@@ -35,7 +35,7 @@ such as "the color output for this subview."
 The same header defines the enum classes used by plan declarations:
 
 - `RenderExecutorPreference` names a user's broad engine preference:
-  raytracer, wavefront, rasterizer, or wireframe.
+  raytracer, pathtracer, wavefront, rasterizer, or wireframe.
 - `RenderExecutorKind` names the executor required by a compiled pass:
   raytracer, wavefront, rasterizer, wireframe, composite, or postprocess.
 - `RenderPassKind` groups passes as beauty, shadow, overlay, composite,
@@ -578,6 +578,9 @@ The first pass id depends on the selected executor:
 
 - `raytrace_beauty` for the default raytracer executor,
 - `wavefront_beauty` when the intent prefers the wavefront ray executor,
+- `wavefront_beauty` with a "Path traced beauty" display name when the intent
+  prefers the path tracer, because path tracing currently runs through the
+  wavefront scheduler backend,
 - `raster_beauty` when the intent prefers the rasterizer,
 - `wireframe_beauty` when the intent requests a wireframe view.
 
@@ -609,6 +612,11 @@ controls also flow through that state, so the compiled plan can report the
 active-sample fraction and RMS radiance-delta thresholds used by wavefront
 convergence termination. Those choices therefore appear in graph JSON and
 replay with the plan instead of being hidden in rendercli camera setup.
+Selecting the `pathtracer` executor preference is the user-facing shortcut for
+path-traced rendering: the compiler emits a wavefront-backed beauty pass and
+forces the typed integrator state to `pathtracer`. The lower-level `wavefront`
+preference remains available for scheduler debugging and Whitted/wavefront
+comparisons.
 rendercli fills in `TiledViewPlane` and its automatic ray-family queue size for
 ray-family graph renders when the scene intent leaves those fields unresolved,
 matching its direct final-render path without overriding scene-authored
@@ -714,16 +722,16 @@ so graph traces and rendercli metrics can distinguish raw convergence from
 denoiser-informed convergence.
 The reusable scene
 [`scenes/wavefront_indirect_environment_demo.json`](../../../scenes/wavefront_indirect_environment_demo.json)
-opens with a wavefront path-tracing intent and no direct lights; the matte
-sphere is visible because the path tracer gathers background radiance through
-a diffuse bounce, while a Whitted override leaves the object black except for
-the unchanged background.
+opens with a path-tracing intent and no direct lights; the matte sphere is
+visible because the path tracer gathers background radiance through a diffuse
+bounce, while a Whitted override leaves the object black except for the
+unchanged background.
 [`scenes/wavefront_indirect_bounce_demo.json`](../../../scenes/wavefront_indirect_bounce_demo.json)
-keeps that same graph-backed wavefront intent but uses a side-lit red wall and
-neutral receivers, so the path-traced render shows a visible diffuse bounce
+keeps that same graph-backed path-tracing intent but uses a side-lit red wall
+and neutral receivers, so the path-traced render shows a visible diffuse bounce
 that the Whitted override lacks.
 [`scenes/wavefront_denoise_demo.json`](../../../scenes/wavefront_denoise_demo.json)
-adds a low-sample wavefront path-tracing setup with scene-authored bilateral
+adds a low-sample path-tracing setup with scene-authored bilateral
 denoising, so opening the scene or exporting its graph shows the denoiser as
 typed render intent rather than a rendercli-only option.
 

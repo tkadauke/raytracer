@@ -5,7 +5,7 @@
   "background": [0.86, 0.91, 1.0],
   "type": "Scene",
   "renderIntent": {
-    "defaultExecutor": "wavefront",
+    "defaultExecutor": "pathtracer",
     "defaultViewMode": "beauty",
     "defaultCamera": {
       "sceneCameraId": "{68000000-0000-0000-0000-000000000001}"
@@ -13,7 +13,6 @@
     "engineOptions": {
       "raytracer": {
         "execution": {
-          "integrator": "pathtracer",
           "maxRecursionDepth": 3
         },
         "sampling": {

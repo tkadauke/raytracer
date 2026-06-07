@@ -5,6 +5,7 @@
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
 #include "core/util/ScopedTimer.h"
+#include "render/MIS.h"
 #include "render/RayCaster.h"
 #include "render/State.h"
 #include "render/lights/Light.h"
@@ -160,11 +161,6 @@ namespace render {
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-      if (isCancelled()) {
-        recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
-        return;
-      }
-
       path.state.recurseIn();
       if (depthMetrics.trackFrontierMetrics()) {
         ++depthMetrics.frontierScalarRays;
@@ -399,11 +395,9 @@ namespace render {
       return Colord::black();
     }
 
-    // Delta lights: pdf encodes the discrete sample probability; the
-    // value `radiance / pdf` is the correct contribution. Finite-PDF
-    // area lights would add a MIS weight here; we have none yet so the
-    // branch is the same in both cases.
-    return bsdfValue * sample.radiance * (normalDotOut / sample.pdf);
+    const double bsdfPdf = sample.delta ? 0.0 : material.bsdfPdf(hitPoint, wi, wo);
+    return mis::estimateDirectLightingFromLightSample(bsdfValue, sample.radiance, normalDotOut,
+                                                      sample.pdf, bsdfPdf, sample.delta);
   }
 
   Colord PathTracingIntegrator::radiance(const Scene& scene, const Rayd& primaryRay, State& state,
@@ -423,7 +417,7 @@ namespace render {
 
     for (int bounce = 0; bounce < m_maximumRecursionDepth; ++bounce) {
       if (isCancelled()) {
-        return scene.background();
+        return accumulated;
       }
 
       state.recurseIn();

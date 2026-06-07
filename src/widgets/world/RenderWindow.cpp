@@ -92,9 +92,13 @@ struct RenderWindow::Private {
       intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wireframe;
       intent.engineOptions.wireframe().setLod(settingsWidget->lod());
     } else {
-      intent.defaultExecutor = settingsWidget->engine() == "Wavefront"
-                                 ? engine::graph::RenderExecutorPreference::Wavefront
-                                 : engine::graph::RenderExecutorPreference::Raytracer;
+      if (settingsWidget->engine() == "Path Tracer") {
+        intent.defaultExecutor = engine::graph::RenderExecutorPreference::PathTracer;
+      } else if (settingsWidget->engine() == "Wavefront") {
+        intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wavefront;
+      } else {
+        intent.defaultExecutor = engine::graph::RenderExecutorPreference::Raytracer;
+      }
       auto& options = intent.engineOptions.raytracer();
       options.setSampler(settingsWidget->sampler().toStdString());
       options.setSamplesPerPixel(settingsWidget->samplesPerPixel());

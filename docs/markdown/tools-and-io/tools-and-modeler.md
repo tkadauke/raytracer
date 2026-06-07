@@ -25,7 +25,7 @@ $ rendercli --engine raytracer --width 1920 --height 1080 \
 ```
 
 The default path is graph-backed. The `--engine` flag sets the graph's preferred
-executor (`raytracer` / `raster` / `wireframe`), while a scene-level
+executor (`raytracer` / `pathtracer` / `wavefront` / `raster` / `wireframe`), while a scene-level
 `renderIntent` can also choose the executor, structural view mode, and overlay
 intent. `--direct_engine` bypasses the graph and renders with the selected
 engine directly; that mode is useful for focused engine debugging and for
@@ -134,7 +134,7 @@ scene-rendering passes with the active scene camera id.
 Selector-specific scene intent is preserved by scene JSON, but graph
 compilation currently rejects it until the compiler can synthesize real
 scene-partitioning and composition passes.
-When compiling a plan, `--render_graph_executor raytracer|rasterizer|wireframe`
+When compiling a plan, `--render_graph_executor raytracer|pathtracer|wavefront|rasterizer|wireframe`
 overrides the graph intent's default executor, and
 `--render_graph_view
 default|beauty|wireframe|depth|stencil|stencil_composite|normal|object_id|material_id|world_position|raster_coverage_count|raster_depth_test_count|raster_depth_pass_count|raster_shade_count|raster_color_write_count`
@@ -332,8 +332,8 @@ chain reflects the responsibilities:
   selection, rasterizer-preview shadow toggling, and the Ctrl-click ray-state
   probe.
 
-The editor can swap the live preview intent between Raytracer, Wavefront,
-Rasterizer, and [Wireframe](../appendix/a-glossary.md#w). The preview itself is
+The editor can swap the live preview intent between Raytracer, Path Tracer,
+Wavefront, Rasterizer, and [Wireframe](../appendix/a-glossary.md#w). The preview itself is
 graph-backed:
 the selected kind becomes the default executor in the compiled render graph,
 while the scene and camera stay shared so the preview keeps looking at the same
@@ -460,15 +460,15 @@ saved render intent. The compiler synthesizes raster beauty, wireframe beauty,
 stencil AOV, composite, tonemap, and exported stencil-preview nodes; the scene
 does not name those nodes directly.
 [`scenes/wavefront_indirect_environment_demo.json`](../../../scenes/wavefront_indirect_environment_demo.json)
-opens with wavefront path tracing selected in render intent. It contains no
+opens with path tracing selected in render intent. It contains no
 direct lights, so it is a compact sanity scene for environment/indirect
 lighting through the graph path.
 [`scenes/wavefront_indirect_bounce_demo.json`](../../../scenes/wavefront_indirect_bounce_demo.json)
-uses the same graph-backed wavefront path-tracing intent for a small
+uses the same graph-backed path-tracing intent for a small
 diffuse-bounce setup: a side-lit red wall bounces light onto otherwise-dark
 neutral receivers, while a Whitted override misses that bounce.
 [`scenes/wavefront_denoise_demo.json`](../../../scenes/wavefront_denoise_demo.json)
-keeps the wavefront/path-tracer setup at low samples per pixel and enables the
+keeps the path-tracer setup at low samples per pixel and enables the
 bilateral denoiser in scene render intent, making it a compact Modeler sanity
 scene for denoiser controls and graph trace metadata.
 When a scene's render intent is ahead of the current compiler, Modeler reports

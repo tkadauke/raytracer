@@ -115,25 +115,21 @@ namespace engine::graph {
   }
 
   RenderPassNode
-  RenderGraphCompiler::beautyPass(RenderExecutorKind executor, const SceneView& sceneView,
-                                  const RenderTargetSpec& target, const RenderIntent& intent,
+  RenderGraphCompiler::beautyPass(const RenderExecutorDefinition& executorDefinition,
+                                  const SceneView& sceneView, const RenderTargetSpec& target,
+                                  const RenderIntent& intent,
                                   std::vector<RenderFeatureKind> extraFeatures) const {
-    const auto* executorDefinition = renderExecutorDefinition(executor);
-    if (!executorDefinition) {
-      throw std::runtime_error("render executor cannot produce a beauty pass");
-    }
-
     RenderPassNode pass;
-    pass.id = executorDefinition->beautyPassId();
-    pass.name = executorDefinition->beautyPassName();
+    pass.id = executorDefinition.beautyPassId();
+    pass.name = executorDefinition.beautyPassName();
     pass.kind = RenderPassKind::Beauty;
-    pass.executor = executor;
-    pass.features = {"main", "beauty", executorDefinition->feature()};
+    pass.executor = executorDefinition.kind();
+    pass.features = {"main", "beauty", executorDefinition.feature()};
     pass.features.insert(pass.features.end(), extraFeatures.begin(), extraFeatures.end());
     pass.sceneView = sceneView;
     pass.disabledBehavior = DisabledBehavior::Error;
     pass.canRunConcurrently = false;
-    applyEngineOptionsToPass(pass, target.sampleCount, intent);
+    executorDefinition.configureBeautyPassState(pass, target.sampleCount, intent);
     return pass;
   }
 
@@ -354,8 +350,17 @@ namespace engine::graph {
     const SceneView sceneView = intent.defaultSceneView();
     RenderPlan plan;
 
-    RenderPassNode base = beautyPass(RenderExecutorKind::Rasterizer, sceneView, target, intent,
-                                     {"stencil_composite_base"});
+    const auto* rasterizerDefinition = renderExecutorDefinition(RenderExecutorKind::Rasterizer);
+    if (!rasterizerDefinition) {
+      throw std::runtime_error("stencil composite view requires a rasterizer beauty executor");
+    }
+    const auto* wireframeDefinition = renderExecutorDefinition(RenderExecutorKind::Wireframe);
+    if (!wireframeDefinition) {
+      throw std::runtime_error("stencil composite view requires a wireframe beauty executor");
+    }
+
+    RenderPassNode base =
+      beautyPass(*rasterizerDefinition, sceneView, target, intent, {"stencil_composite_base"});
     addRasterVisibilityInput(plan, target, base, sceneView, intent);
     RenderResourceDescriptor baseColor =
       target.colorResource("base_color", "Base color", RenderResourceLifetime::Transient);
@@ -371,10 +376,10 @@ namespace engine::graph {
       baseCompositeInput = "base_readback_color";
     }
 
-    plan.addResourceProducer(beautyPass(RenderExecutorKind::Wireframe, sceneView, target, intent,
-                                        {"stencil_composite_foreground"}),
-                             target.colorResource("foreground_color", "Foreground color",
-                                                  RenderResourceLifetime::Transient));
+    plan.addResourceProducer(
+      beautyPass(*wireframeDefinition, sceneView, target, intent, {"stencil_composite_foreground"}),
+      target.colorResource("foreground_color", "Foreground color",
+                           RenderResourceLifetime::Transient));
 
     const auto* stencilAOV = renderAOVDefinition(RenderViewMode::Stencil);
     if (!stencilAOV) {
@@ -459,10 +464,14 @@ namespace engine::graph {
     }
 
     const RenderExecutorKind executor = frameIntent.defaultExecutorKind();
-    const auto* executorDefinition = renderExecutorDefinition(executor);
-    if (!executorDefinition) {
+    const auto* concreteExecutorDefinition = renderExecutorDefinition(executor);
+    if (!concreteExecutorDefinition) {
       throw std::runtime_error("default render executor cannot produce a beauty pass");
     }
+    const auto& preferredExecutorDefinition = renderExecutorDefinition(frameIntent.defaultExecutor);
+    const RenderExecutorDefinition& beautyExecutorDefinition =
+      preferredExecutorDefinition.kind() == executor ? preferredExecutorDefinition
+                                                     : *concreteExecutorDefinition;
 
     if (const auto* aov = renderAOVDefinition(frameIntent.defaultViewMode)) {
       RenderPlan plan =
@@ -480,7 +489,7 @@ namespace engine::graph {
       sceneAnalysis.shouldCompileRasterPreviewShadows(executor, frameIntent);
 
     RenderPassNode beauty =
-      beautyPass(executor, frameIntent.defaultSceneView(), target, frameIntent);
+      beautyPass(beautyExecutorDefinition, frameIntent.defaultSceneView(), target, frameIntent);
     addRasterVisibilityInput(plan, target, beauty, frameIntent.defaultSceneView(), frameIntent);
     plan.addResourceProducer(beauty, beautyColor);
 
@@ -531,7 +540,7 @@ namespace engine::graph {
       postAA.name = postAADefinition->passName();
       postAA.kind = RenderPassKind::PostProcess;
       postAA.executor = RenderExecutorKind::PostProcess;
-      postAA.features = {"main", "postprocess", "post_aa", executorDefinition->feature(),
+      postAA.features = {"main", "postprocess", "post_aa", beautyExecutorDefinition.feature(),
                          postAADefinition->feature()};
       postAA.addRead(inputResource);
       postAA.addWrite(postAAColor.id);

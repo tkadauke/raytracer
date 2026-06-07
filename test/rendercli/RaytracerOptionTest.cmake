@@ -199,6 +199,18 @@ rendercli_assert_image_dimensions("${wavefront_pathtracer_output}" 24 24
 rendercli_assert_image_nonempty("${wavefront_pathtracer_output}"
                                 NAME "wavefront pathtracer direct pixels")
 
+set(pathtracer_direct_output "${TEST_OUTPUT_DIR}/pathtracer-direct.png")
+rendercli_run(
+  NAME "rendercli pathtracer direct engine renders through wavefront"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine pathtracer
+    --width 24 --height 24 --sampler Regular --samples_per_pixel 4
+    "${raytracer_scene}" "${pathtracer_direct_output}"
+)
+rendercli_assert_image_dimensions("${pathtracer_direct_output}" 24 24
+                                  NAME "pathtracer direct dimensions")
+rendercli_assert_image_nonempty("${pathtracer_direct_output}" NAME "pathtracer direct pixels")
+
 set(wavefront_denoise_output "${TEST_OUTPUT_DIR}/wavefront-denoise-direct.png")
 rendercli_run(
   NAME "rendercli wavefront direct engine accepts denoiser"

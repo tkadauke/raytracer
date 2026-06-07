@@ -29,6 +29,7 @@ namespace engine::graph {
     */
   enum class RenderExecutorPreference {
     Raytracer,
+    PathTracer,
     Wavefront,
     Rasterizer,
     Wireframe,

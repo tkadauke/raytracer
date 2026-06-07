@@ -2448,11 +2448,39 @@ rendercli_expect_failure(
     "${static_scene}" "${invalid_plan}"
 )
 
+set(pathtracer_executor_plan "${TEST_OUTPUT_DIR}/pathtracer-executor-graph.json")
+rendercli_run(
+  NAME "rendercli exports pathtracer executor as wavefront graph pass"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json --render_graph_executor pathtracer
+    "${static_scene}" "${pathtracer_executor_plan}"
+)
+rendercli_assert_nonempty("${pathtracer_executor_plan}" NAME "pathtracer executor graph output")
+file(READ "${pathtracer_executor_plan}" pathtracer_executor_graph)
+if(NOT pathtracer_executor_graph MATCHES "\"name\": \"Path traced beauty\"")
+  _rendercli_fail(
+    "pathtracer executor graph name"
+    "expected pathtracer executor graph to contain a path traced beauty pass"
+    "" "" "${pathtracer_executor_graph}" "")
+endif()
+if(NOT pathtracer_executor_graph MATCHES "\"executor\": \"wavefront\"")
+  _rendercli_fail(
+    "pathtracer executor graph backend"
+    "expected pathtracer executor graph to compile to the wavefront executor"
+    "" "" "${pathtracer_executor_graph}" "")
+endif()
+if(NOT pathtracer_executor_graph MATCHES "\"integrator\": \"pathtracer\"")
+  _rendercli_fail(
+    "pathtracer executor graph state"
+    "expected pathtracer executor graph to force pathtracer integrator state"
+    "" "" "${pathtracer_executor_graph}" "")
+endif()
+
 rendercli_expect_failure(
   NAME "rendercli rejects invalid render graph executor"
   STDERR_MATCHES "Render graph executor must be"
   COMMAND
-    "${RENDERCLI}" --render_graph_only --render_graph_executor pathtracer
+    "${RENDERCLI}" --render_graph_only --render_graph_executor buckets
     "${static_scene}" "${invalid_plan}"
 )
 

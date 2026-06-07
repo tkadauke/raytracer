@@ -368,6 +368,7 @@ namespace WavefrontRaytracerTest {
     auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
+    renderer->setMetricsEnabled(true);
     renderer->cancel();
 
     Buffer<Colord> buffer(4, 3);
@@ -429,6 +430,7 @@ namespace WavefrontRaytracerTest {
     auto renderer = std::make_shared<WavefrontRaytracer>(camera(), scene);
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
+    renderer->setMetricsEnabled(true);
     renderer->setDenoiser(std::make_unique<FeatureRecordingDenoiser>());
 
     Buffer<unsigned int> buffer(8, 8);

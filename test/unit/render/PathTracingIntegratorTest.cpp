@@ -21,6 +21,7 @@
 
 #include <array>
 #include <cmath>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -62,6 +63,59 @@ namespace PathTracingIntegratorTest {
       Colord shade(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
                    State&) const override {
         return Colord(0.25, 0.5, 0.75);
+      }
+    };
+
+    class MisWeightedMaterial final : public Material {
+    public:
+      Colord shade(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                   State&) const override {
+        return Colord::black();
+      }
+
+      bool supportsBsdfSampling() const override {
+        return true;
+      }
+
+      Colord evalBsdf(const HitPoint&, const Vector3d&, const Vector3d&) const override {
+        return Colord(0.25, 0.5, 1.0);
+      }
+
+      MaterialBsdfSample sampleBsdf(const HitPoint&, const Vector3d&,
+                                    const Vector2d&) const override {
+        return MaterialBsdfSample();
+      }
+
+      double bsdfPdf(const HitPoint&, const Vector3d&, const Vector3d&) const override {
+        return 0.5;
+      }
+    };
+
+    class NonDeltaTestLight final : public Light {
+    public:
+      Vector3d direction(const Vector3d&) const override {
+        return Vector3d(0, 1, 0);
+      }
+
+      Colord radiance() const override {
+        return Colord(4.0, 2.0, 1.0);
+      }
+
+      LightSample sample(const Vector3d&) const override {
+        return {Vector3d(0, 1, 0), radiance(), std::numeric_limits<double>::infinity(), 0.25,
+                false};
+      }
+
+      double pdf(const Vector3d&, const Vector3d&) const override {
+        return 0.25;
+      }
+
+      bool isDelta() const override {
+        return false;
+      }
+
+      const char* fingerprintType() const override {
+        return "NonDeltaTestLight";
       }
     };
 
@@ -189,6 +243,18 @@ namespace PathTracingIntegratorTest {
       return scene;
     }
 
+    std::unique_ptr<Scene> misWeightedDirectLightScene() {
+      auto scene = std::make_unique<Scene>(Colord::black());
+      scene->setAmbient(Colord::black());
+
+      auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
+      plane->setMaterial(std::make_shared<MisWeightedMaterial>());
+      scene->add(plane);
+      scene->addLight(std::make_shared<NonDeltaTestLight>());
+
+      return scene;
+    }
+
     std::unique_ptr<Scene> reflectiveBackgroundScene() {
       auto scene = std::make_unique<Scene>();
       scene->setAmbient(Colord::black());
@@ -293,6 +359,17 @@ namespace PathTracingIntegratorTest {
     EXPECT_NEAR(expected, pixel.b(), 1e-4);
   }
 
+  TEST(PathTracingIntegrator, DirectLightingUsesMisWeightForNonDeltaLightSamples) {
+    auto scene = misWeightedDirectLightScene();
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+
+    const Colord pixel = traceWithSampleStream(integrator, *scene, 1234ull, 0);
+
+    ASSERT_COLOR_NEAR(Colord(0.8, 0.8, 0.8), pixel, 1e-12);
+  }
+
   TEST(PathTracingIntegrator, AccumulatesAcrossSeveralSamplesWithoutDivergence) {
     // Pure-diffuse + single delta light is a deterministic outcome
     // because the integrator's only stochastic input is the BSDF
@@ -380,6 +457,25 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
     ASSERT_EQ(2u, metrics.radianceDeltaSquaredSumPerDepth.size());
     EXPECT_EQ(0.0, metrics.radianceDeltaSquaredSumPerDepth[1]);
+    EXPECT_EQ(2, cancellationChecks);
+  }
+
+  TEST(PathTracingIntegrator, ScalarRadianceCancellationPreservesAccumulatedContribution) {
+    const Colord diffuse(0.6, 0.3, 0.2);
+    auto scene = simpleMatteScene(0.0, diffuse);
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(8);
+
+    int cancellationChecks = 0;
+    integrator.setCancellationCallback([&cancellationChecks] {
+      ++cancellationChecks;
+      return cancellationChecks >= 2;
+    });
+
+    const Colord pixel = traceWithSampleStream(integrator, *scene, 11ull, 0);
+
+    ASSERT_COLOR_NEAR(Colord(diffuse.r() / M_PI, diffuse.g() / M_PI, diffuse.b() / M_PI), pixel,
+                      1e-4);
     EXPECT_EQ(2, cancellationChecks);
   }
 

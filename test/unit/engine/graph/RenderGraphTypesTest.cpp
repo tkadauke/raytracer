@@ -49,6 +49,7 @@ namespace RenderGraphTypesTest {
   TEST(RenderExecutor, SerializesWavefrontPreferenceAndKind) {
     EXPECT_EQ(std::string("wavefront"), toString(RenderExecutorPreference::Wavefront));
     EXPECT_EQ(std::string("wavefront"), toString(RenderExecutorKind::Wavefront));
+    EXPECT_EQ(std::string("pathtracer"), toString(RenderExecutorPreference::PathTracer));
 
     QJsonObject intentJson;
     intentJson["defaultExecutor"] = "wavefront";
@@ -63,6 +64,15 @@ namespace RenderGraphTypesTest {
     passJson["writes"] = QJsonArray{"beauty_color"};
     const RenderPassNode pass = RenderPassNode::fromJson(passJson);
     EXPECT_EQ(RenderExecutorKind::Wavefront, pass.executor);
+  }
+
+  TEST(RenderExecutor, PathTracerPreferenceCompilesToWavefrontKind) {
+    QJsonObject intentJson;
+    intentJson["defaultExecutor"] = "path_tracer";
+    const RenderIntent intent = RenderIntent::fromJson(intentJson);
+
+    EXPECT_EQ(RenderExecutorPreference::PathTracer, intent.defaultExecutor);
+    EXPECT_EQ(RenderExecutorKind::Wavefront, intent.defaultExecutorKind());
   }
 
   TEST(ShadingProfileRef, FormatsDisplayTextAndDetectsDefaultProfile) {
@@ -415,7 +425,7 @@ namespace RenderGraphTypesTest {
 
   TEST(RenderIntent, RejectsUnknownExecutorName) {
     QJsonObject json;
-    json["defaultExecutor"] = "path_tracer";
+    json["defaultExecutor"] = "buckets";
 
     EXPECT_THROW(RenderIntent::fromJson(json), std::runtime_error);
   }
@@ -557,6 +567,9 @@ namespace RenderGraphTypesTest {
     intent.defaultExecutor = RenderExecutorPreference::Wavefront;
     EXPECT_EQ(8, intent.targetSampleCountHint(1));
 
+    intent.defaultExecutor = RenderExecutorPreference::PathTracer;
+    EXPECT_EQ(8, intent.targetSampleCountHint(1));
+
     intent.defaultExecutor = RenderExecutorPreference::Wireframe;
     EXPECT_EQ(1, intent.targetSampleCountHint(1));
   }
@@ -571,6 +584,12 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ(RenderExecutorKind::Wavefront, wavefront.kind());
     EXPECT_EQ("wavefront", wavefront.feature());
     EXPECT_EQ("wavefront_beauty", wavefront.beautyPassId());
+
+    const auto& pathTracer = renderExecutorDefinition(RenderExecutorPreference::PathTracer);
+    EXPECT_EQ(RenderExecutorKind::Wavefront, pathTracer.kind());
+    EXPECT_EQ("pathtracer", pathTracer.feature());
+    EXPECT_EQ("wavefront_beauty", pathTracer.beautyPassId());
+    EXPECT_EQ("Path traced beauty", pathTracer.beautyPassName());
 
     const auto& rasterizer = *renderExecutorDefinition(RenderExecutorKind::Rasterizer);
     EXPECT_EQ(RenderExecutorPreference::Rasterizer, rasterizer.preference());
