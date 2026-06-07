@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Portal and planar mirror scene markers.** Scene JSON and Modeler surface
+  properties can now mark planar portal receivers and mirror surfaces for
+  render graph discovery. — GPT-5
 - **Wavefront graph packet ratios.** Modeler render graph pass tooltips now
   show packet-fill and scalar-tail percentages for wavefront packet frontiers.
   — GPT-5

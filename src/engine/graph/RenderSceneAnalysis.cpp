@@ -1,5 +1,7 @@
 #include "engine/graph/RenderSceneAnalysis.h"
 
+#include <utility>
+
 namespace engine::graph {
   RenderSceneAnalysis::RenderSceneAnalysis() = default;
 
@@ -22,6 +24,18 @@ namespace engine::graph {
     }
   }
 
+  void RenderSceneAnalysis::recordPortalReceiverSurface(std::string surfaceId,
+                                                        std::string surfaceName) {
+    m_portalReceiverSurfaces.push_back(
+      SceneSurfaceMarker{std::move(surfaceId), std::move(surfaceName)});
+  }
+
+  void RenderSceneAnalysis::recordPlanarMirrorSurface(std::string surfaceId,
+                                                      std::string surfaceName) {
+    m_planarMirrorSurfaces.push_back(
+      SceneSurfaceMarker{std::move(surfaceId), std::move(surfaceName)});
+  }
+
   bool RenderSceneAnalysis::hasKnownVisibleSurfaceCount() const {
     return m_visibleSurfaceCount.has_value();
   }
@@ -36,6 +50,24 @@ namespace engine::graph {
 
   std::size_t RenderSceneAnalysis::visibleLightCount() const {
     return m_visibleLightCount.value_or(0);
+  }
+
+  std::size_t RenderSceneAnalysis::portalReceiverSurfaceCount() const {
+    return m_portalReceiverSurfaces.size();
+  }
+
+  std::size_t RenderSceneAnalysis::planarMirrorSurfaceCount() const {
+    return m_planarMirrorSurfaces.size();
+  }
+
+  const std::vector<RenderSceneAnalysis::SceneSurfaceMarker>&
+  RenderSceneAnalysis::portalReceiverSurfaces() const {
+    return m_portalReceiverSurfaces;
+  }
+
+  const std::vector<RenderSceneAnalysis::SceneSurfaceMarker>&
+  RenderSceneAnalysis::planarMirrorSurfaces() const {
+    return m_planarMirrorSurfaces;
   }
 
   bool RenderSceneAnalysis::hasVisibleSurfaces() const {

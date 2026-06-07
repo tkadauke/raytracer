@@ -40,6 +40,9 @@ public:
 
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
 
+protected:
+  bool supportsPlanarSceneMarker() const override;
+
 private:
   Vector3d m_leg1;
   Vector3d m_leg2;

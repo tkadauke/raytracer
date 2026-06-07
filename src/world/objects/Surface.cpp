@@ -8,11 +8,16 @@
 #include "render/primitives/Composite.h"
 #include "render/primitives/Scene.h"
 
+#include <stdexcept>
+#include <string>
+
 Surface::Surface(Element* parent)
     : Transformable(parent),
       m_material(nullptr),
       m_visible(true),
-      m_velocity(Vector3d::null) {
+      m_velocity(Vector3d::null),
+      m_portalReceiverMarker(false),
+      m_planarMirrorMarker(false) {
 }
 
 std::shared_ptr<render::Primitive>
@@ -23,12 +28,17 @@ Surface::applyTransform(std::shared_ptr<render::Primitive> primitive) const {
   return result;
 }
 
+void Surface::read(const QJsonObject& json) {
+  Element::read(json);
+  validateSceneMarkers();
+}
+
 std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene) const {
   return toRaytracer(scene, StepPlaybackStyle());
 }
 
 std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene,
-                                                       const StepPlaybackStyle& style) const {
+                                                        const StepPlaybackStyle& style) const {
   if (!visible())
     return nullptr;
 
@@ -82,6 +92,72 @@ void Surface::contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis
   if (!visible()) {
     return;
   }
+  validateSceneMarkers();
   analysis.recordVisibleSurface();
+  if (portalReceiverMarker()) {
+    analysis.recordPortalReceiverSurface(id().toStdString(), name().toStdString());
+  }
+  if (planarMirrorMarker()) {
+    analysis.recordPlanarMirrorSurface(id().toStdString(), name().toStdString());
+  }
   Element::contributeToRenderGraphAnalysis(analysis);
+}
+
+bool Surface::isPropertyVisible(const QString& propertyName) const {
+  if (propertyName == QStringLiteral("portalReceiverMarker") ||
+      propertyName == QStringLiteral("planarMirrorMarker")) {
+    return supportsPlanarSceneMarker();
+  }
+  return Transformable::isPropertyVisible(propertyName);
+}
+
+QString Surface::propertyDescription(const QString& propertyName) const {
+  if (propertyName == QStringLiteral("portalReceiverMarker")) {
+    return QStringLiteral(
+      "Marks this planar surface as a portal receiver for automatic render graph discovery.");
+  }
+  if (propertyName == QStringLiteral("planarMirrorMarker")) {
+    return QStringLiteral(
+      "Marks this planar surface as a mirror surface for automatic render graph discovery.");
+  }
+  return Transformable::propertyDescription(propertyName);
+}
+
+QString Surface::propertyGroup(const QString& propertyName) const {
+  if (propertyName == QStringLiteral("portalReceiverMarker") ||
+      propertyName == QStringLiteral("planarMirrorMarker")) {
+    return QStringLiteral("Scene Markers");
+  }
+  return Transformable::propertyGroup(propertyName);
+}
+
+bool Surface::supportsPlanarSceneMarker() const {
+  return false;
+}
+
+std::string Surface::sceneMarkerDiagnosticPrefix() const {
+  std::string prefix = "surface scene marker";
+  if (!id().isEmpty()) {
+    prefix += " on id '" + id().toStdString() + "'";
+  }
+  if (!name().isEmpty()) {
+    prefix += " ('" + name().toStdString() + "')";
+  }
+  prefix += " [" + std::string(metaObject()->className()) + "]";
+  return prefix;
+}
+
+void Surface::validateSceneMarkers() const {
+  if (portalReceiverMarker() && planarMirrorMarker()) {
+    throw std::invalid_argument(sceneMarkerDiagnosticPrefix() +
+                                " cannot be both a portal receiver and a planar mirror");
+  }
+  if (portalReceiverMarker() && !supportsPlanarSceneMarker()) {
+    throw std::invalid_argument(sceneMarkerDiagnosticPrefix() +
+                                " portal receiver marker requires a planar surface");
+  }
+  if (planarMirrorMarker() && !supportsPlanarSceneMarker()) {
+    throw std::invalid_argument(sceneMarkerDiagnosticPrefix() +
+                                " planar mirror marker requires a planar surface");
+  }
 }

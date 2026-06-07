@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <string>
 
 #include "world/objects/Transformable.h"
 
@@ -23,6 +24,8 @@ class Surface : public Transformable {
   Q_PROPERTY(bool visible READ visible WRITE setVisible)
   Q_PROPERTY(Material* material READ material WRITE setMaterial)
   Q_PROPERTY(Vector3d velocity READ velocity WRITE setVelocity)
+  Q_PROPERTY(bool portalReceiverMarker READ portalReceiverMarker WRITE setPortalReceiverMarker)
+  Q_PROPERTY(bool planarMirrorMarker READ planarMirrorMarker WRITE setPlanarMirrorMarker)
 
 public:
   /**
@@ -117,23 +120,49 @@ public:
     m_velocity = velocity;
   }
 
+  inline bool portalReceiverMarker() const {
+    return m_portalReceiverMarker;
+  }
+
+  inline void setPortalReceiverMarker(bool enabled) {
+    m_portalReceiverMarker = enabled;
+  }
+
+  inline bool planarMirrorMarker() const {
+    return m_planarMirrorMarker;
+  }
+
+  inline void setPlanarMirrorMarker(bool enabled) {
+    m_planarMirrorMarker = enabled;
+  }
+
   /**
     * Converts this surface into a render::Primitive.
     */
+  void read(const QJsonObject& json) override;
   std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene) const;
   std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene,
-                                                const StepPlaybackStyle& style) const;
+                                                 const StepPlaybackStyle& style) const;
   void contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const override;
   bool canHaveChild(Element* child) const override;
+  bool isPropertyVisible(const QString& propertyName) const override;
+  QString propertyDescription(const QString& propertyName) const override;
+  QString propertyGroup(const QString& propertyName) const override;
 
 protected:
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const = 0;
   std::shared_ptr<render::Primitive>
   applyTransform(std::shared_ptr<render::Primitive> primitive) const;
+  virtual bool supportsPlanarSceneMarker() const;
 
 private:
+  void validateSceneMarkers() const;
+  std::string sceneMarkerDiagnosticPrefix() const;
+
   Material* m_material;
 
   bool m_visible;
   Vector3d m_velocity;
+  bool m_portalReceiverMarker;
+  bool m_planarMirrorMarker;
 };

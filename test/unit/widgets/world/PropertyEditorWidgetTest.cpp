@@ -8,6 +8,7 @@
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/Group.h"
 #include "world/objects/MatteMaterial.h"
+#include "world/objects/Rectangle.h"
 #include "world/objects/RenderIntentElement.h"
 #include "world/objects/Sphere.h"
 #include "core/math/Vector.h"
@@ -423,5 +424,21 @@ namespace PropertyEditorWidgetTest {
     ASSERT_EQ(1, metadata->topLevelItemCount());
     EXPECT_EQ(QString("source"), metadata->topLevelItem(0)->text(0));
     EXPECT_EQ(QString("\"import\""), metadata->topLevelItem(0)->text(1));
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldInspectPlanarSurfaceSceneMarkers) {
+    Scene root;
+    auto* rectangle = new Rectangle;
+    root.addChild(rectangle);
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(rectangle);
+
+    auto* portalReceiver = parameterWidget(editor, "portalReceiverMarker");
+    auto* planarMirror = parameterWidget(editor, "planarMirrorMarker");
+    ASSERT_NE(nullptr, portalReceiver);
+    ASSERT_NE(nullptr, planarMirror);
+    EXPECT_EQ(QStringLiteral("Scene Markers"), rectangle->propertyGroup("portalReceiverMarker"));
+    EXPECT_EQ(QStringLiteral("Scene Markers"), rectangle->propertyGroup("planarMirrorMarker"));
   }
 }

@@ -6,6 +6,7 @@
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/PointLight.h"
 #include "world/objects/Group.h"
+#include "world/objects/Rectangle.h"
 #include "world/objects/Sphere.h"
 #include "world/objects/Material.h"
 #include "world/objects/Texture.h"
@@ -355,6 +356,103 @@ namespace SceneTest {
     EXPECT_EQ(1u, analysis.visibleLightCount());
     EXPECT_TRUE(analysis.hasVisibleSurfaces());
     EXPECT_TRUE(analysis.hasVisibleLights());
+  }
+
+  TEST(Scene, ShouldRoundtripSurfaceSceneMarkersThroughJson) {
+    Scene original;
+    auto* portalReceiver = new Rectangle;
+    portalReceiver->setId("portal-panel");
+    portalReceiver->setName("Portal Panel");
+    portalReceiver->setPortalReceiverMarker(true);
+    original.addChild(portalReceiver);
+    auto* mirror = new Rectangle;
+    mirror->setId("mirror-panel");
+    mirror->setName("Mirror Panel");
+    mirror->setPlanarMirrorMarker(true);
+    original.addChild(mirror);
+
+    QJsonObject json;
+    original.write(json);
+    const auto children = json["children"].toArray();
+    ASSERT_EQ(2, children.size());
+    EXPECT_TRUE(children[0].toObject()["portalReceiverMarker"].toBool());
+    EXPECT_FALSE(children[0].toObject()["planarMirrorMarker"].toBool());
+    EXPECT_FALSE(children[1].toObject()["portalReceiverMarker"].toBool());
+    EXPECT_TRUE(children[1].toObject()["planarMirrorMarker"].toBool());
+
+    Scene decoded;
+    decoded.read(json);
+    decoded.resolveElementReferences();
+
+    const auto* decodedPortal = qobject_cast<const Rectangle*>(decoded.findById("portal-panel"));
+    const auto* decodedMirror = qobject_cast<const Rectangle*>(decoded.findById("mirror-panel"));
+    ASSERT_NE(nullptr, decodedPortal);
+    ASSERT_NE(nullptr, decodedMirror);
+    EXPECT_TRUE(decodedPortal->portalReceiverMarker());
+    EXPECT_FALSE(decodedPortal->planarMirrorMarker());
+    EXPECT_FALSE(decodedMirror->portalReceiverMarker());
+    EXPECT_TRUE(decodedMirror->planarMirrorMarker());
+  }
+
+  TEST(Scene, ShouldDiscoverSurfaceSceneMarkersInRenderGraphAnalysis) {
+    Scene scene;
+    auto* portalReceiver = new Rectangle;
+    portalReceiver->setId("portal-panel");
+    portalReceiver->setName("Portal Panel");
+    portalReceiver->setPortalReceiverMarker(true);
+    scene.addChild(portalReceiver);
+    auto* mirror = new Rectangle;
+    mirror->setId("mirror-panel");
+    mirror->setName("Mirror Panel");
+    mirror->setPlanarMirrorMarker(true);
+    scene.addChild(mirror);
+
+    const auto analysis = scene.renderGraphAnalysis();
+
+    EXPECT_EQ(2u, analysis.visibleSurfaceCount());
+    ASSERT_EQ(1u, analysis.portalReceiverSurfaceCount());
+    ASSERT_EQ(1u, analysis.planarMirrorSurfaceCount());
+    EXPECT_EQ("portal-panel", analysis.portalReceiverSurfaces()[0].surfaceId);
+    EXPECT_EQ("Portal Panel", analysis.portalReceiverSurfaces()[0].surfaceName);
+    EXPECT_EQ("mirror-panel", analysis.planarMirrorSurfaces()[0].surfaceId);
+    EXPECT_EQ("Mirror Panel", analysis.planarMirrorSurfaces()[0].surfaceName);
+  }
+
+  TEST(Scene, ShouldRejectSurfaceWithConflictingSceneMarkers) {
+    Scene scene;
+    QJsonObject json;
+    json["type"] = "Scene";
+    json["children"] = QJsonArray{QJsonObject{{"type", "Rectangle"},
+                                              {"id", "bad-panel"},
+                                              {"name", "Bad Panel"},
+                                              {"portalReceiverMarker", true},
+                                              {"planarMirrorMarker", true}}};
+
+    try {
+      scene.read(json);
+      FAIL() << "expected conflicting scene markers to throw";
+    } catch (const std::invalid_argument& error) {
+      EXPECT_THAT(error.what(), HasSubstr("bad-panel"));
+      EXPECT_THAT(error.what(), HasSubstr("cannot be both a portal receiver and a planar mirror"));
+    }
+  }
+
+  TEST(Scene, ShouldRejectNonPlanarSurfaceSceneMarker) {
+    Scene scene;
+    QJsonObject json;
+    json["type"] = "Scene";
+    json["children"] = QJsonArray{QJsonObject{{"type", "Sphere"},
+                                              {"id", "curved-surface"},
+                                              {"name", "Curved Surface"},
+                                              {"planarMirrorMarker", true}}};
+
+    try {
+      scene.read(json);
+      FAIL() << "expected non-planar marker to throw";
+    } catch (const std::invalid_argument& error) {
+      EXPECT_THAT(error.what(), HasSubstr("curved-surface"));
+      EXPECT_THAT(error.what(), HasSubstr("planar mirror marker requires a planar surface"));
+    }
   }
 
   TEST(Scene, ShouldIgnoreHiddenElementsInRenderGraphAnalysis) {
