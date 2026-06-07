@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Portal and mirror subview composites.** Automatic portal and planar mirror
+  graph subviews now composite their offscreen color outputs through receiver
+  stencil masks, use paired main/subview depth inputs when available, and pass
+  the base image through when the composite node is disabled. — GPT-5
 - **Portal and mirror receiver masks.** Automatic portal and mirror graph
   subviews now compile receiver stencil mask passes and resources, skip
   offscreen receivers, and mark unsupported raster state as conservative mask

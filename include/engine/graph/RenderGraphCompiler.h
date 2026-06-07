@@ -99,6 +99,25 @@ namespace engine::graph {
     void addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,
                             const RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis,
                             int renderToTextureDepth) const;
+    void addAutomaticFeatureSubviewComposites(RenderPlan& plan, const RenderTargetSpec& target,
+                                              const RenderIntent& intent,
+                                              const RenderSceneAnalysis& sceneAnalysis,
+                                              RenderResourceId& mainInputResource) const;
+    bool addAutomaticFeatureSubviewComposite(RenderPlan& plan, const RenderTargetSpec& target,
+                                             const RenderSubviewIntent& subview,
+                                             const std::string& prefix,
+                                             const std::string& displayName,
+                                             const RenderSceneAnalysis& sceneAnalysis,
+                                             RenderResourceId& mainInputResource) const;
+    RenderPassNode subviewCompositePass(const std::string& prefix, const std::string& displayName,
+                                        const RenderFeatureKind& subviewFeature,
+                                        const RenderFeatureKind& receiverFeature,
+                                        const RenderResourceId& baseColor,
+                                        const RenderResourceId& subviewColor,
+                                        const std::optional<RenderResourceId>& baseDepth,
+                                        const std::optional<RenderResourceId>& subviewDepth,
+                                        const RenderResourceId& receiverMask,
+                                        const RenderResourceId& outputColor) const;
     void addReceiverMaskDependency(RenderPlan& plan, const RenderTargetSpec& target,
                                    const RenderIntent& intent,
                                    const RenderSceneAnalysis::SceneSurfaceMarker& receiver,
