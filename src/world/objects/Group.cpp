@@ -130,6 +130,8 @@ std::shared_ptr<render::Primitive>
 Group::applyTransform(std::shared_ptr<render::Primitive> primitive) const {
   auto result = std::make_shared<render::Instance>(primitive);
   result->setMatrix(localTransform());
+  result->setName(name().toStdString());
+  attachRuntimeAnimationTracks(*result);
   return result;
 }
 

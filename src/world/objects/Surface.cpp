@@ -25,6 +25,8 @@ Surface::applyTransform(std::shared_ptr<render::Primitive> primitive) const {
   auto result = std::make_shared<render::Instance>(primitive);
   result->setMatrix(localTransform());
   result->setVelocity(m_velocity);
+  result->setName(name().toStdString());
+  attachRuntimeAnimationTracks(*result);
   return result;
 }
 

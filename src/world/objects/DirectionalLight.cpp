@@ -8,8 +8,10 @@ DirectionalLight::DirectionalLight(Element* parent)
 }
 
 std::shared_ptr<render::Light> DirectionalLight::toRaytracer() const {
-  return make_named<render::DirectionalLight>(Matrix3d(globalTransform()) * direction(),
-                                              color() * intensity());
+  auto light = make_named<render::DirectionalLight>(Matrix3d(globalTransform()) * direction(),
+                                                    color() * intensity());
+  attachRuntimeAnimationTracks(*light);
+  return light;
 }
 
 static bool dummy = ElementFactory::self().registerClass<DirectionalLight>("DirectionalLight");

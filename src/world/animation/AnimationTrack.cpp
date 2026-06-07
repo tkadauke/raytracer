@@ -229,6 +229,18 @@ namespace {
     return variantFromValue(typedTrack.sample(frame));
   }
 
+  template<class Converter>
+  render::animation::AnimationTrack renderTrackFromKeys(const world::AnimationTrack& track,
+                                                        Converter&& converter) {
+    std::vector<render::animation::Keyframe> keyframes;
+    keyframes.reserve(track.keyframes().size());
+    for (const auto& keyframe : track.keyframes()) {
+      keyframes.push_back(
+        {static_cast<double>(keyframe.frame), converter(track, keyframe.value)});
+    }
+    return render::animation::AnimationTrack(keyframes, track.interpolationMode());
+  }
+
   template<class Value, class Converter>
   QVariant sampleStepOnlyTrack(const world::AnimationTrack& track, int frame,
                                const QString& typeName, Converter&& converter) {
@@ -378,6 +390,47 @@ namespace world {
       return sampleStepOnlyTrack<bool>(*this, frame, QStringLiteral("bool"), boolFromJson);
     case Element::AnimationPropertyType::String:
       return sampleStepOnlyTrack<QString>(*this, frame, QStringLiteral("string"), stringFromJson);
+    case Element::AnimationPropertyType::Unsupported:
+      break;
+    }
+
+    throw evaluationError(*this,
+                          QString("unsupported property type '%1'").arg(propertyInfo->typeName));
+  }
+
+  render::animation::AnimationTrack AnimationTrack::toRenderTrack(const Element& target) const {
+    const auto propertyInfo = target.animationPropertyInfo(m_propertyName);
+    if (!propertyInfo)
+      throw evaluationError(*this, "target property does not exist");
+
+    if (!propertyInfo->writable)
+      throw evaluationError(*this, "target property is not writable");
+
+    switch (propertyInfo->type) {
+    case Element::AnimationPropertyType::Double:
+      return renderTrackFromKeys(*this, [](const auto& track, const auto& value) {
+        return render::animation::AnimationValue(doubleFromJson(track, value));
+      });
+    case Element::AnimationPropertyType::Integer:
+      return renderTrackFromKeys(*this, [](const auto& track, const auto& value) {
+        return render::animation::AnimationValue(intFromJson(track, value));
+      });
+    case Element::AnimationPropertyType::Vector3:
+      return renderTrackFromKeys(*this, [](const auto& track, const auto& value) {
+        return render::animation::AnimationValue(vectorFromJson(track, value));
+      });
+    case Element::AnimationPropertyType::Color:
+      return renderTrackFromKeys(*this, [](const auto& track, const auto& value) {
+        return render::animation::AnimationValue(colorFromJson(track, value));
+      });
+    case Element::AnimationPropertyType::Boolean:
+      return renderTrackFromKeys(*this, [](const auto& track, const auto& value) {
+        return render::animation::AnimationValue(boolFromJson(track, value));
+      });
+    case Element::AnimationPropertyType::String:
+      return renderTrackFromKeys(*this, [](const auto& track, const auto& value) {
+        return render::animation::AnimationValue(stringFromJson(track, value).toStdString());
+      });
     case Element::AnimationPropertyType::Unsupported:
       break;
     }

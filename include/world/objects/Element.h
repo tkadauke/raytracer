@@ -14,6 +14,10 @@ namespace engine::graph {
   class RenderSceneAnalysis;
 }
 
+namespace render {
+  class Object;
+}
+
 class Element : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString id READ id WRITE setId)
@@ -215,6 +219,8 @@ protected:
     result->setName(name().toStdString());
     return result;
   }
+
+  void attachRuntimeAnimationTracks(render::Object& object) const;
 
   void addPendingReference(const QString& property, const QString& id);
   void resolveReferences(const QMap<QString, Element*>& elements);

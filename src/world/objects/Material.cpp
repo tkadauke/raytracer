@@ -54,4 +54,6 @@ void Material::applyMaterialProperties(const std::shared_ptr<render::Material>& 
     material->setSidedness(render::Material::Sidedness::TwoSided);
     break;
   }
+
+  attachRuntimeAnimationTracks(*material);
 }

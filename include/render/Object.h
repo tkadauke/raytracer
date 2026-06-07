@@ -2,6 +2,9 @@
 
 #include <map>
 #include <string>
+#include <utility>
+
+#include "render/animation/AnimationTrack.h"
 
 namespace render {
   /**
@@ -27,6 +30,7 @@ namespace render {
   class Object {
   public:
     using Metadata = std::map<std::string, std::string>;
+    using AnimationTracks = std::map<std::string, render::animation::AnimationTrack>;
 
     inline Object() {
     }
@@ -67,8 +71,27 @@ namespace render {
       m_metadata = metadata;
     }
 
+    /// Attach a render-time animation track to a named runtime property.
+    inline void setAnimationTrack(const std::string& propertyName,
+                                  render::animation::AnimationTrack track) {
+      m_animationTracks.insert_or_assign(propertyName, std::move(track));
+    }
+
+    /// @returns the animation track attached to @p propertyName, if present.
+    inline const render::animation::AnimationTrack*
+    animationTrack(const std::string& propertyName) const {
+      const auto it = m_animationTracks.find(propertyName);
+      return it == m_animationTracks.end() ? nullptr : &it->second;
+    }
+
+    /// @returns all render-time animation tracks attached to this object.
+    inline const AnimationTracks& animationTracks() const {
+      return m_animationTracks;
+    }
+
   private:
     std::string m_name;
     Metadata m_metadata;
+    AnimationTracks m_animationTracks;
   };
 }
