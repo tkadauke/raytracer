@@ -114,6 +114,7 @@
 | `include/render/lights/DirectionalLight.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/lights/Light.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/lights/PointLight.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
+| `include/render/lights/RectangularAreaLight.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/materials/Material.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/render/materials/MatteMaterial.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `include/render/materials/PhongMaterial.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
@@ -147,6 +148,7 @@
 | `include/render/primitives/Torus.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/Triangle.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/Union.h` | [Constructive solid geometry](../scene-structure/csg.md) |
+| `include/render/samplers/HaltonSampler.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `include/render/samplers/JitteredSampler.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `include/render/samplers/RandomSampler.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `include/render/samplers/RegularSampler.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
@@ -318,8 +320,10 @@
 | `test/unit/render/brdf/PerfectTransmitterTest.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `test/unit/render/lights/DirectionalLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `test/unit/render/lights/PointLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
+| `test/unit/render/lights/RectangularAreaLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `test/unit/render/primitives/BVHPerformanceTest.cpp` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
 | `test/unit/render/primitives/SceneTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
+| `test/unit/render/samplers/HaltonSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `test/unit/render/samplers/JitteredSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `test/unit/render/samplers/RandomSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `test/unit/render/samplers/SamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |

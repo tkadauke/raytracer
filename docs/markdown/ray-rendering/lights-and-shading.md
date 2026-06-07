@@ -3,7 +3,7 @@
 A material knows the surface color at a hit point, but it
 doesn't know how brightly that surface is lit. The lights in
 the scene supply the missing piece. This chapter describes the
-two light types the codebase ships, the shadow-ray test that
+three light types the codebase ships, the shadow-ray test that
 makes shadow boundaries visible, and the ambient-light hack
 that approximates global illumination cheaply.
 
@@ -15,6 +15,8 @@ By the end of this chapter you should know:
   a light without changing the current Whitted direct-lighting path,
 - how a point light differs physically and computationally from
   a directional light,
+- how a rectangular area light becomes a non-delta soft-shadow source
+  for the path tracer,
 - the shadow ray as the test for "is this light visible from
   this surface point?",
 - the geometry that places a shadow boundary precisely where it
@@ -133,29 +135,59 @@ Visually, directional lights produce parallel shadow edges and
 even illumination across the scene. Point lights produce
 shadows that radiate outward from the light's position.
 
-## <a id="delta-light-sampling"></a>Delta light sampling
-The light sampling API is already implemented for the two shipped
-light classes, but both are **delta lights**.
+## <a id="rectangular-area-lights"></a>Rectangular area lights
+[`RectangularAreaLight`](../../../include/render/lights/RectangularAreaLight.h)
+models a one-sided rectangular emitter with constant radiance. The rectangle is
+defined by its center and two full edge vectors:
+
+$$
+\mathbf{p}_L(u, v) =
+\mathbf{c} + (u - 0.5)\mathbf{e}_u + (v - 0.5)\mathbf{e}_v
+$$
+
+with $u$ and $v$ in $[0, 1)$. The emitting side is the side pointed to by
+$\mathbf{e}_u \times \mathbf{e}_v$. Samples from the back side return black
+radiance and a zero PDF because the light is one-sided.
+
+Unlike point and directional lights, a rectangular area light is not a delta
+distribution. The path tracer passes a sampler-owned `SampleDimension::Light`
+value to `sample(point, sample2D)`, maps that sample to a point on the
+rectangle, and converts the uniform area PDF to a solid-angle PDF:
+
+$$
+p_\omega = \frac{r^2}{\cos\theta_L A}
+$$
+
+where $r$ is the distance from the shaded point to the sampled point on the
+emitter, $\theta_L$ is the angle between the light normal and the direction
+back toward the shaded point, and $A$ is the rectangle area. That finite extent
+is what produces soft shadow penumbrae in the path tracer.
+
+## <a id="light-sampling"></a>Light sampling
+The light sampling API separates **delta lights** from finite emitters.
 
 A point light is infinitesimal in position. From a shaded point,
 there is exactly one direction that reaches it. A directional light
 is infinitesimal in direction. From every shaded point, there is
-again exactly one light direction. Their `sample(point)` methods
-therefore return deterministic `LightSample` values with `pdf == 1`
-and `delta == true`. Their ordinary `pdf(point, direction)` methods
-return zero, because a delta distribution is not an ordinary
-solid-angle density.
+again exactly one light direction. Their `sample(point)` and
+`sample(point, sample2D)` methods therefore return deterministic
+`LightSample` values with `pdf == 1` and `delta == true`; the 2D
+sample is accepted for API uniformity and ignored by delta lights.
+Their ordinary `pdf(point, direction)` methods return zero, because
+a delta distribution is not an ordinary solid-angle density.
 
 That distinction is what the path tracer's direct-light estimator
 uses. When the light sampler draws a delta light, the integrator uses
 the sampled event directly and gives it MIS weight 1; the competing
 BSDF sampler cannot hit an infinitely small point or direction with
-nonzero probability. For non-delta lights — rectangles, spheres,
-environment maps, mesh emitters — `sample(point)` returns stochastic
-directions and non-delta PDFs, and the path tracer combines the light
-PDF with the material's `bsdfPdf(...)` through the MIS helper. The
-concrete non-delta light classes are still future work, but the
-integrator-side weighting contract is in place.
+nonzero probability. For non-delta lights — the shipped rectangular area light
+today, and later spheres, environment maps, and mesh emitters —
+`sample(point, sample2D)` maps the caller-owned 2D sample to an emitter
+location or direction and returns a non-delta PDF. The path tracer passes
+`SampleDimension::Light` into this overload during next-event estimation, then
+combines the light PDF with the material's `bsdfPdf(...)` through the MIS
+helper. The integrator-side weighting and sample-ownership contract is shared
+by all non-delta emitters.
 
 The important boundary is capability: these methods document how
 lights can be sampled, not that the Whitted renderer already performs
@@ -453,10 +485,12 @@ together.
 - `include/render/lights/Light.h`
 - `include/render/lights/PointLight.h`
 - `include/render/lights/DirectionalLight.h`
+- `include/render/lights/RectangularAreaLight.h`
 - `include/render/primitives/Scene.h`
 - `src/render/primitives/Scene.cpp`
 - `test/unit/render/lights/PointLightTest.cpp`
 - `test/unit/render/lights/DirectionalLightTest.cpp`
+- `test/unit/render/lights/RectangularAreaLightTest.cpp`
 - `test/unit/render/primitives/SceneTest.cpp`
 - `test/functional/render/lights/PointLightTest.cpp`
 <!-- /source-anchors -->

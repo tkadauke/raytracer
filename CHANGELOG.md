@@ -14,6 +14,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Portal and planar mirror scene markers.** Scene JSON and Modeler surface
   properties can now mark planar portal receivers and mirror surfaces for
   render graph discovery. — GPT-5
+- **Halton sampler.** Added a low-discrepancy `HaltonSampler` for path-tracing
+  dimensions, with deterministic per-pixel Cranley rotation and automatic
+  rendercli/Modeler exposure through the sampler factory. — GPT-5
+- **Rectangular area light.** Added a one-sided rectangular area light with
+  sampler-owned surface samples, solid-angle PDFs, Modeler scene-object support,
+  and a path-tracer demo scene for soft-shadow testing. — GPT-5
 - **Path tracer render preference.** Render intent JSON, rendercli, Modeler
   preview/render settings, and graph compilation now expose `pathtracer` as a
   user-facing executor preference that compiles to a wavefront-backed
@@ -275,6 +281,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Sampler-owned light samples.** The path tracer now draws next-event
+  estimation samples from `SampleDimension::Light` and passes them into the
+  light API, keeping stochastic light samples under deterministic sampler
+  ownership. — GPT-5
 - **Path tracing exact delta branches.** Path tracing now asks materials for
   enumerable delta continuations and splits perfect mirror/refraction/portal
   branches exactly, reducing glass variance without adding type switches in the

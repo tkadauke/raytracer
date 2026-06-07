@@ -3,9 +3,12 @@
 #include "world/objects/Light.h"
 #include "world/objects/PointLight.h"
 #include "world/objects/DirectionalLight.h"
+#include "world/objects/ElementFactory.h"
+#include "world/objects/RectangularAreaLight.h"
 #include "render/lights/Light.h"
 #include "render/lights/PointLight.h"
 #include "render/lights/DirectionalLight.h"
+#include "render/lights/RectangularAreaLight.h"
 
 #include "test/helpers/VectorTestHelper.h"
 
@@ -160,5 +163,57 @@ namespace LightTest {
     EXPECT_DOUBLE_EQ(0.25, rt->color().r());
     EXPECT_DOUBLE_EQ(0.25, rt->color().g());
     EXPECT_DOUBLE_EQ(0.25, rt->color().b());
+  }
+
+  // ---------- RectangularAreaLight ------------------------------------------
+
+  TEST(RectangularAreaLight, ShouldDefaultToTwoByTwo) {
+    RectangularAreaLight light;
+
+    EXPECT_DOUBLE_EQ(2.0, light.width());
+    EXPECT_DOUBLE_EQ(2.0, light.height());
+  }
+
+  TEST(RectangularAreaLight, ShouldSetPositiveDimensions) {
+    RectangularAreaLight light;
+
+    light.setWidth(-3.0);
+    light.setHeight(-4.0);
+
+    EXPECT_DOUBLE_EQ(3.0, light.width());
+    EXPECT_DOUBLE_EQ(4.0, light.height());
+  }
+
+  TEST(RectangularAreaLight, ShouldProduceRaytracerRectangularAreaLight) {
+    RectangularAreaLight light;
+
+    auto rt = light.toRaytracer();
+
+    ASSERT_NE(nullptr, rt);
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::RectangularAreaLight>(rt));
+  }
+
+  TEST(RectangularAreaLight, ShouldTransformCenterAndEdges) {
+    RectangularAreaLight light;
+    light.setPosition(Vector3d(1, 2, 3));
+    light.setWidth(4.0);
+    light.setHeight(6.0);
+    light.setColor(Colord(1.0, 0.8, 0.6));
+    light.setIntensity(0.5);
+
+    auto rt = std::dynamic_pointer_cast<render::RectangularAreaLight>(light.toRaytracer());
+
+    ASSERT_NE(nullptr, rt);
+    ASSERT_VECTOR_NEAR(Vector3d(1, 2, 3), rt->center(), 1e-9);
+    ASSERT_VECTOR_NEAR(Vector3d(4, 0, 0), rt->edgeU(), 1e-9);
+    ASSERT_VECTOR_NEAR(Vector3d(0, 0, 6), rt->edgeV(), 1e-9);
+    EXPECT_EQ(Colord(0.5, 0.4, 0.3), rt->color());
+  }
+
+  TEST(RectangularAreaLight, ShouldBeRegisteredWithElementFactory) {
+    auto light = ElementFactory::self().create("RectangularAreaLight");
+
+    ASSERT_NE(nullptr, light);
+    EXPECT_NE(nullptr, dynamic_cast<RectangularAreaLight*>(light.get()));
   }
 }

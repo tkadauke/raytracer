@@ -51,14 +51,14 @@ namespace render {
     * `toRaytracer()` factory produces a runtime `Light` that goes
     * onto this flat list.
     *
-    * Concrete subclasses: `PointLight`, `DirectionalLight`. Future
-    * work for area lights would also subclass here. New integrators
+    * Concrete subclasses: `PointLight`, `DirectionalLight`, and
+    * `RectangularAreaLight`. New integrators
     * can call `sample(point)` to get the same legacy contribution
     * plus sampling metadata for soft shadows, direct-light sampling,
     * and MIS. Delta lights document that explicitly through the
     * returned sample and through `isDelta()`.
     *
-    * @see PointLight, DirectionalLight — concrete subclasses.
+    * @see PointLight, DirectionalLight, RectangularAreaLight — concrete subclasses.
     * @see Scene::lights() — where materials read these from.
     */
   class Light : public render::Object {
@@ -97,10 +97,19 @@ namespace render {
       * The default implementation preserves legacy direct-lighting behavior by
       * returning `direction(point)`, `radiance()`, infinite distance, `pdf == 1`,
       * and `delta == true`. Finite positional lights override this to report the
-      * actual distance. Future area lights should override this with stochastic
-      * samples and a non-delta PDF.
+      * actual distance. Area lights override this with stochastic samples and a
+      * non-delta PDF.
       */
     virtual LightSample sample(const Vector3d& point) const;
+
+    /**
+      * Samples this light from `point` using a caller-owned 2D sample.
+      *
+      * Delta lights ignore the sample. Area lights should map it to their
+      * emitter surface so path tracers can keep next-event estimation under
+      * `SampleStream` ownership instead of using hidden light-local randomness.
+      */
+    virtual LightSample sample(const Vector3d& point, const Vector2d& sample) const;
 
     /**
       * Evaluates the probability density for sampling `direction` from `point`

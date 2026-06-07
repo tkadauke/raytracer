@@ -44,6 +44,20 @@ namespace PointLightTest {
     EXPECT_TRUE(sample.delta);
   }
 
+  TEST(PointLight, ShouldIgnoreCallerSampleForDeltaSample) {
+    PointLight light(Vector3d(1, 2, 3), Colord(0.25, 0.5, 0.75));
+    const Vector3d point(4, 6, 3);
+
+    const LightSample implicitSample = light.sample(point);
+    const LightSample explicitSample = light.sample(point, Vector2d(0.125, 0.875));
+
+    EXPECT_EQ(implicitSample.direction, explicitSample.direction);
+    EXPECT_EQ(implicitSample.radiance, explicitSample.radiance);
+    EXPECT_DOUBLE_EQ(implicitSample.distance, explicitSample.distance);
+    EXPECT_DOUBLE_EQ(implicitSample.pdf, explicitSample.pdf);
+    EXPECT_EQ(implicitSample.delta, explicitSample.delta);
+  }
+
   TEST(PointLight, ShouldExposeDeltaPdfBehavior) {
     PointLight light(Vector3d(1, 2, 3), Colord::white());
 

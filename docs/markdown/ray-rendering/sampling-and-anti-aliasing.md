@@ -13,8 +13,8 @@ By the end of this chapter you should know:
 
 - the rendering function as an integral over the pixel area, and
   why averaging is the discrete approximation of that integral,
-- the three sampler types the codebase ships (regular, jittered,
-  random) and what each one trades off,
+- the four sampler types the codebase ships (regular, jittered,
+  random, Halton) and what each one trades off,
 - the stratification invariant that the jittered sampler
   guarantees absolutely (not statistically),
 - the dual API the `Sampler` class exposes — flat 2D sets and
@@ -61,14 +61,14 @@ the pixel area. This is **Monte Carlo integration** of the pixel
 function. The choice of *how* to distribute the $\mathbf{u}_i$
 is what distinguishes one sampler from another.
 
-## <a id="the-three-samplers"></a>The three samplers
-The codebase ships three concrete samplers. Each takes
+## <a id="the-shipped-samplers"></a>The shipped samplers
+The codebase ships four concrete samplers. Each takes
 `numSamples` and `numSets` as constructor parameters: how many
 sub-pixel samples per set, and how many independent sets to
 pre-generate. The renderer picks one set at random per pixel and
 uses its `numSamples` points for that pixel's evaluations.
 
-The interactive widget compares all three on the same pixel
+The interactive widget compares the original grid/random families on the same pixel
 grid, with adjustable `numSamples` and an optional pixel /
 lens / shutter-time dimension toggle:
 
@@ -106,6 +106,18 @@ oversampling of one region and undersampling of another, so
 $N$ random samples produce a noisier estimate than $N$
 jittered samples. Random sampling is mostly useful as a baseline
 for understanding why stratification matters.
+
+[`HaltonSampler`](../../../include/render/samplers/HaltonSampler.h)
+is the first low-discrepancy sampler in the renderer. Its legacy
+2D set API uses the Halton sequence in bases 2 and 3, so the first
+few samples fill large gaps in the unit square before refining
+smaller ones. Its stream API assigns successive prime-base pairs to
+named dimensions and applies a deterministic per-pixel Cranley
+rotation. That keeps BSDF, light, continuation, lens, time, and
+pixel dimensions repeatable while avoiding the identical-across-pixels
+pattern a raw deterministic sequence would produce. This is most
+useful for path tracing, where each primary sample consumes many
+named dimensions and random clumping shows up as visible noise.
 
 ## <a id="the-stratification-invariant"></a>The stratification invariant
 The jittered sampler's defining property is one a stratified
@@ -226,12 +238,11 @@ sample in wavefront tiles. Those streams also override
 sampler subclasses still keep their overridden `stream()` behavior
 through the owning fallback path.
 
-This is foundation API, not a completed path tracer. The shipped
-renderer currently consumes pixel, time, and lens dimensions for
-primary rays, motion blur, and thin-lens depth of field. BSDF,
-light, and continuation dimensions are reserved and tested so a
-future path-tracing integrator can use them without redefining the
-sampler contract.
+The path tracer consumes the named BSDF, light, and continuation
+dimensions for stochastic bounces, next-event estimation, and Russian
+roulette. Low-discrepancy samplers such as `HaltonSampler` override
+the default dimension lookup so those path-tracing dimensions follow a
+sequence instead of independent pre-baked grid sets.
 
 ## <a id="the-thin-lens-sampler-interaction"></a>The thin-lens / sampler interaction
 [Cameras](cameras.md) introduced the thin-lens camera and noted that it
@@ -328,15 +339,21 @@ educational choice — it shows what an *unstratified* sampler
 looks like, which makes the stratification benefit visible in
 contrast.
 
+For path-tracing experiments, **Halton** is now the better first
+choice. It keeps deterministic, well-spread samples across the many
+dimensions a path tracer consumes and usually reduces clumping noise
+versus random sampling at the same sample count. It is still not a
+substitute for a better estimator: direct-light sampling, MIS,
+adaptive sampling, and denoising all address different parts of the
+variance problem.
+
 ## <a id="what-this-chapter-does-not-cover"></a>What this chapter does *not* cover
 Many advanced sampling topics are queued under
 `docs/topics-backlog.md` §A. Notably absent here:
 
-- **Low-discrepancy sequences** (Halton, Sobol, Niederreiter).
-  These are deterministic sample distributions that beat
-  jittered's variance reduction in moderate dimensions but are
-  much trickier to implement well. A path tracer would benefit
-  from them.
+- **More advanced low-discrepancy sequences** (Sobol, Niederreiter,
+  Owen-scrambled variants). Halton is available now; higher-dimensional
+  production samplers need stronger scrambling and correlation control.
 - **Blue-noise sampling**. Spatial blue-noise distributions
   produce visually pleasing noise patterns where individual
   noise grains are distributed evenly without forming patterns
@@ -391,9 +408,11 @@ the three samplers above are sufficient.
 - `include/render/samplers/RegularSampler.h`
 - `include/render/samplers/JitteredSampler.h`
 - `include/render/samplers/RandomSampler.h`
+- `include/render/samplers/HaltonSampler.h`
 - `include/render/samplers/SampleStream.h`
 - `test/unit/render/samplers/SamplerTest.cpp`
 - `test/unit/render/samplers/JitteredSamplerTest.cpp`
 - `test/unit/render/samplers/RandomSamplerTest.cpp`
+- `test/unit/render/samplers/HaltonSamplerTest.cpp`
 - `test/functional/render/samplers/SamplerDeterminismTest.cpp`
 <!-- /source-anchors -->

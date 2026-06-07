@@ -23,6 +23,7 @@ namespace render {
     Vector3d direction(const Vector3d& point) const override;
     Colord radiance() const override;
     LightSample sample(const Vector3d& point) const override;
+    LightSample sample(const Vector3d& point, const Vector2d& sample) const override;
     std::optional<Colord> power() const override;
     const char* fingerprintType() const override;
     void writeFingerprint(std::ostream& out, const std::string& prefix) const override;

@@ -13,6 +13,7 @@
 #include "render/primitives/Plane.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
+#include "render/samplers/SampleStream.h"
 #include "render/samplers/Sampler.h"
 #include "render/samplers/SamplerFactory.h"
 #include "render/textures/ConstantColorTexture.h"
@@ -117,6 +118,79 @@ namespace PathTracingIntegratorTest {
       const char* fingerprintType() const override {
         return "NonDeltaTestLight";
       }
+    };
+
+    class SampleEchoLight final : public Light {
+    public:
+      Vector3d direction(const Vector3d&) const override {
+        return Vector3d(0, 1, 0);
+      }
+
+      Colord radiance() const override {
+        return Colord::black();
+      }
+
+      LightSample sample(const Vector3d&, const Vector2d& sample) const override {
+        samples.push_back(sample);
+        return {Vector3d(0, 1, 0), Colord(sample.x(), sample.y(), 0.0),
+                std::numeric_limits<double>::infinity(), 1.0, true};
+      }
+
+      const char* fingerprintType() const override {
+        return "SampleEchoLight";
+      }
+
+      mutable std::vector<Vector2d> samples;
+    };
+
+    class UnitDirectMaterial final : public Material {
+    public:
+      Colord shade(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                   State&) const override {
+        return Colord::black();
+      }
+
+      bool supportsBsdfSampling() const override {
+        return true;
+      }
+
+      Colord evalBsdf(const HitPoint&, const Vector3d&, const Vector3d&) const override {
+        return Colord::white();
+      }
+
+      MaterialBsdfSample sampleBsdf(const HitPoint&, const Vector3d&,
+                                    const Vector2d&) const override {
+        return MaterialBsdfSample();
+      }
+    };
+
+    class FixedLightSampleStream final : public SampleStream {
+    public:
+      explicit FixedLightSampleStream(const Vector2d& lightSample)
+          : m_lightSample(lightSample) {
+      }
+
+      Vector2d next2D() override {
+        return Vector2d(0.5, 0.5);
+      }
+
+      double next1D() override {
+        return 0.5;
+      }
+
+      Vector2d sample2D(SampleDimension dimension, std::uint64_t index = 0) override {
+        if (dimension == SampleDimension::Light && index == 0u) {
+          return m_lightSample;
+        }
+        return Vector2d(0.5, 0.5);
+      }
+
+      double sample1D(SampleDimension dimension, std::uint64_t index = 0) override {
+        return sample2D(dimension, index).x();
+      }
+
+    private:
+      Vector2d m_lightSample;
     };
 
     class RecordingMaterial final : public Material {
@@ -366,6 +440,20 @@ namespace PathTracingIntegratorTest {
       return scene;
     }
 
+    std::unique_ptr<Scene> sampleEchoLightScene(std::shared_ptr<SampleEchoLight> light) {
+      auto scene = std::make_unique<Scene>();
+      scene->setAmbient(Colord::black());
+      scene->setBackground(Colord::black());
+      scene->addLight(light);
+
+      auto material = std::make_shared<UnitDirectMaterial>();
+      auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
+      plane->setMaterial(material);
+      scene->add(plane);
+
+      return scene;
+    }
+
     // A primary ray straight down at the floor — for a horizontal
     // ground plane with the light coming from directly above, the
     // expected reflected radiance is diffuse_color / pi (Lambertian
@@ -424,6 +512,43 @@ namespace PathTracingIntegratorTest {
     const Colord pixel = traceWithSampleStream(integrator, *scene, 1234ull, 0);
 
     ASSERT_COLOR_NEAR(Colord(0.8, 0.8, 0.8), pixel, 1e-12);
+  }
+
+  TEST(PathTracingIntegrator, ScalarDirectLightingUsesSampleStreamLightDimension) {
+    auto light = std::make_shared<SampleEchoLight>();
+    auto scene = sampleEchoLightScene(light);
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+    FixedLightSampleStream stream(Vector2d(0.25, 0.75));
+    State state;
+    state.sampleStream = &stream;
+    FallbackRayCaster caster;
+
+    const Colord pixel = integrator.radiance(*scene, primaryRay(), state, caster);
+
+    ASSERT_COLOR_NEAR(Colord(0.25, 0.75, 0.0), pixel, 1e-12);
+    ASSERT_EQ(1u, light->samples.size());
+    EXPECT_EQ(Vector2d(0.25, 0.75), light->samples[0]);
+  }
+
+  TEST(PathTracingIntegrator, BatchedDirectLightingUsesSampleStreamLightDimension) {
+    auto light = std::make_shared<SampleEchoLight>();
+    auto scene = sampleEchoLightScene(light);
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{
+      primaryRay(), 0.0, std::make_unique<FixedLightSampleStream>(Vector2d(0.125, 0.625))});
+    FallbackRayCaster caster;
+
+    const std::vector<Colord> pixels = integrator.radianceBatch(*scene, samples, caster);
+
+    ASSERT_EQ(1u, pixels.size());
+    ASSERT_COLOR_NEAR(Colord(0.125, 0.625, 0.0), pixels[0], 1e-12);
+    ASSERT_EQ(1u, light->samples.size());
+    EXPECT_EQ(Vector2d(0.125, 0.625), light->samples[0]);
   }
 
   TEST(PathTracingIntegrator, AddsMaterialAmbientRadianceForLegacySceneCompatibility) {

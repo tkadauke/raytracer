@@ -474,8 +474,9 @@ namespace render {
 
   Colord PathTracingIntegrator::directLighting(const Scene& scene, const Light& light,
                                                const HitPoint& hitPoint, const Material& material,
-                                               const Vector3d& wi, State& state) const {
-    LightSample sample = light.sample(hitPoint.point());
+                                               const Vector3d& wi, const Vector2d& lightSample,
+                                               State& state) const {
+    LightSample sample = light.sample(hitPoint.point(), lightSample);
     if (sample.pdf <= 0.0 || sample.radiance == Colord::black()) {
       return Colord::black();
     }
@@ -570,9 +571,11 @@ namespace render {
         accumulated += path.throughput * material->ambientRadiance(scene, path.ray, hitPoint);
 
         // Direct lighting via NEE.
+        const Vector2d lightSample = pathState.sampleStream->sample2D(
+          SampleDimension::Light, static_cast<std::uint64_t>(bounce));
         for (const auto& light : scene.lights()) {
-          accumulated +=
-            path.throughput * directLighting(scene, *light, hitPoint, *material, wi, pathState);
+          accumulated += path.throughput * directLighting(scene, *light, hitPoint, *material, wi,
+                                                          lightSample, pathState);
         }
 
         const std::vector<MaterialBsdfSample> deltaSamples =
@@ -713,9 +716,12 @@ namespace render {
           path.accumulated() +=
             path.throughput * material->ambientRadiance(scene, path.ray, hit.hitPoint);
 
+          const Vector2d lightSample = path.state.sampleStream->sample2D(
+            SampleDimension::Light, static_cast<std::uint64_t>(bounce));
           for (const auto& light : scene.lights()) {
-            path.accumulated() += path.throughput * directLighting(scene, *light, hit.hitPoint,
-                                                                   *material, wi, path.state);
+            path.accumulated() +=
+              path.throughput *
+              directLighting(scene, *light, hit.hitPoint, *material, wi, lightSample, path.state);
           }
 
           const std::vector<MaterialBsdfSample> deltaSamples =

@@ -40,7 +40,7 @@ namespace render {
     *     `Material::shade(...)` (Whitted compatibility), terminate.
     *  4. Add the material's compatibility ambient radiance.
     *  5. Direct lighting (next-event estimation): for each light, draw
-    *     a `LightSample`, shadow-test, accumulate
+    *     a `LightSample` from `SampleDimension::Light`, shadow-test, accumulate
     *     `throughput · BSDF.eval(wi, wo_light) · L_i / pdf_light`.
     *  6. Indirect: if the material publishes enumerable delta branches
     *     (`Material::deltaBsdfSamples(...)`), split them exactly; otherwise
@@ -110,7 +110,8 @@ namespace render {
     State clonePathState(const State& state) const;
     Colord missRadiance(const Scene& scene, bool backgroundVisible) const;
     Colord directLighting(const Scene& scene, const Light& light, const HitPoint& hitPoint,
-                          const Material& material, const Vector3d& wi, State& state) const;
+                          const Material& material, const Vector3d& wi, const Vector2d& lightSample,
+                          State& state) const;
     bool canContinueWithSample(const MaterialBsdfSample& sample, const HitPoint& hitPoint) const;
     Colord continuedThroughput(const Colord& throughput, const MaterialBsdfSample& sample,
                                const HitPoint& hitPoint) const;

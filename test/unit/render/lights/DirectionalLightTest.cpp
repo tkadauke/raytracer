@@ -48,6 +48,20 @@ namespace DirectionalLightTest {
     EXPECT_TRUE(sample.delta);
   }
 
+  TEST(DirectionalLight, ShouldIgnoreCallerSampleForDeltaSample) {
+    const Vector3d dir = Vector3d(-0.5, -1, -0.5).normalized();
+    DirectionalLight light(dir, Colord(0.25, 0.5, 0.75));
+
+    const LightSample implicitSample = light.sample(Vector3d(2, 3, 4));
+    const LightSample explicitSample = light.sample(Vector3d(2, 3, 4), Vector2d(0.125, 0.875));
+
+    EXPECT_EQ(implicitSample.direction, explicitSample.direction);
+    EXPECT_EQ(implicitSample.radiance, explicitSample.radiance);
+    EXPECT_DOUBLE_EQ(implicitSample.distance, explicitSample.distance);
+    EXPECT_DOUBLE_EQ(implicitSample.pdf, explicitSample.pdf);
+    EXPECT_EQ(implicitSample.delta, explicitSample.delta);
+  }
+
   TEST(DirectionalLight, ShouldExposeDeltaPdfBehavior) {
     const Vector3d dir = Vector3d(-0.5, -1, -0.5).normalized();
     DirectionalLight light(dir, Colord::white());

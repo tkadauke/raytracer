@@ -1,0 +1,124 @@
+{
+  "id": "{68200000-0000-0000-0000-000000000000}",
+  "name": "Path Tracer Area Light Demo",
+  "ambient": [0.0, 0.0, 0.0],
+  "background": [0.02, 0.03, 0.04],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "pathtracer",
+    "defaultViewMode": "beauty",
+    "defaultCamera": {
+      "sceneCameraId": "{68200000-0000-0000-0000-000000000001}"
+    },
+    "engineOptions": {
+      "raytracer": {
+        "execution": {
+          "maxRecursionDepth": 3
+        },
+        "sampling": {
+          "sampler": "Halton",
+          "samplesPerPixel": 64
+        }
+      }
+    }
+  },
+  "children": [
+    {
+      "id": "{68200000-0000-0000-0000-000000000001}",
+      "name": "Camera",
+      "position": [0.0, 1.1, -5.0],
+      "target": [0.0, 0.15, 0.65],
+      "distance": 5.0,
+      "zoom": 1.25,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000002}",
+      "name": "Softbox",
+      "position": [0.0, 3.0, -0.35],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 0.96, 0.86],
+      "intensity": 3.5,
+      "width": 2.5,
+      "height": 2.0,
+      "type": "RectangularAreaLight",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000010}",
+      "name": "Warm Floor Texture",
+      "color": [0.74, 0.72, 0.68],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000011}",
+      "name": "Blue Blocker Texture",
+      "color": [0.18, 0.32, 0.82],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000020}",
+      "name": "Warm Floor Material",
+      "diffuseTexture": "{68200000-0000-0000-0000-000000000010}",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000021}",
+      "name": "Blue Blocker Material",
+      "diffuseTexture": "{68200000-0000-0000-0000-000000000011}",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000030}",
+      "name": "Floor",
+      "position": [-3.0, -0.65, -2.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{68200000-0000-0000-0000-000000000020}",
+      "leg1": [0.0, 0.0, 5.0],
+      "leg2": [6.0, 0.0, 0.0],
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Rectangle",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000031}",
+      "name": "Shadow Caster",
+      "position": [-0.6, 0.05, 0.2],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{68200000-0000-0000-0000-000000000021}",
+      "radius": 0.7,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "{68200000-0000-0000-0000-000000000032}",
+      "name": "Back Wall",
+      "position": [-3.0, -0.65, 2.2],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{68200000-0000-0000-0000-000000000020}",
+      "leg1": [6.0, 0.0, 0.0],
+      "leg2": [0.0, 3.0, 0.0],
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Rectangle",
+      "children": []
+    }
+  ]
+}

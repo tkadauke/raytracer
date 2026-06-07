@@ -14,6 +14,10 @@ LightSample Light::sample(const Vector3d& point) const {
   return {direction(point), radiance(), std::numeric_limits<double>::infinity(), 1.0, true};
 }
 
+LightSample Light::sample(const Vector3d& point, const Vector2d&) const {
+  return sample(point);
+}
+
 double Light::pdf(const Vector3d&, const Vector3d&) const {
   return 0.0;
 }

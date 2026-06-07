@@ -140,6 +140,7 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->propertyChoices("rasterizerDepthPrepass").contains("auto"));
     EXPECT_TRUE(intent->propertyChoices("rasterizerTessellationQuality").contains("final"));
     EXPECT_TRUE(intent->propertyChoices("raytracerIntegrator").contains("pathtracer"));
+    EXPECT_TRUE(intent->propertyChoices("raytracerSampler").contains("Halton"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontConvergenceQuality").contains("balanced"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontConvergenceQuality").contains("custom"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontDenoiser").contains("box"));

@@ -14,6 +14,7 @@ file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 set(raytracer_scene "${TEST_OUTPUT_DIR}/raytracer-options-scene.json")
 set(ldraw_scene "${TEST_OUTPUT_DIR}/ldraw-scene.json")
 set(reflective_scene "${PROJECT_SOURCE_DIR}/scenes/reflections.json")
+set(area_light_scene "${PROJECT_SOURCE_DIR}/scenes/pathtracer_area_light_demo.json")
 set(invalid_sampler_output "${TEST_OUTPUT_DIR}/invalid-sampler.png")
 
 file(WRITE "${raytracer_scene}" [=[
@@ -146,7 +147,7 @@ foreach(depth IN ITEMS 1 4)
                                   NAME "raytracer --depth ${depth} pixels")
 endforeach()
 
-foreach(sampler IN ITEMS Regular Random Jittered)
+foreach(sampler IN ITEMS Regular Random Jittered Halton)
   set(output "${TEST_OUTPUT_DIR}/sampler-${sampler}.png")
   rendercli_run(
     NAME "rendercli raytracer accepts --sampler ${sampler}"
@@ -210,6 +211,18 @@ rendercli_run(
 rendercli_assert_image_dimensions("${pathtracer_direct_output}" 24 24
                                   NAME "pathtracer direct dimensions")
 rendercli_assert_image_nonempty("${pathtracer_direct_output}" NAME "pathtracer direct pixels")
+
+set(area_light_output "${TEST_OUTPUT_DIR}/pathtracer-area-light.png")
+rendercli_run(
+  NAME "rendercli pathtracer renders rectangular area light scene"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine pathtracer
+    --width 32 --height 24 --sampler Halton --samples_per_pixel 8 --depth 3
+    "${area_light_scene}" "${area_light_output}"
+)
+rendercli_assert_image_dimensions("${area_light_output}" 32 24
+                                  NAME "pathtracer area light dimensions")
+rendercli_assert_image_nonempty("${area_light_output}" NAME "pathtracer area light pixels")
 
 set(wavefront_denoise_output "${TEST_OUTPUT_DIR}/wavefront-denoise-direct.png")
 rendercli_run(

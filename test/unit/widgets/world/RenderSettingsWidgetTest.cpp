@@ -29,6 +29,13 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(QString("Regular"), widget.sampler());
   }
 
+  TEST_F(RenderSettingsWidgetTest, ShouldExposeHaltonSampler) {
+    RenderSettingsWidget widget;
+    auto samplerType = widget.findChild<QComboBox*>("samplerType");
+    ASSERT_NE(nullptr, samplerType);
+    EXPECT_NE(-1, samplerType->findText("Halton"));
+  }
+
   TEST_F(RenderSettingsWidgetTest, ShouldDefaultViewPlaneToPointInterlaced) {
     RenderSettingsWidget widget;
     EXPECT_EQ(QString("PointInterlacedViewPlane"), widget.viewPlane());
