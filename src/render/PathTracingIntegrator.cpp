@@ -308,7 +308,11 @@ namespace render {
     if (depthMetrics.trackFrontierMetrics()) {
       ++depthMetrics.frontierRayMisses;
     }
-    path.accumulated() += path.throughput * missRadiance(scene, path.backgroundVisible);
+    const Colord contribution = path.throughput * missRadiance(scene, path.backgroundVisible);
+    path.accumulated() += contribution;
+    if (depthMetrics.metrics) {
+      depthMetrics.metrics->recordMissRadiance(contribution);
+    }
     path.state.recurseOut();
     recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
   }
@@ -785,30 +789,44 @@ namespace render {
             continue;
           }
 
-          path.accumulated() +=
+          const Colord emittedContribution =
             path.throughput * emittedRadiance(lightSampler, *material, path.ray, hit.hitPoint,
                                               path.sampledFromBsdf, path.bsdfSamplePdf,
                                               path.bsdfSampleDelta, metrics);
+          path.accumulated() += emittedContribution;
+          if (metrics) {
+            metrics->recordEmittedRadiance(emittedContribution);
+          }
 
           const Vector3d wi = -path.ray.direction().normalized();
           if (!material->supportsBsdfSampling()) {
             const Colord whittedColor =
               material->shade(&recursiveRayCaster, scene, path.ray, hit.hitPoint, path.state);
-            path.accumulated() += path.throughput * whittedColor;
+            const Colord compatibilityContribution = path.throughput * whittedColor;
+            path.accumulated() += compatibilityContribution;
             if (metrics) {
               ++metrics->compatibilityShadeSamples;
+              metrics->recordCompatibilityShadeRadiance(compatibilityContribution);
             }
             path.state.recurseOut();
             recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
             continue;
           }
 
-          path.accumulated() +=
+          const Colord ambientContribution =
             path.throughput * material->ambientRadiance(scene, path.ray, hit.hitPoint);
+          path.accumulated() += ambientContribution;
+          if (metrics) {
+            metrics->recordAmbientRadiance(ambientContribution);
+          }
 
-          path.accumulated() +=
+          const Colord directLightContribution =
             path.throughput * sampleDirectLighting(scene, lightSampler, hit.hitPoint, *material, wi,
                                                    path.state, bounce, metrics);
+          path.accumulated() += directLightContribution;
+          if (metrics) {
+            metrics->recordDirectLightRadiance(directLightContribution, bounce == 0);
+          }
 
           const std::vector<MaterialBsdfSample> deltaSamples =
             material->deltaBsdfSamples(hit.hitPoint, wi);

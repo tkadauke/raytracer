@@ -679,6 +679,10 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1u, metrics.directLightSamples);
     EXPECT_EQ(1u, metrics.directLightContributingSamples);
     EXPECT_EQ(0u, metrics.directLightOccludedSamples);
+    const double expectedLuminance = 0.125 * 0.299 + 0.625 * 0.587;
+    EXPECT_NEAR(expectedLuminance, metrics.directLightRadianceLuminanceSum, 1e-12);
+    EXPECT_NEAR(expectedLuminance, metrics.primaryDirectLightRadianceLuminanceSum, 1e-12);
+    EXPECT_EQ(0.0, metrics.secondaryDirectLightRadianceLuminanceSum);
   }
 
   TEST(PathTracingIntegrator, BatchedDirectLightingScalesSelectedLightBySelectionPdf) {

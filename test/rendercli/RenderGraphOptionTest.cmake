@@ -1817,6 +1817,20 @@ foreach(direct_light_name
                     "${wavefront_metrics_stdout}" "" "" "")
   endif()
 endforeach()
+foreach(contribution_name
+        emitted_luminance
+        direct_light_luminance
+        primary_direct_light_luminance
+        secondary_direct_light_luminance
+        ambient_luminance
+        miss_luminance
+        compatibility_shade_luminance)
+  if(NOT wavefront_metrics_stdout MATCHES "${contribution_name}=")
+    _rendercli_fail("rendercli wavefront metrics ${contribution_name} summary"
+                    "wavefront metrics summary did not contain ${contribution_name}"
+                    "${wavefront_metrics_stdout}" "" "" "")
+  endif()
+endforeach()
 foreach(adaptive_name
         adaptive
         adaptive_min_samples

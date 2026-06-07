@@ -41,6 +41,13 @@ namespace render {
     directLightSamples = 0;
     directLightContributingSamples = 0;
     directLightOccludedSamples = 0;
+    emittedRadianceLuminanceSum = 0.0;
+    directLightRadianceLuminanceSum = 0.0;
+    primaryDirectLightRadianceLuminanceSum = 0.0;
+    secondaryDirectLightRadianceLuminanceSum = 0.0;
+    ambientRadianceLuminanceSum = 0.0;
+    missRadianceLuminanceSum = 0.0;
+    compatibilityShadeRadianceLuminanceSum = 0.0;
     stoppedByConvergence = false;
     stoppedAfterDepth = 0;
     intersectionWorkerSeconds = 0.0;
@@ -122,6 +129,37 @@ namespace render {
     if (occluded) {
       ++directLightOccludedSamples;
     }
+  }
+
+  void IntegratorBatchMetrics::recordEmittedRadiance(const Colord& contribution) {
+    emittedRadianceLuminanceSum += contributionLuminance(contribution);
+  }
+
+  void IntegratorBatchMetrics::recordDirectLightRadiance(const Colord& contribution,
+                                                         bool primaryBounce) {
+    const double luminance = contributionLuminance(contribution);
+    directLightRadianceLuminanceSum += luminance;
+    if (primaryBounce) {
+      primaryDirectLightRadianceLuminanceSum += luminance;
+    } else {
+      secondaryDirectLightRadianceLuminanceSum += luminance;
+    }
+  }
+
+  void IntegratorBatchMetrics::recordAmbientRadiance(const Colord& contribution) {
+    ambientRadianceLuminanceSum += contributionLuminance(contribution);
+  }
+
+  void IntegratorBatchMetrics::recordMissRadiance(const Colord& contribution) {
+    missRadianceLuminanceSum += contributionLuminance(contribution);
+  }
+
+  void IntegratorBatchMetrics::recordCompatibilityShadeRadiance(const Colord& contribution) {
+    compatibilityShadeRadianceLuminanceSum += contributionLuminance(contribution);
+  }
+
+  double IntegratorBatchMetrics::contributionLuminance(const Colord& contribution) const {
+    return contribution.r() * 0.299 + contribution.g() * 0.587 + contribution.b() * 0.114;
   }
 
   std::vector<Colord> Integrator::radianceBatch(const Scene& scene,

@@ -54,6 +54,13 @@ namespace render {
     std::uint64_t directLightSamples{0};
     std::uint64_t directLightContributingSamples{0};
     std::uint64_t directLightOccludedSamples{0};
+    double emittedRadianceLuminanceSum{0.0};
+    double directLightRadianceLuminanceSum{0.0};
+    double primaryDirectLightRadianceLuminanceSum{0.0};
+    double secondaryDirectLightRadianceLuminanceSum{0.0};
+    double ambientRadianceLuminanceSum{0.0};
+    double missRadianceLuminanceSum{0.0};
+    double compatibilityShadeRadianceLuminanceSum{0.0};
     bool stoppedByConvergence{false};
     std::uint64_t stoppedAfterDepth{0};
     double intersectionWorkerSeconds{0.0};
@@ -79,6 +86,12 @@ namespace render {
     void recordRadianceDeltaDepth(double squaredSum, double maxDelta);
     void recordEmitterHit(bool sampledFromBsdf, bool bsdfSampleDelta, bool misWeighted);
     void recordDirectLightSample(bool occluded, bool contributing);
+    void recordEmittedRadiance(const Colord& contribution);
+    void recordDirectLightRadiance(const Colord& contribution, bool primaryBounce);
+    void recordAmbientRadiance(const Colord& contribution);
+    void recordMissRadiance(const Colord& contribution);
+    void recordCompatibilityShadeRadiance(const Colord& contribution);
+    double contributionLuminance(const Colord& contribution) const;
   };
 
   struct IntegratorBatchFeedback {

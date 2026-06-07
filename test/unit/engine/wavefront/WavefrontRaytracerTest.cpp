@@ -929,6 +929,15 @@ namespace WavefrontRaytracerTest {
                            /*misWeighted=*/true);
     batch.recordDirectLightSample(/*occluded=*/false, /*contributing=*/true);
     batch.recordDirectLightSample(/*occluded=*/true, /*contributing=*/false);
+    batch.recordEmittedRadiance(Colord(1.0, 0.0, 0.0));
+    batch.recordDirectLightRadiance(Colord(0.0, 1.0, 0.0), /*primaryBounce=*/true);
+    batch.recordDirectLightRadiance(Colord(0.0, 0.0, 1.0), /*primaryBounce=*/false);
+    batch.recordAmbientRadiance(Colord(1.0, 1.0, 0.0));
+    batch.recordMissRadiance(Colord(0.0, 1.0, 1.0));
+    batch.recordCompatibilityShadeRadiance(Colord(1.0, 0.0, 1.0));
+    constexpr double redLuma = 0.299;
+    constexpr double greenLuma = 0.587;
+    constexpr double blueLuma = 0.114;
 
     metrics.batching.addIntegratorMetrics(batch);
 
@@ -940,6 +949,13 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(2u, metrics.batching.directLightSamples);
     EXPECT_EQ(1u, metrics.batching.directLightContributingSamples);
     EXPECT_EQ(1u, metrics.batching.directLightOccludedSamples);
+    EXPECT_DOUBLE_EQ(redLuma, metrics.batching.emittedRadianceLuminanceSum);
+    EXPECT_DOUBLE_EQ(greenLuma + blueLuma, metrics.batching.directLightRadianceLuminanceSum);
+    EXPECT_DOUBLE_EQ(greenLuma, metrics.batching.primaryDirectLightRadianceLuminanceSum);
+    EXPECT_DOUBLE_EQ(blueLuma, metrics.batching.secondaryDirectLightRadianceLuminanceSum);
+    EXPECT_DOUBLE_EQ(redLuma + greenLuma, metrics.batching.ambientRadianceLuminanceSum);
+    EXPECT_DOUBLE_EQ(greenLuma + blueLuma, metrics.batching.missRadianceLuminanceSum);
+    EXPECT_DOUBLE_EQ(redLuma + blueLuma, metrics.batching.compatibilityShadeRadianceLuminanceSum);
 
     const QJsonObject batching = metrics.toJson().value("batching").toObject();
     EXPECT_EQ(3.0, batching.value("emitterHitSamples").toDouble());
@@ -950,6 +966,17 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(2.0, batching.value("directLightSamples").toDouble());
     EXPECT_EQ(1.0, batching.value("directLightContributingSamples").toDouble());
     EXPECT_EQ(1.0, batching.value("directLightOccludedSamples").toDouble());
+    EXPECT_DOUBLE_EQ(redLuma, batching.value("emittedRadianceLuminanceSum").toDouble());
+    EXPECT_DOUBLE_EQ(greenLuma + blueLuma,
+                     batching.value("directLightRadianceLuminanceSum").toDouble());
+    EXPECT_DOUBLE_EQ(greenLuma,
+                     batching.value("primaryDirectLightRadianceLuminanceSum").toDouble());
+    EXPECT_DOUBLE_EQ(blueLuma,
+                     batching.value("secondaryDirectLightRadianceLuminanceSum").toDouble());
+    EXPECT_DOUBLE_EQ(redLuma + greenLuma, batching.value("ambientRadianceLuminanceSum").toDouble());
+    EXPECT_DOUBLE_EQ(greenLuma + blueLuma, batching.value("missRadianceLuminanceSum").toDouble());
+    EXPECT_DOUBLE_EQ(redLuma + blueLuma,
+                     batching.value("compatibilityShadeRadianceLuminanceSum").toDouble());
   }
 
   TEST(WavefrontRaytracer, MetricsRecordPerPixelSampleRadianceVariance) {

@@ -37,6 +37,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   render graph trace metadata, Modeler graph tooltips, and rendercli compact
   summaries now count sampled direct-light attempts, nonzero contributions, and
   shadow-occluded samples. — GPT-5
+- **Path-tracing contribution diagnostics.** Wavefront/pathtracer metrics,
+  render graph trace metadata, Modeler graph tooltips, and rendercli compact
+  summaries now report luminance sums for emitted, direct-light,
+  miss/background, ambient, and compatibility-shaded contributions. — GPT-5
 - **Path-tracing parity diagnostic.** The rendercli path-tracer diagnostic test
   now compares a deterministic direct-light scene against the Whitted raytracer
   so simple direct lighting stays aligned while path tracing evolves. — GPT-5

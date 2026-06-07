@@ -74,6 +74,13 @@ namespace engine::wavefront {
       std::uint64_t directLightSamples = 0;
       std::uint64_t directLightContributingSamples = 0;
       std::uint64_t directLightOccludedSamples = 0;
+      double emittedRadianceLuminanceSum = 0.0;
+      double directLightRadianceLuminanceSum = 0.0;
+      double primaryDirectLightRadianceLuminanceSum = 0.0;
+      double secondaryDirectLightRadianceLuminanceSum = 0.0;
+      double ambientRadianceLuminanceSum = 0.0;
+      double missRadianceLuminanceSum = 0.0;
+      double compatibilityShadeRadianceLuminanceSum = 0.0;
       std::vector<std::uint64_t> activeSamplesPerDepth;
       std::vector<std::uint64_t> retainedActiveSamplesPerDepth;
       std::vector<std::uint64_t> frontierRayHitsPerDepth;

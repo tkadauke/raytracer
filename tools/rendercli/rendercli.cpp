@@ -289,6 +289,17 @@ namespace {
         << unsignedValue(batching, "directLightContributingSamples")
         << " direct_light_occluded_samples="
         << unsignedValue(batching, "directLightOccludedSamples")
+        << " emitted_luminance=" << batching.value("emittedRadianceLuminanceSum").toDouble()
+        << " direct_light_luminance="
+        << batching.value("directLightRadianceLuminanceSum").toDouble()
+        << " primary_direct_light_luminance="
+        << batching.value("primaryDirectLightRadianceLuminanceSum").toDouble()
+        << " secondary_direct_light_luminance="
+        << batching.value("secondaryDirectLightRadianceLuminanceSum").toDouble()
+        << " ambient_luminance=" << batching.value("ambientRadianceLuminanceSum").toDouble()
+        << " miss_luminance=" << batching.value("missRadianceLuminanceSum").toDouble()
+        << " compatibility_shade_luminance="
+        << batching.value("compatibilityShadeRadianceLuminanceSum").toDouble()
         << " adaptive=" << (adaptiveSampling.value("enabled").toBool() ? "enabled" : "disabled")
         << " adaptive_min_samples=" << unsignedValue(adaptiveSampling, "minimumSamples")
         << " adaptive_stddev_threshold=" << adaptiveSampling.value("stddevThreshold").toDouble()

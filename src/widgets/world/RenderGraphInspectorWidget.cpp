@@ -442,6 +442,25 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
                 .arg(directLightContributing)
                 .arg(directLightOccluded);
     }
+    const double directLightLuminance =
+      batching.value(QStringLiteral("directLightRadianceLuminanceSum")).toDouble();
+    const double emittedLuminance =
+      batching.value(QStringLiteral("emittedRadianceLuminanceSum")).toDouble();
+    const double missLuminance =
+      batching.value(QStringLiteral("missRadianceLuminanceSum")).toDouble();
+    const double ambientLuminance =
+      batching.value(QStringLiteral("ambientRadianceLuminanceSum")).toDouble();
+    const double compatibilityLuminance =
+      batching.value(QStringLiteral("compatibilityShadeRadianceLuminanceSum")).toDouble();
+    if (directLightLuminance > 0.0 || emittedLuminance > 0.0 || missLuminance > 0.0 ||
+        ambientLuminance > 0.0 || compatibilityLuminance > 0.0) {
+      line += QStringLiteral(", luminance direct %1, emitted %2, miss %3, ambient %4, compat %5")
+                .arg(directLightLuminance, 0, 'g', 3)
+                .arg(emittedLuminance, 0, 'g', 3)
+                .arg(missLuminance, 0, 'g', 3)
+                .arg(ambientLuminance, 0, 'g', 3)
+                .arg(compatibilityLuminance, 0, 'g', 3);
+    }
     const qulonglong frontierHits =
       jsonIntegerArraySum(batching.value(QStringLiteral("frontierRayHitsPerDepth")).toArray());
     const qulonglong frontierMisses =

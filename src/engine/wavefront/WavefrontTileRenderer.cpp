@@ -203,6 +203,16 @@ namespace engine::wavefront::detail {
       target.directLightSamples += source.directLightSamples;
       target.directLightContributingSamples += source.directLightContributingSamples;
       target.directLightOccludedSamples += source.directLightOccludedSamples;
+      target.emittedRadianceLuminanceSum += source.emittedRadianceLuminanceSum;
+      target.directLightRadianceLuminanceSum += source.directLightRadianceLuminanceSum;
+      target.primaryDirectLightRadianceLuminanceSum +=
+        source.primaryDirectLightRadianceLuminanceSum;
+      target.secondaryDirectLightRadianceLuminanceSum +=
+        source.secondaryDirectLightRadianceLuminanceSum;
+      target.ambientRadianceLuminanceSum += source.ambientRadianceLuminanceSum;
+      target.missRadianceLuminanceSum += source.missRadianceLuminanceSum;
+      target.compatibilityShadeRadianceLuminanceSum +=
+        source.compatibilityShadeRadianceLuminanceSum;
       target.stoppedByConvergence = target.stoppedByConvergence || source.stoppedByConvergence;
       target.stoppedAfterDepth = std::max(target.stoppedAfterDepth, source.stoppedAfterDepth);
       target.intersectionWorkerSeconds += source.intersectionWorkerSeconds;

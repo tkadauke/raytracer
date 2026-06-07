@@ -83,6 +83,13 @@ namespace engine::wavefront {
     directLightSamples += metrics.directLightSamples;
     directLightContributingSamples += metrics.directLightContributingSamples;
     directLightOccludedSamples += metrics.directLightOccludedSamples;
+    emittedRadianceLuminanceSum += metrics.emittedRadianceLuminanceSum;
+    directLightRadianceLuminanceSum += metrics.directLightRadianceLuminanceSum;
+    primaryDirectLightRadianceLuminanceSum += metrics.primaryDirectLightRadianceLuminanceSum;
+    secondaryDirectLightRadianceLuminanceSum += metrics.secondaryDirectLightRadianceLuminanceSum;
+    ambientRadianceLuminanceSum += metrics.ambientRadianceLuminanceSum;
+    missRadianceLuminanceSum += metrics.missRadianceLuminanceSum;
+    compatibilityShadeRadianceLuminanceSum += metrics.compatibilityShadeRadianceLuminanceSum;
 
     const auto addCounts = [](std::vector<std::uint64_t>& target,
                               const std::vector<std::uint64_t>& source) {
@@ -237,6 +244,16 @@ namespace engine::wavefront {
       static_cast<double>(batching.directLightContributingSamples);
     batchingJson["directLightOccludedSamples"] =
       static_cast<double>(batching.directLightOccludedSamples);
+    batchingJson["emittedRadianceLuminanceSum"] = batching.emittedRadianceLuminanceSum;
+    batchingJson["directLightRadianceLuminanceSum"] = batching.directLightRadianceLuminanceSum;
+    batchingJson["primaryDirectLightRadianceLuminanceSum"] =
+      batching.primaryDirectLightRadianceLuminanceSum;
+    batchingJson["secondaryDirectLightRadianceLuminanceSum"] =
+      batching.secondaryDirectLightRadianceLuminanceSum;
+    batchingJson["ambientRadianceLuminanceSum"] = batching.ambientRadianceLuminanceSum;
+    batchingJson["missRadianceLuminanceSum"] = batching.missRadianceLuminanceSum;
+    batchingJson["compatibilityShadeRadianceLuminanceSum"] =
+      batching.compatibilityShadeRadianceLuminanceSum;
     batchingJson["activeSamplesPerDepth"] = activeSamplesPerDepth;
     batchingJson["retainedActiveSamplesPerDepth"] = retainedActiveSamplesPerDepth;
     batchingJson["frontierRayHitsPerDepth"] = frontierRayHitsPerDepth;

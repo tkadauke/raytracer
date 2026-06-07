@@ -914,6 +914,12 @@ work: selected direct-light samples, samples that contributed nonzero radiance,
 and samples rejected by shadow visibility. Those counters make dark or noisy
 path-traced renders easier to separate into light-selection, visibility, and
 BSDF/PDF issues.
+Batch metrics also accumulate weighted contribution luminance sums for emitted
+surfaces, direct-light estimates (split into primary-hit and secondary-bounce
+subsets), ambient compatibility, miss/background radiance, and legacy
+compatibility shading. Those sums are diagnostics, not alternate render
+buffers: they let trace JSON, Modeler tooltips, and rendercli summaries explain
+which estimator bucket dominated the final brightness.
 Wavefront metrics now also aggregate per-pixel sample radiance variance into
 `sampleRadianceStddevRms` and `maxSampleRadianceStddev`. That is the first
 render-wide noise diagnostic for path-traced samples: it measures disagreement
