@@ -425,7 +425,7 @@ namespace engine::wavefront {
       return denoiser && denoiser->requestedFeatures().any();
     }
 
-    bool shouldRecordLastMetrics(const render::Camera& camera) const {
+    bool shouldRecordRenderMetrics(const render::Camera& camera) const {
       return metricsEnabled || camera.isCancelled() || denoiserRequestsFeatures();
     }
 
@@ -545,7 +545,7 @@ namespace engine::wavefront {
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
-    const bool recordMetrics = p->shouldRecordLastMetrics(*m_camera);
+    const bool recordMetrics = p->shouldRecordRenderMetrics(*m_camera);
     if (recordMetrics) {
       p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
@@ -623,7 +623,7 @@ namespace engine::wavefront {
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
-    const bool recordMetrics = p->shouldRecordLastMetrics(*m_camera);
+    const bool recordMetrics = p->shouldRecordRenderMetrics(*m_camera);
     if (recordMetrics) {
       p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
@@ -697,7 +697,7 @@ namespace engine::wavefront {
     const render::TilePlan tilePlan =
       render::TilePlan::forBuffer(hdrBuffer.width(), hdrBuffer.height(), p->queueSize);
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
-    const bool recordMetrics = p->shouldRecordLastMetrics(*m_camera);
+    const bool recordMetrics = p->shouldRecordRenderMetrics(*m_camera);
     if (recordMetrics) {
       p->metrics.reset(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), p->convergenceEnabled,
