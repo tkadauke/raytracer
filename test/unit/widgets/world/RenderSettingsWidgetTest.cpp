@@ -161,6 +161,7 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(QString("Scene settings"), widget.denoiser());
     EXPECT_EQ(2, widget.denoiseRadius());
     EXPECT_DOUBLE_EQ(0.1, widget.denoiseColorSigma());
+    EXPECT_EQ(1, widget.directLightSamples());
   }
 
   TEST_F(RenderSettingsWidgetTest, ShouldReadRayDenoiserControls) {
@@ -190,19 +191,23 @@ namespace RenderSettingsWidgetTest {
   TEST_F(RenderSettingsWidgetTest, ShouldShowRayDenoiserControlsOnlyForPathTracerAndWavefront) {
     RenderSettingsWidget widget;
     auto engineType = widget.findChild<QComboBox*>("engineType");
+    auto directLightSamples = widget.findChild<QSpinBox*>("pathTracerDirectLightSamples");
     auto denoiser = widget.findChild<QComboBox*>("rayDenoiser");
     auto radius = widget.findChild<QSpinBox*>("rayDenoiseRadius");
     auto colorSigma = widget.findChild<QDoubleSpinBox*>("rayDenoiseColorSigma");
     ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, directLightSamples);
     ASSERT_NE(nullptr, denoiser);
     ASSERT_NE(nullptr, radius);
     ASSERT_NE(nullptr, colorSigma);
 
+    EXPECT_TRUE(directLightSamples->isHidden());
     EXPECT_TRUE(denoiser->isHidden());
     EXPECT_TRUE(radius->isHidden());
     EXPECT_TRUE(colorSigma->isHidden());
 
     engineType->setCurrentText("Path Tracer");
+    EXPECT_FALSE(directLightSamples->isHidden());
     EXPECT_FALSE(denoiser->isHidden());
     EXPECT_TRUE(radius->isHidden());
     EXPECT_TRUE(colorSigma->isHidden());
@@ -216,11 +221,13 @@ namespace RenderSettingsWidgetTest {
     EXPECT_FALSE(colorSigma->isHidden());
 
     engineType->setCurrentText("Wavefront");
+    EXPECT_TRUE(directLightSamples->isHidden());
     EXPECT_FALSE(denoiser->isHidden());
     EXPECT_FALSE(radius->isHidden());
     EXPECT_FALSE(colorSigma->isHidden());
 
     engineType->setCurrentText("Raytracer");
+    EXPECT_TRUE(directLightSamples->isHidden());
     EXPECT_TRUE(denoiser->isHidden());
     EXPECT_TRUE(radius->isHidden());
     EXPECT_TRUE(colorSigma->isHidden());
@@ -234,6 +241,7 @@ namespace RenderSettingsWidgetTest {
     options.setSampler("Jittered");
     options.setSamplesPerPixel(9);
     options.setMaximumRecursionDepth(12);
+    options.setDirectLightSamples(5);
     options.setDenoiser("bilateral");
     options.setDenoiseRadius(4);
     options.setDenoiseColorSigma(0.25);
@@ -244,6 +252,7 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(QString("Jittered"), widget.sampler());
     EXPECT_EQ(9, widget.samplesPerPixel());
     EXPECT_EQ(12, widget.maxRecursionDepth());
+    EXPECT_EQ(5, widget.directLightSamples());
     EXPECT_TRUE(widget.denoiserOverrideEnabled());
     EXPECT_EQ(QString("Bilateral"), widget.denoiser());
     EXPECT_EQ(4, widget.denoiseRadius());
@@ -256,6 +265,7 @@ namespace RenderSettingsWidgetTest {
     explicitIntent.defaultExecutor = engine::graph::RenderExecutorPreference::PathTracer;
     explicitIntent.engineOptions.raytracer().setSampler("Jittered");
     explicitIntent.engineOptions.raytracer().setSamplesPerPixel(7);
+    explicitIntent.engineOptions.raytracer().setDirectLightSamples(4);
     widget.setRenderIntent(explicitIntent);
 
     engine::graph::RenderIntent defaultIntent;
@@ -265,6 +275,7 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(QString("Path Tracer"), widget.engine());
     EXPECT_EQ(QString("Halton"), widget.sampler());
     EXPECT_EQ(64, widget.samplesPerPixel());
+    EXPECT_EQ(1, widget.directLightSamples());
   }
 
   TEST_F(RenderSettingsWidgetTest, ShouldInitializeImplicitDenoiserParametersFromRenderIntent) {

@@ -46,6 +46,7 @@ namespace engine::graph {
     void setQueueSize(int queueSize);
     void setIntegrator(std::string integrator);
     void setRussianRouletteDepth(int depth);
+    void setDirectLightSamples(int samples);
     void setSampler(std::string sampler);
     void setSamplesPerPixel(int samples);
     void setSamplingSeed(std::uint64_t seed);
@@ -65,6 +66,7 @@ namespace engine::graph {
     std::optional<int> queueSize() const;
     std::optional<std::string> integrator() const;
     std::optional<int> russianRouletteDepth() const;
+    std::optional<int> directLightSamples() const;
     std::optional<std::string> sampler() const;
     std::optional<int> samplesPerPixel() const;
     std::optional<std::uint64_t> samplingSeed() const;
@@ -85,6 +87,7 @@ namespace engine::graph {
     std::optional<int> m_queueSize;
     std::optional<std::string> m_integrator;
     std::optional<int> m_russianRouletteDepth;
+    std::optional<int> m_directLightSamples;
     std::optional<std::string> m_sampler;
     std::optional<int> m_samplesPerPixel;
     std::optional<std::uint64_t> m_samplingSeed;

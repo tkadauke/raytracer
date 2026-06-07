@@ -301,11 +301,11 @@ namespace engine::graph {
 
   bool RenderRaytracerOptions::empty() const {
     return !m_maximumRecursionDepth && !m_maximumThreads && !m_queueSize && !m_integrator &&
-           !m_russianRouletteDepth && !m_sampler && !m_samplesPerPixel && !m_samplingSeed &&
-           !m_viewPlane && !m_convergenceEnabled && !m_convergenceActiveSampleFractionThreshold &&
-           !m_convergenceRadianceDeltaRmsThreshold && !m_adaptiveSamplingEnabled &&
-           !m_adaptiveMinimumSamples && !m_adaptiveStddevThreshold && !m_denoiser &&
-           !m_denoiseRadius && !m_denoiseColorSigma;
+           !m_russianRouletteDepth && !m_directLightSamples && !m_sampler && !m_samplesPerPixel &&
+           !m_samplingSeed && !m_viewPlane && !m_convergenceEnabled &&
+           !m_convergenceActiveSampleFractionThreshold && !m_convergenceRadianceDeltaRmsThreshold &&
+           !m_adaptiveSamplingEnabled && !m_adaptiveMinimumSamples && !m_adaptiveStddevThreshold &&
+           !m_denoiser && !m_denoiseRadius && !m_denoiseColorSigma;
   }
 
   QJsonObject RenderRaytracerOptions::toJson() const {
@@ -326,6 +326,8 @@ namespace engine::graph {
       options.setIntegrator(*state.integrator());
     if (state.russianRouletteDepth())
       options.setRussianRouletteDepth(*state.russianRouletteDepth());
+    if (state.directLightSamples())
+      options.setDirectLightSamples(*state.directLightSamples());
     if (state.sampler())
       options.setSampler(*state.sampler());
     if (state.samplesPerPixel())
@@ -368,6 +370,8 @@ namespace engine::graph {
     result.m_integrator = overrideOptional(result.m_integrator, overrides.m_integrator);
     result.m_russianRouletteDepth =
       overrideOptional(result.m_russianRouletteDepth, overrides.m_russianRouletteDepth);
+    result.m_directLightSamples =
+      overrideOptional(result.m_directLightSamples, overrides.m_directLightSamples);
     result.m_sampler = overrideOptional(result.m_sampler, overrides.m_sampler);
     result.m_samplesPerPixel =
       overrideOptional(result.m_samplesPerPixel, overrides.m_samplesPerPixel);
@@ -406,6 +410,8 @@ namespace engine::graph {
       state.setIntegrator(*m_integrator);
     if (m_russianRouletteDepth)
       state.setRussianRouletteDepth(*m_russianRouletteDepth);
+    if (m_directLightSamples)
+      state.setDirectLightSamples(*m_directLightSamples);
     if (m_sampler)
       state.setSampler(*m_sampler);
     if (m_samplesPerPixel)
@@ -456,6 +462,10 @@ namespace engine::graph {
 
   void RenderRaytracerOptions::setRussianRouletteDepth(int depth) {
     m_russianRouletteDepth = std::max(1, depth);
+  }
+
+  void RenderRaytracerOptions::setDirectLightSamples(int samples) {
+    m_directLightSamples = std::max(1, samples);
   }
 
   void RenderRaytracerOptions::setSampler(std::string sampler) {
@@ -532,6 +542,10 @@ namespace engine::graph {
 
   std::optional<int> RenderRaytracerOptions::russianRouletteDepth() const {
     return m_russianRouletteDepth;
+  }
+
+  std::optional<int> RenderRaytracerOptions::directLightSamples() const {
+    return m_directLightSamples;
   }
 
   std::optional<std::string> RenderRaytracerOptions::sampler() const {

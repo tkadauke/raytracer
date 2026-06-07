@@ -123,6 +123,9 @@ struct RenderWindow::Private {
       options.setSamplesPerPixel(settingsWidget->samplesPerPixel());
       options.setViewPlane(settingsWidget->viewPlane().toStdString());
       options.setMaximumRecursionDepth(settingsWidget->maxRecursionDepth());
+      if (settingsWidget->engine() == "Path Tracer") {
+        options.setDirectLightSamples(settingsWidget->directLightSamples());
+      }
       options.setMaximumThreads(settingsWidget->renderThreads());
       options.setQueueSize(settingsWidget->queueSize());
       applyRayDenoiserOverride(options);

@@ -150,10 +150,21 @@ namespace SamplerTest {
   }
 
   TEST(SampleDimension, ShouldExposeStablePerLightSampleIndices) {
+    ASSERT_EQ(0u, SampleStream::lightSelectionSampleIndex(/*bounce=*/0, /*directSampleIndex=*/0));
+    ASSERT_EQ(1u, SampleStream::lightSelectionSampleIndex(/*bounce=*/1, /*directSampleIndex=*/0));
+    ASSERT_EQ(1048576u,
+              SampleStream::lightSelectionSampleIndex(/*bounce=*/0, /*directSampleIndex=*/1));
+    ASSERT_EQ(1048577u,
+              SampleStream::lightSelectionSampleIndex(/*bounce=*/1, /*directSampleIndex=*/1));
+
     ASSERT_EQ(0u, SampleStream::lightSampleIndex(/*bounce=*/0, /*lightIndex=*/0));
     ASSERT_EQ(2u, SampleStream::lightSampleIndex(/*bounce=*/0, /*lightIndex=*/1));
     ASSERT_EQ(1u, SampleStream::lightSampleIndex(/*bounce=*/1, /*lightIndex=*/0));
     ASSERT_EQ(4u, SampleStream::lightSampleIndex(/*bounce=*/1, /*lightIndex=*/1));
+    ASSERT_EQ(549756338176u, SampleStream::lightSampleIndex(/*bounce=*/0, /*lightIndex=*/0,
+                                                            /*directSampleIndex=*/1));
+    ASSERT_EQ(549757386754u, SampleStream::lightSampleIndex(/*bounce=*/0, /*lightIndex=*/1,
+                                                            /*directSampleIndex=*/1));
 
     ASSERT_EQ(4u,
               sampleDimensionIndex(SampleDimension::Light, SampleStream::lightSampleIndex(0, 0)));
@@ -377,7 +388,7 @@ namespace SamplerTest {
 
   TEST(SamplerStream, LightSamplesDoNotReuseTheSamePatternAcrossLights) {
     IndexedSampler sampler;
-    sampler.setup(4, 32);
+    sampler.setup(4, 67);
 
     auto stream = sampler.stream(0, 0);
 
@@ -393,6 +404,9 @@ namespace SamplerTest {
     ASSERT_DOUBLE_EQ(
       16.0 / 100.0,
       stream->sample2D(SampleDimension::Light, SampleStream::lightSampleIndex(1, 1)).x());
+    ASSERT_DOUBLE_EQ(
+      52.0 / 100.0,
+      stream->sample2D(SampleDimension::Light, SampleStream::lightSampleIndex(0, 0, 1)).x());
   }
 
   TEST(RegularSampler, CameraDimensionsRemainRegularAcrossPixels) {

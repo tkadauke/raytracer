@@ -246,6 +246,47 @@ namespace PathTracingIntegratorTest {
       double m_lightSelectionSample;
     };
 
+    class FixedDirectLightSampleStream final : public SampleStream {
+    public:
+      explicit FixedDirectLightSampleStream(std::vector<Vector2d> lightSamples)
+          : m_lightSamples(std::move(lightSamples)) {
+      }
+
+      Vector2d next2D() override {
+        return Vector2d(0.5, 0.5);
+      }
+
+      double next1D() override {
+        return 0.5;
+      }
+
+      Vector2d sample2D(SampleDimension dimension, std::uint64_t index = 0) override {
+        if (dimension == SampleDimension::Light) {
+          for (std::size_t sampleIndex = 0; sampleIndex != m_lightSamples.size(); ++sampleIndex) {
+            if (index ==
+                SampleStream::lightSampleIndex(/*bounce=*/0u, /*lightIndex=*/0u, sampleIndex)) {
+              return m_lightSamples[sampleIndex];
+            }
+          }
+        }
+        return Vector2d(0.5, 0.5);
+      }
+
+      double sample1D(SampleDimension dimension, std::uint64_t index = 0) override {
+        if (dimension == SampleDimension::LightSelection) {
+          for (std::size_t sampleIndex = 0; sampleIndex != m_lightSamples.size(); ++sampleIndex) {
+            if (index == SampleStream::lightSelectionSampleIndex(/*bounce=*/0u, sampleIndex)) {
+              return 0.0;
+            }
+          }
+        }
+        return sample2D(dimension, index).x();
+      }
+
+    private:
+      std::vector<Vector2d> m_lightSamples;
+    };
+
     class RecordingMaterial final : public Material {
     public:
       explicit RecordingMaterial(std::vector<std::string>* events)
@@ -636,6 +677,27 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(Vector2d(0.25, 0.75), light->samples[0]);
   }
 
+  TEST(PathTracingIntegrator, ScalarDirectLightingAveragesConfiguredDirectLightSamples) {
+    auto light = std::make_shared<SampleEchoLight>();
+    auto scene = sampleEchoLightScene(light);
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+    integrator.setDirectLightSamples(2);
+    FixedDirectLightSampleStream stream(
+      std::vector<Vector2d>{Vector2d(0.25, 0.75), Vector2d(0.75, 0.25)});
+    State state;
+    state.sampleStream = &stream;
+    FallbackRayCaster caster;
+
+    const Colord pixel = integrator.radiance(*scene, primaryRay(), state, caster);
+
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.5, 0.0), pixel, 1e-12);
+    ASSERT_EQ(2u, light->samples.size());
+    EXPECT_EQ(Vector2d(0.25, 0.75), light->samples[0]);
+    EXPECT_EQ(Vector2d(0.75, 0.25), light->samples[1]);
+  }
+
   TEST(PathTracingIntegrator, ScalarDirectLightingScalesSelectedLightBySelectionPdf) {
     auto firstLight = std::make_shared<SampleEchoLight>();
     auto secondLight = std::make_shared<SampleEchoLight>();
@@ -683,6 +745,35 @@ namespace PathTracingIntegratorTest {
     EXPECT_NEAR(expectedLuminance, metrics.directLightRadianceLuminanceSum, 1e-12);
     EXPECT_NEAR(expectedLuminance, metrics.primaryDirectLightRadianceLuminanceSum, 1e-12);
     EXPECT_EQ(0.0, metrics.secondaryDirectLightRadianceLuminanceSum);
+  }
+
+  TEST(PathTracingIntegrator, BatchedDirectLightingAveragesConfiguredDirectLightSamples) {
+    auto light = std::make_shared<SampleEchoLight>();
+    auto scene = sampleEchoLightScene(light);
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+    integrator.setDirectLightSamples(2);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(
+      IntegratorRaySample{primaryRay(), 0.0,
+                          std::make_unique<FixedDirectLightSampleStream>(std::vector<Vector2d>{
+                            Vector2d(0.125, 0.625), Vector2d(0.875, 0.375)})});
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+
+    const std::vector<Colord> pixels = integrator.radianceBatch(*scene, samples, caster, &metrics);
+
+    ASSERT_EQ(1u, pixels.size());
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.5, 0.0), pixels[0], 1e-12);
+    ASSERT_EQ(2u, light->samples.size());
+    EXPECT_EQ(Vector2d(0.125, 0.625), light->samples[0]);
+    EXPECT_EQ(Vector2d(0.875, 0.375), light->samples[1]);
+    EXPECT_EQ(2u, metrics.directLightSamples);
+    EXPECT_EQ(2u, metrics.directLightContributingSamples);
+    EXPECT_EQ(0u, metrics.directLightOccludedSamples);
+    const double expectedLuminance = ((0.125 + 0.875) * 0.299 + (0.625 + 0.375) * 0.587) / 2.0;
+    EXPECT_NEAR(expectedLuminance, metrics.directLightRadianceLuminanceSum, 1e-12);
   }
 
   TEST(PathTracingIntegrator, BatchedDirectLightingScalesSelectedLightBySelectionPdf) {
@@ -1538,10 +1629,19 @@ namespace PathTracingIntegratorTest {
     (void)pixel;
   }
 
+  TEST(PathTracingIntegrator, DirectLightSamplesClampToPositiveValue) {
+    PathTracingIntegrator integrator;
+
+    integrator.setDirectLightSamples(0);
+
+    EXPECT_EQ(1, integrator.directLightSamples());
+  }
+
   TEST(PathTracingIntegrator, CloneCopiesConfiguration) {
     PathTracingIntegrator integrator;
     integrator.setMaximumRecursionDepth(17);
     integrator.setRussianRouletteDepth(5);
+    integrator.setDirectLightSamples(3);
 
     auto clone = std::unique_ptr<PathTracingIntegrator>(
       static_cast<PathTracingIntegrator*>(integrator.clone().release()));
@@ -1549,6 +1649,7 @@ namespace PathTracingIntegratorTest {
     ASSERT_NE(nullptr, clone);
     EXPECT_EQ(17, clone->maximumRecursionDepth());
     EXPECT_EQ(5, clone->russianRouletteDepth());
+    EXPECT_EQ(3, clone->directLightSamples());
   }
 
 } // namespace PathTracingIntegratorTest

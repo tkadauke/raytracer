@@ -222,7 +222,13 @@ compatibility. When multiple lights are possible, the path tracer uses
 `SampleStream::lightSampleIndex(bounce, lightIndex)` so each light
 owns a distinct light slot. For example, bounce 0 light 0 uses slot 0
 / dimension 4, bounce 0 light 1 uses slot 2 / dimension 10, and bounce
-1 light 0 uses slot 1 / dimension 7.
+1 light 0 uses slot 1 / dimension 7. If the path tracer draws more
+than one direct-light sample per hit,
+`SampleStream::lightSelectionSampleIndex(bounce, directSample)` and
+the three-argument
+`lightSampleIndex(bounce, lightIndex, directSample)` reserve
+independent dimensions for each next-event-estimation sample before
+the integrator averages them.
 The unit tests pin this exact mapping in
 [`SamplerStream.NamedDimensionsMatchLegacyCameraDimensionOrder`](../../../test/unit/render/samplers/SamplerTest.cpp)
 and

@@ -108,6 +108,8 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
     return QStringLiteral("Max Recursion Depth");
   if (propertyName == QStringLiteral("pathTracerRussianRouletteDepth"))
     return QStringLiteral("Russian Roulette Depth");
+  if (propertyName == QStringLiteral("pathTracerDirectLightSamples"))
+    return QStringLiteral("Direct Light Samples");
   if (propertyName == QStringLiteral("raytracerViewPlane"))
     return QStringLiteral("View Plane");
   if (propertyName == QStringLiteral("raytracerThreads"))
@@ -213,6 +215,10 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
       "the remaining configured samples.");
   if (propertyName == QStringLiteral("pathTracerRussianRouletteDepth"))
     return QStringLiteral("Bounce depth where path tracing starts Russian-roulette termination.");
+  if (propertyName == QStringLiteral("pathTracerDirectLightSamples"))
+    return QStringLiteral(
+      "Next-event-estimation light samples per surface hit. Higher values reduce direct-light "
+      "variance at proportional render cost.");
   if (propertyName == QStringLiteral("wavefrontDenoiser"))
     return QStringLiteral(
       "Optional HDR denoising pass for low-sample wavefront renders. Bilateral is a "
@@ -309,7 +315,8 @@ std::optional<QPair<int, int>>
 RenderIntentElement::propertyIntRange(const QString& propertyName) const {
   if (propertyName == QStringLiteral("raytracerSamplesPerPixel") ||
       propertyName == QStringLiteral("raytracerMaxRecursionDepth") ||
-      propertyName == QStringLiteral("pathTracerRussianRouletteDepth"))
+      propertyName == QStringLiteral("pathTracerRussianRouletteDepth") ||
+      propertyName == QStringLiteral("pathTracerDirectLightSamples"))
     return QPair<int, int>(1, 1024);
   if (propertyName == QStringLiteral("raytracerThreads"))
     return QPair<int, int>(1, 1024);
@@ -624,6 +631,16 @@ int RenderIntentElement::pathTracerRussianRouletteDepth() const {
 void RenderIntentElement::setPathTracerRussianRouletteDepth(int depth) {
   auto value = intent();
   value.engineOptions.raytracer().setRussianRouletteDepth(depth);
+  setIntent(value);
+}
+
+int RenderIntentElement::pathTracerDirectLightSamples() const {
+  return intent().engineOptions.raytracer().directLightSamples().value_or(1);
+}
+
+void RenderIntentElement::setPathTracerDirectLightSamples(int samples) {
+  auto value = intent();
+  value.engineOptions.raytracer().setDirectLightSamples(samples);
   setIntent(value);
 }
 

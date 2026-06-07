@@ -608,8 +608,8 @@ When the selected beauty executor is the raytracer or wavefront executor, typed
 ray-family options on the effective intent become `RaytracerBeautyPassState` on
 the beauty pass. That state can configure the integrator, sampler, samples per
 pixel, deterministic sampling seed, view-plane type, recursion depth, path
-tracer Russian-roulette start depth, worker thread count, and queue size before
-the payload renders. Wavefront convergence
+tracer Russian-roulette start depth, path-tracer direct-light sample count,
+worker thread count, and queue size before the payload renders. Wavefront convergence
 controls also flow through that state, so the compiled plan can report the
 active-sample fraction and RMS radiance-delta thresholds used by wavefront
 convergence termination. Wavefront adaptive sampling controls use the same
@@ -728,6 +728,11 @@ Modeler final renders can also apply a one-off Path Tracer/Wavefront denoiser
 override after the dialog has been initialized from the scene's saved render
 intent; choosing "Scene settings" again preserves whatever denoise state the
 scene intent already compiled.
+Path Tracer final renders can also override the number of direct-light samples
+drawn at each non-delta hit. The compiler stores that as
+`execution.directLightSamples` on the path-traced beauty pass, so replayed graph
+JSON and the graph inspector expose the same next-event-estimation quality knob
+as rendercli and Modeler.
 Denoisers publish their own diagnostics, so future filters can add trace
 metadata without a wavefront-engine type switch. Wavefront denoise metadata
 also reports which albedo/normal/depth feature buffers were supplied to the

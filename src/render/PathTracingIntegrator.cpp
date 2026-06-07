@@ -156,6 +156,7 @@ namespace render {
     auto result = std::make_unique<PathTracingIntegrator>();
     result->setMaximumRecursionDepth(m_maximumRecursionDepth);
     result->setRussianRouletteDepth(m_russianRouletteDepth);
+    result->setDirectLightSamples(m_directLightSamples);
     result->setCancellationCallback(m_cancellationCallback);
     return result;
   }
@@ -202,17 +203,21 @@ namespace render {
     return backgroundVisible ? scene.background() : scene.environmentRadiance();
   }
 
-  double PathTracingIntegrator::lightSelectionSample(State& state, int bounce) const {
-    return state.sampleStream->sample1D(SampleDimension::LightSelection,
-                                        static_cast<std::uint64_t>(bounce));
+  double PathTracingIntegrator::lightSelectionSample(State& state, int bounce,
+                                                     int directSampleIndex) const {
+    return state.sampleStream->sample1D(
+      SampleDimension::LightSelection,
+      SampleStream::lightSelectionSampleIndex(static_cast<std::uint64_t>(bounce),
+                                              static_cast<std::uint64_t>(directSampleIndex)));
   }
 
-  Vector2d PathTracingIntegrator::lightSample(State& state, int bounce,
-                                              std::size_t lightIndex) const {
+  Vector2d PathTracingIntegrator::lightSample(State& state, int bounce, std::size_t lightIndex,
+                                              int directSampleIndex) const {
     return state.sampleStream->sample2D(
       SampleDimension::Light,
       SampleStream::lightSampleIndex(static_cast<std::uint64_t>(bounce),
-                                     static_cast<std::uint64_t>(lightIndex)));
+                                     static_cast<std::uint64_t>(lightIndex),
+                                     static_cast<std::uint64_t>(directSampleIndex)));
   }
 
   Colord PathTracingIntegrator::sampleDirectLighting(const Scene& scene,
@@ -221,19 +226,23 @@ namespace render {
                                                      const Material& material, const Vector3d& wi,
                                                      State& state, int bounce,
                                                      IntegratorBatchMetrics* metrics) const {
-    const LightSampler::Selection selection =
-      lightSampler.select(lightSelectionSample(state, bounce));
-    if (!selection) {
-      return Colord::black();
-    }
+    Colord contribution = Colord::black();
+    for (int sampleIndex = 0; sampleIndex != m_directLightSamples; ++sampleIndex) {
+      const LightSampler::Selection selection =
+        lightSampler.select(lightSelectionSample(state, bounce, sampleIndex));
+      if (!selection) {
+        continue;
+      }
 
-    const DirectLightingSample sample =
-      directLighting(scene, *selection.light, hitPoint, material, wi,
-                     lightSample(state, bounce, selection.lightIndex), state);
-    if (metrics) {
-      metrics->recordDirectLightSample(sample.occluded, sample.contributing());
+      const DirectLightingSample sample =
+        directLighting(scene, *selection.light, hitPoint, material, wi,
+                       lightSample(state, bounce, selection.lightIndex, sampleIndex), state);
+      if (metrics) {
+        metrics->recordDirectLightSample(sample.occluded, sample.contributing());
+      }
+      contribution += sample.contribution / selection.pdf;
     }
-    return sample.contribution / selection.pdf;
+    return contribution / static_cast<double>(m_directLightSamples);
   }
 
   bool PathTracingIntegrator::canContinueWithSample(const MaterialBsdfSample& sample,

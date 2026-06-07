@@ -22,6 +22,7 @@ public:
   QString engine() const;
   int samplesPerPixel() const;
   int maxRecursionDepth() const;
+  int directLightSamples() const;
   bool denoiserOverrideEnabled() const;
   QString denoiser() const;
   int denoiseRadius() const;

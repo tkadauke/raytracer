@@ -164,6 +164,7 @@ namespace RenderGraphTypesTest {
     intent.setMaxRenderToTextureRecursionDepth(3);
     intent.engineOptions.raytracer().setIntegrator("pathtracer");
     intent.engineOptions.raytracer().setRussianRouletteDepth(4);
+    intent.engineOptions.raytracer().setDirectLightSamples(6);
     intent.engineOptions.raytracer().setSampler("Jittered");
     intent.engineOptions.raytracer().setSamplesPerPixel(8);
     intent.engineOptions.raytracer().setSamplingSeed(12345);
@@ -206,6 +207,9 @@ namespace RenderGraphTypesTest {
                    .toObject()["execution"]
                    .toObject()["russianRouletteDepth"]
                    .toInt());
+    EXPECT_EQ(
+      6,
+      engineOptions["raytracer"].toObject()["execution"].toObject()["directLightSamples"].toInt());
     EXPECT_EQ("Jittered", engineOptions["raytracer"]
                             .toObject()["sampling"]
                             .toObject()["sampler"]
@@ -274,6 +278,7 @@ namespace RenderGraphTypesTest {
     QJsonObject raytracerExecution;
     raytracerExecution["integrator"] = "pt";
     raytracerExecution["russianRouletteDepth"] = 5;
+    raytracerExecution["directLightSamples"] = 7;
     QJsonObject raytracerSampling;
     raytracerSampling["samplesPerPixel"] = 12;
     raytracerSampling["seed"] = 67890;
@@ -328,6 +333,8 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("pathtracer", *intent.engineOptions.raytracer().integrator());
     ASSERT_TRUE(intent.engineOptions.raytracer().russianRouletteDepth().has_value());
     EXPECT_EQ(5, *intent.engineOptions.raytracer().russianRouletteDepth());
+    ASSERT_TRUE(intent.engineOptions.raytracer().directLightSamples().has_value());
+    EXPECT_EQ(7, *intent.engineOptions.raytracer().directLightSamples());
     ASSERT_TRUE(intent.engineOptions.raytracer().samplesPerPixel().has_value());
     EXPECT_EQ(12, *intent.engineOptions.raytracer().samplesPerPixel());
     ASSERT_TRUE(intent.engineOptions.raytracer().samplingSeed().has_value());
@@ -524,6 +531,7 @@ namespace RenderGraphTypesTest {
     RenderEngineOptions global;
     global.raytracer().setSamplesPerPixel(8);
     global.raytracer().setSamplingSeed(24680);
+    global.raytracer().setDirectLightSamples(5);
     global.raytracer().setDenoiser("bilateral");
     global.raytracer().setDenoiseRadius(3);
     global.raytracer().setDenoiseColorSigma(0.25);
@@ -538,12 +546,14 @@ namespace RenderGraphTypesTest {
     const RenderEngineOptions inheritedOptions = inherited.resolvedEngineOptions(global);
     ASSERT_TRUE(inheritedOptions.raytracer().samplesPerPixel().has_value());
     ASSERT_TRUE(inheritedOptions.raytracer().samplingSeed().has_value());
+    ASSERT_TRUE(inheritedOptions.raytracer().directLightSamples().has_value());
     ASSERT_TRUE(inheritedOptions.raytracer().denoiser().has_value());
     ASSERT_TRUE(inheritedOptions.raytracer().denoiseRadius().has_value());
     ASSERT_TRUE(inheritedOptions.raytracer().denoiseColorSigma().has_value());
     ASSERT_TRUE(inheritedOptions.rasterizer().msaaSamples().has_value());
     EXPECT_EQ(8, *inheritedOptions.raytracer().samplesPerPixel());
     EXPECT_EQ(24680u, *inheritedOptions.raytracer().samplingSeed());
+    EXPECT_EQ(5, *inheritedOptions.raytracer().directLightSamples());
     EXPECT_EQ("bilateral", *inheritedOptions.raytracer().denoiser());
     EXPECT_EQ(1, *inheritedOptions.raytracer().denoiseRadius());
     EXPECT_DOUBLE_EQ(0.1, *inheritedOptions.raytracer().denoiseColorSigma());
@@ -555,6 +565,7 @@ namespace RenderGraphTypesTest {
     const RenderEngineOptions independentOptions = independent.resolvedEngineOptions(global);
     EXPECT_FALSE(independentOptions.raytracer().samplesPerPixel().has_value());
     EXPECT_FALSE(independentOptions.raytracer().samplingSeed().has_value());
+    EXPECT_FALSE(independentOptions.raytracer().directLightSamples().has_value());
     EXPECT_FALSE(independentOptions.raytracer().denoiser().has_value());
     ASSERT_TRUE(independentOptions.raytracer().denoiseRadius().has_value());
     EXPECT_EQ(1, *independentOptions.raytracer().denoiseRadius());

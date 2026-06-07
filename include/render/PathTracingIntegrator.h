@@ -2,6 +2,7 @@
 
 #include "render/Integrator.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <functional>
 
@@ -40,9 +41,10 @@ namespace render {
     *  3. Material doesn't support BSDF sampling → fall back to
     *     `Material::shade(...)` (Whitted compatibility), terminate.
     *  4. Add the material's compatibility ambient radiance.
-    *  5. Direct lighting (next-event estimation): select one light from
-    *     `LightSampler`, draw a `LightSample` from that light's
-    *     `SampleDimension::Light` slot, shadow-test, accumulate
+    *  5. Direct lighting (next-event estimation): select
+    *     `directLightSamples()` lights from `LightSampler`, draw one
+    *     `LightSample` from each light's `SampleDimension::Light` slot,
+    *     shadow-test, and average
     *     `throughput · BSDF.eval(wi, wo_light) · L_i / (pdf_light · pdf_select)`.
     *  6. Indirect: if the material publishes enumerable delta branches
     *     (`Material::deltaBsdfSamples(...)`), split them exactly; otherwise
@@ -99,7 +101,18 @@ namespace render {
       return m_russianRouletteDepth;
     }
     void setRussianRouletteDepth(int depth) {
-      m_russianRouletteDepth = depth;
+      m_russianRouletteDepth = std::max(1, depth);
+    }
+
+    /// Number of next-event-estimation light samples drawn at each
+    /// non-delta hit. The samples are averaged, so increasing this
+    /// reduces direct-light variance without changing the estimator's
+    /// expected value. Default 1.
+    int directLightSamples() const {
+      return m_directLightSamples;
+    }
+    void setDirectLightSamples(int samples) {
+      m_directLightSamples = std::max(1, samples);
     }
 
   private:
@@ -112,8 +125,9 @@ namespace render {
     bool isCancelled() const;
     State clonePathState(const State& state) const;
     Colord missRadiance(const Scene& scene, bool backgroundVisible) const;
-    double lightSelectionSample(State& state, int bounce) const;
-    Vector2d lightSample(State& state, int bounce, std::size_t lightIndex) const;
+    double lightSelectionSample(State& state, int bounce, int directSampleIndex) const;
+    Vector2d lightSample(State& state, int bounce, std::size_t lightIndex,
+                         int directSampleIndex) const;
     Colord sampleDirectLighting(const Scene& scene, const LightSampler& lightSampler,
                                 const HitPoint& hitPoint, const Material& material,
                                 const Vector3d& wi, State& state, int bounce,
@@ -160,6 +174,7 @@ namespace render {
 
     int m_maximumRecursionDepth{8};
     int m_russianRouletteDepth{3};
+    int m_directLightSamples{1};
     CancellationCallback m_cancellationCallback;
   };
 }

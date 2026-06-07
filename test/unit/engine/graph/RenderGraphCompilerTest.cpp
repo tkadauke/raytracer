@@ -913,6 +913,7 @@ namespace RenderGraphCompilerTest {
     intent.engineOptions.raytracer().setViewPlane("TiledViewPlane");
     intent.engineOptions.raytracer().setMaximumRecursionDepth(6);
     intent.engineOptions.raytracer().setRussianRouletteDepth(4);
+    intent.engineOptions.raytracer().setDirectLightSamples(7);
 
     const RenderPlan plan = compiler.compile({64, 64, intent.targetSampleCountHint()}, intent);
 
@@ -927,6 +928,7 @@ namespace RenderGraphCompilerTest {
     ASSERT_TRUE(state->viewPlane().has_value());
     ASSERT_TRUE(state->maximumRecursionDepth().has_value());
     ASSERT_TRUE(state->russianRouletteDepth().has_value());
+    ASSERT_TRUE(state->directLightSamples().has_value());
     EXPECT_EQ("pathtracer", *state->integrator());
     EXPECT_EQ("Jittered", *state->sampler());
     EXPECT_EQ(9, *state->samplesPerPixel());
@@ -934,6 +936,7 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ("TiledViewPlane", *state->viewPlane());
     EXPECT_EQ(6, *state->maximumRecursionDepth());
     EXPECT_EQ(4, *state->russianRouletteDepth());
+    EXPECT_EQ(7, *state->directLightSamples());
     EXPECT_EQ(9, plan.findResource("beauty_color")->sampleCount);
   }
 

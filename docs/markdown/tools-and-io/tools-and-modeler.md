@@ -101,9 +101,11 @@ plane or queue size, rendercli also writes `TiledViewPlane` and its automatic
 ray-family queue size into compiled raytracer or wavefront pass state so
 graph-backed final renders use the same tiled pixel walk as the direct
 command-line path; scene-authored view-plane and queue intent are left
-unchanged. `--pathtracer_russian_roulette_depth N` becomes graph-visible
-path-tracer execution state, so exported plans preserve where
-Russian-roulette termination begins. Wavefront controls such as
+unchanged. `--pathtracer_russian_roulette_depth N` and
+`--pathtracer_direct_light_samples N` become graph-visible path-tracer
+execution state, so exported plans preserve both where Russian-roulette
+termination begins and how many next-event-estimation light samples are averaged
+at each non-delta hit. Wavefront controls such as
 `--wavefront_convergence`, `--wavefront_no_convergence`,
 `--wavefront_convergence_active_fraction`, and
 `--wavefront_convergence_rms_delta` become graph-visible convergence state for
@@ -314,6 +316,8 @@ radiance standard deviation remains above the configured threshold; use
 `--wavefront_adaptive_stddev_threshold T` to tune that policy.
 `--pathtracer_russian_roulette_depth N` controls the bounce depth where
 Russian-roulette termination begins for path-traced renders.
+`--pathtracer_direct_light_samples N` controls how many direct-light samples are
+drawn and averaged at each non-delta path-tracing hit.
 `--wavefront_denoiser box|bilateral` requests an opt-in wavefront denoiser.
 Box is a small HDR blur intended as the first graph-visible hook. Bilateral is
 a color-edge-preserving filter controlled by `--wavefront_denoise_radius N` and
@@ -398,7 +402,8 @@ graph-backed Wavefront pass is still running. The same wavefront section can
 enable adaptive sampling, choose its initial sample count and standard-deviation
 threshold, request the box or bilateral denoiser, choose its pixel radius, and
 set the bilateral color sigma. Path Tracer settings include the
-Russian-roulette start depth. The final render dialog starts from the scene's
+Russian-roulette start depth and direct-light sample count. The final render
+dialog starts from the scene's
 saved Render Settings, then acts as a one-off override surface for that render.
 When the scene omits sampler or sample-count intent, it keeps Regular as the
 Raytracer default and switches default-managed Path Tracer renders to Halton

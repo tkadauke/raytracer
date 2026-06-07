@@ -121,9 +121,9 @@ namespace engine::graph {
 
     RaytracerBeautyPassState state;
     const QJsonObject execution = objectField(object, "execution", path);
-    rejectUnknownFields(
-      execution, path + ".execution",
-      {"maxRecursionDepth", "threads", "queueSize", "integrator", "russianRouletteDepth"});
+    rejectUnknownFields(execution, path + ".execution",
+                        {"maxRecursionDepth", "threads", "queueSize", "integrator",
+                         "russianRouletteDepth", "directLightSamples"});
     if (hasField(execution, "maxRecursionDepth"))
       state.setMaximumRecursionDepth(intField(execution, "maxRecursionDepth", path + ".execution"));
     if (hasField(execution, "threads"))
@@ -135,6 +135,9 @@ namespace engine::graph {
     if (hasField(execution, "russianRouletteDepth")) {
       state.setRussianRouletteDepth(
         intField(execution, "russianRouletteDepth", path + ".execution"));
+    }
+    if (hasField(execution, "directLightSamples")) {
+      state.setDirectLightSamples(intField(execution, "directLightSamples", path + ".execution"));
     }
 
     const QJsonObject sampling = objectField(object, "sampling", path);
@@ -221,6 +224,8 @@ namespace engine::graph {
       execution["integrator"] = qstr(*m_integrator);
     if (m_russianRouletteDepth)
       execution["russianRouletteDepth"] = *m_russianRouletteDepth;
+    if (m_directLightSamples)
+      execution["directLightSamples"] = *m_directLightSamples;
     if (!execution.isEmpty())
       object["execution"] = execution;
 
@@ -374,6 +379,10 @@ namespace engine::graph {
     m_russianRouletteDepth = std::max(1, depth);
   }
 
+  void RaytracerBeautyPassState::setDirectLightSamples(int samples) {
+    m_directLightSamples = std::max(1, samples);
+  }
+
   void RaytracerBeautyPassState::setSampler(std::string sampler) {
     m_sampler = std::move(sampler);
   }
@@ -447,6 +456,10 @@ namespace engine::graph {
 
   std::optional<int> RaytracerBeautyPassState::russianRouletteDepth() const {
     return m_russianRouletteDepth;
+  }
+
+  std::optional<int> RaytracerBeautyPassState::directLightSamples() const {
+    return m_directLightSamples;
   }
 
   std::optional<std::string> RaytracerBeautyPassState::sampler() const {
@@ -536,6 +549,8 @@ namespace engine::graph {
         integrator->setMaximumRecursionDepth(*m_maximumRecursionDepth);
       if (m_russianRouletteDepth)
         integrator->setRussianRouletteDepth(*m_russianRouletteDepth);
+      if (m_directLightSamples)
+        integrator->setDirectLightSamples(*m_directLightSamples);
       return integrator;
     }
     return std::make_unique<render::WhittedIntegrator>();

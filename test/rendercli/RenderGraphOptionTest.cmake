@@ -2276,6 +2276,7 @@ rendercli_run(
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format json
     --engine wavefront --integrator pathtracer --pathtracer_russian_roulette_depth 4
+    --pathtracer_direct_light_samples 3
     --width 32 --height 16
     "${static_scene}" "${wavefront_pathtracer_plan}"
 )
@@ -2293,6 +2294,10 @@ endif()
 if(NOT wavefront_pathtracer_graph MATCHES "\"russianRouletteDepth\"[ \r\n]*:[ \r\n]*4")
   message(FATAL_ERROR
           "wavefront pathtracer graph did not contain Russian roulette depth: ${wavefront_pathtracer_graph}")
+endif()
+if(NOT wavefront_pathtracer_graph MATCHES "\"directLightSamples\"[ \r\n]*:[ \r\n]*3")
+  message(FATAL_ERROR
+          "wavefront pathtracer graph did not contain direct-light samples: ${wavefront_pathtracer_graph}")
 endif()
 
 rendercli_run(
@@ -2625,6 +2630,14 @@ rendercli_expect_failure(
   STDERR_MATCHES "Path tracer Russian roulette depth must be"
   COMMAND
     "${RENDERCLI}" --engine pathtracer --pathtracer_russian_roulette_depth 0
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid pathtracer direct light samples"
+  STDERR_MATCHES "Path tracer direct light samples must be"
+  COMMAND
+    "${RENDERCLI}" --engine pathtracer --pathtracer_direct_light_samples 0
     "${static_scene}" "${invalid_plan}"
 )
 

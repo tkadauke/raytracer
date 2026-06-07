@@ -97,9 +97,19 @@ namespace render {
       * every `(bounce, lightIndex)` pair owns a distinct light-sampling
       * dimension without colliding with BSDF or continuation dimensions.
       */
-    static constexpr std::uint64_t lightSampleIndex(std::uint64_t bounce,
-                                                    std::uint64_t lightIndex) {
-      const std::uint64_t sum = bounce + lightIndex;
+    static constexpr std::uint64_t directLightSampleIndexStride() {
+      return 1048576ull;
+    }
+
+    static constexpr std::uint64_t lightSelectionSampleIndex(std::uint64_t bounce,
+                                                             std::uint64_t directSampleIndex = 0) {
+      return bounce + directSampleIndex * directLightSampleIndexStride();
+    }
+
+    static constexpr std::uint64_t lightSampleIndex(std::uint64_t bounce, std::uint64_t lightIndex,
+                                                    std::uint64_t directSampleIndex = 0) {
+      const std::uint64_t effectiveBounce = lightSelectionSampleIndex(bounce, directSampleIndex);
+      const std::uint64_t sum = effectiveBounce + lightIndex;
       return sum * (sum + 1u) / 2u + lightIndex;
     }
 

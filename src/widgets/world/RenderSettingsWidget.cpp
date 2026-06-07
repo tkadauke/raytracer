@@ -117,6 +117,7 @@ struct RenderSettingsWidget::Private {
     if (options.maximumRecursionDepth()) {
       setSpinBoxValue(ui.maxRecursionDepth, *options.maximumRecursionDepth());
     }
+    setSpinBoxValue(ui.pathTracerDirectLightSamples, options.directLightSamples().value_or(1));
     if (options.maximumThreads()) {
       setSpinBoxValue(ui.renderThreads, *options.maximumThreads());
     }
@@ -348,6 +349,10 @@ int RenderSettingsWidget::maxRecursionDepth() const {
   return p->ui.maxRecursionDepth->value();
 }
 
+int RenderSettingsWidget::directLightSamples() const {
+  return p->ui.pathTracerDirectLightSamples->value();
+}
+
 bool RenderSettingsWidget::denoiserOverrideEnabled() const {
   return p->ui.rayDenoiser->currentText() != QStringLiteral("Scene settings");
 }
@@ -457,6 +462,7 @@ void RenderSettingsWidget::updateEngineControls() {
   // Rasterizer shares Wireframe's LOD knob, and adds raster-only quality controls.
   const QString eng = engine();
   const bool isRayFamily = (eng == "Raytracer" || eng == "Path Tracer" || eng == "Wavefront");
+  const bool supportsDirectLightSamples = (eng == "Path Tracer");
   const bool supportsRayDenoiser = (eng == "Path Tracer" || eng == "Wavefront");
   const bool denoiserIsBox = p->ui.rayDenoiser->currentText() == QStringLiteral("Box");
   const bool denoiserIsBilateral = p->ui.rayDenoiser->currentText() == QStringLiteral("Bilateral");
@@ -465,6 +471,8 @@ void RenderSettingsWidget::updateEngineControls() {
   const bool isRasterizer = (eng == "Rasterizer");
   const bool showShadowDetails = isRasterizer && shadowMapsEnabled();
   p->ui.raytracerFrame->setVisible(isRayFamily);
+  p->ui.label_pathTracerDirectLightSamples->setVisible(supportsDirectLightSamples);
+  p->ui.pathTracerDirectLightSamples->setVisible(supportsDirectLightSamples);
   p->ui.label_rayDenoiser->setVisible(supportsRayDenoiser);
   p->ui.rayDenoiser->setVisible(supportsRayDenoiser);
   p->ui.label_rayDenoiseRadius->setVisible(showRayDenoiseRadius);
@@ -522,6 +530,7 @@ void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.engineType->setEnabled(!busy);
   p->ui.samplesPerPixel->setEnabled(!busy);
   p->ui.maxRecursionDepth->setEnabled(!busy);
+  p->ui.pathTracerDirectLightSamples->setEnabled(!busy);
   p->ui.rayDenoiser->setEnabled(!busy);
   p->ui.rayDenoiseRadius->setEnabled(!busy);
   p->ui.rayDenoiseColorSigma->setEnabled(!busy);

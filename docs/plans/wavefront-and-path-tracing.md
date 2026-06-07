@@ -428,6 +428,10 @@ This was not in the original plan, but it landed before the wavefront engine:
 Render intent, graph JSON, rendercli, and Modeler Render Settings now expose
 the Russian-roulette start depth as typed path-tracer execution state, so the
 canonical termination policy can be tuned without bypassing the graph.
+They also expose the direct-light sample count as typed path-tracer execution
+state. Increasing it draws and averages more next-event-estimation samples per
+non-delta hit, reducing direct-light variance without changing the canonical
+estimator.
 
 This does **not** replace wavefront. It narrows the future wavefront task: reuse
 these sampling/material semantics and replace the scalar megakernel loop with a
@@ -1357,7 +1361,9 @@ than prerequisites for the engine surface.
    samples-per-pixel already exists in rendercli and render intent.
    Wavefront consumes the same setting. Per-pixel adaptive sampling now has
    engine-core, graph/intent, rendercli, and Modeler exposure; trace metadata
-   and sample-count/mask diagnostics remain follow-up work.
+   and sample-count/mask diagnostics remain follow-up work. Path-tracer
+   direct-light sample count is also exposed through engine-core, graph/intent,
+   rendercli, and Modeler Render Settings as an advanced quality control.
 6. ~~**CLI / UI surface.**~~ **Resolved for v1**: render intent /
    render graph are the primary surface; direct `--engine wavefront`
    remains useful as a debug bypass. rendercli, Modeler preview overrides,

@@ -1202,6 +1202,8 @@ private:
   bool m_maximumRecursionDepthSet;
   int m_pathTracerRussianRouletteDepth;
   bool m_pathTracerRussianRouletteDepthSet;
+  int m_pathTracerDirectLightSamples;
+  bool m_pathTracerDirectLightSamplesSet;
   int m_width;
   int m_height;
   bool m_widthSet;
@@ -1387,6 +1389,8 @@ Renderer::Renderer()
       m_maximumRecursionDepthSet(false),
       m_pathTracerRussianRouletteDepth(3),
       m_pathTracerRussianRouletteDepthSet(false),
+      m_pathTracerDirectLightSamples(1),
+      m_pathTracerDirectLightSamplesSet(false),
       m_width(640),
       m_height(480),
       m_widthSet(false),
@@ -1631,6 +1635,8 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.raytracer().setMaximumRecursionDepth(m_maximumRecursionDepth);
   if (m_pathTracerRussianRouletteDepthSet)
     options.raytracer().setRussianRouletteDepth(m_pathTracerRussianRouletteDepth);
+  if (m_pathTracerDirectLightSamplesSet)
+    options.raytracer().setDirectLightSamples(m_pathTracerDirectLightSamples);
   if (engineExecutorPreference() == engine::graph::RenderExecutorPreference::PathTracer) {
     options.raytracer().setIntegrator("pathtracer");
   } else if (m_integratorSet) {
@@ -2274,6 +2280,8 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
       pt->setMaximumRecursionDepth(m_maximumRecursionDepth);
       if (m_pathTracerRussianRouletteDepthSet)
         pt->setRussianRouletteDepth(m_pathTracerRussianRouletteDepth);
+      if (m_pathTracerDirectLightSamplesSet)
+        pt->setDirectLightSamples(m_pathTracerDirectLightSamples);
       wavefront->setIntegrator(std::move(pt));
     }
     if (rtCamera) {
@@ -2333,6 +2341,8 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
       pt->setMaximumRecursionDepth(m_maximumRecursionDepth);
       if (m_pathTracerRussianRouletteDepthSet)
         pt->setRussianRouletteDepth(m_pathTracerRussianRouletteDepth);
+      if (m_pathTracerDirectLightSamplesSet)
+        pt->setDirectLightSamples(m_pathTracerDirectLightSamples);
       rt->setIntegrator(std::move(pt));
     }
     if (rtCamera) {
@@ -2813,6 +2823,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"sampling_seed", "Deterministic render sampling seed for ray-family engines", "seed"},
      {"pathtracer_russian_roulette_depth",
       "Path-tracer bounce depth where Russian-roulette termination starts", "depth"},
+     {"pathtracer_direct_light_samples", "Path-tracer direct-light samples per surface hit",
+      "samples"},
      {{"j", "threads"}, "Number of threads", "threads"},
      {"queue_size", "Explicit queue size for thread pool; raster defaults to automatic",
       "queue_size"},
@@ -3115,6 +3127,16 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_pathTracerRussianRouletteDepthSet = true;
+  }
+
+  if (parser.isSet("pathtracer_direct_light_samples")) {
+    const QString samplesValue = parser.value("pathtracer_direct_light_samples");
+    m_pathTracerDirectLightSamples = samplesValue.toInt();
+    if (m_pathTracerDirectLightSamples <= 0) {
+      *errorMessage = "Path tracer direct light samples must be > 0";
+      return CommandLineError;
+    }
+    m_pathTracerDirectLightSamplesSet = true;
   }
 
   if (parser.isSet("threads")) {
