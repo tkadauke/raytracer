@@ -2197,6 +2197,38 @@ namespace GraphRenderEngineTest {
     EXPECT_LT(*secondTrace->startedAt(), *firstTrace->finishedAt());
   }
 
+  TEST(GraphRenderEngine, ImportedParallelResourceHazardFailsClearly) {
+    RenderPlan unsafe;
+    unsafe.addResource(colorResource("display_color", RenderResourceLifetime::Exported, 1, 1));
+
+    RenderPassNode first;
+    first.id = "beauty_a";
+    first.kind = RenderPassKind::Beauty;
+    first.executor = RenderExecutorKind::Raytracer;
+    first.writes.push_back({"display_color"});
+    first.concurrency = RenderConcurrencyLimit::parallel();
+    unsafe.addPass(first);
+
+    RenderPassNode second = first;
+    second.id = "beauty_b";
+    unsafe.addPass(second);
+
+    const RenderPlan imported = RenderPlan::fromJson(unsafe.toJson());
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setPlan(imported);
+
+    Buffer<Colord> buffer(1, 1);
+    try {
+      engine.render(buffer);
+      FAIL() << "expected imported unsafe graph to fail before execution";
+    } catch (const std::runtime_error& error) {
+      const std::string message = error.what();
+      EXPECT_NE(std::string::npos, message.find("parallel_resource_hazard"));
+      EXPECT_NE(std::string::npos, message.find("write-after-write"));
+      EXPECT_NE(std::string::npos, message.find("display_color"));
+    }
+  }
+
   TEST(GraphRenderEngine, SerialExecutorLimitPreservesPassOrder) {
     auto material = std::make_shared<BlockingMaterial>();
     auto scene = std::make_shared<render::Scene>();

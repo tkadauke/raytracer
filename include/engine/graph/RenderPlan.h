@@ -31,6 +31,7 @@ namespace engine::graph {
       InvalidResourceShape,
       ResourceDomainMismatch,
       InvalidConcurrencyLimit,
+      ParallelResourceHazard,
       Cycle
     };
 
@@ -154,6 +155,7 @@ namespace engine::graph {
                              std::shared_ptr<const RenderPassState> state);
 
     RenderPlanValidation validate() const;
+    RenderPlanValidation validateParallelExecutionHazards() const;
     std::string toText() const;
     std::string toDot() const;
     QJsonObject toJson() const;

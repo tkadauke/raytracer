@@ -33,6 +33,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   per-pass start, finish, and failure offsets, live observers publish the
   active pass set, and the Modeler can highlight multiple active graph nodes at
   once. — GPT-5
+- **Parallel graph resource hazard validation.** Graph execution now rejects
+  dependency-independent passes that can race on shared read/write resources,
+  including imported plans replayed through the parallel scheduler. — GPT-5
 - **Render graph concurrency metadata.** Render graph passes and executor
   families now declare serial, limited, or parallel-safe scheduling limits,
   export them through text/DOT/JSON graph inspection, and mark OpenGL raster
