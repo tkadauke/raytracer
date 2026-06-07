@@ -365,6 +365,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   camera dimensions regular while scrambling BSDF/light/continuation dimensions
   per pixel, preventing low-sample path-traced glass from choosing the same
   recursive branch across the whole image. — GPT-5
+- **Jittered sampler path-tracing dimensions.** `JitteredSampler` now keeps
+  pixel/time/lens samples on the normal jittered grid while scrambling
+  BSDF/light/continuation dimensions, reducing high-sample path-tracing color
+  bias from correlated grid strata. — GPT-5
 - **Path tracing environment radiance.** Path tracing now treats scene background
   as visible miss color for camera/specular paths only; diffuse and glossy
   indirect bounces gather explicit scene environment radiance, which defaults to

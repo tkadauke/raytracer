@@ -238,12 +238,16 @@ a pair of area lights might sample matching corners of their emitter
 surfaces and create structured multi-light noise. A lens sample might
 also line up with a pixel-offset sample and draw a structured blur
 pattern. The default `Sampler::stream(sampleIndex,
-pixelHash)` implementation avoids that by looking up dimension `d`
-in pre-baked set `(pixelHash + d) mod numSets` at the same
-`sampleIndex`. For jittered sampling, that means every named
-dimension still receives a stratified point, but it receives it from
-a different set. The `pixelHash` term shifts those set choices per
-pixel so the whole image does not share one visible set pattern.
+pixelHash)` implementation starts by looking up dimension `d` in
+pre-baked set `(pixelHash + d) mod numSets` at the same `sampleIndex`.
+For pixel, time, and lens dimensions, that preserves the camera-facing
+stratification exactly. For path-tracing dimensions, grid samplers need
+one more step: `RegularSampler` and `JitteredSampler` scramble BSDF,
+light, light-selection, and continuation samples per pixel/dimension
+so those estimators do not stay locked to matching grid cells as the
+sample count rises. The `pixelHash` term shifts those set choices and
+scrambles per pixel so the whole image does not share one visible set
+pattern.
 Batch renderers that need streams to outlive primary-ray generation
 can call `Sampler::appendStream(storage, sampleIndex, pixelHash)`.
 Built-in samplers append `SamplerSampleStream` objects to caller-owned

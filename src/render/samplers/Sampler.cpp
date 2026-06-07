@@ -1,5 +1,8 @@
 #include "render/samplers/Sampler.h"
 
+#include "render/SamplingSeed.h"
+
+#include <cmath>
 #include <utility>
 
 namespace render {
@@ -133,5 +136,36 @@ namespace render {
   SampleStream* Sampler::appendSamplerBackedStream(SampleStreamStorage& storage, int sampleIndex,
                                                    std::uint64_t pixelHash) const {
     return storage.appendSamplerBacked(*this, sampleIndex, pixelHash);
+  }
+
+  bool Sampler::isPathTracingDimension(std::uint64_t dimension) const {
+    return dimension >= sampleDimensionIndex(SampleDimension::BSDF);
+  }
+
+  Vector2d Sampler::offsetScrambledPathDimensionSample(int sampleIndex, std::uint64_t pixelHash,
+                                                       std::uint64_t dimension) const {
+    const Vector2d base = Sampler::sampleForDimension(sampleIndex, pixelHash, dimension);
+    return Vector2d(wrapUnitInterval(base.x() + scrambledOffset(sampleIndex, pixelHash, dimension,
+                                                                /*axis=*/0)),
+                    wrapUnitInterval(base.y() + scrambledOffset(sampleIndex, pixelHash, dimension,
+                                                                /*axis=*/1)));
+  }
+
+  double Sampler::scrambledOffset(int sampleIndex, std::uint64_t pixelHash, std::uint64_t dimension,
+                                  std::uint64_t axis) const {
+    std::uint64_t bits = SamplingSeed::mix(pixelHash);
+    bits = SamplingSeed::mix(bits ^ SamplingSeed::mix(static_cast<std::uint64_t>(sampleIndex)));
+    bits = SamplingSeed::mix(bits ^ SamplingSeed::mix(dimension));
+    bits = SamplingSeed::mix(bits ^ SamplingSeed::mix(axis));
+    constexpr double denominator = static_cast<double>(1ull << 53u);
+    return static_cast<double>(bits >> 11u) / denominator;
+  }
+
+  double Sampler::wrapUnitInterval(double value) const {
+    value -= std::floor(value);
+    if (value >= 1.0) {
+      return std::nextafter(1.0, 0.0);
+    }
+    return value;
   }
 }

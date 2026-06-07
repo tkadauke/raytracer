@@ -20,6 +20,8 @@ namespace render {
     */
   class JitteredSampler : public Sampler {
   public:
+    Vector2d sampleForDimension(int sampleIndex, uint64_t pixelHash,
+                                uint64_t dimension) const override;
     std::shared_ptr<SampleStream> sharedStream(int sampleIndex, uint64_t pixelHash) const override;
     SampleStream* appendStream(SampleStreamStorage& storage, int sampleIndex,
                                uint64_t pixelHash) const override;

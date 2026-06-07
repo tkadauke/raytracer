@@ -59,4 +59,63 @@ namespace JitteredSamplerTest {
     EXPECT_NE(sampler.setAt(0), sampler.setAt(1))
       << "sets must differ — jitter must vary across sets";
   }
+
+  TEST(JitteredSampler, CameraDimensionsUseUnscrambledJitteredSets) {
+    JitteredSampler sampler;
+    sampler.setup(4, 8, 12345);
+
+    auto stream = sampler.stream(/*sampleIndex=*/0, /*pixelHash=*/0);
+
+    EXPECT_EQ(sampler.setAt(0)[0], stream->sample2D(SampleDimension::Pixel));
+    EXPECT_DOUBLE_EQ(sampler.setAt(1)[0].x(), stream->sample1D(SampleDimension::Time));
+    EXPECT_EQ(sampler.setAt(2)[0], stream->sample2D(SampleDimension::Lens));
+  }
+
+  TEST(JitteredSampler, PathTracingDimensionsAreScrambled) {
+    JitteredSampler sampler;
+    sampler.setup(16, 32, 12345);
+
+    auto stream = sampler.stream(/*sampleIndex=*/2, /*pixelHash=*/0);
+
+    EXPECT_NE(sampler.setAt(3)[2], stream->sample2D(SampleDimension::BSDF, 0));
+    EXPECT_NE(sampler.setAt(4)[2], stream->sample2D(SampleDimension::Light, 0));
+    EXPECT_NE(sampler.setAt(5)[2].x(), stream->sample1D(SampleDimension::Continuation, 0));
+  }
+
+  TEST(JitteredSampler, PathTracingDimensionScrambleIsStable) {
+    JitteredSampler sampler;
+    sampler.setup(16, 32, 12345);
+
+    auto first = sampler.stream(/*sampleIndex=*/2, /*pixelHash=*/17);
+    auto second = sampler.stream(/*sampleIndex=*/2, /*pixelHash=*/17);
+
+    EXPECT_EQ(first->sample2D(SampleDimension::BSDF, 2),
+              second->sample2D(SampleDimension::BSDF, 2));
+    EXPECT_DOUBLE_EQ(first->sample1D(SampleDimension::LightSelection, 3),
+                     second->sample1D(SampleDimension::LightSelection, 3));
+  }
+
+  TEST(JitteredSampler, PathTracingDimensionsDoNotLockToMatchingStrata) {
+    const int n = 8;
+    JitteredSampler sampler;
+    sampler.setup(n * n, 83, 12345);
+
+    auto stratum = [](const Vector2d& sample) {
+      const int bx = std::min(static_cast<int>(std::floor(sample.x() * n)), n - 1);
+      const int by = std::min(static_cast<int>(std::floor(sample.y() * n)), n - 1);
+      return bx * n + by;
+    };
+
+    int sameStrata = 0;
+    for (int sampleIndex = 0; sampleIndex != sampler.numSamples(); ++sampleIndex) {
+      auto stream = sampler.stream(sampleIndex, /*pixelHash=*/19);
+      const int bsdfStratum = stratum(stream->sample2D(SampleDimension::BSDF, 0));
+      const int lightStratum = stratum(stream->sample2D(SampleDimension::Light, 0));
+      if (bsdfStratum == lightStratum) {
+        ++sameStrata;
+      }
+    }
+
+    EXPECT_LT(sameStrata, sampler.numSamples() / 2);
+  }
 }

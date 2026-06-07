@@ -28,13 +28,5 @@ namespace render {
 
   protected:
     std::vector<Vector2d> generateSet() override;
-
-  private:
-    bool shouldScrambleDimension(uint64_t dimension) const;
-    Vector2d scrambledPathDimensionSample(int sampleIndex, uint64_t pixelHash,
-                                          uint64_t dimension) const;
-    double scrambledOffset(int sampleIndex, uint64_t pixelHash, uint64_t dimension,
-                           uint64_t axis) const;
-    double wrapUnitInterval(double value) const;
   };
 }
