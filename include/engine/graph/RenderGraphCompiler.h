@@ -133,6 +133,10 @@ namespace engine::graph {
                                   const RenderSceneAnalysis& sceneAnalysis) const;
     void validateSubviewReceivers(const RenderIntent& intent,
                                   const RenderSceneAnalysis& sceneAnalysis) const;
+    void addSubviewRecursionLimitDiagnostics(RenderPlan& plan, const RenderIntent& intent) const;
+    RenderPassNode subviewRecursionLimitDiagnosticPass(const RenderSubviewIntent& subview,
+                                                       std::size_t index, int recursionLimit,
+                                                       std::set<std::string>& usedPrefixes) const;
     void addAutomaticFeatureSubviewComposites(RenderPlan& plan, const RenderTargetSpec& target,
                                               const RenderIntent& intent,
                                               const RenderSceneAnalysis& sceneAnalysis,

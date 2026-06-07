@@ -1307,7 +1307,7 @@ namespace RenderGraphCompilerTest {
     }
   }
 
-  TEST(RenderGraphCompiler, RejectsSubviewIntentAtRenderToTextureRecursionLimit) {
+  TEST(RenderGraphCompiler, TruncatesSubviewIntentAtRenderToTextureRecursionLimit) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
     intent.setMaxRenderToTextureRecursionDepth(0);
@@ -1318,14 +1318,84 @@ namespace RenderGraphCompilerTest {
     subview.view.executor = RenderExecutorPreference::Rasterizer;
     intent.subviews.push_back(subview);
 
-    try {
-      compiler.compile({64, 32, 1}, intent);
-      FAIL() << "Expected render-to-texture recursion limit rejection";
-    } catch (const std::runtime_error& error) {
-      const std::string message = error.what();
-      EXPECT_NE(std::string::npos, message.find("render-to-texture recursion limit 0 reached"));
-      EXPECT_NE(std::string::npos, message.find("mirror probe"));
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    EXPECT_EQ(nullptr, plan.findPass("subview_mirror_probe_raster_beauty"));
+    const auto* diagnostic = plan.findPass("subview_mirror_probe_recursion_limit");
+    ASSERT_NE(nullptr, diagnostic);
+    EXPECT_EQ("Subview mirror probe truncated at render-to-texture recursion limit 0",
+              diagnostic->name);
+    EXPECT_EQ(RenderPassKind::Debug, diagnostic->kind);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, diagnostic->executor);
+    EXPECT_FALSE(diagnostic->enabled);
+    EXPECT_EQ(DisabledBehavior::SubstituteDefault, diagnostic->disabledBehavior);
+    EXPECT_TRUE(hasFeature(*diagnostic, "render_to_texture_recursion_limit"));
+    EXPECT_TRUE(hasFeature(*diagnostic, "truncated"));
+    EXPECT_TRUE(plan.toText().find("subview_mirror_probe_recursion_limit") != std::string::npos);
+    EXPECT_TRUE(plan.toDot().find("recursion limit 0") != std::string::npos);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, TruncatesSelfRecursivePortalAtConfiguredDepth) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.setMaxRenderToTextureRecursionDepth(2);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel", Matrix4d(), Matrix4d());
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    ASSERT_NE(nullptr, plan.findPass("subview_portal_portal_panel_raytrace_beauty"));
+    ASSERT_NE(
+      nullptr,
+      plan.findPass("subview_portal_portal_panel_subview_portal_portal_panel_raytrace_beauty"));
+    EXPECT_EQ(nullptr, plan.findPass("subview_portal_portal_panel_subview_portal_portal_panel_"
+                                     "subview_portal_portal_panel_raytrace_beauty"));
+
+    const auto* diagnostic = plan.findPass(
+      "subview_portal_portal_panel_subview_portal_portal_panel_subview_portal_portal_panel_"
+      "recursion_limit");
+    ASSERT_NE(nullptr, diagnostic);
+    EXPECT_EQ("Subview portal Portal Panel Subview portal Portal Panel Subview portal Portal Panel "
+              "truncated at render-to-texture recursion limit 2",
+              diagnostic->name);
+    EXPECT_TRUE(hasFeature(*diagnostic, "render_to_texture_recursion_limit"));
+    EXPECT_TRUE(hasFeature(*diagnostic, "subview:subview_portal_portal_panel"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, TruncatesMutualPortalMirrorRecursionDeterministically) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.setMaxRenderToTextureRecursionDepth(1);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel", Matrix4d(), Matrix4d());
+    analysis.recordPlanarMirrorSurface("mirror-panel", "Mirror Panel", Vector3d::null,
+                                       Vector3d(0.0, 1.0, 0.0));
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    ASSERT_NE(nullptr, plan.findPass("subview_portal_portal_panel_raytrace_beauty"));
+    ASSERT_NE(nullptr, plan.findPass("subview_mirror_mirror_panel_raytrace_beauty"));
+
+    const auto diagnostics = plan.passesWithFeature("render_to_texture_recursion_limit");
+    ASSERT_EQ(4u, diagnostics.size());
+    EXPECT_EQ("subview_portal_portal_panel_subview_portal_portal_panel_recursion_limit",
+              diagnostics[0]->id);
+    EXPECT_EQ("subview_portal_portal_panel_subview_mirror_mirror_panel_recursion_limit",
+              diagnostics[1]->id);
+    EXPECT_EQ("subview_mirror_mirror_panel_subview_portal_portal_panel_recursion_limit",
+              diagnostics[2]->id);
+    EXPECT_EQ("subview_mirror_mirror_panel_subview_mirror_mirror_panel_recursion_limit",
+              diagnostics[3]->id);
+    for (const auto* diagnostic : diagnostics) {
+      EXPECT_FALSE(diagnostic->enabled);
+      EXPECT_EQ(RenderPassKind::Debug, diagnostic->kind);
+      EXPECT_TRUE(hasFeature(*diagnostic, "truncated"));
     }
+    EXPECT_TRUE(plan.validate().valid());
   }
 
   TEST(RenderGraphCompiler, RejectsUnknownRenderTextureReceiverSubview) {

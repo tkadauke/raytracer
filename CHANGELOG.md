@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Portal and mirror recursion diagnostics.** Automatic portal and planar
+  mirror graph expansion now stops at the configured render-to-texture
+  recursion depth and emits deterministic truncated-branch diagnostics in graph
+  text, DOT, JSON, and the Modeler inspector. — GPT-5
 - **Portal and mirror subview composites.** Automatic portal and planar mirror
   graph subviews now composite their offscreen color outputs through receiver
   stencil masks, use paired main/subview depth inputs when available, and pass
