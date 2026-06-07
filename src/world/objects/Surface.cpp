@@ -10,6 +10,18 @@
 
 #include <stdexcept>
 #include <string>
+#include <vector>
+
+namespace {
+  std::vector<std::string> toStdStrings(const std::vector<QString>& values) {
+    std::vector<std::string> result;
+    result.reserve(values.size());
+    for (const auto& value : values) {
+      result.push_back(value.toStdString());
+    }
+    return result;
+  }
+}
 
 Surface::Surface(Element* parent)
     : Transformable(parent),
@@ -110,6 +122,10 @@ void Surface::contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis
     analysis.recordPlanarMirrorSurface(id().toStdString(), name().toStdString());
   }
   analysis.recordRenderTextureReceiver(m_renderTextureSubview.toStdString());
+  analysis.recordSelectableObject(id().toStdString(), name().toStdString(),
+                                  toStdStrings(renderGraphTags()),
+                                  toStdStrings(renderGraphLayers()),
+                                  displayName().toStdString());
   Element::contributeToRenderGraphAnalysis(analysis);
 }
 

@@ -508,6 +508,64 @@ namespace SceneTest {
     EXPECT_EQ(QString("surface-feed"), decodedSurface->renderTextureSubview());
   }
 
+  TEST(Scene, ShouldAnalyzeSelectorTagAndLayerMetadataFromVisibleObjects) {
+    Scene scene;
+    auto* sphere = new Sphere;
+    sphere->setId("hero-sphere");
+    sphere->setName("Hero Sphere");
+    sphere->setMetadata(QJsonObject{{"tags", QJsonArray{"hero", "primary"}},
+                                    {"layer", "foreground"}});
+    scene.addChild(sphere);
+    auto* light = new PointLight;
+    light->setId("key-light");
+    light->setName("Key Light");
+    light->setMetadata(QJsonObject{{"tag", "hero"}, {"layerIndex", 2}});
+    scene.addChild(light);
+
+    const auto analysis = scene.renderGraphAnalysis();
+
+    const auto objectMatch =
+      analysis.matchSelector(engine::graph::SceneSelector::objectId("hero-sphere"));
+    ASSERT_TRUE(objectMatch.matched());
+    EXPECT_EQ("object_id:hero-sphere", objectMatch.subset->id);
+    EXPECT_EQ("Hero Sphere", objectMatch.subset->label);
+
+    const auto tagMatch = analysis.matchSelector(engine::graph::SceneSelector::tag("hero"));
+    ASSERT_TRUE(tagMatch.matched());
+    EXPECT_EQ("tag:hero", tagMatch.subset->id);
+    EXPECT_EQ(2u, tagMatch.subset->elementCount);
+
+    const auto layerMatch =
+      analysis.matchSelector(engine::graph::SceneSelector::layer("foreground"));
+    ASSERT_TRUE(layerMatch.matched());
+    EXPECT_EQ("layer:foreground", layerMatch.subset->id);
+
+    const auto layerIndexMatch = analysis.matchSelector(engine::graph::SceneSelector::layer("2"));
+    ASSERT_TRUE(layerIndexMatch.matched());
+    EXPECT_EQ("layer:2", layerIndexMatch.subset->id);
+  }
+
+  TEST(Scene, ShouldRoundtripSelectorTagAndLayerMetadataThroughSceneJson) {
+    Scene original;
+    auto* sphere = new Sphere;
+    sphere->setId("hero-sphere");
+    sphere->setName("Hero Sphere");
+    sphere->setMetadata(QJsonObject{{"tags", QJsonArray{"hero", "primary"}},
+                                    {"layerName", "foreground"}});
+    original.addChild(sphere);
+
+    QJsonObject json;
+    original.write(json);
+
+    Scene decoded;
+    decoded.read(json);
+
+    const auto analysis = decoded.renderGraphAnalysis();
+    EXPECT_TRUE(analysis.matchSelector(engine::graph::SceneSelector::tag("hero")).matched());
+    EXPECT_TRUE(
+      analysis.matchSelector(engine::graph::SceneSelector::layer("foreground")).matched());
+  }
+
   TEST(Scene, ShouldIgnoreHiddenElementsInRenderGraphAnalysis) {
     Scene scene;
     auto* hiddenSphere = new Sphere;

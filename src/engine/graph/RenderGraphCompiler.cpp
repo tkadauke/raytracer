@@ -466,7 +466,7 @@ namespace engine::graph {
                                                           int renderToTextureDepth) const {
     const RenderTargetSpec target = rawTarget.normalized();
     const RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
-    frameIntent.requireWholeFrameOnly("RenderGraphCompiler");
+    sceneAnalysis.requireResolvableSelectors(frameIntent, "RenderGraphCompiler");
     if (renderToTextureDepth == 0) {
       validateSubviewReceivers(frameIntent, sceneAnalysis);
     }

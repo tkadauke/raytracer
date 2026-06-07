@@ -1,3 +1,4 @@
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "engine/graph/PostProcessPassState.h"
@@ -13,6 +14,7 @@
 
 namespace RenderGraphCompilerTest {
   using namespace engine::graph;
+  using ::testing::HasSubstr;
 
   bool hasFeature(const RenderPassNode& pass, const std::string& feature) {
     return std::find(pass.features.begin(), pass.features.end(), feature) != pass.features.end();
@@ -82,6 +84,61 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ("raster_beauty", plan.passes()[0].id);
     EXPECT_EQ(RenderExecutorKind::Rasterizer, plan.passes()[0].executor);
     EXPECT_EQ("tonemap", plan.passes()[1].id);
+  }
+
+  TEST(RenderGraphCompiler, AcceptsResolvableSelectorSpecificOverrides) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    RenderViewOverride override;
+    override.selector = SceneSelector::tag("hero");
+    override.viewMode = RenderViewMode::Wireframe;
+    intent.viewOverrides.push_back(override);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordSelectableObject("sphere-1", "Hero Sphere", {"hero"}, {});
+
+    const RenderPlan plan = compiler.compile({64, 64, 1}, intent, analysis);
+
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, RejectsMissingSelectorSpecificOverrides) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    RenderViewOverride override;
+    override.selector = SceneSelector::tag("missing");
+    intent.viewOverrides.push_back(override);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordSelectableObject("sphere-1", "Hero Sphere", {"hero"}, {});
+
+    try {
+      compiler.compile({64, 64, 1}, intent, analysis);
+      FAIL() << "Expected missing selector diagnostic";
+    } catch (const std::runtime_error& e) {
+      EXPECT_THAT(e.what(), HasSubstr("cannot resolve scene selector tag: missing"));
+      EXPECT_THAT(e.what(), HasSubstr("no visible scene subset matches it"));
+    }
+  }
+
+  TEST(RenderGraphCompiler, RejectsAmbiguousSelectorSpecificOverrides) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    RenderViewOverride override;
+    override.selector = SceneSelector::objectName("Duplicate");
+    intent.viewOverrides.push_back(override);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordSelectableObject("sphere-1", "Duplicate", {}, {});
+    analysis.recordSelectableObject("sphere-2", "Duplicate", {}, {});
+
+    try {
+      compiler.compile({64, 64, 1}, intent, analysis);
+      FAIL() << "Expected ambiguous selector diagnostic";
+    } catch (const std::runtime_error& e) {
+      EXPECT_THAT(e.what(), HasSubstr("cannot resolve scene selector object_name: Duplicate"));
+      EXPECT_THAT(e.what(), HasSubstr("selector is ambiguous"));
+    }
   }
 
   TEST(RenderGraphCompiler, UsesWavefrontExecutorPreference) {
@@ -750,7 +807,7 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
-  TEST(RenderGraphCompiler, RejectsSelectorSpecificOverridesUntilScenePartitioningExists) {
+  TEST(RenderGraphCompiler, PreservesUnknownSceneFallbackForSelectorSpecificOverrides) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
 
@@ -759,14 +816,9 @@ namespace RenderGraphCompilerTest {
     override.executor = RenderExecutorPreference::Wireframe;
     intent.viewOverrides.push_back(override);
 
-    try {
-      compiler.compile({64, 32, 1}, intent);
-      FAIL() << "Expected selector-specific graph compilation rejection";
-    } catch (const std::runtime_error& error) {
-      const std::string message = error.what();
-      EXPECT_NE(std::string::npos, message.find("selector-specific render intent"));
-      EXPECT_NE(std::string::npos, message.find("object_name: Monitor"));
-    }
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    EXPECT_TRUE(plan.validate().valid());
   }
 
   TEST(RenderGraphCompiler, CompilesSubviewIntentAsPrefixedRenderToTextureBranch) {
