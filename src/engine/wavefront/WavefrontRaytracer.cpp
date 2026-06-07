@@ -361,9 +361,12 @@ namespace engine::wavefront {
     bool showProgressIndicators;
     bool metricsEnabled{false};
     bool convergenceEnabled{false};
+    bool adaptiveSamplingEnabled{false};
     bool sampleRadianceStddevCaptureEnabled{false};
     double convergenceActiveSampleFractionThreshold;
     double convergenceRadianceDeltaRmsThreshold;
+    int adaptiveMinimumSamples{1};
+    double adaptiveStddevThreshold{0.0};
     std::optional<int> maximumRecursionDepth;
     std::optional<std::uint64_t> samplingSeed;
     std::shared_ptr<Buffer<double>> lastSampleRadianceStddev;
@@ -376,6 +379,9 @@ namespace engine::wavefront {
                                                convergenceEnabled,
                                                convergenceActiveSampleFractionThreshold,
                                                convergenceRadianceDeltaRmsThreshold,
+                                               adaptiveSamplingEnabled,
+                                               adaptiveMinimumSamples,
+                                               adaptiveStddevThreshold,
                                                metricsEnabled,
                                                samplingSeed};
     }
@@ -435,6 +441,9 @@ namespace engine::wavefront {
     result->setConvergenceActiveSampleFractionThreshold(
       p->convergenceActiveSampleFractionThreshold);
     result->setConvergenceRadianceDeltaRmsThreshold(p->convergenceRadianceDeltaRmsThreshold);
+    result->setAdaptiveSamplingEnabled(p->adaptiveSamplingEnabled);
+    result->setAdaptiveMinimumSamples(p->adaptiveMinimumSamples);
+    result->setAdaptiveStddevThreshold(p->adaptiveStddevThreshold);
     result->setSampleRadianceStddevCaptureEnabled(p->sampleRadianceStddevCaptureEnabled);
     if (p->samplingSeed) {
       result->setSamplingSeed(*p->samplingSeed);
@@ -769,6 +778,30 @@ namespace engine::wavefront {
 
   double WavefrontRaytracer::convergenceRadianceDeltaRmsThreshold() const {
     return p->convergenceRadianceDeltaRmsThreshold;
+  }
+
+  void WavefrontRaytracer::setAdaptiveSamplingEnabled(bool enabled) {
+    p->adaptiveSamplingEnabled = enabled;
+  }
+
+  bool WavefrontRaytracer::adaptiveSamplingEnabled() const {
+    return p->adaptiveSamplingEnabled;
+  }
+
+  void WavefrontRaytracer::setAdaptiveMinimumSamples(int samples) {
+    p->adaptiveMinimumSamples = std::max(1, samples);
+  }
+
+  int WavefrontRaytracer::adaptiveMinimumSamples() const {
+    return p->adaptiveMinimumSamples;
+  }
+
+  void WavefrontRaytracer::setAdaptiveStddevThreshold(double threshold) {
+    p->adaptiveStddevThreshold = std::max(0.0, threshold);
+  }
+
+  double WavefrontRaytracer::adaptiveStddevThreshold() const {
+    return p->adaptiveStddevThreshold;
   }
 
   void WavefrontRaytracer::setSampleRadianceStddevCaptureEnabled(bool enabled) {

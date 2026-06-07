@@ -181,6 +181,41 @@ namespace WavefrontRaytracerTest {
     }
   };
 
+  class ConstantSampleIntegrator final : public render::Integrator {
+  public:
+    explicit ConstantSampleIntegrator(Colord color = Colord(1.0, 0.0, 0.0))
+        : m_color(color) {
+    }
+
+    std::unique_ptr<render::Integrator> clone() const override {
+      return std::make_unique<ConstantSampleIntegrator>(m_color);
+    }
+
+    const char* diagnosticName() const override {
+      return "constant_sample";
+    }
+
+    Colord radiance(const render::Scene&, const Rayd&, render::State&,
+                    const render::RayCaster&) const override {
+      return m_color;
+    }
+
+    std::vector<Colord> radianceBatch(const render::Scene&,
+                                      const std::vector<render::IntegratorRaySample>& samples,
+                                      const render::RayCaster&,
+                                      render::IntegratorBatchMetrics* metrics = nullptr,
+                                      const render::IntegratorBatchSettings& = {}) const override {
+      if (metrics) {
+        metrics->reset(/*scalarFallback=*/false);
+        metrics->recordActiveDepth(samples.size());
+      }
+      return std::vector<Colord>(samples.size(), m_color);
+    }
+
+  private:
+    Colord m_color;
+  };
+
   class DepthRecordingIntegrator final : public render::Integrator {
   public:
     std::unique_ptr<render::Integrator> clone() const override {
@@ -296,6 +331,9 @@ namespace WavefrontRaytracerTest {
                      renderer.convergenceActiveSampleFractionThreshold());
     EXPECT_DOUBLE_EQ(RAYTRACER_WAVEFRONT_RADIANCE_DELTA_RMS_THRESHOLD,
                      renderer.convergenceRadianceDeltaRmsThreshold());
+    EXPECT_FALSE(renderer.adaptiveSamplingEnabled());
+    EXPECT_EQ(1, renderer.adaptiveMinimumSamples());
+    EXPECT_DOUBLE_EQ(0.0, renderer.adaptiveStddevThreshold());
   }
 
   TEST(WavefrontRaytracer, AppliesMaximumRecursionDepthToCurrentIntegrator) {
@@ -331,6 +369,9 @@ namespace WavefrontRaytracerTest {
     renderer->setConvergenceEnabled(true);
     renderer->setConvergenceActiveSampleFractionThreshold(0.25);
     renderer->setConvergenceRadianceDeltaRmsThreshold(0.002);
+    renderer->setAdaptiveSamplingEnabled(true);
+    renderer->setAdaptiveMinimumSamples(3);
+    renderer->setAdaptiveStddevThreshold(0.125);
     renderer->setDenoiser(std::make_unique<render::BoxDenoiser>(2));
 
     auto clone = std::dynamic_pointer_cast<WavefrontRaytracer>(renderer->cloneForRender());
@@ -340,6 +381,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(clone->convergenceEnabled());
     EXPECT_DOUBLE_EQ(0.25, clone->convergenceActiveSampleFractionThreshold());
     EXPECT_DOUBLE_EQ(0.002, clone->convergenceRadianceDeltaRmsThreshold());
+    EXPECT_TRUE(clone->adaptiveSamplingEnabled());
+    EXPECT_EQ(3, clone->adaptiveMinimumSamples());
+    EXPECT_DOUBLE_EQ(0.125, clone->adaptiveStddevThreshold());
     EXPECT_FALSE(clone->progressiveDisplayEnabled());
     EXPECT_TRUE(clone->metricsEnabled());
     ASSERT_NE(nullptr, clone->denoiser());
@@ -906,5 +950,64 @@ namespace WavefrontRaytracerTest {
 
     renderer->setSampleRadianceStddevCaptureEnabled(false);
     EXPECT_EQ(nullptr, renderer->lastSampleRadianceStddev());
+  }
+
+  TEST(WavefrontRaytracer, AdaptiveSamplingStopsStablePixelsAtMinimumSamples) {
+    auto renderCamera = camera();
+    auto sampler = std::make_shared<render::HaltonSampler>();
+    sampler->setup(/*numSamples=*/4, /*numSets=*/1);
+    renderCamera->viewPlane()->setSampler(sampler);
+
+    auto renderer = std::make_shared<WavefrontRaytracer>(renderCamera, testScene());
+    renderer->setIntegrator(std::make_unique<ConstantSampleIntegrator>());
+    renderer->setQueueSize(1);
+    renderer->setMetricsEnabled(true);
+    renderer->setAdaptiveSamplingEnabled(true);
+    renderer->setAdaptiveMinimumSamples(2);
+    renderer->setAdaptiveStddevThreshold(0.0);
+
+    Buffer<Colord> buffer(2, 1);
+    renderer->render(buffer);
+
+    const auto metrics = renderer->lastMetrics();
+    EXPECT_TRUE(renderer->adaptiveSamplingEnabled());
+    EXPECT_EQ(2, renderer->adaptiveMinimumSamples());
+    EXPECT_DOUBLE_EQ(0.0, renderer->adaptiveStddevThreshold());
+    EXPECT_EQ(4, metrics.input.samplesPerPixel);
+    EXPECT_EQ(4u, metrics.input.primarySamples);
+    EXPECT_EQ(4u, metrics.batching.samplesSubmitted);
+    EXPECT_EQ(2u, metrics.batching.sampleVariancePixelArea);
+    EXPECT_DOUBLE_EQ(0.0, metrics.batching.sampleRadianceVarianceSum);
+    EXPECT_DOUBLE_EQ(0.0, metrics.batching.maxSampleRadianceStddev);
+    ASSERT_COLOR_NEAR(Colord(1.0, 0.0, 0.0), buffer[0][0], 1e-12);
+    ASSERT_COLOR_NEAR(Colord(1.0, 0.0, 0.0), buffer[0][1], 1e-12);
+  }
+
+  TEST(WavefrontRaytracer, AdaptiveSamplingKeepsNoisyPixelsAtMaximumSamples) {
+    auto renderCamera = camera();
+    auto sampler = std::make_shared<render::HaltonSampler>();
+    sampler->setup(/*numSamples=*/4, /*numSets=*/1);
+    renderCamera->viewPlane()->setSampler(sampler);
+
+    auto renderer = std::make_shared<WavefrontRaytracer>(renderCamera, testScene());
+    renderer->setIntegrator(std::make_unique<AlternatingSampleIntegrator>());
+    renderer->setQueueSize(1);
+    renderer->setMetricsEnabled(true);
+    renderer->setAdaptiveSamplingEnabled(true);
+    renderer->setAdaptiveMinimumSamples(2);
+    renderer->setAdaptiveStddevThreshold(0.1);
+
+    Buffer<Colord> buffer(2, 1);
+    renderer->render(buffer);
+
+    const auto metrics = renderer->lastMetrics();
+    EXPECT_EQ(4, metrics.input.samplesPerPixel);
+    EXPECT_EQ(8u, metrics.input.primarySamples);
+    EXPECT_EQ(8u, metrics.batching.samplesSubmitted);
+    EXPECT_EQ(2u, metrics.batching.sampleVariancePixelArea);
+    EXPECT_NEAR(1.0, metrics.batching.sampleRadianceVarianceSum, 1e-12);
+    EXPECT_NEAR(std::sqrt(0.5), metrics.batching.maxSampleRadianceStddev, 1e-12);
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.5, 0.0), buffer[0][0], 1e-12);
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.5, 0.0), buffer[0][1], 1e-12);
   }
 }

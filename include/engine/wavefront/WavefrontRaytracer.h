@@ -208,6 +208,12 @@ namespace engine::wavefront {
     double convergenceActiveSampleFractionThreshold() const;
     void setConvergenceRadianceDeltaRmsThreshold(double threshold);
     double convergenceRadianceDeltaRmsThreshold() const;
+    void setAdaptiveSamplingEnabled(bool enabled);
+    bool adaptiveSamplingEnabled() const;
+    void setAdaptiveMinimumSamples(int samples);
+    int adaptiveMinimumSamples() const;
+    void setAdaptiveStddevThreshold(double threshold);
+    double adaptiveStddevThreshold() const;
     void setSampleRadianceStddevCaptureEnabled(bool enabled);
     bool sampleRadianceStddevCaptureEnabled() const;
     std::shared_ptr<const Buffer<double>> lastSampleRadianceStddev() const;

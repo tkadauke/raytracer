@@ -21,6 +21,7 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <utility>
 
 namespace engine::wavefront::detail {
@@ -145,6 +146,68 @@ namespace engine::wavefront::detail {
       return settings;
     }
 
+    template<typename T>
+    void addVectorValues(std::vector<T>& target, const std::vector<T>& source) {
+      if (target.size() < source.size()) {
+        target.resize(source.size(), T{});
+      }
+      for (std::size_t index = 0; index != source.size(); ++index) {
+        target[index] += source[index];
+      }
+    }
+
+    void addMapValues(std::map<std::string, std::uint64_t>& target,
+                      const std::map<std::string, std::uint64_t>& source) {
+      for (const auto& [key, value] : source) {
+        target[key] += value;
+      }
+    }
+
+    void addBatchMetrics(render::IntegratorBatchMetrics& target,
+                         const render::IntegratorBatchMetrics& source) {
+      target.usedScalarFallback = target.usedScalarFallback || source.usedScalarFallback;
+      addVectorValues(target.activeSamplesPerDepth, source.activeSamplesPerDepth);
+      addVectorValues(target.frontierRayHitsPerDepth, source.frontierRayHitsPerDepth);
+      addVectorValues(target.frontierRayMissesPerDepth, source.frontierRayMissesPerDepth);
+      addVectorValues(target.frontierPacketChunksPerDepth, source.frontierPacketChunksPerDepth);
+      addVectorValues(target.frontierPacketRaysPerDepth, source.frontierPacketRaysPerDepth);
+      addVectorValues(target.frontierRay4PacketChunksPerDepth,
+                      source.frontierRay4PacketChunksPerDepth);
+      addVectorValues(target.frontierRay8PacketChunksPerDepth,
+                      source.frontierRay8PacketChunksPerDepth);
+      addVectorValues(target.frontierScalarRaysPerDepth, source.frontierScalarRaysPerDepth);
+      addVectorValues(target.frontierPacketScalarFallbackRaysPerDepth,
+                      source.frontierPacketScalarFallbackRaysPerDepth);
+      addMapValues(target.frontierPacketScalarFallbackRaysByReason,
+                   source.frontierPacketScalarFallbackRaysByReason);
+      addVectorValues(target.frontierPacketRefinedRaysPerDepth,
+                      source.frontierPacketRefinedRaysPerDepth);
+      addMapValues(target.frontierPacketRefinedRaysByMaterial,
+                   source.frontierPacketRefinedRaysByMaterial);
+      target.activeSampleDepthsProcessed += source.activeSampleDepthsProcessed;
+      addVectorValues(target.radianceDeltaSquaredSumPerDepth,
+                      source.radianceDeltaSquaredSumPerDepth);
+      if (target.maxRadianceDeltaPerDepth.size() < source.maxRadianceDeltaPerDepth.size()) {
+        target.maxRadianceDeltaPerDepth.resize(source.maxRadianceDeltaPerDepth.size(), 0.0);
+      }
+      for (std::size_t index = 0; index != source.maxRadianceDeltaPerDepth.size(); ++index) {
+        target.maxRadianceDeltaPerDepth[index] =
+          std::max(target.maxRadianceDeltaPerDepth[index], source.maxRadianceDeltaPerDepth[index]);
+      }
+      target.compatibilityShadeSamples += source.compatibilityShadeSamples;
+      target.stoppedByConvergence = target.stoppedByConvergence || source.stoppedByConvergence;
+      target.stoppedAfterDepth = std::max(target.stoppedAfterDepth, source.stoppedAfterDepth);
+      target.intersectionWorkerSeconds += source.intersectionWorkerSeconds;
+      target.shadingWorkerSeconds += source.shadingWorkerSeconds;
+      target.pathSetupWorkerSeconds += source.pathSetupWorkerSeconds;
+      target.frontierPartitionWorkerSeconds += source.frontierPartitionWorkerSeconds;
+      target.frontierBookkeepingWorkerSeconds += source.frontierBookkeepingWorkerSeconds;
+      target.progressSnapshotWorkerSeconds += source.progressSnapshotWorkerSeconds;
+      target.convergenceTestWorkerSeconds += source.convergenceTestWorkerSeconds;
+      target.observerConvergenceFeedbackDepths += source.observerConvergenceFeedbackDepths;
+      addVectorValues(target.retainedActiveSamplesPerDepth, source.retainedActiveSamplesPerDepth);
+    }
+
     WavefrontTileTraceResult traceTile(
       const WavefrontTileRenderConfig& config, render::Camera& camera,
       const render::RayCaster& rayCaster, const render::Scene& scene, const Recti& actualRect,
@@ -157,11 +220,17 @@ namespace engine::wavefront::detail {
       render::SampleStreamStorage sampleStreams;
       std::vector<std::size_t> samplePixelIndices;
       const int sampleCount = camera.samplesPerPixel();
+      const bool adaptiveSampling =
+        config.adaptiveSamplingEnabled && sampleCount > config.adaptiveMinimumSamples;
+      const int initialSampleCount =
+        adaptiveSampling ? std::min(sampleCount, std::max(2, config.adaptiveMinimumSamples))
+                         : sampleCount;
       const std::size_t estimatedPixelCount =
         static_cast<std::size_t>(std::max(0, actualRect.width())) *
         static_cast<std::size_t>(std::max(0, actualRect.height()));
       result.pixels.reserve(estimatedPixelCount);
-      samples.reserve(estimatedPixelCount * static_cast<std::size_t>(std::max(0, sampleCount)));
+      samples.reserve(estimatedPixelCount *
+                      static_cast<std::size_t>(std::max(0, initialSampleCount)));
       sampleStreams.reserve(samples.capacity());
       samplePixelIndices.reserve(samples.capacity());
 
@@ -204,7 +273,7 @@ namespace engine::wavefront::detail {
         result.pixels.push_back(WavefrontTilePixel{footprint, Colord::black()});
         const std::uint64_t pixelHash = camera.primaryRayPixelHash(pixel, tileSeed);
 
-        for (int sampleIndex = 0; sampleIndex != sampleCount; ++sampleIndex) {
+        for (int sampleIndex = 0; sampleIndex != initialSampleCount; ++sampleIndex) {
           if (camera.isCancelled()) {
             break;
           }
@@ -228,7 +297,7 @@ namespace engine::wavefront::detail {
                                       sampleGenerationStart)
           .count();
 
-      const double sampleScale = sampleCount > 0 ? 1.0 / sampleCount : 0.0;
+      const double sampleScale = initialSampleCount > 0 ? 1.0 / initialSampleCount : 0.0;
       TileProgressObserver progressObserver(result.pixels, samplePixelIndices, sampleScale,
                                             std::move(transformProgress),
                                             std::move(publishProgress), useProgressFeedback);
@@ -238,17 +307,88 @@ namespace engine::wavefront::detail {
                                                                               : nullptr;
 
       const auto integratorBatchStart = WavefrontMetricsRecorder::Clock::now();
+      render::IntegratorBatchMetrics initialBatchMetrics;
       const std::vector<Colord> sampleColors = config.integrator.radianceBatch(
-        scene, samples, rayCaster, config.metricsEnabled ? &result.batchMetrics : nullptr,
+        scene, samples, rayCaster, config.metricsEnabled ? &initialBatchMetrics : nullptr,
         settings);
+      if (config.metricsEnabled) {
+        addBatchMetrics(result.batchMetrics, initialBatchMetrics);
+      }
       result.integratorBatchWorkerSeconds =
         std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() - integratorBatchStart)
           .count();
-      if (config.metricsEnabled || captureSampleRadianceStddev) {
+
+      std::vector<Colord> allSampleColors = sampleColors;
+      std::vector<std::size_t> allSamplePixelIndices = samplePixelIndices;
+      if (adaptiveSampling) {
         result.recordSampleVariance(sampleColors, samplePixelIndices);
+
+        std::vector<render::IntegratorRaySample> extraSamples;
+        render::SampleStreamStorage extraSampleStreams;
+        std::vector<std::size_t> extraSamplePixelIndices;
+        std::size_t pixelIndex = 0;
+        for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
+                                         end = plane->end(actualRect);
+             pixel != end; ++pixel, ++pixelIndex) {
+          if (camera.isCancelled()) {
+            break;
+          }
+
+          if (pixelIndex >= result.pixels.size() ||
+              result.pixels[pixelIndex].sampleRadianceStddev <= config.adaptiveStddevThreshold) {
+            continue;
+          }
+
+          const std::uint64_t pixelHash = camera.primaryRayPixelHash(pixel, tileSeed);
+          for (int sampleIndex = initialSampleCount; sampleIndex != sampleCount; ++sampleIndex) {
+            if (camera.isCancelled()) {
+              break;
+            }
+
+            render::SampleStream* stream = measureValue(result.sampleStreamWorkerSeconds, [&] {
+              return sampler->appendStream(extraSampleStreams, sampleIndex, pixelHash);
+            });
+            auto sample = measureValue(result.primaryRayWorkerSeconds,
+                                       [&] { return primaryRayGenerator->sample(pixel, *stream); });
+            if (sample) {
+              measureVoid(result.sampleEnqueueWorkerSeconds, [&] {
+                extraSamples.push_back(
+                  render::IntegratorRaySample{sample->ray, sample->timeSample, nullptr, stream});
+                extraSamplePixelIndices.push_back(pixelIndex);
+              });
+            }
+          }
+        }
+        result.sampleGenerationWorkerSeconds =
+          std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() -
+                                        sampleGenerationStart)
+            .count();
+
+        if (!extraSamples.empty()) {
+          render::IntegratorBatchSettings extraSettings = batchSettings(config);
+          const auto extraBatchStart = WavefrontMetricsRecorder::Clock::now();
+          render::IntegratorBatchMetrics extraBatchMetrics;
+          const std::vector<Colord> extraSampleColors = config.integrator.radianceBatch(
+            scene, extraSamples, rayCaster, config.metricsEnabled ? &extraBatchMetrics : nullptr,
+            extraSettings);
+          if (config.metricsEnabled) {
+            addBatchMetrics(result.batchMetrics, extraBatchMetrics);
+          }
+          result.integratorBatchWorkerSeconds +=
+            std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() - extraBatchStart)
+              .count();
+          allSampleColors.insert(allSampleColors.end(), extraSampleColors.begin(),
+                                 extraSampleColors.end());
+          allSamplePixelIndices.insert(allSamplePixelIndices.end(), extraSamplePixelIndices.begin(),
+                                       extraSamplePixelIndices.end());
+        }
       }
-      progressObserver.applySampleColors(sampleColors);
-      result.sampleCount = samples.size();
+
+      if (config.metricsEnabled || captureSampleRadianceStddev || adaptiveSampling) {
+        result.recordSampleVariance(allSampleColors, allSamplePixelIndices);
+      }
+      result.applySampleColors(allSampleColors, allSamplePixelIndices);
+      result.sampleCount = allSampleColors.size();
       return result;
     }
 

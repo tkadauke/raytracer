@@ -3,6 +3,27 @@
 #include <cmath>
 
 namespace engine::wavefront::detail {
+  namespace {
+    std::size_t matchedSampleCount(const std::vector<Colord>& sampleColors,
+                                   const std::vector<std::size_t>& samplePixelIndices) {
+      return std::min(sampleColors.size(), samplePixelIndices.size());
+    }
+
+    std::vector<std::uint64_t>
+    sampleCountsForPixels(std::size_t pixelCount, const std::vector<Colord>& sampleColors,
+                          const std::vector<std::size_t>& samplePixelIndices) {
+      std::vector<std::uint64_t> counts(pixelCount, 0);
+      const std::size_t count = matchedSampleCount(sampleColors, samplePixelIndices);
+      for (std::size_t index = 0; index != count; ++index) {
+        const std::size_t pixelIndex = samplePixelIndices[index];
+        if (pixelIndex < pixelCount) {
+          ++counts[pixelIndex];
+        }
+      }
+      return counts;
+    }
+  }
+
   void WavefrontTilePixel::writeSampleRadianceStddevTo(Buffer<double>& buffer) const {
     for (int y = footprint.top(); y != footprint.bottom(); ++y) {
       for (int x = footprint.left(); x != footprint.right(); ++x) {
@@ -13,15 +34,16 @@ namespace engine::wavefront::detail {
     }
   }
 
-  void WavefrontTileTraceResult::recordSampleVariance(
-    const std::vector<Colord>& sampleColors, const std::vector<std::size_t>& samplePixelIndices) {
-    if (pixels.empty() || sampleColors.empty()) {
+  void
+  WavefrontTileTraceResult::applySampleColors(const std::vector<Colord>& sampleColors,
+                                              const std::vector<std::size_t>& samplePixelIndices) {
+    if (pixels.empty()) {
       return;
     }
 
     std::vector<Colord> sums(pixels.size(), Colord::black());
     std::vector<std::uint64_t> counts(pixels.size(), 0);
-    const std::size_t count = std::min(sampleColors.size(), samplePixelIndices.size());
+    const std::size_t count = matchedSampleCount(sampleColors, samplePixelIndices);
     for (std::size_t index = 0; index != count; ++index) {
       const std::size_t pixelIndex = samplePixelIndices[index];
       if (pixelIndex >= pixels.size()) {
@@ -29,6 +51,40 @@ namespace engine::wavefront::detail {
       }
       sums[pixelIndex] += sampleColors[index];
       ++counts[pixelIndex];
+    }
+
+    for (std::size_t pixelIndex = 0; pixelIndex != pixels.size(); ++pixelIndex) {
+      pixels[pixelIndex].sampleCount = counts[pixelIndex];
+      pixels[pixelIndex].color =
+        counts[pixelIndex] == 0
+          ? Colord::black()
+          : sums[pixelIndex] * (1.0 / static_cast<double>(counts[pixelIndex]));
+    }
+  }
+
+  void WavefrontTileTraceResult::recordSampleVariance(
+    const std::vector<Colord>& sampleColors, const std::vector<std::size_t>& samplePixelIndices) {
+    sampleVariancePixelArea = 0;
+    sampleRadianceVarianceSum = 0.0;
+    maxSampleRadianceStddev = 0.0;
+    for (auto& pixel : pixels) {
+      pixel.sampleRadianceStddev = 0.0;
+    }
+
+    if (pixels.empty() || sampleColors.empty()) {
+      return;
+    }
+
+    std::vector<Colord> sums(pixels.size(), Colord::black());
+    std::vector<std::uint64_t> counts =
+      sampleCountsForPixels(pixels.size(), sampleColors, samplePixelIndices);
+    const std::size_t count = matchedSampleCount(sampleColors, samplePixelIndices);
+    for (std::size_t index = 0; index != count; ++index) {
+      const std::size_t pixelIndex = samplePixelIndices[index];
+      if (pixelIndex >= pixels.size()) {
+        continue;
+      }
+      sums[pixelIndex] += sampleColors[index];
     }
 
     std::vector<Colord> means(pixels.size(), Colord::black());

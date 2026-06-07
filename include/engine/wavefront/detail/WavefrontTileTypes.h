@@ -15,6 +15,7 @@ namespace engine::wavefront::detail {
   struct WavefrontTilePixel {
     Recti footprint;
     Colord color{Colord::black()};
+    std::uint64_t sampleCount{0};
     double sampleRadianceStddev{0.0};
 
     int area() const {
@@ -37,6 +38,8 @@ namespace engine::wavefront::detail {
     double sampleEnqueueWorkerSeconds{0.0};
     double integratorBatchWorkerSeconds{0.0};
 
+    void applySampleColors(const std::vector<Colord>& sampleColors,
+                           const std::vector<std::size_t>& samplePixelIndices);
     void recordSampleVariance(const std::vector<Colord>& sampleColors,
                               const std::vector<std::size_t>& samplePixelIndices);
     void writeSampleRadianceStddevTo(Buffer<double>& buffer) const;
