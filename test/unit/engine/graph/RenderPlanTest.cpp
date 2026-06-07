@@ -929,6 +929,62 @@ namespace RenderPlanTest {
     EXPECT_TRUE(hasError(validation, RenderPlanValidationError::Code::InvalidConcurrencyLimit));
   }
 
+  TEST(RenderPlan, AllowsParallelExecutionForIndependentResources) {
+    RenderPlan plan;
+    plan.addResource(colorResource("side_color"));
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported));
+
+    auto side = pass("side");
+    side.writes.push_back({"side_color"});
+    side.concurrency = RenderConcurrencyLimit::parallel();
+    plan.addPass(side);
+
+    auto main = pass("main");
+    main.writes.push_back({"main_color"});
+    main.concurrency = RenderConcurrencyLimit::parallel();
+    plan.addPass(main);
+
+    EXPECT_TRUE(plan.validate().valid());
+    EXPECT_TRUE(plan.validateParallelExecutionHazards().valid());
+  }
+
+  TEST(RenderPlan, ReportsParallelReadWriteResourceHazards) {
+    RenderPlan plan;
+    plan.addResource(colorResource("shared_color", RenderResourceLifetime::Exported));
+
+    auto writer = pass("writer");
+    writer.writes.push_back({"shared_color"});
+    writer.concurrency = RenderConcurrencyLimit::parallel();
+    plan.addPass(writer);
+
+    auto reader = pass("reader", RenderPassKind::PostProcess);
+    reader.reads.push_back({"shared_color"});
+    reader.concurrency = RenderConcurrencyLimit::parallel();
+    plan.addPass(reader);
+
+    auto competingWriter = pass("competing_writer");
+    competingWriter.writes.push_back({"shared_color"});
+    competingWriter.concurrency = RenderConcurrencyLimit::parallel();
+    plan.addPass(competingWriter);
+
+    auto lateReader = pass("late_reader", RenderPassKind::PostProcess);
+    lateReader.reads.push_back({"shared_color"});
+    lateReader.concurrency = RenderConcurrencyLimit::parallel();
+    plan.addPass(lateReader);
+
+    const auto validation = plan.validateParallelExecutionHazards();
+
+    ASSERT_FALSE(validation.valid());
+    EXPECT_TRUE(hasError(validation, RenderPlanValidationError::Code::ParallelResourceHazard));
+    std::string text;
+    for (const auto& error : validation.errors()) {
+      text += error.message + " ";
+    }
+    EXPECT_NE(std::string::npos, text.find("write-after-write"));
+    EXPECT_NE(std::string::npos, text.find("write-after-read"));
+    EXPECT_NE(std::string::npos, text.find("read-after-write"));
+  }
+
   TEST(RenderPlan, ImportsJsonRecomputesExecutionStages) {
     RenderPlan plan;
     plan.addResource(colorResource("beauty_color"));

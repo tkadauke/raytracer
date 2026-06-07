@@ -1188,7 +1188,11 @@ namespace engine::graph {
       p->explicitPlan ? *p->explicitPlan : compilePlan({buffer.width(), buffer.height(), 1});
     p->lastPlan = plan;
 
-    const auto validation = plan.validate();
+    auto validation = plan.validate();
+    const auto hazards = plan.validateParallelExecutionHazards();
+    for (const auto& hazard : hazards.errors()) {
+      validation.add(hazard);
+    }
     if (!validation.valid()) {
       throw std::runtime_error(validationMessage(validation));
     }
@@ -1266,7 +1270,11 @@ namespace engine::graph {
       p->explicitPlan ? *p->explicitPlan : compilePlan({buffer.width(), buffer.height(), 1});
     p->lastPlan = plan;
 
-    const auto validation = plan.validate();
+    auto validation = plan.validate();
+    const auto hazards = plan.validateParallelExecutionHazards();
+    for (const auto& hazard : hazards.errors()) {
+      validation.add(hazard);
+    }
     if (!validation.valid()) {
       throw std::runtime_error(validationMessage(validation));
     }

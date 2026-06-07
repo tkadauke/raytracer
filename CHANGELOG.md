@@ -17,6 +17,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render animation tracks.** Added Qt-free render-side animation value and
   continuous-time track primitives for scalar, vector, color, transform, and
   step-only switch payloads. — GPT-5
+- **Parallel graph resource hazard validation.** Graph execution now rejects
+  dependency-independent passes that can race on shared read/write resources,
+  including imported plans replayed through the parallel scheduler. — GPT-5
 - **Render graph concurrency metadata.** Render graph passes and executor
   families now declare serial, limited, or parallel-safe scheduling limits,
   export them through text/DOT/JSON graph inspection, and mark OpenGL raster
