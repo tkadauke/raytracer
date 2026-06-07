@@ -287,6 +287,14 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Path tracer light selection.** Path tracing now selects one light per
   next-event-estimation step with power/emission-weighted PDFs instead of
   casting a shadow ray to every light at every hit. — GPT-5
+- **Visible rectangular area emitters.** Rectangular area lights now publish
+  one-sided emissive rectangle geometry so camera, reflection, and refraction
+  rays can see the light source while direct-light sampling still uses the
+  light list. — GPT-5
+- **Path tracing sample variance metrics.** Wavefront metrics now report
+  per-pixel sample radiance standard-deviation RMS and max values, giving
+  path-traced renders a first noise diagnostic before adaptive sampling lands.
+  — GPT-5
 - **Sampler-owned light samples.** The path tracer now draws next-event
   estimation samples from `SampleDimension::Light` and passes them into the
   light API, keeping stochastic light samples under deterministic sampler

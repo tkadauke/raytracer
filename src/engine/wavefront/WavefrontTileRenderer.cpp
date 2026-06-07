@@ -246,6 +246,9 @@ namespace engine::wavefront::detail {
       result.integratorBatchWorkerSeconds =
         std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() - integratorBatchStart)
           .count();
+      if (config.metricsEnabled) {
+        result.recordSampleVariance(sampleColors, samplePixelIndices);
+      }
       progressObserver.applySampleColors(sampleColors);
       result.sampleCount = samples.size();
       return result;

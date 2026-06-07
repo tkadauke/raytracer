@@ -1,6 +1,8 @@
 #include "render/lights/RectangularAreaLight.h"
 
 #include "core/math/Constants.h"
+#include "render/materials/EmissiveMaterial.h"
+#include "render/primitives/Rectangle.h"
 
 #include <algorithm>
 #include <cmath>
@@ -114,6 +116,17 @@ Colord RectangularAreaLight::emission() const {
 
 std::optional<Colord> RectangularAreaLight::power() const {
   return radiance() * area() * PI;
+}
+
+std::shared_ptr<render::Primitive> RectangularAreaLight::emitterPrimitive() const {
+  if (area() <= tolerance) {
+    return nullptr;
+  }
+
+  auto rectangle = std::make_shared<render::Rectangle>(center() - edgeU() * 0.5 - edgeV() * 0.5,
+                                                       edgeU(), edgeV(), normal());
+  rectangle->setMaterial(std::make_shared<render::EmissiveMaterial>(radiance()));
+  return rectangle;
 }
 
 const char* RectangularAreaLight::fingerprintType() const {

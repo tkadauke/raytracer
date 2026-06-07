@@ -1,8 +1,13 @@
 #include <gtest/gtest.h>
 
 #include "core/math/Constants.h"
+#include "core/math/HitPointInterval.h"
+#include "render/State.h"
+#include "render/materials/EmissiveMaterial.h"
 #include "render/lights/RectangularAreaLight.h"
+#include "render/primitives/Primitive.h"
 
+#include "test/helpers/ColorTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
 namespace RectangularAreaLightTest {
@@ -60,5 +65,24 @@ namespace RectangularAreaLightTest {
     EXPECT_EQ(Colord(0.25, 0.5, 0.75), light.emission());
     ASSERT_TRUE(light.power().has_value());
     EXPECT_EQ(Colord(0.25, 0.5, 0.75) * 6.0 * PI, *light.power());
+  }
+
+  TEST(RectangularAreaLight, ExposesVisibleEmitterPrimitive) {
+    RectangularAreaLight light(Vector3d(0, 2, 0), Vector3d(2, 0, 0), Vector3d(0, 0, 2),
+                               Colord(0.25, 0.5, 0.75));
+
+    const auto emitter = light.emitterPrimitive();
+    ASSERT_NE(nullptr, emitter);
+    ASSERT_NE(nullptr, emitter->material());
+
+    State state;
+    HitPointInterval hitPoints;
+    const Rayd ray(Vector3d::null, Vector3d(0, 1, 0));
+    ASSERT_EQ(emitter.get(), emitter->intersect(ray, hitPoints, state));
+
+    const HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+    ASSERT_FALSE(hitPoint.isUndefined());
+    ASSERT_COLOR_NEAR(Colord(0.25, 0.5, 0.75), emitter->material()->emittedRadiance(ray, hitPoint),
+                      1e-12);
   }
 }

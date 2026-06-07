@@ -32,6 +32,7 @@ namespace render {
     bool isDelta() const override;
     Colord emission() const override;
     std::optional<Colord> power() const override;
+    std::shared_ptr<render::Primitive> emitterPrimitive() const override;
     const char* fingerprintType() const override;
     void writeFingerprint(std::ostream& out, const std::string& prefix) const override;
 

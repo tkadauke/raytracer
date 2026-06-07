@@ -10,6 +10,7 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
+#include "render/samplers/HaltonSampler.h"
 #include "render/textures/ConstantColorTexture.h"
 
 #include "core/Buffer.h"
@@ -144,6 +145,40 @@ namespace WavefrontRaytracerTest {
 
   private:
     std::shared_ptr<SharedProgressState> m_state;
+  };
+
+  class AlternatingSampleIntegrator final : public render::Integrator {
+  public:
+    std::unique_ptr<render::Integrator> clone() const override {
+      return std::make_unique<AlternatingSampleIntegrator>();
+    }
+
+    const char* diagnosticName() const override {
+      return "alternating_sample";
+    }
+
+    Colord radiance(const render::Scene&, const Rayd&, render::State&,
+                    const render::RayCaster&) const override {
+      return Colord::black();
+    }
+
+    std::vector<Colord> radianceBatch(const render::Scene&,
+                                      const std::vector<render::IntegratorRaySample>& samples,
+                                      const render::RayCaster&,
+                                      render::IntegratorBatchMetrics* metrics = nullptr,
+                                      const render::IntegratorBatchSettings& = {}) const override {
+      if (metrics) {
+        metrics->reset(/*scalarFallback=*/false);
+        metrics->recordActiveDepth(samples.size());
+      }
+
+      std::vector<Colord> result;
+      result.reserve(samples.size());
+      for (std::size_t index = 0; index != samples.size(); ++index) {
+        result.push_back(index % 2 == 0 ? Colord(1.0, 0.0, 0.0) : Colord(0.0, 1.0, 0.0));
+      }
+      return result;
+    }
   };
 
   class DepthRecordingIntegrator final : public render::Integrator {
@@ -628,6 +663,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48u, metrics.batching.maxBatchSize);
     EXPECT_DOUBLE_EQ(48.0, metrics.batching.averageBatchSize);
     EXPECT_EQ(0u, metrics.batching.compatibilityShadeSamples);
+    EXPECT_EQ(0u, metrics.batching.sampleVariancePixelArea);
+    EXPECT_DOUBLE_EQ(0.0, metrics.batching.sampleRadianceVarianceSum);
+    EXPECT_DOUBLE_EQ(0.0, metrics.batching.maxSampleRadianceStddev);
     ASSERT_EQ(1u, metrics.batching.activeSamplesPerDepth.size());
     EXPECT_EQ(48u, metrics.batching.activeSamplesPerDepth[0]);
     ASSERT_EQ(1u, metrics.batching.retainedActiveSamplesPerDepth.size());
@@ -698,6 +736,11 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48.0,
               json.value("batching").toObject().value("activeSampleDepthsProcessed").toDouble());
     EXPECT_EQ(0.0, json.value("batching").toObject().value("compatibilityShadeSamples").toDouble());
+    EXPECT_EQ(0.0, json.value("batching").toObject().value("sampleVariancePixelArea").toDouble());
+    EXPECT_DOUBLE_EQ(0.0,
+                     json.value("batching").toObject().value("sampleRadianceStddevRms").toDouble());
+    EXPECT_DOUBLE_EQ(0.0,
+                     json.value("batching").toObject().value("maxSampleRadianceStddev").toDouble());
     const QJsonArray activeSamples =
       json.value("batching").toObject().value("activeSamplesPerDepth").toArray();
     ASSERT_EQ(1, activeSamples.size());
@@ -804,5 +847,34 @@ namespace WavefrontRaytracerTest {
     EXPECT_GE(timings.value("integratorProgressSnapshotWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorConvergenceTestWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorResidualWorkerSeconds").toDouble(), 0.0);
+  }
+
+  TEST(WavefrontRaytracer, MetricsRecordPerPixelSampleRadianceVariance) {
+    auto renderCamera = camera();
+    auto sampler = std::make_shared<render::HaltonSampler>();
+    sampler->setup(/*numSamples=*/2, /*numSets=*/1);
+    renderCamera->viewPlane()->setSampler(sampler);
+
+    auto renderer = std::make_shared<WavefrontRaytracer>(renderCamera, testScene());
+    renderer->setIntegrator(std::make_unique<AlternatingSampleIntegrator>());
+    renderer->setQueueSize(1);
+    renderer->setMetricsEnabled(true);
+
+    Buffer<Colord> buffer(2, 1);
+    renderer->render(buffer);
+
+    const auto metrics = renderer->lastMetrics();
+    EXPECT_EQ(2, metrics.input.samplesPerPixel);
+    EXPECT_EQ(4u, metrics.input.primarySamples);
+    EXPECT_EQ(2u, metrics.batching.sampleVariancePixelArea);
+    EXPECT_NEAR(1.0, metrics.batching.sampleRadianceVarianceSum, 1e-12);
+    EXPECT_NEAR(std::sqrt(0.5), metrics.batching.maxSampleRadianceStddev, 1e-12);
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.5, 0.0), buffer[0][0], 1e-12);
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.5, 0.0), buffer[0][1], 1e-12);
+
+    const QJsonObject batching = metrics.toJson().value("batching").toObject();
+    EXPECT_EQ(2.0, batching.value("sampleVariancePixelArea").toDouble());
+    EXPECT_NEAR(std::sqrt(0.5), batching.value("sampleRadianceStddevRms").toDouble(), 1e-12);
+    EXPECT_NEAR(std::sqrt(0.5), batching.value("maxSampleRadianceStddev").toDouble(), 1e-12);
   }
 }

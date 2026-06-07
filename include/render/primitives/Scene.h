@@ -80,9 +80,7 @@ namespace render {
     /**
       * Adds light to the scene.
       */
-    inline void addLight(std::shared_ptr<render::Light> light) {
-      m_lights.push_back(light);
-    }
+    void addLight(std::shared_ptr<render::Light> light);
 
     /**
       * @returns a list of all lights in the scene.

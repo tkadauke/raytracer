@@ -34,6 +34,10 @@ std::optional<Colord> Light::power() const {
   return std::nullopt;
 }
 
+std::shared_ptr<render::Primitive> Light::emitterPrimitive() const {
+  return nullptr;
+}
+
 std::optional<Vector3d> Light::directionalShadowMapDirection() const {
   return std::nullopt;
 }

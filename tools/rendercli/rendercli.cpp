@@ -272,6 +272,9 @@ namespace {
         << " frontier_packet_refined_rays=" << unsignedArraySum(frontierPacketRefinedRays)
         << " frontier_packet_refined_by_material="
         << unsignedObjectPairs(frontierPacketRefinedByMaterial)
+        << " sample_variance_pixels=" << unsignedValue(batching, "sampleVariancePixelArea")
+        << " sample_stddev_rms=" << batching.value("sampleRadianceStddevRms").toDouble()
+        << " max_sample_stddev=" << batching.value("maxSampleRadianceStddev").toDouble()
         << " last_rms_delta=" << doubleArrayBack(rmsDelta)
         << " compatibility_shade_samples=" << unsignedValue(batching, "compatibilityShadeSamples")
         << " convergence=" << convergence.value("decision").toString().toStdString()

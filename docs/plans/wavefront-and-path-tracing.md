@@ -881,6 +881,18 @@ The current 40x30 baselines are direct 4spp vs. 32spp at `0.0064857550`,
 glass 4spp vs. 32spp at `0.0798974363`, and area light 8spp vs. 64spp at
 `0.0093491472`. Those thresholds are intentionally loose enough to be a
 diagnostic floor, not a claim that the low-sample images are final quality.
+Rectangular area lights now also publish visible one-sided emitter geometry via
+the light interface. `Scene::addLight(...)` attaches that geometry to the
+primitive tree, while the light list remains the sampling surface for next-event
+estimation. Path tracing adds `Material::emittedRadiance(...)` on light-card
+hits before BSDF sampling, and the bounded shadow query leaves a small endpoint
+tolerance so a sampled area light does not occlude itself.
+Wavefront metrics now also aggregate per-pixel sample radiance variance into
+`sampleRadianceStddevRms` and `maxSampleRadianceStddev`. That is the first
+render-wide noise diagnostic for path-traced samples: it measures disagreement
+between samples of the same pixel, complements the existing between-depth
+radiance-delta convergence metrics, and gives adaptive sampling a concrete
+signal to build on.
 
 Start with pure single-continuation path tracing (Option **B**) unless a
 measured scene proves deterministic specular split (Option **C**) is needed for

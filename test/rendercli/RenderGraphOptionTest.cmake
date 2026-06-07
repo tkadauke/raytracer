@@ -1784,6 +1784,16 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_refined_by_material=non
                   "wavefront metrics summary reported packet hit refinement material buckets for the stable wavefront fixture"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+foreach(variance_name
+        sample_variance_pixels
+        sample_stddev_rms
+        max_sample_stddev)
+  if(NOT wavefront_metrics_stdout MATCHES "${variance_name}=")
+    _rendercli_fail("rendercli wavefront metrics ${variance_name} summary"
+                    "wavefront metrics summary did not contain ${variance_name}"
+                    "${wavefront_metrics_stdout}" "" "" "")
+  endif()
+endforeach()
 if(NOT wavefront_metrics_stdout MATCHES "feedback_depths=")
   _rendercli_fail("rendercli wavefront metrics convergence feedback summary"
                   "wavefront metrics summary did not contain convergence feedback counters"
@@ -1902,6 +1912,16 @@ if(NOT wavefront_metrics_json MATCHES "\"frontierPacketRefinedRaysByMaterial\"")
                   "wavefront metrics report did not contain frontier packet refined material counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+foreach(variance_field
+        sampleVariancePixelArea
+        sampleRadianceStddevRms
+        maxSampleRadianceStddev)
+  if(NOT wavefront_metrics_json MATCHES "\"${variance_field}\"")
+    _rendercli_fail("rendercli wavefront metrics ${variance_field}"
+                    "wavefront metrics report did not contain ${variance_field}"
+                    "" "" "${wavefront_metrics_json}" "")
+  endif()
+endforeach()
 if(NOT wavefront_metrics_json MATCHES "\"sampleGenerationWorkerSeconds\"")
   _rendercli_fail("rendercli wavefront metrics sample generation worker timing"
                   "wavefront metrics report did not contain sample-generation worker timing"

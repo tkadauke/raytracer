@@ -81,6 +81,9 @@ namespace engine::wavefront {
       std::map<std::string, std::uint64_t> frontierPacketRefinedRaysByMaterial;
       std::vector<double> radianceDeltaSquaredSumPerDepth;
       std::vector<double> maxRadianceDeltaPerDepth;
+      std::uint64_t sampleVariancePixelArea = 0;
+      double sampleRadianceVarianceSum = 0.0;
+      double maxSampleRadianceStddev = 0.0;
 
       void addIntegratorMetrics(const render::IntegratorBatchMetrics& metrics);
     } batching;

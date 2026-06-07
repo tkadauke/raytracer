@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -23,12 +24,18 @@ namespace engine::wavefront::detail {
   struct WavefrontTileTraceResult {
     std::vector<WavefrontTilePixel> pixels;
     std::size_t sampleCount{0};
+    std::uint64_t sampleVariancePixelArea{0};
+    double sampleRadianceVarianceSum{0.0};
+    double maxSampleRadianceStddev{0.0};
     render::IntegratorBatchMetrics batchMetrics;
     double sampleGenerationWorkerSeconds{0.0};
     double sampleStreamWorkerSeconds{0.0};
     double primaryRayWorkerSeconds{0.0};
     double sampleEnqueueWorkerSeconds{0.0};
     double integratorBatchWorkerSeconds{0.0};
+
+    void recordSampleVariance(const std::vector<Colord>& sampleColors,
+                              const std::vector<std::size_t>& samplePixelIndices);
   };
 
   struct WavefrontDenoiserFeatureSet {

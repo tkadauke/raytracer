@@ -584,6 +584,8 @@ namespace render {
           continue;
         }
 
+        accumulated += path.throughput * material->emittedRadiance(path.ray, hitPoint);
+
         // wi is the direction back along the incoming ray, pointing
         // AWAY from the surface — matches the BSDF convention.
         const Vector3d wi = -path.ray.direction().normalized();
@@ -728,6 +730,8 @@ namespace render {
             recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
             continue;
           }
+
+          path.accumulated() += path.throughput * material->emittedRadiance(path.ray, hit.hitPoint);
 
           const Vector3d wi = -path.ray.direction().normalized();
           if (!material->supportsBsdfSampling()) {

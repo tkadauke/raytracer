@@ -147,6 +147,18 @@ namespace render {
     }
 
     /**
+      * Radiance emitted by this surface along the incoming camera/path ray.
+      *
+      * Most materials are not emitters and return black. Finite light-card
+      * materials override this so path tracers can add hit-light contribution
+      * before BSDF sampling, while Whitted renderers can expose the same
+      * behavior through `shade()`.
+      */
+    virtual Colord emittedRadiance(const Rayd& /*ray*/, const HitPoint& /*hitPoint*/) const {
+      return Colord::black();
+    }
+
+    /**
       * Reports whether this material can expose Whitted recursion as explicit
       * continuation rays. The wavefront Whitted batch scheduler uses this to
       * keep reflection/refraction queues depth-major without asking material

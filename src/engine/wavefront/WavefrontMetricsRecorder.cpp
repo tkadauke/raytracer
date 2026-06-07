@@ -75,6 +75,10 @@ namespace engine::wavefront::detail {
                                             result.batchMetrics);
     m_metrics.batching.samplesSubmitted += result.sampleCount;
     m_metrics.batching.addIntegratorMetrics(result.batchMetrics);
+    m_metrics.batching.sampleVariancePixelArea += result.sampleVariancePixelArea;
+    m_metrics.batching.sampleRadianceVarianceSum += result.sampleRadianceVarianceSum;
+    m_metrics.batching.maxSampleRadianceStddev =
+      std::max(m_metrics.batching.maxSampleRadianceStddev, result.maxSampleRadianceStddev);
     m_metrics.batching.maxBatchSize =
       std::max(m_metrics.batching.maxBatchSize, static_cast<std::uint64_t>(result.sampleCount));
     m_metrics.convergence.feedbackDepthCount +=
@@ -87,9 +91,8 @@ namespace engine::wavefront::detail {
   void WavefrontMetricsRecorder::recordDenoiserFeatureTile(const Recti& rect) {
     std::lock_guard<std::mutex> lock(m_mutex);
     ++m_metrics.denoise.completedFeatureTileCount;
-    m_metrics.denoise.featurePixels +=
-      static_cast<std::uint64_t>(std::max(0, rect.width())) *
-      static_cast<std::uint64_t>(std::max(0, rect.height()));
+    m_metrics.denoise.featurePixels += static_cast<std::uint64_t>(std::max(0, rect.width())) *
+                                       static_cast<std::uint64_t>(std::max(0, rect.height()));
   }
 
   void WavefrontMetricsRecorder::recordDenoise(bool albedoFeature, bool normalFeature,

@@ -13,6 +13,8 @@ By the end of this chapter you should know:
   every concrete light implements,
 - the sampling/PDF metadata a Monte Carlo integrator can ask from
   a light without changing the current Whitted direct-lighting path,
+- how finite light sources can publish derived emitter geometry while
+  keeping light sampling on the light interface,
 - how a point light differs physically and computationally from
   a directional light,
 - how a rectangular area light becomes a non-delta soft-shadow source
@@ -68,6 +70,7 @@ virtual double pdf(const Vector3d& point, const Vector3d& direction) const;
 virtual bool isDelta() const;
 virtual Colord emission() const;
 virtual std::optional<Colord> power() const;
+virtual std::shared_ptr<render::Primitive> emitterPrimitive() const;
 ```
 
 `sample(point)` returns one direction from the shaded point toward
@@ -78,16 +81,22 @@ ordinary solid-angle density for a direction chosen by some other
 sampler, such as a BSDF sample in an MIS estimator. `emission()` and
 `power()` are metadata for light-selection heuristics and future
 many-light sampling; `radiance()` remains the value used by the
-current material loops.
+current material loops. `emitterPrimitive()` is optional derived
+geometry for finite lights that should be visible to camera,
+reflection, and refraction rays. Delta and infinite lights return
+null.
 
 Lights live on a separate list off
 [`Scene::lights()`](../../../include/render/primitives/Scene.h),
 not in the geometric primitive tree. The shading pipeline
 iterates the light list independently of the [BVH](../appendix/a-glossary.md#b) traversal that
-finds the hit. This separation matters because lights aren't
-geometry: they don't intersect rays, they don't need bounding
-boxes, they don't get tessellated. A light is just a function
-that says *here is where I am, and here is what I emit*.
+finds the hit. Finite emitters complicate that clean separation:
+they are still lights for sampling, but they may also publish a
+geometric proxy. [`Scene::addLight(...)`](../../../src/render/primitives/Scene.cpp)
+attaches that proxy to the primitive tree and keeps the original
+light on the light list. This makes a rectangular area light visible
+in primary rays and specular paths without making materials or
+integrators switch on concrete light types.
 
 ## <a id="point-lights"></a>Point lights
 [`PointLight`](../../../include/render/lights/PointLight.h)
@@ -148,6 +157,15 @@ $$
 with $u$ and $v$ in $[0, 1)$. The emitting side is the side pointed to by
 $\mathbf{e}_u \times \mathbf{e}_v$. Samples from the back side return black
 radiance and a zero PDF because the light is one-sided.
+
+The runtime light also publishes a matching
+[`Rectangle`](../../../include/render/primitives/Rectangle.h) through
+`emitterPrimitive()`. That rectangle carries an
+[`EmissiveMaterial`](../../../include/render/materials/EmissiveMaterial.h):
+`shade(...)` returns the emitter radiance for Whitted-style camera rays, and
+`emittedRadiance(...)` gives path tracers the hit-light term before BSDF
+sampling. The material emits only in the normal-facing hemisphere, matching the
+light sampler's one-sided convention.
 
 Unlike point and directional lights, a rectangular area light is not a delta
 distribution. The path tracer passes a sampler-owned `SampleDimension::Light`
@@ -238,6 +256,13 @@ boolean form from
 [Primitives and intersection: The `Primitive` interface](primitives-and-intersection.md#the-primitive-interface),
 because an unbounded directional shadow ray only needs to know *whether* it
 hits anything, not *where*.
+
+When a finite light has visible emitter geometry, the bounded check deliberately
+leaves a small tolerance at the far endpoint. A shadow ray to an area-light
+sample is epsilon-shifted away from the shaded surface and therefore reaches
+the light-card geometry just before the original unshifted sample distance.
+That terminal hit is the light itself, not an occluder, so it must not shadow
+its own direct-light contribution.
 
 The shadow ray is the single biggest cost the shading pipeline
 pays. A scene with $L$ lights spawns $L$ shadow rays per ray
@@ -496,8 +521,10 @@ together.
 - `include/render/lights/PointLight.h`
 - `include/render/lights/DirectionalLight.h`
 - `include/render/lights/RectangularAreaLight.h`
+- `include/render/materials/EmissiveMaterial.h`
 - `include/render/primitives/Scene.h`
 - `src/render/primitives/Scene.cpp`
+- `test/unit/render/materials/EmissiveMaterialTest.cpp`
 - `test/unit/render/lights/PointLightTest.cpp`
 - `test/unit/render/lights/DirectionalLightTest.cpp`
 - `test/unit/render/lights/LightSamplerTest.cpp`

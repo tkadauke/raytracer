@@ -6,10 +6,13 @@
 #include "render/Object.h"
 
 #include <iosfwd>
+#include <memory>
 #include <optional>
 #include <string>
 
 namespace render {
+  class Primitive;
+
   /**
     * @brief Result of sampling a light from one shading point.
     *
@@ -138,6 +141,14 @@ namespace render {
       * Infinite emitters such as directional lights return `std::nullopt`.
       */
     virtual std::optional<Colord> power() const;
+
+    /**
+      * @returns optional scene geometry for finite lights that should be
+      * visible to camera, reflection, and refraction rays. Delta/infinite
+      * lights return null. Scene construction owns the returned primitive and
+      * keeps the light itself on `Scene::lights()` for direct-light sampling.
+      */
+    virtual std::shared_ptr<render::Primitive> emitterPrimitive() const;
 
     /**
       * Stable type name used by deterministic fingerprints. Unlike RTTI names,

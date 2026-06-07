@@ -1,6 +1,57 @@
 #include "engine/wavefront/detail/WavefrontTileTypes.h"
 
+#include <cmath>
+
 namespace engine::wavefront::detail {
+  void WavefrontTileTraceResult::recordSampleVariance(
+    const std::vector<Colord>& sampleColors, const std::vector<std::size_t>& samplePixelIndices) {
+    if (pixels.empty() || sampleColors.empty()) {
+      return;
+    }
+
+    std::vector<Colord> sums(pixels.size(), Colord::black());
+    std::vector<std::uint64_t> counts(pixels.size(), 0);
+    const std::size_t count = std::min(sampleColors.size(), samplePixelIndices.size());
+    for (std::size_t index = 0; index != count; ++index) {
+      const std::size_t pixelIndex = samplePixelIndices[index];
+      if (pixelIndex >= pixels.size()) {
+        continue;
+      }
+      sums[pixelIndex] += sampleColors[index];
+      ++counts[pixelIndex];
+    }
+
+    std::vector<Colord> means(pixels.size(), Colord::black());
+    for (std::size_t pixelIndex = 0; pixelIndex != pixels.size(); ++pixelIndex) {
+      if (counts[pixelIndex] > 0) {
+        means[pixelIndex] = sums[pixelIndex] * (1.0 / static_cast<double>(counts[pixelIndex]));
+      }
+    }
+
+    std::vector<double> varianceSums(pixels.size(), 0.0);
+    for (std::size_t index = 0; index != count; ++index) {
+      const std::size_t pixelIndex = samplePixelIndices[index];
+      if (pixelIndex >= pixels.size() || counts[pixelIndex] <= 1) {
+        continue;
+      }
+      const Colord delta = sampleColors[index] - means[pixelIndex];
+      varianceSums[pixelIndex] +=
+        delta.r() * delta.r() + delta.g() * delta.g() + delta.b() * delta.b();
+    }
+
+    for (std::size_t pixelIndex = 0; pixelIndex != pixels.size(); ++pixelIndex) {
+      if (counts[pixelIndex] <= 1) {
+        continue;
+      }
+      const int area = std::max(1, pixels[pixelIndex].area());
+      const double variance =
+        varianceSums[pixelIndex] * (1.0 / static_cast<double>(counts[pixelIndex]));
+      sampleVariancePixelArea += static_cast<std::uint64_t>(area);
+      sampleRadianceVarianceSum += variance * static_cast<double>(area);
+      maxSampleRadianceStddev = std::max(maxSampleRadianceStddev, std::sqrt(variance));
+    }
+  }
+
   WavefrontDenoiserFeatureSet::WavefrontDenoiserFeatureSet(
     int width, int height, render::DenoiserFeatureRequest requestedFeatures)
       : m_requestedFeatures(requestedFeatures),

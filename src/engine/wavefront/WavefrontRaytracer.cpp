@@ -232,6 +232,13 @@ namespace engine::wavefront {
       frontierPacketScalarFallbackRaysByReason;
     batchingJson["frontierPacketRefinedRaysPerDepth"] = frontierPacketRefinedRaysPerDepth;
     batchingJson["frontierPacketRefinedRaysByMaterial"] = frontierPacketRefinedRaysByMaterial;
+    batchingJson["sampleVariancePixelArea"] = static_cast<double>(batching.sampleVariancePixelArea);
+    batchingJson["sampleRadianceStddevRms"] =
+      batching.sampleVariancePixelArea == 0
+        ? 0.0
+        : std::sqrt(batching.sampleRadianceVarianceSum /
+                    static_cast<double>(batching.sampleVariancePixelArea));
+    batchingJson["maxSampleRadianceStddev"] = batching.maxSampleRadianceStddev;
     batchingJson["radianceDeltaL2PerDepth"] = radianceDeltaL2PerDepth;
     batchingJson["radianceDeltaRmsPerDepth"] = radianceDeltaRmsPerDepth;
     batchingJson["maxRadianceDeltaPerDepth"] = maxRadianceDeltaPerDepth;

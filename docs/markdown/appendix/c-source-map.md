@@ -116,6 +116,7 @@
 | `include/render/lights/LightSampler.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/lights/PointLight.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/lights/RectangularAreaLight.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
+| `include/render/materials/EmissiveMaterial.h` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `include/render/materials/Material.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/render/materials/MatteMaterial.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `include/render/materials/PhongMaterial.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
@@ -323,6 +324,7 @@
 | `test/unit/render/lights/LightSamplerTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `test/unit/render/lights/PointLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `test/unit/render/lights/RectangularAreaLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
+| `test/unit/render/materials/EmissiveMaterialTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `test/unit/render/primitives/BVHPerformanceTest.cpp` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
 | `test/unit/render/primitives/SceneTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `test/unit/render/samplers/HaltonSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |

@@ -5,6 +5,7 @@
 #include "render/RayCaster.h"
 #include "render/State.h"
 #include "render/lights/DirectionalLight.h"
+#include "render/lights/RectangularAreaLight.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/PhongMaterial.h"
 #include "render/materials/PortalMaterial.h"
@@ -661,6 +662,47 @@ namespace PathTracingIntegratorTest {
 
     ASSERT_EQ(1u, batched.size());
     ASSERT_COLOR_NEAR(Colord(0.1, 0.1, 0.1), batched[0], 1e-12);
+  }
+
+  TEST(PathTracingIntegrator, ScalarRadianceAddsVisibleEmitterHit) {
+    auto scene = std::make_unique<Scene>();
+    scene->setAmbient(Colord::black());
+    scene->setBackground(Colord::black());
+    scene->addLight(std::make_shared<RectangularAreaLight>(
+      Vector3d(0, 2, 0), Vector3d(2, 0, 0), Vector3d(0, 0, 2), Colord(0.25, 0.5, 0.75)));
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+    FixedLightSampleStream stream(Vector2d(0.5, 0.5));
+    State state;
+    state.sampleStream = &stream;
+    FallbackRayCaster caster;
+
+    const Colord pixel =
+      integrator.radiance(*scene, Rayd(Vector3d::null, Vector3d(0, 1, 0)), state, caster);
+
+    ASSERT_COLOR_NEAR(Colord(0.25, 0.5, 0.75), pixel, 1e-12);
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadianceAddsVisibleEmitterHit) {
+    auto scene = std::make_unique<Scene>();
+    scene->setAmbient(Colord::black());
+    scene->setBackground(Colord::black());
+    scene->addLight(std::make_shared<RectangularAreaLight>(
+      Vector3d(0, 2, 0), Vector3d(2, 0, 0), Vector3d(0, 0, 2), Colord(0.25, 0.5, 0.75)));
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d(0, 1, 0)), 0.0,
+                          std::make_unique<FixedLightSampleStream>(Vector2d(0.5, 0.5))});
+    FallbackRayCaster caster;
+
+    const std::vector<Colord> pixels = integrator.radianceBatch(*scene, samples, caster);
+
+    ASSERT_EQ(1u, pixels.size());
+    ASSERT_COLOR_NEAR(Colord(0.25, 0.5, 0.75), pixels[0], 1e-12);
   }
 
   TEST(PathTracingIntegrator, PrimaryMissReturnsBackgroundColor) {
