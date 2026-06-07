@@ -41,6 +41,14 @@ void Surface::setRenderTextureSubview(const QString& subviewName) {
   m_renderTextureSubview = subviewName.trimmed();
 }
 
+const QString& Surface::renderTextureSubview() const {
+  return m_renderTextureSubview;
+}
+
+void Surface::setRenderTextureSubview(const QString& subviewName) {
+  m_renderTextureSubview = subviewName.trimmed();
+}
+
 std::shared_ptr<render::Primitive>
 Surface::applyTransform(std::shared_ptr<render::Primitive> primitive) const {
   auto result = std::make_shared<render::Instance>(primitive);
