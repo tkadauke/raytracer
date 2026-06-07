@@ -88,6 +88,49 @@ namespace TransparentMaterialTest {
     EXPECT_NEAR(0.0, sampled.direction.z(), 1e-12);
   }
 
+  TEST(TransparentMaterial, SamplesRecursiveTransmissionEvenWhenLocalPhongIsPresent) {
+    TransparentMaterial material(std::make_shared<ConstantColorTexture>(Colord::white()));
+    material.setDiffuseCoefficient(1.0);
+    material.setSpecularCoefficient(1.0);
+    material.setReflectionCoefficient(0.0);
+    material.setTransmissionCoefficient(0.5);
+    material.setRefractionIndex(1.0);
+    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+
+    const MaterialBsdfSample sampled =
+      material.sampleBsdf(hitPoint, Vector3d(0, 1, 0), Vector2d(0.0, 0.5));
+
+    EXPECT_TRUE(sampled.isDelta);
+    EXPECT_DOUBLE_EQ(1.0, sampled.pdf);
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.5, 0.5), sampled.value, 1e-12);
+    EXPECT_NEAR(-1.0, sampled.direction.y(), 1e-12);
+    EXPECT_DOUBLE_EQ(0.0, material.bsdfPdf(hitPoint, Vector3d(0, 1, 0), sampled.direction));
+  }
+
+  TEST(TransparentMaterial, SamplesReflectionAndTransmissionByRecursiveWeightsOnly) {
+    TransparentMaterial material(std::make_shared<ConstantColorTexture>(Colord::white()));
+    material.setDiffuseCoefficient(1.0);
+    material.setSpecularCoefficient(1.0);
+    material.setReflectionColor(Colord::white());
+    material.setReflectionCoefficient(0.25);
+    material.setTransmissionCoefficient(0.75);
+    material.setRefractionIndex(1.0);
+    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+
+    const MaterialBsdfSample reflected =
+      material.sampleBsdf(hitPoint, Vector3d(0, 1, 0), Vector2d(0.1, 0.5));
+    const MaterialBsdfSample transmitted =
+      material.sampleBsdf(hitPoint, Vector3d(0, 1, 0), Vector2d(0.5, 0.5));
+
+    EXPECT_TRUE(reflected.isDelta);
+    ASSERT_COLOR_NEAR(Colord(1.0, 1.0, 1.0), reflected.value, 1e-12);
+    EXPECT_NEAR(1.0, reflected.direction.y(), 1e-12);
+
+    EXPECT_TRUE(transmitted.isDelta);
+    ASSERT_COLOR_NEAR(Colord(1.0, 1.0, 1.0), transmitted.value, 1e-12);
+    EXPECT_NEAR(-1.0, transmitted.direction.y(), 1e-12);
+  }
+
   TEST(TransparentMaterial, SamplesTotalInternalReflectionAsFullMirrorDeltaBsdf) {
     TransparentMaterial material;
     material.setRefractionIndex(0.5);

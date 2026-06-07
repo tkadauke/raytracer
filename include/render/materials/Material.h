@@ -123,13 +123,27 @@ namespace render {
       * for materials that haven't been refactored yet.
       *
       * Materials returning `true` must implement `evalBsdf`,
-      * `sampleBsdf`, and `bsdfPdf`. Returning `true` from a material
-      * whose `shade()` does its own recursion (e.g. ReflectiveMaterial,
-      * TransparentMaterial) is incorrect — the path tracer owns
-      * recursion through `sampleBsdf`.
+      * `sampleBsdf`, and `bsdfPdf`. A material whose `shade()` does
+      * its own recursion must expose those recursive branches through
+      * `sampleBsdf`; the path tracer owns recursion once it starts
+      * sampling the material.
       */
     virtual bool supportsBsdfSampling() const {
       return false;
+    }
+
+    /**
+      * Local scene-ambient contribution used by compatibility path tracing.
+      *
+      * Whitted materials historically include `Scene::ambient()` directly in
+      * `shade()`. Path-tracing integrators own recursive BSDF transport
+      * themselves, so they ask the material for the same local ambient term
+      * before sampling direct lights and continuation rays. Materials without a
+      * meaningful ambient lobe keep the default black contribution.
+      */
+    virtual Colord ambientRadiance(const render::Scene& /*scene*/, const Rayd& /*ray*/,
+                                   const HitPoint& /*hitPoint*/) const {
+      return Colord::black();
     }
 
     /**

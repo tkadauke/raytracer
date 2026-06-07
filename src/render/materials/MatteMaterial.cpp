@@ -21,11 +21,10 @@ Colord MatteMaterial::shade(const render::RayCaster*, const render::Scene& scene
                             const HitPoint& hitPoint, render::State& state) const {
   auto texColor = diffuseTexture() ? diffuseTexture()->evaluate(ray, hitPoint) : Colord::black();
 
-  render::Lambertian ambientBRDF(texColor, ambientCoefficient());
   render::Lambertian diffuseBRDF(texColor, diffuseCoefficient());
 
   // for diffuse BRDFs the in and out vectors are irrelevant, so let's not calculate them
-  auto color = ambientBRDF.reflectance(hitPoint, Vector3d::null) * scene.ambient();
+  auto color = ambientRadiance(scene, ray, hitPoint);
 
   for (const auto& light : scene.lights()) {
     const LightSample sample = light->sample(hitPoint.point());
@@ -51,6 +50,16 @@ render::WhittedShadeResult MatteMaterial::shadeWhitted(const render::RayCaster* 
                                                        render::State& state) const {
   return render::WhittedShadeResult{MatteMaterial::shade(raycaster, scene, ray, hitPoint, state),
                                     {}};
+}
+
+Colord MatteMaterial::ambientRadiance(const render::Scene& scene, const Rayd& ray,
+                                      const HitPoint& hitPoint) const {
+  Colord texColor = Colord::black();
+  if (auto texture = diffuseTexture()) {
+    texColor = texture->evaluate(ray, hitPoint);
+  }
+  return Lambertian(texColor, ambientCoefficient()).reflectance(hitPoint, Vector3d::null) *
+         scene.ambient();
 }
 
 Colord MatteMaterial::evalBsdf(const HitPoint& hitPoint, const Vector3d& wi,

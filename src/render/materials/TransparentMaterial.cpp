@@ -99,18 +99,8 @@ render::MaterialBsdfSample TransparentMaterial::sampleBsdf(const HitPoint& hitPo
 
   const BsdfSamplingWeights weights = bsdfSamplingWeights(false);
   const double selector = std::clamp(sample.x(), 0.0, 1.0);
-  const double y = std::clamp(sample.y(), 0.0, 1.0);
 
-  if (weights.local > 0.0 && selector < weights.local) {
-    const double remappedX = selector / weights.local;
-    render::MaterialBsdfSample result =
-      PhongMaterial::sampleBsdf(hitPoint, wi, Vector2d(remappedX, y));
-    result.pdf = bsdfPdf(hitPoint, wi, result.direction);
-    return result;
-  }
-
-  const double reflectionLimit = weights.local + weights.reflection;
-  if (weights.reflection > 0.0 && selector < reflectionLimit) {
+  if (weights.reflection > 0.0 && selector < weights.reflection) {
     return sampleReflectionBsdf(hitPoint, wi, weights.reflection);
   }
 
@@ -118,15 +108,15 @@ render::MaterialBsdfSample TransparentMaterial::sampleBsdf(const HitPoint& hitPo
     return sampleTransmissionBsdf(hitPoint, wi, weights.transmission);
   }
 
-  return PhongMaterial::sampleBsdf(hitPoint, wi, Vector2d(selector, y));
+  return MaterialBsdfSample();
 }
 
 double TransparentMaterial::bsdfPdf(const HitPoint& hitPoint, const Vector3d& wi,
                                     const Vector3d& wo) const {
-  const Rayd incidentRay(hitPoint.point(), -wi);
-  const BsdfSamplingWeights weights =
-    bsdfSamplingWeights(m_specularBTDF.totalInternalReflection(incidentRay, hitPoint));
-  return weights.local * PhongMaterial::bsdfPdf(hitPoint, wi, wo);
+  (void)hitPoint;
+  (void)wi;
+  (void)wo;
+  return 0.0;
 }
 
 TransparentMaterial::BsdfSamplingWeights
@@ -135,14 +125,13 @@ TransparentMaterial::bsdfSamplingWeights(bool totalInternalReflection) const {
     return BsdfSamplingWeights{0.0, 1.0, 0.0};
   }
 
-  const double local = std::max(0.0, diffuseCoefficient()) + std::max(0.0, specularCoefficient());
   const double reflection = std::max(0.0, reflectionCoefficient());
   const double transmission = std::max(0.0, transmissionCoefficient());
-  const double total = local + reflection + transmission;
+  const double total = reflection + transmission;
   if (total <= 0.0) {
-    return BsdfSamplingWeights{1.0, 0.0, 0.0};
+    return BsdfSamplingWeights{0.0, 0.0, 0.0};
   }
-  return BsdfSamplingWeights{local / total, reflection / total, transmission / total};
+  return BsdfSamplingWeights{0.0, reflection / total, transmission / total};
 }
 
 render::MaterialBsdfSample TransparentMaterial::sampleReflectionBsdf(const HitPoint& hitPoint,

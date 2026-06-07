@@ -20,11 +20,21 @@ namespace render {
     */
   class RegularSampler : public Sampler {
   public:
+    Vector2d sampleForDimension(int sampleIndex, uint64_t pixelHash,
+                                uint64_t dimension) const override;
     std::shared_ptr<SampleStream> sharedStream(int sampleIndex, uint64_t pixelHash) const override;
     SampleStream* appendStream(SampleStreamStorage& storage, int sampleIndex,
                                uint64_t pixelHash) const override;
 
   protected:
     std::vector<Vector2d> generateSet() override;
+
+  private:
+    bool shouldScrambleDimension(uint64_t dimension) const;
+    Vector2d scrambledPathDimensionSample(int sampleIndex, uint64_t pixelHash,
+                                          uint64_t dimension) const;
+    double scrambledOffset(int sampleIndex, uint64_t pixelHash, uint64_t dimension,
+                           uint64_t axis) const;
+    double wrapUnitInterval(double value) const;
   };
 }

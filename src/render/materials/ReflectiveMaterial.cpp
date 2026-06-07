@@ -1,12 +1,10 @@
 #include "render/RayCaster.h"
 #include "render/State.h"
 #include "render/materials/ReflectiveMaterial.h"
-#include "render/State.h"
-#include "render/RayCaster.h"
 #include "core/math/HitPoint.h"
 #include "core/math/Ray.h"
 
-#include <algorithm>
+#include <cmath>
 
 using namespace render;
 
@@ -55,36 +53,22 @@ Colord ReflectiveMaterial::evalBsdf(const HitPoint& hitPoint, const Vector3d& wi
 
 render::MaterialBsdfSample ReflectiveMaterial::sampleBsdf(const HitPoint& hitPoint,
                                                           const Vector3d& wi,
-                                                          const Vector2d& sample) const {
+                                                          const Vector2d&) const {
   render::MaterialBsdfSample result;
-  const double reflectionWeight = reflectionSamplingWeight();
-  const double localWeight = 1.0 - reflectionWeight;
-  const double selector = std::clamp(sample.x(), 0.0, 1.0);
-  const double y = std::clamp(sample.y(), 0.0, 1.0);
-
-  if (reflectionWeight > 0.0 && (localWeight == 0.0 || selector >= localWeight)) {
-    result.direction = (-wi).reflect(hitPoint.normal()).normalized();
-    result.value = reflectionColor() * (reflectionCoefficient() / reflectionWeight);
-    result.pdf = 1.0;
-    result.isDelta = true;
+  if (reflectionCoefficient() <= 0.0 || reflectionColor() == Colord::black()) {
     return result;
   }
 
-  const double remappedX = localWeight > 0.0 ? selector / localWeight : selector;
-  result = PhongMaterial::sampleBsdf(hitPoint, wi, Vector2d(remappedX, y));
-  result.pdf = bsdfPdf(hitPoint, wi, result.direction);
+  Vector3d direction;
+  const Colord reflected = m_reflectiveBRDF.sample(hitPoint, wi, direction);
+  const double reflectionScale = std::fabs(hitPoint.normal() * direction);
+  result.direction = direction.normalized();
+  result.value = reflected * reflectionScale;
+  result.pdf = 1.0;
+  result.isDelta = true;
   return result;
 }
 
-double ReflectiveMaterial::bsdfPdf(const HitPoint& hitPoint, const Vector3d& wi,
-                                   const Vector3d& wo) const {
-  const double localWeight = 1.0 - reflectionSamplingWeight();
-  return localWeight * PhongMaterial::bsdfPdf(hitPoint, wi, wo);
-}
-
-double ReflectiveMaterial::reflectionSamplingWeight() const {
-  const double local = std::max(0.0, diffuseCoefficient()) + std::max(0.0, specularCoefficient());
-  const double reflection = std::max(0.0, reflectionCoefficient());
-  const double total = local + reflection;
-  return total <= 0.0 ? 0.0 : reflection / total;
+double ReflectiveMaterial::bsdfPdf(const HitPoint&, const Vector3d&, const Vector3d&) const {
+  return 0.0;
 }

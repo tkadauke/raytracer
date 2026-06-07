@@ -463,6 +463,8 @@ namespace render {
         break;
       }
 
+      accumulated += throughput * material->ambientRadiance(scene, ray, hitPoint);
+
       // Direct lighting via NEE.
       for (const auto& light : scene.lights()) {
         accumulated += throughput * directLighting(scene, *light, hitPoint, *material, wi, state);
@@ -593,6 +595,9 @@ namespace render {
             recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
             continue;
           }
+
+          path.accumulated() +=
+            path.throughput * material->ambientRadiance(scene, path.ray, hit.hitPoint);
 
           for (const auto& light : scene.lights()) {
             path.accumulated() += path.throughput * directLighting(scene, *light, hit.hitPoint,

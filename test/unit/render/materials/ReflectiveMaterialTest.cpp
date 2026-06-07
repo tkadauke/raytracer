@@ -70,6 +70,23 @@ namespace ReflectiveMaterialTest {
     EXPECT_NEAR(0.0, sampled.direction.z(), 1e-12);
   }
 
+  TEST(ReflectiveMaterial, SamplesMirrorReflectionEvenWhenLocalPhongIsPresent) {
+    ReflectiveMaterial material(std::make_shared<ConstantColorTexture>(Colord::white()));
+    material.setDiffuseCoefficient(1.0);
+    material.setSpecularCoefficient(1.0);
+    material.setReflectionColor(Colord(0, 1, 0));
+    material.setReflectionCoefficient(0.25);
+    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+
+    const MaterialBsdfSample sampled =
+      material.sampleBsdf(hitPoint, Vector3d(0, 1, 0), Vector2d(0.0, 0.5));
+
+    EXPECT_TRUE(sampled.isDelta);
+    EXPECT_DOUBLE_EQ(1.0, sampled.pdf);
+    ASSERT_COLOR_NEAR(Colord(0, 0.25, 0), sampled.value, 1e-12);
+    EXPECT_DOUBLE_EQ(0.0, material.bsdfPdf(hitPoint, Vector3d(0, 1, 0), sampled.direction));
+  }
+
   TEST(ReflectiveMaterial, ShouldDescribeRasterRecursiveFallback) {
     ReflectiveMaterial material;
     ASSERT_EQ(Material::RasterRecursiveFallback::ReflectiveLocalPhong,

@@ -191,14 +191,11 @@ namespace PathTracingIntegratorTest {
     // come from the integrator's NEE direct-lighting step.
     std::unique_ptr<Scene> simpleMatteScene(double ambient, const Colord& diffuse) {
       auto scene = std::make_unique<Scene>(Colord::black());
-      scene->setAmbient(Colord::black());
-      // Stash ambient on the scene so tests can verify the path tracer
-      // does NOT add an extra ambient term (unlike Whitted).
-      (void)ambient;
+      scene->setAmbient(Colord(ambient, ambient, ambient));
 
       auto texture = std::make_shared<ConstantColorTexture>(diffuse);
       auto material = std::make_shared<MatteMaterial>(texture);
-      material->setAmbientCoefficient(0.0); // path tracer ignores this anyway
+      material->setAmbientCoefficient(0.0);
       material->setDiffuseCoefficient(1.0);
 
       auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
@@ -210,6 +207,24 @@ namespace PathTracingIntegratorTest {
       // directly overhead has direction (0, 1, 0).
       auto light = std::make_shared<DirectionalLight>(Vector3d(0, 1, 0), Colord::white());
       scene->addLight(light);
+
+      return scene;
+    }
+
+    std::unique_ptr<Scene> ambientOnlyMatteScene(const Colord& ambient, const Colord& diffuse,
+                                                 double ambientCoefficient) {
+      auto scene = std::make_unique<Scene>(Colord::black());
+      scene->setAmbient(ambient);
+      scene->setBackground(Colord::black());
+
+      auto texture = std::make_shared<ConstantColorTexture>(diffuse);
+      auto material = std::make_shared<MatteMaterial>(texture);
+      material->setAmbientCoefficient(ambientCoefficient);
+      material->setDiffuseCoefficient(0.0);
+
+      auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
+      plane->setMaterial(material);
+      scene->add(plane);
 
       return scene;
     }
@@ -387,6 +402,35 @@ namespace PathTracingIntegratorTest {
     const Colord pixel = traceWithSampleStream(integrator, *scene, 1234ull, 0);
 
     ASSERT_COLOR_NEAR(Colord(0.8, 0.8, 0.8), pixel, 1e-12);
+  }
+
+  TEST(PathTracingIntegrator, AddsMaterialAmbientRadianceForLegacySceneCompatibility) {
+    auto scene = ambientOnlyMatteScene(Colord(0.25, 0.5, 1.0), Colord(0.8, 0.4, 0.2),
+                                       /*ambientCoefficient=*/0.5);
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+
+    const Colord pixel = traceWithSampleStream(integrator, *scene, 1234ull, 0);
+
+    ASSERT_COLOR_NEAR(Colord(0.1, 0.1, 0.1), pixel, 1e-12);
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadianceAddsMaterialAmbientRadiance) {
+    auto scene = ambientOnlyMatteScene(Colord(0.25, 0.5, 1.0), Colord(0.8, 0.4, 0.2),
+                                       /*ambientCoefficient=*/0.5);
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 11ull)});
+
+    FallbackRayCaster caster;
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster);
+
+    ASSERT_EQ(1u, batched.size());
+    ASSERT_COLOR_NEAR(Colord(0.1, 0.1, 0.1), batched[0], 1e-12);
   }
 
   TEST(PathTracingIntegrator, PrimaryMissReturnsBackgroundColor) {

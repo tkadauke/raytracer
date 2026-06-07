@@ -275,6 +275,18 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Path tracing ambient compatibility.** BSDF-capable path-traced materials now
+  contribute their authored scene-ambient term, bringing legacy-scene brightness
+  closer to the Whitted raytracer while preserving sampled direct and indirect
+  transport. — GPT-5
+- **Path tracing recursive-material compatibility.** Reflective and transparent
+  materials now keep local Phong as a local/direct term in the path tracer and
+  sample only mirror/refraction continuations recursively, avoiding opaque
+  glossy artifacts in legacy glass scenes. — GPT-5
+- **Regular sampler path-tracing dimensions.** `RegularSampler` now keeps
+  camera dimensions regular while scrambling BSDF/light/continuation dimensions
+  per pixel, preventing low-sample path-traced glass from choosing the same
+  recursive branch across the whole image. — GPT-5
 - **Path tracing environment radiance.** Path tracing now treats scene background
   as visible miss color for camera/specular paths only; diffuse and glossy
   indirect bounces gather explicit scene environment radiance, which defaults to

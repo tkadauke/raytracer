@@ -178,6 +178,9 @@ namespace render {
       return true;
     }
 
+    Colord ambientRadiance(const render::Scene& scene, const Rayd& ray,
+                           const HitPoint& hitPoint) const override;
+
     Colord evalBsdf(const HitPoint& hitPoint, const Vector3d& wi,
                     const Vector3d& wo) const override;
 

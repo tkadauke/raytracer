@@ -27,35 +27,34 @@ namespace render {
   }
 
   Vector2d SamplerSampleStream::next2D() {
-    const auto& set = sampleSetForDimension(m_dim);
+    const Vector2d sample = sampleForDimension(m_dim);
     ++m_dim;
-    return set[m_sampleIndex];
+    return sample;
   }
 
   double SamplerSampleStream::next1D() {
-    const auto& set = sampleSetForDimension(m_dim);
+    const Vector2d sample = sampleForDimension(m_dim);
     ++m_dim;
-    return set[m_sampleIndex].x();
+    return sample.x();
   }
 
   SampleStream::PrimarySample SamplerSampleStream::primarySample() {
-    const auto& pixelSet = sampleSetForDimension(m_dim);
-    const auto& timeSet = sampleSetForDimension(m_dim + 1);
+    const Vector2d pixelSample = sampleForDimension(m_dim);
+    const Vector2d timeSample = sampleForDimension(m_dim + 1);
     m_dim += 2;
-    return SampleStream::PrimarySample{pixelSet[m_sampleIndex], timeSet[m_sampleIndex].x()};
+    return SampleStream::PrimarySample{pixelSample, timeSample.x()};
   }
 
   Vector2d SamplerSampleStream::sample2D(SampleDimension dimension, std::uint64_t index) {
-    return sampleSetForDimension(sampleDimensionIndex(dimension, index))[m_sampleIndex];
+    return sampleForDimension(sampleDimensionIndex(dimension, index));
   }
 
   double SamplerSampleStream::sample1D(SampleDimension dimension, std::uint64_t index) {
-    return sampleSetForDimension(sampleDimensionIndex(dimension, index))[m_sampleIndex].x();
+    return sampleForDimension(sampleDimensionIndex(dimension, index)).x();
   }
 
-  const std::vector<Vector2d>&
-  SamplerSampleStream::sampleSetForDimension(std::uint64_t dimension) const {
-    return m_sampler->setAt((m_pixelHash + dimension) % m_sampler->numSets());
+  Vector2d SamplerSampleStream::sampleForDimension(std::uint64_t dimension) const {
+    return m_sampler->sampleForDimension(m_sampleIndex, m_pixelHash, dimension);
   }
 
   void SampleStreamStorage::reserve(std::size_t count) {
@@ -108,6 +107,12 @@ namespace render {
 
   std::unique_ptr<SampleStream> Sampler::stream(int sampleIndex, std::uint64_t pixelHash) const {
     return std::make_unique<SamplerSampleStream>(*this, sampleIndex, pixelHash);
+  }
+
+  Vector2d Sampler::sampleForDimension(int sampleIndex, std::uint64_t pixelHash,
+                                       std::uint64_t dimension) const {
+    const auto& set = setAt((pixelHash + dimension) % numSets());
+    return set[sampleIndex];
   }
 
   std::shared_ptr<SampleStream> Sampler::sharedStream(int sampleIndex,

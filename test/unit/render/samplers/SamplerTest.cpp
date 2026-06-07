@@ -355,6 +355,50 @@ namespace SamplerTest {
     ASSERT_DOUBLE_EQ(8.0 / 100.0, stream->sample1D(SampleDimension::Continuation, 1));
   }
 
+  TEST(RegularSampler, CameraDimensionsRemainRegularAcrossPixels) {
+    RegularSampler sampler;
+    sampler.setup(1, 8);
+
+    auto first = sampler.stream(/*sampleIndex=*/0, /*pixelHash=*/0);
+    auto second = sampler.stream(/*sampleIndex=*/0, /*pixelHash=*/17);
+
+    ASSERT_EQ(Vector2d(0.5, 0.5), first->sample2D(SampleDimension::Pixel));
+    ASSERT_DOUBLE_EQ(0.5, first->sample1D(SampleDimension::Time));
+    ASSERT_EQ(Vector2d(0.5, 0.5), first->sample2D(SampleDimension::Lens));
+
+    ASSERT_EQ(Vector2d(0.5, 0.5), second->sample2D(SampleDimension::Pixel));
+    ASSERT_DOUBLE_EQ(0.5, second->sample1D(SampleDimension::Time));
+    ASSERT_EQ(Vector2d(0.5, 0.5), second->sample2D(SampleDimension::Lens));
+  }
+
+  TEST(RegularSampler, PathTracingDimensionsAreScrambledAcrossPixels) {
+    RegularSampler sampler;
+    sampler.setup(1, 8);
+
+    auto first = sampler.stream(/*sampleIndex=*/0, /*pixelHash=*/0);
+    auto second = sampler.stream(/*sampleIndex=*/0, /*pixelHash=*/17);
+
+    const Vector2d firstBsdf = first->sample2D(SampleDimension::BSDF);
+    const Vector2d secondBsdf = second->sample2D(SampleDimension::BSDF);
+
+    EXPECT_NE(Vector2d(0.5, 0.5), firstBsdf);
+    EXPECT_NE(Vector2d(0.5, 0.5), secondBsdf);
+    EXPECT_NE(firstBsdf, secondBsdf);
+  }
+
+  TEST(RegularSampler, PathTracingDimensionScrambleIsStable) {
+    RegularSampler sampler;
+    sampler.setup(1, 8);
+
+    auto first = sampler.stream(/*sampleIndex=*/0, /*pixelHash=*/17);
+    auto second = sampler.stream(/*sampleIndex=*/0, /*pixelHash=*/17);
+
+    EXPECT_EQ(first->sample2D(SampleDimension::BSDF, 2),
+              second->sample2D(SampleDimension::BSDF, 2));
+    EXPECT_DOUBLE_EQ(first->sample1D(SampleDimension::Continuation, 3),
+                     second->sample1D(SampleDimension::Continuation, 3));
+  }
+
   TEST(SamplerStream, NamedDimensionReadsDoNotAdvanceSequentialCursor) {
     IndexedSampler sampler;
     sampler.setup(4, 8);

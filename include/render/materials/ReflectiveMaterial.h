@@ -163,8 +163,5 @@ namespace render {
 
   protected:
     render::PerfectSpecular m_reflectiveBRDF;
-
-  private:
-    double reflectionSamplingWeight() const;
   };
 }

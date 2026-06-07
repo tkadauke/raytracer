@@ -32,7 +32,7 @@ namespace render {
     double sample1D(SampleDimension dimension, std::uint64_t index = 0) override;
 
   private:
-    const std::vector<Vector2d>& sampleSetForDimension(std::uint64_t dimension) const;
+    Vector2d sampleForDimension(std::uint64_t dimension) const;
 
     const Sampler* m_sampler;
     int m_sampleIndex;
@@ -133,6 +133,16 @@ namespace render {
     inline const std::vector<Vector2d>& setAt(int i) const {
       return m_sampleSets[i];
     }
+
+    /**
+      * Returns one sample from the stream-owned dimension lookup. The default
+      * uses the pre-generated set `(pixelHash + dimension) mod numSets` at
+      * `sampleIndex`. Samplers can override this when a dimension needs
+      * sequence-aware scrambling while preserving the public `SampleStream`
+      * contract.
+      */
+    virtual Vector2d sampleForDimension(int sampleIndex, std::uint64_t pixelHash,
+                                        std::uint64_t dimension) const;
 
     /**
       * Returns a `SampleStream` for the given primary-ray sample at a

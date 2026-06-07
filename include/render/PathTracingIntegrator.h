@@ -37,13 +37,14 @@ namespace render {
     *     terminate.
     *  3. Material doesn't support BSDF sampling → fall back to
     *     `Material::shade(...)` (Whitted compatibility), terminate.
-    *  4. Direct lighting (next-event estimation): for each light, draw
+    *  4. Add the material's compatibility ambient radiance.
+    *  5. Direct lighting (next-event estimation): for each light, draw
     *     a `LightSample`, shadow-test, accumulate
     *     `throughput · BSDF.eval(wi, wo_light) · L_i / pdf_light`.
-    *  5. Indirect: `Material::sampleBsdf(...)` for the next direction
+    *  6. Indirect: `Material::sampleBsdf(...)` for the next direction
     *     and BSDF value, update `throughput · value / pdf · |cos|`,
     *     advance the ray.
-    *  6. Russian roulette beyond `russianRouletteDepth()` — terminate
+    *  7. Russian roulette beyond `russianRouletteDepth()` — terminate
     *     with probability `1 - throughput.max()`; otherwise rescale
     *     throughput to compensate.
     *
