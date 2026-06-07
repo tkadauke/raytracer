@@ -36,6 +36,12 @@ namespace engine::graph {
       SceneSurfaceMarker{std::move(surfaceId), std::move(surfaceName)});
   }
 
+  void RenderSceneAnalysis::recordRenderTextureReceiver(std::string subviewName) {
+    if (!subviewName.empty()) {
+      m_renderTextureSubviewReceivers.insert(std::move(subviewName));
+    }
+  }
+
   bool RenderSceneAnalysis::hasKnownVisibleSurfaceCount() const {
     return m_visibleSurfaceCount.has_value();
   }
@@ -68,6 +74,10 @@ namespace engine::graph {
   const std::vector<RenderSceneAnalysis::SceneSurfaceMarker>&
   RenderSceneAnalysis::planarMirrorSurfaces() const {
     return m_planarMirrorSurfaces;
+  }
+
+  const std::set<std::string>& RenderSceneAnalysis::renderTextureSubviewReceivers() const {
+    return m_renderTextureSubviewReceivers;
   }
 
   bool RenderSceneAnalysis::hasVisibleSurfaces() const {

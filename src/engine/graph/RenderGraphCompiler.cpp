@@ -10,6 +10,7 @@
 #include <cctype>
 #include <cstddef>
 #include <memory>
+#include <map>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -466,6 +467,9 @@ namespace engine::graph {
     const RenderTargetSpec target = rawTarget.normalized();
     const RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
     frameIntent.requireWholeFrameOnly("RenderGraphCompiler");
+    if (renderToTextureDepth == 0) {
+      validateSubviewReceivers(frameIntent, sceneAnalysis);
+    }
 
     if (frameIntent.defaultViewMode == RenderViewMode::StencilComposite) {
       RenderPlan plan = compileStencilCompositeView(target, frameIntent);
@@ -653,6 +657,50 @@ namespace engine::graph {
       }
       for (const auto& pass : prefixed.passes()) {
         plan.addPass(pass);
+      }
+    }
+  }
+
+  void RenderGraphCompiler::validateSubviewReceivers(
+    const RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis) const {
+    const auto& receivers = sceneAnalysis.renderTextureSubviewReceivers();
+    if (receivers.empty()) {
+      return;
+    }
+
+    std::map<std::string, std::size_t> subviewCounts;
+    for (const auto& subview : intent.subviews) {
+      if (!subview.name.empty()) {
+        ++subviewCounts[subview.name];
+      }
+    }
+
+    for (const auto& subview : intent.subviews) {
+      if (!subview.name.empty() && subviewCounts[subview.name] > 1) {
+        throw std::runtime_error("RenderGraphCompiler render-to-texture subview name '" +
+                                 subview.name + "' is not unique");
+      }
+    }
+
+    for (const auto& receiver : receivers) {
+      const auto found = subviewCounts.find(receiver);
+      if (found == subviewCounts.end()) {
+        throw std::runtime_error("RenderGraphCompiler render-to-texture receiver references "
+                                 "unknown subview '" +
+                                 receiver + "'");
+      }
+      if (intent.maxRenderToTextureRecursionDepth > 0) {
+        const auto matchingSubview =
+          std::find_if(intent.subviews.begin(), intent.subviews.end(),
+                       [&receiver](const RenderSubviewIntent& subview) {
+                         return subview.name == receiver;
+                       });
+        if (matchingSubview != intent.subviews.end() &&
+            matchingSubview->view.selector.selectsWholeFrame()) {
+          throw std::runtime_error("RenderGraphCompiler render-to-texture receiver for subview '" +
+                                   receiver +
+                                   "' is cyclic because that subview renders the whole scene");
+        }
       }
     }
   }

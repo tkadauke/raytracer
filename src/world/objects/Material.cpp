@@ -1,6 +1,7 @@
 #include "world/objects/Material.h"
 #include "world/objects/MatteMaterial.h"
 
+#include "engine/graph/RenderSceneAnalysis.h"
 #include "render/materials/Material.h"
 
 Material* Material::defaultMaterial() {
@@ -37,6 +38,19 @@ void Material::setSidednessName(const QString& sidedness) {
   } else {
     setSidedness(Sidedness::TwoSided);
   }
+}
+
+const QString& Material::renderTextureSubview() const {
+  return m_renderTextureSubview;
+}
+
+void Material::setRenderTextureSubview(const QString& subviewName) {
+  m_renderTextureSubview = subviewName.trimmed();
+}
+
+void Material::contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const {
+  analysis.recordRenderTextureReceiver(m_renderTextureSubview.toStdString());
+  Element::contributeToRenderGraphAnalysis(analysis);
 }
 
 void Material::applyMaterialProperties(const std::shared_ptr<render::Material>& material) const {

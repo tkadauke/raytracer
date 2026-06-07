@@ -14,10 +14,19 @@
 Surface::Surface(Element* parent)
     : Transformable(parent),
       m_material(nullptr),
+      m_renderTextureSubview(),
       m_visible(true),
       m_velocity(Vector3d::null),
       m_portalReceiverMarker(false),
       m_planarMirrorMarker(false) {
+}
+
+const QString& Surface::renderTextureSubview() const {
+  return m_renderTextureSubview;
+}
+
+void Surface::setRenderTextureSubview(const QString& subviewName) {
+  m_renderTextureSubview = subviewName.trimmed();
 }
 
 std::shared_ptr<render::Primitive>
@@ -100,6 +109,7 @@ void Surface::contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis
   if (planarMirrorMarker()) {
     analysis.recordPlanarMirrorSurface(id().toStdString(), name().toStdString());
   }
+  analysis.recordRenderTextureReceiver(m_renderTextureSubview.toStdString());
   Element::contributeToRenderGraphAnalysis(analysis);
 }
 
