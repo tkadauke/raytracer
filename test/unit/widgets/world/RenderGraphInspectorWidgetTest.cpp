@@ -168,6 +168,105 @@ namespace RenderGraphInspectorWidgetTest {
     return plan;
   }
 
+  RenderPlan renderTextureScreenPlan() {
+    RenderPlan plan;
+
+    RenderResourceDescriptor subviewColor;
+    subviewColor.id = "subview_monitor_feed_main_color";
+    subviewColor.name = "Monitor feed main color";
+    subviewColor.type = RenderResourceType::Color;
+    subviewColor.format = RenderResourceFormat::RGBDouble;
+    subviewColor.width = 64;
+    subviewColor.height = 48;
+    subviewColor.sampleCount = 1;
+    subviewColor.lifetime = RenderResourceLifetime::Exported;
+    subviewColor.features = {"subview", "subview_monitor_feed", "render_to_texture",
+                             "subview_output", "subview_color_output",
+                             "subview_name:monitor_feed"};
+    plan.addResource(subviewColor);
+
+    RenderResourceDescriptor subviewDepth;
+    subviewDepth.id = "subview_monitor_feed_depth_aov";
+    subviewDepth.name = "Monitor feed depth AOV";
+    subviewDepth.type = RenderResourceType::Depth;
+    subviewDepth.format = RenderResourceFormat::DepthDouble;
+    subviewDepth.width = 64;
+    subviewDepth.height = 48;
+    subviewDepth.sampleCount = 1;
+    subviewDepth.lifetime = RenderResourceLifetime::Exported;
+    subviewDepth.features = {"subview", "subview_monitor_feed", "render_to_texture",
+                             "subview_output", "subview_depth_output",
+                             "subview_name:monitor_feed"};
+    plan.addResource(subviewDepth);
+
+    RenderResourceDescriptor beauty;
+    beauty.id = "beauty_color";
+    beauty.name = "Beauty color";
+    beauty.type = RenderResourceType::Color;
+    beauty.format = RenderResourceFormat::RGBDouble;
+    beauty.width = 64;
+    beauty.height = 48;
+    beauty.sampleCount = 1;
+    beauty.lifetime = RenderResourceLifetime::Transient;
+    plan.addResource(beauty);
+
+    RenderResourceDescriptor display;
+    display.id = "main_color";
+    display.name = "Main color";
+    display.type = RenderResourceType::Color;
+    display.format = RenderResourceFormat::RGBDouble;
+    display.width = 64;
+    display.height = 48;
+    display.sampleCount = 1;
+    display.lifetime = RenderResourceLifetime::Exported;
+    plan.addResource(display);
+
+    RenderPassNode subviewBeauty;
+    subviewBeauty.id = "subview_monitor_feed_raster_beauty";
+    subviewBeauty.name = "Monitor feed Raster beauty";
+    subviewBeauty.kind = RenderPassKind::Beauty;
+    subviewBeauty.executor = RenderExecutorKind::Rasterizer;
+    subviewBeauty.features = {"subview", "subview_monitor_feed", "render_to_texture",
+                              "subview_name:monitor_feed"};
+    subviewBeauty.writes.push_back({"subview_monitor_feed_main_color"});
+    subviewBeauty.disabledBehavior = DisabledBehavior::Error;
+    plan.addPass(subviewBeauty);
+
+    RenderPassNode subviewDepthPass;
+    subviewDepthPass.id = "subview_monitor_feed_depth_aov";
+    subviewDepthPass.name = "Monitor feed Depth AOV";
+    subviewDepthPass.kind = RenderPassKind::AOV;
+    subviewDepthPass.executor = RenderExecutorKind::Rasterizer;
+    subviewDepthPass.features = {"subview", "subview_monitor_feed", "render_to_texture",
+                                 "subview_name:monitor_feed"};
+    subviewDepthPass.writes.push_back({"subview_monitor_feed_depth_aov"});
+    subviewDepthPass.disabledBehavior = DisabledBehavior::SubstituteDefault;
+    plan.addPass(subviewDepthPass);
+
+    RenderPassNode finalBeauty;
+    finalBeauty.id = "raytrace_beauty";
+    finalBeauty.name = "Raytraced beauty";
+    finalBeauty.kind = RenderPassKind::Beauty;
+    finalBeauty.executor = RenderExecutorKind::Raytracer;
+    finalBeauty.reads.push_back({"subview_monitor_feed_main_color"});
+    finalBeauty.reads.push_back({"subview_monitor_feed_depth_aov"});
+    finalBeauty.writes.push_back({"beauty_color"});
+    finalBeauty.disabledBehavior = DisabledBehavior::Error;
+    plan.addPass(finalBeauty);
+
+    RenderPassNode tonemap;
+    tonemap.id = "tonemap";
+    tonemap.name = "Tone map";
+    tonemap.kind = RenderPassKind::Tonemap;
+    tonemap.executor = RenderExecutorKind::PostProcess;
+    tonemap.reads.push_back({"beauty_color"});
+    tonemap.writes.push_back({"main_color"});
+    tonemap.disabledBehavior = DisabledBehavior::Passthrough;
+    plan.addPass(tonemap);
+
+    return plan;
+  }
+
   RenderPlan featureGroupPlan() {
     RenderPlan plan = twoPassPlan();
 
@@ -481,6 +580,53 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_NE(nullptr, graphItem(graph->scene(), "pass", "raytrace_beauty"));
     EXPECT_NE(nullptr, graphItem(graph->scene(), "pass", "tonemap"));
     EXPECT_NE(nullptr, graphItem(graph->scene(), "resource", "beauty_color"));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowRenderToTextureScreenBranch) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(renderTextureScreenPlan());
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    auto* resources = widget.findChild<QTreeWidget*>("renderGraphResources");
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, resources);
+
+    auto* subviewPass =
+      graphNodeItem(graph->scene(), "pass", "subview_monitor_feed_raster_beauty");
+    auto* subviewColor =
+      graphNodeItem(graph->scene(), "resource", "subview_monitor_feed_main_color");
+    auto* subviewDepth =
+      graphNodeItem(graph->scene(), "resource", "subview_monitor_feed_depth_aov");
+    auto* finalBeauty = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
+    ASSERT_NE(nullptr, subviewPass);
+    ASSERT_NE(nullptr, subviewColor);
+    ASSERT_NE(nullptr, subviewDepth);
+    ASSERT_NE(nullptr, finalBeauty);
+
+    EXPECT_TRUE(subviewPass->toolTip().contains("Pass ID: subview_monitor_feed_raster_beauty"));
+    EXPECT_TRUE(subviewColor->toolTip().contains("Resource ID: subview_monitor_feed_main_color"));
+    EXPECT_TRUE(subviewDepth->toolTip().contains("Resource ID: subview_monitor_feed_depth_aov"));
+    EXPECT_TRUE(finalBeauty->toolTip().contains("Reads: Monitor feed main color"));
+    EXPECT_TRUE(finalBeauty->toolTip().contains("Monitor feed depth AOV"));
+    EXPECT_TRUE(finalBeauty->toolTip().contains("Incoming dependencies: Monitor feed Raster beauty"));
+    EXPECT_TRUE(finalBeauty->toolTip().contains("Monitor feed Depth AOV"));
+
+    bool sawSubviewColorRow = false;
+    bool sawSubviewDepthRow = false;
+    for (int row = 0; row != resources->topLevelItemCount(); ++row) {
+      QTreeWidgetItem* item = resources->topLevelItem(row);
+      if (item->toolTip(0) == QStringLiteral("subview_monitor_feed_main_color")) {
+        sawSubviewColorRow = true;
+        EXPECT_EQ(QString("Monitor feed Raster beauty"), item->text(1));
+        EXPECT_EQ(QString("Raytraced beauty"), item->text(2));
+      } else if (item->toolTip(0) == QStringLiteral("subview_monitor_feed_depth_aov")) {
+        sawSubviewDepthRow = true;
+        EXPECT_EQ(QString("Monitor feed Depth AOV"), item->text(1));
+        EXPECT_EQ(QString("Raytraced beauty"), item->text(2));
+      }
+    }
+    EXPECT_TRUE(sawSubviewColorRow);
+    EXPECT_TRUE(sawSubviewDepthRow);
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldPlaceResourceBetweenConnectedPassNodes) {
