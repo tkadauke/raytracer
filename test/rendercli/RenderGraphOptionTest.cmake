@@ -1795,6 +1795,18 @@ foreach(variance_name
                     "${wavefront_metrics_stdout}" "" "" "")
   endif()
 endforeach()
+foreach(emitter_name
+        emitter_hit_samples
+        primary_emitter_hit_samples
+        delta_emitter_hit_samples
+        bsdf_emitter_hit_samples
+        mis_weighted_emitter_hit_samples)
+  if(NOT wavefront_metrics_stdout MATCHES "${emitter_name}=")
+    _rendercli_fail("rendercli wavefront metrics ${emitter_name} summary"
+                    "wavefront metrics summary did not contain ${emitter_name}"
+                    "${wavefront_metrics_stdout}" "" "" "")
+  endif()
+endforeach()
 foreach(adaptive_name
         adaptive
         adaptive_min_samples

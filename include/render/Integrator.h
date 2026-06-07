@@ -46,6 +46,11 @@ namespace render {
     std::vector<double> radianceDeltaSquaredSumPerDepth;
     std::vector<double> maxRadianceDeltaPerDepth;
     std::uint64_t compatibilityShadeSamples{0};
+    std::uint64_t emitterHitSamples{0};
+    std::uint64_t primaryEmitterHitSamples{0};
+    std::uint64_t deltaEmitterHitSamples{0};
+    std::uint64_t bsdfEmitterHitSamples{0};
+    std::uint64_t misWeightedEmitterHitSamples{0};
     bool stoppedByConvergence{false};
     std::uint64_t stoppedAfterDepth{0};
     double intersectionWorkerSeconds{0.0};
@@ -69,6 +74,7 @@ namespace render {
     void recordPacketScalarFallbacksByReason(const std::map<std::string, std::uint64_t>& reasons);
     void recordPacketHitRefinement(const std::string& materialLabel);
     void recordRadianceDeltaDepth(double squaredSum, double maxDelta);
+    void recordEmitterHit(bool sampledFromBsdf, bool bsdfSampleDelta, bool misWeighted);
   };
 
   struct IntegratorBatchFeedback {

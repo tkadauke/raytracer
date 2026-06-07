@@ -242,7 +242,9 @@ compact summary prints total `tiles`, `tile_grid`,
 `frontier_packet_scalar_fallback_rays`,
 `frontier_packet_scalar_fallback_by_reason`, `frontier_packet_refined_rays`,
 `frontier_packet_refined_by_material`, `sample_variance_pixels`,
-`sample_stddev_rms`, `max_sample_stddev`, `adaptive`,
+`sample_stddev_rms`, `max_sample_stddev`, `emitter_hit_samples`,
+`primary_emitter_hit_samples`, `delta_emitter_hit_samples`,
+`bsdf_emitter_hit_samples`, `mis_weighted_emitter_hit_samples`, `adaptive`,
 `adaptive_min_samples`, `adaptive_stddev_threshold`,
 `adaptive_max_samples`, `adaptive_skipped_samples`, and
 `adaptive_skipped_fraction`.
@@ -260,6 +262,9 @@ breakdown and
 also includes `sampleVariancePixelArea`, `sampleRadianceStddevRms`, and
 `maxSampleRadianceStddev`, which measure disagreement between samples of the
 same pixel and complement the between-depth radiance-delta convergence fields.
+The emitter-hit counters split visible emitter contributions into primary
+camera hits, delta/specular continuation hits, finite BSDF continuation hits,
+and the subset that were MIS-weighted against light sampling.
 `--wavefront_sample_stddev_out FILE` writes a grayscale image of the same
 per-pixel sample radiance standard-deviation data. In graph-backed renders this
 requests the `sample_stddev` AOV and exports its preview image; in

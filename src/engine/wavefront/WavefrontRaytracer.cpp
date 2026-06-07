@@ -75,6 +75,11 @@ namespace engine::wavefront {
     const render::IntegratorBatchMetrics& metrics) {
     activeSampleDepthsProcessed += metrics.activeSampleDepthsProcessed;
     compatibilityShadeSamples += metrics.compatibilityShadeSamples;
+    emitterHitSamples += metrics.emitterHitSamples;
+    primaryEmitterHitSamples += metrics.primaryEmitterHitSamples;
+    deltaEmitterHitSamples += metrics.deltaEmitterHitSamples;
+    bsdfEmitterHitSamples += metrics.bsdfEmitterHitSamples;
+    misWeightedEmitterHitSamples += metrics.misWeightedEmitterHitSamples;
 
     const auto addCounts = [](std::vector<std::uint64_t>& target,
                               const std::vector<std::uint64_t>& source) {
@@ -217,6 +222,13 @@ namespace engine::wavefront {
       static_cast<double>(batching.activeSampleDepthsProcessed);
     batchingJson["compatibilityShadeSamples"] =
       static_cast<double>(batching.compatibilityShadeSamples);
+    batchingJson["emitterHitSamples"] = static_cast<double>(batching.emitterHitSamples);
+    batchingJson["primaryEmitterHitSamples"] =
+      static_cast<double>(batching.primaryEmitterHitSamples);
+    batchingJson["deltaEmitterHitSamples"] = static_cast<double>(batching.deltaEmitterHitSamples);
+    batchingJson["bsdfEmitterHitSamples"] = static_cast<double>(batching.bsdfEmitterHitSamples);
+    batchingJson["misWeightedEmitterHitSamples"] =
+      static_cast<double>(batching.misWeightedEmitterHitSamples);
     batchingJson["activeSamplesPerDepth"] = activeSamplesPerDepth;
     batchingJson["retainedActiveSamplesPerDepth"] = retainedActiveSamplesPerDepth;
     batchingJson["frontierRayHitsPerDepth"] = frontierRayHitsPerDepth;

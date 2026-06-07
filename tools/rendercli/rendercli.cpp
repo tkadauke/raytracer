@@ -278,6 +278,12 @@ namespace {
         << " sample_variance_pixels=" << unsignedValue(batching, "sampleVariancePixelArea")
         << " sample_stddev_rms=" << batching.value("sampleRadianceStddevRms").toDouble()
         << " max_sample_stddev=" << batching.value("maxSampleRadianceStddev").toDouble()
+        << " emitter_hit_samples=" << unsignedValue(batching, "emitterHitSamples")
+        << " primary_emitter_hit_samples=" << unsignedValue(batching, "primaryEmitterHitSamples")
+        << " delta_emitter_hit_samples=" << unsignedValue(batching, "deltaEmitterHitSamples")
+        << " bsdf_emitter_hit_samples=" << unsignedValue(batching, "bsdfEmitterHitSamples")
+        << " mis_weighted_emitter_hit_samples="
+        << unsignedValue(batching, "misWeightedEmitterHitSamples")
         << " adaptive=" << (adaptiveSampling.value("enabled").toBool() ? "enabled" : "disabled")
         << " adaptive_min_samples=" << unsignedValue(adaptiveSampling, "minimumSamples")
         << " adaptive_stddev_threshold=" << adaptiveSampling.value("stddevThreshold").toDouble()

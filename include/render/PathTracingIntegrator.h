@@ -118,7 +118,8 @@ namespace render {
                                 const Vector3d& wi, State& state, int bounce) const;
     Colord emittedRadiance(const LightSampler& lightSampler, const Material& material,
                            const Rayd& ray, const HitPoint& hitPoint, bool sampledFromBsdf,
-                           double bsdfSamplePdf, bool bsdfSampleDelta) const;
+                           double bsdfSamplePdf, bool bsdfSampleDelta,
+                           IntegratorBatchMetrics* metrics = nullptr) const;
     Colord directLighting(const Scene& scene, const Light& light, const HitPoint& hitPoint,
                           const Material& material, const Vector3d& wi, const Vector2d& lightSample,
                           State& state) const;

@@ -707,6 +707,11 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48u, metrics.batching.maxBatchSize);
     EXPECT_DOUBLE_EQ(48.0, metrics.batching.averageBatchSize);
     EXPECT_EQ(0u, metrics.batching.compatibilityShadeSamples);
+    EXPECT_EQ(0u, metrics.batching.emitterHitSamples);
+    EXPECT_EQ(0u, metrics.batching.primaryEmitterHitSamples);
+    EXPECT_EQ(0u, metrics.batching.deltaEmitterHitSamples);
+    EXPECT_EQ(0u, metrics.batching.bsdfEmitterHitSamples);
+    EXPECT_EQ(0u, metrics.batching.misWeightedEmitterHitSamples);
     EXPECT_EQ(0u, metrics.batching.sampleVariancePixelArea);
     EXPECT_DOUBLE_EQ(0.0, metrics.batching.sampleRadianceVarianceSum);
     EXPECT_DOUBLE_EQ(0.0, metrics.batching.maxSampleRadianceStddev);
@@ -786,6 +791,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48.0,
               json.value("batching").toObject().value("activeSampleDepthsProcessed").toDouble());
     EXPECT_EQ(0.0, json.value("batching").toObject().value("compatibilityShadeSamples").toDouble());
+    EXPECT_EQ(0.0, json.value("batching").toObject().value("emitterHitSamples").toDouble());
+    EXPECT_EQ(0.0, json.value("batching").toObject().value("primaryEmitterHitSamples").toDouble());
+    EXPECT_EQ(0.0, json.value("batching").toObject().value("deltaEmitterHitSamples").toDouble());
+    EXPECT_EQ(0.0, json.value("batching").toObject().value("bsdfEmitterHitSamples").toDouble());
+    EXPECT_EQ(0.0,
+              json.value("batching").toObject().value("misWeightedEmitterHitSamples").toDouble());
     EXPECT_EQ(0.0, json.value("batching").toObject().value("sampleVariancePixelArea").toDouble());
     EXPECT_DOUBLE_EQ(0.0,
                      json.value("batching").toObject().value("sampleRadianceStddevRms").toDouble());
@@ -904,6 +915,33 @@ namespace WavefrontRaytracerTest {
     EXPECT_GE(timings.value("integratorProgressSnapshotWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorConvergenceTestWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorResidualWorkerSeconds").toDouble(), 0.0);
+  }
+
+  TEST(WavefrontRaytracer, SerializesEmitterHitMetrics) {
+    engine::wavefront::WavefrontRenderMetrics metrics;
+    render::IntegratorBatchMetrics batch;
+    batch.reset(/*scalarFallback=*/false);
+    batch.recordEmitterHit(/*sampledFromBsdf=*/false, /*bsdfSampleDelta=*/false,
+                           /*misWeighted=*/false);
+    batch.recordEmitterHit(/*sampledFromBsdf=*/true, /*bsdfSampleDelta=*/true,
+                           /*misWeighted=*/false);
+    batch.recordEmitterHit(/*sampledFromBsdf=*/true, /*bsdfSampleDelta=*/false,
+                           /*misWeighted=*/true);
+
+    metrics.batching.addIntegratorMetrics(batch);
+
+    EXPECT_EQ(3u, metrics.batching.emitterHitSamples);
+    EXPECT_EQ(1u, metrics.batching.primaryEmitterHitSamples);
+    EXPECT_EQ(1u, metrics.batching.deltaEmitterHitSamples);
+    EXPECT_EQ(1u, metrics.batching.bsdfEmitterHitSamples);
+    EXPECT_EQ(1u, metrics.batching.misWeightedEmitterHitSamples);
+
+    const QJsonObject batching = metrics.toJson().value("batching").toObject();
+    EXPECT_EQ(3.0, batching.value("emitterHitSamples").toDouble());
+    EXPECT_EQ(1.0, batching.value("primaryEmitterHitSamples").toDouble());
+    EXPECT_EQ(1.0, batching.value("deltaEmitterHitSamples").toDouble());
+    EXPECT_EQ(1.0, batching.value("bsdfEmitterHitSamples").toDouble());
+    EXPECT_EQ(1.0, batching.value("misWeightedEmitterHitSamples").toDouble());
   }
 
   TEST(WavefrontRaytracer, MetricsRecordPerPixelSampleRadianceVariance) {

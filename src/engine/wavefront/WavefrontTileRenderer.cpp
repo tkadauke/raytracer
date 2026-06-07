@@ -195,6 +195,11 @@ namespace engine::wavefront::detail {
           std::max(target.maxRadianceDeltaPerDepth[index], source.maxRadianceDeltaPerDepth[index]);
       }
       target.compatibilityShadeSamples += source.compatibilityShadeSamples;
+      target.emitterHitSamples += source.emitterHitSamples;
+      target.primaryEmitterHitSamples += source.primaryEmitterHitSamples;
+      target.deltaEmitterHitSamples += source.deltaEmitterHitSamples;
+      target.bsdfEmitterHitSamples += source.bsdfEmitterHitSamples;
+      target.misWeightedEmitterHitSamples += source.misWeightedEmitterHitSamples;
       target.stoppedByConvergence = target.stoppedByConvergence || source.stoppedByConvergence;
       target.stoppedAfterDepth = std::max(target.stoppedAfterDepth, source.stoppedAfterDepth);
       target.intersectionWorkerSeconds += source.intersectionWorkerSeconds;

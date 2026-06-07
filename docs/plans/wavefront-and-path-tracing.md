@@ -896,6 +896,11 @@ matching MIS weight against `LightSampler::pdf(...)`, including light-selection
 probability. Primary/camera-visible emitters and delta/specular continuations
 still use weight 1; the finite BSDF and finite light estimators are the only
 paths that compete.
+Wavefront/pathtracer metrics now expose emitter-hit counters for those same
+classes: total emitter hits, primary emitter hits, delta/specular emitter hits,
+finite BSDF emitter hits, and MIS-weighted emitter hits. The counters appear in
+the batching JSON, render graph trace metadata, Modeler graph tooltips, and the
+rendercli compact `--wavefront_metrics_summary` line.
 Wavefront metrics now also aggregate per-pixel sample radiance variance into
 `sampleRadianceStddevRms` and `maxSampleRadianceStddev`. That is the first
 render-wide noise diagnostic for path-traced samples: it measures disagreement

@@ -520,9 +520,18 @@ namespace render {
   Colord PathTracingIntegrator::emittedRadiance(const LightSampler& lightSampler,
                                                 const Material& material, const Rayd& ray,
                                                 const HitPoint& hitPoint, bool sampledFromBsdf,
-                                                double bsdfSamplePdf, bool bsdfSampleDelta) const {
+                                                double bsdfSamplePdf, bool bsdfSampleDelta,
+                                                IntegratorBatchMetrics* metrics) const {
     const Colord emitted = material.emittedRadiance(ray, hitPoint);
-    if (emitted == Colord::black() || !sampledFromBsdf || bsdfSampleDelta) {
+    if (emitted == Colord::black()) {
+      return emitted;
+    }
+
+    const bool misWeighted = sampledFromBsdf && !bsdfSampleDelta;
+    if (metrics) {
+      metrics->recordEmitterHit(sampledFromBsdf, bsdfSampleDelta, misWeighted);
+    }
+    if (!misWeighted) {
       return emitted;
     }
 
@@ -766,7 +775,7 @@ namespace render {
           path.accumulated() +=
             path.throughput * emittedRadiance(lightSampler, *material, path.ray, hit.hitPoint,
                                               path.sampledFromBsdf, path.bsdfSamplePdf,
-                                              path.bsdfSampleDelta);
+                                              path.bsdfSampleDelta, metrics);
 
           const Vector3d wi = -path.ray.direction().normalized();
           if (!material->supportsBsdfSampling()) {

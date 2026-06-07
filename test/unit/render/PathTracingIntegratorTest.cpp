@@ -764,11 +764,17 @@ namespace PathTracingIntegratorTest {
       IntegratorRaySample{Rayd(Vector3d::null, Vector3d(0, 1, 0)), 0.0,
                           std::make_unique<FixedLightSampleStream>(Vector2d(0.5, 0.5))});
     FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
 
-    const std::vector<Colord> pixels = integrator.radianceBatch(*scene, samples, caster);
+    const std::vector<Colord> pixels = integrator.radianceBatch(*scene, samples, caster, &metrics);
 
     ASSERT_EQ(1u, pixels.size());
     ASSERT_COLOR_NEAR(Colord(0.25, 0.5, 0.75), pixels[0], 1e-12);
+    EXPECT_EQ(1u, metrics.emitterHitSamples);
+    EXPECT_EQ(1u, metrics.primaryEmitterHitSamples);
+    EXPECT_EQ(0u, metrics.deltaEmitterHitSamples);
+    EXPECT_EQ(0u, metrics.bsdfEmitterHitSamples);
+    EXPECT_EQ(0u, metrics.misWeightedEmitterHitSamples);
   }
 
   TEST(PathTracingIntegrator, ScalarRadianceMisWeightsBsdfSampledEmitterHit) {
@@ -797,11 +803,17 @@ namespace PathTracingIntegratorTest {
     samples.push_back(IntegratorRaySample{
       emitterHitPrimaryRay(), 0.0, std::make_unique<FixedLightSampleStream>(Vector2d(0.5, 0.5))});
     FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
 
-    const std::vector<Colord> pixels = integrator.radianceBatch(*scene, samples, caster);
+    const std::vector<Colord> pixels = integrator.radianceBatch(*scene, samples, caster, &metrics);
 
     ASSERT_EQ(1u, pixels.size());
     ASSERT_COLOR_NEAR(expectedEmitterHitMisRadiance(*light), pixels[0], 1e-12);
+    EXPECT_EQ(1u, metrics.emitterHitSamples);
+    EXPECT_EQ(0u, metrics.primaryEmitterHitSamples);
+    EXPECT_EQ(0u, metrics.deltaEmitterHitSamples);
+    EXPECT_EQ(1u, metrics.bsdfEmitterHitSamples);
+    EXPECT_EQ(1u, metrics.misWeightedEmitterHitSamples);
   }
 
   TEST(PathTracingIntegrator, PrimaryMissReturnsBackgroundColor) {

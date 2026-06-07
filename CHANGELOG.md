@@ -29,6 +29,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   trace metadata, and rendercli compact summaries now report the adaptive
   sampling policy plus maximum, skipped, and skipped-fraction primary samples.
   — GPT-5
+- **Path-tracing emitter-hit diagnostics.** Wavefront/pathtracer metrics,
+  render graph trace metadata, Modeler graph tooltips, and rendercli compact
+  summaries now count primary, delta/specular, finite BSDF, and MIS-weighted
+  visible emitter hits. — GPT-5
 - **Path tracer Russian roulette controls.** Render intent, graph JSON,
   rendercli, and Modeler Render Settings now expose the path tracer bounce
   depth where Russian-roulette termination begins. — GPT-5

@@ -33,6 +33,11 @@ namespace render {
     radianceDeltaSquaredSumPerDepth.clear();
     maxRadianceDeltaPerDepth.clear();
     compatibilityShadeSamples = 0;
+    emitterHitSamples = 0;
+    primaryEmitterHitSamples = 0;
+    deltaEmitterHitSamples = 0;
+    bsdfEmitterHitSamples = 0;
+    misWeightedEmitterHitSamples = 0;
     stoppedByConvergence = false;
     stoppedAfterDepth = 0;
     intersectionWorkerSeconds = 0.0;
@@ -89,6 +94,21 @@ namespace render {
   void IntegratorBatchMetrics::recordRadianceDeltaDepth(double squaredSum, double maxDelta) {
     radianceDeltaSquaredSumPerDepth.push_back(squaredSum);
     maxRadianceDeltaPerDepth.push_back(maxDelta);
+  }
+
+  void IntegratorBatchMetrics::recordEmitterHit(bool sampledFromBsdf, bool bsdfSampleDelta,
+                                                bool misWeighted) {
+    ++emitterHitSamples;
+    if (!sampledFromBsdf) {
+      ++primaryEmitterHitSamples;
+    } else if (bsdfSampleDelta) {
+      ++deltaEmitterHitSamples;
+    } else {
+      ++bsdfEmitterHitSamples;
+    }
+    if (misWeighted) {
+      ++misWeightedEmitterHitSamples;
+    }
   }
 
   std::vector<Colord> Integrator::radianceBatch(const Scene& scene,

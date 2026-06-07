@@ -420,6 +420,16 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
     if (compatibilitySamples > 0) {
       line += QStringLiteral(", compatibility shade %1").arg(compatibilitySamples);
     }
+    const auto emitterHits =
+      static_cast<qulonglong>(batching.value(QStringLiteral("emitterHitSamples")).toDouble());
+    if (emitterHits > 0) {
+      const auto misWeightedEmitterHits = static_cast<qulonglong>(
+        batching.value(QStringLiteral("misWeightedEmitterHitSamples")).toDouble());
+      line += QStringLiteral(", emitters %1").arg(emitterHits);
+      if (misWeightedEmitterHits > 0) {
+        line += QStringLiteral(" (%1 MIS)").arg(misWeightedEmitterHits);
+      }
+    }
     const qulonglong frontierHits =
       jsonIntegerArraySum(batching.value(QStringLiteral("frontierRayHitsPerDepth")).toArray());
     const qulonglong frontierMisses =
