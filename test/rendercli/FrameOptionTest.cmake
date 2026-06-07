@@ -12,10 +12,17 @@ file(REMOVE_RECURSE "${TEST_OUTPUT_DIR}")
 file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 
 set(animated_scene "${PROJECT_SOURCE_DIR}/scenes/animation_frame_demo.json")
+set(runtime_track_scene "${PROJECT_SOURCE_DIR}/scenes/animated_runtime_translation_parity.json")
+set(runtime_track_frame1_static_scene
+    "${PROJECT_SOURCE_DIR}/scenes/runtime_translation_frame1_static.json")
 set(step_scene "${PROJECT_SOURCE_DIR}/scenes/step_playback_demo.json")
 set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(frame_1 "${TEST_OUTPUT_DIR}/frame_0001.png")
 set(frame_48 "${TEST_OUTPUT_DIR}/frame_0048.png")
+set(runtime_track_frame1 "${TEST_OUTPUT_DIR}/runtime_track_frame1.png")
+set(runtime_track_frame1_static "${TEST_OUTPUT_DIR}/runtime_track_frame1_static.png")
+set(runtime_track_frame2_single_sample "${TEST_OUTPUT_DIR}/runtime_track_frame2_single_sample.png")
+set(runtime_track_frame2_shutter_samples "${TEST_OUTPUT_DIR}/runtime_track_frame2_shutter_samples.png")
 set(static_frame "${TEST_OUTPUT_DIR}/static_frame.png")
 set(invalid_frame "${TEST_OUTPUT_DIR}/invalid_frame.png")
 set(sequence_dir "${TEST_OUTPUT_DIR}/sequence")
@@ -67,6 +74,39 @@ rendercli_assert_image_dimensions("${frame_48}" 64 64
                                   NAME "rendercli --frame 48 dimensions")
 rendercli_assert_image_hash_differs("${frame_1}" "${frame_48}"
                                     NAME "animated frame renders differ")
+
+rendercli_run(
+  NAME "rendercli --frame preserves runtime-track integer-frame parity"
+  COMMAND
+    "${RENDERCLI}" --engine raytracer --width 64 --height 48 --samples_per_pixel 1
+    --frame 1 "${runtime_track_scene}" "${runtime_track_frame1}"
+)
+rendercli_run(
+  NAME "rendercli renders static parity scene"
+  COMMAND
+    "${RENDERCLI}" --engine raytracer --width 64 --height 48 --samples_per_pixel 1
+    "${runtime_track_frame1_static_scene}" "${runtime_track_frame1_static}"
+)
+rendercli_assert_image_dimensions("${runtime_track_frame1}" 64 48
+                                  NAME "runtime track frame parity dimensions")
+rendercli_assert_image_hash_equals("${runtime_track_frame1_static}" "${runtime_track_frame1}"
+                                   NAME "runtime-continuous integer frame matches baked frame")
+
+rendercli_run(
+  NAME "rendercli --frame renders runtime-track shutter single sample"
+  COMMAND
+    "${RENDERCLI}" --engine raytracer --width 64 --height 48 --samples_per_pixel 1
+    --frame 2 "${runtime_track_scene}" "${runtime_track_frame2_single_sample}"
+)
+rendercli_run(
+  NAME "rendercli --frame renders runtime-track shutter samples"
+  COMMAND
+    "${RENDERCLI}" --engine raytracer --width 64 --height 48 --samples_per_pixel 16
+    --frame 2 "${runtime_track_scene}" "${runtime_track_frame2_shutter_samples}"
+)
+rendercli_assert_image_hash_differs("${runtime_track_frame2_single_sample}"
+                                    "${runtime_track_frame2_shutter_samples}"
+                                    NAME "runtime-continuous shutter samples change render")
 
 rendercli_run(
   NAME "rendercli default step playback scene renders normally"

@@ -1,0 +1,48 @@
+{
+  "id": "{10000000-0000-0000-0000-000000060100}",
+  "name": "Runtime Translation Frame 1 Static",
+  "ambient": [0.45, 0.45, 0.45],
+  "background": [0.02, 0.03, 0.05],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "{10000000-0000-0000-0000-000000060101}",
+      "name": "Camera",
+      "position": [0.0, 0.0, -5.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.25,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000060110}",
+      "name": "SphereTexture",
+      "color": [0.95, 0.2, 0.12],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000060120}",
+      "name": "SphereMaterial",
+      "diffuseTexture": "{10000000-0000-0000-0000-000000060110}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 0.8,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000060130}",
+      "name": "RuntimeTrackedSphere",
+      "position": [-0.9, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{10000000-0000-0000-0000-000000060120}",
+      "radius": 0.7,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    }
+  ]
+}
