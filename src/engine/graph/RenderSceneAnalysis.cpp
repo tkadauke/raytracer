@@ -27,27 +27,30 @@ namespace engine::graph {
   void RenderSceneAnalysis::recordPortalReceiverSurface(std::string surfaceId,
                                                         std::string surfaceName,
                                                         Matrix4d receiverTransform,
-                                                        Matrix4d sourceTransform) {
+                                                        Matrix4d sourceTransform,
+                                                        bool receiverVisibleInPrimaryView) {
     SceneSurfaceMarker marker;
     marker.surfaceId = std::move(surfaceId);
     marker.surfaceName = std::move(surfaceName);
     marker.receiverTransform = receiverTransform;
     marker.sourceTransform = sourceTransform;
     marker.planePoint = receiverTransform.transformPoint(Vector3d::null);
-    marker.planeNormal = receiverTransform.transformDirection(Vector3d(0.0, -1.0, 0.0))
-                           .normalizedOrZero(1e-12);
+    marker.planeNormal =
+      receiverTransform.transformDirection(Vector3d(0.0, -1.0, 0.0)).normalizedOrZero(1e-12);
+    marker.receiverVisibleInPrimaryView = receiverVisibleInPrimaryView;
     m_portalReceiverSurfaces.push_back(std::move(marker));
   }
 
   void RenderSceneAnalysis::recordPlanarMirrorSurface(std::string surfaceId,
-                                                      std::string surfaceName,
-                                                      Vector3d planePoint,
-                                                      Vector3d planeNormal) {
+                                                      std::string surfaceName, Vector3d planePoint,
+                                                      Vector3d planeNormal,
+                                                      bool receiverVisibleInPrimaryView) {
     SceneSurfaceMarker marker;
     marker.surfaceId = std::move(surfaceId);
     marker.surfaceName = std::move(surfaceName);
     marker.planePoint = planePoint;
     marker.planeNormal = planeNormal.normalizedOrZero(1e-12);
+    marker.receiverVisibleInPrimaryView = receiverVisibleInPrimaryView;
     m_planarMirrorSurfaces.push_back(std::move(marker));
   }
 

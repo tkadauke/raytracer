@@ -99,6 +99,23 @@ namespace engine::graph {
     void addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,
                             const RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis,
                             int renderToTextureDepth) const;
+    void addReceiverMaskDependency(RenderPlan& plan, const RenderTargetSpec& target,
+                                   const RenderIntent& intent,
+                                   const RenderSceneAnalysis::SceneSurfaceMarker& receiver,
+                                   const std::string& prefix, const std::string& displayName,
+                                   const RenderFeatureKind& receiverFeature,
+                                   const RenderPassId& consumerPassId) const;
+    RenderResourceDescriptor receiverMaskResource(const RenderTargetSpec& target,
+                                                  const std::string& prefix,
+                                                  const std::string& displayName,
+                                                  const RenderFeatureKind& receiverFeature,
+                                                  bool conservative) const;
+    RenderPassNode receiverMaskPass(const RenderIntent& intent,
+                                    const RenderSceneAnalysis::SceneSurfaceMarker& receiver,
+                                    const std::string& prefix, const std::string& displayName,
+                                    const RenderFeatureKind& receiverFeature,
+                                    bool conservative) const;
+    bool receiverMaskRequiresConservativeRasterState(const RenderIntent& intent) const;
     RenderIntent subviewRenderIntent(const RenderIntent& frameIntent,
                                      const RenderSubviewIntent& subview) const;
     RenderPlan prefixedSubviewPlan(const RenderPlan& branch, const std::string& prefix,

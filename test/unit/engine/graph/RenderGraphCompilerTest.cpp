@@ -708,6 +708,26 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ("active-camera", *portalPass->sceneView.camera->derived->baseSceneCameraId);
     EXPECT_TRUE(portalPass->sceneView.camera->derived->requiresReceiverClip);
     EXPECT_TRUE(hasFeature(*portalPass, "subview:subview_portal_portal_panel"));
+    EXPECT_TRUE(portalPass->readsResource("subview_portal_portal_panel_receiver_mask"));
+
+    const auto* portalMask = plan.findPass("subview_portal_portal_panel_receiver_mask");
+    ASSERT_NE(nullptr, portalMask);
+    EXPECT_EQ(RenderPassKind::AOV, portalMask->kind);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, portalMask->executor);
+    EXPECT_TRUE(hasFeature(*portalMask, "receiver_mask"));
+    EXPECT_TRUE(hasFeature(*portalMask, "portal_receiver"));
+    EXPECT_EQ(SceneSelector::Kind::ObjectId, portalMask->sceneView.selector.kind);
+    EXPECT_EQ("portal-panel", portalMask->sceneView.selector.value);
+    ASSERT_EQ(1u, portalMask->writes.size());
+    EXPECT_EQ("subview_portal_portal_panel_receiver_mask", portalMask->writes.front().resource);
+
+    const auto* portalMaskResource = plan.findResource("subview_portal_portal_panel_receiver_mask");
+    ASSERT_NE(nullptr, portalMaskResource);
+    EXPECT_EQ(RenderResourceType::Stencil, portalMaskResource->type);
+    EXPECT_EQ(RenderResourceFormat::UInt8, portalMaskResource->format);
+    EXPECT_EQ(1, portalMaskResource->sampleCount);
+    EXPECT_TRUE(portalMaskResource->hasFeature("receiver_mask"));
+    EXPECT_TRUE(portalMaskResource->hasFeature("portal_receiver"));
 
     const auto* mirrorPass = plan.findPass("subview_mirror_mirror_panel_raytrace_beauty");
     ASSERT_NE(nullptr, mirrorPass);
@@ -716,6 +736,75 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(DerivedCameraRef::Kind::PlanarMirror, mirrorPass->sceneView.camera->derived->kind);
     EXPECT_TRUE(mirrorPass->sceneView.camera->derived->requiresReceiverClip);
     EXPECT_TRUE(hasFeature(*mirrorPass, "subview:subview_mirror_mirror_panel"));
+    EXPECT_TRUE(mirrorPass->readsResource("subview_mirror_mirror_panel_receiver_mask"));
+
+    const auto* mirrorMask = plan.findPass("subview_mirror_mirror_panel_receiver_mask");
+    ASSERT_NE(nullptr, mirrorMask);
+    EXPECT_TRUE(hasFeature(*mirrorMask, "receiver_mask"));
+    EXPECT_TRUE(hasFeature(*mirrorMask, "mirror_receiver"));
+    EXPECT_EQ(SceneSelector::Kind::ObjectId, mirrorMask->sceneView.selector.kind);
+    EXPECT_EQ("mirror-panel", mirrorMask->sceneView.selector.value);
+    ASSERT_EQ(1u, mirrorMask->writes.size());
+    EXPECT_EQ("subview_mirror_mirror_panel_receiver_mask", mirrorMask->writes.front().resource);
+
+    ASSERT_TRUE(plan.executionOrderNumber("subview_portal_portal_panel_receiver_mask").has_value());
+    ASSERT_TRUE(
+      plan.executionOrderNumber("subview_portal_portal_panel_raytrace_beauty").has_value());
+    EXPECT_LT(*plan.executionOrderNumber("subview_portal_portal_panel_receiver_mask"),
+              *plan.executionOrderNumber("subview_portal_portal_panel_raytrace_beauty"));
+    EXPECT_TRUE(plan.resourceCanReach("subview_portal_portal_panel_receiver_mask",
+                                      "subview_portal_portal_panel_main_color"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, SkipsAutomaticSubviewMasksForOffscreenReceivers) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+
+    RenderSceneAnalysis analysis;
+    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel", Matrix4d(), Matrix4d(),
+                                         false);
+    analysis.recordPlanarMirrorSurface("mirror-panel", "Mirror Panel", Vector3d::null,
+                                       Vector3d(0.0, 1.0, 0.0), false);
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    EXPECT_EQ(nullptr, plan.findPass("subview_portal_portal_panel_raytrace_beauty"));
+    EXPECT_EQ(nullptr, plan.findPass("subview_portal_portal_panel_receiver_mask"));
+    EXPECT_EQ(nullptr, plan.findPass("subview_mirror_mirror_panel_raytrace_beauty"));
+    EXPECT_EQ(nullptr, plan.findPass("subview_mirror_mirror_panel_receiver_mask"));
+    EXPECT_TRUE(plan.passesWithFeature("receiver_mask").empty());
+    EXPECT_TRUE(plan.resourcesWithFeature("receiver_mask").empty());
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, ReceiverMaskUsesConservativeSelectorForUnsupportedRasterState) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.engineOptions.rasterizer().setBlendingEnabled(true);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel", Matrix4d(), Matrix4d());
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    const auto* mask = plan.findPass("subview_portal_portal_panel_receiver_mask");
+    ASSERT_NE(nullptr, mask);
+    EXPECT_TRUE(hasFeature(*mask, "receiver_mask"));
+    EXPECT_TRUE(hasFeature(*mask, "conservative_receiver_mask"));
+    EXPECT_EQ(SceneSelector::Kind::All, mask->sceneView.selector.kind);
+
+    const auto* maskState = RasterBeautyPassState::fromPass(*mask);
+    ASSERT_NE(nullptr, maskState);
+    EXPECT_TRUE(maskState->toJson().value("framebuffer").toObject().value("blending").toBool());
+    EXPECT_EQ("none", maskState->toJson()
+                        .value("framebuffer")
+                        .toObject()
+                        .value("colorWriteMask")
+                        .toString()
+                        .toStdString());
+    EXPECT_TRUE(plan.findResource("subview_portal_portal_panel_receiver_mask")
+                  ->hasFeature("conservative_receiver_mask"));
     EXPECT_TRUE(plan.validate().valid());
   }
 
