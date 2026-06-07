@@ -364,6 +364,12 @@ namespace {
     return dashIfEmpty(values.join(QStringLiteral(", ")));
   }
 
+  bool hasFeature(const std::vector<engine::graph::RenderFeatureKind>& features,
+                  const char* feature) {
+    return std::find(features.begin(), features.end(), engine::graph::RenderFeatureKind(feature)) !=
+           features.end();
+  }
+
   class PreviewEngineIntentDefinition {
   public:
     virtual ~PreviewEngineIntentDefinition() = default;
@@ -2376,6 +2382,11 @@ void MainWindow::showRenderGraphPassDetails(const QString& passId, bool activate
   addRow(rows, tr("Enabled"), pass->enabled ? tr("true") : tr("false"));
   addRow(rows, tr("Execution stage"), optionalNumberText(plan.executionStageNumber(pass->id)));
   addRow(rows, tr("Execution order"), optionalNumberText(plan.executionOrderNumber(pass->id)));
+  if (hasFeature(pass->features, "selector_override")) {
+    addRow(rows, tr("Routing reason"),
+           tr("Compiler-generated branch for selector route %1")
+             .arg(sceneSelectorText(pass->sceneView.selector)));
+  }
   addRow(rows, tr("Scene selector"), sceneSelectorText(pass->sceneView.selector));
   addRow(rows, tr("Scene camera"), cameraText(pass->sceneView.camera));
   addRow(rows, tr("Shading profile"), shadingProfileText(pass->sceneView.shadingProfile));
@@ -2440,6 +2451,10 @@ void MainWindow::showRenderGraphResourceDetails(const QString& resourceId,
   addRow(rows, tr("Domain"), engine::graph::toString(resource->domain));
   addRow(rows, tr("Lifetime"), engine::graph::toString(resource->lifetime));
   addRow(rows, tr("Size"), resourceSizeText(*resource));
+  if (hasFeature(resource->features, "selector_override")) {
+    addRow(rows, tr("Routing reason"), tr("Compiler-generated resource for selector route"));
+  }
+  addRow(rows, tr("Features"), featureText(resource->features));
   addRow(rows, tr("Producer"), producerText(plan, resource->id));
   addRow(rows, tr("Consumers"), consumerText(plan, resource->id));
 

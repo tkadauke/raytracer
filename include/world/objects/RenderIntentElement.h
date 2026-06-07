@@ -21,6 +21,17 @@ class RenderIntentElement : public Element {
   Q_PROPERTY(QString viewMode READ viewMode WRITE setViewMode)
   Q_PROPERTY(QString cameraId READ cameraId WRITE setCameraId)
   Q_PROPERTY(QString shadingProfile READ shadingProfile WRITE setShadingProfile)
+  Q_PROPERTY(bool selectorRouting READ selectorRouting WRITE setSelectorRouting)
+  Q_PROPERTY(QString selectorRoutingKind READ selectorRoutingKind WRITE setSelectorRoutingKind)
+  Q_PROPERTY(QString selectorRoutingValue READ selectorRoutingValue WRITE setSelectorRoutingValue)
+  Q_PROPERTY(
+    QString selectorRoutingEngine READ selectorRoutingEngine WRITE setSelectorRoutingEngine)
+  Q_PROPERTY(
+    QString selectorRoutingViewMode READ selectorRoutingViewMode WRITE setSelectorRoutingViewMode)
+  Q_PROPERTY(
+    QString selectorRoutingCameraId READ selectorRoutingCameraId WRITE setSelectorRoutingCameraId)
+  Q_PROPERTY(QString selectorRoutingShadingProfile READ selectorRoutingShadingProfile WRITE
+               setSelectorRoutingShadingProfile)
   Q_PROPERTY(bool automaticFeatures READ automaticFeatures WRITE setAutomaticFeatures)
   Q_PROPERTY(bool wireframeOverlay READ wireframeOverlay WRITE setWireframeOverlay)
   Q_PROPERTY(bool curveOverlay READ curveOverlay WRITE setCurveOverlay)
@@ -111,6 +122,27 @@ public:
 
   QString shadingProfile() const;
   void setShadingProfile(const QString& profile);
+
+  bool selectorRouting() const;
+  void setSelectorRouting(bool enabled);
+
+  QString selectorRoutingKind() const;
+  void setSelectorRoutingKind(const QString& kind);
+
+  QString selectorRoutingValue() const;
+  void setSelectorRoutingValue(const QString& value);
+
+  QString selectorRoutingEngine() const;
+  void setSelectorRoutingEngine(const QString& engine);
+
+  QString selectorRoutingViewMode() const;
+  void setSelectorRoutingViewMode(const QString& mode);
+
+  QString selectorRoutingCameraId() const;
+  void setSelectorRoutingCameraId(const QString& id);
+
+  QString selectorRoutingShadingProfile() const;
+  void setSelectorRoutingShadingProfile(const QString& profile);
 
   bool automaticFeatures() const;
   void setAutomaticFeatures(bool enabled);
@@ -233,6 +265,14 @@ private:
   engine::graph::RenderExecutorPreference executorFromText(const QString& text) const;
   engine::graph::RenderViewMode viewModeFromText(const QString& text) const;
   engine::graph::RenderPostProcessAA postProcessAAFromText(const QString& text) const;
+  engine::graph::SceneSelector::Kind selectorKindFromText(const QString& text) const;
+  QString selectorKindText(engine::graph::SceneSelector::Kind kind) const;
+  engine::graph::RenderViewOverride* editableSelectorOverride(engine::graph::RenderIntent& intent,
+                                                              bool create) const;
+  const engine::graph::RenderViewOverride*
+  editableSelectorOverride(const engine::graph::RenderIntent& intent) const;
+  engine::graph::SceneSelector selectorFor(const QString& kind, const QString& value) const;
+  bool isUnsupportedSelectorViewMode(engine::graph::RenderViewMode viewMode) const;
   bool isRasterCounterView(engine::graph::RenderViewMode viewMode) const;
   bool isWavefrontDiagnosticView(engine::graph::RenderViewMode viewMode) const;
   QString wavefrontConvergenceQualityFor(double activeFraction, double rmsDelta) const;
@@ -248,6 +288,8 @@ private:
   bool isWireframeProperty(const QString& propertyName) const;
   bool isPathTracerProperty(const QString& propertyName) const;
   bool isPathTracerSelected() const;
+  bool isSelectorRoutingProperty(const QString& propertyName) const;
+  QStringList selectorRoutingViewModeChoices() const;
   QStringList raytracerSamplerChoices() const;
   QStringList raytracerViewPlaneChoices() const;
   QString visibilityCullingText(engine::graph::RenderVisibilityCulling mode) const;
