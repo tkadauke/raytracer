@@ -627,6 +627,16 @@ namespace engine::graph {
     m_passes.push_back(std::move(pass));
   }
 
+  void RenderPlan::addReadToPass(const RenderPassId& passId, RenderResourceId resource) {
+    auto pass = std::find_if(m_passes.begin(), m_passes.end(), [&](const RenderPassNode& node) {
+      return node.id == passId;
+    });
+    if (pass == m_passes.end()) {
+      throw std::runtime_error("cannot add read edge to missing pass '" + passId + "'");
+    }
+    pass->addRead(std::move(resource));
+  }
+
   void RenderPlan::addResourceProducer(RenderPassNode producer, RenderResourceDescriptor resource) {
     producer.addWrite(resource.id);
 
