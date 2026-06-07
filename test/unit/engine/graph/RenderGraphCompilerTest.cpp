@@ -4,6 +4,7 @@
 #include "engine/graph/RasterPassState.h"
 #include "engine/graph/RaytracerPassState.h"
 #include "engine/graph/RenderGraphCompiler.h"
+#include "engine/graph/RenderSceneAnalysis.h"
 #include "engine/graph/WireframePassState.h"
 
 #include <algorithm>
@@ -927,6 +928,63 @@ namespace RenderGraphCompilerTest {
       const std::string message = error.what();
       EXPECT_NE(std::string::npos, message.find("render-to-texture recursion limit 0 reached"));
       EXPECT_NE(std::string::npos, message.find("mirror probe"));
+    }
+  }
+
+  TEST(RenderGraphCompiler, RejectsUnknownRenderTextureReceiverSubview) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    RenderSceneAnalysis analysis;
+    analysis.recordRenderTextureReceiver("missing-feed");
+
+    try {
+      compiler.compile({64, 32, 1}, intent, analysis);
+      FAIL() << "Expected unknown render-to-texture receiver rejection";
+    } catch (const std::runtime_error& error) {
+      const std::string message = error.what();
+      EXPECT_NE(std::string::npos, message.find("unknown subview 'missing-feed'"));
+    }
+  }
+
+  TEST(RenderGraphCompiler, RejectsDuplicateRenderTextureReceiverSubviewNames) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    RenderSubviewIntent first;
+    first.name = "monitor-feed";
+    intent.subviews.push_back(first);
+    RenderSubviewIntent second;
+    second.name = "monitor-feed";
+    intent.subviews.push_back(second);
+    RenderSceneAnalysis analysis;
+    analysis.recordRenderTextureReceiver("monitor-feed");
+
+    try {
+      compiler.compile({64, 32, 1}, intent, analysis);
+      FAIL() << "Expected duplicate subview name rejection";
+    } catch (const std::runtime_error& error) {
+      const std::string message = error.what();
+      EXPECT_NE(std::string::npos, message.find("subview name 'monitor-feed' is not unique"));
+    }
+  }
+
+  TEST(RenderGraphCompiler, RejectsWholeSceneRenderTextureReceiverCycle) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    RenderSubviewIntent subview;
+    subview.name = "monitor-feed";
+    subview.view.selector = SceneSelector::all();
+    subview.view.executor = RenderExecutorPreference::Rasterizer;
+    intent.subviews.push_back(subview);
+    RenderSceneAnalysis analysis;
+    analysis.recordRenderTextureReceiver("monitor-feed");
+
+    try {
+      compiler.compile({64, 32, 1}, intent, analysis);
+      FAIL() << "Expected cyclic render-to-texture receiver rejection";
+    } catch (const std::runtime_error& error) {
+      const std::string message = error.what();
+      EXPECT_NE(std::string::npos, message.find("receiver for subview 'monitor-feed' is cyclic"));
+      EXPECT_NE(std::string::npos, message.find("renders the whole scene"));
     }
   }
 

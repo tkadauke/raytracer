@@ -15,6 +15,7 @@ namespace render {
 class Material : public Element {
   Q_OBJECT
   Q_PROPERTY(QString sidedness READ sidednessName WRITE setSidednessName)
+  Q_PROPERTY(QString renderTextureSubview READ renderTextureSubview WRITE setRenderTextureSubview)
 
 public:
   enum class Sidedness { Front, Back, TwoSided };
@@ -38,6 +39,10 @@ public:
   QString sidednessName() const;
   void setSidednessName(const QString& sidedness);
 
+  const QString& renderTextureSubview() const;
+  void setRenderTextureSubview(const QString& subviewName);
+  void contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const override;
+
   /**
     * Converts this material to the corresponding class in the raytracer
     * namespace.
@@ -49,4 +54,5 @@ protected:
 
 private:
   Sidedness m_sidedness;
+  QString m_renderTextureSubview;
 };

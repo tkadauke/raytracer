@@ -13,6 +13,8 @@
 #include "render/materials/ReflectiveMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 
+#include "engine/graph/RenderSceneAnalysis.h"
+
 #include <QString>
 
 namespace MaterialTest {
@@ -64,6 +66,18 @@ namespace MaterialTest {
 
     m.setSidednessName("unknown");
     EXPECT_EQ(Material::Sidedness::TwoSided, m.sidedness());
+  }
+
+  TEST(MatteMaterial, ShouldSetRenderTextureSubviewReceiverName) {
+    MatteMaterial m;
+    m.setRenderTextureSubview("  monitor-feed  ");
+
+    EXPECT_EQ(QString("monitor-feed"), m.renderTextureSubview());
+
+    engine::graph::RenderSceneAnalysis analysis;
+    m.contributeToRenderGraphAnalysis(analysis);
+
+    EXPECT_TRUE(analysis.renderTextureSubviewReceivers().count("monitor-feed"));
   }
 
   TEST(MatteMaterial, ShouldSetAndGetCoefficients) {

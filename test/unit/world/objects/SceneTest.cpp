@@ -3,6 +3,7 @@
 
 #include "world/objects/Scene.h"
 #include "world/objects/CompiledPrimitive.h"
+#include "world/objects/MatteMaterial.h"
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/PointLight.h"
 #include "world/objects/Group.h"
@@ -464,6 +465,47 @@ namespace SceneTest {
       EXPECT_THAT(error.what(), HasSubstr("curved-surface"));
       EXPECT_THAT(error.what(), HasSubstr("planar mirror marker requires a planar surface"));
     }
+  }
+
+  TEST(Scene, ShouldAnalyzeRenderTextureReceivers) {
+    Scene scene;
+    auto* material = new MatteMaterial;
+    material->setRenderTextureSubview("material-feed");
+    scene.addChild(material);
+    auto* sphere = new Sphere;
+    sphere->setRenderTextureSubview("surface-feed");
+    scene.addChild(sphere);
+
+    const auto analysis = scene.renderGraphAnalysis();
+
+    EXPECT_TRUE(analysis.renderTextureSubviewReceivers().count("material-feed"));
+    EXPECT_TRUE(analysis.renderTextureSubviewReceivers().count("surface-feed"));
+  }
+
+  TEST(Scene, ShouldPreserveRenderTextureReceiversAcrossJsonRoundTrip) {
+    Scene scene;
+    auto* material = new MatteMaterial;
+    material->setId("screen-material");
+    material->setRenderTextureSubview("material-feed");
+    scene.addChild(material);
+    auto* sphere = new Sphere;
+    sphere->setId("screen");
+    sphere->setRenderTextureSubview("surface-feed");
+    scene.addChild(sphere);
+
+    QJsonObject json;
+    scene.write(json);
+
+    Scene decoded;
+    decoded.read(json);
+
+    auto* decodedMaterial = dynamic_cast<MatteMaterial*>(decoded.findById("screen-material"));
+    auto* decodedSurface = dynamic_cast<Sphere*>(decoded.findById("screen"));
+
+    ASSERT_NE(nullptr, decodedMaterial);
+    ASSERT_NE(nullptr, decodedSurface);
+    EXPECT_EQ(QString("material-feed"), decodedMaterial->renderTextureSubview());
+    EXPECT_EQ(QString("surface-feed"), decodedSurface->renderTextureSubview());
   }
 
   TEST(Scene, ShouldIgnoreHiddenElementsInRenderGraphAnalysis) {

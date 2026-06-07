@@ -2,6 +2,8 @@
 #include <memory>
 #include <string>
 
+#include <QString>
+
 #include "world/objects/Transformable.h"
 
 namespace render {
@@ -23,6 +25,7 @@ class Surface : public Transformable {
   Q_OBJECT
   Q_PROPERTY(bool visible READ visible WRITE setVisible)
   Q_PROPERTY(Material* material READ material WRITE setMaterial)
+  Q_PROPERTY(QString renderTextureSubview READ renderTextureSubview WRITE setRenderTextureSubview)
   Q_PROPERTY(Vector3d velocity READ velocity WRITE setVelocity)
   Q_PROPERTY(bool portalReceiverMarker READ portalReceiverMarker WRITE setPortalReceiverMarker)
   Q_PROPERTY(bool planarMirrorMarker READ planarMirrorMarker WRITE setPlanarMirrorMarker)
@@ -74,6 +77,9 @@ public:
   inline void setMaterial(Material* material) {
     m_material = material;
   }
+
+  const QString& renderTextureSubview() const;
+  void setRenderTextureSubview(const QString& subviewName);
 
   /**
     * @returns the surface's per-shutter linear velocity. Zero
@@ -160,6 +166,7 @@ private:
   std::string sceneMarkerDiagnosticPrefix() const;
 
   Material* m_material;
+  QString m_renderTextureSubview;
 
   bool m_visible;
   Vector3d m_velocity;

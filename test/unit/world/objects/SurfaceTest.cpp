@@ -12,6 +12,8 @@
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 
+#include "engine/graph/RenderSceneAnalysis.h"
+
 #include <limits>
 
 namespace SurfaceTest {
@@ -30,6 +32,18 @@ namespace SurfaceTest {
     s.setMaterial(&m);
     EXPECT_FALSE(s.visible());
     EXPECT_EQ(&m, s.material());
+  }
+
+  TEST(Surface, ShouldSetRenderTextureSubviewReceiverName) {
+    Sphere s;
+    s.setRenderTextureSubview("  monitor-feed  ");
+
+    EXPECT_EQ(QString("monitor-feed"), s.renderTextureSubview());
+
+    engine::graph::RenderSceneAnalysis analysis;
+    s.contributeToRenderGraphAnalysis(analysis);
+
+    EXPECT_TRUE(analysis.renderTextureSubviewReceivers().count("monitor-feed"));
   }
 
   TEST(Surface, ShouldHideAfterShow) {

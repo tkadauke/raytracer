@@ -99,6 +99,8 @@ namespace engine::graph {
     void addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,
                             const RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis,
                             int renderToTextureDepth) const;
+    void validateSubviewReceivers(const RenderIntent& intent,
+                                  const RenderSceneAnalysis& sceneAnalysis) const;
     RenderIntent subviewRenderIntent(const RenderIntent& frameIntent,
                                      const RenderSubviewIntent& subview) const;
     RenderPlan prefixedSubviewPlan(const RenderPlan& branch, const std::string& prefix,

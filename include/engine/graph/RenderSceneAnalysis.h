@@ -4,6 +4,7 @@
 
 #include <optional>
 #include <cstddef>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -37,6 +38,7 @@ namespace engine::graph {
     void recordVisibleLight();
     void recordPortalReceiverSurface(std::string surfaceId, std::string surfaceName);
     void recordPlanarMirrorSurface(std::string surfaceId, std::string surfaceName);
+    void recordRenderTextureReceiver(std::string subviewName);
 
     bool hasKnownVisibleSurfaceCount() const;
     bool hasKnownVisibleLightCount() const;
@@ -47,6 +49,7 @@ namespace engine::graph {
 
     const std::vector<SceneSurfaceMarker>& portalReceiverSurfaces() const;
     const std::vector<SceneSurfaceMarker>& planarMirrorSurfaces() const;
+    const std::set<std::string>& renderTextureSubviewReceivers() const;
 
     bool hasVisibleSurfaces() const;
     bool hasVisibleLights() const;
@@ -59,6 +62,7 @@ namespace engine::graph {
     std::optional<std::size_t> m_visibleLightCount{0};
     std::vector<SceneSurfaceMarker> m_portalReceiverSurfaces;
     std::vector<SceneSurfaceMarker> m_planarMirrorSurfaces;
+    std::set<std::string> m_renderTextureSubviewReceivers;
     bool m_rasterShadowMapsSupported{true};
   };
 }
