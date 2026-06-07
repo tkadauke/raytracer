@@ -76,14 +76,6 @@ namespace engine::graph {
     }
   }
 
-  bool RenderGpuResourceResidency::operator==(const RenderGpuResourceResidency& other) const {
-    return backend == other.backend && description == other.description;
-  }
-
-  bool RenderGpuResourceResidency::operator!=(const RenderGpuResourceResidency& other) const {
-    return !(*this == other);
-  }
-
   RenderResource::RenderResource(RenderResourceDescriptor descriptor)
       : m_descriptor(std::move(descriptor)) {
   }
@@ -145,20 +137,26 @@ namespace engine::graph {
     return m_artifact;
   }
 
-  void RenderResource::setGpuResidency(RenderGpuResourceResidency residency) {
-    m_gpuResidency = std::move(residency);
+  void RenderResource::setOpenGLResource(
+    std::shared_ptr<engine::raster::detail::OpenGLRasterResource> resource) {
+    m_openGLResource = std::move(resource);
   }
 
-  void RenderResource::clearGpuResidency() {
-    m_gpuResidency.reset();
+  void RenderResource::clearOpenGLResource() {
+    m_openGLResource.reset();
   }
 
-  const std::optional<RenderGpuResourceResidency>& RenderResource::gpuResidency() const {
-    return m_gpuResidency;
+  const std::shared_ptr<engine::raster::detail::OpenGLRasterResource>&
+  RenderResource::openGLResource() const {
+    return m_openGLResource;
+  }
+
+  bool RenderResource::openGLResident() const {
+    return static_cast<bool>(m_openGLResource);
   }
 
   bool RenderResource::gpuResident() const {
-    return m_gpuResidency.has_value();
+    return openGLResident();
   }
 
   bool RenderResource::hasBuffer() const {
@@ -189,7 +187,7 @@ namespace engine::graph {
     m_substituteDefault = true;
     m_state.reset();
     m_artifact.reset();
-    m_gpuResidency.reset();
+    m_openGLResource.reset();
   }
 
   Buffer<Colord>& RenderResource::color() {

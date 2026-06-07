@@ -4,6 +4,7 @@
 #include "core/util/BufferUtils.h"
 #include "engine/graph/RenderResourceStorage.h"
 #include "engine/raster/RasterVisibilitySet.h"
+#include "engine/raster/detail/OpenGLRasterResource.h"
 
 #include <QJsonArray>
 
@@ -253,12 +254,8 @@ namespace engine::graph {
           return visibilitySetSummary(*visibilitySet);
         }
       }
-      if (const auto& residency = resource.gpuResidency()) {
-        std::string reason = "GPU resource is resident on " + residency->backend;
-        if (!residency->description.empty()) {
-          reason += ": " + residency->description;
-        }
-        return reason;
+      if (const auto& openGLResource = resource.openGLResource()) {
+        return "GPU resource is resident on opengl: " + openGLResource->description();
       }
       return metadataOnlyReason(resource.descriptor());
     }

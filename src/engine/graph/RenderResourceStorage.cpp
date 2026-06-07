@@ -1,10 +1,28 @@
 #include "engine/graph/RenderResourceStorage.h"
 
 #include "core/util/BufferUtils.h"
+#include "engine/raster/detail/OpenGLRasterResource.h"
 
+#include <stdexcept>
 #include <utility>
 
 namespace engine::graph {
+  namespace {
+    void requireOpenGLResourceShape(
+      const RenderResourceDescriptor& descriptor,
+      const ::engine::raster::detail::OpenGLRasterResource& openGLResource) {
+      if (descriptor.width != openGLResource.width() ||
+          descriptor.height != openGLResource.height()) {
+        throw std::runtime_error("OpenGL resource '" + descriptor.id +
+                                 "' has mismatched dimensions");
+      }
+      if (descriptor.sampleCount != openGLResource.sampleCount()) {
+        throw std::runtime_error("OpenGL resource '" + descriptor.id +
+                                 "' has mismatched sample count");
+      }
+    }
+  }
+
   void RenderResourceStorage::allocate(const std::vector<RenderResourceDescriptor>& descriptors) {
     clear();
 
@@ -45,13 +63,57 @@ namespace engine::graph {
     return *it->second;
   }
 
-  void RenderResourceStorage::setGpuResidency(const RenderResourceId& id,
-                                              RenderGpuResourceResidency residency) {
-    resource(id).setGpuResidency(std::move(residency));
+  bool RenderResourceStorage::hasOpenGLResource(const RenderResourceId& id) const {
+    const auto it = m_resources.find(id);
+    return it != m_resources.end() && it->second->openGLResident();
   }
 
-  void RenderResourceStorage::clearGpuResidency(const RenderResourceId& id) {
-    resource(id).clearGpuResidency();
+  void RenderResourceStorage::bindOpenGLResource(
+    const RenderResourceId& id,
+    std::shared_ptr<::engine::raster::detail::OpenGLRasterResource> openGLResource) {
+    if (!openGLResource) {
+      throw std::invalid_argument("OpenGL resource '" + id + "' is null");
+    }
+
+    RenderResource& destinationResource = resource(id);
+    const RenderResourceDescriptor& descriptor = destinationResource.descriptor();
+    if (descriptor.domain != RenderResourceDomain::GPU) {
+      throw std::out_of_range("render resource '" + id + "' is not GPU-backed");
+    }
+    if (descriptor.type != openGLResource->resourceType()) {
+      throw std::out_of_range(std::string("OpenGL resource '") + id + "' is " +
+                              toString(openGLResource->resourceType()) + ", expected " +
+                              toString(descriptor.type));
+    }
+    requireOpenGLResourceShape(descriptor, *openGLResource);
+
+    destinationResource.setOpenGLResource(std::move(openGLResource));
+    destinationResource.markProduced();
+  }
+
+  void RenderResourceStorage::clearOpenGLResource(const RenderResourceId& id) {
+    resource(id).clearOpenGLResource();
+  }
+
+  std::shared_ptr<::engine::raster::detail::OpenGLRasterResource>
+  RenderResourceStorage::openGLResource(const RenderResourceId& id) const {
+    auto openGLResource = resource(id).openGLResource();
+    if (!openGLResource) {
+      throw std::out_of_range("render resource '" + id + "' has no OpenGL resident resource");
+    }
+    return openGLResource;
+  }
+
+  std::shared_ptr<::engine::raster::detail::OpenGLRasterResource>
+  RenderResourceStorage::openGLResource(const RenderResourceId& id,
+                                        RenderResourceType expectedType) const {
+    auto residentResource = openGLResource(id);
+    if (residentResource->resourceType() != expectedType) {
+      throw std::out_of_range(std::string("OpenGL resource '") + id + "' is " +
+                              toString(residentResource->resourceType()) + ", expected " +
+                              toString(expectedType));
+    }
+    return residentResource;
   }
 
   Buffer<Colord>& RenderResourceStorage::color(const RenderResourceId& id) {

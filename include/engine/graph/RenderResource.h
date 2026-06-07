@@ -13,19 +13,15 @@
 
 namespace engine::raster {
   class RasterVisibilitySet;
+
+  namespace detail {
+    class OpenGLRasterResource;
+  }
 }
 
 namespace engine::graph {
   class RenderGraphCachedArtifact;
   class RenderPassState;
-
-  struct RenderGpuResourceResidency {
-    std::string backend;
-    std::string description;
-
-    bool operator==(const RenderGpuResourceResidency& other) const;
-    bool operator!=(const RenderGpuResourceResidency& other) const;
-  };
 
   /**
     * Runtime resource allocated from a `RenderResourceDescriptor`.
@@ -78,13 +74,13 @@ namespace engine::graph {
     std::shared_ptr<const RenderGraphCachedArtifact> artifact() const;
 
     /**
-      * Attaches backend-specific GPU residency metadata for descriptor-only
-      * resources whose concrete OpenGL/Vulkan/etc. object stays outside the CPU
-      * buffer storage layer.
+      * Attaches a backend-owned OpenGL resource for descriptor-only graph
+      * resources whose contents remain resident on the GPU.
       */
-    void setGpuResidency(RenderGpuResourceResidency residency);
-    void clearGpuResidency();
-    const std::optional<RenderGpuResourceResidency>& gpuResidency() const;
+    void setOpenGLResource(std::shared_ptr<engine::raster::detail::OpenGLRasterResource> resource);
+    void clearOpenGLResource();
+    const std::shared_ptr<engine::raster::detail::OpenGLRasterResource>& openGLResource() const;
+    bool openGLResident() const;
     bool gpuResident() const;
 
     /**
@@ -156,7 +152,7 @@ namespace engine::graph {
     std::shared_ptr<const RenderPassState> m_state;
     std::optional<RenderGraphCacheMetadata> m_cacheMetadata;
     std::shared_ptr<const RenderGraphCachedArtifact> m_artifact;
-    std::optional<RenderGpuResourceResidency> m_gpuResidency;
+    std::shared_ptr<engine::raster::detail::OpenGLRasterResource> m_openGLResource;
   };
 
   /**

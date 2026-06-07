@@ -4,6 +4,7 @@
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderResourceStorage.h"
 #include "engine/raster/RasterVisibilitySet.h"
+#include "engine/raster/detail/OpenGLRasterResource.h"
 
 #include <cstdint>
 
@@ -19,6 +20,13 @@ namespace RenderResourceStorageTest {
     descriptor.height = 3;
     descriptor.sampleCount = 1;
     return descriptor;
+  }
+
+  std::shared_ptr<engine::raster::detail::OpenGLRasterResource>
+  openGLResource(RenderResourceType type, int width = 4, int height = 3, int sampleCount = 1) {
+    return std::make_shared<engine::raster::detail::OpenGLRasterResource>(
+      type, engine::raster::detail::OpenGLRasterResource::HandleKind::Texture, 0, width, height,
+      sampleCount, nullptr);
   }
 
   TEST(RenderResourceStorage, AllocatesSupportedCpuBuffers) {
@@ -92,7 +100,66 @@ namespace RenderResourceStorageTest {
     EXPECT_EQ(RenderResourceDomain::GPU, storage.descriptor("gpu_color").domain);
   }
 
-  TEST(RenderResourceStorage, TracksGpuResidencyMetadata) {
+  TEST(RenderResourceStorage, HoldsCpuBuffersAndOpenGLResidentResourcesTogether) {
+    auto descriptor = resource("gpu_color", RenderResourceType::Color);
+    descriptor.domain = RenderResourceDomain::GPU;
+
+    RenderResourceStorage storage;
+    storage.allocate({
+      resource("cpu_color", RenderResourceType::Color),
+      descriptor,
+    });
+
+    storage.color("cpu_color").clear(Colord(0.25, 0.5, 0.75));
+    storage.bindOpenGLResource("gpu_color", openGLResource(RenderResourceType::Color));
+
+    EXPECT_TRUE(storage.hasBuffer("cpu_color"));
+    EXPECT_EQ(Colord(0.25, 0.5, 0.75), storage.color("cpu_color")[0][0]);
+    EXPECT_FALSE(storage.hasBuffer("gpu_color"));
+    EXPECT_TRUE(storage.hasOpenGLResource("gpu_color"));
+    ASSERT_TRUE(storage.resource("gpu_color").gpuResident());
+    EXPECT_EQ(RenderResourceType::Color, storage.openGLResource("gpu_color")->resourceType());
+
+    storage.clearOpenGLResource("gpu_color");
+
+    EXPECT_FALSE(storage.resource("gpu_color").gpuResident());
+    EXPECT_FALSE(storage.hasOpenGLResource("gpu_color"));
+  }
+
+  TEST(RenderResourceStorage, RejectsMissingOpenGLResidentResourceAccess) {
+    RenderResourceStorage storage;
+    storage.allocate({
+      resource("color", RenderResourceType::Color),
+    });
+
+    EXPECT_THROW(storage.openGLResource("missing"), std::out_of_range);
+    EXPECT_THROW(storage.openGLResource("color"), std::out_of_range);
+  }
+
+  TEST(RenderResourceStorage, RejectsOpenGLResourceBoundToCpuDescriptor) {
+    RenderResourceStorage storage;
+    storage.allocate({
+      resource("color", RenderResourceType::Color),
+    });
+
+    EXPECT_THROW(storage.bindOpenGLResource("color", openGLResource(RenderResourceType::Color)),
+                 std::out_of_range);
+  }
+
+  TEST(RenderResourceStorage, RejectsIncompatibleOpenGLResourceKind) {
+    auto descriptor = resource("gpu_depth", RenderResourceType::Depth);
+    descriptor.domain = RenderResourceDomain::GPU;
+
+    RenderResourceStorage storage;
+    storage.allocate({
+      descriptor,
+    });
+
+    EXPECT_THROW(storage.bindOpenGLResource("gpu_depth", openGLResource(RenderResourceType::Color)),
+                 std::out_of_range);
+  }
+
+  TEST(RenderResourceStorage, RejectsIncompatibleOpenGLResourceAccessKind) {
     auto descriptor = resource("gpu_color", RenderResourceType::Color);
     descriptor.domain = RenderResourceDomain::GPU;
 
@@ -101,15 +168,26 @@ namespace RenderResourceStorageTest {
       descriptor,
     });
 
-    storage.setGpuResidency("gpu_color", {"opengl", "texture 7"});
+    storage.bindOpenGLResource("gpu_color", openGLResource(RenderResourceType::Color));
 
-    ASSERT_TRUE(storage.resource("gpu_color").gpuResident());
-    EXPECT_EQ((RenderGpuResourceResidency{"opengl", "texture 7"}),
-              *storage.resource("gpu_color").gpuResidency());
+    EXPECT_THROW(storage.openGLResource("gpu_color", RenderResourceType::Depth), std::out_of_range);
+  }
 
-    storage.clearGpuResidency("gpu_color");
+  TEST(RenderResourceStorage, RejectsMismatchedOpenGLResourceShape) {
+    auto descriptor = resource("gpu_color", RenderResourceType::Color);
+    descriptor.domain = RenderResourceDomain::GPU;
 
-    EXPECT_FALSE(storage.resource("gpu_color").gpuResident());
+    RenderResourceStorage storage;
+    storage.allocate({
+      descriptor,
+    });
+
+    EXPECT_THROW(
+      storage.bindOpenGLResource("gpu_color", openGLResource(RenderResourceType::Color, 2, 3, 1)),
+      std::runtime_error);
+    EXPECT_THROW(
+      storage.bindOpenGLResource("gpu_color", openGLResource(RenderResourceType::Color, 4, 3, 4)),
+      std::runtime_error);
   }
 
   TEST(RenderResourceStorage, ReportsGpuResidencyInTraceSnapshots) {
@@ -128,7 +206,7 @@ namespace RenderResourceStorageTest {
 
     RenderResourceStorage storage;
     storage.allocate(plan.resources());
-    storage.setGpuResidency("gpu_color", {"opengl", "texture 7"});
+    storage.bindOpenGLResource("gpu_color", openGLResource(RenderResourceType::Color));
 
     RenderGraphExecutionTraceRecorder recorder;
     const auto session = recorder.begin(plan);
