@@ -3,6 +3,7 @@
   "name": "Wavefront Indirect Environment Demo",
   "ambient": [0.0, 0.0, 0.0],
   "background": [0.86, 0.91, 1.0],
+  "environmentRadiance": [0.86, 0.91, 1.0],
   "type": "Scene",
   "renderIntent": {
     "defaultExecutor": "pathtracer",

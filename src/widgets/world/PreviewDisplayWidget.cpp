@@ -63,6 +63,7 @@ std::shared_ptr<render::Scene> PreviewDisplayWidget::sphereOnPlane(Material* mat
 
   scene->setAmbient(s->ambient());
   scene->setBackground(s->background());
+  scene->setEnvironmentRadiance(s->environmentRadiance());
 
   auto sphere = std::make_shared<render::Sphere>(Vector3d(0, 0, 0), 2);
   sphere->setMaterial(mat);

@@ -104,6 +104,11 @@ namespace SceneTest {
     EXPECT_EQ(Colord(0.4, 0.8, 1), scene.background());
   }
 
+  TEST(Scene, ShouldDefaultToBlackEnvironmentRadiance) {
+    Scene scene;
+    EXPECT_EQ(Colord::black(), scene.environmentRadiance());
+  }
+
   TEST(Scene, ShouldDefaultToUnchanged) {
     Scene scene;
     EXPECT_FALSE(scene.changed());
@@ -138,6 +143,12 @@ namespace SceneTest {
     Scene scene;
     scene.setBackground(Colord(0.5, 0.6, 0.7));
     EXPECT_EQ(Colord(0.5, 0.6, 0.7), scene.background());
+  }
+
+  TEST(Scene, ShouldSetAndGetEnvironmentRadiance) {
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.2, 0.3, 0.4));
+    EXPECT_EQ(Colord(0.2, 0.3, 0.4), scene.environmentRadiance());
   }
 
   TEST(Scene, ShouldSetAndGetChanged) {
@@ -506,7 +517,7 @@ namespace SceneTest {
     EXPECT_EQ(nullptr, scene.activeCamera());
   }
 
-  TEST(Scene, ShouldRoundtripAmbientAndBackgroundViaSaveLoad) {
+  TEST(Scene, ShouldRoundtripAmbientBackgroundAndEnvironmentViaSaveLoad) {
     QTemporaryFile temp;
     ASSERT_TRUE(temp.open());
     auto path = temp.fileName();
@@ -515,12 +526,14 @@ namespace SceneTest {
     Scene original;
     original.setAmbient(Colord(0.1, 0.2, 0.3));
     original.setBackground(Colord(0.4, 0.5, 0.6));
+    original.setEnvironmentRadiance(Colord(0.7, 0.8, 0.9));
     ASSERT_TRUE(original.save(path));
 
     Scene decoded;
     ASSERT_TRUE(decoded.load(path));
     EXPECT_EQ(Colord(0.1, 0.2, 0.3), decoded.ambient());
     EXPECT_EQ(Colord(0.4, 0.5, 0.6), decoded.background());
+    EXPECT_EQ(Colord(0.7, 0.8, 0.9), decoded.environmentRadiance());
 
     QFile::remove(path);
   }
@@ -885,6 +898,13 @@ namespace SceneTest {
     scene.setBackground(Colord(0.1, 0.2, 0.3));
     auto rt = scene.toRaytracerScene();
     EXPECT_EQ(Colord(0.1, 0.2, 0.3), rt->background());
+  }
+
+  TEST(Scene, ShouldProduceRaytracerSceneWithMatchingEnvironmentRadiance) {
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.4, 0.5, 0.6));
+    auto rt = scene.toRaytracerScene();
+    EXPECT_EQ(Colord(0.4, 0.5, 0.6), rt->environmentRadiance());
   }
 
   TEST(Scene, ShouldProduceEmptyRaytracerSceneWithNoChildren) {

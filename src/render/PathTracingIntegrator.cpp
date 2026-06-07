@@ -41,6 +41,7 @@ namespace render {
 
     Rayd ray;
     Colord throughput{Colord::white()};
+    bool backgroundVisible{true};
     State state;
 
   private:
@@ -112,6 +113,10 @@ namespace render {
     return m_cancellationCallback && m_cancellationCallback();
   }
 
+  Colord PathTracingIntegrator::missRadiance(const Scene& scene, bool backgroundVisible) const {
+    return backgroundVisible ? scene.background() : scene.environmentRadiance();
+  }
+
   void PathTracingIntegrator::recordDepthDelta(BatchDepthMetrics& depthMetrics,
                                                const Colord& before, const Colord& after) const {
     if (!depthMetrics.trackRadianceDelta) {
@@ -145,7 +150,7 @@ namespace render {
     if (depthMetrics.trackFrontierMetrics()) {
       ++depthMetrics.frontierRayMisses;
     }
-    path.accumulated() += path.throughput * scene.background();
+    path.accumulated() += path.throughput * missRadiance(scene, path.backgroundVisible);
     path.state.recurseOut();
     recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
   }
@@ -413,6 +418,7 @@ namespace render {
 
     Colord accumulated = Colord::black();
     Colord throughput = Colord::white();
+    bool backgroundVisible = true;
     Rayd ray = primaryRay;
 
     for (int bounce = 0; bounce < m_maximumRecursionDepth; ++bounce) {
@@ -425,7 +431,7 @@ namespace render {
       HitPointInterval hitPoints;
       const Primitive* primitive = scene.intersect(ray, hitPoints, state);
       if (!primitive) {
-        accumulated += throughput * scene.background();
+        accumulated += throughput * missRadiance(scene, backgroundVisible);
         state.recurseOut();
         break;
       }
@@ -483,6 +489,7 @@ namespace render {
         throughput = throughput * sampled.value;
       } else {
         throughput = throughput * (sampled.value * (normalDotWo / sampled.pdf));
+        backgroundVisible = false;
       }
 
       // Russian roulette beyond the configured depth.
@@ -612,6 +619,7 @@ namespace render {
             path.throughput = path.throughput * sampled.value;
           } else {
             path.throughput = path.throughput * (sampled.value * (normalDotWo / sampled.pdf));
+            path.backgroundVisible = false;
           }
 
           if (bounce >= m_russianRouletteDepth) {

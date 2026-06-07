@@ -255,6 +255,25 @@ namespace PathTracingIntegratorTest {
       return scene;
     }
 
+    std::unique_ptr<Scene> matteEnvironmentScene(const Colord& background,
+                                                 const Colord& environmentRadiance) {
+      auto scene = std::make_unique<Scene>(Colord::black());
+      scene->setAmbient(Colord::black());
+      scene->setBackground(background);
+      scene->setEnvironmentRadiance(environmentRadiance);
+
+      auto texture = std::make_shared<ConstantColorTexture>(Colord::white());
+      auto material = std::make_shared<MatteMaterial>(texture);
+      material->setAmbientCoefficient(0.0);
+      material->setDiffuseCoefficient(1.0);
+
+      auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
+      plane->setMaterial(material);
+      scene->add(plane);
+
+      return scene;
+    }
+
     std::unique_ptr<Scene> reflectiveBackgroundScene() {
       auto scene = std::make_unique<Scene>();
       scene->setAmbient(Colord::black());
@@ -368,6 +387,61 @@ namespace PathTracingIntegratorTest {
     const Colord pixel = traceWithSampleStream(integrator, *scene, 1234ull, 0);
 
     ASSERT_COLOR_NEAR(Colord(0.8, 0.8, 0.8), pixel, 1e-12);
+  }
+
+  TEST(PathTracingIntegrator, PrimaryMissReturnsBackgroundColor) {
+    auto scene = matteEnvironmentScene(Colord(1, 0, 0), Colord(0, 1, 0));
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    auto stream = sampler->stream(0, 1234ull);
+    State state;
+    state.sampleStream = stream.get();
+    FallbackRayCaster caster;
+
+    const Colord pixel =
+      integrator.radiance(*scene, Rayd(Vector3d(0, 5, 0), Vector3d(0, 1, 0)), state, caster);
+
+    ASSERT_COLOR_NEAR(Colord(1, 0, 0), pixel, 1e-12);
+  }
+
+  TEST(PathTracingIntegrator, DiffuseIndirectMissIgnoresBackgroundWithoutEnvironmentRadiance) {
+    auto scene = matteEnvironmentScene(Colord(1, 0, 0), Colord::black());
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+
+    const Colord pixel = traceWithSampleStream(integrator, *scene, 1234ull, 0);
+
+    ASSERT_COLOR_NEAR(Colord::black(), pixel, 1e-12);
+  }
+
+  TEST(PathTracingIntegrator, DiffuseIndirectMissUsesExplicitEnvironmentRadiance) {
+    auto scene = matteEnvironmentScene(Colord(1, 0, 0), Colord(0, 1, 0));
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+
+    const Colord pixel = traceWithSampleStream(integrator, *scene, 1234ull, 0);
+
+    ASSERT_COLOR_NEAR(Colord(0, 1, 0), pixel, 1e-12);
+  }
+
+  TEST(PathTracingIntegrator, BatchedDiffuseIndirectMissUsesExplicitEnvironmentRadiance) {
+    auto scene = matteEnvironmentScene(Colord(1, 0, 0), Colord(0, 1, 0));
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 11ull)});
+
+    FallbackRayCaster caster;
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster);
+
+    ASSERT_EQ(1u, batched.size());
+    ASSERT_COLOR_NEAR(Colord(0, 1, 0), batched[0], 1e-12);
   }
 
   TEST(PathTracingIntegrator, AccumulatesAcrossSeveralSamplesWithoutDivergence) {

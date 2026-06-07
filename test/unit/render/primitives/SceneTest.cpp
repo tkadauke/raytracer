@@ -27,6 +27,17 @@ namespace SceneTest {
     ASSERT_EQ(Colord::white(), scene.background());
   }
 
+  TEST(Scene, ShouldInitializeEnvironmentRadianceToBlack) {
+    Scene scene(Colord::white());
+    ASSERT_EQ(Colord::black(), scene.environmentRadiance());
+  }
+
+  TEST(Scene, ShouldSetEnvironmentRadiance) {
+    Scene scene(Colord::white());
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    ASSERT_EQ(Colord(0.1, 0.2, 0.3), scene.environmentRadiance());
+  }
+
   TEST(Scene, ShouldHaveNoLightByDefault) {
     Scene scene(Colord::white());
     ASSERT_TRUE(scene.lights().empty());

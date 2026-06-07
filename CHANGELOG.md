@@ -275,6 +275,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Path tracing environment radiance.** Path tracing now treats scene background
+  as visible miss color for camera/specular paths only; diffuse and glossy
+  indirect bounces gather explicit scene environment radiance, which defaults to
+  black for legacy-scene compatibility. — GPT-5
 - **Path tracing direct-light MIS.** Path tracer direct-light sampling now uses
   material BSDF PDFs to MIS-weight non-delta light samples while preserving
   delta light behavior. — GPT-5

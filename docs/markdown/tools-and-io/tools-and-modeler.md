@@ -461,8 +461,8 @@ stencil AOV, composite, tonemap, and exported stencil-preview nodes; the scene
 does not name those nodes directly.
 [`scenes/wavefront_indirect_environment_demo.json`](../../../scenes/wavefront_indirect_environment_demo.json)
 opens with path tracing selected in render intent. It contains no
-direct lights, so it is a compact sanity scene for environment/indirect
-lighting through the graph path.
+direct lights and opts into scene environment radiance, so it is a compact
+sanity scene for environment/indirect lighting through the graph path.
 [`scenes/wavefront_indirect_bounce_demo.json`](../../../scenes/wavefront_indirect_bounce_demo.json)
 uses the same graph-backed path-tracing intent for a small
 diffuse-bounce setup: a side-lit red wall bounces light onto otherwise-dark

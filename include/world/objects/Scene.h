@@ -25,6 +25,7 @@ class Scene : public Element {
   Q_OBJECT
   Q_PROPERTY(Colord ambient READ ambient WRITE setAmbient)
   Q_PROPERTY(Colord background READ background WRITE setBackground)
+  Q_PROPERTY(Colord environmentRadiance READ environmentRadiance WRITE setEnvironmentRadiance)
   Q_PROPERTY(int accelerationMode READ accelerationMode WRITE setAccelerationMode)
 
 public:
@@ -210,7 +211,7 @@ public:
   }
 
   /**
-    * Sets the scene's background light color.
+    * Sets the scene's visible background color.
     * 
     * <table><tr>
     * <td>@image html scene_background_red.png "red"</td>
@@ -224,6 +225,20 @@ public:
     */
   inline void setBackground(const Colord& background) {
     m_background = background;
+  }
+
+  /**
+    * @returns the scene's path-traced environment radiance.
+    */
+  inline const Colord& environmentRadiance() const {
+    return m_environmentRadiance;
+  }
+
+  /**
+    * Sets the scene's path-traced environment radiance.
+    */
+  inline void setEnvironmentRadiance(const Colord& radiance) {
+    m_environmentRadiance = radiance;
   }
 
   /**
@@ -283,6 +298,7 @@ private:
   bool m_changed;
   Colord m_ambient;
   Colord m_background;
+  Colord m_environmentRadiance;
   render::AccelerationMode m_accelerationMode{render::AccelerationMode::Automatic};
   std::unique_ptr<world::Timeline> m_animation;
   engine::graph::RenderIntent m_renderIntent;

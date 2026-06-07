@@ -32,7 +32,9 @@ namespace render {
     * Algorithm at each bounce:
     *
     *  1. Trace `ray` into the scene.
-    *  2. Miss → add `throughput · background`, terminate.
+    *  2. Miss → add `throughput · background` while the path is still a
+    *     camera/specular chain, otherwise add explicit environment radiance;
+    *     terminate.
     *  3. Material doesn't support BSDF sampling → fall back to
     *     `Material::shade(...)` (Whitted compatibility), terminate.
     *  4. Direct lighting (next-event estimation): for each light, draw
@@ -101,6 +103,7 @@ namespace render {
     struct BatchPath;
 
     bool isCancelled() const;
+    Colord missRadiance(const Scene& scene, bool backgroundVisible) const;
     Colord directLighting(const Scene& scene, const Light& light, const HitPoint& hitPoint,
                           const Material& material, const Vector3d& wi, State& state) const;
     void recordDepthDelta(BatchDepthMetrics& depthMetrics, const Colord& before,

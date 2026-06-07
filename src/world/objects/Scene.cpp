@@ -53,7 +53,8 @@ Scene::Scene(Element* parent)
     : Element(parent),
       m_changed(false),
       m_ambient(Colord(0.4, 0.4, 0.4)),
-      m_background(Colord(0.4, 0.8, 1)) {
+      m_background(Colord(0.4, 0.8, 1)),
+      m_environmentRadiance(Colord::black()) {
   setName("New Scene");
   addChild(std::make_unique<RenderIntentElement>());
 }
@@ -103,6 +104,7 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene(const StepPlaybackStyle& 
 
   result->setAmbient(ambient());
   result->setBackground(background());
+  result->setEnvironmentRadiance(environmentRadiance());
 
   return result;
 }

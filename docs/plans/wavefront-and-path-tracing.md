@@ -856,9 +856,10 @@ future custom materials or new built-ins that have not implemented those
 interfaces yet.
 `scenes/wavefront_indirect_environment_demo.json` is the first reusable Phase 5
 sanity scene: it has a pathtracer render intent, black ambient, no
-direct lights, and a matte object that is visible only because diffuse BSDF
-sampling gathers environment radiance. rendercli now compares that scene
-against a Whitted override and requires the images to differ.
+direct lights, explicit environment radiance, and a matte object that is
+visible only because diffuse BSDF sampling gathers that environment radiance.
+rendercli now compares that scene against a Whitted override and requires the
+images to differ.
 `scenes/wavefront_indirect_bounce_demo.json` adds the stronger diffuse-bounce
 gate: a side-lit red wall bounces light onto otherwise-dark neutral receivers,
 and rendercli compares the graph-backed pathtracer result against a

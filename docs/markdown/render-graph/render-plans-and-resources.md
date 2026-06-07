@@ -723,9 +723,11 @@ denoiser-informed convergence.
 The reusable scene
 [`scenes/wavefront_indirect_environment_demo.json`](../../../scenes/wavefront_indirect_environment_demo.json)
 opens with a path-tracing intent and no direct lights; the matte sphere is
-visible because the path tracer gathers background radiance through a diffuse
-bounce, while a Whitted override leaves the object black except for the
-unchanged background.
+visible because the scene opts into environment radiance and the path tracer
+gathers it through a diffuse bounce, while a Whitted override leaves the object
+black except for the unchanged background. Ordinary background color remains a
+visible miss/clear color; it does not become diffuse sky lighting unless
+environment radiance is authored separately.
 [`scenes/wavefront_indirect_bounce_demo.json`](../../../scenes/wavefront_indirect_bounce_demo.json)
 keeps that same graph-backed path-tracing intent but uses a side-lit red wall
 and neutral receivers, so the path-traced render shows a visible diffuse bounce

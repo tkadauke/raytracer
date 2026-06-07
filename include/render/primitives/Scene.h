@@ -16,19 +16,23 @@ namespace render {
 namespace render {
 
   /**
-    * @brief Top-level scene graph node — geometry, lights, ambient,
-    *        and background colour.
+      * @brief Top-level scene graph node — geometry, lights, ambient,
+      *        background color, and environment radiance.
     *
     * `Scene` is a `Composite` that additionally owns a list of
     * `Light`s and the two whole-scene colours that the renderer
-    * consults when no surface contributes:
+      * consults when no surface contributes:
     *
     *  - `background()` is returned for primary rays that miss every
     *    primitive *and* for recursive rays that bottom out at the
     *    `WhittedIntegrator` recursion limit. The latter is a deliberate
     *    softening — see `WhittedIntegrator::radiance` for why background,
     *    not black.
-    *  - `ambient()` is the constant illumination available to every
+      *  - `environmentRadiance()` is the explicit sky/environment light
+      *    gathered by path-traced diffuse/glossy bounces. It defaults to
+      *    black so legacy scenes can keep a saturated visible background
+      *    without turning it into indirect illumination.
+      *  - `ambient()` is the constant illumination available to every
     *    surface without ray-traced visibility (no shadow ray);
     *    materials multiply it by their own ambient coefficient.
     *
@@ -59,7 +63,8 @@ namespace render {
       */
     inline Scene()
         : m_ambient(Colord::white()),
-          m_background(Colord::white()) {
+          m_background(Colord::white()),
+          m_environmentRadiance(Colord::black()) {
     }
 
     /**
@@ -68,7 +73,8 @@ namespace render {
       */
     inline explicit Scene(const Colord& ambient)
         : m_ambient(ambient),
-          m_background(Colord::white()) {
+          m_background(Colord::white()),
+          m_environmentRadiance(Colord::black()) {
     }
 
     /**
@@ -127,7 +133,7 @@ namespace render {
     }
 
     /**
-      * Sets the scene's background light color.
+      * Sets the scene's visible background color.
       *
       * <table><tr>
       * <td>@image html scene_background_red.png "red"</td>
@@ -141,6 +147,23 @@ namespace render {
       */
     inline void setBackground(const Colord& background) {
       m_background = background;
+    }
+
+    /**
+      * @returns radiance emitted by the scene environment for indirect path-traced bounces.
+      */
+    inline const Colord& environmentRadiance() const {
+      return m_environmentRadiance;
+    }
+
+    /**
+      * Sets the radiance emitted by the scene environment for indirect
+      * path-traced bounces. This is intentionally separate from
+      * `background()`: legacy scenes use the background as a visible miss
+      * color, while path tracing needs an opt-in sky/environment light.
+      */
+    inline void setEnvironmentRadiance(const Colord& radiance) {
+      m_environmentRadiance = radiance;
     }
 
     /**
@@ -164,6 +187,7 @@ namespace render {
     Lights m_lights;
     Colord m_ambient;
     Colord m_background;
+    Colord m_environmentRadiance;
     std::optional<AccelerationDecision> m_accelerationDecision;
   };
 }
