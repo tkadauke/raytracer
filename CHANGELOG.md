@@ -21,6 +21,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   families now declare serial, limited, or parallel-safe scheduling limits,
   export them through text/DOT/JSON graph inspection, and mark OpenGL raster
   pass state as limited to one concurrent pass by default. — GPT-5
+- **Render graph selector analysis.** `RenderSceneAnalysis` now records stable
+  selectable subsets for visible object ids, object names, tags, and layers,
+  and graph compilation reports missing or ambiguous selector-specific intent
+  with actionable diagnostics. — GPT-5
 - Direct wavefront/pathtracer rendercli runs can export a grayscale per-pixel
   sample radiance standard-deviation diagnostic image for path-tracing noise
   analysis. — GPT-5

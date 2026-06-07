@@ -24,6 +24,23 @@ namespace engine::graph {
       std::string surfaceName;
     };
 
+    struct SelectableSubset {
+      std::string id;
+      std::string label;
+      SceneSelector selector;
+      std::size_t elementCount{0};
+    };
+
+    enum class SelectorMatchStatus { Matched, Missing, Ambiguous };
+
+    struct SelectorMatch {
+      SelectorMatchStatus status{SelectorMatchStatus::Missing};
+      const SelectableSubset* subset{nullptr};
+      std::vector<const SelectableSubset*> candidates;
+
+      bool matched() const;
+    };
+
     RenderSceneAnalysis();
 
     /**
@@ -39,9 +56,14 @@ namespace engine::graph {
     void recordPortalReceiverSurface(std::string surfaceId, std::string surfaceName);
     void recordPlanarMirrorSurface(std::string surfaceId, std::string surfaceName);
     void recordRenderTextureReceiver(std::string subviewName);
+    void recordSelectableObject(std::string objectId, std::string objectName,
+                                std::vector<std::string> tags = {},
+                                std::vector<std::string> layers = {},
+                                std::string label = {});
 
     bool hasKnownVisibleSurfaceCount() const;
     bool hasKnownVisibleLightCount() const;
+    bool hasKnownSelectableSubsets() const;
     std::size_t visibleSurfaceCount() const;
     std::size_t visibleLightCount() const;
     std::size_t portalReceiverSurfaceCount() const;
@@ -56,13 +78,23 @@ namespace engine::graph {
 
     bool shouldCompileRasterPreviewShadows(RenderExecutorKind executor,
                                            const RenderIntent& intent) const;
+    const std::vector<SelectableSubset>& selectableSubsets() const;
+    SelectorMatch matchSelector(const SceneSelector& selector) const;
+    void requireResolvableSelectors(const RenderIntent& intent,
+                                    const std::string& context) const;
 
   private:
+    SelectableSubset& recordSubset(std::string id, std::string label,
+                                   SceneSelector selector);
+    std::vector<const SelectableSubset*> candidatesFor(const SceneSelector& selector) const;
+
     std::optional<std::size_t> m_visibleSurfaceCount{0};
     std::optional<std::size_t> m_visibleLightCount{0};
     std::vector<SceneSurfaceMarker> m_portalReceiverSurfaces;
     std::vector<SceneSurfaceMarker> m_planarMirrorSurfaces;
     std::set<std::string> m_renderTextureSubviewReceivers;
     bool m_rasterShadowMapsSupported{true};
+    bool m_hasKnownSelectableSubsets{true};
+    std::vector<SelectableSubset> m_selectableSubsets;
   };
 }
