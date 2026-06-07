@@ -7,6 +7,7 @@
 #include <cstdint>
 
 #include <QString>
+#include <QStringList>
 
 class Scene;
 class Element;
@@ -41,6 +42,7 @@ signals:
   void renderGraphPassStarted(const QString& passId);
   void renderGraphPassFinished(const QString& passId);
   void renderGraphPassFailed(const QString& passId, const QString& message);
+  void renderGraphActivePassesChanged(const QStringList& passIds);
 
 protected:
   void resizeEvent(QResizeEvent* event) override;
@@ -60,6 +62,8 @@ public:
   void notifyRenderGraphPassFinished(const QString& passId, std::uint64_t generation);
   void notifyRenderGraphPassFailed(const QString& passId, const QString& message,
                                    std::uint64_t generation);
+  void notifyRenderGraphActivePassesChanged(const QStringList& passIds,
+                                            std::uint64_t generation);
   std::shared_ptr<const engine::graph::RenderGraphExecutionTrace>
   lastRenderGraphExecutionTrace() const;
   std::shared_ptr<const engine::graph::RenderGraphExecutionTrace>

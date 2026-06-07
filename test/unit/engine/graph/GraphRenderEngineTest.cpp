@@ -35,6 +35,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -188,6 +189,22 @@ namespace GraphRenderEngineTest {
       events.push_back("fail:" + passId + ":" + message + ":" + std::to_string(generation));
     }
 
+    void activePassesChanged(const std::set<RenderPassId>& passIds,
+                             std::uint64_t generation) override {
+      generations.push_back(generation);
+      std::string event = "active:";
+      bool first = true;
+      for (const auto& passId : passIds) {
+        if (!first) {
+          event += ",";
+        }
+        event += passId;
+        first = false;
+      }
+      event += ":" + std::to_string(generation);
+      events.push_back(event);
+    }
+
     std::vector<std::uint64_t> generations;
   };
 
@@ -233,6 +250,15 @@ namespace GraphRenderEngineTest {
       m_changed.notify_all();
     }
 
+    void activePassesChanged(const std::set<RenderPassId>& passIds,
+                             std::uint64_t) override {
+      {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_activeSnapshots.push_back(passIds);
+      }
+      m_changed.notify_all();
+    }
+
     bool waitForEvent(const std::string& event, std::chrono::milliseconds timeout) {
       std::unique_lock<std::mutex> lock(m_mutex);
       return m_changed.wait_for(lock, timeout, [&] { return hasEventLocked(event); });
@@ -244,6 +270,15 @@ namespace GraphRenderEngineTest {
         return std::count_if(m_events.begin(), m_events.end(), [](const std::string& event) {
                  return event.find("start:") == 0;
                }) >= count;
+      });
+    }
+
+    bool waitForActiveSet(const std::set<RenderPassId>& passIds,
+                          std::chrono::milliseconds timeout) {
+      std::unique_lock<std::mutex> lock(m_mutex);
+      return m_changed.wait_for(lock, timeout, [&] {
+        return std::find(m_activeSnapshots.begin(), m_activeSnapshots.end(), passIds) !=
+               m_activeSnapshots.end();
       });
     }
 
@@ -260,6 +295,7 @@ namespace GraphRenderEngineTest {
     mutable std::mutex m_mutex;
     std::condition_variable m_changed;
     std::vector<std::string> m_events;
+    std::vector<std::set<RenderPassId>> m_activeSnapshots;
   };
 
   int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
@@ -1587,6 +1623,9 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("post_aa_color", postAA->diffs()[0].outputResourceId());
     EXPECT_GT(countNonBlackPixels(postAA->diffs()[0].boostedPreview()), 0);
     EXPECT_GT(postAA->elapsed().count(), 0);
+    ASSERT_TRUE(postAA->startedAt());
+    ASSERT_TRUE(postAA->finishedAt());
+    EXPECT_LT(*postAA->startedAt(), *postAA->finishedAt());
 
     const auto inputs = trace->inputSnapshotsForResource("beauty_color");
     const auto outputs = trace->outputSnapshotsForResource("post_aa_color");
@@ -1598,6 +1637,11 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("post_aa_color", outputs.front()->resourceId());
     EXPECT_EQ("post_aa_color", diffs.front()->outputResourceId());
     EXPECT_EQ("post_aa_color", diffs.back()->inputResourceId());
+
+    const QJsonObject postAAJson = postAA->toJson();
+    EXPECT_TRUE(postAAJson.contains("startedAtMs"));
+    EXPECT_TRUE(postAAJson.contains("finishedAtMs"));
+    EXPECT_FALSE(postAAJson.contains("failedAtMs"));
   }
 
   TEST(GraphRenderEngine, RejectsExecutionTraceAfterInputChange) {
@@ -2111,6 +2155,7 @@ namespace GraphRenderEngineTest {
 
     GraphRenderEngine engine(camera(), scene);
     engine.setPlan(plan);
+    engine.setExecutionTraceEnabled(true);
     auto observer = std::make_shared<BlockingObserver>();
     engine.setExecutionObserver(observer);
 
@@ -2128,6 +2173,7 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(renderBlocked);
     if (renderBlocked) {
       EXPECT_TRUE(observer->waitForStartedCount(2, std::chrono::seconds(2)));
+      EXPECT_TRUE(observer->waitForActiveSet({"beauty_a", "beauty_b"}, std::chrono::seconds(2)));
     }
     material->releaseSecondCall();
     renderThread.join();
@@ -2136,6 +2182,19 @@ namespace GraphRenderEngineTest {
     }
 
     EXPECT_EQ(Colord(0.25, 0.5, 0.75), buffer[0][0]);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* firstTrace = trace->findPass("beauty_a");
+    const RenderPassTrace* secondTrace = trace->findPass("beauty_b");
+    ASSERT_NE(nullptr, firstTrace);
+    ASSERT_NE(nullptr, secondTrace);
+    ASSERT_TRUE(firstTrace->startedAt());
+    ASSERT_TRUE(firstTrace->finishedAt());
+    ASSERT_TRUE(secondTrace->startedAt());
+    ASSERT_TRUE(secondTrace->finishedAt());
+    EXPECT_LT(*firstTrace->startedAt(), *secondTrace->finishedAt());
+    EXPECT_LT(*secondTrace->startedAt(), *firstTrace->finishedAt());
   }
 
   TEST(GraphRenderEngine, SerialExecutorLimitPreservesPassOrder) {
@@ -2230,6 +2289,8 @@ namespace GraphRenderEngineTest {
     const RenderPassTrace* badTrace = trace->findPass("bad");
     ASSERT_NE(nullptr, badTrace);
     EXPECT_EQ(RenderPassExecutionStatus::Failed, badTrace->status());
+    ASSERT_TRUE(badTrace->failedAt());
+    EXPECT_TRUE(badTrace->toJson().contains("failedAtMs"));
     const RenderPassTrace* dependentTrace = trace->findPass("dependent");
     ASSERT_NE(nullptr, dependentTrace);
     EXPECT_EQ(RenderPassExecutionStatus::Skipped, dependentTrace->status());

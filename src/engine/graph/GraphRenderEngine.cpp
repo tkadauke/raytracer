@@ -29,6 +29,7 @@
 #include <iomanip>
 #include <map>
 #include <mutex>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <thread>
@@ -574,14 +575,49 @@ namespace engine::graph {
       }
     }
 
+    void notifyActivePassesChanged(const GraphRenderEngine& graph,
+                                   const std::set<RenderPassId>& passIds,
+                                   std::uint64_t generation) {
+      if (auto observer = graph.executionObserver()) {
+        observer->activePassesChanged(passIds, generation);
+      }
+    }
+
+    class ActivePassSet {
+    public:
+      void add(const RenderPassId& passId) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_passIds.insert(passId);
+      }
+
+      void remove(const RenderPassId& passId) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_passIds.erase(passId);
+      }
+
+      std::set<RenderPassId> snapshot() const {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_passIds;
+      }
+
+    private:
+      mutable std::mutex m_mutex;
+      std::set<RenderPassId> m_passIds;
+    };
+
     template<class Execute>
     void executeObserved(const GraphRenderEngine& graph,
                          const std::shared_ptr<RenderGraphExecutionTraceRecorder>& recorder,
+                         const std::shared_ptr<ActivePassSet>& activePasses,
                          std::shared_ptr<const RenderGraphExecutionTraceSession> traceSession,
                          std::uint64_t renderGeneration, const RenderPassNode& pass,
                          const RenderResourceStorage& storage, const QJsonObject* metadata,
                          Execute execute) {
       notifyPassStarted(graph, pass, renderGeneration);
+      if (activePasses) {
+        activePasses->add(pass.id);
+        notifyActivePassesChanged(graph, activePasses->snapshot(), renderGeneration);
+      }
       if (recorder && traceSession) {
         recorder->passStarted(traceSession, pass, storage);
       }
@@ -592,18 +628,30 @@ namespace engine::graph {
           recorder->passFailed(traceSession, pass, storage, error.what());
         }
         notifyPassFailed(graph, pass, error.what(), renderGeneration);
+        if (activePasses) {
+          activePasses->remove(pass.id);
+          notifyActivePassesChanged(graph, activePasses->snapshot(), renderGeneration);
+        }
         throw;
       } catch (...) {
         if (recorder && traceSession) {
           recorder->passFailed(traceSession, pass, storage, "unknown render graph pass failure");
         }
         notifyPassFailed(graph, pass, "unknown render graph pass failure", renderGeneration);
+        if (activePasses) {
+          activePasses->remove(pass.id);
+          notifyActivePassesChanged(graph, activePasses->snapshot(), renderGeneration);
+        }
         throw;
       }
       if (recorder && traceSession) {
         recorder->passCompleted(traceSession, pass, storage, metadata ? *metadata : QJsonObject());
       }
       notifyPassFinished(graph, pass, renderGeneration);
+      if (activePasses) {
+        activePasses->remove(pass.id);
+        notifyActivePassesChanged(graph, activePasses->snapshot(), renderGeneration);
+      }
     }
 
     struct TraceSession {
@@ -666,6 +714,7 @@ namespace engine::graph {
     struct GraphExecutionRuntime {
       std::atomic<bool>& cancelled;
       std::shared_ptr<RenderGraphExecutionTraceRecorder> traceRecorder;
+      std::shared_ptr<ActivePassSet> activePasses;
     };
 
     template<class ExecutePass, class AfterPass>
@@ -1205,7 +1254,8 @@ namespace engine::graph {
     storage.allocate(plan.resources());
     bindExternalInputs(storage, plan, p->externalResources);
 
-    GraphExecutionRuntime runtime{p->cancelled, p->executionTraceRecorder};
+    GraphExecutionRuntime runtime{p->cancelled, p->executionTraceRecorder,
+                                  std::make_shared<ActivePassSet>()};
     auto executePass = [&](const RenderPassNode& pass) {
       if (!pass.enabled) {
         const DisabledPassHandler& handler = applyDisabledPass(pass, storage, *this);
@@ -1232,8 +1282,9 @@ namespace engine::graph {
         }
       } reset{context};
 
-      executeObserved(*this, p->executionTraceRecorder, traceSession.session, renderGeneration,
-                      pass, storage, &context.traceMetadata(), [&] {
+      executeObserved(*this, p->executionTraceRecorder, runtime.activePasses,
+                      traceSession.session, renderGeneration, pass, storage,
+                      &context.traceMetadata(), [&] {
                         auto payload = RenderPassPayload::createBuiltin(pass);
                         if (!payload) {
                           throw std::runtime_error(
@@ -1285,7 +1336,8 @@ namespace engine::graph {
     bindExternalInputs(storage, plan, p->externalResources);
     const auto displayTonemap = displayTonemapForPlan(plan, *this);
 
-    GraphExecutionRuntime runtime{p->cancelled, p->executionTraceRecorder};
+    GraphExecutionRuntime runtime{p->cancelled, p->executionTraceRecorder,
+                                  std::make_shared<ActivePassSet>()};
     auto executePass = [&](const RenderPassNode& pass) {
       if (!pass.enabled) {
         const DisabledPassHandler& handler = applyDisabledPass(pass, storage, *this);
@@ -1313,8 +1365,9 @@ namespace engine::graph {
         }
       } reset{context};
 
-      executeObserved(*this, p->executionTraceRecorder, traceSession.session, renderGeneration,
-                      pass, storage, &context.traceMetadata(), [&] {
+      executeObserved(*this, p->executionTraceRecorder, runtime.activePasses,
+                      traceSession.session, renderGeneration, pass, storage,
+                      &context.traceMetadata(), [&] {
                         auto payload = RenderPassPayload::createBuiltin(pass);
                         if (!payload) {
                           throw std::runtime_error(

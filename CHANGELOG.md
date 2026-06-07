@@ -29,6 +29,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render animation tracks.** Added Qt-free render-side animation value and
   continuous-time track primitives for scalar, vector, color, transform, and
   step-only switch payloads. — GPT-5
+- **Parallel graph execution tracing.** Graph execution traces now record
+  per-pass start, finish, and failure offsets, live observers publish the
+  active pass set, and the Modeler can highlight multiple active graph nodes at
+  once. — GPT-5
 - **Render graph concurrency metadata.** Render graph passes and executor
   families now declare serial, limited, or parallel-safe scheduling limits,
   export them through text/DOT/JSON graph inspection, and mark OpenGL raster
