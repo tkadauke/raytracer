@@ -82,6 +82,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   preview/render settings, and graph compilation now expose `pathtracer` as a
   user-facing executor preference that compiles to a wavefront-backed
   path-traced beauty pass. — GPT-5
+- **Render-to-texture screen documentation and validation coverage.** The
+  render graph plan and textbook now document screen receivers, nested subview
+  branches, Modeler/export behavior, concrete rendercli verification commands,
+  and cyclic render-to-texture graph rejection. — GPT-5
 - **Hybrid render-to-texture screen demo.** Added
   `scenes/render_texture_screen_demo.json`, a graph-backed scene where a
   rasterized subview is bound into a raytraced screen receiver, with rendercli

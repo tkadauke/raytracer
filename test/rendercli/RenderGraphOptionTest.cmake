@@ -36,6 +36,7 @@ set(material_sidedness_culling_scene "${TEST_OUTPUT_DIR}/material-sidedness-cull
 set(malformed_graph_json "${TEST_OUTPUT_DIR}/malformed-graph.json")
 set(json_root_graph "${TEST_OUTPUT_DIR}/json-root-graph.json")
 set(semantic_invalid_graph "${TEST_OUTPUT_DIR}/semantic-invalid-graph.json")
+set(cyclic_graph "${TEST_OUTPUT_DIR}/cyclic-graph.json")
 set(external_input_graph "${TEST_OUTPUT_DIR}/external-input-graph.json")
 set(depth_input_graph "${TEST_OUTPUT_DIR}/depth-input-graph.json")
 set(stencil_input_graph "${TEST_OUTPUT_DIR}/stencil-input-graph.json")
@@ -709,6 +710,64 @@ file(WRITE "${semantic_invalid_graph}" [=[
       "features": ["debug"],
       "reads": [],
       "writes": ["main_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    }
+  ]
+}
+]=])
+
+file(WRITE "${cyclic_graph}" [=[
+{
+  "resources": [
+    {
+      "id": "screen_color",
+      "name": "Screen color",
+      "features": ["render_to_texture", "subview_output", "subview_color_output"],
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "transient"
+    },
+    {
+      "id": "main_color",
+      "name": "Main color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "exported"
+    }
+  ],
+  "passes": [
+    {
+      "id": "screen_receiver",
+      "name": "Screen receiver",
+      "kind": "beauty",
+      "executor": "raytracer",
+      "features": ["main", "render_to_texture"],
+      "reads": ["screen_color"],
+      "writes": ["main_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    },
+    {
+      "id": "screen_feed",
+      "name": "Screen feed",
+      "kind": "beauty",
+      "executor": "rasterizer",
+      "features": ["subview", "render_to_texture"],
+      "reads": ["main_color"],
+      "writes": ["screen_color"],
       "disabledBehavior": "error",
       "enabled": true,
       "hasExternalSideEffects": false,
@@ -3268,6 +3327,14 @@ rendercli_expect_failure(
   STDERR_MATCHES "duplicate_writer"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_in "${semantic_invalid_graph}"
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects cyclic render-to-texture graph references"
+  STDERR_MATCHES "dependency cycle"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_in "${cyclic_graph}"
     "${static_scene}" "${invalid_plan}"
 )
 

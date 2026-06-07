@@ -1387,8 +1387,13 @@ Implement the smallest graph that proves the architecture:
    Preview View menu can compile the live preview as beauty, depth, stencil,
    normal, object-id, material-id, world-position, or raster counter AOV graphs. Per-selector intent
    controls remain TODO.
-10. Ship one hybrid demo: raytraced room containing a rasterized or wireframe
-   render-texture screen.
+10. ~~Ship one hybrid demo: raytraced room containing a rasterized or wireframe
+   render-texture screen.~~ ✅ **Done.** `scenes/render_texture_screen_demo.json`
+   renders a rasterized `monitor_feed` subview into a raytraced rectangle
+   material; verify with
+   `cmake --preset release && cmake --build --preset release --target rendercli rendercli_image_probe`
+   and
+   `ctest --preset release -R rendercli_render_graph --output-on-failure`.
 
 This first slice should not implement planar mirrors, portals, TAA, GPU
 resources, or a parallel scheduler. It should create the stable substrate those
@@ -1398,8 +1403,15 @@ features need.
 
 ### Render-to-texture surfaces
 
-Add explicit screen/render-texture scene features and support nested scene
-rendering into a texture consumed by a surface material.
+~~Add explicit screen/render-texture scene features and support nested scene
+rendering into a texture consumed by a surface material.~~ ✅ **Done.** Scene
+JSON can declare `renderIntent.subviews[]`, materials can name a
+`renderTextureSubview` receiver, graph compilation exports the subview color
+and raster depth resources, rendercli can export/render/trace the screen demo,
+and graph validation rejects cyclic screen/feed dependencies. Verify with
+`cmake --preset release && cmake --build --preset release --target rendercli rendercli_image_probe`
+and
+`ctest --preset release -R rendercli_render_graph --output-on-failure`.
 
 ### Per-scene and per-subtree style routing
 
