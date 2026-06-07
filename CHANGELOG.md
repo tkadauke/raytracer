@@ -111,8 +111,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   edges before the receiver pass. — GPT-5
 - **Render-to-texture scene intent.** World surfaces and materials can now name
   a subview render target receiver, scene JSON preserves that data, and graph
-  compilation reports missing, duplicate, or recursion-limited subview
-  references clearly.
+  compilation reports missing, duplicate, or cyclic subview references clearly.
   — GPT-5
 - **Wavefront graph packet ratios.** Modeler render graph pass tooltips now
   show packet-fill and scalar-tail percentages for wavefront packet frontiers.
