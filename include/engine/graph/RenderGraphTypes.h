@@ -1,6 +1,8 @@
 #pragma once
 
 #include "engine/graph/RenderEngineOptions.h"
+#include "core/math/Matrix.h"
+#include "core/math/Vector.h"
 
 #include <QJsonObject>
 #include <QJsonValue>
@@ -245,12 +247,34 @@ namespace engine::graph {
     QJsonObject parameters;
   };
 
+  struct DerivedCameraRef {
+    enum class Kind { Portal, PlanarMirror };
+
+    Kind kind{Kind::Portal};
+    std::optional<std::string> baseSceneCameraId;
+    Matrix4d receiverTransform;
+    Matrix4d sourceTransform;
+    Vector3d mirrorPlanePoint{Vector3d::null};
+    Vector3d mirrorPlaneNormal{0.0, 1.0, 0.0};
+    bool requiresReceiverClip{false};
+
+    bool equivalentTo(const DerivedCameraRef& other) const;
+    std::string displayText() const;
+    QJsonObject toJson() const;
+    static DerivedCameraRef fromJson(const QJsonObject& object, std::string path = "derived");
+  };
+
   /**
     * Camera reference for a whole frame or selected scene subset.
     */
   struct RenderCameraRef {
     std::optional<std::string> sceneCameraId;
     std::optional<CameraSnapshot> snapshot;
+    std::optional<DerivedCameraRef> derived;
+
+    RenderCameraRef() = default;
+    RenderCameraRef(std::optional<std::string> sceneCameraId,
+                    std::optional<CameraSnapshot> snapshot);
 
     bool equivalentTo(const RenderCameraRef& other) const;
     std::string displayText() const;

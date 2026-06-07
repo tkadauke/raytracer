@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Portal and mirror derived cameras.** Render graph subview branches now
+  derive portal cameras from receiver/source transforms and mirror cameras from
+  planar reflection, carrying explicit receiver-clipping state that fails
+  clearly on unsupported execution paths. — GPT-5
 - **Portal and planar mirror scene markers.** Scene JSON and Modeler surface
   properties can now mark planar portal receivers and mirror surfaces for
   render graph discovery. — GPT-5

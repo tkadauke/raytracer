@@ -1035,6 +1035,40 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, CompilesPortalAndMirrorMarkersAsDerivedCameraSubviews) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.setDefaultCamera(RenderCameraRef{"active-camera", std::nullopt});
+
+    RenderSceneAnalysis analysis;
+    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel",
+                                         Matrix4d::translate(2.0, 0.0, 0.0),
+                                         Matrix4d::translate(12.0, 0.0, 0.0));
+    analysis.recordPlanarMirrorSurface("mirror-panel", "Mirror Panel", Vector3d(0.0, 0.0, 0.0),
+                                       Vector3d(0.0, 1.0, 0.0));
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    const auto* portalPass = plan.findPass("subview_portal_portal_panel_raytrace_beauty");
+    ASSERT_NE(nullptr, portalPass);
+    ASSERT_TRUE(portalPass->sceneView.camera.has_value());
+    ASSERT_TRUE(portalPass->sceneView.camera->derived.has_value());
+    EXPECT_EQ(DerivedCameraRef::Kind::Portal, portalPass->sceneView.camera->derived->kind);
+    ASSERT_TRUE(portalPass->sceneView.camera->derived->baseSceneCameraId.has_value());
+    EXPECT_EQ("active-camera", *portalPass->sceneView.camera->derived->baseSceneCameraId);
+    EXPECT_TRUE(portalPass->sceneView.camera->derived->requiresReceiverClip);
+    EXPECT_TRUE(hasFeature(*portalPass, "subview:subview_portal_portal_panel"));
+
+    const auto* mirrorPass = plan.findPass("subview_mirror_mirror_panel_raytrace_beauty");
+    ASSERT_NE(nullptr, mirrorPass);
+    ASSERT_TRUE(mirrorPass->sceneView.camera.has_value());
+    ASSERT_TRUE(mirrorPass->sceneView.camera->derived.has_value());
+    EXPECT_EQ(DerivedCameraRef::Kind::PlanarMirror, mirrorPass->sceneView.camera->derived->kind);
+    EXPECT_TRUE(mirrorPass->sceneView.camera->derived->requiresReceiverClip);
+    EXPECT_TRUE(hasFeature(*mirrorPass, "subview:subview_mirror_mirror_panel"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, OpenGLSubviewIntentRoutesRasterProductsThroughReadbackPasses) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

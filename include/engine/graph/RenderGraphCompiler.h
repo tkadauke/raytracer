@@ -122,6 +122,8 @@ namespace engine::graph {
                                 RenderExecutorKind executor, const RenderIntent& intent) const;
     RenderPlan compileStencilCompositeView(const RenderTargetSpec& target,
                                            const RenderIntent& intent) const;
+    void addAutomaticFeatureSubviews(RenderIntent& intent,
+                                     const RenderSceneAnalysis& sceneAnalysis) const;
     std::vector<SubviewOutputBinding>
     addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target, const RenderIntent& intent,
                        const RenderSceneAnalysis& sceneAnalysis, int renderToTextureDepth) const;

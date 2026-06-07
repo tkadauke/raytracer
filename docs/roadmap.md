@@ -279,7 +279,7 @@ Feature discovery should start conservative and grow by material / object intent
 
 - Lights that request preview shadows add a `ShadowMapPass` or `RayShadowMaskPass`.
 - Materials that request planar reflection add a stencil mask, reflected-view pass, clip plane, and composite step.
-- Objects marked as screens, portals, scopes, mirrors, minimaps, or render-texture receivers produce offscreen render targets and dependency edges before the containing scene pass.
+- ~~Objects marked as portals or mirrors produce offscreen render targets with derived cameras and explicit clipping state.~~ ✅ **Done.** Portal receivers and planar mirrors now compile automatic render-to-texture subviews; portal cameras derive from receiver/source transforms, mirror cameras reflect across the mirror plane, and unsupported receiver clipping fails clearly during graph execution. Screens, scopes, minimaps, and generic render-texture receivers remain TODO.
 - Overlays and diagnostics add wireframe, normal, depth, object-id, or bounding-volume passes on top of the beauty pass.
 - Postprocess effects request the AOVs they need: depth for DoF/SSAO, motion vectors for motion blur/TAA, normals/world positions for denoisers and relighting.
 
