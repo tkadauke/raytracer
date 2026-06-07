@@ -38,30 +38,58 @@ Rayd PinholeCamera::rayForPixel(double x, double y, render::SampleStream&) const
 std::unique_ptr<Camera::PrimaryRayGenerator> PinholeCamera::primaryRayGenerator() const {
   class PinholePrimaryRayGenerator final : public Camera::PrimaryRayGenerator {
   public:
-    PinholePrimaryRayGenerator(std::shared_ptr<render::ViewPlane> plane, const Vector3d& origin)
+    PinholePrimaryRayGenerator(std::shared_ptr<render::ViewPlane> plane,
+                               const PinholeCamera& camera,
+                               const Vector3d& origin)
         : m_plane(std::move(plane)),
+          m_camera(camera),
           m_origin(origin) {
     }
 
     std::optional<Camera::PrimaryRay> sample(const render::ViewPlane::Iterator& pixel,
                                              render::SampleStream& stream) const override {
       const render::SampleStream::PrimarySample primarySample = stream.primarySample();
+      const double animationTime = m_camera.animationTimeForSample(primarySample.time);
       const Vector2d xy = pixel.pixel() + primarySample.pixel;
       const Vector3d pixelPoint = m_plane->pixelAt(xy.x(), xy.y());
-      const Rayd ray(m_origin, (pixelPoint - m_origin).normalized());
+      const Vector3d origin = rayOriginAt(animationTime);
+      const Rayd ray(origin, (pixelPoint - origin).normalized());
       if (!ray.direction().isDefined()) {
         return std::nullopt;
       }
 
-      return Camera::PrimaryRay{ray, primarySample.time};
+      return Camera::PrimaryRay{ray, primarySample.time, animationTime};
     }
 
   private:
+    Vector3d animatedVector(const char* property, const Vector3d& fallback, double time) const {
+      const auto* track = m_camera.animationTrack(property);
+      if (!track) {
+        return fallback;
+      }
+      return fallback + track->sample(time).get<Vector3d>() -
+             track->sample(m_camera.animationFrame()).get<Vector3d>();
+    }
+
+    Vector3d rayOriginAt(double time) const {
+      if (!m_camera.animationTrack("position") && !m_camera.animationTrack("target")) {
+        return m_origin;
+      }
+
+      const Vector3d position = animatedVector("position", m_camera.position(), time);
+      const Vector3d target = animatedVector("target", m_camera.target(), time);
+      const Matrix4d cameraMatrix = Matrix4d::lookAt(position, target, Vector3d::up());
+      return Vector3d(cameraMatrix.cell(0, 3) - cameraMatrix.cell(0, 2) * m_camera.distance(),
+                      cameraMatrix.cell(1, 3) - cameraMatrix.cell(1, 2) * m_camera.distance(),
+                      cameraMatrix.cell(2, 3) - cameraMatrix.cell(2, 2) * m_camera.distance());
+    }
+
     std::shared_ptr<render::ViewPlane> m_plane;
+    const PinholeCamera& m_camera;
     Vector3d m_origin;
   };
 
-  return std::make_unique<PinholePrimaryRayGenerator>(viewPlane(), rayOrigin());
+  return std::make_unique<PinholePrimaryRayGenerator>(viewPlane(), *this, rayOrigin());
 }
 
 Vector2d PinholeCamera::projectPoint(const Vector3d& worldPoint) const {

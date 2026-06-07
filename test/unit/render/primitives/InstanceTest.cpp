@@ -172,6 +172,30 @@ namespace InstanceTest {
     ASSERT_NEAR(0.0, capturedRay.origin().z(), 1e-9);
   }
 
+  TEST(Instance, ShouldSampleRuntimePositionTrackAtAnimationTime) {
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
+    Instance instance(primitive);
+    instance.setMatrix(Matrix4d());
+    instance.setAnimationTrack(
+      "position",
+      render::animation::AnimationTrack({{0.0, Vector3d(0, 0, 0)}, {10.0, Vector3d(20, 0, 0)}}));
+
+    Rayd capturedRay(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
+    EXPECT_CALL(*primitive, intersect(_, _, _))
+      .WillOnce(DoAll(SaveArg<0>(&capturedRay), Return(static_cast<render::Primitive*>(nullptr))));
+
+    Rayd worldRay(Vector4d(2.5, 0, 0, 1), Vector3d(0, 0, 1));
+    State state;
+    state.animationFrame = 5.0;
+    state.animationTime = 6.25;
+    HitPointInterval hitPoints;
+    instance.intersect(worldRay, hitPoints, state);
+
+    ASSERT_NEAR(0.0, capturedRay.origin().x(), 1e-9);
+    ASSERT_NEAR(0.0, capturedRay.origin().y(), 1e-9);
+    ASSERT_NEAR(0.0, capturedRay.origin().z(), 1e-9);
+  }
+
   TEST(Instance, ShouldTakeStaticFastPathWhenVelocityIsZero) {
     // Without velocity, intersect must produce the same ray
     // transformation as before — the timeSample value should have

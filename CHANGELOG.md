@@ -14,6 +14,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Portal and planar mirror scene markers.** Scene JSON and Modeler surface
   properties can now mark planar portal receivers and mirror surfaces for
   render graph discovery. — GPT-5
+- **Shutter-time runtime animation sampling.** Raytracer and wavefront sample
+  compiled runtime position/camera tracks at continuous frame-plus-shutter
+  times while still-frame renders keep the baked integer-frame state when the
+  shutter interval is zero. — GPT-5
 - **Runtime animation track compilation.** Eligible world transform, camera,
   light, and material animation tracks now compile into Qt-free render tracks
   attached to runtime objects while step-only and frame-baked tracks keep the

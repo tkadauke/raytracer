@@ -7,10 +7,27 @@
 
 #include <array>
 #include <cstdlib>
+#include <optional>
 #include <vector>
 
 using namespace std;
 using namespace render;
+
+namespace {
+  std::optional<double> evaluatedFrameMetadata(const Instance& instance) {
+    const auto frame = instance.metadataValue("animation:evaluatedFrame");
+    if (frame.empty()) {
+      return std::nullopt;
+    }
+
+    char* end = nullptr;
+    const double value = std::strtod(frame.c_str(), &end);
+    if (end == frame.c_str()) {
+      return std::nullopt;
+    }
+    return value;
+  }
+}
 
 const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                      render::State& state) const {
@@ -301,17 +318,23 @@ bool Instance::hasRuntimeTransformAnimation() const {
 }
 
 double Instance::animationSampleTime(const render::State& state) const {
-  const auto frame = metadataValue("animation:evaluatedFrame");
-  if (frame.empty()) {
-    return state.timeSample;
+  if (state.animationFrame != 0.0 || state.animationTime != 0.0) {
+    return state.animationTime;
   }
 
-  char* end = nullptr;
-  const double value = std::strtod(frame.c_str(), &end);
-  if (end == frame.c_str()) {
-    return state.timeSample;
+  const auto frame = evaluatedFrameMetadata(*this);
+  if (frame) {
+    return *frame + state.timeSample;
   }
-  return value + state.timeSample;
+  return state.timeSample;
+}
+
+double Instance::animationBaselineTime(const render::State& state) const {
+  if (state.animationFrame != 0.0 || state.animationTime != 0.0) {
+    return state.animationFrame;
+  }
+
+  return evaluatedFrameMetadata(*this).value_or(0.0);
 }
 
 Vector3d Instance::sampledVectorTrack(const char* propertyName, double time,
@@ -327,17 +350,34 @@ Vector3d Instance::sampledVectorTrack(const char* propertyName, double time,
   return value.get<Vector3d>();
 }
 
+Vector3d Instance::sampledPositionTrack(double time, double baselineTime) const {
+  const auto* track = animationTrack("position");
+  if (!track) {
+    return m_basePosition;
+  }
+
+  const auto value = track->sample(time);
+  const auto baseline = track->sample(baselineTime);
+  if (value.type() != render::animation::AnimationValue::Type::Vector3 ||
+      baseline.type() != render::animation::AnimationValue::Type::Vector3) {
+    return m_basePosition;
+  }
+
+  return m_basePosition + value.get<Vector3d>() - baseline.get<Vector3d>();
+}
+
 Instance::TransformSample Instance::transformSample(const render::State& state) const {
   if (!hasRuntimeTransformAnimation()) {
     return {m_pointMatrix, m_originMatrix, m_directionMatrix, m_normalMatrix, m_velocity, false};
   }
 
-  return transformSampleAtTime(animationSampleTime(state), 0.0);
+  return transformSampleAtTime(animationSampleTime(state), 0.0, animationBaselineTime(state));
 }
 
 Instance::TransformSample Instance::transformSampleAtTime(double time,
-                                                          double shutterTimeSample) const {
-  const Vector3d position = sampledVectorTrack("position", time, m_basePosition);
+                                                          double shutterTimeSample,
+                                                          double baselineTime) const {
+  const Vector3d position = sampledPositionTrack(time, baselineTime);
   const Vector3d rotation = sampledVectorTrack("rotation", time, m_baseRotation);
   const Vector3d scale = sampledVectorTrack("scale", time, m_baseScale);
   const Vector3d velocity = sampledVectorTrack("velocity", time, m_velocity);
@@ -384,8 +424,9 @@ BoundingBoxd Instance::calculateBoundingBox() const {
       continue;
     }
     for (const auto& keyframe : track.keyframes()) {
-      includeTransform(transformSampleAtTime(keyframe.time, 0.0));
-      includeTransform(transformSampleAtTime(keyframe.time, 1.0));
+      const double baselineTime = evaluatedFrameMetadata(*this).value_or(0.0);
+      includeTransform(transformSampleAtTime(keyframe.time, 0.0, baselineTime));
+      includeTransform(transformSampleAtTime(keyframe.time, 1.0, baselineTime));
     }
   }
 

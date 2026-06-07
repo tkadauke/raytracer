@@ -12,6 +12,9 @@ struct RenderEngine::Private {
 
   std::shared_ptr<render::Tonemap> tonemap;
   bool progressiveDisplayEnabled{true};
+  double animationFrame{0.0};
+  double shutterOpen{0.0};
+  double shutterClose{0.0};
 };
 
 RenderEngine::RenderEngine(std::shared_ptr<render::Scene> scene)
@@ -57,6 +60,14 @@ std::shared_ptr<render::Tonemap> RenderEngine::tonemap() const {
   return p->tonemap;
 }
 
+void RenderEngine::setCamera(std::shared_ptr<render::Camera> camera) {
+  m_camera = std::move(camera);
+  if (m_camera) {
+    m_camera->setAnimationFrame(p->animationFrame);
+    m_camera->setShutterInterval(p->shutterOpen, p->shutterClose);
+  }
+}
+
 void RenderEngine::setTonemap(std::shared_ptr<render::Tonemap> tonemap) {
   p->tonemap = std::move(tonemap);
 }
@@ -67,6 +78,31 @@ void RenderEngine::setProgressiveDisplayEnabled(bool enabled) {
 
 bool RenderEngine::progressiveDisplayEnabled() const {
   return p->progressiveDisplayEnabled;
+}
+
+void RenderEngine::setAnimationFrame(double frame) {
+  p->animationFrame = frame;
+  if (m_camera)
+    m_camera->setAnimationFrame(frame);
+}
+
+double RenderEngine::animationFrame() const {
+  return p->animationFrame;
+}
+
+void RenderEngine::setShutterInterval(double open, double close) {
+  p->shutterOpen = open;
+  p->shutterClose = close;
+  if (m_camera)
+    m_camera->setShutterInterval(open, close);
+}
+
+double RenderEngine::shutterOpen() const {
+  return p->shutterOpen;
+}
+
+double RenderEngine::shutterClose() const {
+  return p->shutterClose;
 }
 
 std::list<Recti> RenderEngine::activeTiles() const {
@@ -99,6 +135,8 @@ bool RenderEngine::hasBackgroundColorOverride() const {
 
 void RenderEngine::copyRenderEngineStateTo(RenderEngine& engine) const {
   engine.setTonemap(tonemap());
+  engine.setAnimationFrame(animationFrame());
+  engine.setShutterInterval(shutterOpen(), shutterClose());
   if (hasBackgroundColorOverride()) {
     engine.setBackgroundColor(backgroundColor());
   }

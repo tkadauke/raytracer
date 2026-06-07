@@ -18,10 +18,12 @@ namespace render {
   class State;
 
   struct IntegratorRaySample {
-    Rayd ray;
+    Rayd ray{Rayd::undefined};
     double timeSample{0.0};
     std::shared_ptr<SampleStream> ownedSampleStream;
     SampleStream* borrowedSampleStream{nullptr};
+    double animationFrame{0.0};
+    double animationTime{0.0};
 
     SampleStream* sampleStream() const {
       return borrowedSampleStream ? borrowedSampleStream : ownedSampleStream.get();

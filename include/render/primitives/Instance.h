@@ -204,11 +204,13 @@ namespace render {
 
     [[nodiscard]] bool hasRuntimeTransformAnimation() const;
     [[nodiscard]] double animationSampleTime(const render::State& state) const;
+    [[nodiscard]] double animationBaselineTime(const render::State& state) const;
     [[nodiscard]] Vector3d sampledVectorTrack(const char* propertyName, double time,
                                               const Vector3d& fallback) const;
+    [[nodiscard]] Vector3d sampledPositionTrack(double time, double baselineTime) const;
     [[nodiscard]] TransformSample transformSample(const render::State& state) const;
-    [[nodiscard]] TransformSample transformSampleAtTime(double time,
-                                                        double shutterTimeSample) const;
+    [[nodiscard]] TransformSample transformSampleAtTime(double time, double shutterTimeSample,
+                                                        double baselineTime) const;
 
     PrimitivePacketHit4 intersectMovingRay4PacketHits(const Ray4& rays,
                                                       const PrimitivePacketState4& states) const;
