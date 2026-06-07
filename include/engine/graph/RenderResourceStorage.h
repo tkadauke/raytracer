@@ -59,12 +59,25 @@ namespace engine::graph {
     const RenderResource& resource(const RenderResourceId& id) const;
 
     /**
-      * Records that @p id is backed by a backend-owned GPU object. The graph
-      * still validates and traces the descriptor; this metadata explains why a
-      * CPU preview/readback buffer may not exist yet.
+      * @returns true if @p id is backed by an OpenGL resident resource.
       */
-    void setGpuResidency(const RenderResourceId& id, RenderGpuResourceResidency residency);
-    void clearGpuResidency(const RenderResourceId& id);
+    bool hasOpenGLResource(const RenderResourceId& id) const;
+
+    /**
+      * Binds a backend-owned OpenGL resource to @p id.
+      *
+      * The graph resource must exist, be GPU-domain, have the same
+      * `RenderResourceType`, and match the OpenGL resource's image shape.
+      */
+    void
+    bindOpenGLResource(const RenderResourceId& id,
+                       std::shared_ptr<::engine::raster::detail::OpenGLRasterResource> resource);
+    void clearOpenGLResource(const RenderResourceId& id);
+
+    std::shared_ptr<::engine::raster::detail::OpenGLRasterResource>
+    openGLResource(const RenderResourceId& id) const;
+    std::shared_ptr<::engine::raster::detail::OpenGLRasterResource>
+    openGLResource(const RenderResourceId& id, RenderResourceType expectedType) const;
 
     Buffer<Colord>& color(const RenderResourceId& id);
     const Buffer<Colord>& color(const RenderResourceId& id) const;
