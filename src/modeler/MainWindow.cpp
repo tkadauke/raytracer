@@ -760,6 +760,8 @@ MainWindow::MainWindow()
           &RenderGraphInspectorWidget::passExecutionFinished);
   connect(p->display, &RenderDisplay::renderGraphPassFailed, p->renderGraphInspectorWidget,
           &RenderGraphInspectorWidget::passExecutionFailed);
+  connect(p->display, &RenderDisplay::renderGraphActivePassesChanged, p->renderGraphInspectorWidget,
+          &RenderGraphInspectorWidget::setActiveExecutionPasses);
   connect(p->display, &RenderWidget::finished, this, [this] {
     if (p->renderGraphInspectorWidget && p->display) {
       p->renderGraphInspectorWidget->setExecutionTrace(p->display->lastRenderGraphExecutionTrace());

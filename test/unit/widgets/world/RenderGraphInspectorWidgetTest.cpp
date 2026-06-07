@@ -556,6 +556,35 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QString("idle"), idle->data(2).toString());
   }
 
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldHighlightMultipleActiveGraphNodesTogether) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(twoPassPlan());
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+
+    widget.setActiveExecutionPasses({QStringLiteral("raytrace_beauty"),
+                                     QStringLiteral("tonemap")});
+    processEventsFor(560);
+
+    QGraphicsItem* beauty = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
+    QGraphicsItem* tonemap = graphNodeItem(graph->scene(), "pass", "tonemap");
+    ASSERT_NE(nullptr, beauty);
+    ASSERT_NE(nullptr, tonemap);
+    EXPECT_EQ(QString("running"), beauty->data(2).toString());
+    EXPECT_EQ(QString("running"), tonemap->data(2).toString());
+
+    widget.setActiveExecutionPasses({});
+    processEventsFor(60);
+
+    beauty = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
+    tonemap = graphNodeItem(graph->scene(), "pass", "tonemap");
+    ASSERT_NE(nullptr, beauty);
+    ASSERT_NE(nullptr, tonemap);
+    EXPECT_EQ(QString("idle"), beauty->data(2).toString());
+    EXPECT_EQ(QString("idle"), tonemap->data(2).toString());
+  }
+
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowFailedExecutionStateOnGraphNodes) {
     RenderGraphInspectorWidget widget;
     widget.setPlan(twoPassPlan());

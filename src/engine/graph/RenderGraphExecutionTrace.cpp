@@ -485,6 +485,18 @@ namespace engine::graph {
     return m_elapsed;
   }
 
+  std::optional<std::chrono::nanoseconds> RenderPassTrace::startedAt() const {
+    return m_startedOffset;
+  }
+
+  std::optional<std::chrono::nanoseconds> RenderPassTrace::finishedAt() const {
+    return m_finishedOffset;
+  }
+
+  std::optional<std::chrono::nanoseconds> RenderPassTrace::failedAt() const {
+    return m_failedOffset;
+  }
+
   const std::string& RenderPassTrace::message() const {
     return m_message;
   }
@@ -513,6 +525,12 @@ namespace engine::graph {
     object["id"] = QString::fromStdString(m_passId);
     object["status"] = toString(m_status);
     object["elapsedMs"] = m_elapsed.count() / 1000000.0;
+    if (m_startedOffset)
+      object["startedAtMs"] = m_startedOffset->count() / 1000000.0;
+    if (m_finishedOffset)
+      object["finishedAtMs"] = m_finishedOffset->count() / 1000000.0;
+    if (m_failedOffset)
+      object["failedAtMs"] = m_failedOffset->count() / 1000000.0;
     object["message"] = QString::fromStdString(m_message);
     object["metadata"] = m_metadata;
     object["inputs"] = inputs;
@@ -524,7 +542,8 @@ namespace engine::graph {
   RenderGraphExecutionTrace::RenderGraphExecutionTrace(RenderPlan plan,
                                                        std::string inputFingerprint)
       : m_plan(std::move(plan)),
-        m_inputFingerprint(std::move(inputFingerprint)) {
+        m_inputFingerprint(std::move(inputFingerprint)),
+        m_startedAt(std::chrono::steady_clock::now()) {
     m_passes.reserve(m_plan.passes().size());
     for (const auto& pass : m_plan.passes()) {
       m_passIndexes.emplace(pass.id, m_passes.size());
@@ -662,7 +681,12 @@ namespace engine::graph {
     }
 
     trace->m_status = RenderPassExecutionStatus::Running;
-    trace->m_startedAt = std::chrono::steady_clock::now();
+    const auto now = std::chrono::steady_clock::now();
+    trace->m_startedAt = now;
+    trace->m_startedOffset =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(now - m_current->m_startedAt);
+    trace->m_finishedOffset.reset();
+    trace->m_failedOffset.reset();
     trace->m_elapsed = std::chrono::nanoseconds(0);
     trace->m_message.clear();
     trace->m_metadata = QJsonObject();
@@ -695,6 +719,9 @@ namespace engine::graph {
       trace->m_elapsed =
         std::chrono::duration_cast<std::chrono::nanoseconds>(now - *trace->m_startedAt);
     }
+    trace->m_finishedOffset =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(now - m_current->m_startedAt);
+    trace->m_failedOffset.reset();
     trace->m_status = RenderPassExecutionStatus::Completed;
     trace->m_metadata = std::move(metadata);
     trace->m_outputs = snapshotsForWrites(*m_current, pass, storage);
@@ -717,6 +744,9 @@ namespace engine::graph {
     trace->m_status = RenderPassExecutionStatus::Skipped;
     trace->m_elapsed = std::chrono::nanoseconds(0);
     trace->m_startedAt.reset();
+    trace->m_startedOffset.reset();
+    trace->m_finishedOffset.reset();
+    trace->m_failedOffset.reset();
     trace->m_message = std::move(message);
     trace->m_metadata = QJsonObject();
     trace->m_inputs = snapshotsForReads(*m_current, pass, storage);
@@ -742,6 +772,9 @@ namespace engine::graph {
       trace->m_elapsed =
         std::chrono::duration_cast<std::chrono::nanoseconds>(now - *trace->m_startedAt);
     }
+    trace->m_failedOffset =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(now - m_current->m_startedAt);
+    trace->m_finishedOffset.reset();
     trace->m_status = RenderPassExecutionStatus::Failed;
     trace->m_message = std::move(message);
     trace->m_metadata = QJsonObject();

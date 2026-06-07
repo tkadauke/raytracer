@@ -4,7 +4,9 @@
 #include <QMetaObject>
 #include <QMouseEvent>
 #include <QPointer>
+#include <QStringList>
 
+#include <set>
 #include <utility>
 
 #include "Display.h"
@@ -51,6 +53,16 @@ namespace {
     void passStarted(const engine::graph::RenderPassId& passId, std::uint64_t generation) override {
       invoke([passId, generation](RenderDisplay& display) {
         display.notifyRenderGraphPassStarted(QString::fromStdString(passId), generation);
+      });
+    }
+
+    void activePassesChanged(const std::set<engine::graph::RenderPassId>& passIds,
+                             std::uint64_t generation) override {
+      QStringList active;
+      for (const auto& passId : passIds)
+        active << QString::fromStdString(passId);
+      invoke([active, generation](RenderDisplay& display) {
+        display.notifyRenderGraphActivePassesChanged(active, generation);
       });
     }
 
@@ -272,6 +284,15 @@ void RenderDisplay::notifyRenderGraphPassFailed(const QString& passId, const QSt
     return;
   }
   emit renderGraphPassFailed(passId, message);
+}
+
+void RenderDisplay::notifyRenderGraphActivePassesChanged(const QStringList& passIds,
+                                                         std::uint64_t generation) {
+  if (m_waitingForGraphExecutionStart ||
+      (generation != 0 && generation != m_graphExecutionGeneration)) {
+    return;
+  }
+  emit renderGraphActivePassesChanged(passIds);
 }
 
 std::shared_ptr<const engine::graph::RenderGraphExecutionTrace>
