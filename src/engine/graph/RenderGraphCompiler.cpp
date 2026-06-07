@@ -1240,6 +1240,121 @@ namespace engine::graph {
     return !state.framebuffer().supportsFrontToBackVisibilityOrdering();
   }
 
+  void RenderGraphCompiler::addAutomaticFeatureSubviewComposites(
+    RenderPlan& plan, const RenderTargetSpec& target, const RenderIntent& intent,
+    const RenderSceneAnalysis& sceneAnalysis, RenderResourceId& mainInputResource) const {
+    if (intent.subviews.empty()) {
+      return;
+    }
+
+    std::set<std::string> usedPrefixes;
+    for (std::size_t i = 0; i != intent.subviews.size(); ++i) {
+      const RenderSubviewIntent& subview = intent.subviews[i];
+      const std::string prefix = subviewPrefix(subview, i, usedPrefixes);
+      const std::string displayName = subviewDisplayName(subview, i);
+      addAutomaticFeatureSubviewComposite(plan, target, subview, prefix, displayName, sceneAnalysis,
+                                          mainInputResource);
+    }
+  }
+
+  bool RenderGraphCompiler::addAutomaticFeatureSubviewComposite(
+    RenderPlan& plan, const RenderTargetSpec& target, const RenderSubviewIntent& subview,
+    const std::string& prefix, const std::string& displayName,
+    const RenderSceneAnalysis& sceneAnalysis, RenderResourceId& mainInputResource) const {
+    if (!subview.view.camera || !subview.view.camera->derived ||
+        !subview.view.camera->derived->requiresReceiverClip) {
+      return false;
+    }
+
+    RenderFeatureKind receiverFeature;
+    if (subview.view.camera->derived->kind == DerivedCameraRef::Kind::Portal) {
+      const auto found = std::find_if(
+        sceneAnalysis.portalReceiverSurfaces().begin(),
+        sceneAnalysis.portalReceiverSurfaces().end(), [&](const auto& portal) {
+          return portal.receiverVisibleInPrimaryView && subview.name == portalSubviewName(portal);
+        });
+      if (found == sceneAnalysis.portalReceiverSurfaces().end()) {
+        return false;
+      }
+      receiverFeature = "portal_receiver";
+    } else {
+      const auto found = std::find_if(
+        sceneAnalysis.planarMirrorSurfaces().begin(), sceneAnalysis.planarMirrorSurfaces().end(),
+        [&](const auto& mirror) {
+          return mirror.receiverVisibleInPrimaryView && subview.name == mirrorSubviewName(mirror);
+        });
+      if (found == sceneAnalysis.planarMirrorSurfaces().end()) {
+        return false;
+      }
+      receiverFeature = "mirror_receiver";
+    }
+
+    const RenderResourceId subviewColor = prefixedResourceId(prefix, "main_color");
+    const RenderResourceId receiverMask = prefixedResourceId(prefix, "receiver_mask");
+    if (!plan.findResource(subviewColor) || !plan.findResource(receiverMask)) {
+      return false;
+    }
+
+    std::optional<RenderResourceId> baseDepth;
+    std::optional<RenderResourceId> subviewDepth;
+    const RenderResourceId subviewDepthCandidate = prefixedResourceId(prefix, "depth_aov");
+    if (plan.findResource("depth_aov") && plan.findResource(subviewDepthCandidate)) {
+      baseDepth = "depth_aov";
+      subviewDepth = subviewDepthCandidate;
+    }
+
+    const RenderFeatureKind feature = subviewFeature(prefix);
+    const RenderResourceId outputColor = prefixedResourceId(prefix, "composited_color");
+    RenderResourceDescriptor output = target.colorResource(
+      outputColor, displayName + " composited color", RenderResourceLifetime::Transient);
+    output.addFeature("subview_composite");
+    output.addFeature("render_to_texture");
+    output.addFeature(feature);
+    output.addFeature(receiverFeature);
+    if (baseDepth && subviewDepth) {
+      output.addFeature("depth_composite");
+    }
+    output.addFeature("stencil_composite");
+
+    RenderPassNode composite =
+      subviewCompositePass(prefix, displayName, feature, receiverFeature, mainInputResource,
+                           subviewColor, baseDepth, subviewDepth, receiverMask, outputColor);
+    plan.addResourceProducer(std::move(composite), std::move(output));
+    mainInputResource = outputColor;
+    return true;
+  }
+
+  RenderPassNode RenderGraphCompiler::subviewCompositePass(
+    const std::string& prefix, const std::string& displayName,
+    const RenderFeatureKind& subviewFeature, const RenderFeatureKind& receiverFeature,
+    const RenderResourceId& baseColor, const RenderResourceId& subviewColor,
+    const std::optional<RenderResourceId>& baseDepth,
+    const std::optional<RenderResourceId>& subviewDepth, const RenderResourceId& receiverMask,
+    const RenderResourceId& outputColor) const {
+    RenderPassNode pass;
+    pass.id = prefixedPassId(prefix, "composite");
+    pass.name = displayName + " composite";
+    pass.kind = RenderPassKind::Composite;
+    pass.executor = RenderExecutorKind::Composite;
+    pass.features = {"composite",         "subview_composite", "stencil_composite",
+                     "render_to_texture", subviewFeature,      receiverFeature};
+    if (baseDepth && subviewDepth) {
+      pass.features.push_back("depth_composite");
+    }
+    pass.addRead(baseColor);
+    pass.addRead(subviewColor);
+    if (baseDepth && subviewDepth) {
+      pass.addRead(*baseDepth);
+      pass.addRead(*subviewDepth);
+    }
+    pass.addRead(receiverMask);
+    pass.addWrite(outputColor);
+    pass.sceneView.selector = SceneSelector::all();
+    pass.disabledBehavior = DisabledBehavior::Passthrough;
+    pass.canRunConcurrently = false;
+    return pass;
+  }
+
   void RenderGraphCompiler::addReceiverMaskDependency(
     RenderPlan& plan, const RenderTargetSpec& target, const RenderIntent& intent,
     const RenderSceneAnalysis::SceneSurfaceMarker& receiver, const std::string& prefix,
