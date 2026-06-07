@@ -971,11 +971,12 @@ namespace SceneTest {
     scene.setAnimation(std::make_unique<world::Timeline>(
       1, 11, 24.0,
       std::vector<world::AnimationTrack>({
-        world::AnimationTrack(
-          "camera-id", "position",
-          {{1, vectorValue(0.0, 0.0, -5.0)}, {11, vectorValue(10.0, 0.0, -5.0)}}),
+        world::AnimationTrack("camera-id", "position",
+                              {{1, vectorValue(0.0, 0.0, -5.0)},
+                               {11, vectorValue(10.0, 0.0, -5.0)}}),
         world::AnimationTrack("camera-id", "target",
-                              {{1, vectorValue(0.0, 0.0, 0.0)}, {11, vectorValue(0.0, 5.0, 0.0)}}),
+                              {{1, vectorValue(0.0, 0.0, 0.0)},
+                               {11, vectorValue(0.0, 5.0, 0.0)}}),
       })));
 
     const auto runtimeCamera = camera->toRaytracer();
@@ -998,7 +999,8 @@ namespace SceneTest {
       1, 11, 24.0,
       std::vector<world::AnimationTrack>({
         world::AnimationTrack("sphere-id", "position",
-                              {{1, vectorValue(0.0, 0.0, 0.0)}, {11, vectorValue(10.0, 0.0, 0.0)}}),
+                              {{1, vectorValue(0.0, 0.0, 0.0)},
+                               {11, vectorValue(10.0, 0.0, 0.0)}}),
         world::AnimationTrack("sphere-id", "visible",
                               {{1, QJsonValue(true)}, {11, QJsonValue(false)}},
                               core::math::interpolation::InterpolationMode::Step),
@@ -1045,7 +1047,8 @@ namespace SceneTest {
       1, 11, 24.0,
       std::vector<world::AnimationTrack>({
         world::AnimationTrack("light-id", "color",
-                              {{1, colorValue(0.0, 0.0, 0.0)}, {11, colorValue(1.0, 0.5, 0.0)}}),
+                              {{1, colorValue(0.0, 0.0, 0.0)},
+                               {11, colorValue(1.0, 0.5, 0.0)}}),
         world::AnimationTrack("light-id", "intensity",
                               {{1, QJsonValue(0.0)}, {11, QJsonValue(1.0)}}),
       })));
