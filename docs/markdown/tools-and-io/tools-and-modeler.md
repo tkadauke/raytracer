@@ -399,9 +399,10 @@ enable adaptive sampling, choose its initial sample count and standard-deviation
 threshold, request the box or bilateral denoiser, choose its pixel radius, and
 set the bilateral color sigma. Path Tracer settings include the
 Russian-roulette start depth. The final render dialog keeps Regular as the
-Raytracer sampler default but switches default-managed Path Tracer renders to
-Halton, matching the sampler guidance for stochastic transport; once the user
-picks a sampler explicitly, later engine changes preserve that choice.
+Raytracer sampler default and one sample per pixel, but switches
+default-managed Path Tracer renders to Halton and 64 samples per pixel,
+matching the sampler guidance for stochastic transport; once the user picks a
+sampler or sample count explicitly, later engine changes preserve that choice.
 Engine-specific fields only show for the selected default engine. The same
 property editor has a search field for filtering long property sets and
 collapsible groups so advanced scene/import settings can stay out of the way.

@@ -113,6 +113,41 @@ namespace RenderSettingsWidgetTest {
     EXPECT_GT(widget.samplesPerPixel(), 0);
   }
 
+  TEST_F(RenderSettingsWidgetTest, ShouldDefaultPathTracerSamplesPerPixelToSixtyFour) {
+    RenderSettingsWidget widget;
+    auto engineType = widget.findChild<QComboBox*>("engineType");
+    ASSERT_NE(nullptr, engineType);
+
+    engineType->setCurrentText("Path Tracer");
+
+    EXPECT_EQ(64, widget.samplesPerPixel());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldRestoreRaytracerSamplesPerPixelDefaultWhenUnmodified) {
+    RenderSettingsWidget widget;
+    auto engineType = widget.findChild<QComboBox*>("engineType");
+    ASSERT_NE(nullptr, engineType);
+
+    engineType->setCurrentText("Path Tracer");
+    engineType->setCurrentText("Raytracer");
+
+    EXPECT_EQ(1, widget.samplesPerPixel());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldPreserveManualSamplesPerPixelAcrossEngineChanges) {
+    RenderSettingsWidget widget;
+    auto engineType = widget.findChild<QComboBox*>("engineType");
+    auto samplesPerPixel = widget.findChild<QSpinBox*>("samplesPerPixel");
+    ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, samplesPerPixel);
+
+    samplesPerPixel->setValue(7);
+    engineType->setCurrentText("Path Tracer");
+    engineType->setCurrentText("Raytracer");
+
+    EXPECT_EQ(7, widget.samplesPerPixel());
+  }
+
   TEST_F(RenderSettingsWidgetTest, ShouldReturnPositiveMaxRecursionDepth) {
     RenderSettingsWidget widget;
     EXPECT_GT(widget.maxRecursionDepth(), 0);

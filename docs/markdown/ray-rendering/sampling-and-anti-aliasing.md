@@ -362,7 +362,8 @@ substitute for a better estimator: direct-light sampling, MIS,
 adaptive sampling, and denoising all address different parts of the
 variance problem. Modeler's final render dialog follows the same
 guidance by switching default-managed Path Tracer renders to Halton
-sampling; an explicit sampler choice in that dialog is still preserved.
+sampling and 64 samples per pixel; explicit sampler or sample-count
+choices in that dialog are still preserved.
 
 ## <a id="what-this-chapter-does-not-cover"></a>What this chapter does *not* cover
 Many advanced sampling topics are queued under

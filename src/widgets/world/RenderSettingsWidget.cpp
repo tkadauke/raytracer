@@ -12,11 +12,15 @@
 #include <QSpinBox>
 #include <QThread>
 
+#include <algorithm>
+
 struct RenderSettingsWidget::Private {
   Ui::RenderSettingsWidget ui;
   QLabel* rasterBackendStatus{nullptr};
   bool samplerDefaultManaged{true};
   bool updatingSamplerDefault{false};
+  bool samplesPerPixelDefaultManaged{true};
+  bool updatingSamplesPerPixelDefault{false};
 
   bool openGLBackendSelected() const {
     return ui.rasterBackend->currentText() == QStringLiteral("OpenGL");
@@ -36,6 +40,19 @@ struct RenderSettingsWidget::Private {
     updatingSamplerDefault = true;
     ui.samplerType->setCurrentText(sampler);
     updatingSamplerDefault = false;
+  }
+
+  void selectSamplesPerPixelDefaultForEngine(const QString& engine) {
+    if (!samplesPerPixelDefaultManaged) {
+      return;
+    }
+
+    const int samples = engine == QStringLiteral("Path Tracer") ? 64 : 1;
+    const int clampedSamples =
+      std::clamp(samples, ui.samplesPerPixel->minimum(), ui.samplesPerPixel->maximum());
+    updatingSamplesPerPixelDefault = true;
+    ui.samplesPerPixel->setValue(clampedSamples);
+    updatingSamplesPerPixelDefault = false;
   }
 
   void updateRasterBackendStatus(bool visible) {
@@ -99,6 +116,12 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
     }
     emit settingsChanged();
   });
+  connect(p->ui.samplesPerPixel, QOverload<int>::of(&QSpinBox::valueChanged), this, [this] {
+    if (!p->updatingSamplesPerPixelDefault) {
+      p->samplesPerPixelDefaultManaged = false;
+    }
+    emit settingsChanged();
+  });
   for (auto* comboBox : findChildren<QComboBox*>()) {
     if (comboBox == p->ui.samplerType) {
       continue;
@@ -107,6 +130,9 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
             &RenderSettingsWidget::settingsChanged);
   }
   for (auto* spinBox : findChildren<QSpinBox*>()) {
+    if (spinBox == p->ui.samplesPerPixel) {
+      continue;
+    }
     connect(spinBox, QOverload<int>::of(&QSpinBox::valueChanged), this,
             &RenderSettingsWidget::settingsChanged);
   }
@@ -227,6 +253,7 @@ RenderWidget::DisplayMode RenderSettingsWidget::displayMode() const {
 
 void RenderSettingsWidget::engineChanged() {
   p->selectSamplerDefaultForEngine(engine());
+  p->selectSamplesPerPixelDefaultForEngine(engine());
 
   if (engine() == "Raytracer" || engine() == "Path Tracer" || engine() == "Wavefront") {
     p->ui.displayUpdateMode->setCurrentText("Periodic update");

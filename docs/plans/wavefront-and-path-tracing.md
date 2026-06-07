@@ -888,7 +888,10 @@ does not drift while path tracing internals evolve.
 Modeler final renders now also pick the sampler default in line with the
 selected ray-family engine: Raytracer stays on Regular for deterministic
 baseline behavior, while default-managed Path Tracer renders switch to Halton.
-Explicit sampler choices are preserved across later engine changes.
+The same default-management rule applies to samples per pixel: Path Tracer
+switches to 64 spp, while Raytracer/Wavefront keep the lightweight 1 spp
+default. Explicit sampler and sample-count choices are preserved across later
+engine changes.
 The current 40x30 baselines are direct 4spp vs. 32spp at `0.0064857550`,
 glass 4spp vs. 32spp at `0.0798974363`, and area light 8spp vs. 64spp at
 `0.0093491472`. Those thresholds are intentionally loose enough to be a

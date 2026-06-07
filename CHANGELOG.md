@@ -320,6 +320,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Modeler path tracer sampler default.** The final render dialog now switches
   default-managed Path Tracer renders to Halton sampling while preserving
   explicit sampler choices across later engine changes. — GPT-5
+- **Modeler path tracer sample-count default.** The final render dialog now
+  switches default-managed Path Tracer renders to 64 samples per pixel while
+  preserving explicit sample-count choices across later engine changes. — GPT-5
 - **Path tracer per-light sample slots.** Path tracing now assigns each light
   its own deterministic `SampleDimension::Light` slot per bounce, preventing
   multiple stochastic lights from reusing the same 2D sample. — GPT-5
