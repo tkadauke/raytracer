@@ -1,0 +1,65 @@
+{
+  "id": "{10000000-0000-0000-0000-000000060000}",
+  "name": "Animated Runtime Translation Parity",
+  "ambient": [0.45, 0.45, 0.45],
+  "background": [0.02, 0.03, 0.05],
+  "type": "Scene",
+  "animation": {
+    "fps": 24,
+    "startFrame": 1,
+    "endFrame": 3,
+    "tracks": [
+      {
+        "target": "{10000000-0000-0000-0000-000000060030}",
+        "property": "position",
+        "interpolation": "linear",
+        "keys": [
+          { "frame": 1, "value": [-0.9, 0.0, 0.0] },
+          { "frame": 2, "value": [-0.9, 0.0, 0.0] },
+          { "frame": 3, "value": [0.9, 0.0, 0.0] }
+        ]
+      }
+    ]
+  },
+  "children": [
+    {
+      "id": "{10000000-0000-0000-0000-000000060001}",
+      "name": "Camera",
+      "position": [0.0, 0.0, -5.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.25,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000060010}",
+      "name": "SphereTexture",
+      "color": [0.95, 0.2, 0.12],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000060020}",
+      "name": "SphereMaterial",
+      "diffuseTexture": "{10000000-0000-0000-0000-000000060010}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 0.8,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000060030}",
+      "name": "RuntimeTrackedSphere",
+      "position": [-0.9, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{10000000-0000-0000-0000-000000060020}",
+      "radius": 0.7,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    }
+  ]
+}

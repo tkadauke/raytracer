@@ -276,6 +276,17 @@ primary animation model: the sampled keyframe transform answers "where
 is the object at this subframe?", then velocity adds any short shutter
 streak the author requested on top.
 
+The compiler keeps two animation paths separate. **Frame-baked** tracks are
+applied to the editable `world::Scene` at an integer frame before runtime
+objects are built; this is the path for discrete visibility, enum/string
+choices, and any property that changes render-scene structure.
+**Runtime-continuous** tracks are copied onto the runtime `render::Object` so the
+renderer can sample them at subframe shutter time. Instance transforms live on
+that continuous path: after `rendercli --frame 12` or the Modeler Timeline dock
+evaluates the authoring scene at frame 12, each ray still supplies
+`State::timeSample`, and the runtime instance samples its transform at
+`12 + timeSample`.
+
 ## <a id="the-bounding-box-has-to-expand"></a>The bounding box has to expand
 There's one more piece to motion blur. The [BVH](../appendix/a-glossary.md#b) traversal from
 [Spatial acceleration](spatial-acceleration.md) prunes by [AABB](../appendix/a-glossary.md#a)
