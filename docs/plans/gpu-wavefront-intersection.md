@@ -556,8 +556,9 @@ Progress:
 - `auto` backend selection now has an explicit policy object and receives a
   conservative expected-ray-count estimate from `WavefrontRaytracer`. It
   requires platform GPU availability, a fully supported packed intersection
-  scene, and enough expected ray work before choosing the GPU path. When no
-  platform kernel is available in the build or runtime, `auto` stays on the
+  scene, and enough expected ray work to clear both the fixed minimum ray-count
+  gate and a scene-upload amortization gate before choosing the GPU path. When
+  no platform kernel is available in the build or runtime, `auto` stays on the
   runtime CPU backend and reports that selection reason in render metrics and
   graph trace.
 - The benchmark suite now includes wavefront intersection backend fixtures for

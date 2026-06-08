@@ -139,6 +139,39 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_NE(std::string::npos, decision.reason.find("below GPU threshold"));
   }
 
+  TEST(WavefrontIntersectionBackend, AutoPolicyRequiresEnoughRaysToAmortizeSceneUpload) {
+    const WavefrontIntersectionBackendAutoSelectionPolicy policy;
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 127;
+    context.minimumGpuRayCount = 0;
+    context.minimumGpuRaysPerSceneUploadKiB = 64;
+    WavefrontIntersectionSceneDiagnostics diagnostics = supportedPackedDiagnostics();
+    diagnostics.uploadBytes = 2048;
+
+    const WavefrontIntersectionBackendAutoSelectionDecision decision =
+      policy.decide(true, diagnostics, context);
+
+    EXPECT_FALSE(decision.useGpu);
+    EXPECT_NE(std::string::npos, decision.reason.find("below GPU threshold 128"));
+    EXPECT_NE(std::string::npos, decision.reason.find("scene upload 2048 bytes"));
+  }
+
+  TEST(WavefrontIntersectionBackend, AutoPolicySelectsGpuWhenSceneUploadIsAmortized) {
+    const WavefrontIntersectionBackendAutoSelectionPolicy policy;
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 128;
+    context.minimumGpuRayCount = 0;
+    context.minimumGpuRaysPerSceneUploadKiB = 64;
+    WavefrontIntersectionSceneDiagnostics diagnostics = supportedPackedDiagnostics();
+    diagnostics.uploadBytes = 2048;
+
+    const WavefrontIntersectionBackendAutoSelectionDecision decision =
+      policy.decide(true, diagnostics, context);
+
+    EXPECT_TRUE(decision.useGpu);
+    EXPECT_NE(std::string::npos, decision.reason.find("auto selected GPU"));
+  }
+
   TEST(WavefrontIntersectionBackend, AutoPolicyRequiresBasicKernelEligibleScene) {
     const WavefrontIntersectionBackendAutoSelectionPolicy policy;
     WavefrontIntersectionBackendSelectionContext context;

@@ -173,10 +173,12 @@ namespace render {
       return {false, "auto selected CPU: intersection scene is not basic-kernel eligible"};
     }
 
-    if (!expectedRayCountJustifiesGpu(context)) {
+    if (!expectedRayCountJustifiesGpu(diagnostics, context)) {
+      const std::uint64_t threshold = minimumExpectedRayCount(diagnostics, context);
       return {false, "auto selected CPU: expected ray count " +
                        std::to_string(context.expectedRayCount) + " is below GPU threshold " +
-                       std::to_string(context.minimumGpuRayCount)};
+                       std::to_string(threshold) + " (scene upload " +
+                       std::to_string(diagnostics.uploadBytes) + " bytes)"};
     }
 
     return {true, "auto selected GPU: supported scene and expected ray count justify transfer"};
@@ -189,8 +191,34 @@ namespace render {
   }
 
   bool WavefrontIntersectionBackendAutoSelectionPolicy::expectedRayCountJustifiesGpu(
+    const WavefrontIntersectionSceneDiagnostics& diagnostics,
     const WavefrontIntersectionBackendSelectionContext& context) const {
-    return context.expectedRayCount >= context.minimumGpuRayCount;
+    return context.expectedRayCount >= minimumExpectedRayCount(diagnostics, context);
+  }
+
+  std::uint64_t WavefrontIntersectionBackendAutoSelectionPolicy::minimumExpectedRayCount(
+    const WavefrontIntersectionSceneDiagnostics& diagnostics,
+    const WavefrontIntersectionBackendSelectionContext& context) const {
+    return std::max(
+      context.minimumGpuRayCount,
+      saturatingProduct(sceneUploadKiB(diagnostics), context.minimumGpuRaysPerSceneUploadKiB));
+  }
+
+  std::uint64_t WavefrontIntersectionBackendAutoSelectionPolicy::sceneUploadKiB(
+    const WavefrontIntersectionSceneDiagnostics& diagnostics) const {
+    constexpr std::uint64_t bytesPerKiB = 1024;
+    return diagnostics.uploadBytes / bytesPerKiB +
+           (diagnostics.uploadBytes % bytesPerKiB == 0 ? 0 : 1);
+  }
+
+  std::uint64_t
+  WavefrontIntersectionBackendAutoSelectionPolicy::saturatingProduct(std::uint64_t lhs,
+                                                                     std::uint64_t rhs) const {
+    constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
+    if (lhs != 0 && rhs > maxValue / lhs) {
+      return maxValue;
+    }
+    return lhs * rhs;
   }
 
   WavefrontIntersectionBackendChoice::WavefrontIntersectionBackendChoice()

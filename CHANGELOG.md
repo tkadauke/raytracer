@@ -39,10 +39,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   rendercli, Modeler Render Settings, and wavefront metrics now carry
   `auto`/`cpu`/`gpu` intersection-backend requests, with GPU requests falling
   back visibly to CPU through explicit Metal/Vulkan platform stubs until a
-  platform backend is available. Auto selection now has a render-size-aware
-  policy that stays on CPU until a platform GPU backend is available, the scene
-  compiles to the supported packed intersection representation, and enough ray
-  work is expected to justify GPU upload/readback. The experimental
+  platform backend is available. Auto selection now has a render-size- and
+  transfer-aware policy that stays on CPU until a platform GPU backend is
+  available, the scene compiles to the supported packed intersection
+  representation, and enough ray work is expected to amortize GPU scene
+  upload/readback. The experimental
   `RAYTRACER_ENABLE_METAL_WAVEFRONT` and
   `RAYTRACER_ENABLE_VULKAN_WAVEFRONT` CMake flags now exist, default off, and
   make backend diagnostics distinguish disabled platform plumbing from

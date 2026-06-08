@@ -46,6 +46,7 @@ namespace render {
   struct WavefrontIntersectionBackendSelectionContext {
     std::uint64_t expectedRayCount{0};
     std::uint64_t minimumGpuRayCount{65536};
+    std::uint64_t minimumGpuRaysPerSceneUploadKiB{64};
   };
 
   struct WavefrontIntersectionBackendAutoSelectionDecision {
@@ -63,7 +64,14 @@ namespace render {
     [[nodiscard]] bool
     sceneCanUseGpu(const WavefrontIntersectionSceneDiagnostics& diagnostics) const;
     [[nodiscard]] bool
-    expectedRayCountJustifiesGpu(const WavefrontIntersectionBackendSelectionContext& context) const;
+    expectedRayCountJustifiesGpu(const WavefrontIntersectionSceneDiagnostics& diagnostics,
+                                 const WavefrontIntersectionBackendSelectionContext& context) const;
+    [[nodiscard]] std::uint64_t
+    minimumExpectedRayCount(const WavefrontIntersectionSceneDiagnostics& diagnostics,
+                            const WavefrontIntersectionBackendSelectionContext& context) const;
+    [[nodiscard]] std::uint64_t
+    sceneUploadKiB(const WavefrontIntersectionSceneDiagnostics& diagnostics) const;
+    [[nodiscard]] std::uint64_t saturatingProduct(std::uint64_t lhs, std::uint64_t rhs) const;
   };
 
   /**
