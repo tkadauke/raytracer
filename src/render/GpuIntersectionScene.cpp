@@ -311,8 +311,30 @@ GpuIntersectionIntersector::intersectClosest(const GpuIntersectionSceneBuffers& 
     }
 
     if ((node.flags & gpuIntersectionLeafNodeFlag) == 0) {
-      stack.push_back(node.primitiveCount);
-      stack.push_back(node.leftOrFirstPrimitive);
+      const std::uint32_t leftChild = node.leftOrFirstPrimitive;
+      const std::uint32_t rightChild = node.primitiveCount;
+      const std::optional<float> leftEntry =
+        leftChild < scene.bvh.size()
+          ? boundsRayEntryDistance(scene.bvh[leftChild].bounds, ray, closest.distance)
+          : std::nullopt;
+      const std::optional<float> rightEntry =
+        rightChild < scene.bvh.size()
+          ? boundsRayEntryDistance(scene.bvh[rightChild].bounds, ray, closest.distance)
+          : std::nullopt;
+
+      if (leftEntry && rightEntry) {
+        if (*leftEntry <= *rightEntry) {
+          stack.push_back(rightChild);
+          stack.push_back(leftChild);
+        } else {
+          stack.push_back(leftChild);
+          stack.push_back(rightChild);
+        }
+      } else if (leftEntry) {
+        stack.push_back(leftChild);
+      } else if (rightEntry) {
+        stack.push_back(rightChild);
+      }
       continue;
     }
 
@@ -402,10 +424,15 @@ bool GpuIntersectionIntersector::intersectAny(const GpuIntersectionSceneBuffers&
 bool GpuIntersectionIntersector::boundsIntersectRay(const GpuIntersectionBounds& bounds,
                                                     const GpuIntersectionRay& ray,
                                                     float maxHitDistance) const {
+  return boundsRayEntryDistance(bounds, ray, maxHitDistance).has_value();
+}
+
+std::optional<float> GpuIntersectionIntersector::boundsRayEntryDistance(
+  const GpuIntersectionBounds& bounds, const GpuIntersectionRay& ray, float maxHitDistance) const {
   float enter = ray.minDistance;
   float exit = std::min(ray.maxDistance, maxHitDistance);
   if (exit < enter) {
-    return false;
+    return std::nullopt;
   }
 
   for (std::size_t axis = 0; axis != 3; ++axis) {
@@ -415,7 +442,7 @@ bool GpuIntersectionIntersector::boundsIntersectRay(const GpuIntersectionBounds&
     const float maximum = bounds.maximum[axis];
     if (std::abs(direction) <= std::numeric_limits<float>::epsilon()) {
       if (origin < minimum || origin > maximum) {
-        return false;
+        return std::nullopt;
       }
       continue;
     }
@@ -429,10 +456,10 @@ bool GpuIntersectionIntersector::boundsIntersectRay(const GpuIntersectionBounds&
     enter = std::max(enter, nearDistance);
     exit = std::min(exit, farDistance);
     if (exit < enter) {
-      return false;
+      return std::nullopt;
     }
   }
-  return true;
+  return enter;
 }
 
 bool GpuIntersectionIntersector::hitOccludes(const ClosestHit& hit, float maxDistance) const {

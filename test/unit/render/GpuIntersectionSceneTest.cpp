@@ -477,6 +477,61 @@ namespace GpuIntersectionSceneTest {
     EXPECT_FLOAT_EQ(3.0f, hit.distance);
   }
 
+  TEST(GpuIntersectionScene, PackedClosestTraversalVisitsNearBvhChildFirst) {
+    const auto bounds = [](float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+      return GpuIntersectionBounds{{minX, minY, minZ, 0.0f}, {maxX, maxY, maxZ, 0.0f}};
+    };
+    const auto triangleAt = [](float z) {
+      return GpuIntersectionTrianglePayload{{-1.0f, -1.0f, z, 0.0f},
+                                            {1.0f, -1.0f, z, 0.0f},
+                                            {0.0f, 1.0f, z, 0.0f},
+                                            {0.0f, 0.0f, 1.0f, 0.0f},
+                                            {0.0f, 0.0f, 1.0f, 0.0f},
+                                            {0.0f, 0.0f, 1.0f, 0.0f},
+                                            {},
+                                            {},
+                                            {}};
+    };
+
+    GpuIntersectionSceneBuffers buffers;
+    buffers.bvh.push_back(
+      GpuIntersectionBvhNode{bounds(-10.0f, -10.0f, -1.0f, 10.0f, 10.0f, 20.0f), 1, 2, 0, 0});
+    buffers.bvh.push_back(GpuIntersectionBvhNode{bounds(-1.0f, -1.0f, 10.0f, 1.0f, 1.0f, 10.0f), 1,
+                                                 1, gpuIntersectionLeafNodeFlag, 0});
+    buffers.bvh.push_back(GpuIntersectionBvhNode{bounds(-1.0f, -1.0f, 3.0f, 1.0f, 1.0f, 3.0f), 0, 1,
+                                                 gpuIntersectionLeafNodeFlag, 0});
+    buffers.primitives.push_back(GpuIntersectionPrimitiveRecord{
+      bounds(-1.0f, -1.0f, 3.0f, 1.0f, 1.0f, 3.0f),
+      static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Triangle),
+      0,
+      0,
+      0,
+      0,
+      1,
+      {}});
+    buffers.primitives.push_back(GpuIntersectionPrimitiveRecord{
+      bounds(-1.0f, -1.0f, 10.0f, 1.0f, 1.0f, 10.0f),
+      static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Triangle),
+      0,
+      0,
+      0,
+      1,
+      1,
+      {}});
+    buffers.triangles.push_back(triangleAt(3.0f));
+    buffers.triangles.push_back(triangleAt(2.0f));
+
+    const GpuIntersectionRay ray =
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 63);
+
+    const GpuIntersectionHitRecord hit =
+      GpuIntersectionIntersector().intersectClosest(buffers, ray);
+
+    ASSERT_TRUE(hit.hit);
+    EXPECT_EQ(0u, hit.primitiveRecord);
+    EXPECT_FLOAT_EQ(3.0f, hit.distance);
+  }
+
   TEST(GpuIntersectionScene, PackedTriangleClosestHitSelectsNearestPrimitiveThroughBvh) {
     Scene scene;
     scene.add(

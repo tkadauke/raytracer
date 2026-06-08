@@ -437,6 +437,8 @@ Progress:
   Closest-hit traversal now clamps node and primitive bound tests to the
   current nearest hit distance, so both packed CPU and Metal paths can skip
   farther BVH work after a closer hit is known.
+  Those closest-hit paths also visit nearer BVH children first, making the
+  distance cutoff useful earlier in front-to-back traversal.
   Metrics now record closest-hit and any-hit execution paths separately, so a
   Metal basic closest-hit/any-hit render can report `metal`, CPU packed fallback
   reports `packed_cpu`, and `compiled_cpu` plus `mixed` remain available for

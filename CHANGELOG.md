@@ -517,6 +517,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   closest-hit traversal now clamp BVH and primitive bound tests to the current
   nearest hit distance, skipping farther nodes after a closer hit has already
   been found. — GPT-5
+- **Packed wavefront front-to-back traversal.** Packed CPU and Metal
+  closest-hit traversal now visit nearer BVH children first, making nearest-hit
+  pruning effective earlier in supported GPU-intersection scenes. — GPT-5
 - **Metal wavefront intersection setup reuse.** The experimental Metal
   wavefront intersection wrapper now reuses the default Metal device, command
   queue, and compiled compute pipelines across closest-hit and any-hit
