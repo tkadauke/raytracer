@@ -11,10 +11,10 @@
 > fallback metrics in place. Phase 2 now has a diagnostic CPU-side compiled
 > intersection scene for supported leaves, ids, transforms, bounds, and
 > unsupported reasons. Scene-created GPU fallback stubs retain supported
-> compiled scenes and packed upload buffers; exact closest-hit queries,
-> including static transforms, can run through the packed CPU kernel contract,
-> while any-hit work still uses the compiled CPU parity intersector. Real
-> Metal/Vulkan kernels remain future phases. This is a
+> compiled scenes and packed upload buffers; exact closest-hit, packet
+> closest-hit, and bounded any-hit queries for triangle, sphere, plane,
+> rectangle, disk, and static-transform payloads can run through the packed CPU
+> kernel contract. Real Metal/Vulkan kernels remain future phases. This is a
 > follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+. It should not replace
 > the CPU wavefront renderer, and it should not attempt a full GPU path tracer
@@ -397,12 +397,12 @@ Progress:
 - `GpuIntersectionIntersector` now executes iterative closest-hit BVH
   traversal directly against the packed upload buffers and writes GPU-style
   hit/miss records. Triangle, sphere, plane, rectangle, disk, and static
-  instance prepared GPU fallbacks route closest-hit and packet closest-hit
-  queries through this packed CPU kernel contract.
+  instance prepared GPU fallbacks route closest-hit, packet closest-hit, and
+  bounded any-hit queries through this packed CPU kernel contract.
   Metrics now record closest-hit and any-hit execution paths separately, so a
-  packed closest-hit frontier reports `packed_cpu` while shadow/any-hit work
-  remains `compiled_cpu`, with `mixed` used when both query paths contribute to
-  a render.
+  packed eligible render reports `packed_cpu` for both query families, while
+  `compiled_cpu` and `mixed` remain available for unsupported packed payloads or
+  future query paths that diverge.
 
 ## Phase 5 - common exact primitives and static instances
 
@@ -457,13 +457,25 @@ Progress:
 - `WavefrontIntersectionBackend` now has an `intersectAny(...)` query for
   shadow/visibility rays. The CPU backend delegates to `Scene::occludes(...)`,
   unsupported-scene fallbacks delegate to that CPU backend, and supported
-  scene-created GPU stubs answer through the compiled-scene parity intersector.
-  Batched path-tracing direct-light visibility records any-hit query metrics
-  through the selected backend while preserving finite light-distance bounds.
+  scene-created GPU stubs answer eligible packed scenes through
+  `GpuIntersectionIntersector::intersectAny(...)`. Batched path-tracing
+  direct-light visibility records any-hit query metrics through the selected
+  backend while preserving finite light-distance bounds.
 - `CompiledIntersectionSceneIntersector` now has a CPU any-hit parity query for
   supported compiled payloads and static instances. It uses the same bounded
   light-distance rule as `Scene::occludes(...)`, so GPU any-hit kernels have a
   tested visibility contract before they are wired into rendering.
+- `GpuIntersectionIntersector` now mirrors that any-hit visibility contract over
+  packed upload buffers for triangle, sphere, plane, rectangle, disk, and
+  static transform payloads. Host-side Metal/Vulkan fallback stubs use it when
+  the packed scene is eligible, so closest-hit and shadow query metrics both
+  report `packed_cpu` for those scenes.
+- Current runtime `Scene::occludes(...)` shadow semantics are geometry-only,
+  including transparent materials, so the packed any-hit path is allowed to be
+  material-agnostic and still match the CPU renderer. If future alpha,
+  volumetric, or partial-shadow materials make visibility material-dependent,
+  the compiler must make those leaves ineligible for packed/GPU any-hit until a
+  matching visibility kernel exists.
 
 ## Phase 7 - automatic selection and performance gates
 
@@ -482,6 +494,16 @@ Gate:
 - GPU intersection is measurably faster on large supported scenes.
 - `auto` does not regress small scenes.
 - CPU fallback remains deterministic and visible in traces.
+
+Progress:
+
+- Wavefront intersection metrics now estimate the query transfer footprint for
+  the packed GPU ABI: ray upload bytes, closest-hit readback bytes, any-hit
+  readback bytes, and their per-render query-transfer total. CPU and unsupported
+  runtime-scene fallback paths report zero query-transfer bytes; prepared
+  GPU-request stubs report the bytes their retained packed buffers would submit
+  to a real Metal/Vulkan kernel. This gives `auto` selection and performance
+  gates a visible upload/readback cost signal before real kernels are enabled.
 
 ## Phase 8 - future work
 
