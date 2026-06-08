@@ -508,6 +508,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   intersection scene now give each emitted triangle its own tight world-space
   BVH bounds instead of assigning every triangle the full box bounds, improving
   prepared packed traversal culling for box-heavy scenes. — GPT-5
+- **Packed wavefront primitive culling.** Packed CPU and Metal wavefront
+  intersection traversal now test primitive-record bounds inside BVH leaves
+  before running payload intersection, reducing wasted triangle/exact-primitive
+  tests in populated leaves while preserving the shared backend contract.
+  — GPT-5
 - **Metal wavefront intersection setup reuse.** The experimental Metal
   wavefront intersection wrapper now reuses the default Metal device, command
   queue, and compiled compute pipelines across closest-hit and any-hit

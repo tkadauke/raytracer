@@ -322,14 +322,18 @@ GpuIntersectionIntersector::intersectClosest(const GpuIntersectionSceneBuffers& 
         continue;
       }
 
-      const std::optional<ClosestHit> hit =
-        intersectPrimitive(scene, ray, scene.primitives[primitiveIndex]);
+      const GpuIntersectionPrimitiveRecord& primitive = scene.primitives[primitiveIndex];
+      if (!boundsIntersectRay(primitive.bounds, ray)) {
+        continue;
+      }
+
+      const std::optional<ClosestHit> hit = intersectPrimitive(scene, ray, primitive);
       if (!hit) {
         continue;
       }
 
       if (!closest.hit || hit->distance < closest.distance) {
-        closest = makeHit(ray, scene.primitives[primitiveIndex], primitiveIndex, *hit);
+        closest = makeHit(ray, primitive, primitiveIndex, *hit);
       }
     }
   }
@@ -380,8 +384,12 @@ bool GpuIntersectionIntersector::intersectAny(const GpuIntersectionSceneBuffers&
         continue;
       }
 
-      const std::optional<ClosestHit> hit =
-        intersectPrimitive(scene, ray, scene.primitives[primitiveIndex]);
+      const GpuIntersectionPrimitiveRecord& primitive = scene.primitives[primitiveIndex];
+      if (!boundsIntersectRay(primitive.bounds, ray)) {
+        continue;
+      }
+
+      const std::optional<ClosestHit> hit = intersectPrimitive(scene, ray, primitive);
       if (hit && hitOccludes(*hit, ray.maxDistance)) {
         return true;
       }

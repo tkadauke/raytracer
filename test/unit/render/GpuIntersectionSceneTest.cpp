@@ -392,6 +392,40 @@ namespace GpuIntersectionSceneTest {
     expectPackedAnyHitMatchesCompiled(scene, ray, 4.0);
   }
 
+  TEST(GpuIntersectionScene, PackedTraversalCullsPrimitiveRecordsByBounds) {
+    const auto bounds = [](float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+      return GpuIntersectionBounds{{minX, minY, minZ, 0.0f}, {maxX, maxY, maxZ, 0.0f}};
+    };
+
+    GpuIntersectionSceneBuffers buffers;
+    buffers.bvh.push_back(GpuIntersectionBvhNode{bounds(-10.0f, -10.0f, -1.0f, 10.0f, 10.0f, 5.0f),
+                                                 0, 1, gpuIntersectionLeafNodeFlag, 0});
+    buffers.primitives.push_back(GpuIntersectionPrimitiveRecord{
+      bounds(20.0f, 20.0f, 20.0f, 21.0f, 21.0f, 21.0f),
+      static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Triangle),
+      0,
+      0,
+      0,
+      0,
+      1,
+      {}});
+    buffers.triangles.push_back(GpuIntersectionTrianglePayload{{-1.0f, -1.0f, 3.0f, 0.0f},
+                                                               {1.0f, -1.0f, 3.0f, 0.0f},
+                                                               {0.0f, 1.0f, 3.0f, 0.0f},
+                                                               {0.0f, 0.0f, 1.0f, 0.0f},
+                                                               {0.0f, 0.0f, 1.0f, 0.0f},
+                                                               {0.0f, 0.0f, 1.0f, 0.0f},
+                                                               {},
+                                                               {},
+                                                               {}});
+
+    const GpuIntersectionRay ray =
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 61);
+
+    EXPECT_FALSE(GpuIntersectionIntersector().intersectClosest(buffers, ray).hit);
+    EXPECT_FALSE(GpuIntersectionIntersector().intersectAny(buffers, ray));
+  }
+
   TEST(GpuIntersectionScene, PackedTriangleClosestHitSelectsNearestPrimitiveThroughBvh) {
     Scene scene;
     scene.add(

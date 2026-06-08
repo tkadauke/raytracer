@@ -431,6 +431,9 @@ Progress:
   hit/miss records. Triangle, sphere, plane, rectangle, disk, and static
   instance prepared GPU fallbacks route closest-hit, packet closest-hit, and
   bounded any-hit queries through this packed CPU kernel contract.
+  Packed CPU and Metal traversal now also test primitive-record bounds inside
+  BVH leaves before running payload intersection, keeping host parity and the
+  platform kernel aligned while reducing wasted per-payload tests.
   Metrics now record closest-hit and any-hit execution paths separately, so a
   Metal basic closest-hit/any-hit render can report `metal`, CPU packed fallback
   reports `packed_cpu`, and `compiled_cpu` plus `mixed` remain available for
