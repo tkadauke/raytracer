@@ -568,6 +568,11 @@ Progress:
   report primitive/BVH counts plus scene upload, ray upload, and readback byte
   counters. This gives the `auto` policy a repeatable baseline for deciding
   when GPU upload/readback overhead is justified.
+- A regular unit-test performance gate now pins the packed upload-buffer CPU
+  traversal against runtime `Scene` traversal on a mesh-heavy supported scene.
+  The threshold is deliberately conservative, but it catches regressions that
+  accidentally bypass the flat packed BVH before platform kernels make that path
+  the default on eligible renders.
 
 ## Phase 8 - future work
 
