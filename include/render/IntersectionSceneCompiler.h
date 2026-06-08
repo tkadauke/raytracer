@@ -157,6 +157,8 @@ namespace render {
     void addUnsupportedPrimitive(const Primitive::TransformedLeaf& leaf, std::string reason);
     void addTriangle(const Primitive::TransformedLeaf& leaf,
                      const IntersectionTrianglePayload& payload);
+    void addTriangle(const Primitive::TransformedLeaf& leaf,
+                     const IntersectionTrianglePayload& payload, const BoundingBoxd& bounds);
     void addSphere(const Primitive::TransformedLeaf& leaf, const Vector3d& center, double radius);
     void addPlane(const Primitive::TransformedLeaf& leaf, const Vector3d& normal, double distance);
     void addRectangle(const Primitive::TransformedLeaf& leaf, const Vector3d& corner,
@@ -172,6 +174,9 @@ namespace render {
     IntersectionTransformId transformIdFor(const Primitive::TransformedLeaf& leaf);
     void addPrimitive(const Primitive::TransformedLeaf& leaf, IntersectionPrimitiveKind kind,
                       std::uint32_t payloadOffset, std::uint32_t payloadCount);
+    void addPrimitive(const Primitive::TransformedLeaf& leaf, IntersectionPrimitiveKind kind,
+                      const BoundingBoxd& bounds, std::uint32_t payloadOffset,
+                      std::uint32_t payloadCount);
 
     CompiledIntersectionScene m_scene;
     std::map<const Material*, IntersectionMaterialId> m_materialIds;

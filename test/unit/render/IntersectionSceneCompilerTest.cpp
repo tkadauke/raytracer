@@ -150,10 +150,15 @@ namespace IntersectionSceneCompilerTest {
     ASSERT_EQ(12u, compiled.primitives().size());
     ASSERT_EQ(12u, compiled.triangles().size());
     EXPECT_TRUE(compiled.fullySupported());
+    const BoundingBoxd boxBounds = box->boundingBox();
+    const BoundingBoxd paddedBoxBounds = boxBounds.grownByEpsilon();
     for (const IntersectionPrimitiveRecord& primitive : compiled.primitives()) {
       EXPECT_EQ(IntersectionPrimitiveKind::Triangle, primitive.kind);
       ASSERT_GT(compiled.objects().size(), primitive.object);
       EXPECT_EQ(box.get(), compiled.objects()[primitive.object]);
+      EXPECT_LT(primitive.bounds.volume(), boxBounds.volume());
+      EXPECT_TRUE(paddedBoxBounds.contains(primitive.bounds.min()));
+      EXPECT_TRUE(paddedBoxBounds.contains(primitive.bounds.max()));
     }
   }
 

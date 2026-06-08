@@ -168,9 +168,15 @@ void IntersectionSceneBuilder::addUnsupportedPrimitive(const Primitive::Transfor
 
 void IntersectionSceneBuilder::addTriangle(const Primitive::TransformedLeaf& leaf,
                                            const IntersectionTrianglePayload& payload) {
+  addTriangle(leaf, payload, leaf.boundingBox());
+}
+
+void IntersectionSceneBuilder::addTriangle(const Primitive::TransformedLeaf& leaf,
+                                           const IntersectionTrianglePayload& payload,
+                                           const BoundingBoxd& bounds) {
   const std::uint32_t offset = static_cast<std::uint32_t>(m_scene.m_triangles.size());
   m_scene.m_triangles.push_back(payload);
-  addPrimitive(leaf, IntersectionPrimitiveKind::Triangle, offset, 1);
+  addPrimitive(leaf, IntersectionPrimitiveKind::Triangle, bounds, offset, 1);
 }
 
 void IntersectionSceneBuilder::addSphere(const Primitive::TransformedLeaf& leaf,
@@ -273,9 +279,16 @@ void IntersectionSceneBuilder::addPrimitive(const Primitive::TransformedLeaf& le
                                             IntersectionPrimitiveKind kind,
                                             std::uint32_t payloadOffset,
                                             std::uint32_t payloadCount) {
-  m_scene.m_primitives.push_back(IntersectionPrimitiveRecord{
-    kind, materialIdFor(leaf.material), objectIdFor(leaf.primitive), transformIdFor(leaf),
-    leaf.boundingBox(), payloadOffset, payloadCount});
+  addPrimitive(leaf, kind, leaf.boundingBox(), payloadOffset, payloadCount);
+}
+
+void IntersectionSceneBuilder::addPrimitive(const Primitive::TransformedLeaf& leaf,
+                                            IntersectionPrimitiveKind kind,
+                                            const BoundingBoxd& bounds, std::uint32_t payloadOffset,
+                                            std::uint32_t payloadCount) {
+  m_scene.m_primitives.push_back(
+    IntersectionPrimitiveRecord{kind, materialIdFor(leaf.material), objectIdFor(leaf.primitive),
+                                transformIdFor(leaf), bounds, payloadOffset, payloadCount});
 }
 
 CompiledIntersectionScene IntersectionSceneCompiler::compile(const Scene& scene) const {

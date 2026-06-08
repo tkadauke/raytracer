@@ -504,6 +504,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   dependency-ready CPU-safe passes concurrently while preserving serial and
   limited executor caps, and skips queued dependents when cancellation or pass
   failures stop graph execution. — GPT-5
+- **Compiled box intersection bounds.** Boxes compiled for the wavefront GPU
+  intersection scene now give each emitted triangle its own tight world-space
+  BVH bounds instead of assigning every triangle the full box bounds, improving
+  prepared packed traversal culling for box-heavy scenes. — GPT-5
 - **Metal wavefront intersection setup reuse.** The experimental Metal
   wavefront intersection wrapper now reuses the default Metal device, command
   queue, and compiled compute pipelines across closest-hit and any-hit

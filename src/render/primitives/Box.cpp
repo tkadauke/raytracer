@@ -376,14 +376,23 @@ Vector3d Box::farthestPoint(const Vector3d& direction) const {
 void Box::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
                                         const TransformedLeaf& leaf) const {
   const std::shared_ptr<Mesh> mesh = tessellate(0);
+  const auto triangleBounds = [&leaf](const IntersectionTrianglePayload& payload) {
+    BoundingBoxd bounds;
+    bounds.include(leaf.pointMatrix.transformPoint(payload.point0));
+    bounds.include(leaf.pointMatrix.transformPoint(payload.point1));
+    bounds.include(leaf.pointMatrix.transformPoint(payload.point2));
+    return bounds.grownByEpsilon();
+  };
+
   for (auto triangle = mesh->begin(); triangle != mesh->end(); ++triangle) {
     const auto& indices = *triangle;
     const auto& v0 = mesh->vertices()[indices[0]];
     const auto& v1 = mesh->vertices()[indices[1]];
     const auto& v2 = mesh->vertices()[indices[2]];
-    builder.addTriangle(leaf, IntersectionTrianglePayload{v0.point, v1.point, v2.point, v0.normal,
-                                                          v1.normal, v2.normal, Vector2d::null,
-                                                          Vector2d::null, Vector2d::null});
+    const IntersectionTrianglePayload payload{v0.point,       v1.point,       v2.point,
+                                              v0.normal,      v1.normal,      v2.normal,
+                                              Vector2d::null, Vector2d::null, Vector2d::null};
+    builder.addTriangle(leaf, payload, triangleBounds(payload));
   }
 }
 

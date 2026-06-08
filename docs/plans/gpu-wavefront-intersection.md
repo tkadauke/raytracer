@@ -482,6 +482,9 @@ Progress:
   12-triangle box tessellation, while preserving the exact raytraced Box's
   default hit-UV semantics. This lets Box-only supported scenes use prepared
   packed traversal without adding a separate box kernel ABI.
+- Compiled box triangles now carry per-triangle world-space BVH bounds instead
+  of reusing the full box bounds on all 12 records, preserving the supported
+  triangle ABI while making box-heavy prepared traversal less wasteful.
 - Metal-enabled prepared sphere, plane, rectangle, disk, and static-transform
   scenes now share the render-path basic hit kernels with triangle scenes for
   closest-hit and any-hit queries.
