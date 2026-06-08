@@ -34,6 +34,10 @@ namespace {
       return render::SamplingSeed::pixelSeed(*tileSeed, pixel.column(), pixel.row());
     return legacyPixelHash(pixel);
   }
+
+  unsigned int packedRgb(const Colord& color) {
+    return color.rInt() << 16 | color.gInt() << 8 | color.bInt();
+  }
 }
 
 Camera::Camera()
@@ -397,7 +401,7 @@ void Camera::renderProgressiveSamples(std::shared_ptr<render::RayCaster> raycast
 
       const std::size_t index = accumulationIndex(rect, pixel);
       const Colord averaged = accumulated[index] * sampleScale;
-      const unsigned int rgb = (tonemap ? tonemap->apply(averaged) : averaged).rgb();
+      const unsigned int rgb = packedRgb(tonemap ? tonemap->apply(averaged) : averaged);
       plotRGB(buffer, rect, pixel, rgb);
     }
   }
@@ -435,7 +439,7 @@ void Camera::renderProgressiveSamples(std::shared_ptr<render::RayCaster> raycast
       const std::size_t index = accumulationIndex(rect, pixel);
       const Colord averaged = accumulated[index] * sampleScale;
       plot(hdrBuffer, rect, pixel, averaged);
-      const unsigned int rgb = (tonemap ? tonemap->apply(averaged) : averaged).rgb();
+      const unsigned int rgb = packedRgb(tonemap ? tonemap->apply(averaged) : averaged);
       plotRGB(displayBuffer, rect, pixel, rgb);
     }
   }
