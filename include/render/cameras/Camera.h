@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -421,6 +422,23 @@ namespace render {
                  const render::ViewPlane::Iterator& pixel, unsigned int rgb) const;
 
   private:
+    std::optional<Colord> sampleRayColor(std::shared_ptr<render::RayCaster> raycaster,
+                                         const render::ViewPlane::Iterator& pixel, int sampleIndex,
+                                         std::optional<std::uint64_t> tileSeed) const;
+    std::size_t accumulationIndex(const Rect<int>& rect,
+                                  const render::ViewPlane::Iterator& pixel) const;
+    void renderProgressiveSamples(std::shared_ptr<render::RayCaster> raycaster,
+                                  Buffer<Colord>& buffer, const Rect<int>& rect,
+                                  std::optional<std::uint64_t> tileSeed) const;
+    void renderProgressiveSamples(std::shared_ptr<render::RayCaster> raycaster,
+                                  Buffer<unsigned int>& buffer,
+                                  std::shared_ptr<render::Tonemap> tonemap, const Rect<int>& rect,
+                                  std::optional<std::uint64_t> tileSeed) const;
+    void renderProgressiveSamples(std::shared_ptr<render::RayCaster> raycaster,
+                                  Buffer<Colord>& hdrBuffer, Buffer<unsigned int>& displayBuffer,
+                                  std::shared_ptr<render::Tonemap> tonemap, const Rect<int>& rect,
+                                  std::optional<std::uint64_t> tileSeed) const;
+
     void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer,
                 const Rect<int>& rect, std::optional<std::uint64_t> tileSeed) const;
     void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigned int>& buffer,

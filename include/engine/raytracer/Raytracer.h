@@ -150,6 +150,7 @@ namespace engine::raytracer {
       * hit on a primitive with no material returns black.
       */
     Colord rayColor(const Rayd& ray, render::State& state) const override;
+    bool prefersProgressiveSamplePublishing() const override;
 
     /**
       * Request cancellation of an in-flight render. Tiles already

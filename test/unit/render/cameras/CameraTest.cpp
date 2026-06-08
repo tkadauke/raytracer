@@ -1,4 +1,7 @@
 #include <gtest/gtest.h>
+#include "core/Buffer.h"
+#include "render/RayCaster.h"
+#include "render/State.h"
 #include "render/cameras/Camera.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/samplers/RegularSampler.h"
@@ -37,6 +40,38 @@ namespace CameraTest {
     const char* fingerprintType() const override {
       return "ConcreteCamera";
     }
+  };
+
+  class ProgressivePublishingRayCaster : public RayCaster {
+  public:
+    explicit ProgressivePublishingRayCaster(Buffer<unsigned int>& buffer)
+        : m_buffer(buffer) {
+    }
+
+    Colord rayColor(const Rayd&, State&) const override {
+      if (m_calls == 1) {
+        m_bufferBeforeSecondSample = m_buffer[0][0];
+      }
+      ++m_calls;
+      return m_calls == 1 ? Colord::red() : Colord::black();
+    }
+
+    bool prefersProgressiveSamplePublishing() const override {
+      return true;
+    }
+
+    int calls() const {
+      return m_calls;
+    }
+
+    unsigned int bufferBeforeSecondSample() const {
+      return m_bufferBeforeSecondSample;
+    }
+
+  private:
+    Buffer<unsigned int>& m_buffer;
+    mutable int m_calls{0};
+    mutable unsigned int m_bufferBeforeSecondSample{0};
   };
 
   TEST(Camera, ShouldConstructWithoutParameters) {
@@ -229,6 +264,56 @@ namespace CameraTest {
     ASSERT_EQ(borrowedSample->ray.origin(), generatedSample->ray.origin());
     ASSERT_EQ(borrowedSample->ray.direction(), generatedSample->ray.direction());
     ASSERT_DOUBLE_EQ(borrowedSample->timeSample, generatedSample->timeSample);
+  }
+
+  TEST(Camera, ProgressiveSamplePublishingWritesRunningAveragesBeforeFinalSample) {
+    PinholeCamera camera(Vector3d(0, 0, -5), Vector3d::null);
+    auto sampler = std::make_shared<RegularSampler>();
+    sampler->setup(4, 1);
+    camera.viewPlane()->setSampler(sampler);
+    camera.viewPlane()->setup(camera.matrix(), Recti(1, 1));
+
+    Buffer<unsigned int> buffer(1, 1);
+    auto raycaster = std::make_shared<ProgressivePublishingRayCaster>(buffer);
+
+    camera.render(raycaster, buffer, std::shared_ptr<render::Tonemap>(), Recti(0, 0, 1, 1));
+
+    EXPECT_EQ(4, raycaster->calls());
+    EXPECT_EQ(0x00ff0000u, raycaster->bufferBeforeSecondSample());
+    EXPECT_EQ(0x003f0000u, buffer[0][0]);
+  }
+
+  TEST(Camera, ProgressiveSamplePublishingWaitsForFullSamplePassBeforePublishing) {
+    PinholeCamera camera(Vector3d(0, 0, -5), Vector3d::null);
+    auto sampler = std::make_shared<RegularSampler>();
+    sampler->setup(4, 1);
+    camera.viewPlane()->setSampler(sampler);
+    camera.viewPlane()->setup(camera.matrix(), Recti(2, 1));
+
+    Buffer<unsigned int> buffer(2, 1);
+    buffer.clear();
+    auto raycaster = std::make_shared<ProgressivePublishingRayCaster>(buffer);
+
+    camera.render(raycaster, buffer, std::shared_ptr<render::Tonemap>(), Recti(0, 0, 2, 1));
+
+    EXPECT_EQ(8, raycaster->calls());
+    EXPECT_EQ(0u, raycaster->bufferBeforeSecondSample());
+  }
+
+  TEST(Camera, ProgressiveSamplePublishingUsesOneAccumulatorSlotPerTiledPixel) {
+    PinholeCamera camera(Vector3d(0, 0, -5), Vector3d::null);
+    auto sampler = std::make_shared<RegularSampler>();
+    sampler->setup(4, 1);
+    camera.viewPlane()->setSampler(sampler);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 640, 480));
+
+    Buffer<unsigned int> buffer(32, 32);
+    buffer.clear();
+    auto raycaster = std::make_shared<ProgressivePublishingRayCaster>(buffer);
+
+    camera.render(raycaster, buffer, std::shared_ptr<render::Tonemap>(), Recti(0, 0, 32, 32));
+
+    EXPECT_EQ(32 * 32 * 4, raycaster->calls());
   }
 
   TEST(Camera, ShouldNotBeCancelledAfterConstruction) {

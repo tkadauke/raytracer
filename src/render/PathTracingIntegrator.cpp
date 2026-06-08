@@ -171,6 +171,10 @@ namespace render {
     return "depth_major_paths";
   }
 
+  bool PathTracingIntegrator::prefersProgressiveSamplePublishing() const {
+    return true;
+  }
+
   void PathTracingIntegrator::setCancellationCallback(CancellationCallback callback) {
     m_cancellationCallback = std::move(callback);
   }

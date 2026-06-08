@@ -43,6 +43,14 @@ compiler chooses the pass from render settings, scene content, and
 overrides; the low-level implementation should not require a user to
 hand-author graph nodes to get a path-traced image.
 
+In rendercli, `--engine pathtracer` asks for the path-tracing
+transport algorithm. By default that compiles to the wavefront
+schedule because it exposes per-depth diagnostics, denoising, and
+adaptive sampling. Add `--path_tracing_schedule scalar` when you want
+the same path-tracing integrator to run through the recursive
+raytracer pass instead. In the Modeler preview and final-render
+settings, the same choice is exposed as the Path Tracer schedule.
+
 ## <a id="visual-difference"></a>The visual difference
 The following three images render the same small scene. The red wall
 is directly lit. The floor and sphere are neutral.
@@ -141,6 +149,13 @@ shade, sample continuation, repeat. That is simple, but it gives the
 intersection code one ray at a time and keeps scheduling hidden
 inside a call stack or local loop.
 
+For interactive previews the scalar path tracer publishes the running
+sample average for each tile as samples accumulate, so the image
+refines across the frame instead of appearing only after the last
+sample of each pixel. That display behavior does not change the
+estimator; the final pixel is still the arithmetic mean of the same
+per-sample radiance values.
+
 The wavefront engine makes the frontier explicit. For each tile and
 sample, it stores a path state. At depth 0 it has a frontier of
 camera rays. It intersects that frontier, shades all hits, emits
@@ -210,8 +225,8 @@ choices become inspectable user-facing metadata.
    Confirm that the image loses that path contribution and the
    unsupported-material counter increases.
 4. Render the same scene with `--engine pathtracer` and with
-   `--engine wavefront --integrator pathtracer`. Which metrics differ
-   even when the image looks statistically equivalent?
+   `--engine pathtracer --path_tracing_schedule scalar`. Which metrics
+   differ even when the image looks statistically equivalent?
 
 ## See also
 

@@ -17,6 +17,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Direct wavefront/pathtracer rendercli runs can export a grayscale per-pixel
   sample radiance standard-deviation diagnostic image for path-tracing noise
   analysis. — GPT-5
+- **Scalar path-tracing schedule controls.** rendercli, Modeler preview
+  selection, and final Render Settings can now run the path tracer through the
+  recursive raytracer schedule, with progressive sample-average publishing for
+  interactive previews. — GPT-5
 - **Wavefront/path tracing textbook chapter.** Added rendered Whitted/scalar
   path-tracer/wavefront path-tracer comparison images plus an interactive
   scheduling widget that explains path-state frontiers. — GPT-5
@@ -335,6 +339,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler final render engine choices.** The final render dialog now exposes
+  Raytracer, Path Tracer, Rasterizer, and Wireframe as user-facing engines;
+  wavefront path tracing is selected through the Path Tracer schedule instead
+  of a duplicate top-level engine/integrator combination. — GPT-5
 - **Modeler final render intent initialization.** The final render dialog now
   initializes engine, raster, ray-family, and denoiser controls from the
   scene's saved Render Settings before applying one-off render overrides.
@@ -757,6 +765,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Scalar path-tracing progress artifacts.** Scalar path-tracing progressive
+  display now accumulates tiled renders with a one-pixel iterator instead of
+  the interlaced display iterator, avoiding tile-local accumulator corruption
+  that showed up as regular bright dots in final renders. — GPT-5
 - **Interactive widget arrow rerenders.** Shared SVG figure widgets now rebuild
   arrowhead marker definitions after a rerender, so arrows stay visible after
   changing segmented controls or sliders. — GPT-5

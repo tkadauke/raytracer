@@ -188,14 +188,16 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(QString("None"), widget.denoiser());
   }
 
-  TEST_F(RenderSettingsWidgetTest, ShouldShowRayDenoiserControlsOnlyForPathTracerAndWavefront) {
+  TEST_F(RenderSettingsWidgetTest, ShouldShowPathTracerControlsBySchedule) {
     RenderSettingsWidget widget;
     auto engineType = widget.findChild<QComboBox*>("engineType");
+    auto schedule = widget.findChild<QComboBox*>("pathTracingSchedule");
     auto directLightSamples = widget.findChild<QSpinBox*>("pathTracerDirectLightSamples");
     auto denoiser = widget.findChild<QComboBox*>("rayDenoiser");
     auto radius = widget.findChild<QSpinBox*>("rayDenoiseRadius");
     auto colorSigma = widget.findChild<QDoubleSpinBox*>("rayDenoiseColorSigma");
     ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, schedule);
     ASSERT_NE(nullptr, directLightSamples);
     ASSERT_NE(nullptr, denoiser);
     ASSERT_NE(nullptr, radius);
@@ -207,6 +209,7 @@ namespace RenderSettingsWidgetTest {
     EXPECT_TRUE(colorSigma->isHidden());
 
     engineType->setCurrentText("Path Tracer");
+    EXPECT_FALSE(schedule->isHidden());
     EXPECT_FALSE(directLightSamples->isHidden());
     EXPECT_FALSE(denoiser->isHidden());
     EXPECT_TRUE(radius->isHidden());
@@ -220,13 +223,14 @@ namespace RenderSettingsWidgetTest {
     EXPECT_FALSE(radius->isHidden());
     EXPECT_FALSE(colorSigma->isHidden());
 
-    engineType->setCurrentText("Wavefront");
-    EXPECT_TRUE(directLightSamples->isHidden());
-    EXPECT_FALSE(denoiser->isHidden());
-    EXPECT_FALSE(radius->isHidden());
-    EXPECT_FALSE(colorSigma->isHidden());
+    schedule->setCurrentText("Scalar");
+    EXPECT_FALSE(directLightSamples->isHidden());
+    EXPECT_TRUE(denoiser->isHidden());
+    EXPECT_TRUE(radius->isHidden());
+    EXPECT_TRUE(colorSigma->isHidden());
 
     engineType->setCurrentText("Raytracer");
+    EXPECT_TRUE(schedule->isHidden());
     EXPECT_TRUE(directLightSamples->isHidden());
     EXPECT_TRUE(denoiser->isHidden());
     EXPECT_TRUE(radius->isHidden());
@@ -249,6 +253,7 @@ namespace RenderSettingsWidgetTest {
     widget.setRenderIntent(intent);
 
     EXPECT_EQ(QString("Path Tracer"), widget.engine());
+    EXPECT_EQ(QString("Wavefront"), widget.pathTracingSchedule());
     EXPECT_EQ(QString("Jittered"), widget.sampler());
     EXPECT_EQ(9, widget.samplesPerPixel());
     EXPECT_EQ(12, widget.maxRecursionDepth());
@@ -276,6 +281,30 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(QString("Halton"), widget.sampler());
     EXPECT_EQ(64, widget.samplesPerPixel());
     EXPECT_EQ(1, widget.directLightSamples());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldInitializeScalarPathTracerFromRenderIntent) {
+    RenderSettingsWidget widget;
+    engine::graph::RenderIntent intent;
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Raytracer;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+
+    widget.setRenderIntent(intent);
+
+    EXPECT_EQ(QString("Path Tracer"), widget.engine());
+    EXPECT_EQ(QString("Scalar"), widget.pathTracingSchedule());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldMapWavefrontPathTracerIntentToPathTracerSchedule) {
+    RenderSettingsWidget widget;
+    engine::graph::RenderIntent intent;
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+
+    widget.setRenderIntent(intent);
+
+    EXPECT_EQ(QString("Path Tracer"), widget.engine());
+    EXPECT_EQ(QString("Wavefront"), widget.pathTracingSchedule());
   }
 
   TEST_F(RenderSettingsWidgetTest, ShouldInitializeImplicitDenoiserParametersFromRenderIntent) {
@@ -384,12 +413,12 @@ namespace RenderSettingsWidgetTest {
     auto displayMode = widget.findChild<QComboBox*>("displayUpdateMode");
     ASSERT_NE(nullptr, engineType);
     ASSERT_NE(nullptr, displayMode);
-    EXPECT_NE(-1, engineType->findText("Wavefront"));
+    EXPECT_EQ(-1, engineType->findText("Wavefront"));
     EXPECT_NE(-1, engineType->findText("Path Tracer"));
+    EXPECT_EQ(nullptr, widget.findChild<QComboBox*>("rayIntegrator"));
 
-    for (const QString& engine :
-         {QString("Raytracer"), QString("Path Tracer"), QString("Wavefront"), QString("Wireframe"),
-          QString("Rasterizer")}) {
+    for (const QString& engine : {QString("Raytracer"), QString("Path Tracer"),
+                                  QString("Wireframe"), QString("Rasterizer")}) {
       engineType->setCurrentText(engine);
       EXPECT_FALSE(displayMode->isHidden()) << engine.toStdString();
     }
@@ -506,13 +535,6 @@ namespace RenderSettingsWidgetTest {
     EXPECT_TRUE(shadowMaps->isHidden());
 
     engineType->setCurrentText("Wireframe");
-    EXPECT_TRUE(backend->isHidden());
-    EXPECT_TRUE(msaa->isHidden());
-    EXPECT_TRUE(msaaShading->isHidden());
-    EXPECT_TRUE(postAA->isHidden());
-    EXPECT_TRUE(shadowMaps->isHidden());
-
-    engineType->setCurrentText("Wavefront");
     EXPECT_TRUE(backend->isHidden());
     EXPECT_TRUE(msaa->isHidden());
     EXPECT_TRUE(msaaShading->isHidden());

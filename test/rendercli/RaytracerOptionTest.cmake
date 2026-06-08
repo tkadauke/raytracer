@@ -212,6 +212,19 @@ rendercli_assert_image_dimensions("${pathtracer_direct_output}" 24 24
                                   NAME "pathtracer direct dimensions")
 rendercli_assert_image_nonempty("${pathtracer_direct_output}" NAME "pathtracer direct pixels")
 
+set(pathtracer_scalar_direct_output "${TEST_OUTPUT_DIR}/pathtracer-scalar-direct.png")
+rendercli_run(
+  NAME "rendercli pathtracer direct engine accepts scalar schedule"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine pathtracer --path_tracing_schedule scalar
+    --width 24 --height 24 --sampler Regular --samples_per_pixel 4
+    "${raytracer_scene}" "${pathtracer_scalar_direct_output}"
+)
+rendercli_assert_image_dimensions("${pathtracer_scalar_direct_output}" 24 24
+                                  NAME "pathtracer scalar direct dimensions")
+rendercli_assert_image_nonempty("${pathtracer_scalar_direct_output}"
+                                NAME "pathtracer scalar direct pixels")
+
 set(area_light_output "${TEST_OUTPUT_DIR}/pathtracer-area-light.png")
 rendercli_run(
   NAME "rendercli pathtracer renders rectangular area light scene"
@@ -470,3 +483,30 @@ rendercli_expect_failure(
     --sampler Stratified "${raytracer_scene}" "${invalid_sampler_output}"
 )
 rendercli_assert_not_exists("${invalid_sampler_output}" NAME "invalid sampler output")
+
+rendercli_expect_failure(
+  NAME "rendercli rejects unknown path tracing schedule"
+  STDERR_MATCHES "Path tracing schedule must be 'wavefront' or 'scalar'"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine pathtracer --path_tracing_schedule maybe
+    --width 16 --height 16 "${raytracer_scene}" "${TEST_OUTPUT_DIR}/invalid-path-schedule.png"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects path tracing schedule engine conflicts"
+  STDERR_MATCHES "Path tracing schedule conflicts with the selected engine"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine wavefront --integrator pathtracer
+    --path_tracing_schedule scalar --width 16 --height 16 "${raytracer_scene}"
+    "${TEST_OUTPUT_DIR}/invalid-path-schedule-conflict.png"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects scalar schedule for wavefront sample standard deviation"
+  STDERR_MATCHES
+    "Wavefront sample standard-deviation output requires a wavefront path-tracing schedule"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine pathtracer --path_tracing_schedule scalar
+    --wavefront_sample_stddev_out "${TEST_OUTPUT_DIR}/invalid-path-stddev.png"
+    --width 16 --height 16 "${raytracer_scene}" "${TEST_OUTPUT_DIR}/invalid-path-stddev-render.png"
+)

@@ -27,9 +27,13 @@ $ rendercli --engine raytracer --width 1920 --height 1080 \
 The default path is graph-backed. The `--engine` flag sets the graph's preferred
 executor (`raytracer` / `pathtracer` / `wavefront` / `raster` / `wireframe`), while a scene-level
 `renderIntent` can also choose the executor, structural view mode, and overlay
-intent. `--direct_engine` bypasses the graph and renders with the selected
-engine directly; that mode is useful for focused engine debugging and for
-low-level knobs that are not yet represented as graph pass state. Rasterizer
+intent. `pathtracer` names the transport algorithm; by default rendercli runs
+it through the wavefront schedule, and `--path_tracing_schedule scalar` asks
+the graph compiler to synthesize a raytracer beauty pass with the
+`PathTracingIntegrator` instead. `--direct_engine` bypasses the graph and
+renders with the selected engine directly; that mode is useful for focused
+engine debugging and for low-level knobs that are not yet represented as graph
+pass state. Rasterizer
 controls such as MSAA, post-process AA, viewport/scissor state, and
 color-output state are compiled into typed raster beauty pass state, while
 preview shadow-map settings live on the graph shadow pass. Both are serialized
@@ -105,7 +109,10 @@ unchanged. `--pathtracer_russian_roulette_depth N` and
 `--pathtracer_direct_light_samples N` become graph-visible path-tracer
 execution state, so exported plans preserve both where Russian-roulette
 termination begins and how many next-event-estimation light samples are averaged
-at each non-delta hit. Wavefront controls such as
+at each non-delta hit. `--path_tracing_schedule wavefront|scalar` chooses
+whether an explicit path-tracer request compiles to the wavefront executor or
+to the recursive raytracer executor with the path-tracing integrator installed.
+Wavefront controls such as
 `--wavefront_convergence`, `--wavefront_no_convergence`,
 `--wavefront_convergence_active_fraction`, and
 `--wavefront_convergence_rms_delta` become graph-visible convergence state for
@@ -325,6 +332,10 @@ radiance standard deviation remains above the configured threshold; use
 Russian-roulette termination begins for path-traced renders.
 `--pathtracer_direct_light_samples N` controls how many direct-light samples are
 drawn and averaged at each non-delta path-tracing hit.
+`--path_tracing_schedule scalar` runs path tracing through the recursive
+raytracer pass; omit it, or pass `wavefront`, to use the graph-visible
+wavefront scheduler. Wavefront-only diagnostics such as
+`--wavefront_sample_stddev_out` require the wavefront schedule.
 `--wavefront_denoiser box|bilateral` requests an opt-in wavefront denoiser.
 Box is a small HDR blur intended as the first graph-visible hook. Bilateral is
 a color-edge-preserving filter controlled by `--wavefront_denoise_radius N` and
@@ -409,15 +420,24 @@ graph-backed Wavefront pass is still running. The same wavefront section can
 enable adaptive sampling, choose its initial sample count and standard-deviation
 threshold, request the box or bilateral denoiser, choose its pixel radius, and
 set the bilateral color sigma. Path Tracer settings include the
-Russian-roulette start depth and direct-light sample count. The final render
+schedule selector, Russian-roulette start depth, and direct-light sample count.
+Scalar schedule previews publish running sample averages during multi-sample
+renders, while wavefront schedule previews publish depth-frontier snapshots and
+can use wavefront denoising/adaptive sampling. The final render
 dialog starts from the scene's
 saved Render Settings, then acts as a one-off override surface for that render.
 When the scene omits sampler or sample-count intent, it keeps Regular as the
 Raytracer default and switches default-managed Path Tracer renders to Halton
 and 64 samples per pixel, matching the sampler guidance for stochastic
-transport. For Path Tracer and Wavefront final renders, the same dialog can
-leave the scene's saved denoiser intent alone or explicitly override it to
-None, Box, or Bilateral with radius and bilateral color-sigma controls.
+transport. For Path Tracer final renders using the wavefront schedule, the same
+dialog can leave the scene's saved denoiser intent alone or explicitly override
+it to None, Box, or Bilateral with radius and bilateral color-sigma controls.
+The final render dialog intentionally keeps its engine list user-facing:
+Raytracer, Path Tracer, Rasterizer, and Wireframe. Wavefront path tracing is
+selected as the Path Tracer schedule rather than as a second top-level engine,
+and scalar path tracing is the other schedule choice. That avoids duplicate
+ways to request the same path-traced output while still preserving the
+graph-visible executor in the compiled plan.
 Engine-specific fields only show for the selected default engine. The same
 property editor has a search field for filtering long property sets and
 collapsible groups so advanced scene/import settings can stay out of the way.

@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <optional>
 #include <utility>
+#include <vector>
 
 using namespace render;
 
@@ -249,6 +250,11 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
   const int sampleCount = samplesPerPixel();
   const double sampleScale = 1.0 / sampleCount;
 
+  if (sampleCount > 1 && raycaster->prefersProgressiveSamplePublishing()) {
+    renderProgressiveSamples(raycaster, buffer, actualRect, tileSeed);
+    return;
+  }
+
   for (render::ViewPlane::Iterator pixel = plane->begin(actualRect), end = plane->end(actualRect);
        pixel != end; ++pixel) {
     if (isCancelled())
@@ -306,6 +312,135 @@ void Camera::plotRGB(Buffer<unsigned int>& buffer, const Recti& rect,
       buffer[y][x] = rgb;
 }
 
+std::optional<Colord> Camera::sampleRayColor(std::shared_ptr<render::RayCaster> raycaster,
+                                             const render::ViewPlane::Iterator& pixel,
+                                             int sampleIndex,
+                                             std::optional<std::uint64_t> tileSeed) const {
+  const auto sample = primaryRaySample(pixel, sampleIndex, tileSeed);
+  if (!sample) {
+    return std::nullopt;
+  }
+
+  render::State state;
+  state.timeSample = sample->timeSample;
+  state.sampleStream = sample->sampleStream.get();
+  return raycaster->rayColor(sample->ray, state);
+}
+
+std::size_t Camera::accumulationIndex(const Recti& rect,
+                                      const render::ViewPlane::Iterator& pixel) const {
+  return static_cast<std::size_t>(pixel.row() - rect.top()) *
+           static_cast<std::size_t>(rect.width()) +
+         static_cast<std::size_t>(pixel.column() - rect.left());
+}
+
+void Camera::renderProgressiveSamples(std::shared_ptr<render::RayCaster> raycaster,
+                                      Buffer<Colord>& buffer, const Recti& rect,
+                                      std::optional<std::uint64_t> tileSeed) const {
+  std::vector<Colord> accumulated(static_cast<std::size_t>(rect.width() * rect.height()),
+                                  Colord::black());
+  const int sampleCount = samplesPerPixel();
+
+  for (int sampleIndex = 0; sampleIndex != sampleCount; ++sampleIndex) {
+    for (render::ViewPlane::Iterator pixel = viewPlane()->pixelBegin(rect),
+                                     end = viewPlane()->end(rect);
+         pixel != end; ++pixel) {
+      if (isCancelled())
+        return;
+
+      const std::size_t index = accumulationIndex(rect, pixel);
+      if (const auto color = sampleRayColor(raycaster, pixel, sampleIndex, tileSeed)) {
+        accumulated[index] += *color;
+      }
+    }
+
+    const double sampleScale = 1.0 / (sampleIndex + 1);
+    for (render::ViewPlane::Iterator pixel = viewPlane()->pixelBegin(rect),
+                                     end = viewPlane()->end(rect);
+         pixel != end; ++pixel) {
+      if (isCancelled())
+        return;
+
+      const std::size_t index = accumulationIndex(rect, pixel);
+      plot(buffer, rect, pixel, accumulated[index] * sampleScale);
+    }
+  }
+}
+
+void Camera::renderProgressiveSamples(std::shared_ptr<render::RayCaster> raycaster,
+                                      Buffer<unsigned int>& buffer,
+                                      std::shared_ptr<render::Tonemap> tonemap, const Recti& rect,
+                                      std::optional<std::uint64_t> tileSeed) const {
+  std::vector<Colord> accumulated(static_cast<std::size_t>(rect.width() * rect.height()),
+                                  Colord::black());
+  const int sampleCount = samplesPerPixel();
+
+  for (int sampleIndex = 0; sampleIndex != sampleCount; ++sampleIndex) {
+    for (render::ViewPlane::Iterator pixel = viewPlane()->pixelBegin(rect),
+                                     end = viewPlane()->end(rect);
+         pixel != end; ++pixel) {
+      if (isCancelled())
+        return;
+
+      const std::size_t index = accumulationIndex(rect, pixel);
+      if (const auto color = sampleRayColor(raycaster, pixel, sampleIndex, tileSeed)) {
+        accumulated[index] += *color;
+      }
+    }
+
+    const double sampleScale = 1.0 / (sampleIndex + 1);
+    for (render::ViewPlane::Iterator pixel = viewPlane()->pixelBegin(rect),
+                                     end = viewPlane()->end(rect);
+         pixel != end; ++pixel) {
+      if (isCancelled())
+        return;
+
+      const std::size_t index = accumulationIndex(rect, pixel);
+      const Colord averaged = accumulated[index] * sampleScale;
+      const unsigned int rgb = (tonemap ? tonemap->apply(averaged) : averaged).rgb();
+      plotRGB(buffer, rect, pixel, rgb);
+    }
+  }
+}
+
+void Camera::renderProgressiveSamples(std::shared_ptr<render::RayCaster> raycaster,
+                                      Buffer<Colord>& hdrBuffer,
+                                      Buffer<unsigned int>& displayBuffer,
+                                      std::shared_ptr<render::Tonemap> tonemap, const Recti& rect,
+                                      std::optional<std::uint64_t> tileSeed) const {
+  std::vector<Colord> accumulated(static_cast<std::size_t>(rect.width() * rect.height()),
+                                  Colord::black());
+  const int sampleCount = samplesPerPixel();
+
+  for (int sampleIndex = 0; sampleIndex != sampleCount; ++sampleIndex) {
+    for (render::ViewPlane::Iterator pixel = viewPlane()->pixelBegin(rect),
+                                     end = viewPlane()->end(rect);
+         pixel != end; ++pixel) {
+      if (isCancelled())
+        return;
+
+      const std::size_t index = accumulationIndex(rect, pixel);
+      if (const auto color = sampleRayColor(raycaster, pixel, sampleIndex, tileSeed)) {
+        accumulated[index] += *color;
+      }
+    }
+
+    const double sampleScale = 1.0 / (sampleIndex + 1);
+    for (render::ViewPlane::Iterator pixel = viewPlane()->pixelBegin(rect),
+                                     end = viewPlane()->end(rect);
+         pixel != end; ++pixel) {
+      if (isCancelled())
+        return;
+
+      const std::size_t index = accumulationIndex(rect, pixel);
+      const Colord averaged = accumulated[index] * sampleScale;
+      plot(hdrBuffer, rect, pixel, averaged);
+      const unsigned int rgb = (tonemap ? tonemap->apply(averaged) : averaged).rgb();
+      plotRGB(displayBuffer, rect, pixel, rgb);
+    }
+  }
+}
+
 void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigned int>& buffer,
                     std::shared_ptr<render::Tonemap> tonemap, const Recti& rect) const {
   render(raycaster, buffer, tonemap, rect, std::nullopt);
@@ -330,6 +465,11 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
 
   const int sampleCount = samplesPerPixel();
   const double sampleScale = 1.0 / sampleCount;
+
+  if (sampleCount > 1 && raycaster->prefersProgressiveSamplePublishing()) {
+    renderProgressiveSamples(raycaster, buffer, tonemap, actualRect, tileSeed);
+    return;
+  }
 
   // Mirrors the HDR-buffer render loop above; the only difference is
   // the per-pixel tonemap + pack to packed RGB so the LDR display
@@ -400,6 +540,11 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
 
   const int sampleCount = samplesPerPixel();
   const double sampleScale = 1.0 / sampleCount;
+
+  if (sampleCount > 1 && raycaster->prefersProgressiveSamplePublishing()) {
+    renderProgressiveSamples(raycaster, hdrBuffer, displayBuffer, tonemap, actualRect, tileSeed);
+    return;
+  }
 
   for (render::ViewPlane::Iterator pixel = plane->begin(actualRect), end = plane->end(actualRect);
        pixel != end; ++pixel) {

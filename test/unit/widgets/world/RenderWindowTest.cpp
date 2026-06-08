@@ -197,6 +197,38 @@ namespace RenderWindowTest {
     EXPECT_DOUBLE_EQ(0.3, *state->denoiseColorSigma());
   }
 
+  TEST_F(RenderWindowTest, ShouldCompileScalarPathTracerScheduleIntoRenderGraph) {
+    RenderWindow window;
+    Scene scene;
+    window.setScene(&scene);
+
+    auto* engineType = window.findChild<QComboBox*>("engineType");
+    auto* schedule = window.findChild<QComboBox*>("pathTracingSchedule");
+    auto* directLightSamples = window.findChild<QSpinBox*>("pathTracerDirectLightSamples");
+    ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, schedule);
+    ASSERT_NE(nullptr, directLightSamples);
+
+    engineType->setCurrentText("Path Tracer");
+    schedule->setCurrentText("Scalar");
+    directLightSamples->setValue(3);
+    QCoreApplication::processEvents();
+
+    auto* graphInspector = window.findChild<RenderGraphInspectorWidget*>();
+    ASSERT_NE(nullptr, graphInspector);
+    const auto plan = graphInspector->effectivePlan();
+    const auto* beautyPass = plan.findPass("raytrace_beauty");
+    ASSERT_NE(nullptr, beautyPass);
+    EXPECT_EQ(engine::graph::RenderExecutorKind::Raytracer, beautyPass->executor);
+    EXPECT_EQ(nullptr, plan.findPass("wavefront_beauty"));
+    const auto* state = engine::graph::RaytracerBeautyPassState::fromPass(*beautyPass);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->integrator().has_value());
+    EXPECT_EQ("pathtracer", *state->integrator());
+    ASSERT_TRUE(state->directLightSamples().has_value());
+    EXPECT_EQ(3, *state->directLightSamples());
+  }
+
   TEST_F(RenderWindowTest, ShouldInitializeFinalDialogAndGraphFromSceneRenderIntent) {
     RenderWindow window;
     Scene scene;

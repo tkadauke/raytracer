@@ -336,8 +336,8 @@ void RenderDisplay::applyPreviewPolicy(EngineKind kind) {
     m_raytracerEngine->setShowProgressIndicators(false);
   }
 
-  if (kind == EngineKind::Raytracer || kind == EngineKind::PathTracer ||
-      kind == EngineKind::Wavefront) {
+  if (kind == EngineKind::Raytracer || kind == EngineKind::ScalarPathTracer ||
+      kind == EngineKind::PathTracer || kind == EngineKind::Wavefront) {
     setDisplayMode(RenderWidget::DisplayMode::PeriodicUpdate);
     setClearBackBufferOnRenderStart(false);
     setProgressUpdateIntervalMs(16);

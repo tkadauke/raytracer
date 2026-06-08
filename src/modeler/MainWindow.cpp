@@ -425,6 +425,22 @@ namespace {
     }
   };
 
+  class ScalarPathTracerPreviewIntentDefinition : public PreviewEngineIntentDefinition {
+  public:
+    bool matches(RenderDisplay::EngineKind kind) const override {
+      return kind == RenderDisplay::EngineKind::ScalarPathTracer;
+    }
+
+    void apply(engine::graph::RenderGraphRequest& request,
+               engine::graph::RenderViewMode previewViewMode) const override {
+      engine::graph::RenderIntent intent = request.baseIntent();
+      intent.engineOptions.raytracer().setIntegrator("pathtracer");
+      request.setBaseIntent(std::move(intent))
+        .setExecutorOverride(engine::graph::RenderExecutorPreference::Raytracer)
+        .setViewModeOverride(previewViewMode);
+    }
+  };
+
   class WireframePreviewIntentDefinition : public PreviewEngineIntentDefinition {
   public:
     bool matches(RenderDisplay::EngineKind kind) const override {
@@ -442,12 +458,13 @@ namespace {
 
   const std::vector<const PreviewEngineIntentDefinition*>& previewEngineIntentDefinitions() {
     static const RaytracerPreviewIntentDefinition raytracer;
+    static const ScalarPathTracerPreviewIntentDefinition scalarPathTracer;
     static const WavefrontPreviewIntentDefinition wavefront;
     static const PathTracerPreviewIntentDefinition pathTracer;
     static const RasterizerPreviewIntentDefinition rasterizer;
     static const WireframePreviewIntentDefinition wireframe;
     static const std::vector<const PreviewEngineIntentDefinition*> result = {
-      &raytracer, &pathTracer, &wavefront, &rasterizer, &wireframe};
+      &raytracer, &scalarPathTracer, &pathTracer, &wavefront, &rasterizer, &wireframe};
     return result;
   }
 
@@ -662,6 +679,7 @@ struct MainWindow::Private {
   QAction* renderAct;
   QAction* previewUseSceneIntentAct;
   QAction* previewRaytracerAct;
+  QAction* previewScalarPathTracerAct;
   QAction* previewPathTracerAct;
   QAction* previewWavefrontAct;
   QAction* previewWireframeAct;
@@ -1000,9 +1018,16 @@ void MainWindow::createActions() {
 
   p->previewPathTracerAct = new QAction(tr("Path &Tracer"), this);
   p->previewPathTracerAct->setStatusTip(
-    tr("Show the modeling preview as a graph-backed path-traced render"));
+    tr("Show the modeling preview as a wavefront-scheduled path-traced render"));
   p->previewPathTracerAct->setCheckable(true);
   connect(p->previewPathTracerAct, SIGNAL(triggered()), this, SLOT(usePreviewPathTracer()));
+
+  p->previewScalarPathTracerAct = new QAction(tr("Scalar Path Tracer"), this);
+  p->previewScalarPathTracerAct->setStatusTip(
+    tr("Show the modeling preview as scalar path tracing through the raytracer executor"));
+  p->previewScalarPathTracerAct->setCheckable(true);
+  connect(p->previewScalarPathTracerAct, SIGNAL(triggered()), this,
+          SLOT(usePreviewScalarPathTracer()));
 
   p->previewWireframeAct = new QAction(tr("&Wireframe"), this);
   p->previewWireframeAct->setStatusTip(
@@ -1177,6 +1202,7 @@ void MainWindow::createActions() {
 
   auto previewGroup = new QActionGroup(this);
   previewGroup->addAction(p->previewRaytracerAct);
+  previewGroup->addAction(p->previewScalarPathTracerAct);
   previewGroup->addAction(p->previewPathTracerAct);
   previewGroup->addAction(p->previewWavefrontAct);
   previewGroup->addAction(p->previewWireframeAct);
@@ -1336,6 +1362,7 @@ void MainWindow::createMenus() {
   previewMenu->addAction(p->previewUseSceneIntentAct);
   previewMenu->addSeparator();
   previewMenu->addAction(p->previewRaytracerAct);
+  previewMenu->addAction(p->previewScalarPathTracerAct);
   previewMenu->addAction(p->previewPathTracerAct);
   previewMenu->addAction(p->previewWavefrontAct);
   previewMenu->addAction(p->previewWireframeAct);
@@ -1875,6 +1902,11 @@ void MainWindow::useSceneRenderIntentPreview(bool enabled) {
 void MainWindow::usePreviewRaytracer() {
   setPreviewOverrideMode();
   p->display->setEngineKind(RenderDisplay::EngineKind::Raytracer);
+}
+
+void MainWindow::usePreviewScalarPathTracer() {
+  setPreviewOverrideMode();
+  p->display->setEngineKind(RenderDisplay::EngineKind::ScalarPathTracer);
 }
 
 void MainWindow::usePreviewPathTracer() {
@@ -2534,6 +2566,10 @@ void MainWindow::applySceneRenderIntentToPreviewControls() {
 
   const auto intent =
     p->scene->hasRenderIntent() ? p->scene->renderIntent() : engine::graph::RenderIntent();
+  const auto rayIntegrator = intent.engineOptions.raytracer().integrator();
+  const bool scalarPathTracerIntent =
+    intent.defaultExecutor == engine::graph::RenderExecutorPreference::Raytracer && rayIntegrator &&
+    (*rayIntegrator == "pathtracer" || *rayIntegrator == "path_tracer" || *rayIntegrator == "pt");
   struct EngineChoice {
     engine::graph::RenderExecutorPreference preference;
     RenderDisplay::EngineKind kind;
@@ -2554,7 +2590,10 @@ void MainWindow::applySceneRenderIntentToPreviewControls() {
   const auto engine = std::find_if(engines.begin(), engines.end(), [&](const EngineChoice& choice) {
     return choice.preference == intent.defaultExecutor;
   });
-  if (engine != engines.end()) {
+  if (scalarPathTracerIntent) {
+    p->previewScalarPathTracerAct->setChecked(true);
+    p->display->setEngineKind(RenderDisplay::EngineKind::ScalarPathTracer);
+  } else if (engine != engines.end()) {
     engine->action->setChecked(true);
     p->display->setEngineKind(engine->kind);
   }

@@ -14,6 +14,10 @@ namespace render {
     return "scalar_loop";
   }
 
+  bool Integrator::prefersProgressiveSamplePublishing() const {
+    return false;
+  }
+
   void IntegratorBatchMetrics::reset(bool scalarFallback) {
     usedScalarFallback = scalarFallback;
     activeSamplesPerDepth.clear();

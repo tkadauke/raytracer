@@ -96,6 +96,10 @@ ViewPlane::Iterator ViewPlane::begin(const Recti& rect) const {
   return Iterator(new RegularIterator(this, rect));
 }
 
+ViewPlane::Iterator ViewPlane::pixelBegin(const Recti& rect) const {
+  return Iterator(new RegularIterator(this, rect));
+}
+
 Recti ViewPlane::Iterator::footprintWithin(const Recti& bounds) const {
   const int left = std::max(column(), bounds.left());
   const int top = std::max(row(), bounds.top());

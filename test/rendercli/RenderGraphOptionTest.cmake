@@ -126,6 +126,7 @@ set(wavefront_indirect_bounce_render
 set(wavefront_indirect_bounce_whitted_render
     "${TEST_OUTPUT_DIR}/wavefront-indirect-bounce-whitted-render.png")
 set(wavefront_pathtracer_plan "${TEST_OUTPUT_DIR}/wavefront-pathtracer-graph.json")
+set(scalar_pathtracer_plan "${TEST_OUTPUT_DIR}/scalar-pathtracer-graph.json")
 set(wavefront_convergence_plan "${TEST_OUTPUT_DIR}/wavefront-convergence-graph.json")
 set(wavefront_default_convergence_plan
     "${TEST_OUTPUT_DIR}/wavefront-default-convergence-graph.json")
@@ -2308,6 +2309,30 @@ endif()
 if(NOT wavefront_pathtracer_graph MATCHES "\"directLightSamples\"[ \r\n]*:[ \r\n]*3")
   message(FATAL_ERROR
           "wavefront pathtracer graph did not contain direct-light samples: ${wavefront_pathtracer_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli exports scalar pathtracer schedule in render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --engine pathtracer --path_tracing_schedule scalar
+    --pathtracer_direct_light_samples 2 --width 32 --height 16
+    "${static_scene}" "${scalar_pathtracer_plan}"
+)
+rendercli_assert_nonempty("${scalar_pathtracer_plan}"
+                          NAME "scalar pathtracer graph output")
+file(READ "${scalar_pathtracer_plan}" scalar_pathtracer_graph)
+if(NOT scalar_pathtracer_graph MATCHES "\"executor\": \"raytracer\"")
+  message(FATAL_ERROR
+          "scalar pathtracer graph did not contain raytracer executor: ${scalar_pathtracer_graph}")
+endif()
+if(NOT scalar_pathtracer_graph MATCHES "\"integrator\": \"pathtracer\"")
+  message(FATAL_ERROR
+          "scalar pathtracer graph did not contain pathtracer state: ${scalar_pathtracer_graph}")
+endif()
+if(NOT scalar_pathtracer_graph MATCHES "\"directLightSamples\"[ \r\n]*:[ \r\n]*2")
+  message(FATAL_ERROR
+          "scalar pathtracer graph did not contain direct-light samples: ${scalar_pathtracer_graph}")
 endif()
 
 rendercli_run(

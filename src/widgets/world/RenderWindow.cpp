@@ -112,13 +112,18 @@ struct RenderWindow::Private {
       intent.engineOptions.wireframe().setLod(settingsWidget->lod());
     } else {
       if (settingsWidget->engine() == "Path Tracer") {
-        intent.defaultExecutor = engine::graph::RenderExecutorPreference::PathTracer;
-      } else if (settingsWidget->engine() == "Wavefront") {
-        intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wavefront;
+        intent.defaultExecutor = settingsWidget->pathTracingSchedule() == "Scalar"
+                                   ? engine::graph::RenderExecutorPreference::Raytracer
+                                   : engine::graph::RenderExecutorPreference::PathTracer;
       } else {
         intent.defaultExecutor = engine::graph::RenderExecutorPreference::Raytracer;
       }
       auto& options = intent.engineOptions.raytracer();
+      if (settingsWidget->engine() == "Path Tracer") {
+        options.setIntegrator("pathtracer");
+      } else {
+        options.setIntegrator("whitted");
+      }
       options.setSampler(settingsWidget->sampler().toStdString());
       options.setSamplesPerPixel(settingsWidget->samplesPerPixel());
       options.setViewPlane(settingsWidget->viewPlane().toStdString());

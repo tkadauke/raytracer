@@ -1210,6 +1210,8 @@ private:
   bool m_pathTracerRussianRouletteDepthSet;
   int m_pathTracerDirectLightSamples;
   bool m_pathTracerDirectLightSamplesSet;
+  QString m_pathTracingSchedule;
+  bool m_pathTracingScheduleSet;
   int m_width;
   int m_height;
   bool m_widthSet;
@@ -1341,6 +1343,9 @@ private:
   void renderStepSequence(const Scene& scene) const;
   void validateStepSelection(const Scene& scene, const StepVisibilitySelection& selection) const;
   std::vector<int> sequenceSteps(const Scene& scene) const;
+  bool pathTracerEngineSelected() const;
+  bool pathTracingRequested() const;
+  bool scalarPathTracingScheduleSelected() const;
   std::optional<engine::graph::RenderExecutorPreference> engineExecutorPreference() const;
   engine::graph::RenderGraphRequest renderGraphRequest(const Scene& scene) const;
   engine::graph::RenderIntent renderIntent(const Scene& scene) const;
@@ -1398,6 +1403,8 @@ Renderer::Renderer()
       m_pathTracerRussianRouletteDepthSet(false),
       m_pathTracerDirectLightSamples(1),
       m_pathTracerDirectLightSamplesSet(false),
+      m_pathTracingSchedule("wavefront"),
+      m_pathTracingScheduleSet(false),
       m_width(640),
       m_height(480),
       m_widthSet(false),
@@ -1544,8 +1551,26 @@ engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
   return renderGraphRequest(scene).resolvedIntent();
 }
 
+bool Renderer::pathTracerEngineSelected() const {
+  return m_engine == "pathtracer" || m_engine == "pt";
+}
+
+bool Renderer::pathTracingRequested() const {
+  return pathTracerEngineSelected() || m_integrator == "pathtracer" ||
+         m_integrator == "path_tracer" || m_integrator == "pt";
+}
+
+bool Renderer::scalarPathTracingScheduleSelected() const {
+  return m_pathTracingSchedule == "scalar";
+}
+
 std::optional<engine::graph::RenderExecutorPreference> Renderer::engineExecutorPreference() const {
   if (!m_engineSet) {
+    if (m_pathTracingScheduleSet && pathTracingRequested()) {
+      return scalarPathTracingScheduleSelected()
+               ? engine::graph::RenderExecutorPreference::Raytracer
+               : engine::graph::RenderExecutorPreference::PathTracer;
+    }
     return std::nullopt;
   }
   if (m_engine == "raster") {
@@ -1554,8 +1579,10 @@ std::optional<engine::graph::RenderExecutorPreference> Renderer::engineExecutorP
   if (m_engine == "wireframe") {
     return engine::graph::RenderExecutorPreference::Wireframe;
   }
-  if (m_engine == "pathtracer" || m_engine == "pt") {
-    return engine::graph::RenderExecutorPreference::PathTracer;
+  if (pathTracerEngineSelected()) {
+    return scalarPathTracingScheduleSelected()
+             ? engine::graph::RenderExecutorPreference::Raytracer
+             : engine::graph::RenderExecutorPreference::PathTracer;
   }
   if (m_engine == "wavefront") {
     return engine::graph::RenderExecutorPreference::Wavefront;
@@ -1645,7 +1672,7 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.raytracer().setRussianRouletteDepth(m_pathTracerRussianRouletteDepth);
   if (m_pathTracerDirectLightSamplesSet)
     options.raytracer().setDirectLightSamples(m_pathTracerDirectLightSamples);
-  if (engineExecutorPreference() == engine::graph::RenderExecutorPreference::PathTracer) {
+  if (pathTracingRequested()) {
     options.raytracer().setIntegrator("pathtracer");
   } else if (m_integratorSet) {
     options.raytracer().setIntegrator(m_integrator.toStdString());
@@ -2280,11 +2307,11 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     rasterBeautyPassState(commandLinePostProcessAA(), true, true).applyTo(*raster);
     directRasterEngine = raster;
     engine = raster;
-  } else if (m_engine == "wavefront" || m_engine == "pathtracer" || m_engine == "pt") {
+  } else if (m_engine == "wavefront" ||
+             (pathTracerEngineSelected() && !scalarPathTracingScheduleSelected())) {
     auto wavefront = std::make_shared<engine::wavefront::WavefrontRaytracer>(raytracerScene);
     wavefront->setMaximumRecursionDepth(m_maximumRecursionDepth);
-    if (m_engine == "pathtracer" || m_engine == "pt" || m_integrator == "pathtracer" ||
-        m_integrator == "path_tracer" || m_integrator == "pt") {
+    if (pathTracingRequested()) {
       auto pt = std::make_unique<render::PathTracingIntegrator>();
       pt->setMaximumRecursionDepth(m_maximumRecursionDepth);
       if (m_pathTracerRussianRouletteDepthSet)
@@ -2345,7 +2372,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);
     rt->setMaximumRecursionDepth(m_maximumRecursionDepth);
-    if (m_integrator == "pathtracer" || m_integrator == "path_tracer" || m_integrator == "pt") {
+    if (pathTracingRequested()) {
       auto pt = std::make_unique<render::PathTracingIntegrator>();
       pt->setMaximumRecursionDepth(m_maximumRecursionDepth);
       if (m_pathTracerRussianRouletteDepthSet)
@@ -2892,6 +2919,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"gcode_hide_travel", "Hide G-code travel moves during import"},
      {"engine", "Render engine (raytracer, pathtracer, wavefront, wireframe, raster)", "engine"},
      {"integrator", "Raytracer integrator (whitted, pathtracer)", "integrator"},
+     {"path_tracing_schedule", "Path tracing schedule (wavefront, scalar)", "schedule"},
      {"wavefront_convergence", "Enable wavefront path-batch convergence stopping"},
      {"wavefront_no_convergence", "Disable wavefront path-batch convergence stopping"},
      {"wavefront_convergence_active_fraction",
@@ -3297,6 +3325,17 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     }
     m_integrator = integrator;
     m_integratorSet = true;
+  }
+
+  if (parser.isSet("path_tracing_schedule")) {
+    const QString schedule = parser.value("path_tracing_schedule").toLower();
+    const QString normalizedSchedule = normalizedRasterOption(schedule);
+    if (normalizedSchedule != "wavefront" && normalizedSchedule != "scalar") {
+      *errorMessage = "Path tracing schedule must be 'wavefront' or 'scalar'";
+      return CommandLineError;
+    }
+    m_pathTracingSchedule = normalizedSchedule;
+    m_pathTracingScheduleSet = true;
   }
 
   if (parser.isSet("wavefront_convergence") && parser.isSet("wavefront_no_convergence")) {
@@ -4077,6 +4116,20 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   const bool wavefrontSampleStddevOutputSet =
     !m_wavefrontSampleStddevOut.isEmpty() || !m_wavefrontSampleStddevColorOut.isEmpty();
 
+  if (m_pathTracingScheduleSet && !pathTracingRequested()) {
+    *errorMessage = "Path tracing schedule requires --engine pathtracer or --integrator pathtracer";
+    return CommandLineError;
+  }
+
+  if (m_pathTracingScheduleSet && m_engineSet) {
+    if (m_engine == "raster" || m_engine == "wireframe" ||
+        (m_engine == "wavefront" && scalarPathTracingScheduleSelected()) ||
+        (m_engine == "raytracer" && !scalarPathTracingScheduleSelected())) {
+      *errorMessage = "Path tracing schedule conflicts with the selected engine";
+      return CommandLineError;
+    }
+  }
+
   if (m_animation && wavefrontSampleStddevOutputSet) {
     *errorMessage = "Cannot combine --animation with wavefront sample standard-deviation output";
     return CommandLineError;
@@ -4167,6 +4220,12 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
         "Wavefront sample standard-deviation output requires --engine wavefront or pathtracer";
       return CommandLineError;
     }
+  }
+
+  if (wavefrontSampleStddevOutputSet && scalarPathTracingScheduleSelected()) {
+    *errorMessage =
+      "Wavefront sample standard-deviation output requires a wavefront path-tracing schedule";
+    return CommandLineError;
   }
 
   if (m_directEngine &&

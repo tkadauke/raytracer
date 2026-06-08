@@ -57,11 +57,6 @@
         </item>
         <item>
          <property name="text">
-          <string>Wavefront</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
           <string>Path Tracer</string>
          </property>
         </item>
@@ -258,14 +253,38 @@
       <item row="1" column="1">
        <widget class="QComboBox" name="samplerType"/>
       </item>
-      <item row="2" column="0">
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_pathTracingSchedule">
+        <property name="text">
+         <string>Path tracing schedule</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QComboBox" name="pathTracingSchedule">
+        <property name="toolTip">
+         <string>Scalar traces one camera sample path at a time and publishes progressive sample averages; Wavefront batches paths by bounce depth.</string>
+        </property>
+        <item>
+         <property name="text">
+          <string>Wavefront</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Scalar</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="4" column="0">
        <widget class="QLabel" name="label_2">
         <property name="text">
          <string>Samples per pixel</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
+      <item row="4" column="1">
        <widget class="QSpinBox" name="samplesPerPixel">
         <property name="minimum">
          <number>1</number>
@@ -275,14 +294,14 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
+      <item row="5" column="0">
        <widget class="QLabel" name="label_3">
         <property name="text">
          <string>Recursion depth</string>
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
+      <item row="5" column="1">
        <widget class="QSpinBox" name="maxRecursionDepth">
         <property name="minimum">
          <number>1</number>
@@ -295,14 +314,14 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
+      <item row="6" column="0">
        <widget class="QLabel" name="label_pathTracerDirectLightSamples">
         <property name="text">
          <string>Direct light samples</string>
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
+      <item row="6" column="1">
        <widget class="QSpinBox" name="pathTracerDirectLightSamples">
         <property name="toolTip">
          <string>Next-event-estimation light samples per surface hit. Higher values reduce direct-light noise at proportional render cost.</string>
@@ -318,42 +337,42 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="0">
+      <item row="7" column="0">
        <widget class="QLabel" name="label_6">
         <property name="text">
          <string>Render threads</string>
         </property>
        </widget>
       </item>
-      <item row="5" column="1">
+      <item row="7" column="1">
        <widget class="QSpinBox" name="renderThreads">
         <property name="maximum">
          <number>1024</number>
         </property>
        </widget>
       </item>
-      <item row="6" column="0">
+      <item row="8" column="0">
        <widget class="QLabel" name="label_7">
         <property name="text">
          <string>Queue size</string>
         </property>
        </widget>
       </item>
-      <item row="6" column="1">
+      <item row="8" column="1">
        <widget class="QSpinBox" name="queueSize">
         <property name="maximum">
          <number>16777216</number>
         </property>
        </widget>
       </item>
-      <item row="7" column="0">
+      <item row="9" column="0">
        <widget class="QLabel" name="label_rayDenoiser">
         <property name="text">
          <string>Denoiser</string>
         </property>
        </widget>
       </item>
-      <item row="7" column="1">
+      <item row="9" column="1">
        <widget class="QComboBox" name="rayDenoiser">
         <property name="toolTip">
          <string>Final-render denoiser override for wavefront and path-traced renders. Scene settings preserves the scene's saved render intent.</string>
@@ -380,14 +399,14 @@
         </item>
        </widget>
       </item>
-      <item row="8" column="0">
+      <item row="10" column="0">
        <widget class="QLabel" name="label_rayDenoiseRadius">
         <property name="text">
          <string>Denoise radius</string>
         </property>
        </widget>
       </item>
-      <item row="8" column="1">
+      <item row="10" column="1">
        <widget class="QSpinBox" name="rayDenoiseRadius">
         <property name="toolTip">
          <string>Spatial denoiser radius in pixels.</string>
@@ -403,14 +422,14 @@
         </property>
        </widget>
       </item>
-      <item row="9" column="0">
+      <item row="11" column="0">
        <widget class="QLabel" name="label_rayDenoiseColorSigma">
         <property name="text">
          <string>Color sigma</string>
         </property>
        </widget>
       </item>
-      <item row="9" column="1">
+      <item row="11" column="1">
        <widget class="QDoubleSpinBox" name="rayDenoiseColorSigma">
         <property name="toolTip">
          <string>Bilateral denoiser color edge threshold. Lower values preserve stronger color edges.</string>

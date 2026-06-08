@@ -224,6 +224,10 @@ Colord Raytracer::rayColor(const Rayd& ray, render::State& state) const {
   return p->integrator->radiance(*m_scene, ray, state, *this);
 }
 
+bool Raytracer::prefersProgressiveSamplePublishing() const {
+  return progressiveDisplayEnabled() && p->integrator->prefersProgressiveSamplePublishing();
+}
+
 void Raytracer::cancel() {
   m_camera->cancel();
 }

@@ -289,6 +289,16 @@ namespace render {
       */
     virtual Iterator begin(const Recti& rect) const;
 
+    /**
+      * @returns an iterator over `rect` in one-pixel row-major order, ignoring
+      * any progressive/interlaced traversal strategy a subclass normally uses.
+      *
+      * Accumulation renderers use this when every pixel needs exactly one
+      * sample slot. Display renderers can keep using `begin()` when they want
+      * coarse-to-fine footprint publishing.
+      */
+    Iterator pixelBegin(const Recti& rect) const;
+
     /// @returns the past-the-end iterator for `rect`.
     inline Iterator end(const Recti& rect) const {
       return Iterator(new RegularIterator(this, rect, true));

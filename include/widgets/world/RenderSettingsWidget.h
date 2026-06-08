@@ -20,6 +20,7 @@ public:
   QString sampler() const;
   QString viewPlane() const;
   QString engine() const;
+  QString pathTracingSchedule() const;
   int samplesPerPixel() const;
   int maxRecursionDepth() const;
   int directLightSamples() const;

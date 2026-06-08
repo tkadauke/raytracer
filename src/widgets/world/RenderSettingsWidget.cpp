@@ -43,21 +43,41 @@ struct RenderSettingsWidget::Private {
     return ui.rasterBackend->currentText() == QStringLiteral("OpenGL");
   }
 
-  QString engineText(engine::graph::RenderExecutorPreference executor) const {
+  bool isPathTracerIntegrator(const engine::graph::RenderRaytracerOptions& options) const {
+    const auto integrator = options.integrator();
+    return integrator &&
+           (*integrator == "pathtracer" || *integrator == "path_tracer" || *integrator == "pt");
+  }
+
+  QString engineText(const engine::graph::RenderIntent& intent) const {
     using engine::graph::RenderExecutorPreference;
-    switch (executor) {
+    switch (intent.defaultExecutor) {
     case RenderExecutorPreference::PathTracer:
       return QStringLiteral("Path Tracer");
     case RenderExecutorPreference::Wavefront:
-      return QStringLiteral("Wavefront");
+      return isPathTracerIntegrator(intent.engineOptions.raytracer())
+               ? QStringLiteral("Path Tracer")
+               : QStringLiteral("Raytracer");
     case RenderExecutorPreference::Rasterizer:
       return QStringLiteral("Rasterizer");
     case RenderExecutorPreference::Wireframe:
       return QStringLiteral("Wireframe");
     case RenderExecutorPreference::Raytracer:
+      if (isPathTracerIntegrator(intent.engineOptions.raytracer())) {
+        return QStringLiteral("Path Tracer");
+      }
       return QStringLiteral("Raytracer");
     }
     return QStringLiteral("Raytracer");
+  }
+
+  QString pathTracingScheduleText(const engine::graph::RenderIntent& intent) const {
+    using engine::graph::RenderExecutorPreference;
+    if (intent.defaultExecutor == RenderExecutorPreference::Raytracer &&
+        isPathTracerIntegrator(intent.engineOptions.raytracer())) {
+      return QStringLiteral("Scalar");
+    }
+    return QStringLiteral("Wavefront");
   }
 
   QString postProcessAAText(engine::graph::RenderPostProcessAA aa) const {
@@ -127,7 +147,6 @@ struct RenderSettingsWidget::Private {
     if (options.viewPlane()) {
       setComboBoxText(ui.viewPlaneType, QString::fromStdString(*options.viewPlane()));
     }
-
     const QString denoiser = denoiserText(options);
     setComboBoxText(ui.rayDenoiser, denoiser);
     if (options.denoiseRadius()) {
@@ -199,8 +218,9 @@ struct RenderSettingsWidget::Private {
       return;
     }
 
-    const QString sampler = engine == QStringLiteral("Path Tracer") ? QStringLiteral("Halton")
-                                                                    : QStringLiteral("Regular");
+    const bool pathTracingSelected = engine == QStringLiteral("Path Tracer");
+    const QString sampler =
+      pathTracingSelected ? QStringLiteral("Halton") : QStringLiteral("Regular");
     if (ui.samplerType->findText(sampler) < 0) {
       return;
     }
@@ -215,7 +235,8 @@ struct RenderSettingsWidget::Private {
       return;
     }
 
-    const int samples = engine == QStringLiteral("Path Tracer") ? 64 : 1;
+    const bool pathTracingSelected = engine == QStringLiteral("Path Tracer");
+    const int samples = pathTracingSelected ? 64 : 1;
     const int clampedSamples =
       std::clamp(samples, ui.samplesPerPixel->minimum(), ui.samplesPerPixel->maximum());
     updatingSamplesPerPixelDefault = true;
@@ -278,6 +299,8 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
   connect(p->ui.rasterBackend, SIGNAL(currentTextChanged(const QString&)), this,
           SLOT(updateEngineControls()));
   connect(p->ui.rasterShadowMaps, SIGNAL(toggled(bool)), this, SLOT(updateEngineControls()));
+  connect(p->ui.pathTracingSchedule, SIGNAL(currentTextChanged(const QString&)), this,
+          SLOT(updateEngineControls()));
   connect(p->ui.rayDenoiser, SIGNAL(currentTextChanged(const QString&)), this,
           SLOT(updateEngineControls()));
   connect(p->ui.samplerType, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this] {
@@ -339,6 +362,10 @@ QString RenderSettingsWidget::viewPlane() const {
 
 QString RenderSettingsWidget::engine() const {
   return p->ui.engineType->currentText();
+}
+
+QString RenderSettingsWidget::pathTracingSchedule() const {
+  return p->ui.pathTracingSchedule->currentText();
 }
 
 int RenderSettingsWidget::samplesPerPixel() const {
@@ -445,7 +472,7 @@ void RenderSettingsWidget::engineChanged() {
   p->selectSamplerDefaultForEngine(engine());
   p->selectSamplesPerPixelDefaultForEngine(engine());
 
-  if (engine() == "Raytracer" || engine() == "Path Tracer" || engine() == "Wavefront") {
+  if (engine() == "Raytracer" || engine() == "Path Tracer") {
     p->ui.displayUpdateMode->setCurrentText("Periodic update");
     p->ui.showProgressIndicators->setChecked(true);
   } else {
@@ -461,9 +488,13 @@ void RenderSettingsWidget::updateEngineControls() {
   // engine selector + progress indicators stay visible regardless.
   // Rasterizer shares Wireframe's LOD knob, and adds raster-only quality controls.
   const QString eng = engine();
-  const bool isRayFamily = (eng == "Raytracer" || eng == "Path Tracer" || eng == "Wavefront");
-  const bool supportsDirectLightSamples = (eng == "Path Tracer");
-  const bool supportsRayDenoiser = (eng == "Path Tracer" || eng == "Wavefront");
+  const bool isRayFamily = (eng == "Raytracer" || eng == "Path Tracer");
+  const bool pathTracingSelected = eng == "Path Tracer";
+  const bool pathTracingUsesWavefront =
+    eng == "Path Tracer" && p->ui.pathTracingSchedule->currentText() == QStringLiteral("Wavefront");
+  const bool supportsPathTracingSchedule = (eng == "Path Tracer");
+  const bool supportsDirectLightSamples = pathTracingSelected;
+  const bool supportsRayDenoiser = pathTracingUsesWavefront;
   const bool denoiserIsBox = p->ui.rayDenoiser->currentText() == QStringLiteral("Box");
   const bool denoiserIsBilateral = p->ui.rayDenoiser->currentText() == QStringLiteral("Bilateral");
   const bool showRayDenoiseRadius = supportsRayDenoiser && (denoiserIsBox || denoiserIsBilateral);
@@ -471,6 +502,8 @@ void RenderSettingsWidget::updateEngineControls() {
   const bool isRasterizer = (eng == "Rasterizer");
   const bool showShadowDetails = isRasterizer && shadowMapsEnabled();
   p->ui.raytracerFrame->setVisible(isRayFamily);
+  p->ui.label_pathTracingSchedule->setVisible(supportsPathTracingSchedule);
+  p->ui.pathTracingSchedule->setVisible(supportsPathTracingSchedule);
   p->ui.label_pathTracerDirectLightSamples->setVisible(supportsDirectLightSamples);
   p->ui.pathTracerDirectLightSamples->setVisible(supportsDirectLightSamples);
   p->ui.label_rayDenoiser->setVisible(supportsRayDenoiser);
@@ -516,7 +549,8 @@ void RenderSettingsWidget::setRenderIntent(const engine::graph::RenderIntent& in
   p->samplerDefaultManaged = !raytracerOptions.sampler().has_value();
   p->samplesPerPixelDefaultManaged = !raytracerOptions.samplesPerPixel().has_value();
 
-  p->setComboBoxText(p->ui.engineType, p->engineText(intent.defaultExecutor));
+  p->setComboBoxText(p->ui.engineType, p->engineText(intent));
+  p->setComboBoxText(p->ui.pathTracingSchedule, p->pathTracingScheduleText(intent));
   p->applyRaytracerOptions(raytracerOptions);
   p->applyRasterizerOptions(intent);
   p->applyWireframeOptions(intent.engineOptions.wireframe());
@@ -528,6 +562,7 @@ void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.viewPlaneType->setEnabled(!busy);
   p->ui.samplerType->setEnabled(!busy);
   p->ui.engineType->setEnabled(!busy);
+  p->ui.pathTracingSchedule->setEnabled(!busy);
   p->ui.samplesPerPixel->setEnabled(!busy);
   p->ui.maxRecursionDepth->setEnabled(!busy);
   p->ui.pathTracerDirectLightSamples->setEnabled(!busy);

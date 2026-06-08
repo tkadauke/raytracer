@@ -169,6 +169,14 @@ namespace render {
     virtual const char* batchExecutionMode() const;
 
     /**
+      * @returns true when scalar camera rendering should publish the running
+      * sample average after each sample pass. Path tracing benefits from this
+      * because users can see the noisy estimate converge; Whitted-style
+      * integrators keep the historical write-once-per-pixel behavior.
+      */
+    virtual bool prefersProgressiveSamplePublishing() const;
+
+    /**
       * Evaluate the radiance carried by `ray` in `scene`.
       *
       * Implementations may mutate `state` for recursion depth, hit-point

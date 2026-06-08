@@ -42,5 +42,13 @@ namespace render {
       * the optional event log; it is mutated in place.
       */
     virtual Colord rayColor(const Rayd& ray, State& state) const = 0;
+
+    /**
+      * @returns true when camera render loops should publish the running
+      * per-pixel sample average during multi-sample rendering.
+      */
+    virtual bool prefersProgressiveSamplePublishing() const {
+      return false;
+    }
   };
 }
