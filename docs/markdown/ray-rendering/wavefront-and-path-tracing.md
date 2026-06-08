@@ -241,6 +241,10 @@ packed-buffer CPU traversal, or a Metal kernel. Batched path-tracing
 direct-light visibility goes through the same backend seam via
 `intersectAny(...)`, so the graph and metrics can separate closest-hit and
 any-hit ray counts for CPU and GPU-resident query families.
+Prepared GPU-style backends can also opt into arbitrary closest-hit frontier
+batches, letting a path-tracing bounce submit one group of camera/path rays
+instead of slicing that frontier into Ray4/Ray8 packets before it reaches the
+platform backend.
 
 The expected ray count used by `auto` is an estimate of intersection work, not
 just the number of primary camera samples. `WavefrontRaytracer` starts with

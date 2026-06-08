@@ -190,6 +190,11 @@ namespace render {
                                     std::vector<BatchHit>& activeHits, int bounce,
                                     BatchDepthMetrics& depthMetrics,
                                     IntegratorBatchMetrics* metrics) const;
+    void intersectActiveFrontierBatch(const WavefrontIntersectionBackend& intersectionBackend,
+                                      const Scene& scene, std::vector<BatchPath>& paths,
+                                      std::vector<BatchHit>& activeHits, int bounce,
+                                      BatchDepthMetrics& depthMetrics,
+                                      IntegratorBatchMetrics* metrics) const;
     void intersectActiveFrontier(const WavefrontIntersectionBackend& intersectionBackend,
                                  const Scene& scene, std::vector<BatchPath>& paths,
                                  std::vector<BatchHit>& activeHits, int bounce,

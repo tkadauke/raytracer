@@ -543,6 +543,11 @@ Progress:
   all valid light-sample shadow rays for a shading point and submits them as one
   bounded any-hit batch, while the CPU default preserves the existing scalar
   `intersectAny(...)` behavior for backends that do not specialize batching.
+- `WavefrontIntersectionBackend` now has an arbitrary closest-hit batch query
+  in addition to scalar and Ray4/Ray8 packet queries. Prepared packed GPU
+  backends opt into that path, so path-tracing frontiers can submit one
+  closest-hit group per bounce instead of one platform dispatch per small packet
+  while CPU wavefront rendering keeps the existing packet path.
 - Wavefront diagnostics now split submitted intersection rays by closest-hit and
   any-hit query family, so batched visibility can be inspected as both one
   backend query and multiple submitted shadow rays.

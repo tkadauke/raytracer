@@ -2263,6 +2263,16 @@ if(NOT wavefront_metrics_json MATCHES "\"frontierPacketRaysPerDepth\"")
                   "wavefront metrics report did not contain frontier packet ray counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+if(NOT wavefront_metrics_json MATCHES "\"frontierClosestHitBatchChunksPerDepth\"")
+  _rendercli_fail("rendercli wavefront metrics frontier closest-hit batch chunks"
+                  "wavefront metrics report did not contain frontier closest-hit batch chunk counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"frontierClosestHitBatchRaysPerDepth\"")
+  _rendercli_fail("rendercli wavefront metrics frontier closest-hit batch rays"
+                  "wavefront metrics report did not contain frontier closest-hit batch ray counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
 if(NOT wavefront_metrics_json MATCHES "\"frontierRay4PacketChunksPerDepth\"")
   _rendercli_fail("rendercli wavefront metrics frontier Ray4 packet chunks"
                   "wavefront metrics report did not contain frontier Ray4 packet chunk counters"

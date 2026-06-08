@@ -173,6 +173,10 @@ namespace engine::wavefront::detail {
       addVectorValues(target.frontierRayMissesPerDepth, source.frontierRayMissesPerDepth);
       addVectorValues(target.frontierPacketChunksPerDepth, source.frontierPacketChunksPerDepth);
       addVectorValues(target.frontierPacketRaysPerDepth, source.frontierPacketRaysPerDepth);
+      addVectorValues(target.frontierClosestHitBatchChunksPerDepth,
+                      source.frontierClosestHitBatchChunksPerDepth);
+      addVectorValues(target.frontierClosestHitBatchRaysPerDepth,
+                      source.frontierClosestHitBatchRaysPerDepth);
       addVectorValues(target.frontierRay4PacketChunksPerDepth,
                       source.frontierRay4PacketChunksPerDepth);
       addVectorValues(target.frontierRay8PacketChunksPerDepth,

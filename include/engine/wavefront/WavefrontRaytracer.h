@@ -122,6 +122,8 @@ namespace engine::wavefront {
       std::vector<std::uint64_t> frontierRayMissesPerDepth;
       std::vector<std::uint64_t> frontierPacketChunksPerDepth;
       std::vector<std::uint64_t> frontierPacketRaysPerDepth;
+      std::vector<std::uint64_t> frontierClosestHitBatchChunksPerDepth;
+      std::vector<std::uint64_t> frontierClosestHitBatchRaysPerDepth;
       std::vector<std::uint64_t> frontierRay4PacketChunksPerDepth;
       std::vector<std::uint64_t> frontierRay8PacketChunksPerDepth;
       std::vector<std::uint64_t> frontierScalarRaysPerDepth;

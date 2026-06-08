@@ -39,6 +39,8 @@ namespace render {
     std::vector<std::uint64_t> frontierRayMissesPerDepth;
     std::vector<std::uint64_t> frontierPacketChunksPerDepth;
     std::vector<std::uint64_t> frontierPacketRaysPerDepth;
+    std::vector<std::uint64_t> frontierClosestHitBatchChunksPerDepth;
+    std::vector<std::uint64_t> frontierClosestHitBatchRaysPerDepth;
     std::vector<std::uint64_t> frontierRay4PacketChunksPerDepth;
     std::vector<std::uint64_t> frontierRay8PacketChunksPerDepth;
     std::vector<std::uint64_t> frontierScalarRaysPerDepth;
@@ -118,6 +120,7 @@ namespace render {
                                  std::uint64_t ray4PacketChunks, std::uint64_t ray8PacketChunks,
                                  std::uint64_t scalarRays, std::uint64_t packetScalarFallbackRays,
                                  std::uint64_t packetRefinedRays);
+    void recordFrontierClosestHitBatch(std::uint64_t batchChunks, std::uint64_t batchRays);
     void recordPacketScalarFallbacksByReason(const std::map<std::string, std::uint64_t>& reasons);
     void recordPacketHitRefinement(const std::string& materialLabel);
     void recordIntersectionBackend(const WavefrontIntersectionBackend& backend);

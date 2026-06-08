@@ -307,7 +307,8 @@ compact summary prints total `tiles`, `tile_grid`,
 `nonempty_tiles`, `min_tile_samples`, `avg_tile_samples`, `max_tile_samples`,
 `last_retained_active`,
 `frontier_hit_rays`, `frontier_miss_rays`, `frontier_packet_chunks`,
-`frontier_packet_rays`, `frontier_ray4_packet_chunks`,
+`frontier_packet_rays`, `frontier_closest_hit_batch_chunks`,
+`frontier_closest_hit_batch_rays`, `frontier_ray4_packet_chunks`,
 `frontier_ray8_packet_chunks`, `frontier_scalar_rays`, and
 `frontier_packet_scalar_fallback_rays`,
 `frontier_packet_scalar_fallback_by_reason`, `frontier_packet_refined_rays`,
@@ -328,6 +329,8 @@ exact packet-lane work count, while the Ray4/Ray8 chunk counters expose packet
 fill directly. The JSON report keeps the
 per-depth `frontierRayHitsPerDepth`, `frontierRayMissesPerDepth`,
 `frontierPacketChunksPerDepth`, `frontierPacketRaysPerDepth`,
+`frontierClosestHitBatchChunksPerDepth`,
+`frontierClosestHitBatchRaysPerDepth`,
 `frontierRay4PacketChunksPerDepth`, `frontierRay8PacketChunksPerDepth`,
 `frontierScalarRaysPerDepth`, `frontierPacketScalarFallbackRaysPerDepth`, and
 `frontierPacketRefinedRaysPerDepth` arrays for deeper captures, plus

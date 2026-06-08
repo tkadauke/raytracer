@@ -658,6 +658,40 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0, state.intersectionMisses);
   }
 
+  TEST(WavefrontIntersectionBackend, PreparedGpuClosestHitBatchUsesRetainedPackedSphereScene) {
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
+    Scene sourceScene;
+    sourceScene.add(sphere);
+    Scene emptyScene;
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(sourceScene);
+
+    ASSERT_NE(nullptr, backend->compiledScene());
+    ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
+    EXPECT_FALSE(backend->prefersClosestHitBatch(1));
+    EXPECT_TRUE(backend->prefersClosestHitBatch(2));
+
+    State hitState;
+    State missState;
+    const std::vector<WavefrontClosestHitQuery> queries{
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), &hitState},
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 3, -4), Vector3d(0, 0, 1)), &missState}};
+
+    const std::vector<WavefrontClosestHitResult> hits =
+      backend->intersectClosestBatch(emptyScene, queries);
+
+    ASSERT_EQ(2u, hits.size());
+    EXPECT_TRUE(hits[0].hit());
+    EXPECT_EQ(sphere.get(), hits[0].primitive);
+    EXPECT_NEAR(3.0, hits[0].hitPoint.distance(), 1e-5);
+    EXPECT_FALSE(hits[1].hit());
+    EXPECT_EQ(1, hitState.intersectionHits);
+    EXPECT_EQ(0, hitState.intersectionMisses);
+    EXPECT_EQ(0, missState.intersectionHits);
+    EXPECT_EQ(1, missState.intersectionMisses);
+  }
+
   TEST(WavefrontIntersectionBackend,
        PreparedGpuFallbackClosestHitUsesRetainedPackedStaticTransformScene) {
     auto triangle =

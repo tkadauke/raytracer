@@ -445,6 +445,39 @@ namespace render {
     return estimatedTransferBytes(submittedRays, sizeof(GpuIntersectionOcclusionRecord));
   }
 
+  bool WavefrontIntersectionBackend::prefersClosestHitBatch(std::uint64_t /*submittedRays*/) const {
+    return false;
+  }
+
+  std::vector<WavefrontClosestHitResult> WavefrontIntersectionBackend::intersectClosestBatch(
+    const Scene& scene, const std::vector<WavefrontClosestHitQuery>& queries,
+    WavefrontIntersectionQueryTiming* timing) const {
+    std::vector<WavefrontClosestHitResult> results;
+    results.reserve(queries.size());
+    for (const WavefrontClosestHitQuery& query : queries) {
+      State scratchState;
+      State& state = query.state ? *query.state : scratchState;
+      HitPointInterval hitPoints;
+      WavefrontIntersectionQueryTiming queryTiming;
+      const Primitive* primitive =
+        intersectClosest(scene, query.ray, hitPoints, state, timing ? &queryTiming : nullptr);
+      if (timing) {
+        timing->add(queryTiming);
+      }
+
+      WavefrontClosestHitResult result;
+      if (primitive) {
+        const HitPoint& hitPoint = hitPoints.minWithPositiveDistance();
+        if (!hitPoint.isUndefined()) {
+          result.primitive = primitive;
+          result.hitPoint = hitPoint;
+        }
+      }
+      results.push_back(result);
+    }
+    return results;
+  }
+
   std::vector<bool>
   WavefrontIntersectionBackend::intersectAnyBatch(const Scene& scene,
                                                   const std::vector<WavefrontAnyHitQuery>& queries,
@@ -495,6 +528,28 @@ namespace render {
       return {};
     }
     return GpuIntersectionIntersector().intersectClosest(*buffers, rays);
+  }
+
+  WavefrontClosestHitResult WavefrontIntersectionBackend::closestHitResultFromPackedRecord(
+    const CompiledIntersectionScene& scene, const GpuIntersectionHitRecord& hit, State* state,
+    const char* reason) const {
+    WavefrontClosestHitResult result;
+    if (!hit.hit || hit.object >= scene.objects().size()) {
+      if (state) {
+        state->miss(nullptr, reason);
+      }
+      return result;
+    }
+
+    const Primitive* primitive = scene.objects()[hit.object];
+    result.primitive = primitive;
+    result.hitPoint = HitPoint(
+      primitive, hit.distance, Vector4d(hit.point[0], hit.point[1], hit.point[2], hit.point[3]),
+      Vector3d(hit.normal[0], hit.normal[1], hit.normal[2]), Vector2d(hit.uv[0], hit.uv[1]));
+    if (state) {
+      state->hit(primitive, reason);
+    }
+    return result;
   }
 
   bool WavefrontIntersectionBackend::preparedPackedAnyHitAvailable() const {
@@ -563,19 +618,13 @@ namespace render {
         state.miss(nullptr, "Packed GPU intersection scene");
         return nullptr;
       }
-      const GpuIntersectionHitRecord& hit = hits.front();
-      if (!hit.hit || hit.object >= scene->objects().size()) {
-        state.miss(nullptr, "Packed GPU intersection scene");
+      const WavefrontClosestHitResult result = closestHitResultFromPackedRecord(
+        *scene, hits.front(), &state, "Packed GPU intersection scene");
+      if (!result.hit()) {
         return nullptr;
       }
-
-      const Primitive* primitive = scene->objects()[hit.object];
-      const HitPoint hitPoint(
-        primitive, hit.distance, Vector4d(hit.point[0], hit.point[1], hit.point[2], hit.point[3]),
-        Vector3d(hit.normal[0], hit.normal[1], hit.normal[2]), Vector2d(hit.uv[0], hit.uv[1]));
-      hitPoints.add(hitPoint);
-      state.hit(primitive, "Packed GPU intersection scene");
-      return primitive;
+      hitPoints.add(result.hitPoint);
+      return result.primitive;
     }
 
     const CompiledIntersectionHit hit =
@@ -590,6 +639,61 @@ namespace render {
     hitPoints.add(hitPoint);
     state.hit(primitive, "Compiled intersection scene");
     return primitive;
+  }
+
+  std::vector<WavefrontClosestHitResult>
+  WavefrontIntersectionBackend::intersectPreparedClosestBatch(
+    const std::vector<WavefrontClosestHitQuery>& queries,
+    WavefrontIntersectionQueryTiming* timing) const {
+    if (queries.empty()) {
+      return {};
+    }
+
+    const CompiledIntersectionScene* scene = compiledScene();
+    std::vector<WavefrontClosestHitResult> results(queries.size());
+    if (!scene) {
+      for (const WavefrontClosestHitQuery& query : queries) {
+        if (query.state) {
+          query.state->miss(nullptr, "Compiled intersection scene unavailable");
+        }
+      }
+      return results;
+    }
+
+    if (preparedPackedClosestHitAvailable()) {
+      std::vector<GpuIntersectionRay> packedRays;
+      packedRays.reserve(queries.size());
+      for (std::size_t index = 0; index != queries.size(); ++index) {
+        packedRays.push_back(GpuIntersectionScenePacker().packRay(
+          queries[index].ray, static_cast<std::uint32_t>(index)));
+      }
+
+      const std::vector<GpuIntersectionHitRecord> hits =
+        intersectPreparedPackedClosest(packedRays, timing);
+      for (const GpuIntersectionHitRecord& hit : hits) {
+        if (hit.rayIndex < results.size()) {
+          results[hit.rayIndex] = closestHitResultFromPackedRecord(
+            *scene, hit, queries[hit.rayIndex].state, "Packed GPU intersection scene");
+        }
+      }
+      return results;
+    }
+
+    for (std::size_t index = 0; index != queries.size(); ++index) {
+      State scratchState;
+      State& state = queries[index].state ? *queries[index].state : scratchState;
+      HitPointInterval hitPoints;
+      const Primitive* primitive =
+        intersectPreparedClosest(queries[index].ray, hitPoints, state, timing);
+      if (!primitive) {
+        continue;
+      }
+      const HitPoint& hitPoint = hitPoints.minWithPositiveDistance();
+      if (!hitPoint.isUndefined()) {
+        results[index] = WavefrontClosestHitResult{primitive, hitPoint};
+      }
+    }
+    return results;
   }
 
   bool WavefrontIntersectionBackend::intersectPreparedAny(
@@ -1023,6 +1127,11 @@ namespace render {
     return m_gpuSceneBuffers.get();
   }
 
+  bool
+  MetalWavefrontIntersectionBackend::prefersClosestHitBatch(std::uint64_t submittedRays) const {
+    return submittedRays > 1 && preparedPackedClosestHitAvailable();
+  }
+
   const Primitive* MetalWavefrontIntersectionBackend::intersectClosest(
     const Scene& scene, const Rayd& ray, HitPointInterval& hitPoints, State& state,
     WavefrontIntersectionQueryTiming* timing) const {
@@ -1032,6 +1141,16 @@ namespace render {
     }
     return CpuWavefrontIntersectionBackend::instance().intersectClosest(scene, ray, hitPoints,
                                                                         state, timing);
+  }
+
+  std::vector<WavefrontClosestHitResult> MetalWavefrontIntersectionBackend::intersectClosestBatch(
+    const Scene& scene, const std::vector<WavefrontClosestHitQuery>& queries,
+    WavefrontIntersectionQueryTiming* timing) const {
+    if (compiledScene()) {
+      (void)scene;
+      return intersectPreparedClosestBatch(queries, timing);
+    }
+    return WavefrontIntersectionBackend::intersectClosestBatch(scene, queries, timing);
   }
 
   bool
@@ -1157,6 +1276,11 @@ namespace render {
     return m_gpuSceneBuffers.get();
   }
 
+  bool
+  VulkanWavefrontIntersectionBackend::prefersClosestHitBatch(std::uint64_t submittedRays) const {
+    return submittedRays > 1 && preparedPackedClosestHitAvailable();
+  }
+
   const Primitive* VulkanWavefrontIntersectionBackend::intersectClosest(
     const Scene& scene, const Rayd& ray, HitPointInterval& hitPoints, State& state,
     WavefrontIntersectionQueryTiming* timing) const {
@@ -1166,6 +1290,16 @@ namespace render {
     }
     return CpuWavefrontIntersectionBackend::instance().intersectClosest(scene, ray, hitPoints,
                                                                         state, timing);
+  }
+
+  std::vector<WavefrontClosestHitResult> VulkanWavefrontIntersectionBackend::intersectClosestBatch(
+    const Scene& scene, const std::vector<WavefrontClosestHitQuery>& queries,
+    WavefrontIntersectionQueryTiming* timing) const {
+    if (compiledScene()) {
+      (void)scene;
+      return intersectPreparedClosestBatch(queries, timing);
+    }
+    return WavefrontIntersectionBackend::intersectClosestBatch(scene, queries, timing);
   }
 
   bool

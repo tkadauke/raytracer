@@ -140,6 +140,8 @@ namespace render {
     std::uint64_t frontierRayMisses{0};
     std::uint64_t frontierPacketChunks{0};
     std::uint64_t frontierPacketRays{0};
+    std::uint64_t frontierClosestHitBatchChunks{0};
+    std::uint64_t frontierClosestHitBatchRays{0};
     std::uint64_t frontierRay4PacketChunks{0};
     std::uint64_t frontierRay8PacketChunks{0};
     std::uint64_t frontierScalarRays{0};
@@ -591,11 +593,69 @@ namespace render {
     }
   }
 
+  void PathTracingIntegrator::intersectActiveFrontierBatch(
+    const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
+    std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits, int bounce,
+    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
+    std::vector<WavefrontClosestHitQuery> queries;
+    queries.reserve(paths.size());
+    std::vector<Colord> accumulatedBeforeDepths;
+    if (depthMetrics.trackRadianceDelta) {
+      accumulatedBeforeDepths.resize(paths.size());
+    }
+
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+      if (depthMetrics.trackFrontierMetrics()) {
+        ++depthMetrics.frontierClosestHitBatchChunks;
+        depthMetrics.frontierClosestHitBatchRays += paths.size();
+      }
+      for (std::size_t pathIndex = 0; pathIndex != paths.size(); ++pathIndex) {
+        BatchPath& path = paths[pathIndex];
+        if (depthMetrics.trackRadianceDelta) {
+          accumulatedBeforeDepths[pathIndex] = path.accumulated();
+        }
+        path.state.recurseIn();
+        queries.push_back(WavefrontClosestHitQuery{path.ray, &path.state});
+      }
+    }
+
+    std::vector<WavefrontClosestHitResult> hits;
+    {
+      WavefrontIntersectionQueryTiming intersectionTiming;
+      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      hits = intersectionBackend.intersectClosestBatch(scene, queries, &intersectionTiming);
+      if (metrics) {
+        metrics->recordClosestHitQuery(intersectionBackend, queries.size(), intersectionTiming);
+      }
+    }
+
+    core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+    for (std::size_t pathIndex = 0; pathIndex != paths.size(); ++pathIndex) {
+      BatchPath& path = paths[pathIndex];
+      const Colord accumulatedBeforeDepth =
+        depthMetrics.trackRadianceDelta ? accumulatedBeforeDepths[pathIndex] : Colord::black();
+      const bool hit = pathIndex < hits.size() && hits[pathIndex].hit();
+      if (!hit) {
+        recordFrontierMiss(scene, path, depthMetrics, accumulatedBeforeDepth);
+        continue;
+      }
+
+      recordFrontierHit(pathIndex, path, *hits[pathIndex].primitive, hits[pathIndex].hitPoint,
+                        bounce, depthMetrics, activeHits);
+    }
+  }
+
   void PathTracingIntegrator::intersectActiveFrontier(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
     std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits, int bounce,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     activeHits.clear();
+    if (intersectionBackend.prefersClosestHitBatch(paths.size())) {
+      intersectActiveFrontierBatch(intersectionBackend, scene, paths, activeHits, bounce,
+                                   depthMetrics, metrics);
+      return;
+    }
 
     std::size_t activeIndex = 0;
     while (activeIndex != paths.size()) {
@@ -899,6 +959,8 @@ namespace render {
           depthMetrics.frontierRay4PacketChunks, depthMetrics.frontierRay8PacketChunks,
           depthMetrics.frontierScalarRays, depthMetrics.frontierPacketScalarFallbackRays,
           /*packetRefinedRays=*/0);
+        metrics->recordFrontierClosestHitBatch(depthMetrics.frontierClosestHitBatchChunks,
+                                               depthMetrics.frontierClosestHitBatchRays);
         metrics->recordPacketScalarFallbacksByReason(
           depthMetrics.frontierPacketScalarFallbackRaysByReason);
       }

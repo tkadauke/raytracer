@@ -167,6 +167,8 @@ namespace engine::wavefront {
     addCounts(frontierRayMissesPerDepth, metrics.frontierRayMissesPerDepth);
     addCounts(frontierPacketChunksPerDepth, metrics.frontierPacketChunksPerDepth);
     addCounts(frontierPacketRaysPerDepth, metrics.frontierPacketRaysPerDepth);
+    addCounts(frontierClosestHitBatchChunksPerDepth, metrics.frontierClosestHitBatchChunksPerDepth);
+    addCounts(frontierClosestHitBatchRaysPerDepth, metrics.frontierClosestHitBatchRaysPerDepth);
     addCounts(frontierRay4PacketChunksPerDepth, metrics.frontierRay4PacketChunksPerDepth);
     addCounts(frontierRay8PacketChunksPerDepth, metrics.frontierRay8PacketChunksPerDepth);
     addCounts(frontierScalarRaysPerDepth, metrics.frontierScalarRaysPerDepth);
@@ -249,6 +251,10 @@ namespace engine::wavefront {
     const QJsonArray frontierPacketChunksPerDepth =
       integerArray(batching.frontierPacketChunksPerDepth);
     const QJsonArray frontierPacketRaysPerDepth = integerArray(batching.frontierPacketRaysPerDepth);
+    const QJsonArray frontierClosestHitBatchChunksPerDepth =
+      integerArray(batching.frontierClosestHitBatchChunksPerDepth);
+    const QJsonArray frontierClosestHitBatchRaysPerDepth =
+      integerArray(batching.frontierClosestHitBatchRaysPerDepth);
     const QJsonArray frontierRay4PacketChunksPerDepth =
       integerArray(batching.frontierRay4PacketChunksPerDepth);
     const QJsonArray frontierRay8PacketChunksPerDepth =
@@ -380,6 +386,8 @@ namespace engine::wavefront {
     batchingJson["frontierRayMissesPerDepth"] = frontierRayMissesPerDepth;
     batchingJson["frontierPacketChunksPerDepth"] = frontierPacketChunksPerDepth;
     batchingJson["frontierPacketRaysPerDepth"] = frontierPacketRaysPerDepth;
+    batchingJson["frontierClosestHitBatchChunksPerDepth"] = frontierClosestHitBatchChunksPerDepth;
+    batchingJson["frontierClosestHitBatchRaysPerDepth"] = frontierClosestHitBatchRaysPerDepth;
     batchingJson["frontierRay4PacketChunksPerDepth"] = frontierRay4PacketChunksPerDepth;
     batchingJson["frontierRay8PacketChunksPerDepth"] = frontierRay8PacketChunksPerDepth;
     batchingJson["frontierScalarRaysPerDepth"] = frontierScalarRaysPerDepth;

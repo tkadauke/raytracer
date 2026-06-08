@@ -30,6 +30,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   derive portal cameras from receiver/source transforms and mirror cameras from
   planar reflection, carrying explicit receiver-clipping state through graph
   inspection and execution. — GPT-5
+- **Batched wavefront closest-hit queries.** Path-tracing frontiers can now
+  submit closest-hit work through a backend-level batch API when the selected
+  intersection backend prefers it, and rendercli/Modeler wavefront metrics now
+  expose closest-hit batch chunk/ray counters. — GPT-5
 - **Wavefront intersection ray-family diagnostics.** Wavefront metrics JSON,
   rendercli summaries, and Modeler graph tooltips now split submitted
   intersection rays into closest-hit and any-hit ray counts, making batched
