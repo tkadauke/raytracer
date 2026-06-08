@@ -1,4 +1,5 @@
 #include "render/State.h"
+#include "render/IntersectionSceneCompiler.h"
 #include "render/Stats.h"
 #include "render/primitives/Sphere.h"
 #include "core/SimdFeatures.h"
@@ -245,6 +246,11 @@ bool Sphere::intersects(const Rayd& ray, render::State& state) const {
 
   state.shadowMiss(this, "Sphere, ray miss");
   return false;
+}
+
+void Sphere::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                           const TransformedLeaf& leaf) const {
+  builder.addSphere(leaf, m_origin, m_radius);
 }
 
 shared_ptr<Mesh> Sphere::tessellate(int lod) const {

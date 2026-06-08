@@ -1,4 +1,5 @@
 #include "render/State.h"
+#include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/Instance.h"
 #include "render/animation/AnimationValue.h"
 #include "core/math/Ray.h"
@@ -506,6 +507,30 @@ void Instance::forEachTransformedLeafInBounds(const BoundsFilter& boundsFilter,
     boundsFilter, own, composedPointMatrix, composedNormalMatrix, [&](const TransformedLeaf& leaf) {
       visitor({leaf.primitive, own, leaf.pointMatrix, leaf.normalMatrix});
     });
+}
+
+void Instance::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
+                                              std::shared_ptr<render::Material> inheritedMaterial,
+                                              const Matrix4d& pointMatrix,
+                                              const Matrix3d& normalMatrix) const {
+  auto own = Primitive::material();
+  auto effective = own ? own : inheritedMaterial;
+  if (!m_primitive) {
+    builder.addUnsupportedPrimitive(TransformedLeaf{this, effective, pointMatrix, normalMatrix},
+                                    "empty instance is not supported by GPU intersection scene "
+                                    "compiler");
+    return;
+  }
+
+  if (m_velocity != Vector3d::null) {
+    builder.addUnsupportedPrimitive(TransformedLeaf{this, effective, pointMatrix, normalMatrix},
+                                    "moving instances are not supported by GPU intersection scene "
+                                    "compiler");
+    return;
+  }
+
+  m_primitive->appendIntersectionSceneRecords(builder, effective, pointMatrix * m_pointMatrix,
+                                              normalMatrix * m_normalMatrix);
 }
 
 std::shared_ptr<Mesh> Instance::tessellate(int lod) const {

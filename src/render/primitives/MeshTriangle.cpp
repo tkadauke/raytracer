@@ -1,3 +1,4 @@
+#include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/MeshTriangle.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/RayPacket.h"
@@ -183,4 +184,15 @@ BoundingBoxd MeshTriangle::calculateBoundingBox() const {
   b.include(m_mesh->vertices()[m_index1].point);
   b.include(m_mesh->vertices()[m_index2].point);
   return b.grownByEpsilon();
+}
+
+void MeshTriangle::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                                 const TransformedLeaf& leaf) const {
+  const auto& v0 = m_mesh->vertices()[m_index0];
+  const auto& v1 = m_mesh->vertices()[m_index1];
+  const auto& v2 = m_mesh->vertices()[m_index2];
+  builder.addTriangle(
+    leaf, IntersectionTrianglePayload{v0.point, v1.point, v2.point, normalAtBarycentric(0, 0),
+                                      normalAtBarycentric(1, 0), normalAtBarycentric(0, 1), v0.uv,
+                                      v1.uv, v2.uv});
 }

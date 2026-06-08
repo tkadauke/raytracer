@@ -38,6 +38,8 @@ namespace render {
                                             const PrimitivePacketState4& states) const override;
     PrimitivePacketHit8 intersectPacketHits(const Ray8& rays,
                                             const PrimitivePacketState8& states) const override;
+    void appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                       const TransformedLeaf& leaf) const override;
 
     /**
       * Returns a Mesh with 4 vertices and 2 triangles covering the rectangle.

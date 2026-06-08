@@ -1,4 +1,5 @@
 #include "render/State.h"
+#include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/Disk.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
@@ -71,6 +72,11 @@ PrimitivePacketHit4 Disk::intersectPacketHits(const Ray4& rays,
 PrimitivePacketHit8 Disk::intersectPacketHits(const Ray8& rays,
                                               const PrimitivePacketState8& states) const {
   return intersectPacketHitsFor<Ray8, PrimitivePacketState8, PrimitivePacketHit8>(rays, states);
+}
+
+void Disk::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                         const TransformedLeaf& leaf) const {
+  builder.addDisk(leaf, Vector3d(m_center), m_normal, m_radius);
 }
 
 BoundingBoxd Disk::calculateBoundingBox() const {

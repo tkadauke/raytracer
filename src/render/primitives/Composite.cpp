@@ -1,4 +1,5 @@
 #include "render/State.h"
+#include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/Composite.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
@@ -221,6 +222,18 @@ void Composite::forEachTransformedLeafInBounds(const BoundsFilter& boundsFilter,
   for (const auto& primitive : m_primitives) {
     primitive->forEachTransformedLeafInBounds(boundsFilter, effective, pointMatrix, normalMatrix,
                                               visitor);
+  }
+}
+
+void Composite::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
+                                               std::shared_ptr<render::Material> inheritedMaterial,
+                                               const Matrix4d& pointMatrix,
+                                               const Matrix3d& normalMatrix) const {
+  auto own = material();
+  auto effective = own ? own : inheritedMaterial;
+
+  for (const auto& primitive : m_primitives) {
+    primitive->appendIntersectionSceneRecords(builder, effective, pointMatrix, normalMatrix);
   }
 }
 

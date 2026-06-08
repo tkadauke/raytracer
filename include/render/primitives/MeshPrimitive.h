@@ -69,6 +69,10 @@ namespace render {
                                         std::shared_ptr<render::Material> inheritedMaterial,
                                         const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
                                         const TransformedLeafVisitor& visitor) const override;
+    void appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
+                                        std::shared_ptr<render::Material> inheritedMaterial,
+                                        const Matrix4d& pointMatrix,
+                                        const Matrix3d& normalMatrix) const override;
 
     std::shared_ptr<Mesh> tessellate(int lod = 0) const override;
 

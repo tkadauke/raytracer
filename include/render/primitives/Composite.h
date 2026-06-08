@@ -107,6 +107,10 @@ namespace render {
                                         std::shared_ptr<render::Material> inheritedMaterial,
                                         const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
                                         const TransformedLeafVisitor& visitor) const override;
+    void appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
+                                        std::shared_ptr<render::Material> inheritedMaterial,
+                                        const Matrix4d& pointMatrix,
+                                        const Matrix3d& normalMatrix) const override;
     void forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const override;
 
     /**

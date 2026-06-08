@@ -33,6 +33,8 @@ namespace render {
     [[nodiscard]] const core::MeshFaceMetadata& faceMetadata() const {
       return m_faceMetadata;
     }
+    void appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                       const TransformedLeaf& leaf) const override;
 
   protected:
     virtual BoundingBoxd calculateBoundingBox() const override;

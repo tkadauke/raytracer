@@ -21,6 +21,7 @@
 class Mesh;
 
 namespace render {
+  class IntersectionSceneBuilder;
   class Material;
   class Primitive;
   class State;
@@ -329,6 +330,18 @@ namespace render {
                                                 const Matrix4d& pointMatrix,
                                                 const Matrix3d& normalMatrix,
                                                 const TransformedLeafVisitor& visitor) const;
+
+    /**
+      * Append this primitive's GPU-intersection representation to @p builder.
+      * Leaf primitives that the compiled intersection scene supports override
+      * this; the base implementation records an explicit unsupported reason.
+      */
+    virtual void appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                               const TransformedLeaf& leaf) const;
+    virtual void appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
+                                                std::shared_ptr<render::Material> inheritedMaterial,
+                                                const Matrix4d& pointMatrix,
+                                                const Matrix3d& normalMatrix) const;
 
     /**
       * Visit semantic curve segments for image-space/debug overlay rendering.

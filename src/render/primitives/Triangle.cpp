@@ -1,4 +1,5 @@
 #include "render/State.h"
+#include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/Triangle.h"
 #include "core/SimdFeatures.h"
 #include "core/geometry/Mesh.h"
@@ -210,6 +211,13 @@ PrimitivePacketHit4 Triangle::intersectPacketHits(const Ray4& rays,
 PrimitivePacketHit8 Triangle::intersectPacketHits(const Ray8& rays,
                                                   const PrimitivePacketState8& states) const {
   return intersectPacketHitsFor<Ray8, PrimitivePacketState8, PrimitivePacketHit8>(rays, states);
+}
+
+void Triangle::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                             const TransformedLeaf& leaf) const {
+  builder.addTriangle(leaf, IntersectionTrianglePayload{m_point0, m_point1, m_point2, m_normal,
+                                                        m_normal, m_normal, Vector2d(0, 0),
+                                                        Vector2d(1, 0), Vector2d(0, 1)});
 }
 
 std::shared_ptr<Mesh> Triangle::tessellate(int) const {

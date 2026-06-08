@@ -19,6 +19,8 @@ namespace render {
     PrimitivePacketHit8 intersectPacketHits(const Ray8& rays,
                                             const PrimitivePacketState8& states) const override;
     virtual bool intersects(const Rayd& ray, render::State& state) const override;
+    void appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                       const TransformedLeaf& leaf) const override;
 
     /**
       * Plane is infinite and cannot be tessellated without first clipping it to

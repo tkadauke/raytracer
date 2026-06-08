@@ -44,6 +44,8 @@ namespace render {
                                             const PrimitivePacketState4& states) const override;
     PrimitivePacketHit8 intersectPacketHits(const Ray8& rays,
                                             const PrimitivePacketState8& states) const override;
+    void appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                       const TransformedLeaf& leaf) const override;
 
     /**
       * Returns a single-triangle Mesh identical to this Triangle. All three

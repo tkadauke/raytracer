@@ -1,4 +1,5 @@
 #include "render/State.h"
+#include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/Plane.h"
 #include "core/SimdFeatures.h"
 #include "core/geometry/Mesh.h"
@@ -122,6 +123,11 @@ bool Plane::intersects(const Rayd& ray, render::State& state) const {
 
   state.shadowMiss(this, "Plane");
   return false;
+}
+
+void Plane::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                          const TransformedLeaf& leaf) const {
+  builder.addPlane(leaf, m_normal, m_distance);
 }
 
 double Plane::calculateIntersectionDistance(const Rayd& ray) const {

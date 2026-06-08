@@ -31,6 +31,8 @@ namespace render {
     PrimitivePacketHit8 intersectPacketHits(const Ray8& rays,
                                             const PrimitivePacketState8& states) const override;
     virtual Vector3d farthestPoint(const Vector3d& direction) const override;
+    void appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                       const TransformedLeaf& leaf) const override;
 
     /**
       * Triangle-fan tessellation: one centre vertex plus N rim

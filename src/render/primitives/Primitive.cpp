@@ -1,4 +1,5 @@
 #include "render/State.h"
+#include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/Primitive.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
@@ -188,6 +189,21 @@ void Primitive::forEachTransformedLeafInBounds(const BoundsFilter& boundsFilter,
   if (boundsFilter(leaf.boundingBox())) {
     visitor(leaf);
   }
+}
+
+void Primitive::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                              const TransformedLeaf& leaf) const {
+  builder.addUnsupportedPrimitive(leaf,
+                                  "primitive is not supported by GPU intersection scene compiler");
+}
+
+void Primitive::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
+                                               std::shared_ptr<render::Material> inheritedMaterial,
+                                               const Matrix4d& pointMatrix,
+                                               const Matrix3d& normalMatrix) const {
+  auto own = material();
+  appendIntersectionSceneRecord(
+    builder, TransformedLeaf{this, own ? own : inheritedMaterial, pointMatrix, normalMatrix});
 }
 
 void Primitive::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor&) const {

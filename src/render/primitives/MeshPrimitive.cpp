@@ -1,3 +1,4 @@
+#include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/MeshPrimitive.h"
 
 #include "core/geometry/MeshAsset.h"
@@ -266,6 +267,17 @@ void MeshPrimitive::forEachTransformedLeafInBounds(
   for (const auto& leaf : m_leaves) {
     leaf->forEachTransformedLeafInBounds(boundsFilter, effective, pointMatrix, normalMatrix,
                                          visitor);
+  }
+}
+
+void MeshPrimitive::appendIntersectionSceneRecords(
+  IntersectionSceneBuilder& builder, std::shared_ptr<render::Material> inheritedMaterial,
+  const Matrix4d& pointMatrix, const Matrix3d& normalMatrix) const {
+  auto own = material();
+  auto effective = own ? own : inheritedMaterial;
+
+  for (const auto& leaf : m_leaves) {
+    leaf->appendIntersectionSceneRecords(builder, effective, pointMatrix, normalMatrix);
   }
 }
 

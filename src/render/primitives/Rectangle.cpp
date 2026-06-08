@@ -1,4 +1,5 @@
 #include "render/State.h"
+#include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/Rectangle.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
@@ -97,6 +98,11 @@ PrimitivePacketHit4 Rectangle::intersectPacketHits(const Ray4& rays,
 PrimitivePacketHit8 Rectangle::intersectPacketHits(const Ray8& rays,
                                                    const PrimitivePacketState8& states) const {
   return intersectPacketHitsFor<Ray8, PrimitivePacketState8, PrimitivePacketHit8>(rays, states);
+}
+
+void Rectangle::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                              const TransformedLeaf& leaf) const {
+  builder.addRectangle(leaf, Vector3d(m_corner), m_leg1, m_leg2, m_normal);
 }
 
 std::shared_ptr<Mesh> Rectangle::tessellate(int) const {

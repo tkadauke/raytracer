@@ -1,0 +1,697 @@
+#include "render/IntersectionSceneCompiler.h"
+
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <utility>
+
+#include "render/primitives/Scene.h"
+
+using namespace render;
+
+namespace {
+  constexpr std::uint32_t leafNodeFlag = 1;
+  constexpr std::uint32_t maxBvhLeafPrimitiveCount = 4;
+
+  bool isIdentityTransform(const Primitive::TransformedLeaf& leaf) {
+    return leaf.pointMatrix == Matrix4d() && leaf.normalMatrix == Matrix3d();
+  }
+
+  double finiteCentroidComponent(const IntersectionPrimitiveRecord& primitive, int axis) {
+    const double value = primitive.bounds.center()[axis];
+    return std::isfinite(value) ? value : 0.0;
+  }
+
+  int longestAxis(const BoundingBoxd& bounds) {
+    const Vector3d size = bounds.size();
+    int axis = 0;
+    if (size[1] > size[axis])
+      axis = 1;
+    if (size[2] > size[axis])
+      axis = 2;
+    return axis;
+  }
+
+  BoundingBoxd primitiveRangeBounds(const std::vector<IntersectionPrimitiveRecord>& primitives,
+                                    std::uint32_t first, std::uint32_t count) {
+    BoundingBoxd bounds;
+    for (std::uint32_t index = first; index != first + count; ++index) {
+      bounds.include(primitives[index].bounds);
+    }
+    return bounds;
+  }
+
+  std::uint32_t buildBvhNode(std::vector<FlatIntersectionBvhNode>& bvh,
+                             std::vector<IntersectionPrimitiveRecord>& primitives,
+                             std::uint32_t first, std::uint32_t count) {
+    const std::uint32_t nodeIndex = static_cast<std::uint32_t>(bvh.size());
+    bvh.push_back({});
+
+    const BoundingBoxd bounds = primitiveRangeBounds(primitives, first, count);
+    if (count <= maxBvhLeafPrimitiveCount) {
+      bvh[nodeIndex] = FlatIntersectionBvhNode::leaf(bounds, first, count);
+      return nodeIndex;
+    }
+
+    const int axis = longestAxis(bounds);
+    const auto begin = primitives.begin() + first;
+    const auto end = begin + count;
+    std::stable_sort(
+      begin, end,
+      [axis](const IntersectionPrimitiveRecord& lhs, const IntersectionPrimitiveRecord& rhs) {
+        return finiteCentroidComponent(lhs, axis) < finiteCentroidComponent(rhs, axis);
+      });
+
+    const std::uint32_t leftCount = count / 2;
+    const std::uint32_t rightCount = count - leftCount;
+    const std::uint32_t leftChild = buildBvhNode(bvh, primitives, first, leftCount);
+    const std::uint32_t rightChild = buildBvhNode(bvh, primitives, first + leftCount, rightCount);
+    bvh[nodeIndex] = FlatIntersectionBvhNode::branch(bounds, leftChild, rightChild);
+    return nodeIndex;
+  }
+}
+
+FlatIntersectionBvhNode FlatIntersectionBvhNode::leaf(const BoundingBoxd& bounds,
+                                                      std::uint32_t firstPrimitive,
+                                                      std::uint32_t primitiveCount) {
+  return FlatIntersectionBvhNode{bounds, firstPrimitive, primitiveCount, leafNodeFlag};
+}
+
+FlatIntersectionBvhNode FlatIntersectionBvhNode::branch(const BoundingBoxd& bounds,
+                                                        std::uint32_t leftChild,
+                                                        std::uint32_t rightChild) {
+  return FlatIntersectionBvhNode{bounds, leftChild, rightChild, 0};
+}
+
+bool FlatIntersectionBvhNode::isLeaf() const {
+  return (flags & leafNodeFlag) != 0;
+}
+
+std::uint32_t FlatIntersectionBvhNode::firstPrimitive() const {
+  return leftOrFirstPrimitive;
+}
+
+std::uint32_t FlatIntersectionBvhNode::leafPrimitiveCount() const {
+  return isLeaf() ? primitiveCount : 0;
+}
+
+std::uint32_t FlatIntersectionBvhNode::leftChild() const {
+  return isLeaf() ? 0 : leftOrFirstPrimitive;
+}
+
+std::uint32_t FlatIntersectionBvhNode::rightChild() const {
+  return isLeaf() ? 0 : primitiveCount;
+}
+
+bool CompiledIntersectionScene::fullySupported() const {
+  return m_unsupportedPrimitives.empty();
+}
+
+BoundingBoxd CompiledIntersectionScene::bounds() const {
+  if (m_bvh.empty())
+    return BoundingBoxd::undefined;
+  return m_bvh.front().bounds;
+}
+
+const std::vector<FlatIntersectionBvhNode>& CompiledIntersectionScene::bvh() const {
+  return m_bvh;
+}
+
+const std::vector<IntersectionPrimitiveRecord>& CompiledIntersectionScene::primitives() const {
+  return m_primitives;
+}
+
+const std::vector<IntersectionTrianglePayload>& CompiledIntersectionScene::triangles() const {
+  return m_triangles;
+}
+
+const std::vector<IntersectionSpherePayload>& CompiledIntersectionScene::spheres() const {
+  return m_spheres;
+}
+
+const std::vector<IntersectionPlanePayload>& CompiledIntersectionScene::planes() const {
+  return m_planes;
+}
+
+const std::vector<IntersectionRectanglePayload>& CompiledIntersectionScene::rectangles() const {
+  return m_rectangles;
+}
+
+const std::vector<IntersectionDiskPayload>& CompiledIntersectionScene::disks() const {
+  return m_disks;
+}
+
+const std::vector<IntersectionTransformPayload>& CompiledIntersectionScene::transforms() const {
+  return m_transforms;
+}
+
+const std::vector<std::shared_ptr<Material>>& CompiledIntersectionScene::materials() const {
+  return m_materials;
+}
+
+const std::vector<const Primitive*>& CompiledIntersectionScene::objects() const {
+  return m_objects;
+}
+
+const std::vector<UnsupportedIntersectionPrimitive>&
+CompiledIntersectionScene::unsupportedPrimitives() const {
+  return m_unsupportedPrimitives;
+}
+
+void IntersectionSceneBuilder::addUnsupportedPrimitive(const Primitive::TransformedLeaf& leaf,
+                                                       std::string reason) {
+  const IntersectionObjectId object = objectIdFor(leaf.primitive);
+  addPrimitive(leaf, IntersectionPrimitiveKind::Unsupported, 0, 0);
+  m_scene.m_unsupportedPrimitives.push_back(
+    UnsupportedIntersectionPrimitive{object, leaf.primitive->name(), std::move(reason)});
+}
+
+void IntersectionSceneBuilder::addTriangle(const Primitive::TransformedLeaf& leaf,
+                                           const IntersectionTrianglePayload& payload) {
+  const std::uint32_t offset = static_cast<std::uint32_t>(m_scene.m_triangles.size());
+  m_scene.m_triangles.push_back(payload);
+  addPrimitive(leaf, IntersectionPrimitiveKind::Triangle, offset, 1);
+}
+
+void IntersectionSceneBuilder::addSphere(const Primitive::TransformedLeaf& leaf,
+                                         const Vector3d& center, double radius) {
+  const std::uint32_t offset = static_cast<std::uint32_t>(m_scene.m_spheres.size());
+  m_scene.m_spheres.push_back(IntersectionSpherePayload{center, radius});
+  addPrimitive(leaf, IntersectionPrimitiveKind::Sphere, offset, 1);
+}
+
+void IntersectionSceneBuilder::addPlane(const Primitive::TransformedLeaf& leaf,
+                                        const Vector3d& normal, double distance) {
+  const std::uint32_t offset = static_cast<std::uint32_t>(m_scene.m_planes.size());
+  m_scene.m_planes.push_back(IntersectionPlanePayload{normal, distance});
+  addPrimitive(leaf, IntersectionPrimitiveKind::Plane, offset, 1);
+}
+
+void IntersectionSceneBuilder::addRectangle(const Primitive::TransformedLeaf& leaf,
+                                            const Vector3d& corner, const Vector3d& leg1,
+                                            const Vector3d& leg2, const Vector3d& normal) {
+  const std::uint32_t offset = static_cast<std::uint32_t>(m_scene.m_rectangles.size());
+  m_scene.m_rectangles.push_back(IntersectionRectanglePayload{corner, leg1, leg2, normal});
+  addPrimitive(leaf, IntersectionPrimitiveKind::Rectangle, offset, 1);
+}
+
+void IntersectionSceneBuilder::addDisk(const Primitive::TransformedLeaf& leaf,
+                                       const Vector3d& center, const Vector3d& normal,
+                                       double radius) {
+  const std::uint32_t offset = static_cast<std::uint32_t>(m_scene.m_disks.size());
+  m_scene.m_disks.push_back(IntersectionDiskPayload{center, normal, radius});
+  addPrimitive(leaf, IntersectionPrimitiveKind::Disk, offset, 1);
+}
+
+CompiledIntersectionScene IntersectionSceneBuilder::finish() {
+  if (!m_scene.m_primitives.empty()) {
+    buildBvhNode(m_scene.m_bvh, m_scene.m_primitives, 0,
+                 static_cast<std::uint32_t>(m_scene.m_primitives.size()));
+  }
+
+  return std::move(m_scene);
+}
+
+IntersectionMaterialId IntersectionSceneBuilder::materialIdFor(std::shared_ptr<Material> material) {
+  if (!material)
+    return 0;
+
+  if (m_scene.m_materials.empty())
+    m_scene.m_materials.push_back(nullptr);
+
+  const auto existing = m_materialIds.find(material.get());
+  if (existing != m_materialIds.end())
+    return existing->second;
+
+  const IntersectionMaterialId id = static_cast<IntersectionMaterialId>(m_scene.m_materials.size());
+  m_materialIds.emplace(material.get(), id);
+  m_scene.m_materials.push_back(std::move(material));
+  return id;
+}
+
+IntersectionObjectId IntersectionSceneBuilder::objectIdFor(const Primitive* primitive) {
+  if (!primitive)
+    return 0;
+
+  if (m_scene.m_objects.empty())
+    m_scene.m_objects.push_back(nullptr);
+
+  const auto existing = m_objectIds.find(primitive);
+  if (existing != m_objectIds.end())
+    return existing->second;
+
+  const IntersectionObjectId id = static_cast<IntersectionObjectId>(m_scene.m_objects.size());
+  m_objectIds.emplace(primitive, id);
+  m_scene.m_objects.push_back(primitive);
+  return id;
+}
+
+IntersectionTransformId
+IntersectionSceneBuilder::transformIdFor(const Primitive::TransformedLeaf& leaf) {
+  if (isIdentityTransform(leaf))
+    return 0;
+
+  if (m_scene.m_transforms.empty())
+    m_scene.m_transforms.push_back(
+      IntersectionTransformPayload{Matrix4d(), Matrix3d(), Matrix4d(), Matrix3d()});
+
+  for (std::size_t index = 1; index != m_scene.m_transforms.size(); ++index) {
+    const IntersectionTransformPayload& transform = m_scene.m_transforms[index];
+    if (transform.pointMatrix == leaf.pointMatrix && transform.normalMatrix == leaf.normalMatrix)
+      return static_cast<IntersectionTransformId>(index);
+  }
+
+  const IntersectionTransformId id =
+    static_cast<IntersectionTransformId>(m_scene.m_transforms.size());
+  const Matrix4d inversePointMatrix = leaf.pointMatrix.inverted();
+  m_scene.m_transforms.push_back(IntersectionTransformPayload{
+    leaf.pointMatrix, leaf.normalMatrix, inversePointMatrix, Matrix3d(inversePointMatrix)});
+  return id;
+}
+
+void IntersectionSceneBuilder::addPrimitive(const Primitive::TransformedLeaf& leaf,
+                                            IntersectionPrimitiveKind kind,
+                                            std::uint32_t payloadOffset,
+                                            std::uint32_t payloadCount) {
+  m_scene.m_primitives.push_back(IntersectionPrimitiveRecord{
+    kind, materialIdFor(leaf.material), objectIdFor(leaf.primitive), transformIdFor(leaf),
+    leaf.boundingBox(), payloadOffset, payloadCount});
+}
+
+CompiledIntersectionScene IntersectionSceneCompiler::compile(const Scene& scene) const {
+  IntersectionSceneBuilder builder;
+  scene.appendIntersectionSceneRecords(builder, nullptr, Matrix4d(), Matrix3d());
+  return builder.finish();
+}
+
+CompiledIntersectionHit
+CompiledIntersectionSceneIntersector::intersectClosest(const CompiledIntersectionScene& scene,
+                                                       const Rayd& ray) const {
+  CompiledIntersectionHit closest;
+  double closestDistance = std::numeric_limits<double>::infinity();
+
+  if (scene.bvh().empty()) {
+    return closest;
+  }
+
+  std::vector<std::uint32_t> stack;
+  stack.push_back(0);
+  while (!stack.empty()) {
+    const std::uint32_t nodeIndex = stack.back();
+    stack.pop_back();
+    if (nodeIndex >= scene.bvh().size()) {
+      continue;
+    }
+
+    const FlatIntersectionBvhNode& node = scene.bvh()[nodeIndex];
+    if (!node.bounds.intersects(ray)) {
+      continue;
+    }
+
+    if (!node.isLeaf()) {
+      stack.push_back(node.rightChild());
+      stack.push_back(node.leftChild());
+      continue;
+    }
+
+    for (std::uint32_t offset = 0; offset != node.leafPrimitiveCount(); ++offset) {
+      const std::uint32_t primitiveIndex = node.firstPrimitive() + offset;
+      if (primitiveIndex >= scene.primitives().size()) {
+        continue;
+      }
+
+      const std::optional<CompiledIntersectionHit> hit =
+        intersectPrimitive(scene, scene.primitives()[primitiveIndex], ray);
+      if (hit && hit->distance < closestDistance) {
+        closest = *hit;
+        closest.primitiveRecord = primitiveIndex;
+        closestDistance = hit->distance;
+      }
+    }
+  }
+
+  return closest;
+}
+
+bool CompiledIntersectionSceneIntersector::intersectAny(const CompiledIntersectionScene& scene,
+                                                        const Rayd& ray, double maxDistance) const {
+  if (maxDistance <= 0.0) {
+    return false;
+  }
+
+  if (scene.bvh().empty()) {
+    return false;
+  }
+
+  std::vector<std::uint32_t> stack;
+  stack.push_back(0);
+  while (!stack.empty()) {
+    const std::uint32_t nodeIndex = stack.back();
+    stack.pop_back();
+    if (nodeIndex >= scene.bvh().size()) {
+      continue;
+    }
+
+    const FlatIntersectionBvhNode& node = scene.bvh()[nodeIndex];
+    if (!node.bounds.intersects(ray)) {
+      continue;
+    }
+
+    if (!node.isLeaf()) {
+      stack.push_back(node.rightChild());
+      stack.push_back(node.leftChild());
+      continue;
+    }
+
+    for (std::uint32_t offset = 0; offset != node.leafPrimitiveCount(); ++offset) {
+      const std::uint32_t primitiveIndex = node.firstPrimitive() + offset;
+      if (primitiveIndex >= scene.primitives().size()) {
+        continue;
+      }
+
+      const std::optional<CompiledIntersectionHit> hit =
+        intersectPrimitive(scene, scene.primitives()[primitiveIndex], ray);
+      if (hit && hitOccludes(*hit, maxDistance)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+std::optional<CompiledIntersectionHit> CompiledIntersectionSceneIntersector::intersectPrimitive(
+  const CompiledIntersectionScene& scene, const IntersectionPrimitiveRecord& primitive,
+  const Rayd& ray) const {
+  switch (primitive.kind) {
+  case IntersectionPrimitiveKind::Triangle:
+    return intersectTriangle(scene, primitive, ray);
+  case IntersectionPrimitiveKind::Sphere:
+    return intersectSphere(scene, primitive, ray);
+  case IntersectionPrimitiveKind::Plane:
+    return intersectPlane(scene, primitive, ray);
+  case IntersectionPrimitiveKind::Rectangle:
+    return intersectRectangle(scene, primitive, ray);
+  case IntersectionPrimitiveKind::Disk:
+    return intersectDisk(scene, primitive, ray);
+  case IntersectionPrimitiveKind::Unsupported:
+    return std::nullopt;
+  }
+
+  return std::nullopt;
+}
+
+bool CompiledIntersectionSceneIntersector::hitOccludes(const CompiledIntersectionHit& hit,
+                                                       double maxDistance) const {
+  if (!hit.hit) {
+    return false;
+  }
+
+  if (std::isinf(maxDistance)) {
+    return true;
+  }
+
+  const double occlusionLimit = std::max(0.0, maxDistance - Rayd::epsilon * 4.0);
+  return hit.distance < occlusionLimit;
+}
+
+std::optional<CompiledIntersectionSceneIntersector::PrimitiveSpaceRay>
+CompiledIntersectionSceneIntersector::rayForPrimitive(const CompiledIntersectionScene& scene,
+                                                      const IntersectionPrimitiveRecord& primitive,
+                                                      const Rayd& ray) const {
+  if (primitive.transform == 0) {
+    return PrimitiveSpaceRay{ray, nullptr};
+  }
+
+  if (primitive.transform >= scene.transforms().size()) {
+    return std::nullopt;
+  }
+
+  const IntersectionTransformPayload& transform = scene.transforms()[primitive.transform];
+  return PrimitiveSpaceRay{
+    Rayd(Vector4d(transform.inversePointMatrix.transformPoint(Vector3d(ray.origin()))),
+         transform.inverseDirectionMatrix * ray.direction()),
+    &transform};
+}
+
+Vector4d
+CompiledIntersectionSceneIntersector::hitPointForPrimitive(const PrimitiveSpaceRay& primitiveRay,
+                                                           const Vector4d& point) const {
+  if (!primitiveRay.transform) {
+    return point;
+  }
+
+  return primitiveRay.transform->pointMatrix * point;
+}
+
+Vector3d
+CompiledIntersectionSceneIntersector::hitNormalForPrimitive(const PrimitiveSpaceRay& primitiveRay,
+                                                            const Vector3d& normal) const {
+  if (!primitiveRay.transform) {
+    return normal;
+  }
+
+  return (primitiveRay.transform->normalMatrix * normal).normalized();
+}
+
+CompiledIntersectionHit CompiledIntersectionSceneIntersector::makeHit(
+  const IntersectionPrimitiveRecord& primitive, const PrimitiveSpaceRay& primitiveRay,
+  double distance, const Vector4d& localPoint, const Vector3d& localNormal, const Vector2d& uv,
+  const Vector3d& barycentric) const {
+  return CompiledIntersectionHit{
+    true,
+    primitive.material,
+    primitive.object,
+    0,
+    distance,
+    hitPointForPrimitive(primitiveRay, localPoint),
+    hitNormalForPrimitive(primitiveRay, localNormal),
+    uv,
+    barycentric,
+  };
+}
+
+std::optional<CompiledIntersectionHit> CompiledIntersectionSceneIntersector::intersectTriangle(
+  const CompiledIntersectionScene& scene, const IntersectionPrimitiveRecord& primitive,
+  const Rayd& ray) const {
+  if (primitive.payloadOffset >= scene.triangles().size()) {
+    return std::nullopt;
+  }
+
+  const std::optional<PrimitiveSpaceRay> primitiveRay = rayForPrimitive(scene, primitive, ray);
+  if (!primitiveRay) {
+    return std::nullopt;
+  }
+
+  const IntersectionTrianglePayload& payload = scene.triangles()[primitive.payloadOffset];
+  const Rayd& localRay = primitiveRay->ray;
+  const Vector3d& point0 = payload.point0;
+  const Vector3d& point1 = payload.point1;
+  const Vector3d& point2 = payload.point2;
+
+  const double a = point0.x() - point1.x();
+  const double b = point0.x() - point2.x();
+  const double c = localRay.direction().x();
+  const double d = point0.x() - localRay.origin().x();
+  const double e = point0.y() - point1.y();
+  const double f = point0.y() - point2.y();
+  const double g = localRay.direction().y();
+  const double h = point0.y() - localRay.origin().y();
+  const double i = point0.z() - point1.z();
+  const double j = point0.z() - point2.z();
+  const double k = localRay.direction().z();
+  const double l = point0.z() - localRay.origin().z();
+
+  const double m = f * k - g * j;
+  const double n = h * k - g * l;
+  const double p = f * l - h * j;
+  const double q = g * i - e * k;
+  const double r = e * l - h * i;
+  const double s = e * j - f * i;
+
+  const double denominator = a * m + b * q + c * s;
+  if (denominator == 0.0) {
+    return std::nullopt;
+  }
+
+  const double invDenom = 1.0 / denominator;
+  const double beta = (d * m - b * n - c * p) * invDenom;
+  if (beta < 0.0 || beta > 1.0) {
+    return std::nullopt;
+  }
+
+  const double gamma = (a * n + d * q + c * r) * invDenom;
+  if (gamma < 0.0 || gamma > 1.0 || beta + gamma > 1.0) {
+    return std::nullopt;
+  }
+
+  const double distance = (a * p - b * r + d * s) * invDenom;
+  if (distance < 0.0) {
+    return std::nullopt;
+  }
+
+  const double alpha = 1.0 - beta - gamma;
+  const Vector3d barycentric(alpha, beta, gamma);
+  const Vector3d normal =
+    (payload.normal0 * alpha + payload.normal1 * beta + payload.normal2 * gamma).normalized();
+  const Vector2d uv = payload.uv0 * alpha + payload.uv1 * beta + payload.uv2 * gamma;
+
+  return makeHit(primitive, *primitiveRay, distance, localRay.at(distance), normal, uv,
+                 barycentric);
+}
+
+std::optional<CompiledIntersectionHit>
+CompiledIntersectionSceneIntersector::intersectSphere(const CompiledIntersectionScene& scene,
+                                                      const IntersectionPrimitiveRecord& primitive,
+                                                      const Rayd& ray) const {
+  if (primitive.payloadOffset >= scene.spheres().size()) {
+    return std::nullopt;
+  }
+
+  const std::optional<PrimitiveSpaceRay> primitiveRay = rayForPrimitive(scene, primitive, ray);
+  if (!primitiveRay) {
+    return std::nullopt;
+  }
+
+  const IntersectionSpherePayload& payload = scene.spheres()[primitive.payloadOffset];
+  const Rayd& localRay = primitiveRay->ray;
+  const Vector3d origin = Vector3d(localRay.origin()) - payload.center;
+  const Vector3d& direction = localRay.direction();
+  const double od = origin * direction;
+  const double dd = direction * direction;
+  const double discriminant = od * od - dd * (origin * origin - payload.radius * payload.radius);
+  if (discriminant <= 0.0) {
+    return std::nullopt;
+  }
+
+  const double discriminantRoot = std::sqrt(discriminant);
+  const double nearDistance = (-od - discriminantRoot) / dd;
+  const double farDistance = (-od + discriminantRoot) / dd;
+  if (nearDistance <= 0.0 && farDistance <= 0.0) {
+    return std::nullopt;
+  }
+
+  const double distance = nearDistance > 0.0 ? nearDistance : farDistance;
+  const Vector4d point = localRay.at(distance);
+  const Vector3d normal = (Vector3d(point) - payload.center) / payload.radius;
+  return makeHit(primitive, *primitiveRay, distance, point, normal);
+}
+
+std::optional<CompiledIntersectionHit>
+CompiledIntersectionSceneIntersector::intersectPlane(const CompiledIntersectionScene& scene,
+                                                     const IntersectionPrimitiveRecord& primitive,
+                                                     const Rayd& ray) const {
+  if (primitive.payloadOffset >= scene.planes().size()) {
+    return std::nullopt;
+  }
+
+  const std::optional<PrimitiveSpaceRay> primitiveRay = rayForPrimitive(scene, primitive, ray);
+  if (!primitiveRay) {
+    return std::nullopt;
+  }
+
+  const IntersectionPlanePayload& payload = scene.planes()[primitive.payloadOffset];
+  const Rayd& localRay = primitiveRay->ray;
+  const double angle = payload.normal * localRay.direction();
+  if (angle == 0.0) {
+    return std::nullopt;
+  }
+
+  const double distance =
+    -(payload.normal * Vector3d(localRay.origin()) + payload.distance) / angle;
+  if (distance <= 0.0) {
+    return std::nullopt;
+  }
+
+  return makeHit(primitive, *primitiveRay, distance, localRay.at(distance), payload.normal);
+}
+
+std::optional<CompiledIntersectionHit> CompiledIntersectionSceneIntersector::intersectRectangle(
+  const CompiledIntersectionScene& scene, const IntersectionPrimitiveRecord& primitive,
+  const Rayd& ray) const {
+  if (primitive.payloadOffset >= scene.rectangles().size()) {
+    return std::nullopt;
+  }
+
+  const std::optional<PrimitiveSpaceRay> primitiveRay = rayForPrimitive(scene, primitive, ray);
+  if (!primitiveRay) {
+    return std::nullopt;
+  }
+
+  const IntersectionRectanglePayload& payload = scene.rectangles()[primitive.payloadOffset];
+  const Rayd& localRay = primitiveRay->ray;
+  const double distance = (payload.corner - Vector3d(localRay.origin())) * payload.normal /
+                          (localRay.direction() * payload.normal);
+  if (std::isinf(distance)) {
+    return std::nullopt;
+  }
+
+  const Vector4d point = localRay.at(distance);
+  const Vector3d difference = Vector3d(point) - payload.corner;
+  const double squaredLength1 = payload.leg1.squaredLength();
+  const double squaredLength2 = payload.leg2.squaredLength();
+  const double dot1 = difference * payload.leg1;
+  if (dot1 < 0.0 || dot1 > squaredLength1) {
+    return std::nullopt;
+  }
+
+  const double dot2 = difference * payload.leg2;
+  if (dot2 < 0.0 || dot2 > squaredLength2) {
+    return std::nullopt;
+  }
+
+  if (distance < 0.0) {
+    return std::nullopt;
+  }
+
+  return makeHit(primitive, *primitiveRay, distance, point, payload.normal);
+}
+
+std::optional<CompiledIntersectionHit>
+CompiledIntersectionSceneIntersector::intersectDisk(const CompiledIntersectionScene& scene,
+                                                    const IntersectionPrimitiveRecord& primitive,
+                                                    const Rayd& ray) const {
+  if (primitive.payloadOffset >= scene.disks().size()) {
+    return std::nullopt;
+  }
+
+  const std::optional<PrimitiveSpaceRay> primitiveRay = rayForPrimitive(scene, primitive, ray);
+  if (!primitiveRay) {
+    return std::nullopt;
+  }
+
+  const IntersectionDiskPayload& payload = scene.disks()[primitive.payloadOffset];
+  const Rayd& localRay = primitiveRay->ray;
+  const double distance = (payload.center - Vector3d(localRay.origin())) * payload.normal /
+                          (localRay.direction() * payload.normal);
+  const Vector4d point = localRay.at(distance);
+
+  if (!(Vector3d(point).squaredDistanceTo(payload.center) < payload.radius * payload.radius)) {
+    return std::nullopt;
+  }
+
+  if (distance < 0.0001) {
+    return std::nullopt;
+  }
+
+  return makeHit(primitive, *primitiveRay, distance, point, payload.normal);
+}
+
+const char* render::toString(IntersectionPrimitiveKind kind) {
+  switch (kind) {
+  case IntersectionPrimitiveKind::Unsupported:
+    return "unsupported";
+  case IntersectionPrimitiveKind::Triangle:
+    return "triangle";
+  case IntersectionPrimitiveKind::Sphere:
+    return "sphere";
+  case IntersectionPrimitiveKind::Plane:
+    return "plane";
+  case IntersectionPrimitiveKind::Rectangle:
+    return "rectangle";
+  case IntersectionPrimitiveKind::Disk:
+    return "disk";
+  }
+
+  return "unknown";
+}
