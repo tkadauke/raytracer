@@ -806,6 +806,22 @@ namespace WavefrontIntersectionBackendTest {
                                        1.0, missState));
     EXPECT_EQ(0, missState.shadowIntersectionHits);
     EXPECT_EQ(1, missState.shadowIntersectionMisses);
+
+    State batchHitState;
+    State batchMissState;
+    const std::vector<WavefrontAnyHitQuery> queries{
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 3.0, &batchHitState},
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 1.0, &batchMissState}};
+    WavefrontIntersectionQueryTiming timing;
+    const std::vector<bool> occluded = backend->intersectAnyBatch(emptyScene, queries, &timing);
+
+    ASSERT_EQ(2u, occluded.size());
+    EXPECT_TRUE(occluded[0]);
+    EXPECT_FALSE(occluded[1]);
+    EXPECT_EQ(1, batchHitState.shadowIntersectionHits);
+    EXPECT_EQ(0, batchHitState.shadowIntersectionMisses);
+    EXPECT_EQ(0, batchMissState.shadowIntersectionHits);
+    EXPECT_EQ(1, batchMissState.shadowIntersectionMisses);
   }
 
   TEST(WavefrontIntersectionBackend, PreparedGpuFallbackPacketHitUsesRetainedPackedSphereScene) {

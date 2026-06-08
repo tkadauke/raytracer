@@ -515,6 +515,9 @@ Progress:
 Tasks:
 
 - Add `intersectAny(...)` GPU query for shadow/visibility rays.
+- Add a batched any-hit backend entry point so multi-sample direct-light
+  visibility can submit one bounded shadow-ray group per shading point instead
+  of one backend call per sample.
 - Define correctness rules for alpha/transparent materials. Initial any-hit can
   be geometry-only and used only where CPU semantics are equivalent.
 - Add metrics for closest-hit vs any-hit batches.
@@ -535,6 +538,11 @@ Progress:
   `GpuIntersectionIntersector::intersectAny(...)`. Batched path-tracing
   direct-light visibility records any-hit query metrics through the selected
   backend while preserving finite light-distance bounds.
+- `WavefrontIntersectionBackend` now also has an `intersectAnyBatch(...)`
+  query for grouped visibility rays. Path-tracing direct-light sampling collects
+  all valid light-sample shadow rays for a shading point and submits them as one
+  bounded any-hit batch, while the CPU default preserves the existing scalar
+  `intersectAny(...)` behavior for backends that do not specialize batching.
 - `CompiledIntersectionSceneIntersector` now has a CPU any-hit parity query for
   supported compiled payloads and static instances. It uses the same bounded
   light-distance rule as `Scene::occludes(...)`, so GPU any-hit kernels have a

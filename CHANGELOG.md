@@ -30,6 +30,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   derive portal cameras from receiver/source transforms and mirror cameras from
   planar reflection, carrying explicit receiver-clipping state through graph
   inspection and execution. — GPT-5
+- **Batched wavefront any-hit queries.** Path-tracing direct-light visibility
+  now submits multi-sample shadow rays through a batched wavefront backend API,
+  allowing prepared Metal/Vulkan backends to process one bounded visibility
+  group instead of one backend call per direct-light sample. — GPT-5
 - **Integrator-aware wavefront backend estimates.** Wavefront intersection
   backend `auto` selection now estimates expected query volume from the active
   integrator's recursion/bounce and direct-light sampling policy instead of

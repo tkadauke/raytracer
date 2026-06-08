@@ -498,6 +498,14 @@ namespace PathTracingIntegratorTest {
                                                                         state, timing);
       }
 
+      std::vector<bool>
+      intersectAnyBatch(const Scene& scene, const std::vector<WavefrontAnyHitQuery>& queries,
+                        WavefrontIntersectionQueryTiming* timing = nullptr) const override {
+        ++anyBatchQueries;
+        anyBatchSizes.push_back(queries.size());
+        return WavefrontIntersectionBackend::intersectAnyBatch(scene, queries, timing);
+      }
+
       PrimitivePacketHit4
       intersectPacketClosest(const Scene& scene, const Ray4& rays,
                              const PrimitivePacketState4& states,
@@ -520,7 +528,9 @@ namespace PathTracingIntegratorTest {
       mutable int packet4Queries{0};
       mutable int packet8Queries{0};
       mutable int anyQueries{0};
+      mutable int anyBatchQueries{0};
       mutable std::vector<double> anyMaxDistances;
+      mutable std::vector<std::size_t> anyBatchSizes;
     };
 
     // Build a scene with a single Lambertian ground plane lit by one
@@ -1405,6 +1415,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1, backend.packet4Queries);
     EXPECT_EQ(0, backend.packet8Queries);
     EXPECT_EQ(2, backend.anyQueries);
+    EXPECT_EQ(2, backend.anyBatchQueries);
+    EXPECT_EQ((std::vector<std::size_t>{1u, 1u}), backend.anyBatchSizes);
     EXPECT_EQ("counting_cpu", metrics.intersectionBackendRequest);
     EXPECT_EQ("counting_cpu", metrics.intersectionBackend);
     EXPECT_EQ("available", metrics.intersectionBackendAvailability);
@@ -1441,11 +1453,53 @@ namespace PathTracingIntegratorTest {
 
     ASSERT_EQ(1u, pixels.size());
     EXPECT_EQ(1, backend.anyQueries);
+    EXPECT_EQ(1, backend.anyBatchQueries);
+    EXPECT_EQ((std::vector<std::size_t>{1u}), backend.anyBatchSizes);
     ASSERT_EQ(1u, backend.anyMaxDistances.size());
     EXPECT_EQ(3.5, backend.anyMaxDistances[0]);
     EXPECT_EQ(1u, metrics.closestHitQueries);
     EXPECT_EQ(1u, metrics.anyHitQueries);
     EXPECT_EQ(2u, metrics.intersectionRaysSubmitted);
+  }
+
+  TEST(PathTracingIntegrator, BatchedDirectLightingBatchesConfiguredVisibilitySamples) {
+    auto scene = std::make_unique<Scene>(Colord::black());
+    scene->setAmbient(Colord::black());
+    scene->setBackground(Colord::black());
+
+    auto material = std::make_shared<UnitDirectMaterial>();
+    auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
+    plane->setMaterial(material);
+    scene->add(plane);
+    scene->addLight(std::make_shared<FiniteDistanceLight>(4.25));
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+    integrator.setDirectLightSamples(3);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(
+      IntegratorRaySample{primaryRay(), 0.0,
+                          std::make_unique<FixedDirectLightSampleStream>(std::vector<Vector2d>{
+                            Vector2d(0.25, 0.25), Vector2d(0.5, 0.5), Vector2d(0.75, 0.75)})});
+
+    CountingIntersectionBackend backend;
+    IntegratorBatchSettings settings;
+    settings.intersectionBackend = &backend;
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> pixels =
+      integrator.radianceBatch(*scene, samples, caster, &metrics, settings);
+
+    ASSERT_EQ(1u, pixels.size());
+    EXPECT_EQ(3, backend.anyQueries);
+    EXPECT_EQ(1, backend.anyBatchQueries);
+    EXPECT_EQ((std::vector<std::size_t>{3u}), backend.anyBatchSizes);
+    EXPECT_EQ((std::vector<double>{4.25, 4.25, 4.25}), backend.anyMaxDistances);
+    EXPECT_EQ(1u, metrics.closestHitQueries);
+    EXPECT_EQ(1u, metrics.anyHitQueries);
+    EXPECT_EQ(4u, metrics.intersectionRaysSubmitted);
+    EXPECT_EQ(3u, metrics.directLightSamples);
+    EXPECT_EQ(3u, metrics.directLightContributingSamples);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceUsesPartialRay8FrontierForFiveActivePaths) {

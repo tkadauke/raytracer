@@ -114,6 +114,17 @@ namespace render {
     HitPoint hitPoint;
   };
 
+  struct PathTracingIntegrator::DirectLightingCandidate {
+    bool valid{false};
+    Colord radiance{Colord::black()};
+    double lightPdf{0.0};
+    Rayd shadowRay{Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)};
+    double shadowDistance{0.0};
+    Vector3d wo;
+    double normalDotOut{0.0};
+    bool delta{false};
+  };
+
   struct PathTracingIntegrator::DirectLightingSample {
     Colord contribution{Colord::black()};
     bool occluded{false};
@@ -214,14 +225,49 @@ namespace render {
                                      static_cast<std::uint64_t>(directSampleIndex)));
   }
 
+  PathTracingIntegrator::DirectLightingCandidate
+  PathTracingIntegrator::directLightingCandidate(const Light& light, const HitPoint& hitPoint,
+                                                 const Vector2d& lightSample) const {
+    LightSample sample = light.sample(hitPoint.point(), lightSample);
+    if (sample.pdf <= 0.0 || sample.radiance == Colord::black()) {
+      return {};
+    }
+
+    const Vector3d wo = sample.direction;
+    const double normalDotOut = hitPoint.normal() * wo;
+    if (normalDotOut <= 0.0) {
+      return {};
+    }
+
+    DirectLightingCandidate candidate;
+    candidate.valid = true;
+    candidate.radiance = sample.radiance;
+    candidate.lightPdf = sample.pdf;
+    candidate.shadowRay = Rayd(hitPoint.point(), wo).epsilonShifted();
+    candidate.shadowDistance = sample.distance;
+    candidate.wo = wo;
+    candidate.normalDotOut = normalDotOut;
+    candidate.delta = sample.delta;
+    return candidate;
+  }
+
   Colord PathTracingIntegrator::sampleDirectLighting(
     const Scene& scene, const LightSampler& lightSampler, const HitPoint& hitPoint,
     const PathMaterialTransport& material, const Vector3d& wi, State& state, int bounce,
     const WavefrontIntersectionBackend* intersectionBackend,
     IntegratorBatchMetrics* metrics) const {
+    struct SelectedDirectLightingCandidate {
+      DirectLightingCandidate candidate;
+      double selectionPdf{1.0};
+    };
+
     const WavefrontIntersectionBackend& resolvedIntersectionBackend =
       intersectionBackend ? *intersectionBackend : CpuWavefrontIntersectionBackend::instance();
-    Colord contribution = Colord::black();
+    std::vector<SelectedDirectLightingCandidate> selectedCandidates;
+    selectedCandidates.reserve(static_cast<std::size_t>(m_directLightSamples));
+    std::vector<WavefrontAnyHitQuery> shadowQueries;
+    shadowQueries.reserve(static_cast<std::size_t>(m_directLightSamples));
+
     for (int sampleIndex = 0; sampleIndex != m_directLightSamples; ++sampleIndex) {
       const LightSampler::Selection selection =
         lightSampler.select(lightSelectionSample(state, bounce, sampleIndex));
@@ -229,14 +275,42 @@ namespace render {
         continue;
       }
 
-      const DirectLightingSample sample =
-        directLighting(scene, *selection.light, hitPoint, material, wi,
-                       lightSample(state, bounce, selection.lightIndex, sampleIndex), state,
-                       resolvedIntersectionBackend, metrics);
+      DirectLightingCandidate candidate = directLightingCandidate(
+        *selection.light, hitPoint, lightSample(state, bounce, selection.lightIndex, sampleIndex));
+      if (!candidate.valid) {
+        continue;
+      }
+
+      shadowQueries.push_back(
+        WavefrontAnyHitQuery{candidate.shadowRay, candidate.shadowDistance, &state});
+      selectedCandidates.push_back(SelectedDirectLightingCandidate{candidate, selection.pdf});
+    }
+
+    if (shadowQueries.empty()) {
+      return Colord::black();
+    }
+
+    WavefrontIntersectionQueryTiming intersectionTiming;
+    std::vector<bool> occluded;
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      occluded = resolvedIntersectionBackend.intersectAnyBatch(
+        scene, shadowQueries, metrics ? &intersectionTiming : nullptr);
+      if (metrics) {
+        metrics->recordAnyHitQuery(resolvedIntersectionBackend, shadowQueries.size(),
+                                   intersectionTiming);
+      }
+    }
+
+    Colord contribution = Colord::black();
+    for (std::size_t index = 0; index != selectedCandidates.size(); ++index) {
+      const bool sampleOccluded = index < occluded.size() && occluded[index];
+      const DirectLightingSample sample = resolveDirectLightingCandidate(
+        selectedCandidates[index].candidate, material, hitPoint, wi, sampleOccluded, state);
       if (metrics) {
         metrics->recordDirectLightSample(sample.occluded, sample.contributing());
       }
-      contribution += sample.contribution / selection.pdf;
+      contribution += sample.contribution / selectedCandidates[index].selectionPdf;
     }
     return contribution / static_cast<double>(m_directLightSamples);
   }
@@ -596,45 +670,45 @@ namespace render {
     const PathMaterialTransport& material, const Vector3d& wi, const Vector2d& lightSample,
     State& state, const WavefrontIntersectionBackend& intersectionBackend,
     IntegratorBatchMetrics* metrics) const {
-    LightSample sample = light.sample(hitPoint.point(), lightSample);
-    if (sample.pdf <= 0.0 || sample.radiance == Colord::black()) {
-      return {};
-    }
-
-    const Vector3d wo = sample.direction;
-    const double normalDotOut = hitPoint.normal() * wo;
-    if (normalDotOut <= 0.0) {
+    const DirectLightingCandidate candidate = directLightingCandidate(light, hitPoint, lightSample);
+    if (!candidate.valid) {
       return {};
     }
 
     // Shadow ray. `Scene::occludes` keeps point-light visibility bounded
     // to the sampled light distance; epsilon-shift avoids self-intersection.
-    const Rayd shadowRay = Rayd(hitPoint.point(), wo).epsilonShifted();
     bool occluded = false;
     {
       WavefrontIntersectionQueryTiming intersectionTiming;
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      occluded = intersectionBackend.intersectAny(scene, shadowRay, sample.distance, state,
-                                                  &intersectionTiming);
+      occluded = intersectionBackend.intersectAny(
+        scene, candidate.shadowRay, candidate.shadowDistance, state, &intersectionTiming);
       if (metrics) {
         metrics->recordAnyHitQuery(intersectionBackend, 1, intersectionTiming);
       }
     }
 
+    return resolveDirectLightingCandidate(candidate, material, hitPoint, wi, occluded, state);
+  }
+
+  PathTracingIntegrator::DirectLightingSample PathTracingIntegrator::resolveDirectLightingCandidate(
+    const DirectLightingCandidate& candidate, const PathMaterialTransport& material,
+    const HitPoint& hitPoint, const Vector3d& wi, bool occluded, State& state) const {
     if (occluded) {
       state.shadowHit(nullptr, "PathTracingIntegrator");
       return {Colord::black(), true};
     }
     state.shadowMiss(nullptr, "PathTracingIntegrator");
 
-    const Colord bsdfValue = material.evalBsdf(hitPoint, wi, wo);
+    const Colord bsdfValue = material.evalBsdf(hitPoint, wi, candidate.wo);
     if (bsdfValue == Colord::black()) {
       return {};
     }
 
-    const double bsdfPdf = sample.delta ? 0.0 : material.bsdfPdf(hitPoint, wi, wo);
-    return {mis::estimateDirectLightingFromLightSample(bsdfValue, sample.radiance, normalDotOut,
-                                                       sample.pdf, bsdfPdf, sample.delta),
+    const double bsdfPdf = candidate.delta ? 0.0 : material.bsdfPdf(hitPoint, wi, candidate.wo);
+    return {mis::estimateDirectLightingFromLightSample(bsdfValue, candidate.radiance,
+                                                       candidate.normalDotOut, candidate.lightPdf,
+                                                       bsdfPdf, candidate.delta),
             false};
   }
 

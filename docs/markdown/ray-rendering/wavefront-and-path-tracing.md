@@ -270,7 +270,11 @@ traverses the same flat-array BVH and emits the fields the future GPU kernels
 must return: object id, material id, distance, point, normal, UV where the
 runtime primitive supplies one, and barycentric coordinates for triangles. For
 any-hit visibility, it short-circuits on the first supported payload hit inside
-the same finite light-distance bound used by `Scene::occludes(...)`. The
+the same finite light-distance bound used by `Scene::occludes(...)`. When path
+tracing requests more than one direct-light sample at a surface, those shadow
+rays are submitted through one batched any-hit backend call so prepared
+Metal/Vulkan backends can treat direct-light visibility as a group instead of
+as unrelated scalar queries. The
 harness currently covers triangles, mesh triangles, sphere, plane, rectangle,
 disk, and static instance transforms by tracing in payload-local space and
 transforming hit data back to world space. It is not a render backend; it is

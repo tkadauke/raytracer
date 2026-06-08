@@ -51,6 +51,12 @@ namespace render {
     std::uint64_t minimumGpuRaysPerSceneUploadKiB{64};
   };
 
+  struct WavefrontAnyHitQuery {
+    Rayd ray;
+    double maxDistance{0.0};
+    State* state{nullptr};
+  };
+
   struct WavefrontIntersectionBackendAutoSelectionDecision {
     bool useGpu{false};
     std::string reason;
@@ -144,6 +150,9 @@ namespace render {
                      WavefrontIntersectionQueryTiming* timing = nullptr) const = 0;
     virtual bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance, State& state,
                               WavefrontIntersectionQueryTiming* timing = nullptr) const = 0;
+    virtual std::vector<bool>
+    intersectAnyBatch(const Scene& scene, const std::vector<WavefrontAnyHitQuery>& queries,
+                      WavefrontIntersectionQueryTiming* timing = nullptr) const;
     virtual PrimitivePacketHit4
     intersectPacketClosest(const Scene& scene, const Ray4& rays,
                            const PrimitivePacketState4& states,
@@ -160,6 +169,9 @@ namespace render {
     [[nodiscard]] bool
     intersectPreparedAny(const Rayd& ray, double maxDistance, State& state,
                          WavefrontIntersectionQueryTiming* timing = nullptr) const;
+    [[nodiscard]] std::vector<bool>
+    intersectPreparedAnyBatch(const std::vector<WavefrontAnyHitQuery>& queries,
+                              WavefrontIntersectionQueryTiming* timing = nullptr) const;
     [[nodiscard]] PrimitivePacketHit4
     intersectPreparedPacketClosest(const Ray4& rays, const PrimitivePacketState4& states,
                                    WavefrontIntersectionQueryTiming* timing = nullptr) const;
@@ -196,6 +208,9 @@ namespace render {
     intersectClosest(const Scene& scene, const Rayd& ray, HitPointInterval& hitPoints, State& state,
                      WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance, State& state,
+                      WavefrontIntersectionQueryTiming* timing = nullptr) const override;
+    std::vector<bool>
+    intersectAnyBatch(const Scene& scene, const std::vector<WavefrontAnyHitQuery>& queries,
                       WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     PrimitivePacketHit4
     intersectPacketClosest(const Scene& scene, const Ray4& rays,
@@ -239,6 +254,9 @@ namespace render {
     intersectClosest(const Scene& scene, const Rayd& ray, HitPointInterval& hitPoints, State& state,
                      WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance, State& state,
+                      WavefrontIntersectionQueryTiming* timing = nullptr) const override;
+    std::vector<bool>
+    intersectAnyBatch(const Scene& scene, const std::vector<WavefrontAnyHitQuery>& queries,
                       WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     PrimitivePacketHit4
     intersectPacketClosest(const Scene& scene, const Ray4& rays,
@@ -310,6 +328,9 @@ namespace render {
     intersectClosest(const Scene& scene, const Rayd& ray, HitPointInterval& hitPoints, State& state,
                      WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance, State& state,
+                      WavefrontIntersectionQueryTiming* timing = nullptr) const override;
+    std::vector<bool>
+    intersectAnyBatch(const Scene& scene, const std::vector<WavefrontAnyHitQuery>& queries,
                       WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     PrimitivePacketHit4
     intersectPacketClosest(const Scene& scene, const Ray4& rays,

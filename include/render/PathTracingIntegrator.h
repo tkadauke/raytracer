@@ -127,6 +127,7 @@ namespace render {
     struct BatchDepthMetrics;
     struct BatchHit;
     struct BatchPath;
+    struct DirectLightingCandidate;
     struct DirectLightingSample;
     struct ScalarPath;
 
@@ -144,6 +145,13 @@ namespace render {
                            const Rayd& ray, const HitPoint& hitPoint, bool sampledFromBsdf,
                            double bsdfSamplePdf, bool bsdfSampleDelta,
                            IntegratorBatchMetrics* metrics = nullptr) const;
+    DirectLightingCandidate directLightingCandidate(const Light& light, const HitPoint& hitPoint,
+                                                    const Vector2d& lightSample) const;
+    DirectLightingSample resolveDirectLightingCandidate(const DirectLightingCandidate& candidate,
+                                                        const PathMaterialTransport& material,
+                                                        const HitPoint& hitPoint,
+                                                        const Vector3d& wi, bool occluded,
+                                                        State& state) const;
     DirectLightingSample directLighting(const Scene& scene, const Light& light,
                                         const HitPoint& hitPoint,
                                         const PathMaterialTransport& material, const Vector3d& wi,
