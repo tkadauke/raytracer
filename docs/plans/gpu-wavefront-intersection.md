@@ -560,6 +560,13 @@ Progress:
   platform kernel is available in the build or runtime, `auto` stays on the
   runtime CPU backend and reports that selection reason in render metrics and
   graph trace.
+- The benchmark suite now includes wavefront intersection backend fixtures for
+  a small supported scene, a mesh-heavy supported scene, and an unsupported
+  mixed scene. The fixtures measure compile/pack cost, runtime CPU closest-hit
+  queries, packed closest-hit queries, and packed any-hit queries, and they
+  report primitive/BVH counts plus scene upload, ray upload, and readback byte
+  counters. This gives the `auto` policy a repeatable baseline for deciding
+  when GPU upload/readback overhead is justified.
 
 ## Phase 8 - future work
 
