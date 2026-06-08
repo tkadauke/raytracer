@@ -236,11 +236,13 @@ namespace render {
     HitPointInterval hitPoints;
     const Primitive* primitive = nullptr;
     {
+      WavefrontIntersectionQueryTiming intersectionTiming;
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      primitive = intersectionBackend.intersectClosest(scene, queued.ray, hitPoints, queued.state,
+                                                       &intersectionTiming);
       if (metrics) {
-        metrics->recordClosestHitQuery(intersectionBackend, 1);
+        metrics->recordClosestHitQuery(intersectionBackend, 1, intersectionTiming);
       }
-      primitive = intersectionBackend.intersectClosest(scene, queued.ray, hitPoints, queued.state);
     }
     if (isCancelled()) {
       result[queued.sampleIndex] += queued.weight * scene.background();
@@ -293,11 +295,13 @@ namespace render {
 
     PrimitivePacketHit4 packetHits;
     {
+      WavefrontIntersectionQueryTiming intersectionTiming;
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      packetHits =
+        intersectionBackend.intersectPacketClosest(scene, Ray4(rays), states, &intersectionTiming);
       if (metrics) {
-        metrics->recordClosestHitQuery(intersectionBackend, packetLaneCount);
+        metrics->recordClosestHitQuery(intersectionBackend, packetLaneCount, intersectionTiming);
       }
-      packetHits = intersectionBackend.intersectPacketClosest(scene, Ray4(rays), states);
     }
 
     if (isCancelled()) {
@@ -368,12 +372,13 @@ namespace render {
         HitPointInterval refinedHitPoints;
         const Primitive* refinedPrimitive = nullptr;
         {
+          WavefrontIntersectionQueryTiming intersectionTiming;
           core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+          refinedPrimitive = intersectionBackend.intersectClosest(
+            scene, queued.ray, refinedHitPoints, queued.state, &intersectionTiming);
           if (metrics) {
-            metrics->recordClosestHitQuery(intersectionBackend, 1);
+            metrics->recordClosestHitQuery(intersectionBackend, 1, intersectionTiming);
           }
-          refinedPrimitive =
-            intersectionBackend.intersectClosest(scene, queued.ray, refinedHitPoints, queued.state);
         }
         hitPrimitive = refinedPrimitive;
         if (refinedPrimitive) {
@@ -433,11 +438,13 @@ namespace render {
 
     PrimitivePacketHit8 packetHits;
     {
+      WavefrontIntersectionQueryTiming intersectionTiming;
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      packetHits =
+        intersectionBackend.intersectPacketClosest(scene, Ray8(rays), states, &intersectionTiming);
       if (metrics) {
-        metrics->recordClosestHitQuery(intersectionBackend, packetLaneCount);
+        metrics->recordClosestHitQuery(intersectionBackend, packetLaneCount, intersectionTiming);
       }
-      packetHits = intersectionBackend.intersectPacketClosest(scene, Ray8(rays), states);
     }
 
     if (isCancelled()) {
@@ -508,12 +515,13 @@ namespace render {
         HitPointInterval refinedHitPoints;
         const Primitive* refinedPrimitive = nullptr;
         {
+          WavefrontIntersectionQueryTiming intersectionTiming;
           core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+          refinedPrimitive = intersectionBackend.intersectClosest(
+            scene, queued.ray, refinedHitPoints, queued.state, &intersectionTiming);
           if (metrics) {
-            metrics->recordClosestHitQuery(intersectionBackend, 1);
+            metrics->recordClosestHitQuery(intersectionBackend, 1, intersectionTiming);
           }
-          refinedPrimitive =
-            intersectionBackend.intersectClosest(scene, queued.ray, refinedHitPoints, queued.state);
         }
         hitPrimitive = refinedPrimitive;
         if (refinedPrimitive) {

@@ -92,7 +92,11 @@ namespace IntegratorTest {
 
     IntegratorBatchMetrics metrics;
     metrics.reset(/*scalarFallback=*/false);
-    metrics.recordClosestHitQuery(*backend, 4);
+    WavefrontIntersectionQueryTiming closestTiming;
+    closestTiming.uploadSeconds = 0.001;
+    closestTiming.kernelSeconds = 0.002;
+    closestTiming.readbackSeconds = 0.003;
+    metrics.recordClosestHitQuery(*backend, 4, closestTiming);
 
     EXPECT_EQ("gpu", metrics.intersectionBackendRequest);
     EXPECT_EQ("cpu", metrics.intersectionBackend);
@@ -109,11 +113,18 @@ namespace IntegratorTest {
     EXPECT_EQ(backend->estimatedClosestHitRayUploadBytes(4) +
                 backend->estimatedClosestHitReadbackBytes(4),
               metrics.intersectionEstimatedQueryTransferBytes);
+    EXPECT_DOUBLE_EQ(0.001, metrics.intersectionBackendUploadWorkerSeconds);
+    EXPECT_DOUBLE_EQ(0.002, metrics.intersectionBackendKernelWorkerSeconds);
+    EXPECT_DOUBLE_EQ(0.003, metrics.intersectionBackendReadbackWorkerSeconds);
     EXPECT_TRUE(metrics.intersectionSceneTriangleClosestHitEligible);
     EXPECT_TRUE(metrics.intersectionSceneBasicHitEligible);
     EXPECT_TRUE(metrics.intersectionScenePackedClosestHitEligible);
 
-    metrics.recordAnyHitQuery(*backend, 1);
+    WavefrontIntersectionQueryTiming anyTiming;
+    anyTiming.uploadSeconds = 0.004;
+    anyTiming.kernelSeconds = 0.005;
+    anyTiming.readbackSeconds = 0.006;
+    metrics.recordAnyHitQuery(*backend, 1, anyTiming);
 
     EXPECT_EQ("packed_cpu", metrics.intersectionBackendExecutionPath);
     EXPECT_EQ(5u, metrics.intersectionRaysSubmitted);
@@ -130,5 +141,8 @@ namespace IntegratorTest {
       backend->estimatedClosestHitRayUploadBytes(4) + backend->estimatedClosestHitReadbackBytes(4) +
         backend->estimatedAnyHitRayUploadBytes(1) + backend->estimatedAnyHitReadbackBytes(1),
       metrics.intersectionEstimatedQueryTransferBytes);
+    EXPECT_DOUBLE_EQ(0.005, metrics.intersectionBackendUploadWorkerSeconds);
+    EXPECT_DOUBLE_EQ(0.007, metrics.intersectionBackendKernelWorkerSeconds);
+    EXPECT_DOUBLE_EQ(0.009, metrics.intersectionBackendReadbackWorkerSeconds);
   }
 }

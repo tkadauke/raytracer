@@ -194,34 +194,38 @@ namespace WhittedIntegratorTest {
         return "counting_cpu";
       }
 
-      const Primitive* intersectClosest(const Scene& scene, const Rayd& ray,
-                                        HitPointInterval& hitPoints, State& state) const override {
+      const Primitive*
+      intersectClosest(const Scene& scene, const Rayd& ray, HitPointInterval& hitPoints,
+                       State& state,
+                       WavefrontIntersectionQueryTiming* timing = nullptr) const override {
         ++scalarQueries;
         return CpuWavefrontIntersectionBackend::instance().intersectClosest(scene, ray, hitPoints,
-                                                                            state);
+                                                                            state, timing);
       }
 
-      bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance,
-                        State& state) const override {
+      bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance, State& state,
+                        WavefrontIntersectionQueryTiming* timing = nullptr) const override {
         ++anyQueries;
         return CpuWavefrontIntersectionBackend::instance().intersectAny(scene, ray, maxDistance,
-                                                                        state);
+                                                                        state, timing);
       }
 
       PrimitivePacketHit4
       intersectPacketClosest(const Scene& scene, const Ray4& rays,
-                             const PrimitivePacketState4& states) const override {
+                             const PrimitivePacketState4& states,
+                             WavefrontIntersectionQueryTiming* timing = nullptr) const override {
         ++packet4Queries;
         return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
-                                                                                  states);
+                                                                                  states, timing);
       }
 
       PrimitivePacketHit8
       intersectPacketClosest(const Scene& scene, const Ray8& rays,
-                             const PrimitivePacketState8& states) const override {
+                             const PrimitivePacketState8& states,
+                             WavefrontIntersectionQueryTiming* timing = nullptr) const override {
         ++packet8Queries;
         return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
-                                                                                  states);
+                                                                                  states, timing);
       }
 
       mutable int scalarQueries{0};

@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cstring>
 #include <limits>
 #include <stdexcept>
@@ -14,6 +15,11 @@
 
 namespace render {
   namespace {
+    double secondsBetween(std::chrono::steady_clock::time_point start,
+                          std::chrono::steady_clock::time_point end) {
+      return std::chrono::duration<double>(end - start).count();
+    }
+
     NSString* smokeKernelSource() {
       return @"#include <metal_stdlib>\n"
               "using namespace metal;\n"
@@ -748,6 +754,12 @@ namespace render {
   std::vector<GpuIntersectionHitRecord>
   MetalWavefrontSmokeKernel::runBasicClosestHitKernel(
     const GpuIntersectionSceneBuffers& scene, const std::vector<GpuIntersectionRay>& rays) const {
+    return runTimedBasicClosestHitKernel(scene, rays).hits;
+  }
+
+  MetalWavefrontClosestHitKernelResult
+  MetalWavefrontSmokeKernel::runTimedBasicClosestHitKernel(
+    const GpuIntersectionSceneBuffers& scene, const std::vector<GpuIntersectionRay>& rays) const {
     if (rays.empty()) {
       return {};
     }
@@ -757,6 +769,8 @@ namespace render {
     }
 
     @autoreleasepool {
+      MetalWavefrontClosestHitKernelResult result;
+      const auto uploadStart = std::chrono::steady_clock::now();
       id<MTLDevice> device = MTLCreateSystemDefaultDevice();
       if (!device) {
         throw std::runtime_error("Metal wavefront basic hit kernel requires a Metal device");
@@ -818,6 +832,7 @@ namespace render {
       if (!queue || !commandBuffer || !encoder) {
         throw std::runtime_error("Metal wavefront basic hit kernel command setup failed");
       }
+      const auto uploadEnd = std::chrono::steady_clock::now();
 
       [encoder setComputePipelineState:pipeline];
       [encoder setBuffer:bvhBuffer offset:0 atIndex:0];
@@ -835,21 +850,35 @@ namespace render {
       [encoder setBuffer:counts2Buffer offset:0 atIndex:12];
       dispatchOneDimensional(encoder, pipeline, rays.size());
       [encoder endEncoding];
+      const auto kernelStart = std::chrono::steady_clock::now();
       [commandBuffer commit];
       [commandBuffer waitUntilCompleted];
+      const auto kernelEnd = std::chrono::steady_clock::now();
 
       if (commandBuffer.error) {
         throw metalError("Metal wavefront basic hit kernel dispatch failed", commandBuffer.error);
       }
 
-      std::vector<GpuIntersectionHitRecord> results(rays.size());
-      std::memcpy(results.data(), hitBuffer.contents, results.size() * sizeof(results.front()));
-      return results;
+      const auto readbackStart = std::chrono::steady_clock::now();
+      result.hits.resize(rays.size());
+      std::memcpy(result.hits.data(), hitBuffer.contents,
+                  result.hits.size() * sizeof(result.hits.front()));
+      const auto readbackEnd = std::chrono::steady_clock::now();
+      result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
+      result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
+      result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
+      return result;
     }
   }
 
   std::vector<GpuIntersectionOcclusionRecord>
   MetalWavefrontSmokeKernel::runBasicAnyHitKernel(
+    const GpuIntersectionSceneBuffers& scene, const std::vector<GpuIntersectionRay>& rays) const {
+    return runTimedBasicAnyHitKernel(scene, rays).records;
+  }
+
+  MetalWavefrontAnyHitKernelResult
+  MetalWavefrontSmokeKernel::runTimedBasicAnyHitKernel(
     const GpuIntersectionSceneBuffers& scene, const std::vector<GpuIntersectionRay>& rays) const {
     if (rays.empty()) {
       return {};
@@ -860,6 +889,8 @@ namespace render {
     }
 
     @autoreleasepool {
+      MetalWavefrontAnyHitKernelResult result;
+      const auto uploadStart = std::chrono::steady_clock::now();
       id<MTLDevice> device = MTLCreateSystemDefaultDevice();
       if (!device) {
         throw std::runtime_error("Metal wavefront basic any-hit kernel requires a Metal device");
@@ -921,6 +952,7 @@ namespace render {
       if (!queue || !commandBuffer || !encoder) {
         throw std::runtime_error("Metal wavefront basic any-hit command setup failed");
       }
+      const auto uploadEnd = std::chrono::steady_clock::now();
 
       [encoder setComputePipelineState:pipeline];
       [encoder setBuffer:bvhBuffer offset:0 atIndex:0];
@@ -938,18 +970,25 @@ namespace render {
       [encoder setBuffer:counts2Buffer offset:0 atIndex:12];
       dispatchOneDimensional(encoder, pipeline, rays.size());
       [encoder endEncoding];
+      const auto kernelStart = std::chrono::steady_clock::now();
       [commandBuffer commit];
       [commandBuffer waitUntilCompleted];
+      const auto kernelEnd = std::chrono::steady_clock::now();
 
       if (commandBuffer.error) {
         throw metalError("Metal wavefront basic any-hit kernel dispatch failed",
                          commandBuffer.error);
       }
 
-      std::vector<GpuIntersectionOcclusionRecord> results(rays.size());
-      std::memcpy(results.data(), occlusionBuffer.contents,
-                  results.size() * sizeof(results.front()));
-      return results;
+      const auto readbackStart = std::chrono::steady_clock::now();
+      result.records.resize(rays.size());
+      std::memcpy(result.records.data(), occlusionBuffer.contents,
+                  result.records.size() * sizeof(result.records.front()));
+      const auto readbackEnd = std::chrono::steady_clock::now();
+      result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
+      result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
+      result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
+      return result;
     }
   }
 }

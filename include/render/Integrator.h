@@ -2,6 +2,7 @@
 
 #include "core/Color.h"
 #include "core/math/Ray.h"
+#include "render/WavefrontIntersectionQueryTiming.h"
 
 #include <cstdint>
 #include <functional>
@@ -90,6 +91,9 @@ namespace render {
     std::uint64_t intersectionEstimatedClosestHitReadbackBytes{0};
     std::uint64_t intersectionEstimatedAnyHitReadbackBytes{0};
     std::uint64_t intersectionEstimatedQueryTransferBytes{0};
+    double intersectionBackendUploadWorkerSeconds{0.0};
+    double intersectionBackendKernelWorkerSeconds{0.0};
+    double intersectionBackendReadbackWorkerSeconds{0.0};
     std::uint64_t intersectionRaysSubmitted{0};
     std::uint64_t closestHitQueries{0};
     std::uint64_t anyHitQueries{0};
@@ -115,9 +119,10 @@ namespace render {
     void recordPacketHitRefinement(const std::string& materialLabel);
     void recordIntersectionBackend(const WavefrontIntersectionBackend& backend);
     void recordClosestHitQuery(const WavefrontIntersectionBackend& backend,
-                               std::uint64_t submittedRays);
-    void recordAnyHitQuery(const WavefrontIntersectionBackend& backend,
-                           std::uint64_t submittedRays);
+                               std::uint64_t submittedRays,
+                               const WavefrontIntersectionQueryTiming& timing = {});
+    void recordAnyHitQuery(const WavefrontIntersectionBackend& backend, std::uint64_t submittedRays,
+                           const WavefrontIntersectionQueryTiming& timing = {});
     void mergeIntersectionBackendMetrics(const IntegratorBatchMetrics& source);
     void recordRadianceDeltaDepth(double squaredSum, double maxDelta);
     void recordUnsupportedPathMaterial();

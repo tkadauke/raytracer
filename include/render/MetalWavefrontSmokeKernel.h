@@ -1,5 +1,7 @@
 #pragma once
 
+#include "render/WavefrontIntersectionQueryTiming.h"
+
 #include <cstdint>
 #include <vector>
 
@@ -8,6 +10,16 @@ namespace render {
   struct GpuIntersectionOcclusionRecord;
   struct GpuIntersectionRay;
   struct GpuIntersectionSceneBuffers;
+
+  struct MetalWavefrontClosestHitKernelResult {
+    std::vector<GpuIntersectionHitRecord> hits;
+    WavefrontIntersectionQueryTiming timing;
+  };
+
+  struct MetalWavefrontAnyHitKernelResult {
+    std::vector<GpuIntersectionOcclusionRecord> records;
+    WavefrontIntersectionQueryTiming timing;
+  };
 
   /**
     * @brief Tiny Metal compute dispatch used to validate the experimental
@@ -25,8 +37,14 @@ namespace render {
     std::vector<GpuIntersectionHitRecord>
     runBasicClosestHitKernel(const GpuIntersectionSceneBuffers& scene,
                              const std::vector<GpuIntersectionRay>& rays) const;
+    MetalWavefrontClosestHitKernelResult
+    runTimedBasicClosestHitKernel(const GpuIntersectionSceneBuffers& scene,
+                                  const std::vector<GpuIntersectionRay>& rays) const;
     std::vector<GpuIntersectionOcclusionRecord>
     runBasicAnyHitKernel(const GpuIntersectionSceneBuffers& scene,
                          const std::vector<GpuIntersectionRay>& rays) const;
+    MetalWavefrontAnyHitKernelResult
+    runTimedBasicAnyHitKernel(const GpuIntersectionSceneBuffers& scene,
+                              const std::vector<GpuIntersectionRay>& rays) const;
   };
 }

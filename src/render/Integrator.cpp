@@ -101,6 +101,9 @@ namespace render {
     intersectionEstimatedClosestHitReadbackBytes = 0;
     intersectionEstimatedAnyHitReadbackBytes = 0;
     intersectionEstimatedQueryTransferBytes = 0;
+    intersectionBackendUploadWorkerSeconds = 0.0;
+    intersectionBackendKernelWorkerSeconds = 0.0;
+    intersectionBackendReadbackWorkerSeconds = 0.0;
     intersectionRaysSubmitted = 0;
     closestHitQueries = 0;
     anyHitQueries = 0;
@@ -182,8 +185,10 @@ namespace render {
       intersectionScenePackedClosestHitEligible || diagnostics.packedClosestHitKernelEligible;
   }
 
-  void IntegratorBatchMetrics::recordClosestHitQuery(const WavefrontIntersectionBackend& backend,
-                                                     std::uint64_t submittedRays) {
+  void
+  IntegratorBatchMetrics::recordClosestHitQuery(const WavefrontIntersectionBackend& backend,
+                                                std::uint64_t submittedRays,
+                                                const WavefrontIntersectionQueryTiming& timing) {
     recordIntersectionBackend(backend);
     mergeLabel(intersectionBackendExecutionPath,
                nonEmptyLabel(backend.closestHitExecutionPath(), "unknown"));
@@ -192,12 +197,16 @@ namespace render {
     intersectionEstimatedRayUploadBytes += rayUploadBytes;
     intersectionEstimatedClosestHitReadbackBytes += readbackBytes;
     intersectionEstimatedQueryTransferBytes += rayUploadBytes + readbackBytes;
+    intersectionBackendUploadWorkerSeconds += timing.uploadSeconds;
+    intersectionBackendKernelWorkerSeconds += timing.kernelSeconds;
+    intersectionBackendReadbackWorkerSeconds += timing.readbackSeconds;
     ++closestHitQueries;
     intersectionRaysSubmitted += submittedRays;
   }
 
   void IntegratorBatchMetrics::recordAnyHitQuery(const WavefrontIntersectionBackend& backend,
-                                                 std::uint64_t submittedRays) {
+                                                 std::uint64_t submittedRays,
+                                                 const WavefrontIntersectionQueryTiming& timing) {
     recordIntersectionBackend(backend);
     mergeLabel(intersectionBackendExecutionPath,
                nonEmptyLabel(backend.anyHitExecutionPath(), "unknown"));
@@ -206,6 +215,9 @@ namespace render {
     intersectionEstimatedRayUploadBytes += rayUploadBytes;
     intersectionEstimatedAnyHitReadbackBytes += readbackBytes;
     intersectionEstimatedQueryTransferBytes += rayUploadBytes + readbackBytes;
+    intersectionBackendUploadWorkerSeconds += timing.uploadSeconds;
+    intersectionBackendKernelWorkerSeconds += timing.kernelSeconds;
+    intersectionBackendReadbackWorkerSeconds += timing.readbackSeconds;
     ++anyHitQueries;
     intersectionRaysSubmitted += submittedRays;
   }
@@ -247,6 +259,9 @@ namespace render {
       source.intersectionEstimatedClosestHitReadbackBytes;
     intersectionEstimatedAnyHitReadbackBytes += source.intersectionEstimatedAnyHitReadbackBytes;
     intersectionEstimatedQueryTransferBytes += source.intersectionEstimatedQueryTransferBytes;
+    intersectionBackendUploadWorkerSeconds += source.intersectionBackendUploadWorkerSeconds;
+    intersectionBackendKernelWorkerSeconds += source.intersectionBackendKernelWorkerSeconds;
+    intersectionBackendReadbackWorkerSeconds += source.intersectionBackendReadbackWorkerSeconds;
     intersectionRaysSubmitted += source.intersectionRaysSubmitted;
     closestHitQueries += source.closestHitQueries;
     anyHitQueries += source.anyHitQueries;

@@ -353,11 +353,13 @@ namespace render {
     HitPointInterval hitPoints;
     const Primitive* primitive = nullptr;
     {
+      WavefrontIntersectionQueryTiming intersectionTiming;
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      primitive = intersectionBackend.intersectClosest(scene, path.ray, hitPoints, path.state,
+                                                       &intersectionTiming);
       if (metrics) {
-        metrics->recordClosestHitQuery(intersectionBackend, 1);
+        metrics->recordClosestHitQuery(intersectionBackend, 1, intersectionTiming);
       }
-      primitive = intersectionBackend.intersectClosest(scene, path.ray, hitPoints, path.state);
     }
 
     core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
@@ -413,11 +415,13 @@ namespace render {
     }
 
     {
+      WavefrontIntersectionQueryTiming intersectionTiming;
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      packetHits =
+        intersectionBackend.intersectPacketClosest(scene, Ray4(rays), states, &intersectionTiming);
       if (metrics) {
-        metrics->recordClosestHitQuery(intersectionBackend, packetLaneCount);
+        metrics->recordClosestHitQuery(intersectionBackend, packetLaneCount, intersectionTiming);
       }
-      packetHits = intersectionBackend.intersectPacketClosest(scene, Ray4(rays), states);
     }
 
     core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
@@ -481,11 +485,13 @@ namespace render {
     }
 
     {
+      WavefrontIntersectionQueryTiming intersectionTiming;
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      packetHits =
+        intersectionBackend.intersectPacketClosest(scene, Ray8(rays), states, &intersectionTiming);
       if (metrics) {
-        metrics->recordClosestHitQuery(intersectionBackend, packetLaneCount);
+        metrics->recordClosestHitQuery(intersectionBackend, packetLaneCount, intersectionTiming);
       }
-      packetHits = intersectionBackend.intersectPacketClosest(scene, Ray8(rays), states);
     }
 
     core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
@@ -600,11 +606,13 @@ namespace render {
     const Rayd shadowRay = Rayd(hitPoint.point(), wo).epsilonShifted();
     bool occluded = false;
     {
+      WavefrontIntersectionQueryTiming intersectionTiming;
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      occluded = intersectionBackend.intersectAny(scene, shadowRay, sample.distance, state,
+                                                  &intersectionTiming);
       if (metrics) {
-        metrics->recordAnyHitQuery(intersectionBackend, 1);
+        metrics->recordAnyHitQuery(intersectionBackend, 1, intersectionTiming);
       }
-      occluded = intersectionBackend.intersectAny(scene, shadowRay, sample.distance, state);
     }
 
     if (occluded) {
