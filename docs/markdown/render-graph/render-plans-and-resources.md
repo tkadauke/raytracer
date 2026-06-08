@@ -678,7 +678,14 @@ ray-family options on the effective intent become `RaytracerBeautyPassState` on
 the beauty pass. That state can configure the integrator, sampler, samples per
 pixel, deterministic sampling seed, view-plane type, recursion depth, path
 tracer Russian-roulette start depth, path-tracer direct-light sample count,
-worker thread count, and queue size before the payload renders. Wavefront convergence
+wavefront intersection backend, worker thread count, and queue size before the
+payload renders. The backend choice is separate from the path-tracing schedule:
+the wavefront scheduler can ask the canonical CPU backend for intersections
+today, and a `gpu` request records durable intent plus a fallback reason until
+a platform backend is available. GPU requests also run the diagnostic
+intersection-scene compiler before render work begins; unsupported leaves show
+up as scene-specific backend fallback reasons in the trace instead of being
+silently ignored. Wavefront convergence
 controls also flow through that state, so the compiled plan can report the
 active-sample fraction and RMS radiance-delta thresholds used by wavefront
 convergence termination. Wavefront adaptive sampling controls use the same
@@ -758,6 +765,13 @@ miss/background, and compatibility-shaded radiance,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,
 convergence stop decisions, observer feedback depth count, denoiser
 name/parameters/time when denoising is enabled, denoiser feature-prepass time,
+requested and resolved intersection backend plus fallback reason,
+actual query execution path (`runtime_scene`, `compiled_cpu`, `packed_cpu`,
+`metal`, or `mixed` when closest-hit and any-hit queries use different paths),
+compiled intersection-scene primitive/BVH/payload/unsupported-leaf counts and
+packed closest-hit eligibility, estimated ray-upload bytes, closest-hit and
+any-hit readback bytes, and estimated query-transfer bytes for the packed GPU
+intersection ABI,
 tile count, min/average/max non-empty tile sample counts, queue decision, and
 render timing split into summed worker time for sample generation and
 integrator batch work. The sample-generation bucket is further split into

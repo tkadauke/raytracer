@@ -183,6 +183,134 @@ path-tracing estimator. When the wavefront engine runs the path
 tracer, its output should be a scheduling-equivalent version of the
 scalar integrator.
 
+## <a id="intersection-backends"></a>Intersection backends
+Wavefront scheduling also exposes a second, narrower choice:
+which backend answers the scene-intersection query for the current
+frontier. The scheduler still owns path state, direct lighting,
+material transport, denoising, convergence, and final accumulation.
+The intersection backend only receives rays or ray packets and answers
+two query shapes: closest-hit records for camera/path-continuation rays,
+and any-hit occlusion for direct-light shadow rays.
+
+The CPU backend is the canonical implementation and supports the full
+scene/primitive set. Render intent and rendercli can still request
+`auto`, `cpu`, or `gpu` so the graph has a stable place for future GPU
+intersection work. `cpu` resolves directly to the CPU backend. `auto`
+runs a selection policy over platform availability, scene support, and
+expected ray count; today scene support is intentionally limited to triangle,
+sphere, plane, rectangle, and disk leaves with either no transform or static
+instance transforms that can use the first Metal closest-hit and any-hit
+kernels, and other scenes report the CPU-selection reason in metrics and graph
+trace metadata. The experimental
+CMake flags
+`RAYTRACER_ENABLE_METAL_WAVEFRONT` and
+`RAYTRACER_ENABLE_VULKAN_WAVEFRONT` enable platform plumbing checks. The Metal
+flag already builds a tiny smoke wrapper that uploads a buffer, dispatches a
+deterministic compute kernel, and reads the result back outside the renderer.
+It also routes eligible exact-primitive and static-instance closest-hit and
+any-hit work through Metal kernels that consume the packed BVH, primitive,
+payload, transform, and ray buffers and write the same hit-record and
+occlusion-record layouts as the CPU packed intersector. A `gpu` request
+records durable intent and reports either that Metal execution path or the CPU
+fallback in wavefront metrics and graph trace metadata.
+That makes the backend boundary inspectable before any Metal or Vulkan
+kernel is allowed to cover the broader primitive set. The fallback is scene-aware:
+before tile work starts, the renderer tries to compile the scene into the
+GPU-ready intersection record format. If that diagnostic compiler rejects a
+leaf, the reported fallback reason names the first unsupported primitive
+instead of only saying that the platform GPU backend is absent.
+For a supported scene, the GPU path names the host platform backend that would
+run next: Metal on macOS, Vulkan elsewhere. Metal can now execute the
+exact-primitive basic subset, including static instance transforms, when the
+flag and device are present. Vulkan and scenes outside the basic Metal contract
+still report CPU fallback.
+The scene-created backend object retains the compiled records it was prepared
+from and answers fallback closest-hit, packet closest-hit, and any-hit queries
+through the packed upload-buffer CPU traversal, with the compiled-scene CPU
+parity intersector still available for supported payloads that are not yet
+packed.
+That keeps the ownership boundary the future upload-backed backend will need
+without changing rendered output yet. Metrics report whether that diagnostic
+scene was compiled plus its BVH node, primitive, payload, and unsupported-leaf
+counts, so rendercli and the graph inspector can show the would-be upload
+workload beside the fallback reason. They also report the actual query
+execution path: runtime `Scene` traversal, compiled CPU parity traversal,
+packed-buffer CPU traversal, or a Metal kernel. Batched path-tracing
+direct-light visibility goes through the same backend seam via
+`intersectAny(...)`, so the graph and metrics can separate closest-hit and
+any-hit ray counts for CPU and GPU-resident query families.
+
+The next boundary is the compiled intersection scene. GPU kernels
+cannot consume arbitrary C++ primitive objects, so
+`IntersectionSceneCompiler` walks the runtime scene through each
+primitive's leaf hook and emits stable records: primitive kind,
+material id, object id, transform id, bounds, payload offsets, and
+explicit unsupported reasons. Supported leaves currently include
+triangles and mesh triangles, sphere, plane, rectangle, and disk.
+Static instances become transform payloads on those leaves. Unsupported
+exact or CSG primitives remain visible as fallback diagnostics instead
+of being silently skipped.
+
+The compiled scene also has a CPU parity harness. For closest-hit queries it
+traverses the same flat-array BVH and emits the fields the future GPU kernels
+must return: object id, material id, distance, point, normal, UV where the
+runtime primitive supplies one, and barycentric coordinates for triangles. For
+any-hit visibility, it short-circuits on the first supported payload hit inside
+the same finite light-distance bound used by `Scene::occludes(...)`. The
+harness currently covers triangles, mesh triangles, sphere, plane, rectangle,
+disk, and static instance transforms by tracing in payload-local space and
+transforming hit data back to world space. It is not a render backend; it is
+the executable contract the Metal and Vulkan kernels need to match before they
+can be trusted in the wavefront renderer.
+
+The first GPU-facing upload seam is intentionally one step narrower than the
+compiled scene. `GpuIntersectionScenePacker` takes the compiled records and
+packs only the data the platform kernels can consume directly: flat BVH nodes,
+primitive records, triangle payloads, sphere/plane/rectangle/disk payloads,
+static transform payloads, ray work items, and miss/hit records. Those structs
+are 16-byte-aligned, row-major, and plain-layout so Metal and Vulkan can share
+the same host-side contract even if their shader source is platform-native. The
+current execution eligibility check is strict: the packed closest-hit kernel may
+only accept triangle, sphere, plane, rectangle, and disk records with either no
+transform or a static transform payload. Prepared GPU fallback backends retain
+the packed buffers next to the compiled scene, and the wavefront metrics report
+`intersectionSceneUploadBytes` plus
+`intersectionSceneTriangleClosestHitEligible` and
+`intersectionSceneBasicHitEligible` and `intersectionScenePackedClosestHitEligible`
+so rendercli and the graph inspector can show the would-be upload workload
+before a platform kernel runs.
+For eligible exact-primitive and static-instance scenes, closest-hit and packet
+closest-hit queries already run through a packed CPU traversal that consumes
+those upload buffers and emits the same hit-record layout the GPU kernel will
+write. The Metal basic closest-hit and any-hit kernels use that same upload
+layout for triangle, sphere, plane, rectangle, disk, and static-transform
+scenes in the render path. Bounded any-hit visibility for the remaining
+eligible packed scenes uses the same packed traversal contract, including the finite
+light-distance epsilon used by the compiled parity intersector. This matches
+the current CPU shadow rule:
+`Scene::occludes(...)` is geometry-only, so transparent materials still block
+shadow rays unless a higher-level material model changes that policy. If alpha,
+volumetric, or partial-shadow materials later make visibility
+material-dependent, the compiler must make those leaves ineligible for packed
+any-hit until a matching visibility kernel exists. That is separate from the
+broader compiled scene intersector: the packed path proves the kernel ABI and
+traversal contract, while the compiled-scene path remains the fallback for
+unsupported packed payloads until platform kernels cover them. Metrics label
+those query paths separately: basic-kernel closest-hit and any-hit frontiers
+report `metal` when the Metal kernels run, `packed_cpu` for the packed CPU
+contract, the compiled parity fallback reports `compiled_cpu`, and a render
+that combines different query families still reports `mixed`. The same metrics
+also estimate the query transfer footprint that a real GPU backend would pay:
+ray upload bytes plus closest-hit and any-hit readback bytes. CPU and
+unsupported runtime-scene fallbacks report zero for those query-transfer fields;
+prepared GPU-request stubs report the packed ABI byte counts so `auto`
+selection can compare frontier size against upload/readback cost. The render
+engine already supplies a conservative expected-ray-count estimate to that
+policy. Today the policy selects CPU because the Metal/Vulkan kernels are not
+available for render-path traversal; once a platform backend is enabled, the
+same policy can require a fully supported packed scene and enough expected ray
+work before choosing the GPU path automatically.
+
 ## <a id="diagnostics"></a>Diagnostics and current limits
 The path tracer is still intentionally conservative about material
 coverage. If a material has not implemented `PathMaterialTransport`,
@@ -250,6 +378,14 @@ choices become inspectable user-facing metadata.
 - `src/engine/wavefront/WavefrontTileRenderer.cpp`
 - `include/render/Integrator.h`
 - `src/render/Integrator.cpp`
+- `include/render/IntersectionSceneCompiler.h`
+- `src/render/IntersectionSceneCompiler.cpp`
+- `include/render/GpuIntersectionScene.h`
+- `src/render/GpuIntersectionScene.cpp`
+- `include/render/MetalWavefrontSmokeKernel.h`
+- `src/render/MetalWavefrontSmokeKernel.mm`
+- `include/render/WavefrontIntersectionBackend.h`
+- `src/render/WavefrontIntersectionBackend.cpp`
 - `include/render/PathTracingIntegrator.h`
 - `src/render/PathTracingIntegrator.cpp`
 - `include/render/PathTermination.h`
@@ -264,6 +400,9 @@ choices become inspectable user-facing metadata.
 - `scenes/wavefront_indirect_bounce_demo.json`
 - `scenes/wavefront_denoise_demo.json`
 - `test/unit/render/PathTracingIntegratorTest.cpp`
+- `test/unit/render/IntersectionSceneCompilerTest.cpp`
+- `test/unit/render/GpuIntersectionSceneTest.cpp`
+- `test/unit/render/WavefrontIntersectionBackendTest.cpp`
 - `test/unit/render/PathTerminationTest.cpp`
 - `test/unit/render/StateTest.cpp`
 - `test/unit/engine/wavefront/WavefrontRaytracerTest.cpp`

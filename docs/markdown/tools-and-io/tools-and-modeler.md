@@ -131,8 +131,41 @@ Wavefront controls such as
 depth-major path batches. `--wavefront_adaptive_sampling`,
 `--wavefront_no_adaptive_sampling`, `--wavefront_adaptive_min_samples`, and
 `--wavefront_adaptive_stddev_threshold` become graph-visible per-pixel
-adaptive sampling state for wavefront path tracing. Raster controls such as
-`--lod`, `--msaa`,
+adaptive sampling state for wavefront path tracing.
+`--wavefront_intersection_backend auto|cpu|gpu` records the requested
+ray-scene intersection backend for wavefront batches. `cpu` uses the canonical
+CPU backend. `auto` now runs through the same selection policy the future GPU
+backend will use: platform availability first, then scene support, then an
+expected-ray-count threshold. At this stage, scene support means triangle,
+sphere, plane, rectangle, and disk leaves with either no transform or static
+instance transforms that can use the first Metal closest-hit/any-hit kernels;
+other packed scenes still select CPU and report that selection reason in graph
+trace and wavefront metrics instead of silently behaving like `cpu`.
+`gpu` is accepted as durable intent and reports either the active platform path
+or a CPU fallback reason in graph trace and wavefront metrics. For a
+`gpu` request, the renderer also runs the compiled-intersection-scene diagnostic
+before the render starts, so scenes that contain unsupported exact leaves report
+the first unsupported primitive as the fallback reason. Supported scenes retain
+that compiled record set on the scene-created Metal/Vulkan backend object,
+ready for upload-backed work. The Metal build flag already proves a tiny
+upload/dispatch/readback smoke kernel and can execute triangle, sphere, plane,
+rectangle, disk, and static-transform closest-hit and any-hit queries through
+packed-ABI Metal kernels in the render path. Prepared scenes outside that
+basic subset still run through the packed upload buffers via a CPU traversal
+with the same hit-record and visibility contract the wider Metal/Vulkan kernels
+will write.
+Wavefront metrics and
+`--wavefront_metrics_summary` expose the compiled-scene primitive, BVH,
+payload, unsupported-leaf counts, basic-kernel and packed closest-hit
+eligibility, and actual query execution path for those requests. The path is
+`metal` for the Metal basic kernels, `packed_cpu` for the packed CPU
+contract, `compiled_cpu` for compiled parity traversal, and `mixed` when a
+render uses different query paths. The
+summary also reports estimated ray-upload and readback byte counts for the
+packed GPU ABI; CPU and unsupported runtime-scene fallbacks report zero query
+transfer bytes because no upload/readback would be attempted for those paths.
+Raster
+controls such as `--lod`, `--msaa`,
 `--msaa_shading`, `--raster_backend`, viewport/scissor, blending, alpha test,
 depth bias, shadow-map quality, and `--raster_culling on|auto|off` become
 raster pass, shadow-node, or visibility-node state; wireframe `--lod` becomes
@@ -252,7 +285,9 @@ radiance-delta RMS values, retained active sample counts after each depth,
 per-depth frontier hit/miss counts, compatibility fallback counts, convergence
 thresholds, unsupported path-material counts, stop decisions, denoiser
 diagnostics when enabled, convergence
-feedback depth counts, tile load-balance counts, per-pixel sample radiance
+feedback depth counts, tile load-balance counts, requested and resolved
+intersection backend names, actual query execution path, and fallback reason,
+per-pixel sample radiance
 standard-deviation diagnostics, path-tracing emitter-hit counts, sampled
 direct-light counts, contribution luminance sums for emitted, direct-light,
 ambient, miss/background, and compatibility-shaded radiance, and total render
@@ -435,7 +470,8 @@ set the bilateral color sigma. Path Tracer settings include the
 schedule selector, Russian-roulette start depth, and direct-light sample count.
 Scalar schedule previews publish running sample averages during multi-sample
 renders, while wavefront schedule previews publish depth-frontier snapshots and
-can use wavefront denoising/adaptive sampling. The final render
+can use wavefront denoising/adaptive sampling and the selected intersection
+backend. The final render
 dialog starts from the scene's
 saved Render Settings, then acts as a one-off override surface for that render.
 When the scene omits sampler or sample-count intent, it keeps Regular as the
@@ -444,6 +480,21 @@ and 64 samples per pixel, matching the sampler guidance for stochastic
 transport. For Path Tracer final renders using the wavefront schedule, the same
 dialog can leave the scene's saved denoiser intent alone or explicitly override
 it to None, Box, or Bilateral with radius and bilateral color-sigma controls.
+It can also request Auto, CPU, or GPU wavefront intersection. GPU currently
+records the request and falls back to CPU visibly in the compiled graph and
+trace metadata; if the scene cannot be represented by the GPU intersection
+record format yet, the fallback reason names the unsupported leaf. Supported
+scenes are still compiled into the GPU-ready record format and retained by the
+scene-created platform backend stub so the future Metal/Vulkan upload path can
+reuse the same preparation step. Metal-enabled builds also expose separate smoke
+kernel test paths outside rendering and can run the exact-primitive and
+static-transform basic closest-hit/any-hit subset in the render path when a
+Metal device is available. Scenes outside that subset use the supported packed
+CPU traversal or the compiled CPU parity intersector; unsupported-scene fallback
+keeps the full runtime `Scene` path. The render graph pass tooltip shows the actual query
+execution path plus
+compiled-scene primitive, BVH, and unsupported-leaf counts, and it marks when
+the packed closest-hit path is eligible for the compiled scene.
 The final render dialog intentionally keeps its engine list user-facing:
 Raytracer, Path Tracer, Rasterizer, and Wireframe. Wavefront path tracing is
 selected as the Path Tracer schedule rather than as a second top-level engine,

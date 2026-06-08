@@ -30,6 +30,67 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   derive portal cameras from receiver/source transforms and mirror cameras from
   planar reflection, carrying explicit receiver-clipping state through graph
   inspection and execution. — GPT-5
+- **Wavefront intersection backend controls.** Render intent, graph pass state,
+  rendercli, Modeler Render Settings, and wavefront metrics now carry
+  `auto`/`cpu`/`gpu` intersection-backend requests, with GPU requests falling
+  back visibly to CPU through explicit Metal/Vulkan platform stubs until a
+  platform backend is available. Auto selection now has a render-size-aware
+  policy that stays on CPU until a platform GPU backend is available, the scene
+  compiles to the supported packed intersection representation, and enough ray
+  work is expected to justify GPU upload/readback. The experimental
+  `RAYTRACER_ENABLE_METAL_WAVEFRONT` and
+  `RAYTRACER_ENABLE_VULKAN_WAVEFRONT` CMake flags now exist, default off, and
+  make backend diagnostics distinguish disabled platform plumbing from
+  enabled-without-render-kernel plumbing; the Metal flag also builds a tiny
+  upload/dispatch/readback smoke compute wrapper and can route prepared
+  triangle, sphere, plane, rectangle, disk, and static-transform closest-hit and
+  any-hit queries through Metal packed-ABI kernels when a Metal device is
+  available.
+  — GPT-5
+- **Wavefront any-hit backend seam.** Batched path-tracing direct-light
+  visibility now routes shadow/occlusion rays through
+  `WavefrontIntersectionBackend::intersectAny(...)`, records any-hit query
+  counts alongside closest-hit counts, and preserves bounded light-distance
+  visibility through the CPU fallback backend. — GPT-5
+- **Compiled wavefront intersection scene diagnostics.** Added a CPU-side
+  compiler that flattens supported ray primitives into GPU-ready intersection
+  records, payloads, material/object ids, transform payloads, a bounded-leaf
+  BVH layout, and explicit unsupported-primitive reasons; GPU intersection
+  requests now run that diagnostic compiler before rendering, retain the
+  compiled records on scene-aware Metal/Vulkan fallback stubs for supported
+  scenes, answer supported fallback queries through compiled-scene or packed
+  upload-buffer CPU parity paths instead of re-entering the runtime scene,
+  report scene-specific CPU fallback reasons when unsupported leaves are
+  present, and expose compiled-scene primitive/BVH/payload counts plus the actual
+  intersection query execution path in wavefront metrics, rendercli summaries,
+  and Modeler graph tooltips.
+  — GPT-5
+- **Compiled hit-record parity harness.** Added a CPU
+  `CompiledIntersectionSceneIntersector` that traverses the compiled BVH for
+  triangle, sphere, plane, rectangle, and disk payloads and emits GPU-style
+  closest-hit records plus bounded any-hit occlusion queries, giving the
+  planned Metal/Vulkan kernels a tested object/material id, distance, point,
+  normal, UV, barycentric, static instance-transform, and light-distance
+  visibility contract to match. A host-side `GpuIntersectionScenePacker` now
+  converts the compiled scene, ray work items, exact primitive payloads, and
+  miss records into stable 16-byte-aligned upload/readback layouts for the
+  first closest-hit kernels, and wavefront metrics/rendercli summaries/Modeler
+  graph tooltips now report the retained upload byte count plus
+  triangle-kernel and basic-kernel eligibility.
+  Triangle, sphere, plane, rectangle, disk, and static instance prepared GPU
+  fallbacks now route closest-hit, packet closest-hit, and bounded any-hit
+  occlusion queries through an executable packed-buffer CPU traversal that
+  consumes the same upload records and emits the same hit/visibility contract
+  planned for the Metal/Vulkan kernels; metrics report `packed_cpu` when both
+  query families use that packed path and still support `mixed` for future
+  renders that combine different query execution paths. Wavefront metrics,
+  rendercli summaries, and Modeler graph tooltips now also expose estimated
+  packed GPU query-transfer bytes for ray upload, closest-hit readback, any-hit
+  readback, and the per-render query-transfer total. Metal-enabled builds can
+  now execute closest-hit and any-hit queries for triangle, sphere, plane,
+  rectangle, disk, and static-transform scenes through the Metal basic hit
+  kernels when a Metal device is available.
+  — GPT-5
 - **Portal and planar mirror scene markers.** Scene JSON and Modeler surface
   properties can now mark planar portal receivers and mirror surfaces for
   render graph discovery. — GPT-5
