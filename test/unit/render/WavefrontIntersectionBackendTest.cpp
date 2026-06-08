@@ -63,6 +63,7 @@ namespace WavefrontIntersectionBackendTest {
       diagnostics.triangleClosestHitKernelEligible = true;
       diagnostics.basicHitKernelEligible = true;
       diagnostics.packedClosestHitKernelEligible = true;
+      diagnostics.packedAnyHitKernelEligible = true;
       return diagnostics;
     }
   }
@@ -401,6 +402,7 @@ namespace WavefrontIntersectionBackendTest {
     ASSERT_FALSE(buffers.triangleClosestHitKernelEligible());
     ASSERT_TRUE(buffers.basicHitKernelEligible());
     ASSERT_TRUE(buffers.packedClosestHitKernelEligible());
+    ASSERT_TRUE(buffers.packedAnyHitKernelEligible());
 
     const std::vector<GpuIntersectionRay> rays{
       GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 21),
@@ -444,6 +446,7 @@ namespace WavefrontIntersectionBackendTest {
 
     EXPECT_FALSE(buffers.basicHitKernelEligible());
     EXPECT_FALSE(buffers.packedClosestHitKernelEligible());
+    EXPECT_FALSE(buffers.packedAnyHitKernelEligible());
     EXPECT_THROW(MetalWavefrontSmokeKernel().runBasicClosestHitKernel(buffers, rays),
                  std::invalid_argument);
     EXPECT_THROW(MetalWavefrontSmokeKernel().runBasicAnyHitKernel(buffers, rays),
@@ -521,6 +524,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_FALSE(diagnostics.triangleClosestHitKernelEligible);
     EXPECT_TRUE(diagnostics.basicHitKernelEligible);
     EXPECT_TRUE(diagnostics.packedClosestHitKernelEligible);
+    EXPECT_TRUE(diagnostics.packedAnyHitKernelEligible);
     EXPECT_GT(backend->estimatedClosestHitRayUploadBytes(4), 0u);
     EXPECT_GT(backend->estimatedClosestHitReadbackBytes(4), 0u);
     EXPECT_GT(backend->estimatedAnyHitRayUploadBytes(4), 0u);
@@ -553,6 +557,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_FALSE(diagnostics.triangleClosestHitKernelEligible);
     EXPECT_FALSE(diagnostics.basicHitKernelEligible);
     EXPECT_FALSE(diagnostics.packedClosestHitKernelEligible);
+    EXPECT_FALSE(diagnostics.packedAnyHitKernelEligible);
     EXPECT_EQ(0u, backend->estimatedClosestHitRayUploadBytes(4));
     EXPECT_EQ(0u, backend->estimatedClosestHitReadbackBytes(4));
     EXPECT_EQ(0u, backend->estimatedAnyHitRayUploadBytes(4));
@@ -572,6 +577,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_FALSE(backend->gpuIntersectionSceneBuffers()->triangleClosestHitKernelEligible());
     EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->basicHitKernelEligible());
     EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedClosestHitKernelEligible());
+    EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedAnyHitKernelEligible());
     const bool usesMetalClosestHit = std::string(backend->closestHitExecutionPath()) == "metal";
     if (usesMetalClosestHit) {
       EXPECT_STREQ("metal", backend->name());
@@ -614,6 +620,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_FALSE(backend->gpuIntersectionSceneBuffers()->triangleClosestHitKernelEligible());
     EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->basicHitKernelEligible());
     EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedClosestHitKernelEligible());
+    EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedAnyHitKernelEligible());
     if (std::string(backend->closestHitExecutionPath()) == "metal") {
       EXPECT_STREQ("metal", backend->name());
       EXPECT_STREQ("available", backend->availability());
@@ -651,6 +658,7 @@ namespace WavefrontIntersectionBackendTest {
     ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
     EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->triangleClosestHitKernelEligible());
     EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedClosestHitKernelEligible());
+    EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedAnyHitKernelEligible());
     const bool usesMetalClosestHit = std::string(backend->closestHitExecutionPath()) == "metal";
     if (usesMetalClosestHit) {
       EXPECT_STREQ("metal", backend->name());
@@ -690,6 +698,7 @@ namespace WavefrontIntersectionBackendTest {
 
     ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
     ASSERT_TRUE(backend->gpuIntersectionSceneBuffers()->triangleClosestHitKernelEligible());
+    ASSERT_TRUE(backend->gpuIntersectionSceneBuffers()->packedAnyHitKernelEligible());
     if (std::string(backend->anyHitExecutionPath()) == "metal") {
       EXPECT_STREQ("metal", backend->name());
       EXPECT_STREQ("available", backend->availability());
@@ -722,6 +731,7 @@ namespace WavefrontIntersectionBackendTest {
 
     ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
     EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedClosestHitKernelEligible());
+    EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedAnyHitKernelEligible());
     if (std::string(backend->anyHitExecutionPath()) == "metal") {
       EXPECT_STREQ("metal", backend->name());
       EXPECT_STREQ("available", backend->availability());

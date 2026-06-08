@@ -60,9 +60,16 @@ bool GpuIntersectionSceneBuffers::packedClosestHitKernelEligible() const {
          });
 }
 
+bool GpuIntersectionSceneBuffers::packedAnyHitKernelEligible() const {
+  return !primitives.empty() &&
+         std::all_of(primitives.begin(), primitives.end(), [this](const auto& primitive) {
+           return primitiveHasPackedAnyHitTraversal(primitive);
+         });
+}
+
 bool GpuIntersectionSceneBuffers::primitiveHasBasicHitKernelTraversal(
   const GpuIntersectionPrimitiveRecord& primitive) const {
-  if (primitive.payloadCount == 0) {
+  if (primitive.payloadCount != 1) {
     return false;
   }
 
@@ -90,22 +97,12 @@ bool GpuIntersectionSceneBuffers::primitiveHasBasicHitKernelTraversal(
 
 bool GpuIntersectionSceneBuffers::primitiveHasPackedClosestHitTraversal(
   const GpuIntersectionPrimitiveRecord& primitive) const {
-  if (primitive.transform != 0 && primitive.transform >= transforms.size()) {
-    return false;
-  }
+  return primitiveHasBasicHitKernelTraversal(primitive);
+}
 
-  switch (static_cast<GpuIntersectionPrimitiveKind>(primitive.kind)) {
-  case GpuIntersectionPrimitiveKind::Triangle:
-  case GpuIntersectionPrimitiveKind::Sphere:
-  case GpuIntersectionPrimitiveKind::Plane:
-  case GpuIntersectionPrimitiveKind::Rectangle:
-  case GpuIntersectionPrimitiveKind::Disk:
-    return true;
-  case GpuIntersectionPrimitiveKind::Unsupported:
-    return false;
-  }
-
-  return false;
+bool GpuIntersectionSceneBuffers::primitiveHasPackedAnyHitTraversal(
+  const GpuIntersectionPrimitiveRecord& primitive) const {
+  return primitiveHasPackedClosestHitTraversal(primitive);
 }
 
 GpuIntersectionSceneBuffers

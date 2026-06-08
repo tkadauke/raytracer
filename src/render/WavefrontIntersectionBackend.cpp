@@ -375,6 +375,7 @@ namespace render {
     diagnostics.triangleClosestHitKernelEligible = buffers.triangleClosestHitKernelEligible();
     diagnostics.basicHitKernelEligible = buffers.basicHitKernelEligible();
     diagnostics.packedClosestHitKernelEligible = buffers.packedClosestHitKernelEligible();
+    diagnostics.packedAnyHitKernelEligible = buffers.packedAnyHitKernelEligible();
     return diagnostics;
   }
 
@@ -451,7 +452,7 @@ namespace render {
 
   bool WavefrontIntersectionBackend::packedAnyHitAvailable() const {
     const GpuIntersectionSceneBuffers* buffers = gpuIntersectionSceneBuffers();
-    return buffers && buffers->packedClosestHitKernelEligible();
+    return buffers && buffers->packedAnyHitKernelEligible();
   }
 
   bool WavefrontIntersectionBackend::preparedPackedClosestHitAvailable() const {
@@ -492,7 +493,7 @@ namespace render {
     const std::vector<GpuIntersectionRay>& rays,
     WavefrontIntersectionQueryTiming* /*timing*/) const {
     const GpuIntersectionSceneBuffers* buffers = gpuIntersectionSceneBuffers();
-    if (!buffers || !buffers->packedClosestHitKernelEligible()) {
+    if (!buffers || !buffers->packedAnyHitKernelEligible()) {
       return {};
     }
 

@@ -97,6 +97,7 @@ namespace render {
     intersectionSceneTriangleClosestHitEligible = false;
     intersectionSceneBasicHitEligible = false;
     intersectionScenePackedClosestHitEligible = false;
+    intersectionScenePackedAnyHitEligible = false;
     intersectionEstimatedRayUploadBytes = 0;
     intersectionEstimatedClosestHitReadbackBytes = 0;
     intersectionEstimatedAnyHitReadbackBytes = 0;
@@ -183,6 +184,8 @@ namespace render {
       intersectionSceneBasicHitEligible || diagnostics.basicHitKernelEligible;
     intersectionScenePackedClosestHitEligible =
       intersectionScenePackedClosestHitEligible || diagnostics.packedClosestHitKernelEligible;
+    intersectionScenePackedAnyHitEligible =
+      intersectionScenePackedAnyHitEligible || diagnostics.packedAnyHitKernelEligible;
   }
 
   void
@@ -254,6 +257,8 @@ namespace render {
       intersectionSceneBasicHitEligible || source.intersectionSceneBasicHitEligible;
     intersectionScenePackedClosestHitEligible =
       intersectionScenePackedClosestHitEligible || source.intersectionScenePackedClosestHitEligible;
+    intersectionScenePackedAnyHitEligible =
+      intersectionScenePackedAnyHitEligible || source.intersectionScenePackedAnyHitEligible;
     intersectionEstimatedRayUploadBytes += source.intersectionEstimatedRayUploadBytes;
     intersectionEstimatedClosestHitReadbackBytes +=
       source.intersectionEstimatedClosestHitReadbackBytes;

@@ -1042,6 +1042,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("unsupported 0")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("upload bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("packed closest-hit eligible")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("packed any-hit eligible")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("query transfer bytes")));
   }
 

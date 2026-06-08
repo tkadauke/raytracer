@@ -30,6 +30,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   derive portal cameras from receiver/source transforms and mirror cameras from
   planar reflection, carrying explicit receiver-clipping state through graph
   inspection and execution. — GPT-5
+- **Packed wavefront any-hit eligibility diagnostics.** Wavefront metrics,
+  rendercli summaries, and Modeler graph tooltips now report packed any-hit
+  eligibility separately from packed closest-hit eligibility, and packed
+  traversal eligibility now rejects malformed primitive records whose payload
+  offsets/counts do not match the current one-payload GPU ABI.
+  — GPT-5
 - **Box support in compiled wavefront intersection scenes.** GPU-requested
   wavefront renders can now compile `render::Box` leaves into the packed
   triangle intersection path while preserving the exact raytraced Box hit UV

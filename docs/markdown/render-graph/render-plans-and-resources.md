@@ -774,8 +774,8 @@ requested and resolved intersection backend plus fallback reason,
 actual query execution path (`runtime_scene`, `compiled_cpu`, `packed_cpu`,
 `metal`, or `mixed` when closest-hit and any-hit queries use different paths),
 compiled intersection-scene primitive/BVH/payload/unsupported-leaf counts and
-packed closest-hit eligibility, estimated ray-upload bytes, closest-hit and
-any-hit readback bytes, and estimated query-transfer bytes for the packed GPU
+packed closest-hit/any-hit eligibility, estimated ray-upload bytes, closest-hit
+and any-hit readback bytes, and estimated query-transfer bytes for the packed GPU
 intersection ABI,
 tile count, min/average/max non-empty tile sample counts, queue decision, and
 render timing split into summed worker time for sample generation and

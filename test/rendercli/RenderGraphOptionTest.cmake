@@ -2430,6 +2430,7 @@ foreach(expectation
         "intersection_scene_upload_bytes=[1-9][0-9]*"
         "intersection_scene_basic_hit_kernel_eligible=true"
         "intersection_scene_packed_closest_hit_eligible=true"
+        "intersection_scene_packed_any_hit_eligible=true"
         "intersection_estimated_ray_upload_bytes=[1-9][0-9]*"
         "intersection_estimated_closest_hit_readback_bytes=[1-9][0-9]*"
         "intersection_estimated_query_transfer_bytes=[1-9][0-9]*"
@@ -2451,6 +2452,7 @@ foreach(expectation
         "\"intersectionSceneUploadBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionSceneBasicHitEligible\"[ \r\n]*:[ \r\n]*true"
         "\"intersectionScenePackedClosestHitEligible\"[ \r\n]*:[ \r\n]*true"
+        "\"intersectionScenePackedAnyHitEligible\"[ \r\n]*:[ \r\n]*true"
         "\"intersectionEstimatedRayUploadBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionEstimatedClosestHitReadbackBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")

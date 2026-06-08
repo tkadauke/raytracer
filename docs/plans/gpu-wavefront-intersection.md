@@ -443,7 +443,10 @@ Progress:
   Metrics now record closest-hit and any-hit execution paths separately, so a
   Metal basic closest-hit/any-hit render can report `metal`, CPU packed fallback
   reports `packed_cpu`, and `compiled_cpu` plus `mixed` remain available for
-  unsupported packed payloads or query paths that diverge.
+  unsupported packed payloads or query paths that diverge. Packed closest-hit
+  and packed any-hit eligibility are now separate diagnostics, and both require
+  valid one-payload primitive records before a prepared backend can advertise
+  that query path.
 - Metal render-path closest-hit and any-hit queries now record backend timing
   buckets for host upload/setup, kernel dispatch/wait, and result readback.
   Those timings flow into wavefront metrics, rendercli summaries, and Modeler

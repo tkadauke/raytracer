@@ -536,6 +536,9 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         if (batching.value(QStringLiteral("intersectionScenePackedClosestHitEligible")).toBool()) {
           line += QStringLiteral(", packed closest-hit eligible");
         }
+        if (batching.value(QStringLiteral("intersectionScenePackedAnyHitEligible")).toBool()) {
+          line += QStringLiteral(", packed any-hit eligible");
+        }
         const qulonglong queryTransferBytes =
           jsonIntegerValue(batching, QStringLiteral("intersectionEstimatedQueryTransferBytes"));
         if (queryTransferBytes > 0) {

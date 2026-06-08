@@ -407,6 +407,7 @@ namespace WavefrontRaytracerTest {
       EXPECT_EQ(0u, m_lastMetrics.batching.intersectionSceneUnsupportedPrimitives);
       EXPECT_TRUE(m_lastMetrics.batching.intersectionSceneBasicHitEligible);
       EXPECT_TRUE(m_lastMetrics.batching.intersectionScenePackedClosestHitEligible);
+      EXPECT_TRUE(m_lastMetrics.batching.intersectionScenePackedAnyHitEligible);
       EXPECT_GT(m_lastMetrics.batching.intersectionRaysSubmitted, 0u);
       if (usedMetalClosestHit(m_lastMetrics)) {
         EXPECT_EQ("metal", m_lastMetrics.batching.intersectionBackend);
@@ -1173,6 +1174,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_FALSE(metrics.batching.intersectionSceneTriangleClosestHitEligible);
     EXPECT_TRUE(metrics.batching.intersectionSceneBasicHitEligible);
     EXPECT_TRUE(metrics.batching.intersectionScenePackedClosestHitEligible);
+    EXPECT_TRUE(metrics.batching.intersectionScenePackedAnyHitEligible);
     EXPECT_GT(metrics.batching.intersectionRaysSubmitted, 0u);
     EXPECT_GT(metrics.batching.intersectionEstimatedRayUploadBytes, 0u);
     EXPECT_GT(metrics.batching.intersectionEstimatedClosestHitReadbackBytes, 0u);
@@ -1199,6 +1201,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_FALSE(batching.value("intersectionSceneTriangleClosestHitEligible").toBool());
     EXPECT_TRUE(batching.value("intersectionSceneBasicHitEligible").toBool());
     EXPECT_TRUE(batching.value("intersectionScenePackedClosestHitEligible").toBool());
+    EXPECT_TRUE(batching.value("intersectionScenePackedAnyHitEligible").toBool());
     EXPECT_GT(batching.value("intersectionEstimatedRayUploadBytes").toDouble(), 0.0);
     EXPECT_GT(batching.value("intersectionEstimatedClosestHitReadbackBytes").toDouble(), 0.0);
     EXPECT_EQ(static_cast<double>(metrics.batching.intersectionEstimatedQueryTransferBytes),
@@ -1250,6 +1253,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_FALSE(metrics.batching.intersectionSceneTriangleClosestHitEligible);
     EXPECT_TRUE(metrics.batching.intersectionSceneBasicHitEligible);
     EXPECT_TRUE(metrics.batching.intersectionScenePackedClosestHitEligible);
+    EXPECT_TRUE(metrics.batching.intersectionScenePackedAnyHitEligible);
     EXPECT_GT(metrics.batching.closestHitQueries, 0u);
 
     const QJsonObject batching = metrics.toJson().value("batching").toObject();
@@ -1258,6 +1262,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_FALSE(batching.value("intersectionSceneTriangleClosestHitEligible").toBool());
     EXPECT_TRUE(batching.value("intersectionSceneBasicHitEligible").toBool());
     EXPECT_TRUE(batching.value("intersectionScenePackedClosestHitEligible").toBool());
+    EXPECT_TRUE(batching.value("intersectionScenePackedAnyHitEligible").toBool());
   }
 
   TEST(WavefrontRaytracer, RecordsGpuTriangleClosestHitPackedBackendMetrics) {
@@ -1298,6 +1303,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(metrics.batching.intersectionSceneTriangleClosestHitEligible);
     EXPECT_TRUE(metrics.batching.intersectionSceneBasicHitEligible);
     EXPECT_TRUE(metrics.batching.intersectionScenePackedClosestHitEligible);
+    EXPECT_TRUE(metrics.batching.intersectionScenePackedAnyHitEligible);
     EXPECT_GT(metrics.batching.intersectionRaysSubmitted, 0u);
     EXPECT_GT(metrics.batching.closestHitQueries, 0u);
     EXPECT_EQ(0u, metrics.batching.anyHitQueries);
@@ -1310,6 +1316,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(batching.value("intersectionSceneTriangleClosestHitEligible").toBool());
     EXPECT_TRUE(batching.value("intersectionSceneBasicHitEligible").toBool());
     EXPECT_TRUE(batching.value("intersectionScenePackedClosestHitEligible").toBool());
+    EXPECT_TRUE(batching.value("intersectionScenePackedAnyHitEligible").toBool());
   }
 
   TEST(WavefrontRaytracer, GpuIntersectionRequestMatchesCpuImageForSupportedWhittedScene) {
@@ -1377,6 +1384,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_FALSE(metrics.batching.intersectionSceneTriangleClosestHitEligible);
     EXPECT_FALSE(metrics.batching.intersectionSceneBasicHitEligible);
     EXPECT_FALSE(metrics.batching.intersectionScenePackedClosestHitEligible);
+    EXPECT_FALSE(metrics.batching.intersectionScenePackedAnyHitEligible);
   }
 
   TEST(WavefrontRaytracer, SerializesEmitterHitMetrics) {

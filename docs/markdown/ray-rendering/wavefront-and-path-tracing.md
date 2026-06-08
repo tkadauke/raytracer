@@ -276,7 +276,8 @@ transform or a static transform payload. Prepared GPU fallback backends retain
 the packed buffers next to the compiled scene, and the wavefront metrics report
 `intersectionSceneUploadBytes` plus
 `intersectionSceneTriangleClosestHitEligible` and
-`intersectionSceneBasicHitEligible` and `intersectionScenePackedClosestHitEligible`
+`intersectionSceneBasicHitEligible`, `intersectionScenePackedClosestHitEligible`,
+and `intersectionScenePackedAnyHitEligible`
 so rendercli and the graph inspector can show the would-be upload workload
 before a platform kernel runs.
 For eligible exact-primitive and static-instance scenes, closest-hit and packet

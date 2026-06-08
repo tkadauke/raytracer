@@ -113,6 +113,8 @@ namespace engine::wavefront {
       intersectionSceneBasicHitEligible || metrics.intersectionSceneBasicHitEligible;
     intersectionScenePackedClosestHitEligible = intersectionScenePackedClosestHitEligible ||
                                                 metrics.intersectionScenePackedClosestHitEligible;
+    intersectionScenePackedAnyHitEligible =
+      intersectionScenePackedAnyHitEligible || metrics.intersectionScenePackedAnyHitEligible;
     intersectionEstimatedRayUploadBytes += metrics.intersectionEstimatedRayUploadBytes;
     intersectionEstimatedClosestHitReadbackBytes +=
       metrics.intersectionEstimatedClosestHitReadbackBytes;
@@ -314,6 +316,8 @@ namespace engine::wavefront {
     batchingJson["intersectionSceneBasicHitEligible"] = batching.intersectionSceneBasicHitEligible;
     batchingJson["intersectionScenePackedClosestHitEligible"] =
       batching.intersectionScenePackedClosestHitEligible;
+    batchingJson["intersectionScenePackedAnyHitEligible"] =
+      batching.intersectionScenePackedAnyHitEligible;
     batchingJson["intersectionEstimatedRayUploadBytes"] =
       static_cast<double>(batching.intersectionEstimatedRayUploadBytes);
     batchingJson["intersectionEstimatedClosestHitReadbackBytes"] =

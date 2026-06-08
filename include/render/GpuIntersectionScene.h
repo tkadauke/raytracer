@@ -134,10 +134,13 @@ namespace render {
     [[nodiscard]] bool triangleClosestHitKernelEligible() const;
     [[nodiscard]] bool basicHitKernelEligible() const;
     [[nodiscard]] bool packedClosestHitKernelEligible() const;
+    [[nodiscard]] bool packedAnyHitKernelEligible() const;
     [[nodiscard]] bool
     primitiveHasBasicHitKernelTraversal(const GpuIntersectionPrimitiveRecord& primitive) const;
     [[nodiscard]] bool
     primitiveHasPackedClosestHitTraversal(const GpuIntersectionPrimitiveRecord& primitive) const;
+    [[nodiscard]] bool
+    primitiveHasPackedAnyHitTraversal(const GpuIntersectionPrimitiveRecord& primitive) const;
   };
 
   class GpuIntersectionScenePacker {

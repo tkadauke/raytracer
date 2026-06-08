@@ -119,6 +119,7 @@ namespace IntegratorTest {
     EXPECT_TRUE(metrics.intersectionSceneTriangleClosestHitEligible);
     EXPECT_TRUE(metrics.intersectionSceneBasicHitEligible);
     EXPECT_TRUE(metrics.intersectionScenePackedClosestHitEligible);
+    EXPECT_TRUE(metrics.intersectionScenePackedAnyHitEligible);
 
     WavefrontIntersectionQueryTiming anyTiming;
     anyTiming.uploadSeconds = 0.004;

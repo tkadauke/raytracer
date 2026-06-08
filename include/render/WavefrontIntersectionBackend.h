@@ -35,6 +35,7 @@ namespace render {
     bool triangleClosestHitKernelEligible{false};
     bool basicHitKernelEligible{false};
     bool packedClosestHitKernelEligible{false};
+    bool packedAnyHitKernelEligible{false};
 
     [[nodiscard]] static WavefrontIntersectionSceneDiagnostics
     fromCompiledScene(const CompiledIntersectionScene& scene);

@@ -84,6 +84,7 @@ namespace GpuIntersectionSceneTest {
       const GpuIntersectionRay packedRay = GpuIntersectionScenePacker().packRay(ray, rayIndex);
 
       ASSERT_TRUE(buffers.packedClosestHitKernelEligible());
+      ASSERT_TRUE(buffers.packedAnyHitKernelEligible());
       ASSERT_EQ(expectedTriangleHitKernelEligible, buffers.triangleClosestHitKernelEligible());
       ASSERT_EQ(expectedBasicHitKernelEligible, buffers.basicHitKernelEligible());
 
@@ -115,6 +116,7 @@ namespace GpuIntersectionSceneTest {
         GpuIntersectionScenePacker().packRay(ray, 59, 0.0, maxDistance);
 
       ASSERT_TRUE(buffers.packedClosestHitKernelEligible());
+      ASSERT_TRUE(buffers.packedAnyHitKernelEligible());
 
       const bool compiledHit =
         CompiledIntersectionSceneIntersector().intersectAny(compiled, ray, maxDistance);
@@ -181,6 +183,7 @@ namespace GpuIntersectionSceneTest {
     EXPECT_TRUE(buffers.triangleClosestHitKernelEligible());
     EXPECT_TRUE(buffers.basicHitKernelEligible());
     EXPECT_TRUE(buffers.packedClosestHitKernelEligible());
+    EXPECT_TRUE(buffers.packedAnyHitKernelEligible());
     EXPECT_EQ(buffers.bvh.size() * sizeof(GpuIntersectionBvhNode) +
                 buffers.primitives.size() * sizeof(GpuIntersectionPrimitiveRecord) +
                 buffers.triangles.size() * sizeof(GpuIntersectionTrianglePayload),
@@ -237,6 +240,7 @@ namespace GpuIntersectionSceneTest {
     EXPECT_FALSE(buffers.triangleClosestHitKernelEligible());
     EXPECT_TRUE(buffers.basicHitKernelEligible());
     EXPECT_TRUE(buffers.packedClosestHitKernelEligible());
+    EXPECT_TRUE(buffers.packedAnyHitKernelEligible());
   }
 
   TEST(GpuIntersectionScene, PacksRayFrontierWorkItemsAndMissRecords) {
@@ -268,6 +272,7 @@ namespace GpuIntersectionSceneTest {
     EXPECT_FALSE(sphereBuffers.triangleClosestHitKernelEligible());
     EXPECT_TRUE(sphereBuffers.basicHitKernelEligible());
     EXPECT_TRUE(sphereBuffers.packedClosestHitKernelEligible());
+    EXPECT_TRUE(sphereBuffers.packedAnyHitKernelEligible());
     ASSERT_EQ(1u, sphereBuffers.primitives.size());
     EXPECT_EQ(static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Sphere),
               sphereBuffers.primitives[0].kind);
@@ -284,11 +289,43 @@ namespace GpuIntersectionSceneTest {
     EXPECT_FALSE(transformedBuffers.triangleClosestHitKernelEligible());
     EXPECT_TRUE(transformedBuffers.basicHitKernelEligible());
     EXPECT_TRUE(transformedBuffers.packedClosestHitKernelEligible());
+    EXPECT_TRUE(transformedBuffers.packedAnyHitKernelEligible());
     ASSERT_EQ(1u, transformedBuffers.primitives.size());
     EXPECT_EQ(static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Triangle),
               transformedBuffers.primitives[0].kind);
     EXPECT_NE(0u, transformedBuffers.primitives[0].transform);
     EXPECT_GT(transformedBuffers.transforms.size(), transformedBuffers.primitives[0].transform);
+  }
+
+  TEST(GpuIntersectionScene, PackedKernelEligibilityRejectsInvalidPayloadReferences) {
+    const auto bounds = [](float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+      return GpuIntersectionBounds{{minX, minY, minZ, 0.0f}, {maxX, maxY, maxZ, 0.0f}};
+    };
+
+    GpuIntersectionSceneBuffers buffers;
+    buffers.bvh.push_back(GpuIntersectionBvhNode{bounds(-1.0f, -1.0f, 3.0f, 1.0f, 1.0f, 3.0f), 0, 1,
+                                                 gpuIntersectionLeafNodeFlag, 0});
+    buffers.primitives.push_back(GpuIntersectionPrimitiveRecord{
+      bounds(-1.0f, -1.0f, 3.0f, 1.0f, 1.0f, 3.0f),
+      static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Triangle),
+      0,
+      0,
+      0,
+      12,
+      1,
+      {}});
+    buffers.triangles.push_back(GpuIntersectionTrianglePayload{});
+
+    EXPECT_FALSE(buffers.basicHitKernelEligible());
+    EXPECT_FALSE(buffers.packedClosestHitKernelEligible());
+    EXPECT_FALSE(buffers.packedAnyHitKernelEligible());
+
+    buffers.primitives[0].payloadOffset = 0;
+    buffers.primitives[0].payloadCount = 2;
+
+    EXPECT_FALSE(buffers.basicHitKernelEligible());
+    EXPECT_FALSE(buffers.packedClosestHitKernelEligible());
+    EXPECT_FALSE(buffers.packedAnyHitKernelEligible());
   }
 
   TEST(GpuIntersectionScene, PacksStaticTransformPayloadsAsRowMajorMatrices) {

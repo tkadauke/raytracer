@@ -157,7 +157,7 @@ with the same hit-record and visibility contract the wider Metal/Vulkan kernels
 will write.
 Wavefront metrics and
 `--wavefront_metrics_summary` expose the compiled-scene primitive, BVH,
-payload, unsupported-leaf counts, basic-kernel and packed closest-hit
+payload, unsupported-leaf counts, basic-kernel, packed closest-hit, and packed any-hit
 eligibility, and actual query execution path for those requests. The path is
 `metal` for the Metal basic kernels, `packed_cpu` for the packed CPU
 contract, `compiled_cpu` for compiled parity traversal, and `mixed` when a
@@ -501,7 +501,8 @@ CPU traversal or the compiled CPU parity intersector; unsupported-scene fallback
 keeps the full runtime `Scene` path. The render graph pass tooltip shows the actual query
 execution path plus
 compiled-scene primitive, BVH, and unsupported-leaf counts, and it marks when
-the packed closest-hit path is eligible for the compiled scene.
+the packed closest-hit or packed any-hit path is eligible for the compiled
+scene.
 The final render dialog intentionally keeps its engine list user-facing:
 Raytracer, Path Tracer, Rasterizer, and Wireframe. Wavefront path tracing is
 selected as the Path Tracer schedule rather than as a second top-level engine,

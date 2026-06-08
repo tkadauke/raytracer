@@ -87,6 +87,7 @@ namespace render {
     bool intersectionSceneTriangleClosestHitEligible{false};
     bool intersectionSceneBasicHitEligible{false};
     bool intersectionScenePackedClosestHitEligible{false};
+    bool intersectionScenePackedAnyHitEligible{false};
     std::uint64_t intersectionEstimatedRayUploadBytes{0};
     std::uint64_t intersectionEstimatedClosestHitReadbackBytes{0};
     std::uint64_t intersectionEstimatedAnyHitReadbackBytes{0};

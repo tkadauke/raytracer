@@ -263,6 +263,8 @@ namespace {
         << (batching.value("intersectionSceneBasicHitEligible").toBool() ? "true" : "false")
         << " intersection_scene_packed_closest_hit_eligible="
         << (batching.value("intersectionScenePackedClosestHitEligible").toBool() ? "true" : "false")
+        << " intersection_scene_packed_any_hit_eligible="
+        << (batching.value("intersectionScenePackedAnyHitEligible").toBool() ? "true" : "false")
         << " intersection_estimated_ray_upload_bytes="
         << unsignedValue(batching, "intersectionEstimatedRayUploadBytes")
         << " intersection_estimated_closest_hit_readback_bytes="
