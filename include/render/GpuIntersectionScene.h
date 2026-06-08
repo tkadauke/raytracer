@@ -197,7 +197,8 @@ namespace render {
     };
 
     [[nodiscard]] bool boundsIntersectRay(const GpuIntersectionBounds& bounds,
-                                          const GpuIntersectionRay& ray) const;
+                                          const GpuIntersectionRay& ray,
+                                          float maxHitDistance) const;
     [[nodiscard]] bool hitOccludes(const ClosestHit& hit, float maxDistance) const;
     [[nodiscard]] std::optional<ClosestHit>
     intersectTriangle(const GpuIntersectionRay& ray,

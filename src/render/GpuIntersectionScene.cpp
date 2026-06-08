@@ -306,7 +306,7 @@ GpuIntersectionIntersector::intersectClosest(const GpuIntersectionSceneBuffers& 
     }
 
     const GpuIntersectionBvhNode& node = scene.bvh[nodeIndex];
-    if (!boundsIntersectRay(node.bounds, ray)) {
+    if (!boundsIntersectRay(node.bounds, ray, closest.distance)) {
       continue;
     }
 
@@ -323,7 +323,7 @@ GpuIntersectionIntersector::intersectClosest(const GpuIntersectionSceneBuffers& 
       }
 
       const GpuIntersectionPrimitiveRecord& primitive = scene.primitives[primitiveIndex];
-      if (!boundsIntersectRay(primitive.bounds, ray)) {
+      if (!boundsIntersectRay(primitive.bounds, ray, closest.distance)) {
         continue;
       }
 
@@ -368,7 +368,7 @@ bool GpuIntersectionIntersector::intersectAny(const GpuIntersectionSceneBuffers&
     }
 
     const GpuIntersectionBvhNode& node = scene.bvh[nodeIndex];
-    if (!boundsIntersectRay(node.bounds, ray)) {
+    if (!boundsIntersectRay(node.bounds, ray, ray.maxDistance)) {
       continue;
     }
 
@@ -385,7 +385,7 @@ bool GpuIntersectionIntersector::intersectAny(const GpuIntersectionSceneBuffers&
       }
 
       const GpuIntersectionPrimitiveRecord& primitive = scene.primitives[primitiveIndex];
-      if (!boundsIntersectRay(primitive.bounds, ray)) {
+      if (!boundsIntersectRay(primitive.bounds, ray, ray.maxDistance)) {
         continue;
       }
 
@@ -400,9 +400,14 @@ bool GpuIntersectionIntersector::intersectAny(const GpuIntersectionSceneBuffers&
 }
 
 bool GpuIntersectionIntersector::boundsIntersectRay(const GpuIntersectionBounds& bounds,
-                                                    const GpuIntersectionRay& ray) const {
+                                                    const GpuIntersectionRay& ray,
+                                                    float maxHitDistance) const {
   float enter = ray.minDistance;
-  float exit = ray.maxDistance;
+  float exit = std::min(ray.maxDistance, maxHitDistance);
+  if (exit < enter) {
+    return false;
+  }
+
   for (std::size_t axis = 0; axis != 3; ++axis) {
     const float origin = ray.origin[axis];
     const float direction = ray.direction[axis];

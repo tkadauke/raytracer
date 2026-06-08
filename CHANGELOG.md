@@ -513,6 +513,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   before running payload intersection, reducing wasted triangle/exact-primitive
   tests in populated leaves while preserving the shared backend contract.
   — GPT-5
+- **Packed wavefront closest-hit pruning.** Packed CPU and Metal wavefront
+  closest-hit traversal now clamp BVH and primitive bound tests to the current
+  nearest hit distance, skipping farther nodes after a closer hit has already
+  been found. — GPT-5
 - **Metal wavefront intersection setup reuse.** The experimental Metal
   wavefront intersection wrapper now reuses the default Metal device, command
   queue, and compiled compute pipelines across closest-hit and any-hit
