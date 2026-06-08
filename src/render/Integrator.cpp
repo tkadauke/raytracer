@@ -110,6 +110,8 @@ namespace render {
     intersectionBackendKernelWorkerSeconds = 0.0;
     intersectionBackendReadbackWorkerSeconds = 0.0;
     intersectionRaysSubmitted = 0;
+    closestHitRaysSubmitted = 0;
+    anyHitRaysSubmitted = 0;
     closestHitQueries = 0;
     anyHitQueries = 0;
     intersectionWorkerSeconds = 0.0;
@@ -209,6 +211,7 @@ namespace render {
     intersectionBackendReadbackWorkerSeconds += timing.readbackSeconds;
     ++closestHitQueries;
     intersectionRaysSubmitted += submittedRays;
+    closestHitRaysSubmitted += submittedRays;
   }
 
   void IntegratorBatchMetrics::recordAnyHitQuery(const WavefrontIntersectionBackend& backend,
@@ -227,6 +230,7 @@ namespace render {
     intersectionBackendReadbackWorkerSeconds += timing.readbackSeconds;
     ++anyHitQueries;
     intersectionRaysSubmitted += submittedRays;
+    anyHitRaysSubmitted += submittedRays;
   }
 
   void
@@ -272,6 +276,8 @@ namespace render {
     intersectionBackendKernelWorkerSeconds += source.intersectionBackendKernelWorkerSeconds;
     intersectionBackendReadbackWorkerSeconds += source.intersectionBackendReadbackWorkerSeconds;
     intersectionRaysSubmitted += source.intersectionRaysSubmitted;
+    closestHitRaysSubmitted += source.closestHitRaysSubmitted;
+    anyHitRaysSubmitted += source.anyHitRaysSubmitted;
     closestHitQueries += source.closestHitQueries;
     anyHitQueries += source.anyHitQueries;
   }

@@ -549,6 +549,14 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         if (queryTransferBytes > 0) {
           line += QStringLiteral(", ~%1 query transfer bytes").arg(queryTransferBytes);
         }
+        const qulonglong closestHitRays =
+          jsonIntegerValue(batching, QStringLiteral("closestHitRaysSubmitted"));
+        const qulonglong anyHitRays =
+          jsonIntegerValue(batching, QStringLiteral("anyHitRaysSubmitted"));
+        if (closestHitRays > 0 || anyHitRays > 0) {
+          line +=
+            QStringLiteral(", %1 closest-hit/%2 any-hit rays").arg(closestHitRays).arg(anyHitRays);
+        }
         const double uploadMs =
           batching.value(QStringLiteral("intersectionBackendUploadWorkerSeconds")).toDouble() *
           1000.0;

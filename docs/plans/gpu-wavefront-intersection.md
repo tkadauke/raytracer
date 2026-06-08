@@ -543,6 +543,9 @@ Progress:
   all valid light-sample shadow rays for a shading point and submits them as one
   bounded any-hit batch, while the CPU default preserves the existing scalar
   `intersectAny(...)` behavior for backends that do not specialize batching.
+- Wavefront diagnostics now split submitted intersection rays by closest-hit and
+  any-hit query family, so batched visibility can be inspected as both one
+  backend query and multiple submitted shadow rays.
 - `CompiledIntersectionSceneIntersector` now has a CPU any-hit parity query for
   supported compiled payloads and static instances. It uses the same bounded
   light-distance rule as `Scene::occludes(...)`, so GPU any-hit kernels have a

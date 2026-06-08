@@ -96,6 +96,8 @@ namespace render {
     double intersectionBackendKernelWorkerSeconds{0.0};
     double intersectionBackendReadbackWorkerSeconds{0.0};
     std::uint64_t intersectionRaysSubmitted{0};
+    std::uint64_t closestHitRaysSubmitted{0};
+    std::uint64_t anyHitRaysSubmitted{0};
     std::uint64_t closestHitQueries{0};
     std::uint64_t anyHitQueries{0};
     double intersectionWorkerSeconds{0.0};

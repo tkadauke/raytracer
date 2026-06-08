@@ -124,6 +124,8 @@ namespace engine::wavefront {
     intersectionBackendKernelWorkerSeconds += metrics.intersectionBackendKernelWorkerSeconds;
     intersectionBackendReadbackWorkerSeconds += metrics.intersectionBackendReadbackWorkerSeconds;
     intersectionRaysSubmitted += metrics.intersectionRaysSubmitted;
+    closestHitRaysSubmitted += metrics.closestHitRaysSubmitted;
+    anyHitRaysSubmitted += metrics.anyHitRaysSubmitted;
     closestHitQueries += metrics.closestHitQueries;
     anyHitQueries += metrics.anyHitQueries;
   }
@@ -336,6 +338,8 @@ namespace engine::wavefront {
       batching.intersectionBackendReadbackWorkerSeconds;
     batchingJson["intersectionRaysSubmitted"] =
       static_cast<double>(batching.intersectionRaysSubmitted);
+    batchingJson["closestHitRaysSubmitted"] = static_cast<double>(batching.closestHitRaysSubmitted);
+    batchingJson["anyHitRaysSubmitted"] = static_cast<double>(batching.anyHitRaysSubmitted);
     batchingJson["closestHitQueries"] = static_cast<double>(batching.closestHitQueries);
     batchingJson["anyHitQueries"] = static_cast<double>(batching.anyHitQueries);
     batchingJson["batches"] = static_cast<double>(batching.batches);

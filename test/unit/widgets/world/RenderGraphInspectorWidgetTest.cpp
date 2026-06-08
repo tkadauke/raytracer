@@ -1046,6 +1046,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("packed closest-hit eligible")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("packed any-hit eligible")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("query transfer bytes")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("closest-hit")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("any-hit rays")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowRasterMetricsOnSelectedPassRow) {

@@ -1890,7 +1890,7 @@ rendercli_run(
   NAME "rendercli writes graph wavefront metrics JSON and summary"
   OUTPUT_VARIABLE wavefront_metrics_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=runtime_scene.*intersection_expected_rays=[1-9][0-9]*.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=[1-9][0-9]*.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=0.*intersection_estimated_query_transfer_bytes=0.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
+    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=runtime_scene.*intersection_expected_rays=[1-9][0-9]*.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=[1-9][0-9]*.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=0.*intersection_estimated_query_transfer_bytes=0.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*intersection_rays=[0-9][0-9]*.*closest_hit_rays=[0-9][0-9]*.*any_hit_rays=[0-9][0-9]*.*closest_hit_queries=[0-9][0-9]*.*any_hit_queries=[0-9][0-9]*.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
   COMMAND
     "${RENDERCLI}" --engine wavefront --width 16 --height 16
     --wavefront_intersection_backend gpu
@@ -2434,6 +2434,9 @@ foreach(expectation
         "intersection_estimated_ray_upload_bytes=[1-9][0-9]*"
         "intersection_estimated_closest_hit_readback_bytes=[1-9][0-9]*"
         "intersection_estimated_query_transfer_bytes=[1-9][0-9]*"
+        "intersection_rays=[1-9][0-9]*"
+        "closest_hit_rays=[1-9][0-9]*"
+        "any_hit_rays=0"
         "closest_hit_queries=[1-9][0-9]*")
   if(NOT wavefront_supported_backend_stdout MATCHES "${expectation}")
     _rendercli_fail("rendercli supported wavefront backend summary ${expectation}"
@@ -2455,7 +2458,9 @@ foreach(expectation
         "\"intersectionScenePackedAnyHitEligible\"[ \r\n]*:[ \r\n]*true"
         "\"intersectionEstimatedRayUploadBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionEstimatedClosestHitReadbackBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
-        "\"intersectionEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
+        "\"intersectionEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"closestHitRaysSubmitted\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"anyHitRaysSubmitted\"[ \r\n]*:[ \r\n]*0")
   if(NOT wavefront_supported_backend_json MATCHES "${expectation}")
     _rendercli_fail("rendercli supported wavefront backend report ${expectation}"
                     "supported wavefront backend report did not match ${expectation}"

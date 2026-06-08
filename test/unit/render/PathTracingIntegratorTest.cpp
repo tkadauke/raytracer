@@ -1424,6 +1424,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(4u, metrics.intersectionRaysSubmitted);
     EXPECT_EQ(1u, metrics.closestHitQueries);
     EXPECT_EQ(2u, metrics.anyHitQueries);
+    EXPECT_EQ(2u, metrics.closestHitRaysSubmitted);
+    EXPECT_EQ(2u, metrics.anyHitRaysSubmitted);
   }
 
   TEST(PathTracingIntegrator, BatchedDirectLightingUsesConfiguredBackendForBoundedVisibility) {
@@ -1460,6 +1462,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1u, metrics.closestHitQueries);
     EXPECT_EQ(1u, metrics.anyHitQueries);
     EXPECT_EQ(2u, metrics.intersectionRaysSubmitted);
+    EXPECT_EQ(1u, metrics.closestHitRaysSubmitted);
+    EXPECT_EQ(1u, metrics.anyHitRaysSubmitted);
   }
 
   TEST(PathTracingIntegrator, BatchedDirectLightingBatchesConfiguredVisibilitySamples) {
@@ -1498,6 +1502,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1u, metrics.closestHitQueries);
     EXPECT_EQ(1u, metrics.anyHitQueries);
     EXPECT_EQ(4u, metrics.intersectionRaysSubmitted);
+    EXPECT_EQ(1u, metrics.closestHitRaysSubmitted);
+    EXPECT_EQ(3u, metrics.anyHitRaysSubmitted);
     EXPECT_EQ(3u, metrics.directLightSamples);
     EXPECT_EQ(3u, metrics.directLightContributingSamples);
   }

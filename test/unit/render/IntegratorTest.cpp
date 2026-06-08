@@ -103,6 +103,8 @@ namespace IntegratorTest {
     EXPECT_EQ("fallback", metrics.intersectionBackendAvailability);
     EXPECT_EQ("packed_cpu", metrics.intersectionBackendExecutionPath);
     EXPECT_EQ(4u, metrics.intersectionRaysSubmitted);
+    EXPECT_EQ(4u, metrics.closestHitRaysSubmitted);
+    EXPECT_EQ(0u, metrics.anyHitRaysSubmitted);
     EXPECT_EQ(1u, metrics.closestHitQueries);
     EXPECT_EQ(0u, metrics.anyHitQueries);
     EXPECT_EQ(backend->estimatedClosestHitRayUploadBytes(4),
@@ -129,6 +131,8 @@ namespace IntegratorTest {
 
     EXPECT_EQ("packed_cpu", metrics.intersectionBackendExecutionPath);
     EXPECT_EQ(5u, metrics.intersectionRaysSubmitted);
+    EXPECT_EQ(4u, metrics.closestHitRaysSubmitted);
+    EXPECT_EQ(1u, metrics.anyHitRaysSubmitted);
     EXPECT_EQ(1u, metrics.closestHitQueries);
     EXPECT_EQ(1u, metrics.anyHitQueries);
     EXPECT_EQ(backend->estimatedClosestHitRayUploadBytes(4) +

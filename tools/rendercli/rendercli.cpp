@@ -282,6 +282,8 @@ namespace {
         << " intersection_backend_readback_worker_ms="
         << batching.value("intersectionBackendReadbackWorkerSeconds").toDouble() * 1000.0
         << " intersection_rays=" << unsignedValue(batching, "intersectionRaysSubmitted")
+        << " closest_hit_rays=" << unsignedValue(batching, "closestHitRaysSubmitted")
+        << " any_hit_rays=" << unsignedValue(batching, "anyHitRaysSubmitted")
         << " closest_hit_queries=" << unsignedValue(batching, "closestHitQueries")
         << " any_hit_queries=" << unsignedValue(batching, "anyHitQueries")
         << " samples=" << unsignedValue(input, "primarySamples")

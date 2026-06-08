@@ -94,6 +94,8 @@ namespace engine::wavefront {
       std::uint64_t maxBatchSize = 0;
       double averageBatchSize = 0.0;
       std::uint64_t intersectionRaysSubmitted = 0;
+      std::uint64_t closestHitRaysSubmitted = 0;
+      std::uint64_t anyHitRaysSubmitted = 0;
       std::uint64_t closestHitQueries = 0;
       std::uint64_t anyHitQueries = 0;
       std::uint64_t activeSampleDepthsProcessed = 0;

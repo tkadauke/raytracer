@@ -1005,6 +1005,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48.0, json.value("batching").toObject().value("samplesSubmitted").toDouble());
     EXPECT_EQ(48.0,
               json.value("batching").toObject().value("intersectionRaysSubmitted").toDouble());
+    EXPECT_EQ(48.0, json.value("batching").toObject().value("closestHitRaysSubmitted").toDouble());
+    EXPECT_EQ(0.0, json.value("batching").toObject().value("anyHitRaysSubmitted").toDouble());
     EXPECT_EQ(6.0, json.value("batching").toObject().value("closestHitQueries").toDouble());
     EXPECT_EQ(0.0, json.value("batching").toObject().value("anyHitQueries").toDouble());
     EXPECT_EQ(48.0,
@@ -1200,6 +1202,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(metrics.batching.intersectionScenePackedClosestHitEligible);
     EXPECT_TRUE(metrics.batching.intersectionScenePackedAnyHitEligible);
     EXPECT_GT(metrics.batching.intersectionRaysSubmitted, 0u);
+    EXPECT_GT(metrics.batching.closestHitRaysSubmitted, 0u);
+    EXPECT_EQ(0u, metrics.batching.anyHitRaysSubmitted);
     EXPECT_GT(metrics.batching.intersectionEstimatedRayUploadBytes, 0u);
     EXPECT_GT(metrics.batching.intersectionEstimatedClosestHitReadbackBytes, 0u);
     EXPECT_EQ(metrics.batching.intersectionEstimatedRayUploadBytes +
@@ -1230,6 +1234,10 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(batching.value("intersectionEstimatedClosestHitReadbackBytes").toDouble(), 0.0);
     EXPECT_EQ(static_cast<double>(metrics.batching.intersectionEstimatedQueryTransferBytes),
               batching.value("intersectionEstimatedQueryTransferBytes").toDouble());
+    EXPECT_EQ(static_cast<double>(metrics.batching.closestHitRaysSubmitted),
+              batching.value("closestHitRaysSubmitted").toDouble());
+    EXPECT_EQ(static_cast<double>(metrics.batching.anyHitRaysSubmitted),
+              batching.value("anyHitRaysSubmitted").toDouble());
     EXPECT_DOUBLE_EQ(metrics.batching.intersectionBackendUploadWorkerSeconds,
                      batching.value("intersectionBackendUploadWorkerSeconds").toDouble());
     EXPECT_DOUBLE_EQ(metrics.batching.intersectionBackendKernelWorkerSeconds,
@@ -1371,6 +1379,8 @@ namespace WavefrontRaytracerTest {
     renderCase.expectGpuRequestUsedPreparedBackend();
     EXPECT_GT(renderCase.lastMetrics().batching.closestHitQueries, 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.anyHitQueries, 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.closestHitRaysSubmitted, 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.anyHitRaysSubmitted, 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.directLightSamples, 0u);
   }
 
