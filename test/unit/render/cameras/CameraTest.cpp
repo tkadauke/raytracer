@@ -280,7 +280,7 @@ namespace CameraTest {
 
     EXPECT_EQ(4, raycaster->calls());
     EXPECT_EQ(0x00ff0000u, raycaster->bufferBeforeSecondSample());
-    EXPECT_EQ(0x003f0000u, buffer[0][0]);
+    EXPECT_EQ(Colord(0.25, 0, 0).rgb(), buffer[0][0]);
   }
 
   TEST(Camera, ProgressiveSamplePublishingWaitsForFullSamplePassBeforePublishing) {
