@@ -15,9 +15,10 @@
 > closest-hit, and bounded any-hit queries for triangle, sphere, plane,
 > rectangle, disk, and static-transform payloads can run through the packed CPU
 > kernel contract. Metal-only smoke kernels now prove optional compute dispatch
-> and triangle closest-hit record production outside the render path; real
-> render-path Metal/Vulkan closest-hit and any-hit kernels remain future
-> phases. This is a
+> outside the render path, and the first render-path Metal triangle closest-hit
+> and any-hit kernels can execute for prepared untransformed-triangle scenes
+> when a Metal device is available. Broader Metal/Vulkan closest-hit and any-hit
+> kernels remain future phases. This is a
 > follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+. It should not replace
 > the CPU wavefront renderer, and it should not attempt a full GPU path tracer
@@ -393,13 +394,15 @@ Gate:
 
 Progress:
 
-- Metal-enabled builds now include an opt-in triangle closest-hit smoke wrapper
-  that consumes `GpuIntersectionScenePacker`'s triangle-only packed scene
-  buffers and writes `GpuIntersectionHitRecord` results. A focused test compares
-  the Metal result to `GpuIntersectionIntersector` for hit, miss, and bounded
-  miss rays when a Metal device is present, while non-triangle scene rejection is
-  tested without requiring a device. This is still outside the render path and
-  does not change backend selection.
+- Metal-enabled builds now include opt-in triangle closest-hit and any-hit
+  wrappers that consume `GpuIntersectionScenePacker`'s triangle-only packed scene
+  buffers and write `GpuIntersectionHitRecord` and `GpuIntersectionOcclusionRecord`
+  results. Focused tests compare the Metal results to `GpuIntersectionIntersector`
+  for hit, miss, and bounded miss rays when a Metal device is present, while
+  non-triangle scene rejection is tested without requiring a device. Prepared
+  untransformed-triangle GPU requests can now route closest-hit and any-hit
+  queries through that Metal path when a device is available; non-triangle
+  prepared scenes still use packed CPU traversal.
 - A CPU `CompiledIntersectionSceneIntersector` now traverses the compiled
   flat-array BVH and produces GPU-style closest-hit records for triangle
   payloads, including object/material ids, distance, point, normal, UVs, and
@@ -425,9 +428,9 @@ Progress:
   instance prepared GPU fallbacks route closest-hit, packet closest-hit, and
   bounded any-hit queries through this packed CPU kernel contract.
   Metrics now record closest-hit and any-hit execution paths separately, so a
-  packed eligible render reports `packed_cpu` for both query families, while
-  `compiled_cpu` and `mixed` remain available for unsupported packed payloads or
-  future query paths that diverge.
+  Metal triangle closest-hit/any-hit render can report `metal`, CPU packed
+  fallback reports `packed_cpu`, and `compiled_cpu` plus `mixed` remain
+  available for unsupported packed payloads or query paths that diverge.
 
 ## Phase 5 - common exact primitives and static instances
 
@@ -494,7 +497,9 @@ Progress:
   packed upload buffers for triangle, sphere, plane, rectangle, disk, and
   static transform payloads. Host-side Metal/Vulkan fallback stubs use it when
   the packed scene is eligible, so closest-hit and shadow query metrics both
-  report `packed_cpu` for those scenes.
+  report `packed_cpu` for those scenes. Metal-enabled prepared untransformed
+  triangle scenes can now route any-hit queries through the Metal triangle
+  visibility kernel and report `metal` when a device is available.
 - Current runtime `Scene::occludes(...)` shadow semantics are geometry-only,
   including transparent materials, so the packed any-hit path is allowed to be
   material-agnostic and still match the CPU renderer. If future alpha,
