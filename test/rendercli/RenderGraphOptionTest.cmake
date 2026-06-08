@@ -108,6 +108,12 @@ set(raytracer_integrator_plan "${TEST_OUTPUT_DIR}/raytracer-integrator-graph.jso
 set(raytracer_integrator_render "${TEST_OUTPUT_DIR}/raytracer-integrator-render.png")
 set(wavefront_plan "${TEST_OUTPUT_DIR}/wavefront-graph.json")
 set(wavefront_render "${TEST_OUTPUT_DIR}/wavefront-render.png")
+set(wavefront_supported_backend_scene
+    "${TEST_OUTPUT_DIR}/wavefront-supported-backend-scene.json")
+set(wavefront_supported_backend_render
+    "${TEST_OUTPUT_DIR}/wavefront-supported-backend-render.png")
+set(wavefront_supported_backend_report
+    "${TEST_OUTPUT_DIR}/wavefront-supported-backend-metrics.json")
 set(wavefront_metrics_render "${TEST_OUTPUT_DIR}/wavefront-metrics-render.png")
 set(wavefront_metrics_report "${TEST_OUTPUT_DIR}/wavefront-metrics.json")
 set(wavefront_converged_metrics_render
@@ -308,6 +314,56 @@ file(WRITE "${camera_override_runtime_scene}" [=[
       "scale": [1.0, 1.0, 1.0],
       "visible": true,
       "material": "red-material",
+      "radius": 1.0,
+      "type": "Sphere",
+      "children": []
+    }
+  ]
+}
+]=])
+
+file(WRITE "${wavefront_supported_backend_scene}" [=[
+{
+  "id": "{94100000-0000-0000-0000-000000000000}",
+  "name": "Wavefront Supported Backend Fixture",
+  "ambient": [1.0, 1.0, 1.0],
+  "background": [0.4, 0.8, 1.0],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.0, -4.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.4,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "blue-texture",
+      "name": "Blue Texture",
+      "color": [0.1, 0.4, 1.0],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "blue-material",
+      "name": "Blue Material",
+      "diffuseTexture": "blue-texture",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 0.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "sphere",
+      "name": "Supported Sphere",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "blue-material",
       "radius": 1.0,
       "type": "Sphere",
       "children": []
@@ -2332,6 +2388,61 @@ if(NOT wavefront_metrics_json MATCHES "\"featureSeconds\"")
                   "wavefront metrics report did not contain denoiser feature timing"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+
+rendercli_run(
+  NAME "rendercli reports prepared wavefront GPU backend metrics for supported scene"
+  OUTPUT_VARIABLE wavefront_supported_backend_stdout
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 16 --height 16
+    --wavefront_intersection_backend gpu
+    --wavefront_metrics_out "${wavefront_supported_backend_report}"
+    --wavefront_metrics_summary "${wavefront_supported_backend_scene}"
+    "${wavefront_supported_backend_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_supported_backend_render}"
+                                NAME "supported wavefront backend render pixels")
+rendercli_assert_exists("${wavefront_supported_backend_report}"
+                        NAME "supported wavefront backend metrics report exists")
+foreach(expectation
+        "intersection_backend_request=gpu"
+        "intersection_backend=(cpu|metal)"
+        "intersection_backend_availability=(fallback|available)"
+        "intersection_backend_execution=(packed_cpu|metal)"
+        "intersection_scene_compiled=true"
+        "intersection_scene_unsupported=0"
+        "intersection_scene_upload_bytes=[1-9][0-9]*"
+        "intersection_scene_basic_hit_kernel_eligible=true"
+        "intersection_scene_packed_closest_hit_eligible=true"
+        "intersection_estimated_ray_upload_bytes=[1-9][0-9]*"
+        "intersection_estimated_closest_hit_readback_bytes=[1-9][0-9]*"
+        "intersection_estimated_query_transfer_bytes=[1-9][0-9]*"
+        "closest_hit_queries=[1-9][0-9]*")
+  if(NOT wavefront_supported_backend_stdout MATCHES "${expectation}")
+    _rendercli_fail("rendercli supported wavefront backend summary ${expectation}"
+                    "supported wavefront backend summary did not match ${expectation}"
+                    "${wavefront_supported_backend_stdout}" "" "" "")
+  endif()
+endforeach()
+file(READ "${wavefront_supported_backend_report}" wavefront_supported_backend_json)
+foreach(expectation
+        "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
+        "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"(cpu|metal)\""
+        "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"(fallback|available)\""
+        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"(packed_cpu|metal)\""
+        "\"intersectionSceneCompiled\"[ \r\n]*:[ \r\n]*true"
+        "\"intersectionSceneUnsupportedPrimitives\"[ \r\n]*:[ \r\n]*0"
+        "\"intersectionSceneUploadBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"intersectionSceneBasicHitEligible\"[ \r\n]*:[ \r\n]*true"
+        "\"intersectionScenePackedClosestHitEligible\"[ \r\n]*:[ \r\n]*true"
+        "\"intersectionEstimatedRayUploadBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"intersectionEstimatedClosestHitReadbackBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"intersectionEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
+  if(NOT wavefront_supported_backend_json MATCHES "${expectation}")
+    _rendercli_fail("rendercli supported wavefront backend report ${expectation}"
+                    "supported wavefront backend report did not match ${expectation}"
+                    "" "" "${wavefront_supported_backend_json}" "")
+  endif()
+endforeach()
 
 rendercli_run(
   NAME "rendercli reports wavefront convergence-stopped tiles"
