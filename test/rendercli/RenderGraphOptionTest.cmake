@@ -1817,7 +1817,7 @@ rendercli_run(
   NAME "rendercli writes graph wavefront metrics JSON and summary"
   OUTPUT_VARIABLE wavefront_metrics_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=runtime_scene.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=[1-9][0-9]*.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=0.*intersection_estimated_query_transfer_bytes=0.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
+    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=runtime_scene.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=[1-9][0-9]*.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=0.*intersection_estimated_query_transfer_bytes=0.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
   COMMAND
     "${RENDERCLI}" --engine wavefront --width 16 --height 16
     --wavefront_intersection_backend gpu
@@ -2104,6 +2104,21 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\"")
   _rendercli_fail("rendercli wavefront metrics backend execution path"
                   "wavefront metrics report did not contain runtime scene execution path"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendUploadWorkerSeconds\"[ \r\n]*:[ \r\n]*0")
+  _rendercli_fail("rendercli wavefront metrics backend upload time"
+                  "wavefront metrics report did not contain backend upload timing"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendKernelWorkerSeconds\"[ \r\n]*:[ \r\n]*0")
+  _rendercli_fail("rendercli wavefront metrics backend kernel time"
+                  "wavefront metrics report did not contain backend kernel timing"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendReadbackWorkerSeconds\"[ \r\n]*:[ \r\n]*0")
+  _rendercli_fail("rendercli wavefront metrics backend readback time"
+                  "wavefront metrics report did not contain backend readback timing"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 	if(NOT wavefront_metrics_json MATCHES "\"activeSampleDepthsProcessed\"")

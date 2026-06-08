@@ -541,6 +541,21 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         if (queryTransferBytes > 0) {
           line += QStringLiteral(", ~%1 query transfer bytes").arg(queryTransferBytes);
         }
+        const double uploadMs =
+          batching.value(QStringLiteral("intersectionBackendUploadWorkerSeconds")).toDouble() *
+          1000.0;
+        const double kernelMs =
+          batching.value(QStringLiteral("intersectionBackendKernelWorkerSeconds")).toDouble() *
+          1000.0;
+        const double readbackMs =
+          batching.value(QStringLiteral("intersectionBackendReadbackWorkerSeconds")).toDouble() *
+          1000.0;
+        if (uploadMs > 0.0 || kernelMs > 0.0 || readbackMs > 0.0) {
+          line += QStringLiteral(", backend time upload %1 ms/kernel %2 ms/readback %3 ms")
+                    .arg(uploadMs, 0, 'f', 3)
+                    .arg(kernelMs, 0, 'f', 3)
+                    .arg(readbackMs, 0, 'f', 3);
+        }
       }
     }
     const qulonglong frontierHits =

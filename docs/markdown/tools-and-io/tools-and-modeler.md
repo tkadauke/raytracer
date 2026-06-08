@@ -164,6 +164,10 @@ render uses different query paths. The
 summary also reports estimated ray-upload and readback byte counts for the
 packed GPU ABI; CPU and unsupported runtime-scene fallbacks report zero query
 transfer bytes because no upload/readback would be attempted for those paths.
+When a platform kernel actually runs, the same summary separates backend
+upload/setup, kernel dispatch/wait, and readback time; CPU fallback paths keep
+those backend buckets at zero while total intersection worker time still
+captures their CPU query cost.
 Raster
 controls such as `--lod`, `--msaa`,
 `--msaa_shading`, `--raster_backend`, viewport/scissor, blending, alpha test,
@@ -287,6 +291,8 @@ thresholds, unsupported path-material counts, stop decisions, denoiser
 diagnostics when enabled, convergence
 feedback depth counts, tile load-balance counts, requested and resolved
 intersection backend names, actual query execution path, and fallback reason,
+backend upload/setup, kernel, and readback timing buckets when a platform
+kernel runs,
 per-pixel sample radiance
 standard-deviation diagnostics, path-tracing emitter-hit counts, sampled
 direct-light counts, contribution luminance sums for emitted, direct-light,

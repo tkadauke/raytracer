@@ -30,6 +30,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   derive portal cameras from receiver/source transforms and mirror cameras from
   planar reflection, carrying explicit receiver-clipping state through graph
   inspection and execution. — GPT-5
+- **Wavefront backend timing metrics.** Metal wavefront intersection queries now
+  report backend upload/setup, kernel dispatch/wait, and readback timing
+  buckets when a platform kernel runs; rendercli summaries, metrics JSON, and
+  Modeler graph trace tooltips expose those buckets while CPU fallback paths
+  keep them at zero. — GPT-5
 - **Wavefront intersection backend controls.** Render intent, graph pass state,
   rendercli, Modeler Render Settings, and wavefront metrics now carry
   `auto`/`cpu`/`gpu` intersection-backend requests, with GPU requests falling

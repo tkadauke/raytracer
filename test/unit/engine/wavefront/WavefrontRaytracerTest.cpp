@@ -1010,11 +1010,21 @@ namespace WavefrontRaytracerTest {
       EXPECT_EQ("metal", metrics.batching.intersectionBackend);
       EXPECT_EQ("available", metrics.batching.intersectionBackendAvailability);
       EXPECT_TRUE(metrics.batching.intersectionBackendFallbackReason.empty());
+      EXPECT_GE(metrics.batching.intersectionBackendUploadWorkerSeconds, 0.0);
+      EXPECT_GE(metrics.batching.intersectionBackendKernelWorkerSeconds, 0.0);
+      EXPECT_GE(metrics.batching.intersectionBackendReadbackWorkerSeconds, 0.0);
+      EXPECT_GT(metrics.batching.intersectionBackendUploadWorkerSeconds +
+                  metrics.batching.intersectionBackendKernelWorkerSeconds +
+                  metrics.batching.intersectionBackendReadbackWorkerSeconds,
+                0.0);
     } else {
       EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
       EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
       expectPlatformGpuUnavailableReason(metrics.batching.intersectionBackendFallbackReason);
       EXPECT_EQ("packed_cpu", metrics.batching.intersectionBackendExecutionPath);
+      EXPECT_DOUBLE_EQ(0.0, metrics.batching.intersectionBackendUploadWorkerSeconds);
+      EXPECT_DOUBLE_EQ(0.0, metrics.batching.intersectionBackendKernelWorkerSeconds);
+      EXPECT_DOUBLE_EQ(0.0, metrics.batching.intersectionBackendReadbackWorkerSeconds);
     }
     EXPECT_TRUE(metrics.batching.intersectionSceneCompiled);
     EXPECT_EQ(1u, metrics.batching.intersectionSceneBvhNodes);
@@ -1055,6 +1065,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(batching.value("intersectionEstimatedClosestHitReadbackBytes").toDouble(), 0.0);
     EXPECT_EQ(static_cast<double>(metrics.batching.intersectionEstimatedQueryTransferBytes),
               batching.value("intersectionEstimatedQueryTransferBytes").toDouble());
+    EXPECT_DOUBLE_EQ(metrics.batching.intersectionBackendUploadWorkerSeconds,
+                     batching.value("intersectionBackendUploadWorkerSeconds").toDouble());
+    EXPECT_DOUBLE_EQ(metrics.batching.intersectionBackendKernelWorkerSeconds,
+                     batching.value("intersectionBackendKernelWorkerSeconds").toDouble());
+    EXPECT_DOUBLE_EQ(metrics.batching.intersectionBackendReadbackWorkerSeconds,
+                     batching.value("intersectionBackendReadbackWorkerSeconds").toDouble());
   }
 
   TEST(WavefrontRaytracer, RecordsGpuStaticTransformPackedBackendMetrics) {

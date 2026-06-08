@@ -435,6 +435,12 @@ Progress:
   Metal basic closest-hit/any-hit render can report `metal`, CPU packed fallback
   reports `packed_cpu`, and `compiled_cpu` plus `mixed` remain available for
   unsupported packed payloads or query paths that diverge.
+- Metal render-path closest-hit and any-hit queries now record backend timing
+  buckets for host upload/setup, kernel dispatch/wait, and result readback.
+  Those timings flow into wavefront metrics, rendercli summaries, and Modeler
+  graph trace tooltips when a platform kernel actually runs; CPU fallback paths
+  leave the buckets at zero so total intersection worker time remains
+  comparable with and without GPU dispatch.
 
 ## Phase 5 - common exact primitives and static instances
 

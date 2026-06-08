@@ -84,6 +84,9 @@ namespace engine::wavefront {
       std::uint64_t intersectionEstimatedClosestHitReadbackBytes = 0;
       std::uint64_t intersectionEstimatedAnyHitReadbackBytes = 0;
       std::uint64_t intersectionEstimatedQueryTransferBytes = 0;
+      double intersectionBackendUploadWorkerSeconds = 0.0;
+      double intersectionBackendKernelWorkerSeconds = 0.0;
+      double intersectionBackendReadbackWorkerSeconds = 0.0;
       std::uint64_t batches = 0;
       std::uint64_t samplesSubmitted = 0;
       std::uint64_t maxBatchSize = 0;

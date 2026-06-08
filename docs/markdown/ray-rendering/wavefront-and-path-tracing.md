@@ -306,10 +306,14 @@ unsupported runtime-scene fallbacks report zero for those query-transfer fields;
 prepared GPU-request stubs report the packed ABI byte counts so `auto`
 selection can compare frontier size against upload/readback cost. The render
 engine already supplies a conservative expected-ray-count estimate to that
-policy. Today the policy selects CPU because the Metal/Vulkan kernels are not
-available for render-path traversal; once a platform backend is enabled, the
-same policy can require a fully supported packed scene and enough expected ray
-work before choosing the GPU path automatically.
+policy. When the Metal render-path kernels actually execute, metrics also split
+backend wall time into host upload/setup, kernel dispatch/wait, and CPU
+readback buckets. CPU fallback paths leave those buckets at zero, while the
+broader intersection-worker timer still records the full CPU query cost. Today
+the policy selects CPU unless a platform kernel is available and worth using;
+once Metal/Vulkan coverage is broader, the same policy can require a fully
+supported packed scene and enough expected ray work before choosing the GPU
+path automatically.
 
 ## <a id="diagnostics"></a>Diagnostics and current limits
 The path tracer is still intentionally conservative about material
@@ -384,6 +388,7 @@ choices become inspectable user-facing metadata.
 - `src/render/GpuIntersectionScene.cpp`
 - `include/render/MetalWavefrontSmokeKernel.h`
 - `src/render/MetalWavefrontSmokeKernel.mm`
+- `include/render/WavefrontIntersectionQueryTiming.h`
 - `include/render/WavefrontIntersectionBackend.h`
 - `src/render/WavefrontIntersectionBackend.cpp`
 - `include/render/PathTracingIntegrator.h`

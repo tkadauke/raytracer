@@ -697,6 +697,11 @@ setup. When trace capture is enabled, wavefront pass metadata also reports the
 adaptive policy, maximum primary sample count, skipped primary samples, and
 skipped-sample fraction, which makes adaptive sampling visible in graph
 inspection instead of only in the final image.
+If a platform wavefront intersection kernel runs, the same trace metadata
+separates backend upload/setup, kernel dispatch/wait, and readback time beside
+the total intersection worker time. CPU fallback paths keep those backend
+timing buckets at zero so graph diagnostics distinguish real platform dispatch
+from compiled or packed CPU parity work.
 Selecting the `pathtracer` executor preference is the user-facing shortcut for
 path-traced rendering: the compiler emits a wavefront-backed beauty pass and
 forces the typed integrator state to `pathtracer`. The lower-level `wavefront`

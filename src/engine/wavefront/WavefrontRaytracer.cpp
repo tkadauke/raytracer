@@ -118,6 +118,9 @@ namespace engine::wavefront {
       metrics.intersectionEstimatedClosestHitReadbackBytes;
     intersectionEstimatedAnyHitReadbackBytes += metrics.intersectionEstimatedAnyHitReadbackBytes;
     intersectionEstimatedQueryTransferBytes += metrics.intersectionEstimatedQueryTransferBytes;
+    intersectionBackendUploadWorkerSeconds += metrics.intersectionBackendUploadWorkerSeconds;
+    intersectionBackendKernelWorkerSeconds += metrics.intersectionBackendKernelWorkerSeconds;
+    intersectionBackendReadbackWorkerSeconds += metrics.intersectionBackendReadbackWorkerSeconds;
     intersectionRaysSubmitted += metrics.intersectionRaysSubmitted;
     closestHitQueries += metrics.closestHitQueries;
     anyHitQueries += metrics.anyHitQueries;
@@ -319,6 +322,12 @@ namespace engine::wavefront {
       static_cast<double>(batching.intersectionEstimatedAnyHitReadbackBytes);
     batchingJson["intersectionEstimatedQueryTransferBytes"] =
       static_cast<double>(batching.intersectionEstimatedQueryTransferBytes);
+    batchingJson["intersectionBackendUploadWorkerSeconds"] =
+      batching.intersectionBackendUploadWorkerSeconds;
+    batchingJson["intersectionBackendKernelWorkerSeconds"] =
+      batching.intersectionBackendKernelWorkerSeconds;
+    batchingJson["intersectionBackendReadbackWorkerSeconds"] =
+      batching.intersectionBackendReadbackWorkerSeconds;
     batchingJson["intersectionRaysSubmitted"] =
       static_cast<double>(batching.intersectionRaysSubmitted);
     batchingJson["closestHitQueries"] = static_cast<double>(batching.closestHitQueries);

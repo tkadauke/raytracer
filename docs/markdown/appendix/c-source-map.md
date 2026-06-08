@@ -98,6 +98,7 @@
 | `include/render/State.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md)<br>[Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/TilePlan.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/render/WavefrontIntersectionBackend.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `include/render/WavefrontIntersectionQueryTiming.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/WhittedIntegrator.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/render/brdf/BRDF.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `include/render/brdf/BTDF.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
