@@ -275,7 +275,7 @@ Gate:
 Tasks:
 
 - Add a CPU-side `IntersectionSceneCompiler` that emits flat primitive records,
-  payload arrays, material/object lookup tables, and a flat BVH.
+  payload arrays, material/object lookup tables, and a flat-array BVH.
 - Start with triangle/mesh, sphere, plane, rectangle, disk, and static instance
   records.
 - Add explicit unsupported-reason collection.
@@ -284,7 +284,7 @@ Tasks:
   - unsupported primitive fallback reasons;
   - material/object id round-tripping;
   - static instance transform payloads;
-  - flat BVH bounds matching runtime bounds.
+  - BVH bounds and bounded leaf ranges matching runtime bounds.
 
 Gate:
 
@@ -302,8 +302,9 @@ Progress:
   the all-or-nothing fallback contract.
 - Unsupported leaves are represented explicitly with primitive names, object
   ids, and fallback reasons.
-- The first BVH representation is a single flat leaf root over all compiled
-  records; a real split/tree builder is still outstanding before GPU traversal.
+- The first BVH representation now emits a deterministic median-split tree
+  with bounded leaf ranges over the compiled primitive records. A real SAH or
+  GPU-tuned builder is still outstanding before performance work.
 
 ## Phase 3 - GPU backend stubs and UI/rendercli plumbing
 
@@ -323,11 +324,18 @@ Gate:
 - Users can request GPU and get a clear fallback, not a crash.
 - Tests cover invalid option combinations and trace fallback metadata.
 
+Progress:
+
+- `MetalWavefrontIntersectionBackend` and `VulkanWavefrontIntersectionBackend`
+  are now explicit platform stubs. They report availability/fallback metadata,
+  name the host platform for a `gpu` request, and delegate intersections to the
+  CPU backend until real kernels land.
+
 ## Phase 4 - triangle GPU closest-hit kernel
 
 Tasks:
 
-- Upload flat BVH nodes, triangle payloads, material/object ids, and ray
+- Upload flat-array BVH nodes, triangle payloads, material/object ids, and ray
   frontiers.
 - Implement iterative closest-hit BVH traversal in Metal and Vulkan compute.
 - Return hit/miss records with primitive id, material id, object id, `t`,
@@ -340,6 +348,14 @@ Gate:
 - GPU and CPU hit records match for mesh-only scenes within explicit tolerances.
 - Rendered output matches CPU wavefront for deterministic mesh scenes.
 - Metrics separate upload, kernel, and readback time.
+
+Progress:
+
+- A CPU `CompiledIntersectionSceneIntersector` now traverses the compiled
+  flat-array BVH and produces GPU-style closest-hit records for triangle
+  payloads, including object/material ids, distance, point, normal, UVs, and
+  barycentric coordinates. This is a parity harness for the upcoming
+  Metal/Vulkan triangle kernel; it is not selected as a render backend yet.
 
 ## Phase 5 - common exact primitives and static instances
 
