@@ -114,6 +114,10 @@ set(wavefront_supported_backend_render
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-render.png")
 set(wavefront_supported_backend_report
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-metrics.json")
+set(wavefront_supported_backend_trace
+    "${TEST_OUTPUT_DIR}/wavefront-supported-backend-trace.json")
+set(wavefront_supported_backend_trace_render
+    "${TEST_OUTPUT_DIR}/wavefront-supported-backend-trace-render.png")
 set(wavefront_metrics_render "${TEST_OUTPUT_DIR}/wavefront-metrics-render.png")
 set(wavefront_metrics_report "${TEST_OUTPUT_DIR}/wavefront-metrics.json")
 set(wavefront_converged_metrics_render
@@ -2441,6 +2445,38 @@ foreach(expectation
     _rendercli_fail("rendercli supported wavefront backend report ${expectation}"
                     "supported wavefront backend report did not match ${expectation}"
                     "" "" "${wavefront_supported_backend_json}" "")
+  endif()
+endforeach()
+
+rendercli_run(
+  NAME "rendercli writes wavefront backend diagnostics to graph trace"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 16 --height 16
+    --wavefront_intersection_backend gpu
+    --render_graph_trace_out "${wavefront_supported_backend_trace}"
+    "${wavefront_supported_backend_scene}" "${wavefront_supported_backend_trace_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_supported_backend_trace_render}"
+                                NAME "supported wavefront backend trace render pixels")
+rendercli_assert_nonempty("${wavefront_supported_backend_trace}"
+                          NAME "supported wavefront backend trace JSON")
+file(READ "${wavefront_supported_backend_trace}" wavefront_supported_backend_trace_json)
+foreach(expectation
+        "\"id\": \"wavefront_beauty\""
+        "\"metadata\""
+        "\"batching\""
+        "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
+        "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"(cpu|metal)\""
+        "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"(fallback|available)\""
+        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"(packed_cpu|metal)\""
+        "\"intersectionSceneCompiled\"[ \r\n]*:[ \r\n]*true"
+        "\"intersectionSceneUnsupportedPrimitives\"[ \r\n]*:[ \r\n]*0"
+        "\"intersectionSceneUploadBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"intersectionEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
+  if(NOT wavefront_supported_backend_trace_json MATCHES "${expectation}")
+    _rendercli_fail("rendercli supported wavefront backend trace ${expectation}"
+                    "supported wavefront backend trace did not match ${expectation}"
+                    "" "" "${wavefront_supported_backend_trace_json}" "")
   endif()
 endforeach()
 
