@@ -7,8 +7,15 @@
 > `docs/perf/arm-simd-phase5-ray8-policy-apple-silicon-2026-05-30.md`)
 > translate into end-to-end faster `rendercli` numbers.
 >
-> **Status:** planning. Nothing implemented. Phase 0 measurement is the
-> entry gate for everything past Phase 1.
+> **Status:** partially implemented through the depth-major batch/frontier path,
+> not through the original direct `Raytracer` camera sample loop. Phase 0
+> measurement is complete and the shipped `Integrator::radianceBatch(...)`
+> implementations now use Ray4/Ray8 packet frontier intersections for Whitted
+> and path-tracing batches, with metrics and unit coverage under
+> `test/unit/render/*IntegratorTest.cpp` and
+> `test/unit/engine/wavefront/WavefrontRaytracerTest.cpp`. The original direct
+> `Camera::render` / `RayCaster::rayColorPacket` path, explicit shadow-ray
+> packets, and direct rendercli packet parity/perf gates remain open.
 >
 > **Related plans:**
 > `docs/plans/complete/arm-simd.md` (the substrate — Float4/Mask4/Ray4 backends,
@@ -20,9 +27,9 @@
 
 ## Why
 
-Today, every `core::simd::Float4` win and every `intersectPacket(Ray4)`
-override sits on a shelf as far as the actual raytracer is concerned.
-The chain is:
+When this plan was written, every `core::simd::Float4` win and every
+`intersectPacket(Ray4)` override sat on a shelf as far as the actual raytracer
+was concerned. The old scalar-only chain was:
 
 ```text
 Camera::render (per pixel, per sample)
@@ -36,11 +43,14 @@ Scene::intersect(ray, hitPoints, state)          ← scalar
 BVH::intersect(ray, ...) / Sphere::intersect(...) ← scalar
 ```
 
-The packet-aware code path — `BVH::intersectPacket(Ray4)`,
-`Sphere::intersectPacket(Ray4)`, the whole shared `Float4` backend —
-exists but no production call site invokes it. The benchmarks I ran
-under `BVHPacketBenchmark` and `BatchedRayBenchmark` are the only
-exercise that path gets in the build.
+That is no longer the whole story. The direct single-ray `Raytracer` probe path
+is still scalar, but the depth-major batch path now has production call sites:
+`WhittedIntegrator::radianceBatch(...)` and
+`PathTracingIntegrator::radianceBatch(...)` compact active frontiers, submit
+Ray8/Ray4 chunks to `Scene::intersectPacketHits(...)`, scalar-refine packet hits
+when material state requires it, and report packet/scalar/fallback counters in
+wavefront metrics. This plan therefore remains open only for the direct
+camera/sample-loop optimization and shadow-ray packet slices.
 
 The two questions this plan answers:
 
@@ -112,15 +122,13 @@ documented in
 the gate criterion (≥30% achievable end-to-end speedup on the
 mesh scene) is met.
 
-**Revised order:** when implementation resumes, **skip Phase 1
-(2×2 spatial pixel packets) and go straight to Phase 3 (per-pixel
-sample packets).** Sample packets are coherent by construction
-(same hit point, different sub-pixel jitter) — no material
-divergence, no recursion divergence, no rectangle-shape gotchas.
-The per-pixel sample loop already produces N samples sequentially;
-batching 4 of them as a Ray4 is a smaller change than gathering
-4 adjacent pixels into a packet. Phase 1 stays in the plan as
-"do this if Phase 3 measurements show extra room."
+**Implementation pivot:** the first shipped packet use did **not** follow the
+Phase 1/3 direct-camera route. The wavefront work introduced
+`Integrator::radianceBatch(...)` and made active ray/path frontiers packet-aware
+instead. That path covers primary and secondary frontiers produced by
+Whitted/path-tracing batches, preserves the scalar single-ray educational
+surface, and exposes the packet-fill/fallback metrics needed to decide whether
+the direct `Raytracer` sample-loop optimization is still worth doing.
 
 ## Phase 0 — measurement gate (original — now historical)
 
@@ -164,6 +172,11 @@ Acceptance:
 
 **Goal:** the obvious win — coherent primary rays go through
 `BVH::intersectPacket`.
+
+**Status:** not implemented for direct `Raytracer` tile dispatch. The shipped
+packet frontier path lives behind `Integrator::radianceBatch(...)` and
+`engine::wavefront::WavefrontRaytracer`, not behind
+`Camera::renderPacketed(...)` or `RayCaster::rayColorPacket(...)`.
 
 Tasks:
 
@@ -224,6 +237,9 @@ Acceptance:
 
 **Goal:** the second-most-coherent ray class.
 
+**Status:** still open. Packet frontiers cover camera/continuation path
+intersections; direct-light shadow visibility remains scalar.
+
 Shadow rays from a 2×2 hit cluster toward the same light are mostly
 coherent (similar origins, similar directions). Batching them as a
 Ray4 packet uses `BVH`'s shadow-test path with a `hitMask` return.
@@ -265,6 +281,11 @@ Acceptance:
 
 **Goal:** the other obvious coherent ray cluster.
 
+**Status:** not implemented as a direct `Camera::render` sample-loop fast path.
+Multi-sample wavefront renders do submit batches through packet frontiers after
+sample generation, but the original same-pixel four-sample `Ray4` entry point
+does not exist.
+
 When `samplesPerPixel > 1`, N samples per pixel share the same hit
 point (for primary visibility) and very similar ray directions
 (sub-pixel jitter only). A 4-sample tile = perfect Ray4 candidate.
@@ -304,8 +325,11 @@ those would cost more in re-sort than it saves in traversal.
 The "wavefront" approach used in pure path tracers (Aila & Laine,
 Megakernel vs Wavefront) re-sorts rays into coherent buckets each
 bounce. That's a different algorithm and a different integrator,
-not a Whitted extension. If the project ever ships a path tracer,
-this is where packetization fits — not here.
+not a direct Whitted extension. The project now ships that sibling path:
+`WavefrontRaytracer` drives `WhittedIntegrator::radianceBatch(...)` and
+`PathTracingIntegrator::radianceBatch(...)`, and those batch implementations
+use Ray4/Ray8 frontier intersections while keeping material evaluation scalar
+where needed.
 
 Decision unchanged unless somebody produces benchmark evidence that
 specifically post-bounce packet re-sort wins on a real scene. Until
@@ -313,7 +337,7 @@ then, stay scalar past the first intersect.
 
 ## Test / CI
 
-Required across Phases 1-3:
+Required across Phases 1-3 for the remaining direct `Raytracer` packet path:
 
 - **Parity tests** under
   `test/functional/engine/raytracer/PacketIntegratorParityTest.cpp`:
@@ -330,6 +354,16 @@ Required across Phases 1-3:
 - **Benchmark on every change** to the packet integrator entry. Same
   rule as the existing perf-contract on Vector/Color SSE3
   specializations.
+
+Already covered for the shipped batch/frontier path:
+
+- Unit tests pin `WhittedIntegrator::radianceBatch(...)` Ray4/Ray8 packet
+  frontier use, partial packets, continuation compaction, scalar refinement,
+  and fallback metrics.
+- Unit tests pin the same frontier packet behavior for
+  `PathTracingIntegrator::radianceBatch(...)`.
+- Wavefront tests and metrics JSON cover packet chunk counts, Ray4/Ray8 split,
+  scalar tails, packet fallback reasons, and refined packet lanes.
 
 ## Open questions
 
@@ -364,8 +398,8 @@ Required across Phases 1-3:
   is described in a follow-up performance chapter as "what changes
   when you SIMD this." Trade-off is acceptable as long as the
   scalar code path stays the canonical one.
-- **Phase 0 might kill this whole plan.** Worth saying again: if
-  the measurement says BVH+intersect is 10% of frame wall time on
-  the test scenes, the maximum end-to-end win is ~10% × ~5× = 8%,
-  which is not worth the integrator surgery. The plan documents
-  what would be done; the gate decides whether to do it.
+- **Direct-engine value after wavefront packets.** Phase 0 no longer kills the
+  packet idea; packet frontiers shipped. The remaining question is narrower:
+  whether a direct `Raytracer` camera/sample-loop packet path still earns its
+  complexity now that the graph-visible wavefront path can consume the same
+  scene through packet frontiers.
