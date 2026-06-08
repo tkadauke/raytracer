@@ -376,6 +376,14 @@ Gate:
 - The common docs/example scenes that use only supported primitives can opt into
   GPU intersection and match CPU wavefront output.
 
+Progress:
+
+- The CPU `CompiledIntersectionSceneIntersector` now covers sphere, plane,
+  rectangle, and disk payloads in addition to triangles. It transforms rays into
+  payload-local space for static instances, then transforms the resulting hit
+  point and normal back through the compiled transform payload so non-uniform
+  instance transforms match the runtime `Instance` semantics.
+
 ## Phase 6 - any-hit / occlusion queries
 
 Tasks:
@@ -391,6 +399,18 @@ Gate:
 - Direct-light scenes match CPU wavefront/path-tracing output.
 - Unsupported transparency/alpha semantics fall back to CPU instead of producing
   incorrect shadows.
+
+Progress:
+
+- `WavefrontIntersectionBackend` now has an `intersectAny(...)` query for
+  shadow/visibility rays. The CPU backend delegates to `Scene::occludes(...)`,
+  platform GPU stubs delegate to that CPU backend, and batched path-tracing
+  direct-light visibility records any-hit query metrics through the selected
+  backend while preserving finite light-distance bounds.
+- `CompiledIntersectionSceneIntersector` now has a CPU any-hit parity query for
+  supported compiled payloads and static instances. It uses the same bounded
+  light-distance rule as `Scene::occludes(...)`, so GPU any-hit kernels have a
+  tested visibility contract before they are wired into rendering.
 
 ## Phase 7 - automatic selection and performance gates
 
