@@ -245,6 +245,8 @@ namespace {
         << compactTextValue(batching.value("intersectionBackendFallbackReason"), "none")
         << " intersection_backend_execution="
         << compactTextValue(batching.value("intersectionBackendExecutionPath"), "unknown")
+        << " intersection_expected_rays="
+        << unsignedValue(batching, "intersectionBackendExpectedRays")
         << " intersection_scene_compiled="
         << (batching.value("intersectionSceneCompiled").toBool() ? "true" : "false")
         << " intersection_scene_bvh_nodes=" << unsignedValue(batching, "intersectionSceneBvhNodes")

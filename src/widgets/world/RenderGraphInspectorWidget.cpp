@@ -500,6 +500,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         executionPath.replace(QChar('_'), QChar(' '));
         line += QStringLiteral(" via %1").arg(executionPath);
       }
+      const qulonglong expectedRays =
+        jsonIntegerValue(batching, QStringLiteral("intersectionBackendExpectedRays"));
+      if (expectedRays > 0) {
+        line += QStringLiteral(", expected %1 intersection rays").arg(expectedRays);
+      }
       const QString fallbackReason =
         batching.value(QStringLiteral("intersectionBackendFallbackReason")).toString();
       if (!fallbackReason.isEmpty()) {

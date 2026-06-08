@@ -1037,6 +1037,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("intersection backend gpu->cpu")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("fallback")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("via packed cpu")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("expected")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("intersection rays")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("intersection scene")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("primitives")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("unsupported 0")));

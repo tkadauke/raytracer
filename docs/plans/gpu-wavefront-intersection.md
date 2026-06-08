@@ -600,6 +600,9 @@ Progress:
   Whitted renders scale by recursion depth, while path tracing scales by bounce
   count and direct-light visibility samples; metrics JSON records the final
   estimate so render graph traces explain the `auto` backend decision.
+- rendercli metrics summaries and the Modeler render graph tooltip now surface
+  that expected-ray estimate alongside backend choice, fallback, execution path,
+  scene upload, and query-transfer diagnostics.
 - The benchmark suite now includes wavefront intersection backend fixtures for
   a small supported scene, a mesh-heavy supported scene, and an unsupported
   mixed scene. The fixtures measure compile/pack cost, runtime CPU closest-hit

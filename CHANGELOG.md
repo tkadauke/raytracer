@@ -36,6 +36,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   primary camera samples alone, and metrics JSON reports that expected ray
   count for render graph trace diagnostics.
   — GPT-5
+- **Wavefront expected-ray diagnostics.** rendercli metrics summaries and the
+  Modeler render graph tooltip now show the estimated intersection ray count
+  used by wavefront backend `auto` selection.
+  — GPT-5
 - **Prepared Metal wavefront scene buffers.** Metal wavefront closest-hit and
   any-hit backend queries now reuse scene-side GPU buffers prepared with the
   backend instead of recreating those scene buffers for every ray packet; CPU
