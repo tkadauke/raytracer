@@ -6,10 +6,15 @@
 > execution stay on the CPU; the GPU backend answers "which primitive does this
 > ray hit?" for a batch/frontier of active rays.
 >
-> **Status:** draft for review. This is a follow-up to
-> `docs/plans/wavefront-and-path-tracing.md` Phase 7+. It should not replace the
-> CPU wavefront renderer, and it should not attempt a full GPU path tracer in the
-> first slice.
+> **Status:** implementation in progress. Phase 1 has the CPU backend seam,
+> render intent/graph state selection, rendercli and Modeler controls, and
+> fallback metrics in place. Phase 2 now has a diagnostic CPU-side compiled
+> intersection scene for supported leaves, ids, transforms, bounds, and
+> unsupported reasons; real Metal/Vulkan backends remain future phases. This is
+> a follow-up to
+> `docs/plans/wavefront-and-path-tracing.md` Phase 7+. It should not replace
+> the CPU wavefront renderer, and it should not attempt a full GPU path tracer
+> in the first slice.
 
 ---
 
@@ -287,6 +292,19 @@ Gate:
   default CPU rendering remains behaviorally identical.
 - Unsupported scenes fall back to CPU before render work starts.
 
+Progress:
+
+- `IntersectionSceneCompiler` now emits records and payload arrays for
+  triangle/mesh-triangle, sphere, plane, rectangle, and disk leaves.
+- Static instances are captured as transform payloads through the existing
+  transformed-leaf traversal hook.
+- Moving instances are rejected before child leaves are flattened, preserving
+  the all-or-nothing fallback contract.
+- Unsupported leaves are represented explicitly with primitive names, object
+  ids, and fallback reasons.
+- The first BVH representation is a single flat leaf root over all compiled
+  records; a real split/tree builder is still outstanding before GPU traversal.
+
 ## Phase 3 - GPU backend stubs and UI/rendercli plumbing
 
 Tasks:
@@ -424,4 +442,3 @@ performance evidence on at least one large supported scene.
 - Modeler should show backend choice and fallback reason in the render graph
   selected-pass metadata.
 - rendercli should print compact backend diagnostics in metrics summaries.
-
