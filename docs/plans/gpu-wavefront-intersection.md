@@ -15,10 +15,10 @@
 > closest-hit, and bounded any-hit queries for triangle, sphere, plane,
 > rectangle, disk, and static-transform payloads can run through the packed CPU
 > kernel contract. Metal-only smoke kernels now prove optional compute dispatch
-> outside the render path, and the first render-path Metal triangle closest-hit
-> and any-hit kernels can execute for prepared untransformed-triangle scenes
-> when a Metal device is available. Broader Metal/Vulkan closest-hit and any-hit
-> kernels remain future phases. This is a
+> outside the render path, and the first render-path Metal basic closest-hit
+> and any-hit kernels can execute for prepared untransformed triangle/sphere
+> scenes when a Metal device is available. Broader Metal/Vulkan closest-hit and
+> any-hit kernels remain future phases. This is a
 > follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+. It should not replace
 > the CPU wavefront renderer, and it should not attempt a full GPU path tracer
@@ -418,19 +418,19 @@ Progress:
   layout decisions.
 - Scene-created GPU fallback stubs now retain those packed upload buffers next
   to the compiled scene. Wavefront metrics, rendercli compact summaries, and
-  Modeler graph tooltips expose the retained upload byte count and
-  triangle-kernel and packed closest-hit eligibility, so each backend slice can
-  switch from `compiled_cpu` to a platform execution path with visible parity
-  gates.
+  Modeler graph tooltips expose the retained upload byte count plus
+  triangle-kernel, basic-kernel, and packed closest-hit eligibility, so each
+  backend slice can switch from `compiled_cpu` to a platform execution path with
+  visible parity gates.
 - `GpuIntersectionIntersector` now executes iterative closest-hit BVH
   traversal directly against the packed upload buffers and writes GPU-style
   hit/miss records. Triangle, sphere, plane, rectangle, disk, and static
   instance prepared GPU fallbacks route closest-hit, packet closest-hit, and
   bounded any-hit queries through this packed CPU kernel contract.
   Metrics now record closest-hit and any-hit execution paths separately, so a
-  Metal triangle closest-hit/any-hit render can report `metal`, CPU packed
-  fallback reports `packed_cpu`, and `compiled_cpu` plus `mixed` remain
-  available for unsupported packed payloads or query paths that diverge.
+  Metal basic closest-hit/any-hit render can report `metal`, CPU packed fallback
+  reports `packed_cpu`, and `compiled_cpu` plus `mixed` remain available for
+  unsupported packed payloads or query paths that diverge.
 
 ## Phase 5 - common exact primitives and static instances
 
@@ -463,6 +463,10 @@ Progress:
   primitives and static instances preserve material/object ids, hit distance,
   hit point, normal, and empty UV/barycentric channels through the same
   GPU-style hit record shape used by the triangle traversal.
+- Metal-enabled prepared untransformed sphere scenes now share the render-path
+  basic hit kernels with untransformed triangle scenes for closest-hit and
+  any-hit queries. Plane, rectangle, disk, and static transform payloads remain
+  on the packed CPU fallback until matching platform kernels exist.
 
 ## Phase 6 - any-hit / occlusion queries
 
@@ -498,7 +502,7 @@ Progress:
   static transform payloads. Host-side Metal/Vulkan fallback stubs use it when
   the packed scene is eligible, so closest-hit and shadow query metrics both
   report `packed_cpu` for those scenes. Metal-enabled prepared untransformed
-  triangle scenes can now route any-hit queries through the Metal triangle
+  triangle/sphere scenes can now route any-hit queries through the Metal basic
   visibility kernel and report `metal` when a device is available.
 - Current runtime `Scene::occludes(...)` shadow semantics are geometry-only,
   including transparent materials, so the packed any-hit path is allowed to be
