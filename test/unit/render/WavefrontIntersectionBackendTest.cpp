@@ -167,6 +167,20 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_NE(std::string::npos, decision.reason.find("auto selected GPU"));
   }
 
+  TEST(WavefrontIntersectionBackend, ChoiceParsesUserFacingBackendNames) {
+    EXPECT_EQ(WavefrontIntersectionBackendChoice::automatic(),
+              WavefrontIntersectionBackendChoice::fromString("auto"));
+    EXPECT_EQ(WavefrontIntersectionBackendChoice::automatic(),
+              WavefrontIntersectionBackendChoice::fromString("automatic"));
+    EXPECT_EQ(WavefrontIntersectionBackendChoice::cpu(),
+              WavefrontIntersectionBackendChoice::fromString("cpu"));
+    EXPECT_EQ(WavefrontIntersectionBackendChoice::gpu(),
+              WavefrontIntersectionBackendChoice::fromString("gpu"));
+    EXPECT_EQ(WavefrontIntersectionBackendChoice::gpu(),
+              WavefrontIntersectionBackendChoice::fromString("G-P_U"));
+    EXPECT_THROW(WavefrontIntersectionBackendChoice::fromString("metal"), std::invalid_argument);
+  }
+
   void expectGpuHitRecordNear(const GpuIntersectionHitRecord& actual,
                               const GpuIntersectionHitRecord& expected) {
     EXPECT_EQ(expected.hit, actual.hit);
