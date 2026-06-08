@@ -563,6 +563,11 @@ Progress:
   sphere, plane, rectangle, disk, and static-transform scenes can now route
   any-hit queries through the Metal basic visibility kernel and report `metal`
   when a device is available.
+- Packed any-hit traversal now exposes a batch record API that returns one
+  `GpuIntersectionOcclusionRecord` per submitted ray. Prepared CPU fallback,
+  Metal fallback, and Vulkan fallback paths use that same batch-shaped contract
+  before platform kernels take over, keeping the host parity path aligned with
+  the GPU upload/readback ABI.
 - Current runtime `Scene::occludes(...)` shadow semantics are geometry-only,
   including transparent materials, so the packed any-hit path is allowed to be
   material-agnostic and still match the CPU renderer. If future alpha,

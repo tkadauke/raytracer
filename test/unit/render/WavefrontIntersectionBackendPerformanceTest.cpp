@@ -160,13 +160,10 @@ namespace WavefrontIntersectionBackendPerformanceTest {
     }
 
     std::size_t runPackedAnyHit() const {
-      std::size_t hits = 0;
-      for (const GpuIntersectionRay& ray : m_packedRays) {
-        if (GpuIntersectionIntersector().intersectAny(m_buffers, ray)) {
-          ++hits;
-        }
-      }
-      return hits;
+      const std::vector<GpuIntersectionOcclusionRecord> records =
+        GpuIntersectionIntersector().intersectAny(m_buffers, m_packedRays);
+      return static_cast<std::size_t>(std::count_if(
+        records.begin(), records.end(), [](const auto& record) { return record.occluded != 0; }));
     }
 
     std::shared_ptr<Scene> m_scene;

@@ -571,16 +571,7 @@ namespace render {
     if (!buffers || !buffers->packedAnyHitKernelEligible()) {
       return {};
     }
-
-    std::vector<GpuIntersectionOcclusionRecord> records;
-    records.reserve(rays.size());
-    for (const GpuIntersectionRay& ray : rays) {
-      GpuIntersectionOcclusionRecord record;
-      record.occluded = GpuIntersectionIntersector().intersectAny(*buffers, ray) ? 1u : 0u;
-      record.rayIndex = ray.rayIndex;
-      records.push_back(record);
-    }
-    return records;
+    return GpuIntersectionIntersector().intersectAny(*buffers, rays);
   }
 
   bool WavefrontIntersectionBackend::preparedGpuTransferContractAvailable() const {

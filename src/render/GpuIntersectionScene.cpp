@@ -418,6 +418,17 @@ bool GpuIntersectionIntersector::intersectAny(const GpuIntersectionSceneBuffers&
   return false;
 }
 
+std::vector<GpuIntersectionOcclusionRecord>
+GpuIntersectionIntersector::intersectAny(const GpuIntersectionSceneBuffers& scene,
+                                         const std::vector<GpuIntersectionRay>& rays) const {
+  std::vector<GpuIntersectionOcclusionRecord> records;
+  records.reserve(rays.size());
+  for (const GpuIntersectionRay& ray : rays) {
+    records.push_back(makeOcclusionRecord(ray, intersectAny(scene, ray)));
+  }
+  return records;
+}
+
 bool GpuIntersectionIntersector::boundsIntersectRay(const GpuIntersectionBounds& bounds,
                                                     const GpuIntersectionRay& ray,
                                                     float maxHitDistance) const {
@@ -782,6 +793,15 @@ GpuIntersectionIntersector::makeHit(const GpuIntersectionRay& ray,
 
 GpuIntersectionHitRecord GpuIntersectionIntersector::makeMiss(const GpuIntersectionRay& ray) const {
   return GpuIntersectionScenePacker().packMiss(ray.rayIndex);
+}
+
+GpuIntersectionOcclusionRecord
+GpuIntersectionIntersector::makeOcclusionRecord(const GpuIntersectionRay& ray,
+                                                bool occluded) const {
+  GpuIntersectionOcclusionRecord record;
+  record.occluded = occluded ? 1u : 0u;
+  record.rayIndex = ray.rayIndex;
+  return record;
 }
 
 std::array<float, 4> GpuIntersectionIntersector::interpolate3(const std::array<float, 4>& a,

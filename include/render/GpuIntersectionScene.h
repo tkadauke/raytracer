@@ -189,6 +189,9 @@ namespace render {
                      const std::vector<GpuIntersectionRay>& rays) const;
     [[nodiscard]] bool intersectAny(const GpuIntersectionSceneBuffers& scene,
                                     const GpuIntersectionRay& ray) const;
+    [[nodiscard]] std::vector<GpuIntersectionOcclusionRecord>
+    intersectAny(const GpuIntersectionSceneBuffers& scene,
+                 const std::vector<GpuIntersectionRay>& rays) const;
 
   private:
     struct ClosestHit {
@@ -231,6 +234,8 @@ namespace render {
                                                    std::uint32_t primitiveRecord,
                                                    const ClosestHit& hit) const;
     [[nodiscard]] GpuIntersectionHitRecord makeMiss(const GpuIntersectionRay& ray) const;
+    [[nodiscard]] GpuIntersectionOcclusionRecord makeOcclusionRecord(const GpuIntersectionRay& ray,
+                                                                     bool occluded) const;
     [[nodiscard]] std::array<float, 4> interpolate3(const std::array<float, 4>& a,
                                                     const std::array<float, 4>& b,
                                                     const std::array<float, 4>& c, float alpha,

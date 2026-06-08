@@ -652,6 +652,37 @@ namespace GpuIntersectionSceneTest {
     expectPackedAnyHitMatchesCompiled(scene, ray, 1.0);
   }
 
+  TEST(GpuIntersectionScene, PackedAnyHitBatchReturnsRecordPerRay) {
+    Scene scene;
+    scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0));
+    scene.add(std::make_shared<Disk>(Vector3d(2, 0, 3), Vector3d(0, 0, 1), 1.0));
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    const std::vector<GpuIntersectionRay> rays{
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 41, 0.0,
+                                           3.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 42, 0.0,
+                                           1.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(2, 0, 0, 1), Vector3d(0, 0, 1)), 43, 0.0,
+                                           4.0),
+    };
+
+    ASSERT_TRUE(buffers.packedAnyHitKernelEligible());
+
+    const std::vector<GpuIntersectionOcclusionRecord> records =
+      GpuIntersectionIntersector().intersectAny(buffers, rays);
+
+    ASSERT_EQ(rays.size(), records.size());
+    for (std::size_t index = 0; index != rays.size(); ++index) {
+      EXPECT_EQ(rays[index].rayIndex, records[index].rayIndex);
+      EXPECT_EQ(GpuIntersectionIntersector().intersectAny(buffers, rays[index]) ? 1u : 0u,
+                records[index].occluded);
+    }
+    EXPECT_EQ(1u, records[0].occluded);
+    EXPECT_EQ(0u, records[1].occluded);
+    EXPECT_EQ(1u, records[2].occluded);
+  }
+
   TEST(GpuIntersectionScene, PackedAnyHitHonorsFiniteLightDistanceEpsilon) {
     Scene scene;
     scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0));
