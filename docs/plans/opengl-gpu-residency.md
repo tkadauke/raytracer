@@ -7,13 +7,15 @@
 > between every pass" acceptance criterion from
 > `docs/plans/complete/opengl-gpu-rasterizer.md` Phase 3.
 >
-> **Status:** planning. Prerequisite work — graph-side resource-domain
-> metadata, GPU descriptor surface in trace exports, explicit
-> `RenderPassKind::Readback` nodes, and the OpenGL raster resource cache — is
-> already in place. Concrete graph-owned OpenGL resources are still missing,
-> and `OpenGLRasterizer` still rejects `AttachmentLoadOp::Load` for color,
-> depth, and stencil until residency can seed attachments from prior GPU
-> passes.
+> **Status:** active and partially implemented. Prerequisite work —
+> graph-side resource-domain metadata, GPU residency metadata in
+> `RenderResourceStorage`, GPU descriptor surface in trace exports, explicit
+> `RenderPassKind::Readback` nodes, attachment store/discard state, color
+> attachment Load from a CPU source buffer, and the OpenGL raster resource cache
+> — is already in place. Concrete graph-owned OpenGL texture/renderbuffer
+> resources are still missing, graph pass-state application still rejects
+> OpenGL attachment Load, and `OpenGLRasterizer` still rejects depth/stencil Load
+> until residency can seed attachments from prior GPU passes.
 >
 > **Related plans:** `docs/plans/complete/opengl-gpu-rasterizer.md` owns the
 > rasterizer pipeline; this plan handles the resource side.
@@ -93,7 +95,10 @@ Tasks:
   (matching the existing `OpenGLRasterResourceCache` lifecycle pattern).
 - Extend `RenderResourceStorage` to accept and surface OpenGL resources
   through a typed accessor (`storage.openGLResourceFor(id)` returning
-  `OpenGLRasterResource*` or null).
+  `OpenGLRasterResource*` or null). ⏳ **Partially done.** The storage layer can
+  now attach and trace generic GPU residency metadata
+  (`RenderGpuResourceResidency`), but it does not yet own typed OpenGL resource
+  handles.
 - Add a graph-level acceptance test that asserts an OpenGL-only pass chain
   serializes its inter-pass resources as OpenGL handles, not CPU buffers.
 
@@ -147,11 +152,15 @@ Tasks:
 
 - When the graph compiles a pass chain, mark the intermediate resources
   with their preferred domain (`OpenGL` if all producers and consumers
-  support it). The storage layer already follows the markings; this just
-  populates them.
+  support it). ✅ **Partially done.** Graph resource descriptors already carry
+  CPU/GPU domains and pass nodes declare supported domains; concrete
+  OpenGL-only pass-chain scheduling still awaits the typed resident resource
+  from Phase 0/1.
 - Trace messages distinguish "kept resident on GPU" from "round-tripped
   via readback" so a user inspecting a plan can see the optimization
-  paid off.
+  paid off. ⏳ **Partially done.** Trace snapshots include GPU residency
+  metadata when a resource has it, but no OpenGL pass currently produces the
+  resident handle that would make the optimization visible end-to-end.
 - rendercli functional test: a multi-pass GPU plan reports zero implicit
   readback nodes between compatible passes.
 

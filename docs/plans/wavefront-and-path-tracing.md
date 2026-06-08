@@ -1290,11 +1290,15 @@ instead of direct-engine-only.
 
 ### `whitted-ray-packets.md`
 
-The packet plan remains a scalar `Raytracer` optimization plan, not a
-replacement for wavefront. Its Phase 0 decision was to pursue sample packets
-inside the Whitted-style render path when that work resumes. Wavefront can use
-the same packet intersection substrate later, but the scheduler work in this
-plan should not wait for packetized Whitted rendering.
+The packet plan remains the home for direct recursive `Raytracer` camera/sample
+loop packetization, not a replacement for wavefront. Its Phase 0 decision was
+to pursue sample packets inside the Whitted-style render path, but the first
+shipped packet consumption landed here instead: wavefront-driven
+`WhittedIntegrator::radianceBatch(...)` and
+`PathTracingIntegrator::radianceBatch(...)` submit active frontiers through
+Ray8/Ray4 packet intersections and expose packet-fill/fallback metrics. The
+remaining `whitted-ray-packets.md` work is the direct-engine packet entry point
+and optional shadow-ray packet slice.
 
 ### Existing `Raytracer`
 
