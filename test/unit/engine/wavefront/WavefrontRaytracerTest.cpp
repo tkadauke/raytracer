@@ -880,6 +880,7 @@ namespace WavefrontRaytracerTest {
               metrics.batching.intersectionBackendFallbackReason.find("auto selected CPU"));
     expectPlatformGpuUnavailableReason(metrics.batching.intersectionBackendFallbackReason);
     EXPECT_EQ("runtime_scene", metrics.batching.intersectionBackendExecutionPath);
+    EXPECT_EQ(480u, metrics.batching.intersectionBackendExpectedRays);
     EXPECT_FALSE(metrics.batching.intersectionSceneCompiled);
     EXPECT_EQ(0u, metrics.batching.intersectionScenePrimitives);
     EXPECT_EQ(0u, metrics.batching.intersectionSceneUnsupportedPrimitives);
@@ -996,6 +997,8 @@ namespace WavefrontRaytracerTest {
                                  .value("intersectionBackendExecutionPath")
                                  .toString()
                                  .toStdString());
+    EXPECT_EQ(
+      480.0, json.value("batching").toObject().value("intersectionBackendExpectedRays").toDouble());
     EXPECT_FALSE(json.value("batching").toObject().value("intersectionSceneCompiled").toBool());
     EXPECT_EQ(0.0,
               json.value("batching").toObject().value("intersectionScenePrimitives").toDouble());
@@ -1131,6 +1134,27 @@ namespace WavefrontRaytracerTest {
     EXPECT_GE(timings.value("integratorProgressSnapshotWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorConvergenceTestWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorResidualWorkerSeconds").toDouble(), 0.0);
+  }
+
+  TEST(WavefrontRaytracer, RecordsPathTracingIntersectionBackendWorkloadEstimate) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    auto integrator = std::make_unique<render::PathTracingIntegrator>();
+    integrator->setMaximumRecursionDepth(3);
+    integrator->setDirectLightSamples(2);
+    renderer->setIntegrator(std::move(integrator));
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->setMetricsEnabled(true);
+
+    Buffer<Colord> buffer(4, 3);
+    renderer->render(buffer);
+
+    const auto metrics = renderer->lastMetrics();
+    EXPECT_EQ(12u, metrics.input.primarySamples);
+    EXPECT_EQ(108u, metrics.batching.intersectionBackendExpectedRays);
+
+    const QJsonObject batching = metrics.toJson().value("batching").toObject();
+    EXPECT_EQ(108.0, batching.value("intersectionBackendExpectedRays").toDouble());
   }
 
   TEST(WavefrontRaytracer, RecordsGpuIntersectionBackendFallbackMetrics) {

@@ -12,7 +12,8 @@ namespace engine::wavefront::detail {
   void WavefrontMetricsRecorder::reset(
     const render::Camera& camera, int width, int height, const render::TilePlan& tilePlan,
     int configuredQueueSize, const render::Integrator& integrator, const render::Denoiser* denoiser,
-    bool convergenceEnabled, double activeSampleFractionThreshold, double radianceDeltaRmsThreshold,
+    std::uint64_t expectedIntersectionRays, bool convergenceEnabled,
+    double activeSampleFractionThreshold, double radianceDeltaRmsThreshold,
     bool adaptiveSamplingEnabled, int adaptiveMinimumSamples, double adaptiveStddevThreshold) {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_metrics = WavefrontRenderMetrics();
@@ -26,6 +27,7 @@ namespace engine::wavefront::detail {
     m_metrics.scheduling.decision = tilePlan.isSingleTile() ? "single_tile" : "tiled";
     m_metrics.batching.integrator = integrator.diagnosticName();
     m_metrics.batching.executionMode = integrator.batchExecutionMode();
+    m_metrics.batching.intersectionBackendExpectedRays = expectedIntersectionRays;
     if (denoiser) {
       const render::DenoiserDiagnostics diagnostics = denoiser->diagnostics();
       m_metrics.denoise.enabled = true;

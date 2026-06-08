@@ -30,6 +30,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   derive portal cameras from receiver/source transforms and mirror cameras from
   planar reflection, carrying explicit receiver-clipping state through graph
   inspection and execution. — GPT-5
+- **Integrator-aware wavefront backend estimates.** Wavefront intersection
+  backend `auto` selection now estimates expected query volume from the active
+  integrator's recursion/bounce and direct-light sampling policy instead of
+  primary camera samples alone, and metrics JSON reports that expected ray
+  count for render graph trace diagnostics.
+  — GPT-5
 - **Prepared Metal wavefront scene buffers.** Metal wavefront closest-hit and
   any-hit backend queries now reuse scene-side GPU buffers prepared with the
   backend instead of recreating those scene buffers for every ray packet; CPU

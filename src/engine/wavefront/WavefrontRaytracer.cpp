@@ -292,6 +292,8 @@ namespace engine::wavefront {
       QString::fromStdString(batching.intersectionBackendFallbackReason);
     batchingJson["intersectionBackendExecutionPath"] =
       QString::fromStdString(batching.intersectionBackendExecutionPath);
+    batchingJson["intersectionBackendExpectedRays"] =
+      static_cast<double>(batching.intersectionBackendExpectedRays);
     batchingJson["intersectionSceneCompiled"] = batching.intersectionSceneCompiled;
     batchingJson["intersectionSceneBvhNodes"] =
       static_cast<double>(batching.intersectionSceneBvhNodes);
@@ -612,9 +614,16 @@ namespace engine::wavefront {
                               static_cast<std::uint64_t>(std::max(1, camera.samplesPerPixel())));
     }
 
-    void prepareIntersectionBackend(const render::Scene& scene, std::uint64_t expectedPrimaryRays) {
+    std::uint64_t expectedIntersectionRayCount(const render::Camera& camera, int width,
+                                               int height) const {
+      return saturatedProduct(expectedPrimaryRayCount(camera, width, height),
+                              integrator->estimatedIntersectionRaysPerPrimarySample());
+    }
+
+    void prepareIntersectionBackend(const render::Scene& scene,
+                                    std::uint64_t expectedIntersectionRays) {
       render::WavefrontIntersectionBackendSelectionContext context;
-      context.expectedRayCount = expectedPrimaryRays;
+      context.expectedRayCount = expectedIntersectionRays;
       preparedIntersectionBackend = intersectionBackend.createBackendForScene(scene, context);
     }
 
@@ -678,8 +687,9 @@ namespace engine::wavefront {
 
     p->tasks.clear();
     p->denoiserFeatureTasks.clear();
-    p->prepareIntersectionBackend(
-      *m_scene, p->expectedPrimaryRayCount(*m_camera, buffer.width(), buffer.height()));
+    const std::uint64_t expectedIntersectionRays =
+      p->expectedIntersectionRayCount(*m_camera, buffer.width(), buffer.height());
+    p->prepareIntersectionBackend(*m_scene, expectedIntersectionRays);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();
@@ -698,8 +708,8 @@ namespace engine::wavefront {
     const bool recordMetrics = p->shouldRecordRenderMetrics(*m_camera);
     if (recordMetrics) {
       p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
-                       *p->integrator, p->denoiser.get(), p->convergenceEnabled,
-                       p->convergenceActiveSampleFractionThreshold,
+                       *p->integrator, p->denoiser.get(), expectedIntersectionRays,
+                       p->convergenceEnabled, p->convergenceActiveSampleFractionThreshold,
                        p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
                        p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
     } else {
@@ -758,8 +768,9 @@ namespace engine::wavefront {
 
     p->tasks.clear();
     p->denoiserFeatureTasks.clear();
-    p->prepareIntersectionBackend(
-      *m_scene, p->expectedPrimaryRayCount(*m_camera, buffer.width(), buffer.height()));
+    const std::uint64_t expectedIntersectionRays =
+      p->expectedIntersectionRayCount(*m_camera, buffer.width(), buffer.height());
+    p->prepareIntersectionBackend(*m_scene, expectedIntersectionRays);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();
@@ -779,8 +790,8 @@ namespace engine::wavefront {
     const bool recordMetrics = p->shouldRecordRenderMetrics(*m_camera);
     if (recordMetrics) {
       p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
-                       *p->integrator, p->denoiser.get(), p->convergenceEnabled,
-                       p->convergenceActiveSampleFractionThreshold,
+                       *p->integrator, p->denoiser.get(), expectedIntersectionRays,
+                       p->convergenceEnabled, p->convergenceActiveSampleFractionThreshold,
                        p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
                        p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
     } else {
@@ -835,8 +846,9 @@ namespace engine::wavefront {
 
     p->tasks.clear();
     p->denoiserFeatureTasks.clear();
-    p->prepareIntersectionBackend(
-      *m_scene, p->expectedPrimaryRayCount(*m_camera, hdrBuffer.width(), hdrBuffer.height()));
+    const std::uint64_t expectedIntersectionRays =
+      p->expectedIntersectionRayCount(*m_camera, hdrBuffer.width(), hdrBuffer.height());
+    p->prepareIntersectionBackend(*m_scene, expectedIntersectionRays);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();
@@ -856,8 +868,8 @@ namespace engine::wavefront {
     const bool recordMetrics = p->shouldRecordRenderMetrics(*m_camera);
     if (recordMetrics) {
       p->metrics.reset(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan, p->queueSize,
-                       *p->integrator, p->denoiser.get(), p->convergenceEnabled,
-                       p->convergenceActiveSampleFractionThreshold,
+                       *p->integrator, p->denoiser.get(), expectedIntersectionRays,
+                       p->convergenceEnabled, p->convergenceActiveSampleFractionThreshold,
                        p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
                        p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
     } else {

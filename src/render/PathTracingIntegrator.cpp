@@ -179,6 +179,12 @@ namespace render {
     return true;
   }
 
+  std::uint64_t PathTracingIntegrator::estimatedIntersectionRaysPerPrimarySample() const {
+    const int queriesPerBounce = 1 + std::max(1, m_directLightSamples);
+    return static_cast<std::uint64_t>(std::max(1, m_maximumRecursionDepth)) *
+           static_cast<std::uint64_t>(queriesPerBounce);
+  }
+
   void PathTracingIntegrator::setCancellationCallback(CancellationCallback callback) {
     m_cancellationCallback = std::move(callback);
   }

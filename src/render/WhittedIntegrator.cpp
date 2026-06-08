@@ -43,6 +43,10 @@ namespace render {
     return "depth_major_whitted";
   }
 
+  std::uint64_t WhittedIntegrator::estimatedIntersectionRaysPerPrimarySample() const {
+    return static_cast<std::uint64_t>(std::max(1, m_maximumRecursionDepth));
+  }
+
   struct WhittedIntegrator::QueuedRay {
     std::size_t sampleIndex{0};
     Rayd ray;

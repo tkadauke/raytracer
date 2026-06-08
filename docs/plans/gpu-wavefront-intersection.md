@@ -596,6 +596,10 @@ Progress:
   no platform kernel is available in the build or runtime, `auto` stays on the
   runtime CPU backend and reports that selection reason in render metrics and
   graph trace.
+- The expected-ray-count estimate now comes from the selected integrator.
+  Whitted renders scale by recursion depth, while path tracing scales by bounce
+  count and direct-light visibility samples; metrics JSON records the final
+  estimate so render graph traces explain the `auto` backend decision.
 - The benchmark suite now includes wavefront intersection backend fixtures for
   a small supported scene, a mesh-heavy supported scene, and an unsupported
   mixed scene. The fixtures measure compile/pack cost, runtime CPU closest-hit

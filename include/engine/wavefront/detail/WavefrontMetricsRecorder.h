@@ -3,6 +3,7 @@
 #include "engine/wavefront/WavefrontRaytracer.h"
 
 #include <chrono>
+#include <cstdint>
 #include <mutex>
 
 namespace render {
@@ -22,9 +23,10 @@ namespace engine::wavefront::detail {
     void reset(const render::Camera& camera, int width, int height,
                const render::TilePlan& tilePlan, int configuredQueueSize,
                const render::Integrator& integrator, const render::Denoiser* denoiser,
-               bool convergenceEnabled, double activeSampleFractionThreshold,
-               double radianceDeltaRmsThreshold, bool adaptiveSamplingEnabled,
-               int adaptiveMinimumSamples, double adaptiveStddevThreshold);
+               std::uint64_t expectedIntersectionRays, bool convergenceEnabled,
+               double activeSampleFractionThreshold, double radianceDeltaRmsThreshold,
+               bool adaptiveSamplingEnabled, int adaptiveMinimumSamples,
+               double adaptiveStddevThreshold);
     void clear();
     void recordTile(const WavefrontTileTraceResult& result);
     void recordDenoiserFeatureTile(const Recti& rect);

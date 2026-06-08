@@ -41,6 +41,10 @@ namespace render {
     return false;
   }
 
+  std::uint64_t Integrator::estimatedIntersectionRaysPerPrimarySample() const {
+    return 1;
+  }
+
   void IntegratorBatchMetrics::reset(bool scalarFallback) {
     usedScalarFallback = scalarFallback;
     activeSamplesPerDepth.clear();

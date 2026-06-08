@@ -39,6 +39,7 @@ namespace render {
                                       const RayCaster& recursiveRayCaster,
                                       IntegratorBatchMetrics* metrics = nullptr,
                                       const IntegratorBatchSettings& settings = {}) const override;
+    std::uint64_t estimatedIntersectionRaysPerPrimarySample() const override;
 
     void setMaximumRecursionDepth(int depth) override;
     int maximumRecursionDepth() const;

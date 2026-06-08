@@ -263,6 +263,20 @@ namespace WhittedIntegratorTest {
     }
   }
 
+  TEST(WhittedIntegrator, EstimatesIntersectionRaysFromRecursionDepth) {
+    WhittedIntegrator integrator;
+
+    EXPECT_EQ(10u, integrator.estimatedIntersectionRaysPerPrimarySample());
+
+    integrator.setMaximumRecursionDepth(4);
+
+    EXPECT_EQ(4u, integrator.estimatedIntersectionRaysPerPrimarySample());
+
+    integrator.setMaximumRecursionDepth(0);
+
+    EXPECT_EQ(1u, integrator.estimatedIntersectionRaysPerPrimarySample());
+  }
+
   TEST(WhittedIntegrator, ReturnsSceneBackgroundWhenRayMissesEverything) {
     Scene scene;
     scene.setBackground(Colord(0.25, 0.5, 0.75));

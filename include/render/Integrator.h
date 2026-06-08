@@ -221,6 +221,13 @@ namespace render {
     virtual bool prefersProgressiveSamplePublishing() const;
 
     /**
+      * Estimate how many scene-intersection queries one primary camera sample
+      * can generate. Wavefront backends use this only for coarse backend
+      * selection; exact query counts remain runtime metrics.
+      */
+    virtual std::uint64_t estimatedIntersectionRaysPerPrimarySample() const;
+
+    /**
       * Evaluate the radiance carried by `ray` in `scene`.
       *
       * Implementations may mutate `state` for recursion depth, hit-point
