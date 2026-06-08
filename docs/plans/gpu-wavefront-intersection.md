@@ -457,10 +457,11 @@ Progress:
   leave the buckets at zero so total intersection worker time remains
   comparable with and without GPU dispatch.
 - The Metal wrapper now caches the default device, command queue, and compiled
-  smoke/basic-hit compute pipelines across dispatches. Per-query scene/ray/result
-  buffers are still allocated for the current hybrid upload/readback contract,
-  but shader compilation and command-queue creation are no longer part of every
-  closest-hit or any-hit query.
+  smoke/basic-hit compute pipelines across dispatches. Prepared Metal backends
+  now also upload scene-side BVH, primitive, payload, and static count buffers
+  once when the backend is created; per-query work only allocates the ray,
+  result, and dynamic-count buffers for the current hybrid upload/readback
+  contract.
 
 ## Phase 5 - common exact primitives and static instances
 

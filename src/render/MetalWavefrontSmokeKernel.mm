@@ -10,6 +10,7 @@
 #include <chrono>
 #include <cstring>
 #include <limits>
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -775,6 +776,252 @@ namespace render {
   bool MetalWavefrontSmokeKernel::deviceAvailable() const {
     @autoreleasepool {
       return sharedMetalDevice() != nil;
+    }
+  }
+
+  struct MetalWavefrontPreparedScene::Private {
+    id<MTLBuffer> bvhBuffer{nil};
+    id<MTLBuffer> primitiveBuffer{nil};
+    id<MTLBuffer> triangleBuffer{nil};
+    id<MTLBuffer> sphereBuffer{nil};
+    id<MTLBuffer> planeBuffer{nil};
+    id<MTLBuffer> rectangleBuffer{nil};
+    id<MTLBuffer> diskBuffer{nil};
+    id<MTLBuffer> transformBuffer{nil};
+    id<MTLBuffer> counts0Buffer{nil};
+    id<MTLBuffer> counts1Buffer{nil};
+
+    ~Private() {
+#if !__has_feature(objc_arc)
+      [bvhBuffer release];
+      [primitiveBuffer release];
+      [triangleBuffer release];
+      [sphereBuffer release];
+      [planeBuffer release];
+      [rectangleBuffer release];
+      [diskBuffer release];
+      [transformBuffer release];
+      [counts0Buffer release];
+      [counts1Buffer release];
+#endif
+    }
+
+    void setSceneBuffers(id<MTLComputeCommandEncoder> encoder) const {
+      [encoder setBuffer:bvhBuffer offset:0 atIndex:0];
+      [encoder setBuffer:primitiveBuffer offset:0 atIndex:1];
+      [encoder setBuffer:triangleBuffer offset:0 atIndex:2];
+      [encoder setBuffer:sphereBuffer offset:0 atIndex:3];
+      [encoder setBuffer:planeBuffer offset:0 atIndex:4];
+      [encoder setBuffer:rectangleBuffer offset:0 atIndex:5];
+      [encoder setBuffer:diskBuffer offset:0 atIndex:6];
+      [encoder setBuffer:transformBuffer offset:0 atIndex:7];
+    }
+
+    void setCountBuffers(id<MTLComputeCommandEncoder> encoder, id<MTLBuffer> counts2Buffer) const {
+      [encoder setBuffer:counts0Buffer offset:0 atIndex:10];
+      [encoder setBuffer:counts1Buffer offset:0 atIndex:11];
+      [encoder setBuffer:counts2Buffer offset:0 atIndex:12];
+    }
+  };
+
+  MetalWavefrontPreparedScene::MetalWavefrontPreparedScene(
+    const GpuIntersectionSceneBuffers& scene)
+      : p(std::make_unique<Private>()) {
+    if (!scene.basicHitKernelEligible()) {
+      throw std::invalid_argument(
+        "Metal prepared wavefront scene requires a supported primitive scene");
+    }
+
+    @autoreleasepool {
+      id<MTLDevice> device = sharedMetalDevice();
+      if (!device) {
+        throw std::runtime_error("Metal prepared wavefront scene requires a Metal device");
+      }
+
+      p->bvhBuffer = newBufferFromVector(device, scene.bvh);
+      p->primitiveBuffer = newBufferFromVector(device, scene.primitives);
+      p->triangleBuffer = newPayloadBufferFromVector(device, scene.triangles);
+      p->sphereBuffer = newPayloadBufferFromVector(device, scene.spheres);
+      p->planeBuffer = newPayloadBufferFromVector(device, scene.planes);
+      p->rectangleBuffer = newPayloadBufferFromVector(device, scene.rectangles);
+      p->diskBuffer = newPayloadBufferFromVector(device, scene.disks);
+      p->transformBuffer = newPayloadBufferFromVector(device, scene.transforms);
+
+      const std::array<std::uint32_t, 4> counts0{
+        static_cast<std::uint32_t>(scene.bvh.size()),
+        static_cast<std::uint32_t>(scene.primitives.size()),
+        static_cast<std::uint32_t>(scene.triangles.size()),
+        static_cast<std::uint32_t>(scene.spheres.size()),
+      };
+      const std::array<std::uint32_t, 4> counts1{
+        static_cast<std::uint32_t>(scene.planes.size()),
+        static_cast<std::uint32_t>(scene.rectangles.size()),
+        static_cast<std::uint32_t>(scene.disks.size()),
+        static_cast<std::uint32_t>(scene.transforms.size()),
+      };
+      p->counts0Buffer =
+        [device newBufferWithBytes:counts0.data()
+                             length:counts0.size() * sizeof(std::uint32_t)
+                            options:MTLResourceStorageModeShared];
+      p->counts1Buffer =
+        [device newBufferWithBytes:counts1.data()
+                             length:counts1.size() * sizeof(std::uint32_t)
+                            options:MTLResourceStorageModeShared];
+
+      if (!p->bvhBuffer || !p->primitiveBuffer || !p->triangleBuffer || !p->sphereBuffer ||
+          !p->planeBuffer || !p->rectangleBuffer || !p->diskBuffer || !p->transformBuffer ||
+          !p->counts0Buffer || !p->counts1Buffer) {
+        throw std::runtime_error("Metal prepared wavefront scene buffer allocation failed");
+      }
+    }
+  }
+
+  MetalWavefrontPreparedScene::~MetalWavefrontPreparedScene() = default;
+
+  MetalWavefrontClosestHitKernelResult
+  MetalWavefrontPreparedScene::runTimedBasicClosestHitKernel(
+    const std::vector<GpuIntersectionRay>& rays) const {
+    if (rays.empty()) {
+      return {};
+    }
+
+    @autoreleasepool {
+      MetalWavefrontClosestHitKernelResult result;
+      const auto uploadStart = std::chrono::steady_clock::now();
+      id<MTLDevice> device = sharedMetalDevice();
+      if (!device) {
+        throw std::runtime_error("Metal prepared closest-hit kernel requires a Metal device");
+      }
+
+      id<MTLComputePipelineState> pipeline = sharedBasicClosestHitPipeline();
+      id<MTLBuffer> rayBuffer = newBufferFromVector(device, rays);
+      const std::vector<GpuIntersectionHitRecord> initialHits(rays.size());
+      id<MTLBuffer> hitBuffer = newBufferFromVector(device, initialHits);
+      const std::array<std::uint32_t, 4> counts2{
+        static_cast<std::uint32_t>(rays.size()),
+        0u,
+        0u,
+        0u,
+      };
+      id<MTLBuffer> counts2Buffer =
+        [device newBufferWithBytes:counts2.data()
+                             length:counts2.size() * sizeof(std::uint32_t)
+                            options:MTLResourceStorageModeShared];
+      if (!rayBuffer || !hitBuffer || !counts2Buffer) {
+        throw std::runtime_error("Metal prepared closest-hit query buffer allocation failed");
+      }
+
+      id<MTLCommandQueue> queue = sharedCommandQueue();
+      id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+      id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
+      if (!queue || !commandBuffer || !encoder) {
+        throw std::runtime_error("Metal prepared closest-hit command setup failed");
+      }
+      const auto uploadEnd = std::chrono::steady_clock::now();
+
+      [encoder setComputePipelineState:pipeline];
+      p->setSceneBuffers(encoder);
+      [encoder setBuffer:rayBuffer offset:0 atIndex:8];
+      [encoder setBuffer:hitBuffer offset:0 atIndex:9];
+      p->setCountBuffers(encoder, counts2Buffer);
+      dispatchOneDimensional(encoder, pipeline, rays.size());
+      [encoder endEncoding];
+      const auto kernelStart = std::chrono::steady_clock::now();
+      [commandBuffer commit];
+      [commandBuffer waitUntilCompleted];
+      const auto kernelEnd = std::chrono::steady_clock::now();
+
+      if (commandBuffer.error) {
+        throw metalError("Metal prepared closest-hit kernel dispatch failed", commandBuffer.error);
+      }
+
+      const auto readbackStart = std::chrono::steady_clock::now();
+      result.hits.resize(rays.size());
+      std::memcpy(result.hits.data(), hitBuffer.contents,
+                  result.hits.size() * sizeof(result.hits.front()));
+      const auto readbackEnd = std::chrono::steady_clock::now();
+      result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
+      result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
+      result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
+#if !__has_feature(objc_arc)
+      [rayBuffer release];
+      [hitBuffer release];
+      [counts2Buffer release];
+#endif
+      return result;
+    }
+  }
+
+  MetalWavefrontAnyHitKernelResult MetalWavefrontPreparedScene::runTimedBasicAnyHitKernel(
+    const std::vector<GpuIntersectionRay>& rays) const {
+    if (rays.empty()) {
+      return {};
+    }
+
+    @autoreleasepool {
+      MetalWavefrontAnyHitKernelResult result;
+      const auto uploadStart = std::chrono::steady_clock::now();
+      id<MTLDevice> device = sharedMetalDevice();
+      if (!device) {
+        throw std::runtime_error("Metal prepared any-hit kernel requires a Metal device");
+      }
+
+      id<MTLComputePipelineState> pipeline = sharedBasicAnyHitPipeline();
+      id<MTLBuffer> rayBuffer = newBufferFromVector(device, rays);
+      const std::vector<GpuIntersectionOcclusionRecord> initialRecords(rays.size());
+      id<MTLBuffer> occlusionBuffer = newBufferFromVector(device, initialRecords);
+      const std::array<std::uint32_t, 4> counts2{
+        static_cast<std::uint32_t>(rays.size()),
+        0u,
+        0u,
+        0u,
+      };
+      id<MTLBuffer> counts2Buffer =
+        [device newBufferWithBytes:counts2.data()
+                             length:counts2.size() * sizeof(std::uint32_t)
+                            options:MTLResourceStorageModeShared];
+      if (!rayBuffer || !occlusionBuffer || !counts2Buffer) {
+        throw std::runtime_error("Metal prepared any-hit query buffer allocation failed");
+      }
+
+      id<MTLCommandQueue> queue = sharedCommandQueue();
+      id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+      id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
+      if (!queue || !commandBuffer || !encoder) {
+        throw std::runtime_error("Metal prepared any-hit command setup failed");
+      }
+      const auto uploadEnd = std::chrono::steady_clock::now();
+
+      [encoder setComputePipelineState:pipeline];
+      p->setSceneBuffers(encoder);
+      [encoder setBuffer:rayBuffer offset:0 atIndex:8];
+      [encoder setBuffer:occlusionBuffer offset:0 atIndex:9];
+      p->setCountBuffers(encoder, counts2Buffer);
+      dispatchOneDimensional(encoder, pipeline, rays.size());
+      [encoder endEncoding];
+      const auto kernelStart = std::chrono::steady_clock::now();
+      [commandBuffer commit];
+      [commandBuffer waitUntilCompleted];
+      const auto kernelEnd = std::chrono::steady_clock::now();
+
+      if (commandBuffer.error) {
+        throw metalError("Metal prepared any-hit kernel dispatch failed", commandBuffer.error);
+      }
+
+      const auto readbackStart = std::chrono::steady_clock::now();
+      result.records.resize(rays.size());
+      std::memcpy(result.records.data(), occlusionBuffer.contents,
+                  result.records.size() * sizeof(result.records.front()));
+      const auto readbackEnd = std::chrono::steady_clock::now();
+      result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
+      result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
+      result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
+#if !__has_feature(objc_arc)
+      [rayBuffer release];
+      [occlusionBuffer release];
+      [counts2Buffer release];
+#endif
+      return result;
     }
   }
 

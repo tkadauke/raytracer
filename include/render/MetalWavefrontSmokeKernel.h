@@ -3,6 +3,7 @@
 #include "render/WavefrontIntersectionQueryTiming.h"
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace render {
@@ -46,5 +47,23 @@ namespace render {
     MetalWavefrontAnyHitKernelResult
     runTimedBasicAnyHitKernel(const GpuIntersectionSceneBuffers& scene,
                               const std::vector<GpuIntersectionRay>& rays) const;
+  };
+
+  class MetalWavefrontPreparedScene {
+  public:
+    explicit MetalWavefrontPreparedScene(const GpuIntersectionSceneBuffers& scene);
+    ~MetalWavefrontPreparedScene();
+
+    MetalWavefrontPreparedScene(const MetalWavefrontPreparedScene&) = delete;
+    MetalWavefrontPreparedScene& operator=(const MetalWavefrontPreparedScene&) = delete;
+
+    MetalWavefrontClosestHitKernelResult
+    runTimedBasicClosestHitKernel(const std::vector<GpuIntersectionRay>& rays) const;
+    MetalWavefrontAnyHitKernelResult
+    runTimedBasicAnyHitKernel(const std::vector<GpuIntersectionRay>& rays) const;
+
+  private:
+    struct Private;
+    std::unique_ptr<Private> p;
   };
 }

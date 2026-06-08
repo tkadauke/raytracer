@@ -16,6 +16,7 @@ namespace render {
   struct GpuIntersectionOcclusionRecord;
   struct GpuIntersectionRay;
   struct GpuIntersectionSceneBuffers;
+  class MetalWavefrontPreparedScene;
   class Scene;
   class State;
   class WavefrontIntersectionBackend;
@@ -265,12 +266,15 @@ namespace render {
     explicit MetalWavefrontIntersectionBackend(
       std::shared_ptr<const CompiledIntersectionScene> compiledScene,
       std::shared_ptr<const GpuIntersectionSceneBuffers> gpuSceneBuffers,
-      std::string requestedName);
+      std::shared_ptr<const MetalWavefrontPreparedScene> metalPreparedScene,
+      std::string metalPreparationError, std::string requestedName);
 
     [[nodiscard]] bool metalBasicHitAvailable() const;
 
     std::shared_ptr<const CompiledIntersectionScene> m_compiledScene;
     std::shared_ptr<const GpuIntersectionSceneBuffers> m_gpuSceneBuffers;
+    std::shared_ptr<const MetalWavefrontPreparedScene> m_metalPreparedScene;
+    std::string m_metalPreparationError;
     std::string m_requestedName;
   };
 

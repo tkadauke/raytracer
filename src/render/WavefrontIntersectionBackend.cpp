@@ -766,16 +766,34 @@ namespace render {
     std::shared_ptr<const CompiledIntersectionScene> scene, std::string requestedName) {
     auto buffers = std::make_shared<const GpuIntersectionSceneBuffers>(
       GpuIntersectionScenePacker().packScene(*scene));
+    std::shared_ptr<const MetalWavefrontPreparedScene> metalPreparedScene;
+    std::string metalPreparationError;
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    if (buffers->basicHitKernelEligible() && MetalWavefrontSmokeKernel().deviceAvailable()) {
+      try {
+        metalPreparedScene = std::make_shared<MetalWavefrontPreparedScene>(*buffers);
+      } catch (const std::exception& e) {
+        metalPreparationError = "Metal wavefront intersection backend failed to prepare scene "
+                                "buffers: ";
+        metalPreparationError += e.what();
+      }
+    }
+#endif
     return std::shared_ptr<const WavefrontIntersectionBackend>(
-      new MetalWavefrontIntersectionBackend(std::move(scene), std::move(buffers),
-                                            std::move(requestedName)));
+      new MetalWavefrontIntersectionBackend(
+        std::move(scene), std::move(buffers), std::move(metalPreparedScene),
+        std::move(metalPreparationError), std::move(requestedName)));
   }
 
   MetalWavefrontIntersectionBackend::MetalWavefrontIntersectionBackend(
     std::shared_ptr<const CompiledIntersectionScene> compiledScene,
-    std::shared_ptr<const GpuIntersectionSceneBuffers> gpuSceneBuffers, std::string requestedName)
+    std::shared_ptr<const GpuIntersectionSceneBuffers> gpuSceneBuffers,
+    std::shared_ptr<const MetalWavefrontPreparedScene> metalPreparedScene,
+    std::string metalPreparationError, std::string requestedName)
       : m_compiledScene(std::move(compiledScene)),
         m_gpuSceneBuffers(std::move(gpuSceneBuffers)),
+        m_metalPreparedScene(std::move(metalPreparedScene)),
+        m_metalPreparationError(std::move(metalPreparationError)),
         m_requestedName(std::move(requestedName)) {
   }
 
@@ -821,6 +839,9 @@ namespace render {
       return "Metal wavefront intersection backend is enabled but no prepared basic-hit scene is "
              "available";
     }
+    if (!m_metalPreparationError.empty()) {
+      return m_metalPreparationError.c_str();
+    }
     return "Metal wavefront intersection backend is enabled but the prepared scene is not "
            "eligible for the Metal basic hit kernel";
 #else
@@ -861,8 +882,7 @@ namespace render {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     try {
       const MetalWavefrontClosestHitKernelResult result =
-        MetalWavefrontSmokeKernel().runTimedBasicClosestHitKernel(*gpuIntersectionSceneBuffers(),
-                                                                  rays);
+        m_metalPreparedScene->runTimedBasicClosestHitKernel(rays);
       if (timing) {
         timing->add(result.timing);
       }
@@ -896,7 +916,7 @@ namespace render {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     try {
       const MetalWavefrontAnyHitKernelResult result =
-        MetalWavefrontSmokeKernel().runTimedBasicAnyHitKernel(*gpuIntersectionSceneBuffers(), rays);
+        m_metalPreparedScene->runTimedBasicAnyHitKernel(rays);
       if (timing) {
         timing->add(result.timing);
       }
@@ -911,9 +931,7 @@ namespace render {
 
   bool MetalWavefrontIntersectionBackend::metalBasicHitAvailable() const {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
-    const GpuIntersectionSceneBuffers* buffers = gpuIntersectionSceneBuffers();
-    return buffers && buffers->basicHitKernelEligible() &&
-           MetalWavefrontSmokeKernel().deviceAvailable();
+    return m_metalPreparedScene != nullptr;
 #else
     return false;
 #endif

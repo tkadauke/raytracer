@@ -30,6 +30,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   derive portal cameras from receiver/source transforms and mirror cameras from
   planar reflection, carrying explicit receiver-clipping state through graph
   inspection and execution. — GPT-5
+- **Prepared Metal wavefront scene buffers.** Metal wavefront closest-hit and
+  any-hit backend queries now reuse scene-side GPU buffers prepared with the
+  backend instead of recreating those scene buffers for every ray packet; CPU
+  packed fallback remains unchanged when Metal is unavailable.
+  — GPT-5
 - **Compiled wavefront BVH traversal pruning.** The CPU compiled-scene
   intersector now culls node and primitive records with bounded ray/box tests
   and visits nearer BVH children first, matching the packed GPU ABI traversal
