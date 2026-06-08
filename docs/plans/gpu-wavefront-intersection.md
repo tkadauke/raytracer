@@ -14,7 +14,10 @@
 > compiled scenes and packed upload buffers; exact closest-hit, packet
 > closest-hit, and bounded any-hit queries for triangle, sphere, plane,
 > rectangle, disk, and static-transform payloads can run through the packed CPU
-> kernel contract. Real Metal/Vulkan kernels remain future phases. This is a
+> kernel contract. Metal-only smoke kernels now prove optional compute dispatch
+> and triangle closest-hit record production outside the render path; real
+> render-path Metal/Vulkan closest-hit and any-hit kernels remain future
+> phases. This is a
 > follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+. It should not replace
 > the CPU wavefront renderer, and it should not attempt a full GPU path tracer
@@ -253,10 +256,15 @@ Progress:
 - `RAYTRACER_ENABLE_METAL_WAVEFRONT` and
   `RAYTRACER_ENABLE_VULKAN_WAVEFRONT` are now explicit CMake options. They
   default off, enforce the intended host platform, and publish compile
-  definitions to the library and dependents. The current platform stubs still
-  report CPU fallback because no compute kernel is built yet, but their
-  diagnostics now distinguish disabled plumbing from enabled-without-kernel
-  plumbing.
+  definitions to the library and dependents.
+- `RAYTRACER_ENABLE_METAL_WAVEFRONT` now also builds an Objective-C++/Metal
+  smoke wrapper. It uploads a uint buffer for a deterministic dispatch/readback
+  check, and it can run an untransformed-triangle closest-hit kernel against the
+  packed BVH/primitive/ray ABI. Both paths stay outside the renderer and are
+  platform-plumbing/parity proofs.
+- The current platform stubs still report CPU fallback because no render-path
+  closest-hit or any-hit kernel is built yet, but their diagnostics now
+  distinguish disabled plumbing from enabled-without-render-kernel plumbing.
 
 ## Phase 1 - backend interface and CPU refactor
 
@@ -356,9 +364,9 @@ Progress:
   upload workload visible before kernels exist.
 - Supported scene-created GPU stubs now answer closest-hit, packet closest-hit,
   and any-hit queries from their retained compiled scene through the CPU parity
-  intersector. They still report a CPU fallback because no Metal/Vulkan kernel
-  has executed, but they no longer re-enter the runtime `Scene` for supported
-  query shapes.
+  intersector. They still report a CPU fallback because no Metal/Vulkan
+  render-path intersection kernel has executed, but they no longer re-enter the
+  runtime `Scene` for supported query shapes.
 - Backend metrics now also name the actual query execution path
   (`runtime_scene` or `compiled_cpu`) separately from the requested and resolved
   backend ids. This keeps the diagnostic honest while GPU requests still resolve
@@ -385,6 +393,13 @@ Gate:
 
 Progress:
 
+- Metal-enabled builds now include an opt-in triangle closest-hit smoke wrapper
+  that consumes `GpuIntersectionScenePacker`'s triangle-only packed scene
+  buffers and writes `GpuIntersectionHitRecord` results. A focused test compares
+  the Metal result to `GpuIntersectionIntersector` for hit, miss, and bounded
+  miss rays when a Metal device is present, while non-triangle scene rejection is
+  tested without requiring a device. This is still outside the render path and
+  does not change backend selection.
 - A CPU `CompiledIntersectionSceneIntersector` now traverses the compiled
   flat-array BVH and produces GPU-style closest-hit records for triangle
   payloads, including object/material ids, distance, point, normal, UVs, and
@@ -518,8 +533,9 @@ Progress:
   conservative expected-ray-count estimate from `WavefrontRaytracer`. It
   requires platform GPU availability, a fully supported packed intersection
   scene, and enough expected ray work before choosing the GPU path. Until real
-  Metal/Vulkan kernels are available, `auto` stays on the runtime CPU backend
-  and reports that selection reason in render metrics and graph trace.
+  Metal/Vulkan closest-hit kernels are available, `auto` stays on the runtime
+  CPU backend and reports that selection reason in render metrics and graph
+  trace.
 
 ## Phase 8 - future work
 
