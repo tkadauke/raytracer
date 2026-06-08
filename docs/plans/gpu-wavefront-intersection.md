@@ -378,6 +378,24 @@ Progress:
   payloads, including object/material ids, distance, point, normal, UVs, and
   barycentric coordinates. This is a parity harness for the upcoming
   Metal/Vulkan triangle kernel; it is not selected as a render backend yet.
+- `GpuIntersectionScenePacker` now converts compiled BVH nodes, primitive
+  records, triangle payloads, static transform payloads, ray work items, and
+  miss records into 16-byte-aligned POD buffers suitable for Metal/Vulkan
+  uploads. It also marks whether a compiled scene is eligible for the first
+  triangle closest-hit kernel: all primitive records must be triangles with no
+  transform payload. This keeps the next kernel work focused on traversal and
+  hit-record parity instead of ad hoc per-backend layout decisions.
+- Scene-created GPU fallback stubs now retain those packed upload buffers next
+  to the compiled scene. Wavefront metrics, rendercli compact summaries, and
+  Modeler graph tooltips expose the retained upload byte count and
+  triangle-kernel eligibility, so the next backend slice can switch from
+  `compiled_cpu` to a platform execution path with visible parity gates.
+- `GpuIntersectionTriangleClosestHitIntersector` now executes iterative
+  closest-hit BVH traversal directly against the packed upload buffers and
+  writes GPU-style hit/miss records. Triangle-eligible prepared GPU fallbacks
+  route closest-hit and packet closest-hit queries through this packed CPU
+  kernel contract; other supported primitive payloads still use the compiled
+  scene parity intersector until their platform kernels exist.
 
 ## Phase 5 - common exact primitives and static instances
 
