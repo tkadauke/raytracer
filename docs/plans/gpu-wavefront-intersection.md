@@ -441,6 +441,11 @@ Progress:
   graph trace tooltips when a platform kernel actually runs; CPU fallback paths
   leave the buckets at zero so total intersection worker time remains
   comparable with and without GPU dispatch.
+- The Metal wrapper now caches the default device, command queue, and compiled
+  smoke/basic-hit compute pipelines across dispatches. Per-query scene/ray/result
+  buffers are still allocated for the current hybrid upload/readback contract,
+  but shader compilation and command-queue creation are no longer part of every
+  closest-hit or any-hit query.
 
 ## Phase 5 - common exact primitives and static instances
 

@@ -499,6 +499,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   dependency-ready CPU-safe passes concurrently while preserving serial and
   limited executor caps, and skips queued dependents when cancellation or pass
   failures stop graph execution. — GPT-5
+- **Metal wavefront intersection setup reuse.** The experimental Metal
+  wavefront intersection wrapper now reuses the default Metal device, command
+  queue, and compiled compute pipelines across closest-hit and any-hit
+  dispatches instead of rebuilding them for every query. — GPT-5
 - **Modeler final render engine choices.** The final render dialog now exposes
   Raytracer, Path Tracer, Rasterizer, and Wireframe as user-facing engines;
   wavefront path tracing is selected through the Path Tracer schedule instead

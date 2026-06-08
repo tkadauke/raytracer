@@ -309,18 +309,28 @@ namespace WavefrontIntersectionBackendTest {
 
     const std::vector<GpuIntersectionHitRecord> actualClosest =
       kernel.runBasicClosestHitKernel(buffers, rays);
+    const std::vector<GpuIntersectionHitRecord> repeatedClosest =
+      kernel.runBasicClosestHitKernel(buffers, rays);
     ASSERT_EQ(expected.size(), actualClosest.size());
+    ASSERT_EQ(expected.size(), repeatedClosest.size());
     for (std::size_t index = 0; index != expected.size(); ++index) {
       expectGpuHitRecordNear(actualClosest[index], expected[index]);
+      expectGpuHitRecordNear(repeatedClosest[index], expected[index]);
     }
 
     const std::vector<GpuIntersectionOcclusionRecord> actualAny =
       kernel.runBasicAnyHitKernel(buffers, rays);
+    const std::vector<GpuIntersectionOcclusionRecord> repeatedAny =
+      kernel.runBasicAnyHitKernel(buffers, rays);
     ASSERT_EQ(rays.size(), actualAny.size());
+    ASSERT_EQ(rays.size(), repeatedAny.size());
     for (std::size_t index = 0; index != rays.size(); ++index) {
       EXPECT_EQ(rays[index].rayIndex, actualAny[index].rayIndex);
+      EXPECT_EQ(rays[index].rayIndex, repeatedAny[index].rayIndex);
       EXPECT_EQ(GpuIntersectionIntersector().intersectAny(buffers, rays[index]) ? 1u : 0u,
                 actualAny[index].occluded);
+      EXPECT_EQ(GpuIntersectionIntersector().intersectAny(buffers, rays[index]) ? 1u : 0u,
+                repeatedAny[index].occluded);
     }
 #else
     GTEST_SKIP() << "Metal wavefront backend is disabled";

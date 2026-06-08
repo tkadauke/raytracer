@@ -660,6 +660,54 @@ namespace render {
       return pipeline;
     }
 
+    id<MTLDevice> sharedMetalDevice() {
+      static id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+      return device;
+    }
+
+    id<MTLCommandQueue> sharedCommandQueue() {
+      id<MTLDevice> device = sharedMetalDevice();
+      if (!device) {
+        return nil;
+      }
+
+      static id<MTLCommandQueue> queue = [device newCommandQueue];
+      return queue;
+    }
+
+    id<MTLComputePipelineState> sharedSmokePipeline() {
+      id<MTLDevice> device = sharedMetalDevice();
+      if (!device) {
+        return nil;
+      }
+
+      static id<MTLComputePipelineState> pipeline =
+        newPipeline(device, smokeKernelSource(), @"wavefrontSmokeKernel");
+      return pipeline;
+    }
+
+    id<MTLComputePipelineState> sharedBasicClosestHitPipeline() {
+      id<MTLDevice> device = sharedMetalDevice();
+      if (!device) {
+        return nil;
+      }
+
+      static id<MTLComputePipelineState> pipeline =
+        newPipeline(device, basicHitKernelSource(), @"basicClosestHitKernel");
+      return pipeline;
+    }
+
+    id<MTLComputePipelineState> sharedBasicAnyHitPipeline() {
+      id<MTLDevice> device = sharedMetalDevice();
+      if (!device) {
+        return nil;
+      }
+
+      static id<MTLComputePipelineState> pipeline =
+        newPipeline(device, basicHitKernelSource(), @"basicAnyHitKernel");
+      return pipeline;
+    }
+
     template<typename T>
     id<MTLBuffer> newBufferFromVector(id<MTLDevice> device, const std::vector<T>& records) {
       if (records.empty()) {
@@ -695,8 +743,7 @@ namespace render {
 
   bool MetalWavefrontSmokeKernel::deviceAvailable() const {
     @autoreleasepool {
-      id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-      return device != nil;
+      return sharedMetalDevice() != nil;
     }
   }
 
@@ -707,13 +754,12 @@ namespace render {
     }
 
     @autoreleasepool {
-      id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+      id<MTLDevice> device = sharedMetalDevice();
       if (!device) {
         throw std::runtime_error("Metal wavefront smoke kernel requires a Metal device");
       }
 
-      id<MTLComputePipelineState> pipeline =
-        newPipeline(device, smokeKernelSource(), @"wavefrontSmokeKernel");
+      id<MTLComputePipelineState> pipeline = sharedSmokePipeline();
 
       const NSUInteger byteCount = rayIds.size() * sizeof(std::uint32_t);
       id<MTLBuffer> inputBuffer = [device newBufferWithBytes:rayIds.data()
@@ -725,7 +771,7 @@ namespace render {
         throw std::runtime_error("Metal wavefront smoke kernel buffer allocation failed");
       }
 
-      id<MTLCommandQueue> queue = [device newCommandQueue];
+      id<MTLCommandQueue> queue = sharedCommandQueue();
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
       id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
       if (!queue || !commandBuffer || !encoder) {
@@ -771,13 +817,12 @@ namespace render {
     @autoreleasepool {
       MetalWavefrontClosestHitKernelResult result;
       const auto uploadStart = std::chrono::steady_clock::now();
-      id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+      id<MTLDevice> device = sharedMetalDevice();
       if (!device) {
         throw std::runtime_error("Metal wavefront basic hit kernel requires a Metal device");
       }
 
-      id<MTLComputePipelineState> pipeline =
-        newPipeline(device, basicHitKernelSource(), @"basicClosestHitKernel");
+      id<MTLComputePipelineState> pipeline = sharedBasicClosestHitPipeline();
 
       id<MTLBuffer> bvhBuffer = newBufferFromVector(device, scene.bvh);
       id<MTLBuffer> primitiveBuffer = newBufferFromVector(device, scene.primitives);
@@ -826,7 +871,7 @@ namespace render {
         throw std::runtime_error("Metal wavefront basic hit kernel buffer allocation failed");
       }
 
-      id<MTLCommandQueue> queue = [device newCommandQueue];
+      id<MTLCommandQueue> queue = sharedCommandQueue();
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
       id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
       if (!queue || !commandBuffer || !encoder) {
@@ -891,13 +936,12 @@ namespace render {
     @autoreleasepool {
       MetalWavefrontAnyHitKernelResult result;
       const auto uploadStart = std::chrono::steady_clock::now();
-      id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+      id<MTLDevice> device = sharedMetalDevice();
       if (!device) {
         throw std::runtime_error("Metal wavefront basic any-hit kernel requires a Metal device");
       }
 
-      id<MTLComputePipelineState> pipeline =
-        newPipeline(device, basicHitKernelSource(), @"basicAnyHitKernel");
+      id<MTLComputePipelineState> pipeline = sharedBasicAnyHitPipeline();
 
       id<MTLBuffer> bvhBuffer = newBufferFromVector(device, scene.bvh);
       id<MTLBuffer> primitiveBuffer = newBufferFromVector(device, scene.primitives);
@@ -946,7 +990,7 @@ namespace render {
         throw std::runtime_error("Metal wavefront basic any-hit buffer allocation failed");
       }
 
-      id<MTLCommandQueue> queue = [device newCommandQueue];
+      id<MTLCommandQueue> queue = sharedCommandQueue();
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
       id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
       if (!queue || !commandBuffer || !encoder) {
