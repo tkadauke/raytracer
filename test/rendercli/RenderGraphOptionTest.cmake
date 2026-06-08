@@ -25,6 +25,7 @@ set(wavefront_indirect_scene
 set(wavefront_indirect_bounce_scene
     "${PROJECT_SOURCE_DIR}/scenes/wavefront_indirect_bounce_demo.json")
 set(wavefront_denoise_scene "${PROJECT_SOURCE_DIR}/scenes/wavefront_denoise_demo.json")
+set(pathtracer_area_light_scene "${PROJECT_SOURCE_DIR}/scenes/pathtracer_area_light_demo.json")
 set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
 set(scene_viewplane_intent_scene "${TEST_OUTPUT_DIR}/scene-viewplane-intent.json")
 set(scene_queue_intent_scene "${TEST_OUTPUT_DIR}/scene-queue-intent.json")
@@ -129,6 +130,8 @@ set(wavefront_feedback_metrics_report "${TEST_OUTPUT_DIR}/wavefront-feedback-met
 set(wavefront_direct_metrics_render
     "${TEST_OUTPUT_DIR}/wavefront-direct-metrics-render.png")
 set(wavefront_direct_metrics_report "${TEST_OUTPUT_DIR}/wavefront-direct-metrics.json")
+set(wavefront_batched_visibility_render
+    "${TEST_OUTPUT_DIR}/wavefront-batched-visibility-render.png")
 set(wavefront_parity_raytracer_render
     "${TEST_OUTPUT_DIR}/wavefront-parity-raytracer-render.png")
 set(wavefront_parity_render "${TEST_OUTPUT_DIR}/wavefront-parity-render.png")
@@ -2586,6 +2589,32 @@ if(NOT wavefront_direct_metrics_json MATCHES "\"metrics\"")
   _rendercli_fail("rendercli direct wavefront metrics payload"
                   "direct wavefront metrics report did not contain direct metrics"
                   "" "" "${wavefront_direct_metrics_json}" "")
+endif()
+
+rendercli_run(
+  NAME "rendercli reports batched wavefront any-hit visibility metrics"
+  OUTPUT_VARIABLE wavefront_batched_visibility_stdout
+  STDOUT_MATCHES
+    "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*any_hit_rays=[1-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*direct_light_samples=[1-9][0-9]*"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
+    --pathtracer_direct_light_samples 3 --wavefront_denoiser none
+    --wavefront_metrics_summary "${pathtracer_area_light_scene}"
+    "${wavefront_batched_visibility_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_batched_visibility_render}"
+                                NAME "batched wavefront visibility render pixels")
+string(REGEX MATCH "any_hit_rays=([0-9][0-9]*)" _any_hit_rays_match
+             "${wavefront_batched_visibility_stdout}")
+set(wavefront_batched_visibility_any_hit_rays "${CMAKE_MATCH_1}")
+string(REGEX MATCH "any_hit_queries=([0-9][0-9]*)" _any_hit_queries_match
+             "${wavefront_batched_visibility_stdout}")
+set(wavefront_batched_visibility_any_hit_queries "${CMAKE_MATCH_1}")
+if(NOT wavefront_batched_visibility_any_hit_rays GREATER wavefront_batched_visibility_any_hit_queries)
+  _rendercli_fail(
+    "rendercli batched wavefront any-hit visibility metrics"
+    "expected any_hit_rays to exceed any_hit_queries when direct-light visibility is batched"
+    "${wavefront_batched_visibility_stdout}" "" "" "")
 endif()
 
 rendercli_run(
