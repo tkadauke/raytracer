@@ -20,6 +20,8 @@ By the end you should know:
   subclass of the recursive raytracer,
 - how sample streams, next-event estimation, Russian roulette, and
   per-depth queues fit together,
+- why the intersection backend is separate from the transport
+  algorithm and frame scheduler,
 - which metrics tell you whether the current path tracer is using
   the path-tracing contract or terminating unsupported materials.
 
@@ -240,6 +242,18 @@ direct-light visibility goes through the same backend seam via
 `intersectAny(...)`, so the graph and metrics can separate closest-hit and
 any-hit ray counts for CPU and GPU-resident query families.
 
+The expected ray count used by `auto` is an estimate of intersection work, not
+just the number of primary camera samples. `WavefrontRaytracer` starts with
+image size and camera samples per pixel, then asks the active integrator how
+many scene-intersection queries one primary sample can generate. Whitted work
+scales with recursion depth. Path-tracing work scales with bounce depth and
+next-event visibility samples. That estimate is deliberately conservative:
+runtime metrics still record the exact closest-hit, any-hit, and submitted-ray
+counts after the render finishes. rendercli summaries and Modeler graph
+tooltips show the expected-ray estimate next to backend choice, fallback,
+execution path, scene-upload bytes, and query-transfer bytes so a user can see
+why `auto` stayed on CPU or selected a GPU path.
+
 The next boundary is the compiled intersection scene. GPU kernels
 cannot consume arbitrary C++ primitive objects, so
 `IntersectionSceneCompiler` walks the runtime scene through each
@@ -306,9 +320,8 @@ ray upload bytes plus closest-hit and any-hit readback bytes. CPU and
 unsupported runtime-scene fallbacks report zero for those query-transfer fields;
 prepared GPU-request stubs report the packed ABI byte counts so `auto`
 selection can compare expected ray work against scene upload and query
-upload/readback cost. The render engine already supplies a conservative
-expected-ray-count estimate to that policy, and the policy scales the effective
-GPU threshold upward for larger prepared scene uploads. When the Metal
+upload/readback cost. The policy scales the effective GPU threshold upward for
+larger prepared scene uploads. When the Metal
 render-path kernels actually execute, metrics also split
 backend wall time into host upload/setup, kernel dispatch/wait, and CPU
 readback buckets. CPU fallback paths leave those buckets at zero, while the
