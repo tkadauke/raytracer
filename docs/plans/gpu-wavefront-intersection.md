@@ -10,8 +10,10 @@
 > render intent/graph state selection, rendercli and Modeler controls, and
 > fallback metrics in place. Phase 2 now has a diagnostic CPU-side compiled
 > intersection scene for supported leaves, ids, transforms, bounds, and
-> unsupported reasons; real Metal/Vulkan backends remain future phases. This is
-> a follow-up to
+> unsupported reasons. Scene-created GPU fallback stubs retain supported
+> compiled scenes and answer closest/any-hit queries through the compiled CPU
+> parity intersector; real Metal/Vulkan kernels remain future phases. This is a
+> follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+. It should not replace
 > the CPU wavefront renderer, and it should not attempt a full GPU path tracer
 > in the first slice.
@@ -328,8 +330,23 @@ Progress:
 
 - `MetalWavefrontIntersectionBackend` and `VulkanWavefrontIntersectionBackend`
   are now explicit platform stubs. They report availability/fallback metadata,
-  name the host platform for a `gpu` request, and delegate intersections to the
-  CPU backend until real kernels land.
+  name the host platform for a `gpu` request, and still report CPU fallback
+  until real kernels land.
+- Scene-created GPU stubs now retain the supported
+  `CompiledIntersectionScene` they were prepared from. Static platform
+  singletons and unsupported-scene fallbacks remain stateless, but the supported
+  `gpu` path now has an owned compiled artifact ready for future upload handles
+  instead of discarding the diagnostic compile result.
+- Wavefront metrics now expose whether an intersection scene was compiled plus
+  BVH node, primitive, supported payload, transform, and unsupported-leaf
+  counts. rendercli compact summaries and the Modeler render graph pass tooltip
+  surface the same counts beside the backend fallback reason, making the future
+  upload workload visible before kernels exist.
+- Supported scene-created GPU stubs now answer closest-hit, packet closest-hit,
+  and any-hit queries from their retained compiled scene through the CPU parity
+  intersector. They still report a CPU fallback because no Metal/Vulkan kernel
+  has executed, but they no longer re-enter the runtime `Scene` for supported
+  query shapes.
 
 ## Phase 4 - triangle GPU closest-hit kernel
 
@@ -404,9 +421,10 @@ Progress:
 
 - `WavefrontIntersectionBackend` now has an `intersectAny(...)` query for
   shadow/visibility rays. The CPU backend delegates to `Scene::occludes(...)`,
-  platform GPU stubs delegate to that CPU backend, and batched path-tracing
-  direct-light visibility records any-hit query metrics through the selected
-  backend while preserving finite light-distance bounds.
+  unsupported-scene fallbacks delegate to that CPU backend, and supported
+  scene-created GPU stubs answer through the compiled-scene parity intersector.
+  Batched path-tracing direct-light visibility records any-hit query metrics
+  through the selected backend while preserving finite light-distance bounds.
 - `CompiledIntersectionSceneIntersector` now has a CPU any-hit parity query for
   supported compiled payloads and static instances. It uses the same bounded
   light-distance rule as `Scene::occludes(...)`, so GPU any-hit kernels have a
