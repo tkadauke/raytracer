@@ -14,6 +14,7 @@
 #include <QJsonObject>
 
 #include <stdexcept>
+#include <string>
 
 namespace RaytracerPassStateTest {
   using namespace engine::graph;
@@ -24,6 +25,7 @@ namespace RaytracerPassStateTest {
     state.setMaximumThreads(3);
     state.setQueueSize(11);
     state.setIntegrator("path_tracer");
+    state.setIntersectionBackend("gpu");
     state.setRussianRouletteDepth(4);
     state.setDirectLightSamples(6);
     state.setSampler("Jittered");
@@ -47,6 +49,9 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ(11, json.value("execution").toObject().value("queueSize").toInt());
     EXPECT_EQ("pathtracer",
               json.value("execution").toObject().value("integrator").toString().toStdString());
+    EXPECT_EQ(
+      "gpu",
+      json.value("execution").toObject().value("intersectionBackend").toString().toStdString());
     EXPECT_EQ(4, json.value("execution").toObject().value("russianRouletteDepth").toInt());
     EXPECT_EQ(6, json.value("execution").toObject().value("directLightSamples").toInt());
     EXPECT_EQ("Jittered",
@@ -74,6 +79,7 @@ namespace RaytracerPassStateTest {
     ASSERT_TRUE(decoded.maximumThreads().has_value());
     ASSERT_TRUE(decoded.queueSize().has_value());
     ASSERT_TRUE(decoded.integrator().has_value());
+    ASSERT_TRUE(decoded.intersectionBackend().has_value());
     ASSERT_TRUE(decoded.russianRouletteDepth().has_value());
     ASSERT_TRUE(decoded.directLightSamples().has_value());
     ASSERT_TRUE(decoded.sampler().has_value());
@@ -93,6 +99,7 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ(3, *decoded.maximumThreads());
     EXPECT_EQ(11, *decoded.queueSize());
     EXPECT_EQ("pathtracer", *decoded.integrator());
+    EXPECT_STREQ("gpu", decoded.intersectionBackend()->id());
     EXPECT_EQ(4, *decoded.russianRouletteDepth());
     EXPECT_EQ(6, *decoded.directLightSamples());
     EXPECT_EQ("Jittered", *decoded.sampler());
@@ -214,6 +221,21 @@ namespace RaytracerPassStateTest {
     EXPECT_TRUE(wavefront.adaptiveSamplingEnabled());
     EXPECT_EQ(3, wavefront.adaptiveMinimumSamples());
     EXPECT_DOUBLE_EQ(0.125, wavefront.adaptiveStddevThreshold());
+  }
+
+  TEST(RaytracerBeautyPassState, AppliesIntersectionBackendToWavefront) {
+    RaytracerBeautyPassState state;
+    state.setIntersectionBackend("gpu");
+
+    engine::wavefront::WavefrontRaytracer wavefront{std::shared_ptr<render::Scene>()};
+
+    state.applyTo(wavefront);
+
+    const auto& backend = wavefront.intersectionBackend().resolvedBackend();
+    EXPECT_STREQ("gpu", backend.requestedName());
+    EXPECT_STREQ("cpu", backend.name());
+    EXPECT_STREQ("fallback", backend.availability());
+    EXPECT_FALSE(std::string(backend.fallbackReason()).empty());
   }
 
   TEST(RaytracerBeautyPassState, AppliesSamplingSeedToRayFamilyEngines) {

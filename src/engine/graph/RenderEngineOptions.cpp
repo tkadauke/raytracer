@@ -301,11 +301,12 @@ namespace engine::graph {
 
   bool RenderRaytracerOptions::empty() const {
     return !m_maximumRecursionDepth && !m_maximumThreads && !m_queueSize && !m_integrator &&
-           !m_russianRouletteDepth && !m_directLightSamples && !m_sampler && !m_samplesPerPixel &&
-           !m_samplingSeed && !m_viewPlane && !m_convergenceEnabled &&
-           !m_convergenceActiveSampleFractionThreshold && !m_convergenceRadianceDeltaRmsThreshold &&
-           !m_adaptiveSamplingEnabled && !m_adaptiveMinimumSamples && !m_adaptiveStddevThreshold &&
-           !m_denoiser && !m_denoiseRadius && !m_denoiseColorSigma;
+           !m_intersectionBackend && !m_russianRouletteDepth && !m_directLightSamples &&
+           !m_sampler && !m_samplesPerPixel && !m_samplingSeed && !m_viewPlane &&
+           !m_convergenceEnabled && !m_convergenceActiveSampleFractionThreshold &&
+           !m_convergenceRadianceDeltaRmsThreshold && !m_adaptiveSamplingEnabled &&
+           !m_adaptiveMinimumSamples && !m_adaptiveStddevThreshold && !m_denoiser &&
+           !m_denoiseRadius && !m_denoiseColorSigma;
   }
 
   QJsonObject RenderRaytracerOptions::toJson() const {
@@ -324,6 +325,8 @@ namespace engine::graph {
       options.setQueueSize(*state.queueSize());
     if (state.integrator())
       options.setIntegrator(*state.integrator());
+    if (state.intersectionBackend())
+      options.setIntersectionBackend(*state.intersectionBackend());
     if (state.russianRouletteDepth())
       options.setRussianRouletteDepth(*state.russianRouletteDepth());
     if (state.directLightSamples())
@@ -368,6 +371,8 @@ namespace engine::graph {
     result.m_maximumThreads = overrideOptional(result.m_maximumThreads, overrides.m_maximumThreads);
     result.m_queueSize = overrideOptional(result.m_queueSize, overrides.m_queueSize);
     result.m_integrator = overrideOptional(result.m_integrator, overrides.m_integrator);
+    result.m_intersectionBackend =
+      overrideOptional(result.m_intersectionBackend, overrides.m_intersectionBackend);
     result.m_russianRouletteDepth =
       overrideOptional(result.m_russianRouletteDepth, overrides.m_russianRouletteDepth);
     result.m_directLightSamples =
@@ -408,6 +413,8 @@ namespace engine::graph {
       state.setQueueSize(*m_queueSize);
     if (m_integrator)
       state.setIntegrator(*m_integrator);
+    if (m_intersectionBackend)
+      state.setIntersectionBackend(*m_intersectionBackend);
     if (m_russianRouletteDepth)
       state.setRussianRouletteDepth(*m_russianRouletteDepth);
     if (m_directLightSamples)
@@ -458,6 +465,17 @@ namespace engine::graph {
     RaytracerBeautyPassState state;
     state.setIntegrator(std::move(integrator));
     m_integrator = state.integrator();
+  }
+
+  void RenderRaytracerOptions::setIntersectionBackend(std::string backend) {
+    RaytracerBeautyPassState state;
+    state.setIntersectionBackend(std::move(backend));
+    m_intersectionBackend = state.intersectionBackend();
+  }
+
+  void RenderRaytracerOptions::setIntersectionBackend(
+    render::WavefrontIntersectionBackendChoice backend) {
+    m_intersectionBackend = backend;
   }
 
   void RenderRaytracerOptions::setRussianRouletteDepth(int depth) {
@@ -538,6 +556,11 @@ namespace engine::graph {
 
   std::optional<std::string> RenderRaytracerOptions::integrator() const {
     return m_integrator;
+  }
+
+  std::optional<render::WavefrontIntersectionBackendChoice>
+  RenderRaytracerOptions::intersectionBackend() const {
+    return m_intersectionBackend;
   }
 
   std::optional<int> RenderRaytracerOptions::russianRouletteDepth() const {

@@ -123,7 +123,7 @@ namespace engine::graph {
     const QJsonObject execution = objectField(object, "execution", path);
     rejectUnknownFields(execution, path + ".execution",
                         {"maxRecursionDepth", "threads", "queueSize", "integrator",
-                         "russianRouletteDepth", "directLightSamples"});
+                         "intersectionBackend", "russianRouletteDepth", "directLightSamples"});
     if (hasField(execution, "maxRecursionDepth"))
       state.setMaximumRecursionDepth(intField(execution, "maxRecursionDepth", path + ".execution"));
     if (hasField(execution, "threads"))
@@ -132,6 +132,10 @@ namespace engine::graph {
       state.setQueueSize(intField(execution, "queueSize", path + ".execution"));
     if (hasField(execution, "integrator"))
       state.setIntegrator(stringField(execution, "integrator", path + ".execution"));
+    if (hasField(execution, "intersectionBackend")) {
+      state.setIntersectionBackend(
+        stringField(execution, "intersectionBackend", path + ".execution"));
+    }
     if (hasField(execution, "russianRouletteDepth")) {
       state.setRussianRouletteDepth(
         intField(execution, "russianRouletteDepth", path + ".execution"));
@@ -222,6 +226,8 @@ namespace engine::graph {
       execution["queueSize"] = *m_queueSize;
     if (m_integrator)
       execution["integrator"] = qstr(*m_integrator);
+    if (m_intersectionBackend)
+      execution["intersectionBackend"] = qstr(m_intersectionBackend->id());
     if (m_russianRouletteDepth)
       execution["russianRouletteDepth"] = *m_russianRouletteDepth;
     if (m_directLightSamples)
@@ -318,6 +324,8 @@ namespace engine::graph {
       wavefront.setQueueSize(*m_queueSize);
     if (m_samplingSeed)
       wavefront.setSamplingSeed(*m_samplingSeed);
+    if (m_intersectionBackend)
+      wavefront.setIntersectionBackend(*m_intersectionBackend);
     if (m_convergenceEnabled)
       wavefront.setConvergenceEnabled(*m_convergenceEnabled);
     if (m_convergenceActiveSampleFractionThreshold) {
@@ -373,6 +381,20 @@ namespace engine::graph {
   void RaytracerBeautyPassState::setIntegrator(std::string integrator) {
     m_integrator =
       normalizedIntegratorName(std::move(integrator), "parameters.execution.integrator");
+  }
+
+  void RaytracerBeautyPassState::setIntersectionBackend(std::string backend) {
+    try {
+      m_intersectionBackend =
+        render::WavefrontIntersectionBackendChoice::fromString(std::move(backend));
+    } catch (const std::invalid_argument&) {
+      stateError("parameters.execution.intersectionBackend", "expected auto, cpu, or gpu");
+    }
+  }
+
+  void RaytracerBeautyPassState::setIntersectionBackend(
+    render::WavefrontIntersectionBackendChoice backend) {
+    m_intersectionBackend = backend;
   }
 
   void RaytracerBeautyPassState::setRussianRouletteDepth(int depth) {
@@ -452,6 +474,11 @@ namespace engine::graph {
 
   std::optional<std::string> RaytracerBeautyPassState::integrator() const {
     return m_integrator;
+  }
+
+  std::optional<render::WavefrontIntersectionBackendChoice>
+  RaytracerBeautyPassState::intersectionBackend() const {
+    return m_intersectionBackend;
   }
 
   std::optional<int> RaytracerBeautyPassState::russianRouletteDepth() const {

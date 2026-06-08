@@ -451,6 +451,35 @@
         </property>
        </widget>
       </item>
+      <item row="12" column="0">
+       <widget class="QLabel" name="label_wavefrontIntersectionBackend">
+        <property name="text">
+         <string>Intersection backend</string>
+        </property>
+       </widget>
+      </item>
+      <item row="12" column="1">
+       <widget class="QComboBox" name="wavefrontIntersectionBackend">
+        <property name="toolTip">
+         <string>Ray-scene intersection backend for wavefront batches. GPU currently records the request and falls back to CPU until a platform backend is available.</string>
+        </property>
+        <item>
+         <property name="text">
+          <string>Auto</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>CPU</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>GPU</string>
+         </property>
+        </item>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

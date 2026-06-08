@@ -63,6 +63,8 @@ class RenderIntentElement : public Element {
                setWavefrontAdaptiveMinimumSamples)
   Q_PROPERTY(double wavefrontAdaptiveStddevThreshold READ wavefrontAdaptiveStddevThreshold WRITE
                setWavefrontAdaptiveStddevThreshold)
+  Q_PROPERTY(QString wavefrontIntersectionBackend READ wavefrontIntersectionBackend WRITE
+               setWavefrontIntersectionBackend)
   Q_PROPERTY(QString wavefrontDenoiser READ wavefrontDenoiser WRITE setWavefrontDenoiser)
   Q_PROPERTY(int wavefrontDenoiseRadius READ wavefrontDenoiseRadius WRITE setWavefrontDenoiseRadius)
   Q_PROPERTY(double wavefrontDenoiseColorSigma READ wavefrontDenoiseColorSigma WRITE
@@ -206,6 +208,9 @@ public:
 
   double wavefrontAdaptiveStddevThreshold() const;
   void setWavefrontAdaptiveStddevThreshold(double threshold);
+
+  QString wavefrontIntersectionBackend() const;
+  void setWavefrontIntersectionBackend(const QString& backend);
 
   QString wavefrontDenoiser() const;
   void setWavefrontDenoiser(const QString& denoiser);

@@ -55,6 +55,7 @@ namespace RenderIntentElementTest {
     intent->setWavefrontAdaptiveSampling(true);
     intent->setWavefrontAdaptiveMinimumSamples(3);
     intent->setWavefrontAdaptiveStddevThreshold(0.05);
+    intent->setWavefrontIntersectionBackend("gpu");
     intent->setWavefrontDenoiser("bilateral");
     intent->setWavefrontDenoiseRadius(3);
     intent->setWavefrontDenoiseColorSigma(0.2);
@@ -121,6 +122,8 @@ namespace RenderIntentElementTest {
       scene.renderIntent().engineOptions.raytracer().adaptiveStddevThreshold().has_value());
     EXPECT_DOUBLE_EQ(0.05,
                      *scene.renderIntent().engineOptions.raytracer().adaptiveStddevThreshold());
+    ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().intersectionBackend().has_value());
+    EXPECT_STREQ("gpu", scene.renderIntent().engineOptions.raytracer().intersectionBackend()->id());
     ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().denoiser().has_value());
     EXPECT_EQ("bilateral", *scene.renderIntent().engineOptions.raytracer().denoiser());
     ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().denoiseRadius().has_value());
@@ -162,6 +165,9 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->propertyChoices("raytracerSampler").contains("Halton"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontConvergenceQuality").contains("balanced"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontConvergenceQuality").contains("custom"));
+    EXPECT_TRUE(intent->propertyChoices("wavefrontIntersectionBackend").contains("auto"));
+    EXPECT_TRUE(intent->propertyChoices("wavefrontIntersectionBackend").contains("cpu"));
+    EXPECT_TRUE(intent->propertyChoices("wavefrontIntersectionBackend").contains("gpu"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontDenoiser").contains("box"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontDenoiser").contains("bilateral"));
     EXPECT_FALSE(intent->propertyChoices("viewMode").contains("sample_stddev"));
@@ -209,6 +215,8 @@ namespace RenderIntentElementTest {
               intent->propertyDisplayName("wavefrontAdaptiveMinimumSamples"));
     EXPECT_EQ(QString("Stddev Threshold"),
               intent->propertyDisplayName("wavefrontAdaptiveStddevThreshold"));
+    EXPECT_EQ(QString("Intersection Backend"),
+              intent->propertyDisplayName("wavefrontIntersectionBackend"));
     EXPECT_EQ(QString("Russian Roulette Depth"),
               intent->propertyDisplayName("pathTracerRussianRouletteDepth"));
     EXPECT_EQ(QString("Direct Light Samples"),
@@ -222,6 +230,12 @@ namespace RenderIntentElementTest {
               intent->propertyChoiceDisplayName("defaultEngine", "pathtracer"));
     EXPECT_EQ(QString("Balanced"),
               intent->propertyChoiceDisplayName("wavefrontConvergenceQuality", "balanced"));
+    EXPECT_EQ(QString("Auto"),
+              intent->propertyChoiceDisplayName("wavefrontIntersectionBackend", "auto"));
+    EXPECT_EQ(QString("CPU"),
+              intent->propertyChoiceDisplayName("wavefrontIntersectionBackend", "cpu"));
+    EXPECT_EQ(QString("GPU"),
+              intent->propertyChoiceDisplayName("wavefrontIntersectionBackend", "gpu"));
     EXPECT_EQ(QString("Box"), intent->propertyChoiceDisplayName("wavefrontDenoiser", "box"));
     EXPECT_EQ(QString("Bilateral"),
               intent->propertyChoiceDisplayName("wavefrontDenoiser", "bilateral"));
@@ -334,6 +348,7 @@ namespace RenderIntentElementTest {
     EXPECT_FALSE(intent->isPropertyVisible("pathTracerDirectLightSamples"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontConvergence"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontAdaptiveSampling"));
+    EXPECT_FALSE(intent->isPropertyVisible("wavefrontIntersectionBackend"));
     EXPECT_FALSE(intent->isPropertyVisible("rasterizerLod"));
 
     intent->setDefaultEngine("rasterizer");
@@ -350,6 +365,7 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->isPropertyVisible("raytracerIntegrator"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergence"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontAdaptiveSampling"));
+    EXPECT_TRUE(intent->isPropertyVisible("wavefrontIntersectionBackend"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontAdaptiveMinimumSamples"));
     EXPECT_FALSE(intent->isPropertyVisible("wavefrontAdaptiveStddevThreshold"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontDenoiser"));
@@ -364,6 +380,7 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->isPropertyVisible("pathTracerRussianRouletteDepth"));
     EXPECT_TRUE(intent->isPropertyVisible("pathTracerDirectLightSamples"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergence"));
+    EXPECT_TRUE(intent->isPropertyVisible("wavefrontIntersectionBackend"));
     EXPECT_EQ(QString("Path Tracer"), intent->propertyGroup("raytracerSampler"));
     EXPECT_EQ(QString("Path Tracer"), intent->propertyGroup("pathTracerRussianRouletteDepth"));
     EXPECT_EQ(QString("Path Tracer"), intent->propertyGroup("pathTracerDirectLightSamples"));

@@ -235,6 +235,45 @@ namespace {
         << timings.value("integratorResidualWorkerSeconds").toDouble() * 1000.0
         << " integrator=" << batching.value("integrator").toString().toStdString()
         << " execution=" << batching.value("executionMode").toString().toStdString()
+        << " intersection_backend_request="
+        << batching.value("intersectionBackendRequest").toString().toStdString()
+        << " intersection_backend="
+        << batching.value("intersectionBackend").toString().toStdString()
+        << " intersection_backend_availability="
+        << batching.value("intersectionBackendAvailability").toString().toStdString()
+        << " intersection_backend_fallback="
+        << compactTextValue(batching.value("intersectionBackendFallbackReason"), "none")
+        << " intersection_backend_execution="
+        << compactTextValue(batching.value("intersectionBackendExecutionPath"), "unknown")
+        << " intersection_scene_compiled="
+        << (batching.value("intersectionSceneCompiled").toBool() ? "true" : "false")
+        << " intersection_scene_bvh_nodes=" << unsignedValue(batching, "intersectionSceneBvhNodes")
+        << " intersection_scene_primitives="
+        << unsignedValue(batching, "intersectionScenePrimitives")
+        << " intersection_scene_triangles=" << unsignedValue(batching, "intersectionSceneTriangles")
+        << " intersection_scene_spheres=" << unsignedValue(batching, "intersectionSceneSpheres")
+        << " intersection_scene_unsupported="
+        << unsignedValue(batching, "intersectionSceneUnsupportedPrimitives")
+        << " intersection_scene_upload_bytes="
+        << unsignedValue(batching, "intersectionSceneUploadBytes")
+        << " intersection_scene_triangle_kernel_eligible="
+        << (batching.value("intersectionSceneTriangleClosestHitEligible").toBool() ? "true"
+                                                                                   : "false")
+        << " intersection_scene_basic_hit_kernel_eligible="
+        << (batching.value("intersectionSceneBasicHitEligible").toBool() ? "true" : "false")
+        << " intersection_scene_packed_closest_hit_eligible="
+        << (batching.value("intersectionScenePackedClosestHitEligible").toBool() ? "true" : "false")
+        << " intersection_estimated_ray_upload_bytes="
+        << unsignedValue(batching, "intersectionEstimatedRayUploadBytes")
+        << " intersection_estimated_closest_hit_readback_bytes="
+        << unsignedValue(batching, "intersectionEstimatedClosestHitReadbackBytes")
+        << " intersection_estimated_any_hit_readback_bytes="
+        << unsignedValue(batching, "intersectionEstimatedAnyHitReadbackBytes")
+        << " intersection_estimated_query_transfer_bytes="
+        << unsignedValue(batching, "intersectionEstimatedQueryTransferBytes")
+        << " intersection_rays=" << unsignedValue(batching, "intersectionRaysSubmitted")
+        << " closest_hit_queries=" << unsignedValue(batching, "closestHitQueries")
+        << " any_hit_queries=" << unsignedValue(batching, "anyHitQueries")
         << " samples=" << unsignedValue(input, "primarySamples")
         << " tiles=" << unsignedValue(tiling, "tileCount")
         << " tile_grid=" << unsignedValue(tiling, "tileColumns") << "x"
@@ -372,6 +411,16 @@ namespace {
         result += ",";
         result += pairs[index];
       }
+      return result;
+    }
+
+    std::string compactTextValue(const QJsonValue& value, const std::string& empty) const {
+      std::string result = value.toString().toStdString();
+      if (result.empty()) {
+        return empty;
+      }
+      std::replace_if(
+        result.begin(), result.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }, '_');
       return result;
     }
 
@@ -1212,6 +1261,8 @@ private:
   bool m_pathTracerDirectLightSamplesSet;
   QString m_pathTracingSchedule;
   bool m_pathTracingScheduleSet;
+  QString m_wavefrontIntersectionBackend;
+  bool m_wavefrontIntersectionBackendSet;
   int m_width;
   int m_height;
   bool m_widthSet;
@@ -1405,6 +1456,8 @@ Renderer::Renderer()
       m_pathTracerDirectLightSamplesSet(false),
       m_pathTracingSchedule("wavefront"),
       m_pathTracingScheduleSet(false),
+      m_wavefrontIntersectionBackend("auto"),
+      m_wavefrontIntersectionBackendSet(false),
       m_width(640),
       m_height(480),
       m_widthSet(false),
@@ -1677,6 +1730,8 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
   } else if (m_integratorSet) {
     options.raytracer().setIntegrator(m_integrator.toStdString());
   }
+  if (m_wavefrontIntersectionBackendSet)
+    options.raytracer().setIntersectionBackend(m_wavefrontIntersectionBackend.toStdString());
   if (m_samplerSet)
     options.raytracer().setSampler(m_sampler.toStdString());
   if (m_samplesPerPixelSet)
@@ -2331,6 +2386,10 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     wavefront->setQueueSize(rayFamilyQueueSize());
     if (m_samplingSeed)
       wavefront->setSamplingSeed(*m_samplingSeed);
+    if (m_wavefrontIntersectionBackendSet) {
+      wavefront->setIntersectionBackend(render::WavefrontIntersectionBackendChoice::fromString(
+        m_wavefrontIntersectionBackend.toStdString()));
+    }
     wavefront->setMetricsEnabled(wavefrontMetricsRequested);
     wavefront->setSampleRadianceStddevCaptureEnabled(wavefrontSampleStddevRequested);
     if (m_wavefrontConvergenceSet)
@@ -2920,6 +2979,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"engine", "Render engine (raytracer, pathtracer, wavefront, wireframe, raster)", "engine"},
      {"integrator", "Raytracer integrator (whitted, pathtracer)", "integrator"},
      {"path_tracing_schedule", "Path tracing schedule (wavefront, scalar)", "schedule"},
+     {"wavefront_intersection_backend", "Wavefront ray-scene intersection backend (auto, cpu, gpu)",
+      "backend"},
      {"wavefront_convergence", "Enable wavefront path-batch convergence stopping"},
      {"wavefront_no_convergence", "Disable wavefront path-batch convergence stopping"},
      {"wavefront_convergence_active_fraction",
@@ -3337,6 +3398,19 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     }
     m_pathTracingSchedule = normalizedSchedule;
     m_pathTracingScheduleSet = true;
+  }
+
+  if (parser.isSet("wavefront_intersection_backend")) {
+    const QString backend = parser.value("wavefront_intersection_backend").toLower();
+    const QString normalizedBackend = normalizedRasterOption(backend);
+    if (normalizedBackend != "auto" && normalizedBackend != "automatic" &&
+        normalizedBackend != "cpu" && normalizedBackend != "gpu") {
+      *errorMessage = "Wavefront intersection backend must be 'auto', 'cpu', or 'gpu'";
+      return CommandLineError;
+    }
+    m_wavefrontIntersectionBackend =
+      normalizedBackend == "automatic" ? QStringLiteral("auto") : normalizedBackend;
+    m_wavefrontIntersectionBackendSet = true;
   }
 
   if (parser.isSet("wavefront_convergence") && parser.isSet("wavefront_no_convergence")) {

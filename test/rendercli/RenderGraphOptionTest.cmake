@@ -1715,7 +1715,7 @@ rendercli_run(
   NAME "rendercli exports wavefront executor in render graph"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format json
-    --engine wavefront --width 32 --height 16
+    --engine wavefront --wavefront_intersection_backend cpu --width 32 --height 16
     "${static_scene}" "${wavefront_plan}"
 )
 rendercli_assert_nonempty("${wavefront_plan}" NAME "wavefront graph output")
@@ -1737,6 +1737,12 @@ endif()
 if(NOT wavefront_graph MATCHES "\"type\"[ \r\n]*:[ \r\n]*\"TiledViewPlane\"")
   message(FATAL_ERROR
           "wavefront graph did not default rendercli ray-family view plane to TiledViewPlane: ${wavefront_graph}")
+endif()
+if(NOT wavefront_graph MATCHES "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"cpu\"")
+  message(
+    FATAL_ERROR
+      "wavefront graph did not contain requested intersection backend state: ${wavefront_graph}"
+  )
 endif()
 
 rendercli_run(
@@ -1811,9 +1817,10 @@ rendercli_run(
   NAME "rendercli writes graph wavefront metrics JSON and summary"
   OUTPUT_VARIABLE wavefront_metrics_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
+    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=runtime_scene.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=[1-9][0-9]*.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=0.*intersection_estimated_query_transfer_bytes=0.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
   COMMAND
     "${RENDERCLI}" --engine wavefront --width 16 --height 16
+    --wavefront_intersection_backend gpu
     --wavefront_denoiser box --wavefront_denoise_radius 2
     --wavefront_metrics_out "${wavefront_metrics_report}" --wavefront_metrics_summary
     "${static_scene}" "${wavefront_metrics_render}"
@@ -2071,6 +2078,32 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"activeSamplesPerDepth\"")
   _rendercli_fail("rendercli wavefront metrics batching"
                   "wavefront metrics report did not contain batch counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\"")
+  _rendercli_fail("rendercli wavefront metrics backend request"
+                  "wavefront metrics report did not contain GPU backend request"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"cpu\"")
+  _rendercli_fail("rendercli wavefront metrics resolved backend"
+                  "wavefront metrics report did not contain CPU resolved backend"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"fallback\"")
+  _rendercli_fail("rendercli wavefront metrics backend fallback"
+                  "wavefront metrics report did not contain fallback backend availability"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES
+       "\"intersectionBackendFallbackReason\"[ \r\n]*:[^\n]*GPU intersection scene unsupported[^\n]*Box")
+  _rendercli_fail("rendercli wavefront metrics backend scene fallback reason"
+                  "wavefront metrics report did not contain scene-specific backend fallback reason"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\"")
+  _rendercli_fail("rendercli wavefront metrics backend execution path"
+                  "wavefront metrics report did not contain runtime scene execution path"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 	if(NOT wavefront_metrics_json MATCHES "\"activeSampleDepthsProcessed\"")

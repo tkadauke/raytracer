@@ -493,6 +493,15 @@ rendercli_expect_failure(
 )
 
 rendercli_expect_failure(
+  NAME "rendercli rejects unknown wavefront intersection backend"
+  STDERR_MATCHES "Wavefront intersection backend must be 'auto', 'cpu', or 'gpu'"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine wavefront --wavefront_intersection_backend maybe
+    --width 16 --height 16 "${raytracer_scene}"
+    "${TEST_OUTPUT_DIR}/invalid-wavefront-intersection-backend.png"
+)
+
+rendercli_expect_failure(
   NAME "rendercli rejects path tracing schedule engine conflicts"
   STDERR_MATCHES "Path tracing schedule conflicts with the selected engine"
   COMMAND

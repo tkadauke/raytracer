@@ -130,6 +130,10 @@ struct RenderWindow::Private {
       options.setMaximumRecursionDepth(settingsWidget->maxRecursionDepth());
       if (settingsWidget->engine() == "Path Tracer") {
         options.setDirectLightSamples(settingsWidget->directLightSamples());
+        if (settingsWidget->pathTracingSchedule() == "Wavefront") {
+          options.setIntersectionBackend(
+            settingsWidget->wavefrontIntersectionBackend().toStdString());
+        }
       }
       options.setMaximumThreads(settingsWidget->renderThreads());
       options.setQueueSize(settingsWidget->queueSize());

@@ -376,6 +376,7 @@ namespace RenderGraphInspectorWidgetTest {
     intent.defaultExecutor = RenderExecutorPreference::Wavefront;
     intent.engineOptions.raytracer().setIntegrator("pathtracer");
     intent.engineOptions.raytracer().setSamplesPerPixel(4);
+    intent.engineOptions.raytracer().setIntersectionBackend("gpu");
     intent.engineOptions.raytracer().setConvergenceEnabled(true);
     intent.engineOptions.raytracer().setConvergenceActiveSampleFractionThreshold(1.0);
     intent.engineOptions.raytracer().setConvergenceRadianceDeltaRmsThreshold(10.0);
@@ -1033,6 +1034,15 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("Ray4")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("fill")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("scalar tail")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("intersection backend gpu->cpu")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("fallback")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("via packed cpu")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("intersection scene")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("primitives")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("unsupported 0")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("upload bytes")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("packed closest-hit eligible")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("query transfer bytes")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowRasterMetricsOnSelectedPassRow) {

@@ -112,6 +112,7 @@ struct RenderGraphInspectorWidget::Private {
   QString displayFeatureText(const RenderFeatureKind& feature) const;
   QString graphEnumText(const char* value) const;
   QString executionStateName(PassExecutionState state) const;
+  qulonglong jsonIntegerValue(const QJsonObject& object, const QString& key) const;
   qulonglong jsonIntegerArraySum(const QJsonArray& array) const;
   QString jsonIntegerObjectSummary(const QJsonObject& object) const;
   QString percentage(double numerator, double denominator) const;
@@ -362,6 +363,11 @@ QString RenderGraphInspectorWidget::Private::executionStateName(PassExecutionSta
   return QStringLiteral("idle");
 }
 
+qulonglong RenderGraphInspectorWidget::Private::jsonIntegerValue(const QJsonObject& object,
+                                                                 const QString& key) const {
+  return static_cast<qulonglong>(object.value(key).toDouble());
+}
+
 qulonglong RenderGraphInspectorWidget::Private::jsonIntegerArraySum(const QJsonArray& array) const {
   qulonglong result = 0;
   for (const QJsonValue& value : array) {
@@ -470,6 +476,72 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
                 .arg(missLuminance, 0, 'g', 3)
                 .arg(ambientLuminance, 0, 'g', 3)
                 .arg(compatibilityLuminance, 0, 'g', 3);
+    }
+    const QString intersectionBackendRequest =
+      batching.value(QStringLiteral("intersectionBackendRequest")).toString();
+    const QString intersectionBackend =
+      batching.value(QStringLiteral("intersectionBackend")).toString();
+    if (!intersectionBackendRequest.isEmpty() || !intersectionBackend.isEmpty()) {
+      line += QStringLiteral(", intersection backend ");
+      if (!intersectionBackendRequest.isEmpty() &&
+          intersectionBackendRequest != intersectionBackend) {
+        line += QStringLiteral("%1->%2").arg(intersectionBackendRequest).arg(intersectionBackend);
+      } else {
+        line += intersectionBackend.isEmpty() ? intersectionBackendRequest : intersectionBackend;
+      }
+      const QString availability =
+        batching.value(QStringLiteral("intersectionBackendAvailability")).toString();
+      if (!availability.isEmpty() && availability != QStringLiteral("available")) {
+        line += QStringLiteral(" %1").arg(availability);
+      }
+      QString executionPath =
+        batching.value(QStringLiteral("intersectionBackendExecutionPath")).toString();
+      if (!executionPath.isEmpty()) {
+        executionPath.replace(QChar('_'), QChar(' '));
+        line += QStringLiteral(" via %1").arg(executionPath);
+      }
+      const QString fallbackReason =
+        batching.value(QStringLiteral("intersectionBackendFallbackReason")).toString();
+      if (!fallbackReason.isEmpty()) {
+        line += QStringLiteral(" (%1)").arg(fallbackReason);
+      }
+      if (batching.value(QStringLiteral("intersectionSceneCompiled")).toBool()) {
+        line += QStringLiteral(", intersection scene %1 primitives/%2 BVH nodes")
+                  .arg(jsonIntegerValue(batching, QStringLiteral("intersectionScenePrimitives")))
+                  .arg(jsonIntegerValue(batching, QStringLiteral("intersectionSceneBvhNodes")));
+        const qulonglong triangles =
+          jsonIntegerValue(batching, QStringLiteral("intersectionSceneTriangles"));
+        const qulonglong spheres =
+          jsonIntegerValue(batching, QStringLiteral("intersectionSceneSpheres"));
+        const qulonglong unsupported =
+          jsonIntegerValue(batching, QStringLiteral("intersectionSceneUnsupportedPrimitives"));
+        if (triangles > 0 || spheres > 0 || unsupported > 0) {
+          line += QStringLiteral(" (tri %1/sphere %2/unsupported %3)")
+                    .arg(triangles)
+                    .arg(spheres)
+                    .arg(unsupported);
+        }
+        const qulonglong uploadBytes =
+          jsonIntegerValue(batching, QStringLiteral("intersectionSceneUploadBytes"));
+        if (uploadBytes > 0) {
+          line += QStringLiteral(", %1 upload bytes").arg(uploadBytes);
+        }
+        if (batching.value(QStringLiteral("intersectionSceneTriangleClosestHitEligible"))
+              .toBool()) {
+          line += QStringLiteral(", triangle kernel eligible");
+        }
+        if (batching.value(QStringLiteral("intersectionSceneBasicHitEligible")).toBool()) {
+          line += QStringLiteral(", basic hit kernel eligible");
+        }
+        if (batching.value(QStringLiteral("intersectionScenePackedClosestHitEligible")).toBool()) {
+          line += QStringLiteral(", packed closest-hit eligible");
+        }
+        const qulonglong queryTransferBytes =
+          jsonIntegerValue(batching, QStringLiteral("intersectionEstimatedQueryTransferBytes"));
+        if (queryTransferBytes > 0) {
+          line += QStringLiteral(", ~%1 query transfer bytes").arg(queryTransferBytes);
+        }
+      }
     }
     const qulonglong frontierHits =
       jsonIntegerArraySum(batching.value(QStringLiteral("frontierRayHitsPerDepth")).toArray());

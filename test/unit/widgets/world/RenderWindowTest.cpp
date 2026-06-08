@@ -162,17 +162,20 @@ namespace RenderWindowTest {
 
     auto* engineType = window.findChild<QComboBox*>("engineType");
     auto* directLightSamples = window.findChild<QSpinBox*>("pathTracerDirectLightSamples");
+    auto* intersectionBackend = window.findChild<QComboBox*>("wavefrontIntersectionBackend");
     auto* denoiser = window.findChild<QComboBox*>("rayDenoiser");
     auto* radius = window.findChild<QSpinBox*>("rayDenoiseRadius");
     auto* colorSigma = window.findChild<QDoubleSpinBox*>("rayDenoiseColorSigma");
     ASSERT_NE(nullptr, engineType);
     ASSERT_NE(nullptr, directLightSamples);
+    ASSERT_NE(nullptr, intersectionBackend);
     ASSERT_NE(nullptr, denoiser);
     ASSERT_NE(nullptr, radius);
     ASSERT_NE(nullptr, colorSigma);
 
     engineType->setCurrentText("Path Tracer");
     directLightSamples->setValue(4);
+    intersectionBackend->setCurrentText("GPU");
     denoiser->setCurrentText("Bilateral");
     radius->setValue(5);
     colorSigma->setValue(0.3);
@@ -189,6 +192,8 @@ namespace RenderWindowTest {
     EXPECT_EQ("pathtracer", *state->integrator());
     ASSERT_TRUE(state->directLightSamples().has_value());
     EXPECT_EQ(4, *state->directLightSamples());
+    ASSERT_TRUE(state->intersectionBackend().has_value());
+    EXPECT_STREQ("gpu", state->intersectionBackend()->id());
     ASSERT_TRUE(state->denoiser().has_value());
     EXPECT_EQ("bilateral", *state->denoiser());
     ASSERT_TRUE(state->denoiseRadius().has_value());
@@ -237,6 +242,7 @@ namespace RenderWindowTest {
     intent.engineOptions.raytracer().setSampler("Jittered");
     intent.engineOptions.raytracer().setSamplesPerPixel(9);
     intent.engineOptions.raytracer().setDirectLightSamples(6);
+    intent.engineOptions.raytracer().setIntersectionBackend("cpu");
     intent.engineOptions.raytracer().setDenoiser("box");
     intent.engineOptions.raytracer().setDenoiseRadius(3);
     scene.setRenderIntent(intent);
@@ -246,18 +252,21 @@ namespace RenderWindowTest {
     auto* sampler = window.findChild<QComboBox*>("samplerType");
     auto* samples = window.findChild<QSpinBox*>("samplesPerPixel");
     auto* directLightSamples = window.findChild<QSpinBox*>("pathTracerDirectLightSamples");
+    auto* intersectionBackend = window.findChild<QComboBox*>("wavefrontIntersectionBackend");
     auto* denoiser = window.findChild<QComboBox*>("rayDenoiser");
     auto* radius = window.findChild<QSpinBox*>("rayDenoiseRadius");
     ASSERT_NE(nullptr, engineType);
     ASSERT_NE(nullptr, sampler);
     ASSERT_NE(nullptr, samples);
     ASSERT_NE(nullptr, directLightSamples);
+    ASSERT_NE(nullptr, intersectionBackend);
     ASSERT_NE(nullptr, denoiser);
     ASSERT_NE(nullptr, radius);
     EXPECT_EQ(QString("Path Tracer"), engineType->currentText());
     EXPECT_EQ(QString("Jittered"), sampler->currentText());
     EXPECT_EQ(9, samples->value());
     EXPECT_EQ(6, directLightSamples->value());
+    EXPECT_EQ(QString("CPU"), intersectionBackend->currentText());
     EXPECT_EQ(QString("Box"), denoiser->currentText());
     EXPECT_EQ(3, radius->value());
 
@@ -276,6 +285,8 @@ namespace RenderWindowTest {
     EXPECT_EQ(9, *state->samplesPerPixel());
     ASSERT_TRUE(state->directLightSamples().has_value());
     EXPECT_EQ(6, *state->directLightSamples());
+    ASSERT_TRUE(state->intersectionBackend().has_value());
+    EXPECT_STREQ("cpu", state->intersectionBackend()->id());
     ASSERT_TRUE(state->denoiser().has_value());
     EXPECT_EQ("box", *state->denoiser());
     ASSERT_TRUE(state->denoiseRadius().has_value());
