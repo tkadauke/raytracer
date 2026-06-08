@@ -22,6 +22,7 @@ namespace render {
   class Scene;
   class TilePlan;
   class Tonemap;
+  class WavefrontIntersectionBackend;
 }
 
 namespace engine::wavefront::detail {
@@ -37,6 +38,7 @@ namespace engine::wavefront::detail {
     double adaptiveStddevThreshold{0.0};
     bool metricsEnabled{false};
     std::optional<std::uint64_t> samplingSeed;
+    const render::WavefrontIntersectionBackend* intersectionBackend{nullptr};
   };
 
   class WavefrontTileRenderer {

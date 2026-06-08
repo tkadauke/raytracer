@@ -3,6 +3,7 @@
 
 #include "render/RayCaster.h"
 #include "render/State.h"
+#include "render/WavefrontIntersectionBackend.h"
 #include "render/WhittedIntegrator.h"
 #include "render/materials/Material.h"
 #include "render/materials/MatteMaterial.h"
@@ -187,6 +188,48 @@ namespace WhittedIntegratorTest {
       mutable int packet8HitCalls{0};
     };
 
+    class CountingIntersectionBackend final : public WavefrontIntersectionBackend {
+    public:
+      const char* name() const override {
+        return "counting_cpu";
+      }
+
+      const Primitive* intersectClosest(const Scene& scene, const Rayd& ray,
+                                        HitPointInterval& hitPoints, State& state) const override {
+        ++scalarQueries;
+        return CpuWavefrontIntersectionBackend::instance().intersectClosest(scene, ray, hitPoints,
+                                                                            state);
+      }
+
+      bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance,
+                        State& state) const override {
+        ++anyQueries;
+        return CpuWavefrontIntersectionBackend::instance().intersectAny(scene, ray, maxDistance,
+                                                                        state);
+      }
+
+      PrimitivePacketHit4
+      intersectPacketClosest(const Scene& scene, const Ray4& rays,
+                             const PrimitivePacketState4& states) const override {
+        ++packet4Queries;
+        return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
+                                                                                  states);
+      }
+
+      PrimitivePacketHit8
+      intersectPacketClosest(const Scene& scene, const Ray8& rays,
+                             const PrimitivePacketState8& states) const override {
+        ++packet8Queries;
+        return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
+                                                                                  states);
+      }
+
+      mutable int scalarQueries{0};
+      mutable int packet4Queries{0};
+      mutable int packet8Queries{0};
+      mutable int anyQueries{0};
+    };
+
     std::shared_ptr<NiceMock<MockPrimitive>> makeAlwaysHit(double distance = 1.0) {
       auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
       BoundingBoxd bbox(Vector3d(-100, -100, -100), Vector3d(100, 100, 100));
@@ -331,6 +374,35 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ(2u, metrics.radianceDeltaSquaredSumPerDepth.size());
     EXPECT_GT(metrics.intersectionWorkerSeconds, 0.0);
     EXPECT_GT(metrics.shadingWorkerSeconds, 0.0);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceUsesConfiguredIntersectionBackend) {
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    CountingIntersectionBackend backend;
+    IntegratorBatchSettings settings;
+    settings.intersectionBackend = &backend;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples{
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr}};
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings);
+
+    ASSERT_EQ(1u, colors.size());
+    ASSERT_COLOR_NEAR(scene.background(), colors[0], 1e-12);
+    EXPECT_EQ(1, backend.scalarQueries);
+    EXPECT_EQ(0, backend.packet4Queries);
+    EXPECT_EQ(0, backend.packet8Queries);
+    EXPECT_EQ("counting_cpu", metrics.intersectionBackendRequest);
+    EXPECT_EQ("counting_cpu", metrics.intersectionBackend);
+    EXPECT_EQ("available", metrics.intersectionBackendAvailability);
+    EXPECT_TRUE(metrics.intersectionBackendFallbackReason.empty());
+    EXPECT_EQ(1u, metrics.intersectionRaysSubmitted);
+    EXPECT_EQ(1u, metrics.closestHitQueries);
+    EXPECT_EQ(0u, metrics.anyHitQueries);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceReportsSetupTiming) {

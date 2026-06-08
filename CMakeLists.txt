@@ -26,6 +26,10 @@ option(RAYTRACER_ENABLE_COVERAGE   "Build with gcov instrumentation" OFF)
 option(RAYTRACER_ENABLE_FUZZING    "Build LibFuzzer harnesses (needs Clang)" OFF)
 option(RAYTRACER_ENABLE_STATS      "Per-render performance counters (modernize.md §3.7)" OFF)
 option(RAYTRACER_ENABLE_MUTATION   "Build with the mull mutation-testing pass plugin (closes #28)" OFF)
+option(RAYTRACER_ENABLE_METAL_WAVEFRONT
+       "Enable experimental Metal wavefront-intersection backend plumbing (macOS only)" OFF)
+option(RAYTRACER_ENABLE_VULKAN_WAVEFRONT
+       "Enable experimental Vulkan wavefront-intersection backend plumbing (Linux only)" OFF)
 
 if(DEFINED ENV{GITHUB_ACTIONS})
   set(_RAYTRACER_NATIVE_TUNING_DEFAULT OFF)
@@ -88,6 +92,22 @@ if(RAYTRACER_ENABLE_MUTATION)
   # readable so mull's mutation operators (arith / cmp / boundary) have
   # something to chew on before the optimizer collapses them away.
   add_compile_options(-fpass-plugin=${MULL_PLUGIN} -O0 -g)
+endif()
+
+if(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+  if(NOT APPLE)
+    message(FATAL_ERROR "RAYTRACER_ENABLE_METAL_WAVEFRONT is only supported on macOS")
+  endif()
+  enable_language(OBJCXX)
+  set(CMAKE_OBJCXX_STANDARD 17)
+  set(CMAKE_OBJCXX_STANDARD_REQUIRED ON)
+endif()
+
+if(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+  if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(FATAL_ERROR "RAYTRACER_ENABLE_VULKAN_WAVEFRONT is only supported on Linux")
+  endif()
+  find_package(Vulkan REQUIRED)
 endif()
 
 # Find Qt 6. QJSEngine (used by ScriptedSurface) lives in Qt6::Qml.

@@ -3,7 +3,9 @@
 #include "render/Integrator.h"
 #include "render/RayCaster.h"
 #include "render/State.h"
+#include "render/WavefrontIntersectionBackend.h"
 #include "render/primitives/Scene.h"
+#include "render/primitives/Triangle.h"
 
 #include "test/helpers/ColorTestHelper.h"
 
@@ -78,5 +80,55 @@ namespace IntegratorTest {
     EXPECT_TRUE(metrics.frontierPacketRefinedRaysByMaterial.empty());
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
     EXPECT_DOUBLE_EQ(0.0, metrics.frontierPartitionWorkerSeconds);
+  }
+
+  TEST(Integrator, IntersectionBackendMetricsTrackQuerySpecificExecutionPaths) {
+    auto triangle =
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));
+    Scene scene;
+    scene.add(triangle);
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(scene);
+
+    IntegratorBatchMetrics metrics;
+    metrics.reset(/*scalarFallback=*/false);
+    metrics.recordClosestHitQuery(*backend, 4);
+
+    EXPECT_EQ("gpu", metrics.intersectionBackendRequest);
+    EXPECT_EQ("cpu", metrics.intersectionBackend);
+    EXPECT_EQ("fallback", metrics.intersectionBackendAvailability);
+    EXPECT_EQ("packed_cpu", metrics.intersectionBackendExecutionPath);
+    EXPECT_EQ(4u, metrics.intersectionRaysSubmitted);
+    EXPECT_EQ(1u, metrics.closestHitQueries);
+    EXPECT_EQ(0u, metrics.anyHitQueries);
+    EXPECT_EQ(backend->estimatedClosestHitRayUploadBytes(4),
+              metrics.intersectionEstimatedRayUploadBytes);
+    EXPECT_EQ(backend->estimatedClosestHitReadbackBytes(4),
+              metrics.intersectionEstimatedClosestHitReadbackBytes);
+    EXPECT_EQ(0u, metrics.intersectionEstimatedAnyHitReadbackBytes);
+    EXPECT_EQ(backend->estimatedClosestHitRayUploadBytes(4) +
+                backend->estimatedClosestHitReadbackBytes(4),
+              metrics.intersectionEstimatedQueryTransferBytes);
+    EXPECT_TRUE(metrics.intersectionSceneTriangleClosestHitEligible);
+    EXPECT_TRUE(metrics.intersectionSceneBasicHitEligible);
+    EXPECT_TRUE(metrics.intersectionScenePackedClosestHitEligible);
+
+    metrics.recordAnyHitQuery(*backend, 1);
+
+    EXPECT_EQ("packed_cpu", metrics.intersectionBackendExecutionPath);
+    EXPECT_EQ(5u, metrics.intersectionRaysSubmitted);
+    EXPECT_EQ(1u, metrics.closestHitQueries);
+    EXPECT_EQ(1u, metrics.anyHitQueries);
+    EXPECT_EQ(backend->estimatedClosestHitRayUploadBytes(4) +
+                backend->estimatedAnyHitRayUploadBytes(1),
+              metrics.intersectionEstimatedRayUploadBytes);
+    EXPECT_EQ(backend->estimatedClosestHitReadbackBytes(4),
+              metrics.intersectionEstimatedClosestHitReadbackBytes);
+    EXPECT_EQ(backend->estimatedAnyHitReadbackBytes(1),
+              metrics.intersectionEstimatedAnyHitReadbackBytes);
+    EXPECT_EQ(
+      backend->estimatedClosestHitRayUploadBytes(4) + backend->estimatedClosestHitReadbackBytes(4) +
+        backend->estimatedAnyHitRayUploadBytes(1) + backend->estimatedAnyHitReadbackBytes(1),
+      metrics.intersectionEstimatedQueryTransferBytes);
   }
 }

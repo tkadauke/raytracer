@@ -4,6 +4,7 @@
 #include "render/PathTracingIntegrator.h"
 #include "render/RayCaster.h"
 #include "render/State.h"
+#include "render/WavefrontIntersectionBackend.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/lights/RectangularAreaLight.h"
 #include "render/materials/MatteMaterial.h"
@@ -147,6 +148,32 @@ namespace PathTracingIntegratorTest {
       }
 
       mutable std::vector<Vector2d> samples;
+    };
+
+    class FiniteDistanceLight final : public Light {
+    public:
+      explicit FiniteDistanceLight(double distance)
+          : m_distance(distance) {
+      }
+
+      Vector3d direction(const Vector3d&) const override {
+        return Vector3d(0, 1, 0);
+      }
+
+      Colord radiance() const override {
+        return Colord::white();
+      }
+
+      LightSample sample(const Vector3d&, const Vector2d&) const override {
+        return {Vector3d(0, 1, 0), Colord::white(), m_distance, 1.0, true};
+      }
+
+      const char* fingerprintType() const override {
+        return "FiniteDistanceLight";
+      }
+
+    private:
+      double m_distance;
     };
 
     class UnitDirectMaterial final : public Material {
@@ -446,6 +473,50 @@ namespace PathTracingIntegratorTest {
 
       mutable int packet4HitCalls{0};
       mutable int packet8HitCalls{0};
+    };
+
+    class CountingIntersectionBackend final : public WavefrontIntersectionBackend {
+    public:
+      const char* name() const override {
+        return "counting_cpu";
+      }
+
+      const Primitive* intersectClosest(const Scene& scene, const Rayd& ray,
+                                        HitPointInterval& hitPoints, State& state) const override {
+        ++scalarQueries;
+        return CpuWavefrontIntersectionBackend::instance().intersectClosest(scene, ray, hitPoints,
+                                                                            state);
+      }
+
+      bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance,
+                        State& state) const override {
+        ++anyQueries;
+        anyMaxDistances.push_back(maxDistance);
+        return CpuWavefrontIntersectionBackend::instance().intersectAny(scene, ray, maxDistance,
+                                                                        state);
+      }
+
+      PrimitivePacketHit4
+      intersectPacketClosest(const Scene& scene, const Ray4& rays,
+                             const PrimitivePacketState4& states) const override {
+        ++packet4Queries;
+        return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
+                                                                                  states);
+      }
+
+      PrimitivePacketHit8
+      intersectPacketClosest(const Scene& scene, const Ray8& rays,
+                             const PrimitivePacketState8& states) const override {
+        ++packet8Queries;
+        return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
+                                                                                  states);
+      }
+
+      mutable int scalarQueries{0};
+      mutable int packet4Queries{0};
+      mutable int packet8Queries{0};
+      mutable int anyQueries{0};
+      mutable std::vector<double> anyMaxDistances;
     };
 
     // Build a scene with a single Lambertian ground plane lit by one
@@ -1304,6 +1375,73 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierScalarRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketScalarFallbackRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketRefinedRaysPerDepth);
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadianceUsesConfiguredIntersectionBackend) {
+    auto scene = simpleMatteScene(0.0, Colord(0.6, 0.3, 0.2));
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 11ull)});
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 29ull)});
+
+    CountingIntersectionBackend backend;
+    IntegratorBatchSettings settings;
+    settings.intersectionBackend = &backend;
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> batched =
+      integrator.radianceBatch(*scene, samples, caster, &metrics, settings);
+
+    ASSERT_EQ(2u, batched.size());
+    EXPECT_EQ(0, backend.scalarQueries);
+    EXPECT_EQ(1, backend.packet4Queries);
+    EXPECT_EQ(0, backend.packet8Queries);
+    EXPECT_EQ(2, backend.anyQueries);
+    EXPECT_EQ("counting_cpu", metrics.intersectionBackendRequest);
+    EXPECT_EQ("counting_cpu", metrics.intersectionBackend);
+    EXPECT_EQ("available", metrics.intersectionBackendAvailability);
+    EXPECT_TRUE(metrics.intersectionBackendFallbackReason.empty());
+    EXPECT_EQ(4u, metrics.intersectionRaysSubmitted);
+    EXPECT_EQ(1u, metrics.closestHitQueries);
+    EXPECT_EQ(2u, metrics.anyHitQueries);
+  }
+
+  TEST(PathTracingIntegrator, BatchedDirectLightingUsesConfiguredBackendForBoundedVisibility) {
+    auto scene = std::make_unique<Scene>(Colord::black());
+    scene->setAmbient(Colord::black());
+    scene->setBackground(Colord::black());
+
+    auto material = std::make_shared<UnitDirectMaterial>();
+    auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
+    plane->setMaterial(material);
+    scene->add(plane);
+    scene->addLight(std::make_shared<FiniteDistanceLight>(3.5));
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{
+      primaryRay(), 0.0, std::make_unique<FixedLightSampleStream>(Vector2d(0.5, 0.5))});
+
+    CountingIntersectionBackend backend;
+    IntegratorBatchSettings settings;
+    settings.intersectionBackend = &backend;
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> pixels =
+      integrator.radianceBatch(*scene, samples, caster, &metrics, settings);
+
+    ASSERT_EQ(1u, pixels.size());
+    EXPECT_EQ(1, backend.anyQueries);
+    ASSERT_EQ(1u, backend.anyMaxDistances.size());
+    EXPECT_EQ(3.5, backend.anyMaxDistances[0]);
+    EXPECT_EQ(1u, metrics.closestHitQueries);
+    EXPECT_EQ(1u, metrics.anyHitQueries);
+    EXPECT_EQ(2u, metrics.intersectionRaysSubmitted);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceUsesPartialRay8FrontierForFiveActivePaths) {

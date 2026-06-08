@@ -10,6 +10,7 @@
 #include "render/PathTermination.h"
 #include "render/RayCaster.h"
 #include "render/State.h"
+#include "render/WavefrontIntersectionBackend.h"
 #include "render/lights/Light.h"
 #include "render/lights/LightSampler.h"
 #include "render/materials/Material.h"
@@ -207,12 +208,13 @@ namespace render {
                                      static_cast<std::uint64_t>(directSampleIndex)));
   }
 
-  Colord PathTracingIntegrator::sampleDirectLighting(const Scene& scene,
-                                                     const LightSampler& lightSampler,
-                                                     const HitPoint& hitPoint,
-                                                     const PathMaterialTransport& material,
-                                                     const Vector3d& wi, State& state, int bounce,
-                                                     IntegratorBatchMetrics* metrics) const {
+  Colord PathTracingIntegrator::sampleDirectLighting(
+    const Scene& scene, const LightSampler& lightSampler, const HitPoint& hitPoint,
+    const PathMaterialTransport& material, const Vector3d& wi, State& state, int bounce,
+    const WavefrontIntersectionBackend* intersectionBackend,
+    IntegratorBatchMetrics* metrics) const {
+    const WavefrontIntersectionBackend& resolvedIntersectionBackend =
+      intersectionBackend ? *intersectionBackend : CpuWavefrontIntersectionBackend::instance();
     Colord contribution = Colord::black();
     for (int sampleIndex = 0; sampleIndex != m_directLightSamples; ++sampleIndex) {
       const LightSampler::Selection selection =
@@ -223,7 +225,8 @@ namespace render {
 
       const DirectLightingSample sample =
         directLighting(scene, *selection.light, hitPoint, material, wi,
-                       lightSample(state, bounce, selection.lightIndex, sampleIndex), state);
+                       lightSample(state, bounce, selection.lightIndex, sampleIndex), state,
+                       resolvedIntersectionBackend, metrics);
       if (metrics) {
         metrics->recordDirectLightSample(sample.occluded, sample.contributing());
       }
@@ -331,11 +334,10 @@ namespace render {
     recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
   }
 
-  void PathTracingIntegrator::intersectActivePathScalar(const Scene& scene, std::size_t pathIndex,
-                                                        std::vector<BatchPath>& paths,
-                                                        std::vector<BatchHit>& activeHits,
-                                                        int bounce, BatchDepthMetrics& depthMetrics,
-                                                        IntegratorBatchMetrics* metrics) const {
+  void PathTracingIntegrator::intersectActivePathScalar(
+    const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
+    std::size_t pathIndex, std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits,
+    int bounce, BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     auto& path = paths[pathIndex];
     const Colord accumulatedBeforeDepth =
       depthMetrics.trackRadianceDelta ? path.accumulated() : Colord::black();
@@ -352,7 +354,10 @@ namespace render {
     const Primitive* primitive = nullptr;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      primitive = scene.intersect(path.ray, hitPoints, path.state);
+      if (metrics) {
+        metrics->recordClosestHitQuery(intersectionBackend, 1);
+      }
+      primitive = intersectionBackend.intersectClosest(scene, path.ray, hitPoints, path.state);
     }
 
     core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
@@ -366,10 +371,15 @@ namespace render {
   }
 
   void PathTracingIntegrator::intersectActivePathPacket(
-    const Scene& scene, std::size_t firstPathIndex, std::size_t laneCount,
-    std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits, int bounce,
-    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
-    const std::size_t activeLaneCount = std::min(laneCount, Ray4::lanes);
+    const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
+    std::size_t firstPathIndex, std::size_t laneCount, std::vector<BatchPath>& paths,
+    std::vector<BatchHit>& activeHits, int bounce, BatchDepthMetrics& depthMetrics,
+    IntegratorBatchMetrics* metrics) const {
+    if (laneCount > Ray4::lanes) {
+      throw std::logic_error("Ray4 path packet lane count exceeds packet width");
+    }
+    const std::size_t activeLaneCount = laneCount;
+    const std::size_t packetLaneCount = activeLaneCount;
     std::array<Rayd, Ray4::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined};
     std::array<Colord, Ray4::lanes> accumulatedBeforeDepths;
@@ -404,7 +414,10 @@ namespace render {
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      packetHits = scene.intersectPacketHits(Ray4(rays), states);
+      if (metrics) {
+        metrics->recordClosestHitQuery(intersectionBackend, packetLaneCount);
+      }
+      packetHits = intersectionBackend.intersectPacketClosest(scene, Ray4(rays), states);
     }
 
     core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
@@ -425,10 +438,15 @@ namespace render {
   }
 
   void PathTracingIntegrator::intersectActivePathPacket8(
-    const Scene& scene, std::size_t firstPathIndex, std::size_t laneCount,
-    std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits, int bounce,
-    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
-    const std::size_t activeLaneCount = std::min(laneCount, Ray8::lanes);
+    const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
+    std::size_t firstPathIndex, std::size_t laneCount, std::vector<BatchPath>& paths,
+    std::vector<BatchHit>& activeHits, int bounce, BatchDepthMetrics& depthMetrics,
+    IntegratorBatchMetrics* metrics) const {
+    if (laneCount > Ray8::lanes) {
+      throw std::logic_error("Ray8 path packet lane count exceeds packet width");
+    }
+    const std::size_t activeLaneCount = laneCount;
+    const std::size_t packetLaneCount = activeLaneCount;
     std::array<Rayd, Ray8::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined};
@@ -464,7 +482,10 @@ namespace render {
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      packetHits = scene.intersectPacketHits(Ray8(rays), states);
+      if (metrics) {
+        metrics->recordClosestHitQuery(intersectionBackend, packetLaneCount);
+      }
+      packetHits = intersectionBackend.intersectPacketClosest(scene, Ray8(rays), states);
     }
 
     core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
@@ -484,46 +505,45 @@ namespace render {
     }
   }
 
-  void PathTracingIntegrator::intersectActiveFrontier(const Scene& scene,
-                                                      std::vector<BatchPath>& paths,
-                                                      std::vector<BatchHit>& activeHits, int bounce,
-                                                      BatchDepthMetrics& depthMetrics,
-                                                      IntegratorBatchMetrics* metrics) const {
+  void PathTracingIntegrator::intersectActiveFrontier(
+    const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
+    std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits, int bounce,
+    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     activeHits.clear();
 
     std::size_t activeIndex = 0;
     while (activeIndex != paths.size()) {
       if (activeIndex + Ray8::lanes <= paths.size()) {
-        intersectActivePathPacket8(scene, activeIndex, Ray8::lanes, paths, activeHits, bounce,
-                                   depthMetrics, metrics);
+        intersectActivePathPacket8(intersectionBackend, scene, activeIndex, Ray8::lanes, paths,
+                                   activeHits, bounce, depthMetrics, metrics);
         activeIndex += Ray8::lanes;
         continue;
       }
 
       const std::size_t remainingPaths = paths.size() - activeIndex;
       if (remainingPaths > Ray4::lanes) {
-        intersectActivePathPacket8(scene, activeIndex, remainingPaths, paths, activeHits, bounce,
-                                   depthMetrics, metrics);
+        intersectActivePathPacket8(intersectionBackend, scene, activeIndex, remainingPaths, paths,
+                                   activeHits, bounce, depthMetrics, metrics);
         activeIndex += remainingPaths;
         continue;
       }
 
       if (activeIndex + Ray4::lanes <= paths.size()) {
-        intersectActivePathPacket(scene, activeIndex, Ray4::lanes, paths, activeHits, bounce,
-                                  depthMetrics, metrics);
+        intersectActivePathPacket(intersectionBackend, scene, activeIndex, Ray4::lanes, paths,
+                                  activeHits, bounce, depthMetrics, metrics);
         activeIndex += Ray4::lanes;
         continue;
       }
 
       if (remainingPaths > 1) {
-        intersectActivePathPacket(scene, activeIndex, remainingPaths, paths, activeHits, bounce,
-                                  depthMetrics, metrics);
+        intersectActivePathPacket(intersectionBackend, scene, activeIndex, remainingPaths, paths,
+                                  activeHits, bounce, depthMetrics, metrics);
         activeIndex += remainingPaths;
         continue;
       }
 
-      intersectActivePathScalar(scene, activeIndex, paths, activeHits, bounce, depthMetrics,
-                                metrics);
+      intersectActivePathScalar(intersectionBackend, scene, activeIndex, paths, activeHits, bounce,
+                                depthMetrics, metrics);
       ++activeIndex;
     }
   }
@@ -559,11 +579,11 @@ namespace render {
     return emitted * mis::weight(mis::Heuristic::Power, bsdfSamplePdf, lightPdf);
   }
 
-  PathTracingIntegrator::DirectLightingSample
-  PathTracingIntegrator::directLighting(const Scene& scene, const Light& light,
-                                        const HitPoint& hitPoint,
-                                        const PathMaterialTransport& material, const Vector3d& wi,
-                                        const Vector2d& lightSample, State& state) const {
+  PathTracingIntegrator::DirectLightingSample PathTracingIntegrator::directLighting(
+    const Scene& scene, const Light& light, const HitPoint& hitPoint,
+    const PathMaterialTransport& material, const Vector3d& wi, const Vector2d& lightSample,
+    State& state, const WavefrontIntersectionBackend& intersectionBackend,
+    IntegratorBatchMetrics* metrics) const {
     LightSample sample = light.sample(hitPoint.point(), lightSample);
     if (sample.pdf <= 0.0 || sample.radiance == Colord::black()) {
       return {};
@@ -578,7 +598,16 @@ namespace render {
     // Shadow ray. `Scene::occludes` keeps point-light visibility bounded
     // to the sampled light distance; epsilon-shift avoids self-intersection.
     const Rayd shadowRay = Rayd(hitPoint.point(), wo).epsilonShifted();
-    if (scene.occludes(shadowRay, state, sample.distance)) {
+    bool occluded = false;
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      if (metrics) {
+        metrics->recordAnyHitQuery(intersectionBackend, 1);
+      }
+      occluded = intersectionBackend.intersectAny(scene, shadowRay, sample.distance, state);
+    }
+
+    if (occluded) {
       state.shadowHit(nullptr, "PathTracingIntegrator");
       return {Colord::black(), true};
     }
@@ -660,8 +689,9 @@ namespace render {
         accumulated += path.throughput * transport.ambientRadiance(scene, path.ray, hitPoint);
 
         // Direct lighting via NEE.
-        accumulated += path.throughput * sampleDirectLighting(scene, lightSampler, hitPoint,
-                                                              transport, wi, pathState, bounce);
+        accumulated +=
+          path.throughput * sampleDirectLighting(scene, lightSampler, hitPoint, transport, wi,
+                                                 pathState, bounce, nullptr);
 
         const std::vector<MaterialBsdfSample> deltaSamples =
           transport.deltaBsdfSamples(hitPoint, wi);
@@ -723,6 +753,11 @@ namespace render {
     if (metrics) {
       metrics->reset(/*scalarFallback=*/false);
     }
+    const WavefrontIntersectionBackend& intersectionBackend =
+      settings.resolvedIntersectionBackend();
+    if (metrics) {
+      metrics->recordIntersectionBackend(intersectionBackend);
+    }
 
     std::vector<Colord> sampleColors;
     const LightSampler lightSampler(scene.lights());
@@ -766,7 +801,8 @@ namespace render {
       BatchDepthMetrics depthMetrics;
       depthMetrics.trackRadianceDelta = trackRadianceDelta;
       depthMetrics.metrics = metrics;
-      intersectActiveFrontier(scene, paths, activeHits, bounce, depthMetrics, metrics);
+      intersectActiveFrontier(intersectionBackend, scene, paths, activeHits, bounce, depthMetrics,
+                              metrics);
       if (metrics) {
         metrics->recordFrontierIntersections(depthMetrics.frontierRayHits,
                                              depthMetrics.frontierRayMisses);
@@ -822,7 +858,8 @@ namespace render {
 
           const Colord directLightContribution =
             path.throughput * sampleDirectLighting(scene, lightSampler, hit.hitPoint, transport, wi,
-                                                   path.state, bounce, metrics);
+                                                   path.state, bounce, &intersectionBackend,
+                                                   metrics);
           path.accumulated() += directLightContribution;
           if (metrics) {
             metrics->recordDirectLightRadiance(directLightContribution, bounce == 0);

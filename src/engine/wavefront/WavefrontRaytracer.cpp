@@ -11,6 +11,7 @@
 #include "render/SamplingSeed.h"
 #include "render/Stats.h"
 #include "render/TilePlan.h"
+#include "render/WavefrontIntersectionBackend.h"
 #include "render/WhittedIntegrator.h"
 #include "render/cameras/Camera.h"
 #include "render/denoise/Denoiser.h"
@@ -25,6 +26,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
@@ -67,8 +69,63 @@ namespace engine::wavefront {
         batchMetrics.convergenceTestWorkerSeconds);
   }
 
+  void WavefrontRenderMetrics::BatchSummary::addIntersectionBackendMetrics(
+    const render::IntegratorBatchMetrics& metrics) {
+    const auto mergeLabel = [](std::string& target, const std::string& source) {
+      if (source.empty()) {
+        return;
+      }
+      if (target.empty()) {
+        target = source;
+        return;
+      }
+      if (target != source) {
+        target = "mixed";
+      }
+    };
+    mergeLabel(intersectionBackendRequest, metrics.intersectionBackendRequest);
+    mergeLabel(intersectionBackend, metrics.intersectionBackend);
+    mergeLabel(intersectionBackendAvailability, metrics.intersectionBackendAvailability);
+    mergeLabel(intersectionBackendFallbackReason, metrics.intersectionBackendFallbackReason);
+    mergeLabel(intersectionBackendExecutionPath, metrics.intersectionBackendExecutionPath);
+    intersectionSceneCompiled = intersectionSceneCompiled || metrics.intersectionSceneCompiled;
+    intersectionSceneBvhNodes =
+      std::max(intersectionSceneBvhNodes, metrics.intersectionSceneBvhNodes);
+    intersectionScenePrimitives =
+      std::max(intersectionScenePrimitives, metrics.intersectionScenePrimitives);
+    intersectionSceneTriangles =
+      std::max(intersectionSceneTriangles, metrics.intersectionSceneTriangles);
+    intersectionSceneSpheres = std::max(intersectionSceneSpheres, metrics.intersectionSceneSpheres);
+    intersectionScenePlanes = std::max(intersectionScenePlanes, metrics.intersectionScenePlanes);
+    intersectionSceneRectangles =
+      std::max(intersectionSceneRectangles, metrics.intersectionSceneRectangles);
+    intersectionSceneDisks = std::max(intersectionSceneDisks, metrics.intersectionSceneDisks);
+    intersectionSceneTransforms =
+      std::max(intersectionSceneTransforms, metrics.intersectionSceneTransforms);
+    intersectionSceneUnsupportedPrimitives = std::max(
+      intersectionSceneUnsupportedPrimitives, metrics.intersectionSceneUnsupportedPrimitives);
+    intersectionSceneUploadBytes =
+      std::max(intersectionSceneUploadBytes, metrics.intersectionSceneUploadBytes);
+    intersectionSceneTriangleClosestHitEligible =
+      intersectionSceneTriangleClosestHitEligible ||
+      metrics.intersectionSceneTriangleClosestHitEligible;
+    intersectionSceneBasicHitEligible =
+      intersectionSceneBasicHitEligible || metrics.intersectionSceneBasicHitEligible;
+    intersectionScenePackedClosestHitEligible = intersectionScenePackedClosestHitEligible ||
+                                                metrics.intersectionScenePackedClosestHitEligible;
+    intersectionEstimatedRayUploadBytes += metrics.intersectionEstimatedRayUploadBytes;
+    intersectionEstimatedClosestHitReadbackBytes +=
+      metrics.intersectionEstimatedClosestHitReadbackBytes;
+    intersectionEstimatedAnyHitReadbackBytes += metrics.intersectionEstimatedAnyHitReadbackBytes;
+    intersectionEstimatedQueryTransferBytes += metrics.intersectionEstimatedQueryTransferBytes;
+    intersectionRaysSubmitted += metrics.intersectionRaysSubmitted;
+    closestHitQueries += metrics.closestHitQueries;
+    anyHitQueries += metrics.anyHitQueries;
+  }
+
   void WavefrontRenderMetrics::BatchSummary::addIntegratorMetrics(
     const render::IntegratorBatchMetrics& metrics) {
+    addIntersectionBackendMetrics(metrics);
     activeSampleDepthsProcessed += metrics.activeSampleDepthsProcessed;
     compatibilityShadeSamples += metrics.compatibilityShadeSamples;
     unsupportedPathMaterialSamples += metrics.unsupportedPathMaterialSamples;
@@ -221,6 +278,51 @@ namespace engine::wavefront {
     }
     batchingJson["integrator"] = QString::fromStdString(batching.integrator);
     batchingJson["executionMode"] = QString::fromStdString(batching.executionMode);
+    batchingJson["intersectionBackendRequest"] =
+      QString::fromStdString(batching.intersectionBackendRequest);
+    batchingJson["intersectionBackend"] = QString::fromStdString(batching.intersectionBackend);
+    batchingJson["intersectionBackendAvailability"] =
+      QString::fromStdString(batching.intersectionBackendAvailability);
+    batchingJson["intersectionBackendFallbackReason"] =
+      QString::fromStdString(batching.intersectionBackendFallbackReason);
+    batchingJson["intersectionBackendExecutionPath"] =
+      QString::fromStdString(batching.intersectionBackendExecutionPath);
+    batchingJson["intersectionSceneCompiled"] = batching.intersectionSceneCompiled;
+    batchingJson["intersectionSceneBvhNodes"] =
+      static_cast<double>(batching.intersectionSceneBvhNodes);
+    batchingJson["intersectionScenePrimitives"] =
+      static_cast<double>(batching.intersectionScenePrimitives);
+    batchingJson["intersectionSceneTriangles"] =
+      static_cast<double>(batching.intersectionSceneTriangles);
+    batchingJson["intersectionSceneSpheres"] =
+      static_cast<double>(batching.intersectionSceneSpheres);
+    batchingJson["intersectionScenePlanes"] = static_cast<double>(batching.intersectionScenePlanes);
+    batchingJson["intersectionSceneRectangles"] =
+      static_cast<double>(batching.intersectionSceneRectangles);
+    batchingJson["intersectionSceneDisks"] = static_cast<double>(batching.intersectionSceneDisks);
+    batchingJson["intersectionSceneTransforms"] =
+      static_cast<double>(batching.intersectionSceneTransforms);
+    batchingJson["intersectionSceneUnsupportedPrimitives"] =
+      static_cast<double>(batching.intersectionSceneUnsupportedPrimitives);
+    batchingJson["intersectionSceneUploadBytes"] =
+      static_cast<double>(batching.intersectionSceneUploadBytes);
+    batchingJson["intersectionSceneTriangleClosestHitEligible"] =
+      batching.intersectionSceneTriangleClosestHitEligible;
+    batchingJson["intersectionSceneBasicHitEligible"] = batching.intersectionSceneBasicHitEligible;
+    batchingJson["intersectionScenePackedClosestHitEligible"] =
+      batching.intersectionScenePackedClosestHitEligible;
+    batchingJson["intersectionEstimatedRayUploadBytes"] =
+      static_cast<double>(batching.intersectionEstimatedRayUploadBytes);
+    batchingJson["intersectionEstimatedClosestHitReadbackBytes"] =
+      static_cast<double>(batching.intersectionEstimatedClosestHitReadbackBytes);
+    batchingJson["intersectionEstimatedAnyHitReadbackBytes"] =
+      static_cast<double>(batching.intersectionEstimatedAnyHitReadbackBytes);
+    batchingJson["intersectionEstimatedQueryTransferBytes"] =
+      static_cast<double>(batching.intersectionEstimatedQueryTransferBytes);
+    batchingJson["intersectionRaysSubmitted"] =
+      static_cast<double>(batching.intersectionRaysSubmitted);
+    batchingJson["closestHitQueries"] = static_cast<double>(batching.closestHitQueries);
+    batchingJson["anyHitQueries"] = static_cast<double>(batching.anyHitQueries);
     batchingJson["batches"] = static_cast<double>(batching.batches);
     batchingJson["samplesSubmitted"] = static_cast<double>(batching.samplesSubmitted);
     batchingJson["maxBatchSize"] = static_cast<double>(batching.maxBatchSize);
@@ -411,6 +513,8 @@ namespace engine::wavefront {
     bool convergenceEnabled{false};
     bool adaptiveSamplingEnabled{false};
     bool sampleRadianceStddevCaptureEnabled{false};
+    render::WavefrontIntersectionBackendChoice intersectionBackend;
+    std::shared_ptr<const render::WavefrontIntersectionBackend> preparedIntersectionBackend;
     double convergenceActiveSampleFractionThreshold;
     double convergenceRadianceDeltaRmsThreshold;
     int adaptiveMinimumSamples{1};
@@ -440,7 +544,10 @@ namespace engine::wavefront {
                                                adaptiveMinimumSamples,
                                                adaptiveStddevThreshold,
                                                recordMetrics,
-                                               samplingSeed};
+                                               samplingSeed,
+                                               preparedIntersectionBackend
+                                                 ? preparedIntersectionBackend.get()
+                                                 : &intersectionBackend.resolvedBackend()};
     }
 
     detail::WavefrontTileRenderer tileRenderer(bool recordMetrics) {
@@ -473,6 +580,33 @@ namespace engine::wavefront {
     void configureIntegratorCancellation(const WavefrontRaytracer& owner) {
       integrator->setCancellationCallback(
         [&owner] { return owner.camera() && owner.camera()->isCancelled(); });
+    }
+
+    std::uint64_t saturatedProduct(std::uint64_t lhs, std::uint64_t rhs) const {
+      constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
+      if (lhs != 0 && rhs > maxValue / lhs) {
+        return maxValue;
+      }
+      return lhs * rhs;
+    }
+
+    std::uint64_t expectedPrimaryRayCount(const render::Camera& camera, int width,
+                                          int height) const {
+      const std::uint64_t pixelCount =
+        saturatedProduct(static_cast<std::uint64_t>(std::max(0, width)),
+                         static_cast<std::uint64_t>(std::max(0, height)));
+      return saturatedProduct(pixelCount,
+                              static_cast<std::uint64_t>(std::max(1, camera.samplesPerPixel())));
+    }
+
+    void prepareIntersectionBackend(const render::Scene& scene, std::uint64_t expectedPrimaryRays) {
+      render::WavefrontIntersectionBackendSelectionContext context;
+      context.expectedRayCount = expectedPrimaryRays;
+      preparedIntersectionBackend = intersectionBackend.createBackendForScene(scene, context);
+    }
+
+    void clearPreparedIntersectionBackend() {
+      preparedIntersectionBackend.reset();
     }
   };
 
@@ -514,6 +648,7 @@ namespace engine::wavefront {
     result->setAdaptiveMinimumSamples(p->adaptiveMinimumSamples);
     result->setAdaptiveStddevThreshold(p->adaptiveStddevThreshold);
     result->setSampleRadianceStddevCaptureEnabled(p->sampleRadianceStddevCaptureEnabled);
+    result->setIntersectionBackend(p->intersectionBackend);
     if (p->samplingSeed) {
       result->setSamplingSeed(*p->samplingSeed);
     }
@@ -530,6 +665,8 @@ namespace engine::wavefront {
 
     p->tasks.clear();
     p->denoiserFeatureTasks.clear();
+    p->prepareIntersectionBackend(
+      *m_scene, p->expectedPrimaryRayCount(*m_camera, buffer.width(), buffer.height()));
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();
@@ -585,6 +722,7 @@ namespace engine::wavefront {
         p->metrics.clear();
       }
     }
+    p->clearPreparedIntersectionBackend();
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().dumpJson(std::cerr);
@@ -607,6 +745,8 @@ namespace engine::wavefront {
 
     p->tasks.clear();
     p->denoiserFeatureTasks.clear();
+    p->prepareIntersectionBackend(
+      *m_scene, p->expectedPrimaryRayCount(*m_camera, buffer.width(), buffer.height()));
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();
@@ -659,6 +799,7 @@ namespace engine::wavefront {
         p->metrics.clear();
       }
     }
+    p->clearPreparedIntersectionBackend();
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().dumpJson(std::cerr);
@@ -681,6 +822,8 @@ namespace engine::wavefront {
 
     p->tasks.clear();
     p->denoiserFeatureTasks.clear();
+    p->prepareIntersectionBackend(
+      *m_scene, p->expectedPrimaryRayCount(*m_camera, hdrBuffer.width(), hdrBuffer.height()));
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();
@@ -739,6 +882,7 @@ namespace engine::wavefront {
         p->metrics.clear();
       }
     }
+    p->clearPreparedIntersectionBackend();
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().dumpJson(std::cerr);
@@ -904,6 +1048,15 @@ namespace engine::wavefront {
 
   bool WavefrontRaytracer::sampleRadianceStddevCaptureEnabled() const {
     return p->sampleRadianceStddevCaptureEnabled;
+  }
+
+  void
+  WavefrontRaytracer::setIntersectionBackend(render::WavefrontIntersectionBackendChoice backend) {
+    p->intersectionBackend = backend;
+  }
+
+  render::WavefrontIntersectionBackendChoice WavefrontRaytracer::intersectionBackend() const {
+    return p->intersectionBackend;
   }
 
   std::shared_ptr<const Buffer<double>> WavefrontRaytracer::lastSampleRadianceStddev() const {

@@ -7,6 +7,7 @@
 #include "core/util/ScopedTimer.h"
 #include "render/RayCaster.h"
 #include "render/State.h"
+#include "render/WavefrontIntersectionBackend.h"
 #include "render/materials/Material.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
@@ -205,9 +206,10 @@ namespace render {
   }
 
   void WhittedIntegrator::intersectQueuedRayScalar(
-    const Scene& scene, std::vector<QueuedRay>& current, std::size_t queuedIndex,
-    std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
-    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
+    const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
+    std::vector<QueuedRay>& current, std::size_t queuedIndex, std::vector<QueuedHit>& activeHits,
+    std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
+    IntegratorBatchMetrics* metrics) const {
     auto& queued = current[queuedIndex];
     if (isCancelled()) {
       result[queued.sampleIndex] += queued.weight * scene.background();
@@ -235,7 +237,10 @@ namespace render {
     const Primitive* primitive = nullptr;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      primitive = scene.intersect(queued.ray, hitPoints, queued.state);
+      if (metrics) {
+        metrics->recordClosestHitQuery(intersectionBackend, 1);
+      }
+      primitive = intersectionBackend.intersectClosest(scene, queued.ray, hitPoints, queued.state);
     }
     if (isCancelled()) {
       result[queued.sampleIndex] += queued.weight * scene.background();
@@ -255,8 +260,9 @@ namespace render {
   }
 
   void WhittedIntegrator::intersectQueuedRayPacket(
-    const Scene& scene, std::vector<QueuedRay>& current, std::size_t firstQueuedIndex,
-    std::size_t laneCount, std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
+    const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
+    std::vector<QueuedRay>& current, std::size_t firstQueuedIndex, std::size_t laneCount,
+    std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     const std::size_t activeLaneCount = std::min(laneCount, Ray4::lanes);
     std::array<Rayd, Ray4::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
@@ -288,7 +294,10 @@ namespace render {
     PrimitivePacketHit4 packetHits;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      packetHits = scene.intersectPacketHits(Ray4(rays), states);
+      if (metrics) {
+        metrics->recordClosestHitQuery(intersectionBackend, packetLaneCount);
+      }
+      packetHits = intersectionBackend.intersectPacketClosest(scene, Ray4(rays), states);
     }
 
     if (isCancelled()) {
@@ -360,7 +369,11 @@ namespace render {
         const Primitive* refinedPrimitive = nullptr;
         {
           core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-          refinedPrimitive = scene.intersect(queued.ray, refinedHitPoints, queued.state);
+          if (metrics) {
+            metrics->recordClosestHitQuery(intersectionBackend, 1);
+          }
+          refinedPrimitive =
+            intersectionBackend.intersectClosest(scene, queued.ray, refinedHitPoints, queued.state);
         }
         hitPrimitive = refinedPrimitive;
         if (refinedPrimitive) {
@@ -386,8 +399,9 @@ namespace render {
   }
 
   void WhittedIntegrator::intersectQueuedRayPacket8(
-    const Scene& scene, std::vector<QueuedRay>& current, std::size_t firstQueuedIndex,
-    std::size_t laneCount, std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
+    const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
+    std::vector<QueuedRay>& current, std::size_t firstQueuedIndex, std::size_t laneCount,
+    std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     const std::size_t activeLaneCount = std::min(laneCount, Ray8::lanes);
     std::array<Rayd, Ray8::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
@@ -420,7 +434,10 @@ namespace render {
     PrimitivePacketHit8 packetHits;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      packetHits = scene.intersectPacketHits(Ray8(rays), states);
+      if (metrics) {
+        metrics->recordClosestHitQuery(intersectionBackend, packetLaneCount);
+      }
+      packetHits = intersectionBackend.intersectPacketClosest(scene, Ray8(rays), states);
     }
 
     if (isCancelled()) {
@@ -492,7 +509,11 @@ namespace render {
         const Primitive* refinedPrimitive = nullptr;
         {
           core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-          refinedPrimitive = scene.intersect(queued.ray, refinedHitPoints, queued.state);
+          if (metrics) {
+            metrics->recordClosestHitQuery(intersectionBackend, 1);
+          }
+          refinedPrimitive =
+            intersectionBackend.intersectClosest(scene, queued.ray, refinedHitPoints, queued.state);
         }
         hitPrimitive = refinedPrimitive;
         if (refinedPrimitive) {
@@ -517,12 +538,11 @@ namespace render {
     }
   }
 
-  void WhittedIntegrator::intersectActiveFrontier(const Scene& scene,
-                                                  std::vector<QueuedRay>& current,
-                                                  std::vector<QueuedHit>& activeHits,
-                                                  std::vector<Colord>& result,
-                                                  BatchDepthMetrics& depthMetrics,
-                                                  IntegratorBatchMetrics* metrics) const {
+  void WhittedIntegrator::intersectActiveFrontier(
+    const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
+    std::vector<QueuedRay>& current, std::vector<QueuedHit>& activeHits,
+    std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
+    IntegratorBatchMetrics* metrics) const {
     activeHits.clear();
     std::size_t traceableCount = 0;
     {
@@ -534,43 +554,43 @@ namespace render {
     while (queuedIndex != traceableCount) {
       const bool canUsePacket8 = !isCancelled() && queuedIndex + Ray8::lanes <= traceableCount;
       if (canUsePacket8) {
-        intersectQueuedRayPacket8(scene, current, queuedIndex, Ray8::lanes, activeHits, result,
-                                  depthMetrics, metrics);
+        intersectQueuedRayPacket8(intersectionBackend, scene, current, queuedIndex, Ray8::lanes,
+                                  activeHits, result, depthMetrics, metrics);
         queuedIndex += Ray8::lanes;
         continue;
       }
 
       const std::size_t remainingTraceable = traceableCount - queuedIndex;
       if (!isCancelled() && remainingTraceable > Ray4::lanes) {
-        intersectQueuedRayPacket8(scene, current, queuedIndex, remainingTraceable, activeHits,
-                                  result, depthMetrics, metrics);
+        intersectQueuedRayPacket8(intersectionBackend, scene, current, queuedIndex,
+                                  remainingTraceable, activeHits, result, depthMetrics, metrics);
         queuedIndex += remainingTraceable;
         continue;
       }
 
       const bool canUsePacket = !isCancelled() && queuedIndex + Ray4::lanes <= traceableCount;
       if (canUsePacket) {
-        intersectQueuedRayPacket(scene, current, queuedIndex, Ray4::lanes, activeHits, result,
-                                 depthMetrics, metrics);
+        intersectQueuedRayPacket(intersectionBackend, scene, current, queuedIndex, Ray4::lanes,
+                                 activeHits, result, depthMetrics, metrics);
         queuedIndex += Ray4::lanes;
         continue;
       }
 
       if (!isCancelled() && remainingTraceable > 1) {
-        intersectQueuedRayPacket(scene, current, queuedIndex, remainingTraceable, activeHits,
-                                 result, depthMetrics, metrics);
+        intersectQueuedRayPacket(intersectionBackend, scene, current, queuedIndex,
+                                 remainingTraceable, activeHits, result, depthMetrics, metrics);
         queuedIndex += remainingTraceable;
         continue;
       }
 
-      intersectQueuedRayScalar(scene, current, queuedIndex, activeHits, result, depthMetrics,
-                               metrics);
+      intersectQueuedRayScalar(intersectionBackend, scene, current, queuedIndex, activeHits, result,
+                               depthMetrics, metrics);
       ++queuedIndex;
     }
 
     while (queuedIndex != current.size()) {
-      intersectQueuedRayScalar(scene, current, queuedIndex, activeHits, result, depthMetrics,
-                               metrics);
+      intersectQueuedRayScalar(intersectionBackend, scene, current, queuedIndex, activeHits, result,
+                               depthMetrics, metrics);
       ++queuedIndex;
     }
   }
@@ -664,6 +684,11 @@ namespace render {
     if (metrics) {
       metrics->reset(/*scalarFallback=*/false);
     }
+    const WavefrontIntersectionBackend& intersectionBackend =
+      settings.resolvedIntersectionBackend();
+    if (metrics) {
+      metrics->recordIntersectionBackend(intersectionBackend);
+    }
 
     const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
     const bool countCurrentActiveSamples = metrics || settings.convergenceEnabled;
@@ -720,7 +745,8 @@ namespace render {
 
       BatchDepthMetrics depthMetrics;
       depthMetrics.trackFrontierMetrics = metrics != nullptr;
-      intersectActiveFrontier(scene, current, activeHits, result, depthMetrics, metrics);
+      intersectActiveFrontier(intersectionBackend, scene, current, activeHits, result, depthMetrics,
+                              metrics);
       if (metrics) {
         metrics->recordFrontierIntersections(depthMetrics.frontierRayHits,
                                              depthMetrics.frontierRayMisses);

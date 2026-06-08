@@ -1,11 +1,34 @@
 #include "render/Integrator.h"
 
+#include "render/WavefrontIntersectionBackend.h"
 #include "render/State.h"
 
 #include <algorithm>
 #include <cmath>
 
 namespace render {
+  namespace {
+    std::string nonEmptyLabel(const char* label, const std::string& fallback) {
+      if (label && *label) {
+        return label;
+      }
+      return fallback;
+    }
+
+    void mergeLabel(std::string& target, const std::string& source) {
+      if (source.empty()) {
+        return;
+      }
+      if (target.empty()) {
+        target = source;
+        return;
+      }
+      if (target != source) {
+        target = "mixed";
+      }
+    }
+  }
+
   const char* Integrator::diagnosticName() const {
     return "custom";
   }
@@ -55,6 +78,32 @@ namespace render {
     compatibilityShadeRadianceLuminanceSum = 0.0;
     stoppedByConvergence = false;
     stoppedAfterDepth = 0;
+    intersectionBackendRequest.clear();
+    intersectionBackend.clear();
+    intersectionBackendAvailability.clear();
+    intersectionBackendFallbackReason.clear();
+    intersectionBackendExecutionPath.clear();
+    intersectionSceneCompiled = false;
+    intersectionSceneBvhNodes = 0;
+    intersectionScenePrimitives = 0;
+    intersectionSceneTriangles = 0;
+    intersectionSceneSpheres = 0;
+    intersectionScenePlanes = 0;
+    intersectionSceneRectangles = 0;
+    intersectionSceneDisks = 0;
+    intersectionSceneTransforms = 0;
+    intersectionSceneUnsupportedPrimitives = 0;
+    intersectionSceneUploadBytes = 0;
+    intersectionSceneTriangleClosestHitEligible = false;
+    intersectionSceneBasicHitEligible = false;
+    intersectionScenePackedClosestHitEligible = false;
+    intersectionEstimatedRayUploadBytes = 0;
+    intersectionEstimatedClosestHitReadbackBytes = 0;
+    intersectionEstimatedAnyHitReadbackBytes = 0;
+    intersectionEstimatedQueryTransferBytes = 0;
+    intersectionRaysSubmitted = 0;
+    closestHitQueries = 0;
+    anyHitQueries = 0;
     intersectionWorkerSeconds = 0.0;
     shadingWorkerSeconds = 0.0;
     pathSetupWorkerSeconds = 0.0;
@@ -104,6 +153,103 @@ namespace render {
   void IntegratorBatchMetrics::recordPacketHitRefinement(const std::string& materialLabel) {
     const std::string label = materialLabel.empty() ? "unknown" : materialLabel;
     ++frontierPacketRefinedRaysByMaterial[label];
+  }
+
+  void
+  IntegratorBatchMetrics::recordIntersectionBackend(const WavefrontIntersectionBackend& backend) {
+    mergeLabel(intersectionBackendRequest, nonEmptyLabel(backend.requestedName(), "unknown"));
+    mergeLabel(intersectionBackend, nonEmptyLabel(backend.name(), "unknown"));
+    mergeLabel(intersectionBackendAvailability, nonEmptyLabel(backend.availability(), "unknown"));
+    mergeLabel(intersectionBackendFallbackReason, nonEmptyLabel(backend.fallbackReason(), ""));
+    const WavefrontIntersectionSceneDiagnostics diagnostics = backend.compiledSceneDiagnostics();
+    intersectionSceneCompiled = intersectionSceneCompiled || diagnostics.compiled;
+    intersectionSceneBvhNodes = std::max(intersectionSceneBvhNodes, diagnostics.bvhNodes);
+    intersectionScenePrimitives = std::max(intersectionScenePrimitives, diagnostics.primitives);
+    intersectionSceneTriangles = std::max(intersectionSceneTriangles, diagnostics.triangles);
+    intersectionSceneSpheres = std::max(intersectionSceneSpheres, diagnostics.spheres);
+    intersectionScenePlanes = std::max(intersectionScenePlanes, diagnostics.planes);
+    intersectionSceneRectangles = std::max(intersectionSceneRectangles, diagnostics.rectangles);
+    intersectionSceneDisks = std::max(intersectionSceneDisks, diagnostics.disks);
+    intersectionSceneTransforms = std::max(intersectionSceneTransforms, diagnostics.transforms);
+    intersectionSceneUnsupportedPrimitives =
+      std::max(intersectionSceneUnsupportedPrimitives, diagnostics.unsupportedPrimitives);
+    intersectionSceneUploadBytes = std::max(intersectionSceneUploadBytes, diagnostics.uploadBytes);
+    intersectionSceneTriangleClosestHitEligible =
+      intersectionSceneTriangleClosestHitEligible || diagnostics.triangleClosestHitKernelEligible;
+    intersectionSceneBasicHitEligible =
+      intersectionSceneBasicHitEligible || diagnostics.basicHitKernelEligible;
+    intersectionScenePackedClosestHitEligible =
+      intersectionScenePackedClosestHitEligible || diagnostics.packedClosestHitKernelEligible;
+  }
+
+  void IntegratorBatchMetrics::recordClosestHitQuery(const WavefrontIntersectionBackend& backend,
+                                                     std::uint64_t submittedRays) {
+    recordIntersectionBackend(backend);
+    mergeLabel(intersectionBackendExecutionPath,
+               nonEmptyLabel(backend.closestHitExecutionPath(), "unknown"));
+    const std::uint64_t rayUploadBytes = backend.estimatedClosestHitRayUploadBytes(submittedRays);
+    const std::uint64_t readbackBytes = backend.estimatedClosestHitReadbackBytes(submittedRays);
+    intersectionEstimatedRayUploadBytes += rayUploadBytes;
+    intersectionEstimatedClosestHitReadbackBytes += readbackBytes;
+    intersectionEstimatedQueryTransferBytes += rayUploadBytes + readbackBytes;
+    ++closestHitQueries;
+    intersectionRaysSubmitted += submittedRays;
+  }
+
+  void IntegratorBatchMetrics::recordAnyHitQuery(const WavefrontIntersectionBackend& backend,
+                                                 std::uint64_t submittedRays) {
+    recordIntersectionBackend(backend);
+    mergeLabel(intersectionBackendExecutionPath,
+               nonEmptyLabel(backend.anyHitExecutionPath(), "unknown"));
+    const std::uint64_t rayUploadBytes = backend.estimatedAnyHitRayUploadBytes(submittedRays);
+    const std::uint64_t readbackBytes = backend.estimatedAnyHitReadbackBytes(submittedRays);
+    intersectionEstimatedRayUploadBytes += rayUploadBytes;
+    intersectionEstimatedAnyHitReadbackBytes += readbackBytes;
+    intersectionEstimatedQueryTransferBytes += rayUploadBytes + readbackBytes;
+    ++anyHitQueries;
+    intersectionRaysSubmitted += submittedRays;
+  }
+
+  void
+  IntegratorBatchMetrics::mergeIntersectionBackendMetrics(const IntegratorBatchMetrics& source) {
+    mergeLabel(intersectionBackendRequest, source.intersectionBackendRequest);
+    mergeLabel(intersectionBackend, source.intersectionBackend);
+    mergeLabel(intersectionBackendAvailability, source.intersectionBackendAvailability);
+    mergeLabel(intersectionBackendFallbackReason, source.intersectionBackendFallbackReason);
+    mergeLabel(intersectionBackendExecutionPath, source.intersectionBackendExecutionPath);
+    intersectionSceneCompiled = intersectionSceneCompiled || source.intersectionSceneCompiled;
+    intersectionSceneBvhNodes =
+      std::max(intersectionSceneBvhNodes, source.intersectionSceneBvhNodes);
+    intersectionScenePrimitives =
+      std::max(intersectionScenePrimitives, source.intersectionScenePrimitives);
+    intersectionSceneTriangles =
+      std::max(intersectionSceneTriangles, source.intersectionSceneTriangles);
+    intersectionSceneSpheres = std::max(intersectionSceneSpheres, source.intersectionSceneSpheres);
+    intersectionScenePlanes = std::max(intersectionScenePlanes, source.intersectionScenePlanes);
+    intersectionSceneRectangles =
+      std::max(intersectionSceneRectangles, source.intersectionSceneRectangles);
+    intersectionSceneDisks = std::max(intersectionSceneDisks, source.intersectionSceneDisks);
+    intersectionSceneTransforms =
+      std::max(intersectionSceneTransforms, source.intersectionSceneTransforms);
+    intersectionSceneUnsupportedPrimitives = std::max(
+      intersectionSceneUnsupportedPrimitives, source.intersectionSceneUnsupportedPrimitives);
+    intersectionSceneUploadBytes =
+      std::max(intersectionSceneUploadBytes, source.intersectionSceneUploadBytes);
+    intersectionSceneTriangleClosestHitEligible =
+      intersectionSceneTriangleClosestHitEligible ||
+      source.intersectionSceneTriangleClosestHitEligible;
+    intersectionSceneBasicHitEligible =
+      intersectionSceneBasicHitEligible || source.intersectionSceneBasicHitEligible;
+    intersectionScenePackedClosestHitEligible =
+      intersectionScenePackedClosestHitEligible || source.intersectionScenePackedClosestHitEligible;
+    intersectionEstimatedRayUploadBytes += source.intersectionEstimatedRayUploadBytes;
+    intersectionEstimatedClosestHitReadbackBytes +=
+      source.intersectionEstimatedClosestHitReadbackBytes;
+    intersectionEstimatedAnyHitReadbackBytes += source.intersectionEstimatedAnyHitReadbackBytes;
+    intersectionEstimatedQueryTransferBytes += source.intersectionEstimatedQueryTransferBytes;
+    intersectionRaysSubmitted += source.intersectionRaysSubmitted;
+    closestHitQueries += source.closestHitQueries;
+    anyHitQueries += source.anyHitQueries;
   }
 
   void IntegratorBatchMetrics::recordRadianceDeltaDepth(double squaredSum, double maxDelta) {
@@ -169,6 +315,10 @@ namespace render {
 
   double IntegratorBatchMetrics::contributionLuminance(const Colord& contribution) const {
     return contribution.r() * 0.299 + contribution.g() * 0.587 + contribution.b() * 0.114;
+  }
+
+  const WavefrontIntersectionBackend& IntegratorBatchSettings::resolvedIntersectionBackend() const {
+    return intersectionBackend ? *intersectionBackend : CpuWavefrontIntersectionBackend::instance();
   }
 
   std::vector<Colord> Integrator::radianceBatch(const Scene& scene,

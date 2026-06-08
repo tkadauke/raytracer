@@ -16,6 +16,7 @@ namespace render {
   class SampleStream;
   class Scene;
   class State;
+  class WavefrontIntersectionBackend;
 
   struct IntegratorRaySample {
     Rayd ray{Rayd::undefined};
@@ -66,6 +67,32 @@ namespace render {
     double compatibilityShadeRadianceLuminanceSum{0.0};
     bool stoppedByConvergence{false};
     std::uint64_t stoppedAfterDepth{0};
+    std::string intersectionBackendRequest;
+    std::string intersectionBackend;
+    std::string intersectionBackendAvailability;
+    std::string intersectionBackendFallbackReason;
+    std::string intersectionBackendExecutionPath;
+    bool intersectionSceneCompiled{false};
+    std::uint64_t intersectionSceneBvhNodes{0};
+    std::uint64_t intersectionScenePrimitives{0};
+    std::uint64_t intersectionSceneTriangles{0};
+    std::uint64_t intersectionSceneSpheres{0};
+    std::uint64_t intersectionScenePlanes{0};
+    std::uint64_t intersectionSceneRectangles{0};
+    std::uint64_t intersectionSceneDisks{0};
+    std::uint64_t intersectionSceneTransforms{0};
+    std::uint64_t intersectionSceneUnsupportedPrimitives{0};
+    std::uint64_t intersectionSceneUploadBytes{0};
+    bool intersectionSceneTriangleClosestHitEligible{false};
+    bool intersectionSceneBasicHitEligible{false};
+    bool intersectionScenePackedClosestHitEligible{false};
+    std::uint64_t intersectionEstimatedRayUploadBytes{0};
+    std::uint64_t intersectionEstimatedClosestHitReadbackBytes{0};
+    std::uint64_t intersectionEstimatedAnyHitReadbackBytes{0};
+    std::uint64_t intersectionEstimatedQueryTransferBytes{0};
+    std::uint64_t intersectionRaysSubmitted{0};
+    std::uint64_t closestHitQueries{0};
+    std::uint64_t anyHitQueries{0};
     double intersectionWorkerSeconds{0.0};
     double shadingWorkerSeconds{0.0};
     double pathSetupWorkerSeconds{0.0};
@@ -86,6 +113,12 @@ namespace render {
                                  std::uint64_t packetRefinedRays);
     void recordPacketScalarFallbacksByReason(const std::map<std::string, std::uint64_t>& reasons);
     void recordPacketHitRefinement(const std::string& materialLabel);
+    void recordIntersectionBackend(const WavefrontIntersectionBackend& backend);
+    void recordClosestHitQuery(const WavefrontIntersectionBackend& backend,
+                               std::uint64_t submittedRays);
+    void recordAnyHitQuery(const WavefrontIntersectionBackend& backend,
+                           std::uint64_t submittedRays);
+    void mergeIntersectionBackendMetrics(const IntegratorBatchMetrics& source);
     void recordRadianceDeltaDepth(double squaredSum, double maxDelta);
     void recordUnsupportedPathMaterial();
     void recordEmitterHit(bool sampledFromBsdf, bool bsdfSampleDelta, bool misWeighted);
@@ -115,6 +148,9 @@ namespace render {
     double activeSampleFractionThreshold{0.0};
     double radianceDeltaRmsThreshold{0.0};
     IntegratorBatchObserver* progressObserver{nullptr};
+    const WavefrontIntersectionBackend* intersectionBackend{nullptr};
+
+    const WavefrontIntersectionBackend& resolvedIntersectionBackend() const;
   };
 
   /**

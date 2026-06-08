@@ -49,6 +49,16 @@ if(APPLE)
   target_link_libraries(raytracer PUBLIC "-framework OpenGL")
 endif()
 
+if(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+  target_sources(raytracer PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/render/MetalWavefrontSmokeKernel.mm")
+  set_source_files_properties(
+    "${CMAKE_CURRENT_SOURCE_DIR}/render/MetalWavefrontSmokeKernel.mm"
+    PROPERTIES COMPILE_FLAGS "-fobjc-arc"
+  )
+  target_compile_definitions(raytracer PUBLIC RAYTRACER_ENABLE_METAL_WAVEFRONT)
+  target_link_libraries(raytracer PUBLIC "-framework Metal" "-framework Foundation")
+endif()
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   # EGLContext uses Mesa's surfaceless EGL platform so that rendercli
   # can open an offscreen GL context on Linux without QGuiApplication
@@ -56,6 +66,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   # `libgl1-mesa-dev` package the Dockerfile installs.
   find_package(OpenGL REQUIRED COMPONENTS OpenGL EGL)
   target_link_libraries(raytracer PUBLIC OpenGL::OpenGL OpenGL::EGL)
+endif()
+
+if(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+  target_compile_definitions(raytracer PUBLIC RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+  target_link_libraries(raytracer PUBLIC Vulkan::Vulkan)
 endif()
 
 if(RAYTRACER_ENABLE_STATS)

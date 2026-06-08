@@ -23,6 +23,7 @@ namespace render {
   struct IntegratorBatchMetrics;
   class Scene;
   class TilePlan;
+  class WavefrontIntersectionBackendChoice;
 }
 
 namespace engine::wavefront {
@@ -60,10 +61,36 @@ namespace engine::wavefront {
     struct BatchSummary {
       std::string integrator;
       std::string executionMode;
+      std::string intersectionBackendRequest;
+      std::string intersectionBackend;
+      std::string intersectionBackendAvailability;
+      std::string intersectionBackendFallbackReason;
+      std::string intersectionBackendExecutionPath;
+      bool intersectionSceneCompiled = false;
+      std::uint64_t intersectionSceneBvhNodes = 0;
+      std::uint64_t intersectionScenePrimitives = 0;
+      std::uint64_t intersectionSceneTriangles = 0;
+      std::uint64_t intersectionSceneSpheres = 0;
+      std::uint64_t intersectionScenePlanes = 0;
+      std::uint64_t intersectionSceneRectangles = 0;
+      std::uint64_t intersectionSceneDisks = 0;
+      std::uint64_t intersectionSceneTransforms = 0;
+      std::uint64_t intersectionSceneUnsupportedPrimitives = 0;
+      std::uint64_t intersectionSceneUploadBytes = 0;
+      bool intersectionSceneTriangleClosestHitEligible = false;
+      bool intersectionSceneBasicHitEligible = false;
+      bool intersectionScenePackedClosestHitEligible = false;
+      std::uint64_t intersectionEstimatedRayUploadBytes = 0;
+      std::uint64_t intersectionEstimatedClosestHitReadbackBytes = 0;
+      std::uint64_t intersectionEstimatedAnyHitReadbackBytes = 0;
+      std::uint64_t intersectionEstimatedQueryTransferBytes = 0;
       std::uint64_t batches = 0;
       std::uint64_t samplesSubmitted = 0;
       std::uint64_t maxBatchSize = 0;
       double averageBatchSize = 0.0;
+      std::uint64_t intersectionRaysSubmitted = 0;
+      std::uint64_t closestHitQueries = 0;
+      std::uint64_t anyHitQueries = 0;
       std::uint64_t activeSampleDepthsProcessed = 0;
       std::uint64_t compatibilityShadeSamples = 0;
       std::uint64_t unsupportedPathMaterialSamples = 0;
@@ -102,6 +129,7 @@ namespace engine::wavefront {
       double maxSampleRadianceStddev = 0.0;
 
       void addIntegratorMetrics(const render::IntegratorBatchMetrics& metrics);
+      void addIntersectionBackendMetrics(const render::IntegratorBatchMetrics& metrics);
     } batching;
 
     struct ConvergenceSummary {
@@ -241,6 +269,8 @@ namespace engine::wavefront {
     double adaptiveStddevThreshold() const;
     void setSampleRadianceStddevCaptureEnabled(bool enabled);
     bool sampleRadianceStddevCaptureEnabled() const;
+    void setIntersectionBackend(render::WavefrontIntersectionBackendChoice backend);
+    render::WavefrontIntersectionBackendChoice intersectionBackend() const;
     std::shared_ptr<const Buffer<double>> lastSampleRadianceStddev() const;
     std::shared_ptr<const Buffer<Colord>> lastSampleRadianceStddevColor() const;
     WavefrontRenderMetrics lastMetrics() const;

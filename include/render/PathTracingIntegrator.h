@@ -15,6 +15,7 @@ namespace render {
   struct MaterialBsdfSample;
   class PathMaterialTransport;
   class Primitive;
+  class WavefrontIntersectionBackend;
 
   /**
     * @brief Iterative megakernel Monte Carlo path tracer.
@@ -135,6 +136,7 @@ namespace render {
     Colord sampleDirectLighting(const Scene& scene, const LightSampler& lightSampler,
                                 const HitPoint& hitPoint, const PathMaterialTransport& material,
                                 const Vector3d& wi, State& state, int bounce,
+                                const WavefrontIntersectionBackend* intersectionBackend = nullptr,
                                 IntegratorBatchMetrics* metrics = nullptr) const;
     Colord emittedRadiance(const LightSampler& lightSampler, const PathMaterialTransport& material,
                            const Rayd& ray, const HitPoint& hitPoint, bool sampledFromBsdf,
@@ -143,7 +145,9 @@ namespace render {
     DirectLightingSample directLighting(const Scene& scene, const Light& light,
                                         const HitPoint& hitPoint,
                                         const PathMaterialTransport& material, const Vector3d& wi,
-                                        const Vector2d& lightSample, State& state) const;
+                                        const Vector2d& lightSample, State& state,
+                                        const WavefrontIntersectionBackend& intersectionBackend,
+                                        IntegratorBatchMetrics* metrics = nullptr) const;
     bool canContinueWithSample(const MaterialBsdfSample& sample, const HitPoint& hitPoint) const;
     Colord continuedThroughput(const Colord& throughput, const MaterialBsdfSample& sample,
                                const HitPoint& hitPoint) const;
@@ -159,21 +163,25 @@ namespace render {
                            std::vector<BatchHit>& activeHits) const;
     void recordFrontierMiss(const Scene& scene, BatchPath& path, BatchDepthMetrics& depthMetrics,
                             const Colord& accumulatedBeforeDepth) const;
-    void intersectActivePathScalar(const Scene& scene, std::size_t pathIndex,
+    void intersectActivePathScalar(const WavefrontIntersectionBackend& intersectionBackend,
+                                   const Scene& scene, std::size_t pathIndex,
                                    std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits,
                                    int bounce, BatchDepthMetrics& depthMetrics,
                                    IntegratorBatchMetrics* metrics) const;
-    void intersectActivePathPacket(const Scene& scene, std::size_t firstPathIndex,
+    void intersectActivePathPacket(const WavefrontIntersectionBackend& intersectionBackend,
+                                   const Scene& scene, std::size_t firstPathIndex,
                                    std::size_t laneCount, std::vector<BatchPath>& paths,
                                    std::vector<BatchHit>& activeHits, int bounce,
                                    BatchDepthMetrics& depthMetrics,
                                    IntegratorBatchMetrics* metrics) const;
-    void intersectActivePathPacket8(const Scene& scene, std::size_t firstPathIndex,
+    void intersectActivePathPacket8(const WavefrontIntersectionBackend& intersectionBackend,
+                                    const Scene& scene, std::size_t firstPathIndex,
                                     std::size_t laneCount, std::vector<BatchPath>& paths,
                                     std::vector<BatchHit>& activeHits, int bounce,
                                     BatchDepthMetrics& depthMetrics,
                                     IntegratorBatchMetrics* metrics) const;
-    void intersectActiveFrontier(const Scene& scene, std::vector<BatchPath>& paths,
+    void intersectActiveFrontier(const WavefrontIntersectionBackend& intersectionBackend,
+                                 const Scene& scene, std::vector<BatchPath>& paths,
                                  std::vector<BatchHit>& activeHits, int bounce,
                                  BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;

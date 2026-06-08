@@ -3,18 +3,24 @@
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wavefront/WavefrontRaytracer.h"
 #include "render/Integrator.h"
+#include "render/WavefrontIntersectionBackend.h"
 #include "render/WhittedIntegrator.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/denoise/BoxDenoiser.h"
 #include "render/denoise/Denoiser.h"
 #include "render/materials/MatteMaterial.h"
+#include "render/primitives/Instance.h"
+#include "render/primitives/Plane.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
+#include "render/primitives/Torus.h"
+#include "render/primitives/Triangle.h"
 #include "render/samplers/HaltonSampler.h"
 #include "render/textures/ConstantColorTexture.h"
 
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
+#include "core/math/Matrix.h"
 
 #include "test/helpers/ColorTestHelper.h"
 
@@ -24,6 +30,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <string>
 #include <thread>
 #include <utility>
 
@@ -321,6 +328,29 @@ namespace WavefrontRaytracerTest {
     return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
   }
 
+  void expectPlatformGpuUnavailableReason(const std::string& reason) {
+    const bool disabled = reason.find("not enabled") != std::string::npos;
+    const bool enabledWithoutClosestHitKernel =
+      reason.find("no render-path closest-hit kernel") != std::string::npos;
+    const bool enabledWithoutDevice = reason.find("no Metal device") != std::string::npos;
+    const bool notTriangleEligible =
+      reason.find("not eligible for the Metal triangle") != std::string::npos;
+    const bool noPreparedTriangleScene =
+      reason.find("no prepared triangle scene") != std::string::npos;
+    const bool notBasicEligible =
+      reason.find("not eligible for the Metal basic") != std::string::npos;
+    const bool noPreparedBasicScene =
+      reason.find("no prepared basic-hit scene") != std::string::npos;
+    EXPECT_TRUE(disabled || enabledWithoutClosestHitKernel || enabledWithoutDevice ||
+                notTriangleEligible || noPreparedTriangleScene || notBasicEligible ||
+                noPreparedBasicScene)
+      << reason;
+  }
+
+  bool usedMetalClosestHit(const engine::wavefront::WavefrontRenderMetrics& metrics) {
+    return metrics.batching.intersectionBackendExecutionPath == "metal";
+  }
+
   TEST(WavefrontRaytracer, DefaultsToWhittedIntegrator) {
     WavefrontRaytracer renderer(std::make_shared<render::Scene>());
 
@@ -334,6 +364,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_FALSE(renderer.adaptiveSamplingEnabled());
     EXPECT_EQ(1, renderer.adaptiveMinimumSamples());
     EXPECT_DOUBLE_EQ(0.0, renderer.adaptiveStddevThreshold());
+    EXPECT_STREQ("auto", renderer.intersectionBackend().id());
   }
 
   TEST(WavefrontRaytracer, AppliesMaximumRecursionDepthToCurrentIntegrator) {
@@ -373,6 +404,7 @@ namespace WavefrontRaytracerTest {
     renderer->setAdaptiveMinimumSamples(3);
     renderer->setAdaptiveStddevThreshold(0.125);
     renderer->setDenoiser(std::make_unique<render::BoxDenoiser>(2));
+    renderer->setIntersectionBackend(render::WavefrontIntersectionBackendChoice::gpu());
 
     auto clone = std::dynamic_pointer_cast<WavefrontRaytracer>(renderer->cloneForRender());
     ASSERT_NE(nullptr, clone);
@@ -386,6 +418,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_DOUBLE_EQ(0.125, clone->adaptiveStddevThreshold());
     EXPECT_FALSE(clone->progressiveDisplayEnabled());
     EXPECT_TRUE(clone->metricsEnabled());
+    EXPECT_STREQ("gpu", clone->intersectionBackend().id());
     ASSERT_NE(nullptr, clone->denoiser());
     EXPECT_STREQ("box", clone->denoiser()->diagnosticName());
     EXPECT_NE(renderer->denoiser(), clone->denoiser());
@@ -701,8 +734,21 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("single_tile", metrics.scheduling.decision);
     EXPECT_EQ("whitted", metrics.batching.integrator);
     EXPECT_EQ("depth_major_whitted", metrics.batching.executionMode);
+    EXPECT_EQ("auto", metrics.batching.intersectionBackendRequest);
+    EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
+    EXPECT_EQ("available", metrics.batching.intersectionBackendAvailability);
+    EXPECT_NE(std::string::npos,
+              metrics.batching.intersectionBackendFallbackReason.find("auto selected CPU"));
+    expectPlatformGpuUnavailableReason(metrics.batching.intersectionBackendFallbackReason);
+    EXPECT_EQ("runtime_scene", metrics.batching.intersectionBackendExecutionPath);
+    EXPECT_FALSE(metrics.batching.intersectionSceneCompiled);
+    EXPECT_EQ(0u, metrics.batching.intersectionScenePrimitives);
+    EXPECT_EQ(0u, metrics.batching.intersectionSceneUnsupportedPrimitives);
     EXPECT_EQ(1u, metrics.batching.batches);
     EXPECT_EQ(48u, metrics.batching.samplesSubmitted);
+    EXPECT_EQ(48u, metrics.batching.intersectionRaysSubmitted);
+    EXPECT_EQ(6u, metrics.batching.closestHitQueries);
+    EXPECT_EQ(0u, metrics.batching.anyHitQueries);
     EXPECT_EQ(48u, metrics.batching.activeSampleDepthsProcessed);
     EXPECT_EQ(48u, metrics.batching.maxBatchSize);
     EXPECT_DOUBLE_EQ(48.0, metrics.batching.averageBatchSize);
@@ -787,7 +833,38 @@ namespace WavefrontRaytracerTest {
     EXPECT_DOUBLE_EQ(48.0, tiling.value("averageNonEmptyTileSamples").toDouble());
     EXPECT_EQ("whitted",
               json.value("batching").toObject().value("integrator").toString().toStdString());
+    EXPECT_EQ("auto", json.value("batching")
+                        .toObject()
+                        .value("intersectionBackendRequest")
+                        .toString()
+                        .toStdString());
+    EXPECT_EQ(
+      "cpu",
+      json.value("batching").toObject().value("intersectionBackend").toString().toStdString());
+    EXPECT_EQ("available", json.value("batching")
+                             .toObject()
+                             .value("intersectionBackendAvailability")
+                             .toString()
+                             .toStdString());
+    EXPECT_NE(std::string::npos, json.value("batching")
+                                   .toObject()
+                                   .value("intersectionBackendFallbackReason")
+                                   .toString()
+                                   .toStdString()
+                                   .find("auto selected CPU"));
+    EXPECT_EQ("runtime_scene", json.value("batching")
+                                 .toObject()
+                                 .value("intersectionBackendExecutionPath")
+                                 .toString()
+                                 .toStdString());
+    EXPECT_FALSE(json.value("batching").toObject().value("intersectionSceneCompiled").toBool());
+    EXPECT_EQ(0.0,
+              json.value("batching").toObject().value("intersectionScenePrimitives").toDouble());
     EXPECT_EQ(48.0, json.value("batching").toObject().value("samplesSubmitted").toDouble());
+    EXPECT_EQ(48.0,
+              json.value("batching").toObject().value("intersectionRaysSubmitted").toDouble());
+    EXPECT_EQ(6.0, json.value("batching").toObject().value("closestHitQueries").toDouble());
+    EXPECT_EQ(0.0, json.value("batching").toObject().value("anyHitQueries").toDouble());
     EXPECT_EQ(48.0,
               json.value("batching").toObject().value("activeSampleDepthsProcessed").toDouble());
     EXPECT_EQ(0.0, json.value("batching").toObject().value("compatibilityShadeSamples").toDouble());
@@ -915,6 +992,206 @@ namespace WavefrontRaytracerTest {
     EXPECT_GE(timings.value("integratorProgressSnapshotWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorConvergenceTestWorkerSeconds").toDouble(), 0.0);
     EXPECT_GE(timings.value("integratorResidualWorkerSeconds").toDouble(), 0.0);
+  }
+
+  TEST(WavefrontRaytracer, RecordsGpuIntersectionBackendFallbackMetrics) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->setMetricsEnabled(true);
+    renderer->setIntersectionBackend(render::WavefrontIntersectionBackendChoice::gpu());
+
+    Buffer<Colord> buffer(4, 3);
+    renderer->render(buffer);
+
+    const auto metrics = renderer->lastMetrics();
+    EXPECT_EQ("gpu", metrics.batching.intersectionBackendRequest);
+    if (usedMetalClosestHit(metrics)) {
+      EXPECT_EQ("metal", metrics.batching.intersectionBackend);
+      EXPECT_EQ("available", metrics.batching.intersectionBackendAvailability);
+      EXPECT_TRUE(metrics.batching.intersectionBackendFallbackReason.empty());
+    } else {
+      EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
+      EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
+      expectPlatformGpuUnavailableReason(metrics.batching.intersectionBackendFallbackReason);
+      EXPECT_EQ("packed_cpu", metrics.batching.intersectionBackendExecutionPath);
+    }
+    EXPECT_TRUE(metrics.batching.intersectionSceneCompiled);
+    EXPECT_EQ(1u, metrics.batching.intersectionSceneBvhNodes);
+    EXPECT_EQ(1u, metrics.batching.intersectionScenePrimitives);
+    EXPECT_EQ(1u, metrics.batching.intersectionSceneSpheres);
+    EXPECT_EQ(0u, metrics.batching.intersectionSceneUnsupportedPrimitives);
+    EXPECT_GT(metrics.batching.intersectionSceneUploadBytes, 0u);
+    EXPECT_FALSE(metrics.batching.intersectionSceneTriangleClosestHitEligible);
+    EXPECT_TRUE(metrics.batching.intersectionSceneBasicHitEligible);
+    EXPECT_TRUE(metrics.batching.intersectionScenePackedClosestHitEligible);
+    EXPECT_GT(metrics.batching.intersectionRaysSubmitted, 0u);
+    EXPECT_GT(metrics.batching.intersectionEstimatedRayUploadBytes, 0u);
+    EXPECT_GT(metrics.batching.intersectionEstimatedClosestHitReadbackBytes, 0u);
+    EXPECT_EQ(metrics.batching.intersectionEstimatedRayUploadBytes +
+                metrics.batching.intersectionEstimatedClosestHitReadbackBytes +
+                metrics.batching.intersectionEstimatedAnyHitReadbackBytes,
+              metrics.batching.intersectionEstimatedQueryTransferBytes);
+
+    const QJsonObject batching = metrics.toJson().value("batching").toObject();
+    EXPECT_EQ("gpu", batching.value("intersectionBackendRequest").toString().toStdString());
+    EXPECT_EQ(metrics.batching.intersectionBackend,
+              batching.value("intersectionBackend").toString().toStdString());
+    EXPECT_EQ(metrics.batching.intersectionBackendAvailability,
+              batching.value("intersectionBackendAvailability").toString().toStdString());
+    EXPECT_EQ(metrics.batching.intersectionBackendFallbackReason,
+              batching.value("intersectionBackendFallbackReason").toString().toStdString());
+    EXPECT_EQ(metrics.batching.intersectionBackendExecutionPath,
+              batching.value("intersectionBackendExecutionPath").toString().toStdString());
+    EXPECT_TRUE(batching.value("intersectionSceneCompiled").toBool());
+    EXPECT_EQ(1.0, batching.value("intersectionScenePrimitives").toDouble());
+    EXPECT_EQ(1.0, batching.value("intersectionSceneSpheres").toDouble());
+    EXPECT_EQ(0.0, batching.value("intersectionSceneUnsupportedPrimitives").toDouble());
+    EXPECT_GT(batching.value("intersectionSceneUploadBytes").toDouble(), 0.0);
+    EXPECT_FALSE(batching.value("intersectionSceneTriangleClosestHitEligible").toBool());
+    EXPECT_TRUE(batching.value("intersectionSceneBasicHitEligible").toBool());
+    EXPECT_TRUE(batching.value("intersectionScenePackedClosestHitEligible").toBool());
+    EXPECT_GT(batching.value("intersectionEstimatedRayUploadBytes").toDouble(), 0.0);
+    EXPECT_GT(batching.value("intersectionEstimatedClosestHitReadbackBytes").toDouble(), 0.0);
+    EXPECT_EQ(static_cast<double>(metrics.batching.intersectionEstimatedQueryTransferBytes),
+              batching.value("intersectionEstimatedQueryTransferBytes").toDouble());
+  }
+
+  TEST(WavefrontRaytracer, RecordsGpuStaticTransformPackedBackendMetrics) {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    scene->setAmbient(Colord::white());
+    auto triangle = std::make_shared<render::Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0),
+                                                       Vector3d(0, 1, 0));
+    triangle->setMaterial(std::make_shared<render::MatteMaterial>(
+      std::make_shared<render::ConstantColorTexture>(Colord::white())));
+    auto instance = std::make_shared<render::Instance>(triangle);
+    instance->setMatrix(Matrix4d::translate(0, 0, 1));
+    scene->add(instance);
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), scene);
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->setMetricsEnabled(true);
+    renderer->setIntersectionBackend(render::WavefrontIntersectionBackendChoice::gpu());
+
+    Buffer<Colord> buffer(4, 3);
+    renderer->render(buffer);
+
+    const auto metrics = renderer->lastMetrics();
+    EXPECT_EQ("gpu", metrics.batching.intersectionBackendRequest);
+    if (usedMetalClosestHit(metrics)) {
+      EXPECT_EQ("metal", metrics.batching.intersectionBackend);
+      EXPECT_EQ("available", metrics.batching.intersectionBackendAvailability);
+      EXPECT_TRUE(metrics.batching.intersectionBackendFallbackReason.empty());
+    } else {
+      EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
+      EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
+      expectPlatformGpuUnavailableReason(metrics.batching.intersectionBackendFallbackReason);
+      EXPECT_EQ("packed_cpu", metrics.batching.intersectionBackendExecutionPath);
+    }
+    EXPECT_TRUE(metrics.batching.intersectionSceneCompiled);
+    EXPECT_EQ(1u, metrics.batching.intersectionScenePrimitives);
+    EXPECT_EQ(1u, metrics.batching.intersectionSceneTriangles);
+    EXPECT_GT(metrics.batching.intersectionSceneTransforms, 1u);
+    EXPECT_GT(metrics.batching.intersectionSceneUploadBytes, 0u);
+    EXPECT_FALSE(metrics.batching.intersectionSceneTriangleClosestHitEligible);
+    EXPECT_TRUE(metrics.batching.intersectionSceneBasicHitEligible);
+    EXPECT_TRUE(metrics.batching.intersectionScenePackedClosestHitEligible);
+    EXPECT_GT(metrics.batching.closestHitQueries, 0u);
+
+    const QJsonObject batching = metrics.toJson().value("batching").toObject();
+    EXPECT_EQ(metrics.batching.intersectionBackendExecutionPath,
+              batching.value("intersectionBackendExecutionPath").toString().toStdString());
+    EXPECT_FALSE(batching.value("intersectionSceneTriangleClosestHitEligible").toBool());
+    EXPECT_TRUE(batching.value("intersectionSceneBasicHitEligible").toBool());
+    EXPECT_TRUE(batching.value("intersectionScenePackedClosestHitEligible").toBool());
+  }
+
+  TEST(WavefrontRaytracer, RecordsGpuTriangleClosestHitPackedBackendMetrics) {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    scene->setAmbient(Colord::white());
+    auto triangle = std::make_shared<render::Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0),
+                                                       Vector3d(0, 1, 0));
+    triangle->setMaterial(std::make_shared<render::MatteMaterial>(
+      std::make_shared<render::ConstantColorTexture>(Colord::white())));
+    scene->add(triangle);
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), scene);
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->setMetricsEnabled(true);
+    renderer->setIntersectionBackend(render::WavefrontIntersectionBackendChoice::gpu());
+
+    Buffer<Colord> buffer(4, 3);
+    renderer->render(buffer);
+
+    const auto metrics = renderer->lastMetrics();
+    EXPECT_EQ("gpu", metrics.batching.intersectionBackendRequest);
+    if (usedMetalClosestHit(metrics)) {
+      EXPECT_EQ("metal", metrics.batching.intersectionBackend);
+      EXPECT_EQ("available", metrics.batching.intersectionBackendAvailability);
+      EXPECT_TRUE(metrics.batching.intersectionBackendFallbackReason.empty());
+    } else {
+      EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
+      EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
+      expectPlatformGpuUnavailableReason(metrics.batching.intersectionBackendFallbackReason);
+      EXPECT_EQ("packed_cpu", metrics.batching.intersectionBackendExecutionPath);
+    }
+    EXPECT_TRUE(metrics.batching.intersectionSceneCompiled);
+    EXPECT_EQ(1u, metrics.batching.intersectionSceneBvhNodes);
+    EXPECT_EQ(1u, metrics.batching.intersectionScenePrimitives);
+    EXPECT_EQ(1u, metrics.batching.intersectionSceneTriangles);
+    EXPECT_EQ(0u, metrics.batching.intersectionSceneUnsupportedPrimitives);
+    EXPECT_GT(metrics.batching.intersectionSceneUploadBytes, 0u);
+    EXPECT_TRUE(metrics.batching.intersectionSceneTriangleClosestHitEligible);
+    EXPECT_TRUE(metrics.batching.intersectionSceneBasicHitEligible);
+    EXPECT_TRUE(metrics.batching.intersectionScenePackedClosestHitEligible);
+    EXPECT_GT(metrics.batching.intersectionRaysSubmitted, 0u);
+    EXPECT_GT(metrics.batching.closestHitQueries, 0u);
+    EXPECT_EQ(0u, metrics.batching.anyHitQueries);
+
+    const QJsonObject batching = metrics.toJson().value("batching").toObject();
+    EXPECT_EQ(metrics.batching.intersectionBackendExecutionPath,
+              batching.value("intersectionBackendExecutionPath").toString().toStdString());
+    EXPECT_EQ(1.0, batching.value("intersectionScenePrimitives").toDouble());
+    EXPECT_EQ(1.0, batching.value("intersectionSceneTriangles").toDouble());
+    EXPECT_TRUE(batching.value("intersectionSceneTriangleClosestHitEligible").toBool());
+    EXPECT_TRUE(batching.value("intersectionSceneBasicHitEligible").toBool());
+    EXPECT_TRUE(batching.value("intersectionScenePackedClosestHitEligible").toBool());
+  }
+
+  TEST(WavefrontRaytracer, RecordsGpuIntersectionSceneUnsupportedFallbackMetrics) {
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    auto torus = std::make_shared<render::Torus>(2.0, 0.5);
+    torus->setName("exact torus");
+    scene->add(torus);
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), scene);
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->setMetricsEnabled(true);
+    renderer->setIntersectionBackend(render::WavefrontIntersectionBackendChoice::gpu());
+
+    Buffer<Colord> buffer(4, 3);
+    renderer->render(buffer);
+
+    const auto metrics = renderer->lastMetrics();
+    EXPECT_EQ("gpu", metrics.batching.intersectionBackendRequest);
+    EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
+    EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
+    EXPECT_NE(std::string::npos,
+              metrics.batching.intersectionBackendFallbackReason.find("exact torus"));
+    EXPECT_NE(std::string::npos,
+              metrics.batching.intersectionBackendFallbackReason.find("unsupported"));
+    EXPECT_EQ(std::string::npos,
+              metrics.batching.intersectionBackendFallbackReason.find("not enabled"));
+    EXPECT_EQ(std::string::npos, metrics.batching.intersectionBackendFallbackReason.find(
+                                   "no render-path closest-hit kernel"));
+    EXPECT_EQ("runtime_scene", metrics.batching.intersectionBackendExecutionPath);
+    EXPECT_TRUE(metrics.batching.intersectionSceneCompiled);
+    EXPECT_EQ(1u, metrics.batching.intersectionScenePrimitives);
+    EXPECT_EQ(1u, metrics.batching.intersectionSceneUnsupportedPrimitives);
+    EXPECT_GT(metrics.batching.intersectionSceneUploadBytes, 0u);
+    EXPECT_FALSE(metrics.batching.intersectionSceneTriangleClosestHitEligible);
+    EXPECT_FALSE(metrics.batching.intersectionSceneBasicHitEligible);
+    EXPECT_FALSE(metrics.batching.intersectionScenePackedClosestHitEligible);
   }
 
   TEST(WavefrontRaytracer, SerializesEmitterHitMetrics) {

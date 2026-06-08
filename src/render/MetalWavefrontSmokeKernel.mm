@@ -1,0 +1,955 @@
+#include "render/MetalWavefrontSmokeKernel.h"
+
+#include "render/GpuIntersectionScene.h"
+
+#import <Foundation/Foundation.h>
+#import <Metal/Metal.h>
+
+#include <algorithm>
+#include <array>
+#include <cstring>
+#include <limits>
+#include <stdexcept>
+#include <string>
+
+namespace render {
+  namespace {
+    NSString* smokeKernelSource() {
+      return @"#include <metal_stdlib>\n"
+              "using namespace metal;\n"
+              "kernel void wavefrontSmokeKernel(device const uint* rayIds [[buffer(0)]],\n"
+              "                                  device uint* results [[buffer(1)]],\n"
+              "                                  uint id [[thread_position_in_grid]]) {\n"
+              "  results[id] = rayIds[id] ^ 0xa5a5a5a5u;\n"
+              "}\n";
+    }
+
+    NSString* basicHitKernelSource() {
+      return @"#include <metal_stdlib>\n"
+              "using namespace metal;\n"
+              "constant uint leafNodeFlag = 1u;\n"
+              "constant uint triangleKind = 1u;\n"
+              "constant uint sphereKind = 2u;\n"
+              "constant uint planeKind = 3u;\n"
+              "constant uint rectangleKind = 4u;\n"
+              "constant uint diskKind = 5u;\n"
+              "constant float kernelEpsilon = 1.1920928955078125e-7f;\n"
+              "constant float rayOcclusionEpsilon = 4.0e-7f;\n"
+              "float positiveInfinity() {\n"
+              "  return as_type<float>(0x7f800000u);\n"
+              "}\n"
+              "struct Bounds {\n"
+              "  float4 minimum;\n"
+              "  float4 maximum;\n"
+              "};\n"
+              "struct BvhNode {\n"
+              "  Bounds bounds;\n"
+              "  uint leftOrFirstPrimitive;\n"
+              "  uint primitiveCount;\n"
+              "  uint flags;\n"
+              "  uint reserved;\n"
+              "};\n"
+              "struct PrimitiveRecord {\n"
+              "  Bounds bounds;\n"
+              "  uint kind;\n"
+              "  uint material;\n"
+              "  uint object;\n"
+              "  uint transform;\n"
+              "  uint payloadOffset;\n"
+              "  uint payloadCount;\n"
+              "  uint reserved0;\n"
+              "  uint reserved1;\n"
+              "};\n"
+              "struct TrianglePayload {\n"
+              "  float4 point0;\n"
+              "  float4 point1;\n"
+              "  float4 point2;\n"
+              "  float4 normal0;\n"
+              "  float4 normal1;\n"
+              "  float4 normal2;\n"
+              "  float4 uv0;\n"
+              "  float4 uv1;\n"
+              "  float4 uv2;\n"
+              "};\n"
+              "struct SpherePayload {\n"
+              "  float4 centerRadius;\n"
+              "};\n"
+              "struct PlanePayload {\n"
+              "  float4 normalDistance;\n"
+              "};\n"
+              "struct RectanglePayload {\n"
+              "  float4 corner;\n"
+              "  float4 leg1;\n"
+              "  float4 leg2;\n"
+              "  float4 normal;\n"
+              "};\n"
+              "struct DiskPayload {\n"
+              "  float4 centerRadius;\n"
+              "  float4 normal;\n"
+              "};\n"
+              "struct TransformPayload {\n"
+              "  float4 pointMatrix0;\n"
+              "  float4 pointMatrix1;\n"
+              "  float4 pointMatrix2;\n"
+              "  float4 pointMatrix3;\n"
+              "  float4 normalMatrix0;\n"
+              "  float4 normalMatrix1;\n"
+              "  float4 normalMatrix2;\n"
+              "  float4 normalMatrix3;\n"
+              "  float4 inversePointMatrix0;\n"
+              "  float4 inversePointMatrix1;\n"
+              "  float4 inversePointMatrix2;\n"
+              "  float4 inversePointMatrix3;\n"
+              "  float4 inverseDirectionMatrix0;\n"
+              "  float4 inverseDirectionMatrix1;\n"
+              "  float4 inverseDirectionMatrix2;\n"
+              "  float4 inverseDirectionMatrix3;\n"
+              "};\n"
+              "struct RayRecord {\n"
+              "  float4 origin;\n"
+              "  float4 direction;\n"
+              "  float minDistance;\n"
+              "  float maxDistance;\n"
+              "  float timeSample;\n"
+              "  uint flags;\n"
+              "  uint rayIndex;\n"
+              "  uint reserved0;\n"
+              "  uint reserved1;\n"
+              "  uint reserved2;\n"
+              "};\n"
+              "struct HitRecord {\n"
+              "  uint hit;\n"
+              "  uint material;\n"
+              "  uint object;\n"
+              "  uint primitiveRecord;\n"
+              "  uint rayIndex;\n"
+              "  uint reservedId0;\n"
+              "  uint reservedId1;\n"
+              "  uint reservedId2;\n"
+              "  float distance;\n"
+              "  float reservedDistance0;\n"
+              "  float reservedDistance1;\n"
+              "  float reservedDistance2;\n"
+              "  float4 point;\n"
+              "  float4 normal;\n"
+              "  float4 uv;\n"
+              "  float4 barycentric;\n"
+              "};\n"
+              "struct OcclusionRecord {\n"
+              "  uint occluded;\n"
+              "  uint rayIndex;\n"
+              "  uint reserved0;\n"
+              "  uint reserved1;\n"
+              "};\n"
+              "struct LocalHit {\n"
+              "  bool hit;\n"
+              "  float distance;\n"
+              "  float4 point;\n"
+              "  float4 normal;\n"
+              "  float4 uv;\n"
+              "  float4 barycentric;\n"
+              "};\n"
+              "LocalHit makeLocalMiss() {\n"
+              "  LocalHit result;\n"
+              "  result.hit = false;\n"
+              "  result.distance = positiveInfinity();\n"
+              "  result.point = float4(0.0f);\n"
+              "  result.normal = float4(0.0f);\n"
+              "  result.uv = float4(0.0f);\n"
+              "  result.barycentric = float4(0.0f);\n"
+              "  return result;\n"
+              "}\n"
+              "bool boundsIntersect(Bounds bounds, RayRecord ray) {\n"
+              "  float enter = ray.minDistance;\n"
+              "  float exit = ray.maxDistance;\n"
+              "  for (uint axis = 0u; axis != 3u; ++axis) {\n"
+              "    const float origin = ray.origin[axis];\n"
+              "    const float direction = ray.direction[axis];\n"
+              "    const float minimum = bounds.minimum[axis];\n"
+              "    const float maximum = bounds.maximum[axis];\n"
+              "    if (abs(direction) <= kernelEpsilon) {\n"
+              "      if (origin < minimum || origin > maximum) {\n"
+              "        return false;\n"
+              "      }\n"
+              "      continue;\n"
+              "    }\n"
+              "    const float inverseDirection = 1.0f / direction;\n"
+              "    float nearDistance = (minimum - origin) * inverseDirection;\n"
+              "    float farDistance = (maximum - origin) * inverseDirection;\n"
+              "    if (nearDistance > farDistance) {\n"
+              "      const float temporary = nearDistance;\n"
+              "      nearDistance = farDistance;\n"
+              "      farDistance = temporary;\n"
+              "    }\n"
+              "    enter = max(enter, nearDistance);\n"
+              "    exit = min(exit, farDistance);\n"
+              "    if (exit < enter) {\n"
+              "      return false;\n"
+              "    }\n"
+              "  }\n"
+              "  return true;\n"
+              "}\n"
+              "float4 normalize3(float4 value) {\n"
+              "  const float lengthSquared = dot(value.xyz, value.xyz);\n"
+              "  if (lengthSquared <= kernelEpsilon) {\n"
+              "    return float4(0.0f);\n"
+              "  }\n"
+              "  return float4(value.xyz * rsqrt(lengthSquared), 0.0f);\n"
+              "}\n"
+              "float4 transformPoint(float4 row0, float4 row1, float4 row2, float4 row3,\n"
+              "                      float4 point) {\n"
+              "  return float4(dot(row0, point), dot(row1, point), dot(row2, point),\n"
+              "                dot(row3, point));\n"
+              "}\n"
+              "float4 transformDirection(float4 row0, float4 row1, float4 row2,\n"
+              "                          float4 direction) {\n"
+              "  return float4(dot(row0.xyz, direction.xyz), dot(row1.xyz, direction.xyz),\n"
+              "                dot(row2.xyz, direction.xyz), 0.0f);\n"
+              "}\n"
+              "RayRecord transformRay(RayRecord ray, TransformPayload transform) {\n"
+              "  RayRecord result = ray;\n"
+              "  result.origin = transformPoint(transform.inversePointMatrix0,\n"
+              "                                 transform.inversePointMatrix1,\n"
+              "                                 transform.inversePointMatrix2,\n"
+              "                                 transform.inversePointMatrix3, ray.origin);\n"
+              "  result.direction = transformDirection(transform.inverseDirectionMatrix0,\n"
+              "                                      transform.inverseDirectionMatrix1,\n"
+              "                                      transform.inverseDirectionMatrix2,\n"
+              "                                      ray.direction);\n"
+              "  return result;\n"
+              "}\n"
+              "LocalHit transformHit(LocalHit hit, TransformPayload transform) {\n"
+              "  if (!hit.hit) {\n"
+              "    return hit;\n"
+              "  }\n"
+              "  hit.point = transformPoint(transform.pointMatrix0, transform.pointMatrix1,\n"
+              "                             transform.pointMatrix2, transform.pointMatrix3,\n"
+              "                             hit.point);\n"
+              "  hit.normal = normalize3(transformDirection(transform.normalMatrix0,\n"
+              "                                            transform.normalMatrix1,\n"
+              "                                            transform.normalMatrix2,\n"
+              "                                            hit.normal));\n"
+              "  return hit;\n"
+              "}\n"
+              "float4 interpolate3(float4 a, float4 b, float4 c, float alpha, float beta,\n"
+              "                    float gamma) {\n"
+              "  return a * alpha + b * beta + c * gamma;\n"
+              "}\n"
+              "LocalHit intersectTriangle(RayRecord ray, TrianglePayload triangle) {\n"
+              "  LocalHit result = makeLocalMiss();\n"
+              "  const float a = triangle.point0.x - triangle.point1.x;\n"
+              "  const float b = triangle.point0.x - triangle.point2.x;\n"
+              "  const float c = ray.direction.x;\n"
+              "  const float d = triangle.point0.x - ray.origin.x;\n"
+              "  const float e = triangle.point0.y - triangle.point1.y;\n"
+              "  const float f = triangle.point0.y - triangle.point2.y;\n"
+              "  const float g = ray.direction.y;\n"
+              "  const float h = triangle.point0.y - ray.origin.y;\n"
+              "  const float i = triangle.point0.z - triangle.point1.z;\n"
+              "  const float j = triangle.point0.z - triangle.point2.z;\n"
+              "  const float k = ray.direction.z;\n"
+              "  const float l = triangle.point0.z - ray.origin.z;\n"
+              "  const float m = f * k - g * j;\n"
+              "  const float n = h * k - g * l;\n"
+              "  const float p = f * l - h * j;\n"
+              "  const float q = g * i - e * k;\n"
+              "  const float r = e * l - h * i;\n"
+              "  const float s = e * j - f * i;\n"
+              "  const float denominator = a * m + b * q + c * s;\n"
+              "  if (denominator == 0.0f) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float invDenom = 1.0f / denominator;\n"
+              "  const float beta = (d * m - b * n - c * p) * invDenom;\n"
+              "  if (beta < 0.0f || beta > 1.0f) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float gamma = (a * n + d * q + c * r) * invDenom;\n"
+              "  if (gamma < 0.0f || gamma > 1.0f || beta + gamma > 1.0f) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float distance = (a * p - b * r + d * s) * invDenom;\n"
+              "  if (distance < ray.minDistance || distance > ray.maxDistance) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float alpha = 1.0f - beta - gamma;\n"
+              "  result.hit = true;\n"
+              "  result.distance = distance;\n"
+              "  result.point = ray.origin + ray.direction * distance;\n"
+              "  result.point.w = 1.0f;\n"
+              "  result.normal = normalize3(interpolate3(triangle.normal0, triangle.normal1,\n"
+              "                                      triangle.normal2, alpha, beta, gamma));\n"
+              "  result.uv = interpolate3(triangle.uv0, triangle.uv1, triangle.uv2, alpha,\n"
+              "                           beta, gamma);\n"
+              "  result.barycentric = float4(alpha, beta, gamma, 0.0f);\n"
+              "  return result;\n"
+              "}\n"
+              "LocalHit intersectSphere(RayRecord ray, SpherePayload sphere) {\n"
+              "  LocalHit result = makeLocalMiss();\n"
+              "  const float3 center = sphere.centerRadius.xyz;\n"
+              "  const float radius = sphere.centerRadius.w;\n"
+              "  const float3 origin = ray.origin.xyz - center;\n"
+              "  const float3 direction = ray.direction.xyz;\n"
+              "  const float od = dot(origin, direction);\n"
+              "  const float dd = dot(direction, direction);\n"
+              "  if (dd <= kernelEpsilon) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float originLengthSquared = dot(origin, origin);\n"
+              "  const float discriminant = od * od - dd * (originLengthSquared - radius * radius);\n"
+              "  if (discriminant <= 0.0f) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float discriminantRoot = sqrt(discriminant);\n"
+              "  const float nearDistance = (-od - discriminantRoot) / dd;\n"
+              "  const float farDistance = (-od + discriminantRoot) / dd;\n"
+              "  if (nearDistance <= 0.0f && farDistance <= 0.0f) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float distance = nearDistance >= ray.minDistance ? nearDistance : farDistance;\n"
+              "  if (distance < ray.minDistance || distance > ray.maxDistance) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  result.hit = true;\n"
+              "  result.distance = distance;\n"
+              "  result.point = ray.origin + ray.direction * distance;\n"
+              "  result.point.w = 1.0f;\n"
+              "  result.normal = normalize3(float4(result.point.xyz - center, 0.0f));\n"
+              "  return result;\n"
+              "}\n"
+              "LocalHit intersectPlane(RayRecord ray, PlanePayload plane) {\n"
+              "  LocalHit result = makeLocalMiss();\n"
+              "  const float3 normal = plane.normalDistance.xyz;\n"
+              "  const float angle = dot(normal, ray.direction.xyz);\n"
+              "  if (angle == 0.0f) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float distance = -(dot(normal, ray.origin.xyz) + plane.normalDistance.w) /\n"
+              "                         angle;\n"
+              "  if (distance <= 0.0f || distance < ray.minDistance || distance > ray.maxDistance) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  result.hit = true;\n"
+              "  result.distance = distance;\n"
+              "  result.point = ray.origin + ray.direction * distance;\n"
+              "  result.point.w = 1.0f;\n"
+              "  result.normal = normalize3(float4(normal, 0.0f));\n"
+              "  return result;\n"
+              "}\n"
+              "LocalHit intersectRectangle(RayRecord ray, RectanglePayload rectangle) {\n"
+              "  LocalHit result = makeLocalMiss();\n"
+              "  const float3 normal = rectangle.normal.xyz;\n"
+              "  const float denominator = dot(ray.direction.xyz, normal);\n"
+              "  if (denominator == 0.0f) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float3 cornerToOrigin = rectangle.corner.xyz - ray.origin.xyz;\n"
+              "  const float distance = dot(cornerToOrigin, normal) / denominator;\n"
+              "  if (!isfinite(distance) || distance < 0.0f || distance < ray.minDistance ||\n"
+              "      distance > ray.maxDistance) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float4 point = ray.origin + ray.direction * distance;\n"
+              "  const float3 difference = point.xyz - rectangle.corner.xyz;\n"
+              "  const float dot1 = dot(difference, rectangle.leg1.xyz);\n"
+              "  const float squaredLength1 = dot(rectangle.leg1.xyz, rectangle.leg1.xyz);\n"
+              "  if (dot1 < 0.0f || dot1 > squaredLength1) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float dot2 = dot(difference, rectangle.leg2.xyz);\n"
+              "  const float squaredLength2 = dot(rectangle.leg2.xyz, rectangle.leg2.xyz);\n"
+              "  if (dot2 < 0.0f || dot2 > squaredLength2) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  result.hit = true;\n"
+              "  result.distance = distance;\n"
+              "  result.point = point;\n"
+              "  result.point.w = 1.0f;\n"
+              "  result.normal = normalize3(float4(normal, 0.0f));\n"
+              "  return result;\n"
+              "}\n"
+              "LocalHit intersectDisk(RayRecord ray, DiskPayload disk) {\n"
+              "  LocalHit result = makeLocalMiss();\n"
+              "  const float3 center = disk.centerRadius.xyz;\n"
+              "  const float radius = disk.centerRadius.w;\n"
+              "  const float3 normal = disk.normal.xyz;\n"
+              "  const float denominator = dot(ray.direction.xyz, normal);\n"
+              "  if (denominator == 0.0f) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float distance = dot(center - ray.origin.xyz, normal) / denominator;\n"
+              "  if (!isfinite(distance) || distance < 0.0001f || distance < ray.minDistance ||\n"
+              "      distance > ray.maxDistance) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float4 point = ray.origin + ray.direction * distance;\n"
+              "  const float3 hitOffset = point.xyz - center;\n"
+              "  const float squaredDistance = dot(hitOffset, hitOffset);\n"
+              "  if (!(squaredDistance < radius * radius)) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  result.hit = true;\n"
+              "  result.distance = distance;\n"
+              "  result.point = point;\n"
+              "  result.point.w = 1.0f;\n"
+              "  result.normal = normalize3(float4(normal, 0.0f));\n"
+              "  return result;\n"
+              "}\n"
+              "LocalHit intersectPrimitive(RayRecord ray, PrimitiveRecord primitive,\n"
+              "                            device const TrianglePayload* triangles,\n"
+              "                            device const SpherePayload* spheres,\n"
+              "                            device const PlanePayload* planes,\n"
+              "                            device const RectanglePayload* rectangles,\n"
+              "                            device const DiskPayload* disks,\n"
+              "                            device const TransformPayload* transforms,\n"
+              "                            uint triangleCount, uint sphereCount, uint planeCount,\n"
+              "                            uint rectangleCount, uint diskCount,\n"
+              "                            uint transformCount) {\n"
+              "  if (primitive.payloadCount == 0u) {\n"
+              "    return makeLocalMiss();\n"
+              "  }\n"
+              "  RayRecord primitiveRay = ray;\n"
+              "  bool hasTransform = primitive.transform != 0u;\n"
+              "  TransformPayload transform = transforms[0];\n"
+              "  if (hasTransform) {\n"
+              "    if (primitive.transform >= transformCount) {\n"
+              "      return makeLocalMiss();\n"
+              "    }\n"
+              "    transform = transforms[primitive.transform];\n"
+              "    primitiveRay = transformRay(ray, transform);\n"
+              "  }\n"
+              "  LocalHit hit = makeLocalMiss();\n"
+              "  if (primitive.kind == triangleKind && primitive.payloadOffset < triangleCount) {\n"
+              "    hit = intersectTriangle(primitiveRay, triangles[primitive.payloadOffset]);\n"
+              "  } else if (primitive.kind == sphereKind && primitive.payloadOffset < sphereCount) {\n"
+              "    hit = intersectSphere(primitiveRay, spheres[primitive.payloadOffset]);\n"
+              "  } else if (primitive.kind == planeKind && primitive.payloadOffset < planeCount) {\n"
+              "    hit = intersectPlane(primitiveRay, planes[primitive.payloadOffset]);\n"
+              "  } else if (primitive.kind == rectangleKind &&\n"
+              "             primitive.payloadOffset < rectangleCount) {\n"
+              "    hit = intersectRectangle(primitiveRay, rectangles[primitive.payloadOffset]);\n"
+              "  } else if (primitive.kind == diskKind && primitive.payloadOffset < diskCount) {\n"
+              "    hit = intersectDisk(primitiveRay, disks[primitive.payloadOffset]);\n"
+              "  }\n"
+              "  if (hasTransform) {\n"
+              "    return transformHit(hit, transform);\n"
+              "  }\n"
+              "  return hit;\n"
+              "}\n"
+              "bool hitOccludes(LocalHit hit, float maxDistance) {\n"
+              "  if (!hit.hit) {\n"
+              "    return false;\n"
+              "  }\n"
+              "  if (isinf(maxDistance)) {\n"
+              "    return true;\n"
+              "  }\n"
+              "  const float occlusionLimit = max(0.0f, maxDistance - rayOcclusionEpsilon);\n"
+              "  return hit.distance < occlusionLimit;\n"
+              "}\n"
+              "HitRecord makeMiss(RayRecord ray) {\n"
+              "  HitRecord record;\n"
+              "  record.hit = 0u;\n"
+              "  record.material = 0u;\n"
+              "  record.object = 0u;\n"
+              "  record.primitiveRecord = 0u;\n"
+              "  record.rayIndex = ray.rayIndex;\n"
+              "  record.reservedId0 = 0u;\n"
+              "  record.reservedId1 = 0u;\n"
+              "  record.reservedId2 = 0u;\n"
+              "  record.distance = positiveInfinity();\n"
+              "  record.reservedDistance0 = 0.0f;\n"
+              "  record.reservedDistance1 = 0.0f;\n"
+              "  record.reservedDistance2 = 0.0f;\n"
+              "  record.point = float4(0.0f);\n"
+              "  record.normal = float4(0.0f);\n"
+              "  record.uv = float4(0.0f);\n"
+              "  record.barycentric = float4(0.0f);\n"
+              "  return record;\n"
+              "}\n"
+              "OcclusionRecord makeOcclusion(RayRecord ray, bool occluded) {\n"
+              "  OcclusionRecord record;\n"
+              "  record.occluded = occluded ? 1u : 0u;\n"
+              "  record.rayIndex = ray.rayIndex;\n"
+              "  record.reserved0 = 0u;\n"
+              "  record.reserved1 = 0u;\n"
+              "  return record;\n"
+              "}\n"
+              "kernel void basicClosestHitKernel(device const BvhNode* bvh [[buffer(0)]],\n"
+              "                                  device const PrimitiveRecord* primitives [[buffer(1)]],\n"
+              "                                  device const TrianglePayload* triangles [[buffer(2)]],\n"
+              "                                  device const SpherePayload* spheres [[buffer(3)]],\n"
+              "                                  device const PlanePayload* planes [[buffer(4)]],\n"
+              "                                  device const RectanglePayload* rectangles [[buffer(5)]],\n"
+              "                                  device const DiskPayload* disks [[buffer(6)]],\n"
+              "                                  device const TransformPayload* transforms [[buffer(7)]],\n"
+              "                                  device const RayRecord* rays [[buffer(8)]],\n"
+              "                                  device HitRecord* hits [[buffer(9)]],\n"
+              "                                  constant uint4& counts0 [[buffer(10)]],\n"
+              "                                  constant uint4& counts1 [[buffer(11)]],\n"
+              "                                  constant uint4& counts2 [[buffer(12)]],\n"
+              "                                  uint id [[thread_position_in_grid]]) {\n"
+              "  const uint bvhCount = counts0.x;\n"
+              "  const uint primitiveCount = counts0.y;\n"
+              "  const uint triangleCount = counts0.z;\n"
+              "  const uint sphereCount = counts0.w;\n"
+              "  const uint planeCount = counts1.x;\n"
+              "  const uint rectangleCount = counts1.y;\n"
+              "  const uint diskCount = counts1.z;\n"
+              "  const uint transformCount = counts1.w;\n"
+              "  const uint rayCount = counts2.x;\n"
+              "  if (id >= rayCount) {\n"
+              "    return;\n"
+              "  }\n"
+              "  const RayRecord ray = rays[id];\n"
+              "  HitRecord closest = makeMiss(ray);\n"
+              "  if (bvhCount == 0u || primitiveCount == 0u) {\n"
+              "    hits[id] = closest;\n"
+              "    return;\n"
+              "  }\n"
+              "  uint stack[64];\n"
+              "  uint stackSize = 1u;\n"
+              "  stack[0] = 0u;\n"
+              "  while (stackSize > 0u) {\n"
+              "    const uint nodeIndex = stack[--stackSize];\n"
+              "    if (nodeIndex >= bvhCount) {\n"
+              "      continue;\n"
+              "    }\n"
+              "    const BvhNode node = bvh[nodeIndex];\n"
+              "    if (!boundsIntersect(node.bounds, ray)) {\n"
+              "      continue;\n"
+              "    }\n"
+              "    if ((node.flags & leafNodeFlag) == 0u) {\n"
+              "      if (stackSize + 2u <= 64u) {\n"
+              "        stack[stackSize++] = node.primitiveCount;\n"
+              "        stack[stackSize++] = node.leftOrFirstPrimitive;\n"
+              "      }\n"
+              "      continue;\n"
+              "    }\n"
+              "    for (uint offset = 0u; offset != node.primitiveCount; ++offset) {\n"
+              "      const uint primitiveIndex = node.leftOrFirstPrimitive + offset;\n"
+              "      if (primitiveIndex >= primitiveCount) {\n"
+              "        continue;\n"
+              "      }\n"
+              "      const PrimitiveRecord primitive = primitives[primitiveIndex];\n"
+              "      const LocalHit hit = intersectPrimitive(\n"
+              "        ray, primitive, triangles, spheres, planes, rectangles, disks, transforms,\n"
+              "        triangleCount, sphereCount, planeCount, rectangleCount, diskCount,\n"
+              "        transformCount);\n"
+              "      if (!hit.hit || (closest.hit != 0u && hit.distance >= closest.distance)) {\n"
+              "        continue;\n"
+              "      }\n"
+              "      closest.hit = 1u;\n"
+              "      closest.material = primitive.material;\n"
+              "      closest.object = primitive.object;\n"
+              "      closest.primitiveRecord = primitiveIndex;\n"
+              "      closest.rayIndex = ray.rayIndex;\n"
+              "      closest.distance = hit.distance;\n"
+              "      closest.point = hit.point;\n"
+              "      closest.normal = hit.normal;\n"
+              "      closest.uv = hit.uv;\n"
+              "      closest.barycentric = hit.barycentric;\n"
+              "    }\n"
+              "  }\n"
+              "  hits[id] = closest;\n"
+              "}\n"
+              "kernel void basicAnyHitKernel(device const BvhNode* bvh [[buffer(0)]],\n"
+              "                              device const PrimitiveRecord* primitives [[buffer(1)]],\n"
+              "                              device const TrianglePayload* triangles [[buffer(2)]],\n"
+              "                              device const SpherePayload* spheres [[buffer(3)]],\n"
+              "                              device const PlanePayload* planes [[buffer(4)]],\n"
+              "                              device const RectanglePayload* rectangles [[buffer(5)]],\n"
+              "                              device const DiskPayload* disks [[buffer(6)]],\n"
+              "                              device const TransformPayload* transforms [[buffer(7)]],\n"
+              "                              device const RayRecord* rays [[buffer(8)]],\n"
+              "                              device OcclusionRecord* occlusion [[buffer(9)]],\n"
+              "                              constant uint4& counts0 [[buffer(10)]],\n"
+              "                              constant uint4& counts1 [[buffer(11)]],\n"
+              "                              constant uint4& counts2 [[buffer(12)]],\n"
+              "                              uint id [[thread_position_in_grid]]) {\n"
+              "  const uint bvhCount = counts0.x;\n"
+              "  const uint primitiveCount = counts0.y;\n"
+              "  const uint triangleCount = counts0.z;\n"
+              "  const uint sphereCount = counts0.w;\n"
+              "  const uint planeCount = counts1.x;\n"
+              "  const uint rectangleCount = counts1.y;\n"
+              "  const uint diskCount = counts1.z;\n"
+              "  const uint transformCount = counts1.w;\n"
+              "  const uint rayCount = counts2.x;\n"
+              "  if (id >= rayCount) {\n"
+              "    return;\n"
+              "  }\n"
+              "  const RayRecord ray = rays[id];\n"
+              "  if (bvhCount == 0u || primitiveCount == 0u) {\n"
+              "    occlusion[id] = makeOcclusion(ray, false);\n"
+              "    return;\n"
+              "  }\n"
+              "  uint stack[64];\n"
+              "  uint stackSize = 1u;\n"
+              "  stack[0] = 0u;\n"
+              "  while (stackSize > 0u) {\n"
+              "    const uint nodeIndex = stack[--stackSize];\n"
+              "    if (nodeIndex >= bvhCount) {\n"
+              "      continue;\n"
+              "    }\n"
+              "    const BvhNode node = bvh[nodeIndex];\n"
+              "    if (!boundsIntersect(node.bounds, ray)) {\n"
+              "      continue;\n"
+              "    }\n"
+              "    if ((node.flags & leafNodeFlag) == 0u) {\n"
+              "      if (stackSize + 2u <= 64u) {\n"
+              "        stack[stackSize++] = node.primitiveCount;\n"
+              "        stack[stackSize++] = node.leftOrFirstPrimitive;\n"
+              "      }\n"
+              "      continue;\n"
+              "    }\n"
+              "    for (uint offset = 0u; offset != node.primitiveCount; ++offset) {\n"
+              "      const uint primitiveIndex = node.leftOrFirstPrimitive + offset;\n"
+              "      if (primitiveIndex >= primitiveCount) {\n"
+              "        continue;\n"
+              "      }\n"
+              "      const PrimitiveRecord primitive = primitives[primitiveIndex];\n"
+              "      const LocalHit hit = intersectPrimitive(\n"
+              "        ray, primitive, triangles, spheres, planes, rectangles, disks, transforms,\n"
+              "        triangleCount, sphereCount, planeCount, rectangleCount, diskCount,\n"
+              "        transformCount);\n"
+              "      if (hitOccludes(hit, ray.maxDistance)) {\n"
+              "        occlusion[id] = makeOcclusion(ray, true);\n"
+              "        return;\n"
+              "      }\n"
+              "    }\n"
+              "  }\n"
+              "  occlusion[id] = makeOcclusion(ray, false);\n"
+              "}\n";
+    }
+
+    std::runtime_error metalError(const char* context, NSError* error) {
+      std::string message = context;
+      if (error && error.localizedDescription) {
+        message += ": ";
+        message += error.localizedDescription.UTF8String;
+      }
+      return std::runtime_error(message);
+    }
+
+    id<MTLComputePipelineState> newPipeline(id<MTLDevice> device, NSString* source,
+                                            NSString* functionName) {
+      NSError* error = nil;
+      id<MTLLibrary> library = [device newLibraryWithSource:source options:nil error:&error];
+      if (!library) {
+        throw metalError("Metal wavefront kernel library creation failed", error);
+      }
+
+      id<MTLFunction> function = [library newFunctionWithName:functionName];
+      if (!function) {
+        std::string message = "Metal wavefront kernel function was not found: ";
+        message += functionName.UTF8String;
+        throw std::runtime_error(message);
+      }
+
+      id<MTLComputePipelineState> pipeline =
+        [device newComputePipelineStateWithFunction:function error:&error];
+      if (!pipeline) {
+        throw metalError("Metal wavefront kernel pipeline creation failed", error);
+      }
+      return pipeline;
+    }
+
+    template<typename T>
+    id<MTLBuffer> newBufferFromVector(id<MTLDevice> device, const std::vector<T>& records) {
+      if (records.empty()) {
+        return nil;
+      }
+      return [device newBufferWithBytes:records.data()
+                                 length:records.size() * sizeof(T)
+                                options:MTLResourceStorageModeShared];
+    }
+
+    template<typename T>
+    id<MTLBuffer> newPayloadBufferFromVector(id<MTLDevice> device,
+                                             const std::vector<T>& records) {
+      if (!records.empty()) {
+        return newBufferFromVector(device, records);
+      }
+
+      const T emptyRecord{};
+      return [device newBufferWithBytes:&emptyRecord
+                                 length:sizeof(T)
+                                options:MTLResourceStorageModeShared];
+    }
+
+    void dispatchOneDimensional(id<MTLComputeCommandEncoder> encoder,
+                                id<MTLComputePipelineState> pipeline, NSUInteger count) {
+      const NSUInteger maxThreads =
+        std::max<NSUInteger>(1, pipeline.maxTotalThreadsPerThreadgroup);
+      const MTLSize gridSize = MTLSizeMake(count, 1, 1);
+      const MTLSize threadgroupSize = MTLSizeMake(std::min<NSUInteger>(count, maxThreads), 1, 1);
+      [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadgroupSize];
+    }
+  }
+
+  bool MetalWavefrontSmokeKernel::deviceAvailable() const {
+    @autoreleasepool {
+      id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+      return device != nil;
+    }
+  }
+
+  std::vector<std::uint32_t> MetalWavefrontSmokeKernel::runDummyHitMissKernel(
+    const std::vector<std::uint32_t>& rayIds) const {
+    if (rayIds.empty()) {
+      return {};
+    }
+
+    @autoreleasepool {
+      id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+      if (!device) {
+        throw std::runtime_error("Metal wavefront smoke kernel requires a Metal device");
+      }
+
+      id<MTLComputePipelineState> pipeline =
+        newPipeline(device, smokeKernelSource(), @"wavefrontSmokeKernel");
+
+      const NSUInteger byteCount = rayIds.size() * sizeof(std::uint32_t);
+      id<MTLBuffer> inputBuffer = [device newBufferWithBytes:rayIds.data()
+                                                      length:byteCount
+                                                     options:MTLResourceStorageModeShared];
+      id<MTLBuffer> outputBuffer = [device newBufferWithLength:byteCount
+                                                       options:MTLResourceStorageModeShared];
+      if (!inputBuffer || !outputBuffer) {
+        throw std::runtime_error("Metal wavefront smoke kernel buffer allocation failed");
+      }
+
+      id<MTLCommandQueue> queue = [device newCommandQueue];
+      id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+      id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
+      if (!queue || !commandBuffer || !encoder) {
+        throw std::runtime_error("Metal wavefront smoke kernel command setup failed");
+      }
+
+      [encoder setComputePipelineState:pipeline];
+      [encoder setBuffer:inputBuffer offset:0 atIndex:0];
+      [encoder setBuffer:outputBuffer offset:0 atIndex:1];
+
+      dispatchOneDimensional(encoder, pipeline, rayIds.size());
+      [encoder endEncoding];
+      [commandBuffer commit];
+      [commandBuffer waitUntilCompleted];
+
+      if (commandBuffer.error) {
+        throw metalError("Metal wavefront smoke kernel dispatch failed", commandBuffer.error);
+      }
+
+      std::vector<std::uint32_t> results(rayIds.size());
+      std::memcpy(results.data(), outputBuffer.contents, byteCount);
+      return results;
+    }
+  }
+
+  std::vector<GpuIntersectionHitRecord>
+  MetalWavefrontSmokeKernel::runBasicClosestHitKernel(
+    const GpuIntersectionSceneBuffers& scene, const std::vector<GpuIntersectionRay>& rays) const {
+    if (rays.empty()) {
+      return {};
+    }
+    if (!scene.basicHitKernelEligible()) {
+      throw std::invalid_argument(
+        "Metal basic closest-hit kernel requires a supported primitive scene");
+    }
+
+    @autoreleasepool {
+      id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+      if (!device) {
+        throw std::runtime_error("Metal wavefront basic hit kernel requires a Metal device");
+      }
+
+      id<MTLComputePipelineState> pipeline =
+        newPipeline(device, basicHitKernelSource(), @"basicClosestHitKernel");
+
+      id<MTLBuffer> bvhBuffer = newBufferFromVector(device, scene.bvh);
+      id<MTLBuffer> primitiveBuffer = newBufferFromVector(device, scene.primitives);
+      id<MTLBuffer> triangleBuffer = newPayloadBufferFromVector(device, scene.triangles);
+      id<MTLBuffer> sphereBuffer = newPayloadBufferFromVector(device, scene.spheres);
+      id<MTLBuffer> planeBuffer = newPayloadBufferFromVector(device, scene.planes);
+      id<MTLBuffer> rectangleBuffer = newPayloadBufferFromVector(device, scene.rectangles);
+      id<MTLBuffer> diskBuffer = newPayloadBufferFromVector(device, scene.disks);
+      id<MTLBuffer> transformBuffer = newPayloadBufferFromVector(device, scene.transforms);
+      id<MTLBuffer> rayBuffer = newBufferFromVector(device, rays);
+      const std::vector<GpuIntersectionHitRecord> initialHits(rays.size());
+      id<MTLBuffer> hitBuffer = newBufferFromVector(device, initialHits);
+      const std::array<std::uint32_t, 4> counts0{
+        static_cast<std::uint32_t>(scene.bvh.size()),
+        static_cast<std::uint32_t>(scene.primitives.size()),
+        static_cast<std::uint32_t>(scene.triangles.size()),
+        static_cast<std::uint32_t>(scene.spheres.size()),
+      };
+      const std::array<std::uint32_t, 4> counts1{
+        static_cast<std::uint32_t>(scene.planes.size()),
+        static_cast<std::uint32_t>(scene.rectangles.size()),
+        static_cast<std::uint32_t>(scene.disks.size()),
+        static_cast<std::uint32_t>(scene.transforms.size()),
+      };
+      const std::array<std::uint32_t, 4> counts2{
+        static_cast<std::uint32_t>(rays.size()),
+        0u,
+        0u,
+        0u,
+      };
+      id<MTLBuffer> counts0Buffer =
+        [device newBufferWithBytes:counts0.data()
+                             length:counts0.size() * sizeof(std::uint32_t)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> counts1Buffer =
+        [device newBufferWithBytes:counts1.data()
+                             length:counts1.size() * sizeof(std::uint32_t)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> counts2Buffer =
+        [device newBufferWithBytes:counts2.data()
+                             length:counts2.size() * sizeof(std::uint32_t)
+                            options:MTLResourceStorageModeShared];
+      if (!bvhBuffer || !primitiveBuffer || !triangleBuffer || !sphereBuffer || !planeBuffer ||
+          !rectangleBuffer || !diskBuffer || !transformBuffer || !rayBuffer || !hitBuffer ||
+          !counts0Buffer || !counts1Buffer || !counts2Buffer) {
+        throw std::runtime_error("Metal wavefront basic hit kernel buffer allocation failed");
+      }
+
+      id<MTLCommandQueue> queue = [device newCommandQueue];
+      id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+      id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
+      if (!queue || !commandBuffer || !encoder) {
+        throw std::runtime_error("Metal wavefront basic hit kernel command setup failed");
+      }
+
+      [encoder setComputePipelineState:pipeline];
+      [encoder setBuffer:bvhBuffer offset:0 atIndex:0];
+      [encoder setBuffer:primitiveBuffer offset:0 atIndex:1];
+      [encoder setBuffer:triangleBuffer offset:0 atIndex:2];
+      [encoder setBuffer:sphereBuffer offset:0 atIndex:3];
+      [encoder setBuffer:planeBuffer offset:0 atIndex:4];
+      [encoder setBuffer:rectangleBuffer offset:0 atIndex:5];
+      [encoder setBuffer:diskBuffer offset:0 atIndex:6];
+      [encoder setBuffer:transformBuffer offset:0 atIndex:7];
+      [encoder setBuffer:rayBuffer offset:0 atIndex:8];
+      [encoder setBuffer:hitBuffer offset:0 atIndex:9];
+      [encoder setBuffer:counts0Buffer offset:0 atIndex:10];
+      [encoder setBuffer:counts1Buffer offset:0 atIndex:11];
+      [encoder setBuffer:counts2Buffer offset:0 atIndex:12];
+      dispatchOneDimensional(encoder, pipeline, rays.size());
+      [encoder endEncoding];
+      [commandBuffer commit];
+      [commandBuffer waitUntilCompleted];
+
+      if (commandBuffer.error) {
+        throw metalError("Metal wavefront basic hit kernel dispatch failed", commandBuffer.error);
+      }
+
+      std::vector<GpuIntersectionHitRecord> results(rays.size());
+      std::memcpy(results.data(), hitBuffer.contents, results.size() * sizeof(results.front()));
+      return results;
+    }
+  }
+
+  std::vector<GpuIntersectionOcclusionRecord>
+  MetalWavefrontSmokeKernel::runBasicAnyHitKernel(
+    const GpuIntersectionSceneBuffers& scene, const std::vector<GpuIntersectionRay>& rays) const {
+    if (rays.empty()) {
+      return {};
+    }
+    if (!scene.basicHitKernelEligible()) {
+      throw std::invalid_argument(
+        "Metal basic any-hit kernel requires a supported primitive scene");
+    }
+
+    @autoreleasepool {
+      id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+      if (!device) {
+        throw std::runtime_error("Metal wavefront basic any-hit kernel requires a Metal device");
+      }
+
+      id<MTLComputePipelineState> pipeline =
+        newPipeline(device, basicHitKernelSource(), @"basicAnyHitKernel");
+
+      id<MTLBuffer> bvhBuffer = newBufferFromVector(device, scene.bvh);
+      id<MTLBuffer> primitiveBuffer = newBufferFromVector(device, scene.primitives);
+      id<MTLBuffer> triangleBuffer = newPayloadBufferFromVector(device, scene.triangles);
+      id<MTLBuffer> sphereBuffer = newPayloadBufferFromVector(device, scene.spheres);
+      id<MTLBuffer> planeBuffer = newPayloadBufferFromVector(device, scene.planes);
+      id<MTLBuffer> rectangleBuffer = newPayloadBufferFromVector(device, scene.rectangles);
+      id<MTLBuffer> diskBuffer = newPayloadBufferFromVector(device, scene.disks);
+      id<MTLBuffer> transformBuffer = newPayloadBufferFromVector(device, scene.transforms);
+      id<MTLBuffer> rayBuffer = newBufferFromVector(device, rays);
+      const std::vector<GpuIntersectionOcclusionRecord> initialRecords(rays.size());
+      id<MTLBuffer> occlusionBuffer = newBufferFromVector(device, initialRecords);
+      const std::array<std::uint32_t, 4> counts0{
+        static_cast<std::uint32_t>(scene.bvh.size()),
+        static_cast<std::uint32_t>(scene.primitives.size()),
+        static_cast<std::uint32_t>(scene.triangles.size()),
+        static_cast<std::uint32_t>(scene.spheres.size()),
+      };
+      const std::array<std::uint32_t, 4> counts1{
+        static_cast<std::uint32_t>(scene.planes.size()),
+        static_cast<std::uint32_t>(scene.rectangles.size()),
+        static_cast<std::uint32_t>(scene.disks.size()),
+        static_cast<std::uint32_t>(scene.transforms.size()),
+      };
+      const std::array<std::uint32_t, 4> counts2{
+        static_cast<std::uint32_t>(rays.size()),
+        0u,
+        0u,
+        0u,
+      };
+      id<MTLBuffer> counts0Buffer =
+        [device newBufferWithBytes:counts0.data()
+                             length:counts0.size() * sizeof(std::uint32_t)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> counts1Buffer =
+        [device newBufferWithBytes:counts1.data()
+                             length:counts1.size() * sizeof(std::uint32_t)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> counts2Buffer =
+        [device newBufferWithBytes:counts2.data()
+                             length:counts2.size() * sizeof(std::uint32_t)
+                            options:MTLResourceStorageModeShared];
+      if (!bvhBuffer || !primitiveBuffer || !triangleBuffer || !sphereBuffer || !planeBuffer ||
+          !rectangleBuffer || !diskBuffer || !transformBuffer || !rayBuffer || !occlusionBuffer ||
+          !counts0Buffer || !counts1Buffer || !counts2Buffer) {
+        throw std::runtime_error("Metal wavefront basic any-hit buffer allocation failed");
+      }
+
+      id<MTLCommandQueue> queue = [device newCommandQueue];
+      id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+      id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
+      if (!queue || !commandBuffer || !encoder) {
+        throw std::runtime_error("Metal wavefront basic any-hit command setup failed");
+      }
+
+      [encoder setComputePipelineState:pipeline];
+      [encoder setBuffer:bvhBuffer offset:0 atIndex:0];
+      [encoder setBuffer:primitiveBuffer offset:0 atIndex:1];
+      [encoder setBuffer:triangleBuffer offset:0 atIndex:2];
+      [encoder setBuffer:sphereBuffer offset:0 atIndex:3];
+      [encoder setBuffer:planeBuffer offset:0 atIndex:4];
+      [encoder setBuffer:rectangleBuffer offset:0 atIndex:5];
+      [encoder setBuffer:diskBuffer offset:0 atIndex:6];
+      [encoder setBuffer:transformBuffer offset:0 atIndex:7];
+      [encoder setBuffer:rayBuffer offset:0 atIndex:8];
+      [encoder setBuffer:occlusionBuffer offset:0 atIndex:9];
+      [encoder setBuffer:counts0Buffer offset:0 atIndex:10];
+      [encoder setBuffer:counts1Buffer offset:0 atIndex:11];
+      [encoder setBuffer:counts2Buffer offset:0 atIndex:12];
+      dispatchOneDimensional(encoder, pipeline, rays.size());
+      [encoder endEncoding];
+      [commandBuffer commit];
+      [commandBuffer waitUntilCompleted];
+
+      if (commandBuffer.error) {
+        throw metalError("Metal wavefront basic any-hit kernel dispatch failed",
+                         commandBuffer.error);
+      }
+
+      std::vector<GpuIntersectionOcclusionRecord> results(rays.size());
+      std::memcpy(results.data(), occlusionBuffer.contents,
+                  results.size() * sizeof(results.front()));
+      return results;
+    }
+  }
+}

@@ -143,6 +143,7 @@ namespace engine::wavefront::detail {
       settings.convergenceEnabled = config.convergenceEnabled;
       settings.activeSampleFractionThreshold = config.convergenceActiveSampleFractionThreshold;
       settings.radianceDeltaRmsThreshold = config.convergenceRadianceDeltaRmsThreshold;
+      settings.intersectionBackend = config.intersectionBackend;
       return settings;
     }
 
@@ -166,6 +167,7 @@ namespace engine::wavefront::detail {
     void addBatchMetrics(render::IntegratorBatchMetrics& target,
                          const render::IntegratorBatchMetrics& source) {
       target.usedScalarFallback = target.usedScalarFallback || source.usedScalarFallback;
+      target.mergeIntersectionBackendMetrics(source);
       addVectorValues(target.activeSamplesPerDepth, source.activeSamplesPerDepth);
       addVectorValues(target.frontierRayHitsPerDepth, source.frontierRayHitsPerDepth);
       addVectorValues(target.frontierRayMissesPerDepth, source.frontierRayMissesPerDepth);

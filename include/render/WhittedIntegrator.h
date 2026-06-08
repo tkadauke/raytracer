@@ -12,6 +12,7 @@ class HitPoint;
 
 namespace render {
   class Primitive;
+  class WavefrontIntersectionBackend;
   struct WhittedContinuation;
 
   /**
@@ -65,21 +66,25 @@ namespace render {
                                               std::vector<unsigned char>& activeSamples,
                                               std::vector<std::size_t>& activeSampleIndices) const;
     std::size_t partitionTraceableQueuedRays(std::vector<QueuedRay>& current) const;
-    void intersectQueuedRayScalar(const Scene& scene, std::vector<QueuedRay>& current,
+    void intersectQueuedRayScalar(const WavefrontIntersectionBackend& intersectionBackend,
+                                  const Scene& scene, std::vector<QueuedRay>& current,
                                   std::size_t queuedIndex, std::vector<QueuedHit>& activeHits,
                                   std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
                                   IntegratorBatchMetrics* metrics) const;
-    void intersectQueuedRayPacket(const Scene& scene, std::vector<QueuedRay>& current,
+    void intersectQueuedRayPacket(const WavefrontIntersectionBackend& intersectionBackend,
+                                  const Scene& scene, std::vector<QueuedRay>& current,
                                   std::size_t firstQueuedIndex, std::size_t laneCount,
                                   std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
                                   BatchDepthMetrics& depthMetrics,
                                   IntegratorBatchMetrics* metrics) const;
-    void intersectQueuedRayPacket8(const Scene& scene, std::vector<QueuedRay>& current,
+    void intersectQueuedRayPacket8(const WavefrontIntersectionBackend& intersectionBackend,
+                                   const Scene& scene, std::vector<QueuedRay>& current,
                                    std::size_t firstQueuedIndex, std::size_t laneCount,
                                    std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
                                    BatchDepthMetrics& depthMetrics,
                                    IntegratorBatchMetrics* metrics) const;
-    void intersectActiveFrontier(const Scene& scene, std::vector<QueuedRay>& current,
+    void intersectActiveFrontier(const WavefrontIntersectionBackend& intersectionBackend,
+                                 const Scene& scene, std::vector<QueuedRay>& current,
                                  std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
                                  BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;

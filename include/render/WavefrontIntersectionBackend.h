@@ -1,0 +1,294 @@
+#pragma once
+
+#include "core/math/HitPointInterval.h"
+#include "core/math/Ray.h"
+#include "render/primitives/Primitive.h"
+
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
+namespace render {
+  class CompiledIntersectionScene;
+  struct GpuIntersectionHitRecord;
+  struct GpuIntersectionOcclusionRecord;
+  struct GpuIntersectionRay;
+  struct GpuIntersectionSceneBuffers;
+  class Scene;
+  class State;
+  class WavefrontIntersectionBackend;
+
+  struct WavefrontIntersectionSceneDiagnostics {
+    bool compiled{false};
+    std::uint64_t bvhNodes{0};
+    std::uint64_t primitives{0};
+    std::uint64_t triangles{0};
+    std::uint64_t spheres{0};
+    std::uint64_t planes{0};
+    std::uint64_t rectangles{0};
+    std::uint64_t disks{0};
+    std::uint64_t transforms{0};
+    std::uint64_t unsupportedPrimitives{0};
+    std::uint64_t uploadBytes{0};
+    bool triangleClosestHitKernelEligible{false};
+    bool basicHitKernelEligible{false};
+    bool packedClosestHitKernelEligible{false};
+
+    [[nodiscard]] static WavefrontIntersectionSceneDiagnostics
+    fromCompiledScene(const CompiledIntersectionScene& scene);
+    [[nodiscard]] static WavefrontIntersectionSceneDiagnostics
+    fromCompiledSceneAndUploadBuffers(const CompiledIntersectionScene& scene,
+                                      const GpuIntersectionSceneBuffers& buffers);
+  };
+
+  struct WavefrontIntersectionBackendSelectionContext {
+    std::uint64_t expectedRayCount{0};
+    std::uint64_t minimumGpuRayCount{65536};
+  };
+
+  struct WavefrontIntersectionBackendAutoSelectionDecision {
+    bool useGpu{false};
+    std::string reason;
+  };
+
+  class WavefrontIntersectionBackendAutoSelectionPolicy {
+  public:
+    [[nodiscard]] WavefrontIntersectionBackendAutoSelectionDecision
+    decide(bool platformGpuAvailable, const WavefrontIntersectionSceneDiagnostics& diagnostics,
+           const WavefrontIntersectionBackendSelectionContext& context) const;
+
+  private:
+    [[nodiscard]] bool
+    sceneCanUseGpu(const WavefrontIntersectionSceneDiagnostics& diagnostics) const;
+    [[nodiscard]] bool
+    expectedRayCountJustifiesGpu(const WavefrontIntersectionBackendSelectionContext& context) const;
+  };
+
+  /**
+    * User/intent-level choice for wavefront ray-scene intersection work.
+    *
+    * The first implementation resolves both `auto` and `cpu` to the canonical
+    * CPU backend. `gpu` is accepted as durable intent and currently resolves to
+    * CPU with a fallback reason until a platform GPU backend is available.
+    */
+  class WavefrontIntersectionBackendChoice {
+  public:
+    enum class Kind { Auto, CPU, GPU };
+
+    WavefrontIntersectionBackendChoice();
+    explicit WavefrontIntersectionBackendChoice(Kind kind);
+
+    static WavefrontIntersectionBackendChoice automatic();
+    static WavefrontIntersectionBackendChoice cpu();
+    static WavefrontIntersectionBackendChoice gpu();
+    static WavefrontIntersectionBackendChoice fromString(std::string value);
+
+    Kind kind() const;
+    const char* id() const;
+    const WavefrontIntersectionBackend& resolvedBackend() const;
+    std::shared_ptr<const WavefrontIntersectionBackend>
+    createBackendForScene(const Scene& scene) const;
+    std::shared_ptr<const WavefrontIntersectionBackend>
+    createBackendForScene(const Scene& scene,
+                          const WavefrontIntersectionBackendSelectionContext& context) const;
+
+    bool operator==(const WavefrontIntersectionBackendChoice& other) const;
+    bool operator!=(const WavefrontIntersectionBackendChoice& other) const;
+
+  private:
+    Kind m_kind;
+
+    static std::string normalized(std::string value);
+  };
+
+  /**
+    * @brief Ray-scene intersection boundary used by wavefront batch integrators.
+    *
+    * Wavefront scheduling and shading stay in the integrators. This backend
+    * answers the narrower question those schedulers need before each shading
+    * depth: what did this ray, or this packet of rays, hit?
+    */
+  class WavefrontIntersectionBackend {
+  public:
+    virtual ~WavefrontIntersectionBackend() = default;
+
+    virtual const char* name() const = 0;
+    virtual const char* requestedName() const;
+    virtual const char* availability() const;
+    virtual const char* fallbackReason() const;
+    virtual const char* executionPath() const;
+    virtual const char* closestHitExecutionPath() const;
+    virtual const char* anyHitExecutionPath() const;
+    virtual const CompiledIntersectionScene* compiledScene() const;
+    virtual const GpuIntersectionSceneBuffers* gpuIntersectionSceneBuffers() const;
+    virtual WavefrontIntersectionSceneDiagnostics compiledSceneDiagnostics() const;
+    virtual std::uint64_t estimatedClosestHitRayUploadBytes(std::uint64_t submittedRays) const;
+    virtual std::uint64_t estimatedClosestHitReadbackBytes(std::uint64_t submittedRays) const;
+    virtual std::uint64_t estimatedAnyHitRayUploadBytes(std::uint64_t submittedRays) const;
+    virtual std::uint64_t estimatedAnyHitReadbackBytes(std::uint64_t submittedRays) const;
+
+    virtual const Primitive* intersectClosest(const Scene& scene, const Rayd& ray,
+                                              HitPointInterval& hitPoints, State& state) const = 0;
+    virtual bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance,
+                              State& state) const = 0;
+    virtual PrimitivePacketHit4
+    intersectPacketClosest(const Scene& scene, const Ray4& rays,
+                           const PrimitivePacketState4& states) const = 0;
+    virtual PrimitivePacketHit8
+    intersectPacketClosest(const Scene& scene, const Ray8& rays,
+                           const PrimitivePacketState8& states) const = 0;
+
+  protected:
+    [[nodiscard]] const Primitive*
+    intersectPreparedClosest(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
+    [[nodiscard]] bool intersectPreparedAny(const Rayd& ray, double maxDistance,
+                                            State& state) const;
+    [[nodiscard]] PrimitivePacketHit4
+    intersectPreparedPacketClosest(const Ray4& rays, const PrimitivePacketState4& states) const;
+    [[nodiscard]] PrimitivePacketHit8
+    intersectPreparedPacketClosest(const Ray8& rays, const PrimitivePacketState8& states) const;
+    [[nodiscard]] bool packedClosestHitAvailable() const;
+    [[nodiscard]] bool packedAnyHitAvailable() const;
+    [[nodiscard]] virtual bool preparedPackedClosestHitAvailable() const;
+    [[nodiscard]] virtual const char* preparedPackedClosestHitExecutionPath() const;
+    [[nodiscard]] virtual std::vector<GpuIntersectionHitRecord>
+    intersectPreparedPackedClosest(const std::vector<GpuIntersectionRay>& rays) const;
+    [[nodiscard]] virtual bool preparedPackedAnyHitAvailable() const;
+    [[nodiscard]] virtual const char* preparedPackedAnyHitExecutionPath() const;
+    [[nodiscard]] virtual std::vector<GpuIntersectionOcclusionRecord>
+    intersectPreparedPackedAny(const std::vector<GpuIntersectionRay>& rays) const;
+    [[nodiscard]] bool preparedGpuTransferContractAvailable() const;
+    [[nodiscard]] std::uint64_t estimatedTransferBytes(std::uint64_t submittedRays,
+                                                       std::uint64_t bytesPerRay) const;
+  };
+
+  /**
+    * @brief Canonical CPU backend that preserves the existing Scene traversal path.
+    */
+  class CpuWavefrontIntersectionBackend final : public WavefrontIntersectionBackend {
+  public:
+    static const CpuWavefrontIntersectionBackend& instance();
+
+    const char* name() const override;
+    const char* executionPath() const override;
+    const Primitive* intersectClosest(const Scene& scene, const Rayd& ray,
+                                      HitPointInterval& hitPoints, State& state) const override;
+    bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance,
+                      State& state) const override;
+    PrimitivePacketHit4 intersectPacketClosest(const Scene& scene, const Ray4& rays,
+                                               const PrimitivePacketState4& states) const override;
+    PrimitivePacketHit8 intersectPacketClosest(const Scene& scene, const Ray8& rays,
+                                               const PrimitivePacketState8& states) const override;
+  };
+
+  /**
+    * @brief macOS GPU-intersection backend placeholder.
+    *
+    * The class is intentionally visible before a Metal kernel exists so render
+    * intent, diagnostics, and tests can name the platform backend explicitly.
+    * Until a Metal closest-hit implementation lands, it reports a fallback and
+    * uses host-side CPU traversal over retained compiled/packed scene data when
+    * available, otherwise the canonical runtime CPU backend.
+    */
+  class MetalWavefrontIntersectionBackend final : public WavefrontIntersectionBackend {
+  public:
+    static const MetalWavefrontIntersectionBackend& instance();
+    static std::shared_ptr<const WavefrontIntersectionBackend>
+    createPrepared(std::shared_ptr<const CompiledIntersectionScene> scene,
+                   std::string requestedName = "gpu");
+
+    [[nodiscard]] const char* platformName() const;
+    [[nodiscard]] bool isAvailable() const;
+
+    const char* name() const override;
+    const char* requestedName() const override;
+    const char* availability() const override;
+    const char* fallbackReason() const override;
+    const char* executionPath() const override;
+    const char* closestHitExecutionPath() const override;
+    const char* anyHitExecutionPath() const override;
+    const CompiledIntersectionScene* compiledScene() const override;
+    const GpuIntersectionSceneBuffers* gpuIntersectionSceneBuffers() const override;
+    const Primitive* intersectClosest(const Scene& scene, const Rayd& ray,
+                                      HitPointInterval& hitPoints, State& state) const override;
+    bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance,
+                      State& state) const override;
+    PrimitivePacketHit4 intersectPacketClosest(const Scene& scene, const Ray4& rays,
+                                               const PrimitivePacketState4& states) const override;
+    PrimitivePacketHit8 intersectPacketClosest(const Scene& scene, const Ray8& rays,
+                                               const PrimitivePacketState8& states) const override;
+
+  protected:
+    bool preparedPackedClosestHitAvailable() const override;
+    const char* preparedPackedClosestHitExecutionPath() const override;
+    std::vector<GpuIntersectionHitRecord>
+    intersectPreparedPackedClosest(const std::vector<GpuIntersectionRay>& rays) const override;
+    bool preparedPackedAnyHitAvailable() const override;
+    const char* preparedPackedAnyHitExecutionPath() const override;
+    std::vector<GpuIntersectionOcclusionRecord>
+    intersectPreparedPackedAny(const std::vector<GpuIntersectionRay>& rays) const override;
+
+  private:
+    MetalWavefrontIntersectionBackend() = default;
+    explicit MetalWavefrontIntersectionBackend(
+      std::shared_ptr<const CompiledIntersectionScene> compiledScene,
+      std::shared_ptr<const GpuIntersectionSceneBuffers> gpuSceneBuffers,
+      std::string requestedName);
+
+    [[nodiscard]] bool metalBasicHitAvailable() const;
+
+    std::shared_ptr<const CompiledIntersectionScene> m_compiledScene;
+    std::shared_ptr<const GpuIntersectionSceneBuffers> m_gpuSceneBuffers;
+    std::string m_requestedName;
+  };
+
+  /**
+    * @brief Linux GPU-intersection backend placeholder.
+    *
+    * The class is intentionally visible before a Vulkan compute kernel exists
+    * so render intent, diagnostics, and tests can name the platform backend
+    * explicitly. Until a Vulkan closest-hit implementation lands, it reports a
+    * fallback and uses host-side CPU traversal over retained compiled/packed
+    * scene data when available, otherwise the canonical runtime CPU backend.
+    */
+  class VulkanWavefrontIntersectionBackend final : public WavefrontIntersectionBackend {
+  public:
+    static const VulkanWavefrontIntersectionBackend& instance();
+    static std::shared_ptr<const WavefrontIntersectionBackend>
+    createPrepared(std::shared_ptr<const CompiledIntersectionScene> scene,
+                   std::string requestedName = "gpu");
+
+    [[nodiscard]] const char* platformName() const;
+    [[nodiscard]] bool isAvailable() const;
+
+    const char* name() const override;
+    const char* requestedName() const override;
+    const char* availability() const override;
+    const char* fallbackReason() const override;
+    const char* executionPath() const override;
+    const char* closestHitExecutionPath() const override;
+    const char* anyHitExecutionPath() const override;
+    const CompiledIntersectionScene* compiledScene() const override;
+    const GpuIntersectionSceneBuffers* gpuIntersectionSceneBuffers() const override;
+    const Primitive* intersectClosest(const Scene& scene, const Rayd& ray,
+                                      HitPointInterval& hitPoints, State& state) const override;
+    bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance,
+                      State& state) const override;
+    PrimitivePacketHit4 intersectPacketClosest(const Scene& scene, const Ray4& rays,
+                                               const PrimitivePacketState4& states) const override;
+    PrimitivePacketHit8 intersectPacketClosest(const Scene& scene, const Ray8& rays,
+                                               const PrimitivePacketState8& states) const override;
+
+  private:
+    VulkanWavefrontIntersectionBackend() = default;
+    explicit VulkanWavefrontIntersectionBackend(
+      std::shared_ptr<const CompiledIntersectionScene> compiledScene,
+      std::shared_ptr<const GpuIntersectionSceneBuffers> gpuSceneBuffers,
+      std::string requestedName);
+
+    std::shared_ptr<const CompiledIntersectionScene> m_compiledScene;
+    std::shared_ptr<const GpuIntersectionSceneBuffers> m_gpuSceneBuffers;
+    std::string m_requestedName;
+  };
+}
