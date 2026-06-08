@@ -391,13 +391,12 @@ CompiledIntersectionSceneIntersector::intersectClosest(const CompiledIntersectio
     }
 
     const FlatIntersectionBvhNode& node = scene.bvh()[nodeIndex];
-    if (!node.bounds.intersects(ray)) {
+    if (!boundsIntersectRay(node.bounds, ray, closestDistance)) {
       continue;
     }
 
     if (!node.isLeaf()) {
-      stack.push_back(node.rightChild());
-      stack.push_back(node.leftChild());
+      pushIntersectingChildren(scene, node, ray, closestDistance, stack);
       continue;
     }
 
@@ -407,8 +406,12 @@ CompiledIntersectionSceneIntersector::intersectClosest(const CompiledIntersectio
         continue;
       }
 
-      const std::optional<CompiledIntersectionHit> hit =
-        intersectPrimitive(scene, scene.primitives()[primitiveIndex], ray);
+      const IntersectionPrimitiveRecord& primitive = scene.primitives()[primitiveIndex];
+      if (!boundsIntersectRay(primitive.bounds, ray, closestDistance)) {
+        continue;
+      }
+
+      const std::optional<CompiledIntersectionHit> hit = intersectPrimitive(scene, primitive, ray);
       if (hit && hit->distance < closestDistance) {
         closest = *hit;
         closest.primitiveRecord = primitiveIndex;
@@ -440,13 +443,12 @@ bool CompiledIntersectionSceneIntersector::intersectAny(const CompiledIntersecti
     }
 
     const FlatIntersectionBvhNode& node = scene.bvh()[nodeIndex];
-    if (!node.bounds.intersects(ray)) {
+    if (!boundsIntersectRay(node.bounds, ray, maxDistance)) {
       continue;
     }
 
     if (!node.isLeaf()) {
-      stack.push_back(node.rightChild());
-      stack.push_back(node.leftChild());
+      pushIntersectingChildren(scene, node, ray, maxDistance, stack);
       continue;
     }
 
@@ -456,8 +458,12 @@ bool CompiledIntersectionSceneIntersector::intersectAny(const CompiledIntersecti
         continue;
       }
 
-      const std::optional<CompiledIntersectionHit> hit =
-        intersectPrimitive(scene, scene.primitives()[primitiveIndex], ray);
+      const IntersectionPrimitiveRecord& primitive = scene.primitives()[primitiveIndex];
+      if (!boundsIntersectRay(primitive.bounds, ray, maxDistance)) {
+        continue;
+      }
+
+      const std::optional<CompiledIntersectionHit> hit = intersectPrimitive(scene, primitive, ray);
       if (hit && hitOccludes(*hit, maxDistance)) {
         return true;
       }
@@ -486,6 +492,55 @@ std::optional<CompiledIntersectionHit> CompiledIntersectionSceneIntersector::int
   }
 
   return std::nullopt;
+}
+
+bool CompiledIntersectionSceneIntersector::boundsIntersectRay(const BoundingBoxd& bounds,
+                                                              const Rayd& ray,
+                                                              double maxDistance) const {
+  return boundsRayEntryDistance(bounds, ray, maxDistance).has_value();
+}
+
+std::optional<double> CompiledIntersectionSceneIntersector::boundsRayEntryDistance(
+  const BoundingBoxd& bounds, const Rayd& ray, double maxDistance) const {
+  Ranged interval(0.0, 0.0);
+  if (!bounds.intersect(ray, interval)) {
+    return std::nullopt;
+  }
+
+  if (interval.begin() > maxDistance) {
+    return std::nullopt;
+  }
+
+  return std::max(0.0, interval.begin());
+}
+
+void CompiledIntersectionSceneIntersector::pushIntersectingChildren(
+  const CompiledIntersectionScene& scene, const FlatIntersectionBvhNode& node, const Rayd& ray,
+  double maxDistance, std::vector<std::uint32_t>& stack) const {
+  const std::uint32_t leftChild = node.leftChild();
+  const std::uint32_t rightChild = node.rightChild();
+  const std::optional<double> leftEntry =
+    leftChild < scene.bvh().size()
+      ? boundsRayEntryDistance(scene.bvh()[leftChild].bounds, ray, maxDistance)
+      : std::nullopt;
+  const std::optional<double> rightEntry =
+    rightChild < scene.bvh().size()
+      ? boundsRayEntryDistance(scene.bvh()[rightChild].bounds, ray, maxDistance)
+      : std::nullopt;
+
+  if (leftEntry && rightEntry) {
+    if (*leftEntry <= *rightEntry) {
+      stack.push_back(rightChild);
+      stack.push_back(leftChild);
+    } else {
+      stack.push_back(leftChild);
+      stack.push_back(rightChild);
+    }
+  } else if (leftEntry) {
+    stack.push_back(leftChild);
+  } else if (rightEntry) {
+    stack.push_back(rightChild);
+  }
 }
 
 bool CompiledIntersectionSceneIntersector::hitOccludes(const CompiledIntersectionHit& hit,

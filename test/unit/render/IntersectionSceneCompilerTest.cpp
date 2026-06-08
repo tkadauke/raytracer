@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
+#include <vector>
 
 #include "render/IntersectionSceneCompiler.h"
 #include "render/State.h"
@@ -36,6 +37,28 @@ namespace IntersectionSceneCompilerTest {
       return static_cast<std::size_t>(std::count_if(
         scene.primitives().begin(), scene.primitives().end(),
         [kind](const IntersectionPrimitiveRecord& primitive) { return primitive.kind == kind; }));
+    }
+
+    IntersectionTrianglePayload trianglePayloadAt(double z, double xOffset = 0.0) {
+      return IntersectionTrianglePayload{
+        Vector3d(xOffset - 1, -1, z),
+        Vector3d(xOffset + 1, -1, z),
+        Vector3d(xOffset, 1, z),
+        Vector3d(0, 0, 1),
+        Vector3d(0, 0, 1),
+        Vector3d(0, 0, 1),
+        Vector2d(0, 0),
+        Vector2d(1, 0),
+        Vector2d(0, 1),
+      };
+    }
+
+    Primitive::TransformedLeaf directLeaf(const Primitive* primitive) {
+      return Primitive::TransformedLeaf{primitive, nullptr, Matrix4d(), Matrix3d()};
+    }
+
+    BoundingBoxd triangleBoundsAt(double z, double xOffset = 0.0) {
+      return BoundingBoxd(Vector3d(xOffset - 1, -1, z), Vector3d(xOffset + 1, 1, z));
     }
 
     std::unique_ptr<Mesh> triangleMesh() {
@@ -472,6 +495,61 @@ namespace IntersectionSceneCompilerTest {
     EXPECT_EQ(nearTriangle.get(), runtimeHit);
     EXPECT_EQ(runtimeHit, compiled.objects()[compiledHit.object]);
     EXPECT_NEAR(hitPoints.min().distance(), compiledHit.distance, 1e-9);
+  }
+
+  TEST(CompiledIntersectionSceneIntersector, CullsPrimitiveRecordsByBounds) {
+    auto misleadingTriangle =
+      std::make_shared<Triangle>(Vector3d(-1, -1, 3), Vector3d(1, -1, 3), Vector3d(0, 1, 3));
+    auto boundedTriangle =
+      std::make_shared<Triangle>(Vector3d(-1, -1, 10), Vector3d(1, -1, 10), Vector3d(0, 1, 10));
+    IntersectionSceneBuilder builder;
+    builder.addTriangle(directLeaf(misleadingTriangle.get()), trianglePayloadAt(3.0),
+                        BoundingBoxd(Vector3d(20, 20, 20), Vector3d(21, 21, 21)));
+    builder.addTriangle(directLeaf(boundedTriangle.get()), trianglePayloadAt(10.0),
+                        triangleBoundsAt(10.0));
+    const CompiledIntersectionScene compiled = builder.finish();
+    const Rayd ray(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
+
+    const CompiledIntersectionHit closest =
+      CompiledIntersectionSceneIntersector().intersectClosest(compiled, ray);
+
+    ASSERT_TRUE(closest.hit);
+    ASSERT_GT(compiled.objects().size(), closest.object);
+    EXPECT_EQ(boundedTriangle.get(), compiled.objects()[closest.object]);
+    EXPECT_NEAR(10.0, closest.distance, 1e-9);
+    EXPECT_FALSE(CompiledIntersectionSceneIntersector().intersectAny(compiled, ray, 4.0));
+    EXPECT_TRUE(CompiledIntersectionSceneIntersector().intersectAny(compiled, ray, 12.0));
+  }
+
+  TEST(CompiledIntersectionSceneIntersector, PrunesFartherBvhChildAfterCloserHit) {
+    IntersectionSceneBuilder builder;
+    auto nearestBoundedTriangle =
+      std::make_shared<Triangle>(Vector3d(-1, -1, 3), Vector3d(1, -1, 3), Vector3d(0, 1, 3));
+    builder.addTriangle(directLeaf(nearestBoundedTriangle.get()), trianglePayloadAt(3.0),
+                        triangleBoundsAt(3.0));
+    std::vector<std::shared_ptr<Triangle>> offAxisTriangles;
+    for (int index = 0; index != 3; ++index) {
+      const double x = 4.0 + index * 3.0;
+      auto offAxisTriangle =
+        std::make_shared<Triangle>(Vector3d(x, -1, 3), Vector3d(x + 1, -1, 3), Vector3d(x, 1, 3));
+      builder.addTriangle(directLeaf(offAxisTriangle.get()), trianglePayloadAt(3.0, x),
+                          triangleBoundsAt(3.0, x));
+      offAxisTriangles.push_back(std::move(offAxisTriangle));
+    }
+    auto misleadingFarBoundedTriangle =
+      std::make_shared<Triangle>(Vector3d(-1, -1, 2), Vector3d(1, -1, 2), Vector3d(0, 1, 2));
+    builder.addTriangle(directLeaf(misleadingFarBoundedTriangle.get()), trianglePayloadAt(2.0),
+                        triangleBoundsAt(10.0));
+    const CompiledIntersectionScene compiled = builder.finish();
+    ASSERT_GT(compiled.bvh().size(), 1u);
+
+    const CompiledIntersectionHit hit = CompiledIntersectionSceneIntersector().intersectClosest(
+      compiled, Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)));
+
+    ASSERT_TRUE(hit.hit);
+    ASSERT_GT(compiled.objects().size(), hit.object);
+    EXPECT_EQ(nearestBoundedTriangle.get(), compiled.objects()[hit.object]);
+    EXPECT_NEAR(3.0, hit.distance, 1e-9);
   }
 
   TEST(CompiledIntersectionSceneIntersector, IntersectsAnyLikeRuntimeScene) {

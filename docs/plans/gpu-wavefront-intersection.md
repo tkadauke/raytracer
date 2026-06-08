@@ -412,6 +412,9 @@ Progress:
   payloads, including object/material ids, distance, point, normal, UVs, and
   barycentric coordinates. This is a parity harness for the upcoming
   Metal/Vulkan triangle kernel; it is not selected as a render backend yet.
+  Its traversal now also uses bounded node/primitive ray-box tests, nearest-hit
+  pruning, and near-first BVH child visitation so the CPU parity harness follows
+  the same pruning contract as the packed upload-buffer traversal.
 - `GpuIntersectionScenePacker` now converts compiled BVH nodes, primitive
   records, triangle/sphere/plane/rectangle/disk payloads, static transform
   payloads, ray work items, and miss records into 16-byte-aligned POD buffers

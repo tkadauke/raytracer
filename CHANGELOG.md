@@ -30,6 +30,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   derive portal cameras from receiver/source transforms and mirror cameras from
   planar reflection, carrying explicit receiver-clipping state through graph
   inspection and execution. — GPT-5
+- **Compiled wavefront BVH traversal pruning.** The CPU compiled-scene
+  intersector now culls node and primitive records with bounded ray/box tests
+  and visits nearer BVH children first, matching the packed GPU ABI traversal
+  contract more closely before platform kernels take over.
+  — GPT-5
 - **Packed wavefront any-hit eligibility diagnostics.** Wavefront metrics,
   rendercli summaries, and Modeler graph tooltips now report packed any-hit
   eligibility separately from packed closest-hit eligibility, and packed

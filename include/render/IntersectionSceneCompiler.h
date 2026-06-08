@@ -204,6 +204,13 @@ namespace render {
     [[nodiscard]] std::optional<CompiledIntersectionHit>
     intersectPrimitive(const CompiledIntersectionScene& scene,
                        const IntersectionPrimitiveRecord& primitive, const Rayd& ray) const;
+    [[nodiscard]] bool boundsIntersectRay(const BoundingBoxd& bounds, const Rayd& ray,
+                                          double maxDistance) const;
+    [[nodiscard]] std::optional<double>
+    boundsRayEntryDistance(const BoundingBoxd& bounds, const Rayd& ray, double maxDistance) const;
+    void pushIntersectingChildren(const CompiledIntersectionScene& scene,
+                                  const FlatIntersectionBvhNode& node, const Rayd& ray,
+                                  double maxDistance, std::vector<std::uint32_t>& stack) const;
     [[nodiscard]] bool hitOccludes(const CompiledIntersectionHit& hit, double maxDistance) const;
     [[nodiscard]] std::optional<PrimitiveSpaceRay>
     rayForPrimitive(const CompiledIntersectionScene& scene,
