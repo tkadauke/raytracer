@@ -1056,7 +1056,9 @@ transport, primitive packet entry points, `BoundingBox::intersects4`, packet
 primitive kernels, and BVH Ray4/Ray8 active-mask traversal. Once the wavefront
 engine is stable and path-tracing semantics are locked in, this work plugs into
 the scheduler as a performance optimization. GPU offload remains a major lift;
-it is intentionally future work, not a CPU wavefront v1 blocker.
+it is intentionally future work, not a CPU wavefront v1 blocker. The dedicated
+hybrid GPU-intersection follow-up is tracked in
+`docs/plans/gpu-wavefront-intersection.md`.
 
 The first handoff slice is now in place: primitives expose a four-wide
 `intersectPacketHits(...)` API that returns the closest hit primitive and
