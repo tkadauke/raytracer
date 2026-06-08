@@ -11,8 +11,10 @@
 > fallback metrics in place. Phase 2 now has a diagnostic CPU-side compiled
 > intersection scene for supported leaves, ids, transforms, bounds, and
 > unsupported reasons. Scene-created GPU fallback stubs retain supported
-> compiled scenes and answer closest/any-hit queries through the compiled CPU
-> parity intersector; real Metal/Vulkan kernels remain future phases. This is a
+> compiled scenes and packed upload buffers; exact closest-hit queries,
+> including static transforms, can run through the packed CPU kernel contract,
+> while any-hit work still uses the compiled CPU parity intersector. Real
+> Metal/Vulkan kernels remain future phases. This is a
 > follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+. It should not replace
 > the CPU wavefront renderer, and it should not attempt a full GPU path tracer
@@ -392,12 +394,11 @@ Progress:
   triangle-kernel and packed closest-hit eligibility, so each backend slice can
   switch from `compiled_cpu` to a platform execution path with visible parity
   gates.
-- `GpuIntersectionClosestHitIntersector` now executes iterative closest-hit BVH
+- `GpuIntersectionIntersector` now executes iterative closest-hit BVH
   traversal directly against the packed upload buffers and writes GPU-style
-  hit/miss records. Triangle- and sphere-eligible prepared GPU fallbacks route
-  closest-hit and packet closest-hit queries through this packed CPU kernel
-  contract; planes, rectangles, disks, and static transform payloads still use
-  the compiled scene parity intersector until their packed traversal is proven.
+  hit/miss records. Triangle, sphere, plane, rectangle, disk, and static
+  instance prepared GPU fallbacks route closest-hit and packet closest-hit
+  queries through this packed CPU kernel contract.
   Metrics now record closest-hit and any-hit execution paths separately, so a
   packed closest-hit frontier reports `packed_cpu` while shadow/any-hit work
   remains `compiled_cpu`, with `mixed` used when both query paths contribute to
@@ -429,12 +430,11 @@ Progress:
   payload-local space for static instances, then transforms the resulting hit
   point and normal back through the compiled transform payload so non-uniform
   instance transforms match the runtime `Instance` semantics.
-- Packed closest-hit traversal now covers untransformed sphere payloads in
-  addition to triangles. Spheres preserve material/object ids, hit distance, hit
-  point, and normal through the same GPU-style hit record shape used by the
-  triangle traversal. Plane, rectangle, disk, and static transform payloads
-  remain packed upload data plus compiled-CPU parity traversal until their
-  packed traversal tests land.
+- Packed closest-hit traversal now covers sphere, plane, rectangle, disk, and
+  static transform payloads in addition to triangles. These common exact
+  primitives and static instances preserve material/object ids, hit distance,
+  hit point, normal, and empty UV/barycentric channels through the same
+  GPU-style hit record shape used by the triangle traversal.
 
 ## Phase 6 - any-hit / occlusion queries
 
