@@ -1535,15 +1535,15 @@ namespace engine::raster {
     if (!shadowTextureTrace.empty()) {
       m_lastTraceMessages.push_back(shadowTextureTrace);
     }
-    if (residentOutputs) {
+    if (m_lastResidentColor || m_lastResidentDepth || m_lastResidentStencil) {
       std::vector<std::string> residentAttachments;
-      if (residentOutputs->color) {
+      if (m_lastResidentColor) {
         residentAttachments.push_back("color");
       }
-      if (residentOutputs->depth) {
+      if (m_lastResidentDepth) {
         residentAttachments.push_back("depth");
       }
-      if (residentOutputs->stencil) {
+      if (m_lastResidentStencil) {
         residentAttachments.push_back("stencil");
       }
       if (!residentAttachments.empty()) {

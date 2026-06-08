@@ -1397,7 +1397,7 @@ namespace engine::graph {
         }
         if (!source.hasBuffer()) {
           throw passError(pass, "resource '" + read.resource +
-                                  "' has no CPU buffer; GPU readback is not implemented yet");
+                                  "' has no CPU buffer or OpenGL resident resource");
         }
 
         context.storage().copy(read.resource, write.resource, "readback");

@@ -578,14 +578,6 @@ namespace render {
       BatchDepthMetrics depthMetrics;
       depthMetrics.trackRadianceDelta = trackRadianceDelta;
       depthMetrics.metrics = metrics;
-      if (isCancelled()) {
-        if (metrics) {
-          metrics->recordRadianceDeltaDepth(depthMetrics.depthDeltaSquaredSum,
-                                            depthMetrics.depthMaxDelta);
-          metrics->recordRetainedActiveDepth(retainedPathCount);
-        }
-        break;
-      }
 
       intersectActiveFrontier(scene, paths, activeHits, bounce, depthMetrics, metrics);
       if (metrics) {
