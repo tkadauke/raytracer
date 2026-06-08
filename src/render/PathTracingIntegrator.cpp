@@ -296,13 +296,27 @@ namespace render {
     std::vector<bool> occluded;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      occluded = resolvedIntersectionBackend.intersectAnyBatch(
-        scene, shadowQueries, metrics ? &intersectionTiming : nullptr);
-      if (metrics) {
-        metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, bounce)),
-                                              /*batchChunks=*/1, shadowQueries.size());
-        metrics->recordAnyHitQuery(resolvedIntersectionBackend, shadowQueries.size(),
-                                   intersectionTiming);
+      if (resolvedIntersectionBackend.prefersAnyHitBatch(shadowQueries.size())) {
+        occluded = resolvedIntersectionBackend.intersectAnyBatch(
+          scene, shadowQueries, metrics ? &intersectionTiming : nullptr);
+        if (metrics) {
+          metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, bounce)),
+                                                /*batchChunks=*/1, shadowQueries.size());
+          metrics->recordAnyHitQuery(resolvedIntersectionBackend, shadowQueries.size(),
+                                     intersectionTiming);
+        }
+      } else {
+        occluded.reserve(shadowQueries.size());
+        for (const WavefrontAnyHitQuery& query : shadowQueries) {
+          WavefrontIntersectionQueryTiming queryTiming;
+          State scratchState;
+          State& queryState = query.state ? *query.state : scratchState;
+          occluded.push_back(resolvedIntersectionBackend.intersectAny(
+            scene, query.ray, query.maxDistance, queryState, metrics ? &queryTiming : nullptr));
+          if (metrics) {
+            metrics->recordAnyHitQuery(resolvedIntersectionBackend, 1, queryTiming);
+          }
+        }
       }
     }
 

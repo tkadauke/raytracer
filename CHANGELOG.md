@@ -32,8 +32,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   inspection and execution. — GPT-5
 - **Direct-light any-hit batch metrics.** Wavefront metrics JSON, rendercli
   summaries, and Modeler graph tooltips now expose per-depth direct-light
-  any-hit batch chunk/ray counters, making visibility batching inspectable
-  alongside closest-hit frontier batching. — GPT-5
+  any-hit batch chunk/ray counters for backends that explicitly prefer grouped
+  visibility queries, making real visibility batching inspectable alongside
+  closest-hit frontier batching. — GPT-5
 - **Batched wavefront closest-hit queries.** Path-tracing frontiers can now
   submit closest-hit work through a backend-level batch API when the selected
   intersection backend prefers it, and rendercli/Modeler wavefront metrics now

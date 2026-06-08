@@ -539,10 +539,12 @@ Progress:
   direct-light visibility records any-hit query metrics through the selected
   backend while preserving finite light-distance bounds.
 - `WavefrontIntersectionBackend` now also has an `intersectAnyBatch(...)`
-  query for grouped visibility rays. Path-tracing direct-light sampling collects
-  all valid light-sample shadow rays for a shading point and submits them as one
-  bounded any-hit batch, while the CPU default preserves the existing scalar
-  `intersectAny(...)` behavior for backends that do not specialize batching.
+  query for grouped visibility rays plus a `prefersAnyHitBatch(...)`
+  capability hook. Path-tracing direct-light sampling collects all valid
+  light-sample shadow rays for a shading point and submits them as one bounded
+  any-hit batch only when the selected backend advertises that it wants grouped
+  visibility; the CPU default preserves the existing scalar `intersectAny(...)`
+  behavior for backends that do not specialize batching.
 - `WavefrontIntersectionBackend` now has an arbitrary closest-hit batch query
   in addition to scalar and Ray4/Ray8 packet queries. Prepared packed GPU
   backends opt into that path, so path-tracing frontiers can submit one
@@ -552,9 +554,10 @@ Progress:
   any-hit query family, so batched visibility can be inspected as both one
   backend query and multiple submitted shadow rays.
 - Direct-light visibility batching now also records per-depth any-hit batch
-  chunks and rays. rendercli summaries, metrics JSON, and the Modeler graph
-  tooltip expose those counters beside closest-hit frontier batches, making the
-  two GPU query families independently visible.
+  chunks and rays for backend-preferred grouped visibility. rendercli summaries,
+  metrics JSON, and the Modeler graph tooltip expose those counters beside
+  closest-hit frontier batches, making the two GPU query families independently
+  visible without labeling scalar CPU fallback loops as batches.
 - `CompiledIntersectionSceneIntersector` now has a CPU any-hit parity query for
   supported compiled payloads and static instances. It uses the same bounded
   light-distance rule as `Scene::occludes(...)`, so GPU any-hit kernels have a

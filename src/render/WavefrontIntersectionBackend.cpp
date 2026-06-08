@@ -449,6 +449,10 @@ namespace render {
     return false;
   }
 
+  bool WavefrontIntersectionBackend::prefersAnyHitBatch(std::uint64_t /*submittedRays*/) const {
+    return false;
+  }
+
   std::vector<WavefrontClosestHitResult> WavefrontIntersectionBackend::intersectClosestBatch(
     const Scene& scene, const std::vector<WavefrontClosestHitQuery>& queries,
     WavefrontIntersectionQueryTiming* timing) const {
@@ -1123,6 +1127,10 @@ namespace render {
     return submittedRays > 1 && preparedPackedClosestHitAvailable();
   }
 
+  bool MetalWavefrontIntersectionBackend::prefersAnyHitBatch(std::uint64_t submittedRays) const {
+    return submittedRays > 0 && preparedPackedAnyHitAvailable();
+  }
+
   const Primitive* MetalWavefrontIntersectionBackend::intersectClosest(
     const Scene& scene, const Rayd& ray, HitPointInterval& hitPoints, State& state,
     WavefrontIntersectionQueryTiming* timing) const {
@@ -1270,6 +1278,10 @@ namespace render {
   bool
   VulkanWavefrontIntersectionBackend::prefersClosestHitBatch(std::uint64_t submittedRays) const {
     return submittedRays > 1 && preparedPackedClosestHitAvailable();
+  }
+
+  bool VulkanWavefrontIntersectionBackend::prefersAnyHitBatch(std::uint64_t submittedRays) const {
+    return submittedRays > 0 && preparedPackedAnyHitAvailable();
   }
 
   const Primitive* VulkanWavefrontIntersectionBackend::intersectClosest(

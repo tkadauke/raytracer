@@ -340,6 +340,10 @@ per-depth `frontierRayHitsPerDepth`, `frontierRayMissesPerDepth`,
 `frontierPacketScalarFallbackRaysByReason` for the base packet-hit fallback
 breakdown and
 `frontierPacketRefinedRaysByMaterial` for the material-family breakdown. It
+records direct-light any-hit batch arrays only when the selected intersection
+backend explicitly prefers grouped visibility queries; CPU fallback backends
+that scalar-loop visibility still report their any-hit query and submitted-ray
+counts without claiming a batch.
 also includes `sampleVariancePixelArea`, `sampleRadianceStddevRms`, and
 `maxSampleRadianceStddev`, which measure disagreement between samples of the
 same pixel and complement the between-depth radiance-delta convergence fields.

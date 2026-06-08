@@ -2619,6 +2619,7 @@ rendercli_run(
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
     --pathtracer_direct_light_samples 3 --wavefront_denoiser none
+    --wavefront_intersection_backend gpu
     --wavefront_metrics_summary "${pathtracer_area_light_scene}"
     "${wavefront_batched_visibility_render}"
 )

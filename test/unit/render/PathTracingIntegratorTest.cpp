@@ -552,6 +552,14 @@ namespace PathTracingIntegratorTest {
       mutable std::vector<std::size_t> closestHitBatchSizes;
     };
 
+    class AnyHitBatchPreferringCountingIntersectionBackend final
+        : public CountingIntersectionBackend {
+    public:
+      bool prefersAnyHitBatch(std::uint64_t submittedRays) const override {
+        return submittedRays > 0;
+      }
+    };
+
     // Build a scene with a single Lambertian ground plane lit by one
     // directional light. Background is black so any radiance has to
     // come from the integrator's NEE direct-lighting step.
@@ -1434,8 +1442,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1, backend.packet4Queries);
     EXPECT_EQ(0, backend.packet8Queries);
     EXPECT_EQ(2, backend.anyQueries);
-    EXPECT_EQ(2, backend.anyBatchQueries);
-    EXPECT_EQ((std::vector<std::size_t>{1u, 1u}), backend.anyBatchSizes);
+    EXPECT_EQ(0, backend.anyBatchQueries);
+    EXPECT_TRUE(backend.anyBatchSizes.empty());
     EXPECT_EQ("counting_cpu", metrics.intersectionBackendRequest);
     EXPECT_EQ("counting_cpu", metrics.intersectionBackend);
     EXPECT_EQ("available", metrics.intersectionBackendAvailability);
@@ -1501,7 +1509,7 @@ namespace PathTracingIntegratorTest {
     samples.push_back(IntegratorRaySample{
       primaryRay(), 0.0, std::make_unique<FixedLightSampleStream>(Vector2d(0.5, 0.5))});
 
-    CountingIntersectionBackend backend;
+    AnyHitBatchPreferringCountingIntersectionBackend backend;
     IntegratorBatchSettings settings;
     settings.intersectionBackend = &backend;
     FallbackRayCaster caster;
@@ -1544,7 +1552,7 @@ namespace PathTracingIntegratorTest {
                           std::make_unique<FixedDirectLightSampleStream>(std::vector<Vector2d>{
                             Vector2d(0.25, 0.25), Vector2d(0.5, 0.5), Vector2d(0.75, 0.75)})});
 
-    CountingIntersectionBackend backend;
+    AnyHitBatchPreferringCountingIntersectionBackend backend;
     IntegratorBatchSettings settings;
     settings.intersectionBackend = &backend;
     FallbackRayCaster caster;

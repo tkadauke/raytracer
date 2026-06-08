@@ -159,6 +159,7 @@ namespace render {
     virtual std::uint64_t estimatedAnyHitRayUploadBytes(std::uint64_t submittedRays) const;
     virtual std::uint64_t estimatedAnyHitReadbackBytes(std::uint64_t submittedRays) const;
     virtual bool prefersClosestHitBatch(std::uint64_t submittedRays) const;
+    virtual bool prefersAnyHitBatch(std::uint64_t submittedRays) const;
 
     virtual const Primitive*
     intersectClosest(const Scene& scene, const Rayd& ray, HitPointInterval& hitPoints, State& state,
@@ -276,6 +277,7 @@ namespace render {
     const CompiledIntersectionScene* compiledScene() const override;
     const GpuIntersectionSceneBuffers* gpuIntersectionSceneBuffers() const override;
     bool prefersClosestHitBatch(std::uint64_t submittedRays) const override;
+    bool prefersAnyHitBatch(std::uint64_t submittedRays) const override;
     const Primitive*
     intersectClosest(const Scene& scene, const Rayd& ray, HitPointInterval& hitPoints, State& state,
                      WavefrontIntersectionQueryTiming* timing = nullptr) const override;
@@ -354,6 +356,7 @@ namespace render {
     const CompiledIntersectionScene* compiledScene() const override;
     const GpuIntersectionSceneBuffers* gpuIntersectionSceneBuffers() const override;
     bool prefersClosestHitBatch(std::uint64_t submittedRays) const override;
+    bool prefersAnyHitBatch(std::uint64_t submittedRays) const override;
     const Primitive*
     intersectClosest(const Scene& scene, const Rayd& ray, HitPointInterval& hitPoints, State& state,
                      WavefrontIntersectionQueryTiming* timing = nullptr) const override;

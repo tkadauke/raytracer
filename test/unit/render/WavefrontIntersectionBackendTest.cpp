@@ -79,6 +79,8 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0u, backend.estimatedClosestHitReadbackBytes(4));
     EXPECT_EQ(0u, backend.estimatedAnyHitRayUploadBytes(4));
     EXPECT_EQ(0u, backend.estimatedAnyHitReadbackBytes(4));
+    EXPECT_FALSE(backend.prefersClosestHitBatch(4));
+    EXPECT_FALSE(backend.prefersAnyHitBatch(4));
   }
 
   TEST(WavefrontIntersectionBackend, MetalStubReportsUnavailableCpuFallback) {
@@ -671,6 +673,8 @@ namespace WavefrontIntersectionBackendTest {
     ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
     EXPECT_FALSE(backend->prefersClosestHitBatch(1));
     EXPECT_TRUE(backend->prefersClosestHitBatch(2));
+    EXPECT_TRUE(backend->prefersAnyHitBatch(1));
+    EXPECT_TRUE(backend->prefersAnyHitBatch(2));
 
     State hitState;
     State missState;
