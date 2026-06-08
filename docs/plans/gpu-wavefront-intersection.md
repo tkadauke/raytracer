@@ -379,23 +379,29 @@ Progress:
   barycentric coordinates. This is a parity harness for the upcoming
   Metal/Vulkan triangle kernel; it is not selected as a render backend yet.
 - `GpuIntersectionScenePacker` now converts compiled BVH nodes, primitive
-  records, triangle payloads, static transform payloads, ray work items, and
-  miss records into 16-byte-aligned POD buffers suitable for Metal/Vulkan
-  uploads. It also marks whether a compiled scene is eligible for the first
-  triangle closest-hit kernel: all primitive records must be triangles with no
-  transform payload. This keeps the next kernel work focused on traversal and
-  hit-record parity instead of ad hoc per-backend layout decisions.
+  records, triangle/sphere/plane/rectangle/disk payloads, static transform
+  payloads, ray work items, and miss records into 16-byte-aligned POD buffers
+  suitable for Metal/Vulkan uploads. It also marks whether a compiled scene is
+  eligible for the first triangle closest-hit kernel: all primitive records must
+  be triangles with no transform payload. This keeps the next kernel work
+  focused on traversal and hit-record parity instead of ad hoc per-backend
+  layout decisions.
 - Scene-created GPU fallback stubs now retain those packed upload buffers next
   to the compiled scene. Wavefront metrics, rendercli compact summaries, and
   Modeler graph tooltips expose the retained upload byte count and
-  triangle-kernel eligibility, so the next backend slice can switch from
-  `compiled_cpu` to a platform execution path with visible parity gates.
-- `GpuIntersectionTriangleClosestHitIntersector` now executes iterative
-  closest-hit BVH traversal directly against the packed upload buffers and
-  writes GPU-style hit/miss records. Triangle-eligible prepared GPU fallbacks
-  route closest-hit and packet closest-hit queries through this packed CPU
-  kernel contract; other supported primitive payloads still use the compiled
-  scene parity intersector until their platform kernels exist.
+  triangle-kernel and packed closest-hit eligibility, so each backend slice can
+  switch from `compiled_cpu` to a platform execution path with visible parity
+  gates.
+- `GpuIntersectionClosestHitIntersector` now executes iterative closest-hit BVH
+  traversal directly against the packed upload buffers and writes GPU-style
+  hit/miss records. Triangle- and sphere-eligible prepared GPU fallbacks route
+  closest-hit and packet closest-hit queries through this packed CPU kernel
+  contract; planes, rectangles, disks, and static transform payloads still use
+  the compiled scene parity intersector until their packed traversal is proven.
+  Metrics now record closest-hit and any-hit execution paths separately, so a
+  packed closest-hit frontier reports `packed_cpu` while shadow/any-hit work
+  remains `compiled_cpu`, with `mixed` used when both query paths contribute to
+  a render.
 
 ## Phase 5 - common exact primitives and static instances
 
@@ -423,6 +429,12 @@ Progress:
   payload-local space for static instances, then transforms the resulting hit
   point and normal back through the compiled transform payload so non-uniform
   instance transforms match the runtime `Instance` semantics.
+- Packed closest-hit traversal now covers untransformed sphere payloads in
+  addition to triangles. Spheres preserve material/object ids, hit distance, hit
+  point, and normal through the same GPU-style hit record shape used by the
+  triangle traversal. Plane, rectangle, disk, and static transform payloads
+  remain packed upload data plus compiled-CPU parity traversal until their
+  packed traversal tests land.
 
 ## Phase 6 - any-hit / occlusion queries
 
