@@ -136,11 +136,12 @@ adaptive sampling state for wavefront path tracing.
 ray-scene intersection backend for wavefront batches. `cpu` uses the canonical
 CPU backend. `auto` now runs through the same selection policy the future GPU
 backend will use: platform availability first, then scene support, then an
-expected-ray-count threshold. At this stage, scene support means triangle,
-sphere, plane, rectangle, and disk leaves with either no transform or static
-instance transforms that can use the first Metal closest-hit/any-hit kernels;
-other packed scenes still select CPU and report that selection reason in graph
-trace and wavefront metrics instead of silently behaving like `cpu`.
+expected-ray-count threshold that scales with prepared scene-upload size. At
+this stage, scene support means triangle, sphere, plane, rectangle, and disk
+leaves with either no transform or static instance transforms that can use the
+first Metal closest-hit/any-hit kernels; other packed scenes still select CPU
+and report that selection reason in graph trace and wavefront metrics instead
+of silently behaving like `cpu`.
 `gpu` is accepted as durable intent and reports either the active platform path
 or a CPU fallback reason in graph trace and wavefront metrics. For a
 `gpu` request, the renderer also runs the compiled-intersection-scene diagnostic

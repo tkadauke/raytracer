@@ -196,12 +196,12 @@ The CPU backend is the canonical implementation and supports the full
 scene/primitive set. Render intent and rendercli can still request
 `auto`, `cpu`, or `gpu` so the graph has a stable place for future GPU
 intersection work. `cpu` resolves directly to the CPU backend. `auto`
-runs a selection policy over platform availability, scene support, and
-expected ray count; today scene support is intentionally limited to triangle,
-sphere, plane, rectangle, and disk leaves with either no transform or static
-instance transforms that can use the first Metal closest-hit and any-hit
-kernels, and other scenes report the CPU-selection reason in metrics and graph
-trace metadata. The experimental
+runs a selection policy over platform availability, scene support, expected ray
+count, and scene-upload amortization; today scene support is intentionally
+limited to triangle, sphere, plane, rectangle, and disk leaves with either no
+transform or static instance transforms that can use the first Metal closest-hit
+and any-hit kernels, and other scenes report the CPU-selection reason in
+metrics and graph trace metadata. The experimental
 CMake flags
 `RAYTRACER_ENABLE_METAL_WAVEFRONT` and
 `RAYTRACER_ENABLE_VULKAN_WAVEFRONT` enable platform plumbing checks. The Metal
@@ -304,9 +304,11 @@ also estimate the query transfer footprint that a real GPU backend would pay:
 ray upload bytes plus closest-hit and any-hit readback bytes. CPU and
 unsupported runtime-scene fallbacks report zero for those query-transfer fields;
 prepared GPU-request stubs report the packed ABI byte counts so `auto`
-selection can compare frontier size against upload/readback cost. The render
-engine already supplies a conservative expected-ray-count estimate to that
-policy. When the Metal render-path kernels actually execute, metrics also split
+selection can compare expected ray work against scene upload and query
+upload/readback cost. The render engine already supplies a conservative
+expected-ray-count estimate to that policy, and the policy scales the effective
+GPU threshold upward for larger prepared scene uploads. When the Metal
+render-path kernels actually execute, metrics also split
 backend wall time into host upload/setup, kernel dispatch/wait, and CPU
 readback buckets. CPU fallback paths leave those buckets at zero, while the
 broader intersection-worker timer still records the full CPU query cost. Today
