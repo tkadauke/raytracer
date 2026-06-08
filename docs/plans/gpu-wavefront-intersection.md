@@ -347,6 +347,11 @@ Progress:
   intersector. They still report a CPU fallback because no Metal/Vulkan kernel
   has executed, but they no longer re-enter the runtime `Scene` for supported
   query shapes.
+- Backend metrics now also name the actual query execution path
+  (`runtime_scene` or `compiled_cpu`) separately from the requested and resolved
+  backend ids. This keeps the diagnostic honest while GPU requests still resolve
+  to CPU fallback, and gives the future Metal/Vulkan kernels a clear parity
+  gate when the label changes to a platform execution path.
 
 ## Phase 4 - triangle GPU closest-hit kernel
 
