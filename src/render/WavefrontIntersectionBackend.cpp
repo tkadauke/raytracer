@@ -584,7 +584,7 @@ namespace render {
     const char* reason = "Compiled intersection scene";
     if (preparedPackedAnyHitAvailable()) {
       const GpuIntersectionRay packedRay =
-        GpuIntersectionScenePacker().packRay(ray, 0, 0.0, maxDistance);
+        GpuIntersectionScenePacker().packRay(ray, 0, Ray<float>::epsilon, maxDistance);
       const std::vector<GpuIntersectionOcclusionRecord> records =
         intersectPreparedPackedAny({packedRay}, timing);
       hit = !records.empty() && records.front().occluded != 0;

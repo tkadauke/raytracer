@@ -3,14 +3,18 @@
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wavefront/WavefrontRaytracer.h"
 #include "render/Integrator.h"
+#include "render/PathTracingIntegrator.h"
 #include "render/WavefrontIntersectionBackend.h"
 #include "render/WhittedIntegrator.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/denoise/BoxDenoiser.h"
 #include "render/denoise/Denoiser.h"
+#include "render/lights/PointLight.h"
 #include "render/materials/MatteMaterial.h"
+#include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/Plane.h"
+#include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Torus.h"
@@ -350,6 +354,140 @@ namespace WavefrontRaytracerTest {
   bool usedMetalClosestHit(const engine::wavefront::WavefrontRenderMetrics& metrics) {
     return metrics.batching.intersectionBackendExecutionPath == "metal";
   }
+
+  class BackendParityRenderCase {
+  public:
+    explicit BackendParityRenderCase(std::shared_ptr<render::Scene> scene)
+        : m_scene(std::move(scene)) {
+    }
+
+    void usePathTracing() {
+      m_usePathTracing = true;
+    }
+
+    std::unique_ptr<Buffer<Colord>>
+    renderWith(const render::WavefrontIntersectionBackendChoice& backend) const {
+      auto renderer = std::make_shared<WavefrontRaytracer>(camera(), m_scene);
+      renderer->setMaximumThreads(1);
+      renderer->setQueueSize(1);
+      renderer->setMetricsEnabled(true);
+      renderer->setIntersectionBackend(backend);
+      if (m_usePathTracing) {
+        auto integrator = std::make_unique<render::PathTracingIntegrator>();
+        integrator->setMaximumRecursionDepth(1);
+        integrator->setDirectLightSamples(1);
+        renderer->setIntegrator(std::move(integrator));
+      }
+
+      auto buffer = std::make_unique<Buffer<Colord>>(12, 8);
+      renderer->render(*buffer);
+      m_lastMetrics = renderer->lastMetrics();
+      return buffer;
+    }
+
+    const engine::wavefront::WavefrontRenderMetrics& lastMetrics() const {
+      return m_lastMetrics;
+    }
+
+    void expectBuffersNear(const Buffer<Colord>& expected, const Buffer<Colord>& actual,
+                           double tolerance) const {
+      ASSERT_EQ(expected.width(), actual.width());
+      ASSERT_EQ(expected.height(), actual.height());
+      for (int y = 0; y != expected.height(); ++y) {
+        for (int x = 0; x != expected.width(); ++x) {
+          ASSERT_COLOR_NEAR(expected[y][x], actual[y][x], tolerance)
+            << "at pixel (" << x << ", " << y << ")";
+        }
+      }
+    }
+
+    void expectGpuRequestUsedPreparedBackend() const {
+      EXPECT_EQ("gpu", m_lastMetrics.batching.intersectionBackendRequest);
+      EXPECT_TRUE(m_lastMetrics.batching.intersectionSceneCompiled);
+      EXPECT_EQ(0u, m_lastMetrics.batching.intersectionSceneUnsupportedPrimitives);
+      EXPECT_TRUE(m_lastMetrics.batching.intersectionSceneBasicHitEligible);
+      EXPECT_TRUE(m_lastMetrics.batching.intersectionScenePackedClosestHitEligible);
+      EXPECT_GT(m_lastMetrics.batching.intersectionRaysSubmitted, 0u);
+      if (usedMetalClosestHit(m_lastMetrics)) {
+        EXPECT_EQ("metal", m_lastMetrics.batching.intersectionBackend);
+        EXPECT_EQ("available", m_lastMetrics.batching.intersectionBackendAvailability);
+      } else {
+        EXPECT_EQ("cpu", m_lastMetrics.batching.intersectionBackend);
+        EXPECT_EQ("fallback", m_lastMetrics.batching.intersectionBackendAvailability);
+        EXPECT_EQ("packed_cpu", m_lastMetrics.batching.intersectionBackendExecutionPath);
+      }
+    }
+
+  private:
+    std::shared_ptr<render::PinholeCamera> camera() const {
+      return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d(0, 0, 0));
+    }
+
+    std::shared_ptr<render::Scene> m_scene;
+    bool m_usePathTracing{false};
+    mutable engine::wavefront::WavefrontRenderMetrics m_lastMetrics;
+  };
+
+  class BackendParitySceneFactory {
+  public:
+    std::shared_ptr<render::Scene> supportedPackedParityScene() const {
+      auto scene = std::make_shared<render::Scene>(Colord(0.05, 0.05, 0.05));
+      scene->setBackground(Colord(0.02, 0.03, 0.04));
+      scene->setAmbient(Colord(0.8, 0.8, 0.8));
+
+      auto sphere = std::make_shared<render::Sphere>(Vector3d(-0.75, -0.2, 0.25), 0.45);
+      sphere->setMaterial(matte(Colord(0.8, 0.2, 0.1)));
+      scene->add(sphere);
+
+      auto triangle = std::make_shared<render::Triangle>(
+        Vector3d(0.1, -0.75, 0.2), Vector3d(1.0, -0.55, 0.25), Vector3d(0.35, 0.25, 0.15));
+      triangle->setMaterial(matte(Colord(0.1, 0.7, 0.25)));
+      scene->add(triangle);
+
+      auto rectangle =
+        std::make_shared<render::Rectangle>(Vector3d(-1.5, -1.1, 1.2), Vector3d(3.0, 0.0, 0.0),
+                                            Vector3d(0.0, 2.2, 0.0), Vector3d(0.0, 0.0, -1.0));
+      rectangle->setMaterial(matte(Colord(0.25, 0.35, 0.8)));
+      scene->add(rectangle);
+
+      auto disk =
+        std::make_shared<render::Disk>(Vector3d(0.65, 0.45, 0.05), Vector3d(0.0, 0.0, -1.0), 0.32);
+      disk->setMaterial(matte(Colord(0.95, 0.85, 0.2)));
+      scene->add(disk);
+
+      auto instancedSphere = std::make_shared<render::Sphere>(Vector3d::null, 0.2);
+      instancedSphere->setMaterial(matte(Colord(0.8, 0.2, 0.8)));
+      auto instance = std::make_shared<render::Instance>(instancedSphere);
+      instance->setMatrix(Matrix4d::translate(0.65, -0.05, -0.35));
+      scene->add(instance);
+
+      return scene;
+    }
+
+    std::shared_ptr<render::Scene> pathTracingDirectLightParityScene() const {
+      auto scene = std::make_shared<render::Scene>(Colord::black());
+      scene->setBackground(Colord::black());
+      scene->setAmbient(Colord::black());
+      scene->addLight(
+        std::make_shared<render::PointLight>(Vector3d(0.6, 1.2, -2.0), Colord(2.5, 2.5, 2.5)));
+
+      auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 1.0);
+      sphere->setMaterial(matte(Colord(0.6, 0.6, 0.6)));
+      scene->add(sphere);
+
+      auto occluder = std::make_shared<render::Sphere>(Vector3d(0.25, 0.35, -1.15), 0.18);
+      occluder->setMaterial(matte(Colord(0.2, 0.2, 0.2)));
+      scene->add(occluder);
+
+      return scene;
+    }
+
+  private:
+    std::shared_ptr<render::MatteMaterial> matte(const Colord& color) const {
+      return std::make_shared<render::MatteMaterial>(
+        std::make_shared<render::ConstantColorTexture>(color));
+    }
+  };
 
   TEST(WavefrontRaytracer, DefaultsToWhittedIntegrator) {
     WavefrontRaytracer renderer(std::make_shared<render::Scene>());
@@ -1172,6 +1310,37 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(batching.value("intersectionSceneTriangleClosestHitEligible").toBool());
     EXPECT_TRUE(batching.value("intersectionSceneBasicHitEligible").toBool());
     EXPECT_TRUE(batching.value("intersectionScenePackedClosestHitEligible").toBool());
+  }
+
+  TEST(WavefrontRaytracer, GpuIntersectionRequestMatchesCpuImageForSupportedWhittedScene) {
+    const BackendParitySceneFactory scenes;
+    BackendParityRenderCase renderCase(scenes.supportedPackedParityScene());
+
+    const std::unique_ptr<Buffer<Colord>> cpu =
+      renderCase.renderWith(render::WavefrontIntersectionBackendChoice::cpu());
+    const std::unique_ptr<Buffer<Colord>> gpu =
+      renderCase.renderWith(render::WavefrontIntersectionBackendChoice::gpu());
+
+    renderCase.expectBuffersNear(*cpu, *gpu, 1.0e-4);
+    renderCase.expectGpuRequestUsedPreparedBackend();
+    EXPECT_GT(renderCase.lastMetrics().batching.closestHitQueries, 0u);
+  }
+
+  TEST(WavefrontRaytracer, GpuIntersectionRequestMatchesCpuImageForPathTracingDirectLightScene) {
+    const BackendParitySceneFactory scenes;
+    BackendParityRenderCase renderCase(scenes.pathTracingDirectLightParityScene());
+    renderCase.usePathTracing();
+
+    const std::unique_ptr<Buffer<Colord>> cpu =
+      renderCase.renderWith(render::WavefrontIntersectionBackendChoice::cpu());
+    const std::unique_ptr<Buffer<Colord>> gpu =
+      renderCase.renderWith(render::WavefrontIntersectionBackendChoice::gpu());
+
+    renderCase.expectBuffersNear(*cpu, *gpu, 1.0e-4);
+    renderCase.expectGpuRequestUsedPreparedBackend();
+    EXPECT_GT(renderCase.lastMetrics().batching.closestHitQueries, 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.anyHitQueries, 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.directLightSamples, 0u);
   }
 
   TEST(WavefrontRaytracer, RecordsGpuIntersectionSceneUnsupportedFallbackMetrics) {

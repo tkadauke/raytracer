@@ -937,6 +937,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   cancellation now preserves contributions completed before the depth-boundary
   cancellation check, and scalar progressive display averages use truncating
   channel packing consistently. — GPT-5
+- **Packed wavefront visibility self-shadowing.** Prepared GPU intersection
+  visibility rays now carry a float-appropriate minimum distance into the packed
+  any-hit path, preventing near-surface path-tracing shadow rays from
+  self-occluding after double-precision ray origins are packed for the GPU ABI.
+  — GPT-5
 - **Scalar path-tracing progress artifacts.** Scalar path-tracing progressive
   display now accumulates tiled renders with a one-pixel iterator instead of
   the interlaced display iterator, avoiding tile-local accumulator corruption

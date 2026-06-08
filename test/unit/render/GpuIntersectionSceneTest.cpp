@@ -478,6 +478,20 @@ namespace GpuIntersectionSceneTest {
       buffers, GpuIntersectionScenePacker().packRay(ray, 0, 0.0, 2.01)));
   }
 
+  TEST(GpuIntersectionScene, PackedAnyHitHonorsRayMinimumDistanceForNearSurfaceVisibility) {
+    Scene scene;
+    scene.add(std::make_shared<Sphere>(Vector3d::null, 1.0));
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    const Rayd nearSurfaceRay(Vector4d(0, 0, -1.0 + 5.0e-5, 1), Vector3d(0, 0, -1));
+
+    ASSERT_TRUE(buffers.packedClosestHitKernelEligible());
+    EXPECT_TRUE(GpuIntersectionIntersector().intersectAny(
+      buffers, GpuIntersectionScenePacker().packRay(nearSurfaceRay, 0, 0.0, 10.0)));
+    EXPECT_FALSE(GpuIntersectionIntersector().intersectAny(
+      buffers, GpuIntersectionScenePacker().packRay(nearSurfaceRay, 0, Ray<float>::epsilon, 10.0)));
+  }
+
   TEST(GpuIntersectionScene, PackedAnyHitMatchesGeometryOnlyTransparentSceneOcclusion) {
     auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0);
     sphere->setMaterial(std::make_shared<TransparentMaterial>());

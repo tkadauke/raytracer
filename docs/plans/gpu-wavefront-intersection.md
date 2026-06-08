@@ -481,6 +481,11 @@ Progress:
 - Metal-enabled prepared sphere, plane, rectangle, disk, and static-transform
   scenes now share the render-path basic hit kernels with triangle scenes for
   closest-hit and any-hit queries.
+- Wavefront renderer-level parity tests now compare `cpu` and `gpu`
+  intersection-backend requests on a deterministic supported Whitted scene that
+  mixes sphere, triangle, rectangle, disk, and static instance payloads. The
+  test asserts the prepared packed backend path is actually used, so future
+  platform kernels have an image-level gate instead of only hit-record parity.
 
 ## Phase 6 - any-hit / occlusion queries
 
@@ -525,6 +530,13 @@ Progress:
   volumetric, or partial-shadow materials make visibility material-dependent,
   the compiler must make those leaves ineligible for packed/GPU any-hit until a
   matching visibility kernel exists.
+- Prepared packed visibility rays now carry `Ray<float>::epsilon` as their
+  minimum hit distance. This preserves the intent of epsilon-shifted shadow rays
+  after the double-precision CPU ray is packed into the float GPU ABI, avoiding
+  near-surface self-shadowing in path-traced direct lighting. A renderer-level
+  parity test now compares `cpu` and `gpu` intersection-backend requests for a
+  direct-light path-tracing scene and asserts both closest-hit and any-hit
+  queries were exercised.
 
 ## Phase 7 - automatic selection and performance gates
 
