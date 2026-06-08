@@ -551,6 +551,10 @@ Progress:
 - Wavefront diagnostics now split submitted intersection rays by closest-hit and
   any-hit query family, so batched visibility can be inspected as both one
   backend query and multiple submitted shadow rays.
+- Direct-light visibility batching now also records per-depth any-hit batch
+  chunks and rays. rendercli summaries, metrics JSON, and the Modeler graph
+  tooltip expose those counters beside closest-hit frontier batches, making the
+  two GPU query families independently visible.
 - `CompiledIntersectionSceneIntersector` now has a CPU any-hit parity query for
   supported compiled payloads and static instances. It uses the same bounded
   light-distance rule as `Scene::occludes(...)`, so GPU any-hit kernels have a

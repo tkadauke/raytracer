@@ -240,7 +240,9 @@ execution path: runtime `Scene` traversal, compiled CPU parity traversal,
 packed-buffer CPU traversal, or a Metal kernel. Batched path-tracing
 direct-light visibility goes through the same backend seam via
 `intersectAny(...)`, so the graph and metrics can separate closest-hit and
-any-hit ray counts for CPU and GPU-resident query families.
+any-hit ray counts for CPU and GPU-resident query families. Metrics also keep
+per-depth direct-light any-hit batch counters, so one visibility batch with many
+shadow rays is distinguishable from many scalar shadow queries.
 Prepared GPU-style backends can also opt into arbitrary closest-hit frontier
 batches, letting a path-tracing bounce submit one group of camera/path rays
 instead of slicing that frontier into Ray4/Ray8 packets before it reaches the

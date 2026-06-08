@@ -73,6 +73,8 @@ namespace IntegratorTest {
     EXPECT_TRUE(metrics.frontierPacketRaysPerDepth.empty());
     EXPECT_TRUE(metrics.frontierClosestHitBatchChunksPerDepth.empty());
     EXPECT_TRUE(metrics.frontierClosestHitBatchRaysPerDepth.empty());
+    EXPECT_TRUE(metrics.directLightAnyHitBatchChunksPerDepth.empty());
+    EXPECT_TRUE(metrics.directLightAnyHitBatchRaysPerDepth.empty());
     EXPECT_TRUE(metrics.frontierRay4PacketChunksPerDepth.empty());
     EXPECT_TRUE(metrics.frontierRay8PacketChunksPerDepth.empty());
     EXPECT_TRUE(metrics.frontierScalarRaysPerDepth.empty());

@@ -589,6 +589,10 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
       batching.value(QStringLiteral("frontierClosestHitBatchChunksPerDepth")).toArray());
     const qulonglong closestHitBatchRays = jsonIntegerArraySum(
       batching.value(QStringLiteral("frontierClosestHitBatchRaysPerDepth")).toArray());
+    const qulonglong directLightAnyHitBatchChunks = jsonIntegerArraySum(
+      batching.value(QStringLiteral("directLightAnyHitBatchChunksPerDepth")).toArray());
+    const qulonglong directLightAnyHitBatchRays = jsonIntegerArraySum(
+      batching.value(QStringLiteral("directLightAnyHitBatchRaysPerDepth")).toArray());
     const qulonglong ray4PacketChunks = jsonIntegerArraySum(
       batching.value(QStringLiteral("frontierRay4PacketChunksPerDepth")).toArray());
     const qulonglong ray8PacketChunks = jsonIntegerArraySum(
@@ -630,6 +634,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
       line += QStringLiteral(", closest-hit batches %1 rays/%2 chunks")
                 .arg(closestHitBatchRays)
                 .arg(closestHitBatchChunks);
+    }
+    if (directLightAnyHitBatchChunks > 0) {
+      line += QStringLiteral(", direct-light any-hit batches %1 rays/%2 chunks")
+                .arg(directLightAnyHitBatchRays)
+                .arg(directLightAnyHitBatchChunks);
     }
   }
   const QJsonObject depthPrepass =

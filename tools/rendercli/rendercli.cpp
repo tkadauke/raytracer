@@ -177,6 +177,10 @@ namespace {
         batching.value("frontierClosestHitBatchChunksPerDepth").toArray();
       const QJsonArray frontierClosestHitBatchRays =
         batching.value("frontierClosestHitBatchRaysPerDepth").toArray();
+      const QJsonArray directLightAnyHitBatches =
+        batching.value("directLightAnyHitBatchChunksPerDepth").toArray();
+      const QJsonArray directLightAnyHitBatchRays =
+        batching.value("directLightAnyHitBatchRaysPerDepth").toArray();
       const QJsonArray frontierRay4Packets =
         batching.value("frontierRay4PacketChunksPerDepth").toArray();
       const QJsonArray frontierRay8Packets =
@@ -194,6 +198,8 @@ namespace {
       const std::uint64_t frontierPacketRayCount = unsignedArraySum(frontierPacketRays);
       const std::uint64_t frontierClosestHitBatchRayCount =
         unsignedArraySum(frontierClosestHitBatchRays);
+      const std::uint64_t directLightAnyHitBatchRayCount =
+        unsignedArraySum(directLightAnyHitBatchRays);
       const std::uint64_t frontierRay4PacketChunkCount = unsignedArraySum(frontierRay4Packets);
       const std::uint64_t frontierRay8PacketChunkCount = unsignedArraySum(frontierRay8Packets);
       const std::uint64_t frontierScalarRayCount = unsignedArraySum(frontierScalarRays);
@@ -317,6 +323,8 @@ namespace {
         << " frontier_packet_rays=" << frontierPacketRayCount
         << " frontier_closest_hit_batch_chunks=" << unsignedArraySum(frontierClosestHitBatches)
         << " frontier_closest_hit_batch_rays=" << frontierClosestHitBatchRayCount
+        << " direct_light_any_hit_batch_chunks=" << unsignedArraySum(directLightAnyHitBatches)
+        << " direct_light_any_hit_batch_rays=" << directLightAnyHitBatchRayCount
         << " frontier_ray4_packet_chunks=" << frontierRay4PacketChunkCount
         << " frontier_ray8_packet_chunks=" << frontierRay8PacketChunkCount
         << " frontier_packet_fill="

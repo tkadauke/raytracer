@@ -2273,6 +2273,16 @@ if(NOT wavefront_metrics_json MATCHES "\"frontierClosestHitBatchRaysPerDepth\"")
                   "wavefront metrics report did not contain frontier closest-hit batch ray counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+if(NOT wavefront_metrics_json MATCHES "\"directLightAnyHitBatchChunksPerDepth\"")
+  _rendercli_fail("rendercli wavefront metrics direct-light any-hit batch chunks"
+                  "wavefront metrics report did not contain direct-light any-hit batch chunk counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"directLightAnyHitBatchRaysPerDepth\"")
+  _rendercli_fail("rendercli wavefront metrics direct-light any-hit batch rays"
+                  "wavefront metrics report did not contain direct-light any-hit batch ray counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
 if(NOT wavefront_metrics_json MATCHES "\"frontierRay4PacketChunksPerDepth\"")
   _rendercli_fail("rendercli wavefront metrics frontier Ray4 packet chunks"
                   "wavefront metrics report did not contain frontier Ray4 packet chunk counters"
@@ -2605,7 +2615,7 @@ rendercli_run(
   NAME "rendercli reports batched wavefront any-hit visibility metrics"
   OUTPUT_VARIABLE wavefront_batched_visibility_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*any_hit_rays=[1-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*direct_light_samples=[1-9][0-9]*"
+    "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*any_hit_rays=[1-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*direct_light_any_hit_batch_chunks=[1-9][0-9]*.*direct_light_any_hit_batch_rays=[1-9][0-9]*.*direct_light_samples=[1-9][0-9]*"
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
     --pathtracer_direct_light_samples 3 --wavefront_denoiser none
@@ -2620,10 +2630,24 @@ set(wavefront_batched_visibility_any_hit_rays "${CMAKE_MATCH_1}")
 string(REGEX MATCH "any_hit_queries=([0-9][0-9]*)" _any_hit_queries_match
              "${wavefront_batched_visibility_stdout}")
 set(wavefront_batched_visibility_any_hit_queries "${CMAKE_MATCH_1}")
+string(REGEX MATCH "direct_light_any_hit_batch_rays=([0-9][0-9]*)"
+             _direct_light_any_hit_batch_rays_match
+             "${wavefront_batched_visibility_stdout}")
+set(wavefront_batched_visibility_any_hit_batch_rays "${CMAKE_MATCH_1}")
+string(REGEX MATCH "direct_light_any_hit_batch_chunks=([0-9][0-9]*)"
+             _direct_light_any_hit_batch_chunks_match
+             "${wavefront_batched_visibility_stdout}")
+set(wavefront_batched_visibility_any_hit_batch_chunks "${CMAKE_MATCH_1}")
 if(NOT wavefront_batched_visibility_any_hit_rays GREATER wavefront_batched_visibility_any_hit_queries)
   _rendercli_fail(
     "rendercli batched wavefront any-hit visibility metrics"
     "expected any_hit_rays to exceed any_hit_queries when direct-light visibility is batched"
+    "${wavefront_batched_visibility_stdout}" "" "" "")
+endif()
+if(NOT wavefront_batched_visibility_any_hit_batch_rays GREATER wavefront_batched_visibility_any_hit_batch_chunks)
+  _rendercli_fail(
+    "rendercli direct-light any-hit batch metrics"
+    "expected direct_light_any_hit_batch_rays to exceed direct_light_any_hit_batch_chunks"
     "${wavefront_batched_visibility_stdout}" "" "" "")
 endif()
 

@@ -54,6 +54,8 @@ namespace render {
     frontierPacketRaysPerDepth.clear();
     frontierClosestHitBatchChunksPerDepth.clear();
     frontierClosestHitBatchRaysPerDepth.clear();
+    directLightAnyHitBatchChunksPerDepth.clear();
+    directLightAnyHitBatchRaysPerDepth.clear();
     frontierRay4PacketChunksPerDepth.clear();
     frontierRay8PacketChunksPerDepth.clear();
     frontierScalarRaysPerDepth.clear();
@@ -158,6 +160,19 @@ namespace render {
                                                              std::uint64_t batchRays) {
     frontierClosestHitBatchChunksPerDepth.push_back(batchChunks);
     frontierClosestHitBatchRaysPerDepth.push_back(batchRays);
+  }
+
+  void IntegratorBatchMetrics::recordDirectLightAnyHitBatch(std::uint64_t depth,
+                                                            std::uint64_t batchChunks,
+                                                            std::uint64_t batchRays) {
+    if (directLightAnyHitBatchChunksPerDepth.size() <= depth) {
+      directLightAnyHitBatchChunksPerDepth.resize(depth + 1);
+    }
+    if (directLightAnyHitBatchRaysPerDepth.size() <= depth) {
+      directLightAnyHitBatchRaysPerDepth.resize(depth + 1);
+    }
+    directLightAnyHitBatchChunksPerDepth[depth] += batchChunks;
+    directLightAnyHitBatchRaysPerDepth[depth] += batchRays;
   }
 
   void IntegratorBatchMetrics::recordPacketScalarFallbacksByReason(

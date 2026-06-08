@@ -1520,6 +1520,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(2u, metrics.intersectionRaysSubmitted);
     EXPECT_EQ(1u, metrics.closestHitRaysSubmitted);
     EXPECT_EQ(1u, metrics.anyHitRaysSubmitted);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchRaysPerDepth);
   }
 
   TEST(PathTracingIntegrator, BatchedDirectLightingBatchesConfiguredVisibilitySamples) {
@@ -1560,6 +1562,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(4u, metrics.intersectionRaysSubmitted);
     EXPECT_EQ(1u, metrics.closestHitRaysSubmitted);
     EXPECT_EQ(3u, metrics.anyHitRaysSubmitted);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{3u}), metrics.directLightAnyHitBatchRaysPerDepth);
     EXPECT_EQ(3u, metrics.directLightSamples);
     EXPECT_EQ(3u, metrics.directLightContributingSamples);
   }

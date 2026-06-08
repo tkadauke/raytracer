@@ -299,6 +299,8 @@ namespace render {
       occluded = resolvedIntersectionBackend.intersectAnyBatch(
         scene, shadowQueries, metrics ? &intersectionTiming : nullptr);
       if (metrics) {
+        metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, bounce)),
+                                              /*batchChunks=*/1, shadowQueries.size());
         metrics->recordAnyHitQuery(resolvedIntersectionBackend, shadowQueries.size(),
                                    intersectionTiming);
       }
