@@ -248,6 +248,16 @@ Gate:
 - The chosen API/toolchain path can be configured on macOS and Linux without
   breaking the default build.
 
+Progress:
+
+- `RAYTRACER_ENABLE_METAL_WAVEFRONT` and
+  `RAYTRACER_ENABLE_VULKAN_WAVEFRONT` are now explicit CMake options. They
+  default off, enforce the intended host platform, and publish compile
+  definitions to the library and dependents. The current platform stubs still
+  report CPU fallback because no compute kernel is built yet, but their
+  diagnostics now distinguish disabled plumbing from enabled-without-kernel
+  plumbing.
+
 ## Phase 1 - backend interface and CPU refactor
 
 Tasks:
@@ -504,6 +514,12 @@ Progress:
   GPU-request stubs report the bytes their retained packed buffers would submit
   to a real Metal/Vulkan kernel. This gives `auto` selection and performance
   gates a visible upload/readback cost signal before real kernels are enabled.
+- `auto` backend selection now has an explicit policy object and receives a
+  conservative expected-ray-count estimate from `WavefrontRaytracer`. It
+  requires platform GPU availability, a fully supported packed intersection
+  scene, and enough expected ray work before choosing the GPU path. Until real
+  Metal/Vulkan kernels are available, `auto` stays on the runtime CPU backend
+  and reports that selection reason in render metrics and graph trace.
 
 ## Phase 8 - future work
 
