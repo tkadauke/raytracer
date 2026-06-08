@@ -363,13 +363,26 @@ file(WRITE "${wavefront_supported_backend_scene}" [=[
     {
       "id": "sphere",
       "name": "Supported Sphere",
-      "position": [0.0, 0.0, 0.0],
+      "position": [-0.55, 0.0, 0.0],
       "rotation": [0.0, 0.0, 0.0],
       "scale": [1.0, 1.0, 1.0],
       "visible": true,
       "material": "blue-material",
       "radius": 1.0,
       "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "box",
+      "name": "Supported Box",
+      "position": [1.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "blue-material",
+      "size": [0.8, 0.8, 0.8],
+      "bevelRadius": 0.0,
+      "type": "Box",
       "children": []
     }
   ]

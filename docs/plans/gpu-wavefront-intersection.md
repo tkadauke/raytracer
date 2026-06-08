@@ -478,6 +478,10 @@ Progress:
   primitives and static instances preserve material/object ids, hit distance,
   hit point, normal, and empty UV/barycentric channels through the same
   GPU-style hit record shape used by the triangle traversal.
+- Box leaves now compile into the same triangle payload path using the canonical
+  12-triangle box tessellation, while preserving the exact raytraced Box's
+  default hit-UV semantics. This lets Box-only supported scenes use prepared
+  packed traversal without adding a separate box kernel ABI.
 - Metal-enabled prepared sphere, plane, rectangle, disk, and static-transform
   scenes now share the render-path basic hit kernels with triangle scenes for
   closest-hit and any-hit queries.

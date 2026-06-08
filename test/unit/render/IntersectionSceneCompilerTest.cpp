@@ -7,6 +7,7 @@
 #include "render/IntersectionSceneCompiler.h"
 #include "render/State.h"
 #include "render/materials/MatteMaterial.h"
+#include "render/primitives/Box.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/FlatMeshTriangle.h"
 #include "render/primitives/Instance.h"
@@ -137,6 +138,23 @@ namespace IntersectionSceneCompilerTest {
     EXPECT_EQ(IntersectionPrimitiveKind::Triangle, compiled.primitives()[0].kind);
     EXPECT_EQ(Vector3d(1, 0, 0), compiled.triangles()[0].point1);
     EXPECT_EQ(Vector2d(0, 1), compiled.triangles()[0].uv2);
+  }
+
+  TEST(IntersectionSceneCompiler, CompilesBoxAsTrianglePayloads) {
+    auto box = std::make_shared<Box>(Vector3d(1, 2, 3), Vector3d(2, 3, 4));
+    Scene scene;
+    scene.add(box);
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+
+    ASSERT_EQ(12u, compiled.primitives().size());
+    ASSERT_EQ(12u, compiled.triangles().size());
+    EXPECT_TRUE(compiled.fullySupported());
+    for (const IntersectionPrimitiveRecord& primitive : compiled.primitives()) {
+      EXPECT_EQ(IntersectionPrimitiveKind::Triangle, primitive.kind);
+      ASSERT_GT(compiled.objects().size(), primitive.object);
+      EXPECT_EQ(box.get(), compiled.objects()[primitive.object]);
+    }
   }
 
   TEST(IntersectionSceneCompiler, RecordsUnsupportedPrimitiveReasons) {
@@ -329,6 +347,15 @@ namespace IntersectionSceneCompilerTest {
     const Rayd ray(Vector4d(0.25, 0.5, -3, 1), Vector3d(0, 0, 1));
 
     expectCompiledClosestHitMatchesRuntime(scene, ray);
+  }
+
+  TEST(CompiledIntersectionSceneIntersector, IntersectsBoxTrianglesLikeRuntimeScene) {
+    Scene scene;
+    scene.add(std::make_shared<Box>(Vector3d(0, 0, 0), Vector3d(1, 1, 1)));
+    const Rayd ray(Vector4d(0.25, 0.5, -3, 1), Vector3d(0, 0, 1));
+
+    expectCompiledClosestHitMatchesRuntime(scene, ray);
+    expectCompiledAnyHitMatchesRuntime(scene, ray, 3.0);
   }
 
   TEST(CompiledIntersectionSceneIntersector, IntersectsStaticInstanceTransformLikeRuntimeScene) {

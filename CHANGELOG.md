@@ -30,6 +30,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   derive portal cameras from receiver/source transforms and mirror cameras from
   planar reflection, carrying explicit receiver-clipping state through graph
   inspection and execution. — GPT-5
+- **Box support in compiled wavefront intersection scenes.** GPU-requested
+  wavefront renders can now compile `render::Box` leaves into the packed
+  triangle intersection path while preserving the exact raytraced Box hit UV
+  semantics. — GPT-5
 - **Wavefront backend timing metrics.** Metal wavefront intersection queries now
   report backend upload/setup, kernel dispatch/wait, and readback timing
   buckets when a platform kernel runs; rendercli summaries, metrics JSON, and

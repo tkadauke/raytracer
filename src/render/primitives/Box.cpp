@@ -1,4 +1,5 @@
 #include "render/State.h"
+#include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/Box.h"
 #include "core/SimdFeatures.h"
 #include "core/geometry/Mesh.h"
@@ -370,6 +371,20 @@ Vector3d Box::farthestPoint(const Vector3d& direction) const {
   return m_center + Vector3d(direction.x() < 0.0 ? -m_edge.x() : m_edge.x(),
                              direction.y() < 0.0 ? -m_edge.y() : m_edge.y(),
                              direction.z() < 0.0 ? -m_edge.z() : m_edge.z());
+}
+
+void Box::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                        const TransformedLeaf& leaf) const {
+  const std::shared_ptr<Mesh> mesh = tessellate(0);
+  for (auto triangle = mesh->begin(); triangle != mesh->end(); ++triangle) {
+    const auto& indices = *triangle;
+    const auto& v0 = mesh->vertices()[indices[0]];
+    const auto& v1 = mesh->vertices()[indices[1]];
+    const auto& v2 = mesh->vertices()[indices[2]];
+    builder.addTriangle(leaf, IntersectionTrianglePayload{v0.point, v1.point, v2.point, v0.normal,
+                                                          v1.normal, v2.normal, Vector2d::null,
+                                                          Vector2d::null, Vector2d::null});
+  }
 }
 
 std::shared_ptr<Mesh> Box::tessellate(int) const {

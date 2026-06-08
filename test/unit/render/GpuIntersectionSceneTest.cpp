@@ -10,6 +10,7 @@
 #include "render/State.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/TransparentMaterial.h"
+#include "render/primitives/Box.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/Plane.h"
@@ -76,13 +77,14 @@ namespace GpuIntersectionSceneTest {
 
     void expectPackedClosestHitMatchesCompiled(const Scene& scene, const Rayd& ray,
                                                std::uint32_t rayIndex = 31,
-                                               bool expectedBasicHitKernelEligible = false) {
+                                               bool expectedBasicHitKernelEligible = false,
+                                               bool expectedTriangleHitKernelEligible = false) {
       const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
       const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
       const GpuIntersectionRay packedRay = GpuIntersectionScenePacker().packRay(ray, rayIndex);
 
       ASSERT_TRUE(buffers.packedClosestHitKernelEligible());
-      ASSERT_FALSE(buffers.triangleClosestHitKernelEligible());
+      ASSERT_EQ(expectedTriangleHitKernelEligible, buffers.triangleClosestHitKernelEligible());
       ASSERT_EQ(expectedBasicHitKernelEligible, buffers.basicHitKernelEligible());
 
       const CompiledIntersectionHit compiledHit =
@@ -379,6 +381,15 @@ namespace GpuIntersectionSceneTest {
     const Rayd ray(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
 
     expectPackedClosestHitMatchesCompiled(scene, ray, 24, true);
+  }
+
+  TEST(GpuIntersectionScene, PackedBoxTriangleClosestHitMatchesCompiledSceneHit) {
+    Scene scene;
+    scene.add(std::make_shared<Box>(Vector3d(0, 0, 3), Vector3d(1, 1, 1)));
+    const Rayd ray(Vector4d(0.25, 0.5, 0, 1), Vector3d(0, 0, 1));
+
+    expectPackedClosestHitMatchesCompiled(scene, ray, 25, true, true);
+    expectPackedAnyHitMatchesCompiled(scene, ray, 4.0);
   }
 
   TEST(GpuIntersectionScene, PackedTriangleClosestHitSelectsNearestPrimitiveThroughBvh) {
