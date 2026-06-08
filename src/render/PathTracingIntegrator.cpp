@@ -160,11 +160,6 @@ namespace render {
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-      if (isCancelled()) {
-        recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
-        return;
-      }
-
       path.state.recurseIn();
       if (depthMetrics.trackFrontierMetrics()) {
         ++depthMetrics.frontierScalarRays;
