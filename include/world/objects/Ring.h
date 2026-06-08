@@ -121,7 +121,7 @@ public:
     m_bevelRadius = radius;
   }
 
-  virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
+  std::shared_ptr<render::Primitive> toRaytracerPrimitive() const override;
 
 private:
   std::shared_ptr<render::Primitive> closedCylinder(double radius, double height) const;

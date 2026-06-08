@@ -45,7 +45,7 @@ public:
     m_height = std::max(std::abs(height), std::numeric_limits<double>::epsilon());
   }
 
-  virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
+  std::shared_ptr<render::Primitive> toRaytracerPrimitive() const override;
 
 private:
   double m_radius;

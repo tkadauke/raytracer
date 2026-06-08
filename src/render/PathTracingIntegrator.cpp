@@ -763,6 +763,13 @@ namespace render {
       if (metrics) {
         metrics->recordActiveDepth(activeCount);
       }
+      if (isCancelled()) {
+        if (metrics) {
+          metrics->recordRadianceDeltaDepth(0.0, 0.0);
+          metrics->recordRetainedActiveDepth(0);
+        }
+        break;
+      }
 
       std::size_t retainedPathCount = 0;
       BatchDepthMetrics depthMetrics;

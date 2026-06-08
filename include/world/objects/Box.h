@@ -78,7 +78,7 @@ public:
     m_bevelRadius = std::min(size().min(), radius);
   }
 
-  virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
+  std::shared_ptr<render::Primitive> toRaytracerPrimitive() const override;
 
 private:
   Vector3d m_size;

@@ -35,7 +35,7 @@ public:
     m_radius = std::max(std::abs(radius), std::numeric_limits<double>::epsilon());
   }
 
-  virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
+  std::shared_ptr<render::Primitive> toRaytracerPrimitive() const override;
 
 protected:
   bool supportsPlanarSceneMarker() const override;

@@ -18,5 +18,5 @@ public:
     */
   explicit Difference(Element* parent = nullptr);
 
-  virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
+  std::shared_ptr<render::Primitive> toRaytracerPrimitive() const override;
 };
