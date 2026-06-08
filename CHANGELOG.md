@@ -779,6 +779,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Path-tracing cancellation and progressive averages.** Batched path-tracing
+  cancellation now preserves contributions completed before the depth-boundary
+  cancellation check, and scalar progressive display averages use truncating
+  channel packing consistently. — GPT-5
 - **Scalar path-tracing progress artifacts.** Scalar path-tracing progressive
   display now accumulates tiled renders with a one-pixel iterator instead of
   the interlaced display iterator, avoiding tile-local accumulator corruption
