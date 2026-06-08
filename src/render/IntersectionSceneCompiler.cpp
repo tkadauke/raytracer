@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <optional>
 #include <utility>
 
 #include "render/primitives/Scene.h"
@@ -17,58 +18,135 @@ namespace {
     return leaf.pointMatrix == Matrix4d() && leaf.normalMatrix == Matrix3d();
   }
 
-  double finiteCentroidComponent(const IntersectionPrimitiveRecord& primitive, int axis) {
-    const double value = primitive.bounds.center()[axis];
-    return std::isfinite(value) ? value : 0.0;
-  }
-
-  int longestAxis(const BoundingBoxd& bounds) {
-    const Vector3d size = bounds.size();
-    int axis = 0;
-    if (size[1] > size[axis])
-      axis = 1;
-    if (size[2] > size[axis])
-      axis = 2;
-    return axis;
-  }
-
-  BoundingBoxd primitiveRangeBounds(const std::vector<IntersectionPrimitiveRecord>& primitives,
-                                    std::uint32_t first, std::uint32_t count) {
-    BoundingBoxd bounds;
-    for (std::uint32_t index = first; index != first + count; ++index) {
-      bounds.include(primitives[index].bounds);
+  class FlatIntersectionBvhBuilder {
+  public:
+    void build(std::vector<FlatIntersectionBvhNode>& bvh,
+               std::vector<IntersectionPrimitiveRecord>& primitives) const {
+      if (!primitives.empty()) {
+        buildNode(bvh, primitives, 0, static_cast<std::uint32_t>(primitives.size()));
+      }
     }
-    return bounds;
-  }
 
-  std::uint32_t buildBvhNode(std::vector<FlatIntersectionBvhNode>& bvh,
-                             std::vector<IntersectionPrimitiveRecord>& primitives,
-                             std::uint32_t first, std::uint32_t count) {
-    const std::uint32_t nodeIndex = static_cast<std::uint32_t>(bvh.size());
-    bvh.push_back({});
+  private:
+    std::uint32_t buildNode(std::vector<FlatIntersectionBvhNode>& bvh,
+                            std::vector<IntersectionPrimitiveRecord>& primitives,
+                            std::uint32_t first, std::uint32_t count) const {
+      const std::uint32_t nodeIndex = static_cast<std::uint32_t>(bvh.size());
+      bvh.push_back({});
 
-    const BoundingBoxd bounds = primitiveRangeBounds(primitives, first, count);
-    if (count <= maxBvhLeafPrimitiveCount) {
-      bvh[nodeIndex] = FlatIntersectionBvhNode::leaf(bounds, first, count);
+      const BoundingBoxd bounds = primitiveRangeBounds(primitives, first, count);
+      if (count <= maxBvhLeafPrimitiveCount) {
+        bvh[nodeIndex] = FlatIntersectionBvhNode::leaf(bounds, first, count);
+        return nodeIndex;
+      }
+
+      const std::uint32_t leftCount = chooseSahSplit(primitives, first, count, bounds);
+      const std::uint32_t rightCount = count - leftCount;
+      const std::uint32_t leftChild = buildNode(bvh, primitives, first, leftCount);
+      const std::uint32_t rightChild = buildNode(bvh, primitives, first + leftCount, rightCount);
+      bvh[nodeIndex] = FlatIntersectionBvhNode::branch(bounds, leftChild, rightChild);
       return nodeIndex;
     }
 
-    const int axis = longestAxis(bounds);
-    const auto begin = primitives.begin() + first;
-    const auto end = begin + count;
-    std::stable_sort(
-      begin, end,
-      [axis](const IntersectionPrimitiveRecord& lhs, const IntersectionPrimitiveRecord& rhs) {
-        return finiteCentroidComponent(lhs, axis) < finiteCentroidComponent(rhs, axis);
-      });
+    std::uint32_t chooseSahSplit(std::vector<IntersectionPrimitiveRecord>& primitives,
+                                 std::uint32_t first, std::uint32_t count,
+                                 const BoundingBoxd& bounds) const {
+      const int axis = longestCentroidAxis(primitives, first, count);
+      const auto begin = primitives.begin() + first;
+      const auto end = begin + count;
+      std::stable_sort(begin, end,
+                       [this, axis](const IntersectionPrimitiveRecord& lhs,
+                                    const IntersectionPrimitiveRecord& rhs) {
+                         return finiteCentroidComponent(lhs, axis) <
+                                finiteCentroidComponent(rhs, axis);
+                       });
 
-    const std::uint32_t leftCount = count / 2;
-    const std::uint32_t rightCount = count - leftCount;
-    const std::uint32_t leftChild = buildBvhNode(bvh, primitives, first, leftCount);
-    const std::uint32_t rightChild = buildBvhNode(bvh, primitives, first + leftCount, rightCount);
-    bvh[nodeIndex] = FlatIntersectionBvhNode::branch(bounds, leftChild, rightChild);
-    return nodeIndex;
-  }
+      const std::uint32_t medianSplit = count / 2;
+      const std::optional<std::uint32_t> sahSplit = bestSahSplit(primitives, first, count, bounds);
+      if (!sahSplit) {
+        return medianSplit;
+      }
+      return *sahSplit;
+    }
+
+    std::optional<std::uint32_t>
+    bestSahSplit(const std::vector<IntersectionPrimitiveRecord>& primitives, std::uint32_t first,
+                 std::uint32_t count, const BoundingBoxd& bounds) const {
+      std::vector<BoundingBoxd> rightBounds(count);
+      rightBounds[count - 1] = primitives[first + count - 1].bounds;
+      for (std::uint32_t offset = count - 1; offset-- > 0;) {
+        rightBounds[offset] = rightBounds[offset + 1];
+        rightBounds[offset].include(primitives[first + offset].bounds);
+      }
+
+      const double leafCost = surfaceArea(bounds) * count;
+      double bestCost = std::numeric_limits<double>::infinity();
+      std::uint32_t bestSplit = 0;
+      BoundingBoxd leftBounds;
+      for (std::uint32_t offset = 0; offset != count - 1; ++offset) {
+        leftBounds.include(primitives[first + offset].bounds);
+        const std::uint32_t leftCount = offset + 1;
+        const std::uint32_t rightCount = count - leftCount;
+        const double cost =
+          surfaceArea(leftBounds) * leftCount + surfaceArea(rightBounds[offset + 1]) * rightCount;
+        if (cost < bestCost) {
+          bestCost = cost;
+          bestSplit = leftCount;
+        }
+      }
+
+      if (!std::isfinite(bestCost) || bestCost >= leafCost) {
+        return std::nullopt;
+      }
+      return bestSplit;
+    }
+
+    BoundingBoxd primitiveRangeBounds(const std::vector<IntersectionPrimitiveRecord>& primitives,
+                                      std::uint32_t first, std::uint32_t count) const {
+      BoundingBoxd bounds;
+      for (std::uint32_t index = first; index != first + count; ++index) {
+        bounds.include(primitives[index].bounds);
+      }
+      return bounds;
+    }
+
+    int longestCentroidAxis(const std::vector<IntersectionPrimitiveRecord>& primitives,
+                            std::uint32_t first, std::uint32_t count) const {
+      BoundingBoxd bounds;
+      for (std::uint32_t index = first; index != first + count; ++index) {
+        bounds.include(centroid(primitives[index]));
+      }
+
+      const Vector3d size = bounds.size();
+      int axis = 0;
+      if (size[1] > size[axis])
+        axis = 1;
+      if (size[2] > size[axis])
+        axis = 2;
+      return axis;
+    }
+
+    Vector3d centroid(const IntersectionPrimitiveRecord& primitive) const {
+      const Vector3d value = primitive.bounds.center();
+      return Vector3d(finiteComponent(value.x()), finiteComponent(value.y()),
+                      finiteComponent(value.z()));
+    }
+
+    double finiteCentroidComponent(const IntersectionPrimitiveRecord& primitive, int axis) const {
+      return centroid(primitive)[axis];
+    }
+
+    double finiteComponent(double value) const {
+      return std::isfinite(value) ? value : 0.0;
+    }
+
+    double surfaceArea(const BoundingBoxd& bounds) const {
+      if (!bounds.isValid())
+        return 0.0;
+      const Vector3d size = bounds.size();
+      return 2.0 * (size.x() * size.y() + size.y() * size.z() + size.z() * size.x());
+    }
+  };
 }
 
 FlatIntersectionBvhNode FlatIntersectionBvhNode::leaf(const BoundingBoxd& bounds,
@@ -210,11 +288,7 @@ void IntersectionSceneBuilder::addDisk(const Primitive::TransformedLeaf& leaf,
 }
 
 CompiledIntersectionScene IntersectionSceneBuilder::finish() {
-  if (!m_scene.m_primitives.empty()) {
-    buildBvhNode(m_scene.m_bvh, m_scene.m_primitives, 0,
-                 static_cast<std::uint32_t>(m_scene.m_primitives.size()));
-  }
-
+  FlatIntersectionBvhBuilder().build(m_scene.m_bvh, m_scene.m_primitives);
   return std::move(m_scene);
 }
 

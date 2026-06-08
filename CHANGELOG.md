@@ -520,6 +520,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Packed wavefront front-to-back traversal.** Packed CPU and Metal
   closest-hit traversal now visit nearer BVH children first, making nearest-hit
   pruning effective earlier in supported GPU-intersection scenes. — GPT-5
+- **Compiled wavefront BVH splitting.** The GPU-intersection scene compiler now
+  builds bounded-leaf BVHs with a centroid-axis Surface Area Heuristic split
+  when it improves expected traversal cost, falling back to median splits to
+  keep leaf sizes bounded on degenerate inputs. — GPT-5
 - **Metal wavefront intersection setup reuse.** The experimental Metal
   wavefront intersection wrapper now reuses the default Metal device, command
   queue, and compiled compute pipelines across closest-hit and any-hit

@@ -327,9 +327,10 @@ Progress:
   the all-or-nothing fallback contract.
 - Unsupported leaves are represented explicitly with primitive names, object
   ids, and fallback reasons.
-- The first BVH representation now emits a deterministic median-split tree
-  with bounded leaf ranges over the compiled primitive records. A real SAH or
-  GPU-tuned builder is still outstanding before performance work.
+- The compiled BVH now emits a deterministic bounded-leaf tree over primitive
+  records using a centroid-axis Surface Area Heuristic sweep when it improves
+  expected traversal cost, with median fallback to preserve the four-record
+  leaf bound for overlapping or degenerate inputs.
 
 ## Phase 3 - GPU backend stubs and UI/rendercli plumbing
 

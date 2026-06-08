@@ -293,6 +293,25 @@ namespace IntersectionSceneCompilerTest {
     EXPECT_GE(leafCount, 3u);
   }
 
+  TEST(IntersectionSceneCompiler, UsesSahSplitForCompiledBvh) {
+    Scene scene;
+    for (int index = 0; index != 4; ++index) {
+      scene.add(std::make_shared<Sphere>(Vector3d(index * 0.75, 0, 0), 0.2));
+    }
+    scene.add(std::make_shared<Sphere>(Vector3d(100.0, 0, 0), 0.2));
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+
+    ASSERT_EQ(3u, compiled.bvh().size());
+    ASSERT_FALSE(compiled.bvh()[0].isLeaf());
+    const FlatIntersectionBvhNode& left = compiled.bvh()[compiled.bvh()[0].leftChild()];
+    const FlatIntersectionBvhNode& right = compiled.bvh()[compiled.bvh()[0].rightChild()];
+    ASSERT_TRUE(left.isLeaf());
+    ASSERT_TRUE(right.isLeaf());
+    EXPECT_EQ(4u, left.leafPrimitiveCount());
+    EXPECT_EQ(1u, right.leafPrimitiveCount());
+  }
+
   TEST(CompiledIntersectionSceneIntersector, IntersectsTriangleLikeRuntimeScene) {
     auto triangle =
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));
