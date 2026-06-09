@@ -337,24 +337,31 @@ namespace WavefrontRaytracerTest {
     const bool enabledWithoutClosestHitKernel =
       reason.find("no render-path closest-hit kernel") != std::string::npos;
     const bool enabledWithoutBasicHitKernel =
-      reason.find("no render-path basic hit kernel") != std::string::npos;
+      reason.find("no render-path basic hit kernel") != std::string::npos ||
+      reason.find("no render-path exact-primitive") != std::string::npos;
     const bool enabledWithoutDevice = reason.find("no Metal device") != std::string::npos;
+    const bool enabledWithoutVulkanComputeDevice =
+      reason.find("no Vulkan compute device") != std::string::npos;
     const bool notTriangleEligible =
-      reason.find("not eligible for the Metal triangle") != std::string::npos;
+      reason.find("not eligible for the Metal triangle") != std::string::npos ||
+      reason.find("not eligible for the Vulkan triangle") != std::string::npos;
     const bool noPreparedTriangleScene =
-      reason.find("no prepared triangle scene") != std::string::npos;
+      reason.find("no prepared triangle scene") != std::string::npos ||
+      reason.find("no prepared exact-primitive") != std::string::npos;
     const bool notBasicEligible =
-      reason.find("not eligible for the Metal basic") != std::string::npos;
+      reason.find("not eligible for the Metal basic") != std::string::npos ||
+      reason.find("not eligible for the Vulkan exact-primitive") != std::string::npos;
     const bool noPreparedBasicScene =
       reason.find("no prepared basic-hit scene") != std::string::npos;
     EXPECT_TRUE(disabled || enabledWithoutClosestHitKernel || enabledWithoutBasicHitKernel ||
-                enabledWithoutDevice || notTriangleEligible || noPreparedTriangleScene ||
-                notBasicEligible || noPreparedBasicScene)
+                enabledWithoutDevice || enabledWithoutVulkanComputeDevice || notTriangleEligible ||
+                noPreparedTriangleScene || notBasicEligible || noPreparedBasicScene)
       << reason;
   }
 
-  bool usedMetalClosestHit(const engine::wavefront::WavefrontRenderMetrics& metrics) {
-    return metrics.batching.intersectionBackendExecutionPath == "metal";
+  bool usedPlatformClosestHit(const engine::wavefront::WavefrontRenderMetrics& metrics) {
+    return metrics.batching.intersectionBackendExecutionPath == "metal" ||
+           metrics.batching.intersectionBackendExecutionPath == "vulkan";
   }
 
   class BackendParityRenderCase {
@@ -411,8 +418,9 @@ namespace WavefrontRaytracerTest {
       EXPECT_TRUE(m_lastMetrics.batching.intersectionScenePackedClosestHitEligible);
       EXPECT_TRUE(m_lastMetrics.batching.intersectionScenePackedAnyHitEligible);
       EXPECT_GT(m_lastMetrics.batching.intersectionRaysSubmitted, 0u);
-      if (usedMetalClosestHit(m_lastMetrics)) {
-        EXPECT_EQ("metal", m_lastMetrics.batching.intersectionBackend);
+      if (usedPlatformClosestHit(m_lastMetrics)) {
+        EXPECT_EQ(m_lastMetrics.batching.intersectionBackendExecutionPath,
+                  m_lastMetrics.batching.intersectionBackend);
         EXPECT_EQ("available", m_lastMetrics.batching.intersectionBackendAvailability);
       } else {
         EXPECT_EQ("cpu", m_lastMetrics.batching.intersectionBackend);
@@ -1173,8 +1181,9 @@ namespace WavefrontRaytracerTest {
 
     const auto metrics = renderer->lastMetrics();
     EXPECT_EQ("gpu", metrics.batching.intersectionBackendRequest);
-    if (usedMetalClosestHit(metrics)) {
-      EXPECT_EQ("metal", metrics.batching.intersectionBackend);
+    if (usedPlatformClosestHit(metrics)) {
+      EXPECT_EQ(metrics.batching.intersectionBackendExecutionPath,
+                metrics.batching.intersectionBackend);
       EXPECT_EQ("available", metrics.batching.intersectionBackendAvailability);
       EXPECT_TRUE(metrics.batching.intersectionBackendFallbackReason.empty());
       EXPECT_GE(metrics.batching.intersectionBackendUploadWorkerSeconds, 0.0);
@@ -1269,8 +1278,9 @@ namespace WavefrontRaytracerTest {
 
     const auto metrics = renderer->lastMetrics();
     EXPECT_EQ("gpu", metrics.batching.intersectionBackendRequest);
-    if (usedMetalClosestHit(metrics)) {
-      EXPECT_EQ("metal", metrics.batching.intersectionBackend);
+    if (usedPlatformClosestHit(metrics)) {
+      EXPECT_EQ(metrics.batching.intersectionBackendExecutionPath,
+                metrics.batching.intersectionBackend);
       EXPECT_EQ("available", metrics.batching.intersectionBackendAvailability);
       EXPECT_TRUE(metrics.batching.intersectionBackendFallbackReason.empty());
     } else {
@@ -1324,8 +1334,9 @@ namespace WavefrontRaytracerTest {
 
     const auto metrics = renderer->lastMetrics();
     EXPECT_EQ("gpu", metrics.batching.intersectionBackendRequest);
-    if (usedMetalClosestHit(metrics)) {
-      EXPECT_EQ("metal", metrics.batching.intersectionBackend);
+    if (usedPlatformClosestHit(metrics)) {
+      EXPECT_EQ(metrics.batching.intersectionBackendExecutionPath,
+                metrics.batching.intersectionBackend);
       EXPECT_EQ("available", metrics.batching.intersectionBackendAvailability);
       EXPECT_TRUE(metrics.batching.intersectionBackendFallbackReason.empty());
     } else {
