@@ -173,6 +173,15 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(MetalWavefrontSmokeKernel().deviceAvailable(), backend.isAvailable());
     EXPECT_EQ(MetalWavefrontSmokeKernel().renderPathAvailable(),
               backend.platformGpuRenderPathAvailable());
+    const MetalWavefrontSmokeKernel kernel;
+    const std::string fallback = backend.fallbackReason();
+    if (!kernel.deviceAvailable()) {
+      ASSERT_FALSE(kernel.deviceUnavailableReason().empty());
+      EXPECT_NE(std::string::npos, fallback.find(kernel.deviceUnavailableReason()));
+    } else if (!kernel.renderPathAvailable()) {
+      ASSERT_FALSE(kernel.renderPathUnavailableReason().empty());
+      EXPECT_NE(std::string::npos, fallback.find(kernel.renderPathUnavailableReason()));
+    }
 #endif
     EXPECT_EQ(nullptr, backend.compiledScene());
     expectUnavailablePlatformFallback(backend, "Metal", "runtime_scene", "metal");
@@ -190,6 +199,15 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_FALSE(backend.isAvailable());
     EXPECT_FALSE(backend.platformGpuRenderPathAvailable());
 #endif
+    const VulkanWavefrontSmokeKernel kernel;
+    const std::string fallback = backend.fallbackReason();
+    if (!kernel.deviceAvailable()) {
+      ASSERT_FALSE(kernel.deviceUnavailableReason().empty());
+      EXPECT_NE(std::string::npos, fallback.find(kernel.deviceUnavailableReason()));
+    } else if (!kernel.renderPathAvailable()) {
+      ASSERT_FALSE(kernel.renderPathUnavailableReason().empty());
+      EXPECT_NE(std::string::npos, fallback.find(kernel.renderPathUnavailableReason()));
+    }
     EXPECT_EQ(nullptr, backend.compiledScene());
     expectUnavailablePlatformFallback(backend, "Vulkan", "runtime_scene", "vulkan");
   }
@@ -198,10 +216,21 @@ namespace WavefrontIntersectionBackendTest {
     VulkanWavefrontSmokeKernel kernel;
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     EXPECT_NO_THROW((void)kernel.deviceAvailable());
-    EXPECT_FALSE(kernel.renderPathAvailable());
+    if (kernel.deviceAvailable()) {
+      EXPECT_TRUE(kernel.deviceUnavailableReason().empty());
+    } else {
+      EXPECT_FALSE(kernel.deviceUnavailableReason().empty());
+    }
+    if (kernel.renderPathAvailable()) {
+      EXPECT_TRUE(kernel.renderPathUnavailableReason().empty());
+    } else {
+      EXPECT_FALSE(kernel.renderPathUnavailableReason().empty());
+    }
 #else
     EXPECT_FALSE(kernel.deviceAvailable());
     EXPECT_FALSE(kernel.renderPathAvailable());
+    EXPECT_NE(std::string::npos, kernel.deviceUnavailableReason().find("not enabled"));
+    EXPECT_NE(std::string::npos, kernel.renderPathUnavailableReason().find("not enabled"));
 #endif
   }
 

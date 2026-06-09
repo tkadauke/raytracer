@@ -781,15 +781,37 @@ namespace render {
     }
   }
 
+  std::string MetalWavefrontSmokeKernel::deviceUnavailableReason() const {
+    @autoreleasepool {
+      if (sharedMetalDevice()) {
+        return "";
+      }
+      return "MTLCreateSystemDefaultDevice returned nil";
+    }
+  }
+
   bool MetalWavefrontSmokeKernel::renderPathAvailable() const {
+    return renderPathUnavailableReason().empty();
+  }
+
+  std::string MetalWavefrontSmokeKernel::renderPathUnavailableReason() const {
     @autoreleasepool {
       if (!sharedMetalDevice()) {
-        return false;
+        return deviceUnavailableReason();
+      }
+      if (!sharedCommandQueue()) {
+        return "Metal default device did not create a command queue";
       }
       try {
-        return sharedBasicClosestHitPipeline() != nil && sharedBasicAnyHitPipeline() != nil;
-      } catch (const std::exception&) {
-        return false;
+        if (!sharedBasicClosestHitPipeline()) {
+          return "Metal basic closest-hit pipeline was not created";
+        }
+        if (!sharedBasicAnyHitPipeline()) {
+          return "Metal basic any-hit pipeline was not created";
+        }
+        return "";
+      } catch (const std::exception& e) {
+        return e.what();
       }
     }
   }

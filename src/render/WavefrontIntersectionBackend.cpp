@@ -1088,23 +1088,43 @@ namespace render {
   }
 
   const char* MetalWavefrontIntersectionBackend::fallbackReason() const {
+    static thread_local std::string reason;
+    reason = fallbackReasonText();
+    return reason.c_str();
+  }
+
+  std::string MetalWavefrontIntersectionBackend::fallbackReasonText() const {
     if (metalBasicHitAvailable()) {
       return "";
     }
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     if (!isAvailable()) {
-      return "Metal wavefront intersection backend is enabled but no Metal device is available";
+      std::string reason =
+        "Metal wavefront intersection backend is enabled but no Metal device is available";
+      const std::string detail = MetalWavefrontSmokeKernel().deviceUnavailableReason();
+      if (!detail.empty()) {
+        reason += ": ";
+        reason += detail;
+      }
+      return reason;
+    }
+    if (!platformGpuRenderPathAvailable()) {
+      std::string reason =
+        "Metal wavefront intersection backend is enabled but no render-path basic hit kernel is "
+        "available";
+      const std::string detail = MetalWavefrontSmokeKernel().renderPathUnavailableReason();
+      if (!detail.empty()) {
+        reason += ": ";
+        reason += detail;
+      }
+      return reason;
     }
     if (!gpuIntersectionSceneBuffers()) {
       return "Metal wavefront intersection backend is enabled but no prepared basic-hit scene is "
              "available";
     }
-    if (!platformGpuRenderPathAvailable()) {
-      return "Metal wavefront intersection backend is enabled but no render-path basic hit kernel "
-             "is available";
-    }
     if (!m_metalPreparationError.empty()) {
-      return m_metalPreparationError.c_str();
+      return m_metalPreparationError;
     }
     return "Metal wavefront intersection backend is enabled but the prepared scene is not "
            "eligible for the Metal basic hit kernel";
@@ -1357,15 +1377,34 @@ namespace render {
   }
 
   const char* VulkanWavefrontIntersectionBackend::fallbackReason() const {
+    static thread_local std::string reason;
+    reason = fallbackReasonText();
+    return reason.c_str();
+  }
+
+  std::string VulkanWavefrontIntersectionBackend::fallbackReasonText() const {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-    if (!VulkanWavefrontSmokeKernel().deviceAvailable()) {
-      return "Vulkan wavefront intersection backend is enabled but no Vulkan compute device is "
-             "available";
+    const VulkanWavefrontSmokeKernel kernel;
+    if (!kernel.deviceAvailable()) {
+      std::string reason =
+        "Vulkan wavefront intersection backend is enabled but no Vulkan compute device is "
+        "available";
+      const std::string detail = kernel.deviceUnavailableReason();
+      if (!detail.empty()) {
+        reason += ": ";
+        reason += detail;
+      }
+      return reason;
     }
-    if (!VulkanWavefrontSmokeKernel().renderPathAvailable()) {
-      return "Vulkan wavefront intersection backend is enabled but no render-path "
-             "exact-primitive hit "
-             "kernels are available";
+    if (!kernel.renderPathAvailable()) {
+      std::string reason = "Vulkan wavefront intersection backend is enabled but no render-path "
+                           "exact-primitive hit kernels are available";
+      const std::string detail = kernel.renderPathUnavailableReason();
+      if (!detail.empty()) {
+        reason += ": ";
+        reason += detail;
+      }
+      return reason;
     }
     if (!gpuIntersectionSceneBuffers()) {
       return "Vulkan wavefront intersection backend is enabled but no prepared "

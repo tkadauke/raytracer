@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace render {
@@ -33,7 +34,9 @@ namespace render {
   class MetalWavefrontSmokeKernel {
   public:
     bool deviceAvailable() const;
+    std::string deviceUnavailableReason() const;
     bool renderPathAvailable() const;
+    std::string renderPathUnavailableReason() const;
     std::vector<std::uint32_t>
     runDummyHitMissKernel(const std::vector<std::uint32_t>& rayIds) const;
     std::vector<GpuIntersectionHitRecord>

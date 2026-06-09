@@ -43,6 +43,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   direct triangle closest-hit compute dispatch over the packed
   BVH/primitive/triangle/ray/hit ABI, with CPU packed-intersector parity
   coverage. — GPT-5
+- **GPU wavefront backend availability reasons.** Metal and Vulkan wavefront
+  intersection probes now expose device/render-path failure details, and backend
+  fallback text includes those details instead of only generic unavailable
+  messages. — GPT-5
 - **Modeler wavefront backend pass metadata.** Selecting a render graph pass in
   the Modeler now shows wavefront intersection backend request, resolved
   backend, fallback, execution path, expected rays, scene upload, transfer, and

@@ -340,6 +340,7 @@ namespace render {
       std::shared_ptr<const MetalWavefrontPreparedScene> metalPreparedScene,
       std::string metalPreparationError, std::string requestedName);
 
+    [[nodiscard]] std::string fallbackReasonText() const;
     [[nodiscard]] bool metalBasicHitAvailable() const;
 
     std::shared_ptr<const CompiledIntersectionScene> m_compiledScene;
@@ -421,6 +422,7 @@ namespace render {
       std::shared_ptr<const GpuIntersectionSceneBuffers> gpuSceneBuffers,
       std::string requestedName);
 
+    [[nodiscard]] std::string fallbackReasonText() const;
     [[nodiscard]] bool vulkanBasicHitAvailable() const;
 
     std::shared_ptr<const CompiledIntersectionScene> m_compiledScene;

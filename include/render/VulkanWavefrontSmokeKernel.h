@@ -3,6 +3,7 @@
 #include "render/WavefrontIntersectionQueryTiming.h"
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace render {
@@ -31,7 +32,9 @@ namespace render {
   class VulkanWavefrontSmokeKernel {
   public:
     bool deviceAvailable() const;
+    std::string deviceUnavailableReason() const;
     bool renderPathAvailable() const;
+    std::string renderPathUnavailableReason() const;
     std::vector<std::uint32_t>
     runDummyHitMissKernel(const std::vector<std::uint32_t>& rayIds) const;
     std::vector<GpuIntersectionHitRecord>
@@ -48,6 +51,7 @@ namespace render {
                               const std::vector<GpuIntersectionRay>& rays) const;
 
   private:
-    bool probeDeviceAvailable() const;
+    std::string probeDeviceUnavailableReason() const;
+    std::string probeRenderPathUnavailableReason() const;
   };
 }

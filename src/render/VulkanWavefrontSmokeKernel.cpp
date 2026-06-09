@@ -27,21 +27,32 @@ namespace render {
     class VulkanSmokeRuntime final {
     public:
       bool deviceAvailable() const {
+        return deviceUnavailableReason().empty();
+      }
+
+      std::string deviceUnavailableReason() const {
         VkInstance instance = VK_NULL_HANDLE;
         try {
           instance = createInstance();
-        } catch (const std::runtime_error&) {
-          return false;
+        } catch (const std::runtime_error& e) {
+          return e.what();
         }
 
         InstanceGuard guard;
         guard.instance = instance;
 
         const DeviceSelection selection = selectDevice(instance);
-        return selection.device != VK_NULL_HANDLE;
+        if (selection.device == VK_NULL_HANDLE) {
+          return "Vulkan loader found no physical device with a compute queue";
+        }
+        return "";
       }
 
       bool renderPathAvailable() const {
+        return renderPathUnavailableReason().empty();
+      }
+
+      std::string renderPathUnavailableReason() const {
         try {
           VkInstance instance = createInstance();
           InstanceGuard instanceGuard;
@@ -49,7 +60,7 @@ namespace render {
 
           const DeviceSelection selection = selectDevice(instance);
           if (selection.device == VK_NULL_HANDLE) {
-            return false;
+            return "Vulkan render-path probe found no physical device with a compute queue";
           }
 
           const float queuePriority = 1.0f;
@@ -101,9 +112,9 @@ namespace render {
           PipelineGuard anyPipelineGuard;
           anyPipelineGuard.device = device;
           anyPipelineGuard.pipeline = anyPipeline;
-          return true;
-        } catch (const std::runtime_error&) {
-          return false;
+          return "";
+        } catch (const std::runtime_error& e) {
+          return e.what();
         }
       }
 
@@ -997,24 +1008,36 @@ namespace render {
   }
 
   bool VulkanWavefrontSmokeKernel::deviceAvailable() const {
-    static const bool available = probeDeviceAvailable();
-    return available;
+    return deviceUnavailableReason().empty();
   }
 
-  bool VulkanWavefrontSmokeKernel::probeDeviceAvailable() const {
+  std::string VulkanWavefrontSmokeKernel::deviceUnavailableReason() const {
+    static const std::string reason = probeDeviceUnavailableReason();
+    return reason;
+  }
+
+  std::string VulkanWavefrontSmokeKernel::probeDeviceUnavailableReason() const {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-    return VulkanSmokeRuntime().deviceAvailable();
+    return VulkanSmokeRuntime().deviceUnavailableReason();
 #else
-    return false;
+    return "Vulkan wavefront intersection backend is not enabled in this build";
 #endif
   }
 
   bool VulkanWavefrontSmokeKernel::renderPathAvailable() const {
+    return renderPathUnavailableReason().empty();
+  }
+
+  std::string VulkanWavefrontSmokeKernel::renderPathUnavailableReason() const {
+    static const std::string reason = probeRenderPathUnavailableReason();
+    return reason;
+  }
+
+  std::string VulkanWavefrontSmokeKernel::probeRenderPathUnavailableReason() const {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-    static const bool available = VulkanSmokeRuntime().renderPathAvailable();
-    return available;
+    return VulkanSmokeRuntime().renderPathUnavailableReason();
 #else
-    return false;
+    return "Vulkan wavefront intersection backend is not enabled in this build";
 #endif
   }
 
