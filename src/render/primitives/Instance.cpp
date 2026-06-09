@@ -1,25 +1,48 @@
 #include "render/State.h"
 #include "render/primitives/Instance.h"
+#include "render/animation/AnimationValue.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 #include "core/geometry/Mesh.h"
 
 #include <array>
+#include <cstdlib>
+#include <optional>
 #include <vector>
 
 using namespace std;
 using namespace render;
 
+namespace {
+  std::optional<double> evaluatedFrameMetadata(const Instance& instance) {
+    const auto frame = instance.metadataValue("animation:evaluatedFrame");
+    if (frame.empty()) {
+      return std::nullopt;
+    }
+
+    char* end = nullptr;
+    const double value = std::strtod(frame.c_str(), &end);
+    if (end == frame.c_str()) {
+      return std::nullopt;
+    }
+    return value;
+  }
+}
+
 const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                      render::State& state) const {
+  const TransformSample transform = transformSample(state);
+
   // Static fast path — no motion blur math when velocity is zero.
   // Most instances in any given scene fall through here, so the
   // branch keeps the cost of the new feature to one comparison per
   // ray for unanimated geometry.
-  if (m_velocity == Vector3d::null) {
-    const Primitive* result = m_primitive->intersect(instancedRay(ray), hitPoints, state);
+  if (!transform.animated && transform.velocity == Vector3d::null) {
+    const Primitive* result = m_primitive->intersect(
+      Rayd(transform.originMatrix * ray.origin(), transform.directionMatrix * ray.direction()),
+      hitPoints, state);
     if (!hitPoints.empty()) {
-      hitPoints = hitPoints.transform(m_pointMatrix, m_normalMatrix);
+      hitPoints = hitPoints.transform(transform.pointMatrix, transform.normalMatrix);
     }
     if (result) {
       if (Primitive::material()) {
@@ -38,17 +61,17 @@ const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoint
   // into local space (direction is unaffected by translation), then
   // build a `pointMatrix_at_t = pointMatrix + translate(velocity *
   // timeSample)` to map the resulting hit points back to world.
-  Vector3d shift = m_velocity * state.timeSample;
-  Rayd localRay(Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()) - shift)),
-                m_directionMatrix * ray.direction());
+  Vector3d shift = transform.velocity * state.timeSample;
+  Rayd localRay(Vector4d(transform.originMatrix.transformPoint(Vector3d(ray.origin()) - shift)),
+                transform.directionMatrix * ray.direction());
 
   const Primitive* result = m_primitive->intersect(localRay, hitPoints, state);
-  Matrix4d pointMatrixAtTime = m_pointMatrix;
-  pointMatrixAtTime.setCell(0, 3, m_pointMatrix.cell(0, 3) + shift.x());
-  pointMatrixAtTime.setCell(1, 3, m_pointMatrix.cell(1, 3) + shift.y());
-  pointMatrixAtTime.setCell(2, 3, m_pointMatrix.cell(2, 3) + shift.z());
+  Matrix4d pointMatrixAtTime = transform.pointMatrix;
+  pointMatrixAtTime.setCell(0, 3, transform.pointMatrix.cell(0, 3) + shift.x());
+  pointMatrixAtTime.setCell(1, 3, transform.pointMatrix.cell(1, 3) + shift.y());
+  pointMatrixAtTime.setCell(2, 3, transform.pointMatrix.cell(2, 3) + shift.z());
   if (!hitPoints.empty()) {
-    hitPoints = hitPoints.transform(pointMatrixAtTime, m_normalMatrix);
+    hitPoints = hitPoints.transform(pointMatrixAtTime, transform.normalMatrix);
   }
   if (result) {
     if (Primitive::material()) {
@@ -62,7 +85,7 @@ const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoint
 
 PrimitivePacketHit4 Instance::intersectPacketHits(const Ray4& rays,
                                                   const PrimitivePacketState4& states) const {
-  if (m_velocity != Vector3d::null) {
+  if (m_velocity != Vector3d::null || hasRuntimeTransformAnimation()) {
     return intersectMovingRay4PacketHits(rays, states);
   }
 
@@ -88,7 +111,7 @@ PrimitivePacketHit4 Instance::intersectPacketHits(const Ray4& rays,
 
 PrimitivePacketHit8 Instance::intersectPacketHits(const Ray8& rays,
                                                   const PrimitivePacketState8& states) const {
-  if (m_velocity != Vector3d::null) {
+  if (m_velocity != Vector3d::null || hasRuntimeTransformAnimation()) {
     return intersectMovingRay8PacketHits(rays, states);
   }
 
@@ -115,7 +138,7 @@ PrimitivePacketHit8 Instance::intersectPacketHits(const Ray8& rays,
 
 PrimitivePacketInterval4
 Instance::intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4& states) const {
-  if (m_velocity != Vector3d::null) {
+  if (m_velocity != Vector3d::null || hasRuntimeTransformAnimation()) {
     return intersectMovingRay4PacketIntervals(rays, states);
   }
 
@@ -148,7 +171,7 @@ Instance::intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4
 
 PrimitivePacketInterval8
 Instance::intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const {
-  if (m_velocity != Vector3d::null) {
+  if (m_velocity != Vector3d::null || hasRuntimeTransformAnimation()) {
     return intersectMovingRay8PacketIntervals(rays, states);
   }
 
@@ -263,12 +286,15 @@ Instance::intersectMovingRay8PacketIntervals(const Ray8& rays,
 }
 
 bool Instance::intersects(const Rayd& ray, render::State& state) const {
-  if (m_velocity == Vector3d::null) {
-    return m_primitive->intersects(instancedRay(ray), state);
+  const TransformSample transform = transformSample(state);
+  if (!transform.animated && transform.velocity == Vector3d::null) {
+    return m_primitive->intersects(
+      Rayd(transform.originMatrix * ray.origin(), transform.directionMatrix * ray.direction()),
+      state);
   }
-  Vector3d shift = m_velocity * state.timeSample;
-  Rayd localRay(Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()) - shift)),
-                m_directionMatrix * ray.direction());
+  Vector3d shift = transform.velocity * state.timeSample;
+  Rayd localRay(Vector4d(transform.originMatrix.transformPoint(Vector3d(ray.origin()) - shift)),
+                transform.directionMatrix * ray.direction());
   return m_primitive->intersects(localRay, state);
 }
 
@@ -277,10 +303,96 @@ void Instance::setMatrix(const Matrix4d& matrix) {
   m_originMatrix = matrix.inverted();
   m_directionMatrix = Matrix3d(m_originMatrix);
   m_normalMatrix = m_directionMatrix.transposed();
+  m_basePosition = matrix.translationVector();
+  m_baseRotation = Matrix3d(matrix).rotationVector();
+  m_baseScale = Matrix3d(matrix).scaleVector();
 }
 
 void Instance::setVelocity(const Vector3d& velocity) {
   m_velocity = velocity;
+}
+
+bool Instance::hasRuntimeTransformAnimation() const {
+  return animationTrack("position") || animationTrack("rotation") || animationTrack("scale") ||
+         animationTrack("velocity");
+}
+
+double Instance::animationSampleTime(const render::State& state) const {
+  if (state.animationFrame != 0.0 || state.animationTime != 0.0) {
+    return state.animationTime;
+  }
+
+  const auto frame = evaluatedFrameMetadata(*this);
+  if (frame) {
+    return *frame + state.timeSample;
+  }
+  return state.timeSample;
+}
+
+double Instance::animationBaselineTime(const render::State& state) const {
+  if (state.animationFrame != 0.0 || state.animationTime != 0.0) {
+    return state.animationFrame;
+  }
+
+  return evaluatedFrameMetadata(*this).value_or(0.0);
+}
+
+Vector3d Instance::sampledVectorTrack(const char* propertyName, double time,
+                                      const Vector3d& fallback) const {
+  const auto* track = animationTrack(propertyName);
+  if (!track) {
+    return fallback;
+  }
+  const auto value = track->sample(time);
+  if (value.type() != render::animation::AnimationValue::Type::Vector3) {
+    return fallback;
+  }
+  return value.get<Vector3d>();
+}
+
+Vector3d Instance::sampledPositionTrack(double time, double baselineTime) const {
+  const auto* track = animationTrack("position");
+  if (!track) {
+    return m_basePosition;
+  }
+
+  const auto value = track->sample(time);
+  const auto baseline = track->sample(baselineTime);
+  if (value.type() != render::animation::AnimationValue::Type::Vector3 ||
+      baseline.type() != render::animation::AnimationValue::Type::Vector3) {
+    return m_basePosition;
+  }
+
+  return m_basePosition + value.get<Vector3d>() - baseline.get<Vector3d>();
+}
+
+Instance::TransformSample Instance::transformSample(const render::State& state) const {
+  if (!hasRuntimeTransformAnimation()) {
+    return {m_pointMatrix, m_originMatrix, m_directionMatrix, m_normalMatrix, m_velocity, false};
+  }
+
+  return transformSampleAtTime(animationSampleTime(state), 0.0, animationBaselineTime(state));
+}
+
+Instance::TransformSample Instance::transformSampleAtTime(double time,
+                                                          double shutterTimeSample,
+                                                          double baselineTime) const {
+  const Vector3d position = sampledPositionTrack(time, baselineTime);
+  const Vector3d rotation = sampledVectorTrack("rotation", time, m_baseRotation);
+  const Vector3d scale = sampledVectorTrack("scale", time, m_baseScale);
+  const Vector3d velocity = sampledVectorTrack("velocity", time, m_velocity);
+
+  Matrix4d pointMatrix =
+    Matrix4d::translate(position) * Matrix3d::rotate(rotation) * Matrix3d::scale(scale);
+  const Vector3d shift = velocity * shutterTimeSample;
+  pointMatrix.setCell(0, 3, pointMatrix.cell(0, 3) + shift.x());
+  pointMatrix.setCell(1, 3, pointMatrix.cell(1, 3) + shift.y());
+  pointMatrix.setCell(2, 3, pointMatrix.cell(2, 3) + shift.z());
+
+  const Matrix4d originMatrix = pointMatrix.inverted();
+  const Matrix3d directionMatrix(originMatrix);
+  const Matrix3d normalMatrix = directionMatrix.transposed();
+  return {pointMatrix, originMatrix, directionMatrix, normalMatrix, velocity, true};
 }
 
 std::shared_ptr<render::Material> Instance::material() const {
@@ -297,8 +409,25 @@ BoundingBoxd Instance::calculateBoundingBox() const {
   original.getVertices(vertices);
 
   BoundingBoxd result;
-  for (const auto& vertex : vertices) {
-    result.include(m_pointMatrix.transformPoint(vertex));
+  const auto includeTransform = [&](const TransformSample& transform) {
+    for (const auto& vertex : vertices) {
+      result.include(transform.pointMatrix.transformPoint(vertex));
+    }
+  };
+
+  includeTransform(
+    {m_pointMatrix, m_originMatrix, m_directionMatrix, m_normalMatrix, m_velocity, false});
+
+  for (const auto& [propertyName, track] : animationTracks()) {
+    if (propertyName != "position" && propertyName != "rotation" && propertyName != "scale" &&
+        propertyName != "velocity") {
+      continue;
+    }
+    for (const auto& keyframe : track.keyframes()) {
+      const double baselineTime = evaluatedFrameMetadata(*this).value_or(0.0);
+      includeTransform(transformSampleAtTime(keyframe.time, 0.0, baselineTime));
+      includeTransform(transformSampleAtTime(keyframe.time, 1.0, baselineTime));
+    }
   }
 
   // For animated instances, the bbox must cover every position the

@@ -53,6 +53,18 @@ $ rendercli --engine raster --frame 24 \
             frame_0024.png
 ```
 
+That integer frame evaluation is the **frame-baked** path: tracks for discrete
+or render-scene-changing properties are sampled on the editable scene before
+runtime objects exist. Eligible continuous tracks are also compiled onto
+runtime cameras, instances, lights, and materials. Raytraced renders then
+combine the evaluated frame with each ray's shutter sample, so a transform
+track can render at `24.0`, `24.5`, or any other subframe time without rebuilding
+the world scene. The checked-in
+[`scenes/animated_runtime_translation_parity.json`](../../../scenes/animated_runtime_translation_parity.json)
+fixture exercises both behaviors: an integer-frame plateau matches the
+equivalent static scene, while frame 2 visibly changes when multiple shutter
+samples are rendered.
+
 `--animation` renders a scene timeline as an image sequence. The output path
 must contain one printf-style integer placeholder:
 
@@ -516,7 +528,10 @@ Scenes with a top-level `animation` block enable the Timeline dock. Its slider
 and spinbox choose the current frame. The central preview and render dialog
 evaluate a copied scene at that frame before building runtime render objects,
 so animated camera poses, transforms, colors, and lights are visible in the
-editor. When the scene has an active camera, changing frames resets the
+editor. Runtime-continuous tracks are preserved on those built render objects,
+so the raytraced preview can still sample transform motion across shutter time
+instead of seeing only a single baked integer pose. When the scene has an active
+camera, changing frames resets the
 central preview to that evaluated camera pose; mouse-drag preview controls can
 then move from the keyed pose. The scene tree and property editor remain
 attached to the unevaluated authoring scene.
@@ -526,10 +541,10 @@ Reusable scene JSON files live under [`scenes/`](../../../scenes/). They are
 ordinary world-scene files, so both `rendercli` and `Modeler` load the same
 data. The current checked-in scenes cover camera demos, depth of field,
 animation frame evaluation, camera panning, light sweeps, material fades,
-motion-blur velocity sweeps, visibility-step timelines, transparent materials,
-reflections, raster material previews, render-graph AOV and stencil-composite
-demos, wavefront path-tracing indirect-lighting demos, and small geometry
-fixtures used by tests.
+motion-blur velocity sweeps, runtime-continuous translation compilation,
+visibility-step timelines, transparent materials, reflections, raster material
+previews, render-graph AOV and stencil-composite demos, wavefront path-tracing
+indirect-lighting demos, and small geometry fixtures used by tests.
 
 [`scenes/render_graph_aov_demo.json`](../../../scenes/render_graph_aov_demo.json)
 is a focused Modeler graph-inspection scene. Its saved render intent asks for a

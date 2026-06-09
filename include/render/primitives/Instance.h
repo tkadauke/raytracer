@@ -55,6 +55,9 @@ namespace render {
       */
     inline explicit Instance(std::shared_ptr<Primitive> primitive)
         : m_primitive(primitive),
+          m_basePosition(Vector3d::null),
+          m_baseRotation(Vector3d::null),
+          m_baseScale(Vector3d::one),
           m_velocity(Vector3d::null) {
     }
     virtual ~Instance() {
@@ -105,11 +108,18 @@ namespace render {
       * from the renderer's sample stream — see `Camera::render` for
       * the dimension allocation.
       *
+      * When explicit transform animation tracks are attached, those
+      * `position`, `rotation`, and `scale` tracks define the base
+      * transform sampled at the current frame plus `timeSample`.
+      * Velocity remains a convenience shutter offset layered after
+      * that base transform. A runtime `velocity` track, when present,
+      * replaces this static value for the sampled frame.
+      *
       * Defaults to the zero vector, in which case `intersect` takes
       * the fast static path and the renderer behaves exactly as it
       * did before motion blur was added. Rotation and scale
-      * animation are not supported in this first pass — only linear
-      * translation.
+      * tracks are sampled through the explicit animation path; the
+      * velocity convenience property is only linear translation.
       *
       * The interactive figure below shows the same primitive sampled
       * at several shutter times. Drag the velocity endpoint to change
@@ -183,6 +193,25 @@ namespace render {
       return Rayd(m_originMatrix * ray.origin(), m_directionMatrix * ray.direction());
     }
 
+    struct TransformSample {
+      Matrix4d pointMatrix;
+      Matrix4d originMatrix;
+      Matrix3d directionMatrix;
+      Matrix3d normalMatrix;
+      Vector3d velocity;
+      bool animated{false};
+    };
+
+    [[nodiscard]] bool hasRuntimeTransformAnimation() const;
+    [[nodiscard]] double animationSampleTime(const render::State& state) const;
+    [[nodiscard]] double animationBaselineTime(const render::State& state) const;
+    [[nodiscard]] Vector3d sampledVectorTrack(const char* propertyName, double time,
+                                              const Vector3d& fallback) const;
+    [[nodiscard]] Vector3d sampledPositionTrack(double time, double baselineTime) const;
+    [[nodiscard]] TransformSample transformSample(const render::State& state) const;
+    [[nodiscard]] TransformSample transformSampleAtTime(double time, double shutterTimeSample,
+                                                        double baselineTime) const;
+
     PrimitivePacketHit4 intersectMovingRay4PacketHits(const Ray4& rays,
                                                       const PrimitivePacketState4& states) const;
     PrimitivePacketHit8 intersectMovingRay8PacketHits(const Ray8& rays,
@@ -197,6 +226,9 @@ namespace render {
     Matrix4d m_originMatrix;
     Matrix3d m_directionMatrix;
     Matrix3d m_normalMatrix;
+    Vector3d m_basePosition;
+    Vector3d m_baseRotation;
+    Vector3d m_baseScale;
     Vector3d m_velocity;
   };
 }

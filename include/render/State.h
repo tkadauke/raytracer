@@ -61,6 +61,8 @@ namespace render {
           shadowIntersectionMisses(0),
           packetHitScalarFallbacks(0),
           timeSample(0.0),
+          animationFrame(0.0),
+          animationTime(0.0),
           throughput(1.0) {
     }
 
@@ -213,6 +215,15 @@ namespace render {
     /// at intersect time.
     double timeSample;
 
+    /// Integer or caller-selected frame that the runtime scene was built from.
+    /// Continuous render animation tracks use this as their baked baseline.
+    double animationFrame;
+
+    /// Absolute timeline time for this primary ray: `animationFrame` plus the
+    /// configured shutter interval offset. When shutter sampling is disabled
+    /// this equals `animationFrame`, preserving ordinary still-frame renders.
+    double animationTime;
+
     /// Optional indent-formatted event log. Allocated lazily by
     /// `startTrace()`; null when tracing is off.
     std::unique_ptr<std::list<std::string>> events;
@@ -266,6 +277,8 @@ namespace render {
       packetHitScalarFallbacksByReason = other.packetHitScalarFallbacksByReason;
       hitPoint = other.hitPoint;
       timeSample = other.timeSample;
+      animationFrame = other.animationFrame;
+      animationTime = other.animationTime;
       throughput = other.throughput;
       sampleStream = other.sampleStream;
       if (other.events) {

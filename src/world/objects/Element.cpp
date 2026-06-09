@@ -2,9 +2,11 @@
 #include "core/math/Angle.h"
 #include "core/Color.h"
 #include "engine/graph/RenderSceneAnalysis.h"
+#include "render/Object.h"
 #include "world/objects/Element.h"
 
 #include "world/objects/Material.h"
+#include "world/objects/Scene.h"
 #include "world/objects/Texture.h"
 
 #include "world/objects/ElementFactory.h"
@@ -18,6 +20,7 @@
 #include <QUuid>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 Q_DECLARE_METATYPE(Vector3d);
@@ -417,6 +420,31 @@ bool Element::canHaveChild(Element*) const {
 void Element::contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const {
   for (const auto& child : childElements()) {
     child->contributeToRenderGraphAnalysis(analysis);
+  }
+}
+
+void Element::attachRuntimeAnimationTracks(render::Object& object) const {
+  const auto* root = this;
+  while (root->parent()) {
+    root = root->parent();
+  }
+
+  const auto* scene = qobject_cast<const Scene*>(root);
+  if (!scene || !scene->animation())
+    return;
+
+  object.setMetadataValue("world:id", id().toStdString());
+  const int frame = scene->evaluatedAnimationFrame().value_or(scene->animation()->startFrame());
+  object.setMetadataValue("animation:evaluatedFrame", std::to_string(frame));
+  for (const auto& track : scene->animation()->tracks()) {
+    if (track.targetId() != id())
+      continue;
+
+    const auto classification = track.classify(*this);
+    if (classification.trackClass != world::AnimationTrackClass::RuntimeContinuous)
+      continue;
+
+    object.setAnimationTrack(track.propertyName().toStdString(), track.toRenderTrack(*this));
   }
 }
 

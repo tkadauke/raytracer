@@ -691,6 +691,8 @@ namespace render {
       for (std::size_t index = 0; index != samples.size(); ++index) {
         State state;
         state.timeSample = samples[index].timeSample;
+        state.animationFrame = samples[index].animationFrame;
+        state.animationTime = samples[index].animationTime;
         state.sampleStream = samples[index].sampleStream();
         current.push_back(QueuedRay{index, samples[index].ray, Colord::white(), std::move(state)});
       }
@@ -817,6 +819,8 @@ namespace render {
     result.recursionDepth = parent.recursionDepth;
     result.maxRecursionDepth = parent.maxRecursionDepth;
     result.timeSample = parent.timeSample;
+    result.animationFrame = parent.animationFrame;
+    result.animationTime = parent.animationTime;
     result.throughput = throughput;
     result.sampleStream = parent.sampleStream;
     return result;

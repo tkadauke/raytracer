@@ -8,10 +8,24 @@
 #include <QVariant>
 
 #include "core/math/interpolation/Interpolation.h"
+#include "render/animation/AnimationTrack.h"
 
 class Element;
 
 namespace world {
+
+  /**
+  * How a world animation track can be consumed by render engines.
+  */
+  enum class AnimationTrackClass { RuntimeContinuous, FrameBaked, StepOnly, Rejected };
+
+  /**
+  * Classification result for one world animation track.
+  */
+  struct AnimationTrackClassification {
+    AnimationTrackClass trackClass{AnimationTrackClass::Rejected};
+    QString diagnostic;
+  };
 
   /**
   * One serialized keyframe on a world animation track.
@@ -87,6 +101,29 @@ namespace world {
     * @returns sorted keyframes owned by the track.
     */
     [[nodiscard]] const std::vector<AnimationKeyframe>& keyframes() const noexcept;
+
+    /**
+    * Classifies this track for runtime compilation against @p target.
+    *
+    * Runtime-continuous tracks can be converted to render-side continuous-time
+    * tracks. Frame-baked tracks must still be evaluated on ordinary integer
+    * frames before world-to-render conversion. Step-only tracks can be sampled
+    * only at key boundaries or as discrete switches. Rejected tracks have clear
+    * diagnostics and should not be compiled.
+    */
+    [[nodiscard]] AnimationTrackClassification classify(const Element& target) const;
+
+    /**
+    * Compiles this world track into a Qt-free render animation track.
+    *
+    * The target property metadata selects the same value decoder used by
+    * `sample()`, but key times remain continuous doubles so render code can
+    * sample subframes without going back through the editable world scene.
+    *
+    * @throws std::runtime_error if the property is missing, unsupported, or
+    *   cannot be represented by render-time animation values.
+    */
+    [[nodiscard]] render::animation::AnimationTrack toRenderTrack(const Element& target) const;
 
     /**
     * Samples this track for @p target at @p frame.

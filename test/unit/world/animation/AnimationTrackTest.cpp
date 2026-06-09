@@ -13,8 +13,10 @@
 #include "core/math/Vector.h"
 #include "world/animation/AnimationTrack.h"
 #include "world/objects/Material.h"
+#include "world/objects/PhongMaterial.h"
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/Scene.h"
+#include "world/objects/ScriptedSurface.h"
 #include "world/objects/Sphere.h"
 #include "world/objects/Texture.h"
 
@@ -96,11 +98,15 @@ namespace AnimationTrackTest {
 
   TEST(AnimationTrack, RejectsInvalidConstructionArguments) {
     expectInvalidArgumentWithSubstring(
-      [] { world::AnimationTrack("", "position", {{1, vectorValue(0.0, 0.0, 0.0)}}); },
+      [] {
+        world::AnimationTrack("", "position", {{1, vectorValue(0.0, 0.0, 0.0)}});
+      },
       "target must not be empty");
 
     expectInvalidArgumentWithSubstring(
-      [] { world::AnimationTrack("target-id", "", {{1, vectorValue(0.0, 0.0, 0.0)}}); },
+      [] {
+        world::AnimationTrack("target-id", "", {{1, vectorValue(0.0, 0.0, 0.0)}});
+      },
       "property must not be empty");
 
     expectInvalidArgumentWithSubstring(
@@ -225,6 +231,91 @@ namespace AnimationTrackTest {
                                       });
 
     EXPECT_DOUBLE_EQ(6.0, track.sample(sphere, 6).toDouble());
+  }
+
+  TEST(AnimationTrack, ClassifiesCameraPoseAsRuntimeContinuous) {
+    PinholeCamera camera;
+    const world::AnimationTrack track("camera-id", "position",
+                                      {
+                                        {1, vectorValue(0.0, 0.0, 0.0)},
+                                        {11, vectorValue(10.0, 0.0, 0.0)},
+                                      });
+
+    const auto classification = track.classify(camera);
+
+    EXPECT_EQ(world::AnimationTrackClass::RuntimeContinuous, classification.trackClass);
+    EXPECT_THAT(classification.diagnostic.toStdString(), HasSubstr("sampled continuously"));
+  }
+
+  TEST(AnimationTrack, ClassifiesSurfaceVelocityAsRuntimeContinuous) {
+    Sphere sphere;
+    const world::AnimationTrack track("sphere-id", "velocity",
+                                      {
+                                        {1, vectorValue(0.0, 0.0, 0.0)},
+                                        {11, vectorValue(2.0, 0.0, 0.0)},
+                                      });
+
+    const auto classification = track.classify(sphere);
+
+    EXPECT_EQ(world::AnimationTrackClass::RuntimeContinuous, classification.trackClass);
+  }
+
+  TEST(AnimationTrack, ClassifiesSimpleMaterialScalarsAsRuntimeContinuous) {
+    PhongMaterial material;
+    const world::AnimationTrack track("material-id", "specularCoefficient",
+                                      {
+                                        {1, QJsonValue(0.0)},
+                                        {11, QJsonValue(1.0)},
+                                      });
+
+    const auto classification = track.classify(material);
+
+    EXPECT_EQ(world::AnimationTrackClass::RuntimeContinuous, classification.trackClass);
+  }
+
+  TEST(AnimationTrack, ClassifiesScriptedSurfaceParametersAsFrameBaked) {
+    ScriptedSurface surface;
+    surface.setProperty("sides", 6.0);
+    const world::AnimationTrack track("script-id", "sides",
+                                      {
+                                        {1, QJsonValue(4.0)},
+                                        {11, QJsonValue(8.0)},
+                                      });
+
+    const auto classification = track.classify(surface);
+
+    EXPECT_EQ(world::AnimationTrackClass::FrameBaked, classification.trackClass);
+    EXPECT_THAT(classification.diagnostic.toStdString(), HasSubstr("generated topology"));
+  }
+
+  TEST(AnimationTrack, ClassifiesVisibilityAsStepOnly) {
+    Sphere sphere;
+    const world::AnimationTrack track("sphere-id", "visible",
+                                      {
+                                        {1, QJsonValue(true)},
+                                        {10, QJsonValue(false)},
+                                      },
+                                      InterpolationMode::Step);
+
+    const auto classification = track.classify(sphere);
+
+    EXPECT_EQ(world::AnimationTrackClass::StepOnly, classification.trackClass);
+    EXPECT_THAT(classification.diagnostic.toStdString(), HasSubstr("step-only"));
+  }
+
+  TEST(AnimationTrack, RejectsObjectReferenceTracksWithDiagnostic) {
+    Sphere sphere;
+    const world::AnimationTrack track("sphere-id", "material",
+                                      {
+                                        {1, QJsonValue("material-a")},
+                                        {10, QJsonValue("material-b")},
+                                      },
+                                      InterpolationMode::Step);
+
+    const auto classification = track.classify(sphere);
+
+    EXPECT_EQ(world::AnimationTrackClass::Rejected, classification.trackClass);
+    EXPECT_THAT(classification.diagnostic.toStdString(), HasSubstr("Material*"));
   }
 
   TEST(AnimationTrack, SamplesVectorProperties) {

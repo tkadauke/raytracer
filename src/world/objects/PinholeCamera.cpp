@@ -118,6 +118,7 @@ std::shared_ptr<render::Camera> PinholeCamera::toRaytracer() const {
   auto camera = make_named<render::PinholeCamera>(position(), target());
   camera->setDistance(distance());
   camera->setZoom(zoom());
+  applyCameraProperties(camera);
   return camera;
 }
 

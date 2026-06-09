@@ -251,6 +251,26 @@ bool ScriptedSurface::event(QEvent* e) {
   return Surface::event(e);
 }
 
+std::optional<Element::AnimationPropertyInfo>
+ScriptedSurface::animationPropertyInfo(const QString& propertyName) const {
+  const QByteArray propertyKey = propertyName.toUtf8();
+  if (dynamicPropertyNames().contains(propertyKey)) {
+    const QVariant value = property(propertyKey.constData());
+    const QString typeName = value.typeName() != nullptr ? QString::fromLatin1(value.typeName())
+                                                         : QStringLiteral("dynamic");
+
+    AnimationPropertyType type = AnimationPropertyType::Unsupported;
+    if (typeName == QStringLiteral("double"))
+      type = AnimationPropertyType::Double;
+    else if (typeName == QStringLiteral("int"))
+      type = AnimationPropertyType::Integer;
+
+    return AnimationPropertyInfo{type, typeName, true};
+  }
+
+  return Surface::animationPropertyInfo(propertyName);
+}
+
 std::shared_ptr<render::Primitive> ScriptedSurface::toRaytracerPrimitive() const {
   return make_named<render::Grid>();
 }

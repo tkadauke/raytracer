@@ -14,6 +14,18 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Portal and planar mirror scene markers.** Scene JSON and Modeler surface
   properties can now mark planar portal receivers and mirror surfaces for
   render graph discovery. — GPT-5
+- **Shutter-time runtime animation sampling.** Raytracer and wavefront sample
+  compiled runtime position/camera tracks at continuous frame-plus-shutter
+  times while still-frame renders keep the baked integer-frame state when the
+  shutter interval is zero. — GPT-5
+- **Runtime animation track compilation.** Eligible world transform, camera,
+  light, and material animation tracks now compile into Qt-free render tracks
+  attached to runtime objects while step-only and frame-baked tracks keep the
+  existing evaluated-world path. — GPT-5
+- **World animation track classification.** World animation tracks now report
+  runtime-continuous, frame-baked, step-only, or rejected classifications with
+  diagnostics so render engines can choose continuous sampling or ordinary
+  frame evaluation. — GPT-5
 - **Render animation tracks.** Added Qt-free render-side animation value and
   continuous-time track primitives for scalar, vector, color, transform, and
   step-only switch payloads. — GPT-5
@@ -387,6 +399,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Surface velocity and keyframes.** Runtime instances now sample explicit
+  transform keyframes as the base motion-blur transform and compose
+  `Surface::velocity` afterward as a world-space shutter offset, with animated
+  `velocity` tracks overriding the static convenience property. — GPT-5
 - **Modeler final render engine choices.** The final render dialog now exposes
   Raytracer, Path Tracer, Rasterizer, and Wireframe as user-facing engines;
   wavefront path tracing is selected through the Path Tracer schedule instead

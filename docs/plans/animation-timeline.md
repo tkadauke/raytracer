@@ -5,14 +5,15 @@
 > roadmap §4.7 and connects it to the existing velocity-only motion-blur model
 > in chapter 16.
 >
-> **Status:** partially complete. Phase 1 shared timeline math is implemented
+> **Status:** mostly complete. Phase 1 shared timeline math is implemented
 > under `include/core/animation/`, with reusable interpolation policies under
 > `include/core/math/interpolation/`. Phase 2 world-scene JSON loading, saving,
 > and frame evaluation is implemented under `include/world/animation/` and
 > `Scene`'s top-level `animation` block handling. Phase 3 `rendercli --frame`,
 > Phase 4 `rendercli --animation`, and Phase 5 Modeler read-only timeline
 > awareness are implemented. Phase 6 render-side track compilation and
-> shutter-time sampling from arbitrary keyframed properties remain open.
+> shutter-time sampling is implemented for eligible runtime tracks on cameras,
+> instances, lights, and materials.
 
 ---
 
@@ -367,16 +368,39 @@ encoder, not a hard dependency for animation support.
 
 ### Phase 6 — Render-side compilation
 
-- Add render-side animation primitives for runtime-continuous tracks.
-- Compile eligible world tracks to render tracks.
-- Keep frame-baked tracks on the world-evaluation path.
-- Integrate with shutter-time sampling:
-  - frame time + sample's shutter offset -> continuous time
-  - transforms/cameras/lights sampled per ray where needed
+- ~~Add render-side animation primitives for runtime-continuous tracks.~~ ✅
+  **Done.** `render::animation::AnimationTrack` and `AnimationValue` provide
+  Qt-free runtime tracks under `include/render/animation/`.
+- ~~Compile eligible world tracks to render tracks.~~ ✅ **Done.**
+  `Element::attachRuntimeAnimationTracks()` forwards runtime-continuous camera,
+  instance, light, and material tracks during world-to-runtime conversion.
+- ~~Keep frame-baked tracks on the world-evaluation path.~~ ✅ **Done.**
+  `world::AnimationTrack::classify()` leaves step-only and render-scene-state
+  changes on `Scene::evaluateAnimationAtFrame()`.
+- ~~Integrate with shutter-time sampling:~~ ✅ **Done.**
+  - ~~frame time + sample's shutter offset -> continuous time~~
+  - ~~transforms/cameras/lights sampled per ray where needed~~
+  Runtime instances sample transform tracks at `animation:evaluatedFrame +
+  State::timeSample`; rendercli coverage pins integer-frame parity and
+  shutter-sample rendered differences.
 - Revisit the current `Surface::velocity` motion-blur model:
-  - Preserve it as a convenience property or compile it as a two-key transform
-    track.
-  - Document how velocity and explicit transform keyframes interact.
+  - ~~Preserve it as a convenience property or compile it as a two-key transform
+    track.~~ ✅ **Done.** Runtime `Instance` transform sampling keeps
+    velocity-only scenes on the legacy per-shutter translation path and lets an
+    explicit `velocity` track override the static convenience value.
+  - ~~Document how velocity and explicit transform keyframes interact.~~ ✅
+    **Done.** Explicit `position`/`rotation`/`scale` keyframes define the base
+    sampled transform; velocity composes afterward as a world-space shutter
+    offset.
+
+Verification commands:
+
+```sh
+cmake --preset release
+cmake --build --preset release --parallel
+QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 ctest --preset release --output-on-failure
+QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 ctest --preset release -R rendercli_animation --output-on-failure
+```
 
 ---
 
@@ -402,6 +426,8 @@ Current reusable animated fixtures live under `scenes/`:
 - `animated_material_fade.json` for scene/background color tracks.
 - `animated_motion_blur_sweep.json` for timeline position plus render-time
   motion-blur velocity.
+- `animated_runtime_translation_parity.json` for runtime-continuous transform
+  compilation, integer-frame parity, and shutter-time differences.
 - `animated_visibility_steps.json` for step-interpolated bool visibility.
 
 Avoid full video-output assertions. Prefer frame-specific PNG checks or simple

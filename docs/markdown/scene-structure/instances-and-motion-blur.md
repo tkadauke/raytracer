@@ -256,6 +256,37 @@ translation: the instance, viewed at this `timeSample`, lives
 at the original position plus the shift. The rest of the
 matrix dance proceeds unchanged.
 
+## <a id="velocity-and-keyframes"></a>Velocity and keyframes
+The scene graph now has two ways to describe transform motion:
+explicit animation tracks on `position`, `rotation`, and `scale`,
+and the older `Surface::velocity` convenience property. The rule is:
+
+1. Explicit transform keyframes define the base transform sampled at
+   the current frame plus the per-ray shutter `timeSample`.
+2. `velocity` is composed after that base transform as a world-space
+   shutter translation: `positionAtSample + velocity * timeSample`.
+3. If an explicit `velocity` track exists, it replaces the static
+   `Surface::velocity` value for that sampled frame.
+
+This preserves existing velocity-only scenes. A surface with no
+transform keyframes and `velocity = (2, 0, 0)` still moves from its
+authored position to authored position plus `(2, 0, 0)` over the
+shutter. A keyframed surface, however, treats the keyframes as the
+primary animation model: the sampled keyframe transform answers "where
+is the object at this subframe?", then velocity adds any short shutter
+streak the author requested on top.
+
+The compiler keeps two animation paths separate. **Frame-baked** tracks are
+applied to the editable `world::Scene` at an integer frame before runtime
+objects are built; this is the path for discrete visibility, enum/string
+choices, and any property that changes render-scene structure.
+**Runtime-continuous** tracks are copied onto the runtime `render::Object` so the
+renderer can sample them at subframe shutter time. Instance transforms live on
+that continuous path: after `rendercli --frame 12` or the Modeler Timeline dock
+evaluates the authoring scene at frame 12, each ray still supplies
+`State::timeSample`, and the runtime instance samples its transform at
+`12 + timeSample`.
+
 ## <a id="the-bounding-box-has-to-expand"></a>The bounding box has to expand
 There's one more piece to motion blur. The [BVH](../appendix/a-glossary.md#b) traversal from
 [Spatial acceleration](spatial-acceleration.md) prunes by [AABB](../appendix/a-glossary.md#a)

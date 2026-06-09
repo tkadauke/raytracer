@@ -8,7 +8,9 @@ EquirectangularCamera::EquirectangularCamera(Element* parent)
 }
 
 std::shared_ptr<render::Camera> EquirectangularCamera::toRaytracer() const {
-  return make_named<render::EquirectangularCamera>(position(), target());
+  auto camera = make_named<render::EquirectangularCamera>(position(), target());
+  applyCameraProperties(camera);
+  return camera;
 }
 
 static bool dummy =

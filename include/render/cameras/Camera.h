@@ -35,12 +35,14 @@ namespace render {
     struct PrimaryRaySample {
       Rayd ray;
       double timeSample{0.0};
+      double animationTime{0.0};
       std::shared_ptr<render::SampleStream> sampleStream;
     };
 
     struct PrimaryRay {
       Rayd ray;
       double timeSample{0.0};
+      double animationTime{0.0};
     };
 
     class PrimaryRayGenerator {
@@ -145,6 +147,13 @@ namespace render {
 
     std::uint64_t primaryRayPixelHash(const render::ViewPlane::Iterator& pixel,
                                       std::optional<std::uint64_t> tileSeed) const;
+
+    void setAnimationFrame(double frame);
+    double animationFrame() const;
+    void setShutterInterval(double open, double close);
+    double shutterOpen() const;
+    double shutterClose() const;
+    double animationTimeForSample(double timeSample) const;
 
     /**
       * Set the aspect-ratio fit mode for this camera's view plane.
@@ -453,6 +462,9 @@ namespace render {
     render::AspectMode m_aspectMode;
     double m_aspectRatio;
     Vector3d m_position, m_target;
+    double m_animationFrame{0.0};
+    double m_shutterOpen{0.0};
+    double m_shutterClose{0.0};
     mutable MemoizedValue<Matrix4d> m_matrix;
     mutable MemoizedValue<Matrix4d> m_inverseMatrix;
     std::shared_ptr<render::ViewPlane> m_viewPlane;

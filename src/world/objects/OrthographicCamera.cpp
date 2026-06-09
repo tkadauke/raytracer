@@ -11,6 +11,7 @@ OrthographicCamera::OrthographicCamera(Element* parent)
 std::shared_ptr<render::Camera> OrthographicCamera::toRaytracer() const {
   auto camera = make_named<render::OrthographicCamera>(position(), target());
   camera->setZoom(zoom());
+  applyCameraProperties(camera);
   return camera;
 }
 

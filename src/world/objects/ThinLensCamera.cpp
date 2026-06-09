@@ -17,6 +17,7 @@ std::shared_ptr<render::Camera> ThinLensCamera::toRaytracer() const {
   camera->setZoom(m_zoom);
   camera->setApertureRadius(m_apertureRadius);
   camera->setFocalDistance(m_focalDistance);
+  applyCameraProperties(camera);
   return camera;
 }
 

@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "core/math/interpolation/Interpolation.h"
 #include "render/State.h"
+#include "render/animation/AnimationTrack.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/Sphere.h"
@@ -11,6 +13,13 @@ namespace InstanceTest {
   using namespace render;
   using namespace render;
   using namespace render;
+  using core::math::interpolation::InterpolationMode;
+
+  void expectVectorNear(const Vector3d& expected, const Vector3d& actual, double epsilon) {
+    EXPECT_NEAR(expected.x(), actual.x(), epsilon);
+    EXPECT_NEAR(expected.y(), actual.y(), epsilon);
+    EXPECT_NEAR(expected.z(), actual.z(), epsilon);
+  }
 
   TEST(Instance, ShouldReturnChildPrimitiveIfTransformedRayIntersects) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
@@ -163,6 +172,30 @@ namespace InstanceTest {
     ASSERT_NEAR(0.0, capturedRay.origin().z(), 1e-9);
   }
 
+  TEST(Instance, ShouldSampleRuntimePositionTrackAtAnimationTime) {
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
+    Instance instance(primitive);
+    instance.setMatrix(Matrix4d());
+    instance.setAnimationTrack(
+      "position",
+      render::animation::AnimationTrack({{0.0, Vector3d(0, 0, 0)}, {10.0, Vector3d(20, 0, 0)}}));
+
+    Rayd capturedRay(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
+    EXPECT_CALL(*primitive, intersect(_, _, _))
+      .WillOnce(DoAll(SaveArg<0>(&capturedRay), Return(static_cast<render::Primitive*>(nullptr))));
+
+    Rayd worldRay(Vector4d(2.5, 0, 0, 1), Vector3d(0, 0, 1));
+    State state;
+    state.animationFrame = 5.0;
+    state.animationTime = 6.25;
+    HitPointInterval hitPoints;
+    instance.intersect(worldRay, hitPoints, state);
+
+    ASSERT_NEAR(0.0, capturedRay.origin().x(), 1e-9);
+    ASSERT_NEAR(0.0, capturedRay.origin().y(), 1e-9);
+    ASSERT_NEAR(0.0, capturedRay.origin().z(), 1e-9);
+  }
+
   TEST(Instance, ShouldTakeStaticFastPathWhenVelocityIsZero) {
     // Without velocity, intersect must produce the same ray
     // transformation as before — the timeSample value should have
@@ -184,6 +217,71 @@ namespace InstanceTest {
 
     // Ray should pass through identity-transformed: still at (5,0,0).
     ASSERT_NEAR(5.0, capturedRay.origin().x(), 1e-9);
+  }
+
+  TEST(Instance, ShouldSampleExplicitPositionTrackAtFramePlusTimeSample) {
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
+    Instance instance(primitive);
+    instance.setMatrix(Matrix4d());
+    instance.setMetadataValue("animation:evaluatedFrame", "10");
+    instance.setAnimationTrack(
+      "position",
+      render::animation::AnimationTrack({{10.0, Vector3d(0, 0, 0)}, {11.0, Vector3d(10, 0, 0)}}));
+
+    Rayd capturedRay(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
+    EXPECT_CALL(*primitive, intersect(_, _, _))
+      .WillOnce(DoAll(SaveArg<0>(&capturedRay), Return(static_cast<render::Primitive*>(nullptr))));
+
+    State state;
+    state.timeSample = 0.5;
+    HitPointInterval hitPoints;
+    instance.intersect(Rayd(Vector3d(5, 0, 0), Vector3d(0, 0, 1)), hitPoints, state);
+
+    expectVectorNear(Vector3d(0, 0, 0), Vector3d(capturedRay.origin()), 1e-9);
+  }
+
+  TEST(Instance, ShouldComposeVelocityAfterExplicitPositionTrack) {
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
+    Instance instance(primitive);
+    instance.setMatrix(Matrix4d());
+    instance.setVelocity(Vector3d(2, 0, 0));
+    instance.setMetadataValue("animation:evaluatedFrame", "10");
+    instance.setAnimationTrack(
+      "position",
+      render::animation::AnimationTrack({{10.0, Vector3d(0, 0, 0)}, {11.0, Vector3d(10, 0, 0)}}));
+
+    Rayd capturedRay(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
+    EXPECT_CALL(*primitive, intersect(_, _, _))
+      .WillOnce(DoAll(SaveArg<0>(&capturedRay), Return(static_cast<render::Primitive*>(nullptr))));
+
+    State state;
+    state.timeSample = 0.5;
+    HitPointInterval hitPoints;
+    instance.intersect(Rayd(Vector3d(6, 0, 0), Vector3d(0, 0, 1)), hitPoints, state);
+
+    expectVectorNear(Vector3d(0, 0, 0), Vector3d(capturedRay.origin()), 1e-9);
+  }
+
+  TEST(Instance, ShouldLetVelocityTrackOverrideStaticVelocity) {
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
+    Instance instance(primitive);
+    instance.setMatrix(Matrix4d());
+    instance.setVelocity(Vector3d(100, 0, 0));
+    instance.setMetadataValue("animation:evaluatedFrame", "10");
+    instance.setAnimationTrack("velocity", render::animation::AnimationTrack(
+                                             {{10.0, Vector3d(2, 0, 0)}, {11.0, Vector3d(2, 0, 0)}},
+                                             InterpolationMode::Step));
+
+    Rayd capturedRay(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
+    EXPECT_CALL(*primitive, intersect(_, _, _))
+      .WillOnce(DoAll(SaveArg<0>(&capturedRay), Return(static_cast<render::Primitive*>(nullptr))));
+
+    State state;
+    state.timeSample = 0.5;
+    HitPointInterval hitPoints;
+    instance.intersect(Rayd(Vector3d(1, 0, 0), Vector3d(0, 0, 1)), hitPoints, state);
+
+    expectVectorNear(Vector3d(0, 0, 0), Vector3d(capturedRay.origin()), 1e-9);
   }
 
   TEST(Instance, ShouldMaterializeRay4PacketHitsThroughStaticTransform) {
