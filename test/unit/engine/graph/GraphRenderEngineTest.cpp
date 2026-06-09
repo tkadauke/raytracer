@@ -24,6 +24,7 @@
 #include "render/textures/ConstantColorTexture.h"
 #include "render/tonemap/ReinhardTonemap.h"
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/VectorTestHelper.h"
 
 #include <QJsonArray>
 #include <QJsonObject>
@@ -830,6 +831,94 @@ namespace GraphRenderEngineTest {
     engine.setPlan(plan);
 
     Buffer<unsigned int> buffer(16, 16);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+  }
+
+  TEST(GraphRenderEngine, DerivesPortalCameraFromReceiverSourceAndBaseCamera) {
+    GraphRenderEngine engine(camera(), highContrastScene());
+
+    auto activeCamera =
+      std::make_shared<render::PinholeCamera>(Vector3d(2.0, 3.0, -5.0), Vector3d(2.0, 3.0, 0.0));
+    engine.setSceneCamera("active-camera", activeCamera);
+
+    DerivedCameraRef derived;
+    derived.kind = DerivedCameraRef::Kind::Portal;
+    derived.baseSceneCameraId = "active-camera";
+    derived.receiverTransform = Matrix4d::translate(2.0, 0.0, 0.0);
+    derived.sourceTransform = Matrix4d::translate(12.0, 4.0, 0.0);
+
+    RenderPassNode pass;
+    RenderCameraRef cameraRef;
+    cameraRef.derived = derived;
+    pass.sceneView.camera = cameraRef;
+
+    auto resolved = engine.cameraForPass(pass);
+
+    ASSERT_NE(nullptr, resolved);
+    ASSERT_VECTOR_NEAR(Vector3d(12.0, 7.0, -5.0), resolved->position(), 1e-9);
+    ASSERT_VECTOR_NEAR(Vector3d(12.0, 7.0, 0.0), resolved->target(), 1e-9);
+    EXPECT_NE(activeCamera.get(), resolved.get());
+  }
+
+  TEST(GraphRenderEngine, DerivesMirrorCameraByReflectingAcrossPlane) {
+    GraphRenderEngine engine(camera(), highContrastScene());
+
+    auto activeCamera =
+      std::make_shared<render::PinholeCamera>(Vector3d(1.0, 3.0, -4.0), Vector3d(1.0, 1.0, 0.0));
+    engine.setSceneCamera("active-camera", activeCamera);
+
+    DerivedCameraRef derived;
+    derived.kind = DerivedCameraRef::Kind::PlanarMirror;
+    derived.baseSceneCameraId = "active-camera";
+    derived.mirrorPlanePoint = Vector3d(0.0, 0.0, 0.0);
+    derived.mirrorPlaneNormal = Vector3d(0.0, 1.0, 0.0);
+
+    RenderPassNode pass;
+    RenderCameraRef cameraRef;
+    cameraRef.derived = derived;
+    pass.sceneView.camera = cameraRef;
+
+    auto resolved = engine.cameraForPass(pass);
+
+    ASSERT_NE(nullptr, resolved);
+    ASSERT_VECTOR_NEAR(Vector3d(1.0, -3.0, -4.0), resolved->position(), 1e-9);
+    ASSERT_VECTOR_NEAR(Vector3d(1.0, -1.0, 0.0), resolved->target(), 1e-9);
+    EXPECT_NE(activeCamera.get(), resolved.get());
+  }
+
+  TEST(GraphRenderEngine, ExecutesDerivedCameraReceiverClippingPasses) {
+    RenderPlan plan;
+    plan.addResource(colorResource("beauty_color", RenderResourceLifetime::Transient, 16, 16));
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported, 16, 16));
+
+    DerivedCameraRef derived;
+    derived.kind = DerivedCameraRef::Kind::PlanarMirror;
+    derived.requiresReceiverClip = true;
+    RenderCameraRef cameraRef;
+    cameraRef.derived = derived;
+
+    RenderPassNode beauty;
+    beauty.id = "beauty";
+    beauty.kind = RenderPassKind::Beauty;
+    beauty.executor = RenderExecutorKind::Raytracer;
+    beauty.sceneView.camera = cameraRef;
+    beauty.addWrite("beauty_color");
+    plan.addPass(beauty);
+
+    RenderPassNode tonemap;
+    tonemap.id = "tonemap";
+    tonemap.kind = RenderPassKind::Tonemap;
+    tonemap.executor = RenderExecutorKind::PostProcess;
+    tonemap.addRead("beauty_color");
+    tonemap.addWrite("main_color");
+    plan.addPass(tonemap);
+
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setPlan(plan);
+    Buffer<unsigned int> buffer(16, 16);
+
     engine.render(buffer);
 
     EXPECT_GT(countNonBlackPixels(buffer), 0);
@@ -2160,7 +2249,7 @@ namespace GraphRenderEngineTest {
   }
 
   TEST(GraphRenderEngine, RunsIndependentCpuSafePassesConcurrently) {
-    auto material = std::make_shared<BlockingMaterial>();
+    auto material = std::make_shared<GateMaterial>();
     auto scene = std::make_shared<render::Scene>();
     auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 100.0);
     sphere->setMaterial(material);
@@ -2200,13 +2289,13 @@ namespace GraphRenderEngineTest {
       }
     });
 
-    const bool renderBlocked = material->waitForSecondCall(std::chrono::seconds(2));
+    const bool renderBlocked = material->waitForCallCount(2, std::chrono::seconds(10));
     EXPECT_TRUE(renderBlocked);
     if (renderBlocked) {
       EXPECT_TRUE(observer->waitForStartedCount(2, std::chrono::seconds(2)));
       EXPECT_TRUE(observer->waitForActiveSet({"beauty_a", "beauty_b"}, std::chrono::seconds(2)));
     }
-    material->releaseSecondCall();
+    material->releaseAll();
     renderThread.join();
     if (renderFailure) {
       std::rethrow_exception(renderFailure);
@@ -2874,6 +2963,51 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[0][1]);
     EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[1][0]);
     EXPECT_EQ(Colord(1.0, 0.0, 0.0), buffer[1][1]);
+  }
+
+  TEST(GraphRenderEngine, DisabledCompositePassesThroughBaseColorResource) {
+    auto scene = std::make_shared<render::Scene>();
+
+    RenderPlan plan;
+    plan.addResource(colorResource("base_color", RenderResourceLifetime::History));
+    plan.addResource(colorResource("foreground_color", RenderResourceLifetime::History));
+    plan.addResource(stencilResource("stencil_mask", RenderResourceLifetime::History));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    RenderPassNode composite;
+    composite.id = "portal_composite";
+    composite.kind = RenderPassKind::Composite;
+    composite.executor = RenderExecutorKind::Composite;
+    composite.features = {"stencil_composite"};
+    composite.enabled = false;
+    composite.disabledBehavior = DisabledBehavior::Passthrough;
+    composite.reads.push_back({"base_color"});
+    composite.reads.push_back({"foreground_color"});
+    composite.reads.push_back({"stencil_mask"});
+    composite.writes.push_back({"display_color"});
+    plan.addPass(composite);
+    ASSERT_TRUE(plan.validate().valid());
+
+    auto baseColor = std::make_shared<Buffer<Colord>>(2, 2);
+    auto foregroundColor = std::make_shared<Buffer<Colord>>(2, 2);
+    auto stencil = std::make_shared<Buffer<std::uint8_t>>(2, 2);
+    baseColor->clear(Colord(0.0, 0.0, 1.0));
+    foregroundColor->clear(Colord(1.0, 0.0, 0.0));
+    stencil->clear(1);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    engine.setExternalColorResource("base_color", baseColor);
+    engine.setExternalColorResource("foreground_color", foregroundColor);
+    engine.setExternalStencilResource("stencil_mask", stencil);
+
+    Buffer<Colord> buffer(2, 2);
+    engine.render(buffer);
+
+    EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[0][0]);
+    EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[0][1]);
+    EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[1][0]);
+    EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[1][1]);
   }
 
   TEST(GraphRenderEngine, LdrRenderPacksGraphOutputWithoutApplyingTonemapAgain) {

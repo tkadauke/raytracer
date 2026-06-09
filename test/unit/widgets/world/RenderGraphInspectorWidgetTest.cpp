@@ -4,6 +4,7 @@
 #include "widgets/world/RenderGraphInspectorWidget.h"
 
 #include "core/Buffer.h"
+#include "core/math/Matrix.h"
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/RenderGraphCompiler.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
@@ -299,6 +300,35 @@ namespace RenderGraphInspectorWidgetTest {
     return compiler.compile({64, 64, 1}, intent, analysis);
   }
 
+  RenderPlan truncatedSubviewPlan() {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.setMaxRenderToTextureRecursionDepth(0);
+
+    RenderSubviewIntent subview;
+    subview.name = "mirror probe";
+    subview.view.selector = SceneSelector::all();
+    subview.view.executor = RenderExecutorPreference::Rasterizer;
+    intent.subviews.push_back(subview);
+
+    return compiler.compile({64, 32, 1}, intent);
+  }
+
+  RenderPlan portalAndMirrorPlan() {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.setDefaultCamera(RenderCameraRef{"active-camera", std::nullopt});
+
+    RenderSceneAnalysis analysis;
+    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel",
+                                         Matrix4d::translate(2.0, 0.0, 0.0),
+                                         Matrix4d::translate(12.0, 0.0, 0.0));
+    analysis.recordPlanarMirrorSurface("mirror-panel", "Mirror Panel", Vector3d(0.0, 0.0, 0.0),
+                                       Vector3d(0.0, 1.0, 0.0));
+
+    return compiler.compile({64, 32, 1}, intent, analysis);
+  }
+
   std::shared_ptr<render::Camera> camera() {
     return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
   }
@@ -394,6 +424,18 @@ namespace RenderGraphInspectorWidgetTest {
       }
     }
     FAIL() << "missing resource row " << resourceId.toStdString();
+  }
+
+  QTreeWidgetItem* passItem(RenderGraphInspectorWidget& widget, const QString& passId) {
+    auto* passes = widget.findChild<QTreeWidget*>("renderGraphPasses");
+    if (!passes)
+      return nullptr;
+    for (int row = 0; row != passes->topLevelItemCount(); ++row) {
+      QTreeWidgetItem* item = passes->topLevelItem(row);
+      if (item->data(0, Qt::UserRole).toString() == passId)
+        return item;
+    }
+    return nullptr;
   }
 
   QTreeWidgetItem* groupItem(RenderGraphInspectorWidget& widget, const QString& scope,
@@ -561,6 +603,140 @@ namespace RenderGraphInspectorWidgetTest {
     ASSERT_NE(nullptr, resource);
     EXPECT_TRUE(nodeTextContains(resource, QStringLiteral("routed selector")));
     EXPECT_TRUE(resource->toolTip().contains("Selector route: compiler-generated branch resource"));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowTruncatedSubviewDiagnostics) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(truncatedSubviewPlan());
+
+    auto* passes = widget.findChild<QTreeWidget*>("renderGraphPasses");
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, passes);
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+
+    QTreeWidgetItem* diagnosticRow = nullptr;
+    for (int row = 0; row != passes->topLevelItemCount(); ++row) {
+      if (passes->topLevelItem(row)->data(0, Qt::UserRole).toString() ==
+          QStringLiteral("subview_mirror_probe_recursion_limit")) {
+        diagnosticRow = passes->topLevelItem(row);
+        break;
+      }
+    }
+
+    ASSERT_NE(nullptr, diagnosticRow);
+    EXPECT_EQ(Qt::Unchecked, diagnosticRow->checkState(0));
+    EXPECT_EQ(
+      QStringLiteral("Subview mirror probe truncated at render-to-texture recursion limit 0"),
+      diagnosticRow->text(3));
+    EXPECT_EQ(QStringLiteral("Debug"), diagnosticRow->text(5));
+
+    QGraphicsItem* diagnosticNode =
+      graphNodeItem(graph->scene(), "pass", "subview_mirror_probe_recursion_limit");
+    ASSERT_NE(nullptr, diagnosticNode);
+    EXPECT_TRUE(nodeLineTooltipContains(diagnosticNode, QStringLiteral("truncated")));
+    EXPECT_TRUE(diagnosticNode->toolTip().contains(QStringLiteral("recursion_limit")));
+
+    QTreeWidgetItem* diagnosticFeature = groupItem(
+      widget, QStringLiteral("Feature"), QStringLiteral("Render To Texture Recursion Limit"));
+    ASSERT_NE(nullptr, diagnosticFeature);
+    EXPECT_EQ(QStringLiteral("render_to_texture_recursion_limit"), diagnosticFeature->toolTip(2));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowPortalAndMirrorSynthesizedGraphNodes) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(portalAndMirrorPlan());
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+
+    QTreeWidgetItem* portalSubview =
+      passItem(widget, QStringLiteral("subview_portal_portal_panel_raytrace_beauty"));
+    ASSERT_NE(nullptr, portalSubview);
+    EXPECT_EQ(QStringLiteral("Subview portal Portal Panel Raytraced beauty"),
+              portalSubview->text(3));
+    EXPECT_TRUE(portalSubview->text(8).contains(QStringLiteral("derived portal")));
+    EXPECT_TRUE(portalSubview->text(8).contains(QStringLiteral("active-camera")));
+    EXPECT_TRUE(portalSubview->text(8).contains(QStringLiteral("clipped")));
+    EXPECT_TRUE(portalSubview->text(10).contains(
+      QStringLiteral("Portal Panel receiver mask")));
+
+    QTreeWidgetItem* portalMask =
+      passItem(widget, QStringLiteral("subview_portal_portal_panel_receiver_mask"));
+    ASSERT_NE(nullptr, portalMask);
+    EXPECT_EQ(QStringLiteral("object_id: portal-panel"), portalMask->text(7));
+    EXPECT_EQ(QStringLiteral("AOV"), portalMask->text(5));
+    EXPECT_EQ(QStringLiteral("Rasterizer"), portalMask->text(6));
+
+    QTreeWidgetItem* portalComposite =
+      passItem(widget, QStringLiteral("subview_portal_portal_panel_composite"));
+    ASSERT_NE(nullptr, portalComposite);
+    EXPECT_EQ(QStringLiteral("Composite"), portalComposite->text(5));
+    EXPECT_EQ(QStringLiteral("Composite"), portalComposite->text(6));
+    EXPECT_TRUE(portalComposite->text(10).contains(QStringLiteral("Beauty color")));
+    EXPECT_TRUE(
+      portalComposite->text(10).contains(QStringLiteral("Subview portal Portal Panel Main color")));
+    EXPECT_TRUE(portalComposite->text(10).contains(
+      QStringLiteral("Portal Panel receiver mask")));
+
+    QTreeWidgetItem* mirrorSubview =
+      passItem(widget, QStringLiteral("subview_mirror_mirror_panel_raytrace_beauty"));
+    ASSERT_NE(nullptr, mirrorSubview);
+    EXPECT_TRUE(mirrorSubview->text(8).contains(QStringLiteral("derived planar_mirror")));
+    EXPECT_TRUE(mirrorSubview->text(8).contains(QStringLiteral("active-camera")));
+    EXPECT_TRUE(mirrorSubview->text(10).contains(
+      QStringLiteral("Mirror Panel receiver mask")));
+
+    QTreeWidgetItem* mirrorMask =
+      passItem(widget, QStringLiteral("subview_mirror_mirror_panel_receiver_mask"));
+    ASSERT_NE(nullptr, mirrorMask);
+    EXPECT_EQ(QStringLiteral("object_id: mirror-panel"), mirrorMask->text(7));
+
+    QTreeWidgetItem* mirrorComposite =
+      passItem(widget, QStringLiteral("subview_mirror_mirror_panel_composite"));
+    ASSERT_NE(nullptr, mirrorComposite);
+    EXPECT_EQ(QStringLiteral("Composite"), mirrorComposite->text(5));
+    EXPECT_TRUE(mirrorComposite->text(10).contains(
+      QStringLiteral("Portal Panel composited color")));
+    EXPECT_TRUE(
+      mirrorComposite->text(10).contains(QStringLiteral("Subview mirror Mirror Panel Main color")));
+    EXPECT_TRUE(mirrorComposite->text(10).contains(
+      QStringLiteral("Mirror Panel receiver mask")));
+
+    QGraphicsItem* portalSubviewNode =
+      graphNodeItem(graph->scene(), "pass", "subview_portal_portal_panel_raytrace_beauty");
+    ASSERT_NE(nullptr, portalSubviewNode);
+    EXPECT_TRUE(nodeTextContains(portalSubviewNode, QStringLiteral("derived portal")));
+    EXPECT_TRUE(portalSubviewNode->toolTip().contains(
+      QStringLiteral("Scene camera: derived portal from active-camera, clipped")));
+
+    EXPECT_NE(nullptr,
+              graphNodeItem(graph->scene(), "pass",
+                            "subview_portal_portal_panel_receiver_mask"));
+    EXPECT_NE(nullptr,
+              graphNodeItem(graph->scene(), "pass", "subview_portal_portal_panel_composite"));
+    EXPECT_NE(nullptr,
+              graphNodeItem(graph->scene(), "pass",
+                            "subview_mirror_mirror_panel_raytrace_beauty"));
+    EXPECT_NE(nullptr,
+              graphNodeItem(graph->scene(), "pass",
+                            "subview_mirror_mirror_panel_receiver_mask"));
+    EXPECT_NE(nullptr,
+              graphNodeItem(graph->scene(), "pass", "subview_mirror_mirror_panel_composite"));
+
+    QTreeWidgetItem* subviewFeature =
+      groupItem(widget, QStringLiteral("Feature"), QStringLiteral("Subview"));
+    ASSERT_NE(nullptr, subviewFeature);
+    EXPECT_EQ(QStringLiteral("subview"), subviewFeature->toolTip(2));
+    QTreeWidgetItem* compositeFeature =
+      groupItem(widget, QStringLiteral("Feature"), QStringLiteral("Subview Composite"));
+    ASSERT_NE(nullptr, compositeFeature);
+    EXPECT_EQ(QStringLiteral("subview_composite"), compositeFeature->toolTip(2));
+    QTreeWidgetItem* maskFeature =
+      groupItem(widget, QStringLiteral("Feature"), QStringLiteral("Receiver Mask"));
+    ASSERT_NE(nullptr, maskFeature);
+    EXPECT_EQ(QStringLiteral("receiver_mask"), maskFeature->toolTip(2));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowResourceEdgeRows) {

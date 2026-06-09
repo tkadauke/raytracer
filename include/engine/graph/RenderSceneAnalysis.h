@@ -1,6 +1,8 @@
 #pragma once
 
 #include "engine/graph/RenderGraphTypes.h"
+#include "core/math/Matrix.h"
+#include "core/math/Vector.h"
 
 #include <optional>
 #include <cstddef>
@@ -22,6 +24,11 @@ namespace engine::graph {
     struct SceneSurfaceMarker {
       std::string surfaceId;
       std::string surfaceName;
+      Matrix4d receiverTransform;
+      Matrix4d sourceTransform;
+      Vector3d planePoint{Vector3d::null};
+      Vector3d planeNormal{0.0, 1.0, 0.0};
+      bool receiverVisibleInPrimaryView{true};
     };
 
     struct SelectableSubset {
@@ -53,8 +60,12 @@ namespace engine::graph {
 
     void recordVisibleSurface();
     void recordVisibleLight();
-    void recordPortalReceiverSurface(std::string surfaceId, std::string surfaceName);
-    void recordPlanarMirrorSurface(std::string surfaceId, std::string surfaceName);
+    void recordPortalReceiverSurface(std::string surfaceId, std::string surfaceName,
+                                     Matrix4d receiverTransform, Matrix4d sourceTransform,
+                                     bool receiverVisibleInPrimaryView = true);
+    void recordPlanarMirrorSurface(std::string surfaceId, std::string surfaceName,
+                                   Vector3d planePoint, Vector3d planeNormal,
+                                   bool receiverVisibleInPrimaryView = true);
     void recordRenderTextureReceiver(std::string subviewName);
     void recordSelectableObject(std::string objectId, std::string objectName,
                                 std::vector<std::string> tags = {},

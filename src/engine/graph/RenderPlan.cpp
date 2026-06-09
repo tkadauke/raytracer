@@ -803,10 +803,10 @@ namespace engine::graph {
         continue;
       }
 
-      if (pass.reads.size() != 1 || pass.writes.empty()) {
+      if (pass.reads.empty() || pass.writes.empty()) {
         result.add({RenderPlanValidationError::Code::InvalidPassIO,
                     "disabled passthrough pass '" + pass.id +
-                      "' requires exactly one input and at least one output",
+                      "' requires at least one input and at least one output",
                     pass.id, ""});
         continue;
       }

@@ -210,6 +210,12 @@ namespace engine::graph {
       camera->setTarget(Vector3d::null);
     }
 
+    Vector3d reflectPointAcrossPlane(const Vector3d& point, const Vector3d& planePoint,
+                                     const Vector3d& planeNormal) {
+      const Vector3d normal = planeNormal.normalizedOrZero(1e-12);
+      return point - normal * (2.0 * ((point - planePoint) * normal));
+    }
+
     void writeColorFingerprint(std::ostream& out, const char* name, const Colord& color) {
       out << name << '=' << color.r() << ',' << color.g() << ',' << color.b() << ';';
     }
@@ -363,7 +369,10 @@ namespace engine::graph {
     }
 
     void passthroughColorOutput(const RenderPassNode& pass, RenderResourceStorage& storage) {
-      const auto& read = pass.singleRead();
+      if (pass.reads.empty()) {
+        throw passError(pass, "disabled passthrough pass has no input resource");
+      }
+      const auto& read = pass.reads.front();
       requireColorResource(storage, read.resource, pass);
       const Buffer<Colord>& source = storage.color(read.resource);
 
@@ -1098,10 +1107,45 @@ namespace engine::graph {
 
   std::shared_ptr<render::Camera>
   GraphRenderEngine::cameraForPass(const RenderPassNode& pass) const {
-    if (pass.sceneView.camera && pass.sceneView.camera->sceneCameraId) {
-      const auto camera = p->sceneCameras.find(*pass.sceneView.camera->sceneCameraId);
+    auto sceneCameraById = [this](const std::string& id) -> std::shared_ptr<render::Camera> {
+      const auto camera = p->sceneCameras.find(id);
       if (camera != p->sceneCameras.end()) {
         return camera->second;
+      }
+      return nullptr;
+    };
+
+    if (pass.sceneView.camera && pass.sceneView.camera->derived) {
+      const DerivedCameraRef& derived = *pass.sceneView.camera->derived;
+      std::shared_ptr<render::Camera> base =
+        derived.baseSceneCameraId ? sceneCameraById(*derived.baseSceneCameraId) : nullptr;
+      if (!base && pass.sceneView.camera->sceneCameraId) {
+        base = sceneCameraById(*pass.sceneView.camera->sceneCameraId);
+      }
+      if (!base) {
+        base = camera();
+      }
+      if (!base) {
+        return nullptr;
+      }
+
+      auto result = base->clone();
+      if (derived.kind == DerivedCameraRef::Kind::Portal) {
+        const Matrix4d transform = derived.sourceTransform * derived.receiverTransform.inverted();
+        result->setPosition(transform.transformPoint(base->position()));
+        result->setTarget(transform.transformPoint(base->target()));
+      } else {
+        result->setPosition(reflectPointAcrossPlane(base->position(), derived.mirrorPlanePoint,
+                                                    derived.mirrorPlaneNormal));
+        result->setTarget(reflectPointAcrossPlane(base->target(), derived.mirrorPlanePoint,
+                                                  derived.mirrorPlaneNormal));
+      }
+      return result;
+    }
+
+    if (pass.sceneView.camera && pass.sceneView.camera->sceneCameraId) {
+      if (auto camera = sceneCameraById(*pass.sceneView.camera->sceneCameraId)) {
+        return camera;
       }
     }
     return camera();
@@ -1356,7 +1400,6 @@ namespace engine::graph {
         return handler.publishesWrites() ? ScheduledPassResult::SkippedWithWrites
                                          : ScheduledPassResult::SkippedWithoutWrites;
       }
-
       auto recordTraceMessage = [recorder = p->executionTraceRecorder,
                                  session = traceSession.session, &pass](std::string message) {
         if (recorder && session) {

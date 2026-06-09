@@ -3,8 +3,9 @@
 #include "engine/graph/RenderPlan.h"
 #include "engine/graph/RenderSceneAnalysis.h"
 
-#include <string>
+#include <optional>
 #include <set>
+#include <string>
 #include <vector>
 
 namespace engine::graph {
@@ -122,6 +123,8 @@ namespace engine::graph {
                                 RenderExecutorKind executor, const RenderIntent& intent) const;
     RenderPlan compileStencilCompositeView(const RenderTargetSpec& target,
                                            const RenderIntent& intent) const;
+    void addAutomaticFeatureSubviews(RenderIntent& intent,
+                                     const RenderSceneAnalysis& sceneAnalysis) const;
     std::vector<SubviewOutputBinding>
     addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target, const RenderIntent& intent,
                        const RenderSceneAnalysis& sceneAnalysis, int renderToTextureDepth) const;
@@ -130,6 +133,46 @@ namespace engine::graph {
                                   const RenderSceneAnalysis& sceneAnalysis) const;
     void validateSubviewReceivers(const RenderIntent& intent,
                                   const RenderSceneAnalysis& sceneAnalysis) const;
+    void addSubviewRecursionLimitDiagnostics(RenderPlan& plan, const RenderIntent& intent) const;
+    RenderPassNode subviewRecursionLimitDiagnosticPass(const RenderSubviewIntent& subview,
+                                                       std::size_t index, int recursionLimit,
+                                                       std::set<std::string>& usedPrefixes) const;
+    void addAutomaticFeatureSubviewComposites(RenderPlan& plan, const RenderTargetSpec& target,
+                                              const RenderIntent& intent,
+                                              const RenderSceneAnalysis& sceneAnalysis,
+                                              RenderResourceId& mainInputResource) const;
+    bool addAutomaticFeatureSubviewComposite(RenderPlan& plan, const RenderTargetSpec& target,
+                                             const RenderSubviewIntent& subview,
+                                             const std::string& prefix,
+                                             const std::string& displayName,
+                                             const RenderSceneAnalysis& sceneAnalysis,
+                                             RenderResourceId& mainInputResource) const;
+    RenderPassNode subviewCompositePass(const std::string& prefix, const std::string& displayName,
+                                        const RenderFeatureKind& subviewFeature,
+                                        const RenderFeatureKind& receiverFeature,
+                                        const RenderResourceId& baseColor,
+                                        const RenderResourceId& subviewColor,
+                                        const std::optional<RenderResourceId>& baseDepth,
+                                        const std::optional<RenderResourceId>& subviewDepth,
+                                        const RenderResourceId& receiverMask,
+                                        const RenderResourceId& outputColor) const;
+    void addReceiverMaskDependency(RenderPlan& plan, const RenderTargetSpec& target,
+                                   const RenderIntent& intent,
+                                   const RenderSceneAnalysis::SceneSurfaceMarker& receiver,
+                                   const std::string& prefix, const std::string& displayName,
+                                   const RenderFeatureKind& receiverFeature,
+                                   const RenderPassId& consumerPassId) const;
+    RenderResourceDescriptor receiverMaskResource(const RenderTargetSpec& target,
+                                                  const std::string& prefix,
+                                                  const std::string& displayName,
+                                                  const RenderFeatureKind& receiverFeature,
+                                                  bool conservative) const;
+    RenderPassNode receiverMaskPass(const RenderIntent& intent,
+                                    const RenderSceneAnalysis::SceneSurfaceMarker& receiver,
+                                    const std::string& prefix, const std::string& displayName,
+                                    const RenderFeatureKind& receiverFeature,
+                                    bool conservative) const;
+    bool receiverMaskRequiresConservativeRasterState(const RenderIntent& intent) const;
     RenderIntent subviewRenderIntent(const RenderIntent& frameIntent,
                                      const RenderSubviewIntent& subview) const;
     RenderPlan prefixedSubviewPlan(const RenderPlan& branch, const std::string& prefix,

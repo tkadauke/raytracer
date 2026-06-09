@@ -29,6 +29,14 @@ namespace RenderGraphTypesTest {
 
     sceneCamera.snapshot = CameraSnapshot{QJsonObject{}};
     EXPECT_EQ("shot-camera, snapshot", sceneCamera.displayText());
+
+    DerivedCameraRef derived;
+    derived.kind = DerivedCameraRef::Kind::PlanarMirror;
+    derived.baseSceneCameraId = "shot-camera";
+    derived.requiresReceiverClip = true;
+    RenderCameraRef mirrorCamera;
+    mirrorCamera.derived = derived;
+    EXPECT_EQ("derived planar_mirror from shot-camera, clipped", mirrorCamera.displayText());
   }
 
   TEST(RenderCameraRef, ComparesExecutionEquivalence) {
@@ -44,6 +52,27 @@ namespace RenderGraphTypesTest {
 
     EXPECT_TRUE(first.equivalentTo(same));
     EXPECT_FALSE(first.equivalentTo(different));
+  }
+
+  TEST(RenderCameraRef, SerializesDerivedPortalCamera) {
+    DerivedCameraRef derived;
+    derived.kind = DerivedCameraRef::Kind::Portal;
+    derived.baseSceneCameraId = "active-camera";
+    derived.receiverTransform = Matrix4d::translate(1.0, 0.0, 0.0);
+    derived.sourceTransform = Matrix4d::translate(10.0, 0.0, 0.0);
+    derived.requiresReceiverClip = true;
+    RenderCameraRef camera;
+    camera.derived = derived;
+
+    const QJsonObject json = camera.toJson();
+    const auto derivedJson = json["derived"].toObject();
+    EXPECT_EQ("portal", derivedJson["kind"].toString().toStdString());
+    EXPECT_TRUE(derivedJson["requiresReceiverClip"].toBool());
+
+    const RenderCameraRef decoded = RenderCameraRef::fromJson(json);
+    ASSERT_TRUE(decoded.derived.has_value());
+    EXPECT_TRUE(camera.equivalentTo(decoded));
+    EXPECT_EQ("active-camera", *decoded.derived->baseSceneCameraId);
   }
 
   TEST(RenderExecutor, SerializesWavefrontPreferenceAndKind) {

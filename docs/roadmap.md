@@ -279,7 +279,7 @@ Feature discovery should start conservative and grow by material / object intent
 
 - Lights that request preview shadows add a `ShadowMapPass` or `RayShadowMaskPass`.
 - Materials that request planar reflection add a stencil mask, reflected-view pass, clip plane, and composite step.
-- Objects marked as screens, portals, scopes, mirrors, minimaps, or render-texture receivers produce offscreen render targets and dependency edges before the containing scene pass.
+- ~~Objects marked as portals or mirrors produce offscreen render targets with derived cameras and explicit clipping state.~~ ✅ **Done.** Portal receivers and planar mirrors now compile automatic render-to-texture subviews; portal cameras derive from receiver/source transforms, mirror cameras reflect across the mirror plane, and unsupported receiver clipping fails clearly during graph execution. Screens, scopes, minimaps, and generic render-texture receivers remain TODO.
 - Overlays and diagnostics add wireframe, normal, depth, object-id, or bounding-volume passes on top of the beauty pass.
 - Postprocess effects request the AOVs they need: depth for DoF/SSAO, motion vectors for motion blur/TAA, normals/world positions for denoisers and relighting.
 
@@ -303,7 +303,7 @@ Implementation order:
 1. Define ~~render-resource descriptors~~ and AOV handles (`Color`, `Depth`, `Stencil`, `ObjectId`, `Normal`, `WorldPosition`, `MotionVector`, custom texture). ✅ **Partially done.** Initial `engine::graph::RenderResourceDescriptor` covers typed CPU/GPU-open image-resource declarations, with execution-time `RenderResource` objects and CPU storage for color/depth/stencil/object-id buffers; concrete AOV handles and future non-image resource categories remain TODO.
 2. Add a minimal `RenderPass` interface with ~~declared reads/writes~~, clear/load/store operations, and ~~an executor enum~~. ✅ **Partially done.** Initial `engine::graph::RenderPassNode` declares read/write resources, executor, pass kind, disabled behavior, graph validation/export, disabled default substitution, and color passthrough; load/store operations and broader graph execution remain TODO.
 3. Split current monolithic engines into first passes without changing output: ~~graph-backed whole-frame raytracer, rasterizer, and wireframe beauty execution~~ ✅ **Partially done.** `RenderGraphCompiler` now emits a single whole-frame beauty plan and `GraphRenderEngine` executes that plan through the existing Raytracer/Rasterizer/Wireframe engines; simple enabled `Tonemap` passes can transform color resources, while named pass payload classes and wireframe overlay composition remain TODO.
-4. Add `CompositePass` plus offscreen render-to-texture so nested scenes can be rendered before the materials that consume them.
+4. Add ~~`CompositePass` plus offscreen render-to-texture~~ ✅ **Done.** Portal and planar mirror graph compilation now renders automatic subviews into offscreen color/depth resources and composites them through receiver masks; generic nested-scene material consumption remains TODO.
 5. ~~Ship the first hybrid demo: photoreal main scene with a cartoon/wireframe render-target screen inside it.~~ ✅ **Done.** `scenes/render_texture_screen_demo.json` renders a raytraced room whose screen receiver samples a rasterized `monitor_feed` subview, with rendercli graph/render/trace coverage for issue #496.
 6. Add planar reflections and raster shadow maps as pass-graph clients.
 7. Add raytraced shadow masks and path-traced inset/hero passes once AOV resource sharing is solid.

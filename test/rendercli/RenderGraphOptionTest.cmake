@@ -17,6 +17,9 @@ set(stencil_composite_demo_scene
     "${PROJECT_SOURCE_DIR}/scenes/render_graph_stencil_composite_demo.json")
 set(render_texture_screen_demo_scene
     "${PROJECT_SOURCE_DIR}/scenes/render_texture_screen_demo.json")
+set(portal_graph_demo_scene "${PROJECT_SOURCE_DIR}/scenes/render_graph_portal_demo.json")
+set(planar_mirror_graph_demo_scene
+    "${PROJECT_SOURCE_DIR}/scenes/render_graph_planar_mirror_demo.json")
 set(wavefront_indirect_scene
     "${PROJECT_SOURCE_DIR}/scenes/wavefront_indirect_environment_demo.json")
 set(wavefront_indirect_bounce_scene
@@ -186,6 +189,11 @@ set(material_id_input_bound_render "${TEST_OUTPUT_DIR}/graph-material-id-input-b
 set(depth_composite_render "${TEST_OUTPUT_DIR}/graph-depth-composite-render.png")
 set(graph_demo_render "${TEST_OUTPUT_DIR}/graph-demo-render.png")
 set(stencil_composite_scene_render "${TEST_OUTPUT_DIR}/graph-stencil-composite-scene-render.png")
+set(portal_graph_demo_plan "${TEST_OUTPUT_DIR}/graph-portal-demo.json")
+set(portal_graph_demo_render "${TEST_OUTPUT_DIR}/graph-portal-demo-render.png")
+set(planar_mirror_graph_demo_plan "${TEST_OUTPUT_DIR}/graph-planar-mirror-demo.json")
+set(planar_mirror_graph_demo_render
+    "${TEST_OUTPUT_DIR}/graph-planar-mirror-demo-render.png")
 
 file(WRITE "${scene_intent_scene}" [=[
 {
@@ -3109,13 +3117,24 @@ if(NOT render_texture_screen_trace_json MATCHES "bound [0-9]+ render-to-texture 
           "hybrid screen trace did not record receiver material binding: ${render_texture_screen_trace_json}")
 endif()
 
-rendercli_expect_failure(
-  NAME "rendercli rejects subview recursion limit"
-  STDERR_MATCHES "render-to-texture recursion limit 0 reached.*mirror_probe"
+set(subview_recursion_limit_plan "${TEST_OUTPUT_DIR}/subview-recursion-limit-plan.json")
+rendercli_run(
+  NAME "rendercli exports subview recursion limit diagnostics"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format json
-    "${subview_recursion_limit_scene}" "${invalid_plan}"
+    "${subview_recursion_limit_scene}" "${subview_recursion_limit_plan}"
 )
+rendercli_assert_nonempty("${subview_recursion_limit_plan}" NAME "subview recursion limit graph output")
+file(READ "${subview_recursion_limit_plan}" subview_recursion_limit_graph)
+if(NOT subview_recursion_limit_graph MATCHES "subview_mirror_probe_recursion_limit")
+  message(FATAL_ERROR "subview recursion limit did not export a diagnostic pass: ${subview_recursion_limit_graph}")
+endif()
+if(NOT subview_recursion_limit_graph MATCHES "render_to_texture_recursion_limit")
+  message(FATAL_ERROR "subview recursion limit diagnostic did not mark the recursion-limit feature: ${subview_recursion_limit_graph}")
+endif()
+if(NOT subview_recursion_limit_graph MATCHES "truncated at render-to-texture recursion limit 0")
+  message(FATAL_ERROR "subview recursion limit diagnostic did not describe the truncated branch: ${subview_recursion_limit_graph}")
+endif()
 
 rendercli_expect_failure(
   NAME "rendercli rejects unsupported selector-specific CLI intent"
@@ -3614,6 +3633,79 @@ rendercli_run(
 rendercli_assert_image_dimensions("${graph_demo_render}" 32 18
                                   NAME "render graph demo scene dimensions")
 rendercli_assert_image_nonempty("${graph_demo_render}" NAME "render graph demo scene pixels")
+
+rendercli_run(
+  NAME "rendercli exports graph-synthesized portal demo scene"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --width 36 --height 24
+    "${portal_graph_demo_scene}" "${portal_graph_demo_plan}"
+)
+rendercli_assert_nonempty("${portal_graph_demo_plan}" NAME "portal demo graph output")
+file(READ "${portal_graph_demo_plan}" portal_graph_demo_json)
+if(NOT portal_graph_demo_json MATCHES "subview_portal_portal_window_raytrace_beauty")
+  message(FATAL_ERROR "portal demo graph did not compile an alternate-camera subview pass: ${portal_graph_demo_json}")
+endif()
+if(NOT portal_graph_demo_json MATCHES "\"kind\": \"portal\"")
+  message(FATAL_ERROR "portal demo graph did not export a derived portal camera: ${portal_graph_demo_json}")
+endif()
+if(NOT portal_graph_demo_json MATCHES "subview_portal_portal_window_receiver_mask")
+  message(FATAL_ERROR "portal demo graph did not compile a receiver mask: ${portal_graph_demo_json}")
+endif()
+if(NOT portal_graph_demo_json MATCHES "subview_portal_portal_window_composite")
+  message(FATAL_ERROR "portal demo graph did not compile a portal composite: ${portal_graph_demo_json}")
+endif()
+if(NOT portal_graph_demo_json MATCHES "portal_receiver")
+  message(FATAL_ERROR "portal demo graph did not tag portal receiver nodes: ${portal_graph_demo_json}")
+endif()
+
+rendercli_run(
+  NAME "rendercli renders graph-synthesized portal demo scene"
+  COMMAND
+    "${RENDERCLI}" --width 36 --height 24
+    "${portal_graph_demo_scene}" "${portal_graph_demo_render}"
+)
+rendercli_assert_image_dimensions("${portal_graph_demo_render}" 36 24
+                                  NAME "portal graph demo scene dimensions")
+rendercli_assert_image_nonempty("${portal_graph_demo_render}"
+                                NAME "portal graph demo scene pixels")
+
+rendercli_run(
+  NAME "rendercli exports graph-synthesized planar mirror demo scene"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --width 36 --height 24
+    "${planar_mirror_graph_demo_scene}" "${planar_mirror_graph_demo_plan}"
+)
+rendercli_assert_nonempty("${planar_mirror_graph_demo_plan}"
+                          NAME "planar mirror demo graph output")
+file(READ "${planar_mirror_graph_demo_plan}" planar_mirror_graph_demo_json)
+if(NOT planar_mirror_graph_demo_json MATCHES "subview_mirror_mirror_panel_raytrace_beauty")
+  message(FATAL_ERROR "planar mirror demo graph did not compile an alternate-camera subview pass: ${planar_mirror_graph_demo_json}")
+endif()
+if(NOT planar_mirror_graph_demo_json MATCHES "\"kind\": \"planar_mirror\"")
+  message(FATAL_ERROR "planar mirror demo graph did not export a derived mirror camera: ${planar_mirror_graph_demo_json}")
+endif()
+if(NOT planar_mirror_graph_demo_json MATCHES "subview_mirror_mirror_panel_receiver_mask")
+  message(FATAL_ERROR "planar mirror demo graph did not compile a receiver mask: ${planar_mirror_graph_demo_json}")
+endif()
+if(NOT planar_mirror_graph_demo_json MATCHES "subview_mirror_mirror_panel_composite")
+  message(FATAL_ERROR "planar mirror demo graph did not compile a mirror composite: ${planar_mirror_graph_demo_json}")
+endif()
+if(NOT planar_mirror_graph_demo_json MATCHES "mirror_receiver")
+  message(FATAL_ERROR "planar mirror demo graph did not tag mirror receiver nodes: ${planar_mirror_graph_demo_json}")
+endif()
+
+rendercli_run(
+  NAME "rendercli renders graph-synthesized planar mirror demo scene"
+  COMMAND
+    "${RENDERCLI}" --width 36 --height 24
+    "${planar_mirror_graph_demo_scene}" "${planar_mirror_graph_demo_render}"
+)
+rendercli_assert_image_dimensions("${planar_mirror_graph_demo_render}" 36 24
+                                  NAME "planar mirror graph demo scene dimensions")
+rendercli_assert_image_nonempty("${planar_mirror_graph_demo_render}"
+                                NAME "planar mirror graph demo scene pixels")
 
 rendercli_run(
   NAME "rendercli writes execution trace while rendering through graph"

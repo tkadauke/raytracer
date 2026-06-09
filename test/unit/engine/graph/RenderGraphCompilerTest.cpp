@@ -1035,6 +1035,196 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, CompilesPortalAndMirrorMarkersAsDerivedCameraSubviews) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.setDefaultCamera(RenderCameraRef{"active-camera", std::nullopt});
+
+    RenderSceneAnalysis analysis;
+    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel",
+                                         Matrix4d::translate(2.0, 0.0, 0.0),
+                                         Matrix4d::translate(12.0, 0.0, 0.0));
+    analysis.recordPlanarMirrorSurface("mirror-panel", "Mirror Panel", Vector3d(0.0, 0.0, 0.0),
+                                       Vector3d(0.0, 1.0, 0.0));
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    const auto* portalPass = plan.findPass("subview_portal_portal_panel_raytrace_beauty");
+    ASSERT_NE(nullptr, portalPass);
+    ASSERT_TRUE(portalPass->sceneView.camera.has_value());
+    ASSERT_TRUE(portalPass->sceneView.camera->derived.has_value());
+    EXPECT_EQ(DerivedCameraRef::Kind::Portal, portalPass->sceneView.camera->derived->kind);
+    ASSERT_TRUE(portalPass->sceneView.camera->derived->baseSceneCameraId.has_value());
+    EXPECT_EQ("active-camera", *portalPass->sceneView.camera->derived->baseSceneCameraId);
+    EXPECT_TRUE(portalPass->sceneView.camera->derived->requiresReceiverClip);
+    EXPECT_TRUE(hasFeature(*portalPass, "subview:subview_portal_portal_panel"));
+    EXPECT_TRUE(portalPass->readsResource("subview_portal_portal_panel_receiver_mask"));
+
+    const auto* portalMask = plan.findPass("subview_portal_portal_panel_receiver_mask");
+    ASSERT_NE(nullptr, portalMask);
+    EXPECT_EQ(RenderPassKind::AOV, portalMask->kind);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, portalMask->executor);
+    EXPECT_TRUE(hasFeature(*portalMask, "receiver_mask"));
+    EXPECT_TRUE(hasFeature(*portalMask, "portal_receiver"));
+    EXPECT_EQ(SceneSelector::Kind::ObjectId, portalMask->sceneView.selector.kind);
+    EXPECT_EQ("portal-panel", portalMask->sceneView.selector.value);
+    ASSERT_EQ(1u, portalMask->writes.size());
+    EXPECT_EQ("subview_portal_portal_panel_receiver_mask", portalMask->writes.front().resource);
+
+    const auto* portalMaskResource = plan.findResource("subview_portal_portal_panel_receiver_mask");
+    ASSERT_NE(nullptr, portalMaskResource);
+    EXPECT_EQ(RenderResourceType::Stencil, portalMaskResource->type);
+    EXPECT_EQ(RenderResourceFormat::UInt8, portalMaskResource->format);
+    EXPECT_EQ(1, portalMaskResource->sampleCount);
+    EXPECT_TRUE(portalMaskResource->hasFeature("receiver_mask"));
+    EXPECT_TRUE(portalMaskResource->hasFeature("portal_receiver"));
+
+    const auto* portalComposite = plan.findPass("subview_portal_portal_panel_composite");
+    ASSERT_NE(nullptr, portalComposite);
+    EXPECT_EQ(RenderPassKind::Composite, portalComposite->kind);
+    EXPECT_EQ(RenderExecutorKind::Composite, portalComposite->executor);
+    EXPECT_EQ(DisabledBehavior::Passthrough, portalComposite->disabledBehavior);
+    EXPECT_TRUE(hasFeature(*portalComposite, "subview_composite"));
+    EXPECT_TRUE(hasFeature(*portalComposite, "stencil_composite"));
+    EXPECT_TRUE(hasFeature(*portalComposite, "portal_receiver"));
+    ASSERT_EQ(3u, portalComposite->reads.size());
+    EXPECT_EQ("beauty_color", portalComposite->reads[0].resource);
+    EXPECT_EQ("subview_portal_portal_panel_main_color", portalComposite->reads[1].resource);
+    EXPECT_EQ("subview_portal_portal_panel_receiver_mask", portalComposite->reads[2].resource);
+    ASSERT_EQ(1u, portalComposite->writes.size());
+    EXPECT_EQ("subview_portal_portal_panel_composited_color",
+              portalComposite->writes.front().resource);
+    ASSERT_NE(nullptr, plan.findResource("subview_portal_portal_panel_composited_color"));
+    EXPECT_TRUE(plan.findResource("subview_portal_portal_panel_composited_color")
+                  ->hasFeature("portal_receiver"));
+
+    const auto* mirrorPass = plan.findPass("subview_mirror_mirror_panel_raytrace_beauty");
+    ASSERT_NE(nullptr, mirrorPass);
+    ASSERT_TRUE(mirrorPass->sceneView.camera.has_value());
+    ASSERT_TRUE(mirrorPass->sceneView.camera->derived.has_value());
+    EXPECT_EQ(DerivedCameraRef::Kind::PlanarMirror, mirrorPass->sceneView.camera->derived->kind);
+    EXPECT_TRUE(mirrorPass->sceneView.camera->derived->requiresReceiverClip);
+    EXPECT_TRUE(hasFeature(*mirrorPass, "subview:subview_mirror_mirror_panel"));
+    EXPECT_TRUE(mirrorPass->readsResource("subview_mirror_mirror_panel_receiver_mask"));
+
+    const auto* mirrorMask = plan.findPass("subview_mirror_mirror_panel_receiver_mask");
+    ASSERT_NE(nullptr, mirrorMask);
+    EXPECT_TRUE(hasFeature(*mirrorMask, "receiver_mask"));
+    EXPECT_TRUE(hasFeature(*mirrorMask, "mirror_receiver"));
+    EXPECT_EQ(SceneSelector::Kind::ObjectId, mirrorMask->sceneView.selector.kind);
+    EXPECT_EQ("mirror-panel", mirrorMask->sceneView.selector.value);
+    ASSERT_EQ(1u, mirrorMask->writes.size());
+    EXPECT_EQ("subview_mirror_mirror_panel_receiver_mask", mirrorMask->writes.front().resource);
+
+    const auto* mirrorComposite = plan.findPass("subview_mirror_mirror_panel_composite");
+    ASSERT_NE(nullptr, mirrorComposite);
+    EXPECT_TRUE(hasFeature(*mirrorComposite, "subview_composite"));
+    EXPECT_TRUE(hasFeature(*mirrorComposite, "stencil_composite"));
+    EXPECT_TRUE(hasFeature(*mirrorComposite, "mirror_receiver"));
+    ASSERT_EQ(3u, mirrorComposite->reads.size());
+    EXPECT_EQ("subview_portal_portal_panel_composited_color", mirrorComposite->reads[0].resource);
+    EXPECT_EQ("subview_mirror_mirror_panel_main_color", mirrorComposite->reads[1].resource);
+    EXPECT_EQ("subview_mirror_mirror_panel_receiver_mask", mirrorComposite->reads[2].resource);
+    ASSERT_EQ(1u, mirrorComposite->writes.size());
+    EXPECT_EQ("subview_mirror_mirror_panel_composited_color",
+              mirrorComposite->writes.front().resource);
+
+    const auto* tonemap = plan.findPass("tonemap");
+    ASSERT_NE(nullptr, tonemap);
+    ASSERT_EQ(1u, tonemap->reads.size());
+    EXPECT_EQ("subview_mirror_mirror_panel_composited_color", tonemap->reads.front().resource);
+
+    ASSERT_TRUE(plan.executionOrderNumber("subview_portal_portal_panel_receiver_mask").has_value());
+    ASSERT_TRUE(
+      plan.executionOrderNumber("subview_portal_portal_panel_raytrace_beauty").has_value());
+    EXPECT_LT(*plan.executionOrderNumber("subview_portal_portal_panel_receiver_mask"),
+              *plan.executionOrderNumber("subview_portal_portal_panel_raytrace_beauty"));
+    EXPECT_TRUE(plan.resourceCanReach("subview_portal_portal_panel_receiver_mask",
+                                      "subview_portal_portal_panel_main_color"));
+    EXPECT_TRUE(plan.resourceCanReach("subview_portal_portal_panel_main_color", "main_color"));
+    EXPECT_TRUE(plan.resourceCanReach("subview_mirror_mirror_panel_main_color", "main_color"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, AutomaticRasterSubviewCompositeUsesDepthWhenAvailable) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.requestExportedAOV(RenderViewMode::Depth);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordPlanarMirrorSurface("mirror-panel", "Mirror Panel", Vector3d(0.0, 0.0, 0.0),
+                                       Vector3d(0.0, 1.0, 0.0));
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    const auto* composite = plan.findPass("subview_mirror_mirror_panel_composite");
+    ASSERT_NE(nullptr, composite);
+    EXPECT_TRUE(hasFeature(*composite, "stencil_composite"));
+    EXPECT_TRUE(hasFeature(*composite, "depth_composite"));
+    ASSERT_EQ(5u, composite->reads.size());
+    EXPECT_EQ("beauty_color", composite->reads[0].resource);
+    EXPECT_EQ("subview_mirror_mirror_panel_main_color", composite->reads[1].resource);
+    EXPECT_EQ("depth_aov", composite->reads[2].resource);
+    EXPECT_EQ("subview_mirror_mirror_panel_depth_aov", composite->reads[3].resource);
+    EXPECT_EQ("subview_mirror_mirror_panel_receiver_mask", composite->reads[4].resource);
+    EXPECT_TRUE(plan.resourceCanReach("depth_aov", "subview_mirror_mirror_panel_composited_color"));
+    EXPECT_TRUE(plan.resourceCanReach("subview_mirror_mirror_panel_depth_aov",
+                                      "subview_mirror_mirror_panel_composited_color"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, SkipsAutomaticSubviewMasksForOffscreenReceivers) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+
+    RenderSceneAnalysis analysis;
+    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel", Matrix4d(), Matrix4d(),
+                                         false);
+    analysis.recordPlanarMirrorSurface("mirror-panel", "Mirror Panel", Vector3d::null,
+                                       Vector3d(0.0, 1.0, 0.0), false);
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    EXPECT_EQ(nullptr, plan.findPass("subview_portal_portal_panel_raytrace_beauty"));
+    EXPECT_EQ(nullptr, plan.findPass("subview_portal_portal_panel_receiver_mask"));
+    EXPECT_EQ(nullptr, plan.findPass("subview_mirror_mirror_panel_raytrace_beauty"));
+    EXPECT_EQ(nullptr, plan.findPass("subview_mirror_mirror_panel_receiver_mask"));
+    EXPECT_TRUE(plan.passesWithFeature("receiver_mask").empty());
+    EXPECT_TRUE(plan.resourcesWithFeature("receiver_mask").empty());
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, ReceiverMaskUsesConservativeSelectorForUnsupportedRasterState) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.engineOptions.rasterizer().setBlendingEnabled(true);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel", Matrix4d(), Matrix4d());
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    const auto* mask = plan.findPass("subview_portal_portal_panel_receiver_mask");
+    ASSERT_NE(nullptr, mask);
+    EXPECT_TRUE(hasFeature(*mask, "receiver_mask"));
+    EXPECT_TRUE(hasFeature(*mask, "conservative_receiver_mask"));
+    EXPECT_EQ(SceneSelector::Kind::All, mask->sceneView.selector.kind);
+
+    const auto* maskState = RasterBeautyPassState::fromPass(*mask);
+    ASSERT_NE(nullptr, maskState);
+    EXPECT_TRUE(maskState->toJson().value("framebuffer").toObject().value("blending").toBool());
+    EXPECT_EQ("none", maskState->toJson()
+                        .value("framebuffer")
+                        .toObject()
+                        .value("colorWriteMask")
+                        .toString()
+                        .toStdString());
+    EXPECT_TRUE(plan.findResource("subview_portal_portal_panel_receiver_mask")
+                  ->hasFeature("conservative_receiver_mask"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, OpenGLSubviewIntentRoutesRasterProductsThroughReadbackPasses) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
@@ -1117,7 +1307,7 @@ namespace RenderGraphCompilerTest {
     }
   }
 
-  TEST(RenderGraphCompiler, RejectsSubviewIntentAtRenderToTextureRecursionLimit) {
+  TEST(RenderGraphCompiler, TruncatesSubviewIntentAtRenderToTextureRecursionLimit) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
     intent.setMaxRenderToTextureRecursionDepth(0);
@@ -1128,14 +1318,84 @@ namespace RenderGraphCompilerTest {
     subview.view.executor = RenderExecutorPreference::Rasterizer;
     intent.subviews.push_back(subview);
 
-    try {
-      compiler.compile({64, 32, 1}, intent);
-      FAIL() << "Expected render-to-texture recursion limit rejection";
-    } catch (const std::runtime_error& error) {
-      const std::string message = error.what();
-      EXPECT_NE(std::string::npos, message.find("render-to-texture recursion limit 0 reached"));
-      EXPECT_NE(std::string::npos, message.find("mirror probe"));
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    EXPECT_EQ(nullptr, plan.findPass("subview_mirror_probe_raster_beauty"));
+    const auto* diagnostic = plan.findPass("subview_mirror_probe_recursion_limit");
+    ASSERT_NE(nullptr, diagnostic);
+    EXPECT_EQ("Subview mirror probe truncated at render-to-texture recursion limit 0",
+              diagnostic->name);
+    EXPECT_EQ(RenderPassKind::Debug, diagnostic->kind);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, diagnostic->executor);
+    EXPECT_FALSE(diagnostic->enabled);
+    EXPECT_EQ(DisabledBehavior::SubstituteDefault, diagnostic->disabledBehavior);
+    EXPECT_TRUE(hasFeature(*diagnostic, "render_to_texture_recursion_limit"));
+    EXPECT_TRUE(hasFeature(*diagnostic, "truncated"));
+    EXPECT_TRUE(plan.toText().find("subview_mirror_probe_recursion_limit") != std::string::npos);
+    EXPECT_TRUE(plan.toDot().find("recursion limit 0") != std::string::npos);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, TruncatesSelfRecursivePortalAtConfiguredDepth) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.setMaxRenderToTextureRecursionDepth(2);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel", Matrix4d(), Matrix4d());
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    ASSERT_NE(nullptr, plan.findPass("subview_portal_portal_panel_raytrace_beauty"));
+    ASSERT_NE(
+      nullptr,
+      plan.findPass("subview_portal_portal_panel_subview_portal_portal_panel_raytrace_beauty"));
+    EXPECT_EQ(nullptr, plan.findPass("subview_portal_portal_panel_subview_portal_portal_panel_"
+                                     "subview_portal_portal_panel_raytrace_beauty"));
+
+    const auto* diagnostic = plan.findPass(
+      "subview_portal_portal_panel_subview_portal_portal_panel_subview_portal_portal_panel_"
+      "recursion_limit");
+    ASSERT_NE(nullptr, diagnostic);
+    EXPECT_EQ("Subview portal Portal Panel Subview portal Portal Panel Subview portal Portal Panel "
+              "truncated at render-to-texture recursion limit 2",
+              diagnostic->name);
+    EXPECT_TRUE(hasFeature(*diagnostic, "render_to_texture_recursion_limit"));
+    EXPECT_TRUE(hasFeature(*diagnostic, "subview:subview_portal_portal_panel"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, TruncatesMutualPortalMirrorRecursionDeterministically) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.setMaxRenderToTextureRecursionDepth(1);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordPortalReceiverSurface("portal-panel", "Portal Panel", Matrix4d(), Matrix4d());
+    analysis.recordPlanarMirrorSurface("mirror-panel", "Mirror Panel", Vector3d::null,
+                                       Vector3d(0.0, 1.0, 0.0));
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    ASSERT_NE(nullptr, plan.findPass("subview_portal_portal_panel_raytrace_beauty"));
+    ASSERT_NE(nullptr, plan.findPass("subview_mirror_mirror_panel_raytrace_beauty"));
+
+    const auto diagnostics = plan.passesWithFeature("render_to_texture_recursion_limit");
+    ASSERT_EQ(4u, diagnostics.size());
+    EXPECT_EQ("subview_portal_portal_panel_subview_portal_portal_panel_recursion_limit",
+              diagnostics[0]->id);
+    EXPECT_EQ("subview_portal_portal_panel_subview_mirror_mirror_panel_recursion_limit",
+              diagnostics[1]->id);
+    EXPECT_EQ("subview_mirror_mirror_panel_subview_portal_portal_panel_recursion_limit",
+              diagnostics[2]->id);
+    EXPECT_EQ("subview_mirror_mirror_panel_subview_mirror_mirror_panel_recursion_limit",
+              diagnostics[3]->id);
+    for (const auto* diagnostic : diagnostics) {
+      EXPECT_FALSE(diagnostic->enabled);
+      EXPECT_EQ(RenderPassKind::Debug, diagnostic->kind);
+      EXPECT_TRUE(hasFeature(*diagnostic, "truncated"));
     }
+    EXPECT_TRUE(plan.validate().valid());
   }
 
   TEST(RenderGraphCompiler, RejectsUnknownRenderTextureReceiverSubview) {
