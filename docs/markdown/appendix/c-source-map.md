@@ -97,6 +97,7 @@
 | `include/render/SamplingSeed.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `include/render/State.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md)<br>[Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/TilePlan.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
+| `include/render/VulkanWavefrontSmokeKernel.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/WavefrontIntersectionBackend.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/WavefrontIntersectionQueryTiming.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/WhittedIntegrator.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
@@ -262,6 +263,7 @@
 | `src/render/IntersectionSceneCompiler.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/MetalWavefrontSmokeKernel.mm` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/PathTracingIntegrator.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `src/render/VulkanWavefrontSmokeKernel.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/WavefrontIntersectionBackend.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/WhittedIntegrator.cpp` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `src/render/denoise/BilateralDenoiser.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |

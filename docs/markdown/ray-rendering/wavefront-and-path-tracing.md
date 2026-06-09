@@ -203,19 +203,19 @@ intersection work. `cpu` resolves directly to the CPU backend. `auto`
 runs a selection policy over platform availability, scene support, expected ray
 count, and scene-upload amortization; today scene support is intentionally
 limited to triangle, sphere, plane, rectangle, and disk leaves with either no
-transform or static instance transforms that can use the first Metal closest-hit
-and any-hit kernels, and other scenes report the CPU-selection reason in
+transform or static instance transforms that can use the first Metal/Vulkan
+closest-hit and any-hit kernels, and other scenes report the CPU-selection reason in
 metrics and graph trace metadata. The experimental
 CMake flags
 `RAYTRACER_ENABLE_METAL_WAVEFRONT` and
 `RAYTRACER_ENABLE_VULKAN_WAVEFRONT` enable platform plumbing checks. The Metal
 flag already builds a tiny smoke wrapper that uploads a buffer, dispatches a
 deterministic compute kernel, and reads the result back outside the renderer.
-It also routes eligible exact-primitive and static-instance closest-hit and
-any-hit work through Metal kernels that consume the packed BVH, primitive,
-payload, transform, and ray buffers and write the same hit-record and
+Metal and Vulkan can also route eligible exact-primitive and static-instance
+closest-hit and any-hit work through kernels that consume the packed BVH,
+primitive, payload, transform, and ray buffers and write the same hit-record and
 occlusion-record layouts as the CPU packed intersector. A `gpu` request
-records durable intent and reports either that Metal execution path or the CPU
+records durable intent and reports either a platform execution path or the CPU
 fallback in wavefront metrics and graph trace metadata.
 That makes the backend boundary inspectable before any Metal or Vulkan
 kernel is allowed to cover the broader primitive set. The fallback is scene-aware:
@@ -224,13 +224,13 @@ GPU-ready intersection record format. If that diagnostic compiler rejects a
 leaf, the reported fallback reason names the first unsupported primitive
 instead of only saying that the platform GPU backend is absent.
 For a supported scene, the GPU path names the host platform backend that would
-run next: Metal on macOS, Vulkan elsewhere. Metal can now execute the
-exact-primitive basic subset, including static instance transforms, when the
-flag and device are present. Vulkan and scenes outside the basic Metal contract
-still report CPU fallback. The metrics deliberately split platform GPU device
-availability from render-path availability: a Vulkan build may detect a compute
-device and run smoke kernels, but `auto` still selects CPU until Vulkan has
-closest-hit and any-hit render kernels.
+run next: Metal on macOS, Vulkan elsewhere. Metal and Vulkan can now execute the
+exact-primitive basic subset, including static instance transforms, when their
+build flags and platform devices are present. Scenes outside that packed
+basic-kernel contract still report CPU fallback. The metrics deliberately split
+platform GPU device availability from render-path availability: a platform may
+detect a compute device and run smoke kernels, but `auto` still selects CPU
+unless the render-path closest-hit and any-hit kernels can also be constructed.
 The scene-created backend object retains the compiled records it was prepared
 from and answers fallback closest-hit, packet closest-hit, and any-hit queries
 through the packed upload-buffer CPU traversal, with the compiled-scene CPU
@@ -313,11 +313,12 @@ before a platform kernel runs.
 For eligible exact-primitive and static-instance scenes, closest-hit and packet
 closest-hit queries already run through a packed CPU traversal that consumes
 those upload buffers and emits the same hit-record layout the GPU kernel will
-write. The Metal basic closest-hit and any-hit kernels use that same upload
-layout for triangle, sphere, plane, rectangle, disk, and static-transform
-scenes in the render path. Bounded any-hit visibility for the remaining
-eligible packed scenes uses the same packed traversal contract, including the finite
-light-distance epsilon used by the compiled parity intersector. This matches
+write. The Metal and Vulkan basic closest-hit and any-hit kernels use that same
+upload layout for triangle, sphere, plane, rectangle, disk, and
+static-transform scenes in the render path. Bounded any-hit visibility for the
+remaining eligible packed scenes uses the same packed traversal contract,
+including the finite light-distance epsilon used by the compiled parity
+intersector. This matches
 the current CPU shadow rule:
 `Scene::occludes(...)` is geometry-only, so transparent materials still block
 shadow rays unless a higher-level material model changes that policy. If alpha,
@@ -328,7 +329,7 @@ broader compiled scene intersector: the packed path proves the kernel ABI and
 traversal contract, while the compiled-scene path remains the fallback for
 unsupported packed payloads until platform kernels cover them. Metrics label
 those query paths separately: basic-kernel closest-hit and any-hit frontiers
-report `metal` when the Metal kernels run, `packed_cpu` for the packed CPU
+report `metal` or `vulkan` when platform kernels run, `packed_cpu` for the packed CPU
 contract, the compiled parity fallback reports `compiled_cpu`, and a render
 that combines different query families still reports `mixed`. The execution
 label comes from the completed query, so a platform dispatch that falls back at
@@ -340,8 +341,8 @@ unsupported runtime-scene fallbacks report zero for those query-transfer fields;
 prepared GPU-request stubs report the packed ABI byte counts so `auto`
 selection can compare expected ray work against scene upload and query
 upload/readback cost. The policy scales the effective GPU threshold upward for
-larger prepared scene uploads. When the Metal
-render-path kernels actually execute, metrics also split
+larger prepared scene uploads. When the platform render-path kernels actually
+execute, metrics also split
 backend wall time into host upload/setup, kernel dispatch/wait, and CPU
 readback buckets. CPU fallback paths leave those buckets at zero, while the
 broader intersection-worker timer still records the full CPU query cost. Today
@@ -423,6 +424,8 @@ choices become inspectable user-facing metadata.
 - `src/render/GpuIntersectionScene.cpp`
 - `include/render/MetalWavefrontSmokeKernel.h`
 - `src/render/MetalWavefrontSmokeKernel.mm`
+- `include/render/VulkanWavefrontSmokeKernel.h`
+- `src/render/VulkanWavefrontSmokeKernel.cpp`
 - `include/render/WavefrontIntersectionQueryTiming.h`
 - `include/render/WavefrontIntersectionBackend.h`
 - `src/render/WavefrontIntersectionBackend.cpp`

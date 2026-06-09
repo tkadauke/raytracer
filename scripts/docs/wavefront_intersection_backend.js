@@ -120,7 +120,7 @@ class WavefrontIntersectionBackendWidget {
     const platformNote = {
       cpu: 'CPU supports the full scene. GPU requests fall back here when a scene or platform is unsupported.',
       metal: 'Metal can execute the current basic closest-hit and any-hit kernels for eligible packed scenes.',
-      vulkan: 'Vulkan currently proves platform compute plumbing; render-path kernels still fall back to CPU.',
+      vulkan: 'Vulkan can execute the current basic closest-hit and any-hit kernels for eligible packed scenes.',
     };
     this.text(44, 266, platformNote[this.backend], { size: 13, fill: '#343a40' });
     this.text(44, 292,
