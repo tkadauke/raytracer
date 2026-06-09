@@ -17,6 +17,7 @@
 #include "render/primitives/Plane.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
+#include "render/primitives/SmoothMeshTriangle.h"
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Torus.h"
 #include "render/primitives/Triangle.h"
@@ -174,6 +175,29 @@ namespace IntersectionSceneCompilerTest {
     EXPECT_EQ(IntersectionPrimitiveKind::Triangle, compiled.primitives()[0].kind);
     EXPECT_EQ(Vector3d(1, 0, 0), compiled.triangles()[0].point1);
     EXPECT_EQ(Vector2d(0, 1), compiled.triangles()[0].uv2);
+  }
+
+  TEST(IntersectionSceneCompiler, CompilesMeshTriangleMinimumHitDistance) {
+    auto flatMesh = triangleMesh();
+    auto flatTriangle = std::make_shared<FlatMeshTriangle>(flatMesh.get(), 0, 1, 2);
+    Scene flatScene;
+    flatScene.add(flatTriangle);
+
+    const CompiledIntersectionScene flatCompiled = IntersectionSceneCompiler().compile(flatScene);
+
+    ASSERT_EQ(1u, flatCompiled.triangles().size());
+    EXPECT_DOUBLE_EQ(0.0001, flatCompiled.triangles()[0].minimumHitDistance);
+
+    auto smoothMesh = triangleMesh();
+    auto smoothTriangle = std::make_shared<SmoothMeshTriangle>(smoothMesh.get(), 0, 1, 2);
+    Scene smoothScene;
+    smoothScene.add(smoothTriangle);
+
+    const CompiledIntersectionScene smoothCompiled =
+      IntersectionSceneCompiler().compile(smoothScene);
+
+    ASSERT_EQ(1u, smoothCompiled.triangles().size());
+    EXPECT_DOUBLE_EQ(0.0, smoothCompiled.triangles()[0].minimumHitDistance);
   }
 
   TEST(IntersectionSceneCompiler, CompilesBoxAsTrianglePayloads) {
@@ -728,5 +752,24 @@ namespace IntersectionSceneCompilerTest {
     const Rayd ray(Vector4d(2, 2, -3, 1), Vector3d(0, 0, 1));
 
     expectCompiledAnyHitMatchesRuntime(scene, ray, std::numeric_limits<double>::infinity());
+  }
+
+  TEST(CompiledIntersectionSceneIntersector, HonorsFlatMeshTriangleMinimumHitDistance) {
+    auto mesh = triangleMesh();
+    auto primitive = std::make_shared<FlatMeshTriangle>(mesh.get(), 0, 1, 2);
+    Scene scene;
+    scene.add(primitive);
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+
+    const Rayd nearSurfaceRay(Vector4d(0.25, 0.25, -0.00005, 1), Vector3d(0, 0, 1));
+    const Rayd fartherRay(Vector4d(0.25, 0.25, -0.0002, 1), Vector3d(0, 0, 1));
+
+    State nearRuntimeState;
+    HitPointInterval nearRuntimeHits;
+    EXPECT_EQ(nullptr, scene.intersect(nearSurfaceRay, nearRuntimeHits, nearRuntimeState));
+    EXPECT_FALSE(
+      CompiledIntersectionSceneIntersector().intersectClosest(compiled, nearSurfaceRay).hit);
+
+    expectCompiledClosestHitMatchesRuntime(scene, fartherRay);
   }
 }

@@ -10,6 +10,7 @@
 #include "render/State.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/TransparentMaterial.h"
+#include "render/primitives/FlatMeshTriangle.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
@@ -20,6 +21,8 @@
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Triangle.h"
 #include "render/textures/ConstantColorTexture.h"
+
+#include "core/geometry/Mesh.h"
 
 namespace GpuIntersectionSceneTest {
   using namespace render;
@@ -74,6 +77,15 @@ namespace GpuIntersectionSceneTest {
       Scene scene;
       scene.add(triangle);
       return IntersectionSceneCompiler().compile(scene);
+    }
+
+    std::unique_ptr<Mesh> triangleMesh() {
+      auto mesh = std::make_unique<Mesh>();
+      mesh->addVertex(Vector3d(0, 0, 0), Vector3d(0, 0, 1), Vector2d(0, 0));
+      mesh->addVertex(Vector3d(1, 0, 0), Vector3d(0, 0, 1), Vector2d(1, 0));
+      mesh->addVertex(Vector3d(0, 1, 0), Vector3d(0, 0, 1), Vector2d(0, 1));
+      mesh->addFace({0, 1, 2});
+      return mesh;
     }
 
     void expectPackedClosestHitMatchesCompiled(const Scene& scene, const Rayd& ray,
@@ -176,6 +188,7 @@ namespace GpuIntersectionSceneTest {
     expectVector(triangle.uv0, 0.0f, 0.0f, 0.0f, 0.0f);
     expectVector(triangle.uv1, 1.0f, 0.0f, 0.0f, 0.0f);
     expectVector(triangle.uv2, 0.0f, 1.0f, 0.0f, 0.0f);
+    expectVector(triangle.minimumHitDistance, 0.0f, 0.0f, 0.0f, 0.0f);
 
     EXPECT_TRUE(buffers.transforms.empty());
     EXPECT_TRUE(buffers.spheres.empty());
@@ -449,6 +462,27 @@ namespace GpuIntersectionSceneTest {
     EXPECT_NEAR(static_cast<float>(compiledHit.barycentric.x()), packedHit.barycentric[0], 1e-5f);
     EXPECT_NEAR(static_cast<float>(compiledHit.barycentric.y()), packedHit.barycentric[1], 1e-5f);
     EXPECT_NEAR(static_cast<float>(compiledHit.barycentric.z()), packedHit.barycentric[2], 1e-5f);
+  }
+
+  TEST(GpuIntersectionScene, PackedTriangleHonorsCompiledMinimumHitDistance) {
+    auto mesh = triangleMesh();
+    auto primitive = std::make_shared<FlatMeshTriangle>(mesh.get(), 0, 1, 2);
+    Scene scene;
+    scene.add(primitive);
+    const GpuIntersectionSceneBuffers buffers =
+      GpuIntersectionScenePacker().packScene(IntersectionSceneCompiler().compile(scene));
+    ASSERT_EQ(1u, buffers.triangles.size());
+    EXPECT_FLOAT_EQ(0.0001f, buffers.triangles[0].minimumHitDistance[0]);
+
+    const GpuIntersectionRay nearSurfaceRay = GpuIntersectionScenePacker().packRay(
+      Rayd(Vector4d(0.25, 0.25, -0.00005, 1), Vector3d(0, 0, 1)), 18);
+    const GpuIntersectionRay fartherRay = GpuIntersectionScenePacker().packRay(
+      Rayd(Vector4d(0.25, 0.25, -0.0002, 1), Vector3d(0, 0, 1)), 19);
+
+    EXPECT_FALSE(GpuIntersectionIntersector().intersectClosest(buffers, nearSurfaceRay).hit);
+    EXPECT_FALSE(GpuIntersectionIntersector().intersectAny(buffers, nearSurfaceRay));
+    EXPECT_TRUE(GpuIntersectionIntersector().intersectClosest(buffers, fartherRay).hit);
+    EXPECT_TRUE(GpuIntersectionIntersector().intersectAny(buffers, fartherRay));
   }
 
   TEST(GpuIntersectionScene, PackedSphereClosestHitMatchesCompiledSceneHit) {

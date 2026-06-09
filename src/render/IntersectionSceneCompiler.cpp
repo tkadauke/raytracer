@@ -706,7 +706,7 @@ std::optional<CompiledIntersectionHit> CompiledIntersectionSceneIntersector::int
   }
 
   const double distance = (a * p - b * r + d * s) * invDenom;
-  if (distance < 0.0) {
+  if (distance < payload.minimumHitDistance) {
     return std::nullopt;
   }
 

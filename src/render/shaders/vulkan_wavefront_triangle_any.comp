@@ -47,6 +47,7 @@ struct TrianglePayload {
   vec4 uv0;
   vec4 uv1;
   vec4 uv2;
+  vec4 minimumHitDistance;
 };
 
 struct SpherePayload {
@@ -285,7 +286,8 @@ LocalHit intersectTriangle(RayRecord ray, TrianglePayload triangle) {
   }
 
   const float distance = (a * p - b * r + d * s) * invDenom;
-  if (distance < ray.minDistance || distance > ray.maxDistance) {
+  const float minimumDistance = max(ray.minDistance, triangle.minimumHitDistance.x);
+  if (distance < minimumDistance || distance > ray.maxDistance) {
     return result;
   }
 

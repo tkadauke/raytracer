@@ -1184,6 +1184,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   cancellation now preserves contributions completed before the depth-boundary
   cancellation check, and scalar progressive display averages use truncating
   channel packing consistently. — GPT-5
+- **Packed wavefront flat-mesh near hits.** Compiled and GPU-style wavefront
+  triangle payloads now carry each mesh triangle's minimum hit distance, so
+  flat mesh triangles reject near-surface hits consistently with the runtime
+  raytracer path. — GPT-5
 - **Scalar wavefront inherited materials.** Single-ray prepared wavefront
   closest-hit queries now return the compiled material with the hit result, so
   scalar frontier leftovers shade inherited composite materials the same way

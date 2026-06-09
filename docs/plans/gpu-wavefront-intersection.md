@@ -462,6 +462,10 @@ Progress:
   Its traversal now also uses bounded node/primitive ray-box tests, nearest-hit
   pruning, and near-first BVH child visitation so the CPU parity harness follows
   the same pruning contract as the packed upload-buffer traversal.
+- Triangle payloads now carry the source leaf's minimum hit distance. Flat mesh
+  triangles therefore keep their runtime near-hit cutoff through the compiled,
+  packed CPU, Metal, and Vulkan basic-kernel ABI instead of being treated like
+  generic zero-minimum triangles.
 - `GpuIntersectionScenePacker` now converts compiled BVH nodes, primitive
   records, triangle/sphere/plane/rectangle/disk payloads, exact OpenCylinder
   payloads, static transform payloads, ray work items, and miss records into

@@ -60,6 +60,7 @@ namespace render {
     std::array<float, 4> uv0{};
     std::array<float, 4> uv1{};
     std::array<float, 4> uv2{};
+    std::array<float, 4> minimumHitDistance{};
   };
 
   struct alignas(16) GpuIntersectionSpherePayload {

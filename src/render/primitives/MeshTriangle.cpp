@@ -194,5 +194,5 @@ void MeshTriangle::appendIntersectionSceneRecord(IntersectionSceneBuilder& build
   builder.addTriangle(
     leaf, IntersectionTrianglePayload{v0.point, v1.point, v2.point, normalAtBarycentric(0, 0),
                                       normalAtBarycentric(1, 0), normalAtBarycentric(0, 1), v0.uv,
-                                      v1.uv, v2.uv});
+                                      v1.uv, v2.uv, minimumHitDistance()});
 }

@@ -51,6 +51,7 @@ namespace render {
     Vector2d uv0;
     Vector2d uv1;
     Vector2d uv2;
+    double minimumHitDistance{0.0};
   };
 
   struct IntersectionSpherePayload {

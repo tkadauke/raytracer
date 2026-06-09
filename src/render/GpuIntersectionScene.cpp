@@ -273,9 +273,11 @@ GpuIntersectionPrimitiveRecord GpuIntersectionScenePacker::packPrimitiveRecord(
 GpuIntersectionTrianglePayload
 GpuIntersectionScenePacker::packTrianglePayload(const IntersectionTrianglePayload& payload) const {
   return GpuIntersectionTrianglePayload{
-    packVector(payload.point0),  packVector(payload.point1),  packVector(payload.point2),
-    packVector(payload.normal0), packVector(payload.normal1), packVector(payload.normal2),
-    packVector(payload.uv0),     packVector(payload.uv1),     packVector(payload.uv2)};
+    packVector(payload.point0),  packVector(payload.point1),
+    packVector(payload.point2),  packVector(payload.normal0),
+    packVector(payload.normal1), packVector(payload.normal2),
+    packVector(payload.uv0),     packVector(payload.uv1),
+    packVector(payload.uv2),     {packScalar(payload.minimumHitDistance), 0.0f, 0.0f, 0.0f}};
 }
 
 GpuIntersectionSpherePayload
@@ -554,7 +556,8 @@ std::optional<GpuIntersectionIntersector::ClosestHit> GpuIntersectionIntersector
   }
 
   const float distance = (a * p - b * r + d * s) * invDenom;
-  if (distance < ray.minDistance || distance > ray.maxDistance) {
+  const float minimumDistance = std::max(ray.minDistance, triangle.minimumHitDistance[0]);
+  if (distance < minimumDistance || distance > ray.maxDistance) {
     return std::nullopt;
   }
 
