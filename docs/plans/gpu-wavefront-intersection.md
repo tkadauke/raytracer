@@ -754,6 +754,9 @@ Progress:
 - The automatic backend policy now reads the context's effective expected-ray
   total, preferring closest-hit/any-hit family estimates when present so direct
   policy callers cannot select from a stale legacy total.
+- `auto` backend selection now rejects workloads below the fixed GPU ray-count
+  threshold before compiling and packing the scene, avoiding scene-preparation
+  overhead for small renders that cannot select GPU anyway.
 - The benchmark suite now includes wavefront intersection backend fixtures for
   a small supported scene, a mesh-heavy supported scene, and an unsupported
   mixed scene. The fixtures measure compile/pack cost, runtime CPU closest-hit

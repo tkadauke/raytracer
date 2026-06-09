@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -102,6 +103,8 @@ namespace render {
     decide(bool platformGpuDeviceAvailable, bool platformGpuRenderPathAvailable,
            const WavefrontIntersectionSceneDiagnostics& diagnostics,
            const WavefrontIntersectionBackendSelectionContext& context) const;
+    [[nodiscard]] std::optional<WavefrontIntersectionBackendAutoSelectionDecision>
+    decideBeforeSceneCompile(const WavefrontIntersectionBackendSelectionContext& context) const;
     [[nodiscard]] std::uint64_t
     minimumExpectedRayCount(const WavefrontIntersectionSceneDiagnostics& diagnostics,
                             const WavefrontIntersectionBackendSelectionContext& context) const;

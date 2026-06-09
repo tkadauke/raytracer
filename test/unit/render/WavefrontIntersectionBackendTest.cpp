@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -368,6 +369,51 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_FALSE(decision.useGpu);
     EXPECT_EQ(64u, decision.minimumExpectedRayCount);
     EXPECT_NE(std::string::npos, decision.reason.find("below GPU threshold"));
+  }
+
+  TEST(WavefrontIntersectionBackend, AutoPolicyRejectsSmallWorkloadBeforeSceneCompile) {
+    const WavefrontIntersectionBackendAutoSelectionPolicy policy;
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 63;
+    context.minimumGpuRayCount = 64;
+
+    const std::optional<WavefrontIntersectionBackendAutoSelectionDecision> decision =
+      policy.decideBeforeSceneCompile(context);
+
+    ASSERT_TRUE(decision.has_value());
+    EXPECT_FALSE(decision->useGpu);
+    EXPECT_EQ(64u, decision->minimumExpectedRayCount);
+    EXPECT_EQ(0u, decision->estimatedQueryTransferBytes);
+    EXPECT_NE(std::string::npos, decision->reason.find("expected ray count 63"));
+    EXPECT_NE(std::string::npos, decision->reason.find("fixed GPU threshold 64"));
+    EXPECT_NE(std::string::npos, decision->reason.find("before scene compilation"));
+  }
+
+  TEST(WavefrontIntersectionBackend, AutoPolicyDefersToSceneDiagnosticsAtFixedThreshold) {
+    const WavefrontIntersectionBackendAutoSelectionPolicy policy;
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 64;
+    context.minimumGpuRayCount = 64;
+
+    EXPECT_FALSE(policy.decideBeforeSceneCompile(context).has_value());
+  }
+
+  TEST(WavefrontIntersectionBackend, AutoPolicyPrecompileDecisionUsesFamilyDerivedRayCount) {
+    const WavefrontIntersectionBackendAutoSelectionPolicy policy;
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 999;
+    context.expectedClosestHitRayCount = 3;
+    context.expectedAnyHitRayCount = 4;
+    context.minimumGpuRayCount = 8;
+
+    const std::optional<WavefrontIntersectionBackendAutoSelectionDecision> decision =
+      policy.decideBeforeSceneCompile(context);
+
+    ASSERT_TRUE(decision.has_value());
+    EXPECT_FALSE(decision->useGpu);
+    EXPECT_EQ(8u, decision->minimumExpectedRayCount);
+    EXPECT_NE(std::string::npos, decision->reason.find("expected ray count 7"));
+    EXPECT_NE(std::string::npos, decision->reason.find("fixed GPU threshold 8"));
   }
 
   TEST(WavefrontIntersectionBackend, AutoPolicyUsesFamilyDerivedExpectedRayCount) {

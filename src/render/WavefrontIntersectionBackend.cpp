@@ -190,6 +190,22 @@ namespace render {
     return decision;
   }
 
+  std::optional<WavefrontIntersectionBackendAutoSelectionDecision>
+  WavefrontIntersectionBackendAutoSelectionPolicy::decideBeforeSceneCompile(
+    const WavefrontIntersectionBackendSelectionContext& context) const {
+    const std::uint64_t effectiveExpectedRayCount = context.effectiveExpectedRayCount();
+    if (effectiveExpectedRayCount >= context.minimumGpuRayCount) {
+      return std::nullopt;
+    }
+
+    WavefrontIntersectionBackendAutoSelectionDecision decision;
+    decision.minimumExpectedRayCount = context.minimumGpuRayCount;
+    decision.reason = "auto selected CPU: expected ray count " +
+                      std::to_string(effectiveExpectedRayCount) + " is below fixed GPU threshold " +
+                      std::to_string(context.minimumGpuRayCount) + " before scene compilation";
+    return decision;
+  }
+
   bool WavefrontIntersectionBackendAutoSelectionPolicy::sceneCanUseGpu(
     const WavefrontIntersectionSceneDiagnostics& diagnostics) const {
     return diagnostics.compiled && diagnostics.unsupportedPrimitives == 0 &&
@@ -348,6 +364,12 @@ namespace render {
         reason += ": ";
         reason += gpuUnavailableBackend().fallbackReason();
         return makeDelegatingBackend("auto", "available", reason, {},
+                                     gpuUnavailableBackend().platformName());
+      }
+
+      if (const std::optional<WavefrontIntersectionBackendAutoSelectionDecision> decision =
+            policy.decideBeforeSceneCompile(context)) {
+        return makeDelegatingBackend("auto", "available", decision->reason, {},
                                      gpuUnavailableBackend().platformName());
       }
 
