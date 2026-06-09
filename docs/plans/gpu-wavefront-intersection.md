@@ -691,6 +691,12 @@ Progress:
   report primitive/BVH counts plus scene upload, ray upload, and readback byte
   counters. This gives the `auto` policy a repeatable baseline for deciding
   when GPU upload/readback overhead is justified.
+- Platform-enabled benchmark builds now also register requested-GPU closest-hit
+  and any-hit batch fixtures for the small and mesh-heavy supported scenes.
+  They run through the public `WavefrontIntersectionBackend` batch interface,
+  skip with the backend fallback reason when no platform path is available, and
+  label the selected backend/execution path so Metal/Vulkan timings can be
+  compared directly with the runtime CPU and packed CPU baselines.
 - A regular unit-test performance gate now pins the packed upload-buffer CPU
   traversal against runtime `Scene` traversal on a mesh-heavy supported scene.
   The threshold is deliberately conservative, but it catches regressions that
