@@ -825,6 +825,38 @@ test('Wavefront path tracing widget exposes schedule and bounce controls', () =>
   assert.ok(text.includes('sample light'), 'scalar view legend should spell out light sampling');
 });
 
+test('Wavefront intersection backend widget exposes backend and query controls', () => {
+  const body = loadWidget('wavefront_intersection_backend.js');
+  let text = textContents(body).join(' ');
+
+  assert.equal(countElements(body, 'button'), 5,
+    'widget should expose backend and query segmented controls');
+  assert.ok(text.includes('wavefront scheduler'),
+    'widget should show the scheduler as distinct from the backend');
+  assert.ok(text.includes('Metal compute'),
+    'default view should show the current macOS platform backend');
+  assert.ok(text.includes('hit records'),
+    'closest-hit query view should show hit-record output');
+  assert.ok(text.includes('CPU integrator'),
+    'widget should show CPU-side shading after intersection');
+
+  elementsByTag(body, 'button')
+    .find(button => button.textContent === 'any hit')
+    .click();
+  text = textContents(body).join(' ');
+  assert.ok(text.includes('bounded any-hit batch'),
+    'any-hit query view should show bounded visibility batches');
+  assert.ok(text.includes('occlusion bits'),
+    'any-hit query view should show occlusion output');
+
+  elementsByTag(body, 'button')
+    .find(button => button.textContent === 'Vulkan')
+    .click();
+  text = textContents(body).join(' ');
+  assert.ok(text.includes('Vulkan currently proves platform compute plumbing'),
+    'Vulkan view should describe the current render-path fallback');
+});
+
 test('Angle widgets use the shared scalar angle slider', () => {
   [
     'angle_from_clock.js',

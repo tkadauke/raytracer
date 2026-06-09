@@ -194,6 +194,8 @@ The intersection backend only receives rays or ray packets and answers
 two query shapes: closest-hit records for camera/path-continuation rays,
 and any-hit occlusion for direct-light shadow rays.
 
+<!-- widget: wavefront_intersection_backend -->
+
 The CPU backend is the canonical implementation and supports the full
 scene/primitive set. Render intent and rendercli can still request
 `auto`, `cpu`, or `gpu` so the graph has a stable place for future GPU

@@ -95,9 +95,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   keep them at zero. — GPT-5
 - **Wavefront intersection backend controls.** Render intent, graph pass state,
   rendercli, Modeler Render Settings, and wavefront metrics now carry
-  `auto`/`cpu`/`gpu` intersection-backend requests, with GPU requests falling
-  back visibly to CPU through explicit Metal/Vulkan platform stubs until a
-  platform backend is available. Auto selection now has a render-size- and
+  `auto`/`cpu`/`gpu` intersection-backend requests, with GPU requests using
+  an available platform backend for eligible scenes and otherwise falling back
+  visibly to CPU through explicit Metal/Vulkan diagnostics. Auto selection now has a render-size- and
   transfer-aware policy that stays on CPU until a platform GPU backend is
   available, the scene compiles to the supported packed intersection
   representation, and enough ray work is expected to amortize GPU scene

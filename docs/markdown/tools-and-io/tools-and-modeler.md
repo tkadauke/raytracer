@@ -134,8 +134,8 @@ depth-major path batches. `--wavefront_adaptive_sampling`,
 adaptive sampling state for wavefront path tracing.
 `--wavefront_intersection_backend auto|cpu|gpu` records the requested
 ray-scene intersection backend for wavefront batches. `cpu` uses the canonical
-CPU backend. `auto` now runs through the same selection policy the future GPU
-backend will use: platform availability first, then scene support, then an
+CPU backend. `auto` now runs through the same selection policy used for GPU
+backend requests: platform availability first, then scene support, then an
 expected-ray-count threshold that scales with prepared scene-upload size. At
 this stage, scene support means triangle, sphere, plane, rectangle, and disk
 leaves with either no transform or static instance transforms that can use the

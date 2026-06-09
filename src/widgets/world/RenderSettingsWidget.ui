@@ -461,7 +461,7 @@
       <item row="12" column="1">
        <widget class="QComboBox" name="wavefrontIntersectionBackend">
         <property name="toolTip">
-         <string>Ray-scene intersection backend for wavefront batches. GPU currently records the request and falls back to CPU until a platform backend is available.</string>
+         <string>Ray-scene intersection backend for wavefront batches. GPU uses an available platform backend for eligible scenes and otherwise reports a visible CPU fallback.</string>
         </property>
         <item>
          <property name="text">
