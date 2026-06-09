@@ -42,11 +42,11 @@ namespace render {
   }
 
   std::uint64_t Integrator::estimatedIntersectionRaysPerPrimarySample() const {
-    return 1;
+    return estimatedClosestHitRaysPerPrimarySample() + estimatedAnyHitRaysPerPrimarySample();
   }
 
   std::uint64_t Integrator::estimatedClosestHitRaysPerPrimarySample() const {
-    return estimatedIntersectionRaysPerPrimarySample();
+    return 1;
   }
 
   std::uint64_t Integrator::estimatedAnyHitRaysPerPrimarySample() const {

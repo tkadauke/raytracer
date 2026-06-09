@@ -740,6 +740,10 @@ Progress:
   tracing reports closest-hit bounce work separately from direct-light
   visibility work, letting the auto transfer estimate use hit-record and
   occlusion-record readback sizes independently.
+- The base integrator contract now derives the total expected intersection-ray
+  count from the closest-hit and any-hit family estimates by default. Custom
+  integrators can therefore override the two query-family estimates without
+  accidentally leaving automatic backend selection on a stale total estimate.
 - The benchmark suite now includes wavefront intersection backend fixtures for
   a small supported scene, a mesh-heavy supported scene, and an unsupported
   mixed scene. The fixtures measure compile/pack cost, runtime CPU closest-hit

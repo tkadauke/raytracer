@@ -362,7 +362,10 @@ query-transfer estimate that remains visible even when the selected backend is
 CPU. The expected workload is split into
 `intersectionBackendExpectedClosestHitRays` and
 `intersectionBackendExpectedAnyHitRays`, so the estimate can account for
-hit-record and occlusion-record readback separately. The wavefront intersection
+hit-record and occlusion-record readback separately. Custom integrators can
+override those two family estimates and inherit a total estimate derived from
+their sum, keeping automatic backend selection aligned with the query split.
+The wavefront intersection
 backend benchmarks use the same split for their automatic-backend fixtures and
 report expected closest-hit rays, expected any-hit rays, the computed automatic
 GPU threshold, and the pre-render query-transfer estimate as benchmark counters.

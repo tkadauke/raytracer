@@ -35,6 +35,25 @@ namespace IntegratorTest {
         return recursiveColor + scene.background();
       }
     };
+
+    class SplitEstimateIntegrator final : public Integrator {
+    public:
+      std::unique_ptr<Integrator> clone() const override {
+        return std::make_unique<SplitEstimateIntegrator>();
+      }
+
+      std::uint64_t estimatedClosestHitRaysPerPrimarySample() const override {
+        return 3;
+      }
+
+      std::uint64_t estimatedAnyHitRaysPerPrimarySample() const override {
+        return 5;
+      }
+
+      Colord radiance(const Scene&, const Rayd&, State&, const RayCaster&) const override {
+        return Colord::black();
+      }
+    };
   }
 
   TEST(Integrator, ContractCarriesSceneRayStateAndRecursiveRayCaster) {
@@ -51,6 +70,18 @@ namespace IntegratorTest {
     EXPECT_EQ(11, state.numRays);
     EXPECT_EQ(1, state.maxRecursionDepth);
     ASSERT_COLOR_NEAR(Colord(0.35, 0.7, 1.05), color, 1e-12);
+  }
+
+  TEST(Integrator, DefaultExpectedRayEstimateIsDerivedFromQueryFamilies) {
+    RecursiveProbeIntegrator defaultIntegrator;
+    EXPECT_EQ(1u, defaultIntegrator.estimatedClosestHitRaysPerPrimarySample());
+    EXPECT_EQ(0u, defaultIntegrator.estimatedAnyHitRaysPerPrimarySample());
+    EXPECT_EQ(1u, defaultIntegrator.estimatedIntersectionRaysPerPrimarySample());
+
+    SplitEstimateIntegrator splitIntegrator;
+    EXPECT_EQ(3u, splitIntegrator.estimatedClosestHitRaysPerPrimarySample());
+    EXPECT_EQ(5u, splitIntegrator.estimatedAnyHitRaysPerPrimarySample());
+    EXPECT_EQ(8u, splitIntegrator.estimatedIntersectionRaysPerPrimarySample());
   }
 
   TEST(Integrator, BatchedRadianceReportsScalarSampleDepthWork) {

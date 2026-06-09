@@ -48,6 +48,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
   — GPT-5
+- **Integrator query-family estimate default.** Custom integrators that
+  override closest-hit and any-hit expected ray counts now inherit a total
+  expected intersection-ray count derived from those two families by default. — GPT-5
 - **Wavefront mixed-query backend benchmark.** The wavefront intersection
   backend benchmarks now include an automatic-backend fixture that chooses the
   backend from combined closest-hit and any-hit expected work, then submits both
