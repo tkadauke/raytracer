@@ -253,7 +253,8 @@ namespace render {
       static constexpr std::uint32_t kInvalidQueueFamily =
         std::numeric_limits<std::uint32_t>::max();
 
-      const auto& dummyComputeShaderSpirv() const {
+      const std::array<std::uint32_t, vulkan_shaders::smokeHitMissShaderSpirv.size()>&
+      dummyComputeShaderSpirv() const {
         return vulkan_shaders::smokeHitMissShaderSpirv;
       }
 
