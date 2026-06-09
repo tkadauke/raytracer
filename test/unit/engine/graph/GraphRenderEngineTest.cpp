@@ -2249,7 +2249,7 @@ namespace GraphRenderEngineTest {
   }
 
   TEST(GraphRenderEngine, RunsIndependentCpuSafePassesConcurrently) {
-    auto material = std::make_shared<BlockingMaterial>();
+    auto material = std::make_shared<GateMaterial>();
     auto scene = std::make_shared<render::Scene>();
     auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 100.0);
     sphere->setMaterial(material);
@@ -2289,13 +2289,13 @@ namespace GraphRenderEngineTest {
       }
     });
 
-    const bool renderBlocked = material->waitForSecondCall(std::chrono::seconds(2));
+    const bool renderBlocked = material->waitForCallCount(2, std::chrono::seconds(10));
     EXPECT_TRUE(renderBlocked);
     if (renderBlocked) {
       EXPECT_TRUE(observer->waitForStartedCount(2, std::chrono::seconds(2)));
       EXPECT_TRUE(observer->waitForActiveSet({"beauty_a", "beauty_b"}, std::chrono::seconds(2)));
     }
-    material->releaseSecondCall();
+    material->releaseAll();
     renderThread.join();
     if (renderFailure) {
       std::rethrow_exception(renderFailure);
