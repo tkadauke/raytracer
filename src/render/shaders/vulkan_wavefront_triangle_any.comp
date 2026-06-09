@@ -68,6 +68,25 @@ struct DiskPayload {
   vec4 normal;
 };
 
+struct TransformPayload {
+  vec4 pointMatrix0;
+  vec4 pointMatrix1;
+  vec4 pointMatrix2;
+  vec4 pointMatrix3;
+  vec4 normalMatrix0;
+  vec4 normalMatrix1;
+  vec4 normalMatrix2;
+  vec4 normalMatrix3;
+  vec4 inversePointMatrix0;
+  vec4 inversePointMatrix1;
+  vec4 inversePointMatrix2;
+  vec4 inversePointMatrix3;
+  vec4 inverseDirectionMatrix0;
+  vec4 inverseDirectionMatrix1;
+  vec4 inverseDirectionMatrix2;
+  vec4 inverseDirectionMatrix3;
+};
+
 struct RayRecord {
   vec4 origin;
   vec4 direction;
@@ -121,17 +140,22 @@ layout(std430, binding = 6) readonly buffer DiskBuffer {
   DiskPayload disks[];
 };
 
-layout(std430, binding = 7) readonly buffer RayBuffer {
+layout(std430, binding = 7) readonly buffer TransformBuffer {
+  TransformPayload transforms[];
+};
+
+layout(std430, binding = 8) readonly buffer RayBuffer {
   RayRecord rays[];
 };
 
-layout(std430, binding = 8) writeonly buffer OcclusionBuffer {
+layout(std430, binding = 9) writeonly buffer OcclusionBuffer {
   OcclusionRecord occlusion[];
 };
 
-layout(std430, binding = 9) readonly buffer CountBuffer {
+layout(std430, binding = 10) readonly buffer CountBuffer {
   uvec4 counts0;
   uvec4 counts1;
+  uvec4 counts2;
 };
 
 float positiveInfinity() {
@@ -193,6 +217,26 @@ float boundsEntryDistance(Bounds bounds, RayRecord ray, float maxHitDistance) {
 
 bool boundsIntersect(Bounds bounds, RayRecord ray, float maxHitDistance) {
   return boundsEntryDistance(bounds, ray, maxHitDistance) < positiveInfinity();
+}
+
+vec4 transformPoint(vec4 row0, vec4 row1, vec4 row2, vec4 row3, vec4 point) {
+  return vec4(dot(row0, point), dot(row1, point), dot(row2, point), dot(row3, point));
+}
+
+vec4 transformDirection(vec4 row0, vec4 row1, vec4 row2, vec4 direction) {
+  return vec4(dot(row0.xyz, direction.xyz), dot(row1.xyz, direction.xyz),
+              dot(row2.xyz, direction.xyz), 0.0);
+}
+
+RayRecord transformRay(RayRecord ray, TransformPayload transform) {
+  RayRecord result = ray;
+  result.origin =
+    transformPoint(transform.inversePointMatrix0, transform.inversePointMatrix1,
+                   transform.inversePointMatrix2, transform.inversePointMatrix3, ray.origin);
+  result.direction =
+    transformDirection(transform.inverseDirectionMatrix0, transform.inverseDirectionMatrix1,
+                       transform.inverseDirectionMatrix2, ray.direction);
+  return result;
 }
 
 LocalHit intersectTriangle(RayRecord ray, TrianglePayload triangle) {
@@ -356,12 +400,13 @@ LocalHit intersectDisk(RayRecord ray, DiskPayload disk) {
   return result;
 }
 
-LocalHit intersectPrimitive(RayRecord ray, PrimitiveRecord primitive, uint triangleCount,
-                            uint sphereCount, uint planeCount, uint rectangleCount,
-                            uint diskCount) {
+LocalHit intersectPrimitivePayload(RayRecord ray, PrimitiveRecord primitive, uint triangleCount,
+                                   uint sphereCount, uint planeCount, uint rectangleCount,
+                                   uint diskCount) {
   if (primitive.payloadCount != 1u) {
     return makeLocalMiss();
   }
+
   if (primitive.kind == triangleKind && primitive.payloadOffset < triangleCount) {
     return intersectTriangle(ray, triangles[primitive.payloadOffset]);
   }
@@ -378,6 +423,23 @@ LocalHit intersectPrimitive(RayRecord ray, PrimitiveRecord primitive, uint trian
     return intersectDisk(ray, disks[primitive.payloadOffset]);
   }
   return makeLocalMiss();
+}
+
+LocalHit intersectPrimitive(RayRecord ray, PrimitiveRecord primitive, uint triangleCount,
+                            uint sphereCount, uint planeCount, uint rectangleCount,
+                            uint diskCount, uint transformCount) {
+  if (primitive.transform != 0u) {
+    if (primitive.transform >= transformCount) {
+      return makeLocalMiss();
+    }
+
+    return intersectPrimitivePayload(transformRay(ray, transforms[primitive.transform]), primitive,
+                                     triangleCount, sphereCount, planeCount, rectangleCount,
+                                     diskCount);
+  }
+
+  return intersectPrimitivePayload(ray, primitive, triangleCount, sphereCount, planeCount,
+                                   rectangleCount, diskCount);
 }
 
 bool hitOccludes(LocalHit hit, float maxDistance) {
@@ -400,7 +462,8 @@ void main() {
   const uint planeCount = counts1.x;
   const uint rectangleCount = counts1.y;
   const uint diskCount = counts1.z;
-  const uint rayCount = counts1.w;
+  const uint transformCount = counts1.w;
+  const uint rayCount = counts2.x;
   const uint id = gl_GlobalInvocationID.x;
   if (id >= rayCount) {
     return;
@@ -447,7 +510,7 @@ void main() {
 
       const LocalHit hit =
         intersectPrimitive(ray, primitive, triangleCount, sphereCount, planeCount, rectangleCount,
-                           diskCount);
+                           diskCount, transformCount);
       if (hitOccludes(hit, ray.maxDistance)) {
         occlusion[id] = makeOcclusion(ray, true);
         return;

@@ -270,8 +270,8 @@ namespace render {
       if (!VulkanWavefrontIntersectionBackend::supportsPackedScene(buffers)) {
         return makeDelegatingBackend(
           "auto", "available",
-          "auto selected CPU: intersection scene is not eligible for Vulkan exact-primitive hit "
-          "kernels",
+          "auto selected CPU: intersection scene is not eligible for Vulkan "
+          "exact-primitive/static-transform hit kernels",
           diagnostics, gpuUnavailableBackend().platformName());
       }
 #endif
@@ -1315,41 +1315,7 @@ namespace render {
 
   bool VulkanWavefrontIntersectionBackend::supportsPackedScene(
     const GpuIntersectionSceneBuffers& buffers) {
-    if (buffers.primitives.empty()) {
-      return false;
-    }
-
-    for (const GpuIntersectionPrimitiveRecord& primitive : buffers.primitives) {
-      if (primitive.payloadCount != 1 || primitive.transform != 0) {
-        return false;
-      }
-
-      const auto kind = static_cast<GpuIntersectionPrimitiveKind>(primitive.kind);
-      if (kind == GpuIntersectionPrimitiveKind::Triangle) {
-        if (primitive.payloadOffset >= buffers.triangles.size()) {
-          return false;
-        }
-      } else if (kind == GpuIntersectionPrimitiveKind::Sphere) {
-        if (primitive.payloadOffset >= buffers.spheres.size()) {
-          return false;
-        }
-      } else if (kind == GpuIntersectionPrimitiveKind::Plane) {
-        if (primitive.payloadOffset >= buffers.planes.size()) {
-          return false;
-        }
-      } else if (kind == GpuIntersectionPrimitiveKind::Rectangle) {
-        if (primitive.payloadOffset >= buffers.rectangles.size()) {
-          return false;
-        }
-      } else if (kind == GpuIntersectionPrimitiveKind::Disk) {
-        if (primitive.payloadOffset >= buffers.disks.size()) {
-          return false;
-        }
-      } else {
-        return false;
-      }
-    }
-    return true;
+    return buffers.basicHitKernelEligible();
   }
 
   VulkanWavefrontIntersectionBackend::VulkanWavefrontIntersectionBackend(
@@ -1402,11 +1368,11 @@ namespace render {
              "kernels are available";
     }
     if (!gpuIntersectionSceneBuffers()) {
-      return "Vulkan wavefront intersection backend is enabled but no prepared exact-primitive "
-             "scene is available";
+      return "Vulkan wavefront intersection backend is enabled but no prepared "
+             "exact-primitive/static-transform scene is available";
     }
     return "Vulkan wavefront intersection backend is enabled but the prepared scene is not "
-           "eligible for the Vulkan exact-primitive hit kernels";
+           "eligible for the Vulkan exact-primitive/static-transform hit kernels";
 #else
     return "Vulkan wavefront intersection backend is not enabled in this build";
 #endif

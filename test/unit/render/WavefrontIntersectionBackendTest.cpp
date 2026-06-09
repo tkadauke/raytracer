@@ -569,6 +569,71 @@ namespace WavefrontIntersectionBackendTest {
 #endif
   }
 
+  TEST(VulkanWavefrontSmokeKernel, RunsStaticTransformBasicHitKernelsWhenEnabled) {
+    VulkanWavefrontSmokeKernel kernel;
+
+    auto triangle =
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));
+    auto triangleInstance = std::make_shared<Instance>(triangle);
+    triangleInstance->setMatrix(Matrix4d::translate(0, 0, 2));
+
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
+    auto sphereInstance = std::make_shared<Instance>(sphere);
+    sphereInstance->setMatrix(Matrix4d::translate(3, 0, 4));
+
+    Scene scene;
+    scene.add(triangleInstance);
+    scene.add(sphereInstance);
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    ASSERT_FALSE(buffers.triangleClosestHitKernelEligible());
+    ASSERT_TRUE(buffers.basicHitKernelEligible());
+    ASSERT_GT(buffers.transforms.size(), 2u);
+    ASSERT_TRUE(VulkanWavefrontIntersectionBackend::supportsPackedScene(buffers));
+
+    const std::vector<GpuIntersectionRay> rays{
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, -2, 1), Vector3d(0, 0, 1)), 31, 0.0,
+                                           10.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(3, 0, 0, 1), Vector3d(0, 0, 1)), 32, 0.0,
+                                           10.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(6, 0, 0, 1), Vector3d(0, 0, 1)), 33, 0.0,
+                                           10.0),
+    };
+
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    if (!kernel.deviceAvailable()) {
+      GTEST_SKIP() << "No Vulkan compute device is available";
+    }
+
+    const std::vector<GpuIntersectionHitRecord> expectedClosest =
+      GpuIntersectionIntersector().intersectClosest(buffers, rays);
+    const VulkanWavefrontClosestHitKernelResult actualClosest =
+      kernel.runTimedBasicClosestHitKernel(buffers, rays);
+
+    ASSERT_EQ(expectedClosest.size(), actualClosest.hits.size());
+    EXPECT_EQ(std::string("vulkan"), actualClosest.timing.executionPath);
+    for (std::size_t index = 0; index != expectedClosest.size(); ++index) {
+      expectGpuHitRecordNear(actualClosest.hits[index], expectedClosest[index]);
+    }
+
+    const std::vector<GpuIntersectionOcclusionRecord> expectedAny =
+      GpuIntersectionIntersector().intersectAny(buffers, rays);
+    const VulkanWavefrontAnyHitKernelResult actualAny =
+      kernel.runTimedBasicAnyHitKernel(buffers, rays);
+
+    ASSERT_EQ(expectedAny.size(), actualAny.records.size());
+    EXPECT_EQ(std::string("vulkan"), actualAny.timing.executionPath);
+    for (std::size_t index = 0; index != expectedAny.size(); ++index) {
+      EXPECT_EQ(expectedAny[index].occluded, actualAny.records[index].occluded);
+      EXPECT_EQ(expectedAny[index].rayIndex, actualAny.records[index].rayIndex);
+    }
+#else
+    EXPECT_THROW((void)kernel.runBasicClosestHitKernel(buffers, rays), std::runtime_error);
+    EXPECT_THROW((void)kernel.runBasicAnyHitKernel(buffers, rays), std::runtime_error);
+#endif
+  }
+
   TEST(MetalWavefrontSmokeKernel, RunsDummyHitMissKernelWhenEnabled) {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     MetalWavefrontSmokeKernel kernel;
@@ -1062,7 +1127,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(1, missState.intersectionMisses);
   }
 
-  TEST(WavefrontIntersectionBackend, PreparedPackedQueriesReportPackedCpuTimingPath) {
+  TEST(WavefrontIntersectionBackend, PreparedPackedQueriesReportPreparedTimingPath) {
     auto triangle =
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));
     auto instance = std::make_shared<Instance>(triangle);
@@ -1076,7 +1141,7 @@ namespace WavefrontIntersectionBackendTest {
     const std::shared_ptr<const WavefrontIntersectionBackend> backend =
       VulkanWavefrontIntersectionBackend::createPrepared(compiled);
     ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
-    EXPECT_FALSE(VulkanWavefrontIntersectionBackend::supportsPackedScene(
+    EXPECT_TRUE(VulkanWavefrontIntersectionBackend::supportsPackedScene(
       *backend->gpuIntersectionSceneBuffers()));
     EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedClosestHitKernelEligible());
     EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedAnyHitKernelEligible());
@@ -1090,7 +1155,9 @@ namespace WavefrontIntersectionBackendTest {
 
     ASSERT_EQ(1u, closestHits.size());
     EXPECT_TRUE(closestHits.front().hit());
-    EXPECT_EQ("packed_cpu", closestTiming.executionPath);
+    EXPECT_TRUE(closestTiming.executionPath == "packed_cpu" ||
+                closestTiming.executionPath == "vulkan")
+      << closestTiming.executionPath;
 
     State anyState;
     const std::vector<WavefrontAnyHitQuery> anyQueries{
@@ -1101,11 +1168,11 @@ namespace WavefrontIntersectionBackendTest {
 
     ASSERT_EQ(1u, anyHits.size());
     EXPECT_TRUE(anyHits.front());
-    EXPECT_EQ("packed_cpu", anyTiming.executionPath);
+    EXPECT_TRUE(anyTiming.executionPath == "packed_cpu" || anyTiming.executionPath == "vulkan")
+      << anyTiming.executionPath;
   }
 
-  TEST(WavefrontIntersectionBackend,
-       PreparedGpuFallbackClosestHitUsesRetainedPackedStaticTransformScene) {
+  TEST(WavefrontIntersectionBackend, PreparedGpuClosestHitUsesRetainedPackedStaticTransformScene) {
     auto triangle =
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));
     auto instance = std::make_shared<Instance>(triangle);
@@ -1122,12 +1189,13 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->basicHitKernelEligible());
     EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedClosestHitKernelEligible());
     EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedAnyHitKernelEligible());
-    if (std::string(backend->closestHitExecutionPath()) == "metal") {
-      EXPECT_STREQ("metal", backend->name());
+    const std::string closestPath = backend->closestHitExecutionPath();
+    if (closestPath == "metal" || closestPath == "vulkan") {
+      EXPECT_STREQ(closestPath.c_str(), backend->name());
       EXPECT_STREQ("available", backend->availability());
       EXPECT_STREQ("", backend->fallbackReason());
-      EXPECT_STREQ("metal", backend->executionPath());
-      EXPECT_STREQ("metal", backend->anyHitExecutionPath());
+      EXPECT_STREQ(closestPath.c_str(), backend->executionPath());
+      EXPECT_STREQ(closestPath.c_str(), backend->anyHitExecutionPath());
     } else {
       EXPECT_STREQ("packed_cpu", backend->executionPath());
       EXPECT_STREQ("packed_cpu", backend->closestHitExecutionPath());

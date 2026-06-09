@@ -44,17 +44,17 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   BVH/primitive/triangle/ray/hit ABI, with CPU packed-intersector parity
   coverage. — GPT-5
 - **Vulkan basic any-hit dispatch.** Vulkan-enabled builds now expose a direct
-  any-hit compute dispatch for prepared untransformed triangle, sphere, plane,
-  rectangle, and disk scenes over the packed BVH/primitive/payload/ray/occlusion
-  ABI, with CPU packed-intersector parity coverage. — GPT-5
+  any-hit compute dispatch for prepared triangle, sphere, plane, rectangle,
+  disk, and static-transform scenes over the packed
+  BVH/primitive/payload/ray/occlusion ABI, with CPU packed-intersector parity
+  coverage. — GPT-5
 - **Vulkan exact-primitive wavefront backend execution.** Vulkan-enabled builds
-  can now route prepared untransformed triangle, sphere, plane, rectangle, and
-  disk scenes through Vulkan closest-hit and any-hit wavefront intersection
-  batches; static-transform scenes continue to fall back to packed CPU traversal
-  until matching Vulkan kernels exist. — GPT-5
+  can now route prepared triangle, sphere, plane, rectangle, disk, and
+  static-transform scenes through Vulkan closest-hit and any-hit wavefront
+  intersection batches. — GPT-5
 - **Vulkan basic closest-hit dispatch.** Vulkan-enabled builds now expose a
-  direct closest-hit compute dispatch for prepared untransformed triangle,
-  sphere, plane, rectangle, and disk scenes over the packed
+  direct closest-hit compute dispatch for prepared triangle, sphere, plane,
+  rectangle, disk, and static-transform scenes over the packed
   BVH/primitive/payload/ray/hit ABI, with CPU packed-intersector parity
   coverage. — GPT-5
 - **Vulkan wavefront shader build path.** Vulkan-enabled builds now compile the

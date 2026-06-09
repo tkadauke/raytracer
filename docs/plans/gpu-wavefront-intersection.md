@@ -19,8 +19,8 @@
 > and any-hit kernels can execute for prepared triangle, sphere, plane,
 > rectangle, and disk scenes, including static transform payloads, when a Metal
 > device is available. Vulkan-enabled builds can now run basic closest-hit and
-> any-hit kernels for prepared untransformed triangle, sphere, plane, rectangle,
-> and disk scenes; Vulkan static-transform kernels remain a future phase. This is a
+> any-hit kernels for prepared triangle, sphere, plane, rectangle, and disk
+> scenes, including static transform payloads. This is a
 > follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+. It should not replace
 > the CPU wavefront renderer, and it should not attempt a full GPU path tracer
@@ -281,10 +281,9 @@ Progress:
   creating the native shader pipeline needed for Vulkan render-path kernels.
 - Vulkan-enabled builds now compile and expose direct basic closest-hit and
   any-hit compute dispatches against the packed BVH/primitive/exact-payload/ray
-  ABI. Prepared untransformed triangle, sphere, plane, rectangle, and disk
-  scenes can now execute wavefront closest-hit and any-hit batches through
-  Vulkan; static-transform scenes continue to fall back to packed CPU traversal
-  until matching Vulkan kernels exist.
+  ABI. Prepared triangle, sphere, plane, rectangle, and disk scenes can now
+  execute wavefront closest-hit and any-hit batches through Vulkan, including
+  static transform payloads.
 - Platform GPU device availability is now structured backend trace data instead
   of only fallback text. Wavefront metrics JSON, rendercli summaries, and the
   Modeler graph tooltip expose the selected platform backend id and whether
@@ -431,11 +430,11 @@ Progress:
 
 - Vulkan-enabled builds now compile GLSL basic closest-hit and any-hit compute
   shaders into embedded SPIR-V, expose direct dispatch wrappers for CPU
-  packed-intersector parity tests, and route prepared untransformed triangle,
-  sphere, plane, rectangle, and disk scenes through the Vulkan wavefront backend
-  when a Vulkan compute device can construct both pipelines. Unsupported Vulkan
-  scenes continue to use packed CPU traversal with explicit fallback
-  diagnostics.
+  packed-intersector parity tests, and route prepared triangle, sphere, plane,
+  rectangle, and disk scenes through the Vulkan wavefront backend when a Vulkan
+  compute device can construct both pipelines, including static transform
+  payloads. Unsupported Vulkan scenes continue to use packed CPU traversal with
+  explicit fallback diagnostics.
 - Metal-enabled builds now include opt-in basic closest-hit and any-hit wrappers
   that consume `GpuIntersectionScenePacker`'s triangle, sphere, plane,
   rectangle, disk, and static-transform packed scene buffers and write
@@ -550,9 +549,9 @@ Progress:
 - Metal-enabled prepared sphere, plane, rectangle, disk, and static-transform
   scenes now share the render-path basic hit kernels with triangle scenes for
   closest-hit and any-hit queries.
-- Vulkan-enabled prepared sphere, plane, rectangle, and disk scenes now share
-  the render-path basic hit kernels with triangle scenes for closest-hit and
-  any-hit queries when those primitive records are untransformed.
+- Vulkan-enabled prepared sphere, plane, rectangle, disk, and static-transform
+  scenes now share the render-path basic hit kernels with triangle scenes for
+  closest-hit and any-hit queries.
 - Wavefront renderer-level parity tests now compare `cpu` and `gpu`
   intersection-backend requests on a deterministic supported Whitted scene that
   mixes sphere, triangle, rectangle, disk, and static instance payloads. The
