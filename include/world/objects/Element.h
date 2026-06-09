@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <optional>
+#include <vector>
 
 #include <QJsonObject>
 #include <QJsonValue>
@@ -105,6 +106,23 @@ public:
       return m_name;
     }
   }
+
+  /**
+    * @returns tag metadata used by render graph scene selectors.
+    *
+    * Both `tag: "name"` and `tags: ["a", "b"]` JSON forms are accepted so
+    * importers can preserve their native shape while graph compilation sees a
+    * stable selector vocabulary.
+    */
+  std::vector<QString> renderGraphTags() const;
+
+  /**
+    * @returns layer metadata used by render graph scene selectors.
+    *
+    * String-valued `layer`, `layerName`, and `layers` metadata are accepted.
+    * Integer `layerIndex` metadata is exposed as its decimal string.
+    */
+  std::vector<QString> renderGraphLayers() const;
 
   int row() const;
 

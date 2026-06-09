@@ -36,7 +36,7 @@ namespace {
   }
 
   unsigned int packedRgb(const Colord& color) {
-    return color.rInt() << 16 | color.gInt() << 8 | color.bInt();
+    return color.rgb();
   }
 }
 

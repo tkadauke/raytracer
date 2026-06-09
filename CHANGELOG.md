@@ -21,6 +21,22 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   families now declare serial, limited, or parallel-safe scheduling limits,
   export them through text/DOT/JSON graph inspection, and mark OpenGL raster
   pass state as limited to one concurrent pass by default. — GPT-5
+- **Render graph selector routing demo.** Added a loadable selector-routing
+  scene and textbook coverage showing compiler-synthesized stencil,
+  foreground, and composite branches for a tagged subset rendered through a
+  different executor and camera. — GPT-5
+- **Modeler selector routing controls.** Render Settings now expose a
+  high-level selector route editor, and the Render Graph inspector labels
+  compiler-generated selector branches with routing context. — GPT-5
+- **Render graph selector override branches.** Graph compilation now turns
+  resolvable selector-specific executor, view-mode, shading-profile, camera,
+  and engine-option overrides into prefixed branch passes, stencil-mask
+  composites, and exported selector AOV previews, while duplicate selector
+  overrides fail clearly. — GPT-5
+- **Render graph selector analysis.** `RenderSceneAnalysis` now records stable
+  selectable subsets for visible object ids, object names, tags, and layers,
+  and graph compilation reports missing or ambiguous selector-specific intent
+  with actionable diagnostics. — GPT-5
 - Direct wavefront/pathtracer rendercli runs can export a grayscale per-pixel
   sample radiance standard-deviation diagnostic image for path-tracing noise
   analysis. — GPT-5
@@ -419,6 +435,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Path tracing direct-light MIS.** Path tracer direct-light sampling now uses
   material BSDF PDFs to MIS-weight non-delta light samples while preserving
   delta light behavior. — GPT-5
+- **Rendercli selector override routing.** rendercli now documents wavefront as
+  a selector-specific graph executor and its graph export/replay tests cover
+  routed selector branch pass/resource ids and selector metadata. — GPT-5
 - **Wavefront no-refinement packet bookkeeping.** Whitted wavefront packet
   frontiers now use one bookkeeping timing scope for packet hits that do not
   need scalar material refinement, reducing metric-time scheduler overhead on
@@ -900,6 +919,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Path-tracing emitter-hit MIS.** Non-delta BSDF continuation rays that hit
   visible emitters now weight emitted radiance against the combined light PDF,
   reducing double counting with next-event estimation. — GPT-5
+- **Wavefront cancellation and prepass diagnostics.** `WavefrontRaytracer`
+  now keeps tile-plan metrics visible for cancelled renders and denoiser
+  feature prepasses even when full render metrics are disabled. — GPT-5
 - **Wavefront integrator depth replacement.** `WavefrontRaytracer` now retains
   the configured maximum recursion depth and reapplies it when callers replace
   the integrator, so API order no longer changes wavefront bounce limits. — GPT-5

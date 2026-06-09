@@ -81,11 +81,15 @@ executor, view mode, shading profile, camera, and engine options. The result is
 a layered request: one default frame intent plus targeted overrides for
 specific parts of the scene.
 Whole-frame overrides whose selector is `all` are applied to the default frame
-intent before compilation. More specific selector overrides remain intent for
-future scene-partitioning planners; current graph compilation rejects them with
-a clear error instead of silently rendering only the default frame intent. Users
-still describe what they want, and the compiler remains responsible for
-synthesizing pass nodes.
+intent before compilation. More specific selector overrides are routes for a
+visible scene subset. When `RenderSceneAnalysis` can resolve the selector, the
+compiler synthesizes the implementation: a raster stencil mask for the subset,
+a foreground branch using the requested executor, view mode, camera, shading
+profile, and engine options, and a composite pass that replaces only masked
+pixels in the running color input. Users still describe what they want, and the
+compiler remains responsible for synthesizing pass nodes. Missing, ambiguous,
+or duplicate selector routes fail with diagnostics instead of silently falling
+back to the default frame.
 Advanced controls such as raytracer sampler, samples per pixel, recursion
 depth, raster MSAA, raster LOD, raster visibility culling, raster shadow-map
 quality, and wireframe LOD live in typed `RenderEngineOptions` fields on the
@@ -107,8 +111,10 @@ selects the OpenGL backend, the compiled branch still exposes the GPU-to-CPU
 readback passes
 before tonemap or exported AOV publication, making the transfer boundary
 inspectable instead of hidden inside execution. Selector-specific subviews are
-still rejected explicitly until scene partitioning can honor those selectors
-during execution. The intent also carries
+still rejected explicitly until render-to-texture scene partitioning can honor
+those selectors during execution. Selector-specific view overrides are already
+compiled through stencil-mask composite branches for ordinary frame routing.
+The intent also carries
 `maxRenderToTextureRecursionDepth`, which defaults to one subview level and can
 be set to zero to reject render-to-texture expansion entirely.
 When the effective frame intent names a default camera or non-default shading
@@ -397,16 +403,16 @@ Repeated `--render_graph_shading_parameter key=value` options attach parsed
 bool, number, or string parameters to that profile.
 `--render_graph_view_override selector,key=value` appends a high-level
 `RenderViewOverride` to the request; `all,executor=rasterizer,view=depth`
-applies to today's whole-frame compiler, while selector-specific values such as
-`tag:debug,view=wireframe` are preserved in intent and rejected clearly until
-scene-partitioning planners exist. The `depth`, `stencil`, `normal`,
+applies before pass synthesis, while selector-specific values such as
+`tag:debug,executor=wireframe,camera=inspection-camera` ask the compiler to
+route that subset through a generated stencil, foreground, and composite
+branch. The `depth`, `stencil`, `normal`,
 `object_id`, `material_id`, `world_position`, and wavefront-only
 `sample_stddev` / `sample_stddev_color` views compile real resource-producing
 AOV nodes followed by visualization passes, so the exported plan and the
 Modeler inspector can show AOVs as graph resources rather than hiding them
-inside a direct engine. Raster
-diagnostics add raster-only heatmap views for `raster_coverage_count`,
-`raster_depth_test_count`,
+inside a direct engine. Raster diagnostics add raster-only heatmap views for
+`raster_coverage_count`, `raster_depth_test_count`,
 `raster_depth_pass_count`, `raster_shade_count`, and
 `raster_color_write_count`. The `stencil_composite` view mode is also
 synthesized from intent: it compiles raster beauty, wireframe beauty, stencil
@@ -445,6 +451,16 @@ once as wireframe color, then uses the rasterized stencil mask to replace only
 object-covered pixels with the wireframe foreground:
 
 ![Stencil-composited render: raster beauty outside the stencil mask, wireframe foreground inside it](../../images/render_graph_stencil_composite.png)
+
+Selector routing uses the same stencil/composite machinery, but the foreground
+branch is scoped by a scene selector rather than the whole frame. The saved
+intent in
+[`scenes/render_graph_selector_routing_demo.json`](../../../scenes/render_graph_selector_routing_demo.json)
+rasterizes the full scene, then routes objects tagged `diagnostic` through a
+wireframe foreground branch viewed from an inspection camera before compositing
+that result back over the raster color. The authored scene never names
+`selector_1_stencil_aov`, `selector_1_wireframe_beauty`, or
+`selector_1_composite`; those ids are compiler output.
 
 The AOV vocabulary is owned by
 [`RenderAOVDefinition`](../../../include/engine/graph/RenderAOV.h) objects.
@@ -1161,6 +1177,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/widgets/world/RenderGraphTracePreviewWidget.h`
 - `scenes/render_graph_aov_demo.json`
 - `scenes/render_graph_stencil_composite_demo.json`
+- `scenes/render_graph_selector_routing_demo.json`
 - `scenes/wavefront_indirect_environment_demo.json`
 - `scenes/wavefront_indirect_bounce_demo.json`
 - `scenes/wavefront_denoise_demo.json`

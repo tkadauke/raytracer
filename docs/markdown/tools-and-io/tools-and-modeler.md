@@ -164,9 +164,9 @@ intent on synthesized scene-rendering passes.
 `--render_graph_view_override selector,key=value` adds one high-level view
 override to the request. `all,executor=rasterizer,view=depth` is equivalent to
 changing the default frame intent; selector-specific values such as
-`tag:debug,view=wireframe` are accepted as render intent but currently fail
-compilation until the graph compiler can split and composite selected scene
-subsets. The
+`tag:debug,executor=wireframe,camera=inspection-camera` ask the graph compiler
+to split the selected scene subset into a stencil mask, foreground pass, and
+composite branch. The
 depth, stencil, normal, object-id, material-id, world-position, and raster
 counter views
 compile graph-visible AOV passes and visualization passes that write the final

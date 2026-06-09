@@ -78,6 +78,19 @@ namespace BVHPerformanceTest {
     return rays;
   }
 
+  std::vector<Rayd> generateMissRays(int count, int side) {
+    const int gapCount = std::max(1, side - 1);
+
+    std::vector<Rayd> rays;
+    rays.reserve(count);
+    for (int i = 0; i < count; ++i) {
+      const double y = static_cast<double>((i % gapCount) * 2 + 1);
+      const double z = static_cast<double>(((i / gapCount) % gapCount) * 2 + 1);
+      rays.emplace_back(Vector3d(-1.0, y, z), Vector3d(1.0, 0.0, 0.0));
+    }
+    return rays;
+  }
+
   template<class Container>
   std::chrono::nanoseconds timeIntersect(int side, const std::vector<Rayd>& rays) {
     auto container = buildScene<Container>(side);
@@ -143,7 +156,7 @@ namespace BVHPerformanceTest {
 
   TEST(BVHPerformance, ShadowRayIsAtLeast10xFasterThanComposite) {
     constexpr int kSide = 8; // 512 primitives
-    const auto rays = generateRays(256, kSide);
+    const auto rays = generateMissRays(256, kSide);
 
     const auto bvh = timeShadowRay<BVH>(kSide, rays);
     const auto comp = timeShadowRay<Composite>(kSide, rays);

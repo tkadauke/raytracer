@@ -37,6 +37,11 @@ bool RenderIntentElement::isPropertyVisible(const QString& propertyName) const {
       propertyName == QStringLiteral("raytracerThreads") ||
       propertyName == QStringLiteral("raytracerQueueSize"))
     return false;
+  if (isSelectorRoutingProperty(propertyName)) {
+    if (propertyName == QStringLiteral("selectorRouting"))
+      return true;
+    return selectorRouting();
+  }
 
   const auto executor = intent().defaultExecutorKind();
   if (propertyName == QStringLiteral("raytracerIntegrator") &&
@@ -88,6 +93,20 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
     return QStringLiteral("Camera ID");
   if (propertyName == QStringLiteral("shadingProfile"))
     return QStringLiteral("Shading Profile");
+  if (propertyName == QStringLiteral("selectorRouting"))
+    return QStringLiteral("Selector Routing");
+  if (propertyName == QStringLiteral("selectorRoutingKind"))
+    return QStringLiteral("Selector Kind");
+  if (propertyName == QStringLiteral("selectorRoutingValue"))
+    return QStringLiteral("Selector Value");
+  if (propertyName == QStringLiteral("selectorRoutingEngine"))
+    return QStringLiteral("Route Engine");
+  if (propertyName == QStringLiteral("selectorRoutingViewMode"))
+    return QStringLiteral("Route View Mode");
+  if (propertyName == QStringLiteral("selectorRoutingCameraId"))
+    return QStringLiteral("Route Camera ID");
+  if (propertyName == QStringLiteral("selectorRoutingShadingProfile"))
+    return QStringLiteral("Route Shading Profile");
   if (propertyName == QStringLiteral("automaticFeatures"))
     return QStringLiteral("Automatic Features");
   if (propertyName == QStringLiteral("wireframeOverlay"))
@@ -169,6 +188,27 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
 }
 
 QString RenderIntentElement::propertyDescription(const QString& propertyName) const {
+  if (propertyName == QStringLiteral("selectorRouting"))
+    return QStringLiteral(
+      "Adds one high-level selector-specific render route. The compiler turns this intent into "
+      "stencil-mask, foreground, and composite passes in the Render Graph inspector.");
+  if (propertyName == QStringLiteral("selectorRoutingKind"))
+    return QStringLiteral(
+      "Chooses how the route finds scene content. Object name must resolve to one object; tag, "
+      "layer, and material role may match a subset.");
+  if (propertyName == QStringLiteral("selectorRoutingValue"))
+    return QStringLiteral("Selector value to match, such as a tag, layer, object ID, object name, "
+                          "or material role.");
+  if (propertyName == QStringLiteral("selectorRoutingEngine"))
+    return QStringLiteral("Optional executor for the selected subset. Default inherits the frame "
+                          "engine.");
+  if (propertyName == QStringLiteral("selectorRoutingViewMode"))
+    return QStringLiteral("Optional routed view for the selected subset. Unsupported "
+                          "selector-specific composite modes are not offered.");
+  if (propertyName == QStringLiteral("selectorRoutingCameraId"))
+    return QStringLiteral("Optional scene camera for rendering only the routed subset.");
+  if (propertyName == QStringLiteral("selectorRoutingShadingProfile"))
+    return QStringLiteral("Optional shading profile for rendering only the routed subset.");
   if (propertyName == QStringLiteral("rasterizerBackend"))
     return QStringLiteral(
       "CPU is the reference software rasterizer. OpenGL is experimental: it records and probes "
@@ -232,6 +272,8 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
 }
 
 QString RenderIntentElement::propertyGroup(const QString& propertyName) const {
+  if (isSelectorRoutingProperty(propertyName))
+    return QStringLiteral("Selector Routing");
   if (isWavefrontProperty(propertyName))
     return QStringLiteral("Wavefront");
   if (isPathTracerProperty(propertyName))
@@ -276,6 +318,14 @@ QStringList RenderIntentElement::propertyChoices(const QString& propertyName) co
     }
     return choices;
   }
+  if (propertyName == QStringLiteral("selectorRoutingKind"))
+    return {QStringLiteral("tag"), QStringLiteral("layer"), QStringLiteral("object_id"),
+            QStringLiteral("object_name"), QStringLiteral("material_role")};
+  if (propertyName == QStringLiteral("selectorRoutingEngine"))
+    return {QStringLiteral("inherit"), QStringLiteral("raytracer"), QStringLiteral("wavefront"),
+            QStringLiteral("rasterizer"), QStringLiteral("wireframe")};
+  if (propertyName == QStringLiteral("selectorRoutingViewMode"))
+    return selectorRoutingViewModeChoices();
   if (propertyName == QStringLiteral("postProcessAA"))
     return {QStringLiteral("none"), QStringLiteral("fxaa"), QStringLiteral("smaa"),
             QStringLiteral("taa")};
@@ -409,6 +459,24 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
     if (choice == QStringLiteral("raster_color_write_count"))
       return QStringLiteral("Raster Color-Write Count");
   }
+  if (propertyName == QStringLiteral("selectorRoutingKind")) {
+    if (choice == QStringLiteral("object_id"))
+      return QStringLiteral("Object ID");
+    if (choice == QStringLiteral("object_name"))
+      return QStringLiteral("Object Name");
+    if (choice == QStringLiteral("material_role"))
+      return QStringLiteral("Material Role");
+  }
+  if (propertyName == QStringLiteral("selectorRoutingEngine")) {
+    if (choice == QStringLiteral("inherit"))
+      return QStringLiteral("Inherit");
+    return propertyChoiceDisplayName(QStringLiteral("defaultEngine"), choice);
+  }
+  if (propertyName == QStringLiteral("selectorRoutingViewMode")) {
+    if (choice == QStringLiteral("inherit"))
+      return QStringLiteral("Inherit");
+    return propertyChoiceDisplayName(QStringLiteral("viewMode"), choice);
+  }
   if (propertyName == QStringLiteral("rasterizerBackend")) {
     const auto backend =
       engine::raster::RasterBackend::fromString(choice.toStdString(), "rasterizerBackend");
@@ -451,6 +519,9 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
 
 bool RenderIntentElement::rebuildPropertyEditorAfterChange(const QString& propertyName) const {
   return propertyName == QStringLiteral("defaultEngine") ||
+         propertyName == QStringLiteral("selectorRouting") ||
+         propertyName == QStringLiteral("selectorRoutingKind") ||
+         propertyName == QStringLiteral("selectorRoutingEngine") ||
          propertyName == QStringLiteral("previewShadows") ||
          propertyName == QStringLiteral("wavefrontConvergence") ||
          propertyName == QStringLiteral("wavefrontConvergenceQuality") ||
@@ -530,6 +601,126 @@ void RenderIntentElement::setShadingProfile(const QString& profile) {
   auto value = intent();
   value.defaultShadingProfile.name =
     profile.trimmed().isEmpty() ? "default" : profile.trimmed().toStdString();
+  setIntent(value);
+}
+
+bool RenderIntentElement::selectorRouting() const {
+  return editableSelectorOverride(intent()) != nullptr;
+}
+
+void RenderIntentElement::setSelectorRouting(bool enabled) {
+  auto value = intent();
+  if (enabled) {
+    editableSelectorOverride(value, true);
+  } else {
+    std::vector<engine::graph::RenderViewOverride> wholeFrame;
+    for (const auto& viewOverride : value.viewOverrides) {
+      if (viewOverride.appliesToWholeFrame())
+        wholeFrame.push_back(viewOverride);
+    }
+    value.viewOverrides = std::move(wholeFrame);
+  }
+  setIntent(value);
+}
+
+QString RenderIntentElement::selectorRoutingKind() const {
+  const auto* viewOverride = editableSelectorOverride(intent());
+  return viewOverride ? selectorKindText(viewOverride->selector.kind) : QStringLiteral("tag");
+}
+
+void RenderIntentElement::setSelectorRoutingKind(const QString& kind) {
+  auto value = intent();
+  auto* viewOverride = editableSelectorOverride(value, true);
+  viewOverride->selector = selectorFor(kind, selectorRoutingValue());
+  setIntent(value);
+}
+
+QString RenderIntentElement::selectorRoutingValue() const {
+  const auto* viewOverride = editableSelectorOverride(intent());
+  return viewOverride ? toQString(viewOverride->selector.value) : QString();
+}
+
+void RenderIntentElement::setSelectorRoutingValue(const QString& text) {
+  auto value = intent();
+  auto* viewOverride = editableSelectorOverride(value, true);
+  viewOverride->selector = selectorFor(selectorKindText(viewOverride->selector.kind), text);
+  setIntent(value);
+}
+
+QString RenderIntentElement::selectorRoutingEngine() const {
+  const auto* viewOverride = editableSelectorOverride(intent());
+  if (!viewOverride || !viewOverride->executor)
+    return QStringLiteral("inherit");
+  return toQString(engine::graph::toString(*viewOverride->executor));
+}
+
+void RenderIntentElement::setSelectorRoutingEngine(const QString& engine) {
+  auto value = intent();
+  auto* viewOverride = editableSelectorOverride(value, true);
+  const QString normalized = normalizedText(engine);
+  if (normalized == QStringLiteral("inherit") || normalized.isEmpty()) {
+    viewOverride->executor.reset();
+  } else {
+    viewOverride->executor = executorFromText(normalized);
+  }
+  setIntent(value);
+}
+
+QString RenderIntentElement::selectorRoutingViewMode() const {
+  const auto* viewOverride = editableSelectorOverride(intent());
+  if (!viewOverride || !viewOverride->viewMode)
+    return QStringLiteral("inherit");
+  return toQString(engine::graph::toString(*viewOverride->viewMode));
+}
+
+void RenderIntentElement::setSelectorRoutingViewMode(const QString& mode) {
+  auto value = intent();
+  auto* viewOverride = editableSelectorOverride(value, true);
+  const QString normalized = normalizedText(mode);
+  if (normalized == QStringLiteral("inherit") || normalized.isEmpty()) {
+    viewOverride->viewMode.reset();
+  } else {
+    const auto viewMode = viewModeFromText(normalized);
+    if (!isUnsupportedSelectorViewMode(viewMode))
+      viewOverride->viewMode = viewMode;
+  }
+  setIntent(value);
+}
+
+QString RenderIntentElement::selectorRoutingCameraId() const {
+  const auto* viewOverride = editableSelectorOverride(intent());
+  if (!viewOverride || !viewOverride->camera || !viewOverride->camera->sceneCameraId)
+    return {};
+  return toQString(*viewOverride->camera->sceneCameraId);
+}
+
+void RenderIntentElement::setSelectorRoutingCameraId(const QString& id) {
+  auto value = intent();
+  auto* viewOverride = editableSelectorOverride(value, true);
+  if (id.trimmed().isEmpty()) {
+    viewOverride->camera.reset();
+  } else {
+    viewOverride->camera = engine::graph::RenderCameraRef{id.trimmed().toStdString(), std::nullopt};
+  }
+  setIntent(value);
+}
+
+QString RenderIntentElement::selectorRoutingShadingProfile() const {
+  const auto* viewOverride = editableSelectorOverride(intent());
+  if (!viewOverride || !viewOverride->shadingProfile)
+    return {};
+  return toQString(viewOverride->shadingProfile->name);
+}
+
+void RenderIntentElement::setSelectorRoutingShadingProfile(const QString& profile) {
+  auto value = intent();
+  auto* viewOverride = editableSelectorOverride(value, true);
+  if (profile.trimmed().isEmpty()) {
+    viewOverride->shadingProfile.reset();
+  } else {
+    viewOverride->shadingProfile = engine::graph::ShadingProfileRef{
+      profile.trimmed().toStdString(), engine::graph::ShadingProfileParameters()};
+  }
   setIntent(value);
 }
 
@@ -1025,6 +1216,74 @@ RenderIntentElement::postProcessAAFromText(const QString& text) const {
   return engine::graph::RenderPostProcessAA::None;
 }
 
+engine::graph::SceneSelector::Kind
+RenderIntentElement::selectorKindFromText(const QString& text) const {
+  const QString value = normalizedText(text);
+  if (value == QStringLiteral("layer"))
+    return engine::graph::SceneSelector::Kind::Layer;
+  if (value == QStringLiteral("object_id"))
+    return engine::graph::SceneSelector::Kind::ObjectId;
+  if (value == QStringLiteral("object_name"))
+    return engine::graph::SceneSelector::Kind::ObjectName;
+  if (value == QStringLiteral("material_role"))
+    return engine::graph::SceneSelector::Kind::MaterialRole;
+  return engine::graph::SceneSelector::Kind::Tag;
+}
+
+QString RenderIntentElement::selectorKindText(engine::graph::SceneSelector::Kind kind) const {
+  return toQString(engine::graph::toString(kind));
+}
+
+engine::graph::RenderViewOverride*
+RenderIntentElement::editableSelectorOverride(engine::graph::RenderIntent& intent,
+                                              bool create) const {
+  for (auto& viewOverride : intent.viewOverrides) {
+    if (!viewOverride.appliesToWholeFrame())
+      return &viewOverride;
+  }
+
+  if (!create)
+    return nullptr;
+
+  engine::graph::RenderViewOverride viewOverride;
+  viewOverride.selector = engine::graph::SceneSelector::tag(std::string());
+  intent.viewOverrides.push_back(std::move(viewOverride));
+  return &intent.viewOverrides.back();
+}
+
+const engine::graph::RenderViewOverride*
+RenderIntentElement::editableSelectorOverride(const engine::graph::RenderIntent& intent) const {
+  for (const auto& viewOverride : intent.viewOverrides) {
+    if (!viewOverride.appliesToWholeFrame())
+      return &viewOverride;
+  }
+  return nullptr;
+}
+
+engine::graph::SceneSelector RenderIntentElement::selectorFor(const QString& kind,
+                                                              const QString& value) const {
+  const std::string text = value.trimmed().toStdString();
+  switch (selectorKindFromText(kind)) {
+  case engine::graph::SceneSelector::Kind::Layer:
+    return engine::graph::SceneSelector::layer(text);
+  case engine::graph::SceneSelector::Kind::ObjectId:
+    return engine::graph::SceneSelector::objectId(text);
+  case engine::graph::SceneSelector::Kind::ObjectName:
+    return engine::graph::SceneSelector::objectName(text);
+  case engine::graph::SceneSelector::Kind::MaterialRole:
+    return engine::graph::SceneSelector::materialRole(text);
+  case engine::graph::SceneSelector::Kind::All:
+  case engine::graph::SceneSelector::Kind::Tag:
+    return engine::graph::SceneSelector::tag(text);
+  }
+  return engine::graph::SceneSelector::tag(text);
+}
+
+bool RenderIntentElement::isUnsupportedSelectorViewMode(
+  engine::graph::RenderViewMode viewMode) const {
+  return viewMode == engine::graph::RenderViewMode::StencilComposite;
+}
+
 bool RenderIntentElement::isRasterCounterView(engine::graph::RenderViewMode viewMode) const {
   return viewMode == engine::graph::RenderViewMode::RasterCoverageCount ||
          viewMode == engine::graph::RenderViewMode::RasterDepthTestCount ||
@@ -1115,6 +1374,10 @@ bool RenderIntentElement::isWavefrontProperty(const QString& propertyName) const
   return propertyName.startsWith(QStringLiteral("wavefront"));
 }
 
+bool RenderIntentElement::isSelectorRoutingProperty(const QString& propertyName) const {
+  return propertyName.startsWith(QStringLiteral("selectorRouting"));
+}
+
 bool RenderIntentElement::isRasterizerProperty(const QString& propertyName) const {
   return propertyName == QStringLiteral("previewShadows") ||
          propertyName.startsWith(QStringLiteral("rasterizer"));
@@ -1141,6 +1404,24 @@ bool RenderIntentElement::isPathTracerSelected() const {
   }
   return intent().defaultExecutor == engine::graph::RenderExecutorPreference::PathTracer ||
          raytracerIntegrator() == QStringLiteral("pathtracer");
+}
+
+QStringList RenderIntentElement::selectorRoutingViewModeChoices() const {
+  QStringList choices{QStringLiteral("inherit"),     QStringLiteral("default"),
+                      QStringLiteral("beauty"),      QStringLiteral("wireframe"),
+                      QStringLiteral("depth"),       QStringLiteral("stencil"),
+                      QStringLiteral("normal"),      QStringLiteral("object_id"),
+                      QStringLiteral("material_id"), QStringLiteral("world_position")};
+  const auto value = intent();
+  const auto* viewOverride = editableSelectorOverride(value);
+  const auto executor =
+    viewOverride && viewOverride->executor ? *viewOverride->executor : value.defaultExecutor;
+  if (executor == engine::graph::RenderExecutorPreference::Rasterizer) {
+    choices << QStringLiteral("raster_coverage_count") << QStringLiteral("raster_depth_test_count")
+            << QStringLiteral("raster_depth_pass_count") << QStringLiteral("raster_shade_count")
+            << QStringLiteral("raster_color_write_count");
+  }
+  return choices;
 }
 
 QStringList RenderIntentElement::raytracerSamplerChoices() const {

@@ -1,3 +1,4 @@
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "engine/graph/PostProcessPassState.h"
@@ -13,6 +14,7 @@
 
 namespace RenderGraphCompilerTest {
   using namespace engine::graph;
+  using ::testing::HasSubstr;
 
   bool hasFeature(const RenderPassNode& pass, const std::string& feature) {
     return std::find(pass.features.begin(), pass.features.end(), feature) != pass.features.end();
@@ -82,6 +84,176 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ("raster_beauty", plan.passes()[0].id);
     EXPECT_EQ(RenderExecutorKind::Rasterizer, plan.passes()[0].executor);
     EXPECT_EQ("tonemap", plan.passes()[1].id);
+  }
+
+  TEST(RenderGraphCompiler, AcceptsResolvableSelectorSpecificOverrides) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    RenderViewOverride override;
+    override.selector = SceneSelector::tag("hero");
+    override.viewMode = RenderViewMode::Wireframe;
+    intent.viewOverrides.push_back(override);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordSelectableObject("sphere-1", "Hero Sphere", {"hero"}, {});
+
+    const RenderPlan plan = compiler.compile({64, 64, 1}, intent, analysis);
+
+    ASSERT_NE(nullptr, plan.findPass("raytrace_beauty"));
+    ASSERT_NE(nullptr, plan.findPass("selector_1_stencil_aov"));
+    ASSERT_NE(nullptr, plan.findPass("selector_1_wireframe_beauty"));
+    ASSERT_NE(nullptr, plan.findPass("selector_1_composite"));
+    ASSERT_NE(nullptr, plan.findPass("tonemap"));
+    EXPECT_EQ(RenderExecutorKind::Wireframe,
+              plan.findPass("selector_1_wireframe_beauty")->executor);
+    EXPECT_EQ(SceneSelector::Kind::Tag,
+              plan.findPass("selector_1_wireframe_beauty")->sceneView.selector.kind);
+    EXPECT_EQ("hero", plan.findPass("selector_1_wireframe_beauty")->sceneView.selector.value);
+    ASSERT_EQ(3u, plan.findPass("selector_1_composite")->reads.size());
+    EXPECT_EQ("beauty_color", plan.findPass("selector_1_composite")->reads[0].resource);
+    EXPECT_EQ("selector_1_beauty_color", plan.findPass("selector_1_composite")->reads[1].resource);
+    EXPECT_EQ("selector_1_stencil_aov", plan.findPass("selector_1_composite")->reads[2].resource);
+    ASSERT_EQ(1u, plan.findPass("tonemap")->reads.size());
+    EXPECT_EQ("selector_1_composited_color", plan.findPass("tonemap")->reads.front().resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, RoutesSelectorOverridesThroughRequestedExecutorAndCamera) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.defaultCamera = RenderCameraRef{"main-camera", std::nullopt};
+
+    RenderViewOverride override;
+    override.selector = SceneSelector::objectId("diagnostic-box");
+    override.executor = RenderExecutorPreference::Wireframe;
+    override.viewMode = RenderViewMode::Beauty;
+    override.camera = RenderCameraRef{"inspection-camera", std::nullopt};
+    intent.viewOverrides.push_back(override);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordSelectableObject("diagnostic-box", "Diagnostic Box", {"debug"}, {});
+
+    const RenderPlan plan = compiler.compile({64, 64, 1}, intent, analysis);
+
+    const auto* base = plan.findPass("raster_beauty");
+    ASSERT_NE(nullptr, base);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, base->executor);
+    ASSERT_TRUE(base->sceneView.camera.has_value());
+    EXPECT_EQ("main-camera", *base->sceneView.camera->sceneCameraId);
+
+    const auto* route = plan.findPass("selector_1_wireframe_beauty");
+    ASSERT_NE(nullptr, route);
+    EXPECT_EQ(RenderExecutorKind::Wireframe, route->executor);
+    EXPECT_EQ(SceneSelector::Kind::ObjectId, route->sceneView.selector.kind);
+    EXPECT_EQ("diagnostic-box", route->sceneView.selector.value);
+    ASSERT_TRUE(route->sceneView.camera.has_value());
+    EXPECT_EQ("inspection-camera", *route->sceneView.camera->sceneCameraId);
+
+    const auto* composite = plan.findPass("selector_1_composite");
+    ASSERT_NE(nullptr, composite);
+    EXPECT_EQ("selector_1_composited_color", composite->writes.front().resource);
+    ASSERT_EQ(1u, plan.findPass("tonemap")->reads.size());
+    EXPECT_EQ("selector_1_composited_color", plan.findPass("tonemap")->reads.front().resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, CompilesSelectorSpecificAOVOverride) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+
+    RenderViewOverride override;
+    override.selector = SceneSelector::layer("debug");
+    override.viewMode = RenderViewMode::Normal;
+    intent.viewOverrides.push_back(override);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordSelectableObject("sphere-1", "Sphere", {}, {"debug"});
+
+    const RenderPlan plan = compiler.compile({64, 64, 1}, intent, analysis);
+
+    const auto* normal = plan.findPass("selector_1_normal_aov");
+    ASSERT_NE(nullptr, normal);
+    EXPECT_EQ(RenderPassKind::AOV, normal->kind);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, normal->executor);
+    EXPECT_EQ(SceneSelector::Kind::Layer, normal->sceneView.selector.kind);
+    EXPECT_EQ("debug", normal->sceneView.selector.value);
+    ASSERT_NE(nullptr, plan.findResource("selector_1_normal_aov"));
+    EXPECT_EQ(RenderResourceLifetime::Exported,
+              plan.findResource("selector_1_normal_aov")->lifetime);
+
+    ASSERT_NE(nullptr, plan.findPass("selector_1_visualize_normal_aov"));
+    ASSERT_NE(nullptr, plan.findResource("selector_1_normal_aov_color"));
+    ASSERT_NE(nullptr, plan.findPass("selector_1_composite"));
+    EXPECT_EQ("selector_1_normal_aov_color",
+              plan.findPass("selector_1_composite")->reads[1].resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, RejectsConflictingSelectorSpecificOverrides) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+
+    RenderViewOverride first;
+    first.selector = SceneSelector::tag("hero");
+    first.viewMode = RenderViewMode::Wireframe;
+    intent.viewOverrides.push_back(first);
+
+    RenderViewOverride second;
+    second.selector = SceneSelector::tag("hero");
+    second.viewMode = RenderViewMode::Depth;
+    intent.viewOverrides.push_back(second);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordSelectableObject("sphere-1", "Hero Sphere", {"hero"}, {});
+
+    try {
+      compiler.compile({64, 64, 1}, intent, analysis);
+      FAIL() << "Expected conflicting selector diagnostic";
+    } catch (const std::runtime_error& e) {
+      EXPECT_THAT(e.what(), HasSubstr("conflicting selector-specific render intent"));
+      EXPECT_THAT(e.what(), HasSubstr("tag: hero"));
+    }
+  }
+
+  TEST(RenderGraphCompiler, RejectsMissingSelectorSpecificOverrides) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    RenderViewOverride override;
+    override.selector = SceneSelector::tag("missing");
+    intent.viewOverrides.push_back(override);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordSelectableObject("sphere-1", "Hero Sphere", {"hero"}, {});
+
+    try {
+      compiler.compile({64, 64, 1}, intent, analysis);
+      FAIL() << "Expected missing selector diagnostic";
+    } catch (const std::runtime_error& e) {
+      EXPECT_THAT(e.what(), HasSubstr("cannot resolve scene selector tag: missing"));
+      EXPECT_THAT(e.what(), HasSubstr("no visible scene subset matches it"));
+    }
+  }
+
+  TEST(RenderGraphCompiler, RejectsAmbiguousSelectorSpecificOverrides) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    RenderViewOverride override;
+    override.selector = SceneSelector::objectName("Duplicate");
+    intent.viewOverrides.push_back(override);
+
+    RenderSceneAnalysis analysis;
+    analysis.recordSelectableObject("sphere-1", "Duplicate", {}, {});
+    analysis.recordSelectableObject("sphere-2", "Duplicate", {}, {});
+
+    try {
+      compiler.compile({64, 64, 1}, intent, analysis);
+      FAIL() << "Expected ambiguous selector diagnostic";
+    } catch (const std::runtime_error& e) {
+      EXPECT_THAT(e.what(), HasSubstr("cannot resolve scene selector object_name: Duplicate"));
+      EXPECT_THAT(e.what(), HasSubstr("selector is ambiguous"));
+    }
   }
 
   TEST(RenderGraphCompiler, UsesWavefrontExecutorPreference) {
@@ -750,7 +922,7 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
-  TEST(RenderGraphCompiler, RejectsSelectorSpecificOverridesUntilScenePartitioningExists) {
+  TEST(RenderGraphCompiler, PreservesUnknownSceneFallbackForSelectorSpecificOverrides) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
 
@@ -759,14 +931,9 @@ namespace RenderGraphCompilerTest {
     override.executor = RenderExecutorPreference::Wireframe;
     intent.viewOverrides.push_back(override);
 
-    try {
-      compiler.compile({64, 32, 1}, intent);
-      FAIL() << "Expected selector-specific graph compilation rejection";
-    } catch (const std::runtime_error& error) {
-      const std::string message = error.what();
-      EXPECT_NE(std::string::npos, message.find("selector-specific render intent"));
-      EXPECT_NE(std::string::npos, message.find("object_name: Monitor"));
-    }
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    EXPECT_TRUE(plan.validate().valid());
   }
 
   TEST(RenderGraphCompiler, CompilesSubviewIntentAsPrefixedRenderToTextureBranch) {

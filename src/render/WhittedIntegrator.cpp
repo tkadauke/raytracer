@@ -258,17 +258,13 @@ namespace render {
     const Scene& scene, std::vector<QueuedRay>& current, std::size_t firstQueuedIndex,
     std::size_t laneCount, std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
-    if (laneCount > Ray4::lanes) {
-      throw std::logic_error("Ray4 queued-ray packet lane count exceeds packet width");
-    }
+    const std::size_t activeLaneCount = std::min(laneCount, Ray4::lanes);
     std::array<Rayd, Ray4::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined};
-    const std::size_t packetLaneCount = std::min(laneCount, Ray4::lanes);
     std::optional<std::array<std::map<std::string, std::uint64_t>, Ray4::lanes>>
       packetFallbacksBefore;
     PrimitivePacketState4 states{};
     assert(laneCount <= Ray4::lanes);
-    const std::size_t activeLaneCount = std::min(laneCount, Ray4::lanes);
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
@@ -278,7 +274,7 @@ namespace render {
         depthMetrics.frontierPacketRays += activeLaneCount;
         packetFallbacksBefore.emplace();
       }
-      const auto prepareLane = [&](std::size_t lane) {
+      for (std::size_t lane = 0; lane < Ray4::lanes && lane < laneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
         queued.state.recurseIn();
         if (depthMetrics.trackFrontierMetrics) {
@@ -286,18 +282,6 @@ namespace render {
         }
         rays[lane] = queued.ray;
         states[lane] = &queued.state;
-      };
-      if (packetLaneCount > 0) {
-        prepareLane(0);
-      }
-      if (packetLaneCount > 1) {
-        prepareLane(1);
-      }
-      if (packetLaneCount > 2) {
-        prepareLane(2);
-      }
-      if (packetLaneCount > 3) {
-        prepareLane(3);
       }
     }
 
@@ -309,7 +293,7 @@ namespace render {
 
     if (isCancelled()) {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-      for (std::size_t lane = 0; lane != packetLaneCount; ++lane) {
+      for (std::size_t lane = 0; lane != activeLaneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
         result[queued.sampleIndex] += queued.weight * scene.background();
         queued.state.recurseOut();
@@ -318,7 +302,7 @@ namespace render {
     }
 
     const auto packetNeedsRefinement = [&] {
-      for (std::size_t lane = 0; lane != packetLaneCount; ++lane) {
+      for (std::size_t lane = 0; lane != activeLaneCount; ++lane) {
         const Primitive* hitPrimitive = packetHits.primitive(lane);
         const auto hitMaterial = hitPrimitive ? hitPrimitive->material() : nullptr;
         if (hitMaterial && hitMaterial->requiresWhittedPacketHitRefinement() &&
@@ -330,7 +314,7 @@ namespace render {
     };
     if (!packetNeedsRefinement()) {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-      for (std::size_t lane = 0; lane != packetLaneCount; ++lane) {
+      for (std::size_t lane = 0; lane != activeLaneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
         if (depthMetrics.trackFrontierMetrics) {
           depthMetrics.recordPacketScalarFallbacks(queued.state, (*packetFallbacksBefore)[lane]);
@@ -349,7 +333,7 @@ namespace render {
       return;
     }
 
-    for (std::size_t lane = 0; lane != packetLaneCount; ++lane) {
+    for (std::size_t lane = 0; lane != activeLaneCount; ++lane) {
       auto& queued = current[firstQueuedIndex + lane];
       if (depthMetrics.trackFrontierMetrics) {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
@@ -405,18 +389,14 @@ namespace render {
     const Scene& scene, std::vector<QueuedRay>& current, std::size_t firstQueuedIndex,
     std::size_t laneCount, std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
-    if (laneCount > Ray8::lanes) {
-      throw std::logic_error("Ray8 queued-ray packet lane count exceeds packet width");
-    }
+    const std::size_t activeLaneCount = std::min(laneCount, Ray8::lanes);
     std::array<Rayd, Ray8::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined};
-    const std::size_t packetLaneCount = std::min(laneCount, Ray8::lanes);
     std::optional<std::array<std::map<std::string, std::uint64_t>, Ray8::lanes>>
       packetFallbacksBefore;
     PrimitivePacketState8 states{};
     assert(laneCount <= Ray8::lanes);
-    const std::size_t activeLaneCount = std::min(laneCount, Ray8::lanes);
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
@@ -426,7 +406,7 @@ namespace render {
         depthMetrics.frontierPacketRays += activeLaneCount;
         packetFallbacksBefore.emplace();
       }
-      const auto prepareLane = [&](std::size_t lane) {
+      for (std::size_t lane = 0; lane < Ray8::lanes && lane < laneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
         queued.state.recurseIn();
         if (depthMetrics.trackFrontierMetrics) {
@@ -434,30 +414,6 @@ namespace render {
         }
         rays[lane] = queued.ray;
         states[lane] = &queued.state;
-      };
-      if (packetLaneCount > 0) {
-        prepareLane(0);
-      }
-      if (packetLaneCount > 1) {
-        prepareLane(1);
-      }
-      if (packetLaneCount > 2) {
-        prepareLane(2);
-      }
-      if (packetLaneCount > 3) {
-        prepareLane(3);
-      }
-      if (packetLaneCount > 4) {
-        prepareLane(4);
-      }
-      if (packetLaneCount > 5) {
-        prepareLane(5);
-      }
-      if (packetLaneCount > 6) {
-        prepareLane(6);
-      }
-      if (packetLaneCount > 7) {
-        prepareLane(7);
       }
     }
 
@@ -469,7 +425,7 @@ namespace render {
 
     if (isCancelled()) {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-      for (std::size_t lane = 0; lane != packetLaneCount; ++lane) {
+      for (std::size_t lane = 0; lane != activeLaneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
         result[queued.sampleIndex] += queued.weight * scene.background();
         queued.state.recurseOut();
@@ -478,7 +434,7 @@ namespace render {
     }
 
     const auto packetNeedsRefinement = [&] {
-      for (std::size_t lane = 0; lane != packetLaneCount; ++lane) {
+      for (std::size_t lane = 0; lane != activeLaneCount; ++lane) {
         const Primitive* hitPrimitive = packetHits.primitive(lane);
         const auto hitMaterial = hitPrimitive ? hitPrimitive->material() : nullptr;
         if (hitMaterial && hitMaterial->requiresWhittedPacketHitRefinement() &&
@@ -490,7 +446,7 @@ namespace render {
     };
     if (!packetNeedsRefinement()) {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-      for (std::size_t lane = 0; lane != packetLaneCount; ++lane) {
+      for (std::size_t lane = 0; lane != activeLaneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
         if (depthMetrics.trackFrontierMetrics) {
           depthMetrics.recordPacketScalarFallbacks(queued.state, (*packetFallbacksBefore)[lane]);
@@ -509,7 +465,7 @@ namespace render {
       return;
     }
 
-    for (std::size_t lane = 0; lane != packetLaneCount; ++lane) {
+    for (std::size_t lane = 0; lane != activeLaneCount; ++lane) {
       auto& queued = current[firstQueuedIndex + lane];
       if (depthMetrics.trackFrontierMetrics) {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds

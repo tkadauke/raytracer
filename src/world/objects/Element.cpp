@@ -18,6 +18,7 @@
 #include <QUuid>
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 
 Q_DECLARE_METATYPE(Vector3d);
 Q_DECLARE_METATYPE(Angled);
@@ -143,6 +144,47 @@ int Element::row() const {
     return parent()->childElements().indexOf(const_cast<Element*>(this));
 
   return -1;
+}
+
+namespace {
+  void appendMetadataString(std::vector<QString>& result, const QJsonValue& value) {
+    if (value.isString()) {
+      const QString text = value.toString().trimmed();
+      if (!text.isEmpty()) {
+        result.push_back(text);
+      }
+    }
+  }
+
+  void appendMetadataStringArray(std::vector<QString>& result, const QJsonValue& value) {
+    if (value.isArray()) {
+      for (const auto& entry : value.toArray()) {
+        appendMetadataString(result, entry);
+      }
+    } else {
+      appendMetadataString(result, value);
+    }
+  }
+}
+
+std::vector<QString> Element::renderGraphTags() const {
+  std::vector<QString> result;
+  appendMetadataStringArray(result, metadataValue(QStringLiteral("tags")));
+  appendMetadataString(result, metadataValue(QStringLiteral("tag")));
+  return result;
+}
+
+std::vector<QString> Element::renderGraphLayers() const {
+  std::vector<QString> result;
+  appendMetadataStringArray(result, metadataValue(QStringLiteral("layers")));
+  appendMetadataString(result, metadataValue(QStringLiteral("layer")));
+  appendMetadataString(result, metadataValue(QStringLiteral("layerName")));
+
+  const auto layerIndex = metadataValue(QStringLiteral("layerIndex"));
+  if (layerIndex.isDouble()) {
+    result.push_back(QString::number(layerIndex.toInt()));
+  }
+  return result;
 }
 
 void Element::unlink(Element* root) {

@@ -166,6 +166,13 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->propertyChoices("wavefrontDenoiser").contains("bilateral"));
     EXPECT_FALSE(intent->propertyChoices("viewMode").contains("sample_stddev"));
     EXPECT_FALSE(intent->propertyChoices("viewMode").contains("sample_stddev_color"));
+    EXPECT_TRUE(intent->propertyChoices("selectorRoutingKind").contains("tag"));
+    EXPECT_TRUE(intent->propertyChoices("selectorRoutingKind").contains("object_name"));
+    EXPECT_TRUE(intent->propertyChoices("selectorRoutingEngine").contains("inherit"));
+    EXPECT_TRUE(intent->propertyChoices("selectorRoutingEngine").contains("wireframe"));
+    EXPECT_TRUE(intent->propertyChoices("selectorRoutingViewMode").contains("inherit"));
+    EXPECT_TRUE(intent->propertyChoices("selectorRoutingViewMode").contains("normal"));
+    EXPECT_FALSE(intent->propertyChoices("selectorRoutingViewMode").contains("stencil_composite"));
     EXPECT_FALSE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
     intent->setDefaultEngine("pathtracer");
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("sample_stddev"));
@@ -183,6 +190,12 @@ namespace RenderIntentElementTest {
     EXPECT_EQ(QString("OpenGL"), intent->propertyChoiceDisplayName("rasterizerBackend", "opengl"));
     EXPECT_EQ(QString("Visibility Culling"),
               intent->propertyDisplayName("rasterizerVisibilityCulling"));
+    EXPECT_EQ(QString("Selector Routing"), intent->propertyDisplayName("selectorRouting"));
+    EXPECT_EQ(QString("Route View Mode"), intent->propertyDisplayName("selectorRoutingViewMode"));
+    EXPECT_EQ(QString("Object Name"),
+              intent->propertyChoiceDisplayName("selectorRoutingKind", "object_name"));
+    EXPECT_EQ(QString("Inherit"),
+              intent->propertyChoiceDisplayName("selectorRoutingEngine", "inherit"));
     EXPECT_EQ(QString("Depth Prepass"), intent->propertyDisplayName("rasterizerDepthPrepass"));
     EXPECT_EQ(QString("Tessellation Quality"),
               intent->propertyDisplayName("rasterizerTessellationQuality"));
@@ -218,6 +231,61 @@ namespace RenderIntentElementTest {
               intent->propertyChoiceDisplayName("rasterizerVisibilityCulling", "auto"));
     EXPECT_EQ(QString("Auto"), intent->propertyChoiceDisplayName("rasterizerDepthPrepass", "auto"));
     EXPECT_EQ((QList<int>{1, 2, 4, 8}), intent->propertyIntChoices("rasterizerMSAASamples"));
+  }
+
+  TEST(RenderIntentElement, EditsSelectorRoutingIntent) {
+    Scene scene;
+    auto* intent = renderIntentElement(scene);
+    ASSERT_NE(nullptr, intent);
+
+    EXPECT_TRUE(intent->isPropertyVisible("selectorRouting"));
+    EXPECT_FALSE(intent->isPropertyVisible("selectorRoutingValue"));
+
+    intent->setSelectorRouting(true);
+    intent->setSelectorRoutingKind("tag");
+    intent->setSelectorRoutingValue("hero");
+    intent->setSelectorRoutingEngine("wireframe");
+    intent->setSelectorRoutingViewMode("wireframe");
+    intent->setSelectorRoutingCameraId("detail-camera");
+    intent->setSelectorRoutingShadingProfile("xray");
+
+    ASSERT_TRUE(scene.hasRenderIntent());
+    ASSERT_EQ(1u, scene.renderIntent().viewOverrides.size());
+    const auto& route = scene.renderIntent().viewOverrides.front();
+    EXPECT_EQ(engine::graph::SceneSelector::Kind::Tag, route.selector.kind);
+    EXPECT_EQ("hero", route.selector.value);
+    ASSERT_TRUE(route.executor.has_value());
+    EXPECT_EQ(engine::graph::RenderExecutorPreference::Wireframe, *route.executor);
+    ASSERT_TRUE(route.viewMode.has_value());
+    EXPECT_EQ(engine::graph::RenderViewMode::Wireframe, *route.viewMode);
+    ASSERT_TRUE(route.camera.has_value());
+    ASSERT_TRUE(route.camera->sceneCameraId.has_value());
+    EXPECT_EQ("detail-camera", *route.camera->sceneCameraId);
+    ASSERT_TRUE(route.shadingProfile.has_value());
+    EXPECT_EQ("xray", route.shadingProfile->name);
+
+    EXPECT_TRUE(intent->isPropertyVisible("selectorRoutingValue"));
+    intent->setSelectorRouting(false);
+    EXPECT_TRUE(scene.renderIntent().viewOverrides.empty());
+  }
+
+  TEST(RenderIntentElement, RejectsUnsupportedSelectorRoutingViewModes) {
+    Scene scene;
+    auto* intent = renderIntentElement(scene);
+    ASSERT_NE(nullptr, intent);
+
+    intent->setSelectorRouting(true);
+    intent->setSelectorRoutingValue("hero");
+    intent->setSelectorRoutingViewMode("normal");
+    ASSERT_TRUE(scene.renderIntent().viewOverrides.front().viewMode.has_value());
+    EXPECT_EQ(engine::graph::RenderViewMode::Normal,
+              *scene.renderIntent().viewOverrides.front().viewMode);
+
+    intent->setSelectorRoutingViewMode("stencil_composite");
+
+    ASSERT_TRUE(scene.renderIntent().viewOverrides.front().viewMode.has_value());
+    EXPECT_EQ(engine::graph::RenderViewMode::Normal,
+              *scene.renderIntent().viewOverrides.front().viewMode);
   }
 
   TEST(RenderIntentElement, ExposesNumericRangesForEditorControls) {
