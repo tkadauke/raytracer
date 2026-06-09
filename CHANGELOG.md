@@ -47,6 +47,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   side surfaces now compile into triangle payloads for the prepared wavefront
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
+- **Wavefront unsupported-scene fallback diagnostics.** Explicit GPU-requested
+  wavefront intersection scenes that contain unsupported primitives now report
+  compiled primitive/unsupported counts without packing throwaway upload
+  buffers, so unsupported fallback diagnostics show zero scene-upload bytes when
+  no prepared GPU scene is retained. — GPT-5
 - **Wavefront runtime any-hit benchmark baseline.** The wavefront intersection
   backend benchmarks now include runtime CPU any-hit rows alongside packed
   any-hit rows, giving direct-light visibility queries the same CPU/packed

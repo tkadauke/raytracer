@@ -225,6 +225,27 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ("runtime_scene", anyTiming.executionPath);
   }
 
+  TEST(WavefrontIntersectionBackend, CompiledSceneDiagnosticsDoNotInventUploadBuffers) {
+    auto torus = std::make_shared<Torus>(2.0, 0.5);
+    torus->setName("exact torus");
+    Scene scene;
+    scene.add(torus);
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const WavefrontIntersectionSceneDiagnostics diagnostics =
+      WavefrontIntersectionSceneDiagnostics::fromCompiledScene(compiled);
+
+    EXPECT_TRUE(diagnostics.compiled);
+    EXPECT_EQ(1u, diagnostics.bvhNodes);
+    EXPECT_EQ(1u, diagnostics.primitives);
+    EXPECT_EQ(1u, diagnostics.unsupportedPrimitives);
+    EXPECT_EQ(0u, diagnostics.uploadBytes);
+    EXPECT_FALSE(diagnostics.triangleClosestHitKernelEligible);
+    EXPECT_FALSE(diagnostics.basicHitKernelEligible);
+    EXPECT_FALSE(diagnostics.packedClosestHitKernelEligible);
+    EXPECT_FALSE(diagnostics.packedAnyHitKernelEligible);
+  }
+
   TEST(WavefrontIntersectionBackend, MetalStubReportsUnavailableCpuFallback) {
     const auto& backend = MetalWavefrontIntersectionBackend::instance();
 
@@ -1486,7 +1507,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_TRUE(diagnostics.compiled);
     EXPECT_EQ(1u, diagnostics.primitives);
     EXPECT_EQ(1u, diagnostics.unsupportedPrimitives);
-    EXPECT_GT(diagnostics.uploadBytes, 0u);
+    EXPECT_EQ(0u, diagnostics.uploadBytes);
     EXPECT_FALSE(diagnostics.triangleClosestHitKernelEligible);
     EXPECT_FALSE(diagnostics.basicHitKernelEligible);
     EXPECT_FALSE(diagnostics.packedClosestHitKernelEligible);

@@ -402,6 +402,10 @@ Progress:
   counts. rendercli compact summaries and the Modeler render graph pass tooltip
   surface the same counts beside the backend fallback reason, making the future
   upload workload visible before kernels exist.
+- Unsupported scene fallbacks now keep those compiled primitive and unsupported
+  counts without packing throwaway GPU upload buffers. Their diagnostics report
+  zero scene-upload bytes unless a supported prepared backend retained packed
+  buffers.
 - Supported scene-created GPU stubs now answer closest-hit, packet closest-hit,
   and any-hit queries from their retained compiled scene through the CPU parity
   intersector. They still report a CPU fallback because no Metal/Vulkan
@@ -708,7 +712,8 @@ Progress:
 - Wavefront intersection metrics now estimate the query transfer footprint for
   the packed GPU ABI: ray upload bytes, closest-hit readback bytes, any-hit
   readback bytes, and their per-render query-transfer total. CPU and unsupported
-  runtime-scene fallback paths report zero query-transfer bytes; prepared
+  runtime-scene fallback paths report zero query-transfer bytes, and unsupported
+  compiled-scene fallbacks report zero scene-upload bytes; prepared
   GPU-request stubs report the bytes their retained packed buffers would submit
   to a real Metal/Vulkan kernel. This gives `auto` selection and performance
   gates a visible upload/readback cost signal before real kernels are enabled.

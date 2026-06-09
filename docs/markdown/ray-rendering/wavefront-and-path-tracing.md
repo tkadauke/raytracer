@@ -351,7 +351,9 @@ availability. The same metrics also estimate the query transfer footprint that
 a real GPU backend would pay:
 ray upload bytes plus closest-hit and any-hit readback bytes. CPU and
 unsupported runtime-scene fallbacks report zero for those query-transfer fields;
-prepared GPU-request stubs report the packed ABI byte counts so `auto`
+unsupported compiled-scene fallbacks can still report primitive and unsupported
+leaf counts, but report zero scene-upload bytes because no packed upload buffers
+are retained. Prepared GPU-request stubs report the packed ABI byte counts so `auto`
 selection can compare expected ray work against scene upload and query
 upload/readback cost. The policy scales the effective GPU threshold upward for
 larger prepared scene uploads, and metrics report the computed

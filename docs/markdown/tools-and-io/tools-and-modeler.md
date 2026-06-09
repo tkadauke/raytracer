@@ -549,7 +549,8 @@ keeps the full runtime `Scene` path. The render graph pass tooltip shows the act
 execution path plus
 compiled-scene primitive, BVH, and unsupported-leaf counts, and it marks when
 the packed closest-hit or packed any-hit path is eligible for the compiled
-scene.
+scene. Unsupported compiled fallbacks report zero scene-upload bytes because the
+backend did not retain packed GPU upload buffers.
 The final render dialog intentionally keeps its engine list user-facing:
 Raytracer, Path Tracer, Rasterizer, and Wireframe. Wavefront path tracing is
 selected as the Path Tracer schedule rather than as a second top-level engine,

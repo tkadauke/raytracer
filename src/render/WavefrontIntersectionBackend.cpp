@@ -375,6 +375,15 @@ namespace render {
 
       const auto compiled = std::make_shared<const CompiledIntersectionScene>(
         IntersectionSceneCompiler().compile(scene));
+      if (!compiled->fullySupported()) {
+        const WavefrontIntersectionSceneDiagnostics diagnostics =
+          WavefrontIntersectionSceneDiagnostics::fromCompiledScene(*compiled);
+        const WavefrontIntersectionBackendAutoSelectionDecision decision =
+          policy.decide(true, true, diagnostics, context);
+        return makeDelegatingBackend("auto", "available", decision.reason, diagnostics,
+                                     gpuUnavailableBackend().platformName());
+      }
+
       const auto buffers = GpuIntersectionScenePacker().packScene(*compiled);
       const WavefrontIntersectionSceneDiagnostics diagnostics =
         WavefrontIntersectionSceneDiagnostics::fromCompiledSceneAndUploadBuffers(*compiled,
@@ -514,12 +523,6 @@ namespace render {
 
   WavefrontIntersectionSceneDiagnostics
   WavefrontIntersectionSceneDiagnostics::fromCompiledScene(const CompiledIntersectionScene& scene) {
-    return fromCompiledSceneAndUploadBuffers(scene, GpuIntersectionScenePacker().packScene(scene));
-  }
-
-  WavefrontIntersectionSceneDiagnostics
-  WavefrontIntersectionSceneDiagnostics::fromCompiledSceneAndUploadBuffers(
-    const CompiledIntersectionScene& scene, const GpuIntersectionSceneBuffers& buffers) {
     WavefrontIntersectionSceneDiagnostics diagnostics;
     diagnostics.compiled = true;
     diagnostics.bvhNodes = scene.bvh().size();
@@ -532,6 +535,13 @@ namespace render {
     diagnostics.openCylinders = scene.openCylinders().size();
     diagnostics.transforms = scene.transforms().size();
     diagnostics.unsupportedPrimitives = scene.unsupportedPrimitives().size();
+    return diagnostics;
+  }
+
+  WavefrontIntersectionSceneDiagnostics
+  WavefrontIntersectionSceneDiagnostics::fromCompiledSceneAndUploadBuffers(
+    const CompiledIntersectionScene& scene, const GpuIntersectionSceneBuffers& buffers) {
+    WavefrontIntersectionSceneDiagnostics diagnostics = fromCompiledScene(scene);
     diagnostics.uploadBytes = buffers.uploadByteCount();
     diagnostics.triangleClosestHitKernelEligible = buffers.triangleClosestHitKernelEligible();
     diagnostics.basicHitKernelEligible = buffers.basicHitKernelEligible();
