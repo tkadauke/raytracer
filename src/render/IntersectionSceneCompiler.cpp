@@ -476,6 +476,10 @@ bool CompiledIntersectionSceneIntersector::intersectAny(const CompiledIntersecti
 std::optional<CompiledIntersectionHit> CompiledIntersectionSceneIntersector::intersectPrimitive(
   const CompiledIntersectionScene& scene, const IntersectionPrimitiveRecord& primitive,
   const Rayd& ray) const {
+  if (primitive.payloadCount != 1) {
+    return std::nullopt;
+  }
+
   switch (primitive.kind) {
   case IntersectionPrimitiveKind::Triangle:
     return intersectTriangle(scene, primitive, ray);

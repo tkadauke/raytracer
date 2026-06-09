@@ -388,6 +388,20 @@ namespace IntersectionSceneCompilerTest {
     expectCompiledClosestHitMatchesRuntime(scene, ray);
   }
 
+  TEST(CompiledIntersectionSceneIntersector, RejectsMalformedPrimitivePayloadCount) {
+    Scene scene;
+    scene.add(
+      std::make_shared<Triangle>(Vector3d(-1, -1, 3), Vector3d(1, -1, 3), Vector3d(0, 1, 3)));
+    CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    ASSERT_EQ(1u, compiled.primitives().size());
+    const_cast<std::vector<IntersectionPrimitiveRecord>&>(compiled.primitives())[0].payloadCount =
+      2;
+    const Rayd ray(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
+
+    EXPECT_FALSE(CompiledIntersectionSceneIntersector().intersectClosest(compiled, ray).hit);
+    EXPECT_FALSE(CompiledIntersectionSceneIntersector().intersectAny(compiled, ray, 10.0));
+  }
+
   TEST(CompiledIntersectionSceneIntersector, RejectsCoplanarParallelRectangleLikeRuntimeScene) {
     Scene scene;
     scene.add(
