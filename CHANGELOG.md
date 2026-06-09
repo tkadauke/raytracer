@@ -635,6 +635,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   dependency-ready CPU-safe passes concurrently while preserving serial and
   limited executor caps, and skips queued dependents when cancellation or pass
   failures stop graph execution. — GPT-5
+- **Path-tracing direct-light visibility batching.** Wavefront path tracing now
+  groups direct-light any-hit shadow rays across the active depth frontier when
+  the selected intersection backend prefers batched visibility, instead of
+  issuing one visibility batch per shaded hit. — GPT-5
 - **Vulkan wavefront prepared scenes.** Vulkan-enabled wavefront intersection
   backends now prepare device-side scene buffers and compute pipelines once per
   supported scene and reuse growable per-query ray/result/count buffers, so

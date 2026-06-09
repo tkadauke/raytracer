@@ -1576,6 +1576,46 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(3u, metrics.directLightContributingSamples);
   }
 
+  TEST(PathTracingIntegrator, BatchedDirectLightingGroupsVisibilityAcrossDepthFrontier) {
+    auto scene = std::make_unique<Scene>(Colord::black());
+    scene->setAmbient(Colord::black());
+    scene->setBackground(Colord::black());
+
+    auto material = std::make_shared<UnitDirectMaterial>();
+    auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
+    plane->setMaterial(material);
+    scene->add(plane);
+    scene->addLight(std::make_shared<FiniteDistanceLight>(6.0));
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{
+      primaryRay(), 0.0, std::make_unique<FixedLightSampleStream>(Vector2d(0.25, 0.25))});
+    samples.push_back(IntegratorRaySample{
+      primaryRay(), 0.0, std::make_unique<FixedLightSampleStream>(Vector2d(0.75, 0.75))});
+
+    AnyHitBatchPreferringCountingIntersectionBackend backend;
+    IntegratorBatchSettings settings;
+    settings.intersectionBackend = &backend;
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> pixels =
+      integrator.radianceBatch(*scene, samples, caster, &metrics, settings);
+
+    ASSERT_EQ(2u, pixels.size());
+    EXPECT_EQ(2, backend.anyQueries);
+    EXPECT_EQ(1, backend.anyBatchQueries);
+    EXPECT_EQ((std::vector<std::size_t>{2u}), backend.anyBatchSizes);
+    EXPECT_EQ((std::vector<double>{6.0, 6.0}), backend.anyMaxDistances);
+    EXPECT_EQ(1u, metrics.anyHitQueries);
+    EXPECT_EQ(2u, metrics.anyHitRaysSubmitted);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.directLightAnyHitBatchRaysPerDepth);
+    EXPECT_EQ(2u, metrics.directLightSamples);
+    EXPECT_EQ(2u, metrics.directLightContributingSamples);
+  }
+
   TEST(PathTracingIntegrator, BatchedRadianceUsesPartialRay8FrontierForFiveActivePaths) {
     auto scene = std::make_unique<PacketCountingScene>();
     scene->setAmbient(Colord::black());

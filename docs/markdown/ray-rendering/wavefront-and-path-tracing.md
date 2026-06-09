@@ -248,9 +248,12 @@ execution path: runtime `Scene` traversal, compiled CPU parity traversal,
 packed-buffer CPU traversal, or a Metal kernel. Batched path-tracing
 direct-light visibility goes through the same backend seam via
 `intersectAny(...)`, so the graph and metrics can separate closest-hit and
-any-hit ray counts for CPU and GPU-resident query families. Metrics also keep
-per-depth direct-light any-hit batch counters, so one visibility batch with many
-shadow rays is distinguishable from many scalar shadow queries.
+any-hit ray counts for CPU and GPU-resident query families. When the selected
+backend prefers batched visibility, the path tracer groups all valid
+direct-light shadow rays for the active depth frontier into one any-hit backend
+query instead of submitting one visibility batch per shaded hit. Metrics also
+keep per-depth direct-light any-hit batch counters, so one visibility batch with
+many shadow rays is distinguishable from many scalar shadow queries.
 Prepared GPU-style backends can also opt into arbitrary closest-hit frontier
 batches, letting a path-tracing bounce submit one group of camera/path rays
 instead of slicing that frontier into Ray4/Ray8 packets before it reaches the
@@ -286,10 +289,11 @@ must return: object id, material id, distance, point, normal, UV where the
 runtime primitive supplies one, and barycentric coordinates for triangles. For
 any-hit visibility, it short-circuits on the first supported payload hit inside
 the same finite light-distance bound used by `Scene::occludes(...)`. When path
-tracing requests more than one direct-light sample at a surface, those shadow
-rays are submitted through one batched any-hit backend call so prepared
-Metal/Vulkan backends can treat direct-light visibility as a group instead of
-as unrelated scalar queries. The
+tracing shades a depth frontier, all valid direct-light shadow rays in that
+frontier are submitted through one batched any-hit backend call when the backend
+asks for grouped visibility. Prepared Metal/Vulkan backends can then treat
+direct-light visibility as a frontier query family instead of unrelated scalar
+queries. The
 harness currently covers triangles, mesh triangles, box tessellations, sphere,
 plane, rectangle, disk, and static instance transforms by tracing in
 payload-local space and transforming hit data back to world space. It is not a

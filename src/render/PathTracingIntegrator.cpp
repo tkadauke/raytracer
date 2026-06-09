@@ -126,6 +126,12 @@ namespace render {
     bool delta{false};
   };
 
+  struct PathTracingIntegrator::DirectLightingSelection {
+    std::size_t hitIndex{0};
+    DirectLightingCandidate candidate;
+    double selectionPdf{1.0};
+  };
+
   struct PathTracingIntegrator::DirectLightingSample {
     Colord contribution{Colord::black()};
     bool occluded{false};
@@ -332,6 +338,116 @@ namespace render {
       contribution += sample.contribution / selectedCandidates[index].selectionPdf;
     }
     return contribution / static_cast<double>(m_directLightSamples);
+  }
+
+  std::vector<Colord> PathTracingIntegrator::sampleDirectLightingBatch(
+    const Scene& scene, const LightSampler& lightSampler, const std::vector<BatchHit>& activeHits,
+    std::vector<BatchPath>& paths, int bounce,
+    const WavefrontIntersectionBackend& intersectionBackend,
+    IntegratorBatchMetrics* metrics) const {
+    std::vector<Colord> contributions(activeHits.size(), Colord::black());
+    if (activeHits.empty()) {
+      return contributions;
+    }
+
+    std::vector<DirectLightingSelection> selections;
+    selections.reserve(activeHits.size() * static_cast<std::size_t>(m_directLightSamples));
+    std::vector<WavefrontAnyHitQuery> shadowQueries;
+    shadowQueries.reserve(activeHits.size() * static_cast<std::size_t>(m_directLightSamples));
+
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
+      for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
+        const BatchHit& hit = activeHits[hitIndex];
+        BatchPath& path = paths[hit.pathIndex];
+        const auto material = hit.material ? hit.material : hit.primitive->material();
+        if (!material) {
+          continue;
+        }
+        const PathMaterialTransport& transport = material->pathTransport();
+        if (!transport.supportsPathTracing()) {
+          continue;
+        }
+
+        for (int sampleIndex = 0; sampleIndex != m_directLightSamples; ++sampleIndex) {
+          const LightSampler::Selection selection =
+            lightSampler.select(lightSelectionSample(path.state, bounce, sampleIndex));
+          if (!selection) {
+            continue;
+          }
+
+          DirectLightingCandidate candidate = directLightingCandidate(
+            *selection.light, hit.hitPoint,
+            lightSample(path.state, bounce, selection.lightIndex, sampleIndex));
+          if (!candidate.valid) {
+            continue;
+          }
+
+          shadowQueries.push_back(
+            WavefrontAnyHitQuery{candidate.shadowRay, candidate.shadowDistance, &path.state});
+          selections.push_back(DirectLightingSelection{hitIndex, candidate, selection.pdf});
+        }
+      }
+    }
+
+    if (shadowQueries.empty()) {
+      return contributions;
+    }
+
+    std::vector<bool> occluded;
+    {
+      WavefrontIntersectionQueryTiming intersectionTiming;
+      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      if (intersectionBackend.prefersAnyHitBatch(shadowQueries.size())) {
+        occluded = intersectionBackend.intersectAnyBatch(scene, shadowQueries,
+                                                         metrics ? &intersectionTiming : nullptr);
+        if (metrics) {
+          metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, bounce)),
+                                                /*batchChunks=*/1, shadowQueries.size());
+          metrics->recordAnyHitQuery(intersectionBackend, shadowQueries.size(), intersectionTiming);
+        }
+      } else {
+        occluded.reserve(shadowQueries.size());
+        for (const WavefrontAnyHitQuery& query : shadowQueries) {
+          WavefrontIntersectionQueryTiming queryTiming;
+          State scratchState;
+          State& queryState = query.state ? *query.state : scratchState;
+          occluded.push_back(intersectionBackend.intersectAny(
+            scene, query.ray, query.maxDistance, queryState, metrics ? &queryTiming : nullptr));
+          if (metrics) {
+            metrics->recordAnyHitQuery(intersectionBackend, 1, queryTiming);
+          }
+        }
+      }
+    }
+
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
+      for (std::size_t selectionIndex = 0; selectionIndex != selections.size(); ++selectionIndex) {
+        const DirectLightingSelection& selection = selections[selectionIndex];
+        const BatchHit& hit = activeHits[selection.hitIndex];
+        BatchPath& path = paths[hit.pathIndex];
+        const auto material = hit.material ? hit.material : hit.primitive->material();
+        if (!material) {
+          continue;
+        }
+
+        const PathMaterialTransport& transport = material->pathTransport();
+        const Vector3d wi = -path.ray.direction().normalized();
+        const bool sampleOccluded = selectionIndex < occluded.size() && occluded[selectionIndex];
+        const DirectLightingSample sample = resolveDirectLightingCandidate(
+          selection.candidate, transport, hit.hitPoint, wi, sampleOccluded, path.state);
+        if (metrics) {
+          metrics->recordDirectLightSample(sample.occluded, sample.contributing());
+        }
+        contributions[selection.hitIndex] += sample.contribution / selection.selectionPdf;
+      }
+    }
+
+    for (Colord& contribution : contributions) {
+      contribution = contribution / static_cast<double>(m_directLightSamples);
+    }
+    return contributions;
   }
 
   bool PathTracingIntegrator::canContinueWithSample(const MaterialBsdfSample& sample,
@@ -743,32 +859,6 @@ namespace render {
     return emitted * mis::weight(mis::Heuristic::Power, bsdfSamplePdf, lightPdf);
   }
 
-  PathTracingIntegrator::DirectLightingSample PathTracingIntegrator::directLighting(
-    const Scene& scene, const Light& light, const HitPoint& hitPoint,
-    const PathMaterialTransport& material, const Vector3d& wi, const Vector2d& lightSample,
-    State& state, const WavefrontIntersectionBackend& intersectionBackend,
-    IntegratorBatchMetrics* metrics) const {
-    const DirectLightingCandidate candidate = directLightingCandidate(light, hitPoint, lightSample);
-    if (!candidate.valid) {
-      return {};
-    }
-
-    // Shadow ray. `Scene::occludes` keeps point-light visibility bounded
-    // to the sampled light distance; epsilon-shift avoids self-intersection.
-    bool occluded = false;
-    {
-      WavefrontIntersectionQueryTiming intersectionTiming;
-      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      occluded = intersectionBackend.intersectAny(
-        scene, candidate.shadowRay, candidate.shadowDistance, state, &intersectionTiming);
-      if (metrics) {
-        metrics->recordAnyHitQuery(intersectionBackend, 1, intersectionTiming);
-      }
-    }
-
-    return resolveDirectLightingCandidate(candidate, material, hitPoint, wi, occluded, state);
-  }
-
   PathTracingIntegrator::DirectLightingSample PathTracingIntegrator::resolveDirectLightingCandidate(
     const DirectLightingCandidate& candidate, const PathMaterialTransport& material,
     const HitPoint& hitPoint, const Vector3d& wi, bool occluded, State& state) const {
@@ -985,8 +1075,11 @@ namespace render {
 
       std::vector<BatchPath> spawnedPaths;
       spawnedPaths.reserve(activeHits.size() * 2);
+      const std::vector<Colord> directLightContributions = sampleDirectLightingBatch(
+        scene, lightSampler, activeHits, paths, bounce, intersectionBackend, metrics);
 
-      for (const auto& hit : activeHits) {
+      for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
+        const auto& hit = activeHits[hitIndex];
         auto& path = paths[hit.pathIndex];
         const Colord accumulatedBeforeDepth =
           depthMetrics.trackRadianceDelta ? path.accumulated() : Colord::black();
@@ -1025,9 +1118,9 @@ namespace render {
           }
 
           const Colord directLightContribution =
-            path.throughput * sampleDirectLighting(scene, lightSampler, hit.hitPoint, transport, wi,
-                                                   path.state, bounce, &intersectionBackend,
-                                                   metrics);
+            path.throughput * (hitIndex < directLightContributions.size()
+                                 ? directLightContributions[hitIndex]
+                                 : Colord::black());
           path.accumulated() += directLightContribution;
           if (metrics) {
             metrics->recordDirectLightRadiance(directLightContribution, bounce == 0);

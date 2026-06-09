@@ -639,6 +639,11 @@ Progress:
   metrics JSON, and the Modeler graph tooltip expose those counters beside
   closest-hit frontier batches, making the two GPU query families independently
   visible without labeling scalar CPU fallback loops as batches.
+- Wavefront path tracing now groups direct-light visibility rays across the
+  active depth frontier when the selected backend prefers any-hit batching.
+  That turns many per-hit visibility batches into one backend query for the
+  bounce while preserving the same light-selection, shadow-distance, MIS, and
+  per-sample direct-light diagnostics.
 - Wavefront metrics now also expose whether the selected backend preferred
   closest-hit and any-hit batches for the observed query sizes. rendercli
   summaries, metrics JSON, and the Modeler graph tooltip can now explain
@@ -761,7 +766,8 @@ Possible follow-ups after the hybrid intersection backend is stable:
 
 - GPU-resident frontiers across wavefront depths to reduce readback.
 - GPU-side compaction of active rays.
-- GPU-side direct-light occlusion batches.
+- GPU-resident direct-light occlusion batches that stay on device across
+  shading/frontier phases.
 - Hardware ray tracing backends:
   - Vulkan RT on capable Linux systems;
   - Metal ray tracing on supported macOS systems.

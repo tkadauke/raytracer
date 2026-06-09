@@ -128,6 +128,7 @@ namespace render {
     struct BatchHit;
     struct BatchPath;
     struct DirectLightingCandidate;
+    struct DirectLightingSelection;
     struct DirectLightingSample;
     struct ScalarPath;
 
@@ -141,6 +142,12 @@ namespace render {
                                 const Vector3d& wi, State& state, int bounce,
                                 const WavefrontIntersectionBackend* intersectionBackend = nullptr,
                                 IntegratorBatchMetrics* metrics = nullptr) const;
+    std::vector<Colord>
+    sampleDirectLightingBatch(const Scene& scene, const LightSampler& lightSampler,
+                              const std::vector<BatchHit>& activeHits,
+                              std::vector<BatchPath>& paths, int bounce,
+                              const WavefrontIntersectionBackend& intersectionBackend,
+                              IntegratorBatchMetrics* metrics = nullptr) const;
     Colord emittedRadiance(const LightSampler& lightSampler, const PathMaterialTransport& material,
                            const Rayd& ray, const HitPoint& hitPoint, bool sampledFromBsdf,
                            double bsdfSamplePdf, bool bsdfSampleDelta,
@@ -152,12 +159,6 @@ namespace render {
                                                         const HitPoint& hitPoint,
                                                         const Vector3d& wi, bool occluded,
                                                         State& state) const;
-    DirectLightingSample directLighting(const Scene& scene, const Light& light,
-                                        const HitPoint& hitPoint,
-                                        const PathMaterialTransport& material, const Vector3d& wi,
-                                        const Vector2d& lightSample, State& state,
-                                        const WavefrontIntersectionBackend& intersectionBackend,
-                                        IntegratorBatchMetrics* metrics = nullptr) const;
     bool canContinueWithSample(const MaterialBsdfSample& sample, const HitPoint& hitPoint) const;
     Colord continuedThroughput(const Colord& throughput, const MaterialBsdfSample& sample,
                                const HitPoint& hitPoint) const;
