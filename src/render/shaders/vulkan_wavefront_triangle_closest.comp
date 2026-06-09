@@ -1,0 +1,350 @@
+#version 450
+
+const uint leafNodeFlag = 1u;
+const uint triangleKind = 1u;
+const float kernelEpsilon = 1.1920928955078125e-7;
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+struct Bounds {
+  vec4 minimum;
+  vec4 maximum;
+};
+
+struct BvhNode {
+  Bounds bounds;
+  uint leftOrFirstPrimitive;
+  uint primitiveCount;
+  uint flags;
+  uint reserved;
+};
+
+struct PrimitiveRecord {
+  Bounds bounds;
+  uint kind;
+  uint material;
+  uint object;
+  uint transform;
+  uint payloadOffset;
+  uint payloadCount;
+  uint reserved0;
+  uint reserved1;
+};
+
+struct TrianglePayload {
+  vec4 point0;
+  vec4 point1;
+  vec4 point2;
+  vec4 normal0;
+  vec4 normal1;
+  vec4 normal2;
+  vec4 uv0;
+  vec4 uv1;
+  vec4 uv2;
+};
+
+struct RayRecord {
+  vec4 origin;
+  vec4 direction;
+  float minDistance;
+  float maxDistance;
+  float timeSample;
+  uint flags;
+  uint rayIndex;
+  uint reserved0;
+  uint reserved1;
+  uint reserved2;
+};
+
+struct HitRecord {
+  uint hit;
+  uint material;
+  uint object;
+  uint primitiveRecord;
+  uint rayIndex;
+  uint reservedId0;
+  uint reservedId1;
+  uint reservedId2;
+  float distance;
+  float reservedDistance0;
+  float reservedDistance1;
+  float reservedDistance2;
+  vec4 point;
+  vec4 normal;
+  vec4 uv;
+  vec4 barycentric;
+};
+
+struct LocalHit {
+  bool hit;
+  float distance;
+  vec4 point;
+  vec4 normal;
+  vec4 uv;
+  vec4 barycentric;
+};
+
+layout(std430, binding = 0) readonly buffer BvhBuffer {
+  BvhNode bvh[];
+};
+
+layout(std430, binding = 1) readonly buffer PrimitiveBuffer {
+  PrimitiveRecord primitives[];
+};
+
+layout(std430, binding = 2) readonly buffer TriangleBuffer {
+  TrianglePayload triangles[];
+};
+
+layout(std430, binding = 3) readonly buffer RayBuffer {
+  RayRecord rays[];
+};
+
+layout(std430, binding = 4) writeonly buffer HitBuffer {
+  HitRecord hits[];
+};
+
+layout(std430, binding = 5) readonly buffer CountBuffer {
+  uvec4 counts0;
+};
+
+float positiveInfinity() {
+  return uintBitsToFloat(0x7f800000u);
+}
+
+LocalHit makeLocalMiss() {
+  LocalHit result;
+  result.hit = false;
+  result.distance = positiveInfinity();
+  result.point = vec4(0.0);
+  result.normal = vec4(0.0);
+  result.uv = vec4(0.0);
+  result.barycentric = vec4(0.0);
+  return result;
+}
+
+HitRecord makeMiss(RayRecord ray) {
+  HitRecord record;
+  record.hit = 0u;
+  record.material = 0u;
+  record.object = 0u;
+  record.primitiveRecord = 0u;
+  record.rayIndex = ray.rayIndex;
+  record.reservedId0 = 0u;
+  record.reservedId1 = 0u;
+  record.reservedId2 = 0u;
+  record.distance = positiveInfinity();
+  record.reservedDistance0 = 0.0;
+  record.reservedDistance1 = 0.0;
+  record.reservedDistance2 = 0.0;
+  record.point = vec4(0.0);
+  record.normal = vec4(0.0);
+  record.uv = vec4(0.0);
+  record.barycentric = vec4(0.0);
+  return record;
+}
+
+float boundsEntryDistance(Bounds bounds, RayRecord ray, float maxHitDistance) {
+  float enter = ray.minDistance;
+  float exit = min(ray.maxDistance, maxHitDistance);
+  if (exit < enter) {
+    return positiveInfinity();
+  }
+
+  for (uint axis = 0u; axis != 3u; ++axis) {
+    const float origin = ray.origin[axis];
+    const float direction = ray.direction[axis];
+    const float minimum = bounds.minimum[axis];
+    const float maximum = bounds.maximum[axis];
+    if (abs(direction) <= kernelEpsilon) {
+      if (origin < minimum || origin > maximum) {
+        return positiveInfinity();
+      }
+      continue;
+    }
+
+    const float inverseDirection = 1.0 / direction;
+    float nearDistance = (minimum - origin) * inverseDirection;
+    float farDistance = (maximum - origin) * inverseDirection;
+    if (nearDistance > farDistance) {
+      const float temporary = nearDistance;
+      nearDistance = farDistance;
+      farDistance = temporary;
+    }
+
+    enter = max(enter, nearDistance);
+    exit = min(exit, farDistance);
+    if (exit < enter) {
+      return positiveInfinity();
+    }
+  }
+  return enter;
+}
+
+bool boundsIntersect(Bounds bounds, RayRecord ray, float maxHitDistance) {
+  return boundsEntryDistance(bounds, ray, maxHitDistance) < positiveInfinity();
+}
+
+vec4 normalize3(vec4 value) {
+  const float lengthSquared = dot(value.xyz, value.xyz);
+  if (lengthSquared <= kernelEpsilon) {
+    return vec4(0.0);
+  }
+  return vec4(value.xyz * inversesqrt(lengthSquared), 0.0);
+}
+
+vec4 interpolate3(vec4 a, vec4 b, vec4 c, float alpha, float beta, float gamma) {
+  return a * alpha + b * beta + c * gamma;
+}
+
+LocalHit intersectTriangle(RayRecord ray, TrianglePayload triangle) {
+  LocalHit result = makeLocalMiss();
+  const float a = triangle.point0.x - triangle.point1.x;
+  const float b = triangle.point0.x - triangle.point2.x;
+  const float c = ray.direction.x;
+  const float d = triangle.point0.x - ray.origin.x;
+  const float e = triangle.point0.y - triangle.point1.y;
+  const float f = triangle.point0.y - triangle.point2.y;
+  const float g = ray.direction.y;
+  const float h = triangle.point0.y - ray.origin.y;
+  const float i = triangle.point0.z - triangle.point1.z;
+  const float j = triangle.point0.z - triangle.point2.z;
+  const float k = ray.direction.z;
+  const float l = triangle.point0.z - ray.origin.z;
+  const float m = f * k - g * j;
+  const float n = h * k - g * l;
+  const float p = f * l - h * j;
+  const float q = g * i - e * k;
+  const float r = e * l - h * i;
+  const float s = e * j - f * i;
+  const float denominator = a * m + b * q + c * s;
+  if (denominator == 0.0) {
+    return result;
+  }
+
+  const float invDenom = 1.0 / denominator;
+  const float beta = (d * m - b * n - c * p) * invDenom;
+  if (beta < 0.0 || beta > 1.0) {
+    return result;
+  }
+
+  const float gamma = (a * n + d * q + c * r) * invDenom;
+  if (gamma < 0.0 || gamma > 1.0 || beta + gamma > 1.0) {
+    return result;
+  }
+
+  const float distance = (a * p - b * r + d * s) * invDenom;
+  if (distance < ray.minDistance || distance > ray.maxDistance) {
+    return result;
+  }
+
+  const float alpha = 1.0 - beta - gamma;
+  result.hit = true;
+  result.distance = distance;
+  result.point = ray.origin + ray.direction * distance;
+  result.point.w = 1.0;
+  result.normal = normalize3(interpolate3(triangle.normal0, triangle.normal1, triangle.normal2,
+                                          alpha, beta, gamma));
+  result.uv = interpolate3(triangle.uv0, triangle.uv1, triangle.uv2, alpha, beta, gamma);
+  result.barycentric = vec4(alpha, beta, gamma, 0.0);
+  return result;
+}
+
+void writeClosestHit(inout HitRecord closest, RayRecord ray, PrimitiveRecord primitive,
+                     uint primitiveIndex, LocalHit hit) {
+  closest.hit = 1u;
+  closest.material = primitive.material;
+  closest.object = primitive.object;
+  closest.primitiveRecord = primitiveIndex;
+  closest.rayIndex = ray.rayIndex;
+  closest.distance = hit.distance;
+  closest.point = hit.point;
+  closest.normal = hit.normal;
+  closest.uv = hit.uv;
+  closest.barycentric = hit.barycentric;
+}
+
+void main() {
+  const uint bvhCount = counts0.x;
+  const uint primitiveCount = counts0.y;
+  const uint triangleCount = counts0.z;
+  const uint rayCount = counts0.w;
+  const uint id = gl_GlobalInvocationID.x;
+  if (id >= rayCount) {
+    return;
+  }
+
+  const RayRecord ray = rays[id];
+  HitRecord closest = makeMiss(ray);
+  if (bvhCount == 0u || primitiveCount == 0u) {
+    hits[id] = closest;
+    return;
+  }
+
+  uint stack[64];
+  uint stackSize = 1u;
+  stack[0] = 0u;
+  while (stackSize > 0u) {
+    const uint nodeIndex = stack[--stackSize];
+    if (nodeIndex >= bvhCount) {
+      continue;
+    }
+
+    const BvhNode node = bvh[nodeIndex];
+    if (!boundsIntersect(node.bounds, ray, closest.distance)) {
+      continue;
+    }
+
+    if ((node.flags & leafNodeFlag) == 0u) {
+      const uint leftChild = node.leftOrFirstPrimitive;
+      const uint rightChild = node.primitiveCount;
+      const float leftEntry = leftChild < bvhCount
+        ? boundsEntryDistance(bvh[leftChild].bounds, ray, closest.distance)
+        : positiveInfinity();
+      const float rightEntry = rightChild < bvhCount
+        ? boundsEntryDistance(bvh[rightChild].bounds, ray, closest.distance)
+        : positiveInfinity();
+
+      if (stackSize + 2u <= 64u) {
+        if (leftEntry < positiveInfinity() && rightEntry < positiveInfinity()) {
+          if (leftEntry <= rightEntry) {
+            stack[stackSize++] = rightChild;
+            stack[stackSize++] = leftChild;
+          } else {
+            stack[stackSize++] = leftChild;
+            stack[stackSize++] = rightChild;
+          }
+        } else if (leftEntry < positiveInfinity()) {
+          stack[stackSize++] = leftChild;
+        } else if (rightEntry < positiveInfinity()) {
+          stack[stackSize++] = rightChild;
+        }
+      }
+      continue;
+    }
+
+    for (uint offset = 0u; offset != node.primitiveCount; ++offset) {
+      const uint primitiveIndex = node.leftOrFirstPrimitive + offset;
+      if (primitiveIndex >= primitiveCount) {
+        continue;
+      }
+
+      const PrimitiveRecord primitive = primitives[primitiveIndex];
+      if (primitive.kind != triangleKind || primitive.payloadCount != 1u ||
+          primitive.payloadOffset >= triangleCount) {
+        continue;
+      }
+      if (!boundsIntersect(primitive.bounds, ray, closest.distance)) {
+        continue;
+      }
+
+      const LocalHit hit = intersectTriangle(ray, triangles[primitive.payloadOffset]);
+      if (!hit.hit || (closest.hit != 0u && hit.distance >= closest.distance)) {
+        continue;
+      }
+      writeClosestHit(closest, ray, primitive, primitiveIndex, hit);
+    }
+  }
+
+  hits[id] = closest;
+}

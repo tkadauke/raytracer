@@ -277,6 +277,10 @@ Progress:
 - Vulkan-enabled builds now compile the smoke compute shader from GLSL into
   generated SPIR-V at build time, replacing the hand-written C++ word array and
   creating the native shader pipeline needed for Vulkan render-path kernels.
+- The Vulkan shader build now also compiles the first render-path triangle
+  closest-hit compute shader against the packed BVH/primitive/triangle/ray/hit
+  ABI. It is a compile-time kernel artifact only until the Vulkan dispatch
+  wrapper and parity tests wire it into backend execution.
 - Platform GPU device availability is now structured backend trace data instead
   of only fallback text. Wavefront metrics JSON, rendercli summaries, and the
   Modeler graph tooltip expose the selected platform backend id and whether
