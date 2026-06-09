@@ -33,10 +33,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Vulkan wavefront compute-device probe.** Vulkan-enabled builds now probe for
   a physical device with a compute queue and can run a tiny deterministic
   compute dispatch/readback smoke kernel, so GPU wavefront fallback diagnostics
-  can distinguish missing Vulkan compute support from the still-unimplemented
-  Vulkan render-path intersection kernel. Wavefront metrics JSON, rendercli
-  summaries, and Modeler graph tooltips now also expose platform GPU device
-  availability and platform id as structured backend trace data. — GPT-5
+  and `auto` backend selection can distinguish missing Vulkan compute support
+  from the still-unimplemented Vulkan render-path intersection kernel.
+  Wavefront metrics JSON, rendercli summaries, and Modeler graph tooltips now
+  also expose platform GPU device availability and platform id as structured
+  backend trace data. — GPT-5
 - **Direct-light any-hit batch metrics.** Wavefront metrics JSON, rendercli
   summaries, and Modeler graph tooltips now expose per-depth direct-light
   any-hit batch chunk/ray counters for backends that explicitly prefer grouped

@@ -71,6 +71,14 @@ namespace WavefrontIntersectionBackendTest {
       diagnostics.packedAnyHitKernelEligible = true;
       return diagnostics;
     }
+
+    bool hostPlatformIntersectionDeviceAvailable() {
+#if defined(__APPLE__)
+      return MetalWavefrontIntersectionBackend::instance().isAvailable();
+#else
+      return VulkanWavefrontIntersectionBackend::instance().isAvailable();
+#endif
+    }
   }
 
   TEST(WavefrontIntersectionBackend, CpuBackendReportsRuntimeSceneExecutionPath) {
@@ -103,7 +111,11 @@ namespace WavefrontIntersectionBackendTest {
     const auto& backend = VulkanWavefrontIntersectionBackend::instance();
 
     EXPECT_STREQ("vulkan", backend.platformName());
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    EXPECT_EQ(VulkanWavefrontSmokeKernel().deviceAvailable(), backend.isAvailable());
+#else
     EXPECT_FALSE(backend.isAvailable());
+#endif
     EXPECT_EQ(nullptr, backend.compiledScene());
     expectUnavailablePlatformFallback(backend, "Vulkan", "runtime_scene", "vulkan");
   }
@@ -546,7 +558,7 @@ namespace WavefrontIntersectionBackendTest {
 #endif
   }
 
-  TEST(WavefrontIntersectionBackend, AutoChoiceReportsCpuSelectionReasonWhenGpuUnavailable) {
+  TEST(WavefrontIntersectionBackend, AutoChoiceCompilesSupportedSceneOnlyWhenPlatformAvailable) {
     Scene scene;
     scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
     WavefrontIntersectionBackendSelectionContext context;
@@ -558,16 +570,34 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_STREQ("auto", backend->requestedName());
     EXPECT_STREQ("cpu", backend->name());
     EXPECT_STREQ("available", backend->availability());
-    EXPECT_STREQ("runtime_scene", backend->executionPath());
-    EXPECT_NE(std::string::npos, std::string(backend->fallbackReason()).find("auto selected CPU"));
-    const std::string reason = backend->fallbackReason();
-    const bool disabled = reason.find("not enabled") != std::string::npos;
-    const bool enabledWithoutClosestHitKernel =
-      reason.find("no render-path closest-hit kernel") != std::string::npos;
-    const bool enabledWithoutDevice = reason.find("no Metal device") != std::string::npos;
-    EXPECT_TRUE(disabled || enabledWithoutClosestHitKernel || enabledWithoutDevice) << reason;
-    EXPECT_EQ(nullptr, backend->compiledScene());
-    EXPECT_FALSE(backend->compiledSceneDiagnostics().compiled);
+    if (!hostPlatformIntersectionDeviceAvailable()) {
+      EXPECT_STREQ("runtime_scene", backend->executionPath());
+      EXPECT_NE(std::string::npos,
+                std::string(backend->fallbackReason()).find("auto selected CPU"));
+      const std::string reason = backend->fallbackReason();
+      const bool disabled = reason.find("not enabled") != std::string::npos;
+      const bool enabledWithoutClosestHitKernel =
+        reason.find("no render-path closest-hit kernel") != std::string::npos;
+      const bool enabledWithoutDevice = reason.find("no Metal device") != std::string::npos;
+      const bool enabledWithoutVulkanComputeDevice =
+        reason.find("no Vulkan compute device") != std::string::npos;
+      EXPECT_TRUE(disabled || enabledWithoutClosestHitKernel || enabledWithoutDevice ||
+                  enabledWithoutVulkanComputeDevice)
+        << reason;
+      EXPECT_EQ(nullptr, backend->compiledScene());
+      EXPECT_FALSE(backend->compiledSceneDiagnostics().compiled);
+      return;
+    }
+
+    EXPECT_NE(nullptr, backend->compiledScene());
+    EXPECT_TRUE(backend->compiledSceneDiagnostics().compiled);
+    EXPECT_TRUE(backend->compiledSceneDiagnostics().basicHitKernelEligible);
+    if (std::string(backend->platformName()) == "vulkan") {
+      EXPECT_STREQ("fallback", backend->availability());
+      EXPECT_STREQ("packed_cpu", backend->executionPath());
+      EXPECT_NE(std::string::npos,
+                std::string(backend->fallbackReason()).find("no render-path closest-hit kernel"));
+    }
   }
 
   TEST(WavefrontIntersectionBackend, GpuChoiceUsesHostPlatformFallbackForSupportedScene) {

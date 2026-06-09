@@ -1245,7 +1245,11 @@ namespace render {
   }
 
   bool VulkanWavefrontIntersectionBackend::isAvailable() const {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    return VulkanWavefrontSmokeKernel().deviceAvailable();
+#else
     return false;
+#endif
   }
 
   const char* VulkanWavefrontIntersectionBackend::name() const {

@@ -271,8 +271,9 @@ Progress:
 - Vulkan-enabled builds now also probe the loader for a physical device with a
   compute queue and can run a tiny deterministic compute dispatch/readback
   smoke kernel. The render backend still reports CPU fallback until a Vulkan
-  closest-hit kernel exists, but the fallback reason can distinguish missing
-  Vulkan compute support from missing render-path kernel work.
+  closest-hit kernel exists, but the fallback reason and `auto` selection path
+  can distinguish missing Vulkan compute support from missing render-path
+  kernel work.
 - Platform GPU device availability is now structured backend trace data instead
   of only fallback text. Wavefront metrics JSON, rendercli summaries, and the
   Modeler graph tooltip expose the selected platform backend id and whether
