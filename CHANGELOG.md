@@ -30,6 +30,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   derive portal cameras from receiver/source transforms and mirror cameras from
   planar reflection, carrying explicit receiver-clipping state through graph
   inspection and execution. — GPT-5
+- **Vulkan wavefront shader build path.** Vulkan-enabled builds now compile the
+  wavefront smoke compute shader from GLSL into SPIR-V at build time instead
+  of relying on an opaque hand-written SPIR-V word array, establishing the
+  Vulkan shader pipeline needed for render-path closest-hit and any-hit
+  kernels. — GPT-5
 - **Vulkan wavefront compute-device probe.** Vulkan-enabled builds now probe for
   a physical device with a compute queue and can run a tiny deterministic
   compute dispatch/readback smoke kernel, so GPU wavefront fallback diagnostics

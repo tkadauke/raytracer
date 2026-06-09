@@ -108,6 +108,14 @@ if(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     message(FATAL_ERROR "RAYTRACER_ENABLE_VULKAN_WAVEFRONT is only supported on Linux")
   endif()
   find_package(Vulkan REQUIRED)
+  if(NOT Vulkan_GLSLC_EXECUTABLE)
+    find_program(Vulkan_GLSLC_EXECUTABLE NAMES glslc)
+  endif()
+  if(NOT Vulkan_GLSLC_EXECUTABLE)
+    message(FATAL_ERROR
+      "RAYTRACER_ENABLE_VULKAN_WAVEFRONT requires glslc so Vulkan compute "
+      "shaders can be compiled into SPIR-V at build time")
+  endif()
 endif()
 
 # Find Qt 6. QJSEngine (used by ScriptedSurface) lives in Qt6::Qml.

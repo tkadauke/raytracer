@@ -69,8 +69,43 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 if(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+  set(RAYTRACER_VULKAN_SHADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/render/shaders")
+  set(RAYTRACER_VULKAN_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/render")
+  set(RAYTRACER_VULKAN_SMOKE_SHADER
+      "${RAYTRACER_VULKAN_SHADER_DIR}/vulkan_wavefront_smoke.comp")
+  set(RAYTRACER_VULKAN_SMOKE_SPIRV
+      "${RAYTRACER_VULKAN_GENERATED_DIR}/vulkan_wavefront_smoke.spv")
+  set(RAYTRACER_VULKAN_SHADER_HEADER
+      "${RAYTRACER_VULKAN_GENERATED_DIR}/VulkanWavefrontShaders.generated.h")
+
+  add_custom_command(
+    OUTPUT "${RAYTRACER_VULKAN_SMOKE_SPIRV}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${RAYTRACER_VULKAN_GENERATED_DIR}"
+    COMMAND "${Vulkan_GLSLC_EXECUTABLE}" -O -fshader-stage=compute
+            "${RAYTRACER_VULKAN_SMOKE_SHADER}" -o "${RAYTRACER_VULKAN_SMOKE_SPIRV}"
+    DEPENDS "${RAYTRACER_VULKAN_SMOKE_SHADER}"
+    VERBATIM
+  )
+
+  add_custom_command(
+    OUTPUT "${RAYTRACER_VULKAN_SHADER_HEADER}"
+    COMMAND "${CMAKE_COMMAND}" -DINPUT="${RAYTRACER_VULKAN_SMOKE_SPIRV}"
+            -DOUTPUT="${RAYTRACER_VULKAN_SHADER_HEADER}"
+            -DSYMBOL=smokeHitMissShaderSpirv
+            -P "${PROJECT_SOURCE_DIR}/cmake/EmbedSpirv.cmake"
+    DEPENDS "${RAYTRACER_VULKAN_SMOKE_SPIRV}"
+            "${PROJECT_SOURCE_DIR}/cmake/EmbedSpirv.cmake"
+    VERBATIM
+  )
+
+  add_custom_target(raytracer_vulkan_wavefront_shaders
+    DEPENDS "${RAYTRACER_VULKAN_SHADER_HEADER}"
+  )
+
   target_compile_definitions(raytracer PUBLIC RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+  target_include_directories(raytracer PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
   target_link_libraries(raytracer PUBLIC Vulkan::Vulkan)
+  add_dependencies(raytracer raytracer_vulkan_wavefront_shaders)
 endif()
 
 if(RAYTRACER_ENABLE_STATS)

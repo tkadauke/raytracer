@@ -1,0 +1,65 @@
+if(NOT DEFINED INPUT)
+  message(FATAL_ERROR "EmbedSpirv.cmake requires -DINPUT=/path/to/file.spv")
+endif()
+
+if(NOT DEFINED OUTPUT)
+  message(FATAL_ERROR "EmbedSpirv.cmake requires -DOUTPUT=/path/to/generated.h")
+endif()
+
+if(NOT DEFINED SYMBOL)
+  message(FATAL_ERROR "EmbedSpirv.cmake requires -DSYMBOL=name")
+endif()
+
+file(READ "${INPUT}" spirv_hex HEX)
+string(LENGTH "${spirv_hex}" spirv_hex_length)
+math(EXPR spirv_remainder "${spirv_hex_length} % 8")
+if(NOT spirv_remainder EQUAL 0)
+  message(FATAL_ERROR "SPIR-V bytecode length must be a multiple of four bytes")
+endif()
+
+math(EXPR spirv_word_count "${spirv_hex_length} / 8")
+
+set(contents "#pragma once\n\n")
+string(APPEND contents "#include <array>\n")
+string(APPEND contents "#include <cstdint>\n\n")
+string(APPEND contents "namespace render::vulkan_shaders {\n")
+string(APPEND contents "  inline constexpr std::array<std::uint32_t, ${spirv_word_count}> ${SYMBOL}{\n")
+
+set(offset 0)
+set(column 0)
+while(offset LESS spirv_hex_length)
+  string(SUBSTRING "${spirv_hex}" "${offset}" 2 byte0)
+  math(EXPR offset "${offset} + 2")
+  string(SUBSTRING "${spirv_hex}" "${offset}" 2 byte1)
+  math(EXPR offset "${offset} + 2")
+  string(SUBSTRING "${spirv_hex}" "${offset}" 2 byte2)
+  math(EXPR offset "${offset} + 2")
+  string(SUBSTRING "${spirv_hex}" "${offset}" 2 byte3)
+  math(EXPR offset "${offset} + 2")
+
+  if(column EQUAL 0)
+    string(APPEND contents "    ")
+  endif()
+  string(APPEND contents "0x${byte3}${byte2}${byte1}${byte0}u")
+  math(EXPR column "${column} + 1")
+
+  if(offset LESS spirv_hex_length)
+    string(APPEND contents ", ")
+  endif()
+
+  if(column EQUAL 6)
+    string(APPEND contents "\n")
+    set(column 0)
+  endif()
+endwhile()
+
+if(NOT column EQUAL 0)
+  string(APPEND contents "\n")
+endif()
+
+string(APPEND contents "  };\n")
+string(APPEND contents "}\n")
+
+get_filename_component(output_dir "${OUTPUT}" DIRECTORY)
+file(MAKE_DIRECTORY "${output_dir}")
+file(WRITE "${OUTPUT}" "${contents}")

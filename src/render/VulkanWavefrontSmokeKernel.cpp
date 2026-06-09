@@ -1,6 +1,8 @@
 #include "render/VulkanWavefrontSmokeKernel.h"
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+#include "render/VulkanWavefrontShaders.generated.h"
+
 #include <vulkan/vulkan.h>
 #endif
 
@@ -79,7 +81,7 @@ namespace render {
         bufferGuard.input = inputBuffer;
         bufferGuard.output = outputBuffer;
 
-        const std::vector<std::uint32_t>& shader = dummyComputeShaderSpirv();
+        const auto& shader = dummyComputeShaderSpirv();
         VkShaderModuleCreateInfo shaderInfo{};
         shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         shaderInfo.codeSize = shader.size() * sizeof(std::uint32_t);
@@ -248,59 +250,11 @@ namespace render {
         VkCommandPool pool{VK_NULL_HANDLE};
       };
 
-      static constexpr std::uint32_t kDummyXorMask = 0xa5a5a5a5u;
       static constexpr std::uint32_t kInvalidQueueFamily =
         std::numeric_limits<std::uint32_t>::max();
 
-      static constexpr std::uint32_t spvInstruction(std::uint16_t wordCount, std::uint16_t opcode) {
-        return (static_cast<std::uint32_t>(wordCount) << 16u) | opcode;
-      }
-
-      const std::vector<std::uint32_t>& dummyComputeShaderSpirv() const {
-        // clang-format off
-        static const std::vector<std::uint32_t> shader{
-          0x07230203u, 0x00010000u, 0u, 24u, 0u,
-          spvInstruction(2, 17), 1u,
-          spvInstruction(3, 14), 0u, 1u,
-          spvInstruction(6, 15), 5u, 1u, 0x6e69616du, 0u, 7u,
-          spvInstruction(6, 16), 1u, 17u, 1u, 1u, 1u,
-          spvInstruction(4, 71), 7u, 11u, 28u,
-          spvInstruction(4, 71), 9u, 6u, 4u,
-          spvInstruction(5, 72), 10u, 0u, 35u, 0u,
-          spvInstruction(3, 71), 10u, 3u,
-          spvInstruction(4, 71), 12u, 34u, 0u,
-          spvInstruction(4, 71), 12u, 33u, 0u,
-          spvInstruction(4, 71), 13u, 34u, 0u,
-          spvInstruction(4, 71), 13u, 33u, 1u,
-          spvInstruction(2, 19), 2u,
-          spvInstruction(3, 33), 3u, 2u,
-          spvInstruction(4, 21), 4u, 32u, 0u,
-          spvInstruction(4, 23), 5u, 4u, 3u,
-          spvInstruction(4, 32), 6u, 1u, 5u,
-          spvInstruction(4, 59), 6u, 7u, 1u,
-          spvInstruction(4, 43), 4u, 8u, 0u,
-          spvInstruction(3, 29), 9u, 4u,
-          spvInstruction(3, 30), 10u, 9u,
-          spvInstruction(4, 32), 11u, 2u, 10u,
-          spvInstruction(4, 59), 11u, 12u, 2u,
-          spvInstruction(4, 59), 11u, 13u, 2u,
-          spvInstruction(4, 32), 14u, 1u, 4u,
-          spvInstruction(4, 32), 15u, 2u, 4u,
-          spvInstruction(4, 43), 4u, 16u, kDummyXorMask,
-          spvInstruction(5, 54), 2u, 1u, 0u, 3u,
-          spvInstruction(2, 248), 17u,
-          spvInstruction(5, 65), 14u, 18u, 7u, 8u,
-          spvInstruction(4, 61), 4u, 19u, 18u,
-          spvInstruction(6, 65), 15u, 20u, 12u, 8u, 19u,
-          spvInstruction(4, 61), 4u, 21u, 20u,
-          spvInstruction(5, 198), 4u, 22u, 21u, 16u,
-          spvInstruction(6, 65), 15u, 23u, 13u, 8u, 19u,
-          spvInstruction(3, 62), 23u, 22u,
-          spvInstruction(1, 253),
-          spvInstruction(1, 56),
-        };
-        // clang-format on
-        return shader;
+      const auto& dummyComputeShaderSpirv() const {
+        return vulkan_shaders::smokeHitMissShaderSpirv;
       }
 
       void check(VkResult result, const char* operation) const {

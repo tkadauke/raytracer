@@ -274,6 +274,9 @@ Progress:
   closest-hit kernel exists, but the fallback reason and `auto` selection path
   can distinguish missing Vulkan compute support from missing render-path
   kernel work.
+- Vulkan-enabled builds now compile the smoke compute shader from GLSL into
+  generated SPIR-V at build time, replacing the hand-written C++ word array and
+  creating the native shader pipeline needed for Vulkan render-path kernels.
 - Platform GPU device availability is now structured backend trace data instead
   of only fallback text. Wavefront metrics JSON, rendercli summaries, and the
   Modeler graph tooltip expose the selected platform backend id and whether
