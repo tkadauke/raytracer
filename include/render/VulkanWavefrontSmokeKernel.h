@@ -1,16 +1,26 @@
 #pragma once
 
+#include "render/WavefrontIntersectionQueryTiming.h"
+
 #include <cstdint>
 #include <vector>
 
 namespace render {
+  struct GpuIntersectionHitRecord;
+  struct GpuIntersectionRay;
+  struct GpuIntersectionSceneBuffers;
+
+  struct VulkanWavefrontClosestHitKernelResult {
+    std::vector<GpuIntersectionHitRecord> hits;
+    WavefrontIntersectionQueryTiming timing;
+  };
+
   /**
     * @brief Vulkan platform probe for experimental wavefront-intersection work.
     *
-    * This deliberately does not make the Vulkan backend render-capable. It
-    * only validates that the enabled build can talk to a Vulkan loader and find
-    * a physical device with a compute queue, so fallback diagnostics can
-    * distinguish missing platform support from missing render-path kernels.
+    * The dummy kernel validates platform plumbing. The triangle closest-hit
+    * kernel is the first narrow Vulkan render-path kernel and shares the packed
+    * ABI used by the CPU parity intersector.
     */
   class VulkanWavefrontSmokeKernel {
   public:
@@ -18,6 +28,12 @@ namespace render {
     bool renderPathAvailable() const;
     std::vector<std::uint32_t>
     runDummyHitMissKernel(const std::vector<std::uint32_t>& rayIds) const;
+    std::vector<GpuIntersectionHitRecord>
+    runTriangleClosestHitKernel(const GpuIntersectionSceneBuffers& scene,
+                                const std::vector<GpuIntersectionRay>& rays) const;
+    VulkanWavefrontClosestHitKernelResult
+    runTimedTriangleClosestHitKernel(const GpuIntersectionSceneBuffers& scene,
+                                     const std::vector<GpuIntersectionRay>& rays) const;
 
   private:
     bool probeDeviceAvailable() const;

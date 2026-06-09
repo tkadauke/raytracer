@@ -1,17 +1,22 @@
 #include "render/VulkanWavefrontSmokeKernel.h"
 
+#include "render/GpuIntersectionScene.h"
+
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 #include "render/VulkanWavefrontShaders.generated.h"
+#include "render/VulkanWavefrontTriangleClosest.generated.h"
 
 #include <vulkan/vulkan.h>
 #endif
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace render {
@@ -94,7 +99,7 @@ namespace render {
         shaderGuard.device = device;
         shaderGuard.shaderModule = shaderModule;
 
-        VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device);
+        VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 2);
         DescriptorLayoutGuard descriptorLayoutGuard;
         descriptorLayoutGuard.device = device;
         descriptorLayoutGuard.layout = descriptorLayout;
@@ -109,15 +114,18 @@ namespace render {
         pipelineGuard.device = device;
         pipelineGuard.pipeline = pipeline;
 
-        VkDescriptorPool descriptorPool = createDescriptorPool(device);
+        VkDescriptorPool descriptorPool = createDescriptorPool(device, 2);
         DescriptorPoolGuard descriptorPoolGuard;
         descriptorPoolGuard.device = device;
         descriptorPoolGuard.pool = descriptorPool;
 
         VkDescriptorSet descriptorSet =
           allocateDescriptorSet(device, descriptorPool, descriptorLayout);
-        updateDescriptorSet(device, descriptorSet, inputBuffer.buffer, outputBuffer.buffer,
-                            byteCount);
+        updateDescriptorSet(device, descriptorSet,
+                            std::vector<std::pair<VkBuffer, VkDeviceSize>>{
+                              {inputBuffer.buffer, inputBuffer.byteCount},
+                              {outputBuffer.buffer, outputBuffer.byteCount},
+                            });
 
         VkCommandPool commandPool = createCommandPool(device, selection.queueFamily);
         CommandPoolGuard commandPoolGuard;
@@ -132,6 +140,137 @@ namespace render {
         return readBack(device, outputBuffer.memory, byteCount, rayIds.size());
       }
 
+      VulkanWavefrontClosestHitKernelResult
+      runTimedTriangleClosestHitKernel(const GpuIntersectionSceneBuffers& scene,
+                                       const std::vector<GpuIntersectionRay>& rays) const {
+        if (rays.empty()) {
+          return {};
+        }
+        if (!scene.triangleClosestHitKernelEligible()) {
+          throw std::invalid_argument(
+            "Vulkan triangle closest-hit kernel requires an untransformed triangle scene");
+        }
+        if (rays.size() > std::numeric_limits<std::uint32_t>::max()) {
+          throw std::runtime_error("Vulkan triangle closest-hit ray batch is too large");
+        }
+
+        VulkanWavefrontClosestHitKernelResult result;
+        const auto uploadStart = std::chrono::steady_clock::now();
+
+        VkInstance instance = createInstance();
+        InstanceGuard instanceGuard;
+        instanceGuard.instance = instance;
+
+        const DeviceSelection selection = selectDevice(instance);
+        if (selection.device == VK_NULL_HANDLE) {
+          throw std::runtime_error("Vulkan triangle closest-hit kernel requires a compute device");
+        }
+
+        const float queuePriority = 1.0f;
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = selection.queueFamily;
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        VkDeviceCreateInfo deviceCreateInfo{};
+        deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        deviceCreateInfo.queueCreateInfoCount = 1;
+        deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+
+        VkDevice device = VK_NULL_HANDLE;
+        check(vkCreateDevice(selection.device, &deviceCreateInfo, nullptr, &device),
+              "Vulkan triangle closest-hit logical device creation");
+        DeviceGuard deviceGuard;
+        deviceGuard.device = device;
+
+        VkQueue queue = VK_NULL_HANDLE;
+        vkGetDeviceQueue(device, selection.queueFamily, 0, &queue);
+
+        BufferVectorGuard bufferGuard;
+        bufferGuard.device = device;
+        bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.bvh));
+        bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.primitives));
+        bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.triangles));
+        bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, rays));
+
+        const VkDeviceSize hitByteCount =
+          byteCountForRecords<GpuIntersectionHitRecord>(rays.size());
+        bufferGuard.buffers.push_back(
+          createStorageBuffer(device, selection.device, hitByteCount, nullptr));
+
+        const std::array<std::uint32_t, 4> counts{
+          static_cast<std::uint32_t>(scene.bvh.size()),
+          static_cast<std::uint32_t>(scene.primitives.size()),
+          static_cast<std::uint32_t>(scene.triangles.size()),
+          static_cast<std::uint32_t>(rays.size()),
+        };
+        bufferGuard.buffers.push_back(
+          createStorageBuffer(device, selection.device, sizeof(counts), counts.data()));
+
+        const auto& shader = triangleClosestHitShaderSpirv();
+        VkShaderModule shaderModule = createShaderModule(device, shader.data(), shader.size());
+        ShaderGuard shaderGuard;
+        shaderGuard.device = device;
+        shaderGuard.shaderModule = shaderModule;
+
+        VkDescriptorSetLayout descriptorLayout =
+          createDescriptorLayout(device, static_cast<std::uint32_t>(bufferGuard.buffers.size()));
+        DescriptorLayoutGuard descriptorLayoutGuard;
+        descriptorLayoutGuard.device = device;
+        descriptorLayoutGuard.layout = descriptorLayout;
+
+        VkPipelineLayout pipelineLayout = createPipelineLayout(device, descriptorLayout);
+        PipelineLayoutGuard pipelineLayoutGuard;
+        pipelineLayoutGuard.device = device;
+        pipelineLayoutGuard.layout = pipelineLayout;
+
+        VkPipeline pipeline = createPipeline(device, shaderModule, pipelineLayout);
+        PipelineGuard pipelineGuard;
+        pipelineGuard.device = device;
+        pipelineGuard.pipeline = pipeline;
+
+        VkDescriptorPool descriptorPool =
+          createDescriptorPool(device, static_cast<std::uint32_t>(bufferGuard.buffers.size()));
+        DescriptorPoolGuard descriptorPoolGuard;
+        descriptorPoolGuard.device = device;
+        descriptorPoolGuard.pool = descriptorPool;
+
+        VkDescriptorSet descriptorSet =
+          allocateDescriptorSet(device, descriptorPool, descriptorLayout);
+        updateDescriptorSet(device, descriptorSet, bufferGuard.buffers);
+
+        VkCommandPool commandPool = createCommandPool(device, selection.queueFamily);
+        CommandPoolGuard commandPoolGuard;
+        commandPoolGuard.device = device;
+        commandPoolGuard.pool = commandPool;
+
+        VkCommandBuffer commandBuffer = allocateCommandBuffer(device, commandPool);
+        recordDispatch(commandBuffer, pipeline, pipelineLayout, descriptorSet,
+                       static_cast<std::uint32_t>(rays.size()));
+        const auto uploadEnd = std::chrono::steady_clock::now();
+
+        const auto kernelStart = std::chrono::steady_clock::now();
+        submitAndWait(queue, commandBuffer);
+        const auto kernelEnd = std::chrono::steady_clock::now();
+
+        const auto readbackStart = std::chrono::steady_clock::now();
+        result.hits = readBackRecords<GpuIntersectionHitRecord>(
+          device, bufferGuard.buffers[4].memory, hitByteCount, rays.size(),
+          "Vulkan triangle closest-hit output buffer mapping");
+        const auto readbackEnd = std::chrono::steady_clock::now();
+
+        result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
+        result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
+        result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
+        result.timing.recordExecutionPath("vulkan");
+        return result;
+      }
+
     private:
       struct DeviceSelection {
         VkPhysicalDevice device{VK_NULL_HANDLE};
@@ -141,6 +280,7 @@ namespace render {
       struct SmokeBuffer {
         VkBuffer buffer{VK_NULL_HANDLE};
         VkDeviceMemory memory{VK_NULL_HANDLE};
+        VkDeviceSize byteCount{0};
       };
 
       struct InstanceGuard {
@@ -182,6 +322,22 @@ namespace render {
         VkDevice device{VK_NULL_HANDLE};
         SmokeBuffer input;
         SmokeBuffer output;
+      };
+
+      struct BufferVectorGuard {
+        ~BufferVectorGuard() {
+          for (SmokeBuffer& buffer : buffers) {
+            if (buffer.buffer) {
+              vkDestroyBuffer(device, buffer.buffer, nullptr);
+            }
+            if (buffer.memory) {
+              vkFreeMemory(device, buffer.memory, nullptr);
+            }
+          }
+        }
+
+        VkDevice device{VK_NULL_HANDLE};
+        std::vector<SmokeBuffer> buffers;
       };
 
       struct ShaderGuard {
@@ -258,10 +414,20 @@ namespace render {
         return vulkan_shaders::smokeHitMissShaderSpirv;
       }
 
+      const std::array<std::uint32_t, vulkan_shaders::triangleClosestHitShaderSpirv.size()>&
+      triangleClosestHitShaderSpirv() const {
+        return vulkan_shaders::triangleClosestHitShaderSpirv;
+      }
+
       void check(VkResult result, const char* operation) const {
         if (result != VK_SUCCESS) {
           throw std::runtime_error(std::string(operation) + " failed");
         }
+      }
+
+      double secondsBetween(std::chrono::steady_clock::time_point start,
+                            std::chrono::steady_clock::time_point end) const {
+        return std::chrono::duration<double>(end - start).count();
       }
 
       VkInstance createInstance() const {
@@ -341,6 +507,7 @@ namespace render {
       SmokeBuffer createStorageBuffer(VkDevice device, VkPhysicalDevice physicalDevice,
                                       VkDeviceSize byteCount, const void* initialData) const {
         SmokeBuffer result;
+        result.byteCount = byteCount;
 
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -373,14 +540,44 @@ namespace render {
         return result;
       }
 
-      VkDescriptorSetLayout createDescriptorLayout(VkDevice device) const {
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings{};
-        bindings[0].binding = 0;
-        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        bindings[0].descriptorCount = 1;
-        bindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-        bindings[1] = bindings[0];
-        bindings[1].binding = 1;
+      template<typename Record>
+      VkDeviceSize byteCountForRecords(std::size_t recordCount) const {
+        if (recordCount >
+            std::numeric_limits<VkDeviceSize>::max() / static_cast<VkDeviceSize>(sizeof(Record))) {
+          throw std::runtime_error("Vulkan wavefront buffer is too large");
+        }
+        return static_cast<VkDeviceSize>(recordCount) * static_cast<VkDeviceSize>(sizeof(Record));
+      }
+
+      template<typename Record>
+      SmokeBuffer createStorageBufferFromVector(VkDevice device, VkPhysicalDevice physicalDevice,
+                                                const std::vector<Record>& records) const {
+        const VkDeviceSize byteCount = byteCountForRecords<Record>(records.size());
+        return createStorageBuffer(device, physicalDevice, byteCount, records.data());
+      }
+
+      VkShaderModule createShaderModule(VkDevice device, const std::uint32_t* words,
+                                        std::size_t wordCount) const {
+        VkShaderModuleCreateInfo shaderInfo{};
+        shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        shaderInfo.codeSize = wordCount * sizeof(std::uint32_t);
+        shaderInfo.pCode = words;
+
+        VkShaderModule shaderModule = VK_NULL_HANDLE;
+        check(vkCreateShaderModule(device, &shaderInfo, nullptr, &shaderModule),
+              "Vulkan wavefront shader module creation");
+        return shaderModule;
+      }
+
+      VkDescriptorSetLayout createDescriptorLayout(VkDevice device,
+                                                   std::uint32_t bindingCount) const {
+        std::vector<VkDescriptorSetLayoutBinding> bindings(bindingCount);
+        for (std::uint32_t index = 0; index != bindingCount; ++index) {
+          bindings[index].binding = index;
+          bindings[index].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+          bindings[index].descriptorCount = 1;
+          bindings[index].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+        }
 
         VkDescriptorSetLayoutCreateInfo descriptorLayoutInfo{};
         descriptorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -424,10 +621,10 @@ namespace render {
         return pipeline;
       }
 
-      VkDescriptorPool createDescriptorPool(VkDevice device) const {
+      VkDescriptorPool createDescriptorPool(VkDevice device, std::uint32_t descriptorCount) const {
         VkDescriptorPoolSize poolSize{};
         poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        poolSize.descriptorCount = 2;
+        poolSize.descriptorCount = descriptorCount;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -455,29 +652,35 @@ namespace render {
         return descriptorSet;
       }
 
-      void updateDescriptorSet(VkDevice device, VkDescriptorSet descriptorSet, VkBuffer inputBuffer,
-                               VkBuffer outputBuffer, VkDeviceSize byteCount) const {
-        VkDescriptorBufferInfo inputDescriptor{};
-        inputDescriptor.buffer = inputBuffer;
-        inputDescriptor.offset = 0;
-        inputDescriptor.range = byteCount;
-        VkDescriptorBufferInfo outputDescriptor{};
-        outputDescriptor.buffer = outputBuffer;
-        outputDescriptor.offset = 0;
-        outputDescriptor.range = byteCount;
+      void
+      updateDescriptorSet(VkDevice device, VkDescriptorSet descriptorSet,
+                          const std::vector<std::pair<VkBuffer, VkDeviceSize>>& buffers) const {
+        std::vector<VkDescriptorBufferInfo> descriptors(buffers.size());
+        std::vector<VkWriteDescriptorSet> descriptorWrites(buffers.size());
+        for (std::size_t index = 0; index != buffers.size(); ++index) {
+          descriptors[index].buffer = buffers[index].first;
+          descriptors[index].offset = 0;
+          descriptors[index].range = buffers[index].second;
 
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = descriptorSet;
-        descriptorWrites[0].dstBinding = 0;
-        descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        descriptorWrites[0].pBufferInfo = &inputDescriptor;
-        descriptorWrites[1] = descriptorWrites[0];
-        descriptorWrites[1].dstBinding = 1;
-        descriptorWrites[1].pBufferInfo = &outputDescriptor;
+          descriptorWrites[index].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+          descriptorWrites[index].dstSet = descriptorSet;
+          descriptorWrites[index].dstBinding = static_cast<std::uint32_t>(index);
+          descriptorWrites[index].descriptorCount = 1;
+          descriptorWrites[index].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+          descriptorWrites[index].pBufferInfo = &descriptors[index];
+        }
         vkUpdateDescriptorSets(device, static_cast<std::uint32_t>(descriptorWrites.size()),
                                descriptorWrites.data(), 0, nullptr);
+      }
+
+      void updateDescriptorSet(VkDevice device, VkDescriptorSet descriptorSet,
+                               const std::vector<SmokeBuffer>& buffers) const {
+        std::vector<std::pair<VkBuffer, VkDeviceSize>> descriptors;
+        descriptors.reserve(buffers.size());
+        for (const SmokeBuffer& buffer : buffers) {
+          descriptors.push_back({buffer.buffer, buffer.byteCount});
+        }
+        updateDescriptorSet(device, descriptorSet, descriptors);
       }
 
       VkCommandPool createCommandPool(VkDevice device, std::uint32_t queueFamily) const {
@@ -530,10 +733,17 @@ namespace render {
 
       std::vector<std::uint32_t> readBack(VkDevice device, VkDeviceMemory outputMemory,
                                           VkDeviceSize byteCount, std::size_t resultCount) const {
-        std::vector<std::uint32_t> results(resultCount, 0u);
+        return readBackRecords<std::uint32_t>(device, outputMemory, byteCount, resultCount,
+                                              "Vulkan wavefront smoke output buffer mapping");
+      }
+
+      template<typename Record>
+      std::vector<Record> readBackRecords(VkDevice device, VkDeviceMemory outputMemory,
+                                          VkDeviceSize byteCount, std::size_t resultCount,
+                                          const char* operation) const {
+        std::vector<Record> results(resultCount);
         void* mapped = nullptr;
-        check(vkMapMemory(device, outputMemory, 0, byteCount, 0, &mapped),
-              "Vulkan wavefront smoke output buffer mapping");
+        check(vkMapMemory(device, outputMemory, 0, byteCount, 0, &mapped), operation);
         std::memcpy(results.data(), mapped, static_cast<std::size_t>(byteCount));
         vkUnmapMemory(device, outputMemory);
         return results;
@@ -568,6 +778,26 @@ namespace render {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     return VulkanSmokeRuntime().runDummyHitMissKernel(rayIds);
 #else
+    throw std::runtime_error("Vulkan wavefront backend is not enabled");
+#endif
+  }
+
+  std::vector<GpuIntersectionHitRecord> VulkanWavefrontSmokeKernel::runTriangleClosestHitKernel(
+    const GpuIntersectionSceneBuffers& scene, const std::vector<GpuIntersectionRay>& rays) const {
+    return runTimedTriangleClosestHitKernel(scene, rays).hits;
+  }
+
+  VulkanWavefrontClosestHitKernelResult
+  VulkanWavefrontSmokeKernel::runTimedTriangleClosestHitKernel(
+    const GpuIntersectionSceneBuffers& scene, const std::vector<GpuIntersectionRay>& rays) const {
+    if (rays.empty()) {
+      return {};
+    }
+
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    return VulkanSmokeRuntime().runTimedTriangleClosestHitKernel(scene, rays);
+#else
+    (void)scene;
     throw std::runtime_error("Vulkan wavefront backend is not enabled");
 #endif
   }

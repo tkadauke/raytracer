@@ -30,6 +30,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   derive portal cameras from receiver/source transforms and mirror cameras from
   planar reflection, carrying explicit receiver-clipping state through graph
   inspection and execution. — GPT-5
+- **Vulkan triangle closest-hit dispatch.** Vulkan-enabled builds now expose a
+  direct triangle closest-hit compute dispatch over the packed
+  BVH/primitive/triangle/ray/hit ABI, with CPU packed-intersector parity
+  coverage. The wavefront render backend still falls back to CPU until Vulkan
+  any-hit and prepared render-path execution are wired in. — GPT-5
 - **Vulkan wavefront shader build path.** Vulkan-enabled builds now compile the
   wavefront smoke compute shader from GLSL into SPIR-V at build time instead
   of relying on an opaque hand-written SPIR-V word array, establishing the
