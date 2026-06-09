@@ -265,7 +265,6 @@ namespace render {
       packetFallbacksBefore;
     PrimitivePacketState4 states{};
     assert(laneCount <= Ray4::lanes);
-    const std::size_t activeLaneCount = std::min(laneCount, Ray4::lanes);
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
@@ -398,7 +397,6 @@ namespace render {
       packetFallbacksBefore;
     PrimitivePacketState8 states{};
     assert(laneCount <= Ray8::lanes);
-    const std::size_t activeLaneCount = std::min(laneCount, Ray8::lanes);
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);

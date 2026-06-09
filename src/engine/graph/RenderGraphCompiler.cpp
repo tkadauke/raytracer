@@ -427,9 +427,20 @@ namespace engine::graph {
       compositeFeatures = {"aov", aov->feature()};
     } else {
       const RenderExecutorKind executor = branchIntent.defaultExecutorKind();
+      const auto* concreteExecutorDefinition = renderExecutorDefinition(executor);
+      if (!concreteExecutorDefinition) {
+        throw std::runtime_error("selector-specific render intent executor cannot produce a "
+                                 "beauty pass");
+      }
+      const auto& preferredExecutorDefinition =
+        renderExecutorDefinition(branchIntent.defaultExecutor);
+      const RenderExecutorDefinition& beautyExecutorDefinition =
+        preferredExecutorDefinition.kind() == executor ? preferredExecutorDefinition
+                                                       : *concreteExecutorDefinition;
       const RenderResourceId colorId = prefix + "_beauty_color";
       RenderPassNode foreground =
-        beautyPass(executor, sceneView, target, branchIntent, {"selector_override"});
+        beautyPass(beautyExecutorDefinition, sceneView, target, branchIntent,
+                   {"selector_override"});
       foreground.id = prefix + "_" + foreground.id;
       foreground.name = "Selector " + std::to_string(overrideIndex + 1) + " " + foreground.name;
       addRasterVisibilityInput(plan, target, foreground, sceneView, branchIntent);

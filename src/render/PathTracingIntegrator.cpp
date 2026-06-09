@@ -375,7 +375,6 @@ namespace render {
       packetFallbacksBefore;
     PrimitivePacketState4 states{};
     assert(laneCount <= Ray4::lanes);
-    const std::size_t activeLaneCount = std::min(laneCount, Ray4::lanes);
 
     PrimitivePacketHit4 packetHits;
     {
@@ -436,7 +435,6 @@ namespace render {
       packetFallbacksBefore;
     PrimitivePacketState8 states{};
     assert(laneCount <= Ray8::lanes);
-    const std::size_t activeLaneCount = std::min(laneCount, Ray8::lanes);
 
     PrimitivePacketHit8 packetHits;
     {
