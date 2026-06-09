@@ -599,7 +599,9 @@ labels. Its Resources tab shows each declared resource's display name, type,
 format, domain, lifetime, and dimensions with the same UI-facing labels.
 Selecting a pass also shows its execution stage, order, incoming dependencies,
 and outgoing dependencies in the property editor alongside pass state, scene
-view, shading profile, resource edges, and trace metadata.
+view, shading profile, resource edges, and trace metadata. Wavefront pass
+metadata includes the same intersection backend diagnostics as the graph
+tooltip, including average rays per closest-hit and direct-light any-hit batch.
 Hovering a pass or resource node summarizes its scene-view intent and declared
 graph edges without leaving the graph view.
 Unchecking a pass adds a graph override and the dock validates the

@@ -9,6 +9,7 @@
 #include "engine/graph/RenderGraphCompiler.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "render/cameras/PinholeCamera.h"
+#include "render/lights/PointLight.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
@@ -343,6 +344,12 @@ namespace RenderGraphInspectorWidgetTest {
     return scene;
   }
 
+  std::shared_ptr<render::Scene> litHighContrastScene() {
+    auto scene = highContrastScene();
+    scene->addLight(std::make_shared<render::PointLight>(Vector3d(0, 4, -3), Colord::white()));
+    return scene;
+  }
+
   std::shared_ptr<const RenderGraphExecutionTrace> postProcessTrace() {
     RenderIntent intent;
     intent.postProcessAA = RenderPostProcessAA::FXAA;
@@ -384,6 +391,23 @@ namespace RenderGraphInspectorWidgetTest {
 
     RenderGraphCompiler compiler;
     GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({24, 24, 1}, intent));
+
+    Buffer<unsigned int> buffer(24, 24);
+    engine.render(buffer);
+    return engine.lastExecutionTrace();
+  }
+
+  std::shared_ptr<const RenderGraphExecutionTrace> wavefrontDirectLightGpuTrace() {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setSamplesPerPixel(4);
+    intent.engineOptions.raytracer().setIntersectionBackend("gpu");
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), litHighContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({24, 24, 1}, intent));
 
@@ -1086,6 +1110,22 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection query transfer bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit rays submitted")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Any-hit rays submitted")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit batch average rays")).isEmpty());
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest,
+         ShouldExposeDirectLightBatchAverageRowsForSelectedWavefrontPass) {
+    auto trace = wavefrontDirectLightGpuTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    const auto rows = widget.passDetailRows(QStringLiteral("wavefront_beauty"));
+
+    EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Direct-light any-hit batch average rays")).isEmpty());
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,

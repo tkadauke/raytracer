@@ -596,6 +596,22 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("closestHitQueries"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit queries"), batching,
                               QStringLiteral("anyHitQueries"));
+  const qulonglong closestHitBatchChunks = jsonIntegerArraySum(
+    batching.value(QStringLiteral("frontierClosestHitBatchChunksPerDepth")).toArray());
+  if (closestHitBatchChunks > 0) {
+    const qulonglong closestHitBatchRays = jsonIntegerArraySum(
+      batching.value(QStringLiteral("frontierClosestHitBatchRaysPerDepth")).toArray());
+    addDetailRow(rows, QStringLiteral("Closest-hit batch average rays"),
+                 average(closestHitBatchRays, closestHitBatchChunks));
+  }
+  const qulonglong directLightAnyHitBatchChunks = jsonIntegerArraySum(
+    batching.value(QStringLiteral("directLightAnyHitBatchChunksPerDepth")).toArray());
+  if (directLightAnyHitBatchChunks > 0) {
+    const qulonglong directLightAnyHitBatchRays = jsonIntegerArraySum(
+      batching.value(QStringLiteral("directLightAnyHitBatchRaysPerDepth")).toArray());
+    addDetailRow(rows, QStringLiteral("Direct-light any-hit batch average rays"),
+                 average(directLightAnyHitBatchRays, directLightAnyHitBatchChunks));
+  }
   addDetailBoolMetadataRow(rows, QStringLiteral("Prefers closest-hit batches"), batching,
                            QStringLiteral("intersectionBackendPrefersClosestHitBatch"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Prefers any-hit batches"), batching,
