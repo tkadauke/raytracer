@@ -1,5 +1,4 @@
 #include "render/State.h"
-#include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/OpenCylinder.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
@@ -264,28 +263,6 @@ Vector2d OpenCylinder::sideUvAt(const Vector3d& point) const {
   const double height = 2.0 * m_halfHeight;
   const double v = height == 0.0 ? 0.0 : (point.y() + m_halfHeight) / height;
   return Vector2d(u, v);
-}
-
-void OpenCylinder::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
-                                                 const TransformedLeaf& leaf) const {
-  const std::shared_ptr<Mesh> mesh = tessellate(0);
-  const auto triangleBounds = [&leaf](const IntersectionTrianglePayload& payload) {
-    BoundingBoxd bounds;
-    bounds.include(leaf.pointMatrix.transformPoint(payload.point0));
-    bounds.include(leaf.pointMatrix.transformPoint(payload.point1));
-    bounds.include(leaf.pointMatrix.transformPoint(payload.point2));
-    return bounds.grownByEpsilon();
-  };
-
-  for (auto triangle = mesh->begin(); triangle != mesh->end(); ++triangle) {
-    const auto& indices = *triangle;
-    const auto& v0 = mesh->vertices()[indices[0]];
-    const auto& v1 = mesh->vertices()[indices[1]];
-    const auto& v2 = mesh->vertices()[indices[2]];
-    const IntersectionTrianglePayload payload{v0.point,  v1.point, v2.point, v0.normal, v1.normal,
-                                              v2.normal, v0.uv,    v1.uv,    v2.uv};
-    builder.addTriangle(leaf, payload, triangleBounds(payload));
-  }
 }
 
 std::shared_ptr<Mesh> OpenCylinder::tessellate(int lod) const {

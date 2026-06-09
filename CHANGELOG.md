@@ -48,6 +48,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
   — GPT-5
+- **OpenCylinder side UV coordinates.** Exact `render::OpenCylinder` side hits
+  now report cylindrical UV coordinates, matching the primitive's tessellated
+  side-surface convention for texture lookup. — GPT-5
 - **Wavefront GPU CMake presets.** Added platform-conditional
   `release-metal-wavefront`, `benchmark-metal-wavefront`,
   `release-vulkan-wavefront`, and `benchmark-vulkan-wavefront` presets so

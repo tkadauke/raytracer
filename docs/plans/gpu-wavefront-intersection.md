@@ -218,9 +218,8 @@ GPU v1 should support:
 GPU v1 should reject:
 
 - CSG/boolean composites;
-- torus, curve, convex operation, and other exact primitives not yet ported
-  (OpenCylinder side surfaces compile through the supported triangle payload
-  path);
+- torus, open cylinder, curve, convex operation, and other exact primitives not
+  yet ported;
 - moving instances;
 - scenes with primitive/material references that cannot be represented by
   stable ids.
@@ -551,10 +550,6 @@ Progress:
 - Compiled box triangles now carry per-triangle world-space BVH bounds instead
   of reusing the full box bounds on all 12 records, preserving the supported
   triangle ABI while making box-heavy prepared traversal less wasteful.
-- OpenCylinder side surfaces now compile into the same triangle payload path
-  using the canonical 16-segment side tessellation. This keeps the GPU-facing
-  ABI on triangles while preserving the primitive's object/material identity,
-  side normals, UVs, and per-triangle BVH bounds.
 - Metal-enabled prepared sphere, plane, rectangle, disk, and static-transform
   scenes now share the render-path basic hit kernels with triangle scenes for
   closest-hit and any-hit queries.

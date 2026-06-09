@@ -290,11 +290,11 @@ tracing requests more than one direct-light sample at a surface, those shadow
 rays are submitted through one batched any-hit backend call so prepared
 Metal/Vulkan backends can treat direct-light visibility as a group instead of
 as unrelated scalar queries. The
-harness currently covers triangles, mesh triangles, box and OpenCylinder
-tessellations, sphere, plane, rectangle, disk, and static instance transforms by
-tracing in payload-local space and transforming hit data back to world space.
-It is not a render backend; it is the executable contract the Metal and Vulkan
-kernels need to match before they can be trusted in the wavefront renderer.
+harness currently covers triangles, mesh triangles, box tessellations, sphere,
+plane, rectangle, disk, and static instance transforms by tracing in
+payload-local space and transforming hit data back to world space. It is not a
+render backend; it is the executable contract the Metal and Vulkan kernels need
+to match before they can be trusted in the wavefront renderer.
 
 The first GPU-facing upload seam is intentionally one step narrower than the
 compiled scene. `GpuIntersectionScenePacker` takes the compiled records and

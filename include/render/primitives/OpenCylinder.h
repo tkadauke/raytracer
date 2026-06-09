@@ -44,8 +44,6 @@ namespace render {
     PrimitivePacketInterval8
     intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const override;
     virtual bool intersects(const Rayd& ray, render::State& state) const override;
-    void appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
-                                       const TransformedLeaf& leaf) const override;
     virtual Vector3d farthestPoint(const Vector3d& direction) const override;
 
     /**

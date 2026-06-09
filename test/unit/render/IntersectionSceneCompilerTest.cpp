@@ -186,27 +186,22 @@ namespace IntersectionSceneCompilerTest {
     }
   }
 
-  TEST(IntersectionSceneCompiler, CompilesOpenCylinderAsTrianglePayloads) {
+  TEST(IntersectionSceneCompiler, RejectsOpenCylinderUntilExactPayloadExists) {
     auto cylinder = std::make_shared<OpenCylinder>(1.0, 2.0);
+    cylinder->setName("exact open cylinder");
     Scene scene;
     scene.add(cylinder);
 
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
 
-    ASSERT_EQ(32u, compiled.primitives().size());
-    ASSERT_EQ(32u, compiled.triangles().size());
-    EXPECT_TRUE(compiled.fullySupported());
-    const BoundingBoxd cylinderBounds = cylinder->boundingBox();
-    const BoundingBoxd paddedCylinderBounds = cylinderBounds.grownByEpsilon();
-    for (const IntersectionPrimitiveRecord& primitive : compiled.primitives()) {
-      EXPECT_EQ(IntersectionPrimitiveKind::Triangle, primitive.kind);
-      ASSERT_GT(compiled.objects().size(), primitive.object);
-      EXPECT_EQ(cylinder.get(), compiled.objects()[primitive.object]);
-      EXPECT_TRUE(paddedCylinderBounds.contains(primitive.bounds.min()));
-      EXPECT_TRUE(paddedCylinderBounds.contains(primitive.bounds.max()));
-    }
-    EXPECT_EQ(Vector2d(0, 0), compiled.triangles()[0].uv0);
-    EXPECT_EQ(Vector2d(0, 1), compiled.triangles()[0].uv1);
+    ASSERT_EQ(1u, compiled.primitives().size());
+    ASSERT_EQ(1u, compiled.unsupportedPrimitives().size());
+    EXPECT_FALSE(compiled.fullySupported());
+    EXPECT_EQ(IntersectionPrimitiveKind::Unsupported, compiled.primitives()[0].kind);
+    EXPECT_EQ(compiled.primitives()[0].object, compiled.unsupportedPrimitives()[0].object);
+    EXPECT_EQ("exact open cylinder", compiled.unsupportedPrimitives()[0].primitiveName);
+    EXPECT_EQ("primitive is not supported by GPU intersection scene compiler",
+              compiled.unsupportedPrimitives()[0].reason);
   }
 
   TEST(IntersectionSceneCompiler, RecordsUnsupportedPrimitiveReasons) {
@@ -477,15 +472,6 @@ namespace IntersectionSceneCompilerTest {
     const Rayd ray(Vector4d(0.25, 0.5, -3, 1), Vector3d(0, 0, 1));
 
     expectCompiledClosestHitMatchesRuntime(scene, ray);
-    expectCompiledAnyHitMatchesRuntime(scene, ray, 3.0);
-  }
-
-  TEST(CompiledIntersectionSceneIntersector, IntersectsOpenCylinderTrianglesLikeRuntimeScene) {
-    Scene scene;
-    scene.add(std::make_shared<OpenCylinder>(1.0, 2.0));
-    const Rayd ray(Vector4d(0, 0.5, -3, 1), Vector3d(0, 0, 1));
-
-    expectCompiledClosestHitMatchesRuntime(scene, ray, 1e-6);
     expectCompiledAnyHitMatchesRuntime(scene, ray, 3.0);
   }
 
