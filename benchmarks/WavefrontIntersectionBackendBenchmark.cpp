@@ -245,7 +245,7 @@ namespace {
     const Workload& workload = workloadFor(state);
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(*workload.scene);
     const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
-    if (!buffers.packedClosestHitKernelEligible()) {
+    if (!buffers.packedAnyHitKernelEligible()) {
       state.SkipWithError("workload is not packed any-hit eligible");
       return;
     }

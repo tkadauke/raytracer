@@ -195,7 +195,7 @@ namespace WavefrontIntersectionBackendPerformanceTest {
   TEST(WavefrontIntersectionBackendPerformance,
        PackedAnyHitIsAtLeast10xFasterThanRuntimeSceneOnMeshHeavyScene) {
     const MeshHeavyIntersectionWorkload workload(32, 256);
-    ASSERT_TRUE(workload.buffers().packedClosestHitKernelEligible());
+    ASSERT_TRUE(workload.buffers().packedAnyHitKernelEligible());
 
     const auto runtime = workload.timeRuntimeAnyHit();
     const auto packed = workload.timePackedAnyHit();
