@@ -400,6 +400,10 @@ namespace RenderGraphInspectorWidgetTest {
     return wavefrontTraceForBackend("gpu");
   }
 
+  std::shared_ptr<const RenderGraphExecutionTrace> wavefrontAutoTrace() {
+    return wavefrontTraceForBackend("auto");
+  }
+
   void processEventsFor(int milliseconds) {
     QElapsedTimer timer;
     timer.start();
@@ -1074,6 +1078,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection backend execution path")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection backend fallback")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Expected intersection rays")).isEmpty());
+    EXPECT_TRUE(rowValue(rows, QStringLiteral("Auto minimum GPU rays")).isEmpty());
     EXPECT_EQ(QStringLiteral("yes"), rowValue(rows, QStringLiteral("Intersection scene compiled")));
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection scene primitives")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection scene BVH nodes")).isEmpty());
@@ -1081,6 +1086,41 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection query transfer bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit rays submitted")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Any-hit rays submitted")).isEmpty());
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest,
+         ShouldExposeAutoWavefrontIntersectionThresholdForSelectedPass) {
+    auto trace = wavefrontAutoTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    const auto rows = widget.passDetailRows(QStringLiteral("wavefront_beauty"));
+
+    EXPECT_EQ(QStringLiteral("Auto"),
+              rowValue(rows, QStringLiteral("Intersection backend request")));
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Expected intersection rays")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Auto minimum GPU rays")).isEmpty());
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowAutoWavefrontThresholdOnPassTooltip) {
+    auto trace = wavefrontAutoTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+
+    QGraphicsItem* pass = graphNodeItem(graph->scene(), "pass", "wavefront_beauty");
+    ASSERT_NE(nullptr, pass);
+
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("auto GPU threshold")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowRasterMetricsOnSelectedPassRow) {

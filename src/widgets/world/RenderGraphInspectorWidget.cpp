@@ -505,6 +505,11 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                              QStringLiteral("intersectionBackendFallbackReason"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Expected intersection rays"), batching,
                               QStringLiteral("intersectionBackendExpectedRays"));
+  if (batching.value(QStringLiteral("intersectionBackendRequest")).toString() ==
+      QStringLiteral("auto")) {
+    addDetailIntegerMetadataRow(rows, QStringLiteral("Auto minimum GPU rays"), batching,
+                                QStringLiteral("intersectionBackendAutoMinimumGpuRays"));
+  }
   addDetailBoolMetadataRow(rows, QStringLiteral("GPU device available"), batching,
                            QStringLiteral("intersectionBackendPlatformGpuDeviceAvailable"));
   addDetailBoolMetadataRow(rows, QStringLiteral("GPU render path available"), batching,
@@ -732,6 +737,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         jsonIntegerValue(batching, QStringLiteral("intersectionBackendExpectedRays"));
       if (expectedRays > 0) {
         line += QStringLiteral(", expected %1 intersection rays").arg(expectedRays);
+      }
+      const qulonglong autoMinimumGpuRays =
+        jsonIntegerValue(batching, QStringLiteral("intersectionBackendAutoMinimumGpuRays"));
+      if (intersectionBackendRequest == QStringLiteral("auto") && autoMinimumGpuRays > 0) {
+        line += QStringLiteral(", auto GPU threshold %1 rays").arg(autoMinimumGpuRays);
       }
       if (batching.contains(QStringLiteral("intersectionBackendPlatformGpuDeviceAvailable"))) {
         line +=

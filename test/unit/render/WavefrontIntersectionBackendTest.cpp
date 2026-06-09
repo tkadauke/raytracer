@@ -268,6 +268,7 @@ namespace WavefrontIntersectionBackendTest {
       policy.decide(false, false, supportedPackedDiagnostics(), context);
 
     EXPECT_FALSE(decision.useGpu);
+    EXPECT_EQ(65536u, decision.minimumExpectedRayCount);
     EXPECT_NE(std::string::npos, decision.reason.find("unavailable"));
   }
 
@@ -280,6 +281,7 @@ namespace WavefrontIntersectionBackendTest {
       policy.decide(true, false, supportedPackedDiagnostics(), context);
 
     EXPECT_FALSE(decision.useGpu);
+    EXPECT_EQ(65536u, decision.minimumExpectedRayCount);
     EXPECT_NE(std::string::npos, decision.reason.find("render path"));
   }
 
@@ -294,6 +296,7 @@ namespace WavefrontIntersectionBackendTest {
       policy.decide(true, true, diagnostics, context);
 
     EXPECT_FALSE(decision.useGpu);
+    EXPECT_EQ(65536u, decision.minimumExpectedRayCount);
     EXPECT_NE(std::string::npos, decision.reason.find("unsupported"));
   }
 
@@ -307,6 +310,7 @@ namespace WavefrontIntersectionBackendTest {
       policy.decide(true, true, supportedPackedDiagnostics(), context);
 
     EXPECT_FALSE(decision.useGpu);
+    EXPECT_EQ(64u, decision.minimumExpectedRayCount);
     EXPECT_NE(std::string::npos, decision.reason.find("below GPU threshold"));
   }
 
@@ -323,6 +327,7 @@ namespace WavefrontIntersectionBackendTest {
       policy.decide(true, true, diagnostics, context);
 
     EXPECT_FALSE(decision.useGpu);
+    EXPECT_EQ(128u, decision.minimumExpectedRayCount);
     EXPECT_NE(std::string::npos, decision.reason.find("below GPU threshold 128"));
     EXPECT_NE(std::string::npos, decision.reason.find("scene upload 2048 bytes"));
   }
@@ -340,6 +345,7 @@ namespace WavefrontIntersectionBackendTest {
       policy.decide(true, true, diagnostics, context);
 
     EXPECT_TRUE(decision.useGpu);
+    EXPECT_EQ(128u, decision.minimumExpectedRayCount);
     EXPECT_NE(std::string::npos, decision.reason.find("auto selected GPU"));
   }
 
@@ -355,6 +361,7 @@ namespace WavefrontIntersectionBackendTest {
       policy.decide(true, true, diagnostics, context);
 
     EXPECT_FALSE(decision.useGpu);
+    EXPECT_EQ(65536u, decision.minimumExpectedRayCount);
     EXPECT_NE(std::string::npos, decision.reason.find("basic-kernel eligible"));
   }
 
@@ -368,6 +375,7 @@ namespace WavefrontIntersectionBackendTest {
       policy.decide(true, true, supportedPackedDiagnostics(), context);
 
     EXPECT_TRUE(decision.useGpu);
+    EXPECT_EQ(64u, decision.minimumExpectedRayCount);
     EXPECT_NE(std::string::npos, decision.reason.find("auto selected GPU"));
   }
 

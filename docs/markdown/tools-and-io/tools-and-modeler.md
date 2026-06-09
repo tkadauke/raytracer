@@ -141,7 +141,10 @@ this stage, scene support means triangle, sphere, plane, rectangle, disk, and
 box-tessellation leaves with either no transform or static instance transforms
 that can use the first Metal/Vulkan closest-hit and any-hit kernels; other
 packed scenes still select CPU and report that selection reason in graph trace
-and wavefront metrics instead of silently behaving like `cpu`.
+and wavefront metrics instead of silently behaving like `cpu`. Metrics include
+both `intersectionBackendExpectedRays` and
+`intersectionBackendAutoMinimumGpuRays`, so a small auto-selected CPU render can
+show the exact ray-count threshold it failed to clear.
 `gpu` is accepted as durable intent and reports either the active platform path
 or a CPU fallback reason in graph trace and wavefront metrics. For a
 `gpu` request, the renderer also runs the compiled-intersection-scene diagnostic

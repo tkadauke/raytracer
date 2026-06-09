@@ -897,6 +897,7 @@ namespace WavefrontRaytracerTest {
     expectPlatformGpuFallbackReason(metrics.batching.intersectionBackendFallbackReason);
     EXPECT_EQ("runtime_scene", metrics.batching.intersectionBackendExecutionPath);
     EXPECT_EQ(480u, metrics.batching.intersectionBackendExpectedRays);
+    EXPECT_EQ(65536u, metrics.batching.intersectionBackendAutoMinimumGpuRays);
     EXPECT_FALSE(metrics.batching.intersectionSceneCompiled);
     EXPECT_EQ(0u, metrics.batching.intersectionScenePrimitives);
     EXPECT_EQ(0u, metrics.batching.intersectionSceneUnsupportedPrimitives);
@@ -1015,6 +1016,9 @@ namespace WavefrontRaytracerTest {
                                  .toStdString());
     EXPECT_EQ(
       480.0, json.value("batching").toObject().value("intersectionBackendExpectedRays").toDouble());
+    EXPECT_EQ(
+      65536.0,
+      json.value("batching").toObject().value("intersectionBackendAutoMinimumGpuRays").toDouble());
     EXPECT_FALSE(json.value("batching").toObject().value("intersectionSceneCompiled").toBool());
     EXPECT_EQ(0.0,
               json.value("batching").toObject().value("intersectionScenePrimitives").toDouble());
@@ -1170,9 +1174,11 @@ namespace WavefrontRaytracerTest {
     const auto metrics = renderer->lastMetrics();
     EXPECT_EQ(12u, metrics.input.primarySamples);
     EXPECT_EQ(108u, metrics.batching.intersectionBackendExpectedRays);
+    EXPECT_EQ(65536u, metrics.batching.intersectionBackendAutoMinimumGpuRays);
 
     const QJsonObject batching = metrics.toJson().value("batching").toObject();
     EXPECT_EQ(108.0, batching.value("intersectionBackendExpectedRays").toDouble());
+    EXPECT_EQ(65536.0, batching.value("intersectionBackendAutoMinimumGpuRays").toDouble());
   }
 
   TEST(WavefrontRaytracer, RecordsGpuIntersectionBackendFallbackMetrics) {

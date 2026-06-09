@@ -70,6 +70,7 @@ namespace engine::wavefront {
       bool intersectionBackendPlatformGpuDeviceAvailable = false;
       bool intersectionBackendPlatformGpuRenderPathAvailable = false;
       std::uint64_t intersectionBackendExpectedRays = 0;
+      std::uint64_t intersectionBackendAutoMinimumGpuRays = 0;
       bool intersectionSceneCompiled = false;
       std::uint64_t intersectionSceneBvhNodes = 0;
       std::uint64_t intersectionScenePrimitives = 0;

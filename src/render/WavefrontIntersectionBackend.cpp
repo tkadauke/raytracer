@@ -101,33 +101,39 @@ namespace render {
     bool platformGpuDeviceAvailable, bool platformGpuRenderPathAvailable,
     const WavefrontIntersectionSceneDiagnostics& diagnostics,
     const WavefrontIntersectionBackendSelectionContext& context) const {
+    const std::uint64_t minimumRayCount = minimumExpectedRayCount(diagnostics, context);
+
     if (!platformGpuDeviceAvailable) {
-      return {false, "auto selected CPU: platform GPU intersection backend is unavailable"};
+      return {false, minimumRayCount,
+              "auto selected CPU: platform GPU intersection backend is unavailable"};
     }
 
     if (!platformGpuRenderPathAvailable) {
-      return {false, "auto selected CPU: platform GPU intersection render path is unavailable"};
+      return {false, minimumRayCount,
+              "auto selected CPU: platform GPU intersection render path is unavailable"};
     }
 
     if (!sceneCanUseGpu(diagnostics)) {
       if (!diagnostics.compiled) {
-        return {false, "auto selected CPU: intersection scene was not compiled"};
+        return {false, minimumRayCount, "auto selected CPU: intersection scene was not compiled"};
       }
       if (diagnostics.unsupportedPrimitives > 0) {
-        return {false, "auto selected CPU: intersection scene contains unsupported primitives"};
+        return {false, minimumRayCount,
+                "auto selected CPU: intersection scene contains unsupported primitives"};
       }
-      return {false, "auto selected CPU: intersection scene is not basic-kernel eligible"};
+      return {false, minimumRayCount,
+              "auto selected CPU: intersection scene is not basic-kernel eligible"};
     }
 
     if (!expectedRayCountJustifiesGpu(diagnostics, context)) {
-      const std::uint64_t threshold = minimumExpectedRayCount(diagnostics, context);
-      return {false, "auto selected CPU: expected ray count " +
-                       std::to_string(context.expectedRayCount) + " is below GPU threshold " +
-                       std::to_string(threshold) + " (scene upload " +
-                       std::to_string(diagnostics.uploadBytes) + " bytes)"};
+      return {false, minimumRayCount,
+              "auto selected CPU: expected ray count " + std::to_string(context.expectedRayCount) +
+                " is below GPU threshold " + std::to_string(minimumRayCount) + " (scene upload " +
+                std::to_string(diagnostics.uploadBytes) + " bytes)"};
     }
 
-    return {true, "auto selected GPU: supported scene and expected ray count justify transfer"};
+    return {true, minimumRayCount,
+            "auto selected GPU: supported scene and expected ray count justify transfer"};
   }
 
   bool WavefrontIntersectionBackendAutoSelectionPolicy::sceneCanUseGpu(

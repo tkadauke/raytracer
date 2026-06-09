@@ -2644,7 +2644,8 @@ foreach(expectation
         "intersection_backend_availability=available"
         "intersection_backend_fallback=auto_selected_CPU"
         "intersection_backend_execution=runtime_scene"
-        "intersection_expected_rays=[1-9][0-9]*")
+        "intersection_expected_rays=[1-9][0-9]*"
+        "intersection_auto_minimum_gpu_rays=[1-9][0-9]*")
   if(NOT wavefront_supported_backend_auto_stdout MATCHES "${expectation}")
     _rendercli_fail("rendercli small supported wavefront auto summary ${expectation}"
                     "small supported wavefront auto summary did not match ${expectation}"
@@ -2658,7 +2659,8 @@ foreach(expectation
         "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"available\""
         "\"intersectionBackendFallbackReason\"[ \r\n]*:[ \r\n]*\"auto selected CPU"
         "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
-        "\"intersectionBackendExpectedRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
+        "\"intersectionBackendExpectedRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"intersectionBackendAutoMinimumGpuRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
   if(NOT wavefront_supported_backend_auto_json MATCHES "${expectation}")
     _rendercli_fail("rendercli small supported wavefront auto report ${expectation}"
                     "small supported wavefront auto report did not match ${expectation}"
