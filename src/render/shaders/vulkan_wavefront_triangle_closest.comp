@@ -66,7 +66,7 @@ struct RectanglePayload {
 
 struct DiskPayload {
   vec4 centerRadius;
-  vec4 normal;
+  vec4 normalMinimumHitDistance;
 };
 
 struct OpenCylinderPayload {
@@ -458,14 +458,16 @@ LocalHit intersectDisk(RayRecord ray, DiskPayload disk) {
   LocalHit result = makeLocalMiss();
   const vec3 center = disk.centerRadius.xyz;
   const float radius = disk.centerRadius.w;
-  const vec3 normal = disk.normal.xyz;
+  const vec3 normal = disk.normalMinimumHitDistance.xyz;
+  const float minimumHitDistance = disk.normalMinimumHitDistance.w;
   const float denominator = dot(ray.direction.xyz, normal);
   if (denominator == 0.0) {
     return result;
   }
 
   const float distance = dot(center - ray.origin.xyz, normal) / denominator;
-  if (isnan(distance) || isinf(distance) || distance < 0.0001 || distance < ray.minDistance ||
+  if (isnan(distance) || isinf(distance) || distance < minimumHitDistance ||
+      distance < ray.minDistance ||
       distance > ray.maxDistance) {
     return result;
   }

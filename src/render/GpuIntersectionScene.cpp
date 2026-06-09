@@ -302,8 +302,9 @@ GpuIntersectionRectanglePayload GpuIntersectionScenePacker::packRectanglePayload
 
 GpuIntersectionDiskPayload
 GpuIntersectionScenePacker::packDiskPayload(const IntersectionDiskPayload& payload) const {
-  return GpuIntersectionDiskPayload{packVector(payload.center, packScalar(payload.radius)),
-                                    packVector(payload.normal)};
+  return GpuIntersectionDiskPayload{
+    packVector(payload.center, packScalar(payload.radius)),
+    packVector(payload.normal, packScalar(payload.minimumHitDistance))};
 }
 
 GpuIntersectionOpenCylinderPayload GpuIntersectionScenePacker::packOpenCylinderPayload(
@@ -712,9 +713,10 @@ GpuIntersectionIntersector::intersectDisk(const GpuIntersectionRay& ray,
   const float centerY = disk.centerRadius[1];
   const float centerZ = disk.centerRadius[2];
   const float radius = disk.centerRadius[3];
-  const float normalX = disk.normal[0];
-  const float normalY = disk.normal[1];
-  const float normalZ = disk.normal[2];
+  const float normalX = disk.normalMinimumHitDistance[0];
+  const float normalY = disk.normalMinimumHitDistance[1];
+  const float normalZ = disk.normalMinimumHitDistance[2];
+  const float minimumHitDistance = disk.normalMinimumHitDistance[3];
   const float denominator =
     ray.direction[0] * normalX + ray.direction[1] * normalY + ray.direction[2] * normalZ;
   if (denominator == 0.0f) {
@@ -725,7 +727,7 @@ GpuIntersectionIntersector::intersectDisk(const GpuIntersectionRay& ray,
     ((centerX - ray.origin[0]) * normalX + (centerY - ray.origin[1]) * normalY +
      (centerZ - ray.origin[2]) * normalZ) /
     denominator;
-  if (!std::isfinite(distance) || distance < 0.0001f || distance < ray.minDistance ||
+  if (!std::isfinite(distance) || distance < minimumHitDistance || distance < ray.minDistance ||
       distance > ray.maxDistance) {
     return std::nullopt;
   }

@@ -566,6 +566,10 @@ Progress:
   channels through the same GPU-style hit record shape used by the triangle
   traversal. Metal and Vulkan basic closest-hit/any-hit kernels now consume the
   OpenCylinder payload natively.
+- Disk payloads now carry their runtime near-hit cutoff through the compiled
+  scene and packed GPU ABI, keeping the host parity intersector plus the Metal
+  and Vulkan basic kernels aligned with the runtime disk intersection rule
+  instead of duplicating a hard-coded shader constant.
 - Box leaves now compile into the same triangle payload path using the canonical
   12-triangle box tessellation, while preserving the exact raytraced Box's
   default hit-UV semantics. This lets Box-only supported scenes use prepared

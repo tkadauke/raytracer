@@ -243,7 +243,7 @@ namespace GpuIntersectionSceneTest {
 
     ASSERT_EQ(1u, buffers.disks.size());
     expectVector(buffers.disks[0].centerRadius, 8.0f, 9.0f, 10.0f, 11.0f);
-    expectVector(buffers.disks[0].normal, 0.0f, 0.0f, 1.0f, 0.0f);
+    expectVector(buffers.disks[0].normalMinimumHitDistance, 0.0f, 0.0f, 1.0f, 0.0001f);
 
     EXPECT_EQ(buffers.bvh.size() * sizeof(GpuIntersectionBvhNode) +
                 buffers.primitives.size() * sizeof(GpuIntersectionPrimitiveRecord) +
@@ -535,6 +535,25 @@ namespace GpuIntersectionSceneTest {
     const Rayd ray(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
 
     expectPackedClosestHitMatchesCompiled(scene, ray, 24, true);
+  }
+
+  TEST(GpuIntersectionScene, PackedDiskHonorsCompiledMinimumHitDistance) {
+    Scene scene;
+    scene.add(std::make_shared<Disk>(Vector3d(0, 0, 0), Vector3d(0, 0, 1), 1.0));
+    const GpuIntersectionSceneBuffers buffers =
+      GpuIntersectionScenePacker().packScene(IntersectionSceneCompiler().compile(scene));
+    ASSERT_EQ(1u, buffers.disks.size());
+    EXPECT_FLOAT_EQ(0.0001f, buffers.disks[0].normalMinimumHitDistance[3]);
+
+    const GpuIntersectionRay nearSurfaceRay = GpuIntersectionScenePacker().packRay(
+      Rayd(Vector4d(0.25, 0.25, -0.00005, 1), Vector3d(0, 0, 1)), 28);
+    const GpuIntersectionRay fartherRay = GpuIntersectionScenePacker().packRay(
+      Rayd(Vector4d(0.25, 0.25, -0.0002, 1), Vector3d(0, 0, 1)), 29);
+
+    EXPECT_FALSE(GpuIntersectionIntersector().intersectClosest(buffers, nearSurfaceRay).hit);
+    EXPECT_FALSE(GpuIntersectionIntersector().intersectAny(buffers, nearSurfaceRay));
+    EXPECT_TRUE(GpuIntersectionIntersector().intersectClosest(buffers, fartherRay).hit);
+    EXPECT_TRUE(GpuIntersectionIntersector().intersectAny(buffers, fartherRay));
   }
 
   TEST(GpuIntersectionScene, PackedDiskRejectsCoplanarParallelRayLikeCompiledScene) {

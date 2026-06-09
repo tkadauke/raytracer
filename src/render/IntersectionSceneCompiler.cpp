@@ -864,7 +864,7 @@ CompiledIntersectionSceneIntersector::intersectDisk(const CompiledIntersectionSc
     return std::nullopt;
   }
 
-  if (distance < 0.0001) {
+  if (distance < payload.minimumHitDistance) {
     return std::nullopt;
   }
 

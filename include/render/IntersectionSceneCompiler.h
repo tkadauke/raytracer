@@ -75,6 +75,7 @@ namespace render {
     Vector3d center;
     Vector3d normal;
     double radius{0.0};
+    double minimumHitDistance{0.0001};
   };
 
   struct IntersectionOpenCylinderPayload {

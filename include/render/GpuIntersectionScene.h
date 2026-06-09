@@ -80,7 +80,7 @@ namespace render {
 
   struct alignas(16) GpuIntersectionDiskPayload {
     std::array<float, 4> centerRadius{};
-    std::array<float, 4> normal{};
+    std::array<float, 4> normalMinimumHitDistance{};
   };
 
   struct alignas(16) GpuIntersectionOpenCylinderPayload {

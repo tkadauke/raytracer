@@ -507,6 +507,22 @@ namespace IntersectionSceneCompilerTest {
     expectCompiledClosestHitMatchesRuntime(scene, ray);
   }
 
+  TEST(CompiledIntersectionSceneIntersector, HonorsDiskMinimumHitDistance) {
+    Scene scene;
+    scene.add(std::make_shared<Disk>(Vector3d(0, 0, 0), Vector3d(0, 0, 1), 1.0));
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+
+    ASSERT_EQ(1u, compiled.disks().size());
+    EXPECT_DOUBLE_EQ(0.0001, compiled.disks()[0].minimumHitDistance);
+
+    const Rayd nearSurfaceRay(Vector4d(0.25, 0.25, -0.00005, 1), Vector3d(0, 0, 1));
+    const Rayd fartherRay(Vector4d(0.25, 0.25, -0.0002, 1), Vector3d(0, 0, 1));
+
+    EXPECT_FALSE(
+      CompiledIntersectionSceneIntersector().intersectClosest(compiled, nearSurfaceRay).hit);
+    expectCompiledClosestHitMatchesRuntime(scene, fartherRay);
+  }
+
   TEST(CompiledIntersectionSceneIntersector, IntersectsOpenCylinderLikeRuntimeScene) {
     Scene scene;
     scene.add(std::make_shared<OpenCylinder>(1.0, 2.0));
