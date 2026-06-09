@@ -137,24 +137,24 @@ ray-scene intersection backend for wavefront batches. `cpu` uses the canonical
 CPU backend. `auto` now runs through the same selection policy used for GPU
 backend requests: platform availability first, then scene support, then an
 expected-ray-count threshold that scales with prepared scene-upload size. At
-this stage, scene support means triangle, sphere, plane, rectangle, and disk
-leaves with either no transform or static instance transforms that can use the
-first Metal closest-hit/any-hit kernels; other packed scenes still select CPU
-and report that selection reason in graph trace and wavefront metrics instead
-of silently behaving like `cpu`.
+this stage, scene support means triangle, sphere, plane, rectangle, disk, and
+box-tessellation leaves with either no transform or static instance transforms
+that can use the first Metal/Vulkan closest-hit and any-hit kernels; other
+packed scenes still select CPU and report that selection reason in graph trace
+and wavefront metrics instead of silently behaving like `cpu`.
 `gpu` is accepted as durable intent and reports either the active platform path
 or a CPU fallback reason in graph trace and wavefront metrics. For a
 `gpu` request, the renderer also runs the compiled-intersection-scene diagnostic
 before the render starts, so scenes that contain unsupported exact leaves report
 the first unsupported primitive as the fallback reason. Supported scenes retain
 that compiled record set on the scene-created Metal/Vulkan backend object,
-ready for upload-backed work. The Metal build flag already proves a tiny
+ready for upload-backed work. Metal- and Vulkan-enabled builds prove a tiny
 upload/dispatch/readback smoke kernel and can execute triangle, sphere, plane,
 rectangle, disk, and static-transform closest-hit and any-hit queries through
-packed-ABI Metal kernels in the render path. Prepared scenes outside that
+packed-ABI platform kernels in the render path. Prepared scenes outside that
 basic subset still run through the packed upload buffers via a CPU traversal
-with the same hit-record and visibility contract the wider Metal/Vulkan kernels
-will write.
+with the same hit-record and visibility contract that future wider kernels must
+write.
 Wavefront metrics and
 `--wavefront_metrics_summary` expose the compiled-scene primitive, BVH,
 payload, unsupported-leaf counts, basic-kernel, packed closest-hit, and packed any-hit
@@ -510,18 +510,19 @@ and 64 samples per pixel, matching the sampler guidance for stochastic
 transport. For Path Tracer final renders using the wavefront schedule, the same
 dialog can leave the scene's saved denoiser intent alone or explicitly override
 it to None, Box, or Bilateral with radius and bilateral color-sigma controls.
-It can also request Auto, CPU, or GPU wavefront intersection. GPU currently
-records the request and falls back to CPU visibly in the compiled graph and
-trace metadata; if the scene cannot be represented by the GPU intersection
-record format yet, the fallback reason names the unsupported leaf. Supported
-scenes are still compiled into the GPU-ready record format and retained by the
-scene-created platform backend stub so the future Metal/Vulkan upload path can
-reuse the same preparation step. Metal-enabled builds also expose separate smoke
-kernel test paths outside rendering and can run the exact-primitive and
-static-transform basic closest-hit/any-hit subset in the render path when a
-Metal device is available. Auto selection distinguishes a detected GPU device
-from a render-path-capable backend, so Vulkan builds can report a compute device
-without being treated as GPU-render-capable before Vulkan hit kernels exist.
+It can also request Auto, CPU, or GPU wavefront intersection. GPU records the
+request and either uses the active Metal/Vulkan platform path or falls back to
+CPU visibly in the compiled graph and trace metadata; if the scene cannot be
+represented by the GPU intersection record format yet, the fallback reason names
+the unsupported leaf. Supported scenes are compiled into the GPU-ready record
+format and retained by the scene-created platform backend so the Metal/Vulkan
+upload path can reuse the same preparation step. Metal- and Vulkan-enabled
+builds also expose separate smoke kernel test paths outside rendering and can
+run the exact-primitive and static-transform basic closest-hit/any-hit subset in
+the render path when a platform compute device and render-path kernels are
+available. Auto selection distinguishes a detected GPU device from a
+render-path-capable backend, so device discovery alone is not treated as enough
+to select GPU rendering.
 Scenes outside that subset use the supported packed
 CPU traversal or the compiled CPU parity intersector; unsupported-scene fallback
 keeps the full runtime `Scene` path. The render graph pass tooltip shows the actual query

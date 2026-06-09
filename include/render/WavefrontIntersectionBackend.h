@@ -101,9 +101,11 @@ namespace render {
   /**
     * User/intent-level choice for wavefront ray-scene intersection work.
     *
-    * The first implementation resolves both `auto` and `cpu` to the canonical
-    * CPU backend. `gpu` is accepted as durable intent and currently resolves to
-    * CPU with a fallback reason until a platform GPU backend is available.
+    * `cpu` always uses the canonical runtime Scene traversal. `gpu` requests
+    * the host platform backend directly and falls back visibly when the platform
+    * backend is unavailable or the scene cannot use the packed kernel ABI.
+    * `auto` uses the same platform path only when availability, scene support,
+    * and expected ray count justify the transfer cost.
     */
   class WavefrontIntersectionBackendChoice {
   public:
@@ -269,13 +271,12 @@ namespace render {
   };
 
   /**
-    * @brief macOS GPU-intersection backend placeholder.
+    * @brief macOS GPU-intersection backend.
     *
-    * The class is intentionally visible before a Metal kernel exists so render
-    * intent, diagnostics, and tests can name the platform backend explicitly.
-    * Until a Metal closest-hit implementation lands, it reports a fallback and
-    * uses host-side CPU traversal over retained compiled/packed scene data when
-    * available, otherwise the canonical runtime CPU backend.
+    * Eligible prepared scenes execute Metal basic closest-hit and any-hit
+    * kernels. Unsupported scenes, unavailable devices, or runtime kernel
+    * failures fall back visibly to the packed CPU contract or the canonical
+    * runtime CPU backend.
     */
   class MetalWavefrontIntersectionBackend final : public WavefrontIntersectionBackend {
   public:
@@ -351,13 +352,12 @@ namespace render {
   };
 
   /**
-    * @brief Linux GPU-intersection backend placeholder.
+    * @brief Linux GPU-intersection backend.
     *
-    * The class is intentionally visible before a Vulkan compute kernel exists
-    * so render intent, diagnostics, and tests can name the platform backend
-    * explicitly. Until a Vulkan closest-hit implementation lands, it reports a
-    * fallback and uses host-side CPU traversal over retained compiled/packed
-    * scene data when available, otherwise the canonical runtime CPU backend.
+    * Eligible prepared scenes execute Vulkan compute basic closest-hit and
+    * any-hit kernels. Unsupported scenes, unavailable devices, or runtime
+    * kernel failures fall back visibly to the packed CPU contract or the
+    * canonical runtime CPU backend.
     */
   class VulkanWavefrontIntersectionBackend final : public WavefrontIntersectionBackend {
   public:
