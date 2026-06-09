@@ -27,6 +27,30 @@ namespace {
     std::string name;
     std::shared_ptr<Scene> scene;
 
+    [[nodiscard]] std::shared_ptr<const WavefrontIntersectionBackend>
+    automaticBackend(std::size_t expectedRayCount) const {
+      WavefrontIntersectionBackendSelectionContext context;
+      context.expectedRayCount = static_cast<std::uint64_t>(expectedRayCount);
+      return WavefrontIntersectionBackendChoice::automatic().createBackendForScene(*scene, context);
+    }
+
+    void annotateBackendQuery(benchmark::State& state, const WavefrontIntersectionBackend& backend,
+                              const WavefrontIntersectionQueryTiming& timing, std::size_t rayCount,
+                              std::size_t readbackRecordSize) const {
+      const WavefrontIntersectionSceneDiagnostics diagnostics = backend.compiledSceneDiagnostics();
+      std::string executionPath = timing.executionPath;
+      if (executionPath.empty()) {
+        executionPath = backend.executionPath();
+      }
+      state.SetLabel(name + "/" + backend.requestedName() + "/" + backend.name() + "/" +
+                     executionPath);
+      state.counters["rays"] = static_cast<double>(rayCount);
+      state.counters["scene_upload_bytes"] = static_cast<double>(diagnostics.uploadBytes);
+      state.counters["ray_upload_bytes"] =
+        static_cast<double>(rayCount * sizeof(GpuIntersectionRay));
+      state.counters["readback_bytes"] = static_cast<double>(rayCount * readbackRecordSize);
+    }
+
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     [[nodiscard]] std::shared_ptr<const WavefrontIntersectionBackend>
     requestedGpuBackend(benchmark::State& state) const {
@@ -38,26 +62,9 @@ namespace {
       }
       return backend;
     }
-
-    void annotateBackendQuery(benchmark::State& state, const WavefrontIntersectionBackend& backend,
-                              const WavefrontIntersectionQueryTiming& timing, std::size_t rayCount,
-                              std::size_t readbackRecordSize) const {
-      const WavefrontIntersectionSceneDiagnostics diagnostics = backend.compiledSceneDiagnostics();
-      std::string executionPath = timing.executionPath;
-      if (executionPath.empty()) {
-        executionPath = backend.executionPath();
-      }
-      state.SetLabel(name + "/" + backend.name() + "/" + executionPath);
-      state.counters["rays"] = static_cast<double>(rayCount);
-      state.counters["scene_upload_bytes"] = static_cast<double>(diagnostics.uploadBytes);
-      state.counters["ray_upload_bytes"] =
-        static_cast<double>(rayCount * sizeof(GpuIntersectionRay));
-      state.counters["readback_bytes"] = static_cast<double>(rayCount * readbackRecordSize);
-    }
 #endif
   };
 
-#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
   struct ClosestQueryBatch {
     std::vector<State> states;
     std::vector<WavefrontClosestHitQuery> queries;
@@ -83,7 +90,6 @@ namespace {
       }
     }
   };
-#endif
 
   std::shared_ptr<Scene> makeSmallSupportedScene() {
     auto scene = std::make_shared<Scene>();
@@ -267,6 +273,46 @@ namespace {
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(packedRays.size()));
   }
 
+  void bm_autoClosestHitBatch(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const std::vector<Rayd> rays = generateRays(state.range(1));
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      workload.automaticBackend(rays.size());
+    ClosestQueryBatch batch(rays);
+    WavefrontIntersectionQueryTiming timing;
+    for (auto _ : state) {
+      WavefrontIntersectionQueryTiming queryTiming;
+      const std::vector<WavefrontClosestHitResult> hits =
+        backend->intersectClosestBatch(*workload.scene, batch.queries, &queryTiming);
+      timing.add(queryTiming);
+      benchmark::DoNotOptimize(hits.size());
+    }
+
+    workload.annotateBackendQuery(state, *backend, timing, batch.queries.size(),
+                                  sizeof(GpuIntersectionHitRecord));
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(batch.queries.size()));
+  }
+
+  void bm_autoAnyHitBatch(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const std::vector<Rayd> rays = generateRays(state.range(1));
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      workload.automaticBackend(rays.size());
+    AnyQueryBatch batch(rays, 40.0);
+    WavefrontIntersectionQueryTiming timing;
+    for (auto _ : state) {
+      WavefrontIntersectionQueryTiming queryTiming;
+      const std::vector<bool> occluded =
+        backend->intersectAnyBatch(*workload.scene, batch.queries, &queryTiming);
+      timing.add(queryTiming);
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
+    }
+
+    workload.annotateBackendQuery(state, *backend, timing, batch.queries.size(),
+                                  sizeof(GpuIntersectionOcclusionRecord));
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(batch.queries.size()));
+  }
+
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
   void bm_requestedGpuClosestHitBatch(benchmark::State& state) {
     const Workload& workload = workloadFor(state);
@@ -335,6 +381,8 @@ BENCHMARK(bm_compileAndPackScene)->Apply(allWorkloads);
 BENCHMARK(bm_runtimeCpuClosestHit)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_packedClosestHit)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_packedAnyHit)->Apply(supportedQueryWorkloads);
+BENCHMARK(bm_autoClosestHitBatch)->Apply(supportedQueryWorkloads);
+BENCHMARK(bm_autoAnyHitBatch)->Apply(supportedQueryWorkloads);
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 BENCHMARK(bm_requestedGpuClosestHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuAnyHitBatch)->Apply(supportedQueryWorkloads);

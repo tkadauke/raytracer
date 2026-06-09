@@ -700,6 +700,11 @@ Progress:
   skip with the backend fallback reason when no platform path is available, and
   label the selected backend/execution path so Metal/Vulkan timings can be
   compared directly with the runtime CPU and packed CPU baselines.
+- Benchmark builds now also register automatic-backend closest-hit and any-hit
+  batch fixtures for those same supported scenes. Those entries do not require a
+  platform GPU build; they label the requested/resolved/execution path selected
+  by `auto`, making the small-scene CPU gate and large-scene GPU gate visible in
+  benchmark output.
 - A regular unit-test performance gate now pins the packed upload-buffer CPU
   traversal against runtime `Scene` traversal on a mesh-heavy supported scene.
   The threshold is deliberately conservative, but it catches regressions that
