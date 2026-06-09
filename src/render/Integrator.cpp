@@ -233,7 +233,9 @@ namespace render {
                                                 const WavefrontIntersectionQueryTiming& timing) {
     recordIntersectionBackend(backend);
     mergeLabel(intersectionBackendExecutionPath,
-               nonEmptyLabel(backend.closestHitExecutionPath(), "unknown"));
+               timing.executionPath.empty()
+                 ? nonEmptyLabel(backend.closestHitExecutionPath(), "unknown")
+                 : timing.executionPath);
     const std::uint64_t rayUploadBytes = backend.estimatedClosestHitRayUploadBytes(submittedRays);
     const std::uint64_t readbackBytes = backend.estimatedClosestHitReadbackBytes(submittedRays);
     intersectionEstimatedRayUploadBytes += rayUploadBytes;
@@ -254,7 +256,9 @@ namespace render {
                                                  const WavefrontIntersectionQueryTiming& timing) {
     recordIntersectionBackend(backend);
     mergeLabel(intersectionBackendExecutionPath,
-               nonEmptyLabel(backend.anyHitExecutionPath(), "unknown"));
+               timing.executionPath.empty()
+                 ? nonEmptyLabel(backend.anyHitExecutionPath(), "unknown")
+                 : timing.executionPath);
     const std::uint64_t rayUploadBytes = backend.estimatedAnyHitRayUploadBytes(submittedRays);
     const std::uint64_t readbackBytes = backend.estimatedAnyHitReadbackBytes(submittedRays);
     intersectionEstimatedRayUploadBytes += rayUploadBytes;

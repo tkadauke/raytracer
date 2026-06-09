@@ -100,6 +100,7 @@ namespace IntegratorTest {
     closestTiming.uploadSeconds = 0.001;
     closestTiming.kernelSeconds = 0.002;
     closestTiming.readbackSeconds = 0.003;
+    closestTiming.recordExecutionPath("packed_cpu");
     metrics.recordClosestHitQuery(*backend, 4, closestTiming);
 
     EXPECT_EQ("gpu", metrics.intersectionBackendRequest);
@@ -138,9 +139,10 @@ namespace IntegratorTest {
     anyTiming.uploadSeconds = 0.004;
     anyTiming.kernelSeconds = 0.005;
     anyTiming.readbackSeconds = 0.006;
+    anyTiming.recordExecutionPath("compiled_cpu");
     metrics.recordAnyHitQuery(*backend, 1, anyTiming);
 
-    EXPECT_EQ("packed_cpu", metrics.intersectionBackendExecutionPath);
+    EXPECT_EQ("mixed", metrics.intersectionBackendExecutionPath);
     EXPECT_EQ(5u, metrics.intersectionRaysSubmitted);
     EXPECT_EQ(4u, metrics.closestHitRaysSubmitted);
     EXPECT_EQ(1u, metrics.anyHitRaysSubmitted);

@@ -575,11 +575,13 @@ namespace render {
 
   std::vector<GpuIntersectionHitRecord>
   WavefrontIntersectionBackend::intersectPreparedPackedClosest(
-    const std::vector<GpuIntersectionRay>& rays,
-    WavefrontIntersectionQueryTiming* /*timing*/) const {
+    const std::vector<GpuIntersectionRay>& rays, WavefrontIntersectionQueryTiming* timing) const {
     const GpuIntersectionSceneBuffers* buffers = gpuIntersectionSceneBuffers();
     if (!buffers || !buffers->packedClosestHitKernelEligible()) {
       return {};
+    }
+    if (timing) {
+      timing->recordExecutionPath("packed_cpu");
     }
     return GpuIntersectionIntersector().intersectClosest(*buffers, rays);
   }
@@ -619,11 +621,13 @@ namespace render {
 
   std::vector<GpuIntersectionOcclusionRecord>
   WavefrontIntersectionBackend::intersectPreparedPackedAny(
-    const std::vector<GpuIntersectionRay>& rays,
-    WavefrontIntersectionQueryTiming* /*timing*/) const {
+    const std::vector<GpuIntersectionRay>& rays, WavefrontIntersectionQueryTiming* timing) const {
     const GpuIntersectionSceneBuffers* buffers = gpuIntersectionSceneBuffers();
     if (!buffers || !buffers->packedAnyHitKernelEligible()) {
       return {};
+    }
+    if (timing) {
+      timing->recordExecutionPath("packed_cpu");
     }
     return GpuIntersectionIntersector().intersectAny(*buffers, rays);
   }
@@ -674,6 +678,9 @@ namespace render {
 
     const CompiledIntersectionHit hit =
       CompiledIntersectionSceneIntersector().intersectClosest(*scene, ray);
+    if (timing) {
+      timing->recordExecutionPath("compiled_cpu");
+    }
     if (!hit.hit || hit.object >= scene->objects().size()) {
       state.miss(nullptr, "Compiled intersection scene");
       return nullptr;
@@ -761,6 +768,9 @@ namespace render {
       reason = "Packed GPU intersection scene";
     } else {
       hit = CompiledIntersectionSceneIntersector().intersectAny(*scene, ray, maxDistance);
+      if (timing) {
+        timing->recordExecutionPath("compiled_cpu");
+      }
     }
 
     if (hit) {
@@ -803,6 +813,9 @@ namespace render {
       }
       reason = "Packed GPU intersection scene";
     } else {
+      if (timing) {
+        timing->recordExecutionPath("compiled_cpu");
+      }
       for (std::size_t index = 0; index != queries.size(); ++index) {
         results[index] = CompiledIntersectionSceneIntersector().intersectAny(
           *scene, queries[index].ray, queries[index].maxDistance);
@@ -953,14 +966,20 @@ namespace render {
 
   const Primitive* CpuWavefrontIntersectionBackend::intersectClosest(
     const Scene& scene, const Rayd& ray, HitPointInterval& hitPoints, State& state,
-    WavefrontIntersectionQueryTiming* /*timing*/) const {
+    WavefrontIntersectionQueryTiming* timing) const {
+    if (timing) {
+      timing->recordExecutionPath("runtime_scene");
+    }
     return scene.intersect(ray, hitPoints, state);
   }
 
-  bool CpuWavefrontIntersectionBackend::intersectAny(const Scene& scene, const Rayd& ray,
-                                                     double maxDistance, State& state,
-                                                     WavefrontIntersectionQueryTiming*
-                                                     /*timing*/) const {
+  bool
+  CpuWavefrontIntersectionBackend::intersectAny(const Scene& scene, const Rayd& ray,
+                                                double maxDistance, State& state,
+                                                WavefrontIntersectionQueryTiming* timing) const {
+    if (timing) {
+      timing->recordExecutionPath("runtime_scene");
+    }
     return scene.occludes(ray, state, maxDistance);
   }
 
@@ -972,13 +991,19 @@ namespace render {
 
   PrimitivePacketHit4 CpuWavefrontIntersectionBackend::intersectPacketClosest(
     const Scene& scene, const Ray4& rays, const PrimitivePacketState4& states,
-    WavefrontIntersectionQueryTiming* /*timing*/) const {
+    WavefrontIntersectionQueryTiming* timing) const {
+    if (timing) {
+      timing->recordExecutionPath("runtime_scene");
+    }
     return scene.intersectPacketHits(rays, states);
   }
 
   PrimitivePacketHit8 CpuWavefrontIntersectionBackend::intersectPacketClosest(
     const Scene& scene, const Ray8& rays, const PrimitivePacketState8& states,
-    WavefrontIntersectionQueryTiming* /*timing*/) const {
+    WavefrontIntersectionQueryTiming* timing) const {
+    if (timing) {
+      timing->recordExecutionPath("runtime_scene");
+    }
     return scene.intersectPacketHits(rays, states);
   }
 
@@ -1127,6 +1152,7 @@ namespace render {
         m_metalPreparedScene->runTimedBasicClosestHitKernel(rays);
       if (timing) {
         timing->add(result.timing);
+        timing->recordExecutionPath("metal");
       }
       return result.hits;
     } catch (const std::exception&) {
@@ -1161,6 +1187,7 @@ namespace render {
         m_metalPreparedScene->runTimedBasicAnyHitKernel(rays);
       if (timing) {
         timing->add(result.timing);
+        timing->recordExecutionPath("metal");
       }
       return result.records;
     } catch (const std::exception&) {

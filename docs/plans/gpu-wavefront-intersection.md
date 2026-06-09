@@ -477,6 +477,11 @@ Progress:
   graph trace tooltips when a platform kernel actually runs; CPU fallback paths
   leave the buckets at zero so total intersection worker time remains
   comparable with and without GPU dispatch.
+- Closest-hit and any-hit queries now carry the execution path they actually
+  used alongside their timing buckets. Metrics prefer that per-query path over
+  the backend's nominal path, so runtime platform-kernel failures that fall
+  back to packed CPU traversal are visible as `packed_cpu` instead of being
+  mislabeled as `metal`.
 - The Metal wrapper now caches the default device, command queue, and compiled
   smoke/basic-hit compute pipelines across dispatches. Prepared Metal backends
   now also upload scene-side BVH, primitive, payload, and static count buffers

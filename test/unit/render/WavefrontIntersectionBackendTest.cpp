@@ -92,6 +92,33 @@ namespace WavefrontIntersectionBackendTest {
     }
   }
 
+  TEST(WavefrontIntersectionQueryTiming, MergesExecutionPaths) {
+    WavefrontIntersectionQueryTiming timing;
+    WavefrontIntersectionQueryTiming packed;
+    packed.uploadSeconds = 1.0;
+    packed.recordExecutionPath("packed_cpu");
+    timing.add(packed);
+
+    EXPECT_DOUBLE_EQ(1.0, timing.uploadSeconds);
+    EXPECT_EQ("packed_cpu", timing.executionPath);
+
+    WavefrontIntersectionQueryTiming samePath;
+    samePath.kernelSeconds = 2.0;
+    samePath.recordExecutionPath("packed_cpu");
+    timing.add(samePath);
+
+    EXPECT_DOUBLE_EQ(2.0, timing.kernelSeconds);
+    EXPECT_EQ("packed_cpu", timing.executionPath);
+
+    WavefrontIntersectionQueryTiming metal;
+    metal.readbackSeconds = 3.0;
+    metal.recordExecutionPath("metal");
+    timing.add(metal);
+
+    EXPECT_DOUBLE_EQ(3.0, timing.readbackSeconds);
+    EXPECT_EQ("mixed", timing.executionPath);
+  }
+
   TEST(WavefrontIntersectionBackend, CpuBackendReportsRuntimeSceneExecutionPath) {
     const auto& backend = CpuWavefrontIntersectionBackend::instance();
 
@@ -105,6 +132,28 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0u, backend.estimatedAnyHitReadbackBytes(4));
     EXPECT_FALSE(backend.prefersClosestHitBatch(4));
     EXPECT_FALSE(backend.prefersAnyHitBatch(4));
+  }
+
+  TEST(WavefrontIntersectionBackend, CpuQueriesReportRuntimeSceneTimingPath) {
+    Scene scene;
+    scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+    const auto& backend = CpuWavefrontIntersectionBackend::instance();
+
+    State closestState;
+    HitPointInterval hitPoints;
+    WavefrontIntersectionQueryTiming closestTiming;
+    const Primitive* hit =
+      backend.intersectClosest(scene, Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), hitPoints,
+                               closestState, &closestTiming);
+
+    ASSERT_NE(nullptr, hit);
+    EXPECT_EQ("runtime_scene", closestTiming.executionPath);
+
+    State anyState;
+    WavefrontIntersectionQueryTiming anyTiming;
+    EXPECT_TRUE(backend.intersectAny(scene, Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 4.0,
+                                     anyState, &anyTiming));
+    EXPECT_EQ("runtime_scene", anyTiming.executionPath);
   }
 
   TEST(WavefrontIntersectionBackend, MetalStubReportsUnavailableCpuFallback) {
@@ -788,6 +837,40 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0, hitState.intersectionMisses);
     EXPECT_EQ(0, missState.intersectionHits);
     EXPECT_EQ(1, missState.intersectionMisses);
+  }
+
+  TEST(WavefrontIntersectionBackend, PreparedPackedQueriesReportPackedCpuTimingPath) {
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
+    Scene sourceScene;
+    sourceScene.add(sphere);
+    Scene emptyScene;
+
+    auto compiled = std::make_shared<const CompiledIntersectionScene>(
+      IntersectionSceneCompiler().compile(sourceScene));
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      VulkanWavefrontIntersectionBackend::createPrepared(compiled);
+
+    State closestState;
+    const std::vector<WavefrontClosestHitQuery> closestQueries{
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), &closestState}};
+    WavefrontIntersectionQueryTiming closestTiming;
+    const std::vector<WavefrontClosestHitResult> closestHits =
+      backend->intersectClosestBatch(emptyScene, closestQueries, &closestTiming);
+
+    ASSERT_EQ(1u, closestHits.size());
+    EXPECT_TRUE(closestHits.front().hit());
+    EXPECT_EQ("packed_cpu", closestTiming.executionPath);
+
+    State anyState;
+    const std::vector<WavefrontAnyHitQuery> anyQueries{
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 4.0, &anyState}};
+    WavefrontIntersectionQueryTiming anyTiming;
+    const std::vector<bool> anyHits =
+      backend->intersectAnyBatch(emptyScene, anyQueries, &anyTiming);
+
+    ASSERT_EQ(1u, anyHits.size());
+    EXPECT_TRUE(anyHits.front());
+    EXPECT_EQ("packed_cpu", anyTiming.executionPath);
   }
 
   TEST(WavefrontIntersectionBackend,

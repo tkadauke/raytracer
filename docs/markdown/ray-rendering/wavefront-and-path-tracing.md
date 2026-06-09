@@ -330,8 +330,11 @@ unsupported packed payloads until platform kernels cover them. Metrics label
 those query paths separately: basic-kernel closest-hit and any-hit frontiers
 report `metal` when the Metal kernels run, `packed_cpu` for the packed CPU
 contract, the compiled parity fallback reports `compiled_cpu`, and a render
-that combines different query families still reports `mixed`. The same metrics
-also estimate the query transfer footprint that a real GPU backend would pay:
+that combines different query families still reports `mixed`. The execution
+label comes from the completed query, so a platform dispatch that falls back at
+runtime is labeled with the fallback path instead of the backend's nominal
+availability. The same metrics also estimate the query transfer footprint that
+a real GPU backend would pay:
 ray upload bytes plus closest-hit and any-hit readback bytes. CPU and
 unsupported runtime-scene fallbacks report zero for those query-transfer fields;
 prepared GPU-request stubs report the packed ABI byte counts so `auto`

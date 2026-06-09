@@ -1031,6 +1031,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   cancellation now preserves contributions completed before the depth-boundary
   cancellation check, and scalar progressive display averages use truncating
   channel packing consistently. — GPT-5
+- **Wavefront GPU query execution diagnostics.** Wavefront intersection query
+  metrics now record the execution path used by each closest-hit or any-hit
+  query, so traces report `packed_cpu` instead of `metal` if a Metal dispatch
+  falls back during the query. — GPT-5
 - **Packed wavefront visibility self-shadowing.** Prepared GPU intersection
   visibility rays now carry a float-appropriate minimum distance into the packed
   any-hit path, preventing near-surface path-tracing shadow rays from
