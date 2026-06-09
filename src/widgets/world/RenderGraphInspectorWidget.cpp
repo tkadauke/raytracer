@@ -39,6 +39,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace engine::graph;
@@ -118,6 +119,7 @@ struct RenderGraphInspectorWidget::Private {
   qulonglong jsonIntegerArraySum(const QJsonArray& array) const;
   QString jsonIntegerObjectSummary(const QJsonObject& object) const;
   QString percentage(double numerator, double denominator) const;
+  QString intersectionScenePayloadSummary(const QJsonObject& batching) const;
   QString passStateText(const RenderPassNode& pass) const;
   void addDetailRow(DetailRows& rows, const QString& name, const QString& value) const;
   void addDetailStringMetadataRow(DetailRows& rows, const QString& name,
@@ -425,6 +427,38 @@ QString RenderGraphInspectorWidget::Private::percentage(double numerator,
                                                         double denominator) const {
   const double ratio = denominator == 0.0 ? 0.0 : numerator / denominator;
   return QStringLiteral("%1%").arg(ratio * 100.0, 0, 'f', 2);
+}
+
+QString RenderGraphInspectorWidget::Private::intersectionScenePayloadSummary(
+  const QJsonObject& batching) const {
+  const std::vector<std::pair<QString, qulonglong>> counts = {
+    {QStringLiteral("tri"),
+     jsonIntegerValue(batching, QStringLiteral("intersectionSceneTriangles"))},
+    {QStringLiteral("sphere"),
+     jsonIntegerValue(batching, QStringLiteral("intersectionSceneSpheres"))},
+    {QStringLiteral("plane"),
+     jsonIntegerValue(batching, QStringLiteral("intersectionScenePlanes"))},
+    {QStringLiteral("rect"),
+     jsonIntegerValue(batching, QStringLiteral("intersectionSceneRectangles"))},
+    {QStringLiteral("disk"), jsonIntegerValue(batching, QStringLiteral("intersectionSceneDisks"))},
+    {QStringLiteral("open cyl"),
+     jsonIntegerValue(batching, QStringLiteral("intersectionSceneOpenCylinders"))},
+    {QStringLiteral("xform"),
+     jsonIntegerValue(batching, QStringLiteral("intersectionSceneTransforms"))},
+    {QStringLiteral("unsupported"),
+     jsonIntegerValue(batching, QStringLiteral("intersectionSceneUnsupportedPrimitives"))}};
+  const bool hasPayloadCount =
+    std::any_of(counts.begin(), counts.end(), [](const auto& count) { return count.second > 0; });
+  if (!hasPayloadCount) {
+    return QString();
+  }
+
+  QStringList parts;
+  parts.reserve(static_cast<int>(counts.size()));
+  for (const auto& [label, count] : counts) {
+    parts << QStringLiteral("%1 %2").arg(label).arg(count);
+  }
+  return parts.join(QStringLiteral(", "));
 }
 
 QString RenderGraphInspectorWidget::Private::passStateText(const RenderPassNode& pass) const {
@@ -782,20 +816,9 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         line += QStringLiteral(", intersection scene %1 primitives/%2 BVH nodes")
                   .arg(jsonIntegerValue(batching, QStringLiteral("intersectionScenePrimitives")))
                   .arg(jsonIntegerValue(batching, QStringLiteral("intersectionSceneBvhNodes")));
-        const qulonglong triangles =
-          jsonIntegerValue(batching, QStringLiteral("intersectionSceneTriangles"));
-        const qulonglong spheres =
-          jsonIntegerValue(batching, QStringLiteral("intersectionSceneSpheres"));
-        const qulonglong openCylinders =
-          jsonIntegerValue(batching, QStringLiteral("intersectionSceneOpenCylinders"));
-        const qulonglong unsupported =
-          jsonIntegerValue(batching, QStringLiteral("intersectionSceneUnsupportedPrimitives"));
-        if (triangles > 0 || spheres > 0 || openCylinders > 0 || unsupported > 0) {
-          line += QStringLiteral(" (tri %1/sphere %2/open cyl %3/unsupported %4)")
-                    .arg(triangles)
-                    .arg(spheres)
-                    .arg(openCylinders)
-                    .arg(unsupported);
+        const QString payloadSummary = intersectionScenePayloadSummary(batching);
+        if (!payloadSummary.isEmpty()) {
+          line += QStringLiteral(" (%1)").arg(payloadSummary);
         }
         const qulonglong uploadBytes =
           jsonIntegerValue(batching, QStringLiteral("intersectionSceneUploadBytes"));

@@ -48,6 +48,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
   — GPT-5
+- **Complete wavefront payload-count diagnostics.** rendercli summaries and
+  Modeler graph tooltips now expose plane, rectangle, disk, transform, and
+  unsupported compiled-scene counts alongside triangle, sphere, and
+  OpenCylinder counts. — GPT-5
 - **Exact OpenCylinder packed intersection payloads.** The compiled wavefront
   intersection scene and packed CPU intersector now represent `render::OpenCylinder`
   as an exact side-surface payload with cylindrical UVs, and Metal/Vulkan basic
