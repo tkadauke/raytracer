@@ -7,11 +7,17 @@
 
 namespace render {
   struct GpuIntersectionHitRecord;
+  struct GpuIntersectionOcclusionRecord;
   struct GpuIntersectionRay;
   struct GpuIntersectionSceneBuffers;
 
   struct VulkanWavefrontClosestHitKernelResult {
     std::vector<GpuIntersectionHitRecord> hits;
+    WavefrontIntersectionQueryTiming timing;
+  };
+
+  struct VulkanWavefrontAnyHitKernelResult {
+    std::vector<GpuIntersectionOcclusionRecord> records;
     WavefrontIntersectionQueryTiming timing;
   };
 
@@ -34,6 +40,12 @@ namespace render {
     VulkanWavefrontClosestHitKernelResult
     runTimedTriangleClosestHitKernel(const GpuIntersectionSceneBuffers& scene,
                                      const std::vector<GpuIntersectionRay>& rays) const;
+    std::vector<GpuIntersectionOcclusionRecord>
+    runTriangleAnyHitKernel(const GpuIntersectionSceneBuffers& scene,
+                            const std::vector<GpuIntersectionRay>& rays) const;
+    VulkanWavefrontAnyHitKernelResult
+    runTimedTriangleAnyHitKernel(const GpuIntersectionSceneBuffers& scene,
+                                 const std::vector<GpuIntersectionRay>& rays) const;
 
   private:
     bool probeDeviceAvailable() const;

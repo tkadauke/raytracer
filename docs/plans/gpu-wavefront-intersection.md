@@ -279,8 +279,10 @@ Progress:
   creating the native shader pipeline needed for Vulkan render-path kernels.
 - Vulkan-enabled builds now compile and expose a direct triangle closest-hit
   compute dispatch against the packed BVH/primitive/triangle/ray/hit ABI. The
-  render backend still reports CPU fallback until Vulkan any-hit support and
-  prepared-scene backend execution are wired through the full render path.
+  matching triangle any-hit compute dispatch now covers direct visibility
+  queries against the same packed ABI. The render backend still reports CPU
+  fallback until prepared-scene backend execution is wired through the full
+  render path.
 - Platform GPU device availability is now structured backend trace data instead
   of only fallback text. Wavefront metrics JSON, rendercli summaries, and the
   Modeler graph tooltip expose the selected platform backend id and whether

@@ -4,6 +4,7 @@
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 #include "render/VulkanWavefrontShaders.generated.h"
+#include "render/VulkanWavefrontTriangleAny.generated.h"
 #include "render/VulkanWavefrontTriangleClosest.generated.h"
 
 #include <vulkan/vulkan.h>
@@ -271,6 +272,137 @@ namespace render {
         return result;
       }
 
+      VulkanWavefrontAnyHitKernelResult
+      runTimedTriangleAnyHitKernel(const GpuIntersectionSceneBuffers& scene,
+                                   const std::vector<GpuIntersectionRay>& rays) const {
+        if (rays.empty()) {
+          return {};
+        }
+        if (!scene.triangleClosestHitKernelEligible()) {
+          throw std::invalid_argument(
+            "Vulkan triangle any-hit kernel requires an untransformed triangle scene");
+        }
+        if (rays.size() > std::numeric_limits<std::uint32_t>::max()) {
+          throw std::runtime_error("Vulkan triangle any-hit ray batch is too large");
+        }
+
+        VulkanWavefrontAnyHitKernelResult result;
+        const auto uploadStart = std::chrono::steady_clock::now();
+
+        VkInstance instance = createInstance();
+        InstanceGuard instanceGuard;
+        instanceGuard.instance = instance;
+
+        const DeviceSelection selection = selectDevice(instance);
+        if (selection.device == VK_NULL_HANDLE) {
+          throw std::runtime_error("Vulkan triangle any-hit kernel requires a compute device");
+        }
+
+        const float queuePriority = 1.0f;
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = selection.queueFamily;
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        VkDeviceCreateInfo deviceCreateInfo{};
+        deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        deviceCreateInfo.queueCreateInfoCount = 1;
+        deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+
+        VkDevice device = VK_NULL_HANDLE;
+        check(vkCreateDevice(selection.device, &deviceCreateInfo, nullptr, &device),
+              "Vulkan triangle any-hit logical device creation");
+        DeviceGuard deviceGuard;
+        deviceGuard.device = device;
+
+        VkQueue queue = VK_NULL_HANDLE;
+        vkGetDeviceQueue(device, selection.queueFamily, 0, &queue);
+
+        BufferVectorGuard bufferGuard;
+        bufferGuard.device = device;
+        bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.bvh));
+        bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.primitives));
+        bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.triangles));
+        bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, rays));
+
+        const VkDeviceSize recordByteCount =
+          byteCountForRecords<GpuIntersectionOcclusionRecord>(rays.size());
+        bufferGuard.buffers.push_back(
+          createStorageBuffer(device, selection.device, recordByteCount, nullptr));
+
+        const std::array<std::uint32_t, 4> counts{
+          static_cast<std::uint32_t>(scene.bvh.size()),
+          static_cast<std::uint32_t>(scene.primitives.size()),
+          static_cast<std::uint32_t>(scene.triangles.size()),
+          static_cast<std::uint32_t>(rays.size()),
+        };
+        bufferGuard.buffers.push_back(
+          createStorageBuffer(device, selection.device, sizeof(counts), counts.data()));
+
+        const auto& shader = triangleAnyHitShaderSpirv();
+        VkShaderModule shaderModule = createShaderModule(device, shader.data(), shader.size());
+        ShaderGuard shaderGuard;
+        shaderGuard.device = device;
+        shaderGuard.shaderModule = shaderModule;
+
+        VkDescriptorSetLayout descriptorLayout =
+          createDescriptorLayout(device, static_cast<std::uint32_t>(bufferGuard.buffers.size()));
+        DescriptorLayoutGuard descriptorLayoutGuard;
+        descriptorLayoutGuard.device = device;
+        descriptorLayoutGuard.layout = descriptorLayout;
+
+        VkPipelineLayout pipelineLayout = createPipelineLayout(device, descriptorLayout);
+        PipelineLayoutGuard pipelineLayoutGuard;
+        pipelineLayoutGuard.device = device;
+        pipelineLayoutGuard.layout = pipelineLayout;
+
+        VkPipeline pipeline = createPipeline(device, shaderModule, pipelineLayout);
+        PipelineGuard pipelineGuard;
+        pipelineGuard.device = device;
+        pipelineGuard.pipeline = pipeline;
+
+        VkDescriptorPool descriptorPool =
+          createDescriptorPool(device, static_cast<std::uint32_t>(bufferGuard.buffers.size()));
+        DescriptorPoolGuard descriptorPoolGuard;
+        descriptorPoolGuard.device = device;
+        descriptorPoolGuard.pool = descriptorPool;
+
+        VkDescriptorSet descriptorSet =
+          allocateDescriptorSet(device, descriptorPool, descriptorLayout);
+        updateDescriptorSet(device, descriptorSet, bufferGuard.buffers);
+
+        VkCommandPool commandPool = createCommandPool(device, selection.queueFamily);
+        CommandPoolGuard commandPoolGuard;
+        commandPoolGuard.device = device;
+        commandPoolGuard.pool = commandPool;
+
+        VkCommandBuffer commandBuffer = allocateCommandBuffer(device, commandPool);
+        recordDispatch(commandBuffer, pipeline, pipelineLayout, descriptorSet,
+                       static_cast<std::uint32_t>(rays.size()));
+        const auto uploadEnd = std::chrono::steady_clock::now();
+
+        const auto kernelStart = std::chrono::steady_clock::now();
+        submitAndWait(queue, commandBuffer);
+        const auto kernelEnd = std::chrono::steady_clock::now();
+
+        const auto readbackStart = std::chrono::steady_clock::now();
+        result.records = readBackRecords<GpuIntersectionOcclusionRecord>(
+          device, bufferGuard.buffers[4].memory, recordByteCount, rays.size(),
+          "Vulkan triangle any-hit output buffer mapping");
+        const auto readbackEnd = std::chrono::steady_clock::now();
+
+        result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
+        result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
+        result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
+        result.timing.recordExecutionPath("vulkan");
+        return result;
+      }
+
     private:
       struct DeviceSelection {
         VkPhysicalDevice device{VK_NULL_HANDLE};
@@ -417,6 +549,11 @@ namespace render {
       const std::array<std::uint32_t, vulkan_shaders::triangleClosestHitShaderSpirv.size()>&
       triangleClosestHitShaderSpirv() const {
         return vulkan_shaders::triangleClosestHitShaderSpirv;
+      }
+
+      const std::array<std::uint32_t, vulkan_shaders::triangleAnyHitShaderSpirv.size()>&
+      triangleAnyHitShaderSpirv() const {
+        return vulkan_shaders::triangleAnyHitShaderSpirv;
       }
 
       void check(VkResult result, const char* operation) const {
@@ -796,6 +933,25 @@ namespace render {
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     return VulkanSmokeRuntime().runTimedTriangleClosestHitKernel(scene, rays);
+#else
+    (void)scene;
+    throw std::runtime_error("Vulkan wavefront backend is not enabled");
+#endif
+  }
+
+  std::vector<GpuIntersectionOcclusionRecord> VulkanWavefrontSmokeKernel::runTriangleAnyHitKernel(
+    const GpuIntersectionSceneBuffers& scene, const std::vector<GpuIntersectionRay>& rays) const {
+    return runTimedTriangleAnyHitKernel(scene, rays).records;
+  }
+
+  VulkanWavefrontAnyHitKernelResult VulkanWavefrontSmokeKernel::runTimedTriangleAnyHitKernel(
+    const GpuIntersectionSceneBuffers& scene, const std::vector<GpuIntersectionRay>& rays) const {
+    if (rays.empty()) {
+      return {};
+    }
+
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    return VulkanSmokeRuntime().runTimedTriangleAnyHitKernel(scene, rays);
 #else
     (void)scene;
     throw std::runtime_error("Vulkan wavefront backend is not enabled");

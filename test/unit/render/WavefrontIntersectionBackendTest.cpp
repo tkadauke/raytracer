@@ -406,6 +406,50 @@ namespace WavefrontIntersectionBackendTest {
 #endif
   }
 
+  TEST(VulkanWavefrontSmokeKernel, RunsTriangleAnyHitKernelWhenEnabled) {
+    VulkanWavefrontSmokeKernel kernel;
+
+    Scene scene;
+    scene.add(
+      std::make_shared<Triangle>(Vector3d(-1, -1, 6), Vector3d(1, -1, 6), Vector3d(0, 1, 6)));
+    scene.add(
+      std::make_shared<Triangle>(Vector3d(-1, -1, 2), Vector3d(1, -1, 2), Vector3d(0, 1, 2)));
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    ASSERT_TRUE(buffers.triangleClosestHitKernelEligible());
+
+    const std::vector<GpuIntersectionRay> rays{
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 7, 0.0,
+                                           10.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(4, 0, 0, 1), Vector3d(0, 0, 1)), 8, 0.0,
+                                           10.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 9, 0.0,
+                                           1.0),
+    };
+
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    if (!kernel.deviceAvailable()) {
+      GTEST_SKIP() << "No Vulkan compute device is available";
+    }
+
+    const std::vector<GpuIntersectionOcclusionRecord> expected =
+      GpuIntersectionIntersector().intersectAny(buffers, rays);
+
+    const VulkanWavefrontAnyHitKernelResult actual =
+      kernel.runTimedTriangleAnyHitKernel(buffers, rays);
+
+    ASSERT_EQ(expected.size(), actual.records.size());
+    EXPECT_EQ(std::string("vulkan"), actual.timing.executionPath);
+    for (std::size_t index = 0; index != expected.size(); ++index) {
+      EXPECT_EQ(expected[index].occluded, actual.records[index].occluded);
+      EXPECT_EQ(expected[index].rayIndex, actual.records[index].rayIndex);
+    }
+#else
+    EXPECT_THROW((void)kernel.runTriangleAnyHitKernel(buffers, rays), std::runtime_error);
+#endif
+  }
+
   TEST(MetalWavefrontSmokeKernel, RunsDummyHitMissKernelWhenEnabled) {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     MetalWavefrontSmokeKernel kernel;

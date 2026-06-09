@@ -30,6 +30,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   derive portal cameras from receiver/source transforms and mirror cameras from
   planar reflection, carrying explicit receiver-clipping state through graph
   inspection and execution. — GPT-5
+- **Vulkan triangle any-hit dispatch.** Vulkan-enabled builds now expose a
+  direct triangle any-hit compute dispatch over the packed
+  BVH/primitive/triangle/ray/occlusion ABI, with CPU packed-intersector parity
+  coverage. This completes direct Vulkan closest-hit/any-hit smoke coverage;
+  backend render execution remains CPU fallback until prepared scene execution
+  is wired in. — GPT-5
 - **Vulkan triangle closest-hit dispatch.** Vulkan-enabled builds now expose a
   direct triangle closest-hit compute dispatch over the packed
   BVH/primitive/triangle/ray/hit ABI, with CPU packed-intersector parity
