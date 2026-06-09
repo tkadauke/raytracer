@@ -404,6 +404,10 @@ namespace render {
     return executionPath();
   }
 
+  bool WavefrontIntersectionBackend::platformGpuDeviceAvailable() const {
+    return false;
+  }
+
   const CompiledIntersectionScene* WavefrontIntersectionBackend::compiledScene() const {
     return nullptr;
   }
@@ -1038,6 +1042,10 @@ namespace render {
     return preparedPackedAnyHitExecutionPath();
   }
 
+  bool MetalWavefrontIntersectionBackend::platformGpuDeviceAvailable() const {
+    return isAvailable();
+  }
+
   bool MetalWavefrontIntersectionBackend::preparedPackedClosestHitAvailable() const {
     return metalBasicHitAvailable() ||
            WavefrontIntersectionBackend::preparedPackedClosestHitAvailable();
@@ -1269,6 +1277,10 @@ namespace render {
       return "packed_cpu";
     }
     return compiledScene() ? "compiled_cpu" : "runtime_scene";
+  }
+
+  bool VulkanWavefrontIntersectionBackend::platformGpuDeviceAvailable() const {
+    return VulkanWavefrontSmokeKernel().deviceAvailable();
   }
 
   const CompiledIntersectionScene* VulkanWavefrontIntersectionBackend::compiledScene() const {

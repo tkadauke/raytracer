@@ -505,6 +505,14 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
       if (expectedRays > 0) {
         line += QStringLiteral(", expected %1 intersection rays").arg(expectedRays);
       }
+      if (batching.contains(QStringLiteral("intersectionBackendPlatformGpuDeviceAvailable"))) {
+        line +=
+          QStringLiteral(", GPU device %1")
+            .arg(batching.value(QStringLiteral("intersectionBackendPlatformGpuDeviceAvailable"))
+                     .toBool()
+                   ? QStringLiteral("yes")
+                   : QStringLiteral("no"));
+      }
       const QString fallbackReason =
         batching.value(QStringLiteral("intersectionBackendFallbackReason")).toString();
       if (!fallbackReason.isEmpty()) {

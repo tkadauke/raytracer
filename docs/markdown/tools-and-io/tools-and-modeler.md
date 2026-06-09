@@ -314,8 +314,8 @@ compact summary prints total `tiles`, `tile_grid`,
 `frontier_packet_scalar_fallback_rays`,
 `frontier_packet_scalar_fallback_by_reason`, `frontier_packet_refined_rays`,
 `frontier_packet_refined_by_material`, `sample_variance_pixels`,
-`sample_stddev_rms`, `max_sample_stddev`, `closest_hit_batch_preferred`,
-`any_hit_batch_preferred`, `emitter_hit_samples`,
+`sample_stddev_rms`, `max_sample_stddev`, `intersection_backend_gpu_device`,
+`closest_hit_batch_preferred`, `any_hit_batch_preferred`, `emitter_hit_samples`,
 `primary_emitter_hit_samples`, `delta_emitter_hit_samples`,
 `bsdf_emitter_hit_samples`, `mis_weighted_emitter_hit_samples`,
 `direct_light_samples`, `direct_light_contributing_samples`,
@@ -338,6 +338,8 @@ per-depth `frontierRayHitsPerDepth`, `frontierRayMissesPerDepth`,
 `frontierRay4PacketChunksPerDepth`, `frontierRay8PacketChunksPerDepth`,
 `frontierScalarRaysPerDepth`, `frontierPacketScalarFallbackRaysPerDepth`, and
 `frontierPacketRefinedRaysPerDepth` arrays for deeper captures, plus
+`intersectionBackendPlatformGpuDeviceAvailable` for platform GPU device
+probing,
 `intersectionBackendPrefersClosestHitBatch` and
 `intersectionBackendPrefersAnyHitBatch` for the backend's observed query-family
 batch preferences,

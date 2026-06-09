@@ -91,6 +91,7 @@ namespace render {
     intersectionBackendAvailability.clear();
     intersectionBackendFallbackReason.clear();
     intersectionBackendExecutionPath.clear();
+    intersectionBackendPlatformGpuDeviceAvailable = false;
     intersectionSceneCompiled = false;
     intersectionSceneBvhNodes = 0;
     intersectionScenePrimitives = 0;
@@ -196,6 +197,8 @@ namespace render {
     mergeLabel(intersectionBackend, nonEmptyLabel(backend.name(), "unknown"));
     mergeLabel(intersectionBackendAvailability, nonEmptyLabel(backend.availability(), "unknown"));
     mergeLabel(intersectionBackendFallbackReason, nonEmptyLabel(backend.fallbackReason(), ""));
+    intersectionBackendPlatformGpuDeviceAvailable =
+      intersectionBackendPlatformGpuDeviceAvailable || backend.platformGpuDeviceAvailable();
     const WavefrontIntersectionSceneDiagnostics diagnostics = backend.compiledSceneDiagnostics();
     intersectionSceneCompiled = intersectionSceneCompiled || diagnostics.compiled;
     intersectionSceneBvhNodes = std::max(intersectionSceneBvhNodes, diagnostics.bvhNodes);
@@ -269,6 +272,9 @@ namespace render {
     mergeLabel(intersectionBackendAvailability, source.intersectionBackendAvailability);
     mergeLabel(intersectionBackendFallbackReason, source.intersectionBackendFallbackReason);
     mergeLabel(intersectionBackendExecutionPath, source.intersectionBackendExecutionPath);
+    intersectionBackendPlatformGpuDeviceAvailable =
+      intersectionBackendPlatformGpuDeviceAvailable ||
+      source.intersectionBackendPlatformGpuDeviceAvailable;
     intersectionSceneCompiled = intersectionSceneCompiled || source.intersectionSceneCompiled;
     intersectionSceneBvhNodes =
       std::max(intersectionSceneBvhNodes, source.intersectionSceneBvhNodes);

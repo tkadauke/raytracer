@@ -88,6 +88,9 @@ namespace engine::wavefront {
     mergeLabel(intersectionBackendAvailability, metrics.intersectionBackendAvailability);
     mergeLabel(intersectionBackendFallbackReason, metrics.intersectionBackendFallbackReason);
     mergeLabel(intersectionBackendExecutionPath, metrics.intersectionBackendExecutionPath);
+    intersectionBackendPlatformGpuDeviceAvailable =
+      intersectionBackendPlatformGpuDeviceAvailable ||
+      metrics.intersectionBackendPlatformGpuDeviceAvailable;
     intersectionSceneCompiled = intersectionSceneCompiled || metrics.intersectionSceneCompiled;
     intersectionSceneBvhNodes =
       std::max(intersectionSceneBvhNodes, metrics.intersectionSceneBvhNodes);
@@ -310,6 +313,8 @@ namespace engine::wavefront {
       QString::fromStdString(batching.intersectionBackendFallbackReason);
     batchingJson["intersectionBackendExecutionPath"] =
       QString::fromStdString(batching.intersectionBackendExecutionPath);
+    batchingJson["intersectionBackendPlatformGpuDeviceAvailable"] =
+      batching.intersectionBackendPlatformGpuDeviceAvailable;
     batchingJson["intersectionBackendExpectedRays"] =
       static_cast<double>(batching.intersectionBackendExpectedRays);
     batchingJson["intersectionSceneCompiled"] = batching.intersectionSceneCompiled;

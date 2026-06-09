@@ -151,6 +151,7 @@ namespace render {
     virtual const char* executionPath() const;
     virtual const char* closestHitExecutionPath() const;
     virtual const char* anyHitExecutionPath() const;
+    virtual bool platformGpuDeviceAvailable() const;
     virtual const CompiledIntersectionScene* compiledScene() const;
     virtual const GpuIntersectionSceneBuffers* gpuIntersectionSceneBuffers() const;
     virtual WavefrontIntersectionSceneDiagnostics compiledSceneDiagnostics() const;
@@ -274,6 +275,7 @@ namespace render {
     const char* executionPath() const override;
     const char* closestHitExecutionPath() const override;
     const char* anyHitExecutionPath() const override;
+    bool platformGpuDeviceAvailable() const override;
     const CompiledIntersectionScene* compiledScene() const override;
     const GpuIntersectionSceneBuffers* gpuIntersectionSceneBuffers() const override;
     bool prefersClosestHitBatch(std::uint64_t submittedRays) const override;
@@ -353,6 +355,7 @@ namespace render {
     const char* executionPath() const override;
     const char* closestHitExecutionPath() const override;
     const char* anyHitExecutionPath() const override;
+    bool platformGpuDeviceAvailable() const override;
     const CompiledIntersectionScene* compiledScene() const override;
     const GpuIntersectionSceneBuffers* gpuIntersectionSceneBuffers() const override;
     bool prefersClosestHitBatch(std::uint64_t submittedRays) const override;

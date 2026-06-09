@@ -66,6 +66,7 @@ namespace engine::wavefront {
       std::string intersectionBackendAvailability;
       std::string intersectionBackendFallbackReason;
       std::string intersectionBackendExecutionPath;
+      bool intersectionBackendPlatformGpuDeviceAvailable = false;
       std::uint64_t intersectionBackendExpectedRays = 0;
       bool intersectionSceneCompiled = false;
       std::uint64_t intersectionSceneBvhNodes = 0;
