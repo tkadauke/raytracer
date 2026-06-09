@@ -764,6 +764,11 @@ Progress:
   estimated query-transfer bytes as benchmark counters. This keeps benchmark
   evidence aligned with render metrics instead of treating all intersection
   work as one undifferentiated ray count.
+- Benchmark builds now also include a mixed automatic-backend fixture that
+  chooses a backend from combined closest-hit and any-hit expected work, then
+  submits both query families in the same iteration. That better represents the
+  path-tracing render path, where a bounce can need both frontier intersection
+  and direct-light visibility work after one backend selection.
 - A regular unit-test performance gate now pins the packed upload-buffer CPU
   traversal against runtime `Scene` traversal on a mesh-heavy supported scene.
   The threshold is deliberately conservative, but it catches regressions that

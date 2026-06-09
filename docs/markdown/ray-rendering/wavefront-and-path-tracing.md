@@ -366,6 +366,9 @@ hit-record and occlusion-record readback separately. The wavefront intersection
 backend benchmarks use the same split for their automatic-backend fixtures and
 report expected closest-hit rays, expected any-hit rays, the computed automatic
 GPU threshold, and the pre-render query-transfer estimate as benchmark counters.
+They also include a mixed automatic-backend row that submits closest-hit and
+any-hit batches after one combined backend selection, matching the shape of a
+path-tracing bounce more closely than either query family alone.
 When the platform render-path kernels actually execute, metrics also split
 backend wall time into host upload/setup, kernel dispatch/wait, and CPU
 readback buckets. CPU fallback paths leave those buckets at zero, while the
