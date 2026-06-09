@@ -5,6 +5,7 @@
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
 #include "render/MetalWavefrontSmokeKernel.h"
 #endif
+#include "render/VulkanWavefrontSmokeKernel.h"
 #include "render/State.h"
 #include "render/primitives/Scene.h"
 
@@ -1241,8 +1242,12 @@ namespace render {
 
   const char* VulkanWavefrontIntersectionBackend::fallbackReason() const {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-    return "Vulkan wavefront intersection backend is enabled but no render-path closest-hit kernel "
-           "is built yet";
+    if (!VulkanWavefrontSmokeKernel().deviceAvailable()) {
+      return "Vulkan wavefront intersection backend is enabled but no Vulkan compute device is "
+             "available";
+    }
+    return "Vulkan wavefront intersection backend is enabled and a compute device is available, "
+           "but no render-path closest-hit kernel is built yet";
 #else
     return "Vulkan wavefront intersection backend is not enabled in this build";
 #endif

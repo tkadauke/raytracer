@@ -12,6 +12,7 @@
 #include "render/GpuIntersectionScene.h"
 #include "render/IntersectionSceneCompiler.h"
 #include "render/State.h"
+#include "render/VulkanWavefrontSmokeKernel.h"
 #include "render/WavefrontIntersectionBackend.h"
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
 #include "render/MetalWavefrontSmokeKernel.h"
@@ -42,6 +43,8 @@ namespace WavefrontIntersectionBackendTest {
       const bool enabledWithoutClosestHitKernel =
         reason.find("no render-path closest-hit kernel") != std::string::npos;
       const bool enabledWithoutDevice = reason.find("no Metal device") != std::string::npos;
+      const bool enabledWithoutVulkanComputeDevice =
+        reason.find("no Vulkan compute device") != std::string::npos;
       const bool notTriangleEligible =
         reason.find("not eligible for the Metal triangle") != std::string::npos;
       const bool noPreparedTriangleScene =
@@ -51,8 +54,8 @@ namespace WavefrontIntersectionBackendTest {
       const bool noPreparedBasicScene =
         reason.find("no prepared basic-hit scene") != std::string::npos;
       EXPECT_TRUE(disabled || enabledWithoutClosestHitKernel || enabledWithoutDevice ||
-                  notTriangleEligible || noPreparedTriangleScene || notBasicEligible ||
-                  noPreparedBasicScene)
+                  enabledWithoutVulkanComputeDevice || notTriangleEligible ||
+                  noPreparedTriangleScene || notBasicEligible || noPreparedBasicScene)
         << reason;
     }
 
@@ -101,6 +104,15 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_FALSE(backend.isAvailable());
     EXPECT_EQ(nullptr, backend.compiledScene());
     expectUnavailablePlatformFallback(backend, "Vulkan");
+  }
+
+  TEST(VulkanWavefrontSmokeKernel, ReportsUnavailableWhenDisabled) {
+    VulkanWavefrontSmokeKernel kernel;
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    EXPECT_NO_THROW((void)kernel.deviceAvailable());
+#else
+    EXPECT_FALSE(kernel.deviceAvailable());
+#endif
   }
 
   TEST(WavefrontIntersectionBackend, AutoPolicyRequiresPlatformGpuAvailability) {

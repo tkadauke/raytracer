@@ -30,6 +30,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   derive portal cameras from receiver/source transforms and mirror cameras from
   planar reflection, carrying explicit receiver-clipping state through graph
   inspection and execution. — GPT-5
+- **Vulkan wavefront compute-device probe.** Vulkan-enabled builds now probe for
+  a physical device with a compute queue so GPU wavefront fallback diagnostics
+  can distinguish missing Vulkan compute support from the still-unimplemented
+  Vulkan render-path intersection kernel. — GPT-5
 - **Direct-light any-hit batch metrics.** Wavefront metrics JSON, rendercli
   summaries, and Modeler graph tooltips now expose per-depth direct-light
   any-hit batch chunk/ray counters for backends that explicitly prefer grouped
