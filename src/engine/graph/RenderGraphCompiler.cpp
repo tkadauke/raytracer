@@ -97,6 +97,18 @@ namespace engine::graph {
       pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
       return pass;
     }
+
+    bool passCanSampleSubviewTextures(const RenderPassNode& pass) {
+      if (pass.hasFeature("subview")) {
+        return false;
+      }
+      if (pass.executor != RenderExecutorKind::Raytracer &&
+          pass.executor != RenderExecutorKind::Wavefront &&
+          pass.executor != RenderExecutorKind::Rasterizer) {
+        return false;
+      }
+      return pass.kind == RenderPassKind::Beauty || pass.kind == RenderPassKind::AOV;
+    }
   }
 
   RenderTargetSpec RenderTargetSpec::normalized() const {
@@ -673,7 +685,9 @@ namespace engine::graph {
 
     if (frameIntent.defaultViewMode == RenderViewMode::StencilComposite) {
       RenderPlan plan = compileStencilCompositeView(target, frameIntent);
-      addSubviewBranches(plan, target, frameIntent, sceneAnalysis, renderToTextureDepth);
+      const auto subviewOutputs =
+        addSubviewBranches(plan, target, frameIntent, sceneAnalysis, renderToTextureDepth);
+      addSubviewReceiverInputs(plan, subviewOutputs, sceneAnalysis);
       return plan;
     }
 
@@ -691,7 +705,9 @@ namespace engine::graph {
       RenderPlan plan =
         this->aovViewPlan(target, executor, *aov, frameIntent.defaultSceneView(), frameIntent);
       addAuxiliaryAOVExports(plan, target, executor, frameIntent);
-      addSubviewBranches(plan, target, frameIntent, sceneAnalysis, renderToTextureDepth);
+      const auto subviewOutputs =
+        addSubviewBranches(plan, target, frameIntent, sceneAnalysis, renderToTextureDepth);
+      addSubviewReceiverInputs(plan, subviewOutputs, sceneAnalysis);
       return plan;
     }
 
@@ -811,17 +827,21 @@ namespace engine::graph {
     }
 
     addAuxiliaryAOVExports(plan, target, executor, frameIntent);
-    addSubviewBranches(plan, target, frameIntent, sceneAnalysis, renderToTextureDepth);
+    const auto subviewOutputs =
+      addSubviewBranches(plan, target, frameIntent, sceneAnalysis, renderToTextureDepth);
+    addSubviewReceiverInputs(plan, subviewOutputs, sceneAnalysis);
 
     return plan;
   }
 
-  void RenderGraphCompiler::addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,
-                                               const RenderIntent& intent,
-                                               const RenderSceneAnalysis& sceneAnalysis,
-                                               int renderToTextureDepth) const {
+  std::vector<RenderGraphCompiler::SubviewOutputBinding>
+  RenderGraphCompiler::addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,
+                                          const RenderIntent& intent,
+                                          const RenderSceneAnalysis& sceneAnalysis,
+                                          int renderToTextureDepth) const {
+    std::vector<SubviewOutputBinding> outputs;
     if (intent.subviews.empty()) {
-      return;
+      return outputs;
     }
     if (renderToTextureDepth >= intent.maxRenderToTextureRecursionDepth) {
       std::ostringstream message;
@@ -853,7 +873,13 @@ namespace engine::graph {
       const std::string prefix = subviewPrefix(subview, i, usedPrefixes);
       const std::string displayName = subviewDisplayName(subview, i);
       RenderPlan prefixed =
-        prefixedSubviewPlan(branch, prefix, displayName, subviewFeature(prefix));
+        prefixedSubviewPlan(branch, prefix, displayName, subview.name, subviewFeature(prefix));
+
+      SubviewOutputBinding binding;
+      binding.name = subview.name;
+      binding.colorResource = prefixedResourceId(prefix, "main_color");
+      binding.depthResource = prefixedResourceId(prefix, "depth_aov");
+      outputs.push_back(binding);
 
       for (const auto& resource : prefixed.resources()) {
         plan.addResource(resource);
@@ -862,10 +888,50 @@ namespace engine::graph {
         plan.addPass(pass);
       }
     }
+    return outputs;
   }
 
-  void RenderGraphCompiler::validateSubviewReceivers(
-    const RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis) const {
+  void RenderGraphCompiler::addSubviewReceiverInputs(
+    RenderPlan& plan, const std::vector<SubviewOutputBinding>& subviewOutputs,
+    const RenderSceneAnalysis& sceneAnalysis) const {
+    if (subviewOutputs.empty() || sceneAnalysis.renderTextureSubviewReceivers().empty()) {
+      return;
+    }
+
+    std::vector<RenderResourceId> resourcesToBind;
+    for (const auto& output : subviewOutputs) {
+      if (sceneAnalysis.renderTextureSubviewReceivers().find(output.name) ==
+          sceneAnalysis.renderTextureSubviewReceivers().end()) {
+        continue;
+      }
+      if (plan.findResource(output.colorResource)) {
+        resourcesToBind.push_back(output.colorResource);
+      }
+      if (!output.depthResource.empty() && plan.findResource(output.depthResource)) {
+        resourcesToBind.push_back(output.depthResource);
+      }
+    }
+    if (resourcesToBind.empty()) {
+      return;
+    }
+
+    std::vector<RenderPassId> receiverPasses;
+    for (const auto& pass : plan.passes()) {
+      if (passCanSampleSubviewTextures(pass)) {
+        receiverPasses.push_back(pass.id);
+      }
+    }
+
+    for (const auto& passId : receiverPasses) {
+      for (const auto& resource : resourcesToBind) {
+        plan.addReadToPass(passId, resource);
+      }
+    }
+  }
+
+  void
+  RenderGraphCompiler::validateSubviewReceivers(const RenderIntent& intent,
+                                                const RenderSceneAnalysis& sceneAnalysis) const {
     const auto& receivers = sceneAnalysis.renderTextureSubviewReceivers();
     if (receivers.empty()) {
       return;
@@ -892,19 +958,6 @@ namespace engine::graph {
                                  "unknown subview '" +
                                  receiver + "'");
       }
-      if (intent.maxRenderToTextureRecursionDepth > 0) {
-        const auto matchingSubview =
-          std::find_if(intent.subviews.begin(), intent.subviews.end(),
-                       [&receiver](const RenderSubviewIntent& subview) {
-                         return subview.name == receiver;
-                       });
-        if (matchingSubview != intent.subviews.end() &&
-            matchingSubview->view.selector.selectsWholeFrame()) {
-          throw std::runtime_error("RenderGraphCompiler render-to-texture receiver for subview '" +
-                                   receiver +
-                                   "' is cyclic because that subview renders the whole scene");
-        }
-      }
     }
   }
 
@@ -928,10 +981,9 @@ namespace engine::graph {
     return result;
   }
 
-  RenderPlan
-  RenderGraphCompiler::prefixedSubviewPlan(const RenderPlan& branch, const std::string& prefix,
-                                           const std::string& displayName,
-                                           const RenderFeatureKind& subviewFeature) const {
+  RenderPlan RenderGraphCompiler::prefixedSubviewPlan(
+    const RenderPlan& branch, const std::string& prefix, const std::string& displayName,
+    const std::string& subviewName, const RenderFeatureKind& subviewFeature) const {
     RenderPlan result;
     for (auto resource : branch.resources()) {
       const RenderResourceId originalId = resource.id;
@@ -940,6 +992,9 @@ namespace engine::graph {
       resource.addFeature("subview");
       resource.addFeature(subviewFeature);
       resource.addFeature("render_to_texture");
+      if (!subviewName.empty()) {
+        resource.addFeature("subview_name:" + subviewName);
+      }
       if (resource.lifetime == RenderResourceLifetime::Exported &&
           (originalId == "main_color" || resource.type == RenderResourceType::Depth)) {
         resource.addFeature("subview_output");
@@ -958,6 +1013,9 @@ namespace engine::graph {
       addFeature(pass, "subview");
       addFeature(pass, subviewFeature);
       addFeature(pass, "render_to_texture");
+      if (!subviewName.empty()) {
+        addFeature(pass, "subview_name:" + subviewName);
+      }
       for (auto& read : pass.reads) {
         read.resource = prefixedResourceId(prefix, read.resource);
       }

@@ -46,6 +46,17 @@ namespace SurfaceTest {
     EXPECT_TRUE(analysis.renderTextureSubviewReceivers().count("monitor-feed"));
   }
 
+  TEST(Surface, ShouldConvertRenderTextureSubviewReceiverNameToRaytracerPrimitive) {
+    Sphere s;
+    s.setRenderTextureSubview("monitor-feed");
+    render::Scene scene;
+
+    auto primitive = s.toRaytracer(&scene);
+
+    ASSERT_NE(nullptr, primitive);
+    EXPECT_EQ("monitor-feed", primitive->renderTextureSubview());
+  }
+
   TEST(Surface, ShouldHideAfterShow) {
     Sphere s;
     s.show();

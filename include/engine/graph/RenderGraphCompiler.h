@@ -58,9 +58,15 @@ namespace engine::graph {
                        const RenderSceneAnalysis& sceneAnalysis) const;
 
   private:
+    struct SubviewOutputBinding {
+      std::string name;
+      RenderResourceId colorResource;
+      RenderResourceId depthResource;
+    };
+
     RenderPassNode beautyPass(const RenderExecutorDefinition& executorDefinition,
-                              const SceneView& sceneView, const RenderTargetSpec& target,
-                              const RenderIntent& intent,
+                              const SceneView& sceneView,
+                              const RenderTargetSpec& target, const RenderIntent& intent,
                               std::vector<RenderFeatureKind> extraFeatures = {}) const;
     RenderPlan compileWithSubviewDepth(const RenderTargetSpec& target, const RenderIntent& intent,
                                        const RenderSceneAnalysis& sceneAnalysis,
@@ -116,15 +122,18 @@ namespace engine::graph {
                                 RenderExecutorKind executor, const RenderIntent& intent) const;
     RenderPlan compileStencilCompositeView(const RenderTargetSpec& target,
                                            const RenderIntent& intent) const;
-    void addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,
-                            const RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis,
-                            int renderToTextureDepth) const;
+    std::vector<SubviewOutputBinding>
+    addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target, const RenderIntent& intent,
+                       const RenderSceneAnalysis& sceneAnalysis, int renderToTextureDepth) const;
+    void addSubviewReceiverInputs(RenderPlan& plan,
+                                  const std::vector<SubviewOutputBinding>& subviewOutputs,
+                                  const RenderSceneAnalysis& sceneAnalysis) const;
     void validateSubviewReceivers(const RenderIntent& intent,
                                   const RenderSceneAnalysis& sceneAnalysis) const;
     RenderIntent subviewRenderIntent(const RenderIntent& frameIntent,
                                      const RenderSubviewIntent& subview) const;
     RenderPlan prefixedSubviewPlan(const RenderPlan& branch, const std::string& prefix,
-                                   const std::string& displayName,
+                                   const std::string& displayName, const std::string& subviewName,
                                    const RenderFeatureKind& subviewFeature) const;
     std::string subviewPrefix(const RenderSubviewIntent& subview, std::size_t index,
                               std::set<std::string>& usedPrefixes) const;

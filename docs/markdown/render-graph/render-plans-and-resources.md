@@ -117,6 +117,27 @@ compiled through stencil-mask composite branches for ordinary frame routing.
 The intent also carries
 `maxRenderToTextureRecursionDepth`, which defaults to one subview level and can
 be set to zero to reject render-to-texture expansion entirely.
+Screen surfaces are the first user-facing consumer of those subviews. A world
+material can name a `renderTextureSubview`, and scene analysis reports that
+receiver to the compiler. The compiler then adds reads from the matching
+prefixed subview color resource, and from the raster depth AOV when it exists,
+to the main scene pass that can sample screen textures. In exported JSON or the
+Modeler graph view, that makes the screen's data flow visible: the offscreen
+`subview_<name>_*` branch must finish before the containing scene's beauty pass
+can shade the receiver surface. During execution, CPU-backed raytracer and
+software raster passes bind the produced color buffer into the receiver
+material, so the screen shows the rendered subview instead of its fallback
+diffuse texture.
+
+Nested screen branches use the same intent machinery. A subview branch is
+compiled as its own frame intent, prefixed, then merged back into the parent
+plan. The recursion limit prevents screen-in-screen scene descriptions from
+expanding forever; a limit of one permits the immediate offscreen branch used
+by `scenes/render_texture_screen_demo.json`, while zero is a validation mode
+that rejects all render-to-texture expansion. Imported or hand-authored graph
+JSON still runs through normal graph validation, so cyclic dependencies such as
+a screen receiver reading `screen_color` while the screen-feed pass reads
+`main_color` are rejected as dependency cycles before execution.
 When the effective frame intent names a default camera or non-default shading
 profile, synthesized scene-rendering passes carry those references in their
 `SceneView` and in exported plan JSON. Shading-profile parameters are parsed
@@ -1178,6 +1199,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `scenes/render_graph_aov_demo.json`
 - `scenes/render_graph_stencil_composite_demo.json`
 - `scenes/render_graph_selector_routing_demo.json`
+- `scenes/render_texture_screen_demo.json`
 - `scenes/wavefront_indirect_environment_demo.json`
 - `scenes/wavefront_indirect_bounce_demo.json`
 - `scenes/wavefront_denoise_demo.json`

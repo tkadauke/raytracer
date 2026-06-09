@@ -15,6 +15,8 @@ set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(graph_demo_scene "${PROJECT_SOURCE_DIR}/scenes/render_graph_aov_demo.json")
 set(stencil_composite_demo_scene
     "${PROJECT_SOURCE_DIR}/scenes/render_graph_stencil_composite_demo.json")
+set(render_texture_screen_demo_scene
+    "${PROJECT_SOURCE_DIR}/scenes/render_texture_screen_demo.json")
 set(wavefront_indirect_scene
     "${PROJECT_SOURCE_DIR}/scenes/wavefront_indirect_environment_demo.json")
 set(wavefront_indirect_bounce_scene
@@ -34,6 +36,7 @@ set(material_sidedness_culling_scene "${TEST_OUTPUT_DIR}/material-sidedness-cull
 set(malformed_graph_json "${TEST_OUTPUT_DIR}/malformed-graph.json")
 set(json_root_graph "${TEST_OUTPUT_DIR}/json-root-graph.json")
 set(semantic_invalid_graph "${TEST_OUTPUT_DIR}/semantic-invalid-graph.json")
+set(cyclic_graph "${TEST_OUTPUT_DIR}/cyclic-graph.json")
 set(external_input_graph "${TEST_OUTPUT_DIR}/external-input-graph.json")
 set(depth_input_graph "${TEST_OUTPUT_DIR}/depth-input-graph.json")
 set(stencil_input_graph "${TEST_OUTPUT_DIR}/stencil-input-graph.json")
@@ -47,6 +50,11 @@ set(intent_plan "${TEST_OUTPUT_DIR}/graph-intent.txt")
 set(intent_view_plan "${TEST_OUTPUT_DIR}/graph-intent-view.txt")
 set(intent_view_override_plan "${TEST_OUTPUT_DIR}/graph-intent-view-override.txt")
 set(subview_plan "${TEST_OUTPUT_DIR}/graph-subview.json")
+set(render_texture_screen_plan "${TEST_OUTPUT_DIR}/graph-render-texture-screen.json")
+set(render_texture_screen_render "${TEST_OUTPUT_DIR}/graph-render-texture-screen-render.png")
+set(render_texture_screen_trace "${TEST_OUTPUT_DIR}/graph-render-texture-screen-trace.json")
+set(render_texture_screen_trace_render
+    "${TEST_OUTPUT_DIR}/graph-render-texture-screen-trace-render.png")
 set(depth_view_render "${TEST_OUTPUT_DIR}/graph-depth-view.png")
 set(raster_depth_view_render "${TEST_OUTPUT_DIR}/graph-raster-depth-view.png")
 set(raster_depth_view_plan "${TEST_OUTPUT_DIR}/graph-raster-depth-view.json")
@@ -501,7 +509,15 @@ file(WRITE "${subview_intent_scene}" [=[
       }
     ]
   },
-  "children": []
+  "children": [
+    {
+      "id": "{94000000-0000-0000-0000-000000000010}",
+      "name": "Subview Receiver Material",
+      "type": "MatteMaterial",
+      "renderTextureSubview": "mirror_probe",
+      "children": []
+    }
+  ]
 }
 ]=])
 
@@ -698,6 +714,64 @@ file(WRITE "${semantic_invalid_graph}" [=[
       "features": ["debug"],
       "reads": [],
       "writes": ["main_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    }
+  ]
+}
+]=])
+
+file(WRITE "${cyclic_graph}" [=[
+{
+  "resources": [
+    {
+      "id": "screen_color",
+      "name": "Screen color",
+      "features": ["render_to_texture", "subview_output", "subview_color_output"],
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "transient"
+    },
+    {
+      "id": "main_color",
+      "name": "Main color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "exported"
+    }
+  ],
+  "passes": [
+    {
+      "id": "screen_receiver",
+      "name": "Screen receiver",
+      "kind": "beauty",
+      "executor": "raytracer",
+      "features": ["main", "render_to_texture"],
+      "reads": ["screen_color"],
+      "writes": ["main_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    },
+    {
+      "id": "screen_feed",
+      "name": "Screen feed",
+      "kind": "beauty",
+      "executor": "rasterizer",
+      "features": ["subview", "render_to_texture"],
+      "reads": ["main_color"],
+      "writes": ["screen_color"],
       "disabledBehavior": "error",
       "enabled": true,
       "hasExternalSideEffects": false,
@@ -2950,8 +3024,89 @@ endif()
 if(NOT subview_graph MATCHES "subview_mirror_probe_readback_depth_aov")
   message(FATAL_ERROR "OpenGL scene subview intent did not route depth through readback: ${subview_graph}")
 endif()
+if(NOT subview_graph MATCHES "\"reads\": \\[[^]]*\"subview_mirror_probe_main_color\"")
+  message(FATAL_ERROR "scene subview receiver did not read the subview color output: ${subview_graph}")
+endif()
+if(NOT subview_graph MATCHES "\"reads\": \\[[^]]*\"subview_mirror_probe_depth_aov\"")
+  message(FATAL_ERROR "scene subview receiver did not read the subview depth output: ${subview_graph}")
+endif()
 if(NOT subview_graph MATCHES "render_to_texture")
   message(FATAL_ERROR "scene subview intent did not mark render-to-texture features: ${subview_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli exports hybrid render-to-texture screen graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --width 48 --height 32
+    "${render_texture_screen_demo_scene}" "${render_texture_screen_plan}"
+)
+rendercli_assert_nonempty("${render_texture_screen_plan}"
+                          NAME "hybrid render-to-texture screen graph output")
+file(READ "${render_texture_screen_plan}" render_texture_screen_graph)
+if(NOT render_texture_screen_graph MATCHES "subview_monitor_feed_raster_beauty")
+  message(FATAL_ERROR
+          "hybrid screen demo did not compile the monitor-feed raster branch: ${render_texture_screen_graph}")
+endif()
+if(NOT render_texture_screen_graph MATCHES "subview_monitor_feed_main_color")
+  message(FATAL_ERROR
+          "hybrid screen demo did not export monitor-feed color: ${render_texture_screen_graph}")
+endif()
+if(NOT render_texture_screen_graph MATCHES "subview_monitor_feed_depth_aov")
+  message(FATAL_ERROR
+          "hybrid screen demo did not export monitor-feed depth: ${render_texture_screen_graph}")
+endif()
+if(NOT render_texture_screen_graph MATCHES "\"reads\": \\[[^]]*\"subview_monitor_feed_main_color\"")
+  message(FATAL_ERROR
+          "hybrid screen final beauty did not read the monitor-feed color: ${render_texture_screen_graph}")
+endif()
+if(NOT render_texture_screen_graph MATCHES "\"reads\": \\[[^]]*\"subview_monitor_feed_depth_aov\"")
+  message(FATAL_ERROR
+          "hybrid screen final beauty did not read the monitor-feed depth: ${render_texture_screen_graph}")
+endif()
+if(NOT render_texture_screen_graph MATCHES "\"id\": \"raytrace_beauty\"")
+  message(FATAL_ERROR
+          "hybrid screen demo did not keep the raytraced final beauty pass: ${render_texture_screen_graph}")
+endif()
+if(NOT render_texture_screen_graph MATCHES "render_to_texture")
+  message(FATAL_ERROR
+          "hybrid screen demo did not mark render-to-texture features: ${render_texture_screen_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli renders hybrid render-to-texture screen demo"
+  COMMAND
+    "${RENDERCLI}" --width 48 --height 32
+    "${render_texture_screen_demo_scene}" "${render_texture_screen_render}"
+)
+rendercli_assert_image_dimensions("${render_texture_screen_render}" 48 32
+                                  NAME "hybrid render-to-texture screen render dimensions")
+rendercli_assert_image_nonempty("${render_texture_screen_render}"
+                                NAME "hybrid render-to-texture screen render pixels")
+
+rendercli_run(
+  NAME "rendercli traces hybrid render-to-texture screen resources"
+  COMMAND
+    "${RENDERCLI}" --width 48 --height 32
+    --render_graph_trace_out "${render_texture_screen_trace}"
+    "${render_texture_screen_demo_scene}" "${render_texture_screen_trace_render}"
+)
+rendercli_assert_image_dimensions("${render_texture_screen_trace_render}" 48 32
+                                  NAME "hybrid render-to-texture trace render dimensions")
+rendercli_assert_nonempty("${render_texture_screen_trace}"
+                          NAME "hybrid render-to-texture trace JSON")
+file(READ "${render_texture_screen_trace}" render_texture_screen_trace_json)
+if(NOT render_texture_screen_trace_json MATCHES "subview_monitor_feed_main_color")
+  message(FATAL_ERROR
+          "hybrid screen trace did not include monitor-feed color output: ${render_texture_screen_trace_json}")
+endif()
+if(NOT render_texture_screen_trace_json MATCHES "subview_monitor_feed_depth_aov")
+  message(FATAL_ERROR
+          "hybrid screen trace did not include monitor-feed depth output: ${render_texture_screen_trace_json}")
+endif()
+if(NOT render_texture_screen_trace_json MATCHES "bound [0-9]+ render-to-texture receiver material")
+  message(FATAL_ERROR
+          "hybrid screen trace did not record receiver material binding: ${render_texture_screen_trace_json}")
 endif()
 
 rendercli_expect_failure(
@@ -3310,6 +3465,14 @@ rendercli_expect_failure(
   STDERR_MATCHES "duplicate_writer"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_in "${semantic_invalid_graph}"
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects cyclic render-to-texture graph references"
+  STDERR_MATCHES "dependency cycle"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_in "${cyclic_graph}"
     "${static_scene}" "${invalid_plan}"
 )
 

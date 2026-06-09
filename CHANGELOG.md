@@ -105,9 +105,27 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   preview/render settings, and graph compilation now expose `pathtracer` as a
   user-facing executor preference that compiles to a wavefront-backed
   path-traced beauty pass. — GPT-5
+- **Render-to-texture screen documentation and validation coverage.** The
+  render graph plan and textbook now document screen receivers, nested subview
+  branches, Modeler/export behavior, concrete rendercli verification commands,
+  and cyclic render-to-texture graph rejection. — GPT-5
+- **Hybrid render-to-texture screen demo.** Added
+  `scenes/render_texture_screen_demo.json`, a graph-backed scene where a
+  rasterized subview is bound into a raytraced screen receiver, with rendercli
+  graph/render/trace coverage for the subview resources. — GPT-5
+- **Render-to-texture material binding.** Graph execution now binds CPU-backed
+  render-to-texture color outputs into marked receiver surface/material
+  diffuse inputs for raytracer and CPU raster beauty passes, with OpenGL raster
+  tracing its CPU fallback instead of silently ignoring the generated subview.
+  — GPT-5
+- **Render-to-texture receiver dependencies.** Render graph compilation now
+  connects scene passes that sample render-to-texture subviews to the prefixed
+  subview color and depth outputs, so graph-only exports show the dependency
+  edges before the receiver pass. — GPT-5
 - **Render-to-texture scene intent.** World surfaces and materials can now name
   a subview render target receiver, scene JSON preserves that data, and graph
-  compilation reports missing, duplicate, or cyclic subview references clearly.
+  compilation reports missing, duplicate, or recursion-limited subview
+  references clearly.
   — GPT-5
 - **Wavefront graph packet ratios.** Modeler render graph pass tooltips now
   show packet-fill and scalar-tail percentages for wavefront packet frontiers.

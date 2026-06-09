@@ -1,0 +1,234 @@
+{
+  "id": "{6a000000-0000-0000-0000-000000000000}",
+  "name": "Render Texture Screen Demo",
+  "ambient": [0.28, 0.28, 0.30],
+  "background": [0.045, 0.055, 0.070],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "raytracer",
+    "defaultViewMode": "beauty",
+    "defaultShadingProfile": {
+      "name": "default"
+    },
+    "defaultCamera": {
+      "sceneCameraId": "{6a000000-0000-0000-0000-000000000001}"
+    },
+    "enableAutomaticFeatures": true,
+    "enableWireframeOverlay": false,
+    "enableCurveOverlay": false,
+    "enablePreviewShadows": false,
+    "postProcessAA": "none",
+    "engineOptions": {
+      "rasterizer": {
+        "execution": {"backend": "software"}
+      }
+    },
+    "subviews": [
+      {
+        "name": "monitor_feed",
+        "view": {
+          "selector": {"kind": "all"},
+          "executor": "rasterizer"
+        }
+      }
+    ]
+  },
+  "children": [
+    {
+      "id": "{6a000000-0000-0000-0000-000000000001}",
+      "name": "Main Camera",
+      "position": [0.0, -0.35, -6.2],
+      "target": [0.0, -0.05, 0.35],
+      "distance": 5.0,
+      "zoom": 1.45,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000002}",
+      "name": "Screen Demo Key Light",
+      "position": [-2.2, -3.0, -3.4],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 0.94, 0.84],
+      "intensity": 2.4,
+      "type": "PointLight",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000010}",
+      "name": "Floor Bright",
+      "color": [0.40, 0.42, 0.40],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000011}",
+      "name": "Floor Dark",
+      "color": [0.14, 0.16, 0.18],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000012}",
+      "name": "Floor Checker",
+      "brightTexture": "{6a000000-0000-0000-0000-000000000010}",
+      "darkTexture": "{6a000000-0000-0000-0000-000000000011}",
+      "mapping": "planar",
+      "uScale": 1.2,
+      "vScale": 1.2,
+      "type": "CheckerBoardTexture",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000013}",
+      "name": "Screen Idle Texture",
+      "color": [0.035, 0.040, 0.048],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000014}",
+      "name": "Red Object Texture",
+      "color": [0.88, 0.14, 0.10],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000015}",
+      "name": "Green Object Texture",
+      "color": [0.10, 0.62, 0.30],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000016}",
+      "name": "Blue Object Texture",
+      "color": [0.14, 0.32, 0.82],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000020}",
+      "name": "Floor Material",
+      "diffuseTexture": "{6a000000-0000-0000-0000-000000000012}",
+      "ambientCoefficient": 0.78,
+      "diffuseCoefficient": 0.82,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000021}",
+      "name": "Screen Receiver Material",
+      "diffuseTexture": "{6a000000-0000-0000-0000-000000000013}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "renderTextureSubview": "monitor_feed",
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000022}",
+      "name": "Red Phong Material",
+      "diffuseTexture": "{6a000000-0000-0000-0000-000000000014}",
+      "ambientCoefficient": 0.22,
+      "diffuseCoefficient": 0.82,
+      "specularColor": [1.0, 1.0, 1.0],
+      "specularCoefficient": 0.45,
+      "exponent": 18.0,
+      "type": "PhongMaterial",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000023}",
+      "name": "Green Matte Material",
+      "diffuseTexture": "{6a000000-0000-0000-0000-000000000015}",
+      "ambientCoefficient": 0.35,
+      "diffuseCoefficient": 0.92,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000024}",
+      "name": "Blue Phong Material",
+      "diffuseTexture": "{6a000000-0000-0000-0000-000000000016}",
+      "ambientCoefficient": 0.20,
+      "diffuseCoefficient": 0.75,
+      "specularColor": [1.0, 1.0, 1.0],
+      "specularCoefficient": 0.65,
+      "exponent": 36.0,
+      "type": "PhongMaterial",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000030}",
+      "name": "Floor",
+      "position": [-4.0, 1.05, -1.9],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{6a000000-0000-0000-0000-000000000020}",
+      "leg1": [8.0, 0.0, 0.0],
+      "leg2": [0.0, 0.0, 4.8],
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Rectangle",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000031}",
+      "name": "Render Texture Screen",
+      "position": [-1.55, -1.05, 0.90],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{6a000000-0000-0000-0000-000000000021}",
+      "leg1": [3.10, 0.0, 0.0],
+      "leg2": [0.0, 1.74, 0.0],
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Rectangle",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000040}",
+      "name": "Red Monitor Subject",
+      "position": [-1.05, 0.22, -0.10],
+      "rotation": [0.20, -0.35, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{6a000000-0000-0000-0000-000000000022}",
+      "sweptRadius": 0.35,
+      "tubeRadius": 0.11,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Torus",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000041}",
+      "name": "Green Monitor Subject",
+      "position": [0.05, 0.23, -0.18],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{6a000000-0000-0000-0000-000000000023}",
+      "radius": 0.42,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "{6a000000-0000-0000-0000-000000000042}",
+      "name": "Blue Monitor Subject",
+      "position": [1.08, 0.24, -0.05],
+      "rotation": [0.15, 0.48, -0.12],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{6a000000-0000-0000-0000-000000000024}",
+      "size": [0.50, 0.58, 0.50],
+      "bevelRadius": 0.0,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Box",
+      "children": []
+    }
+  ]
+}

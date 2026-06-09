@@ -4,6 +4,8 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
+#include <utility>
 
 #include "core/Color.h"
 #include "core/math/Matrix.h"
@@ -262,6 +264,14 @@ namespace render {
       m_material = material;
     }
 
+    const std::string& renderTextureSubview() const {
+      return m_renderTextureSubview;
+    }
+
+    void setRenderTextureSubview(std::string subviewName) {
+      m_renderTextureSubview = std::move(subviewName);
+    }
+
     /// @returns the material attached to this primitive, or null
     /// if none was set. See `setMaterial` for fallback semantics.
     inline virtual std::shared_ptr<render::Material> material() const {
@@ -419,6 +429,7 @@ namespace render {
 
   private:
     std::shared_ptr<render::Material> m_material;
+    std::string m_renderTextureSubview;
     mutable MemoizedValue<BoundingBoxd> m_cachedBoundingBox;
   };
 }
