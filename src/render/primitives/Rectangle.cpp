@@ -12,8 +12,14 @@ using namespace render;
 
 const Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                       render::State& state) const {
-  double t = (m_corner - ray.origin()) * m_normal / (ray.direction() * m_normal);
-  if (std::isinf(t)) {
+  const double denominator = ray.direction() * m_normal;
+  if (denominator == 0.0) {
+    state.miss(this, "Rectangle, parallel");
+    return nullptr;
+  }
+
+  double t = (m_corner - ray.origin()) * m_normal / denominator;
+  if (!std::isfinite(t)) {
     state.miss(this, "Rectangle, parallel");
     return nullptr;
   }
@@ -59,8 +65,14 @@ Result Rectangle::intersectPacketHitsFor(const Packet& rays, const StateArray& s
     }
     State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
-    const double t = (m_corner - ray.origin()) * m_normal / (ray.direction() * m_normal);
-    if (std::isinf(t)) {
+    const double denominator = ray.direction() * m_normal;
+    if (denominator == 0.0) {
+      state.miss(this, "Rectangle, parallel");
+      continue;
+    }
+
+    const double t = (m_corner - ray.origin()) * m_normal / denominator;
+    if (!std::isfinite(t)) {
       state.miss(this, "Rectangle, parallel");
       continue;
     }

@@ -412,6 +412,25 @@ namespace GpuIntersectionSceneTest {
     expectPackedClosestHitMatchesCompiled(scene, ray, 23, true);
   }
 
+  TEST(GpuIntersectionScene, PackedRectangleRejectsCoplanarParallelRayLikeCompiledScene) {
+    Scene scene;
+    scene.add(
+      std::make_shared<Rectangle>(Vector3d(-1, -1, 0), Vector3d(2, 0, 0), Vector3d(0, 2, 0)));
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    const Rayd ray(Vector4d(0, 0, 0, 1), Vector3d(1, 0, 0));
+
+    const CompiledIntersectionHit compiledHit =
+      CompiledIntersectionSceneIntersector().intersectClosest(compiled, ray);
+    const GpuIntersectionHitRecord packedHit = GpuIntersectionIntersector().intersectClosest(
+      buffers, GpuIntersectionScenePacker().packRay(ray, 24));
+
+    EXPECT_FALSE(compiledHit.hit);
+    EXPECT_FALSE(packedHit.hit);
+    EXPECT_FALSE(GpuIntersectionIntersector().intersectAny(
+      buffers, GpuIntersectionScenePacker().packRay(ray, 25, 0.0, 100.0)));
+  }
+
   TEST(GpuIntersectionScene, PackedDiskClosestHitMatchesCompiledSceneHit) {
     Scene scene;
     scene.add(std::make_shared<Disk>(Vector3d(0, 0, 3), Vector3d(0, 0, 1), 2.0));

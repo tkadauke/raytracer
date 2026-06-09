@@ -1031,6 +1031,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   cancellation now preserves contributions completed before the depth-boundary
   cancellation check, and scalar progressive display averages use truncating
   channel packing consistently. — GPT-5
+- **Rectangle coplanar-ray misses.** Runtime, packet, compiled CPU, and packed
+  GPU-style rectangle intersections now reject coplanar parallel rays
+  consistently instead of allowing NaN hit distances. — GPT-5
 - **Wavefront GPU query execution diagnostics.** Wavefront intersection query
   metrics now record the execution path used by each closest-hit or any-hit
   query, so traces report `packed_cpu` instead of `metal` if a Metal dispatch

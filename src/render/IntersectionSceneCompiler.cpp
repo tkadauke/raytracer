@@ -762,9 +762,14 @@ std::optional<CompiledIntersectionHit> CompiledIntersectionSceneIntersector::int
 
   const IntersectionRectanglePayload& payload = scene.rectangles()[primitive.payloadOffset];
   const Rayd& localRay = primitiveRay->ray;
-  const double distance = (payload.corner - Vector3d(localRay.origin())) * payload.normal /
-                          (localRay.direction() * payload.normal);
-  if (std::isinf(distance)) {
+  const double denominator = localRay.direction() * payload.normal;
+  if (denominator == 0.0) {
+    return std::nullopt;
+  }
+
+  const double distance =
+    (payload.corner - Vector3d(localRay.origin())) * payload.normal / denominator;
+  if (!std::isfinite(distance)) {
     return std::nullopt;
   }
 
