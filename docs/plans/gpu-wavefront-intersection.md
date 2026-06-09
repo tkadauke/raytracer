@@ -796,6 +796,9 @@ Progress:
   threshold. Platform-enabled runs therefore exercise the same automatic path
   users will rely on, while platform-unavailable runs keep proving the visible
   CPU fallback branch.
+- rendercli functional coverage now also pins explicit CPU wavefront
+  intersection backend metrics and JSON trace fields, proving the non-fallback
+  path reports `cpu`/`available`/`runtime_scene` with zero GPU transfer.
 - `auto` selection now gates on packed closest-hit and packed any-hit
   eligibility separately, rather than only the coarse basic-hit scene flag. That
   keeps automatic GPU routing tied to the two query families the renderer
