@@ -178,8 +178,11 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_STREQ("vulkan", backend.platformName());
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     EXPECT_EQ(VulkanWavefrontSmokeKernel().deviceAvailable(), backend.isAvailable());
+    EXPECT_EQ(VulkanWavefrontSmokeKernel().renderPathAvailable(),
+              backend.platformGpuRenderPathAvailable());
 #else
     EXPECT_FALSE(backend.isAvailable());
+    EXPECT_FALSE(backend.platformGpuRenderPathAvailable());
 #endif
     EXPECT_EQ(nullptr, backend.compiledScene());
     expectUnavailablePlatformFallback(backend, "Vulkan", "runtime_scene", "vulkan");
@@ -189,8 +192,10 @@ namespace WavefrontIntersectionBackendTest {
     VulkanWavefrontSmokeKernel kernel;
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     EXPECT_NO_THROW((void)kernel.deviceAvailable());
+    EXPECT_FALSE(kernel.renderPathAvailable());
 #else
     EXPECT_FALSE(kernel.deviceAvailable());
+    EXPECT_FALSE(kernel.renderPathAvailable());
 #endif
   }
 

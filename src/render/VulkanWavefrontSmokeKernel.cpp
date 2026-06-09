@@ -600,6 +600,10 @@ namespace render {
 #endif
   }
 
+  bool VulkanWavefrontSmokeKernel::renderPathAvailable() const {
+    return false;
+  }
+
   std::vector<std::uint32_t> VulkanWavefrontSmokeKernel::runDummyHitMissKernel(
     const std::vector<std::uint32_t>& rayIds) const {
     if (rayIds.empty()) {

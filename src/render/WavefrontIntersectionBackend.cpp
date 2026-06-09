@@ -1343,7 +1343,7 @@ namespace render {
              "available";
     }
     return "Vulkan wavefront intersection backend is enabled and a compute device is available, "
-           "but no render-path closest-hit kernel is built yet";
+           "but no render-path basic hit kernel is built yet";
 #else
     return "Vulkan wavefront intersection backend is not enabled in this build";
 #endif
@@ -1372,7 +1372,7 @@ namespace render {
   }
 
   bool VulkanWavefrontIntersectionBackend::platformGpuRenderPathAvailable() const {
-    return false;
+    return VulkanWavefrontSmokeKernel().renderPathAvailable();
   }
 
   const CompiledIntersectionScene* VulkanWavefrontIntersectionBackend::compiledScene() const {

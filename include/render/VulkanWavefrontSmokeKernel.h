@@ -15,6 +15,7 @@ namespace render {
   class VulkanWavefrontSmokeKernel {
   public:
     bool deviceAvailable() const;
+    bool renderPathAvailable() const;
     std::vector<std::uint32_t>
     runDummyHitMissKernel(const std::vector<std::uint32_t>& rayIds) const;
 
