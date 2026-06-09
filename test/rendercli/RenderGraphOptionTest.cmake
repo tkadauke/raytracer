@@ -1,4 +1,4 @@
-if(NOT DEFINED RENDERCLI)
+if (NOT DEFINED RENDERCLI)
   message(FATAL_ERROR "RENDERCLI is required")
 endif()
 
@@ -400,6 +400,20 @@ file(WRITE "${wavefront_supported_backend_scene}" [=[
       "size": [0.8, 0.8, 0.8],
       "bevelRadius": 0.0,
       "type": "Box",
+      "children": []
+    },
+    {
+      "id": "cylinder",
+      "name": "Supported Cylinder",
+      "position": [0.2, -1.2, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "blue-material",
+      "radius": 0.35,
+      "height": 0.8,
+      "bevelRadius": 0.0,
+      "type": "Cylinder",
       "children": []
     }
   ]
@@ -2553,8 +2567,8 @@ foreach(expectation
         "intersection_scene_spheres=[1-9][0-9]*"
         "intersection_scene_planes=[0-9][0-9]*"
         "intersection_scene_rectangles=[0-9][0-9]*"
-        "intersection_scene_disks=[0-9][0-9]*"
-        "intersection_scene_open_cylinders=[0-9][0-9]*"
+        "intersection_scene_disks=2"
+        "intersection_scene_open_cylinders=1"
         "intersection_scene_transforms=[0-9][0-9]*"
         "intersection_scene_upload_bytes=[1-9][0-9]*"
         "intersection_scene_basic_hit_kernel_eligible=true"
@@ -2587,8 +2601,8 @@ foreach(expectation
         "\"intersectionSceneSpheres\"[ \r\n]*:[ \r\n]*1"
         "\"intersectionScenePlanes\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionSceneRectangles\"[ \r\n]*:[ \r\n]*0"
-        "\"intersectionSceneDisks\"[ \r\n]*:[ \r\n]*0"
-        "\"intersectionSceneOpenCylinders\"[ \r\n]*:[ \r\n]*0"
+        "\"intersectionSceneDisks\"[ \r\n]*:[ \r\n]*2"
+        "\"intersectionSceneOpenCylinders\"[ \r\n]*:[ \r\n]*1"
         "\"intersectionSceneTransforms\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionSceneUnsupportedPrimitives\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionSceneUploadBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
@@ -2636,8 +2650,8 @@ foreach(expectation
         "\"intersectionSceneSpheres\"[ \r\n]*:[ \r\n]*1"
         "\"intersectionScenePlanes\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionSceneRectangles\"[ \r\n]*:[ \r\n]*0"
-        "\"intersectionSceneDisks\"[ \r\n]*:[ \r\n]*0"
-        "\"intersectionSceneOpenCylinders\"[ \r\n]*:[ \r\n]*0"
+        "\"intersectionSceneDisks\"[ \r\n]*:[ \r\n]*2"
+        "\"intersectionSceneOpenCylinders\"[ \r\n]*:[ \r\n]*1"
         "\"intersectionSceneTransforms\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionSceneUnsupportedPrimitives\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionSceneUploadBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
