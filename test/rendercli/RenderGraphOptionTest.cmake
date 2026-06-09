@@ -127,6 +127,10 @@ set(wavefront_supported_backend_auto_report
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-auto-metrics.json")
 set(wavefront_supported_backend_report
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-metrics.json")
+set(wavefront_unsupported_scene_backend_render
+    "${TEST_OUTPUT_DIR}/wavefront-unsupported-scene-backend-render.png")
+set(wavefront_unsupported_scene_backend_report
+    "${TEST_OUTPUT_DIR}/wavefront-unsupported-scene-backend-metrics.json")
 set(wavefront_supported_backend_trace
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-trace.json")
 set(wavefront_supported_backend_trace_render
@@ -2572,6 +2576,65 @@ if(NOT wavefront_metrics_json MATCHES "\"featureSeconds\"")
                   "wavefront metrics report did not contain denoiser feature timing"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+
+rendercli_run(
+  NAME "rendercli reports unsupported wavefront GPU scene without upload buffers"
+  OUTPUT_VARIABLE wavefront_unsupported_scene_backend_stdout
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 16 --height 16
+    --wavefront_intersection_backend gpu
+    --wavefront_metrics_out "${wavefront_unsupported_scene_backend_report}"
+    --wavefront_metrics_summary "${PROJECT_SOURCE_DIR}/scenes/glass_torus.json"
+    "${wavefront_unsupported_scene_backend_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_unsupported_scene_backend_render}"
+                                NAME "unsupported wavefront scene backend render pixels")
+rendercli_assert_exists("${wavefront_unsupported_scene_backend_report}"
+                        NAME "unsupported wavefront scene backend metrics report exists")
+foreach(expectation
+        "intersection_backend_request=gpu"
+        "intersection_backend=cpu"
+        "intersection_backend_availability=fallback"
+        "intersection_backend_fallback=GPU_intersection_scene_unsupported"
+        "intersection_backend_execution=runtime_scene"
+        "closest_hit_execution=runtime_scene"
+        "any_hit_execution=none"
+        "intersection_scene_compiled=true"
+        "intersection_scene_primitives=[1-9][0-9]*"
+        "intersection_scene_unsupported=[1-9][0-9]*"
+        "intersection_scene_upload_bytes=0"
+        "intersection_scene_packed_closest_hit_eligible=false"
+        "intersection_scene_packed_any_hit_eligible=false"
+        "intersection_estimated_query_transfer_bytes=0")
+  if(NOT wavefront_unsupported_scene_backend_stdout MATCHES "${expectation}")
+    _rendercli_fail("rendercli unsupported wavefront scene backend summary ${expectation}"
+                    "unsupported wavefront scene backend summary did not match ${expectation}"
+                    "${wavefront_unsupported_scene_backend_stdout}" "" "" "")
+  endif()
+endforeach()
+file(READ "${wavefront_unsupported_scene_backend_report}"
+     wavefront_unsupported_scene_backend_json)
+foreach(expectation
+        "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
+        "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
+        "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"fallback\""
+        "\"intersectionBackendFallbackReason\"[ \r\n]*:[ \r\n]*\"GPU intersection scene unsupported"
+        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
+        "\"intersectionBackendClosestHitExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
+        "\"intersectionBackendAnyHitExecutionPath\"[ \r\n]*:[ \r\n]*\"\""
+        "\"intersectionSceneCompiled\"[ \r\n]*:[ \r\n]*true"
+        "\"intersectionScenePrimitives\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"intersectionSceneUnsupportedPrimitives\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"intersectionSceneUploadBytes\"[ \r\n]*:[ \r\n]*0"
+        "\"intersectionScenePackedClosestHitEligible\"[ \r\n]*:[ \r\n]*false"
+        "\"intersectionScenePackedAnyHitEligible\"[ \r\n]*:[ \r\n]*false"
+        "\"intersectionEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*0")
+  if(NOT wavefront_unsupported_scene_backend_json MATCHES "${expectation}")
+    _rendercli_fail("rendercli unsupported wavefront scene backend report ${expectation}"
+                    "unsupported wavefront scene backend report did not match ${expectation}"
+                    "" "" "${wavefront_unsupported_scene_backend_json}" "")
+  endif()
+endforeach()
 
 rendercli_run(
   NAME "rendercli reports prepared wavefront GPU backend metrics for supported scene"

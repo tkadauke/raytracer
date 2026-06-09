@@ -811,6 +811,9 @@ Progress:
 - rendercli functional coverage now also pins explicit CPU wavefront
   intersection backend metrics and JSON trace fields, proving the non-fallback
   path reports `cpu`/`available`/`runtime_scene` with zero GPU transfer.
+- rendercli functional coverage now also pins explicit GPU requests for an
+  unsupported exact-primitive scene, proving the fallback reports compiled
+  unsupported counts but zero scene-upload and query-transfer bytes.
 - `auto` selection now gates on packed closest-hit and packed any-hit
   eligibility separately, rather than only the coarse basic-hit scene flag. That
   keeps automatic GPU routing tied to the two query families the renderer
