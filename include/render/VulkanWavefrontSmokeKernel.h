@@ -3,6 +3,7 @@
 #include "render/WavefrontIntersectionQueryTiming.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -53,5 +54,23 @@ namespace render {
   private:
     std::string probeDeviceUnavailableReason() const;
     std::string probeRenderPathUnavailableReason() const;
+  };
+
+  class VulkanWavefrontPreparedScene {
+  public:
+    explicit VulkanWavefrontPreparedScene(const GpuIntersectionSceneBuffers& scene);
+    ~VulkanWavefrontPreparedScene();
+
+    VulkanWavefrontPreparedScene(const VulkanWavefrontPreparedScene&) = delete;
+    VulkanWavefrontPreparedScene& operator=(const VulkanWavefrontPreparedScene&) = delete;
+
+    VulkanWavefrontClosestHitKernelResult
+    runTimedBasicClosestHitKernel(const std::vector<GpuIntersectionRay>& rays) const;
+    VulkanWavefrontAnyHitKernelResult
+    runTimedBasicAnyHitKernel(const std::vector<GpuIntersectionRay>& rays) const;
+
+  private:
+    struct Private;
+    std::unique_ptr<Private> p;
   };
 }

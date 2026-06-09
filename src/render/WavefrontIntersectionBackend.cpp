@@ -1375,9 +1375,24 @@ namespace render {
     std::shared_ptr<const CompiledIntersectionScene> scene, std::string requestedName) {
     auto buffers = std::make_shared<const GpuIntersectionSceneBuffers>(
       GpuIntersectionScenePacker().packScene(*scene));
+    std::shared_ptr<const VulkanWavefrontPreparedScene> vulkanPreparedScene;
+    std::string vulkanPreparationError;
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    if (buffers->basicHitKernelEligible() && VulkanWavefrontSmokeKernel().renderPathAvailable() &&
+        VulkanWavefrontIntersectionBackend::supportsPackedScene(*buffers)) {
+      try {
+        vulkanPreparedScene = std::make_shared<VulkanWavefrontPreparedScene>(*buffers);
+      } catch (const std::exception& e) {
+        vulkanPreparationError = "Vulkan wavefront intersection backend failed to prepare scene "
+                                 "buffers: ";
+        vulkanPreparationError += e.what();
+      }
+    }
+#endif
     return std::shared_ptr<const WavefrontIntersectionBackend>(
-      new VulkanWavefrontIntersectionBackend(std::move(scene), std::move(buffers),
-                                             std::move(requestedName)));
+      new VulkanWavefrontIntersectionBackend(
+        std::move(scene), std::move(buffers), std::move(vulkanPreparedScene),
+        std::move(vulkanPreparationError), std::move(requestedName)));
   }
 
   bool VulkanWavefrontIntersectionBackend::supportsPackedScene(
@@ -1387,9 +1402,13 @@ namespace render {
 
   VulkanWavefrontIntersectionBackend::VulkanWavefrontIntersectionBackend(
     std::shared_ptr<const CompiledIntersectionScene> compiledScene,
-    std::shared_ptr<const GpuIntersectionSceneBuffers> gpuSceneBuffers, std::string requestedName)
+    std::shared_ptr<const GpuIntersectionSceneBuffers> gpuSceneBuffers,
+    std::shared_ptr<const VulkanWavefrontPreparedScene> vulkanPreparedScene,
+    std::string vulkanPreparationError, std::string requestedName)
       : m_compiledScene(std::move(compiledScene)),
         m_gpuSceneBuffers(std::move(gpuSceneBuffers)),
+        m_vulkanPreparedScene(std::move(vulkanPreparedScene)),
+        m_vulkanPreparationError(std::move(vulkanPreparationError)),
         m_requestedName(std::move(requestedName)) {
   }
 
@@ -1460,6 +1479,9 @@ namespace render {
       return "Vulkan wavefront intersection backend is enabled but no prepared "
              "exact-primitive/static-transform scene is available";
     }
+    if (!m_vulkanPreparationError.empty()) {
+      return m_vulkanPreparationError;
+    }
     return "Vulkan wavefront intersection backend is enabled but the prepared scene is not "
            "eligible for the Vulkan exact-primitive/static-transform hit kernels";
 #else
@@ -1508,7 +1530,7 @@ namespace render {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     try {
       const VulkanWavefrontClosestHitKernelResult result =
-        VulkanWavefrontSmokeKernel().runTimedBasicClosestHitKernel(*m_gpuSceneBuffers, rays);
+        m_vulkanPreparedScene->runTimedBasicClosestHitKernel(rays);
       if (timing) {
         timing->add(result.timing);
         timing->recordExecutionPath("vulkan");
@@ -1546,7 +1568,7 @@ namespace render {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     try {
       const VulkanWavefrontAnyHitKernelResult result =
-        VulkanWavefrontSmokeKernel().runTimedBasicAnyHitKernel(*m_gpuSceneBuffers, rays);
+        m_vulkanPreparedScene->runTimedBasicAnyHitKernel(rays);
       if (timing) {
         timing->add(result.timing);
         timing->recordExecutionPath("vulkan");
@@ -1593,8 +1615,7 @@ namespace render {
 
   bool VulkanWavefrontIntersectionBackend::vulkanBasicHitAvailable() const {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-    return m_gpuSceneBuffers != nullptr && supportsPackedScene(*m_gpuSceneBuffers) &&
-           platformGpuRenderPathAvailable();
+    return m_vulkanPreparedScene != nullptr && platformGpuRenderPathAvailable();
 #else
     return false;
 #endif

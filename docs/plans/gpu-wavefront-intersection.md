@@ -512,6 +512,12 @@ Progress:
   prepared-scene buffer pool, so concurrent worker threads can check out
   separate reusable buffer sets instead of serializing every dispatch on one
   shared query buffer.
+- Prepared Vulkan backends now also have a scene-owned render-path object. It
+  keeps the Vulkan instance, device, queue, descriptor layout, pipelines,
+  command pool, and static scene buffers alive for the supported scene, so
+  closest-hit and any-hit dispatches upload only the per-query rays/counts and
+  read back the query result records. Query dispatch is still serialized on the
+  prepared scene; a reusable Vulkan query-buffer pool remains future work.
 
 ## Phase 5 - common exact primitives and static instances
 

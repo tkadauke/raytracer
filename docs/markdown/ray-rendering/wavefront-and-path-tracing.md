@@ -320,7 +320,10 @@ closest-hit queries already run through a packed CPU traversal that consumes
 those upload buffers and emits the same hit-record layout the GPU kernel will
 write. The Metal and Vulkan basic closest-hit and any-hit kernels use that same
 upload layout for triangle, sphere, plane, rectangle, disk, OpenCylinder, and
-static-transform scenes in the render path. Bounded any-hit visibility uses the
+static-transform scenes in the render path. Prepared Vulkan backends now keep
+their device, pipelines, descriptor layout, command pool, and scene-side buffers
+alive for the scene, so a query dispatch only uploads the ray/count buffers and
+reads back the hit or occlusion records. Bounded any-hit visibility uses the
 same packed traversal contract, including the finite light-distance epsilon used
 by the compiled parity intersector. This matches
 the current CPU shadow rule:

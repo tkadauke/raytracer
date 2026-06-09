@@ -21,6 +21,7 @@ namespace render {
   class MetalWavefrontPreparedScene;
   class Scene;
   class State;
+  class VulkanWavefrontPreparedScene;
   class WavefrontIntersectionBackend;
 
   struct WavefrontIntersectionSceneDiagnostics {
@@ -436,13 +437,16 @@ namespace render {
     explicit VulkanWavefrontIntersectionBackend(
       std::shared_ptr<const CompiledIntersectionScene> compiledScene,
       std::shared_ptr<const GpuIntersectionSceneBuffers> gpuSceneBuffers,
-      std::string requestedName);
+      std::shared_ptr<const VulkanWavefrontPreparedScene> vulkanPreparedScene,
+      std::string vulkanPreparationError, std::string requestedName);
 
     [[nodiscard]] std::string fallbackReasonText() const;
     [[nodiscard]] bool vulkanBasicHitAvailable() const;
 
     std::shared_ptr<const CompiledIntersectionScene> m_compiledScene;
     std::shared_ptr<const GpuIntersectionSceneBuffers> m_gpuSceneBuffers;
+    std::shared_ptr<const VulkanWavefrontPreparedScene> m_vulkanPreparedScene;
+    std::string m_vulkanPreparationError;
     std::string m_requestedName;
   };
 }

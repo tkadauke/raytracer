@@ -16,6 +16,8 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
+#include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -1011,6 +1013,625 @@ namespace render {
 #endif
   }
 
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+  struct VulkanWavefrontPreparedScene::Private {
+    explicit Private(const GpuIntersectionSceneBuffers& scene) {
+      try {
+        if (!VulkanWavefrontIntersectionBackend::supportsPackedScene(scene)) {
+          throw std::invalid_argument(
+            "Vulkan prepared wavefront scene requires an exact-primitive/static-transform scene");
+        }
+
+        instance = createInstance();
+        const DeviceSelection selection = selectDevice(instance);
+        if (selection.device == VK_NULL_HANDLE) {
+          throw std::runtime_error("Vulkan prepared wavefront scene requires a compute device");
+        }
+        physicalDevice = selection.device;
+        queueFamily = selection.queueFamily;
+        device = createDevice(physicalDevice, queueFamily);
+        vkGetDeviceQueue(device, queueFamily, 0, &queue);
+
+        sceneBuffers.reserve(9);
+        sceneBuffers.push_back(createStorageBufferFromVector(scene.bvh));
+        sceneBuffers.push_back(createStorageBufferFromVector(scene.primitives));
+        sceneBuffers.push_back(createStorageBufferFromVector(scene.triangles));
+        sceneBuffers.push_back(createStorageBufferFromVector(scene.spheres));
+        sceneBuffers.push_back(createStorageBufferFromVector(scene.planes));
+        sceneBuffers.push_back(createStorageBufferFromVector(scene.rectangles));
+        sceneBuffers.push_back(createStorageBufferFromVector(scene.disks));
+        sceneBuffers.push_back(createStorageBufferFromVector(scene.openCylinders));
+        sceneBuffers.push_back(createStorageBufferFromVector(scene.transforms));
+
+        sceneCounts0 = {
+          static_cast<std::uint32_t>(scene.bvh.size()),
+          static_cast<std::uint32_t>(scene.primitives.size()),
+          static_cast<std::uint32_t>(scene.triangles.size()),
+          static_cast<std::uint32_t>(scene.spheres.size()),
+        };
+        sceneCounts1 = {
+          static_cast<std::uint32_t>(scene.planes.size()),
+          static_cast<std::uint32_t>(scene.rectangles.size()),
+          static_cast<std::uint32_t>(scene.disks.size()),
+          static_cast<std::uint32_t>(scene.openCylinders.size()),
+        };
+        transformCount = static_cast<std::uint32_t>(scene.transforms.size());
+
+        closestShader = createShaderModule(vulkan_shaders::triangleClosestHitShaderSpirv.data(),
+                                           vulkan_shaders::triangleClosestHitShaderSpirv.size());
+        anyShader = createShaderModule(vulkan_shaders::triangleAnyHitShaderSpirv.data(),
+                                       vulkan_shaders::triangleAnyHitShaderSpirv.size());
+        descriptorLayout = createDescriptorLayout(12);
+        pipelineLayout = createPipelineLayout(descriptorLayout);
+        closestPipeline = createPipeline(closestShader);
+        anyPipeline = createPipeline(anyShader);
+        commandPool = createCommandPool();
+      } catch (...) {
+        cleanup();
+        throw;
+      }
+    }
+
+    ~Private() {
+      cleanup();
+    }
+
+    void cleanup() {
+      if (device) {
+        if (commandPool) {
+          vkDestroyCommandPool(device, commandPool, nullptr);
+          commandPool = VK_NULL_HANDLE;
+        }
+        if (closestPipeline) {
+          vkDestroyPipeline(device, closestPipeline, nullptr);
+          closestPipeline = VK_NULL_HANDLE;
+        }
+        if (anyPipeline) {
+          vkDestroyPipeline(device, anyPipeline, nullptr);
+          anyPipeline = VK_NULL_HANDLE;
+        }
+        if (pipelineLayout) {
+          vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+          pipelineLayout = VK_NULL_HANDLE;
+        }
+        if (descriptorLayout) {
+          vkDestroyDescriptorSetLayout(device, descriptorLayout, nullptr);
+          descriptorLayout = VK_NULL_HANDLE;
+        }
+        if (closestShader) {
+          vkDestroyShaderModule(device, closestShader, nullptr);
+          closestShader = VK_NULL_HANDLE;
+        }
+        if (anyShader) {
+          vkDestroyShaderModule(device, anyShader, nullptr);
+          anyShader = VK_NULL_HANDLE;
+        }
+        for (SmokeBuffer& buffer : sceneBuffers) {
+          destroy(buffer);
+        }
+        sceneBuffers.clear();
+        vkDestroyDevice(device, nullptr);
+        device = VK_NULL_HANDLE;
+      }
+      if (instance) {
+        vkDestroyInstance(instance, nullptr);
+        instance = VK_NULL_HANDLE;
+      }
+    }
+
+    VulkanWavefrontClosestHitKernelResult
+    runClosest(const std::vector<GpuIntersectionRay>& rays) const {
+      VulkanWavefrontClosestHitKernelResult result;
+      if (rays.empty()) {
+        return result;
+      }
+      const VkDeviceSize outputBytes = byteCountForRecords<GpuIntersectionHitRecord>(rays.size());
+      auto dispatchResult =
+        dispatch(rays, outputBytes, closestPipeline, "Vulkan prepared closest-hit");
+      const auto readbackStart = std::chrono::steady_clock::now();
+      try {
+        result.hits = readBackRecords<GpuIntersectionHitRecord>(
+          dispatchResult.output.memory, outputBytes, rays.size(),
+          "Vulkan prepared closest-hit output buffer mapping");
+      } catch (...) {
+        destroy(dispatchResult.output);
+        throw;
+      }
+      const auto readbackEnd = std::chrono::steady_clock::now();
+      result.timing = dispatchResult.timing;
+      result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
+      result.timing.recordExecutionPath("vulkan");
+      destroy(dispatchResult.output);
+      return result;
+    }
+
+    VulkanWavefrontAnyHitKernelResult runAny(const std::vector<GpuIntersectionRay>& rays) const {
+      VulkanWavefrontAnyHitKernelResult result;
+      if (rays.empty()) {
+        return result;
+      }
+      const VkDeviceSize outputBytes =
+        byteCountForRecords<GpuIntersectionOcclusionRecord>(rays.size());
+      auto dispatchResult = dispatch(rays, outputBytes, anyPipeline, "Vulkan prepared any-hit");
+      const auto readbackStart = std::chrono::steady_clock::now();
+      try {
+        result.records = readBackRecords<GpuIntersectionOcclusionRecord>(
+          dispatchResult.output.memory, outputBytes, rays.size(),
+          "Vulkan prepared any-hit output buffer mapping");
+      } catch (...) {
+        destroy(dispatchResult.output);
+        throw;
+      }
+      const auto readbackEnd = std::chrono::steady_clock::now();
+      result.timing = dispatchResult.timing;
+      result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
+      result.timing.recordExecutionPath("vulkan");
+      destroy(dispatchResult.output);
+      return result;
+    }
+
+    struct DeviceSelection {
+      VkPhysicalDevice device{VK_NULL_HANDLE};
+      std::uint32_t queueFamily{kInvalidQueueFamily};
+    };
+
+    struct SmokeBuffer {
+      VkBuffer buffer{VK_NULL_HANDLE};
+      VkDeviceMemory memory{VK_NULL_HANDLE};
+      VkDeviceSize byteCount{0};
+    };
+
+    struct QueryBufferGuard {
+      ~QueryBufferGuard() {
+        for (SmokeBuffer& buffer : buffers) {
+          if (owner) {
+            owner->destroy(buffer);
+          }
+        }
+      }
+
+      const Private* owner{nullptr};
+      std::vector<SmokeBuffer> buffers;
+    };
+
+    struct DescriptorPoolGuard {
+      ~DescriptorPoolGuard() {
+        if (pool) {
+          vkDestroyDescriptorPool(device, pool, nullptr);
+        }
+      }
+
+      VkDevice device{VK_NULL_HANDLE};
+      VkDescriptorPool pool{VK_NULL_HANDLE};
+    };
+
+    struct DispatchResult {
+      SmokeBuffer output;
+      WavefrontIntersectionQueryTiming timing;
+    };
+
+    static constexpr std::uint32_t kInvalidQueueFamily = std::numeric_limits<std::uint32_t>::max();
+
+    DispatchResult dispatch(const std::vector<GpuIntersectionRay>& rays, VkDeviceSize outputBytes,
+                            VkPipeline pipeline, const char* operation) const {
+      if (rays.size() > std::numeric_limits<std::uint32_t>::max()) {
+        throw std::runtime_error(std::string(operation) + " ray batch is too large");
+      }
+
+      std::lock_guard<std::mutex> lock(dispatchMutex);
+
+      DispatchResult result;
+      const auto uploadStart = std::chrono::steady_clock::now();
+
+      QueryBufferGuard queryBuffers;
+      queryBuffers.owner = this;
+      queryBuffers.buffers.push_back(createStorageBufferFromVector(rays));
+      queryBuffers.buffers.push_back(createStorageBuffer(outputBytes, nullptr));
+
+      const std::array<std::uint32_t, 12> counts{
+        sceneCounts0[0],
+        sceneCounts0[1],
+        sceneCounts0[2],
+        sceneCounts0[3],
+        sceneCounts1[0],
+        sceneCounts1[1],
+        sceneCounts1[2],
+        sceneCounts1[3],
+        static_cast<std::uint32_t>(rays.size()),
+        transformCount,
+        0u,
+        0u,
+      };
+      queryBuffers.buffers.push_back(createStorageBuffer(sizeof(counts), counts.data()));
+
+      std::vector<std::pair<VkBuffer, VkDeviceSize>> descriptors;
+      descriptors.reserve(12);
+      for (const SmokeBuffer& buffer : sceneBuffers) {
+        descriptors.push_back({buffer.buffer, buffer.byteCount});
+      }
+      descriptors.push_back({queryBuffers.buffers[0].buffer, queryBuffers.buffers[0].byteCount});
+      descriptors.push_back({queryBuffers.buffers[1].buffer, queryBuffers.buffers[1].byteCount});
+      descriptors.push_back({queryBuffers.buffers[2].buffer, queryBuffers.buffers[2].byteCount});
+
+      DescriptorPoolGuard descriptorPool;
+      descriptorPool.device = device;
+      descriptorPool.pool = createDescriptorPool(12);
+      VkDescriptorSet descriptorSet = allocateDescriptorSet(descriptorPool.pool);
+      updateDescriptorSet(descriptorSet, descriptors);
+
+      check(vkResetCommandPool(device, commandPool, 0),
+            "Vulkan prepared wavefront command pool reset");
+      VkCommandBuffer commandBuffer = allocateCommandBuffer();
+      recordDispatch(commandBuffer, pipeline, descriptorSet,
+                     static_cast<std::uint32_t>(rays.size()));
+      const auto uploadEnd = std::chrono::steady_clock::now();
+
+      const auto kernelStart = std::chrono::steady_clock::now();
+      submitAndWait(commandBuffer);
+      const auto kernelEnd = std::chrono::steady_clock::now();
+
+      result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
+      result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
+      result.output = queryBuffers.buffers[1];
+      queryBuffers.buffers[1] = {};
+      return result;
+    }
+
+    void check(VkResult result, const char* operation) const {
+      if (result != VK_SUCCESS) {
+        throw std::runtime_error(std::string(operation) + " failed");
+      }
+    }
+
+    double secondsBetween(std::chrono::steady_clock::time_point start,
+                          std::chrono::steady_clock::time_point end) const {
+      return std::chrono::duration<double>(end - start).count();
+    }
+
+    VkInstance createInstance() const {
+      VkApplicationInfo applicationInfo{};
+      applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+      applicationInfo.pApplicationName = "raytracer Vulkan prepared wavefront";
+      applicationInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+      applicationInfo.pEngineName = "raytracer";
+      applicationInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+      applicationInfo.apiVersion = VK_API_VERSION_1_0;
+
+      VkInstanceCreateInfo createInfo{};
+      createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+      createInfo.pApplicationInfo = &applicationInfo;
+
+      VkInstance createdInstance = VK_NULL_HANDLE;
+      check(vkCreateInstance(&createInfo, nullptr, &createdInstance),
+            "Vulkan prepared wavefront instance creation");
+      return createdInstance;
+    }
+
+    std::uint32_t computeQueueFamily(VkPhysicalDevice candidate) const {
+      std::uint32_t queueFamilyCount = 0;
+      vkGetPhysicalDeviceQueueFamilyProperties(candidate, &queueFamilyCount, nullptr);
+      if (queueFamilyCount == 0) {
+        return kInvalidQueueFamily;
+      }
+
+      std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+      vkGetPhysicalDeviceQueueFamilyProperties(candidate, &queueFamilyCount, queueFamilies.data());
+      for (std::uint32_t index = 0; index != queueFamilyCount; ++index) {
+        const VkQueueFamilyProperties& queueFamilyProperties = queueFamilies[index];
+        if ((queueFamilyProperties.queueFlags & VK_QUEUE_COMPUTE_BIT) != 0 &&
+            queueFamilyProperties.queueCount > 0) {
+          return index;
+        }
+      }
+      return kInvalidQueueFamily;
+    }
+
+    DeviceSelection selectDevice(VkInstance sourceInstance) const {
+      std::uint32_t deviceCount = 0;
+      if (vkEnumeratePhysicalDevices(sourceInstance, &deviceCount, nullptr) != VK_SUCCESS ||
+          deviceCount == 0) {
+        return {};
+      }
+
+      std::vector<VkPhysicalDevice> devices(deviceCount, VK_NULL_HANDLE);
+      if (vkEnumeratePhysicalDevices(sourceInstance, &deviceCount, devices.data()) != VK_SUCCESS) {
+        return {};
+      }
+
+      for (VkPhysicalDevice candidate : devices) {
+        const std::uint32_t candidateQueueFamily = computeQueueFamily(candidate);
+        if (candidateQueueFamily != kInvalidQueueFamily) {
+          return {candidate, candidateQueueFamily};
+        }
+      }
+      return {};
+    }
+
+    VkDevice createDevice(VkPhysicalDevice selectedDevice,
+                          std::uint32_t selectedQueueFamily) const {
+      const float queuePriority = 1.0f;
+      VkDeviceQueueCreateInfo queueCreateInfo{};
+      queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+      queueCreateInfo.queueFamilyIndex = selectedQueueFamily;
+      queueCreateInfo.queueCount = 1;
+      queueCreateInfo.pQueuePriorities = &queuePriority;
+
+      VkDeviceCreateInfo deviceCreateInfo{};
+      deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+      deviceCreateInfo.queueCreateInfoCount = 1;
+      deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+
+      VkDevice createdDevice = VK_NULL_HANDLE;
+      check(vkCreateDevice(selectedDevice, &deviceCreateInfo, nullptr, &createdDevice),
+            "Vulkan prepared wavefront logical device creation");
+      return createdDevice;
+    }
+
+    std::uint32_t findHostVisibleMemoryType(std::uint32_t memoryTypeBits) const {
+      VkPhysicalDeviceMemoryProperties properties{};
+      vkGetPhysicalDeviceMemoryProperties(physicalDevice, &properties);
+      for (std::uint32_t index = 0; index != properties.memoryTypeCount; ++index) {
+        const bool typeSupported = (memoryTypeBits & (1u << index)) != 0;
+        const VkMemoryPropertyFlags flags = properties.memoryTypes[index].propertyFlags;
+        if (typeSupported && (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0 &&
+            (flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0) {
+          return index;
+        }
+      }
+      throw std::runtime_error("Vulkan prepared wavefront requires host-coherent buffer memory");
+    }
+
+    SmokeBuffer createStorageBuffer(VkDeviceSize byteCount, const void* initialData) const {
+      SmokeBuffer result;
+      result.byteCount = byteCount;
+
+      VkBufferCreateInfo bufferInfo{};
+      bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+      bufferInfo.size = byteCount;
+      bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+      bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+      check(vkCreateBuffer(device, &bufferInfo, nullptr, &result.buffer),
+            "Vulkan prepared wavefront buffer creation");
+
+      VkMemoryRequirements requirements{};
+      vkGetBufferMemoryRequirements(device, result.buffer, &requirements);
+
+      VkMemoryAllocateInfo allocateInfo{};
+      allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+      allocateInfo.allocationSize = requirements.size;
+      allocateInfo.memoryTypeIndex = findHostVisibleMemoryType(requirements.memoryTypeBits);
+      check(vkAllocateMemory(device, &allocateInfo, nullptr, &result.memory),
+            "Vulkan prepared wavefront buffer memory allocation");
+      check(vkBindBufferMemory(device, result.buffer, result.memory, 0),
+            "Vulkan prepared wavefront buffer binding");
+
+      if (initialData) {
+        void* mapped = nullptr;
+        check(vkMapMemory(device, result.memory, 0, byteCount, 0, &mapped),
+              "Vulkan prepared wavefront input buffer mapping");
+        std::memcpy(mapped, initialData, static_cast<std::size_t>(byteCount));
+        vkUnmapMemory(device, result.memory);
+      }
+      return result;
+    }
+
+    template<typename Record>
+    VkDeviceSize byteCountForRecords(std::size_t recordCount) const {
+      if (recordCount >
+          std::numeric_limits<VkDeviceSize>::max() / static_cast<VkDeviceSize>(sizeof(Record))) {
+        throw std::runtime_error("Vulkan prepared wavefront buffer is too large");
+      }
+      return static_cast<VkDeviceSize>(recordCount) * static_cast<VkDeviceSize>(sizeof(Record));
+    }
+
+    template<typename Record>
+    SmokeBuffer createStorageBufferFromVector(const std::vector<Record>& records) const {
+      if (records.empty()) {
+        return createStorageBuffer(static_cast<VkDeviceSize>(sizeof(Record)), nullptr);
+      }
+      return createStorageBuffer(byteCountForRecords<Record>(records.size()), records.data());
+    }
+
+    VkShaderModule createShaderModule(const std::uint32_t* words, std::size_t wordCount) const {
+      VkShaderModuleCreateInfo shaderInfo{};
+      shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+      shaderInfo.codeSize = wordCount * sizeof(std::uint32_t);
+      shaderInfo.pCode = words;
+
+      VkShaderModule shaderModule = VK_NULL_HANDLE;
+      check(vkCreateShaderModule(device, &shaderInfo, nullptr, &shaderModule),
+            "Vulkan prepared wavefront shader module creation");
+      return shaderModule;
+    }
+
+    VkDescriptorSetLayout createDescriptorLayout(std::uint32_t bindingCount) const {
+      std::vector<VkDescriptorSetLayoutBinding> bindings(bindingCount);
+      for (std::uint32_t index = 0; index != bindingCount; ++index) {
+        bindings[index].binding = index;
+        bindings[index].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        bindings[index].descriptorCount = 1;
+        bindings[index].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+      }
+
+      VkDescriptorSetLayoutCreateInfo descriptorLayoutInfo{};
+      descriptorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+      descriptorLayoutInfo.bindingCount = static_cast<std::uint32_t>(bindings.size());
+      descriptorLayoutInfo.pBindings = bindings.data();
+
+      VkDescriptorSetLayout layout = VK_NULL_HANDLE;
+      check(vkCreateDescriptorSetLayout(device, &descriptorLayoutInfo, nullptr, &layout),
+            "Vulkan prepared wavefront descriptor layout creation");
+      return layout;
+    }
+
+    VkPipelineLayout createPipelineLayout(VkDescriptorSetLayout layout) const {
+      VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+      pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+      pipelineLayoutInfo.setLayoutCount = 1;
+      pipelineLayoutInfo.pSetLayouts = &layout;
+
+      VkPipelineLayout createdLayout = VK_NULL_HANDLE;
+      check(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &createdLayout),
+            "Vulkan prepared wavefront pipeline layout creation");
+      return createdLayout;
+    }
+
+    VkPipeline createPipeline(VkShaderModule shaderModule) const {
+      VkComputePipelineCreateInfo pipelineInfo{};
+      pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+      pipelineInfo.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+      pipelineInfo.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+      pipelineInfo.stage.module = shaderModule;
+      pipelineInfo.stage.pName = "main";
+      pipelineInfo.layout = pipelineLayout;
+
+      VkPipeline pipeline = VK_NULL_HANDLE;
+      check(vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline),
+            "Vulkan prepared wavefront compute pipeline creation");
+      return pipeline;
+    }
+
+    VkDescriptorPool createDescriptorPool(std::uint32_t descriptorCount) const {
+      VkDescriptorPoolSize poolSize{};
+      poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+      poolSize.descriptorCount = descriptorCount;
+
+      VkDescriptorPoolCreateInfo poolInfo{};
+      poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+      poolInfo.maxSets = 1;
+      poolInfo.poolSizeCount = 1;
+      poolInfo.pPoolSizes = &poolSize;
+
+      VkDescriptorPool pool = VK_NULL_HANDLE;
+      check(vkCreateDescriptorPool(device, &poolInfo, nullptr, &pool),
+            "Vulkan prepared wavefront descriptor pool creation");
+      return pool;
+    }
+
+    VkDescriptorSet allocateDescriptorSet(VkDescriptorPool descriptorPool) const {
+      VkDescriptorSetAllocateInfo descriptorAllocateInfo{};
+      descriptorAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+      descriptorAllocateInfo.descriptorPool = descriptorPool;
+      descriptorAllocateInfo.descriptorSetCount = 1;
+      descriptorAllocateInfo.pSetLayouts = &descriptorLayout;
+
+      VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+      check(vkAllocateDescriptorSets(device, &descriptorAllocateInfo, &descriptorSet),
+            "Vulkan prepared wavefront descriptor set allocation");
+      return descriptorSet;
+    }
+
+    void updateDescriptorSet(VkDescriptorSet descriptorSet,
+                             const std::vector<std::pair<VkBuffer, VkDeviceSize>>& buffers) const {
+      std::vector<VkDescriptorBufferInfo> descriptors(buffers.size());
+      std::vector<VkWriteDescriptorSet> descriptorWrites(buffers.size());
+      for (std::size_t index = 0; index != buffers.size(); ++index) {
+        descriptors[index].buffer = buffers[index].first;
+        descriptors[index].offset = 0;
+        descriptors[index].range = buffers[index].second;
+
+        descriptorWrites[index].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[index].dstSet = descriptorSet;
+        descriptorWrites[index].dstBinding = static_cast<std::uint32_t>(index);
+        descriptorWrites[index].descriptorCount = 1;
+        descriptorWrites[index].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorWrites[index].pBufferInfo = &descriptors[index];
+      }
+      vkUpdateDescriptorSets(device, static_cast<std::uint32_t>(descriptorWrites.size()),
+                             descriptorWrites.data(), 0, nullptr);
+    }
+
+    VkCommandPool createCommandPool() const {
+      VkCommandPoolCreateInfo commandPoolInfo{};
+      commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+      commandPoolInfo.queueFamilyIndex = queueFamily;
+
+      VkCommandPool pool = VK_NULL_HANDLE;
+      check(vkCreateCommandPool(device, &commandPoolInfo, nullptr, &pool),
+            "Vulkan prepared wavefront command pool creation");
+      return pool;
+    }
+
+    VkCommandBuffer allocateCommandBuffer() const {
+      VkCommandBufferAllocateInfo commandAllocateInfo{};
+      commandAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+      commandAllocateInfo.commandPool = commandPool;
+      commandAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+      commandAllocateInfo.commandBufferCount = 1;
+
+      VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+      check(vkAllocateCommandBuffers(device, &commandAllocateInfo, &commandBuffer),
+            "Vulkan prepared wavefront command buffer allocation");
+      return commandBuffer;
+    }
+
+    void recordDispatch(VkCommandBuffer commandBuffer, VkPipeline pipeline,
+                        VkDescriptorSet descriptorSet, std::uint32_t rayCount) const {
+      VkCommandBufferBeginInfo beginInfo{};
+      beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+      check(vkBeginCommandBuffer(commandBuffer, &beginInfo),
+            "Vulkan prepared wavefront command buffer begin");
+      vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+      vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1,
+                              &descriptorSet, 0, nullptr);
+      vkCmdDispatch(commandBuffer, rayCount, 1, 1);
+      check(vkEndCommandBuffer(commandBuffer), "Vulkan prepared wavefront command buffer end");
+    }
+
+    void submitAndWait(VkCommandBuffer commandBuffer) const {
+      VkSubmitInfo submitInfo{};
+      submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+      submitInfo.commandBufferCount = 1;
+      submitInfo.pCommandBuffers = &commandBuffer;
+      check(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE),
+            "Vulkan prepared wavefront queue submit");
+      check(vkQueueWaitIdle(queue), "Vulkan prepared wavefront queue wait");
+    }
+
+    template<typename Record>
+    std::vector<Record> readBackRecords(VkDeviceMemory outputMemory, VkDeviceSize byteCount,
+                                        std::size_t resultCount, const char* operation) const {
+      std::vector<Record> results(resultCount);
+      void* mapped = nullptr;
+      check(vkMapMemory(device, outputMemory, 0, byteCount, 0, &mapped), operation);
+      std::memcpy(results.data(), mapped, static_cast<std::size_t>(byteCount));
+      vkUnmapMemory(device, outputMemory);
+      return results;
+    }
+
+    void destroy(SmokeBuffer& buffer) const {
+      if (buffer.buffer) {
+        vkDestroyBuffer(device, buffer.buffer, nullptr);
+        buffer.buffer = VK_NULL_HANDLE;
+      }
+      if (buffer.memory) {
+        vkFreeMemory(device, buffer.memory, nullptr);
+        buffer.memory = VK_NULL_HANDLE;
+      }
+    }
+
+    VkInstance instance{VK_NULL_HANDLE};
+    VkPhysicalDevice physicalDevice{VK_NULL_HANDLE};
+    VkDevice device{VK_NULL_HANDLE};
+    std::uint32_t queueFamily{kInvalidQueueFamily};
+    VkQueue queue{VK_NULL_HANDLE};
+    VkDescriptorSetLayout descriptorLayout{VK_NULL_HANDLE};
+    VkPipelineLayout pipelineLayout{VK_NULL_HANDLE};
+    VkShaderModule closestShader{VK_NULL_HANDLE};
+    VkShaderModule anyShader{VK_NULL_HANDLE};
+    VkPipeline closestPipeline{VK_NULL_HANDLE};
+    VkPipeline anyPipeline{VK_NULL_HANDLE};
+    VkCommandPool commandPool{VK_NULL_HANDLE};
+    std::vector<SmokeBuffer> sceneBuffers;
+    std::array<std::uint32_t, 4> sceneCounts0{};
+    std::array<std::uint32_t, 4> sceneCounts1{};
+    std::uint32_t transformCount{0};
+    mutable std::mutex dispatchMutex;
+  };
+#else
+  struct VulkanWavefrontPreparedScene::Private {};
+#endif
+
   bool VulkanWavefrontSmokeKernel::deviceAvailable() const {
     return deviceUnavailableReason().empty();
   }
@@ -1092,6 +1713,43 @@ namespace render {
     return VulkanSmokeRuntime().runTimedBasicAnyHitKernel(scene, rays);
 #else
     (void)scene;
+    throw std::runtime_error("Vulkan wavefront backend is not enabled");
+#endif
+  }
+
+  VulkanWavefrontPreparedScene::VulkanWavefrontPreparedScene(
+    const GpuIntersectionSceneBuffers& scene)
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+      : p(std::make_unique<Private>(scene)) {
+#else
+      : p(std::make_unique<Private>()) {
+    (void)scene;
+    throw std::runtime_error("Vulkan wavefront backend is not enabled");
+#endif
+  }
+
+  VulkanWavefrontPreparedScene::~VulkanWavefrontPreparedScene() = default;
+
+  VulkanWavefrontClosestHitKernelResult VulkanWavefrontPreparedScene::runTimedBasicClosestHitKernel(
+    const std::vector<GpuIntersectionRay>& rays) const {
+    if (rays.empty()) {
+      return {};
+    }
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    return p->runClosest(rays);
+#else
+    throw std::runtime_error("Vulkan wavefront backend is not enabled");
+#endif
+  }
+
+  VulkanWavefrontAnyHitKernelResult VulkanWavefrontPreparedScene::runTimedBasicAnyHitKernel(
+    const std::vector<GpuIntersectionRay>& rays) const {
+    if (rays.empty()) {
+      return {};
+    }
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    return p->runAny(rays);
+#else
     throw std::runtime_error("Vulkan wavefront backend is not enabled");
 #endif
   }
