@@ -1941,7 +1941,7 @@ rendercli_run(
   NAME "rendercli writes graph wavefront metrics JSON and summary"
   OUTPUT_VARIABLE wavefront_metrics_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=runtime_scene.*intersection_expected_rays=[1-9][0-9]*.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=[1-9][0-9]*.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=0.*intersection_estimated_query_transfer_bytes=0.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*intersection_rays=[0-9][0-9]*.*closest_hit_rays=[0-9][0-9]*.*any_hit_rays=[0-9][0-9]*.*closest_hit_queries=[0-9][0-9]*.*any_hit_queries=[0-9][0-9]*.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
+    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=packed_cpu.*intersection_expected_rays=[1-9][0-9]*.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=0.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=[1-9][0-9]*.*intersection_estimated_query_transfer_bytes=[1-9][0-9]*.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*intersection_rays=[0-9][0-9]*.*closest_hit_rays=[0-9][0-9]*.*any_hit_rays=[0-9][0-9]*.*closest_hit_queries=[0-9][0-9]*.*any_hit_queries=[0-9][0-9]*.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
   COMMAND
     "${RENDERCLI}" --engine wavefront --width 16 --height 16
     --wavefront_intersection_backend gpu
@@ -2220,14 +2220,14 @@ if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendAvailability\"[ \r\n
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES
-       "\"intersectionBackendFallbackReason\"[ \r\n]*:[^\n]*GPU intersection scene unsupported[^\n]*Box")
-  _rendercli_fail("rendercli wavefront metrics backend scene fallback reason"
-                  "wavefront metrics report did not contain scene-specific backend fallback reason"
+       "\"intersectionBackendFallbackReason\"[ \r\n]*:[^\n]*(Metal|Vulkan) wavefront intersection backend is not enabled in this build")
+  _rendercli_fail("rendercli wavefront metrics backend platform fallback reason"
+                  "wavefront metrics report did not contain platform backend fallback reason"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
-if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\"")
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"packed_cpu\"")
   _rendercli_fail("rendercli wavefront metrics backend execution path"
-                  "wavefront metrics report did not contain runtime scene execution path"
+                  "wavefront metrics report did not contain packed CPU execution path"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendUploadWorkerSeconds\"[ \r\n]*:[ \r\n]*0")
@@ -2246,7 +2246,7 @@ if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendReadbackWorkerSecond
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 rendercli_run(
-  NAME "rendercli writes unsupported wavefront backend fallback to graph trace"
+  NAME "rendercli writes platform wavefront backend fallback to graph trace"
   COMMAND
     "${RENDERCLI}" --engine wavefront --wavefront_intersection_backend gpu --width 16
     --height 16 --render_graph_trace_out "${wavefront_unsupported_backend_trace}"
@@ -2262,11 +2262,11 @@ foreach(expectation
         "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
         "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
         "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"fallback\""
-        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
-        "\"intersectionBackendFallbackReason\"[ \r\n]*:[^\n]*GPU intersection scene unsupported[^\n]*Box")
+        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"packed_cpu\""
+        "\"intersectionBackendFallbackReason\"[ \r\n]*:[^\n]*(Metal|Vulkan) wavefront intersection backend is not enabled in this build")
   if(NOT wavefront_unsupported_backend_trace_json MATCHES "${expectation}")
-    _rendercli_fail("rendercli unsupported wavefront backend trace ${expectation}"
-                    "unsupported wavefront backend trace did not match ${expectation}"
+    _rendercli_fail("rendercli platform wavefront backend trace ${expectation}"
+                    "platform wavefront backend trace did not match ${expectation}"
                     "" "" "${wavefront_unsupported_backend_trace_json}" "")
   endif()
 endforeach()
@@ -2549,6 +2549,13 @@ foreach(expectation
         "intersection_backend_execution=(packed_cpu|metal|vulkan)"
         "intersection_scene_compiled=true"
         "intersection_scene_unsupported=0"
+        "intersection_scene_triangles=[1-9][0-9]*"
+        "intersection_scene_spheres=[1-9][0-9]*"
+        "intersection_scene_planes=[0-9][0-9]*"
+        "intersection_scene_rectangles=[0-9][0-9]*"
+        "intersection_scene_disks=[0-9][0-9]*"
+        "intersection_scene_open_cylinders=[0-9][0-9]*"
+        "intersection_scene_transforms=[0-9][0-9]*"
         "intersection_scene_upload_bytes=[1-9][0-9]*"
         "intersection_scene_basic_hit_kernel_eligible=true"
         "intersection_scene_packed_closest_hit_eligible=true"

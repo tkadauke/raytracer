@@ -276,8 +276,14 @@ namespace {
         << unsignedValue(batching, "intersectionScenePrimitives")
         << " intersection_scene_triangles=" << unsignedValue(batching, "intersectionSceneTriangles")
         << " intersection_scene_spheres=" << unsignedValue(batching, "intersectionSceneSpheres")
+        << " intersection_scene_planes=" << unsignedValue(batching, "intersectionScenePlanes")
+        << " intersection_scene_rectangles="
+        << unsignedValue(batching, "intersectionSceneRectangles")
+        << " intersection_scene_disks=" << unsignedValue(batching, "intersectionSceneDisks")
         << " intersection_scene_open_cylinders="
         << unsignedValue(batching, "intersectionSceneOpenCylinders")
+        << " intersection_scene_transforms="
+        << unsignedValue(batching, "intersectionSceneTransforms")
         << " intersection_scene_unsupported="
         << unsignedValue(batching, "intersectionSceneUnsupportedPrimitives")
         << " intersection_scene_upload_bytes="
