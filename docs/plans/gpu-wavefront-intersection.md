@@ -761,10 +761,10 @@ Progress:
 - The benchmark suite now includes wavefront intersection backend fixtures for
   a small supported scene, a mesh-heavy supported scene, and an unsupported
   mixed scene. The fixtures measure compile/pack cost, runtime CPU closest-hit
-  queries, packed closest-hit queries, and packed any-hit queries, and they
-  report primitive/BVH counts plus scene upload, ray upload, and readback byte
-  counters. This gives the `auto` policy a repeatable baseline for deciding
-  when GPU upload/readback overhead is justified.
+  and any-hit queries, packed closest-hit queries, and packed any-hit queries,
+  and they report primitive/BVH counts plus scene upload, ray upload, and
+  readback byte counters. This gives the `auto` policy a repeatable baseline
+  for deciding when GPU upload/readback overhead is justified.
 - Platform-enabled benchmark builds now also register requested-GPU closest-hit
   and any-hit batch fixtures for the small and mesh-heavy supported scenes.
   They run through the public `WavefrontIntersectionBackend` batch interface,

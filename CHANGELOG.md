@@ -47,6 +47,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   side surfaces now compile into triangle payloads for the prepared wavefront
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
+- **Wavefront runtime any-hit benchmark baseline.** The wavefront intersection
+  backend benchmarks now include runtime CPU any-hit rows alongside packed
+  any-hit rows, giving direct-light visibility queries the same CPU/packed
+  comparison surface as closest-hit queries. — GPT-5
 - **Wavefront auto benchmark scene-prep counters.** Automatic wavefront
   intersection backend benchmark rows now report compiled-scene, BVH/primitive,
   unsupported-leaf, upload-byte, and packed closest-hit/any-hit eligibility

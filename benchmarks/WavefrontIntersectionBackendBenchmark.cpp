@@ -256,6 +256,27 @@ namespace {
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(rays.size()));
   }
 
+  void bm_runtimeCpuAnyHit(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const std::vector<Rayd> rays = generateRays(state.range(1));
+    for (auto _ : state) {
+      std::size_t hits = 0;
+      for (const Rayd& ray : rays) {
+        State traceState;
+        if (CpuWavefrontIntersectionBackend::instance().intersectAny(*workload.scene, ray, 40.0,
+                                                                     traceState)) {
+          ++hits;
+        }
+      }
+      benchmark::DoNotOptimize(hits);
+    }
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(*workload.scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    annotateQuery(state, workload, buffers, rays.size(), sizeof(GpuIntersectionOcclusionRecord));
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(rays.size()));
+  }
+
   void bm_packedClosestHit(benchmark::State& state) {
     const Workload& workload = workloadFor(state);
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(*workload.scene);
@@ -490,6 +511,7 @@ namespace {
 
 BENCHMARK(bm_compileAndPackScene)->Apply(allWorkloads);
 BENCHMARK(bm_runtimeCpuClosestHit)->Apply(supportedQueryWorkloads);
+BENCHMARK(bm_runtimeCpuAnyHit)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_packedClosestHit)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_packedAnyHit)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_autoClosestHitBatch)->Apply(supportedQueryWorkloads);
