@@ -758,6 +758,12 @@ Progress:
   platform GPU build; they label the requested/resolved/execution path selected
   by `auto`, making the small-scene CPU gate and large-scene GPU gate visible in
   benchmark output.
+- The automatic-backend benchmark fixtures now feed closest-hit and any-hit
+  expected ray counts into the same selection context used by the renderer and
+  report those family counts, the computed automatic GPU threshold, and the
+  estimated query-transfer bytes as benchmark counters. This keeps benchmark
+  evidence aligned with render metrics instead of treating all intersection
+  work as one undifferentiated ray count.
 - A regular unit-test performance gate now pins the packed upload-buffer CPU
   traversal against runtime `Scene` traversal on a mesh-heavy supported scene.
   The threshold is deliberately conservative, but it catches regressions that

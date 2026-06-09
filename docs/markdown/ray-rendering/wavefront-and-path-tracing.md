@@ -362,8 +362,11 @@ query-transfer estimate that remains visible even when the selected backend is
 CPU. The expected workload is split into
 `intersectionBackendExpectedClosestHitRays` and
 `intersectionBackendExpectedAnyHitRays`, so the estimate can account for
-hit-record and occlusion-record readback separately. When the platform
-render-path kernels actually execute, metrics also split
+hit-record and occlusion-record readback separately. The wavefront intersection
+backend benchmarks use the same split for their automatic-backend fixtures and
+report expected closest-hit rays, expected any-hit rays, the computed automatic
+GPU threshold, and the pre-render query-transfer estimate as benchmark counters.
+When the platform render-path kernels actually execute, metrics also split
 backend wall time into host upload/setup, kernel dispatch/wait, and CPU
 readback buckets. CPU fallback paths leave those buckets at zero, while the
 broader intersection-worker timer still records the full CPU query cost. Today

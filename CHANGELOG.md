@@ -48,6 +48,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
   — GPT-5
+- **Wavefront benchmark auto-selection counters.** Wavefront intersection
+  backend benchmarks now pass closest-hit and any-hit expected ray counts into
+  automatic backend selection and report those counts, the automatic GPU
+  threshold, and estimated query-transfer bytes as benchmark counters. — GPT-5
 - **Wavefront expected query-family diagnostics.** Wavefront metrics JSON,
   rendercli summaries, and Modeler graph pass details/tooltips now split
   expected intersection work into closest-hit and any-hit rays, and the auto
