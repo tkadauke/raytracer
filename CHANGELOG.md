@@ -48,6 +48,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
   — GPT-5
+- **Wavefront batch efficiency summaries.** rendercli compact summaries and the
+  Modeler graph tooltip now report average rays per closest-hit and
+  direct-light any-hit backend batch, making GPU-intersection batching
+  effectiveness visible without opening the full metrics JSON. — GPT-5
 - **Wavefront query-family execution diagnostics.** Wavefront metrics JSON,
   rendercli compact summaries, and Modeler graph metadata now report closest-hit
   and any-hit execution paths separately alongside the existing combined

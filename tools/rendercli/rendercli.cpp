@@ -196,8 +196,12 @@ namespace {
         batching.value("frontierPacketRefinedRaysByMaterial").toObject();
       const QJsonArray rmsDelta = batching.value("radianceDeltaRmsPerDepth").toArray();
       const std::uint64_t frontierPacketRayCount = unsignedArraySum(frontierPacketRays);
+      const std::uint64_t frontierClosestHitBatchChunkCount =
+        unsignedArraySum(frontierClosestHitBatches);
       const std::uint64_t frontierClosestHitBatchRayCount =
         unsignedArraySum(frontierClosestHitBatchRays);
+      const std::uint64_t directLightAnyHitBatchChunkCount =
+        unsignedArraySum(directLightAnyHitBatches);
       const std::uint64_t directLightAnyHitBatchRayCount =
         unsignedArraySum(directLightAnyHitBatchRays);
       const std::uint64_t frontierRay4PacketChunkCount = unsignedArraySum(frontierRay4Packets);
@@ -347,10 +351,16 @@ namespace {
         << " frontier_miss_rays=" << unsignedArraySum(frontierMisses)
         << " frontier_packet_chunks=" << unsignedArraySum(frontierPackets)
         << " frontier_packet_rays=" << frontierPacketRayCount
-        << " frontier_closest_hit_batch_chunks=" << unsignedArraySum(frontierClosestHitBatches)
+        << " frontier_closest_hit_batch_chunks=" << frontierClosestHitBatchChunkCount
         << " frontier_closest_hit_batch_rays=" << frontierClosestHitBatchRayCount
-        << " direct_light_any_hit_batch_chunks=" << unsignedArraySum(directLightAnyHitBatches)
+        << " frontier_closest_hit_batch_avg="
+        << ratio(static_cast<double>(frontierClosestHitBatchRayCount),
+                 static_cast<double>(frontierClosestHitBatchChunkCount))
+        << " direct_light_any_hit_batch_chunks=" << directLightAnyHitBatchChunkCount
         << " direct_light_any_hit_batch_rays=" << directLightAnyHitBatchRayCount
+        << " direct_light_any_hit_batch_avg="
+        << ratio(static_cast<double>(directLightAnyHitBatchRayCount),
+                 static_cast<double>(directLightAnyHitBatchChunkCount))
         << " frontier_ray4_packet_chunks=" << frontierRay4PacketChunkCount
         << " frontier_ray8_packet_chunks=" << frontierRay8PacketChunkCount
         << " frontier_packet_fill="

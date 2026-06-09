@@ -312,8 +312,9 @@ compact summary prints total `tiles`, `tile_grid`,
 `last_retained_active`,
 `frontier_hit_rays`, `frontier_miss_rays`, `frontier_packet_chunks`,
 `frontier_packet_rays`, `frontier_closest_hit_batch_chunks`,
-`frontier_closest_hit_batch_rays`, `direct_light_any_hit_batch_chunks`,
-`direct_light_any_hit_batch_rays`, `frontier_ray4_packet_chunks`,
+`frontier_closest_hit_batch_rays`, `frontier_closest_hit_batch_avg`,
+`direct_light_any_hit_batch_chunks`, `direct_light_any_hit_batch_rays`,
+`direct_light_any_hit_batch_avg`, `frontier_ray4_packet_chunks`,
 `frontier_ray8_packet_chunks`, `frontier_scalar_rays`, and
 `frontier_packet_scalar_fallback_rays`,
 `frontier_packet_scalar_fallback_by_reason`, `frontier_packet_refined_rays`,
@@ -339,7 +340,10 @@ compact summary prints total `tiles`, `tile_grid`,
 `adaptive_skipped_fraction`.
 Packet chunks can be mixed Ray8/Ray4 chunks, so `frontier_packet_rays` is the
 exact packet-lane work count, while the Ray4/Ray8 chunk counters expose packet
-fill directly. The JSON report keeps the
+fill directly. The compact closest-hit and direct-light any-hit batch averages
+divide submitted rays by backend batch chunks, which makes small scalar-like
+batches and useful frontier-sized batches easy to compare in one line. The JSON
+report keeps the
 per-depth `frontierRayHitsPerDepth`, `frontierRayMissesPerDepth`,
 `frontierPacketChunksPerDepth`, `frontierPacketRaysPerDepth`,
 `frontierClosestHitBatchChunksPerDepth`,

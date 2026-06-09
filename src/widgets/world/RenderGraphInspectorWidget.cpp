@@ -119,6 +119,7 @@ struct RenderGraphInspectorWidget::Private {
   qulonglong jsonIntegerArraySum(const QJsonArray& array) const;
   QString jsonIntegerObjectSummary(const QJsonObject& object) const;
   QString percentage(double numerator, double denominator) const;
+  QString average(double numerator, double denominator) const;
   QString intersectionScenePayloadSummary(const QJsonObject& batching) const;
   QString passStateText(const RenderPassNode& pass) const;
   void addDetailRow(DetailRows& rows, const QString& name, const QString& value) const;
@@ -427,6 +428,11 @@ QString RenderGraphInspectorWidget::Private::percentage(double numerator,
                                                         double denominator) const {
   const double ratio = denominator == 0.0 ? 0.0 : numerator / denominator;
   return QStringLiteral("%1%").arg(ratio * 100.0, 0, 'f', 2);
+}
+
+QString RenderGraphInspectorWidget::Private::average(double numerator, double denominator) const {
+  const double ratio = denominator == 0.0 ? 0.0 : numerator / denominator;
+  return QStringLiteral("%1").arg(ratio, 0, 'f', 2);
 }
 
 QString RenderGraphInspectorWidget::Private::intersectionScenePayloadSummary(
@@ -938,14 +944,16 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
       }
     }
     if (closestHitBatchChunks > 0) {
-      line += QStringLiteral(", closest-hit batches %1 rays/%2 chunks")
+      line += QStringLiteral(", closest-hit batches %1 rays/%2 chunks, avg %3")
                 .arg(closestHitBatchRays)
-                .arg(closestHitBatchChunks);
+                .arg(closestHitBatchChunks)
+                .arg(average(closestHitBatchRays, closestHitBatchChunks));
     }
     if (directLightAnyHitBatchChunks > 0) {
-      line += QStringLiteral(", direct-light any-hit batches %1 rays/%2 chunks")
+      line += QStringLiteral(", direct-light any-hit batches %1 rays/%2 chunks, avg %3")
                 .arg(directLightAnyHitBatchRays)
-                .arg(directLightAnyHitBatchChunks);
+                .arg(directLightAnyHitBatchChunks)
+                .arg(average(directLightAnyHitBatchRays, directLightAnyHitBatchChunks));
     }
   }
   const QJsonObject depthPrepass =

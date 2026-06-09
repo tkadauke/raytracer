@@ -649,6 +649,10 @@ Progress:
   summaries, metrics JSON, and the Modeler graph tooltip can now explain
   whether missing batch counters mean no eligible query work happened or the
   backend intentionally stayed on scalar/packet traversal.
+- rendercli compact summaries and the Modeler graph tooltip now also report
+  average rays per closest-hit and direct-light any-hit backend batch. This
+  keeps frontier grouping effectiveness visible while the full per-depth arrays
+  remain in the metrics JSON.
 - `CompiledIntersectionSceneIntersector` now has a CPU any-hit parity query for
   supported compiled payloads and static instances. It uses the same bounded
   light-distance rule as `Scene::occludes(...)`, so GPU any-hit kernels have a

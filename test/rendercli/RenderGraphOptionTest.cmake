@@ -2062,6 +2062,16 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_packet_rays=")
                   "wavefront metrics summary did not contain frontier packet ray counters"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_closest_hit_batch_avg=")
+  _rendercli_fail("rendercli wavefront metrics closest-hit batch average summary"
+                  "wavefront metrics summary did not contain closest-hit batch average"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "direct_light_any_hit_batch_avg=")
+  _rendercli_fail("rendercli wavefront metrics direct-light any-hit batch average summary"
+                  "wavefront metrics summary did not contain direct-light any-hit batch average"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_ray4_packet_chunks=")
   _rendercli_fail("rendercli wavefront metrics frontier Ray4 packet chunk summary"
                   "wavefront metrics summary did not contain frontier Ray4 packet chunk counters"
@@ -2824,7 +2834,7 @@ rendercli_run(
   NAME "rendercli reports batched wavefront any-hit visibility metrics"
   OUTPUT_VARIABLE wavefront_batched_visibility_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*intersection_backend_platform=(metal|vulkan).*intersection_backend_gpu_device=(true|false).*intersection_backend_gpu_render_path=(true|false).*any_hit_rays=[1-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*closest_hit_batch_preferred=true.*any_hit_batch_preferred=true.*direct_light_any_hit_batch_chunks=[1-9][0-9]*.*direct_light_any_hit_batch_rays=[1-9][0-9]*.*direct_light_samples=[1-9][0-9]*"
+    "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*intersection_backend_platform=(metal|vulkan).*intersection_backend_gpu_device=(true|false).*intersection_backend_gpu_render_path=(true|false).*any_hit_rays=[1-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*closest_hit_batch_preferred=true.*any_hit_batch_preferred=true.*direct_light_any_hit_batch_chunks=[1-9][0-9]*.*direct_light_any_hit_batch_rays=[1-9][0-9]*.*direct_light_any_hit_batch_avg=[1-9][0-9]*\\.[0-9][0-9][0-9].*direct_light_samples=[1-9][0-9]*"
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
     --pathtracer_direct_light_samples 3 --wavefront_denoiser none
