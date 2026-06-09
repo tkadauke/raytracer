@@ -50,9 +50,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   — GPT-5
 - **Exact OpenCylinder packed intersection payloads.** The compiled wavefront
   intersection scene and packed CPU intersector now represent `render::OpenCylinder`
-  as an exact side-surface payload with cylindrical UVs. Metal/Vulkan basic
-  kernels still reject it until native shader support is added, so there is no
-  tessellation drift hidden in GPU dispatch. — GPT-5
+  as an exact side-surface payload with cylindrical UVs, and Metal/Vulkan basic
+  closest-hit and any-hit kernels now consume that payload without hidden
+  tessellation drift. — GPT-5
 - **OpenCylinder side UV coordinates.** Exact `render::OpenCylinder` side hits
   now report cylindrical UV coordinates, matching the primitive's tessellated
   side-surface convention for texture lookup. — GPT-5
@@ -197,7 +197,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   — GPT-5
 - **Compiled hit-record parity harness.** Added a CPU
   `CompiledIntersectionSceneIntersector` that traverses the compiled BVH for
-  triangle, sphere, plane, rectangle, and disk payloads and emits GPU-style
+  triangle, sphere, plane, rectangle, disk, and OpenCylinder payloads and emits GPU-style
   closest-hit records plus bounded any-hit occlusion queries, giving the
   planned Metal/Vulkan kernels a tested object/material id, distance, point,
   normal, UV, barycentric, static instance-transform, and light-distance

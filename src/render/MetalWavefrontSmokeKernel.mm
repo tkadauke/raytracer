@@ -42,6 +42,7 @@ namespace render {
               "constant uint planeKind = 3u;\n"
               "constant uint rectangleKind = 4u;\n"
               "constant uint diskKind = 5u;\n"
+              "constant uint openCylinderKind = 6u;\n"
               "constant float kernelEpsilon = 1.1920928955078125e-7f;\n"
               "constant float rayOcclusionEpsilon = 4.0e-7f;\n"
               "float positiveInfinity() {\n"
@@ -95,6 +96,9 @@ namespace render {
               "struct DiskPayload {\n"
               "  float4 centerRadius;\n"
               "  float4 normal;\n"
+              "};\n"
+              "struct OpenCylinderPayload {\n"
+              "  float4 radiusHalfHeight;\n"
               "};\n"
               "struct TransformPayload {\n"
               "  float4 pointMatrix0;\n"
@@ -410,15 +414,73 @@ namespace render {
               "  result.normal = normalize3(float4(normal, 0.0f));\n"
               "  return result;\n"
               "}\n"
+              "LocalHit intersectOpenCylinder(RayRecord ray, OpenCylinderPayload openCylinder) {\n"
+              "  LocalHit result = makeLocalMiss();\n"
+              "  const float radius = openCylinder.radiusHalfHeight.x;\n"
+              "  const float halfHeight = openCylinder.radiusHalfHeight.y;\n"
+              "  const float inverseRadius = openCylinder.radiusHalfHeight.z;\n"
+              "  const float a = ray.direction.x * ray.direction.x +\n"
+              "                  ray.direction.z * ray.direction.z;\n"
+              "  if (abs(a) <= kernelEpsilon) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float b = 2.0f * (ray.origin.x * ray.direction.x +\n"
+              "                          ray.origin.z * ray.direction.z);\n"
+              "  const float c = ray.origin.x * ray.origin.x + ray.origin.z * ray.origin.z -\n"
+              "                  radius * radius;\n"
+              "  const float determinant = b * b - 4.0f * a * c;\n"
+              "  if (determinant <= kernelEpsilon) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  const float determinantRoot = sqrt(determinant);\n"
+              "  const float denominator = 2.0f * a;\n"
+              "  const float distances[2] = {\n"
+              "    (-determinantRoot - b) / denominator,\n"
+              "    (determinantRoot - b) / denominator,\n"
+              "  };\n"
+              "  float bestDistance = positiveInfinity();\n"
+              "  for (uint index = 0u; index != 2u; ++index) {\n"
+              "    const float distance = distances[index];\n"
+              "    if (distance <= 0.0f || distance < ray.minDistance ||\n"
+              "        distance > ray.maxDistance || distance >= bestDistance) {\n"
+              "      continue;\n"
+              "    }\n"
+              "    const float y = ray.origin.y + ray.direction.y * distance;\n"
+              "    if (y < -halfHeight || y > halfHeight) {\n"
+              "      continue;\n"
+              "    }\n"
+              "    bestDistance = distance;\n"
+              "  }\n"
+              "  if (!isfinite(bestDistance)) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  result.hit = true;\n"
+              "  result.distance = bestDistance;\n"
+              "  result.point = ray.origin + ray.direction * bestDistance;\n"
+              "  result.point.w = 1.0f;\n"
+              "  result.normal = float4(result.point.x * inverseRadius, 0.0f,\n"
+              "                         result.point.z * inverseRadius, 0.0f);\n"
+              "  const float twoPi = 6.28318530717958647692f;\n"
+              "  float u = atan2(result.point.z, result.point.x) / twoPi;\n"
+              "  if (u < 0.0f) {\n"
+              "    u += 1.0f;\n"
+              "  }\n"
+              "  const float height = 2.0f * halfHeight;\n"
+              "  const float v = height == 0.0f ? 0.0f : (result.point.y + halfHeight) / height;\n"
+              "  result.uv = float4(u, v, 0.0f, 0.0f);\n"
+              "  return result;\n"
+              "}\n"
               "LocalHit intersectPrimitive(RayRecord ray, PrimitiveRecord primitive,\n"
               "                            device const TrianglePayload* triangles,\n"
               "                            device const SpherePayload* spheres,\n"
               "                            device const PlanePayload* planes,\n"
               "                            device const RectanglePayload* rectangles,\n"
               "                            device const DiskPayload* disks,\n"
+              "                            device const OpenCylinderPayload* openCylinders,\n"
               "                            device const TransformPayload* transforms,\n"
               "                            uint triangleCount, uint sphereCount, uint planeCount,\n"
               "                            uint rectangleCount, uint diskCount,\n"
+              "                            uint openCylinderCount,\n"
               "                            uint transformCount) {\n"
               "  if (primitive.payloadCount == 0u) {\n"
               "    return makeLocalMiss();\n"
@@ -445,6 +507,9 @@ namespace render {
               "    hit = intersectRectangle(primitiveRay, rectangles[primitive.payloadOffset]);\n"
               "  } else if (primitive.kind == diskKind && primitive.payloadOffset < diskCount) {\n"
               "    hit = intersectDisk(primitiveRay, disks[primitive.payloadOffset]);\n"
+              "  } else if (primitive.kind == openCylinderKind &&\n"
+              "             primitive.payloadOffset < openCylinderCount) {\n"
+              "    hit = intersectOpenCylinder(primitiveRay, openCylinders[primitive.payloadOffset]);\n"
               "  }\n"
               "  if (hasTransform) {\n"
               "    return transformHit(hit, transform);\n"
@@ -496,12 +561,13 @@ namespace render {
               "                                  device const PlanePayload* planes [[buffer(4)]],\n"
               "                                  device const RectanglePayload* rectangles [[buffer(5)]],\n"
               "                                  device const DiskPayload* disks [[buffer(6)]],\n"
-              "                                  device const TransformPayload* transforms [[buffer(7)]],\n"
-              "                                  device const RayRecord* rays [[buffer(8)]],\n"
-              "                                  device HitRecord* hits [[buffer(9)]],\n"
-              "                                  constant uint4& counts0 [[buffer(10)]],\n"
-              "                                  constant uint4& counts1 [[buffer(11)]],\n"
-              "                                  constant uint4& counts2 [[buffer(12)]],\n"
+              "                                  device const OpenCylinderPayload* openCylinders [[buffer(7)]],\n"
+              "                                  device const TransformPayload* transforms [[buffer(8)]],\n"
+              "                                  device const RayRecord* rays [[buffer(9)]],\n"
+              "                                  device HitRecord* hits [[buffer(10)]],\n"
+              "                                  constant uint4& counts0 [[buffer(11)]],\n"
+              "                                  constant uint4& counts1 [[buffer(12)]],\n"
+              "                                  constant uint4& counts2 [[buffer(13)]],\n"
               "                                  uint id [[thread_position_in_grid]]) {\n"
               "  const uint bvhCount = counts0.x;\n"
               "  const uint primitiveCount = counts0.y;\n"
@@ -510,8 +576,9 @@ namespace render {
               "  const uint planeCount = counts1.x;\n"
               "  const uint rectangleCount = counts1.y;\n"
               "  const uint diskCount = counts1.z;\n"
-              "  const uint transformCount = counts1.w;\n"
+              "  const uint openCylinderCount = counts1.w;\n"
               "  const uint rayCount = counts2.x;\n"
+              "  const uint transformCount = counts2.y;\n"
               "  if (id >= rayCount) {\n"
               "    return;\n"
               "  }\n"
@@ -569,9 +636,10 @@ namespace render {
               "        continue;\n"
               "      }\n"
               "      const LocalHit hit = intersectPrimitive(\n"
-              "        ray, primitive, triangles, spheres, planes, rectangles, disks, transforms,\n"
+              "        ray, primitive, triangles, spheres, planes, rectangles, disks,\n"
+              "        openCylinders, transforms,\n"
               "        triangleCount, sphereCount, planeCount, rectangleCount, diskCount,\n"
-              "        transformCount);\n"
+              "        openCylinderCount, transformCount);\n"
               "      if (!hit.hit || (closest.hit != 0u && hit.distance >= closest.distance)) {\n"
               "        continue;\n"
               "      }\n"
@@ -596,12 +664,13 @@ namespace render {
               "                              device const PlanePayload* planes [[buffer(4)]],\n"
               "                              device const RectanglePayload* rectangles [[buffer(5)]],\n"
               "                              device const DiskPayload* disks [[buffer(6)]],\n"
-              "                              device const TransformPayload* transforms [[buffer(7)]],\n"
-              "                              device const RayRecord* rays [[buffer(8)]],\n"
-              "                              device OcclusionRecord* occlusion [[buffer(9)]],\n"
-              "                              constant uint4& counts0 [[buffer(10)]],\n"
-              "                              constant uint4& counts1 [[buffer(11)]],\n"
-              "                              constant uint4& counts2 [[buffer(12)]],\n"
+              "                              device const OpenCylinderPayload* openCylinders [[buffer(7)]],\n"
+              "                              device const TransformPayload* transforms [[buffer(8)]],\n"
+              "                              device const RayRecord* rays [[buffer(9)]],\n"
+              "                              device OcclusionRecord* occlusion [[buffer(10)]],\n"
+              "                              constant uint4& counts0 [[buffer(11)]],\n"
+              "                              constant uint4& counts1 [[buffer(12)]],\n"
+              "                              constant uint4& counts2 [[buffer(13)]],\n"
               "                              uint id [[thread_position_in_grid]]) {\n"
               "  const uint bvhCount = counts0.x;\n"
               "  const uint primitiveCount = counts0.y;\n"
@@ -610,8 +679,9 @@ namespace render {
               "  const uint planeCount = counts1.x;\n"
               "  const uint rectangleCount = counts1.y;\n"
               "  const uint diskCount = counts1.z;\n"
-              "  const uint transformCount = counts1.w;\n"
+              "  const uint openCylinderCount = counts1.w;\n"
               "  const uint rayCount = counts2.x;\n"
+              "  const uint transformCount = counts2.y;\n"
               "  if (id >= rayCount) {\n"
               "    return;\n"
               "  }\n"
@@ -649,9 +719,10 @@ namespace render {
               "        continue;\n"
               "      }\n"
               "      const LocalHit hit = intersectPrimitive(\n"
-              "        ray, primitive, triangles, spheres, planes, rectangles, disks, transforms,\n"
+              "        ray, primitive, triangles, spheres, planes, rectangles, disks,\n"
+              "        openCylinders, transforms,\n"
               "        triangleCount, sphereCount, planeCount, rectangleCount, diskCount,\n"
-              "        transformCount);\n"
+              "        openCylinderCount, transformCount);\n"
               "      if (hitOccludes(hit, ray.maxDistance)) {\n"
               "        occlusion[id] = makeOcclusion(ray, true);\n"
               "        return;\n"
@@ -824,9 +895,11 @@ namespace render {
     id<MTLBuffer> planeBuffer{nil};
     id<MTLBuffer> rectangleBuffer{nil};
     id<MTLBuffer> diskBuffer{nil};
+    id<MTLBuffer> openCylinderBuffer{nil};
     id<MTLBuffer> transformBuffer{nil};
     id<MTLBuffer> counts0Buffer{nil};
     id<MTLBuffer> counts1Buffer{nil};
+    std::uint32_t transformCount{0};
     mutable std::mutex queryBufferMutex;
 
     struct QueryBuffers {
@@ -888,6 +961,7 @@ namespace render {
       [planeBuffer release];
       [rectangleBuffer release];
       [diskBuffer release];
+      [openCylinderBuffer release];
       [transformBuffer release];
       [counts0Buffer release];
       [counts1Buffer release];
@@ -973,7 +1047,7 @@ namespace render {
 
       const std::array<std::uint32_t, 4> counts{
         static_cast<std::uint32_t>(rayCount),
-        0u,
+        transformCount,
         0u,
         0u,
       };
@@ -990,13 +1064,14 @@ namespace render {
       [encoder setBuffer:planeBuffer offset:0 atIndex:4];
       [encoder setBuffer:rectangleBuffer offset:0 atIndex:5];
       [encoder setBuffer:diskBuffer offset:0 atIndex:6];
-      [encoder setBuffer:transformBuffer offset:0 atIndex:7];
+      [encoder setBuffer:openCylinderBuffer offset:0 atIndex:7];
+      [encoder setBuffer:transformBuffer offset:0 atIndex:8];
     }
 
     void setCountBuffers(id<MTLComputeCommandEncoder> encoder, id<MTLBuffer> counts2Buffer) const {
-      [encoder setBuffer:counts0Buffer offset:0 atIndex:10];
-      [encoder setBuffer:counts1Buffer offset:0 atIndex:11];
-      [encoder setBuffer:counts2Buffer offset:0 atIndex:12];
+      [encoder setBuffer:counts0Buffer offset:0 atIndex:11];
+      [encoder setBuffer:counts1Buffer offset:0 atIndex:12];
+      [encoder setBuffer:counts2Buffer offset:0 atIndex:13];
     }
   };
 
@@ -1025,7 +1100,9 @@ namespace render {
       p->planeBuffer = newPayloadBufferFromVector(device, scene.planes);
       p->rectangleBuffer = newPayloadBufferFromVector(device, scene.rectangles);
       p->diskBuffer = newPayloadBufferFromVector(device, scene.disks);
+      p->openCylinderBuffer = newPayloadBufferFromVector(device, scene.openCylinders);
       p->transformBuffer = newPayloadBufferFromVector(device, scene.transforms);
+      p->transformCount = static_cast<std::uint32_t>(scene.transforms.size());
 
       const std::array<std::uint32_t, 4> counts0{
         static_cast<std::uint32_t>(scene.bvh.size()),
@@ -1037,7 +1114,7 @@ namespace render {
         static_cast<std::uint32_t>(scene.planes.size()),
         static_cast<std::uint32_t>(scene.rectangles.size()),
         static_cast<std::uint32_t>(scene.disks.size()),
-        static_cast<std::uint32_t>(scene.transforms.size()),
+        static_cast<std::uint32_t>(scene.openCylinders.size()),
       };
       p->counts0Buffer =
         [device newBufferWithBytes:counts0.data()
@@ -1049,8 +1126,9 @@ namespace render {
                             options:MTLResourceStorageModeShared];
 
       if (!p->bvhBuffer || !p->primitiveBuffer || !p->triangleBuffer || !p->sphereBuffer ||
-          !p->planeBuffer || !p->rectangleBuffer || !p->diskBuffer || !p->transformBuffer ||
-          !p->counts0Buffer || !p->counts1Buffer) {
+          !p->planeBuffer || !p->rectangleBuffer || !p->diskBuffer ||
+          !p->openCylinderBuffer || !p->transformBuffer || !p->counts0Buffer ||
+          !p->counts1Buffer) {
         throw std::runtime_error("Metal prepared wavefront scene buffer allocation failed");
       }
     }
@@ -1092,8 +1170,8 @@ namespace render {
 
       [encoder setComputePipelineState:pipeline];
       p->setSceneBuffers(encoder);
-      [encoder setBuffer:rayBuffer offset:0 atIndex:8];
-      [encoder setBuffer:hitBuffer offset:0 atIndex:9];
+      [encoder setBuffer:rayBuffer offset:0 atIndex:9];
+      [encoder setBuffer:hitBuffer offset:0 atIndex:10];
       p->setCountBuffers(encoder, counts2Buffer);
       dispatchOneDimensional(encoder, pipeline, rays.size());
       [encoder endEncoding];
@@ -1151,8 +1229,8 @@ namespace render {
 
       [encoder setComputePipelineState:pipeline];
       p->setSceneBuffers(encoder);
-      [encoder setBuffer:rayBuffer offset:0 atIndex:8];
-      [encoder setBuffer:occlusionBuffer offset:0 atIndex:9];
+      [encoder setBuffer:rayBuffer offset:0 atIndex:9];
+      [encoder setBuffer:occlusionBuffer offset:0 atIndex:10];
       p->setCountBuffers(encoder, counts2Buffer);
       dispatchOneDimensional(encoder, pipeline, rays.size());
       [encoder endEncoding];
@@ -1261,6 +1339,7 @@ namespace render {
       id<MTLBuffer> planeBuffer = newPayloadBufferFromVector(device, scene.planes);
       id<MTLBuffer> rectangleBuffer = newPayloadBufferFromVector(device, scene.rectangles);
       id<MTLBuffer> diskBuffer = newPayloadBufferFromVector(device, scene.disks);
+      id<MTLBuffer> openCylinderBuffer = newPayloadBufferFromVector(device, scene.openCylinders);
       id<MTLBuffer> transformBuffer = newPayloadBufferFromVector(device, scene.transforms);
       id<MTLBuffer> rayBuffer = newBufferFromVector(device, rays);
       const std::vector<GpuIntersectionHitRecord> initialHits(rays.size());
@@ -1275,11 +1354,11 @@ namespace render {
         static_cast<std::uint32_t>(scene.planes.size()),
         static_cast<std::uint32_t>(scene.rectangles.size()),
         static_cast<std::uint32_t>(scene.disks.size()),
-        static_cast<std::uint32_t>(scene.transforms.size()),
+        static_cast<std::uint32_t>(scene.openCylinders.size()),
       };
       const std::array<std::uint32_t, 4> counts2{
         static_cast<std::uint32_t>(rays.size()),
-        0u,
+        static_cast<std::uint32_t>(scene.transforms.size()),
         0u,
         0u,
       };
@@ -1296,8 +1375,8 @@ namespace render {
                              length:counts2.size() * sizeof(std::uint32_t)
                             options:MTLResourceStorageModeShared];
       if (!bvhBuffer || !primitiveBuffer || !triangleBuffer || !sphereBuffer || !planeBuffer ||
-          !rectangleBuffer || !diskBuffer || !transformBuffer || !rayBuffer || !hitBuffer ||
-          !counts0Buffer || !counts1Buffer || !counts2Buffer) {
+          !rectangleBuffer || !diskBuffer || !openCylinderBuffer || !transformBuffer ||
+          !rayBuffer || !hitBuffer || !counts0Buffer || !counts1Buffer || !counts2Buffer) {
         throw std::runtime_error("Metal wavefront basic hit kernel buffer allocation failed");
       }
 
@@ -1317,12 +1396,13 @@ namespace render {
       [encoder setBuffer:planeBuffer offset:0 atIndex:4];
       [encoder setBuffer:rectangleBuffer offset:0 atIndex:5];
       [encoder setBuffer:diskBuffer offset:0 atIndex:6];
-      [encoder setBuffer:transformBuffer offset:0 atIndex:7];
-      [encoder setBuffer:rayBuffer offset:0 atIndex:8];
-      [encoder setBuffer:hitBuffer offset:0 atIndex:9];
-      [encoder setBuffer:counts0Buffer offset:0 atIndex:10];
-      [encoder setBuffer:counts1Buffer offset:0 atIndex:11];
-      [encoder setBuffer:counts2Buffer offset:0 atIndex:12];
+      [encoder setBuffer:openCylinderBuffer offset:0 atIndex:7];
+      [encoder setBuffer:transformBuffer offset:0 atIndex:8];
+      [encoder setBuffer:rayBuffer offset:0 atIndex:9];
+      [encoder setBuffer:hitBuffer offset:0 atIndex:10];
+      [encoder setBuffer:counts0Buffer offset:0 atIndex:11];
+      [encoder setBuffer:counts1Buffer offset:0 atIndex:12];
+      [encoder setBuffer:counts2Buffer offset:0 atIndex:13];
       dispatchOneDimensional(encoder, pipeline, rays.size());
       [encoder endEncoding];
       const auto kernelStart = std::chrono::steady_clock::now();
@@ -1380,6 +1460,7 @@ namespace render {
       id<MTLBuffer> planeBuffer = newPayloadBufferFromVector(device, scene.planes);
       id<MTLBuffer> rectangleBuffer = newPayloadBufferFromVector(device, scene.rectangles);
       id<MTLBuffer> diskBuffer = newPayloadBufferFromVector(device, scene.disks);
+      id<MTLBuffer> openCylinderBuffer = newPayloadBufferFromVector(device, scene.openCylinders);
       id<MTLBuffer> transformBuffer = newPayloadBufferFromVector(device, scene.transforms);
       id<MTLBuffer> rayBuffer = newBufferFromVector(device, rays);
       const std::vector<GpuIntersectionOcclusionRecord> initialRecords(rays.size());
@@ -1394,11 +1475,11 @@ namespace render {
         static_cast<std::uint32_t>(scene.planes.size()),
         static_cast<std::uint32_t>(scene.rectangles.size()),
         static_cast<std::uint32_t>(scene.disks.size()),
-        static_cast<std::uint32_t>(scene.transforms.size()),
+        static_cast<std::uint32_t>(scene.openCylinders.size()),
       };
       const std::array<std::uint32_t, 4> counts2{
         static_cast<std::uint32_t>(rays.size()),
-        0u,
+        static_cast<std::uint32_t>(scene.transforms.size()),
         0u,
         0u,
       };
@@ -1415,8 +1496,8 @@ namespace render {
                              length:counts2.size() * sizeof(std::uint32_t)
                             options:MTLResourceStorageModeShared];
       if (!bvhBuffer || !primitiveBuffer || !triangleBuffer || !sphereBuffer || !planeBuffer ||
-          !rectangleBuffer || !diskBuffer || !transformBuffer || !rayBuffer || !occlusionBuffer ||
-          !counts0Buffer || !counts1Buffer || !counts2Buffer) {
+          !rectangleBuffer || !diskBuffer || !openCylinderBuffer || !transformBuffer ||
+          !rayBuffer || !occlusionBuffer || !counts0Buffer || !counts1Buffer || !counts2Buffer) {
         throw std::runtime_error("Metal wavefront basic any-hit buffer allocation failed");
       }
 
@@ -1436,12 +1517,13 @@ namespace render {
       [encoder setBuffer:planeBuffer offset:0 atIndex:4];
       [encoder setBuffer:rectangleBuffer offset:0 atIndex:5];
       [encoder setBuffer:diskBuffer offset:0 atIndex:6];
-      [encoder setBuffer:transformBuffer offset:0 atIndex:7];
-      [encoder setBuffer:rayBuffer offset:0 atIndex:8];
-      [encoder setBuffer:occlusionBuffer offset:0 atIndex:9];
-      [encoder setBuffer:counts0Buffer offset:0 atIndex:10];
-      [encoder setBuffer:counts1Buffer offset:0 atIndex:11];
-      [encoder setBuffer:counts2Buffer offset:0 atIndex:12];
+      [encoder setBuffer:openCylinderBuffer offset:0 atIndex:7];
+      [encoder setBuffer:transformBuffer offset:0 atIndex:8];
+      [encoder setBuffer:rayBuffer offset:0 atIndex:9];
+      [encoder setBuffer:occlusionBuffer offset:0 atIndex:10];
+      [encoder setBuffer:counts0Buffer offset:0 atIndex:11];
+      [encoder setBuffer:counts1Buffer offset:0 atIndex:12];
+      [encoder setBuffer:counts2Buffer offset:0 atIndex:13];
       dispatchOneDimensional(encoder, pipeline, rays.size());
       [encoder endEncoding];
       const auto kernelStart = std::chrono::steady_clock::now();

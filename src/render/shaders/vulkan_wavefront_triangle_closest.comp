@@ -6,6 +6,7 @@ const uint sphereKind = 2u;
 const uint planeKind = 3u;
 const uint rectangleKind = 4u;
 const uint diskKind = 5u;
+const uint openCylinderKind = 6u;
 const float kernelEpsilon = 1.1920928955078125e-7;
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
@@ -65,6 +66,10 @@ struct RectanglePayload {
 struct DiskPayload {
   vec4 centerRadius;
   vec4 normal;
+};
+
+struct OpenCylinderPayload {
+  vec4 radiusHalfHeight;
 };
 
 struct TransformPayload {
@@ -155,19 +160,23 @@ layout(std430, binding = 6) readonly buffer DiskBuffer {
   DiskPayload disks[];
 };
 
-layout(std430, binding = 7) readonly buffer TransformBuffer {
+layout(std430, binding = 7) readonly buffer OpenCylinderBuffer {
+  OpenCylinderPayload openCylinders[];
+};
+
+layout(std430, binding = 8) readonly buffer TransformBuffer {
   TransformPayload transforms[];
 };
 
-layout(std430, binding = 8) readonly buffer RayBuffer {
+layout(std430, binding = 9) readonly buffer RayBuffer {
   RayRecord rays[];
 };
 
-layout(std430, binding = 9) writeonly buffer HitBuffer {
+layout(std430, binding = 10) writeonly buffer HitBuffer {
   HitRecord hits[];
 };
 
-layout(std430, binding = 10) readonly buffer CountBuffer {
+layout(std430, binding = 11) readonly buffer CountBuffer {
   uvec4 counts0;
   uvec4 counts1;
   uvec4 counts2;
@@ -283,10 +292,10 @@ LocalHit transformHit(LocalHit hit, TransformPayload transform) {
     return hit;
   }
 
-  hit.point = transformPoint(transform.pointMatrix0, transform.pointMatrix1,
-                             transform.pointMatrix2, transform.pointMatrix3, hit.point);
+  hit.point = transformPoint(transform.pointMatrix0, transform.pointMatrix1, transform.pointMatrix2,
+                             transform.pointMatrix3, hit.point);
   hit.normal = normalize3(transformDirection(transform.normalMatrix0, transform.normalMatrix1,
-                                            transform.normalMatrix2, hit.normal));
+                                             transform.normalMatrix2, hit.normal));
   return hit;
 }
 
@@ -340,8 +349,8 @@ LocalHit intersectTriangle(RayRecord ray, TrianglePayload triangle) {
   result.distance = distance;
   result.point = ray.origin + ray.direction * distance;
   result.point.w = 1.0;
-  result.normal = normalize3(interpolate3(triangle.normal0, triangle.normal1, triangle.normal2,
-                                          alpha, beta, gamma));
+  result.normal = normalize3(
+    interpolate3(triangle.normal0, triangle.normal1, triangle.normal2, alpha, beta, gamma));
   result.uv = interpolate3(triangle.uv0, triangle.uv1, triangle.uv2, alpha, beta, gamma);
   result.barycentric = vec4(alpha, beta, gamma, 0.0);
   return result;
@@ -474,9 +483,67 @@ LocalHit intersectDisk(RayRecord ray, DiskPayload disk) {
   return result;
 }
 
+LocalHit intersectOpenCylinder(RayRecord ray, OpenCylinderPayload openCylinder) {
+  LocalHit result = makeLocalMiss();
+  const float radius = openCylinder.radiusHalfHeight.x;
+  const float halfHeight = openCylinder.radiusHalfHeight.y;
+  const float inverseRadius = openCylinder.radiusHalfHeight.z;
+  const float a = ray.direction.x * ray.direction.x + ray.direction.z * ray.direction.z;
+  if (abs(a) <= kernelEpsilon) {
+    return result;
+  }
+
+  const float b = 2.0 * (ray.origin.x * ray.direction.x + ray.origin.z * ray.direction.z);
+  const float c = ray.origin.x * ray.origin.x + ray.origin.z * ray.origin.z - radius * radius;
+  const float determinant = b * b - 4.0 * a * c;
+  if (determinant <= kernelEpsilon) {
+    return result;
+  }
+
+  const float determinantRoot = sqrt(determinant);
+  const float denominator = 2.0 * a;
+  const float distances[2] =
+    float[2]((-determinantRoot - b) / denominator, (determinantRoot - b) / denominator);
+  float bestDistance = positiveInfinity();
+  for (uint index = 0u; index != 2u; ++index) {
+    const float distance = distances[index];
+    if (distance <= 0.0 || distance < ray.minDistance || distance > ray.maxDistance ||
+        distance >= bestDistance) {
+      continue;
+    }
+
+    const float y = ray.origin.y + ray.direction.y * distance;
+    if (y < -halfHeight || y > halfHeight) {
+      continue;
+    }
+
+    bestDistance = distance;
+  }
+
+  if (isnan(bestDistance) || isinf(bestDistance)) {
+    return result;
+  }
+
+  result.hit = true;
+  result.distance = bestDistance;
+  result.point = ray.origin + ray.direction * bestDistance;
+  result.point.w = 1.0;
+  result.normal = vec4(result.point.x * inverseRadius, 0.0, result.point.z * inverseRadius, 0.0);
+
+  const float twoPi = 6.283185307179586;
+  float u = atan(result.point.z, result.point.x) / twoPi;
+  if (u < 0.0) {
+    u += 1.0;
+  }
+  const float height = 2.0 * halfHeight;
+  const float v = height == 0.0 ? 0.0 : (result.point.y + halfHeight) / height;
+  result.uv = vec4(u, v, 0.0, 0.0);
+  return result;
+}
+
 LocalHit intersectPrimitivePayload(RayRecord ray, PrimitiveRecord primitive, uint triangleCount,
                                    uint sphereCount, uint planeCount, uint rectangleCount,
-                                   uint diskCount) {
+                                   uint diskCount, uint openCylinderCount) {
   if (primitive.payloadCount != 1u) {
     return makeLocalMiss();
   }
@@ -496,12 +563,15 @@ LocalHit intersectPrimitivePayload(RayRecord ray, PrimitiveRecord primitive, uin
   if (primitive.kind == diskKind && primitive.payloadOffset < diskCount) {
     return intersectDisk(ray, disks[primitive.payloadOffset]);
   }
+  if (primitive.kind == openCylinderKind && primitive.payloadOffset < openCylinderCount) {
+    return intersectOpenCylinder(ray, openCylinders[primitive.payloadOffset]);
+  }
   return makeLocalMiss();
 }
 
 LocalHit intersectPrimitive(RayRecord ray, PrimitiveRecord primitive, uint triangleCount,
-                            uint sphereCount, uint planeCount, uint rectangleCount,
-                            uint diskCount, uint transformCount) {
+                            uint sphereCount, uint planeCount, uint rectangleCount, uint diskCount,
+                            uint openCylinderCount, uint transformCount) {
   if (primitive.transform != 0u) {
     if (primitive.transform >= transformCount) {
       return makeLocalMiss();
@@ -509,13 +579,13 @@ LocalHit intersectPrimitive(RayRecord ray, PrimitiveRecord primitive, uint trian
 
     const TransformPayload transform = transforms[primitive.transform];
     return transformHit(intersectPrimitivePayload(transformRay(ray, transform), primitive,
-                                                 triangleCount, sphereCount, planeCount,
-                                                 rectangleCount, diskCount),
+                                                  triangleCount, sphereCount, planeCount,
+                                                  rectangleCount, diskCount, openCylinderCount),
                         transform);
   }
 
   return intersectPrimitivePayload(ray, primitive, triangleCount, sphereCount, planeCount,
-                                   rectangleCount, diskCount);
+                                   rectangleCount, diskCount, openCylinderCount);
 }
 
 void writeClosestHit(inout HitRecord closest, RayRecord ray, PrimitiveRecord primitive,
@@ -540,8 +610,9 @@ void main() {
   const uint planeCount = counts1.x;
   const uint rectangleCount = counts1.y;
   const uint diskCount = counts1.z;
-  const uint transformCount = counts1.w;
+  const uint openCylinderCount = counts1.w;
   const uint rayCount = counts2.x;
+  const uint transformCount = counts2.y;
   const uint id = gl_GlobalInvocationID.x;
   if (id >= rayCount) {
     return;
@@ -572,11 +643,11 @@ void main() {
       const uint leftChild = node.leftOrFirstPrimitive;
       const uint rightChild = node.primitiveCount;
       const float leftEntry = leftChild < bvhCount
-        ? boundsEntryDistance(bvh[leftChild].bounds, ray, closest.distance)
-        : positiveInfinity();
-      const float rightEntry = rightChild < bvhCount
-        ? boundsEntryDistance(bvh[rightChild].bounds, ray, closest.distance)
-        : positiveInfinity();
+                                ? boundsEntryDistance(bvh[leftChild].bounds, ray, closest.distance)
+                                : positiveInfinity();
+      const float rightEntry =
+        rightChild < bvhCount ? boundsEntryDistance(bvh[rightChild].bounds, ray, closest.distance)
+                              : positiveInfinity();
 
       if (stackSize + 2u <= 64u) {
         if (leftEntry < positiveInfinity() && rightEntry < positiveInfinity()) {
@@ -609,7 +680,7 @@ void main() {
 
       const LocalHit hit =
         intersectPrimitive(ray, primitive, triangleCount, sphereCount, planeCount, rectangleCount,
-                           diskCount, transformCount);
+                           diskCount, openCylinderCount, transformCount);
       if (!hit.hit || (closest.hit != 0u && hit.distance >= closest.distance)) {
         continue;
       }

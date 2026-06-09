@@ -93,7 +93,7 @@ namespace render {
           anyShaderGuard.device = device;
           anyShaderGuard.shaderModule = anyShader;
 
-          VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 11);
+          VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 12);
           DescriptorLayoutGuard descriptorLayoutGuard;
           descriptorLayoutGuard.device = device;
           descriptorLayoutGuard.layout = descriptorLayout;
@@ -283,6 +283,8 @@ namespace render {
         bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, scene.disks));
         bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.openCylinders));
+        bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, scene.transforms));
         bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, rays));
@@ -300,9 +302,9 @@ namespace render {
           static_cast<std::uint32_t>(scene.planes.size()),
           static_cast<std::uint32_t>(scene.rectangles.size()),
           static_cast<std::uint32_t>(scene.disks.size()),
-          static_cast<std::uint32_t>(scene.transforms.size()),
+          static_cast<std::uint32_t>(scene.openCylinders.size()),
           static_cast<std::uint32_t>(rays.size()),
-          0u,
+          static_cast<std::uint32_t>(scene.transforms.size()),
           0u,
           0u,
         };
@@ -357,7 +359,7 @@ namespace render {
 
         const auto readbackStart = std::chrono::steady_clock::now();
         result.hits = readBackRecords<GpuIntersectionHitRecord>(
-          device, bufferGuard.buffers[9].memory, hitByteCount, rays.size(),
+          device, bufferGuard.buffers[10].memory, hitByteCount, rays.size(),
           "Vulkan basic closest-hit output buffer mapping");
         const auto readbackEnd = std::chrono::steady_clock::now();
 
@@ -432,6 +434,8 @@ namespace render {
         bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, scene.disks));
         bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.openCylinders));
+        bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, scene.transforms));
         bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, rays));
@@ -449,9 +453,9 @@ namespace render {
           static_cast<std::uint32_t>(scene.planes.size()),
           static_cast<std::uint32_t>(scene.rectangles.size()),
           static_cast<std::uint32_t>(scene.disks.size()),
-          static_cast<std::uint32_t>(scene.transforms.size()),
+          static_cast<std::uint32_t>(scene.openCylinders.size()),
           static_cast<std::uint32_t>(rays.size()),
-          0u,
+          static_cast<std::uint32_t>(scene.transforms.size()),
           0u,
           0u,
         };
@@ -506,7 +510,7 @@ namespace render {
 
         const auto readbackStart = std::chrono::steady_clock::now();
         result.records = readBackRecords<GpuIntersectionOcclusionRecord>(
-          device, bufferGuard.buffers[9].memory, recordByteCount, rays.size(),
+          device, bufferGuard.buffers[10].memory, recordByteCount, rays.size(),
           "Vulkan basic any-hit output buffer mapping");
         const auto readbackEnd = std::chrono::steady_clock::now();
 

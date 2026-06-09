@@ -14,14 +14,13 @@
 > compiled scenes and packed upload buffers; exact closest-hit, packet
 > closest-hit, and bounded any-hit queries for triangle, sphere, plane,
 > rectangle, disk, exact OpenCylinder, and static-transform payloads can run
-> through the packed CPU kernel contract. OpenCylinder remains ineligible for
-> Metal/Vulkan basic kernels until native shader payload support lands.
+> through the packed CPU kernel contract and the platform basic-kernel contract.
 > Metal-only smoke kernels now prove optional compute dispatch
 > outside the render path, and the first render-path Metal basic closest-hit
 > and any-hit kernels can execute for prepared triangle, sphere, plane,
-> rectangle, and disk scenes, including static transform payloads, when a Metal
+> rectangle, disk, and OpenCylinder scenes, including static transform payloads, when a Metal
 > device is available. Vulkan-enabled builds can now run basic closest-hit and
-> any-hit kernels for prepared triangle, sphere, plane, rectangle, and disk
+> any-hit kernels for prepared triangle, sphere, plane, rectangle, disk, and OpenCylinder
 > scenes, including static transform payloads. This is a
 > follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+. It should not replace
@@ -210,7 +209,7 @@ GPU v1 should support:
 
 1. **Triangle and mesh leaves.** This covers glTF, STL, 3MF, OpenSCAD, LDraw,
    and most imported model workflows after tessellation/import.
-2. **Common exact primitives.** Sphere, plane, triangle, rectangle, and disk are
+2. **Common exact primitives.** Sphere, plane, triangle, rectangle, disk, and OpenCylinder are
    useful early because many educational scenes use them and they avoid
    raster-style tessellation drift.
 3. **Static instances.** Static object transforms are important for imported
@@ -221,8 +220,6 @@ GPU v1 should reject:
 
 - CSG/boolean composites;
 - torus, curve, convex operation, and other exact primitives not yet ported;
-- OpenCylinder in platform Metal/Vulkan kernels until its exact packed CPU
-  payload is ported to native shaders;
 - moving instances;
 - scenes with primitive/material references that cannot be represented by
   stable ids.
@@ -270,8 +267,8 @@ Progress:
 - `RAYTRACER_ENABLE_METAL_WAVEFRONT` now also builds an Objective-C++/Metal
   smoke wrapper. It uploads a uint buffer for a deterministic dispatch/readback
   check, and it can run render-path basic closest-hit/any-hit kernels for
-  triangle, sphere, plane, rectangle, and disk scenes, including static
-  transform payloads, against the packed BVH/primitive/payload/ray ABI. The
+  triangle, sphere, plane, rectangle, disk, and OpenCylinder scenes, including
+  static transform payloads, against the packed BVH/primitive/payload/ray ABI. The
   smoke path remains a
   platform-plumbing proof; the basic hit kernels are now selected only for
   eligible prepared scenes.
@@ -288,9 +285,9 @@ Progress:
   creating the native shader pipeline needed for Vulkan render-path kernels.
 - Vulkan-enabled builds now compile and expose direct basic closest-hit and
   any-hit compute dispatches against the packed BVH/primitive/exact-payload/ray
-  ABI. Prepared triangle, sphere, plane, rectangle, and disk scenes can now
-  execute wavefront closest-hit and any-hit batches through Vulkan, including
-  static transform payloads.
+  ABI. Prepared triangle, sphere, plane, rectangle, disk, and OpenCylinder scenes
+  can now execute wavefront closest-hit and any-hit batches through Vulkan,
+  including static transform payloads.
 - Platform GPU device availability is now structured backend trace data instead
   of only fallback text. Wavefront metrics JSON, rendercli summaries, and the
   Modeler graph tooltip expose the selected platform backend id and whether
@@ -359,7 +356,7 @@ Gate:
 Progress:
 
 - `IntersectionSceneCompiler` now emits records and payload arrays for
-  triangle/mesh-triangle, sphere, plane, rectangle, and disk leaves.
+  triangle/mesh-triangle, sphere, plane, rectangle, disk, and OpenCylinder leaves.
 - Static instances are captured as transform payloads through the existing
   transformed-leaf traversal hook.
 - Moving instances are rejected before child leaves are flattened, preserving
@@ -466,7 +463,7 @@ Progress:
   payloads, static transform payloads, ray work items, and miss records into
   16-byte-aligned POD buffers. It marks whether a compiled scene is eligible for
   the first basic hit kernel: all primitive records must be triangle, sphere,
-  plane, rectangle, or disk records with either no transform or a valid static
+  plane, rectangle, disk, or OpenCylinder records with either no transform or a valid static
   transform payload. This keeps the next kernel work focused on traversal and
   hit-record parity instead of ad hoc per-backend layout decisions.
 - Scene-created GPU fallback stubs now retain those packed upload buffers next
@@ -524,8 +521,8 @@ Tasks:
   instance transforms.
 - Add exact host/packed CPU payloads for other common primitives before
   enabling platform kernels for them. ✅ **Done.** OpenCylinder now compiles to
-  an exact packed CPU payload while Metal/Vulkan kernels continue to reject it
-  until native shader support is added.
+  an exact packed CPU payload and the Metal/Vulkan basic kernels consume the
+  same payload for closest-hit and any-hit traversal.
 - Preserve material/object ids through instance transforms.
 - Add scene fixtures that mix triangles and exact primitives.
 - Add parity tests for:
@@ -551,8 +548,8 @@ Progress:
   common exact primitives and static instances preserve material/object ids, hit
   distance, hit point, normal, UV where applicable, and empty barycentric
   channels through the same GPU-style hit record shape used by the triangle
-  traversal. OpenCylinder remains packed-CPU-only until the Metal and Vulkan
-  shader payloads are ported.
+  traversal. Metal and Vulkan basic closest-hit/any-hit kernels now consume the
+  OpenCylinder payload natively.
 - Box leaves now compile into the same triangle payload path using the canonical
   12-triangle box tessellation, while preserving the exact raytraced Box's
   default hit-UV semantics. This lets Box-only supported scenes use prepared

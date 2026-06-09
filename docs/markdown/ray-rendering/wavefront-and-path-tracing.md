@@ -202,12 +202,9 @@ scene/primitive set. Render intent and rendercli can still request
 intersection work. `cpu` resolves directly to the CPU backend. `auto`
 runs a selection policy over platform availability, scene support, expected ray
 count, and scene-upload amortization; today scene support is intentionally
-limited to triangle, sphere, plane, rectangle, and disk leaves with either no
-transform or static instance transforms that can use the first Metal/Vulkan
-packed closest-hit and any-hit kernels. The host-side compiled scene and packed
-CPU traversal also have an exact OpenCylinder payload for parity and shader
-bring-up, but OpenCylinder scenes still report a CPU fallback until Metal and
-Vulkan kernels implement that payload natively. Other scenes report the
+limited to triangle, sphere, plane, rectangle, disk, and OpenCylinder leaves
+with either no transform or static instance transforms that can use the first
+Metal/Vulkan packed closest-hit and any-hit kernels. Other scenes report the
 CPU-selection reason in metrics and graph trace metadata. The experimental
 CMake flags
 `RAYTRACER_ENABLE_METAL_WAVEFRONT` and
@@ -302,14 +299,13 @@ to match before they can be trusted in the wavefront renderer.
 The first GPU-facing upload seam is intentionally one step narrower than the
 compiled scene. `GpuIntersectionScenePacker` takes the compiled records and
 packs flat BVH nodes, primitive records, triangle payloads,
-sphere/plane/rectangle/disk payloads, OpenCylinder payloads for the packed CPU
-reference path, static transform payloads, ray work items, and miss/hit
+sphere/plane/rectangle/disk/OpenCylinder payloads, static transform payloads,
+ray work items, and miss/hit
 records. Those structs are 16-byte-aligned, row-major, and plain-layout so Metal
 and Vulkan can share the same host-side contract even if their shader source is
 platform-native. The current execution eligibility check is strict: platform
-basic kernels may only accept triangle, sphere, plane, rectangle, and disk
-records with either no transform or a static transform payload; packed CPU
-closest-hit/any-hit traversal additionally accepts exact OpenCylinder records.
+basic kernels may only accept triangle, sphere, plane, rectangle, disk, and
+OpenCylinder records with either no transform or a static transform payload.
 Prepared GPU fallback backends retain the packed buffers next to the compiled
 scene, and the wavefront metrics report
 `intersectionSceneUploadBytes` plus
@@ -322,11 +318,10 @@ For eligible exact-primitive and static-instance scenes, closest-hit and packet
 closest-hit queries already run through a packed CPU traversal that consumes
 those upload buffers and emits the same hit-record layout the GPU kernel will
 write. The Metal and Vulkan basic closest-hit and any-hit kernels use that same
-upload layout for triangle, sphere, plane, rectangle, disk, and
-static-transform scenes in the render path. Bounded any-hit visibility for
-OpenCylinder and the remaining eligible packed CPU scenes uses the same packed
-traversal contract, including the finite light-distance epsilon used by the
-compiled parity intersector. This matches
+upload layout for triangle, sphere, plane, rectangle, disk, OpenCylinder, and
+static-transform scenes in the render path. Bounded any-hit visibility uses the
+same packed traversal contract, including the finite light-distance epsilon used
+by the compiled parity intersector. This matches
 the current CPU shadow rule:
 `Scene::occludes(...)` is geometry-only, so transparent materials still block
 shadow rays unless a higher-level material model changes that policy. If alpha,
