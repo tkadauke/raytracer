@@ -332,7 +332,7 @@ namespace WavefrontRaytracerTest {
     return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
   }
 
-  void expectPlatformGpuUnavailableReason(const std::string& reason) {
+  void expectPlatformGpuFallbackReason(const std::string& reason) {
     const bool disabled = reason.find("not enabled") != std::string::npos;
     const bool enabledWithoutClosestHitKernel =
       reason.find("no render-path closest-hit kernel") != std::string::npos;
@@ -353,9 +353,15 @@ namespace WavefrontRaytracerTest {
       reason.find("not eligible for the Vulkan exact-primitive") != std::string::npos;
     const bool noPreparedBasicScene =
       reason.find("no prepared basic-hit scene") != std::string::npos;
+    const bool dispatchFailure =
+      reason.find("Metal closest-hit kernel failed") != std::string::npos ||
+      reason.find("Metal any-hit kernel failed") != std::string::npos ||
+      reason.find("Vulkan closest-hit kernel failed") != std::string::npos ||
+      reason.find("Vulkan any-hit kernel failed") != std::string::npos;
     EXPECT_TRUE(disabled || enabledWithoutClosestHitKernel || enabledWithoutBasicHitKernel ||
                 enabledWithoutDevice || enabledWithoutVulkanComputeDevice || notTriangleEligible ||
-                noPreparedTriangleScene || notBasicEligible || noPreparedBasicScene)
+                noPreparedTriangleScene || notBasicEligible || noPreparedBasicScene ||
+                dispatchFailure)
       << reason;
   }
 
@@ -888,7 +894,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("available", metrics.batching.intersectionBackendAvailability);
     EXPECT_NE(std::string::npos,
               metrics.batching.intersectionBackendFallbackReason.find("auto selected CPU"));
-    expectPlatformGpuUnavailableReason(metrics.batching.intersectionBackendFallbackReason);
+    expectPlatformGpuFallbackReason(metrics.batching.intersectionBackendFallbackReason);
     EXPECT_EQ("runtime_scene", metrics.batching.intersectionBackendExecutionPath);
     EXPECT_EQ(480u, metrics.batching.intersectionBackendExpectedRays);
     EXPECT_FALSE(metrics.batching.intersectionSceneCompiled);
@@ -1196,7 +1202,7 @@ namespace WavefrontRaytracerTest {
     } else {
       EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
       EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
-      expectPlatformGpuUnavailableReason(metrics.batching.intersectionBackendFallbackReason);
+      expectPlatformGpuFallbackReason(metrics.batching.intersectionBackendFallbackReason);
       EXPECT_EQ("packed_cpu", metrics.batching.intersectionBackendExecutionPath);
       EXPECT_DOUBLE_EQ(0.0, metrics.batching.intersectionBackendUploadWorkerSeconds);
       EXPECT_DOUBLE_EQ(0.0, metrics.batching.intersectionBackendKernelWorkerSeconds);
@@ -1286,7 +1292,7 @@ namespace WavefrontRaytracerTest {
     } else {
       EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
       EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
-      expectPlatformGpuUnavailableReason(metrics.batching.intersectionBackendFallbackReason);
+      expectPlatformGpuFallbackReason(metrics.batching.intersectionBackendFallbackReason);
       EXPECT_EQ("packed_cpu", metrics.batching.intersectionBackendExecutionPath);
     }
     EXPECT_TRUE(metrics.batching.intersectionSceneCompiled);
@@ -1342,7 +1348,7 @@ namespace WavefrontRaytracerTest {
     } else {
       EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
       EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
-      expectPlatformGpuUnavailableReason(metrics.batching.intersectionBackendFallbackReason);
+      expectPlatformGpuFallbackReason(metrics.batching.intersectionBackendFallbackReason);
       EXPECT_EQ("packed_cpu", metrics.batching.intersectionBackendExecutionPath);
     }
     EXPECT_TRUE(metrics.batching.intersectionSceneCompiled);
