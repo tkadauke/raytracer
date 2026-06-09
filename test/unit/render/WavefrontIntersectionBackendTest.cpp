@@ -107,15 +107,36 @@ namespace WavefrontIntersectionBackendTest {
     WavefrontIntersectionBackendSelectionContext context =
       WavefrontIntersectionBackendSelectionContext::fromExpectedQueryFamilies(2, 5);
 
+    EXPECT_TRUE(context.hasExpectedQueryFamilies());
     EXPECT_EQ(7u, context.expectedRayCount);
+    EXPECT_EQ(7u, context.effectiveExpectedRayCount());
     EXPECT_EQ(2u, context.expectedClosestHitRayCount);
     EXPECT_EQ(5u, context.expectedAnyHitRayCount);
 
     context.setExpectedQueryFamilies(11, 13);
 
     EXPECT_EQ(24u, context.expectedRayCount);
+    EXPECT_EQ(24u, context.effectiveExpectedRayCount());
     EXPECT_EQ(11u, context.expectedClosestHitRayCount);
     EXPECT_EQ(13u, context.expectedAnyHitRayCount);
+  }
+
+  TEST(WavefrontIntersectionBackend, SelectionContextFallsBackToLegacyTotalWithoutFamilies) {
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 17;
+
+    EXPECT_FALSE(context.hasExpectedQueryFamilies());
+    EXPECT_EQ(17u, context.effectiveExpectedRayCount());
+  }
+
+  TEST(WavefrontIntersectionBackend, SelectionContextEffectiveRayCountPrefersFamilies) {
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 999;
+    context.expectedClosestHitRayCount = 2;
+    context.expectedAnyHitRayCount = 5;
+
+    EXPECT_TRUE(context.hasExpectedQueryFamilies());
+    EXPECT_EQ(7u, context.effectiveExpectedRayCount());
   }
 
   TEST(WavefrontIntersectionBackend, SelectionContextSaturatesExpectedRayCountFromFamilies) {
@@ -128,6 +149,7 @@ namespace WavefrontIntersectionBackendTest {
       WavefrontIntersectionBackendSelectionContext::fromExpectedQueryFamilies(maxValue - 3, 4);
 
     EXPECT_EQ(maxValue, context.expectedRayCount);
+    EXPECT_EQ(maxValue, context.effectiveExpectedRayCount());
     EXPECT_EQ(maxValue - 3, context.expectedClosestHitRayCount);
     EXPECT_EQ(4u, context.expectedAnyHitRayCount);
   }
@@ -346,6 +368,38 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_FALSE(decision.useGpu);
     EXPECT_EQ(64u, decision.minimumExpectedRayCount);
     EXPECT_NE(std::string::npos, decision.reason.find("below GPU threshold"));
+  }
+
+  TEST(WavefrontIntersectionBackend, AutoPolicyUsesFamilyDerivedExpectedRayCount) {
+    const WavefrontIntersectionBackendAutoSelectionPolicy policy;
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 1;
+    context.expectedClosestHitRayCount = 40;
+    context.expectedAnyHitRayCount = 24;
+    context.minimumGpuRayCount = 64;
+
+    const WavefrontIntersectionBackendAutoSelectionDecision decision =
+      policy.decide(true, true, supportedPackedDiagnostics(), context);
+
+    EXPECT_TRUE(decision.useGpu);
+    EXPECT_EQ(64u, decision.minimumExpectedRayCount);
+    EXPECT_NE(std::string::npos, decision.reason.find("auto selected GPU"));
+  }
+
+  TEST(WavefrontIntersectionBackend, AutoPolicyReportsFamilyDerivedExpectedRayCount) {
+    const WavefrontIntersectionBackendAutoSelectionPolicy policy;
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 999;
+    context.expectedClosestHitRayCount = 3;
+    context.expectedAnyHitRayCount = 4;
+    context.minimumGpuRayCount = 8;
+
+    const WavefrontIntersectionBackendAutoSelectionDecision decision =
+      policy.decide(true, true, supportedPackedDiagnostics(), context);
+
+    EXPECT_FALSE(decision.useGpu);
+    EXPECT_NE(std::string::npos, decision.reason.find("expected ray count 7"));
+    EXPECT_NE(std::string::npos, decision.reason.find("below GPU threshold 8"));
   }
 
   TEST(WavefrontIntersectionBackend, AutoPolicyEstimatesSupportedQueryTransferBytes) {

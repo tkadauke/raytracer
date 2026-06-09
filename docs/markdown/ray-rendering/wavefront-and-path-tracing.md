@@ -368,8 +368,10 @@ their sum, keeping automatic backend selection aligned with the query split.
 The backend selection context owns that same saturated sum, and
 `WavefrontRaytracer` uses that context before preparing an automatic backend, so
 render metrics and selection use the same closest-hit/any-hit workload even if
-an integrator provides an inconsistent legacy total estimate. The wavefront
-intersection backend benchmarks use the same context for their
+an integrator provides an inconsistent legacy total estimate. The auto-selection
+policy also reads that effective context estimate, so direct policy callers that
+provide query-family counts cannot accidentally select from a stale total. The
+wavefront intersection backend benchmarks use the same context for their
 automatic-backend fixtures and report expected closest-hit rays, expected
 any-hit rays, the computed automatic GPU threshold, and the pre-render
 query-transfer estimate as benchmark counters.

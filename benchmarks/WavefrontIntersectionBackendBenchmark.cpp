@@ -60,7 +60,7 @@ namespace {
       state.counters["rays"] = static_cast<double>(totalRayCount);
       state.counters["closest_hit_rays"] = static_cast<double>(closestHitRayCount);
       state.counters["any_hit_rays"] = static_cast<double>(anyHitRayCount);
-      state.counters["expected_rays"] = static_cast<double>(context.expectedRayCount);
+      state.counters["expected_rays"] = static_cast<double>(context.effectiveExpectedRayCount());
       state.counters["expected_closest_hit_rays"] =
         static_cast<double>(context.expectedClosestHitRayCount);
       state.counters["expected_any_hit_rays"] = static_cast<double>(context.expectedAnyHitRayCount);

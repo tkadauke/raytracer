@@ -61,6 +61,8 @@ namespace render {
                               std::uint64_t expectedAnyHitRays);
     void setExpectedQueryFamilies(std::uint64_t expectedClosestHitRays,
                                   std::uint64_t expectedAnyHitRays);
+    [[nodiscard]] bool hasExpectedQueryFamilies() const;
+    [[nodiscard]] std::uint64_t effectiveExpectedRayCount() const;
     [[nodiscard]] static std::uint64_t
     saturatedExpectedRayCount(std::uint64_t expectedClosestHitRays,
                               std::uint64_t expectedAnyHitRays);

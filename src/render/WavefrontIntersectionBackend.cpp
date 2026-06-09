@@ -112,6 +112,17 @@ namespace render {
       saturatedExpectedRayCount(expectedClosestHitRayCount, expectedAnyHitRayCount);
   }
 
+  bool WavefrontIntersectionBackendSelectionContext::hasExpectedQueryFamilies() const {
+    return expectedClosestHitRayCount != 0 || expectedAnyHitRayCount != 0;
+  }
+
+  std::uint64_t WavefrontIntersectionBackendSelectionContext::effectiveExpectedRayCount() const {
+    if (!hasExpectedQueryFamilies()) {
+      return expectedRayCount;
+    }
+    return saturatedExpectedRayCount(expectedClosestHitRayCount, expectedAnyHitRayCount);
+  }
+
   std::uint64_t WavefrontIntersectionBackendSelectionContext::saturatedExpectedRayCount(
     std::uint64_t expectedClosestHitRays, std::uint64_t expectedAnyHitRays) {
     constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
@@ -164,9 +175,10 @@ namespace render {
       return decision;
     }
 
+    const std::uint64_t effectiveExpectedRayCount = context.effectiveExpectedRayCount();
     if (!expectedRayCountJustifiesGpu(diagnostics, context)) {
       decision.reason =
-        "auto selected CPU: expected ray count " + std::to_string(context.expectedRayCount) +
+        "auto selected CPU: expected ray count " + std::to_string(effectiveExpectedRayCount) +
         " is below GPU threshold " + std::to_string(minimumRayCount) + " (scene upload " +
         std::to_string(diagnostics.uploadBytes) + " bytes, estimated query transfer " +
         std::to_string(transferBytes) + " bytes)";
@@ -187,7 +199,7 @@ namespace render {
   bool WavefrontIntersectionBackendAutoSelectionPolicy::expectedRayCountJustifiesGpu(
     const WavefrontIntersectionSceneDiagnostics& diagnostics,
     const WavefrontIntersectionBackendSelectionContext& context) const {
-    return context.expectedRayCount >= minimumExpectedRayCount(diagnostics, context);
+    return context.effectiveExpectedRayCount() >= minimumExpectedRayCount(diagnostics, context);
   }
 
   std::uint64_t WavefrontIntersectionBackendAutoSelectionPolicy::minimumExpectedRayCount(
@@ -207,7 +219,7 @@ namespace render {
     std::uint64_t closestHitRays = context.expectedClosestHitRayCount;
     std::uint64_t anyHitRays = context.expectedAnyHitRayCount;
     if (closestHitRays == 0 && anyHitRays == 0) {
-      closestHitRays = context.expectedRayCount;
+      closestHitRays = context.effectiveExpectedRayCount();
     }
 
     const std::uint64_t closestHitBytes = saturatingProduct(

@@ -751,6 +751,9 @@ Progress:
 - The backend selection context now owns that closest-hit plus any-hit
   derivation, so renderer code and benchmark fixtures use the same saturated
   expected-ray total when preparing automatic backend selection.
+- The automatic backend policy now reads the context's effective expected-ray
+  total, preferring closest-hit/any-hit family estimates when present so direct
+  policy callers cannot select from a stale legacy total.
 - The benchmark suite now includes wavefront intersection backend fixtures for
   a small supported scene, a mesh-heavy supported scene, and an unsupported
   mixed scene. The fixtures measure compile/pack cost, runtime CPU closest-hit
