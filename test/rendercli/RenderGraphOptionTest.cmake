@@ -117,6 +117,10 @@ set(wavefront_supported_backend_cpu_render
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-cpu-render.png")
 set(wavefront_supported_backend_gpu_render
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-gpu-render.png")
+set(wavefront_supported_backend_auto_render
+    "${TEST_OUTPUT_DIR}/wavefront-supported-backend-auto-render.png")
+set(wavefront_supported_backend_auto_report
+    "${TEST_OUTPUT_DIR}/wavefront-supported-backend-auto-metrics.json")
 set(wavefront_supported_backend_report
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-metrics.json")
 set(wavefront_supported_backend_trace
@@ -2549,6 +2553,48 @@ foreach(expectation
     _rendercli_fail("rendercli supported wavefront backend trace ${expectation}"
                     "supported wavefront backend trace did not match ${expectation}"
                     "" "" "${wavefront_supported_backend_trace_json}" "")
+  endif()
+endforeach()
+
+rendercli_run(
+  NAME "rendercli keeps small supported wavefront auto backend on CPU"
+  OUTPUT_VARIABLE wavefront_supported_backend_auto_stdout
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 16 --height 16
+    --wavefront_intersection_backend auto
+    --wavefront_metrics_out "${wavefront_supported_backend_auto_report}"
+    --wavefront_metrics_summary "${wavefront_supported_backend_scene}"
+    "${wavefront_supported_backend_auto_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_supported_backend_auto_render}"
+                                NAME "small supported wavefront auto backend render pixels")
+rendercli_assert_exists("${wavefront_supported_backend_auto_report}"
+                        NAME "small supported wavefront auto backend metrics report exists")
+foreach(expectation
+        "intersection_backend_request=auto"
+        "intersection_backend=cpu"
+        "intersection_backend_availability=available"
+        "intersection_backend_fallback=auto_selected_CPU"
+        "intersection_backend_execution=runtime_scene"
+        "intersection_expected_rays=[1-9][0-9]*")
+  if(NOT wavefront_supported_backend_auto_stdout MATCHES "${expectation}")
+    _rendercli_fail("rendercli small supported wavefront auto summary ${expectation}"
+                    "small supported wavefront auto summary did not match ${expectation}"
+                    "${wavefront_supported_backend_auto_stdout}" "" "" "")
+  endif()
+endforeach()
+file(READ "${wavefront_supported_backend_auto_report}" wavefront_supported_backend_auto_json)
+foreach(expectation
+        "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"auto\""
+        "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
+        "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"available\""
+        "\"intersectionBackendFallbackReason\"[ \r\n]*:[ \r\n]*\"auto selected CPU"
+        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
+        "\"intersectionBackendExpectedRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
+  if(NOT wavefront_supported_backend_auto_json MATCHES "${expectation}")
+    _rendercli_fail("rendercli small supported wavefront auto report ${expectation}"
+                    "small supported wavefront auto report did not match ${expectation}"
+                    "" "" "${wavefront_supported_backend_auto_json}" "")
   endif()
 endforeach()
 
