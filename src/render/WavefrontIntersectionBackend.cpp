@@ -995,7 +995,7 @@ namespace render {
     std::shared_ptr<const MetalWavefrontPreparedScene> metalPreparedScene;
     std::string metalPreparationError;
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
-    if (buffers->basicHitKernelEligible() && MetalWavefrontSmokeKernel().deviceAvailable()) {
+    if (buffers->basicHitKernelEligible() && MetalWavefrontSmokeKernel().renderPathAvailable()) {
       try {
         metalPreparedScene = std::make_shared<MetalWavefrontPreparedScene>(*buffers);
       } catch (const std::exception& e) {
@@ -1064,6 +1064,10 @@ namespace render {
     if (!gpuIntersectionSceneBuffers()) {
       return "Metal wavefront intersection backend is enabled but no prepared basic-hit scene is "
              "available";
+    }
+    if (!platformGpuRenderPathAvailable()) {
+      return "Metal wavefront intersection backend is enabled but no render-path basic hit kernel "
+             "is available";
     }
     if (!m_metalPreparationError.empty()) {
       return m_metalPreparationError.c_str();
@@ -1169,7 +1173,7 @@ namespace render {
 
   bool MetalWavefrontIntersectionBackend::metalBasicHitAvailable() const {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
-    return m_metalPreparedScene != nullptr;
+    return m_metalPreparedScene != nullptr && platformGpuRenderPathAvailable();
 #else
     return false;
 #endif

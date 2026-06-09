@@ -336,6 +336,8 @@ namespace WavefrontRaytracerTest {
     const bool disabled = reason.find("not enabled") != std::string::npos;
     const bool enabledWithoutClosestHitKernel =
       reason.find("no render-path closest-hit kernel") != std::string::npos;
+    const bool enabledWithoutBasicHitKernel =
+      reason.find("no render-path basic hit kernel") != std::string::npos;
     const bool enabledWithoutDevice = reason.find("no Metal device") != std::string::npos;
     const bool notTriangleEligible =
       reason.find("not eligible for the Metal triangle") != std::string::npos;
@@ -345,9 +347,9 @@ namespace WavefrontRaytracerTest {
       reason.find("not eligible for the Metal basic") != std::string::npos;
     const bool noPreparedBasicScene =
       reason.find("no prepared basic-hit scene") != std::string::npos;
-    EXPECT_TRUE(disabled || enabledWithoutClosestHitKernel || enabledWithoutDevice ||
-                notTriangleEligible || noPreparedTriangleScene || notBasicEligible ||
-                noPreparedBasicScene)
+    EXPECT_TRUE(disabled || enabledWithoutClosestHitKernel || enabledWithoutBasicHitKernel ||
+                enabledWithoutDevice || notTriangleEligible || noPreparedTriangleScene ||
+                notBasicEligible || noPreparedBasicScene)
       << reason;
   }
 
