@@ -566,8 +566,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Prepared Metal wavefront query buffers.** Prepared Metal wavefront
   closest-hit and any-hit dispatches now reuse growable ray, result, and
   dynamic-count buffers across queries instead of reallocating them for every
-  frontier, while serializing access to that reusable storage when worker
-  threads share the same prepared backend. — GPT-5
+  frontier, while checking out separate reusable buffer sets when concurrent
+  worker threads share the same prepared backend. — GPT-5
 - **Metal wavefront render-path availability.** Metal wavefront `auto`
   selection now treats render-path availability as a successful device probe
   plus constructible basic closest-hit and any-hit compute pipelines, rather

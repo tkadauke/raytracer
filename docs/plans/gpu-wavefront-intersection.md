@@ -481,9 +481,10 @@ Progress:
   smoke/basic-hit compute pipelines across dispatches. Prepared Metal backends
   now also upload scene-side BVH, primitive, payload, and static count buffers
   once when the backend is created. Prepared closest-hit and any-hit dispatches
-  reuse growable ray, result, and dynamic-count buffers across queries, with a
-  prepared-scene mutex protecting that reusable storage when worker threads
-  share the same backend object.
+  reuse growable ray, result, and dynamic-count buffers across queries through a
+  prepared-scene buffer pool, so concurrent worker threads can check out
+  separate reusable buffer sets instead of serializing every dispatch on one
+  shared query buffer.
 
 ## Phase 5 - common exact primitives and static instances
 
