@@ -43,6 +43,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   direct triangle closest-hit compute dispatch over the packed
   BVH/primitive/triangle/ray/hit ABI, with CPU packed-intersector parity
   coverage. — GPT-5
+- **OpenCylinder wavefront GPU compile coverage.** `render::OpenCylinder`
+  side surfaces now compile into triangle payloads for the prepared wavefront
+  GPU/packed traversal path, preserving object/material ids, smooth side
+  normals, UVs, and per-triangle bounds without adding a new kernel ABI.
+  — GPT-5
 - **Wavefront GPU CMake presets.** Added platform-conditional
   `release-metal-wavefront`, `benchmark-metal-wavefront`,
   `release-vulkan-wavefront`, and `benchmark-vulkan-wavefront` presets so

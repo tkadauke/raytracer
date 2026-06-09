@@ -1,4 +1,5 @@
 #include "render/State.h"
+#include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/OpenCylinder.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
@@ -35,12 +36,12 @@ const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitP
 
     if (yRange.contains(point1.y())) {
       Vector3d normal(point1.x() * m_invRadius, 0.0, point1.z() * m_invRadius);
-      hitPoints.addIn(HitPoint(this, t[0], point1, normal));
+      hitPoints.addIn(HitPoint(this, t[0], point1, normal, sideUvAt(point1)));
     }
 
     if (yRange.contains(point2.y())) {
       Vector3d normal(point2.x() * m_invRadius, 0.0, point2.z() * m_invRadius);
-      hitPoints.addOut(HitPoint(this, t[1], point2, normal));
+      hitPoints.addOut(HitPoint(this, t[1], point2, normal, sideUvAt(point2)));
     }
 
     if (t[0] <= 0 && t[1] <= 0) {
@@ -97,8 +98,8 @@ Result OpenCylinder::intersectPacketHitsFor(const Packet& rays, const StateArray
       hasInRangeSideHit = true;
       if (distance > 0.0 && distance < bestDistance) {
         bestDistance = distance;
-        bestHit = HitPoint(this, distance, point,
-                           Vector3d(point.x() * m_invRadius, 0.0, point.z() * m_invRadius));
+        const Vector3d normal(point.x() * m_invRadius, 0.0, point.z() * m_invRadius);
+        bestHit = HitPoint(this, distance, point, normal, sideUvAt(point));
       }
     }
 
@@ -163,13 +164,13 @@ Result OpenCylinder::intersectPacketIntervalsFor(const Packet& rays,
     const Vector3d point2 = ray.at(t[1]);
 
     if (yRange.contains(point1.y())) {
-      hitPoints.addIn(HitPoint(this, t[0], point1,
-                               Vector3d(point1.x() * m_invRadius, 0.0, point1.z() * m_invRadius)));
+      const Vector3d normal(point1.x() * m_invRadius, 0.0, point1.z() * m_invRadius);
+      hitPoints.addIn(HitPoint(this, t[0], point1, normal, sideUvAt(point1)));
     }
 
     if (yRange.contains(point2.y())) {
-      hitPoints.addOut(HitPoint(this, t[1], point2,
-                                Vector3d(point2.x() * m_invRadius, 0.0, point2.z() * m_invRadius)));
+      const Vector3d normal(point2.x() * m_invRadius, 0.0, point2.z() * m_invRadius);
+      hitPoints.addOut(HitPoint(this, t[1], point2, normal, sideUvAt(point2)));
     }
 
     if (t[0] <= 0.0 && t[1] <= 0.0) {
@@ -252,6 +253,39 @@ Vector3d OpenCylinder::farthestPoint(const Vector3d& direction) const {
 
   return Vector3d(planar.x() * m_radius, direction.y() < 0.0 ? -m_halfHeight : m_halfHeight,
                   planar.z() * m_radius);
+}
+
+Vector2d OpenCylinder::sideUvAt(const Vector3d& point) const {
+  double u = std::atan2(point.z(), point.x()) / (2.0 * M_PI);
+  if (u < 0.0) {
+    u += 1.0;
+  }
+
+  const double height = 2.0 * m_halfHeight;
+  const double v = height == 0.0 ? 0.0 : (point.y() + m_halfHeight) / height;
+  return Vector2d(u, v);
+}
+
+void OpenCylinder::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                                 const TransformedLeaf& leaf) const {
+  const std::shared_ptr<Mesh> mesh = tessellate(0);
+  const auto triangleBounds = [&leaf](const IntersectionTrianglePayload& payload) {
+    BoundingBoxd bounds;
+    bounds.include(leaf.pointMatrix.transformPoint(payload.point0));
+    bounds.include(leaf.pointMatrix.transformPoint(payload.point1));
+    bounds.include(leaf.pointMatrix.transformPoint(payload.point2));
+    return bounds.grownByEpsilon();
+  };
+
+  for (auto triangle = mesh->begin(); triangle != mesh->end(); ++triangle) {
+    const auto& indices = *triangle;
+    const auto& v0 = mesh->vertices()[indices[0]];
+    const auto& v1 = mesh->vertices()[indices[1]];
+    const auto& v2 = mesh->vertices()[indices[2]];
+    const IntersectionTrianglePayload payload{v0.point,  v1.point, v2.point, v0.normal, v1.normal,
+                                              v2.normal, v0.uv,    v1.uv,    v2.uv};
+    builder.addTriangle(leaf, payload, triangleBounds(payload));
+  }
 }
 
 std::shared_ptr<Mesh> OpenCylinder::tessellate(int lod) const {

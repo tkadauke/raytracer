@@ -19,6 +19,7 @@
 #endif
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
+#include "render/primitives/OpenCylinder.h"
 #include "render/primitives/Plane.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
@@ -1308,6 +1309,41 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_NEAR(3.0, hitPoints.minWithPositiveDistance().distance(), 1e-6);
     EXPECT_EQ(Vector4d(0, 0, 0, 1), hitPoints.minWithPositiveDistance().point());
     EXPECT_EQ(Vector3d(0, 0, 1), hitPoints.minWithPositiveDistance().normal());
+    EXPECT_EQ(1, state.intersectionHits);
+    EXPECT_EQ(0, state.intersectionMisses);
+  }
+
+  TEST(WavefrontIntersectionBackend,
+       PreparedGpuFallbackClosestHitUsesRetainedPackedOpenCylinderScene) {
+    auto cylinder = std::make_shared<OpenCylinder>(1.0, 2.0);
+    Scene sourceScene;
+    sourceScene.add(cylinder);
+    Scene emptyScene;
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(sourceScene);
+
+    ASSERT_NE(nullptr, backend->compiledScene());
+    ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
+    EXPECT_EQ(32u, backend->compiledScene()->triangles().size());
+    EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->triangleClosestHitKernelEligible());
+    EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedClosestHitKernelEligible());
+    EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedAnyHitKernelEligible());
+
+    State state;
+    HitPointInterval hitPoints;
+    const Primitive* hit = backend->intersectClosest(
+      emptyScene, Rayd(Vector4d(0, 0.5, -3, 1), Vector3d(0, 0, 1)), hitPoints, state);
+
+    ASSERT_EQ(cylinder.get(), hit);
+    ASSERT_FALSE(hitPoints.minWithPositiveDistance().isUndefined());
+    EXPECT_NEAR(2.0, hitPoints.minWithPositiveDistance().distance(), 1e-5);
+    EXPECT_NEAR(0.0, hitPoints.minWithPositiveDistance().point().x(), 1e-5);
+    EXPECT_NEAR(0.5, hitPoints.minWithPositiveDistance().point().y(), 1e-5);
+    EXPECT_NEAR(-1.0, hitPoints.minWithPositiveDistance().point().z(), 1e-5);
+    EXPECT_NEAR(0.0, hitPoints.minWithPositiveDistance().normal().x(), 1e-5);
+    EXPECT_NEAR(0.0, hitPoints.minWithPositiveDistance().normal().y(), 1e-5);
+    EXPECT_NEAR(-1.0, hitPoints.minWithPositiveDistance().normal().z(), 1e-5);
     EXPECT_EQ(1, state.intersectionHits);
     EXPECT_EQ(0, state.intersectionMisses);
   }

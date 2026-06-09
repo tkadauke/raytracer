@@ -59,6 +59,7 @@ namespace OpenCylinderTest {
     ASSERT_EQ(primitive, &cylinder);
     ASSERT_EQ(Vector3d(0, 0, -1), hitPoints.min().point());
     ASSERT_EQ(Vector3d(0, 0, -1), hitPoints.min().normal());
+    ASSERT_VECTOR_NEAR(Vector2d(0.75, 0.5), hitPoints.min().uv(), 0.0001);
     ASSERT_EQ(1, hitPoints.min().distance());
     ASSERT_EQ(1, state.intersectionHits);
     ASSERT_EQ(0, state.intersectionMisses);

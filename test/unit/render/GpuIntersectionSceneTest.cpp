@@ -13,6 +13,7 @@
 #include "render/primitives/Box.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
+#include "render/primitives/OpenCylinder.h"
 #include "render/primitives/Plane.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
@@ -501,6 +502,15 @@ namespace GpuIntersectionSceneTest {
 
     expectPackedClosestHitMatchesCompiled(scene, ray, 25, true, true);
     expectPackedAnyHitMatchesCompiled(scene, ray, 4.0);
+  }
+
+  TEST(GpuIntersectionScene, PackedOpenCylinderTriangleClosestHitMatchesCompiledSceneHit) {
+    Scene scene;
+    scene.add(std::make_shared<OpenCylinder>(1.0, 2.0));
+    const Rayd ray(Vector4d(0.25, 0.5, -3, 1), Vector3d(0, 0, 1));
+
+    expectPackedClosestHitMatchesCompiled(scene, ray, 25, true, true);
+    expectPackedAnyHitMatchesCompiled(scene, ray, 3.0);
   }
 
   TEST(GpuIntersectionScene, PackedTraversalCullsPrimitiveRecordsByBounds) {
