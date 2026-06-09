@@ -117,6 +117,25 @@ namespace WavefrontIntersectionBackendTest {
 #endif
   }
 
+  TEST(VulkanWavefrontSmokeKernel, RunsDummyHitMissKernelWhenEnabled) {
+    VulkanWavefrontSmokeKernel kernel;
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    if (!kernel.deviceAvailable()) {
+      GTEST_SKIP() << "No Vulkan compute device is available";
+    }
+
+    const std::vector<std::uint32_t> rayIds{0u, 1u, 0x12345678u, 0xffffffffu};
+    const std::vector<std::uint32_t> results = kernel.runDummyHitMissKernel(rayIds);
+
+    ASSERT_EQ(rayIds.size(), results.size());
+    for (std::size_t i = 0; i < rayIds.size(); ++i) {
+      EXPECT_EQ(rayIds[i] ^ 0xa5a5a5a5u, results[i]);
+    }
+#else
+    EXPECT_THROW((void)kernel.runDummyHitMissKernel({1u}), std::runtime_error);
+#endif
+  }
+
   TEST(WavefrontIntersectionBackend, AutoPolicyRequiresPlatformGpuAvailability) {
     const WavefrontIntersectionBackendAutoSelectionPolicy policy;
     WavefrontIntersectionBackendSelectionContext context;

@@ -269,7 +269,8 @@ Progress:
 - Platform diagnostics now distinguish disabled plumbing, enabled-without-device,
   prepared-scene ineligibility, and active platform execution.
 - Vulkan-enabled builds now also probe the loader for a physical device with a
-  compute queue. The render backend still reports CPU fallback until a Vulkan
+  compute queue and can run a tiny deterministic compute dispatch/readback
+  smoke kernel. The render backend still reports CPU fallback until a Vulkan
   closest-hit kernel exists, but the fallback reason can distinguish missing
   Vulkan compute support from missing render-path kernel work.
 - Platform GPU device availability is now structured backend trace data instead

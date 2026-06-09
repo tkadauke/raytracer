@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <vector>
+
 namespace render {
   /**
     * @brief Vulkan platform probe for experimental wavefront-intersection work.
@@ -12,6 +15,8 @@ namespace render {
   class VulkanWavefrontSmokeKernel {
   public:
     bool deviceAvailable() const;
+    std::vector<std::uint32_t>
+    runDummyHitMissKernel(const std::vector<std::uint32_t>& rayIds) const;
 
   private:
     bool probeDeviceAvailable() const;
