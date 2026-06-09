@@ -12,5 +12,8 @@ namespace render {
   class VulkanWavefrontSmokeKernel {
   public:
     bool deviceAvailable() const;
+
+  private:
+    bool probeDeviceAvailable() const;
   };
 }

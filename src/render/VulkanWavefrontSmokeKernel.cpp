@@ -9,6 +9,11 @@
 
 namespace render {
   bool VulkanWavefrontSmokeKernel::deviceAvailable() const {
+    static const bool available = probeDeviceAvailable();
+    return available;
+  }
+
+  bool VulkanWavefrontSmokeKernel::probeDeviceAvailable() const {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     VkApplicationInfo applicationInfo{};
     applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
