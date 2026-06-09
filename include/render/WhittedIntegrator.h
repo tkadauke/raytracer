@@ -40,6 +40,8 @@ namespace render {
                                       IntegratorBatchMetrics* metrics = nullptr,
                                       const IntegratorBatchSettings& settings = {}) const override;
     std::uint64_t estimatedIntersectionRaysPerPrimarySample() const override;
+    std::uint64_t estimatedClosestHitRaysPerPrimarySample() const override;
+    std::uint64_t estimatedAnyHitRaysPerPrimarySample() const override;
 
     void setMaximumRecursionDepth(int depth) override;
     int maximumRecursionDepth() const;

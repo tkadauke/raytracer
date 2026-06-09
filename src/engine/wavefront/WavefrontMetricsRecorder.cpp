@@ -12,7 +12,8 @@ namespace engine::wavefront::detail {
   void WavefrontMetricsRecorder::reset(
     const render::Camera& camera, int width, int height, const render::TilePlan& tilePlan,
     int configuredQueueSize, const render::Integrator& integrator, const render::Denoiser* denoiser,
-    std::uint64_t expectedIntersectionRays, std::uint64_t autoMinimumGpuIntersectionRays,
+    std::uint64_t expectedIntersectionRays, std::uint64_t expectedClosestHitIntersectionRays,
+    std::uint64_t expectedAnyHitIntersectionRays, std::uint64_t autoMinimumGpuIntersectionRays,
     std::uint64_t autoEstimatedQueryTransferBytes, bool convergenceEnabled,
     double activeSampleFractionThreshold, double radianceDeltaRmsThreshold,
     bool adaptiveSamplingEnabled, int adaptiveMinimumSamples, double adaptiveStddevThreshold) {
@@ -29,6 +30,9 @@ namespace engine::wavefront::detail {
     m_metrics.batching.integrator = integrator.diagnosticName();
     m_metrics.batching.executionMode = integrator.batchExecutionMode();
     m_metrics.batching.intersectionBackendExpectedRays = expectedIntersectionRays;
+    m_metrics.batching.intersectionBackendExpectedClosestHitRays =
+      expectedClosestHitIntersectionRays;
+    m_metrics.batching.intersectionBackendExpectedAnyHitRays = expectedAnyHitIntersectionRays;
     m_metrics.batching.intersectionBackendAutoMinimumGpuRays = autoMinimumGpuIntersectionRays;
     m_metrics.batching.intersectionBackendAutoEstimatedQueryTransferBytes =
       autoEstimatedQueryTransferBytes;

@@ -45,6 +45,14 @@ namespace render {
     return 1;
   }
 
+  std::uint64_t Integrator::estimatedClosestHitRaysPerPrimarySample() const {
+    return estimatedIntersectionRaysPerPrimarySample();
+  }
+
+  std::uint64_t Integrator::estimatedAnyHitRaysPerPrimarySample() const {
+    return 0;
+  }
+
   void IntegratorBatchMetrics::reset(bool scalarFallback) {
     usedScalarFallback = scalarFallback;
     activeSamplesPerDepth.clear();

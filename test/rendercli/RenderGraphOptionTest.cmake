@@ -1955,7 +1955,7 @@ rendercli_run(
   NAME "rendercli writes graph wavefront metrics JSON and summary"
   OUTPUT_VARIABLE wavefront_metrics_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=packed_cpu.*intersection_expected_rays=[1-9][0-9]*.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=0.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=[1-9][0-9]*.*intersection_estimated_query_transfer_bytes=[1-9][0-9]*.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*intersection_rays=[0-9][0-9]*.*closest_hit_rays=[0-9][0-9]*.*any_hit_rays=[0-9][0-9]*.*closest_hit_queries=[0-9][0-9]*.*any_hit_queries=[0-9][0-9]*.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
+    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=packed_cpu.*intersection_expected_rays=[1-9][0-9]*.*intersection_expected_closest_hit_rays=[1-9][0-9]*.*intersection_expected_any_hit_rays=0.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=0.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=[1-9][0-9]*.*intersection_estimated_query_transfer_bytes=[1-9][0-9]*.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*intersection_rays=[0-9][0-9]*.*closest_hit_rays=[0-9][0-9]*.*any_hit_rays=[0-9][0-9]*.*closest_hit_queries=[0-9][0-9]*.*any_hit_queries=[0-9][0-9]*.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
   COMMAND
     "${RENDERCLI}" --engine wavefront --width 16 --height 16
     --wavefront_intersection_backend gpu
@@ -2257,6 +2257,16 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"packed_cpu\"")
   _rendercli_fail("rendercli wavefront metrics backend execution path"
                   "wavefront metrics report did not contain packed CPU execution path"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendExpectedClosestHitRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
+  _rendercli_fail("rendercli wavefront metrics expected closest-hit rays"
+                  "wavefront metrics report did not contain expected closest-hit rays"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendExpectedAnyHitRays\"[ \r\n]*:[ \r\n]*0")
+  _rendercli_fail("rendercli wavefront metrics expected any-hit rays"
+                  "wavefront metrics report did not contain expected any-hit rays"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendAutoEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*0")
@@ -2725,6 +2735,8 @@ foreach(expectation
         "\"intersectionBackendFallbackReason\"[ \r\n]*:[ \r\n]*\"auto selected CPU"
         "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
         "\"intersectionBackendExpectedRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"intersectionBackendExpectedClosestHitRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"intersectionBackendExpectedAnyHitRays\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionBackendAutoMinimumGpuRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionBackendAutoEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*0")
   if(NOT wavefront_supported_backend_auto_json MATCHES "${expectation}")

@@ -200,9 +200,16 @@ namespace render {
   }
 
   std::uint64_t PathTracingIntegrator::estimatedIntersectionRaysPerPrimarySample() const {
-    const int queriesPerBounce = 1 + std::max(1, m_directLightSamples);
-    return static_cast<std::uint64_t>(std::max(1, m_maximumRecursionDepth)) *
-           static_cast<std::uint64_t>(queriesPerBounce);
+    return estimatedClosestHitRaysPerPrimarySample() + estimatedAnyHitRaysPerPrimarySample();
+  }
+
+  std::uint64_t PathTracingIntegrator::estimatedClosestHitRaysPerPrimarySample() const {
+    return static_cast<std::uint64_t>(std::max(1, m_maximumRecursionDepth));
+  }
+
+  std::uint64_t PathTracingIntegrator::estimatedAnyHitRaysPerPrimarySample() const {
+    return estimatedClosestHitRaysPerPrimarySample() *
+           static_cast<std::uint64_t>(std::max(1, m_directLightSamples));
   }
 
   void PathTracingIntegrator::setCancellationCallback(CancellationCallback callback) {

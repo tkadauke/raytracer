@@ -179,9 +179,19 @@ namespace render {
     if (!sceneCanUseGpu(diagnostics)) {
       return 0;
     }
-    return saturatingProduct(
-      context.expectedRayCount,
+    std::uint64_t closestHitRays = context.expectedClosestHitRayCount;
+    std::uint64_t anyHitRays = context.expectedAnyHitRayCount;
+    if (closestHitRays == 0 && anyHitRays == 0) {
+      closestHitRays = context.expectedRayCount;
+    }
+
+    const std::uint64_t closestHitBytes = saturatingProduct(
+      closestHitRays,
       static_cast<std::uint64_t>(sizeof(GpuIntersectionRay) + sizeof(GpuIntersectionHitRecord)));
+    const std::uint64_t anyHitBytes = saturatingProduct(
+      anyHitRays, static_cast<std::uint64_t>(sizeof(GpuIntersectionRay) +
+                                             sizeof(GpuIntersectionOcclusionRecord)));
+    return saturatingSum(closestHitBytes, anyHitBytes);
   }
 
   std::uint64_t WavefrontIntersectionBackendAutoSelectionPolicy::sceneUploadKiB(
@@ -199,6 +209,16 @@ namespace render {
       return maxValue;
     }
     return lhs * rhs;
+  }
+
+  std::uint64_t
+  WavefrontIntersectionBackendAutoSelectionPolicy::saturatingSum(std::uint64_t lhs,
+                                                                 std::uint64_t rhs) const {
+    constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
+    if (rhs > maxValue - lhs) {
+      return maxValue;
+    }
+    return lhs + rhs;
   }
 
   WavefrontIntersectionBackendChoice::WavefrontIntersectionBackendChoice()

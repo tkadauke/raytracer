@@ -80,6 +80,8 @@ namespace render {
     const char* batchExecutionMode() const override;
     bool prefersProgressiveSamplePublishing() const override;
     std::uint64_t estimatedIntersectionRaysPerPrimarySample() const override;
+    std::uint64_t estimatedClosestHitRaysPerPrimarySample() const override;
+    std::uint64_t estimatedAnyHitRaysPerPrimarySample() const override;
 
     Colord radiance(const Scene& scene, const Rayd& ray, State& state,
                     const RayCaster& recursiveRayCaster) const override;

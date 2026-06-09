@@ -549,6 +549,10 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                              QStringLiteral("intersectionBackendFallbackReason"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Expected intersection rays"), batching,
                               QStringLiteral("intersectionBackendExpectedRays"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Expected closest-hit rays"), batching,
+                              QStringLiteral("intersectionBackendExpectedClosestHitRays"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Expected any-hit rays"), batching,
+                              QStringLiteral("intersectionBackendExpectedAnyHitRays"));
   if (batching.value(QStringLiteral("intersectionBackendRequest")).toString() ==
       QStringLiteral("auto")) {
     addDetailIntegerMetadataRow(rows, QStringLiteral("Auto minimum GPU rays"), batching,
@@ -814,6 +818,15 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         jsonIntegerValue(batching, QStringLiteral("intersectionBackendExpectedRays"));
       if (expectedRays > 0) {
         line += QStringLiteral(", expected %1 intersection rays").arg(expectedRays);
+        const qulonglong expectedClosestHitRays =
+          jsonIntegerValue(batching, QStringLiteral("intersectionBackendExpectedClosestHitRays"));
+        const qulonglong expectedAnyHitRays =
+          jsonIntegerValue(batching, QStringLiteral("intersectionBackendExpectedAnyHitRays"));
+        if (expectedClosestHitRays > 0 || expectedAnyHitRays > 0) {
+          line += QStringLiteral(" (%1 closest-hit, %2 any-hit)")
+                    .arg(expectedClosestHitRays)
+                    .arg(expectedAnyHitRays);
+        }
       }
       const qulonglong autoMinimumGpuRays =
         jsonIntegerValue(batching, QStringLiteral("intersectionBackendAutoMinimumGpuRays"));

@@ -146,8 +146,12 @@ Metrics include both `intersectionBackendExpectedRays` and
 `intersectionBackendAutoMinimumGpuRays`, so a small auto-selected CPU render can
 show the exact ray-count threshold it failed to clear. Auto renders also report
 `intersectionBackendAutoEstimatedQueryTransferBytes`, a conservative pre-render
-estimate of the packed GPU ray upload plus hit-record readback footprint that
-the selection policy considered.
+estimate of the packed GPU ray upload plus readback footprint that the
+selection policy considered. The expected workload is also split into
+`intersectionBackendExpectedClosestHitRays` and
+`intersectionBackendExpectedAnyHitRays`, so path-tracing direct-light visibility
+work is priced using the smaller occlusion-record readback rather than being
+hidden inside one closest-hit-style total.
 `gpu` is accepted as durable intent and reports either the active platform path
 or a CPU fallback reason in graph trace and wavefront metrics. For a
 `gpu` request, the renderer also runs the compiled-intersection-scene diagnostic

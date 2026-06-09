@@ -44,7 +44,15 @@ namespace render {
   }
 
   std::uint64_t WhittedIntegrator::estimatedIntersectionRaysPerPrimarySample() const {
+    return estimatedClosestHitRaysPerPrimarySample();
+  }
+
+  std::uint64_t WhittedIntegrator::estimatedClosestHitRaysPerPrimarySample() const {
     return static_cast<std::uint64_t>(std::max(1, m_maximumRecursionDepth));
+  }
+
+  std::uint64_t WhittedIntegrator::estimatedAnyHitRaysPerPrimarySample() const {
+    return 0;
   }
 
   struct WhittedIntegrator::QueuedRay {

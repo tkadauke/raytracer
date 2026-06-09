@@ -283,14 +283,20 @@ namespace WhittedIntegratorTest {
     WhittedIntegrator integrator;
 
     EXPECT_EQ(10u, integrator.estimatedIntersectionRaysPerPrimarySample());
+    EXPECT_EQ(10u, integrator.estimatedClosestHitRaysPerPrimarySample());
+    EXPECT_EQ(0u, integrator.estimatedAnyHitRaysPerPrimarySample());
 
     integrator.setMaximumRecursionDepth(4);
 
     EXPECT_EQ(4u, integrator.estimatedIntersectionRaysPerPrimarySample());
+    EXPECT_EQ(4u, integrator.estimatedClosestHitRaysPerPrimarySample());
+    EXPECT_EQ(0u, integrator.estimatedAnyHitRaysPerPrimarySample());
 
     integrator.setMaximumRecursionDepth(0);
 
     EXPECT_EQ(1u, integrator.estimatedIntersectionRaysPerPrimarySample());
+    EXPECT_EQ(1u, integrator.estimatedClosestHitRaysPerPrimarySample());
+    EXPECT_EQ(0u, integrator.estimatedAnyHitRaysPerPrimarySample());
   }
 
   TEST(WhittedIntegrator, ReturnsSceneBackgroundWhenRayMissesEverything) {

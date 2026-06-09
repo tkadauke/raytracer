@@ -1102,6 +1102,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection backend execution path")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection backend fallback")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Expected intersection rays")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Expected closest-hit rays")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Expected any-hit rays")).isEmpty());
     EXPECT_TRUE(rowValue(rows, QStringLiteral("Auto minimum GPU rays")).isEmpty());
     EXPECT_EQ(QStringLiteral("yes"), rowValue(rows, QStringLiteral("Intersection scene compiled")));
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection scene primitives")).isEmpty());
@@ -1142,6 +1144,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QStringLiteral("Auto"),
               rowValue(rows, QStringLiteral("Intersection backend request")));
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Expected intersection rays")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Expected closest-hit rays")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Expected any-hit rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Auto minimum GPU rays")).isEmpty());
   }
 

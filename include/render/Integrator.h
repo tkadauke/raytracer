@@ -245,6 +245,8 @@ namespace render {
       * selection; exact query counts remain runtime metrics.
       */
     virtual std::uint64_t estimatedIntersectionRaysPerPrimarySample() const;
+    virtual std::uint64_t estimatedClosestHitRaysPerPrimarySample() const;
+    virtual std::uint64_t estimatedAnyHitRaysPerPrimarySample() const;
 
     /**
       * Evaluate the radiance carried by `ray` in `scene`.

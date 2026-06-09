@@ -275,6 +275,10 @@ namespace {
                                                                                          : "false")
         << " intersection_expected_rays="
         << unsignedValue(batching, "intersectionBackendExpectedRays")
+        << " intersection_expected_closest_hit_rays="
+        << unsignedValue(batching, "intersectionBackendExpectedClosestHitRays")
+        << " intersection_expected_any_hit_rays="
+        << unsignedValue(batching, "intersectionBackendExpectedAnyHitRays")
         << " intersection_auto_minimum_gpu_rays="
         << unsignedValue(batching, "intersectionBackendAutoMinimumGpuRays")
         << " intersection_auto_estimated_query_transfer_bytes="

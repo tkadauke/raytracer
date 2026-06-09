@@ -2108,16 +2108,22 @@ namespace PathTracingIntegratorTest {
     PathTracingIntegrator integrator;
 
     EXPECT_EQ(16u, integrator.estimatedIntersectionRaysPerPrimarySample());
+    EXPECT_EQ(8u, integrator.estimatedClosestHitRaysPerPrimarySample());
+    EXPECT_EQ(8u, integrator.estimatedAnyHitRaysPerPrimarySample());
 
     integrator.setMaximumRecursionDepth(3);
     integrator.setDirectLightSamples(4);
 
     EXPECT_EQ(15u, integrator.estimatedIntersectionRaysPerPrimarySample());
+    EXPECT_EQ(3u, integrator.estimatedClosestHitRaysPerPrimarySample());
+    EXPECT_EQ(12u, integrator.estimatedAnyHitRaysPerPrimarySample());
 
     integrator.setMaximumRecursionDepth(0);
     integrator.setDirectLightSamples(0);
 
     EXPECT_EQ(2u, integrator.estimatedIntersectionRaysPerPrimarySample());
+    EXPECT_EQ(1u, integrator.estimatedClosestHitRaysPerPrimarySample());
+    EXPECT_EQ(1u, integrator.estimatedAnyHitRaysPerPrimarySample());
   }
 
   TEST(PathTracingIntegrator, CloneCopiesConfiguration) {

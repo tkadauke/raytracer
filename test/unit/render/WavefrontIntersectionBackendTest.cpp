@@ -337,6 +337,29 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_NE(std::string::npos, decision.reason.find("estimated query transfer"));
   }
 
+  TEST(WavefrontIntersectionBackend, AutoPolicyEstimatesClosestHitAndAnyHitTransferBytes) {
+    const WavefrontIntersectionBackendAutoSelectionPolicy policy;
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 7;
+    context.expectedClosestHitRayCount = 2;
+    context.expectedAnyHitRayCount = 5;
+
+    const std::uint64_t expectedBytes =
+      context.expectedClosestHitRayCount *
+        static_cast<std::uint64_t>(sizeof(GpuIntersectionRay) + sizeof(GpuIntersectionHitRecord)) +
+      context.expectedAnyHitRayCount *
+        static_cast<std::uint64_t>(sizeof(GpuIntersectionRay) +
+                                   sizeof(GpuIntersectionOcclusionRecord));
+
+    EXPECT_EQ(expectedBytes,
+              policy.estimatedQueryTransferBytes(supportedPackedDiagnostics(), context));
+
+    const WavefrontIntersectionBackendAutoSelectionDecision decision =
+      policy.decide(true, true, supportedPackedDiagnostics(), context);
+
+    EXPECT_EQ(expectedBytes, decision.estimatedQueryTransferBytes);
+  }
+
   TEST(WavefrontIntersectionBackend, AutoPolicyReportsNoQueryTransferForUnsupportedScene) {
     const WavefrontIntersectionBackendAutoSelectionPolicy policy;
     WavefrontIntersectionBackendSelectionContext context;

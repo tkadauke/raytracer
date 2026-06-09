@@ -735,6 +735,11 @@ Progress:
   estimate is present in metrics JSON, rendercli summaries, and Modeler pass
   details/tooltips, so an auto-selected CPU render can show the avoided
   upload/readback footprint rather than only reporting the observed CPU work.
+- Integrators now split expected intersection work into closest-hit and any-hit
+  query families. Whitted renders report closest-hit work only, while path
+  tracing reports closest-hit bounce work separately from direct-light
+  visibility work, letting the auto transfer estimate use hit-record and
+  occlusion-record readback sizes independently.
 - The benchmark suite now includes wavefront intersection backend fixtures for
   a small supported scene, a mesh-heavy supported scene, and an unsupported
   mixed scene. The fixtures measure compile/pack cost, runtime CPU closest-hit
