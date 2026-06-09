@@ -715,8 +715,9 @@ Progress:
   runtime-scene fallback paths report zero query-transfer bytes, and unsupported
   compiled-scene fallbacks report zero scene-upload bytes; prepared
   GPU-request stubs report the bytes their retained packed buffers would submit
-  to a real Metal/Vulkan kernel. This gives `auto` selection and performance
-  gates a visible upload/readback cost signal before real kernels are enabled.
+  to a real Metal/Vulkan kernel only for query families that are actually
+  packed/platform eligible. This gives `auto` selection and performance gates a
+  visible upload/readback cost signal before real kernels are enabled.
 - `auto` backend selection now has an explicit policy object and receives a
   conservative expected-ray-count estimate from `WavefrontRaytracer`. It
   requires platform GPU device availability, platform render-path availability,

@@ -52,6 +52,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   compiled primitive/unsupported counts without packing throwaway upload
   buffers, so unsupported fallback diagnostics show zero scene-upload bytes when
   no prepared GPU scene is retained. — GPT-5
+- **Wavefront query-family transfer estimates.** Prepared wavefront
+  intersection backends now report closest-hit and any-hit upload/readback byte
+  estimates only for query families that can actually use the packed/platform
+  path, avoiding misleading transfer costs for retained but ineligible prepared
+  scenes. — GPT-5
 - **Wavefront runtime any-hit benchmark baseline.** The wavefront intersection
   backend benchmarks now include runtime CPU any-hit rows alongside packed
   any-hit rows, giving direct-light visibility queries the same CPU/packed

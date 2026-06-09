@@ -610,21 +610,33 @@ namespace render {
 
   std::uint64_t WavefrontIntersectionBackend::estimatedClosestHitRayUploadBytes(
     std::uint64_t submittedRays) const {
+    if (!preparedPackedClosestHitAvailable()) {
+      return 0;
+    }
     return estimatedTransferBytes(submittedRays, sizeof(GpuIntersectionRay));
   }
 
   std::uint64_t WavefrontIntersectionBackend::estimatedClosestHitReadbackBytes(
     std::uint64_t submittedRays) const {
+    if (!preparedPackedClosestHitAvailable()) {
+      return 0;
+    }
     return estimatedTransferBytes(submittedRays, sizeof(GpuIntersectionHitRecord));
   }
 
   std::uint64_t
   WavefrontIntersectionBackend::estimatedAnyHitRayUploadBytes(std::uint64_t submittedRays) const {
+    if (!preparedPackedAnyHitAvailable()) {
+      return 0;
+    }
     return estimatedTransferBytes(submittedRays, sizeof(GpuIntersectionRay));
   }
 
   std::uint64_t
   WavefrontIntersectionBackend::estimatedAnyHitReadbackBytes(std::uint64_t submittedRays) const {
+    if (!preparedPackedAnyHitAvailable()) {
+      return 0;
+    }
     return estimatedTransferBytes(submittedRays, sizeof(GpuIntersectionOcclusionRecord));
   }
 

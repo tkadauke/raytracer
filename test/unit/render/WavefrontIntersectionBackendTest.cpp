@@ -1518,6 +1518,32 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0u, backend->estimatedAnyHitReadbackBytes(4));
   }
 
+  TEST(WavefrontIntersectionBackend, GpuChoiceDoesNotEstimateTransferForIneligiblePreparedScene) {
+    Scene scene;
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(scene);
+
+    ASSERT_NE(nullptr, backend->compiledScene());
+    ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
+    EXPECT_TRUE(backend->compiledScene()->fullySupported());
+    EXPECT_TRUE(backend->compiledScene()->primitives().empty());
+    EXPECT_FALSE(backend->gpuIntersectionSceneBuffers()->packedClosestHitKernelEligible());
+    EXPECT_FALSE(backend->gpuIntersectionSceneBuffers()->packedAnyHitKernelEligible());
+
+    const WavefrontIntersectionSceneDiagnostics diagnostics = backend->compiledSceneDiagnostics();
+    EXPECT_TRUE(diagnostics.compiled);
+    EXPECT_EQ(0u, diagnostics.primitives);
+    EXPECT_EQ(0u, diagnostics.unsupportedPrimitives);
+    EXPECT_EQ(0u, diagnostics.uploadBytes);
+    EXPECT_FALSE(diagnostics.packedClosestHitKernelEligible);
+    EXPECT_FALSE(diagnostics.packedAnyHitKernelEligible);
+    EXPECT_EQ(0u, backend->estimatedClosestHitRayUploadBytes(4));
+    EXPECT_EQ(0u, backend->estimatedClosestHitReadbackBytes(4));
+    EXPECT_EQ(0u, backend->estimatedAnyHitRayUploadBytes(4));
+    EXPECT_EQ(0u, backend->estimatedAnyHitReadbackBytes(4));
+  }
+
   TEST(WavefrontIntersectionBackend, GpuChoiceReportsOpenCylinderSceneDiagnostics) {
     Scene scene;
     scene.add(std::make_shared<OpenCylinder>(1.0, 2.0));
