@@ -286,9 +286,9 @@ Progress:
 - Metal render-path availability now verifies the basic closest-hit and any-hit
   compute pipelines can be constructed, instead of treating device availability
   alone as proof that the Metal render-path kernels are usable. Prepared Metal
-  backend execution is gated on the same render-path probe, so explicit GPU
-  requests do not report `metal` execution when dispatch would fall back to the
-  packed CPU contract.
+  backend execution and direct prepared-scene construction are gated on the
+  same render-path probe, so explicit GPU requests do not report `metal`
+  execution when dispatch would fall back to the packed CPU contract.
 
 ## Phase 1 - backend interface and CPU refactor
 

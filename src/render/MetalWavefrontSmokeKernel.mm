@@ -991,6 +991,10 @@ namespace render {
       if (!device) {
         throw std::runtime_error("Metal prepared wavefront scene requires a Metal device");
       }
+      if (!MetalWavefrontSmokeKernel().renderPathAvailable()) {
+        throw std::runtime_error(
+          "Metal prepared wavefront scene requires the Metal basic hit kernels");
+      }
 
       p->bvhBuffer = newBufferFromVector(device, scene.bvh);
       p->primitiveBuffer = newBufferFromVector(device, scene.primitives);

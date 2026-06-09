@@ -572,8 +572,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   selection now treats render-path availability as a successful device probe
   plus constructible basic closest-hit and any-hit compute pipelines, rather
   than assuming any detected Metal device can execute those kernels. Explicit
-  GPU requests use the same gate before advertising a prepared Metal execution
-  path. — GPT-5
+  GPU requests and direct prepared-scene construction use the same gate before
+  advertising or creating a prepared Metal execution path. — GPT-5
 - **Compiled box intersection bounds.** Boxes compiled for the wavefront GPU
   intersection scene now give each emitted triangle its own tight world-space
   BVH bounds instead of assigning every triangle the full box bounds, improving
