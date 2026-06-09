@@ -113,6 +113,10 @@ set(wavefront_supported_backend_scene
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-scene.json")
 set(wavefront_supported_backend_render
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-render.png")
+set(wavefront_supported_backend_cpu_render
+    "${TEST_OUTPUT_DIR}/wavefront-supported-backend-cpu-render.png")
+set(wavefront_supported_backend_gpu_render
+    "${TEST_OUTPUT_DIR}/wavefront-supported-backend-gpu-render.png")
 set(wavefront_supported_backend_report
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-metrics.json")
 set(wavefront_supported_backend_trace
@@ -2470,9 +2474,9 @@ rendercli_assert_exists("${wavefront_supported_backend_report}"
                         NAME "supported wavefront backend metrics report exists")
 foreach(expectation
         "intersection_backend_request=gpu"
-        "intersection_backend=(cpu|metal)"
+        "intersection_backend=(cpu|metal|vulkan)"
         "intersection_backend_availability=(fallback|available)"
-        "intersection_backend_execution=(packed_cpu|metal)"
+        "intersection_backend_execution=(packed_cpu|metal|vulkan)"
         "intersection_scene_compiled=true"
         "intersection_scene_unsupported=0"
         "intersection_scene_upload_bytes=[1-9][0-9]*"
@@ -2495,9 +2499,9 @@ endforeach()
 file(READ "${wavefront_supported_backend_report}" wavefront_supported_backend_json)
 foreach(expectation
         "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
-        "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"(cpu|metal)\""
+        "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"(cpu|metal|vulkan)\""
         "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"(fallback|available)\""
-        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"(packed_cpu|metal)\""
+        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"(packed_cpu|metal|vulkan)\""
         "\"intersectionSceneCompiled\"[ \r\n]*:[ \r\n]*true"
         "\"intersectionSceneUnsupportedPrimitives\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionSceneUploadBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
@@ -2534,9 +2538,9 @@ foreach(expectation
         "\"metadata\""
         "\"batching\""
         "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
-        "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"(cpu|metal)\""
+        "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"(cpu|metal|vulkan)\""
         "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"(fallback|available)\""
-        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"(packed_cpu|metal)\""
+        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"(packed_cpu|metal|vulkan)\""
         "\"intersectionSceneCompiled\"[ \r\n]*:[ \r\n]*true"
         "\"intersectionSceneUnsupportedPrimitives\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionSceneUploadBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
@@ -2547,6 +2551,25 @@ foreach(expectation
                     "" "" "${wavefront_supported_backend_trace_json}" "")
   endif()
 endforeach()
+
+rendercli_run(
+  NAME "rendercli renders supported scene with forced CPU wavefront backend"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 16 --height 16
+    --wavefront_intersection_backend cpu "${wavefront_supported_backend_scene}"
+    "${wavefront_supported_backend_cpu_render}"
+)
+rendercli_run(
+  NAME "rendercli renders supported scene with requested GPU wavefront backend"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 16 --height 16
+    --wavefront_intersection_backend gpu "${wavefront_supported_backend_scene}"
+    "${wavefront_supported_backend_gpu_render}"
+)
+rendercli_assert_image_rms_at_most("${wavefront_supported_backend_cpu_render}"
+                                   "${wavefront_supported_backend_gpu_render}" 0.001
+                                   NAME
+                                     "wavefront GPU backend supported scene RMS matches CPU")
 
 rendercli_run(
   NAME "rendercli reports wavefront convergence-stopped tiles"
