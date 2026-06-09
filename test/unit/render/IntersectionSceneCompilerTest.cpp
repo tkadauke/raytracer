@@ -9,6 +9,7 @@
 #include "render/State.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Box.h"
+#include "render/primitives/ClosedSolidUnion.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/FlatMeshTriangle.h"
 #include "render/primitives/Instance.h"
@@ -60,6 +61,17 @@ namespace IntersectionSceneCompilerTest {
 
     BoundingBoxd triangleBoundsAt(double z, double xOffset = 0.0) {
       return BoundingBoxd(Vector3d(xOffset - 1, -1, z), Vector3d(xOffset + 1, 1, z));
+    }
+
+    std::shared_ptr<ClosedSolidUnion> unbeveledCylinderComposite(double radius = 1.0,
+                                                                 double height = 2.0) {
+      auto cylinder = std::make_shared<ClosedSolidUnion>();
+      cylinder->add(std::make_shared<OpenCylinder>(radius, height));
+      cylinder->add(
+        std::make_shared<Disk>(Vector3d(0, -height / 2.0, 0), Vector3d(0, -1, 0), radius));
+      cylinder->add(
+        std::make_shared<Disk>(Vector3d(0, height / 2.0, 0), Vector3d(0, 1, 0), radius));
+      return cylinder;
     }
 
     std::unique_ptr<Mesh> triangleMesh() {
@@ -203,6 +215,28 @@ namespace IntersectionSceneCompilerTest {
     EXPECT_EQ(1.0, compiled.openCylinders()[0].radius);
     EXPECT_EQ(1.0, compiled.openCylinders()[0].halfHeight);
     EXPECT_EQ("open_cylinder", std::string(toString(compiled.primitives()[0].kind)));
+  }
+
+  TEST(IntersectionSceneCompiler, CompilesUnbeveledCylinderCompositeAsSupportedPayloads) {
+    auto cylinder = unbeveledCylinderComposite();
+    auto sharedMaterial = material(Colord::green());
+    cylinder->setMaterial(sharedMaterial);
+    Scene scene;
+    scene.add(cylinder);
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+
+    ASSERT_EQ(3u, compiled.primitives().size());
+    EXPECT_TRUE(compiled.fullySupported());
+    EXPECT_TRUE(compiled.unsupportedPrimitives().empty());
+    EXPECT_EQ(1u, compiled.openCylinders().size());
+    EXPECT_EQ(2u, compiled.disks().size());
+    EXPECT_EQ(1u, countPrimitivesOfKind(compiled, IntersectionPrimitiveKind::OpenCylinder));
+    EXPECT_EQ(2u, countPrimitivesOfKind(compiled, IntersectionPrimitiveKind::Disk));
+    for (const IntersectionPrimitiveRecord& primitive : compiled.primitives()) {
+      ASSERT_GT(compiled.materials().size(), primitive.material);
+      EXPECT_EQ(sharedMaterial.get(), compiled.materials()[primitive.material].get());
+    }
   }
 
   TEST(IntersectionSceneCompiler, RecordsUnsupportedPrimitiveReasons) {
@@ -457,6 +491,21 @@ namespace IntersectionSceneCompilerTest {
     expectCompiledClosestHitMatchesRuntime(scene, ray);
     expectCompiledAnyHitMatchesRuntime(scene, ray, 3.0);
     expectCompiledAnyHitMatchesRuntime(scene, ray, 1.0);
+  }
+
+  TEST(CompiledIntersectionSceneIntersector, IntersectsUnbeveledCylinderCompositeLikeRuntimeScene) {
+    Scene scene;
+    scene.add(unbeveledCylinderComposite());
+
+    const Rayd sideRay(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1));
+    expectCompiledClosestHitMatchesRuntime(scene, sideRay);
+    expectCompiledAnyHitMatchesRuntime(scene, sideRay, 3.0);
+    expectCompiledAnyHitMatchesRuntime(scene, sideRay, 1.0);
+
+    const Rayd capRay(Vector4d(0, 3, 0, 1), Vector3d(0, -1, 0));
+    expectCompiledClosestHitMatchesRuntime(scene, capRay);
+    expectCompiledAnyHitMatchesRuntime(scene, capRay, 3.0);
+    expectCompiledAnyHitMatchesRuntime(scene, capRay, 1.0);
   }
 
   TEST(CompiledIntersectionSceneIntersector, RejectsCoplanarParallelDiskLikeRuntimeScene) {
