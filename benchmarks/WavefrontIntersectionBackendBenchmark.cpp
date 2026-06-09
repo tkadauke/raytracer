@@ -29,12 +29,9 @@ namespace {
 
     [[nodiscard]] WavefrontIntersectionBackendSelectionContext
     selectionContext(std::size_t expectedClosestHitRays, std::size_t expectedAnyHitRays) const {
-      WavefrontIntersectionBackendSelectionContext context;
-      context.expectedClosestHitRayCount = static_cast<std::uint64_t>(expectedClosestHitRays);
-      context.expectedAnyHitRayCount = static_cast<std::uint64_t>(expectedAnyHitRays);
-      context.expectedRayCount =
-        saturatingSum(context.expectedClosestHitRayCount, context.expectedAnyHitRayCount);
-      return context;
+      return WavefrontIntersectionBackendSelectionContext::fromExpectedQueryFamilies(
+        static_cast<std::uint64_t>(expectedClosestHitRays),
+        static_cast<std::uint64_t>(expectedAnyHitRays));
     }
 
     [[nodiscard]] std::shared_ptr<const WavefrontIntersectionBackend>
@@ -50,8 +47,10 @@ namespace {
                                  std::size_t readbackBytes) const {
       const WavefrontIntersectionSceneDiagnostics diagnostics = backend.compiledSceneDiagnostics();
       const WavefrontIntersectionBackendAutoSelectionPolicy policy;
-      const std::uint64_t totalRayCount = saturatingSum(
-        static_cast<std::uint64_t>(closestHitRayCount), static_cast<std::uint64_t>(anyHitRayCount));
+      const std::uint64_t totalRayCount =
+        WavefrontIntersectionBackendSelectionContext::saturatedExpectedRayCount(
+          static_cast<std::uint64_t>(closestHitRayCount),
+          static_cast<std::uint64_t>(anyHitRayCount));
       std::string executionPath = timing.executionPath;
       if (executionPath.empty()) {
         executionPath = backend.executionPath();
@@ -73,14 +72,6 @@ namespace {
       state.counters["ray_upload_bytes"] =
         static_cast<double>(totalRayCount * sizeof(GpuIntersectionRay));
       state.counters["readback_bytes"] = static_cast<double>(readbackBytes);
-    }
-
-    [[nodiscard]] std::uint64_t saturatingSum(std::uint64_t lhs, std::uint64_t rhs) const {
-      constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
-      if (rhs > maxValue - lhs) {
-        return maxValue;
-      }
-      return lhs + rhs;
     }
 
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)

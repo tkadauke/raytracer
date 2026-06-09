@@ -748,6 +748,9 @@ Progress:
   automatic backend selection from the closest-hit and any-hit family estimates,
   keeping render metrics and selection policy on the same split workload even
   for custom integrators with an inconsistent legacy total estimate.
+- The backend selection context now owns that closest-hit plus any-hit
+  derivation, so renderer code and benchmark fixtures use the same saturated
+  expected-ray total when preparing automatic backend selection.
 - The benchmark suite now includes wavefront intersection backend fixtures for
   a small supported scene, a mesh-heavy supported scene, and an unsupported
   mixed scene. The fixtures measure compile/pack cost, runtime CPU closest-hit

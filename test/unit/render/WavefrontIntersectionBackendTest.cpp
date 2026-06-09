@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -100,6 +101,35 @@ namespace WavefrontIntersectionBackendTest {
       return VulkanWavefrontIntersectionBackend::instance().platformGpuRenderPathAvailable();
 #endif
     }
+  }
+
+  TEST(WavefrontIntersectionBackend, SelectionContextDerivesExpectedRayCountFromQueryFamilies) {
+    WavefrontIntersectionBackendSelectionContext context =
+      WavefrontIntersectionBackendSelectionContext::fromExpectedQueryFamilies(2, 5);
+
+    EXPECT_EQ(7u, context.expectedRayCount);
+    EXPECT_EQ(2u, context.expectedClosestHitRayCount);
+    EXPECT_EQ(5u, context.expectedAnyHitRayCount);
+
+    context.setExpectedQueryFamilies(11, 13);
+
+    EXPECT_EQ(24u, context.expectedRayCount);
+    EXPECT_EQ(11u, context.expectedClosestHitRayCount);
+    EXPECT_EQ(13u, context.expectedAnyHitRayCount);
+  }
+
+  TEST(WavefrontIntersectionBackend, SelectionContextSaturatesExpectedRayCountFromFamilies) {
+    constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
+
+    EXPECT_EQ(maxValue, WavefrontIntersectionBackendSelectionContext::saturatedExpectedRayCount(
+                          maxValue - 1, 2));
+
+    const WavefrontIntersectionBackendSelectionContext context =
+      WavefrontIntersectionBackendSelectionContext::fromExpectedQueryFamilies(maxValue - 3, 4);
+
+    EXPECT_EQ(maxValue, context.expectedRayCount);
+    EXPECT_EQ(maxValue - 3, context.expectedClosestHitRayCount);
+    EXPECT_EQ(4u, context.expectedAnyHitRayCount);
   }
 
   TEST(WavefrontIntersectionQueryTiming, MergesExecutionPaths) {

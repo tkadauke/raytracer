@@ -666,14 +666,6 @@ namespace engine::wavefront {
       return lhs * rhs;
     }
 
-    std::uint64_t saturatedSum(std::uint64_t lhs, std::uint64_t rhs) const {
-      constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
-      if (rhs > maxValue - lhs) {
-        return maxValue;
-      }
-      return lhs + rhs;
-    }
-
     std::uint64_t expectedPrimaryRayCount(const render::Camera& camera, int width,
                                           int height) const {
       const std::uint64_t pixelCount =
@@ -696,28 +688,18 @@ namespace engine::wavefront {
     }
 
     render::WavefrontIntersectionBackendSelectionContext
-    intersectionBackendSelectionContext(std::uint64_t expectedIntersectionRays,
-                                        std::uint64_t expectedClosestHitIntersectionRays,
+    intersectionBackendSelectionContext(std::uint64_t expectedClosestHitIntersectionRays,
                                         std::uint64_t expectedAnyHitIntersectionRays) const {
-      render::WavefrontIntersectionBackendSelectionContext context;
-      context.expectedRayCount = expectedIntersectionRays;
-      context.expectedClosestHitRayCount = expectedClosestHitIntersectionRays;
-      context.expectedAnyHitRayCount = expectedAnyHitIntersectionRays;
-      return context;
+      return render::WavefrontIntersectionBackendSelectionContext::fromExpectedQueryFamilies(
+        expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays);
     }
 
-    std::uint64_t
-    autoMinimumGpuIntersectionRayCount(std::uint64_t expectedIntersectionRays,
-                                       std::uint64_t expectedClosestHitIntersectionRays,
-                                       std::uint64_t expectedAnyHitIntersectionRays) const {
+    std::uint64_t autoMinimumGpuIntersectionRayCount(
+      const render::WavefrontIntersectionBackendSelectionContext& context) const {
       if (intersectionBackend.kind() != render::WavefrontIntersectionBackendChoice::Kind::Auto) {
         return 0;
       }
 
-      const render::WavefrontIntersectionBackendSelectionContext context =
-        intersectionBackendSelectionContext(expectedIntersectionRays,
-                                            expectedClosestHitIntersectionRays,
-                                            expectedAnyHitIntersectionRays);
       const render::WavefrontIntersectionSceneDiagnostics diagnostics =
         preparedIntersectionBackend ? preparedIntersectionBackend->compiledSceneDiagnostics()
                                     : render::WavefrontIntersectionSceneDiagnostics();
@@ -725,18 +707,12 @@ namespace engine::wavefront {
         diagnostics, context);
     }
 
-    std::uint64_t
-    autoEstimatedQueryTransferBytes(std::uint64_t expectedIntersectionRays,
-                                    std::uint64_t expectedClosestHitIntersectionRays,
-                                    std::uint64_t expectedAnyHitIntersectionRays) const {
+    std::uint64_t autoEstimatedQueryTransferBytes(
+      const render::WavefrontIntersectionBackendSelectionContext& context) const {
       if (intersectionBackend.kind() != render::WavefrontIntersectionBackendChoice::Kind::Auto) {
         return 0;
       }
 
-      const render::WavefrontIntersectionBackendSelectionContext context =
-        intersectionBackendSelectionContext(expectedIntersectionRays,
-                                            expectedClosestHitIntersectionRays,
-                                            expectedAnyHitIntersectionRays);
       const render::WavefrontIntersectionSceneDiagnostics diagnostics =
         preparedIntersectionBackend ? preparedIntersectionBackend->compiledSceneDiagnostics()
                                     : render::WavefrontIntersectionSceneDiagnostics();
@@ -744,14 +720,9 @@ namespace engine::wavefront {
         diagnostics, context);
     }
 
-    void prepareIntersectionBackend(const render::Scene& scene,
-                                    std::uint64_t expectedIntersectionRays,
-                                    std::uint64_t expectedClosestHitIntersectionRays,
-                                    std::uint64_t expectedAnyHitIntersectionRays) {
-      const render::WavefrontIntersectionBackendSelectionContext context =
-        intersectionBackendSelectionContext(expectedIntersectionRays,
-                                            expectedClosestHitIntersectionRays,
-                                            expectedAnyHitIntersectionRays);
+    void prepareIntersectionBackend(
+      const render::Scene& scene,
+      const render::WavefrontIntersectionBackendSelectionContext& context) {
       preparedIntersectionBackend = intersectionBackend.createBackendForScene(scene, context);
     }
 
@@ -819,15 +790,15 @@ namespace engine::wavefront {
       p->expectedClosestHitIntersectionRayCount(*m_camera, buffer.width(), buffer.height());
     const std::uint64_t expectedAnyHitIntersectionRays =
       p->expectedAnyHitIntersectionRayCount(*m_camera, buffer.width(), buffer.height());
-    const std::uint64_t expectedIntersectionRays =
-      p->saturatedSum(expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays);
-    p->prepareIntersectionBackend(*m_scene, expectedIntersectionRays,
-                                  expectedClosestHitIntersectionRays,
-                                  expectedAnyHitIntersectionRays);
-    const std::uint64_t autoMinimumGpuIntersectionRays = p->autoMinimumGpuIntersectionRayCount(
-      expectedIntersectionRays, expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays);
-    const std::uint64_t autoEstimatedQueryTransferBytes = p->autoEstimatedQueryTransferBytes(
-      expectedIntersectionRays, expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays);
+    const render::WavefrontIntersectionBackendSelectionContext intersectionBackendContext =
+      p->intersectionBackendSelectionContext(expectedClosestHitIntersectionRays,
+                                             expectedAnyHitIntersectionRays);
+    const std::uint64_t expectedIntersectionRays = intersectionBackendContext.expectedRayCount;
+    p->prepareIntersectionBackend(*m_scene, intersectionBackendContext);
+    const std::uint64_t autoMinimumGpuIntersectionRays =
+      p->autoMinimumGpuIntersectionRayCount(intersectionBackendContext);
+    const std::uint64_t autoEstimatedQueryTransferBytes =
+      p->autoEstimatedQueryTransferBytes(intersectionBackendContext);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();
@@ -912,15 +883,15 @@ namespace engine::wavefront {
       p->expectedClosestHitIntersectionRayCount(*m_camera, buffer.width(), buffer.height());
     const std::uint64_t expectedAnyHitIntersectionRays =
       p->expectedAnyHitIntersectionRayCount(*m_camera, buffer.width(), buffer.height());
-    const std::uint64_t expectedIntersectionRays =
-      p->saturatedSum(expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays);
-    p->prepareIntersectionBackend(*m_scene, expectedIntersectionRays,
-                                  expectedClosestHitIntersectionRays,
-                                  expectedAnyHitIntersectionRays);
-    const std::uint64_t autoMinimumGpuIntersectionRays = p->autoMinimumGpuIntersectionRayCount(
-      expectedIntersectionRays, expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays);
-    const std::uint64_t autoEstimatedQueryTransferBytes = p->autoEstimatedQueryTransferBytes(
-      expectedIntersectionRays, expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays);
+    const render::WavefrontIntersectionBackendSelectionContext intersectionBackendContext =
+      p->intersectionBackendSelectionContext(expectedClosestHitIntersectionRays,
+                                             expectedAnyHitIntersectionRays);
+    const std::uint64_t expectedIntersectionRays = intersectionBackendContext.expectedRayCount;
+    p->prepareIntersectionBackend(*m_scene, intersectionBackendContext);
+    const std::uint64_t autoMinimumGpuIntersectionRays =
+      p->autoMinimumGpuIntersectionRayCount(intersectionBackendContext);
+    const std::uint64_t autoEstimatedQueryTransferBytes =
+      p->autoEstimatedQueryTransferBytes(intersectionBackendContext);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();
@@ -1002,15 +973,15 @@ namespace engine::wavefront {
       p->expectedClosestHitIntersectionRayCount(*m_camera, hdrBuffer.width(), hdrBuffer.height());
     const std::uint64_t expectedAnyHitIntersectionRays =
       p->expectedAnyHitIntersectionRayCount(*m_camera, hdrBuffer.width(), hdrBuffer.height());
-    const std::uint64_t expectedIntersectionRays =
-      p->saturatedSum(expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays);
-    p->prepareIntersectionBackend(*m_scene, expectedIntersectionRays,
-                                  expectedClosestHitIntersectionRays,
-                                  expectedAnyHitIntersectionRays);
-    const std::uint64_t autoMinimumGpuIntersectionRays = p->autoMinimumGpuIntersectionRayCount(
-      expectedIntersectionRays, expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays);
-    const std::uint64_t autoEstimatedQueryTransferBytes = p->autoEstimatedQueryTransferBytes(
-      expectedIntersectionRays, expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays);
+    const render::WavefrontIntersectionBackendSelectionContext intersectionBackendContext =
+      p->intersectionBackendSelectionContext(expectedClosestHitIntersectionRays,
+                                             expectedAnyHitIntersectionRays);
+    const std::uint64_t expectedIntersectionRays = intersectionBackendContext.expectedRayCount;
+    p->prepareIntersectionBackend(*m_scene, intersectionBackendContext);
+    const std::uint64_t autoMinimumGpuIntersectionRays =
+      p->autoMinimumGpuIntersectionRayCount(intersectionBackendContext);
+    const std::uint64_t autoEstimatedQueryTransferBytes =
+      p->autoEstimatedQueryTransferBytes(intersectionBackendContext);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();

@@ -55,6 +55,15 @@ namespace render {
     std::uint64_t expectedAnyHitRayCount{0};
     std::uint64_t minimumGpuRayCount{65536};
     std::uint64_t minimumGpuRaysPerSceneUploadKiB{64};
+
+    [[nodiscard]] static WavefrontIntersectionBackendSelectionContext
+    fromExpectedQueryFamilies(std::uint64_t expectedClosestHitRays,
+                              std::uint64_t expectedAnyHitRays);
+    void setExpectedQueryFamilies(std::uint64_t expectedClosestHitRays,
+                                  std::uint64_t expectedAnyHitRays);
+    [[nodiscard]] static std::uint64_t
+    saturatedExpectedRayCount(std::uint64_t expectedClosestHitRays,
+                              std::uint64_t expectedAnyHitRays);
   };
 
   struct WavefrontAnyHitQuery {

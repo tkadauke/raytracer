@@ -96,6 +96,31 @@ namespace render {
     };
   }
 
+  WavefrontIntersectionBackendSelectionContext
+  WavefrontIntersectionBackendSelectionContext::fromExpectedQueryFamilies(
+    std::uint64_t expectedClosestHitRays, std::uint64_t expectedAnyHitRays) {
+    WavefrontIntersectionBackendSelectionContext context;
+    context.setExpectedQueryFamilies(expectedClosestHitRays, expectedAnyHitRays);
+    return context;
+  }
+
+  void WavefrontIntersectionBackendSelectionContext::setExpectedQueryFamilies(
+    std::uint64_t expectedClosestHitRays, std::uint64_t expectedAnyHitRays) {
+    expectedClosestHitRayCount = expectedClosestHitRays;
+    expectedAnyHitRayCount = expectedAnyHitRays;
+    expectedRayCount =
+      saturatedExpectedRayCount(expectedClosestHitRayCount, expectedAnyHitRayCount);
+  }
+
+  std::uint64_t WavefrontIntersectionBackendSelectionContext::saturatedExpectedRayCount(
+    std::uint64_t expectedClosestHitRays, std::uint64_t expectedAnyHitRays) {
+    constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
+    if (expectedAnyHitRays > maxValue - expectedClosestHitRays) {
+      return maxValue;
+    }
+    return expectedClosestHitRays + expectedAnyHitRays;
+  }
+
   WavefrontIntersectionBackendAutoSelectionDecision
   WavefrontIntersectionBackendAutoSelectionPolicy::decide(
     bool platformGpuDeviceAvailable, bool platformGpuRenderPathAvailable,
