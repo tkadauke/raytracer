@@ -283,6 +283,9 @@ Progress:
   can run render-path hit kernels, so Vulkan compute-smoke availability no
   longer makes `auto` treat the Vulkan backend as render-capable before Vulkan
   closest-hit and any-hit kernels exist.
+- Metal render-path availability now verifies the basic closest-hit and any-hit
+  compute pipelines can be constructed, instead of treating device availability
+  alone as proof that the Metal render-path kernels are usable.
 
 ## Phase 1 - backend interface and CPU refactor
 

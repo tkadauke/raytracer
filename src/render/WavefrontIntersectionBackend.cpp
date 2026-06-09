@@ -1093,7 +1093,7 @@ namespace render {
 
   bool MetalWavefrontIntersectionBackend::platformGpuRenderPathAvailable() const {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
-    return isAvailable();
+    return MetalWavefrontSmokeKernel().renderPathAvailable();
 #else
     return false;
 #endif

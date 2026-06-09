@@ -33,6 +33,7 @@ namespace render {
   class MetalWavefrontSmokeKernel {
   public:
     bool deviceAvailable() const;
+    bool renderPathAvailable() const;
     std::vector<std::uint32_t>
     runDummyHitMissKernel(const std::vector<std::uint32_t>& rayIds) const;
     std::vector<GpuIntersectionHitRecord>

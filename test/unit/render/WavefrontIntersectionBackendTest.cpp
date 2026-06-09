@@ -102,6 +102,11 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_STREQ("metal", backend.platformName());
 #if !defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     EXPECT_FALSE(backend.isAvailable());
+    EXPECT_FALSE(backend.platformGpuRenderPathAvailable());
+#else
+    EXPECT_EQ(MetalWavefrontSmokeKernel().deviceAvailable(), backend.isAvailable());
+    EXPECT_EQ(MetalWavefrontSmokeKernel().renderPathAvailable(),
+              backend.platformGpuRenderPathAvailable());
 #endif
     EXPECT_EQ(nullptr, backend.compiledScene());
     expectUnavailablePlatformFallback(backend, "Metal", "runtime_scene", "metal");

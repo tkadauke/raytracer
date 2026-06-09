@@ -780,6 +780,19 @@ namespace render {
     }
   }
 
+  bool MetalWavefrontSmokeKernel::renderPathAvailable() const {
+    @autoreleasepool {
+      if (!sharedMetalDevice()) {
+        return false;
+      }
+      try {
+        return sharedBasicClosestHitPipeline() != nil && sharedBasicAnyHitPipeline() != nil;
+      } catch (const std::exception&) {
+        return false;
+      }
+    }
+  }
+
   struct MetalWavefrontPreparedScene::Private {
     id<MTLBuffer> bvhBuffer{nil};
     id<MTLBuffer> primitiveBuffer{nil};
