@@ -11,6 +11,7 @@
 #include <cstring>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 
@@ -790,6 +791,14 @@ namespace render {
     id<MTLBuffer> transformBuffer{nil};
     id<MTLBuffer> counts0Buffer{nil};
     id<MTLBuffer> counts1Buffer{nil};
+    mutable id<MTLBuffer> rayBuffer{nil};
+    mutable id<MTLBuffer> closestHitBuffer{nil};
+    mutable id<MTLBuffer> anyHitBuffer{nil};
+    mutable id<MTLBuffer> counts2Buffer{nil};
+    mutable NSUInteger rayCapacity{0};
+    mutable NSUInteger closestHitCapacity{0};
+    mutable NSUInteger anyHitCapacity{0};
+    mutable std::mutex queryBufferMutex;
 
     ~Private() {
 #if !__has_feature(objc_arc)
@@ -803,7 +812,76 @@ namespace render {
       [transformBuffer release];
       [counts0Buffer release];
       [counts1Buffer release];
+      [rayBuffer release];
+      [closestHitBuffer release];
+      [anyHitBuffer release];
+      [counts2Buffer release];
 #endif
+    }
+
+    template<typename T>
+    id<MTLBuffer> reusableBuffer(id<MTLDevice> device, __strong id<MTLBuffer>& buffer,
+                                 NSUInteger& capacity, std::size_t count) const {
+      if (count > std::numeric_limits<NSUInteger>::max() / sizeof(T)) {
+        throw std::runtime_error("Metal prepared wavefront query buffer is too large");
+      }
+
+      if (buffer && capacity >= count) {
+        return buffer;
+      }
+
+#if !__has_feature(objc_arc)
+      [buffer release];
+#endif
+      capacity = static_cast<NSUInteger>(count);
+      buffer = [device newBufferWithLength:capacity * sizeof(T)
+                                   options:MTLResourceStorageModeShared];
+      return buffer;
+    }
+
+    id<MTLBuffer> uploadRays(id<MTLDevice> device,
+                             const std::vector<GpuIntersectionRay>& rays) const {
+      id<MTLBuffer> buffer =
+        reusableBuffer<GpuIntersectionRay>(device, rayBuffer, rayCapacity, rays.size());
+      if (!buffer) {
+        return nil;
+      }
+      std::memcpy(buffer.contents, rays.data(), rays.size() * sizeof(rays.front()));
+      return buffer;
+    }
+
+    id<MTLBuffer> closestHits(id<MTLDevice> device, std::size_t count) const {
+      return reusableBuffer<GpuIntersectionHitRecord>(device, closestHitBuffer,
+                                                     closestHitCapacity, count);
+    }
+
+    id<MTLBuffer> anyHits(id<MTLDevice> device, std::size_t count) const {
+      return reusableBuffer<GpuIntersectionOcclusionRecord>(device, anyHitBuffer,
+                                                           anyHitCapacity, count);
+    }
+
+    id<MTLBuffer> counts2(id<MTLDevice> device, std::size_t rayCount) const {
+      if (rayCount > std::numeric_limits<std::uint32_t>::max()) {
+        throw std::runtime_error("Metal prepared wavefront query has too many rays");
+      }
+
+      if (!counts2Buffer) {
+        counts2Buffer = [device newBufferWithLength:4 * sizeof(std::uint32_t)
+                                            options:MTLResourceStorageModeShared];
+      }
+      if (!counts2Buffer) {
+        return nil;
+      }
+
+      const std::array<std::uint32_t, 4> counts{
+        static_cast<std::uint32_t>(rayCount),
+        0u,
+        0u,
+        0u,
+      };
+      std::memcpy(counts2Buffer.contents, counts.data(),
+                  counts.size() * sizeof(std::uint32_t));
+      return counts2Buffer;
     }
 
     void setSceneBuffers(id<MTLComputeCommandEncoder> encoder) const {
@@ -887,6 +965,7 @@ namespace render {
 
     @autoreleasepool {
       MetalWavefrontClosestHitKernelResult result;
+      std::lock_guard<std::mutex> lock(p->queryBufferMutex);
       const auto uploadStart = std::chrono::steady_clock::now();
       id<MTLDevice> device = sharedMetalDevice();
       if (!device) {
@@ -894,19 +973,9 @@ namespace render {
       }
 
       id<MTLComputePipelineState> pipeline = sharedBasicClosestHitPipeline();
-      id<MTLBuffer> rayBuffer = newBufferFromVector(device, rays);
-      const std::vector<GpuIntersectionHitRecord> initialHits(rays.size());
-      id<MTLBuffer> hitBuffer = newBufferFromVector(device, initialHits);
-      const std::array<std::uint32_t, 4> counts2{
-        static_cast<std::uint32_t>(rays.size()),
-        0u,
-        0u,
-        0u,
-      };
-      id<MTLBuffer> counts2Buffer =
-        [device newBufferWithBytes:counts2.data()
-                             length:counts2.size() * sizeof(std::uint32_t)
-                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> rayBuffer = p->uploadRays(device, rays);
+      id<MTLBuffer> hitBuffer = p->closestHits(device, rays.size());
+      id<MTLBuffer> counts2Buffer = p->counts2(device, rays.size());
       if (!rayBuffer || !hitBuffer || !counts2Buffer) {
         throw std::runtime_error("Metal prepared closest-hit query buffer allocation failed");
       }
@@ -943,11 +1012,6 @@ namespace render {
       result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
       result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
       result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
-#if !__has_feature(objc_arc)
-      [rayBuffer release];
-      [hitBuffer release];
-      [counts2Buffer release];
-#endif
       return result;
     }
   }
@@ -960,6 +1024,7 @@ namespace render {
 
     @autoreleasepool {
       MetalWavefrontAnyHitKernelResult result;
+      std::lock_guard<std::mutex> lock(p->queryBufferMutex);
       const auto uploadStart = std::chrono::steady_clock::now();
       id<MTLDevice> device = sharedMetalDevice();
       if (!device) {
@@ -967,19 +1032,9 @@ namespace render {
       }
 
       id<MTLComputePipelineState> pipeline = sharedBasicAnyHitPipeline();
-      id<MTLBuffer> rayBuffer = newBufferFromVector(device, rays);
-      const std::vector<GpuIntersectionOcclusionRecord> initialRecords(rays.size());
-      id<MTLBuffer> occlusionBuffer = newBufferFromVector(device, initialRecords);
-      const std::array<std::uint32_t, 4> counts2{
-        static_cast<std::uint32_t>(rays.size()),
-        0u,
-        0u,
-        0u,
-      };
-      id<MTLBuffer> counts2Buffer =
-        [device newBufferWithBytes:counts2.data()
-                             length:counts2.size() * sizeof(std::uint32_t)
-                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> rayBuffer = p->uploadRays(device, rays);
+      id<MTLBuffer> occlusionBuffer = p->anyHits(device, rays.size());
+      id<MTLBuffer> counts2Buffer = p->counts2(device, rays.size());
       if (!rayBuffer || !occlusionBuffer || !counts2Buffer) {
         throw std::runtime_error("Metal prepared any-hit query buffer allocation failed");
       }
@@ -1016,11 +1071,6 @@ namespace render {
       result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
       result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
       result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
-#if !__has_feature(objc_arc)
-      [rayBuffer release];
-      [occlusionBuffer release];
-      [counts2Buffer release];
-#endif
       return result;
     }
   }

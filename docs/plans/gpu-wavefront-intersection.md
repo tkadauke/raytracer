@@ -474,9 +474,10 @@ Progress:
 - The Metal wrapper now caches the default device, command queue, and compiled
   smoke/basic-hit compute pipelines across dispatches. Prepared Metal backends
   now also upload scene-side BVH, primitive, payload, and static count buffers
-  once when the backend is created; per-query work only allocates the ray,
-  result, and dynamic-count buffers for the current hybrid upload/readback
-  contract.
+  once when the backend is created. Prepared closest-hit and any-hit dispatches
+  reuse growable ray, result, and dynamic-count buffers across queries, with a
+  prepared-scene mutex protecting that reusable storage when worker threads
+  share the same backend object.
 
 ## Phase 5 - common exact primitives and static instances
 
