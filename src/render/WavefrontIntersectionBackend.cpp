@@ -1383,6 +1383,9 @@ namespace render {
   }
 
   std::string VulkanWavefrontIntersectionBackend::fallbackReasonText() const {
+    if (vulkanBasicHitAvailable()) {
+      return "";
+    }
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     const VulkanWavefrontSmokeKernel kernel;
     if (!kernel.deviceAvailable()) {
