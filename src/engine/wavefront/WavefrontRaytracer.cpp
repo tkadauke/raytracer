@@ -337,6 +337,8 @@ namespace engine::wavefront {
       static_cast<double>(batching.intersectionBackendExpectedRays);
     batchingJson["intersectionBackendAutoMinimumGpuRays"] =
       static_cast<double>(batching.intersectionBackendAutoMinimumGpuRays);
+    batchingJson["intersectionBackendAutoEstimatedQueryTransferBytes"] =
+      static_cast<double>(batching.intersectionBackendAutoEstimatedQueryTransferBytes);
     batchingJson["intersectionSceneCompiled"] = batching.intersectionSceneCompiled;
     batchingJson["intersectionSceneBvhNodes"] =
       static_cast<double>(batching.intersectionSceneBvhNodes);
@@ -689,6 +691,20 @@ namespace engine::wavefront {
         diagnostics, context);
     }
 
+    std::uint64_t autoEstimatedQueryTransferBytes(std::uint64_t expectedIntersectionRays) const {
+      if (intersectionBackend.kind() != render::WavefrontIntersectionBackendChoice::Kind::Auto) {
+        return 0;
+      }
+
+      render::WavefrontIntersectionBackendSelectionContext context;
+      context.expectedRayCount = expectedIntersectionRays;
+      const render::WavefrontIntersectionSceneDiagnostics diagnostics =
+        preparedIntersectionBackend ? preparedIntersectionBackend->compiledSceneDiagnostics()
+                                    : render::WavefrontIntersectionSceneDiagnostics();
+      return render::WavefrontIntersectionBackendAutoSelectionPolicy().estimatedQueryTransferBytes(
+        diagnostics, context);
+    }
+
     void prepareIntersectionBackend(const render::Scene& scene,
                                     std::uint64_t expectedIntersectionRays) {
       render::WavefrontIntersectionBackendSelectionContext context;
@@ -761,6 +777,8 @@ namespace engine::wavefront {
     p->prepareIntersectionBackend(*m_scene, expectedIntersectionRays);
     const std::uint64_t autoMinimumGpuIntersectionRays =
       p->autoMinimumGpuIntersectionRayCount(expectedIntersectionRays);
+    const std::uint64_t autoEstimatedQueryTransferBytes =
+      p->autoEstimatedQueryTransferBytes(expectedIntersectionRays);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();
@@ -780,8 +798,8 @@ namespace engine::wavefront {
     if (recordMetrics) {
       p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), expectedIntersectionRays,
-                       autoMinimumGpuIntersectionRays, p->convergenceEnabled,
-                       p->convergenceActiveSampleFractionThreshold,
+                       autoMinimumGpuIntersectionRays, autoEstimatedQueryTransferBytes,
+                       p->convergenceEnabled, p->convergenceActiveSampleFractionThreshold,
                        p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
                        p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
     } else {
@@ -845,6 +863,8 @@ namespace engine::wavefront {
     p->prepareIntersectionBackend(*m_scene, expectedIntersectionRays);
     const std::uint64_t autoMinimumGpuIntersectionRays =
       p->autoMinimumGpuIntersectionRayCount(expectedIntersectionRays);
+    const std::uint64_t autoEstimatedQueryTransferBytes =
+      p->autoEstimatedQueryTransferBytes(expectedIntersectionRays);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();
@@ -865,8 +885,8 @@ namespace engine::wavefront {
     if (recordMetrics) {
       p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), expectedIntersectionRays,
-                       autoMinimumGpuIntersectionRays, p->convergenceEnabled,
-                       p->convergenceActiveSampleFractionThreshold,
+                       autoMinimumGpuIntersectionRays, autoEstimatedQueryTransferBytes,
+                       p->convergenceEnabled, p->convergenceActiveSampleFractionThreshold,
                        p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
                        p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
     } else {
@@ -926,6 +946,8 @@ namespace engine::wavefront {
     p->prepareIntersectionBackend(*m_scene, expectedIntersectionRays);
     const std::uint64_t autoMinimumGpuIntersectionRays =
       p->autoMinimumGpuIntersectionRayCount(expectedIntersectionRays);
+    const std::uint64_t autoEstimatedQueryTransferBytes =
+      p->autoEstimatedQueryTransferBytes(expectedIntersectionRays);
 
 #ifdef RAYTRACER_ENABLE_STATS
     ::render::stats::Counters::instance().reset();
@@ -946,8 +968,8 @@ namespace engine::wavefront {
     if (recordMetrics) {
       p->metrics.reset(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan, p->queueSize,
                        *p->integrator, p->denoiser.get(), expectedIntersectionRays,
-                       autoMinimumGpuIntersectionRays, p->convergenceEnabled,
-                       p->convergenceActiveSampleFractionThreshold,
+                       autoMinimumGpuIntersectionRays, autoEstimatedQueryTransferBytes,
+                       p->convergenceEnabled, p->convergenceActiveSampleFractionThreshold,
                        p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
                        p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
     } else {

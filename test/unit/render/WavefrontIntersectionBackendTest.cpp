@@ -318,6 +318,40 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_NE(std::string::npos, decision.reason.find("below GPU threshold"));
   }
 
+  TEST(WavefrontIntersectionBackend, AutoPolicyEstimatesSupportedQueryTransferBytes) {
+    const WavefrontIntersectionBackendAutoSelectionPolicy policy;
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 3;
+
+    const std::uint64_t expectedBytes =
+      context.expectedRayCount *
+      static_cast<std::uint64_t>(sizeof(GpuIntersectionRay) + sizeof(GpuIntersectionHitRecord));
+
+    EXPECT_EQ(expectedBytes,
+              policy.estimatedQueryTransferBytes(supportedPackedDiagnostics(), context));
+
+    const WavefrontIntersectionBackendAutoSelectionDecision decision =
+      policy.decide(true, true, supportedPackedDiagnostics(), context);
+
+    EXPECT_EQ(expectedBytes, decision.estimatedQueryTransferBytes);
+    EXPECT_NE(std::string::npos, decision.reason.find("estimated query transfer"));
+  }
+
+  TEST(WavefrontIntersectionBackend, AutoPolicyReportsNoQueryTransferForUnsupportedScene) {
+    const WavefrontIntersectionBackendAutoSelectionPolicy policy;
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 3;
+    WavefrontIntersectionSceneDiagnostics diagnostics = supportedPackedDiagnostics();
+    diagnostics.packedAnyHitKernelEligible = false;
+
+    EXPECT_EQ(0u, policy.estimatedQueryTransferBytes(diagnostics, context));
+
+    const WavefrontIntersectionBackendAutoSelectionDecision decision =
+      policy.decide(true, true, diagnostics, context);
+
+    EXPECT_EQ(0u, decision.estimatedQueryTransferBytes);
+  }
+
   TEST(WavefrontIntersectionBackend, AutoPolicyRequiresEnoughRaysToAmortizeSceneUpload) {
     const WavefrontIntersectionBackendAutoSelectionPolicy policy;
     WavefrontIntersectionBackendSelectionContext context;

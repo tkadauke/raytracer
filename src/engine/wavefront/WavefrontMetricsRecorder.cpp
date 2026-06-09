@@ -13,7 +13,8 @@ namespace engine::wavefront::detail {
     const render::Camera& camera, int width, int height, const render::TilePlan& tilePlan,
     int configuredQueueSize, const render::Integrator& integrator, const render::Denoiser* denoiser,
     std::uint64_t expectedIntersectionRays, std::uint64_t autoMinimumGpuIntersectionRays,
-    bool convergenceEnabled, double activeSampleFractionThreshold, double radianceDeltaRmsThreshold,
+    std::uint64_t autoEstimatedQueryTransferBytes, bool convergenceEnabled,
+    double activeSampleFractionThreshold, double radianceDeltaRmsThreshold,
     bool adaptiveSamplingEnabled, int adaptiveMinimumSamples, double adaptiveStddevThreshold) {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_metrics = WavefrontRenderMetrics();
@@ -29,6 +30,8 @@ namespace engine::wavefront::detail {
     m_metrics.batching.executionMode = integrator.batchExecutionMode();
     m_metrics.batching.intersectionBackendExpectedRays = expectedIntersectionRays;
     m_metrics.batching.intersectionBackendAutoMinimumGpuRays = autoMinimumGpuIntersectionRays;
+    m_metrics.batching.intersectionBackendAutoEstimatedQueryTransferBytes =
+      autoEstimatedQueryTransferBytes;
     if (denoiser) {
       const render::DenoiserDiagnostics diagnostics = denoiser->diagnostics();
       m_metrics.denoise.enabled = true;

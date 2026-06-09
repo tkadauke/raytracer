@@ -1965,6 +1965,11 @@ rendercli_run(
 )
 rendercli_assert_image_nonempty("${wavefront_metrics_render}"
                                 NAME "wavefront metrics graph render pixels")
+if(NOT wavefront_metrics_stdout MATCHES "intersection_auto_estimated_query_transfer_bytes=0")
+  _rendercli_fail("rendercli wavefront metrics auto transfer estimate summary"
+                  "wavefront metrics summary did not contain auto query transfer estimate"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 foreach(feature_name albedo normal depth)
   if(NOT wavefront_metrics_stdout MATCHES "denoise_feature_${feature_name}=0")
     _rendercli_fail("rendercli wavefront metrics denoiser feature summary"
@@ -2252,6 +2257,11 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"packed_cpu\"")
   _rendercli_fail("rendercli wavefront metrics backend execution path"
                   "wavefront metrics report did not contain packed CPU execution path"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendAutoEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*0")
+  _rendercli_fail("rendercli wavefront metrics auto transfer estimate"
+                  "wavefront metrics report did not contain auto query transfer estimate"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendUploadWorkerSeconds\"[ \r\n]*:[ \r\n]*0")
@@ -2715,7 +2725,8 @@ foreach(expectation
         "\"intersectionBackendFallbackReason\"[ \r\n]*:[ \r\n]*\"auto selected CPU"
         "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
         "\"intersectionBackendExpectedRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
-        "\"intersectionBackendAutoMinimumGpuRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
+        "\"intersectionBackendAutoMinimumGpuRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"intersectionBackendAutoEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*0")
   if(NOT wavefront_supported_backend_auto_json MATCHES "${expectation}")
     _rendercli_fail("rendercli small supported wavefront auto report ${expectation}"
                     "small supported wavefront auto report did not match ${expectation}"

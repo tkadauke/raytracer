@@ -102,46 +102,55 @@ namespace render {
     const WavefrontIntersectionSceneDiagnostics& diagnostics,
     const WavefrontIntersectionBackendSelectionContext& context) const {
     const std::uint64_t minimumRayCount = minimumExpectedRayCount(diagnostics, context);
+    const std::uint64_t transferBytes = estimatedQueryTransferBytes(diagnostics, context);
+    WavefrontIntersectionBackendAutoSelectionDecision decision;
+    decision.minimumExpectedRayCount = minimumRayCount;
+    decision.estimatedQueryTransferBytes = transferBytes;
 
     if (!platformGpuDeviceAvailable) {
-      return {false, minimumRayCount,
-              "auto selected CPU: platform GPU intersection backend is unavailable"};
+      decision.reason = "auto selected CPU: platform GPU intersection backend is unavailable";
+      return decision;
     }
 
     if (!platformGpuRenderPathAvailable) {
-      return {false, minimumRayCount,
-              "auto selected CPU: platform GPU intersection render path is unavailable"};
+      decision.reason = "auto selected CPU: platform GPU intersection render path is unavailable";
+      return decision;
     }
 
     if (!sceneCanUseGpu(diagnostics)) {
       if (!diagnostics.compiled) {
-        return {false, minimumRayCount, "auto selected CPU: intersection scene was not compiled"};
+        decision.reason = "auto selected CPU: intersection scene was not compiled";
+        return decision;
       }
       if (diagnostics.unsupportedPrimitives > 0) {
-        return {false, minimumRayCount,
-                "auto selected CPU: intersection scene contains unsupported primitives"};
+        decision.reason = "auto selected CPU: intersection scene contains unsupported primitives";
+        return decision;
       }
       if (!diagnostics.packedClosestHitKernelEligible) {
-        return {false, minimumRayCount,
-                "auto selected CPU: intersection scene is not packed closest-hit eligible"};
+        decision.reason =
+          "auto selected CPU: intersection scene is not packed closest-hit eligible";
+        return decision;
       }
       if (!diagnostics.packedAnyHitKernelEligible) {
-        return {false, minimumRayCount,
-                "auto selected CPU: intersection scene is not packed any-hit eligible"};
+        decision.reason = "auto selected CPU: intersection scene is not packed any-hit eligible";
+        return decision;
       }
-      return {false, minimumRayCount,
-              "auto selected CPU: intersection scene is not packed-kernel eligible"};
+      decision.reason = "auto selected CPU: intersection scene is not packed-kernel eligible";
+      return decision;
     }
 
     if (!expectedRayCountJustifiesGpu(diagnostics, context)) {
-      return {false, minimumRayCount,
-              "auto selected CPU: expected ray count " + std::to_string(context.expectedRayCount) +
-                " is below GPU threshold " + std::to_string(minimumRayCount) + " (scene upload " +
-                std::to_string(diagnostics.uploadBytes) + " bytes)"};
+      decision.reason =
+        "auto selected CPU: expected ray count " + std::to_string(context.expectedRayCount) +
+        " is below GPU threshold " + std::to_string(minimumRayCount) + " (scene upload " +
+        std::to_string(diagnostics.uploadBytes) + " bytes, estimated query transfer " +
+        std::to_string(transferBytes) + " bytes)";
+      return decision;
     }
 
-    return {true, minimumRayCount,
-            "auto selected GPU: supported scene and expected ray count justify transfer"};
+    decision.useGpu = true;
+    decision.reason = "auto selected GPU: supported scene and expected ray count justify transfer";
+    return decision;
   }
 
   bool WavefrontIntersectionBackendAutoSelectionPolicy::sceneCanUseGpu(
@@ -162,6 +171,17 @@ namespace render {
     return std::max(
       context.minimumGpuRayCount,
       saturatingProduct(sceneUploadKiB(diagnostics), context.minimumGpuRaysPerSceneUploadKiB));
+  }
+
+  std::uint64_t WavefrontIntersectionBackendAutoSelectionPolicy::estimatedQueryTransferBytes(
+    const WavefrontIntersectionSceneDiagnostics& diagnostics,
+    const WavefrontIntersectionBackendSelectionContext& context) const {
+    if (!sceneCanUseGpu(diagnostics)) {
+      return 0;
+    }
+    return saturatingProduct(
+      context.expectedRayCount,
+      static_cast<std::uint64_t>(sizeof(GpuIntersectionRay) + sizeof(GpuIntersectionHitRecord)));
   }
 
   std::uint64_t WavefrontIntersectionBackendAutoSelectionPolicy::sceneUploadKiB(

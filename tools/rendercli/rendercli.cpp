@@ -277,6 +277,8 @@ namespace {
         << unsignedValue(batching, "intersectionBackendExpectedRays")
         << " intersection_auto_minimum_gpu_rays="
         << unsignedValue(batching, "intersectionBackendAutoMinimumGpuRays")
+        << " intersection_auto_estimated_query_transfer_bytes="
+        << unsignedValue(batching, "intersectionBackendAutoEstimatedQueryTransferBytes")
         << " intersection_scene_compiled="
         << (batching.value("intersectionSceneCompiled").toBool() ? "true" : "false")
         << " intersection_scene_bvh_nodes=" << unsignedValue(batching, "intersectionSceneBvhNodes")

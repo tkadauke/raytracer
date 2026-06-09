@@ -730,6 +730,11 @@ Progress:
 - Those same diagnostics now also surface the computed
   `auto` minimum GPU ray threshold, so small renders explain both the expected
   ray count and the cutoff that kept automatic backend selection on CPU.
+- Auto-selection diagnostics now also carry a conservative pre-render estimate
+  of the packed GPU query transfer bytes implied by the expected ray count. The
+  estimate is present in metrics JSON, rendercli summaries, and Modeler pass
+  details/tooltips, so an auto-selected CPU render can show the avoided
+  upload/readback footprint rather than only reporting the observed CPU work.
 - The benchmark suite now includes wavefront intersection backend fixtures for
   a small supported scene, a mesh-heavy supported scene, and an unsupported
   mixed scene. The fixtures measure compile/pack cost, runtime CPU closest-hit

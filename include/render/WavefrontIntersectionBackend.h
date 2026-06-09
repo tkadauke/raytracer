@@ -80,6 +80,7 @@ namespace render {
     bool useGpu{false};
     std::uint64_t minimumExpectedRayCount{0};
     std::string reason;
+    std::uint64_t estimatedQueryTransferBytes{0};
   };
 
   class WavefrontIntersectionBackendAutoSelectionPolicy {
@@ -91,6 +92,9 @@ namespace render {
     [[nodiscard]] std::uint64_t
     minimumExpectedRayCount(const WavefrontIntersectionSceneDiagnostics& diagnostics,
                             const WavefrontIntersectionBackendSelectionContext& context) const;
+    [[nodiscard]] std::uint64_t
+    estimatedQueryTransferBytes(const WavefrontIntersectionSceneDiagnostics& diagnostics,
+                                const WavefrontIntersectionBackendSelectionContext& context) const;
 
   private:
     [[nodiscard]] bool

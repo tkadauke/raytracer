@@ -48,6 +48,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
   — GPT-5
+- **Wavefront auto transfer estimates.** Auto-selected wavefront renders now
+  report a pre-render packed GPU query-transfer byte estimate in metrics JSON,
+  rendercli summaries, and Modeler graph pass details/tooltips, even when the
+  selected backend stays on CPU. — GPT-5
 - **Wavefront batch efficiency summaries.** rendercli compact summaries and the
   Modeler graph tooltip/property rows now report average rays per closest-hit
   and direct-light any-hit backend batch, making GPU-intersection batching

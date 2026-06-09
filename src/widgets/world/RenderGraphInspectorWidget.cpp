@@ -553,6 +553,9 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
       QStringLiteral("auto")) {
     addDetailIntegerMetadataRow(rows, QStringLiteral("Auto minimum GPU rays"), batching,
                                 QStringLiteral("intersectionBackendAutoMinimumGpuRays"));
+    addDetailIntegerMetadataRow(
+      rows, QStringLiteral("Auto estimated query transfer bytes"), batching,
+      QStringLiteral("intersectionBackendAutoEstimatedQueryTransferBytes"));
   }
   addDetailBoolMetadataRow(rows, QStringLiteral("GPU device available"), batching,
                            QStringLiteral("intersectionBackendPlatformGpuDeviceAvailable"));
@@ -816,6 +819,12 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         jsonIntegerValue(batching, QStringLiteral("intersectionBackendAutoMinimumGpuRays"));
       if (intersectionBackendRequest == QStringLiteral("auto") && autoMinimumGpuRays > 0) {
         line += QStringLiteral(", auto GPU threshold %1 rays").arg(autoMinimumGpuRays);
+      }
+      const qulonglong autoQueryTransferBytes = jsonIntegerValue(
+        batching, QStringLiteral("intersectionBackendAutoEstimatedQueryTransferBytes"));
+      if (intersectionBackendRequest == QStringLiteral("auto") && autoQueryTransferBytes > 0) {
+        line +=
+          QStringLiteral(", auto estimates %1 query transfer bytes").arg(autoQueryTransferBytes);
       }
       if (batching.contains(QStringLiteral("intersectionBackendPlatformGpuDeviceAvailable"))) {
         line +=

@@ -144,7 +144,10 @@ kernels; other packed scenes still select CPU and report that selection reason
 in graph trace and wavefront metrics instead of silently behaving like `cpu`.
 Metrics include both `intersectionBackendExpectedRays` and
 `intersectionBackendAutoMinimumGpuRays`, so a small auto-selected CPU render can
-show the exact ray-count threshold it failed to clear.
+show the exact ray-count threshold it failed to clear. Auto renders also report
+`intersectionBackendAutoEstimatedQueryTransferBytes`, a conservative pre-render
+estimate of the packed GPU ray upload plus hit-record readback footprint that
+the selection policy considered.
 `gpu` is accepted as durable intent and reports either the active platform path
 or a CPU fallback reason in graph trace and wavefront metrics. For a
 `gpu` request, the renderer also runs the compiled-intersection-scene diagnostic

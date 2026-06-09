@@ -911,6 +911,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("runtime_scene", metrics.batching.intersectionBackendExecutionPath);
     EXPECT_EQ(480u, metrics.batching.intersectionBackendExpectedRays);
     EXPECT_EQ(65536u, metrics.batching.intersectionBackendAutoMinimumGpuRays);
+    EXPECT_EQ(0u, metrics.batching.intersectionBackendAutoEstimatedQueryTransferBytes);
     EXPECT_FALSE(metrics.batching.intersectionSceneCompiled);
     EXPECT_EQ(0u, metrics.batching.intersectionScenePrimitives);
     EXPECT_EQ(0u, metrics.batching.intersectionSceneUnsupportedPrimitives);
@@ -1032,6 +1033,10 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(
       65536.0,
       json.value("batching").toObject().value("intersectionBackendAutoMinimumGpuRays").toDouble());
+    EXPECT_EQ(0.0, json.value("batching")
+                     .toObject()
+                     .value("intersectionBackendAutoEstimatedQueryTransferBytes")
+                     .toDouble());
     EXPECT_FALSE(json.value("batching").toObject().value("intersectionSceneCompiled").toBool());
     EXPECT_EQ(0.0,
               json.value("batching").toObject().value("intersectionScenePrimitives").toDouble());

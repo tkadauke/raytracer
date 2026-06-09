@@ -356,8 +356,10 @@ selection can compare expected ray work against scene upload and query
 upload/readback cost. The policy scales the effective GPU threshold upward for
 larger prepared scene uploads, and metrics report the computed
 `intersectionBackendAutoMinimumGpuRays` threshold next to
-`intersectionBackendExpectedRays`. When the platform render-path kernels
-actually execute, metrics also split
+`intersectionBackendExpectedRays`. For `auto`, metrics also include
+`intersectionBackendAutoEstimatedQueryTransferBytes`, a conservative pre-render
+query-transfer estimate that remains visible even when the selected backend is
+CPU. When the platform render-path kernels actually execute, metrics also split
 backend wall time into host upload/setup, kernel dispatch/wait, and CPU
 readback buckets. CPU fallback paths leave those buckets at zero, while the
 broader intersection-worker timer still records the full CPU query cost. Today
