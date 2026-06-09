@@ -1231,6 +1231,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1u, metrics.batching.intersectionSceneBvhNodes);
     EXPECT_EQ(1u, metrics.batching.intersectionScenePrimitives);
     EXPECT_EQ(1u, metrics.batching.intersectionSceneSpheres);
+    EXPECT_EQ(0u, metrics.batching.intersectionSceneOpenCylinders);
     EXPECT_EQ(0u, metrics.batching.intersectionSceneUnsupportedPrimitives);
     EXPECT_GT(metrics.batching.intersectionSceneUploadBytes, 0u);
     EXPECT_FALSE(metrics.batching.intersectionSceneTriangleClosestHitEligible);
@@ -1260,6 +1261,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(batching.value("intersectionSceneCompiled").toBool());
     EXPECT_EQ(1.0, batching.value("intersectionScenePrimitives").toDouble());
     EXPECT_EQ(1.0, batching.value("intersectionSceneSpheres").toDouble());
+    EXPECT_EQ(0.0, batching.value("intersectionSceneOpenCylinders").toDouble());
     EXPECT_EQ(0.0, batching.value("intersectionSceneUnsupportedPrimitives").toDouble());
     EXPECT_GT(batching.value("intersectionSceneUploadBytes").toDouble(), 0.0);
     EXPECT_FALSE(batching.value("intersectionSceneTriangleClosestHitEligible").toBool());
@@ -1406,6 +1408,7 @@ namespace WavefrontRaytracerTest {
 
     renderCase.expectBuffersNear(*cpu, *gpu, 1.0e-4);
     renderCase.expectGpuRequestUsedPreparedBackend();
+    EXPECT_EQ(1u, renderCase.lastMetrics().batching.intersectionSceneOpenCylinders);
     EXPECT_GT(renderCase.lastMetrics().batching.closestHitQueries, 0u);
   }
 
@@ -1452,6 +1455,7 @@ namespace WavefrontRaytracerTest {
               metrics.batching.intersectionBackendAutoMinimumGpuRays);
     if (metrics.batching.intersectionSceneCompiled) {
       EXPECT_EQ(0u, metrics.batching.intersectionSceneUnsupportedPrimitives);
+      EXPECT_EQ(1u, metrics.batching.intersectionSceneOpenCylinders);
       EXPECT_TRUE(metrics.batching.intersectionSceneBasicHitEligible);
       EXPECT_TRUE(metrics.batching.intersectionScenePackedClosestHitEligible);
       EXPECT_TRUE(metrics.batching.intersectionScenePackedAnyHitEligible);

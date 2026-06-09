@@ -276,6 +276,8 @@ namespace {
         << unsignedValue(batching, "intersectionScenePrimitives")
         << " intersection_scene_triangles=" << unsignedValue(batching, "intersectionSceneTriangles")
         << " intersection_scene_spheres=" << unsignedValue(batching, "intersectionSceneSpheres")
+        << " intersection_scene_open_cylinders="
+        << unsignedValue(batching, "intersectionSceneOpenCylinders")
         << " intersection_scene_unsupported="
         << unsignedValue(batching, "intersectionSceneUnsupportedPrimitives")
         << " intersection_scene_upload_bytes="

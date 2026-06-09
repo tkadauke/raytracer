@@ -1238,6 +1238,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(1u, diagnostics.primitives);
     EXPECT_EQ(0u, diagnostics.triangles);
     EXPECT_EQ(1u, diagnostics.spheres);
+    EXPECT_EQ(0u, diagnostics.openCylinders);
     EXPECT_EQ(0u, diagnostics.unsupportedPrimitives);
     EXPECT_EQ(backend->gpuIntersectionSceneBuffers()->uploadByteCount(), diagnostics.uploadBytes);
     EXPECT_FALSE(diagnostics.triangleClosestHitKernelEligible);
@@ -1281,6 +1282,30 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0u, backend->estimatedClosestHitReadbackBytes(4));
     EXPECT_EQ(0u, backend->estimatedAnyHitRayUploadBytes(4));
     EXPECT_EQ(0u, backend->estimatedAnyHitReadbackBytes(4));
+  }
+
+  TEST(WavefrontIntersectionBackend, GpuChoiceReportsOpenCylinderSceneDiagnostics) {
+    Scene scene;
+    scene.add(std::make_shared<OpenCylinder>(1.0, 2.0));
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(scene);
+
+    ASSERT_NE(nullptr, backend->compiledScene());
+    ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
+    EXPECT_EQ(1u, backend->compiledScene()->openCylinders().size());
+    EXPECT_EQ(1u, backend->gpuIntersectionSceneBuffers()->openCylinders.size());
+
+    const WavefrontIntersectionSceneDiagnostics diagnostics = backend->compiledSceneDiagnostics();
+    EXPECT_TRUE(diagnostics.compiled);
+    EXPECT_EQ(1u, diagnostics.primitives);
+    EXPECT_EQ(0u, diagnostics.triangles);
+    EXPECT_EQ(0u, diagnostics.spheres);
+    EXPECT_EQ(1u, diagnostics.openCylinders);
+    EXPECT_EQ(0u, diagnostics.unsupportedPrimitives);
+    EXPECT_TRUE(diagnostics.basicHitKernelEligible);
+    EXPECT_TRUE(diagnostics.packedClosestHitKernelEligible);
+    EXPECT_TRUE(diagnostics.packedAnyHitKernelEligible);
   }
 
   TEST(WavefrontIntersectionBackend, PreparedGpuFallbackClosestHitUsesRetainedPackedSphereScene) {

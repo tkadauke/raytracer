@@ -53,6 +53,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   as an exact side-surface payload with cylindrical UVs, and Metal/Vulkan basic
   closest-hit and any-hit kernels now consume that payload without hidden
   tessellation drift. — GPT-5
+- **OpenCylinder wavefront intersection diagnostics.** Wavefront metrics JSON,
+  rendercli summaries, and Modeler graph metadata now report
+  `intersectionSceneOpenCylinders` for compiled GPU-intersection scenes. — GPT-5
 - **OpenCylinder side UV coordinates.** Exact `render::OpenCylinder` side hits
   now report cylindrical UV coordinates, matching the primitive's tessellated
   side-surface convention for texture lookup. — GPT-5

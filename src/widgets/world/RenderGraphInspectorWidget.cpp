@@ -520,6 +520,20 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("intersectionScenePrimitives"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene BVH nodes"), batching,
                               QStringLiteral("intersectionSceneBvhNodes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene triangles"), batching,
+                              QStringLiteral("intersectionSceneTriangles"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene spheres"), batching,
+                              QStringLiteral("intersectionSceneSpheres"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene planes"), batching,
+                              QStringLiteral("intersectionScenePlanes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene rectangles"), batching,
+                              QStringLiteral("intersectionSceneRectangles"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene disks"), batching,
+                              QStringLiteral("intersectionSceneDisks"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene open cylinders"), batching,
+                              QStringLiteral("intersectionSceneOpenCylinders"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene transforms"), batching,
+                              QStringLiteral("intersectionSceneTransforms"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene unsupported primitives"),
                               batching, QStringLiteral("intersectionSceneUnsupportedPrimitives"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene upload bytes"), batching,
@@ -772,12 +786,15 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
           jsonIntegerValue(batching, QStringLiteral("intersectionSceneTriangles"));
         const qulonglong spheres =
           jsonIntegerValue(batching, QStringLiteral("intersectionSceneSpheres"));
+        const qulonglong openCylinders =
+          jsonIntegerValue(batching, QStringLiteral("intersectionSceneOpenCylinders"));
         const qulonglong unsupported =
           jsonIntegerValue(batching, QStringLiteral("intersectionSceneUnsupportedPrimitives"));
-        if (triangles > 0 || spheres > 0 || unsupported > 0) {
-          line += QStringLiteral(" (tri %1/sphere %2/unsupported %3)")
+        if (triangles > 0 || spheres > 0 || openCylinders > 0 || unsupported > 0) {
+          line += QStringLiteral(" (tri %1/sphere %2/open cyl %3/unsupported %4)")
                     .arg(triangles)
                     .arg(spheres)
+                    .arg(openCylinders)
                     .arg(unsupported);
         }
         const qulonglong uploadBytes =

@@ -137,12 +137,12 @@ ray-scene intersection backend for wavefront batches. `cpu` uses the canonical
 CPU backend. `auto` now runs through the same selection policy used for GPU
 backend requests: platform availability first, then scene support, then an
 expected-ray-count threshold that scales with prepared scene-upload size. At
-this stage, scene support means triangle, sphere, plane, rectangle, disk, and
-box-tessellation leaves with either no transform or static instance transforms
-that can use the first Metal/Vulkan closest-hit and any-hit kernels; other
-packed scenes still select CPU and report that selection reason in graph trace
-and wavefront metrics instead of silently behaving like `cpu`. Metrics include
-both `intersectionBackendExpectedRays` and
+this stage, scene support means triangle, sphere, plane, rectangle, disk,
+OpenCylinder, and box-tessellation leaves with either no transform or static
+instance transforms that can use the first Metal/Vulkan closest-hit and any-hit
+kernels; other packed scenes still select CPU and report that selection reason
+in graph trace and wavefront metrics instead of silently behaving like `cpu`.
+Metrics include both `intersectionBackendExpectedRays` and
 `intersectionBackendAutoMinimumGpuRays`, so a small auto-selected CPU render can
 show the exact ray-count threshold it failed to clear.
 `gpu` is accepted as durable intent and reports either the active platform path
@@ -153,11 +153,11 @@ the first unsupported primitive as the fallback reason. Supported scenes retain
 that compiled record set on the scene-created Metal/Vulkan backend object,
 ready for upload-backed work. Metal- and Vulkan-enabled builds prove a tiny
 upload/dispatch/readback smoke kernel and can execute triangle, sphere, plane,
-rectangle, disk, and static-transform closest-hit and any-hit queries through
-packed-ABI platform kernels in the render path. Prepared scenes outside that
-basic subset still run through the packed upload buffers via a CPU traversal
-with the same hit-record and visibility contract that future wider kernels must
-write.
+rectangle, disk, OpenCylinder, and static-transform closest-hit and any-hit
+queries through packed-ABI platform kernels in the render path. Prepared scenes
+outside that basic subset still run through the packed upload buffers via a CPU
+traversal with the same hit-record and visibility contract that future wider
+kernels must write.
 Wavefront metrics and
 `--wavefront_metrics_summary` expose the compiled-scene primitive, BVH,
 payload, unsupported-leaf counts, basic-kernel, packed closest-hit, and packed any-hit
@@ -320,7 +320,8 @@ compact summary prints total `tiles`, `tile_grid`,
 `sample_stddev_rms`, `max_sample_stddev`, `intersection_backend_gpu_device`,
 `intersection_backend_gpu_render_path`,
 `intersection_backend_platform`, `closest_hit_batch_preferred`,
-`any_hit_batch_preferred`, `emitter_hit_samples`,
+`any_hit_batch_preferred`, `intersection_scene_open_cylinders`,
+`emitter_hit_samples`,
 `primary_emitter_hit_samples`, `delta_emitter_hit_samples`,
 `bsdf_emitter_hit_samples`, `mis_weighted_emitter_hit_samples`,
 `direct_light_samples`, `direct_light_contributing_samples`,

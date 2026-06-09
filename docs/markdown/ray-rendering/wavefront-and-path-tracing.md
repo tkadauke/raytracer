@@ -308,7 +308,8 @@ basic kernels may only accept triangle, sphere, plane, rectangle, disk, and
 OpenCylinder records with either no transform or a static transform payload.
 Prepared GPU fallback backends retain the packed buffers next to the compiled
 scene, and the wavefront metrics report
-`intersectionSceneUploadBytes` plus
+`intersectionSceneUploadBytes`, payload counts such as
+`intersectionSceneOpenCylinders`, plus
 `intersectionSceneTriangleClosestHitEligible` and
 `intersectionSceneBasicHitEligible`, `intersectionScenePackedClosestHitEligible`,
 and `intersectionScenePackedAnyHitEligible`

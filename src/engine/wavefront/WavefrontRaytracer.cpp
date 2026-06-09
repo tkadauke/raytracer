@@ -107,6 +107,8 @@ namespace engine::wavefront {
     intersectionSceneRectangles =
       std::max(intersectionSceneRectangles, metrics.intersectionSceneRectangles);
     intersectionSceneDisks = std::max(intersectionSceneDisks, metrics.intersectionSceneDisks);
+    intersectionSceneOpenCylinders =
+      std::max(intersectionSceneOpenCylinders, metrics.intersectionSceneOpenCylinders);
     intersectionSceneTransforms =
       std::max(intersectionSceneTransforms, metrics.intersectionSceneTransforms);
     intersectionSceneUnsupportedPrimitives = std::max(
@@ -340,6 +342,8 @@ namespace engine::wavefront {
     batchingJson["intersectionSceneRectangles"] =
       static_cast<double>(batching.intersectionSceneRectangles);
     batchingJson["intersectionSceneDisks"] = static_cast<double>(batching.intersectionSceneDisks);
+    batchingJson["intersectionSceneOpenCylinders"] =
+      static_cast<double>(batching.intersectionSceneOpenCylinders);
     batchingJson["intersectionSceneTransforms"] =
       static_cast<double>(batching.intersectionSceneTransforms);
     batchingJson["intersectionSceneUnsupportedPrimitives"] =

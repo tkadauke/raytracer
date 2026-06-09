@@ -88,6 +88,7 @@ namespace render {
     std::uint64_t intersectionScenePlanes{0};
     std::uint64_t intersectionSceneRectangles{0};
     std::uint64_t intersectionSceneDisks{0};
+    std::uint64_t intersectionSceneOpenCylinders{0};
     std::uint64_t intersectionSceneTransforms{0};
     std::uint64_t intersectionSceneUnsupportedPrimitives{0};
     std::uint64_t intersectionSceneUploadBytes{0};

@@ -430,6 +430,7 @@ namespace render {
     diagnostics.planes = scene.planes().size();
     diagnostics.rectangles = scene.rectangles().size();
     diagnostics.disks = scene.disks().size();
+    diagnostics.openCylinders = scene.openCylinders().size();
     diagnostics.transforms = scene.transforms().size();
     diagnostics.unsupportedPrimitives = scene.unsupportedPrimitives().size();
     diagnostics.uploadBytes = buffers.uploadByteCount();

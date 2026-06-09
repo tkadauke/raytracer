@@ -573,6 +573,9 @@ Progress:
   payloads. The test asserts the prepared packed backend path is actually used,
   so future platform kernels have an image-level gate instead of only
   hit-record parity.
+- Wavefront metrics JSON, rendercli summaries, and Modeler graph metadata now
+  count OpenCylinder payloads as `intersectionSceneOpenCylinders`, keeping
+  diagnostics aligned with the supported exact-primitive kernel set.
 
 ## Phase 6 - any-hit / occlusion queries
 

@@ -102,6 +102,7 @@ namespace render {
     intersectionScenePlanes = 0;
     intersectionSceneRectangles = 0;
     intersectionSceneDisks = 0;
+    intersectionSceneOpenCylinders = 0;
     intersectionSceneTransforms = 0;
     intersectionSceneUnsupportedPrimitives = 0;
     intersectionSceneUploadBytes = 0;
@@ -213,6 +214,8 @@ namespace render {
     intersectionScenePlanes = std::max(intersectionScenePlanes, diagnostics.planes);
     intersectionSceneRectangles = std::max(intersectionSceneRectangles, diagnostics.rectangles);
     intersectionSceneDisks = std::max(intersectionSceneDisks, diagnostics.disks);
+    intersectionSceneOpenCylinders =
+      std::max(intersectionSceneOpenCylinders, diagnostics.openCylinders);
     intersectionSceneTransforms = std::max(intersectionSceneTransforms, diagnostics.transforms);
     intersectionSceneUnsupportedPrimitives =
       std::max(intersectionSceneUnsupportedPrimitives, diagnostics.unsupportedPrimitives);
@@ -317,6 +320,8 @@ namespace render {
     intersectionSceneRectangles =
       std::max(intersectionSceneRectangles, source.intersectionSceneRectangles);
     intersectionSceneDisks = std::max(intersectionSceneDisks, source.intersectionSceneDisks);
+    intersectionSceneOpenCylinders =
+      std::max(intersectionSceneOpenCylinders, source.intersectionSceneOpenCylinders);
     intersectionSceneTransforms =
       std::max(intersectionSceneTransforms, source.intersectionSceneTransforms);
     intersectionSceneUnsupportedPrimitives = std::max(
