@@ -666,6 +666,14 @@ namespace engine::wavefront {
       return lhs * rhs;
     }
 
+    std::uint64_t saturatedSum(std::uint64_t lhs, std::uint64_t rhs) const {
+      constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
+      if (rhs > maxValue - lhs) {
+        return maxValue;
+      }
+      return lhs + rhs;
+    }
+
     std::uint64_t expectedPrimaryRayCount(const render::Camera& camera, int width,
                                           int height) const {
       const std::uint64_t pixelCount =
@@ -673,12 +681,6 @@ namespace engine::wavefront {
                          static_cast<std::uint64_t>(std::max(0, height)));
       return saturatedProduct(pixelCount,
                               static_cast<std::uint64_t>(std::max(1, camera.samplesPerPixel())));
-    }
-
-    std::uint64_t expectedIntersectionRayCount(const render::Camera& camera, int width,
-                                               int height) const {
-      return saturatedProduct(expectedPrimaryRayCount(camera, width, height),
-                              integrator->estimatedIntersectionRaysPerPrimarySample());
     }
 
     std::uint64_t expectedClosestHitIntersectionRayCount(const render::Camera& camera, int width,
@@ -813,12 +815,12 @@ namespace engine::wavefront {
 
     p->tasks.clear();
     p->denoiserFeatureTasks.clear();
-    const std::uint64_t expectedIntersectionRays =
-      p->expectedIntersectionRayCount(*m_camera, buffer.width(), buffer.height());
     const std::uint64_t expectedClosestHitIntersectionRays =
       p->expectedClosestHitIntersectionRayCount(*m_camera, buffer.width(), buffer.height());
     const std::uint64_t expectedAnyHitIntersectionRays =
       p->expectedAnyHitIntersectionRayCount(*m_camera, buffer.width(), buffer.height());
+    const std::uint64_t expectedIntersectionRays =
+      p->saturatedSum(expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays);
     p->prepareIntersectionBackend(*m_scene, expectedIntersectionRays,
                                   expectedClosestHitIntersectionRays,
                                   expectedAnyHitIntersectionRays);
@@ -906,12 +908,12 @@ namespace engine::wavefront {
 
     p->tasks.clear();
     p->denoiserFeatureTasks.clear();
-    const std::uint64_t expectedIntersectionRays =
-      p->expectedIntersectionRayCount(*m_camera, buffer.width(), buffer.height());
     const std::uint64_t expectedClosestHitIntersectionRays =
       p->expectedClosestHitIntersectionRayCount(*m_camera, buffer.width(), buffer.height());
     const std::uint64_t expectedAnyHitIntersectionRays =
       p->expectedAnyHitIntersectionRayCount(*m_camera, buffer.width(), buffer.height());
+    const std::uint64_t expectedIntersectionRays =
+      p->saturatedSum(expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays);
     p->prepareIntersectionBackend(*m_scene, expectedIntersectionRays,
                                   expectedClosestHitIntersectionRays,
                                   expectedAnyHitIntersectionRays);
@@ -996,12 +998,12 @@ namespace engine::wavefront {
 
     p->tasks.clear();
     p->denoiserFeatureTasks.clear();
-    const std::uint64_t expectedIntersectionRays =
-      p->expectedIntersectionRayCount(*m_camera, hdrBuffer.width(), hdrBuffer.height());
     const std::uint64_t expectedClosestHitIntersectionRays =
       p->expectedClosestHitIntersectionRayCount(*m_camera, hdrBuffer.width(), hdrBuffer.height());
     const std::uint64_t expectedAnyHitIntersectionRays =
       p->expectedAnyHitIntersectionRayCount(*m_camera, hdrBuffer.width(), hdrBuffer.height());
+    const std::uint64_t expectedIntersectionRays =
+      p->saturatedSum(expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays);
     p->prepareIntersectionBackend(*m_scene, expectedIntersectionRays,
                                   expectedClosestHitIntersectionRays,
                                   expectedAnyHitIntersectionRays);

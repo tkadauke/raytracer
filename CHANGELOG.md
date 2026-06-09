@@ -48,6 +48,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
   — GPT-5
+- **Wavefront backend expected-ray total from query families.** Wavefront
+  renders now derive the automatic backend expected-ray total from closest-hit
+  and any-hit family estimates before preparing the backend, keeping metrics
+  and selection aligned even if a custom integrator has a stale legacy total
+  estimate. — GPT-5
 - **Integrator query-family estimate default.** Custom integrators that
   override closest-hit and any-hit expected ray counts now inherit a total
   expected intersection-ray count derived from those two families by default. — GPT-5

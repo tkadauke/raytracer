@@ -744,6 +744,10 @@ Progress:
   count from the closest-hit and any-hit family estimates by default. Custom
   integrators can therefore override the two query-family estimates without
   accidentally leaving automatic backend selection on a stale total estimate.
+- `WavefrontRaytracer` now also derives the expected-ray total passed to
+  automatic backend selection from the closest-hit and any-hit family estimates,
+  keeping render metrics and selection policy on the same split workload even
+  for custom integrators with an inconsistent legacy total estimate.
 - The benchmark suite now includes wavefront intersection backend fixtures for
   a small supported scene, a mesh-heavy supported scene, and an unsupported
   mixed scene. The fixtures measure compile/pack cost, runtime CPU closest-hit

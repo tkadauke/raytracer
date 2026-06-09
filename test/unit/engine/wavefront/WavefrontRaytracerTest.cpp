@@ -228,6 +228,34 @@ namespace WavefrontRaytracerTest {
     Colord m_color;
   };
 
+  class StaleTotalEstimateIntegrator final : public render::Integrator {
+  public:
+    std::unique_ptr<render::Integrator> clone() const override {
+      return std::make_unique<StaleTotalEstimateIntegrator>();
+    }
+
+    const char* diagnosticName() const override {
+      return "stale_total_estimate";
+    }
+
+    std::uint64_t estimatedIntersectionRaysPerPrimarySample() const override {
+      return 999;
+    }
+
+    std::uint64_t estimatedClosestHitRaysPerPrimarySample() const override {
+      return 3;
+    }
+
+    std::uint64_t estimatedAnyHitRaysPerPrimarySample() const override {
+      return 5;
+    }
+
+    Colord radiance(const render::Scene&, const Rayd&, render::State&,
+                    const render::RayCaster&) const override {
+      return Colord::black();
+    }
+  };
+
   class DepthRecordingIntegrator final : public render::Integrator {
   public:
     std::unique_ptr<render::Integrator> clone() const override {
@@ -1210,6 +1238,28 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(36.0, batching.value("intersectionBackendExpectedClosestHitRays").toDouble());
     EXPECT_EQ(72.0, batching.value("intersectionBackendExpectedAnyHitRays").toDouble());
     EXPECT_EQ(65536.0, batching.value("intersectionBackendAutoMinimumGpuRays").toDouble());
+  }
+
+  TEST(WavefrontRaytracer, DerivesIntersectionBackendExpectedRaysFromQueryFamilies) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    renderer->setIntegrator(std::make_unique<StaleTotalEstimateIntegrator>());
+    renderer->setMaximumThreads(1);
+    renderer->setQueueSize(1);
+    renderer->setMetricsEnabled(true);
+
+    Buffer<Colord> buffer(4, 3);
+    renderer->render(buffer);
+
+    const auto metrics = renderer->lastMetrics();
+    EXPECT_EQ(12u, metrics.input.primarySamples);
+    EXPECT_EQ(36u, metrics.batching.intersectionBackendExpectedClosestHitRays);
+    EXPECT_EQ(60u, metrics.batching.intersectionBackendExpectedAnyHitRays);
+    EXPECT_EQ(96u, metrics.batching.intersectionBackendExpectedRays);
+
+    const QJsonObject batching = metrics.toJson().value("batching").toObject();
+    EXPECT_EQ(96.0, batching.value("intersectionBackendExpectedRays").toDouble());
+    EXPECT_EQ(36.0, batching.value("intersectionBackendExpectedClosestHitRays").toDouble());
+    EXPECT_EQ(60.0, batching.value("intersectionBackendExpectedAnyHitRays").toDouble());
   }
 
   TEST(WavefrontRaytracer, RecordsGpuIntersectionBackendFallbackMetrics) {

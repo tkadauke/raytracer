@@ -365,6 +365,10 @@ CPU. The expected workload is split into
 hit-record and occlusion-record readback separately. Custom integrators can
 override those two family estimates and inherit a total estimate derived from
 their sum, keeping automatic backend selection aligned with the query split.
+`WavefrontRaytracer` also derives the backend-selection total from the two
+family estimates before preparing an automatic backend, so render metrics and
+selection use the same closest-hit/any-hit workload even if an integrator
+provides an inconsistent legacy total estimate.
 The wavefront intersection
 backend benchmarks use the same split for their automatic-backend fixtures and
 report expected closest-hit rays, expected any-hit rays, the computed automatic
