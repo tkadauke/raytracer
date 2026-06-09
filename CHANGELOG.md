@@ -29,6 +29,13 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render animation tracks.** Added Qt-free render-side animation value and
   continuous-time track primitives for scalar, vector, color, transform, and
   step-only switch payloads. — GPT-5
+- **Parallel graph execution tracing.** Graph execution traces now record
+  per-pass start, finish, and failure offsets, live observers publish the
+  active pass set, and the Modeler can highlight multiple active graph nodes at
+  once. — GPT-5
+- **Parallel graph resource hazard validation.** Graph execution now rejects
+  dependency-independent passes that can race on shared read/write resources,
+  including imported plans replayed through the parallel scheduler. — GPT-5
 - **Render graph concurrency metadata.** Render graph passes and executor
   families now declare serial, limited, or parallel-safe scheduling limits,
   export them through text/DOT/JSON graph inspection, and mark OpenGL raster
@@ -403,6 +410,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   transform keyframes as the base motion-blur transform and compose
   `Surface::velocity` afterward as a world-space shutter offset, with animated
   `velocity` tracks overriding the static convenience property. — GPT-5
+- **Render graph dependency-ready scheduling.** `GraphRenderEngine` now runs
+  dependency-ready CPU-safe passes concurrently while preserving serial and
+  limited executor caps, and skips queued dependents when cancellation or pass
+  failures stop graph execution. — GPT-5
 - **Modeler final render engine choices.** The final render dialog now exposes
   Raytracer, Path Tracer, Rasterizer, and Wireframe as user-facing engines;
   wavefront path tracing is selected through the Path Tracer schedule instead

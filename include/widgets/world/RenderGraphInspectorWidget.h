@@ -4,6 +4,7 @@
 
 #include <QByteArray>
 #include <QString>
+#include <QStringList>
 #include <QWidget>
 
 #include <memory>
@@ -84,6 +85,11 @@ public slots:
     * Marks @p passId as failed for the current render.
     */
   void passExecutionFailed(const QString& passId, const QString& message);
+
+  /**
+    * Replaces the currently active execution set for the live render.
+    */
+  void setActiveExecutionPasses(const QStringList& passIds);
 
 signals:
   /**

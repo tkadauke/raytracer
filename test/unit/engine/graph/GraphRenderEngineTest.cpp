@@ -35,6 +35,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -144,6 +145,37 @@ namespace GraphRenderEngineTest {
     mutable bool m_releaseSecondCall{false};
   };
 
+  class GateMaterial : public render::Material {
+  public:
+    Colord shade(const render::RayCaster*, const render::Scene&, const Rayd&, const HitPoint&,
+                 render::State&) const override {
+      std::unique_lock<std::mutex> lock(m_mutex);
+      ++m_calls;
+      m_changed.notify_all();
+      m_changed.wait(lock, [&] { return m_release; });
+      return Colord(0.25, 0.5, 0.75);
+    }
+
+    bool waitForCallCount(int count, std::chrono::milliseconds timeout) {
+      std::unique_lock<std::mutex> lock(m_mutex);
+      return m_changed.wait_for(lock, timeout, [&] { return m_calls >= count; });
+    }
+
+    void releaseAll() {
+      {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_release = true;
+      }
+      m_changed.notify_all();
+    }
+
+  private:
+    mutable std::mutex m_mutex;
+    mutable std::condition_variable m_changed;
+    mutable int m_calls{0};
+    mutable bool m_release{false};
+  };
+
   class RecordingObserver : public RenderGraphExecutionObserver {
   public:
     void passStarted(const RenderPassId& passId) override {
@@ -188,7 +220,113 @@ namespace GraphRenderEngineTest {
       events.push_back("fail:" + passId + ":" + message + ":" + std::to_string(generation));
     }
 
+    void activePassesChanged(const std::set<RenderPassId>& passIds,
+                             std::uint64_t generation) override {
+      generations.push_back(generation);
+      std::string event = "active:";
+      bool first = true;
+      for (const auto& passId : passIds) {
+        if (!first) {
+          event += ",";
+        }
+        event += passId;
+        first = false;
+      }
+      event += ":" + std::to_string(generation);
+      events.push_back(event);
+    }
+
     std::vector<std::uint64_t> generations;
+  };
+
+  class BlockingObserver : public RenderGraphExecutionObserver {
+  public:
+    void renderStarted(std::uint64_t) override {
+    }
+
+    void passStarted(const RenderPassId& passId) override {
+      passStarted(passId, 0);
+    }
+
+    void passFinished(const RenderPassId& passId) override {
+      passFinished(passId, 0);
+    }
+
+    void passFailed(const RenderPassId& passId, const std::string& message) override {
+      passFailed(passId, message, 0);
+    }
+
+    void passStarted(const RenderPassId& passId, std::uint64_t) override {
+      {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_events.push_back("start:" + passId);
+      }
+      m_changed.notify_all();
+    }
+
+    void passFinished(const RenderPassId& passId, std::uint64_t) override {
+      {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_events.push_back("finish:" + passId);
+      }
+      m_changed.notify_all();
+    }
+
+    void passFailed(const RenderPassId& passId, const std::string& message,
+                    std::uint64_t) override {
+      {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_events.push_back("fail:" + passId + ":" + message);
+      }
+      m_changed.notify_all();
+    }
+
+    void activePassesChanged(const std::set<RenderPassId>& passIds,
+                             std::uint64_t) override {
+      {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_activeSnapshots.push_back(passIds);
+      }
+      m_changed.notify_all();
+    }
+
+    bool waitForEvent(const std::string& event, std::chrono::milliseconds timeout) {
+      std::unique_lock<std::mutex> lock(m_mutex);
+      return m_changed.wait_for(lock, timeout, [&] { return hasEventLocked(event); });
+    }
+
+    bool waitForStartedCount(int count, std::chrono::milliseconds timeout) {
+      std::unique_lock<std::mutex> lock(m_mutex);
+      return m_changed.wait_for(lock, timeout, [&] {
+        return std::count_if(m_events.begin(), m_events.end(), [](const std::string& event) {
+                 return event.find("start:") == 0;
+               }) >= count;
+      });
+    }
+
+    bool waitForActiveSet(const std::set<RenderPassId>& passIds,
+                          std::chrono::milliseconds timeout) {
+      std::unique_lock<std::mutex> lock(m_mutex);
+      return m_changed.wait_for(lock, timeout, [&] {
+        return std::find(m_activeSnapshots.begin(), m_activeSnapshots.end(), passIds) !=
+               m_activeSnapshots.end();
+      });
+    }
+
+    std::vector<std::string> events() const {
+      std::lock_guard<std::mutex> lock(m_mutex);
+      return m_events;
+    }
+
+  private:
+    bool hasEventLocked(const std::string& event) const {
+      return std::find(m_events.begin(), m_events.end(), event) != m_events.end();
+    }
+
+    mutable std::mutex m_mutex;
+    std::condition_variable m_changed;
+    std::vector<std::string> m_events;
+    std::vector<std::set<RenderPassId>> m_activeSnapshots;
   };
 
   int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
@@ -1516,6 +1654,9 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("post_aa_color", postAA->diffs()[0].outputResourceId());
     EXPECT_GT(countNonBlackPixels(postAA->diffs()[0].boostedPreview()), 0);
     EXPECT_GT(postAA->elapsed().count(), 0);
+    ASSERT_TRUE(postAA->startedAt());
+    ASSERT_TRUE(postAA->finishedAt());
+    EXPECT_LT(*postAA->startedAt(), *postAA->finishedAt());
 
     const auto inputs = trace->inputSnapshotsForResource("beauty_color");
     const auto outputs = trace->outputSnapshotsForResource("post_aa_color");
@@ -1527,6 +1668,11 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("post_aa_color", outputs.front()->resourceId());
     EXPECT_EQ("post_aa_color", diffs.front()->outputResourceId());
     EXPECT_EQ("post_aa_color", diffs.back()->inputResourceId());
+
+    const QJsonObject postAAJson = postAA->toJson();
+    EXPECT_TRUE(postAAJson.contains("startedAtMs"));
+    EXPECT_TRUE(postAAJson.contains("finishedAtMs"));
+    EXPECT_FALSE(postAAJson.contains("failedAtMs"));
   }
 
   TEST(GraphRenderEngine, RejectsExecutionTraceAfterInputChange) {
@@ -2011,6 +2157,393 @@ namespace GraphRenderEngineTest {
     engine.render(buffer);
 
     ASSERT_COLOR_NEAR(Colord(2.0 / 3.0, 4.0 / 5.0, 0.5 / 1.5), buffer[0][0], 1e-12);
+  }
+
+  TEST(GraphRenderEngine, RunsIndependentCpuSafePassesConcurrently) {
+    auto material = std::make_shared<BlockingMaterial>();
+    auto scene = std::make_shared<render::Scene>();
+    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 100.0);
+    sphere->setMaterial(material);
+    scene->add(sphere);
+
+    RenderPlan plan;
+    plan.addResource(colorResource("side_color", RenderResourceLifetime::Transient, 1, 2));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported, 1, 2));
+
+    RenderPassNode first;
+    first.id = "beauty_a";
+    first.kind = RenderPassKind::Beauty;
+    first.executor = RenderExecutorKind::Raytracer;
+    first.writes.push_back({"side_color"});
+    first.concurrency = RenderConcurrencyLimit::parallel();
+    first.canRunConcurrently = true;
+    plan.addPass(first);
+
+    RenderPassNode second = first;
+    second.id = "beauty_b";
+    second.writes = {{"display_color"}};
+    plan.addPass(second);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    engine.setExecutionTraceEnabled(true);
+    auto observer = std::make_shared<BlockingObserver>();
+    engine.setExecutionObserver(observer);
+
+    Buffer<Colord> buffer(1, 2);
+    std::exception_ptr renderFailure;
+    std::thread renderThread([&] {
+      try {
+        engine.render(buffer);
+      } catch (...) {
+        renderFailure = std::current_exception();
+      }
+    });
+
+    const bool renderBlocked = material->waitForSecondCall(std::chrono::seconds(2));
+    EXPECT_TRUE(renderBlocked);
+    if (renderBlocked) {
+      EXPECT_TRUE(observer->waitForStartedCount(2, std::chrono::seconds(2)));
+      EXPECT_TRUE(observer->waitForActiveSet({"beauty_a", "beauty_b"}, std::chrono::seconds(2)));
+    }
+    material->releaseSecondCall();
+    renderThread.join();
+    if (renderFailure) {
+      std::rethrow_exception(renderFailure);
+    }
+
+    EXPECT_EQ(Colord(0.25, 0.5, 0.75), buffer[0][0]);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* firstTrace = trace->findPass("beauty_a");
+    const RenderPassTrace* secondTrace = trace->findPass("beauty_b");
+    ASSERT_NE(nullptr, firstTrace);
+    ASSERT_NE(nullptr, secondTrace);
+    ASSERT_TRUE(firstTrace->startedAt());
+    ASSERT_TRUE(firstTrace->finishedAt());
+    ASSERT_TRUE(secondTrace->startedAt());
+    ASSERT_TRUE(secondTrace->finishedAt());
+    EXPECT_LT(*firstTrace->startedAt(), *secondTrace->finishedAt());
+    EXPECT_LT(*secondTrace->startedAt(), *firstTrace->finishedAt());
+  }
+
+  TEST(GraphRenderEngine, ImportedParallelResourceHazardFailsClearly) {
+    RenderPlan unsafe;
+    unsafe.addResource(colorResource("display_color", RenderResourceLifetime::Exported, 1, 1));
+
+    RenderPassNode first;
+    first.id = "beauty_a";
+    first.kind = RenderPassKind::Beauty;
+    first.executor = RenderExecutorKind::Raytracer;
+    first.writes.push_back({"display_color"});
+    first.concurrency = RenderConcurrencyLimit::parallel();
+    unsafe.addPass(first);
+
+    RenderPassNode second = first;
+    second.id = "beauty_b";
+    unsafe.addPass(second);
+
+    const RenderPlan imported = RenderPlan::fromJson(unsafe.toJson());
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setPlan(imported);
+
+    Buffer<Colord> buffer(1, 1);
+    try {
+      engine.render(buffer);
+      FAIL() << "expected imported unsafe graph to fail before execution";
+    } catch (const std::runtime_error& error) {
+      const std::string message = error.what();
+      EXPECT_NE(std::string::npos, message.find("parallel_resource_hazard"));
+      EXPECT_NE(std::string::npos, message.find("write-after-write"));
+      EXPECT_NE(std::string::npos, message.find("display_color"));
+    }
+  }
+
+  TEST(GraphRenderEngine, SerialExecutorLimitPreservesPassOrder) {
+    auto material = std::make_shared<BlockingMaterial>();
+    auto scene = std::make_shared<render::Scene>();
+    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 100.0);
+    sphere->setMaterial(material);
+    scene->add(sphere);
+
+    RenderPlan plan;
+    plan.addResource(colorResource("side_color", RenderResourceLifetime::Transient, 1, 2));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported, 1, 2));
+
+    RenderPassNode first;
+    first.id = "beauty_a";
+    first.kind = RenderPassKind::Beauty;
+    first.executor = RenderExecutorKind::Raytracer;
+    first.writes.push_back({"side_color"});
+    first.concurrency = RenderConcurrencyLimit::serial();
+    first.canRunConcurrently = false;
+    plan.addPass(first);
+
+    RenderPassNode second = first;
+    second.id = "beauty_b";
+    second.writes = {{"display_color"}};
+    plan.addPass(second);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    auto observer = std::make_shared<BlockingObserver>();
+    engine.setExecutionObserver(observer);
+
+    Buffer<Colord> buffer(1, 2);
+    std::exception_ptr renderFailure;
+    std::thread renderThread([&] {
+      try {
+        engine.render(buffer);
+      } catch (...) {
+        renderFailure = std::current_exception();
+      }
+    });
+
+    const bool renderBlocked = material->waitForSecondCall(std::chrono::seconds(2));
+    EXPECT_TRUE(renderBlocked);
+    if (renderBlocked) {
+      EXPECT_TRUE(observer->waitForEvent("start:beauty_a", std::chrono::seconds(2)));
+      EXPECT_FALSE(observer->waitForEvent("start:beauty_b", std::chrono::milliseconds(100)));
+    }
+    material->releaseSecondCall();
+    renderThread.join();
+    if (renderFailure) {
+      std::rethrow_exception(renderFailure);
+    }
+
+    const auto events = observer->events();
+    const auto firstFinish = std::find(events.begin(), events.end(), "finish:beauty_a");
+    const auto secondStart = std::find(events.begin(), events.end(), "start:beauty_b");
+    ASSERT_NE(events.end(), firstFinish);
+    ASSERT_NE(events.end(), secondStart);
+    EXPECT_LT(firstFinish, secondStart);
+  }
+
+  TEST(GraphRenderEngine, LimitedExecutorCapKeepsExtraReadyPassQueued) {
+    auto material = std::make_shared<GateMaterial>();
+    auto scene = std::make_shared<render::Scene>();
+    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 100.0);
+    sphere->setMaterial(material);
+    scene->add(sphere);
+
+    RenderPlan plan;
+    plan.addResource(colorResource("side_a", RenderResourceLifetime::Transient, 1, 1));
+    plan.addResource(colorResource("side_b", RenderResourceLifetime::Transient, 1, 1));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported, 1, 1));
+
+    RenderPassNode first;
+    first.id = "beauty_a";
+    first.kind = RenderPassKind::Beauty;
+    first.executor = RenderExecutorKind::Raytracer;
+    first.writes.push_back({"side_a"});
+    first.concurrency = RenderConcurrencyLimit::limited(2);
+    plan.addPass(first);
+
+    RenderPassNode second = first;
+    second.id = "beauty_b";
+    second.writes = {{"side_b"}};
+    plan.addPass(second);
+
+    RenderPassNode third = first;
+    third.id = "beauty_c";
+    third.writes = {{"display_color"}};
+    plan.addPass(third);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    auto observer = std::make_shared<BlockingObserver>();
+    engine.setExecutionObserver(observer);
+
+    Buffer<Colord> buffer(1, 1);
+    std::exception_ptr renderFailure;
+    std::thread renderThread([&] {
+      try {
+        engine.render(buffer);
+      } catch (...) {
+        renderFailure = std::current_exception();
+      }
+    });
+
+    const bool firstTwoBlocked = material->waitForCallCount(2, std::chrono::seconds(2));
+    EXPECT_TRUE(firstTwoBlocked);
+    if (firstTwoBlocked) {
+      EXPECT_TRUE(observer->waitForStartedCount(2, std::chrono::seconds(2)));
+      EXPECT_TRUE(observer->waitForActiveSet({"beauty_a", "beauty_b"}, std::chrono::seconds(2)));
+      EXPECT_FALSE(observer->waitForEvent("start:beauty_c", std::chrono::milliseconds(100)));
+    }
+    material->releaseAll();
+    renderThread.join();
+    if (renderFailure) {
+      std::rethrow_exception(renderFailure);
+    }
+
+    const auto events = observer->events();
+    EXPECT_NE(events.end(), std::find(events.begin(), events.end(), "start:beauty_c"));
+    EXPECT_EQ(Colord(0.25, 0.5, 0.75), buffer[0][0]);
+  }
+
+  TEST(GraphRenderEngine, DependentsReadyInSameWaveCanOverlap) {
+    auto material = std::make_shared<GateMaterial>();
+    auto scene = std::make_shared<render::Scene>();
+    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 100.0);
+    sphere->setMaterial(material);
+    scene->add(sphere);
+
+    RenderPlan plan;
+    plan.addResource(colorResource("seed", RenderResourceLifetime::Transient, 1, 1));
+    plan.addResource(colorResource("side_color", RenderResourceLifetime::Transient, 1, 1));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported, 1, 1));
+
+    RenderPassNode seed;
+    seed.id = "seed";
+    seed.kind = RenderPassKind::Beauty;
+    seed.executor = RenderExecutorKind::Raytracer;
+    seed.writes.push_back({"seed"});
+    seed.disabledBehavior = DisabledBehavior::SubstituteDefault;
+    seed.enabled = false;
+    plan.addPass(seed);
+
+    RenderPassNode first;
+    first.id = "beauty_a";
+    first.kind = RenderPassKind::Beauty;
+    first.executor = RenderExecutorKind::Raytracer;
+    first.reads.push_back({"seed"});
+    first.writes.push_back({"side_color"});
+    first.concurrency = RenderConcurrencyLimit::parallel();
+    plan.addPass(first);
+
+    RenderPassNode second = first;
+    second.id = "beauty_b";
+    second.writes = {{"display_color"}};
+    plan.addPass(second);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    auto observer = std::make_shared<BlockingObserver>();
+    engine.setExecutionObserver(observer);
+
+    Buffer<Colord> buffer(1, 1);
+    std::exception_ptr renderFailure;
+    std::thread renderThread([&] {
+      try {
+        engine.render(buffer);
+      } catch (...) {
+        renderFailure = std::current_exception();
+      }
+    });
+
+    const bool dependentsBlocked = material->waitForCallCount(2, std::chrono::seconds(2));
+    EXPECT_TRUE(dependentsBlocked);
+    if (dependentsBlocked) {
+      EXPECT_TRUE(observer->waitForActiveSet({"beauty_a", "beauty_b"}, std::chrono::seconds(2)));
+    }
+    material->releaseAll();
+    renderThread.join();
+    if (renderFailure) {
+      std::rethrow_exception(renderFailure);
+    }
+
+    EXPECT_EQ(Colord(0.25, 0.5, 0.75), buffer[0][0]);
+  }
+
+  TEST(GraphRenderEngine, FailingPassSkipsDependentsDeterministically) {
+    RenderPlan plan;
+    plan.addResource(colorResource("bad_color", RenderResourceLifetime::Transient));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    RenderPassNode bad;
+    bad.id = "bad";
+    bad.kind = RenderPassKind::Custom;
+    bad.executor = RenderExecutorKind::PostProcess;
+    bad.writes.push_back({"bad_color"});
+    plan.addPass(bad);
+
+    RenderPassNode dependent;
+    dependent.id = "dependent";
+    dependent.kind = RenderPassKind::Tonemap;
+    dependent.executor = RenderExecutorKind::PostProcess;
+    dependent.reads.push_back({"bad_color"});
+    dependent.writes.push_back({"display_color"});
+    plan.addPass(dependent);
+
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(plan);
+
+    Buffer<Colord> buffer(2, 2);
+    EXPECT_THROW(engine.render(buffer), std::runtime_error);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* badTrace = trace->findPass("bad");
+    ASSERT_NE(nullptr, badTrace);
+    EXPECT_EQ(RenderPassExecutionStatus::Failed, badTrace->status());
+    ASSERT_TRUE(badTrace->failedAt());
+    EXPECT_TRUE(badTrace->toJson().contains("failedAtMs"));
+    const RenderPassTrace* dependentTrace = trace->findPass("dependent");
+    ASSERT_NE(nullptr, dependentTrace);
+    EXPECT_EQ(RenderPassExecutionStatus::Skipped, dependentTrace->status());
+  }
+
+  TEST(GraphRenderEngine, CancellationSkipsQueuedDependentPasses) {
+    auto material = std::make_shared<BlockingMaterial>();
+    auto scene = std::make_shared<render::Scene>();
+    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 100.0);
+    sphere->setMaterial(material);
+    scene->add(sphere);
+
+    RenderPlan plan;
+    plan.addResource(colorResource("hdr_color", RenderResourceLifetime::Transient, 1, 2));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported, 1, 2));
+
+    RenderPassNode beauty;
+    beauty.id = "beauty";
+    beauty.kind = RenderPassKind::Beauty;
+    beauty.executor = RenderExecutorKind::Raytracer;
+    beauty.writes.push_back({"hdr_color"});
+    plan.addPass(beauty);
+
+    RenderPassNode tonemap;
+    tonemap.id = "tonemap";
+    tonemap.kind = RenderPassKind::Tonemap;
+    tonemap.executor = RenderExecutorKind::PostProcess;
+    tonemap.reads.push_back({"hdr_color"});
+    tonemap.writes.push_back({"display_color"});
+    plan.addPass(tonemap);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    auto observer = std::make_shared<BlockingObserver>();
+    engine.setExecutionObserver(observer);
+
+    Buffer<Colord> buffer(1, 2);
+    std::exception_ptr renderFailure;
+    std::thread renderThread([&] {
+      try {
+        engine.render(buffer);
+      } catch (...) {
+        renderFailure = std::current_exception();
+      }
+    });
+
+    const bool renderBlocked = material->waitForSecondCall(std::chrono::seconds(2));
+    EXPECT_TRUE(renderBlocked);
+    if (renderBlocked) {
+      engine.cancel();
+      EXPECT_FALSE(observer->waitForEvent("start:tonemap", std::chrono::milliseconds(100)));
+    }
+    material->releaseSecondCall();
+    renderThread.join();
+
+    if (renderBlocked) {
+      ASSERT_NE(nullptr, renderFailure);
+      try {
+        std::rethrow_exception(renderFailure);
+      } catch (const std::runtime_error& error) {
+        EXPECT_NE(std::string::npos, std::string(error.what()).find("cancelled"));
+      }
+    }
   }
 
   TEST(GraphRenderEngine, DisabledTonemapPassCanPassthroughColorResource) {

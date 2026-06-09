@@ -99,6 +99,9 @@ namespace engine::graph {
     const std::vector<RenderGraphResourceSnapshot>& outputs() const;
     const std::vector<RenderGraphResourceDiff>& diffs() const;
     std::chrono::nanoseconds elapsed() const;
+    std::optional<std::chrono::nanoseconds> startedAt() const;
+    std::optional<std::chrono::nanoseconds> finishedAt() const;
+    std::optional<std::chrono::nanoseconds> failedAt() const;
     const std::string& message() const;
     const QJsonObject& metadata() const;
     QJsonObject toJson() const;
@@ -116,6 +119,9 @@ namespace engine::graph {
     std::vector<RenderGraphResourceDiff> m_diffs;
     std::chrono::nanoseconds m_elapsed{0};
     std::optional<std::chrono::steady_clock::time_point> m_startedAt;
+    std::optional<std::chrono::nanoseconds> m_startedOffset;
+    std::optional<std::chrono::nanoseconds> m_finishedOffset;
+    std::optional<std::chrono::nanoseconds> m_failedOffset;
     std::string m_message;
     QJsonObject m_metadata;
   };
@@ -147,6 +153,7 @@ namespace engine::graph {
 
     RenderPlan m_plan;
     std::string m_inputFingerprint;
+    std::chrono::steady_clock::time_point m_startedAt;
     std::vector<RenderPassTrace> m_passes;
     std::map<RenderPassId, std::size_t> m_passIndexes;
   };

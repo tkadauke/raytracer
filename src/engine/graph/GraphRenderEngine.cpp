@@ -21,12 +21,18 @@
 
 #include <algorithm>
 #include <atomic>
+#include <condition_variable>
 #include <cstdint>
+#include <deque>
+#include <exception>
+#include <functional>
 #include <iomanip>
 #include <map>
 #include <mutex>
+#include <set>
 #include <sstream>
 #include <stdexcept>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -569,14 +575,49 @@ namespace engine::graph {
       }
     }
 
+    void notifyActivePassesChanged(const GraphRenderEngine& graph,
+                                   const std::set<RenderPassId>& passIds,
+                                   std::uint64_t generation) {
+      if (auto observer = graph.executionObserver()) {
+        observer->activePassesChanged(passIds, generation);
+      }
+    }
+
+    class ActivePassSet {
+    public:
+      void add(const RenderPassId& passId) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_passIds.insert(passId);
+      }
+
+      void remove(const RenderPassId& passId) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_passIds.erase(passId);
+      }
+
+      std::set<RenderPassId> snapshot() const {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_passIds;
+      }
+
+    private:
+      mutable std::mutex m_mutex;
+      std::set<RenderPassId> m_passIds;
+    };
+
     template<class Execute>
     void executeObserved(const GraphRenderEngine& graph,
                          const std::shared_ptr<RenderGraphExecutionTraceRecorder>& recorder,
+                         const std::shared_ptr<ActivePassSet>& activePasses,
                          std::shared_ptr<const RenderGraphExecutionTraceSession> traceSession,
                          std::uint64_t renderGeneration, const RenderPassNode& pass,
                          const RenderResourceStorage& storage, const QJsonObject* metadata,
                          Execute execute) {
       notifyPassStarted(graph, pass, renderGeneration);
+      if (activePasses) {
+        activePasses->add(pass.id);
+        notifyActivePassesChanged(graph, activePasses->snapshot(), renderGeneration);
+      }
       if (recorder && traceSession) {
         recorder->passStarted(traceSession, pass, storage);
       }
@@ -587,18 +628,30 @@ namespace engine::graph {
           recorder->passFailed(traceSession, pass, storage, error.what());
         }
         notifyPassFailed(graph, pass, error.what(), renderGeneration);
+        if (activePasses) {
+          activePasses->remove(pass.id);
+          notifyActivePassesChanged(graph, activePasses->snapshot(), renderGeneration);
+        }
         throw;
       } catch (...) {
         if (recorder && traceSession) {
           recorder->passFailed(traceSession, pass, storage, "unknown render graph pass failure");
         }
         notifyPassFailed(graph, pass, "unknown render graph pass failure", renderGeneration);
+        if (activePasses) {
+          activePasses->remove(pass.id);
+          notifyActivePassesChanged(graph, activePasses->snapshot(), renderGeneration);
+        }
         throw;
       }
       if (recorder && traceSession) {
         recorder->passCompleted(traceSession, pass, storage, metadata ? *metadata : QJsonObject());
       }
       notifyPassFinished(graph, pass, renderGeneration);
+      if (activePasses) {
+        activePasses->remove(pass.id);
+        notifyActivePassesChanged(graph, activePasses->snapshot(), renderGeneration);
+      }
     }
 
     struct TraceSession {
@@ -627,6 +680,277 @@ namespace engine::graph {
         return recorder && session;
       }
     };
+
+    enum class ScheduledPassResult { Completed, SkippedWithoutWrites, SkippedWithWrites };
+
+    bool passLimitAllowsStart(const RenderPassNode& pass, int runningForExecutor,
+                              bool serialRunningForExecutor) {
+      if (pass.concurrency.mode == RenderConcurrencyMode::Serial) {
+        return runningForExecutor == 0;
+      }
+      if (serialRunningForExecutor) {
+        return false;
+      }
+      if (pass.concurrency.mode == RenderConcurrencyMode::Limited) {
+        return runningForExecutor < std::max(1, pass.concurrency.maxConcurrentPasses);
+      }
+      return true;
+    }
+
+    std::string skippedAfterFailureMessage(const RenderPassNode& failed,
+                                           const RenderPassNode& skipped) {
+      return "pass '" + skipped.id + "' skipped because dependency '" + failed.id + "' failed";
+    }
+
+    std::size_t maxGraphWorkerCount(std::size_t passCount) {
+      if (passCount <= 1) {
+        return 1;
+      }
+      const unsigned int hardware = std::thread::hardware_concurrency();
+      const std::size_t available = hardware == 0 ? 2 : static_cast<std::size_t>(hardware);
+      return std::max<std::size_t>(2, std::min(passCount, available));
+    }
+
+    struct GraphExecutionRuntime {
+      std::atomic<bool>& cancelled;
+      std::shared_ptr<RenderGraphExecutionTraceRecorder> traceRecorder;
+      std::shared_ptr<ActivePassSet> activePasses;
+    };
+
+    template<class ExecutePass, class AfterPass>
+    void executeDependencyReadyPasses(const GraphExecutionRuntime& runtime,
+                                      const RenderPlan& plan, RenderResourceStorage& storage,
+                                      const TraceSession& traceSession, ExecutePass executePass,
+                                      AfterPass afterPass) {
+      const auto executionOrder = plan.executionOrder();
+      if (executionOrder.empty()) {
+        return;
+      }
+
+      std::map<RenderPassId, std::size_t> indexByPass;
+      for (std::size_t index = 0; index != executionOrder.size(); ++index) {
+        indexByPass.emplace(executionOrder[index]->id, index);
+      }
+
+      std::vector<std::vector<std::size_t>> dependents(executionOrder.size());
+      std::vector<int> unsatisfiedDependencies(executionOrder.size(), 0);
+      for (const auto& dependency : plan.dependencies()) {
+        const auto producer = indexByPass.find(dependency.producer->id);
+        const auto consumer = indexByPass.find(dependency.consumer->id);
+        if (producer == indexByPass.end() || consumer == indexByPass.end()) {
+          continue;
+        }
+        dependents[producer->second].push_back(consumer->second);
+        ++unsatisfiedDependencies[consumer->second];
+      }
+
+      enum class PassState { Pending, Ready, Running, Completed, Skipped, Failed };
+
+      std::mutex mutex;
+      std::condition_variable changed;
+      std::deque<std::size_t> ready;
+      std::vector<PassState> state(executionOrder.size(), PassState::Pending);
+      std::map<RenderExecutorKind, int> runningByExecutor;
+      std::map<RenderExecutorKind, int> serialRunningByExecutor;
+      std::size_t unfinished = executionOrder.size();
+      std::exception_ptr firstFailure;
+      std::size_t firstFailureIndex = executionOrder.size();
+      bool stopScheduling = false;
+      bool cancelled = runtime.cancelled.load();
+
+      auto traceSkipped = [&](std::size_t index, const std::string& message) {
+        if (traceSession) {
+          runtime.traceRecorder->passSkipped(traceSession.session, *executionOrder[index],
+                                             storage, message);
+        }
+      };
+
+      auto skipPending = [&](auto& self, std::size_t index, const std::string& message) -> void {
+        if (state[index] == PassState::Completed || state[index] == PassState::Skipped ||
+            state[index] == PassState::Failed || state[index] == PassState::Running) {
+          return;
+        }
+        state[index] = PassState::Skipped;
+        --unfinished;
+        traceSkipped(index, message);
+        for (std::size_t dependent : dependents[index]) {
+          self(self, dependent, message);
+        }
+      };
+
+      for (std::size_t index = 0; index != executionOrder.size(); ++index) {
+        if (unsatisfiedDependencies[index] == 0) {
+          state[index] = PassState::Ready;
+          ready.push_back(index);
+        }
+      }
+
+      auto claimReadyPass = [&]() -> std::optional<std::size_t> {
+        for (auto it = ready.begin(); it != ready.end(); ++it) {
+          const RenderPassNode& pass = *executionOrder[*it];
+          const int running = runningByExecutor[pass.executor];
+          const bool serialRunning = serialRunningByExecutor[pass.executor] > 0;
+          if (!passLimitAllowsStart(pass, running, serialRunning)) {
+            continue;
+          }
+
+          const std::size_t index = *it;
+          ready.erase(it);
+          state[index] = PassState::Running;
+          ++runningByExecutor[pass.executor];
+          if (pass.concurrency.mode == RenderConcurrencyMode::Serial) {
+            ++serialRunningByExecutor[pass.executor];
+          }
+          return index;
+        }
+        return std::nullopt;
+      };
+
+      auto hasStartablePass = [&]() {
+        if (stopScheduling) {
+          return false;
+        }
+        return std::any_of(ready.begin(), ready.end(), [&](std::size_t index) {
+          const RenderPassNode& pass = *executionOrder[index];
+          const int running = runningByExecutor[pass.executor];
+          const bool serialRunning = serialRunningByExecutor[pass.executor] > 0;
+          return passLimitAllowsStart(pass, running, serialRunning);
+        });
+      };
+
+      auto completePass = [&](std::size_t index, ScheduledPassResult result) {
+        std::lock_guard<std::mutex> lock(mutex);
+        const RenderPassNode& pass = *executionOrder[index];
+        --runningByExecutor[pass.executor];
+        if (pass.concurrency.mode == RenderConcurrencyMode::Serial) {
+          --serialRunningByExecutor[pass.executor];
+        }
+        state[index] = result == ScheduledPassResult::Completed ? PassState::Completed
+                                                                : PassState::Skipped;
+        --unfinished;
+
+        const bool publishesWrites = result != ScheduledPassResult::SkippedWithoutWrites;
+        if (!publishesWrites) {
+          for (std::size_t dependent : dependents[index]) {
+            skipPending(skipPending, dependent,
+                        "pass '" + executionOrder[dependent]->id +
+                          "' skipped because dependency '" + pass.id +
+                          "' did not produce its outputs");
+          }
+        } else {
+          for (std::size_t dependent : dependents[index]) {
+            if (state[dependent] != PassState::Pending) {
+              continue;
+            }
+            --unsatisfiedDependencies[dependent];
+            if (unsatisfiedDependencies[dependent] == 0) {
+              state[dependent] = PassState::Ready;
+              ready.push_back(dependent);
+            }
+          }
+        }
+        changed.notify_all();
+      };
+
+      auto failPass = [&](std::size_t index, std::exception_ptr failure) {
+        std::lock_guard<std::mutex> lock(mutex);
+        const RenderPassNode& pass = *executionOrder[index];
+        --runningByExecutor[pass.executor];
+        if (pass.concurrency.mode == RenderConcurrencyMode::Serial) {
+          --serialRunningByExecutor[pass.executor];
+        }
+        state[index] = PassState::Failed;
+        --unfinished;
+        if (!firstFailure || index < firstFailureIndex) {
+          firstFailure = failure;
+          firstFailureIndex = index;
+        }
+        stopScheduling = true;
+        for (std::size_t dependent : dependents[index]) {
+          skipPending(skipPending, dependent,
+                      skippedAfterFailureMessage(pass, *executionOrder[dependent]));
+        }
+        for (std::size_t queuedIndex = 0; queuedIndex != executionOrder.size(); ++queuedIndex) {
+          if (state[queuedIndex] == PassState::Pending || state[queuedIndex] == PassState::Ready) {
+            skipPending(skipPending, queuedIndex,
+                        "pass '" + executionOrder[queuedIndex]->id +
+                          "' skipped after render graph pass failure");
+          }
+        }
+        ready.clear();
+        changed.notify_all();
+      };
+
+      auto cancelQueued = [&]() {
+        if (cancelled) {
+          return;
+        }
+        cancelled = true;
+        stopScheduling = true;
+        for (std::size_t index = 0; index != executionOrder.size(); ++index) {
+          if (state[index] == PassState::Pending || state[index] == PassState::Ready) {
+            skipPending(skipPending, index,
+                        "pass '" + executionOrder[index]->id +
+                          "' skipped because render graph execution was cancelled");
+          }
+        }
+        ready.clear();
+      };
+
+      auto worker = [&]() {
+        while (true) {
+          std::size_t index = 0;
+          {
+            std::unique_lock<std::mutex> lock(mutex);
+            changed.wait(lock, [&] {
+              if (runtime.cancelled.load()) {
+                cancelQueued();
+              }
+              return unfinished == 0 || hasStartablePass();
+            });
+
+            if (unfinished == 0) {
+              return;
+            }
+            if (stopScheduling) {
+              continue;
+            }
+
+            auto claimed = claimReadyPass();
+            if (!claimed) {
+              continue;
+            }
+            index = *claimed;
+          }
+
+          try {
+            const ScheduledPassResult result = executePass(*executionOrder[index]);
+            afterPass(*executionOrder[index], result);
+            completePass(index, result);
+          } catch (...) {
+            failPass(index, std::current_exception());
+          }
+        }
+      };
+
+      std::vector<std::thread> workers;
+      const std::size_t workerCount = maxGraphWorkerCount(executionOrder.size());
+      workers.reserve(workerCount);
+      for (std::size_t i = 0; i != workerCount; ++i) {
+        workers.emplace_back(worker);
+      }
+      changed.notify_all();
+      for (auto& thread : workers) {
+        thread.join();
+      }
+
+      if (firstFailure) {
+        std::rethrow_exception(firstFailure);
+      }
+      if (cancelled || runtime.cancelled.load()) {
+        throw std::runtime_error("render graph execution cancelled");
+      }
+    }
   }
 
   struct GraphRenderEngine::Private {
@@ -636,7 +960,7 @@ namespace engine::graph {
     RenderPlan lastPlan;
     std::map<std::string, std::shared_ptr<render::Camera>> sceneCameras;
     ExternalResourceBindings externalResources;
-    std::shared_ptr<render::RenderEngine> activeEngine;
+    std::vector<std::shared_ptr<render::RenderEngine>> activeEngines;
     std::shared_ptr<RenderGraphExecutionObserver> executionObserver;
     std::shared_ptr<RenderGraphExecutionTraceRecorder> executionTraceRecorder{
       std::make_shared<RenderGraphExecutionTraceRecorder>()};
@@ -650,6 +974,23 @@ namespace engine::graph {
     std::atomic<bool> cancelled{false};
     mutable std::mutex activeEngineMutex;
     mutable std::mutex executionObserverMutex;
+
+    std::function<void(std::shared_ptr<render::RenderEngine>)> activeEngineSetter() {
+      auto slot = std::make_shared<std::shared_ptr<render::RenderEngine>>();
+      return [this, slot](std::shared_ptr<render::RenderEngine> engine) {
+        std::lock_guard<std::mutex> lock(activeEngineMutex);
+        if (*slot) {
+          const auto it = std::find(activeEngines.begin(), activeEngines.end(), *slot);
+          if (it != activeEngines.end()) {
+            activeEngines.erase(it);
+          }
+        }
+        *slot = std::move(engine);
+        if (*slot) {
+          activeEngines.push_back(*slot);
+        }
+      };
+    }
 
     std::uint64_t claimExecutionGeneration() const {
       return nextExecutionGeneration->fetch_add(1);
@@ -896,7 +1237,11 @@ namespace engine::graph {
       p->explicitPlan ? *p->explicitPlan : compilePlan({buffer.width(), buffer.height(), 1});
     p->lastPlan = plan;
 
-    const auto validation = plan.validate();
+    auto validation = plan.validate();
+    const auto hazards = plan.validateParallelExecutionHazards();
+    for (const auto& hazard : hazards.errors()) {
+      validation.add(hazard);
+    }
     if (!validation.valid()) {
       throw std::runtime_error(validationMessage(validation));
     }
@@ -913,29 +1258,18 @@ namespace engine::graph {
     storage.allocate(plan.resources());
     bindExternalInputs(storage, plan, p->externalResources);
 
-    const auto executionOrder = plan.executionOrder();
-    for (const RenderPassNode* passNode : executionOrder) {
-      const RenderPassNode& pass = *passNode;
+    GraphExecutionRuntime runtime{p->cancelled, p->executionTraceRecorder,
+                                  std::make_shared<ActivePassSet>()};
+    auto executePass = [&](const RenderPassNode& pass) {
       if (!pass.enabled) {
         const DisabledPassHandler& handler = applyDisabledPass(pass, storage, *this);
         if (traceSession) {
           p->executionTraceRecorder->passSkipped(traceSession.session, pass, storage,
                                                  handler.message());
         }
-        continue;
+        return handler.publishesWrites() ? ScheduledPassResult::SkippedWithWrites
+                                         : ScheduledPassResult::SkippedWithoutWrites;
       }
-
-      auto payload = RenderPassPayload::createBuiltin(pass);
-      if (!payload) {
-        throw std::runtime_error("GraphRenderEngine cannot execute enabled pass '" + pass.id +
-                                 "' with kind '" + toString(pass.kind) + "' and executor '" +
-                                 toString(pass.executor) + "'");
-      }
-
-      auto setActiveEngine = [this](std::shared_ptr<render::RenderEngine> engine) {
-        std::lock_guard<std::mutex> lock(p->activeEngineMutex);
-        p->activeEngine = std::move(engine);
-      };
       auto recordTraceMessage = [recorder = p->executionTraceRecorder,
                                  session = traceSession.session, &pass](std::string message) {
         if (recorder && session) {
@@ -943,8 +1277,8 @@ namespace engine::graph {
         }
       };
 
-      RenderExecutionContext context(pass, storage, *this, p->cancelled.load(), setActiveEngine,
-                                     recordTraceMessage);
+      RenderExecutionContext context(pass, storage, *this, p->cancelled.load(),
+                                     p->activeEngineSetter(), recordTraceMessage);
       struct ActiveEngineReset {
         RenderExecutionContext& context;
         ~ActiveEngineReset() {
@@ -952,12 +1286,26 @@ namespace engine::graph {
         }
       } reset{context};
 
-      executeObserved(*this, p->executionTraceRecorder, traceSession.session, renderGeneration,
-                      pass, storage, &context.traceMetadata(), [&] { payload->execute(context); });
+      executeObserved(*this, p->executionTraceRecorder, runtime.activePasses,
+                      traceSession.session, renderGeneration, pass, storage,
+                      &context.traceMetadata(), [&] {
+                        auto payload = RenderPassPayload::createBuiltin(pass);
+                        if (!payload) {
+                          throw std::runtime_error(
+                            "GraphRenderEngine cannot execute enabled pass '" + pass.id +
+                            "' with kind '" + toString(pass.kind) + "' and executor '" +
+                            toString(pass.executor) + "'");
+                        }
+                        payload->execute(context);
+                      });
       for (const auto& write : pass.writes) {
         storage.resource(write.resource).markProduced();
       }
-    }
+      return ScheduledPassResult::Completed;
+    };
+    auto afterPass = [](const RenderPassNode&, ScheduledPassResult) {};
+
+    executeDependencyReadyPasses(runtime, plan, storage, traceSession, executePass, afterPass);
 
     requireMatchingSize(storage.color(plan.exportedColorResource().id), buffer, "color copy");
     core::util::copyBuffer(buffer, storage.color(plan.exportedColorResource().id));
@@ -973,7 +1321,11 @@ namespace engine::graph {
       p->explicitPlan ? *p->explicitPlan : compilePlan({buffer.width(), buffer.height(), 1});
     p->lastPlan = plan;
 
-    const auto validation = plan.validate();
+    auto validation = plan.validate();
+    const auto hazards = plan.validateParallelExecutionHazards();
+    for (const auto& hazard : hazards.errors()) {
+      validation.add(hazard);
+    }
     if (!validation.valid()) {
       throw std::runtime_error(validationMessage(validation));
     }
@@ -992,31 +1344,17 @@ namespace engine::graph {
     bindExternalInputs(storage, plan, p->externalResources);
     const auto displayTonemap = displayTonemapForPlan(plan, *this);
 
-    auto setActiveEngine = [this](std::shared_ptr<render::RenderEngine> engine) {
-      std::lock_guard<std::mutex> lock(p->activeEngineMutex);
-      p->activeEngine = std::move(engine);
-    };
-
-    const auto executionOrder = plan.executionOrder();
-    for (const RenderPassNode* passNode : executionOrder) {
-      const RenderPassNode& pass = *passNode;
+    GraphExecutionRuntime runtime{p->cancelled, p->executionTraceRecorder,
+                                  std::make_shared<ActivePassSet>()};
+    auto executePass = [&](const RenderPassNode& pass) {
       if (!pass.enabled) {
         const DisabledPassHandler& handler = applyDisabledPass(pass, storage, *this);
-        if (handler.publishesWrites()) {
-          publishWritesForDisplay(pass, plan, storage, buffer, displayTonemap);
-        }
         if (traceSession) {
           p->executionTraceRecorder->passSkipped(traceSession.session, pass, storage,
                                                  handler.message());
         }
-        continue;
-      }
-
-      auto payload = RenderPassPayload::createBuiltin(pass);
-      if (!payload) {
-        throw std::runtime_error("GraphRenderEngine cannot execute enabled pass '" + pass.id +
-                                 "' with kind '" + toString(pass.kind) + "' and executor '" +
-                                 toString(pass.executor) + "'");
+        return handler.publishesWrites() ? ScheduledPassResult::SkippedWithWrites
+                                         : ScheduledPassResult::SkippedWithoutWrites;
       }
 
       auto recordTraceMessage = [recorder = p->executionTraceRecorder,
@@ -1026,8 +1364,8 @@ namespace engine::graph {
         }
       };
 
-      RenderExecutionContext context(pass, storage, *this, p->cancelled.load(), setActiveEngine,
-                                     recordTraceMessage);
+      RenderExecutionContext context(pass, storage, *this, p->cancelled.load(),
+                                     p->activeEngineSetter(), recordTraceMessage);
       struct ActiveEngineReset {
         RenderExecutionContext& context;
         ~ActiveEngineReset() {
@@ -1035,8 +1373,16 @@ namespace engine::graph {
         }
       } reset{context};
 
-      executeObserved(*this, p->executionTraceRecorder, traceSession.session, renderGeneration,
-                      pass, storage, &context.traceMetadata(), [&] {
+      executeObserved(*this, p->executionTraceRecorder, runtime.activePasses,
+                      traceSession.session, renderGeneration, pass, storage,
+                      &context.traceMetadata(), [&] {
+                        auto payload = RenderPassPayload::createBuiltin(pass);
+                        if (!payload) {
+                          throw std::runtime_error(
+                            "GraphRenderEngine cannot execute enabled pass '" + pass.id +
+                            "' with kind '" + toString(pass.kind) + "' and executor '" +
+                            toString(pass.executor) + "'");
+                        }
                         const bool executedForDisplay =
                           pass.kind == RenderPassKind::Beauty &&
                           (pass.executor == RenderExecutorKind::Raytracer ||
@@ -1050,51 +1396,78 @@ namespace engine::graph {
       for (const auto& write : pass.writes) {
         storage.resource(write.resource).markProduced();
       }
-      publishWritesForDisplay(pass, plan, storage, buffer, displayTonemap);
-    }
+      return ScheduledPassResult::Completed;
+    };
+    auto afterPass = [&](const RenderPassNode& pass, ScheduledPassResult result) {
+      if (result != ScheduledPassResult::SkippedWithoutWrites) {
+        publishWritesForDisplay(pass, plan, storage, buffer, displayTonemap);
+      }
+    };
+
+    executeDependencyReadyPasses(runtime, plan, storage, traceSession, executePass, afterPass);
 
     packColorBuffer(storage.color(plan.exportedColorResource().id), buffer);
   }
 
   void GraphRenderEngine::cancel() {
     p->cancelled.store(true);
-    std::shared_ptr<render::RenderEngine> active;
+    std::vector<std::shared_ptr<render::RenderEngine>> active;
     {
       std::lock_guard<std::mutex> lock(p->activeEngineMutex);
-      active = p->activeEngine;
+      active = p->activeEngines;
     }
-    if (active) {
-      active->cancel();
+    for (const auto& engine : active) {
+      if (engine) {
+        engine->cancel();
+      }
     }
   }
 
   void GraphRenderEngine::uncancel() {
     p->cancelled.store(false);
-    std::shared_ptr<render::RenderEngine> active;
+    std::vector<std::shared_ptr<render::RenderEngine>> active;
     {
       std::lock_guard<std::mutex> lock(p->activeEngineMutex);
-      active = p->activeEngine;
+      active = p->activeEngines;
     }
-    if (active) {
-      active->uncancel();
+    for (const auto& engine : active) {
+      if (engine) {
+        engine->uncancel();
+      }
     }
   }
 
   std::list<Recti> GraphRenderEngine::activeTiles() const {
-    std::shared_ptr<render::RenderEngine> active;
+    std::vector<std::shared_ptr<render::RenderEngine>> active;
     {
       std::lock_guard<std::mutex> lock(p->activeEngineMutex);
-      active = p->activeEngine;
+      active = p->activeEngines;
     }
-    return active ? active->activeTiles() : std::list<Recti>();
+    std::list<Recti> result;
+    for (const auto& engine : active) {
+      if (!engine) {
+        continue;
+      }
+      const auto tiles = engine->activeTiles();
+      result.insert(result.end(), tiles.begin(), tiles.end());
+    }
+    return result;
   }
 
   std::list<Recti> GraphRenderEngine::completedTiles() const {
-    std::shared_ptr<render::RenderEngine> active;
+    std::vector<std::shared_ptr<render::RenderEngine>> active;
     {
       std::lock_guard<std::mutex> lock(p->activeEngineMutex);
-      active = p->activeEngine;
+      active = p->activeEngines;
     }
-    return active ? active->completedTiles() : std::list<Recti>();
+    std::list<Recti> result;
+    for (const auto& engine : active) {
+      if (!engine) {
+        continue;
+      }
+      const auto tiles = engine->completedTiles();
+      result.insert(result.end(), tiles.begin(), tiles.end());
+    }
+    return result;
   }
 }

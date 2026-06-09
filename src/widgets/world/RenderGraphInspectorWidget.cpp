@@ -1053,6 +1053,53 @@ void RenderGraphInspectorWidget::passExecutionFailed(const QString& passId,
   rebuildGraph();
 }
 
+void RenderGraphInspectorWidget::setActiveExecutionPasses(const QStringList& passIds) {
+  std::set<RenderPassId> active;
+  for (const auto& passId : passIds)
+    active.insert(passId.toStdString());
+
+  const auto now = std::chrono::steady_clock::now();
+  bool changed = false;
+  for (const auto& id : active) {
+    const auto stateIt = p->executionStates.find(id);
+    if (stateIt != p->executionStates.end() &&
+        stateIt->second == PassExecutionState::Running) {
+      continue;
+    }
+    if (p->pendingExecutionStarts.find(id) == p->pendingExecutionStarts.end()) {
+      p->pendingExecutionStarts[id] = now;
+      changed = true;
+    }
+    p->executionMessages.erase(id);
+  }
+
+  for (auto it = p->pendingExecutionStarts.begin(); it != p->pendingExecutionStarts.end();) {
+    if (active.find(it->first) == active.end()) {
+      it = p->pendingExecutionStarts.erase(it);
+      changed = true;
+    } else {
+      ++it;
+    }
+  }
+
+  for (auto it = p->executionStates.begin(); it != p->executionStates.end();) {
+    if (it->second == PassExecutionState::Running && active.find(it->first) == active.end()) {
+      it = p->executionStates.erase(it);
+      changed = true;
+    } else {
+      ++it;
+    }
+  }
+
+  if (p->pendingExecutionStarts.empty())
+    p->liveExecutionTimer->stop();
+  else if (!p->liveExecutionTimer->isActive())
+    p->liveExecutionTimer->start();
+
+  if (changed)
+    rebuildGraph();
+}
+
 void RenderGraphInspectorWidget::passItemChanged(QTreeWidgetItem* item, int column) {
   if (p->updating || column != 0 || !item)
     return;

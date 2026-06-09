@@ -273,6 +273,7 @@ namespace engine::graph {
        {RenderPlanValidationError::Code::InvalidResourceShape, "invalid_resource_shape"},
        {RenderPlanValidationError::Code::ResourceDomainMismatch, "resource_domain_mismatch"},
        {RenderPlanValidationError::Code::InvalidConcurrencyLimit, "invalid_concurrency_limit"},
+       {RenderPlanValidationError::Code::ParallelResourceHazard, "parallel_resource_hazard"},
        {RenderPlanValidationError::Code::Cycle, "cycle"}});
   }
 
@@ -919,6 +920,99 @@ namespace engine::graph {
         result.add({RenderPlanValidationError::Code::Cycle,
                     "render plan contains a dependency cycle", passId, ""});
         break;
+      }
+    }
+
+    return result;
+  }
+
+  RenderPlanValidation RenderPlan::validateParallelExecutionHazards() const {
+    RenderPlanValidation result;
+    const auto order = executionOrder();
+    if (order.size() <= 1) {
+      return result;
+    }
+
+    std::map<RenderPassId, std::set<RenderPassId>> directDependents;
+    for (const auto& dependency : dependencies()) {
+      directDependents[dependency.producer->id].insert(dependency.consumer->id);
+    }
+
+    auto passCanReach = [&](const RenderPassId& source, const RenderPassId& destination) {
+      std::vector<RenderPassId> pending{source};
+      std::set<RenderPassId> visited;
+      while (!pending.empty()) {
+        const RenderPassId current = pending.back();
+        pending.pop_back();
+        if (current == destination) {
+          return true;
+        }
+        if (!visited.insert(current).second) {
+          continue;
+        }
+
+        const auto dependents = directDependents.find(current);
+        if (dependents == directDependents.end()) {
+          continue;
+        }
+        pending.insert(pending.end(), dependents->second.begin(), dependents->second.end());
+      }
+      return false;
+    };
+
+    auto ordered = [&](const RenderPassNode& first, const RenderPassNode& second) {
+      return passCanReach(first.id, second.id) || passCanReach(second.id, first.id);
+    };
+
+    auto writesResource = [](const RenderPassNode& pass, const RenderResourceId& resource) {
+      return passProducesWhenExecuted(pass) && pass.writesResource(resource);
+    };
+    auto readsResource = [](const RenderPassNode& pass, const RenderResourceId& resource) {
+      return passReadsWhenExecuted(pass) && pass.readsResource(resource);
+    };
+
+    for (std::size_t firstIndex = 0; firstIndex != order.size(); ++firstIndex) {
+      const RenderPassNode& first = *order[firstIndex];
+      for (std::size_t secondIndex = firstIndex + 1; secondIndex != order.size(); ++secondIndex) {
+        const RenderPassNode& second = *order[secondIndex];
+        if (ordered(first, second)) {
+          continue;
+        }
+
+        for (const auto& write : first.writes) {
+          if (!writesResource(first, write.resource)) {
+            continue;
+          }
+          if (writesResource(second, write.resource)) {
+            result.add({RenderPlanValidationError::Code::ParallelResourceHazard,
+                        "passes '" + first.id + "' and '" + second.id +
+                          "' have a write-after-write hazard on resource '" + write.resource + "'",
+                        second.id, write.resource});
+          }
+          if (readsResource(second, write.resource)) {
+            result.add({RenderPlanValidationError::Code::ParallelResourceHazard,
+                        "passes '" + first.id + "' and '" + second.id +
+                          "' have a read-after-write hazard on resource '" + write.resource + "'",
+                        second.id, write.resource});
+            result.add({RenderPlanValidationError::Code::ParallelResourceHazard,
+                        "passes '" + first.id + "' and '" + second.id +
+                          "' have a write-after-read hazard on resource '" + write.resource + "'",
+                        second.id, write.resource});
+          }
+        }
+
+        for (const auto& read : first.reads) {
+          if (readsResource(first, read.resource) && writesResource(second, read.resource)) {
+            result.add({RenderPlanValidationError::Code::ParallelResourceHazard,
+                        "passes '" + first.id + "' and '" + second.id +
+                          "' have a write-after-read hazard on resource '" + read.resource + "'",
+                        second.id, read.resource});
+            result.add({RenderPlanValidationError::Code::ParallelResourceHazard,
+                        "passes '" + first.id + "' and '" + second.id +
+                          "' have a read-after-write hazard on resource '" + read.resource + "'",
+                        second.id, read.resource});
+          }
+        }
       }
     }
 

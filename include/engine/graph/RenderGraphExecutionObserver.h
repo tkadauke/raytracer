@@ -3,6 +3,7 @@
 #include "engine/graph/RenderGraphTypes.h"
 
 #include <cstdint>
+#include <set>
 #include <string>
 
 namespace engine::graph {
@@ -17,6 +18,13 @@ namespace engine::graph {
     virtual ~RenderGraphExecutionObserver() = default;
 
     virtual void renderStarted(std::uint64_t) {
+    }
+
+    virtual void activePassesChanged(const std::set<RenderPassId>&) {
+    }
+
+    virtual void activePassesChanged(const std::set<RenderPassId>& passIds, std::uint64_t) {
+      activePassesChanged(passIds);
     }
 
     virtual void passStarted(const RenderPassId& passId) = 0;
