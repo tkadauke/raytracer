@@ -108,6 +108,8 @@ set(raster_state_render "${TEST_OUTPUT_DIR}/raster-state-render.png")
 set(raytracer_integrator_plan "${TEST_OUTPUT_DIR}/raytracer-integrator-graph.json")
 set(raytracer_integrator_render "${TEST_OUTPUT_DIR}/raytracer-integrator-render.png")
 set(wavefront_plan "${TEST_OUTPUT_DIR}/wavefront-graph.json")
+set(wavefront_gpu_backend_plan "${TEST_OUTPUT_DIR}/wavefront-gpu-backend-graph.json")
+set(wavefront_auto_backend_plan "${TEST_OUTPUT_DIR}/wavefront-auto-backend-graph.json")
 set(wavefront_render "${TEST_OUTPUT_DIR}/wavefront-render.png")
 set(wavefront_supported_backend_scene
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-scene.json")
@@ -1826,6 +1828,40 @@ if(NOT wavefront_graph MATCHES "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
   message(
     FATAL_ERROR
       "wavefront graph did not contain requested intersection backend state: ${wavefront_graph}"
+  )
+endif()
+
+rendercli_run(
+  NAME "rendercli exports requested GPU wavefront backend in render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json --engine wavefront
+    --wavefront_intersection_backend gpu --width 32 --height 16 "${static_scene}"
+    "${wavefront_gpu_backend_plan}"
+)
+rendercli_assert_nonempty("${wavefront_gpu_backend_plan}"
+                          NAME "GPU wavefront backend graph output")
+file(READ "${wavefront_gpu_backend_plan}" wavefront_gpu_backend_graph)
+if(NOT wavefront_gpu_backend_graph MATCHES "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"gpu\"")
+  message(
+    FATAL_ERROR
+      "wavefront graph did not contain requested GPU intersection backend state: ${wavefront_gpu_backend_graph}"
+  )
+endif()
+
+rendercli_run(
+  NAME "rendercli exports requested auto wavefront backend in render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json --engine wavefront
+    --wavefront_intersection_backend auto --width 32 --height 16 "${static_scene}"
+    "${wavefront_auto_backend_plan}"
+)
+rendercli_assert_nonempty("${wavefront_auto_backend_plan}"
+                          NAME "auto wavefront backend graph output")
+file(READ "${wavefront_auto_backend_plan}" wavefront_auto_backend_graph)
+if(NOT wavefront_auto_backend_graph MATCHES "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"auto\"")
+  message(
+    FATAL_ERROR
+      "wavefront graph did not contain requested auto intersection backend state: ${wavefront_auto_backend_graph}"
   )
 endif()
 
