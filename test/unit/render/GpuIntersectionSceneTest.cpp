@@ -328,6 +328,43 @@ namespace GpuIntersectionSceneTest {
     EXPECT_FALSE(buffers.packedAnyHitKernelEligible());
   }
 
+  TEST(GpuIntersectionScene, PackedTraversalRejectsInvalidPayloadReferences) {
+    const auto bounds = [](float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+      return GpuIntersectionBounds{{minX, minY, minZ, 0.0f}, {maxX, maxY, maxZ, 0.0f}};
+    };
+
+    GpuIntersectionSceneBuffers buffers;
+    buffers.bvh.push_back(GpuIntersectionBvhNode{bounds(-1.0f, -1.0f, 3.0f, 1.0f, 1.0f, 3.0f), 0, 1,
+                                                 gpuIntersectionLeafNodeFlag, 0});
+    buffers.primitives.push_back(GpuIntersectionPrimitiveRecord{
+      bounds(-1.0f, -1.0f, 3.0f, 1.0f, 1.0f, 3.0f),
+      static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Triangle),
+      0,
+      0,
+      0,
+      0,
+      2,
+      {}});
+    buffers.triangles.push_back(GpuIntersectionTrianglePayload{{0.0f, 1.0f, 3.0f, 0.0f},
+                                                               {-1.0f, -1.0f, 3.0f, 0.0f},
+                                                               {1.0f, -1.0f, 3.0f, 0.0f},
+                                                               {0.0f, 0.0f, 1.0f, 0.0f},
+                                                               {0.0f, 0.0f, 1.0f, 0.0f},
+                                                               {0.0f, 0.0f, 1.0f, 0.0f},
+                                                               {},
+                                                               {},
+                                                               {}});
+    const GpuIntersectionRay ray =
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 14);
+
+    EXPECT_FALSE(GpuIntersectionIntersector().intersectClosest(buffers, ray).hit);
+    EXPECT_FALSE(GpuIntersectionIntersector().intersectAny(buffers, ray));
+
+    buffers.primitives[0].payloadCount = 1;
+    EXPECT_TRUE(GpuIntersectionIntersector().intersectClosest(buffers, ray).hit);
+    EXPECT_TRUE(GpuIntersectionIntersector().intersectAny(buffers, ray));
+  }
+
   TEST(GpuIntersectionScene, PacksStaticTransformPayloadsAsRowMajorMatrices) {
     auto triangle =
       std::make_shared<Triangle>(Vector3d(0, 0, 0), Vector3d(1, 0, 0), Vector3d(0, 1, 0));

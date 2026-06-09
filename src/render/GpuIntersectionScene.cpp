@@ -735,6 +735,10 @@ std::optional<GpuIntersectionIntersector::ClosestHit>
 GpuIntersectionIntersector::intersectPrimitivePayload(
   const GpuIntersectionSceneBuffers& scene, const GpuIntersectionRay& ray,
   const GpuIntersectionPrimitiveRecord& primitive) const {
+  if (primitive.payloadCount != 1) {
+    return std::nullopt;
+  }
+
   if (primitive.kind == static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Triangle)) {
     if (primitive.payloadOffset >= scene.triangles.size()) {
       return std::nullopt;
