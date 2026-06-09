@@ -501,10 +501,27 @@ namespace GpuIntersectionSceneTest {
     expectPackedClosestHitMatchesCompiled(scene, ray, 22, true);
   }
 
+  TEST(GpuIntersectionScene, PackedPlanePreservesCompiledPayloadNormal) {
+    Scene scene;
+    scene.add(std::make_shared<Plane>(Vector3d(0, 0, 2), -6.0));
+    const Rayd ray(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
+
+    expectPackedClosestHitMatchesCompiled(scene, ray, 22, true);
+  }
+
   TEST(GpuIntersectionScene, PackedRectangleClosestHitMatchesCompiledSceneHit) {
     Scene scene;
     scene.add(
       std::make_shared<Rectangle>(Vector3d(-1, -1, 3), Vector3d(2, 0, 0), Vector3d(0, 2, 0)));
+    const Rayd ray(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
+
+    expectPackedClosestHitMatchesCompiled(scene, ray, 23, true);
+  }
+
+  TEST(GpuIntersectionScene, PackedRectanglePreservesCompiledPayloadNormal) {
+    Scene scene;
+    scene.add(std::make_shared<Rectangle>(Vector3d(-1, -1, 3), Vector3d(2, 0, 0), Vector3d(0, 2, 0),
+                                          Vector3d(0, 0, 2)));
     const Rayd ray(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
 
     expectPackedClosestHitMatchesCompiled(scene, ray, 23, true);
@@ -532,6 +549,14 @@ namespace GpuIntersectionSceneTest {
   TEST(GpuIntersectionScene, PackedDiskClosestHitMatchesCompiledSceneHit) {
     Scene scene;
     scene.add(std::make_shared<Disk>(Vector3d(0, 0, 3), Vector3d(0, 0, 1), 2.0));
+    const Rayd ray(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
+
+    expectPackedClosestHitMatchesCompiled(scene, ray, 24, true);
+  }
+
+  TEST(GpuIntersectionScene, PackedDiskPreservesCompiledPayloadNormal) {
+    Scene scene;
+    scene.add(std::make_shared<Disk>(Vector3d(0, 0, 3), Vector3d(0, 0, 2), 2.0));
     const Rayd ray(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
 
     expectPackedClosestHitMatchesCompiled(scene, ray, 24, true);

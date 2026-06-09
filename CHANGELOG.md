@@ -1184,6 +1184,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   cancellation now preserves contributions completed before the depth-boundary
   cancellation check, and scalar progressive display averages use truncating
   channel packing consistently. — GPT-5
+- **Packed wavefront payload normals.** Packed CPU, Metal, and Vulkan
+  wavefront closest-hit paths now preserve plane, rectangle, and disk payload
+  normals in local space instead of normalizing them before static-instance
+  transform handling, matching the compiled/runtime hit metadata contract. —
+  GPT-5
 - **Packed wavefront flat-mesh near hits.** Compiled and GPU-style wavefront
   triangle payloads now carry each mesh triangle's minimum hit distance, so
   flat mesh triangles reject near-surface hits consistently with the runtime

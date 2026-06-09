@@ -570,6 +570,11 @@ Progress:
   scene and packed GPU ABI, keeping the host parity intersector plus the Metal
   and Vulkan basic kernels aligned with the runtime disk intersection rule
   instead of duplicating a hard-coded shader constant.
+- Packed CPU, Metal, and Vulkan closest-hit paths now preserve plane,
+  rectangle, and disk payload normals in local space, normalizing only after a
+  static instance transform is applied. That keeps GPU-style hit records
+  aligned with the compiled/runtime primitive contract for non-unit payload
+  normals.
 - Box leaves now compile into the same triangle payload path using the canonical
   12-triangle box tessellation, while preserving the exact raytraced Box's
   default hit-UV semantics. This lets Box-only supported scenes use prepared

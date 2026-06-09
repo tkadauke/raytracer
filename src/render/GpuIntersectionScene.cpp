@@ -648,7 +648,7 @@ GpuIntersectionIntersector::intersectPlane(const GpuIntersectionRay& ray,
   hit.point = {ray.origin[0] + ray.direction[0] * distance,
                ray.origin[1] + ray.direction[1] * distance,
                ray.origin[2] + ray.direction[2] * distance, 1.0f};
-  hit.normal = normalize3({normalX, normalY, normalZ, 0.0f});
+  hit.normal = {normalX, normalY, normalZ, 0.0f};
   return hit;
 }
 
@@ -702,7 +702,7 @@ GpuIntersectionIntersector::intersectRectangle(
     return std::nullopt;
   }
 
-  hit.normal = normalize3({normalX, normalY, normalZ, 0.0f});
+  hit.normal = {normalX, normalY, normalZ, 0.0f};
   return hit;
 }
 
@@ -746,7 +746,7 @@ GpuIntersectionIntersector::intersectDisk(const GpuIntersectionRay& ray,
     return std::nullopt;
   }
 
-  hit.normal = normalize3({normalX, normalY, normalZ, 0.0f});
+  hit.normal = {normalX, normalY, normalZ, 0.0f};
   return hit;
 }
 

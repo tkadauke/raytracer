@@ -840,10 +840,10 @@ namespace WavefrontIntersectionBackendTest {
     VulkanWavefrontSmokeKernel kernel;
 
     Scene scene;
-    scene.add(std::make_shared<Plane>(Vector3d(0, 0, 1), -9.0));
-    scene.add(
-      std::make_shared<Rectangle>(Vector3d(-1, -1, 5), Vector3d(2, 0, 0), Vector3d(0, 2, 0)));
-    scene.add(std::make_shared<Disk>(Vector3d(3, 0, 4), Vector3d(0, 0, 1), 1.0));
+    scene.add(std::make_shared<Plane>(Vector3d(0, 0, 2), -18.0));
+    scene.add(std::make_shared<Rectangle>(Vector3d(-1, -1, 5), Vector3d(2, 0, 0), Vector3d(0, 2, 0),
+                                          Vector3d(0, 0, 2)));
+    scene.add(std::make_shared<Disk>(Vector3d(3, 0, 4), Vector3d(0, 0, 2), 1.0));
 
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
     const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
@@ -1288,10 +1288,10 @@ namespace WavefrontIntersectionBackendTest {
     }
 
     Scene scene;
-    scene.add(std::make_shared<Plane>(Vector3d(0, 0, 1), -9.0));
-    scene.add(
-      std::make_shared<Rectangle>(Vector3d(-1, -1, 5), Vector3d(2, 0, 0), Vector3d(0, 2, 0)));
-    scene.add(std::make_shared<Disk>(Vector3d(3, 0, 4), Vector3d(0, 0, 1), 1.0));
+    scene.add(std::make_shared<Plane>(Vector3d(0, 0, 2), -18.0));
+    scene.add(std::make_shared<Rectangle>(Vector3d(-1, -1, 5), Vector3d(2, 0, 0), Vector3d(0, 2, 0),
+                                          Vector3d(0, 0, 2)));
+    scene.add(std::make_shared<Disk>(Vector3d(3, 0, 4), Vector3d(0, 0, 2), 1.0));
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
     const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
     ASSERT_FALSE(buffers.triangleClosestHitKernelEligible());

@@ -413,7 +413,7 @@ LocalHit intersectPlane(RayRecord ray, PlanePayload plane) {
   result.distance = distance;
   result.point = ray.origin + ray.direction * distance;
   result.point.w = 1.0;
-  result.normal = normalize3(vec4(normal, 0.0));
+  result.normal = vec4(normal, 0.0);
   return result;
 }
 
@@ -450,7 +450,7 @@ LocalHit intersectRectangle(RayRecord ray, RectanglePayload rectangle) {
   result.distance = distance;
   result.point = point;
   result.point.w = 1.0;
-  result.normal = normalize3(vec4(normal, 0.0));
+  result.normal = vec4(normal, 0.0);
   return result;
 }
 
@@ -483,7 +483,7 @@ LocalHit intersectDisk(RayRecord ray, DiskPayload disk) {
   result.distance = distance;
   result.point = point;
   result.point.w = 1.0;
-  result.normal = normalize3(vec4(normal, 0.0));
+  result.normal = vec4(normal, 0.0);
   return result;
 }
 
