@@ -217,6 +217,9 @@ namespace RenderIntentElementTest {
               intent->propertyDisplayName("wavefrontAdaptiveStddevThreshold"));
     EXPECT_EQ(QString("Intersection Backend"),
               intent->propertyDisplayName("wavefrontIntersectionBackend"));
+    const QString backendDescription = intent->propertyDescription("wavefrontIntersectionBackend");
+    EXPECT_TRUE(backendDescription.contains(QStringLiteral("expected ray workload")));
+    EXPECT_FALSE(backendDescription.contains(QStringLiteral("Auto currently uses the CPU")));
     EXPECT_EQ(QString("Russian Roulette Depth"),
               intent->propertyDisplayName("pathTracerRussianRouletteDepth"));
     EXPECT_EQ(QString("Direct Light Samples"),

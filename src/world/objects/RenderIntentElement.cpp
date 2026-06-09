@@ -259,8 +259,9 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
       "the remaining configured samples.");
   if (propertyName == QStringLiteral("wavefrontIntersectionBackend"))
     return QStringLiteral(
-      "Ray-scene intersection backend for wavefront batches. Auto currently uses the CPU backend; "
-      "GPU is durable intent that falls back to CPU until a platform backend is available.");
+      "Ray-scene intersection backend for wavefront batches. Auto chooses CPU or an available "
+      "GPU backend from scene support, platform capability, and expected ray workload. Explicit "
+      "GPU requests fall back visibly when the scene or platform cannot use GPU intersection.");
   if (propertyName == QStringLiteral("pathTracerRussianRouletteDepth"))
     return QStringLiteral("Bounce depth where path tracing starts Russian-roulette termination.");
   if (propertyName == QStringLiteral("pathTracerDirectLightSamples"))
