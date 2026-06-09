@@ -518,6 +518,14 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
                    ? QStringLiteral("yes")
                    : QStringLiteral("no"));
       }
+      if (batching.contains(QStringLiteral("intersectionBackendPlatformGpuRenderPathAvailable"))) {
+        line +=
+          QStringLiteral(", GPU render path %1")
+            .arg(batching.value(QStringLiteral("intersectionBackendPlatformGpuRenderPathAvailable"))
+                     .toBool()
+                   ? QStringLiteral("yes")
+                   : QStringLiteral("no"));
+      }
       const QString fallbackReason =
         batching.value(QStringLiteral("intersectionBackendFallbackReason")).toString();
       if (!fallbackReason.isEmpty()) {

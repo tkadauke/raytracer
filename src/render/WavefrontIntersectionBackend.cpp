@@ -98,10 +98,15 @@ namespace render {
 
   WavefrontIntersectionBackendAutoSelectionDecision
   WavefrontIntersectionBackendAutoSelectionPolicy::decide(
-    bool platformGpuAvailable, const WavefrontIntersectionSceneDiagnostics& diagnostics,
+    bool platformGpuDeviceAvailable, bool platformGpuRenderPathAvailable,
+    const WavefrontIntersectionSceneDiagnostics& diagnostics,
     const WavefrontIntersectionBackendSelectionContext& context) const {
-    if (!platformGpuAvailable) {
+    if (!platformGpuDeviceAvailable) {
       return {false, "auto selected CPU: platform GPU intersection backend is unavailable"};
+    }
+
+    if (!platformGpuRenderPathAvailable) {
+      return {false, "auto selected CPU: platform GPU intersection render path is unavailable"};
     }
 
     if (!sceneCanUseGpu(diagnostics)) {
@@ -236,7 +241,18 @@ namespace render {
       if (!hostPlatformGpuBackendAvailable()) {
         WavefrontIntersectionSceneDiagnostics diagnostics;
         const WavefrontIntersectionBackendAutoSelectionDecision decision =
-          policy.decide(false, diagnostics, context);
+          policy.decide(false, false, diagnostics, context);
+        std::string reason = decision.reason;
+        reason += ": ";
+        reason += gpuUnavailableBackend().fallbackReason();
+        return makeDelegatingBackend("auto", "available", reason, {},
+                                     gpuUnavailableBackend().platformName());
+      }
+
+      if (!hostPlatformGpuRenderPathAvailable()) {
+        WavefrontIntersectionSceneDiagnostics diagnostics;
+        const WavefrontIntersectionBackendAutoSelectionDecision decision =
+          policy.decide(true, false, diagnostics, context);
         std::string reason = decision.reason;
         reason += ": ";
         reason += gpuUnavailableBackend().fallbackReason();
@@ -251,7 +267,7 @@ namespace render {
         WavefrontIntersectionSceneDiagnostics::fromCompiledSceneAndUploadBuffers(*compiled,
                                                                                  buffers);
       const WavefrontIntersectionBackendAutoSelectionDecision decision =
-        policy.decide(true, diagnostics, context);
+        policy.decide(true, true, diagnostics, context);
       if (!decision.useGpu) {
         return makeDelegatingBackend("auto", "available", decision.reason, diagnostics);
       }
@@ -354,6 +370,14 @@ namespace render {
 #endif
   }
 
+  bool WavefrontIntersectionBackendChoice::hostPlatformGpuRenderPathAvailable() const {
+#if defined(__APPLE__)
+    return MetalWavefrontIntersectionBackend::instance().platformGpuRenderPathAvailable();
+#else
+    return VulkanWavefrontIntersectionBackend::instance().platformGpuRenderPathAvailable();
+#endif
+  }
+
   std::shared_ptr<const WavefrontIntersectionBackend>
   WavefrontIntersectionBackendChoice::createPreparedGpuBackend(
     std::shared_ptr<const CompiledIntersectionScene> scene, std::string requestedName) const {
@@ -422,6 +446,10 @@ namespace render {
   }
 
   bool WavefrontIntersectionBackend::platformGpuDeviceAvailable() const {
+    return false;
+  }
+
+  bool WavefrontIntersectionBackend::platformGpuRenderPathAvailable() const {
     return false;
   }
 
@@ -1063,6 +1091,14 @@ namespace render {
     return isAvailable();
   }
 
+  bool MetalWavefrontIntersectionBackend::platformGpuRenderPathAvailable() const {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    return isAvailable();
+#else
+    return false;
+#endif
+  }
+
   bool MetalWavefrontIntersectionBackend::preparedPackedClosestHitAvailable() const {
     return metalBasicHitAvailable() ||
            WavefrontIntersectionBackend::preparedPackedClosestHitAvailable();
@@ -1302,6 +1338,10 @@ namespace render {
 
   bool VulkanWavefrontIntersectionBackend::platformGpuDeviceAvailable() const {
     return VulkanWavefrontSmokeKernel().deviceAvailable();
+  }
+
+  bool VulkanWavefrontIntersectionBackend::platformGpuRenderPathAvailable() const {
+    return false;
   }
 
   const CompiledIntersectionScene* VulkanWavefrontIntersectionBackend::compiledScene() const {

@@ -227,7 +227,10 @@ For a supported scene, the GPU path names the host platform backend that would
 run next: Metal on macOS, Vulkan elsewhere. Metal can now execute the
 exact-primitive basic subset, including static instance transforms, when the
 flag and device are present. Vulkan and scenes outside the basic Metal contract
-still report CPU fallback.
+still report CPU fallback. The metrics deliberately split platform GPU device
+availability from render-path availability: a Vulkan build may detect a compute
+device and run smoke kernels, but `auto` still selects CPU until Vulkan has
+closest-hit and any-hit render kernels.
 The scene-created backend object retains the compiled records it was prepared
 from and answers fallback closest-hit, packet closest-hit, and any-hit queries
 through the packed upload-buffer CPU traversal, with the compiled-scene CPU
@@ -259,8 +262,9 @@ next-event visibility samples. That estimate is deliberately conservative:
 runtime metrics still record the exact closest-hit, any-hit, and submitted-ray
 counts after the render finishes. rendercli summaries and Modeler graph
 tooltips show the expected-ray estimate next to backend choice, fallback,
-execution path, scene-upload bytes, and query-transfer bytes so a user can see
-why `auto` stayed on CPU or selected a GPU path.
+execution path, scene-upload bytes, query-transfer bytes, GPU device
+availability, and render-path availability so a user can see why `auto` stayed
+on CPU or selected a GPU path.
 
 The next boundary is the compiled intersection scene. GPU kernels
 cannot consume arbitrary C++ primitive objects, so

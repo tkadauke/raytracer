@@ -36,8 +36,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   and `auto` backend selection can distinguish missing Vulkan compute support
   from the still-unimplemented Vulkan render-path intersection kernel.
   Wavefront metrics JSON, rendercli summaries, and Modeler graph tooltips now
-  also expose platform GPU device availability and platform id as structured
-  backend trace data. — GPT-5
+  also expose platform GPU device availability, render-path availability, and
+  platform id as structured backend trace data. — GPT-5
 - **Direct-light any-hit batch metrics.** Wavefront metrics JSON, rendercli
   summaries, and Modeler graph tooltips now expose per-depth direct-light
   any-hit batch chunk/ray counters for backends that explicitly prefer grouped
@@ -558,6 +558,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   dependency-ready CPU-safe passes concurrently while preserving serial and
   limited executor caps, and skips queued dependents when cancellation or pass
   failures stop graph execution. — GPT-5
+- **Wavefront GPU auto-selection gate.** Wavefront `auto` intersection backend
+  selection now requires both a detected platform GPU device and a
+  render-path-capable backend before it can choose GPU, so Vulkan compute-smoke
+  availability no longer makes Vulkan look render-capable before Vulkan hit
+  kernels exist. — GPT-5
 - **Compiled box intersection bounds.** Boxes compiled for the wavefront GPU
   intersection scene now give each emitted triangle its own tight world-space
   BVH bounds instead of assigning every triangle the full box bounds, improving

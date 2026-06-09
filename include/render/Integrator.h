@@ -79,6 +79,7 @@ namespace render {
     std::string intersectionBackendFallbackReason;
     std::string intersectionBackendExecutionPath;
     bool intersectionBackendPlatformGpuDeviceAvailable{false};
+    bool intersectionBackendPlatformGpuRenderPathAvailable{false};
     bool intersectionSceneCompiled{false};
     std::uint64_t intersectionSceneBvhNodes{0};
     std::uint64_t intersectionScenePrimitives{0};

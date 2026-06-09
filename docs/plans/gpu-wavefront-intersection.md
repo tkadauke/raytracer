@@ -278,6 +278,11 @@ Progress:
   of only fallback text. Wavefront metrics JSON, rendercli summaries, and the
   Modeler graph tooltip expose the selected platform backend id and whether
   that platform backend saw a GPU device during the render.
+- Platform GPU render-path availability is now separate structured trace data.
+  Auto selection requires both a detected platform GPU device and a backend that
+  can run render-path hit kernels, so Vulkan compute-smoke availability no
+  longer makes `auto` treat the Vulkan backend as render-capable before Vulkan
+  closest-hit and any-hit kernels exist.
 
 ## Phase 1 - backend interface and CPU refactor
 
@@ -633,12 +638,12 @@ Progress:
   gates a visible upload/readback cost signal before real kernels are enabled.
 - `auto` backend selection now has an explicit policy object and receives a
   conservative expected-ray-count estimate from `WavefrontRaytracer`. It
-  requires platform GPU availability, a fully supported packed intersection
-  scene, and enough expected ray work to clear both the fixed minimum ray-count
-  gate and a scene-upload amortization gate before choosing the GPU path. When
-  no platform kernel is available in the build or runtime, `auto` stays on the
-  runtime CPU backend and reports that selection reason in render metrics and
-  graph trace.
+  requires platform GPU device availability, platform render-path availability,
+  a fully supported packed intersection scene, and enough expected ray work to
+  clear both the fixed minimum ray-count gate and a scene-upload amortization
+  gate before choosing the GPU path. When no platform render-path kernel is
+  available in the build or runtime, `auto` stays on the runtime CPU backend
+  and reports that selection reason in render metrics and graph trace.
 - The expected-ray-count estimate now comes from the selected integrator.
   Whitted renders scale by recursion depth, while path tracing scales by bounce
   count and direct-light visibility samples; metrics JSON records the final

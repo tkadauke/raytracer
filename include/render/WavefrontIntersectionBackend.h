@@ -79,7 +79,8 @@ namespace render {
   class WavefrontIntersectionBackendAutoSelectionPolicy {
   public:
     [[nodiscard]] WavefrontIntersectionBackendAutoSelectionDecision
-    decide(bool platformGpuAvailable, const WavefrontIntersectionSceneDiagnostics& diagnostics,
+    decide(bool platformGpuDeviceAvailable, bool platformGpuRenderPathAvailable,
+           const WavefrontIntersectionSceneDiagnostics& diagnostics,
            const WavefrontIntersectionBackendSelectionContext& context) const;
 
   private:
@@ -140,6 +141,7 @@ namespace render {
     [[nodiscard]] const WavefrontIntersectionBackend& automaticCpuBackend() const;
     [[nodiscard]] const WavefrontIntersectionBackend& gpuUnavailableBackend() const;
     [[nodiscard]] bool hostPlatformGpuBackendAvailable() const;
+    [[nodiscard]] bool hostPlatformGpuRenderPathAvailable() const;
     [[nodiscard]] std::shared_ptr<const WavefrontIntersectionBackend>
     createPreparedGpuBackend(std::shared_ptr<const CompiledIntersectionScene> scene,
                              std::string requestedName) const;
@@ -167,6 +169,7 @@ namespace render {
     virtual const char* closestHitExecutionPath() const;
     virtual const char* anyHitExecutionPath() const;
     virtual bool platformGpuDeviceAvailable() const;
+    virtual bool platformGpuRenderPathAvailable() const;
     virtual const CompiledIntersectionScene* compiledScene() const;
     virtual const GpuIntersectionSceneBuffers* gpuIntersectionSceneBuffers() const;
     virtual WavefrontIntersectionSceneDiagnostics compiledSceneDiagnostics() const;
@@ -291,6 +294,7 @@ namespace render {
     const char* closestHitExecutionPath() const override;
     const char* anyHitExecutionPath() const override;
     bool platformGpuDeviceAvailable() const override;
+    bool platformGpuRenderPathAvailable() const override;
     const CompiledIntersectionScene* compiledScene() const override;
     const GpuIntersectionSceneBuffers* gpuIntersectionSceneBuffers() const override;
     bool prefersClosestHitBatch(std::uint64_t submittedRays) const override;
@@ -371,6 +375,7 @@ namespace render {
     const char* closestHitExecutionPath() const override;
     const char* anyHitExecutionPath() const override;
     bool platformGpuDeviceAvailable() const override;
+    bool platformGpuRenderPathAvailable() const override;
     const CompiledIntersectionScene* compiledScene() const override;
     const GpuIntersectionSceneBuffers* gpuIntersectionSceneBuffers() const override;
     bool prefersClosestHitBatch(std::uint64_t submittedRays) const override;

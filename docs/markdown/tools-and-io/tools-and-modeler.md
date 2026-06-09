@@ -315,6 +315,7 @@ compact summary prints total `tiles`, `tile_grid`,
 `frontier_packet_scalar_fallback_by_reason`, `frontier_packet_refined_rays`,
 `frontier_packet_refined_by_material`, `sample_variance_pixels`,
 `sample_stddev_rms`, `max_sample_stddev`, `intersection_backend_gpu_device`,
+`intersection_backend_gpu_render_path`,
 `intersection_backend_platform`, `closest_hit_batch_preferred`,
 `any_hit_batch_preferred`, `emitter_hit_samples`,
 `primary_emitter_hit_samples`, `delta_emitter_hit_samples`,
@@ -341,7 +342,8 @@ per-depth `frontierRayHitsPerDepth`, `frontierRayMissesPerDepth`,
 `frontierPacketRefinedRaysPerDepth` arrays for deeper captures, plus
 `intersectionBackendPlatform` for the selected platform backend,
 `intersectionBackendPlatformGpuDeviceAvailable` for platform GPU device
-probing,
+probing, `intersectionBackendPlatformGpuRenderPathAvailable` for whether that
+platform backend can run the render-path intersection kernels,
 `intersectionBackendPrefersClosestHitBatch` and
 `intersectionBackendPrefersAnyHitBatch` for the backend's observed query-family
 batch preferences,
@@ -517,7 +519,10 @@ scene-created platform backend stub so the future Metal/Vulkan upload path can
 reuse the same preparation step. Metal-enabled builds also expose separate smoke
 kernel test paths outside rendering and can run the exact-primitive and
 static-transform basic closest-hit/any-hit subset in the render path when a
-Metal device is available. Scenes outside that subset use the supported packed
+Metal device is available. Auto selection distinguishes a detected GPU device
+from a render-path-capable backend, so Vulkan builds can report a compute device
+without being treated as GPU-render-capable before Vulkan hit kernels exist.
+Scenes outside that subset use the supported packed
 CPU traversal or the compiled CPU parity intersector; unsupported-scene fallback
 keeps the full runtime `Scene` path. The render graph pass tooltip shows the actual query
 execution path plus

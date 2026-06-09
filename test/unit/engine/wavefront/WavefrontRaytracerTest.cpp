@@ -1299,6 +1299,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(batching.value("intersectionScenePackedAnyHitEligible").toBool());
     EXPECT_EQ(metrics.batching.intersectionBackendPlatformGpuDeviceAvailable,
               batching.value("intersectionBackendPlatformGpuDeviceAvailable").toBool());
+    EXPECT_EQ(metrics.batching.intersectionBackendPlatformGpuRenderPathAvailable,
+              batching.value("intersectionBackendPlatformGpuRenderPathAvailable").toBool());
   }
 
   TEST(WavefrontRaytracer, RecordsGpuTriangleClosestHitPackedBackendMetrics) {

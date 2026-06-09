@@ -262,6 +262,9 @@ namespace {
         << " intersection_backend_gpu_device="
         << (batching.value("intersectionBackendPlatformGpuDeviceAvailable").toBool() ? "true"
                                                                                      : "false")
+        << " intersection_backend_gpu_render_path="
+        << (batching.value("intersectionBackendPlatformGpuRenderPathAvailable").toBool() ? "true"
+                                                                                         : "false")
         << " intersection_expected_rays="
         << unsignedValue(batching, "intersectionBackendExpectedRays")
         << " intersection_scene_compiled="

@@ -92,6 +92,9 @@ namespace engine::wavefront {
     intersectionBackendPlatformGpuDeviceAvailable =
       intersectionBackendPlatformGpuDeviceAvailable ||
       metrics.intersectionBackendPlatformGpuDeviceAvailable;
+    intersectionBackendPlatformGpuRenderPathAvailable =
+      intersectionBackendPlatformGpuRenderPathAvailable ||
+      metrics.intersectionBackendPlatformGpuRenderPathAvailable;
     intersectionSceneCompiled = intersectionSceneCompiled || metrics.intersectionSceneCompiled;
     intersectionSceneBvhNodes =
       std::max(intersectionSceneBvhNodes, metrics.intersectionSceneBvhNodes);
@@ -318,6 +321,8 @@ namespace engine::wavefront {
       QString::fromStdString(batching.intersectionBackendExecutionPath);
     batchingJson["intersectionBackendPlatformGpuDeviceAvailable"] =
       batching.intersectionBackendPlatformGpuDeviceAvailable;
+    batchingJson["intersectionBackendPlatformGpuRenderPathAvailable"] =
+      batching.intersectionBackendPlatformGpuRenderPathAvailable;
     batchingJson["intersectionBackendExpectedRays"] =
       static_cast<double>(batching.intersectionBackendExpectedRays);
     batchingJson["intersectionSceneCompiled"] = batching.intersectionSceneCompiled;
