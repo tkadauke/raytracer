@@ -82,7 +82,7 @@ namespace render {
           anyShaderGuard.device = device;
           anyShaderGuard.shaderModule = anyShader;
 
-          VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 7);
+          VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 10);
           DescriptorLayoutGuard descriptorLayoutGuard;
           descriptorLayoutGuard.device = device;
           descriptorLayoutGuard.layout = descriptorLayout;
@@ -216,7 +216,7 @@ namespace render {
         }
         if (!VulkanWavefrontIntersectionBackend::supportsPackedScene(scene)) {
           throw std::invalid_argument(
-            "Vulkan basic closest-hit kernel requires an untransformed triangle/sphere scene");
+            "Vulkan basic closest-hit kernel requires an untransformed exact-primitive scene");
         }
         if (rays.size() > std::numeric_limits<std::uint32_t>::max()) {
           throw std::runtime_error("Vulkan basic closest-hit ray batch is too large");
@@ -266,6 +266,12 @@ namespace render {
         bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, scene.spheres));
         bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.planes));
+        bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.rectangles));
+        bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.disks));
+        bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, rays));
 
         const VkDeviceSize hitByteCount =
@@ -278,10 +284,10 @@ namespace render {
           static_cast<std::uint32_t>(scene.primitives.size()),
           static_cast<std::uint32_t>(scene.triangles.size()),
           static_cast<std::uint32_t>(scene.spheres.size()),
+          static_cast<std::uint32_t>(scene.planes.size()),
+          static_cast<std::uint32_t>(scene.rectangles.size()),
+          static_cast<std::uint32_t>(scene.disks.size()),
           static_cast<std::uint32_t>(rays.size()),
-          0u,
-          0u,
-          0u,
         };
         bufferGuard.buffers.push_back(
           createStorageBuffer(device, selection.device, sizeof(counts), counts.data()));
@@ -334,7 +340,7 @@ namespace render {
 
         const auto readbackStart = std::chrono::steady_clock::now();
         result.hits = readBackRecords<GpuIntersectionHitRecord>(
-          device, bufferGuard.buffers[5].memory, hitByteCount, rays.size(),
+          device, bufferGuard.buffers[8].memory, hitByteCount, rays.size(),
           "Vulkan basic closest-hit output buffer mapping");
         const auto readbackEnd = std::chrono::steady_clock::now();
 
@@ -353,7 +359,7 @@ namespace render {
         }
         if (!VulkanWavefrontIntersectionBackend::supportsPackedScene(scene)) {
           throw std::invalid_argument(
-            "Vulkan basic any-hit kernel requires an untransformed triangle/sphere scene");
+            "Vulkan basic any-hit kernel requires an untransformed exact-primitive scene");
         }
         if (rays.size() > std::numeric_limits<std::uint32_t>::max()) {
           throw std::runtime_error("Vulkan basic any-hit ray batch is too large");
@@ -403,6 +409,12 @@ namespace render {
         bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, scene.spheres));
         bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.planes));
+        bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.rectangles));
+        bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.disks));
+        bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, rays));
 
         const VkDeviceSize recordByteCount =
@@ -415,10 +427,10 @@ namespace render {
           static_cast<std::uint32_t>(scene.primitives.size()),
           static_cast<std::uint32_t>(scene.triangles.size()),
           static_cast<std::uint32_t>(scene.spheres.size()),
+          static_cast<std::uint32_t>(scene.planes.size()),
+          static_cast<std::uint32_t>(scene.rectangles.size()),
+          static_cast<std::uint32_t>(scene.disks.size()),
           static_cast<std::uint32_t>(rays.size()),
-          0u,
-          0u,
-          0u,
         };
         bufferGuard.buffers.push_back(
           createStorageBuffer(device, selection.device, sizeof(counts), counts.data()));
@@ -471,7 +483,7 @@ namespace render {
 
         const auto readbackStart = std::chrono::steady_clock::now();
         result.records = readBackRecords<GpuIntersectionOcclusionRecord>(
-          device, bufferGuard.buffers[5].memory, recordByteCount, rays.size(),
+          device, bufferGuard.buffers[8].memory, recordByteCount, rays.size(),
           "Vulkan basic any-hit output buffer mapping");
         const auto readbackEnd = std::chrono::steady_clock::now();
 

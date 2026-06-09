@@ -270,7 +270,7 @@ namespace render {
       if (!VulkanWavefrontIntersectionBackend::supportsPackedScene(buffers)) {
         return makeDelegatingBackend(
           "auto", "available",
-          "auto selected CPU: intersection scene is not eligible for Vulkan triangle/sphere hit "
+          "auto selected CPU: intersection scene is not eligible for Vulkan exact-primitive hit "
           "kernels",
           diagnostics, gpuUnavailableBackend().platformName());
       }
@@ -1333,6 +1333,18 @@ namespace render {
         if (primitive.payloadOffset >= buffers.spheres.size()) {
           return false;
         }
+      } else if (kind == GpuIntersectionPrimitiveKind::Plane) {
+        if (primitive.payloadOffset >= buffers.planes.size()) {
+          return false;
+        }
+      } else if (kind == GpuIntersectionPrimitiveKind::Rectangle) {
+        if (primitive.payloadOffset >= buffers.rectangles.size()) {
+          return false;
+        }
+      } else if (kind == GpuIntersectionPrimitiveKind::Disk) {
+        if (primitive.payloadOffset >= buffers.disks.size()) {
+          return false;
+        }
       } else {
         return false;
       }
@@ -1385,16 +1397,16 @@ namespace render {
              "available";
     }
     if (!VulkanWavefrontSmokeKernel().renderPathAvailable()) {
-      return "Vulkan wavefront intersection backend is enabled but no render-path triangle/sphere "
-             "hit "
+      return "Vulkan wavefront intersection backend is enabled but no render-path "
+             "exact-primitive hit "
              "kernels are available";
     }
     if (!gpuIntersectionSceneBuffers()) {
-      return "Vulkan wavefront intersection backend is enabled but no prepared triangle/sphere "
+      return "Vulkan wavefront intersection backend is enabled but no prepared exact-primitive "
              "scene is available";
     }
     return "Vulkan wavefront intersection backend is enabled but the prepared scene is not "
-           "eligible for the Vulkan triangle/sphere hit kernels";
+           "eligible for the Vulkan exact-primitive hit kernels";
 #else
     return "Vulkan wavefront intersection backend is not enabled in this build";
 #endif

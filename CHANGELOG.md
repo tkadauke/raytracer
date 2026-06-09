@@ -44,18 +44,19 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   BVH/primitive/triangle/ray/hit ABI, with CPU packed-intersector parity
   coverage. — GPT-5
 - **Vulkan basic any-hit dispatch.** Vulkan-enabled builds now expose a direct
-  any-hit compute dispatch for prepared untransformed triangle and sphere scenes
-  over the packed BVH/primitive/payload/ray/occlusion ABI, with CPU
-  packed-intersector parity coverage. — GPT-5
-- **Vulkan triangle/sphere wavefront backend execution.** Vulkan-enabled builds
-  can now route prepared untransformed triangle and sphere scenes through Vulkan
-  closest-hit and any-hit wavefront intersection batches; other basic primitive
-  and static-transform scenes continue to fall back to packed CPU traversal
+  any-hit compute dispatch for prepared untransformed triangle, sphere, plane,
+  rectangle, and disk scenes over the packed BVH/primitive/payload/ray/occlusion
+  ABI, with CPU packed-intersector parity coverage. — GPT-5
+- **Vulkan exact-primitive wavefront backend execution.** Vulkan-enabled builds
+  can now route prepared untransformed triangle, sphere, plane, rectangle, and
+  disk scenes through Vulkan closest-hit and any-hit wavefront intersection
+  batches; static-transform scenes continue to fall back to packed CPU traversal
   until matching Vulkan kernels exist. — GPT-5
 - **Vulkan basic closest-hit dispatch.** Vulkan-enabled builds now expose a
-  direct closest-hit compute dispatch for prepared untransformed triangle and
-  sphere scenes over the packed BVH/primitive/payload/ray/hit ABI, with CPU
-  packed-intersector parity coverage. — GPT-5
+  direct closest-hit compute dispatch for prepared untransformed triangle,
+  sphere, plane, rectangle, and disk scenes over the packed
+  BVH/primitive/payload/ray/hit ABI, with CPU packed-intersector parity
+  coverage. — GPT-5
 - **Vulkan wavefront shader build path.** Vulkan-enabled builds now compile the
   wavefront smoke compute shader from GLSL into SPIR-V at build time instead
   of relying on an opaque hand-written SPIR-V word array, establishing the

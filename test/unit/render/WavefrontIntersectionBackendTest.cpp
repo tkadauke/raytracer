@@ -46,7 +46,8 @@ namespace WavefrontIntersectionBackendTest {
         reason.find("no render-path closest-hit kernel") != std::string::npos;
       const bool enabledWithoutBasicHitKernel =
         reason.find("no render-path basic hit kernel") != std::string::npos ||
-        reason.find("no render-path triangle/sphere hit kernel") != std::string::npos;
+        reason.find("no render-path triangle/sphere hit kernel") != std::string::npos ||
+        reason.find("no render-path exact-primitive hit kernel") != std::string::npos;
       const bool enabledWithoutDevice = reason.find("no Metal device") != std::string::npos;
       const bool enabledWithoutVulkanComputeDevice =
         reason.find("no Vulkan compute device") != std::string::npos;
@@ -54,10 +55,12 @@ namespace WavefrontIntersectionBackendTest {
         reason.find("not eligible for the Metal triangle") != std::string::npos;
       const bool noPreparedTriangleScene =
         reason.find("no prepared triangle scene") != std::string::npos ||
-        reason.find("no prepared triangle/sphere scene") != std::string::npos;
+        reason.find("no prepared triangle/sphere scene") != std::string::npos ||
+        reason.find("no prepared exact-primitive scene") != std::string::npos;
       const bool notBasicEligible =
         reason.find("not eligible for the Metal basic") != std::string::npos ||
-        reason.find("not eligible for the Vulkan triangle/sphere") != std::string::npos;
+        reason.find("not eligible for the Vulkan triangle/sphere") != std::string::npos ||
+        reason.find("not eligible for the Vulkan exact-primitive") != std::string::npos;
       const bool noPreparedBasicScene =
         reason.find("no prepared basic-hit scene") != std::string::npos;
       EXPECT_TRUE(disabled || enabledWithoutClosestHitKernel || enabledWithoutBasicHitKernel ||
@@ -507,6 +510,65 @@ namespace WavefrontIntersectionBackendTest {
 #endif
   }
 
+  TEST(VulkanWavefrontSmokeKernel, RunsExactPrimitiveBasicHitKernelsWhenEnabled) {
+    VulkanWavefrontSmokeKernel kernel;
+
+    Scene scene;
+    scene.add(std::make_shared<Plane>(Vector3d(0, 0, 1), -9.0));
+    scene.add(
+      std::make_shared<Rectangle>(Vector3d(-1, -1, 5), Vector3d(2, 0, 0), Vector3d(0, 2, 0)));
+    scene.add(std::make_shared<Disk>(Vector3d(3, 0, 4), Vector3d(0, 0, 1), 1.0));
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    ASSERT_FALSE(buffers.triangleClosestHitKernelEligible());
+    ASSERT_TRUE(buffers.basicHitKernelEligible());
+    ASSERT_TRUE(VulkanWavefrontIntersectionBackend::supportsPackedScene(buffers));
+
+    const std::vector<GpuIntersectionRay> rays{
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 3, 0, 1), Vector3d(0, 0, 1)), 21, 0.0,
+                                           10.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 22, 0.0,
+                                           10.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(3, 0, 0, 1), Vector3d(0, 0, 1)), 23, 0.0,
+                                           10.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(6, 0, 0, 1), Vector3d(0, 0, 1)), 24, 0.0,
+                                           3.5),
+    };
+
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    if (!kernel.deviceAvailable()) {
+      GTEST_SKIP() << "No Vulkan compute device is available";
+    }
+
+    const std::vector<GpuIntersectionHitRecord> expectedClosest =
+      GpuIntersectionIntersector().intersectClosest(buffers, rays);
+    const VulkanWavefrontClosestHitKernelResult actualClosest =
+      kernel.runTimedBasicClosestHitKernel(buffers, rays);
+
+    ASSERT_EQ(expectedClosest.size(), actualClosest.hits.size());
+    EXPECT_EQ(std::string("vulkan"), actualClosest.timing.executionPath);
+    for (std::size_t index = 0; index != expectedClosest.size(); ++index) {
+      expectGpuHitRecordNear(actualClosest.hits[index], expectedClosest[index]);
+    }
+
+    const std::vector<GpuIntersectionOcclusionRecord> expectedAny =
+      GpuIntersectionIntersector().intersectAny(buffers, rays);
+    const VulkanWavefrontAnyHitKernelResult actualAny =
+      kernel.runTimedBasicAnyHitKernel(buffers, rays);
+
+    ASSERT_EQ(expectedAny.size(), actualAny.records.size());
+    EXPECT_EQ(std::string("vulkan"), actualAny.timing.executionPath);
+    for (std::size_t index = 0; index != expectedAny.size(); ++index) {
+      EXPECT_EQ(expectedAny[index].occluded, actualAny.records[index].occluded);
+      EXPECT_EQ(expectedAny[index].rayIndex, actualAny.records[index].rayIndex);
+    }
+#else
+    EXPECT_THROW((void)kernel.runBasicClosestHitKernel(buffers, rays), std::runtime_error);
+    EXPECT_THROW((void)kernel.runBasicAnyHitKernel(buffers, rays), std::runtime_error);
+#endif
+  }
+
   TEST(MetalWavefrontSmokeKernel, RunsDummyHitMissKernelWhenEnabled) {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     MetalWavefrontSmokeKernel kernel;
@@ -805,7 +867,8 @@ namespace WavefrontIntersectionBackendTest {
         reason.find("no render-path closest-hit kernel") != std::string::npos;
       const bool enabledWithoutBasicHitKernel =
         reason.find("no render-path basic hit kernel") != std::string::npos ||
-        reason.find("no render-path triangle/sphere hit kernel") != std::string::npos;
+        reason.find("no render-path triangle/sphere hit kernel") != std::string::npos ||
+        reason.find("no render-path exact-primitive hit kernel") != std::string::npos;
       const bool enabledWithoutDevice = reason.find("no Metal device") != std::string::npos;
       const bool enabledWithoutVulkanComputeDevice =
         reason.find("no Vulkan compute device") != std::string::npos;
@@ -1000,16 +1063,23 @@ namespace WavefrontIntersectionBackendTest {
   }
 
   TEST(WavefrontIntersectionBackend, PreparedPackedQueriesReportPackedCpuTimingPath) {
-    auto rectangle =
-      std::make_shared<Rectangle>(Vector3d(-1, -1, 0), Vector3d(2, 0, 0), Vector3d(0, 2, 0));
+    auto triangle =
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));
+    auto instance = std::make_shared<Instance>(triangle);
+    instance->setMatrix(Matrix4d::translate(0, 0, 1));
     Scene sourceScene;
-    sourceScene.add(rectangle);
+    sourceScene.add(instance);
     Scene emptyScene;
 
     auto compiled = std::make_shared<const CompiledIntersectionScene>(
       IntersectionSceneCompiler().compile(sourceScene));
     const std::shared_ptr<const WavefrontIntersectionBackend> backend =
       VulkanWavefrontIntersectionBackend::createPrepared(compiled);
+    ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
+    EXPECT_FALSE(VulkanWavefrontIntersectionBackend::supportsPackedScene(
+      *backend->gpuIntersectionSceneBuffers()));
+    EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedClosestHitKernelEligible());
+    EXPECT_TRUE(backend->gpuIntersectionSceneBuffers()->packedAnyHitKernelEligible());
 
     State closestState;
     const std::vector<WavefrontClosestHitQuery> closestQueries{
@@ -1024,7 +1094,7 @@ namespace WavefrontIntersectionBackendTest {
 
     State anyState;
     const std::vector<WavefrontAnyHitQuery> anyQueries{
-      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 4.0, &anyState}};
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 5.0, &anyState}};
     WavefrontIntersectionQueryTiming anyTiming;
     const std::vector<bool> anyHits =
       backend->intersectAnyBatch(emptyScene, anyQueries, &anyTiming);
