@@ -429,6 +429,24 @@ namespace IntersectionSceneCompilerTest {
     expectCompiledClosestHitMatchesRuntime(scene, ray);
   }
 
+  TEST(CompiledIntersectionSceneIntersector, RejectsCoplanarParallelDiskLikeRuntimeScene) {
+    Scene scene;
+    scene.add(std::make_shared<Disk>(Vector3d(0, 0, 0), Vector3d(0, 0, 1), 1.0));
+    const Rayd ray(Vector4d(0, 0, 0, 1), Vector3d(1, 0, 0));
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const CompiledIntersectionHit compiledHit =
+      CompiledIntersectionSceneIntersector().intersectClosest(compiled, ray);
+
+    State state;
+    HitPointInterval hitPoints;
+    const Primitive* runtimeHit = scene.intersect(ray, hitPoints, state);
+
+    EXPECT_EQ(nullptr, runtimeHit);
+    EXPECT_FALSE(compiledHit.hit);
+    EXPECT_FALSE(CompiledIntersectionSceneIntersector().intersectAny(compiled, ray, 100.0));
+  }
+
   TEST(CompiledIntersectionSceneIntersector, IntersectsBoxTrianglesLikeRuntimeScene) {
     Scene scene;
     scene.add(std::make_shared<Box>(Vector3d(0, 0, 0), Vector3d(1, 1, 1)));

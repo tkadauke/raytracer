@@ -1031,6 +1031,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   cancellation now preserves contributions completed before the depth-boundary
   cancellation check, and scalar progressive display averages use truncating
   channel packing consistently. — GPT-5
+- **Disk coplanar-ray misses.** Runtime, packet, compiled CPU, and packed
+  GPU-style disk intersections now reject coplanar parallel rays consistently
+  before computing non-finite hit points. — GPT-5
 - **Rectangle coplanar-ray misses.** Runtime, packet, compiled CPU, and packed
   GPU-style rectangle intersections now reject coplanar parallel rays
   consistently instead of allowing NaN hit distances. — GPT-5

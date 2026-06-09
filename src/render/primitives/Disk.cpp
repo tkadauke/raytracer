@@ -12,7 +12,17 @@ using namespace render;
 
 const Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                  render::State& state) const {
-  double t = (m_center - ray.origin()) * m_normal / (ray.direction() * m_normal);
+  const double denominator = ray.direction() * m_normal;
+  if (denominator == 0.0) {
+    state.miss(this, "Disk, parallel");
+    return nullptr;
+  }
+
+  const double t = (m_center - ray.origin()) * m_normal / denominator;
+  if (!std::isfinite(t)) {
+    state.miss(this, "Disk, parallel");
+    return nullptr;
+  }
 
   Vector4d hitPoint = ray.at(t);
 
@@ -45,7 +55,18 @@ Result Disk::intersectPacketHitsFor(const Packet& rays, const StateArray& states
     }
     State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
-    const double t = (m_center - ray.origin()) * m_normal / (ray.direction() * m_normal);
+    const double denominator = ray.direction() * m_normal;
+    if (denominator == 0.0) {
+      state.miss(this, "Disk, parallel");
+      continue;
+    }
+
+    const double t = (m_center - ray.origin()) * m_normal / denominator;
+    if (!std::isfinite(t)) {
+      state.miss(this, "Disk, parallel");
+      continue;
+    }
+
     const Vector4d hitPoint = ray.at(t);
 
     if (hitPoint.squaredDistanceTo(m_center) >= m_squaredRadius) {

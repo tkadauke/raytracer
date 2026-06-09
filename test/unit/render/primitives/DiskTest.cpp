@@ -44,6 +44,20 @@ namespace DiskTest {
     ASSERT_EQ(1, state.intersectionMisses);
   }
 
+  TEST(Disk, ShouldNotIntersectWithCoplanarParallelRay) {
+    Disk disk(Vector3d(), Vector3d(0, 0, -1), 1);
+    Rayd ray(Vector3d(0, 0, 0), Vector3d(1, 0, 0));
+
+    State state;
+    HitPointInterval hitPoints;
+    auto primitive = disk.intersect(ray, hitPoints, state);
+
+    ASSERT_EQ(0, primitive);
+    ASSERT_TRUE(hitPoints.min().isUndefined());
+    ASSERT_EQ(0, state.intersectionHits);
+    ASSERT_EQ(1, state.intersectionMisses);
+  }
+
   TEST(Disk, ShouldNotIntersectIfDiskIsBehindRayOrigin) {
     Disk disk(Vector3d(), Vector3d(0, 0, -1), 1);
     Rayd ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
@@ -79,6 +93,26 @@ namespace DiskTest {
     EXPECT_FALSE(result.hit(3));
     EXPECT_EQ(1, laneStates[0].intersectionHits);
     EXPECT_EQ(1, laneStates[1].intersectionMisses);
+    EXPECT_EQ(1, laneStates[2].intersectionMisses);
+    EXPECT_EQ(1, laneStates[3].intersectionMisses);
+  }
+
+  TEST(Disk, ShouldRejectCoplanarParallelRay4PacketHits) {
+    Disk disk(Vector3d(), Vector3d(0, 0, -1), 1);
+    const Ray4 rays(std::array<Rayd, Ray4::lanes>{
+      Rayd(Vector3d(0, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)),
+      Rayd(Vector3d(2, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, 1))});
+    std::array<State, Ray4::lanes> laneStates;
+    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+
+    const auto result = disk.intersectPacketHits(rays, states);
+
+    EXPECT_FALSE(result.hit(0));
+    ASSERT_TRUE(result.hit(1));
+    EXPECT_FALSE(result.hit(2));
+    EXPECT_FALSE(result.hit(3));
+    EXPECT_EQ(1, laneStates[0].intersectionMisses);
+    EXPECT_EQ(1, laneStates[1].intersectionHits);
     EXPECT_EQ(1, laneStates[2].intersectionMisses);
     EXPECT_EQ(1, laneStates[3].intersectionMisses);
   }

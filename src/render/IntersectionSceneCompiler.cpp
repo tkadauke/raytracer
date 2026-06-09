@@ -813,8 +813,17 @@ CompiledIntersectionSceneIntersector::intersectDisk(const CompiledIntersectionSc
 
   const IntersectionDiskPayload& payload = scene.disks()[primitive.payloadOffset];
   const Rayd& localRay = primitiveRay->ray;
-  const double distance = (payload.center - Vector3d(localRay.origin())) * payload.normal /
-                          (localRay.direction() * payload.normal);
+  const double denominator = localRay.direction() * payload.normal;
+  if (denominator == 0.0) {
+    return std::nullopt;
+  }
+
+  const double distance =
+    (payload.center - Vector3d(localRay.origin())) * payload.normal / denominator;
+  if (!std::isfinite(distance)) {
+    return std::nullopt;
+  }
+
   const Vector4d point = localRay.at(distance);
 
   if (!(Vector3d(point).squaredDistanceTo(payload.center) < payload.radius * payload.radius)) {
