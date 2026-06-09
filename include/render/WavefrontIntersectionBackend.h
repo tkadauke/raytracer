@@ -130,7 +130,21 @@ namespace render {
   private:
     Kind m_kind;
 
-    static std::string normalized(std::string value);
+    [[nodiscard]] std::shared_ptr<const WavefrontIntersectionBackend> makeDelegatingBackend(
+      std::string requestedName, std::string availability, std::string fallbackReason,
+      WavefrontIntersectionSceneDiagnostics diagnostics = {}, std::string platformName = {}) const;
+    [[nodiscard]] std::shared_ptr<const WavefrontIntersectionBackend>
+    staticBackend(const WavefrontIntersectionBackend& backend) const;
+    [[nodiscard]] std::string
+    gpuSceneUnsupportedReason(const CompiledIntersectionScene& scene) const;
+    [[nodiscard]] const WavefrontIntersectionBackend& automaticCpuBackend() const;
+    [[nodiscard]] const WavefrontIntersectionBackend& gpuUnavailableBackend() const;
+    [[nodiscard]] bool hostPlatformGpuBackendAvailable() const;
+    [[nodiscard]] std::shared_ptr<const WavefrontIntersectionBackend>
+    createPreparedGpuBackend(std::shared_ptr<const CompiledIntersectionScene> scene,
+                             std::string requestedName) const;
+
+    [[nodiscard]] static std::string normalized(std::string value);
   };
 
   /**

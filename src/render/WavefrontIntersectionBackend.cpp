@@ -94,72 +94,6 @@ namespace render {
       WavefrontIntersectionSceneDiagnostics m_diagnostics;
       std::string m_platformName;
     };
-
-    std::shared_ptr<const WavefrontIntersectionBackend> makeDelegatingBackend(
-      std::string requestedName, std::string availability, std::string fallbackReason,
-      WavefrontIntersectionSceneDiagnostics diagnostics = {}, std::string platformName = {}) {
-      return std::make_shared<CpuDelegatingWavefrontIntersectionBackend>(
-        std::move(requestedName), std::move(availability), std::move(fallbackReason), diagnostics,
-        std::move(platformName));
-    }
-
-    std::shared_ptr<const WavefrontIntersectionBackend>
-    staticBackend(const WavefrontIntersectionBackend& backend) {
-      return std::shared_ptr<const WavefrontIntersectionBackend>(&backend, [](const auto*) {});
-    }
-
-    std::string gpuSceneUnsupportedReason(const CompiledIntersectionScene& scene) {
-      if (scene.unsupportedPrimitives().empty())
-        return "GPU intersection scene is unsupported";
-
-      const UnsupportedIntersectionPrimitive& unsupported = scene.unsupportedPrimitives().front();
-      std::string result = "GPU intersection scene unsupported";
-      if (!unsupported.primitiveName.empty()) {
-        result += ": ";
-        result += unsupported.primitiveName;
-      }
-      result += ": ";
-      result += unsupported.reason;
-      if (scene.unsupportedPrimitives().size() > 1) {
-        result += " (";
-        result += std::to_string(scene.unsupportedPrimitives().size());
-        result += " unsupported leaves)";
-      }
-      return result;
-    }
-
-    const WavefrontIntersectionBackend& automaticCpuBackend() {
-      static const CpuDelegatingWavefrontIntersectionBackend backend("auto", "available", "");
-      return backend;
-    }
-
-    const WavefrontIntersectionBackend& gpuUnavailableBackend() {
-#if defined(__APPLE__)
-      return MetalWavefrontIntersectionBackend::instance();
-#else
-      return VulkanWavefrontIntersectionBackend::instance();
-#endif
-    }
-
-    bool hostPlatformGpuBackendAvailable() {
-#if defined(__APPLE__)
-      return MetalWavefrontIntersectionBackend::instance().isAvailable();
-#else
-      return VulkanWavefrontIntersectionBackend::instance().isAvailable();
-#endif
-    }
-
-    std::shared_ptr<const WavefrontIntersectionBackend>
-    createPreparedGpuBackend(std::shared_ptr<const CompiledIntersectionScene> scene,
-                             std::string requestedName) {
-#if defined(__APPLE__)
-      return MetalWavefrontIntersectionBackend::createPrepared(std::move(scene),
-                                                               std::move(requestedName));
-#else
-      return VulkanWavefrontIntersectionBackend::createPrepared(std::move(scene),
-                                                                std::move(requestedName));
-#endif
-    }
   }
 
   WavefrontIntersectionBackendAutoSelectionDecision
@@ -359,6 +293,77 @@ namespace render {
                      [](char ch) { return ch == '_' || ch == '-' || ch == ',' || ch == ' '; }),
       value.end());
     return value;
+  }
+
+  std::shared_ptr<const WavefrontIntersectionBackend>
+  WavefrontIntersectionBackendChoice::makeDelegatingBackend(
+    std::string requestedName, std::string availability, std::string fallbackReason,
+    WavefrontIntersectionSceneDiagnostics diagnostics, std::string platformName) const {
+    return std::make_shared<CpuDelegatingWavefrontIntersectionBackend>(
+      std::move(requestedName), std::move(availability), std::move(fallbackReason), diagnostics,
+      std::move(platformName));
+  }
+
+  std::shared_ptr<const WavefrontIntersectionBackend>
+  WavefrontIntersectionBackendChoice::staticBackend(
+    const WavefrontIntersectionBackend& backend) const {
+    return std::shared_ptr<const WavefrontIntersectionBackend>(&backend, [](const auto*) {});
+  }
+
+  std::string WavefrontIntersectionBackendChoice::gpuSceneUnsupportedReason(
+    const CompiledIntersectionScene& scene) const {
+    if (scene.unsupportedPrimitives().empty())
+      return "GPU intersection scene is unsupported";
+
+    const UnsupportedIntersectionPrimitive& unsupported = scene.unsupportedPrimitives().front();
+    std::string result = "GPU intersection scene unsupported";
+    if (!unsupported.primitiveName.empty()) {
+      result += ": ";
+      result += unsupported.primitiveName;
+    }
+    result += ": ";
+    result += unsupported.reason;
+    if (scene.unsupportedPrimitives().size() > 1) {
+      result += " (";
+      result += std::to_string(scene.unsupportedPrimitives().size());
+      result += " unsupported leaves)";
+    }
+    return result;
+  }
+
+  const WavefrontIntersectionBackend&
+  WavefrontIntersectionBackendChoice::automaticCpuBackend() const {
+    static const CpuDelegatingWavefrontIntersectionBackend backend("auto", "available", "");
+    return backend;
+  }
+
+  const WavefrontIntersectionBackend&
+  WavefrontIntersectionBackendChoice::gpuUnavailableBackend() const {
+#if defined(__APPLE__)
+    return MetalWavefrontIntersectionBackend::instance();
+#else
+    return VulkanWavefrontIntersectionBackend::instance();
+#endif
+  }
+
+  bool WavefrontIntersectionBackendChoice::hostPlatformGpuBackendAvailable() const {
+#if defined(__APPLE__)
+    return MetalWavefrontIntersectionBackend::instance().isAvailable();
+#else
+    return VulkanWavefrontIntersectionBackend::instance().isAvailable();
+#endif
+  }
+
+  std::shared_ptr<const WavefrontIntersectionBackend>
+  WavefrontIntersectionBackendChoice::createPreparedGpuBackend(
+    std::shared_ptr<const CompiledIntersectionScene> scene, std::string requestedName) const {
+#if defined(__APPLE__)
+    return MetalWavefrontIntersectionBackend::createPrepared(std::move(scene),
+                                                             std::move(requestedName));
+#else
+    return VulkanWavefrontIntersectionBackend::createPrepared(std::move(scene),
+                                                              std::move(requestedName));
+#endif
   }
 
   WavefrontIntersectionSceneDiagnostics
