@@ -57,6 +57,7 @@ namespace render {
   struct WhittedIntegrator::QueuedHit {
     std::size_t queuedIndex{0};
     const Primitive* primitive{nullptr};
+    std::shared_ptr<Material> material;
     HitPoint hitPoint;
   };
 
@@ -264,7 +265,8 @@ namespace render {
     if (depthMetrics.trackFrontierMetrics) {
       ++depthMetrics.frontierRayHits;
     }
-    activeHits.push_back(QueuedHit{queuedIndex, primitive, hitPoints.minWithPositiveDistance()});
+    activeHits.push_back(QueuedHit{queuedIndex, primitive, primitive->material(),
+                                   hitPoints.minWithPositiveDistance()});
   }
 
   void WhittedIntegrator::intersectQueuedRayPacket(
@@ -346,7 +348,8 @@ namespace render {
         if (depthMetrics.trackFrontierMetrics) {
           ++depthMetrics.frontierRayHits;
         }
-        activeHits.push_back(QueuedHit{firstQueuedIndex + lane, packetHits.primitive(lane),
+        const Primitive* primitive = packetHits.primitive(lane);
+        activeHits.push_back(QueuedHit{firstQueuedIndex + lane, primitive, primitive->material(),
                                        packetHits.hitPoint(lane)});
       }
       return;
@@ -405,7 +408,8 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics) {
         ++depthMetrics.frontierRayHits;
       }
-      activeHits.push_back(QueuedHit{firstQueuedIndex + lane, hitPrimitive, hitPoint});
+      activeHits.push_back(
+        QueuedHit{firstQueuedIndex + lane, hitPrimitive, hitPrimitive->material(), hitPoint});
     }
   }
 
@@ -489,7 +493,8 @@ namespace render {
         if (depthMetrics.trackFrontierMetrics) {
           ++depthMetrics.frontierRayHits;
         }
-        activeHits.push_back(QueuedHit{firstQueuedIndex + lane, packetHits.primitive(lane),
+        const Primitive* primitive = packetHits.primitive(lane);
+        activeHits.push_back(QueuedHit{firstQueuedIndex + lane, primitive, primitive->material(),
                                        packetHits.hitPoint(lane)});
       }
       return;
@@ -548,7 +553,8 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics) {
         ++depthMetrics.frontierRayHits;
       }
-      activeHits.push_back(QueuedHit{firstQueuedIndex + lane, hitPrimitive, hitPoint});
+      activeHits.push_back(
+        QueuedHit{firstQueuedIndex + lane, hitPrimitive, hitPrimitive->material(), hitPoint});
     }
   }
 
@@ -599,8 +605,8 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics) {
         ++depthMetrics.frontierRayHits;
       }
-      activeHits.push_back(
-        QueuedHit{queuedIndex, hits[queuedIndex].primitive, hits[queuedIndex].hitPoint});
+      activeHits.push_back(QueuedHit{queuedIndex, hits[queuedIndex].primitive,
+                                     hits[queuedIndex].material, hits[queuedIndex].hitPoint});
     }
   }
 
@@ -721,7 +727,7 @@ namespace render {
       queued.state.hitPoint = hit.hitPoint;
     }
 
-    const auto material = hit.primitive->material();
+    const auto material = hit.material ? hit.material : hit.primitive->material();
     if (!material) {
       queued.state.recordEvent(nullptr, "Raytracer: no material found, returning black");
       return;

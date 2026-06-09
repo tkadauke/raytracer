@@ -1109,6 +1109,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   cancellation now preserves contributions completed before the depth-boundary
   cancellation check, and scalar progressive display averages use truncating
   channel packing consistently. — GPT-5
+- **Packed wavefront inherited materials.** GPU-requested wavefront renders now
+  shade packed closest-hit records with the material recorded by the compiled
+  intersection scene, so supported composites such as unbeveled cylinders keep
+  their parent material instead of rendering child surfaces black. — GPT-5
 - **Disk coplanar-ray misses.** Runtime, packet, compiled CPU, and packed
   GPU-style disk intersections now reject coplanar parallel rays consistently
   before computing non-finite hit points. — GPT-5

@@ -111,6 +111,7 @@ namespace render {
   struct PathTracingIntegrator::BatchHit {
     std::size_t pathIndex{0};
     const Primitive* primitive{nullptr};
+    std::shared_ptr<Material> material;
     HitPoint hitPoint;
   };
 
@@ -414,7 +415,7 @@ namespace render {
     if (bounce == 0) {
       path.state.hitPoint = hitPoint;
     }
-    activeHits.push_back(BatchHit{pathIndex, &primitive, hitPoint});
+    activeHits.push_back(BatchHit{pathIndex, &primitive, primitive.material(), hitPoint});
   }
 
   void PathTracingIntegrator::recordFrontierMiss(const Scene& scene, BatchPath& path,
@@ -659,6 +660,7 @@ namespace render {
 
       recordFrontierHit(pathIndex, path, *hits[pathIndex].primitive, hits[pathIndex].hitPoint,
                         bounce, depthMetrics, activeHits);
+      activeHits.back().material = hits[pathIndex].material;
     }
   }
 
@@ -990,7 +992,7 @@ namespace render {
           depthMetrics.trackRadianceDelta ? path.accumulated() : Colord::black();
         {
           core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
-          const auto material = hit.primitive->material();
+          const auto material = hit.material ? hit.material : hit.primitive->material();
           if (!material) {
             path.state.recurseOut();
             recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());

@@ -14,9 +14,11 @@
 #include "render/State.h"
 #include "render/VulkanWavefrontSmokeKernel.h"
 #include "render/WavefrontIntersectionBackend.h"
+#include "render/materials/MatteMaterial.h"
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
 #include "render/MetalWavefrontSmokeKernel.h"
 #endif
+#include "render/primitives/ClosedSolidUnion.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/OpenCylinder.h"
@@ -26,6 +28,7 @@
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Torus.h"
 #include "render/primitives/Triangle.h"
+#include "render/textures/ConstantColorTexture.h"
 
 namespace WavefrontIntersectionBackendTest {
   using namespace render;
@@ -1381,6 +1384,41 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0, hitState.intersectionMisses);
     EXPECT_EQ(0, missState.intersectionHits);
     EXPECT_EQ(1, missState.intersectionMisses);
+  }
+
+  TEST(WavefrontIntersectionBackend, PreparedGpuClosestHitBatchPreservesInheritedMaterial) {
+    auto material =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
+    auto cylinder = std::make_shared<ClosedSolidUnion>();
+    cylinder->setMaterial(material);
+    cylinder->add(std::make_shared<OpenCylinder>(1.0, 2.0));
+    cylinder->add(std::make_shared<Disk>(Vector3d(0, -1, 0), Vector3d(0, -1, 0), 1.0));
+    cylinder->add(std::make_shared<Disk>(Vector3d(0, 1, 0), Vector3d(0, 1, 0), 1.0));
+    Scene sourceScene;
+    sourceScene.add(cylinder);
+    Scene emptyScene;
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(sourceScene);
+
+    ASSERT_NE(nullptr, backend->compiledScene());
+    ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
+    ASSERT_TRUE(backend->prefersClosestHitBatch(2));
+
+    State sideState;
+    State missState;
+    const std::vector<WavefrontClosestHitQuery> queries{
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), &sideState},
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 3, -4), Vector3d(0, 0, 1)), &missState}};
+
+    const std::vector<WavefrontClosestHitResult> hits =
+      backend->intersectClosestBatch(emptyScene, queries);
+
+    ASSERT_EQ(2u, hits.size());
+    ASSERT_TRUE(hits[0].hit());
+    EXPECT_NE(nullptr, hits[0].primitive);
+    EXPECT_EQ(material, hits[0].material);
+    EXPECT_FALSE(hits[1].hit());
   }
 
   TEST(WavefrontIntersectionBackend, PreparedPackedQueriesReportPreparedTimingPath) {

@@ -623,6 +623,9 @@ namespace render {
 
     const Primitive* primitive = scene.objects()[hit.object];
     result.primitive = primitive;
+    if (hit.material < scene.materials().size()) {
+      result.material = scene.materials()[hit.material];
+    }
     result.hitPoint = HitPoint(
       primitive, hit.distance, Vector4d(hit.point[0], hit.point[1], hit.point[2], hit.point[3]),
       Vector3d(hit.normal[0], hit.normal[1], hit.normal[2]), Vector2d(hit.uv[0], hit.uv[1]));
@@ -766,7 +769,7 @@ namespace render {
       }
       const HitPoint& hitPoint = hitPoints.minWithPositiveDistance();
       if (!hitPoint.isUndefined()) {
-        results[index] = WavefrontClosestHitResult{primitive, hitPoint};
+        results[index] = WavefrontClosestHitResult{primitive, primitive->material(), hitPoint};
       }
     }
     return results;

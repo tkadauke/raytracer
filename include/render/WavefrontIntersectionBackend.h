@@ -12,6 +12,7 @@
 
 namespace render {
   class CompiledIntersectionScene;
+  class Material;
   struct GpuIntersectionHitRecord;
   struct GpuIntersectionOcclusionRecord;
   struct GpuIntersectionPrimitiveRecord;
@@ -66,6 +67,7 @@ namespace render {
 
   struct WavefrontClosestHitResult {
     const Primitive* primitive{nullptr};
+    std::shared_ptr<Material> material;
     HitPoint hitPoint;
 
     [[nodiscard]] bool hit() const {
