@@ -43,6 +43,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   direct triangle closest-hit compute dispatch over the packed
   BVH/primitive/triangle/ray/hit ABI, with CPU packed-intersector parity
   coverage. — GPT-5
+- **Wavefront platform-dispatch fallback reasons.** If a Metal or Vulkan
+  wavefront intersection query falls back to the packed CPU path after a
+  platform kernel failure, metrics now preserve the query-level fallback reason
+  instead of only reporting the fallback execution path. — GPT-5
 - **GPU wavefront backend availability reasons.** Metal and Vulkan wavefront
   intersection probes now expose device/render-path failure details, and backend
   fallback text includes those details instead of only generic unavailable

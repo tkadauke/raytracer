@@ -227,11 +227,27 @@ namespace render {
       intersectionScenePackedAnyHitEligible || diagnostics.packedAnyHitKernelEligible;
   }
 
+  void IntegratorBatchMetrics::recordIntersectionQueryFallbackReason(
+    const WavefrontIntersectionBackend& backend, const WavefrontIntersectionQueryTiming& timing) {
+    if (timing.fallbackReason.empty()) {
+      return;
+    }
+    const std::string backendFallbackReason = nonEmptyLabel(backend.fallbackReason(), "");
+    if (intersectionBackendFallbackReason.empty() ||
+        intersectionBackendFallbackReason == backendFallbackReason ||
+        intersectionBackendFallbackReason == timing.fallbackReason) {
+      intersectionBackendFallbackReason = timing.fallbackReason;
+      return;
+    }
+    intersectionBackendFallbackReason = "mixed";
+  }
+
   void
   IntegratorBatchMetrics::recordClosestHitQuery(const WavefrontIntersectionBackend& backend,
                                                 std::uint64_t submittedRays,
                                                 const WavefrontIntersectionQueryTiming& timing) {
     recordIntersectionBackend(backend);
+    recordIntersectionQueryFallbackReason(backend, timing);
     mergeLabel(intersectionBackendExecutionPath,
                timing.executionPath.empty()
                  ? nonEmptyLabel(backend.closestHitExecutionPath(), "unknown")
@@ -255,6 +271,7 @@ namespace render {
                                                  std::uint64_t submittedRays,
                                                  const WavefrontIntersectionQueryTiming& timing) {
     recordIntersectionBackend(backend);
+    recordIntersectionQueryFallbackReason(backend, timing);
     mergeLabel(intersectionBackendExecutionPath,
                timing.executionPath.empty()
                  ? nonEmptyLabel(backend.anyHitExecutionPath(), "unknown")

@@ -103,26 +103,32 @@ namespace WavefrontIntersectionBackendTest {
     WavefrontIntersectionQueryTiming packed;
     packed.uploadSeconds = 1.0;
     packed.recordExecutionPath("packed_cpu");
+    packed.recordFallbackReason("platform dispatch failed");
     timing.add(packed);
 
     EXPECT_DOUBLE_EQ(1.0, timing.uploadSeconds);
     EXPECT_EQ("packed_cpu", timing.executionPath);
+    EXPECT_EQ("platform dispatch failed", timing.fallbackReason);
 
     WavefrontIntersectionQueryTiming samePath;
     samePath.kernelSeconds = 2.0;
     samePath.recordExecutionPath("packed_cpu");
+    samePath.recordFallbackReason("platform dispatch failed");
     timing.add(samePath);
 
     EXPECT_DOUBLE_EQ(2.0, timing.kernelSeconds);
     EXPECT_EQ("packed_cpu", timing.executionPath);
+    EXPECT_EQ("platform dispatch failed", timing.fallbackReason);
 
     WavefrontIntersectionQueryTiming metal;
     metal.readbackSeconds = 3.0;
     metal.recordExecutionPath("metal");
+    metal.recordFallbackReason("other dispatch failed");
     timing.add(metal);
 
     EXPECT_DOUBLE_EQ(3.0, timing.readbackSeconds);
     EXPECT_EQ("mixed", timing.executionPath);
+    EXPECT_EQ("mixed", timing.fallbackReason);
   }
 
   TEST(WavefrontIntersectionBackend, CpuBackendReportsRuntimeSceneExecutionPath) {

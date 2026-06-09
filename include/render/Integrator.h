@@ -133,6 +133,8 @@ namespace render {
     void recordPacketScalarFallbacksByReason(const std::map<std::string, std::uint64_t>& reasons);
     void recordPacketHitRefinement(const std::string& materialLabel);
     void recordIntersectionBackend(const WavefrontIntersectionBackend& backend);
+    void recordIntersectionQueryFallbackReason(const WavefrontIntersectionBackend& backend,
+                                               const WavefrontIntersectionQueryTiming& timing);
     void recordClosestHitQuery(const WavefrontIntersectionBackend& backend,
                                std::uint64_t submittedRays,
                                const WavefrontIntersectionQueryTiming& timing = {});

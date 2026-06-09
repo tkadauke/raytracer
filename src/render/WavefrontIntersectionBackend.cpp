@@ -1184,7 +1184,10 @@ namespace render {
         timing->recordExecutionPath("metal");
       }
       return result.hits;
-    } catch (const std::exception&) {
+    } catch (const std::exception& e) {
+      if (timing) {
+        timing->recordFallbackReason(std::string("Metal closest-hit kernel failed: ") + e.what());
+      }
       return WavefrontIntersectionBackend::intersectPreparedPackedClosest(rays, timing);
     }
 #else
@@ -1219,7 +1222,10 @@ namespace render {
         timing->recordExecutionPath("metal");
       }
       return result.records;
-    } catch (const std::exception&) {
+    } catch (const std::exception& e) {
+      if (timing) {
+        timing->recordFallbackReason(std::string("Metal any-hit kernel failed: ") + e.what());
+      }
       return WavefrontIntersectionBackend::intersectPreparedPackedAny(rays, timing);
     }
 #else
@@ -1467,7 +1473,10 @@ namespace render {
         timing->recordExecutionPath("vulkan");
       }
       return result.hits;
-    } catch (const std::exception&) {
+    } catch (const std::exception& e) {
+      if (timing) {
+        timing->recordFallbackReason(std::string("Vulkan closest-hit kernel failed: ") + e.what());
+      }
       return WavefrontIntersectionBackend::intersectPreparedPackedClosest(rays, timing);
     }
 #else
@@ -1502,7 +1511,10 @@ namespace render {
         timing->recordExecutionPath("vulkan");
       }
       return result.records;
-    } catch (const std::exception&) {
+    } catch (const std::exception& e) {
+      if (timing) {
+        timing->recordFallbackReason(std::string("Vulkan any-hit kernel failed: ") + e.what());
+      }
       return WavefrontIntersectionBackend::intersectPreparedPackedAny(rays, timing);
     }
 #else

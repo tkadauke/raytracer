@@ -101,12 +101,14 @@ namespace IntegratorTest {
     closestTiming.kernelSeconds = 0.002;
     closestTiming.readbackSeconds = 0.003;
     closestTiming.recordExecutionPath("packed_cpu");
+    closestTiming.recordFallbackReason("platform closest-hit failed");
     metrics.recordClosestHitQuery(*backend, 4, closestTiming);
 
     EXPECT_EQ("gpu", metrics.intersectionBackendRequest);
     EXPECT_EQ("cpu", metrics.intersectionBackend);
     EXPECT_EQ(backend->platformName(), metrics.intersectionBackendPlatform);
     EXPECT_EQ("fallback", metrics.intersectionBackendAvailability);
+    EXPECT_EQ("platform closest-hit failed", metrics.intersectionBackendFallbackReason);
     EXPECT_EQ("packed_cpu", metrics.intersectionBackendExecutionPath);
     EXPECT_EQ(backend->platformGpuDeviceAvailable(),
               metrics.intersectionBackendPlatformGpuDeviceAvailable);
@@ -140,9 +142,11 @@ namespace IntegratorTest {
     anyTiming.kernelSeconds = 0.005;
     anyTiming.readbackSeconds = 0.006;
     anyTiming.recordExecutionPath("compiled_cpu");
+    anyTiming.recordFallbackReason("platform any-hit failed");
     metrics.recordAnyHitQuery(*backend, 1, anyTiming);
 
     EXPECT_EQ("mixed", metrics.intersectionBackendExecutionPath);
+    EXPECT_EQ("mixed", metrics.intersectionBackendFallbackReason);
     EXPECT_EQ(5u, metrics.intersectionRaysSubmitted);
     EXPECT_EQ(4u, metrics.closestHitRaysSubmitted);
     EXPECT_EQ(1u, metrics.anyHitRaysSubmitted);
