@@ -89,6 +89,10 @@ namespace engine::wavefront {
     mergeLabel(intersectionBackendAvailability, metrics.intersectionBackendAvailability);
     mergeLabel(intersectionBackendFallbackReason, metrics.intersectionBackendFallbackReason);
     mergeLabel(intersectionBackendExecutionPath, metrics.intersectionBackendExecutionPath);
+    mergeLabel(intersectionBackendClosestHitExecutionPath,
+               metrics.intersectionBackendClosestHitExecutionPath);
+    mergeLabel(intersectionBackendAnyHitExecutionPath,
+               metrics.intersectionBackendAnyHitExecutionPath);
     intersectionBackendPlatformGpuDeviceAvailable =
       intersectionBackendPlatformGpuDeviceAvailable ||
       metrics.intersectionBackendPlatformGpuDeviceAvailable;
@@ -321,6 +325,10 @@ namespace engine::wavefront {
       QString::fromStdString(batching.intersectionBackendFallbackReason);
     batchingJson["intersectionBackendExecutionPath"] =
       QString::fromStdString(batching.intersectionBackendExecutionPath);
+    batchingJson["intersectionBackendClosestHitExecutionPath"] =
+      QString::fromStdString(batching.intersectionBackendClosestHitExecutionPath);
+    batchingJson["intersectionBackendAnyHitExecutionPath"] =
+      QString::fromStdString(batching.intersectionBackendAnyHitExecutionPath);
     batchingJson["intersectionBackendPlatformGpuDeviceAvailable"] =
       batching.intersectionBackendPlatformGpuDeviceAvailable;
     batchingJson["intersectionBackendPlatformGpuRenderPathAvailable"] =

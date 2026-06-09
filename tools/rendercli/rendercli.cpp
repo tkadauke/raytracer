@@ -259,6 +259,10 @@ namespace {
         << compactTextValue(batching.value("intersectionBackendFallbackReason"), "none")
         << " intersection_backend_execution="
         << compactTextValue(batching.value("intersectionBackendExecutionPath"), "unknown")
+        << " closest_hit_execution="
+        << compactTextValue(batching.value("intersectionBackendClosestHitExecutionPath"), "none")
+        << " any_hit_execution="
+        << compactTextValue(batching.value("intersectionBackendAnyHitExecutionPath"), "none")
         << " intersection_backend_gpu_device="
         << (batching.value("intersectionBackendPlatformGpuDeviceAvailable").toBool() ? "true"
                                                                                      : "false")

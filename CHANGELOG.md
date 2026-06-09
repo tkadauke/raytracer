@@ -48,6 +48,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
   — GPT-5
+- **Wavefront query-family execution diagnostics.** Wavefront metrics JSON,
+  rendercli compact summaries, and Modeler graph metadata now report closest-hit
+  and any-hit execution paths separately alongside the existing combined
+  intersection execution path. — GPT-5
 - **Complete wavefront payload-count diagnostics.** rendercli summaries and
   Modeler graph tooltips now expose plane, rectangle, disk, transform, and
   unsupported compiled-scene counts alongside triangle, sphere, and

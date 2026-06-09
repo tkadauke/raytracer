@@ -297,7 +297,8 @@ per-depth frontier hit/miss counts, compatibility fallback counts, convergence
 thresholds, unsupported path-material counts, stop decisions, denoiser
 diagnostics when enabled, convergence
 feedback depth counts, tile load-balance counts, requested and resolved
-intersection backend names, actual query execution path, and fallback reason,
+intersection backend names, combined plus closest-hit/any-hit query execution
+paths, and fallback reason,
 backend upload/setup, kernel, and readback timing buckets when a platform
 kernel runs,
 per-pixel sample radiance
@@ -319,7 +320,8 @@ compact summary prints total `tiles`, `tile_grid`,
 `frontier_packet_refined_by_material`, `sample_variance_pixels`,
 `sample_stddev_rms`, `max_sample_stddev`, `intersection_backend_gpu_device`,
 `intersection_backend_gpu_render_path`,
-`intersection_backend_platform`, `closest_hit_batch_preferred`,
+`intersection_backend_platform`, `closest_hit_execution`, `any_hit_execution`,
+`closest_hit_batch_preferred`,
 `any_hit_batch_preferred`, `intersection_scene_triangles`,
 `intersection_scene_spheres`, `intersection_scene_planes`,
 `intersection_scene_rectangles`, `intersection_scene_disks`,

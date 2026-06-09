@@ -623,6 +623,9 @@ Progress:
 - Wavefront diagnostics now split submitted intersection rays by closest-hit and
   any-hit query family, so batched visibility can be inspected as both one
   backend query and multiple submitted shadow rays.
+- Wavefront diagnostics now also retain closest-hit and any-hit execution paths
+  separately alongside the combined backend execution path, so mixed query
+  families stay inspectable instead of collapsing all detail to `mixed`.
 - Direct-light visibility batching now also records per-depth any-hit batch
   chunks and rays for backend-preferred grouped visibility. rendercli summaries,
   metrics JSON, and the Modeler graph tooltip expose those counters beside

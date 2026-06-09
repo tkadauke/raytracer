@@ -92,6 +92,8 @@ namespace render {
     intersectionBackendAvailability.clear();
     intersectionBackendFallbackReason.clear();
     intersectionBackendExecutionPath.clear();
+    intersectionBackendClosestHitExecutionPath.clear();
+    intersectionBackendAnyHitExecutionPath.clear();
     intersectionBackendPlatformGpuDeviceAvailable = false;
     intersectionBackendPlatformGpuRenderPathAvailable = false;
     intersectionSceneCompiled = false;
@@ -251,10 +253,11 @@ namespace render {
                                                 const WavefrontIntersectionQueryTiming& timing) {
     recordIntersectionBackend(backend);
     recordIntersectionQueryFallbackReason(backend, timing);
-    mergeLabel(intersectionBackendExecutionPath,
-               timing.executionPath.empty()
-                 ? nonEmptyLabel(backend.closestHitExecutionPath(), "unknown")
-                 : timing.executionPath);
+    const std::string executionPath =
+      timing.executionPath.empty() ? nonEmptyLabel(backend.closestHitExecutionPath(), "unknown")
+                                   : timing.executionPath;
+    mergeLabel(intersectionBackendExecutionPath, executionPath);
+    mergeLabel(intersectionBackendClosestHitExecutionPath, executionPath);
     const std::uint64_t rayUploadBytes = backend.estimatedClosestHitRayUploadBytes(submittedRays);
     const std::uint64_t readbackBytes = backend.estimatedClosestHitReadbackBytes(submittedRays);
     intersectionEstimatedRayUploadBytes += rayUploadBytes;
@@ -275,10 +278,11 @@ namespace render {
                                                  const WavefrontIntersectionQueryTiming& timing) {
     recordIntersectionBackend(backend);
     recordIntersectionQueryFallbackReason(backend, timing);
-    mergeLabel(intersectionBackendExecutionPath,
-               timing.executionPath.empty()
-                 ? nonEmptyLabel(backend.anyHitExecutionPath(), "unknown")
-                 : timing.executionPath);
+    const std::string executionPath = timing.executionPath.empty()
+                                        ? nonEmptyLabel(backend.anyHitExecutionPath(), "unknown")
+                                        : timing.executionPath;
+    mergeLabel(intersectionBackendExecutionPath, executionPath);
+    mergeLabel(intersectionBackendAnyHitExecutionPath, executionPath);
     const std::uint64_t rayUploadBytes = backend.estimatedAnyHitRayUploadBytes(submittedRays);
     const std::uint64_t readbackBytes = backend.estimatedAnyHitReadbackBytes(submittedRays);
     intersectionEstimatedRayUploadBytes += rayUploadBytes;
@@ -302,6 +306,10 @@ namespace render {
     mergeLabel(intersectionBackendAvailability, source.intersectionBackendAvailability);
     mergeLabel(intersectionBackendFallbackReason, source.intersectionBackendFallbackReason);
     mergeLabel(intersectionBackendExecutionPath, source.intersectionBackendExecutionPath);
+    mergeLabel(intersectionBackendClosestHitExecutionPath,
+               source.intersectionBackendClosestHitExecutionPath);
+    mergeLabel(intersectionBackendAnyHitExecutionPath,
+               source.intersectionBackendAnyHitExecutionPath);
     intersectionBackendPlatformGpuDeviceAvailable =
       intersectionBackendPlatformGpuDeviceAvailable ||
       source.intersectionBackendPlatformGpuDeviceAvailable;
