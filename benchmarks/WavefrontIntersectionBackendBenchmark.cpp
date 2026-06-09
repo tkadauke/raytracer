@@ -43,14 +43,21 @@ namespace {
                                  const WavefrontIntersectionBackend& backend,
                                  const WavefrontIntersectionQueryTiming& timing,
                                  const WavefrontIntersectionBackendSelectionContext& context,
-                                 std::size_t closestHitRayCount, std::size_t anyHitRayCount,
-                                 std::size_t readbackBytes) const {
+                                 std::size_t closestHitRayCount, std::size_t anyHitRayCount) const {
       const WavefrontIntersectionSceneDiagnostics diagnostics = backend.compiledSceneDiagnostics();
       const WavefrontIntersectionBackendAutoSelectionPolicy policy;
       const std::uint64_t totalRayCount =
         WavefrontIntersectionBackendSelectionContext::saturatedExpectedRayCount(
           static_cast<std::uint64_t>(closestHitRayCount),
           static_cast<std::uint64_t>(anyHitRayCount));
+      const std::uint64_t closestHitRayUploadBytes =
+        backend.estimatedClosestHitRayUploadBytes(static_cast<std::uint64_t>(closestHitRayCount));
+      const std::uint64_t anyHitRayUploadBytes =
+        backend.estimatedAnyHitRayUploadBytes(static_cast<std::uint64_t>(anyHitRayCount));
+      const std::uint64_t closestHitReadbackBytes =
+        backend.estimatedClosestHitReadbackBytes(static_cast<std::uint64_t>(closestHitRayCount));
+      const std::uint64_t anyHitReadbackBytes =
+        backend.estimatedAnyHitReadbackBytes(static_cast<std::uint64_t>(anyHitRayCount));
       std::string executionPath = timing.executionPath;
       if (executionPath.empty()) {
         executionPath = backend.executionPath();
@@ -78,15 +85,30 @@ namespace {
       state.counters["packed_any_hit_eligible"] =
         diagnostics.packedAnyHitKernelEligible ? 1.0 : 0.0;
       state.counters["ray_upload_bytes"] =
-        static_cast<double>(totalRayCount * sizeof(GpuIntersectionRay));
-      state.counters["readback_bytes"] = static_cast<double>(readbackBytes);
+        static_cast<double>(closestHitRayUploadBytes + anyHitRayUploadBytes);
+      state.counters["closest_hit_readback_bytes"] = static_cast<double>(closestHitReadbackBytes);
+      state.counters["any_hit_readback_bytes"] = static_cast<double>(anyHitReadbackBytes);
+      state.counters["readback_bytes"] =
+        static_cast<double>(closestHitReadbackBytes + anyHitReadbackBytes);
     }
 
-#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     [[nodiscard]] std::shared_ptr<const WavefrontIntersectionBackend>
     requestedGpuBackend(benchmark::State& state) const {
       std::shared_ptr<const WavefrontIntersectionBackend> backend =
         WavefrontIntersectionBackendChoice::gpu().createBackendForScene(*scene);
+      if (!backend) {
+        state.SkipWithError("GPU backend creation failed");
+      }
+      return backend;
+    }
+
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    [[nodiscard]] std::shared_ptr<const WavefrontIntersectionBackend>
+    requestedAvailableGpuBackend(benchmark::State& state) const {
+      std::shared_ptr<const WavefrontIntersectionBackend> backend = requestedGpuBackend(state);
+      if (!backend) {
+        return nullptr;
+      }
       if (std::string(backend->availability()) != "available") {
         state.SkipWithError(backend->fallbackReason());
         return nullptr;
@@ -342,8 +364,7 @@ namespace {
       benchmark::DoNotOptimize(hits.size());
     }
 
-    workload.annotateBackendWorkload(state, *backend, timing, context, batch.queries.size(), 0,
-                                     batch.queries.size() * sizeof(GpuIntersectionHitRecord));
+    workload.annotateBackendWorkload(state, *backend, timing, context, batch.queries.size(), 0);
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(batch.queries.size()));
   }
 
@@ -364,8 +385,7 @@ namespace {
       benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
     }
 
-    workload.annotateBackendWorkload(state, *backend, timing, context, 0, batch.queries.size(),
-                                     batch.queries.size() * sizeof(GpuIntersectionOcclusionRecord));
+    workload.annotateBackendWorkload(state, *backend, timing, context, 0, batch.queries.size());
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(batch.queries.size()));
   }
 
@@ -394,10 +414,51 @@ namespace {
       benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
     }
 
-    workload.annotateBackendWorkload(
-      state, *backend, timing, context, closestBatch.queries.size(), anyBatch.queries.size(),
-      closestBatch.queries.size() * sizeof(GpuIntersectionHitRecord) +
-        anyBatch.queries.size() * sizeof(GpuIntersectionOcclusionRecord));
+    workload.annotateBackendWorkload(state, *backend, timing, context, closestBatch.queries.size(),
+                                     anyBatch.queries.size());
+    state.SetItemsProcessed(
+      state.iterations() *
+      static_cast<std::int64_t>(closestBatch.queries.size() + anyBatch.queries.size()));
+  }
+
+  void bm_requestedGpuUnsupportedMixedClosestAndAnyHitBatch(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      workload.requestedGpuBackend(state);
+    if (!backend) {
+      return;
+    }
+
+    const WavefrontIntersectionSceneDiagnostics diagnostics = backend->compiledSceneDiagnostics();
+    if (std::string(backend->availability()) != "fallback" ||
+        diagnostics.unsupportedPrimitives == 0) {
+      state.SkipWithError("workload did not produce an unsupported GPU fallback");
+      return;
+    }
+
+    const std::vector<Rayd> rays = generateRays(state.range(1));
+    const WavefrontIntersectionBackendSelectionContext context =
+      workload.selectionContext(rays.size(), rays.size());
+    ClosestQueryBatch closestBatch(rays);
+    AnyQueryBatch anyBatch(rays, 40.0);
+    WavefrontIntersectionQueryTiming timing;
+    for (auto _ : state) {
+      WavefrontIntersectionQueryTiming closestTiming;
+      const std::vector<WavefrontClosestHitResult> hits =
+        backend->intersectClosestBatch(*workload.scene, closestBatch.queries, &closestTiming);
+      timing.add(closestTiming);
+
+      WavefrontIntersectionQueryTiming anyTiming;
+      const std::vector<bool> occluded =
+        backend->intersectAnyBatch(*workload.scene, anyBatch.queries, &anyTiming);
+      timing.add(anyTiming);
+
+      benchmark::DoNotOptimize(hits.size());
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
+    }
+
+    workload.annotateBackendWorkload(state, *backend, timing, context, closestBatch.queries.size(),
+                                     anyBatch.queries.size());
     state.SetItemsProcessed(
       state.iterations() *
       static_cast<std::int64_t>(closestBatch.queries.size() + anyBatch.queries.size()));
@@ -407,7 +468,7 @@ namespace {
   void bm_requestedGpuClosestHitBatch(benchmark::State& state) {
     const Workload& workload = workloadFor(state);
     const std::shared_ptr<const WavefrontIntersectionBackend> backend =
-      workload.requestedGpuBackend(state);
+      workload.requestedAvailableGpuBackend(state);
     if (!backend) {
       return;
     }
@@ -425,15 +486,14 @@ namespace {
       benchmark::DoNotOptimize(hits.size());
     }
 
-    workload.annotateBackendWorkload(state, *backend, timing, context, batch.queries.size(), 0,
-                                     batch.queries.size() * sizeof(GpuIntersectionHitRecord));
+    workload.annotateBackendWorkload(state, *backend, timing, context, batch.queries.size(), 0);
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(batch.queries.size()));
   }
 
   void bm_requestedGpuAnyHitBatch(benchmark::State& state) {
     const Workload& workload = workloadFor(state);
     const std::shared_ptr<const WavefrontIntersectionBackend> backend =
-      workload.requestedGpuBackend(state);
+      workload.requestedAvailableGpuBackend(state);
     if (!backend) {
       return;
     }
@@ -451,15 +511,14 @@ namespace {
       benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
     }
 
-    workload.annotateBackendWorkload(state, *backend, timing, context, 0, batch.queries.size(),
-                                     batch.queries.size() * sizeof(GpuIntersectionOcclusionRecord));
+    workload.annotateBackendWorkload(state, *backend, timing, context, 0, batch.queries.size());
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(batch.queries.size()));
   }
 
   void bm_requestedGpuMixedClosestAndAnyHitBatch(benchmark::State& state) {
     const Workload& workload = workloadFor(state);
     const std::shared_ptr<const WavefrontIntersectionBackend> backend =
-      workload.requestedGpuBackend(state);
+      workload.requestedAvailableGpuBackend(state);
     if (!backend) {
       return;
     }
@@ -485,10 +544,8 @@ namespace {
       benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
     }
 
-    workload.annotateBackendWorkload(
-      state, *backend, timing, context, closestBatch.queries.size(), anyBatch.queries.size(),
-      closestBatch.queries.size() * sizeof(GpuIntersectionHitRecord) +
-        anyBatch.queries.size() * sizeof(GpuIntersectionOcclusionRecord));
+    workload.annotateBackendWorkload(state, *backend, timing, context, closestBatch.queries.size(),
+                                     anyBatch.queries.size());
     state.SetItemsProcessed(
       state.iterations() *
       static_cast<std::int64_t>(closestBatch.queries.size() + anyBatch.queries.size()));
@@ -507,6 +564,11 @@ namespace {
       benchmark->Args({workload, 65536});
     }
   }
+
+  void unsupportedQueryWorkloads(benchmark::internal::Benchmark* benchmark) {
+    benchmark->Args({2, 256});
+    benchmark->Args({2, 65536});
+  }
 }
 
 BENCHMARK(bm_compileAndPackScene)->Apply(allWorkloads);
@@ -517,6 +579,7 @@ BENCHMARK(bm_packedAnyHit)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_autoClosestHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_autoAnyHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_autoMixedClosestAndAnyHitBatch)->Apply(supportedQueryWorkloads);
+BENCHMARK(bm_requestedGpuUnsupportedMixedClosestAndAnyHitBatch)->Apply(unsupportedQueryWorkloads);
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 BENCHMARK(bm_requestedGpuClosestHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuAnyHitBatch)->Apply(supportedQueryWorkloads);

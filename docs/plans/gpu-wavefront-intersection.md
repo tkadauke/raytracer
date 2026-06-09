@@ -799,6 +799,11 @@ Progress:
   submits both query families in the same iteration. That better represents the
   path-tracing render path, where a bounce can need both frontier intersection
   and direct-light visibility work after one backend selection.
+- Benchmark builds now also include an explicit GPU-requested unsupported-scene
+  mixed closest-hit/any-hit fixture. It proves the all-or-nothing fallback path
+  can be timed separately from supported prepared scenes, and benchmark
+  transfer counters now come from the selected backend's query-family estimates
+  so unsupported fallback rows show zero upload/readback cost.
 - A regular unit-test performance gate now pins the packed upload-buffer CPU
   traversal against runtime `Scene` traversal on a mesh-heavy supported scene.
   The threshold is deliberately conservative, but it catches regressions that

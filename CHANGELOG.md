@@ -57,6 +57,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   estimates only for query families that can actually use the packed/platform
   path, avoiding misleading transfer costs for retained but ineligible prepared
   scenes. — GPT-5
+- **Wavefront unsupported-GPU fallback benchmark.** The wavefront intersection
+  benchmark suite now includes an explicit GPU-requested unsupported-scene
+  closest-hit/any-hit fallback row, with transfer counters sourced from the
+  selected backend rather than theoretical packed-buffer sizes. — GPT-5
 - **Wavefront runtime any-hit benchmark baseline.** The wavefront intersection
   backend benchmarks now include runtime CPU any-hit rows alongside packed
   any-hit rows, giving direct-light visibility queries the same CPU/packed
