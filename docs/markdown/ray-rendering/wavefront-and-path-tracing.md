@@ -357,9 +357,9 @@ upload/readback cost. The policy scales the effective GPU threshold upward for
 larger prepared scene uploads, and metrics report the computed
 `intersectionBackendAutoMinimumGpuRays` threshold next to
 `intersectionBackendExpectedRays`. Workloads below the fixed GPU ray-count floor
-are rejected before scene compilation, while workloads that clear that floor
-compile the scene so upload-size amortization can be evaluated. For `auto`,
-metrics also include
+are rejected before platform probing or scene compilation, while workloads that
+clear that floor can evaluate platform availability and then compile the scene
+so upload-size amortization can be evaluated. For `auto`, metrics also include
 `intersectionBackendAutoEstimatedQueryTransferBytes`, a conservative pre-render
 query-transfer estimate that remains visible even when the selected backend is
 CPU. The expected workload is split into

@@ -2720,9 +2720,14 @@ foreach(expectation
         "intersection_backend=cpu"
         "intersection_backend_availability=available"
         "intersection_backend_fallback=auto_selected_CPU"
+        "intersection_backend_fallback=auto_selected_CPU:.*fixed_GPU_threshold.*before_scene_compilation"
         "intersection_backend_execution=runtime_scene"
         "intersection_expected_rays=[1-9][0-9]*"
-        "intersection_auto_minimum_gpu_rays=[1-9][0-9]*")
+        "intersection_auto_minimum_gpu_rays=[1-9][0-9]*"
+        "intersection_auto_estimated_query_transfer_bytes=0"
+        "intersection_scene_compiled=false"
+        "intersection_scene_upload_bytes=0"
+        "intersection_estimated_query_transfer_bytes=0")
   if(NOT wavefront_supported_backend_auto_stdout MATCHES "${expectation}")
     _rendercli_fail("rendercli small supported wavefront auto summary ${expectation}"
                     "small supported wavefront auto summary did not match ${expectation}"
@@ -2735,12 +2740,16 @@ foreach(expectation
         "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
         "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"available\""
         "\"intersectionBackendFallbackReason\"[ \r\n]*:[ \r\n]*\"auto selected CPU"
+        "\"intersectionBackendFallbackReason\"[ \r\n]*:[ \r\n]*\"auto selected CPU: expected ray count [1-9][0-9]* is below fixed GPU threshold [1-9][0-9]* before scene compilation\""
         "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
         "\"intersectionBackendExpectedRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionBackendExpectedClosestHitRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionBackendExpectedAnyHitRays\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionBackendAutoMinimumGpuRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
-        "\"intersectionBackendAutoEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*0")
+        "\"intersectionBackendAutoEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*0"
+        "\"intersectionSceneCompiled\"[ \r\n]*:[ \r\n]*false"
+        "\"intersectionSceneUploadBytes\"[ \r\n]*:[ \r\n]*0"
+        "\"intersectionEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*0")
   if(NOT wavefront_supported_backend_auto_json MATCHES "${expectation}")
     _rendercli_fail("rendercli small supported wavefront auto report ${expectation}"
                     "small supported wavefront auto report did not match ${expectation}"

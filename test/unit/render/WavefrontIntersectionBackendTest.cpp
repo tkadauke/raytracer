@@ -1380,6 +1380,29 @@ namespace WavefrontIntersectionBackendTest {
     }
   }
 
+  TEST(WavefrontIntersectionBackend, AutoChoiceRejectsSmallWorkloadBeforeSceneCompile) {
+    Scene scene;
+    scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 63;
+    context.minimumGpuRayCount = 64;
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::automatic().createBackendForScene(scene, context);
+
+    EXPECT_STREQ("auto", backend->requestedName());
+    EXPECT_STREQ("cpu", backend->name());
+    EXPECT_STREQ("available", backend->availability());
+    EXPECT_STREQ("runtime_scene", backend->executionPath());
+    const std::string reason = backend->fallbackReason();
+    EXPECT_NE(std::string::npos, reason.find("expected ray count 63"));
+    EXPECT_NE(std::string::npos, reason.find("fixed GPU threshold 64"));
+    EXPECT_NE(std::string::npos, reason.find("before scene compilation"));
+    EXPECT_EQ(nullptr, backend->compiledScene());
+    EXPECT_FALSE(backend->compiledSceneDiagnostics().compiled);
+    EXPECT_EQ(0u, backend->compiledSceneDiagnostics().uploadBytes);
+  }
+
   TEST(WavefrontIntersectionBackend, GpuChoiceUsesHostPlatformFallbackForSupportedScene) {
     Scene scene;
     scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));

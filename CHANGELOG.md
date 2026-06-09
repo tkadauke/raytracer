@@ -54,8 +54,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   — GPT-5
 - **Wavefront auto small-workload preflight.** Wavefront `auto` intersection
   backend selection now rejects workloads below the fixed GPU ray-count floor
-  before compiling and packing the intersection scene, avoiding GPU-prep
-  overhead for renders that cannot select GPU anyway. — GPT-5
+  before probing the platform backend or compiling and packing the intersection
+  scene, avoiding GPU-prep overhead for renders that cannot select GPU anyway.
+  — GPT-5
 - **Wavefront backend expected-ray total from query families.** Wavefront
   renders now derive the automatic backend expected-ray total from closest-hit
   and any-hit family estimates before preparing the backend, keeping metrics

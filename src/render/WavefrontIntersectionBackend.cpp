@@ -345,6 +345,12 @@ namespace render {
     switch (m_kind) {
     case Kind::Auto: {
       const WavefrontIntersectionBackendAutoSelectionPolicy policy;
+      if (const std::optional<WavefrontIntersectionBackendAutoSelectionDecision> decision =
+            policy.decideBeforeSceneCompile(context)) {
+        return makeDelegatingBackend("auto", "available", decision->reason, {},
+                                     gpuUnavailableBackend().platformName());
+      }
+
       if (!hostPlatformGpuBackendAvailable()) {
         WavefrontIntersectionSceneDiagnostics diagnostics;
         const WavefrontIntersectionBackendAutoSelectionDecision decision =
@@ -364,12 +370,6 @@ namespace render {
         reason += ": ";
         reason += gpuUnavailableBackend().fallbackReason();
         return makeDelegatingBackend("auto", "available", reason, {},
-                                     gpuUnavailableBackend().platformName());
-      }
-
-      if (const std::optional<WavefrontIntersectionBackendAutoSelectionDecision> decision =
-            policy.decideBeforeSceneCompile(context)) {
-        return makeDelegatingBackend("auto", "available", decision->reason, {},
                                      gpuUnavailableBackend().platformName());
       }
 
