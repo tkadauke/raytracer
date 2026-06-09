@@ -557,12 +557,16 @@ Progress:
 - Compiled box triangles now carry per-triangle world-space BVH bounds instead
   of reusing the full box bounds on all 12 records, preserving the supported
   triangle ABI while making box-heavy prepared traversal less wasteful.
-- Metal-enabled prepared sphere, plane, rectangle, disk, and static-transform
-  scenes now share the render-path basic hit kernels with triangle scenes for
-  closest-hit and any-hit queries.
-- Vulkan-enabled prepared sphere, plane, rectangle, disk, and static-transform
-  scenes now share the render-path basic hit kernels with triangle scenes for
-  closest-hit and any-hit queries.
+- Metal-enabled prepared sphere, plane, rectangle, disk, OpenCylinder, and
+  static-transform scenes now share the render-path basic hit kernels with
+  triangle scenes for closest-hit and any-hit queries. The optional platform
+  smoke coverage compares OpenCylinder closest-hit records and any-hit
+  occlusion records against the packed CPU intersector.
+- Vulkan-enabled prepared sphere, plane, rectangle, disk, OpenCylinder, and
+  static-transform scenes now share the render-path basic hit kernels with
+  triangle scenes for closest-hit and any-hit queries. The optional platform
+  smoke coverage compares OpenCylinder closest-hit records and any-hit
+  occlusion records against the packed CPU intersector.
 - Wavefront renderer-level parity tests now compare `cpu` and `gpu`
   intersection-backend requests on a deterministic supported Whitted scene that
   mixes sphere, triangle, rectangle, disk, and static instance payloads. The
