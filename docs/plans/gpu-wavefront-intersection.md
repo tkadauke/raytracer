@@ -569,9 +569,10 @@ Progress:
   occlusion records against the packed CPU intersector.
 - Wavefront renderer-level parity tests now compare `cpu` and `gpu`
   intersection-backend requests on a deterministic supported Whitted scene that
-  mixes sphere, triangle, rectangle, disk, and static instance payloads. The
-  test asserts the prepared packed backend path is actually used, so future
-  platform kernels have an image-level gate instead of only hit-record parity.
+  mixes sphere, triangle, rectangle, disk, OpenCylinder, and static instance
+  payloads. The test asserts the prepared packed backend path is actually used,
+  so future platform kernels have an image-level gate instead of only
+  hit-record parity.
 
 ## Phase 6 - any-hit / occlusion queries
 

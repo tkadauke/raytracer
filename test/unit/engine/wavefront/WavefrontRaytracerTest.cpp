@@ -13,6 +13,7 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
+#include "render/primitives/OpenCylinder.h"
 #include "render/primitives/Plane.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
@@ -479,6 +480,10 @@ namespace WavefrontRaytracerTest {
         std::make_shared<render::Disk>(Vector3d(0.65, 0.45, 0.05), Vector3d(0.0, 0.0, -1.0), 0.32);
       disk->setMaterial(matte(Colord(0.95, 0.85, 0.2)));
       scene->add(disk);
+
+      auto openCylinder = std::make_shared<render::OpenCylinder>(0.28, 1.15);
+      openCylinder->setMaterial(matte(Colord(0.15, 0.75, 0.8)));
+      scene->add(openCylinder);
 
       auto instancedSphere = std::make_shared<render::Sphere>(Vector3d::null, 0.2);
       instancedSphere->setMaterial(matte(Colord(0.8, 0.2, 0.8)));
