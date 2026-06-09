@@ -375,7 +375,10 @@ any-hit rays, the computed automatic GPU threshold, and the pre-render
 query-transfer estimate as benchmark counters.
 They also include a mixed automatic-backend row that submits closest-hit and
 any-hit batches after one combined backend selection, matching the shape of a
-path-tracing bounce more closely than either query family alone.
+path-tracing bounce more closely than either query family alone. Platform-enabled
+benchmark builds include the same mixed row for explicit GPU requests, so
+Metal/Vulkan kernels can be measured against the combined query-family workload
+directly.
 When the platform render-path kernels actually execute, metrics also split
 backend wall time into host upload/setup, kernel dispatch/wait, and CPU
 readback buckets. CPU fallback paths leave those buckets at zero, while the

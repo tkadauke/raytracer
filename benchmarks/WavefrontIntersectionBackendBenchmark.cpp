@@ -426,6 +426,44 @@ namespace {
                                      batch.queries.size() * sizeof(GpuIntersectionOcclusionRecord));
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(batch.queries.size()));
   }
+
+  void bm_requestedGpuMixedClosestAndAnyHitBatch(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      workload.requestedGpuBackend(state);
+    if (!backend) {
+      return;
+    }
+
+    const std::vector<Rayd> rays = generateRays(state.range(1));
+    const WavefrontIntersectionBackendSelectionContext context =
+      workload.selectionContext(rays.size(), rays.size());
+    ClosestQueryBatch closestBatch(rays);
+    AnyQueryBatch anyBatch(rays, 40.0);
+    WavefrontIntersectionQueryTiming timing;
+    for (auto _ : state) {
+      WavefrontIntersectionQueryTiming closestTiming;
+      const std::vector<WavefrontClosestHitResult> hits =
+        backend->intersectClosestBatch(*workload.scene, closestBatch.queries, &closestTiming);
+      timing.add(closestTiming);
+
+      WavefrontIntersectionQueryTiming anyTiming;
+      const std::vector<bool> occluded =
+        backend->intersectAnyBatch(*workload.scene, anyBatch.queries, &anyTiming);
+      timing.add(anyTiming);
+
+      benchmark::DoNotOptimize(hits.size());
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
+    }
+
+    workload.annotateBackendWorkload(
+      state, *backend, timing, context, closestBatch.queries.size(), anyBatch.queries.size(),
+      closestBatch.queries.size() * sizeof(GpuIntersectionHitRecord) +
+        anyBatch.queries.size() * sizeof(GpuIntersectionOcclusionRecord));
+    state.SetItemsProcessed(
+      state.iterations() *
+      static_cast<std::int64_t>(closestBatch.queries.size() + anyBatch.queries.size()));
+  }
 #endif
 
   void allWorkloads(benchmark::internal::Benchmark* benchmark) {
@@ -452,4 +490,5 @@ BENCHMARK(bm_autoMixedClosestAndAnyHitBatch)->Apply(supportedQueryWorkloads);
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 BENCHMARK(bm_requestedGpuClosestHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuAnyHitBatch)->Apply(supportedQueryWorkloads);
+BENCHMARK(bm_requestedGpuMixedClosestAndAnyHitBatch)->Apply(supportedQueryWorkloads);
 #endif

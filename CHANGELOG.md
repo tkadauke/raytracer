@@ -60,6 +60,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   backend benchmarks now include an automatic-backend fixture that chooses the
   backend from combined closest-hit and any-hit expected work, then submits both
   query families in one benchmark iteration. — GPT-5
+- **Wavefront requested-GPU mixed-query benchmark.** Platform-enabled wavefront
+  intersection backend benchmarks now include the same combined closest-hit and
+  any-hit workload for explicit GPU backend requests. — GPT-5
 - **Wavefront benchmark auto-selection counters.** Wavefront intersection
   backend benchmarks now pass closest-hit and any-hit expected ray counts into
   automatic backend selection and report those counts, the automatic GPU

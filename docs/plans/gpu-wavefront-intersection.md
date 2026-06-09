@@ -764,6 +764,9 @@ Progress:
   skip with the backend fallback reason when no platform path is available, and
   label the selected backend/execution path so Metal/Vulkan timings can be
   compared directly with the runtime CPU and packed CPU baselines.
+- Platform-enabled benchmark builds now also include a requested-GPU mixed
+  closest-hit/any-hit fixture, giving explicit Metal/Vulkan requests the same
+  combined query-family workload shape as the automatic-backend benchmark.
 - Benchmark builds now also register automatic-backend closest-hit and any-hit
   batch fixtures for those same supported scenes. Those entries do not require a
   platform GPU build; they label the requested/resolved/execution path selected
