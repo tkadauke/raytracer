@@ -449,12 +449,11 @@ namespace render {
       }
     }
 
-    HitPointInterval hitPoints;
-    const Primitive* primitive = nullptr;
+    WavefrontClosestHitResult hit;
     {
       WavefrontIntersectionQueryTiming intersectionTiming;
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      primitive = intersectionBackend.intersectClosest(scene, path.ray, hitPoints, path.state,
+      hit = intersectionBackend.intersectClosestResult(scene, path.ray, path.state,
                                                        &intersectionTiming);
       if (metrics) {
         metrics->recordClosestHitQuery(intersectionBackend, 1, intersectionTiming);
@@ -462,13 +461,14 @@ namespace render {
     }
 
     core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-    if (!primitive) {
+    if (!hit.hit()) {
       recordFrontierMiss(scene, path, depthMetrics, accumulatedBeforeDepth);
       return;
     }
 
-    recordFrontierHit(pathIndex, path, *primitive, hitPoints.minWithPositiveDistance(), bounce,
-                      depthMetrics, activeHits);
+    recordFrontierHit(pathIndex, path, *hit.primitive, hit.hitPoint, bounce, depthMetrics,
+                      activeHits);
+    activeHits.back().material = hit.material;
   }
 
   void PathTracingIntegrator::intersectActivePathPacket(

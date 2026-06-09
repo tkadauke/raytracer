@@ -1421,6 +1421,36 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_FALSE(hits[1].hit());
   }
 
+  TEST(WavefrontIntersectionBackend, PreparedGpuClosestHitResultPreservesInheritedMaterial) {
+    auto material =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
+    auto cylinder = std::make_shared<ClosedSolidUnion>();
+    cylinder->setMaterial(material);
+    cylinder->add(std::make_shared<OpenCylinder>(1.0, 2.0));
+    cylinder->add(std::make_shared<Disk>(Vector3d(0, -1, 0), Vector3d(0, -1, 0), 1.0));
+    cylinder->add(std::make_shared<Disk>(Vector3d(0, 1, 0), Vector3d(0, 1, 0), 1.0));
+    Scene sourceScene;
+    sourceScene.add(cylinder);
+    Scene emptyScene;
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(sourceScene);
+
+    ASSERT_NE(nullptr, backend->compiledScene());
+    ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
+    ASSERT_FALSE(backend->prefersClosestHitBatch(1));
+
+    State state;
+    const WavefrontClosestHitResult hit = backend->intersectClosestResult(
+      emptyScene, Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), state);
+
+    ASSERT_TRUE(hit.hit());
+    EXPECT_NE(nullptr, hit.primitive);
+    EXPECT_EQ(material, hit.material);
+    EXPECT_EQ(1, state.intersectionHits);
+    EXPECT_EQ(0, state.intersectionMisses);
+  }
+
   TEST(WavefrontIntersectionBackend, PreparedPackedQueriesReportPreparedTimingPath) {
     auto triangle =
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));

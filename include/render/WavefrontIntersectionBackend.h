@@ -187,6 +187,9 @@ namespace render {
     virtual bool prefersClosestHitBatch(std::uint64_t submittedRays) const;
     virtual bool prefersAnyHitBatch(std::uint64_t submittedRays) const;
 
+    virtual WavefrontClosestHitResult
+    intersectClosestResult(const Scene& scene, const Rayd& ray, State& state,
+                           WavefrontIntersectionQueryTiming* timing = nullptr) const;
     virtual const Primitive*
     intersectClosest(const Scene& scene, const Rayd& ray, HitPointInterval& hitPoints, State& state,
                      WavefrontIntersectionQueryTiming* timing = nullptr) const = 0;
@@ -211,6 +214,9 @@ namespace render {
     [[nodiscard]] const Primitive*
     intersectPreparedClosest(const Rayd& ray, HitPointInterval& hitPoints, State& state,
                              WavefrontIntersectionQueryTiming* timing = nullptr) const;
+    [[nodiscard]] WavefrontClosestHitResult
+    intersectPreparedClosestResult(const Rayd& ray, State& state,
+                                   WavefrontIntersectionQueryTiming* timing = nullptr) const;
     [[nodiscard]] std::vector<WavefrontClosestHitResult>
     intersectPreparedClosestBatch(const std::vector<WavefrontClosestHitQuery>& queries,
                                   WavefrontIntersectionQueryTiming* timing = nullptr) const;
@@ -305,6 +311,9 @@ namespace render {
     const GpuIntersectionSceneBuffers* gpuIntersectionSceneBuffers() const override;
     bool prefersClosestHitBatch(std::uint64_t submittedRays) const override;
     bool prefersAnyHitBatch(std::uint64_t submittedRays) const override;
+    WavefrontClosestHitResult
+    intersectClosestResult(const Scene& scene, const Rayd& ray, State& state,
+                           WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     const Primitive*
     intersectClosest(const Scene& scene, const Rayd& ray, HitPointInterval& hitPoints, State& state,
                      WavefrontIntersectionQueryTiming* timing = nullptr) const override;
@@ -387,6 +396,9 @@ namespace render {
     const GpuIntersectionSceneBuffers* gpuIntersectionSceneBuffers() const override;
     bool prefersClosestHitBatch(std::uint64_t submittedRays) const override;
     bool prefersAnyHitBatch(std::uint64_t submittedRays) const override;
+    WavefrontClosestHitResult
+    intersectClosestResult(const Scene& scene, const Rayd& ray, State& state,
+                           WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     const Primitive*
     intersectClosest(const Scene& scene, const Rayd& ray, HitPointInterval& hitPoints, State& state,
                      WavefrontIntersectionQueryTiming* timing = nullptr) const override;

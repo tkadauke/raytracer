@@ -1109,6 +1109,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   cancellation now preserves contributions completed before the depth-boundary
   cancellation check, and scalar progressive display averages use truncating
   channel packing consistently. — GPT-5
+- **Scalar wavefront inherited materials.** Single-ray prepared wavefront
+  closest-hit queries now return the compiled material with the hit result, so
+  scalar frontier leftovers shade inherited composite materials the same way
+  batched frontiers do. — GPT-5
 - **Packed wavefront inherited materials.** GPU-requested wavefront renders now
   shade packed closest-hit records with the material recorded by the compiled
   intersection scene, so supported composites such as unbeveled cylinders keep

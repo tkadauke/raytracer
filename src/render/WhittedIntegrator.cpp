@@ -240,12 +240,11 @@ namespace render {
     if (depthMetrics.trackFrontierMetrics) {
       ++depthMetrics.frontierScalarRays;
     }
-    HitPointInterval hitPoints;
-    const Primitive* primitive = nullptr;
+    WavefrontClosestHitResult hit;
     {
       WavefrontIntersectionQueryTiming intersectionTiming;
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      primitive = intersectionBackend.intersectClosest(scene, queued.ray, hitPoints, queued.state,
+      hit = intersectionBackend.intersectClosestResult(scene, queued.ray, queued.state,
                                                        &intersectionTiming);
       if (metrics) {
         metrics->recordClosestHitQuery(intersectionBackend, 1, intersectionTiming);
@@ -257,7 +256,7 @@ namespace render {
       return;
     }
 
-    if (!primitive) {
+    if (!hit.hit()) {
       recordQueuedRayMiss(scene, queued, result, depthMetrics);
       return;
     }
@@ -265,8 +264,7 @@ namespace render {
     if (depthMetrics.trackFrontierMetrics) {
       ++depthMetrics.frontierRayHits;
     }
-    activeHits.push_back(QueuedHit{queuedIndex, primitive, primitive->material(),
-                                   hitPoints.minWithPositiveDistance()});
+    activeHits.push_back(QueuedHit{queuedIndex, hit.primitive, hit.material, hit.hitPoint});
   }
 
   void WhittedIntegrator::intersectQueuedRayPacket(
