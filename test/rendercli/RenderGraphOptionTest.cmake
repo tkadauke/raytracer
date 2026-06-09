@@ -131,6 +131,10 @@ set(wavefront_supported_backend_trace_render
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-trace-render.png")
 set(wavefront_metrics_render "${TEST_OUTPUT_DIR}/wavefront-metrics-render.png")
 set(wavefront_metrics_report "${TEST_OUTPUT_DIR}/wavefront-metrics.json")
+set(wavefront_unsupported_backend_trace
+    "${TEST_OUTPUT_DIR}/wavefront-unsupported-backend-trace.json")
+set(wavefront_unsupported_backend_trace_render
+    "${TEST_OUTPUT_DIR}/wavefront-unsupported-backend-trace-render.png")
 set(wavefront_converged_metrics_render
     "${TEST_OUTPUT_DIR}/wavefront-converged-metrics-render.png")
 set(wavefront_converged_metrics_report "${TEST_OUTPUT_DIR}/wavefront-converged-metrics.json")
@@ -2241,6 +2245,31 @@ if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendReadbackWorkerSecond
                   "wavefront metrics report did not contain backend readback timing"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+rendercli_run(
+  NAME "rendercli writes unsupported wavefront backend fallback to graph trace"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --wavefront_intersection_backend gpu --width 16
+    --height 16 --render_graph_trace_out "${wavefront_unsupported_backend_trace}"
+    "${static_scene}" "${wavefront_unsupported_backend_trace_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_unsupported_backend_trace_render}"
+                                NAME "unsupported wavefront backend trace render pixels")
+rendercli_assert_nonempty("${wavefront_unsupported_backend_trace}"
+                          NAME "unsupported wavefront backend trace JSON")
+file(READ "${wavefront_unsupported_backend_trace}" wavefront_unsupported_backend_trace_json)
+foreach(expectation
+        "\"id\": \"wavefront_beauty\""
+        "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
+        "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
+        "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"fallback\""
+        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
+        "\"intersectionBackendFallbackReason\"[ \r\n]*:[^\n]*GPU intersection scene unsupported[^\n]*Box")
+  if(NOT wavefront_unsupported_backend_trace_json MATCHES "${expectation}")
+    _rendercli_fail("rendercli unsupported wavefront backend trace ${expectation}"
+                    "unsupported wavefront backend trace did not match ${expectation}"
+                    "" "" "${wavefront_unsupported_backend_trace_json}" "")
+  endif()
+endforeach()
 	if(NOT wavefront_metrics_json MATCHES "\"activeSampleDepthsProcessed\"")
 	  _rendercli_fail("rendercli wavefront metrics sample-depth work"
 	                  "wavefront metrics report did not contain active sample-depth work"
