@@ -27,6 +27,26 @@
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
     },
     {
+      "name": "release-metal-wavefront",
+      "inherits": "release",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "cacheVariables": { "RAYTRACER_ENABLE_METAL_WAVEFRONT": "ON" }
+    },
+    {
+      "name": "release-vulkan-wavefront",
+      "inherits": "release",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": { "RAYTRACER_ENABLE_VULKAN_WAVEFRONT": "ON" }
+    },
+    {
       "name": "asan",
       "inherits": "debug",
       "cacheVariables": { "RAYTRACER_ENABLE_ASAN": "ON" }
@@ -51,6 +71,26 @@
       "cacheVariables": { "RAYTRACER_BUILD_BENCHMARKS": "ON" }
     },
     {
+      "name": "benchmark-metal-wavefront",
+      "inherits": "benchmark",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "cacheVariables": { "RAYTRACER_ENABLE_METAL_WAVEFRONT": "ON" }
+    },
+    {
+      "name": "benchmark-vulkan-wavefront",
+      "inherits": "benchmark",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": { "RAYTRACER_ENABLE_VULKAN_WAVEFRONT": "ON" }
+    },
+    {
       "name": "mutation",
       "inherits": "debug",
       "cacheVariables": {
@@ -68,10 +108,46 @@
   "buildPresets": [
     { "name": "debug",    "configurePreset": "debug" },
     { "name": "release",  "configurePreset": "release" },
+    {
+      "name": "release-metal-wavefront",
+      "configurePreset": "release-metal-wavefront",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "release-vulkan-wavefront",
+      "configurePreset": "release-vulkan-wavefront",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
     { "name": "asan",     "configurePreset": "asan" },
     { "name": "coverage", "configurePreset": "coverage" },
     { "name": "fuzz",      "configurePreset": "fuzz" },
     { "name": "benchmark", "configurePreset": "benchmark" },
+    {
+      "name": "benchmark-metal-wavefront",
+      "configurePreset": "benchmark-metal-wavefront",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "benchmark-vulkan-wavefront",
+      "configurePreset": "benchmark-vulkan-wavefront",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
     { "name": "mutation",  "configurePreset": "mutation" }
   ],
   "testPresets": [
@@ -83,6 +159,26 @@
     {
       "name": "release",
       "configurePreset": "release",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "release-metal-wavefront",
+      "configurePreset": "release-metal-wavefront",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "release-vulkan-wavefront",
+      "configurePreset": "release-vulkan-wavefront",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
       "output": { "outputOnFailure": true }
     },
     {

@@ -260,6 +260,10 @@ Progress:
   `RAYTRACER_ENABLE_VULKAN_WAVEFRONT` are now explicit CMake options. They
   default off, enforce the intended host platform, and publish compile
   definitions to the library and dependents.
+- Platform-conditional CMake presets now make those options one-command
+  build/test/benchmark paths: `release-metal-wavefront` and
+  `benchmark-metal-wavefront` on macOS, plus `release-vulkan-wavefront` and
+  `benchmark-vulkan-wavefront` on Linux. The default presets remain CPU-only.
 - `RAYTRACER_ENABLE_METAL_WAVEFRONT` now also builds an Objective-C++/Metal
   smoke wrapper. It uploads a uint buffer for a deterministic dispatch/readback
   check, and it can run render-path basic closest-hit/any-hit kernels for

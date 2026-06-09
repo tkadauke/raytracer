@@ -43,6 +43,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   direct triangle closest-hit compute dispatch over the packed
   BVH/primitive/triangle/ray/hit ABI, with CPU packed-intersector parity
   coverage. — GPT-5
+- **Wavefront GPU CMake presets.** Added platform-conditional
+  `release-metal-wavefront`, `benchmark-metal-wavefront`,
+  `release-vulkan-wavefront`, and `benchmark-vulkan-wavefront` presets so
+  Metal/Vulkan wavefront intersection builds can be configured without custom
+  CMake flags. — GPT-5
 - **Wavefront auto backend threshold diagnostics.** Wavefront metrics JSON,
   rendercli summaries, and Modeler graph pass metadata now report the
   auto-selection minimum GPU ray threshold beside the expected ray count, so

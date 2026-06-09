@@ -208,8 +208,11 @@ closest-hit and any-hit kernels, and other scenes report the CPU-selection reaso
 metrics and graph trace metadata. The experimental
 CMake flags
 `RAYTRACER_ENABLE_METAL_WAVEFRONT` and
-`RAYTRACER_ENABLE_VULKAN_WAVEFRONT` enable platform plumbing checks. The Metal
-flag already builds a tiny smoke wrapper that uploads a buffer, dispatches a
+`RAYTRACER_ENABLE_VULKAN_WAVEFRONT` enable platform plumbing checks. The
+matching presets are `release-metal-wavefront` and
+`benchmark-metal-wavefront` on macOS, and `release-vulkan-wavefront` and
+`benchmark-vulkan-wavefront` on Linux. The Metal flag already builds a tiny
+smoke wrapper that uploads a buffer, dispatches a
 deterministic compute kernel, and reads the result back outside the renderer.
 Metal and Vulkan can also route eligible exact-primitive and static-instance
 closest-hit and any-hit work through kernels that consume the packed BVH,
