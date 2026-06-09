@@ -377,7 +377,11 @@ provide query-family counts cannot accidentally select from a stale total. The
 wavefront intersection backend benchmarks use the same context for their
 automatic-backend fixtures and report expected closest-hit rays, expected
 any-hit rays, the computed automatic GPU threshold, and the pre-render
-query-transfer estimate as benchmark counters.
+query-transfer estimate as benchmark counters. Those rows also report whether a
+scene was compiled, how many BVH nodes/primitives/unsupported leaves were
+prepared, the prepared-scene upload bytes, and packed closest-hit/any-hit
+eligibility. That makes the small-workload preflight visible as a benchmark row
+with no prepared scene instead of only as a policy unit test.
 They also include a mixed automatic-backend row that submits closest-hit and
 any-hit batches after one combined backend selection, matching the shape of a
 path-tracing bounce more closely than either query family alone. Platform-enabled

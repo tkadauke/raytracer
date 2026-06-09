@@ -47,6 +47,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   side surfaces now compile into triangle payloads for the prepared wavefront
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
+- **Wavefront auto benchmark scene-prep counters.** Automatic wavefront
+  intersection backend benchmark rows now report compiled-scene, BVH/primitive,
+  unsupported-leaf, upload-byte, and packed closest-hit/any-hit eligibility
+  counters, making small-workload preflight skips visible in benchmark output.
   — GPT-5
 - **Wavefront auto small-workload preflight.** Wavefront `auto` intersection
   backend selection now rejects workloads below the fixed GPU ray-count floor

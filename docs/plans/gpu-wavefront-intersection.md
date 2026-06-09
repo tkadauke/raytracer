@@ -781,9 +781,12 @@ Progress:
 - The automatic-backend benchmark fixtures now feed closest-hit and any-hit
   expected ray counts into the same selection context used by the renderer and
   report those family counts, the computed automatic GPU threshold, and the
-  estimated query-transfer bytes as benchmark counters. This keeps benchmark
-  evidence aligned with render metrics instead of treating all intersection
-  work as one undifferentiated ray count.
+  estimated query-transfer bytes as benchmark counters. They now also report
+  compiled-scene, BVH/primitive/unsupported, upload-byte, and packed
+  closest-hit/any-hit eligibility counters, so small-workload preflight rows
+  visibly show that no scene was prepared. This keeps benchmark evidence aligned
+  with render metrics instead of treating all intersection work as one
+  undifferentiated ray count.
 - Benchmark builds now also include a mixed automatic-backend fixture that
   chooses a backend from combined closest-hit and any-hit expected work, then
   submits both query families in the same iteration. That better represents the

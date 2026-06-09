@@ -68,7 +68,15 @@ namespace {
         static_cast<double>(policy.minimumExpectedRayCount(diagnostics, context));
       state.counters["auto_estimated_query_transfer_bytes"] =
         static_cast<double>(policy.estimatedQueryTransferBytes(diagnostics, context));
+      state.counters["scene_compiled"] = diagnostics.compiled ? 1.0 : 0.0;
+      state.counters["scene_bvh_nodes"] = static_cast<double>(diagnostics.bvhNodes);
+      state.counters["scene_primitives"] = static_cast<double>(diagnostics.primitives);
+      state.counters["scene_unsupported"] = static_cast<double>(diagnostics.unsupportedPrimitives);
       state.counters["scene_upload_bytes"] = static_cast<double>(diagnostics.uploadBytes);
+      state.counters["packed_closest_hit_eligible"] =
+        diagnostics.packedClosestHitKernelEligible ? 1.0 : 0.0;
+      state.counters["packed_any_hit_eligible"] =
+        diagnostics.packedAnyHitKernelEligible ? 1.0 : 0.0;
       state.counters["ray_upload_bytes"] =
         static_cast<double>(totalRayCount * sizeof(GpuIntersectionRay));
       state.counters["readback_bytes"] = static_cast<double>(readbackBytes);
