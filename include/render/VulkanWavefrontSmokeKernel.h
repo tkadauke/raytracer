@@ -24,9 +24,9 @@ namespace render {
   /**
     * @brief Vulkan platform probe for experimental wavefront-intersection work.
     *
-    * The dummy kernel validates platform plumbing. The triangle closest-hit
-    * kernel is the first narrow Vulkan render-path kernel and shares the packed
-    * ABI used by the CPU parity intersector.
+    * The dummy kernel validates platform plumbing. The basic hit kernels cover
+    * the first narrow Vulkan render-path subset and share the packed ABI used by
+    * the CPU parity intersector.
     */
   class VulkanWavefrontSmokeKernel {
   public:
@@ -35,17 +35,17 @@ namespace render {
     std::vector<std::uint32_t>
     runDummyHitMissKernel(const std::vector<std::uint32_t>& rayIds) const;
     std::vector<GpuIntersectionHitRecord>
-    runTriangleClosestHitKernel(const GpuIntersectionSceneBuffers& scene,
-                                const std::vector<GpuIntersectionRay>& rays) const;
+    runBasicClosestHitKernel(const GpuIntersectionSceneBuffers& scene,
+                             const std::vector<GpuIntersectionRay>& rays) const;
     VulkanWavefrontClosestHitKernelResult
-    runTimedTriangleClosestHitKernel(const GpuIntersectionSceneBuffers& scene,
-                                     const std::vector<GpuIntersectionRay>& rays) const;
+    runTimedBasicClosestHitKernel(const GpuIntersectionSceneBuffers& scene,
+                                  const std::vector<GpuIntersectionRay>& rays) const;
     std::vector<GpuIntersectionOcclusionRecord>
-    runTriangleAnyHitKernel(const GpuIntersectionSceneBuffers& scene,
-                            const std::vector<GpuIntersectionRay>& rays) const;
+    runBasicAnyHitKernel(const GpuIntersectionSceneBuffers& scene,
+                         const std::vector<GpuIntersectionRay>& rays) const;
     VulkanWavefrontAnyHitKernelResult
-    runTimedTriangleAnyHitKernel(const GpuIntersectionSceneBuffers& scene,
-                                 const std::vector<GpuIntersectionRay>& rays) const;
+    runTimedBasicAnyHitKernel(const GpuIntersectionSceneBuffers& scene,
+                              const std::vector<GpuIntersectionRay>& rays) const;
 
   private:
     bool probeDeviceAvailable() const;

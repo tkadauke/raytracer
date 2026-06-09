@@ -1,6 +1,7 @@
 #include "render/VulkanWavefrontSmokeKernel.h"
 
 #include "render/GpuIntersectionScene.h"
+#include "render/WavefrontIntersectionBackend.h"
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 #include "render/VulkanWavefrontShaders.generated.h"
@@ -81,7 +82,7 @@ namespace render {
           anyShaderGuard.device = device;
           anyShaderGuard.shaderModule = anyShader;
 
-          VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 6);
+          VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 7);
           DescriptorLayoutGuard descriptorLayoutGuard;
           descriptorLayoutGuard.device = device;
           descriptorLayoutGuard.layout = descriptorLayout;
@@ -208,17 +209,17 @@ namespace render {
       }
 
       VulkanWavefrontClosestHitKernelResult
-      runTimedTriangleClosestHitKernel(const GpuIntersectionSceneBuffers& scene,
-                                       const std::vector<GpuIntersectionRay>& rays) const {
+      runTimedBasicClosestHitKernel(const GpuIntersectionSceneBuffers& scene,
+                                    const std::vector<GpuIntersectionRay>& rays) const {
         if (rays.empty()) {
           return {};
         }
-        if (!scene.triangleClosestHitKernelEligible()) {
+        if (!VulkanWavefrontIntersectionBackend::supportsPackedScene(scene)) {
           throw std::invalid_argument(
-            "Vulkan triangle closest-hit kernel requires an untransformed triangle scene");
+            "Vulkan basic closest-hit kernel requires an untransformed triangle/sphere scene");
         }
         if (rays.size() > std::numeric_limits<std::uint32_t>::max()) {
-          throw std::runtime_error("Vulkan triangle closest-hit ray batch is too large");
+          throw std::runtime_error("Vulkan basic closest-hit ray batch is too large");
         }
 
         VulkanWavefrontClosestHitKernelResult result;
@@ -230,7 +231,7 @@ namespace render {
 
         const DeviceSelection selection = selectDevice(instance);
         if (selection.device == VK_NULL_HANDLE) {
-          throw std::runtime_error("Vulkan triangle closest-hit kernel requires a compute device");
+          throw std::runtime_error("Vulkan basic closest-hit kernel requires a compute device");
         }
 
         const float queuePriority = 1.0f;
@@ -247,7 +248,7 @@ namespace render {
 
         VkDevice device = VK_NULL_HANDLE;
         check(vkCreateDevice(selection.device, &deviceCreateInfo, nullptr, &device),
-              "Vulkan triangle closest-hit logical device creation");
+              "Vulkan basic closest-hit logical device creation");
         DeviceGuard deviceGuard;
         deviceGuard.device = device;
 
@@ -263,6 +264,8 @@ namespace render {
         bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, scene.triangles));
         bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.spheres));
+        bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, rays));
 
         const VkDeviceSize hitByteCount =
@@ -270,11 +273,15 @@ namespace render {
         bufferGuard.buffers.push_back(
           createStorageBuffer(device, selection.device, hitByteCount, nullptr));
 
-        const std::array<std::uint32_t, 4> counts{
+        const std::array<std::uint32_t, 8> counts{
           static_cast<std::uint32_t>(scene.bvh.size()),
           static_cast<std::uint32_t>(scene.primitives.size()),
           static_cast<std::uint32_t>(scene.triangles.size()),
+          static_cast<std::uint32_t>(scene.spheres.size()),
           static_cast<std::uint32_t>(rays.size()),
+          0u,
+          0u,
+          0u,
         };
         bufferGuard.buffers.push_back(
           createStorageBuffer(device, selection.device, sizeof(counts), counts.data()));
@@ -327,8 +334,8 @@ namespace render {
 
         const auto readbackStart = std::chrono::steady_clock::now();
         result.hits = readBackRecords<GpuIntersectionHitRecord>(
-          device, bufferGuard.buffers[4].memory, hitByteCount, rays.size(),
-          "Vulkan triangle closest-hit output buffer mapping");
+          device, bufferGuard.buffers[5].memory, hitByteCount, rays.size(),
+          "Vulkan basic closest-hit output buffer mapping");
         const auto readbackEnd = std::chrono::steady_clock::now();
 
         result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
@@ -339,17 +346,17 @@ namespace render {
       }
 
       VulkanWavefrontAnyHitKernelResult
-      runTimedTriangleAnyHitKernel(const GpuIntersectionSceneBuffers& scene,
-                                   const std::vector<GpuIntersectionRay>& rays) const {
+      runTimedBasicAnyHitKernel(const GpuIntersectionSceneBuffers& scene,
+                                const std::vector<GpuIntersectionRay>& rays) const {
         if (rays.empty()) {
           return {};
         }
-        if (!scene.triangleClosestHitKernelEligible()) {
+        if (!VulkanWavefrontIntersectionBackend::supportsPackedScene(scene)) {
           throw std::invalid_argument(
-            "Vulkan triangle any-hit kernel requires an untransformed triangle scene");
+            "Vulkan basic any-hit kernel requires an untransformed triangle/sphere scene");
         }
         if (rays.size() > std::numeric_limits<std::uint32_t>::max()) {
-          throw std::runtime_error("Vulkan triangle any-hit ray batch is too large");
+          throw std::runtime_error("Vulkan basic any-hit ray batch is too large");
         }
 
         VulkanWavefrontAnyHitKernelResult result;
@@ -361,7 +368,7 @@ namespace render {
 
         const DeviceSelection selection = selectDevice(instance);
         if (selection.device == VK_NULL_HANDLE) {
-          throw std::runtime_error("Vulkan triangle any-hit kernel requires a compute device");
+          throw std::runtime_error("Vulkan basic any-hit kernel requires a compute device");
         }
 
         const float queuePriority = 1.0f;
@@ -378,7 +385,7 @@ namespace render {
 
         VkDevice device = VK_NULL_HANDLE;
         check(vkCreateDevice(selection.device, &deviceCreateInfo, nullptr, &device),
-              "Vulkan triangle any-hit logical device creation");
+              "Vulkan basic any-hit logical device creation");
         DeviceGuard deviceGuard;
         deviceGuard.device = device;
 
@@ -394,6 +401,8 @@ namespace render {
         bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, scene.triangles));
         bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.spheres));
+        bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, rays));
 
         const VkDeviceSize recordByteCount =
@@ -401,11 +410,15 @@ namespace render {
         bufferGuard.buffers.push_back(
           createStorageBuffer(device, selection.device, recordByteCount, nullptr));
 
-        const std::array<std::uint32_t, 4> counts{
+        const std::array<std::uint32_t, 8> counts{
           static_cast<std::uint32_t>(scene.bvh.size()),
           static_cast<std::uint32_t>(scene.primitives.size()),
           static_cast<std::uint32_t>(scene.triangles.size()),
+          static_cast<std::uint32_t>(scene.spheres.size()),
           static_cast<std::uint32_t>(rays.size()),
+          0u,
+          0u,
+          0u,
         };
         bufferGuard.buffers.push_back(
           createStorageBuffer(device, selection.device, sizeof(counts), counts.data()));
@@ -458,8 +471,8 @@ namespace render {
 
         const auto readbackStart = std::chrono::steady_clock::now();
         result.records = readBackRecords<GpuIntersectionOcclusionRecord>(
-          device, bufferGuard.buffers[4].memory, recordByteCount, rays.size(),
-          "Vulkan triangle any-hit output buffer mapping");
+          device, bufferGuard.buffers[5].memory, recordByteCount, rays.size(),
+          "Vulkan basic any-hit output buffer mapping");
         const auto readbackEnd = std::chrono::steady_clock::now();
 
         result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
@@ -755,6 +768,10 @@ namespace render {
       template<typename Record>
       SmokeBuffer createStorageBufferFromVector(VkDevice device, VkPhysicalDevice physicalDevice,
                                                 const std::vector<Record>& records) const {
+        if (records.empty()) {
+          return createStorageBuffer(device, physicalDevice,
+                                     static_cast<VkDeviceSize>(sizeof(Record)), nullptr);
+        }
         const VkDeviceSize byteCount = byteCountForRecords<Record>(records.size());
         return createStorageBuffer(device, physicalDevice, byteCount, records.data());
       }
@@ -990,39 +1007,38 @@ namespace render {
 #endif
   }
 
-  std::vector<GpuIntersectionHitRecord> VulkanWavefrontSmokeKernel::runTriangleClosestHitKernel(
+  std::vector<GpuIntersectionHitRecord> VulkanWavefrontSmokeKernel::runBasicClosestHitKernel(
     const GpuIntersectionSceneBuffers& scene, const std::vector<GpuIntersectionRay>& rays) const {
-    return runTimedTriangleClosestHitKernel(scene, rays).hits;
+    return runTimedBasicClosestHitKernel(scene, rays).hits;
   }
 
-  VulkanWavefrontClosestHitKernelResult
-  VulkanWavefrontSmokeKernel::runTimedTriangleClosestHitKernel(
+  VulkanWavefrontClosestHitKernelResult VulkanWavefrontSmokeKernel::runTimedBasicClosestHitKernel(
     const GpuIntersectionSceneBuffers& scene, const std::vector<GpuIntersectionRay>& rays) const {
     if (rays.empty()) {
       return {};
     }
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-    return VulkanSmokeRuntime().runTimedTriangleClosestHitKernel(scene, rays);
+    return VulkanSmokeRuntime().runTimedBasicClosestHitKernel(scene, rays);
 #else
     (void)scene;
     throw std::runtime_error("Vulkan wavefront backend is not enabled");
 #endif
   }
 
-  std::vector<GpuIntersectionOcclusionRecord> VulkanWavefrontSmokeKernel::runTriangleAnyHitKernel(
+  std::vector<GpuIntersectionOcclusionRecord> VulkanWavefrontSmokeKernel::runBasicAnyHitKernel(
     const GpuIntersectionSceneBuffers& scene, const std::vector<GpuIntersectionRay>& rays) const {
-    return runTimedTriangleAnyHitKernel(scene, rays).records;
+    return runTimedBasicAnyHitKernel(scene, rays).records;
   }
 
-  VulkanWavefrontAnyHitKernelResult VulkanWavefrontSmokeKernel::runTimedTriangleAnyHitKernel(
+  VulkanWavefrontAnyHitKernelResult VulkanWavefrontSmokeKernel::runTimedBasicAnyHitKernel(
     const GpuIntersectionSceneBuffers& scene, const std::vector<GpuIntersectionRay>& rays) const {
     if (rays.empty()) {
       return {};
     }
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-    return VulkanSmokeRuntime().runTimedTriangleAnyHitKernel(scene, rays);
+    return VulkanSmokeRuntime().runTimedBasicAnyHitKernel(scene, rays);
 #else
     (void)scene;
     throw std::runtime_error("Vulkan wavefront backend is not enabled");

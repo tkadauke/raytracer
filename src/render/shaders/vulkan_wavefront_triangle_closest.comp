@@ -2,6 +2,7 @@
 
 const uint leafNodeFlag = 1u;
 const uint triangleKind = 1u;
+const uint sphereKind = 2u;
 const float kernelEpsilon = 1.1920928955078125e-7;
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
@@ -41,6 +42,10 @@ struct TrianglePayload {
   vec4 uv0;
   vec4 uv1;
   vec4 uv2;
+};
+
+struct SpherePayload {
+  vec4 centerRadius;
 };
 
 struct RayRecord {
@@ -96,16 +101,21 @@ layout(std430, binding = 2) readonly buffer TriangleBuffer {
   TrianglePayload triangles[];
 };
 
-layout(std430, binding = 3) readonly buffer RayBuffer {
+layout(std430, binding = 3) readonly buffer SphereBuffer {
+  SpherePayload spheres[];
+};
+
+layout(std430, binding = 4) readonly buffer RayBuffer {
   RayRecord rays[];
 };
 
-layout(std430, binding = 4) writeonly buffer HitBuffer {
+layout(std430, binding = 5) writeonly buffer HitBuffer {
   HitRecord hits[];
 };
 
-layout(std430, binding = 5) readonly buffer CountBuffer {
+layout(std430, binding = 6) readonly buffer CountBuffer {
   uvec4 counts0;
+  uvec4 counts1;
 };
 
 float positiveInfinity() {
@@ -250,6 +260,58 @@ LocalHit intersectTriangle(RayRecord ray, TrianglePayload triangle) {
   return result;
 }
 
+LocalHit intersectSphere(RayRecord ray, SpherePayload sphere) {
+  LocalHit result = makeLocalMiss();
+  const vec3 center = sphere.centerRadius.xyz;
+  const float radius = sphere.centerRadius.w;
+  const vec3 origin = ray.origin.xyz - center;
+  const vec3 direction = ray.direction.xyz;
+  const float od = dot(origin, direction);
+  const float dd = dot(direction, direction);
+  if (dd <= kernelEpsilon) {
+    return result;
+  }
+
+  const float originLengthSquared = dot(origin, origin);
+  const float discriminant = od * od - dd * (originLengthSquared - radius * radius);
+  if (discriminant <= 0.0) {
+    return result;
+  }
+
+  const float discriminantRoot = sqrt(discriminant);
+  const float nearDistance = (-od - discriminantRoot) / dd;
+  const float farDistance = (-od + discriminantRoot) / dd;
+  if (nearDistance <= 0.0 && farDistance <= 0.0) {
+    return result;
+  }
+
+  const float distance = nearDistance >= ray.minDistance ? nearDistance : farDistance;
+  if (distance < ray.minDistance || distance > ray.maxDistance) {
+    return result;
+  }
+
+  result.hit = true;
+  result.distance = distance;
+  result.point = ray.origin + ray.direction * distance;
+  result.point.w = 1.0;
+  result.normal = normalize3(vec4(result.point.xyz - center, 0.0));
+  return result;
+}
+
+LocalHit intersectPrimitive(RayRecord ray, PrimitiveRecord primitive, uint triangleCount,
+                            uint sphereCount) {
+  if (primitive.payloadCount != 1u) {
+    return makeLocalMiss();
+  }
+  if (primitive.kind == triangleKind && primitive.payloadOffset < triangleCount) {
+    return intersectTriangle(ray, triangles[primitive.payloadOffset]);
+  }
+  if (primitive.kind == sphereKind && primitive.payloadOffset < sphereCount) {
+    return intersectSphere(ray, spheres[primitive.payloadOffset]);
+  }
+  return makeLocalMiss();
+}
+
 void writeClosestHit(inout HitRecord closest, RayRecord ray, PrimitiveRecord primitive,
                      uint primitiveIndex, LocalHit hit) {
   closest.hit = 1u;
@@ -268,7 +330,8 @@ void main() {
   const uint bvhCount = counts0.x;
   const uint primitiveCount = counts0.y;
   const uint triangleCount = counts0.z;
-  const uint rayCount = counts0.w;
+  const uint sphereCount = counts0.w;
+  const uint rayCount = counts1.x;
   const uint id = gl_GlobalInvocationID.x;
   if (id >= rayCount) {
     return;
@@ -330,15 +393,11 @@ void main() {
       }
 
       const PrimitiveRecord primitive = primitives[primitiveIndex];
-      if (primitive.kind != triangleKind || primitive.payloadCount != 1u ||
-          primitive.payloadOffset >= triangleCount) {
-        continue;
-      }
       if (!boundsIntersect(primitive.bounds, ray, closest.distance)) {
         continue;
       }
 
-      const LocalHit hit = intersectTriangle(ray, triangles[primitive.payloadOffset]);
+      const LocalHit hit = intersectPrimitive(ray, primitive, triangleCount, sphereCount);
       if (!hit.hit || (closest.hit != 0u && hit.distance >= closest.distance)) {
         continue;
       }

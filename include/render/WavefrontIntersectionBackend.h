@@ -14,6 +14,7 @@ namespace render {
   class CompiledIntersectionScene;
   struct GpuIntersectionHitRecord;
   struct GpuIntersectionOcclusionRecord;
+  struct GpuIntersectionPrimitiveRecord;
   struct GpuIntersectionRay;
   struct GpuIntersectionSceneBuffers;
   class MetalWavefrontPreparedScene;
@@ -363,6 +364,7 @@ namespace render {
     static std::shared_ptr<const WavefrontIntersectionBackend>
     createPrepared(std::shared_ptr<const CompiledIntersectionScene> scene,
                    std::string requestedName = "gpu");
+    [[nodiscard]] static bool supportsPackedScene(const GpuIntersectionSceneBuffers& buffers);
 
     const char* platformName() const override;
     [[nodiscard]] bool isAvailable() const;
@@ -419,7 +421,7 @@ namespace render {
       std::shared_ptr<const GpuIntersectionSceneBuffers> gpuSceneBuffers,
       std::string requestedName);
 
-    [[nodiscard]] bool vulkanTriangleHitAvailable() const;
+    [[nodiscard]] bool vulkanBasicHitAvailable() const;
 
     std::shared_ptr<const CompiledIntersectionScene> m_compiledScene;
     std::shared_ptr<const GpuIntersectionSceneBuffers> m_gpuSceneBuffers;
