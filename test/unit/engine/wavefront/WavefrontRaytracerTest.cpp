@@ -1289,6 +1289,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(metrics.batching.closestHitQueries, 0u);
 
     const QJsonObject batching = metrics.toJson().value("batching").toObject();
+    EXPECT_EQ(metrics.batching.intersectionBackendPlatform,
+              batching.value("intersectionBackendPlatform").toString().toStdString());
     EXPECT_EQ(metrics.batching.intersectionBackendExecutionPath,
               batching.value("intersectionBackendExecutionPath").toString().toStdString());
     EXPECT_FALSE(batching.value("intersectionSceneTriangleClosestHitEligible").toBool());

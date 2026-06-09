@@ -74,6 +74,7 @@ namespace render {
     std::uint64_t stoppedAfterDepth{0};
     std::string intersectionBackendRequest;
     std::string intersectionBackend;
+    std::string intersectionBackendPlatform;
     std::string intersectionBackendAvailability;
     std::string intersectionBackendFallbackReason;
     std::string intersectionBackendExecutionPath;

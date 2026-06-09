@@ -63,6 +63,7 @@ namespace engine::wavefront {
       std::string executionMode;
       std::string intersectionBackendRequest;
       std::string intersectionBackend;
+      std::string intersectionBackendPlatform;
       std::string intersectionBackendAvailability;
       std::string intersectionBackendFallbackReason;
       std::string intersectionBackendExecutionPath;

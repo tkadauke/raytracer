@@ -85,6 +85,7 @@ namespace engine::wavefront {
     };
     mergeLabel(intersectionBackendRequest, metrics.intersectionBackendRequest);
     mergeLabel(intersectionBackend, metrics.intersectionBackend);
+    mergeLabel(intersectionBackendPlatform, metrics.intersectionBackendPlatform);
     mergeLabel(intersectionBackendAvailability, metrics.intersectionBackendAvailability);
     mergeLabel(intersectionBackendFallbackReason, metrics.intersectionBackendFallbackReason);
     mergeLabel(intersectionBackendExecutionPath, metrics.intersectionBackendExecutionPath);
@@ -307,6 +308,8 @@ namespace engine::wavefront {
     batchingJson["intersectionBackendRequest"] =
       QString::fromStdString(batching.intersectionBackendRequest);
     batchingJson["intersectionBackend"] = QString::fromStdString(batching.intersectionBackend);
+    batchingJson["intersectionBackendPlatform"] =
+      QString::fromStdString(batching.intersectionBackendPlatform);
     batchingJson["intersectionBackendAvailability"] =
       QString::fromStdString(batching.intersectionBackendAvailability);
     batchingJson["intersectionBackendFallbackReason"] =

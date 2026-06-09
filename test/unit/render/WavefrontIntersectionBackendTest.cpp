@@ -32,9 +32,11 @@ namespace WavefrontIntersectionBackendTest {
   namespace {
     void expectUnavailablePlatformFallback(const WavefrontIntersectionBackend& backend,
                                            const char* platformName,
-                                           const char* expectedExecutionPath = "runtime_scene") {
+                                           const char* expectedExecutionPath = "runtime_scene",
+                                           const char* expectedPlatformId = nullptr) {
       EXPECT_STREQ("gpu", backend.requestedName());
       EXPECT_STREQ("cpu", backend.name());
+      EXPECT_STREQ(expectedPlatformId ? expectedPlatformId : platformName, backend.platformName());
       EXPECT_STREQ("fallback", backend.availability());
       EXPECT_STREQ(expectedExecutionPath, backend.executionPath());
       EXPECT_NE(std::string::npos, std::string(backend.fallbackReason()).find(platformName));
@@ -94,7 +96,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_FALSE(backend.isAvailable());
 #endif
     EXPECT_EQ(nullptr, backend.compiledScene());
-    expectUnavailablePlatformFallback(backend, "Metal");
+    expectUnavailablePlatformFallback(backend, "Metal", "runtime_scene", "metal");
   }
 
   TEST(WavefrontIntersectionBackend, VulkanStubReportsUnavailableCpuFallback) {
@@ -103,7 +105,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_STREQ("vulkan", backend.platformName());
     EXPECT_FALSE(backend.isAvailable());
     EXPECT_EQ(nullptr, backend.compiledScene());
-    expectUnavailablePlatformFallback(backend, "Vulkan");
+    expectUnavailablePlatformFallback(backend, "Vulkan", "runtime_scene", "vulkan");
   }
 
   TEST(VulkanWavefrontSmokeKernel, ReportsUnavailableWhenDisabled) {
@@ -565,10 +567,10 @@ namespace WavefrontIntersectionBackendTest {
       EXPECT_STREQ("metal", backend->closestHitExecutionPath());
       EXPECT_STREQ("metal", backend->anyHitExecutionPath());
     } else {
-      expectUnavailablePlatformFallback(*backend, "Metal", "packed_cpu");
+      expectUnavailablePlatformFallback(*backend, "Metal", "packed_cpu", "metal");
     }
 #else
-    expectUnavailablePlatformFallback(*backend, "Vulkan", "packed_cpu");
+    expectUnavailablePlatformFallback(*backend, "Vulkan", "packed_cpu", "vulkan");
 #endif
 
     ASSERT_NE(nullptr, backend->compiledScene());

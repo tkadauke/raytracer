@@ -494,6 +494,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
       if (!availability.isEmpty() && availability != QStringLiteral("available")) {
         line += QStringLiteral(" %1").arg(availability);
       }
+      const QString platform =
+        batching.value(QStringLiteral("intersectionBackendPlatform")).toString();
+      if (!platform.isEmpty()) {
+        line += QStringLiteral(" (%1)").arg(platform);
+      }
       QString executionPath =
         batching.value(QStringLiteral("intersectionBackendExecutionPath")).toString();
       if (!executionPath.isEmpty()) {

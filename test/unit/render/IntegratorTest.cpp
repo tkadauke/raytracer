@@ -104,6 +104,7 @@ namespace IntegratorTest {
 
     EXPECT_EQ("gpu", metrics.intersectionBackendRequest);
     EXPECT_EQ("cpu", metrics.intersectionBackend);
+    EXPECT_EQ(backend->platformName(), metrics.intersectionBackendPlatform);
     EXPECT_EQ("fallback", metrics.intersectionBackendAvailability);
     EXPECT_EQ("packed_cpu", metrics.intersectionBackendExecutionPath);
     EXPECT_EQ(backend->platformGpuDeviceAvailable(),

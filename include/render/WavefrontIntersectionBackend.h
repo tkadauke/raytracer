@@ -145,6 +145,7 @@ namespace render {
     virtual ~WavefrontIntersectionBackend() = default;
 
     virtual const char* name() const = 0;
+    virtual const char* platformName() const;
     virtual const char* requestedName() const;
     virtual const char* availability() const;
     virtual const char* fallbackReason() const;
@@ -265,7 +266,7 @@ namespace render {
     createPrepared(std::shared_ptr<const CompiledIntersectionScene> scene,
                    std::string requestedName = "gpu");
 
-    [[nodiscard]] const char* platformName() const;
+    const char* platformName() const override;
     [[nodiscard]] bool isAvailable() const;
 
     const char* name() const override;
@@ -345,7 +346,7 @@ namespace render {
     createPrepared(std::shared_ptr<const CompiledIntersectionScene> scene,
                    std::string requestedName = "gpu");
 
-    [[nodiscard]] const char* platformName() const;
+    const char* platformName() const override;
     [[nodiscard]] bool isAvailable() const;
 
     const char* name() const override;

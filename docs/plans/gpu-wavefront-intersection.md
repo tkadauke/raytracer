@@ -274,8 +274,8 @@ Progress:
   Vulkan compute support from missing render-path kernel work.
 - Platform GPU device availability is now structured backend trace data instead
   of only fallback text. Wavefront metrics JSON, rendercli summaries, and the
-  Modeler graph tooltip expose whether the selected platform backend saw a GPU
-  device during the render.
+  Modeler graph tooltip expose the selected platform backend id and whether
+  that platform backend saw a GPU device during the render.
 
 ## Phase 1 - backend interface and CPU refactor
 

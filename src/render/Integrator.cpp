@@ -88,6 +88,7 @@ namespace render {
     stoppedAfterDepth = 0;
     intersectionBackendRequest.clear();
     intersectionBackend.clear();
+    intersectionBackendPlatform.clear();
     intersectionBackendAvailability.clear();
     intersectionBackendFallbackReason.clear();
     intersectionBackendExecutionPath.clear();
@@ -195,6 +196,7 @@ namespace render {
   IntegratorBatchMetrics::recordIntersectionBackend(const WavefrontIntersectionBackend& backend) {
     mergeLabel(intersectionBackendRequest, nonEmptyLabel(backend.requestedName(), "unknown"));
     mergeLabel(intersectionBackend, nonEmptyLabel(backend.name(), "unknown"));
+    mergeLabel(intersectionBackendPlatform, nonEmptyLabel(backend.platformName(), ""));
     mergeLabel(intersectionBackendAvailability, nonEmptyLabel(backend.availability(), "unknown"));
     mergeLabel(intersectionBackendFallbackReason, nonEmptyLabel(backend.fallbackReason(), ""));
     intersectionBackendPlatformGpuDeviceAvailable =
@@ -269,6 +271,7 @@ namespace render {
   IntegratorBatchMetrics::mergeIntersectionBackendMetrics(const IntegratorBatchMetrics& source) {
     mergeLabel(intersectionBackendRequest, source.intersectionBackendRequest);
     mergeLabel(intersectionBackend, source.intersectionBackend);
+    mergeLabel(intersectionBackendPlatform, source.intersectionBackendPlatform);
     mergeLabel(intersectionBackendAvailability, source.intersectionBackendAvailability);
     mergeLabel(intersectionBackendFallbackReason, source.intersectionBackendFallbackReason);
     mergeLabel(intersectionBackendExecutionPath, source.intersectionBackendExecutionPath);

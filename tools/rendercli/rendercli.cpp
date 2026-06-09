@@ -251,6 +251,8 @@ namespace {
         << batching.value("intersectionBackendRequest").toString().toStdString()
         << " intersection_backend="
         << batching.value("intersectionBackend").toString().toStdString()
+        << " intersection_backend_platform="
+        << compactTextValue(batching.value("intersectionBackendPlatform"), "none")
         << " intersection_backend_availability="
         << batching.value("intersectionBackendAvailability").toString().toStdString()
         << " intersection_backend_fallback="

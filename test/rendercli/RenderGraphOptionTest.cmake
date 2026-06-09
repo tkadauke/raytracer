@@ -2293,6 +2293,11 @@ if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendPrefersAnyHitBatch\"
                   "wavefront metrics report did not contain any-hit batch preference"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendPlatform\"")
+  _rendercli_fail("rendercli wavefront metrics backend platform"
+                  "wavefront metrics report did not contain backend platform"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
 if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendPlatformGpuDeviceAvailable\"")
   _rendercli_fail("rendercli wavefront metrics platform GPU device availability"
                   "wavefront metrics report did not contain platform GPU device availability"
@@ -2630,7 +2635,7 @@ rendercli_run(
   NAME "rendercli reports batched wavefront any-hit visibility metrics"
   OUTPUT_VARIABLE wavefront_batched_visibility_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*intersection_backend_gpu_device=(true|false).*any_hit_rays=[1-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*closest_hit_batch_preferred=true.*any_hit_batch_preferred=true.*direct_light_any_hit_batch_chunks=[1-9][0-9]*.*direct_light_any_hit_batch_rays=[1-9][0-9]*.*direct_light_samples=[1-9][0-9]*"
+    "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*intersection_backend_platform=(metal|vulkan).*intersection_backend_gpu_device=(true|false).*any_hit_rays=[1-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*closest_hit_batch_preferred=true.*any_hit_batch_preferred=true.*direct_light_any_hit_batch_chunks=[1-9][0-9]*.*direct_light_any_hit_batch_rays=[1-9][0-9]*.*direct_light_samples=[1-9][0-9]*"
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
     --pathtracer_direct_light_samples 3 --wavefront_denoiser none

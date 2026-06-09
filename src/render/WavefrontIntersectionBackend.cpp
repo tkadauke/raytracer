@@ -21,15 +21,20 @@ namespace render {
     public:
       CpuDelegatingWavefrontIntersectionBackend(
         std::string requestedName, std::string availability, std::string fallbackReason,
-        WavefrontIntersectionSceneDiagnostics diagnostics = {})
+        WavefrontIntersectionSceneDiagnostics diagnostics = {}, std::string platformName = {})
           : m_requestedName(std::move(requestedName)),
             m_availability(std::move(availability)),
             m_fallbackReason(std::move(fallbackReason)),
-            m_diagnostics(diagnostics) {
+            m_diagnostics(diagnostics),
+            m_platformName(std::move(platformName)) {
       }
 
       const char* name() const override {
         return CpuWavefrontIntersectionBackend::instance().name();
+      }
+
+      const char* platformName() const override {
+        return m_platformName.c_str();
       }
 
       const char* requestedName() const override {
@@ -87,14 +92,15 @@ namespace render {
       std::string m_availability;
       std::string m_fallbackReason;
       WavefrontIntersectionSceneDiagnostics m_diagnostics;
+      std::string m_platformName;
     };
 
-    std::shared_ptr<const WavefrontIntersectionBackend>
-    makeDelegatingBackend(std::string requestedName, std::string availability,
-                          std::string fallbackReason,
-                          WavefrontIntersectionSceneDiagnostics diagnostics = {}) {
+    std::shared_ptr<const WavefrontIntersectionBackend> makeDelegatingBackend(
+      std::string requestedName, std::string availability, std::string fallbackReason,
+      WavefrontIntersectionSceneDiagnostics diagnostics = {}, std::string platformName = {}) {
       return std::make_shared<CpuDelegatingWavefrontIntersectionBackend>(
-        std::move(requestedName), std::move(availability), std::move(fallbackReason), diagnostics);
+        std::move(requestedName), std::move(availability), std::move(fallbackReason), diagnostics,
+        std::move(platformName));
     }
 
     std::shared_ptr<const WavefrontIntersectionBackend>
@@ -300,7 +306,8 @@ namespace render {
         std::string reason = decision.reason;
         reason += ": ";
         reason += gpuUnavailableBackend().fallbackReason();
-        return makeDelegatingBackend("auto", "available", reason);
+        return makeDelegatingBackend("auto", "available", reason, {},
+                                     gpuUnavailableBackend().platformName());
       }
 
       const auto compiled = std::make_shared<const CompiledIntersectionScene>(
@@ -324,7 +331,8 @@ namespace render {
       if (!compiled->fullySupported()) {
         return makeDelegatingBackend(
           "gpu", "fallback", gpuSceneUnsupportedReason(*compiled),
-          WavefrontIntersectionSceneDiagnostics::fromCompiledScene(*compiled));
+          WavefrontIntersectionSceneDiagnostics::fromCompiledScene(*compiled),
+          gpuUnavailableBackend().platformName());
       }
       return createPreparedGpuBackend(compiled, "gpu");
     }
@@ -382,6 +390,10 @@ namespace render {
 
   const char* WavefrontIntersectionBackend::requestedName() const {
     return name();
+  }
+
+  const char* WavefrontIntersectionBackend::platformName() const {
+    return "";
   }
 
   const char* WavefrontIntersectionBackend::availability() const {
