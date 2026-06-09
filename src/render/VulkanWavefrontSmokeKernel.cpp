@@ -40,6 +40,72 @@ namespace render {
         return selection.device != VK_NULL_HANDLE;
       }
 
+      bool renderPathAvailable() const {
+        try {
+          VkInstance instance = createInstance();
+          InstanceGuard instanceGuard;
+          instanceGuard.instance = instance;
+
+          const DeviceSelection selection = selectDevice(instance);
+          if (selection.device == VK_NULL_HANDLE) {
+            return false;
+          }
+
+          const float queuePriority = 1.0f;
+          VkDeviceQueueCreateInfo queueCreateInfo{};
+          queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+          queueCreateInfo.queueFamilyIndex = selection.queueFamily;
+          queueCreateInfo.queueCount = 1;
+          queueCreateInfo.pQueuePriorities = &queuePriority;
+
+          VkDeviceCreateInfo deviceCreateInfo{};
+          deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+          deviceCreateInfo.queueCreateInfoCount = 1;
+          deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+
+          VkDevice device = VK_NULL_HANDLE;
+          check(vkCreateDevice(selection.device, &deviceCreateInfo, nullptr, &device),
+                "Vulkan wavefront render-path logical device creation");
+          DeviceGuard deviceGuard;
+          deviceGuard.device = device;
+
+          VkShaderModule closestShader = createShaderModule(
+            device, triangleClosestHitShaderSpirv().data(), triangleClosestHitShaderSpirv().size());
+          ShaderGuard closestShaderGuard;
+          closestShaderGuard.device = device;
+          closestShaderGuard.shaderModule = closestShader;
+
+          VkShaderModule anyShader = createShaderModule(device, triangleAnyHitShaderSpirv().data(),
+                                                        triangleAnyHitShaderSpirv().size());
+          ShaderGuard anyShaderGuard;
+          anyShaderGuard.device = device;
+          anyShaderGuard.shaderModule = anyShader;
+
+          VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 6);
+          DescriptorLayoutGuard descriptorLayoutGuard;
+          descriptorLayoutGuard.device = device;
+          descriptorLayoutGuard.layout = descriptorLayout;
+
+          VkPipelineLayout pipelineLayout = createPipelineLayout(device, descriptorLayout);
+          PipelineLayoutGuard pipelineLayoutGuard;
+          pipelineLayoutGuard.device = device;
+          pipelineLayoutGuard.layout = pipelineLayout;
+
+          VkPipeline closestPipeline = createPipeline(device, closestShader, pipelineLayout);
+          PipelineGuard closestPipelineGuard;
+          closestPipelineGuard.device = device;
+          closestPipelineGuard.pipeline = closestPipeline;
+
+          VkPipeline anyPipeline = createPipeline(device, anyShader, pipelineLayout);
+          PipelineGuard anyPipelineGuard;
+          anyPipelineGuard.device = device;
+          anyPipelineGuard.pipeline = anyPipeline;
+          return true;
+        } catch (const std::runtime_error&) {
+          return false;
+        }
+      }
+
       std::vector<std::uint32_t>
       runDummyHitMissKernel(const std::vector<std::uint32_t>& rayIds) const {
         if (rayIds.size() > std::numeric_limits<std::uint32_t>::max()) {
@@ -903,7 +969,12 @@ namespace render {
   }
 
   bool VulkanWavefrontSmokeKernel::renderPathAvailable() const {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    static const bool available = VulkanSmokeRuntime().renderPathAvailable();
+    return available;
+#else
     return false;
+#endif
   }
 
   std::vector<std::uint32_t> VulkanWavefrontSmokeKernel::runDummyHitMissKernel(

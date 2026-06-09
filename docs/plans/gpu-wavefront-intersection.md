@@ -18,7 +18,9 @@
 > outside the render path, and the first render-path Metal basic closest-hit
 > and any-hit kernels can execute for prepared triangle, sphere, plane,
 > rectangle, and disk scenes, including static transform payloads, when a Metal
-> device is available. Broader Vulkan kernels remain future phases. This is a
+> device is available. Vulkan-enabled builds can now run triangle closest-hit
+> and any-hit kernels for prepared untransformed triangle scenes; broader
+> Vulkan primitive/static-transform kernels remain future phases. This is a
 > follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+. It should not replace
 > the CPU wavefront renderer, and it should not attempt a full GPU path tracer
@@ -280,9 +282,10 @@ Progress:
 - Vulkan-enabled builds now compile and expose a direct triangle closest-hit
   compute dispatch against the packed BVH/primitive/triangle/ray/hit ABI. The
   matching triangle any-hit compute dispatch now covers direct visibility
-  queries against the same packed ABI. The render backend still reports CPU
-  fallback until prepared-scene backend execution is wired through the full
-  render path.
+  queries against the same packed ABI. Prepared untransformed triangle scenes
+  can now execute wavefront closest-hit and any-hit batches through Vulkan;
+  non-triangle/basic scenes continue to fall back to packed CPU traversal until
+  matching Vulkan kernels exist.
 - Platform GPU device availability is now structured backend trace data instead
   of only fallback text. Wavefront metrics JSON, rendercli summaries, and the
   Modeler graph tooltip expose the selected platform backend id and whether
@@ -427,6 +430,12 @@ Gate:
 
 Progress:
 
+- Vulkan-enabled builds now compile GLSL triangle closest-hit and any-hit
+  compute shaders into embedded SPIR-V, expose direct dispatch wrappers for CPU
+  packed-intersector parity tests, and route prepared untransformed triangle
+  scenes through the Vulkan wavefront backend when a Vulkan compute device can
+  construct both pipelines. Unsupported Vulkan scenes continue to use packed
+  CPU traversal with explicit fallback diagnostics.
 - Metal-enabled builds now include opt-in basic closest-hit and any-hit wrappers
   that consume `GpuIntersectionScenePacker`'s triangle, sphere, plane,
   rectangle, disk, and static-transform packed scene buffers and write

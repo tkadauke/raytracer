@@ -266,6 +266,14 @@ namespace render {
       const WavefrontIntersectionSceneDiagnostics diagnostics =
         WavefrontIntersectionSceneDiagnostics::fromCompiledSceneAndUploadBuffers(*compiled,
                                                                                  buffers);
+#if !defined(__APPLE__)
+      if (!diagnostics.triangleClosestHitKernelEligible) {
+        return makeDelegatingBackend(
+          "auto", "available",
+          "auto selected CPU: intersection scene is not eligible for Vulkan triangle hit kernels",
+          diagnostics, gpuUnavailableBackend().platformName());
+      }
+#endif
       const WavefrontIntersectionBackendAutoSelectionDecision decision =
         policy.decide(true, true, diagnostics, context);
       if (!decision.useGpu) {
@@ -1325,6 +1333,9 @@ namespace render {
   }
 
   const char* VulkanWavefrontIntersectionBackend::name() const {
+    if (vulkanTriangleHitAvailable()) {
+      return platformName();
+    }
     return CpuWavefrontIntersectionBackend::instance().name();
   }
 
@@ -1333,6 +1344,9 @@ namespace render {
   }
 
   const char* VulkanWavefrontIntersectionBackend::availability() const {
+    if (vulkanTriangleHitAvailable()) {
+      return "available";
+    }
     return "fallback";
   }
 
@@ -1342,8 +1356,16 @@ namespace render {
       return "Vulkan wavefront intersection backend is enabled but no Vulkan compute device is "
              "available";
     }
-    return "Vulkan wavefront intersection backend is enabled and a compute device is available, "
-           "but no render-path basic hit kernel is built yet";
+    if (!VulkanWavefrontSmokeKernel().renderPathAvailable()) {
+      return "Vulkan wavefront intersection backend is enabled but no render-path triangle hit "
+             "kernels are available";
+    }
+    if (!gpuIntersectionSceneBuffers()) {
+      return "Vulkan wavefront intersection backend is enabled but no prepared triangle scene is "
+             "available";
+    }
+    return "Vulkan wavefront intersection backend is enabled but the prepared scene is not "
+           "eligible for the Vulkan triangle hit kernels";
 #else
     return "Vulkan wavefront intersection backend is not enabled in this build";
 #endif
@@ -1354,17 +1376,11 @@ namespace render {
   }
 
   const char* VulkanWavefrontIntersectionBackend::closestHitExecutionPath() const {
-    if (packedClosestHitAvailable()) {
-      return "packed_cpu";
-    }
-    return compiledScene() ? "compiled_cpu" : "runtime_scene";
+    return preparedPackedClosestHitExecutionPath();
   }
 
   const char* VulkanWavefrontIntersectionBackend::anyHitExecutionPath() const {
-    if (packedAnyHitAvailable()) {
-      return "packed_cpu";
-    }
-    return compiledScene() ? "compiled_cpu" : "runtime_scene";
+    return preparedPackedAnyHitExecutionPath();
   }
 
   bool VulkanWavefrontIntersectionBackend::platformGpuDeviceAvailable() const {
@@ -1373,6 +1389,76 @@ namespace render {
 
   bool VulkanWavefrontIntersectionBackend::platformGpuRenderPathAvailable() const {
     return VulkanWavefrontSmokeKernel().renderPathAvailable();
+  }
+
+  bool VulkanWavefrontIntersectionBackend::preparedPackedClosestHitAvailable() const {
+    return vulkanTriangleHitAvailable() ||
+           WavefrontIntersectionBackend::preparedPackedClosestHitAvailable();
+  }
+
+  const char* VulkanWavefrontIntersectionBackend::preparedPackedClosestHitExecutionPath() const {
+    if (vulkanTriangleHitAvailable()) {
+      return "vulkan";
+    }
+    return WavefrontIntersectionBackend::preparedPackedClosestHitExecutionPath();
+  }
+
+  std::vector<GpuIntersectionHitRecord>
+  VulkanWavefrontIntersectionBackend::intersectPreparedPackedClosest(
+    const std::vector<GpuIntersectionRay>& rays, WavefrontIntersectionQueryTiming* timing) const {
+    if (!vulkanTriangleHitAvailable()) {
+      return WavefrontIntersectionBackend::intersectPreparedPackedClosest(rays, timing);
+    }
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    try {
+      const VulkanWavefrontClosestHitKernelResult result =
+        VulkanWavefrontSmokeKernel().runTimedTriangleClosestHitKernel(*m_gpuSceneBuffers, rays);
+      if (timing) {
+        timing->add(result.timing);
+        timing->recordExecutionPath("vulkan");
+      }
+      return result.hits;
+    } catch (const std::exception&) {
+      return WavefrontIntersectionBackend::intersectPreparedPackedClosest(rays, timing);
+    }
+#else
+    return WavefrontIntersectionBackend::intersectPreparedPackedClosest(rays, timing);
+#endif
+  }
+
+  bool VulkanWavefrontIntersectionBackend::preparedPackedAnyHitAvailable() const {
+    return vulkanTriangleHitAvailable() ||
+           WavefrontIntersectionBackend::preparedPackedAnyHitAvailable();
+  }
+
+  const char* VulkanWavefrontIntersectionBackend::preparedPackedAnyHitExecutionPath() const {
+    if (vulkanTriangleHitAvailable()) {
+      return "vulkan";
+    }
+    return WavefrontIntersectionBackend::preparedPackedAnyHitExecutionPath();
+  }
+
+  std::vector<GpuIntersectionOcclusionRecord>
+  VulkanWavefrontIntersectionBackend::intersectPreparedPackedAny(
+    const std::vector<GpuIntersectionRay>& rays, WavefrontIntersectionQueryTiming* timing) const {
+    if (!vulkanTriangleHitAvailable()) {
+      return WavefrontIntersectionBackend::intersectPreparedPackedAny(rays, timing);
+    }
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    try {
+      const VulkanWavefrontAnyHitKernelResult result =
+        VulkanWavefrontSmokeKernel().runTimedTriangleAnyHitKernel(*m_gpuSceneBuffers, rays);
+      if (timing) {
+        timing->add(result.timing);
+        timing->recordExecutionPath("vulkan");
+      }
+      return result.records;
+    } catch (const std::exception&) {
+      return WavefrontIntersectionBackend::intersectPreparedPackedAny(rays, timing);
+    }
+#else
+    return WavefrontIntersectionBackend::intersectPreparedPackedAny(rays, timing);
+#endif
   }
 
   const CompiledIntersectionScene* VulkanWavefrontIntersectionBackend::compiledScene() const {
@@ -1391,6 +1477,15 @@ namespace render {
 
   bool VulkanWavefrontIntersectionBackend::prefersAnyHitBatch(std::uint64_t submittedRays) const {
     return submittedRays > 0 && preparedPackedAnyHitAvailable();
+  }
+
+  bool VulkanWavefrontIntersectionBackend::vulkanTriangleHitAvailable() const {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    return m_gpuSceneBuffers != nullptr && m_gpuSceneBuffers->triangleClosestHitKernelEligible() &&
+           platformGpuRenderPathAvailable();
+#else
+    return false;
+#endif
   }
 
   const Primitive* VulkanWavefrontIntersectionBackend::intersectClosest(

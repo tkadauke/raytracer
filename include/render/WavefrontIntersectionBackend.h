@@ -400,12 +400,26 @@ namespace render {
                            const PrimitivePacketState8& states,
                            WavefrontIntersectionQueryTiming* timing = nullptr) const override;
 
+  protected:
+    bool preparedPackedClosestHitAvailable() const override;
+    const char* preparedPackedClosestHitExecutionPath() const override;
+    std::vector<GpuIntersectionHitRecord> intersectPreparedPackedClosest(
+      const std::vector<GpuIntersectionRay>& rays,
+      WavefrontIntersectionQueryTiming* timing = nullptr) const override;
+    bool preparedPackedAnyHitAvailable() const override;
+    const char* preparedPackedAnyHitExecutionPath() const override;
+    std::vector<GpuIntersectionOcclusionRecord>
+    intersectPreparedPackedAny(const std::vector<GpuIntersectionRay>& rays,
+                               WavefrontIntersectionQueryTiming* timing = nullptr) const override;
+
   private:
     VulkanWavefrontIntersectionBackend() = default;
     explicit VulkanWavefrontIntersectionBackend(
       std::shared_ptr<const CompiledIntersectionScene> compiledScene,
       std::shared_ptr<const GpuIntersectionSceneBuffers> gpuSceneBuffers,
       std::string requestedName);
+
+    [[nodiscard]] bool vulkanTriangleHitAvailable() const;
 
     std::shared_ptr<const CompiledIntersectionScene> m_compiledScene;
     std::shared_ptr<const GpuIntersectionSceneBuffers> m_gpuSceneBuffers;
