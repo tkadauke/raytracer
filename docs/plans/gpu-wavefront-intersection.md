@@ -705,6 +705,11 @@ Progress:
   The threshold is deliberately conservative, but it catches regressions that
   accidentally bypass the flat packed BVH before platform kernels make that path
   the default on eligible renders.
+- Renderer-level image parity now also covers the user-facing `auto`
+  intersection backend when the expected ray workload clears the GPU-selection
+  threshold. Platform-enabled runs therefore exercise the same automatic path
+  users will rely on, while platform-unavailable runs keep proving the visible
+  CPU fallback branch.
 
 ## Phase 8 - future work
 

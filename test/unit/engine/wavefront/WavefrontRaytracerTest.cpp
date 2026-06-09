@@ -380,6 +380,10 @@ namespace WavefrontRaytracerTest {
       m_usePathTracing = true;
     }
 
+    void setMaximumRecursionDepth(int depth) {
+      m_maximumRecursionDepth = depth;
+    }
+
     std::unique_ptr<Buffer<Colord>>
     renderWith(const render::WavefrontIntersectionBackendChoice& backend) const {
       auto renderer = std::make_shared<WavefrontRaytracer>(camera(), m_scene);
@@ -392,6 +396,9 @@ namespace WavefrontRaytracerTest {
         integrator->setMaximumRecursionDepth(1);
         integrator->setDirectLightSamples(1);
         renderer->setIntegrator(std::move(integrator));
+      }
+      if (m_maximumRecursionDepth > 0) {
+        renderer->setMaximumRecursionDepth(m_maximumRecursionDepth);
       }
 
       auto buffer = std::make_unique<Buffer<Colord>>(12, 8);
@@ -442,6 +449,7 @@ namespace WavefrontRaytracerTest {
 
     std::shared_ptr<render::Scene> m_scene;
     bool m_usePathTracing{false};
+    int m_maximumRecursionDepth{0};
     mutable engine::wavefront::WavefrontRenderMetrics m_lastMetrics;
   };
 
@@ -1419,6 +1427,48 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitBatchChunksPerDepth.front(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitBatchRaysPerDepth.front(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.directLightSamples, 0u);
+  }
+
+  TEST(WavefrontRaytracer, AutoIntersectionRequestMatchesCpuImageWhenGpuGateClears) {
+    const BackendParitySceneFactory scenes;
+    BackendParityRenderCase renderCase(scenes.supportedPackedParityScene());
+    renderCase.setMaximumRecursionDepth(700);
+
+    const std::unique_ptr<Buffer<Colord>> cpu =
+      renderCase.renderWith(render::WavefrontIntersectionBackendChoice::cpu());
+    const std::unique_ptr<Buffer<Colord>> automatic =
+      renderCase.renderWith(render::WavefrontIntersectionBackendChoice::automatic());
+
+    renderCase.expectBuffersNear(*cpu, *automatic, 1.0e-4);
+
+    const auto metrics = renderCase.lastMetrics();
+    EXPECT_EQ("auto", metrics.batching.intersectionBackendRequest);
+    EXPECT_GT(metrics.batching.intersectionBackendExpectedRays,
+              metrics.batching.intersectionBackendAutoMinimumGpuRays);
+    if (metrics.batching.intersectionSceneCompiled) {
+      EXPECT_EQ(0u, metrics.batching.intersectionSceneUnsupportedPrimitives);
+      EXPECT_TRUE(metrics.batching.intersectionSceneBasicHitEligible);
+      EXPECT_TRUE(metrics.batching.intersectionScenePackedClosestHitEligible);
+      EXPECT_TRUE(metrics.batching.intersectionScenePackedAnyHitEligible);
+      EXPECT_GT(metrics.batching.intersectionSceneUploadBytes, 0u);
+      EXPECT_GT(metrics.batching.intersectionRaysSubmitted, 0u);
+      if (usedPlatformClosestHit(metrics)) {
+        EXPECT_EQ(metrics.batching.intersectionBackendExecutionPath,
+                  metrics.batching.intersectionBackend);
+        EXPECT_EQ("available", metrics.batching.intersectionBackendAvailability);
+      } else {
+        EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
+        EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
+        EXPECT_EQ("packed_cpu", metrics.batching.intersectionBackendExecutionPath);
+      }
+    } else {
+      EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
+      EXPECT_EQ("available", metrics.batching.intersectionBackendAvailability);
+      EXPECT_EQ("runtime_scene", metrics.batching.intersectionBackendExecutionPath);
+      EXPECT_NE(std::string::npos,
+                metrics.batching.intersectionBackendFallbackReason.find("auto selected CPU"));
+      expectPlatformGpuFallbackReason(metrics.batching.intersectionBackendFallbackReason);
+    }
   }
 
   TEST(WavefrontRaytracer, RecordsGpuIntersectionSceneUnsupportedFallbackMetrics) {
