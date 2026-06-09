@@ -1,6 +1,7 @@
 #include "widgets/world/RenderGraphInspectorWidget.h"
 
 #include "engine/graph/RenderGraphExecutionTrace.h"
+#include "engine/graph/RenderPassState.h"
 
 #include <QBrush>
 #include <QEvent>
@@ -111,11 +112,25 @@ struct RenderGraphInspectorWidget::Private {
   QString displayText(RenderResourceFormat format) const;
   QString displayFeatureText(const RenderFeatureKind& feature) const;
   QString graphEnumText(const char* value) const;
+  QString metadataIdentifierText(QString value) const;
   QString executionStateName(PassExecutionState state) const;
   qulonglong jsonIntegerValue(const QJsonObject& object, const QString& key) const;
   qulonglong jsonIntegerArraySum(const QJsonArray& array) const;
   QString jsonIntegerObjectSummary(const QJsonObject& object) const;
   QString percentage(double numerator, double denominator) const;
+  QString passStateText(const RenderPassNode& pass) const;
+  void addDetailRow(DetailRows& rows, const QString& name, const QString& value) const;
+  void addDetailStringMetadataRow(DetailRows& rows, const QString& name,
+                                  const QJsonObject& metadata, const QString& key,
+                                  bool humanize = false) const;
+  void addDetailBoolMetadataRow(DetailRows& rows, const QString& name, const QJsonObject& metadata,
+                                const QString& key) const;
+  void addDetailIntegerMetadataRow(DetailRows& rows, const QString& name,
+                                   const QJsonObject& metadata, const QString& key) const;
+  void addDetailMillisecondsMetadataRow(DetailRows& rows, const QString& name,
+                                        const QJsonObject& metadata, const QString& key) const;
+  void addIntersectionBackendDetailRows(DetailRows& rows, const QJsonObject& batching) const;
+  DetailRows passDetailRows(const RenderPlan& plan, const RenderPassId& passId) const;
   QString passTraceLine(const RenderPassNode& pass) const;
   const RenderGraphResourceSnapshot*
   firstSnapshotForResource(const RenderResourceId& resourceId) const;
@@ -349,6 +364,24 @@ QString RenderGraphInspectorWidget::Private::graphEnumText(const char* value) co
   return humanizeIdentifier(QString::fromLatin1(value));
 }
 
+QString RenderGraphInspectorWidget::Private::metadataIdentifierText(QString value) const {
+  value.replace(QLatin1Char('_'), QLatin1Char(' '));
+  value.replace(QLatin1Char('-'), QLatin1Char(' '));
+  value = value.simplified();
+
+  QStringList words = value.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+  for (QString& word : words) {
+    const QString lower = word.toLower();
+    if (lower == QStringLiteral("cpu") || lower == QStringLiteral("gpu") ||
+        lower == QStringLiteral("bvh")) {
+      word = lower.toUpper();
+      continue;
+    }
+    word = humanizeIdentifier(word);
+  }
+  return words.join(QLatin1Char(' '));
+}
+
 QString RenderGraphInspectorWidget::Private::executionStateName(PassExecutionState state) const {
   switch (state) {
   case PassExecutionState::Idle:
@@ -392,6 +425,196 @@ QString RenderGraphInspectorWidget::Private::percentage(double numerator,
                                                         double denominator) const {
   const double ratio = denominator == 0.0 ? 0.0 : numerator / denominator;
   return QStringLiteral("%1%").arg(ratio * 100.0, 0, 'f', 2);
+}
+
+QString RenderGraphInspectorWidget::Private::passStateText(const RenderPassNode& pass) const {
+  if (!pass.state)
+    return QStringLiteral("-");
+
+  const QJsonObject state = pass.state->toJson();
+  if (state.isEmpty())
+    return QStringLiteral("-");
+  return QString::fromUtf8(QJsonDocument(state).toJson(QJsonDocument::Compact));
+}
+
+void RenderGraphInspectorWidget::Private::addDetailRow(DetailRows& rows, const QString& name,
+                                                       const QString& value) const {
+  rows.push_back({name, dashIfEmpty(value)});
+}
+
+void RenderGraphInspectorWidget::Private::addDetailStringMetadataRow(DetailRows& rows,
+                                                                     const QString& name,
+                                                                     const QJsonObject& metadata,
+                                                                     const QString& key,
+                                                                     bool humanize) const {
+  if (!metadata.contains(key))
+    return;
+
+  QString value = metadata.value(key).toString();
+  if (humanize)
+    value = metadataIdentifierText(value);
+  addDetailRow(rows, name, value);
+}
+
+void RenderGraphInspectorWidget::Private::addDetailBoolMetadataRow(DetailRows& rows,
+                                                                   const QString& name,
+                                                                   const QJsonObject& metadata,
+                                                                   const QString& key) const {
+  if (!metadata.contains(key))
+    return;
+
+  addDetailRow(rows, name,
+               metadata.value(key).toBool() ? QStringLiteral("yes") : QStringLiteral("no"));
+}
+
+void RenderGraphInspectorWidget::Private::addDetailIntegerMetadataRow(DetailRows& rows,
+                                                                      const QString& name,
+                                                                      const QJsonObject& metadata,
+                                                                      const QString& key) const {
+  if (!metadata.contains(key))
+    return;
+
+  addDetailRow(rows, name, QString::number(jsonIntegerValue(metadata, key)));
+}
+
+void RenderGraphInspectorWidget::Private::addDetailMillisecondsMetadataRow(
+  DetailRows& rows, const QString& name, const QJsonObject& metadata, const QString& key) const {
+  if (!metadata.contains(key))
+    return;
+
+  addDetailRow(rows, name,
+               QStringLiteral("%1 ms").arg(metadata.value(key).toDouble() * 1000.0, 0, 'f', 3));
+}
+
+void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
+  DetailRows& rows, const QJsonObject& batching) const {
+  if (batching.isEmpty())
+    return;
+
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection backend request"), batching,
+                             QStringLiteral("intersectionBackendRequest"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection backend"), batching,
+                             QStringLiteral("intersectionBackend"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection backend availability"), batching,
+                             QStringLiteral("intersectionBackendAvailability"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection backend platform"), batching,
+                             QStringLiteral("intersectionBackendPlatform"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection backend execution path"), batching,
+                             QStringLiteral("intersectionBackendExecutionPath"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection backend fallback"), batching,
+                             QStringLiteral("intersectionBackendFallbackReason"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Expected intersection rays"), batching,
+                              QStringLiteral("intersectionBackendExpectedRays"));
+  addDetailBoolMetadataRow(rows, QStringLiteral("GPU device available"), batching,
+                           QStringLiteral("intersectionBackendPlatformGpuDeviceAvailable"));
+  addDetailBoolMetadataRow(rows, QStringLiteral("GPU render path available"), batching,
+                           QStringLiteral("intersectionBackendPlatformGpuRenderPathAvailable"));
+  addDetailBoolMetadataRow(rows, QStringLiteral("Intersection scene compiled"), batching,
+                           QStringLiteral("intersectionSceneCompiled"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene primitives"), batching,
+                              QStringLiteral("intersectionScenePrimitives"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene BVH nodes"), batching,
+                              QStringLiteral("intersectionSceneBvhNodes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene unsupported primitives"),
+                              batching, QStringLiteral("intersectionSceneUnsupportedPrimitives"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene upload bytes"), batching,
+                              QStringLiteral("intersectionSceneUploadBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection query transfer bytes"), batching,
+                              QStringLiteral("intersectionEstimatedQueryTransferBytes"));
+  addDetailBoolMetadataRow(rows, QStringLiteral("Packed closest-hit eligible"), batching,
+                           QStringLiteral("intersectionScenePackedClosestHitEligible"));
+  addDetailBoolMetadataRow(rows, QStringLiteral("Packed any-hit eligible"), batching,
+                           QStringLiteral("intersectionScenePackedAnyHitEligible"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Closest-hit rays submitted"), batching,
+                              QStringLiteral("closestHitRaysSubmitted"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit rays submitted"), batching,
+                              QStringLiteral("anyHitRaysSubmitted"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Closest-hit queries"), batching,
+                              QStringLiteral("closestHitQueries"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit queries"), batching,
+                              QStringLiteral("anyHitQueries"));
+  addDetailBoolMetadataRow(rows, QStringLiteral("Prefers closest-hit batches"), batching,
+                           QStringLiteral("intersectionBackendPrefersClosestHitBatch"));
+  addDetailBoolMetadataRow(rows, QStringLiteral("Prefers any-hit batches"), batching,
+                           QStringLiteral("intersectionBackendPrefersAnyHitBatch"));
+  addDetailMillisecondsMetadataRow(rows, QStringLiteral("Backend upload time"), batching,
+                                   QStringLiteral("intersectionBackendUploadWorkerSeconds"));
+  addDetailMillisecondsMetadataRow(rows, QStringLiteral("Backend kernel time"), batching,
+                                   QStringLiteral("intersectionBackendKernelWorkerSeconds"));
+  addDetailMillisecondsMetadataRow(rows, QStringLiteral("Backend readback time"), batching,
+                                   QStringLiteral("intersectionBackendReadbackWorkerSeconds"));
+}
+
+RenderGraphInspectorWidget::DetailRows
+RenderGraphInspectorWidget::Private::passDetailRows(const RenderPlan& plan,
+                                                    const RenderPassId& passId) const {
+  DetailRows rows;
+  const RenderPassNode* pass = plan.findPass(passId);
+  if (!pass) {
+    addDetailRow(rows, QStringLiteral("Pass"), qstr(passId));
+    addDetailRow(rows, QStringLiteral("Status"), QStringLiteral("not found"));
+    return rows;
+  }
+
+  addDetailRow(rows, QStringLiteral("Pass"), qstr(pass->id));
+  addDetailRow(rows, QStringLiteral("Name"), displayName(*pass));
+  addDetailRow(rows, QStringLiteral("Kind"), displayText(pass->kind));
+  addDetailRow(rows, QStringLiteral("Executor"), displayText(pass->executor));
+  addDetailRow(rows, QStringLiteral("Enabled"),
+               pass->enabled ? QStringLiteral("true") : QStringLiteral("false"));
+  const auto stage = plan.executionStageNumber(pass->id);
+  addDetailRow(rows, QStringLiteral("Execution stage"),
+               stage ? QString::number(*stage) : QStringLiteral("-"));
+  const auto order = plan.executionOrderNumber(pass->id);
+  addDetailRow(rows, QStringLiteral("Execution order"),
+               order ? QString::number(*order) : QStringLiteral("-"));
+  addDetailRow(rows, QStringLiteral("Scene selector"), sceneSelectorText(pass->sceneView.selector));
+  addDetailRow(rows, QStringLiteral("Scene camera"), cameraText(pass->sceneView.camera));
+  addDetailRow(rows, QStringLiteral("Shading profile"),
+               shadingProfileText(pass->sceneView.shadingProfile));
+  addDetailRow(rows, QStringLiteral("Disabled behavior"), displayText(pass->disabledBehavior));
+  QStringList features;
+  for (const auto& feature : pass->features)
+    features << displayFeatureText(feature);
+  addDetailRow(rows, QStringLiteral("Features"), features.join(QStringLiteral(", ")));
+  addDetailRow(rows, QStringLiteral("Reads"), resourceReads(plan, pass->reads));
+  addDetailRow(rows, QStringLiteral("Writes"), resourceWrites(plan, pass->writes));
+  addDetailRow(rows, QStringLiteral("Incoming dependencies"),
+               dependencySummary(plan, plan.dependenciesInto(pass->id)));
+  addDetailRow(rows, QStringLiteral("Outgoing dependencies"),
+               dependencySummary(plan, plan.dependenciesOutOf(pass->id)));
+  addDetailRow(rows, QStringLiteral("External side effects"),
+               pass->hasExternalSideEffects ? QStringLiteral("true") : QStringLiteral("false"));
+  addDetailRow(rows, QStringLiteral("Concurrent"),
+               pass->canRunConcurrently ? QStringLiteral("true") : QStringLiteral("false"));
+  addDetailRow(rows, QStringLiteral("State"), passStateText(*pass));
+
+  const RenderGraphExecutionTrace* matchedTrace =
+    trace && trace->matchesPlan(plan) ? trace.get() : nullptr;
+  const RenderPassTrace* passTrace = matchedTrace ? matchedTrace->findPass(pass->id) : nullptr;
+  if (!passTrace) {
+    addDetailRow(rows, QStringLiteral("Trace"), QStringLiteral("not available"));
+    return rows;
+  }
+
+  addDetailRow(rows, QStringLiteral("Trace status"), toString(passTrace->status()));
+  addDetailRow(rows, QStringLiteral("Trace elapsed"),
+               QStringLiteral("%1 ms").arg(passTrace->elapsed().count() / 1000000.0, 0, 'f', 3));
+  addDetailRow(rows, QStringLiteral("Trace message"), qstr(passTrace->message()));
+
+  QStringList inputs;
+  for (const auto& input : passTrace->inputs())
+    inputs << qstr(input.resourceId());
+  addDetailRow(rows, QStringLiteral("Trace inputs"), inputs.join(QStringLiteral(", ")));
+
+  QStringList outputs;
+  for (const auto& output : passTrace->outputs())
+    outputs << qstr(output.resourceId());
+  addDetailRow(rows, QStringLiteral("Trace outputs"), outputs.join(QStringLiteral(", ")));
+
+  addIntersectionBackendDetailRows(
+    rows, passTrace->metadata().value(QStringLiteral("batching")).toObject());
+  return rows;
 }
 
 QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode& pass) const {
@@ -1145,6 +1368,11 @@ bool RenderGraphInspectorWidget::effectivePlanValid() const {
   if (!p->compileError.isEmpty())
     return false;
   return effectivePlan().validate().valid();
+}
+
+RenderGraphInspectorWidget::DetailRows
+RenderGraphInspectorWidget::passDetailRows(const QString& passId) const {
+  return p->passDetailRows(effectivePlan(), passId.toStdString());
 }
 
 void RenderGraphInspectorWidget::setExecutionTrace(

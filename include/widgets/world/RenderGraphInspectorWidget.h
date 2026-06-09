@@ -3,8 +3,10 @@
 #include "engine/graph/RenderPlan.h"
 
 #include <QByteArray>
+#include <QPair>
 #include <QString>
 #include <QStringList>
+#include <QVector>
 #include <QWidget>
 
 #include <memory>
@@ -27,6 +29,8 @@ class RenderGraphInspectorWidget : public QWidget {
   Q_OBJECT
 
 public:
+  using DetailRows = QVector<QPair<QString, QString>>;
+
   explicit RenderGraphInspectorWidget(QWidget* parent = nullptr);
   ~RenderGraphInspectorWidget();
 
@@ -59,6 +63,15 @@ public:
     * @returns true when `effectivePlan().validate()` has no errors.
     */
   bool effectivePlanValid() const;
+
+  /**
+    * @returns read-only property rows for the selected graph pass.
+    *
+    * The rows include compiled plan data and, when available, execution trace
+    * metadata such as wavefront intersection backend selection and fallback
+    * diagnostics.
+    */
+  DetailRows passDetailRows(const QString& passId) const;
 
   /**
     * Notifies the inspector that a completed execution trace is available.

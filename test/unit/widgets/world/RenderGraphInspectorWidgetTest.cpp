@@ -371,12 +371,13 @@ namespace RenderGraphInspectorWidgetTest {
     return engine.lastExecutionTrace();
   }
 
-  std::shared_ptr<const RenderGraphExecutionTrace> wavefrontTrace() {
+  std::shared_ptr<const RenderGraphExecutionTrace>
+  wavefrontTraceForBackend(const char* intersectionBackend) {
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Wavefront;
     intent.engineOptions.raytracer().setIntegrator("pathtracer");
     intent.engineOptions.raytracer().setSamplesPerPixel(4);
-    intent.engineOptions.raytracer().setIntersectionBackend("gpu");
+    intent.engineOptions.raytracer().setIntersectionBackend(intersectionBackend);
     intent.engineOptions.raytracer().setConvergenceEnabled(true);
     intent.engineOptions.raytracer().setConvergenceActiveSampleFractionThreshold(1.0);
     intent.engineOptions.raytracer().setConvergenceRadianceDeltaRmsThreshold(10.0);
@@ -389,6 +390,14 @@ namespace RenderGraphInspectorWidgetTest {
     Buffer<unsigned int> buffer(24, 24);
     engine.render(buffer);
     return engine.lastExecutionTrace();
+  }
+
+  std::shared_ptr<const RenderGraphExecutionTrace> wavefrontCpuTrace() {
+    return wavefrontTraceForBackend("cpu");
+  }
+
+  std::shared_ptr<const RenderGraphExecutionTrace> wavefrontGpuTrace() {
+    return wavefrontTraceForBackend("gpu");
   }
 
   void processEventsFor(int milliseconds) {
@@ -450,6 +459,14 @@ namespace RenderGraphInspectorWidgetTest {
         return item;
     }
     return nullptr;
+  }
+
+  QString rowValue(const RenderGraphInspectorWidget::DetailRows& rows, const QString& name) {
+    for (const auto& row : rows) {
+      if (row.first == name)
+        return row.second;
+    }
+    return QString();
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldInitialize) {
@@ -1015,7 +1032,7 @@ namespace RenderGraphInspectorWidgetTest {
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldExposeWavefrontPacketWidthSummaryOnGraphNode) {
-    auto trace = wavefrontTrace();
+    auto trace = wavefrontCpuTrace();
     ASSERT_TRUE(trace);
 
     RenderGraphInspectorWidget widget;
@@ -1034,20 +1051,36 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("Ray4")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("fill")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("scalar tail")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("intersection backend gpu->cpu")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("fallback")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("via packed cpu")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("expected")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("intersection rays")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("intersection scene")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("primitives")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("unsupported 0")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("upload bytes")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("packed closest-hit eligible")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("packed any-hit eligible")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("query transfer bytes")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("closest-hit")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("any-hit rays")));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest,
+         ShouldExposeWavefrontIntersectionBackendRowsForSelectedPass) {
+    auto trace = wavefrontGpuTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    const auto rows = widget.passDetailRows(QStringLiteral("wavefront_beauty"));
+
+    EXPECT_EQ(QStringLiteral("Wavefront beauty"), rowValue(rows, QStringLiteral("Name")));
+    EXPECT_EQ(QStringLiteral("GPU"),
+              rowValue(rows, QStringLiteral("Intersection backend request")));
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection backend")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection backend availability")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection backend execution path")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection backend fallback")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Expected intersection rays")).isEmpty());
+    EXPECT_EQ(QStringLiteral("yes"), rowValue(rows, QStringLiteral("Intersection scene compiled")));
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection scene primitives")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection scene BVH nodes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection scene upload bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection query transfer bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit rays submitted")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Any-hit rays submitted")).isEmpty());
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowRasterMetricsOnSelectedPassRow) {

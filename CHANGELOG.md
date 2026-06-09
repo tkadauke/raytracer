@@ -43,6 +43,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   direct triangle closest-hit compute dispatch over the packed
   BVH/primitive/triangle/ray/hit ABI, with CPU packed-intersector parity
   coverage. — GPT-5
+- **Modeler wavefront backend pass metadata.** Selecting a render graph pass in
+  the Modeler now shows wavefront intersection backend request, resolved
+  backend, fallback, execution path, expected rays, scene upload, transfer, and
+  query counters in the property editor. — GPT-5
 - **Vulkan basic any-hit dispatch.** Vulkan-enabled builds now expose a direct
   any-hit compute dispatch for prepared triangle, sphere, plane, rectangle,
   disk, and static-transform scenes over the packed

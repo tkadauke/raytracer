@@ -14,7 +14,6 @@
 
 #include <QAction>
 #include <QActionGroup>
-#include <QJsonDocument>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -313,63 +312,6 @@ namespace {
     ImportedElement m_importedElement;
   };
 
-  QString resourceReadsText(const std::vector<engine::graph::ResourceRead>& reads) {
-    QStringList values;
-    for (const auto& read : reads)
-      values << qstr(read.resource);
-    return dashIfEmpty(values.join(QStringLiteral(", ")));
-  }
-
-  QString resourceWritesText(const std::vector<engine::graph::ResourceWrite>& writes) {
-    QStringList values;
-    for (const auto& write : writes)
-      values << qstr(write.resource);
-    return dashIfEmpty(values.join(QStringLiteral(", ")));
-  }
-
-  QString sceneSelectorText(const engine::graph::SceneSelector& selector) {
-    return qstr(selector.displayText());
-  }
-
-  QString cameraText(const std::optional<engine::graph::RenderCameraRef>& camera) {
-    if (!camera)
-      return QStringLiteral("-");
-
-    return qstr(camera->displayText());
-  }
-
-  QString
-  shadingProfileText(const std::optional<engine::graph::ShadingProfileRef>& shadingProfile) {
-    if (!shadingProfile)
-      return QStringLiteral("-");
-
-    return qstr(shadingProfile->displayText());
-  }
-
-  QString dependencyText(const std::vector<engine::graph::RenderPassDependency>& dependencies) {
-    QStringList values;
-    for (const auto& dependency : dependencies) {
-      values << QStringLiteral("%1 -> %2 via %3")
-                  .arg(qstr(dependency.producer->id))
-                  .arg(qstr(dependency.consumer->id))
-                  .arg(qstr(dependency.resource));
-    }
-    return dashIfEmpty(values.join(QStringLiteral(", ")));
-  }
-
-  QString featureText(const std::vector<engine::graph::RenderFeatureKind>& features) {
-    QStringList values;
-    for (const auto& feature : features)
-      values << qstr(feature);
-    return dashIfEmpty(values.join(QStringLiteral(", ")));
-  }
-
-  bool hasFeature(const std::vector<engine::graph::RenderFeatureKind>& features,
-                  const char* feature) {
-    return std::find(features.begin(), features.end(), engine::graph::RenderFeatureKind(feature)) !=
-           features.end();
-  }
-
   class PreviewEngineIntentDefinition {
   public:
     virtual ~PreviewEngineIntentDefinition() = default;
@@ -504,20 +446,6 @@ namespace {
       .arg(resource.width)
       .arg(resource.height)
       .arg(resource.sampleCount);
-  }
-
-  QString passStateText(const engine::graph::RenderPassNode& pass) {
-    if (!pass.state)
-      return QStringLiteral("-");
-
-    const QJsonObject state = pass.state->toJson();
-    if (state.isEmpty())
-      return QStringLiteral("-");
-    return QString::fromUtf8(QJsonDocument(state).toJson(QJsonDocument::Compact));
-  }
-
-  QString optionalNumberText(const std::optional<int>& value) {
-    return value ? QString::number(*value) : QStringLiteral("-");
   }
 
   const engine::graph::RenderGraphResourceSnapshot*
@@ -2369,62 +2297,12 @@ void MainWindow::showRenderGraphPassDetails(const QString& passId, bool activate
 
   const auto plan = p->renderGraphInspectorWidget->effectivePlan();
   const auto* pass = plan.findPass(passId.toStdString());
-  PropertyRows rows;
-  if (!pass) {
-    addRow(rows, tr("Pass"), passId);
-    addRow(rows, tr("Status"), tr("not found"));
-    p->propertyEditorWidget->setReadOnlyProperties(tr("Render graph pass"), rows);
+  p->propertyEditorWidget->setReadOnlyProperties(
+    tr("Render graph pass"), p->renderGraphInspectorWidget->passDetailRows(passId));
+  if (!pass)
     return;
-  }
-
-  addRow(rows, tr("Pass"), qstr(pass->id));
-  addRow(rows, tr("Name"), qstr(pass->name));
-  addRow(rows, tr("Kind"), engine::graph::toString(pass->kind));
-  addRow(rows, tr("Executor"), engine::graph::toString(pass->executor));
-  addRow(rows, tr("Enabled"), pass->enabled ? tr("true") : tr("false"));
-  addRow(rows, tr("Execution stage"), optionalNumberText(plan.executionStageNumber(pass->id)));
-  addRow(rows, tr("Execution order"), optionalNumberText(plan.executionOrderNumber(pass->id)));
-  if (hasFeature(pass->features, "selector_override")) {
-    addRow(rows, tr("Routing reason"),
-           tr("Compiler-generated branch for selector route %1")
-             .arg(sceneSelectorText(pass->sceneView.selector)));
-  }
-  addRow(rows, tr("Scene selector"), sceneSelectorText(pass->sceneView.selector));
-  addRow(rows, tr("Scene camera"), cameraText(pass->sceneView.camera));
-  addRow(rows, tr("Shading profile"), shadingProfileText(pass->sceneView.shadingProfile));
-  addRow(rows, tr("Disabled behavior"), engine::graph::toString(pass->disabledBehavior));
-  addRow(rows, tr("Features"), featureText(pass->features));
-  addRow(rows, tr("Reads"), resourceReadsText(pass->reads));
-  addRow(rows, tr("Writes"), resourceWritesText(pass->writes));
-  addRow(rows, tr("Incoming dependencies"), dependencyText(plan.dependenciesInto(pass->id)));
-  addRow(rows, tr("Outgoing dependencies"), dependencyText(plan.dependenciesOutOf(pass->id)));
-  addRow(rows, tr("External side effects"),
-         pass->hasExternalSideEffects ? tr("true") : tr("false"));
-  addRow(rows, tr("Concurrency"), qstr(pass->concurrency.displayText()));
-  addRow(rows, tr("State"), passStateText(*pass));
 
   const auto trace = p->display ? p->display->lastRenderGraphExecutionTraceForPlan(plan) : nullptr;
-  const auto* passTrace = trace ? trace->findPass(pass->id) : nullptr;
-  if (!passTrace) {
-    addRow(rows, tr("Trace"), tr("not available"));
-  } else {
-    addRow(rows, tr("Trace status"), engine::graph::toString(passTrace->status()));
-    addRow(rows, tr("Trace elapsed"),
-           tr("%1 ms").arg(passTrace->elapsed().count() / 1000000.0, 0, 'f', 3));
-    addRow(rows, tr("Trace message"), qstr(passTrace->message()));
-
-    QStringList inputs;
-    for (const auto& input : passTrace->inputs())
-      inputs << qstr(input.resourceId());
-    addRow(rows, tr("Trace inputs"), dashIfEmpty(inputs.join(QStringLiteral(", "))));
-
-    QStringList outputs;
-    for (const auto& output : passTrace->outputs())
-      outputs << qstr(output.resourceId());
-    addRow(rows, tr("Trace outputs"), dashIfEmpty(outputs.join(QStringLiteral(", "))));
-  }
-
-  p->propertyEditorWidget->setReadOnlyProperties(tr("Render graph pass"), rows);
   if (activateTracePreview && p->graphTracePreviewWidget && p->centralTabs) {
     p->graphTracePreviewWidget->showPassTrace(trace, pass->id);
     p->centralTabs->setCurrentWidget(p->graphTracePreviewWidget);
