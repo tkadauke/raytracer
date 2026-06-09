@@ -43,10 +43,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   closest-hit frontier batching. They also report closest-hit and any-hit batch
   preference flags so zero batch counters can be distinguished from scalar CPU
   fallback behavior. — GPT-5
-- **Batched wavefront closest-hit queries.** Path-tracing frontiers can now
-  submit closest-hit work through a backend-level batch API when the selected
-  intersection backend prefers it, and rendercli/Modeler wavefront metrics now
-  expose closest-hit batch chunk/ray counters. — GPT-5
+- **Batched wavefront closest-hit queries.** Path-tracing and Whitted frontiers
+  can now submit closest-hit work through a backend-level batch API when the
+  selected intersection backend prefers it, and rendercli/Modeler wavefront
+  metrics now expose closest-hit batch chunk/ray counters. — GPT-5
 - **Wavefront intersection ray-family diagnostics.** Wavefront metrics JSON,
   rendercli summaries, and Modeler graph tooltips now split submitted
   intersection rays into closest-hit and any-hit ray counts, making batched

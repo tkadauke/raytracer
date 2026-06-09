@@ -65,6 +65,8 @@ namespace render {
     std::uint64_t frontierRayMisses{0};
     std::uint64_t frontierPacketChunks{0};
     std::uint64_t frontierPacketRays{0};
+    std::uint64_t frontierClosestHitBatchChunks{0};
+    std::uint64_t frontierClosestHitBatchRays{0};
     std::uint64_t frontierRay4PacketChunks{0};
     std::uint64_t frontierRay8PacketChunks{0};
     std::uint64_t frontierScalarRays{0};
@@ -550,6 +552,58 @@ namespace render {
     }
   }
 
+  void WhittedIntegrator::intersectQueuedRayBatch(
+    const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
+    std::vector<QueuedRay>& current, std::size_t traceableCount, std::vector<QueuedHit>& activeHits,
+    std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
+    IntegratorBatchMetrics* metrics) const {
+    std::vector<WavefrontClosestHitQuery> queries;
+    queries.reserve(traceableCount);
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+      if (depthMetrics.trackFrontierMetrics) {
+        ++depthMetrics.frontierClosestHitBatchChunks;
+        depthMetrics.frontierClosestHitBatchRays += traceableCount;
+      }
+      for (std::size_t queuedIndex = 0; queuedIndex != traceableCount; ++queuedIndex) {
+        auto& queued = current[queuedIndex];
+        queued.state.recurseIn();
+        queries.push_back(WavefrontClosestHitQuery{queued.ray, &queued.state});
+      }
+    }
+
+    std::vector<WavefrontClosestHitResult> hits;
+    {
+      WavefrontIntersectionQueryTiming intersectionTiming;
+      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      hits = intersectionBackend.intersectClosestBatch(scene, queries, &intersectionTiming);
+      if (metrics) {
+        metrics->recordClosestHitQuery(intersectionBackend, queries.size(), intersectionTiming);
+      }
+    }
+
+    core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+    for (std::size_t queuedIndex = 0; queuedIndex != traceableCount; ++queuedIndex) {
+      auto& queued = current[queuedIndex];
+      if (isCancelled()) {
+        result[queued.sampleIndex] += queued.weight * scene.background();
+        queued.state.recurseOut();
+        continue;
+      }
+      const bool hit = queuedIndex < hits.size() && hits[queuedIndex].hit();
+      if (!hit) {
+        recordQueuedRayMiss(scene, queued, result, depthMetrics);
+        continue;
+      }
+
+      if (depthMetrics.trackFrontierMetrics) {
+        ++depthMetrics.frontierRayHits;
+      }
+      activeHits.push_back(
+        QueuedHit{queuedIndex, hits[queuedIndex].primitive, hits[queuedIndex].hitPoint});
+    }
+  }
+
   void WhittedIntegrator::intersectActiveFrontier(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
     std::vector<QueuedRay>& current, std::vector<QueuedHit>& activeHits,
@@ -563,6 +617,12 @@ namespace render {
     }
 
     std::size_t queuedIndex = 0;
+    if (!isCancelled() && intersectionBackend.prefersClosestHitBatch(traceableCount)) {
+      intersectQueuedRayBatch(intersectionBackend, scene, current, traceableCount, activeHits,
+                              result, depthMetrics, metrics);
+      queuedIndex = traceableCount;
+    }
+
     while (queuedIndex != traceableCount) {
       const bool canUsePacket8 = !isCancelled() && queuedIndex + Ray8::lanes <= traceableCount;
       if (canUsePacket8) {
@@ -767,6 +827,8 @@ namespace render {
           depthMetrics.frontierRay4PacketChunks, depthMetrics.frontierRay8PacketChunks,
           depthMetrics.frontierScalarRays, depthMetrics.frontierPacketScalarFallbackRays,
           depthMetrics.frontierPacketRefinedRays);
+        metrics->recordFrontierClosestHitBatch(depthMetrics.frontierClosestHitBatchChunks,
+                                               depthMetrics.frontierClosestHitBatchRays);
         metrics->recordPacketScalarFallbacksByReason(
           depthMetrics.frontierPacketScalarFallbackRaysByReason);
       }

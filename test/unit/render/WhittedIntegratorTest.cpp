@@ -210,6 +210,19 @@ namespace WhittedIntegratorTest {
                                                                         state, timing);
       }
 
+      bool prefersClosestHitBatch(std::uint64_t submittedRays) const override {
+        return preferClosestHitBatch && submittedRays > 1;
+      }
+
+      std::vector<WavefrontClosestHitResult>
+      intersectClosestBatch(const Scene& scene,
+                            const std::vector<WavefrontClosestHitQuery>& queries,
+                            WavefrontIntersectionQueryTiming* timing = nullptr) const override {
+        ++closestHitBatchQueries;
+        closestHitBatchSizes.push_back(queries.size());
+        return WavefrontIntersectionBackend::intersectClosestBatch(scene, queries, timing);
+      }
+
       PrimitivePacketHit4
       intersectPacketClosest(const Scene& scene, const Ray4& rays,
                              const PrimitivePacketState4& states,
@@ -229,9 +242,12 @@ namespace WhittedIntegratorTest {
       }
 
       mutable int scalarQueries{0};
+      mutable int closestHitBatchQueries{0};
+      mutable std::vector<std::size_t> closestHitBatchSizes;
       mutable int packet4Queries{0};
       mutable int packet8Queries{0};
       mutable int anyQueries{0};
+      bool preferClosestHitBatch{false};
     };
 
     std::shared_ptr<NiceMock<MockPrimitive>> makeAlwaysHit(double distance = 1.0) {
@@ -421,6 +437,46 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ(1u, metrics.intersectionRaysSubmitted);
     EXPECT_EQ(1u, metrics.closestHitQueries);
     EXPECT_EQ(0u, metrics.anyHitQueries);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceUsesClosestHitBatchWhenBackendPrefersIt) {
+    Scene scene;
+    scene.setAmbient(Colord::black());
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    auto primitive = makeAlwaysHit();
+    primitive->setMaterial(std::make_shared<MatteMaterial>());
+    scene.add(primitive);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    CountingIntersectionBackend backend;
+    backend.preferClosestHitBatch = true;
+    IntegratorBatchSettings settings;
+    settings.intersectionBackend = &backend;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples;
+    for (std::size_t sample = 0; sample != 5; ++sample) {
+      samples.push_back(
+        IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr});
+    }
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings);
+
+    ASSERT_EQ(5u, colors.size());
+    EXPECT_EQ(1, backend.closestHitBatchQueries);
+    EXPECT_EQ((std::vector<std::size_t>{5u}), backend.closestHitBatchSizes);
+    EXPECT_EQ(5, backend.scalarQueries);
+    EXPECT_EQ(0, backend.packet4Queries);
+    EXPECT_EQ(0, backend.packet8Queries);
+    EXPECT_EQ((std::vector<std::uint64_t>{5u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierClosestHitBatchChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{5u}), metrics.frontierClosestHitBatchRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierScalarRaysPerDepth);
+    EXPECT_EQ(1u, metrics.closestHitQueries);
+    EXPECT_EQ(5u, metrics.closestHitRaysSubmitted);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceReportsSetupTiming) {
