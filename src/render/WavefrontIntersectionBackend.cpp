@@ -121,8 +121,16 @@ namespace render {
         return {false, minimumRayCount,
                 "auto selected CPU: intersection scene contains unsupported primitives"};
       }
+      if (!diagnostics.packedClosestHitKernelEligible) {
+        return {false, minimumRayCount,
+                "auto selected CPU: intersection scene is not packed closest-hit eligible"};
+      }
+      if (!diagnostics.packedAnyHitKernelEligible) {
+        return {false, minimumRayCount,
+                "auto selected CPU: intersection scene is not packed any-hit eligible"};
+      }
       return {false, minimumRayCount,
-              "auto selected CPU: intersection scene is not basic-kernel eligible"};
+              "auto selected CPU: intersection scene is not packed-kernel eligible"};
     }
 
     if (!expectedRayCountJustifiesGpu(diagnostics, context)) {
@@ -139,7 +147,7 @@ namespace render {
   bool WavefrontIntersectionBackendAutoSelectionPolicy::sceneCanUseGpu(
     const WavefrontIntersectionSceneDiagnostics& diagnostics) const {
     return diagnostics.compiled && diagnostics.unsupportedPrimitives == 0 &&
-           diagnostics.basicHitKernelEligible;
+           diagnostics.packedClosestHitKernelEligible && diagnostics.packedAnyHitKernelEligible;
   }
 
   bool WavefrontIntersectionBackendAutoSelectionPolicy::expectedRayCountJustifiesGpu(

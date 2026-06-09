@@ -719,6 +719,11 @@ Progress:
   threshold. Platform-enabled runs therefore exercise the same automatic path
   users will rely on, while platform-unavailable runs keep proving the visible
   CPU fallback branch.
+- `auto` selection now gates on packed closest-hit and packed any-hit
+  eligibility separately, rather than only the coarse basic-hit scene flag. That
+  keeps automatic GPU routing tied to the two query families the renderer
+  actually needs and prevents future one-sided kernel support from being
+  selected automatically before both paths are ready.
 
 ## Phase 8 - future work
 

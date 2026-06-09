@@ -349,20 +349,34 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_NE(std::string::npos, decision.reason.find("auto selected GPU"));
   }
 
-  TEST(WavefrontIntersectionBackend, AutoPolicyRequiresBasicKernelEligibleScene) {
+  TEST(WavefrontIntersectionBackend, AutoPolicyRequiresPackedClosestHitEligibleScene) {
     const WavefrontIntersectionBackendAutoSelectionPolicy policy;
     WavefrontIntersectionBackendSelectionContext context;
     context.expectedRayCount = 1000000;
     WavefrontIntersectionSceneDiagnostics diagnostics = supportedPackedDiagnostics();
-    diagnostics.triangleClosestHitKernelEligible = false;
-    diagnostics.basicHitKernelEligible = false;
+    diagnostics.packedClosestHitKernelEligible = false;
 
     const WavefrontIntersectionBackendAutoSelectionDecision decision =
       policy.decide(true, true, diagnostics, context);
 
     EXPECT_FALSE(decision.useGpu);
     EXPECT_EQ(65536u, decision.minimumExpectedRayCount);
-    EXPECT_NE(std::string::npos, decision.reason.find("basic-kernel eligible"));
+    EXPECT_NE(std::string::npos, decision.reason.find("packed closest-hit eligible"));
+  }
+
+  TEST(WavefrontIntersectionBackend, AutoPolicyRequiresPackedAnyHitEligibleScene) {
+    const WavefrontIntersectionBackendAutoSelectionPolicy policy;
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 1000000;
+    WavefrontIntersectionSceneDiagnostics diagnostics = supportedPackedDiagnostics();
+    diagnostics.packedAnyHitKernelEligible = false;
+
+    const WavefrontIntersectionBackendAutoSelectionDecision decision =
+      policy.decide(true, true, diagnostics, context);
+
+    EXPECT_FALSE(decision.useGpu);
+    EXPECT_EQ(65536u, decision.minimumExpectedRayCount);
+    EXPECT_NE(std::string::npos, decision.reason.find("packed any-hit eligible"));
   }
 
   TEST(WavefrontIntersectionBackend, AutoPolicySelectsGpuForAvailableLargeSupportedScene) {

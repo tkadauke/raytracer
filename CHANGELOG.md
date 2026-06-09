@@ -611,6 +611,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   dependency-ready CPU-safe passes concurrently while preserving serial and
   limited executor caps, and skips queued dependents when cancellation or pass
   failures stop graph execution. — GPT-5
+- **Wavefront auto packed-query gate.** Wavefront `auto` intersection backend
+  selection now requires packed closest-hit and packed any-hit eligibility
+  separately before it can choose GPU, so future one-sided kernel expansions
+  cannot accidentally route only part of the renderer's query contract through
+  a platform backend. — GPT-5
 - **Wavefront GPU auto-selection gate.** Wavefront `auto` intersection backend
   selection now requires both a detected platform GPU device and a
   render-path-capable backend before it can choose GPU, so Vulkan compute-smoke

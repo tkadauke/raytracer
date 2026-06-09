@@ -204,8 +204,8 @@ runs a selection policy over platform availability, scene support, expected ray
 count, and scene-upload amortization; today scene support is intentionally
 limited to triangle, sphere, plane, rectangle, and disk leaves with either no
 transform or static instance transforms that can use the first Metal/Vulkan
-closest-hit and any-hit kernels, and other scenes report the CPU-selection reason in
-metrics and graph trace metadata. The experimental
+packed closest-hit and any-hit kernels, and other scenes report the
+CPU-selection reason in metrics and graph trace metadata. The experimental
 CMake flags
 `RAYTRACER_ENABLE_METAL_WAVEFRONT` and
 `RAYTRACER_ENABLE_VULKAN_WAVEFRONT` enable platform plumbing checks. The
