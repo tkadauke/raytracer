@@ -1078,6 +1078,10 @@ namespace render {
 
     void cleanup() {
       if (device) {
+        for (QueryBuffers& buffers : queryBufferPool) {
+          destroy(buffers);
+        }
+        queryBufferPool.clear();
         if (commandPool) {
           vkDestroyCommandPool(device, commandPool, nullptr);
           commandPool = VK_NULL_HANDLE;
@@ -1125,23 +1129,12 @@ namespace render {
       if (rays.empty()) {
         return result;
       }
-      const VkDeviceSize outputBytes = byteCountForRecords<GpuIntersectionHitRecord>(rays.size());
-      auto dispatchResult =
-        dispatch(rays, outputBytes, closestPipeline, "Vulkan prepared closest-hit");
-      const auto readbackStart = std::chrono::steady_clock::now();
-      try {
-        result.hits = readBackRecords<GpuIntersectionHitRecord>(
-          dispatchResult.output.memory, outputBytes, rays.size(),
-          "Vulkan prepared closest-hit output buffer mapping");
-      } catch (...) {
-        destroy(dispatchResult.output);
-        throw;
-      }
-      const auto readbackEnd = std::chrono::steady_clock::now();
+      auto dispatchResult = dispatchRecords<GpuIntersectionHitRecord>(
+        rays, closestPipeline, "Vulkan prepared closest-hit",
+        "Vulkan prepared closest-hit output buffer mapping");
+      result.hits = std::move(dispatchResult.records);
       result.timing = dispatchResult.timing;
-      result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
       result.timing.recordExecutionPath("vulkan");
-      destroy(dispatchResult.output);
       return result;
     }
 
@@ -1150,23 +1143,12 @@ namespace render {
       if (rays.empty()) {
         return result;
       }
-      const VkDeviceSize outputBytes =
-        byteCountForRecords<GpuIntersectionOcclusionRecord>(rays.size());
-      auto dispatchResult = dispatch(rays, outputBytes, anyPipeline, "Vulkan prepared any-hit");
-      const auto readbackStart = std::chrono::steady_clock::now();
-      try {
-        result.records = readBackRecords<GpuIntersectionOcclusionRecord>(
-          dispatchResult.output.memory, outputBytes, rays.size(),
-          "Vulkan prepared any-hit output buffer mapping");
-      } catch (...) {
-        destroy(dispatchResult.output);
-        throw;
-      }
-      const auto readbackEnd = std::chrono::steady_clock::now();
+      auto dispatchResult = dispatchRecords<GpuIntersectionOcclusionRecord>(
+        rays, anyPipeline, "Vulkan prepared any-hit",
+        "Vulkan prepared any-hit output buffer mapping");
+      result.records = std::move(dispatchResult.records);
       result.timing = dispatchResult.timing;
-      result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
       result.timing.recordExecutionPath("vulkan");
-      destroy(dispatchResult.output);
       return result;
     }
 
@@ -1181,17 +1163,12 @@ namespace render {
       VkDeviceSize byteCount{0};
     };
 
-    struct QueryBufferGuard {
-      ~QueryBufferGuard() {
-        for (SmokeBuffer& buffer : buffers) {
-          if (owner) {
-            owner->destroy(buffer);
-          }
-        }
-      }
-
-      const Private* owner{nullptr};
-      std::vector<SmokeBuffer> buffers;
+    struct QueryBuffers {
+      SmokeBuffer rays;
+      SmokeBuffer output;
+      SmokeBuffer counts;
+      VkDeviceSize rayCapacityBytes{0};
+      VkDeviceSize outputCapacityBytes{0};
     };
 
     struct DescriptorPoolGuard {
@@ -1205,28 +1182,33 @@ namespace render {
       VkDescriptorPool pool{VK_NULL_HANDLE};
     };
 
-    struct DispatchResult {
-      SmokeBuffer output;
+    template<typename Record>
+    struct DispatchRecordsResult {
+      std::vector<Record> records;
       WavefrontIntersectionQueryTiming timing;
     };
 
     static constexpr std::uint32_t kInvalidQueueFamily = std::numeric_limits<std::uint32_t>::max();
 
-    DispatchResult dispatch(const std::vector<GpuIntersectionRay>& rays, VkDeviceSize outputBytes,
-                            VkPipeline pipeline, const char* operation) const {
+    template<typename Record>
+    DispatchRecordsResult<Record> dispatchRecords(const std::vector<GpuIntersectionRay>& rays,
+                                                  VkPipeline pipeline, const char* operation,
+                                                  const char* readbackOperation) const {
       if (rays.size() > std::numeric_limits<std::uint32_t>::max()) {
         throw std::runtime_error(std::string(operation) + " ray batch is too large");
       }
 
       std::lock_guard<std::mutex> lock(dispatchMutex);
 
-      DispatchResult result;
+      DispatchRecordsResult<Record> result;
       const auto uploadStart = std::chrono::steady_clock::now();
+      const VkDeviceSize rayBytes = byteCountForRecords<GpuIntersectionRay>(rays.size());
+      const VkDeviceSize outputBytes = byteCountForRecords<Record>(rays.size());
 
-      QueryBufferGuard queryBuffers;
-      queryBuffers.owner = this;
-      queryBuffers.buffers.push_back(createStorageBufferFromVector(rays));
-      queryBuffers.buffers.push_back(createStorageBuffer(outputBytes, nullptr));
+      QueryBuffers& queryBuffers = reusableQueryBuffers();
+      ensureQueryBufferCapacity(queryBuffers, rayBytes, outputBytes);
+      writeBuffer(queryBuffers.rays, rayBytes, rays.data(),
+                  "Vulkan prepared wavefront ray buffer mapping");
 
       const std::array<std::uint32_t, 12> counts{
         sceneCounts0[0],
@@ -1242,16 +1224,17 @@ namespace render {
         0u,
         0u,
       };
-      queryBuffers.buffers.push_back(createStorageBuffer(sizeof(counts), counts.data()));
+      writeBuffer(queryBuffers.counts, sizeof(counts), counts.data(),
+                  "Vulkan prepared wavefront count buffer mapping");
 
       std::vector<std::pair<VkBuffer, VkDeviceSize>> descriptors;
       descriptors.reserve(12);
       for (const SmokeBuffer& buffer : sceneBuffers) {
         descriptors.push_back({buffer.buffer, buffer.byteCount});
       }
-      descriptors.push_back({queryBuffers.buffers[0].buffer, queryBuffers.buffers[0].byteCount});
-      descriptors.push_back({queryBuffers.buffers[1].buffer, queryBuffers.buffers[1].byteCount});
-      descriptors.push_back({queryBuffers.buffers[2].buffer, queryBuffers.buffers[2].byteCount});
+      descriptors.push_back({queryBuffers.rays.buffer, rayBytes});
+      descriptors.push_back({queryBuffers.output.buffer, outputBytes});
+      descriptors.push_back({queryBuffers.counts.buffer, queryBuffers.counts.byteCount});
 
       DescriptorPoolGuard descriptorPool;
       descriptorPool.device = device;
@@ -1270,11 +1253,41 @@ namespace render {
       submitAndWait(commandBuffer);
       const auto kernelEnd = std::chrono::steady_clock::now();
 
+      const auto readbackStart = std::chrono::steady_clock::now();
+      result.records = readBackRecords<Record>(queryBuffers.output.memory, outputBytes, rays.size(),
+                                               readbackOperation);
+      const auto readbackEnd = std::chrono::steady_clock::now();
+
       result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
       result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
-      result.output = queryBuffers.buffers[1];
-      queryBuffers.buffers[1] = {};
+      result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
       return result;
+    }
+
+    QueryBuffers& reusableQueryBuffers() const {
+      if (queryBufferPool.empty()) {
+        queryBufferPool.emplace_back();
+      }
+      return queryBufferPool.front();
+    }
+
+    void ensureQueryBufferCapacity(QueryBuffers& buffers, VkDeviceSize rayBytes,
+                                   VkDeviceSize outputBytes) const {
+      ensureBufferCapacity(buffers.rays, buffers.rayCapacityBytes, rayBytes);
+      ensureBufferCapacity(buffers.output, buffers.outputCapacityBytes, outputBytes);
+      if (!buffers.counts.buffer) {
+        buffers.counts = createStorageBuffer(sizeof(std::array<std::uint32_t, 12>), nullptr);
+      }
+    }
+
+    void ensureBufferCapacity(SmokeBuffer& buffer, VkDeviceSize& capacityBytes,
+                              VkDeviceSize requiredBytes) const {
+      if (buffer.buffer && capacityBytes >= requiredBytes) {
+        return;
+      }
+      destroy(buffer);
+      buffer = createStorageBuffer(requiredBytes, nullptr);
+      capacityBytes = requiredBytes;
     }
 
     void check(VkResult result, const char* operation) const {
@@ -1413,6 +1426,14 @@ namespace render {
         vkUnmapMemory(device, result.memory);
       }
       return result;
+    }
+
+    void writeBuffer(const SmokeBuffer& buffer, VkDeviceSize byteCount, const void* data,
+                     const char* operation) const {
+      void* mapped = nullptr;
+      check(vkMapMemory(device, buffer.memory, 0, byteCount, 0, &mapped), operation);
+      std::memcpy(mapped, data, static_cast<std::size_t>(byteCount));
+      vkUnmapMemory(device, buffer.memory);
     }
 
     template<typename Record>
@@ -1610,6 +1631,14 @@ namespace render {
       }
     }
 
+    void destroy(QueryBuffers& buffers) const {
+      destroy(buffers.rays);
+      destroy(buffers.output);
+      destroy(buffers.counts);
+      buffers.rayCapacityBytes = 0;
+      buffers.outputCapacityBytes = 0;
+    }
+
     VkInstance instance{VK_NULL_HANDLE};
     VkPhysicalDevice physicalDevice{VK_NULL_HANDLE};
     VkDevice device{VK_NULL_HANDLE};
@@ -1627,6 +1656,7 @@ namespace render {
     std::array<std::uint32_t, 4> sceneCounts1{};
     std::uint32_t transformCount{0};
     mutable std::mutex dispatchMutex;
+    mutable std::vector<QueryBuffers> queryBufferPool;
   };
 #else
   struct VulkanWavefrontPreparedScene::Private {};

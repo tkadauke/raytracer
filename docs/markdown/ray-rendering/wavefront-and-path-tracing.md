@@ -322,10 +322,12 @@ write. The Metal and Vulkan basic closest-hit and any-hit kernels use that same
 upload layout for triangle, sphere, plane, rectangle, disk, OpenCylinder, and
 static-transform scenes in the render path. Prepared Vulkan backends now keep
 their device, pipelines, descriptor layout, command pool, and scene-side buffers
-alive for the scene, so a query dispatch only uploads the ray/count buffers and
-reads back the hit or occlusion records. Bounded any-hit visibility uses the
-same packed traversal contract, including the finite light-distance epsilon used
-by the compiled parity intersector. This matches
+alive for the scene, and reuse growable ray/result/count buffers across
+serialized query dispatches. A dispatch still uploads the current rays/counts
+and reads back the hit or occlusion records, but it no longer reallocates those
+dynamic buffers for every prepared-scene query. Bounded any-hit visibility uses
+the same packed traversal contract, including the finite light-distance epsilon
+used by the compiled parity intersector. This matches
 the current CPU shadow rule:
 `Scene::occludes(...)` is geometry-only, so transparent materials still block
 shadow rays unless a higher-level material model changes that policy. If alpha,

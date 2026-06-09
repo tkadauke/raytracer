@@ -516,8 +516,10 @@ Progress:
   keeps the Vulkan instance, device, queue, descriptor layout, pipelines,
   command pool, and static scene buffers alive for the supported scene, so
   closest-hit and any-hit dispatches upload only the per-query rays/counts and
-  read back the query result records. Query dispatch is still serialized on the
-  prepared scene; a reusable Vulkan query-buffer pool remains future work.
+  read back the query result records. Those serialized prepared-scene dispatches
+  now reuse growable ray, result, and count buffers across queries, leaving
+  per-thread/per-command-pool dispatch parallelism as the next Vulkan-specific
+  overhead reduction.
 
 ## Phase 5 - common exact primitives and static instances
 

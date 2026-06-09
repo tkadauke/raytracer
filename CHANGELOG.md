@@ -637,8 +637,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   failures stop graph execution. — GPT-5
 - **Vulkan wavefront prepared scenes.** Vulkan-enabled wavefront intersection
   backends now prepare device-side scene buffers and compute pipelines once per
-  supported scene, so closest-hit and any-hit batches reuse that setup instead
-  of rebuilding all Vulkan render-path resources per dispatch. — GPT-5
+  supported scene and reuse growable per-query ray/result/count buffers, so
+  closest-hit and any-hit batches reuse that setup instead of rebuilding all
+  Vulkan render-path resources per dispatch. — GPT-5
 - **Wavefront auto packed-query gate.** Wavefront `auto` intersection backend
   selection now requires packed closest-hit and packed any-hit eligibility
   separately before it can choose GPU, so future one-sided kernel expansions
