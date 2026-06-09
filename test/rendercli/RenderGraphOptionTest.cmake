@@ -29,6 +29,8 @@ set(pathtracer_area_light_scene "${PROJECT_SOURCE_DIR}/scenes/pathtracer_area_li
 set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
 set(scene_viewplane_intent_scene "${TEST_OUTPUT_DIR}/scene-viewplane-intent.json")
 set(scene_queue_intent_scene "${TEST_OUTPUT_DIR}/scene-queue-intent.json")
+set(wavefront_direct_light_backend_scene
+    "${TEST_OUTPUT_DIR}/wavefront-direct-light-backend-scene.json")
 set(camera_override_runtime_scene "${TEST_OUTPUT_DIR}/camera-override-runtime-scene.json")
 set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
 set(invalid_exported_aov_scene "${TEST_OUTPUT_DIR}/invalid-exported-aov-scene.json")
@@ -150,6 +152,10 @@ set(wavefront_feedback_metrics_report "${TEST_OUTPUT_DIR}/wavefront-feedback-met
 set(wavefront_direct_metrics_render
     "${TEST_OUTPUT_DIR}/wavefront-direct-metrics-render.png")
 set(wavefront_direct_metrics_report "${TEST_OUTPUT_DIR}/wavefront-direct-metrics.json")
+set(wavefront_direct_light_backend_cpu_render
+    "${TEST_OUTPUT_DIR}/wavefront-direct-light-backend-cpu-render.png")
+set(wavefront_direct_light_backend_gpu_render
+    "${TEST_OUTPUT_DIR}/wavefront-direct-light-backend-gpu-render.png")
 set(wavefront_batched_visibility_render
     "${TEST_OUTPUT_DIR}/wavefront-batched-visibility-render.png")
 set(wavefront_parity_raytracer_render
@@ -420,6 +426,96 @@ file(WRITE "${wavefront_supported_backend_scene}" [=[
       "height": 0.8,
       "bevelRadius": 0.0,
       "type": "Cylinder",
+      "children": []
+    }
+  ]
+}
+]=])
+
+file(WRITE "${wavefront_direct_light_backend_scene}" [=[
+{
+  "id": "{94200000-0000-0000-0000-000000000000}",
+  "name": "Wavefront Direct Light Backend Fixture",
+  "ambient": [0.0, 0.0, 0.0],
+  "background": [0.0, 0.0, 0.0],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.0, -5.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.0,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "key",
+      "name": "Key Light",
+      "position": [0.6, 1.2, -2.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 2.5,
+      "type": "PointLight",
+      "children": []
+    },
+    {
+      "id": "gray-texture",
+      "name": "Gray Texture",
+      "color": [0.6, 0.6, 0.6],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "occluder-texture",
+      "name": "Occluder Texture",
+      "color": [0.2, 0.2, 0.2],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "gray-material",
+      "name": "Gray Material",
+      "diffuseTexture": "gray-texture",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "occluder-material",
+      "name": "Occluder Material",
+      "diffuseTexture": "occluder-texture",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "sphere",
+      "name": "Sphere",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "gray-material",
+      "radius": 1.0,
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "occluder",
+      "name": "Occluder",
+      "position": [0.25, 0.35, -1.15],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "occluder-material",
+      "radius": 0.18,
+      "type": "Sphere",
       "children": []
     }
   ]
@@ -2977,6 +3073,34 @@ if(NOT wavefront_direct_metrics_json MATCHES "\"metrics\"")
 endif()
 
 rendercli_run(
+  NAME "rendercli renders CPU wavefront direct-light backend parity baseline"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 12 --height 8
+    --pathtracer_direct_light_samples 1 --wavefront_denoiser none
+    --wavefront_intersection_backend cpu --samples_per_pixel 1 --sampling_seed 1337
+    --depth 1 "${wavefront_direct_light_backend_scene}"
+    "${wavefront_direct_light_backend_cpu_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_direct_light_backend_cpu_render}"
+                                NAME "CPU wavefront direct-light backend baseline pixels")
+
+rendercli_run(
+  NAME "rendercli renders GPU wavefront direct-light backend parity candidate"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 12 --height 8
+    --pathtracer_direct_light_samples 1 --wavefront_denoiser none
+    --wavefront_intersection_backend gpu --samples_per_pixel 1 --sampling_seed 1337
+    --depth 1 "${wavefront_direct_light_backend_scene}"
+    "${wavefront_direct_light_backend_gpu_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_direct_light_backend_gpu_render}"
+                                NAME "GPU wavefront direct-light backend candidate pixels")
+rendercli_assert_image_rms_at_most("${wavefront_direct_light_backend_cpu_render}"
+                                   "${wavefront_direct_light_backend_gpu_render}" 0.001
+                                   NAME
+                                     "wavefront GPU backend direct-light path tracing RMS matches CPU")
+
+rendercli_run(
   NAME "rendercli reports batched wavefront any-hit visibility metrics"
   OUTPUT_VARIABLE wavefront_batched_visibility_stdout
   STDOUT_MATCHES
@@ -2984,7 +3108,7 @@ rendercli_run(
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
     --pathtracer_direct_light_samples 3 --wavefront_denoiser none
-    --wavefront_intersection_backend gpu
+    --wavefront_intersection_backend gpu --samples_per_pixel 4 --sampling_seed 1337
     --wavefront_metrics_summary "${pathtracer_area_light_scene}"
     "${wavefront_batched_visibility_render}"
 )

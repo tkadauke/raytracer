@@ -701,6 +701,11 @@ Progress:
   parity test now compares `cpu` and `gpu` intersection-backend requests for a
   direct-light path-tracing scene and asserts both closest-hit and any-hit
   queries were exercised.
+- rendercli functional coverage now also renders that direct-light
+  path-tracing scene with explicit CPU and GPU intersection backend requests,
+  using the same sampling seed and sample count, and asserts image RMS parity
+  while the area-light path-tracing fixture continues to report requested-GPU
+  batched any-hit visibility metrics.
 
 ## Phase 7 - automatic selection and performance gates
 
