@@ -20,6 +20,7 @@ namespace {
   static_assert(isKernelRecord<GpuIntersectionPlanePayload>());
   static_assert(isKernelRecord<GpuIntersectionRectanglePayload>());
   static_assert(isKernelRecord<GpuIntersectionDiskPayload>());
+  static_assert(isKernelRecord<GpuIntersectionOpenCylinderPayload>());
   static_assert(isKernelRecord<GpuIntersectionTransformPayload>());
   static_assert(isKernelRecord<GpuIntersectionRay>());
   static_assert(isKernelRecord<GpuIntersectionHitRecord>());
@@ -34,6 +35,7 @@ std::size_t GpuIntersectionSceneBuffers::uploadByteCount() const {
          planes.size() * sizeof(GpuIntersectionPlanePayload) +
          rectangles.size() * sizeof(GpuIntersectionRectanglePayload) +
          disks.size() * sizeof(GpuIntersectionDiskPayload) +
+         openCylinders.size() * sizeof(GpuIntersectionOpenCylinderPayload) +
          transforms.size() * sizeof(GpuIntersectionTransformPayload);
 }
 
@@ -88,6 +90,8 @@ bool GpuIntersectionSceneBuffers::primitiveHasBasicHitKernelTraversal(
     return primitive.payloadOffset < rectangles.size();
   case GpuIntersectionPrimitiveKind::Disk:
     return primitive.payloadOffset < disks.size();
+  case GpuIntersectionPrimitiveKind::OpenCylinder:
+    return false;
   case GpuIntersectionPrimitiveKind::Unsupported:
     return false;
   }
@@ -97,7 +101,23 @@ bool GpuIntersectionSceneBuffers::primitiveHasBasicHitKernelTraversal(
 
 bool GpuIntersectionSceneBuffers::primitiveHasPackedClosestHitTraversal(
   const GpuIntersectionPrimitiveRecord& primitive) const {
-  return primitiveHasBasicHitKernelTraversal(primitive);
+  if (primitiveHasBasicHitKernelTraversal(primitive)) {
+    return true;
+  }
+
+  if (primitive.payloadCount != 1) {
+    return false;
+  }
+
+  if (primitive.transform != 0 && primitive.transform >= transforms.size()) {
+    return false;
+  }
+
+  if (primitive.kind == static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::OpenCylinder)) {
+    return primitive.payloadOffset < openCylinders.size();
+  }
+
+  return false;
 }
 
 bool GpuIntersectionSceneBuffers::primitiveHasPackedAnyHitTraversal(
@@ -115,6 +135,7 @@ GpuIntersectionScenePacker::packScene(const CompiledIntersectionScene& scene) co
   buffers.planes.reserve(scene.planes().size());
   buffers.rectangles.reserve(scene.rectangles().size());
   buffers.disks.reserve(scene.disks().size());
+  buffers.openCylinders.reserve(scene.openCylinders().size());
   buffers.transforms.reserve(scene.transforms().size());
 
   for (const FlatIntersectionBvhNode& node : scene.bvh()) {
@@ -137,6 +158,9 @@ GpuIntersectionScenePacker::packScene(const CompiledIntersectionScene& scene) co
   }
   for (const IntersectionDiskPayload& disk : scene.disks()) {
     buffers.disks.push_back(packDiskPayload(disk));
+  }
+  for (const IntersectionOpenCylinderPayload& openCylinder : scene.openCylinders()) {
+    buffers.openCylinders.push_back(packOpenCylinderPayload(openCylinder));
   }
   for (const IntersectionTransformPayload& transform : scene.transforms()) {
     buffers.transforms.push_back(packTransformPayload(transform));
@@ -222,6 +246,8 @@ GpuIntersectionScenePacker::packPrimitiveKind(IntersectionPrimitiveKind kind) co
                 static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Rectangle));
   static_assert(static_cast<std::uint32_t>(IntersectionPrimitiveKind::Disk) ==
                 static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Disk));
+  static_assert(static_cast<std::uint32_t>(IntersectionPrimitiveKind::OpenCylinder) ==
+                static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::OpenCylinder));
   return static_cast<GpuIntersectionPrimitiveKind>(static_cast<std::uint32_t>(kind));
 }
 
@@ -276,6 +302,15 @@ GpuIntersectionDiskPayload
 GpuIntersectionScenePacker::packDiskPayload(const IntersectionDiskPayload& payload) const {
   return GpuIntersectionDiskPayload{packVector(payload.center, packScalar(payload.radius)),
                                     packVector(payload.normal)};
+}
+
+GpuIntersectionOpenCylinderPayload GpuIntersectionScenePacker::packOpenCylinderPayload(
+  const IntersectionOpenCylinderPayload& payload) const {
+  GpuIntersectionOpenCylinderPayload packed;
+  const float radius = packScalar(payload.radius);
+  packed.radiusHalfHeight = {radius, packScalar(payload.halfHeight),
+                             radius == 0.0f ? 0.0f : 1.0f / radius, 0.0f};
+  return packed;
 }
 
 GpuIntersectionTransformPayload GpuIntersectionScenePacker::packTransformPayload(
@@ -711,6 +746,73 @@ GpuIntersectionIntersector::intersectDisk(const GpuIntersectionRay& ray,
 }
 
 std::optional<GpuIntersectionIntersector::ClosestHit>
+GpuIntersectionIntersector::intersectOpenCylinder(
+  const GpuIntersectionRay& ray, const GpuIntersectionOpenCylinderPayload& openCylinder) const {
+  const float radius = openCylinder.radiusHalfHeight[0];
+  const float halfHeight = openCylinder.radiusHalfHeight[1];
+  const float inverseRadius = openCylinder.radiusHalfHeight[2];
+  const float originX = ray.origin[0];
+  const float originY = ray.origin[1];
+  const float originZ = ray.origin[2];
+  const float directionX = ray.direction[0];
+  const float directionY = ray.direction[1];
+  const float directionZ = ray.direction[2];
+
+  const float a = directionX * directionX + directionZ * directionZ;
+  if (std::abs(a) <= std::numeric_limits<float>::epsilon()) {
+    return std::nullopt;
+  }
+
+  const float b = 2.0f * (originX * directionX + originZ * directionZ);
+  const float c = originX * originX + originZ * originZ - radius * radius;
+  const float determinant = b * b - 4.0f * a * c;
+  if (determinant <= std::numeric_limits<float>::epsilon()) {
+    return std::nullopt;
+  }
+
+  const float determinantRoot = std::sqrt(determinant);
+  const std::array<float, 2> distances{
+    (-determinantRoot - b) / (2.0f * a),
+    (determinantRoot - b) / (2.0f * a),
+  };
+
+  float bestDistance = std::numeric_limits<float>::infinity();
+  for (float distance : distances) {
+    if (distance <= 0.0f || distance < ray.minDistance || distance > ray.maxDistance ||
+        distance >= bestDistance) {
+      continue;
+    }
+
+    const float y = originY + directionY * distance;
+    if (y < -halfHeight || y > halfHeight) {
+      continue;
+    }
+
+    bestDistance = distance;
+  }
+
+  if (!std::isfinite(bestDistance)) {
+    return std::nullopt;
+  }
+
+  ClosestHit hit;
+  hit.distance = bestDistance;
+  hit.point = {originX + directionX * bestDistance, originY + directionY * bestDistance,
+               originZ + directionZ * bestDistance, 1.0f};
+  hit.normal = {hit.point[0] * inverseRadius, 0.0f, hit.point[2] * inverseRadius, 0.0f};
+
+  constexpr float twoPi = 6.28318530717958647692f;
+  float u = std::atan2(hit.point[2], hit.point[0]) / twoPi;
+  if (u < 0.0f) {
+    u += 1.0f;
+  }
+  const float height = 2.0f * halfHeight;
+  const float v = height == 0.0f ? 0.0f : (hit.point[1] + halfHeight) / height;
+  hit.uv = {u, v, 0.0f, 0.0f};
+  return hit;
+}
+
+std::optional<GpuIntersectionIntersector::ClosestHit>
 GpuIntersectionIntersector::intersectPrimitive(
   const GpuIntersectionSceneBuffers& scene, const GpuIntersectionRay& ray,
   const GpuIntersectionPrimitiveRecord& primitive) const {
@@ -772,6 +874,13 @@ GpuIntersectionIntersector::intersectPrimitivePayload(
       return std::nullopt;
     }
     return intersectDisk(ray, scene.disks[primitive.payloadOffset]);
+  }
+
+  if (primitive.kind == static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::OpenCylinder)) {
+    if (primitive.payloadOffset >= scene.openCylinders.size()) {
+      return std::nullopt;
+    }
+    return intersectOpenCylinder(ray, scene.openCylinders[primitive.payloadOffset]);
   }
 
   return std::nullopt;

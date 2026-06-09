@@ -13,6 +13,7 @@
 #include "render/primitives/Box.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
+#include "render/primitives/OpenCylinder.h"
 #include "render/primitives/Plane.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
@@ -135,6 +136,7 @@ namespace GpuIntersectionSceneTest {
     expectKernelRecordLayout<GpuIntersectionPlanePayload>();
     expectKernelRecordLayout<GpuIntersectionRectanglePayload>();
     expectKernelRecordLayout<GpuIntersectionDiskPayload>();
+    expectKernelRecordLayout<GpuIntersectionOpenCylinderPayload>();
     expectKernelRecordLayout<GpuIntersectionTransformPayload>();
     expectKernelRecordLayout<GpuIntersectionRay>();
     expectKernelRecordLayout<GpuIntersectionHitRecord>();
@@ -295,6 +297,31 @@ namespace GpuIntersectionSceneTest {
               transformedBuffers.primitives[0].kind);
     EXPECT_NE(0u, transformedBuffers.primitives[0].transform);
     EXPECT_GT(transformedBuffers.transforms.size(), transformedBuffers.primitives[0].transform);
+  }
+
+  TEST(GpuIntersectionScene, PacksOpenCylinderForPackedTraversalOnly) {
+    Scene scene;
+    scene.add(std::make_shared<OpenCylinder>(1.5, 4.0));
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+
+    ASSERT_EQ(1u, buffers.primitives.size());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::OpenCylinder),
+              buffers.primitives[0].kind);
+    EXPECT_EQ(0u, buffers.primitives[0].payloadOffset);
+
+    ASSERT_EQ(1u, buffers.openCylinders.size());
+    expectVector(buffers.openCylinders[0].radiusHalfHeight, 1.5f, 2.0f, 1.0f / 1.5f, 0.0f);
+
+    EXPECT_FALSE(buffers.triangleClosestHitKernelEligible());
+    EXPECT_FALSE(buffers.basicHitKernelEligible());
+    EXPECT_TRUE(buffers.packedClosestHitKernelEligible());
+    EXPECT_TRUE(buffers.packedAnyHitKernelEligible());
+    EXPECT_EQ(buffers.bvh.size() * sizeof(GpuIntersectionBvhNode) +
+                buffers.primitives.size() * sizeof(GpuIntersectionPrimitiveRecord) +
+                buffers.openCylinders.size() * sizeof(GpuIntersectionOpenCylinderPayload),
+              buffers.uploadByteCount());
   }
 
   TEST(GpuIntersectionScene, PackedKernelEligibilityRejectsInvalidPayloadReferences) {
@@ -722,6 +749,16 @@ namespace GpuIntersectionSceneTest {
     scene.add(std::make_shared<Disk>(Vector3d(2, 0, 3), Vector3d(0, 0, 1), 1.0));
     const Rayd ray(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
 
+    expectPackedAnyHitMatchesCompiled(scene, ray, 3.0);
+    expectPackedAnyHitMatchesCompiled(scene, ray, 1.0);
+  }
+
+  TEST(GpuIntersectionScene, PackedOpenCylinderClosestAndAnyHitMatchCompiledSceneHit) {
+    Scene scene;
+    scene.add(std::make_shared<OpenCylinder>(1.0, 2.0));
+    const Rayd ray(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1));
+
+    expectPackedClosestHitMatchesCompiled(scene, ray);
     expectPackedAnyHitMatchesCompiled(scene, ray, 3.0);
     expectPackedAnyHitMatchesCompiled(scene, ray, 1.0);
   }

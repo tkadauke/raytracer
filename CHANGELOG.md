@@ -48,6 +48,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
   — GPT-5
+- **Exact OpenCylinder packed intersection payloads.** The compiled wavefront
+  intersection scene and packed CPU intersector now represent `render::OpenCylinder`
+  as an exact side-surface payload with cylindrical UVs. Metal/Vulkan basic
+  kernels still reject it until native shader support is added, so there is no
+  tessellation drift hidden in GPU dispatch. — GPT-5
 - **OpenCylinder side UV coordinates.** Exact `render::OpenCylinder` side hits
   now report cylindrical UV coordinates, matching the primitive's tessellated
   side-surface convention for texture lookup. — GPT-5

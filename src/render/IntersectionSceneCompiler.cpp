@@ -6,6 +6,7 @@
 #include <optional>
 #include <utility>
 
+#include "core/math/Quadric.h"
 #include "render/primitives/Scene.h"
 
 using namespace render;
@@ -165,6 +166,25 @@ bool FlatIntersectionBvhNode::isLeaf() const {
   return (flags & leafNodeFlag) != 0;
 }
 
+Vector3d IntersectionOpenCylinderPayload::normalAt(const Vector3d& point) const {
+  if (radius == 0.0) {
+    return Vector3d::null;
+  }
+  return Vector3d(point.x() / radius, 0.0, point.z() / radius);
+}
+
+Vector2d IntersectionOpenCylinderPayload::sideUvAt(const Vector3d& point) const {
+  constexpr double twoPi = 6.28318530717958647692;
+  double u = std::atan2(point.z(), point.x()) / twoPi;
+  if (u < 0.0) {
+    u += 1.0;
+  }
+
+  const double height = 2.0 * halfHeight;
+  const double v = height == 0.0 ? 0.0 : (point.y() + halfHeight) / height;
+  return Vector2d(u, v);
+}
+
 std::uint32_t FlatIntersectionBvhNode::firstPrimitive() const {
   return leftOrFirstPrimitive;
 }
@@ -217,6 +237,11 @@ const std::vector<IntersectionRectanglePayload>& CompiledIntersectionScene::rect
 
 const std::vector<IntersectionDiskPayload>& CompiledIntersectionScene::disks() const {
   return m_disks;
+}
+
+const std::vector<IntersectionOpenCylinderPayload>&
+CompiledIntersectionScene::openCylinders() const {
+  return m_openCylinders;
 }
 
 const std::vector<IntersectionTransformPayload>& CompiledIntersectionScene::transforms() const {
@@ -285,6 +310,13 @@ void IntersectionSceneBuilder::addDisk(const Primitive::TransformedLeaf& leaf,
   const std::uint32_t offset = static_cast<std::uint32_t>(m_scene.m_disks.size());
   m_scene.m_disks.push_back(IntersectionDiskPayload{center, normal, radius});
   addPrimitive(leaf, IntersectionPrimitiveKind::Disk, offset, 1);
+}
+
+void IntersectionSceneBuilder::addOpenCylinder(const Primitive::TransformedLeaf& leaf,
+                                               double radius, double halfHeight) {
+  const std::uint32_t offset = static_cast<std::uint32_t>(m_scene.m_openCylinders.size());
+  m_scene.m_openCylinders.push_back(IntersectionOpenCylinderPayload{radius, halfHeight});
+  addPrimitive(leaf, IntersectionPrimitiveKind::OpenCylinder, offset, 1);
 }
 
 CompiledIntersectionScene IntersectionSceneBuilder::finish() {
@@ -491,6 +523,8 @@ std::optional<CompiledIntersectionHit> CompiledIntersectionSceneIntersector::int
     return intersectRectangle(scene, primitive, ray);
   case IntersectionPrimitiveKind::Disk:
     return intersectDisk(scene, primitive, ray);
+  case IntersectionPrimitiveKind::OpenCylinder:
+    return intersectOpenCylinder(scene, primitive, ray);
   case IntersectionPrimitiveKind::Unsupported:
     return std::nullopt;
   }
@@ -837,6 +871,58 @@ CompiledIntersectionSceneIntersector::intersectDisk(const CompiledIntersectionSc
   return makeHit(primitive, *primitiveRay, distance, point, payload.normal);
 }
 
+std::optional<CompiledIntersectionHit> CompiledIntersectionSceneIntersector::intersectOpenCylinder(
+  const CompiledIntersectionScene& scene, const IntersectionPrimitiveRecord& primitive,
+  const Rayd& ray) const {
+  if (primitive.payloadOffset >= scene.openCylinders().size()) {
+    return std::nullopt;
+  }
+
+  const std::optional<PrimitiveSpaceRay> primitiveRay = rayForPrimitive(scene, primitive, ray);
+  if (!primitiveRay) {
+    return std::nullopt;
+  }
+
+  const IntersectionOpenCylinderPayload& payload = scene.openCylinders()[primitive.payloadOffset];
+  const Rayd& localRay = primitiveRay->ray;
+  const Vector3d origin(localRay.origin());
+  const Vector3d& direction = localRay.direction();
+
+  double roots[2] = {};
+  const double a = direction.x() * direction.x() + direction.z() * direction.z();
+  const double b = 2.0 * (origin.x() * direction.x() + origin.z() * direction.z());
+  const double c =
+    origin.x() * origin.x() + origin.z() * origin.z() - payload.radius * payload.radius;
+  const int rootCount = Quadric<double>(a, b, c).solveInto(roots);
+  if (rootCount < 2) {
+    return std::nullopt;
+  }
+
+  double bestDistance = std::numeric_limits<double>::infinity();
+  Vector4d bestPoint;
+  for (double distance : roots) {
+    if (distance <= 0.0 || distance >= bestDistance) {
+      continue;
+    }
+
+    const Vector4d point = localRay.at(distance);
+    if (point.y() < -payload.halfHeight || point.y() > payload.halfHeight) {
+      continue;
+    }
+
+    bestDistance = distance;
+    bestPoint = point;
+  }
+
+  if (!std::isfinite(bestDistance)) {
+    return std::nullopt;
+  }
+
+  const Vector3d point(bestPoint);
+  return makeHit(primitive, *primitiveRay, bestDistance, bestPoint, payload.normalAt(point),
+                 payload.sideUvAt(point));
+}
+
 const char* render::toString(IntersectionPrimitiveKind kind) {
   switch (kind) {
   case IntersectionPrimitiveKind::Unsupported:
@@ -851,6 +937,8 @@ const char* render::toString(IntersectionPrimitiveKind kind) {
     return "rectangle";
   case IntersectionPrimitiveKind::Disk:
     return "disk";
+  case IntersectionPrimitiveKind::OpenCylinder:
+    return "open_cylinder";
   }
 
   return "unknown";

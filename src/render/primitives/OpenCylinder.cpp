@@ -1,4 +1,5 @@
 #include "render/State.h"
+#include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/OpenCylinder.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
@@ -237,6 +238,11 @@ bool OpenCylinder::intersects(const Rayd& ray, render::State& state) const {
       return false;
     }
   }
+}
+
+void OpenCylinder::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                                 const TransformedLeaf& leaf) const {
+  builder.addOpenCylinder(leaf, m_radius, m_halfHeight);
 }
 
 BoundingBoxd OpenCylinder::calculateBoundingBox() const {

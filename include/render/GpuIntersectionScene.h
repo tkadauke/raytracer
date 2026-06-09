@@ -20,7 +20,8 @@ namespace render {
     Sphere = 2,
     Plane = 3,
     Rectangle = 4,
-    Disk = 5
+    Disk = 5,
+    OpenCylinder = 6
   };
 
   inline constexpr std::uint32_t gpuIntersectionLeafNodeFlag = 1u;
@@ -81,6 +82,10 @@ namespace render {
     std::array<float, 4> normal{};
   };
 
+  struct alignas(16) GpuIntersectionOpenCylinderPayload {
+    std::array<float, 4> radiusHalfHeight{};
+  };
+
   struct alignas(16) GpuIntersectionTransformPayload {
     std::array<float, 16> pointMatrix{};
     std::array<float, 16> normalMatrix{};
@@ -128,6 +133,7 @@ namespace render {
     std::vector<GpuIntersectionPlanePayload> planes;
     std::vector<GpuIntersectionRectanglePayload> rectangles;
     std::vector<GpuIntersectionDiskPayload> disks;
+    std::vector<GpuIntersectionOpenCylinderPayload> openCylinders;
     std::vector<GpuIntersectionTransformPayload> transforms;
 
     [[nodiscard]] std::size_t uploadByteCount() const;
@@ -176,6 +182,8 @@ namespace render {
     packRectanglePayload(const IntersectionRectanglePayload& payload) const;
     [[nodiscard]] GpuIntersectionDiskPayload
     packDiskPayload(const IntersectionDiskPayload& payload) const;
+    [[nodiscard]] GpuIntersectionOpenCylinderPayload
+    packOpenCylinderPayload(const IntersectionOpenCylinderPayload& payload) const;
     [[nodiscard]] GpuIntersectionTransformPayload
     packTransformPayload(const IntersectionTransformPayload& payload) const;
   };
@@ -222,6 +230,9 @@ namespace render {
                        const GpuIntersectionRectanglePayload& rectangle) const;
     [[nodiscard]] std::optional<ClosestHit>
     intersectDisk(const GpuIntersectionRay& ray, const GpuIntersectionDiskPayload& disk) const;
+    [[nodiscard]] std::optional<ClosestHit>
+    intersectOpenCylinder(const GpuIntersectionRay& ray,
+                          const GpuIntersectionOpenCylinderPayload& openCylinder) const;
     [[nodiscard]] std::optional<ClosestHit>
     intersectPrimitive(const GpuIntersectionSceneBuffers& scene, const GpuIntersectionRay& ray,
                        const GpuIntersectionPrimitiveRecord& primitive) const;

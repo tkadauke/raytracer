@@ -23,7 +23,8 @@ namespace render {
     Sphere = 2,
     Plane = 3,
     Rectangle = 4,
-    Disk = 5
+    Disk = 5,
+    OpenCylinder = 6
   };
 
   using IntersectionMaterialId = std::uint32_t;
@@ -73,6 +74,14 @@ namespace render {
     Vector3d center;
     Vector3d normal;
     double radius{0.0};
+  };
+
+  struct IntersectionOpenCylinderPayload {
+    [[nodiscard]] Vector3d normalAt(const Vector3d& point) const;
+    [[nodiscard]] Vector2d sideUvAt(const Vector3d& point) const;
+
+    double radius{0.0};
+    double halfHeight{0.0};
   };
 
   struct IntersectionTransformPayload {
@@ -130,6 +139,7 @@ namespace render {
     [[nodiscard]] const std::vector<IntersectionPlanePayload>& planes() const;
     [[nodiscard]] const std::vector<IntersectionRectanglePayload>& rectangles() const;
     [[nodiscard]] const std::vector<IntersectionDiskPayload>& disks() const;
+    [[nodiscard]] const std::vector<IntersectionOpenCylinderPayload>& openCylinders() const;
     [[nodiscard]] const std::vector<IntersectionTransformPayload>& transforms() const;
     [[nodiscard]] const std::vector<std::shared_ptr<Material>>& materials() const;
     [[nodiscard]] const std::vector<const Primitive*>& objects() const;
@@ -146,6 +156,7 @@ namespace render {
     std::vector<IntersectionPlanePayload> m_planes;
     std::vector<IntersectionRectanglePayload> m_rectangles;
     std::vector<IntersectionDiskPayload> m_disks;
+    std::vector<IntersectionOpenCylinderPayload> m_openCylinders;
     std::vector<IntersectionTransformPayload> m_transforms;
     std::vector<std::shared_ptr<Material>> m_materials;
     std::vector<const Primitive*> m_objects;
@@ -165,6 +176,7 @@ namespace render {
                       const Vector3d& leg1, const Vector3d& leg2, const Vector3d& normal);
     void addDisk(const Primitive::TransformedLeaf& leaf, const Vector3d& center,
                  const Vector3d& normal, double radius);
+    void addOpenCylinder(const Primitive::TransformedLeaf& leaf, double radius, double halfHeight);
 
     [[nodiscard]] CompiledIntersectionScene finish();
 
@@ -239,6 +251,9 @@ namespace render {
     [[nodiscard]] std::optional<CompiledIntersectionHit>
     intersectDisk(const CompiledIntersectionScene& scene,
                   const IntersectionPrimitiveRecord& primitive, const Rayd& ray) const;
+    [[nodiscard]] std::optional<CompiledIntersectionHit>
+    intersectOpenCylinder(const CompiledIntersectionScene& scene,
+                          const IntersectionPrimitiveRecord& primitive, const Rayd& ray) const;
   };
 
   [[nodiscard]] const char* toString(IntersectionPrimitiveKind kind);
