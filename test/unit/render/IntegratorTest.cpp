@@ -111,6 +111,8 @@ namespace IntegratorTest {
     EXPECT_EQ(0u, metrics.anyHitRaysSubmitted);
     EXPECT_EQ(1u, metrics.closestHitQueries);
     EXPECT_EQ(0u, metrics.anyHitQueries);
+    EXPECT_TRUE(metrics.intersectionBackendPrefersClosestHitBatch);
+    EXPECT_FALSE(metrics.intersectionBackendPrefersAnyHitBatch);
     EXPECT_EQ(backend->estimatedClosestHitRayUploadBytes(4),
               metrics.intersectionEstimatedRayUploadBytes);
     EXPECT_EQ(backend->estimatedClosestHitReadbackBytes(4),
@@ -139,6 +141,8 @@ namespace IntegratorTest {
     EXPECT_EQ(1u, metrics.anyHitRaysSubmitted);
     EXPECT_EQ(1u, metrics.closestHitQueries);
     EXPECT_EQ(1u, metrics.anyHitQueries);
+    EXPECT_TRUE(metrics.intersectionBackendPrefersClosestHitBatch);
+    EXPECT_TRUE(metrics.intersectionBackendPrefersAnyHitBatch);
     EXPECT_EQ(backend->estimatedClosestHitRayUploadBytes(4) +
                 backend->estimatedAnyHitRayUploadBytes(1),
               metrics.intersectionEstimatedRayUploadBytes);

@@ -557,6 +557,15 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
           line +=
             QStringLiteral(", %1 closest-hit/%2 any-hit rays").arg(closestHitRays).arg(anyHitRays);
         }
+        const bool prefersClosestHitBatch =
+          batching.value(QStringLiteral("intersectionBackendPrefersClosestHitBatch")).toBool();
+        const bool prefersAnyHitBatch =
+          batching.value(QStringLiteral("intersectionBackendPrefersAnyHitBatch")).toBool();
+        if (prefersClosestHitBatch || prefersAnyHitBatch) {
+          line += QStringLiteral(", batch preference closest-hit %1/any-hit %2")
+                    .arg(prefersClosestHitBatch ? QStringLiteral("yes") : QStringLiteral("no"))
+                    .arg(prefersAnyHitBatch ? QStringLiteral("yes") : QStringLiteral("no"));
+        }
         const double uploadMs =
           batching.value(QStringLiteral("intersectionBackendUploadWorkerSeconds")).toDouble() *
           1000.0;

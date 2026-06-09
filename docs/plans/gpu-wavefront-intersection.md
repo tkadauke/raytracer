@@ -558,6 +558,11 @@ Progress:
   metrics JSON, and the Modeler graph tooltip expose those counters beside
   closest-hit frontier batches, making the two GPU query families independently
   visible without labeling scalar CPU fallback loops as batches.
+- Wavefront metrics now also expose whether the selected backend preferred
+  closest-hit and any-hit batches for the observed query sizes. rendercli
+  summaries, metrics JSON, and the Modeler graph tooltip can now explain
+  whether missing batch counters mean no eligible query work happened or the
+  backend intentionally stayed on scalar/packet traversal.
 - `CompiledIntersectionSceneIntersector` now has a CPU any-hit parity query for
   supported compiled payloads and static instances. It uses the same bounded
   light-distance rule as `Scene::occludes(...)`, so GPU any-hit kernels have a

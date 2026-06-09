@@ -104,6 +104,8 @@ namespace render {
     std::uint64_t anyHitRaysSubmitted{0};
     std::uint64_t closestHitQueries{0};
     std::uint64_t anyHitQueries{0};
+    bool intersectionBackendPrefersClosestHitBatch{false};
+    bool intersectionBackendPrefersAnyHitBatch{false};
     double intersectionWorkerSeconds{0.0};
     double shadingWorkerSeconds{0.0};
     double pathSetupWorkerSeconds{0.0};

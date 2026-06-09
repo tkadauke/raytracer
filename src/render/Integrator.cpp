@@ -118,6 +118,8 @@ namespace render {
     anyHitRaysSubmitted = 0;
     closestHitQueries = 0;
     anyHitQueries = 0;
+    intersectionBackendPrefersClosestHitBatch = false;
+    intersectionBackendPrefersAnyHitBatch = false;
     intersectionWorkerSeconds = 0.0;
     shadingWorkerSeconds = 0.0;
     pathSetupWorkerSeconds = 0.0;
@@ -233,6 +235,8 @@ namespace render {
     intersectionBackendKernelWorkerSeconds += timing.kernelSeconds;
     intersectionBackendReadbackWorkerSeconds += timing.readbackSeconds;
     ++closestHitQueries;
+    intersectionBackendPrefersClosestHitBatch =
+      intersectionBackendPrefersClosestHitBatch || backend.prefersClosestHitBatch(submittedRays);
     intersectionRaysSubmitted += submittedRays;
     closestHitRaysSubmitted += submittedRays;
   }
@@ -252,6 +256,8 @@ namespace render {
     intersectionBackendKernelWorkerSeconds += timing.kernelSeconds;
     intersectionBackendReadbackWorkerSeconds += timing.readbackSeconds;
     ++anyHitQueries;
+    intersectionBackendPrefersAnyHitBatch =
+      intersectionBackendPrefersAnyHitBatch || backend.prefersAnyHitBatch(submittedRays);
     intersectionRaysSubmitted += submittedRays;
     anyHitRaysSubmitted += submittedRays;
   }
@@ -303,6 +309,10 @@ namespace render {
     anyHitRaysSubmitted += source.anyHitRaysSubmitted;
     closestHitQueries += source.closestHitQueries;
     anyHitQueries += source.anyHitQueries;
+    intersectionBackendPrefersClosestHitBatch =
+      intersectionBackendPrefersClosestHitBatch || source.intersectionBackendPrefersClosestHitBatch;
+    intersectionBackendPrefersAnyHitBatch =
+      intersectionBackendPrefersAnyHitBatch || source.intersectionBackendPrefersAnyHitBatch;
   }
 
   void IntegratorBatchMetrics::recordRadianceDeltaDepth(double squaredSum, double maxDelta) {

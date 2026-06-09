@@ -298,6 +298,10 @@ namespace {
         << " any_hit_rays=" << unsignedValue(batching, "anyHitRaysSubmitted")
         << " closest_hit_queries=" << unsignedValue(batching, "closestHitQueries")
         << " any_hit_queries=" << unsignedValue(batching, "anyHitQueries")
+        << " closest_hit_batch_preferred="
+        << (batching.value("intersectionBackendPrefersClosestHitBatch").toBool() ? "true" : "false")
+        << " any_hit_batch_preferred="
+        << (batching.value("intersectionBackendPrefersAnyHitBatch").toBool() ? "true" : "false")
         << " samples=" << unsignedValue(input, "primarySamples")
         << " tiles=" << unsignedValue(tiling, "tileCount")
         << " tile_grid=" << unsignedValue(tiling, "tileColumns") << "x"

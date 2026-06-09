@@ -2283,6 +2283,16 @@ if(NOT wavefront_metrics_json MATCHES "\"directLightAnyHitBatchRaysPerDepth\"")
                   "wavefront metrics report did not contain direct-light any-hit batch ray counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendPrefersClosestHitBatch\"")
+  _rendercli_fail("rendercli wavefront metrics closest-hit batch preference"
+                  "wavefront metrics report did not contain closest-hit batch preference"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendPrefersAnyHitBatch\"")
+  _rendercli_fail("rendercli wavefront metrics any-hit batch preference"
+                  "wavefront metrics report did not contain any-hit batch preference"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
 if(NOT wavefront_metrics_json MATCHES "\"frontierRay4PacketChunksPerDepth\"")
   _rendercli_fail("rendercli wavefront metrics frontier Ray4 packet chunks"
                   "wavefront metrics report did not contain frontier Ray4 packet chunk counters"
@@ -2615,7 +2625,7 @@ rendercli_run(
   NAME "rendercli reports batched wavefront any-hit visibility metrics"
   OUTPUT_VARIABLE wavefront_batched_visibility_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*any_hit_rays=[1-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*direct_light_any_hit_batch_chunks=[1-9][0-9]*.*direct_light_any_hit_batch_rays=[1-9][0-9]*.*direct_light_samples=[1-9][0-9]*"
+    "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*any_hit_rays=[1-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*closest_hit_batch_preferred=true.*any_hit_batch_preferred=true.*direct_light_any_hit_batch_chunks=[1-9][0-9]*.*direct_light_any_hit_batch_rays=[1-9][0-9]*.*direct_light_samples=[1-9][0-9]*"
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
     --pathtracer_direct_light_samples 3 --wavefront_denoiser none

@@ -128,6 +128,10 @@ namespace engine::wavefront {
     anyHitRaysSubmitted += metrics.anyHitRaysSubmitted;
     closestHitQueries += metrics.closestHitQueries;
     anyHitQueries += metrics.anyHitQueries;
+    intersectionBackendPrefersClosestHitBatch = intersectionBackendPrefersClosestHitBatch ||
+                                                metrics.intersectionBackendPrefersClosestHitBatch;
+    intersectionBackendPrefersAnyHitBatch =
+      intersectionBackendPrefersAnyHitBatch || metrics.intersectionBackendPrefersAnyHitBatch;
   }
 
   void WavefrontRenderMetrics::BatchSummary::addIntegratorMetrics(
@@ -354,6 +358,10 @@ namespace engine::wavefront {
     batchingJson["anyHitRaysSubmitted"] = static_cast<double>(batching.anyHitRaysSubmitted);
     batchingJson["closestHitQueries"] = static_cast<double>(batching.closestHitQueries);
     batchingJson["anyHitQueries"] = static_cast<double>(batching.anyHitQueries);
+    batchingJson["intersectionBackendPrefersClosestHitBatch"] =
+      batching.intersectionBackendPrefersClosestHitBatch;
+    batchingJson["intersectionBackendPrefersAnyHitBatch"] =
+      batching.intersectionBackendPrefersAnyHitBatch;
     batchingJson["batches"] = static_cast<double>(batching.batches);
     batchingJson["samplesSubmitted"] = static_cast<double>(batching.samplesSubmitted);
     batchingJson["maxBatchSize"] = static_cast<double>(batching.maxBatchSize);
