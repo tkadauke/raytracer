@@ -239,13 +239,15 @@ from and answers fallback closest-hit, packet closest-hit, and any-hit queries
 through the packed upload-buffer CPU traversal, with the compiled-scene CPU
 parity intersector still available for supported payloads that are not yet
 packed.
-That keeps the ownership boundary the future upload-backed backend will need
-without changing rendered output yet. Metrics report whether that diagnostic
-scene was compiled plus its BVH node, primitive, payload, and unsupported-leaf
-counts, so rendercli and the graph inspector can show the would-be upload
-workload beside the fallback reason. They also report the actual query
-execution path: runtime `Scene` traversal, compiled CPU parity traversal,
-packed-buffer CPU traversal, or a Metal kernel. Batched path-tracing
+That keeps the ownership boundary the platform-backed intersection path needs:
+supported scenes can use the same compiled and packed records for CPU parity
+traversal, Metal kernels, or Vulkan kernels, while unsupported scenes fall back
+before render work begins. Metrics report whether that diagnostic scene was
+compiled plus its BVH node, primitive, payload, and unsupported-leaf counts, so
+rendercli and the graph inspector can show the upload workload or fallback
+reason. They also report the actual query execution path: runtime `Scene`
+traversal, compiled CPU parity traversal, packed-buffer CPU traversal, a Metal
+kernel, or a Vulkan kernel. Batched path-tracing
 direct-light visibility goes through the same backend seam via
 `intersectAny(...)`, so the graph and metrics can separate closest-hit and
 any-hit ray counts for CPU and GPU-resident query families. When the selected
@@ -278,7 +280,8 @@ cannot consume arbitrary C++ primitive objects, so
 primitive's leaf hook and emits stable records: primitive kind,
 material id, object id, transform id, bounds, payload offsets, and
 explicit unsupported reasons. Supported leaves currently include
-triangles and mesh triangles, sphere, plane, rectangle, and disk.
+triangles and mesh triangles, box tessellations, sphere, plane, rectangle,
+disk, and OpenCylinder.
 Static instances become transform payloads on those leaves. Unsupported
 exact or CSG primitives remain visible as fallback diagnostics instead
 of being silently skipped.
@@ -342,13 +345,13 @@ broader compiled scene intersector: the packed path proves the kernel ABI and
 traversal contract, while the compiled-scene path remains the fallback for
 unsupported packed payloads until platform kernels cover them. Metrics label
 those query paths separately: basic-kernel closest-hit and any-hit frontiers
-report `metal` or `vulkan` when platform kernels run, `packed_cpu` for the packed CPU
-contract, the compiled parity fallback reports `compiled_cpu`, and a render
-that combines different query families still reports `mixed`. The execution
-label comes from the completed query, so a platform dispatch that falls back at
-runtime is labeled with the fallback path instead of the backend's nominal
-availability. The same metrics also estimate the query transfer footprint that
-a real GPU backend would pay:
+report `metal` or `vulkan` when platform kernels run, `packed_cpu` for the
+packed CPU contract, the compiled parity fallback reports `compiled_cpu`, and a
+render that combines different query families still reports `mixed`. The
+execution label comes from the completed query, so a platform dispatch that
+falls back at runtime is labeled with the fallback path instead of the backend's
+nominal availability. The same metrics also estimate the query transfer
+footprint that a platform GPU backend pays:
 ray upload bytes plus closest-hit and any-hit readback bytes. CPU and
 unsupported runtime-scene fallbacks report zero for those query-transfer fields;
 unsupported compiled-scene fallbacks can still report primitive and unsupported

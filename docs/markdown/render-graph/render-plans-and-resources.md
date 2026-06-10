@@ -772,7 +772,8 @@ convergence stop decisions, observer feedback depth count, denoiser
 name/parameters/time when denoising is enabled, denoiser feature-prepass time,
 requested and resolved intersection backend plus fallback reason,
 actual query execution path (`runtime_scene`, `compiled_cpu`, `packed_cpu`,
-`metal`, or `mixed` when closest-hit and any-hit queries use different paths),
+`metal`, `vulkan`, or `mixed` when closest-hit and any-hit queries use
+different paths),
 compiled intersection-scene primitive/BVH/payload/unsupported-leaf counts and
 packed closest-hit/any-hit eligibility, estimated ray-upload bytes, closest-hit
 and any-hit readback bytes, and estimated query-transfer bytes for the packed GPU

@@ -169,7 +169,7 @@ Wavefront metrics and
 `--wavefront_metrics_summary` expose the compiled-scene primitive, BVH,
 payload, unsupported-leaf counts, basic-kernel, packed closest-hit, and packed any-hit
 eligibility, and actual query execution path for those requests. The path is
-`metal` for the Metal basic kernels, `packed_cpu` for the packed CPU
+`metal` or `vulkan` for platform basic kernels, `packed_cpu` for the packed CPU
 contract, `compiled_cpu` for compiled parity traversal, and `mixed` when a
 render uses different query paths. The
 summary also reports estimated ray-upload and readback byte counts for the
