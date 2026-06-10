@@ -608,6 +608,10 @@ namespace render {
     diagnostics.openCylinders = scene.openCylinders().size();
     diagnostics.transforms = scene.transforms().size();
     diagnostics.unsupportedPrimitives = scene.unsupportedPrimitives().size();
+    for (const UnsupportedIntersectionReasonCount& count : scene.unsupportedReasonCounts()) {
+      const std::string label = count.reason.empty() ? "unknown" : count.reason;
+      diagnostics.unsupportedReasons[label] += count.count;
+    }
     return diagnostics;
   }
 

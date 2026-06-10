@@ -87,6 +87,7 @@ namespace engine::wavefront {
       std::uint64_t intersectionSceneOpenCylinders = 0;
       std::uint64_t intersectionSceneTransforms = 0;
       std::uint64_t intersectionSceneUnsupportedPrimitives = 0;
+      std::map<std::string, std::uint64_t> intersectionSceneUnsupportedReasons;
       std::uint64_t intersectionSceneUploadBytes = 0;
       bool intersectionSceneTriangleClosestHitEligible = false;
       bool intersectionSceneBasicHitEligible = false;

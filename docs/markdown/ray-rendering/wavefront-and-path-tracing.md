@@ -226,7 +226,10 @@ before tile work starts, the renderer tries to compile the scene into the
 GPU-ready intersection record format. If that diagnostic compiler rejects a
 leaf, the reported fallback reason names the first unsupported primitive and,
 when multiple leaves fail, includes counts grouped by unsupported reason
-instead of only saying that the platform GPU backend is absent.
+instead of only saying that the platform GPU backend is absent. The same reason
+counts are structured metrics under `intersectionSceneUnsupportedReasons`, so
+rendercli, graph trace metadata, and Modeler pass details can display them
+without parsing the fallback sentence.
 For a supported scene, the GPU path names the host platform backend that would
 run next: Metal on macOS, Vulkan elsewhere. Metal and Vulkan can now execute the
 exact-primitive basic subset, including static instance transforms, when their
@@ -387,9 +390,9 @@ context as the renderer and report expected closest-hit rays, expected any-hit
 rays, the computed automatic GPU threshold, and the pre-render query-transfer
 estimate as benchmark counters. Those rows also report whether a scene was
 compiled, how many BVH nodes/primitives/unsupported leaves were prepared, the
-prepared-scene upload bytes, and packed closest-hit/any-hit eligibility. That
-makes the small-workload preflight visible as a benchmark row with no prepared
-scene instead of only as a policy unit test.
+unsupported-leaf reason buckets, the prepared-scene upload bytes, and packed
+closest-hit/any-hit eligibility. That makes the small-workload preflight visible
+as a benchmark row with no prepared scene instead of only as a policy unit test.
 They also include a mixed automatic-backend row that submits closest-hit and
 any-hit batches after one combined backend selection, matching the shape of a
 path-tracing bounce more closely than either query family alone. Platform-enabled

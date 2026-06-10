@@ -27,6 +27,14 @@ namespace render {
         target = "mixed";
       }
     }
+
+    void mergeMapMaximums(std::map<std::string, std::uint64_t>& target,
+                          const std::map<std::string, std::uint64_t>& source) {
+      for (const auto& [key, count] : source) {
+        const std::string label = key.empty() ? "unknown" : key;
+        target[label] = std::max(target[label], count);
+      }
+    }
   }
 
   const char* Integrator::diagnosticName() const {
@@ -115,6 +123,7 @@ namespace render {
     intersectionSceneOpenCylinders = 0;
     intersectionSceneTransforms = 0;
     intersectionSceneUnsupportedPrimitives = 0;
+    intersectionSceneUnsupportedReasons.clear();
     intersectionSceneUploadBytes = 0;
     intersectionSceneTriangleClosestHitEligible = false;
     intersectionSceneBasicHitEligible = false;
@@ -229,6 +238,7 @@ namespace render {
     intersectionSceneTransforms = std::max(intersectionSceneTransforms, diagnostics.transforms);
     intersectionSceneUnsupportedPrimitives =
       std::max(intersectionSceneUnsupportedPrimitives, diagnostics.unsupportedPrimitives);
+    mergeMapMaximums(intersectionSceneUnsupportedReasons, diagnostics.unsupportedReasons);
     intersectionSceneUploadBytes = std::max(intersectionSceneUploadBytes, diagnostics.uploadBytes);
     intersectionSceneTriangleClosestHitEligible =
       intersectionSceneTriangleClosestHitEligible || diagnostics.triangleClosestHitKernelEligible;
@@ -342,6 +352,8 @@ namespace render {
       std::max(intersectionSceneTransforms, source.intersectionSceneTransforms);
     intersectionSceneUnsupportedPrimitives = std::max(
       intersectionSceneUnsupportedPrimitives, source.intersectionSceneUnsupportedPrimitives);
+    mergeMapMaximums(intersectionSceneUnsupportedReasons,
+                     source.intersectionSceneUnsupportedReasons);
     intersectionSceneUploadBytes =
       std::max(intersectionSceneUploadBytes, source.intersectionSceneUploadBytes);
     intersectionSceneTriangleClosestHitEligible =

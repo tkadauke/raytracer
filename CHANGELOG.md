@@ -47,6 +47,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   side surfaces now compile into triangle payloads for the prepared wavefront
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
+- **Wavefront unsupported-reason metrics.** Wavefront backend diagnostics now
+  carry unsupported intersection-scene leaves grouped by reason through
+  renderer metrics JSON, rendercli compact summaries, and Modeler render graph
+  pass details, so unsupported GPU requests are inspectable without parsing the
+  fallback sentence. — GPT-5
 - **Vulkan wavefront query leases.** Prepared Vulkan wavefront intersection
   backends now lease per-query command pools and reusable query buffers, then
   wait on per-dispatch fences after queue submission instead of serializing

@@ -305,7 +305,7 @@ thresholds, unsupported path-material counts, stop decisions, denoiser
 diagnostics when enabled, convergence
 feedback depth counts, tile load-balance counts, requested and resolved
 intersection backend names, combined plus closest-hit/any-hit query execution
-paths, and fallback reason,
+paths, fallback reason, compiled unsupported-scene reason counts,
 backend upload/setup, kernel, and readback timing buckets when a platform
 kernel runs,
 per-pixel sample radiance
@@ -334,6 +334,7 @@ compact summary prints total `tiles`, `tile_grid`,
 `intersection_scene_spheres`, `intersection_scene_planes`,
 `intersection_scene_rectangles`, `intersection_scene_disks`,
 `intersection_scene_open_cylinders`, `intersection_scene_transforms`,
+`intersection_scene_unsupported_by_reason`,
 `emitter_hit_samples`,
 `primary_emitter_hit_samples`, `delta_emitter_hit_samples`,
 `bsdf_emitter_hit_samples`, `mis_weighted_emitter_hit_samples`,

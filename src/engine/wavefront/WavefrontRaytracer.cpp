@@ -83,6 +83,13 @@ namespace engine::wavefront {
         target = "mixed";
       }
     };
+    const auto mergeMapMaximums = [](std::map<std::string, std::uint64_t>& target,
+                                     const std::map<std::string, std::uint64_t>& source) {
+      for (const auto& [key, count] : source) {
+        const std::string label = key.empty() ? "unknown" : key;
+        target[label] = std::max(target[label], count);
+      }
+    };
     mergeLabel(intersectionBackendRequest, metrics.intersectionBackendRequest);
     mergeLabel(intersectionBackend, metrics.intersectionBackend);
     mergeLabel(intersectionBackendPlatform, metrics.intersectionBackendPlatform);
@@ -117,6 +124,8 @@ namespace engine::wavefront {
       std::max(intersectionSceneTransforms, metrics.intersectionSceneTransforms);
     intersectionSceneUnsupportedPrimitives = std::max(
       intersectionSceneUnsupportedPrimitives, metrics.intersectionSceneUnsupportedPrimitives);
+    mergeMapMaximums(intersectionSceneUnsupportedReasons,
+                     metrics.intersectionSceneUnsupportedReasons);
     intersectionSceneUploadBytes =
       std::max(intersectionSceneUploadBytes, metrics.intersectionSceneUploadBytes);
     intersectionSceneTriangleClosestHitEligible =
@@ -298,6 +307,8 @@ namespace engine::wavefront {
       integerObject(batching.frontierPacketScalarFallbackRaysByReason);
     const QJsonObject frontierPacketRefinedRaysByMaterial =
       integerObject(batching.frontierPacketRefinedRaysByMaterial);
+    const QJsonObject intersectionSceneUnsupportedReasons =
+      integerObject(batching.intersectionSceneUnsupportedReasons);
     QJsonArray radianceDeltaL2PerDepth;
     QJsonArray radianceDeltaRmsPerDepth;
     for (std::size_t depth = 0; depth != batching.radianceDeltaSquaredSumPerDepth.size(); ++depth) {
@@ -362,6 +373,7 @@ namespace engine::wavefront {
       static_cast<double>(batching.intersectionSceneTransforms);
     batchingJson["intersectionSceneUnsupportedPrimitives"] =
       static_cast<double>(batching.intersectionSceneUnsupportedPrimitives);
+    batchingJson["intersectionSceneUnsupportedReasons"] = intersectionSceneUnsupportedReasons;
     batchingJson["intersectionSceneUploadBytes"] =
       static_cast<double>(batching.intersectionSceneUploadBytes);
     batchingJson["intersectionSceneTriangleClosestHitEligible"] =

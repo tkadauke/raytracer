@@ -113,6 +113,7 @@ namespace IntegratorTest {
     EXPECT_TRUE(metrics.frontierPacketScalarFallbackRaysByReason.empty());
     EXPECT_TRUE(metrics.frontierPacketRefinedRaysPerDepth.empty());
     EXPECT_TRUE(metrics.frontierPacketRefinedRaysByMaterial.empty());
+    EXPECT_TRUE(metrics.intersectionSceneUnsupportedReasons.empty());
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
     EXPECT_DOUBLE_EQ(0.0, metrics.frontierPartitionWorkerSeconds);
   }

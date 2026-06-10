@@ -6,6 +6,7 @@
 #include "render/primitives/Primitive.h"
 
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -37,6 +38,7 @@ namespace render {
     std::uint64_t openCylinders{0};
     std::uint64_t transforms{0};
     std::uint64_t unsupportedPrimitives{0};
+    std::map<std::string, std::uint64_t> unsupportedReasons;
     std::uint64_t uploadBytes{0};
     bool triangleClosestHitKernelEligible{false};
     bool basicHitKernelEligible{false};

@@ -1578,11 +1578,21 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(metrics.batching.intersectionSceneCompiled);
     EXPECT_EQ(1u, metrics.batching.intersectionScenePrimitives);
     EXPECT_EQ(1u, metrics.batching.intersectionSceneUnsupportedPrimitives);
-    EXPECT_GT(metrics.batching.intersectionSceneUploadBytes, 0u);
+    ASSERT_EQ(1u, metrics.batching.intersectionSceneUnsupportedReasons.size());
+    EXPECT_EQ(1u, metrics.batching.intersectionSceneUnsupportedReasons.at(
+                    "primitive is not supported by GPU intersection scene compiler"));
+    EXPECT_EQ(0u, metrics.batching.intersectionSceneUploadBytes);
     EXPECT_FALSE(metrics.batching.intersectionSceneTriangleClosestHitEligible);
     EXPECT_FALSE(metrics.batching.intersectionSceneBasicHitEligible);
     EXPECT_FALSE(metrics.batching.intersectionScenePackedClosestHitEligible);
     EXPECT_FALSE(metrics.batching.intersectionScenePackedAnyHitEligible);
+
+    const QJsonObject batching = metrics.toJson().value("batching").toObject();
+    const QJsonObject unsupportedReasons =
+      batching.value("intersectionSceneUnsupportedReasons").toObject();
+    EXPECT_EQ(
+      1.0, unsupportedReasons.value("primitive is not supported by GPU intersection scene compiler")
+             .toDouble());
   }
 
   TEST(WavefrontRaytracer, SerializesEmitterHitMetrics) {

@@ -775,6 +775,7 @@ actual query execution path (`runtime_scene`, `compiled_cpu`, `packed_cpu`,
 `metal`, `vulkan`, or `mixed` when closest-hit and any-hit queries use
 different paths),
 compiled intersection-scene primitive/BVH/payload/unsupported-leaf counts and
+unsupported-leaf reason buckets,
 packed closest-hit/any-hit eligibility, estimated ray-upload bytes, closest-hit
 and any-hit readback bytes, and estimated query-transfer bytes for the packed GPU
 intersection ABI,

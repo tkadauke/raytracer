@@ -190,6 +190,8 @@ namespace {
         batching.value("frontierPacketScalarFallbackRaysPerDepth").toArray();
       const QJsonObject frontierPacketScalarFallbackByReason =
         batching.value("frontierPacketScalarFallbackRaysByReason").toObject();
+      const QJsonObject intersectionSceneUnsupportedReasons =
+        batching.value("intersectionSceneUnsupportedReasons").toObject();
       const QJsonArray frontierPacketRefinedRays =
         batching.value("frontierPacketRefinedRaysPerDepth").toArray();
       const QJsonObject frontierPacketRefinedByMaterial =
@@ -300,6 +302,8 @@ namespace {
         << unsignedValue(batching, "intersectionSceneTransforms")
         << " intersection_scene_unsupported="
         << unsignedValue(batching, "intersectionSceneUnsupportedPrimitives")
+        << " intersection_scene_unsupported_by_reason="
+        << unsignedObjectPairs(intersectionSceneUnsupportedReasons)
         << " intersection_scene_upload_bytes="
         << unsignedValue(batching, "intersectionSceneUploadBytes")
         << " intersection_scene_triangle_kernel_eligible="
@@ -472,7 +476,7 @@ namespace {
       std::vector<std::string> pairs;
       pairs.reserve(object.size());
       for (auto it = object.begin(); it != object.end(); ++it) {
-        pairs.push_back(it.key().toStdString() + ":" +
+        pairs.push_back(compactToken(it.key().toStdString()) + ":" +
                         std::to_string(static_cast<std::uint64_t>(it.value().toDouble())));
       }
       std::sort(pairs.begin(), pairs.end());
@@ -482,6 +486,15 @@ namespace {
         result += pairs[index];
       }
       return result;
+    }
+
+    std::string compactToken(std::string value) const {
+      if (value.empty()) {
+        return "unknown";
+      }
+      std::replace_if(
+        value.begin(), value.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }, '_');
+      return value;
     }
 
     std::string compactTextValue(const QJsonValue& value, const std::string& empty) const {

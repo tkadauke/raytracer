@@ -240,6 +240,9 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(1u, diagnostics.bvhNodes);
     EXPECT_EQ(1u, diagnostics.primitives);
     EXPECT_EQ(1u, diagnostics.unsupportedPrimitives);
+    ASSERT_EQ(1u, diagnostics.unsupportedReasons.size());
+    EXPECT_EQ(1u, diagnostics.unsupportedReasons.at(
+                    "primitive is not supported by GPU intersection scene compiler"));
     EXPECT_EQ(0u, diagnostics.uploadBytes);
     EXPECT_FALSE(diagnostics.triangleClosestHitKernelEligible);
     EXPECT_FALSE(diagnostics.basicHitKernelEligible);
@@ -1725,6 +1728,9 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_TRUE(diagnostics.compiled);
     EXPECT_EQ(1u, diagnostics.primitives);
     EXPECT_EQ(1u, diagnostics.unsupportedPrimitives);
+    ASSERT_EQ(1u, diagnostics.unsupportedReasons.size());
+    EXPECT_EQ(1u, diagnostics.unsupportedReasons.at(
+                    "primitive is not supported by GPU intersection scene compiler"));
     EXPECT_EQ(0u, diagnostics.uploadBytes);
     EXPECT_FALSE(diagnostics.triangleClosestHitKernelEligible);
     EXPECT_FALSE(diagnostics.basicHitKernelEligible);
@@ -1759,6 +1765,9 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_TRUE(diagnostics.compiled);
     EXPECT_EQ(1u, diagnostics.primitives);
     EXPECT_EQ(1u, diagnostics.unsupportedPrimitives);
+    ASSERT_EQ(1u, diagnostics.unsupportedReasons.size());
+    EXPECT_EQ(1u, diagnostics.unsupportedReasons.at(
+                    "empty instance is not supported by GPU intersection scene compiler"));
     EXPECT_EQ(0u, diagnostics.uploadBytes);
     EXPECT_FALSE(diagnostics.triangleClosestHitKernelEligible);
     EXPECT_FALSE(diagnostics.basicHitKernelEligible);
@@ -1797,6 +1806,13 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_NE(
       std::string::npos,
       reason.find("1x moving instances are not supported by GPU intersection scene compiler"));
+
+    const WavefrontIntersectionSceneDiagnostics diagnostics = backend->compiledSceneDiagnostics();
+    ASSERT_EQ(2u, diagnostics.unsupportedReasons.size());
+    EXPECT_EQ(2u, diagnostics.unsupportedReasons.at(
+                    "primitive is not supported by GPU intersection scene compiler"));
+    EXPECT_EQ(1u, diagnostics.unsupportedReasons.at(
+                    "moving instances are not supported by GPU intersection scene compiler"));
   }
 
   TEST(WavefrontIntersectionBackend, GpuChoiceDoesNotEstimateTransferForIneligiblePreparedScene) {

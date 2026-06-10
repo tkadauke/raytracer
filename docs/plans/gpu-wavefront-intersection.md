@@ -402,9 +402,10 @@ Progress:
   instead of discarding the diagnostic compile result.
 - Wavefront metrics now expose whether an intersection scene was compiled plus
   BVH node, primitive, supported payload, transform, and unsupported-leaf
-  counts. rendercli compact summaries and the Modeler render graph pass tooltip
-  surface the same counts beside the backend fallback reason, making the future
-  upload workload visible before kernels exist.
+  counts, including unsupported leaves grouped by fallback reason. rendercli
+  compact summaries and the Modeler render graph pass details surface the same
+  counts beside the backend fallback reason, making the future upload workload
+  and unsupported-scene shape visible before kernels exist.
 - Unsupported scene fallbacks now keep those compiled primitive and unsupported
   counts without packing throwaway GPU upload buffers. Their diagnostics report
   zero scene-upload bytes unless a supported prepared backend retained packed

@@ -130,6 +130,8 @@ struct RenderGraphInspectorWidget::Private {
                                 const QString& key) const;
   void addDetailIntegerMetadataRow(DetailRows& rows, const QString& name,
                                    const QJsonObject& metadata, const QString& key) const;
+  void addDetailIntegerObjectMetadataRow(DetailRows& rows, const QString& name,
+                                         const QJsonObject& metadata, const QString& key) const;
   void addDetailMillisecondsMetadataRow(DetailRows& rows, const QString& name,
                                         const QJsonObject& metadata, const QString& key) const;
   void addIntersectionBackendDetailRows(DetailRows& rows, const QJsonObject& batching) const;
@@ -517,6 +519,16 @@ void RenderGraphInspectorWidget::Private::addDetailIntegerMetadataRow(DetailRows
   addDetailRow(rows, name, QString::number(jsonIntegerValue(metadata, key)));
 }
 
+void RenderGraphInspectorWidget::Private::addDetailIntegerObjectMetadataRow(
+  DetailRows& rows, const QString& name, const QJsonObject& metadata, const QString& key) const {
+  if (!metadata.contains(key))
+    return;
+
+  const QString value = jsonIntegerObjectSummary(metadata.value(key).toObject());
+  if (!value.isEmpty())
+    addDetailRow(rows, name, value);
+}
+
 void RenderGraphInspectorWidget::Private::addDetailMillisecondsMetadataRow(
   DetailRows& rows, const QString& name, const QJsonObject& metadata, const QString& key) const {
   if (!metadata.contains(key))
@@ -587,6 +599,9 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("intersectionSceneTransforms"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene unsupported primitives"),
                               batching, QStringLiteral("intersectionSceneUnsupportedPrimitives"));
+  addDetailIntegerObjectMetadataRow(rows, QStringLiteral("Intersection scene unsupported reasons"),
+                                    batching,
+                                    QStringLiteral("intersectionSceneUnsupportedReasons"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene upload bytes"), batching,
                               QStringLiteral("intersectionSceneUploadBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection query transfer bytes"), batching,
