@@ -898,6 +898,11 @@ Progress:
   on the GPU yet, but it gives rendercli, graph traces, and Modeler diagnostics
   a baseline for deciding where GPU-resident frontier/direct-light scheduling
   would remove host/device boundary crossings.
+- Wavefront metrics now also report compaction candidate depths and sample
+  counts by comparing active samples entering a depth with retained samples
+  after that depth. This gives future GPU-side compaction work a visible
+  baseline for how much inactive path state can be removed before the next
+  frontier dispatch.
 
 ---
 

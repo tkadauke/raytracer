@@ -1160,6 +1160,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query depths")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query closest-hit rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query any-hit rays")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate depths")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate samples")).isEmpty());
 
     auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
     ASSERT_NE(nullptr, graph);
@@ -1169,6 +1171,7 @@ namespace RenderGraphInspectorWidgetTest {
     ASSERT_NE(nullptr, pass);
 
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("mixed query depths")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("compaction candidate samples")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,

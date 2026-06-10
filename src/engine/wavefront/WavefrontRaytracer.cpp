@@ -232,6 +232,37 @@ namespace engine::wavefront {
     }
   }
 
+  bool WavefrontRenderMetrics::BatchSummary::hasCompactionCandidateDepth(std::size_t depth) const {
+    if (depth >= activeSamplesPerDepth.size() || depth >= retainedActiveSamplesPerDepth.size()) {
+      return false;
+    }
+    return activeSamplesPerDepth[depth] > retainedActiveSamplesPerDepth[depth];
+  }
+
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::compactionCandidateDepthCount() const {
+    const std::size_t depthCount =
+      std::min(activeSamplesPerDepth.size(), retainedActiveSamplesPerDepth.size());
+    std::uint64_t count = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      if (hasCompactionCandidateDepth(depth)) {
+        ++count;
+      }
+    }
+    return count;
+  }
+
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::compactionCandidateSampleCount() const {
+    const std::size_t depthCount =
+      std::min(activeSamplesPerDepth.size(), retainedActiveSamplesPerDepth.size());
+    std::uint64_t count = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      if (activeSamplesPerDepth[depth] > retainedActiveSamplesPerDepth[depth]) {
+        count += activeSamplesPerDepth[depth] - retainedActiveSamplesPerDepth[depth];
+      }
+    }
+    return count;
+  }
+
   bool WavefrontRenderMetrics::BatchSummary::hasMixedQueryDepth(std::size_t depth) const {
     const std::uint64_t closestHitChunks = depth < frontierClosestHitBatchChunksPerDepth.size()
                                              ? frontierClosestHitBatchChunksPerDepth[depth]
@@ -500,6 +531,10 @@ namespace engine::wavefront {
       batching.compatibilityShadeRadianceLuminanceSum;
     batchingJson["activeSamplesPerDepth"] = activeSamplesPerDepth;
     batchingJson["retainedActiveSamplesPerDepth"] = retainedActiveSamplesPerDepth;
+    batchingJson["frontierCompactionCandidateDepths"] =
+      static_cast<double>(batching.compactionCandidateDepthCount());
+    batchingJson["frontierCompactionCandidateSamples"] =
+      static_cast<double>(batching.compactionCandidateSampleCount());
     batchingJson["frontierRayHitsPerDepth"] = frontierRayHitsPerDepth;
     batchingJson["frontierRayMissesPerDepth"] = frontierRayMissesPerDepth;
     batchingJson["frontierPacketChunksPerDepth"] = frontierPacketChunksPerDepth;

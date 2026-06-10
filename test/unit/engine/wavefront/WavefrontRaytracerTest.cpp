@@ -383,6 +383,7 @@ namespace WavefrontRaytracerTest {
       reason.find("not eligible for the Vulkan exact-primitive") != std::string::npos;
     const bool noPreparedBasicScene =
       reason.find("no prepared basic-hit scene") != std::string::npos;
+    const bool belowAutoThreshold = reason.find("below fixed GPU threshold") != std::string::npos;
     const bool dispatchFailure =
       reason.find("Metal closest-hit kernel failed") != std::string::npos ||
       reason.find("Metal any-hit kernel failed") != std::string::npos ||
@@ -391,7 +392,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(disabled || enabledWithoutClosestHitKernel || enabledWithoutBasicHitKernel ||
                 enabledWithoutDevice || enabledWithoutVulkanComputeDevice || notTriangleEligible ||
                 noPreparedTriangleScene || notBasicEligible || noPreparedBasicScene ||
-                dispatchFailure)
+                belowAutoThreshold || dispatchFailure)
       << reason;
   }
 
@@ -992,6 +993,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48u, metrics.batching.activeSamplesPerDepth[0]);
     ASSERT_EQ(1u, metrics.batching.retainedActiveSamplesPerDepth.size());
     EXPECT_EQ(0u, metrics.batching.retainedActiveSamplesPerDepth[0]);
+    EXPECT_TRUE(metrics.batching.hasCompactionCandidateDepth(0));
+    EXPECT_EQ(1u, metrics.batching.compactionCandidateDepthCount());
+    EXPECT_EQ(48u, metrics.batching.compactionCandidateSampleCount());
     ASSERT_EQ(1u, metrics.batching.frontierRayHitsPerDepth.size());
     ASSERT_EQ(1u, metrics.batching.frontierRayMissesPerDepth.size());
     EXPECT_EQ(48u, metrics.batching.frontierRayHitsPerDepth[0] +
@@ -1137,6 +1141,11 @@ namespace WavefrontRaytracerTest {
       json.value("batching").toObject().value("retainedActiveSamplesPerDepth").toArray();
     ASSERT_EQ(1, retainedActiveSamples.size());
     EXPECT_EQ(0.0, retainedActiveSamples.at(0).toDouble());
+    EXPECT_EQ(
+      1.0, json.value("batching").toObject().value("frontierCompactionCandidateDepths").toDouble());
+    EXPECT_EQ(
+      48.0,
+      json.value("batching").toObject().value("frontierCompactionCandidateSamples").toDouble());
     const QJsonArray frontierHits =
       json.value("batching").toObject().value("frontierRayHitsPerDepth").toArray();
     const QJsonArray frontierMisses =

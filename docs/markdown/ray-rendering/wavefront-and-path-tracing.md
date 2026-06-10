@@ -265,6 +265,10 @@ any-hit batches both happened. Those mixed query depths are the baseline for
 later GPU-resident frontier scheduling: they show where the current hybrid path
 still crosses the host/device boundary for both path continuation and
 visibility work in the same depth.
+The same metrics compare active samples entering a depth with retained samples
+after that depth. The difference is reported as compaction candidate work: the
+samples a future GPU-side compaction pass would remove from the next frontier
+instead of carrying as inactive lanes.
 Prepared GPU-style backends can also opt into arbitrary closest-hit frontier
 batches, letting a path-tracing bounce submit one group of camera/path rays
 instead of slicing that frontier into Ray4/Ray8 packets before it reaches the

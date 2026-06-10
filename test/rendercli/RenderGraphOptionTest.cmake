@@ -2599,6 +2599,15 @@ endforeach()
                   "wavefront metrics report did not contain retained active sample counts"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+foreach(compaction_field
+        frontierCompactionCandidateDepths
+        frontierCompactionCandidateSamples)
+  if(NOT wavefront_metrics_json MATCHES "\"${compaction_field}\"")
+    _rendercli_fail("rendercli wavefront metrics ${compaction_field}"
+                    "wavefront metrics report did not contain ${compaction_field}"
+                    "" "" "${wavefront_metrics_json}" "")
+  endif()
+endforeach()
 if(NOT wavefront_metrics_json MATCHES "\"integratorFrontierPartitionWorkerSeconds\"")
   _rendercli_fail("rendercli wavefront metrics frontier partition timing"
                   "wavefront metrics report did not contain frontier partition timing"
@@ -2607,6 +2616,16 @@ endif()
 if(NOT wavefront_metrics_stdout MATCHES "last_retained_active=")
   _rendercli_fail("rendercli wavefront metrics retained active summary"
                   "wavefront metrics summary did not contain last_retained_active"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_candidate_depths=")
+  _rendercli_fail("rendercli wavefront metrics compaction candidate depth summary"
+                  "wavefront metrics summary did not contain compaction candidate depths"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_candidate_samples=")
+  _rendercli_fail("rendercli wavefront metrics compaction candidate sample summary"
+                  "wavefront metrics summary did not contain compaction candidate samples"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 foreach(tiling_field

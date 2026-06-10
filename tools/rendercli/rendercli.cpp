@@ -369,6 +369,10 @@ namespace {
         << " active_depths=" << activeSamples.size()
         << " last_active=" << unsignedArrayBack(activeSamples)
         << " last_retained_active=" << unsignedArrayBack(retainedActiveSamples)
+        << " frontier_compaction_candidate_depths="
+        << unsignedValue(batching, "frontierCompactionCandidateDepths")
+        << " frontier_compaction_candidate_samples="
+        << unsignedValue(batching, "frontierCompactionCandidateSamples")
         << " frontier_hit_rays=" << unsignedArraySum(frontierHits)
         << " frontier_miss_rays=" << unsignedArraySum(frontierMisses)
         << " frontier_packet_chunks=" << unsignedArraySum(frontierPackets)

@@ -131,6 +131,9 @@ namespace render {
     void reset(bool scalarFallback);
     void recordActiveDepth(std::uint64_t activeSamples);
     void recordRetainedActiveDepth(std::uint64_t activeSamples);
+    [[nodiscard]] bool hasCompactionCandidateDepth(std::size_t depth) const;
+    [[nodiscard]] std::uint64_t compactionCandidateDepthCount() const;
+    [[nodiscard]] std::uint64_t compactionCandidateSampleCount() const;
     void recordFrontierIntersections(std::uint64_t hitRays, std::uint64_t missRays);
     void recordFrontierTraversal(std::uint64_t packetChunks, std::uint64_t packetRays,
                                  std::uint64_t ray4PacketChunks, std::uint64_t ray8PacketChunks,

@@ -228,4 +228,21 @@ namespace IntegratorTest {
     EXPECT_EQ(4u, metrics.mixedQueryDepthClosestHitRays());
     EXPECT_EQ(3u, metrics.mixedQueryDepthAnyHitRays());
   }
+
+  TEST(Integrator, BatchMetricsReportCompactionCandidates) {
+    IntegratorBatchMetrics metrics;
+    metrics.reset(/*scalarFallback=*/false);
+
+    metrics.recordActiveDepth(4);
+    metrics.recordActiveDepth(3);
+    metrics.recordActiveDepth(2);
+    metrics.recordRetainedActiveDepth(1);
+    metrics.recordRetainedActiveDepth(3);
+
+    EXPECT_TRUE(metrics.hasCompactionCandidateDepth(0));
+    EXPECT_FALSE(metrics.hasCompactionCandidateDepth(1));
+    EXPECT_FALSE(metrics.hasCompactionCandidateDepth(2));
+    EXPECT_EQ(1u, metrics.compactionCandidateDepthCount());
+    EXPECT_EQ(3u, metrics.compactionCandidateSampleCount());
+  }
 }
