@@ -835,8 +835,10 @@ Progress:
   estimated query-transfer bytes as benchmark counters. They now also report
   compiled-scene, BVH/primitive/unsupported, upload-byte, and packed
   closest-hit/any-hit eligibility counters, so small-workload preflight rows
-  visibly show that no scene was prepared. This keeps benchmark evidence aligned
-  with render metrics instead of treating all intersection work as one
+  visibly show that no scene was prepared. Backend benchmark rows also report
+  closest-hit, any-hit, and combined estimated query round trips beside the
+  upload/readback byte counters. This keeps benchmark evidence aligned with
+  render metrics instead of treating all intersection work as one
   undifferentiated ray count.
 - Benchmark builds now also include a mixed automatic-backend fixture that
   chooses a backend from combined closest-hit and any-hit expected work, then

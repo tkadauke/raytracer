@@ -68,6 +68,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   summaries, and the Modeler graph details now report active-sample
   compaction candidate depths and sample counts, creating a baseline for future
   GPU-side active-ray compaction. — GPT-5
+- **Wavefront benchmark query round-trip counters.** Wavefront intersection
+  backend benchmarks now report estimated closest-hit, any-hit, and combined
+  query round trips alongside the upload/readback byte counters. — GPT-5
 - **Wavefront graph tooltip unsupported reasons.** The Modeler render graph
   tooltip for wavefront passes now includes grouped unsupported intersection
   scene reasons when a GPU-requested scene falls back before platform kernels

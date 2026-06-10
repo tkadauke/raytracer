@@ -60,6 +60,8 @@ namespace {
         backend.estimatedClosestHitReadbackBytes(static_cast<std::uint64_t>(closestHitRayCount));
       const std::uint64_t anyHitReadbackBytes =
         backend.estimatedAnyHitReadbackBytes(static_cast<std::uint64_t>(anyHitRayCount));
+      const bool closestHitRoundTrip = closestHitRayUploadBytes > 0 || closestHitReadbackBytes > 0;
+      const bool anyHitRoundTrip = anyHitRayUploadBytes > 0 || anyHitReadbackBytes > 0;
       std::string executionPath = timing.executionPath;
       if (executionPath.empty()) {
         executionPath = backend.executionPath();
@@ -93,6 +95,10 @@ namespace {
       state.counters["any_hit_readback_bytes"] = static_cast<double>(anyHitReadbackBytes);
       state.counters["readback_bytes"] =
         static_cast<double>(closestHitReadbackBytes + anyHitReadbackBytes);
+      state.counters["query_round_trips"] =
+        static_cast<double>((closestHitRoundTrip ? 1 : 0) + (anyHitRoundTrip ? 1 : 0));
+      state.counters["closest_hit_query_round_trips"] = closestHitRoundTrip ? 1.0 : 0.0;
+      state.counters["any_hit_query_round_trips"] = anyHitRoundTrip ? 1.0 : 0.0;
     }
 
     [[nodiscard]] std::shared_ptr<const WavefrontIntersectionBackend>
