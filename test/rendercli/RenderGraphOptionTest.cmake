@@ -111,6 +111,10 @@ set(raytracer_integrator_plan "${TEST_OUTPUT_DIR}/raytracer-integrator-graph.jso
 set(raytracer_integrator_render "${TEST_OUTPUT_DIR}/raytracer-integrator-render.png")
 set(wavefront_plan "${TEST_OUTPUT_DIR}/wavefront-graph.json")
 set(wavefront_gpu_backend_plan "${TEST_OUTPUT_DIR}/wavefront-gpu-backend-graph.json")
+set(wavefront_gpu_backend_replay_trace
+    "${TEST_OUTPUT_DIR}/wavefront-gpu-backend-replay-trace.json")
+set(wavefront_gpu_backend_replay_render
+    "${TEST_OUTPUT_DIR}/wavefront-gpu-backend-replay-render.png")
 set(wavefront_auto_backend_plan "${TEST_OUTPUT_DIR}/wavefront-auto-backend-graph.json")
 set(wavefront_render "${TEST_OUTPUT_DIR}/wavefront-render.png")
 set(wavefront_supported_backend_scene
@@ -1971,6 +1975,33 @@ if(NOT wavefront_gpu_backend_graph MATCHES "\"intersectionBackend\"[ \r\n]*:[ \r
       "wavefront graph did not contain requested GPU intersection backend state: ${wavefront_gpu_backend_graph}"
   )
 endif()
+
+rendercli_run(
+  NAME "rendercli replays requested GPU wavefront backend from render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph --render_graph_in "${wavefront_gpu_backend_plan}"
+    --render_graph_trace_out "${wavefront_gpu_backend_replay_trace}"
+    "${static_scene}" "${wavefront_gpu_backend_replay_render}"
+)
+rendercli_assert_image_dimensions("${wavefront_gpu_backend_replay_render}" 32 16
+                                  NAME "GPU wavefront backend graph replay dimensions")
+rendercli_assert_image_nonempty("${wavefront_gpu_backend_replay_render}"
+                                NAME "GPU wavefront backend graph replay pixels")
+rendercli_assert_nonempty("${wavefront_gpu_backend_replay_trace}"
+                          NAME "GPU wavefront backend graph replay trace JSON")
+file(READ "${wavefront_gpu_backend_replay_trace}" wavefront_gpu_backend_replay_trace_json)
+foreach(expectation
+        "\"id\": \"wavefront_beauty\""
+        "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
+        "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"(cpu|metal|vulkan)\""
+        "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"(fallback|available)\""
+        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"(packed_cpu|metal|vulkan)\"")
+  if(NOT wavefront_gpu_backend_replay_trace_json MATCHES "${expectation}")
+    _rendercli_fail("rendercli GPU wavefront graph replay trace ${expectation}"
+                    "GPU wavefront graph replay trace did not match ${expectation}"
+                    "" "" "${wavefront_gpu_backend_replay_trace_json}" "")
+  endif()
+endforeach()
 
 rendercli_run(
   NAME "rendercli exports requested auto wavefront backend in render graph"
