@@ -701,6 +701,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   dependency-ready CPU-safe passes concurrently while preserving serial and
   limited executor caps, and skips queued dependents when cancellation or pass
   failures stop graph execution. — GPT-5
+- **Wavefront unsupported fallback summaries.** GPU-requested wavefront
+  intersection scenes with multiple unsupported leaves now include unsupported
+  reason counts in the fallback text, so users can see whether one unsupported
+  class or several distinct scene features caused CPU fallback. — GPT-5
 - **Path-tracing direct-light visibility batching.** Wavefront path tracing now
   groups direct-light any-hit shadow rays across the active depth frontier when
   the selected intersection backend prefers batched visibility, instead of

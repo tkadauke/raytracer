@@ -532,7 +532,21 @@ namespace render {
     if (scene.unsupportedPrimitives().size() > 1) {
       result += " (";
       result += std::to_string(scene.unsupportedPrimitives().size());
-      result += " unsupported leaves)";
+      result += " unsupported leaves";
+      const std::vector<UnsupportedIntersectionReasonCount> reasonCounts =
+        scene.unsupportedReasonCounts();
+      if (!reasonCounts.empty()) {
+        result += "; ";
+        for (std::size_t index = 0; index != reasonCounts.size(); ++index) {
+          if (index != 0) {
+            result += "; ";
+          }
+          result += std::to_string(reasonCounts[index].count);
+          result += "x ";
+          result += reasonCounts[index].reason;
+        }
+      }
+      result += ")";
     }
     return result;
   }

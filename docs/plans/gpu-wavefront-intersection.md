@@ -363,6 +363,9 @@ Progress:
   the all-or-nothing fallback contract.
 - Unsupported leaves are represented explicitly with primitive names, object
   ids, and fallback reasons.
+- Compiled unsupported scenes now summarize unsupported leaves by first-seen
+  reason, and GPU-request fallback text includes those reason counts when more
+  than one unsupported leaf prevents using the packed/platform backend.
 - The compiled BVH now emits a deterministic bounded-leaf tree over primitive
   records using a centroid-axis Surface Area Heuristic sweep when it improves
   expected traversal cost, with median fallback to preserve the four-record

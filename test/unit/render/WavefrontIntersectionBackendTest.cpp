@@ -1770,6 +1770,35 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0u, backend->estimatedAnyHitReadbackBytes(4));
   }
 
+  TEST(WavefrontIntersectionBackend, GpuChoiceSummarizesUnsupportedReasonCounts) {
+    auto firstTorus = std::make_shared<Torus>(2.0, 0.5);
+    firstTorus->setName("first exact torus");
+    auto secondTorus = std::make_shared<Torus>(3.0, 0.25);
+    secondTorus->setName("second exact torus");
+    auto movingInstance = std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(), 1.0));
+    movingInstance->setName("moving asset instance");
+    movingInstance->setVelocity(Vector3d(1, 0, 0));
+    Scene scene;
+    scene.add(firstTorus);
+    scene.add(movingInstance);
+    scene.add(secondTorus);
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(scene);
+
+    EXPECT_STREQ("gpu", backend->requestedName());
+    EXPECT_STREQ("cpu", backend->name());
+    EXPECT_STREQ("fallback", backend->availability());
+    const std::string reason = backend->fallbackReason();
+    EXPECT_NE(std::string::npos, reason.find("first exact torus"));
+    EXPECT_NE(std::string::npos, reason.find("3 unsupported leaves"));
+    EXPECT_NE(std::string::npos,
+              reason.find("2x primitive is not supported by GPU intersection scene compiler"));
+    EXPECT_NE(
+      std::string::npos,
+      reason.find("1x moving instances are not supported by GPU intersection scene compiler"));
+  }
+
   TEST(WavefrontIntersectionBackend, GpuChoiceDoesNotEstimateTransferForIneligiblePreparedScene) {
     Scene scene;
 

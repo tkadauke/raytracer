@@ -261,6 +261,24 @@ CompiledIntersectionScene::unsupportedPrimitives() const {
   return m_unsupportedPrimitives;
 }
 
+std::vector<UnsupportedIntersectionReasonCount>
+CompiledIntersectionScene::unsupportedReasonCounts() const {
+  std::vector<UnsupportedIntersectionReasonCount> result;
+  for (const UnsupportedIntersectionPrimitive& unsupported : m_unsupportedPrimitives) {
+    const auto existing =
+      std::find_if(result.begin(), result.end(),
+                   [&unsupported](const UnsupportedIntersectionReasonCount& count) {
+                     return count.reason == unsupported.reason;
+                   });
+    if (existing != result.end()) {
+      ++existing->count;
+    } else {
+      result.push_back(UnsupportedIntersectionReasonCount{unsupported.reason, 1});
+    }
+  }
+  return result;
+}
+
 void IntersectionSceneBuilder::addUnsupportedPrimitive(const Primitive::TransformedLeaf& leaf,
                                                        std::string reason) {
   addUnsupportedPrimitive(leaf, leaf.boundingBox(), std::move(reason));

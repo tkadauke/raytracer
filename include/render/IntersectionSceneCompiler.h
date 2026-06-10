@@ -117,6 +117,11 @@ namespace render {
     std::string reason;
   };
 
+  struct UnsupportedIntersectionReasonCount {
+    std::string reason;
+    std::uint64_t count{0};
+  };
+
   struct CompiledIntersectionHit {
     bool hit{false};
     IntersectionMaterialId material{0};
@@ -147,6 +152,7 @@ namespace render {
     [[nodiscard]] const std::vector<const Primitive*>& objects() const;
     [[nodiscard]] const std::vector<UnsupportedIntersectionPrimitive>&
     unsupportedPrimitives() const;
+    [[nodiscard]] std::vector<UnsupportedIntersectionReasonCount> unsupportedReasonCounts() const;
 
   private:
     friend class IntersectionSceneBuilder;

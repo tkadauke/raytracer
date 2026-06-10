@@ -224,7 +224,8 @@ That makes the backend boundary inspectable before any Metal or Vulkan
 kernel is allowed to cover the broader primitive set. The fallback is scene-aware:
 before tile work starts, the renderer tries to compile the scene into the
 GPU-ready intersection record format. If that diagnostic compiler rejects a
-leaf, the reported fallback reason names the first unsupported primitive
+leaf, the reported fallback reason names the first unsupported primitive and,
+when multiple leaves fail, includes counts grouped by unsupported reason
 instead of only saying that the platform GPU backend is absent.
 For a supported scene, the GPU path names the host platform backend that would
 run next: Metal on macOS, Vulkan elsewhere. Metal and Vulkan can now execute the

@@ -281,6 +281,30 @@ namespace IntersectionSceneCompilerTest {
               compiled.unsupportedPrimitives()[0].reason);
   }
 
+  TEST(IntersectionSceneCompiler, CountsUnsupportedPrimitiveReasonsInFirstSeenOrder) {
+    auto firstTorus = std::make_shared<Torus>(2.0, 0.5);
+    auto secondTorus = std::make_shared<Torus>(3.0, 0.25);
+    auto movingInstance = std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(), 1.0));
+    movingInstance->setVelocity(Vector3d(1, 0, 0));
+    Scene scene;
+    scene.add(firstTorus);
+    scene.add(movingInstance);
+    scene.add(secondTorus);
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const std::vector<UnsupportedIntersectionReasonCount> reasonCounts =
+      compiled.unsupportedReasonCounts();
+
+    ASSERT_EQ(3u, compiled.unsupportedPrimitives().size());
+    ASSERT_EQ(2u, reasonCounts.size());
+    EXPECT_EQ("primitive is not supported by GPU intersection scene compiler",
+              reasonCounts[0].reason);
+    EXPECT_EQ(2u, reasonCounts[0].count);
+    EXPECT_EQ("moving instances are not supported by GPU intersection scene compiler",
+              reasonCounts[1].reason);
+    EXPECT_EQ(1u, reasonCounts[1].count);
+  }
+
   TEST(IntersectionSceneCompiler, RoundTripsMaterialAndObjectIds) {
     auto sharedMaterial = material(Colord::red());
     auto first = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
