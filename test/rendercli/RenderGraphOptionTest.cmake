@@ -127,6 +127,10 @@ set(wavefront_supported_backend_auto_render
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-auto-render.png")
 set(wavefront_supported_backend_auto_report
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-auto-metrics.json")
+set(wavefront_supported_backend_auto_large_render
+    "${TEST_OUTPUT_DIR}/wavefront-supported-backend-auto-large-render.png")
+set(wavefront_supported_backend_auto_large_report
+    "${TEST_OUTPUT_DIR}/wavefront-supported-backend-auto-large-metrics.json")
 set(wavefront_supported_backend_report
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-metrics.json")
 set(wavefront_unsupported_scene_backend_render
@@ -2915,6 +2919,73 @@ foreach(expectation
                     "" "" "${wavefront_supported_backend_auto_json}" "")
   endif()
 endforeach()
+
+rendercli_run(
+  NAME "rendercli reports large supported wavefront auto backend decision"
+  OUTPUT_VARIABLE wavefront_supported_backend_auto_large_stdout
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 16 --height 16 --depth 700
+    --wavefront_intersection_backend auto
+    --wavefront_metrics_out "${wavefront_supported_backend_auto_large_report}"
+    --wavefront_metrics_summary "${wavefront_supported_backend_scene}"
+    "${wavefront_supported_backend_auto_large_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_supported_backend_auto_large_render}"
+                                NAME "large supported wavefront auto backend render pixels")
+rendercli_assert_exists("${wavefront_supported_backend_auto_large_report}"
+                        NAME "large supported wavefront auto backend metrics report exists")
+foreach(expectation
+        "intersection_backend_request=auto"
+        "intersection_expected_rays=[1-9][0-9]*"
+        "intersection_auto_minimum_gpu_rays=[1-9][0-9]*"
+        "intersection_auto_estimated_query_transfer_bytes=[0-9][0-9]*")
+  if(NOT wavefront_supported_backend_auto_large_stdout MATCHES "${expectation}")
+    _rendercli_fail("rendercli large supported wavefront auto summary ${expectation}"
+                    "large supported wavefront auto summary did not match ${expectation}"
+                    "${wavefront_supported_backend_auto_large_stdout}" "" "" "")
+  endif()
+endforeach()
+string(REGEX MATCH "intersection_expected_rays=([0-9][0-9]*)"
+             _auto_large_expected_rays_match
+             "${wavefront_supported_backend_auto_large_stdout}")
+set(wavefront_auto_large_expected_rays "${CMAKE_MATCH_1}")
+string(REGEX MATCH "intersection_auto_minimum_gpu_rays=([0-9][0-9]*)"
+             _auto_large_minimum_gpu_rays_match
+             "${wavefront_supported_backend_auto_large_stdout}")
+set(wavefront_auto_large_minimum_gpu_rays "${CMAKE_MATCH_1}")
+if(NOT wavefront_auto_large_expected_rays GREATER wavefront_auto_large_minimum_gpu_rays)
+  _rendercli_fail(
+    "rendercli large supported wavefront auto decision"
+    "expected auto workload to exceed the GPU ray threshold"
+    "${wavefront_supported_backend_auto_large_stdout}" "" "" "")
+endif()
+if(wavefront_supported_backend_auto_large_stdout MATCHES
+   "fixed_GPU_threshold.*before_scene_compilation")
+  _rendercli_fail(
+    "rendercli large supported wavefront auto decision"
+    "large auto workload should not take the small-workload preflight path"
+    "${wavefront_supported_backend_auto_large_stdout}" "" "" "")
+endif()
+if(wavefront_supported_backend_auto_large_stdout MATCHES "intersection_scene_compiled=true")
+  foreach(expectation
+          "intersection_scene_upload_bytes=[1-9][0-9]*"
+          "intersection_scene_packed_closest_hit_eligible=true"
+          "intersection_scene_packed_any_hit_eligible=true")
+    if(NOT wavefront_supported_backend_auto_large_stdout MATCHES "${expectation}")
+      _rendercli_fail("rendercli large supported wavefront auto compiled summary ${expectation}"
+                      "compiled large auto summary did not match ${expectation}"
+                      "${wavefront_supported_backend_auto_large_stdout}" "" "" "")
+    endif()
+  endforeach()
+else()
+  if(NOT wavefront_supported_backend_auto_large_stdout
+     MATCHES "platform_GPU_intersection_backend_is_unavailable")
+    _rendercli_fail(
+      "rendercli large supported wavefront auto platform fallback"
+      "large auto workload did not compile the scene and did not report platform GPU unavailability"
+      "${wavefront_supported_backend_auto_large_stdout}" "" "" "")
+  endif()
+endif()
 
 rendercli_run(
   NAME "rendercli reports supported scene with forced CPU wavefront backend"

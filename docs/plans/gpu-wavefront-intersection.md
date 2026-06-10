@@ -835,6 +835,11 @@ Progress:
 - rendercli functional coverage now also pins explicit CPU wavefront
   intersection backend metrics and JSON trace fields, proving the non-fallback
   path reports `cpu`/`available`/`runtime_scene` with zero GPU transfer.
+- rendercli functional coverage now also exercises a large enough supported
+  `auto` workload to clear the fixed GPU ray-count threshold. Platform builds
+  can therefore prove the compiled/eligible branch, while CPU-only builds prove
+  the decision moves past small-workload preflight and reports platform GPU
+  unavailability explicitly.
 - rendercli functional coverage now also pins explicit GPU requests for an
   unsupported exact-primitive scene, proving the fallback reports compiled
   unsupported counts but zero scene-upload and query-transfer bytes.
