@@ -1229,6 +1229,67 @@ namespace WavefrontIntersectionBackendTest {
 #endif
   }
 
+  TEST(MetalWavefrontPreparedScene, SupportsConcurrentClosestAndAnyHitQueries) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    MetalWavefrontSmokeKernel kernel;
+    if (!kernel.deviceAvailable()) {
+      GTEST_SKIP() << "No Metal device is available";
+    }
+    if (!kernel.renderPathAvailable()) {
+      GTEST_SKIP() << kernel.renderPathUnavailableReason();
+    }
+
+    Scene scene;
+    scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0));
+    scene.add(
+      std::make_shared<Rectangle>(Vector3d(-1, -1, 6), Vector3d(2, 0, 0), Vector3d(0, 2, 0)));
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    ASSERT_TRUE(buffers.basicHitKernelEligible());
+
+    const std::vector<GpuIntersectionRay> closestRays{
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 71),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(4, 0, 0, 1), Vector3d(0, 0, 1)), 72),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 73, 0.0,
+                                           2.5),
+    };
+    const std::vector<GpuIntersectionRay> anyRays{
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 81, 0.0,
+                                           10.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(4, 0, 0, 1), Vector3d(0, 0, 1)), 82, 0.0,
+                                           10.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 83, 0.0,
+                                           2.5),
+    };
+    const std::vector<GpuIntersectionHitRecord> expectedClosest =
+      GpuIntersectionIntersector().intersectClosest(buffers, closestRays);
+    const std::vector<GpuIntersectionOcclusionRecord> expectedAny =
+      GpuIntersectionIntersector().intersectAny(buffers, anyRays);
+
+    const MetalWavefrontPreparedScene prepared(buffers);
+    auto closestFuture = std::async(
+      std::launch::async, [&] { return prepared.runTimedBasicClosestHitKernel(closestRays); });
+    auto anyFuture =
+      std::async(std::launch::async, [&] { return prepared.runTimedBasicAnyHitKernel(anyRays); });
+
+    const MetalWavefrontClosestHitKernelResult closest = closestFuture.get();
+    const MetalWavefrontAnyHitKernelResult any = anyFuture.get();
+
+    ASSERT_EQ(expectedClosest.size(), closest.hits.size());
+    for (std::size_t index = 0; index != expectedClosest.size(); ++index) {
+      expectGpuHitRecordNear(closest.hits[index], expectedClosest[index]);
+    }
+
+    ASSERT_EQ(expectedAny.size(), any.records.size());
+    for (std::size_t index = 0; index != expectedAny.size(); ++index) {
+      EXPECT_EQ(expectedAny[index].occluded, any.records[index].occluded);
+      EXPECT_EQ(expectedAny[index].rayIndex, any.records[index].rayIndex);
+    }
+#else
+    GTEST_SKIP() << "Metal wavefront backend is disabled";
+#endif
+  }
+
   TEST(MetalWavefrontPreparedScene, ReusesPreparedOpenCylinderBuffersAcrossQueries) {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     MetalWavefrontSmokeKernel kernel;
