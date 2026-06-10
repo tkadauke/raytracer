@@ -18,6 +18,7 @@
 #include "render/VulkanWavefrontSmokeKernel.h"
 #include "render/WavefrontIntersectionBackend.h"
 #include "render/materials/MatteMaterial.h"
+#include "render/materials/TransparentMaterial.h"
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
 #include "render/MetalWavefrontSmokeKernel.h"
 #endif
@@ -1781,6 +1782,44 @@ namespace WavefrontIntersectionBackendTest {
                     "primitive is not supported by GPU intersection scene compiler"));
     EXPECT_EQ(0u, diagnostics.uploadBytes);
     EXPECT_FALSE(diagnostics.triangleClosestHitKernelEligible);
+    EXPECT_FALSE(diagnostics.basicHitKernelEligible);
+    EXPECT_FALSE(diagnostics.packedClosestHitKernelEligible);
+    EXPECT_FALSE(diagnostics.packedAnyHitKernelEligible);
+    EXPECT_EQ(0u, backend->estimatedClosestHitRayUploadBytes(4));
+    EXPECT_EQ(0u, backend->estimatedClosestHitReadbackBytes(4));
+    EXPECT_EQ(0u, backend->estimatedAnyHitRayUploadBytes(4));
+    EXPECT_EQ(0u, backend->estimatedAnyHitReadbackBytes(4));
+  }
+
+  TEST(WavefrontIntersectionBackend, GpuChoiceFallsBackForTransparentMaterialScene) {
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
+    sphere->setName("glass sphere");
+    sphere->setMaterial(std::make_shared<TransparentMaterial>());
+    Scene scene;
+    scene.add(sphere);
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(scene);
+
+    EXPECT_STREQ("gpu", backend->requestedName());
+    EXPECT_STREQ("cpu", backend->name());
+    EXPECT_STREQ("fallback", backend->availability());
+    EXPECT_STREQ("runtime_scene", backend->executionPath());
+    EXPECT_EQ(nullptr, backend->compiledScene());
+    EXPECT_EQ(nullptr, backend->gpuIntersectionSceneBuffers());
+    const std::string reason = backend->fallbackReason();
+    EXPECT_NE(std::string::npos, reason.find("unsupported"));
+    EXPECT_NE(std::string::npos, reason.find("glass sphere"));
+
+    const WavefrontIntersectionSceneDiagnostics diagnostics = backend->compiledSceneDiagnostics();
+    EXPECT_TRUE(diagnostics.compiled);
+    EXPECT_EQ(1u, diagnostics.primitives);
+    EXPECT_EQ(1u, diagnostics.unsupportedPrimitives);
+    ASSERT_EQ(1u, diagnostics.unsupportedReasons.size());
+    EXPECT_EQ(1u, diagnostics.unsupportedReasons.at(
+                    "transparent material requires runtime intersection for Whitted continuation "
+                    "precision"));
+    EXPECT_EQ(0u, diagnostics.uploadBytes);
     EXPECT_FALSE(diagnostics.basicHitKernelEligible);
     EXPECT_FALSE(diagnostics.packedClosestHitKernelEligible);
     EXPECT_FALSE(diagnostics.packedAnyHitKernelEligible);

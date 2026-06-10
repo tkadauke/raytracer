@@ -175,6 +175,10 @@ set(wavefront_parity_render "${TEST_OUTPUT_DIR}/wavefront-parity-render.png")
 set(wavefront_glass_parity_raytracer_render
     "${TEST_OUTPUT_DIR}/wavefront-glass-parity-raytracer-render.png")
 set(wavefront_glass_parity_render "${TEST_OUTPUT_DIR}/wavefront-glass-parity-render.png")
+set(wavefront_glass_backend_cpu_render
+    "${TEST_OUTPUT_DIR}/wavefront-glass-backend-cpu-render.png")
+set(wavefront_glass_backend_gpu_render
+    "${TEST_OUTPUT_DIR}/wavefront-glass-backend-gpu-render.png")
 set(wavefront_torus_backend_cpu_render
     "${TEST_OUTPUT_DIR}/wavefront-torus-backend-cpu-render.png")
 set(wavefront_torus_backend_gpu_render
@@ -3400,6 +3404,46 @@ rendercli_assert_image_rms_at_most("${wavefront_glass_parity_raytracer_render}"
 rendercli_assert_image_hash_equals("${wavefront_glass_parity_raytracer_render}"
                                    "${wavefront_glass_parity_render}"
                                    NAME "wavefront graph matches recursive glass raytracer graph")
+
+rendercli_run(
+  NAME "rendercli renders CPU wavefront glass backend baseline"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 24 --height 24 --depth 4
+    --wavefront_intersection_backend cpu "${PROJECT_SOURCE_DIR}/scenes/glass_torus.json"
+    "${wavefront_glass_backend_cpu_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_glass_backend_cpu_render}"
+                                NAME "CPU wavefront glass backend baseline pixels")
+
+rendercli_run(
+  NAME "rendercli reports transparent wavefront GPU request runtime fallback"
+  OUTPUT_VARIABLE wavefront_glass_backend_gpu_stdout
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 24 --height 24 --depth 4
+    --wavefront_intersection_backend gpu --wavefront_metrics_summary
+    "${PROJECT_SOURCE_DIR}/scenes/glass_torus.json" "${wavefront_glass_backend_gpu_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_glass_backend_gpu_render}"
+                                NAME "GPU-requested wavefront glass backend pixels")
+rendercli_assert_image_rms_at_most("${wavefront_glass_backend_cpu_render}"
+                                   "${wavefront_glass_backend_gpu_render}" 0.001
+                                   NAME
+                                     "wavefront transparent GPU-request fallback matches CPU")
+foreach(expectation
+        "intersection_backend_request=gpu"
+        "intersection_backend=cpu"
+        "intersection_backend_availability=fallback"
+        "intersection_backend_fallback=GPU_intersection_scene_unsupported"
+        "intersection_backend_execution=runtime_scene"
+        "intersection_scene_compiled=true"
+        "intersection_scene_unsupported=[1-9][0-9]*"
+        "intersection_scene_unsupported_by_reason=transparent_material_requires_runtime_intersection_for_Whitted_continuation_precision:[1-9][0-9]*")
+  if(NOT wavefront_glass_backend_gpu_stdout MATCHES "${expectation}")
+    _rendercli_fail("rendercli transparent wavefront backend summary ${expectation}"
+                    "transparent wavefront backend summary did not match ${expectation}"
+                    "${wavefront_glass_backend_gpu_stdout}" "" "" "")
+  endif()
+endforeach()
 
 rendercli_run(
   NAME "rendercli renders CPU wavefront Torus backend baseline"

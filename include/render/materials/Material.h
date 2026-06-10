@@ -286,6 +286,24 @@ namespace render {
     }
 
     /**
+      * Reports whether this material can shade hit records produced by the
+      * packed wavefront intersection scene. Materials with recursion that is
+      * especially sensitive to double-precision hit points can opt out so the
+      * whole scene falls back to the runtime CPU intersection path.
+      */
+    virtual bool supportsPackedWavefrontIntersection() const {
+      return true;
+    }
+
+    /**
+      * Stable diagnostic reason used when this material prevents a leaf from
+      * entering the packed wavefront intersection scene.
+      */
+    virtual const char* packedWavefrontIntersectionUnsupportedReason() const {
+      return "material is not supported by packed wavefront intersection";
+    }
+
+    /**
       * Evaluate local Whitted radiance and return explicit recursive
       * continuations. Implementations that return `true` from
       * `supportsWhittedContinuations()` must put every reflected, refracted,

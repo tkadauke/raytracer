@@ -1210,6 +1210,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   cancellation now preserves contributions completed before the depth-boundary
   cancellation check, and scalar progressive display averages use truncating
   channel packing consistently. — GPT-5
+- **Transparent wavefront GPU fallback.** Explicit GPU-requested wavefront
+  renders now keep transparent-material scenes on the runtime CPU
+  intersection path instead of shading packed hit records whose float hit
+  metadata can drift through refractive Whitted continuations. — GPT-5
 - **Wavefront empty-instance fallback.** GPU wavefront intersection scene
   compilation now reports empty instances as unsupported leaves with a clear
   fallback reason instead of crashing while computing fallback bounds. — GPT-5

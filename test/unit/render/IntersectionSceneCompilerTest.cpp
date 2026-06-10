@@ -8,6 +8,7 @@
 #include "render/IntersectionSceneCompiler.h"
 #include "render/State.h"
 #include "render/materials/MatteMaterial.h"
+#include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/ClosedSolidUnion.h"
 #include "render/primitives/Curve.h"
@@ -302,6 +303,27 @@ namespace IntersectionSceneCompilerTest {
     EXPECT_EQ(compiled.primitives()[0].object, compiled.unsupportedPrimitives()[0].object);
     EXPECT_EQ("render curve", compiled.unsupportedPrimitives()[0].primitiveName);
     EXPECT_EQ("primitive is not supported by GPU intersection scene compiler",
+              compiled.unsupportedPrimitives()[0].reason);
+  }
+
+  TEST(IntersectionSceneCompiler, RecordsUnsupportedMaterialReasonsBeforePayloads) {
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
+    sphere->setName("glass sphere");
+    sphere->setMaterial(std::make_shared<TransparentMaterial>());
+    Scene scene;
+    scene.add(sphere);
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+
+    ASSERT_EQ(1u, compiled.primitives().size());
+    ASSERT_EQ(1u, compiled.unsupportedPrimitives().size());
+    EXPECT_FALSE(compiled.fullySupported());
+    EXPECT_TRUE(compiled.spheres().empty());
+    EXPECT_EQ(IntersectionPrimitiveKind::Unsupported, compiled.primitives()[0].kind);
+    EXPECT_EQ(compiled.primitives()[0].object, compiled.unsupportedPrimitives()[0].object);
+    EXPECT_EQ("glass sphere", compiled.unsupportedPrimitives()[0].primitiveName);
+    EXPECT_EQ("transparent material requires runtime intersection for Whitted continuation "
+              "precision",
               compiled.unsupportedPrimitives()[0].reason);
   }
 

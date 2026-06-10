@@ -1,5 +1,6 @@
 #include "render/State.h"
 #include "render/IntersectionSceneCompiler.h"
+#include "render/materials/Material.h"
 #include "render/primitives/Primitive.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
@@ -208,8 +209,15 @@ void Primitive::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder
                                                const Primitive* inheritedObject) const {
   auto own = material();
   const Primitive* object = own ? this : inheritedObject;
-  appendIntersectionSceneRecord(builder, TransformedLeaf{this, own ? own : inheritedMaterial,
-                                                         pointMatrix, normalMatrix, object});
+  const TransformedLeaf leaf{this, own ? own : inheritedMaterial, pointMatrix, normalMatrix,
+                             object};
+  if (leaf.material && !leaf.material->supportsPackedWavefrontIntersection()) {
+    builder.addUnsupportedPrimitive(leaf,
+                                    leaf.material->packedWavefrontIntersectionUnsupportedReason());
+    return;
+  }
+
+  appendIntersectionSceneRecord(builder, leaf);
 }
 
 void Primitive::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor&) const {

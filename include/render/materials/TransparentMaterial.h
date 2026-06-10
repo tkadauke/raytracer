@@ -181,6 +181,15 @@ namespace render {
       return "transparent";
     }
 
+    bool supportsPackedWavefrontIntersection() const override {
+      return false;
+    }
+
+    const char* packedWavefrontIntersectionUnsupportedReason() const override {
+      return "transparent material requires runtime intersection for Whitted continuation "
+             "precision";
+    }
+
     bool supportsBsdfSampling() const override {
       return true;
     }

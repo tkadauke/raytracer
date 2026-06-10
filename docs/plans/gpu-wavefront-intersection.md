@@ -18,6 +18,10 @@
 > Torus leaves now also compile and run through the packed CPU kernel contract,
 > but they remain ineligible for Metal/Vulkan basic kernels until those shaders
 > have a matching quartic intersector.
+> Transparent-material leaves now explicitly opt out of the packed
+> intersection scene so glass/refraction renders stay on the runtime CPU
+> intersection path until the packed/GPU hit metadata contract is precise
+> enough for Whitted continuation rays.
 > Metal-only smoke kernels now prove optional compute dispatch
 > outside the render path, and the first render-path Metal basic closest-hit
 > and any-hit kernels can execute for prepared triangle, sphere, plane,
