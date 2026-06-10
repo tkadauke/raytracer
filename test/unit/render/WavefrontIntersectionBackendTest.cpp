@@ -1920,7 +1920,7 @@ namespace WavefrontIntersectionBackendTest {
       emptyScene, Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), state);
 
     ASSERT_TRUE(hit.hit());
-    EXPECT_NE(nullptr, hit.primitive);
+    EXPECT_EQ(cylinder.get(), hit.primitive);
     EXPECT_EQ(material, hit.material);
     EXPECT_EQ(1, state.intersectionHits);
     EXPECT_EQ(0, state.intersectionMisses);
