@@ -182,7 +182,9 @@ namespace render {
       std::shared_ptr<render::Material> material;
       Matrix4d pointMatrix;
       Matrix3d normalMatrix;
+      const Primitive* object{nullptr};
 
+      [[nodiscard]] const Primitive* objectPrimitive() const;
       Vector3d transformPoint(const Vector3d& point) const;
       Vector3d transformNormal(const Vector3d& normal) const;
       BoundingBoxd boundingBox() const;
@@ -341,7 +343,8 @@ namespace render {
     virtual void appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
                                                 std::shared_ptr<render::Material> inheritedMaterial,
                                                 const Matrix4d& pointMatrix,
-                                                const Matrix3d& normalMatrix) const;
+                                                const Matrix3d& normalMatrix,
+                                                const Primitive* inheritedObject = nullptr) const;
 
     /**
       * Visit semantic curve segments for image-space/debug overlay rendering.

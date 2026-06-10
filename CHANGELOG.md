@@ -1188,6 +1188,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   cancellation now preserves contributions completed before the depth-boundary
   cancellation check, and scalar progressive display averages use truncating
   channel packing consistently. — GPT-5
+- **Wavefront instance material object ids.** Compiled and packed wavefront
+  intersection scenes now preserve the material-owning instance as the hit
+  object when an instance supplies a material override, so prepared GPU-style
+  closest-hit results match runtime instance identity. — GPT-5
 - **Packed wavefront primitive-material fallback.** Prepared GPU-style
   wavefront closest-hit results now fall back to the retained primitive's
   material when the packed material id has no compiled material entry, matching

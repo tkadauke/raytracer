@@ -960,6 +960,29 @@ namespace GpuIntersectionSceneTest {
     expectPackedClosestHitMatchesCompiled(scene, ray, 41, true);
   }
 
+  TEST(GpuIntersectionScene, PackedInstanceMaterialOverrideUsesInstanceObjectId) {
+    auto material =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
+    auto instance = std::make_shared<Instance>(sphere);
+    instance->setMaterial(material);
+    instance->setMatrix(Matrix4d::translate(0, 0, 2));
+    Scene scene;
+    scene.add(instance);
+    const Rayd ray(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1));
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    const GpuIntersectionHitRecord hit = GpuIntersectionIntersector().intersectClosest(
+      buffers, GpuIntersectionScenePacker().packRay(ray, 42));
+
+    ASSERT_TRUE(hit.hit);
+    ASSERT_GT(compiled.objects().size(), hit.object);
+    EXPECT_EQ(instance.get(), compiled.objects()[hit.object]);
+    EXPECT_EQ(compiled.primitives()[hit.primitiveRecord].material, hit.material);
+    EXPECT_EQ(material.get(), compiled.materials()[hit.material].get());
+  }
+
   TEST(GpuIntersectionScene, PackedScaledSphereClosestHitMatchesCompiledSceneHit) {
     Scene scene;
     auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);

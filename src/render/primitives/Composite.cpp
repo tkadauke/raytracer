@@ -228,12 +228,15 @@ void Composite::forEachTransformedLeafInBounds(const BoundsFilter& boundsFilter,
 void Composite::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
                                                std::shared_ptr<render::Material> inheritedMaterial,
                                                const Matrix4d& pointMatrix,
-                                               const Matrix3d& normalMatrix) const {
+                                               const Matrix3d& normalMatrix,
+                                               const Primitive* inheritedObject) const {
   auto own = material();
   auto effective = own ? own : inheritedMaterial;
+  const Primitive* effectiveObject = own ? this : inheritedObject;
 
   for (const auto& primitive : m_primitives) {
-    primitive->appendIntersectionSceneRecords(builder, effective, pointMatrix, normalMatrix);
+    primitive->appendIntersectionSceneRecords(builder, effective, pointMatrix, normalMatrix,
+                                              effectiveObject);
   }
 }
 

@@ -318,6 +318,25 @@ namespace IntersectionSceneCompilerTest {
     EXPECT_EQ(Matrix4d::translate(4, 5, 6), compiled.transforms()[transformId].pointMatrix);
   }
 
+  TEST(IntersectionSceneCompiler, RecordsInstanceMaterialOverrideAsObjectId) {
+    auto material =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
+    auto instance = std::make_shared<Instance>(sphere);
+    instance->setMaterial(material);
+    instance->setMatrix(Matrix4d::translate(0, 0, 2));
+    Scene scene;
+    scene.add(instance);
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+
+    ASSERT_EQ(1u, compiled.primitives().size());
+    ASSERT_GT(compiled.materials().size(), compiled.primitives()[0].material);
+    ASSERT_GT(compiled.objects().size(), compiled.primitives()[0].object);
+    EXPECT_EQ(material.get(), compiled.materials()[compiled.primitives()[0].material].get());
+    EXPECT_EQ(instance.get(), compiled.objects()[compiled.primitives()[0].object]);
+  }
+
   TEST(IntersectionSceneCompiler, RejectsMovingInstancesBeforeFlattening) {
     auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
     auto instance = std::make_shared<Instance>(sphere);

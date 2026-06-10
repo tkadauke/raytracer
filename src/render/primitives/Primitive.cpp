@@ -70,6 +70,10 @@ namespace {
   }
 }
 
+const Primitive* Primitive::TransformedLeaf::objectPrimitive() const {
+  return object ? object : primitive;
+}
+
 Vector3d Primitive::TransformedLeaf::transformPoint(const Vector3d& point) const {
   return pointMatrix.transformPoint(point);
 }
@@ -200,10 +204,12 @@ void Primitive::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
 void Primitive::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
                                                std::shared_ptr<render::Material> inheritedMaterial,
                                                const Matrix4d& pointMatrix,
-                                               const Matrix3d& normalMatrix) const {
+                                               const Matrix3d& normalMatrix,
+                                               const Primitive* inheritedObject) const {
   auto own = material();
-  appendIntersectionSceneRecord(
-    builder, TransformedLeaf{this, own ? own : inheritedMaterial, pointMatrix, normalMatrix});
+  const Primitive* object = own ? this : inheritedObject;
+  appendIntersectionSceneRecord(builder, TransformedLeaf{this, own ? own : inheritedMaterial,
+                                                         pointMatrix, normalMatrix, object});
 }
 
 void Primitive::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor&) const {

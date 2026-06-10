@@ -476,7 +476,7 @@ void Instance::forEachTransformedLeaf(std::shared_ptr<render::Material> inherite
 
   m_primitive->forEachTransformedLeaf(
     own, composedPointMatrix, composedNormalMatrix, [&](const TransformedLeaf& leaf) {
-      visitor({leaf.primitive, own, leaf.pointMatrix, leaf.normalMatrix});
+      visitor({leaf.primitive, own, leaf.pointMatrix, leaf.normalMatrix, this});
     });
 }
 
@@ -505,32 +505,36 @@ void Instance::forEachTransformedLeafInBounds(const BoundsFilter& boundsFilter,
 
   m_primitive->forEachTransformedLeafInBounds(
     boundsFilter, own, composedPointMatrix, composedNormalMatrix, [&](const TransformedLeaf& leaf) {
-      visitor({leaf.primitive, own, leaf.pointMatrix, leaf.normalMatrix});
+      visitor({leaf.primitive, own, leaf.pointMatrix, leaf.normalMatrix, this});
     });
 }
 
 void Instance::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
                                               std::shared_ptr<render::Material> inheritedMaterial,
                                               const Matrix4d& pointMatrix,
-                                              const Matrix3d& normalMatrix) const {
+                                              const Matrix3d& normalMatrix,
+                                              const Primitive* inheritedObject) const {
   auto own = Primitive::material();
   auto effective = own ? own : inheritedMaterial;
+  const Primitive* effectiveObject = own ? this : inheritedObject;
   if (!m_primitive) {
-    builder.addUnsupportedPrimitive(TransformedLeaf{this, effective, pointMatrix, normalMatrix},
+    builder.addUnsupportedPrimitive(TransformedLeaf{this, effective, pointMatrix, normalMatrix,
+                                                    effectiveObject ? effectiveObject : this},
                                     "empty instance is not supported by GPU intersection scene "
                                     "compiler");
     return;
   }
 
   if (m_velocity != Vector3d::null) {
-    builder.addUnsupportedPrimitive(TransformedLeaf{this, effective, pointMatrix, normalMatrix},
+    builder.addUnsupportedPrimitive(TransformedLeaf{this, effective, pointMatrix, normalMatrix,
+                                                    effectiveObject ? effectiveObject : this},
                                     "moving instances are not supported by GPU intersection scene "
                                     "compiler");
     return;
   }
 
   m_primitive->appendIntersectionSceneRecords(builder, effective, pointMatrix * m_pointMatrix,
-                                              normalMatrix * m_normalMatrix);
+                                              normalMatrix * m_normalMatrix, effectiveObject);
 }
 
 std::shared_ptr<Mesh> Instance::tessellate(int lod) const {

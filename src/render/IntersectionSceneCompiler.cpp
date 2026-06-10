@@ -263,7 +263,7 @@ CompiledIntersectionScene::unsupportedPrimitives() const {
 
 void IntersectionSceneBuilder::addUnsupportedPrimitive(const Primitive::TransformedLeaf& leaf,
                                                        std::string reason) {
-  const IntersectionObjectId object = objectIdFor(leaf.primitive);
+  const IntersectionObjectId object = objectIdFor(leaf.objectPrimitive());
   addPrimitive(leaf, IntersectionPrimitiveKind::Unsupported, 0, 0);
   m_scene.m_unsupportedPrimitives.push_back(
     UnsupportedIntersectionPrimitive{object, leaf.primitive->name(), std::move(reason)});
@@ -392,9 +392,9 @@ void IntersectionSceneBuilder::addPrimitive(const Primitive::TransformedLeaf& le
                                             IntersectionPrimitiveKind kind,
                                             const BoundingBoxd& bounds, std::uint32_t payloadOffset,
                                             std::uint32_t payloadCount) {
-  m_scene.m_primitives.push_back(
-    IntersectionPrimitiveRecord{kind, materialIdFor(leaf.material), objectIdFor(leaf.primitive),
-                                transformIdFor(leaf), bounds, payloadOffset, payloadCount});
+  m_scene.m_primitives.push_back(IntersectionPrimitiveRecord{
+    kind, materialIdFor(leaf.material), objectIdFor(leaf.objectPrimitive()), transformIdFor(leaf),
+    bounds, payloadOffset, payloadCount});
 }
 
 CompiledIntersectionScene IntersectionSceneCompiler::compile(const Scene& scene) const {
