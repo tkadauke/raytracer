@@ -899,13 +899,19 @@ namespace WavefrontIntersectionBackendTest {
   TEST(VulkanWavefrontSmokeKernel, RunsStaticTransformBasicHitKernelsWhenEnabled) {
     VulkanWavefrontSmokeKernel kernel;
 
+    auto triangleMaterial =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::red()));
     auto triangle =
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));
     auto triangleInstance = std::make_shared<Instance>(triangle);
+    triangleInstance->setMaterial(triangleMaterial);
     triangleInstance->setMatrix(Matrix4d::translate(0, 0, 2));
 
+    auto sphereMaterial =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
     auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
     auto sphereInstance = std::make_shared<Instance>(sphere);
+    sphereInstance->setMaterial(sphereMaterial);
     sphereInstance->setMatrix(Matrix4d::translate(3, 0, 4));
 
     Scene scene;
@@ -935,6 +941,16 @@ namespace WavefrontIntersectionBackendTest {
 
     const std::vector<GpuIntersectionHitRecord> expectedClosest =
       GpuIntersectionIntersector().intersectClosest(buffers, rays);
+    ASSERT_TRUE(expectedClosest[0].hit);
+    ASSERT_TRUE(expectedClosest[1].hit);
+    ASSERT_LT(expectedClosest[0].object, compiled.objects().size());
+    ASSERT_LT(expectedClosest[1].object, compiled.objects().size());
+    ASSERT_LT(expectedClosest[0].material, compiled.materials().size());
+    ASSERT_LT(expectedClosest[1].material, compiled.materials().size());
+    EXPECT_EQ(triangleInstance.get(), compiled.objects()[expectedClosest[0].object]);
+    EXPECT_EQ(sphereInstance.get(), compiled.objects()[expectedClosest[1].object]);
+    EXPECT_EQ(triangleMaterial, compiled.materials()[expectedClosest[0].material]);
+    EXPECT_EQ(sphereMaterial, compiled.materials()[expectedClosest[1].material]);
     const VulkanWavefrontClosestHitKernelResult actualClosest =
       kernel.runTimedBasicClosestHitKernel(buffers, rays);
 
@@ -1400,6 +1416,82 @@ namespace WavefrontIntersectionBackendTest {
                 actualAny[index].occluded);
       EXPECT_EQ(GpuIntersectionIntersector().intersectAny(buffers, rays[index]) ? 1u : 0u,
                 repeatedAny[index].occluded);
+    }
+#else
+    GTEST_SKIP() << "Metal wavefront backend is disabled";
+#endif
+  }
+
+  TEST(MetalWavefrontSmokeKernel, RunsStaticTransformBasicHitKernelsWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    MetalWavefrontSmokeKernel kernel;
+    if (!kernel.deviceAvailable()) {
+      GTEST_SKIP() << "No Metal device is available";
+    }
+
+    auto triangleMaterial =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::red()));
+    auto triangle =
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));
+    auto triangleInstance = std::make_shared<Instance>(triangle);
+    triangleInstance->setMaterial(triangleMaterial);
+    triangleInstance->setMatrix(Matrix4d::translate(0, 0, 2));
+
+    auto sphereMaterial =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
+    auto sphereInstance = std::make_shared<Instance>(sphere);
+    sphereInstance->setMaterial(sphereMaterial);
+    sphereInstance->setMatrix(Matrix4d::translate(3, 0, 4));
+
+    Scene scene;
+    scene.add(triangleInstance);
+    scene.add(sphereInstance);
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    ASSERT_FALSE(buffers.triangleClosestHitKernelEligible());
+    ASSERT_TRUE(buffers.basicHitKernelEligible());
+    ASSERT_TRUE(buffers.packedClosestHitKernelEligible());
+    ASSERT_TRUE(buffers.packedAnyHitKernelEligible());
+    ASSERT_GT(buffers.transforms.size(), 2u);
+
+    const std::vector<GpuIntersectionRay> rays{
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, -2, 1), Vector3d(0, 0, 1)), 91, 0.0,
+                                           10.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(3, 0, 0, 1), Vector3d(0, 0, 1)), 92, 0.0,
+                                           10.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(6, 0, 0, 1), Vector3d(0, 0, 1)), 93, 0.0,
+                                           10.0),
+    };
+    const std::vector<GpuIntersectionHitRecord> expectedClosest =
+      GpuIntersectionIntersector().intersectClosest(buffers, rays);
+    ASSERT_TRUE(expectedClosest[0].hit);
+    ASSERT_TRUE(expectedClosest[1].hit);
+    ASSERT_LT(expectedClosest[0].object, compiled.objects().size());
+    ASSERT_LT(expectedClosest[1].object, compiled.objects().size());
+    ASSERT_LT(expectedClosest[0].material, compiled.materials().size());
+    ASSERT_LT(expectedClosest[1].material, compiled.materials().size());
+    EXPECT_EQ(triangleInstance.get(), compiled.objects()[expectedClosest[0].object]);
+    EXPECT_EQ(sphereInstance.get(), compiled.objects()[expectedClosest[1].object]);
+    EXPECT_EQ(triangleMaterial, compiled.materials()[expectedClosest[0].material]);
+    EXPECT_EQ(sphereMaterial, compiled.materials()[expectedClosest[1].material]);
+
+    const std::vector<GpuIntersectionHitRecord> actualClosest =
+      kernel.runBasicClosestHitKernel(buffers, rays);
+    ASSERT_EQ(expectedClosest.size(), actualClosest.size());
+    for (std::size_t index = 0; index != expectedClosest.size(); ++index) {
+      expectGpuHitRecordNear(actualClosest[index], expectedClosest[index]);
+    }
+
+    const std::vector<GpuIntersectionOcclusionRecord> expectedAny =
+      GpuIntersectionIntersector().intersectAny(buffers, rays);
+    const std::vector<GpuIntersectionOcclusionRecord> actualAny =
+      kernel.runBasicAnyHitKernel(buffers, rays);
+    ASSERT_EQ(expectedAny.size(), actualAny.size());
+    for (std::size_t index = 0; index != expectedAny.size(); ++index) {
+      EXPECT_EQ(expectedAny[index].occluded, actualAny[index].occluded);
+      EXPECT_EQ(expectedAny[index].rayIndex, actualAny[index].rayIndex);
     }
 #else
     GTEST_SKIP() << "Metal wavefront backend is disabled";
