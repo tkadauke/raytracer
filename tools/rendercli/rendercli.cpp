@@ -326,6 +326,10 @@ namespace {
         << unsignedValue(batching, "intersectionEstimatedQueryTransferBytes")
         << " intersection_estimated_query_round_trips="
         << unsignedValue(batching, "intersectionEstimatedQueryRoundTrips")
+        << " intersection_estimated_closest_hit_query_round_trips="
+        << unsignedValue(batching, "intersectionEstimatedClosestHitQueryRoundTrips")
+        << " intersection_estimated_any_hit_query_round_trips="
+        << unsignedValue(batching, "intersectionEstimatedAnyHitQueryRoundTrips")
         << " intersection_backend_upload_worker_ms="
         << batching.value("intersectionBackendUploadWorkerSeconds").toDouble() * 1000.0
         << " intersection_backend_kernel_worker_ms="

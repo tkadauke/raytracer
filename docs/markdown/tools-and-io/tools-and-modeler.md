@@ -176,9 +176,10 @@ summary also reports estimated ray-upload and readback byte counts for the
 packed GPU ABI; CPU and unsupported runtime-scene fallbacks report zero query
 transfer bytes because no upload/readback would be attempted for those paths.
 It also reports the estimated query round-trip count at the current host/device
-boundary, then splits submitted intersection rays into closest-hit and any-hit
-ray counts, so a batched shadow query can report one any-hit query while still
-showing how many visibility rays were submitted.
+boundary, split by closest-hit and any-hit query family, then splits submitted
+intersection rays into closest-hit and any-hit ray counts, so a batched shadow
+query can report one any-hit query while still showing how many visibility rays
+were submitted.
 When a platform kernel actually runs, the same summary separates backend
 upload/setup, kernel dispatch/wait, and readback time; CPU fallback paths keep
 those backend buckets at zero while total intersection worker time still

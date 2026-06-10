@@ -341,11 +341,12 @@ alive for the scene, and reuse growable ray/result/count buffers across
 serialized query dispatches. A dispatch still uploads the current rays/counts
 and reads back the hit or occlusion records, but it no longer reallocates those
 dynamic buffers for every prepared-scene query. Metrics report both the
-estimated transfer bytes and the query round-trip count, which makes the
-remaining host/device boundary visible before future GPU-resident frontier work
-removes some of those dispatch/readback cycles. Bounded any-hit visibility uses
-the same packed traversal contract, including the finite light-distance epsilon
-used by the compiled parity intersector. This matches
+estimated transfer bytes and the query round-trip count, split by closest-hit
+and any-hit query family, which makes the remaining host/device boundary
+visible before future GPU-resident frontier work removes some of those
+dispatch/readback cycles. Bounded any-hit visibility uses the same packed
+traversal contract, including the finite light-distance epsilon used by the
+compiled parity intersector. This matches
 the current CPU shadow rule:
 `Scene::occludes(...)` is geometry-only, so transparent materials still block
 shadow rays unless a higher-level material model changes that policy. If alpha,

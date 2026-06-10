@@ -135,6 +135,8 @@ namespace render {
     intersectionEstimatedAnyHitReadbackBytes = 0;
     intersectionEstimatedQueryTransferBytes = 0;
     intersectionEstimatedQueryRoundTrips = 0;
+    intersectionEstimatedClosestHitQueryRoundTrips = 0;
+    intersectionEstimatedAnyHitQueryRoundTrips = 0;
     intersectionBackendUploadWorkerSeconds = 0.0;
     intersectionBackendKernelWorkerSeconds = 0.0;
     intersectionBackendReadbackWorkerSeconds = 0.0;
@@ -268,13 +270,15 @@ namespace render {
     intersectionBackendFallbackReason = "mixed";
   }
 
-  void IntegratorBatchMetrics::recordIntersectionQueryTransfer(std::uint64_t rayUploadBytes,
+  bool IntegratorBatchMetrics::recordIntersectionQueryTransfer(std::uint64_t rayUploadBytes,
                                                                std::uint64_t readbackBytes) {
     intersectionEstimatedRayUploadBytes += rayUploadBytes;
     intersectionEstimatedQueryTransferBytes += rayUploadBytes + readbackBytes;
     if (rayUploadBytes > 0 || readbackBytes > 0) {
       ++intersectionEstimatedQueryRoundTrips;
+      return true;
     }
+    return false;
   }
 
   void
@@ -291,7 +295,9 @@ namespace render {
     const std::uint64_t rayUploadBytes = backend.estimatedClosestHitRayUploadBytes(submittedRays);
     const std::uint64_t readbackBytes = backend.estimatedClosestHitReadbackBytes(submittedRays);
     intersectionEstimatedClosestHitReadbackBytes += readbackBytes;
-    recordIntersectionQueryTransfer(rayUploadBytes, readbackBytes);
+    if (recordIntersectionQueryTransfer(rayUploadBytes, readbackBytes)) {
+      ++intersectionEstimatedClosestHitQueryRoundTrips;
+    }
     intersectionBackendUploadWorkerSeconds += timing.uploadSeconds;
     intersectionBackendKernelWorkerSeconds += timing.kernelSeconds;
     intersectionBackendReadbackWorkerSeconds += timing.readbackSeconds;
@@ -315,7 +321,9 @@ namespace render {
     const std::uint64_t rayUploadBytes = backend.estimatedAnyHitRayUploadBytes(submittedRays);
     const std::uint64_t readbackBytes = backend.estimatedAnyHitReadbackBytes(submittedRays);
     intersectionEstimatedAnyHitReadbackBytes += readbackBytes;
-    recordIntersectionQueryTransfer(rayUploadBytes, readbackBytes);
+    if (recordIntersectionQueryTransfer(rayUploadBytes, readbackBytes)) {
+      ++intersectionEstimatedAnyHitQueryRoundTrips;
+    }
     intersectionBackendUploadWorkerSeconds += timing.uploadSeconds;
     intersectionBackendKernelWorkerSeconds += timing.kernelSeconds;
     intersectionBackendReadbackWorkerSeconds += timing.readbackSeconds;
@@ -382,6 +390,9 @@ namespace render {
     intersectionEstimatedAnyHitReadbackBytes += source.intersectionEstimatedAnyHitReadbackBytes;
     intersectionEstimatedQueryTransferBytes += source.intersectionEstimatedQueryTransferBytes;
     intersectionEstimatedQueryRoundTrips += source.intersectionEstimatedQueryRoundTrips;
+    intersectionEstimatedClosestHitQueryRoundTrips +=
+      source.intersectionEstimatedClosestHitQueryRoundTrips;
+    intersectionEstimatedAnyHitQueryRoundTrips += source.intersectionEstimatedAnyHitQueryRoundTrips;
     intersectionBackendUploadWorkerSeconds += source.intersectionBackendUploadWorkerSeconds;
     intersectionBackendKernelWorkerSeconds += source.intersectionBackendKernelWorkerSeconds;
     intersectionBackendReadbackWorkerSeconds += source.intersectionBackendReadbackWorkerSeconds;

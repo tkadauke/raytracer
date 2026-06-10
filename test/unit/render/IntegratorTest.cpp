@@ -164,6 +164,8 @@ namespace IntegratorTest {
                 backend->estimatedClosestHitReadbackBytes(4),
               metrics.intersectionEstimatedQueryTransferBytes);
     EXPECT_EQ(1u, metrics.intersectionEstimatedQueryRoundTrips);
+    EXPECT_EQ(1u, metrics.intersectionEstimatedClosestHitQueryRoundTrips);
+    EXPECT_EQ(0u, metrics.intersectionEstimatedAnyHitQueryRoundTrips);
     EXPECT_DOUBLE_EQ(0.001, metrics.intersectionBackendUploadWorkerSeconds);
     EXPECT_DOUBLE_EQ(0.002, metrics.intersectionBackendKernelWorkerSeconds);
     EXPECT_DOUBLE_EQ(0.003, metrics.intersectionBackendReadbackWorkerSeconds);
@@ -203,6 +205,8 @@ namespace IntegratorTest {
         backend->estimatedAnyHitRayUploadBytes(1) + backend->estimatedAnyHitReadbackBytes(1),
       metrics.intersectionEstimatedQueryTransferBytes);
     EXPECT_EQ(2u, metrics.intersectionEstimatedQueryRoundTrips);
+    EXPECT_EQ(1u, metrics.intersectionEstimatedClosestHitQueryRoundTrips);
+    EXPECT_EQ(1u, metrics.intersectionEstimatedAnyHitQueryRoundTrips);
     EXPECT_DOUBLE_EQ(0.005, metrics.intersectionBackendUploadWorkerSeconds);
     EXPECT_DOUBLE_EQ(0.007, metrics.intersectionBackendKernelWorkerSeconds);
     EXPECT_DOUBLE_EQ(0.009, metrics.intersectionBackendReadbackWorkerSeconds);

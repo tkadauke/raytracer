@@ -144,6 +144,10 @@ namespace engine::wavefront {
     intersectionEstimatedAnyHitReadbackBytes += metrics.intersectionEstimatedAnyHitReadbackBytes;
     intersectionEstimatedQueryTransferBytes += metrics.intersectionEstimatedQueryTransferBytes;
     intersectionEstimatedQueryRoundTrips += metrics.intersectionEstimatedQueryRoundTrips;
+    intersectionEstimatedClosestHitQueryRoundTrips +=
+      metrics.intersectionEstimatedClosestHitQueryRoundTrips;
+    intersectionEstimatedAnyHitQueryRoundTrips +=
+      metrics.intersectionEstimatedAnyHitQueryRoundTrips;
     intersectionBackendUploadWorkerSeconds += metrics.intersectionBackendUploadWorkerSeconds;
     intersectionBackendKernelWorkerSeconds += metrics.intersectionBackendKernelWorkerSeconds;
     intersectionBackendReadbackWorkerSeconds += metrics.intersectionBackendReadbackWorkerSeconds;
@@ -396,6 +400,10 @@ namespace engine::wavefront {
       static_cast<double>(batching.intersectionEstimatedQueryTransferBytes);
     batchingJson["intersectionEstimatedQueryRoundTrips"] =
       static_cast<double>(batching.intersectionEstimatedQueryRoundTrips);
+    batchingJson["intersectionEstimatedClosestHitQueryRoundTrips"] =
+      static_cast<double>(batching.intersectionEstimatedClosestHitQueryRoundTrips);
+    batchingJson["intersectionEstimatedAnyHitQueryRoundTrips"] =
+      static_cast<double>(batching.intersectionEstimatedAnyHitQueryRoundTrips);
     batchingJson["intersectionBackendUploadWorkerSeconds"] =
       batching.intersectionBackendUploadWorkerSeconds;
     batchingJson["intersectionBackendKernelWorkerSeconds"] =

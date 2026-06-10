@@ -752,15 +752,16 @@ Progress:
 - Wavefront intersection metrics now estimate the query transfer footprint for
   the packed GPU ABI: ray upload bytes, closest-hit readback bytes, any-hit
   readback bytes, their per-render query-transfer total, and the estimated
-  number of query round trips at the current host/device boundary. CPU and
-  unsupported runtime-scene fallback paths report zero query-transfer bytes and
-  zero query round trips, and unsupported compiled-scene fallbacks report zero
-  scene-upload bytes; prepared GPU-request stubs report the bytes and query
-  boundaries their retained packed buffers would submit to a real Metal/Vulkan
-  kernel only for query families that are actually packed/platform eligible.
-  This gives `auto` selection and performance gates a visible upload/readback
-  cost signal before real kernels are enabled, and gives Phase 8
-  GPU-resident-frontier work a baseline to reduce.
+  number of query round trips at the current host/device boundary, split by
+  closest-hit and any-hit query family. CPU and unsupported runtime-scene
+  fallback paths report zero query-transfer bytes and zero query round trips,
+  and unsupported compiled-scene fallbacks report zero scene-upload bytes;
+  prepared GPU-request stubs report the bytes and query boundaries their
+  retained packed buffers would submit to a real Metal/Vulkan kernel only for
+  query families that are actually packed/platform eligible. This gives `auto`
+  selection and performance gates a visible upload/readback cost signal before
+  real kernels are enabled, and gives Phase 8 GPU-resident-frontier work a
+  baseline to reduce.
 - `auto` backend selection now has an explicit policy object and receives a
   conservative expected-ray-count estimate from `WavefrontRaytracer`. It
   requires platform GPU device availability, platform render-path availability,
