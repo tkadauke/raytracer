@@ -1736,6 +1736,40 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0u, backend->estimatedAnyHitReadbackBytes(4));
   }
 
+  TEST(WavefrontIntersectionBackend, GpuChoiceReportsEmptyInstanceUnsupportedReason) {
+    auto instance = std::make_shared<Instance>(nullptr);
+    instance->setName("empty asset instance");
+    Scene scene;
+    scene.add(instance);
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(scene);
+
+    EXPECT_STREQ("gpu", backend->requestedName());
+    EXPECT_STREQ("cpu", backend->name());
+    EXPECT_STREQ("fallback", backend->availability());
+    EXPECT_STREQ("runtime_scene", backend->executionPath());
+    EXPECT_EQ(nullptr, backend->compiledScene());
+    EXPECT_EQ(nullptr, backend->gpuIntersectionSceneBuffers());
+    const std::string reason = backend->fallbackReason();
+    EXPECT_NE(std::string::npos, reason.find("empty asset instance"));
+    EXPECT_NE(std::string::npos, reason.find("empty instance is not supported"));
+
+    const WavefrontIntersectionSceneDiagnostics diagnostics = backend->compiledSceneDiagnostics();
+    EXPECT_TRUE(diagnostics.compiled);
+    EXPECT_EQ(1u, diagnostics.primitives);
+    EXPECT_EQ(1u, diagnostics.unsupportedPrimitives);
+    EXPECT_EQ(0u, diagnostics.uploadBytes);
+    EXPECT_FALSE(diagnostics.triangleClosestHitKernelEligible);
+    EXPECT_FALSE(diagnostics.basicHitKernelEligible);
+    EXPECT_FALSE(diagnostics.packedClosestHitKernelEligible);
+    EXPECT_FALSE(diagnostics.packedAnyHitKernelEligible);
+    EXPECT_EQ(0u, backend->estimatedClosestHitRayUploadBytes(4));
+    EXPECT_EQ(0u, backend->estimatedClosestHitReadbackBytes(4));
+    EXPECT_EQ(0u, backend->estimatedAnyHitRayUploadBytes(4));
+    EXPECT_EQ(0u, backend->estimatedAnyHitReadbackBytes(4));
+  }
+
   TEST(WavefrontIntersectionBackend, GpuChoiceDoesNotEstimateTransferForIneligiblePreparedScene) {
     Scene scene;
 
