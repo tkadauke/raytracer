@@ -158,8 +158,14 @@ namespace render {
     bool operator!=(const WavefrontIntersectionBackendChoice& other) const;
 
   private:
+    class SelectionStrategy;
+    class AutoSelectionStrategy;
+    class CpuSelectionStrategy;
+    class GpuSelectionStrategy;
+
     Kind m_kind;
 
+    [[nodiscard]] const SelectionStrategy& selectionStrategy() const;
     [[nodiscard]] std::shared_ptr<const WavefrontIntersectionBackend> makeDelegatingBackend(
       std::string requestedName, std::string availability, std::string fallbackReason,
       WavefrontIntersectionSceneDiagnostics diagnostics = {}, std::string platformName = {}) const;

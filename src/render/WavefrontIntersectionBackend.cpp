@@ -96,6 +96,141 @@ namespace render {
     };
   }
 
+  class WavefrontIntersectionBackendChoice::SelectionStrategy {
+  public:
+    virtual ~SelectionStrategy() = default;
+
+    [[nodiscard]] virtual const char* id() const = 0;
+    [[nodiscard]] virtual const WavefrontIntersectionBackend&
+    resolvedBackend(const WavefrontIntersectionBackendChoice& choice) const = 0;
+    [[nodiscard]] virtual std::shared_ptr<const WavefrontIntersectionBackend>
+    createBackendForScene(const WavefrontIntersectionBackendChoice& choice, const Scene& scene,
+                          const WavefrontIntersectionBackendSelectionContext& context) const = 0;
+  };
+
+  class WavefrontIntersectionBackendChoice::AutoSelectionStrategy final
+      : public WavefrontIntersectionBackendChoice::SelectionStrategy {
+  public:
+    const char* id() const override {
+      return "auto";
+    }
+
+    const WavefrontIntersectionBackend&
+    resolvedBackend(const WavefrontIntersectionBackendChoice& choice) const override {
+      return choice.automaticCpuBackend();
+    }
+
+    std::shared_ptr<const WavefrontIntersectionBackend> createBackendForScene(
+      const WavefrontIntersectionBackendChoice& choice, const Scene& scene,
+      const WavefrontIntersectionBackendSelectionContext& context) const override {
+      const WavefrontIntersectionBackendAutoSelectionPolicy policy;
+      if (const std::optional<WavefrontIntersectionBackendAutoSelectionDecision> decision =
+            policy.decideBeforeSceneCompile(context)) {
+        return choice.makeDelegatingBackend("auto", "available", decision->reason, {},
+                                            choice.gpuUnavailableBackend().platformName());
+      }
+
+      if (!choice.hostPlatformGpuBackendAvailable()) {
+        WavefrontIntersectionSceneDiagnostics diagnostics;
+        const WavefrontIntersectionBackendAutoSelectionDecision decision =
+          policy.decide(false, false, diagnostics, context);
+        std::string reason = decision.reason;
+        reason += ": ";
+        reason += choice.gpuUnavailableBackend().fallbackReason();
+        return choice.makeDelegatingBackend("auto", "available", reason, {},
+                                            choice.gpuUnavailableBackend().platformName());
+      }
+
+      if (!choice.hostPlatformGpuRenderPathAvailable()) {
+        WavefrontIntersectionSceneDiagnostics diagnostics;
+        const WavefrontIntersectionBackendAutoSelectionDecision decision =
+          policy.decide(true, false, diagnostics, context);
+        std::string reason = decision.reason;
+        reason += ": ";
+        reason += choice.gpuUnavailableBackend().fallbackReason();
+        return choice.makeDelegatingBackend("auto", "available", reason, {},
+                                            choice.gpuUnavailableBackend().platformName());
+      }
+
+      const auto compiled = std::make_shared<const CompiledIntersectionScene>(
+        IntersectionSceneCompiler().compile(scene));
+      if (!compiled->fullySupported()) {
+        const WavefrontIntersectionSceneDiagnostics diagnostics =
+          WavefrontIntersectionSceneDiagnostics::fromCompiledScene(*compiled);
+        const WavefrontIntersectionBackendAutoSelectionDecision decision =
+          policy.decide(true, true, diagnostics, context);
+        return choice.makeDelegatingBackend("auto", "available", decision.reason, diagnostics,
+                                            choice.gpuUnavailableBackend().platformName());
+      }
+
+      const auto buffers = GpuIntersectionScenePacker().packScene(*compiled);
+      const WavefrontIntersectionSceneDiagnostics diagnostics =
+        WavefrontIntersectionSceneDiagnostics::fromCompiledSceneAndUploadBuffers(*compiled,
+                                                                                 buffers);
+#if !defined(__APPLE__)
+      if (!VulkanWavefrontIntersectionBackend::supportsPackedScene(buffers)) {
+        return choice.makeDelegatingBackend(
+          "auto", "available",
+          "auto selected CPU: intersection scene is not eligible for Vulkan "
+          "exact-primitive/static-transform hit kernels",
+          diagnostics, choice.gpuUnavailableBackend().platformName());
+      }
+#endif
+      const WavefrontIntersectionBackendAutoSelectionDecision decision =
+        policy.decide(true, true, diagnostics, context);
+      if (!decision.useGpu) {
+        return choice.makeDelegatingBackend("auto", "available", decision.reason, diagnostics);
+      }
+      return choice.createPreparedGpuBackend(compiled, "auto");
+    }
+  };
+
+  class WavefrontIntersectionBackendChoice::CpuSelectionStrategy final
+      : public WavefrontIntersectionBackendChoice::SelectionStrategy {
+  public:
+    const char* id() const override {
+      return "cpu";
+    }
+
+    const WavefrontIntersectionBackend&
+    resolvedBackend(const WavefrontIntersectionBackendChoice& /*choice*/) const override {
+      return CpuWavefrontIntersectionBackend::instance();
+    }
+
+    std::shared_ptr<const WavefrontIntersectionBackend> createBackendForScene(
+      const WavefrontIntersectionBackendChoice& choice, const Scene& /*scene*/,
+      const WavefrontIntersectionBackendSelectionContext& /*context*/) const override {
+      return choice.staticBackend(CpuWavefrontIntersectionBackend::instance());
+    }
+  };
+
+  class WavefrontIntersectionBackendChoice::GpuSelectionStrategy final
+      : public WavefrontIntersectionBackendChoice::SelectionStrategy {
+  public:
+    const char* id() const override {
+      return "gpu";
+    }
+
+    const WavefrontIntersectionBackend&
+    resolvedBackend(const WavefrontIntersectionBackendChoice& choice) const override {
+      return choice.gpuUnavailableBackend();
+    }
+
+    std::shared_ptr<const WavefrontIntersectionBackend> createBackendForScene(
+      const WavefrontIntersectionBackendChoice& choice, const Scene& scene,
+      const WavefrontIntersectionBackendSelectionContext& /*context*/) const override {
+      const auto compiled = std::make_shared<const CompiledIntersectionScene>(
+        IntersectionSceneCompiler().compile(scene));
+      if (!compiled->fullySupported()) {
+        return choice.makeDelegatingBackend(
+          "gpu", "fallback", choice.gpuSceneUnsupportedReason(*compiled),
+          WavefrontIntersectionSceneDiagnostics::fromCompiledScene(*compiled),
+          choice.gpuUnavailableBackend().platformName());
+      }
+      return choice.createPreparedGpuBackend(compiled, "gpu");
+    }
+  };
+
   WavefrontIntersectionBackendSelectionContext
   WavefrontIntersectionBackendSelectionContext::fromExpectedQueryFamilies(
     std::uint64_t expectedClosestHitRays, std::uint64_t expectedAnyHitRays) {
@@ -311,27 +446,11 @@ namespace render {
   }
 
   const char* WavefrontIntersectionBackendChoice::id() const {
-    switch (m_kind) {
-    case Kind::Auto:
-      return "auto";
-    case Kind::CPU:
-      return "cpu";
-    case Kind::GPU:
-      return "gpu";
-    }
-    return "auto";
+    return selectionStrategy().id();
   }
 
   const WavefrontIntersectionBackend& WavefrontIntersectionBackendChoice::resolvedBackend() const {
-    switch (m_kind) {
-    case Kind::Auto:
-      return automaticCpuBackend();
-    case Kind::CPU:
-      return CpuWavefrontIntersectionBackend::instance();
-    case Kind::GPU:
-      return gpuUnavailableBackend();
-    }
-    return automaticCpuBackend();
+    return selectionStrategy().resolvedBackend(*this);
   }
 
   std::shared_ptr<const WavefrontIntersectionBackend>
@@ -342,84 +461,7 @@ namespace render {
   std::shared_ptr<const WavefrontIntersectionBackend>
   WavefrontIntersectionBackendChoice::createBackendForScene(
     const Scene& scene, const WavefrontIntersectionBackendSelectionContext& context) const {
-    switch (m_kind) {
-    case Kind::Auto: {
-      const WavefrontIntersectionBackendAutoSelectionPolicy policy;
-      if (const std::optional<WavefrontIntersectionBackendAutoSelectionDecision> decision =
-            policy.decideBeforeSceneCompile(context)) {
-        return makeDelegatingBackend("auto", "available", decision->reason, {},
-                                     gpuUnavailableBackend().platformName());
-      }
-
-      if (!hostPlatformGpuBackendAvailable()) {
-        WavefrontIntersectionSceneDiagnostics diagnostics;
-        const WavefrontIntersectionBackendAutoSelectionDecision decision =
-          policy.decide(false, false, diagnostics, context);
-        std::string reason = decision.reason;
-        reason += ": ";
-        reason += gpuUnavailableBackend().fallbackReason();
-        return makeDelegatingBackend("auto", "available", reason, {},
-                                     gpuUnavailableBackend().platformName());
-      }
-
-      if (!hostPlatformGpuRenderPathAvailable()) {
-        WavefrontIntersectionSceneDiagnostics diagnostics;
-        const WavefrontIntersectionBackendAutoSelectionDecision decision =
-          policy.decide(true, false, diagnostics, context);
-        std::string reason = decision.reason;
-        reason += ": ";
-        reason += gpuUnavailableBackend().fallbackReason();
-        return makeDelegatingBackend("auto", "available", reason, {},
-                                     gpuUnavailableBackend().platformName());
-      }
-
-      const auto compiled = std::make_shared<const CompiledIntersectionScene>(
-        IntersectionSceneCompiler().compile(scene));
-      if (!compiled->fullySupported()) {
-        const WavefrontIntersectionSceneDiagnostics diagnostics =
-          WavefrontIntersectionSceneDiagnostics::fromCompiledScene(*compiled);
-        const WavefrontIntersectionBackendAutoSelectionDecision decision =
-          policy.decide(true, true, diagnostics, context);
-        return makeDelegatingBackend("auto", "available", decision.reason, diagnostics,
-                                     gpuUnavailableBackend().platformName());
-      }
-
-      const auto buffers = GpuIntersectionScenePacker().packScene(*compiled);
-      const WavefrontIntersectionSceneDiagnostics diagnostics =
-        WavefrontIntersectionSceneDiagnostics::fromCompiledSceneAndUploadBuffers(*compiled,
-                                                                                 buffers);
-#if !defined(__APPLE__)
-      if (!VulkanWavefrontIntersectionBackend::supportsPackedScene(buffers)) {
-        return makeDelegatingBackend(
-          "auto", "available",
-          "auto selected CPU: intersection scene is not eligible for Vulkan "
-          "exact-primitive/static-transform hit kernels",
-          diagnostics, gpuUnavailableBackend().platformName());
-      }
-#endif
-      const WavefrontIntersectionBackendAutoSelectionDecision decision =
-        policy.decide(true, true, diagnostics, context);
-      if (!decision.useGpu) {
-        return makeDelegatingBackend("auto", "available", decision.reason, diagnostics);
-      }
-      return createPreparedGpuBackend(compiled, "auto");
-    }
-    case Kind::CPU:
-      return staticBackend(CpuWavefrontIntersectionBackend::instance());
-    case Kind::GPU: {
-      const auto compiled = std::make_shared<const CompiledIntersectionScene>(
-        IntersectionSceneCompiler().compile(scene));
-      if (!compiled->fullySupported()) {
-        return makeDelegatingBackend(
-          "gpu", "fallback", gpuSceneUnsupportedReason(*compiled),
-          WavefrontIntersectionSceneDiagnostics::fromCompiledScene(*compiled),
-          gpuUnavailableBackend().platformName());
-      }
-      return createPreparedGpuBackend(compiled, "gpu");
-    }
-    }
-
-    return staticBackend(automaticCpuBackend());
+    return selectionStrategy().createBackendForScene(*this, scene, context);
   }
 
   bool WavefrontIntersectionBackendChoice::operator==(
@@ -440,6 +482,23 @@ namespace render {
                      [](char ch) { return ch == '_' || ch == '-' || ch == ',' || ch == ' '; }),
       value.end());
     return value;
+  }
+
+  const WavefrontIntersectionBackendChoice::SelectionStrategy&
+  WavefrontIntersectionBackendChoice::selectionStrategy() const {
+    static const AutoSelectionStrategy autoStrategy;
+    static const CpuSelectionStrategy cpuStrategy;
+    static const GpuSelectionStrategy gpuStrategy;
+
+    switch (m_kind) {
+    case Kind::Auto:
+      return autoStrategy;
+    case Kind::CPU:
+      return cpuStrategy;
+    case Kind::GPU:
+      return gpuStrategy;
+    }
+    return autoStrategy;
   }
 
   std::shared_ptr<const WavefrontIntersectionBackend>
