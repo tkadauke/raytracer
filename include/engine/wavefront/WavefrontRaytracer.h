@@ -3,6 +3,7 @@
 #include "core/math/Rect.h"
 #include "render/RenderEngine.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <list>
 #include <map>
@@ -158,6 +159,10 @@ namespace engine::wavefront {
 
       void addIntegratorMetrics(const render::IntegratorBatchMetrics& metrics);
       void addIntersectionBackendMetrics(const render::IntegratorBatchMetrics& metrics);
+      [[nodiscard]] bool hasMixedQueryDepth(std::size_t depth) const;
+      [[nodiscard]] std::uint64_t mixedQueryDepthCount() const;
+      [[nodiscard]] std::uint64_t mixedQueryDepthClosestHitRays() const;
+      [[nodiscard]] std::uint64_t mixedQueryDepthAnyHitRays() const;
     } batching;
 
     struct ConvergenceSummary {

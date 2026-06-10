@@ -4,6 +4,7 @@
 #include "core/math/Ray.h"
 #include "render/WavefrontIntersectionQueryTiming.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -138,6 +139,10 @@ namespace render {
     void recordFrontierClosestHitBatch(std::uint64_t batchChunks, std::uint64_t batchRays);
     void recordDirectLightAnyHitBatch(std::uint64_t depth, std::uint64_t batchChunks,
                                       std::uint64_t batchRays);
+    [[nodiscard]] bool hasMixedQueryDepth(std::size_t depth) const;
+    [[nodiscard]] std::uint64_t mixedQueryDepthCount() const;
+    [[nodiscard]] std::uint64_t mixedQueryDepthClosestHitRays() const;
+    [[nodiscard]] std::uint64_t mixedQueryDepthAnyHitRays() const;
     void recordPacketScalarFallbacksByReason(const std::map<std::string, std::uint64_t>& reasons);
     void recordPacketHitRefinement(const std::string& materialLabel);
     void recordIntersectionBackend(const WavefrontIntersectionBackend& backend);

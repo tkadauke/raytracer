@@ -890,6 +890,15 @@ Possible follow-ups after the hybrid intersection backend is stable:
 - Shared shader source strategy if native Metal/Vulkan kernels become too much
   duplicate maintenance.
 
+Progress:
+
+- Wavefront metrics now report mixed query depths: depth frontiers where both a
+  closest-hit frontier batch and a direct-light any-hit batch ran, plus the
+  participating closest-hit and any-hit ray counts. This does not keep frontiers
+  on the GPU yet, but it gives rendercli, graph traces, and Modeler diagnostics
+  a baseline for deciding where GPU-resident frontier/direct-light scheduling
+  would remove host/device boundary crossings.
+
 ---
 
 ## Testing strategy

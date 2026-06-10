@@ -60,6 +60,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   summaries, and the Modeler graph details now report the estimated query
   round trips implied by packed/platform intersection transfer work, including
   closest-hit and any-hit query-family splits. — GPT-5
+- **Wavefront mixed-query-depth diagnostics.** Wavefront metrics, rendercli
+  summaries, and the Modeler graph details now identify depths where
+  closest-hit frontier work and direct-light any-hit work both occurred,
+  creating a baseline for future GPU-resident frontier scheduling. — GPT-5
 - **Wavefront graph tooltip unsupported reasons.** The Modeler render graph
   tooltip for wavefront passes now includes grouped unsupported intersection
   scene reasons when a GPU-requested scene falls back before platform kernels

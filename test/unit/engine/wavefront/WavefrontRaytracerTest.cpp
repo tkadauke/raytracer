@@ -1110,6 +1110,11 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(0.0, json.value("batching").toObject().value("anyHitRaysSubmitted").toDouble());
     EXPECT_EQ(6.0, json.value("batching").toObject().value("closestHitQueries").toDouble());
     EXPECT_EQ(0.0, json.value("batching").toObject().value("anyHitQueries").toDouble());
+    EXPECT_EQ(0.0, json.value("batching").toObject().value("frontierMixedQueryDepths").toDouble());
+    EXPECT_EQ(
+      0.0, json.value("batching").toObject().value("frontierMixedQueryClosestHitRays").toDouble());
+    EXPECT_EQ(0.0,
+              json.value("batching").toObject().value("frontierMixedQueryAnyHitRays").toDouble());
     EXPECT_EQ(48.0,
               json.value("batching").toObject().value("activeSampleDepthsProcessed").toDouble());
     EXPECT_EQ(0.0, json.value("batching").toObject().value("compatibilityShadeSamples").toDouble());
@@ -1545,6 +1550,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_FALSE(renderCase.lastMetrics().batching.directLightAnyHitBatchRaysPerDepth.empty());
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitBatchChunksPerDepth.front(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitBatchRaysPerDepth.front(), 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthCount(), 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthClosestHitRays(), 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthAnyHitRays(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.directLightSamples, 0u);
   }
 

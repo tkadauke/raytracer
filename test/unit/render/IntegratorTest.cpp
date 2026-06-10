@@ -211,4 +211,21 @@ namespace IntegratorTest {
     EXPECT_DOUBLE_EQ(0.007, metrics.intersectionBackendKernelWorkerSeconds);
     EXPECT_DOUBLE_EQ(0.009, metrics.intersectionBackendReadbackWorkerSeconds);
   }
+
+  TEST(Integrator, BatchMetricsReportMixedQueryDepths) {
+    IntegratorBatchMetrics metrics;
+    metrics.reset(/*scalarFallback=*/false);
+
+    metrics.recordFrontierClosestHitBatch(1, 4);
+    metrics.recordFrontierClosestHitBatch(1, 8);
+    metrics.recordDirectLightAnyHitBatch(0, 1, 3);
+    metrics.recordDirectLightAnyHitBatch(2, 1, 5);
+
+    EXPECT_TRUE(metrics.hasMixedQueryDepth(0));
+    EXPECT_FALSE(metrics.hasMixedQueryDepth(1));
+    EXPECT_FALSE(metrics.hasMixedQueryDepth(2));
+    EXPECT_EQ(1u, metrics.mixedQueryDepthCount());
+    EXPECT_EQ(4u, metrics.mixedQueryDepthClosestHitRays());
+    EXPECT_EQ(3u, metrics.mixedQueryDepthAnyHitRays());
+  }
 }

@@ -627,6 +627,12 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("closestHitQueries"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit queries"), batching,
                               QStringLiteral("anyHitQueries"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed query depths"), batching,
+                              QStringLiteral("frontierMixedQueryDepths"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed query closest-hit rays"), batching,
+                              QStringLiteral("frontierMixedQueryClosestHitRays"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed query any-hit rays"), batching,
+                              QStringLiteral("frontierMixedQueryAnyHitRays"));
   const qulonglong closestHitBatchChunks = jsonIntegerArraySum(
     batching.value(QStringLiteral("frontierClosestHitBatchChunksPerDepth")).toArray());
   if (closestHitBatchChunks > 0) {
@@ -941,6 +947,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         if (closestHitRays > 0 || anyHitRays > 0) {
           line +=
             QStringLiteral(", %1 closest-hit/%2 any-hit rays").arg(closestHitRays).arg(anyHitRays);
+        }
+        const qulonglong mixedQueryDepths =
+          jsonIntegerValue(batching, QStringLiteral("frontierMixedQueryDepths"));
+        if (mixedQueryDepths > 0) {
+          line += QStringLiteral(", %1 mixed query depths").arg(mixedQueryDepths);
         }
         const bool prefersClosestHitBatch =
           batching.value(QStringLiteral("intersectionBackendPrefersClosestHitBatch")).toBool();

@@ -180,6 +180,10 @@ boundary, split by closest-hit and any-hit query family, then splits submitted
 intersection rays into closest-hit and any-hit ray counts, so a batched shadow
 query can report one any-hit query while still showing how many visibility rays
 were submitted.
+For path-tracing renders, the same diagnostics identify mixed query depths,
+where closest-hit frontier batches and direct-light any-hit batches both ran.
+Those counts make the future GPU-resident frontier opportunity visible before
+the scheduler actually keeps path state on device.
 When a platform kernel actually runs, the same summary separates backend
 upload/setup, kernel dispatch/wait, and readback time; CPU fallback paths keep
 those backend buckets at zero while total intersection worker time still

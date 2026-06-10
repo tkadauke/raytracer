@@ -341,6 +341,11 @@ namespace {
         << " any_hit_rays=" << unsignedValue(batching, "anyHitRaysSubmitted")
         << " closest_hit_queries=" << unsignedValue(batching, "closestHitQueries")
         << " any_hit_queries=" << unsignedValue(batching, "anyHitQueries")
+        << " frontier_mixed_query_depths=" << unsignedValue(batching, "frontierMixedQueryDepths")
+        << " frontier_mixed_query_closest_hit_rays="
+        << unsignedValue(batching, "frontierMixedQueryClosestHitRays")
+        << " frontier_mixed_query_any_hit_rays="
+        << unsignedValue(batching, "frontierMixedQueryAnyHitRays")
         << " closest_hit_batch_preferred="
         << (batching.value("intersectionBackendPrefersClosestHitBatch").toBool() ? "true" : "false")
         << " any_hit_batch_preferred="

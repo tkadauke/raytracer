@@ -1157,6 +1157,18 @@ namespace RenderGraphInspectorWidgetTest {
 
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Direct-light any-hit batch average rays")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query depths")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query closest-hit rays")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query any-hit rays")).isEmpty());
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+
+    QGraphicsItem* pass = graphNodeItem(graph->scene(), "pass", "wavefront_beauty");
+    ASSERT_NE(nullptr, pass);
+
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("mixed query depths")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,

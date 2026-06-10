@@ -232,6 +232,52 @@ namespace engine::wavefront {
     }
   }
 
+  bool WavefrontRenderMetrics::BatchSummary::hasMixedQueryDepth(std::size_t depth) const {
+    const std::uint64_t closestHitChunks = depth < frontierClosestHitBatchChunksPerDepth.size()
+                                             ? frontierClosestHitBatchChunksPerDepth[depth]
+                                             : 0;
+    const std::uint64_t anyHitChunks = depth < directLightAnyHitBatchChunksPerDepth.size()
+                                         ? directLightAnyHitBatchChunksPerDepth[depth]
+                                         : 0;
+    return closestHitChunks > 0 && anyHitChunks > 0;
+  }
+
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::mixedQueryDepthCount() const {
+    const std::size_t depthCount = std::max(frontierClosestHitBatchChunksPerDepth.size(),
+                                            directLightAnyHitBatchChunksPerDepth.size());
+    std::uint64_t count = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      if (hasMixedQueryDepth(depth)) {
+        ++count;
+      }
+    }
+    return count;
+  }
+
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::mixedQueryDepthClosestHitRays() const {
+    const std::size_t depthCount = std::max(frontierClosestHitBatchRaysPerDepth.size(),
+                                            directLightAnyHitBatchChunksPerDepth.size());
+    std::uint64_t rays = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      if (hasMixedQueryDepth(depth) && depth < frontierClosestHitBatchRaysPerDepth.size()) {
+        rays += frontierClosestHitBatchRaysPerDepth[depth];
+      }
+    }
+    return rays;
+  }
+
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::mixedQueryDepthAnyHitRays() const {
+    const std::size_t depthCount = std::max(frontierClosestHitBatchChunksPerDepth.size(),
+                                            directLightAnyHitBatchRaysPerDepth.size());
+    std::uint64_t rays = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      if (hasMixedQueryDepth(depth) && depth < directLightAnyHitBatchRaysPerDepth.size()) {
+        rays += directLightAnyHitBatchRaysPerDepth[depth];
+      }
+    }
+    return rays;
+  }
+
   void WavefrontRenderMetrics::TilingSummary::resetFromTilePlan(const render::TilePlan& tilePlan) {
     *this = TilingSummary();
     tileCount = tilePlan.size();
@@ -462,6 +508,11 @@ namespace engine::wavefront {
     batchingJson["frontierClosestHitBatchRaysPerDepth"] = frontierClosestHitBatchRaysPerDepth;
     batchingJson["directLightAnyHitBatchChunksPerDepth"] = directLightAnyHitBatchChunksPerDepth;
     batchingJson["directLightAnyHitBatchRaysPerDepth"] = directLightAnyHitBatchRaysPerDepth;
+    batchingJson["frontierMixedQueryDepths"] = static_cast<double>(batching.mixedQueryDepthCount());
+    batchingJson["frontierMixedQueryClosestHitRays"] =
+      static_cast<double>(batching.mixedQueryDepthClosestHitRays());
+    batchingJson["frontierMixedQueryAnyHitRays"] =
+      static_cast<double>(batching.mixedQueryDepthAnyHitRays());
     batchingJson["frontierRay4PacketChunksPerDepth"] = frontierRay4PacketChunksPerDepth;
     batchingJson["frontierRay8PacketChunksPerDepth"] = frontierRay8PacketChunksPerDepth;
     batchingJson["frontierScalarRaysPerDepth"] = frontierScalarRaysPerDepth;

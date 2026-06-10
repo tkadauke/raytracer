@@ -204,6 +204,52 @@ namespace render {
     directLightAnyHitBatchRaysPerDepth[depth] += batchRays;
   }
 
+  bool IntegratorBatchMetrics::hasMixedQueryDepth(std::size_t depth) const {
+    const std::uint64_t closestHitChunks = depth < frontierClosestHitBatchChunksPerDepth.size()
+                                             ? frontierClosestHitBatchChunksPerDepth[depth]
+                                             : 0;
+    const std::uint64_t anyHitChunks = depth < directLightAnyHitBatchChunksPerDepth.size()
+                                         ? directLightAnyHitBatchChunksPerDepth[depth]
+                                         : 0;
+    return closestHitChunks > 0 && anyHitChunks > 0;
+  }
+
+  std::uint64_t IntegratorBatchMetrics::mixedQueryDepthCount() const {
+    const std::size_t depthCount = std::max(frontierClosestHitBatchChunksPerDepth.size(),
+                                            directLightAnyHitBatchChunksPerDepth.size());
+    std::uint64_t count = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      if (hasMixedQueryDepth(depth)) {
+        ++count;
+      }
+    }
+    return count;
+  }
+
+  std::uint64_t IntegratorBatchMetrics::mixedQueryDepthClosestHitRays() const {
+    const std::size_t depthCount = std::max(frontierClosestHitBatchRaysPerDepth.size(),
+                                            directLightAnyHitBatchChunksPerDepth.size());
+    std::uint64_t rays = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      if (hasMixedQueryDepth(depth) && depth < frontierClosestHitBatchRaysPerDepth.size()) {
+        rays += frontierClosestHitBatchRaysPerDepth[depth];
+      }
+    }
+    return rays;
+  }
+
+  std::uint64_t IntegratorBatchMetrics::mixedQueryDepthAnyHitRays() const {
+    const std::size_t depthCount = std::max(frontierClosestHitBatchChunksPerDepth.size(),
+                                            directLightAnyHitBatchRaysPerDepth.size());
+    std::uint64_t rays = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      if (hasMixedQueryDepth(depth) && depth < directLightAnyHitBatchRaysPerDepth.size()) {
+        rays += directLightAnyHitBatchRaysPerDepth[depth];
+      }
+    }
+    return rays;
+  }
+
   void IntegratorBatchMetrics::recordPacketScalarFallbacksByReason(
     const std::map<std::string, std::uint64_t>& reasons) {
     for (const auto& [reason, count] : reasons) {

@@ -260,6 +260,11 @@ direct-light shadow rays for the active depth frontier into one any-hit backend
 query instead of submitting one visibility batch per shaded hit. Metrics also
 keep per-depth direct-light any-hit batch counters, so one visibility batch with
 many shadow rays is distinguishable from many scalar shadow queries.
+They also mark depths where closest-hit frontier batches and direct-light
+any-hit batches both happened. Those mixed query depths are the baseline for
+later GPU-resident frontier scheduling: they show where the current hybrid path
+still crosses the host/device boundary for both path continuation and
+visibility work in the same depth.
 Prepared GPU-style backends can also opt into arbitrary closest-hit frontier
 batches, letting a path-tracing bounce submit one group of camera/path rays
 instead of slicing that frontier into Ray4/Ray8 packets before it reaches the
