@@ -18,6 +18,7 @@
 #include "render/primitives/Plane.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
+#include "render/primitives/SmoothMeshTriangle.h"
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Triangle.h"
 #include "render/textures/ConstantColorTexture.h"
@@ -462,6 +463,37 @@ namespace GpuIntersectionSceneTest {
     EXPECT_NEAR(static_cast<float>(compiledHit.barycentric.x()), packedHit.barycentric[0], 1e-5f);
     EXPECT_NEAR(static_cast<float>(compiledHit.barycentric.y()), packedHit.barycentric[1], 1e-5f);
     EXPECT_NEAR(static_cast<float>(compiledHit.barycentric.z()), packedHit.barycentric[2], 1e-5f);
+  }
+
+  TEST(GpuIntersectionScene, PackedSmoothMeshTriangleInterpolatesNormalsAndUvsLikeCompiledScene) {
+    auto mesh = std::make_unique<Mesh>();
+    mesh->addVertex(Vector3d(0, 0, 0), Vector3d(1, 0, 0), Vector2d(0, 0));
+    mesh->addVertex(Vector3d(1, 0, 0), Vector3d(0, 1, 0), Vector2d(1, 0));
+    mesh->addVertex(Vector3d(0, 1, 0), Vector3d(0, 0, 1), Vector2d(0, 1));
+    mesh->addFace({0, 1, 2});
+
+    Scene scene;
+    scene.add(std::make_shared<SmoothMeshTriangle>(mesh.get(), 0, 1, 2));
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    const Rayd ray(Vector4d(0.25, 0.25, -1, 1), Vector3d(0, 0, 1));
+    const GpuIntersectionRay packedRay = GpuIntersectionScenePacker().packRay(ray, 18);
+
+    const CompiledIntersectionHit compiledHit =
+      CompiledIntersectionSceneIntersector().intersectClosest(compiled, ray);
+    const GpuIntersectionHitRecord packedHit =
+      GpuIntersectionIntersector().intersectClosest(buffers, packedRay);
+
+    ASSERT_TRUE(compiledHit.hit);
+    ASSERT_TRUE(packedHit.hit);
+    EXPECT_EQ(18u, packedHit.rayIndex);
+    EXPECT_NEAR(0.5f, packedHit.barycentric[0], 1e-5f);
+    EXPECT_NEAR(0.25f, packedHit.barycentric[1], 1e-5f);
+    EXPECT_NEAR(0.25f, packedHit.barycentric[2], 1e-5f);
+    expectVectorNear(packedHit.normal, Vector3d(0.5, 0.25, 0.25).normalized());
+    expectVectorNear(packedHit.uv, Vector2d(0.25, 0.25));
+    expectVectorNear(packedHit.normal, compiledHit.normal);
+    expectVectorNear(packedHit.uv, compiledHit.uv);
   }
 
   TEST(GpuIntersectionScene, PackedTriangleHonorsCompiledMinimumHitDistance) {
