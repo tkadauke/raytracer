@@ -13,6 +13,7 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
+#include "render/primitives/Torus.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "test/helpers/GuiTestHelper.h"
 #include "test/helpers/Slot.h"
@@ -350,6 +351,14 @@ namespace RenderGraphInspectorWidgetTest {
     return scene;
   }
 
+  std::shared_ptr<render::Scene> unsupportedExactScene() {
+    auto scene = std::make_shared<render::Scene>();
+    auto torus = std::make_shared<render::Torus>(1.25, 0.25);
+    torus->setName("exact torus");
+    scene->add(torus);
+    return scene;
+  }
+
   std::shared_ptr<const RenderGraphExecutionTrace> postProcessTrace() {
     RenderIntent intent;
     intent.postProcessAA = RenderPostProcessAA::FXAA;
@@ -412,6 +421,23 @@ namespace RenderGraphInspectorWidgetTest {
     engine.setPlan(compiler.compile({24, 24, 1}, intent));
 
     Buffer<unsigned int> buffer(24, 24);
+    engine.render(buffer);
+    return engine.lastExecutionTrace();
+  }
+
+  std::shared_ptr<const RenderGraphExecutionTrace> unsupportedWavefrontGpuTrace() {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setSamplesPerPixel(1);
+    intent.engineOptions.raytracer().setIntersectionBackend("gpu");
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), unsupportedExactScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({12, 12, 1}, intent));
+
+    Buffer<unsigned int> buffer(12, 12);
     engine.render(buffer);
     return engine.lastExecutionTrace();
   }
@@ -1128,6 +1154,32 @@ namespace RenderGraphInspectorWidgetTest {
 
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Direct-light any-hit batch average rays")).isEmpty());
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest,
+         ShouldExposeUnsupportedIntersectionReasonsOnWavefrontPass) {
+    auto trace = unsupportedWavefrontGpuTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    const auto rows = widget.passDetailRows(QStringLiteral("wavefront_beauty"));
+
+    const QString reasonRow =
+      rowValue(rows, QStringLiteral("Intersection scene unsupported reasons"));
+    EXPECT_TRUE(reasonRow.contains(QStringLiteral("Primitive Is Not Supported")));
+
+    auto* graph = widget.findChild<QGraphicsView*>(QStringLiteral("renderGraphView"));
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+
+    QGraphicsItem* pass = graphNodeItem(graph->scene(), "pass", "wavefront_beauty");
+    ASSERT_NE(nullptr, pass);
+
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("unsupported reasons")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("Primitive Is Not Supported")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,

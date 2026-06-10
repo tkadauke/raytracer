@@ -883,6 +883,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         if (!payloadSummary.isEmpty()) {
           line += QStringLiteral(" (%1)").arg(payloadSummary);
         }
+        const QString unsupportedReasonSummary = jsonIntegerObjectSummary(
+          batching.value(QStringLiteral("intersectionSceneUnsupportedReasons")).toObject());
+        if (!unsupportedReasonSummary.isEmpty()) {
+          line += QStringLiteral(", unsupported reasons %1").arg(unsupportedReasonSummary);
+        }
         const qulonglong uploadBytes =
           jsonIntegerValue(batching, QStringLiteral("intersectionSceneUploadBytes"));
         if (uploadBytes > 0) {

@@ -47,6 +47,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   side surfaces now compile into triangle payloads for the prepared wavefront
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
+- **Wavefront graph tooltip unsupported reasons.** The Modeler render graph
+  tooltip for wavefront passes now includes grouped unsupported intersection
+  scene reasons when a GPU-requested scene falls back before platform kernels
+  can run. — GPT-5
 - **Wavefront benchmark unsupported-reason counters.** Wavefront intersection
   backend benchmarks now publish sanitized per-reason unsupported-scene
   counters alongside the total unsupported-leaf count, keeping benchmark
