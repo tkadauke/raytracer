@@ -19,6 +19,7 @@
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
+#include "render/primitives/Torus.h"
 #include "render/primitives/Triangle.h"
 #include "render/samplers/HaltonSampler.h"
 #include "render/textures/ConstantColorTexture.h"
@@ -471,6 +472,19 @@ namespace WavefrontRaytracerTest {
       }
     }
 
+    void expectGpuRequestUsedPackedBackendWithoutPlatformKernel() const {
+      EXPECT_EQ("gpu", m_lastMetrics.batching.intersectionBackendRequest);
+      EXPECT_TRUE(m_lastMetrics.batching.intersectionSceneCompiled);
+      EXPECT_EQ(0u, m_lastMetrics.batching.intersectionSceneUnsupportedPrimitives);
+      EXPECT_FALSE(m_lastMetrics.batching.intersectionSceneBasicHitEligible);
+      EXPECT_TRUE(m_lastMetrics.batching.intersectionScenePackedClosestHitEligible);
+      EXPECT_TRUE(m_lastMetrics.batching.intersectionScenePackedAnyHitEligible);
+      EXPECT_GT(m_lastMetrics.batching.intersectionRaysSubmitted, 0u);
+      EXPECT_EQ("cpu", m_lastMetrics.batching.intersectionBackend);
+      EXPECT_EQ("fallback", m_lastMetrics.batching.intersectionBackendAvailability);
+      EXPECT_EQ("packed_cpu", m_lastMetrics.batching.intersectionBackendExecutionPath);
+    }
+
   private:
     std::shared_ptr<render::PinholeCamera> camera() const {
       return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d(0, 0, 0));
@@ -518,6 +532,18 @@ namespace WavefrontRaytracerTest {
       auto instance = std::make_shared<render::Instance>(instancedSphere);
       instance->setMatrix(Matrix4d::translate(0.65, -0.05, -0.35));
       scene->add(instance);
+
+      return scene;
+    }
+
+    std::shared_ptr<render::Scene> torusPackedParityScene() const {
+      auto scene = std::make_shared<render::Scene>(Colord(0.05, 0.05, 0.05));
+      scene->setBackground(Colord(0.02, 0.03, 0.04));
+      scene->setAmbient(Colord(0.9, 0.9, 0.9));
+
+      auto torus = std::make_shared<render::Torus>(0.9, 0.22);
+      torus->setMaterial(matte(Colord(0.85, 0.35, 0.1)));
+      scene->add(torus);
 
       return scene;
     }
@@ -1479,6 +1505,21 @@ namespace WavefrontRaytracerTest {
     renderCase.expectBuffersNear(*cpu, *gpu, 1.0e-4);
     renderCase.expectGpuRequestUsedPreparedBackend();
     EXPECT_EQ(1u, renderCase.lastMetrics().batching.intersectionSceneOpenCylinders);
+    EXPECT_GT(renderCase.lastMetrics().batching.closestHitQueries, 0u);
+  }
+
+  TEST(WavefrontRaytracer, GpuIntersectionRequestMatchesCpuImageForPackedTorusScene) {
+    const BackendParitySceneFactory scenes;
+    BackendParityRenderCase renderCase(scenes.torusPackedParityScene());
+
+    const std::unique_ptr<Buffer<Colord>> cpu =
+      renderCase.renderWith(render::WavefrontIntersectionBackendChoice::cpu());
+    const std::unique_ptr<Buffer<Colord>> gpu =
+      renderCase.renderWith(render::WavefrontIntersectionBackendChoice::gpu());
+
+    renderCase.expectBuffersNear(*cpu, *gpu, 1.0e-4);
+    renderCase.expectGpuRequestUsedPackedBackendWithoutPlatformKernel();
+    EXPECT_EQ(1u, renderCase.lastMetrics().batching.intersectionSceneTori);
     EXPECT_GT(renderCase.lastMetrics().batching.closestHitQueries, 0u);
   }
 

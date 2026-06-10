@@ -119,6 +119,7 @@ set(wavefront_auto_backend_plan "${TEST_OUTPUT_DIR}/wavefront-auto-backend-graph
 set(wavefront_render "${TEST_OUTPUT_DIR}/wavefront-render.png")
 set(wavefront_supported_backend_scene
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-scene.json")
+set(wavefront_torus_backend_scene "${TEST_OUTPUT_DIR}/wavefront-torus-backend-scene.json")
 set(wavefront_supported_backend_render
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-render.png")
 set(wavefront_supported_backend_cpu_render
@@ -174,6 +175,10 @@ set(wavefront_parity_render "${TEST_OUTPUT_DIR}/wavefront-parity-render.png")
 set(wavefront_glass_parity_raytracer_render
     "${TEST_OUTPUT_DIR}/wavefront-glass-parity-raytracer-render.png")
 set(wavefront_glass_parity_render "${TEST_OUTPUT_DIR}/wavefront-glass-parity-render.png")
+set(wavefront_torus_backend_cpu_render
+    "${TEST_OUTPUT_DIR}/wavefront-torus-backend-cpu-render.png")
+set(wavefront_torus_backend_gpu_render
+    "${TEST_OUTPUT_DIR}/wavefront-torus-backend-gpu-render.png")
 set(wavefront_reflection_parity_raytracer_render
     "${TEST_OUTPUT_DIR}/wavefront-reflection-parity-raytracer-render.png")
 set(wavefront_reflection_parity_render
@@ -436,6 +441,57 @@ file(WRITE "${wavefront_supported_backend_scene}" [=[
       "height": 0.8,
       "bevelRadius": 0.0,
       "type": "Cylinder",
+      "children": []
+    }
+  ]
+}
+]=])
+
+file(WRITE "${wavefront_torus_backend_scene}" [=[
+{
+  "id": "{94120000-0000-0000-0000-000000000000}",
+  "name": "Wavefront Torus Backend Fixture",
+  "ambient": [0.9, 0.9, 0.9],
+  "background": [0.02, 0.03, 0.04],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.0, -4.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.2,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "torus-texture",
+      "name": "Torus Texture",
+      "color": [0.85, 0.35, 0.1],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "torus-material",
+      "name": "Torus Material",
+      "diffuseTexture": "torus-texture",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 0.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "torus",
+      "name": "Packed Torus",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "torus-material",
+      "sweptRadius": 0.9,
+      "tubeRadius": 0.22,
+      "type": "Torus",
       "children": []
     }
   ]
@@ -3344,6 +3400,49 @@ rendercli_assert_image_rms_at_most("${wavefront_glass_parity_raytracer_render}"
 rendercli_assert_image_hash_equals("${wavefront_glass_parity_raytracer_render}"
                                    "${wavefront_glass_parity_render}"
                                    NAME "wavefront graph matches recursive glass raytracer graph")
+
+rendercli_run(
+  NAME "rendercli renders CPU wavefront Torus backend baseline"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 16 --height 16 --depth 4
+    --wavefront_intersection_backend cpu "${wavefront_torus_backend_scene}"
+    "${wavefront_torus_backend_cpu_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_torus_backend_cpu_render}"
+                                NAME "CPU wavefront Torus backend baseline pixels")
+
+rendercli_run(
+  NAME "rendercli reports packed Torus wavefront GPU fallback metrics"
+  OUTPUT_VARIABLE wavefront_torus_backend_gpu_stdout
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 16 --height 16 --depth 4
+    --wavefront_intersection_backend gpu --wavefront_metrics_summary
+    "${wavefront_torus_backend_scene}" "${wavefront_torus_backend_gpu_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_torus_backend_gpu_render}"
+                                NAME "GPU-requested wavefront Torus backend pixels")
+rendercli_assert_image_rms_at_most("${wavefront_torus_backend_cpu_render}"
+                                   "${wavefront_torus_backend_gpu_render}" 0.001
+                                   NAME
+                                     "wavefront packed Torus GPU-request RMS matches CPU backend")
+foreach(expectation
+        "intersection_backend_request=gpu"
+        "intersection_backend=cpu"
+        "intersection_backend_availability=fallback"
+        "intersection_backend_execution=packed_cpu"
+        "closest_hit_execution=packed_cpu"
+        "intersection_scene_compiled=true"
+        "intersection_scene_unsupported=0"
+        "intersection_scene_tori=1"
+        "intersection_scene_basic_hit_kernel_eligible=false"
+        "intersection_scene_packed_closest_hit_eligible=true"
+        "intersection_scene_packed_any_hit_eligible=true")
+  if(NOT wavefront_torus_backend_gpu_stdout MATCHES "${expectation}")
+    _rendercli_fail("rendercli packed Torus wavefront backend summary ${expectation}"
+                    "packed Torus wavefront backend summary did not match ${expectation}"
+                    "${wavefront_torus_backend_gpu_stdout}" "" "" "")
+  endif()
+endforeach()
 
 rendercli_run(
   NAME "rendercli renders recursive raytracer reflection parity baseline"
