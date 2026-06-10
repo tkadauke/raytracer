@@ -15,6 +15,9 @@
 > closest-hit, and bounded any-hit queries for triangle, sphere, plane,
 > rectangle, disk, exact OpenCylinder, and static-transform payloads can run
 > through the packed CPU kernel contract and the platform basic-kernel contract.
+> Torus leaves now also compile and run through the packed CPU kernel contract,
+> but they remain ineligible for Metal/Vulkan basic kernels until those shaders
+> have a matching quartic intersector.
 > Metal-only smoke kernels now prove optional compute dispatch
 > outside the render path, and the first render-path Metal basic closest-hit
 > and any-hit kernels can execute for prepared triangle, sphere, plane,
@@ -216,13 +219,19 @@ GPU v1 should support:
    assets. Moving instances and shutter-time transforms can wait until the
    ray/time contract is explicit in GPU payloads.
 
-GPU v1 should reject:
+GPU v1 platform kernels should reject:
 
 - CSG/boolean composites;
-- torus, curve, convex operation, and other exact primitives not yet ported;
+- torus, curve, convex operation, and other exact primitives not yet ported to
+  Metal/Vulkan shaders;
 - moving instances;
 - scenes with primitive/material references that cannot be represented by
   stable ids.
+
+The host-side compiled and packed CPU contracts may support more primitives
+than the platform kernels. Torus is the first example: it is compiled and
+packed for explicit GPU-request fallback/parity, but `auto` still requires the
+stricter platform basic-kernel eligibility before selecting a GPU backend.
 
 Later phases can expand this list incrementally, each with CPU/GPU parity tests.
 
