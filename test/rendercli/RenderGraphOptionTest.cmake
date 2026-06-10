@@ -2670,6 +2670,16 @@ if(NOT wavefront_metrics_json MATCHES "\"directLightAnyHitBatchRaysPerDepth\"")
                   "wavefront metrics report did not contain direct-light any-hit batch ray counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+foreach(mixed_query_field
+        frontierMixedQueryDepths
+        frontierMixedQueryClosestHitRays
+        frontierMixedQueryAnyHitRays)
+  if(NOT wavefront_metrics_json MATCHES "\"${mixed_query_field}\"")
+    _rendercli_fail("rendercli wavefront metrics ${mixed_query_field}"
+                    "wavefront metrics report did not contain ${mixed_query_field}"
+                    "" "" "${wavefront_metrics_json}" "")
+  endif()
+endforeach()
 if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendPrefersClosestHitBatch\"")
   _rendercli_fail("rendercli wavefront metrics closest-hit batch preference"
                   "wavefront metrics report did not contain closest-hit batch preference"
