@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <future>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -957,6 +958,70 @@ namespace WavefrontIntersectionBackendTest {
 #else
     EXPECT_THROW((void)kernel.runBasicClosestHitKernel(buffers, rays), std::runtime_error);
     EXPECT_THROW((void)kernel.runBasicAnyHitKernel(buffers, rays), std::runtime_error);
+#endif
+  }
+
+  TEST(VulkanWavefrontPreparedScene, SupportsConcurrentClosestAndAnyHitQueries) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    VulkanWavefrontSmokeKernel kernel;
+    if (!kernel.deviceAvailable()) {
+      GTEST_SKIP() << "No Vulkan compute device is available";
+    }
+    if (!kernel.renderPathAvailable()) {
+      GTEST_SKIP() << kernel.renderPathUnavailableReason();
+    }
+
+    Scene scene;
+    scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0));
+    scene.add(
+      std::make_shared<Rectangle>(Vector3d(-1, -1, 6), Vector3d(2, 0, 0), Vector3d(0, 2, 0)));
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    ASSERT_TRUE(buffers.basicHitKernelEligible());
+    ASSERT_TRUE(VulkanWavefrontIntersectionBackend::supportsPackedScene(buffers));
+
+    const std::vector<GpuIntersectionRay> closestRays{
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 51),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(4, 0, 0, 1), Vector3d(0, 0, 1)), 52),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 53, 0.0,
+                                           2.5),
+    };
+    const std::vector<GpuIntersectionRay> anyRays{
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 61, 0.0,
+                                           10.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(4, 0, 0, 1), Vector3d(0, 0, 1)), 62, 0.0,
+                                           10.0),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 63, 0.0,
+                                           2.5),
+    };
+    const std::vector<GpuIntersectionHitRecord> expectedClosest =
+      GpuIntersectionIntersector().intersectClosest(buffers, closestRays);
+    const std::vector<GpuIntersectionOcclusionRecord> expectedAny =
+      GpuIntersectionIntersector().intersectAny(buffers, anyRays);
+
+    const VulkanWavefrontPreparedScene prepared(buffers);
+    auto closestFuture = std::async(
+      std::launch::async, [&] { return prepared.runTimedBasicClosestHitKernel(closestRays); });
+    auto anyFuture =
+      std::async(std::launch::async, [&] { return prepared.runTimedBasicAnyHitKernel(anyRays); });
+
+    const VulkanWavefrontClosestHitKernelResult closest = closestFuture.get();
+    const VulkanWavefrontAnyHitKernelResult any = anyFuture.get();
+
+    ASSERT_EQ(expectedClosest.size(), closest.hits.size());
+    EXPECT_EQ(std::string("vulkan"), closest.timing.executionPath);
+    for (std::size_t index = 0; index != expectedClosest.size(); ++index) {
+      expectGpuHitRecordNear(closest.hits[index], expectedClosest[index]);
+    }
+
+    ASSERT_EQ(expectedAny.size(), any.records.size());
+    EXPECT_EQ(std::string("vulkan"), any.timing.executionPath);
+    for (std::size_t index = 0; index != expectedAny.size(); ++index) {
+      EXPECT_EQ(expectedAny[index].occluded, any.records[index].occluded);
+      EXPECT_EQ(expectedAny[index].rayIndex, any.records[index].rayIndex);
+    }
+#else
+    GTEST_SKIP() << "Vulkan wavefront backend is disabled";
 #endif
   }
 
