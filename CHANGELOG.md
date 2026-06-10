@@ -52,6 +52,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   closest-hit/any-hit contract for explicit GPU wavefront requests, while
   Metal/Vulkan basic kernels still reject Torus until a platform quartic kernel
   exists. — GPT-5
+- **Wavefront Torus intersection kernels.** Torus leaves now compile to an
+  exact intersection-scene payload and can use the prepared packed CPU,
+  Metal, and Vulkan basic closest-hit/any-hit contracts for explicit GPU
+  wavefront requests. — GPT-5
 - **Wavefront graph tooltip unsupported reasons.** The Modeler render graph
   tooltip for wavefront passes now includes grouped unsupported intersection
   scene reasons when a GPU-requested scene falls back before platform kernels
@@ -292,8 +296,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   — GPT-5
 - **Compiled hit-record parity harness.** Added a CPU
   `CompiledIntersectionSceneIntersector` that traverses the compiled BVH for
-  triangle, sphere, plane, rectangle, disk, and OpenCylinder payloads and emits GPU-style
-  closest-hit records plus bounded any-hit occlusion queries, giving the
+  triangle, sphere, plane, rectangle, disk, OpenCylinder, and Torus payloads and
+  emits GPU-style closest-hit records plus bounded any-hit occlusion queries,
+  giving the
   planned Metal/Vulkan kernels a tested object/material id, distance, point,
   normal, UV, barycentric, static instance-transform, and light-distance
   visibility contract to match. A host-side `GpuIntersectionScenePacker` now

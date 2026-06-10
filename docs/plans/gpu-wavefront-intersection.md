@@ -13,11 +13,9 @@
 > unsupported reasons. Scene-created GPU fallback stubs retain supported
 > compiled scenes and packed upload buffers; exact closest-hit, packet
 > closest-hit, and bounded any-hit queries for triangle, sphere, plane,
-> rectangle, disk, exact OpenCylinder, and static-transform payloads can run
-> through the packed CPU kernel contract and the platform basic-kernel contract.
-> Torus leaves now also compile and run through the packed CPU kernel contract,
-> but they remain ineligible for Metal/Vulkan basic kernels until those shaders
-> have a matching quartic intersector.
+> rectangle, disk, exact OpenCylinder, exact Torus, and static-transform
+> payloads can run through the packed CPU kernel contract and the platform
+> basic-kernel contract.
 > Transparent-material leaves now explicitly opt out of the packed
 > intersection scene so glass/refraction renders stay on the runtime CPU
 > intersection path until the packed/GPU hit metadata contract is precise
@@ -25,10 +23,11 @@
 > Metal-only smoke kernels now prove optional compute dispatch
 > outside the render path, and the first render-path Metal basic closest-hit
 > and any-hit kernels can execute for prepared triangle, sphere, plane,
-> rectangle, disk, and OpenCylinder scenes, including static transform payloads, when a Metal
-> device is available. Vulkan-enabled builds can now run basic closest-hit and
-> any-hit kernels for prepared triangle, sphere, plane, rectangle, disk, and OpenCylinder
-> scenes, including static transform payloads. This is a
+> rectangle, disk, OpenCylinder, and Torus scenes, including static transform
+> payloads, when a Metal device is available. Vulkan-enabled builds can now run
+> basic closest-hit and any-hit kernels for prepared triangle, sphere, plane,
+> rectangle, disk, OpenCylinder, and Torus scenes, including static transform
+> payloads. This is a
 > follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+. It should not replace
 > the CPU wavefront renderer, and it should not attempt a full GPU path tracer
@@ -226,16 +225,17 @@ GPU v1 should support:
 GPU v1 platform kernels should reject:
 
 - CSG/boolean composites;
-- torus, curve, convex operation, and other exact primitives not yet ported to
+- curve, convex operation, and other exact primitives not yet ported to
   Metal/Vulkan shaders;
 - moving instances;
 - scenes with primitive/material references that cannot be represented by
   stable ids.
 
 The host-side compiled and packed CPU contracts may support more primitives
-than the platform kernels. Torus is the first example: it is compiled and
-packed for explicit GPU-request fallback/parity, but `auto` still requires the
-stricter platform basic-kernel eligibility before selecting a GPU backend.
+than the platform kernels. `auto` still requires stricter platform
+basic-kernel eligibility before selecting a GPU backend, so newly compiled
+payloads should remain packed-CPU-only until Metal and Vulkan have matching
+shader support.
 
 Later phases can expand this list incrementally, each with CPU/GPU parity tests.
 
@@ -280,9 +280,9 @@ Progress:
 - `RAYTRACER_ENABLE_METAL_WAVEFRONT` now also builds an Objective-C++/Metal
   smoke wrapper. It uploads a uint buffer for a deterministic dispatch/readback
   check, and it can run render-path basic closest-hit/any-hit kernels for
-  triangle, sphere, plane, rectangle, disk, and OpenCylinder scenes, including
-  static transform payloads, against the packed BVH/primitive/payload/ray ABI. The
-  smoke path remains a
+  triangle, sphere, plane, rectangle, disk, OpenCylinder, and Torus scenes,
+  including static transform payloads, against the packed
+  BVH/primitive/payload/ray ABI. The smoke path remains a
   platform-plumbing proof; the basic hit kernels are now selected only for
   eligible prepared scenes.
 - Platform diagnostics now distinguish disabled plumbing, enabled-without-device,
@@ -298,9 +298,9 @@ Progress:
   creating the native shader pipeline needed for Vulkan render-path kernels.
 - Vulkan-enabled builds now compile and expose direct basic closest-hit and
   any-hit compute dispatches against the packed BVH/primitive/exact-payload/ray
-  ABI. Prepared triangle, sphere, plane, rectangle, disk, and OpenCylinder scenes
-  can now execute wavefront closest-hit and any-hit batches through Vulkan,
-  including static transform payloads.
+  ABI. Prepared triangle, sphere, plane, rectangle, disk, OpenCylinder, and
+  Torus scenes can now execute wavefront closest-hit and any-hit batches through
+  Vulkan, including static transform payloads.
 - Platform GPU device availability is now structured backend trace data instead
   of only fallback text. Wavefront metrics JSON, rendercli summaries, and the
   Modeler graph tooltip expose the selected platform backend id and whether
@@ -369,7 +369,8 @@ Gate:
 Progress:
 
 - `IntersectionSceneCompiler` now emits records and payload arrays for
-  triangle/mesh-triangle, sphere, plane, rectangle, disk, and OpenCylinder leaves.
+  triangle/mesh-triangle, sphere, plane, rectangle, disk, OpenCylinder, and
+  Torus leaves.
 - Static instances are captured as transform payloads through the existing
   transformed-leaf traversal hook.
 - Moving instances are rejected before child leaves are flattened, preserving
@@ -488,9 +489,10 @@ Progress:
   payloads, static transform payloads, ray work items, and miss records into
   16-byte-aligned POD buffers. It marks whether a compiled scene is eligible for
   the first basic hit kernel: all primitive records must be triangle, sphere,
-  plane, rectangle, disk, or OpenCylinder records with either no transform or a valid static
-  transform payload. This keeps the next kernel work focused on traversal and
-  hit-record parity instead of ad hoc per-backend layout decisions.
+  plane, rectangle, disk, OpenCylinder, or Torus records with either no
+  transform or a valid static transform payload. This keeps the next kernel work
+  focused on traversal and hit-record parity instead of ad hoc per-backend
+  layout decisions.
 - Scene-created GPU fallback stubs now retain those packed upload buffers next
   to the compiled scene. Wavefront metrics, rendercli compact summaries, and
   Modeler graph tooltips expose the retained upload byte count plus
@@ -500,9 +502,9 @@ Progress:
 - `GpuIntersectionIntersector` now executes iterative closest-hit BVH
   traversal directly against the packed upload buffers and writes GPU-style
   hit/miss records. Triangle, sphere, plane, rectangle, disk, exact
-  OpenCylinder, and static instance prepared GPU fallbacks route closest-hit,
-  packet closest-hit, and bounded any-hit queries through this packed CPU
-  kernel contract.
+  OpenCylinder, exact Torus, and static instance prepared GPU fallbacks route
+  closest-hit, packet closest-hit, and bounded any-hit queries through this
+  packed CPU kernel contract.
   Packed CPU and Metal traversal now also test primitive-record bounds inside
   BVH leaves before running payload intersection, keeping host parity and the
   platform kernel aligned while reducing wasted per-payload tests.
@@ -554,11 +556,9 @@ Tasks:
 - Add GPU kernels/payloads for sphere, plane, rectangle, disk, and static
   instance transforms.
 - Add exact host/packed CPU payloads for other common primitives before
-  enabling platform kernels for them. ✅ **Done.** OpenCylinder now compiles to
-  an exact packed CPU payload and the Metal/Vulkan basic kernels consume the
-  same payload for closest-hit and any-hit traversal. Torus now also compiles
-  to an exact packed CPU payload, but it remains platform-kernel ineligible
-  until the Metal/Vulkan shaders grow a matching quartic hit kernel.
+  enabling platform kernels for them. ✅ **Done.** OpenCylinder and Torus now
+  compile to exact packed CPU payloads, and the Metal/Vulkan basic kernels
+  consume the same payloads for closest-hit and any-hit traversal.
 - Preserve material/object ids through instance transforms.
 - Add scene fixtures that mix triangles and exact primitives.
 - Add parity tests for:
@@ -585,8 +585,7 @@ Progress:
   ids, hit distance, hit point, normal, UV where applicable, and empty
   barycentric channels through the same GPU-style hit record shape used by the
   triangle traversal. Metal and Vulkan basic closest-hit/any-hit kernels now
-  consume the OpenCylinder payload natively; Torus is intentionally limited to
-  the host packed path until platform kernels implement the quartic primitive.
+  consume the OpenCylinder and Torus payloads natively.
 - Disk payloads now carry their runtime near-hit cutoff through the compiled
   scene and packed GPU ABI, keeping the host parity intersector plus the Metal
   and Vulkan basic kernels aligned with the runtime disk intersection rule
@@ -608,17 +607,17 @@ Progress:
   triangle scenes for closest-hit and any-hit queries. The optional platform
   smoke coverage compares OpenCylinder closest-hit records and any-hit
   occlusion records against the packed CPU intersector.
-- Vulkan-enabled prepared sphere, plane, rectangle, disk, OpenCylinder, and
-  static-transform scenes now share the render-path basic hit kernels with
+- Vulkan-enabled prepared sphere, plane, rectangle, disk, OpenCylinder, Torus,
+  and static-transform scenes now share the render-path basic hit kernels with
   triangle scenes for closest-hit and any-hit queries. The optional platform
-  smoke coverage compares OpenCylinder closest-hit records and any-hit
+  smoke coverage compares OpenCylinder and Torus closest-hit records and any-hit
   occlusion records against the packed CPU intersector.
 - Wavefront renderer-level parity tests now compare `cpu` and `gpu`
   intersection-backend requests on a deterministic supported Whitted scene that
-  mixes sphere, triangle, rectangle, disk, OpenCylinder, and static instance
-  payloads. The test asserts the prepared packed backend path is actually used,
-  so future platform kernels have an image-level gate instead of only
-  hit-record parity.
+  mixes sphere, triangle, rectangle, disk, OpenCylinder, Torus, and static
+  instance payloads. The test asserts the prepared packed backend path is
+  actually used, so future platform kernels have an image-level gate instead of
+  only hit-record parity.
 - Wavefront metrics JSON, rendercli summaries, render graph trace metadata, and
   Modeler graph metadata now count the full supported payload breakdown:
   triangles, spheres, planes, rectangles, disks, OpenCylinder payloads, Torus
@@ -698,13 +697,14 @@ Progress:
   tested visibility contract before they are wired into rendering.
 - `GpuIntersectionIntersector` now mirrors that any-hit visibility contract over
   packed upload buffers for triangle, sphere, plane, rectangle, disk, exact
-  OpenCylinder, and static transform payloads. Host-side Metal/Vulkan fallback
-  stubs use it when the packed scene is eligible, so closest-hit and shadow
-  query metrics both report `packed_cpu` for those scenes. Metal-enabled
+  OpenCylinder, exact Torus, and static transform payloads. Host-side
+  Metal/Vulkan fallback stubs use it when the packed scene is eligible, so
+  closest-hit and shadow query metrics both report `packed_cpu` for those
+  scenes. Metal-enabled
   prepared triangle,
-  sphere, plane, rectangle, disk, and static-transform scenes can now route
-  any-hit queries through the Metal basic visibility kernel and report `metal`
-  when a device is available.
+  sphere, plane, rectangle, disk, OpenCylinder, Torus, and static-transform
+  scenes can now route any-hit queries through the Metal basic visibility
+  kernel and report `metal` when a device is available.
 - Packed any-hit traversal now exposes a batch record API that returns one
   `GpuIntersectionOcclusionRecord` per submitted ray. Prepared CPU fallback,
   Metal fallback, and Vulkan fallback paths use that same batch-shaped contract

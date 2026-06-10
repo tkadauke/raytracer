@@ -7,6 +7,7 @@ const uint planeKind = 3u;
 const uint rectangleKind = 4u;
 const uint diskKind = 5u;
 const uint openCylinderKind = 6u;
+const uint torusKind = 7u;
 const float kernelEpsilon = 1.1920928955078125e-7;
 const float anyHitDistanceEpsilon = 4.0e-7;
 
@@ -72,6 +73,10 @@ struct DiskPayload {
 
 struct OpenCylinderPayload {
   vec4 radiusHalfHeight;
+};
+
+struct TorusPayload {
+  vec4 sweptTubeRadius;
 };
 
 struct TransformPayload {
@@ -150,19 +155,23 @@ layout(std430, binding = 7) readonly buffer OpenCylinderBuffer {
   OpenCylinderPayload openCylinders[];
 };
 
-layout(std430, binding = 8) readonly buffer TransformBuffer {
+layout(std430, binding = 8) readonly buffer TorusBuffer {
+  TorusPayload tori[];
+};
+
+layout(std430, binding = 9) readonly buffer TransformBuffer {
   TransformPayload transforms[];
 };
 
-layout(std430, binding = 9) readonly buffer RayBuffer {
+layout(std430, binding = 10) readonly buffer RayBuffer {
   RayRecord rays[];
 };
 
-layout(std430, binding = 10) writeonly buffer OcclusionBuffer {
+layout(std430, binding = 11) writeonly buffer OcclusionBuffer {
   OcclusionRecord occlusion[];
 };
 
-layout(std430, binding = 11) readonly buffer CountBuffer {
+layout(std430, binding = 12) readonly buffer CountBuffer {
   uvec4 counts0;
   uvec4 counts1;
   uvec4 counts2;
@@ -396,8 +405,7 @@ LocalHit intersectDisk(RayRecord ray, DiskPayload disk) {
 
   const float distance = dot(center - ray.origin.xyz, normal) / denominator;
   if (isnan(distance) || isinf(distance) || distance < minimumHitDistance ||
-      distance < ray.minDistance ||
-      distance > ray.maxDistance) {
+      distance < ray.minDistance || distance > ray.maxDistance) {
     return result;
   }
 
@@ -458,9 +466,189 @@ LocalHit intersectOpenCylinder(RayRecord ray, OpenCylinderPayload openCylinder) 
   return result;
 }
 
+bool almostZero(float value) {
+  return abs(value) <= kernelEpsilon * 10.0;
+}
+
+float cubeRoot(float value) {
+  return value < 0.0 ? -pow(-value, 1.0 / 3.0) : pow(value, 1.0 / 3.0);
+}
+
+uint solveQuadric(float a, float b, float c, out float roots[4]) {
+  if (almostZero(a)) {
+    if (almostZero(b)) {
+      return 0u;
+    }
+    roots[0] = -c / b;
+    return 1u;
+  }
+
+  const float determinant = b * b - 4.0 * a * c;
+  if (almostZero(determinant)) {
+    roots[0] = -b / (2.0 * a);
+    return 1u;
+  }
+  if (determinant > 0.0) {
+    const float determinantRoot = sqrt(determinant);
+    roots[0] = (-determinantRoot - b) / (2.0 * a);
+    roots[1] = (determinantRoot - b) / (2.0 * a);
+    return 2u;
+  }
+  return 0u;
+}
+
+uint solveCubic(float a, float b, float c, float d, out float roots[4]) {
+  if (almostZero(a)) {
+    return solveQuadric(b, c, d, roots);
+  }
+
+  const float normA = b / a;
+  const float normB = c / a;
+  const float normC = d / a;
+  const float normASquared = normA * normA;
+  const float p = (-(1.0 / 3.0) * normASquared + normB) / 3.0;
+  const float q = (2.0 / 27.0 * normA * normASquared - (1.0 / 3.0) * normA * normB + normC) / 2.0;
+  const float pCube = p * p * p;
+  const float determinant = q * q + pCube;
+  uint count = 0u;
+
+  if (almostZero(determinant)) {
+    if (almostZero(q)) {
+      roots[0] = 0.0;
+      count = 1u;
+    } else {
+      const float root = cubeRoot(-q);
+      roots[0] = 2.0 * root;
+      roots[1] = -root;
+      count = 2u;
+    }
+  } else if (determinant < 0.0) {
+    const float pi = 3.14159265358979323846;
+    const float phi = acos(clamp(-q / sqrt(-pCube), -1.0, 1.0)) / 3.0;
+    const float t = 2.0 * sqrt(-p);
+    roots[0] = t * cos(phi);
+    roots[1] = -t * cos(phi + pi / 3.0);
+    roots[2] = -t * cos(phi - pi / 3.0);
+    count = 3u;
+  } else {
+    const float determinantRoot = sqrt(determinant);
+    roots[0] = cubeRoot(determinantRoot - q) - cubeRoot(determinantRoot + q);
+    count = 1u;
+  }
+
+  const float sub = normA / 3.0;
+  for (uint index = 0u; index != count; ++index) {
+    roots[index] -= sub;
+  }
+  return count;
+}
+
+uint solveQuartic(float a, float b, float c, float d, float e, out float roots[4]) {
+  if (almostZero(a)) {
+    return solveCubic(b, c, d, e, roots);
+  }
+
+  const float normA = b / a;
+  const float normB = c / a;
+  const float normC = d / a;
+  const float normD = e / a;
+  const float normASquared = normA * normA;
+  const float p = -3.0 / 8.0 * normASquared + normB;
+  const float q = 1.0 / 8.0 * normASquared * normA - 0.5 * normA * normB + normC;
+  const float r = -3.0 / 256.0 * normASquared * normASquared + 1.0 / 16.0 * normASquared * normB -
+                  0.25 * normA * normC + normD;
+  uint count = 0u;
+
+  if (almostZero(r)) {
+    float cubicRoots[4];
+    const uint cubicCount = solveCubic(1.0, 0.0, p, q, cubicRoots);
+    for (uint index = 0u; index != cubicCount; ++index) {
+      roots[count++] = cubicRoots[index];
+    }
+  } else {
+    float cubicRoots[4];
+    const uint cubicCount = solveCubic(1.0, -0.5 * p, -r, 0.5 * r * p - 0.125 * q * q, cubicRoots);
+    if (cubicCount == 0u) {
+      return 0u;
+    }
+
+    const float z = cubicRoots[0];
+    float u = z * z - r;
+    float v = 2.0 * z - p;
+    const float uTol = kernelEpsilon * 16.0 * (1.0 + abs(z * z) + abs(r));
+    const float vTol = kernelEpsilon * 16.0 * (1.0 + abs(2.0 * z) + abs(p));
+    if (u < -uTol || v < -vTol) {
+      return 0u;
+    }
+
+    u = u <= 0.0 ? 0.0 : sqrt(u);
+    v = v <= 0.0 ? 0.0 : sqrt(v);
+
+    float quadRoots[4];
+    uint quadCount = solveQuadric(1.0, q < 0.0 ? -v : v, z - u, quadRoots);
+    for (uint index = 0u; index != quadCount; ++index) {
+      roots[count++] = quadRoots[index];
+    }
+    quadCount = solveQuadric(1.0, q < 0.0 ? v : -v, z + u, quadRoots);
+    for (uint index = 0u; index != quadCount; ++index) {
+      roots[count++] = quadRoots[index];
+    }
+  }
+
+  const float sub = 0.25 * normA;
+  for (uint index = 0u; index != count; ++index) {
+    roots[index] -= sub;
+  }
+  for (uint i = 1u; i < count; ++i) {
+    const float value = roots[i];
+    uint j = i;
+    while (j > 0u && roots[j - 1u] > value) {
+      roots[j] = roots[j - 1u];
+      --j;
+    }
+    roots[j] = value;
+  }
+  return count;
+}
+
+LocalHit intersectTorus(RayRecord ray, TorusPayload torus) {
+  LocalHit result = makeLocalMiss();
+  const float sweptRadius = torus.sweptTubeRadius.x;
+  const float tubeRadius = torus.sweptTubeRadius.y;
+  const float dd = dot(ray.direction.xyz, ray.direction.xyz);
+  const float oorr =
+    dot(ray.origin.xyz, ray.origin.xyz) - sweptRadius * sweptRadius - tubeRadius * tubeRadius;
+  const float od = dot(ray.origin.xyz, ray.direction.xyz);
+  const float fourRR = 4.0 * sweptRadius * sweptRadius;
+
+  float roots[4];
+  const uint rootCount = solveQuartic(
+    dd * dd, 4.0 * dd * od,
+    2.0 * dd * oorr + 4.0 * od * od + fourRR * ray.direction.y * ray.direction.y,
+    4.0 * od * oorr + 2.0 * fourRR * ray.origin.y * ray.direction.y,
+    oorr * oorr - fourRR * (tubeRadius * tubeRadius - ray.origin.y * ray.origin.y), roots);
+
+  float bestDistance = positiveInfinity();
+  for (uint index = 0u; index != rootCount; ++index) {
+    const float distance = roots[index];
+    if (distance <= 0.0 || distance < ray.minDistance || distance > ray.maxDistance ||
+        distance >= bestDistance) {
+      continue;
+    }
+    bestDistance = distance;
+  }
+  if (isnan(bestDistance) || isinf(bestDistance)) {
+    return result;
+  }
+
+  result.hit = true;
+  result.distance = bestDistance;
+  return result;
+}
+
 LocalHit intersectPrimitivePayload(RayRecord ray, PrimitiveRecord primitive, uint triangleCount,
                                    uint sphereCount, uint planeCount, uint rectangleCount,
-                                   uint diskCount, uint openCylinderCount) {
+                                   uint diskCount, uint openCylinderCount, uint torusCount) {
   if (primitive.payloadCount != 1u) {
     return makeLocalMiss();
   }
@@ -483,12 +671,15 @@ LocalHit intersectPrimitivePayload(RayRecord ray, PrimitiveRecord primitive, uin
   if (primitive.kind == openCylinderKind && primitive.payloadOffset < openCylinderCount) {
     return intersectOpenCylinder(ray, openCylinders[primitive.payloadOffset]);
   }
+  if (primitive.kind == torusKind && primitive.payloadOffset < torusCount) {
+    return intersectTorus(ray, tori[primitive.payloadOffset]);
+  }
   return makeLocalMiss();
 }
 
 LocalHit intersectPrimitive(RayRecord ray, PrimitiveRecord primitive, uint triangleCount,
                             uint sphereCount, uint planeCount, uint rectangleCount, uint diskCount,
-                            uint openCylinderCount, uint transformCount) {
+                            uint openCylinderCount, uint torusCount, uint transformCount) {
   if (primitive.transform != 0u) {
     if (primitive.transform >= transformCount) {
       return makeLocalMiss();
@@ -496,11 +687,11 @@ LocalHit intersectPrimitive(RayRecord ray, PrimitiveRecord primitive, uint trian
 
     return intersectPrimitivePayload(transformRay(ray, transforms[primitive.transform]), primitive,
                                      triangleCount, sphereCount, planeCount, rectangleCount,
-                                     diskCount, openCylinderCount);
+                                     diskCount, openCylinderCount, torusCount);
   }
 
   return intersectPrimitivePayload(ray, primitive, triangleCount, sphereCount, planeCount,
-                                   rectangleCount, diskCount, openCylinderCount);
+                                   rectangleCount, diskCount, openCylinderCount, torusCount);
 }
 
 bool hitOccludes(LocalHit hit, float maxDistance) {
@@ -526,6 +717,7 @@ void main() {
   const uint openCylinderCount = counts1.w;
   const uint rayCount = counts2.x;
   const uint transformCount = counts2.y;
+  const uint torusCount = counts2.z;
   const uint id = gl_GlobalInvocationID.x;
   if (id >= rayCount) {
     return;
@@ -572,7 +764,7 @@ void main() {
 
       const LocalHit hit =
         intersectPrimitive(ray, primitive, triangleCount, sphereCount, planeCount, rectangleCount,
-                           diskCount, openCylinderCount, transformCount);
+                           diskCount, openCylinderCount, torusCount, transformCount);
       if (hitOccludes(hit, ray.maxDistance)) {
         occlusion[id] = makeOcclusion(ray, true);
         return;

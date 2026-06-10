@@ -3456,7 +3456,7 @@ rendercli_assert_image_nonempty("${wavefront_torus_backend_cpu_render}"
                                 NAME "CPU wavefront Torus backend baseline pixels")
 
 rendercli_run(
-  NAME "rendercli reports packed Torus wavefront GPU fallback metrics"
+  NAME "rendercli reports Torus wavefront GPU request metrics"
   OUTPUT_VARIABLE wavefront_torus_backend_gpu_stdout
   COMMAND
     "${RENDERCLI}" --engine wavefront --width 16 --height 16 --depth 4
@@ -3468,22 +3468,22 @@ rendercli_assert_image_nonempty("${wavefront_torus_backend_gpu_render}"
 rendercli_assert_image_rms_at_most("${wavefront_torus_backend_cpu_render}"
                                    "${wavefront_torus_backend_gpu_render}" 0.001
                                    NAME
-                                     "wavefront packed Torus GPU-request RMS matches CPU backend")
+                                     "wavefront Torus GPU-request RMS matches CPU backend")
 foreach(expectation
         "intersection_backend_request=gpu"
-        "intersection_backend=cpu"
-        "intersection_backend_availability=fallback"
-        "intersection_backend_execution=packed_cpu"
-        "closest_hit_execution=packed_cpu"
+        "intersection_backend=(cpu|metal|vulkan)"
+        "intersection_backend_availability=(available|fallback)"
+        "intersection_backend_execution=(packed_cpu|metal|vulkan)"
+        "closest_hit_execution=(packed_cpu|metal|vulkan)"
         "intersection_scene_compiled=true"
         "intersection_scene_unsupported=0"
         "intersection_scene_tori=1"
-        "intersection_scene_basic_hit_kernel_eligible=false"
+        "intersection_scene_basic_hit_kernel_eligible=true"
         "intersection_scene_packed_closest_hit_eligible=true"
         "intersection_scene_packed_any_hit_eligible=true")
   if(NOT wavefront_torus_backend_gpu_stdout MATCHES "${expectation}")
-    _rendercli_fail("rendercli packed Torus wavefront backend summary ${expectation}"
-                    "packed Torus wavefront backend summary did not match ${expectation}"
+    _rendercli_fail("rendercli Torus wavefront backend summary ${expectation}"
+                    "Torus wavefront backend summary did not match ${expectation}"
                     "${wavefront_torus_backend_gpu_stdout}" "" "" "")
   endif()
 endforeach()

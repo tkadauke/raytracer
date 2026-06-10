@@ -341,7 +341,7 @@ namespace GpuIntersectionSceneTest {
               buffers.uploadByteCount());
   }
 
-  TEST(GpuIntersectionScene, PacksTorusForPackedCpuTraversalOnly) {
+  TEST(GpuIntersectionScene, PacksTorusForBasicKernelTraversal) {
     Scene scene;
     scene.add(std::make_shared<Torus>(2.0, 0.5));
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
@@ -357,7 +357,7 @@ namespace GpuIntersectionSceneTest {
     expectVector(buffers.tori[0].sweptTubeRadius, 2.0f, 0.5f, 0.0f, 0.0f);
 
     EXPECT_FALSE(buffers.triangleClosestHitKernelEligible());
-    EXPECT_FALSE(buffers.basicHitKernelEligible());
+    EXPECT_TRUE(buffers.basicHitKernelEligible());
     EXPECT_TRUE(buffers.packedClosestHitKernelEligible());
     EXPECT_TRUE(buffers.packedAnyHitKernelEligible());
     EXPECT_EQ(buffers.bvh.size() * sizeof(GpuIntersectionBvhNode) +

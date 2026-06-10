@@ -43,6 +43,7 @@ namespace render {
               "constant uint rectangleKind = 4u;\n"
               "constant uint diskKind = 5u;\n"
               "constant uint openCylinderKind = 6u;\n"
+              "constant uint torusKind = 7u;\n"
               "constant float kernelEpsilon = 1.1920928955078125e-7f;\n"
               "constant float rayOcclusionEpsilon = 4.0e-7f;\n"
               "float positiveInfinity() {\n"
@@ -100,6 +101,9 @@ namespace render {
               "};\n"
               "struct OpenCylinderPayload {\n"
               "  float4 radiusHalfHeight;\n"
+              "};\n"
+              "struct TorusPayload {\n"
+              "  float4 sweptTubeRadius;\n"
               "};\n"
               "struct TransformPayload {\n"
               "  float4 pointMatrix0;\n"
@@ -475,6 +479,184 @@ namespace render {
               "  result.uv = float4(u, v, 0.0f, 0.0f);\n"
               "  return result;\n"
               "}\n"
+              "bool almostZero(float value) {\n"
+              "  return abs(value) <= kernelEpsilon * 10.0f;\n"
+              "}\n"
+              "float cubeRoot(float value) {\n"
+              "  return value < 0.0f ? -pow(-value, 1.0f / 3.0f) : pow(value, 1.0f / 3.0f);\n"
+              "}\n"
+              "uint solveQuadric(float a, float b, float c, thread float* roots) {\n"
+              "  if (almostZero(a)) {\n"
+              "    if (almostZero(b)) {\n"
+              "      return 0u;\n"
+              "    }\n"
+              "    roots[0] = -c / b;\n"
+              "    return 1u;\n"
+              "  }\n"
+              "  const float determinant = b * b - 4.0f * a * c;\n"
+              "  if (almostZero(determinant)) {\n"
+              "    roots[0] = -b / (2.0f * a);\n"
+              "    return 1u;\n"
+              "  }\n"
+              "  if (determinant > 0.0f) {\n"
+              "    const float determinantRoot = sqrt(determinant);\n"
+              "    roots[0] = (-determinantRoot - b) / (2.0f * a);\n"
+              "    roots[1] = (determinantRoot - b) / (2.0f * a);\n"
+              "    return 2u;\n"
+              "  }\n"
+              "  return 0u;\n"
+              "}\n"
+              "uint solveCubic(float a, float b, float c, float d, thread float* roots) {\n"
+              "  if (almostZero(a)) {\n"
+              "    return solveQuadric(b, c, d, roots);\n"
+              "  }\n"
+              "  const float normA = b / a;\n"
+              "  const float normB = c / a;\n"
+              "  const float normC = d / a;\n"
+              "  const float normASquared = normA * normA;\n"
+              "  const float p = (-(1.0f / 3.0f) * normASquared + normB) / 3.0f;\n"
+              "  const float q = (2.0f / 27.0f * normA * normASquared -\n"
+              "                   (1.0f / 3.0f) * normA * normB + normC) / 2.0f;\n"
+              "  const float pCube = p * p * p;\n"
+              "  const float determinant = q * q + pCube;\n"
+              "  uint count = 0u;\n"
+              "  if (almostZero(determinant)) {\n"
+              "    if (almostZero(q)) {\n"
+              "      roots[0] = 0.0f;\n"
+              "      count = 1u;\n"
+              "    } else {\n"
+              "      const float root = cubeRoot(-q);\n"
+              "      roots[0] = 2.0f * root;\n"
+              "      roots[1] = -root;\n"
+              "      count = 2u;\n"
+              "    }\n"
+              "  } else if (determinant < 0.0f) {\n"
+              "    const float pi = 3.14159265358979323846f;\n"
+              "    const float phi = acos(clamp(-q / sqrt(-pCube), -1.0f, 1.0f)) / 3.0f;\n"
+              "    const float t = 2.0f * sqrt(-p);\n"
+              "    roots[0] = t * cos(phi);\n"
+              "    roots[1] = -t * cos(phi + pi / 3.0f);\n"
+              "    roots[2] = -t * cos(phi - pi / 3.0f);\n"
+              "    count = 3u;\n"
+              "  } else {\n"
+              "    const float determinantRoot = sqrt(determinant);\n"
+              "    roots[0] = cubeRoot(determinantRoot - q) - cubeRoot(determinantRoot + q);\n"
+              "    count = 1u;\n"
+              "  }\n"
+              "  const float sub = normA / 3.0f;\n"
+              "  for (uint index = 0u; index != count; ++index) {\n"
+              "    roots[index] -= sub;\n"
+              "  }\n"
+              "  return count;\n"
+              "}\n"
+              "uint solveQuartic(float a, float b, float c, float d, float e,\n"
+              "                  thread float* roots) {\n"
+              "  if (almostZero(a)) {\n"
+              "    return solveCubic(b, c, d, e, roots);\n"
+              "  }\n"
+              "  const float normA = b / a;\n"
+              "  const float normB = c / a;\n"
+              "  const float normC = d / a;\n"
+              "  const float normD = e / a;\n"
+              "  const float normASquared = normA * normA;\n"
+              "  const float p = -3.0f / 8.0f * normASquared + normB;\n"
+              "  const float q = 1.0f / 8.0f * normASquared * normA -\n"
+              "                  0.5f * normA * normB + normC;\n"
+              "  const float r = -3.0f / 256.0f * normASquared * normASquared +\n"
+              "                  1.0f / 16.0f * normASquared * normB -\n"
+              "                  0.25f * normA * normC + normD;\n"
+              "  uint count = 0u;\n"
+              "  if (almostZero(r)) {\n"
+              "    thread float cubicRoots[3];\n"
+              "    const uint cubicCount = solveCubic(1.0f, 0.0f, p, q, cubicRoots);\n"
+              "    for (uint index = 0u; index != cubicCount; ++index) {\n"
+              "      roots[count++] = cubicRoots[index];\n"
+              "    }\n"
+              "  } else {\n"
+              "    thread float cubicRoots[3];\n"
+              "    const uint cubicCount = solveCubic(1.0f, -0.5f * p, -r,\n"
+              "                                       0.5f * r * p - 0.125f * q * q,\n"
+              "                                       cubicRoots);\n"
+              "    if (cubicCount == 0u) {\n"
+              "      return 0u;\n"
+              "    }\n"
+              "    const float z = cubicRoots[0];\n"
+              "    float u = z * z - r;\n"
+              "    float v = 2.0f * z - p;\n"
+              "    const float uTol = kernelEpsilon * 16.0f * (1.0f + abs(z * z) + abs(r));\n"
+              "    const float vTol = kernelEpsilon * 16.0f * (1.0f + abs(2.0f * z) + abs(p));\n"
+              "    if (u < -uTol || v < -vTol) {\n"
+              "      return 0u;\n"
+              "    }\n"
+              "    u = u <= 0.0f ? 0.0f : sqrt(u);\n"
+              "    v = v <= 0.0f ? 0.0f : sqrt(v);\n"
+              "    thread float quadRoots[2];\n"
+              "    uint quadCount = solveQuadric(1.0f, q < 0.0f ? -v : v, z - u, quadRoots);\n"
+              "    for (uint index = 0u; index != quadCount; ++index) {\n"
+              "      roots[count++] = quadRoots[index];\n"
+              "    }\n"
+              "    quadCount = solveQuadric(1.0f, q < 0.0f ? v : -v, z + u, quadRoots);\n"
+              "    for (uint index = 0u; index != quadCount; ++index) {\n"
+              "      roots[count++] = quadRoots[index];\n"
+              "    }\n"
+              "  }\n"
+              "  const float sub = 0.25f * normA;\n"
+              "  for (uint index = 0u; index != count; ++index) {\n"
+              "    roots[index] -= sub;\n"
+              "  }\n"
+              "  for (uint i = 1u; i < count; ++i) {\n"
+              "    const float value = roots[i];\n"
+              "    uint j = i;\n"
+              "    while (j > 0u && roots[j - 1u] > value) {\n"
+              "      roots[j] = roots[j - 1u];\n"
+              "      --j;\n"
+              "    }\n"
+              "    roots[j] = value;\n"
+              "  }\n"
+              "  return count;\n"
+              "}\n"
+              "LocalHit intersectTorus(RayRecord ray, TorusPayload torus) {\n"
+              "  LocalHit result = makeLocalMiss();\n"
+              "  const float sweptRadius = torus.sweptTubeRadius.x;\n"
+              "  const float tubeRadius = torus.sweptTubeRadius.y;\n"
+              "  const float dd = dot(ray.direction.xyz, ray.direction.xyz);\n"
+              "  const float oorr = dot(ray.origin.xyz, ray.origin.xyz) -\n"
+              "                     sweptRadius * sweptRadius - tubeRadius * tubeRadius;\n"
+              "  const float od = dot(ray.origin.xyz, ray.direction.xyz);\n"
+              "  const float fourRR = 4.0f * sweptRadius * sweptRadius;\n"
+              "  thread float roots[4];\n"
+              "  const uint rootCount = solveQuartic(\n"
+              "    dd * dd,\n"
+              "    4.0f * dd * od,\n"
+              "    2.0f * dd * oorr + 4.0f * od * od + fourRR * ray.direction.y * ray.direction.y,\n"
+              "    4.0f * od * oorr + 2.0f * fourRR * ray.origin.y * ray.direction.y,\n"
+              "    oorr * oorr - fourRR * (tubeRadius * tubeRadius - ray.origin.y * ray.origin.y),\n"
+              "    roots);\n"
+              "  float bestDistance = positiveInfinity();\n"
+              "  for (uint index = 0u; index != rootCount; ++index) {\n"
+              "    const float distance = roots[index];\n"
+              "    if (distance <= 0.0f || distance < ray.minDistance ||\n"
+              "        distance > ray.maxDistance || distance >= bestDistance) {\n"
+              "      continue;\n"
+              "    }\n"
+              "    bestDistance = distance;\n"
+              "  }\n"
+              "  if (!isfinite(bestDistance)) {\n"
+              "    return result;\n"
+              "  }\n"
+              "  result.hit = true;\n"
+              "  result.distance = bestDistance;\n"
+              "  result.point = ray.origin + ray.direction * bestDistance;\n"
+              "  result.point.w = 1.0f;\n"
+              "  const float paramSquared = sweptRadius * sweptRadius + tubeRadius * tubeRadius;\n"
+              "  const float sumSquared = dot(result.point.xyz, result.point.xyz);\n"
+              "  result.normal = float4(normalize(float3(\n"
+              "    4.0f * result.point.x * (sumSquared - paramSquared),\n"
+              "    4.0f * result.point.y *\n"
+              "      (sumSquared - paramSquared + 2.0f * sweptRadius * sweptRadius),\n"
+              "    4.0f * result.point.z * (sumSquared - paramSquared))), 0.0f);\n"
+              "  return result;\n"
+              "}\n"
               "LocalHit intersectPrimitive(RayRecord ray, PrimitiveRecord primitive,\n"
               "                            device const TrianglePayload* triangles,\n"
               "                            device const SpherePayload* spheres,\n"
@@ -482,10 +664,11 @@ namespace render {
               "                            device const RectanglePayload* rectangles,\n"
               "                            device const DiskPayload* disks,\n"
               "                            device const OpenCylinderPayload* openCylinders,\n"
+              "                            device const TorusPayload* tori,\n"
               "                            device const TransformPayload* transforms,\n"
               "                            uint triangleCount, uint sphereCount, uint planeCount,\n"
               "                            uint rectangleCount, uint diskCount,\n"
-              "                            uint openCylinderCount,\n"
+              "                            uint openCylinderCount, uint torusCount,\n"
               "                            uint transformCount) {\n"
               "  if (primitive.payloadCount == 0u) {\n"
               "    return makeLocalMiss();\n"
@@ -515,6 +698,8 @@ namespace render {
               "  } else if (primitive.kind == openCylinderKind &&\n"
               "             primitive.payloadOffset < openCylinderCount) {\n"
               "    hit = intersectOpenCylinder(primitiveRay, openCylinders[primitive.payloadOffset]);\n"
+              "  } else if (primitive.kind == torusKind && primitive.payloadOffset < torusCount) {\n"
+              "    hit = intersectTorus(primitiveRay, tori[primitive.payloadOffset]);\n"
               "  }\n"
               "  if (hasTransform) {\n"
               "    return transformHit(hit, transform);\n"
@@ -567,12 +752,13 @@ namespace render {
               "                                  device const RectanglePayload* rectangles [[buffer(5)]],\n"
               "                                  device const DiskPayload* disks [[buffer(6)]],\n"
               "                                  device const OpenCylinderPayload* openCylinders [[buffer(7)]],\n"
-              "                                  device const TransformPayload* transforms [[buffer(8)]],\n"
-              "                                  device const RayRecord* rays [[buffer(9)]],\n"
-              "                                  device HitRecord* hits [[buffer(10)]],\n"
-              "                                  constant uint4& counts0 [[buffer(11)]],\n"
-              "                                  constant uint4& counts1 [[buffer(12)]],\n"
-              "                                  constant uint4& counts2 [[buffer(13)]],\n"
+              "                                  device const TorusPayload* tori [[buffer(8)]],\n"
+              "                                  device const TransformPayload* transforms [[buffer(9)]],\n"
+              "                                  device const RayRecord* rays [[buffer(10)]],\n"
+              "                                  device HitRecord* hits [[buffer(11)]],\n"
+              "                                  constant uint4& counts0 [[buffer(12)]],\n"
+              "                                  constant uint4& counts1 [[buffer(13)]],\n"
+              "                                  constant uint4& counts2 [[buffer(14)]],\n"
               "                                  uint id [[thread_position_in_grid]]) {\n"
               "  const uint bvhCount = counts0.x;\n"
               "  const uint primitiveCount = counts0.y;\n"
@@ -584,6 +770,7 @@ namespace render {
               "  const uint openCylinderCount = counts1.w;\n"
               "  const uint rayCount = counts2.x;\n"
               "  const uint transformCount = counts2.y;\n"
+              "  const uint torusCount = counts2.z;\n"
               "  if (id >= rayCount) {\n"
               "    return;\n"
               "  }\n"
@@ -642,9 +829,9 @@ namespace render {
               "      }\n"
               "      const LocalHit hit = intersectPrimitive(\n"
               "        ray, primitive, triangles, spheres, planes, rectangles, disks,\n"
-              "        openCylinders, transforms,\n"
+              "        openCylinders, tori, transforms,\n"
               "        triangleCount, sphereCount, planeCount, rectangleCount, diskCount,\n"
-              "        openCylinderCount, transformCount);\n"
+              "        openCylinderCount, torusCount, transformCount);\n"
               "      if (!hit.hit || (closest.hit != 0u && hit.distance >= closest.distance)) {\n"
               "        continue;\n"
               "      }\n"
@@ -670,12 +857,13 @@ namespace render {
               "                              device const RectanglePayload* rectangles [[buffer(5)]],\n"
               "                              device const DiskPayload* disks [[buffer(6)]],\n"
               "                              device const OpenCylinderPayload* openCylinders [[buffer(7)]],\n"
-              "                              device const TransformPayload* transforms [[buffer(8)]],\n"
-              "                              device const RayRecord* rays [[buffer(9)]],\n"
-              "                              device OcclusionRecord* occlusion [[buffer(10)]],\n"
-              "                              constant uint4& counts0 [[buffer(11)]],\n"
-              "                              constant uint4& counts1 [[buffer(12)]],\n"
-              "                              constant uint4& counts2 [[buffer(13)]],\n"
+              "                              device const TorusPayload* tori [[buffer(8)]],\n"
+              "                              device const TransformPayload* transforms [[buffer(9)]],\n"
+              "                              device const RayRecord* rays [[buffer(10)]],\n"
+              "                              device OcclusionRecord* occlusion [[buffer(11)]],\n"
+              "                              constant uint4& counts0 [[buffer(12)]],\n"
+              "                              constant uint4& counts1 [[buffer(13)]],\n"
+              "                              constant uint4& counts2 [[buffer(14)]],\n"
               "                              uint id [[thread_position_in_grid]]) {\n"
               "  const uint bvhCount = counts0.x;\n"
               "  const uint primitiveCount = counts0.y;\n"
@@ -687,6 +875,7 @@ namespace render {
               "  const uint openCylinderCount = counts1.w;\n"
               "  const uint rayCount = counts2.x;\n"
               "  const uint transformCount = counts2.y;\n"
+              "  const uint torusCount = counts2.z;\n"
               "  if (id >= rayCount) {\n"
               "    return;\n"
               "  }\n"
@@ -725,9 +914,9 @@ namespace render {
               "      }\n"
               "      const LocalHit hit = intersectPrimitive(\n"
               "        ray, primitive, triangles, spheres, planes, rectangles, disks,\n"
-              "        openCylinders, transforms,\n"
+              "        openCylinders, tori, transforms,\n"
               "        triangleCount, sphereCount, planeCount, rectangleCount, diskCount,\n"
-              "        openCylinderCount, transformCount);\n"
+              "        openCylinderCount, torusCount, transformCount);\n"
               "      if (hitOccludes(hit, ray.maxDistance)) {\n"
               "        occlusion[id] = makeOcclusion(ray, true);\n"
               "        return;\n"
@@ -901,10 +1090,12 @@ namespace render {
     id<MTLBuffer> rectangleBuffer{nil};
     id<MTLBuffer> diskBuffer{nil};
     id<MTLBuffer> openCylinderBuffer{nil};
+    id<MTLBuffer> torusBuffer{nil};
     id<MTLBuffer> transformBuffer{nil};
     id<MTLBuffer> counts0Buffer{nil};
     id<MTLBuffer> counts1Buffer{nil};
     std::uint32_t transformCount{0};
+    std::uint32_t torusCount{0};
     mutable std::mutex queryBufferMutex;
 
     struct QueryBuffers {
@@ -967,6 +1158,7 @@ namespace render {
       [rectangleBuffer release];
       [diskBuffer release];
       [openCylinderBuffer release];
+      [torusBuffer release];
       [transformBuffer release];
       [counts0Buffer release];
       [counts1Buffer release];
@@ -1053,7 +1245,7 @@ namespace render {
       const std::array<std::uint32_t, 4> counts{
         static_cast<std::uint32_t>(rayCount),
         transformCount,
-        0u,
+        torusCount,
         0u,
       };
       std::memcpy(buffers.counts2Buffer.contents, counts.data(),
@@ -1070,13 +1262,14 @@ namespace render {
       [encoder setBuffer:rectangleBuffer offset:0 atIndex:5];
       [encoder setBuffer:diskBuffer offset:0 atIndex:6];
       [encoder setBuffer:openCylinderBuffer offset:0 atIndex:7];
-      [encoder setBuffer:transformBuffer offset:0 atIndex:8];
+      [encoder setBuffer:torusBuffer offset:0 atIndex:8];
+      [encoder setBuffer:transformBuffer offset:0 atIndex:9];
     }
 
     void setCountBuffers(id<MTLComputeCommandEncoder> encoder, id<MTLBuffer> counts2Buffer) const {
-      [encoder setBuffer:counts0Buffer offset:0 atIndex:11];
-      [encoder setBuffer:counts1Buffer offset:0 atIndex:12];
-      [encoder setBuffer:counts2Buffer offset:0 atIndex:13];
+      [encoder setBuffer:counts0Buffer offset:0 atIndex:12];
+      [encoder setBuffer:counts1Buffer offset:0 atIndex:13];
+      [encoder setBuffer:counts2Buffer offset:0 atIndex:14];
     }
   };
 
@@ -1106,8 +1299,10 @@ namespace render {
       p->rectangleBuffer = newPayloadBufferFromVector(device, scene.rectangles);
       p->diskBuffer = newPayloadBufferFromVector(device, scene.disks);
       p->openCylinderBuffer = newPayloadBufferFromVector(device, scene.openCylinders);
+      p->torusBuffer = newPayloadBufferFromVector(device, scene.tori);
       p->transformBuffer = newPayloadBufferFromVector(device, scene.transforms);
       p->transformCount = static_cast<std::uint32_t>(scene.transforms.size());
+      p->torusCount = static_cast<std::uint32_t>(scene.tori.size());
 
       const std::array<std::uint32_t, 4> counts0{
         static_cast<std::uint32_t>(scene.bvh.size()),
@@ -1132,7 +1327,7 @@ namespace render {
 
       if (!p->bvhBuffer || !p->primitiveBuffer || !p->triangleBuffer || !p->sphereBuffer ||
           !p->planeBuffer || !p->rectangleBuffer || !p->diskBuffer ||
-          !p->openCylinderBuffer || !p->transformBuffer || !p->counts0Buffer ||
+          !p->openCylinderBuffer || !p->torusBuffer || !p->transformBuffer || !p->counts0Buffer ||
           !p->counts1Buffer) {
         throw std::runtime_error("Metal prepared wavefront scene buffer allocation failed");
       }
@@ -1175,8 +1370,8 @@ namespace render {
 
       [encoder setComputePipelineState:pipeline];
       p->setSceneBuffers(encoder);
-      [encoder setBuffer:rayBuffer offset:0 atIndex:9];
-      [encoder setBuffer:hitBuffer offset:0 atIndex:10];
+      [encoder setBuffer:rayBuffer offset:0 atIndex:10];
+      [encoder setBuffer:hitBuffer offset:0 atIndex:11];
       p->setCountBuffers(encoder, counts2Buffer);
       dispatchOneDimensional(encoder, pipeline, rays.size());
       [encoder endEncoding];
@@ -1234,8 +1429,8 @@ namespace render {
 
       [encoder setComputePipelineState:pipeline];
       p->setSceneBuffers(encoder);
-      [encoder setBuffer:rayBuffer offset:0 atIndex:9];
-      [encoder setBuffer:occlusionBuffer offset:0 atIndex:10];
+      [encoder setBuffer:rayBuffer offset:0 atIndex:10];
+      [encoder setBuffer:occlusionBuffer offset:0 atIndex:11];
       p->setCountBuffers(encoder, counts2Buffer);
       dispatchOneDimensional(encoder, pipeline, rays.size());
       [encoder endEncoding];
@@ -1345,6 +1540,7 @@ namespace render {
       id<MTLBuffer> rectangleBuffer = newPayloadBufferFromVector(device, scene.rectangles);
       id<MTLBuffer> diskBuffer = newPayloadBufferFromVector(device, scene.disks);
       id<MTLBuffer> openCylinderBuffer = newPayloadBufferFromVector(device, scene.openCylinders);
+      id<MTLBuffer> torusBuffer = newPayloadBufferFromVector(device, scene.tori);
       id<MTLBuffer> transformBuffer = newPayloadBufferFromVector(device, scene.transforms);
       id<MTLBuffer> rayBuffer = newBufferFromVector(device, rays);
       const std::vector<GpuIntersectionHitRecord> initialHits(rays.size());
@@ -1364,7 +1560,7 @@ namespace render {
       const std::array<std::uint32_t, 4> counts2{
         static_cast<std::uint32_t>(rays.size()),
         static_cast<std::uint32_t>(scene.transforms.size()),
-        0u,
+        static_cast<std::uint32_t>(scene.tori.size()),
         0u,
       };
       id<MTLBuffer> counts0Buffer =
@@ -1380,7 +1576,8 @@ namespace render {
                              length:counts2.size() * sizeof(std::uint32_t)
                             options:MTLResourceStorageModeShared];
       if (!bvhBuffer || !primitiveBuffer || !triangleBuffer || !sphereBuffer || !planeBuffer ||
-          !rectangleBuffer || !diskBuffer || !openCylinderBuffer || !transformBuffer ||
+          !rectangleBuffer || !diskBuffer || !openCylinderBuffer || !torusBuffer ||
+          !transformBuffer ||
           !rayBuffer || !hitBuffer || !counts0Buffer || !counts1Buffer || !counts2Buffer) {
         throw std::runtime_error("Metal wavefront basic hit kernel buffer allocation failed");
       }
@@ -1402,12 +1599,13 @@ namespace render {
       [encoder setBuffer:rectangleBuffer offset:0 atIndex:5];
       [encoder setBuffer:diskBuffer offset:0 atIndex:6];
       [encoder setBuffer:openCylinderBuffer offset:0 atIndex:7];
-      [encoder setBuffer:transformBuffer offset:0 atIndex:8];
-      [encoder setBuffer:rayBuffer offset:0 atIndex:9];
-      [encoder setBuffer:hitBuffer offset:0 atIndex:10];
-      [encoder setBuffer:counts0Buffer offset:0 atIndex:11];
-      [encoder setBuffer:counts1Buffer offset:0 atIndex:12];
-      [encoder setBuffer:counts2Buffer offset:0 atIndex:13];
+      [encoder setBuffer:torusBuffer offset:0 atIndex:8];
+      [encoder setBuffer:transformBuffer offset:0 atIndex:9];
+      [encoder setBuffer:rayBuffer offset:0 atIndex:10];
+      [encoder setBuffer:hitBuffer offset:0 atIndex:11];
+      [encoder setBuffer:counts0Buffer offset:0 atIndex:12];
+      [encoder setBuffer:counts1Buffer offset:0 atIndex:13];
+      [encoder setBuffer:counts2Buffer offset:0 atIndex:14];
       dispatchOneDimensional(encoder, pipeline, rays.size());
       [encoder endEncoding];
       const auto kernelStart = std::chrono::steady_clock::now();
@@ -1466,6 +1664,7 @@ namespace render {
       id<MTLBuffer> rectangleBuffer = newPayloadBufferFromVector(device, scene.rectangles);
       id<MTLBuffer> diskBuffer = newPayloadBufferFromVector(device, scene.disks);
       id<MTLBuffer> openCylinderBuffer = newPayloadBufferFromVector(device, scene.openCylinders);
+      id<MTLBuffer> torusBuffer = newPayloadBufferFromVector(device, scene.tori);
       id<MTLBuffer> transformBuffer = newPayloadBufferFromVector(device, scene.transforms);
       id<MTLBuffer> rayBuffer = newBufferFromVector(device, rays);
       const std::vector<GpuIntersectionOcclusionRecord> initialRecords(rays.size());
@@ -1485,7 +1684,7 @@ namespace render {
       const std::array<std::uint32_t, 4> counts2{
         static_cast<std::uint32_t>(rays.size()),
         static_cast<std::uint32_t>(scene.transforms.size()),
-        0u,
+        static_cast<std::uint32_t>(scene.tori.size()),
         0u,
       };
       id<MTLBuffer> counts0Buffer =
@@ -1501,7 +1700,8 @@ namespace render {
                              length:counts2.size() * sizeof(std::uint32_t)
                             options:MTLResourceStorageModeShared];
       if (!bvhBuffer || !primitiveBuffer || !triangleBuffer || !sphereBuffer || !planeBuffer ||
-          !rectangleBuffer || !diskBuffer || !openCylinderBuffer || !transformBuffer ||
+          !rectangleBuffer || !diskBuffer || !openCylinderBuffer || !torusBuffer ||
+          !transformBuffer ||
           !rayBuffer || !occlusionBuffer || !counts0Buffer || !counts1Buffer || !counts2Buffer) {
         throw std::runtime_error("Metal wavefront basic any-hit buffer allocation failed");
       }
@@ -1523,12 +1723,13 @@ namespace render {
       [encoder setBuffer:rectangleBuffer offset:0 atIndex:5];
       [encoder setBuffer:diskBuffer offset:0 atIndex:6];
       [encoder setBuffer:openCylinderBuffer offset:0 atIndex:7];
-      [encoder setBuffer:transformBuffer offset:0 atIndex:8];
-      [encoder setBuffer:rayBuffer offset:0 atIndex:9];
-      [encoder setBuffer:occlusionBuffer offset:0 atIndex:10];
-      [encoder setBuffer:counts0Buffer offset:0 atIndex:11];
-      [encoder setBuffer:counts1Buffer offset:0 atIndex:12];
-      [encoder setBuffer:counts2Buffer offset:0 atIndex:13];
+      [encoder setBuffer:torusBuffer offset:0 atIndex:8];
+      [encoder setBuffer:transformBuffer offset:0 atIndex:9];
+      [encoder setBuffer:rayBuffer offset:0 atIndex:10];
+      [encoder setBuffer:occlusionBuffer offset:0 atIndex:11];
+      [encoder setBuffer:counts0Buffer offset:0 atIndex:12];
+      [encoder setBuffer:counts1Buffer offset:0 atIndex:13];
+      [encoder setBuffer:counts2Buffer offset:0 atIndex:14];
       dispatchOneDimensional(encoder, pipeline, rays.size());
       [encoder endEncoding];
       const auto kernelStart = std::chrono::steady_clock::now();

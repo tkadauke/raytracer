@@ -95,7 +95,7 @@ namespace render {
           anyShaderGuard.device = device;
           anyShaderGuard.shaderModule = anyShader;
 
-          VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 12);
+          VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 13);
           DescriptorLayoutGuard descriptorLayoutGuard;
           descriptorLayoutGuard.device = device;
           descriptorLayoutGuard.layout = descriptorLayout;
@@ -287,6 +287,8 @@ namespace render {
         bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, scene.openCylinders));
         bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.tori));
+        bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, scene.transforms));
         bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, rays));
@@ -307,7 +309,7 @@ namespace render {
           static_cast<std::uint32_t>(scene.openCylinders.size()),
           static_cast<std::uint32_t>(rays.size()),
           static_cast<std::uint32_t>(scene.transforms.size()),
-          0u,
+          static_cast<std::uint32_t>(scene.tori.size()),
           0u,
         };
         bufferGuard.buffers.push_back(
@@ -361,7 +363,7 @@ namespace render {
 
         const auto readbackStart = std::chrono::steady_clock::now();
         result.hits = readBackRecords<GpuIntersectionHitRecord>(
-          device, bufferGuard.buffers[10].memory, hitByteCount, rays.size(),
+          device, bufferGuard.buffers[11].memory, hitByteCount, rays.size(),
           "Vulkan basic closest-hit output buffer mapping");
         const auto readbackEnd = std::chrono::steady_clock::now();
 
@@ -438,6 +440,8 @@ namespace render {
         bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, scene.openCylinders));
         bufferGuard.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, scene.tori));
+        bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, scene.transforms));
         bufferGuard.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, rays));
@@ -458,7 +462,7 @@ namespace render {
           static_cast<std::uint32_t>(scene.openCylinders.size()),
           static_cast<std::uint32_t>(rays.size()),
           static_cast<std::uint32_t>(scene.transforms.size()),
-          0u,
+          static_cast<std::uint32_t>(scene.tori.size()),
           0u,
         };
         bufferGuard.buffers.push_back(
@@ -512,7 +516,7 @@ namespace render {
 
         const auto readbackStart = std::chrono::steady_clock::now();
         result.records = readBackRecords<GpuIntersectionOcclusionRecord>(
-          device, bufferGuard.buffers[10].memory, recordByteCount, rays.size(),
+          device, bufferGuard.buffers[11].memory, recordByteCount, rays.size(),
           "Vulkan basic any-hit output buffer mapping");
         const auto readbackEnd = std::chrono::steady_clock::now();
 
@@ -1032,7 +1036,7 @@ namespace render {
         device = createDevice(physicalDevice, queueFamily);
         vkGetDeviceQueue(device, queueFamily, 0, &queue);
 
-        sceneBuffers.reserve(9);
+        sceneBuffers.reserve(10);
         sceneBuffers.push_back(createStorageBufferFromVector(scene.bvh));
         sceneBuffers.push_back(createStorageBufferFromVector(scene.primitives));
         sceneBuffers.push_back(createStorageBufferFromVector(scene.triangles));
@@ -1041,6 +1045,7 @@ namespace render {
         sceneBuffers.push_back(createStorageBufferFromVector(scene.rectangles));
         sceneBuffers.push_back(createStorageBufferFromVector(scene.disks));
         sceneBuffers.push_back(createStorageBufferFromVector(scene.openCylinders));
+        sceneBuffers.push_back(createStorageBufferFromVector(scene.tori));
         sceneBuffers.push_back(createStorageBufferFromVector(scene.transforms));
 
         sceneCounts0 = {
@@ -1056,12 +1061,13 @@ namespace render {
           static_cast<std::uint32_t>(scene.openCylinders.size()),
         };
         transformCount = static_cast<std::uint32_t>(scene.transforms.size());
+        torusCount = static_cast<std::uint32_t>(scene.tori.size());
 
         closestShader = createShaderModule(vulkan_shaders::triangleClosestHitShaderSpirv.data(),
                                            vulkan_shaders::triangleClosestHitShaderSpirv.size());
         anyShader = createShaderModule(vulkan_shaders::triangleAnyHitShaderSpirv.data(),
                                        vulkan_shaders::triangleAnyHitShaderSpirv.size());
-        descriptorLayout = createDescriptorLayout(12);
+        descriptorLayout = createDescriptorLayout(13);
         pipelineLayout = createPipelineLayout(descriptorLayout);
         closestPipeline = createPipeline(closestShader);
         anyPipeline = createPipeline(anyShader);
@@ -1238,24 +1244,16 @@ namespace render {
                   "Vulkan prepared wavefront ray buffer mapping");
 
       const std::array<std::uint32_t, 12> counts{
-        sceneCounts0[0],
-        sceneCounts0[1],
-        sceneCounts0[2],
-        sceneCounts0[3],
-        sceneCounts1[0],
-        sceneCounts1[1],
-        sceneCounts1[2],
-        sceneCounts1[3],
-        static_cast<std::uint32_t>(rays.size()),
-        transformCount,
-        0u,
-        0u,
+        sceneCounts0[0], sceneCounts0[1], sceneCounts0[2],
+        sceneCounts0[3], sceneCounts1[0], sceneCounts1[1],
+        sceneCounts1[2], sceneCounts1[3], static_cast<std::uint32_t>(rays.size()),
+        transformCount,  torusCount,      0u,
       };
       writeBuffer(queryBuffers.get().counts, sizeof(counts), counts.data(),
                   "Vulkan prepared wavefront count buffer mapping");
 
       std::vector<std::pair<VkBuffer, VkDeviceSize>> descriptors;
-      descriptors.reserve(12);
+      descriptors.reserve(13);
       for (const SmokeBuffer& buffer : sceneBuffers) {
         descriptors.push_back({buffer.buffer, buffer.byteCount});
       }
@@ -1266,7 +1264,7 @@ namespace render {
 
       DescriptorPoolGuard descriptorPool;
       descriptorPool.device = device;
-      descriptorPool.pool = createDescriptorPool(12);
+      descriptorPool.pool = createDescriptorPool(13);
       VkDescriptorSet descriptorSet = allocateDescriptorSet(descriptorPool.pool);
       updateDescriptorSet(descriptorSet, descriptors);
 
@@ -1722,6 +1720,7 @@ namespace render {
     std::array<std::uint32_t, 4> sceneCounts0{};
     std::array<std::uint32_t, 4> sceneCounts1{};
     std::uint32_t transformCount{0};
+    std::uint32_t torusCount{0};
     mutable std::mutex queryBufferMutex;
     mutable std::mutex queueSubmitMutex;
     mutable std::vector<std::unique_ptr<QueryBuffers>> queryBufferPool;

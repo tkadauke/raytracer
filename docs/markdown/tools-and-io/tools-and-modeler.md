@@ -160,11 +160,11 @@ the first unsupported primitive as the fallback reason. Supported scenes retain
 that compiled record set on the scene-created Metal/Vulkan backend object,
 ready for upload-backed work. Metal- and Vulkan-enabled builds prove a tiny
 upload/dispatch/readback smoke kernel and can execute triangle, sphere, plane,
-rectangle, disk, OpenCylinder, and static-transform closest-hit and any-hit
-queries through packed-ABI platform kernels in the render path. Prepared scenes
-outside that basic subset still run through the packed upload buffers via a CPU
-traversal with the same hit-record and visibility contract that future wider
-kernels must write.
+rectangle, disk, OpenCylinder, Torus, and static-transform closest-hit and
+any-hit queries through packed-ABI platform kernels in the render path. Prepared
+scenes outside that basic subset still run through the packed upload buffers via
+a CPU traversal with the same hit-record and visibility contract that future
+wider kernels must write.
 Wavefront metrics and
 `--wavefront_metrics_summary` expose the compiled-scene primitive, BVH,
 payload, unsupported-leaf counts, basic-kernel, packed closest-hit, and packed any-hit

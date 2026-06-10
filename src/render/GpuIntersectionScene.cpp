@@ -95,7 +95,7 @@ bool GpuIntersectionSceneBuffers::primitiveHasBasicHitKernelTraversal(
   case GpuIntersectionPrimitiveKind::OpenCylinder:
     return primitive.payloadOffset < openCylinders.size();
   case GpuIntersectionPrimitiveKind::Torus:
-    return false;
+    return primitive.payloadOffset < tori.size();
   case GpuIntersectionPrimitiveKind::Unsupported:
     return false;
   }
