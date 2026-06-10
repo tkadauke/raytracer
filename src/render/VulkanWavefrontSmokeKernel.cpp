@@ -1065,7 +1065,6 @@ namespace render {
         pipelineLayout = createPipelineLayout(descriptorLayout);
         closestPipeline = createPipeline(closestShader);
         anyPipeline = createPipeline(anyShader);
-        commandPool = createCommandPool();
       } catch (...) {
         cleanup();
         throw;
@@ -1078,14 +1077,10 @@ namespace render {
 
     void cleanup() {
       if (device) {
-        for (QueryBuffers& buffers : queryBufferPool) {
-          destroy(buffers);
+        for (const auto& buffers : queryBufferPool) {
+          destroy(*buffers);
         }
         queryBufferPool.clear();
-        if (commandPool) {
-          vkDestroyCommandPool(device, commandPool, nullptr);
-          commandPool = VK_NULL_HANDLE;
-        }
         if (closestPipeline) {
           vkDestroyPipeline(device, closestPipeline, nullptr);
           closestPipeline = VK_NULL_HANDLE;
@@ -1167,8 +1162,42 @@ namespace render {
       SmokeBuffer rays;
       SmokeBuffer output;
       SmokeBuffer counts;
+      VkCommandPool commandPool{VK_NULL_HANDLE};
       VkDeviceSize rayCapacityBytes{0};
       VkDeviceSize outputCapacityBytes{0};
+      bool inUse{false};
+    };
+
+    struct QueryBufferLease {
+      QueryBufferLease(const Private& owner, QueryBuffers& buffers)
+          : owner(&owner),
+            buffers(&buffers) {
+      }
+
+      QueryBufferLease(const QueryBufferLease&) = delete;
+      QueryBufferLease& operator=(const QueryBufferLease&) = delete;
+
+      QueryBufferLease(QueryBufferLease&& other) noexcept
+          : owner(other.owner),
+            buffers(other.buffers) {
+        other.owner = nullptr;
+        other.buffers = nullptr;
+      }
+
+      QueryBufferLease& operator=(QueryBufferLease&& other) noexcept = delete;
+
+      ~QueryBufferLease() {
+        if (owner && buffers) {
+          owner->releaseQueryBuffers(*buffers);
+        }
+      }
+
+      QueryBuffers& get() const {
+        return *buffers;
+      }
+
+      const Private* owner;
+      QueryBuffers* buffers;
     };
 
     struct DescriptorPoolGuard {
@@ -1198,16 +1227,14 @@ namespace render {
         throw std::runtime_error(std::string(operation) + " ray batch is too large");
       }
 
-      std::lock_guard<std::mutex> lock(dispatchMutex);
-
       DispatchRecordsResult<Record> result;
       const auto uploadStart = std::chrono::steady_clock::now();
       const VkDeviceSize rayBytes = byteCountForRecords<GpuIntersectionRay>(rays.size());
       const VkDeviceSize outputBytes = byteCountForRecords<Record>(rays.size());
 
-      QueryBuffers& queryBuffers = reusableQueryBuffers();
-      ensureQueryBufferCapacity(queryBuffers, rayBytes, outputBytes);
-      writeBuffer(queryBuffers.rays, rayBytes, rays.data(),
+      const QueryBufferLease queryBuffers = acquireQueryBuffers();
+      ensureQueryBufferCapacity(queryBuffers.get(), rayBytes, outputBytes);
+      writeBuffer(queryBuffers.get().rays, rayBytes, rays.data(),
                   "Vulkan prepared wavefront ray buffer mapping");
 
       const std::array<std::uint32_t, 12> counts{
@@ -1224,7 +1251,7 @@ namespace render {
         0u,
         0u,
       };
-      writeBuffer(queryBuffers.counts, sizeof(counts), counts.data(),
+      writeBuffer(queryBuffers.get().counts, sizeof(counts), counts.data(),
                   "Vulkan prepared wavefront count buffer mapping");
 
       std::vector<std::pair<VkBuffer, VkDeviceSize>> descriptors;
@@ -1232,9 +1259,10 @@ namespace render {
       for (const SmokeBuffer& buffer : sceneBuffers) {
         descriptors.push_back({buffer.buffer, buffer.byteCount});
       }
-      descriptors.push_back({queryBuffers.rays.buffer, rayBytes});
-      descriptors.push_back({queryBuffers.output.buffer, outputBytes});
-      descriptors.push_back({queryBuffers.counts.buffer, queryBuffers.counts.byteCount});
+      descriptors.push_back({queryBuffers.get().rays.buffer, rayBytes});
+      descriptors.push_back({queryBuffers.get().output.buffer, outputBytes});
+      descriptors.push_back(
+        {queryBuffers.get().counts.buffer, queryBuffers.get().counts.byteCount});
 
       DescriptorPoolGuard descriptorPool;
       descriptorPool.device = device;
@@ -1242,9 +1270,9 @@ namespace render {
       VkDescriptorSet descriptorSet = allocateDescriptorSet(descriptorPool.pool);
       updateDescriptorSet(descriptorSet, descriptors);
 
-      check(vkResetCommandPool(device, commandPool, 0),
+      check(vkResetCommandPool(device, queryBuffers.get().commandPool, 0),
             "Vulkan prepared wavefront command pool reset");
-      VkCommandBuffer commandBuffer = allocateCommandBuffer();
+      VkCommandBuffer commandBuffer = allocateCommandBuffer(queryBuffers.get().commandPool);
       recordDispatch(commandBuffer, pipeline, descriptorSet,
                      static_cast<std::uint32_t>(rays.size()));
       const auto uploadEnd = std::chrono::steady_clock::now();
@@ -1254,8 +1282,8 @@ namespace render {
       const auto kernelEnd = std::chrono::steady_clock::now();
 
       const auto readbackStart = std::chrono::steady_clock::now();
-      result.records = readBackRecords<Record>(queryBuffers.output.memory, outputBytes, rays.size(),
-                                               readbackOperation);
+      result.records = readBackRecords<Record>(queryBuffers.get().output.memory, outputBytes,
+                                               rays.size(), readbackOperation);
       const auto readbackEnd = std::chrono::steady_clock::now();
 
       result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
@@ -1264,11 +1292,25 @@ namespace render {
       return result;
     }
 
-    QueryBuffers& reusableQueryBuffers() const {
-      if (queryBufferPool.empty()) {
-        queryBufferPool.emplace_back();
+    QueryBufferLease acquireQueryBuffers() const {
+      std::lock_guard<std::mutex> lock(queryBufferMutex);
+      for (const auto& buffers : queryBufferPool) {
+        if (!buffers->inUse) {
+          buffers->inUse = true;
+          return QueryBufferLease(*this, *buffers);
+        }
       }
-      return queryBufferPool.front();
+
+      auto buffers = std::make_unique<QueryBuffers>();
+      buffers->commandPool = createCommandPool();
+      buffers->inUse = true;
+      queryBufferPool.push_back(std::move(buffers));
+      return QueryBufferLease(*this, *queryBufferPool.back());
+    }
+
+    void releaseQueryBuffers(QueryBuffers& buffers) const {
+      std::lock_guard<std::mutex> lock(queryBufferMutex);
+      buffers.inUse = false;
     }
 
     void ensureQueryBufferCapacity(QueryBuffers& buffers, VkDeviceSize rayBytes,
@@ -1573,10 +1615,10 @@ namespace render {
       return pool;
     }
 
-    VkCommandBuffer allocateCommandBuffer() const {
+    VkCommandBuffer allocateCommandBuffer(VkCommandPool sourceCommandPool) const {
       VkCommandBufferAllocateInfo commandAllocateInfo{};
       commandAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-      commandAllocateInfo.commandPool = commandPool;
+      commandAllocateInfo.commandPool = sourceCommandPool;
       commandAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
       commandAllocateInfo.commandBufferCount = 1;
 
@@ -1599,14 +1641,35 @@ namespace render {
       check(vkEndCommandBuffer(commandBuffer), "Vulkan prepared wavefront command buffer end");
     }
 
+    VkFence createFence() const {
+      VkFenceCreateInfo fenceInfo{};
+      fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+      VkFence fence = VK_NULL_HANDLE;
+      check(vkCreateFence(device, &fenceInfo, nullptr, &fence),
+            "Vulkan prepared wavefront fence creation");
+      return fence;
+    }
+
     void submitAndWait(VkCommandBuffer commandBuffer) const {
+      const VkFence fence = createFence();
       VkSubmitInfo submitInfo{};
       submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
       submitInfo.commandBufferCount = 1;
       submitInfo.pCommandBuffers = &commandBuffer;
-      check(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE),
-            "Vulkan prepared wavefront queue submit");
-      check(vkQueueWaitIdle(queue), "Vulkan prepared wavefront queue wait");
+      try {
+        {
+          std::lock_guard<std::mutex> lock(queueSubmitMutex);
+          check(vkQueueSubmit(queue, 1, &submitInfo, fence),
+                "Vulkan prepared wavefront queue submit");
+        }
+        check(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX),
+              "Vulkan prepared wavefront fence wait");
+      } catch (...) {
+        vkDestroyFence(device, fence, nullptr);
+        throw;
+      }
+      vkDestroyFence(device, fence, nullptr);
     }
 
     template<typename Record>
@@ -1635,8 +1698,13 @@ namespace render {
       destroy(buffers.rays);
       destroy(buffers.output);
       destroy(buffers.counts);
+      if (buffers.commandPool) {
+        vkDestroyCommandPool(device, buffers.commandPool, nullptr);
+        buffers.commandPool = VK_NULL_HANDLE;
+      }
       buffers.rayCapacityBytes = 0;
       buffers.outputCapacityBytes = 0;
+      buffers.inUse = false;
     }
 
     VkInstance instance{VK_NULL_HANDLE};
@@ -1650,13 +1718,13 @@ namespace render {
     VkShaderModule anyShader{VK_NULL_HANDLE};
     VkPipeline closestPipeline{VK_NULL_HANDLE};
     VkPipeline anyPipeline{VK_NULL_HANDLE};
-    VkCommandPool commandPool{VK_NULL_HANDLE};
     std::vector<SmokeBuffer> sceneBuffers;
     std::array<std::uint32_t, 4> sceneCounts0{};
     std::array<std::uint32_t, 4> sceneCounts1{};
     std::uint32_t transformCount{0};
-    mutable std::mutex dispatchMutex;
-    mutable std::vector<QueryBuffers> queryBufferPool;
+    mutable std::mutex queryBufferMutex;
+    mutable std::mutex queueSubmitMutex;
+    mutable std::vector<std::unique_ptr<QueryBuffers>> queryBufferPool;
   };
 #else
   struct VulkanWavefrontPreparedScene::Private {};
