@@ -21,7 +21,8 @@ namespace render {
     Plane = 3,
     Rectangle = 4,
     Disk = 5,
-    OpenCylinder = 6
+    OpenCylinder = 6,
+    Torus = 7
   };
 
   inline constexpr std::uint32_t gpuIntersectionLeafNodeFlag = 1u;
@@ -87,6 +88,10 @@ namespace render {
     std::array<float, 4> radiusHalfHeight{};
   };
 
+  struct alignas(16) GpuIntersectionTorusPayload {
+    std::array<float, 4> sweptTubeRadius{};
+  };
+
   struct alignas(16) GpuIntersectionTransformPayload {
     std::array<float, 16> pointMatrix{};
     std::array<float, 16> normalMatrix{};
@@ -135,6 +140,7 @@ namespace render {
     std::vector<GpuIntersectionRectanglePayload> rectangles;
     std::vector<GpuIntersectionDiskPayload> disks;
     std::vector<GpuIntersectionOpenCylinderPayload> openCylinders;
+    std::vector<GpuIntersectionTorusPayload> tori;
     std::vector<GpuIntersectionTransformPayload> transforms;
 
     [[nodiscard]] std::size_t uploadByteCount() const;
@@ -185,6 +191,8 @@ namespace render {
     packDiskPayload(const IntersectionDiskPayload& payload) const;
     [[nodiscard]] GpuIntersectionOpenCylinderPayload
     packOpenCylinderPayload(const IntersectionOpenCylinderPayload& payload) const;
+    [[nodiscard]] GpuIntersectionTorusPayload
+    packTorusPayload(const IntersectionTorusPayload& payload) const;
     [[nodiscard]] GpuIntersectionTransformPayload
     packTransformPayload(const IntersectionTransformPayload& payload) const;
   };
@@ -234,6 +242,8 @@ namespace render {
     [[nodiscard]] std::optional<ClosestHit>
     intersectOpenCylinder(const GpuIntersectionRay& ray,
                           const GpuIntersectionOpenCylinderPayload& openCylinder) const;
+    [[nodiscard]] std::optional<ClosestHit>
+    intersectTorus(const GpuIntersectionRay& ray, const GpuIntersectionTorusPayload& torus) const;
     [[nodiscard]] std::optional<ClosestHit>
     intersectPrimitive(const GpuIntersectionSceneBuffers& scene, const GpuIntersectionRay& ray,
                        const GpuIntersectionPrimitiveRecord& primitive) const;

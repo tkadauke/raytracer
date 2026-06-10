@@ -297,6 +297,11 @@ namespace render {
         decision.reason = "auto selected CPU: intersection scene contains unsupported primitives";
         return decision;
       }
+      if (!diagnostics.basicHitKernelEligible) {
+        decision.reason =
+          "auto selected CPU: intersection scene is not platform basic-hit eligible";
+        return decision;
+      }
       if (!diagnostics.packedClosestHitKernelEligible) {
         decision.reason =
           "auto selected CPU: intersection scene is not packed closest-hit eligible";
@@ -344,7 +349,8 @@ namespace render {
   bool WavefrontIntersectionBackendAutoSelectionPolicy::sceneCanUseGpu(
     const WavefrontIntersectionSceneDiagnostics& diagnostics) const {
     return diagnostics.compiled && diagnostics.unsupportedPrimitives == 0 &&
-           diagnostics.packedClosestHitKernelEligible && diagnostics.packedAnyHitKernelEligible;
+           diagnostics.basicHitKernelEligible && diagnostics.packedClosestHitKernelEligible &&
+           diagnostics.packedAnyHitKernelEligible;
   }
 
   bool WavefrontIntersectionBackendAutoSelectionPolicy::expectedRayCountJustifiesGpu(
@@ -606,6 +612,7 @@ namespace render {
     diagnostics.rectangles = scene.rectangles().size();
     diagnostics.disks = scene.disks().size();
     diagnostics.openCylinders = scene.openCylinders().size();
+    diagnostics.tori = scene.tori().size();
     diagnostics.transforms = scene.transforms().size();
     diagnostics.unsupportedPrimitives = scene.unsupportedPrimitives().size();
     for (const UnsupportedIntersectionReasonCount& count : scene.unsupportedReasonCounts()) {

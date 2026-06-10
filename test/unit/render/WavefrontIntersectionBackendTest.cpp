@@ -22,6 +22,7 @@
 #include "render/MetalWavefrontSmokeKernel.h"
 #endif
 #include "render/primitives/ClosedSolidUnion.h"
+#include "render/primitives/Curve.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/OpenCylinder.h"
@@ -227,10 +228,11 @@ namespace WavefrontIntersectionBackendTest {
   }
 
   TEST(WavefrontIntersectionBackend, CompiledSceneDiagnosticsDoNotInventUploadBuffers) {
-    auto torus = std::make_shared<Torus>(2.0, 0.5);
-    torus->setName("exact torus");
+    auto curve =
+      std::make_shared<Curve>(core::Polyline({Vector3d(0, 0, 0), Vector3d(1, 0, 0)}), 0.1);
+    curve->setName("render curve");
     Scene scene;
-    scene.add(torus);
+    scene.add(curve);
 
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
     const WavefrontIntersectionSceneDiagnostics diagnostics =
@@ -578,6 +580,21 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_FALSE(decision.useGpu);
     EXPECT_EQ(65536u, decision.minimumExpectedRayCount);
     EXPECT_NE(std::string::npos, decision.reason.find("packed closest-hit eligible"));
+  }
+
+  TEST(WavefrontIntersectionBackend, AutoPolicyRequiresPlatformBasicHitEligibleScene) {
+    const WavefrontIntersectionBackendAutoSelectionPolicy policy;
+    WavefrontIntersectionBackendSelectionContext context;
+    context.expectedRayCount = 1000000;
+    WavefrontIntersectionSceneDiagnostics diagnostics = supportedPackedDiagnostics();
+    diagnostics.basicHitKernelEligible = false;
+
+    const WavefrontIntersectionBackendAutoSelectionDecision decision =
+      policy.decide(true, true, diagnostics, context);
+
+    EXPECT_FALSE(decision.useGpu);
+    EXPECT_EQ(65536u, decision.minimumExpectedRayCount);
+    EXPECT_NE(std::string::npos, decision.reason.find("platform basic-hit eligible"));
   }
 
   TEST(WavefrontIntersectionBackend, AutoPolicyRequiresPackedAnyHitEligibleScene) {
@@ -1561,8 +1578,8 @@ namespace WavefrontIntersectionBackendTest {
     };
 
     EXPECT_FALSE(buffers.basicHitKernelEligible());
-    EXPECT_FALSE(buffers.packedClosestHitKernelEligible());
-    EXPECT_FALSE(buffers.packedAnyHitKernelEligible());
+    EXPECT_TRUE(buffers.packedClosestHitKernelEligible());
+    EXPECT_TRUE(buffers.packedAnyHitKernelEligible());
     EXPECT_THROW(MetalWavefrontSmokeKernel().runBasicClosestHitKernel(buffers, rays),
                  std::invalid_argument);
     EXPECT_THROW(MetalWavefrontSmokeKernel().runBasicAnyHitKernel(buffers, rays),
@@ -1706,11 +1723,42 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_GT(backend->estimatedAnyHitReadbackBytes(4), 0u);
   }
 
-  TEST(WavefrontIntersectionBackend, GpuChoiceDoesNotRetainUnsupportedCompiledScene) {
-    auto torus = std::make_shared<Torus>(2.0, 0.5);
-    torus->setName("exact torus");
+  TEST(WavefrontIntersectionBackend, GpuChoiceRetainsPackedCpuOnlyTorusScene) {
     Scene scene;
-    scene.add(torus);
+    scene.add(std::make_shared<Torus>(2.0, 0.5));
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(scene);
+
+    ASSERT_NE(nullptr, backend->compiledScene());
+    ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
+    EXPECT_TRUE(backend->compiledScene()->fullySupported());
+    EXPECT_EQ(1u, backend->compiledScene()->primitives().size());
+    EXPECT_EQ(1u, backend->compiledScene()->tori().size());
+    EXPECT_TRUE(backend->compiledScene()->unsupportedPrimitives().empty());
+
+    const WavefrontIntersectionSceneDiagnostics diagnostics = backend->compiledSceneDiagnostics();
+    EXPECT_TRUE(diagnostics.compiled);
+    EXPECT_EQ(1u, diagnostics.primitives);
+    EXPECT_EQ(1u, diagnostics.tori);
+    EXPECT_EQ(0u, diagnostics.unsupportedPrimitives);
+    EXPECT_EQ(backend->gpuIntersectionSceneBuffers()->uploadByteCount(), diagnostics.uploadBytes);
+    EXPECT_FALSE(diagnostics.triangleClosestHitKernelEligible);
+    EXPECT_FALSE(diagnostics.basicHitKernelEligible);
+    EXPECT_TRUE(diagnostics.packedClosestHitKernelEligible);
+    EXPECT_TRUE(diagnostics.packedAnyHitKernelEligible);
+    EXPECT_GT(backend->estimatedClosestHitRayUploadBytes(4), 0u);
+    EXPECT_GT(backend->estimatedClosestHitReadbackBytes(4), 0u);
+    EXPECT_GT(backend->estimatedAnyHitRayUploadBytes(4), 0u);
+    EXPECT_GT(backend->estimatedAnyHitReadbackBytes(4), 0u);
+  }
+
+  TEST(WavefrontIntersectionBackend, GpuChoiceDoesNotRetainUnsupportedCompiledScene) {
+    auto curve =
+      std::make_shared<Curve>(core::Polyline({Vector3d(0, 0, 0), Vector3d(1, 0, 0)}), 0.1);
+    curve->setName("render curve");
+    Scene scene;
+    scene.add(curve);
 
     const std::shared_ptr<const WavefrontIntersectionBackend> backend =
       WavefrontIntersectionBackendChoice::gpu().createBackendForScene(scene);
@@ -1722,7 +1770,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(nullptr, backend->compiledScene());
     EXPECT_EQ(nullptr, backend->gpuIntersectionSceneBuffers());
     EXPECT_NE(std::string::npos, std::string(backend->fallbackReason()).find("unsupported"));
-    EXPECT_NE(std::string::npos, std::string(backend->fallbackReason()).find("exact torus"));
+    EXPECT_NE(std::string::npos, std::string(backend->fallbackReason()).find("render curve"));
 
     const WavefrontIntersectionSceneDiagnostics diagnostics = backend->compiledSceneDiagnostics();
     EXPECT_TRUE(diagnostics.compiled);
@@ -1780,17 +1828,19 @@ namespace WavefrontIntersectionBackendTest {
   }
 
   TEST(WavefrontIntersectionBackend, GpuChoiceSummarizesUnsupportedReasonCounts) {
-    auto firstTorus = std::make_shared<Torus>(2.0, 0.5);
-    firstTorus->setName("first exact torus");
-    auto secondTorus = std::make_shared<Torus>(3.0, 0.25);
-    secondTorus->setName("second exact torus");
+    auto firstCurve =
+      std::make_shared<Curve>(core::Polyline({Vector3d(0, 0, 0), Vector3d(1, 0, 0)}), 0.1);
+    firstCurve->setName("first render curve");
+    auto secondCurve =
+      std::make_shared<Curve>(core::Polyline({Vector3d(0, 1, 0), Vector3d(1, 1, 0)}), 0.1);
+    secondCurve->setName("second render curve");
     auto movingInstance = std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(), 1.0));
     movingInstance->setName("moving asset instance");
     movingInstance->setVelocity(Vector3d(1, 0, 0));
     Scene scene;
-    scene.add(firstTorus);
+    scene.add(firstCurve);
     scene.add(movingInstance);
-    scene.add(secondTorus);
+    scene.add(secondCurve);
 
     const std::shared_ptr<const WavefrontIntersectionBackend> backend =
       WavefrontIntersectionBackendChoice::gpu().createBackendForScene(scene);
@@ -1799,7 +1849,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_STREQ("cpu", backend->name());
     EXPECT_STREQ("fallback", backend->availability());
     const std::string reason = backend->fallbackReason();
-    EXPECT_NE(std::string::npos, reason.find("first exact torus"));
+    EXPECT_NE(std::string::npos, reason.find("first render curve"));
     EXPECT_NE(std::string::npos, reason.find("3 unsupported leaves"));
     EXPECT_NE(std::string::npos,
               reason.find("2x primitive is not supported by GPU intersection scene compiler"));

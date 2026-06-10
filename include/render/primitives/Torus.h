@@ -31,6 +31,8 @@ namespace render {
     intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4& states) const override;
     PrimitivePacketInterval8
     intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const override;
+    void appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                       const TransformedLeaf& leaf) const override;
 
     /**
       * Mesh approximation. The torus is aligned with its hole along

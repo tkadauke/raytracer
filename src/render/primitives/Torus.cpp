@@ -1,4 +1,5 @@
 #include "render/State.h"
+#include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/Torus.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Constants.h"
@@ -126,6 +127,11 @@ PrimitivePacketInterval8
 Torus::intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const {
   return intersectPacketIntervalsFor<Ray8, PrimitivePacketState8, PrimitivePacketInterval8>(rays,
                                                                                             states);
+}
+
+void Torus::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                          const TransformedLeaf& leaf) const {
+  builder.addTorus(leaf, m_sweptRadius, m_tubeRadius);
 }
 
 shared_ptr<Mesh> Torus::tessellate(int lod) const {

@@ -9,6 +9,7 @@
 
 #include "core/math/BoundingBox.h"
 #include "core/math/Matrix.h"
+#include "core/math/Polynomial.h"
 #include "core/math/Ray.h"
 #include "core/math/Vector.h"
 #include "render/primitives/Primitive.h"
@@ -24,7 +25,8 @@ namespace render {
     Plane = 3,
     Rectangle = 4,
     Disk = 5,
-    OpenCylinder = 6
+    OpenCylinder = 6,
+    Torus = 7
   };
 
   using IntersectionMaterialId = std::uint32_t;
@@ -84,6 +86,14 @@ namespace render {
 
     double radius{0.0};
     double halfHeight{0.0};
+  };
+
+  struct IntersectionTorusPayload {
+    [[nodiscard]] SortedResult<double, 4> sortedIntersectionDistances(const Rayd& ray) const;
+    [[nodiscard]] Vector3d normalAt(const Vector3d& point) const;
+
+    double sweptRadius{0.0};
+    double tubeRadius{0.0};
   };
 
   struct IntersectionTransformPayload {
@@ -147,6 +157,7 @@ namespace render {
     [[nodiscard]] const std::vector<IntersectionRectanglePayload>& rectangles() const;
     [[nodiscard]] const std::vector<IntersectionDiskPayload>& disks() const;
     [[nodiscard]] const std::vector<IntersectionOpenCylinderPayload>& openCylinders() const;
+    [[nodiscard]] const std::vector<IntersectionTorusPayload>& tori() const;
     [[nodiscard]] const std::vector<IntersectionTransformPayload>& transforms() const;
     [[nodiscard]] const std::vector<std::shared_ptr<Material>>& materials() const;
     [[nodiscard]] const std::vector<const Primitive*>& objects() const;
@@ -165,6 +176,7 @@ namespace render {
     std::vector<IntersectionRectanglePayload> m_rectangles;
     std::vector<IntersectionDiskPayload> m_disks;
     std::vector<IntersectionOpenCylinderPayload> m_openCylinders;
+    std::vector<IntersectionTorusPayload> m_tori;
     std::vector<IntersectionTransformPayload> m_transforms;
     std::vector<std::shared_ptr<Material>> m_materials;
     std::vector<const Primitive*> m_objects;
@@ -187,6 +199,7 @@ namespace render {
     void addDisk(const Primitive::TransformedLeaf& leaf, const Vector3d& center,
                  const Vector3d& normal, double radius);
     void addOpenCylinder(const Primitive::TransformedLeaf& leaf, double radius, double halfHeight);
+    void addTorus(const Primitive::TransformedLeaf& leaf, double sweptRadius, double tubeRadius);
 
     [[nodiscard]] CompiledIntersectionScene finish();
 
@@ -264,6 +277,9 @@ namespace render {
     [[nodiscard]] std::optional<CompiledIntersectionHit>
     intersectOpenCylinder(const CompiledIntersectionScene& scene,
                           const IntersectionPrimitiveRecord& primitive, const Rayd& ray) const;
+    [[nodiscard]] std::optional<CompiledIntersectionHit>
+    intersectTorus(const CompiledIntersectionScene& scene,
+                   const IntersectionPrimitiveRecord& primitive, const Rayd& ray) const;
   };
 
   [[nodiscard]] const char* toString(IntersectionPrimitiveKind kind);

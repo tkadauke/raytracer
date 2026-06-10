@@ -21,6 +21,7 @@ namespace {
   static_assert(isKernelRecord<GpuIntersectionRectanglePayload>());
   static_assert(isKernelRecord<GpuIntersectionDiskPayload>());
   static_assert(isKernelRecord<GpuIntersectionOpenCylinderPayload>());
+  static_assert(isKernelRecord<GpuIntersectionTorusPayload>());
   static_assert(isKernelRecord<GpuIntersectionTransformPayload>());
   static_assert(isKernelRecord<GpuIntersectionRay>());
   static_assert(isKernelRecord<GpuIntersectionHitRecord>());
@@ -36,6 +37,7 @@ std::size_t GpuIntersectionSceneBuffers::uploadByteCount() const {
          rectangles.size() * sizeof(GpuIntersectionRectanglePayload) +
          disks.size() * sizeof(GpuIntersectionDiskPayload) +
          openCylinders.size() * sizeof(GpuIntersectionOpenCylinderPayload) +
+         tori.size() * sizeof(GpuIntersectionTorusPayload) +
          transforms.size() * sizeof(GpuIntersectionTransformPayload);
 }
 
@@ -92,6 +94,8 @@ bool GpuIntersectionSceneBuffers::primitiveHasBasicHitKernelTraversal(
     return primitive.payloadOffset < disks.size();
   case GpuIntersectionPrimitiveKind::OpenCylinder:
     return primitive.payloadOffset < openCylinders.size();
+  case GpuIntersectionPrimitiveKind::Torus:
+    return false;
   case GpuIntersectionPrimitiveKind::Unsupported:
     return false;
   }
@@ -117,6 +121,10 @@ bool GpuIntersectionSceneBuffers::primitiveHasPackedClosestHitTraversal(
     return primitive.payloadOffset < openCylinders.size();
   }
 
+  if (primitive.kind == static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Torus)) {
+    return primitive.payloadOffset < tori.size();
+  }
+
   return false;
 }
 
@@ -136,6 +144,7 @@ GpuIntersectionScenePacker::packScene(const CompiledIntersectionScene& scene) co
   buffers.rectangles.reserve(scene.rectangles().size());
   buffers.disks.reserve(scene.disks().size());
   buffers.openCylinders.reserve(scene.openCylinders().size());
+  buffers.tori.reserve(scene.tori().size());
   buffers.transforms.reserve(scene.transforms().size());
 
   for (const FlatIntersectionBvhNode& node : scene.bvh()) {
@@ -161,6 +170,9 @@ GpuIntersectionScenePacker::packScene(const CompiledIntersectionScene& scene) co
   }
   for (const IntersectionOpenCylinderPayload& openCylinder : scene.openCylinders()) {
     buffers.openCylinders.push_back(packOpenCylinderPayload(openCylinder));
+  }
+  for (const IntersectionTorusPayload& torus : scene.tori()) {
+    buffers.tori.push_back(packTorusPayload(torus));
   }
   for (const IntersectionTransformPayload& transform : scene.transforms()) {
     buffers.transforms.push_back(packTransformPayload(transform));
@@ -248,6 +260,8 @@ GpuIntersectionScenePacker::packPrimitiveKind(IntersectionPrimitiveKind kind) co
                 static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Disk));
   static_assert(static_cast<std::uint32_t>(IntersectionPrimitiveKind::OpenCylinder) ==
                 static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::OpenCylinder));
+  static_assert(static_cast<std::uint32_t>(IntersectionPrimitiveKind::Torus) ==
+                static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Torus));
   return static_cast<GpuIntersectionPrimitiveKind>(static_cast<std::uint32_t>(kind));
 }
 
@@ -314,6 +328,12 @@ GpuIntersectionOpenCylinderPayload GpuIntersectionScenePacker::packOpenCylinderP
   packed.radiusHalfHeight = {radius, packScalar(payload.halfHeight),
                              radius == 0.0f ? 0.0f : 1.0f / radius, 0.0f};
   return packed;
+}
+
+GpuIntersectionTorusPayload
+GpuIntersectionScenePacker::packTorusPayload(const IntersectionTorusPayload& payload) const {
+  return GpuIntersectionTorusPayload{
+    {packScalar(payload.sweptRadius), packScalar(payload.tubeRadius), 0.0f, 0.0f}};
 }
 
 GpuIntersectionTransformPayload GpuIntersectionScenePacker::packTransformPayload(
@@ -818,6 +838,40 @@ GpuIntersectionIntersector::intersectOpenCylinder(
 }
 
 std::optional<GpuIntersectionIntersector::ClosestHit>
+GpuIntersectionIntersector::intersectTorus(const GpuIntersectionRay& ray,
+                                           const GpuIntersectionTorusPayload& torus) const {
+  const IntersectionTorusPayload payload{static_cast<double>(torus.sweptTubeRadius[0]),
+                                         static_cast<double>(torus.sweptTubeRadius[1])};
+  const Rayd localRay(Vector4d(ray.origin[0], ray.origin[1], ray.origin[2], ray.origin[3]),
+                      Vector3d(ray.direction[0], ray.direction[1], ray.direction[2]));
+  const SortedResult<double, 4> distances = payload.sortedIntersectionDistances(localRay);
+
+  double bestDistance = std::numeric_limits<double>::infinity();
+  for (double distance : distances) {
+    if (distance <= 0.0 || distance < ray.minDistance || distance > ray.maxDistance ||
+        distance >= bestDistance) {
+      continue;
+    }
+
+    bestDistance = distance;
+  }
+
+  if (!std::isfinite(bestDistance)) {
+    return std::nullopt;
+  }
+
+  const Vector4d point = localRay.at(bestDistance);
+  const Vector3d normal = payload.normalAt(Vector3d(point));
+  ClosestHit hit;
+  hit.distance = static_cast<float>(bestDistance);
+  hit.point = {static_cast<float>(point.x()), static_cast<float>(point.y()),
+               static_cast<float>(point.z()), static_cast<float>(point.w())};
+  hit.normal = {static_cast<float>(normal.x()), static_cast<float>(normal.y()),
+                static_cast<float>(normal.z()), 0.0f};
+  return hit;
+}
+
+std::optional<GpuIntersectionIntersector::ClosestHit>
 GpuIntersectionIntersector::intersectPrimitive(
   const GpuIntersectionSceneBuffers& scene, const GpuIntersectionRay& ray,
   const GpuIntersectionPrimitiveRecord& primitive) const {
@@ -886,6 +940,13 @@ GpuIntersectionIntersector::intersectPrimitivePayload(
       return std::nullopt;
     }
     return intersectOpenCylinder(ray, scene.openCylinders[primitive.payloadOffset]);
+  }
+
+  if (primitive.kind == static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Torus)) {
+    if (primitive.payloadOffset >= scene.tori.size()) {
+      return std::nullopt;
+    }
+    return intersectTorus(ray, scene.tori[primitive.payloadOffset]);
   }
 
   return std::nullopt;

@@ -10,6 +10,7 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/ClosedSolidUnion.h"
+#include "render/primitives/Curve.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/FlatMeshTriangle.h"
 #include "render/primitives/Instance.h"
@@ -73,6 +74,10 @@ namespace IntersectionSceneCompilerTest {
       cylinder->add(
         std::make_shared<Disk>(Vector3d(0, height / 2.0, 0), Vector3d(0, 1, 0), radius));
       return cylinder;
+    }
+
+    std::shared_ptr<Curve> unsupportedCurve() {
+      return std::make_shared<Curve>(core::Polyline({Vector3d(0, 0, 0), Vector3d(1, 0, 0)}), 0.1);
     }
 
     std::unique_ptr<Mesh> triangleMesh() {
@@ -241,6 +246,25 @@ namespace IntersectionSceneCompilerTest {
     EXPECT_EQ("open_cylinder", std::string(toString(compiled.primitives()[0].kind)));
   }
 
+  TEST(IntersectionSceneCompiler, CompilesTorusAsExactPayload) {
+    auto torus = std::make_shared<Torus>(2.0, 0.5);
+    torus->setName("exact torus");
+    Scene scene;
+    scene.add(torus);
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+
+    ASSERT_EQ(1u, compiled.primitives().size());
+    ASSERT_EQ(1u, compiled.tori().size());
+    EXPECT_TRUE(compiled.fullySupported());
+    EXPECT_TRUE(compiled.unsupportedPrimitives().empty());
+    EXPECT_EQ(IntersectionPrimitiveKind::Torus, compiled.primitives()[0].kind);
+    EXPECT_EQ(0u, compiled.primitives()[0].payloadOffset);
+    EXPECT_EQ(2.0, compiled.tori()[0].sweptRadius);
+    EXPECT_EQ(0.5, compiled.tori()[0].tubeRadius);
+    EXPECT_EQ("torus", std::string(toString(compiled.primitives()[0].kind)));
+  }
+
   TEST(IntersectionSceneCompiler, CompilesUnbeveledCylinderCompositeAsSupportedPayloads) {
     auto cylinder = unbeveledCylinderComposite();
     auto sharedMaterial = material(Colord::green());
@@ -264,10 +288,10 @@ namespace IntersectionSceneCompilerTest {
   }
 
   TEST(IntersectionSceneCompiler, RecordsUnsupportedPrimitiveReasons) {
-    auto torus = std::make_shared<Torus>(2.0, 0.5);
-    torus->setName("exact torus");
+    auto curve = unsupportedCurve();
+    curve->setName("render curve");
     Scene scene;
-    scene.add(torus);
+    scene.add(curve);
 
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
 
@@ -276,20 +300,20 @@ namespace IntersectionSceneCompilerTest {
     EXPECT_FALSE(compiled.fullySupported());
     EXPECT_EQ(IntersectionPrimitiveKind::Unsupported, compiled.primitives()[0].kind);
     EXPECT_EQ(compiled.primitives()[0].object, compiled.unsupportedPrimitives()[0].object);
-    EXPECT_EQ("exact torus", compiled.unsupportedPrimitives()[0].primitiveName);
+    EXPECT_EQ("render curve", compiled.unsupportedPrimitives()[0].primitiveName);
     EXPECT_EQ("primitive is not supported by GPU intersection scene compiler",
               compiled.unsupportedPrimitives()[0].reason);
   }
 
   TEST(IntersectionSceneCompiler, CountsUnsupportedPrimitiveReasonsInFirstSeenOrder) {
-    auto firstTorus = std::make_shared<Torus>(2.0, 0.5);
-    auto secondTorus = std::make_shared<Torus>(3.0, 0.25);
+    auto firstCurve = unsupportedCurve();
+    auto secondCurve = unsupportedCurve();
     auto movingInstance = std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(), 1.0));
     movingInstance->setVelocity(Vector3d(1, 0, 0));
     Scene scene;
-    scene.add(firstTorus);
+    scene.add(firstCurve);
     scene.add(movingInstance);
-    scene.add(secondTorus);
+    scene.add(secondCurve);
 
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
     const std::vector<UnsupportedIntersectionReasonCount> reasonCounts =
@@ -594,6 +618,16 @@ namespace IntersectionSceneCompilerTest {
 
     expectCompiledClosestHitMatchesRuntime(scene, ray);
     expectCompiledAnyHitMatchesRuntime(scene, ray, 3.0);
+    expectCompiledAnyHitMatchesRuntime(scene, ray, 1.0);
+  }
+
+  TEST(CompiledIntersectionSceneIntersector, IntersectsTorusLikeRuntimeScene) {
+    Scene scene;
+    scene.add(std::make_shared<Torus>(2.0, 0.5));
+    const Rayd ray(Vector4d(0, 0, -4, 1), Vector3d(0, 0, 1));
+
+    expectCompiledClosestHitMatchesRuntime(scene, ray, 1e-8);
+    expectCompiledAnyHitMatchesRuntime(scene, ray, 5.0);
     expectCompiledAnyHitMatchesRuntime(scene, ray, 1.0);
   }
 

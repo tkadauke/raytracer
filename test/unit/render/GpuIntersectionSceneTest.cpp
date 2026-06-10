@@ -20,6 +20,7 @@
 #include "render/primitives/Scene.h"
 #include "render/primitives/SmoothMeshTriangle.h"
 #include "render/primitives/Sphere.h"
+#include "render/primitives/Torus.h"
 #include "render/primitives/Triangle.h"
 #include "render/textures/ConstantColorTexture.h"
 
@@ -150,6 +151,7 @@ namespace GpuIntersectionSceneTest {
     expectKernelRecordLayout<GpuIntersectionRectanglePayload>();
     expectKernelRecordLayout<GpuIntersectionDiskPayload>();
     expectKernelRecordLayout<GpuIntersectionOpenCylinderPayload>();
+    expectKernelRecordLayout<GpuIntersectionTorusPayload>();
     expectKernelRecordLayout<GpuIntersectionTransformPayload>();
     expectKernelRecordLayout<GpuIntersectionRay>();
     expectKernelRecordLayout<GpuIntersectionHitRecord>();
@@ -196,6 +198,7 @@ namespace GpuIntersectionSceneTest {
     EXPECT_TRUE(buffers.planes.empty());
     EXPECT_TRUE(buffers.rectangles.empty());
     EXPECT_TRUE(buffers.disks.empty());
+    EXPECT_TRUE(buffers.tori.empty());
     EXPECT_TRUE(buffers.triangleClosestHitKernelEligible());
     EXPECT_TRUE(buffers.basicHitKernelEligible());
     EXPECT_TRUE(buffers.packedClosestHitKernelEligible());
@@ -335,6 +338,31 @@ namespace GpuIntersectionSceneTest {
     EXPECT_EQ(buffers.bvh.size() * sizeof(GpuIntersectionBvhNode) +
                 buffers.primitives.size() * sizeof(GpuIntersectionPrimitiveRecord) +
                 buffers.openCylinders.size() * sizeof(GpuIntersectionOpenCylinderPayload),
+              buffers.uploadByteCount());
+  }
+
+  TEST(GpuIntersectionScene, PacksTorusForPackedCpuTraversalOnly) {
+    Scene scene;
+    scene.add(std::make_shared<Torus>(2.0, 0.5));
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+
+    ASSERT_EQ(1u, buffers.primitives.size());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Torus),
+              buffers.primitives[0].kind);
+    EXPECT_EQ(0u, buffers.primitives[0].payloadOffset);
+
+    ASSERT_EQ(1u, buffers.tori.size());
+    expectVector(buffers.tori[0].sweptTubeRadius, 2.0f, 0.5f, 0.0f, 0.0f);
+
+    EXPECT_FALSE(buffers.triangleClosestHitKernelEligible());
+    EXPECT_FALSE(buffers.basicHitKernelEligible());
+    EXPECT_TRUE(buffers.packedClosestHitKernelEligible());
+    EXPECT_TRUE(buffers.packedAnyHitKernelEligible());
+    EXPECT_EQ(buffers.bvh.size() * sizeof(GpuIntersectionBvhNode) +
+                buffers.primitives.size() * sizeof(GpuIntersectionPrimitiveRecord) +
+                buffers.tori.size() * sizeof(GpuIntersectionTorusPayload),
               buffers.uploadByteCount());
   }
 
@@ -523,6 +551,16 @@ namespace GpuIntersectionSceneTest {
     const Rayd ray(Vector4d(1, 2, -3, 1), Vector3d(0, 0, 1));
 
     expectPackedClosestHitMatchesCompiled(scene, ray, 21, true);
+  }
+
+  TEST(GpuIntersectionScene, PackedTorusClosestHitMatchesCompiledSceneHit) {
+    Scene scene;
+    scene.add(std::make_shared<Torus>(2.0, 0.5));
+    const Rayd ray(Vector4d(0, 0, -4, 1), Vector3d(0, 0, 1));
+
+    expectPackedClosestHitMatchesCompiled(scene, ray, 32);
+    expectPackedAnyHitMatchesCompiled(scene, ray, 5.0);
+    expectPackedAnyHitMatchesCompiled(scene, ray, 1.0);
   }
 
   TEST(GpuIntersectionScene, PackedPlaneClosestHitMatchesCompiledSceneHit) {

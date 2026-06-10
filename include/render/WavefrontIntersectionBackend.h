@@ -36,6 +36,7 @@ namespace render {
     std::uint64_t rectangles{0};
     std::uint64_t disks{0};
     std::uint64_t openCylinders{0};
+    std::uint64_t tori{0};
     std::uint64_t transforms{0};
     std::uint64_t unsupportedPrimitives{0};
     std::map<std::string, std::uint64_t> unsupportedReasons;

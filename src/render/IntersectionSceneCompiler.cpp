@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "core/math/Quadric.h"
+#include "core/math/Quartic.h"
 #include "render/primitives/Scene.h"
 
 using namespace render;
@@ -185,6 +186,36 @@ Vector2d IntersectionOpenCylinderPayload::sideUvAt(const Vector3d& point) const 
   return Vector2d(u, v);
 }
 
+SortedResult<double, 4>
+IntersectionTorusPayload::sortedIntersectionDistances(const Rayd& ray) const {
+  const Vector3d origin = ray.origin();
+  const Vector3d direction = ray.direction();
+
+  const double dd = direction * direction;
+  const double oorr = origin * origin - sweptRadius * sweptRadius - tubeRadius * tubeRadius;
+  const double od = origin * direction;
+  const double fourRR = 4.0 * sweptRadius * sweptRadius;
+
+  const double a = dd * dd;
+  const double b = 4.0 * dd * od;
+  const double c = 2.0 * dd * oorr + 4.0 * od * od + fourRR * direction.y() * direction.y();
+  const double d = 4.0 * od * oorr + 2.0 * fourRR * origin.y() * direction.y();
+  const double e = oorr * oorr - fourRR * (tubeRadius * tubeRadius - origin.y() * origin.y());
+
+  Quartic<double> quartic(a, b, c, d, e);
+  return quartic.shouldUseStableSolver() ? quartic.stableSortedResult() : quartic.sortedResult();
+}
+
+Vector3d IntersectionTorusPayload::normalAt(const Vector3d& point) const {
+  const double paramSquared = sweptRadius * sweptRadius + tubeRadius * tubeRadius;
+  const double sumSquared = point * point;
+
+  return Vector3d(4.0 * point.x() * (sumSquared - paramSquared),
+                  4.0 * point.y() * (sumSquared - paramSquared + 2.0 * sweptRadius * sweptRadius),
+                  4.0 * point.z() * (sumSquared - paramSquared))
+    .normalized();
+}
+
 std::uint32_t FlatIntersectionBvhNode::firstPrimitive() const {
   return leftOrFirstPrimitive;
 }
@@ -242,6 +273,10 @@ const std::vector<IntersectionDiskPayload>& CompiledIntersectionScene::disks() c
 const std::vector<IntersectionOpenCylinderPayload>&
 CompiledIntersectionScene::openCylinders() const {
   return m_openCylinders;
+}
+
+const std::vector<IntersectionTorusPayload>& CompiledIntersectionScene::tori() const {
+  return m_tori;
 }
 
 const std::vector<IntersectionTransformPayload>& CompiledIntersectionScene::transforms() const {
@@ -341,6 +376,13 @@ void IntersectionSceneBuilder::addOpenCylinder(const Primitive::TransformedLeaf&
   const std::uint32_t offset = static_cast<std::uint32_t>(m_scene.m_openCylinders.size());
   m_scene.m_openCylinders.push_back(IntersectionOpenCylinderPayload{radius, halfHeight});
   addPrimitive(leaf, IntersectionPrimitiveKind::OpenCylinder, offset, 1);
+}
+
+void IntersectionSceneBuilder::addTorus(const Primitive::TransformedLeaf& leaf, double sweptRadius,
+                                        double tubeRadius) {
+  const std::uint32_t offset = static_cast<std::uint32_t>(m_scene.m_tori.size());
+  m_scene.m_tori.push_back(IntersectionTorusPayload{sweptRadius, tubeRadius});
+  addPrimitive(leaf, IntersectionPrimitiveKind::Torus, offset, 1);
 }
 
 CompiledIntersectionScene IntersectionSceneBuilder::finish() {
@@ -549,6 +591,8 @@ std::optional<CompiledIntersectionHit> CompiledIntersectionSceneIntersector::int
     return intersectDisk(scene, primitive, ray);
   case IntersectionPrimitiveKind::OpenCylinder:
     return intersectOpenCylinder(scene, primitive, ray);
+  case IntersectionPrimitiveKind::Torus:
+    return intersectTorus(scene, primitive, ray);
   case IntersectionPrimitiveKind::Unsupported:
     return std::nullopt;
   }
@@ -947,6 +991,38 @@ std::optional<CompiledIntersectionHit> CompiledIntersectionSceneIntersector::int
                  payload.sideUvAt(point));
 }
 
+std::optional<CompiledIntersectionHit>
+CompiledIntersectionSceneIntersector::intersectTorus(const CompiledIntersectionScene& scene,
+                                                     const IntersectionPrimitiveRecord& primitive,
+                                                     const Rayd& ray) const {
+  if (primitive.payloadOffset >= scene.tori().size()) {
+    return std::nullopt;
+  }
+
+  const std::optional<PrimitiveSpaceRay> primitiveRay = rayForPrimitive(scene, primitive, ray);
+  if (!primitiveRay) {
+    return std::nullopt;
+  }
+
+  const IntersectionTorusPayload& payload = scene.tori()[primitive.payloadOffset];
+  const SortedResult<double, 4> distances = payload.sortedIntersectionDistances(primitiveRay->ray);
+  double bestDistance = std::numeric_limits<double>::infinity();
+  for (double distance : distances) {
+    if (distance <= 0.0 || distance >= bestDistance) {
+      continue;
+    }
+
+    bestDistance = distance;
+  }
+
+  if (!std::isfinite(bestDistance)) {
+    return std::nullopt;
+  }
+
+  const Vector4d point = primitiveRay->ray.at(bestDistance);
+  return makeHit(primitive, *primitiveRay, bestDistance, point, payload.normalAt(Vector3d(point)));
+}
+
 const char* render::toString(IntersectionPrimitiveKind kind) {
   switch (kind) {
   case IntersectionPrimitiveKind::Unsupported:
@@ -963,6 +1039,8 @@ const char* render::toString(IntersectionPrimitiveKind kind) {
     return "disk";
   case IntersectionPrimitiveKind::OpenCylinder:
     return "open_cylinder";
+  case IntersectionPrimitiveKind::Torus:
+    return "torus";
   }
 
   return "unknown";
