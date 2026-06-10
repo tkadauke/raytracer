@@ -47,6 +47,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   side surfaces now compile into triangle payloads for the prepared wavefront
   GPU/packed traversal path, preserving object/material ids, smooth side
   normals, UVs, and per-triangle bounds without adding a new kernel ABI.
+- **Wavefront packed Torus intersection.** Torus leaves now compile to an
+  exact intersection-scene payload and can use the prepared packed CPU
+  closest-hit/any-hit contract for explicit GPU wavefront requests, while
+  Metal/Vulkan basic kernels still reject Torus until a platform quartic kernel
+  exists. — GPT-5
 - **Wavefront graph tooltip unsupported reasons.** The Modeler render graph
   tooltip for wavefront passes now includes grouped unsupported intersection
   scene reasons when a GPU-requested scene falls back before platform kernels

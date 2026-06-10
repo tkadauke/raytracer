@@ -543,7 +543,9 @@ Tasks:
 - Add exact host/packed CPU payloads for other common primitives before
   enabling platform kernels for them. ✅ **Done.** OpenCylinder now compiles to
   an exact packed CPU payload and the Metal/Vulkan basic kernels consume the
-  same payload for closest-hit and any-hit traversal.
+  same payload for closest-hit and any-hit traversal. Torus now also compiles
+  to an exact packed CPU payload, but it remains platform-kernel ineligible
+  until the Metal/Vulkan shaders grow a matching quartic hit kernel.
 - Preserve material/object ids through instance transforms.
 - Add scene fixtures that mix triangles and exact primitives.
 - Add parity tests for:
@@ -565,12 +567,13 @@ Progress:
   point and normal back through the compiled transform payload so non-uniform
   instance transforms match the runtime `Instance` semantics.
 - Packed closest-hit traversal now covers sphere, plane, rectangle, disk, exact
-  OpenCylinder, and static transform payloads in addition to triangles. These
-  common exact primitives and static instances preserve material/object ids, hit
-  distance, hit point, normal, UV where applicable, and empty barycentric
-  channels through the same GPU-style hit record shape used by the triangle
-  traversal. Metal and Vulkan basic closest-hit/any-hit kernels now consume the
-  OpenCylinder payload natively.
+  OpenCylinder, Torus, and static transform payloads in addition to triangles.
+  These common exact primitives and static instances preserve material/object
+  ids, hit distance, hit point, normal, UV where applicable, and empty
+  barycentric channels through the same GPU-style hit record shape used by the
+  triangle traversal. Metal and Vulkan basic closest-hit/any-hit kernels now
+  consume the OpenCylinder payload natively; Torus is intentionally limited to
+  the host packed path until platform kernels implement the quartic primitive.
 - Disk payloads now carry their runtime near-hit cutoff through the compiled
   scene and packed GPU ABI, keeping the host parity intersector plus the Metal
   and Vulkan basic kernels aligned with the runtime disk intersection rule
@@ -605,8 +608,9 @@ Progress:
   hit-record parity.
 - Wavefront metrics JSON, rendercli summaries, render graph trace metadata, and
   Modeler graph metadata now count the full supported payload breakdown:
-  triangles, spheres, planes, rectangles, disks, OpenCylinder payloads, static
-  transforms, and unsupported leaves. The rendercli graph functional test pins
+  triangles, spheres, planes, rectangles, disks, OpenCylinder payloads, Torus
+  payloads, static transforms, and unsupported leaves. The rendercli graph
+  functional test pins
   those fields for a supported prepared scene so diagnostics stay aligned with
   the kernel set.
 

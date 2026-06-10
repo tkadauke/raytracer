@@ -137,6 +137,8 @@ set(wavefront_supported_backend_auto_large_report
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-auto-large-metrics.json")
 set(wavefront_supported_backend_report
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-metrics.json")
+set(wavefront_unsupported_backend_scene
+    "${TEST_OUTPUT_DIR}/wavefront-unsupported-backend-scene.json")
 set(wavefront_unsupported_scene_backend_render
     "${TEST_OUTPUT_DIR}/wavefront-unsupported-scene-backend-render.png")
 set(wavefront_unsupported_scene_backend_report
@@ -434,6 +436,62 @@ file(WRITE "${wavefront_supported_backend_scene}" [=[
       "height": 0.8,
       "bevelRadius": 0.0,
       "type": "Cylinder",
+      "children": []
+    }
+  ]
+}
+]=])
+
+file(WRITE "${wavefront_unsupported_backend_scene}" [=[
+{
+  "id": "{94150000-0000-0000-0000-000000000000}",
+  "name": "Wavefront Unsupported Backend Fixture",
+  "ambient": [0.2, 0.2, 0.2],
+  "background": [0.1, 0.1, 0.1],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.0, -4.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.4,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "curve-texture",
+      "name": "Curve Texture",
+      "color": [1.0, 0.8, 0.2],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "curve-material",
+      "name": "Curve Material",
+      "diffuseTexture": "curve-texture",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 0.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "curve",
+      "name": "Unsupported Curve",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "curve-material",
+      "width": 0.2,
+      "tessellationMode": "tube",
+      "points": [
+        [-0.8, -0.4, 0.0],
+        [0.0, 0.4, 0.0],
+        [0.8, -0.4, 0.0]
+      ],
+      "type": "Curve",
       "children": []
     }
   ]
@@ -2715,7 +2773,7 @@ rendercli_run(
     "${RENDERCLI}" --engine wavefront --width 16 --height 16
     --wavefront_intersection_backend gpu
     --wavefront_metrics_out "${wavefront_unsupported_scene_backend_report}"
-    --wavefront_metrics_summary "${PROJECT_SOURCE_DIR}/scenes/glass_torus.json"
+    --wavefront_metrics_summary "${wavefront_unsupported_backend_scene}"
     "${wavefront_unsupported_scene_backend_render}"
 )
 rendercli_assert_image_nonempty("${wavefront_unsupported_scene_backend_render}"
@@ -2800,6 +2858,7 @@ foreach(expectation
         "intersection_scene_rectangles=[0-9][0-9]*"
         "intersection_scene_disks=2"
         "intersection_scene_open_cylinders=1"
+        "intersection_scene_tori=0"
         "intersection_scene_transforms=[0-9][0-9]*"
         "intersection_scene_upload_bytes=[1-9][0-9]*"
         "intersection_scene_basic_hit_kernel_eligible=true"
@@ -2836,6 +2895,7 @@ foreach(expectation
         "\"intersectionSceneRectangles\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionSceneDisks\"[ \r\n]*:[ \r\n]*2"
         "\"intersectionSceneOpenCylinders\"[ \r\n]*:[ \r\n]*1"
+        "\"intersectionSceneTori\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionSceneTransforms\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionSceneUnsupportedPrimitives\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionSceneUploadBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
@@ -2887,6 +2947,7 @@ foreach(expectation
         "\"intersectionSceneRectangles\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionSceneDisks\"[ \r\n]*:[ \r\n]*2"
         "\"intersectionSceneOpenCylinders\"[ \r\n]*:[ \r\n]*1"
+        "\"intersectionSceneTori\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionSceneTransforms\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionSceneUnsupportedPrimitives\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionSceneUploadBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"

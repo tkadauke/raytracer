@@ -451,6 +451,7 @@ QString RenderGraphInspectorWidget::Private::intersectionScenePayloadSummary(
     {QStringLiteral("disk"), jsonIntegerValue(batching, QStringLiteral("intersectionSceneDisks"))},
     {QStringLiteral("open cyl"),
      jsonIntegerValue(batching, QStringLiteral("intersectionSceneOpenCylinders"))},
+    {QStringLiteral("torus"), jsonIntegerValue(batching, QStringLiteral("intersectionSceneTori"))},
     {QStringLiteral("xform"),
      jsonIntegerValue(batching, QStringLiteral("intersectionSceneTransforms"))},
     {QStringLiteral("unsupported"),
@@ -595,6 +596,8 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("intersectionSceneDisks"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene open cylinders"), batching,
                               QStringLiteral("intersectionSceneOpenCylinders"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene tori"), batching,
+                              QStringLiteral("intersectionSceneTori"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene transforms"), batching,
                               QStringLiteral("intersectionSceneTransforms"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene unsupported primitives"),

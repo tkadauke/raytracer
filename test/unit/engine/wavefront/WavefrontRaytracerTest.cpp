@@ -11,6 +11,7 @@
 #include "render/denoise/Denoiser.h"
 #include "render/lights/PointLight.h"
 #include "render/materials/MatteMaterial.h"
+#include "render/primitives/Curve.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/OpenCylinder.h"
@@ -18,7 +19,6 @@
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
-#include "render/primitives/Torus.h"
 #include "render/primitives/Triangle.h"
 #include "render/samplers/HaltonSampler.h"
 #include "render/textures/ConstantColorTexture.h"
@@ -1300,6 +1300,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1u, metrics.batching.intersectionScenePrimitives);
     EXPECT_EQ(1u, metrics.batching.intersectionSceneSpheres);
     EXPECT_EQ(0u, metrics.batching.intersectionSceneOpenCylinders);
+    EXPECT_EQ(0u, metrics.batching.intersectionSceneTori);
     EXPECT_EQ(0u, metrics.batching.intersectionSceneUnsupportedPrimitives);
     EXPECT_GT(metrics.batching.intersectionSceneUploadBytes, 0u);
     EXPECT_FALSE(metrics.batching.intersectionSceneTriangleClosestHitEligible);
@@ -1330,6 +1331,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1.0, batching.value("intersectionScenePrimitives").toDouble());
     EXPECT_EQ(1.0, batching.value("intersectionSceneSpheres").toDouble());
     EXPECT_EQ(0.0, batching.value("intersectionSceneOpenCylinders").toDouble());
+    EXPECT_EQ(0.0, batching.value("intersectionSceneTori").toDouble());
     EXPECT_EQ(0.0, batching.value("intersectionSceneUnsupportedPrimitives").toDouble());
     EXPECT_GT(batching.value("intersectionSceneUploadBytes").toDouble(), 0.0);
     EXPECT_FALSE(batching.value("intersectionSceneTriangleClosestHitEligible").toBool());
@@ -1550,9 +1552,10 @@ namespace WavefrontRaytracerTest {
 
   TEST(WavefrontRaytracer, RecordsGpuIntersectionSceneUnsupportedFallbackMetrics) {
     auto scene = std::make_shared<render::Scene>(Colord::black());
-    auto torus = std::make_shared<render::Torus>(2.0, 0.5);
-    torus->setName("exact torus");
-    scene->add(torus);
+    auto curve =
+      std::make_shared<render::Curve>(core::Polyline({Vector3d(0, 0, 0), Vector3d(1, 0, 0)}), 0.1);
+    curve->setName("render curve");
+    scene->add(curve);
     auto renderer = std::make_shared<WavefrontRaytracer>(camera(), scene);
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
@@ -1567,7 +1570,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
     EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
     EXPECT_NE(std::string::npos,
-              metrics.batching.intersectionBackendFallbackReason.find("exact torus"));
+              metrics.batching.intersectionBackendFallbackReason.find("render curve"));
     EXPECT_NE(std::string::npos,
               metrics.batching.intersectionBackendFallbackReason.find("unsupported"));
     EXPECT_EQ(std::string::npos,

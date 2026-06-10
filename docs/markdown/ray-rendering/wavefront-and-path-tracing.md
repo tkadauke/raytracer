@@ -283,9 +283,9 @@ cannot consume arbitrary C++ primitive objects, so
 `IntersectionSceneCompiler` walks the runtime scene through each
 primitive's leaf hook and emits stable records: primitive kind,
 material id, object id, transform id, bounds, payload offsets, and
-explicit unsupported reasons. Supported leaves currently include
+explicit unsupported reasons. The compiled scene currently represents
 triangles and mesh triangles, box tessellations, sphere, plane, rectangle,
-disk, and OpenCylinder.
+disk, OpenCylinder, and Torus leaves.
 Static instances become transform payloads on those leaves. Unsupported
 exact or CSG primitives remain visible as fallback diagnostics instead
 of being silently skipped.
@@ -302,25 +302,27 @@ asks for grouped visibility. Prepared Metal/Vulkan backends can then treat
 direct-light visibility as a frontier query family instead of unrelated scalar
 queries. The
 harness currently covers triangles, mesh triangles, box tessellations, sphere,
-plane, rectangle, disk, and static instance transforms by tracing in
-payload-local space and transforming hit data back to world space. It is not a
-render backend; it is the executable contract the Metal and Vulkan kernels need
-to match before they can be trusted in the wavefront renderer.
+plane, rectangle, disk, OpenCylinder, Torus, and static instance transforms by
+tracing in payload-local space and transforming hit data back to world space.
+It is not a render backend; it is the executable contract the Metal and Vulkan
+kernels need to match before they can be trusted in the wavefront renderer.
 
 The first GPU-facing upload seam is intentionally one step narrower than the
 compiled scene. `GpuIntersectionScenePacker` takes the compiled records and
 packs flat BVH nodes, primitive records, triangle payloads,
-sphere/plane/rectangle/disk/OpenCylinder payloads, static transform payloads,
-ray work items, and miss/hit
-records. Those structs are 16-byte-aligned, row-major, and plain-layout so Metal
-and Vulkan can share the same host-side contract even if their shader source is
-platform-native. The current execution eligibility check is strict: platform
-basic kernels may only accept triangle, sphere, plane, rectangle, disk, and
-OpenCylinder records with either no transform or a static transform payload.
+sphere/plane/rectangle/disk/OpenCylinder/Torus payloads, static transform
+payloads, ray work items, and miss/hit records. Those structs are
+16-byte-aligned, row-major, and plain-layout so Metal and Vulkan can share the
+same host-side contract even if their shader source is platform-native. The
+current execution eligibility check is strict: platform basic kernels may only
+accept triangle, sphere, plane, rectangle, disk, and OpenCylinder records with
+either no transform or a static transform payload. Torus is packed for the host
+parity path, but it remains ineligible for platform kernels until the Metal and
+Vulkan shaders get a matching quartic intersection implementation.
 Prepared GPU fallback backends retain the packed buffers next to the compiled
 scene, and the wavefront metrics report
 `intersectionSceneUploadBytes`, payload counts such as
-`intersectionSceneOpenCylinders`, plus
+`intersectionSceneOpenCylinders` and `intersectionSceneTori`, plus
 `intersectionSceneTriangleClosestHitEligible` and
 `intersectionSceneBasicHitEligible`, `intersectionScenePackedClosestHitEligible`,
 and `intersectionScenePackedAnyHitEligible`

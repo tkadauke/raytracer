@@ -121,6 +121,7 @@ namespace render {
     intersectionSceneRectangles = 0;
     intersectionSceneDisks = 0;
     intersectionSceneOpenCylinders = 0;
+    intersectionSceneTori = 0;
     intersectionSceneTransforms = 0;
     intersectionSceneUnsupportedPrimitives = 0;
     intersectionSceneUnsupportedReasons.clear();
@@ -235,6 +236,7 @@ namespace render {
     intersectionSceneDisks = std::max(intersectionSceneDisks, diagnostics.disks);
     intersectionSceneOpenCylinders =
       std::max(intersectionSceneOpenCylinders, diagnostics.openCylinders);
+    intersectionSceneTori = std::max(intersectionSceneTori, diagnostics.tori);
     intersectionSceneTransforms = std::max(intersectionSceneTransforms, diagnostics.transforms);
     intersectionSceneUnsupportedPrimitives =
       std::max(intersectionSceneUnsupportedPrimitives, diagnostics.unsupportedPrimitives);
@@ -348,6 +350,7 @@ namespace render {
     intersectionSceneDisks = std::max(intersectionSceneDisks, source.intersectionSceneDisks);
     intersectionSceneOpenCylinders =
       std::max(intersectionSceneOpenCylinders, source.intersectionSceneOpenCylinders);
+    intersectionSceneTori = std::max(intersectionSceneTori, source.intersectionSceneTori);
     intersectionSceneTransforms =
       std::max(intersectionSceneTransforms, source.intersectionSceneTransforms);
     intersectionSceneUnsupportedPrimitives = std::max(

@@ -298,6 +298,7 @@ namespace {
         << " intersection_scene_disks=" << unsignedValue(batching, "intersectionSceneDisks")
         << " intersection_scene_open_cylinders="
         << unsignedValue(batching, "intersectionSceneOpenCylinders")
+        << " intersection_scene_tori=" << unsignedValue(batching, "intersectionSceneTori")
         << " intersection_scene_transforms="
         << unsignedValue(batching, "intersectionSceneTransforms")
         << " intersection_scene_unsupported="
