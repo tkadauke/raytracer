@@ -263,8 +263,14 @@ CompiledIntersectionScene::unsupportedPrimitives() const {
 
 void IntersectionSceneBuilder::addUnsupportedPrimitive(const Primitive::TransformedLeaf& leaf,
                                                        std::string reason) {
+  addUnsupportedPrimitive(leaf, leaf.boundingBox(), std::move(reason));
+}
+
+void IntersectionSceneBuilder::addUnsupportedPrimitive(const Primitive::TransformedLeaf& leaf,
+                                                       const BoundingBoxd& bounds,
+                                                       std::string reason) {
   const IntersectionObjectId object = objectIdFor(leaf.objectPrimitive());
-  addPrimitive(leaf, IntersectionPrimitiveKind::Unsupported, 0, 0);
+  addPrimitive(leaf, IntersectionPrimitiveKind::Unsupported, bounds, 0, 0);
   m_scene.m_unsupportedPrimitives.push_back(
     UnsupportedIntersectionPrimitive{object, leaf.primitive->name(), std::move(reason)});
 }

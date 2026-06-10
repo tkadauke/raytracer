@@ -168,6 +168,8 @@ namespace render {
   class IntersectionSceneBuilder {
   public:
     void addUnsupportedPrimitive(const Primitive::TransformedLeaf& leaf, std::string reason);
+    void addUnsupportedPrimitive(const Primitive::TransformedLeaf& leaf, const BoundingBoxd& bounds,
+                                 std::string reason);
     void addTriangle(const Primitive::TransformedLeaf& leaf,
                      const IntersectionTrianglePayload& payload);
     void addTriangle(const Primitive::TransformedLeaf& leaf,

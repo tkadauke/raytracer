@@ -520,6 +520,7 @@ void Instance::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
   if (!m_primitive) {
     builder.addUnsupportedPrimitive(TransformedLeaf{this, effective, pointMatrix, normalMatrix,
                                                     effectiveObject ? effectiveObject : this},
+                                    BoundingBoxd::undefined,
                                     "empty instance is not supported by GPU intersection scene "
                                     "compiler");
     return;

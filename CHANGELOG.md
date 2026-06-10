@@ -1188,6 +1188,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   cancellation now preserves contributions completed before the depth-boundary
   cancellation check, and scalar progressive display averages use truncating
   channel packing consistently. — GPT-5
+- **Wavefront empty-instance fallback.** GPU wavefront intersection scene
+  compilation now reports empty instances as unsupported leaves with a clear
+  fallback reason instead of crashing while computing fallback bounds. — GPT-5
 - **Wavefront instance material object ids.** Compiled and packed wavefront
   intersection scenes now preserve the material-owning instance as the hit
   object when an instance supplies a material override, so prepared GPU-style

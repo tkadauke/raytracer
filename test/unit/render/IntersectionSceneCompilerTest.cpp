@@ -354,6 +354,27 @@ namespace IntersectionSceneCompilerTest {
               compiled.unsupportedPrimitives()[0].reason);
   }
 
+  TEST(IntersectionSceneCompiler, RecordsEmptyInstanceUnsupportedReason) {
+    auto instance = std::make_shared<Instance>(nullptr);
+    instance->setName("empty asset instance");
+    Scene scene;
+    scene.add(instance);
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+
+    ASSERT_EQ(1u, compiled.primitives().size());
+    ASSERT_EQ(1u, compiled.unsupportedPrimitives().size());
+    EXPECT_FALSE(compiled.fullySupported());
+    EXPECT_EQ(IntersectionPrimitiveKind::Unsupported, compiled.primitives()[0].kind);
+    EXPECT_TRUE(compiled.primitives()[0].bounds.isUndefined());
+    ASSERT_GT(compiled.objects().size(), compiled.primitives()[0].object);
+    EXPECT_EQ(instance.get(), compiled.objects()[compiled.primitives()[0].object]);
+    EXPECT_EQ(compiled.primitives()[0].object, compiled.unsupportedPrimitives()[0].object);
+    EXPECT_EQ("empty asset instance", compiled.unsupportedPrimitives()[0].primitiveName);
+    EXPECT_EQ("empty instance is not supported by GPU intersection scene compiler",
+              compiled.unsupportedPrimitives()[0].reason);
+  }
+
   TEST(IntersectionSceneCompiler, BvhRootBoundsMatchRuntimeBounds) {
     auto sphere = std::make_shared<Sphere>(Vector3d(1, 2, 3), 2.0);
     auto triangle =
