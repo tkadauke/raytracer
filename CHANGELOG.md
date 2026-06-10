@@ -56,6 +56,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   exact intersection-scene payload and can use the prepared packed CPU,
   Metal, and Vulkan basic closest-hit/any-hit contracts for explicit GPU
   wavefront requests. — GPT-5
+- **Wavefront query round-trip diagnostics.** Wavefront metrics, rendercli
+  summaries, and the Modeler graph details now report the estimated query
+  round trips implied by packed/platform intersection transfer work. — GPT-5
 - **Wavefront graph tooltip unsupported reasons.** The Modeler render graph
   tooltip for wavefront passes now includes grouped unsupported intersection
   scene reasons when a GPU-requested scene falls back before platform kernels

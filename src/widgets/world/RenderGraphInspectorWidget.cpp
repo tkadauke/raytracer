@@ -609,6 +609,8 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("intersectionSceneUploadBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection query transfer bytes"), batching,
                               QStringLiteral("intersectionEstimatedQueryTransferBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection query round trips"), batching,
+                              QStringLiteral("intersectionEstimatedQueryRoundTrips"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Packed closest-hit eligible"), batching,
                            QStringLiteral("intersectionScenePackedClosestHitEligible"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Packed any-hit eligible"), batching,
@@ -913,6 +915,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
           jsonIntegerValue(batching, QStringLiteral("intersectionEstimatedQueryTransferBytes"));
         if (queryTransferBytes > 0) {
           line += QStringLiteral(", ~%1 query transfer bytes").arg(queryTransferBytes);
+        }
+        const qulonglong queryRoundTrips =
+          jsonIntegerValue(batching, QStringLiteral("intersectionEstimatedQueryRoundTrips"));
+        if (queryRoundTrips > 0) {
+          line += QStringLiteral(", %1 query round trips").arg(queryRoundTrips);
         }
         const qulonglong closestHitRays =
           jsonIntegerValue(batching, QStringLiteral("closestHitRaysSubmitted"));

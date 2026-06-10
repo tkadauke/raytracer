@@ -143,6 +143,7 @@ namespace engine::wavefront {
       metrics.intersectionEstimatedClosestHitReadbackBytes;
     intersectionEstimatedAnyHitReadbackBytes += metrics.intersectionEstimatedAnyHitReadbackBytes;
     intersectionEstimatedQueryTransferBytes += metrics.intersectionEstimatedQueryTransferBytes;
+    intersectionEstimatedQueryRoundTrips += metrics.intersectionEstimatedQueryRoundTrips;
     intersectionBackendUploadWorkerSeconds += metrics.intersectionBackendUploadWorkerSeconds;
     intersectionBackendKernelWorkerSeconds += metrics.intersectionBackendKernelWorkerSeconds;
     intersectionBackendReadbackWorkerSeconds += metrics.intersectionBackendReadbackWorkerSeconds;
@@ -393,6 +394,8 @@ namespace engine::wavefront {
       static_cast<double>(batching.intersectionEstimatedAnyHitReadbackBytes);
     batchingJson["intersectionEstimatedQueryTransferBytes"] =
       static_cast<double>(batching.intersectionEstimatedQueryTransferBytes);
+    batchingJson["intersectionEstimatedQueryRoundTrips"] =
+      static_cast<double>(batching.intersectionEstimatedQueryRoundTrips);
     batchingJson["intersectionBackendUploadWorkerSeconds"] =
       batching.intersectionBackendUploadWorkerSeconds;
     batchingJson["intersectionBackendKernelWorkerSeconds"] =

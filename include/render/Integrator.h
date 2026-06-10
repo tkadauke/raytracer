@@ -104,6 +104,7 @@ namespace render {
     std::uint64_t intersectionEstimatedClosestHitReadbackBytes{0};
     std::uint64_t intersectionEstimatedAnyHitReadbackBytes{0};
     std::uint64_t intersectionEstimatedQueryTransferBytes{0};
+    std::uint64_t intersectionEstimatedQueryRoundTrips{0};
     double intersectionBackendUploadWorkerSeconds{0.0};
     double intersectionBackendKernelWorkerSeconds{0.0};
     double intersectionBackendReadbackWorkerSeconds{0.0};
@@ -140,6 +141,7 @@ namespace render {
     void recordIntersectionBackend(const WavefrontIntersectionBackend& backend);
     void recordIntersectionQueryFallbackReason(const WavefrontIntersectionBackend& backend,
                                                const WavefrontIntersectionQueryTiming& timing);
+    void recordIntersectionQueryTransfer(std::uint64_t rayUploadBytes, std::uint64_t readbackBytes);
     void recordClosestHitQuery(const WavefrontIntersectionBackend& backend,
                                std::uint64_t submittedRays,
                                const WavefrontIntersectionQueryTiming& timing = {});

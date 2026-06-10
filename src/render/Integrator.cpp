@@ -134,6 +134,7 @@ namespace render {
     intersectionEstimatedClosestHitReadbackBytes = 0;
     intersectionEstimatedAnyHitReadbackBytes = 0;
     intersectionEstimatedQueryTransferBytes = 0;
+    intersectionEstimatedQueryRoundTrips = 0;
     intersectionBackendUploadWorkerSeconds = 0.0;
     intersectionBackendKernelWorkerSeconds = 0.0;
     intersectionBackendReadbackWorkerSeconds = 0.0;
@@ -267,6 +268,15 @@ namespace render {
     intersectionBackendFallbackReason = "mixed";
   }
 
+  void IntegratorBatchMetrics::recordIntersectionQueryTransfer(std::uint64_t rayUploadBytes,
+                                                               std::uint64_t readbackBytes) {
+    intersectionEstimatedRayUploadBytes += rayUploadBytes;
+    intersectionEstimatedQueryTransferBytes += rayUploadBytes + readbackBytes;
+    if (rayUploadBytes > 0 || readbackBytes > 0) {
+      ++intersectionEstimatedQueryRoundTrips;
+    }
+  }
+
   void
   IntegratorBatchMetrics::recordClosestHitQuery(const WavefrontIntersectionBackend& backend,
                                                 std::uint64_t submittedRays,
@@ -280,9 +290,8 @@ namespace render {
     mergeLabel(intersectionBackendClosestHitExecutionPath, executionPath);
     const std::uint64_t rayUploadBytes = backend.estimatedClosestHitRayUploadBytes(submittedRays);
     const std::uint64_t readbackBytes = backend.estimatedClosestHitReadbackBytes(submittedRays);
-    intersectionEstimatedRayUploadBytes += rayUploadBytes;
     intersectionEstimatedClosestHitReadbackBytes += readbackBytes;
-    intersectionEstimatedQueryTransferBytes += rayUploadBytes + readbackBytes;
+    recordIntersectionQueryTransfer(rayUploadBytes, readbackBytes);
     intersectionBackendUploadWorkerSeconds += timing.uploadSeconds;
     intersectionBackendKernelWorkerSeconds += timing.kernelSeconds;
     intersectionBackendReadbackWorkerSeconds += timing.readbackSeconds;
@@ -305,9 +314,8 @@ namespace render {
     mergeLabel(intersectionBackendAnyHitExecutionPath, executionPath);
     const std::uint64_t rayUploadBytes = backend.estimatedAnyHitRayUploadBytes(submittedRays);
     const std::uint64_t readbackBytes = backend.estimatedAnyHitReadbackBytes(submittedRays);
-    intersectionEstimatedRayUploadBytes += rayUploadBytes;
     intersectionEstimatedAnyHitReadbackBytes += readbackBytes;
-    intersectionEstimatedQueryTransferBytes += rayUploadBytes + readbackBytes;
+    recordIntersectionQueryTransfer(rayUploadBytes, readbackBytes);
     intersectionBackendUploadWorkerSeconds += timing.uploadSeconds;
     intersectionBackendKernelWorkerSeconds += timing.kernelSeconds;
     intersectionBackendReadbackWorkerSeconds += timing.readbackSeconds;
@@ -373,6 +381,7 @@ namespace render {
       source.intersectionEstimatedClosestHitReadbackBytes;
     intersectionEstimatedAnyHitReadbackBytes += source.intersectionEstimatedAnyHitReadbackBytes;
     intersectionEstimatedQueryTransferBytes += source.intersectionEstimatedQueryTransferBytes;
+    intersectionEstimatedQueryRoundTrips += source.intersectionEstimatedQueryRoundTrips;
     intersectionBackendUploadWorkerSeconds += source.intersectionBackendUploadWorkerSeconds;
     intersectionBackendKernelWorkerSeconds += source.intersectionBackendKernelWorkerSeconds;
     intersectionBackendReadbackWorkerSeconds += source.intersectionBackendReadbackWorkerSeconds;
