@@ -12,9 +12,11 @@
 #include "render/primitives/Triangle.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <map>
 #include <memory>
 #include <random>
 #include <string>
@@ -79,6 +81,7 @@ namespace {
       state.counters["scene_bvh_nodes"] = static_cast<double>(diagnostics.bvhNodes);
       state.counters["scene_primitives"] = static_cast<double>(diagnostics.primitives);
       state.counters["scene_unsupported"] = static_cast<double>(diagnostics.unsupportedPrimitives);
+      annotateUnsupportedReasons(state, diagnostics.unsupportedReasons);
       state.counters["scene_upload_bytes"] = static_cast<double>(diagnostics.uploadBytes);
       state.counters["packed_closest_hit_eligible"] =
         diagnostics.packedClosestHitKernelEligible ? 1.0 : 0.0;
@@ -116,6 +119,44 @@ namespace {
       return backend;
     }
 #endif
+
+    void annotateCompiledScene(benchmark::State& state, const CompiledIntersectionScene& compiled,
+                               const GpuIntersectionSceneBuffers& buffers) const {
+      state.SetLabel(name);
+      state.counters["primitives"] = static_cast<double>(compiled.primitives().size());
+      state.counters["unsupported"] = static_cast<double>(compiled.unsupportedPrimitives().size());
+      annotateUnsupportedReasons(state, compiled.unsupportedReasonCounts());
+      state.counters["bvh_nodes"] = static_cast<double>(compiled.bvh().size());
+      state.counters["upload_bytes"] = static_cast<double>(buffers.uploadByteCount());
+    }
+
+    void annotateUnsupportedReasons(benchmark::State& state,
+                                    const std::map<std::string, std::uint64_t>& reasons) const {
+      for (const auto& [reason, count] : reasons) {
+        state.counters[unsupportedReasonCounterName(reason)] = static_cast<double>(count);
+      }
+    }
+
+    void annotateUnsupportedReasons(
+      benchmark::State& state,
+      const std::vector<UnsupportedIntersectionReasonCount>& reasons) const {
+      for (const UnsupportedIntersectionReasonCount& reason : reasons) {
+        state.counters[unsupportedReasonCounterName(reason.reason)] =
+          static_cast<double>(reason.count);
+      }
+    }
+
+    static std::string unsupportedReasonCounterName(std::string reason) {
+      if (reason.empty()) {
+        reason = "unknown";
+      }
+      for (char& ch : reason) {
+        if (!std::isalnum(static_cast<unsigned char>(ch))) {
+          ch = '_';
+        }
+      }
+      return "scene_unsupported_reason_" + reason;
+    }
   };
 
   struct ClosestQueryBatch {
@@ -221,16 +262,6 @@ namespace {
     return packed;
   }
 
-  void annotateScene(benchmark::State& state, const Workload& workload,
-                     const CompiledIntersectionScene& compiled,
-                     const GpuIntersectionSceneBuffers& buffers) {
-    state.SetLabel(workload.name);
-    state.counters["primitives"] = static_cast<double>(compiled.primitives().size());
-    state.counters["unsupported"] = static_cast<double>(compiled.unsupportedPrimitives().size());
-    state.counters["bvh_nodes"] = static_cast<double>(compiled.bvh().size());
-    state.counters["upload_bytes"] = static_cast<double>(buffers.uploadByteCount());
-  }
-
   void annotateQuery(benchmark::State& state, const Workload& workload,
                      const GpuIntersectionSceneBuffers& buffers, std::size_t rayCount,
                      std::size_t readbackRecordSize) {
@@ -253,7 +284,7 @@ namespace {
 
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(*workload.scene);
     const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
-    annotateScene(state, workload, compiled, buffers);
+    workload.annotateCompiledScene(state, compiled, buffers);
   }
 
   void bm_runtimeCpuClosestHit(benchmark::State& state) {
