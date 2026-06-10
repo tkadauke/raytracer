@@ -1962,6 +1962,35 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0, state.intersectionMisses);
   }
 
+  TEST(WavefrontIntersectionBackend, PreparedGpuClosestHitFallsBackToPrimitiveMaterial) {
+    auto triangle =
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));
+    Scene sourceScene;
+    sourceScene.add(triangle);
+    Scene emptyScene;
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(sourceScene);
+
+    ASSERT_NE(nullptr, backend->compiledScene());
+    ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
+    ASSERT_TRUE(backend->gpuIntersectionSceneBuffers()->packedClosestHitKernelEligible());
+
+    auto material =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
+    triangle->setMaterial(material);
+
+    State state;
+    const WavefrontClosestHitResult hit = backend->intersectClosestResult(
+      emptyScene, Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), state);
+
+    ASSERT_TRUE(hit.hit());
+    EXPECT_EQ(triangle.get(), hit.primitive);
+    EXPECT_EQ(material, hit.material);
+    EXPECT_EQ(1, state.intersectionHits);
+    EXPECT_EQ(0, state.intersectionMisses);
+  }
+
   TEST(WavefrontIntersectionBackend, PreparedGpuAnyHitUsesRetainedPackedTriangleScene) {
     auto triangle =
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));

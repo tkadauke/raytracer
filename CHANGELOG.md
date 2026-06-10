@@ -1188,6 +1188,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   cancellation now preserves contributions completed before the depth-boundary
   cancellation check, and scalar progressive display averages use truncating
   channel packing consistently. — GPT-5
+- **Packed wavefront primitive-material fallback.** Prepared GPU-style
+  wavefront closest-hit results now fall back to the retained primitive's
+  material when the packed material id has no compiled material entry, matching
+  the compiled CPU closest-hit path. — GPT-5
 - **Wavefront backend intent tooltip.** The Modeler Render Settings element now
   describes automatic wavefront intersection backend selection as a policy that
   can choose CPU or an available GPU backend, instead of saying Auto always
