@@ -1136,6 +1136,9 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection scene BVH nodes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection scene upload bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection query transfer bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection query round trips")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit query round trips")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Any-hit query round trips")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit rays submitted")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Any-hit rays submitted")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit batch average rays")).isEmpty());
@@ -1218,6 +1221,26 @@ namespace RenderGraphInspectorWidgetTest {
     ASSERT_NE(nullptr, pass);
 
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("auto GPU threshold")));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowWavefrontQueryRoundTripFamiliesOnPassTooltip) {
+    auto trace = wavefrontGpuTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+
+    QGraphicsItem* pass = graphNodeItem(graph->scene(), "pass", "wavefront_beauty");
+    ASSERT_NE(nullptr, pass);
+
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("query round trips")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("closest-hit")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("any-hit")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowRasterMetricsOnSelectedPassRow) {
