@@ -1147,6 +1147,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Expected closest-hit rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Expected any-hit rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Auto minimum GPU rays")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Auto estimated query transfer bytes")).isEmpty());
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowAutoWavefrontThresholdOnPassTooltip) {
