@@ -276,10 +276,10 @@ Progress:
   prepared-scene ineligibility, and active platform execution.
 - Vulkan-enabled builds now also probe the loader for a physical device with a
   compute queue and can run a tiny deterministic compute dispatch/readback
-  smoke kernel. The render backend still reports CPU fallback until a Vulkan
-  closest-hit kernel exists, but the fallback reason and `auto` selection path
-  can distinguish missing Vulkan compute support from missing render-path
-  kernel work.
+  smoke kernel. That early probe now feeds the same device/render-path
+  availability diagnostics used by the prepared Vulkan closest-hit and any-hit
+  kernels, so `auto` can distinguish missing Vulkan compute support from a
+  missing render-path kernel.
 - Vulkan-enabled builds now compile the smoke compute shader from GLSL into
   generated SPIR-V at build time, replacing the hand-written C++ word array and
   creating the native shader pipeline needed for Vulkan render-path kernels.
