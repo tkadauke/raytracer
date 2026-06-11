@@ -419,17 +419,19 @@ namespace {
     const std::shared_ptr<const WavefrontIntersectionBackend> backend =
       workload.automaticBackend(context);
     ClosestQueryBatch batch(rays);
+    const std::unique_ptr<WavefrontClosestHitFrontier> frontier =
+      backend->createClosestHitFrontier(batch.queries);
     WavefrontIntersectionQueryTiming timing;
     for (auto _ : state) {
       WavefrontIntersectionQueryTiming queryTiming;
       const std::vector<WavefrontClosestHitResult> hits =
-        backend->intersectClosestBatch(*workload.scene, batch.queries, &queryTiming);
+        backend->intersectClosestFrontier(*workload.scene, *frontier, &queryTiming);
       timing.add(queryTiming);
       benchmark::DoNotOptimize(hits.size());
     }
 
-    workload.annotateBackendWorkload(state, *backend, timing, context, batch.queries.size(), 0);
-    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(batch.queries.size()));
+    workload.annotateBackendWorkload(state, *backend, timing, context, frontier->rayCount(), 0);
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(frontier->rayCount()));
   }
 
   void bm_autoAnyHitBatch(benchmark::State& state) {
@@ -440,17 +442,19 @@ namespace {
     const std::shared_ptr<const WavefrontIntersectionBackend> backend =
       workload.automaticBackend(context);
     AnyQueryBatch batch(rays, 40.0);
+    const std::unique_ptr<WavefrontAnyHitFrontier> frontier =
+      backend->createAnyHitFrontier(batch.queries);
     WavefrontIntersectionQueryTiming timing;
     for (auto _ : state) {
       WavefrontIntersectionQueryTiming queryTiming;
       const std::vector<bool> occluded =
-        backend->intersectAnyBatch(*workload.scene, batch.queries, &queryTiming);
+        backend->intersectAnyFrontier(*workload.scene, *frontier, &queryTiming);
       timing.add(queryTiming);
       benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
     }
 
-    workload.annotateBackendWorkload(state, *backend, timing, context, 0, batch.queries.size());
-    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(batch.queries.size()));
+    workload.annotateBackendWorkload(state, *backend, timing, context, 0, frontier->rayCount());
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(frontier->rayCount()));
   }
 
   void bm_autoMixedClosestAndAnyHitBatch(benchmark::State& state) {
@@ -462,27 +466,31 @@ namespace {
       workload.automaticBackend(context);
     ClosestQueryBatch closestBatch(rays);
     AnyQueryBatch anyBatch(rays, 40.0);
+    const std::unique_ptr<WavefrontClosestHitFrontier> closestFrontier =
+      backend->createClosestHitFrontier(closestBatch.queries);
+    const std::unique_ptr<WavefrontAnyHitFrontier> anyFrontier =
+      backend->createAnyHitFrontier(anyBatch.queries);
     WavefrontIntersectionQueryTiming timing;
     for (auto _ : state) {
       WavefrontIntersectionQueryTiming closestTiming;
       const std::vector<WavefrontClosestHitResult> hits =
-        backend->intersectClosestBatch(*workload.scene, closestBatch.queries, &closestTiming);
+        backend->intersectClosestFrontier(*workload.scene, *closestFrontier, &closestTiming);
       timing.add(closestTiming);
 
       WavefrontIntersectionQueryTiming anyTiming;
       const std::vector<bool> occluded =
-        backend->intersectAnyBatch(*workload.scene, anyBatch.queries, &anyTiming);
+        backend->intersectAnyFrontier(*workload.scene, *anyFrontier, &anyTiming);
       timing.add(anyTiming);
 
       benchmark::DoNotOptimize(hits.size());
       benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
     }
 
-    workload.annotateBackendWorkload(state, *backend, timing, context, closestBatch.queries.size(),
-                                     anyBatch.queries.size());
+    workload.annotateBackendWorkload(state, *backend, timing, context, closestFrontier->rayCount(),
+                                     anyFrontier->rayCount());
     state.SetItemsProcessed(
       state.iterations() *
-      static_cast<std::int64_t>(closestBatch.queries.size() + anyBatch.queries.size()));
+      static_cast<std::int64_t>(closestFrontier->rayCount() + anyFrontier->rayCount()));
   }
 
   void bm_requestedGpuUnsupportedMixedClosestAndAnyHitBatch(benchmark::State& state) {
@@ -505,27 +513,31 @@ namespace {
       workload.selectionContext(rays.size(), rays.size());
     ClosestQueryBatch closestBatch(rays);
     AnyQueryBatch anyBatch(rays, 40.0);
+    const std::unique_ptr<WavefrontClosestHitFrontier> closestFrontier =
+      backend->createClosestHitFrontier(closestBatch.queries);
+    const std::unique_ptr<WavefrontAnyHitFrontier> anyFrontier =
+      backend->createAnyHitFrontier(anyBatch.queries);
     WavefrontIntersectionQueryTiming timing;
     for (auto _ : state) {
       WavefrontIntersectionQueryTiming closestTiming;
       const std::vector<WavefrontClosestHitResult> hits =
-        backend->intersectClosestBatch(*workload.scene, closestBatch.queries, &closestTiming);
+        backend->intersectClosestFrontier(*workload.scene, *closestFrontier, &closestTiming);
       timing.add(closestTiming);
 
       WavefrontIntersectionQueryTiming anyTiming;
       const std::vector<bool> occluded =
-        backend->intersectAnyBatch(*workload.scene, anyBatch.queries, &anyTiming);
+        backend->intersectAnyFrontier(*workload.scene, *anyFrontier, &anyTiming);
       timing.add(anyTiming);
 
       benchmark::DoNotOptimize(hits.size());
       benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
     }
 
-    workload.annotateBackendWorkload(state, *backend, timing, context, closestBatch.queries.size(),
-                                     anyBatch.queries.size());
+    workload.annotateBackendWorkload(state, *backend, timing, context, closestFrontier->rayCount(),
+                                     anyFrontier->rayCount());
     state.SetItemsProcessed(
       state.iterations() *
-      static_cast<std::int64_t>(closestBatch.queries.size() + anyBatch.queries.size()));
+      static_cast<std::int64_t>(closestFrontier->rayCount() + anyFrontier->rayCount()));
   }
 
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
@@ -541,17 +553,19 @@ namespace {
     const WavefrontIntersectionBackendSelectionContext context =
       workload.selectionContext(rays.size(), 0);
     ClosestQueryBatch batch(rays);
+    const std::unique_ptr<WavefrontClosestHitFrontier> frontier =
+      backend->createClosestHitFrontier(batch.queries);
     WavefrontIntersectionQueryTiming timing;
     for (auto _ : state) {
       WavefrontIntersectionQueryTiming queryTiming;
       const std::vector<WavefrontClosestHitResult> hits =
-        backend->intersectClosestBatch(*workload.scene, batch.queries, &queryTiming);
+        backend->intersectClosestFrontier(*workload.scene, *frontier, &queryTiming);
       timing.add(queryTiming);
       benchmark::DoNotOptimize(hits.size());
     }
 
-    workload.annotateBackendWorkload(state, *backend, timing, context, batch.queries.size(), 0);
-    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(batch.queries.size()));
+    workload.annotateBackendWorkload(state, *backend, timing, context, frontier->rayCount(), 0);
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(frontier->rayCount()));
   }
 
   void bm_requestedGpuAnyHitBatch(benchmark::State& state) {
@@ -566,17 +580,19 @@ namespace {
     const WavefrontIntersectionBackendSelectionContext context =
       workload.selectionContext(0, rays.size());
     AnyQueryBatch batch(rays, 40.0);
+    const std::unique_ptr<WavefrontAnyHitFrontier> frontier =
+      backend->createAnyHitFrontier(batch.queries);
     WavefrontIntersectionQueryTiming timing;
     for (auto _ : state) {
       WavefrontIntersectionQueryTiming queryTiming;
       const std::vector<bool> occluded =
-        backend->intersectAnyBatch(*workload.scene, batch.queries, &queryTiming);
+        backend->intersectAnyFrontier(*workload.scene, *frontier, &queryTiming);
       timing.add(queryTiming);
       benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
     }
 
-    workload.annotateBackendWorkload(state, *backend, timing, context, 0, batch.queries.size());
-    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(batch.queries.size()));
+    workload.annotateBackendWorkload(state, *backend, timing, context, 0, frontier->rayCount());
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(frontier->rayCount()));
   }
 
   void bm_requestedGpuMixedClosestAndAnyHitBatch(benchmark::State& state) {
@@ -592,27 +608,31 @@ namespace {
       workload.selectionContext(rays.size(), rays.size());
     ClosestQueryBatch closestBatch(rays);
     AnyQueryBatch anyBatch(rays, 40.0);
+    const std::unique_ptr<WavefrontClosestHitFrontier> closestFrontier =
+      backend->createClosestHitFrontier(closestBatch.queries);
+    const std::unique_ptr<WavefrontAnyHitFrontier> anyFrontier =
+      backend->createAnyHitFrontier(anyBatch.queries);
     WavefrontIntersectionQueryTiming timing;
     for (auto _ : state) {
       WavefrontIntersectionQueryTiming closestTiming;
       const std::vector<WavefrontClosestHitResult> hits =
-        backend->intersectClosestBatch(*workload.scene, closestBatch.queries, &closestTiming);
+        backend->intersectClosestFrontier(*workload.scene, *closestFrontier, &closestTiming);
       timing.add(closestTiming);
 
       WavefrontIntersectionQueryTiming anyTiming;
       const std::vector<bool> occluded =
-        backend->intersectAnyBatch(*workload.scene, anyBatch.queries, &anyTiming);
+        backend->intersectAnyFrontier(*workload.scene, *anyFrontier, &anyTiming);
       timing.add(anyTiming);
 
       benchmark::DoNotOptimize(hits.size());
       benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
     }
 
-    workload.annotateBackendWorkload(state, *backend, timing, context, closestBatch.queries.size(),
-                                     anyBatch.queries.size());
+    workload.annotateBackendWorkload(state, *backend, timing, context, closestFrontier->rayCount(),
+                                     anyFrontier->rayCount());
     state.SetItemsProcessed(
       state.iterations() *
-      static_cast<std::int64_t>(closestBatch.queries.size() + anyBatch.queries.size()));
+      static_cast<std::int64_t>(closestFrontier->rayCount() + anyFrontier->rayCount()));
   }
 #endif
 

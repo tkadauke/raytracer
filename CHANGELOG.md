@@ -25,6 +25,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   — GPT-5 Codex
 - Preserved wavefront frontier residency labels in convergence comparison and
   queue-sweep benchmark capture summaries. — GPT-5 Codex
+- Routed wavefront intersection backend batch benchmarks through backend-owned
+  frontier handles so benchmark timings cover the same seam as rendering.
+  — GPT-5 Codex
 
 ### Added
 
