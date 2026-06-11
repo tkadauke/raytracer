@@ -62,6 +62,10 @@ namespace {
         backend.estimatedAnyHitReadbackBytes(static_cast<std::uint64_t>(anyHitRayCount));
       const bool closestHitRoundTrip = closestHitRayUploadBytes > 0 || closestHitReadbackBytes > 0;
       const bool anyHitRoundTrip = anyHitRayUploadBytes > 0 || anyHitReadbackBytes > 0;
+      const std::uint64_t queryRoundTrips =
+        frontierQueryRoundTrips(closestHitRoundTrip, anyHitRoundTrip);
+      const std::uint64_t residentQueryRoundTrips =
+        residentFrontierQueryRoundTripsEstimate(closestHitRoundTrip, anyHitRoundTrip);
       std::string executionPath = timing.executionPath;
       if (executionPath.empty()) {
         executionPath = backend.executionPath();
@@ -95,10 +99,13 @@ namespace {
       state.counters["any_hit_readback_bytes"] = static_cast<double>(anyHitReadbackBytes);
       state.counters["readback_bytes"] =
         static_cast<double>(closestHitReadbackBytes + anyHitReadbackBytes);
-      state.counters["query_round_trips"] =
-        static_cast<double>((closestHitRoundTrip ? 1 : 0) + (anyHitRoundTrip ? 1 : 0));
+      state.counters["query_round_trips"] = static_cast<double>(queryRoundTrips);
       state.counters["closest_hit_query_round_trips"] = closestHitRoundTrip ? 1.0 : 0.0;
       state.counters["any_hit_query_round_trips"] = anyHitRoundTrip ? 1.0 : 0.0;
+      state.counters["frontier_resident_query_round_trips_estimate"] =
+        static_cast<double>(residentQueryRoundTrips);
+      state.counters["frontier_resident_query_round_trip_savings_estimate"] =
+        static_cast<double>(queryRoundTrips - residentQueryRoundTrips);
     }
 
     [[nodiscard]] std::shared_ptr<const WavefrontIntersectionBackend>
@@ -162,6 +169,20 @@ namespace {
         }
       }
       return "scene_unsupported_reason_" + reason;
+    }
+
+    [[nodiscard]] std::uint64_t frontierQueryRoundTrips(bool closestHitRoundTrip,
+                                                        bool anyHitRoundTrip) const {
+      return (closestHitRoundTrip ? 1u : 0u) + (anyHitRoundTrip ? 1u : 0u);
+    }
+
+    [[nodiscard]] std::uint64_t
+    residentFrontierQueryRoundTripsEstimate(bool closestHitRoundTrip, bool anyHitRoundTrip) const {
+      const std::uint64_t current = frontierQueryRoundTrips(closestHitRoundTrip, anyHitRoundTrip);
+      if (closestHitRoundTrip && anyHitRoundTrip) {
+        return 1;
+      }
+      return current;
     }
   };
 

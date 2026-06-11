@@ -81,6 +81,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   summaries, and the Modeler graph details now report observed frontier query
   round trips, a resident-frontier round-trip estimate, and the estimated
   savings for mixed closest-hit plus any-hit depths. — GPT-5 Codex
+- **Wavefront benchmark resident-frontier counters.** Wavefront intersection
+  backend benchmarks now publish resident-frontier round-trip estimates and
+  savings counters for mixed closest-hit plus any-hit query-family rows.
+  — GPT-5 Codex
 - **Wavefront compaction diagnostics.** Wavefront metrics, rendercli
   summaries, and the Modeler graph details now report active-sample
   compaction candidate depths and sample counts, creating a baseline for future

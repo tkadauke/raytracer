@@ -850,6 +850,10 @@ Progress:
   can be timed separately from supported prepared scenes, and benchmark
   transfer counters now come from the selected backend's query-family estimates
   so unsupported fallback rows show zero upload/readback cost.
+- Wavefront intersection backend benchmarks now also publish the
+  resident-frontier round-trip estimate and savings counters for mixed
+  closest-hit plus any-hit query-family rows, keeping benchmark evidence
+  aligned with render metrics and the Phase 8 frontier-residency target.
 - A regular unit-test performance gate now pins the packed upload-buffer CPU
   traversal against runtime `Scene` traversal on a mesh-heavy supported scene.
   The threshold is deliberately conservative, but it catches regressions that
