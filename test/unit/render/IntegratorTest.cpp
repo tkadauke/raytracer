@@ -240,15 +240,21 @@ namespace IntegratorTest {
 
     metrics.recordActiveDepth(4);
     metrics.recordActiveDepth(3);
-    metrics.recordActiveDepth(2);
+    metrics.recordActiveDepth(7);
     metrics.recordRetainedActiveDepth(1);
     metrics.recordRetainedActiveDepth(3);
+    metrics.recordRetainedActiveDepth(2);
 
     EXPECT_TRUE(metrics.hasCompactionCandidateDepth(0));
     EXPECT_FALSE(metrics.hasCompactionCandidateDepth(1));
-    EXPECT_FALSE(metrics.hasCompactionCandidateDepth(2));
-    EXPECT_EQ(1u, metrics.compactionCandidateDepthCount());
-    EXPECT_EQ(3u, metrics.compactionCandidateSampleCount());
-    EXPECT_DOUBLE_EQ(1.0 / 3.0, metrics.compactionCandidateSampleFraction());
+    EXPECT_TRUE(metrics.hasCompactionCandidateDepth(2));
+    EXPECT_EQ(3u, metrics.compactionCandidateSamplesAtDepth(0));
+    EXPECT_EQ(0u, metrics.compactionCandidateSamplesAtDepth(1));
+    EXPECT_EQ(5u, metrics.compactionCandidateSamplesAtDepth(2));
+    EXPECT_EQ(2u, metrics.compactionCandidateDepthCount());
+    EXPECT_EQ(8u, metrics.compactionCandidateSampleCount());
+    EXPECT_DOUBLE_EQ(8.0 / 14.0, metrics.compactionCandidateSampleFraction());
+    EXPECT_EQ(2u, metrics.largestCompactionCandidateDepth());
+    EXPECT_EQ(5u, metrics.largestCompactionCandidateSampleCount());
   }
 }

@@ -668,6 +668,11 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
         batching.value(QStringLiteral("frontierCompactionCandidateSampleFraction")).toDouble(),
         1.0));
   }
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Largest compaction candidate depth"), batching,
+                              QStringLiteral("frontierLargestCompactionCandidateDepth"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Largest compaction candidate samples"),
+                              batching,
+                              QStringLiteral("frontierLargestCompactionCandidateSamples"));
   const qulonglong closestHitBatchChunks = jsonIntegerArraySum(
     batching.value(QStringLiteral("frontierClosestHitBatchChunksPerDepth")).toArray());
   if (closestHitBatchChunks > 0) {
@@ -1020,6 +1025,15 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         if (compactionCandidateSamples > 0) {
           line +=
             QStringLiteral(", %1 compaction candidate samples").arg(compactionCandidateSamples);
+        }
+        const qulonglong largestCompactionCandidateSamples =
+          jsonIntegerValue(batching, QStringLiteral("frontierLargestCompactionCandidateSamples"));
+        if (largestCompactionCandidateSamples > 0) {
+          const qulonglong largestCompactionCandidateDepth =
+            jsonIntegerValue(batching, QStringLiteral("frontierLargestCompactionCandidateDepth"));
+          line += QStringLiteral(", largest compaction candidate depth %1/%2 samples")
+                    .arg(largestCompactionCandidateDepth)
+                    .arg(largestCompactionCandidateSamples);
         }
         const bool prefersClosestHitBatch =
           batching.value(QStringLiteral("intersectionBackendPrefersClosestHitBatch")).toBool();

@@ -194,7 +194,9 @@ They also report compaction candidate depths and sample counts by comparing
 active samples entering a depth with retained samples after that depth. That is
 the CPU-side baseline for future GPU-side active-ray compaction; the candidate
 fraction keeps that pressure comparable across different image sizes and sample
-counts.
+counts. The largest compaction candidate depth and sample count point to the
+single depth where a future compaction pass would remove the most inactive path
+state.
 When a platform kernel actually runs, the same summary separates backend
 upload/setup, kernel dispatch/wait, and readback time; CPU fallback paths keep
 those backend buckets at zero while total intersection worker time still
@@ -350,6 +352,8 @@ compact summary prints total `tiles`, `tile_grid`,
 `sample_stddev_rms`, `max_sample_stddev`, `frontier_query_round_trips`,
 `frontier_resident_query_round_trips_estimate`,
 `frontier_resident_query_round_trip_savings_estimate`,
+`frontier_largest_compaction_candidate_depth`,
+`frontier_largest_compaction_candidate_samples`,
 `intersection_backend_gpu_device`,
 `intersection_backend_gpu_render_path`,
 `intersection_backend_platform`, `closest_hit_execution`, `any_hit_execution`,

@@ -160,9 +160,12 @@ namespace engine::wavefront {
       void addIntegratorMetrics(const render::IntegratorBatchMetrics& metrics);
       void addIntersectionBackendMetrics(const render::IntegratorBatchMetrics& metrics);
       [[nodiscard]] bool hasCompactionCandidateDepth(std::size_t depth) const;
+      [[nodiscard]] std::uint64_t compactionCandidateSamplesAtDepth(std::size_t depth) const;
       [[nodiscard]] std::uint64_t compactionCandidateDepthCount() const;
       [[nodiscard]] std::uint64_t compactionCandidateSampleCount() const;
       [[nodiscard]] double compactionCandidateSampleFraction() const;
+      [[nodiscard]] std::uint64_t largestCompactionCandidateDepth() const;
+      [[nodiscard]] std::uint64_t largestCompactionCandidateSampleCount() const;
       [[nodiscard]] bool hasMixedQueryDepth(std::size_t depth) const;
       [[nodiscard]] std::uint64_t frontierQueryRoundTrips() const;
       [[nodiscard]] std::uint64_t residentFrontierQueryRoundTripsEstimate() const;

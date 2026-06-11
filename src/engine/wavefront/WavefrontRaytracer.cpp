@@ -239,6 +239,14 @@ namespace engine::wavefront {
     return activeSamplesPerDepth[depth] > retainedActiveSamplesPerDepth[depth];
   }
 
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::compactionCandidateSamplesAtDepth(std::size_t depth) const {
+    if (!hasCompactionCandidateDepth(depth)) {
+      return 0;
+    }
+    return activeSamplesPerDepth[depth] - retainedActiveSamplesPerDepth[depth];
+  }
+
   std::uint64_t WavefrontRenderMetrics::BatchSummary::compactionCandidateDepthCount() const {
     const std::size_t depthCount =
       std::min(activeSamplesPerDepth.size(), retainedActiveSamplesPerDepth.size());
@@ -256,9 +264,7 @@ namespace engine::wavefront {
       std::min(activeSamplesPerDepth.size(), retainedActiveSamplesPerDepth.size());
     std::uint64_t count = 0;
     for (std::size_t depth = 0; depth != depthCount; ++depth) {
-      if (activeSamplesPerDepth[depth] > retainedActiveSamplesPerDepth[depth]) {
-        count += activeSamplesPerDepth[depth] - retainedActiveSamplesPerDepth[depth];
-      }
+      count += compactionCandidateSamplesAtDepth(depth);
     }
     return count;
   }
@@ -269,6 +275,32 @@ namespace engine::wavefront {
     }
     return static_cast<double>(compactionCandidateSampleCount()) /
            static_cast<double>(activeSampleDepthsProcessed);
+  }
+
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::largestCompactionCandidateDepth() const {
+    const std::size_t depthCount =
+      std::min(activeSamplesPerDepth.size(), retainedActiveSamplesPerDepth.size());
+    std::uint64_t largestDepth = 0;
+    std::uint64_t largestSamples = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      const std::uint64_t samples = compactionCandidateSamplesAtDepth(depth);
+      if (samples > largestSamples) {
+        largestSamples = samples;
+        largestDepth = static_cast<std::uint64_t>(depth);
+      }
+    }
+    return largestDepth;
+  }
+
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::largestCompactionCandidateSampleCount() const {
+    const std::size_t depthCount =
+      std::min(activeSamplesPerDepth.size(), retainedActiveSamplesPerDepth.size());
+    std::uint64_t largestSamples = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      largestSamples = std::max(largestSamples, compactionCandidateSamplesAtDepth(depth));
+    }
+    return largestSamples;
   }
 
   bool WavefrontRenderMetrics::BatchSummary::hasMixedQueryDepth(std::size_t depth) const {
@@ -610,6 +642,10 @@ namespace engine::wavefront {
       static_cast<double>(batching.compactionCandidateSampleCount());
     batchingJson["frontierCompactionCandidateSampleFraction"] =
       batching.compactionCandidateSampleFraction();
+    batchingJson["frontierLargestCompactionCandidateDepth"] =
+      static_cast<double>(batching.largestCompactionCandidateDepth());
+    batchingJson["frontierLargestCompactionCandidateSamples"] =
+      static_cast<double>(batching.largestCompactionCandidateSampleCount());
     batchingJson["frontierRayHitsPerDepth"] = frontierRayHitsPerDepth;
     batchingJson["frontierRayMissesPerDepth"] = frontierRayMissesPerDepth;
     batchingJson["frontierPacketChunksPerDepth"] = frontierPacketChunksPerDepth;

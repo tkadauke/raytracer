@@ -2612,7 +2612,9 @@ endif()
 foreach(compaction_field
         frontierCompactionCandidateDepths
         frontierCompactionCandidateSamples
-        frontierCompactionCandidateSampleFraction)
+        frontierCompactionCandidateSampleFraction
+        frontierLargestCompactionCandidateDepth
+        frontierLargestCompactionCandidateSamples)
   if(NOT wavefront_metrics_json MATCHES "\"${compaction_field}\"")
     _rendercli_fail("rendercli wavefront metrics ${compaction_field}"
                     "wavefront metrics report did not contain ${compaction_field}"
@@ -2642,6 +2644,16 @@ endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_candidate_fraction=")
   _rendercli_fail("rendercli wavefront metrics compaction candidate fraction summary"
                   "wavefront metrics summary did not contain compaction candidate fraction"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_largest_compaction_candidate_depth=")
+  _rendercli_fail("rendercli wavefront metrics largest compaction candidate depth summary"
+                  "wavefront metrics summary did not contain largest compaction candidate depth"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_largest_compaction_candidate_samples=")
+  _rendercli_fail("rendercli wavefront metrics largest compaction candidate sample summary"
+                  "wavefront metrics summary did not contain largest compaction candidate samples"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_query_round_trips=")
