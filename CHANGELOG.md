@@ -102,6 +102,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront resident capability capture metrics.** The wavefront convergence
   capture helper now retains those resident-frontier capability flags in
   comparison reports and queue-sweep summaries. — GPT-5 Codex
+- **Wavefront resident capability benchmark counters.** Wavefront intersection
+  backend benchmarks now publish the resident-frontier, GPU-compaction, and
+  resident direct-light capability flags next to their round-trip counters.
+  — GPT-5 Codex
 - **Wavefront largest-compaction diagnostics.** Wavefront metrics, rendercli
   summaries, and the Modeler graph details now identify the depth with the
   largest inactive-path compaction candidate sample count. — GPT-5 Codex

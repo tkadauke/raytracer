@@ -106,6 +106,12 @@ namespace {
         static_cast<double>(residentQueryRoundTrips);
       state.counters["frontier_resident_query_round_trip_savings_estimate"] =
         static_cast<double>(queryRoundTrips - residentQueryRoundTrips);
+      state.counters["resident_frontiers_supported"] =
+        backend.supportsResidentFrontiers() ? 1.0 : 0.0;
+      state.counters["gpu_frontier_compaction_supported"] =
+        backend.supportsGpuFrontierCompaction() ? 1.0 : 0.0;
+      state.counters["resident_direct_light_batches_supported"] =
+        backend.supportsResidentDirectLightBatches() ? 1.0 : 0.0;
     }
 
     [[nodiscard]] std::shared_ptr<const WavefrontIntersectionBackend>

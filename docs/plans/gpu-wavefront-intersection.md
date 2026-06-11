@@ -920,6 +920,10 @@ Progress:
   reference/candidate comparisons and queue-sweep summaries, so future Phase 8
   captures can distinguish an estimated opportunity from a backend that
   actually supports resident scheduling.
+- Wavefront intersection backend benchmarks now publish the same resident
+  capability flags next to their resident-frontier round-trip estimates, so
+  benchmark rows can be filtered by real support rather than only by estimated
+  opportunity.
 - Wavefront metrics now report mixed query depths: depth frontiers where both a
   closest-hit frontier batch and a direct-light any-hit batch ran, plus the
   participating closest-hit and any-hit ray counts. This does not keep frontiers
