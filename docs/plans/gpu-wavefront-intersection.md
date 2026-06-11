@@ -929,9 +929,10 @@ Progress:
   Phase 8 scheduler experiments can see whether a queue policy or future GPU
   compaction path actually reduces retained inactive path state.
 - The same capture helper now also preserves closest-hit batch, direct-light
-  any-hit batch, mixed-query-depth, and resident-frontier round-trip counters in
-  comparison reports and queue-sweep summaries. That makes benchmark captures
-  line up with the render metrics used to judge GPU-resident frontier work.
+  any-hit batch, mixed-query-depth, resident-frontier round-trip counters, and
+  closest-hit/any-hit frontier residency labels in comparison reports and
+  queue-sweep summaries. That makes benchmark captures line up with the render
+  metrics used to judge GPU-resident frontier work.
 - The backend contract now exposes explicit Phase 8 capability flags for
   resident frontiers, GPU frontier compaction, and resident direct-light
   batches. Current backends report these as unsupported, and the values flow
