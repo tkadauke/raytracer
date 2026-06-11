@@ -338,6 +338,13 @@ namespace engine::wavefront {
     return rays;
   }
 
+  double WavefrontRenderMetrics::BatchSummary::intersectionBackendKernelRaysPerSecond() const {
+    if (intersectionBackendKernelWorkerSeconds == 0.0) {
+      return 0.0;
+    }
+    return static_cast<double>(intersectionRaysSubmitted) / intersectionBackendKernelWorkerSeconds;
+  }
+
   void WavefrontRenderMetrics::TilingSummary::resetFromTilePlan(const render::TilePlan& tilePlan) {
     *this = TilingSummary();
     tileCount = tilePlan.size();
@@ -347,6 +354,14 @@ namespace engine::wavefront {
     maxTileHeight = static_cast<std::uint64_t>(std::max(0, tilePlan.maxTileHeight()));
     maxTilePixels = static_cast<std::uint64_t>(std::max(0, tilePlan.maxTilePixels()));
     averageTilePixels = tilePlan.averageTilePixels();
+  }
+
+  double WavefrontRenderMetrics::intersectionRaysPerWorkerSecond() const {
+    if (timings.integratorIntersectionWorkerSeconds == 0.0) {
+      return 0.0;
+    }
+    return static_cast<double>(batching.intersectionRaysSubmitted) /
+           timings.integratorIntersectionWorkerSeconds;
   }
 
   QJsonObject WavefrontRenderMetrics::toJson() const {
@@ -516,6 +531,9 @@ namespace engine::wavefront {
       batching.intersectionBackendKernelWorkerSeconds;
     batchingJson["intersectionBackendReadbackWorkerSeconds"] =
       batching.intersectionBackendReadbackWorkerSeconds;
+    batchingJson["intersectionRaysPerWorkerSecond"] = intersectionRaysPerWorkerSecond();
+    batchingJson["intersectionBackendKernelRaysPerSecond"] =
+      batching.intersectionBackendKernelRaysPerSecond();
     batchingJson["intersectionRaysSubmitted"] =
       static_cast<double>(batching.intersectionRaysSubmitted);
     batchingJson["closestHitRaysSubmitted"] = static_cast<double>(batching.closestHitRaysSubmitted);

@@ -612,6 +612,20 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(6, integrator->maximumRecursionDepth());
   }
 
+  TEST(WavefrontRaytracer, ReportsIntersectionThroughputMetrics) {
+    engine::wavefront::WavefrontRenderMetrics metrics;
+    metrics.batching.intersectionRaysSubmitted = 12;
+    metrics.batching.intersectionBackendKernelWorkerSeconds = 0.002;
+    metrics.timings.integratorIntersectionWorkerSeconds = 0.003;
+
+    EXPECT_DOUBLE_EQ(4000.0, metrics.intersectionRaysPerWorkerSecond());
+    EXPECT_DOUBLE_EQ(6000.0, metrics.batching.intersectionBackendKernelRaysPerSecond());
+
+    const QJsonObject batching = metrics.toJson().value("batching").toObject();
+    EXPECT_DOUBLE_EQ(4000.0, batching.value("intersectionRaysPerWorkerSecond").toDouble());
+    EXPECT_DOUBLE_EQ(6000.0, batching.value("intersectionBackendKernelRaysPerSecond").toDouble());
+  }
+
   TEST(WavefrontRaytracer, ClonesConfigurationForRenderThreadSnapshots) {
     auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
     renderer->setMaximumThreads(1);

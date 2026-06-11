@@ -910,6 +910,11 @@ Progress:
   reports candidate samples as a fraction of total active sample-depth work.
   These derived diagnostics make GPU-resident frontier and GPU-side compaction
   opportunities comparable across render sizes before the scheduler changes.
+- Wavefront metrics now also report submitted intersection rays per measured
+  intersection-worker second and backend-kernel rays per second when platform
+  kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a
+  measured throughput signal next to expected-ray, transfer-byte, and
+  round-trip estimates.
 
 ---
 

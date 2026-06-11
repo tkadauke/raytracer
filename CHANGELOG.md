@@ -69,6 +69,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   ray counts, mixed-depth query round trips, and compaction candidate
   fractions so GPU-resident frontier and compaction opportunities can be
   compared across render sizes. — GPT-5 Codex
+- **Wavefront intersection throughput diagnostics.** Wavefront metrics,
+  rendercli summaries, and the Modeler graph details now report submitted
+  intersection rays per worker second and backend-kernel rays per second for
+  threshold tuning. — GPT-5 Codex
 - **Wavefront compaction diagnostics.** Wavefront metrics, rendercli
   summaries, and the Modeler graph details now report active-sample
   compaction candidate depths and sample counts, creating a baseline for future

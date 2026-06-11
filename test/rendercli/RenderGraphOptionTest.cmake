@@ -2544,6 +2544,16 @@ if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendReadbackWorkerSecond
                   "wavefront metrics report did not contain backend readback timing"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionRaysPerWorkerSecond\"")
+  _rendercli_fail("rendercli wavefront metrics intersection throughput"
+                  "wavefront metrics report did not contain intersection throughput"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendKernelRaysPerSecond\"")
+  _rendercli_fail("rendercli wavefront metrics backend kernel throughput"
+                  "wavefront metrics report did not contain backend kernel throughput"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
 if(NOT wavefront_metrics_json MATCHES "\"intersectionEstimatedQueryRoundTrips\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
   _rendercli_fail("rendercli wavefront metrics query round trips"
                   "wavefront metrics report did not contain query round-trip estimate"
@@ -2632,6 +2642,16 @@ endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_candidate_fraction=")
   _rendercli_fail("rendercli wavefront metrics compaction candidate fraction summary"
                   "wavefront metrics summary did not contain compaction candidate fraction"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "intersection_rays_per_worker_second=")
+  _rendercli_fail("rendercli wavefront metrics intersection throughput summary"
+                  "wavefront metrics summary did not contain intersection throughput"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "intersection_backend_kernel_rays_per_second=")
+  _rendercli_fail("rendercli wavefront metrics backend kernel throughput summary"
+                  "wavefront metrics summary did not contain backend kernel throughput"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 foreach(tiling_field

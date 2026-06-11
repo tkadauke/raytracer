@@ -169,6 +169,7 @@ namespace engine::wavefront {
       [[nodiscard]] std::uint64_t mixedQueryDepthRays() const;
       [[nodiscard]] std::uint64_t mixedQueryDepthClosestHitRays() const;
       [[nodiscard]] std::uint64_t mixedQueryDepthAnyHitRays() const;
+      [[nodiscard]] double intersectionBackendKernelRaysPerSecond() const;
     } batching;
 
     struct ConvergenceSummary {
@@ -234,6 +235,7 @@ namespace engine::wavefront {
                                  const render::IntegratorBatchMetrics& batchMetrics);
     } timings;
 
+    [[nodiscard]] double intersectionRaysPerWorkerSecond() const;
     QJsonObject toJson() const;
   };
 

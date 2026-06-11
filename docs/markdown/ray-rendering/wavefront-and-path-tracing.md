@@ -277,7 +277,10 @@ be compared directly.
 Prepared GPU-style backends can also opt into arbitrary closest-hit frontier
 batches, letting a path-tracing bounce submit one group of camera/path rays
 instead of slicing that frontier into Ray4/Ray8 packets before it reaches the
-platform backend.
+platform backend. The same trace records submitted intersection rays per
+intersection-worker second and, when a platform kernel reports dispatch timing,
+backend-kernel rays per second. Those throughput numbers are the measured
+counterpart to the `auto` policy's expected-ray and transfer estimates.
 
 The expected ray count used by `auto` is an estimate of intersection work, not
 just the number of primary camera samples. `WavefrontRaytracer` starts with

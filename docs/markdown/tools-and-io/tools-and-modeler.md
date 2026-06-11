@@ -195,7 +195,11 @@ counts.
 When a platform kernel actually runs, the same summary separates backend
 upload/setup, kernel dispatch/wait, and readback time; CPU fallback paths keep
 those backend buckets at zero while total intersection worker time still
-captures their CPU query cost.
+captures their CPU query cost. The summary also reports submitted
+intersection rays per measured intersection-worker second, plus backend-kernel
+rays per second when the platform backend reports kernel timing, so automatic
+backend thresholds can be compared against measured throughput instead of only
+byte counts.
 Raster
 controls such as `--lod`, `--msaa`,
 `--msaa_shading`, `--raster_backend`, viewport/scissor, blending, alpha test,

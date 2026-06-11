@@ -336,6 +336,10 @@ namespace {
         << batching.value("intersectionBackendKernelWorkerSeconds").toDouble() * 1000.0
         << " intersection_backend_readback_worker_ms="
         << batching.value("intersectionBackendReadbackWorkerSeconds").toDouble() * 1000.0
+        << " intersection_rays_per_worker_second="
+        << batching.value("intersectionRaysPerWorkerSecond").toDouble()
+        << " intersection_backend_kernel_rays_per_second="
+        << batching.value("intersectionBackendKernelRaysPerSecond").toDouble()
         << " intersection_rays=" << unsignedValue(batching, "intersectionRaysSubmitted")
         << " closest_hit_rays=" << unsignedValue(batching, "closestHitRaysSubmitted")
         << " any_hit_rays=" << unsignedValue(batching, "anyHitRaysSubmitted")

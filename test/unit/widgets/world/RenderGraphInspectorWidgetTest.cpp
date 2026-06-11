@@ -1131,6 +1131,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit query round trips")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Any-hit query round trips")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed-depth query round trips")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection rays/sec")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Backend kernel rays/sec")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit rays submitted")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Any-hit rays submitted")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit batch average rays")).isEmpty());

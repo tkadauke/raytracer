@@ -688,6 +688,14 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                                    QStringLiteral("intersectionBackendKernelWorkerSeconds"));
   addDetailMillisecondsMetadataRow(rows, QStringLiteral("Backend readback time"), batching,
                                    QStringLiteral("intersectionBackendReadbackWorkerSeconds"));
+  addDetailRow(
+    rows, QStringLiteral("Intersection rays/sec"),
+    QString::number(batching.value(QStringLiteral("intersectionRaysPerWorkerSecond")).toDouble(),
+                    'f', 2));
+  addDetailRow(
+    rows, QStringLiteral("Backend kernel rays/sec"),
+    QString::number(
+      batching.value(QStringLiteral("intersectionBackendKernelRaysPerSecond")).toDouble(), 'f', 2));
 }
 
 RenderGraphInspectorWidget::DetailRows
