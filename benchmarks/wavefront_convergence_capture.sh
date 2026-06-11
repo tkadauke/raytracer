@@ -76,10 +76,10 @@ The capture writes images, stdout timing summaries, wavefront metrics JSON,
 image-probe comparisons, active sample-depth work comparisons, tile
 load-balance summaries, frontier hit/miss summaries, packet width summaries,
 packet-fill and scalar-tail ratios, packet scalar-fallback reason breakdowns,
-packet-hit refinement material breakdowns, and host frontier compaction
-summaries under the output directory. Queue sweeps also write a compact
-queue_sweep.summary.txt per scene. Use it to tune Phase 4 wavefront convergence
-defaults and to baseline Phase 7
+packet-hit refinement material breakdowns, resident-frontier round-trip
+summaries, and host frontier compaction summaries under the output directory.
+Queue sweeps also write a compact queue_sweep.summary.txt per scene. Use it to
+tune Phase 4 wavefront convergence defaults and to baseline Phase 7
 scheduler/intersection work before changing shipped presets.
 
 When WAVEFRONT_CONVERGENCE_SWEEP is set, the script reuses the non-converged
@@ -275,6 +275,18 @@ def wavefront_metric_values(path)
     frontier_miss_rays: [],
     frontier_packet_chunks: [],
     frontier_packet_rays: [],
+    frontier_closest_hit_batch_chunks: [],
+    frontier_closest_hit_batch_rays: [],
+    direct_light_any_hit_batch_chunks: [],
+    direct_light_any_hit_batch_rays: [],
+    frontier_query_round_trips: [],
+    frontier_resident_query_round_trips_estimate: [],
+    frontier_resident_query_round_trip_savings_estimate: [],
+    frontier_mixed_query_depths: [],
+    frontier_mixed_query_round_trips: [],
+    frontier_mixed_query_rays: [],
+    frontier_mixed_query_closest_hit_rays: [],
+    frontier_mixed_query_any_hit_rays: [],
     frontier_ray4_packet_chunks: [],
     frontier_ray8_packet_chunks: [],
     frontier_scalar_rays: [],
@@ -324,6 +336,18 @@ def wavefront_metric_values(path)
       frontier_miss_rays: 0.0,
       frontier_packet_chunks: 0.0,
       frontier_packet_rays: 0.0,
+      frontier_closest_hit_batch_chunks: 0.0,
+      frontier_closest_hit_batch_rays: 0.0,
+      direct_light_any_hit_batch_chunks: 0.0,
+      direct_light_any_hit_batch_rays: 0.0,
+      frontier_query_round_trips: 0.0,
+      frontier_resident_query_round_trips_estimate: 0.0,
+      frontier_resident_query_round_trip_savings_estimate: 0.0,
+      frontier_mixed_query_depths: 0.0,
+      frontier_mixed_query_round_trips: 0.0,
+      frontier_mixed_query_rays: 0.0,
+      frontier_mixed_query_closest_hit_rays: 0.0,
+      frontier_mixed_query_any_hit_rays: 0.0,
       frontier_ray4_packet_chunks: 0.0,
       frontier_ray8_packet_chunks: 0.0,
       frontier_scalar_rays: 0.0,
@@ -416,6 +440,30 @@ def wavefront_metric_values(path)
         batching.fetch("frontierPacketChunksPerDepth", []).sum { |value| value.to_f }
       run_values[:frontier_packet_rays] +=
         batching.fetch("frontierPacketRaysPerDepth", []).sum { |value| value.to_f }
+      run_values[:frontier_closest_hit_batch_chunks] +=
+        batching.fetch("frontierClosestHitBatchChunksPerDepth", []).sum { |value| value.to_f }
+      run_values[:frontier_closest_hit_batch_rays] +=
+        batching.fetch("frontierClosestHitBatchRaysPerDepth", []).sum { |value| value.to_f }
+      run_values[:direct_light_any_hit_batch_chunks] +=
+        batching.fetch("directLightAnyHitBatchChunksPerDepth", []).sum { |value| value.to_f }
+      run_values[:direct_light_any_hit_batch_rays] +=
+        batching.fetch("directLightAnyHitBatchRaysPerDepth", []).sum { |value| value.to_f }
+      run_values[:frontier_query_round_trips] +=
+        batching.fetch("frontierQueryRoundTrips", 0).to_f
+      run_values[:frontier_resident_query_round_trips_estimate] +=
+        batching.fetch("frontierResidentQueryRoundTripsEstimate", 0).to_f
+      run_values[:frontier_resident_query_round_trip_savings_estimate] +=
+        batching.fetch("frontierResidentQueryRoundTripSavingsEstimate", 0).to_f
+      run_values[:frontier_mixed_query_depths] +=
+        batching.fetch("frontierMixedQueryDepths", 0).to_f
+      run_values[:frontier_mixed_query_round_trips] +=
+        batching.fetch("frontierMixedQueryRoundTrips", 0).to_f
+      run_values[:frontier_mixed_query_rays] +=
+        batching.fetch("frontierMixedQueryRays", 0).to_f
+      run_values[:frontier_mixed_query_closest_hit_rays] +=
+        batching.fetch("frontierMixedQueryClosestHitRays", 0).to_f
+      run_values[:frontier_mixed_query_any_hit_rays] +=
+        batching.fetch("frontierMixedQueryAnyHitRays", 0).to_f
       run_values[:frontier_ray4_packet_chunks] +=
         batching.fetch("frontierRay4PacketChunksPerDepth", []).sum { |value| value.to_f }
       run_values[:frontier_ray8_packet_chunks] +=
@@ -543,6 +591,18 @@ end
    frontier_miss_rays
    frontier_packet_chunks
    frontier_packet_rays
+   frontier_closest_hit_batch_chunks
+   frontier_closest_hit_batch_rays
+   direct_light_any_hit_batch_chunks
+   direct_light_any_hit_batch_rays
+   frontier_query_round_trips
+   frontier_resident_query_round_trips_estimate
+   frontier_resident_query_round_trip_savings_estimate
+   frontier_mixed_query_depths
+   frontier_mixed_query_round_trips
+   frontier_mixed_query_rays
+   frontier_mixed_query_closest_hit_rays
+   frontier_mixed_query_any_hit_rays
    frontier_ray4_packet_chunks
    frontier_ray8_packet_chunks
    frontier_scalar_rays
@@ -664,6 +724,18 @@ def aggregate_run(run)
     max_tile_samples: 0.0,
     ray8_chunks: 0.0,
     ray4_chunks: 0.0,
+    closest_hit_batch_chunks: 0.0,
+    closest_hit_batch_rays: 0.0,
+    any_hit_batch_chunks: 0.0,
+    any_hit_batch_rays: 0.0,
+    frontier_round_trips: 0.0,
+    resident_frontier_round_trips: 0.0,
+    resident_frontier_savings: 0.0,
+    mixed_query_depths: 0.0,
+    mixed_query_round_trips: 0.0,
+    mixed_query_rays: 0.0,
+    mixed_query_closest_hit_rays: 0.0,
+    mixed_query_any_hit_rays: 0.0,
     packet_rays: 0.0,
     scalar_rays: 0.0,
     fallback_rays: 0.0,
@@ -707,6 +779,23 @@ def aggregate_run(run)
                                  tiling.fetch("maxTileSamples", 0).to_f].max
     values[:ray8_chunks] += sum_array(batching, "frontierRay8PacketChunksPerDepth")
     values[:ray4_chunks] += sum_array(batching, "frontierRay4PacketChunksPerDepth")
+    values[:closest_hit_batch_chunks] +=
+      sum_array(batching, "frontierClosestHitBatchChunksPerDepth")
+    values[:closest_hit_batch_rays] += sum_array(batching, "frontierClosestHitBatchRaysPerDepth")
+    values[:any_hit_batch_chunks] += sum_array(batching, "directLightAnyHitBatchChunksPerDepth")
+    values[:any_hit_batch_rays] += sum_array(batching, "directLightAnyHitBatchRaysPerDepth")
+    values[:frontier_round_trips] += batching.fetch("frontierQueryRoundTrips", 0).to_f
+    values[:resident_frontier_round_trips] +=
+      batching.fetch("frontierResidentQueryRoundTripsEstimate", 0).to_f
+    values[:resident_frontier_savings] +=
+      batching.fetch("frontierResidentQueryRoundTripSavingsEstimate", 0).to_f
+    values[:mixed_query_depths] += batching.fetch("frontierMixedQueryDepths", 0).to_f
+    values[:mixed_query_round_trips] += batching.fetch("frontierMixedQueryRoundTrips", 0).to_f
+    values[:mixed_query_rays] += batching.fetch("frontierMixedQueryRays", 0).to_f
+    values[:mixed_query_closest_hit_rays] +=
+      batching.fetch("frontierMixedQueryClosestHitRays", 0).to_f
+    values[:mixed_query_any_hit_rays] +=
+      batching.fetch("frontierMixedQueryAnyHitRays", 0).to_f
     values[:packet_rays] += sum_array(batching, "frontierPacketRaysPerDepth")
     values[:scalar_rays] += sum_array(batching, "frontierScalarRaysPerDepth")
     values[:fallback_rays] += sum_array(batching, "frontierPacketScalarFallbackRaysPerDepth")
@@ -750,7 +839,7 @@ scene_dir = ARGV.fetch(0)
 queue_dirs = Dir.glob(File.join(scene_dir, "queue_*")).select { |path| File.directory?(path) }
 queue_dirs.sort_by! { |path| File.basename(path).delete_prefix("queue_").to_i }
 
-puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays host_compaction_passes host_compaction_input_samples host_compaction_retained_samples host_compaction_removed_samples host_compaction_removed_fraction host_compaction_moved_samples sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
+puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks closest_hit_batch_chunks closest_hit_batch_rays any_hit_batch_chunks any_hit_batch_rays frontier_round_trips resident_frontier_round_trips resident_frontier_savings mixed_query_depths mixed_query_round_trips mixed_query_rays mixed_query_closest_hit_rays mixed_query_any_hit_rays packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays host_compaction_passes host_compaction_input_samples host_compaction_retained_samples host_compaction_removed_samples host_compaction_removed_fraction host_compaction_moved_samples sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
 queue_dirs.each do |queue_dir|
   queue_size = File.basename(queue_dir).delete_prefix("queue_")
   Dir.glob(File.join(queue_dir, "wavefront_*.metrics.json")).sort.each do |metrics_path|
@@ -772,39 +861,51 @@ queue_dirs.each do |queue_dir|
     scalar_tail_fraction = frontier_rays.zero? ? 0.0 : scalar_rays / frontier_rays
     fallback_fraction = packet_rays.zero? ? 0.0 : fallback_rays / packet_rays
     stdout_path = File.join(queue_dir, "#{variant}.stdout.txt")
-    puts format(
-      "%s %s %.3f %.0f %.0f %.0f %s %.0f %.0f %.0f %.3f %.3f %.0f %.0f %.0f %.6f %.6f %.6f %.0f %.0f %.0f %.0f %.0f %.0f %.6f %.0f %.3f %.3f %.3f %.3f",
+    row = [
       queue_size,
       variant,
-      render_median_ms(stdout_path),
-      median_for.call(:primary_samples),
-      median_for.call(:retained_active_samples),
-      median_for.call(:tile_count),
+      format("%.3f", render_median_ms(stdout_path)),
+      format("%.0f", median_for.call(:primary_samples)),
+      format("%.0f", median_for.call(:retained_active_samples)),
+      format("%.0f", median_for.call(:tile_count)),
       tile_grid,
-      median_for.call(:max_tile_width),
-      median_for.call(:max_tile_height),
-      median_for.call(:max_tile_pixels),
-      median_for.call(:average_tile_pixels),
-      median_for.call(:average_tile_samples),
-      median_for.call(:max_tile_samples),
-      ray8_chunks,
-      ray4_chunks,
-      packet_fill,
-      scalar_tail_fraction,
-      fallback_fraction,
-      scalar_rays,
-      fallback_rays,
-      median_for.call(:host_compaction_passes),
-      median_for.call(:host_compaction_input_samples),
-      median_for.call(:host_compaction_retained_samples),
-      median_for.call(:host_compaction_removed_samples),
-      median_for.call(:host_compaction_removed_fraction),
-      median_for.call(:host_compaction_moved_samples),
-      median_for.call(:sample_generation_ms),
-      median_for.call(:integrator_ms),
-      median_for.call(:partition_ms),
-      median_for.call(:residual_ms)
-    )
+      format("%.0f", median_for.call(:max_tile_width)),
+      format("%.0f", median_for.call(:max_tile_height)),
+      format("%.0f", median_for.call(:max_tile_pixels)),
+      format("%.3f", median_for.call(:average_tile_pixels)),
+      format("%.3f", median_for.call(:average_tile_samples)),
+      format("%.0f", median_for.call(:max_tile_samples)),
+      format("%.0f", ray8_chunks),
+      format("%.0f", ray4_chunks),
+      format("%.0f", median_for.call(:closest_hit_batch_chunks)),
+      format("%.0f", median_for.call(:closest_hit_batch_rays)),
+      format("%.0f", median_for.call(:any_hit_batch_chunks)),
+      format("%.0f", median_for.call(:any_hit_batch_rays)),
+      format("%.0f", median_for.call(:frontier_round_trips)),
+      format("%.0f", median_for.call(:resident_frontier_round_trips)),
+      format("%.0f", median_for.call(:resident_frontier_savings)),
+      format("%.0f", median_for.call(:mixed_query_depths)),
+      format("%.0f", median_for.call(:mixed_query_round_trips)),
+      format("%.0f", median_for.call(:mixed_query_rays)),
+      format("%.0f", median_for.call(:mixed_query_closest_hit_rays)),
+      format("%.0f", median_for.call(:mixed_query_any_hit_rays)),
+      format("%.6f", packet_fill),
+      format("%.6f", scalar_tail_fraction),
+      format("%.6f", fallback_fraction),
+      format("%.0f", scalar_rays),
+      format("%.0f", fallback_rays),
+      format("%.0f", median_for.call(:host_compaction_passes)),
+      format("%.0f", median_for.call(:host_compaction_input_samples)),
+      format("%.0f", median_for.call(:host_compaction_retained_samples)),
+      format("%.0f", median_for.call(:host_compaction_removed_samples)),
+      format("%.6f", median_for.call(:host_compaction_removed_fraction)),
+      format("%.0f", median_for.call(:host_compaction_moved_samples)),
+      format("%.3f", median_for.call(:sample_generation_ms)),
+      format("%.3f", median_for.call(:integrator_ms)),
+      format("%.3f", median_for.call(:partition_ms)),
+      format("%.3f", median_for.call(:residual_ms))
+    ]
+    puts row.join(" ")
   end
 end
 RUBY
