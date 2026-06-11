@@ -916,6 +916,10 @@ Progress:
   batches. Current backends report these as unsupported, and the values flow
   through render metrics, rendercli summaries, and Modeler graph details so the
   future implementation can be gated visibly.
+- The convergence capture helper now also keeps those capability flags in
+  reference/candidate comparisons and queue-sweep summaries, so future Phase 8
+  captures can distinguish an estimated opportunity from a backend that
+  actually supports resident scheduling.
 - Wavefront metrics now report mixed query depths: depth frontiers where both a
   closest-hit frontier batch and a direct-light any-hit batch ran, plus the
   participating closest-hit and any-hit ray counts. This does not keep frontiers
