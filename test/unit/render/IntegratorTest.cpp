@@ -155,6 +155,9 @@ namespace IntegratorTest {
     EXPECT_EQ(0u, metrics.anyHitQueries);
     EXPECT_TRUE(metrics.intersectionBackendPrefersClosestHitBatch);
     EXPECT_FALSE(metrics.intersectionBackendPrefersAnyHitBatch);
+    EXPECT_FALSE(metrics.intersectionBackendSupportsResidentFrontiers);
+    EXPECT_FALSE(metrics.intersectionBackendSupportsGpuFrontierCompaction);
+    EXPECT_FALSE(metrics.intersectionBackendSupportsResidentDirectLightBatches);
     EXPECT_EQ(backend->estimatedClosestHitRayUploadBytes(4),
               metrics.intersectionEstimatedRayUploadBytes);
     EXPECT_EQ(backend->estimatedClosestHitReadbackBytes(4),
@@ -193,6 +196,12 @@ namespace IntegratorTest {
     EXPECT_EQ(1u, metrics.anyHitQueries);
     EXPECT_TRUE(metrics.intersectionBackendPrefersClosestHitBatch);
     EXPECT_TRUE(metrics.intersectionBackendPrefersAnyHitBatch);
+    EXPECT_EQ(backend->supportsResidentFrontiers(),
+              metrics.intersectionBackendSupportsResidentFrontiers);
+    EXPECT_EQ(backend->supportsGpuFrontierCompaction(),
+              metrics.intersectionBackendSupportsGpuFrontierCompaction);
+    EXPECT_EQ(backend->supportsResidentDirectLightBatches(),
+              metrics.intersectionBackendSupportsResidentDirectLightBatches);
     EXPECT_EQ(backend->estimatedClosestHitRayUploadBytes(4) +
                 backend->estimatedAnyHitRayUploadBytes(1),
               metrics.intersectionEstimatedRayUploadBytes);

@@ -160,6 +160,15 @@ namespace engine::wavefront {
                                                 metrics.intersectionBackendPrefersClosestHitBatch;
     intersectionBackendPrefersAnyHitBatch =
       intersectionBackendPrefersAnyHitBatch || metrics.intersectionBackendPrefersAnyHitBatch;
+    intersectionBackendSupportsResidentFrontiers =
+      intersectionBackendSupportsResidentFrontiers ||
+      metrics.intersectionBackendSupportsResidentFrontiers;
+    intersectionBackendSupportsGpuFrontierCompaction =
+      intersectionBackendSupportsGpuFrontierCompaction ||
+      metrics.intersectionBackendSupportsGpuFrontierCompaction;
+    intersectionBackendSupportsResidentDirectLightBatches =
+      intersectionBackendSupportsResidentDirectLightBatches ||
+      metrics.intersectionBackendSupportsResidentDirectLightBatches;
   }
 
   void WavefrontRenderMetrics::BatchSummary::addIntegratorMetrics(
@@ -627,6 +636,12 @@ namespace engine::wavefront {
       batching.intersectionBackendPrefersClosestHitBatch;
     batchingJson["intersectionBackendPrefersAnyHitBatch"] =
       batching.intersectionBackendPrefersAnyHitBatch;
+    batchingJson["intersectionBackendSupportsResidentFrontiers"] =
+      batching.intersectionBackendSupportsResidentFrontiers;
+    batchingJson["intersectionBackendSupportsGpuFrontierCompaction"] =
+      batching.intersectionBackendSupportsGpuFrontierCompaction;
+    batchingJson["intersectionBackendSupportsResidentDirectLightBatches"] =
+      batching.intersectionBackendSupportsResidentDirectLightBatches;
     batchingJson["batches"] = static_cast<double>(batching.batches);
     batchingJson["samplesSubmitted"] = static_cast<double>(batching.samplesSubmitted);
     batchingJson["maxBatchSize"] = static_cast<double>(batching.maxBatchSize);

@@ -732,6 +732,18 @@ namespace render {
     return false;
   }
 
+  bool WavefrontIntersectionBackend::supportsResidentFrontiers() const {
+    return false;
+  }
+
+  bool WavefrontIntersectionBackend::supportsGpuFrontierCompaction() const {
+    return false;
+  }
+
+  bool WavefrontIntersectionBackend::supportsResidentDirectLightBatches() const {
+    return false;
+  }
+
   WavefrontClosestHitResult WavefrontIntersectionBackend::intersectClosestResult(
     const Scene& scene, const Rayd& ray, State& state,
     WavefrontIntersectionQueryTiming* timing) const {

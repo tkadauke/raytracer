@@ -118,6 +118,9 @@ namespace render {
     std::uint64_t anyHitQueries{0};
     bool intersectionBackendPrefersClosestHitBatch{false};
     bool intersectionBackendPrefersAnyHitBatch{false};
+    bool intersectionBackendSupportsResidentFrontiers{false};
+    bool intersectionBackendSupportsGpuFrontierCompaction{false};
+    bool intersectionBackendSupportsResidentDirectLightBatches{false};
     double intersectionWorkerSeconds{0.0};
     double shadingWorkerSeconds{0.0};
     double pathSetupWorkerSeconds{0.0};

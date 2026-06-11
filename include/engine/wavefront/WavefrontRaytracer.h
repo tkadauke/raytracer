@@ -116,6 +116,9 @@ namespace engine::wavefront {
       std::uint64_t anyHitQueries = 0;
       bool intersectionBackendPrefersClosestHitBatch = false;
       bool intersectionBackendPrefersAnyHitBatch = false;
+      bool intersectionBackendSupportsResidentFrontiers = false;
+      bool intersectionBackendSupportsGpuFrontierCompaction = false;
+      bool intersectionBackendSupportsResidentDirectLightBatches = false;
       std::uint64_t activeSampleDepthsProcessed = 0;
       std::uint64_t compatibilityShadeSamples = 0;
       std::uint64_t unsupportedPathMaterialSamples = 0;

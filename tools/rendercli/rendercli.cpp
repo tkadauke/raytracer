@@ -362,6 +362,16 @@ namespace {
         << (batching.value("intersectionBackendPrefersClosestHitBatch").toBool() ? "true" : "false")
         << " any_hit_batch_preferred="
         << (batching.value("intersectionBackendPrefersAnyHitBatch").toBool() ? "true" : "false")
+        << " resident_frontiers_supported="
+        << (batching.value("intersectionBackendSupportsResidentFrontiers").toBool() ? "true"
+                                                                                    : "false")
+        << " gpu_frontier_compaction_supported="
+        << (batching.value("intersectionBackendSupportsGpuFrontierCompaction").toBool() ? "true"
+                                                                                        : "false")
+        << " resident_direct_light_batches_supported="
+        << (batching.value("intersectionBackendSupportsResidentDirectLightBatches").toBool()
+              ? "true"
+              : "false")
         << " samples=" << unsignedValue(input, "primarySamples")
         << " tiles=" << unsignedValue(tiling, "tileCount")
         << " tile_grid=" << unsignedValue(tiling, "tileColumns") << "x"

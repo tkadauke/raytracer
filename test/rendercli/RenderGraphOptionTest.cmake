@@ -2700,6 +2700,16 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_resident_query_round_trip_savi
                   "wavefront metrics summary did not contain resident frontier savings estimate"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+foreach(resident_support_summary
+        resident_frontiers_supported=
+        gpu_frontier_compaction_supported=
+        resident_direct_light_batches_supported=)
+  if(NOT wavefront_metrics_stdout MATCHES "${resident_support_summary}")
+    _rendercli_fail("rendercli wavefront metrics ${resident_support_summary}"
+                    "wavefront metrics summary did not contain ${resident_support_summary}"
+                    "${wavefront_metrics_stdout}" "" "" "")
+  endif()
+endforeach()
 if(NOT wavefront_metrics_stdout MATCHES "intersection_rays_per_worker_second=")
   _rendercli_fail("rendercli wavefront metrics intersection throughput summary"
                   "wavefront metrics summary did not contain intersection throughput"
@@ -2796,6 +2806,16 @@ if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendPrefersAnyHitBatch\"
                   "wavefront metrics report did not contain any-hit batch preference"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+foreach(resident_support_field
+        intersectionBackendSupportsResidentFrontiers
+        intersectionBackendSupportsGpuFrontierCompaction
+        intersectionBackendSupportsResidentDirectLightBatches)
+  if(NOT wavefront_metrics_json MATCHES "\"${resident_support_field}\"")
+    _rendercli_fail("rendercli wavefront metrics ${resident_support_field}"
+                    "wavefront metrics report did not contain ${resident_support_field}"
+                    "" "" "${wavefront_metrics_json}" "")
+  endif()
+endforeach()
 if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendPlatform\"")
   _rendercli_fail("rendercli wavefront metrics backend platform"
                   "wavefront metrics report did not contain backend platform"

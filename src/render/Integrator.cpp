@@ -147,6 +147,9 @@ namespace render {
     anyHitQueries = 0;
     intersectionBackendPrefersClosestHitBatch = false;
     intersectionBackendPrefersAnyHitBatch = false;
+    intersectionBackendSupportsResidentFrontiers = false;
+    intersectionBackendSupportsGpuFrontierCompaction = false;
+    intersectionBackendSupportsResidentDirectLightBatches = false;
     intersectionWorkerSeconds = 0.0;
     shadingWorkerSeconds = 0.0;
     pathSetupWorkerSeconds = 0.0;
@@ -424,6 +427,13 @@ namespace render {
       intersectionBackendPlatformGpuDeviceAvailable || backend.platformGpuDeviceAvailable();
     intersectionBackendPlatformGpuRenderPathAvailable =
       intersectionBackendPlatformGpuRenderPathAvailable || backend.platformGpuRenderPathAvailable();
+    intersectionBackendSupportsResidentFrontiers =
+      intersectionBackendSupportsResidentFrontiers || backend.supportsResidentFrontiers();
+    intersectionBackendSupportsGpuFrontierCompaction =
+      intersectionBackendSupportsGpuFrontierCompaction || backend.supportsGpuFrontierCompaction();
+    intersectionBackendSupportsResidentDirectLightBatches =
+      intersectionBackendSupportsResidentDirectLightBatches ||
+      backend.supportsResidentDirectLightBatches();
     const WavefrontIntersectionSceneDiagnostics diagnostics = backend.compiledSceneDiagnostics();
     intersectionSceneCompiled = intersectionSceneCompiled || diagnostics.compiled;
     intersectionSceneBvhNodes = std::max(intersectionSceneBvhNodes, diagnostics.bvhNodes);
@@ -601,6 +611,15 @@ namespace render {
       intersectionBackendPrefersClosestHitBatch || source.intersectionBackendPrefersClosestHitBatch;
     intersectionBackendPrefersAnyHitBatch =
       intersectionBackendPrefersAnyHitBatch || source.intersectionBackendPrefersAnyHitBatch;
+    intersectionBackendSupportsResidentFrontiers =
+      intersectionBackendSupportsResidentFrontiers ||
+      source.intersectionBackendSupportsResidentFrontiers;
+    intersectionBackendSupportsGpuFrontierCompaction =
+      intersectionBackendSupportsGpuFrontierCompaction ||
+      source.intersectionBackendSupportsGpuFrontierCompaction;
+    intersectionBackendSupportsResidentDirectLightBatches =
+      intersectionBackendSupportsResidentDirectLightBatches ||
+      source.intersectionBackendSupportsResidentDirectLightBatches;
   }
 
   void IntegratorBatchMetrics::recordRadianceDeltaDepth(double squaredSum, double maxDelta) {

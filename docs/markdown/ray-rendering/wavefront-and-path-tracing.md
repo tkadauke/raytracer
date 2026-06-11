@@ -280,6 +280,10 @@ host/device boundary savings visible before the scheduler keeps those frontiers
 on the GPU. It also derives an observed frontier round-trip count, a
 resident-frontier round-trip estimate, and an estimated savings count by
 treating each mixed depth as one future resident scheduling boundary.
+The backend capability flags keep that estimate honest: current hybrid
+backends report that they do not yet support resident frontiers, GPU frontier
+compaction, or resident direct-light batches, while future backends can flip
+those flags only when they actually keep that state on device.
 The path tracer also reports the host compaction operation it already performs
 between depths: input path slots, retained slots, removed inactive slots, moved
 live slots, and the removed fraction. That makes the current CPU compaction

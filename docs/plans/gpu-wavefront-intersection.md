@@ -911,6 +911,11 @@ Progress:
   any-hit batch, mixed-query-depth, and resident-frontier round-trip counters in
   comparison reports and queue-sweep summaries. That makes benchmark captures
   line up with the render metrics used to judge GPU-resident frontier work.
+- The backend contract now exposes explicit Phase 8 capability flags for
+  resident frontiers, GPU frontier compaction, and resident direct-light
+  batches. Current backends report these as unsupported, and the values flow
+  through render metrics, rendercli summaries, and Modeler graph details so the
+  future implementation can be gated visibly.
 - Wavefront metrics now report mixed query depths: depth frontiers where both a
   closest-hit frontier batch and a direct-light any-hit batch ran, plus the
   participating closest-hit and any-hit ray counts. This does not keep frontiers

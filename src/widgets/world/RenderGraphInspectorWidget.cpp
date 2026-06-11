@@ -717,6 +717,12 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                            QStringLiteral("intersectionBackendPrefersClosestHitBatch"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Prefers any-hit batches"), batching,
                            QStringLiteral("intersectionBackendPrefersAnyHitBatch"));
+  addDetailBoolMetadataRow(rows, QStringLiteral("Supports resident frontiers"), batching,
+                           QStringLiteral("intersectionBackendSupportsResidentFrontiers"));
+  addDetailBoolMetadataRow(rows, QStringLiteral("Supports GPU frontier compaction"), batching,
+                           QStringLiteral("intersectionBackendSupportsGpuFrontierCompaction"));
+  addDetailBoolMetadataRow(rows, QStringLiteral("Supports resident direct-light batches"), batching,
+                           QStringLiteral("intersectionBackendSupportsResidentDirectLightBatches"));
   addDetailMillisecondsMetadataRow(rows, QStringLiteral("Backend upload time"), batching,
                                    QStringLiteral("intersectionBackendUploadWorkerSeconds"));
   addDetailMillisecondsMetadataRow(rows, QStringLiteral("Backend kernel time"), batching,
@@ -1083,6 +1089,24 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
           line += QStringLiteral(", batch preference closest-hit %1/any-hit %2")
                     .arg(prefersClosestHitBatch ? QStringLiteral("yes") : QStringLiteral("no"))
                     .arg(prefersAnyHitBatch ? QStringLiteral("yes") : QStringLiteral("no"));
+        }
+        if (batching.contains(QStringLiteral("intersectionBackendSupportsResidentFrontiers")) ||
+            batching.contains(QStringLiteral("intersectionBackendSupportsGpuFrontierCompaction")) ||
+            batching.contains(
+              QStringLiteral("intersectionBackendSupportsResidentDirectLightBatches"))) {
+          const bool supportsResidentFrontiers =
+            batching.value(QStringLiteral("intersectionBackendSupportsResidentFrontiers")).toBool();
+          const bool supportsGpuCompaction =
+            batching.value(QStringLiteral("intersectionBackendSupportsGpuFrontierCompaction"))
+              .toBool();
+          const bool supportsResidentDirectLight =
+            batching.value(QStringLiteral("intersectionBackendSupportsResidentDirectLightBatches"))
+              .toBool();
+          line +=
+            QStringLiteral(", resident support frontiers %1/compaction %2/direct-light %3")
+              .arg(supportsResidentFrontiers ? QStringLiteral("yes") : QStringLiteral("no"))
+              .arg(supportsGpuCompaction ? QStringLiteral("yes") : QStringLiteral("no"))
+              .arg(supportsResidentDirectLight ? QStringLiteral("yes") : QStringLiteral("no"));
         }
         const double uploadMs =
           batching.value(QStringLiteral("intersectionBackendUploadWorkerSeconds")).toDouble() *

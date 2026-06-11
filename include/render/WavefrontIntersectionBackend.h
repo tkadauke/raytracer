@@ -217,6 +217,9 @@ namespace render {
     virtual std::uint64_t estimatedAnyHitReadbackBytes(std::uint64_t submittedRays) const;
     virtual bool prefersClosestHitBatch(std::uint64_t submittedRays) const;
     virtual bool prefersAnyHitBatch(std::uint64_t submittedRays) const;
+    virtual bool supportsResidentFrontiers() const;
+    virtual bool supportsGpuFrontierCompaction() const;
+    virtual bool supportsResidentDirectLightBatches() const;
 
     virtual WavefrontClosestHitResult
     intersectClosestResult(const Scene& scene, const Rayd& ray, State& state,

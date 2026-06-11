@@ -190,6 +190,11 @@ remove. They also report the observed frontier query round trips, the
 resident-frontier round-trip estimate, and the estimated savings if mixed
 closest-hit/any-hit depths could be treated as one resident scheduling
 boundary.
+Backend capability flags separately state whether the selected backend already
+supports resident frontiers, GPU frontier compaction, or resident direct-light
+batches. The current hybrid backends report those as unsupported until a real
+Phase 8 scheduling path lands, so the estimates stay visibly separate from
+implemented behavior.
 The path tracer also reports host compaction passes: the current CPU scheduler
 compacts the surviving path frontier after each depth, and the metrics expose
 the input, retained, removed, moved, and removed-fraction sample counts for
@@ -358,6 +363,9 @@ compact summary prints total `tiles`, `tile_grid`,
 `sample_stddev_rms`, `max_sample_stddev`, `frontier_query_round_trips`,
 `frontier_resident_query_round_trips_estimate`,
 `frontier_resident_query_round_trip_savings_estimate`,
+`resident_frontiers_supported`,
+`gpu_frontier_compaction_supported`,
+`resident_direct_light_batches_supported`,
 `frontier_host_compaction_passes`,
 `frontier_host_compaction_input_samples`,
 `frontier_host_compaction_retained_samples`,

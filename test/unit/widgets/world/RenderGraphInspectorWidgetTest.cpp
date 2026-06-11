@@ -1164,6 +1164,10 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction removed samples")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction removed fraction")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction moved samples")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Supports resident frontiers")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Supports GPU frontier compaction")).isEmpty());
+    EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Supports resident direct-light batches")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate depths")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate samples")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate fraction")).isEmpty());
@@ -1181,6 +1185,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("mixed query depths")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("mixed-depth round trips")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("resident frontier estimate")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("resident support frontiers")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("host compaction removed")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("compaction candidate samples")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("largest compaction candidate")));
