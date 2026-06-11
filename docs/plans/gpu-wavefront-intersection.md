@@ -914,6 +914,10 @@ Progress:
   vector, but the path tracer asks the backend to create and consume the
   frontier so a later Metal/Vulkan backend can keep those rays resident without
   changing path-tracer control flow.
+- Direct-light any-hit batches now use the same backend-owned frontier shape.
+  Current frontiers are host-resident and still route through the existing
+  any-hit batch implementation, but next-event-estimation visibility work now
+  has a backend boundary for future resident occlusion batches.
 - The wavefront convergence capture helper now carries those host compaction
   execution counters into candidate/reference comparisons and queue-sweep
   summaries, and queue sweeps also preserve the compaction execution label.

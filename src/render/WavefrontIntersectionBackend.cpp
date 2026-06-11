@@ -267,6 +267,27 @@ namespace render {
     return expectedClosestHitRays + expectedAnyHitRays;
   }
 
+  const std::vector<WavefrontAnyHitQuery>* WavefrontAnyHitFrontier::hostAnyHitQueries() const {
+    return nullptr;
+  }
+
+  HostWavefrontAnyHitFrontier::HostWavefrontAnyHitFrontier(
+    std::vector<WavefrontAnyHitQuery> queries)
+      : m_queries(std::move(queries)) {
+  }
+
+  std::uint64_t HostWavefrontAnyHitFrontier::rayCount() const {
+    return static_cast<std::uint64_t>(m_queries.size());
+  }
+
+  const char* HostWavefrontAnyHitFrontier::residency() const {
+    return "host";
+  }
+
+  const std::vector<WavefrontAnyHitQuery>* HostWavefrontAnyHitFrontier::hostAnyHitQueries() const {
+    return &m_queries;
+  }
+
   const std::vector<WavefrontClosestHitQuery>*
   WavefrontClosestHitFrontier::hostClosestHitQueries() const {
     return nullptr;
@@ -786,6 +807,21 @@ namespace render {
       throw std::logic_error("closest-hit frontier is not host-readable");
     }
     return intersectClosestBatch(scene, *queries, timing);
+  }
+
+  std::unique_ptr<WavefrontAnyHitFrontier> WavefrontIntersectionBackend::createAnyHitFrontier(
+    std::vector<WavefrontAnyHitQuery> queries) const {
+    return std::make_unique<HostWavefrontAnyHitFrontier>(std::move(queries));
+  }
+
+  std::vector<bool> WavefrontIntersectionBackend::intersectAnyFrontier(
+    const Scene& scene, const WavefrontAnyHitFrontier& frontier,
+    WavefrontIntersectionQueryTiming* timing) const {
+    const std::vector<WavefrontAnyHitQuery>* queries = frontier.hostAnyHitQueries();
+    if (!queries) {
+      throw std::logic_error("any-hit frontier is not host-readable");
+    }
+    return intersectAnyBatch(scene, *queries, timing);
   }
 
   WavefrontClosestHitResult WavefrontIntersectionBackend::intersectClosestResult(

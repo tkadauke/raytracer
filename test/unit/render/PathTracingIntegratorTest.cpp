@@ -567,6 +567,16 @@ namespace PathTracingIntegratorTest {
       bool prefersAnyHitBatch(std::uint64_t submittedRays) const override {
         return submittedRays > 0;
       }
+
+      std::unique_ptr<WavefrontAnyHitFrontier>
+      createAnyHitFrontier(std::vector<WavefrontAnyHitQuery> queries) const override {
+        ++anyHitFrontiers;
+        anyHitFrontierSizes.push_back(queries.size());
+        return WavefrontIntersectionBackend::createAnyHitFrontier(std::move(queries));
+      }
+
+      mutable int anyHitFrontiers{0};
+      mutable std::vector<std::size_t> anyHitFrontierSizes;
     };
 
     // Build a scene with a single Lambertian ground plane lit by one
@@ -1529,6 +1539,8 @@ namespace PathTracingIntegratorTest {
       integrator.radianceBatch(*scene, samples, caster, &metrics, settings);
 
     ASSERT_EQ(1u, pixels.size());
+    EXPECT_EQ(1, backend.anyHitFrontiers);
+    EXPECT_EQ((std::vector<std::size_t>{1u}), backend.anyHitFrontierSizes);
     EXPECT_EQ(1, backend.anyQueries);
     EXPECT_EQ(1, backend.anyBatchQueries);
     EXPECT_EQ((std::vector<std::size_t>{1u}), backend.anyBatchSizes);
@@ -1572,6 +1584,8 @@ namespace PathTracingIntegratorTest {
       integrator.radianceBatch(*scene, samples, caster, &metrics, settings);
 
     ASSERT_EQ(1u, pixels.size());
+    EXPECT_EQ(1, backend.anyHitFrontiers);
+    EXPECT_EQ((std::vector<std::size_t>{3u}), backend.anyHitFrontierSizes);
     EXPECT_EQ(3, backend.anyQueries);
     EXPECT_EQ(1, backend.anyBatchQueries);
     EXPECT_EQ((std::vector<std::size_t>{3u}), backend.anyBatchSizes);
@@ -1615,6 +1629,8 @@ namespace PathTracingIntegratorTest {
       integrator.radianceBatch(*scene, samples, caster, &metrics, settings);
 
     ASSERT_EQ(2u, pixels.size());
+    EXPECT_EQ(1, backend.anyHitFrontiers);
+    EXPECT_EQ((std::vector<std::size_t>{2u}), backend.anyHitFrontierSizes);
     EXPECT_EQ(2, backend.anyQueries);
     EXPECT_EQ(1, backend.anyBatchQueries);
     EXPECT_EQ((std::vector<std::size_t>{2u}), backend.anyBatchSizes);

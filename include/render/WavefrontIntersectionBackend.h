@@ -79,6 +79,33 @@ namespace render {
     State* state{nullptr};
   };
 
+  class WavefrontAnyHitFrontier {
+  public:
+    virtual ~WavefrontAnyHitFrontier() = default;
+
+    [[nodiscard]] virtual std::uint64_t rayCount() const = 0;
+    [[nodiscard]] virtual const char* residency() const = 0;
+
+  protected:
+    friend class WavefrontIntersectionBackend;
+
+    [[nodiscard]] virtual const std::vector<WavefrontAnyHitQuery>* hostAnyHitQueries() const;
+  };
+
+  class HostWavefrontAnyHitFrontier final : public WavefrontAnyHitFrontier {
+  public:
+    explicit HostWavefrontAnyHitFrontier(std::vector<WavefrontAnyHitQuery> queries);
+
+    [[nodiscard]] std::uint64_t rayCount() const override;
+    [[nodiscard]] const char* residency() const override;
+
+  protected:
+    [[nodiscard]] const std::vector<WavefrontAnyHitQuery>* hostAnyHitQueries() const override;
+
+  private:
+    std::vector<WavefrontAnyHitQuery> m_queries;
+  };
+
   struct WavefrontClosestHitQuery {
     Rayd ray;
     State* state{nullptr};
@@ -257,6 +284,11 @@ namespace render {
     virtual std::vector<WavefrontClosestHitResult>
     intersectClosestFrontier(const Scene& scene, const WavefrontClosestHitFrontier& frontier,
                              WavefrontIntersectionQueryTiming* timing = nullptr) const;
+    virtual std::unique_ptr<WavefrontAnyHitFrontier>
+    createAnyHitFrontier(std::vector<WavefrontAnyHitQuery> queries) const;
+    virtual std::vector<bool>
+    intersectAnyFrontier(const Scene& scene, const WavefrontAnyHitFrontier& frontier,
+                         WavefrontIntersectionQueryTiming* timing = nullptr) const;
 
     virtual WavefrontClosestHitResult
     intersectClosestResult(const Scene& scene, const Rayd& ray, State& state,

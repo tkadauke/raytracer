@@ -312,12 +312,14 @@ namespace render {
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
       if (resolvedIntersectionBackend.prefersAnyHitBatch(shadowQueries.size())) {
-        occluded = resolvedIntersectionBackend.intersectAnyBatch(
-          scene, shadowQueries, metrics ? &intersectionTiming : nullptr);
+        const std::unique_ptr<WavefrontAnyHitFrontier> frontier =
+          resolvedIntersectionBackend.createAnyHitFrontier(std::move(shadowQueries));
+        occluded = resolvedIntersectionBackend.intersectAnyFrontier(
+          scene, *frontier, metrics ? &intersectionTiming : nullptr);
         if (metrics) {
           metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, bounce)),
-                                                /*batchChunks=*/1, shadowQueries.size());
-          metrics->recordAnyHitQuery(resolvedIntersectionBackend, shadowQueries.size(),
+                                                /*batchChunks=*/1, frontier->rayCount());
+          metrics->recordAnyHitQuery(resolvedIntersectionBackend, frontier->rayCount(),
                                      intersectionTiming);
         }
       } else {
@@ -407,12 +409,14 @@ namespace render {
       WavefrontIntersectionQueryTiming intersectionTiming;
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
       if (intersectionBackend.prefersAnyHitBatch(shadowQueries.size())) {
-        occluded = intersectionBackend.intersectAnyBatch(scene, shadowQueries,
-                                                         metrics ? &intersectionTiming : nullptr);
+        const std::unique_ptr<WavefrontAnyHitFrontier> frontier =
+          intersectionBackend.createAnyHitFrontier(std::move(shadowQueries));
+        occluded = intersectionBackend.intersectAnyFrontier(
+          scene, *frontier, metrics ? &intersectionTiming : nullptr);
         if (metrics) {
           metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, bounce)),
-                                                /*batchChunks=*/1, shadowQueries.size());
-          metrics->recordAnyHitQuery(intersectionBackend, shadowQueries.size(), intersectionTiming);
+                                                /*batchChunks=*/1, frontier->rayCount());
+          metrics->recordAnyHitQuery(intersectionBackend, frontier->rayCount(), intersectionTiming);
         }
       } else {
         occluded.reserve(shadowQueries.size());

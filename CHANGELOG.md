@@ -17,6 +17,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Routed path-tracing closest-hit batch work through backend-owned frontier
   handles, with the current implementation preserving host-resident query
   vectors. — GPT-5 Codex
+- Routed path-tracing direct-light any-hit batches through backend-owned
+  frontier handles, preserving the current host-resident visibility behavior.
+  — GPT-5 Codex
 
 ### Added
 
