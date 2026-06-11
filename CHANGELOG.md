@@ -89,6 +89,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   metrics, rendercli summaries, and the Modeler graph details now report the
   CPU scheduler's frontier compaction passes, input/retained/removed/moved
   sample counts, and removed fraction. — GPT-5 Codex
+- **Wavefront host-compaction capture metrics.** The wavefront convergence
+  capture helper now includes host frontier compaction counters in comparison
+  reports and queue-sweep summaries. — GPT-5 Codex
 - **Wavefront largest-compaction diagnostics.** Wavefront metrics, rendercli
   summaries, and the Modeler graph details now identify the depth with the
   largest inactive-path compaction candidate sample count. — GPT-5 Codex

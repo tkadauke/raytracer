@@ -903,6 +903,10 @@ Progress:
   removed inactive slots, moved live slots, and removed fraction. This is still
   CPU-side compaction, but it creates a concrete execution contract for a
   future GPU-side compaction kernel.
+- The wavefront convergence capture helper now carries those host compaction
+  execution counters into candidate/reference comparisons and queue-sweep
+  summaries, so Phase 8 scheduler experiments can see whether a queue policy or
+  future GPU compaction path actually reduces retained inactive path state.
 - Wavefront metrics now report mixed query depths: depth frontiers where both a
   closest-hit frontier batch and a direct-light any-hit batch ran, plus the
   participating closest-hit and any-hit ray counts. This does not keep frontiers
