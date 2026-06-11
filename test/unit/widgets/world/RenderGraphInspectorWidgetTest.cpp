@@ -1163,6 +1163,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate fraction")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Largest compaction candidate depth")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Largest compaction candidate samples")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Largest compaction candidate fraction")).isEmpty());
 
     auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
     ASSERT_NE(nullptr, graph);
@@ -1176,6 +1177,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("resident frontier estimate")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("compaction candidate samples")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("largest compaction candidate")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("inactive")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,

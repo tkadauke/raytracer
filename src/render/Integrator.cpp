@@ -235,6 +235,18 @@ namespace render {
     return largestSamples;
   }
 
+  double IntegratorBatchMetrics::largestCompactionCandidateSampleFraction() const {
+    const std::uint64_t samples = largestCompactionCandidateSampleCount();
+    if (samples == 0) {
+      return 0.0;
+    }
+    const std::uint64_t depth = largestCompactionCandidateDepth();
+    if (depth >= activeSamplesPerDepth.size() || activeSamplesPerDepth[depth] == 0) {
+      return 0.0;
+    }
+    return static_cast<double>(samples) / static_cast<double>(activeSamplesPerDepth[depth]);
+  }
+
   void IntegratorBatchMetrics::recordFrontierIntersections(std::uint64_t hitRays,
                                                            std::uint64_t missRays) {
     frontierRayHitsPerDepth.push_back(hitRays);

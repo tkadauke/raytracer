@@ -391,6 +391,8 @@ namespace {
         << unsignedValue(batching, "frontierLargestCompactionCandidateDepth")
         << " frontier_largest_compaction_candidate_samples="
         << unsignedValue(batching, "frontierLargestCompactionCandidateSamples")
+        << " frontier_largest_compaction_candidate_fraction="
+        << batching.value("frontierLargestCompactionCandidateSampleFraction").toDouble()
         << " frontier_hit_rays=" << unsignedArraySum(frontierHits)
         << " frontier_miss_rays=" << unsignedArraySum(frontierMisses)
         << " frontier_packet_chunks=" << unsignedArraySum(frontierPackets)

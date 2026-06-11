@@ -673,6 +673,13 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
   addDetailIntegerMetadataRow(rows, QStringLiteral("Largest compaction candidate samples"),
                               batching,
                               QStringLiteral("frontierLargestCompactionCandidateSamples"));
+  if (batching.contains(QStringLiteral("frontierLargestCompactionCandidateSampleFraction"))) {
+    addDetailRow(
+      rows, QStringLiteral("Largest compaction candidate fraction"),
+      percentage(batching.value(QStringLiteral("frontierLargestCompactionCandidateSampleFraction"))
+                   .toDouble(),
+                 1.0));
+  }
   const qulonglong closestHitBatchChunks = jsonIntegerArraySum(
     batching.value(QStringLiteral("frontierClosestHitBatchChunksPerDepth")).toArray());
   if (closestHitBatchChunks > 0) {
@@ -1031,9 +1038,19 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         if (largestCompactionCandidateSamples > 0) {
           const qulonglong largestCompactionCandidateDepth =
             jsonIntegerValue(batching, QStringLiteral("frontierLargestCompactionCandidateDepth"));
-          line += QStringLiteral(", largest compaction candidate depth %1/%2 samples")
-                    .arg(largestCompactionCandidateDepth)
-                    .arg(largestCompactionCandidateSamples);
+          QString largestCompactionCandidateText =
+            QStringLiteral(", largest compaction candidate depth %1/%2 samples")
+              .arg(largestCompactionCandidateDepth)
+              .arg(largestCompactionCandidateSamples);
+          const double largestCompactionCandidateFraction =
+            batching.value(QStringLiteral("frontierLargestCompactionCandidateSampleFraction"))
+              .toDouble();
+          if (largestCompactionCandidateFraction > 0.0) {
+            largestCompactionCandidateText +=
+              QStringLiteral(" (%1 inactive)")
+                .arg(percentage(largestCompactionCandidateFraction, 1.0));
+          }
+          line += largestCompactionCandidateText;
         }
         const bool prefersClosestHitBatch =
           batching.value(QStringLiteral("intersectionBackendPrefersClosestHitBatch")).toBool();

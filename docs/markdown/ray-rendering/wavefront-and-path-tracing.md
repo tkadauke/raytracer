@@ -287,7 +287,9 @@ instead of carrying as inactive lanes. The candidate fraction reports that
 count relative to total active sample-depth work so small and large renders can
 be compared directly. The largest-candidate depth and sample count identify
 where compaction pressure is concentrated, which is more useful for planning a
-per-depth GPU compaction pass than only knowing the whole-render total.
+per-depth GPU compaction pass than only knowing the whole-render total. The
+largest-candidate fraction then reports how much of that depth is inactive, so
+the diagnostic separates a large frontier from a mostly wasted frontier.
 Prepared GPU-style backends can also opt into arbitrary closest-hit frontier
 batches, letting a path-tracing bounce submit one group of camera/path rays
 instead of slicing that frontier into Ray4/Ray8 packets before it reaches the

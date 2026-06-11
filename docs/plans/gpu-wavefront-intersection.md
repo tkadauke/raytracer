@@ -912,6 +912,9 @@ Progress:
 - The compaction baseline now also reports the largest candidate depth and
   sample count, so future GPU-side compaction work can identify where inactive
   path state is concentrated rather than only seeing whole-render totals.
+- The largest compaction candidate now also reports its inactive-sample
+  fraction at that depth, distinguishing high absolute sample counts from
+  depths that are mostly carrying inactive path state.
 - The mixed-query baseline now also reports mixed-depth ray counts and the
   query round trips attached to those depths, and the compaction baseline
   reports candidate samples as a fraction of total active sample-depth work.

@@ -1014,6 +1014,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_DOUBLE_EQ(1.0, metrics.batching.compactionCandidateSampleFraction());
     EXPECT_EQ(0u, metrics.batching.largestCompactionCandidateDepth());
     EXPECT_EQ(48u, metrics.batching.largestCompactionCandidateSampleCount());
+    EXPECT_DOUBLE_EQ(1.0, metrics.batching.largestCompactionCandidateSampleFraction());
     ASSERT_EQ(1u, metrics.batching.frontierRayHitsPerDepth.size());
     ASSERT_EQ(1u, metrics.batching.frontierRayMissesPerDepth.size());
     EXPECT_EQ(48u, metrics.batching.frontierRayHitsPerDepth[0] +
@@ -1183,6 +1184,10 @@ namespace WavefrontRaytracerTest {
                       .toObject()
                       .value("frontierLargestCompactionCandidateSamples")
                       .toDouble());
+    EXPECT_DOUBLE_EQ(1.0, json.value("batching")
+                            .toObject()
+                            .value("frontierLargestCompactionCandidateSampleFraction")
+                            .toDouble());
     const QJsonArray frontierHits =
       json.value("batching").toObject().value("frontierRayHitsPerDepth").toArray();
     const QJsonArray frontierMisses =

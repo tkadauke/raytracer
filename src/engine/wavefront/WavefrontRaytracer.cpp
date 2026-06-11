@@ -303,6 +303,18 @@ namespace engine::wavefront {
     return largestSamples;
   }
 
+  double WavefrontRenderMetrics::BatchSummary::largestCompactionCandidateSampleFraction() const {
+    const std::uint64_t samples = largestCompactionCandidateSampleCount();
+    if (samples == 0) {
+      return 0.0;
+    }
+    const std::uint64_t depth = largestCompactionCandidateDepth();
+    if (depth >= activeSamplesPerDepth.size() || activeSamplesPerDepth[depth] == 0) {
+      return 0.0;
+    }
+    return static_cast<double>(samples) / static_cast<double>(activeSamplesPerDepth[depth]);
+  }
+
   bool WavefrontRenderMetrics::BatchSummary::hasMixedQueryDepth(std::size_t depth) const {
     const std::uint64_t closestHitChunks = depth < frontierClosestHitBatchChunksPerDepth.size()
                                              ? frontierClosestHitBatchChunksPerDepth[depth]
@@ -646,6 +658,8 @@ namespace engine::wavefront {
       static_cast<double>(batching.largestCompactionCandidateDepth());
     batchingJson["frontierLargestCompactionCandidateSamples"] =
       static_cast<double>(batching.largestCompactionCandidateSampleCount());
+    batchingJson["frontierLargestCompactionCandidateSampleFraction"] =
+      batching.largestCompactionCandidateSampleFraction();
     batchingJson["frontierRayHitsPerDepth"] = frontierRayHitsPerDepth;
     batchingJson["frontierRayMissesPerDepth"] = frontierRayMissesPerDepth;
     batchingJson["frontierPacketChunksPerDepth"] = frontierPacketChunksPerDepth;

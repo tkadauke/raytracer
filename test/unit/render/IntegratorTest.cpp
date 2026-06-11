@@ -256,5 +256,6 @@ namespace IntegratorTest {
     EXPECT_DOUBLE_EQ(8.0 / 14.0, metrics.compactionCandidateSampleFraction());
     EXPECT_EQ(2u, metrics.largestCompactionCandidateDepth());
     EXPECT_EQ(5u, metrics.largestCompactionCandidateSampleCount());
+    EXPECT_DOUBLE_EQ(5.0 / 7.0, metrics.largestCompactionCandidateSampleFraction());
   }
 }

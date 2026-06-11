@@ -88,6 +88,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Wavefront largest-compaction diagnostics.** Wavefront metrics, rendercli
   summaries, and the Modeler graph details now identify the depth with the
   largest inactive-path compaction candidate sample count. — GPT-5 Codex
+- **Wavefront largest-compaction fraction.** Wavefront metrics, rendercli
+  summaries, and the Modeler graph details now report the inactive-sample
+  fraction at the largest compaction candidate depth. — GPT-5 Codex
 - **Wavefront compaction diagnostics.** Wavefront metrics, rendercli
   summaries, and the Modeler graph details now report active-sample
   compaction candidate depths and sample counts, creating a baseline for future
