@@ -1158,6 +1158,12 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query closest-hit rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query any-hit rays")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction passes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction input samples")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction retained samples")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction removed samples")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction removed fraction")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction moved samples")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate depths")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate samples")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate fraction")).isEmpty());
@@ -1175,6 +1181,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("mixed query depths")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("mixed-depth round trips")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("resident frontier estimate")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("host compaction removed")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("compaction candidate samples")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("largest compaction candidate")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("inactive")));

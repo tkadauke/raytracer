@@ -1825,6 +1825,12 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(3u, metrics.activeSampleDepthsProcessed);
+    EXPECT_EQ(2u, metrics.frontierHostCompactionPasses);
+    EXPECT_EQ(3u, metrics.frontierHostCompactionInputSamples);
+    EXPECT_EQ(1u, metrics.frontierHostCompactionRetainedSamples);
+    EXPECT_EQ(2u, metrics.frontierHostCompactionRemovedSamples);
+    EXPECT_EQ(1u, metrics.frontierHostCompactionMovedSamples);
+    EXPECT_DOUBLE_EQ(2.0 / 3.0, metrics.hostFrontierCompactionRemovedSampleFraction());
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceKeepsSampleColorsWhenCompactingMovedPaths) {

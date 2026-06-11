@@ -280,6 +280,11 @@ host/device boundary savings visible before the scheduler keeps those frontiers
 on the GPU. It also derives an observed frontier round-trip count, a
 resident-frontier round-trip estimate, and an estimated savings count by
 treating each mixed depth as one future resident scheduling boundary.
+The path tracer also reports the host compaction operation it already performs
+between depths: input path slots, retained slots, removed inactive slots, moved
+live slots, and the removed fraction. That makes the current CPU compaction
+contract explicit before any future kernel keeps the frontier resident on the
+GPU.
 The same metrics compare active samples entering a depth with retained samples
 after that depth. The difference is reported as compaction candidate work: the
 samples a future GPU-side compaction pass would remove from the next frontier

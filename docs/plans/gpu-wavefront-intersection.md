@@ -898,6 +898,11 @@ Possible follow-ups after the hybrid intersection backend is stable:
 
 Progress:
 
+- The path-tracing scheduler now records its host frontier compaction
+  operation explicitly: pass count, input path slots, retained path slots,
+  removed inactive slots, moved live slots, and removed fraction. This is still
+  CPU-side compaction, but it creates a concrete execution contract for a
+  future GPU-side compaction kernel.
 - Wavefront metrics now report mixed query depths: depth frontiers where both a
   closest-hit frontier batch and a direct-light any-hit batch ran, plus the
   participating closest-hit and any-hit ray counts. This does not keep frontiers

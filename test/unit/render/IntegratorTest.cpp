@@ -258,4 +258,21 @@ namespace IntegratorTest {
     EXPECT_EQ(5u, metrics.largestCompactionCandidateSampleCount());
     EXPECT_DOUBLE_EQ(5.0 / 7.0, metrics.largestCompactionCandidateSampleFraction());
   }
+
+  TEST(Integrator, BatchMetricsReportHostFrontierCompaction) {
+    IntegratorBatchMetrics metrics;
+    metrics.reset(/*scalarFallback=*/false);
+
+    metrics.recordHostFrontierCompaction(/*inputSamples=*/10, /*retainedSamples=*/6,
+                                         /*movedSamples=*/4);
+    metrics.recordHostFrontierCompaction(/*inputSamples=*/4, /*retainedSamples=*/4,
+                                         /*movedSamples=*/0);
+
+    EXPECT_EQ(2u, metrics.frontierHostCompactionPasses);
+    EXPECT_EQ(14u, metrics.frontierHostCompactionInputSamples);
+    EXPECT_EQ(10u, metrics.frontierHostCompactionRetainedSamples);
+    EXPECT_EQ(4u, metrics.frontierHostCompactionRemovedSamples);
+    EXPECT_EQ(4u, metrics.frontierHostCompactionMovedSamples);
+    EXPECT_DOUBLE_EQ(4.0 / 14.0, metrics.hostFrontierCompactionRemovedSampleFraction());
+  }
 }

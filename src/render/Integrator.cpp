@@ -155,6 +155,11 @@ namespace render {
     progressSnapshotWorkerSeconds = 0.0;
     convergenceTestWorkerSeconds = 0.0;
     observerConvergenceFeedbackDepths = 0;
+    frontierHostCompactionPasses = 0;
+    frontierHostCompactionInputSamples = 0;
+    frontierHostCompactionRetainedSamples = 0;
+    frontierHostCompactionRemovedSamples = 0;
+    frontierHostCompactionMovedSamples = 0;
   }
 
   void IntegratorBatchMetrics::recordActiveDepth(std::uint64_t activeSamples) {
@@ -164,6 +169,25 @@ namespace render {
 
   void IntegratorBatchMetrics::recordRetainedActiveDepth(std::uint64_t activeSamples) {
     retainedActiveSamplesPerDepth.push_back(activeSamples);
+  }
+
+  void IntegratorBatchMetrics::recordHostFrontierCompaction(std::uint64_t inputSamples,
+                                                            std::uint64_t retainedSamples,
+                                                            std::uint64_t movedSamples) {
+    ++frontierHostCompactionPasses;
+    frontierHostCompactionInputSamples += inputSamples;
+    frontierHostCompactionRetainedSamples += retainedSamples;
+    frontierHostCompactionRemovedSamples +=
+      inputSamples > retainedSamples ? inputSamples - retainedSamples : 0;
+    frontierHostCompactionMovedSamples += movedSamples;
+  }
+
+  double IntegratorBatchMetrics::hostFrontierCompactionRemovedSampleFraction() const {
+    if (frontierHostCompactionInputSamples == 0) {
+      return 0.0;
+    }
+    return static_cast<double>(frontierHostCompactionRemovedSamples) /
+           static_cast<double>(frontierHostCompactionInputSamples);
   }
 
   bool IntegratorBatchMetrics::hasCompactionCandidateDepth(std::size_t depth) const {

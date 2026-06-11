@@ -127,10 +127,18 @@ namespace render {
     double convergenceTestWorkerSeconds{0.0};
     std::uint64_t observerConvergenceFeedbackDepths{0};
     std::vector<std::uint64_t> retainedActiveSamplesPerDepth;
+    std::uint64_t frontierHostCompactionPasses{0};
+    std::uint64_t frontierHostCompactionInputSamples{0};
+    std::uint64_t frontierHostCompactionRetainedSamples{0};
+    std::uint64_t frontierHostCompactionRemovedSamples{0};
+    std::uint64_t frontierHostCompactionMovedSamples{0};
 
     void reset(bool scalarFallback);
     void recordActiveDepth(std::uint64_t activeSamples);
     void recordRetainedActiveDepth(std::uint64_t activeSamples);
+    void recordHostFrontierCompaction(std::uint64_t inputSamples, std::uint64_t retainedSamples,
+                                      std::uint64_t movedSamples);
+    [[nodiscard]] double hostFrontierCompactionRemovedSampleFraction() const;
     [[nodiscard]] bool hasCompactionCandidateDepth(std::size_t depth) const;
     [[nodiscard]] std::uint64_t compactionCandidateSamplesAtDepth(std::size_t depth) const;
     [[nodiscard]] std::uint64_t compactionCandidateDepthCount() const;

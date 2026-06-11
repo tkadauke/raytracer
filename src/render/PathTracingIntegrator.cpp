@@ -73,6 +73,50 @@ namespace render {
     Colord* m_accumulated;
   };
 
+  struct PathTracingIntegrator::FrontierCompaction {
+    explicit FrontierCompaction(std::size_t inputPathCount)
+        : m_inputPathCount(inputPathCount) {
+    }
+
+    void retain(std::vector<BatchPath>& paths, std::size_t pathIndex) {
+      if (pathIndex != m_retainedPathCount) {
+        paths[m_retainedPathCount] = std::move(paths[pathIndex]);
+        ++m_movedPathCount;
+      }
+      ++m_retainedPathCount;
+    }
+
+    void compact(std::vector<BatchPath>& paths) const {
+      while (paths.size() != m_retainedPathCount) {
+        paths.pop_back();
+      }
+    }
+
+    void appendSpawned(std::vector<BatchPath>& paths, std::vector<BatchPath>& spawnedPaths) const {
+      for (auto& spawnedPath : spawnedPaths) {
+        paths.push_back(std::move(spawnedPath));
+      }
+    }
+
+    void record(IntegratorBatchMetrics* metrics) const {
+      if (!metrics) {
+        return;
+      }
+      metrics->recordHostFrontierCompaction(static_cast<std::uint64_t>(m_inputPathCount),
+                                            static_cast<std::uint64_t>(m_retainedPathCount),
+                                            static_cast<std::uint64_t>(m_movedPathCount));
+    }
+
+    [[nodiscard]] std::size_t retainedPathCount() const {
+      return m_retainedPathCount;
+    }
+
+  private:
+    std::size_t m_inputPathCount{0};
+    std::size_t m_retainedPathCount{0};
+    std::size_t m_movedPathCount{0};
+  };
+
   struct PathTracingIntegrator::ScalarPath {
     ScalarPath(const Rayd& primaryRay, State& primaryState)
         : ray(primaryRay),
@@ -835,14 +879,6 @@ namespace render {
     }
   }
 
-  void PathTracingIntegrator::retainActivePath(std::vector<BatchPath>& paths, std::size_t pathIndex,
-                                               std::size_t& retainedPathCount) const {
-    if (pathIndex != retainedPathCount) {
-      paths[retainedPathCount] = std::move(paths[pathIndex]);
-    }
-    ++retainedPathCount;
-  }
-
   Colord PathTracingIntegrator::emittedRadiance(const LightSampler& lightSampler,
                                                 const PathMaterialTransport& material,
                                                 const Rayd& ray, const HitPoint& hitPoint,
@@ -1060,7 +1096,7 @@ namespace render {
         break;
       }
 
-      std::size_t retainedPathCount = 0;
+      FrontierCompaction frontierCompaction(paths.size());
       BatchDepthMetrics depthMetrics;
       depthMetrics.trackRadianceDelta = trackRadianceDelta;
       depthMetrics.metrics = metrics;
@@ -1184,17 +1220,18 @@ namespace render {
           path.ray = sampled.rayFrom(hit.hitPoint);
           path.state.recurseOut();
           recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
-          retainActivePath(paths, hit.pathIndex, retainedPathCount);
+          frontierCompaction.retain(paths, hit.pathIndex);
         }
       }
 
-      while (paths.size() != retainedPathCount) {
-        paths.pop_back();
+      {
+        core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
+                                              : nullptr);
+        frontierCompaction.compact(paths);
+        frontierCompaction.record(metrics);
+        frontierCompaction.appendSpawned(paths, spawnedPaths);
       }
-      for (auto& spawnedPath : spawnedPaths) {
-        paths.push_back(std::move(spawnedPath));
-      }
-      retainedPathCount = paths.size();
+      const std::size_t retainedPathCount = paths.size();
 
       if (metrics) {
         metrics->recordRadianceDeltaDepth(depthMetrics.depthDeltaSquaredSum,

@@ -166,6 +166,11 @@ namespace engine::wavefront {
     const render::IntegratorBatchMetrics& metrics) {
     addIntersectionBackendMetrics(metrics);
     activeSampleDepthsProcessed += metrics.activeSampleDepthsProcessed;
+    frontierHostCompactionPasses += metrics.frontierHostCompactionPasses;
+    frontierHostCompactionInputSamples += metrics.frontierHostCompactionInputSamples;
+    frontierHostCompactionRetainedSamples += metrics.frontierHostCompactionRetainedSamples;
+    frontierHostCompactionRemovedSamples += metrics.frontierHostCompactionRemovedSamples;
+    frontierHostCompactionMovedSamples += metrics.frontierHostCompactionMovedSamples;
     compatibilityShadeSamples += metrics.compatibilityShadeSamples;
     unsupportedPathMaterialSamples += metrics.unsupportedPathMaterialSamples;
     emitterHitSamples += metrics.emitterHitSamples;
@@ -230,6 +235,14 @@ namespace engine::wavefront {
       maxRadianceDeltaPerDepth[depth] =
         std::max(maxRadianceDeltaPerDepth[depth], metrics.maxRadianceDeltaPerDepth[depth]);
     }
+  }
+
+  double WavefrontRenderMetrics::BatchSummary::hostFrontierCompactionRemovedSampleFraction() const {
+    if (frontierHostCompactionInputSamples == 0) {
+      return 0.0;
+    }
+    return static_cast<double>(frontierHostCompactionRemovedSamples) /
+           static_cast<double>(frontierHostCompactionInputSamples);
   }
 
   bool WavefrontRenderMetrics::BatchSummary::hasCompactionCandidateDepth(std::size_t depth) const {
@@ -620,6 +633,18 @@ namespace engine::wavefront {
     batchingJson["averageBatchSize"] = batching.averageBatchSize;
     batchingJson["activeSampleDepthsProcessed"] =
       static_cast<double>(batching.activeSampleDepthsProcessed);
+    batchingJson["frontierHostCompactionPasses"] =
+      static_cast<double>(batching.frontierHostCompactionPasses);
+    batchingJson["frontierHostCompactionInputSamples"] =
+      static_cast<double>(batching.frontierHostCompactionInputSamples);
+    batchingJson["frontierHostCompactionRetainedSamples"] =
+      static_cast<double>(batching.frontierHostCompactionRetainedSamples);
+    batchingJson["frontierHostCompactionRemovedSamples"] =
+      static_cast<double>(batching.frontierHostCompactionRemovedSamples);
+    batchingJson["frontierHostCompactionMovedSamples"] =
+      static_cast<double>(batching.frontierHostCompactionMovedSamples);
+    batchingJson["frontierHostCompactionRemovedSampleFraction"] =
+      batching.hostFrontierCompactionRemovedSampleFraction();
     batchingJson["compatibilityShadeSamples"] =
       static_cast<double>(batching.compatibilityShadeSamples);
     batchingJson["unsupportedPathMaterialSamples"] =

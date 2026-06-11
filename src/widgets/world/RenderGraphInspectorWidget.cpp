@@ -657,6 +657,23 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("frontierMixedQueryClosestHitRays"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed query any-hit rays"), batching,
                               QStringLiteral("frontierMixedQueryAnyHitRays"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Host compaction passes"), batching,
+                              QStringLiteral("frontierHostCompactionPasses"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Host compaction input samples"), batching,
+                              QStringLiteral("frontierHostCompactionInputSamples"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Host compaction retained samples"), batching,
+                              QStringLiteral("frontierHostCompactionRetainedSamples"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Host compaction removed samples"), batching,
+                              QStringLiteral("frontierHostCompactionRemovedSamples"));
+  if (batching.contains(QStringLiteral("frontierHostCompactionRemovedSampleFraction"))) {
+    addDetailRow(
+      rows, QStringLiteral("Host compaction removed fraction"),
+      percentage(
+        batching.value(QStringLiteral("frontierHostCompactionRemovedSampleFraction")).toDouble(),
+        1.0));
+  }
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Host compaction moved samples"), batching,
+                              QStringLiteral("frontierHostCompactionMovedSamples"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Compaction candidate depths"), batching,
                               QStringLiteral("frontierCompactionCandidateDepths"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Compaction candidate samples"), batching,
@@ -1029,6 +1046,12 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         }
         const qulonglong compactionCandidateSamples =
           jsonIntegerValue(batching, QStringLiteral("frontierCompactionCandidateSamples"));
+        const qulonglong hostCompactionRemovedSamples =
+          jsonIntegerValue(batching, QStringLiteral("frontierHostCompactionRemovedSamples"));
+        if (hostCompactionRemovedSamples > 0) {
+          line += QStringLiteral(", host compaction removed %1 samples")
+                    .arg(hostCompactionRemovedSamples);
+        }
         if (compactionCandidateSamples > 0) {
           line +=
             QStringLiteral(", %1 compaction candidate samples").arg(compactionCandidateSamples);

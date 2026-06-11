@@ -375,6 +375,18 @@ namespace {
         << " avg_tile_samples=" << tiling.value("averageNonEmptyTileSamples").toDouble()
         << " max_tile_samples=" << unsignedValue(tiling, "maxTileSamples")
         << " active_sample_depths=" << unsignedValue(batching, "activeSampleDepthsProcessed")
+        << " frontier_host_compaction_passes="
+        << unsignedValue(batching, "frontierHostCompactionPasses")
+        << " frontier_host_compaction_input_samples="
+        << unsignedValue(batching, "frontierHostCompactionInputSamples")
+        << " frontier_host_compaction_retained_samples="
+        << unsignedValue(batching, "frontierHostCompactionRetainedSamples")
+        << " frontier_host_compaction_removed_samples="
+        << unsignedValue(batching, "frontierHostCompactionRemovedSamples")
+        << " frontier_host_compaction_removed_fraction="
+        << batching.value("frontierHostCompactionRemovedSampleFraction").toDouble()
+        << " frontier_host_compaction_moved_samples="
+        << unsignedValue(batching, "frontierHostCompactionMovedSamples")
         << " batches=" << unsignedValue(batching, "batches")
         << " avg_batch=" << batching.value("averageBatchSize").toDouble()
         << " max_batch=" << unsignedValue(batching, "maxBatchSize")

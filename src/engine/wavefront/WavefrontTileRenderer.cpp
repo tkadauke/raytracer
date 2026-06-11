@@ -235,6 +235,11 @@ namespace engine::wavefront::detail {
       target.convergenceTestWorkerSeconds += source.convergenceTestWorkerSeconds;
       target.observerConvergenceFeedbackDepths += source.observerConvergenceFeedbackDepths;
       addVectorValues(target.retainedActiveSamplesPerDepth, source.retainedActiveSamplesPerDepth);
+      target.frontierHostCompactionPasses += source.frontierHostCompactionPasses;
+      target.frontierHostCompactionInputSamples += source.frontierHostCompactionInputSamples;
+      target.frontierHostCompactionRetainedSamples += source.frontierHostCompactionRetainedSamples;
+      target.frontierHostCompactionRemovedSamples += source.frontierHostCompactionRemovedSamples;
+      target.frontierHostCompactionMovedSamples += source.frontierHostCompactionMovedSamples;
     }
 
     WavefrontTileTraceResult traceTile(

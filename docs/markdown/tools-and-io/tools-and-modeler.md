@@ -190,6 +190,11 @@ remove. They also report the observed frontier query round trips, the
 resident-frontier round-trip estimate, and the estimated savings if mixed
 closest-hit/any-hit depths could be treated as one resident scheduling
 boundary.
+The path tracer also reports host compaction passes: the current CPU scheduler
+compacts the surviving path frontier after each depth, and the metrics expose
+the input, retained, removed, moved, and removed-fraction sample counts for
+that operation. Those counts are the execution contract a future GPU compaction
+kernel must preserve.
 They also report compaction candidate depths and sample counts by comparing
 active samples entering a depth with retained samples after that depth. That is
 the CPU-side baseline for future GPU-side active-ray compaction; the candidate
@@ -353,6 +358,12 @@ compact summary prints total `tiles`, `tile_grid`,
 `sample_stddev_rms`, `max_sample_stddev`, `frontier_query_round_trips`,
 `frontier_resident_query_round_trips_estimate`,
 `frontier_resident_query_round_trip_savings_estimate`,
+`frontier_host_compaction_passes`,
+`frontier_host_compaction_input_samples`,
+`frontier_host_compaction_retained_samples`,
+`frontier_host_compaction_removed_samples`,
+`frontier_host_compaction_removed_fraction`,
+`frontier_host_compaction_moved_samples`,
 `frontier_largest_compaction_candidate_depth`,
 `frontier_largest_compaction_candidate_samples`,
 `frontier_largest_compaction_candidate_fraction`,

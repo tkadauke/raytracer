@@ -1728,6 +1728,8 @@ namespace WavefrontRaytracerTest {
     batch.recordMissRadiance(Colord(0.0, 1.0, 1.0));
     batch.recordCompatibilityShadeRadiance(Colord(1.0, 0.0, 1.0));
     batch.recordUnsupportedPathMaterial();
+    batch.recordHostFrontierCompaction(/*inputSamples=*/8, /*retainedSamples=*/5,
+                                       /*movedSamples=*/2);
     constexpr double redLuma = 0.299;
     constexpr double greenLuma = 0.587;
     constexpr double blueLuma = 0.114;
@@ -1743,6 +1745,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1u, metrics.batching.directLightContributingSamples);
     EXPECT_EQ(1u, metrics.batching.directLightOccludedSamples);
     EXPECT_EQ(1u, metrics.batching.unsupportedPathMaterialSamples);
+    EXPECT_EQ(1u, metrics.batching.frontierHostCompactionPasses);
+    EXPECT_EQ(8u, metrics.batching.frontierHostCompactionInputSamples);
+    EXPECT_EQ(5u, metrics.batching.frontierHostCompactionRetainedSamples);
+    EXPECT_EQ(3u, metrics.batching.frontierHostCompactionRemovedSamples);
+    EXPECT_EQ(2u, metrics.batching.frontierHostCompactionMovedSamples);
+    EXPECT_DOUBLE_EQ(3.0 / 8.0, metrics.batching.hostFrontierCompactionRemovedSampleFraction());
     EXPECT_DOUBLE_EQ(redLuma, metrics.batching.emittedRadianceLuminanceSum);
     EXPECT_DOUBLE_EQ(greenLuma + blueLuma, metrics.batching.directLightRadianceLuminanceSum);
     EXPECT_DOUBLE_EQ(greenLuma, metrics.batching.primaryDirectLightRadianceLuminanceSum);
@@ -1761,6 +1769,13 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1.0, batching.value("directLightContributingSamples").toDouble());
     EXPECT_EQ(1.0, batching.value("directLightOccludedSamples").toDouble());
     EXPECT_EQ(1.0, batching.value("unsupportedPathMaterialSamples").toDouble());
+    EXPECT_EQ(1.0, batching.value("frontierHostCompactionPasses").toDouble());
+    EXPECT_EQ(8.0, batching.value("frontierHostCompactionInputSamples").toDouble());
+    EXPECT_EQ(5.0, batching.value("frontierHostCompactionRetainedSamples").toDouble());
+    EXPECT_EQ(3.0, batching.value("frontierHostCompactionRemovedSamples").toDouble());
+    EXPECT_EQ(2.0, batching.value("frontierHostCompactionMovedSamples").toDouble());
+    EXPECT_DOUBLE_EQ(3.0 / 8.0,
+                     batching.value("frontierHostCompactionRemovedSampleFraction").toDouble());
     EXPECT_DOUBLE_EQ(redLuma, batching.value("emittedRadianceLuminanceSum").toDouble());
     EXPECT_DOUBLE_EQ(greenLuma + blueLuma,
                      batching.value("directLightRadianceLuminanceSum").toDouble());
