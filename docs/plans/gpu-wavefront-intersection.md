@@ -918,6 +918,11 @@ Progress:
   Current frontiers are host-resident and still route through the existing
   any-hit batch implementation, but next-event-estimation visibility work now
   has a backend boundary for future resident occlusion batches.
+- Backend-owned closest-hit and any-hit frontiers now report their actual
+  residency through wavefront metrics, rendercli summaries, graph traces, and
+  Modeler pass details. Current backends report `host`, while future
+  Metal/Vulkan frontiers can prove they stayed device-resident without changing
+  the UI or metrics contract again.
 - The wavefront convergence capture helper now carries those host compaction
   execution counters into candidate/reference comparisons and queue-sweep
   summaries, and queue sweeps also preserve the compaction execution label.

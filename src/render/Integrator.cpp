@@ -110,6 +110,8 @@ namespace render {
     intersectionBackendExecutionPath.clear();
     intersectionBackendClosestHitExecutionPath.clear();
     intersectionBackendAnyHitExecutionPath.clear();
+    intersectionBackendClosestHitFrontierResidency.clear();
+    intersectionBackendAnyHitFrontierResidency.clear();
     intersectionBackendPlatformGpuDeviceAvailable = false;
     intersectionBackendPlatformGpuRenderPathAvailable = false;
     intersectionSceneCompiled = false;
@@ -496,6 +498,16 @@ namespace render {
     return false;
   }
 
+  void IntegratorBatchMetrics::recordClosestHitFrontierResidency(const std::string& residency) {
+    mergeLabel(intersectionBackendClosestHitFrontierResidency,
+               residency.empty() ? "unknown" : residency);
+  }
+
+  void IntegratorBatchMetrics::recordAnyHitFrontierResidency(const std::string& residency) {
+    mergeLabel(intersectionBackendAnyHitFrontierResidency,
+               residency.empty() ? "unknown" : residency);
+  }
+
   void
   IntegratorBatchMetrics::recordClosestHitQuery(const WavefrontIntersectionBackend& backend,
                                                 std::uint64_t submittedRays,
@@ -561,6 +573,10 @@ namespace render {
                source.intersectionBackendClosestHitExecutionPath);
     mergeLabel(intersectionBackendAnyHitExecutionPath,
                source.intersectionBackendAnyHitExecutionPath);
+    mergeLabel(intersectionBackendClosestHitFrontierResidency,
+               source.intersectionBackendClosestHitFrontierResidency);
+    mergeLabel(intersectionBackendAnyHitFrontierResidency,
+               source.intersectionBackendAnyHitFrontierResidency);
     intersectionBackendPlatformGpuDeviceAvailable =
       intersectionBackendPlatformGpuDeviceAvailable ||
       source.intersectionBackendPlatformGpuDeviceAvailable;

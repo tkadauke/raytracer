@@ -81,6 +81,8 @@ namespace render {
     std::string intersectionBackendExecutionPath;
     std::string intersectionBackendClosestHitExecutionPath;
     std::string intersectionBackendAnyHitExecutionPath;
+    std::string intersectionBackendClosestHitFrontierResidency;
+    std::string intersectionBackendAnyHitFrontierResidency;
     bool intersectionBackendPlatformGpuDeviceAvailable{false};
     bool intersectionBackendPlatformGpuRenderPathAvailable{false};
     bool intersectionSceneCompiled{false};
@@ -176,6 +178,8 @@ namespace render {
     void recordIntersectionQueryFallbackReason(const WavefrontIntersectionBackend& backend,
                                                const WavefrontIntersectionQueryTiming& timing);
     bool recordIntersectionQueryTransfer(std::uint64_t rayUploadBytes, std::uint64_t readbackBytes);
+    void recordClosestHitFrontierResidency(const std::string& residency);
+    void recordAnyHitFrontierResidency(const std::string& residency);
     void recordClosestHitQuery(const WavefrontIntersectionBackend& backend,
                                std::uint64_t submittedRays,
                                const WavefrontIntersectionQueryTiming& timing = {});

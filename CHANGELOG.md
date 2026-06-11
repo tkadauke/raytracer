@@ -20,6 +20,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Routed path-tracing direct-light any-hit batches through backend-owned
   frontier handles, preserving the current host-resident visibility behavior.
   — GPT-5 Codex
+- Exposed backend-owned closest-hit and any-hit frontier residency in wavefront
+  metrics, rendercli summaries, graph traces, and Modeler pass details.
+  — GPT-5 Codex
 
 ### Added
 

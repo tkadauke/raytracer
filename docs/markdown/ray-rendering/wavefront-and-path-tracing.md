@@ -261,7 +261,9 @@ compiled plus its BVH node, primitive, payload, and unsupported-leaf counts, so
 rendercli and the graph inspector can show the upload workload or fallback
 reason. They also report the actual query execution path: runtime `Scene`
 traversal, compiled CPU parity traversal, packed-buffer CPU traversal, a Metal
-kernel, or a Vulkan kernel. Batched path-tracing
+kernel, or a Vulkan kernel. Backend-owned closest-hit and any-hit frontiers
+also report their actual residency, so the trace distinguishes today's
+host-backed handles from a future device-resident frontier path. Batched path-tracing
 direct-light visibility goes through the same backend seam via
 `intersectAny(...)`, so the graph and metrics can separate closest-hit and
 any-hit ray counts for CPU and GPU-resident query families. When the selected

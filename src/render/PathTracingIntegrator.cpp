@@ -319,6 +319,7 @@ namespace render {
         if (metrics) {
           metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, bounce)),
                                                 /*batchChunks=*/1, frontier->rayCount());
+          metrics->recordAnyHitFrontierResidency(frontier->residency());
           metrics->recordAnyHitQuery(resolvedIntersectionBackend, frontier->rayCount(),
                                      intersectionTiming);
         }
@@ -416,6 +417,7 @@ namespace render {
         if (metrics) {
           metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, bounce)),
                                                 /*batchChunks=*/1, frontier->rayCount());
+          metrics->recordAnyHitFrontierResidency(frontier->residency());
           metrics->recordAnyHitQuery(intersectionBackend, frontier->rayCount(), intersectionTiming);
         }
       } else {
@@ -773,6 +775,7 @@ namespace render {
         intersectionBackend.createClosestHitFrontier(std::move(queries));
       hits = intersectionBackend.intersectClosestFrontier(scene, *frontier, &intersectionTiming);
       if (metrics) {
+        metrics->recordClosestHitFrontierResidency(frontier->residency());
         metrics->recordClosestHitQuery(intersectionBackend, frontier->rayCount(),
                                        intersectionTiming);
       }

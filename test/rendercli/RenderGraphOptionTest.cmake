@@ -2691,6 +2691,15 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_query_round_trips=")
                   "wavefront metrics summary did not contain frontier query round trips"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+foreach(frontier_residency_summary
+        closest_hit_frontier_residency=
+        any_hit_frontier_residency=)
+  if(NOT wavefront_metrics_stdout MATCHES "${frontier_residency_summary}")
+    _rendercli_fail("rendercli wavefront metrics ${frontier_residency_summary}"
+                    "wavefront metrics summary did not contain ${frontier_residency_summary}"
+                    "${wavefront_metrics_stdout}" "" "" "")
+  endif()
+endforeach()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_resident_query_round_trips_estimate=")
   _rendercli_fail("rendercli wavefront metrics resident frontier round-trip summary"
                   "wavefront metrics summary did not contain resident frontier round-trip estimate"
@@ -2794,6 +2803,15 @@ foreach(mixed_query_field
   if(NOT wavefront_metrics_json MATCHES "\"${mixed_query_field}\"")
     _rendercli_fail("rendercli wavefront metrics ${mixed_query_field}"
                     "wavefront metrics report did not contain ${mixed_query_field}"
+                    "" "" "${wavefront_metrics_json}" "")
+  endif()
+endforeach()
+foreach(frontier_residency_field
+        intersectionBackendClosestHitFrontierResidency
+        intersectionBackendAnyHitFrontierResidency)
+  if(NOT wavefront_metrics_json MATCHES "\"${frontier_residency_field}\"")
+    _rendercli_fail("rendercli wavefront metrics ${frontier_residency_field}"
+                    "wavefront metrics report did not contain ${frontier_residency_field}"
                     "" "" "${wavefront_metrics_json}" "")
   endif()
 endforeach()
@@ -3504,6 +3522,15 @@ rendercli_run(
 )
 rendercli_assert_image_nonempty("${wavefront_batched_visibility_render}"
                                 NAME "batched wavefront visibility render pixels")
+foreach(frontier_residency_summary
+        "closest_hit_frontier_residency=[A-Za-z0-9_]+"
+        "any_hit_frontier_residency=[A-Za-z0-9_]+")
+  if(NOT wavefront_batched_visibility_stdout MATCHES "${frontier_residency_summary}")
+    _rendercli_fail("rendercli batched visibility ${frontier_residency_summary}"
+                    "batched visibility summary did not contain ${frontier_residency_summary}"
+                    "${wavefront_batched_visibility_stdout}" "" "" "")
+  endif()
+endforeach()
 string(REGEX MATCH "any_hit_rays=([0-9][0-9]*)" _any_hit_rays_match
              "${wavefront_batched_visibility_stdout}")
 set(wavefront_batched_visibility_any_hit_rays "${CMAKE_MATCH_1}")

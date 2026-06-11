@@ -267,8 +267,13 @@ namespace {
         << compactTextValue(batching.value("intersectionBackendExecutionPath"), "unknown")
         << " closest_hit_execution="
         << compactTextValue(batching.value("intersectionBackendClosestHitExecutionPath"), "none")
+        << " closest_hit_frontier_residency="
+        << compactTextValue(batching.value("intersectionBackendClosestHitFrontierResidency"),
+                            "none")
         << " any_hit_execution="
         << compactTextValue(batching.value("intersectionBackendAnyHitExecutionPath"), "none")
+        << " any_hit_frontier_residency="
+        << compactTextValue(batching.value("intersectionBackendAnyHitFrontierResidency"), "none")
         << " intersection_backend_gpu_device="
         << (batching.value("intersectionBackendPlatformGpuDeviceAvailable").toBool() ? "true"
                                                                                      : "false")

@@ -1597,6 +1597,10 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(renderCase.lastMetrics().batching.anyHitRaysSubmitted, 0u);
     EXPECT_TRUE(renderCase.lastMetrics().batching.intersectionBackendPrefersClosestHitBatch);
     EXPECT_TRUE(renderCase.lastMetrics().batching.intersectionBackendPrefersAnyHitBatch);
+    EXPECT_FALSE(
+      renderCase.lastMetrics().batching.intersectionBackendClosestHitFrontierResidency.empty());
+    EXPECT_FALSE(
+      renderCase.lastMetrics().batching.intersectionBackendAnyHitFrontierResidency.empty());
     EXPECT_FALSE(renderCase.lastMetrics().batching.directLightAnyHitBatchChunksPerDepth.empty());
     EXPECT_FALSE(renderCase.lastMetrics().batching.directLightAnyHitBatchRaysPerDepth.empty());
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitBatchChunksPerDepth.front(), 0u);
@@ -1616,6 +1620,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(batching.value("frontierQueryRoundTrips").toDouble(), 0.0);
     EXPECT_GT(batching.value("frontierResidentQueryRoundTripsEstimate").toDouble(), 0.0);
     EXPECT_GT(batching.value("frontierResidentQueryRoundTripSavingsEstimate").toDouble(), 0.0);
+    EXPECT_EQ(
+      renderCase.lastMetrics().batching.intersectionBackendClosestHitFrontierResidency,
+      batching.value("intersectionBackendClosestHitFrontierResidency").toString().toStdString());
+    EXPECT_EQ(
+      renderCase.lastMetrics().batching.intersectionBackendAnyHitFrontierResidency,
+      batching.value("intersectionBackendAnyHitFrontierResidency").toString().toStdString());
   }
 
   TEST(WavefrontRaytracer, AutoIntersectionRequestMatchesCpuImageWhenGpuGateClears) {
