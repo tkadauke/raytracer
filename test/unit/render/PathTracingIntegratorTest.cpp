@@ -539,6 +539,13 @@ namespace PathTracingIntegratorTest {
         return submittedRays > 1;
       }
 
+      std::unique_ptr<WavefrontClosestHitFrontier>
+      createClosestHitFrontier(std::vector<WavefrontClosestHitQuery> queries) const override {
+        ++closestHitFrontiers;
+        closestHitFrontierSizes.push_back(queries.size());
+        return WavefrontIntersectionBackend::createClosestHitFrontier(std::move(queries));
+      }
+
       std::vector<WavefrontClosestHitResult>
       intersectClosestBatch(const Scene& scene,
                             const std::vector<WavefrontClosestHitQuery>& queries,
@@ -548,6 +555,8 @@ namespace PathTracingIntegratorTest {
         return WavefrontIntersectionBackend::intersectClosestBatch(scene, queries, timing);
       }
 
+      mutable int closestHitFrontiers{0};
+      mutable std::vector<std::size_t> closestHitFrontierSizes;
       mutable int closestHitBatchQueries{0};
       mutable std::vector<std::size_t> closestHitBatchSizes;
     };
@@ -1476,6 +1485,8 @@ namespace PathTracingIntegratorTest {
       integrator.radianceBatch(*scene, samples, caster, &metrics, settings);
 
     ASSERT_EQ(5u, batched.size());
+    EXPECT_EQ(1, backend.closestHitFrontiers);
+    EXPECT_EQ((std::vector<std::size_t>{5u}), backend.closestHitFrontierSizes);
     EXPECT_EQ(1, backend.closestHitBatchQueries);
     EXPECT_EQ((std::vector<std::size_t>{5u}), backend.closestHitBatchSizes);
     EXPECT_EQ(5, backend.scalarQueries);

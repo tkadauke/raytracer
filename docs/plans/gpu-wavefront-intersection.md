@@ -909,6 +909,11 @@ Progress:
   current backends answer with the existing host compaction behavior. That makes
   GPU-side compaction an overridable backend operation instead of a
   path-tracer-private list edit.
+- Closest-hit batch frontiers now also go through a backend-owned frontier
+  handle. The current handle is host-resident and wraps the existing query
+  vector, but the path tracer asks the backend to create and consume the
+  frontier so a later Metal/Vulkan backend can keep those rays resident without
+  changing path-tracer control flow.
 - The wavefront convergence capture helper now carries those host compaction
   execution counters into candidate/reference comparisons and queue-sweep
   summaries, and queue sweeps also preserve the compaction execution label.

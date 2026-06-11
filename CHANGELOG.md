@@ -14,6 +14,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Routed path-tracing frontier compaction through the wavefront intersection
   backend contract so future GPU backends can override the current host
   compaction path. — GPT-5 Codex
+- Routed path-tracing closest-hit batch work through backend-owned frontier
+  handles, with the current implementation preserving host-resident query
+  vectors. — GPT-5 Codex
 
 ### Added
 

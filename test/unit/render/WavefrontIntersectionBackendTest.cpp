@@ -253,6 +253,31 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ("host", compaction.executionPath());
   }
 
+  TEST(WavefrontIntersectionBackend, CpuBackendIntersectsHostClosestHitFrontier) {
+    Scene scene;
+    scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+    State state;
+    std::vector<WavefrontClosestHitQuery> queries;
+    queries.push_back(
+      WavefrontClosestHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), &state});
+
+    const auto frontier =
+      CpuWavefrontIntersectionBackend::instance().createClosestHitFrontier(std::move(queries));
+
+    ASSERT_NE(nullptr, frontier);
+    EXPECT_EQ(1u, frontier->rayCount());
+    EXPECT_STREQ("host", frontier->residency());
+
+    WavefrontIntersectionQueryTiming timing;
+    const std::vector<WavefrontClosestHitResult> hits =
+      CpuWavefrontIntersectionBackend::instance().intersectClosestFrontier(scene, *frontier,
+                                                                           &timing);
+
+    ASSERT_EQ(1u, hits.size());
+    EXPECT_TRUE(hits.front().hit());
+    EXPECT_EQ("runtime_scene", timing.executionPath);
+  }
+
   TEST(WavefrontIntersectionBackend, CpuQueriesReportRuntimeSceneTimingPath) {
     Scene scene;
     scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));

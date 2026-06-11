@@ -84,6 +84,35 @@ namespace render {
     State* state{nullptr};
   };
 
+  class WavefrontClosestHitFrontier {
+  public:
+    virtual ~WavefrontClosestHitFrontier() = default;
+
+    [[nodiscard]] virtual std::uint64_t rayCount() const = 0;
+    [[nodiscard]] virtual const char* residency() const = 0;
+
+  protected:
+    friend class WavefrontIntersectionBackend;
+
+    [[nodiscard]] virtual const std::vector<WavefrontClosestHitQuery>*
+    hostClosestHitQueries() const;
+  };
+
+  class HostWavefrontClosestHitFrontier final : public WavefrontClosestHitFrontier {
+  public:
+    explicit HostWavefrontClosestHitFrontier(std::vector<WavefrontClosestHitQuery> queries);
+
+    [[nodiscard]] std::uint64_t rayCount() const override;
+    [[nodiscard]] const char* residency() const override;
+
+  protected:
+    [[nodiscard]] const std::vector<WavefrontClosestHitQuery>*
+    hostClosestHitQueries() const override;
+
+  private:
+    std::vector<WavefrontClosestHitQuery> m_queries;
+  };
+
   struct WavefrontClosestHitResult {
     const Primitive* primitive{nullptr};
     std::shared_ptr<Material> material;
@@ -223,6 +252,11 @@ namespace render {
     virtual bool supportsResidentDirectLightBatches() const;
     virtual WavefrontFrontierCompactionResult
     compactFrontier(const WavefrontFrontierCompactionRequest& request) const;
+    virtual std::unique_ptr<WavefrontClosestHitFrontier>
+    createClosestHitFrontier(std::vector<WavefrontClosestHitQuery> queries) const;
+    virtual std::vector<WavefrontClosestHitResult>
+    intersectClosestFrontier(const Scene& scene, const WavefrontClosestHitFrontier& frontier,
+                             WavefrontIntersectionQueryTiming* timing = nullptr) const;
 
     virtual WavefrontClosestHitResult
     intersectClosestResult(const Scene& scene, const Rayd& ray, State& state,

@@ -267,6 +267,29 @@ namespace render {
     return expectedClosestHitRays + expectedAnyHitRays;
   }
 
+  const std::vector<WavefrontClosestHitQuery>*
+  WavefrontClosestHitFrontier::hostClosestHitQueries() const {
+    return nullptr;
+  }
+
+  HostWavefrontClosestHitFrontier::HostWavefrontClosestHitFrontier(
+    std::vector<WavefrontClosestHitQuery> queries)
+      : m_queries(std::move(queries)) {
+  }
+
+  std::uint64_t HostWavefrontClosestHitFrontier::rayCount() const {
+    return static_cast<std::uint64_t>(m_queries.size());
+  }
+
+  const char* HostWavefrontClosestHitFrontier::residency() const {
+    return "host";
+  }
+
+  const std::vector<WavefrontClosestHitQuery>*
+  HostWavefrontClosestHitFrontier::hostClosestHitQueries() const {
+    return &m_queries;
+  }
+
   WavefrontIntersectionBackendAutoSelectionDecision
   WavefrontIntersectionBackendAutoSelectionPolicy::decide(
     bool platformGpuDeviceAvailable, bool platformGpuRenderPathAvailable,
@@ -747,6 +770,22 @@ namespace render {
   WavefrontFrontierCompactionResult WavefrontIntersectionBackend::compactFrontier(
     const WavefrontFrontierCompactionRequest& request) const {
     return WavefrontFrontierCompactionResult::hostCompaction(request);
+  }
+
+  std::unique_ptr<WavefrontClosestHitFrontier>
+  WavefrontIntersectionBackend::createClosestHitFrontier(
+    std::vector<WavefrontClosestHitQuery> queries) const {
+    return std::make_unique<HostWavefrontClosestHitFrontier>(std::move(queries));
+  }
+
+  std::vector<WavefrontClosestHitResult> WavefrontIntersectionBackend::intersectClosestFrontier(
+    const Scene& scene, const WavefrontClosestHitFrontier& frontier,
+    WavefrontIntersectionQueryTiming* timing) const {
+    const std::vector<WavefrontClosestHitQuery>* queries = frontier.hostClosestHitQueries();
+    if (!queries) {
+      throw std::logic_error("closest-hit frontier is not host-readable");
+    }
+    return intersectClosestBatch(scene, *queries, timing);
   }
 
   WavefrontClosestHitResult WavefrontIntersectionBackend::intersectClosestResult(

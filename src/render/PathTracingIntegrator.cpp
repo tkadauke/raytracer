@@ -765,9 +765,12 @@ namespace render {
     {
       WavefrontIntersectionQueryTiming intersectionTiming;
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      hits = intersectionBackend.intersectClosestBatch(scene, queries, &intersectionTiming);
+      const std::unique_ptr<WavefrontClosestHitFrontier> frontier =
+        intersectionBackend.createClosestHitFrontier(std::move(queries));
+      hits = intersectionBackend.intersectClosestFrontier(scene, *frontier, &intersectionTiming);
       if (metrics) {
-        metrics->recordClosestHitQuery(intersectionBackend, queries.size(), intersectionTiming);
+        metrics->recordClosestHitQuery(intersectionBackend, frontier->rayCount(),
+                                       intersectionTiming);
       }
     }
 
