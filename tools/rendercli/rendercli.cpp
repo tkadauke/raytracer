@@ -342,6 +342,9 @@ namespace {
         << " closest_hit_queries=" << unsignedValue(batching, "closestHitQueries")
         << " any_hit_queries=" << unsignedValue(batching, "anyHitQueries")
         << " frontier_mixed_query_depths=" << unsignedValue(batching, "frontierMixedQueryDepths")
+        << " frontier_mixed_query_round_trips="
+        << unsignedValue(batching, "frontierMixedQueryRoundTrips")
+        << " frontier_mixed_query_rays=" << unsignedValue(batching, "frontierMixedQueryRays")
         << " frontier_mixed_query_closest_hit_rays="
         << unsignedValue(batching, "frontierMixedQueryClosestHitRays")
         << " frontier_mixed_query_any_hit_rays="
@@ -373,6 +376,8 @@ namespace {
         << unsignedValue(batching, "frontierCompactionCandidateDepths")
         << " frontier_compaction_candidate_samples="
         << unsignedValue(batching, "frontierCompactionCandidateSamples")
+        << " frontier_compaction_candidate_fraction="
+        << batching.value("frontierCompactionCandidateSampleFraction").toDouble()
         << " frontier_hit_rays=" << unsignedArraySum(frontierHits)
         << " frontier_miss_rays=" << unsignedArraySum(frontierMisses)
         << " frontier_packet_chunks=" << unsignedArraySum(frontierPackets)

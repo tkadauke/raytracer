@@ -629,6 +629,8 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("intersectionEstimatedClosestHitQueryRoundTrips"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit query round trips"), batching,
                               QStringLiteral("intersectionEstimatedAnyHitQueryRoundTrips"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed-depth query round trips"), batching,
+                              QStringLiteral("frontierMixedQueryRoundTrips"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Packed closest-hit eligible"), batching,
                            QStringLiteral("intersectionScenePackedClosestHitEligible"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Packed any-hit eligible"), batching,
@@ -643,6 +645,8 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("anyHitQueries"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed query depths"), batching,
                               QStringLiteral("frontierMixedQueryDepths"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed query rays"), batching,
+                              QStringLiteral("frontierMixedQueryRays"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed query closest-hit rays"), batching,
                               QStringLiteral("frontierMixedQueryClosestHitRays"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed query any-hit rays"), batching,
@@ -651,6 +655,13 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("frontierCompactionCandidateDepths"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Compaction candidate samples"), batching,
                               QStringLiteral("frontierCompactionCandidateSamples"));
+  if (batching.contains(QStringLiteral("frontierCompactionCandidateSampleFraction"))) {
+    addDetailRow(
+      rows, QStringLiteral("Compaction candidate fraction"),
+      percentage(
+        batching.value(QStringLiteral("frontierCompactionCandidateSampleFraction")).toDouble(),
+        1.0));
+  }
   const qulonglong closestHitBatchChunks = jsonIntegerArraySum(
     batching.value(QStringLiteral("frontierClosestHitBatchChunksPerDepth")).toArray());
   if (closestHitBatchChunks > 0) {
@@ -970,6 +981,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
           jsonIntegerValue(batching, QStringLiteral("frontierMixedQueryDepths"));
         if (mixedQueryDepths > 0) {
           line += QStringLiteral(", %1 mixed query depths").arg(mixedQueryDepths);
+        }
+        const qulonglong mixedQueryRoundTrips =
+          jsonIntegerValue(batching, QStringLiteral("frontierMixedQueryRoundTrips"));
+        if (mixedQueryRoundTrips > 0) {
+          line += QStringLiteral(", %1 mixed-depth round trips").arg(mixedQueryRoundTrips);
         }
         const qulonglong compactionCandidateSamples =
           jsonIntegerValue(batching, QStringLiteral("frontierCompactionCandidateSamples"));

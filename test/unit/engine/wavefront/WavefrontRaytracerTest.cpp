@@ -996,6 +996,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(metrics.batching.hasCompactionCandidateDepth(0));
     EXPECT_EQ(1u, metrics.batching.compactionCandidateDepthCount());
     EXPECT_EQ(48u, metrics.batching.compactionCandidateSampleCount());
+    EXPECT_DOUBLE_EQ(1.0, metrics.batching.compactionCandidateSampleFraction());
     ASSERT_EQ(1u, metrics.batching.frontierRayHitsPerDepth.size());
     ASSERT_EQ(1u, metrics.batching.frontierRayMissesPerDepth.size());
     EXPECT_EQ(48u, metrics.batching.frontierRayHitsPerDepth[0] +
@@ -1016,6 +1017,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(metrics.batching.frontierPacketScalarFallbackRaysByReason.empty());
     EXPECT_EQ(0u, metrics.batching.frontierPacketRefinedRaysPerDepth[0]);
     EXPECT_TRUE(metrics.batching.frontierPacketRefinedRaysByMaterial.empty());
+    EXPECT_EQ(0u, metrics.batching.mixedQueryDepthRoundTrips());
+    EXPECT_EQ(0u, metrics.batching.mixedQueryDepthRays());
     EXPECT_TRUE(metrics.convergence.enabled);
     EXPECT_DOUBLE_EQ(0.5, metrics.convergence.activeSampleFractionThreshold);
     EXPECT_DOUBLE_EQ(0.01, metrics.convergence.radianceDeltaRmsThreshold);
@@ -1115,6 +1118,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(6.0, json.value("batching").toObject().value("closestHitQueries").toDouble());
     EXPECT_EQ(0.0, json.value("batching").toObject().value("anyHitQueries").toDouble());
     EXPECT_EQ(0.0, json.value("batching").toObject().value("frontierMixedQueryDepths").toDouble());
+    EXPECT_EQ(0.0,
+              json.value("batching").toObject().value("frontierMixedQueryRoundTrips").toDouble());
+    EXPECT_EQ(0.0, json.value("batching").toObject().value("frontierMixedQueryRays").toDouble());
     EXPECT_EQ(
       0.0, json.value("batching").toObject().value("frontierMixedQueryClosestHitRays").toDouble());
     EXPECT_EQ(0.0,
@@ -1146,6 +1152,10 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(
       48.0,
       json.value("batching").toObject().value("frontierCompactionCandidateSamples").toDouble());
+    EXPECT_DOUBLE_EQ(1.0, json.value("batching")
+                            .toObject()
+                            .value("frontierCompactionCandidateSampleFraction")
+                            .toDouble());
     const QJsonArray frontierHits =
       json.value("batching").toObject().value("frontierRayHitsPerDepth").toArray();
     const QJsonArray frontierMisses =
@@ -1560,6 +1570,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitBatchChunksPerDepth.front(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitBatchRaysPerDepth.front(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthCount(), 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthRoundTrips(), 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthRays(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthClosestHitRays(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthAnyHitRays(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.directLightSamples, 0u);

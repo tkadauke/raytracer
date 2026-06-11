@@ -183,10 +183,15 @@ were submitted.
 For path-tracing renders, the same diagnostics identify mixed query depths,
 where closest-hit frontier batches and direct-light any-hit batches both ran.
 Those counts make the future GPU-resident frontier opportunity visible before
-the scheduler actually keeps path state on device.
+the scheduler actually keeps path state on device. rendercli and the Modeler
+also report the mixed-depth ray count and mixed-depth query round trips, which
+are the current host/device boundaries a resident frontier path would try to
+remove.
 They also report compaction candidate depths and sample counts by comparing
 active samples entering a depth with retained samples after that depth. That is
-the CPU-side baseline for future GPU-side active-ray compaction.
+the CPU-side baseline for future GPU-side active-ray compaction; the candidate
+fraction keeps that pressure comparable across different image sizes and sample
+counts.
 When a platform kernel actually runs, the same summary separates backend
 upload/setup, kernel dispatch/wait, and readback time; CPU fallback paths keep
 those backend buckets at zero while total intersection worker time still

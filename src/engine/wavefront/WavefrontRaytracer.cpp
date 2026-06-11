@@ -263,6 +263,14 @@ namespace engine::wavefront {
     return count;
   }
 
+  double WavefrontRenderMetrics::BatchSummary::compactionCandidateSampleFraction() const {
+    if (activeSampleDepthsProcessed == 0) {
+      return 0.0;
+    }
+    return static_cast<double>(compactionCandidateSampleCount()) /
+           static_cast<double>(activeSampleDepthsProcessed);
+  }
+
   bool WavefrontRenderMetrics::BatchSummary::hasMixedQueryDepth(std::size_t depth) const {
     const std::uint64_t closestHitChunks = depth < frontierClosestHitBatchChunksPerDepth.size()
                                              ? frontierClosestHitBatchChunksPerDepth[depth]
@@ -283,6 +291,27 @@ namespace engine::wavefront {
       }
     }
     return count;
+  }
+
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::mixedQueryDepthRoundTrips() const {
+    const std::size_t depthCount = std::max(frontierClosestHitBatchChunksPerDepth.size(),
+                                            directLightAnyHitBatchChunksPerDepth.size());
+    std::uint64_t roundTrips = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      if (hasMixedQueryDepth(depth)) {
+        if (depth < frontierClosestHitBatchChunksPerDepth.size()) {
+          roundTrips += frontierClosestHitBatchChunksPerDepth[depth];
+        }
+        if (depth < directLightAnyHitBatchChunksPerDepth.size()) {
+          roundTrips += directLightAnyHitBatchChunksPerDepth[depth];
+        }
+      }
+    }
+    return roundTrips;
+  }
+
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::mixedQueryDepthRays() const {
+    return mixedQueryDepthClosestHitRays() + mixedQueryDepthAnyHitRays();
   }
 
   std::uint64_t WavefrontRenderMetrics::BatchSummary::mixedQueryDepthClosestHitRays() const {
@@ -535,6 +564,8 @@ namespace engine::wavefront {
       static_cast<double>(batching.compactionCandidateDepthCount());
     batchingJson["frontierCompactionCandidateSamples"] =
       static_cast<double>(batching.compactionCandidateSampleCount());
+    batchingJson["frontierCompactionCandidateSampleFraction"] =
+      batching.compactionCandidateSampleFraction();
     batchingJson["frontierRayHitsPerDepth"] = frontierRayHitsPerDepth;
     batchingJson["frontierRayMissesPerDepth"] = frontierRayMissesPerDepth;
     batchingJson["frontierPacketChunksPerDepth"] = frontierPacketChunksPerDepth;
@@ -544,6 +575,9 @@ namespace engine::wavefront {
     batchingJson["directLightAnyHitBatchChunksPerDepth"] = directLightAnyHitBatchChunksPerDepth;
     batchingJson["directLightAnyHitBatchRaysPerDepth"] = directLightAnyHitBatchRaysPerDepth;
     batchingJson["frontierMixedQueryDepths"] = static_cast<double>(batching.mixedQueryDepthCount());
+    batchingJson["frontierMixedQueryRoundTrips"] =
+      static_cast<double>(batching.mixedQueryDepthRoundTrips());
+    batchingJson["frontierMixedQueryRays"] = static_cast<double>(batching.mixedQueryDepthRays());
     batchingJson["frontierMixedQueryClosestHitRays"] =
       static_cast<double>(batching.mixedQueryDepthClosestHitRays());
     batchingJson["frontierMixedQueryAnyHitRays"] =

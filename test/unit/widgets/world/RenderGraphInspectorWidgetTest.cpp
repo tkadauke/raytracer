@@ -1130,6 +1130,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection query round trips")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit query round trips")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Any-hit query round trips")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed-depth query round trips")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit rays submitted")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Any-hit rays submitted")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit batch average rays")).isEmpty());
@@ -1149,10 +1150,12 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Direct-light any-hit batch average rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query depths")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query closest-hit rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query any-hit rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate depths")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate samples")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate fraction")).isEmpty());
 
     auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
     ASSERT_NE(nullptr, graph);
@@ -1162,6 +1165,7 @@ namespace RenderGraphInspectorWidgetTest {
     ASSERT_NE(nullptr, pass);
 
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("mixed query depths")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("mixed-depth round trips")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("compaction candidate samples")));
   }
 

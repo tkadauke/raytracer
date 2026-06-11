@@ -197,6 +197,14 @@ namespace render {
     return count;
   }
 
+  double IntegratorBatchMetrics::compactionCandidateSampleFraction() const {
+    if (activeSampleDepthsProcessed == 0) {
+      return 0.0;
+    }
+    return static_cast<double>(compactionCandidateSampleCount()) /
+           static_cast<double>(activeSampleDepthsProcessed);
+  }
+
   void IntegratorBatchMetrics::recordFrontierIntersections(std::uint64_t hitRays,
                                                            std::uint64_t missRays) {
     frontierRayHitsPerDepth.push_back(hitRays);
@@ -255,6 +263,27 @@ namespace render {
       }
     }
     return count;
+  }
+
+  std::uint64_t IntegratorBatchMetrics::mixedQueryDepthRoundTrips() const {
+    const std::size_t depthCount = std::max(frontierClosestHitBatchChunksPerDepth.size(),
+                                            directLightAnyHitBatchChunksPerDepth.size());
+    std::uint64_t roundTrips = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      if (hasMixedQueryDepth(depth)) {
+        if (depth < frontierClosestHitBatchChunksPerDepth.size()) {
+          roundTrips += frontierClosestHitBatchChunksPerDepth[depth];
+        }
+        if (depth < directLightAnyHitBatchChunksPerDepth.size()) {
+          roundTrips += directLightAnyHitBatchChunksPerDepth[depth];
+        }
+      }
+    }
+    return roundTrips;
+  }
+
+  std::uint64_t IntegratorBatchMetrics::mixedQueryDepthRays() const {
+    return mixedQueryDepthClosestHitRays() + mixedQueryDepthAnyHitRays();
   }
 
   std::uint64_t IntegratorBatchMetrics::mixedQueryDepthClosestHitRays() const {

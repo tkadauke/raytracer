@@ -134,6 +134,7 @@ namespace render {
     [[nodiscard]] bool hasCompactionCandidateDepth(std::size_t depth) const;
     [[nodiscard]] std::uint64_t compactionCandidateDepthCount() const;
     [[nodiscard]] std::uint64_t compactionCandidateSampleCount() const;
+    [[nodiscard]] double compactionCandidateSampleFraction() const;
     void recordFrontierIntersections(std::uint64_t hitRays, std::uint64_t missRays);
     void recordFrontierTraversal(std::uint64_t packetChunks, std::uint64_t packetRays,
                                  std::uint64_t ray4PacketChunks, std::uint64_t ray8PacketChunks,
@@ -144,6 +145,8 @@ namespace render {
                                       std::uint64_t batchRays);
     [[nodiscard]] bool hasMixedQueryDepth(std::size_t depth) const;
     [[nodiscard]] std::uint64_t mixedQueryDepthCount() const;
+    [[nodiscard]] std::uint64_t mixedQueryDepthRoundTrips() const;
+    [[nodiscard]] std::uint64_t mixedQueryDepthRays() const;
     [[nodiscard]] std::uint64_t mixedQueryDepthClosestHitRays() const;
     [[nodiscard]] std::uint64_t mixedQueryDepthAnyHitRays() const;
     void recordPacketScalarFallbacksByReason(const std::map<std::string, std::uint64_t>& reasons);

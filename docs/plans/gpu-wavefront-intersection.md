@@ -905,6 +905,11 @@ Progress:
   after that depth. This gives future GPU-side compaction work a visible
   baseline for how much inactive path state can be removed before the next
   frontier dispatch.
+- The mixed-query baseline now also reports mixed-depth ray counts and the
+  query round trips attached to those depths, and the compaction baseline
+  reports candidate samples as a fraction of total active sample-depth work.
+  These derived diagnostics make GPU-resident frontier and GPU-side compaction
+  opportunities comparable across render sizes before the scheduler changes.
 
 ---
 

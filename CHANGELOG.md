@@ -64,6 +64,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   summaries, and the Modeler graph details now identify depths where
   closest-hit frontier work and direct-light any-hit work both occurred,
   creating a baseline for future GPU-resident frontier scheduling. — GPT-5
+- **Wavefront residency opportunity diagnostics.** Wavefront metrics,
+  rendercli summaries, and the Modeler graph details now report mixed-depth
+  ray counts, mixed-depth query round trips, and compaction candidate
+  fractions so GPU-resident frontier and compaction opportunities can be
+  compared across render sizes. — GPT-5 Codex
 - **Wavefront compaction diagnostics.** Wavefront metrics, rendercli
   summaries, and the Modeler graph details now report active-sample
   compaction candidate depths and sample counts, creating a baseline for future

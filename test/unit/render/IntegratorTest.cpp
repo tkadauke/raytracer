@@ -225,6 +225,8 @@ namespace IntegratorTest {
     EXPECT_FALSE(metrics.hasMixedQueryDepth(1));
     EXPECT_FALSE(metrics.hasMixedQueryDepth(2));
     EXPECT_EQ(1u, metrics.mixedQueryDepthCount());
+    EXPECT_EQ(2u, metrics.mixedQueryDepthRoundTrips());
+    EXPECT_EQ(7u, metrics.mixedQueryDepthRays());
     EXPECT_EQ(4u, metrics.mixedQueryDepthClosestHitRays());
     EXPECT_EQ(3u, metrics.mixedQueryDepthAnyHitRays());
   }
@@ -244,5 +246,6 @@ namespace IntegratorTest {
     EXPECT_FALSE(metrics.hasCompactionCandidateDepth(2));
     EXPECT_EQ(1u, metrics.compactionCandidateDepthCount());
     EXPECT_EQ(3u, metrics.compactionCandidateSampleCount());
+    EXPECT_DOUBLE_EQ(1.0 / 3.0, metrics.compactionCandidateSampleFraction());
   }
 }
