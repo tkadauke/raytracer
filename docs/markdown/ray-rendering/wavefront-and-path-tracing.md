@@ -196,6 +196,16 @@ and any-hit occlusion for direct-light shadow rays.
 
 <!-- widget: wavefront_intersection_backend -->
 
+The widget's **hybrid now** boundary is the current implementation:
+the CPU scheduler submits ray batches to the selected backend, the
+backend writes hit or occlusion records, and the CPU integrator shades
+and decides what work exists at the next depth. The **resident target**
+view sketches why the new mixed-depth, round-trip, throughput, and
+compaction metrics exist. They measure where a future implementation
+could keep reusable frontier state and active-ray compaction on the
+device between query phases, while still treating CPU shading as the
+semantic owner until a restricted GPU material path is designed.
+
 The CPU backend is the canonical implementation and supports the full
 scene/primitive set. Render intent and rendercli can still request
 `auto`, `cpu`, or `gpu` so the graph has a stable place for future GPU
@@ -522,6 +532,7 @@ choices become inspectable user-facing metadata.
 - `include/engine/graph/RenderGraphExecutionTrace.h`
 - `src/widgets/world/RenderGraphInspectorWidget.cpp`
 - `tools/rendercli/rendercli.cpp`
+- `scripts/docs/wavefront_intersection_backend.js`
 - `scenes/wavefront_indirect_bounce_demo.json`
 - `scenes/wavefront_denoise_demo.json`
 - `test/unit/render/PathTracingIntegratorTest.cpp`

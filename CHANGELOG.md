@@ -73,6 +73,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   rendercli summaries, and the Modeler graph details now report submitted
   intersection rays per worker second and backend-kernel rays per second for
   threshold tuning. — GPT-5 Codex
+- **Wavefront backend residency widget.** The wavefront/path-tracing textbook
+  backend widget now contrasts the current hybrid CPU/GPU boundary with the
+  future resident-frontier target that the Phase 8 diagnostics are meant to
+  guide. — GPT-5 Codex
 - **Wavefront compaction diagnostics.** Wavefront metrics, rendercli
   summaries, and the Modeler graph details now report active-sample
   compaction candidate depths and sample counts, creating a baseline for future

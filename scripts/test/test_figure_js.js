@@ -829,9 +829,9 @@ test('Wavefront intersection backend widget exposes backend and query controls',
   const body = loadWidget('wavefront_intersection_backend.js');
   let text = textContents(body).join(' ');
 
-  assert.equal(countElements(body, 'button'), 5,
-    'widget should expose backend and query segmented controls');
-  assert.ok(text.includes('wavefront scheduler'),
+  assert.equal(countElements(body, 'button'), 7,
+    'widget should expose backend, query, and host/device boundary segmented controls');
+  assert.ok(text.includes('CPU scheduler'),
     'widget should show the scheduler as distinct from the backend');
   assert.ok(text.includes('Metal compute'),
     'default view should show the current macOS platform backend');
@@ -839,6 +839,8 @@ test('Wavefront intersection backend widget exposes backend and query controls',
     'closest-hit query view should show hit-record output');
   assert.ok(text.includes('CPU integrator'),
     'widget should show CPU-side shading after intersection');
+  assert.ok(text.includes('Each query crosses the host/device boundary.'),
+    'hybrid view should name the current upload/readback boundary');
 
   elementsByTag(body, 'button')
     .find(button => button.textContent === 'any hit')
@@ -853,8 +855,19 @@ test('Wavefront intersection backend widget exposes backend and query controls',
     .find(button => button.textContent === 'Vulkan')
     .click();
   text = textContents(body).join(' ');
-  assert.ok(text.includes('Vulkan currently proves platform compute plumbing'),
-    'Vulkan view should describe the current render-path fallback');
+  assert.ok(text.includes('Vulkan can execute the current basic closest-hit and any-hit kernels'),
+    'Vulkan view should describe current render-path kernel support');
+
+  elementsByTag(body, 'button')
+    .find(button => button.textContent === 'resident target')
+    .click();
+  text = textContents(body).join(' ');
+  assert.ok(text.includes('Resident-frontier target'),
+    'resident mode should describe the future frontier residency target');
+  assert.ok(text.includes('frontier cache'),
+    'resident mode should show the device-side frontier cache');
+  assert.ok(text.includes('compact active rays'),
+    'resident mode should show the compaction opportunity');
 });
 
 test('Angle widgets use the shared scalar angle slider', () => {

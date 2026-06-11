@@ -915,6 +915,11 @@ Progress:
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a
   measured throughput signal next to expected-ray, transfer-byte, and
   round-trip estimates.
+- The wavefront/path-tracing textbook backend widget now includes a
+  hybrid-boundary view and a resident-frontier target view. The chapter uses
+  that control to connect the new mixed-depth, round-trip, throughput, and
+  compaction diagnostics to the GPU-resident frontier work they are meant to
+  guide.
 
 ---
 
@@ -946,7 +951,9 @@ performance evidence on at least one large supported scene.
   refactor lands, explaining that scheduling and intersection backend are
   separate choices.
 - Add a small diagram/widget only after there is a working backend boundary:
-  CPU shading loop, CPU/GPU intersection box, and hit records flowing back.
+  CPU shading loop, CPU/GPU intersection box, and hit records flowing back. ✅
+  **Done.** The wavefront/path-tracing textbook backend widget now contrasts
+  the current hybrid boundary with the future resident-frontier target.
 - Modeler should show backend choice and fallback reason in the render graph
   selected-pass metadata.
 - rendercli should print compact backend diagnostics in metrics summaries.
