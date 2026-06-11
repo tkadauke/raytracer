@@ -1750,6 +1750,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(5u, metrics.batching.frontierHostCompactionRetainedSamples);
     EXPECT_EQ(3u, metrics.batching.frontierHostCompactionRemovedSamples);
     EXPECT_EQ(2u, metrics.batching.frontierHostCompactionMovedSamples);
+    EXPECT_EQ("host", metrics.batching.frontierCompactionExecutionPath);
     EXPECT_DOUBLE_EQ(3.0 / 8.0, metrics.batching.hostFrontierCompactionRemovedSampleFraction());
     EXPECT_DOUBLE_EQ(redLuma, metrics.batching.emittedRadianceLuminanceSum);
     EXPECT_DOUBLE_EQ(greenLuma + blueLuma, metrics.batching.directLightRadianceLuminanceSum);
@@ -1774,6 +1775,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(5.0, batching.value("frontierHostCompactionRetainedSamples").toDouble());
     EXPECT_EQ(3.0, batching.value("frontierHostCompactionRemovedSamples").toDouble());
     EXPECT_EQ(2.0, batching.value("frontierHostCompactionMovedSamples").toDouble());
+    EXPECT_EQ("host", batching.value("frontierCompactionExecutionPath").toString().toStdString());
     EXPECT_DOUBLE_EQ(3.0 / 8.0,
                      batching.value("frontierHostCompactionRemovedSampleFraction").toDouble());
     EXPECT_DOUBLE_EQ(redLuma, batching.value("emittedRadianceLuminanceSum").toDouble());

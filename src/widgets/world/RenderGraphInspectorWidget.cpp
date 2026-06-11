@@ -657,6 +657,8 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("frontierMixedQueryClosestHitRays"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed query any-hit rays"), batching,
                               QStringLiteral("frontierMixedQueryAnyHitRays"));
+  addDetailStringMetadataRow(rows, QStringLiteral("Compaction execution"), batching,
+                             QStringLiteral("frontierCompactionExecutionPath"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Host compaction passes"), batching,
                               QStringLiteral("frontierHostCompactionPasses"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Host compaction input samples"), batching,
@@ -1055,8 +1057,12 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         const qulonglong hostCompactionRemovedSamples =
           jsonIntegerValue(batching, QStringLiteral("frontierHostCompactionRemovedSamples"));
         if (hostCompactionRemovedSamples > 0) {
-          line += QStringLiteral(", host compaction removed %1 samples")
-                    .arg(hostCompactionRemovedSamples);
+          const QString compactionExecutionPath =
+            batching.value(QStringLiteral("frontierCompactionExecutionPath")).toString();
+          const QString compactionExecution =
+            compactionExecutionPath.isEmpty() ? QStringLiteral("host") : compactionExecutionPath;
+          line += QStringLiteral(", %1 compaction removed %2 samples")
+                    .arg(compactionExecution, QString::number(hostCompactionRemovedSamples));
         }
         if (compactionCandidateSamples > 0) {
           line +=

@@ -163,6 +163,7 @@ namespace render {
     frontierHostCompactionRetainedSamples = 0;
     frontierHostCompactionRemovedSamples = 0;
     frontierHostCompactionMovedSamples = 0;
+    frontierCompactionExecutionPath.clear();
   }
 
   void IntegratorBatchMetrics::recordActiveDepth(std::uint64_t activeSamples) {
@@ -178,6 +179,7 @@ namespace render {
                                                             std::uint64_t retainedSamples,
                                                             std::uint64_t movedSamples) {
     ++frontierHostCompactionPasses;
+    mergeLabel(frontierCompactionExecutionPath, "host");
     frontierHostCompactionInputSamples += inputSamples;
     frontierHostCompactionRetainedSamples += retainedSamples;
     frontierHostCompactionRemovedSamples +=

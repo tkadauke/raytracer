@@ -282,6 +282,7 @@ namespace IntegratorTest {
     EXPECT_EQ(10u, metrics.frontierHostCompactionRetainedSamples);
     EXPECT_EQ(4u, metrics.frontierHostCompactionRemovedSamples);
     EXPECT_EQ(4u, metrics.frontierHostCompactionMovedSamples);
+    EXPECT_EQ("host", metrics.frontierCompactionExecutionPath);
     EXPECT_DOUBLE_EQ(4.0 / 14.0, metrics.hostFrontierCompactionRemovedSampleFraction());
   }
 }

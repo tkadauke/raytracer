@@ -2610,6 +2610,7 @@ if(NOT wavefront_metrics_json MATCHES "\"retainedActiveSamplesPerDepth\"")
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 foreach(host_compaction_field
+        frontierCompactionExecutionPath
         frontierHostCompactionPasses
         frontierHostCompactionInputSamples
         frontierHostCompactionRetainedSamples

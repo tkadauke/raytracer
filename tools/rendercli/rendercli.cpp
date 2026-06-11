@@ -385,6 +385,8 @@ namespace {
         << " avg_tile_samples=" << tiling.value("averageNonEmptyTileSamples").toDouble()
         << " max_tile_samples=" << unsignedValue(tiling, "maxTileSamples")
         << " active_sample_depths=" << unsignedValue(batching, "activeSampleDepthsProcessed")
+        << " frontier_compaction_execution="
+        << compactTextValue(batching.value("frontierCompactionExecutionPath"), "none")
         << " frontier_host_compaction_passes="
         << unsignedValue(batching, "frontierHostCompactionPasses")
         << " frontier_host_compaction_input_samples="

@@ -32,6 +32,19 @@
 
 namespace engine::wavefront {
   namespace {
+    void mergeLabel(std::string& target, const std::string& source) {
+      if (source.empty()) {
+        return;
+      }
+      if (target.empty()) {
+        target = source;
+        return;
+      }
+      if (target != source) {
+        target = "mixed";
+      }
+    }
+
     class RecursiveRayCasterAdapter : public render::RayCaster {
     public:
       RecursiveRayCasterAdapter(const render::Scene& scene, const render::Integrator& integrator)
@@ -71,18 +84,6 @@ namespace engine::wavefront {
 
   void WavefrontRenderMetrics::BatchSummary::addIntersectionBackendMetrics(
     const render::IntegratorBatchMetrics& metrics) {
-    const auto mergeLabel = [](std::string& target, const std::string& source) {
-      if (source.empty()) {
-        return;
-      }
-      if (target.empty()) {
-        target = source;
-        return;
-      }
-      if (target != source) {
-        target = "mixed";
-      }
-    };
     const auto mergeMapMaximums = [](std::map<std::string, std::uint64_t>& target,
                                      const std::map<std::string, std::uint64_t>& source) {
       for (const auto& [key, count] : source) {
@@ -180,6 +181,7 @@ namespace engine::wavefront {
     frontierHostCompactionRetainedSamples += metrics.frontierHostCompactionRetainedSamples;
     frontierHostCompactionRemovedSamples += metrics.frontierHostCompactionRemovedSamples;
     frontierHostCompactionMovedSamples += metrics.frontierHostCompactionMovedSamples;
+    mergeLabel(frontierCompactionExecutionPath, metrics.frontierCompactionExecutionPath);
     compatibilityShadeSamples += metrics.compatibilityShadeSamples;
     unsupportedPathMaterialSamples += metrics.unsupportedPathMaterialSamples;
     emitterHitSamples += metrics.emitterHitSamples;
@@ -660,6 +662,8 @@ namespace engine::wavefront {
       static_cast<double>(batching.frontierHostCompactionMovedSamples);
     batchingJson["frontierHostCompactionRemovedSampleFraction"] =
       batching.hostFrontierCompactionRemovedSampleFraction();
+    batchingJson["frontierCompactionExecutionPath"] =
+      QString::fromStdString(batching.frontierCompactionExecutionPath);
     batchingJson["compatibilityShadeSamples"] =
       static_cast<double>(batching.compatibilityShadeSamples);
     batchingJson["unsupportedPathMaterialSamples"] =

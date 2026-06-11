@@ -30,6 +30,19 @@ namespace engine::wavefront::detail {
       std::function<std::vector<WavefrontTilePixel>(const std::vector<WavefrontTilePixel>&)>;
     using TileProgressPublisher = std::function<void(const std::vector<WavefrontTilePixel>&)>;
 
+    void mergeLabel(std::string& target, const std::string& source) {
+      if (source.empty()) {
+        return;
+      }
+      if (target.empty()) {
+        target = source;
+        return;
+      }
+      if (target != source) {
+        target = "mixed";
+      }
+    }
+
     class TileProgressFeedback {
     public:
       render::IntegratorBatchFeedback update(const std::vector<WavefrontTilePixel>& pixels) {
@@ -240,6 +253,7 @@ namespace engine::wavefront::detail {
       target.frontierHostCompactionRetainedSamples += source.frontierHostCompactionRetainedSamples;
       target.frontierHostCompactionRemovedSamples += source.frontierHostCompactionRemovedSamples;
       target.frontierHostCompactionMovedSamples += source.frontierHostCompactionMovedSamples;
+      mergeLabel(target.frontierCompactionExecutionPath, source.frontierCompactionExecutionPath);
     }
 
     WavefrontTileTraceResult traceTile(

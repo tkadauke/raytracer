@@ -135,6 +135,7 @@ namespace render {
     std::uint64_t frontierHostCompactionRetainedSamples{0};
     std::uint64_t frontierHostCompactionRemovedSamples{0};
     std::uint64_t frontierHostCompactionMovedSamples{0};
+    std::string frontierCompactionExecutionPath;
 
     void reset(bool scalarFallback);
     void recordActiveDepth(std::uint64_t activeSamples);

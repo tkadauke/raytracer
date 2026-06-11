@@ -766,6 +766,7 @@ def aggregate_run(run)
     host_compaction_removed_samples: 0.0,
     host_compaction_removed_fraction: 0.0,
     host_compaction_moved_samples: 0.0,
+    compaction_execution_paths: [],
     sample_generation_ms: 0.0,
     integrator_ms: 0.0,
     partition_ms: 0.0,
@@ -838,6 +839,8 @@ def aggregate_run(run)
       batching.fetch("frontierHostCompactionRemovedSamples", 0).to_f
     values[:host_compaction_moved_samples] +=
       batching.fetch("frontierHostCompactionMovedSamples", 0).to_f
+    compaction_path = batching.fetch("frontierCompactionExecutionPath", "")
+    values[:compaction_execution_paths] << compaction_path unless compaction_path.empty?
     values[:sample_generation_ms] +=
       timings.fetch("sampleGenerationWorkerSeconds", 0).to_f * 1000.0
     values[:integrator_ms] += timings.fetch("integratorBatchWorkerSeconds", 0).to_f * 1000.0
@@ -869,7 +872,7 @@ scene_dir = ARGV.fetch(0)
 queue_dirs = Dir.glob(File.join(scene_dir, "queue_*")).select { |path| File.directory?(path) }
 queue_dirs.sort_by! { |path| File.basename(path).delete_prefix("queue_").to_i }
 
-puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks closest_hit_batch_chunks closest_hit_batch_rays any_hit_batch_chunks any_hit_batch_rays frontier_round_trips resident_frontier_round_trips resident_frontier_savings resident_frontiers_supported gpu_frontier_compaction_supported resident_direct_light_batches_supported mixed_query_depths mixed_query_round_trips mixed_query_rays mixed_query_closest_hit_rays mixed_query_any_hit_rays packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays host_compaction_passes host_compaction_input_samples host_compaction_retained_samples host_compaction_removed_samples host_compaction_removed_fraction host_compaction_moved_samples sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
+puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks closest_hit_batch_chunks closest_hit_batch_rays any_hit_batch_chunks any_hit_batch_rays frontier_round_trips resident_frontier_round_trips resident_frontier_savings resident_frontiers_supported gpu_frontier_compaction_supported resident_direct_light_batches_supported mixed_query_depths mixed_query_round_trips mixed_query_rays mixed_query_closest_hit_rays mixed_query_any_hit_rays packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays host_compaction_passes host_compaction_input_samples host_compaction_retained_samples host_compaction_removed_samples host_compaction_removed_fraction host_compaction_moved_samples compaction_execution sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
 queue_dirs.each do |queue_dir|
   queue_size = File.basename(queue_dir).delete_prefix("queue_")
   Dir.glob(File.join(queue_dir, "wavefront_*.metrics.json")).sort.each do |metrics_path|
@@ -890,6 +893,8 @@ queue_dirs.each do |queue_dir|
     frontier_rays = packet_rays + scalar_rays
     scalar_tail_fraction = frontier_rays.zero? ? 0.0 : scalar_rays / frontier_rays
     fallback_fraction = packet_rays.zero? ? 0.0 : fallback_rays / packet_rays
+    compaction_paths = runs.flat_map { |run| run.fetch(:compaction_execution_paths) }.uniq.sort
+    compaction_execution = compaction_paths.empty? ? "none" : compaction_paths.join("+")
     stdout_path = File.join(queue_dir, "#{variant}.stdout.txt")
     row = [
       queue_size,
@@ -933,6 +938,7 @@ queue_dirs.each do |queue_dir|
       format("%.0f", median_for.call(:host_compaction_removed_samples)),
       format("%.6f", median_for.call(:host_compaction_removed_fraction)),
       format("%.0f", median_for.call(:host_compaction_moved_samples)),
+      compaction_execution,
       format("%.3f", median_for.call(:sample_generation_ms)),
       format("%.3f", median_for.call(:integrator_ms)),
       format("%.3f", median_for.call(:partition_ms)),
