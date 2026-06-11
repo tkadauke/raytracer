@@ -903,6 +903,12 @@ Progress:
   removed inactive slots, moved live slots, removed fraction, and execution
   path. This is still CPU-side compaction, but it creates a concrete execution
   contract for a future GPU-side compaction kernel.
+- Frontier compaction now goes through the resolved
+  `WavefrontIntersectionBackend`: the path tracer builds a retained-frontier
+  request, the backend returns a compaction result with an execution path, and
+  current backends answer with the existing host compaction behavior. That makes
+  GPU-side compaction an overridable backend operation instead of a
+  path-tracer-private list edit.
 - The wavefront convergence capture helper now carries those host compaction
   execution counters into candidate/reference comparisons and queue-sweep
   summaries, and queue sweeps also preserve the compaction execution label.

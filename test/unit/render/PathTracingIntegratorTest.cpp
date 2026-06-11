@@ -1825,12 +1825,17 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(3u, metrics.activeSampleDepthsProcessed);
+    // Exact delta branches append spawned continuations after old frontier
+    // slots are compacted, so these counters describe the host compaction
+    // operation itself. retainedActiveSamplesPerDepth describes the next
+    // frontier after spawned continuations are appended.
     EXPECT_EQ(2u, metrics.frontierHostCompactionPasses);
     EXPECT_EQ(3u, metrics.frontierHostCompactionInputSamples);
-    EXPECT_EQ(1u, metrics.frontierHostCompactionRetainedSamples);
-    EXPECT_EQ(2u, metrics.frontierHostCompactionRemovedSamples);
-    EXPECT_EQ(1u, metrics.frontierHostCompactionMovedSamples);
-    EXPECT_DOUBLE_EQ(2.0 / 3.0, metrics.hostFrontierCompactionRemovedSampleFraction());
+    EXPECT_EQ(0u, metrics.frontierHostCompactionRetainedSamples);
+    EXPECT_EQ(3u, metrics.frontierHostCompactionRemovedSamples);
+    EXPECT_EQ(0u, metrics.frontierHostCompactionMovedSamples);
+    EXPECT_EQ("host", metrics.frontierCompactionExecutionPath);
+    EXPECT_DOUBLE_EQ(1.0, metrics.hostFrontierCompactionRemovedSampleFraction());
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceKeepsSampleColorsWhenCompactingMovedPaths) {

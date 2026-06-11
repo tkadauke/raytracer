@@ -744,6 +744,11 @@ namespace render {
     return false;
   }
 
+  WavefrontFrontierCompactionResult WavefrontIntersectionBackend::compactFrontier(
+    const WavefrontFrontierCompactionRequest& request) const {
+    return WavefrontFrontierCompactionResult::hostCompaction(request);
+  }
+
   WavefrontClosestHitResult WavefrontIntersectionBackend::intersectClosestResult(
     const Scene& scene, const Rayd& ray, State& state,
     WavefrontIntersectionQueryTiming* timing) const {

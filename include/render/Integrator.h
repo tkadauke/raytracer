@@ -140,6 +140,8 @@ namespace render {
     void reset(bool scalarFallback);
     void recordActiveDepth(std::uint64_t activeSamples);
     void recordRetainedActiveDepth(std::uint64_t activeSamples);
+    void recordFrontierCompaction(std::uint64_t inputSamples, std::uint64_t retainedSamples,
+                                  std::uint64_t movedSamples, const std::string& executionPath);
     void recordHostFrontierCompaction(std::uint64_t inputSamples, std::uint64_t retainedSamples,
                                       std::uint64_t movedSamples);
     [[nodiscard]] double hostFrontierCompactionRemovedSampleFraction() const;

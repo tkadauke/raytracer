@@ -10,6 +10,7 @@
 #include "render/PathTermination.h"
 #include "render/RayCaster.h"
 #include "render/State.h"
+#include "render/WavefrontFrontierCompaction.h"
 #include "render/WavefrontIntersectionBackend.h"
 #include "render/lights/Light.h"
 #include "render/lights/LightSampler.h"
@@ -71,50 +72,6 @@ namespace render {
 
   private:
     Colord* m_accumulated;
-  };
-
-  struct PathTracingIntegrator::FrontierCompaction {
-    explicit FrontierCompaction(std::size_t inputPathCount)
-        : m_inputPathCount(inputPathCount) {
-    }
-
-    void retain(std::vector<BatchPath>& paths, std::size_t pathIndex) {
-      if (pathIndex != m_retainedPathCount) {
-        paths[m_retainedPathCount] = std::move(paths[pathIndex]);
-        ++m_movedPathCount;
-      }
-      ++m_retainedPathCount;
-    }
-
-    void compact(std::vector<BatchPath>& paths) const {
-      while (paths.size() != m_retainedPathCount) {
-        paths.pop_back();
-      }
-    }
-
-    void appendSpawned(std::vector<BatchPath>& paths, std::vector<BatchPath>& spawnedPaths) const {
-      for (auto& spawnedPath : spawnedPaths) {
-        paths.push_back(std::move(spawnedPath));
-      }
-    }
-
-    void record(IntegratorBatchMetrics* metrics) const {
-      if (!metrics) {
-        return;
-      }
-      metrics->recordHostFrontierCompaction(static_cast<std::uint64_t>(m_inputPathCount),
-                                            static_cast<std::uint64_t>(m_retainedPathCount),
-                                            static_cast<std::uint64_t>(m_movedPathCount));
-    }
-
-    [[nodiscard]] std::size_t retainedPathCount() const {
-      return m_retainedPathCount;
-    }
-
-  private:
-    std::size_t m_inputPathCount{0};
-    std::size_t m_retainedPathCount{0};
-    std::size_t m_movedPathCount{0};
   };
 
   struct PathTracingIntegrator::ScalarPath {
@@ -879,6 +836,22 @@ namespace render {
     }
   }
 
+  void PathTracingIntegrator::applyFrontierCompaction(
+    std::vector<BatchPath>& paths, const WavefrontFrontierCompactionResult& compaction) const {
+    assert(paths.size() == compaction.inputPathCount());
+    const std::vector<std::size_t>& retainedPathIndices = compaction.retainedPathIndices();
+    for (std::size_t outputIndex = 0; outputIndex != retainedPathIndices.size(); ++outputIndex) {
+      const std::size_t inputIndex = retainedPathIndices[outputIndex];
+      assert(inputIndex < paths.size());
+      if (inputIndex != outputIndex) {
+        paths[outputIndex] = std::move(paths[inputIndex]);
+      }
+    }
+    while (paths.size() != retainedPathIndices.size()) {
+      paths.pop_back();
+    }
+  }
+
   Colord PathTracingIntegrator::emittedRadiance(const LightSampler& lightSampler,
                                                 const PathMaterialTransport& material,
                                                 const Rayd& ray, const HitPoint& hitPoint,
@@ -1096,7 +1069,7 @@ namespace render {
         break;
       }
 
-      FrontierCompaction frontierCompaction(paths.size());
+      WavefrontFrontierCompactionRequest frontierCompaction(paths.size());
       BatchDepthMetrics depthMetrics;
       depthMetrics.trackRadianceDelta = trackRadianceDelta;
       depthMetrics.metrics = metrics;
@@ -1220,16 +1193,20 @@ namespace render {
           path.ray = sampled.rayFrom(hit.hitPoint);
           path.state.recurseOut();
           recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
-          frontierCompaction.retain(paths, hit.pathIndex);
+          frontierCompaction.retain(hit.pathIndex);
         }
       }
 
       {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
                                               : nullptr);
-        frontierCompaction.compact(paths);
-        frontierCompaction.record(metrics);
-        frontierCompaction.appendSpawned(paths, spawnedPaths);
+        const WavefrontFrontierCompactionResult compaction =
+          intersectionBackend.compactFrontier(frontierCompaction);
+        applyFrontierCompaction(paths, compaction);
+        compaction.record(metrics);
+        for (auto& spawnedPath : spawnedPaths) {
+          paths.push_back(std::move(spawnedPath));
+        }
       }
       const std::size_t retainedPathCount = paths.size();
 

@@ -206,6 +206,53 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_FALSE(backend.prefersAnyHitBatch(4));
   }
 
+  TEST(WavefrontFrontierCompaction, HostCompactionReportsRetainedMovedAndRemovedPaths) {
+    WavefrontFrontierCompactionRequest request(5);
+    request.retain(0);
+    request.retain(2);
+    request.retain(4);
+
+    const WavefrontFrontierCompactionResult compaction =
+      WavefrontFrontierCompactionResult::hostCompaction(request);
+
+    EXPECT_EQ(5u, compaction.inputPathCount());
+    EXPECT_EQ(3u, compaction.retainedPathCount());
+    EXPECT_EQ(2u, compaction.removedPathCount());
+    EXPECT_EQ(2u, compaction.movedPathCount());
+    EXPECT_EQ((std::vector<std::size_t>{0u, 2u, 4u}), compaction.retainedPathIndices());
+    EXPECT_EQ("host", compaction.executionPath());
+  }
+
+  TEST(WavefrontFrontierCompaction, RejectsOutOfRangeRetainedPaths) {
+    WavefrontFrontierCompactionRequest request(2);
+
+    EXPECT_THROW(request.retain(2), std::out_of_range);
+    EXPECT_THROW(
+      (void)WavefrontFrontierCompactionResult::fromRetainedPathIndices(2, {0u, 2u}, "host"),
+      std::out_of_range);
+  }
+
+  TEST(WavefrontFrontierCompaction, RejectsUnsortedRetainedPaths) {
+    EXPECT_THROW(
+      (void)WavefrontFrontierCompactionResult::fromRetainedPathIndices(4, {0u, 3u, 2u}, "host"),
+      std::invalid_argument);
+  }
+
+  TEST(WavefrontIntersectionBackend, CpuBackendCompactsFrontiersOnHost) {
+    WavefrontFrontierCompactionRequest request(3);
+    request.retain(1);
+    request.retain(2);
+
+    const WavefrontFrontierCompactionResult compaction =
+      CpuWavefrontIntersectionBackend::instance().compactFrontier(request);
+
+    EXPECT_EQ(3u, compaction.inputPathCount());
+    EXPECT_EQ(2u, compaction.retainedPathCount());
+    EXPECT_EQ(1u, compaction.removedPathCount());
+    EXPECT_EQ(2u, compaction.movedPathCount());
+    EXPECT_EQ("host", compaction.executionPath());
+  }
+
   TEST(WavefrontIntersectionBackend, CpuQueriesReportRuntimeSceneTimingPath) {
     Scene scene;
     scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));

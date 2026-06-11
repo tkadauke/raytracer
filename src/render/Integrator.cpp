@@ -175,16 +175,23 @@ namespace render {
     retainedActiveSamplesPerDepth.push_back(activeSamples);
   }
 
-  void IntegratorBatchMetrics::recordHostFrontierCompaction(std::uint64_t inputSamples,
-                                                            std::uint64_t retainedSamples,
-                                                            std::uint64_t movedSamples) {
+  void IntegratorBatchMetrics::recordFrontierCompaction(std::uint64_t inputSamples,
+                                                        std::uint64_t retainedSamples,
+                                                        std::uint64_t movedSamples,
+                                                        const std::string& executionPath) {
     ++frontierHostCompactionPasses;
-    mergeLabel(frontierCompactionExecutionPath, "host");
+    mergeLabel(frontierCompactionExecutionPath, executionPath.empty() ? "unknown" : executionPath);
     frontierHostCompactionInputSamples += inputSamples;
     frontierHostCompactionRetainedSamples += retainedSamples;
     frontierHostCompactionRemovedSamples +=
       inputSamples > retainedSamples ? inputSamples - retainedSamples : 0;
     frontierHostCompactionMovedSamples += movedSamples;
+  }
+
+  void IntegratorBatchMetrics::recordHostFrontierCompaction(std::uint64_t inputSamples,
+                                                            std::uint64_t retainedSamples,
+                                                            std::uint64_t movedSamples) {
+    recordFrontierCompaction(inputSamples, retainedSamples, movedSamples, "host");
   }
 
   double IntegratorBatchMetrics::hostFrontierCompactionRemovedSampleFraction() const {

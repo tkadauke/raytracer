@@ -2,6 +2,7 @@
 
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
+#include "render/WavefrontFrontierCompaction.h"
 #include "render/WavefrontIntersectionQueryTiming.h"
 #include "render/primitives/Primitive.h"
 
@@ -220,6 +221,8 @@ namespace render {
     virtual bool supportsResidentFrontiers() const;
     virtual bool supportsGpuFrontierCompaction() const;
     virtual bool supportsResidentDirectLightBatches() const;
+    virtual WavefrontFrontierCompactionResult
+    compactFrontier(const WavefrontFrontierCompactionRequest& request) const;
 
     virtual WavefrontClosestHitResult
     intersectClosestResult(const Scene& scene, const Rayd& ray, State& state,

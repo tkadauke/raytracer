@@ -9,6 +9,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Changed
+
+- Routed path-tracing frontier compaction through the wavefront intersection
+  backend contract so future GPU backends can override the current host
+  compaction path. — GPT-5 Codex
+
 ### Added
 
 - **Portal and mirror graph demos.** Added reusable rendercli/Modeler scenes
