@@ -370,6 +370,20 @@ QString RenderGraphInspectorWidget::Private::graphEnumText(const char* value) co
 }
 
 QString RenderGraphInspectorWidget::Private::metadataIdentifierText(QString value) const {
+  QString separated;
+  separated.reserve(value.size() * 2);
+  for (int i = 0; i != value.size(); ++i) {
+    const QChar ch = value[i];
+    if (i > 0 && ch.isUpper()) {
+      const QChar previous = value[i - 1];
+      const QChar next = i + 1 < value.size() ? value[i + 1] : QChar();
+      if (previous.isLower() || previous.isDigit() || (previous.isUpper() && next.isLower())) {
+        separated += QLatin1Char(' ');
+      }
+    }
+    separated += ch;
+  }
+  value = separated;
   value.replace(QLatin1Char('_'), QLatin1Char(' '));
   value.replace(QLatin1Char('-'), QLatin1Char(' '));
   value = value.simplified();
@@ -419,7 +433,7 @@ RenderGraphInspectorWidget::Private::jsonIntegerObjectSummary(const QJsonObject&
   QStringList values;
   for (auto it = object.begin(); it != object.end(); ++it) {
     values.push_back(QStringLiteral("%1 %2")
-                       .arg(humanizeIdentifier(it.key()))
+                       .arg(metadataIdentifierText(it.key()))
                        .arg(static_cast<qulonglong>(it.value().toDouble())));
   }
   values.sort();
@@ -1605,8 +1619,7 @@ void RenderGraphInspectorWidget::setActiveExecutionPasses(const QStringList& pas
   bool changed = false;
   for (const auto& id : active) {
     const auto stateIt = p->executionStates.find(id);
-    if (stateIt != p->executionStates.end() &&
-        stateIt->second == PassExecutionState::Running) {
+    if (stateIt != p->executionStates.end() && stateIt->second == PassExecutionState::Running) {
       continue;
     }
     if (p->pendingExecutionStarts.find(id) == p->pendingExecutionStarts.end()) {

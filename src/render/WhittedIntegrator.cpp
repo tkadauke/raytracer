@@ -314,7 +314,7 @@ namespace render {
       packetHits =
         intersectionBackend.intersectPacketClosest(scene, Ray4(rays), states, &intersectionTiming);
       if (metrics) {
-        metrics->recordClosestHitQuery(intersectionBackend, packetLaneCount, intersectionTiming);
+        metrics->recordClosestHitQuery(intersectionBackend, activeLaneCount, intersectionTiming);
       }
     }
 
@@ -459,7 +459,7 @@ namespace render {
       packetHits =
         intersectionBackend.intersectPacketClosest(scene, Ray8(rays), states, &intersectionTiming);
       if (metrics) {
-        metrics->recordClosestHitQuery(intersectionBackend, packetLaneCount, intersectionTiming);
+        metrics->recordClosestHitQuery(intersectionBackend, activeLaneCount, intersectionTiming);
       }
     }
 

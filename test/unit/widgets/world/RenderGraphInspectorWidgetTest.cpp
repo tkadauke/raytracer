@@ -11,9 +11,9 @@
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/PointLight.h"
 #include "render/materials/MatteMaterial.h"
+#include "render/primitives/Curve.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
-#include "render/primitives/Torus.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "test/helpers/GuiTestHelper.h"
 #include "test/helpers/Slot.h"
@@ -183,9 +183,8 @@ namespace RenderGraphInspectorWidgetTest {
     subviewColor.height = 48;
     subviewColor.sampleCount = 1;
     subviewColor.lifetime = RenderResourceLifetime::Exported;
-    subviewColor.features = {"subview", "subview_monitor_feed", "render_to_texture",
-                             "subview_output", "subview_color_output",
-                             "subview_name:monitor_feed"};
+    subviewColor.features = {"subview",        "subview_monitor_feed", "render_to_texture",
+                             "subview_output", "subview_color_output", "subview_name:monitor_feed"};
     plan.addResource(subviewColor);
 
     RenderResourceDescriptor subviewDepth;
@@ -197,9 +196,8 @@ namespace RenderGraphInspectorWidgetTest {
     subviewDepth.height = 48;
     subviewDepth.sampleCount = 1;
     subviewDepth.lifetime = RenderResourceLifetime::Exported;
-    subviewDepth.features = {"subview", "subview_monitor_feed", "render_to_texture",
-                             "subview_output", "subview_depth_output",
-                             "subview_name:monitor_feed"};
+    subviewDepth.features = {"subview",        "subview_monitor_feed", "render_to_texture",
+                             "subview_output", "subview_depth_output", "subview_name:monitor_feed"};
     plan.addResource(subviewDepth);
 
     RenderResourceDescriptor beauty;
@@ -353,9 +351,10 @@ namespace RenderGraphInspectorWidgetTest {
 
   std::shared_ptr<render::Scene> unsupportedExactScene() {
     auto scene = std::make_shared<render::Scene>();
-    auto torus = std::make_shared<render::Torus>(1.25, 0.25);
-    torus->setName("exact torus");
-    scene->add(torus);
+    auto curve =
+      std::make_shared<render::Curve>(core::Polyline({Vector3d(0, 0, 0), Vector3d(1, 0, 0)}), 0.1);
+    curve->setName("render curve");
+    scene->add(curve);
     return scene;
   }
 
@@ -731,8 +730,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(portalSubview->text(8).contains(QStringLiteral("derived portal")));
     EXPECT_TRUE(portalSubview->text(8).contains(QStringLiteral("active-camera")));
     EXPECT_TRUE(portalSubview->text(8).contains(QStringLiteral("clipped")));
-    EXPECT_TRUE(portalSubview->text(10).contains(
-      QStringLiteral("Portal Panel receiver mask")));
+    EXPECT_TRUE(portalSubview->text(10).contains(QStringLiteral("Portal Panel receiver mask")));
 
     QTreeWidgetItem* portalMask =
       passItem(widget, QStringLiteral("subview_portal_portal_panel_receiver_mask"));
@@ -749,16 +747,14 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(portalComposite->text(10).contains(QStringLiteral("Beauty color")));
     EXPECT_TRUE(
       portalComposite->text(10).contains(QStringLiteral("Subview portal Portal Panel Main color")));
-    EXPECT_TRUE(portalComposite->text(10).contains(
-      QStringLiteral("Portal Panel receiver mask")));
+    EXPECT_TRUE(portalComposite->text(10).contains(QStringLiteral("Portal Panel receiver mask")));
 
     QTreeWidgetItem* mirrorSubview =
       passItem(widget, QStringLiteral("subview_mirror_mirror_panel_raytrace_beauty"));
     ASSERT_NE(nullptr, mirrorSubview);
     EXPECT_TRUE(mirrorSubview->text(8).contains(QStringLiteral("derived planar_mirror")));
     EXPECT_TRUE(mirrorSubview->text(8).contains(QStringLiteral("active-camera")));
-    EXPECT_TRUE(mirrorSubview->text(10).contains(
-      QStringLiteral("Mirror Panel receiver mask")));
+    EXPECT_TRUE(mirrorSubview->text(10).contains(QStringLiteral("Mirror Panel receiver mask")));
 
     QTreeWidgetItem* mirrorMask =
       passItem(widget, QStringLiteral("subview_mirror_mirror_panel_receiver_mask"));
@@ -769,12 +765,11 @@ namespace RenderGraphInspectorWidgetTest {
       passItem(widget, QStringLiteral("subview_mirror_mirror_panel_composite"));
     ASSERT_NE(nullptr, mirrorComposite);
     EXPECT_EQ(QStringLiteral("Composite"), mirrorComposite->text(5));
-    EXPECT_TRUE(mirrorComposite->text(10).contains(
-      QStringLiteral("Portal Panel composited color")));
+    EXPECT_TRUE(
+      mirrorComposite->text(10).contains(QStringLiteral("Portal Panel composited color")));
     EXPECT_TRUE(
       mirrorComposite->text(10).contains(QStringLiteral("Subview mirror Mirror Panel Main color")));
-    EXPECT_TRUE(mirrorComposite->text(10).contains(
-      QStringLiteral("Mirror Panel receiver mask")));
+    EXPECT_TRUE(mirrorComposite->text(10).contains(QStringLiteral("Mirror Panel receiver mask")));
 
     QGraphicsItem* portalSubviewNode =
       graphNodeItem(graph->scene(), "pass", "subview_portal_portal_panel_raytrace_beauty");
@@ -784,16 +779,13 @@ namespace RenderGraphInspectorWidgetTest {
       QStringLiteral("Scene camera: derived portal from active-camera, clipped")));
 
     EXPECT_NE(nullptr,
-              graphNodeItem(graph->scene(), "pass",
-                            "subview_portal_portal_panel_receiver_mask"));
+              graphNodeItem(graph->scene(), "pass", "subview_portal_portal_panel_receiver_mask"));
     EXPECT_NE(nullptr,
               graphNodeItem(graph->scene(), "pass", "subview_portal_portal_panel_composite"));
     EXPECT_NE(nullptr,
-              graphNodeItem(graph->scene(), "pass",
-                            "subview_mirror_mirror_panel_raytrace_beauty"));
+              graphNodeItem(graph->scene(), "pass", "subview_mirror_mirror_panel_raytrace_beauty"));
     EXPECT_NE(nullptr,
-              graphNodeItem(graph->scene(), "pass",
-                            "subview_mirror_mirror_panel_receiver_mask"));
+              graphNodeItem(graph->scene(), "pass", "subview_mirror_mirror_panel_receiver_mask"));
     EXPECT_NE(nullptr,
               graphNodeItem(graph->scene(), "pass", "subview_mirror_mirror_panel_composite"));
 
@@ -839,8 +831,7 @@ namespace RenderGraphInspectorWidgetTest {
     ASSERT_NE(nullptr, graph);
     ASSERT_NE(nullptr, resources);
 
-    auto* subviewPass =
-      graphNodeItem(graph->scene(), "pass", "subview_monitor_feed_raster_beauty");
+    auto* subviewPass = graphNodeItem(graph->scene(), "pass", "subview_monitor_feed_raster_beauty");
     auto* subviewColor =
       graphNodeItem(graph->scene(), "resource", "subview_monitor_feed_main_color");
     auto* subviewDepth =
@@ -856,7 +847,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(subviewDepth->toolTip().contains("Resource ID: subview_monitor_feed_depth_aov"));
     EXPECT_TRUE(finalBeauty->toolTip().contains("Reads: Monitor feed main color"));
     EXPECT_TRUE(finalBeauty->toolTip().contains("Monitor feed depth AOV"));
-    EXPECT_TRUE(finalBeauty->toolTip().contains("Incoming dependencies: Monitor feed Raster beauty"));
+    EXPECT_TRUE(
+      finalBeauty->toolTip().contains("Incoming dependencies: Monitor feed Raster beauty"));
     EXPECT_TRUE(finalBeauty->toolTip().contains("Monitor feed Depth AOV"));
 
     bool sawSubviewColorRow = false;
@@ -993,8 +985,7 @@ namespace RenderGraphInspectorWidgetTest {
     auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
     ASSERT_NE(nullptr, graph);
 
-    widget.setActiveExecutionPasses({QStringLiteral("raytrace_beauty"),
-                                     QStringLiteral("tonemap")});
+    widget.setActiveExecutionPasses({QStringLiteral("raytrace_beauty"), QStringLiteral("tonemap")});
     processEventsFor(560);
 
     QGraphicsItem* beauty = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");

@@ -2331,10 +2331,16 @@ void MainWindow::showRenderGraphResourceDetails(const QString& resourceId,
   addRow(rows, tr("Domain"), engine::graph::toString(resource->domain));
   addRow(rows, tr("Lifetime"), engine::graph::toString(resource->lifetime));
   addRow(rows, tr("Size"), resourceSizeText(*resource));
-  if (hasFeature(resource->features, "selector_override")) {
+  const bool selectorOverrideResource =
+    std::find(resource->features.begin(), resource->features.end(),
+              engine::graph::RenderFeatureKind("selector_override")) != resource->features.end();
+  if (selectorOverrideResource) {
     addRow(rows, tr("Routing reason"), tr("Compiler-generated resource for selector route"));
   }
-  addRow(rows, tr("Features"), featureText(resource->features));
+  QStringList featureValues;
+  for (const auto& feature : resource->features)
+    featureValues << qstr(feature);
+  addRow(rows, tr("Features"), featureValues.join(QStringLiteral(", ")));
   addRow(rows, tr("Producer"), producerText(plan, resource->id));
   addRow(rows, tr("Consumers"), consumerText(plan, resource->id));
 
