@@ -281,6 +281,32 @@ namespace engine::wavefront {
     return closestHitChunks > 0 && anyHitChunks > 0;
   }
 
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::frontierQueryRoundTrips() const {
+    std::uint64_t roundTrips = 0;
+    for (const std::uint64_t chunks : frontierClosestHitBatchChunksPerDepth) {
+      roundTrips += chunks;
+    }
+    for (const std::uint64_t chunks : directLightAnyHitBatchChunksPerDepth) {
+      roundTrips += chunks;
+    }
+    return roundTrips;
+  }
+
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::residentFrontierQueryRoundTripsEstimate() const {
+    return frontierQueryRoundTrips() - residentFrontierQueryRoundTripSavingsEstimate();
+  }
+
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::residentFrontierQueryRoundTripSavingsEstimate() const {
+    const std::uint64_t mixedRoundTrips = mixedQueryDepthRoundTrips();
+    const std::uint64_t mixedResidentBoundaries = mixedQueryDepthCount();
+    if (mixedRoundTrips <= mixedResidentBoundaries) {
+      return 0;
+    }
+    return mixedRoundTrips - mixedResidentBoundaries;
+  }
+
   std::uint64_t WavefrontRenderMetrics::BatchSummary::mixedQueryDepthCount() const {
     const std::size_t depthCount = std::max(frontierClosestHitBatchChunksPerDepth.size(),
                                             directLightAnyHitBatchChunksPerDepth.size());
@@ -592,6 +618,12 @@ namespace engine::wavefront {
     batchingJson["frontierClosestHitBatchRaysPerDepth"] = frontierClosestHitBatchRaysPerDepth;
     batchingJson["directLightAnyHitBatchChunksPerDepth"] = directLightAnyHitBatchChunksPerDepth;
     batchingJson["directLightAnyHitBatchRaysPerDepth"] = directLightAnyHitBatchRaysPerDepth;
+    batchingJson["frontierQueryRoundTrips"] =
+      static_cast<double>(batching.frontierQueryRoundTrips());
+    batchingJson["frontierResidentQueryRoundTripsEstimate"] =
+      static_cast<double>(batching.residentFrontierQueryRoundTripsEstimate());
+    batchingJson["frontierResidentQueryRoundTripSavingsEstimate"] =
+      static_cast<double>(batching.residentFrontierQueryRoundTripSavingsEstimate());
     batchingJson["frontierMixedQueryDepths"] = static_cast<double>(batching.mixedQueryDepthCount());
     batchingJson["frontierMixedQueryRoundTrips"] =
       static_cast<double>(batching.mixedQueryDepthRoundTrips());

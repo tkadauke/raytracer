@@ -1151,6 +1151,9 @@ namespace RenderGraphInspectorWidgetTest {
 
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Direct-light any-hit batch average rays")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier query round trips")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident frontier round trips")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident frontier savings")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query depths")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query closest-hit rays")).isEmpty());
@@ -1168,6 +1171,7 @@ namespace RenderGraphInspectorWidgetTest {
 
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("mixed query depths")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("mixed-depth round trips")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("resident frontier estimate")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("compaction candidate samples")));
   }
 

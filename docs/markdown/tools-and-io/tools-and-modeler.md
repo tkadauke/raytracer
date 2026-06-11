@@ -186,7 +186,10 @@ Those counts make the future GPU-resident frontier opportunity visible before
 the scheduler actually keeps path state on device. rendercli and the Modeler
 also report the mixed-depth ray count and mixed-depth query round trips, which
 are the current host/device boundaries a resident frontier path would try to
-remove.
+remove. They also report the observed frontier query round trips, the
+resident-frontier round-trip estimate, and the estimated savings if mixed
+closest-hit/any-hit depths could be treated as one resident scheduling
+boundary.
 They also report compaction candidate depths and sample counts by comparing
 active samples entering a depth with retained samples after that depth. That is
 the CPU-side baseline for future GPU-side active-ray compaction; the candidate
@@ -344,7 +347,10 @@ compact summary prints total `tiles`, `tile_grid`,
 `frontier_packet_scalar_fallback_rays`,
 `frontier_packet_scalar_fallback_by_reason`, `frontier_packet_refined_rays`,
 `frontier_packet_refined_by_material`, `sample_variance_pixels`,
-`sample_stddev_rms`, `max_sample_stddev`, `intersection_backend_gpu_device`,
+`sample_stddev_rms`, `max_sample_stddev`, `frontier_query_round_trips`,
+`frontier_resident_query_round_trips_estimate`,
+`frontier_resident_query_round_trip_savings_estimate`,
+`intersection_backend_gpu_device`,
 `intersection_backend_gpu_render_path`,
 `intersection_backend_platform`, `closest_hit_execution`, `any_hit_execution`,
 `closest_hit_batch_preferred`,

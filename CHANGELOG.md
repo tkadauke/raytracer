@@ -77,6 +77,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   backend widget now contrasts the current hybrid CPU/GPU boundary with the
   future resident-frontier target that the Phase 8 diagnostics are meant to
   guide. — GPT-5 Codex
+- **Wavefront resident-frontier estimates.** Wavefront metrics, rendercli
+  summaries, and the Modeler graph details now report observed frontier query
+  round trips, a resident-frontier round-trip estimate, and the estimated
+  savings for mixed closest-hit plus any-hit depths. — GPT-5 Codex
 - **Wavefront compaction diagnostics.** Wavefront metrics, rendercli
   summaries, and the Modeler graph details now report active-sample
   compaction candidate depths and sample counts, creating a baseline for future

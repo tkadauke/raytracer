@@ -1031,6 +1031,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(metrics.batching.frontierPacketScalarFallbackRaysByReason.empty());
     EXPECT_EQ(0u, metrics.batching.frontierPacketRefinedRaysPerDepth[0]);
     EXPECT_TRUE(metrics.batching.frontierPacketRefinedRaysByMaterial.empty());
+    EXPECT_EQ(0u, metrics.batching.residentFrontierQueryRoundTripsEstimate());
+    EXPECT_EQ(0u, metrics.batching.residentFrontierQueryRoundTripSavingsEstimate());
     EXPECT_EQ(0u, metrics.batching.mixedQueryDepthRoundTrips());
     EXPECT_EQ(0u, metrics.batching.mixedQueryDepthRays());
     EXPECT_TRUE(metrics.convergence.enabled);
@@ -1585,10 +1587,19 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitBatchRaysPerDepth.front(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthCount(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthRoundTrips(), 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.frontierQueryRoundTrips(), 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.residentFrontierQueryRoundTripsEstimate(), 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.residentFrontierQueryRoundTripSavingsEstimate(),
+              0u);
     EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthRays(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthClosestHitRays(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthAnyHitRays(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.directLightSamples, 0u);
+
+    const QJsonObject batching = renderCase.lastMetrics().toJson().value("batching").toObject();
+    EXPECT_GT(batching.value("frontierQueryRoundTrips").toDouble(), 0.0);
+    EXPECT_GT(batching.value("frontierResidentQueryRoundTripsEstimate").toDouble(), 0.0);
+    EXPECT_GT(batching.value("frontierResidentQueryRoundTripSavingsEstimate").toDouble(), 0.0);
   }
 
   TEST(WavefrontRaytracer, AutoIntersectionRequestMatchesCpuImageWhenGpuGateClears) {

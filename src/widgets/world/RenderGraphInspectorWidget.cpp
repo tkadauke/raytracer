@@ -629,6 +629,12 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("intersectionEstimatedClosestHitQueryRoundTrips"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit query round trips"), batching,
                               QStringLiteral("intersectionEstimatedAnyHitQueryRoundTrips"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier query round trips"), batching,
+                              QStringLiteral("frontierQueryRoundTrips"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident frontier round trips"), batching,
+                              QStringLiteral("frontierResidentQueryRoundTripsEstimate"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident frontier savings"), batching,
+                              QStringLiteral("frontierResidentQueryRoundTripSavingsEstimate"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed-depth query round trips"), batching,
                               QStringLiteral("frontierMixedQueryRoundTrips"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Packed closest-hit eligible"), batching,
@@ -984,6 +990,20 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         if (closestHitRays > 0 || anyHitRays > 0) {
           line +=
             QStringLiteral(", %1 closest-hit/%2 any-hit rays").arg(closestHitRays).arg(anyHitRays);
+        }
+        const qulonglong frontierRoundTrips =
+          jsonIntegerValue(batching, QStringLiteral("frontierQueryRoundTrips"));
+        if (frontierRoundTrips > 0) {
+          line += QStringLiteral(", %1 frontier round trips").arg(frontierRoundTrips);
+        }
+        const qulonglong residentFrontierRoundTrips =
+          jsonIntegerValue(batching, QStringLiteral("frontierResidentQueryRoundTripsEstimate"));
+        const qulonglong residentFrontierSavings = jsonIntegerValue(
+          batching, QStringLiteral("frontierResidentQueryRoundTripSavingsEstimate"));
+        if (residentFrontierRoundTrips > 0 || residentFrontierSavings > 0) {
+          line += QStringLiteral(", resident frontier estimate %1 round trips/%2 saved")
+                    .arg(residentFrontierRoundTrips)
+                    .arg(residentFrontierSavings);
         }
         const qulonglong mixedQueryDepths =
           jsonIntegerValue(batching, QStringLiteral("frontierMixedQueryDepths"));

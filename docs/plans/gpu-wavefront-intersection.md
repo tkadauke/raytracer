@@ -915,6 +915,10 @@ Progress:
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a
   measured throughput signal next to expected-ray, transfer-byte, and
   round-trip estimates.
+- Wavefront metrics now derive an observed frontier query round-trip count, a
+  resident-frontier round-trip estimate, and an estimated savings count for
+  mixed closest-hit plus any-hit depths. This gives the resident-frontier work a
+  concrete target before scheduler state is moved onto the device.
 - The wavefront/path-tracing textbook backend widget now includes a
   hybrid-boundary view and a resident-frontier target view. The chapter uses
   that control to connect the new mixed-depth, round-trip, throughput, and

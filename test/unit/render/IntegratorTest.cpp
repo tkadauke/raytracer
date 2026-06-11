@@ -224,6 +224,9 @@ namespace IntegratorTest {
     EXPECT_TRUE(metrics.hasMixedQueryDepth(0));
     EXPECT_FALSE(metrics.hasMixedQueryDepth(1));
     EXPECT_FALSE(metrics.hasMixedQueryDepth(2));
+    EXPECT_EQ(4u, metrics.frontierQueryRoundTrips());
+    EXPECT_EQ(3u, metrics.residentFrontierQueryRoundTripsEstimate());
+    EXPECT_EQ(1u, metrics.residentFrontierQueryRoundTripSavingsEstimate());
     EXPECT_EQ(1u, metrics.mixedQueryDepthCount());
     EXPECT_EQ(2u, metrics.mixedQueryDepthRoundTrips());
     EXPECT_EQ(7u, metrics.mixedQueryDepthRays());

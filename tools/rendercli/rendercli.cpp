@@ -345,6 +345,11 @@ namespace {
         << " any_hit_rays=" << unsignedValue(batching, "anyHitRaysSubmitted")
         << " closest_hit_queries=" << unsignedValue(batching, "closestHitQueries")
         << " any_hit_queries=" << unsignedValue(batching, "anyHitQueries")
+        << " frontier_query_round_trips=" << unsignedValue(batching, "frontierQueryRoundTrips")
+        << " frontier_resident_query_round_trips_estimate="
+        << unsignedValue(batching, "frontierResidentQueryRoundTripsEstimate")
+        << " frontier_resident_query_round_trip_savings_estimate="
+        << unsignedValue(batching, "frontierResidentQueryRoundTripSavingsEstimate")
         << " frontier_mixed_query_depths=" << unsignedValue(batching, "frontierMixedQueryDepths")
         << " frontier_mixed_query_round_trips="
         << unsignedValue(batching, "frontierMixedQueryRoundTrips")

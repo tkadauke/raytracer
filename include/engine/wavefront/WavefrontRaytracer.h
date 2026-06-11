@@ -164,6 +164,9 @@ namespace engine::wavefront {
       [[nodiscard]] std::uint64_t compactionCandidateSampleCount() const;
       [[nodiscard]] double compactionCandidateSampleFraction() const;
       [[nodiscard]] bool hasMixedQueryDepth(std::size_t depth) const;
+      [[nodiscard]] std::uint64_t frontierQueryRoundTrips() const;
+      [[nodiscard]] std::uint64_t residentFrontierQueryRoundTripsEstimate() const;
+      [[nodiscard]] std::uint64_t residentFrontierQueryRoundTripSavingsEstimate() const;
       [[nodiscard]] std::uint64_t mixedQueryDepthCount() const;
       [[nodiscard]] std::uint64_t mixedQueryDepthRoundTrips() const;
       [[nodiscard]] std::uint64_t mixedQueryDepthRays() const;

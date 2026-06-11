@@ -2644,6 +2644,21 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_candidate_fraction=
                   "wavefront metrics summary did not contain compaction candidate fraction"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_query_round_trips=")
+  _rendercli_fail("rendercli wavefront metrics frontier round-trip summary"
+                  "wavefront metrics summary did not contain frontier query round trips"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_resident_query_round_trips_estimate=")
+  _rendercli_fail("rendercli wavefront metrics resident frontier round-trip summary"
+                  "wavefront metrics summary did not contain resident frontier round-trip estimate"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_resident_query_round_trip_savings_estimate=")
+  _rendercli_fail("rendercli wavefront metrics resident frontier savings summary"
+                  "wavefront metrics summary did not contain resident frontier savings estimate"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 if(NOT wavefront_metrics_stdout MATCHES "intersection_rays_per_worker_second=")
   _rendercli_fail("rendercli wavefront metrics intersection throughput summary"
                   "wavefront metrics summary did not contain intersection throughput"
@@ -2716,6 +2731,9 @@ if(NOT wavefront_metrics_json MATCHES "\"directLightAnyHitBatchRaysPerDepth\"")
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 foreach(mixed_query_field
+        frontierQueryRoundTrips
+        frontierResidentQueryRoundTripsEstimate
+        frontierResidentQueryRoundTripSavingsEstimate
         frontierMixedQueryDepths
         frontierMixedQueryRoundTrips
         frontierMixedQueryRays

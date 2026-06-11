@@ -144,6 +144,9 @@ namespace render {
     void recordDirectLightAnyHitBatch(std::uint64_t depth, std::uint64_t batchChunks,
                                       std::uint64_t batchRays);
     [[nodiscard]] bool hasMixedQueryDepth(std::size_t depth) const;
+    [[nodiscard]] std::uint64_t frontierQueryRoundTrips() const;
+    [[nodiscard]] std::uint64_t residentFrontierQueryRoundTripsEstimate() const;
+    [[nodiscard]] std::uint64_t residentFrontierQueryRoundTripSavingsEstimate() const;
     [[nodiscard]] std::uint64_t mixedQueryDepthCount() const;
     [[nodiscard]] std::uint64_t mixedQueryDepthRoundTrips() const;
     [[nodiscard]] std::uint64_t mixedQueryDepthRays() const;

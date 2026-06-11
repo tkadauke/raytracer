@@ -253,6 +253,30 @@ namespace render {
     return closestHitChunks > 0 && anyHitChunks > 0;
   }
 
+  std::uint64_t IntegratorBatchMetrics::frontierQueryRoundTrips() const {
+    std::uint64_t roundTrips = 0;
+    for (const std::uint64_t chunks : frontierClosestHitBatchChunksPerDepth) {
+      roundTrips += chunks;
+    }
+    for (const std::uint64_t chunks : directLightAnyHitBatchChunksPerDepth) {
+      roundTrips += chunks;
+    }
+    return roundTrips;
+  }
+
+  std::uint64_t IntegratorBatchMetrics::residentFrontierQueryRoundTripsEstimate() const {
+    return frontierQueryRoundTrips() - residentFrontierQueryRoundTripSavingsEstimate();
+  }
+
+  std::uint64_t IntegratorBatchMetrics::residentFrontierQueryRoundTripSavingsEstimate() const {
+    const std::uint64_t mixedRoundTrips = mixedQueryDepthRoundTrips();
+    const std::uint64_t mixedResidentBoundaries = mixedQueryDepthCount();
+    if (mixedRoundTrips <= mixedResidentBoundaries) {
+      return 0;
+    }
+    return mixedRoundTrips - mixedResidentBoundaries;
+  }
+
   std::uint64_t IntegratorBatchMetrics::mixedQueryDepthCount() const {
     const std::size_t depthCount = std::max(frontierClosestHitBatchChunksPerDepth.size(),
                                             directLightAnyHitBatchChunksPerDepth.size());

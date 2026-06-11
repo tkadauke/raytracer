@@ -277,7 +277,9 @@ still crosses the host/device boundary for both path continuation and
 visibility work in the same depth. The trace also reports how many rays and
 query round trips belonged to those mixed depths, which makes the possible
 host/device boundary savings visible before the scheduler keeps those frontiers
-on the GPU.
+on the GPU. It also derives an observed frontier round-trip count, a
+resident-frontier round-trip estimate, and an estimated savings count by
+treating each mixed depth as one future resident scheduling boundary.
 The same metrics compare active samples entering a depth with retained samples
 after that depth. The difference is reported as compaction candidate work: the
 samples a future GPU-side compaction pass would remove from the next frontier
@@ -371,7 +373,10 @@ dynamic buffers for every prepared-scene query. Metrics report both the
 estimated transfer bytes and the query round-trip count, split by closest-hit
 and any-hit query family, which makes the remaining host/device boundary
 visible before future GPU-resident frontier work removes some of those
-dispatch/readback cycles. Bounded any-hit visibility uses the same packed
+dispatch/readback cycles. The per-frontier metrics also estimate how many
+round trips a resident frontier scheduler would keep for mixed closest-hit and
+any-hit depths, plus the obvious savings relative to the observed frontier
+query batches. Bounded any-hit visibility uses the same packed
 traversal contract, including the finite light-distance epsilon used by the
 compiled parity intersector. This matches
 the current CPU shadow rule:
