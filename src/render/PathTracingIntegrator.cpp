@@ -332,6 +332,7 @@ namespace render {
                                        const PathMaterialTransport& material,
                                        const HitPoint& hitPoint, const Vector3d& wi,
                                        State& state) const {
+      validateResolvedOcclusionCount();
       const DirectLightingSelection& selection = m_selections[index];
       return integrator.resolveDirectLightingCandidate(selection.candidate, material, hitPoint, wi,
                                                        occluded(index), state);
