@@ -2469,8 +2469,11 @@ namespace WavefrontIntersectionBackendTest {
 
     ASSERT_NE(nullptr, frontier);
     EXPECT_EQ(2u, frontier->rayCount());
-    EXPECT_STREQ(std::string(backend->name()) == "metal" ? "metal_shared" : "packed_host",
-                 frontier->residency());
+    const std::string backendName = backend->name();
+    const char* expectedResidency = backendName == "metal"    ? "metal_shared"
+                                    : backendName == "vulkan" ? "vulkan_host_coherent"
+                                                              : "packed_host";
+    EXPECT_STREQ(expectedResidency, frontier->residency());
     EXPECT_EQ(2u * sizeof(GpuIntersectionRay), frontier->packedRayBytes());
 
     WavefrontIntersectionQueryTiming timing;
@@ -2889,8 +2892,11 @@ namespace WavefrontIntersectionBackendTest {
 
     ASSERT_NE(nullptr, frontier);
     EXPECT_EQ(2u, frontier->rayCount());
-    EXPECT_STREQ(std::string(backend->name()) == "metal" ? "metal_shared" : "packed_host",
-                 frontier->residency());
+    const std::string backendName = backend->name();
+    const char* expectedResidency = backendName == "metal"    ? "metal_shared"
+                                    : backendName == "vulkan" ? "vulkan_host_coherent"
+                                                              : "packed_host";
+    EXPECT_STREQ(expectedResidency, frontier->residency());
     EXPECT_EQ(2u * sizeof(GpuIntersectionRay), frontier->packedRayBytes());
 
     WavefrontIntersectionQueryTiming timing;

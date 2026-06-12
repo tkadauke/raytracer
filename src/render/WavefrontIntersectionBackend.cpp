@@ -252,6 +252,151 @@ namespace render {
     };
 #endif
 
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    class VulkanPreparedPackedWavefrontClosestHitFrontier final
+        : public WavefrontClosestHitFrontier {
+    public:
+      VulkanPreparedPackedWavefrontClosestHitFrontier(
+        std::vector<WavefrontClosestHitQuery> queries,
+        std::shared_ptr<const VulkanWavefrontPreparedScene> preparedScene)
+          : m_queries(std::move(queries)),
+            m_packedRays(packClosestHitQueries(m_queries)),
+            m_preparedScene(std::move(preparedScene)) {
+        if (m_preparedScene) {
+          m_preparedRays = m_preparedScene->prepareRays(m_packedRays);
+        }
+      }
+
+      std::uint64_t rayCount() const override {
+        return static_cast<std::uint64_t>(m_queries.size());
+      }
+
+      const char* residency() const override {
+        return "vulkan_host_coherent";
+      }
+
+      std::uint64_t packedRayBytes() const override {
+        if (m_preparedRays) {
+          return m_preparedRays->packedRayBytes();
+        }
+        return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
+      }
+
+    protected:
+      const std::vector<WavefrontClosestHitQuery>* hostClosestHitQueries() const override {
+        return &m_queries;
+      }
+
+      const std::vector<GpuIntersectionRay>* hostPackedClosestHitRays() const override {
+        return &m_packedRays;
+      }
+
+      bool hasPackedClosestHitRays() const override {
+        return true;
+      }
+
+      std::vector<GpuIntersectionHitRecord>
+      intersectPackedClosest(const WavefrontIntersectionBackend& backend,
+                             WavefrontIntersectionQueryTiming* timing = nullptr) const override {
+        if (!m_preparedScene || !m_preparedRays) {
+          return WavefrontClosestHitFrontier::intersectPackedClosest(backend, timing);
+        }
+        try {
+          const VulkanWavefrontClosestHitKernelResult result =
+            m_preparedScene->runTimedBasicClosestHitKernel(*m_preparedRays);
+          if (timing) {
+            timing->add(result.timing);
+            timing->recordExecutionPath("vulkan");
+          }
+          return result.hits;
+        } catch (const std::exception& e) {
+          if (timing) {
+            timing->recordFallbackReason(
+              std::string("Vulkan closest-hit prepared frontier failed: ") + e.what());
+          }
+          return WavefrontClosestHitFrontier::intersectPackedClosest(backend, timing);
+        }
+      }
+
+    private:
+      std::vector<WavefrontClosestHitQuery> m_queries;
+      std::vector<GpuIntersectionRay> m_packedRays;
+      std::shared_ptr<const VulkanWavefrontPreparedScene> m_preparedScene;
+      std::shared_ptr<const VulkanWavefrontPreparedRayBatch> m_preparedRays;
+    };
+
+    class VulkanPreparedPackedWavefrontAnyHitFrontier final : public WavefrontAnyHitFrontier {
+    public:
+      VulkanPreparedPackedWavefrontAnyHitFrontier(
+        std::vector<WavefrontAnyHitQuery> queries,
+        std::shared_ptr<const VulkanWavefrontPreparedScene> preparedScene)
+          : m_queries(std::move(queries)),
+            m_packedRays(packAnyHitQueries(m_queries)),
+            m_preparedScene(std::move(preparedScene)) {
+        if (m_preparedScene) {
+          m_preparedRays = m_preparedScene->prepareRays(m_packedRays);
+        }
+      }
+
+      std::uint64_t rayCount() const override {
+        return static_cast<std::uint64_t>(m_queries.size());
+      }
+
+      const char* residency() const override {
+        return "vulkan_host_coherent";
+      }
+
+      std::uint64_t packedRayBytes() const override {
+        if (m_preparedRays) {
+          return m_preparedRays->packedRayBytes();
+        }
+        return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
+      }
+
+    protected:
+      const std::vector<WavefrontAnyHitQuery>* hostAnyHitQueries() const override {
+        return &m_queries;
+      }
+
+      const std::vector<GpuIntersectionRay>* hostPackedAnyHitRays() const override {
+        return &m_packedRays;
+      }
+
+      bool hasPackedAnyHitRays() const override {
+        return true;
+      }
+
+      std::vector<GpuIntersectionOcclusionRecord>
+      intersectPackedAny(const WavefrontIntersectionBackend& backend,
+                         WavefrontIntersectionQueryTiming* timing = nullptr) const override {
+        if (!m_preparedScene || !m_preparedRays) {
+          return WavefrontAnyHitFrontier::intersectPackedAny(backend, timing);
+        }
+        try {
+          const VulkanWavefrontAnyHitKernelResult result =
+            m_preparedScene->runTimedBasicAnyHitKernel(*m_preparedRays);
+          if (timing) {
+            timing->add(result.timing);
+            timing->recordExecutionPath("vulkan");
+          }
+          return result.records;
+        } catch (const std::exception& e) {
+          if (timing) {
+            timing->recordFallbackReason(std::string("Vulkan any-hit prepared frontier failed: ") +
+                                         e.what());
+          }
+          return WavefrontAnyHitFrontier::intersectPackedAny(backend, timing);
+        }
+      }
+
+    private:
+      std::vector<WavefrontAnyHitQuery> m_queries;
+      std::vector<GpuIntersectionRay> m_packedRays;
+      std::shared_ptr<const VulkanWavefrontPreparedScene> m_preparedScene;
+      std::shared_ptr<const VulkanWavefrontPreparedRayBatch> m_preparedRays;
+    };
+#endif
+
     class CpuDelegatingWavefrontIntersectionBackend final : public WavefrontIntersectionBackend {
     public:
       CpuDelegatingWavefrontIntersectionBackend(
@@ -2329,6 +2474,10 @@ namespace render {
     return submittedRays > 0 && preparedPackedAnyHitAvailable();
   }
 
+  bool VulkanWavefrontIntersectionBackend::supportsResidentFrontiers() const {
+    return vulkanBasicHitAvailable();
+  }
+
   WavefrontClosestHitResult VulkanWavefrontIntersectionBackend::intersectClosestResult(
     const Scene& scene, const Rayd& ray, State& state,
     WavefrontIntersectionQueryTiming* timing) const {
@@ -2372,6 +2521,17 @@ namespace render {
   VulkanWavefrontIntersectionBackend::createClosestHitFrontier(
     std::vector<WavefrontClosestHitQuery> queries) const {
     if (compiledScene()) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+      if (vulkanBasicHitAvailable()) {
+        try {
+          std::vector<WavefrontClosestHitQuery> vulkanQueries = queries;
+          return std::make_unique<VulkanPreparedPackedWavefrontClosestHitFrontier>(
+            std::move(vulkanQueries), m_vulkanPreparedScene);
+        } catch (const std::exception&) {
+          return createPreparedClosestHitFrontier(std::move(queries));
+        }
+      }
+#endif
       return createPreparedClosestHitFrontier(std::move(queries));
     }
     return WavefrontIntersectionBackend::createClosestHitFrontier(std::move(queries));
@@ -2413,6 +2573,17 @@ namespace render {
   std::unique_ptr<WavefrontAnyHitFrontier> VulkanWavefrontIntersectionBackend::createAnyHitFrontier(
     std::vector<WavefrontAnyHitQuery> queries) const {
     if (compiledScene()) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+      if (vulkanBasicHitAvailable()) {
+        try {
+          std::vector<WavefrontAnyHitQuery> vulkanQueries = queries;
+          return std::make_unique<VulkanPreparedPackedWavefrontAnyHitFrontier>(
+            std::move(vulkanQueries), m_vulkanPreparedScene);
+        } catch (const std::exception&) {
+          return createPreparedAnyHitFrontier(std::move(queries));
+        }
+      }
+#endif
       return createPreparedAnyHitFrontier(std::move(queries));
     }
     return WavefrontIntersectionBackend::createAnyHitFrontier(std::move(queries));

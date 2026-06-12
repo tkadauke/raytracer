@@ -535,6 +535,7 @@ namespace render {
     const GpuIntersectionSceneBuffers* gpuIntersectionSceneBuffers() const override;
     bool prefersClosestHitBatch(std::uint64_t submittedRays) const override;
     bool prefersAnyHitBatch(std::uint64_t submittedRays) const override;
+    bool supportsResidentFrontiers() const override;
     WavefrontClosestHitResult
     intersectClosestResult(const Scene& scene, const Rayd& ray, State& state,
                            WavefrontIntersectionQueryTiming* timing = nullptr) const override;

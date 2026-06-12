@@ -52,6 +52,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Routed Metal prepared closest-hit and any-hit frontier handles through
   `metal_shared` prepared ray batches when a Metal wavefront scene is available.
   — GPT-5 Codex
+- Routed Vulkan prepared closest-hit and any-hit frontier handles through
+  `vulkan_host_coherent` prepared ray batches in Vulkan-enabled builds when a
+  Vulkan wavefront scene is available. — GPT-5 Codex
 
 ### Added
 
