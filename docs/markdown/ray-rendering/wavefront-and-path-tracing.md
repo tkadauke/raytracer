@@ -267,7 +267,8 @@ distinguishes today's host-backed handles from a future device-resident
 frontier path. Prepared GPU-style backends already build `packed_host`
 frontier handles: the rays are converted to the packed GPU query ABI when the
 frontier is created, while state updates and fallback still remain
-CPU-readable. Batched path-tracing
+CPU-readable. Whitted closest-hit batches use the same frontier handle path, so
+their diagnostics line up with path-tracing closest-hit batches. Batched path-tracing
 direct-light visibility goes through the same backend seam via
 `intersectAny(...)`, so the graph and metrics can separate closest-hit and
 any-hit ray counts for CPU and GPU-resident query families. When the selected

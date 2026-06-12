@@ -483,6 +483,8 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierScalarRaysPerDepth);
     EXPECT_EQ(1u, metrics.closestHitQueries);
     EXPECT_EQ(5u, metrics.closestHitRaysSubmitted);
+    EXPECT_EQ("host", metrics.intersectionBackendClosestHitFrontierResidency);
+    EXPECT_EQ(0u, metrics.intersectionBackendClosestHitFrontierPackedRayBytes);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceReportsSetupTiming) {

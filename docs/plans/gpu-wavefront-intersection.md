@@ -914,6 +914,9 @@ Progress:
   vector, but the path tracer asks the backend to create and consume the
   frontier so a later Metal/Vulkan backend can keep those rays resident without
   changing path-tracer control flow.
+- Whitted closest-hit batch frontiers now use the same backend-owned frontier
+  handle, so Whitted and path tracing report comparable closest-hit frontier
+  residency and packed-ray payload diagnostics.
 - Direct-light any-hit batches now use the same backend-owned frontier shape.
   Current frontiers are host-resident and still route through the existing
   any-hit batch implementation, but next-event-estimation visibility work now
