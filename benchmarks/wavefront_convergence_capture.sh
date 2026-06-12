@@ -78,7 +78,7 @@ load-balance summaries, frontier hit/miss summaries, packet width summaries,
 packet-fill and scalar-tail ratios, packet scalar-fallback reason breakdowns,
 packet-hit refinement material breakdowns, frontier residency labels,
 frontier packed-ray byte counts, resident-frontier capability and round-trip
-summaries, and host frontier compaction summaries under the output directory.
+summaries, and frontier compaction summaries under the output directory.
 Queue sweeps also write a
 compact queue_sweep.summary.txt per scene. Use it to tune Phase 4 wavefront
 convergence defaults and to baseline Phase 7 scheduler/intersection work before
@@ -303,12 +303,12 @@ def wavefront_metric_values(path)
     frontier_packet_scalar_fallback_rays_by_reason: [],
     frontier_packet_refined_rays: [],
     frontier_packet_refined_rays_by_material: [],
-    frontier_host_compaction_passes: [],
-    frontier_host_compaction_input_samples: [],
-    frontier_host_compaction_retained_samples: [],
-    frontier_host_compaction_removed_samples: [],
-    frontier_host_compaction_removed_fraction: [],
-    frontier_host_compaction_moved_samples: [],
+    frontier_compaction_passes: [],
+    frontier_compaction_input_samples: [],
+    frontier_compaction_retained_samples: [],
+    frontier_compaction_removed_samples: [],
+    frontier_compaction_removed_fraction: [],
+    frontier_compaction_moved_samples: [],
     convergence_feedback_depths: [],
     sample_generation_worker_seconds: [],
     sample_stream_worker_seconds: [],
@@ -371,12 +371,12 @@ def wavefront_metric_values(path)
       frontier_packet_scalar_fallback_rays_by_reason: Hash.new(0.0),
       frontier_packet_refined_rays: 0.0,
       frontier_packet_refined_rays_by_material: Hash.new(0.0),
-      frontier_host_compaction_passes: 0.0,
-      frontier_host_compaction_input_samples: 0.0,
-      frontier_host_compaction_retained_samples: 0.0,
-      frontier_host_compaction_removed_samples: 0.0,
-      frontier_host_compaction_removed_fraction: 0.0,
-      frontier_host_compaction_moved_samples: 0.0,
+      frontier_compaction_passes: 0.0,
+      frontier_compaction_input_samples: 0.0,
+      frontier_compaction_retained_samples: 0.0,
+      frontier_compaction_removed_samples: 0.0,
+      frontier_compaction_removed_fraction: 0.0,
+      frontier_compaction_moved_samples: 0.0,
       convergence_feedback_depths: 0.0,
       sample_generation_worker_seconds: 0.0,
       sample_stream_worker_seconds: 0.0,
@@ -518,21 +518,26 @@ def wavefront_metric_values(path)
       batching.fetch("frontierPacketRefinedRaysByMaterial", {}).each do |material, value|
         run_values[:frontier_packet_refined_rays_by_material][material] += value.to_f
       end
-      run_values[:frontier_host_compaction_passes] +=
-        batching.fetch("frontierHostCompactionPasses", 0).to_f
-      run_values[:frontier_host_compaction_input_samples] +=
-        batching.fetch("frontierHostCompactionInputSamples", 0).to_f
-      run_values[:frontier_host_compaction_retained_samples] +=
-        batching.fetch("frontierHostCompactionRetainedSamples", 0).to_f
-      run_values[:frontier_host_compaction_removed_samples] +=
-        batching.fetch("frontierHostCompactionRemovedSamples", 0).to_f
-      run_values[:frontier_host_compaction_moved_samples] +=
-        batching.fetch("frontierHostCompactionMovedSamples", 0).to_f
+      run_values[:frontier_compaction_passes] +=
+        batching.fetch("frontierCompactionPasses",
+                       batching.fetch("frontierHostCompactionPasses", 0)).to_f
+      run_values[:frontier_compaction_input_samples] +=
+        batching.fetch("frontierCompactionInputSamples",
+                       batching.fetch("frontierHostCompactionInputSamples", 0)).to_f
+      run_values[:frontier_compaction_retained_samples] +=
+        batching.fetch("frontierCompactionRetainedSamples",
+                       batching.fetch("frontierHostCompactionRetainedSamples", 0)).to_f
+      run_values[:frontier_compaction_removed_samples] +=
+        batching.fetch("frontierCompactionRemovedSamples",
+                       batching.fetch("frontierHostCompactionRemovedSamples", 0)).to_f
+      run_values[:frontier_compaction_moved_samples] +=
+        batching.fetch("frontierCompactionMovedSamples",
+                       batching.fetch("frontierHostCompactionMovedSamples", 0)).to_f
     end
-    if run_values[:frontier_host_compaction_input_samples].positive?
-      run_values[:frontier_host_compaction_removed_fraction] =
-        run_values[:frontier_host_compaction_removed_samples] /
-        run_values[:frontier_host_compaction_input_samples]
+    if run_values[:frontier_compaction_input_samples].positive?
+      run_values[:frontier_compaction_removed_fraction] =
+        run_values[:frontier_compaction_removed_samples] /
+        run_values[:frontier_compaction_input_samples]
     end
     convergences.compact.each do |convergence|
       run_values[:convergence_feedback_depths] += convergence.fetch("feedbackDepthCount", 0).to_f
@@ -669,20 +674,20 @@ end
               key, label_set(reference_values[key]), label_set(candidate_values[key]))
 end
 
-%i[frontier_host_compaction_passes
-   frontier_host_compaction_input_samples
-   frontier_host_compaction_retained_samples
-   frontier_host_compaction_removed_samples
-   frontier_host_compaction_moved_samples].each do |key|
+%i[frontier_compaction_passes
+   frontier_compaction_input_samples
+   frontier_compaction_retained_samples
+   frontier_compaction_removed_samples
+   frontier_compaction_moved_samples].each do |key|
   reference = median(reference_values[key])
   candidate = median(candidate_values[key])
   delta = candidate - reference
   puts format("%s reference=%.0f candidate=%.0f delta=%.0f",
               key, reference, candidate, delta)
 end
-reference = median(reference_values[:frontier_host_compaction_removed_fraction])
-candidate = median(candidate_values[:frontier_host_compaction_removed_fraction])
-puts format("frontier_host_compaction_removed_fraction reference=%.6f candidate=%.6f delta=%.6f",
+reference = median(reference_values[:frontier_compaction_removed_fraction])
+candidate = median(candidate_values[:frontier_compaction_removed_fraction])
+puts format("frontier_compaction_removed_fraction reference=%.6f candidate=%.6f delta=%.6f",
             reference, candidate, candidate - reference)
 
 reference_by_reason = median_map_values(reference_values[:frontier_packet_scalar_fallback_rays_by_reason])
@@ -753,6 +758,10 @@ def sum_array(object, key)
   object.fetch(key, []).sum { |value| value.to_f }
 end
 
+def metric_number(object, key, legacy_key, default_value = 0.0)
+  object.fetch(key, object.fetch(legacy_key, default_value)).to_f
+end
+
 def metric_objects_for(run)
   objects = []
   objects << run["metrics"] if run["metrics"]
@@ -800,12 +809,12 @@ def aggregate_run(run)
     packet_rays: 0.0,
     scalar_rays: 0.0,
     fallback_rays: 0.0,
-    host_compaction_passes: 0.0,
-    host_compaction_input_samples: 0.0,
-    host_compaction_retained_samples: 0.0,
-    host_compaction_removed_samples: 0.0,
-    host_compaction_removed_fraction: 0.0,
-    host_compaction_moved_samples: 0.0,
+    frontier_compaction_passes: 0.0,
+    frontier_compaction_input_samples: 0.0,
+    frontier_compaction_retained_samples: 0.0,
+    frontier_compaction_removed_samples: 0.0,
+    frontier_compaction_removed_fraction: 0.0,
+    frontier_compaction_moved_samples: 0.0,
     compaction_execution_paths: [],
     sample_generation_ms: 0.0,
     integrator_ms: 0.0,
@@ -882,15 +891,20 @@ def aggregate_run(run)
     values[:packet_rays] += sum_array(batching, "frontierPacketRaysPerDepth")
     values[:scalar_rays] += sum_array(batching, "frontierScalarRaysPerDepth")
     values[:fallback_rays] += sum_array(batching, "frontierPacketScalarFallbackRaysPerDepth")
-    values[:host_compaction_passes] += batching.fetch("frontierHostCompactionPasses", 0).to_f
-    values[:host_compaction_input_samples] +=
-      batching.fetch("frontierHostCompactionInputSamples", 0).to_f
-    values[:host_compaction_retained_samples] +=
-      batching.fetch("frontierHostCompactionRetainedSamples", 0).to_f
-    values[:host_compaction_removed_samples] +=
-      batching.fetch("frontierHostCompactionRemovedSamples", 0).to_f
-    values[:host_compaction_moved_samples] +=
-      batching.fetch("frontierHostCompactionMovedSamples", 0).to_f
+    values[:frontier_compaction_passes] +=
+      metric_number(batching, "frontierCompactionPasses", "frontierHostCompactionPasses")
+    values[:frontier_compaction_input_samples] +=
+      metric_number(batching, "frontierCompactionInputSamples",
+                    "frontierHostCompactionInputSamples")
+    values[:frontier_compaction_retained_samples] +=
+      metric_number(batching, "frontierCompactionRetainedSamples",
+                    "frontierHostCompactionRetainedSamples")
+    values[:frontier_compaction_removed_samples] +=
+      metric_number(batching, "frontierCompactionRemovedSamples",
+                    "frontierHostCompactionRemovedSamples")
+    values[:frontier_compaction_moved_samples] +=
+      metric_number(batching, "frontierCompactionMovedSamples",
+                    "frontierHostCompactionMovedSamples")
     compaction_path = batching.fetch("frontierCompactionExecutionPath", "")
     values[:compaction_execution_paths] << compaction_path unless compaction_path.empty?
     values[:sample_generation_ms] +=
@@ -903,9 +917,10 @@ def aggregate_run(run)
   if values[:nonempty_tile_count].positive?
     values[:average_tile_samples] = weighted_tile_sample_sum / values[:nonempty_tile_count]
   end
-  if values[:host_compaction_input_samples].positive?
-    values[:host_compaction_removed_fraction] =
-      values[:host_compaction_removed_samples] / values[:host_compaction_input_samples]
+  if values[:frontier_compaction_input_samples].positive?
+    values[:frontier_compaction_removed_fraction] =
+      values[:frontier_compaction_removed_samples] /
+      values[:frontier_compaction_input_samples]
   end
   values
 end
@@ -929,7 +944,7 @@ scene_dir = ARGV.fetch(0)
 queue_dirs = Dir.glob(File.join(scene_dir, "queue_*")).select { |path| File.directory?(path) }
 queue_dirs.sort_by! { |path| File.basename(path).delete_prefix("queue_").to_i }
 
-puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks closest_hit_batch_chunks closest_hit_batch_rays any_hit_batch_chunks any_hit_batch_rays frontier_round_trips resident_frontier_round_trips resident_frontier_savings closest_hit_frontier_residency any_hit_frontier_residency closest_hit_frontier_packed_ray_bytes any_hit_frontier_packed_ray_bytes resident_frontiers_supported gpu_frontier_compaction_supported resident_direct_light_batches_supported mixed_query_depths mixed_query_round_trips mixed_query_rays mixed_query_closest_hit_rays mixed_query_any_hit_rays packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays host_compaction_passes host_compaction_input_samples host_compaction_retained_samples host_compaction_removed_samples host_compaction_removed_fraction host_compaction_moved_samples compaction_execution sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
+puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks closest_hit_batch_chunks closest_hit_batch_rays any_hit_batch_chunks any_hit_batch_rays frontier_round_trips resident_frontier_round_trips resident_frontier_savings closest_hit_frontier_residency any_hit_frontier_residency closest_hit_frontier_packed_ray_bytes any_hit_frontier_packed_ray_bytes resident_frontiers_supported gpu_frontier_compaction_supported resident_direct_light_batches_supported mixed_query_depths mixed_query_round_trips mixed_query_rays mixed_query_closest_hit_rays mixed_query_any_hit_rays packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays frontier_compaction_passes frontier_compaction_input_samples frontier_compaction_retained_samples frontier_compaction_removed_samples frontier_compaction_removed_fraction frontier_compaction_moved_samples compaction_execution sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
 queue_dirs.each do |queue_dir|
   queue_size = File.basename(queue_dir).delete_prefix("queue_")
   Dir.glob(File.join(queue_dir, "wavefront_*.metrics.json")).sort.each do |metrics_path|
@@ -997,12 +1012,12 @@ queue_dirs.each do |queue_dir|
       format("%.6f", fallback_fraction),
       format("%.0f", scalar_rays),
       format("%.0f", fallback_rays),
-      format("%.0f", median_for.call(:host_compaction_passes)),
-      format("%.0f", median_for.call(:host_compaction_input_samples)),
-      format("%.0f", median_for.call(:host_compaction_retained_samples)),
-      format("%.0f", median_for.call(:host_compaction_removed_samples)),
-      format("%.6f", median_for.call(:host_compaction_removed_fraction)),
-      format("%.0f", median_for.call(:host_compaction_moved_samples)),
+      format("%.0f", median_for.call(:frontier_compaction_passes)),
+      format("%.0f", median_for.call(:frontier_compaction_input_samples)),
+      format("%.0f", median_for.call(:frontier_compaction_retained_samples)),
+      format("%.0f", median_for.call(:frontier_compaction_removed_samples)),
+      format("%.6f", median_for.call(:frontier_compaction_removed_fraction)),
+      format("%.0f", median_for.call(:frontier_compaction_moved_samples)),
       compaction_execution,
       format("%.3f", median_for.call(:sample_generation_ms)),
       format("%.3f", median_for.call(:integrator_ms)),

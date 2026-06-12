@@ -898,7 +898,7 @@ Possible follow-ups after the hybrid intersection backend is stable:
 
 Progress:
 
-- The path-tracing scheduler now records its host frontier compaction
+- The path-tracing scheduler now records its CPU-side frontier compaction
   operation explicitly: pass count, input path slots, retained path slots,
   removed inactive slots, moved live slots, removed fraction, and execution
   path. This is still CPU-side compaction, but it creates a concrete execution

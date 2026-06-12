@@ -669,23 +669,22 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("frontierMixedQueryAnyHitRays"));
   addDetailStringMetadataRow(rows, QStringLiteral("Compaction execution"), batching,
                              QStringLiteral("frontierCompactionExecutionPath"));
-  addDetailIntegerMetadataRow(rows, QStringLiteral("Host compaction passes"), batching,
-                              QStringLiteral("frontierHostCompactionPasses"));
-  addDetailIntegerMetadataRow(rows, QStringLiteral("Host compaction input samples"), batching,
-                              QStringLiteral("frontierHostCompactionInputSamples"));
-  addDetailIntegerMetadataRow(rows, QStringLiteral("Host compaction retained samples"), batching,
-                              QStringLiteral("frontierHostCompactionRetainedSamples"));
-  addDetailIntegerMetadataRow(rows, QStringLiteral("Host compaction removed samples"), batching,
-                              QStringLiteral("frontierHostCompactionRemovedSamples"));
-  if (batching.contains(QStringLiteral("frontierHostCompactionRemovedSampleFraction"))) {
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier compaction passes"), batching,
+                              QStringLiteral("frontierCompactionPasses"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier compaction input samples"), batching,
+                              QStringLiteral("frontierCompactionInputSamples"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier compaction retained samples"),
+                              batching, QStringLiteral("frontierCompactionRetainedSamples"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier compaction removed samples"), batching,
+                              QStringLiteral("frontierCompactionRemovedSamples"));
+  if (batching.contains(QStringLiteral("frontierCompactionRemovedSampleFraction"))) {
     addDetailRow(
-      rows, QStringLiteral("Host compaction removed fraction"),
+      rows, QStringLiteral("Frontier compaction removed fraction"),
       percentage(
-        batching.value(QStringLiteral("frontierHostCompactionRemovedSampleFraction")).toDouble(),
-        1.0));
+        batching.value(QStringLiteral("frontierCompactionRemovedSampleFraction")).toDouble(), 1.0));
   }
-  addDetailIntegerMetadataRow(rows, QStringLiteral("Host compaction moved samples"), batching,
-                              QStringLiteral("frontierHostCompactionMovedSamples"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier compaction moved samples"), batching,
+                              QStringLiteral("frontierCompactionMovedSamples"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Compaction candidate depths"), batching,
                               QStringLiteral("frontierCompactionCandidateDepths"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Compaction candidate samples"), batching,
@@ -1064,15 +1063,15 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         }
         const qulonglong compactionCandidateSamples =
           jsonIntegerValue(batching, QStringLiteral("frontierCompactionCandidateSamples"));
-        const qulonglong hostCompactionRemovedSamples =
-          jsonIntegerValue(batching, QStringLiteral("frontierHostCompactionRemovedSamples"));
-        if (hostCompactionRemovedSamples > 0) {
+        const qulonglong compactionRemovedSamples =
+          jsonIntegerValue(batching, QStringLiteral("frontierCompactionRemovedSamples"));
+        if (compactionRemovedSamples > 0) {
           const QString compactionExecutionPath =
             batching.value(QStringLiteral("frontierCompactionExecutionPath")).toString();
           const QString compactionExecution =
             compactionExecutionPath.isEmpty() ? QStringLiteral("host") : compactionExecutionPath;
           line += QStringLiteral(", %1 compaction removed %2 samples")
-                    .arg(compactionExecution, QString::number(hostCompactionRemovedSamples));
+                    .arg(compactionExecution, QString::number(compactionRemovedSamples));
         }
         if (compactionCandidateSamples > 0) {
           line +=

@@ -58,6 +58,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Included platform frontier ray-preparation/upload time in Metal and Vulkan
   wavefront intersection timing metrics so prepared-frontier diagnostics do not
   undercount transfer work. — GPT-5 Codex
+- Renamed user-facing wavefront compaction diagnostics from host-specific
+  wording to generic frontier-compaction wording while keeping the legacy JSON
+  aliases for compatibility. — GPT-5 Codex
 
 ### Added
 
@@ -135,12 +138,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   backend benchmarks now publish resident-frontier round-trip estimates and
   savings counters for mixed closest-hit plus any-hit query-family rows.
   — GPT-5 Codex
-- **Wavefront host-compaction execution metrics.** Path-tracing wavefront
+- **Wavefront frontier-compaction execution metrics.** Path-tracing wavefront
   metrics, rendercli summaries, and the Modeler graph details now report the
   CPU scheduler's frontier compaction passes, input/retained/removed/moved
   sample counts, and removed fraction. — GPT-5 Codex
-- **Wavefront host-compaction capture metrics.** The wavefront convergence
-  capture helper now includes host frontier compaction counters in comparison
+- **Wavefront frontier-compaction capture metrics.** The wavefront convergence
+  capture helper now includes frontier compaction counters in comparison
   reports and queue-sweep summaries. — GPT-5 Codex
 - **Wavefront resident-frontier capture metrics.** The wavefront convergence
   capture helper now preserves closest-hit batch, direct-light any-hit batch,

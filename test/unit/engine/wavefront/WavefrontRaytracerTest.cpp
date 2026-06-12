@@ -1792,13 +1792,20 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1.0, batching.value("directLightOccludedSamples").toDouble());
     EXPECT_EQ(1.0, batching.value("unsupportedPathMaterialSamples").toDouble());
     EXPECT_EQ(1.0, batching.value("frontierHostCompactionPasses").toDouble());
+    EXPECT_EQ(1.0, batching.value("frontierCompactionPasses").toDouble());
     EXPECT_EQ(8.0, batching.value("frontierHostCompactionInputSamples").toDouble());
+    EXPECT_EQ(8.0, batching.value("frontierCompactionInputSamples").toDouble());
     EXPECT_EQ(5.0, batching.value("frontierHostCompactionRetainedSamples").toDouble());
+    EXPECT_EQ(5.0, batching.value("frontierCompactionRetainedSamples").toDouble());
     EXPECT_EQ(3.0, batching.value("frontierHostCompactionRemovedSamples").toDouble());
+    EXPECT_EQ(3.0, batching.value("frontierCompactionRemovedSamples").toDouble());
     EXPECT_EQ(2.0, batching.value("frontierHostCompactionMovedSamples").toDouble());
+    EXPECT_EQ(2.0, batching.value("frontierCompactionMovedSamples").toDouble());
     EXPECT_EQ("host", batching.value("frontierCompactionExecutionPath").toString().toStdString());
     EXPECT_DOUBLE_EQ(3.0 / 8.0,
                      batching.value("frontierHostCompactionRemovedSampleFraction").toDouble());
+    EXPECT_DOUBLE_EQ(3.0 / 8.0,
+                     batching.value("frontierCompactionRemovedSampleFraction").toDouble());
     EXPECT_DOUBLE_EQ(redLuma, batching.value("emittedRadianceLuminanceSum").toDouble());
     EXPECT_DOUBLE_EQ(greenLuma + blueLuma,
                      batching.value("directLightRadianceLuminanceSum").toDouble());

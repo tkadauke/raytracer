@@ -668,15 +668,27 @@ namespace engine::wavefront {
       static_cast<double>(batching.activeSampleDepthsProcessed);
     batchingJson["frontierHostCompactionPasses"] =
       static_cast<double>(batching.frontierHostCompactionPasses);
+    batchingJson["frontierCompactionPasses"] =
+      static_cast<double>(batching.frontierHostCompactionPasses);
     batchingJson["frontierHostCompactionInputSamples"] =
+      static_cast<double>(batching.frontierHostCompactionInputSamples);
+    batchingJson["frontierCompactionInputSamples"] =
       static_cast<double>(batching.frontierHostCompactionInputSamples);
     batchingJson["frontierHostCompactionRetainedSamples"] =
       static_cast<double>(batching.frontierHostCompactionRetainedSamples);
+    batchingJson["frontierCompactionRetainedSamples"] =
+      static_cast<double>(batching.frontierHostCompactionRetainedSamples);
     batchingJson["frontierHostCompactionRemovedSamples"] =
+      static_cast<double>(batching.frontierHostCompactionRemovedSamples);
+    batchingJson["frontierCompactionRemovedSamples"] =
       static_cast<double>(batching.frontierHostCompactionRemovedSamples);
     batchingJson["frontierHostCompactionMovedSamples"] =
       static_cast<double>(batching.frontierHostCompactionMovedSamples);
+    batchingJson["frontierCompactionMovedSamples"] =
+      static_cast<double>(batching.frontierHostCompactionMovedSamples);
     batchingJson["frontierHostCompactionRemovedSampleFraction"] =
+      batching.hostFrontierCompactionRemovedSampleFraction();
+    batchingJson["frontierCompactionRemovedSampleFraction"] =
       batching.hostFrontierCompactionRemovedSampleFraction();
     batchingJson["frontierCompactionExecutionPath"] =
       QString::fromStdString(batching.frontierCompactionExecutionPath);

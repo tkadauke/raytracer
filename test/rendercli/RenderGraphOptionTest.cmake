@@ -2609,17 +2609,23 @@ if(NOT wavefront_metrics_json MATCHES "\"retainedActiveSamplesPerDepth\"")
                   "wavefront metrics report did not contain retained active sample counts"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
-foreach(host_compaction_field
+foreach(compaction_field
         frontierCompactionExecutionPath
+        frontierCompactionPasses
+        frontierCompactionInputSamples
+        frontierCompactionRetainedSamples
+        frontierCompactionRemovedSamples
+        frontierCompactionMovedSamples
+        frontierCompactionRemovedSampleFraction
         frontierHostCompactionPasses
         frontierHostCompactionInputSamples
         frontierHostCompactionRetainedSamples
         frontierHostCompactionRemovedSamples
         frontierHostCompactionMovedSamples
         frontierHostCompactionRemovedSampleFraction)
-  if(NOT wavefront_metrics_json MATCHES "\"${host_compaction_field}\"")
-    _rendercli_fail("rendercli wavefront metrics ${host_compaction_field}"
-                    "wavefront metrics report did not contain ${host_compaction_field}"
+  if(NOT wavefront_metrics_json MATCHES "\"${compaction_field}\"")
+    _rendercli_fail("rendercli wavefront metrics ${compaction_field}"
+                    "wavefront metrics report did not contain ${compaction_field}"
                     "" "" "${wavefront_metrics_json}" "")
   endif()
 endforeach()
@@ -2646,14 +2652,14 @@ if(NOT wavefront_metrics_stdout MATCHES "last_retained_active=")
                   "wavefront metrics summary did not contain last_retained_active"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
-if(NOT wavefront_metrics_stdout MATCHES "frontier_host_compaction_passes=")
-  _rendercli_fail("rendercli wavefront metrics host compaction pass summary"
-                  "wavefront metrics summary did not contain host compaction passes"
+if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_passes=")
+  _rendercli_fail("rendercli wavefront metrics frontier compaction pass summary"
+                  "wavefront metrics summary did not contain frontier compaction passes"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
-if(NOT wavefront_metrics_stdout MATCHES "frontier_host_compaction_removed_fraction=")
-  _rendercli_fail("rendercli wavefront metrics host compaction removed fraction summary"
-                  "wavefront metrics summary did not contain host compaction removed fraction"
+if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_removed_fraction=")
+  _rendercli_fail("rendercli wavefront metrics frontier compaction removed fraction summary"
+                  "wavefront metrics summary did not contain frontier compaction removed fraction"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_candidate_depths=")

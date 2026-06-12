@@ -1166,12 +1166,12 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query closest-hit rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query any-hit rays")).isEmpty());
-    EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction passes")).isEmpty());
-    EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction input samples")).isEmpty());
-    EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction retained samples")).isEmpty());
-    EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction removed samples")).isEmpty());
-    EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction removed fraction")).isEmpty());
-    EXPECT_FALSE(rowValue(rows, QStringLiteral("Host compaction moved samples")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction passes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction input samples")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction retained samples")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction removed samples")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction removed fraction")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction moved samples")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Supports resident frontiers")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Supports GPU frontier compaction")).isEmpty());
     EXPECT_FALSE(

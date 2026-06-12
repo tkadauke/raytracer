@@ -396,18 +396,17 @@ namespace {
         << " active_sample_depths=" << unsignedValue(batching, "activeSampleDepthsProcessed")
         << " frontier_compaction_execution="
         << compactTextValue(batching.value("frontierCompactionExecutionPath"), "none")
-        << " frontier_host_compaction_passes="
-        << unsignedValue(batching, "frontierHostCompactionPasses")
-        << " frontier_host_compaction_input_samples="
-        << unsignedValue(batching, "frontierHostCompactionInputSamples")
-        << " frontier_host_compaction_retained_samples="
-        << unsignedValue(batching, "frontierHostCompactionRetainedSamples")
-        << " frontier_host_compaction_removed_samples="
-        << unsignedValue(batching, "frontierHostCompactionRemovedSamples")
-        << " frontier_host_compaction_removed_fraction="
-        << batching.value("frontierHostCompactionRemovedSampleFraction").toDouble()
-        << " frontier_host_compaction_moved_samples="
-        << unsignedValue(batching, "frontierHostCompactionMovedSamples")
+        << " frontier_compaction_passes=" << unsignedValue(batching, "frontierCompactionPasses")
+        << " frontier_compaction_input_samples="
+        << unsignedValue(batching, "frontierCompactionInputSamples")
+        << " frontier_compaction_retained_samples="
+        << unsignedValue(batching, "frontierCompactionRetainedSamples")
+        << " frontier_compaction_removed_samples="
+        << unsignedValue(batching, "frontierCompactionRemovedSamples")
+        << " frontier_compaction_removed_fraction="
+        << batching.value("frontierCompactionRemovedSampleFraction").toDouble()
+        << " frontier_compaction_moved_samples="
+        << unsignedValue(batching, "frontierCompactionMovedSamples")
         << " batches=" << unsignedValue(batching, "batches")
         << " avg_batch=" << batching.value("averageBatchSize").toDouble()
         << " max_batch=" << unsignedValue(batching, "maxBatchSize")
