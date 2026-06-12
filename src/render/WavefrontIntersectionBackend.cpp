@@ -107,6 +107,151 @@ namespace render {
       std::vector<GpuIntersectionRay> m_packedRays;
     };
 
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    class MetalPreparedPackedWavefrontClosestHitFrontier final
+        : public WavefrontClosestHitFrontier {
+    public:
+      MetalPreparedPackedWavefrontClosestHitFrontier(
+        std::vector<WavefrontClosestHitQuery> queries,
+        std::shared_ptr<const MetalWavefrontPreparedScene> preparedScene)
+          : m_queries(std::move(queries)),
+            m_packedRays(packClosestHitQueries(m_queries)),
+            m_preparedScene(std::move(preparedScene)) {
+        if (m_preparedScene) {
+          m_preparedRays = m_preparedScene->prepareRays(m_packedRays);
+        }
+      }
+
+      std::uint64_t rayCount() const override {
+        return static_cast<std::uint64_t>(m_queries.size());
+      }
+
+      const char* residency() const override {
+        return "metal_shared";
+      }
+
+      std::uint64_t packedRayBytes() const override {
+        if (m_preparedRays) {
+          return m_preparedRays->packedRayBytes();
+        }
+        return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
+      }
+
+    protected:
+      const std::vector<WavefrontClosestHitQuery>* hostClosestHitQueries() const override {
+        return &m_queries;
+      }
+
+      const std::vector<GpuIntersectionRay>* hostPackedClosestHitRays() const override {
+        return &m_packedRays;
+      }
+
+      bool hasPackedClosestHitRays() const override {
+        return true;
+      }
+
+      std::vector<GpuIntersectionHitRecord>
+      intersectPackedClosest(const WavefrontIntersectionBackend& backend,
+                             WavefrontIntersectionQueryTiming* timing = nullptr) const override {
+        if (!m_preparedScene || !m_preparedRays) {
+          return WavefrontClosestHitFrontier::intersectPackedClosest(backend, timing);
+        }
+        try {
+          const MetalWavefrontClosestHitKernelResult result =
+            m_preparedScene->runTimedBasicClosestHitKernel(*m_preparedRays);
+          if (timing) {
+            timing->add(result.timing);
+            timing->recordExecutionPath("metal");
+          }
+          return result.hits;
+        } catch (const std::exception& e) {
+          if (timing) {
+            timing->recordFallbackReason(
+              std::string("Metal closest-hit prepared frontier failed: ") + e.what());
+          }
+          return WavefrontClosestHitFrontier::intersectPackedClosest(backend, timing);
+        }
+      }
+
+    private:
+      std::vector<WavefrontClosestHitQuery> m_queries;
+      std::vector<GpuIntersectionRay> m_packedRays;
+      std::shared_ptr<const MetalWavefrontPreparedScene> m_preparedScene;
+      std::shared_ptr<const MetalWavefrontPreparedRayBatch> m_preparedRays;
+    };
+
+    class MetalPreparedPackedWavefrontAnyHitFrontier final : public WavefrontAnyHitFrontier {
+    public:
+      MetalPreparedPackedWavefrontAnyHitFrontier(
+        std::vector<WavefrontAnyHitQuery> queries,
+        std::shared_ptr<const MetalWavefrontPreparedScene> preparedScene)
+          : m_queries(std::move(queries)),
+            m_packedRays(packAnyHitQueries(m_queries)),
+            m_preparedScene(std::move(preparedScene)) {
+        if (m_preparedScene) {
+          m_preparedRays = m_preparedScene->prepareRays(m_packedRays);
+        }
+      }
+
+      std::uint64_t rayCount() const override {
+        return static_cast<std::uint64_t>(m_queries.size());
+      }
+
+      const char* residency() const override {
+        return "metal_shared";
+      }
+
+      std::uint64_t packedRayBytes() const override {
+        if (m_preparedRays) {
+          return m_preparedRays->packedRayBytes();
+        }
+        return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
+      }
+
+    protected:
+      const std::vector<WavefrontAnyHitQuery>* hostAnyHitQueries() const override {
+        return &m_queries;
+      }
+
+      const std::vector<GpuIntersectionRay>* hostPackedAnyHitRays() const override {
+        return &m_packedRays;
+      }
+
+      bool hasPackedAnyHitRays() const override {
+        return true;
+      }
+
+      std::vector<GpuIntersectionOcclusionRecord>
+      intersectPackedAny(const WavefrontIntersectionBackend& backend,
+                         WavefrontIntersectionQueryTiming* timing = nullptr) const override {
+        if (!m_preparedScene || !m_preparedRays) {
+          return WavefrontAnyHitFrontier::intersectPackedAny(backend, timing);
+        }
+        try {
+          const MetalWavefrontAnyHitKernelResult result =
+            m_preparedScene->runTimedBasicAnyHitKernel(*m_preparedRays);
+          if (timing) {
+            timing->add(result.timing);
+            timing->recordExecutionPath("metal");
+          }
+          return result.records;
+        } catch (const std::exception& e) {
+          if (timing) {
+            timing->recordFallbackReason(std::string("Metal any-hit prepared frontier failed: ") +
+                                         e.what());
+          }
+          return WavefrontAnyHitFrontier::intersectPackedAny(backend, timing);
+        }
+      }
+
+    private:
+      std::vector<WavefrontAnyHitQuery> m_queries;
+      std::vector<GpuIntersectionRay> m_packedRays;
+      std::shared_ptr<const MetalWavefrontPreparedScene> m_preparedScene;
+      std::shared_ptr<const MetalWavefrontPreparedRayBatch> m_preparedRays;
+    };
+#endif
+
     class CpuDelegatingWavefrontIntersectionBackend final : public WavefrontIntersectionBackend {
     public:
       CpuDelegatingWavefrontIntersectionBackend(
@@ -1807,6 +1952,10 @@ namespace render {
     return submittedRays > 0 && preparedPackedAnyHitAvailable();
   }
 
+  bool MetalWavefrontIntersectionBackend::supportsResidentFrontiers() const {
+    return metalBasicHitAvailable();
+  }
+
   WavefrontClosestHitResult MetalWavefrontIntersectionBackend::intersectClosestResult(
     const Scene& scene, const Rayd& ray, State& state,
     WavefrontIntersectionQueryTiming* timing) const {
@@ -1842,6 +1991,17 @@ namespace render {
   MetalWavefrontIntersectionBackend::createClosestHitFrontier(
     std::vector<WavefrontClosestHitQuery> queries) const {
     if (compiledScene()) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+      if (metalBasicHitAvailable()) {
+        try {
+          std::vector<WavefrontClosestHitQuery> metalQueries = queries;
+          return std::make_unique<MetalPreparedPackedWavefrontClosestHitFrontier>(
+            std::move(metalQueries), m_metalPreparedScene);
+        } catch (const std::exception&) {
+          return createPreparedClosestHitFrontier(std::move(queries));
+        }
+      }
+#endif
       return createPreparedClosestHitFrontier(std::move(queries));
     }
     return WavefrontIntersectionBackend::createClosestHitFrontier(std::move(queries));
@@ -1883,6 +2043,17 @@ namespace render {
   std::unique_ptr<WavefrontAnyHitFrontier> MetalWavefrontIntersectionBackend::createAnyHitFrontier(
     std::vector<WavefrontAnyHitQuery> queries) const {
     if (compiledScene()) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+      if (metalBasicHitAvailable()) {
+        try {
+          std::vector<WavefrontAnyHitQuery> metalQueries = queries;
+          return std::make_unique<MetalPreparedPackedWavefrontAnyHitFrontier>(
+            std::move(metalQueries), m_metalPreparedScene);
+        } catch (const std::exception&) {
+          return createPreparedAnyHitFrontier(std::move(queries));
+        }
+      }
+#endif
       return createPreparedAnyHitFrontier(std::move(queries));
     }
     return WavefrontIntersectionBackend::createAnyHitFrontier(std::move(queries));

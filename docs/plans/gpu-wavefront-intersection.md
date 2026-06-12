@@ -974,6 +974,10 @@ Progress:
   uploads a packed frontier once, reports ray count and packed bytes, and can be
   reused by closest-hit and any-hit dispatches without copying the ray vector
   inside each dispatch.
+- Metal GPU-intersection backends now create `metal_shared` closest-hit and
+  any-hit frontiers when a prepared Metal scene is available. Those frontiers
+  dispatch through their prepared ray batch and fall back to `packed_host`
+  behavior if Metal frontier preparation fails.
 - Backend-owned closest-hit and any-hit frontiers now report packed-ray byte
   counts through wavefront metrics, rendercli summaries, graph traces, and the
   Modeler pass details. Today only `packed_host` frontiers contribute nonzero
