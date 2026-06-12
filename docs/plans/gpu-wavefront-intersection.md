@@ -1126,6 +1126,11 @@ Progress:
   counters separate scheduler/host-state gaps from missing backend capability,
   so benchmark dashboards can filter Phase 8 blockers without parsing text
   labels.
+- Wavefront metrics now report active and retained host path-state bytes per
+  depth plus compaction-candidate and largest-candidate host path-state byte
+  estimates. That sizes the CPU-owned `BatchPath` frontier state separately
+  from packed ray payloads and `State*` handles, making the remaining scheduler
+  residency work measurable before the representation changes.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a

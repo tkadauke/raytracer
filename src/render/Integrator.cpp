@@ -174,6 +174,9 @@ namespace render {
     progressSnapshotWorkerSeconds = 0.0;
     convergenceTestWorkerSeconds = 0.0;
     observerConvergenceFeedbackDepths = 0;
+    activeHostPathStateBytesPerDepth.clear();
+    retainedHostPathStateBytesPerDepth.clear();
+    activeHostPathStateBytesProcessed = 0;
     frontierCompactionPasses = 0;
     frontierCompactionInputSamples = 0;
     frontierCompactionRetainedSamples = 0;
@@ -190,6 +193,15 @@ namespace render {
 
   void IntegratorBatchMetrics::recordRetainedActiveDepth(std::uint64_t activeSamples) {
     retainedActiveSamplesPerDepth.push_back(activeSamples);
+  }
+
+  void IntegratorBatchMetrics::recordActiveHostPathStateBytes(std::uint64_t bytes) {
+    activeHostPathStateBytesPerDepth.push_back(bytes);
+    activeHostPathStateBytesProcessed += bytes;
+  }
+
+  void IntegratorBatchMetrics::recordRetainedHostPathStateBytes(std::uint64_t bytes) {
+    retainedHostPathStateBytesPerDepth.push_back(bytes);
   }
 
   void IntegratorBatchMetrics::recordFrontierCompaction(std::uint64_t inputSamples,
@@ -274,6 +286,19 @@ namespace render {
     return compactionCandidateSampleCount() * sizeof(State*);
   }
 
+  std::uint64_t IntegratorBatchMetrics::compactionCandidateHostPathStateBytes() const {
+    const std::size_t depthCount =
+      std::min(activeHostPathStateBytesPerDepth.size(), retainedHostPathStateBytesPerDepth.size());
+    std::uint64_t bytes = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      if (activeHostPathStateBytesPerDepth[depth] > retainedHostPathStateBytesPerDepth[depth]) {
+        bytes +=
+          activeHostPathStateBytesPerDepth[depth] - retainedHostPathStateBytesPerDepth[depth];
+      }
+    }
+    return bytes;
+  }
+
   double IntegratorBatchMetrics::compactionCandidateSampleFraction() const {
     if (activeSampleDepthsProcessed == 0) {
       return 0.0;
@@ -313,6 +338,16 @@ namespace render {
 
   std::uint64_t IntegratorBatchMetrics::largestCompactionCandidateStateHandleBytes() const {
     return largestCompactionCandidateSampleCount() * sizeof(State*);
+  }
+
+  std::uint64_t IntegratorBatchMetrics::largestCompactionCandidateHostPathStateBytes() const {
+    const std::uint64_t depth = largestCompactionCandidateDepth();
+    if (depth >= activeHostPathStateBytesPerDepth.size() ||
+        depth >= retainedHostPathStateBytesPerDepth.size() ||
+        activeHostPathStateBytesPerDepth[depth] <= retainedHostPathStateBytesPerDepth[depth]) {
+      return 0;
+    }
+    return activeHostPathStateBytesPerDepth[depth] - retainedHostPathStateBytesPerDepth[depth];
   }
 
   double IntegratorBatchMetrics::largestCompactionCandidateSampleFraction() const {

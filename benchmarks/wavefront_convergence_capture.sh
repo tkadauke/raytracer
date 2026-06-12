@@ -274,6 +274,7 @@ def wavefront_metric_values(path)
     max_tile_samples: [],
     active_sample_depths: [],
     retained_active_samples: [],
+    active_host_path_state_bytes: [],
     frontier_hit_rays: [],
     frontier_miss_rays: [],
     frontier_packet_chunks: [],
@@ -325,8 +326,10 @@ def wavefront_metric_values(path)
     frontier_compaction_retained_index_bytes: [],
     frontier_compaction_candidate_packed_ray_bytes: [],
     frontier_compaction_candidate_state_handle_bytes: [],
+    frontier_compaction_candidate_host_path_state_bytes: [],
     frontier_largest_compaction_candidate_packed_ray_bytes: [],
     frontier_largest_compaction_candidate_state_handle_bytes: [],
+    frontier_largest_compaction_candidate_host_path_state_bytes: [],
     convergence_feedback_depths: [],
     sample_generation_worker_seconds: [],
     sample_stream_worker_seconds: [],
@@ -359,6 +362,7 @@ def wavefront_metric_values(path)
       max_tile_samples: 0.0,
       active_sample_depths: 0.0,
       retained_active_samples: 0.0,
+      active_host_path_state_bytes: 0.0,
       frontier_hit_rays: 0.0,
       frontier_miss_rays: 0.0,
       frontier_packet_chunks: 0.0,
@@ -410,8 +414,10 @@ def wavefront_metric_values(path)
       frontier_compaction_retained_index_bytes: 0.0,
       frontier_compaction_candidate_packed_ray_bytes: 0.0,
       frontier_compaction_candidate_state_handle_bytes: 0.0,
+      frontier_compaction_candidate_host_path_state_bytes: 0.0,
       frontier_largest_compaction_candidate_packed_ray_bytes: 0.0,
       frontier_largest_compaction_candidate_state_handle_bytes: 0.0,
+      frontier_largest_compaction_candidate_host_path_state_bytes: 0.0,
       convergence_feedback_depths: 0.0,
       sample_generation_worker_seconds: 0.0,
       sample_stream_worker_seconds: 0.0,
@@ -481,6 +487,8 @@ def wavefront_metric_values(path)
 
     batchings.compact.each do |batching|
       run_values[:active_sample_depths] += batching.fetch("activeSampleDepthsProcessed", 0).to_f
+      run_values[:active_host_path_state_bytes] +=
+        batching.fetch("activeHostPathStateBytesProcessed", 0).to_f
       retained = batching.fetch("retainedActiveSamplesPerDepth", [])
       run_values[:retained_active_samples] += retained.empty? ? 0.0 : retained.last.to_f
       run_values[:frontier_hit_rays] +=
@@ -607,12 +615,17 @@ def wavefront_metric_values(path)
         batching.fetch("frontierCompactionCandidatePackedRayBytes", 0).to_f
       run_values[:frontier_compaction_candidate_state_handle_bytes] +=
         batching.fetch("frontierCompactionCandidateStateHandleBytes", 0).to_f
+      run_values[:frontier_compaction_candidate_host_path_state_bytes] +=
+        batching.fetch("frontierCompactionCandidateHostPathStateBytes", 0).to_f
       run_values[:frontier_largest_compaction_candidate_packed_ray_bytes] =
         [run_values[:frontier_largest_compaction_candidate_packed_ray_bytes],
          batching.fetch("frontierLargestCompactionCandidatePackedRayBytes", 0).to_f].max
       run_values[:frontier_largest_compaction_candidate_state_handle_bytes] =
         [run_values[:frontier_largest_compaction_candidate_state_handle_bytes],
          batching.fetch("frontierLargestCompactionCandidateStateHandleBytes", 0).to_f].max
+      run_values[:frontier_largest_compaction_candidate_host_path_state_bytes] =
+        [run_values[:frontier_largest_compaction_candidate_host_path_state_bytes],
+         batching.fetch("frontierLargestCompactionCandidateHostPathStateBytes", 0).to_f].max
     end
     if run_values[:frontier_compaction_input_samples].positive?
       run_values[:frontier_compaction_removed_fraction] =
@@ -736,6 +749,7 @@ end
    any_hit_frontier_host_query_bytes
    closest_hit_frontier_state_handle_bytes
    any_hit_frontier_state_handle_bytes
+   active_host_path_state_bytes
    resident_frontiers_supported
    gpu_frontier_compaction_supported
    prepared_ray_batch_compaction_supported
@@ -774,8 +788,10 @@ end
    frontier_compaction_retained_index_bytes
    frontier_compaction_candidate_packed_ray_bytes
    frontier_compaction_candidate_state_handle_bytes
+   frontier_compaction_candidate_host_path_state_bytes
    frontier_largest_compaction_candidate_packed_ray_bytes
-   frontier_largest_compaction_candidate_state_handle_bytes].each do |key|
+   frontier_largest_compaction_candidate_state_handle_bytes
+   frontier_largest_compaction_candidate_host_path_state_bytes].each do |key|
   reference = median(reference_values[key])
   candidate = median(candidate_values[key])
   delta = candidate - reference
@@ -872,6 +888,7 @@ def aggregate_run(run)
   values = {
     primary_samples: 0.0,
     retained_active_samples: 0.0,
+    active_host_path_state_bytes: 0.0,
     tile_count: 0.0,
     tile_rows: 0.0,
     tile_columns: 0.0,
@@ -927,8 +944,10 @@ def aggregate_run(run)
     frontier_compaction_retained_index_bytes: 0.0,
     frontier_compaction_candidate_packed_ray_bytes: 0.0,
     frontier_compaction_candidate_state_handle_bytes: 0.0,
+    frontier_compaction_candidate_host_path_state_bytes: 0.0,
     frontier_largest_compaction_candidate_packed_ray_bytes: 0.0,
     frontier_largest_compaction_candidate_state_handle_bytes: 0.0,
+    frontier_largest_compaction_candidate_host_path_state_bytes: 0.0,
     compaction_execution_paths: [],
     sample_generation_ms: 0.0,
     integrator_ms: 0.0,
@@ -946,6 +965,8 @@ def aggregate_run(run)
     average_tile_samples = tiling.fetch("averageNonEmptyTileSamples", 0).to_f
 
     values[:primary_samples] += primary_samples
+    values[:active_host_path_state_bytes] +=
+      batching.fetch("activeHostPathStateBytesProcessed", 0).to_f
     retained = batching.fetch("retainedActiveSamplesPerDepth", [])
     values[:retained_active_samples] += retained.empty? ? 0.0 : retained.last.to_f
     values[:tile_count] += tiling.fetch("tileCount", 0).to_f
@@ -1057,12 +1078,17 @@ def aggregate_run(run)
       batching.fetch("frontierCompactionCandidatePackedRayBytes", 0).to_f
     values[:frontier_compaction_candidate_state_handle_bytes] +=
       batching.fetch("frontierCompactionCandidateStateHandleBytes", 0).to_f
+    values[:frontier_compaction_candidate_host_path_state_bytes] +=
+      batching.fetch("frontierCompactionCandidateHostPathStateBytes", 0).to_f
     values[:frontier_largest_compaction_candidate_packed_ray_bytes] =
       [values[:frontier_largest_compaction_candidate_packed_ray_bytes],
        batching.fetch("frontierLargestCompactionCandidatePackedRayBytes", 0).to_f].max
     values[:frontier_largest_compaction_candidate_state_handle_bytes] =
       [values[:frontier_largest_compaction_candidate_state_handle_bytes],
        batching.fetch("frontierLargestCompactionCandidateStateHandleBytes", 0).to_f].max
+    values[:frontier_largest_compaction_candidate_host_path_state_bytes] =
+      [values[:frontier_largest_compaction_candidate_host_path_state_bytes],
+       batching.fetch("frontierLargestCompactionCandidateHostPathStateBytes", 0).to_f].max
     compaction_path = batching.fetch("frontierCompactionExecutionPath", "")
     values[:compaction_execution_paths] << compaction_path unless compaction_path.empty?
     values[:sample_generation_ms] +=
@@ -1102,7 +1128,7 @@ scene_dir = ARGV.fetch(0)
 queue_dirs = Dir.glob(File.join(scene_dir, "queue_*")).select { |path| File.directory?(path) }
 queue_dirs.sort_by! { |path| File.basename(path).delete_prefix("queue_").to_i }
 
-puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks closest_hit_batch_chunks closest_hit_batch_rays any_hit_batch_chunks any_hit_batch_rays frontier_round_trips resident_frontier_round_trips resident_frontier_savings closest_hit_ray_upload_bytes any_hit_ray_upload_bytes closest_hit_query_transfer_bytes any_hit_query_transfer_bytes closest_hit_frontier_residency any_hit_frontier_residency closest_hit_frontier_packed_ray_bytes any_hit_frontier_packed_ray_bytes closest_hit_frontier_host_query_bytes any_hit_frontier_host_query_bytes closest_hit_frontier_state_handle_bytes any_hit_frontier_state_handle_bytes resident_frontiers_supported gpu_frontier_compaction_supported gpu_frontier_compaction_unavailable_reason prepared_ray_batch_compaction_supported resident_direct_light_batches_supported resident_direct_light_batches_unavailable_reason mixed_query_depths mixed_query_round_trips mixed_query_rays mixed_query_closest_hit_rays mixed_query_any_hit_rays packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays frontier_compaction_passes frontier_compaction_input_samples frontier_compaction_retained_samples frontier_compaction_removed_samples frontier_compaction_removed_fraction frontier_compaction_moved_samples frontier_compaction_moved_retained_fraction frontier_compaction_retained_index_bytes frontier_compaction_candidate_packed_ray_bytes frontier_compaction_candidate_state_handle_bytes frontier_largest_compaction_candidate_packed_ray_bytes frontier_largest_compaction_candidate_state_handle_bytes compaction_execution sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
+puts "queue_size variant render_ms primary_samples last_retained_active active_host_path_state_bytes tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks closest_hit_batch_chunks closest_hit_batch_rays any_hit_batch_chunks any_hit_batch_rays frontier_round_trips resident_frontier_round_trips resident_frontier_savings closest_hit_ray_upload_bytes any_hit_ray_upload_bytes closest_hit_query_transfer_bytes any_hit_query_transfer_bytes closest_hit_frontier_residency any_hit_frontier_residency closest_hit_frontier_packed_ray_bytes any_hit_frontier_packed_ray_bytes closest_hit_frontier_host_query_bytes any_hit_frontier_host_query_bytes closest_hit_frontier_state_handle_bytes any_hit_frontier_state_handle_bytes resident_frontiers_supported gpu_frontier_compaction_supported gpu_frontier_compaction_unavailable_reason prepared_ray_batch_compaction_supported resident_direct_light_batches_supported resident_direct_light_batches_unavailable_reason mixed_query_depths mixed_query_round_trips mixed_query_rays mixed_query_closest_hit_rays mixed_query_any_hit_rays packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays frontier_compaction_passes frontier_compaction_input_samples frontier_compaction_retained_samples frontier_compaction_removed_samples frontier_compaction_removed_fraction frontier_compaction_moved_samples frontier_compaction_moved_retained_fraction frontier_compaction_retained_index_bytes frontier_compaction_candidate_packed_ray_bytes frontier_compaction_candidate_state_handle_bytes frontier_compaction_candidate_host_path_state_bytes frontier_largest_compaction_candidate_packed_ray_bytes frontier_largest_compaction_candidate_state_handle_bytes frontier_largest_compaction_candidate_host_path_state_bytes compaction_execution sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
 queue_dirs.each do |queue_dir|
   queue_size = File.basename(queue_dir).delete_prefix("queue_")
   Dir.glob(File.join(queue_dir, "wavefront_*.metrics.json")).sort.each do |metrics_path|
@@ -1140,6 +1166,7 @@ queue_dirs.each do |queue_dir|
       format("%.3f", render_median_ms(stdout_path)),
       format("%.0f", median_for.call(:primary_samples)),
       format("%.0f", median_for.call(:retained_active_samples)),
+      format("%.0f", median_for.call(:active_host_path_state_bytes)),
       format("%.0f", median_for.call(:tile_count)),
       tile_grid,
       format("%.0f", median_for.call(:max_tile_width)),
@@ -1195,8 +1222,10 @@ queue_dirs.each do |queue_dir|
       format("%.0f", median_for.call(:frontier_compaction_retained_index_bytes)),
       format("%.0f", median_for.call(:frontier_compaction_candidate_packed_ray_bytes)),
       format("%.0f", median_for.call(:frontier_compaction_candidate_state_handle_bytes)),
+      format("%.0f", median_for.call(:frontier_compaction_candidate_host_path_state_bytes)),
       format("%.0f", median_for.call(:frontier_largest_compaction_candidate_packed_ray_bytes)),
       format("%.0f", median_for.call(:frontier_largest_compaction_candidate_state_handle_bytes)),
+      format("%.0f", median_for.call(:frontier_largest_compaction_candidate_host_path_state_bytes)),
       compaction_execution,
       format("%.3f", median_for.call(:sample_generation_ms)),
       format("%.3f", median_for.call(:integrator_ms)),

@@ -1191,6 +1191,17 @@ namespace WavefrontRaytracerTest {
       json.value("batching").toObject().value("retainedActiveSamplesPerDepth").toArray();
     ASSERT_EQ(1, retainedActiveSamples.size());
     EXPECT_EQ(0.0, retainedActiveSamples.at(0).toDouble());
+    const QJsonArray activeHostPathStateBytes =
+      json.value("batching").toObject().value("activeHostPathStateBytesPerDepth").toArray();
+    ASSERT_EQ(1, activeHostPathStateBytes.size());
+    EXPECT_GT(activeHostPathStateBytes.at(0).toDouble(), 0.0);
+    EXPECT_EQ(
+      activeHostPathStateBytes.at(0).toDouble(),
+      json.value("batching").toObject().value("activeHostPathStateBytesProcessed").toDouble());
+    const QJsonArray retainedHostPathStateBytes =
+      json.value("batching").toObject().value("retainedHostPathStateBytesPerDepth").toArray();
+    ASSERT_EQ(1, retainedHostPathStateBytes.size());
+    EXPECT_EQ(0.0, retainedHostPathStateBytes.at(0).toDouble());
     EXPECT_EQ(
       1.0, json.value("batching").toObject().value("frontierCompactionCandidateDepths").toDouble());
     EXPECT_EQ(
@@ -1205,6 +1216,11 @@ namespace WavefrontRaytracerTest {
               json.value("batching")
                 .toObject()
                 .value("frontierCompactionCandidateStateHandleBytes")
+                .toDouble());
+    EXPECT_EQ(activeHostPathStateBytes.at(0).toDouble(),
+              json.value("batching")
+                .toObject()
+                .value("frontierCompactionCandidateHostPathStateBytes")
                 .toDouble());
     EXPECT_DOUBLE_EQ(1.0, json.value("batching")
                             .toObject()
@@ -1227,6 +1243,11 @@ namespace WavefrontRaytracerTest {
               json.value("batching")
                 .toObject()
                 .value("frontierLargestCompactionCandidateStateHandleBytes")
+                .toDouble());
+    EXPECT_EQ(activeHostPathStateBytes.at(0).toDouble(),
+              json.value("batching")
+                .toObject()
+                .value("frontierLargestCompactionCandidateHostPathStateBytes")
                 .toDouble());
     EXPECT_DOUBLE_EQ(1.0, json.value("batching")
                             .toObject()

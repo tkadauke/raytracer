@@ -311,7 +311,10 @@ flags only when they actually keep that state on device. The compaction
 candidate diagnostics apply the same split to inactive paths: packed-ray bytes
 estimate the intersection payload that could be compacted, while state-handle
 bytes estimate the remaining CPU path-state association tied to those candidate
-rays.
+rays. Host path-state byte counters separately estimate the full scheduler
+`BatchPath` footprint that is still owned by the CPU path tracer. That makes the
+larger Phase 8 handoff visible: compacting ray buffers is not enough until the
+active path state itself has a resident representation or an explicit mirror.
 The path tracer also reports frontier compaction metrics for the operation it
 already performs between depths: input path slots, retained slots, removed
 inactive slots, moved live slots, removed fraction, retained-index bytes, and
@@ -327,12 +330,14 @@ instead of carrying as inactive lanes. The candidate fraction reports that
 count relative to total active sample-depth work so small and large renders can
 be compared directly. The candidate packed-ray byte estimate converts that
 sample count into the transfer-sized payload a GPU backend would need to
-compact. The largest-candidate depth, sample count, and packed-ray byte
-estimate identify where compaction pressure is concentrated, which is more
-useful for planning a per-depth GPU compaction pass than only knowing the
-whole-render total. The largest-candidate fraction then reports how much of
-that depth is inactive, so the diagnostic separates a large frontier from a
-mostly wasted frontier.
+compact. The host path-state byte estimate converts the same candidate work
+into the CPU scheduler memory still tied to those samples. The
+largest-candidate depth, sample count, packed-ray bytes, and host path-state
+bytes identify where compaction pressure is concentrated, which is more useful
+for planning a per-depth GPU compaction pass than only knowing the whole-render
+total. The largest-candidate fraction then reports how much of that depth is
+inactive, so the diagnostic separates a large frontier from a mostly wasted
+frontier.
 Executed compaction also reports the fraction of retained paths that had to move
 to a new slot. That moved-retained fraction approximates copy pressure for a
 future GPU compaction kernel: removing many inactive paths is useful, but moving

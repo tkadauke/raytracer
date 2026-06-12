@@ -1860,6 +1860,21 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(3u, metrics.activeSampleDepthsProcessed);
+    ASSERT_EQ(2u, metrics.activeHostPathStateBytesPerDepth.size());
+    ASSERT_EQ(2u, metrics.retainedHostPathStateBytesPerDepth.size());
+    EXPECT_GT(metrics.activeHostPathStateBytesPerDepth[0], 0u);
+    EXPECT_EQ(metrics.activeHostPathStateBytesPerDepth[0],
+              metrics.activeHostPathStateBytesPerDepth[1] * 2u);
+    EXPECT_EQ(metrics.activeHostPathStateBytesPerDepth[1],
+              metrics.retainedHostPathStateBytesPerDepth[0]);
+    EXPECT_EQ(0u, metrics.retainedHostPathStateBytesPerDepth[1]);
+    EXPECT_EQ(metrics.activeHostPathStateBytesPerDepth[0] +
+                metrics.activeHostPathStateBytesPerDepth[1],
+              metrics.activeHostPathStateBytesProcessed);
+    EXPECT_EQ(metrics.activeHostPathStateBytesPerDepth[0],
+              metrics.compactionCandidateHostPathStateBytes());
+    EXPECT_EQ(metrics.activeHostPathStateBytesPerDepth[1],
+              metrics.largestCompactionCandidateHostPathStateBytes());
     // Exact delta branches append spawned continuations after old frontier
     // slots are compacted, so these counters describe the host compaction
     // operation itself. retainedActiveSamplesPerDepth describes the next

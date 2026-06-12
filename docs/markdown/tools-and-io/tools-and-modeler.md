@@ -197,7 +197,9 @@ CPU query-vector storage is still kept after a frontier is prepared. State
 handle byte counters show the remaining per-ray `State*` association retained
 by packed or platform frontiers after the original query vector is gone.
 Compaction candidate byte counters apply the same split to inactive paths so
-the graph can show both ray payload and remaining state-handle footprint.
+the graph can show both ray payload and remaining state-handle footprint. Host
+path-state byte counters add the larger scheduler-owned `BatchPath` footprint
+that the CPU path tracer still compacts directly.
 Backend capability flags separately state whether the selected backend already
 supports resident frontiers, prepared ray-batch compaction, scheduler-level GPU
 frontier compaction, or resident direct-light batches. Prepared ray-batch
@@ -222,10 +224,12 @@ the CPU-side baseline for future GPU-side active-ray compaction; the candidate
 fraction keeps that pressure comparable across different image sizes and sample
 counts. The same diagnostics convert candidate samples into packed-ray byte
 estimates so a future GPU pass can size upload, compaction, and dispatch
-buffers from the current render. The largest compaction candidate depth, sample
-count, and packed-ray bytes point to the single depth where a future compaction
-pass would remove the most inactive path state, and its local fraction
-distinguishes a large depth from a mostly inactive one.
+buffers from the current render. Host path-state bytes size the CPU scheduler
+state tied to those same inactive samples. The largest compaction candidate
+depth, sample count, packed-ray bytes, and host path-state bytes point to the
+single depth where a future compaction pass would remove the most inactive path
+state, and its local fraction distinguishes a large depth from a mostly
+inactive one.
 When a platform kernel actually runs, the same summary separates backend
 upload/setup, kernel dispatch/wait, and readback time; CPU fallback paths keep
 those backend buckets at zero while total intersection worker time still
@@ -401,10 +405,15 @@ compact summary prints total `tiles`, `tile_grid`,
 `frontier_compaction_removed_fraction`,
 `frontier_compaction_moved_samples`,
 `frontier_compaction_moved_retained_fraction`,
+`active_host_path_state_bytes`,
 `frontier_compaction_candidate_packed_ray_bytes`,
+`frontier_compaction_candidate_state_handle_bytes`,
+`frontier_compaction_candidate_host_path_state_bytes`,
 `frontier_largest_compaction_candidate_depth`,
 `frontier_largest_compaction_candidate_samples`,
 `frontier_largest_compaction_candidate_packed_ray_bytes`,
+`frontier_largest_compaction_candidate_state_handle_bytes`,
+`frontier_largest_compaction_candidate_host_path_state_bytes`,
 `frontier_largest_compaction_candidate_fraction`,
 `intersection_backend_gpu_device`,
 `intersection_backend_gpu_render_path`,

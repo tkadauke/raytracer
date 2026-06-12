@@ -1192,9 +1192,14 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(residentDirectLightUnavailableReason.isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate depths")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate samples")).isEmpty());
+    EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Compaction candidate host path-state bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Compaction candidate fraction")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Largest compaction candidate depth")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Largest compaction candidate samples")).isEmpty());
+    EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Largest compaction candidate host path-state bytes"))
+        .isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Largest compaction candidate fraction")).isEmpty());
 
     auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
@@ -1213,6 +1218,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("host compaction removed")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("retained-index bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("compaction candidate samples")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("host path-state bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("largest compaction candidate")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("inactive")));
   }

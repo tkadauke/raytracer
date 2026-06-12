@@ -63,6 +63,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added numeric benchmark counters that split unavailable GPU frontier
   compaction and resident direct-light batches into scheduler/host-state versus
   backend-capability gaps. — GPT-5 Codex
+- Reported wavefront host path-state byte counters in metrics, rendercli
+  summaries, convergence captures, and Modeler graph details to size the
+  CPU-owned `BatchPath` state still blocking resident frontier scheduling.
+  — GPT-5 Codex
 - Included `packed_host` frontier ray-packing time in wavefront backend
   preparation/upload timing diagnostics. — GPT-5 Codex
 - Preserved wavefront frontier residency labels in convergence comparison and

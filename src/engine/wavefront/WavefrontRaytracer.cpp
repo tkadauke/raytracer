@@ -231,6 +231,7 @@ namespace engine::wavefront {
     ambientRadianceLuminanceSum += metrics.ambientRadianceLuminanceSum;
     missRadianceLuminanceSum += metrics.missRadianceLuminanceSum;
     compatibilityShadeRadianceLuminanceSum += metrics.compatibilityShadeRadianceLuminanceSum;
+    activeHostPathStateBytesProcessed += metrics.activeHostPathStateBytesProcessed;
 
     const auto addCounts = [](std::vector<std::uint64_t>& target,
                               const std::vector<std::uint64_t>& source) {
@@ -243,6 +244,8 @@ namespace engine::wavefront {
     };
     addCounts(activeSamplesPerDepth, metrics.activeSamplesPerDepth);
     addCounts(retainedActiveSamplesPerDepth, metrics.retainedActiveSamplesPerDepth);
+    addCounts(activeHostPathStateBytesPerDepth, metrics.activeHostPathStateBytesPerDepth);
+    addCounts(retainedHostPathStateBytesPerDepth, metrics.retainedHostPathStateBytesPerDepth);
     addCounts(frontierRayHitsPerDepth, metrics.frontierRayHitsPerDepth);
     addCounts(frontierRayMissesPerDepth, metrics.frontierRayMissesPerDepth);
     addCounts(frontierPacketChunksPerDepth, metrics.frontierPacketChunksPerDepth);
@@ -342,6 +345,20 @@ namespace engine::wavefront {
     return compactionCandidateSampleCount() * sizeof(render::State*);
   }
 
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::compactionCandidateHostPathStateBytes() const {
+    const std::size_t depthCount =
+      std::min(activeHostPathStateBytesPerDepth.size(), retainedHostPathStateBytesPerDepth.size());
+    std::uint64_t bytes = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      if (activeHostPathStateBytesPerDepth[depth] > retainedHostPathStateBytesPerDepth[depth]) {
+        bytes +=
+          activeHostPathStateBytesPerDepth[depth] - retainedHostPathStateBytesPerDepth[depth];
+      }
+    }
+    return bytes;
+  }
+
   double WavefrontRenderMetrics::BatchSummary::compactionCandidateSampleFraction() const {
     if (activeSampleDepthsProcessed == 0) {
       return 0.0;
@@ -384,6 +401,17 @@ namespace engine::wavefront {
   std::uint64_t
   WavefrontRenderMetrics::BatchSummary::largestCompactionCandidateStateHandleBytes() const {
     return largestCompactionCandidateSampleCount() * sizeof(render::State*);
+  }
+
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::largestCompactionCandidateHostPathStateBytes() const {
+    const std::uint64_t depth = largestCompactionCandidateDepth();
+    if (depth >= activeHostPathStateBytesPerDepth.size() ||
+        depth >= retainedHostPathStateBytesPerDepth.size() ||
+        activeHostPathStateBytesPerDepth[depth] <= retainedHostPathStateBytesPerDepth[depth]) {
+      return 0;
+    }
+    return activeHostPathStateBytesPerDepth[depth] - retainedHostPathStateBytesPerDepth[depth];
   }
 
   double WavefrontRenderMetrics::BatchSummary::largestCompactionCandidateSampleFraction() const {
@@ -554,6 +582,10 @@ namespace engine::wavefront {
     const QJsonArray activeSamplesPerDepth = integerArray(batching.activeSamplesPerDepth);
     const QJsonArray retainedActiveSamplesPerDepth =
       integerArray(batching.retainedActiveSamplesPerDepth);
+    const QJsonArray activeHostPathStateBytesPerDepth =
+      integerArray(batching.activeHostPathStateBytesPerDepth);
+    const QJsonArray retainedHostPathStateBytesPerDepth =
+      integerArray(batching.retainedHostPathStateBytesPerDepth);
     const QJsonArray frontierRayHitsPerDepth = integerArray(batching.frontierRayHitsPerDepth);
     const QJsonArray frontierRayMissesPerDepth = integerArray(batching.frontierRayMissesPerDepth);
     const QJsonArray frontierPacketChunksPerDepth =
@@ -740,6 +772,8 @@ namespace engine::wavefront {
     batchingJson["averageBatchSize"] = batching.averageBatchSize;
     batchingJson["activeSampleDepthsProcessed"] =
       static_cast<double>(batching.activeSampleDepthsProcessed);
+    batchingJson["activeHostPathStateBytesProcessed"] =
+      static_cast<double>(batching.activeHostPathStateBytesProcessed);
     batchingJson["frontierHostCompactionPasses"] =
       static_cast<double>(batching.frontierCompactionPasses);
     batchingJson["frontierCompactionPasses"] =
@@ -798,6 +832,8 @@ namespace engine::wavefront {
       batching.compatibilityShadeRadianceLuminanceSum;
     batchingJson["activeSamplesPerDepth"] = activeSamplesPerDepth;
     batchingJson["retainedActiveSamplesPerDepth"] = retainedActiveSamplesPerDepth;
+    batchingJson["activeHostPathStateBytesPerDepth"] = activeHostPathStateBytesPerDepth;
+    batchingJson["retainedHostPathStateBytesPerDepth"] = retainedHostPathStateBytesPerDepth;
     batchingJson["frontierCompactionCandidateDepths"] =
       static_cast<double>(batching.compactionCandidateDepthCount());
     batchingJson["frontierCompactionCandidateSamples"] =
@@ -806,6 +842,8 @@ namespace engine::wavefront {
       static_cast<double>(batching.compactionCandidatePackedRayBytes());
     batchingJson["frontierCompactionCandidateStateHandleBytes"] =
       static_cast<double>(batching.compactionCandidateStateHandleBytes());
+    batchingJson["frontierCompactionCandidateHostPathStateBytes"] =
+      static_cast<double>(batching.compactionCandidateHostPathStateBytes());
     batchingJson["frontierCompactionCandidateSampleFraction"] =
       batching.compactionCandidateSampleFraction();
     batchingJson["frontierLargestCompactionCandidateDepth"] =
@@ -816,6 +854,8 @@ namespace engine::wavefront {
       static_cast<double>(batching.largestCompactionCandidatePackedRayBytes());
     batchingJson["frontierLargestCompactionCandidateStateHandleBytes"] =
       static_cast<double>(batching.largestCompactionCandidateStateHandleBytes());
+    batchingJson["frontierLargestCompactionCandidateHostPathStateBytes"] =
+      static_cast<double>(batching.largestCompactionCandidateHostPathStateBytes());
     batchingJson["frontierLargestCompactionCandidateSampleFraction"] =
       batching.largestCompactionCandidateSampleFraction();
     batchingJson["frontierRayHitsPerDepth"] = frontierRayHitsPerDepth;

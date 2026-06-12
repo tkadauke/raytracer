@@ -208,6 +208,11 @@ namespace engine::wavefront::detail {
       addMapValues(target.frontierPacketRefinedRaysByMaterial,
                    source.frontierPacketRefinedRaysByMaterial);
       target.activeSampleDepthsProcessed += source.activeSampleDepthsProcessed;
+      target.activeHostPathStateBytesProcessed += source.activeHostPathStateBytesProcessed;
+      addVectorValues(target.activeHostPathStateBytesPerDepth,
+                      source.activeHostPathStateBytesPerDepth);
+      addVectorValues(target.retainedHostPathStateBytesPerDepth,
+                      source.retainedHostPathStateBytesPerDepth);
       addVectorValues(target.radianceDeltaSquaredSumPerDepth,
                       source.radianceDeltaSquaredSumPerDepth);
       if (target.maxRadianceDeltaPerDepth.size() < source.maxRadianceDeltaPerDepth.size()) {

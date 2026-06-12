@@ -169,6 +169,10 @@ namespace {
       const QJsonArray activeSamples = batching.value("activeSamplesPerDepth").toArray();
       const QJsonArray retainedActiveSamples =
         batching.value("retainedActiveSamplesPerDepth").toArray();
+      const QJsonArray activeHostPathStateBytes =
+        batching.value("activeHostPathStateBytesPerDepth").toArray();
+      const QJsonArray retainedHostPathStateBytes =
+        batching.value("retainedHostPathStateBytesPerDepth").toArray();
       const QJsonArray frontierHits = batching.value("frontierRayHitsPerDepth").toArray();
       const QJsonArray frontierMisses = batching.value("frontierRayMissesPerDepth").toArray();
       const QJsonArray frontierPackets = batching.value("frontierPacketChunksPerDepth").toArray();
@@ -421,6 +425,8 @@ namespace {
         << " avg_tile_samples=" << tiling.value("averageNonEmptyTileSamples").toDouble()
         << " max_tile_samples=" << unsignedValue(tiling, "maxTileSamples")
         << " active_sample_depths=" << unsignedValue(batching, "activeSampleDepthsProcessed")
+        << " active_host_path_state_bytes="
+        << unsignedValue(batching, "activeHostPathStateBytesProcessed")
         << " frontier_compaction_execution="
         << compactTextValue(batching.value("frontierCompactionExecutionPath"), "none")
         << " frontier_compaction_passes=" << unsignedValue(batching, "frontierCompactionPasses")
@@ -444,6 +450,8 @@ namespace {
         << " active_depths=" << activeSamples.size()
         << " last_active=" << unsignedArrayBack(activeSamples)
         << " last_retained_active=" << unsignedArrayBack(retainedActiveSamples)
+        << " last_active_host_path_state_bytes=" << unsignedArrayBack(activeHostPathStateBytes)
+        << " last_retained_host_path_state_bytes=" << unsignedArrayBack(retainedHostPathStateBytes)
         << " frontier_compaction_candidate_depths="
         << unsignedValue(batching, "frontierCompactionCandidateDepths")
         << " frontier_compaction_candidate_samples="
@@ -452,6 +460,8 @@ namespace {
         << unsignedValue(batching, "frontierCompactionCandidatePackedRayBytes")
         << " frontier_compaction_candidate_state_handle_bytes="
         << unsignedValue(batching, "frontierCompactionCandidateStateHandleBytes")
+        << " frontier_compaction_candidate_host_path_state_bytes="
+        << unsignedValue(batching, "frontierCompactionCandidateHostPathStateBytes")
         << " frontier_compaction_candidate_fraction="
         << batching.value("frontierCompactionCandidateSampleFraction").toDouble()
         << " frontier_largest_compaction_candidate_depth="
@@ -462,6 +472,8 @@ namespace {
         << unsignedValue(batching, "frontierLargestCompactionCandidatePackedRayBytes")
         << " frontier_largest_compaction_candidate_state_handle_bytes="
         << unsignedValue(batching, "frontierLargestCompactionCandidateStateHandleBytes")
+        << " frontier_largest_compaction_candidate_host_path_state_bytes="
+        << unsignedValue(batching, "frontierLargestCompactionCandidateHostPathStateBytes")
         << " frontier_largest_compaction_candidate_fraction="
         << batching.value("frontierLargestCompactionCandidateSampleFraction").toDouble()
         << " frontier_hit_rays=" << unsignedArraySum(frontierHits)

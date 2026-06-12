@@ -145,6 +145,9 @@ namespace render {
     double convergenceTestWorkerSeconds{0.0};
     std::uint64_t observerConvergenceFeedbackDepths{0};
     std::vector<std::uint64_t> retainedActiveSamplesPerDepth;
+    std::vector<std::uint64_t> activeHostPathStateBytesPerDepth;
+    std::vector<std::uint64_t> retainedHostPathStateBytesPerDepth;
+    std::uint64_t activeHostPathStateBytesProcessed{0};
     std::uint64_t frontierCompactionPasses{0};
     std::uint64_t frontierCompactionInputSamples{0};
     std::uint64_t frontierCompactionRetainedSamples{0};
@@ -156,6 +159,8 @@ namespace render {
     void reset(bool scalarFallback);
     void recordActiveDepth(std::uint64_t activeSamples);
     void recordRetainedActiveDepth(std::uint64_t activeSamples);
+    void recordActiveHostPathStateBytes(std::uint64_t bytes);
+    void recordRetainedHostPathStateBytes(std::uint64_t bytes);
     void recordFrontierCompaction(std::uint64_t inputSamples, std::uint64_t retainedSamples,
                                   std::uint64_t movedSamples, const std::string& executionPath,
                                   std::uint64_t retainedIndexBytes = 0);
@@ -169,11 +174,13 @@ namespace render {
     [[nodiscard]] std::uint64_t compactionCandidateSampleCount() const;
     [[nodiscard]] std::uint64_t compactionCandidatePackedRayBytes() const;
     [[nodiscard]] std::uint64_t compactionCandidateStateHandleBytes() const;
+    [[nodiscard]] std::uint64_t compactionCandidateHostPathStateBytes() const;
     [[nodiscard]] double compactionCandidateSampleFraction() const;
     [[nodiscard]] std::uint64_t largestCompactionCandidateDepth() const;
     [[nodiscard]] std::uint64_t largestCompactionCandidateSampleCount() const;
     [[nodiscard]] std::uint64_t largestCompactionCandidatePackedRayBytes() const;
     [[nodiscard]] std::uint64_t largestCompactionCandidateStateHandleBytes() const;
+    [[nodiscard]] std::uint64_t largestCompactionCandidateHostPathStateBytes() const;
     [[nodiscard]] double largestCompactionCandidateSampleFraction() const;
     void recordFrontierIntersections(std::uint64_t hitRays, std::uint64_t missRays);
     void recordFrontierTraversal(std::uint64_t packetChunks, std::uint64_t packetRays,

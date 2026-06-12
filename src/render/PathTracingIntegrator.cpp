@@ -1076,11 +1076,13 @@ namespace render {
       }
       if (metrics) {
         metrics->recordActiveDepth(activeCount);
+        metrics->recordActiveHostPathStateBytes(activeCount * sizeof(BatchPath));
       }
       if (isCancelled()) {
         if (metrics) {
           metrics->recordRadianceDeltaDepth(0.0, 0.0);
           metrics->recordRetainedActiveDepth(0);
+          metrics->recordRetainedHostPathStateBytes(0);
         }
         break;
       }
@@ -1230,6 +1232,7 @@ namespace render {
         metrics->recordRadianceDeltaDepth(depthMetrics.depthDeltaSquaredSum,
                                           depthMetrics.depthMaxDelta);
         metrics->recordRetainedActiveDepth(retainedPathCount);
+        metrics->recordRetainedHostPathStateBytes(retainedPathCount * sizeof(BatchPath));
       }
 
       IntegratorBatchFeedback feedback;
