@@ -907,6 +907,10 @@ Progress:
   frontier-compaction names internally, while the metrics JSON keeps the older
   `frontierHostCompaction*` aliases. That keeps the API ready for Metal/Vulkan
   compaction execution paths without breaking existing trace consumers.
+- Frontier compaction requests now reject duplicate or decreasing retained path
+  indices as they are built, not only when a result is materialized. Future
+  GPU-side compaction code can therefore assume a strictly increasing retained
+  frontier when consuming the backend contract.
 - Frontier compaction now goes through the resolved
   `WavefrontIntersectionBackend`: the path tracer builds a retained-frontier
   request, the backend returns a compaction result with an execution path, and

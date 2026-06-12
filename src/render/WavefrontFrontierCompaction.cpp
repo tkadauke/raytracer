@@ -14,6 +14,10 @@ namespace render {
     if (pathIndex >= m_inputPathCount) {
       throw std::out_of_range("frontier compaction retained path index is out of range");
     }
+    if (!m_retainedPathIndices.empty() && pathIndex <= m_retainedPathIndices.back()) {
+      throw std::invalid_argument(
+        "frontier compaction retained path indices must be strictly increasing");
+    }
     m_retainedPathIndices.push_back(pathIndex);
   }
 

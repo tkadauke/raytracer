@@ -357,6 +357,11 @@ namespace WavefrontIntersectionBackendTest {
   }
 
   TEST(WavefrontFrontierCompaction, RejectsUnsortedRetainedPaths) {
+    WavefrontFrontierCompactionRequest request(4);
+    request.retain(2);
+
+    EXPECT_THROW(request.retain(1), std::invalid_argument);
+    EXPECT_THROW(request.retain(2), std::invalid_argument);
     EXPECT_THROW(
       (void)WavefrontFrontierCompactionResult::fromRetainedPathIndices(4, {0u, 3u, 2u}, "host"),
       std::invalid_argument);
