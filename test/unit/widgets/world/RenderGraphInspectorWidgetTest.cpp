@@ -1241,6 +1241,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, gpuCompactionUnavailableReason));
     EXPECT_TRUE(nodeLineTooltipContains(pass, residentDirectLightUnavailableReason));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("active-hit host bytes")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("active host path-state bytes")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("final host path-state frontier")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("direct-light any-hit chunks")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("resident savings")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("contribution bytes")));

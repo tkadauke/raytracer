@@ -200,10 +200,10 @@ Compaction candidate byte counters apply the same split to inactive paths so
 the graph can show both ray payload and remaining state-handle footprint. Host
 path-state byte counters add the larger scheduler-owned queue footprint: the
 path tracer's `BatchPath` records or Whitted queued-ray records that the CPU
-scheduler still owns directly. The Modeler selected-pass details show both the
-total active host path-state bytes and the last active/retained per-depth rows
-so the final CPU-owned frontier can be inspected without opening the JSON
-trace.
+scheduler still owns directly. The Modeler graph-node tooltip and
+selected-pass details show both the total active host path-state bytes and the
+last active/retained per-depth rows so the final CPU-owned frontier can be
+inspected without opening the JSON trace.
 Path-tracing spawned-continuation counters sit beside those host path-state
 metrics. They count exact-delta branches that append new path states after the
 current frontier is compacted, plus the host `BatchPath` bytes attached to

@@ -1135,9 +1135,9 @@ Progress:
   retained host path-state byte rows in reference/candidate comparisons and
   queue-sweep summaries, matching the rendercli compact summary fields used to
   inspect the final CPU-owned frontier size.
-- Modeler selected-pass graph details now show the same active and final
-  retained host path-state byte rows, keeping the GUI aligned with rendercli's
-  compact summary for the CPU-owned frontier-size check.
+- Modeler graph-node tooltips and selected-pass graph details now show the same
+  active and final retained host path-state byte rows, keeping the GUI aligned
+  with rendercli's compact summary for the CPU-owned frontier-size check.
 - Path-tracing wavefront metrics now also report spawned-continuation counts
   and host path-state bytes per depth. Exact-delta branches append those states
   after the old frontier is compacted, so this separates frontier growth from

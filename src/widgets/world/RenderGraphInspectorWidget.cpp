@@ -1214,6 +1214,20 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         if (batching.contains(QStringLiteral("activeHitHostBytesProcessed"))) {
           line += QStringLiteral(", %1 active-hit host bytes").arg(activeHitHostBytes);
         }
+        if (batching.contains(QStringLiteral("activeHostPathStateBytesProcessed"))) {
+          const qulonglong activeHostPathStateBytes =
+            jsonIntegerValue(batching, QStringLiteral("activeHostPathStateBytesProcessed"));
+          const qulonglong lastActiveHostPathStateBytes = jsonIntegerArrayBack(
+            batching.value(QStringLiteral("activeHostPathStateBytesPerDepth")).toArray());
+          const qulonglong lastRetainedHostPathStateBytes = jsonIntegerArrayBack(
+            batching.value(QStringLiteral("retainedHostPathStateBytesPerDepth")).toArray());
+          line += QStringLiteral(
+                    ", %1 active host path-state bytes, final host path-state frontier %2/%3 "
+                    "active/retained bytes")
+                    .arg(activeHostPathStateBytes)
+                    .arg(lastActiveHostPathStateBytes)
+                    .arg(lastRetainedHostPathStateBytes);
+        }
         const qulonglong spawnedContinuations =
           jsonIntegerValue(batching, QStringLiteral("spawnedContinuationSamples"));
         if (spawnedContinuations > 0) {
