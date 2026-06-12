@@ -1161,6 +1161,11 @@ Progress:
   that control to connect the new mixed-depth, round-trip, throughput, and
   compaction diagnostics to the GPU-resident frontier work they are meant to
   guide.
+- Path-tracing batched execution now routes active `BatchPath` ownership,
+  host path-state byte sizing, and backend-returned compaction through a
+  dedicated host frontier object. Existing shading still consumes host path
+  state, but the scheduler no longer performs compaction as an ad hoc vector
+  edit inside `radianceBatch`.
 
 ---
 

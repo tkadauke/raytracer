@@ -133,6 +133,7 @@ namespace render {
     struct DirectLightingCandidate;
     struct DirectLightingSelection;
     struct DirectLightingSample;
+    class HostBatchPathFrontier;
     struct ScalarPath;
 
     bool isCancelled() const;
@@ -204,8 +205,6 @@ namespace render {
                                  std::vector<BatchHit>& activeHits, int bounce,
                                  BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;
-    void applyFrontierCompaction(std::vector<BatchPath>& paths,
-                                 const WavefrontFrontierCompactionResult& compaction) const;
 
     int m_maximumRecursionDepth{8};
     int m_russianRouletteDepth{3};
