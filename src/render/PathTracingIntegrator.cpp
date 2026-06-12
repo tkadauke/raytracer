@@ -825,6 +825,24 @@ namespace render {
     return survivesRussianRoulette(throughput, state, bounce);
   }
 
+  bool PathTracingIntegrator::prepareExactDeltaContinuation(const MaterialBsdfSample& sample,
+                                                            const HitPoint& hitPoint,
+                                                            const Colord& throughput,
+                                                            Colord& nextThroughput,
+                                                            State& state) const {
+    if (!canContinueWithSample(sample, hitPoint)) {
+      return false;
+    }
+
+    nextThroughput = continuedThroughput(throughput, sample, hitPoint);
+    if (!continuesExactDeltaBranch(nextThroughput)) {
+      return false;
+    }
+
+    setStateThroughput(state, nextThroughput);
+    return true;
+  }
+
   void PathTracingIntegrator::recordDepthDelta(BatchDepthMetrics& depthMetrics,
                                                const Colord& before, const Colord& after) const {
     if (!depthMetrics.trackRadianceDelta) {
@@ -1234,16 +1252,12 @@ namespace render {
         if (!deltaSamples.empty()) {
           State baseState = pathState.cloneForPathContinuation();
           for (const MaterialBsdfSample& sampled : deltaSamples) {
-            if (!canContinueWithSample(sampled, hitPoint)) {
-              continue;
-            }
-
-            Colord nextThroughput = continuedThroughput(path.throughput, sampled, hitPoint);
-            if (!continuesExactDeltaBranch(nextThroughput)) {
-              continue;
-            }
             State childState = baseState;
-            setStateThroughput(childState, nextThroughput);
+            Colord nextThroughput = Colord::black();
+            if (!prepareExactDeltaContinuation(sampled, hitPoint, path.throughput, nextThroughput,
+                                               childState)) {
+              continue;
+            }
             nextPaths.emplace_back(sampled.rayFrom(hitPoint), nextThroughput,
                                    path.backgroundVisible, std::move(childState),
                                    /*nextSampledFromBsdf=*/true, sampled.pdf,
@@ -1336,16 +1350,12 @@ namespace render {
     if (!deltaSamples.empty()) {
       State baseState = path.state.cloneForPathContinuation();
       for (const MaterialBsdfSample& sampled : deltaSamples) {
-        if (!canContinueWithSample(sampled, hit.hitPoint)) {
-          continue;
-        }
-
-        Colord nextThroughput = continuedThroughput(path.throughput, sampled, hit.hitPoint);
-        if (!continuesExactDeltaBranch(nextThroughput)) {
-          continue;
-        }
         State childState = baseState;
-        setStateThroughput(childState, nextThroughput);
+        Colord nextThroughput = Colord::black();
+        if (!prepareExactDeltaContinuation(sampled, hit.hitPoint, path.throughput, nextThroughput,
+                                           childState)) {
+          continue;
+        }
         spawnedPaths.emplaceContinuation(sampled.rayFrom(hit.hitPoint), nextThroughput,
                                          path.backgroundVisible, std::move(childState),
                                          path.accumulated(), /*nextSampledFromBsdf=*/true,

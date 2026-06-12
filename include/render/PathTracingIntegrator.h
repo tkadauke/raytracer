@@ -178,6 +178,9 @@ namespace render {
                                     Colord& throughput, bool& backgroundVisible,
                                     bool& sampledFromBsdf, double& bsdfSamplePdf,
                                     bool& bsdfSampleDelta, State& state, int bounce) const;
+    bool prepareExactDeltaContinuation(const MaterialBsdfSample& sample, const HitPoint& hitPoint,
+                                       const Colord& throughput, Colord& nextThroughput,
+                                       State& state) const;
     void recordDepthDelta(BatchDepthMetrics& depthMetrics, const Colord& before,
                           const Colord& after) const;
     void recordFrontierHit(std::size_t pathIndex, BatchPath& path, const Primitive& primitive,
