@@ -79,6 +79,9 @@ namespace render {
     State* state{nullptr};
   };
 
+  /// One byte per submitted any-hit ray. Non-zero means the ray was occluded.
+  using WavefrontOcclusionFlags = std::vector<unsigned char>;
+
   class WavefrontAnyHitFrontier {
   public:
     virtual ~WavefrontAnyHitFrontier() = default;
@@ -334,7 +337,7 @@ namespace render {
                              WavefrontIntersectionQueryTiming* timing = nullptr) const;
     virtual std::unique_ptr<WavefrontAnyHitFrontier>
     createAnyHitFrontier(std::vector<WavefrontAnyHitQuery> queries) const;
-    virtual std::vector<bool>
+    virtual WavefrontOcclusionFlags
     intersectAnyFrontier(const Scene& scene, const WavefrontAnyHitFrontier& frontier,
                          WavefrontIntersectionQueryTiming* timing = nullptr) const;
 
@@ -349,7 +352,7 @@ namespace render {
                           WavefrontIntersectionQueryTiming* timing = nullptr) const;
     virtual bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance, State& state,
                               WavefrontIntersectionQueryTiming* timing = nullptr) const = 0;
-    virtual std::vector<bool>
+    virtual WavefrontOcclusionFlags
     intersectAnyBatch(const Scene& scene, const std::vector<WavefrontAnyHitQuery>& queries,
                       WavefrontIntersectionQueryTiming* timing = nullptr) const;
     virtual PrimitivePacketHit4
@@ -382,12 +385,12 @@ namespace render {
     [[nodiscard]] bool
     intersectPreparedAny(const Rayd& ray, double maxDistance, State& state,
                          WavefrontIntersectionQueryTiming* timing = nullptr) const;
-    [[nodiscard]] std::vector<bool>
+    [[nodiscard]] WavefrontOcclusionFlags
     intersectPreparedAnyBatch(const std::vector<WavefrontAnyHitQuery>& queries,
                               WavefrontIntersectionQueryTiming* timing = nullptr) const;
     [[nodiscard]] std::unique_ptr<WavefrontAnyHitFrontier>
     createPreparedAnyHitFrontier(std::vector<WavefrontAnyHitQuery> queries) const;
-    [[nodiscard]] std::vector<bool>
+    [[nodiscard]] WavefrontOcclusionFlags
     intersectPreparedAnyFrontier(const WavefrontAnyHitFrontier& frontier,
                                  WavefrontIntersectionQueryTiming* timing = nullptr) const;
     [[nodiscard]] PrimitivePacketHit4
@@ -431,7 +434,7 @@ namespace render {
                      WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance, State& state,
                       WavefrontIntersectionQueryTiming* timing = nullptr) const override;
-    std::vector<bool>
+    WavefrontOcclusionFlags
     intersectAnyBatch(const Scene& scene, const std::vector<WavefrontAnyHitQuery>& queries,
                       WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     PrimitivePacketHit4
@@ -493,12 +496,12 @@ namespace render {
                              WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance, State& state,
                       WavefrontIntersectionQueryTiming* timing = nullptr) const override;
-    std::vector<bool>
+    WavefrontOcclusionFlags
     intersectAnyBatch(const Scene& scene, const std::vector<WavefrontAnyHitQuery>& queries,
                       WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     std::unique_ptr<WavefrontAnyHitFrontier>
     createAnyHitFrontier(std::vector<WavefrontAnyHitQuery> queries) const override;
-    std::vector<bool>
+    WavefrontOcclusionFlags
     intersectAnyFrontier(const Scene& scene, const WavefrontAnyHitFrontier& frontier,
                          WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     PrimitivePacketHit4
@@ -590,12 +593,12 @@ namespace render {
                              WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance, State& state,
                       WavefrontIntersectionQueryTiming* timing = nullptr) const override;
-    std::vector<bool>
+    WavefrontOcclusionFlags
     intersectAnyBatch(const Scene& scene, const std::vector<WavefrontAnyHitQuery>& queries,
                       WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     std::unique_ptr<WavefrontAnyHitFrontier>
     createAnyHitFrontier(std::vector<WavefrontAnyHitQuery> queries) const override;
-    std::vector<bool>
+    WavefrontOcclusionFlags
     intersectAnyFrontier(const Scene& scene, const WavefrontAnyHitFrontier& frontier,
                          WavefrontIntersectionQueryTiming* timing = nullptr) const override;
     PrimitivePacketHit4

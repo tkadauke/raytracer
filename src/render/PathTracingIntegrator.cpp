@@ -327,9 +327,8 @@ namespace render {
       if (intersectionBackend.prefersAnyHitBatch(m_shadowQueries.size())) {
         const std::unique_ptr<WavefrontAnyHitFrontier> frontier =
           intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
-        const std::vector<bool> occluded = intersectionBackend.intersectAnyFrontier(
+        m_occluded = intersectionBackend.intersectAnyFrontier(
           scene, *frontier, metrics ? &intersectionTiming : nullptr);
-        storeOcclusion(occluded);
         if (metrics) {
           recordDirectLightChunks(bounce, /*batchChunks=*/1, frontier->rayCount(),
                                   frontier->packedRayBytes(), frontier->hostQueryBytes(),
@@ -369,13 +368,6 @@ namespace render {
     }
 
   private:
-    void storeOcclusion(const std::vector<bool>& occluded) {
-      m_occluded.reserve(occluded.size());
-      for (bool value : occluded) {
-        m_occluded.push_back(value ? 1U : 0U);
-      }
-    }
-
     static void recordDirectLightChunks(int bounce, std::uint64_t batchChunks,
                                         std::uint64_t batchRays, std::uint64_t packedRayBytes,
                                         std::uint64_t hostQueryBytes,

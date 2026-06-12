@@ -486,7 +486,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(sizeof(WavefrontAnyHitQuery), frontier->hostQueryBytes());
 
     WavefrontIntersectionQueryTiming timing;
-    const std::vector<bool> occluded =
+    const WavefrontOcclusionFlags occluded =
       CpuWavefrontIntersectionBackend::instance().intersectAnyFrontier(scene, *frontier, &timing);
 
     ASSERT_EQ(1u, occluded.size());
@@ -2827,7 +2827,7 @@ namespace WavefrontIntersectionBackendTest {
     const std::vector<WavefrontAnyHitQuery> anyQueries{
       WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 5.0, &anyState}};
     WavefrontIntersectionQueryTiming anyTiming;
-    const std::vector<bool> anyHits =
+    const WavefrontOcclusionFlags anyHits =
       backend->intersectAnyBatch(emptyScene, anyQueries, &anyTiming);
 
     ASSERT_EQ(1u, anyHits.size());
@@ -3051,7 +3051,8 @@ namespace WavefrontIntersectionBackendTest {
       WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 3.0, &batchHitState},
       WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 1.0, &batchMissState}};
     WavefrontIntersectionQueryTiming timing;
-    const std::vector<bool> occluded = backend->intersectAnyBatch(emptyScene, queries, &timing);
+    const WavefrontOcclusionFlags occluded =
+      backend->intersectAnyBatch(emptyScene, queries, &timing);
 
     ASSERT_EQ(2u, occluded.size());
     EXPECT_TRUE(occluded[0]);
@@ -3096,7 +3097,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(2u * sizeof(State*), frontier->stateHandleBytes());
 
     WavefrontIntersectionQueryTiming timing;
-    const std::vector<bool> occluded =
+    const WavefrontOcclusionFlags occluded =
       backend->intersectAnyFrontier(emptyScene, *frontier, &timing);
 
     ASSERT_EQ(2u, occluded.size());
@@ -3163,7 +3164,8 @@ namespace WavefrontIntersectionBackendTest {
     const SyntheticPackedAnyHitFrontier frontier(std::move(queries), std::move(records));
 
     WavefrontIntersectionQueryTiming timing;
-    const std::vector<bool> occluded = backend.intersectPreparedAnyFrontier(frontier, &timing);
+    const WavefrontOcclusionFlags occluded =
+      backend.intersectPreparedAnyFrontier(frontier, &timing);
 
     ASSERT_EQ(2u, occluded.size());
     EXPECT_TRUE(occluded[0]);

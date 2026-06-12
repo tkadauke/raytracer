@@ -46,6 +46,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reported direct-light occlusion-result host byte counts in wavefront metrics,
   rendercli summaries, convergence captures, and Modeler pass details.
   — GPT-5 Codex
+- Changed wavefront any-hit batch/frontier APIs to return explicit byte
+  occlusion flags instead of `std::vector<bool>` proxy results. — GPT-5 Codex
 - Reported state-handle byte estimates for wavefront compaction candidates in
   metrics, rendercli summaries, convergence captures, and Modeler graph
   details. — GPT-5 Codex

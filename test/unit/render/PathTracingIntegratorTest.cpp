@@ -498,7 +498,7 @@ namespace PathTracingIntegratorTest {
                                                                         state, timing);
       }
 
-      std::vector<bool>
+      WavefrontOcclusionFlags
       intersectAnyBatch(const Scene& scene, const std::vector<WavefrontAnyHitQuery>& queries,
                         WavefrontIntersectionQueryTiming* timing = nullptr) const override {
         ++anyBatchQueries;

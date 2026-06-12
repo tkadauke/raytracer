@@ -1428,7 +1428,7 @@ namespace render {
     return std::make_unique<HostWavefrontAnyHitFrontier>(std::move(queries));
   }
 
-  std::vector<bool> WavefrontIntersectionBackend::intersectAnyFrontier(
+  WavefrontOcclusionFlags WavefrontIntersectionBackend::intersectAnyFrontier(
     const Scene& scene, const WavefrontAnyHitFrontier& frontier,
     WavefrontIntersectionQueryTiming* timing) const {
     const std::vector<WavefrontAnyHitQuery>* queries = frontier.hostAnyHitQueries();
@@ -1477,11 +1477,11 @@ namespace render {
     return results;
   }
 
-  std::vector<bool>
+  WavefrontOcclusionFlags
   WavefrontIntersectionBackend::intersectAnyBatch(const Scene& scene,
                                                   const std::vector<WavefrontAnyHitQuery>& queries,
                                                   WavefrontIntersectionQueryTiming* timing) const {
-    std::vector<bool> results;
+    WavefrontOcclusionFlags results;
     results.reserve(queries.size());
     for (const WavefrontAnyHitQuery& query : queries) {
       State scratchState;
@@ -1492,7 +1492,7 @@ namespace render {
       if (timing) {
         timing->add(queryTiming);
       }
-      results.push_back(hit);
+      results.push_back(hit ? 1U : 0U);
     }
     return results;
   }
@@ -1772,11 +1772,11 @@ namespace render {
     return hit;
   }
 
-  std::vector<bool> WavefrontIntersectionBackend::intersectPreparedAnyBatch(
+  WavefrontOcclusionFlags WavefrontIntersectionBackend::intersectPreparedAnyBatch(
     const std::vector<WavefrontAnyHitQuery>& queries,
     WavefrontIntersectionQueryTiming* timing) const {
     const CompiledIntersectionScene* scene = compiledScene();
-    std::vector<bool> results(queries.size(), false);
+    WavefrontOcclusionFlags results(queries.size(), 0U);
     if (!scene) {
       for (const WavefrontAnyHitQuery& query : queries) {
         if (query.state) {
@@ -1793,7 +1793,7 @@ namespace render {
         intersectPreparedPackedAny(packedRays, timing);
       for (const GpuIntersectionOcclusionRecord& record : records) {
         if (record.rayIndex < results.size()) {
-          results[record.rayIndex] = record.occluded != 0;
+          results[record.rayIndex] = record.occluded != 0 ? 1U : 0U;
         }
       }
       reason = "Packed GPU intersection scene";
@@ -1802,8 +1802,9 @@ namespace render {
         timing->recordExecutionPath("compiled_cpu");
       }
       for (std::size_t index = 0; index != queries.size(); ++index) {
-        results[index] = CompiledIntersectionSceneIntersector().intersectAny(
+        const bool occluded = CompiledIntersectionSceneIntersector().intersectAny(
           *scene, queries[index].ray, queries[index].maxDistance);
+        results[index] = occluded ? 1U : 0U;
       }
     }
 
@@ -1829,11 +1830,11 @@ namespace render {
     return WavefrontIntersectionBackend::createAnyHitFrontier(std::move(queries));
   }
 
-  std::vector<bool> WavefrontIntersectionBackend::intersectPreparedAnyFrontier(
+  WavefrontOcclusionFlags WavefrontIntersectionBackend::intersectPreparedAnyFrontier(
     const WavefrontAnyHitFrontier& frontier, WavefrontIntersectionQueryTiming* timing) const {
     if (frontier.hasPackedAnyHitRays()) {
       const CompiledIntersectionScene* scene = compiledScene();
-      std::vector<bool> results(static_cast<std::size_t>(frontier.rayCount()), false);
+      WavefrontOcclusionFlags results(static_cast<std::size_t>(frontier.rayCount()), 0U);
       if (!scene) {
         for (std::size_t rayIndex = 0; rayIndex != results.size(); ++rayIndex) {
           State* state = frontier.anyHitState(rayIndex);
@@ -1848,7 +1849,7 @@ namespace render {
         frontier.intersectPackedAny(*this, timing);
       for (const GpuIntersectionOcclusionRecord& record : records) {
         if (record.rayIndex < results.size()) {
-          results[record.rayIndex] = record.occluded != 0;
+          results[record.rayIndex] = record.occluded != 0 ? 1U : 0U;
         }
       }
 
@@ -2021,7 +2022,7 @@ namespace render {
     return scene.occludes(ray, state, maxDistance);
   }
 
-  std::vector<bool> CpuWavefrontIntersectionBackend::intersectAnyBatch(
+  WavefrontOcclusionFlags CpuWavefrontIntersectionBackend::intersectAnyBatch(
     const Scene& scene, const std::vector<WavefrontAnyHitQuery>& queries,
     WavefrontIntersectionQueryTiming* timing) const {
     return WavefrontIntersectionBackend::intersectAnyBatch(scene, queries, timing);
@@ -2370,7 +2371,7 @@ namespace render {
                                                                     timing);
   }
 
-  std::vector<bool> MetalWavefrontIntersectionBackend::intersectAnyBatch(
+  WavefrontOcclusionFlags MetalWavefrontIntersectionBackend::intersectAnyBatch(
     const Scene& scene, const std::vector<WavefrontAnyHitQuery>& queries,
     WavefrontIntersectionQueryTiming* timing) const {
     if (compiledScene()) {
@@ -2399,7 +2400,7 @@ namespace render {
     return WavefrontIntersectionBackend::createAnyHitFrontier(std::move(queries));
   }
 
-  std::vector<bool> MetalWavefrontIntersectionBackend::intersectAnyFrontier(
+  WavefrontOcclusionFlags MetalWavefrontIntersectionBackend::intersectAnyFrontier(
     const Scene& scene, const WavefrontAnyHitFrontier& frontier,
     WavefrontIntersectionQueryTiming* timing) const {
     if (compiledScene()) {
@@ -2759,7 +2760,7 @@ namespace render {
                                                                     timing);
   }
 
-  std::vector<bool> VulkanWavefrontIntersectionBackend::intersectAnyBatch(
+  WavefrontOcclusionFlags VulkanWavefrontIntersectionBackend::intersectAnyBatch(
     const Scene& scene, const std::vector<WavefrontAnyHitQuery>& queries,
     WavefrontIntersectionQueryTiming* timing) const {
     if (compiledScene()) {
@@ -2788,7 +2789,7 @@ namespace render {
     return WavefrontIntersectionBackend::createAnyHitFrontier(std::move(queries));
   }
 
-  std::vector<bool> VulkanWavefrontIntersectionBackend::intersectAnyFrontier(
+  WavefrontOcclusionFlags VulkanWavefrontIntersectionBackend::intersectAnyFrontier(
     const Scene& scene, const WavefrontAnyHitFrontier& frontier,
     WavefrontIntersectionQueryTiming* timing) const {
     if (compiledScene()) {

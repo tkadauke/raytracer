@@ -1215,9 +1215,10 @@ Progress:
   Phase 8 boundary as intersect, resolve direct-light contributions, shade
   active hits, then compact retained path state.
 - Direct-light visibility batches now store resolved occlusion as explicit byte
-  flags instead of `std::vector<bool>` proxies. The backend-facing any-hit API
-  is unchanged, but the owner now has a concrete host payload shape for future
-  resident direct-light result storage.
+  flags instead of `std::vector<bool>` proxies. The backend-facing any-hit
+  batch and frontier APIs now return the same byte flag shape, so resident
+  direct-light result storage no longer has to adapt proxy containers at the
+  scheduler boundary.
 - Wavefront metrics now report direct-light occlusion-result host bytes per
   depth and in compact rendercli summaries. Resident direct-light planning can
   now size the visibility result payload separately from light selections,
