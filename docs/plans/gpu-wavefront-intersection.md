@@ -1268,6 +1268,10 @@ Progress:
   record explicit zero rows for depths with no visibility work. That keeps
   selection, occlusion, and contribution byte diagnostics aligned by depth when
   comparing resident-direct-light opportunities.
+- Path-tracing cancellation after a depth starts now records zero rows for the
+  skipped frontier, active-hit, direct-light, spawned-continuation, retained,
+  and radiance-delta diagnostics. That keeps cancelled renders comparable with
+  completed depth rows when inspecting resident-frontier opportunities.
 
 ---
 

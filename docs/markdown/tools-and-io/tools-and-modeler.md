@@ -500,8 +500,11 @@ record one chunk per shadow query. That keeps the resident-direct-light
 round-trip estimate visible even when the selected backend does not prefer a
 grouped visibility frontier. Direct-light selection and occlusion host-byte
 arrays also keep explicit zero rows for depths where no visibility batch was
-materialized, matching the contribution-byte array shape.
-also includes `sampleVariancePixelArea`, `sampleRadianceStddevRms`, and
+materialized, matching the contribution-byte array shape. Cancelled
+path-tracing renders keep zero rows for the depth that was started but skipped
+before intersection, so per-depth arrays remain comparable in graph details and
+compact summaries.
+The JSON also includes `sampleVariancePixelArea`, `sampleRadianceStddevRms`, and
 `maxSampleRadianceStddev`, which measure disagreement between samples of the
 same pixel and complement the between-depth radiance-delta convergence fields.
 The emitter-hit counters split visible emitter contributions into primary

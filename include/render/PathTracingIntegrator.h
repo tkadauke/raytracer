@@ -182,6 +182,7 @@ namespace render {
                                        PathContinuationState& continuation, State& state) const;
     void recordDepthDelta(BatchDepthMetrics& depthMetrics, const Colord& before,
                           const Colord& after) const;
+    void recordCancelledDepthMetrics(int bounce, IntegratorBatchMetrics& metrics) const;
     void recordFrontierHit(std::size_t pathIndex, BatchPath& path, const Primitive& primitive,
                            const HitPoint& hitPoint, int bounce, BatchDepthMetrics& depthMetrics,
                            ActivePathHits& activeHits) const;

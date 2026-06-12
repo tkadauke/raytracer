@@ -1394,6 +1394,21 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
     ASSERT_EQ(2u, metrics.radianceDeltaSquaredSumPerDepth.size());
     EXPECT_EQ(0.0, metrics.radianceDeltaSquaredSumPerDepth[1]);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierRayMissesPerDepth);
+    ASSERT_EQ(2u, metrics.activeHitHostBytesPerDepth.size());
+    EXPECT_GT(metrics.activeHitHostBytesPerDepth[0], 0u);
+    EXPECT_EQ(0u, metrics.activeHitHostBytesPerDepth[1]);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.directLightAnyHitBatchChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.directLightAnyHitBatchRaysPerDepth);
+    ASSERT_EQ(2u, metrics.directLightSelectionHostBytesPerDepth.size());
+    EXPECT_GT(metrics.directLightSelectionHostBytesPerDepth[0], 0u);
+    EXPECT_EQ(0u, metrics.directLightSelectionHostBytesPerDepth[1]);
+    ASSERT_EQ(2u, metrics.directLightOcclusionHostBytesPerDepth.size());
+    EXPECT_GT(metrics.directLightOcclusionHostBytesPerDepth[0], 0u);
+    EXPECT_EQ(0u, metrics.directLightOcclusionHostBytesPerDepth[1]);
+    EXPECT_EQ((std::vector<std::uint64_t>{sizeof(Colord), 0u}),
+              metrics.directLightContributionHostBytesPerDepth);
     EXPECT_EQ(2, cancellationChecks);
   }
 

@@ -893,6 +893,23 @@ namespace render {
     }
   }
 
+  void PathTracingIntegrator::recordCancelledDepthMetrics(int bounce,
+                                                          IntegratorBatchMetrics& metrics) const {
+    const std::uint64_t depth = static_cast<std::uint64_t>(std::max(0, bounce));
+    metrics.recordActiveHitHostBytes(0);
+    metrics.recordFrontierIntersections(0, 0);
+    metrics.recordFrontierTraversal(0, 0, 0, 0, 0, 0, 0);
+    metrics.recordFrontierClosestHitBatch(0, 0);
+    metrics.recordDirectLightAnyHitBatch(depth, 0, 0);
+    metrics.recordDirectLightSelectionHostBytes(depth, 0);
+    metrics.recordDirectLightOcclusionHostBytes(depth, 0);
+    metrics.recordDirectLightContributionHostBytes(depth, 0);
+    metrics.recordRadianceDeltaDepth(0.0, 0.0);
+    metrics.recordSpawnedContinuations(0, 0);
+    metrics.recordRetainedActiveDepth(0);
+    metrics.recordRetainedHostPathStateBytes(0);
+  }
+
   void PathTracingIntegrator::recordFrontierHit(std::size_t pathIndex, BatchPath& path,
                                                 const Primitive& primitive,
                                                 const HitPoint& hitPoint, int bounce,
@@ -1460,10 +1477,7 @@ namespace render {
       }
       if (isCancelled()) {
         if (metrics) {
-          metrics->recordRadianceDeltaDepth(0.0, 0.0);
-          metrics->recordSpawnedContinuations(0, 0);
-          metrics->recordRetainedActiveDepth(0);
-          metrics->recordRetainedHostPathStateBytes(0);
+          recordCancelledDepthMetrics(bounce, *metrics);
         }
         break;
       }
