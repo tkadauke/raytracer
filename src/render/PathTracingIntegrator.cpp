@@ -354,6 +354,7 @@ namespace render {
       WavefrontIntersectionQueryTiming intersectionTiming;
       m_occluded.clear();
       m_frontier.reset();
+      recordSelectionHostBytes(bounce, metrics);
       if (intersectionBackend.prefersAnyHitBatch(m_shadowQueries.size())) {
         m_frontier = intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
         m_occluded = intersectionBackend.intersectAnyFrontier(
@@ -703,7 +704,6 @@ namespace render {
       visibilityBatch.recordEmptyVisibility(bounce, metrics);
       return Colord::black();
     }
-    visibilityBatch.recordSelectionHostBytes(bounce, metrics);
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
@@ -778,7 +778,6 @@ namespace render {
       visibilityBatch.recordEmptyVisibility(bounce, metrics);
       return contributions;
     }
-    visibilityBatch.recordSelectionHostBytes(bounce, metrics);
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);

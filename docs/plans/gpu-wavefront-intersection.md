@@ -1245,6 +1245,10 @@ Progress:
   selection PDF and occlusion lookup. Scalar and batched shading no longer pull
   raw selection records out of the batch, keeping the future resident
   direct-light boundary narrower.
+- Direct-light visibility batch metric recording now lives with visibility
+  resolution for materialized batches: callers only distinguish empty versus
+  non-empty batches, while the batch records its own selection bytes, occlusion
+  bytes, any-hit chunks, and frontier residency.
 - Direct-light visibility resolution now validates that backend any-hit
   frontiers return exactly one occlusion flag per light-selection record. That
   makes malformed resident-backend results fail loudly instead of silently
