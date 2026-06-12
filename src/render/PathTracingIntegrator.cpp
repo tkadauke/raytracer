@@ -84,14 +84,19 @@ namespace render {
       m_paths.emplace_back(sample, accumulated);
     }
 
-    void append(BatchPath path) {
-      m_paths.push_back(std::move(path));
+    void emplaceContinuation(Rayd nextRay, Colord nextThroughput, bool nextBackgroundVisible,
+                             State nextState, Colord& accumulated, bool nextSampledFromBsdf,
+                             double nextBsdfSamplePdf, bool nextBsdfSampleDelta) {
+      m_paths.emplace_back(std::move(nextRay), nextThroughput, nextBackgroundVisible,
+                           std::move(nextState), accumulated, nextSampledFromBsdf,
+                           nextBsdfSamplePdf, nextBsdfSampleDelta);
     }
 
-    void appendAll(std::vector<BatchPath>& paths) {
-      for (auto& path : paths) {
-        append(std::move(path));
+    void appendAll(HostBatchPathFrontier& frontier) {
+      for (auto& path : frontier.m_paths) {
+        m_paths.push_back(std::move(path));
       }
+      frontier.m_paths.clear();
     }
 
     [[nodiscard]] bool empty() const {
@@ -1160,7 +1165,7 @@ namespace render {
           depthMetrics.frontierPacketScalarFallbackRaysByReason);
       }
 
-      std::vector<BatchPath> spawnedPaths;
+      HostBatchPathFrontier spawnedPaths;
       spawnedPaths.reserve(activeHits.size() * 2);
       const std::vector<Colord> directLightContributions = sampleDirectLightingBatch(
         scene, lightSampler, activeHits, paths.rawPaths(), bounce, intersectionBackend, metrics);
@@ -1228,10 +1233,10 @@ namespace render {
               }
               State childState = baseState;
               setStateThroughput(childState, nextThroughput);
-              spawnedPaths.emplace_back(sampled.rayFrom(hit.hitPoint), nextThroughput,
-                                        path.backgroundVisible, std::move(childState),
-                                        path.accumulated(), /*nextSampledFromBsdf=*/true,
-                                        sampled.pdf, /*nextBsdfSampleDelta=*/true);
+              spawnedPaths.emplaceContinuation(sampled.rayFrom(hit.hitPoint), nextThroughput,
+                                               path.backgroundVisible, std::move(childState),
+                                               path.accumulated(), /*nextSampledFromBsdf=*/true,
+                                               sampled.pdf, /*nextBsdfSampleDelta=*/true);
             }
             path.state.recurseOut();
             recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());

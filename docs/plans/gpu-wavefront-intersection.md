@@ -1163,7 +1163,8 @@ Progress:
   guide.
 - Path-tracing batched execution now routes active `BatchPath` ownership,
   host path-state byte sizing, and backend-returned compaction through a
-  dedicated host frontier object. Existing shading still consumes host path
+  dedicated host frontier object. Spawned continuation paths are staged
+  through the same frontier shape. Existing shading still consumes host path
   state, but the scheduler no longer performs compaction as an ad hoc vector
   edit inside `radianceBatch`.
 
