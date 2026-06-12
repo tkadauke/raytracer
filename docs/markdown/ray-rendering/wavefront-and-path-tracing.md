@@ -268,10 +268,13 @@ frontier path. Prepared GPU-style backends already build `packed_host`
 frontier handles: the rays are converted to the packed GPU query ABI when the
 frontier is created, and the original query vector is discarded after the
 packed rays and per-ray state handles are retained. State updates and fallback
-still remain CPU-readable. Whitted closest-hit batches use the same frontier
-handle path, so their diagnostics line up with path-tracing closest-hit
-batches. Batched path-tracing direct-light visibility goes through the same
-backend seam via
+still remain CPU-readable. `packed_host` frontiers report their CPU ray-packing
+time through the same preparation/upload timing counters that Metal and Vulkan
+prepared frontiers use for ray-buffer upload, so frontier creation work is not
+lost just because it happens before the intersection dispatch. Whitted
+closest-hit batches use the same frontier handle path, so their diagnostics
+line up with path-tracing closest-hit batches. Batched path-tracing
+direct-light visibility goes through the same backend seam via
 `intersectAny(...)`, so the graph and metrics can separate closest-hit and
 any-hit ray counts for CPU and GPU-resident query families. When the selected
 backend prefers batched visibility, the path tracer groups all valid

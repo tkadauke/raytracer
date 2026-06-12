@@ -1036,6 +1036,9 @@ Progress:
   into the later intersection timing record, so render metrics and benchmark
   rows include the transfer work moved from dispatch time to frontier-creation
   time.
+- `packed_host` prepared frontiers now carry CPU ray-packing time into the
+  same preparation/upload timing record, so the fallback path reports frontier
+  creation work consistently with platform prepared frontiers.
 - Metal and Vulkan prepared frontiers now retain only per-ray `State*` handles
   plus the packed ray payload after construction. The host query vectors are
   discarded once rays are packed, reducing the host-side data that future

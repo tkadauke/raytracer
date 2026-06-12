@@ -2652,6 +2652,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_TRUE(timing.executionPath == "packed_cpu" || timing.executionPath == "metal" ||
                 timing.executionPath == "vulkan")
       << timing.executionPath;
+    EXPECT_GE(timing.uploadSeconds, 0.0);
   }
 
   TEST(WavefrontIntersectionBackend, PreparedClosestHitFrontierCanOwnPackedExecution) {
@@ -3075,6 +3076,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_TRUE(timing.executionPath == "packed_cpu" || timing.executionPath == "metal" ||
                 timing.executionPath == "vulkan")
       << timing.executionPath;
+    EXPECT_GE(timing.uploadSeconds, 0.0);
   }
 
   TEST(WavefrontIntersectionBackend, PreparedGpuResidentFrontiersDoNotImplyResidentDirectLight) {

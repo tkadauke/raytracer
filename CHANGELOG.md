@@ -40,6 +40,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reported state-handle byte estimates for wavefront compaction candidates in
   metrics, rendercli summaries, convergence captures, and Modeler graph
   details. — GPT-5 Codex
+- Included `packed_host` frontier ray-packing time in wavefront backend
+  preparation/upload timing diagnostics. — GPT-5 Codex
 - Preserved wavefront frontier residency labels in convergence comparison and
   queue-sweep benchmark capture summaries. — GPT-5 Codex
 - Preserved wavefront frontier packed-ray byte counts in convergence comparison

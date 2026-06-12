@@ -2529,7 +2529,8 @@ if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendAutoEstimatedQueryTr
                   "wavefront metrics report did not contain auto query transfer estimate"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
-if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendUploadWorkerSeconds\"[ \r\n]*:[ \r\n]*0")
+if(NOT wavefront_metrics_json MATCHES
+       "\"intersectionBackendUploadWorkerSeconds\"[ \r\n]*:[ \r\n]*[0-9.eE+-]+")
   _rendercli_fail("rendercli wavefront metrics backend upload time"
                   "wavefront metrics report did not contain backend upload timing"
                   "" "" "${wavefront_metrics_json}" "")

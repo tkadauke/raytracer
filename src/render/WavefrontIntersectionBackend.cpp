@@ -10,9 +10,7 @@
 #include "render/primitives/Scene.h"
 
 #include <algorithm>
-#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 #include <chrono>
-#endif
 #include <cctype>
 #include <limits>
 #include <stdexcept>
@@ -61,19 +59,21 @@ namespace render {
       return states;
     }
 
-#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     double secondsBetween(std::chrono::steady_clock::time_point start,
                           std::chrono::steady_clock::time_point end) {
       return std::chrono::duration<double>(end - start).count();
     }
-#endif
 
     class PreparedPackedWavefrontClosestHitFrontier final : public WavefrontClosestHitFrontier {
     public:
       explicit PreparedPackedWavefrontClosestHitFrontier(
-        std::vector<WavefrontClosestHitQuery> queries)
-          : m_states(closestHitStates(queries)),
-            m_packedRays(packClosestHitQueries(queries)) {
+        std::vector<WavefrontClosestHitQuery> queries) {
+        const auto prepareStart = std::chrono::steady_clock::now();
+        m_states = closestHitStates(queries);
+        m_packedRays = packClosestHitQueries(queries);
+        const auto prepareEnd = std::chrono::steady_clock::now();
+        m_prepareTiming.uploadSeconds = secondsBetween(prepareStart, prepareEnd);
+        m_prepareTiming.recordExecutionPath("packed_cpu");
       }
 
       std::uint64_t rayCount() const override {
@@ -104,16 +104,30 @@ namespace render {
         return &m_packedRays;
       }
 
+      std::vector<GpuIntersectionHitRecord>
+      intersectPackedClosest(const WavefrontIntersectionBackend& backend,
+                             WavefrontIntersectionQueryTiming* timing = nullptr) const override {
+        if (timing) {
+          timing->add(m_prepareTiming);
+        }
+        return WavefrontClosestHitFrontier::intersectPackedClosest(backend, timing);
+      }
+
     private:
       std::vector<State*> m_states;
       std::vector<GpuIntersectionRay> m_packedRays;
+      WavefrontIntersectionQueryTiming m_prepareTiming;
     };
 
     class PreparedPackedWavefrontAnyHitFrontier final : public WavefrontAnyHitFrontier {
     public:
-      explicit PreparedPackedWavefrontAnyHitFrontier(std::vector<WavefrontAnyHitQuery> queries)
-          : m_states(anyHitStates(queries)),
-            m_packedRays(packAnyHitQueries(queries)) {
+      explicit PreparedPackedWavefrontAnyHitFrontier(std::vector<WavefrontAnyHitQuery> queries) {
+        const auto prepareStart = std::chrono::steady_clock::now();
+        m_states = anyHitStates(queries);
+        m_packedRays = packAnyHitQueries(queries);
+        const auto prepareEnd = std::chrono::steady_clock::now();
+        m_prepareTiming.uploadSeconds = secondsBetween(prepareStart, prepareEnd);
+        m_prepareTiming.recordExecutionPath("packed_cpu");
       }
 
       std::uint64_t rayCount() const override {
@@ -144,9 +158,19 @@ namespace render {
         return &m_packedRays;
       }
 
+      std::vector<GpuIntersectionOcclusionRecord>
+      intersectPackedAny(const WavefrontIntersectionBackend& backend,
+                         WavefrontIntersectionQueryTiming* timing = nullptr) const override {
+        if (timing) {
+          timing->add(m_prepareTiming);
+        }
+        return WavefrontAnyHitFrontier::intersectPackedAny(backend, timing);
+      }
+
     private:
       std::vector<State*> m_states;
       std::vector<GpuIntersectionRay> m_packedRays;
+      WavefrontIntersectionQueryTiming m_prepareTiming;
     };
 
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
