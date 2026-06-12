@@ -298,12 +298,21 @@ namespace render {
       return m_selections.size();
     }
 
-    [[nodiscard]] const DirectLightingSelection& selection(std::size_t index) const {
-      return m_selections[index];
+    [[nodiscard]] std::size_t hitIndex(std::size_t index) const {
+      return m_selections[index].hitIndex;
     }
 
-    [[nodiscard]] bool occluded(std::size_t index) const {
-      return index < m_occluded.size() && m_occluded[index] != 0U;
+    [[nodiscard]] double selectionPdf(std::size_t index) const {
+      return m_selections[index].selectionPdf;
+    }
+
+    DirectLightingSample resolveSample(std::size_t index, const PathTracingIntegrator& integrator,
+                                       const PathMaterialTransport& material,
+                                       const HitPoint& hitPoint, const Vector3d& wi,
+                                       State& state) const {
+      const DirectLightingSelection& selection = m_selections[index];
+      return integrator.resolveDirectLightingCandidate(selection.candidate, material, hitPoint, wi,
+                                                       occluded(index), state);
     }
 
     [[nodiscard]] std::uint64_t hostSelectionBytes() const {
@@ -414,6 +423,10 @@ namespace render {
         throw std::logic_error("direct-light visibility batch resolved an occlusion count that "
                                "does not match its light-selection count");
       }
+    }
+
+    [[nodiscard]] bool occluded(std::size_t index) const {
+      return index < m_occluded.size() && m_occluded[index] != 0U;
     }
 
     std::vector<DirectLightingSelection> m_selections;
@@ -699,13 +712,12 @@ namespace render {
 
     Colord contribution = Colord::black();
     for (std::size_t index = 0; index != visibilityBatch.size(); ++index) {
-      const DirectLightingSelection& selection = visibilityBatch.selection(index);
-      const DirectLightingSample sample = resolveDirectLightingCandidate(
-        selection.candidate, material, hitPoint, wi, visibilityBatch.occluded(index), state);
+      const DirectLightingSample sample =
+        visibilityBatch.resolveSample(index, *this, material, hitPoint, wi, state);
       if (metrics) {
         metrics->recordDirectLightSample(sample.occluded, sample.contributing());
       }
-      contribution += sample.contribution / selection.selectionPdf;
+      contribution += sample.contribution / visibilityBatch.selectionPdf(index);
     }
     return contribution / static_cast<double>(m_directLightSamples);
   }
@@ -777,8 +789,8 @@ namespace render {
       core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
       for (std::size_t selectionIndex = 0; selectionIndex != visibilityBatch.size();
            ++selectionIndex) {
-        const DirectLightingSelection& selection = visibilityBatch.selection(selectionIndex);
-        const BatchHit& hit = activeHits[selection.hitIndex];
+        const std::size_t hitIndex = visibilityBatch.hitIndex(selectionIndex);
+        const BatchHit& hit = activeHits[hitIndex];
         BatchPath& path = paths[hit.pathIndex];
         const auto material = hit.material ? hit.material : hit.primitive->material();
         if (!material) {
@@ -787,14 +799,13 @@ namespace render {
 
         const PathMaterialTransport& transport = material->pathTransport();
         const Vector3d wi = -path.ray.direction().normalized();
-        const DirectLightingSample sample =
-          resolveDirectLightingCandidate(selection.candidate, transport, hit.hitPoint, wi,
-                                         visibilityBatch.occluded(selectionIndex), path.state);
+        const DirectLightingSample sample = visibilityBatch.resolveSample(
+          selectionIndex, *this, transport, hit.hitPoint, wi, path.state);
         if (metrics) {
           metrics->recordDirectLightSample(sample.occluded, sample.contributing());
         }
-        contributions.addWeighted(selection.hitIndex, sample.contribution,
-                                  1.0 / selection.selectionPdf);
+        contributions.addWeighted(hitIndex, sample.contribution,
+                                  1.0 / visibilityBatch.selectionPdf(selectionIndex));
       }
     }
 

@@ -1241,6 +1241,10 @@ Progress:
   temporary. Current results are still read back immediately, but resident
   direct-light scheduling now has one batch object that owns selections,
   frontier, and resolved visibility.
+- Direct-light visibility batches now also own resolved-sample lookup, including
+  selection PDF and occlusion lookup. Scalar and batched shading no longer pull
+  raw selection records out of the batch, keeping the future resident
+  direct-light boundary narrower.
 - Direct-light visibility resolution now validates that backend any-hit
   frontiers return exactly one occlusion flag per light-selection record. That
   makes malformed resident-backend results fail loudly instead of silently
