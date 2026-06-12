@@ -76,6 +76,27 @@ namespace render {
 
   class PathTracingIntegrator::HostBatchPathFrontier {
   public:
+    class Compaction {
+    public:
+      void retain(std::size_t pathIndex) {
+        m_request.retain(pathIndex);
+      }
+
+      [[nodiscard]] const WavefrontFrontierCompactionRequest& request() const {
+        return m_request;
+      }
+
+    private:
+      friend class HostBatchPathFrontier;
+
+      Compaction(std::size_t inputPathCount, std::uint64_t pathStateBytesPerPath)
+          : m_request(inputPathCount) {
+        m_request.setPathStateBytesPerPath(pathStateBytesPerPath);
+      }
+
+      WavefrontFrontierCompactionRequest m_request;
+    };
+
     void reserve(std::size_t pathCount) {
       m_paths.reserve(pathCount);
     }
@@ -111,14 +132,12 @@ namespace render {
       return m_paths[pathIndex];
     }
 
-    [[nodiscard]] WavefrontFrontierCompactionRequest compactionRequest() const {
-      WavefrontFrontierCompactionRequest request(m_paths.size());
-      request.setPathStateBytesPerPath(sizeof(BatchPath));
-      return request;
+    [[nodiscard]] std::uint64_t hostPathStateBytes() const {
+      return beginCompaction().request().inputPathStateBytes();
     }
 
-    [[nodiscard]] std::uint64_t hostPathStateBytes() const {
-      return compactionRequest().inputPathStateBytes();
+    [[nodiscard]] Compaction beginCompaction() const {
+      return Compaction(m_paths.size(), sizeof(BatchPath));
     }
 
     void applyCompaction(const WavefrontFrontierCompactionResult& compaction) {
@@ -134,6 +153,14 @@ namespace render {
       while (m_paths.size() != retainedPathIndices.size()) {
         m_paths.pop_back();
       }
+    }
+
+    void compactWith(const WavefrontIntersectionBackend& backend, const Compaction& compaction,
+                     IntegratorBatchMetrics* metrics) {
+      const WavefrontFrontierCompactionResult result =
+        backend.compactFrontier(compaction.request());
+      applyCompaction(result);
+      result.record(metrics);
     }
 
   private:
@@ -1128,7 +1155,7 @@ namespace render {
       if (activeCount == 0) {
         break;
       }
-      WavefrontFrontierCompactionRequest frontierCompaction = paths.compactionRequest();
+      HostBatchPathFrontier::Compaction frontierCompaction = paths.beginCompaction();
       if (metrics) {
         metrics->recordActiveDepth(activeCount);
         metrics->recordActiveHostPathStateBytes(paths.hostPathStateBytes());
@@ -1272,10 +1299,7 @@ namespace render {
       {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
                                               : nullptr);
-        const WavefrontFrontierCompactionResult compaction =
-          intersectionBackend.compactFrontier(frontierCompaction);
-        paths.applyCompaction(compaction);
-        compaction.record(metrics);
+        paths.compactWith(intersectionBackend, frontierCompaction, metrics);
         paths.appendAll(spawnedPaths);
       }
       const std::size_t retainedPathCount = paths.size();
