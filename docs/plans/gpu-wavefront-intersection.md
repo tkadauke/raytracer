@@ -1007,6 +1007,13 @@ Progress:
   Vulkan-enabled builds the batch uploads the packed frontier and matching
   count buffer once, retains prepared-scene device lifetime, and can be reused
   by closest-hit and any-hit prepared-scene dispatches.
+- Metal and Vulkan prepared scenes now also expose a prepared ray-batch
+  compaction primitive. It copies retained ray records into a new prepared
+  batch with platform compute, updates the dynamic ray-count buffer, and is
+  parity-tested by reusing the compacted batch for closest-hit and any-hit
+  dispatches. The renderer still performs `BatchPath` compaction on the host,
+  so the public GPU frontier-compaction capability remains disabled until this
+  primitive is wired into scheduler-owned active path state.
 - Metal GPU-intersection backends now create `metal_shared` closest-hit and
   any-hit frontiers when a prepared Metal scene is available. Those frontiers
   dispatch through their prepared ray batch and fall back to `packed_host`

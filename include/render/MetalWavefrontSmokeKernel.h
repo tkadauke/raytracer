@@ -82,6 +82,9 @@ namespace render {
 
     [[nodiscard]] std::shared_ptr<const MetalWavefrontPreparedRayBatch>
     prepareRays(const std::vector<GpuIntersectionRay>& rays) const;
+    [[nodiscard]] std::shared_ptr<const MetalWavefrontPreparedRayBatch>
+    compactRays(const MetalWavefrontPreparedRayBatch& sourceRays,
+                const std::vector<std::uint32_t>& retainedRayIndices) const;
     MetalWavefrontClosestHitKernelResult
     runTimedBasicClosestHitKernel(const std::vector<GpuIntersectionRay>& rays) const;
     MetalWavefrontClosestHitKernelResult

@@ -85,6 +85,9 @@ namespace render {
 
     [[nodiscard]] std::shared_ptr<const VulkanWavefrontPreparedRayBatch>
     prepareRays(const std::vector<GpuIntersectionRay>& rays) const;
+    [[nodiscard]] std::shared_ptr<const VulkanWavefrontPreparedRayBatch>
+    compactRays(const VulkanWavefrontPreparedRayBatch& sourceRays,
+                const std::vector<std::uint32_t>& retainedRayIndices) const;
     VulkanWavefrontClosestHitKernelResult
     runTimedBasicClosestHitKernel(const std::vector<GpuIntersectionRay>& rays) const;
     VulkanWavefrontClosestHitKernelResult

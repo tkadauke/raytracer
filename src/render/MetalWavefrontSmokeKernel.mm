@@ -33,6 +33,29 @@ namespace render {
               "}\n";
     }
 
+    NSString* rayCompactionKernelSource() {
+      return @"#include <metal_stdlib>\n"
+              "using namespace metal;\n"
+              "struct RayRecord {\n"
+              "  float4 origin;\n"
+              "  float4 direction;\n"
+              "  float minDistance;\n"
+              "  float maxDistance;\n"
+              "  float timeSample;\n"
+              "  uint flags;\n"
+              "  uint rayIndex;\n"
+              "  uint reserved0;\n"
+              "  uint reserved1;\n"
+              "  uint reserved2;\n"
+              "};\n"
+              "kernel void compactRayBatch(device const RayRecord* sourceRays [[buffer(0)]],\n"
+              "                            device const uint* retainedRayIndices [[buffer(1)]],\n"
+              "                            device RayRecord* compactedRays [[buffer(2)]],\n"
+              "                            uint id [[thread_position_in_grid]]) {\n"
+              "  compactedRays[id] = sourceRays[retainedRayIndices[id]];\n"
+              "}\n";
+    }
+
     NSString* basicHitKernelSource() {
       return @"#include <metal_stdlib>\n"
               "using namespace metal;\n"
@@ -985,6 +1008,17 @@ namespace render {
       return pipeline;
     }
 
+    id<MTLComputePipelineState> sharedRayCompactionPipeline() {
+      id<MTLDevice> device = sharedMetalDevice();
+      if (!device) {
+        return nil;
+      }
+
+      static id<MTLComputePipelineState> pipeline =
+        newPipeline(device, rayCompactionKernelSource(), @"compactRayBatch");
+      return pipeline;
+    }
+
     id<MTLComputePipelineState> sharedBasicClosestHitPipeline() {
       id<MTLDevice> device = sharedMetalDevice();
       if (!device) {
@@ -1030,6 +1064,28 @@ namespace render {
                                 options:MTLResourceStorageModeShared];
     }
 
+    struct MetalBufferGuard {
+      ~MetalBufferGuard() {
+#if !__has_feature(objc_arc)
+        [buffer release];
+#endif
+      }
+
+      id<MTLBuffer> buffer{nil};
+    };
+
+    void validateRetainedRayIndices(const std::vector<std::uint32_t>& retainedRayIndices,
+                                    std::uint64_t rayCount, const char* context) {
+      if (retainedRayIndices.size() > std::numeric_limits<std::uint32_t>::max()) {
+        throw std::runtime_error(std::string(context) + " retained ray count is too large");
+      }
+      for (const std::uint32_t index : retainedRayIndices) {
+        if (index >= rayCount) {
+          throw std::out_of_range(std::string(context) + " retained ray index is out of range");
+        }
+      }
+    }
+
     void dispatchOneDimensional(id<MTLComputeCommandEncoder> encoder,
                                 id<MTLComputePipelineState> pipeline, NSUInteger count) {
       const NSUInteger maxThreads =
@@ -1073,6 +1129,9 @@ namespace render {
         }
         if (!sharedBasicAnyHitPipeline()) {
           return "Metal basic any-hit pipeline was not created";
+        }
+        if (!sharedRayCompactionPipeline()) {
+          return "Metal ray-compaction pipeline was not created";
         }
         return "";
       } catch (const std::exception& e) {
@@ -1394,6 +1453,75 @@ namespace render {
 
       if (!batch->p->rayBuffer || !batch->p->counts2Buffer) {
         throw std::runtime_error("Metal prepared ray batch buffer allocation failed");
+      }
+    }
+    return batch;
+  }
+
+  std::shared_ptr<const MetalWavefrontPreparedRayBatch> MetalWavefrontPreparedScene::compactRays(
+    const MetalWavefrontPreparedRayBatch& sourceRays,
+    const std::vector<std::uint32_t>& retainedRayIndices) const {
+    auto batch = std::shared_ptr<MetalWavefrontPreparedRayBatch>(new MetalWavefrontPreparedRayBatch);
+    if (retainedRayIndices.empty()) {
+      return batch;
+    }
+    validateRetainedRayIndices(retainedRayIndices, sourceRays.rayCount(),
+                               "Metal prepared ray-batch compaction");
+
+    @autoreleasepool {
+      id<MTLDevice> device = sharedMetalDevice();
+      if (!device) {
+        throw std::runtime_error("Metal prepared ray-batch compaction requires a Metal device");
+      }
+      if (!sourceRays.p->rayBuffer) {
+        throw std::runtime_error("Metal prepared ray-batch compaction requires source rays");
+      }
+
+      id<MTLComputePipelineState> pipeline = sharedRayCompactionPipeline();
+      MetalBufferGuard retainedIndexBuffer;
+      retainedIndexBuffer.buffer =
+        [device newBufferWithBytes:retainedRayIndices.data()
+                             length:retainedRayIndices.size() * sizeof(std::uint32_t)
+                            options:MTLResourceStorageModeShared];
+      batch->p->rayCount = static_cast<std::uint64_t>(retainedRayIndices.size());
+      batch->p->rayBuffer =
+        [device newBufferWithLength:retainedRayIndices.size() * sizeof(GpuIntersectionRay)
+                            options:MTLResourceStorageModeShared];
+      const std::array<std::uint32_t, 4> counts{
+        static_cast<std::uint32_t>(retainedRayIndices.size()),
+        p->transformCount,
+        p->torusCount,
+        0u,
+      };
+      batch->p->counts2Buffer =
+        [device newBufferWithBytes:counts.data()
+                             length:counts.size() * sizeof(std::uint32_t)
+                            options:MTLResourceStorageModeShared];
+
+      if (!pipeline || !retainedIndexBuffer.buffer || !batch->p->rayBuffer ||
+          !batch->p->counts2Buffer) {
+        throw std::runtime_error("Metal prepared ray-batch compaction buffer allocation failed");
+      }
+
+      id<MTLCommandQueue> queue = sharedCommandQueue();
+      id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+      id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
+      if (!queue || !commandBuffer || !encoder) {
+        throw std::runtime_error("Metal prepared ray-batch compaction command setup failed");
+      }
+
+      [encoder setComputePipelineState:pipeline];
+      [encoder setBuffer:sourceRays.p->rayBuffer offset:0 atIndex:0];
+      [encoder setBuffer:retainedIndexBuffer.buffer offset:0 atIndex:1];
+      [encoder setBuffer:batch->p->rayBuffer offset:0 atIndex:2];
+      dispatchOneDimensional(encoder, pipeline, retainedRayIndices.size());
+      [encoder endEncoding];
+      [commandBuffer commit];
+      [commandBuffer waitUntilCompleted];
+
+      if (commandBuffer.error) {
+        throw metalError("Metal prepared ray-batch compaction dispatch failed",
+                         commandBuffer.error);
       }
     }
     return batch;

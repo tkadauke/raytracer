@@ -1,0 +1,33 @@
+#version 450
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+struct RayRecord {
+  vec4 origin;
+  vec4 direction;
+  float minDistance;
+  float maxDistance;
+  float timeSample;
+  uint flags;
+  uint rayIndex;
+  uint reserved0;
+  uint reserved1;
+  uint reserved2;
+};
+
+layout(std430, binding = 0) readonly buffer SourceRays {
+  RayRecord sourceRays[];
+};
+
+layout(std430, binding = 1) readonly buffer RetainedRayIndices {
+  uint retainedRayIndices[];
+};
+
+layout(std430, binding = 2) writeonly buffer CompactedRays {
+  RayRecord compactedRays[];
+};
+
+void main() {
+  const uint destinationIndex = gl_GlobalInvocationID.x;
+  compactedRays[destinationIndex] = sourceRays[retainedRayIndices[destinationIndex]];
+}

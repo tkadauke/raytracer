@@ -89,6 +89,12 @@ if(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
       "${RAYTRACER_VULKAN_GENERATED_DIR}/vulkan_wavefront_triangle_any.spv")
   set(RAYTRACER_VULKAN_TRIANGLE_ANY_HEADER
       "${RAYTRACER_VULKAN_GENERATED_DIR}/VulkanWavefrontTriangleAny.generated.h")
+  set(RAYTRACER_VULKAN_RAY_COMPACTION_SHADER
+      "${RAYTRACER_VULKAN_SHADER_DIR}/vulkan_wavefront_ray_compaction.comp")
+  set(RAYTRACER_VULKAN_RAY_COMPACTION_SPIRV
+      "${RAYTRACER_VULKAN_GENERATED_DIR}/vulkan_wavefront_ray_compaction.spv")
+  set(RAYTRACER_VULKAN_RAY_COMPACTION_HEADER
+      "${RAYTRACER_VULKAN_GENERATED_DIR}/VulkanWavefrontRayCompaction.generated.h")
 
   add_custom_command(
     OUTPUT "${RAYTRACER_VULKAN_SMOKE_SPIRV}"
@@ -152,11 +158,33 @@ if(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     VERBATIM
   )
 
+  add_custom_command(
+    OUTPUT "${RAYTRACER_VULKAN_RAY_COMPACTION_SPIRV}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${RAYTRACER_VULKAN_GENERATED_DIR}"
+    COMMAND "${Vulkan_GLSLC_EXECUTABLE}" -O -fshader-stage=compute
+            "${RAYTRACER_VULKAN_RAY_COMPACTION_SHADER}"
+            -o "${RAYTRACER_VULKAN_RAY_COMPACTION_SPIRV}"
+    DEPENDS "${RAYTRACER_VULKAN_RAY_COMPACTION_SHADER}"
+    VERBATIM
+  )
+
+  add_custom_command(
+    OUTPUT "${RAYTRACER_VULKAN_RAY_COMPACTION_HEADER}"
+    COMMAND "${CMAKE_COMMAND}" -DINPUT=${RAYTRACER_VULKAN_RAY_COMPACTION_SPIRV}
+            -DOUTPUT=${RAYTRACER_VULKAN_RAY_COMPACTION_HEADER}
+            -DSYMBOL=rayCompactionShaderSpirv
+            -P "${PROJECT_SOURCE_DIR}/cmake/EmbedSpirv.cmake"
+    DEPENDS "${RAYTRACER_VULKAN_RAY_COMPACTION_SPIRV}"
+            "${PROJECT_SOURCE_DIR}/cmake/EmbedSpirv.cmake"
+    VERBATIM
+  )
+
   add_custom_target(raytracer_vulkan_wavefront_shaders
     DEPENDS
       "${RAYTRACER_VULKAN_SHADER_HEADER}"
       "${RAYTRACER_VULKAN_TRIANGLE_CLOSEST_HEADER}"
       "${RAYTRACER_VULKAN_TRIANGLE_ANY_HEADER}"
+      "${RAYTRACER_VULKAN_RAY_COMPACTION_HEADER}"
   )
 
   target_compile_definitions(raytracer PUBLIC RAYTRACER_ENABLE_VULKAN_WAVEFRONT)

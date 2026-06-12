@@ -4,6 +4,7 @@
 #include "render/WavefrontIntersectionBackend.h"
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+#include "render/VulkanWavefrontRayCompaction.generated.h"
 #include "render/VulkanWavefrontShaders.generated.h"
 #include "render/VulkanWavefrontTriangleAny.generated.h"
 #include "render/VulkanWavefrontTriangleClosest.generated.h"
@@ -95,15 +96,32 @@ namespace render {
           anyShaderGuard.device = device;
           anyShaderGuard.shaderModule = anyShader;
 
+          VkShaderModule compactShader = createShaderModule(
+            device, rayCompactionShaderSpirv().data(), rayCompactionShaderSpirv().size());
+          ShaderGuard compactShaderGuard;
+          compactShaderGuard.device = device;
+          compactShaderGuard.shaderModule = compactShader;
+
           VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 13);
           DescriptorLayoutGuard descriptorLayoutGuard;
           descriptorLayoutGuard.device = device;
           descriptorLayoutGuard.layout = descriptorLayout;
 
+          VkDescriptorSetLayout compactDescriptorLayout = createDescriptorLayout(device, 3);
+          DescriptorLayoutGuard compactDescriptorLayoutGuard;
+          compactDescriptorLayoutGuard.device = device;
+          compactDescriptorLayoutGuard.layout = compactDescriptorLayout;
+
           VkPipelineLayout pipelineLayout = createPipelineLayout(device, descriptorLayout);
           PipelineLayoutGuard pipelineLayoutGuard;
           pipelineLayoutGuard.device = device;
           pipelineLayoutGuard.layout = pipelineLayout;
+
+          VkPipelineLayout compactPipelineLayout =
+            createPipelineLayout(device, compactDescriptorLayout);
+          PipelineLayoutGuard compactPipelineLayoutGuard;
+          compactPipelineLayoutGuard.device = device;
+          compactPipelineLayoutGuard.layout = compactPipelineLayout;
 
           VkPipeline closestPipeline = createPipeline(device, closestShader, pipelineLayout);
           PipelineGuard closestPipelineGuard;
@@ -114,6 +132,11 @@ namespace render {
           PipelineGuard anyPipelineGuard;
           anyPipelineGuard.device = device;
           anyPipelineGuard.pipeline = anyPipeline;
+
+          VkPipeline compactPipeline = createPipeline(device, compactShader, compactPipelineLayout);
+          PipelineGuard compactPipelineGuard;
+          compactPipelineGuard.device = device;
+          compactPipelineGuard.pipeline = compactPipeline;
           return "";
         } catch (const std::runtime_error& e) {
           return e.what();
@@ -680,6 +703,11 @@ namespace render {
         return vulkan_shaders::triangleAnyHitShaderSpirv;
       }
 
+      const std::array<std::uint32_t, vulkan_shaders::rayCompactionShaderSpirv.size()>&
+      rayCompactionShaderSpirv() const {
+        return vulkan_shaders::rayCompactionShaderSpirv;
+      }
+
       void check(VkResult result, const char* operation) const {
         if (result != VK_SUCCESS) {
           throw std::runtime_error(std::string(operation) + " failed");
@@ -1117,10 +1145,15 @@ namespace render {
                                            vulkan_shaders::triangleClosestHitShaderSpirv.size());
         anyShader = createShaderModule(vulkan_shaders::triangleAnyHitShaderSpirv.data(),
                                        vulkan_shaders::triangleAnyHitShaderSpirv.size());
+        compactShader = createShaderModule(vulkan_shaders::rayCompactionShaderSpirv.data(),
+                                           vulkan_shaders::rayCompactionShaderSpirv.size());
         descriptorLayout = createDescriptorLayout(13);
+        compactDescriptorLayout = createDescriptorLayout(3);
         pipelineLayout = createPipelineLayout(descriptorLayout);
-        closestPipeline = createPipeline(closestShader);
-        anyPipeline = createPipeline(anyShader);
+        compactPipelineLayout = createPipelineLayout(compactDescriptorLayout);
+        closestPipeline = createPipeline(closestShader, pipelineLayout);
+        anyPipeline = createPipeline(anyShader, pipelineLayout);
+        compactPipeline = createPipeline(compactShader, compactPipelineLayout);
       } catch (...) {
         cleanup();
         throw;
@@ -1145,13 +1178,25 @@ namespace render {
           vkDestroyPipeline(device, anyPipeline, nullptr);
           anyPipeline = VK_NULL_HANDLE;
         }
+        if (compactPipeline) {
+          vkDestroyPipeline(device, compactPipeline, nullptr);
+          compactPipeline = VK_NULL_HANDLE;
+        }
         if (pipelineLayout) {
           vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
           pipelineLayout = VK_NULL_HANDLE;
         }
+        if (compactPipelineLayout) {
+          vkDestroyPipelineLayout(device, compactPipelineLayout, nullptr);
+          compactPipelineLayout = VK_NULL_HANDLE;
+        }
         if (descriptorLayout) {
           vkDestroyDescriptorSetLayout(device, descriptorLayout, nullptr);
           descriptorLayout = VK_NULL_HANDLE;
+        }
+        if (compactDescriptorLayout) {
+          vkDestroyDescriptorSetLayout(device, compactDescriptorLayout, nullptr);
+          compactDescriptorLayout = VK_NULL_HANDLE;
         }
         if (closestShader) {
           vkDestroyShaderModule(device, closestShader, nullptr);
@@ -1160,6 +1205,10 @@ namespace render {
         if (anyShader) {
           vkDestroyShaderModule(device, anyShader, nullptr);
           anyShader = VK_NULL_HANDLE;
+        }
+        if (compactShader) {
+          vkDestroyShaderModule(device, compactShader, nullptr);
+          compactShader = VK_NULL_HANDLE;
         }
         for (SmokeBuffer& buffer : sceneBuffers) {
           destroy(buffer);
@@ -1302,6 +1351,36 @@ namespace render {
     };
 
     static constexpr std::uint32_t kInvalidQueueFamily = std::numeric_limits<std::uint32_t>::max();
+
+    void dispatchRayCompaction(const SmokeBuffer& sourceRays, const SmokeBuffer& retainedIndices,
+                               const SmokeBuffer& compactedRays,
+                               std::uint64_t retainedRayCount) const {
+      if (retainedRayCount > std::numeric_limits<std::uint32_t>::max()) {
+        throw std::runtime_error("Vulkan prepared ray-batch compaction retained ray count is too "
+                                 "large");
+      }
+
+      std::vector<std::pair<VkBuffer, VkDeviceSize>> descriptors{
+        {sourceRays.buffer, sourceRays.byteCount},
+        {retainedIndices.buffer, retainedIndices.byteCount},
+        {compactedRays.buffer, compactedRays.byteCount},
+      };
+
+      DescriptorPoolGuard descriptorPool;
+      descriptorPool.device = device;
+      descriptorPool.pool = createDescriptorPool(3);
+      VkDescriptorSet descriptorSet =
+        allocateDescriptorSet(descriptorPool.pool, compactDescriptorLayout);
+      updateDescriptorSet(descriptorSet, descriptors);
+
+      const QueryBufferLease queryBuffers = acquireQueryBuffers();
+      check(vkResetCommandPool(device, queryBuffers.get().commandPool, 0),
+            "Vulkan prepared ray-batch compaction command pool reset");
+      VkCommandBuffer commandBuffer = allocateCommandBuffer(queryBuffers.get().commandPool);
+      recordDispatch(commandBuffer, compactPipeline, compactPipelineLayout, descriptorSet,
+                     static_cast<std::uint32_t>(retainedRayCount));
+      submitAndWait(commandBuffer);
+    }
 
     template<typename Record>
     DispatchRecordsResult<Record> dispatchRecords(const std::vector<GpuIntersectionRay>& rays,
@@ -1673,14 +1752,15 @@ namespace render {
       return createdLayout;
     }
 
-    VkPipeline createPipeline(VkShaderModule shaderModule) const {
+    VkPipeline createPipeline(VkShaderModule shaderModule,
+                              VkPipelineLayout targetPipelineLayout) const {
       VkComputePipelineCreateInfo pipelineInfo{};
       pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
       pipelineInfo.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
       pipelineInfo.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
       pipelineInfo.stage.module = shaderModule;
       pipelineInfo.stage.pName = "main";
-      pipelineInfo.layout = pipelineLayout;
+      pipelineInfo.layout = targetPipelineLayout;
 
       VkPipeline pipeline = VK_NULL_HANDLE;
       check(vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline),
@@ -1706,11 +1786,16 @@ namespace render {
     }
 
     VkDescriptorSet allocateDescriptorSet(VkDescriptorPool descriptorPool) const {
+      return allocateDescriptorSet(descriptorPool, descriptorLayout);
+    }
+
+    VkDescriptorSet allocateDescriptorSet(VkDescriptorPool descriptorPool,
+                                          VkDescriptorSetLayout targetDescriptorLayout) const {
       VkDescriptorSetAllocateInfo descriptorAllocateInfo{};
       descriptorAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
       descriptorAllocateInfo.descriptorPool = descriptorPool;
       descriptorAllocateInfo.descriptorSetCount = 1;
-      descriptorAllocateInfo.pSetLayouts = &descriptorLayout;
+      descriptorAllocateInfo.pSetLayouts = &targetDescriptorLayout;
 
       VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
       check(vkAllocateDescriptorSets(device, &descriptorAllocateInfo, &descriptorSet),
@@ -1764,13 +1849,19 @@ namespace render {
 
     void recordDispatch(VkCommandBuffer commandBuffer, VkPipeline pipeline,
                         VkDescriptorSet descriptorSet, std::uint32_t rayCount) const {
+      recordDispatch(commandBuffer, pipeline, pipelineLayout, descriptorSet, rayCount);
+    }
+
+    void recordDispatch(VkCommandBuffer commandBuffer, VkPipeline pipeline,
+                        VkPipelineLayout targetPipelineLayout, VkDescriptorSet descriptorSet,
+                        std::uint32_t rayCount) const {
       VkCommandBufferBeginInfo beginInfo{};
       beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
       check(vkBeginCommandBuffer(commandBuffer, &beginInfo),
             "Vulkan prepared wavefront command buffer begin");
       vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-      vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1,
-                              &descriptorSet, 0, nullptr);
+      vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, targetPipelineLayout,
+                              0, 1, &descriptorSet, 0, nullptr);
       vkCmdDispatch(commandBuffer, rayCount, 1, 1);
       check(vkEndCommandBuffer(commandBuffer), "Vulkan prepared wavefront command buffer end");
     }
@@ -1847,11 +1938,15 @@ namespace render {
     std::uint32_t queueFamily{kInvalidQueueFamily};
     VkQueue queue{VK_NULL_HANDLE};
     VkDescriptorSetLayout descriptorLayout{VK_NULL_HANDLE};
+    VkDescriptorSetLayout compactDescriptorLayout{VK_NULL_HANDLE};
     VkPipelineLayout pipelineLayout{VK_NULL_HANDLE};
+    VkPipelineLayout compactPipelineLayout{VK_NULL_HANDLE};
     VkShaderModule closestShader{VK_NULL_HANDLE};
     VkShaderModule anyShader{VK_NULL_HANDLE};
+    VkShaderModule compactShader{VK_NULL_HANDLE};
     VkPipeline closestPipeline{VK_NULL_HANDLE};
     VkPipeline anyPipeline{VK_NULL_HANDLE};
+    VkPipeline compactPipeline{VK_NULL_HANDLE};
     std::vector<SmokeBuffer> sceneBuffers;
     std::array<std::uint32_t, 4> sceneCounts0{};
     std::array<std::uint32_t, 4> sceneCounts1{};
@@ -1963,6 +2058,22 @@ namespace render {
 
   VulkanWavefrontPreparedScene::~VulkanWavefrontPreparedScene() = default;
 
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+  namespace {
+    void validateRetainedRayIndices(const std::vector<std::uint32_t>& retainedRayIndices,
+                                    std::uint64_t rayCount, const char* context) {
+      if (retainedRayIndices.size() > std::numeric_limits<std::uint32_t>::max()) {
+        throw std::runtime_error(std::string(context) + " retained ray count is too large");
+      }
+      for (const std::uint32_t index : retainedRayIndices) {
+        if (index >= rayCount) {
+          throw std::out_of_range(std::string(context) + " retained ray index is out of range");
+        }
+      }
+    }
+  }
+#endif
+
   std::shared_ptr<const VulkanWavefrontPreparedRayBatch>
   VulkanWavefrontPreparedScene::prepareRays(const std::vector<GpuIntersectionRay>& rays) const {
     auto batch =
@@ -1989,6 +2100,67 @@ namespace render {
     batch->p->counts = p->createStorageBuffer(sizeof(counts), counts.data());
     return batch;
 #else
+    throw std::runtime_error("Vulkan wavefront backend is not enabled");
+#endif
+  }
+
+  std::shared_ptr<const VulkanWavefrontPreparedRayBatch> VulkanWavefrontPreparedScene::compactRays(
+    const VulkanWavefrontPreparedRayBatch& sourceRays,
+    const std::vector<std::uint32_t>& retainedRayIndices) const {
+    auto batch =
+      std::shared_ptr<VulkanWavefrontPreparedRayBatch>(new VulkanWavefrontPreparedRayBatch);
+    if (retainedRayIndices.empty()) {
+      return batch;
+    }
+
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    validateRetainedRayIndices(retainedRayIndices, sourceRays.rayCount(),
+                               "Vulkan prepared ray-batch compaction");
+    if (sourceRays.p->device != p->device || sourceRays.p->sceneLifetime.get() != p.get()) {
+      throw std::invalid_argument(
+        "Vulkan prepared ray-batch compaction requires a source batch from this scene");
+    }
+    if (!sourceRays.p->rays.buffer) {
+      throw std::runtime_error("Vulkan prepared ray-batch compaction requires source rays");
+    }
+
+    batch->p->sceneLifetime = p;
+    batch->p->device = p->device;
+    batch->p->rayCount = static_cast<std::uint64_t>(retainedRayIndices.size());
+    const VkDeviceSize indexBytes =
+      p->byteCountForRecords<std::uint32_t>(retainedRayIndices.size());
+    const VkDeviceSize rayBytes =
+      p->byteCountForRecords<GpuIntersectionRay>(retainedRayIndices.size());
+
+    VulkanPreparedSmokeBuffer retainedIndexBuffer =
+      p->createStorageBuffer(indexBytes, retainedRayIndices.data());
+    try {
+      batch->p->rays = p->createStorageBuffer(rayBytes, nullptr);
+      p->dispatchRayCompaction(sourceRays.p->rays, retainedIndexBuffer, batch->p->rays,
+                               retainedRayIndices.size());
+      const std::array<std::uint32_t, 12> counts{
+        p->sceneCounts0[0],
+        p->sceneCounts0[1],
+        p->sceneCounts0[2],
+        p->sceneCounts0[3],
+        p->sceneCounts1[0],
+        p->sceneCounts1[1],
+        p->sceneCounts1[2],
+        p->sceneCounts1[3],
+        static_cast<std::uint32_t>(retainedRayIndices.size()),
+        p->transformCount,
+        p->torusCount,
+        0u,
+      };
+      batch->p->counts = p->createStorageBuffer(sizeof(counts), counts.data());
+    } catch (...) {
+      p->destroy(retainedIndexBuffer);
+      throw;
+    }
+    p->destroy(retainedIndexBuffer);
+    return batch;
+#else
+    (void)sourceRays;
     throw std::runtime_error("Vulkan wavefront backend is not enabled");
 #endif
   }
