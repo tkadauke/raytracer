@@ -1199,6 +1199,9 @@ Progress:
 - Wavefront metrics now report active-hit host bytes per depth and in compact
   rendercli summaries. This sizes the closest-hit records consumed by
   direct-light and BSDF shading separately from larger `BatchPath` state.
+- Path-tracing direct-light contributions now flow through a dedicated
+  contribution batch between next-event-estimation visibility and BSDF shading,
+  instead of returning a raw color vector to the scheduler loop.
 
 ---
 

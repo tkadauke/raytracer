@@ -132,6 +132,7 @@ namespace render {
     struct BatchPath;
     class ActivePathHits;
     class ClosestHitPathFrontierBatch;
+    class DirectLightContributionBatch;
     struct DirectLightingCandidate;
     struct DirectLightingSelection;
     struct DirectLightingSample;
@@ -149,7 +150,7 @@ namespace render {
                                 const Vector3d& wi, State& state, int bounce,
                                 const WavefrontIntersectionBackend* intersectionBackend = nullptr,
                                 IntegratorBatchMetrics* metrics = nullptr) const;
-    std::vector<Colord>
+    DirectLightContributionBatch
     sampleDirectLightingBatch(const Scene& scene, const LightSampler& lightSampler,
                               const ActivePathHits& activeHits, HostBatchPathFrontier& paths,
                               int bounce, const WavefrontIntersectionBackend& intersectionBackend,

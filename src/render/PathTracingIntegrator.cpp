@@ -372,6 +372,42 @@ namespace render {
     std::vector<bool> m_occluded;
   };
 
+  class PathTracingIntegrator::DirectLightContributionBatch {
+  public:
+    explicit DirectLightContributionBatch(std::size_t count)
+        : m_contributions(count, Colord::black()) {
+    }
+
+    [[nodiscard]] std::size_t size() const {
+      return m_contributions.size();
+    }
+
+    [[nodiscard]] bool empty() const {
+      return m_contributions.empty();
+    }
+
+    [[nodiscard]] Colord at(std::size_t index) const {
+      return index < m_contributions.size() ? m_contributions[index] : Colord::black();
+    }
+
+    void addWeighted(std::size_t index, const Colord& contribution, double weight) {
+      if (index >= m_contributions.size()) {
+        return;
+      }
+      m_contributions[index] += contribution * weight;
+    }
+
+    void average(int sampleCount) {
+      const auto divisor = static_cast<double>(std::max(1, sampleCount));
+      for (Colord& contribution : m_contributions) {
+        contribution = contribution / divisor;
+      }
+    }
+
+  private:
+    std::vector<Colord> m_contributions;
+  };
+
   struct PathTracingIntegrator::BatchDepthMetrics {
     bool trackRadianceDelta{false};
     std::uint64_t frontierRayHits{0};
@@ -608,12 +644,13 @@ namespace render {
     return contribution / static_cast<double>(m_directLightSamples);
   }
 
-  std::vector<Colord> PathTracingIntegrator::sampleDirectLightingBatch(
+  PathTracingIntegrator::DirectLightContributionBatch
+  PathTracingIntegrator::sampleDirectLightingBatch(
     const Scene& scene, const LightSampler& lightSampler, const ActivePathHits& activeHits,
     HostBatchPathFrontier& paths, int bounce,
     const WavefrontIntersectionBackend& intersectionBackend,
     IntegratorBatchMetrics* metrics) const {
-    std::vector<Colord> contributions(activeHits.size(), Colord::black());
+    DirectLightContributionBatch contributions(activeHits.size());
     if (activeHits.empty()) {
       return contributions;
     }
@@ -683,13 +720,12 @@ namespace render {
         if (metrics) {
           metrics->recordDirectLightSample(sample.occluded, sample.contributing());
         }
-        contributions[selection.hitIndex] += sample.contribution / selection.selectionPdf;
+        contributions.addWeighted(selection.hitIndex, sample.contribution,
+                                  1.0 / selection.selectionPdf);
       }
     }
 
-    for (Colord& contribution : contributions) {
-      contribution = contribution / static_cast<double>(m_directLightSamples);
-    }
+    contributions.average(m_directLightSamples);
     return contributions;
   }
 
@@ -1284,7 +1320,7 @@ namespace render {
 
       HostBatchPathFrontier spawnedPaths;
       spawnedPaths.reserve(activeHits.size() * 2);
-      const std::vector<Colord> directLightContributions = sampleDirectLightingBatch(
+      const DirectLightContributionBatch directLightContributions = sampleDirectLightingBatch(
         scene, lightSampler, activeHits, paths, bounce, intersectionBackend, metrics);
 
       for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
@@ -1327,9 +1363,7 @@ namespace render {
           }
 
           const Colord directLightContribution =
-            path.throughput * (hitIndex < directLightContributions.size()
-                                 ? directLightContributions[hitIndex]
-                                 : Colord::black());
+            path.throughput * directLightContributions.at(hitIndex);
           path.accumulated() += directLightContribution;
           if (metrics) {
             metrics->recordDirectLightRadiance(directLightContribution, bounce == 0);
