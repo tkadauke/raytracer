@@ -88,6 +88,24 @@ namespace render {
       return static_cast<std::uint64_t>(m_rays.size()) * sizeof(QueuedRay);
     }
 
+    void recordActiveHostPathStateBytes(IntegratorBatchMetrics* metrics) const {
+      if (metrics) {
+        metrics->recordActiveHostPathStateBytes(hostBytes());
+      }
+    }
+
+    void recordRetainedHostPathStateBytes(IntegratorBatchMetrics* metrics) const {
+      if (metrics) {
+        metrics->recordRetainedHostPathStateBytes(hostBytes());
+      }
+    }
+
+    void recordSpawnedContinuations(IntegratorBatchMetrics* metrics) const {
+      if (metrics) {
+        metrics->recordSpawnedContinuations(size(), hostBytes());
+      }
+    }
+
     void push(QueuedRay queued) {
       m_rays.push_back(std::move(queued));
     }
@@ -943,7 +961,7 @@ namespace render {
         collectCurrentActiveSamples(current, activeSamples, activeSampleIndices);
       if (metrics) {
         metrics->recordActiveDepth(currentActiveSamples);
-        metrics->recordActiveHostPathStateBytes(current.hostBytes());
+        current.recordActiveHostPathStateBytes(metrics);
       }
       if (trackRadianceDelta) {
         resultBeforeActiveSamples.clear();
@@ -1005,9 +1023,9 @@ namespace render {
       const std::uint64_t nextActiveSampleCount =
         countNextActiveSamples ? nextActiveSampleIndices.size() : next.size();
       if (metrics) {
-        metrics->recordSpawnedContinuations(next.size(), next.hostBytes());
+        next.recordSpawnedContinuations(metrics);
         metrics->recordRetainedActiveDepth(nextActiveSampleCount);
-        metrics->recordRetainedHostPathStateBytes(next.hostBytes());
+        next.recordRetainedHostPathStateBytes(metrics);
       }
       IntegratorBatchFeedback feedback;
       if (settings.progressObserver) {
