@@ -923,9 +923,10 @@ Progress:
   has a backend boundary for future resident occlusion batches.
 - Backend-owned closest-hit and any-hit frontiers now report their actual
   residency through wavefront metrics, rendercli summaries, graph traces, and
-  Modeler pass details. Current backends report `host`, while future
-  Metal/Vulkan frontiers can prove they stayed device-resident without changing
-  the UI or metrics contract again.
+  Modeler pass details. CPU/runtime frontiers report `host`, packed prepared
+  fallback frontiers report `packed_host`, and platform frontiers can report
+  their Metal/Vulkan residency without changing the UI or metrics contract
+  again.
 - The wavefront convergence capture helper now carries those host compaction
   execution counters into candidate/reference comparisons and queue-sweep
   summaries, and queue sweeps also preserve the compaction execution label.
@@ -945,9 +946,12 @@ Progress:
   closest-hit, any-hit, and total packed frontier payload sizes.
 - The backend contract now exposes explicit Phase 8 capability flags for
   resident frontiers, GPU frontier compaction, and resident direct-light
-  batches. Current backends report these as unsupported, and the values flow
-  through render metrics, rendercli summaries, and Modeler graph details so the
-  future implementation can be gated visibly.
+  batches. CPU and packed fallback backends report these as unsupported;
+  prepared Metal/Vulkan backends opt into resident-frontier support when their
+  platform scene is available, while GPU compaction and resident direct-light
+  batches remain gated off. The values flow through render metrics, rendercli
+  summaries, and Modeler graph details so future implementation can be gated
+  visibly.
 - The convergence capture helper now also keeps those capability flags in
   reference/candidate comparisons and queue-sweep summaries, so future Phase 8
   captures can distinguish an estimated opportunity from a backend that
@@ -962,12 +966,12 @@ Progress:
   aligned with the renderer path that future resident frontiers will override.
 - Prepared GPU-intersection backends now create closest-hit and any-hit
   frontiers that own the packed GPU ray payload at frontier-construction time.
-  These handles still live on the CPU and report `packed_host` residency, but
-  the path tracer no longer needs to hand raw query vectors to the prepared
-  backend before the rays take the packed-kernel shape.
+  The packed fallback handles still live on the CPU and report `packed_host`
+  residency, but the path tracer no longer needs to hand raw query vectors to
+  the prepared backend before the rays take the packed-kernel shape.
 - Prepared closest-hit and any-hit frontiers now have a polymorphic packed
   execution hook. The current `packed_host` frontiers still replay host-packed
-  rays through the backend, while future Metal/Vulkan frontiers can execute
+  rays through the backend, while platform Metal/Vulkan frontiers can execute
   from platform-owned query buffers without adding type switches to the backend
   intersection path.
 - Metal prepared scenes now expose a prepared packed-ray batch object. It
@@ -993,8 +997,9 @@ Progress:
   time.
 - Backend-owned closest-hit and any-hit frontiers now report packed-ray byte
   counts through wavefront metrics, rendercli summaries, graph traces, and the
-  Modeler pass details. Today only `packed_host` frontiers contribute nonzero
-  bytes, giving future GPU-resident frontier work a concrete payload baseline.
+  Modeler pass details. `packed_host`, `metal_shared`, and
+  `vulkan_host_coherent` frontiers contribute the retained packed-ray payload
+  size, giving GPU-resident frontier work a concrete payload baseline.
 - Wavefront metrics now report mixed query depths: depth frontiers where both a
   closest-hit frontier batch and a direct-light any-hit batch ran, plus the
   participating closest-hit and any-hit ray counts. This does not keep frontiers
