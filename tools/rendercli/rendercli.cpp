@@ -393,6 +393,9 @@ namespace {
         << " gpu_frontier_compaction_supported="
         << (batching.value("intersectionBackendSupportsGpuFrontierCompaction").toBool() ? "true"
                                                                                         : "false")
+        << " gpu_frontier_compaction_unavailable_reason="
+        << compactTextValue(
+             batching.value("intersectionBackendGpuFrontierCompactionUnavailableReason"), "none")
         << " prepared_ray_batch_compaction_supported="
         << (batching.value("intersectionBackendSupportsPreparedRayBatchCompaction").toBool()
               ? "true"

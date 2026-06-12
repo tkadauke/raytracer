@@ -132,6 +132,7 @@ namespace render {
     bool intersectionBackendPrefersAnyHitBatch{false};
     bool intersectionBackendSupportsResidentFrontiers{false};
     bool intersectionBackendSupportsGpuFrontierCompaction{false};
+    std::string intersectionBackendGpuFrontierCompactionUnavailableReason;
     bool intersectionBackendSupportsPreparedRayBatchCompaction{false};
     bool intersectionBackendSupportsResidentDirectLightBatches{false};
     double intersectionWorkerSeconds{0.0};

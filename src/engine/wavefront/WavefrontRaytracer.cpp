@@ -191,6 +191,8 @@ namespace engine::wavefront {
     intersectionBackendSupportsGpuFrontierCompaction =
       intersectionBackendSupportsGpuFrontierCompaction ||
       metrics.intersectionBackendSupportsGpuFrontierCompaction;
+    mergeLabel(intersectionBackendGpuFrontierCompactionUnavailableReason,
+               metrics.intersectionBackendGpuFrontierCompactionUnavailableReason);
     intersectionBackendSupportsPreparedRayBatchCompaction =
       intersectionBackendSupportsPreparedRayBatchCompaction ||
       metrics.intersectionBackendSupportsPreparedRayBatchCompaction;
@@ -721,6 +723,8 @@ namespace engine::wavefront {
       batching.intersectionBackendSupportsResidentFrontiers;
     batchingJson["intersectionBackendSupportsGpuFrontierCompaction"] =
       batching.intersectionBackendSupportsGpuFrontierCompaction;
+    batchingJson["intersectionBackendGpuFrontierCompactionUnavailableReason"] =
+      QString::fromStdString(batching.intersectionBackendGpuFrontierCompactionUnavailableReason);
     batchingJson["intersectionBackendSupportsPreparedRayBatchCompaction"] =
       batching.intersectionBackendSupportsPreparedRayBatchCompaction;
     batchingJson["intersectionBackendSupportsResidentDirectLightBatches"] =

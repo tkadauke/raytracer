@@ -203,9 +203,11 @@ supports resident frontiers, prepared ray-batch compaction, scheduler-level GPU
 frontier compaction, or resident direct-light batches. Prepared ray-batch
 compaction means an already uploaded platform ray buffer can be compacted, but
 the current hybrid scheduler still compacts `BatchPath` state on the host. The
-scheduler-level GPU compaction and resident direct-light flags stay unsupported
-until a real Phase 8 scheduling path lands, so the estimates stay visibly
-separate from implemented behavior.
+trace includes the reason scheduler-level GPU compaction is unavailable, so the
+Modeler can show that boundary beside the capability flag. The scheduler-level
+GPU compaction and resident direct-light flags stay unsupported until a real
+Phase 8 scheduling path lands, so the estimates stay visibly separate from
+implemented behavior.
 The path tracer also reports frontier compaction passes: the current CPU
 scheduler compacts the surviving path frontier after each depth, and the
 metrics expose the input, retained, removed, moved, removed-fraction sample

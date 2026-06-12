@@ -162,6 +162,7 @@ namespace render {
     intersectionBackendPrefersAnyHitBatch = false;
     intersectionBackendSupportsResidentFrontiers = false;
     intersectionBackendSupportsGpuFrontierCompaction = false;
+    intersectionBackendGpuFrontierCompactionUnavailableReason.clear();
     intersectionBackendSupportsPreparedRayBatchCompaction = false;
     intersectionBackendSupportsResidentDirectLightBatches = false;
     intersectionWorkerSeconds = 0.0;
@@ -482,6 +483,8 @@ namespace render {
       intersectionBackendSupportsResidentFrontiers || backend.supportsResidentFrontiers();
     intersectionBackendSupportsGpuFrontierCompaction =
       intersectionBackendSupportsGpuFrontierCompaction || backend.supportsGpuFrontierCompaction();
+    mergeLabel(intersectionBackendGpuFrontierCompactionUnavailableReason,
+               nonEmptyLabel(backend.gpuFrontierCompactionUnavailableReason(), ""));
     intersectionBackendSupportsPreparedRayBatchCompaction =
       intersectionBackendSupportsPreparedRayBatchCompaction ||
       backend.supportsPreparedRayBatchCompaction();
@@ -720,6 +723,8 @@ namespace render {
     intersectionBackendSupportsGpuFrontierCompaction =
       intersectionBackendSupportsGpuFrontierCompaction ||
       source.intersectionBackendSupportsGpuFrontierCompaction;
+    mergeLabel(intersectionBackendGpuFrontierCompactionUnavailableReason,
+               source.intersectionBackendGpuFrontierCompactionUnavailableReason);
     intersectionBackendSupportsPreparedRayBatchCompaction =
       intersectionBackendSupportsPreparedRayBatchCompaction ||
       source.intersectionBackendSupportsPreparedRayBatchCompaction;

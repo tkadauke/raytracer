@@ -1374,6 +1374,16 @@ namespace render {
     return false;
   }
 
+  const char* WavefrontIntersectionBackend::gpuFrontierCompactionUnavailableReason() const {
+    if (supportsGpuFrontierCompaction()) {
+      return "";
+    }
+    if (supportsPreparedRayBatchCompaction()) {
+      return "scheduler active path state is host-owned";
+    }
+    return "backend does not support prepared ray-batch compaction";
+  }
+
   bool WavefrontIntersectionBackend::supportsPreparedRayBatchCompaction() const {
     return false;
   }

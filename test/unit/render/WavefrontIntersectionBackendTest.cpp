@@ -3102,6 +3102,10 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(backendName == "metal" || backendName == "vulkan",
               backend->supportsPreparedRayBatchCompaction());
     EXPECT_FALSE(backend->supportsGpuFrontierCompaction());
+    EXPECT_STREQ((backendName == "metal" || backendName == "vulkan")
+                   ? "scheduler active path state is host-owned"
+                   : "backend does not support prepared ray-batch compaction",
+                 backend->gpuFrontierCompactionUnavailableReason());
     EXPECT_FALSE(backend->supportsResidentDirectLightBatches());
   }
 

@@ -977,6 +977,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("available", metrics.batching.intersectionBackendAvailability);
     EXPECT_NE(std::string::npos,
               metrics.batching.intersectionBackendFallbackReason.find("auto selected CPU"));
+    EXPECT_EQ("backend does not support prepared ray-batch compaction",
+              metrics.batching.intersectionBackendGpuFrontierCompactionUnavailableReason);
     expectPlatformGpuFallbackReason(metrics.batching.intersectionBackendFallbackReason);
     EXPECT_EQ("runtime_scene", metrics.batching.intersectionBackendExecutionPath);
     EXPECT_EQ(480u, metrics.batching.intersectionBackendExpectedRays);
@@ -1114,6 +1116,12 @@ namespace WavefrontRaytracerTest {
                                    .toString()
                                    .toStdString()
                                    .find("auto selected CPU"));
+    EXPECT_EQ("backend does not support prepared ray-batch compaction",
+              json.value("batching")
+                .toObject()
+                .value("intersectionBackendGpuFrontierCompactionUnavailableReason")
+                .toString()
+                .toStdString());
     EXPECT_EQ("runtime_scene", json.value("batching")
                                  .toObject()
                                  .value("intersectionBackendExecutionPath")

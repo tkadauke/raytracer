@@ -304,6 +304,10 @@ namespace render {
       */
     virtual bool supportsGpuFrontierCompaction() const;
     /**
+      * Diagnostic reason when `supportsGpuFrontierCompaction()` is false.
+      */
+    virtual const char* gpuFrontierCompactionUnavailableReason() const;
+    /**
       * True when the backend can compact an already prepared platform ray
       * batch. This is lower-level than scheduler-owned frontier compaction:
       * the current renderer can use this for diagnostics before `BatchPath`

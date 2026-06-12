@@ -773,6 +773,9 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                            QStringLiteral("intersectionBackendSupportsResidentFrontiers"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Supports GPU frontier compaction"), batching,
                            QStringLiteral("intersectionBackendSupportsGpuFrontierCompaction"));
+  addDetailStringMetadataRow(
+    rows, QStringLiteral("GPU frontier compaction unavailable reason"), batching,
+    QStringLiteral("intersectionBackendGpuFrontierCompactionUnavailableReason"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Supports resident direct-light batches"), batching,
                            QStringLiteral("intersectionBackendSupportsResidentDirectLightBatches"));
   addDetailMillisecondsMetadataRow(rows, QStringLiteral("Backend upload time"), batching,
@@ -1196,6 +1199,8 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         if (batching.contains(QStringLiteral("intersectionBackendSupportsResidentFrontiers")) ||
             batching.contains(QStringLiteral("intersectionBackendSupportsGpuFrontierCompaction")) ||
             batching.contains(
+              QStringLiteral("intersectionBackendGpuFrontierCompactionUnavailableReason")) ||
+            batching.contains(
               QStringLiteral("intersectionBackendSupportsPreparedRayBatchCompaction")) ||
             batching.contains(
               QStringLiteral("intersectionBackendSupportsResidentDirectLightBatches"))) {
@@ -1217,6 +1222,13 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
               .arg(supportsPreparedCompaction ? QStringLiteral("yes") : QStringLiteral("no"))
               .arg(supportsGpuCompaction ? QStringLiteral("yes") : QStringLiteral("no"))
               .arg(supportsResidentDirectLight ? QStringLiteral("yes") : QStringLiteral("no"));
+          const QString gpuCompactionUnavailableReason =
+            batching
+              .value(QStringLiteral("intersectionBackendGpuFrontierCompactionUnavailableReason"))
+              .toString();
+          if (!supportsGpuCompaction && !gpuCompactionUnavailableReason.isEmpty()) {
+            line += QStringLiteral(" (%1)").arg(gpuCompactionUnavailableReason);
+          }
         }
         const double uploadMs =
           batching.value(QStringLiteral("intersectionBackendUploadWorkerSeconds")).toDouble() *

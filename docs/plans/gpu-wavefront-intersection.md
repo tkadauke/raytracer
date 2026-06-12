@@ -1107,6 +1107,10 @@ Progress:
 - Executed frontier compaction now reports moved retained sample fraction, so
   GPU-side compaction planning can distinguish "many inactive paths removed"
   from "most retained paths still had to be copied to new slots."
+- Wavefront metrics now report a GPU frontier-compaction unavailable reason
+  beside the capability flag. That makes the current boundary explicit:
+  prepared platform ray batches can be compacted, but scheduler-owned active
+  path state is still host-resident.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a
