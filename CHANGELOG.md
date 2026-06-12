@@ -46,6 +46,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added Metal prepared ray-batch handles that upload packed frontier rays once
   and can be reused by closest-hit and any-hit prepared-scene dispatches.
   — GPT-5 Codex
+- Added Vulkan prepared ray-batch handles that upload packed frontier rays once
+  and can be reused by closest-hit and any-hit prepared-scene dispatches in
+  Vulkan-enabled builds. — GPT-5 Codex
 - Routed Metal prepared closest-hit and any-hit frontier handles through
   `metal_shared` prepared ray batches when a Metal wavefront scene is available.
   — GPT-5 Codex

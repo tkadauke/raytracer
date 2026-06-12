@@ -1341,6 +1341,62 @@ namespace WavefrontIntersectionBackendTest {
 #endif
   }
 
+  TEST(VulkanWavefrontPreparedScene, ReusesPreparedRayBatchAcrossClosestAndAnyHitQueries) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    VulkanWavefrontSmokeKernel kernel;
+    if (!kernel.deviceAvailable()) {
+      GTEST_SKIP() << "No Vulkan compute device is available";
+    }
+    if (!kernel.renderPathAvailable()) {
+      GTEST_SKIP() << kernel.renderPathUnavailableReason();
+    }
+
+    Scene scene;
+    scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0));
+    scene.add(
+      std::make_shared<Rectangle>(Vector3d(-1, -1, 6), Vector3d(2, 0, 0), Vector3d(0, 2, 0)));
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    ASSERT_TRUE(buffers.basicHitKernelEligible());
+    ASSERT_TRUE(VulkanWavefrontIntersectionBackend::supportsPackedScene(buffers));
+
+    const std::vector<GpuIntersectionRay> rays{
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 91),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(4, 0, 0, 1), Vector3d(0, 0, 1)), 92),
+      GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 93, 0.0,
+                                           2.5),
+    };
+
+    const VulkanWavefrontPreparedScene prepared(buffers);
+    const std::shared_ptr<const VulkanWavefrontPreparedRayBatch> rayBatch =
+      prepared.prepareRays(rays);
+    ASSERT_NE(nullptr, rayBatch);
+    EXPECT_EQ(rays.size(), rayBatch->rayCount());
+    EXPECT_EQ(rays.size() * sizeof(GpuIntersectionRay), rayBatch->packedRayBytes());
+
+    const VulkanWavefrontClosestHitKernelResult expectedClosest =
+      prepared.runTimedBasicClosestHitKernel(rays);
+    const VulkanWavefrontClosestHitKernelResult actualClosest =
+      prepared.runTimedBasicClosestHitKernel(*rayBatch);
+
+    ASSERT_EQ(expectedClosest.hits.size(), actualClosest.hits.size());
+    for (std::size_t index = 0; index != expectedClosest.hits.size(); ++index) {
+      expectGpuHitRecordNear(actualClosest.hits[index], expectedClosest.hits[index]);
+    }
+
+    const VulkanWavefrontAnyHitKernelResult expectedAny = prepared.runTimedBasicAnyHitKernel(rays);
+    const VulkanWavefrontAnyHitKernelResult actualAny =
+      prepared.runTimedBasicAnyHitKernel(*rayBatch);
+    ASSERT_EQ(expectedAny.records.size(), actualAny.records.size());
+    for (std::size_t index = 0; index != expectedAny.records.size(); ++index) {
+      EXPECT_EQ(expectedAny.records[index].rayIndex, actualAny.records[index].rayIndex);
+      EXPECT_EQ(expectedAny.records[index].occluded, actualAny.records[index].occluded);
+    }
+#else
+    GTEST_SKIP() << "Vulkan wavefront backend is disabled";
+#endif
+  }
+
   TEST(MetalWavefrontSmokeKernel, RunsDummyHitMissKernelWhenEnabled) {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     MetalWavefrontSmokeKernel kernel;

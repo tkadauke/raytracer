@@ -1018,6 +1018,56 @@ namespace render {
   }
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+  struct VulkanPreparedSmokeBuffer {
+    VkBuffer buffer{VK_NULL_HANDLE};
+    VkDeviceMemory memory{VK_NULL_HANDLE};
+    VkDeviceSize byteCount{0};
+  };
+
+  struct VulkanWavefrontPreparedRayBatch::Private {
+    std::shared_ptr<const void> sceneLifetime;
+    VkDevice device{VK_NULL_HANDLE};
+    VulkanPreparedSmokeBuffer rays;
+    VulkanPreparedSmokeBuffer counts;
+    std::uint64_t rayCount{0};
+
+    ~Private() {
+      destroy(rays);
+      destroy(counts);
+    }
+
+    void destroy(VulkanPreparedSmokeBuffer& buffer) const {
+      if (device && buffer.buffer) {
+        vkDestroyBuffer(device, buffer.buffer, nullptr);
+        buffer.buffer = VK_NULL_HANDLE;
+      }
+      if (device && buffer.memory) {
+        vkFreeMemory(device, buffer.memory, nullptr);
+        buffer.memory = VK_NULL_HANDLE;
+      }
+    }
+  };
+#else
+  struct VulkanWavefrontPreparedRayBatch::Private {
+    std::uint64_t rayCount{0};
+  };
+#endif
+
+  VulkanWavefrontPreparedRayBatch::VulkanWavefrontPreparedRayBatch()
+      : p(std::make_unique<Private>()) {
+  }
+
+  VulkanWavefrontPreparedRayBatch::~VulkanWavefrontPreparedRayBatch() = default;
+
+  std::uint64_t VulkanWavefrontPreparedRayBatch::rayCount() const {
+    return p->rayCount;
+  }
+
+  std::uint64_t VulkanWavefrontPreparedRayBatch::packedRayBytes() const {
+    return p->rayCount * sizeof(GpuIntersectionRay);
+  }
+
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
   struct VulkanWavefrontPreparedScene::Private {
     explicit Private(const GpuIntersectionSceneBuffers& scene) {
       try {
@@ -1153,16 +1203,44 @@ namespace render {
       return result;
     }
 
+    VulkanWavefrontClosestHitKernelResult runClosestPrepared(std::uint64_t rayCount,
+                                                             const SmokeBuffer& rayBuffer,
+                                                             const SmokeBuffer& countBuffer) const {
+      VulkanWavefrontClosestHitKernelResult result;
+      if (rayCount == 0) {
+        return result;
+      }
+      auto dispatchResult = dispatchPreparedRecords<GpuIntersectionHitRecord>(
+        rayCount, rayBuffer, countBuffer, closestPipeline, "Vulkan prepared closest-hit",
+        "Vulkan prepared closest-hit output buffer mapping");
+      result.hits = std::move(dispatchResult.records);
+      result.timing = dispatchResult.timing;
+      result.timing.recordExecutionPath("vulkan");
+      return result;
+    }
+
+    VulkanWavefrontAnyHitKernelResult runAnyPrepared(std::uint64_t rayCount,
+                                                     const SmokeBuffer& rayBuffer,
+                                                     const SmokeBuffer& countBuffer) const {
+      VulkanWavefrontAnyHitKernelResult result;
+      if (rayCount == 0) {
+        return result;
+      }
+      auto dispatchResult = dispatchPreparedRecords<GpuIntersectionOcclusionRecord>(
+        rayCount, rayBuffer, countBuffer, anyPipeline, "Vulkan prepared any-hit",
+        "Vulkan prepared any-hit output buffer mapping");
+      result.records = std::move(dispatchResult.records);
+      result.timing = dispatchResult.timing;
+      result.timing.recordExecutionPath("vulkan");
+      return result;
+    }
+
     struct DeviceSelection {
       VkPhysicalDevice device{VK_NULL_HANDLE};
       std::uint32_t queueFamily{kInvalidQueueFamily};
     };
 
-    struct SmokeBuffer {
-      VkBuffer buffer{VK_NULL_HANDLE};
-      VkDeviceMemory memory{VK_NULL_HANDLE};
-      VkDeviceSize byteCount{0};
-    };
+    using SmokeBuffer = VulkanPreparedSmokeBuffer;
 
     struct QueryBuffers {
       SmokeBuffer rays;
@@ -1290,6 +1368,60 @@ namespace render {
       return result;
     }
 
+    template<typename Record>
+    DispatchRecordsResult<Record>
+    dispatchPreparedRecords(std::uint64_t rayCount, const SmokeBuffer& rayBuffer,
+                            const SmokeBuffer& countBuffer, VkPipeline pipeline,
+                            const char* operation, const char* readbackOperation) const {
+      if (rayCount > std::numeric_limits<std::uint32_t>::max()) {
+        throw std::runtime_error(std::string(operation) + " ray batch is too large");
+      }
+
+      DispatchRecordsResult<Record> result;
+      const auto uploadStart = std::chrono::steady_clock::now();
+      const VkDeviceSize outputBytes =
+        byteCountForRecords<Record>(static_cast<std::size_t>(rayCount));
+
+      const QueryBufferLease queryBuffers = acquireQueryBuffers();
+      ensureOutputBufferCapacity(queryBuffers.get(), outputBytes);
+
+      std::vector<std::pair<VkBuffer, VkDeviceSize>> descriptors;
+      descriptors.reserve(13);
+      for (const SmokeBuffer& buffer : sceneBuffers) {
+        descriptors.push_back({buffer.buffer, buffer.byteCount});
+      }
+      descriptors.push_back({rayBuffer.buffer, rayBuffer.byteCount});
+      descriptors.push_back({queryBuffers.get().output.buffer, outputBytes});
+      descriptors.push_back({countBuffer.buffer, countBuffer.byteCount});
+
+      DescriptorPoolGuard descriptorPool;
+      descriptorPool.device = device;
+      descriptorPool.pool = createDescriptorPool(13);
+      VkDescriptorSet descriptorSet = allocateDescriptorSet(descriptorPool.pool);
+      updateDescriptorSet(descriptorSet, descriptors);
+
+      check(vkResetCommandPool(device, queryBuffers.get().commandPool, 0),
+            "Vulkan prepared wavefront command pool reset");
+      VkCommandBuffer commandBuffer = allocateCommandBuffer(queryBuffers.get().commandPool);
+      recordDispatch(commandBuffer, pipeline, descriptorSet, static_cast<std::uint32_t>(rayCount));
+      const auto uploadEnd = std::chrono::steady_clock::now();
+
+      const auto kernelStart = std::chrono::steady_clock::now();
+      submitAndWait(commandBuffer);
+      const auto kernelEnd = std::chrono::steady_clock::now();
+
+      const auto readbackStart = std::chrono::steady_clock::now();
+      result.records =
+        readBackRecords<Record>(queryBuffers.get().output.memory, outputBytes,
+                                static_cast<std::size_t>(rayCount), readbackOperation);
+      const auto readbackEnd = std::chrono::steady_clock::now();
+
+      result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
+      result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
+      result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
+      return result;
+    }
+
     QueryBufferLease acquireQueryBuffers() const {
       std::lock_guard<std::mutex> lock(queryBufferMutex);
       for (const auto& buffers : queryBufferPool) {
@@ -1318,6 +1450,10 @@ namespace render {
       if (!buffers.counts.buffer) {
         buffers.counts = createStorageBuffer(sizeof(std::array<std::uint32_t, 12>), nullptr);
       }
+    }
+
+    void ensureOutputBufferCapacity(QueryBuffers& buffers, VkDeviceSize outputBytes) const {
+      ensureBufferCapacity(buffers.output, buffers.outputCapacityBytes, outputBytes);
     }
 
     void ensureBufferCapacity(SmokeBuffer& buffer, VkDeviceSize& capacityBytes,
@@ -1817,15 +1953,45 @@ namespace render {
   VulkanWavefrontPreparedScene::VulkanWavefrontPreparedScene(
     const GpuIntersectionSceneBuffers& scene)
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-      : p(std::make_unique<Private>(scene)) {
+      : p(std::make_shared<Private>(scene)) {
 #else
-      : p(std::make_unique<Private>()) {
+      : p(std::make_shared<Private>()) {
     (void)scene;
     throw std::runtime_error("Vulkan wavefront backend is not enabled");
 #endif
   }
 
   VulkanWavefrontPreparedScene::~VulkanWavefrontPreparedScene() = default;
+
+  std::shared_ptr<const VulkanWavefrontPreparedRayBatch>
+  VulkanWavefrontPreparedScene::prepareRays(const std::vector<GpuIntersectionRay>& rays) const {
+    auto batch =
+      std::shared_ptr<VulkanWavefrontPreparedRayBatch>(new VulkanWavefrontPreparedRayBatch);
+    if (rays.empty()) {
+      return batch;
+    }
+    if (rays.size() > std::numeric_limits<std::uint32_t>::max()) {
+      throw std::runtime_error("Vulkan prepared wavefront ray batch has too many rays");
+    }
+
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    batch->p->sceneLifetime = p;
+    batch->p->device = p->device;
+    batch->p->rayCount = static_cast<std::uint64_t>(rays.size());
+    const VkDeviceSize rayBytes = p->byteCountForRecords<GpuIntersectionRay>(rays.size());
+    batch->p->rays = p->createStorageBuffer(rayBytes, rays.data());
+    const std::array<std::uint32_t, 12> counts{
+      p->sceneCounts0[0], p->sceneCounts0[1], p->sceneCounts0[2],
+      p->sceneCounts0[3], p->sceneCounts1[0], p->sceneCounts1[1],
+      p->sceneCounts1[2], p->sceneCounts1[3], static_cast<std::uint32_t>(rays.size()),
+      p->transformCount,  p->torusCount,      0u,
+    };
+    batch->p->counts = p->createStorageBuffer(sizeof(counts), counts.data());
+    return batch;
+#else
+    throw std::runtime_error("Vulkan wavefront backend is not enabled");
+#endif
+  }
 
   VulkanWavefrontClosestHitKernelResult VulkanWavefrontPreparedScene::runTimedBasicClosestHitKernel(
     const std::vector<GpuIntersectionRay>& rays) const {
@@ -1839,6 +2005,18 @@ namespace render {
 #endif
   }
 
+  VulkanWavefrontClosestHitKernelResult VulkanWavefrontPreparedScene::runTimedBasicClosestHitKernel(
+    const VulkanWavefrontPreparedRayBatch& rays) const {
+    if (rays.rayCount() == 0) {
+      return {};
+    }
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    return p->runClosestPrepared(rays.p->rayCount, rays.p->rays, rays.p->counts);
+#else
+    throw std::runtime_error("Vulkan wavefront backend is not enabled");
+#endif
+  }
+
   VulkanWavefrontAnyHitKernelResult VulkanWavefrontPreparedScene::runTimedBasicAnyHitKernel(
     const std::vector<GpuIntersectionRay>& rays) const {
     if (rays.empty()) {
@@ -1846,6 +2024,18 @@ namespace render {
     }
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     return p->runAny(rays);
+#else
+    throw std::runtime_error("Vulkan wavefront backend is not enabled");
+#endif
+  }
+
+  VulkanWavefrontAnyHitKernelResult VulkanWavefrontPreparedScene::runTimedBasicAnyHitKernel(
+    const VulkanWavefrontPreparedRayBatch& rays) const {
+    if (rays.rayCount() == 0) {
+      return {};
+    }
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    return p->runAnyPrepared(rays.p->rayCount, rays.p->rays, rays.p->counts);
 #else
     throw std::runtime_error("Vulkan wavefront backend is not enabled");
 #endif

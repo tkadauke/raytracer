@@ -974,6 +974,10 @@ Progress:
   uploads a packed frontier once, reports ray count and packed bytes, and can be
   reused by closest-hit and any-hit dispatches without copying the ray vector
   inside each dispatch.
+- Vulkan prepared scenes now expose the same prepared packed-ray batch API. In
+  Vulkan-enabled builds the batch uploads the packed frontier and matching
+  count buffer once, retains prepared-scene device lifetime, and can be reused
+  by closest-hit and any-hit prepared-scene dispatches.
 - Metal GPU-intersection backends now create `metal_shared` closest-hit and
   any-hit frontiers when a prepared Metal scene is available. Those frontiers
   dispatch through their prepared ray batch and fall back to `packed_host`

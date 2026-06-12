@@ -23,6 +23,25 @@ namespace render {
     WavefrontIntersectionQueryTiming timing;
   };
 
+  class VulkanWavefrontPreparedRayBatch {
+  public:
+    ~VulkanWavefrontPreparedRayBatch();
+
+    VulkanWavefrontPreparedRayBatch(const VulkanWavefrontPreparedRayBatch&) = delete;
+    VulkanWavefrontPreparedRayBatch& operator=(const VulkanWavefrontPreparedRayBatch&) = delete;
+
+    [[nodiscard]] std::uint64_t rayCount() const;
+    [[nodiscard]] std::uint64_t packedRayBytes() const;
+
+  private:
+    friend class VulkanWavefrontPreparedScene;
+
+    VulkanWavefrontPreparedRayBatch();
+
+    struct Private;
+    std::unique_ptr<Private> p;
+  };
+
   /**
     * @brief Vulkan platform probe for experimental wavefront-intersection work.
     *
@@ -64,13 +83,19 @@ namespace render {
     VulkanWavefrontPreparedScene(const VulkanWavefrontPreparedScene&) = delete;
     VulkanWavefrontPreparedScene& operator=(const VulkanWavefrontPreparedScene&) = delete;
 
+    [[nodiscard]] std::shared_ptr<const VulkanWavefrontPreparedRayBatch>
+    prepareRays(const std::vector<GpuIntersectionRay>& rays) const;
     VulkanWavefrontClosestHitKernelResult
     runTimedBasicClosestHitKernel(const std::vector<GpuIntersectionRay>& rays) const;
+    VulkanWavefrontClosestHitKernelResult
+    runTimedBasicClosestHitKernel(const VulkanWavefrontPreparedRayBatch& rays) const;
     VulkanWavefrontAnyHitKernelResult
     runTimedBasicAnyHitKernel(const std::vector<GpuIntersectionRay>& rays) const;
+    VulkanWavefrontAnyHitKernelResult
+    runTimedBasicAnyHitKernel(const VulkanWavefrontPreparedRayBatch& rays) const;
 
   private:
     struct Private;
-    std::unique_ptr<Private> p;
+    std::shared_ptr<Private> p;
   };
 }
