@@ -950,6 +950,11 @@ Progress:
   any-hit workloads through backend-owned frontier handles instead of bypassing
   the frontier contract with raw batch calls. That keeps benchmark evidence
   aligned with the renderer path that future resident frontiers will override.
+- Prepared GPU-intersection backends now create closest-hit and any-hit
+  frontiers that own the packed GPU ray payload at frontier-construction time.
+  These handles still live on the CPU and report `packed_host` residency, but
+  the path tracer no longer needs to hand raw query vectors to the prepared
+  backend before the rays take the packed-kernel shape.
 - Wavefront metrics now report mixed query depths: depth frontiers where both a
   closest-hit frontier batch and a direct-light any-hit batch ran, plus the
   participating closest-hit and any-hit ray counts. This does not keep frontiers

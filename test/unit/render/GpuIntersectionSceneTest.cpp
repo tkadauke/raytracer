@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstddef>
 #include <memory>
+#include <string>
 #include <type_traits>
 
 #include "render/GpuIntersectionScene.h"
@@ -558,7 +559,7 @@ namespace GpuIntersectionSceneTest {
     scene.add(std::make_shared<Torus>(2.0, 0.5));
     const Rayd ray(Vector4d(0, 0, -4, 1), Vector3d(0, 0, 1));
 
-    expectPackedClosestHitMatchesCompiled(scene, ray, 32);
+    expectPackedClosestHitMatchesCompiled(scene, ray, 32, true);
     expectPackedAnyHitMatchesCompiled(scene, ray, 5.0);
     expectPackedAnyHitMatchesCompiled(scene, ray, 1.0);
   }
@@ -970,7 +971,7 @@ namespace GpuIntersectionSceneTest {
       buffers, GpuIntersectionScenePacker().packRay(nearSurfaceRay, 0, Ray<float>::epsilon, 10.0)));
   }
 
-  TEST(GpuIntersectionScene, PackedAnyHitMatchesGeometryOnlyTransparentSceneOcclusion) {
+  TEST(GpuIntersectionScene, TransparentMaterialLeavesArePackedIneligible) {
     auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0);
     sphere->setMaterial(std::make_shared<TransparentMaterial>());
     Scene scene;
@@ -979,11 +980,16 @@ namespace GpuIntersectionSceneTest {
     const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
     const Rayd ray(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
 
-    ASSERT_TRUE(buffers.packedClosestHitKernelEligible());
+    EXPECT_FALSE(compiled.fullySupported());
+    ASSERT_EQ(1u, compiled.unsupportedPrimitives().size());
+    const std::string unsupportedReason = compiled.unsupportedPrimitives().front().reason;
+    EXPECT_NE(std::string::npos, unsupportedReason.find("transparent material requires runtime"));
+    EXPECT_FALSE(buffers.basicHitKernelEligible());
+    EXPECT_FALSE(buffers.packedClosestHitKernelEligible());
+    EXPECT_FALSE(buffers.packedAnyHitKernelEligible());
+
     State sceneState;
     EXPECT_TRUE(scene.occludes(ray, sceneState, 3.0));
-    EXPECT_TRUE(GpuIntersectionIntersector().intersectAny(
-      buffers, GpuIntersectionScenePacker().packRay(ray, 0, 0.0, 3.0)));
   }
 
   TEST(GpuIntersectionScene, PackedTransformedTriangleClosestHitMatchesCompiledSceneHit) {

@@ -1574,7 +1574,7 @@ namespace WavefrontRaytracerTest {
       renderCase.renderWith(render::WavefrontIntersectionBackendChoice::gpu());
 
     renderCase.expectBuffersNear(*cpu, *gpu, 1.0e-4);
-    renderCase.expectGpuRequestUsedPackedBackendWithoutPlatformKernel();
+    renderCase.expectGpuRequestUsedPreparedBackend();
     EXPECT_EQ(1u, renderCase.lastMetrics().batching.intersectionSceneTori);
     EXPECT_GT(renderCase.lastMetrics().batching.closestHitQueries, 0u);
   }

@@ -28,6 +28,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Routed wavefront intersection backend batch benchmarks through backend-owned
   frontier handles so benchmark timings cover the same seam as rendering.
   — GPT-5 Codex
+- Packed prepared GPU-intersection closest-hit and any-hit frontier handles at
+  creation time, reporting `packed_host` residency before future Metal/Vulkan
+  frontiers become device-resident. — GPT-5 Codex
 
 ### Added
 

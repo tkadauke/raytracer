@@ -17,6 +17,82 @@
 
 namespace render {
   namespace {
+    class PreparedPackedWavefrontClosestHitFrontier final : public WavefrontClosestHitFrontier {
+    public:
+      explicit PreparedPackedWavefrontClosestHitFrontier(
+        std::vector<WavefrontClosestHitQuery> queries)
+          : m_queries(std::move(queries)) {
+        m_packedRays.reserve(m_queries.size());
+        for (std::size_t index = 0; index != m_queries.size(); ++index) {
+          m_packedRays.push_back(GpuIntersectionScenePacker().packRay(
+            m_queries[index].ray, static_cast<std::uint32_t>(index)));
+        }
+      }
+
+      std::uint64_t rayCount() const override {
+        return static_cast<std::uint64_t>(m_queries.size());
+      }
+
+      const char* residency() const override {
+        return "packed_host";
+      }
+
+      [[nodiscard]] const std::vector<WavefrontClosestHitQuery>& queries() const {
+        return m_queries;
+      }
+
+      [[nodiscard]] const std::vector<GpuIntersectionRay>& packedRays() const {
+        return m_packedRays;
+      }
+
+    protected:
+      const std::vector<WavefrontClosestHitQuery>* hostClosestHitQueries() const override {
+        return &m_queries;
+      }
+
+    private:
+      std::vector<WavefrontClosestHitQuery> m_queries;
+      std::vector<GpuIntersectionRay> m_packedRays;
+    };
+
+    class PreparedPackedWavefrontAnyHitFrontier final : public WavefrontAnyHitFrontier {
+    public:
+      explicit PreparedPackedWavefrontAnyHitFrontier(std::vector<WavefrontAnyHitQuery> queries)
+          : m_queries(std::move(queries)) {
+        m_packedRays.reserve(m_queries.size());
+        for (std::size_t index = 0; index != m_queries.size(); ++index) {
+          m_packedRays.push_back(GpuIntersectionScenePacker().packRay(
+            m_queries[index].ray, static_cast<std::uint32_t>(index), Ray<float>::epsilon,
+            m_queries[index].maxDistance));
+        }
+      }
+
+      std::uint64_t rayCount() const override {
+        return static_cast<std::uint64_t>(m_queries.size());
+      }
+
+      const char* residency() const override {
+        return "packed_host";
+      }
+
+      [[nodiscard]] const std::vector<WavefrontAnyHitQuery>& queries() const {
+        return m_queries;
+      }
+
+      [[nodiscard]] const std::vector<GpuIntersectionRay>& packedRays() const {
+        return m_packedRays;
+      }
+
+    protected:
+      const std::vector<WavefrontAnyHitQuery>* hostAnyHitQueries() const override {
+        return &m_queries;
+      }
+
+    private:
+      std::vector<WavefrontAnyHitQuery> m_queries;
+      std::vector<GpuIntersectionRay> m_packedRays;
+    };
+
     class CpuDelegatingWavefrontIntersectionBackend final : public WavefrontIntersectionBackend {
     public:
       CpuDelegatingWavefrontIntersectionBackend(
@@ -1088,6 +1164,50 @@ namespace render {
     return results;
   }
 
+  std::unique_ptr<WavefrontClosestHitFrontier>
+  WavefrontIntersectionBackend::createPreparedClosestHitFrontier(
+    std::vector<WavefrontClosestHitQuery> queries) const {
+    if (preparedPackedClosestHitAvailable()) {
+      return std::make_unique<PreparedPackedWavefrontClosestHitFrontier>(std::move(queries));
+    }
+    return WavefrontIntersectionBackend::createClosestHitFrontier(std::move(queries));
+  }
+
+  std::vector<WavefrontClosestHitResult>
+  WavefrontIntersectionBackend::intersectPreparedClosestFrontier(
+    const WavefrontClosestHitFrontier& frontier, WavefrontIntersectionQueryTiming* timing) const {
+    if (const auto* packedFrontier =
+          dynamic_cast<const PreparedPackedWavefrontClosestHitFrontier*>(&frontier)) {
+      const CompiledIntersectionScene* scene = compiledScene();
+      const std::vector<WavefrontClosestHitQuery>& queries = packedFrontier->queries();
+      std::vector<WavefrontClosestHitResult> results(queries.size());
+      if (!scene) {
+        for (const WavefrontClosestHitQuery& query : queries) {
+          if (query.state) {
+            query.state->miss(nullptr, "Compiled intersection scene unavailable");
+          }
+        }
+        return results;
+      }
+
+      const std::vector<GpuIntersectionHitRecord> hits =
+        intersectPreparedPackedClosest(packedFrontier->packedRays(), timing);
+      for (const GpuIntersectionHitRecord& hit : hits) {
+        if (hit.rayIndex < results.size()) {
+          results[hit.rayIndex] = closestHitResultFromPackedRecord(
+            *scene, hit, queries[hit.rayIndex].state, "Packed GPU intersection scene");
+        }
+      }
+      return results;
+    }
+
+    const std::vector<WavefrontClosestHitQuery>* queries = frontier.hostClosestHitQueries();
+    if (!queries) {
+      throw std::logic_error("closest-hit frontier is not host-readable");
+    }
+    return intersectPreparedClosestBatch(*queries, timing);
+  }
+
   bool WavefrontIntersectionBackend::intersectPreparedAny(
     const Rayd& ray, double maxDistance, State& state,
     WavefrontIntersectionQueryTiming* timing) const {
@@ -1173,6 +1293,59 @@ namespace render {
       }
     }
     return results;
+  }
+
+  std::unique_ptr<WavefrontAnyHitFrontier>
+  WavefrontIntersectionBackend::createPreparedAnyHitFrontier(
+    std::vector<WavefrontAnyHitQuery> queries) const {
+    if (preparedPackedAnyHitAvailable()) {
+      return std::make_unique<PreparedPackedWavefrontAnyHitFrontier>(std::move(queries));
+    }
+    return WavefrontIntersectionBackend::createAnyHitFrontier(std::move(queries));
+  }
+
+  std::vector<bool> WavefrontIntersectionBackend::intersectPreparedAnyFrontier(
+    const WavefrontAnyHitFrontier& frontier, WavefrontIntersectionQueryTiming* timing) const {
+    if (const auto* packedFrontier =
+          dynamic_cast<const PreparedPackedWavefrontAnyHitFrontier*>(&frontier)) {
+      const CompiledIntersectionScene* scene = compiledScene();
+      const std::vector<WavefrontAnyHitQuery>& queries = packedFrontier->queries();
+      std::vector<bool> results(queries.size(), false);
+      if (!scene) {
+        for (const WavefrontAnyHitQuery& query : queries) {
+          if (query.state) {
+            query.state->shadowMiss(nullptr, "Compiled intersection scene unavailable");
+          }
+        }
+        return results;
+      }
+
+      const std::vector<GpuIntersectionOcclusionRecord> records =
+        intersectPreparedPackedAny(packedFrontier->packedRays(), timing);
+      for (const GpuIntersectionOcclusionRecord& record : records) {
+        if (record.rayIndex < results.size()) {
+          results[record.rayIndex] = record.occluded != 0;
+        }
+      }
+
+      for (std::size_t index = 0; index != queries.size(); ++index) {
+        if (!queries[index].state) {
+          continue;
+        }
+        if (results[index]) {
+          queries[index].state->shadowHit(nullptr, "Packed GPU intersection scene");
+        } else {
+          queries[index].state->shadowMiss(nullptr, "Packed GPU intersection scene");
+        }
+      }
+      return results;
+    }
+
+    const std::vector<WavefrontAnyHitQuery>* queries = frontier.hostAnyHitQueries();
+    if (!queries) {
+      throw std::logic_error("any-hit frontier is not host-readable");
+    }
+    return intersectPreparedAnyBatch(*queries, timing);
   }
 
   PrimitivePacketHit4 WavefrontIntersectionBackend::intersectPreparedPacketClosest(
@@ -1621,6 +1794,26 @@ namespace render {
     return WavefrontIntersectionBackend::intersectClosestBatch(scene, queries, timing);
   }
 
+  std::unique_ptr<WavefrontClosestHitFrontier>
+  MetalWavefrontIntersectionBackend::createClosestHitFrontier(
+    std::vector<WavefrontClosestHitQuery> queries) const {
+    if (compiledScene()) {
+      return createPreparedClosestHitFrontier(std::move(queries));
+    }
+    return WavefrontIntersectionBackend::createClosestHitFrontier(std::move(queries));
+  }
+
+  std::vector<WavefrontClosestHitResult>
+  MetalWavefrontIntersectionBackend::intersectClosestFrontier(
+    const Scene& scene, const WavefrontClosestHitFrontier& frontier,
+    WavefrontIntersectionQueryTiming* timing) const {
+    if (compiledScene()) {
+      (void)scene;
+      return intersectPreparedClosestFrontier(frontier, timing);
+    }
+    return WavefrontIntersectionBackend::intersectClosestFrontier(scene, frontier, timing);
+  }
+
   bool
   MetalWavefrontIntersectionBackend::intersectAny(const Scene& scene, const Rayd& ray,
                                                   double maxDistance, State& state,
@@ -1641,6 +1834,24 @@ namespace render {
       return intersectPreparedAnyBatch(queries, timing);
     }
     return CpuWavefrontIntersectionBackend::instance().intersectAnyBatch(scene, queries, timing);
+  }
+
+  std::unique_ptr<WavefrontAnyHitFrontier> MetalWavefrontIntersectionBackend::createAnyHitFrontier(
+    std::vector<WavefrontAnyHitQuery> queries) const {
+    if (compiledScene()) {
+      return createPreparedAnyHitFrontier(std::move(queries));
+    }
+    return WavefrontIntersectionBackend::createAnyHitFrontier(std::move(queries));
+  }
+
+  std::vector<bool> MetalWavefrontIntersectionBackend::intersectAnyFrontier(
+    const Scene& scene, const WavefrontAnyHitFrontier& frontier,
+    WavefrontIntersectionQueryTiming* timing) const {
+    if (compiledScene()) {
+      (void)scene;
+      return intersectPreparedAnyFrontier(frontier, timing);
+    }
+    return WavefrontIntersectionBackend::intersectAnyFrontier(scene, frontier, timing);
   }
 
   PrimitivePacketHit4 MetalWavefrontIntersectionBackend::intersectPacketClosest(
@@ -1942,6 +2153,26 @@ namespace render {
     return WavefrontIntersectionBackend::intersectClosestBatch(scene, queries, timing);
   }
 
+  std::unique_ptr<WavefrontClosestHitFrontier>
+  VulkanWavefrontIntersectionBackend::createClosestHitFrontier(
+    std::vector<WavefrontClosestHitQuery> queries) const {
+    if (compiledScene()) {
+      return createPreparedClosestHitFrontier(std::move(queries));
+    }
+    return WavefrontIntersectionBackend::createClosestHitFrontier(std::move(queries));
+  }
+
+  std::vector<WavefrontClosestHitResult>
+  VulkanWavefrontIntersectionBackend::intersectClosestFrontier(
+    const Scene& scene, const WavefrontClosestHitFrontier& frontier,
+    WavefrontIntersectionQueryTiming* timing) const {
+    if (compiledScene()) {
+      (void)scene;
+      return intersectPreparedClosestFrontier(frontier, timing);
+    }
+    return WavefrontIntersectionBackend::intersectClosestFrontier(scene, frontier, timing);
+  }
+
   bool
   VulkanWavefrontIntersectionBackend::intersectAny(const Scene& scene, const Rayd& ray,
                                                    double maxDistance, State& state,
@@ -1962,6 +2193,24 @@ namespace render {
       return intersectPreparedAnyBatch(queries, timing);
     }
     return CpuWavefrontIntersectionBackend::instance().intersectAnyBatch(scene, queries, timing);
+  }
+
+  std::unique_ptr<WavefrontAnyHitFrontier> VulkanWavefrontIntersectionBackend::createAnyHitFrontier(
+    std::vector<WavefrontAnyHitQuery> queries) const {
+    if (compiledScene()) {
+      return createPreparedAnyHitFrontier(std::move(queries));
+    }
+    return WavefrontIntersectionBackend::createAnyHitFrontier(std::move(queries));
+  }
+
+  std::vector<bool> VulkanWavefrontIntersectionBackend::intersectAnyFrontier(
+    const Scene& scene, const WavefrontAnyHitFrontier& frontier,
+    WavefrontIntersectionQueryTiming* timing) const {
+    if (compiledScene()) {
+      (void)scene;
+      return intersectPreparedAnyFrontier(frontier, timing);
+    }
+    return WavefrontIntersectionBackend::intersectAnyFrontier(scene, frontier, timing);
   }
 
   PrimitivePacketHit4 VulkanWavefrontIntersectionBackend::intersectPacketClosest(

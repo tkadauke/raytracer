@@ -2208,6 +2208,50 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(1, missState.intersectionMisses);
   }
 
+  TEST(WavefrontIntersectionBackend, PreparedGpuClosestHitFrontierOwnsPackedRayPayload) {
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
+    Scene sourceScene;
+    sourceScene.add(sphere);
+    Scene emptyScene;
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(sourceScene);
+
+    ASSERT_NE(nullptr, backend->compiledScene());
+    ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
+    ASSERT_TRUE(backend->gpuIntersectionSceneBuffers()->packedClosestHitKernelEligible());
+
+    State hitState;
+    State missState;
+    std::vector<WavefrontClosestHitQuery> queries{
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), &hitState},
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 3, -4), Vector3d(0, 0, 1)), &missState}};
+
+    const std::unique_ptr<WavefrontClosestHitFrontier> frontier =
+      backend->createClosestHitFrontier(std::move(queries));
+
+    ASSERT_NE(nullptr, frontier);
+    EXPECT_EQ(2u, frontier->rayCount());
+    EXPECT_STREQ("packed_host", frontier->residency());
+
+    WavefrontIntersectionQueryTiming timing;
+    const std::vector<WavefrontClosestHitResult> hits =
+      backend->intersectClosestFrontier(emptyScene, *frontier, &timing);
+
+    ASSERT_EQ(2u, hits.size());
+    EXPECT_TRUE(hits[0].hit());
+    EXPECT_EQ(sphere.get(), hits[0].primitive);
+    EXPECT_NEAR(3.0, hits[0].hitPoint.distance(), 1e-5);
+    EXPECT_FALSE(hits[1].hit());
+    EXPECT_EQ(1, hitState.intersectionHits);
+    EXPECT_EQ(0, hitState.intersectionMisses);
+    EXPECT_EQ(0, missState.intersectionHits);
+    EXPECT_EQ(1, missState.intersectionMisses);
+    EXPECT_TRUE(timing.executionPath == "packed_cpu" || timing.executionPath == "metal" ||
+                timing.executionPath == "vulkan")
+      << timing.executionPath;
+  }
+
   TEST(WavefrontIntersectionBackend, PreparedGpuClosestHitBatchPreservesInheritedMaterial) {
     auto material =
       std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
@@ -2542,6 +2586,48 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0, batchHitState.shadowIntersectionMisses);
     EXPECT_EQ(0, batchMissState.shadowIntersectionHits);
     EXPECT_EQ(1, batchMissState.shadowIntersectionMisses);
+  }
+
+  TEST(WavefrontIntersectionBackend, PreparedGpuAnyHitFrontierOwnsPackedRayPayload) {
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
+    Scene sourceScene;
+    sourceScene.add(sphere);
+    Scene emptyScene;
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(sourceScene);
+
+    ASSERT_NE(nullptr, backend->compiledScene());
+    ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
+    ASSERT_TRUE(backend->gpuIntersectionSceneBuffers()->packedAnyHitKernelEligible());
+
+    State hitState;
+    State missState;
+    std::vector<WavefrontAnyHitQuery> queries{
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 3.0, &hitState},
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 1.0, &missState}};
+
+    const std::unique_ptr<WavefrontAnyHitFrontier> frontier =
+      backend->createAnyHitFrontier(std::move(queries));
+
+    ASSERT_NE(nullptr, frontier);
+    EXPECT_EQ(2u, frontier->rayCount());
+    EXPECT_STREQ("packed_host", frontier->residency());
+
+    WavefrontIntersectionQueryTiming timing;
+    const std::vector<bool> occluded =
+      backend->intersectAnyFrontier(emptyScene, *frontier, &timing);
+
+    ASSERT_EQ(2u, occluded.size());
+    EXPECT_TRUE(occluded[0]);
+    EXPECT_FALSE(occluded[1]);
+    EXPECT_EQ(1, hitState.shadowIntersectionHits);
+    EXPECT_EQ(0, hitState.shadowIntersectionMisses);
+    EXPECT_EQ(0, missState.shadowIntersectionHits);
+    EXPECT_EQ(1, missState.shadowIntersectionMisses);
+    EXPECT_TRUE(timing.executionPath == "packed_cpu" || timing.executionPath == "metal" ||
+                timing.executionPath == "vulkan")
+      << timing.executionPath;
   }
 
   TEST(WavefrontIntersectionBackend, PreparedGpuFallbackPacketHitUsesRetainedPackedSphereScene) {
