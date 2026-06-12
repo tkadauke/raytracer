@@ -111,10 +111,6 @@ namespace render {
       return m_paths[pathIndex];
     }
 
-    std::vector<BatchPath>& rawPaths() {
-      return m_paths;
-    }
-
     [[nodiscard]] WavefrontFrontierCompactionRequest compactionRequest() const {
       WavefrontFrontierCompactionRequest request(m_paths.size());
       request.setPathStateBytesPerPath(sizeof(BatchPath));
@@ -427,7 +423,7 @@ namespace render {
 
   std::vector<Colord> PathTracingIntegrator::sampleDirectLightingBatch(
     const Scene& scene, const LightSampler& lightSampler, const std::vector<BatchHit>& activeHits,
-    std::vector<BatchPath>& paths, int bounce,
+    HostBatchPathFrontier& paths, int bounce,
     const WavefrontIntersectionBackend& intersectionBackend,
     IntegratorBatchMetrics* metrics) const {
     std::vector<Colord> contributions(activeHits.size(), Colord::black());
@@ -643,7 +639,7 @@ namespace render {
 
   void PathTracingIntegrator::intersectActivePathScalar(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    std::size_t pathIndex, std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits,
+    std::size_t pathIndex, HostBatchPathFrontier& paths, std::vector<BatchHit>& activeHits,
     int bounce, BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     auto& path = paths[pathIndex];
     const Colord accumulatedBeforeDepth =
@@ -681,7 +677,7 @@ namespace render {
 
   void PathTracingIntegrator::intersectActivePathPacket(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    std::size_t firstPathIndex, std::size_t laneCount, std::vector<BatchPath>& paths,
+    std::size_t firstPathIndex, std::size_t laneCount, HostBatchPathFrontier& paths,
     std::vector<BatchHit>& activeHits, int bounce, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
     if (laneCount > Ray4::lanes) {
@@ -750,7 +746,7 @@ namespace render {
 
   void PathTracingIntegrator::intersectActivePathPacket8(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    std::size_t firstPathIndex, std::size_t laneCount, std::vector<BatchPath>& paths,
+    std::size_t firstPathIndex, std::size_t laneCount, HostBatchPathFrontier& paths,
     std::vector<BatchHit>& activeHits, int bounce, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
     if (laneCount > Ray8::lanes) {
@@ -820,7 +816,7 @@ namespace render {
 
   void PathTracingIntegrator::intersectActiveFrontierBatch(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits, int bounce,
+    HostBatchPathFrontier& paths, std::vector<BatchHit>& activeHits, int bounce,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     std::vector<WavefrontClosestHitQuery> queries;
     queries.reserve(paths.size());
@@ -880,7 +876,7 @@ namespace render {
 
   void PathTracingIntegrator::intersectActiveFrontier(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits, int bounce,
+    HostBatchPathFrontier& paths, std::vector<BatchHit>& activeHits, int bounce,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     activeHits.clear();
     if (intersectionBackend.prefersClosestHitBatch(paths.size())) {
@@ -1149,8 +1145,8 @@ namespace render {
       BatchDepthMetrics depthMetrics;
       depthMetrics.trackRadianceDelta = trackRadianceDelta;
       depthMetrics.metrics = metrics;
-      intersectActiveFrontier(intersectionBackend, scene, paths.rawPaths(), activeHits, bounce,
-                              depthMetrics, metrics);
+      intersectActiveFrontier(intersectionBackend, scene, paths, activeHits, bounce, depthMetrics,
+                              metrics);
       if (metrics) {
         metrics->recordFrontierIntersections(depthMetrics.frontierRayHits,
                                              depthMetrics.frontierRayMisses);
@@ -1168,7 +1164,7 @@ namespace render {
       HostBatchPathFrontier spawnedPaths;
       spawnedPaths.reserve(activeHits.size() * 2);
       const std::vector<Colord> directLightContributions = sampleDirectLightingBatch(
-        scene, lightSampler, activeHits, paths.rawPaths(), bounce, intersectionBackend, metrics);
+        scene, lightSampler, activeHits, paths, bounce, intersectionBackend, metrics);
 
       for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
         const auto& hit = activeHits[hitIndex];

@@ -148,9 +148,8 @@ namespace render {
                                 IntegratorBatchMetrics* metrics = nullptr) const;
     std::vector<Colord>
     sampleDirectLightingBatch(const Scene& scene, const LightSampler& lightSampler,
-                              const std::vector<BatchHit>& activeHits,
-                              std::vector<BatchPath>& paths, int bounce,
-                              const WavefrontIntersectionBackend& intersectionBackend,
+                              const std::vector<BatchHit>& activeHits, HostBatchPathFrontier& paths,
+                              int bounce, const WavefrontIntersectionBackend& intersectionBackend,
                               IntegratorBatchMetrics* metrics = nullptr) const;
     Colord emittedRadiance(const LightSampler& lightSampler, const PathMaterialTransport& material,
                            const Rayd& ray, const HitPoint& hitPoint, bool sampledFromBsdf,
@@ -180,28 +179,28 @@ namespace render {
                             const Colord& accumulatedBeforeDepth) const;
     void intersectActivePathScalar(const WavefrontIntersectionBackend& intersectionBackend,
                                    const Scene& scene, std::size_t pathIndex,
-                                   std::vector<BatchPath>& paths, std::vector<BatchHit>& activeHits,
+                                   HostBatchPathFrontier& paths, std::vector<BatchHit>& activeHits,
                                    int bounce, BatchDepthMetrics& depthMetrics,
                                    IntegratorBatchMetrics* metrics) const;
     void intersectActivePathPacket(const WavefrontIntersectionBackend& intersectionBackend,
                                    const Scene& scene, std::size_t firstPathIndex,
-                                   std::size_t laneCount, std::vector<BatchPath>& paths,
+                                   std::size_t laneCount, HostBatchPathFrontier& paths,
                                    std::vector<BatchHit>& activeHits, int bounce,
                                    BatchDepthMetrics& depthMetrics,
                                    IntegratorBatchMetrics* metrics) const;
     void intersectActivePathPacket8(const WavefrontIntersectionBackend& intersectionBackend,
                                     const Scene& scene, std::size_t firstPathIndex,
-                                    std::size_t laneCount, std::vector<BatchPath>& paths,
+                                    std::size_t laneCount, HostBatchPathFrontier& paths,
                                     std::vector<BatchHit>& activeHits, int bounce,
                                     BatchDepthMetrics& depthMetrics,
                                     IntegratorBatchMetrics* metrics) const;
     void intersectActiveFrontierBatch(const WavefrontIntersectionBackend& intersectionBackend,
-                                      const Scene& scene, std::vector<BatchPath>& paths,
+                                      const Scene& scene, HostBatchPathFrontier& paths,
                                       std::vector<BatchHit>& activeHits, int bounce,
                                       BatchDepthMetrics& depthMetrics,
                                       IntegratorBatchMetrics* metrics) const;
     void intersectActiveFrontier(const WavefrontIntersectionBackend& intersectionBackend,
-                                 const Scene& scene, std::vector<BatchPath>& paths,
+                                 const Scene& scene, HostBatchPathFrontier& paths,
                                  std::vector<BatchHit>& activeHits, int bounce,
                                  BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;
