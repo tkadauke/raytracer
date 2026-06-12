@@ -593,7 +593,8 @@ namespace render {
       hits = intersectionBackend.intersectClosestFrontier(scene, *frontier, &intersectionTiming);
       if (metrics) {
         metrics->recordClosestHitFrontierResidency(
-          frontier->residency(), frontier->packedRayBytes(), frontier->hostQueryBytes());
+          frontier->residency(), frontier->packedRayBytes(), frontier->hostQueryBytes(),
+          frontier->stateHandleBytes());
         metrics->recordClosestHitQuery(intersectionBackend, frontier->rayCount(),
                                        intersectionTiming);
       }

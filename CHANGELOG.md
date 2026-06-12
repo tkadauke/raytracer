@@ -34,6 +34,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Made `packed_host` prepared wavefront frontiers discard original host query
   vectors after packing, so their host-query byte diagnostics now match
   device-resident frontier handles. — GPT-5 Codex
+- Reported backend-owned frontier state-handle byte counts in wavefront metrics,
+  rendercli summaries, convergence captures, benchmarks, and Modeler pass
+  details. — GPT-5 Codex
 - Preserved wavefront frontier residency labels in convergence comparison and
   queue-sweep benchmark capture summaries. — GPT-5 Codex
 - Preserved wavefront frontier packed-ray byte counts in convergence comparison

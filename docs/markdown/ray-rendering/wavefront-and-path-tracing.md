@@ -292,7 +292,10 @@ treating each mixed depth as one future resident scheduling boundary.
 Backend-owned frontier diagnostics also separate packed-ray bytes from
 host-query bytes: packed bytes describe the intersection payload being handed
 to the backend, while host-query bytes describe any original CPU query vector
-that still has to be retained for runtime host execution.
+that still has to be retained for runtime host execution. A third
+state-handle byte counter tracks the per-ray `State*` association that
+prepared `packed_host` and platform frontiers still keep on the CPU so
+intersection results can update the correct path state after readback.
 The backend capability flags keep that estimate honest: current hybrid
 backends can report lower-level prepared ray-batch compaction when an uploaded
 platform ray buffer can be compacted, but they still report that they do not

@@ -119,18 +119,20 @@ namespace IntegratorTest {
     EXPECT_EQ(0u, metrics.intersectionBackendAnyHitFrontierPackedRayBytes);
     EXPECT_EQ(0u, metrics.intersectionBackendClosestHitFrontierHostQueryBytes);
     EXPECT_EQ(0u, metrics.intersectionBackendAnyHitFrontierHostQueryBytes);
+    EXPECT_EQ(0u, metrics.intersectionBackendClosestHitFrontierStateHandleBytes);
+    EXPECT_EQ(0u, metrics.intersectionBackendAnyHitFrontierStateHandleBytes);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
     EXPECT_DOUBLE_EQ(0.0, metrics.frontierPartitionWorkerSeconds);
   }
 
-  TEST(Integrator, FrontierResidencyMetricsTrackPackedRayBytes) {
+  TEST(Integrator, FrontierResidencyMetricsTrackFrontierPayloadBytes) {
     IntegratorBatchMetrics metrics;
     metrics.reset(/*scalarFallback=*/false);
 
-    metrics.recordClosestHitFrontierResidency("packed_host", 64, 96);
-    metrics.recordClosestHitFrontierResidency("packed_host", 128, 160);
-    metrics.recordAnyHitFrontierResidency("host", 0, 48);
-    metrics.recordAnyHitFrontierResidency("packed_host", 32, 64);
+    metrics.recordClosestHitFrontierResidency("packed_host", 64, 96, 8);
+    metrics.recordClosestHitFrontierResidency("packed_host", 128, 160, 16);
+    metrics.recordAnyHitFrontierResidency("host", 0, 48, 0);
+    metrics.recordAnyHitFrontierResidency("packed_host", 32, 64, 8);
 
     EXPECT_EQ("packed_host", metrics.intersectionBackendClosestHitFrontierResidency);
     EXPECT_EQ("mixed", metrics.intersectionBackendAnyHitFrontierResidency);
@@ -138,6 +140,8 @@ namespace IntegratorTest {
     EXPECT_EQ(32u, metrics.intersectionBackendAnyHitFrontierPackedRayBytes);
     EXPECT_EQ(256u, metrics.intersectionBackendClosestHitFrontierHostQueryBytes);
     EXPECT_EQ(112u, metrics.intersectionBackendAnyHitFrontierHostQueryBytes);
+    EXPECT_EQ(24u, metrics.intersectionBackendClosestHitFrontierStateHandleBytes);
+    EXPECT_EQ(8u, metrics.intersectionBackendAnyHitFrontierStateHandleBytes);
   }
 
   TEST(Integrator, IntersectionBackendMetricsTrackQuerySpecificExecutionPaths) {

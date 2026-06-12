@@ -193,7 +193,9 @@ boundary. The closest-hit and any-hit frontier residency labels record whether
 those backend-owned frontiers were host-backed or came from a future resident
 backend path. The paired packed-ray byte counters show the retained
 intersection payload, while host-query byte counters show how much original
-CPU query-vector storage is still kept after a frontier is prepared.
+CPU query-vector storage is still kept after a frontier is prepared. State
+handle byte counters show the remaining per-ray `State*` association retained
+by packed or platform frontiers after the original query vector is gone.
 Backend capability flags separately state whether the selected backend already
 supports resident frontiers, prepared ray-batch compaction, scheduler-level GPU
 frontier compaction, or resident direct-light batches. Prepared ray-batch

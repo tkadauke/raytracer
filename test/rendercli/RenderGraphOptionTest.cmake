@@ -2712,8 +2712,10 @@ endif()
 foreach(frontier_residency_summary
         closest_hit_frontier_residency=
         closest_hit_frontier_host_query_bytes=
+        closest_hit_frontier_state_handle_bytes=
         any_hit_frontier_residency=
-        any_hit_frontier_host_query_bytes=)
+        any_hit_frontier_host_query_bytes=
+        any_hit_frontier_state_handle_bytes=)
   if(NOT wavefront_metrics_stdout MATCHES "${frontier_residency_summary}")
     _rendercli_fail("rendercli wavefront metrics ${frontier_residency_summary}"
                     "wavefront metrics summary did not contain ${frontier_residency_summary}"

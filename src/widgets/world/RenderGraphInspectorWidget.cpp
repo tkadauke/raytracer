@@ -666,6 +666,11 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("closestHitQueries"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit queries"), batching,
                               QStringLiteral("anyHitQueries"));
+  addDetailIntegerMetadataRow(
+    rows, QStringLiteral("Closest-hit frontier state-handle bytes"), batching,
+    QStringLiteral("intersectionBackendClosestHitFrontierStateHandleBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit frontier state-handle bytes"), batching,
+                              QStringLiteral("intersectionBackendAnyHitFrontierStateHandleBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed query depths"), batching,
                               QStringLiteral("frontierMixedQueryDepths"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed query rays"), batching,

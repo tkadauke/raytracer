@@ -87,6 +87,7 @@ namespace render {
     [[nodiscard]] virtual const char* residency() const = 0;
     [[nodiscard]] virtual std::uint64_t packedRayBytes() const;
     [[nodiscard]] virtual std::uint64_t hostQueryBytes() const;
+    [[nodiscard]] virtual std::uint64_t stateHandleBytes() const;
 
   protected:
     friend class WavefrontIntersectionBackend;
@@ -128,6 +129,7 @@ namespace render {
     [[nodiscard]] virtual const char* residency() const = 0;
     [[nodiscard]] virtual std::uint64_t packedRayBytes() const;
     [[nodiscard]] virtual std::uint64_t hostQueryBytes() const;
+    [[nodiscard]] virtual std::uint64_t stateHandleBytes() const;
 
   protected:
     friend class WavefrontIntersectionBackend;
