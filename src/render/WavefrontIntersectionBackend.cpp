@@ -17,16 +17,35 @@
 
 namespace render {
   namespace {
+    std::vector<GpuIntersectionRay>
+    packClosestHitQueries(const std::vector<WavefrontClosestHitQuery>& queries) {
+      std::vector<GpuIntersectionRay> packedRays;
+      packedRays.reserve(queries.size());
+      for (std::size_t index = 0; index != queries.size(); ++index) {
+        packedRays.push_back(GpuIntersectionScenePacker().packRay(
+          queries[index].ray, static_cast<std::uint32_t>(index)));
+      }
+      return packedRays;
+    }
+
+    std::vector<GpuIntersectionRay>
+    packAnyHitQueries(const std::vector<WavefrontAnyHitQuery>& queries) {
+      std::vector<GpuIntersectionRay> packedRays;
+      packedRays.reserve(queries.size());
+      for (std::size_t index = 0; index != queries.size(); ++index) {
+        packedRays.push_back(GpuIntersectionScenePacker().packRay(
+          queries[index].ray, static_cast<std::uint32_t>(index), Ray<float>::epsilon,
+          queries[index].maxDistance));
+      }
+      return packedRays;
+    }
+
     class PreparedPackedWavefrontClosestHitFrontier final : public WavefrontClosestHitFrontier {
     public:
       explicit PreparedPackedWavefrontClosestHitFrontier(
         std::vector<WavefrontClosestHitQuery> queries)
           : m_queries(std::move(queries)) {
-        m_packedRays.reserve(m_queries.size());
-        for (std::size_t index = 0; index != m_queries.size(); ++index) {
-          m_packedRays.push_back(GpuIntersectionScenePacker().packRay(
-            m_queries[index].ray, static_cast<std::uint32_t>(index)));
-        }
+        m_packedRays = packClosestHitQueries(m_queries);
       }
 
       std::uint64_t rayCount() const override {
@@ -55,12 +74,7 @@ namespace render {
     public:
       explicit PreparedPackedWavefrontAnyHitFrontier(std::vector<WavefrontAnyHitQuery> queries)
           : m_queries(std::move(queries)) {
-        m_packedRays.reserve(m_queries.size());
-        for (std::size_t index = 0; index != m_queries.size(); ++index) {
-          m_packedRays.push_back(GpuIntersectionScenePacker().packRay(
-            m_queries[index].ray, static_cast<std::uint32_t>(index), Ray<float>::epsilon,
-            m_queries[index].maxDistance));
-        }
+        m_packedRays = packAnyHitQueries(m_queries);
       }
 
       std::uint64_t rayCount() const override {
@@ -1139,13 +1153,7 @@ namespace render {
     }
 
     if (preparedPackedClosestHitAvailable()) {
-      std::vector<GpuIntersectionRay> packedRays;
-      packedRays.reserve(queries.size());
-      for (std::size_t index = 0; index != queries.size(); ++index) {
-        packedRays.push_back(GpuIntersectionScenePacker().packRay(
-          queries[index].ray, static_cast<std::uint32_t>(index)));
-      }
-
+      const std::vector<GpuIntersectionRay> packedRays = packClosestHitQueries(queries);
       const std::vector<GpuIntersectionHitRecord> hits =
         intersectPreparedPackedClosest(packedRays, timing);
       for (const GpuIntersectionHitRecord& hit : hits) {
@@ -1257,13 +1265,7 @@ namespace render {
 
     const char* reason = "Compiled intersection scene";
     if (preparedPackedAnyHitAvailable()) {
-      std::vector<GpuIntersectionRay> packedRays;
-      packedRays.reserve(queries.size());
-      for (std::size_t index = 0; index != queries.size(); ++index) {
-        packedRays.push_back(GpuIntersectionScenePacker().packRay(
-          queries[index].ray, static_cast<std::uint32_t>(index), Ray<float>::epsilon,
-          queries[index].maxDistance));
-      }
+      const std::vector<GpuIntersectionRay> packedRays = packAnyHitQueries(queries);
       const std::vector<GpuIntersectionOcclusionRecord> records =
         intersectPreparedPackedAny(packedRays, timing);
       for (const GpuIntersectionOcclusionRecord& record : records) {
