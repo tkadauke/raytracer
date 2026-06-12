@@ -1131,6 +1131,10 @@ Progress:
   estimates. That sizes the CPU-owned `BatchPath` frontier state separately
   from packed ray payloads and `State*` handles, making the remaining scheduler
   residency work measurable before the representation changes.
+- The convergence capture helper now also preserves the last active and
+  retained host path-state byte rows in reference/candidate comparisons and
+  queue-sweep summaries, matching the rendercli compact summary fields used to
+  inspect the final CPU-owned frontier size.
 - Path-tracing wavefront metrics now also report spawned-continuation counts
   and host path-state bytes per depth. Exact-delta branches append those states
   after the old frontier is compacted, so this separates frontier growth from

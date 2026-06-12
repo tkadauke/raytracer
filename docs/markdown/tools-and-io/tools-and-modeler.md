@@ -433,6 +433,8 @@ compact summary prints total `tiles`, `tile_grid`,
 `frontier_compaction_moved_samples`,
 `frontier_compaction_moved_retained_fraction`,
 `active_host_path_state_bytes`,
+`last_active_host_path_state_bytes`,
+`last_retained_host_path_state_bytes`,
 `spawned_continuations`,
 `spawned_continuation_host_path_state_bytes`,
 `frontier_compaction_candidate_packed_ray_bytes`,
@@ -516,6 +518,10 @@ those payload arrays as
 `direct_light_any_hit_frontier_last_host_query_bytes`, and
 `direct_light_any_hit_frontier_last_state_handle_bytes`, so queue sweeps can
 compare the final visibility frontier without expanding the full JSON arrays.
+The same capture summaries preserve `last_active_host_path_state_bytes` and
+`last_retained_host_path_state_bytes`, matching the rendercli compact summary
+fields that show the final CPU-owned path frontier size before and after
+compaction/spawned continuations.
 The JSON also includes `sampleVariancePixelArea`, `sampleRadianceStddevRms`, and
 `maxSampleRadianceStddev`, which measure disagreement between samples of the
 same pixel and complement the between-depth radiance-delta convergence fields.

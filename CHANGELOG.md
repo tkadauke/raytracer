@@ -99,6 +99,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   summaries, convergence captures, and Modeler graph details to size the
   CPU-owned `BatchPath` state still blocking resident frontier scheduling.
   — GPT-5 Codex
+- Preserved last active and retained wavefront host path-state byte counts in
+  convergence comparison and queue-sweep benchmark capture summaries.
+  — GPT-5 Codex
 - Reported path-tracing spawned-continuation counts and host path-state bytes in
   wavefront metrics, rendercli summaries, convergence captures, and Modeler
   graph details so exact-delta frontier growth is visible beside compaction.
