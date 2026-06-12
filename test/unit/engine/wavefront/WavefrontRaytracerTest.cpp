@@ -1620,10 +1620,10 @@ namespace WavefrontRaytracerTest {
               0u);
     EXPECT_GT(renderCase.lastMetrics().batching.intersectionBackendAnyHitFrontierPackedRayBytes,
               0u);
-    EXPECT_GT(renderCase.lastMetrics().batching.intersectionBackendClosestHitFrontierHostQueryBytes,
-              0u);
-    EXPECT_GT(renderCase.lastMetrics().batching.intersectionBackendAnyHitFrontierHostQueryBytes,
-              0u);
+    EXPECT_EQ(
+      0u, renderCase.lastMetrics().batching.intersectionBackendClosestHitFrontierHostQueryBytes);
+    EXPECT_EQ(0u,
+              renderCase.lastMetrics().batching.intersectionBackendAnyHitFrontierHostQueryBytes);
     EXPECT_FALSE(renderCase.lastMetrics().batching.directLightAnyHitBatchChunksPerDepth.empty());
     EXPECT_FALSE(renderCase.lastMetrics().batching.directLightAnyHitBatchRaysPerDepth.empty());
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitBatchChunksPerDepth.front(), 0u);

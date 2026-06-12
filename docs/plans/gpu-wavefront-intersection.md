@@ -991,10 +991,10 @@ Progress:
   residency, but the path tracer no longer needs to hand raw query vectors to
   the prepared backend before the rays take the packed-kernel shape.
 - Prepared closest-hit and any-hit frontiers now have a polymorphic packed
-  execution hook. The current `packed_host` frontiers still replay host-packed
-  rays through the backend, while platform Metal/Vulkan frontiers can execute
-  from platform-owned query buffers without adding type switches to the backend
-  intersection path.
+  execution hook. The current `packed_host` frontiers still replay packed rays
+  through the backend from CPU memory, while platform Metal/Vulkan frontiers can
+  execute from platform-owned query buffers without adding type switches to the
+  backend intersection path.
 - Packed closest-hit and any-hit frontier execution no longer requires the
   frontier to expose its original host query vector. The backend reconstructs
   results from ray count plus per-ray state hooks, which is a smaller host
@@ -1046,10 +1046,14 @@ Progress:
   `vulkan_host_coherent` frontiers contribute the retained packed-ray payload
   size, giving GPU-resident frontier work a concrete payload baseline.
 - Backend-owned frontiers now also report retained host-query byte counts.
-  Host and `packed_host` frontiers expose the original query-vector footprint,
-  while platform resident frontiers report zero once they have discarded that
-  vector. This makes the remaining host-side dependency visible separately
-  from packed ray payload size.
+  Runtime host frontiers expose the original query-vector footprint, while
+  `packed_host` and platform resident frontiers report zero once they have
+  discarded that vector. This makes the remaining host-side dependency visible
+  separately from packed ray payload size.
+- `packed_host` prepared frontiers now retain only per-ray `State*` handles
+  plus the packed ray payload after construction. That matches the platform
+  frontier shape more closely and removes the last original-query-vector
+  dependency from the prepared host fallback path.
 - Wavefront metrics now report mixed query depths: depth frontiers where both a
   closest-hit frontier batch and a direct-light any-hit batch ran, plus the
   participating closest-hit and any-hit ray counts. This does not keep frontiers

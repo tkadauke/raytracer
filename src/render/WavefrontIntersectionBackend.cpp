@@ -43,7 +43,6 @@ namespace render {
       return packedRays;
     }
 
-#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     std::vector<State*> closestHitStates(const std::vector<WavefrontClosestHitQuery>& queries) {
       std::vector<State*> states;
       states.reserve(queries.size());
@@ -62,6 +61,7 @@ namespace render {
       return states;
     }
 
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     double secondsBetween(std::chrono::steady_clock::time_point start,
                           std::chrono::steady_clock::time_point end) {
       return std::chrono::duration<double>(end - start).count();
@@ -72,12 +72,12 @@ namespace render {
     public:
       explicit PreparedPackedWavefrontClosestHitFrontier(
         std::vector<WavefrontClosestHitQuery> queries)
-          : m_queries(std::move(queries)) {
-        m_packedRays = packClosestHitQueries(m_queries);
+          : m_states(closestHitStates(queries)),
+            m_packedRays(packClosestHitQueries(queries)) {
       }
 
       std::uint64_t rayCount() const override {
-        return static_cast<std::uint64_t>(m_queries.size());
+        return static_cast<std::uint64_t>(m_states.size());
       }
 
       const char* residency() const override {
@@ -88,13 +88,12 @@ namespace render {
         return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
       }
 
-      std::uint64_t hostQueryBytes() const override {
-        return static_cast<std::uint64_t>(m_queries.size()) * sizeof(WavefrontClosestHitQuery);
-      }
-
     protected:
-      const std::vector<WavefrontClosestHitQuery>* hostClosestHitQueries() const override {
-        return &m_queries;
+      State* closestHitState(std::size_t rayIndex) const override {
+        if (rayIndex >= m_states.size()) {
+          return nullptr;
+        }
+        return m_states[rayIndex];
       }
 
       const std::vector<GpuIntersectionRay>* hostPackedClosestHitRays() const override {
@@ -102,19 +101,19 @@ namespace render {
       }
 
     private:
-      std::vector<WavefrontClosestHitQuery> m_queries;
+      std::vector<State*> m_states;
       std::vector<GpuIntersectionRay> m_packedRays;
     };
 
     class PreparedPackedWavefrontAnyHitFrontier final : public WavefrontAnyHitFrontier {
     public:
       explicit PreparedPackedWavefrontAnyHitFrontier(std::vector<WavefrontAnyHitQuery> queries)
-          : m_queries(std::move(queries)) {
-        m_packedRays = packAnyHitQueries(m_queries);
+          : m_states(anyHitStates(queries)),
+            m_packedRays(packAnyHitQueries(queries)) {
       }
 
       std::uint64_t rayCount() const override {
-        return static_cast<std::uint64_t>(m_queries.size());
+        return static_cast<std::uint64_t>(m_states.size());
       }
 
       const char* residency() const override {
@@ -125,13 +124,12 @@ namespace render {
         return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
       }
 
-      std::uint64_t hostQueryBytes() const override {
-        return static_cast<std::uint64_t>(m_queries.size()) * sizeof(WavefrontAnyHitQuery);
-      }
-
     protected:
-      const std::vector<WavefrontAnyHitQuery>* hostAnyHitQueries() const override {
-        return &m_queries;
+      State* anyHitState(std::size_t rayIndex) const override {
+        if (rayIndex >= m_states.size()) {
+          return nullptr;
+        }
+        return m_states[rayIndex];
       }
 
       const std::vector<GpuIntersectionRay>* hostPackedAnyHitRays() const override {
@@ -139,7 +137,7 @@ namespace render {
       }
 
     private:
-      std::vector<WavefrontAnyHitQuery> m_queries;
+      std::vector<State*> m_states;
       std::vector<GpuIntersectionRay> m_packedRays;
     };
 

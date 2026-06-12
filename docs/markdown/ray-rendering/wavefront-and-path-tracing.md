@@ -266,10 +266,12 @@ also report their actual residency and packed-ray byte count, so the trace
 distinguishes today's host-backed handles from a future device-resident
 frontier path. Prepared GPU-style backends already build `packed_host`
 frontier handles: the rays are converted to the packed GPU query ABI when the
-frontier is created, while state updates and fallback still remain
-CPU-readable. Whitted closest-hit batches use the same frontier handle path, so
-their diagnostics line up with path-tracing closest-hit batches. Batched path-tracing
-direct-light visibility goes through the same backend seam via
+frontier is created, and the original query vector is discarded after the
+packed rays and per-ray state handles are retained. State updates and fallback
+still remain CPU-readable. Whitted closest-hit batches use the same frontier
+handle path, so their diagnostics line up with path-tracing closest-hit
+batches. Batched path-tracing direct-light visibility goes through the same
+backend seam via
 `intersectAny(...)`, so the graph and metrics can separate closest-hit and
 any-hit ray counts for CPU and GPU-resident query families. When the selected
 backend prefers batched visibility, the path tracer groups all valid
@@ -289,8 +291,8 @@ resident-frontier round-trip estimate, and an estimated savings count by
 treating each mixed depth as one future resident scheduling boundary.
 Backend-owned frontier diagnostics also separate packed-ray bytes from
 host-query bytes: packed bytes describe the intersection payload being handed
-to the backend, while host-query bytes describe the original CPU query vector
-that still has to be retained for fallback or host-resident execution.
+to the backend, while host-query bytes describe any original CPU query vector
+that still has to be retained for runtime host execution.
 The backend capability flags keep that estimate honest: current hybrid
 backends can report lower-level prepared ray-batch compaction when an uploaded
 platform ray buffer can be compacted, but they still report that they do not
