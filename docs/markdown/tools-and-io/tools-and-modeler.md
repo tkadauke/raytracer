@@ -388,7 +388,9 @@ compact summary prints total `tiles`, `tile_grid`,
 `frontier_packet_rays`, `frontier_closest_hit_batch_chunks`,
 `frontier_closest_hit_batch_rays`, `frontier_closest_hit_batch_avg`,
 `direct_light_any_hit_batch_chunks`, `direct_light_any_hit_batch_rays`,
-`direct_light_any_hit_batch_avg`, `frontier_ray4_packet_chunks`,
+`direct_light_any_hit_batch_avg`, the clearer compatibility aliases
+`direct_light_any_hit_chunks`, `direct_light_any_hit_chunk_rays`,
+`direct_light_any_hit_chunk_avg`, `frontier_ray4_packet_chunks`,
 `frontier_ray8_packet_chunks`, `frontier_scalar_rays`, and
 `frontier_packet_scalar_fallback_rays`,
 `frontier_packet_scalar_fallback_by_reason`, `frontier_packet_refined_rays`,

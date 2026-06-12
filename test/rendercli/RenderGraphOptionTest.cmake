@@ -2354,6 +2354,11 @@ if(NOT wavefront_metrics_stdout MATCHES "direct_light_any_hit_batch_avg=")
                   "wavefront metrics summary did not contain direct-light any-hit chunk average"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "direct_light_any_hit_chunk_avg=")
+  _rendercli_fail("rendercli wavefront metrics direct-light any-hit chunk alias summary"
+                  "wavefront metrics summary did not contain direct-light any-hit chunk alias"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 if(NOT wavefront_metrics_stdout MATCHES "direct_light_any_hit_round_trips=")
   _rendercli_fail("rendercli wavefront metrics direct-light any-hit round-trip summary"
                   "wavefront metrics summary did not contain direct-light any-hit round trips"

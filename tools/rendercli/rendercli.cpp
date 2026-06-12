@@ -496,6 +496,11 @@ namespace {
         << " direct_light_any_hit_batch_avg="
         << ratio(static_cast<double>(directLightAnyHitBatchRayCount),
                  static_cast<double>(directLightAnyHitBatchChunkCount))
+        << " direct_light_any_hit_chunks=" << directLightAnyHitBatchChunkCount
+        << " direct_light_any_hit_chunk_rays=" << directLightAnyHitBatchRayCount
+        << " direct_light_any_hit_chunk_avg="
+        << ratio(static_cast<double>(directLightAnyHitBatchRayCount),
+                 static_cast<double>(directLightAnyHitBatchChunkCount))
         << " direct_light_any_hit_round_trips="
         << unsignedValue(batching, "directLightAnyHitQueryRoundTrips")
         << " resident_direct_light_round_trips_estimate="
