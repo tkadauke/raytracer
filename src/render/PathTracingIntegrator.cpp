@@ -268,10 +268,9 @@ namespace render {
         occluded = intersectionBackend.intersectAnyFrontier(
           scene, *frontier, metrics ? &intersectionTiming : nullptr);
         if (metrics) {
-          metrics->recordDirectLightAnyHitBatch(
-            static_cast<std::uint64_t>(std::max(0, bounce)),
-            /*batchChunks=*/1, frontier->rayCount(), frontier->packedRayBytes(),
-            frontier->hostQueryBytes(), frontier->stateHandleBytes());
+          recordDirectLightChunks(bounce, /*batchChunks=*/1, frontier->rayCount(),
+                                  frontier->packedRayBytes(), frontier->hostQueryBytes(),
+                                  frontier->stateHandleBytes(), metrics);
           metrics->recordAnyHitFrontierResidency(frontier->residency(), frontier->packedRayBytes(),
                                                  frontier->hostQueryBytes(),
                                                  frontier->stateHandleBytes());
@@ -283,10 +282,9 @@ namespace render {
       occluded.reserve(m_shadowQueries.size());
       if (metrics) {
         const std::uint64_t queryCount = static_cast<std::uint64_t>(m_shadowQueries.size());
-        metrics->recordDirectLightAnyHitBatch(
-          static_cast<std::uint64_t>(std::max(0, bounce)), queryCount, queryCount,
-          /*packedRayBytes=*/0, queryCount * sizeof(WavefrontAnyHitQuery),
-          /*stateHandleBytes=*/0);
+        recordDirectLightChunks(bounce, queryCount, queryCount, /*packedRayBytes=*/0,
+                                queryCount * sizeof(WavefrontAnyHitQuery),
+                                /*stateHandleBytes=*/0, metrics);
       }
       for (const WavefrontAnyHitQuery& query : m_shadowQueries) {
         WavefrontIntersectionQueryTiming queryTiming;
@@ -302,6 +300,16 @@ namespace render {
     }
 
   private:
+    static void recordDirectLightChunks(int bounce, std::uint64_t batchChunks,
+                                        std::uint64_t batchRays, std::uint64_t packedRayBytes,
+                                        std::uint64_t hostQueryBytes,
+                                        std::uint64_t stateHandleBytes,
+                                        IntegratorBatchMetrics* metrics) {
+      metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, bounce)),
+                                            batchChunks, batchRays, packedRayBytes, hostQueryBytes,
+                                            stateHandleBytes);
+    }
+
     std::vector<DirectLightingSelection> m_selections;
     std::vector<WavefrontAnyHitQuery> m_shadowQueries;
   };
