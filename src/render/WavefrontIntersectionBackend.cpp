@@ -88,6 +88,10 @@ namespace render {
         return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
       }
 
+      std::uint64_t hostQueryBytes() const override {
+        return static_cast<std::uint64_t>(m_queries.size()) * sizeof(WavefrontClosestHitQuery);
+      }
+
     protected:
       const std::vector<WavefrontClosestHitQuery>* hostClosestHitQueries() const override {
         return &m_queries;
@@ -119,6 +123,10 @@ namespace render {
 
       std::uint64_t packedRayBytes() const override {
         return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
+      }
+
+      std::uint64_t hostQueryBytes() const override {
+        return static_cast<std::uint64_t>(m_queries.size()) * sizeof(WavefrontAnyHitQuery);
       }
 
     protected:
@@ -735,6 +743,10 @@ namespace render {
     return 0;
   }
 
+  std::uint64_t WavefrontAnyHitFrontier::hostQueryBytes() const {
+    return 0;
+  }
+
   const std::vector<GpuIntersectionRay>* WavefrontAnyHitFrontier::hostPackedAnyHitRays() const {
     return nullptr;
   }
@@ -766,6 +778,10 @@ namespace render {
     return "host";
   }
 
+  std::uint64_t HostWavefrontAnyHitFrontier::hostQueryBytes() const {
+    return static_cast<std::uint64_t>(m_queries.size()) * sizeof(WavefrontAnyHitQuery);
+  }
+
   const std::vector<WavefrontAnyHitQuery>* HostWavefrontAnyHitFrontier::hostAnyHitQueries() const {
     return &m_queries;
   }
@@ -784,6 +800,10 @@ namespace render {
   }
 
   std::uint64_t WavefrontClosestHitFrontier::packedRayBytes() const {
+    return 0;
+  }
+
+  std::uint64_t WavefrontClosestHitFrontier::hostQueryBytes() const {
     return 0;
   }
 
@@ -816,6 +836,10 @@ namespace render {
 
   const char* HostWavefrontClosestHitFrontier::residency() const {
     return "host";
+  }
+
+  std::uint64_t HostWavefrontClosestHitFrontier::hostQueryBytes() const {
+    return static_cast<std::uint64_t>(m_queries.size()) * sizeof(WavefrontClosestHitQuery);
   }
 
   const std::vector<WavefrontClosestHitQuery>*

@@ -576,12 +576,17 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
   addDetailIntegerMetadataRow(
     rows, QStringLiteral("Closest-hit frontier packed ray bytes"), batching,
     QStringLiteral("intersectionBackendClosestHitFrontierPackedRayBytes"));
+  addDetailIntegerMetadataRow(
+    rows, QStringLiteral("Closest-hit frontier host query bytes"), batching,
+    QStringLiteral("intersectionBackendClosestHitFrontierHostQueryBytes"));
   addDetailStringMetadataRow(rows, QStringLiteral("Any-hit execution path"), batching,
                              QStringLiteral("intersectionBackendAnyHitExecutionPath"), true);
   addDetailStringMetadataRow(rows, QStringLiteral("Any-hit frontier residency"), batching,
                              QStringLiteral("intersectionBackendAnyHitFrontierResidency"), true);
   addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit frontier packed ray bytes"), batching,
                               QStringLiteral("intersectionBackendAnyHitFrontierPackedRayBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit frontier host query bytes"), batching,
+                              QStringLiteral("intersectionBackendAnyHitFrontierHostQueryBytes"));
   addDetailStringMetadataRow(rows, QStringLiteral("Intersection backend fallback"), batching,
                              QStringLiteral("intersectionBackendFallbackReason"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Expected intersection rays"), batching,
@@ -1044,6 +1049,22 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         if (closestHitRays > 0 || anyHitRays > 0) {
           line +=
             QStringLiteral(", %1 closest-hit/%2 any-hit rays").arg(closestHitRays).arg(anyHitRays);
+        }
+        const qulonglong closestHitPackedBytes = jsonIntegerValue(
+          batching, QStringLiteral("intersectionBackendClosestHitFrontierPackedRayBytes"));
+        const qulonglong anyHitPackedBytes = jsonIntegerValue(
+          batching, QStringLiteral("intersectionBackendAnyHitFrontierPackedRayBytes"));
+        const qulonglong closestHitHostQueryBytes = jsonIntegerValue(
+          batching, QStringLiteral("intersectionBackendClosestHitFrontierHostQueryBytes"));
+        const qulonglong anyHitHostQueryBytes = jsonIntegerValue(
+          batching, QStringLiteral("intersectionBackendAnyHitFrontierHostQueryBytes"));
+        if (closestHitPackedBytes > 0 || anyHitPackedBytes > 0 || closestHitHostQueryBytes > 0 ||
+            anyHitHostQueryBytes > 0) {
+          line += QStringLiteral(", frontier payload %1/%2 packed bytes, %3/%4 host-query bytes")
+                    .arg(closestHitPackedBytes)
+                    .arg(anyHitPackedBytes)
+                    .arg(closestHitHostQueryBytes)
+                    .arg(anyHitHostQueryBytes);
         }
         const qulonglong frontierRoundTrips =
           jsonIntegerValue(batching, QStringLiteral("frontierQueryRoundTrips"));

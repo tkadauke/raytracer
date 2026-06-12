@@ -1512,6 +1512,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1u, metrics.closestHitQueries);
     EXPECT_EQ(5u, metrics.closestHitRaysSubmitted);
     EXPECT_EQ("host", metrics.intersectionBackendClosestHitFrontierResidency);
+    EXPECT_EQ(5u * sizeof(WavefrontClosestHitQuery),
+              metrics.intersectionBackendClosestHitFrontierHostQueryBytes);
   }
 
   TEST(PathTracingIntegrator, BatchedDirectLightingUsesConfiguredBackendForBoundedVisibility) {
@@ -1555,6 +1557,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchRaysPerDepth);
     EXPECT_EQ("host", metrics.intersectionBackendAnyHitFrontierResidency);
+    EXPECT_EQ(sizeof(WavefrontAnyHitQuery),
+              metrics.intersectionBackendAnyHitFrontierHostQueryBytes);
   }
 
   TEST(PathTracingIntegrator, BatchedDirectLightingBatchesConfiguredVisibilitySamples) {

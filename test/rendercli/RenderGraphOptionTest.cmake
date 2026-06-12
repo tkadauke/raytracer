@@ -2711,7 +2711,9 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_query_round_trips=")
 endif()
 foreach(frontier_residency_summary
         closest_hit_frontier_residency=
-        any_hit_frontier_residency=)
+        closest_hit_frontier_host_query_bytes=
+        any_hit_frontier_residency=
+        any_hit_frontier_host_query_bytes=)
   if(NOT wavefront_metrics_stdout MATCHES "${frontier_residency_summary}")
     _rendercli_fail("rendercli wavefront metrics ${frontier_residency_summary}"
                     "wavefront metrics summary did not contain ${frontier_residency_summary}"
@@ -2829,7 +2831,9 @@ foreach(frontier_metric_field
         intersectionBackendClosestHitFrontierResidency
         intersectionBackendAnyHitFrontierResidency
         intersectionBackendClosestHitFrontierPackedRayBytes
-        intersectionBackendAnyHitFrontierPackedRayBytes)
+        intersectionBackendAnyHitFrontierPackedRayBytes
+        intersectionBackendClosestHitFrontierHostQueryBytes
+        intersectionBackendAnyHitFrontierHostQueryBytes)
   if(NOT wavefront_metrics_json MATCHES "\"${frontier_metric_field}\"")
     _rendercli_fail("rendercli wavefront metrics ${frontier_metric_field}"
                     "wavefront metrics report did not contain ${frontier_metric_field}"

@@ -592,8 +592,8 @@ namespace render {
         intersectionBackend.createClosestHitFrontier(std::move(queries));
       hits = intersectionBackend.intersectClosestFrontier(scene, *frontier, &intersectionTiming);
       if (metrics) {
-        metrics->recordClosestHitFrontierResidency(frontier->residency(),
-                                                   frontier->packedRayBytes());
+        metrics->recordClosestHitFrontierResidency(
+          frontier->residency(), frontier->packedRayBytes(), frontier->hostQueryBytes());
         metrics->recordClosestHitQuery(intersectionBackend, frontier->rayCount(),
                                        intersectionTiming);
       }

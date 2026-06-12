@@ -272,12 +272,16 @@ namespace {
                             "none")
         << " closest_hit_frontier_packed_ray_bytes="
         << unsignedValue(batching, "intersectionBackendClosestHitFrontierPackedRayBytes")
+        << " closest_hit_frontier_host_query_bytes="
+        << unsignedValue(batching, "intersectionBackendClosestHitFrontierHostQueryBytes")
         << " any_hit_execution="
         << compactTextValue(batching.value("intersectionBackendAnyHitExecutionPath"), "none")
         << " any_hit_frontier_residency="
         << compactTextValue(batching.value("intersectionBackendAnyHitFrontierResidency"), "none")
         << " any_hit_frontier_packed_ray_bytes="
         << unsignedValue(batching, "intersectionBackendAnyHitFrontierPackedRayBytes")
+        << " any_hit_frontier_host_query_bytes="
+        << unsignedValue(batching, "intersectionBackendAnyHitFrontierHostQueryBytes")
         << " intersection_backend_gpu_device="
         << (batching.value("intersectionBackendPlatformGpuDeviceAvailable").toBool() ? "true"
                                                                                      : "false")

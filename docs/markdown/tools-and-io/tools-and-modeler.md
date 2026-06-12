@@ -191,7 +191,9 @@ resident-frontier round-trip estimate, and the estimated savings if mixed
 closest-hit/any-hit depths could be treated as one resident scheduling
 boundary. The closest-hit and any-hit frontier residency labels record whether
 those backend-owned frontiers were host-backed or came from a future resident
-backend path.
+backend path. The paired packed-ray byte counters show the retained
+intersection payload, while host-query byte counters show how much original
+CPU query-vector storage is still kept after a frontier is prepared.
 Backend capability flags separately state whether the selected backend already
 supports resident frontiers, prepared ray-batch compaction, scheduler-level GPU
 frontier compaction, or resident direct-light batches. Prepared ray-batch
@@ -372,6 +374,10 @@ compact summary prints total `tiles`, `tile_grid`,
 `frontier_resident_query_round_trips_estimate`,
 `frontier_resident_query_round_trip_savings_estimate`,
 `closest_hit_frontier_residency`, `any_hit_frontier_residency`,
+`closest_hit_frontier_packed_ray_bytes`,
+`any_hit_frontier_packed_ray_bytes`,
+`closest_hit_frontier_host_query_bytes`,
+`any_hit_frontier_host_query_bytes`,
 `resident_frontiers_supported`,
 `gpu_frontier_compaction_supported`,
 `prepared_ray_batch_compaction_supported`,

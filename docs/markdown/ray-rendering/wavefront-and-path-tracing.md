@@ -287,6 +287,10 @@ host/device boundary savings visible before the scheduler keeps those frontiers
 on the GPU. It also derives an observed frontier round-trip count, a
 resident-frontier round-trip estimate, and an estimated savings count by
 treating each mixed depth as one future resident scheduling boundary.
+Backend-owned frontier diagnostics also separate packed-ray bytes from
+host-query bytes: packed bytes describe the intersection payload being handed
+to the backend, while host-query bytes describe the original CPU query vector
+that still has to be retained for fallback or host-resident execution.
 The backend capability flags keep that estimate honest: current hybrid
 backends can report lower-level prepared ray-batch compaction when an uploaded
 platform ray buffer can be compacted, but they still report that they do not

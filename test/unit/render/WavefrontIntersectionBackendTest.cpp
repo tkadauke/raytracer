@@ -423,6 +423,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(1u, frontier->rayCount());
     EXPECT_STREQ("host", frontier->residency());
     EXPECT_EQ(0u, frontier->packedRayBytes());
+    EXPECT_EQ(sizeof(WavefrontClosestHitQuery), frontier->hostQueryBytes());
 
     WavefrontIntersectionQueryTiming timing;
     const std::vector<WavefrontClosestHitResult> hits =
@@ -449,6 +450,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(1u, frontier->rayCount());
     EXPECT_STREQ("host", frontier->residency());
     EXPECT_EQ(0u, frontier->packedRayBytes());
+    EXPECT_EQ(sizeof(WavefrontAnyHitQuery), frontier->hostQueryBytes());
 
     WavefrontIntersectionQueryTiming timing;
     const std::vector<bool> occluded =
@@ -2631,6 +2633,10 @@ namespace WavefrontIntersectionBackendTest {
                                                               : "packed_host";
     EXPECT_STREQ(expectedResidency, frontier->residency());
     EXPECT_EQ(2u * sizeof(GpuIntersectionRay), frontier->packedRayBytes());
+    const std::uint64_t expectedHostQueryBytes = backendName == "metal" || backendName == "vulkan"
+                                                   ? 0u
+                                                   : 2u * sizeof(WavefrontClosestHitQuery);
+    EXPECT_EQ(expectedHostQueryBytes, frontier->hostQueryBytes());
 
     WavefrontIntersectionQueryTiming timing;
     const std::vector<WavefrontClosestHitResult> hits =
@@ -3054,6 +3060,9 @@ namespace WavefrontIntersectionBackendTest {
                                                               : "packed_host";
     EXPECT_STREQ(expectedResidency, frontier->residency());
     EXPECT_EQ(2u * sizeof(GpuIntersectionRay), frontier->packedRayBytes());
+    const std::uint64_t expectedHostQueryBytes =
+      backendName == "metal" || backendName == "vulkan" ? 0u : 2u * sizeof(WavefrontAnyHitQuery);
+    EXPECT_EQ(expectedHostQueryBytes, frontier->hostQueryBytes());
 
     WavefrontIntersectionQueryTiming timing;
     const std::vector<bool> occluded =

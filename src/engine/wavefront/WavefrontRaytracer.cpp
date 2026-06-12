@@ -110,6 +110,10 @@ namespace engine::wavefront {
       metrics.intersectionBackendClosestHitFrontierPackedRayBytes;
     intersectionBackendAnyHitFrontierPackedRayBytes +=
       metrics.intersectionBackendAnyHitFrontierPackedRayBytes;
+    intersectionBackendClosestHitFrontierHostQueryBytes +=
+      metrics.intersectionBackendClosestHitFrontierHostQueryBytes;
+    intersectionBackendAnyHitFrontierHostQueryBytes +=
+      metrics.intersectionBackendAnyHitFrontierHostQueryBytes;
     intersectionBackendPlatformGpuDeviceAvailable =
       intersectionBackendPlatformGpuDeviceAvailable ||
       metrics.intersectionBackendPlatformGpuDeviceAvailable;
@@ -590,6 +594,10 @@ namespace engine::wavefront {
       static_cast<double>(batching.intersectionBackendClosestHitFrontierPackedRayBytes);
     batchingJson["intersectionBackendAnyHitFrontierPackedRayBytes"] =
       static_cast<double>(batching.intersectionBackendAnyHitFrontierPackedRayBytes);
+    batchingJson["intersectionBackendClosestHitFrontierHostQueryBytes"] =
+      static_cast<double>(batching.intersectionBackendClosestHitFrontierHostQueryBytes);
+    batchingJson["intersectionBackendAnyHitFrontierHostQueryBytes"] =
+      static_cast<double>(batching.intersectionBackendAnyHitFrontierHostQueryBytes);
     batchingJson["intersectionBackendPlatformGpuDeviceAvailable"] =
       batching.intersectionBackendPlatformGpuDeviceAvailable;
     batchingJson["intersectionBackendPlatformGpuRenderPathAvailable"] =

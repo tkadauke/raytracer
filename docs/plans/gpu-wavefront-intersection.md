@@ -1045,6 +1045,11 @@ Progress:
   Modeler pass details. `packed_host`, `metal_shared`, and
   `vulkan_host_coherent` frontiers contribute the retained packed-ray payload
   size, giving GPU-resident frontier work a concrete payload baseline.
+- Backend-owned frontiers now also report retained host-query byte counts.
+  Host and `packed_host` frontiers expose the original query-vector footprint,
+  while platform resident frontiers report zero once they have discarded that
+  vector. This makes the remaining host-side dependency visible separately
+  from packed ray payload size.
 - Wavefront metrics now report mixed query depths: depth frontiers where both a
   closest-hit frontier batch and a direct-light any-hit batch ran, plus the
   participating closest-hit and any-hit ray counts. This does not keep frontiers

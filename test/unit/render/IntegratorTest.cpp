@@ -117,6 +117,8 @@ namespace IntegratorTest {
     EXPECT_TRUE(metrics.intersectionSceneUnsupportedReasons.empty());
     EXPECT_EQ(0u, metrics.intersectionBackendClosestHitFrontierPackedRayBytes);
     EXPECT_EQ(0u, metrics.intersectionBackendAnyHitFrontierPackedRayBytes);
+    EXPECT_EQ(0u, metrics.intersectionBackendClosestHitFrontierHostQueryBytes);
+    EXPECT_EQ(0u, metrics.intersectionBackendAnyHitFrontierHostQueryBytes);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
     EXPECT_DOUBLE_EQ(0.0, metrics.frontierPartitionWorkerSeconds);
   }
@@ -125,15 +127,17 @@ namespace IntegratorTest {
     IntegratorBatchMetrics metrics;
     metrics.reset(/*scalarFallback=*/false);
 
-    metrics.recordClosestHitFrontierResidency("packed_host", 64);
-    metrics.recordClosestHitFrontierResidency("packed_host", 128);
-    metrics.recordAnyHitFrontierResidency("host");
-    metrics.recordAnyHitFrontierResidency("packed_host", 32);
+    metrics.recordClosestHitFrontierResidency("packed_host", 64, 96);
+    metrics.recordClosestHitFrontierResidency("packed_host", 128, 160);
+    metrics.recordAnyHitFrontierResidency("host", 0, 48);
+    metrics.recordAnyHitFrontierResidency("packed_host", 32, 64);
 
     EXPECT_EQ("packed_host", metrics.intersectionBackendClosestHitFrontierResidency);
     EXPECT_EQ("mixed", metrics.intersectionBackendAnyHitFrontierResidency);
     EXPECT_EQ(192u, metrics.intersectionBackendClosestHitFrontierPackedRayBytes);
     EXPECT_EQ(32u, metrics.intersectionBackendAnyHitFrontierPackedRayBytes);
+    EXPECT_EQ(256u, metrics.intersectionBackendClosestHitFrontierHostQueryBytes);
+    EXPECT_EQ(112u, metrics.intersectionBackendAnyHitFrontierHostQueryBytes);
   }
 
   TEST(Integrator, IntersectionBackendMetricsTrackQuerySpecificExecutionPaths) {

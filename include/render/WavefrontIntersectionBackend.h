@@ -86,6 +86,7 @@ namespace render {
     [[nodiscard]] virtual std::uint64_t rayCount() const = 0;
     [[nodiscard]] virtual const char* residency() const = 0;
     [[nodiscard]] virtual std::uint64_t packedRayBytes() const;
+    [[nodiscard]] virtual std::uint64_t hostQueryBytes() const;
 
   protected:
     friend class WavefrontIntersectionBackend;
@@ -105,6 +106,7 @@ namespace render {
 
     [[nodiscard]] std::uint64_t rayCount() const override;
     [[nodiscard]] const char* residency() const override;
+    [[nodiscard]] std::uint64_t hostQueryBytes() const override;
 
   protected:
     [[nodiscard]] const std::vector<WavefrontAnyHitQuery>* hostAnyHitQueries() const override;
@@ -125,6 +127,7 @@ namespace render {
     [[nodiscard]] virtual std::uint64_t rayCount() const = 0;
     [[nodiscard]] virtual const char* residency() const = 0;
     [[nodiscard]] virtual std::uint64_t packedRayBytes() const;
+    [[nodiscard]] virtual std::uint64_t hostQueryBytes() const;
 
   protected:
     friend class WavefrontIntersectionBackend;
@@ -145,6 +148,7 @@ namespace render {
 
     [[nodiscard]] std::uint64_t rayCount() const override;
     [[nodiscard]] const char* residency() const override;
+    [[nodiscard]] std::uint64_t hostQueryBytes() const override;
 
   protected:
     [[nodiscard]] const std::vector<WavefrontClosestHitQuery>*

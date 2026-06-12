@@ -115,6 +115,8 @@ namespace render {
     intersectionBackendAnyHitFrontierResidency.clear();
     intersectionBackendClosestHitFrontierPackedRayBytes = 0;
     intersectionBackendAnyHitFrontierPackedRayBytes = 0;
+    intersectionBackendClosestHitFrontierHostQueryBytes = 0;
+    intersectionBackendAnyHitFrontierHostQueryBytes = 0;
     intersectionBackendPlatformGpuDeviceAvailable = false;
     intersectionBackendPlatformGpuRenderPathAvailable = false;
     intersectionSceneCompiled = false;
@@ -514,17 +516,21 @@ namespace render {
   }
 
   void IntegratorBatchMetrics::recordClosestHitFrontierResidency(const std::string& residency,
-                                                                 std::uint64_t packedRayBytes) {
+                                                                 std::uint64_t packedRayBytes,
+                                                                 std::uint64_t hostQueryBytes) {
     mergeLabel(intersectionBackendClosestHitFrontierResidency,
                residency.empty() ? "unknown" : residency);
     intersectionBackendClosestHitFrontierPackedRayBytes += packedRayBytes;
+    intersectionBackendClosestHitFrontierHostQueryBytes += hostQueryBytes;
   }
 
   void IntegratorBatchMetrics::recordAnyHitFrontierResidency(const std::string& residency,
-                                                             std::uint64_t packedRayBytes) {
+                                                             std::uint64_t packedRayBytes,
+                                                             std::uint64_t hostQueryBytes) {
     mergeLabel(intersectionBackendAnyHitFrontierResidency,
                residency.empty() ? "unknown" : residency);
     intersectionBackendAnyHitFrontierPackedRayBytes += packedRayBytes;
+    intersectionBackendAnyHitFrontierHostQueryBytes += hostQueryBytes;
   }
 
   void
@@ -600,6 +606,10 @@ namespace render {
       source.intersectionBackendClosestHitFrontierPackedRayBytes;
     intersectionBackendAnyHitFrontierPackedRayBytes +=
       source.intersectionBackendAnyHitFrontierPackedRayBytes;
+    intersectionBackendClosestHitFrontierHostQueryBytes +=
+      source.intersectionBackendClosestHitFrontierHostQueryBytes;
+    intersectionBackendAnyHitFrontierHostQueryBytes +=
+      source.intersectionBackendAnyHitFrontierHostQueryBytes;
     intersectionBackendPlatformGpuDeviceAvailable =
       intersectionBackendPlatformGpuDeviceAvailable ||
       source.intersectionBackendPlatformGpuDeviceAvailable;

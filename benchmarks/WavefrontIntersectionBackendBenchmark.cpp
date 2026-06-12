@@ -74,7 +74,9 @@ namespace {
                                  const WavefrontIntersectionBackendSelectionContext& context,
                                  std::size_t closestHitRayCount, std::size_t anyHitRayCount,
                                  std::uint64_t closestHitPackedRayBytes = 0,
-                                 std::uint64_t anyHitPackedRayBytes = 0) const {
+                                 std::uint64_t anyHitPackedRayBytes = 0,
+                                 std::uint64_t closestHitHostQueryBytes = 0,
+                                 std::uint64_t anyHitHostQueryBytes = 0) const {
       const WavefrontIntersectionSceneDiagnostics diagnostics = backend.compiledSceneDiagnostics();
       const WavefrontIntersectionBackendAutoSelectionPolicy policy;
       const std::uint64_t totalRayCount =
@@ -134,6 +136,12 @@ namespace {
         static_cast<double>(closestHitPackedRayBytes);
       state.counters["any_hit_frontier_packed_ray_bytes"] =
         static_cast<double>(anyHitPackedRayBytes);
+      state.counters["frontier_host_query_bytes"] =
+        static_cast<double>(closestHitHostQueryBytes + anyHitHostQueryBytes);
+      state.counters["closest_hit_frontier_host_query_bytes"] =
+        static_cast<double>(closestHitHostQueryBytes);
+      state.counters["any_hit_frontier_host_query_bytes"] =
+        static_cast<double>(anyHitHostQueryBytes);
       state.counters["query_round_trips"] = static_cast<double>(queryRoundTrips);
       state.counters["closest_hit_query_round_trips"] = closestHitRoundTrip ? 1.0 : 0.0;
       state.counters["any_hit_query_round_trips"] = anyHitRoundTrip ? 1.0 : 0.0;
@@ -487,7 +495,7 @@ namespace {
     }
 
     workload.annotateBackendWorkload(state, *backend, timing, context, frontier->rayCount(), 0,
-                                     frontier->packedRayBytes(), 0);
+                                     frontier->packedRayBytes(), 0, frontier->hostQueryBytes(), 0);
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(frontier->rayCount()));
   }
 
@@ -511,7 +519,7 @@ namespace {
     }
 
     workload.annotateBackendWorkload(state, *backend, timing, context, 0, frontier->rayCount(), 0,
-                                     frontier->packedRayBytes());
+                                     frontier->packedRayBytes(), 0, frontier->hostQueryBytes());
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(frontier->rayCount()));
   }
 
@@ -544,9 +552,10 @@ namespace {
       benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
     }
 
-    workload.annotateBackendWorkload(state, *backend, timing, context, closestFrontier->rayCount(),
-                                     anyFrontier->rayCount(), closestFrontier->packedRayBytes(),
-                                     anyFrontier->packedRayBytes());
+    workload.annotateBackendWorkload(
+      state, *backend, timing, context, closestFrontier->rayCount(), anyFrontier->rayCount(),
+      closestFrontier->packedRayBytes(), anyFrontier->packedRayBytes(),
+      closestFrontier->hostQueryBytes(), anyFrontier->hostQueryBytes());
     state.SetItemsProcessed(
       state.iterations() *
       static_cast<std::int64_t>(closestFrontier->rayCount() + anyFrontier->rayCount()));
@@ -609,9 +618,10 @@ namespace {
       benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
     }
 
-    workload.annotateBackendWorkload(state, *backend, timing, context, closestFrontier->rayCount(),
-                                     anyFrontier->rayCount(), closestFrontier->packedRayBytes(),
-                                     anyFrontier->packedRayBytes());
+    workload.annotateBackendWorkload(
+      state, *backend, timing, context, closestFrontier->rayCount(), anyFrontier->rayCount(),
+      closestFrontier->packedRayBytes(), anyFrontier->packedRayBytes(),
+      closestFrontier->hostQueryBytes(), anyFrontier->hostQueryBytes());
     state.SetItemsProcessed(
       state.iterations() *
       static_cast<std::int64_t>(closestFrontier->rayCount() + anyFrontier->rayCount()));
@@ -642,7 +652,7 @@ namespace {
     }
 
     workload.annotateBackendWorkload(state, *backend, timing, context, frontier->rayCount(), 0,
-                                     frontier->packedRayBytes(), 0);
+                                     frontier->packedRayBytes(), 0, frontier->hostQueryBytes(), 0);
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(frontier->rayCount()));
   }
 
@@ -670,7 +680,7 @@ namespace {
     }
 
     workload.annotateBackendWorkload(state, *backend, timing, context, 0, frontier->rayCount(), 0,
-                                     frontier->packedRayBytes());
+                                     frontier->packedRayBytes(), 0, frontier->hostQueryBytes());
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(frontier->rayCount()));
   }
 
@@ -707,9 +717,10 @@ namespace {
       benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
     }
 
-    workload.annotateBackendWorkload(state, *backend, timing, context, closestFrontier->rayCount(),
-                                     anyFrontier->rayCount(), closestFrontier->packedRayBytes(),
-                                     anyFrontier->packedRayBytes());
+    workload.annotateBackendWorkload(
+      state, *backend, timing, context, closestFrontier->rayCount(), anyFrontier->rayCount(),
+      closestFrontier->packedRayBytes(), anyFrontier->packedRayBytes(),
+      closestFrontier->hostQueryBytes(), anyFrontier->hostQueryBytes());
     state.SetItemsProcessed(
       state.iterations() *
       static_cast<std::int64_t>(closestFrontier->rayCount() + anyFrontier->rayCount()));
