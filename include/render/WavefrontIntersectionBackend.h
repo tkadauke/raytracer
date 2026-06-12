@@ -286,8 +286,21 @@ namespace render {
     virtual std::uint64_t estimatedAnyHitReadbackBytes(std::uint64_t submittedRays) const;
     virtual bool prefersClosestHitBatch(std::uint64_t submittedRays) const;
     virtual bool prefersAnyHitBatch(std::uint64_t submittedRays) const;
+    /**
+      * True when closest-hit / any-hit frontier handles can own platform
+      * intersection payloads instead of only host query vectors.
+      */
     virtual bool supportsResidentFrontiers() const;
+    /**
+      * True when frontier compaction itself can execute on the GPU.
+      */
     virtual bool supportsGpuFrontierCompaction() const;
+    /**
+      * True only when next-event-estimation occlusion batches can stay resident
+      * across shading/frontier phases. A platform any-hit frontier alone is not
+      * enough because current shading still builds shadow rays on the host and
+      * reads occlusion results back immediately.
+      */
     virtual bool supportsResidentDirectLightBatches() const;
     virtual WavefrontFrontierCompactionResult
     compactFrontier(const WavefrontFrontierCompactionRequest& request) const;

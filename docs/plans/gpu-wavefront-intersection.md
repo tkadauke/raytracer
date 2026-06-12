@@ -960,6 +960,10 @@ Progress:
   batches remain gated off. The values flow through render metrics, rendercli
   summaries, and Modeler graph details so future implementation can be gated
   visibly.
+- The resident-direct-light flag is now explicitly documented and tested as a
+  stricter capability than platform any-hit frontiers: current Metal/Vulkan
+  frontiers may own packed occlusion rays, but shading still creates those rays
+  on the host and reads results back immediately.
 - The convergence capture helper now also keeps those capability flags in
   reference/candidate comparisons and queue-sweep summaries, so future Phase 8
   captures can distinguish an estimated opportunity from a backend that

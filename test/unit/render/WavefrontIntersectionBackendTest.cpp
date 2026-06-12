@@ -2933,6 +2933,22 @@ namespace WavefrontIntersectionBackendTest {
       << timing.executionPath;
   }
 
+  TEST(WavefrontIntersectionBackend, PreparedGpuResidentFrontiersDoNotImplyResidentDirectLight) {
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
+    Scene sourceScene;
+    sourceScene.add(sphere);
+
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(sourceScene);
+
+    ASSERT_NE(nullptr, backend->compiledScene());
+    ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
+    const std::string backendName = backend->name();
+    EXPECT_EQ(backendName == "metal" || backendName == "vulkan",
+              backend->supportsResidentFrontiers());
+    EXPECT_FALSE(backend->supportsResidentDirectLightBatches());
+  }
+
   TEST(WavefrontIntersectionBackend, PreparedAnyHitFrontierCanOwnPackedExecution) {
     Scene sourceScene;
     sourceScene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
