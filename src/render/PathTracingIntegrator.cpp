@@ -312,7 +312,8 @@ namespace render {
     }
 
     [[nodiscard]] std::uint64_t hostOcclusionBytes() const {
-      return static_cast<std::uint64_t>(m_occluded.size()) * sizeof(unsigned char);
+      return static_cast<std::uint64_t>(m_occluded.size()) *
+             sizeof(WavefrontOcclusionFlags::value_type);
     }
 
     void resolveOcclusion(const Scene& scene,
@@ -380,7 +381,7 @@ namespace render {
 
     std::vector<DirectLightingSelection> m_selections;
     std::vector<WavefrontAnyHitQuery> m_shadowQueries;
-    std::vector<unsigned char> m_occluded;
+    WavefrontOcclusionFlags m_occluded;
   };
 
   class PathTracingIntegrator::DirectLightContributionBatch {
