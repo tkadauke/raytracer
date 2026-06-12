@@ -1238,6 +1238,10 @@ Progress:
   frontiers return exactly one occlusion flag per light-selection record. That
   makes malformed resident-backend results fail loudly instead of silently
   misaligning lighting contributions.
+- Closest-hit path frontier resolution now validates that backend frontiers
+  return exactly one hit record per submitted path ray. That gives future
+  resident-frontier backends the same strict shape contract as direct-light
+  visibility batches.
 
 ---
 

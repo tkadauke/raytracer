@@ -50,6 +50,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   occlusion flags instead of `std::vector<bool>` proxy results. — GPT-5 Codex
 - Changed path-tracing direct-light visibility to reject any-hit frontier
   backends that return the wrong number of occlusion flags. — GPT-5 Codex
+- Changed path-tracing closest-hit frontier batches to reject backends that
+  return the wrong number of hit records. — GPT-5 Codex
 - Reported state-handle byte estimates for wavefront compaction candidates in
   metrics, rendercli summaries, convergence captures, and Modeler graph
   details. — GPT-5 Codex

@@ -472,7 +472,8 @@ namespace render {
   class PathTracingIntegrator::ClosestHitPathFrontierBatch {
   public:
     ClosestHitPathFrontierBatch(HostBatchPathFrontier& paths, BatchDepthMetrics& depthMetrics,
-                                IntegratorBatchMetrics* metrics) {
+                                IntegratorBatchMetrics* metrics)
+        : m_expectedHitCount(paths.size()) {
       m_queries.reserve(paths.size());
       if (depthMetrics.trackRadianceDelta) {
         m_accumulatedBeforeDepths.resize(paths.size());
@@ -503,6 +504,7 @@ namespace render {
       m_frontier = intersectionBackend.createClosestHitFrontier(std::move(m_queries));
       m_hits =
         intersectionBackend.intersectClosestFrontier(scene, *m_frontier, &intersectionTiming);
+      validateHitCount();
       if (metrics) {
         metrics->recordClosestHitFrontierResidency(
           m_frontier->residency(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
@@ -526,6 +528,14 @@ namespace render {
     }
 
   private:
+    void validateHitCount() const {
+      if (m_hits.size() != m_expectedHitCount) {
+        throw std::logic_error("path closest-hit frontier resolved a hit count that does not "
+                               "match its path-ray count");
+      }
+    }
+
+    std::size_t m_expectedHitCount{0};
     std::vector<WavefrontClosestHitQuery> m_queries;
     std::vector<Colord> m_accumulatedBeforeDepths;
     std::unique_ptr<WavefrontClosestHitFrontier> m_frontier;
