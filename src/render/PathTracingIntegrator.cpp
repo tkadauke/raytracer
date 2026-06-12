@@ -329,13 +329,14 @@ namespace render {
       metrics->recordDirectLightOcclusionHostBytes(depthIndex(bounce), hostOcclusionBytes());
     }
 
-    void recordEmptyAnyHitChunks(int bounce, IntegratorBatchMetrics* metrics) const {
-      if (!metrics) {
-        return;
+    void recordEmptyVisibility(int bounce, IntegratorBatchMetrics* metrics) const {
+      if (!empty()) {
+        throw std::logic_error("direct-light visibility batch recorded as empty while it still "
+                               "contains shadow queries");
       }
-      recordDirectLightChunks(bounce, /*batchChunks=*/0, /*batchRays=*/0,
-                              /*packedRayBytes=*/0, /*hostQueryBytes=*/0,
-                              /*stateHandleBytes=*/0, metrics);
+      recordSelectionHostBytes(bounce, metrics);
+      recordEmptyAnyHitChunks(bounce, metrics);
+      recordOcclusionHostBytes(bounce, metrics);
     }
 
     void resolveOcclusion(const Scene& scene,
@@ -386,6 +387,15 @@ namespace render {
     }
 
   private:
+    void recordEmptyAnyHitChunks(int bounce, IntegratorBatchMetrics* metrics) const {
+      if (!metrics) {
+        return;
+      }
+      recordDirectLightChunks(bounce, /*batchChunks=*/0, /*batchRays=*/0,
+                              /*packedRayBytes=*/0, /*hostQueryBytes=*/0,
+                              /*stateHandleBytes=*/0, metrics);
+    }
+
     static std::uint64_t depthIndex(int bounce) {
       return static_cast<std::uint64_t>(std::max(0, bounce));
     }
@@ -676,12 +686,11 @@ namespace render {
       visibilityBatch.add(/*hitIndex=*/0, std::move(candidate), selection.pdf, state);
     }
 
-    visibilityBatch.recordSelectionHostBytes(bounce, metrics);
     if (visibilityBatch.empty()) {
-      visibilityBatch.recordEmptyAnyHitChunks(bounce, metrics);
-      visibilityBatch.recordOcclusionHostBytes(bounce, metrics);
+      visibilityBatch.recordEmptyVisibility(bounce, metrics);
       return Colord::black();
     }
+    visibilityBatch.recordSelectionHostBytes(bounce, metrics);
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
@@ -716,9 +725,7 @@ namespace render {
     DirectLightVisibilityBatch visibilityBatch(activeHits.size() *
                                                static_cast<std::size_t>(m_directLightSamples));
     if (activeHits.empty()) {
-      visibilityBatch.recordSelectionHostBytes(bounce, metrics);
-      visibilityBatch.recordEmptyAnyHitChunks(bounce, metrics);
-      visibilityBatch.recordOcclusionHostBytes(bounce, metrics);
+      visibilityBatch.recordEmptyVisibility(bounce, metrics);
       return contributions;
     }
 
@@ -755,12 +762,11 @@ namespace render {
       }
     }
 
-    visibilityBatch.recordSelectionHostBytes(bounce, metrics);
     if (visibilityBatch.empty()) {
-      visibilityBatch.recordEmptyAnyHitChunks(bounce, metrics);
-      visibilityBatch.recordOcclusionHostBytes(bounce, metrics);
+      visibilityBatch.recordEmptyVisibility(bounce, metrics);
       return contributions;
     }
+    visibilityBatch.recordSelectionHostBytes(bounce, metrics);
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
