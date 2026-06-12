@@ -189,6 +189,8 @@ namespace {
         batching.value("directLightAnyHitBatchChunksPerDepth").toArray();
       const QJsonArray directLightAnyHitBatchRays =
         batching.value("directLightAnyHitBatchRaysPerDepth").toArray();
+      const QJsonArray directLightSelectionHostBytes =
+        batching.value("directLightSelectionHostBytesPerDepth").toArray();
       const QJsonArray frontierRay4Packets =
         batching.value("frontierRay4PacketChunksPerDepth").toArray();
       const QJsonArray frontierRay8Packets =
@@ -517,12 +519,16 @@ namespace {
         << unsignedValue(batching, "residentDirectLightBatchRoundTripsEstimate")
         << " resident_direct_light_round_trip_savings_estimate="
         << unsignedValue(batching, "residentDirectLightBatchRoundTripSavingsEstimate")
+        << " direct_light_selection_host_bytes="
+        << unsignedValue(batching, "directLightSelectionHostBytes")
         << " direct_light_any_hit_frontier_packed_ray_bytes="
         << unsignedValue(batching, "directLightAnyHitFrontierPackedRayBytes")
         << " direct_light_any_hit_frontier_host_query_bytes="
         << unsignedValue(batching, "directLightAnyHitFrontierHostQueryBytes")
         << " direct_light_any_hit_frontier_state_handle_bytes="
         << unsignedValue(batching, "directLightAnyHitFrontierStateHandleBytes")
+        << " last_direct_light_selection_host_bytes="
+        << unsignedArrayBack(directLightSelectionHostBytes)
         << " frontier_ray4_packet_chunks=" << frontierRay4PacketChunkCount
         << " frontier_ray8_packet_chunks=" << frontierRay8PacketChunkCount
         << " frontier_packet_fill="

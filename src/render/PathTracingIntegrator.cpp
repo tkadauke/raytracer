@@ -257,11 +257,19 @@ namespace render {
       return m_selections;
     }
 
+    [[nodiscard]] std::uint64_t hostSelectionBytes() const {
+      return static_cast<std::uint64_t>(m_selections.size()) * sizeof(DirectLightingSelection);
+    }
+
     std::vector<bool> resolveOcclusion(const Scene& scene,
                                        const WavefrontIntersectionBackend& intersectionBackend,
                                        int bounce, IntegratorBatchMetrics* metrics) {
       std::vector<bool> occluded;
       WavefrontIntersectionQueryTiming intersectionTiming;
+      if (metrics) {
+        metrics->recordDirectLightSelectionHostBytes(
+          static_cast<std::uint64_t>(std::max(0, bounce)), hostSelectionBytes());
+      }
       if (intersectionBackend.prefersAnyHitBatch(m_shadowQueries.size())) {
         const std::unique_ptr<WavefrontAnyHitFrontier> frontier =
           intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));

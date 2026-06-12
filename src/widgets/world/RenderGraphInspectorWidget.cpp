@@ -790,6 +790,8 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("residentDirectLightBatchRoundTripsEstimate"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident direct-light savings"), batching,
                               QStringLiteral("residentDirectLightBatchRoundTripSavingsEstimate"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Direct-light selection host bytes"), batching,
+                              QStringLiteral("directLightSelectionHostBytes"));
   addDetailIntegerMetadataRow(rows,
                               QStringLiteral("Direct-light any-hit frontier packed ray bytes"),
                               batching, QStringLiteral("directLightAnyHitFrontierPackedRayBytes"));

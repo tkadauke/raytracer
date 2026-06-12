@@ -1147,6 +1147,11 @@ Progress:
   state-handle byte totals for next-event-estimation occlusion frontiers. That
   sizes the resident-direct-light Phase 8 gap separately from aggregate any-hit
   frontier payloads.
+- Direct-light metrics now also report host-side light-selection byte counts.
+  Those selections are the CPU-owned records that connect each any-hit
+  occlusion query back to its lighting contribution, so resident direct-light
+  planning can see both the ray frontier payload and the remaining host
+  selection state.
 - Direct-light any-hit batching metrics now also report current direct-light
   round trips and a resident direct-light round-trip savings estimate. This
   makes the host readback boundary for next-event-estimation occlusion visible

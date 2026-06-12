@@ -525,6 +525,11 @@ directly. Frontier-compaction benchmark rows run through the backend's
 `compactFrontier()` hook and report input, retained, removed, moved, and
 GPU-compaction-support counters, so the current CPU compaction path has a
 baseline before a device-side compaction kernel exists.
+Direct-light diagnostics also report the host bytes used for sampled light
+selection records that pair each occlusion query with its eventual lighting
+contribution. Those bytes are separate from the any-hit ray frontier and show
+the remaining CPU-side state that resident next-event-estimation batches would
+need to eliminate or mirror.
 When the platform render-path kernels actually execute, metrics also split
 backend wall time into host upload/setup, kernel dispatch/wait, and CPU
 readback buckets. CPU fallback paths leave those buckets at zero, while the

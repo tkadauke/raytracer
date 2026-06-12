@@ -73,6 +73,8 @@ namespace render {
     frontierClosestHitBatchRaysPerDepth.clear();
     directLightAnyHitBatchChunksPerDepth.clear();
     directLightAnyHitBatchRaysPerDepth.clear();
+    directLightSelectionHostBytesPerDepth.clear();
+    directLightSelectionHostBytes = 0;
     directLightAnyHitFrontierPackedRayBytes = 0;
     directLightAnyHitFrontierHostQueryBytes = 0;
     directLightAnyHitFrontierStateHandleBytes = 0;
@@ -406,6 +408,15 @@ namespace render {
                                                              std::uint64_t batchRays) {
     frontierClosestHitBatchChunksPerDepth.push_back(batchChunks);
     frontierClosestHitBatchRaysPerDepth.push_back(batchRays);
+  }
+
+  void IntegratorBatchMetrics::recordDirectLightSelectionHostBytes(std::uint64_t depth,
+                                                                   std::uint64_t bytes) {
+    if (directLightSelectionHostBytesPerDepth.size() <= depth) {
+      directLightSelectionHostBytesPerDepth.resize(depth + 1);
+    }
+    directLightSelectionHostBytesPerDepth[depth] += bytes;
+    directLightSelectionHostBytes += bytes;
   }
 
   void IntegratorBatchMetrics::recordDirectLightAnyHitBatch(

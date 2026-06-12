@@ -44,6 +44,8 @@ namespace render {
     std::vector<std::uint64_t> frontierClosestHitBatchRaysPerDepth;
     std::vector<std::uint64_t> directLightAnyHitBatchChunksPerDepth;
     std::vector<std::uint64_t> directLightAnyHitBatchRaysPerDepth;
+    std::vector<std::uint64_t> directLightSelectionHostBytesPerDepth;
+    std::uint64_t directLightSelectionHostBytes{0};
     std::uint64_t directLightAnyHitFrontierPackedRayBytes{0};
     std::uint64_t directLightAnyHitFrontierHostQueryBytes{0};
     std::uint64_t directLightAnyHitFrontierStateHandleBytes{0};
@@ -202,6 +204,7 @@ namespace render {
                                  std::uint64_t scalarRays, std::uint64_t packetScalarFallbackRays,
                                  std::uint64_t packetRefinedRays);
     void recordFrontierClosestHitBatch(std::uint64_t batchChunks, std::uint64_t batchRays);
+    void recordDirectLightSelectionHostBytes(std::uint64_t depth, std::uint64_t bytes);
     void recordDirectLightAnyHitBatch(std::uint64_t depth, std::uint64_t batchChunks,
                                       std::uint64_t batchRays, std::uint64_t packedRayBytes = 0,
                                       std::uint64_t hostQueryBytes = 0,

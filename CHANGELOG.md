@@ -83,6 +83,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reported direct-light any-hit frontier packed-ray, host-query, and
   state-handle byte totals in wavefront metrics, rendercli summaries,
   convergence captures, and Modeler graph details. — GPT-5 Codex
+- Reported direct-light selection host-state byte totals in wavefront metrics,
+  rendercli summaries, convergence captures, and Modeler graph details.
+  — GPT-5 Codex
 - Reported direct-light any-hit round-trip counts and resident direct-light
   round-trip savings estimates in wavefront metrics, rendercli summaries,
   convergence captures, and Modeler graph details. — GPT-5 Codex
