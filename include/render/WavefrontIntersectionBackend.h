@@ -90,6 +90,7 @@ namespace render {
     friend class WavefrontIntersectionBackend;
 
     [[nodiscard]] virtual const std::vector<WavefrontAnyHitQuery>* hostAnyHitQueries() const;
+    [[nodiscard]] virtual const std::vector<GpuIntersectionRay>* hostPackedAnyHitRays() const;
   };
 
   class HostWavefrontAnyHitFrontier final : public WavefrontAnyHitFrontier {
@@ -123,6 +124,7 @@ namespace render {
 
     [[nodiscard]] virtual const std::vector<WavefrontClosestHitQuery>*
     hostClosestHitQueries() const;
+    [[nodiscard]] virtual const std::vector<GpuIntersectionRay>* hostPackedClosestHitRays() const;
   };
 
   class HostWavefrontClosestHitFrontier final : public WavefrontClosestHitFrontier {

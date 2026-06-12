@@ -37,17 +37,13 @@ namespace render {
         return "packed_host";
       }
 
-      [[nodiscard]] const std::vector<WavefrontClosestHitQuery>& queries() const {
-        return m_queries;
-      }
-
-      [[nodiscard]] const std::vector<GpuIntersectionRay>& packedRays() const {
-        return m_packedRays;
-      }
-
     protected:
       const std::vector<WavefrontClosestHitQuery>* hostClosestHitQueries() const override {
         return &m_queries;
+      }
+
+      const std::vector<GpuIntersectionRay>* hostPackedClosestHitRays() const override {
+        return &m_packedRays;
       }
 
     private:
@@ -75,17 +71,13 @@ namespace render {
         return "packed_host";
       }
 
-      [[nodiscard]] const std::vector<WavefrontAnyHitQuery>& queries() const {
-        return m_queries;
-      }
-
-      [[nodiscard]] const std::vector<GpuIntersectionRay>& packedRays() const {
-        return m_packedRays;
-      }
-
     protected:
       const std::vector<WavefrontAnyHitQuery>* hostAnyHitQueries() const override {
         return &m_queries;
+      }
+
+      const std::vector<GpuIntersectionRay>* hostPackedAnyHitRays() const override {
+        return &m_packedRays;
       }
 
     private:
@@ -347,6 +339,10 @@ namespace render {
     return nullptr;
   }
 
+  const std::vector<GpuIntersectionRay>* WavefrontAnyHitFrontier::hostPackedAnyHitRays() const {
+    return nullptr;
+  }
+
   HostWavefrontAnyHitFrontier::HostWavefrontAnyHitFrontier(
     std::vector<WavefrontAnyHitQuery> queries)
       : m_queries(std::move(queries)) {
@@ -366,6 +362,11 @@ namespace render {
 
   const std::vector<WavefrontClosestHitQuery>*
   WavefrontClosestHitFrontier::hostClosestHitQueries() const {
+    return nullptr;
+  }
+
+  const std::vector<GpuIntersectionRay>*
+  WavefrontClosestHitFrontier::hostPackedClosestHitRays() const {
     return nullptr;
   }
 
@@ -1176,13 +1177,16 @@ namespace render {
   std::vector<WavefrontClosestHitResult>
   WavefrontIntersectionBackend::intersectPreparedClosestFrontier(
     const WavefrontClosestHitFrontier& frontier, WavefrontIntersectionQueryTiming* timing) const {
-    if (const auto* packedFrontier =
-          dynamic_cast<const PreparedPackedWavefrontClosestHitFrontier*>(&frontier)) {
+    const std::vector<WavefrontClosestHitQuery>* queries = frontier.hostClosestHitQueries();
+    if (!queries) {
+      throw std::logic_error("closest-hit frontier is not host-readable");
+    }
+
+    if (const std::vector<GpuIntersectionRay>* packedRays = frontier.hostPackedClosestHitRays()) {
       const CompiledIntersectionScene* scene = compiledScene();
-      const std::vector<WavefrontClosestHitQuery>& queries = packedFrontier->queries();
-      std::vector<WavefrontClosestHitResult> results(queries.size());
+      std::vector<WavefrontClosestHitResult> results(queries->size());
       if (!scene) {
-        for (const WavefrontClosestHitQuery& query : queries) {
+        for (const WavefrontClosestHitQuery& query : *queries) {
           if (query.state) {
             query.state->miss(nullptr, "Compiled intersection scene unavailable");
           }
@@ -1191,20 +1195,16 @@ namespace render {
       }
 
       const std::vector<GpuIntersectionHitRecord> hits =
-        intersectPreparedPackedClosest(packedFrontier->packedRays(), timing);
+        intersectPreparedPackedClosest(*packedRays, timing);
       for (const GpuIntersectionHitRecord& hit : hits) {
         if (hit.rayIndex < results.size()) {
           results[hit.rayIndex] = closestHitResultFromPackedRecord(
-            *scene, hit, queries[hit.rayIndex].state, "Packed GPU intersection scene");
+            *scene, hit, (*queries)[hit.rayIndex].state, "Packed GPU intersection scene");
         }
       }
       return results;
     }
 
-    const std::vector<WavefrontClosestHitQuery>* queries = frontier.hostClosestHitQueries();
-    if (!queries) {
-      throw std::logic_error("closest-hit frontier is not host-readable");
-    }
     return intersectPreparedClosestBatch(*queries, timing);
   }
 
@@ -1306,13 +1306,16 @@ namespace render {
 
   std::vector<bool> WavefrontIntersectionBackend::intersectPreparedAnyFrontier(
     const WavefrontAnyHitFrontier& frontier, WavefrontIntersectionQueryTiming* timing) const {
-    if (const auto* packedFrontier =
-          dynamic_cast<const PreparedPackedWavefrontAnyHitFrontier*>(&frontier)) {
+    const std::vector<WavefrontAnyHitQuery>* queries = frontier.hostAnyHitQueries();
+    if (!queries) {
+      throw std::logic_error("any-hit frontier is not host-readable");
+    }
+
+    if (const std::vector<GpuIntersectionRay>* packedRays = frontier.hostPackedAnyHitRays()) {
       const CompiledIntersectionScene* scene = compiledScene();
-      const std::vector<WavefrontAnyHitQuery>& queries = packedFrontier->queries();
-      std::vector<bool> results(queries.size(), false);
+      std::vector<bool> results(queries->size(), false);
       if (!scene) {
-        for (const WavefrontAnyHitQuery& query : queries) {
+        for (const WavefrontAnyHitQuery& query : *queries) {
           if (query.state) {
             query.state->shadowMiss(nullptr, "Compiled intersection scene unavailable");
           }
@@ -1321,30 +1324,26 @@ namespace render {
       }
 
       const std::vector<GpuIntersectionOcclusionRecord> records =
-        intersectPreparedPackedAny(packedFrontier->packedRays(), timing);
+        intersectPreparedPackedAny(*packedRays, timing);
       for (const GpuIntersectionOcclusionRecord& record : records) {
         if (record.rayIndex < results.size()) {
           results[record.rayIndex] = record.occluded != 0;
         }
       }
 
-      for (std::size_t index = 0; index != queries.size(); ++index) {
-        if (!queries[index].state) {
+      for (std::size_t index = 0; index != queries->size(); ++index) {
+        if (!(*queries)[index].state) {
           continue;
         }
         if (results[index]) {
-          queries[index].state->shadowHit(nullptr, "Packed GPU intersection scene");
+          (*queries)[index].state->shadowHit(nullptr, "Packed GPU intersection scene");
         } else {
-          queries[index].state->shadowMiss(nullptr, "Packed GPU intersection scene");
+          (*queries)[index].state->shadowMiss(nullptr, "Packed GPU intersection scene");
         }
       }
       return results;
     }
 
-    const std::vector<WavefrontAnyHitQuery>* queries = frontier.hostAnyHitQueries();
-    if (!queries) {
-      throw std::logic_error("any-hit frontier is not host-readable");
-    }
     return intersectPreparedAnyBatch(*queries, timing);
   }
 
