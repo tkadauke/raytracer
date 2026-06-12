@@ -446,6 +446,22 @@ namespace render {
     return mixedRoundTrips - mixedResidentBoundaries;
   }
 
+  std::uint64_t IntegratorBatchMetrics::directLightAnyHitQueryRoundTrips() const {
+    std::uint64_t roundTrips = 0;
+    for (const std::uint64_t chunks : directLightAnyHitBatchChunksPerDepth) {
+      roundTrips += chunks;
+    }
+    return roundTrips;
+  }
+
+  std::uint64_t IntegratorBatchMetrics::residentDirectLightBatchRoundTripsEstimate() const {
+    return directLightAnyHitQueryRoundTrips() - residentDirectLightBatchRoundTripSavingsEstimate();
+  }
+
+  std::uint64_t IntegratorBatchMetrics::residentDirectLightBatchRoundTripSavingsEstimate() const {
+    return directLightAnyHitQueryRoundTrips();
+  }
+
   std::uint64_t IntegratorBatchMetrics::mixedQueryDepthCount() const {
     const std::size_t depthCount = std::max(frontierClosestHitBatchChunksPerDepth.size(),
                                             directLightAnyHitBatchChunksPerDepth.size());

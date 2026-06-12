@@ -76,6 +76,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reported direct-light any-hit frontier packed-ray, host-query, and
   state-handle byte totals in wavefront metrics, rendercli summaries,
   convergence captures, and Modeler graph details. — GPT-5 Codex
+- Reported direct-light any-hit round-trip counts and resident direct-light
+  round-trip savings estimates in wavefront metrics, rendercli summaries,
+  convergence captures, and Modeler graph details. — GPT-5 Codex
 - Included `packed_host` frontier ray-packing time in wavefront backend
   preparation/upload timing diagnostics. — GPT-5 Codex
 - Preserved wavefront frontier residency labels in convergence comparison and

@@ -1143,6 +1143,10 @@ Progress:
   state-handle byte totals for next-event-estimation occlusion frontiers. That
   sizes the resident-direct-light Phase 8 gap separately from aggregate any-hit
   frontier payloads.
+- Direct-light any-hit batching metrics now also report current direct-light
+  round trips and a resident direct-light round-trip savings estimate. This
+  makes the host readback boundary for next-event-estimation occlusion visible
+  independently of the mixed-depth resident-frontier estimate.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a

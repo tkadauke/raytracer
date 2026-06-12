@@ -470,6 +470,24 @@ namespace engine::wavefront {
     return mixedRoundTrips - mixedResidentBoundaries;
   }
 
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::directLightAnyHitQueryRoundTrips() const {
+    std::uint64_t roundTrips = 0;
+    for (const std::uint64_t chunks : directLightAnyHitBatchChunksPerDepth) {
+      roundTrips += chunks;
+    }
+    return roundTrips;
+  }
+
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::residentDirectLightBatchRoundTripsEstimate() const {
+    return directLightAnyHitQueryRoundTrips() - residentDirectLightBatchRoundTripSavingsEstimate();
+  }
+
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::residentDirectLightBatchRoundTripSavingsEstimate() const {
+    return directLightAnyHitQueryRoundTrips();
+  }
+
   std::uint64_t WavefrontRenderMetrics::BatchSummary::mixedQueryDepthCount() const {
     const std::size_t depthCount = std::max(frontierClosestHitBatchChunksPerDepth.size(),
                                             directLightAnyHitBatchChunksPerDepth.size());
@@ -892,6 +910,12 @@ namespace engine::wavefront {
       static_cast<double>(batching.residentFrontierQueryRoundTripsEstimate());
     batchingJson["frontierResidentQueryRoundTripSavingsEstimate"] =
       static_cast<double>(batching.residentFrontierQueryRoundTripSavingsEstimate());
+    batchingJson["directLightAnyHitQueryRoundTrips"] =
+      static_cast<double>(batching.directLightAnyHitQueryRoundTrips());
+    batchingJson["residentDirectLightBatchRoundTripsEstimate"] =
+      static_cast<double>(batching.residentDirectLightBatchRoundTripsEstimate());
+    batchingJson["residentDirectLightBatchRoundTripSavingsEstimate"] =
+      static_cast<double>(batching.residentDirectLightBatchRoundTripSavingsEstimate());
     batchingJson["frontierMixedQueryDepths"] = static_cast<double>(batching.mixedQueryDepthCount());
     batchingJson["frontierMixedQueryRoundTrips"] =
       static_cast<double>(batching.mixedQueryDepthRoundTrips());

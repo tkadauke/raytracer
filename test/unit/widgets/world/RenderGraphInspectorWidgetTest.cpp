@@ -1159,6 +1159,9 @@ namespace RenderGraphInspectorWidgetTest {
 
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Direct-light any-hit batch average rays")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Direct-light any-hit round trips")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident direct-light round trips")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident direct-light savings")).isEmpty());
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Direct-light any-hit frontier packed ray bytes")).isEmpty());
     EXPECT_FALSE(
@@ -1229,6 +1232,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, gpuCompactionUnavailableReason));
     EXPECT_TRUE(nodeLineTooltipContains(pass, residentDirectLightUnavailableReason));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("direct-light any-hit batches")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("resident savings")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("state-handle bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("host compaction removed")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("retained-index bytes")));

@@ -496,6 +496,12 @@ namespace {
         << " direct_light_any_hit_batch_avg="
         << ratio(static_cast<double>(directLightAnyHitBatchRayCount),
                  static_cast<double>(directLightAnyHitBatchChunkCount))
+        << " direct_light_any_hit_round_trips="
+        << unsignedValue(batching, "directLightAnyHitQueryRoundTrips")
+        << " resident_direct_light_round_trips_estimate="
+        << unsignedValue(batching, "residentDirectLightBatchRoundTripsEstimate")
+        << " resident_direct_light_round_trip_savings_estimate="
+        << unsignedValue(batching, "residentDirectLightBatchRoundTripSavingsEstimate")
         << " direct_light_any_hit_frontier_packed_ray_bytes="
         << unsignedValue(batching, "directLightAnyHitFrontierPackedRayBytes")
         << " direct_light_any_hit_frontier_host_query_bytes="

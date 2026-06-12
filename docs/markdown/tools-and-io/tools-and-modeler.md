@@ -238,6 +238,9 @@ Direct-light any-hit summaries now also include packed-ray, host-query, and
 state-handle byte totals for next-event-estimation occlusion frontiers. Those
 fields size the direct-light work that still has to become resident separately
 from all other any-hit frontiers.
+The same summary reports direct-light any-hit round trips and a resident
+direct-light savings estimate, making the host readback boundary visible before
+that work can stay on device.
 When a platform kernel actually runs, the same summary separates backend
 upload/setup, kernel dispatch/wait, and readback time; CPU fallback paths keep
 those backend buckets at zero while total intersection worker time still
