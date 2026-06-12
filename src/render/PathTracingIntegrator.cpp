@@ -349,6 +349,69 @@ namespace render {
     }
   };
 
+  class PathTracingIntegrator::ClosestHitPathFrontierBatch {
+  public:
+    ClosestHitPathFrontierBatch(HostBatchPathFrontier& paths, BatchDepthMetrics& depthMetrics,
+                                IntegratorBatchMetrics* metrics) {
+      m_queries.reserve(paths.size());
+      if (depthMetrics.trackRadianceDelta) {
+        m_accumulatedBeforeDepths.resize(paths.size());
+      }
+
+      {
+        core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
+                                              : nullptr);
+        if (depthMetrics.trackFrontierMetrics()) {
+          ++depthMetrics.frontierClosestHitBatchChunks;
+          depthMetrics.frontierClosestHitBatchRays += paths.size();
+        }
+        for (std::size_t pathIndex = 0; pathIndex != paths.size(); ++pathIndex) {
+          BatchPath& path = paths[pathIndex];
+          if (depthMetrics.trackRadianceDelta) {
+            m_accumulatedBeforeDepths[pathIndex] = path.accumulated();
+          }
+          path.state.recurseIn();
+          m_queries.push_back(WavefrontClosestHitQuery{path.ray, &path.state});
+        }
+      }
+    }
+
+    void intersect(const Scene& scene, const WavefrontIntersectionBackend& intersectionBackend,
+                   IntegratorBatchMetrics* metrics) {
+      WavefrontIntersectionQueryTiming intersectionTiming;
+      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      m_frontier = intersectionBackend.createClosestHitFrontier(std::move(m_queries));
+      m_hits =
+        intersectionBackend.intersectClosestFrontier(scene, *m_frontier, &intersectionTiming);
+      if (metrics) {
+        metrics->recordClosestHitFrontierResidency(
+          m_frontier->residency(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
+          m_frontier->stateHandleBytes());
+        metrics->recordClosestHitQuery(intersectionBackend, m_frontier->rayCount(),
+                                       intersectionTiming);
+      }
+    }
+
+    [[nodiscard]] Colord accumulatedBeforeDepth(std::size_t pathIndex,
+                                                const BatchDepthMetrics& depthMetrics) const {
+      return depthMetrics.trackRadianceDelta ? m_accumulatedBeforeDepths[pathIndex]
+                                             : Colord::black();
+    }
+
+    [[nodiscard]] const WavefrontClosestHitResult* hit(std::size_t pathIndex) const {
+      if (pathIndex >= m_hits.size() || !m_hits[pathIndex].hit()) {
+        return nullptr;
+      }
+      return &m_hits[pathIndex];
+    }
+
+  private:
+    std::vector<WavefrontClosestHitQuery> m_queries;
+    std::vector<Colord> m_accumulatedBeforeDepths;
+    std::unique_ptr<WavefrontClosestHitFrontier> m_frontier;
+    std::vector<WavefrontClosestHitResult> m_hits;
+  };
+
   PathTracingIntegrator::PathTracingIntegrator() = default;
 
   std::unique_ptr<Integrator> PathTracingIntegrator::clone() const {
@@ -856,59 +919,23 @@ namespace render {
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
     HostBatchPathFrontier& paths, std::vector<BatchHit>& activeHits, int bounce,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
-    std::vector<WavefrontClosestHitQuery> queries;
-    queries.reserve(paths.size());
-    std::vector<Colord> accumulatedBeforeDepths;
-    if (depthMetrics.trackRadianceDelta) {
-      accumulatedBeforeDepths.resize(paths.size());
-    }
-
-    {
-      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-      if (depthMetrics.trackFrontierMetrics()) {
-        ++depthMetrics.frontierClosestHitBatchChunks;
-        depthMetrics.frontierClosestHitBatchRays += paths.size();
-      }
-      for (std::size_t pathIndex = 0; pathIndex != paths.size(); ++pathIndex) {
-        BatchPath& path = paths[pathIndex];
-        if (depthMetrics.trackRadianceDelta) {
-          accumulatedBeforeDepths[pathIndex] = path.accumulated();
-        }
-        path.state.recurseIn();
-        queries.push_back(WavefrontClosestHitQuery{path.ray, &path.state});
-      }
-    }
-
-    std::vector<WavefrontClosestHitResult> hits;
-    {
-      WavefrontIntersectionQueryTiming intersectionTiming;
-      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      const std::unique_ptr<WavefrontClosestHitFrontier> frontier =
-        intersectionBackend.createClosestHitFrontier(std::move(queries));
-      hits = intersectionBackend.intersectClosestFrontier(scene, *frontier, &intersectionTiming);
-      if (metrics) {
-        metrics->recordClosestHitFrontierResidency(
-          frontier->residency(), frontier->packedRayBytes(), frontier->hostQueryBytes(),
-          frontier->stateHandleBytes());
-        metrics->recordClosestHitQuery(intersectionBackend, frontier->rayCount(),
-                                       intersectionTiming);
-      }
-    }
+    ClosestHitPathFrontierBatch frontier(paths, depthMetrics, metrics);
+    frontier.intersect(scene, intersectionBackend, metrics);
 
     core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
     for (std::size_t pathIndex = 0; pathIndex != paths.size(); ++pathIndex) {
       BatchPath& path = paths[pathIndex];
       const Colord accumulatedBeforeDepth =
-        depthMetrics.trackRadianceDelta ? accumulatedBeforeDepths[pathIndex] : Colord::black();
-      const bool hit = pathIndex < hits.size() && hits[pathIndex].hit();
+        frontier.accumulatedBeforeDepth(pathIndex, depthMetrics);
+      const WavefrontClosestHitResult* hit = frontier.hit(pathIndex);
       if (!hit) {
         recordFrontierMiss(scene, path, depthMetrics, accumulatedBeforeDepth);
         continue;
       }
 
-      recordFrontierHit(pathIndex, path, *hits[pathIndex].primitive, hits[pathIndex].hitPoint,
-                        bounce, depthMetrics, activeHits);
-      activeHits.back().material = hits[pathIndex].material;
+      recordFrontierHit(pathIndex, path, *hit->primitive, hit->hitPoint, bounce, depthMetrics,
+                        activeHits);
+      activeHits.back().material = hit->material;
     }
   }
 

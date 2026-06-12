@@ -130,6 +130,7 @@ namespace render {
     struct BatchDepthMetrics;
     struct BatchHit;
     struct BatchPath;
+    class ClosestHitPathFrontierBatch;
     struct DirectLightingCandidate;
     struct DirectLightingSelection;
     struct DirectLightingSample;
