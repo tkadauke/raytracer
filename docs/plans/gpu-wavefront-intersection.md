@@ -1014,6 +1014,11 @@ Progress:
   dispatches. The renderer still performs `BatchPath` compaction on the host,
   so the public GPU frontier-compaction capability remains disabled until this
   primitive is wired into scheduler-owned active path state.
+- Platform-enabled wavefront intersection benchmarks now include prepared
+  ray-batch compaction rows for Metal and Vulkan. These rows time the new
+  lower-level platform compaction primitive directly and publish the same
+  input/retained/removed sample counters as the public frontier-compaction
+  rows, while keeping public GPU frontier compaction marked unsupported.
 - Metal GPU-intersection backends now create `metal_shared` closest-hit and
   any-hit frontiers when a prepared Metal scene is available. Those frontiers
   dispatch through their prepared ray batch and fall back to `packed_host`

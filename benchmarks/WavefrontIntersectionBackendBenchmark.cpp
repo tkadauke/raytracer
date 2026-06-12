@@ -4,7 +4,13 @@
 #include "core/math/Ray.h"
 #include "render/GpuIntersectionScene.h"
 #include "render/IntersectionSceneCompiler.h"
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+#include "render/MetalWavefrontSmokeKernel.h"
+#endif
 #include "render/State.h"
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+#include "render/VulkanWavefrontSmokeKernel.h"
+#endif
 #include "render/WavefrontIntersectionBackend.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
@@ -329,6 +335,17 @@ namespace {
     }
     return request;
   }
+
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+  std::vector<std::uint32_t> retainedRayIndices(std::int64_t inputRayCount) {
+    std::vector<std::uint32_t> indices;
+    indices.reserve(static_cast<std::size_t>(inputRayCount / 2));
+    for (std::int64_t index = 1; index < inputRayCount; index += 2) {
+      indices.push_back(static_cast<std::uint32_t>(index));
+    }
+    return indices;
+  }
+#endif
 
   void annotateQuery(benchmark::State& state, const Workload& workload,
                      const GpuIntersectionSceneBuffers& buffers, std::size_t rayCount,
@@ -712,6 +729,108 @@ namespace {
     workload.annotateBackendCompaction(state, *backend, result);
     state.SetItemsProcessed(state.iterations() * state.range(1));
   }
+
+  void annotatePreparedRayBatchCompaction(benchmark::State& state, const Workload& workload,
+                                          const char* platformName, std::size_t inputRayCount,
+                                          std::size_t retainedRayCount) {
+    state.SetLabel(workload.name + "/" + platformName + "/prepared_ray_batch_compaction");
+    state.counters["frontier_compaction_input_samples"] = static_cast<double>(inputRayCount);
+    state.counters["frontier_compaction_retained_samples"] = static_cast<double>(retainedRayCount);
+    state.counters["frontier_compaction_removed_samples"] =
+      static_cast<double>(inputRayCount - retainedRayCount);
+    state.counters["frontier_compaction_removed_fraction"] =
+      inputRayCount == 0
+        ? 0.0
+        : 1.0 - static_cast<double>(retainedRayCount) / static_cast<double>(inputRayCount);
+    state.counters["frontier_packed_ray_bytes"] =
+      static_cast<double>(inputRayCount * sizeof(GpuIntersectionRay));
+    state.counters["compacted_frontier_packed_ray_bytes"] =
+      static_cast<double>(retainedRayCount * sizeof(GpuIntersectionRay));
+    state.counters["prepared_ray_batch_compaction_supported"] = 1.0;
+    state.counters["gpu_frontier_compaction_supported"] = 0.0;
+  }
+
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+  void bm_metalPreparedRayBatchCompaction(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const MetalWavefrontSmokeKernel kernel;
+    if (!kernel.deviceAvailable()) {
+      state.SkipWithError(kernel.deviceUnavailableReason());
+      return;
+    }
+    if (!kernel.renderPathAvailable()) {
+      state.SkipWithError(kernel.renderPathUnavailableReason());
+      return;
+    }
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(*workload.scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    if (!buffers.basicHitKernelEligible()) {
+      state.SkipWithError("workload is not Metal basic-hit eligible");
+      return;
+    }
+
+    const std::vector<Rayd> rays = generateRays(state.range(1));
+    const std::vector<GpuIntersectionRay> packedRays =
+      packRays(rays, std::numeric_limits<double>::infinity());
+    const std::vector<std::uint32_t> retainedIndices = retainedRayIndices(state.range(1));
+    const MetalWavefrontPreparedScene prepared(buffers);
+    const std::shared_ptr<const MetalWavefrontPreparedRayBatch> sourceBatch =
+      prepared.prepareRays(packedRays);
+
+    std::shared_ptr<const MetalWavefrontPreparedRayBatch> compacted =
+      prepared.compactRays(*sourceBatch, retainedIndices);
+    for (auto _ : state) {
+      compacted = prepared.compactRays(*sourceBatch, retainedIndices);
+      benchmark::DoNotOptimize(compacted->rayCount());
+    }
+
+    annotatePreparedRayBatchCompaction(state, workload, "metal", packedRays.size(),
+                                       retainedIndices.size());
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(packedRays.size()));
+  }
+#endif
+
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+  void bm_vulkanPreparedRayBatchCompaction(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const VulkanWavefrontSmokeKernel kernel;
+    if (!kernel.deviceAvailable()) {
+      state.SkipWithError(kernel.deviceUnavailableReason());
+      return;
+    }
+    if (!kernel.renderPathAvailable()) {
+      state.SkipWithError(kernel.renderPathUnavailableReason());
+      return;
+    }
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(*workload.scene);
+    const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
+    if (!buffers.basicHitKernelEligible()) {
+      state.SkipWithError("workload is not Vulkan basic-hit eligible");
+      return;
+    }
+
+    const std::vector<Rayd> rays = generateRays(state.range(1));
+    const std::vector<GpuIntersectionRay> packedRays =
+      packRays(rays, std::numeric_limits<double>::infinity());
+    const std::vector<std::uint32_t> retainedIndices = retainedRayIndices(state.range(1));
+    const VulkanWavefrontPreparedScene prepared(buffers);
+    const std::shared_ptr<const VulkanWavefrontPreparedRayBatch> sourceBatch =
+      prepared.prepareRays(packedRays);
+
+    std::shared_ptr<const VulkanWavefrontPreparedRayBatch> compacted =
+      prepared.compactRays(*sourceBatch, retainedIndices);
+    for (auto _ : state) {
+      compacted = prepared.compactRays(*sourceBatch, retainedIndices);
+      benchmark::DoNotOptimize(compacted->rayCount());
+    }
+
+    annotatePreparedRayBatchCompaction(state, workload, "vulkan", packedRays.size(),
+                                       retainedIndices.size());
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(packedRays.size()));
+  }
+#endif
 #endif
 
   void allWorkloads(benchmark::internal::Benchmark* benchmark) {
@@ -748,4 +867,10 @@ BENCHMARK(bm_requestedGpuClosestHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuAnyHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuMixedClosestAndAnyHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuFrontierCompaction)->Apply(supportedQueryWorkloads);
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+BENCHMARK(bm_metalPreparedRayBatchCompaction)->Apply(supportedQueryWorkloads);
+#endif
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+BENCHMARK(bm_vulkanPreparedRayBatchCompaction)->Apply(supportedQueryWorkloads);
+#endif
 #endif
