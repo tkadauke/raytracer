@@ -66,10 +66,7 @@ namespace {
         result.movedRetainedPathFraction();
       state.counters["frontier_compaction_retained_index_bytes"] =
         static_cast<double>(result.retainedIndexBytes());
-      state.counters["gpu_frontier_compaction_supported"] =
-        backend.supportsGpuFrontierCompaction() ? 1.0 : 0.0;
-      state.counters["prepared_ray_batch_compaction_supported"] =
-        backend.supportsPreparedRayBatchCompaction() ? 1.0 : 0.0;
+      annotateBackendCapabilityCounters(state, backend);
     }
 
     void annotateBackendWorkload(
@@ -165,14 +162,7 @@ namespace {
         static_cast<double>(residentQueryRoundTrips);
       state.counters["frontier_resident_query_round_trip_savings_estimate"] =
         static_cast<double>(queryRoundTrips - residentQueryRoundTrips);
-      state.counters["resident_frontiers_supported"] =
-        backend.supportsResidentFrontiers() ? 1.0 : 0.0;
-      state.counters["gpu_frontier_compaction_supported"] =
-        backend.supportsGpuFrontierCompaction() ? 1.0 : 0.0;
-      state.counters["prepared_ray_batch_compaction_supported"] =
-        backend.supportsPreparedRayBatchCompaction() ? 1.0 : 0.0;
-      state.counters["resident_direct_light_batches_supported"] =
-        backend.supportsResidentDirectLightBatches() ? 1.0 : 0.0;
+      annotateBackendCapabilityCounters(state, backend);
     }
 
     [[nodiscard]] std::shared_ptr<const WavefrontIntersectionBackend>
@@ -236,6 +226,36 @@ namespace {
         }
       }
       return "scene_unsupported_reason_" + reason;
+    }
+
+    void annotateBackendCapabilityCounters(benchmark::State& state,
+                                           const WavefrontIntersectionBackend& backend) const {
+      const bool residentFrontiersSupported = backend.supportsResidentFrontiers();
+      const bool gpuFrontierCompactionSupported = backend.supportsGpuFrontierCompaction();
+      const bool preparedRayBatchCompactionSupported = backend.supportsPreparedRayBatchCompaction();
+      const bool residentDirectLightBatchesSupported = backend.supportsResidentDirectLightBatches();
+
+      state.counters["resident_frontiers_supported"] = residentFrontiersSupported ? 1.0 : 0.0;
+      state.counters["gpu_frontier_compaction_supported"] =
+        gpuFrontierCompactionSupported ? 1.0 : 0.0;
+      state.counters["prepared_ray_batch_compaction_supported"] =
+        preparedRayBatchCompactionSupported ? 1.0 : 0.0;
+      state.counters["resident_direct_light_batches_supported"] =
+        residentDirectLightBatchesSupported ? 1.0 : 0.0;
+
+      state.counters["gpu_frontier_compaction_unavailable"] =
+        gpuFrontierCompactionSupported ? 0.0 : 1.0;
+      state.counters["gpu_frontier_compaction_unavailable_host_path_state"] =
+        !gpuFrontierCompactionSupported && preparedRayBatchCompactionSupported ? 1.0 : 0.0;
+      state.counters["gpu_frontier_compaction_unavailable_missing_prepared_ray_batch"] =
+        !gpuFrontierCompactionSupported && !preparedRayBatchCompactionSupported ? 1.0 : 0.0;
+
+      state.counters["resident_direct_light_batches_unavailable"] =
+        residentDirectLightBatchesSupported ? 0.0 : 1.0;
+      state.counters["resident_direct_light_batches_unavailable_host_shading"] =
+        !residentDirectLightBatchesSupported && residentFrontiersSupported ? 1.0 : 0.0;
+      state.counters["resident_direct_light_batches_unavailable_missing_resident_frontiers"] =
+        !residentDirectLightBatchesSupported && !residentFrontiersSupported ? 1.0 : 0.0;
     }
 
     [[nodiscard]] std::uint64_t frontierQueryRoundTrips(bool closestHitRoundTrip,

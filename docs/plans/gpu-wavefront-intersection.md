@@ -1121,6 +1121,11 @@ Progress:
   batches on the host.
 - The convergence capture helper preserves resident direct-light unavailable
   reasons in reference/candidate comparisons and queue-sweep summaries as well.
+- Wavefront intersection backend benchmarks now expose numeric unavailable-gap
+  counters for GPU frontier compaction and resident direct-light batches. The
+  counters separate scheduler/host-state gaps from missing backend capability,
+  so benchmark dashboards can filter Phase 8 blockers without parsing text
+  labels.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a

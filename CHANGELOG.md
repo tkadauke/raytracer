@@ -60,6 +60,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   beside the existing wavefront backend capability flag in metrics, rendercli
   summaries, graph traces, Modeler graph details, and convergence captures.
   — GPT-5 Codex
+- Added numeric benchmark counters that split unavailable GPU frontier
+  compaction and resident direct-light batches into scheduler/host-state versus
+  backend-capability gaps. — GPT-5 Codex
 - Included `packed_host` frontier ray-packing time in wavefront backend
   preparation/upload timing diagnostics. — GPT-5 Codex
 - Preserved wavefront frontier residency labels in convergence comparison and
