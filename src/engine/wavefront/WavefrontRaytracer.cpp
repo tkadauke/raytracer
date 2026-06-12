@@ -284,6 +284,15 @@ namespace engine::wavefront {
            static_cast<double>(frontierCompactionInputSamples);
   }
 
+  double
+  WavefrontRenderMetrics::BatchSummary::frontierCompactionMovedRetainedSampleFraction() const {
+    if (frontierCompactionRetainedSamples == 0) {
+      return 0.0;
+    }
+    return static_cast<double>(frontierCompactionMovedSamples) /
+           static_cast<double>(frontierCompactionRetainedSamples);
+  }
+
   bool WavefrontRenderMetrics::BatchSummary::hasCompactionCandidateDepth(std::size_t depth) const {
     if (depth >= activeSamplesPerDepth.size() || depth >= retainedActiveSamplesPerDepth.size()) {
       return false;
@@ -748,6 +757,8 @@ namespace engine::wavefront {
       batching.frontierCompactionRemovedSampleFraction();
     batchingJson["frontierCompactionRemovedSampleFraction"] =
       batching.frontierCompactionRemovedSampleFraction();
+    batchingJson["frontierCompactionMovedRetainedSampleFraction"] =
+      batching.frontierCompactionMovedRetainedSampleFraction();
     batchingJson["frontierCompactionExecutionPath"] =
       QString::fromStdString(batching.frontierCompactionExecutionPath);
     batchingJson["compatibilityShadeSamples"] =

@@ -1177,6 +1177,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction removed fraction")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction moved samples")).isEmpty());
     EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Frontier compaction moved retained fraction")).isEmpty());
+    EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Frontier compaction retained-index bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Supports resident frontiers")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Supports GPU frontier compaction")).isEmpty());

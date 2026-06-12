@@ -183,6 +183,7 @@ namespace engine::wavefront {
       void addIntegratorMetrics(const render::IntegratorBatchMetrics& metrics);
       void addIntersectionBackendMetrics(const render::IntegratorBatchMetrics& metrics);
       [[nodiscard]] double frontierCompactionRemovedSampleFraction() const;
+      [[nodiscard]] double frontierCompactionMovedRetainedSampleFraction() const;
       [[nodiscard]] bool hasCompactionCandidateDepth(std::size_t depth) const;
       [[nodiscard]] std::uint64_t compactionCandidateSamplesAtDepth(std::size_t depth) const;
       [[nodiscard]] std::uint64_t compactionCandidateDepthCount() const;

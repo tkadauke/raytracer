@@ -48,6 +48,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   and Modeler graph details. — GPT-5 Codex
 - Split estimated wavefront query transfer bytes by closest-hit and any-hit
   query family across the same diagnostics surfaces. — GPT-5 Codex
+- Reported moved-retained fractions for executed wavefront frontier compaction
+  in metrics, rendercli summaries, convergence captures, benchmarks, and
+  Modeler graph details. — GPT-5 Codex
 - Included `packed_host` frontier ray-packing time in wavefront backend
   preparation/upload timing diagnostics. — GPT-5 Codex
 - Preserved wavefront frontier residency labels in convergence comparison and

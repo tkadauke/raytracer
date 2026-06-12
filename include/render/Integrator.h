@@ -160,6 +160,7 @@ namespace render {
     void recordHostFrontierCompaction(std::uint64_t inputSamples, std::uint64_t retainedSamples,
                                       std::uint64_t movedSamples);
     [[nodiscard]] double frontierCompactionRemovedSampleFraction() const;
+    [[nodiscard]] double frontierCompactionMovedRetainedSampleFraction() const;
     [[nodiscard]] bool hasCompactionCandidateDepth(std::size_t depth) const;
     [[nodiscard]] std::uint64_t compactionCandidateSamplesAtDepth(std::size_t depth) const;
     [[nodiscard]] std::uint64_t compactionCandidateDepthCount() const;

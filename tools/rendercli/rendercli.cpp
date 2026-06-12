@@ -427,6 +427,8 @@ namespace {
         << batching.value("frontierCompactionRemovedSampleFraction").toDouble()
         << " frontier_compaction_moved_samples="
         << unsignedValue(batching, "frontierCompactionMovedSamples")
+        << " frontier_compaction_moved_retained_fraction="
+        << batching.value("frontierCompactionMovedRetainedSampleFraction").toDouble()
         << " frontier_compaction_retained_index_bytes="
         << unsignedValue(batching, "frontierCompactionRetainedIndexBytes")
         << " batches=" << unsignedValue(batching, "batches")

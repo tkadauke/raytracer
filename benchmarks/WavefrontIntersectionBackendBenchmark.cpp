@@ -62,6 +62,8 @@ namespace {
       state.counters["frontier_compaction_moved_samples"] =
         static_cast<double>(result.movedPathCount());
       state.counters["frontier_compaction_removed_fraction"] = result.removedPathFraction();
+      state.counters["frontier_compaction_moved_retained_fraction"] =
+        result.movedRetainedPathFraction();
       state.counters["frontier_compaction_retained_index_bytes"] =
         static_cast<double>(result.retainedIndexBytes());
       state.counters["gpu_frontier_compaction_supported"] =

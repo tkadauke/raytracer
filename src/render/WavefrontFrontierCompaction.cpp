@@ -82,6 +82,14 @@ namespace render {
     return m_movedPathCount;
   }
 
+  double WavefrontFrontierCompactionResult::movedRetainedPathFraction() const {
+    const std::size_t retained = retainedPathCount();
+    if (retained == 0) {
+      return 0.0;
+    }
+    return static_cast<double>(m_movedPathCount) / static_cast<double>(retained);
+  }
+
   const std::vector<std::size_t>& WavefrontFrontierCompactionResult::retainedPathIndices() const {
     return m_retainedPathIndices;
   }

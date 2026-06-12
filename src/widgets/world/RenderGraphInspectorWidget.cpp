@@ -705,6 +705,13 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
   }
   addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier compaction moved samples"), batching,
                               QStringLiteral("frontierCompactionMovedSamples"));
+  if (batching.contains(QStringLiteral("frontierCompactionMovedRetainedSampleFraction"))) {
+    addDetailRow(
+      rows, QStringLiteral("Frontier compaction moved retained fraction"),
+      percentage(
+        batching.value(QStringLiteral("frontierCompactionMovedRetainedSampleFraction")).toDouble(),
+        1.0));
+  }
   addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier compaction retained-index bytes"),
                               batching, QStringLiteral("frontierCompactionRetainedIndexBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Compaction candidate depths"), batching,

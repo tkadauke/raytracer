@@ -1845,6 +1845,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(5u * sizeof(std::uint32_t), metrics.batching.frontierCompactionRetainedIndexBytes);
     EXPECT_EQ("host", metrics.batching.frontierCompactionExecutionPath);
     EXPECT_DOUBLE_EQ(3.0 / 8.0, metrics.batching.frontierCompactionRemovedSampleFraction());
+    EXPECT_DOUBLE_EQ(2.0 / 5.0, metrics.batching.frontierCompactionMovedRetainedSampleFraction());
     EXPECT_DOUBLE_EQ(redLuma, metrics.batching.emittedRadianceLuminanceSum);
     EXPECT_DOUBLE_EQ(greenLuma + blueLuma, metrics.batching.directLightRadianceLuminanceSum);
     EXPECT_DOUBLE_EQ(greenLuma, metrics.batching.primaryDirectLightRadianceLuminanceSum);
@@ -1880,6 +1881,8 @@ namespace WavefrontRaytracerTest {
                      batching.value("frontierHostCompactionRemovedSampleFraction").toDouble());
     EXPECT_DOUBLE_EQ(3.0 / 8.0,
                      batching.value("frontierCompactionRemovedSampleFraction").toDouble());
+    EXPECT_DOUBLE_EQ(2.0 / 5.0,
+                     batching.value("frontierCompactionMovedRetainedSampleFraction").toDouble());
     EXPECT_DOUBLE_EQ(redLuma, batching.value("emittedRadianceLuminanceSum").toDouble());
     EXPECT_DOUBLE_EQ(greenLuma + blueLuma,
                      batching.value("directLightRadianceLuminanceSum").toDouble());

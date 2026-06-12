@@ -336,5 +336,6 @@ namespace IntegratorTest {
     EXPECT_EQ(12u * sizeof(std::uint32_t), metrics.frontierCompactionRetainedIndexBytes);
     EXPECT_EQ("mixed", metrics.frontierCompactionExecutionPath);
     EXPECT_DOUBLE_EQ(5.0 / 17.0, metrics.frontierCompactionRemovedSampleFraction());
+    EXPECT_DOUBLE_EQ(5.0 / 12.0, metrics.frontierCompactionMovedRetainedSampleFraction());
   }
 }

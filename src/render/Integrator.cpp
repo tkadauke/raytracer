@@ -220,6 +220,14 @@ namespace render {
            static_cast<double>(frontierCompactionInputSamples);
   }
 
+  double IntegratorBatchMetrics::frontierCompactionMovedRetainedSampleFraction() const {
+    if (frontierCompactionRetainedSamples == 0) {
+      return 0.0;
+    }
+    return static_cast<double>(frontierCompactionMovedSamples) /
+           static_cast<double>(frontierCompactionRetainedSamples);
+  }
+
   bool IntegratorBatchMetrics::hasCompactionCandidateDepth(std::size_t depth) const {
     if (depth >= activeSamplesPerDepth.size() || depth >= retainedActiveSamplesPerDepth.size()) {
       return false;
