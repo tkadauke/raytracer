@@ -477,6 +477,9 @@ per-depth `frontierRayHitsPerDepth`, `frontierRayMissesPerDepth`,
 `frontierClosestHitBatchRaysPerDepth`,
 `directLightAnyHitBatchChunksPerDepth`,
 `directLightAnyHitBatchRaysPerDepth`,
+`directLightAnyHitFrontierPackedRayBytesPerDepth`,
+`directLightAnyHitFrontierHostQueryBytesPerDepth`,
+`directLightAnyHitFrontierStateHandleBytesPerDepth`,
 `frontierRay4PacketChunksPerDepth`, `frontierRay8PacketChunksPerDepth`,
 `frontierScalarRaysPerDepth`, `frontierPacketScalarFallbackRaysPerDepth`, and
 `frontierPacketRefinedRaysPerDepth` arrays for deeper captures, plus
@@ -504,7 +507,9 @@ materialized, matching the contribution-byte array shape. The direct-light
 any-hit chunk and ray arrays follow the same zero-row convention. Cancelled
 path-tracing renders keep zero rows for the depth that was started but skipped
 before intersection, so per-depth arrays remain comparable in graph details and
-compact summaries.
+compact summaries. The any-hit frontier payload byte arrays expose the same
+depth-local view for packed rays, retained host queries, and per-ray state
+handles while the compact summary keeps the whole-render totals.
 The JSON also includes `sampleVariancePixelArea`, `sampleRadianceStddevRms`, and
 `maxSampleRadianceStddev`, which measure disagreement between samples of the
 same pixel and complement the between-depth radiance-delta convergence fields.

@@ -530,7 +530,10 @@ Direct-light diagnostics also report the host bytes used for sampled light
 selection records that pair each occlusion query with its eventual lighting
 contribution. Those bytes are separate from the any-hit ray frontier and show
 the remaining CPU-side state that resident next-event-estimation batches would
-need to eliminate or mirror.
+need to eliminate or mirror. The any-hit frontier payload bytes are reported
+both as whole-render totals and per-depth arrays, split into packed rays, host
+queries, and state handles, so resident-direct-light captures can identify the
+specific bounce that moved the occlusion payload.
 They also report the host bytes used by the resolved occlusion flags and by the
 direct-light contribution array that carries resolved lighting back to the
 per-hit shading pass. Selection and occlusion byte arrays include explicit zero

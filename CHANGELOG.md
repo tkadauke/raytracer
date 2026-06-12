@@ -52,6 +52,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reported direct-light occlusion-result host byte counts in wavefront metrics,
   rendercli summaries, convergence captures, and Modeler pass details.
   — GPT-5 Codex
+- Reported direct-light any-hit frontier packed-ray, host-query, and
+  state-handle byte counts per depth in wavefront metrics, rendercli summaries,
+  and Modeler pass details. — GPT-5 Codex
 - Kept direct-light selection and occlusion host-byte depth arrays explicit with
   zero entries when a path-tracing depth has no visibility work. — GPT-5 Codex
 - Kept direct-light any-hit chunk and ray depth arrays explicit with zero

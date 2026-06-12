@@ -107,6 +107,9 @@ namespace IntegratorTest {
     EXPECT_TRUE(metrics.frontierClosestHitBatchRaysPerDepth.empty());
     EXPECT_TRUE(metrics.directLightAnyHitBatchChunksPerDepth.empty());
     EXPECT_TRUE(metrics.directLightAnyHitBatchRaysPerDepth.empty());
+    EXPECT_TRUE(metrics.directLightAnyHitFrontierPackedRayBytesPerDepth.empty());
+    EXPECT_TRUE(metrics.directLightAnyHitFrontierHostQueryBytesPerDepth.empty());
+    EXPECT_TRUE(metrics.directLightAnyHitFrontierStateHandleBytesPerDepth.empty());
     EXPECT_TRUE(metrics.frontierRay4PacketChunksPerDepth.empty());
     EXPECT_TRUE(metrics.frontierRay8PacketChunksPerDepth.empty());
     EXPECT_TRUE(metrics.frontierScalarRaysPerDepth.empty());
@@ -171,6 +174,12 @@ namespace IntegratorTest {
     EXPECT_EQ(42u, target.directLightContributionHostBytes);
     EXPECT_EQ((std::vector<std::uint64_t>{3u, 3u}), target.directLightAnyHitBatchChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{8u, 7u}), target.directLightAnyHitBatchRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{80u, 70u}),
+              target.directLightAnyHitFrontierPackedRayBytesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{40u, 35u}),
+              target.directLightAnyHitFrontierHostQueryBytesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{24u, 21u}),
+              target.directLightAnyHitFrontierStateHandleBytesPerDepth);
     EXPECT_EQ(150u, target.directLightAnyHitFrontierPackedRayBytes);
     EXPECT_EQ(75u, target.directLightAnyHitFrontierHostQueryBytes);
     EXPECT_EQ(45u, target.directLightAnyHitFrontierStateHandleBytes);

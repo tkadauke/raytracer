@@ -2389,6 +2389,21 @@ if(NOT wavefront_metrics_stdout MATCHES "direct_light_any_hit_frontier_state_han
                   "wavefront metrics summary did not contain direct-light any-hit state handle bytes"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "last_direct_light_any_hit_frontier_packed_ray_bytes=")
+  _rendercli_fail("rendercli wavefront metrics last direct-light any-hit packed bytes summary"
+                  "wavefront metrics summary did not contain last direct-light any-hit packed ray bytes"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "last_direct_light_any_hit_frontier_host_query_bytes=")
+  _rendercli_fail("rendercli wavefront metrics last direct-light any-hit host query bytes summary"
+                  "wavefront metrics summary did not contain last direct-light any-hit host query bytes"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "last_direct_light_any_hit_frontier_state_handle_bytes=")
+  _rendercli_fail("rendercli wavefront metrics last direct-light any-hit state handle bytes summary"
+                  "wavefront metrics summary did not contain last direct-light any-hit state handle bytes"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_ray4_packet_chunks=")
   _rendercli_fail("rendercli wavefront metrics frontier Ray4 packet chunk summary"
                   "wavefront metrics summary did not contain frontier Ray4 packet chunk counters"
@@ -2987,8 +3002,11 @@ foreach(direct_light_any_hit_field
         directLightContributionHostBytes
         directLightContributionHostBytesPerDepth
         directLightAnyHitFrontierPackedRayBytes
+        directLightAnyHitFrontierPackedRayBytesPerDepth
         directLightAnyHitFrontierHostQueryBytes
-        directLightAnyHitFrontierStateHandleBytes)
+        directLightAnyHitFrontierHostQueryBytesPerDepth
+        directLightAnyHitFrontierStateHandleBytes
+        directLightAnyHitFrontierStateHandleBytesPerDepth)
   if(NOT wavefront_metrics_json MATCHES "\"${direct_light_any_hit_field}\"")
     _rendercli_fail("rendercli wavefront metrics ${direct_light_any_hit_field}"
                     "wavefront metrics report did not contain ${direct_light_any_hit_field}"
@@ -3729,7 +3747,7 @@ rendercli_run(
   NAME "rendercli reports batched wavefront any-hit visibility metrics"
   OUTPUT_VARIABLE wavefront_batched_visibility_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*intersection_backend_platform=(metal|vulkan).*intersection_backend_gpu_device=(true|false).*intersection_backend_gpu_render_path=(true|false).*any_hit_rays=[1-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*frontier_mixed_query_depths=[1-9][0-9]*.*frontier_mixed_query_closest_hit_rays=[1-9][0-9]*.*frontier_mixed_query_any_hit_rays=[1-9][0-9]*.*closest_hit_batch_preferred=true.*any_hit_batch_preferred=true.*direct_light_any_hit_batch_chunks=[1-9][0-9]*.*direct_light_any_hit_batch_rays=[1-9][0-9]*.*direct_light_any_hit_batch_avg=[1-9][0-9]*\\.[0-9][0-9][0-9].*direct_light_any_hit_round_trips=[1-9][0-9]*.*resident_direct_light_round_trip_savings_estimate=[1-9][0-9]*.*direct_light_any_hit_frontier_packed_ray_bytes=[1-9][0-9]*.*direct_light_any_hit_frontier_state_handle_bytes=[1-9][0-9]*.*direct_light_samples=[1-9][0-9]*"
+    "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*intersection_backend_platform=(metal|vulkan).*intersection_backend_gpu_device=(true|false).*intersection_backend_gpu_render_path=(true|false).*any_hit_rays=[1-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*frontier_mixed_query_depths=[1-9][0-9]*.*frontier_mixed_query_closest_hit_rays=[1-9][0-9]*.*frontier_mixed_query_any_hit_rays=[1-9][0-9]*.*closest_hit_batch_preferred=true.*any_hit_batch_preferred=true.*direct_light_any_hit_batch_chunks=[1-9][0-9]*.*direct_light_any_hit_batch_rays=[1-9][0-9]*.*direct_light_any_hit_batch_avg=[1-9][0-9]*\\.[0-9][0-9][0-9].*direct_light_any_hit_round_trips=[1-9][0-9]*.*resident_direct_light_round_trip_savings_estimate=[1-9][0-9]*.*direct_light_any_hit_frontier_packed_ray_bytes=[1-9][0-9]*.*direct_light_any_hit_frontier_state_handle_bytes=[1-9][0-9]*.*last_direct_light_any_hit_frontier_packed_ray_bytes=[1-9][0-9]*.*last_direct_light_any_hit_frontier_state_handle_bytes=[1-9][0-9]*.*direct_light_samples=[1-9][0-9]*"
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
     --pathtracer_direct_light_samples 3 --wavefront_denoiser none

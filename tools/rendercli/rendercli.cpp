@@ -196,6 +196,12 @@ namespace {
         batching.value("directLightOcclusionHostBytesPerDepth").toArray();
       const QJsonArray directLightContributionHostBytes =
         batching.value("directLightContributionHostBytesPerDepth").toArray();
+      const QJsonArray directLightAnyHitFrontierPackedRayBytes =
+        batching.value("directLightAnyHitFrontierPackedRayBytesPerDepth").toArray();
+      const QJsonArray directLightAnyHitFrontierHostQueryBytes =
+        batching.value("directLightAnyHitFrontierHostQueryBytesPerDepth").toArray();
+      const QJsonArray directLightAnyHitFrontierStateHandleBytes =
+        batching.value("directLightAnyHitFrontierStateHandleBytesPerDepth").toArray();
       const QJsonArray frontierRay4Packets =
         batching.value("frontierRay4PacketChunksPerDepth").toArray();
       const QJsonArray frontierRay8Packets =
@@ -538,6 +544,12 @@ namespace {
         << unsignedValue(batching, "directLightAnyHitFrontierHostQueryBytes")
         << " direct_light_any_hit_frontier_state_handle_bytes="
         << unsignedValue(batching, "directLightAnyHitFrontierStateHandleBytes")
+        << " last_direct_light_any_hit_frontier_packed_ray_bytes="
+        << unsignedArrayBack(directLightAnyHitFrontierPackedRayBytes)
+        << " last_direct_light_any_hit_frontier_host_query_bytes="
+        << unsignedArrayBack(directLightAnyHitFrontierHostQueryBytes)
+        << " last_direct_light_any_hit_frontier_state_handle_bytes="
+        << unsignedArrayBack(directLightAnyHitFrontierStateHandleBytes)
         << " last_direct_light_selection_host_bytes="
         << unsignedArrayBack(directLightSelectionHostBytes)
         << " last_direct_light_occlusion_host_bytes="

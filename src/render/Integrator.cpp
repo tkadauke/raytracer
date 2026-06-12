@@ -99,6 +99,9 @@ namespace render {
     directLightAnyHitFrontierPackedRayBytes = 0;
     directLightAnyHitFrontierHostQueryBytes = 0;
     directLightAnyHitFrontierStateHandleBytes = 0;
+    directLightAnyHitFrontierPackedRayBytesPerDepth.clear();
+    directLightAnyHitFrontierHostQueryBytesPerDepth.clear();
+    directLightAnyHitFrontierStateHandleBytesPerDepth.clear();
     frontierRay4PacketChunksPerDepth.clear();
     frontierRay8PacketChunksPerDepth.clear();
     frontierScalarRaysPerDepth.clear();
@@ -242,6 +245,12 @@ namespace render {
                     source.directLightOcclusionHostBytesPerDepth);
     addVectorValues(directLightContributionHostBytesPerDepth,
                     source.directLightContributionHostBytesPerDepth);
+    addVectorValues(directLightAnyHitFrontierPackedRayBytesPerDepth,
+                    source.directLightAnyHitFrontierPackedRayBytesPerDepth);
+    addVectorValues(directLightAnyHitFrontierHostQueryBytesPerDepth,
+                    source.directLightAnyHitFrontierHostQueryBytesPerDepth);
+    addVectorValues(directLightAnyHitFrontierStateHandleBytesPerDepth,
+                    source.directLightAnyHitFrontierStateHandleBytesPerDepth);
     addVectorValues(frontierRay4PacketChunksPerDepth, source.frontierRay4PacketChunksPerDepth);
     addVectorValues(frontierRay8PacketChunksPerDepth, source.frontierRay8PacketChunksPerDepth);
     addVectorValues(frontierScalarRaysPerDepth, source.frontierScalarRaysPerDepth);
@@ -571,8 +580,20 @@ namespace render {
     if (directLightAnyHitBatchRaysPerDepth.size() <= depth) {
       directLightAnyHitBatchRaysPerDepth.resize(depth + 1);
     }
+    if (directLightAnyHitFrontierPackedRayBytesPerDepth.size() <= depth) {
+      directLightAnyHitFrontierPackedRayBytesPerDepth.resize(depth + 1);
+    }
+    if (directLightAnyHitFrontierHostQueryBytesPerDepth.size() <= depth) {
+      directLightAnyHitFrontierHostQueryBytesPerDepth.resize(depth + 1);
+    }
+    if (directLightAnyHitFrontierStateHandleBytesPerDepth.size() <= depth) {
+      directLightAnyHitFrontierStateHandleBytesPerDepth.resize(depth + 1);
+    }
     directLightAnyHitBatchChunksPerDepth[depth] += batchChunks;
     directLightAnyHitBatchRaysPerDepth[depth] += batchRays;
+    directLightAnyHitFrontierPackedRayBytesPerDepth[depth] += packedRayBytes;
+    directLightAnyHitFrontierHostQueryBytesPerDepth[depth] += hostQueryBytes;
+    directLightAnyHitFrontierStateHandleBytesPerDepth[depth] += stateHandleBytes;
     directLightAnyHitFrontierPackedRayBytes += packedRayBytes;
     directLightAnyHitFrontierHostQueryBytes += hostQueryBytes;
     directLightAnyHitFrontierStateHandleBytes += stateHandleBytes;

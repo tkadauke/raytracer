@@ -1272,6 +1272,10 @@ Progress:
   same explicit zero rows for depths with no visibility work, keeping the
   direct-light resident-frontier diagnostics shape-compatible across empty and
   materialized visibility batches.
+- Direct-light any-hit frontier packed-ray, host-query, and state-handle byte
+  metrics now also have per-depth arrays in addition to whole-render totals.
+  This lets resident-direct-light analysis identify which bounce moved the
+  occlusion frontier payload.
 - Path-tracing cancellation after a depth starts now records zero rows for the
   skipped frontier, active-hit, direct-light, spawned-continuation, retained,
   and radiance-delta diagnostics. That keeps cancelled renders comparable with

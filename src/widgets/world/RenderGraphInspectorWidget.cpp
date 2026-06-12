@@ -117,6 +117,7 @@ struct RenderGraphInspectorWidget::Private {
   QString executionStateName(PassExecutionState state) const;
   qulonglong jsonIntegerValue(const QJsonObject& object, const QString& key) const;
   qulonglong jsonIntegerArraySum(const QJsonArray& array) const;
+  qulonglong jsonIntegerArrayBack(const QJsonArray& array) const;
   QString jsonIntegerObjectSummary(const QJsonObject& object) const;
   QString percentage(double numerator, double denominator) const;
   QString average(double numerator, double denominator) const;
@@ -426,6 +427,14 @@ qulonglong RenderGraphInspectorWidget::Private::jsonIntegerArraySum(const QJsonA
     result += static_cast<qulonglong>(value.toDouble());
   }
   return result;
+}
+
+qulonglong
+RenderGraphInspectorWidget::Private::jsonIntegerArrayBack(const QJsonArray& array) const {
+  if (array.isEmpty()) {
+    return 0;
+  }
+  return static_cast<qulonglong>(array.last().toDouble());
 }
 
 QString
@@ -807,6 +816,18 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
   addDetailIntegerMetadataRow(
     rows, QStringLiteral("Direct-light any-hit frontier state-handle bytes"), batching,
     QStringLiteral("directLightAnyHitFrontierStateHandleBytes"));
+  addDetailRow(rows, QStringLiteral("Last direct-light any-hit frontier packed ray bytes"),
+               QString::number(jsonIntegerArrayBack(
+                 batching.value(QStringLiteral("directLightAnyHitFrontierPackedRayBytesPerDepth"))
+                   .toArray())));
+  addDetailRow(rows, QStringLiteral("Last direct-light any-hit frontier host query bytes"),
+               QString::number(jsonIntegerArrayBack(
+                 batching.value(QStringLiteral("directLightAnyHitFrontierHostQueryBytesPerDepth"))
+                   .toArray())));
+  addDetailRow(rows, QStringLiteral("Last direct-light any-hit frontier state-handle bytes"),
+               QString::number(jsonIntegerArrayBack(
+                 batching.value(QStringLiteral("directLightAnyHitFrontierStateHandleBytesPerDepth"))
+                   .toArray())));
   addDetailBoolMetadataRow(rows, QStringLiteral("Prefers closest-hit batches"), batching,
                            QStringLiteral("intersectionBackendPrefersClosestHitBatch"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Prefers any-hit batches"), batching,

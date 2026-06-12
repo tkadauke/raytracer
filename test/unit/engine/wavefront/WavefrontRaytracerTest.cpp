@@ -1736,6 +1736,21 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitFrontierPackedRayBytes, 0u);
     EXPECT_EQ(0u, renderCase.lastMetrics().batching.directLightAnyHitFrontierHostQueryBytes);
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitFrontierStateHandleBytes, 0u);
+    ASSERT_FALSE(
+      renderCase.lastMetrics().batching.directLightAnyHitFrontierPackedRayBytesPerDepth.empty());
+    ASSERT_FALSE(
+      renderCase.lastMetrics().batching.directLightAnyHitFrontierHostQueryBytesPerDepth.empty());
+    ASSERT_FALSE(
+      renderCase.lastMetrics().batching.directLightAnyHitFrontierStateHandleBytesPerDepth.empty());
+    EXPECT_GT(
+      renderCase.lastMetrics().batching.directLightAnyHitFrontierPackedRayBytesPerDepth.front(),
+      0u);
+    EXPECT_EQ(
+      0u,
+      renderCase.lastMetrics().batching.directLightAnyHitFrontierHostQueryBytesPerDepth.front());
+    EXPECT_GT(
+      renderCase.lastMetrics().batching.directLightAnyHitFrontierStateHandleBytesPerDepth.front(),
+      0u);
     EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthCount(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthRoundTrips(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.frontierQueryRoundTrips(), 0u);
@@ -1820,6 +1835,21 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(static_cast<double>(
                 renderCase.lastMetrics().batching.directLightAnyHitFrontierStateHandleBytes),
               batching.value("directLightAnyHitFrontierStateHandleBytes").toDouble());
+    EXPECT_EQ(
+      static_cast<double>(
+        renderCase.lastMetrics().batching.directLightAnyHitFrontierPackedRayBytesPerDepth.front()),
+      batching.value("directLightAnyHitFrontierPackedRayBytesPerDepth").toArray().at(0).toDouble());
+    EXPECT_EQ(
+      static_cast<double>(
+        renderCase.lastMetrics().batching.directLightAnyHitFrontierHostQueryBytesPerDepth.front()),
+      batching.value("directLightAnyHitFrontierHostQueryBytesPerDepth").toArray().at(0).toDouble());
+    EXPECT_EQ(
+      static_cast<double>(renderCase.lastMetrics()
+                            .batching.directLightAnyHitFrontierStateHandleBytesPerDepth.front()),
+      batching.value("directLightAnyHitFrontierStateHandleBytesPerDepth")
+        .toArray()
+        .at(0)
+        .toDouble());
   }
 
   TEST(WavefrontRaytracer, AutoIntersectionRequestMatchesCpuImageWhenGpuGateClears) {
@@ -1978,6 +2008,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(700u, metrics.batching.directLightAnyHitFrontierPackedRayBytes);
     EXPECT_EQ(0u, metrics.batching.directLightAnyHitFrontierHostQueryBytes);
     EXPECT_EQ(70u, metrics.batching.directLightAnyHitFrontierStateHandleBytes);
+    ASSERT_EQ(1u, metrics.batching.directLightAnyHitFrontierPackedRayBytesPerDepth.size());
+    EXPECT_EQ(700u, metrics.batching.directLightAnyHitFrontierPackedRayBytesPerDepth[0]);
+    ASSERT_EQ(1u, metrics.batching.directLightAnyHitFrontierHostQueryBytesPerDepth.size());
+    EXPECT_EQ(0u, metrics.batching.directLightAnyHitFrontierHostQueryBytesPerDepth[0]);
+    ASSERT_EQ(1u, metrics.batching.directLightAnyHitFrontierStateHandleBytesPerDepth.size());
+    EXPECT_EQ(70u, metrics.batching.directLightAnyHitFrontierStateHandleBytesPerDepth[0]);
     EXPECT_EQ(1u, metrics.batching.unsupportedPathMaterialSamples);
     EXPECT_EQ(1u, metrics.batching.frontierCompactionPasses);
     EXPECT_EQ(8u, metrics.batching.frontierCompactionInputSamples);
@@ -2035,6 +2071,19 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(700.0, batching.value("directLightAnyHitFrontierPackedRayBytes").toDouble());
     EXPECT_EQ(0.0, batching.value("directLightAnyHitFrontierHostQueryBytes").toDouble());
     EXPECT_EQ(70.0, batching.value("directLightAnyHitFrontierStateHandleBytes").toDouble());
+    ASSERT_TRUE(batching.value("directLightAnyHitFrontierPackedRayBytesPerDepth").isArray());
+    EXPECT_EQ(
+      700.0,
+      batching.value("directLightAnyHitFrontierPackedRayBytesPerDepth").toArray().at(0).toDouble());
+    ASSERT_TRUE(batching.value("directLightAnyHitFrontierHostQueryBytesPerDepth").isArray());
+    EXPECT_EQ(
+      0.0,
+      batching.value("directLightAnyHitFrontierHostQueryBytesPerDepth").toArray().at(0).toDouble());
+    ASSERT_TRUE(batching.value("directLightAnyHitFrontierStateHandleBytesPerDepth").isArray());
+    EXPECT_EQ(70.0, batching.value("directLightAnyHitFrontierStateHandleBytesPerDepth")
+                      .toArray()
+                      .at(0)
+                      .toDouble());
     EXPECT_EQ(1.0, batching.value("unsupportedPathMaterialSamples").toDouble());
     EXPECT_EQ(1.0, batching.value("frontierHostCompactionPasses").toDouble());
     EXPECT_EQ(1.0, batching.value("frontierCompactionPasses").toDouble());

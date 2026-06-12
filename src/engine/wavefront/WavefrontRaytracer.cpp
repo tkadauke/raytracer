@@ -276,6 +276,12 @@ namespace engine::wavefront {
     addCounts(directLightOcclusionHostBytesPerDepth, metrics.directLightOcclusionHostBytesPerDepth);
     addCounts(directLightContributionHostBytesPerDepth,
               metrics.directLightContributionHostBytesPerDepth);
+    addCounts(directLightAnyHitFrontierPackedRayBytesPerDepth,
+              metrics.directLightAnyHitFrontierPackedRayBytesPerDepth);
+    addCounts(directLightAnyHitFrontierHostQueryBytesPerDepth,
+              metrics.directLightAnyHitFrontierHostQueryBytesPerDepth);
+    addCounts(directLightAnyHitFrontierStateHandleBytesPerDepth,
+              metrics.directLightAnyHitFrontierStateHandleBytesPerDepth);
     addCounts(frontierRay4PacketChunksPerDepth, metrics.frontierRay4PacketChunksPerDepth);
     addCounts(frontierRay8PacketChunksPerDepth, metrics.frontierRay8PacketChunksPerDepth);
     addCounts(frontierScalarRaysPerDepth, metrics.frontierScalarRaysPerDepth);
@@ -650,6 +656,12 @@ namespace engine::wavefront {
       integerArray(batching.directLightOcclusionHostBytesPerDepth);
     const QJsonArray directLightContributionHostBytesPerDepth =
       integerArray(batching.directLightContributionHostBytesPerDepth);
+    const QJsonArray directLightAnyHitFrontierPackedRayBytesPerDepth =
+      integerArray(batching.directLightAnyHitFrontierPackedRayBytesPerDepth);
+    const QJsonArray directLightAnyHitFrontierHostQueryBytesPerDepth =
+      integerArray(batching.directLightAnyHitFrontierHostQueryBytesPerDepth);
+    const QJsonArray directLightAnyHitFrontierStateHandleBytesPerDepth =
+      integerArray(batching.directLightAnyHitFrontierStateHandleBytesPerDepth);
     const QJsonArray frontierRay4PacketChunksPerDepth =
       integerArray(batching.frontierRay4PacketChunksPerDepth);
     const QJsonArray frontierRay8PacketChunksPerDepth =
@@ -945,10 +957,16 @@ namespace engine::wavefront {
       directLightContributionHostBytesPerDepth;
     batchingJson["directLightAnyHitFrontierPackedRayBytes"] =
       static_cast<double>(batching.directLightAnyHitFrontierPackedRayBytes);
+    batchingJson["directLightAnyHitFrontierPackedRayBytesPerDepth"] =
+      directLightAnyHitFrontierPackedRayBytesPerDepth;
     batchingJson["directLightAnyHitFrontierHostQueryBytes"] =
       static_cast<double>(batching.directLightAnyHitFrontierHostQueryBytes);
+    batchingJson["directLightAnyHitFrontierHostQueryBytesPerDepth"] =
+      directLightAnyHitFrontierHostQueryBytesPerDepth;
     batchingJson["directLightAnyHitFrontierStateHandleBytes"] =
       static_cast<double>(batching.directLightAnyHitFrontierStateHandleBytes);
+    batchingJson["directLightAnyHitFrontierStateHandleBytesPerDepth"] =
+      directLightAnyHitFrontierStateHandleBytesPerDepth;
     batchingJson["frontierQueryRoundTrips"] =
       static_cast<double>(batching.frontierQueryRoundTrips());
     batchingJson["frontierResidentQueryRoundTripsEstimate"] =
