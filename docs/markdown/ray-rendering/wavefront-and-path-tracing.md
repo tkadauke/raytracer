@@ -533,10 +533,11 @@ need to eliminate or mirror.
 They also report the host bytes used by the resolved occlusion flags and by the
 direct-light contribution array that carries resolved lighting back to the
 per-hit shading pass.
-Path-tracing diagnostics also report active-hit host bytes: the per-depth
-closest-hit records that bridge intersection results to direct lighting and
-BSDF shading. Those bytes are separate from `BatchPath` state and make the
-closest-hit-to-shading host boundary visible before resident frontiers own it.
+Wavefront diagnostics also report active-hit host bytes: the per-depth
+closest-hit records that bridge intersection results to Whitted shading or path
+tracing's direct-light and BSDF shading passes. Those bytes are separate from
+path state and make the closest-hit-to-shading host boundary visible before
+resident frontiers own it.
 When the platform render-path kernels actually execute, metrics also split
 backend wall time into host upload/setup, kernel dispatch/wait, and CPU
 readback buckets. CPU fallback paths leave those buckets at zero, while the

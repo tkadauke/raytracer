@@ -871,6 +871,7 @@ namespace render {
       intersectActiveFrontier(intersectionBackend, scene, current, activeHits, result, depthMetrics,
                               metrics);
       if (metrics) {
+        metrics->recordActiveHitHostBytes(activeHits.size() * sizeof(QueuedHit));
         metrics->recordFrontierIntersections(depthMetrics.frontierRayHits,
                                              depthMetrics.frontierRayMisses);
         metrics->recordFrontierTraversal(

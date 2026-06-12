@@ -40,6 +40,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reported active path-tracing closest-hit host byte counts in wavefront metrics,
   rendercli summaries, convergence captures, and Modeler pass details.
   — GPT-5 Codex
+- Reported Whitted active-hit host byte counts in wavefront metrics,
+  rendercli summaries, convergence captures, and Modeler pass details.
+  — GPT-5 Codex
 - Reported direct-light contribution host byte counts in wavefront metrics,
   rendercli summaries, convergence captures, and Modeler pass details.
   — GPT-5 Codex

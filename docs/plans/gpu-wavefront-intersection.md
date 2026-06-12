@@ -1250,6 +1250,9 @@ Progress:
   queued-ray frontier batch object. The render behavior is unchanged, but the
   Whitted scheduler no longer owns the backend frontier as a raw local vector
   pair.
+- Whitted wavefront metrics now report active-hit host bytes for the queued-hit
+  records that bridge closest-hit frontier resolution to material shading,
+  matching the path-tracing active-hit host-byte diagnostic.
 
 ---
 

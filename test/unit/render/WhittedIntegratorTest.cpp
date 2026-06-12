@@ -512,6 +512,9 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ(5u, metrics.closestHitRaysSubmitted);
     EXPECT_EQ("host", metrics.intersectionBackendClosestHitFrontierResidency);
     EXPECT_EQ(0u, metrics.intersectionBackendClosestHitFrontierPackedRayBytes);
+    EXPECT_GT(metrics.activeHitHostBytesProcessed, 0u);
+    EXPECT_EQ((std::vector<std::uint64_t>{metrics.activeHitHostBytesProcessed}),
+              metrics.activeHitHostBytesPerDepth);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceRejectsMismatchedClosestHitResults) {
