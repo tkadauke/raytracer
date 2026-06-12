@@ -940,6 +940,9 @@ Progress:
   packed-ray byte counters in comparison reports and queue-sweep summaries, so
   benchmark captures include the same packed-host payload baseline as rendercli
   and the Modeler graph.
+- Wavefront intersection backend benchmarks now publish the same packed frontier
+  ray byte counters as render metrics and convergence captures, including
+  closest-hit, any-hit, and total packed frontier payload sizes.
 - The backend contract now exposes explicit Phase 8 capability flags for
   resident frontiers, GPU frontier compaction, and resident direct-light
   batches. Current backends report these as unsupported, and the values flow
