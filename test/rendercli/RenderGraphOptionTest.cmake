@@ -2774,6 +2774,16 @@ if(NOT wavefront_metrics_stdout MATCHES "last_retained_active=")
                   "wavefront metrics summary did not contain last_retained_active"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "last_active_host_path_state_bytes=")
+  _rendercli_fail("rendercli wavefront metrics last active path-state byte summary"
+                  "wavefront metrics summary did not contain last active host path-state bytes"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "last_retained_host_path_state_bytes=")
+  _rendercli_fail("rendercli wavefront metrics last retained path-state byte summary"
+                  "wavefront metrics summary did not contain last retained host path-state bytes"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 if(NOT wavefront_metrics_stdout MATCHES "spawned_continuations=")
   _rendercli_fail("rendercli wavefront metrics spawned continuation summary"
                   "wavefront metrics summary did not contain spawned_continuations"
