@@ -530,6 +530,10 @@ selection records that pair each occlusion query with its eventual lighting
 contribution. Those bytes are separate from the any-hit ray frontier and show
 the remaining CPU-side state that resident next-event-estimation batches would
 need to eliminate or mirror.
+Path-tracing diagnostics also report active-hit host bytes: the per-depth
+closest-hit records that bridge intersection results to direct lighting and
+BSDF shading. Those bytes are separate from `BatchPath` state and make the
+closest-hit-to-shading host boundary visible before resident frontiers own it.
 When the platform render-path kernels actually execute, metrics also split
 backend wall time into host upload/setup, kernel dispatch/wait, and CPU
 readback buckets. CPU fallback paths leave those buckets at zero, while the

@@ -151,8 +151,10 @@ namespace render {
     std::uint64_t observerConvergenceFeedbackDepths{0};
     std::vector<std::uint64_t> retainedActiveSamplesPerDepth;
     std::vector<std::uint64_t> activeHostPathStateBytesPerDepth;
+    std::vector<std::uint64_t> activeHitHostBytesPerDepth;
     std::vector<std::uint64_t> retainedHostPathStateBytesPerDepth;
     std::uint64_t activeHostPathStateBytesProcessed{0};
+    std::uint64_t activeHitHostBytesProcessed{0};
     std::vector<std::uint64_t> spawnedContinuationSamplesPerDepth;
     std::vector<std::uint64_t> spawnedContinuationHostPathStateBytesPerDepth;
     std::uint64_t spawnedContinuationSamples{0};
@@ -172,6 +174,7 @@ namespace render {
     void recordActiveDepth(std::uint64_t activeSamples);
     void recordRetainedActiveDepth(std::uint64_t activeSamples);
     void recordActiveHostPathStateBytes(std::uint64_t bytes);
+    void recordActiveHitHostBytes(std::uint64_t bytes);
     void recordRetainedHostPathStateBytes(std::uint64_t bytes);
     void recordSpawnedContinuations(std::uint64_t samples, std::uint64_t hostPathStateBytes);
     void recordFrontierCompaction(std::uint64_t inputSamples, std::uint64_t retainedSamples,

@@ -1162,6 +1162,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Direct-light any-hit round trips")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident direct-light round trips")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident direct-light savings")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Active hit host bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Direct-light selection host bytes")).isEmpty());
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Direct-light any-hit frontier packed ray bytes")).isEmpty());

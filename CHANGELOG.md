@@ -37,6 +37,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reported backend-owned frontier state-handle byte counts in wavefront metrics,
   rendercli summaries, convergence captures, benchmarks, and Modeler pass
   details. — GPT-5 Codex
+- Reported active path-tracing closest-hit host byte counts in wavefront metrics,
+  rendercli summaries, convergence captures, and Modeler pass details.
+  — GPT-5 Codex
 - Reported state-handle byte estimates for wavefront compaction candidates in
   metrics, rendercli summaries, convergence captures, and Modeler graph
   details. — GPT-5 Codex

@@ -155,8 +155,10 @@ namespace engine::wavefront {
       std::vector<std::uint64_t> activeSamplesPerDepth;
       std::vector<std::uint64_t> retainedActiveSamplesPerDepth;
       std::vector<std::uint64_t> activeHostPathStateBytesPerDepth;
+      std::vector<std::uint64_t> activeHitHostBytesPerDepth;
       std::vector<std::uint64_t> retainedHostPathStateBytesPerDepth;
       std::uint64_t activeHostPathStateBytesProcessed = 0;
+      std::uint64_t activeHitHostBytesProcessed = 0;
       std::vector<std::uint64_t> spawnedContinuationSamplesPerDepth;
       std::vector<std::uint64_t> spawnedContinuationHostPathStateBytesPerDepth;
       std::uint64_t spawnedContinuationSamples = 0;

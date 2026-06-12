@@ -227,6 +227,10 @@ namespace render {
       return m_hits.size();
     }
 
+    std::uint64_t hostBytes() const {
+      return m_hits.size() * sizeof(BatchHit);
+    }
+
     BatchHit& operator[](std::size_t index) {
       return m_hits[index];
     }
@@ -1264,6 +1268,7 @@ namespace render {
       intersectActiveFrontier(intersectionBackend, scene, paths, activeHits, bounce, depthMetrics,
                               metrics);
       if (metrics) {
+        metrics->recordActiveHitHostBytes(activeHits.hostBytes());
         metrics->recordFrontierIntersections(depthMetrics.frontierRayHits,
                                              depthMetrics.frontierRayMisses);
         metrics->recordFrontierTraversal(

@@ -241,6 +241,7 @@ namespace engine::wavefront {
     missRadianceLuminanceSum += metrics.missRadianceLuminanceSum;
     compatibilityShadeRadianceLuminanceSum += metrics.compatibilityShadeRadianceLuminanceSum;
     activeHostPathStateBytesProcessed += metrics.activeHostPathStateBytesProcessed;
+    activeHitHostBytesProcessed += metrics.activeHitHostBytesProcessed;
     spawnedContinuationSamples += metrics.spawnedContinuationSamples;
     spawnedContinuationHostPathStateBytes += metrics.spawnedContinuationHostPathStateBytes;
 
@@ -256,6 +257,7 @@ namespace engine::wavefront {
     addCounts(activeSamplesPerDepth, metrics.activeSamplesPerDepth);
     addCounts(retainedActiveSamplesPerDepth, metrics.retainedActiveSamplesPerDepth);
     addCounts(activeHostPathStateBytesPerDepth, metrics.activeHostPathStateBytesPerDepth);
+    addCounts(activeHitHostBytesPerDepth, metrics.activeHitHostBytesPerDepth);
     addCounts(retainedHostPathStateBytesPerDepth, metrics.retainedHostPathStateBytesPerDepth);
     addCounts(spawnedContinuationSamplesPerDepth, metrics.spawnedContinuationSamplesPerDepth);
     addCounts(spawnedContinuationHostPathStateBytesPerDepth,
@@ -617,6 +619,7 @@ namespace engine::wavefront {
       integerArray(batching.retainedActiveSamplesPerDepth);
     const QJsonArray activeHostPathStateBytesPerDepth =
       integerArray(batching.activeHostPathStateBytesPerDepth);
+    const QJsonArray activeHitHostBytesPerDepth = integerArray(batching.activeHitHostBytesPerDepth);
     const QJsonArray retainedHostPathStateBytesPerDepth =
       integerArray(batching.retainedHostPathStateBytesPerDepth);
     const QJsonArray spawnedContinuationSamplesPerDepth =
@@ -813,6 +816,8 @@ namespace engine::wavefront {
       static_cast<double>(batching.activeSampleDepthsProcessed);
     batchingJson["activeHostPathStateBytesProcessed"] =
       static_cast<double>(batching.activeHostPathStateBytesProcessed);
+    batchingJson["activeHitHostBytesProcessed"] =
+      static_cast<double>(batching.activeHitHostBytesProcessed);
     batchingJson["frontierHostCompactionPasses"] =
       static_cast<double>(batching.frontierCompactionPasses);
     batchingJson["frontierCompactionPasses"] =
@@ -878,6 +883,7 @@ namespace engine::wavefront {
     batchingJson["activeSamplesPerDepth"] = activeSamplesPerDepth;
     batchingJson["retainedActiveSamplesPerDepth"] = retainedActiveSamplesPerDepth;
     batchingJson["activeHostPathStateBytesPerDepth"] = activeHostPathStateBytesPerDepth;
+    batchingJson["activeHitHostBytesPerDepth"] = activeHitHostBytesPerDepth;
     batchingJson["retainedHostPathStateBytesPerDepth"] = retainedHostPathStateBytesPerDepth;
     batchingJson["spawnedContinuationSamples"] =
       static_cast<double>(batching.spawnedContinuationSamples);

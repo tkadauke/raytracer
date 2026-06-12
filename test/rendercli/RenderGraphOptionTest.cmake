@@ -2687,6 +2687,15 @@ if(NOT wavefront_metrics_json MATCHES "\"retainedActiveSamplesPerDepth\"")
                   "wavefront metrics report did not contain retained active sample counts"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+foreach(active_hit_field
+        activeHitHostBytesProcessed
+        activeHitHostBytesPerDepth)
+  if(NOT wavefront_metrics_json MATCHES "\"${active_hit_field}\"")
+    _rendercli_fail("rendercli wavefront metrics ${active_hit_field}"
+                    "wavefront metrics report did not contain ${active_hit_field}"
+                    "" "" "${wavefront_metrics_json}" "")
+  endif()
+endforeach()
 foreach(spawned_field
         spawnedContinuationSamples
         spawnedContinuationHostPathStateBytes

@@ -1895,6 +1895,7 @@ namespace WavefrontRaytracerTest {
     batch.recordEmittedRadiance(Colord(1.0, 0.0, 0.0));
     batch.recordDirectLightRadiance(Colord(0.0, 1.0, 0.0), /*primaryBounce=*/true);
     batch.recordDirectLightRadiance(Colord(0.0, 0.0, 1.0), /*primaryBounce=*/false);
+    batch.recordActiveHitHostBytes(/*bytes=*/96);
     batch.recordDirectLightSelectionHostBytes(/*depth=*/0, /*bytes=*/144);
     batch.recordDirectLightAnyHitBatch(/*depth=*/0, /*batchChunks=*/2, /*batchRays=*/7,
                                        /*packedRayBytes=*/700, /*hostQueryBytes=*/0,
@@ -1927,6 +1928,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(2u, metrics.batching.directLightAnyHitQueryRoundTrips());
     EXPECT_EQ(0u, metrics.batching.residentDirectLightBatchRoundTripsEstimate());
     EXPECT_EQ(2u, metrics.batching.residentDirectLightBatchRoundTripSavingsEstimate());
+    EXPECT_EQ(96u, metrics.batching.activeHitHostBytesProcessed);
+    ASSERT_EQ(1u, metrics.batching.activeHitHostBytesPerDepth.size());
+    EXPECT_EQ(96u, metrics.batching.activeHitHostBytesPerDepth[0]);
     EXPECT_EQ(144u, metrics.batching.directLightSelectionHostBytes);
     ASSERT_EQ(1u, metrics.batching.directLightSelectionHostBytesPerDepth.size());
     EXPECT_EQ(144u, metrics.batching.directLightSelectionHostBytesPerDepth[0]);
@@ -1972,6 +1976,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(2.0, batching.value("directLightAnyHitQueryRoundTrips").toDouble());
     EXPECT_EQ(0.0, batching.value("residentDirectLightBatchRoundTripsEstimate").toDouble());
     EXPECT_EQ(2.0, batching.value("residentDirectLightBatchRoundTripSavingsEstimate").toDouble());
+    EXPECT_EQ(96.0, batching.value("activeHitHostBytesProcessed").toDouble());
+    ASSERT_TRUE(batching.value("activeHitHostBytesPerDepth").isArray());
+    EXPECT_EQ(96.0, batching.value("activeHitHostBytesPerDepth").toArray().at(0).toDouble());
     EXPECT_EQ(144.0, batching.value("directLightSelectionHostBytes").toDouble());
     ASSERT_TRUE(batching.value("directLightSelectionHostBytesPerDepth").isArray());
     EXPECT_EQ(144.0,

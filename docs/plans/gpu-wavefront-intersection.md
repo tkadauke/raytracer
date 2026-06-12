@@ -1196,6 +1196,9 @@ Progress:
   owner between frontier intersection, direct-light sampling, and BSDF shading.
   The records are still host-resident, but the scheduler no longer passes a raw
   hit vector through every frontier path.
+- Wavefront metrics now report active-hit host bytes per depth and in compact
+  rendercli summaries. This sizes the closest-hit records consumed by
+  direct-light and BSDF shading separately from larger `BatchPath` state.
 
 ---
 

@@ -978,6 +978,9 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1u, metrics.directLightSamples);
     EXPECT_EQ(1u, metrics.directLightContributingSamples);
     EXPECT_EQ(0u, metrics.directLightOccludedSamples);
+    EXPECT_GT(metrics.activeHitHostBytesProcessed, 0u);
+    EXPECT_EQ((std::vector<std::uint64_t>{metrics.activeHitHostBytesProcessed}),
+              metrics.activeHitHostBytesPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchRaysPerDepth);
     EXPECT_EQ(1u, metrics.directLightAnyHitQueryRoundTrips());

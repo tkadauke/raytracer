@@ -87,6 +87,8 @@ namespace render {
     frontierPacketRefinedRaysByMaterial.clear();
     activeSampleDepthsProcessed = 0;
     retainedActiveSamplesPerDepth.clear();
+    activeHitHostBytesPerDepth.clear();
+    activeHitHostBytesProcessed = 0;
     radianceDeltaSquaredSumPerDepth.clear();
     maxRadianceDeltaPerDepth.clear();
     compatibilityShadeSamples = 0;
@@ -210,6 +212,11 @@ namespace render {
   void IntegratorBatchMetrics::recordActiveHostPathStateBytes(std::uint64_t bytes) {
     activeHostPathStateBytesPerDepth.push_back(bytes);
     activeHostPathStateBytesProcessed += bytes;
+  }
+
+  void IntegratorBatchMetrics::recordActiveHitHostBytes(std::uint64_t bytes) {
+    activeHitHostBytesPerDepth.push_back(bytes);
+    activeHitHostBytesProcessed += bytes;
   }
 
   void IntegratorBatchMetrics::recordRetainedHostPathStateBytes(std::uint64_t bytes) {

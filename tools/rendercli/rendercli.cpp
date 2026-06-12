@@ -171,6 +171,7 @@ namespace {
         batching.value("retainedActiveSamplesPerDepth").toArray();
       const QJsonArray activeHostPathStateBytes =
         batching.value("activeHostPathStateBytesPerDepth").toArray();
+      const QJsonArray activeHitHostBytes = batching.value("activeHitHostBytesPerDepth").toArray();
       const QJsonArray retainedHostPathStateBytes =
         batching.value("retainedHostPathStateBytesPerDepth").toArray();
       const QJsonArray spawnedContinuations =
@@ -433,6 +434,7 @@ namespace {
         << " active_sample_depths=" << unsignedValue(batching, "activeSampleDepthsProcessed")
         << " active_host_path_state_bytes="
         << unsignedValue(batching, "activeHostPathStateBytesProcessed")
+        << " active_hit_host_bytes=" << unsignedValue(batching, "activeHitHostBytesProcessed")
         << " spawned_continuations=" << unsignedValue(batching, "spawnedContinuationSamples")
         << " spawned_continuation_host_path_state_bytes="
         << unsignedValue(batching, "spawnedContinuationHostPathStateBytes")
@@ -466,6 +468,7 @@ namespace {
         << " last_active=" << unsignedArrayBack(activeSamples)
         << " last_retained_active=" << unsignedArrayBack(retainedActiveSamples)
         << " last_active_host_path_state_bytes=" << unsignedArrayBack(activeHostPathStateBytes)
+        << " last_active_hit_host_bytes=" << unsignedArrayBack(activeHitHostBytes)
         << " last_retained_host_path_state_bytes=" << unsignedArrayBack(retainedHostPathStateBytes)
         << " last_spawned_continuations=" << unsignedArrayBack(spawnedContinuations)
         << " last_spawned_continuation_host_path_state_bytes="
