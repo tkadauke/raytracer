@@ -936,6 +936,10 @@ Progress:
   closest-hit/any-hit frontier residency labels in comparison reports and
   queue-sweep summaries. That makes benchmark captures line up with the render
   metrics used to judge GPU-resident frontier work.
+- The capture helper now also preserves closest-hit and any-hit frontier
+  packed-ray byte counters in comparison reports and queue-sweep summaries, so
+  benchmark captures include the same packed-host payload baseline as rendercli
+  and the Modeler graph.
 - The backend contract now exposes explicit Phase 8 capability flags for
   resident frontiers, GPU frontier compaction, and resident direct-light
   batches. Current backends report these as unsupported, and the values flow

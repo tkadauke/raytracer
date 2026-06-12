@@ -30,6 +30,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   rendercli summaries, graph traces, and Modeler pass details. — GPT-5 Codex
 - Preserved wavefront frontier residency labels in convergence comparison and
   queue-sweep benchmark capture summaries. — GPT-5 Codex
+- Preserved wavefront frontier packed-ray byte counts in convergence comparison
+  and queue-sweep benchmark capture summaries. — GPT-5 Codex
 - Routed wavefront intersection backend batch benchmarks through backend-owned
   frontier handles so benchmark timings cover the same seam as rendering.
   — GPT-5 Codex
