@@ -320,6 +320,10 @@ already performs between depths: input path slots, retained slots, removed
 inactive slots, moved live slots, removed fraction, retained-index bytes, and
 the compaction execution path. Retained-index bytes estimate the 32-bit device
 index payload a GPU compaction kernel would consume for the retained frontier.
+The compaction request/result also carries optional path-state bytes per path;
+today the path tracer fills that with `BatchPath` size, which lets the backend
+contract see the scheduler-owned payload that remains outside the ray-buffer
+compaction primitive.
 Today that execution path is `host` whenever a compaction pass runs. That makes
 the current CPU compaction contract explicit before any future kernel keeps the
 frontier resident on the GPU.

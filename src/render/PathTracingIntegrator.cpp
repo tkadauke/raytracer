@@ -1074,9 +1074,11 @@ namespace render {
       if (activeCount == 0) {
         break;
       }
+      WavefrontFrontierCompactionRequest frontierCompaction(paths.size());
+      frontierCompaction.setPathStateBytesPerPath(sizeof(BatchPath));
       if (metrics) {
         metrics->recordActiveDepth(activeCount);
-        metrics->recordActiveHostPathStateBytes(activeCount * sizeof(BatchPath));
+        metrics->recordActiveHostPathStateBytes(frontierCompaction.inputPathStateBytes());
       }
       if (isCancelled()) {
         if (metrics) {
@@ -1087,7 +1089,6 @@ namespace render {
         break;
       }
 
-      WavefrontFrontierCompactionRequest frontierCompaction(paths.size());
       BatchDepthMetrics depthMetrics;
       depthMetrics.trackRadianceDelta = trackRadianceDelta;
       depthMetrics.metrics = metrics;

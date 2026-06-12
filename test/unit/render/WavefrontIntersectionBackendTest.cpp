@@ -345,10 +345,15 @@ namespace WavefrontIntersectionBackendTest {
 
   TEST(WavefrontFrontierCompaction, HostCompactionReportsRetainedMovedAndRemovedPaths) {
     WavefrontFrontierCompactionRequest request(5);
+    request.setPathStateBytesPerPath(64);
     request.retain(0);
     request.retain(2);
     request.retain(4);
 
+    EXPECT_EQ(64u, request.pathStateBytesPerPath());
+    EXPECT_EQ(5u * 64u, request.inputPathStateBytes());
+    EXPECT_EQ(3u * 64u, request.retainedPathStateBytes());
+    EXPECT_EQ(2u * 64u, request.removedPathStateBytes());
     EXPECT_EQ(3u * sizeof(std::uint32_t), request.retainedIndexBytes());
 
     const WavefrontFrontierCompactionResult compaction =
@@ -361,8 +366,29 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(2u, compaction.movedPathCount());
     EXPECT_DOUBLE_EQ(2.0 / 3.0, compaction.movedRetainedPathFraction());
     EXPECT_EQ((std::vector<std::size_t>{0u, 2u, 4u}), compaction.retainedPathIndices());
+    EXPECT_EQ(64u, compaction.pathStateBytesPerPath());
+    EXPECT_EQ(5u * 64u, compaction.inputPathStateBytes());
+    EXPECT_EQ(3u * 64u, compaction.retainedPathStateBytes());
+    EXPECT_EQ(2u * 64u, compaction.removedPathStateBytes());
     EXPECT_EQ(3u * sizeof(std::uint32_t), compaction.retainedIndexBytes());
     EXPECT_EQ("host", compaction.executionPath());
+  }
+
+  TEST(WavefrontFrontierCompaction, PathStateByteEstimatesSaturate) {
+    WavefrontFrontierCompactionRequest request(2);
+    request.setPathStateBytesPerPath(std::numeric_limits<std::uint64_t>::max());
+    request.retain(0);
+
+    EXPECT_EQ(std::numeric_limits<std::uint64_t>::max(), request.inputPathStateBytes());
+    EXPECT_EQ(std::numeric_limits<std::uint64_t>::max(), request.retainedPathStateBytes());
+    EXPECT_EQ(std::numeric_limits<std::uint64_t>::max(), request.removedPathStateBytes());
+
+    const WavefrontFrontierCompactionResult compaction =
+      WavefrontFrontierCompactionResult::hostCompaction(request);
+
+    EXPECT_EQ(std::numeric_limits<std::uint64_t>::max(), compaction.inputPathStateBytes());
+    EXPECT_EQ(std::numeric_limits<std::uint64_t>::max(), compaction.retainedPathStateBytes());
+    EXPECT_EQ(std::numeric_limits<std::uint64_t>::max(), compaction.removedPathStateBytes());
   }
 
   TEST(WavefrontFrontierCompaction, EmptyCompactionHasNoRemovedFraction) {

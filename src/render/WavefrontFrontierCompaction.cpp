@@ -8,18 +8,25 @@
 
 namespace render {
   namespace {
-    std::uint64_t retainedIndexBytesFor(std::size_t retainedPathCount) {
-      constexpr std::uint64_t bytesPerIndex = sizeof(std::uint32_t);
+    std::uint64_t saturatedByteProduct(std::size_t count, std::uint64_t bytesPerItem) {
       constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
-      if (retainedPathCount > maxValue / bytesPerIndex) {
+      if (bytesPerItem != 0 && count > maxValue / bytesPerItem) {
         return maxValue;
       }
-      return static_cast<std::uint64_t>(retainedPathCount) * bytesPerIndex;
+      return static_cast<std::uint64_t>(count) * bytesPerItem;
+    }
+
+    std::uint64_t retainedIndexBytesFor(std::size_t retainedPathCount) {
+      return saturatedByteProduct(retainedPathCount, sizeof(std::uint32_t));
     }
   }
 
   WavefrontFrontierCompactionRequest::WavefrontFrontierCompactionRequest(std::size_t inputPathCount)
       : m_inputPathCount(inputPathCount) {
+  }
+
+  void WavefrontFrontierCompactionRequest::setPathStateBytesPerPath(std::uint64_t bytes) {
+    m_pathStateBytesPerPath = bytes;
   }
 
   void WavefrontFrontierCompactionRequest::retain(std::size_t pathIndex) {
@@ -41,22 +48,43 @@ namespace render {
     return m_retainedPathIndices;
   }
 
+  std::uint64_t WavefrontFrontierCompactionRequest::pathStateBytesPerPath() const {
+    return m_pathStateBytesPerPath;
+  }
+
+  std::uint64_t WavefrontFrontierCompactionRequest::inputPathStateBytes() const {
+    return saturatedByteProduct(m_inputPathCount, m_pathStateBytesPerPath);
+  }
+
+  std::uint64_t WavefrontFrontierCompactionRequest::retainedPathStateBytes() const {
+    return saturatedByteProduct(m_retainedPathIndices.size(), m_pathStateBytesPerPath);
+  }
+
+  std::uint64_t WavefrontFrontierCompactionRequest::removedPathStateBytes() const {
+    const std::size_t removed = m_inputPathCount > m_retainedPathIndices.size()
+                                  ? m_inputPathCount - m_retainedPathIndices.size()
+                                  : 0;
+    return saturatedByteProduct(removed, m_pathStateBytesPerPath);
+  }
+
   std::uint64_t WavefrontFrontierCompactionRequest::retainedIndexBytes() const {
     return retainedIndexBytesFor(m_retainedPathIndices.size());
   }
 
   WavefrontFrontierCompactionResult WavefrontFrontierCompactionResult::hostCompaction(
     const WavefrontFrontierCompactionRequest& request) {
-    return fromRetainedPathIndices(request.inputPathCount(), request.retainedPathIndices(), "host");
+    return fromRetainedPathIndices(request.inputPathCount(), request.retainedPathIndices(), "host",
+                                   request.pathStateBytesPerPath());
   }
 
   WavefrontFrontierCompactionResult WavefrontFrontierCompactionResult::fromRetainedPathIndices(
     std::size_t inputPathCount, std::vector<std::size_t> retainedPathIndices,
-    std::string executionPath) {
+    std::string executionPath, std::uint64_t pathStateBytesPerPath) {
     validateRetainedPathIndices(inputPathCount, retainedPathIndices);
     const std::size_t movedPathCount = movedPathCountFor(retainedPathIndices);
     return WavefrontFrontierCompactionResult(inputPathCount, std::move(retainedPathIndices),
-                                             movedPathCount, std::move(executionPath));
+                                             movedPathCount, std::move(executionPath),
+                                             pathStateBytesPerPath);
   }
 
   std::size_t WavefrontFrontierCompactionResult::inputPathCount() const {
@@ -94,6 +122,22 @@ namespace render {
     return m_retainedPathIndices;
   }
 
+  std::uint64_t WavefrontFrontierCompactionResult::pathStateBytesPerPath() const {
+    return m_pathStateBytesPerPath;
+  }
+
+  std::uint64_t WavefrontFrontierCompactionResult::inputPathStateBytes() const {
+    return saturatedByteProduct(m_inputPathCount, m_pathStateBytesPerPath);
+  }
+
+  std::uint64_t WavefrontFrontierCompactionResult::retainedPathStateBytes() const {
+    return saturatedByteProduct(m_retainedPathIndices.size(), m_pathStateBytesPerPath);
+  }
+
+  std::uint64_t WavefrontFrontierCompactionResult::removedPathStateBytes() const {
+    return saturatedByteProduct(removedPathCount(), m_pathStateBytesPerPath);
+  }
+
   std::uint64_t WavefrontFrontierCompactionResult::retainedIndexBytes() const {
     return retainedIndexBytesFor(m_retainedPathIndices.size());
   }
@@ -113,8 +157,9 @@ namespace render {
 
   WavefrontFrontierCompactionResult::WavefrontFrontierCompactionResult(
     std::size_t inputPathCount, std::vector<std::size_t> retainedPathIndices,
-    std::size_t movedPathCount, std::string executionPath)
+    std::size_t movedPathCount, std::string executionPath, std::uint64_t pathStateBytesPerPath)
       : m_inputPathCount(inputPathCount),
+        m_pathStateBytesPerPath(pathStateBytesPerPath),
         m_retainedPathIndices(std::move(retainedPathIndices)),
         m_movedPathCount(movedPathCount),
         m_executionPath(std::move(executionPath)) {

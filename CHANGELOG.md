@@ -67,6 +67,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   summaries, convergence captures, and Modeler graph details to size the
   CPU-owned `BatchPath` state still blocking resident frontier scheduling.
   — GPT-5 Codex
+- Carried scheduler path-state byte metadata through wavefront frontier
+  compaction requests and results so future GPU compaction backends can see the
+  CPU state payload attached to retained path indices. — GPT-5 Codex
 - Included `packed_host` frontier ray-packing time in wavefront backend
   preparation/upload timing diagnostics. — GPT-5 Codex
 - Preserved wavefront frontier residency labels in convergence comparison and

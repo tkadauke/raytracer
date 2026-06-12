@@ -1131,6 +1131,10 @@ Progress:
   estimates. That sizes the CPU-owned `BatchPath` frontier state separately
   from packed ray payloads and `State*` handles, making the remaining scheduler
   residency work measurable before the representation changes.
+- Frontier compaction requests and results now carry optional path-state bytes
+  per path. The path tracer fills this with its `BatchPath` size, so the backend
+  compaction contract can see the scheduler-owned state payload attached to the
+  retained-index list even before that state becomes device-resident.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a
