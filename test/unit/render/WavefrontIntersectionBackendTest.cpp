@@ -9,6 +9,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "core/math/Matrix.h"
@@ -241,6 +242,16 @@ namespace WavefrontIntersectionBackendTest {
       std::vector<State*> m_states;
       std::vector<GpuIntersectionOcclusionRecord> m_records;
     };
+  }
+
+  TEST(WavefrontIntersectionBackend, AnyHitResultsUseConcreteByteFlags) {
+    static_assert(std::is_same<WavefrontOcclusionFlags::value_type, unsigned char>::value,
+                  "any-hit occlusion flags must stay byte-addressable");
+
+    const WavefrontOcclusionFlags flags{1U, 0U};
+    ASSERT_EQ(2u, flags.size());
+    EXPECT_EQ(1U, flags[0]);
+    EXPECT_EQ(0U, flags[1]);
   }
 
   TEST(WavefrontIntersectionBackend, SelectionContextDerivesExpectedRayCountFromQueryFamilies) {
