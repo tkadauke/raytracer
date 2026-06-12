@@ -235,6 +235,70 @@ namespace render {
     }
   };
 
+  class PathTracingIntegrator::DirectLightVisibilityBatch {
+  public:
+    explicit DirectLightVisibilityBatch(std::size_t reserveCount) {
+      m_selections.reserve(reserveCount);
+      m_shadowQueries.reserve(reserveCount);
+    }
+
+    void add(std::size_t hitIndex, DirectLightingCandidate candidate, double selectionPdf,
+             State& state) {
+      m_shadowQueries.push_back(
+        WavefrontAnyHitQuery{candidate.shadowRay, candidate.shadowDistance, &state});
+      m_selections.push_back(DirectLightingSelection{hitIndex, std::move(candidate), selectionPdf});
+    }
+
+    [[nodiscard]] bool empty() const {
+      return m_shadowQueries.empty();
+    }
+
+    [[nodiscard]] const std::vector<DirectLightingSelection>& selections() const {
+      return m_selections;
+    }
+
+    std::vector<bool> resolveOcclusion(const Scene& scene,
+                                       const WavefrontIntersectionBackend& intersectionBackend,
+                                       int bounce, IntegratorBatchMetrics* metrics) {
+      std::vector<bool> occluded;
+      WavefrontIntersectionQueryTiming intersectionTiming;
+      if (intersectionBackend.prefersAnyHitBatch(m_shadowQueries.size())) {
+        const std::unique_ptr<WavefrontAnyHitFrontier> frontier =
+          intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
+        occluded = intersectionBackend.intersectAnyFrontier(
+          scene, *frontier, metrics ? &intersectionTiming : nullptr);
+        if (metrics) {
+          metrics->recordDirectLightAnyHitBatch(
+            static_cast<std::uint64_t>(std::max(0, bounce)),
+            /*batchChunks=*/1, frontier->rayCount(), frontier->packedRayBytes(),
+            frontier->hostQueryBytes(), frontier->stateHandleBytes());
+          metrics->recordAnyHitFrontierResidency(frontier->residency(), frontier->packedRayBytes(),
+                                                 frontier->hostQueryBytes(),
+                                                 frontier->stateHandleBytes());
+          metrics->recordAnyHitQuery(intersectionBackend, frontier->rayCount(), intersectionTiming);
+        }
+        return occluded;
+      }
+
+      occluded.reserve(m_shadowQueries.size());
+      for (const WavefrontAnyHitQuery& query : m_shadowQueries) {
+        WavefrontIntersectionQueryTiming queryTiming;
+        State scratchState;
+        State& queryState = query.state ? *query.state : scratchState;
+        occluded.push_back(intersectionBackend.intersectAny(
+          scene, query.ray, query.maxDistance, queryState, metrics ? &queryTiming : nullptr));
+        if (metrics) {
+          metrics->recordAnyHitQuery(intersectionBackend, 1, queryTiming);
+        }
+      }
+      return occluded;
+    }
+
+  private:
+    std::vector<DirectLightingSelection> m_selections;
+    std::vector<WavefrontAnyHitQuery> m_shadowQueries;
+  };
+
   struct PathTracingIntegrator::BatchDepthMetrics {
     bool trackRadianceDelta{false};
     std::uint64_t frontierRayHits{0};
@@ -458,10 +522,8 @@ namespace render {
       return contributions;
     }
 
-    std::vector<DirectLightingSelection> selections;
-    selections.reserve(activeHits.size() * static_cast<std::size_t>(m_directLightSamples));
-    std::vector<WavefrontAnyHitQuery> shadowQueries;
-    shadowQueries.reserve(activeHits.size() * static_cast<std::size_t>(m_directLightSamples));
+    DirectLightVisibilityBatch visibilityBatch(activeHits.size() *
+                                               static_cast<std::size_t>(m_directLightSamples));
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
@@ -491,53 +553,24 @@ namespace render {
             continue;
           }
 
-          shadowQueries.push_back(
-            WavefrontAnyHitQuery{candidate.shadowRay, candidate.shadowDistance, &path.state});
-          selections.push_back(DirectLightingSelection{hitIndex, candidate, selection.pdf});
+          visibilityBatch.add(hitIndex, std::move(candidate), selection.pdf, path.state);
         }
       }
     }
 
-    if (shadowQueries.empty()) {
+    if (visibilityBatch.empty()) {
       return contributions;
     }
 
     std::vector<bool> occluded;
     {
-      WavefrontIntersectionQueryTiming intersectionTiming;
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      if (intersectionBackend.prefersAnyHitBatch(shadowQueries.size())) {
-        const std::unique_ptr<WavefrontAnyHitFrontier> frontier =
-          intersectionBackend.createAnyHitFrontier(std::move(shadowQueries));
-        occluded = intersectionBackend.intersectAnyFrontier(
-          scene, *frontier, metrics ? &intersectionTiming : nullptr);
-        if (metrics) {
-          metrics->recordDirectLightAnyHitBatch(
-            static_cast<std::uint64_t>(std::max(0, bounce)),
-            /*batchChunks=*/1, frontier->rayCount(), frontier->packedRayBytes(),
-            frontier->hostQueryBytes(), frontier->stateHandleBytes());
-          metrics->recordAnyHitFrontierResidency(frontier->residency(), frontier->packedRayBytes(),
-                                                 frontier->hostQueryBytes(),
-                                                 frontier->stateHandleBytes());
-          metrics->recordAnyHitQuery(intersectionBackend, frontier->rayCount(), intersectionTiming);
-        }
-      } else {
-        occluded.reserve(shadowQueries.size());
-        for (const WavefrontAnyHitQuery& query : shadowQueries) {
-          WavefrontIntersectionQueryTiming queryTiming;
-          State scratchState;
-          State& queryState = query.state ? *query.state : scratchState;
-          occluded.push_back(intersectionBackend.intersectAny(
-            scene, query.ray, query.maxDistance, queryState, metrics ? &queryTiming : nullptr));
-          if (metrics) {
-            metrics->recordAnyHitQuery(intersectionBackend, 1, queryTiming);
-          }
-        }
-      }
+      occluded = visibilityBatch.resolveOcclusion(scene, intersectionBackend, bounce, metrics);
     }
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
+      const std::vector<DirectLightingSelection>& selections = visibilityBatch.selections();
       for (std::size_t selectionIndex = 0; selectionIndex != selections.size(); ++selectionIndex) {
         const DirectLightingSelection& selection = selections[selectionIndex];
         const BatchHit& hit = activeHits[selection.hitIndex];

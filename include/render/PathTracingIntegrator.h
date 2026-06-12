@@ -133,6 +133,7 @@ namespace render {
     struct DirectLightingCandidate;
     struct DirectLightingSelection;
     struct DirectLightingSample;
+    class DirectLightVisibilityBatch;
     class HostBatchPathFrontier;
     struct ScalarPath;
 
