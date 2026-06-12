@@ -1020,6 +1020,10 @@ Progress:
   into the later intersection timing record, so render metrics and benchmark
   rows include the transfer work moved from dispatch time to frontier-creation
   time.
+- Metal and Vulkan prepared frontiers now retain only per-ray `State*` handles
+  plus the packed ray payload after construction. The host query vectors are
+  discarded once rays are packed, reducing the host-side data that future
+  resident frontier handles need to mirror.
 - Backend-owned closest-hit and any-hit frontiers now report packed-ray byte
   counts through wavefront metrics, rendercli summaries, graph traces, and the
   Modeler pass details. `packed_host`, `metal_shared`, and

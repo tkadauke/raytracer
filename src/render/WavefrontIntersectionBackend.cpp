@@ -44,6 +44,24 @@ namespace render {
     }
 
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    std::vector<State*> closestHitStates(const std::vector<WavefrontClosestHitQuery>& queries) {
+      std::vector<State*> states;
+      states.reserve(queries.size());
+      for (const WavefrontClosestHitQuery& query : queries) {
+        states.push_back(query.state);
+      }
+      return states;
+    }
+
+    std::vector<State*> anyHitStates(const std::vector<WavefrontAnyHitQuery>& queries) {
+      std::vector<State*> states;
+      states.reserve(queries.size());
+      for (const WavefrontAnyHitQuery& query : queries) {
+        states.push_back(query.state);
+      }
+      return states;
+    }
+
     double secondsBetween(std::chrono::steady_clock::time_point start,
                           std::chrono::steady_clock::time_point end) {
       return std::chrono::duration<double>(end - start).count();
@@ -124,8 +142,8 @@ namespace render {
       MetalPreparedPackedWavefrontClosestHitFrontier(
         std::vector<WavefrontClosestHitQuery> queries,
         std::shared_ptr<const MetalWavefrontPreparedScene> preparedScene)
-          : m_queries(std::move(queries)),
-            m_packedRays(packClosestHitQueries(m_queries)),
+          : m_states(closestHitStates(queries)),
+            m_packedRays(packClosestHitQueries(queries)),
             m_preparedScene(std::move(preparedScene)) {
         if (m_preparedScene) {
           const auto prepareStart = std::chrono::steady_clock::now();
@@ -137,7 +155,7 @@ namespace render {
       }
 
       std::uint64_t rayCount() const override {
-        return static_cast<std::uint64_t>(m_queries.size());
+        return static_cast<std::uint64_t>(m_states.size());
       }
 
       const char* residency() const override {
@@ -152,8 +170,11 @@ namespace render {
       }
 
     protected:
-      const std::vector<WavefrontClosestHitQuery>* hostClosestHitQueries() const override {
-        return &m_queries;
+      State* closestHitState(std::size_t rayIndex) const override {
+        if (rayIndex >= m_states.size()) {
+          return nullptr;
+        }
+        return m_states[rayIndex];
       }
 
       const std::vector<GpuIntersectionRay>* hostPackedClosestHitRays() const override {
@@ -191,7 +212,7 @@ namespace render {
       }
 
     private:
-      std::vector<WavefrontClosestHitQuery> m_queries;
+      std::vector<State*> m_states;
       std::vector<GpuIntersectionRay> m_packedRays;
       std::shared_ptr<const MetalWavefrontPreparedScene> m_preparedScene;
       std::shared_ptr<const MetalWavefrontPreparedRayBatch> m_preparedRays;
@@ -203,8 +224,8 @@ namespace render {
       MetalPreparedPackedWavefrontAnyHitFrontier(
         std::vector<WavefrontAnyHitQuery> queries,
         std::shared_ptr<const MetalWavefrontPreparedScene> preparedScene)
-          : m_queries(std::move(queries)),
-            m_packedRays(packAnyHitQueries(m_queries)),
+          : m_states(anyHitStates(queries)),
+            m_packedRays(packAnyHitQueries(queries)),
             m_preparedScene(std::move(preparedScene)) {
         if (m_preparedScene) {
           const auto prepareStart = std::chrono::steady_clock::now();
@@ -216,7 +237,7 @@ namespace render {
       }
 
       std::uint64_t rayCount() const override {
-        return static_cast<std::uint64_t>(m_queries.size());
+        return static_cast<std::uint64_t>(m_states.size());
       }
 
       const char* residency() const override {
@@ -231,8 +252,11 @@ namespace render {
       }
 
     protected:
-      const std::vector<WavefrontAnyHitQuery>* hostAnyHitQueries() const override {
-        return &m_queries;
+      State* anyHitState(std::size_t rayIndex) const override {
+        if (rayIndex >= m_states.size()) {
+          return nullptr;
+        }
+        return m_states[rayIndex];
       }
 
       const std::vector<GpuIntersectionRay>* hostPackedAnyHitRays() const override {
@@ -270,7 +294,7 @@ namespace render {
       }
 
     private:
-      std::vector<WavefrontAnyHitQuery> m_queries;
+      std::vector<State*> m_states;
       std::vector<GpuIntersectionRay> m_packedRays;
       std::shared_ptr<const MetalWavefrontPreparedScene> m_preparedScene;
       std::shared_ptr<const MetalWavefrontPreparedRayBatch> m_preparedRays;
@@ -285,8 +309,8 @@ namespace render {
       VulkanPreparedPackedWavefrontClosestHitFrontier(
         std::vector<WavefrontClosestHitQuery> queries,
         std::shared_ptr<const VulkanWavefrontPreparedScene> preparedScene)
-          : m_queries(std::move(queries)),
-            m_packedRays(packClosestHitQueries(m_queries)),
+          : m_states(closestHitStates(queries)),
+            m_packedRays(packClosestHitQueries(queries)),
             m_preparedScene(std::move(preparedScene)) {
         if (m_preparedScene) {
           const auto prepareStart = std::chrono::steady_clock::now();
@@ -298,7 +322,7 @@ namespace render {
       }
 
       std::uint64_t rayCount() const override {
-        return static_cast<std::uint64_t>(m_queries.size());
+        return static_cast<std::uint64_t>(m_states.size());
       }
 
       const char* residency() const override {
@@ -313,8 +337,11 @@ namespace render {
       }
 
     protected:
-      const std::vector<WavefrontClosestHitQuery>* hostClosestHitQueries() const override {
-        return &m_queries;
+      State* closestHitState(std::size_t rayIndex) const override {
+        if (rayIndex >= m_states.size()) {
+          return nullptr;
+        }
+        return m_states[rayIndex];
       }
 
       const std::vector<GpuIntersectionRay>* hostPackedClosestHitRays() const override {
@@ -352,7 +379,7 @@ namespace render {
       }
 
     private:
-      std::vector<WavefrontClosestHitQuery> m_queries;
+      std::vector<State*> m_states;
       std::vector<GpuIntersectionRay> m_packedRays;
       std::shared_ptr<const VulkanWavefrontPreparedScene> m_preparedScene;
       std::shared_ptr<const VulkanWavefrontPreparedRayBatch> m_preparedRays;
@@ -364,8 +391,8 @@ namespace render {
       VulkanPreparedPackedWavefrontAnyHitFrontier(
         std::vector<WavefrontAnyHitQuery> queries,
         std::shared_ptr<const VulkanWavefrontPreparedScene> preparedScene)
-          : m_queries(std::move(queries)),
-            m_packedRays(packAnyHitQueries(m_queries)),
+          : m_states(anyHitStates(queries)),
+            m_packedRays(packAnyHitQueries(queries)),
             m_preparedScene(std::move(preparedScene)) {
         if (m_preparedScene) {
           const auto prepareStart = std::chrono::steady_clock::now();
@@ -377,7 +404,7 @@ namespace render {
       }
 
       std::uint64_t rayCount() const override {
-        return static_cast<std::uint64_t>(m_queries.size());
+        return static_cast<std::uint64_t>(m_states.size());
       }
 
       const char* residency() const override {
@@ -392,8 +419,11 @@ namespace render {
       }
 
     protected:
-      const std::vector<WavefrontAnyHitQuery>* hostAnyHitQueries() const override {
-        return &m_queries;
+      State* anyHitState(std::size_t rayIndex) const override {
+        if (rayIndex >= m_states.size()) {
+          return nullptr;
+        }
+        return m_states[rayIndex];
       }
 
       const std::vector<GpuIntersectionRay>* hostPackedAnyHitRays() const override {
@@ -431,7 +461,7 @@ namespace render {
       }
 
     private:
-      std::vector<WavefrontAnyHitQuery> m_queries;
+      std::vector<State*> m_states;
       std::vector<GpuIntersectionRay> m_packedRays;
       std::shared_ptr<const VulkanWavefrontPreparedScene> m_preparedScene;
       std::shared_ptr<const VulkanWavefrontPreparedRayBatch> m_preparedRays;
