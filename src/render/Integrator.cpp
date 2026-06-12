@@ -112,6 +112,8 @@ namespace render {
     intersectionBackendAnyHitExecutionPath.clear();
     intersectionBackendClosestHitFrontierResidency.clear();
     intersectionBackendAnyHitFrontierResidency.clear();
+    intersectionBackendClosestHitFrontierPackedRayBytes = 0;
+    intersectionBackendAnyHitFrontierPackedRayBytes = 0;
     intersectionBackendPlatformGpuDeviceAvailable = false;
     intersectionBackendPlatformGpuRenderPathAvailable = false;
     intersectionSceneCompiled = false;
@@ -498,14 +500,18 @@ namespace render {
     return false;
   }
 
-  void IntegratorBatchMetrics::recordClosestHitFrontierResidency(const std::string& residency) {
+  void IntegratorBatchMetrics::recordClosestHitFrontierResidency(const std::string& residency,
+                                                                 std::uint64_t packedRayBytes) {
     mergeLabel(intersectionBackendClosestHitFrontierResidency,
                residency.empty() ? "unknown" : residency);
+    intersectionBackendClosestHitFrontierPackedRayBytes += packedRayBytes;
   }
 
-  void IntegratorBatchMetrics::recordAnyHitFrontierResidency(const std::string& residency) {
+  void IntegratorBatchMetrics::recordAnyHitFrontierResidency(const std::string& residency,
+                                                             std::uint64_t packedRayBytes) {
     mergeLabel(intersectionBackendAnyHitFrontierResidency,
                residency.empty() ? "unknown" : residency);
+    intersectionBackendAnyHitFrontierPackedRayBytes += packedRayBytes;
   }
 
   void
@@ -577,6 +583,10 @@ namespace render {
                source.intersectionBackendClosestHitFrontierResidency);
     mergeLabel(intersectionBackendAnyHitFrontierResidency,
                source.intersectionBackendAnyHitFrontierResidency);
+    intersectionBackendClosestHitFrontierPackedRayBytes +=
+      source.intersectionBackendClosestHitFrontierPackedRayBytes;
+    intersectionBackendAnyHitFrontierPackedRayBytes +=
+      source.intersectionBackendAnyHitFrontierPackedRayBytes;
     intersectionBackendPlatformGpuDeviceAvailable =
       intersectionBackendPlatformGpuDeviceAvailable ||
       source.intersectionBackendPlatformGpuDeviceAvailable;

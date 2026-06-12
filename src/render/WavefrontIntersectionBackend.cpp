@@ -56,6 +56,10 @@ namespace render {
         return "packed_host";
       }
 
+      std::uint64_t packedRayBytes() const override {
+        return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
+      }
+
     protected:
       const std::vector<WavefrontClosestHitQuery>* hostClosestHitQueries() const override {
         return &m_queries;
@@ -83,6 +87,10 @@ namespace render {
 
       const char* residency() const override {
         return "packed_host";
+      }
+
+      std::uint64_t packedRayBytes() const override {
+        return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
       }
 
     protected:
@@ -353,6 +361,10 @@ namespace render {
     return nullptr;
   }
 
+  std::uint64_t WavefrontAnyHitFrontier::packedRayBytes() const {
+    return 0;
+  }
+
   const std::vector<GpuIntersectionRay>* WavefrontAnyHitFrontier::hostPackedAnyHitRays() const {
     return nullptr;
   }
@@ -377,6 +389,10 @@ namespace render {
   const std::vector<WavefrontClosestHitQuery>*
   WavefrontClosestHitFrontier::hostClosestHitQueries() const {
     return nullptr;
+  }
+
+  std::uint64_t WavefrontClosestHitFrontier::packedRayBytes() const {
+    return 0;
   }
 
   const std::vector<GpuIntersectionRay>*

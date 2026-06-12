@@ -23,6 +23,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Exposed backend-owned closest-hit and any-hit frontier residency in wavefront
   metrics, rendercli summaries, graph traces, and Modeler pass details.
   — GPT-5 Codex
+- Reported backend-owned frontier packed-ray byte counts in wavefront metrics,
+  rendercli summaries, graph traces, and Modeler pass details. — GPT-5 Codex
 - Preserved wavefront frontier residency labels in convergence comparison and
   queue-sweep benchmark capture summaries. — GPT-5 Codex
 - Routed wavefront intersection backend batch benchmarks through backend-owned

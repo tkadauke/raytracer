@@ -267,6 +267,7 @@ namespace WavefrontIntersectionBackendTest {
     ASSERT_NE(nullptr, frontier);
     EXPECT_EQ(1u, frontier->rayCount());
     EXPECT_STREQ("host", frontier->residency());
+    EXPECT_EQ(0u, frontier->packedRayBytes());
 
     WavefrontIntersectionQueryTiming timing;
     const std::vector<WavefrontClosestHitResult> hits =
@@ -292,6 +293,7 @@ namespace WavefrontIntersectionBackendTest {
     ASSERT_NE(nullptr, frontier);
     EXPECT_EQ(1u, frontier->rayCount());
     EXPECT_STREQ("host", frontier->residency());
+    EXPECT_EQ(0u, frontier->packedRayBytes());
 
     WavefrontIntersectionQueryTiming timing;
     const std::vector<bool> occluded =
@@ -2233,6 +2235,7 @@ namespace WavefrontIntersectionBackendTest {
     ASSERT_NE(nullptr, frontier);
     EXPECT_EQ(2u, frontier->rayCount());
     EXPECT_STREQ("packed_host", frontier->residency());
+    EXPECT_EQ(2u * sizeof(GpuIntersectionRay), frontier->packedRayBytes());
 
     WavefrontIntersectionQueryTiming timing;
     const std::vector<WavefrontClosestHitResult> hits =
@@ -2613,6 +2616,7 @@ namespace WavefrontIntersectionBackendTest {
     ASSERT_NE(nullptr, frontier);
     EXPECT_EQ(2u, frontier->rayCount());
     EXPECT_STREQ("packed_host", frontier->residency());
+    EXPECT_EQ(2u * sizeof(GpuIntersectionRay), frontier->packedRayBytes());
 
     WavefrontIntersectionQueryTiming timing;
     const std::vector<bool> occluded =

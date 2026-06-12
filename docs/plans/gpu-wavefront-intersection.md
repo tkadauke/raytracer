@@ -955,6 +955,10 @@ Progress:
   These handles still live on the CPU and report `packed_host` residency, but
   the path tracer no longer needs to hand raw query vectors to the prepared
   backend before the rays take the packed-kernel shape.
+- Backend-owned closest-hit and any-hit frontiers now report packed-ray byte
+  counts through wavefront metrics, rendercli summaries, graph traces, and the
+  Modeler pass details. Today only `packed_host` frontiers contribute nonzero
+  bytes, giving future GPU-resident frontier work a concrete payload baseline.
 - Wavefront metrics now report mixed query depths: depth frontiers where both a
   closest-hit frontier batch and a direct-light any-hit batch ran, plus the
   participating closest-hit and any-hit ray counts. This does not keep frontiers

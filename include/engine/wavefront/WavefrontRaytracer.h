@@ -72,6 +72,8 @@ namespace engine::wavefront {
       std::string intersectionBackendAnyHitExecutionPath;
       std::string intersectionBackendClosestHitFrontierResidency;
       std::string intersectionBackendAnyHitFrontierResidency;
+      std::uint64_t intersectionBackendClosestHitFrontierPackedRayBytes = 0;
+      std::uint64_t intersectionBackendAnyHitFrontierPackedRayBytes = 0;
       bool intersectionBackendPlatformGpuDeviceAvailable = false;
       bool intersectionBackendPlatformGpuRenderPathAvailable = false;
       std::uint64_t intersectionBackendExpectedRays = 0;

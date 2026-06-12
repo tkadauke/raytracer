@@ -1601,6 +1601,10 @@ namespace WavefrontRaytracerTest {
               renderCase.lastMetrics().batching.intersectionBackendClosestHitFrontierResidency);
     EXPECT_EQ("packed_host",
               renderCase.lastMetrics().batching.intersectionBackendAnyHitFrontierResidency);
+    EXPECT_GT(renderCase.lastMetrics().batching.intersectionBackendClosestHitFrontierPackedRayBytes,
+              0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.intersectionBackendAnyHitFrontierPackedRayBytes,
+              0u);
     EXPECT_FALSE(renderCase.lastMetrics().batching.directLightAnyHitBatchChunksPerDepth.empty());
     EXPECT_FALSE(renderCase.lastMetrics().batching.directLightAnyHitBatchRaysPerDepth.empty());
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitBatchChunksPerDepth.front(), 0u);
@@ -1626,6 +1630,13 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(
       renderCase.lastMetrics().batching.intersectionBackendAnyHitFrontierResidency,
       batching.value("intersectionBackendAnyHitFrontierResidency").toString().toStdString());
+    EXPECT_EQ(
+      static_cast<double>(
+        renderCase.lastMetrics().batching.intersectionBackendClosestHitFrontierPackedRayBytes),
+      batching.value("intersectionBackendClosestHitFrontierPackedRayBytes").toDouble());
+    EXPECT_EQ(static_cast<double>(
+                renderCase.lastMetrics().batching.intersectionBackendAnyHitFrontierPackedRayBytes),
+              batching.value("intersectionBackendAnyHitFrontierPackedRayBytes").toDouble());
   }
 
   TEST(WavefrontRaytracer, AutoIntersectionRequestMatchesCpuImageWhenGpuGateClears) {

@@ -270,10 +270,14 @@ namespace {
         << " closest_hit_frontier_residency="
         << compactTextValue(batching.value("intersectionBackendClosestHitFrontierResidency"),
                             "none")
+        << " closest_hit_frontier_packed_ray_bytes="
+        << unsignedValue(batching, "intersectionBackendClosestHitFrontierPackedRayBytes")
         << " any_hit_execution="
         << compactTextValue(batching.value("intersectionBackendAnyHitExecutionPath"), "none")
         << " any_hit_frontier_residency="
         << compactTextValue(batching.value("intersectionBackendAnyHitFrontierResidency"), "none")
+        << " any_hit_frontier_packed_ray_bytes="
+        << unsignedValue(batching, "intersectionBackendAnyHitFrontierPackedRayBytes")
         << " intersection_backend_gpu_device="
         << (batching.value("intersectionBackendPlatformGpuDeviceAvailable").toBool() ? "true"
                                                                                      : "false")

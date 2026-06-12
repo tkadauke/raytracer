@@ -114,8 +114,25 @@ namespace IntegratorTest {
     EXPECT_TRUE(metrics.frontierPacketRefinedRaysPerDepth.empty());
     EXPECT_TRUE(metrics.frontierPacketRefinedRaysByMaterial.empty());
     EXPECT_TRUE(metrics.intersectionSceneUnsupportedReasons.empty());
+    EXPECT_EQ(0u, metrics.intersectionBackendClosestHitFrontierPackedRayBytes);
+    EXPECT_EQ(0u, metrics.intersectionBackendAnyHitFrontierPackedRayBytes);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
     EXPECT_DOUBLE_EQ(0.0, metrics.frontierPartitionWorkerSeconds);
+  }
+
+  TEST(Integrator, FrontierResidencyMetricsTrackPackedRayBytes) {
+    IntegratorBatchMetrics metrics;
+    metrics.reset(/*scalarFallback=*/false);
+
+    metrics.recordClosestHitFrontierResidency("packed_host", 64);
+    metrics.recordClosestHitFrontierResidency("packed_host", 128);
+    metrics.recordAnyHitFrontierResidency("host");
+    metrics.recordAnyHitFrontierResidency("packed_host", 32);
+
+    EXPECT_EQ("packed_host", metrics.intersectionBackendClosestHitFrontierResidency);
+    EXPECT_EQ("mixed", metrics.intersectionBackendAnyHitFrontierResidency);
+    EXPECT_EQ(192u, metrics.intersectionBackendClosestHitFrontierPackedRayBytes);
+    EXPECT_EQ(32u, metrics.intersectionBackendAnyHitFrontierPackedRayBytes);
   }
 
   TEST(Integrator, IntersectionBackendMetricsTrackQuerySpecificExecutionPaths) {

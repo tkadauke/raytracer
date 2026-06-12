@@ -573,10 +573,15 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
   addDetailStringMetadataRow(rows, QStringLiteral("Closest-hit frontier residency"), batching,
                              QStringLiteral("intersectionBackendClosestHitFrontierResidency"),
                              true);
+  addDetailIntegerMetadataRow(
+    rows, QStringLiteral("Closest-hit frontier packed ray bytes"), batching,
+    QStringLiteral("intersectionBackendClosestHitFrontierPackedRayBytes"));
   addDetailStringMetadataRow(rows, QStringLiteral("Any-hit execution path"), batching,
                              QStringLiteral("intersectionBackendAnyHitExecutionPath"), true);
   addDetailStringMetadataRow(rows, QStringLiteral("Any-hit frontier residency"), batching,
                              QStringLiteral("intersectionBackendAnyHitFrontierResidency"), true);
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit frontier packed ray bytes"), batching,
+                              QStringLiteral("intersectionBackendAnyHitFrontierPackedRayBytes"));
   addDetailStringMetadataRow(rows, QStringLiteral("Intersection backend fallback"), batching,
                              QStringLiteral("intersectionBackendFallbackReason"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Expected intersection rays"), batching,

@@ -85,6 +85,7 @@ namespace render {
 
     [[nodiscard]] virtual std::uint64_t rayCount() const = 0;
     [[nodiscard]] virtual const char* residency() const = 0;
+    [[nodiscard]] virtual std::uint64_t packedRayBytes() const;
 
   protected:
     friend class WavefrontIntersectionBackend;
@@ -118,6 +119,7 @@ namespace render {
 
     [[nodiscard]] virtual std::uint64_t rayCount() const = 0;
     [[nodiscard]] virtual const char* residency() const = 0;
+    [[nodiscard]] virtual std::uint64_t packedRayBytes() const;
 
   protected:
     friend class WavefrontIntersectionBackend;

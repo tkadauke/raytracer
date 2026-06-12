@@ -1118,7 +1118,9 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection backend availability")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection backend execution path")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit frontier residency")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit frontier packed ray bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Any-hit frontier residency")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Any-hit frontier packed ray bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection backend fallback")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Expected intersection rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Expected closest-hit rays")).isEmpty());
@@ -1155,6 +1157,8 @@ namespace RenderGraphInspectorWidgetTest {
       rowValue(rows, QStringLiteral("Direct-light any-hit batch average rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit frontier residency")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Any-hit frontier residency")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit frontier packed ray bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Any-hit frontier packed ray bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier query round trips")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident frontier round trips")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident frontier savings")).isEmpty());
