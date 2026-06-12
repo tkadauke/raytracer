@@ -1,5 +1,6 @@
 #include "render/Integrator.h"
 
+#include "render/GpuIntersectionScene.h"
 #include "render/WavefrontIntersectionBackend.h"
 #include "render/State.h"
 
@@ -243,6 +244,10 @@ namespace render {
     return count;
   }
 
+  std::uint64_t IntegratorBatchMetrics::compactionCandidatePackedRayBytes() const {
+    return compactionCandidateSampleCount() * sizeof(GpuIntersectionRay);
+  }
+
   double IntegratorBatchMetrics::compactionCandidateSampleFraction() const {
     if (activeSampleDepthsProcessed == 0) {
       return 0.0;
@@ -274,6 +279,10 @@ namespace render {
       largestSamples = std::max(largestSamples, compactionCandidateSamplesAtDepth(depth));
     }
     return largestSamples;
+  }
+
+  std::uint64_t IntegratorBatchMetrics::largestCompactionCandidatePackedRayBytes() const {
+    return largestCompactionCandidateSampleCount() * sizeof(GpuIntersectionRay);
   }
 
   double IntegratorBatchMetrics::largestCompactionCandidateSampleFraction() const {

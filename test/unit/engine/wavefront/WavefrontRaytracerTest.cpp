@@ -2,6 +2,7 @@
 
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wavefront/WavefrontRaytracer.h"
+#include "render/GpuIntersectionScene.h"
 #include "render/Integrator.h"
 #include "render/PathTracingIntegrator.h"
 #include "render/WavefrontIntersectionBackend.h"
@@ -1011,9 +1012,13 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48u, metrics.batching.compactionCandidateSamplesAtDepth(0));
     EXPECT_EQ(1u, metrics.batching.compactionCandidateDepthCount());
     EXPECT_EQ(48u, metrics.batching.compactionCandidateSampleCount());
+    EXPECT_EQ(48u * sizeof(render::GpuIntersectionRay),
+              metrics.batching.compactionCandidatePackedRayBytes());
     EXPECT_DOUBLE_EQ(1.0, metrics.batching.compactionCandidateSampleFraction());
     EXPECT_EQ(0u, metrics.batching.largestCompactionCandidateDepth());
     EXPECT_EQ(48u, metrics.batching.largestCompactionCandidateSampleCount());
+    EXPECT_EQ(48u * sizeof(render::GpuIntersectionRay),
+              metrics.batching.largestCompactionCandidatePackedRayBytes());
     EXPECT_DOUBLE_EQ(1.0, metrics.batching.largestCompactionCandidateSampleFraction());
     ASSERT_EQ(1u, metrics.batching.frontierRayHitsPerDepth.size());
     ASSERT_EQ(1u, metrics.batching.frontierRayMissesPerDepth.size());
@@ -1172,6 +1177,11 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(
       48.0,
       json.value("batching").toObject().value("frontierCompactionCandidateSamples").toDouble());
+    EXPECT_EQ(48.0 * static_cast<double>(sizeof(render::GpuIntersectionRay)),
+              json.value("batching")
+                .toObject()
+                .value("frontierCompactionCandidatePackedRayBytes")
+                .toDouble());
     EXPECT_DOUBLE_EQ(1.0, json.value("batching")
                             .toObject()
                             .value("frontierCompactionCandidateSampleFraction")
@@ -1184,6 +1194,11 @@ namespace WavefrontRaytracerTest {
                       .toObject()
                       .value("frontierLargestCompactionCandidateSamples")
                       .toDouble());
+    EXPECT_EQ(48.0 * static_cast<double>(sizeof(render::GpuIntersectionRay)),
+              json.value("batching")
+                .toObject()
+                .value("frontierLargestCompactionCandidatePackedRayBytes")
+                .toDouble());
     EXPECT_DOUBLE_EQ(1.0, json.value("batching")
                             .toObject()
                             .value("frontierLargestCompactionCandidateSampleFraction")
