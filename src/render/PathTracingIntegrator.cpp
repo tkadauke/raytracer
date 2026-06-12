@@ -430,17 +430,9 @@ namespace render {
     const PathMaterialTransport& material, const Vector3d& wi, State& state, int bounce,
     const WavefrontIntersectionBackend* intersectionBackend,
     IntegratorBatchMetrics* metrics) const {
-    struct SelectedDirectLightingCandidate {
-      DirectLightingCandidate candidate;
-      double selectionPdf{1.0};
-    };
-
     const WavefrontIntersectionBackend& resolvedIntersectionBackend =
       intersectionBackend ? *intersectionBackend : CpuWavefrontIntersectionBackend::instance();
-    std::vector<SelectedDirectLightingCandidate> selectedCandidates;
-    selectedCandidates.reserve(static_cast<std::size_t>(m_directLightSamples));
-    std::vector<WavefrontAnyHitQuery> shadowQueries;
-    shadowQueries.reserve(static_cast<std::size_t>(m_directLightSamples));
+    DirectLightVisibilityBatch visibilityBatch(static_cast<std::size_t>(m_directLightSamples));
 
     for (int sampleIndex = 0; sampleIndex != m_directLightSamples; ++sampleIndex) {
       const LightSampler::Selection selection =
@@ -455,59 +447,30 @@ namespace render {
         continue;
       }
 
-      shadowQueries.push_back(
-        WavefrontAnyHitQuery{candidate.shadowRay, candidate.shadowDistance, &state});
-      selectedCandidates.push_back(SelectedDirectLightingCandidate{candidate, selection.pdf});
+      visibilityBatch.add(/*hitIndex=*/0, std::move(candidate), selection.pdf, state);
     }
 
-    if (shadowQueries.empty()) {
+    if (visibilityBatch.empty()) {
       return Colord::black();
     }
 
-    WavefrontIntersectionQueryTiming intersectionTiming;
     std::vector<bool> occluded;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      if (resolvedIntersectionBackend.prefersAnyHitBatch(shadowQueries.size())) {
-        const std::unique_ptr<WavefrontAnyHitFrontier> frontier =
-          resolvedIntersectionBackend.createAnyHitFrontier(std::move(shadowQueries));
-        occluded = resolvedIntersectionBackend.intersectAnyFrontier(
-          scene, *frontier, metrics ? &intersectionTiming : nullptr);
-        if (metrics) {
-          metrics->recordDirectLightAnyHitBatch(
-            static_cast<std::uint64_t>(std::max(0, bounce)),
-            /*batchChunks=*/1, frontier->rayCount(), frontier->packedRayBytes(),
-            frontier->hostQueryBytes(), frontier->stateHandleBytes());
-          metrics->recordAnyHitFrontierResidency(frontier->residency(), frontier->packedRayBytes(),
-                                                 frontier->hostQueryBytes(),
-                                                 frontier->stateHandleBytes());
-          metrics->recordAnyHitQuery(resolvedIntersectionBackend, frontier->rayCount(),
-                                     intersectionTiming);
-        }
-      } else {
-        occluded.reserve(shadowQueries.size());
-        for (const WavefrontAnyHitQuery& query : shadowQueries) {
-          WavefrontIntersectionQueryTiming queryTiming;
-          State scratchState;
-          State& queryState = query.state ? *query.state : scratchState;
-          occluded.push_back(resolvedIntersectionBackend.intersectAny(
-            scene, query.ray, query.maxDistance, queryState, metrics ? &queryTiming : nullptr));
-          if (metrics) {
-            metrics->recordAnyHitQuery(resolvedIntersectionBackend, 1, queryTiming);
-          }
-        }
-      }
+      occluded =
+        visibilityBatch.resolveOcclusion(scene, resolvedIntersectionBackend, bounce, metrics);
     }
 
     Colord contribution = Colord::black();
-    for (std::size_t index = 0; index != selectedCandidates.size(); ++index) {
+    const std::vector<DirectLightingSelection>& selections = visibilityBatch.selections();
+    for (std::size_t index = 0; index != selections.size(); ++index) {
       const bool sampleOccluded = index < occluded.size() && occluded[index];
       const DirectLightingSample sample = resolveDirectLightingCandidate(
-        selectedCandidates[index].candidate, material, hitPoint, wi, sampleOccluded, state);
+        selections[index].candidate, material, hitPoint, wi, sampleOccluded, state);
       if (metrics) {
         metrics->recordDirectLightSample(sample.occluded, sample.contributing());
       }
-      contribution += sample.contribution / selectedCandidates[index].selectionPdf;
+      contribution += sample.contribution / selections[index].selectionPdf;
     }
     return contribution / static_cast<double>(m_directLightSamples);
   }

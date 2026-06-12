@@ -1147,11 +1147,11 @@ Progress:
   round trips and a resident direct-light round-trip savings estimate. This
   makes the host readback boundary for next-event-estimation occlusion visible
   independently of the mixed-depth resident-frontier estimate.
-- Batched path-tracing direct-light visibility now stages light selections and
-  shadow any-hit queries through a dedicated visibility batch object. It still
-  executes on the current backend immediately, but next-event-estimation
-  occlusion now has an owner that can become resident without spreading query
-  vector assembly through the shading loop.
+- Scalar and batched path-tracing direct-light visibility now stage light
+  selections and shadow any-hit queries through a dedicated visibility batch
+  object. It still executes on the current backend immediately, but
+  next-event-estimation occlusion now has an owner that can become resident
+  without spreading query vector assembly through the shading loop.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a
