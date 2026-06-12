@@ -970,6 +970,10 @@ Progress:
   rays through the backend, while future Metal/Vulkan frontiers can execute
   from platform-owned query buffers without adding type switches to the backend
   intersection path.
+- Metal prepared scenes now expose a prepared packed-ray batch object. It
+  uploads a packed frontier once, reports ray count and packed bytes, and can be
+  reused by closest-hit and any-hit dispatches without copying the ray vector
+  inside each dispatch.
 - Backend-owned closest-hit and any-hit frontiers now report packed-ray byte
   counts through wavefront metrics, rendercli summaries, graph traces, and the
   Modeler pass details. Today only `packed_host` frontiers contribute nonzero

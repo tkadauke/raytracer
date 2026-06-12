@@ -43,6 +43,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added a polymorphic packed-execution hook to prepared closest-hit and any-hit
   frontier handles so future platform frontiers can run from backend-owned
   buffers without backend type switches. — GPT-5 Codex
+- Added Metal prepared ray-batch handles that upload packed frontier rays once
+  and can be reused by closest-hit and any-hit prepared-scene dispatches.
+  — GPT-5 Codex
 
 ### Added
 

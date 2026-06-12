@@ -23,6 +23,25 @@ namespace render {
     WavefrontIntersectionQueryTiming timing;
   };
 
+  class MetalWavefrontPreparedRayBatch {
+  public:
+    ~MetalWavefrontPreparedRayBatch();
+
+    MetalWavefrontPreparedRayBatch(const MetalWavefrontPreparedRayBatch&) = delete;
+    MetalWavefrontPreparedRayBatch& operator=(const MetalWavefrontPreparedRayBatch&) = delete;
+
+    [[nodiscard]] std::uint64_t rayCount() const;
+    [[nodiscard]] std::uint64_t packedRayBytes() const;
+
+  private:
+    friend class MetalWavefrontPreparedScene;
+
+    MetalWavefrontPreparedRayBatch();
+
+    struct Private;
+    std::unique_ptr<Private> p;
+  };
+
   /**
     * @brief Tiny Metal compute dispatch used to validate the experimental
     * wavefront-intersection platform plumbing.
@@ -61,10 +80,16 @@ namespace render {
     MetalWavefrontPreparedScene(const MetalWavefrontPreparedScene&) = delete;
     MetalWavefrontPreparedScene& operator=(const MetalWavefrontPreparedScene&) = delete;
 
+    [[nodiscard]] std::shared_ptr<const MetalWavefrontPreparedRayBatch>
+    prepareRays(const std::vector<GpuIntersectionRay>& rays) const;
     MetalWavefrontClosestHitKernelResult
     runTimedBasicClosestHitKernel(const std::vector<GpuIntersectionRay>& rays) const;
+    MetalWavefrontClosestHitKernelResult
+    runTimedBasicClosestHitKernel(const MetalWavefrontPreparedRayBatch& rays) const;
     MetalWavefrontAnyHitKernelResult
     runTimedBasicAnyHitKernel(const std::vector<GpuIntersectionRay>& rays) const;
+    MetalWavefrontAnyHitKernelResult
+    runTimedBasicAnyHitKernel(const MetalWavefrontPreparedRayBatch& rays) const;
 
   private:
     struct Private;
