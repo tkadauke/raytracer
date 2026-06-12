@@ -2806,12 +2806,14 @@ foreach(mixed_query_field
                     "" "" "${wavefront_metrics_json}" "")
   endif()
 endforeach()
-foreach(frontier_residency_field
+foreach(frontier_metric_field
         intersectionBackendClosestHitFrontierResidency
-        intersectionBackendAnyHitFrontierResidency)
-  if(NOT wavefront_metrics_json MATCHES "\"${frontier_residency_field}\"")
-    _rendercli_fail("rendercli wavefront metrics ${frontier_residency_field}"
-                    "wavefront metrics report did not contain ${frontier_residency_field}"
+        intersectionBackendAnyHitFrontierResidency
+        intersectionBackendClosestHitFrontierPackedRayBytes
+        intersectionBackendAnyHitFrontierPackedRayBytes)
+  if(NOT wavefront_metrics_json MATCHES "\"${frontier_metric_field}\"")
+    _rendercli_fail("rendercli wavefront metrics ${frontier_metric_field}"
+                    "wavefront metrics report did not contain ${frontier_metric_field}"
                     "" "" "${wavefront_metrics_json}" "")
   endif()
 endforeach()
