@@ -1597,10 +1597,10 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(renderCase.lastMetrics().batching.anyHitRaysSubmitted, 0u);
     EXPECT_TRUE(renderCase.lastMetrics().batching.intersectionBackendPrefersClosestHitBatch);
     EXPECT_TRUE(renderCase.lastMetrics().batching.intersectionBackendPrefersAnyHitBatch);
-    EXPECT_FALSE(
-      renderCase.lastMetrics().batching.intersectionBackendClosestHitFrontierResidency.empty());
-    EXPECT_FALSE(
-      renderCase.lastMetrics().batching.intersectionBackendAnyHitFrontierResidency.empty());
+    EXPECT_EQ("packed_host",
+              renderCase.lastMetrics().batching.intersectionBackendClosestHitFrontierResidency);
+    EXPECT_EQ("packed_host",
+              renderCase.lastMetrics().batching.intersectionBackendAnyHitFrontierResidency);
     EXPECT_FALSE(renderCase.lastMetrics().batching.directLightAnyHitBatchChunksPerDepth.empty());
     EXPECT_FALSE(renderCase.lastMetrics().batching.directLightAnyHitBatchRaysPerDepth.empty());
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitBatchChunksPerDepth.front(), 0u);
