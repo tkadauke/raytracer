@@ -197,11 +197,12 @@ supports resident frontiers, GPU frontier compaction, or resident direct-light
 batches. The current hybrid backends report those as unsupported until a real
 Phase 8 scheduling path lands, so the estimates stay visibly separate from
 implemented behavior.
-The path tracer also reports host compaction passes: the current CPU scheduler
-compacts the surviving path frontier after each depth, and the metrics expose
-the input, retained, removed, moved, and removed-fraction sample counts for
-that operation. Those counts are the execution contract a future GPU compaction
-kernel must preserve.
+The path tracer also reports frontier compaction passes: the current CPU
+scheduler compacts the surviving path frontier after each depth, and the
+metrics expose the input, retained, removed, moved, removed-fraction sample
+counts, and execution path for that operation. Today that execution path is
+`host`; those counts are the execution contract a future GPU compaction kernel
+must preserve.
 They also report compaction candidate depths and sample counts by comparing
 active samples entering a depth with retained samples after that depth. That is
 the CPU-side baseline for future GPU-side active-ray compaction; the candidate

@@ -927,8 +927,8 @@ Progress:
   fallback frontiers report `packed_host`, and platform frontiers can report
   their Metal/Vulkan residency without changing the UI or metrics contract
   again.
-- The wavefront convergence capture helper now carries those host compaction
-  execution counters into candidate/reference comparisons and queue-sweep
+- The wavefront convergence capture helper now carries those frontier
+  compaction counters into candidate/reference comparisons and queue-sweep
   summaries, and queue sweeps also preserve the compaction execution label.
   Phase 8 scheduler experiments can see whether a queue policy or future GPU
   compaction path actually reduces retained inactive path state.

@@ -291,12 +291,12 @@ The backend capability flags keep that estimate honest: current hybrid
 backends report that they do not yet support resident frontiers, GPU frontier
 compaction, or resident direct-light batches, while future backends can flip
 those flags only when they actually keep that state on device.
-The path tracer also reports the host compaction operation it already performs
-between depths: input path slots, retained slots, removed inactive slots, moved
-live slots, removed fraction, and the compaction execution path. Today that
-execution path is `host` whenever a compaction pass runs. That makes the current
-CPU compaction contract explicit before any future kernel keeps the frontier
-resident on the GPU.
+The path tracer also reports frontier compaction metrics for the operation it
+already performs between depths: input path slots, retained slots, removed
+inactive slots, moved live slots, removed fraction, and the compaction
+execution path. Today that execution path is `host` whenever a compaction pass
+runs. That makes the current CPU compaction contract explicit before any future
+kernel keeps the frontier resident on the GPU.
 The same metrics compare active samples entering a depth with retained samples
 after that depth. The difference is reported as compaction candidate work: the
 samples a future GPU-side compaction pass would remove from the next frontier
