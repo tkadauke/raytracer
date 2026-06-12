@@ -1264,6 +1264,10 @@ Progress:
   centralizes path-state reservation, enqueueing, swapping, iteration, and
   host-byte sizing. That matches the path tracer's host-frontier direction and
   leaves fewer ad hoc vector operations in the Whitted depth loop.
+- Path-tracing direct-light selection and occlusion host-byte depth arrays now
+  record explicit zero rows for depths with no visibility work. That keeps
+  selection, occlusion, and contribution byte diagnostics aligned by depth when
+  comparing resident-direct-light opportunities.
 
 ---
 

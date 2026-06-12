@@ -1139,10 +1139,21 @@ namespace PathTracingIntegratorTest {
     samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 11ull)});
 
     FallbackRayCaster caster;
-    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster);
+    IntegratorBatchMetrics metrics;
+    const std::vector<Colord> batched = integrator.radianceBatch(*scene, samples, caster, &metrics);
 
     ASSERT_EQ(1u, batched.size());
     ASSERT_COLOR_NEAR(Colord(0.1, 0.1, 0.1), batched[0], 1e-12);
+    EXPECT_EQ(0u, metrics.directLightSelectionHostBytes);
+    EXPECT_FALSE(metrics.directLightSelectionHostBytesPerDepth.empty());
+    for (const std::uint64_t bytes : metrics.directLightSelectionHostBytesPerDepth) {
+      EXPECT_EQ(0u, bytes);
+    }
+    EXPECT_EQ(0u, metrics.directLightOcclusionHostBytes);
+    EXPECT_FALSE(metrics.directLightOcclusionHostBytesPerDepth.empty());
+    for (const std::uint64_t bytes : metrics.directLightOcclusionHostBytesPerDepth) {
+      EXPECT_EQ(0u, bytes);
+    }
   }
 
   TEST(PathTracingIntegrator, ScalarRadianceTerminatesUnsupportedPathMaterialWithoutShade) {

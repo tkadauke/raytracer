@@ -52,6 +52,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reported direct-light occlusion-result host byte counts in wavefront metrics,
   rendercli summaries, convergence captures, and Modeler pass details.
   — GPT-5 Codex
+- Kept direct-light selection and occlusion host-byte depth arrays explicit with
+  zero entries when a path-tracing depth has no visibility work. — GPT-5 Codex
 - Changed wavefront any-hit batch/frontier APIs to return explicit byte
   occlusion flags instead of `std::vector<bool>` proxy results. — GPT-5 Codex
 - Changed path-tracing direct-light visibility to reject any-hit frontier

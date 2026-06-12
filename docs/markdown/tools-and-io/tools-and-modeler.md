@@ -498,7 +498,9 @@ Direct-light any-hit chunk arrays count visibility chunks: grouped backends
 record one chunk per submitted any-hit frontier, while scalar-loop backends
 record one chunk per shadow query. That keeps the resident-direct-light
 round-trip estimate visible even when the selected backend does not prefer a
-grouped visibility frontier.
+grouped visibility frontier. Direct-light selection and occlusion host-byte
+arrays also keep explicit zero rows for depths where no visibility batch was
+materialized, matching the contribution-byte array shape.
 also includes `sampleVariancePixelArea`, `sampleRadianceStddevRms`, and
 `maxSampleRadianceStddev`, which measure disagreement between samples of the
 same pixel and complement the between-depth radiance-delta convergence fields.

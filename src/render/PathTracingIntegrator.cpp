@@ -315,16 +315,26 @@ namespace render {
              sizeof(WavefrontOcclusionFlags::value_type);
     }
 
+    void recordSelectionHostBytes(int bounce, IntegratorBatchMetrics* metrics) const {
+      if (!metrics) {
+        return;
+      }
+      metrics->recordDirectLightSelectionHostBytes(depthIndex(bounce), hostSelectionBytes());
+    }
+
+    void recordOcclusionHostBytes(int bounce, IntegratorBatchMetrics* metrics) const {
+      if (!metrics) {
+        return;
+      }
+      metrics->recordDirectLightOcclusionHostBytes(depthIndex(bounce), hostOcclusionBytes());
+    }
+
     void resolveOcclusion(const Scene& scene,
                           const WavefrontIntersectionBackend& intersectionBackend, int bounce,
                           IntegratorBatchMetrics* metrics) {
       WavefrontIntersectionQueryTiming intersectionTiming;
       m_occluded.clear();
       m_frontier.reset();
-      if (metrics) {
-        metrics->recordDirectLightSelectionHostBytes(
-          static_cast<std::uint64_t>(std::max(0, bounce)), hostSelectionBytes());
-      }
       if (intersectionBackend.prefersAnyHitBatch(m_shadowQueries.size())) {
         m_frontier = intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
         m_occluded = intersectionBackend.intersectAnyFrontier(
@@ -339,8 +349,7 @@ namespace render {
             m_frontier->stateHandleBytes());
           metrics->recordAnyHitQuery(intersectionBackend, m_frontier->rayCount(),
                                      intersectionTiming);
-          metrics->recordDirectLightOcclusionHostBytes(
-            static_cast<std::uint64_t>(std::max(0, bounce)), hostOcclusionBytes());
+          recordOcclusionHostBytes(bounce, metrics);
         }
         return;
       }
@@ -364,21 +373,21 @@ namespace render {
         }
       }
       validateResolvedOcclusionCount();
-      if (metrics) {
-        metrics->recordDirectLightOcclusionHostBytes(
-          static_cast<std::uint64_t>(std::max(0, bounce)), hostOcclusionBytes());
-      }
+      recordOcclusionHostBytes(bounce, metrics);
     }
 
   private:
+    static std::uint64_t depthIndex(int bounce) {
+      return static_cast<std::uint64_t>(std::max(0, bounce));
+    }
+
     static void recordDirectLightChunks(int bounce, std::uint64_t batchChunks,
                                         std::uint64_t batchRays, std::uint64_t packedRayBytes,
                                         std::uint64_t hostQueryBytes,
                                         std::uint64_t stateHandleBytes,
                                         IntegratorBatchMetrics* metrics) {
-      metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, bounce)),
-                                            batchChunks, batchRays, packedRayBytes, hostQueryBytes,
-                                            stateHandleBytes);
+      metrics->recordDirectLightAnyHitBatch(depthIndex(bounce), batchChunks, batchRays,
+                                            packedRayBytes, hostQueryBytes, stateHandleBytes);
     }
 
     void validateResolvedOcclusionCount() const {
@@ -658,7 +667,9 @@ namespace render {
       visibilityBatch.add(/*hitIndex=*/0, std::move(candidate), selection.pdf, state);
     }
 
+    visibilityBatch.recordSelectionHostBytes(bounce, metrics);
     if (visibilityBatch.empty()) {
+      visibilityBatch.recordOcclusionHostBytes(bounce, metrics);
       return Colord::black();
     }
 
@@ -691,12 +702,14 @@ namespace render {
       metrics->recordDirectLightContributionHostBytes(
         static_cast<std::uint64_t>(std::max(0, bounce)), contributions.hostBytes());
     }
-    if (activeHits.empty()) {
-      return contributions;
-    }
 
     DirectLightVisibilityBatch visibilityBatch(activeHits.size() *
                                                static_cast<std::size_t>(m_directLightSamples));
+    if (activeHits.empty()) {
+      visibilityBatch.recordSelectionHostBytes(bounce, metrics);
+      visibilityBatch.recordOcclusionHostBytes(bounce, metrics);
+      return contributions;
+    }
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
@@ -731,7 +744,9 @@ namespace render {
       }
     }
 
+    visibilityBatch.recordSelectionHostBytes(bounce, metrics);
     if (visibilityBatch.empty()) {
+      visibilityBatch.recordOcclusionHostBytes(bounce, metrics);
       return contributions;
     }
 

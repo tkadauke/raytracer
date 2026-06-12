@@ -533,7 +533,9 @@ the remaining CPU-side state that resident next-event-estimation batches would
 need to eliminate or mirror.
 They also report the host bytes used by the resolved occlusion flags and by the
 direct-light contribution array that carries resolved lighting back to the
-per-hit shading pass.
+per-hit shading pass. Selection and occlusion byte arrays include explicit zero
+entries for depths that had no visibility work, so depth-indexed diagnostics
+stay comparable with contribution-byte rows.
 Wavefront diagnostics also report active-hit host bytes: the per-depth
 closest-hit records that bridge intersection results to Whitted shading or path
 tracing's direct-light and BSDF shading passes. Those bytes are separate from
