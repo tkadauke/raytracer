@@ -253,6 +253,12 @@ namespace engine::wavefront::detail {
       target.convergenceTestWorkerSeconds += source.convergenceTestWorkerSeconds;
       target.observerConvergenceFeedbackDepths += source.observerConvergenceFeedbackDepths;
       addVectorValues(target.retainedActiveSamplesPerDepth, source.retainedActiveSamplesPerDepth);
+      target.directLightAnyHitFrontierPackedRayBytes +=
+        source.directLightAnyHitFrontierPackedRayBytes;
+      target.directLightAnyHitFrontierHostQueryBytes +=
+        source.directLightAnyHitFrontierHostQueryBytes;
+      target.directLightAnyHitFrontierStateHandleBytes +=
+        source.directLightAnyHitFrontierStateHandleBytes;
       target.frontierCompactionPasses += source.frontierCompactionPasses;
       target.frontierCompactionInputSamples += source.frontierCompactionInputSamples;
       target.frontierCompactionRetainedSamples += source.frontierCompactionRetainedSamples;

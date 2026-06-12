@@ -1139,6 +1139,10 @@ Progress:
   host path-state byte counts beside retained-index bytes. That makes the
   scheduler-owned `BatchPath` payload removed by current host compaction visible
   before future GPU-resident path state changes the representation.
+- Direct-light any-hit batching metrics now report packed-ray, host-query, and
+  state-handle byte totals for next-event-estimation occlusion frontiers. That
+  sizes the resident-direct-light Phase 8 gap separately from aggregate any-hit
+  frontier payloads.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a

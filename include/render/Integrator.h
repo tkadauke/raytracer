@@ -44,6 +44,9 @@ namespace render {
     std::vector<std::uint64_t> frontierClosestHitBatchRaysPerDepth;
     std::vector<std::uint64_t> directLightAnyHitBatchChunksPerDepth;
     std::vector<std::uint64_t> directLightAnyHitBatchRaysPerDepth;
+    std::uint64_t directLightAnyHitFrontierPackedRayBytes{0};
+    std::uint64_t directLightAnyHitFrontierHostQueryBytes{0};
+    std::uint64_t directLightAnyHitFrontierStateHandleBytes{0};
     std::vector<std::uint64_t> frontierRay4PacketChunksPerDepth;
     std::vector<std::uint64_t> frontierRay8PacketChunksPerDepth;
     std::vector<std::uint64_t> frontierScalarRaysPerDepth;
@@ -195,7 +198,9 @@ namespace render {
                                  std::uint64_t packetRefinedRays);
     void recordFrontierClosestHitBatch(std::uint64_t batchChunks, std::uint64_t batchRays);
     void recordDirectLightAnyHitBatch(std::uint64_t depth, std::uint64_t batchChunks,
-                                      std::uint64_t batchRays);
+                                      std::uint64_t batchRays, std::uint64_t packedRayBytes = 0,
+                                      std::uint64_t hostQueryBytes = 0,
+                                      std::uint64_t stateHandleBytes = 0);
     [[nodiscard]] bool hasMixedQueryDepth(std::size_t depth) const;
     [[nodiscard]] std::uint64_t frontierQueryRoundTrips() const;
     [[nodiscard]] std::uint64_t residentFrontierQueryRoundTripsEstimate() const;

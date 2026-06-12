@@ -317,8 +317,10 @@ namespace render {
         occluded = resolvedIntersectionBackend.intersectAnyFrontier(
           scene, *frontier, metrics ? &intersectionTiming : nullptr);
         if (metrics) {
-          metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, bounce)),
-                                                /*batchChunks=*/1, frontier->rayCount());
+          metrics->recordDirectLightAnyHitBatch(
+            static_cast<std::uint64_t>(std::max(0, bounce)),
+            /*batchChunks=*/1, frontier->rayCount(), frontier->packedRayBytes(),
+            frontier->hostQueryBytes(), frontier->stateHandleBytes());
           metrics->recordAnyHitFrontierResidency(frontier->residency(), frontier->packedRayBytes(),
                                                  frontier->hostQueryBytes(),
                                                  frontier->stateHandleBytes());
@@ -417,8 +419,10 @@ namespace render {
         occluded = intersectionBackend.intersectAnyFrontier(
           scene, *frontier, metrics ? &intersectionTiming : nullptr);
         if (metrics) {
-          metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, bounce)),
-                                                /*batchChunks=*/1, frontier->rayCount());
+          metrics->recordDirectLightAnyHitBatch(
+            static_cast<std::uint64_t>(std::max(0, bounce)),
+            /*batchChunks=*/1, frontier->rayCount(), frontier->packedRayBytes(),
+            frontier->hostQueryBytes(), frontier->stateHandleBytes());
           metrics->recordAnyHitFrontierResidency(frontier->residency(), frontier->packedRayBytes(),
                                                  frontier->hostQueryBytes(),
                                                  frontier->stateHandleBytes());

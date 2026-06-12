@@ -234,6 +234,10 @@ Executed compaction also reports input, retained, and removed host path-state
 bytes beside retained-index bytes, so the summary separates the index list a GPU
 kernel would need from the CPU scheduler state that still has to become
 resident.
+Direct-light any-hit summaries now also include packed-ray, host-query, and
+state-handle byte totals for next-event-estimation occlusion frontiers. Those
+fields size the direct-light work that still has to become resident separately
+from all other any-hit frontiers.
 When a platform kernel actually runs, the same summary separates backend
 upload/setup, kernel dispatch/wait, and readback time; CPU fallback paths keep
 those backend buckets at zero while total intersection worker time still

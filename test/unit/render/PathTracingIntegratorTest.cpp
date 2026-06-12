@@ -1556,6 +1556,9 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1u, metrics.anyHitRaysSubmitted);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchRaysPerDepth);
+    EXPECT_EQ(0u, metrics.directLightAnyHitFrontierPackedRayBytes);
+    EXPECT_EQ(sizeof(WavefrontAnyHitQuery), metrics.directLightAnyHitFrontierHostQueryBytes);
+    EXPECT_EQ(0u, metrics.directLightAnyHitFrontierStateHandleBytes);
     EXPECT_EQ("host", metrics.intersectionBackendAnyHitFrontierResidency);
     EXPECT_EQ(sizeof(WavefrontAnyHitQuery),
               metrics.intersectionBackendAnyHitFrontierHostQueryBytes);
@@ -1603,6 +1606,9 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(3u, metrics.anyHitRaysSubmitted);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{3u}), metrics.directLightAnyHitBatchRaysPerDepth);
+    EXPECT_EQ(0u, metrics.directLightAnyHitFrontierPackedRayBytes);
+    EXPECT_EQ(3u * sizeof(WavefrontAnyHitQuery), metrics.directLightAnyHitFrontierHostQueryBytes);
+    EXPECT_EQ(0u, metrics.directLightAnyHitFrontierStateHandleBytes);
     EXPECT_EQ(3u, metrics.directLightSamples);
     EXPECT_EQ(3u, metrics.directLightContributingSamples);
     EXPECT_EQ("host", metrics.intersectionBackendAnyHitFrontierResidency);

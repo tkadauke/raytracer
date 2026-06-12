@@ -780,6 +780,15 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
     addDetailRow(rows, QStringLiteral("Direct-light any-hit batch average rays"),
                  average(directLightAnyHitBatchRays, directLightAnyHitBatchChunks));
   }
+  addDetailIntegerMetadataRow(rows,
+                              QStringLiteral("Direct-light any-hit frontier packed ray bytes"),
+                              batching, QStringLiteral("directLightAnyHitFrontierPackedRayBytes"));
+  addDetailIntegerMetadataRow(rows,
+                              QStringLiteral("Direct-light any-hit frontier host query bytes"),
+                              batching, QStringLiteral("directLightAnyHitFrontierHostQueryBytes"));
+  addDetailIntegerMetadataRow(
+    rows, QStringLiteral("Direct-light any-hit frontier state-handle bytes"), batching,
+    QStringLiteral("directLightAnyHitFrontierStateHandleBytes"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Prefers closest-hit batches"), batching,
                            QStringLiteral("intersectionBackendPrefersClosestHitBatch"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Prefers any-hit batches"), batching,
@@ -1354,10 +1363,21 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
                 .arg(average(closestHitBatchRays, closestHitBatchChunks));
     }
     if (directLightAnyHitBatchChunks > 0) {
-      line += QStringLiteral(", direct-light any-hit batches %1 rays/%2 chunks, avg %3")
-                .arg(directLightAnyHitBatchRays)
-                .arg(directLightAnyHitBatchChunks)
-                .arg(average(directLightAnyHitBatchRays, directLightAnyHitBatchChunks));
+      const qulonglong directLightAnyHitPackedRayBytes =
+        jsonIntegerValue(batching, QStringLiteral("directLightAnyHitFrontierPackedRayBytes"));
+      const qulonglong directLightAnyHitHostQueryBytes =
+        jsonIntegerValue(batching, QStringLiteral("directLightAnyHitFrontierHostQueryBytes"));
+      const qulonglong directLightAnyHitStateHandleBytes =
+        jsonIntegerValue(batching, QStringLiteral("directLightAnyHitFrontierStateHandleBytes"));
+      line +=
+        QStringLiteral(", direct-light any-hit batches %1 rays/%2 chunks, avg %3 (%4 packed-ray "
+                       "bytes/%5 host-query bytes/%6 state-handle bytes)")
+          .arg(directLightAnyHitBatchRays)
+          .arg(directLightAnyHitBatchChunks)
+          .arg(average(directLightAnyHitBatchRays, directLightAnyHitBatchChunks))
+          .arg(directLightAnyHitPackedRayBytes)
+          .arg(directLightAnyHitHostQueryBytes)
+          .arg(directLightAnyHitStateHandleBytes);
     }
   }
   const QJsonObject depthPrepass =

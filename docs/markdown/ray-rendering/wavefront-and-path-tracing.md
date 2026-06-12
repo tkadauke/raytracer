@@ -307,7 +307,10 @@ batches. The trace also carries unavailable reasons, so prepared buffer
 compaction is not confused with full scheduler-owned frontier compaction, and
 platform any-hit frontiers are not confused with direct-light visibility work
 that stays resident across shading. Future backends can flip those higher-level
-flags only when they actually keep that state on device. The compaction
+flags only when they actually keep that state on device. Direct-light any-hit
+frontier byte totals size the packed-ray, host-query, and state-handle payloads
+for next-event-estimation occlusion work specifically, rather than mixing that
+pressure into all any-hit frontiers. The compaction
 candidate diagnostics apply the same split to inactive paths: packed-ray bytes
 estimate the intersection payload that could be compacted, while state-handle
 bytes estimate the remaining CPU path-state association tied to those candidate

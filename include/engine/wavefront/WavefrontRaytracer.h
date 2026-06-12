@@ -165,6 +165,9 @@ namespace engine::wavefront {
       std::vector<std::uint64_t> frontierClosestHitBatchRaysPerDepth;
       std::vector<std::uint64_t> directLightAnyHitBatchChunksPerDepth;
       std::vector<std::uint64_t> directLightAnyHitBatchRaysPerDepth;
+      std::uint64_t directLightAnyHitFrontierPackedRayBytes = 0;
+      std::uint64_t directLightAnyHitFrontierHostQueryBytes = 0;
+      std::uint64_t directLightAnyHitFrontierStateHandleBytes = 0;
       std::vector<std::uint64_t> frontierRay4PacketChunksPerDepth;
       std::vector<std::uint64_t> frontierRay8PacketChunksPerDepth;
       std::vector<std::uint64_t> frontierScalarRaysPerDepth;

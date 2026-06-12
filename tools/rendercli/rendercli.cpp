@@ -496,6 +496,12 @@ namespace {
         << " direct_light_any_hit_batch_avg="
         << ratio(static_cast<double>(directLightAnyHitBatchRayCount),
                  static_cast<double>(directLightAnyHitBatchChunkCount))
+        << " direct_light_any_hit_frontier_packed_ray_bytes="
+        << unsignedValue(batching, "directLightAnyHitFrontierPackedRayBytes")
+        << " direct_light_any_hit_frontier_host_query_bytes="
+        << unsignedValue(batching, "directLightAnyHitFrontierHostQueryBytes")
+        << " direct_light_any_hit_frontier_state_handle_bytes="
+        << unsignedValue(batching, "directLightAnyHitFrontierStateHandleBytes")
         << " frontier_ray4_packet_chunks=" << frontierRay4PacketChunkCount
         << " frontier_ray8_packet_chunks=" << frontierRay8PacketChunkCount
         << " frontier_packet_fill="

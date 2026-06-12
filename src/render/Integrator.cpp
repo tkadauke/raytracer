@@ -73,6 +73,9 @@ namespace render {
     frontierClosestHitBatchRaysPerDepth.clear();
     directLightAnyHitBatchChunksPerDepth.clear();
     directLightAnyHitBatchRaysPerDepth.clear();
+    directLightAnyHitFrontierPackedRayBytes = 0;
+    directLightAnyHitFrontierHostQueryBytes = 0;
+    directLightAnyHitFrontierStateHandleBytes = 0;
     frontierRay4PacketChunksPerDepth.clear();
     frontierRay8PacketChunksPerDepth.clear();
     frontierScalarRaysPerDepth.clear();
@@ -393,9 +396,9 @@ namespace render {
     frontierClosestHitBatchRaysPerDepth.push_back(batchRays);
   }
 
-  void IntegratorBatchMetrics::recordDirectLightAnyHitBatch(std::uint64_t depth,
-                                                            std::uint64_t batchChunks,
-                                                            std::uint64_t batchRays) {
+  void IntegratorBatchMetrics::recordDirectLightAnyHitBatch(
+    std::uint64_t depth, std::uint64_t batchChunks, std::uint64_t batchRays,
+    std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes, std::uint64_t stateHandleBytes) {
     if (directLightAnyHitBatchChunksPerDepth.size() <= depth) {
       directLightAnyHitBatchChunksPerDepth.resize(depth + 1);
     }
@@ -404,6 +407,9 @@ namespace render {
     }
     directLightAnyHitBatchChunksPerDepth[depth] += batchChunks;
     directLightAnyHitBatchRaysPerDepth[depth] += batchRays;
+    directLightAnyHitFrontierPackedRayBytes += packedRayBytes;
+    directLightAnyHitFrontierHostQueryBytes += hostQueryBytes;
+    directLightAnyHitFrontierStateHandleBytes += stateHandleBytes;
   }
 
   bool IntegratorBatchMetrics::hasMixedQueryDepth(std::size_t depth) const {
@@ -683,6 +689,9 @@ namespace render {
                source.intersectionBackendClosestHitFrontierResidency);
     mergeLabel(intersectionBackendAnyHitFrontierResidency,
                source.intersectionBackendAnyHitFrontierResidency);
+    directLightAnyHitFrontierPackedRayBytes += source.directLightAnyHitFrontierPackedRayBytes;
+    directLightAnyHitFrontierHostQueryBytes += source.directLightAnyHitFrontierHostQueryBytes;
+    directLightAnyHitFrontierStateHandleBytes += source.directLightAnyHitFrontierStateHandleBytes;
     intersectionBackendClosestHitFrontierPackedRayBytes +=
       source.intersectionBackendClosestHitFrontierPackedRayBytes;
     intersectionBackendAnyHitFrontierPackedRayBytes +=

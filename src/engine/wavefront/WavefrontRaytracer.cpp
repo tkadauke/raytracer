@@ -106,6 +106,9 @@ namespace engine::wavefront {
                metrics.intersectionBackendClosestHitFrontierResidency);
     mergeLabel(intersectionBackendAnyHitFrontierResidency,
                metrics.intersectionBackendAnyHitFrontierResidency);
+    directLightAnyHitFrontierPackedRayBytes += metrics.directLightAnyHitFrontierPackedRayBytes;
+    directLightAnyHitFrontierHostQueryBytes += metrics.directLightAnyHitFrontierHostQueryBytes;
+    directLightAnyHitFrontierStateHandleBytes += metrics.directLightAnyHitFrontierStateHandleBytes;
     intersectionBackendClosestHitFrontierPackedRayBytes +=
       metrics.intersectionBackendClosestHitFrontierPackedRayBytes;
     intersectionBackendAnyHitFrontierPackedRayBytes +=
@@ -877,6 +880,12 @@ namespace engine::wavefront {
     batchingJson["frontierClosestHitBatchRaysPerDepth"] = frontierClosestHitBatchRaysPerDepth;
     batchingJson["directLightAnyHitBatchChunksPerDepth"] = directLightAnyHitBatchChunksPerDepth;
     batchingJson["directLightAnyHitBatchRaysPerDepth"] = directLightAnyHitBatchRaysPerDepth;
+    batchingJson["directLightAnyHitFrontierPackedRayBytes"] =
+      static_cast<double>(batching.directLightAnyHitFrontierPackedRayBytes);
+    batchingJson["directLightAnyHitFrontierHostQueryBytes"] =
+      static_cast<double>(batching.directLightAnyHitFrontierHostQueryBytes);
+    batchingJson["directLightAnyHitFrontierStateHandleBytes"] =
+      static_cast<double>(batching.directLightAnyHitFrontierStateHandleBytes);
     batchingJson["frontierQueryRoundTrips"] =
       static_cast<double>(batching.frontierQueryRoundTrips());
     batchingJson["frontierResidentQueryRoundTripsEstimate"] =
