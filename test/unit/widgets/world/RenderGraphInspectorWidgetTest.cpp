@@ -1237,8 +1237,10 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("resident support frontiers")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, gpuCompactionUnavailableReason));
     EXPECT_TRUE(nodeLineTooltipContains(pass, residentDirectLightUnavailableReason));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("active-hit host bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("direct-light any-hit chunks")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("resident savings")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("contribution bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("state-handle bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("host compaction removed")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("retained-index bytes")));
@@ -1331,6 +1333,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("query round trips")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("closest-hit")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("any-hit")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("active-hit host bytes")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowRasterMetricsOnSelectedPassRow) {

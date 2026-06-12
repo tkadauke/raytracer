@@ -1205,6 +1205,10 @@ Progress:
 - Wavefront metrics now report direct-light contribution host bytes per depth
   and in compact rendercli summaries. This sizes the resolved lighting payload
   that bridges resident direct-light visibility and per-hit shading.
+- Modeler graph-node tooltips now summarize active-hit and direct-light
+  contribution host bytes alongside the existing frontier payload diagnostics,
+  making the remaining Phase 8 host-side shading boundary visible without
+  opening the detail table.
 
 ---
 

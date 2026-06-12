@@ -1173,6 +1173,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         if (mixedQueryRoundTrips > 0) {
           line += QStringLiteral(", %1 mixed-depth round trips").arg(mixedQueryRoundTrips);
         }
+        const qulonglong activeHitHostBytes =
+          jsonIntegerValue(batching, QStringLiteral("activeHitHostBytesProcessed"));
+        if (batching.contains(QStringLiteral("activeHitHostBytesProcessed"))) {
+          line += QStringLiteral(", %1 active-hit host bytes").arg(activeHitHostBytes);
+        }
         const qulonglong spawnedContinuations =
           jsonIntegerValue(batching, QStringLiteral("spawnedContinuationSamples"));
         if (spawnedContinuations > 0) {
@@ -1388,6 +1393,8 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
                 .arg(average(closestHitBatchRays, closestHitBatchChunks));
     }
     if (directLightAnyHitBatchChunks > 0) {
+      const qulonglong directLightContributionHostBytes =
+        jsonIntegerValue(batching, QStringLiteral("directLightContributionHostBytes"));
       const qulonglong directLightAnyHitPackedRayBytes =
         jsonIntegerValue(batching, QStringLiteral("directLightAnyHitFrontierPackedRayBytes"));
       const qulonglong directLightAnyHitHostQueryBytes =
@@ -1400,13 +1407,14 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         batching, QStringLiteral("residentDirectLightBatchRoundTripSavingsEstimate"));
       line += QStringLiteral(
                 ", direct-light any-hit chunks %1 rays/%2 chunks, avg %3 (%4 round trips, "
-                "%5 resident savings, %6 packed-ray bytes/%7 host-query bytes/%8 state-handle "
-                "bytes)")
+                "%5 resident savings, %6 contribution bytes, %7 packed-ray bytes/%8 host-query "
+                "bytes/%9 state-handle bytes)")
                 .arg(directLightAnyHitBatchRays)
                 .arg(directLightAnyHitBatchChunks)
                 .arg(average(directLightAnyHitBatchRays, directLightAnyHitBatchChunks))
                 .arg(directLightAnyHitRoundTrips)
                 .arg(residentDirectLightSavings)
+                .arg(directLightContributionHostBytes)
                 .arg(directLightAnyHitPackedRayBytes)
                 .arg(directLightAnyHitHostQueryBytes)
                 .arg(directLightAnyHitStateHandleBytes);
