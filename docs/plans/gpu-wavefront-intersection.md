@@ -1164,6 +1164,10 @@ Progress:
   object. It still executes on the current backend immediately, but
   next-event-estimation occlusion now has an owner that can become resident
   without spreading query vector assembly through the shading loop.
+- The direct-light visibility batch now also owns its resolved occlusion bits,
+  so scalar and batched shading consume one object instead of parallel
+  selection and `vector<bool>` arrays. That tightens the boundary a future
+  resident direct-light batch will override.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a

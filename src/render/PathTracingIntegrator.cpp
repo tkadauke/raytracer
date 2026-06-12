@@ -253,19 +253,27 @@ namespace render {
       return m_shadowQueries.empty();
     }
 
-    [[nodiscard]] const std::vector<DirectLightingSelection>& selections() const {
-      return m_selections;
+    [[nodiscard]] std::size_t size() const {
+      return m_selections.size();
+    }
+
+    [[nodiscard]] const DirectLightingSelection& selection(std::size_t index) const {
+      return m_selections[index];
+    }
+
+    [[nodiscard]] bool occluded(std::size_t index) const {
+      return index < m_occluded.size() && m_occluded[index];
     }
 
     [[nodiscard]] std::uint64_t hostSelectionBytes() const {
       return static_cast<std::uint64_t>(m_selections.size()) * sizeof(DirectLightingSelection);
     }
 
-    std::vector<bool> resolveOcclusion(const Scene& scene,
-                                       const WavefrontIntersectionBackend& intersectionBackend,
-                                       int bounce, IntegratorBatchMetrics* metrics) {
-      std::vector<bool> occluded;
+    void resolveOcclusion(const Scene& scene,
+                          const WavefrontIntersectionBackend& intersectionBackend, int bounce,
+                          IntegratorBatchMetrics* metrics) {
       WavefrontIntersectionQueryTiming intersectionTiming;
+      m_occluded.clear();
       if (metrics) {
         metrics->recordDirectLightSelectionHostBytes(
           static_cast<std::uint64_t>(std::max(0, bounce)), hostSelectionBytes());
@@ -273,7 +281,7 @@ namespace render {
       if (intersectionBackend.prefersAnyHitBatch(m_shadowQueries.size())) {
         const std::unique_ptr<WavefrontAnyHitFrontier> frontier =
           intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
-        occluded = intersectionBackend.intersectAnyFrontier(
+        m_occluded = intersectionBackend.intersectAnyFrontier(
           scene, *frontier, metrics ? &intersectionTiming : nullptr);
         if (metrics) {
           recordDirectLightChunks(bounce, /*batchChunks=*/1, frontier->rayCount(),
@@ -284,10 +292,10 @@ namespace render {
                                                  frontier->stateHandleBytes());
           metrics->recordAnyHitQuery(intersectionBackend, frontier->rayCount(), intersectionTiming);
         }
-        return occluded;
+        return;
       }
 
-      occluded.reserve(m_shadowQueries.size());
+      m_occluded.reserve(m_shadowQueries.size());
       if (metrics) {
         const std::uint64_t queryCount = static_cast<std::uint64_t>(m_shadowQueries.size());
         recordDirectLightChunks(bounce, queryCount, queryCount, /*packedRayBytes=*/0,
@@ -298,13 +306,12 @@ namespace render {
         WavefrontIntersectionQueryTiming queryTiming;
         State scratchState;
         State& queryState = query.state ? *query.state : scratchState;
-        occluded.push_back(intersectionBackend.intersectAny(
+        m_occluded.push_back(intersectionBackend.intersectAny(
           scene, query.ray, query.maxDistance, queryState, metrics ? &queryTiming : nullptr));
         if (metrics) {
           metrics->recordAnyHitQuery(intersectionBackend, 1, queryTiming);
         }
       }
-      return occluded;
     }
 
   private:
@@ -320,6 +327,7 @@ namespace render {
 
     std::vector<DirectLightingSelection> m_selections;
     std::vector<WavefrontAnyHitQuery> m_shadowQueries;
+    std::vector<bool> m_occluded;
   };
 
   struct PathTracingIntegrator::BatchDepthMetrics {
@@ -540,23 +548,20 @@ namespace render {
       return Colord::black();
     }
 
-    std::vector<bool> occluded;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      occluded =
-        visibilityBatch.resolveOcclusion(scene, resolvedIntersectionBackend, bounce, metrics);
+      visibilityBatch.resolveOcclusion(scene, resolvedIntersectionBackend, bounce, metrics);
     }
 
     Colord contribution = Colord::black();
-    const std::vector<DirectLightingSelection>& selections = visibilityBatch.selections();
-    for (std::size_t index = 0; index != selections.size(); ++index) {
-      const bool sampleOccluded = index < occluded.size() && occluded[index];
+    for (std::size_t index = 0; index != visibilityBatch.size(); ++index) {
+      const DirectLightingSelection& selection = visibilityBatch.selection(index);
       const DirectLightingSample sample = resolveDirectLightingCandidate(
-        selections[index].candidate, material, hitPoint, wi, sampleOccluded, state);
+        selection.candidate, material, hitPoint, wi, visibilityBatch.occluded(index), state);
       if (metrics) {
         metrics->recordDirectLightSample(sample.occluded, sample.contributing());
       }
-      contribution += sample.contribution / selections[index].selectionPdf;
+      contribution += sample.contribution / selection.selectionPdf;
     }
     return contribution / static_cast<double>(m_directLightSamples);
   }
@@ -611,17 +616,16 @@ namespace render {
       return contributions;
     }
 
-    std::vector<bool> occluded;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      occluded = visibilityBatch.resolveOcclusion(scene, intersectionBackend, bounce, metrics);
+      visibilityBatch.resolveOcclusion(scene, intersectionBackend, bounce, metrics);
     }
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
-      const std::vector<DirectLightingSelection>& selections = visibilityBatch.selections();
-      for (std::size_t selectionIndex = 0; selectionIndex != selections.size(); ++selectionIndex) {
-        const DirectLightingSelection& selection = selections[selectionIndex];
+      for (std::size_t selectionIndex = 0; selectionIndex != visibilityBatch.size();
+           ++selectionIndex) {
+        const DirectLightingSelection& selection = visibilityBatch.selection(selectionIndex);
         const BatchHit& hit = activeHits[selection.hitIndex];
         BatchPath& path = paths[hit.pathIndex];
         const auto material = hit.material ? hit.material : hit.primitive->material();
@@ -631,9 +635,9 @@ namespace render {
 
         const PathMaterialTransport& transport = material->pathTransport();
         const Vector3d wi = -path.ray.direction().normalized();
-        const bool sampleOccluded = selectionIndex < occluded.size() && occluded[selectionIndex];
-        const DirectLightingSample sample = resolveDirectLightingCandidate(
-          selection.candidate, transport, hit.hitPoint, wi, sampleOccluded, path.state);
+        const DirectLightingSample sample =
+          resolveDirectLightingCandidate(selection.candidate, transport, hit.hitPoint, wi,
+                                         visibilityBatch.occluded(selectionIndex), path.state);
         if (metrics) {
           metrics->recordDirectLightSample(sample.occluded, sample.contributing());
         }
