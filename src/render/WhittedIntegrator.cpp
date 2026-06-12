@@ -69,6 +69,41 @@ namespace render {
     HitPoint hitPoint;
   };
 
+  class WhittedIntegrator::ActiveQueuedHits {
+  public:
+    void reserve(std::size_t count) {
+      m_hits.reserve(count);
+    }
+
+    void clear() {
+      m_hits.clear();
+    }
+
+    [[nodiscard]] std::size_t size() const {
+      return m_hits.size();
+    }
+
+    [[nodiscard]] std::uint64_t hostBytes() const {
+      return static_cast<std::uint64_t>(m_hits.size()) * sizeof(QueuedHit);
+    }
+
+    void add(std::size_t queuedIndex, const Primitive* primitive,
+             std::shared_ptr<Material> material, const HitPoint& hitPoint) {
+      m_hits.push_back(QueuedHit{queuedIndex, primitive, std::move(material), hitPoint});
+    }
+
+    [[nodiscard]] std::vector<QueuedHit>::const_iterator begin() const {
+      return m_hits.begin();
+    }
+
+    [[nodiscard]] std::vector<QueuedHit>::const_iterator end() const {
+      return m_hits.end();
+    }
+
+  private:
+    std::vector<QueuedHit> m_hits;
+  };
+
   struct WhittedIntegrator::BatchDepthMetrics {
     std::uint64_t frontierRayHits{0};
     std::uint64_t frontierRayMisses{0};
@@ -283,7 +318,7 @@ namespace render {
 
   void WhittedIntegrator::intersectQueuedRayScalar(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    std::vector<QueuedRay>& current, std::size_t queuedIndex, std::vector<QueuedHit>& activeHits,
+    std::vector<QueuedRay>& current, std::size_t queuedIndex, ActiveQueuedHits& activeHits,
     std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
     auto& queued = current[queuedIndex];
@@ -333,14 +368,14 @@ namespace render {
     if (depthMetrics.trackFrontierMetrics) {
       ++depthMetrics.frontierRayHits;
     }
-    activeHits.push_back(QueuedHit{queuedIndex, hit.primitive, hit.material, hit.hitPoint});
+    activeHits.add(queuedIndex, hit.primitive, hit.material, hit.hitPoint);
   }
 
   void WhittedIntegrator::intersectQueuedRayPacket(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
     std::vector<QueuedRay>& current, std::size_t firstQueuedIndex, std::size_t laneCount,
-    std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
-    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
+    ActiveQueuedHits& activeHits, std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
+    IntegratorBatchMetrics* metrics) const {
     const std::size_t activeLaneCount = std::min(laneCount, Ray4::lanes);
     std::array<Rayd, Ray4::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined};
@@ -416,8 +451,8 @@ namespace render {
           ++depthMetrics.frontierRayHits;
         }
         const Primitive* primitive = packetHits.primitive(lane);
-        activeHits.push_back(QueuedHit{firstQueuedIndex + lane, primitive, primitive->material(),
-                                       packetHits.hitPoint(lane)});
+        activeHits.add(firstQueuedIndex + lane, primitive, primitive->material(),
+                       packetHits.hitPoint(lane));
       }
       return;
     }
@@ -475,16 +510,15 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics) {
         ++depthMetrics.frontierRayHits;
       }
-      activeHits.push_back(
-        QueuedHit{firstQueuedIndex + lane, hitPrimitive, hitPrimitive->material(), hitPoint});
+      activeHits.add(firstQueuedIndex + lane, hitPrimitive, hitPrimitive->material(), hitPoint);
     }
   }
 
   void WhittedIntegrator::intersectQueuedRayPacket8(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
     std::vector<QueuedRay>& current, std::size_t firstQueuedIndex, std::size_t laneCount,
-    std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
-    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
+    ActiveQueuedHits& activeHits, std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
+    IntegratorBatchMetrics* metrics) const {
     const std::size_t activeLaneCount = std::min(laneCount, Ray8::lanes);
     std::array<Rayd, Ray8::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
                                        Rayd::undefined, Rayd::undefined, Rayd::undefined,
@@ -561,8 +595,8 @@ namespace render {
           ++depthMetrics.frontierRayHits;
         }
         const Primitive* primitive = packetHits.primitive(lane);
-        activeHits.push_back(QueuedHit{firstQueuedIndex + lane, primitive, primitive->material(),
-                                       packetHits.hitPoint(lane)});
+        activeHits.add(firstQueuedIndex + lane, primitive, primitive->material(),
+                       packetHits.hitPoint(lane));
       }
       return;
     }
@@ -620,14 +654,13 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics) {
         ++depthMetrics.frontierRayHits;
       }
-      activeHits.push_back(
-        QueuedHit{firstQueuedIndex + lane, hitPrimitive, hitPrimitive->material(), hitPoint});
+      activeHits.add(firstQueuedIndex + lane, hitPrimitive, hitPrimitive->material(), hitPoint);
     }
   }
 
   void WhittedIntegrator::intersectQueuedRayBatch(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    std::vector<QueuedRay>& current, std::size_t traceableCount, std::vector<QueuedHit>& activeHits,
+    std::vector<QueuedRay>& current, std::size_t traceableCount, ActiveQueuedHits& activeHits,
     std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
     ClosestHitQueuedRayFrontierBatch frontier(current, traceableCount, depthMetrics, metrics);
@@ -650,15 +683,14 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics) {
         ++depthMetrics.frontierRayHits;
       }
-      activeHits.push_back(QueuedHit{queuedIndex, hit->primitive, hit->material, hit->hitPoint});
+      activeHits.add(queuedIndex, hit->primitive, hit->material, hit->hitPoint);
     }
   }
 
   void WhittedIntegrator::intersectActiveFrontier(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    std::vector<QueuedRay>& current, std::vector<QueuedHit>& activeHits,
-    std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
-    IntegratorBatchMetrics* metrics) const {
+    std::vector<QueuedRay>& current, ActiveQueuedHits& activeHits, std::vector<Colord>& result,
+    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     activeHits.clear();
     std::size_t traceableCount = 0;
     {
@@ -826,7 +858,7 @@ namespace render {
 
     std::vector<QueuedRay> current;
     std::vector<QueuedRay> next;
-    std::vector<QueuedHit> activeHits;
+    ActiveQueuedHits activeHits;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->pathSetupWorkerSeconds : nullptr);
       result.resize(samples.size(), Colord::black());
@@ -871,7 +903,7 @@ namespace render {
       intersectActiveFrontier(intersectionBackend, scene, current, activeHits, result, depthMetrics,
                               metrics);
       if (metrics) {
-        metrics->recordActiveHitHostBytes(activeHits.size() * sizeof(QueuedHit));
+        metrics->recordActiveHitHostBytes(activeHits.hostBytes());
         metrics->recordFrontierIntersections(depthMetrics.frontierRayHits,
                                              depthMetrics.frontierRayMisses);
         metrics->recordFrontierTraversal(

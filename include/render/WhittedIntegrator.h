@@ -49,6 +49,7 @@ namespace render {
     void setCancellationCallback(CancellationCallback callback) override;
 
   private:
+    class ActiveQueuedHits;
     struct BatchDepthMetrics;
     class ClosestHitQueuedRayFrontierBatch;
     struct QueuedHit;
@@ -72,29 +73,29 @@ namespace render {
     std::size_t partitionTraceableQueuedRays(std::vector<QueuedRay>& current) const;
     void intersectQueuedRayScalar(const WavefrontIntersectionBackend& intersectionBackend,
                                   const Scene& scene, std::vector<QueuedRay>& current,
-                                  std::size_t queuedIndex, std::vector<QueuedHit>& activeHits,
+                                  std::size_t queuedIndex, ActiveQueuedHits& activeHits,
                                   std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
                                   IntegratorBatchMetrics* metrics) const;
     void intersectQueuedRayPacket(const WavefrontIntersectionBackend& intersectionBackend,
                                   const Scene& scene, std::vector<QueuedRay>& current,
                                   std::size_t firstQueuedIndex, std::size_t laneCount,
-                                  std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
+                                  ActiveQueuedHits& activeHits, std::vector<Colord>& result,
                                   BatchDepthMetrics& depthMetrics,
                                   IntegratorBatchMetrics* metrics) const;
     void intersectQueuedRayPacket8(const WavefrontIntersectionBackend& intersectionBackend,
                                    const Scene& scene, std::vector<QueuedRay>& current,
                                    std::size_t firstQueuedIndex, std::size_t laneCount,
-                                   std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
+                                   ActiveQueuedHits& activeHits, std::vector<Colord>& result,
                                    BatchDepthMetrics& depthMetrics,
                                    IntegratorBatchMetrics* metrics) const;
     void intersectQueuedRayBatch(const WavefrontIntersectionBackend& intersectionBackend,
                                  const Scene& scene, std::vector<QueuedRay>& current,
-                                 std::size_t traceableCount, std::vector<QueuedHit>& activeHits,
+                                 std::size_t traceableCount, ActiveQueuedHits& activeHits,
                                  std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;
     void intersectActiveFrontier(const WavefrontIntersectionBackend& intersectionBackend,
                                  const Scene& scene, std::vector<QueuedRay>& current,
-                                 std::vector<QueuedHit>& activeHits, std::vector<Colord>& result,
+                                 ActiveQueuedHits& activeHits, std::vector<Colord>& result,
                                  BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;
     void prepareContinuationQueue(std::vector<QueuedRay>& next, std::size_t currentQueueSize) const;

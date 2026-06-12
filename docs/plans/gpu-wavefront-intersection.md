@@ -1253,6 +1253,10 @@ Progress:
 - Whitted wavefront metrics now report active-hit host bytes for the queued-hit
   records that bridge closest-hit frontier resolution to material shading,
   matching the path-tracing active-hit host-byte diagnostic.
+- Whitted active hits now live behind a dedicated `ActiveQueuedHits` owner that
+  centralizes reservation, insertion, iteration, and host-byte sizing. The
+  scheduler still shades on the host, but it no longer treats the active-hit
+  list as an unstructured vector at the depth loop boundary.
 
 ---
 
