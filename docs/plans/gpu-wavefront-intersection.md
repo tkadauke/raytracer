@@ -1209,6 +1209,11 @@ Progress:
   contribution host bytes alongside the existing frontier payload diagnostics,
   making the remaining Phase 8 host-side shading boundary visible without
   opening the detail table.
+- Batched path-tracing shading for an active hit now lives behind a dedicated
+  `PathTracingIntegrator` instance method. The depth scheduler still owns
+  frontier compaction and spawned continuations, but its loop now expresses the
+  Phase 8 boundary as intersect, resolve direct-light contributions, shade
+  active hits, then compact retained path state.
 
 ---
 

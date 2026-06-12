@@ -1251,6 +1251,109 @@ namespace render {
     return accumulated;
   }
 
+  bool PathTracingIntegrator::shadeActiveHit(
+    const Scene& scene, const LightSampler& lightSampler, const ActivePathHits& activeHits,
+    std::size_t hitIndex, HostBatchPathFrontier& paths, HostBatchPathFrontier& spawnedPaths,
+    const DirectLightContributionBatch& directLightContributions, int bounce,
+    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
+    const auto& hit = activeHits[hitIndex];
+    auto& path = paths[hit.pathIndex];
+    const Colord accumulatedBeforeDepth =
+      depthMetrics.trackRadianceDelta ? path.accumulated() : Colord::black();
+
+    core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
+    const auto material = hit.material ? hit.material : hit.primitive->material();
+    if (!material) {
+      path.state.recurseOut();
+      recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
+      return false;
+    }
+    const PathMaterialTransport& transport = material->pathTransport();
+
+    const Colord emittedContribution =
+      path.throughput * emittedRadiance(lightSampler, transport, path.ray, hit.hitPoint,
+                                        path.sampledFromBsdf, path.bsdfSamplePdf,
+                                        path.bsdfSampleDelta, metrics);
+    path.accumulated() += emittedContribution;
+    if (metrics) {
+      metrics->recordEmittedRadiance(emittedContribution);
+    }
+
+    const Vector3d wi = -path.ray.direction().normalized();
+    if (!transport.supportsPathTracing()) {
+      recordUnsupportedPathMaterial(path.state, metrics);
+      path.state.recurseOut();
+      recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
+      return false;
+    }
+
+    const Colord ambientContribution =
+      path.throughput * transport.ambientRadiance(scene, path.ray, hit.hitPoint);
+    path.accumulated() += ambientContribution;
+    if (metrics) {
+      metrics->recordAmbientRadiance(ambientContribution);
+    }
+
+    const Colord directLightContribution = path.throughput * directLightContributions.at(hitIndex);
+    path.accumulated() += directLightContribution;
+    if (metrics) {
+      metrics->recordDirectLightRadiance(directLightContribution, bounce == 0);
+    }
+
+    const std::vector<MaterialBsdfSample> deltaSamples =
+      transport.deltaBsdfSamples(hit.hitPoint, wi);
+    if (!deltaSamples.empty()) {
+      State baseState = path.state.cloneForPathContinuation();
+      for (const MaterialBsdfSample& sampled : deltaSamples) {
+        if (!canContinueWithSample(sampled, hit.hitPoint)) {
+          continue;
+        }
+
+        Colord nextThroughput = continuedThroughput(path.throughput, sampled, hit.hitPoint);
+        if (!continuesExactDeltaBranch(nextThroughput)) {
+          continue;
+        }
+        State childState = baseState;
+        setStateThroughput(childState, nextThroughput);
+        spawnedPaths.emplaceContinuation(sampled.rayFrom(hit.hitPoint), nextThroughput,
+                                         path.backgroundVisible, std::move(childState),
+                                         path.accumulated(), /*nextSampledFromBsdf=*/true,
+                                         sampled.pdf, /*nextBsdfSampleDelta=*/true);
+      }
+      path.state.recurseOut();
+      recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
+      return false;
+    }
+
+    const Vector2d bsdfSample =
+      path.state.sampleStream->sample2D(SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
+    const MaterialBsdfSample sampled = transport.sampleBsdf(hit.hitPoint, wi, bsdfSample);
+    if (!canContinueWithSample(sampled, hit.hitPoint)) {
+      path.state.recurseOut();
+      recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
+      return false;
+    }
+
+    path.throughput = continuedThroughput(path.throughput, sampled, hit.hitPoint);
+    if (!sampled.isDelta) {
+      path.backgroundVisible = false;
+    }
+    path.sampledFromBsdf = true;
+    path.bsdfSamplePdf = sampled.pdf;
+    path.bsdfSampleDelta = sampled.isDelta;
+
+    if (!survivesRussianRoulette(path.throughput, path.state, bounce)) {
+      path.state.recurseOut();
+      recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
+      return false;
+    }
+
+    path.ray = sampled.rayFrom(hit.hitPoint);
+    path.state.recurseOut();
+    recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
+    return true;
+  }
+
   std::vector<Colord> PathTracingIntegrator::radianceBatch(
     const Scene& scene, const std::vector<IntegratorRaySample>& samples,
     const RayCaster& recursiveRayCaster, IntegratorBatchMetrics* metrics,
@@ -1332,103 +1435,9 @@ namespace render {
         scene, lightSampler, activeHits, paths, bounce, intersectionBackend, metrics);
 
       for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
-        const auto& hit = activeHits[hitIndex];
-        auto& path = paths[hit.pathIndex];
-        const Colord accumulatedBeforeDepth =
-          depthMetrics.trackRadianceDelta ? path.accumulated() : Colord::black();
-        {
-          core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
-          const auto material = hit.material ? hit.material : hit.primitive->material();
-          if (!material) {
-            path.state.recurseOut();
-            recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
-            continue;
-          }
-          const PathMaterialTransport& transport = material->pathTransport();
-
-          const Colord emittedContribution =
-            path.throughput * emittedRadiance(lightSampler, transport, path.ray, hit.hitPoint,
-                                              path.sampledFromBsdf, path.bsdfSamplePdf,
-                                              path.bsdfSampleDelta, metrics);
-          path.accumulated() += emittedContribution;
-          if (metrics) {
-            metrics->recordEmittedRadiance(emittedContribution);
-          }
-
-          const Vector3d wi = -path.ray.direction().normalized();
-          if (!transport.supportsPathTracing()) {
-            recordUnsupportedPathMaterial(path.state, metrics);
-            path.state.recurseOut();
-            recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
-            continue;
-          }
-
-          const Colord ambientContribution =
-            path.throughput * transport.ambientRadiance(scene, path.ray, hit.hitPoint);
-          path.accumulated() += ambientContribution;
-          if (metrics) {
-            metrics->recordAmbientRadiance(ambientContribution);
-          }
-
-          const Colord directLightContribution =
-            path.throughput * directLightContributions.at(hitIndex);
-          path.accumulated() += directLightContribution;
-          if (metrics) {
-            metrics->recordDirectLightRadiance(directLightContribution, bounce == 0);
-          }
-
-          const std::vector<MaterialBsdfSample> deltaSamples =
-            transport.deltaBsdfSamples(hit.hitPoint, wi);
-          if (!deltaSamples.empty()) {
-            State baseState = path.state.cloneForPathContinuation();
-            for (const MaterialBsdfSample& sampled : deltaSamples) {
-              if (!canContinueWithSample(sampled, hit.hitPoint)) {
-                continue;
-              }
-
-              Colord nextThroughput = continuedThroughput(path.throughput, sampled, hit.hitPoint);
-              if (!continuesExactDeltaBranch(nextThroughput)) {
-                continue;
-              }
-              State childState = baseState;
-              setStateThroughput(childState, nextThroughput);
-              spawnedPaths.emplaceContinuation(sampled.rayFrom(hit.hitPoint), nextThroughput,
-                                               path.backgroundVisible, std::move(childState),
-                                               path.accumulated(), /*nextSampledFromBsdf=*/true,
-                                               sampled.pdf, /*nextBsdfSampleDelta=*/true);
-            }
-            path.state.recurseOut();
-            recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
-            continue;
-          }
-
-          const Vector2d bsdfSample = path.state.sampleStream->sample2D(
-            SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
-          const MaterialBsdfSample sampled = transport.sampleBsdf(hit.hitPoint, wi, bsdfSample);
-          if (!canContinueWithSample(sampled, hit.hitPoint)) {
-            path.state.recurseOut();
-            recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
-            continue;
-          }
-
-          path.throughput = continuedThroughput(path.throughput, sampled, hit.hitPoint);
-          if (!sampled.isDelta) {
-            path.backgroundVisible = false;
-          }
-          path.sampledFromBsdf = true;
-          path.bsdfSamplePdf = sampled.pdf;
-          path.bsdfSampleDelta = sampled.isDelta;
-
-          if (!survivesRussianRoulette(path.throughput, path.state, bounce)) {
-            path.state.recurseOut();
-            recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
-            continue;
-          }
-
-          path.ray = sampled.rayFrom(hit.hitPoint);
-          path.state.recurseOut();
-          recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
-          frontierCompaction.retain(hit.pathIndex);
+        if (shadeActiveHit(scene, lightSampler, activeHits, hitIndex, paths, spawnedPaths,
+                           directLightContributions, bounce, depthMetrics, metrics)) {
+          frontierCompaction.retain(activeHits[hitIndex].pathIndex);
         }
       }
 

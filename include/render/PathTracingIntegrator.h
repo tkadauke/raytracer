@@ -208,6 +208,11 @@ namespace render {
                                  ActivePathHits& activeHits, int bounce,
                                  BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;
+    bool shadeActiveHit(const Scene& scene, const LightSampler& lightSampler,
+                        const ActivePathHits& activeHits, std::size_t hitIndex,
+                        HostBatchPathFrontier& paths, HostBatchPathFrontier& spawnedPaths,
+                        const DirectLightContributionBatch& directLightContributions, int bounce,
+                        BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const;
 
     int m_maximumRecursionDepth{8};
     int m_russianRouletteDepth{3};
