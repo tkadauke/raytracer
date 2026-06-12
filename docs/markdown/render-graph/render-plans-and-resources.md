@@ -771,7 +771,8 @@ traversal counts, Ray4/Ray8 packet chunk
 counts, packet scalar-fallback reason buckets, Whitted packet-refinement
 material buckets,
 sampled direct-light counts with contributing and shadow-occluded subsets,
-direct-light any-hit round-trip estimates and frontier payload bytes,
+direct-light any-hit round-trip estimates, contribution bytes, and frontier
+payload bytes,
 contribution luminance sums for emitted, direct-light, ambient,
 miss/background, and compatibility-shaded radiance,
 per-depth radiance-delta L2/RMS/max values, configured convergence thresholds,

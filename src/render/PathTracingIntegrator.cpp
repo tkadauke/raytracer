@@ -386,6 +386,10 @@ namespace render {
       return m_contributions.empty();
     }
 
+    [[nodiscard]] std::uint64_t hostBytes() const {
+      return static_cast<std::uint64_t>(m_contributions.size()) * sizeof(Colord);
+    }
+
     [[nodiscard]] Colord at(std::size_t index) const {
       return index < m_contributions.size() ? m_contributions[index] : Colord::black();
     }
@@ -651,6 +655,10 @@ namespace render {
     const WavefrontIntersectionBackend& intersectionBackend,
     IntegratorBatchMetrics* metrics) const {
     DirectLightContributionBatch contributions(activeHits.size());
+    if (metrics) {
+      metrics->recordDirectLightContributionHostBytes(
+        static_cast<std::uint64_t>(std::max(0, bounce)), contributions.hostBytes());
+    }
     if (activeHits.empty()) {
       return contributions;
     }

@@ -1202,6 +1202,9 @@ Progress:
 - Path-tracing direct-light contributions now flow through a dedicated
   contribution batch between next-event-estimation visibility and BSDF shading,
   instead of returning a raw color vector to the scheduler loop.
+- Wavefront metrics now report direct-light contribution host bytes per depth
+  and in compact rendercli summaries. This sizes the resolved lighting payload
+  that bridges resident direct-light visibility and per-hit shading.
 
 ---
 
