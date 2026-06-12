@@ -280,8 +280,9 @@ any-hit ray counts for CPU and GPU-resident query families. When the selected
 backend prefers batched visibility, the path tracer groups all valid
 direct-light shadow rays for the active depth frontier into one any-hit backend
 query instead of submitting one visibility batch per shaded hit. Metrics also
-keep per-depth direct-light any-hit batch counters, so one visibility batch with
-many shadow rays is distinguishable from many scalar shadow queries.
+keep per-depth direct-light any-hit chunk counters, so one grouped visibility
+frontier with many shadow rays is distinguishable from many scalar shadow
+queries.
 They also mark depths where closest-hit frontier batches and direct-light
 any-hit batches both happened. Those mixed query depths are the baseline for
 later GPU-resident frontier scheduling: they show where the current hybrid path
@@ -311,7 +312,7 @@ flags only when they actually keep that state on device. Direct-light any-hit
 frontier byte totals size the packed-ray, host-query, and state-handle payloads
 for next-event-estimation occlusion work specifically, rather than mixing that
 pressure into all any-hit frontiers. The matching direct-light round-trip
-diagnostics report current any-hit batch boundaries and the host round trips a
+diagnostics report current any-hit chunk boundaries and the host round trips a
 resident direct-light implementation would remove. The compaction
 candidate diagnostics apply the same split to inactive paths: packed-ray bytes
 estimate the intersection payload that could be compacted, while state-handle

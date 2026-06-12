@@ -1062,7 +1062,7 @@ Progress:
   original query vector, while `packed_host` and platform frontiers report the
   separate per-ray `State*` array they still need for CPU-side shading updates.
 - Wavefront metrics now report mixed query depths: depth frontiers where both a
-  closest-hit frontier batch and a direct-light any-hit batch ran, plus the
+  closest-hit frontier batch and a direct-light any-hit chunk ran, plus the
   participating closest-hit and any-hit ray counts. This does not keep frontiers
   on the GPU yet, but it gives rendercli, graph traces, and Modeler diagnostics
   a baseline for deciding where GPU-resident frontier/direct-light scheduling

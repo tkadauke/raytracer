@@ -1158,7 +1158,7 @@ namespace RenderGraphInspectorWidgetTest {
     const auto rows = widget.passDetailRows(QStringLiteral("wavefront_beauty"));
 
     EXPECT_FALSE(
-      rowValue(rows, QStringLiteral("Direct-light any-hit batch average rays")).isEmpty());
+      rowValue(rows, QStringLiteral("Direct-light any-hit chunk average rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Direct-light any-hit round trips")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident direct-light round trips")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident direct-light savings")).isEmpty());
@@ -1231,7 +1231,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("resident support frontiers")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, gpuCompactionUnavailableReason));
     EXPECT_TRUE(nodeLineTooltipContains(pass, residentDirectLightUnavailableReason));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("direct-light any-hit batches")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("direct-light any-hit chunks")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("resident savings")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("state-handle bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("host compaction removed")));

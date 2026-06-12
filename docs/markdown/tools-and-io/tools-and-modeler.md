@@ -181,7 +181,7 @@ intersection rays into closest-hit and any-hit ray counts, so a batched shadow
 query can report one any-hit query while still showing how many visibility rays
 were submitted.
 For path-tracing renders, the same diagnostics identify mixed query depths,
-where closest-hit frontier batches and direct-light any-hit batches both ran.
+where closest-hit frontier batches and direct-light any-hit chunks both ran.
 Those counts make the future GPU-resident frontier opportunity visible before
 the scheduler actually keeps path state on device. rendercli and the Modeler
 also report the mixed-depth ray count and mixed-depth query round trips, which
@@ -449,9 +449,9 @@ compact summary prints total `tiles`, `tile_grid`,
 `adaptive_skipped_fraction`.
 Packet chunks can be mixed Ray8/Ray4 chunks, so `frontier_packet_rays` is the
 exact packet-lane work count, while the Ray4/Ray8 chunk counters expose packet
-fill directly. The compact closest-hit and direct-light any-hit batch averages
-divide submitted rays by backend batch chunks, which makes small scalar-like
-batches and useful frontier-sized batches easy to compare in one line. The JSON
+fill directly. The compact closest-hit batch and direct-light any-hit chunk
+averages divide submitted rays by backend chunks, which makes scalar visibility
+chunks and useful frontier-sized batches easy to compare in one line. The JSON
 report keeps the
 per-depth `frontierRayHitsPerDepth`, `frontierRayMissesPerDepth`,
 `frontierPacketChunksPerDepth`, `frontierPacketRaysPerDepth`,
@@ -472,7 +472,7 @@ batch preferences,
 `frontierPacketScalarFallbackRaysByReason` for the base packet-hit fallback
 breakdown and
 `frontierPacketRefinedRaysByMaterial` for the material-family breakdown.
-Direct-light any-hit batch arrays count visibility chunks: grouped backends
+Direct-light any-hit chunk arrays count visibility chunks: grouped backends
 record one chunk per submitted any-hit frontier, while scalar-loop backends
 record one chunk per shadow query. That keeps the resident-direct-light
 round-trip estimate visible even when the selected backend does not prefer a
@@ -712,7 +712,8 @@ Selecting a pass also shows its execution stage, order, incoming dependencies,
 and outgoing dependencies in the property editor alongside pass state, scene
 view, shading profile, resource edges, and trace metadata. Wavefront pass
 metadata includes the same intersection backend diagnostics as the graph
-tooltip, including average rays per closest-hit and direct-light any-hit batch.
+tooltip, including average rays per closest-hit batch and direct-light any-hit
+chunk.
 Hovering a pass or resource node summarizes its scene-view intent and declared
 graph edges without leaving the graph view.
 Unchecking a pass adds a graph override and the dock validates the

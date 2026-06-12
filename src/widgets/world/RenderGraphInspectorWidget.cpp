@@ -777,7 +777,7 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
   if (directLightAnyHitBatchChunks > 0) {
     const qulonglong directLightAnyHitBatchRays = jsonIntegerArraySum(
       batching.value(QStringLiteral("directLightAnyHitBatchRaysPerDepth")).toArray());
-    addDetailRow(rows, QStringLiteral("Direct-light any-hit batch average rays"),
+    addDetailRow(rows, QStringLiteral("Direct-light any-hit chunk average rays"),
                  average(directLightAnyHitBatchRays, directLightAnyHitBatchChunks));
   }
   addDetailIntegerMetadataRow(rows, QStringLiteral("Direct-light any-hit round trips"), batching,
@@ -1380,7 +1380,7 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
       const qulonglong residentDirectLightSavings = jsonIntegerValue(
         batching, QStringLiteral("residentDirectLightBatchRoundTripSavingsEstimate"));
       line += QStringLiteral(
-                ", direct-light any-hit batches %1 rays/%2 chunks, avg %3 (%4 round trips, "
+                ", direct-light any-hit chunks %1 rays/%2 chunks, avg %3 (%4 round trips, "
                 "%5 resident savings, %6 packed-ray bytes/%7 host-query bytes/%8 state-handle "
                 "bytes)")
                 .arg(directLightAnyHitBatchRays)

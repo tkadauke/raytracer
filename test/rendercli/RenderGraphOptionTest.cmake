@@ -2350,8 +2350,8 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_closest_hit_batch_avg=")
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES "direct_light_any_hit_batch_avg=")
-  _rendercli_fail("rendercli wavefront metrics direct-light any-hit batch average summary"
-                  "wavefront metrics summary did not contain direct-light any-hit batch average"
+  _rendercli_fail("rendercli wavefront metrics direct-light any-hit chunk average summary"
+                  "wavefront metrics summary did not contain direct-light any-hit chunk average"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES "direct_light_any_hit_round_trips=")
@@ -2921,13 +2921,13 @@ if(NOT wavefront_metrics_json MATCHES "\"frontierClosestHitBatchRaysPerDepth\"")
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"directLightAnyHitBatchChunksPerDepth\"")
-  _rendercli_fail("rendercli wavefront metrics direct-light any-hit batch chunks"
-                  "wavefront metrics report did not contain direct-light any-hit batch chunk counters"
+  _rendercli_fail("rendercli wavefront metrics direct-light any-hit chunks"
+                  "wavefront metrics report did not contain direct-light any-hit chunk counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"directLightAnyHitBatchRaysPerDepth\"")
-  _rendercli_fail("rendercli wavefront metrics direct-light any-hit batch rays"
-                  "wavefront metrics report did not contain direct-light any-hit batch ray counters"
+  _rendercli_fail("rendercli wavefront metrics direct-light any-hit chunk rays"
+                  "wavefront metrics report did not contain direct-light any-hit chunk ray counters"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 foreach(direct_light_any_hit_field
@@ -3718,7 +3718,7 @@ if(NOT wavefront_batched_visibility_any_hit_rays GREATER wavefront_batched_visib
 endif()
 if(NOT wavefront_batched_visibility_any_hit_batch_rays GREATER wavefront_batched_visibility_any_hit_batch_chunks)
   _rendercli_fail(
-    "rendercli direct-light any-hit batch metrics"
+    "rendercli direct-light any-hit chunk metrics"
     "expected direct_light_any_hit_batch_rays to exceed direct_light_any_hit_batch_chunks"
     "${wavefront_batched_visibility_stdout}" "" "" "")
 endif()
