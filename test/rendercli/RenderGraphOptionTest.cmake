@@ -2236,6 +2236,17 @@ if(NOT wavefront_metrics_stdout MATCHES "intersection_estimated_any_hit_ray_uplo
                   "wavefront metrics summary did not contain any-hit upload byte estimate"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES
+       "intersection_estimated_closest_hit_query_transfer_bytes=[1-9][0-9]*")
+  _rendercli_fail("rendercli wavefront metrics closest-hit transfer summary"
+                  "wavefront metrics summary did not contain closest-hit transfer byte estimate"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "intersection_estimated_any_hit_query_transfer_bytes=0")
+  _rendercli_fail("rendercli wavefront metrics any-hit transfer summary"
+                  "wavefront metrics summary did not contain any-hit transfer byte estimate"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 foreach(feature_name albedo normal depth)
   if(NOT wavefront_metrics_stdout MATCHES "denoise_feature_${feature_name}=0")
     _rendercli_fail("rendercli wavefront metrics denoiser feature summary"
@@ -2564,6 +2575,16 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"intersectionEstimatedAnyHitRayUploadBytes\"")
   _rendercli_fail("rendercli wavefront metrics any-hit upload bytes"
                   "wavefront metrics report did not contain any-hit upload byte estimate"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionEstimatedClosestHitQueryTransferBytes\"")
+  _rendercli_fail("rendercli wavefront metrics closest-hit transfer bytes"
+                  "wavefront metrics report did not contain closest-hit transfer byte estimate"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"intersectionEstimatedAnyHitQueryTransferBytes\"")
+  _rendercli_fail("rendercli wavefront metrics any-hit transfer bytes"
+                  "wavefront metrics report did not contain any-hit transfer byte estimate"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"intersectionRaysPerWorkerSecond\"")
@@ -3205,6 +3226,8 @@ foreach(expectation
         "\"intersectionEstimatedAnyHitRayUploadBytes\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionEstimatedClosestHitReadbackBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"intersectionEstimatedClosestHitQueryTransferBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"intersectionEstimatedAnyHitQueryTransferBytes\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionEstimatedQueryRoundTrips\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionEstimatedClosestHitQueryRoundTrips\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionEstimatedAnyHitQueryRoundTrips\"[ \r\n]*:[ \r\n]*0"
@@ -3257,6 +3280,8 @@ foreach(expectation
         "\"intersectionEstimatedClosestHitRayUploadBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionEstimatedAnyHitRayUploadBytes\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"intersectionEstimatedClosestHitQueryTransferBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"intersectionEstimatedAnyHitQueryTransferBytes\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionEstimatedQueryRoundTrips\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionEstimatedClosestHitQueryRoundTrips\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionEstimatedAnyHitQueryRoundTrips\"[ \r\n]*:[ \r\n]*0")

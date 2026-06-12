@@ -145,6 +145,8 @@ namespace render {
     intersectionEstimatedClosestHitReadbackBytes = 0;
     intersectionEstimatedAnyHitReadbackBytes = 0;
     intersectionEstimatedQueryTransferBytes = 0;
+    intersectionEstimatedClosestHitQueryTransferBytes = 0;
+    intersectionEstimatedAnyHitQueryTransferBytes = 0;
     intersectionEstimatedQueryRoundTrips = 0;
     intersectionEstimatedClosestHitQueryRoundTrips = 0;
     intersectionEstimatedAnyHitQueryRoundTrips = 0;
@@ -568,6 +570,7 @@ namespace render {
     const std::uint64_t readbackBytes = backend.estimatedClosestHitReadbackBytes(submittedRays);
     intersectionEstimatedClosestHitRayUploadBytes += rayUploadBytes;
     intersectionEstimatedClosestHitReadbackBytes += readbackBytes;
+    intersectionEstimatedClosestHitQueryTransferBytes += rayUploadBytes + readbackBytes;
     if (recordIntersectionQueryTransfer(rayUploadBytes, readbackBytes)) {
       ++intersectionEstimatedClosestHitQueryRoundTrips;
     }
@@ -595,6 +598,7 @@ namespace render {
     const std::uint64_t readbackBytes = backend.estimatedAnyHitReadbackBytes(submittedRays);
     intersectionEstimatedAnyHitRayUploadBytes += rayUploadBytes;
     intersectionEstimatedAnyHitReadbackBytes += readbackBytes;
+    intersectionEstimatedAnyHitQueryTransferBytes += rayUploadBytes + readbackBytes;
     if (recordIntersectionQueryTransfer(rayUploadBytes, readbackBytes)) {
       ++intersectionEstimatedAnyHitQueryRoundTrips;
     }
@@ -682,6 +686,10 @@ namespace render {
       source.intersectionEstimatedClosestHitReadbackBytes;
     intersectionEstimatedAnyHitReadbackBytes += source.intersectionEstimatedAnyHitReadbackBytes;
     intersectionEstimatedQueryTransferBytes += source.intersectionEstimatedQueryTransferBytes;
+    intersectionEstimatedClosestHitQueryTransferBytes +=
+      source.intersectionEstimatedClosestHitQueryTransferBytes;
+    intersectionEstimatedAnyHitQueryTransferBytes +=
+      source.intersectionEstimatedAnyHitQueryTransferBytes;
     intersectionEstimatedQueryRoundTrips += source.intersectionEstimatedQueryRoundTrips;
     intersectionEstimatedClosestHitQueryRoundTrips +=
       source.intersectionEstimatedClosestHitQueryRoundTrips;

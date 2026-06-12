@@ -1100,6 +1100,10 @@ Progress:
   any-hit query family, so resident-frontier planning can tell whether path
   frontier intersections or direct-light visibility batches are driving the
   current upload workload.
+- Wavefront metrics now also split estimated query transfer bytes by closest-hit
+  and any-hit family, giving capture scripts, benchmarks, rendercli summaries,
+  and Modeler pass details full per-family host/device traffic totals without
+  re-deriving them from separate upload and readback counters.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a

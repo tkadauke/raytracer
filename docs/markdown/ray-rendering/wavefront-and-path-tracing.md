@@ -338,7 +338,10 @@ backend-kernel rays per second. Those throughput numbers are the measured
 counterpart to the `auto` policy's expected-ray and transfer estimates.
 The transfer estimate is also split into closest-hit and any-hit ray upload
 bytes so resident-frontier experiments can see whether camera/path frontiers or
-next-event visibility batches dominate the upload pressure.
+next-event visibility batches dominate the upload pressure. The matching
+per-family transfer totals include readback bytes, which makes it easier to
+compare full closest-hit versus any-hit host/device traffic without rebuilding
+that arithmetic from separate upload and readback counters.
 
 The expected ray count used by `auto` is an estimate of intersection work, not
 just the number of primary camera samples. `WavefrontRaytracer` starts with

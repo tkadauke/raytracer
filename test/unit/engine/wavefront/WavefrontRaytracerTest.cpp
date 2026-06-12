@@ -1431,6 +1431,11 @@ namespace WavefrontRaytracerTest {
                 metrics.batching.intersectionEstimatedClosestHitReadbackBytes +
                 metrics.batching.intersectionEstimatedAnyHitReadbackBytes,
               metrics.batching.intersectionEstimatedQueryTransferBytes);
+    EXPECT_EQ(metrics.batching.intersectionEstimatedQueryTransferBytes,
+              metrics.batching.intersectionEstimatedClosestHitQueryTransferBytes +
+                metrics.batching.intersectionEstimatedAnyHitQueryTransferBytes);
+    EXPECT_GT(metrics.batching.intersectionEstimatedClosestHitQueryTransferBytes, 0u);
+    EXPECT_EQ(0u, metrics.batching.intersectionEstimatedAnyHitQueryTransferBytes);
 
     const QJsonObject batching = metrics.toJson().value("batching").toObject();
     EXPECT_EQ("gpu", batching.value("intersectionBackendRequest").toString().toStdString());
@@ -1461,6 +1466,11 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(batching.value("intersectionEstimatedClosestHitReadbackBytes").toDouble(), 0.0);
     EXPECT_EQ(static_cast<double>(metrics.batching.intersectionEstimatedQueryTransferBytes),
               batching.value("intersectionEstimatedQueryTransferBytes").toDouble());
+    EXPECT_EQ(
+      static_cast<double>(metrics.batching.intersectionEstimatedClosestHitQueryTransferBytes),
+      batching.value("intersectionEstimatedClosestHitQueryTransferBytes").toDouble());
+    EXPECT_EQ(static_cast<double>(metrics.batching.intersectionEstimatedAnyHitQueryTransferBytes),
+              batching.value("intersectionEstimatedAnyHitQueryTransferBytes").toDouble());
     EXPECT_EQ(static_cast<double>(metrics.batching.closestHitRaysSubmitted),
               batching.value("closestHitRaysSubmitted").toDouble());
     EXPECT_EQ(static_cast<double>(metrics.batching.anyHitRaysSubmitted),

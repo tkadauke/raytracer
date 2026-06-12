@@ -134,6 +134,10 @@ namespace {
       state.counters["any_hit_readback_bytes"] = static_cast<double>(anyHitReadbackBytes);
       state.counters["readback_bytes"] =
         static_cast<double>(closestHitReadbackBytes + anyHitReadbackBytes);
+      state.counters["closest_hit_query_transfer_bytes"] =
+        static_cast<double>(closestHitRayUploadBytes + closestHitReadbackBytes);
+      state.counters["any_hit_query_transfer_bytes"] =
+        static_cast<double>(anyHitRayUploadBytes + anyHitReadbackBytes);
       state.counters["frontier_packed_ray_bytes"] =
         static_cast<double>(closestHitPackedRayBytes + anyHitPackedRayBytes);
       state.counters["closest_hit_frontier_packed_ray_bytes"] =

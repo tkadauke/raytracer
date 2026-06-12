@@ -286,6 +286,8 @@ def wavefront_metric_values(path)
     frontier_resident_query_round_trip_savings_estimate: [],
     closest_hit_ray_upload_bytes: [],
     any_hit_ray_upload_bytes: [],
+    closest_hit_query_transfer_bytes: [],
+    any_hit_query_transfer_bytes: [],
     closest_hit_frontier_residency: [],
     any_hit_frontier_residency: [],
     closest_hit_frontier_packed_ray_bytes: [],
@@ -366,6 +368,8 @@ def wavefront_metric_values(path)
       frontier_resident_query_round_trip_savings_estimate: 0.0,
       closest_hit_ray_upload_bytes: 0.0,
       any_hit_ray_upload_bytes: 0.0,
+      closest_hit_query_transfer_bytes: 0.0,
+      any_hit_query_transfer_bytes: 0.0,
       closest_hit_frontier_residency: [],
       any_hit_frontier_residency: [],
       closest_hit_frontier_packed_ray_bytes: 0.0,
@@ -498,6 +502,10 @@ def wavefront_metric_values(path)
         batching.fetch("intersectionEstimatedClosestHitRayUploadBytes", 0).to_f
       run_values[:any_hit_ray_upload_bytes] +=
         batching.fetch("intersectionEstimatedAnyHitRayUploadBytes", 0).to_f
+      run_values[:closest_hit_query_transfer_bytes] +=
+        batching.fetch("intersectionEstimatedClosestHitQueryTransferBytes", 0).to_f
+      run_values[:any_hit_query_transfer_bytes] +=
+        batching.fetch("intersectionEstimatedAnyHitQueryTransferBytes", 0).to_f
       closest_hit_residency =
         batching.fetch("intersectionBackendClosestHitFrontierResidency", "")
       any_hit_residency = batching.fetch("intersectionBackendAnyHitFrontierResidency", "")
@@ -699,6 +707,8 @@ end
    frontier_resident_query_round_trip_savings_estimate
    closest_hit_ray_upload_bytes
    any_hit_ray_upload_bytes
+   closest_hit_query_transfer_bytes
+   any_hit_query_transfer_bytes
    closest_hit_frontier_packed_ray_bytes
    any_hit_frontier_packed_ray_bytes
    closest_hit_frontier_host_query_bytes
@@ -859,6 +869,8 @@ def aggregate_run(run)
     resident_frontier_savings: 0.0,
     closest_hit_ray_upload_bytes: 0.0,
     any_hit_ray_upload_bytes: 0.0,
+    closest_hit_query_transfer_bytes: 0.0,
+    any_hit_query_transfer_bytes: 0.0,
     closest_hit_frontier_residencies: [],
     any_hit_frontier_residencies: [],
     closest_hit_frontier_packed_ray_bytes: 0.0,
@@ -939,6 +951,10 @@ def aggregate_run(run)
       batching.fetch("intersectionEstimatedClosestHitRayUploadBytes", 0).to_f
     values[:any_hit_ray_upload_bytes] +=
       batching.fetch("intersectionEstimatedAnyHitRayUploadBytes", 0).to_f
+    values[:closest_hit_query_transfer_bytes] +=
+      batching.fetch("intersectionEstimatedClosestHitQueryTransferBytes", 0).to_f
+    values[:any_hit_query_transfer_bytes] +=
+      batching.fetch("intersectionEstimatedAnyHitQueryTransferBytes", 0).to_f
     closest_hit_residency = batching.fetch("intersectionBackendClosestHitFrontierResidency", "")
     any_hit_residency = batching.fetch("intersectionBackendAnyHitFrontierResidency", "")
     values[:closest_hit_frontier_packed_ray_bytes] +=
@@ -1046,7 +1062,7 @@ scene_dir = ARGV.fetch(0)
 queue_dirs = Dir.glob(File.join(scene_dir, "queue_*")).select { |path| File.directory?(path) }
 queue_dirs.sort_by! { |path| File.basename(path).delete_prefix("queue_").to_i }
 
-puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks closest_hit_batch_chunks closest_hit_batch_rays any_hit_batch_chunks any_hit_batch_rays frontier_round_trips resident_frontier_round_trips resident_frontier_savings closest_hit_ray_upload_bytes any_hit_ray_upload_bytes closest_hit_frontier_residency any_hit_frontier_residency closest_hit_frontier_packed_ray_bytes any_hit_frontier_packed_ray_bytes closest_hit_frontier_host_query_bytes any_hit_frontier_host_query_bytes closest_hit_frontier_state_handle_bytes any_hit_frontier_state_handle_bytes resident_frontiers_supported gpu_frontier_compaction_supported prepared_ray_batch_compaction_supported resident_direct_light_batches_supported mixed_query_depths mixed_query_round_trips mixed_query_rays mixed_query_closest_hit_rays mixed_query_any_hit_rays packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays frontier_compaction_passes frontier_compaction_input_samples frontier_compaction_retained_samples frontier_compaction_removed_samples frontier_compaction_removed_fraction frontier_compaction_moved_samples frontier_compaction_retained_index_bytes frontier_compaction_candidate_packed_ray_bytes frontier_compaction_candidate_state_handle_bytes frontier_largest_compaction_candidate_packed_ray_bytes frontier_largest_compaction_candidate_state_handle_bytes compaction_execution sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
+puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks closest_hit_batch_chunks closest_hit_batch_rays any_hit_batch_chunks any_hit_batch_rays frontier_round_trips resident_frontier_round_trips resident_frontier_savings closest_hit_ray_upload_bytes any_hit_ray_upload_bytes closest_hit_query_transfer_bytes any_hit_query_transfer_bytes closest_hit_frontier_residency any_hit_frontier_residency closest_hit_frontier_packed_ray_bytes any_hit_frontier_packed_ray_bytes closest_hit_frontier_host_query_bytes any_hit_frontier_host_query_bytes closest_hit_frontier_state_handle_bytes any_hit_frontier_state_handle_bytes resident_frontiers_supported gpu_frontier_compaction_supported prepared_ray_batch_compaction_supported resident_direct_light_batches_supported mixed_query_depths mixed_query_round_trips mixed_query_rays mixed_query_closest_hit_rays mixed_query_any_hit_rays packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays frontier_compaction_passes frontier_compaction_input_samples frontier_compaction_retained_samples frontier_compaction_removed_samples frontier_compaction_removed_fraction frontier_compaction_moved_samples frontier_compaction_retained_index_bytes frontier_compaction_candidate_packed_ray_bytes frontier_compaction_candidate_state_handle_bytes frontier_largest_compaction_candidate_packed_ray_bytes frontier_largest_compaction_candidate_state_handle_bytes compaction_execution sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
 queue_dirs.each do |queue_dir|
   queue_size = File.basename(queue_dir).delete_prefix("queue_")
   Dir.glob(File.join(queue_dir, "wavefront_*.metrics.json")).sort.each do |metrics_path|
@@ -1099,6 +1115,8 @@ queue_dirs.each do |queue_dir|
       format("%.0f", median_for.call(:resident_frontier_savings)),
       format("%.0f", median_for.call(:closest_hit_ray_upload_bytes)),
       format("%.0f", median_for.call(:any_hit_ray_upload_bytes)),
+      format("%.0f", median_for.call(:closest_hit_query_transfer_bytes)),
+      format("%.0f", median_for.call(:any_hit_query_transfer_bytes)),
       closest_hit_frontier_residency,
       any_hit_frontier_residency,
       format("%.0f", median_for.call(:closest_hit_frontier_packed_ray_bytes)),

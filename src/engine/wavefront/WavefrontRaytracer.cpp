@@ -164,6 +164,10 @@ namespace engine::wavefront {
       metrics.intersectionEstimatedClosestHitReadbackBytes;
     intersectionEstimatedAnyHitReadbackBytes += metrics.intersectionEstimatedAnyHitReadbackBytes;
     intersectionEstimatedQueryTransferBytes += metrics.intersectionEstimatedQueryTransferBytes;
+    intersectionEstimatedClosestHitQueryTransferBytes +=
+      metrics.intersectionEstimatedClosestHitQueryTransferBytes;
+    intersectionEstimatedAnyHitQueryTransferBytes +=
+      metrics.intersectionEstimatedAnyHitQueryTransferBytes;
     intersectionEstimatedQueryRoundTrips += metrics.intersectionEstimatedQueryRoundTrips;
     intersectionEstimatedClosestHitQueryRoundTrips +=
       metrics.intersectionEstimatedClosestHitQueryRoundTrips;
@@ -675,6 +679,10 @@ namespace engine::wavefront {
       static_cast<double>(batching.intersectionEstimatedAnyHitReadbackBytes);
     batchingJson["intersectionEstimatedQueryTransferBytes"] =
       static_cast<double>(batching.intersectionEstimatedQueryTransferBytes);
+    batchingJson["intersectionEstimatedClosestHitQueryTransferBytes"] =
+      static_cast<double>(batching.intersectionEstimatedClosestHitQueryTransferBytes);
+    batchingJson["intersectionEstimatedAnyHitQueryTransferBytes"] =
+      static_cast<double>(batching.intersectionEstimatedAnyHitQueryTransferBytes);
     batchingJson["intersectionEstimatedQueryRoundTrips"] =
       static_cast<double>(batching.intersectionEstimatedQueryRoundTrips);
     batchingJson["intersectionEstimatedClosestHitQueryRoundTrips"] =

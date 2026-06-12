@@ -115,6 +115,8 @@ namespace render {
     std::uint64_t intersectionEstimatedClosestHitReadbackBytes{0};
     std::uint64_t intersectionEstimatedAnyHitReadbackBytes{0};
     std::uint64_t intersectionEstimatedQueryTransferBytes{0};
+    std::uint64_t intersectionEstimatedClosestHitQueryTransferBytes{0};
+    std::uint64_t intersectionEstimatedAnyHitQueryTransferBytes{0};
     std::uint64_t intersectionEstimatedQueryRoundTrips{0};
     std::uint64_t intersectionEstimatedClosestHitQueryRoundTrips{0};
     std::uint64_t intersectionEstimatedAnyHitQueryRoundTrips{0};

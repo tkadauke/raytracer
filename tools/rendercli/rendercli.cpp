@@ -345,6 +345,10 @@ namespace {
         << unsignedValue(batching, "intersectionEstimatedAnyHitReadbackBytes")
         << " intersection_estimated_query_transfer_bytes="
         << unsignedValue(batching, "intersectionEstimatedQueryTransferBytes")
+        << " intersection_estimated_closest_hit_query_transfer_bytes="
+        << unsignedValue(batching, "intersectionEstimatedClosestHitQueryTransferBytes")
+        << " intersection_estimated_any_hit_query_transfer_bytes="
+        << unsignedValue(batching, "intersectionEstimatedAnyHitQueryTransferBytes")
         << " intersection_estimated_query_round_trips="
         << unsignedValue(batching, "intersectionEstimatedQueryRoundTrips")
         << " intersection_estimated_closest_hit_query_round_trips="
