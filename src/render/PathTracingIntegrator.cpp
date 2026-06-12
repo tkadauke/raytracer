@@ -337,29 +337,6 @@ namespace render {
                                                        occluded(index), state);
     }
 
-    [[nodiscard]] std::uint64_t hostSelectionBytes() const {
-      return static_cast<std::uint64_t>(m_selections.size()) * sizeof(DirectLightingSelection);
-    }
-
-    [[nodiscard]] std::uint64_t hostOcclusionBytes() const {
-      return static_cast<std::uint64_t>(m_occluded.size()) *
-             sizeof(WavefrontOcclusionFlags::value_type);
-    }
-
-    void recordSelectionHostBytes(int bounce, IntegratorBatchMetrics* metrics) const {
-      if (!metrics) {
-        return;
-      }
-      metrics->recordDirectLightSelectionHostBytes(depthIndex(bounce), hostSelectionBytes());
-    }
-
-    void recordOcclusionHostBytes(int bounce, IntegratorBatchMetrics* metrics) const {
-      if (!metrics) {
-        return;
-      }
-      metrics->recordDirectLightOcclusionHostBytes(depthIndex(bounce), hostOcclusionBytes());
-    }
-
     void recordEmptyVisibility(int bounce, IntegratorBatchMetrics* metrics) const {
       if (!empty()) {
         throw std::logic_error("direct-light visibility batch recorded as empty while it still "
@@ -419,6 +396,29 @@ namespace render {
     }
 
   private:
+    [[nodiscard]] std::uint64_t hostSelectionBytes() const {
+      return static_cast<std::uint64_t>(m_selections.size()) * sizeof(DirectLightingSelection);
+    }
+
+    [[nodiscard]] std::uint64_t hostOcclusionBytes() const {
+      return static_cast<std::uint64_t>(m_occluded.size()) *
+             sizeof(WavefrontOcclusionFlags::value_type);
+    }
+
+    void recordSelectionHostBytes(int bounce, IntegratorBatchMetrics* metrics) const {
+      if (!metrics) {
+        return;
+      }
+      metrics->recordDirectLightSelectionHostBytes(depthIndex(bounce), hostSelectionBytes());
+    }
+
+    void recordOcclusionHostBytes(int bounce, IntegratorBatchMetrics* metrics) const {
+      if (!metrics) {
+        return;
+      }
+      metrics->recordDirectLightOcclusionHostBytes(depthIndex(bounce), hostOcclusionBytes());
+    }
+
     void recordEmptyAnyHitChunks(int bounce, IntegratorBatchMetrics* metrics) const {
       if (!metrics) {
         return;

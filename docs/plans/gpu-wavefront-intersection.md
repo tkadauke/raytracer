@@ -1256,6 +1256,9 @@ Progress:
   resolution for materialized batches: callers only distinguish empty versus
   non-empty batches, while the batch records its own selection bytes, occlusion
   bytes, any-hit chunks, and frontier residency.
+- Direct-light visibility byte-count helpers are now private to the visibility
+  batch, so callers cannot bypass the empty/materialized visibility recording
+  paths.
 - Direct-light contribution batches now record their own host-byte footprint
   when created, keeping resolved lighting payload accounting with the object
   that owns that payload.
