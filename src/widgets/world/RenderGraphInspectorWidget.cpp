@@ -698,6 +698,19 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("frontierMixedQueryAnyHitRays"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Active hit host bytes"), batching,
                               QStringLiteral("activeHitHostBytesProcessed"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Active host path-state bytes"), batching,
+                              QStringLiteral("activeHostPathStateBytesProcessed"));
+  if (batching.contains(QStringLiteral("activeHostPathStateBytesPerDepth"))) {
+    addDetailRow(rows, QStringLiteral("Last active host path-state bytes"),
+                 QString::number(jsonIntegerArrayBack(
+                   batching.value(QStringLiteral("activeHostPathStateBytesPerDepth")).toArray())));
+  }
+  if (batching.contains(QStringLiteral("retainedHostPathStateBytesPerDepth"))) {
+    addDetailRow(
+      rows, QStringLiteral("Last retained host path-state bytes"),
+      QString::number(jsonIntegerArrayBack(
+        batching.value(QStringLiteral("retainedHostPathStateBytesPerDepth")).toArray())));
+  }
   addDetailIntegerMetadataRow(rows, QStringLiteral("Spawned continuations"), batching,
                               QStringLiteral("spawnedContinuationSamples"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Spawned continuation host path-state bytes"),

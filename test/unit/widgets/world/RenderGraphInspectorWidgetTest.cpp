@@ -1183,6 +1183,9 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query closest-hit rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Mixed query any-hit rays")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Spawned continuations")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Active host path-state bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Last active host path-state bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Last retained host path-state bytes")).isEmpty());
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Spawned continuation host path-state bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction passes")).isEmpty());

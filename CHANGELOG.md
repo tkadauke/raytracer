@@ -102,6 +102,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Preserved last active and retained wavefront host path-state byte counts in
   convergence comparison and queue-sweep benchmark capture summaries.
   — GPT-5 Codex
+- Exposed last active and retained wavefront host path-state byte counts in
+  Modeler selected-pass graph details. — GPT-5 Codex
 - Reported path-tracing spawned-continuation counts and host path-state bytes in
   wavefront metrics, rendercli summaries, convergence captures, and Modeler
   graph details so exact-delta frontier growth is visible beside compaction.
