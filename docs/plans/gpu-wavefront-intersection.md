@@ -1260,6 +1260,10 @@ Progress:
 - Whitted wavefront metrics now report spawned recursive continuation counts
   and host path-state bytes per depth. That makes Whitted queue growth visible
   in the same diagnostics already used for path-tracing exact-delta branches.
+- Whitted queued rays now live behind a `QueuedRayFrontier` owner that
+  centralizes path-state reservation, enqueueing, swapping, iteration, and
+  host-byte sizing. That matches the path tracer's host-frontier direction and
+  leaves fewer ad hoc vector operations in the Whitted depth loop.
 
 ---
 

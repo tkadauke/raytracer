@@ -62,6 +62,68 @@ namespace render {
     State state;
   };
 
+  class WhittedIntegrator::QueuedRayFrontier {
+  public:
+    void reserve(std::size_t count) {
+      m_rays.reserve(count);
+    }
+
+    [[nodiscard]] std::size_t capacity() const {
+      return m_rays.capacity();
+    }
+
+    void clear() {
+      m_rays.clear();
+    }
+
+    [[nodiscard]] bool empty() const {
+      return m_rays.empty();
+    }
+
+    [[nodiscard]] std::size_t size() const {
+      return m_rays.size();
+    }
+
+    [[nodiscard]] std::uint64_t hostBytes() const {
+      return static_cast<std::uint64_t>(m_rays.size()) * sizeof(QueuedRay);
+    }
+
+    void push(QueuedRay queued) {
+      m_rays.push_back(std::move(queued));
+    }
+
+    void swap(QueuedRayFrontier& other) {
+      m_rays.swap(other.m_rays);
+    }
+
+    QueuedRay& operator[](std::size_t index) {
+      return m_rays[index];
+    }
+
+    const QueuedRay& operator[](std::size_t index) const {
+      return m_rays[index];
+    }
+
+    [[nodiscard]] std::vector<QueuedRay>::iterator begin() {
+      return m_rays.begin();
+    }
+
+    [[nodiscard]] std::vector<QueuedRay>::iterator end() {
+      return m_rays.end();
+    }
+
+    [[nodiscard]] std::vector<QueuedRay>::const_iterator begin() const {
+      return m_rays.begin();
+    }
+
+    [[nodiscard]] std::vector<QueuedRay>::const_iterator end() const {
+      return m_rays.end();
+    }
+
+  private:
+    std::vector<QueuedRay> m_rays;
+  };
+
   struct WhittedIntegrator::QueuedHit {
     std::size_t queuedIndex{0};
     const Primitive* primitive{nullptr};
@@ -135,7 +197,7 @@ namespace render {
 
   class WhittedIntegrator::ClosestHitQueuedRayFrontierBatch {
   public:
-    ClosestHitQueuedRayFrontierBatch(std::vector<QueuedRay>& current, std::size_t traceableCount,
+    ClosestHitQueuedRayFrontierBatch(QueuedRayFrontier& current, std::size_t traceableCount,
                                      BatchDepthMetrics& depthMetrics,
                                      IntegratorBatchMetrics* metrics)
         : m_expectedHitCount(traceableCount) {
@@ -285,7 +347,7 @@ namespace render {
   }
 
   std::uint64_t WhittedIntegrator::collectCurrentActiveSamples(
-    const std::vector<QueuedRay>& current, std::vector<unsigned char>& activeSamples,
+    const QueuedRayFrontier& current, std::vector<unsigned char>& activeSamples,
     std::vector<std::size_t>& activeSampleIndices) const {
     if (activeSamples.empty()) {
       return current.size();
@@ -300,8 +362,7 @@ namespace render {
     return activeSampleIndices.size();
   }
 
-  std::size_t
-  WhittedIntegrator::partitionTraceableQueuedRays(std::vector<QueuedRay>& current) const {
+  std::size_t WhittedIntegrator::partitionTraceableQueuedRays(QueuedRayFrontier& current) const {
     const auto firstTerminal =
       std::find_if_not(current.begin(), current.end(),
                        [this](const QueuedRay& queued) { return queuedRayShouldTrace(queued); });
@@ -318,7 +379,7 @@ namespace render {
 
   void WhittedIntegrator::intersectQueuedRayScalar(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    std::vector<QueuedRay>& current, std::size_t queuedIndex, ActiveQueuedHits& activeHits,
+    QueuedRayFrontier& current, std::size_t queuedIndex, ActiveQueuedHits& activeHits,
     std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
     auto& queued = current[queuedIndex];
@@ -373,7 +434,7 @@ namespace render {
 
   void WhittedIntegrator::intersectQueuedRayPacket(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    std::vector<QueuedRay>& current, std::size_t firstQueuedIndex, std::size_t laneCount,
+    QueuedRayFrontier& current, std::size_t firstQueuedIndex, std::size_t laneCount,
     ActiveQueuedHits& activeHits, std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
     const std::size_t activeLaneCount = std::min(laneCount, Ray4::lanes);
@@ -516,7 +577,7 @@ namespace render {
 
   void WhittedIntegrator::intersectQueuedRayPacket8(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    std::vector<QueuedRay>& current, std::size_t firstQueuedIndex, std::size_t laneCount,
+    QueuedRayFrontier& current, std::size_t firstQueuedIndex, std::size_t laneCount,
     ActiveQueuedHits& activeHits, std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
     const std::size_t activeLaneCount = std::min(laneCount, Ray8::lanes);
@@ -660,7 +721,7 @@ namespace render {
 
   void WhittedIntegrator::intersectQueuedRayBatch(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    std::vector<QueuedRay>& current, std::size_t traceableCount, ActiveQueuedHits& activeHits,
+    QueuedRayFrontier& current, std::size_t traceableCount, ActiveQueuedHits& activeHits,
     std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
     ClosestHitQueuedRayFrontierBatch frontier(current, traceableCount, depthMetrics, metrics);
@@ -689,7 +750,7 @@ namespace render {
 
   void WhittedIntegrator::intersectActiveFrontier(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    std::vector<QueuedRay>& current, ActiveQueuedHits& activeHits, std::vector<Colord>& result,
+    QueuedRayFrontier& current, ActiveQueuedHits& activeHits, std::vector<Colord>& result,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     activeHits.clear();
     std::size_t traceableCount = 0;
@@ -749,7 +810,7 @@ namespace render {
     }
   }
 
-  void WhittedIntegrator::prepareContinuationQueue(std::vector<QueuedRay>& next,
+  void WhittedIntegrator::prepareContinuationQueue(QueuedRayFrontier& next,
                                                    std::size_t currentQueueSize) const {
     next.clear();
     if (next.capacity() < currentQueueSize) {
@@ -759,7 +820,7 @@ namespace render {
 
   void WhittedIntegrator::queueOrResolveContinuation(
     const Scene& scene, const WhittedContinuation& continuation, const QueuedRay& parent,
-    std::vector<QueuedRay>& next, std::vector<Colord>& result,
+    QueuedRayFrontier& next, std::vector<Colord>& result,
     std::vector<unsigned char>& nextActiveSamples, bool countNextActiveSamples,
     std::vector<std::size_t>& nextActiveSampleIndices) const {
     QueuedRay queued{
@@ -770,7 +831,7 @@ namespace render {
     };
 
     if (queuedRayShouldTrace(queued)) {
-      next.push_back(std::move(queued));
+      next.push(std::move(queued));
       if (countNextActiveSamples) {
         markActiveSample(nextActiveSamples, nextActiveSampleIndices, parent.sampleIndex);
       }
@@ -789,8 +850,8 @@ namespace render {
   }
 
   void WhittedIntegrator::shadeQueuedHit(const Scene& scene, const RayCaster& recursiveRayCaster,
-                                         const QueuedHit& hit, std::vector<QueuedRay>& current,
-                                         std::vector<QueuedRay>& next, std::vector<Colord>& result,
+                                         const QueuedHit& hit, QueuedRayFrontier& current,
+                                         QueuedRayFrontier& next, std::vector<Colord>& result,
                                          std::vector<unsigned char>& nextActiveSamples,
                                          bool countNextActiveSamples,
                                          std::vector<std::size_t>& nextActiveSampleIndices,
@@ -856,8 +917,8 @@ namespace render {
     activeSampleIndices.reserve(samples.size());
     nextActiveSampleIndices.reserve(samples.size());
 
-    std::vector<QueuedRay> current;
-    std::vector<QueuedRay> next;
+    QueuedRayFrontier current;
+    QueuedRayFrontier next;
     ActiveQueuedHits activeHits;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->pathSetupWorkerSeconds : nullptr);
@@ -873,7 +934,7 @@ namespace render {
         state.animationFrame = samples[index].animationFrame;
         state.animationTime = samples[index].animationTime;
         state.sampleStream = samples[index].sampleStream();
-        current.push_back(QueuedRay{index, samples[index].ray, Colord::white(), std::move(state)});
+        current.push(QueuedRay{index, samples[index].ray, Colord::white(), std::move(state)});
       }
     }
 
@@ -882,7 +943,7 @@ namespace render {
         collectCurrentActiveSamples(current, activeSamples, activeSampleIndices);
       if (metrics) {
         metrics->recordActiveDepth(currentActiveSamples);
-        metrics->recordActiveHostPathStateBytes(current.size() * sizeof(QueuedRay));
+        metrics->recordActiveHostPathStateBytes(current.hostBytes());
       }
       if (trackRadianceDelta) {
         resultBeforeActiveSamples.clear();
@@ -944,9 +1005,9 @@ namespace render {
       const std::uint64_t nextActiveSampleCount =
         countNextActiveSamples ? nextActiveSampleIndices.size() : next.size();
       if (metrics) {
-        metrics->recordSpawnedContinuations(next.size(), next.size() * sizeof(QueuedRay));
+        metrics->recordSpawnedContinuations(next.size(), next.hostBytes());
         metrics->recordRetainedActiveDepth(nextActiveSampleCount);
-        metrics->recordRetainedHostPathStateBytes(next.size() * sizeof(QueuedRay));
+        metrics->recordRetainedHostPathStateBytes(next.hostBytes());
       }
       IntegratorBatchFeedback feedback;
       if (settings.progressObserver) {
