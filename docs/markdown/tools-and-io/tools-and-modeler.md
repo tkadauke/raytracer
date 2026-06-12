@@ -500,7 +500,8 @@ record one chunk per shadow query. That keeps the resident-direct-light
 round-trip estimate visible even when the selected backend does not prefer a
 grouped visibility frontier. Direct-light selection and occlusion host-byte
 arrays also keep explicit zero rows for depths where no visibility batch was
-materialized, matching the contribution-byte array shape. Cancelled
+materialized, matching the contribution-byte array shape. The direct-light
+any-hit chunk and ray arrays follow the same zero-row convention. Cancelled
 path-tracing renders keep zero rows for the depth that was started but skipped
 before intersection, so per-depth arrays remain comparable in graph details and
 compact summaries.

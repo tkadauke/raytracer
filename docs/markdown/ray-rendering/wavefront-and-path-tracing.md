@@ -535,10 +535,11 @@ They also report the host bytes used by the resolved occlusion flags and by the
 direct-light contribution array that carries resolved lighting back to the
 per-hit shading pass. Selection and occlusion byte arrays include explicit zero
 entries for depths that had no visibility work, so depth-indexed diagnostics
-stay comparable with contribution-byte rows. If cancellation stops a
-path-tracing depth after it has been announced but before intersection starts,
-the skipped frontier and direct-light diagnostics likewise publish zero rows
-for that depth.
+stay comparable with contribution-byte rows. The direct-light any-hit chunk and
+ray arrays use the same zero-row convention when no visibility batch was
+materialized. If cancellation stops a path-tracing depth after it has been
+announced but before intersection starts, the skipped frontier and direct-light
+diagnostics likewise publish zero rows for that depth.
 Wavefront diagnostics also report active-hit host bytes: the per-depth
 closest-hit records that bridge intersection results to Whitted shading or path
 tracing's direct-light and BSDF shading passes. Those bytes are separate from

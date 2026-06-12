@@ -1144,6 +1144,14 @@ namespace PathTracingIntegratorTest {
 
     ASSERT_EQ(1u, batched.size());
     ASSERT_COLOR_NEAR(Colord(0.1, 0.1, 0.1), batched[0], 1e-12);
+    EXPECT_FALSE(metrics.directLightAnyHitBatchChunksPerDepth.empty());
+    for (const std::uint64_t chunks : metrics.directLightAnyHitBatchChunksPerDepth) {
+      EXPECT_EQ(0u, chunks);
+    }
+    EXPECT_FALSE(metrics.directLightAnyHitBatchRaysPerDepth.empty());
+    for (const std::uint64_t rays : metrics.directLightAnyHitBatchRaysPerDepth) {
+      EXPECT_EQ(0u, rays);
+    }
     EXPECT_EQ(0u, metrics.directLightSelectionHostBytes);
     EXPECT_FALSE(metrics.directLightSelectionHostBytesPerDepth.empty());
     for (const std::uint64_t bytes : metrics.directLightSelectionHostBytesPerDepth) {

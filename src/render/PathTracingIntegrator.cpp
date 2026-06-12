@@ -329,6 +329,15 @@ namespace render {
       metrics->recordDirectLightOcclusionHostBytes(depthIndex(bounce), hostOcclusionBytes());
     }
 
+    void recordEmptyAnyHitChunks(int bounce, IntegratorBatchMetrics* metrics) const {
+      if (!metrics) {
+        return;
+      }
+      recordDirectLightChunks(bounce, /*batchChunks=*/0, /*batchRays=*/0,
+                              /*packedRayBytes=*/0, /*hostQueryBytes=*/0,
+                              /*stateHandleBytes=*/0, metrics);
+    }
+
     void resolveOcclusion(const Scene& scene,
                           const WavefrontIntersectionBackend& intersectionBackend, int bounce,
                           IntegratorBatchMetrics* metrics) {
@@ -669,6 +678,7 @@ namespace render {
 
     visibilityBatch.recordSelectionHostBytes(bounce, metrics);
     if (visibilityBatch.empty()) {
+      visibilityBatch.recordEmptyAnyHitChunks(bounce, metrics);
       visibilityBatch.recordOcclusionHostBytes(bounce, metrics);
       return Colord::black();
     }
@@ -707,6 +717,7 @@ namespace render {
                                                static_cast<std::size_t>(m_directLightSamples));
     if (activeHits.empty()) {
       visibilityBatch.recordSelectionHostBytes(bounce, metrics);
+      visibilityBatch.recordEmptyAnyHitChunks(bounce, metrics);
       visibilityBatch.recordOcclusionHostBytes(bounce, metrics);
       return contributions;
     }
@@ -746,6 +757,7 @@ namespace render {
 
     visibilityBatch.recordSelectionHostBytes(bounce, metrics);
     if (visibilityBatch.empty()) {
+      visibilityBatch.recordEmptyAnyHitChunks(bounce, metrics);
       visibilityBatch.recordOcclusionHostBytes(bounce, metrics);
       return contributions;
     }

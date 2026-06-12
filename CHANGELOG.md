@@ -54,6 +54,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   — GPT-5 Codex
 - Kept direct-light selection and occlusion host-byte depth arrays explicit with
   zero entries when a path-tracing depth has no visibility work. — GPT-5 Codex
+- Kept direct-light any-hit chunk and ray depth arrays explicit with zero
+  entries when a path-tracing depth has no visibility work. — GPT-5 Codex
 - Kept path-tracing per-depth diagnostics explicit with zero rows when
   cancellation stops a started depth before intersection. — GPT-5 Codex
 - Changed wavefront any-hit batch/frontier APIs to return explicit byte
