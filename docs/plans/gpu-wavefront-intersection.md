@@ -965,6 +965,11 @@ Progress:
   These handles still live on the CPU and report `packed_host` residency, but
   the path tracer no longer needs to hand raw query vectors to the prepared
   backend before the rays take the packed-kernel shape.
+- Prepared closest-hit and any-hit frontiers now have a polymorphic packed
+  execution hook. The current `packed_host` frontiers still replay host-packed
+  rays through the backend, while future Metal/Vulkan frontiers can execute
+  from platform-owned query buffers without adding type switches to the backend
+  intersection path.
 - Backend-owned closest-hit and any-hit frontiers now report packed-ray byte
   counts through wavefront metrics, rendercli summaries, graph traces, and the
   Modeler pass details. Today only `packed_host` frontiers contribute nonzero

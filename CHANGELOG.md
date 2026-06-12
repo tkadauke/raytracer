@@ -40,6 +40,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Packed prepared GPU-intersection closest-hit and any-hit frontier handles at
   creation time, reporting `packed_host` residency before future Metal/Vulkan
   frontiers become device-resident. — GPT-5 Codex
+- Added a polymorphic packed-execution hook to prepared closest-hit and any-hit
+  frontier handles so future platform frontiers can run from backend-owned
+  buffers without backend type switches. — GPT-5 Codex
 
 ### Added
 

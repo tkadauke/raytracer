@@ -92,6 +92,10 @@ namespace render {
 
     [[nodiscard]] virtual const std::vector<WavefrontAnyHitQuery>* hostAnyHitQueries() const;
     [[nodiscard]] virtual const std::vector<GpuIntersectionRay>* hostPackedAnyHitRays() const;
+    [[nodiscard]] virtual bool hasPackedAnyHitRays() const;
+    [[nodiscard]] virtual std::vector<GpuIntersectionOcclusionRecord>
+    intersectPackedAny(const WavefrontIntersectionBackend& backend,
+                       WavefrontIntersectionQueryTiming* timing = nullptr) const;
   };
 
   class HostWavefrontAnyHitFrontier final : public WavefrontAnyHitFrontier {
@@ -127,6 +131,10 @@ namespace render {
     [[nodiscard]] virtual const std::vector<WavefrontClosestHitQuery>*
     hostClosestHitQueries() const;
     [[nodiscard]] virtual const std::vector<GpuIntersectionRay>* hostPackedClosestHitRays() const;
+    [[nodiscard]] virtual bool hasPackedClosestHitRays() const;
+    [[nodiscard]] virtual std::vector<GpuIntersectionHitRecord>
+    intersectPackedClosest(const WavefrontIntersectionBackend& backend,
+                           WavefrontIntersectionQueryTiming* timing = nullptr) const;
   };
 
   class HostWavefrontClosestHitFrontier final : public WavefrontClosestHitFrontier {
@@ -318,6 +326,9 @@ namespace render {
                            WavefrontIntersectionQueryTiming* timing = nullptr) const = 0;
 
   protected:
+    friend class WavefrontAnyHitFrontier;
+    friend class WavefrontClosestHitFrontier;
+
     [[nodiscard]] const Primitive*
     intersectPreparedClosest(const Rayd& ray, HitPointInterval& hitPoints, State& state,
                              WavefrontIntersectionQueryTiming* timing = nullptr) const;
