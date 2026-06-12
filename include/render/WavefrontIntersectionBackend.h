@@ -91,6 +91,7 @@ namespace render {
     friend class WavefrontIntersectionBackend;
 
     [[nodiscard]] virtual const std::vector<WavefrontAnyHitQuery>* hostAnyHitQueries() const;
+    [[nodiscard]] virtual State* anyHitState(std::size_t rayIndex) const;
     [[nodiscard]] virtual const std::vector<GpuIntersectionRay>* hostPackedAnyHitRays() const;
     [[nodiscard]] virtual bool hasPackedAnyHitRays() const;
     [[nodiscard]] virtual std::vector<GpuIntersectionOcclusionRecord>
@@ -130,6 +131,7 @@ namespace render {
 
     [[nodiscard]] virtual const std::vector<WavefrontClosestHitQuery>*
     hostClosestHitQueries() const;
+    [[nodiscard]] virtual State* closestHitState(std::size_t rayIndex) const;
     [[nodiscard]] virtual const std::vector<GpuIntersectionRay>* hostPackedClosestHitRays() const;
     [[nodiscard]] virtual bool hasPackedClosestHitRays() const;
     [[nodiscard]] virtual std::vector<GpuIntersectionHitRecord>

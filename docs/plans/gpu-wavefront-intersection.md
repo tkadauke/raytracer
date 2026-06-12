@@ -995,6 +995,10 @@ Progress:
   rays through the backend, while platform Metal/Vulkan frontiers can execute
   from platform-owned query buffers without adding type switches to the backend
   intersection path.
+- Packed closest-hit and any-hit frontier execution no longer requires the
+  frontier to expose its original host query vector. The backend reconstructs
+  results from ray count plus per-ray state hooks, which is a smaller host
+  dependency for future resident frontier handles.
 - Metal prepared scenes now expose a prepared packed-ray batch object. It
   uploads a packed frontier once, reports ray count and packed bytes, and can be
   reused by closest-hit and any-hit dispatches without copying the ray vector

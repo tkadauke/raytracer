@@ -156,12 +156,15 @@ namespace WavefrontIntersectionBackendTest {
     public:
       SyntheticPackedClosestHitFrontier(std::vector<WavefrontClosestHitQuery> queries,
                                         std::vector<GpuIntersectionHitRecord> records)
-          : m_queries(std::move(queries)),
-            m_records(std::move(records)) {
+          : m_records(std::move(records)) {
+        m_states.reserve(queries.size());
+        for (const WavefrontClosestHitQuery& query : queries) {
+          m_states.push_back(query.state);
+        }
       }
 
       std::uint64_t rayCount() const override {
-        return static_cast<std::uint64_t>(m_queries.size());
+        return static_cast<std::uint64_t>(m_states.size());
       }
 
       const char* residency() const override {
@@ -169,8 +172,11 @@ namespace WavefrontIntersectionBackendTest {
       }
 
     protected:
-      const std::vector<WavefrontClosestHitQuery>* hostClosestHitQueries() const override {
-        return &m_queries;
+      State* closestHitState(std::size_t rayIndex) const override {
+        if (rayIndex >= m_states.size()) {
+          return nullptr;
+        }
+        return m_states[rayIndex];
       }
 
       bool hasPackedClosestHitRays() const override {
@@ -187,7 +193,7 @@ namespace WavefrontIntersectionBackendTest {
       }
 
     private:
-      std::vector<WavefrontClosestHitQuery> m_queries;
+      std::vector<State*> m_states;
       std::vector<GpuIntersectionHitRecord> m_records;
     };
 
@@ -195,12 +201,15 @@ namespace WavefrontIntersectionBackendTest {
     public:
       SyntheticPackedAnyHitFrontier(std::vector<WavefrontAnyHitQuery> queries,
                                     std::vector<GpuIntersectionOcclusionRecord> records)
-          : m_queries(std::move(queries)),
-            m_records(std::move(records)) {
+          : m_records(std::move(records)) {
+        m_states.reserve(queries.size());
+        for (const WavefrontAnyHitQuery& query : queries) {
+          m_states.push_back(query.state);
+        }
       }
 
       std::uint64_t rayCount() const override {
-        return static_cast<std::uint64_t>(m_queries.size());
+        return static_cast<std::uint64_t>(m_states.size());
       }
 
       const char* residency() const override {
@@ -208,8 +217,11 @@ namespace WavefrontIntersectionBackendTest {
       }
 
     protected:
-      const std::vector<WavefrontAnyHitQuery>* hostAnyHitQueries() const override {
-        return &m_queries;
+      State* anyHitState(std::size_t rayIndex) const override {
+        if (rayIndex >= m_states.size()) {
+          return nullptr;
+        }
+        return m_states[rayIndex];
       }
 
       bool hasPackedAnyHitRays() const override {
@@ -226,7 +238,7 @@ namespace WavefrontIntersectionBackendTest {
       }
 
     private:
-      std::vector<WavefrontAnyHitQuery> m_queries;
+      std::vector<State*> m_states;
       std::vector<GpuIntersectionOcclusionRecord> m_records;
     };
   }
