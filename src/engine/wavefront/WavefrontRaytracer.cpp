@@ -107,6 +107,7 @@ namespace engine::wavefront {
     mergeLabel(intersectionBackendAnyHitFrontierResidency,
                metrics.intersectionBackendAnyHitFrontierResidency);
     directLightSelectionHostBytes += metrics.directLightSelectionHostBytes;
+    directLightOcclusionHostBytes += metrics.directLightOcclusionHostBytes;
     directLightContributionHostBytes += metrics.directLightContributionHostBytes;
     directLightAnyHitFrontierPackedRayBytes += metrics.directLightAnyHitFrontierPackedRayBytes;
     directLightAnyHitFrontierHostQueryBytes += metrics.directLightAnyHitFrontierHostQueryBytes;
@@ -272,6 +273,7 @@ namespace engine::wavefront {
     addCounts(directLightAnyHitBatchChunksPerDepth, metrics.directLightAnyHitBatchChunksPerDepth);
     addCounts(directLightAnyHitBatchRaysPerDepth, metrics.directLightAnyHitBatchRaysPerDepth);
     addCounts(directLightSelectionHostBytesPerDepth, metrics.directLightSelectionHostBytesPerDepth);
+    addCounts(directLightOcclusionHostBytesPerDepth, metrics.directLightOcclusionHostBytesPerDepth);
     addCounts(directLightContributionHostBytesPerDepth,
               metrics.directLightContributionHostBytesPerDepth);
     addCounts(frontierRay4PacketChunksPerDepth, metrics.frontierRay4PacketChunksPerDepth);
@@ -644,6 +646,8 @@ namespace engine::wavefront {
       integerArray(batching.directLightAnyHitBatchRaysPerDepth);
     const QJsonArray directLightSelectionHostBytesPerDepth =
       integerArray(batching.directLightSelectionHostBytesPerDepth);
+    const QJsonArray directLightOcclusionHostBytesPerDepth =
+      integerArray(batching.directLightOcclusionHostBytesPerDepth);
     const QJsonArray directLightContributionHostBytesPerDepth =
       integerArray(batching.directLightContributionHostBytesPerDepth);
     const QJsonArray frontierRay4PacketChunksPerDepth =
@@ -932,6 +936,9 @@ namespace engine::wavefront {
     batchingJson["directLightSelectionHostBytes"] =
       static_cast<double>(batching.directLightSelectionHostBytes);
     batchingJson["directLightSelectionHostBytesPerDepth"] = directLightSelectionHostBytesPerDepth;
+    batchingJson["directLightOcclusionHostBytes"] =
+      static_cast<double>(batching.directLightOcclusionHostBytes);
+    batchingJson["directLightOcclusionHostBytesPerDepth"] = directLightOcclusionHostBytesPerDepth;
     batchingJson["directLightContributionHostBytes"] =
       static_cast<double>(batching.directLightContributionHostBytes);
     batchingJson["directLightContributionHostBytesPerDepth"] =

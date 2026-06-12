@@ -2982,6 +2982,8 @@ foreach(direct_light_any_hit_field
         residentDirectLightBatchRoundTripsEstimate
         residentDirectLightBatchRoundTripSavingsEstimate
         directLightSelectionHostBytes
+        directLightOcclusionHostBytes
+        directLightOcclusionHostBytesPerDepth
         directLightContributionHostBytes
         directLightContributionHostBytesPerDepth
         directLightAnyHitFrontierPackedRayBytes

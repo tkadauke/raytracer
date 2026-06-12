@@ -1218,6 +1218,10 @@ Progress:
   flags instead of `std::vector<bool>` proxies. The backend-facing any-hit API
   is unchanged, but the owner now has a concrete host payload shape for future
   resident direct-light result storage.
+- Wavefront metrics now report direct-light occlusion-result host bytes per
+  depth and in compact rendercli summaries. Resident direct-light planning can
+  now size the visibility result payload separately from light selections,
+  contribution colors, any-hit ray frontiers, and per-ray state handles.
 
 ---
 

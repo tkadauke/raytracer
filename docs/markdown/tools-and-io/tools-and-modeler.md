@@ -240,10 +240,10 @@ Executed compaction also reports input, retained, and removed host path-state
 bytes beside retained-index bytes, so the summary separates the index list a GPU
 kernel would need from the CPU scheduler state that still has to become
 resident.
-Direct-light any-hit summaries now also include packed-ray, host-query, and
-state-handle byte totals for next-event-estimation occlusion frontiers. Those
-fields size the direct-light work that still has to become resident separately
-from all other any-hit frontiers.
+Direct-light any-hit summaries now also include packed-ray, host-query,
+state-handle, and resolved occlusion-result byte totals for next-event-estimation
+occlusion frontiers. Those fields size the direct-light work that still has to
+become resident separately from all other any-hit frontiers.
 The same summary reports direct-light any-hit round trips and a resident
 direct-light savings estimate, making the host readback boundary visible before
 that work can stay on device.
@@ -421,6 +421,8 @@ compact summary prints total `tiles`, `tile_grid`,
 `resident_direct_light_batches_supported`,
 `direct_light_selection_host_bytes`,
 `last_direct_light_selection_host_bytes`,
+`direct_light_occlusion_host_bytes`,
+`last_direct_light_occlusion_host_bytes`,
 `direct_light_contribution_host_bytes`,
 `last_direct_light_contribution_host_bytes`,
 `frontier_compaction_passes`,

@@ -311,6 +311,10 @@ namespace render {
       return static_cast<std::uint64_t>(m_selections.size()) * sizeof(DirectLightingSelection);
     }
 
+    [[nodiscard]] std::uint64_t hostOcclusionBytes() const {
+      return static_cast<std::uint64_t>(m_occluded.size()) * sizeof(unsigned char);
+    }
+
     void resolveOcclusion(const Scene& scene,
                           const WavefrontIntersectionBackend& intersectionBackend, int bounce,
                           IntegratorBatchMetrics* metrics) {
@@ -334,6 +338,8 @@ namespace render {
                                                  frontier->hostQueryBytes(),
                                                  frontier->stateHandleBytes());
           metrics->recordAnyHitQuery(intersectionBackend, frontier->rayCount(), intersectionTiming);
+          metrics->recordDirectLightOcclusionHostBytes(
+            static_cast<std::uint64_t>(std::max(0, bounce)), hostOcclusionBytes());
         }
         return;
       }
@@ -355,6 +361,10 @@ namespace render {
         if (metrics) {
           metrics->recordAnyHitQuery(intersectionBackend, 1, queryTiming);
         }
+      }
+      if (metrics) {
+        metrics->recordDirectLightOcclusionHostBytes(
+          static_cast<std::uint64_t>(std::max(0, bounce)), hostOcclusionBytes());
       }
     }
 

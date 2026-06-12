@@ -1897,6 +1897,7 @@ namespace WavefrontRaytracerTest {
     batch.recordDirectLightRadiance(Colord(0.0, 0.0, 1.0), /*primaryBounce=*/false);
     batch.recordActiveHitHostBytes(/*bytes=*/96);
     batch.recordDirectLightSelectionHostBytes(/*depth=*/0, /*bytes=*/144);
+    batch.recordDirectLightOcclusionHostBytes(/*depth=*/0, /*bytes=*/7);
     batch.recordDirectLightContributionHostBytes(/*depth=*/0, /*bytes=*/128);
     batch.recordDirectLightAnyHitBatch(/*depth=*/0, /*batchChunks=*/2, /*batchRays=*/7,
                                        /*packedRayBytes=*/700, /*hostQueryBytes=*/0,
@@ -1935,6 +1936,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(144u, metrics.batching.directLightSelectionHostBytes);
     ASSERT_EQ(1u, metrics.batching.directLightSelectionHostBytesPerDepth.size());
     EXPECT_EQ(144u, metrics.batching.directLightSelectionHostBytesPerDepth[0]);
+    EXPECT_EQ(7u, metrics.batching.directLightOcclusionHostBytes);
+    ASSERT_EQ(1u, metrics.batching.directLightOcclusionHostBytesPerDepth.size());
+    EXPECT_EQ(7u, metrics.batching.directLightOcclusionHostBytesPerDepth[0]);
     EXPECT_EQ(128u, metrics.batching.directLightContributionHostBytes);
     ASSERT_EQ(1u, metrics.batching.directLightContributionHostBytesPerDepth.size());
     EXPECT_EQ(128u, metrics.batching.directLightContributionHostBytesPerDepth[0]);
@@ -1987,6 +1991,10 @@ namespace WavefrontRaytracerTest {
     ASSERT_TRUE(batching.value("directLightSelectionHostBytesPerDepth").isArray());
     EXPECT_EQ(144.0,
               batching.value("directLightSelectionHostBytesPerDepth").toArray().at(0).toDouble());
+    EXPECT_EQ(7.0, batching.value("directLightOcclusionHostBytes").toDouble());
+    ASSERT_TRUE(batching.value("directLightOcclusionHostBytesPerDepth").isArray());
+    EXPECT_EQ(7.0,
+              batching.value("directLightOcclusionHostBytesPerDepth").toArray().at(0).toDouble());
     EXPECT_EQ(128.0, batching.value("directLightContributionHostBytes").toDouble());
     ASSERT_TRUE(batching.value("directLightContributionHostBytesPerDepth").isArray());
     EXPECT_EQ(

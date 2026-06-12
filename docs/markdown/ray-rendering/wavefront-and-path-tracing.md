@@ -530,8 +530,9 @@ selection records that pair each occlusion query with its eventual lighting
 contribution. Those bytes are separate from the any-hit ray frontier and show
 the remaining CPU-side state that resident next-event-estimation batches would
 need to eliminate or mirror.
-They also report the host bytes used by the direct-light contribution array
-that carries resolved lighting back to the per-hit shading pass.
+They also report the host bytes used by the resolved occlusion flags and by the
+direct-light contribution array that carries resolved lighting back to the
+per-hit shading pass.
 Path-tracing diagnostics also report active-hit host bytes: the per-depth
 closest-hit records that bridge intersection results to direct lighting and
 BSDF shading. Those bytes are separate from `BatchPath` state and make the

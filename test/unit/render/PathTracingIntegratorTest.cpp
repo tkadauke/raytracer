@@ -989,6 +989,9 @@ namespace PathTracingIntegratorTest {
     EXPECT_GT(metrics.directLightSelectionHostBytes, 0u);
     EXPECT_EQ((std::vector<std::uint64_t>{metrics.directLightSelectionHostBytes}),
               metrics.directLightSelectionHostBytesPerDepth);
+    EXPECT_GT(metrics.directLightOcclusionHostBytes, 0u);
+    EXPECT_EQ((std::vector<std::uint64_t>{metrics.directLightOcclusionHostBytes}),
+              metrics.directLightOcclusionHostBytesPerDepth);
     EXPECT_GT(metrics.directLightContributionHostBytes, 0u);
     EXPECT_EQ((std::vector<std::uint64_t>{metrics.directLightContributionHostBytes}),
               metrics.directLightContributionHostBytesPerDepth);
@@ -1032,6 +1035,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_GT(metrics.directLightSelectionHostBytes, 0u);
     EXPECT_EQ((std::vector<std::uint64_t>{metrics.directLightSelectionHostBytes}),
               metrics.directLightSelectionHostBytesPerDepth);
+    EXPECT_EQ(2u, metrics.directLightOcclusionHostBytes);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.directLightOcclusionHostBytesPerDepth);
     EXPECT_EQ(2u * sizeof(WavefrontAnyHitQuery), metrics.directLightAnyHitFrontierHostQueryBytes);
     const double expectedLuminance = ((0.125 + 0.875) * 0.299 + (0.625 + 0.375) * 0.587) / 2.0;
     EXPECT_NEAR(expectedLuminance, metrics.directLightRadianceLuminanceSum, 1e-12);
@@ -1586,6 +1591,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_GT(metrics.directLightSelectionHostBytes, 0u);
     EXPECT_EQ((std::vector<std::uint64_t>{metrics.directLightSelectionHostBytes}),
               metrics.directLightSelectionHostBytesPerDepth);
+    EXPECT_EQ(1u, metrics.directLightOcclusionHostBytes);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightOcclusionHostBytesPerDepth);
     EXPECT_EQ(0u, metrics.directLightAnyHitFrontierPackedRayBytes);
     EXPECT_EQ(sizeof(WavefrontAnyHitQuery), metrics.directLightAnyHitFrontierHostQueryBytes);
     EXPECT_EQ(0u, metrics.directLightAnyHitFrontierStateHandleBytes);
@@ -1642,6 +1649,8 @@ namespace PathTracingIntegratorTest {
     EXPECT_GT(metrics.directLightSelectionHostBytes, 0u);
     EXPECT_EQ((std::vector<std::uint64_t>{metrics.directLightSelectionHostBytes}),
               metrics.directLightSelectionHostBytesPerDepth);
+    EXPECT_EQ(3u, metrics.directLightOcclusionHostBytes);
+    EXPECT_EQ((std::vector<std::uint64_t>{3u}), metrics.directLightOcclusionHostBytesPerDepth);
     EXPECT_EQ(0u, metrics.directLightAnyHitFrontierPackedRayBytes);
     EXPECT_EQ(3u * sizeof(WavefrontAnyHitQuery), metrics.directLightAnyHitFrontierHostQueryBytes);
     EXPECT_EQ(0u, metrics.directLightAnyHitFrontierStateHandleBytes);
