@@ -12,6 +12,7 @@
 | Source file | Chapters |
 |---|---|
 | `benchmarks/AccelerationPolicyBenchmark.cpp` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
+| `benchmarks/WavefrontIntersectionBackendBenchmark.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `docs/perf/acceleration-policy-benchmark-2026-05-28.md` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
 | `fuzz/` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/core/Buffer.h` | [Color and buffers](../foundations/color-and-buffers.md)<br>[Image buffers and pixel formats](../image-and-vision/image-buffers-and-pixel-formats.md) |
@@ -98,6 +99,7 @@
 | `include/render/State.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md)<br>[Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/TilePlan.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/render/VulkanWavefrontSmokeKernel.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `include/render/WavefrontFrontierCompaction.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/WavefrontIntersectionBackend.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/WavefrontIntersectionQueryTiming.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/WhittedIntegrator.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
@@ -265,6 +267,7 @@
 | `src/render/MetalWavefrontSmokeKernel.mm` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/PathTracingIntegrator.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/VulkanWavefrontSmokeKernel.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `src/render/WavefrontFrontierCompaction.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/WavefrontIntersectionBackend.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/WhittedIntegrator.cpp` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `src/render/denoise/BilateralDenoiser.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |

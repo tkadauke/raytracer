@@ -459,7 +459,10 @@ any-hit batches after one combined backend selection, matching the shape of a
 path-tracing bounce more closely than either query family alone. Platform-enabled
 benchmark builds include the same mixed row for explicit GPU requests, so
 Metal/Vulkan kernels can be measured against the combined query-family workload
-directly.
+directly. Frontier-compaction benchmark rows run through the backend's
+`compactFrontier()` hook and report input, retained, removed, moved, and
+GPU-compaction-support counters, so the current CPU compaction path has a
+baseline before a device-side compaction kernel exists.
 When the platform render-path kernels actually execute, metrics also split
 backend wall time into host upload/setup, kernel dispatch/wait, and CPU
 readback buckets. CPU fallback paths leave those buckets at zero, while the
@@ -547,6 +550,8 @@ choices become inspectable user-facing metadata.
 - `include/render/WavefrontIntersectionQueryTiming.h`
 - `include/render/WavefrontIntersectionBackend.h`
 - `src/render/WavefrontIntersectionBackend.cpp`
+- `include/render/WavefrontFrontierCompaction.h`
+- `src/render/WavefrontFrontierCompaction.cpp`
 - `include/render/PathTracingIntegrator.h`
 - `src/render/PathTracingIntegrator.cpp`
 - `include/render/PathTermination.h`
@@ -558,6 +563,7 @@ choices become inspectable user-facing metadata.
 - `include/engine/graph/RenderGraphExecutionTrace.h`
 - `src/widgets/world/RenderGraphInspectorWidget.cpp`
 - `tools/rendercli/rendercli.cpp`
+- `benchmarks/WavefrontIntersectionBackendBenchmark.cpp`
 - `scripts/docs/wavefront_intersection_backend.js`
 - `scenes/wavefront_indirect_bounce_demo.json`
 - `scenes/wavefront_denoise_demo.json`
