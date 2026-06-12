@@ -1358,5 +1358,10 @@ performance evidence on at least one large supported scene.
   **Done.** The wavefront/path-tracing textbook backend widget now contrasts
   the current hybrid boundary with the future resident-frontier target.
 - Modeler should show backend choice and fallback reason in the render graph
-  selected-pass metadata.
-- rendercli should print compact backend diagnostics in metrics summaries.
+  selected-pass metadata. ✅ **Done.** Selected wavefront passes expose backend
+  request, chosen backend, availability, platform, execution path, and fallback
+  reason in Modeler graph details and tooltips.
+- rendercli should print compact backend diagnostics in metrics summaries. ✅
+  **Done.** Wavefront metrics summaries print backend request, selected backend,
+  availability, fallback reason, platform, execution path, expected work, and
+  transfer/round-trip diagnostics.
