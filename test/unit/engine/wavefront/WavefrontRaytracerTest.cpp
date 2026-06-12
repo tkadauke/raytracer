@@ -1800,8 +1800,9 @@ namespace WavefrontRaytracerTest {
     batch.recordMissRadiance(Colord(0.0, 1.0, 1.0));
     batch.recordCompatibilityShadeRadiance(Colord(1.0, 0.0, 1.0));
     batch.recordUnsupportedPathMaterial();
-    batch.recordHostFrontierCompaction(/*inputSamples=*/8, /*retainedSamples=*/5,
-                                       /*movedSamples=*/2);
+    batch.recordFrontierCompaction(/*inputSamples=*/8, /*retainedSamples=*/5, /*movedSamples=*/2,
+                                   "host",
+                                   /*retainedIndexBytes=*/5u * sizeof(std::uint32_t));
     constexpr double redLuma = 0.299;
     constexpr double greenLuma = 0.587;
     constexpr double blueLuma = 0.114;
@@ -1822,6 +1823,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(5u, metrics.batching.frontierCompactionRetainedSamples);
     EXPECT_EQ(3u, metrics.batching.frontierCompactionRemovedSamples);
     EXPECT_EQ(2u, metrics.batching.frontierCompactionMovedSamples);
+    EXPECT_EQ(5u * sizeof(std::uint32_t), metrics.batching.frontierCompactionRetainedIndexBytes);
     EXPECT_EQ("host", metrics.batching.frontierCompactionExecutionPath);
     EXPECT_DOUBLE_EQ(3.0 / 8.0, metrics.batching.frontierCompactionRemovedSampleFraction());
     EXPECT_DOUBLE_EQ(redLuma, metrics.batching.emittedRadianceLuminanceSum);
@@ -1852,6 +1854,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(3.0, batching.value("frontierCompactionRemovedSamples").toDouble());
     EXPECT_EQ(2.0, batching.value("frontierHostCompactionMovedSamples").toDouble());
     EXPECT_EQ(2.0, batching.value("frontierCompactionMovedSamples").toDouble());
+    EXPECT_EQ(5.0 * sizeof(std::uint32_t),
+              batching.value("frontierCompactionRetainedIndexBytes").toDouble());
     EXPECT_EQ("host", batching.value("frontierCompactionExecutionPath").toString().toStdString());
     EXPECT_DOUBLE_EQ(3.0 / 8.0,
                      batching.value("frontierHostCompactionRemovedSampleFraction").toDouble());

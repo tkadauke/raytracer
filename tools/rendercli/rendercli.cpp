@@ -419,6 +419,8 @@ namespace {
         << batching.value("frontierCompactionRemovedSampleFraction").toDouble()
         << " frontier_compaction_moved_samples="
         << unsignedValue(batching, "frontierCompactionMovedSamples")
+        << " frontier_compaction_retained_index_bytes="
+        << unsignedValue(batching, "frontierCompactionRetainedIndexBytes")
         << " batches=" << unsignedValue(batching, "batches")
         << " avg_batch=" << batching.value("averageBatchSize").toDouble()
         << " max_batch=" << unsignedValue(batching, "maxBatchSize")

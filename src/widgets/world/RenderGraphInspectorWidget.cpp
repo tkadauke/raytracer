@@ -697,6 +697,8 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
   }
   addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier compaction moved samples"), batching,
                               QStringLiteral("frontierCompactionMovedSamples"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier compaction retained-index bytes"),
+                              batching, QStringLiteral("frontierCompactionRetainedIndexBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Compaction candidate depths"), batching,
                               QStringLiteral("frontierCompactionCandidateDepths"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Compaction candidate samples"), batching,
@@ -1110,8 +1112,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
             batching.value(QStringLiteral("frontierCompactionExecutionPath")).toString();
           const QString compactionExecution =
             compactionExecutionPath.isEmpty() ? QStringLiteral("host") : compactionExecutionPath;
-          line += QStringLiteral(", %1 compaction removed %2 samples")
-                    .arg(compactionExecution, QString::number(compactionRemovedSamples));
+          const qulonglong retainedIndexBytes =
+            jsonIntegerValue(batching, QStringLiteral("frontierCompactionRetainedIndexBytes"));
+          line += QStringLiteral(", %1 compaction removed %2 samples/%3 retained-index bytes")
+                    .arg(compactionExecution, QString::number(compactionRemovedSamples),
+                         QString::number(retainedIndexBytes));
         }
         if (compactionCandidateSamples > 0) {
           const qulonglong compactionCandidatePackedBytes =

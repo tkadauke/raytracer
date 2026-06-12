@@ -62,6 +62,8 @@ namespace {
       state.counters["frontier_compaction_moved_samples"] =
         static_cast<double>(result.movedPathCount());
       state.counters["frontier_compaction_removed_fraction"] = result.removedPathFraction();
+      state.counters["frontier_compaction_retained_index_bytes"] =
+        static_cast<double>(result.retainedIndexBytes());
       state.counters["gpu_frontier_compaction_supported"] =
         backend.supportsGpuFrontierCompaction() ? 1.0 : 0.0;
       state.counters["prepared_ray_batch_compaction_supported"] =
@@ -773,6 +775,8 @@ namespace {
       static_cast<double>(inputRayCount * sizeof(GpuIntersectionRay));
     state.counters["compacted_frontier_packed_ray_bytes"] =
       static_cast<double>(retainedRayCount * sizeof(GpuIntersectionRay));
+    state.counters["frontier_compaction_retained_index_bytes"] =
+      static_cast<double>(retainedRayCount * sizeof(std::uint32_t));
     state.counters["prepared_ray_batch_compaction_supported"] = 1.0;
     state.counters["gpu_frontier_compaction_supported"] = 0.0;
   }

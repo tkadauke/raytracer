@@ -1172,6 +1172,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction removed samples")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction removed fraction")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction moved samples")).isEmpty());
+    EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Frontier compaction retained-index bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Supports resident frontiers")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Supports GPU frontier compaction")).isEmpty());
     EXPECT_FALSE(
@@ -1195,6 +1197,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("resident frontier estimate")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("resident support frontiers")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("host compaction removed")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("retained-index bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("compaction candidate samples")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("largest compaction candidate")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("inactive")));

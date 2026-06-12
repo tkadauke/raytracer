@@ -306,7 +306,8 @@ namespace IntegratorTest {
     metrics.reset(/*scalarFallback=*/false);
 
     metrics.recordFrontierCompaction(/*inputSamples=*/3, /*retainedSamples=*/2,
-                                     /*movedSamples=*/1, "vulkan");
+                                     /*movedSamples=*/1, "vulkan",
+                                     /*retainedIndexBytes=*/2u * sizeof(std::uint32_t));
     metrics.recordHostFrontierCompaction(/*inputSamples=*/10, /*retainedSamples=*/6,
                                          /*movedSamples=*/4);
     metrics.recordHostFrontierCompaction(/*inputSamples=*/4, /*retainedSamples=*/4,
@@ -317,6 +318,7 @@ namespace IntegratorTest {
     EXPECT_EQ(12u, metrics.frontierCompactionRetainedSamples);
     EXPECT_EQ(5u, metrics.frontierCompactionRemovedSamples);
     EXPECT_EQ(5u, metrics.frontierCompactionMovedSamples);
+    EXPECT_EQ(12u * sizeof(std::uint32_t), metrics.frontierCompactionRetainedIndexBytes);
     EXPECT_EQ("mixed", metrics.frontierCompactionExecutionPath);
     EXPECT_DOUBLE_EQ(5.0 / 17.0, metrics.frontierCompactionRemovedSampleFraction());
   }

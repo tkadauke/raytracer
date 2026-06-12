@@ -2,10 +2,22 @@
 
 #include "render/Integrator.h"
 
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
 namespace render {
+  namespace {
+    std::uint64_t retainedIndexBytesFor(std::size_t retainedPathCount) {
+      constexpr std::uint64_t bytesPerIndex = sizeof(std::uint32_t);
+      constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
+      if (retainedPathCount > maxValue / bytesPerIndex) {
+        return maxValue;
+      }
+      return static_cast<std::uint64_t>(retainedPathCount) * bytesPerIndex;
+    }
+  }
+
   WavefrontFrontierCompactionRequest::WavefrontFrontierCompactionRequest(std::size_t inputPathCount)
       : m_inputPathCount(inputPathCount) {
   }
@@ -27,6 +39,10 @@ namespace render {
 
   const std::vector<std::size_t>& WavefrontFrontierCompactionRequest::retainedPathIndices() const {
     return m_retainedPathIndices;
+  }
+
+  std::uint64_t WavefrontFrontierCompactionRequest::retainedIndexBytes() const {
+    return retainedIndexBytesFor(m_retainedPathIndices.size());
   }
 
   WavefrontFrontierCompactionResult WavefrontFrontierCompactionResult::hostCompaction(
@@ -70,6 +86,10 @@ namespace render {
     return m_retainedPathIndices;
   }
 
+  std::uint64_t WavefrontFrontierCompactionResult::retainedIndexBytes() const {
+    return retainedIndexBytesFor(m_retainedPathIndices.size());
+  }
+
   const std::string& WavefrontFrontierCompactionResult::executionPath() const {
     return m_executionPath;
   }
@@ -80,7 +100,7 @@ namespace render {
     }
     metrics->recordFrontierCompaction(
       static_cast<std::uint64_t>(m_inputPathCount), static_cast<std::uint64_t>(retainedPathCount()),
-      static_cast<std::uint64_t>(m_movedPathCount), m_executionPath);
+      static_cast<std::uint64_t>(m_movedPathCount), m_executionPath, retainedIndexBytes());
   }
 
   WavefrontFrontierCompactionResult::WavefrontFrontierCompactionResult(

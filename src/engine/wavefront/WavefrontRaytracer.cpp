@@ -201,6 +201,7 @@ namespace engine::wavefront {
     frontierCompactionRetainedSamples += metrics.frontierCompactionRetainedSamples;
     frontierCompactionRemovedSamples += metrics.frontierCompactionRemovedSamples;
     frontierCompactionMovedSamples += metrics.frontierCompactionMovedSamples;
+    frontierCompactionRetainedIndexBytes += metrics.frontierCompactionRetainedIndexBytes;
     mergeLabel(frontierCompactionExecutionPath, metrics.frontierCompactionExecutionPath);
     compatibilityShadeSamples += metrics.compatibilityShadeSamples;
     unsupportedPathMaterialSamples += metrics.unsupportedPathMaterialSamples;
@@ -726,6 +727,8 @@ namespace engine::wavefront {
       static_cast<double>(batching.frontierCompactionMovedSamples);
     batchingJson["frontierCompactionMovedSamples"] =
       static_cast<double>(batching.frontierCompactionMovedSamples);
+    batchingJson["frontierCompactionRetainedIndexBytes"] =
+      static_cast<double>(batching.frontierCompactionRetainedIndexBytes);
     batchingJson["frontierHostCompactionRemovedSampleFraction"] =
       batching.frontierCompactionRemovedSampleFraction();
     batchingJson["frontierCompactionRemovedSampleFraction"] =

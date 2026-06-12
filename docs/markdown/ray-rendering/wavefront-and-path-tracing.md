@@ -310,10 +310,12 @@ payload that could be compacted, while state-handle bytes estimate the
 remaining CPU path-state association tied to those candidate rays.
 The path tracer also reports frontier compaction metrics for the operation it
 already performs between depths: input path slots, retained slots, removed
-inactive slots, moved live slots, removed fraction, and the compaction
-execution path. Today that execution path is `host` whenever a compaction pass
-runs. That makes the current CPU compaction contract explicit before any future
-kernel keeps the frontier resident on the GPU.
+inactive slots, moved live slots, removed fraction, retained-index bytes, and
+the compaction execution path. Retained-index bytes estimate the 32-bit device
+index payload a GPU compaction kernel would consume for the retained frontier.
+Today that execution path is `host` whenever a compaction pass runs. That makes
+the current CPU compaction contract explicit before any future kernel keeps the
+frontier resident on the GPU.
 The same metrics compare active samples entering a depth with retained samples
 after that depth. The difference is reported as compaction candidate work: the
 samples a future GPU-side compaction pass would remove from the next frontier

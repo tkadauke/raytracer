@@ -2617,6 +2617,7 @@ foreach(compaction_field
         frontierCompactionRetainedSamples
         frontierCompactionRemovedSamples
         frontierCompactionMovedSamples
+        frontierCompactionRetainedIndexBytes
         frontierCompactionRemovedSampleFraction
         frontierCompactionCandidatePackedRayBytes
         frontierCompactionCandidateStateHandleBytes
@@ -2665,6 +2666,11 @@ endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_removed_fraction=")
   _rendercli_fail("rendercli wavefront metrics frontier compaction removed fraction summary"
                   "wavefront metrics summary did not contain frontier compaction removed fraction"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_retained_index_bytes=")
+  _rendercli_fail("rendercli wavefront metrics frontier compaction retained-index byte summary"
+                  "wavefront metrics summary did not contain frontier compaction retained-index bytes"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_candidate_depths=")

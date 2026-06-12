@@ -349,6 +349,8 @@ namespace WavefrontIntersectionBackendTest {
     request.retain(2);
     request.retain(4);
 
+    EXPECT_EQ(3u * sizeof(std::uint32_t), request.retainedIndexBytes());
+
     const WavefrontFrontierCompactionResult compaction =
       WavefrontFrontierCompactionResult::hostCompaction(request);
 
@@ -358,6 +360,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_DOUBLE_EQ(2.0 / 5.0, compaction.removedPathFraction());
     EXPECT_EQ(2u, compaction.movedPathCount());
     EXPECT_EQ((std::vector<std::size_t>{0u, 2u, 4u}), compaction.retainedPathIndices());
+    EXPECT_EQ(3u * sizeof(std::uint32_t), compaction.retainedIndexBytes());
     EXPECT_EQ("host", compaction.executionPath());
   }
 
@@ -370,6 +373,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0u, compaction.inputPathCount());
     EXPECT_EQ(0u, compaction.retainedPathCount());
     EXPECT_EQ(0u, compaction.removedPathCount());
+    EXPECT_EQ(0u, compaction.retainedIndexBytes());
     EXPECT_DOUBLE_EQ(0.0, compaction.removedPathFraction());
   }
 
@@ -405,6 +409,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(2u, compaction.retainedPathCount());
     EXPECT_EQ(1u, compaction.removedPathCount());
     EXPECT_EQ(2u, compaction.movedPathCount());
+    EXPECT_EQ(2u * sizeof(std::uint32_t), compaction.retainedIndexBytes());
     EXPECT_EQ("host", compaction.executionPath());
   }
 

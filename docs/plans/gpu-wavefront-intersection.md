@@ -1091,6 +1091,11 @@ Progress:
   estimates for the whole render and the largest candidate depth. This shows
   the remaining per-path CPU state association that scheduler-owned GPU
   compaction would still need to address.
+- Frontier compaction results now also report retained-index byte estimates for
+  the executed compaction pass. The estimate follows the 32-bit index ABI used
+  by the current Metal/Vulkan prepared ray-batch compaction kernels, making the
+  future retained-index transfer or residency cost visible beside input,
+  retained, removed, moved, and execution-path counters.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a

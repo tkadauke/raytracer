@@ -16,6 +16,14 @@ namespace render {
 
     [[nodiscard]] std::size_t inputPathCount() const;
     [[nodiscard]] const std::vector<std::size_t>& retainedPathIndices() const;
+    /**
+      * Estimated device-side retained-index payload for GPU compaction kernels.
+      *
+      * Current Metal/Vulkan prepared ray-batch compaction kernels consume
+      * 32-bit retained indices, so this deliberately reports the GPU ABI
+      * payload rather than the host `std::size_t` vector footprint.
+      */
+    [[nodiscard]] std::uint64_t retainedIndexBytes() const;
 
   private:
     std::size_t m_inputPathCount{0};
@@ -37,6 +45,7 @@ namespace render {
     [[nodiscard]] double removedPathFraction() const;
     [[nodiscard]] std::size_t movedPathCount() const;
     [[nodiscard]] const std::vector<std::size_t>& retainedPathIndices() const;
+    [[nodiscard]] std::uint64_t retainedIndexBytes() const;
     [[nodiscard]] const std::string& executionPath() const;
 
     void record(IntegratorBatchMetrics* metrics) const;
