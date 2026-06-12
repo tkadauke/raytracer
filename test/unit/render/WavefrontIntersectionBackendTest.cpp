@@ -340,6 +340,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0u, backend.estimatedAnyHitReadbackBytes(4));
     EXPECT_FALSE(backend.prefersClosestHitBatch(4));
     EXPECT_FALSE(backend.prefersAnyHitBatch(4));
+    EXPECT_FALSE(backend.supportsPreparedRayBatchCompaction());
   }
 
   TEST(WavefrontFrontierCompaction, HostCompactionReportsRetainedMovedAndRemovedPaths) {
@@ -3083,6 +3084,9 @@ namespace WavefrontIntersectionBackendTest {
     const std::string backendName = backend->name();
     EXPECT_EQ(backendName == "metal" || backendName == "vulkan",
               backend->supportsResidentFrontiers());
+    EXPECT_EQ(backendName == "metal" || backendName == "vulkan",
+              backend->supportsPreparedRayBatchCompaction());
+    EXPECT_FALSE(backend->supportsGpuFrontierCompaction());
     EXPECT_FALSE(backend->supportsResidentDirectLightBatches());
   }
 

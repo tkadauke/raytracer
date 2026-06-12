@@ -64,6 +64,8 @@ namespace {
       state.counters["frontier_compaction_removed_fraction"] = result.removedPathFraction();
       state.counters["gpu_frontier_compaction_supported"] =
         backend.supportsGpuFrontierCompaction() ? 1.0 : 0.0;
+      state.counters["prepared_ray_batch_compaction_supported"] =
+        backend.supportsPreparedRayBatchCompaction() ? 1.0 : 0.0;
     }
 
     void annotateBackendWorkload(benchmark::State& state,
@@ -143,6 +145,8 @@ namespace {
         backend.supportsResidentFrontiers() ? 1.0 : 0.0;
       state.counters["gpu_frontier_compaction_supported"] =
         backend.supportsGpuFrontierCompaction() ? 1.0 : 0.0;
+      state.counters["prepared_ray_batch_compaction_supported"] =
+        backend.supportsPreparedRayBatchCompaction() ? 1.0 : 0.0;
       state.counters["resident_direct_light_batches_supported"] =
         backend.supportsResidentDirectLightBatches() ? 1.0 : 0.0;
     }

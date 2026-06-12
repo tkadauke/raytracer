@@ -175,6 +175,9 @@ namespace engine::wavefront {
     intersectionBackendSupportsGpuFrontierCompaction =
       intersectionBackendSupportsGpuFrontierCompaction ||
       metrics.intersectionBackendSupportsGpuFrontierCompaction;
+    intersectionBackendSupportsPreparedRayBatchCompaction =
+      intersectionBackendSupportsPreparedRayBatchCompaction ||
+      metrics.intersectionBackendSupportsPreparedRayBatchCompaction;
     intersectionBackendSupportsResidentDirectLightBatches =
       intersectionBackendSupportsResidentDirectLightBatches ||
       metrics.intersectionBackendSupportsResidentDirectLightBatches;
@@ -658,6 +661,8 @@ namespace engine::wavefront {
       batching.intersectionBackendSupportsResidentFrontiers;
     batchingJson["intersectionBackendSupportsGpuFrontierCompaction"] =
       batching.intersectionBackendSupportsGpuFrontierCompaction;
+    batchingJson["intersectionBackendSupportsPreparedRayBatchCompaction"] =
+      batching.intersectionBackendSupportsPreparedRayBatchCompaction;
     batchingJson["intersectionBackendSupportsResidentDirectLightBatches"] =
       batching.intersectionBackendSupportsResidentDirectLightBatches;
     batchingJson["batches"] = static_cast<double>(batching.batches);

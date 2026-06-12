@@ -153,6 +153,7 @@ namespace render {
     intersectionBackendPrefersAnyHitBatch = false;
     intersectionBackendSupportsResidentFrontiers = false;
     intersectionBackendSupportsGpuFrontierCompaction = false;
+    intersectionBackendSupportsPreparedRayBatchCompaction = false;
     intersectionBackendSupportsResidentDirectLightBatches = false;
     intersectionWorkerSeconds = 0.0;
     shadingWorkerSeconds = 0.0;
@@ -444,6 +445,9 @@ namespace render {
       intersectionBackendSupportsResidentFrontiers || backend.supportsResidentFrontiers();
     intersectionBackendSupportsGpuFrontierCompaction =
       intersectionBackendSupportsGpuFrontierCompaction || backend.supportsGpuFrontierCompaction();
+    intersectionBackendSupportsPreparedRayBatchCompaction =
+      intersectionBackendSupportsPreparedRayBatchCompaction ||
+      backend.supportsPreparedRayBatchCompaction();
     intersectionBackendSupportsResidentDirectLightBatches =
       intersectionBackendSupportsResidentDirectLightBatches ||
       backend.supportsResidentDirectLightBatches();
@@ -652,6 +656,9 @@ namespace render {
     intersectionBackendSupportsGpuFrontierCompaction =
       intersectionBackendSupportsGpuFrontierCompaction ||
       source.intersectionBackendSupportsGpuFrontierCompaction;
+    intersectionBackendSupportsPreparedRayBatchCompaction =
+      intersectionBackendSupportsPreparedRayBatchCompaction ||
+      source.intersectionBackendSupportsPreparedRayBatchCompaction;
     intersectionBackendSupportsResidentDirectLightBatches =
       intersectionBackendSupportsResidentDirectLightBatches ||
       source.intersectionBackendSupportsResidentDirectLightBatches;

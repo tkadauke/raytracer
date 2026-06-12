@@ -651,6 +651,8 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                            QStringLiteral("intersectionScenePackedClosestHitEligible"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Packed any-hit eligible"), batching,
                            QStringLiteral("intersectionScenePackedAnyHitEligible"));
+  addDetailBoolMetadataRow(rows, QStringLiteral("Prepared ray-batch compaction"), batching,
+                           QStringLiteral("intersectionBackendSupportsPreparedRayBatchCompaction"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Closest-hit rays submitted"), batching,
                               QStringLiteral("closestHitRaysSubmitted"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit rays submitted"), batching,
@@ -1108,18 +1110,25 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         if (batching.contains(QStringLiteral("intersectionBackendSupportsResidentFrontiers")) ||
             batching.contains(QStringLiteral("intersectionBackendSupportsGpuFrontierCompaction")) ||
             batching.contains(
+              QStringLiteral("intersectionBackendSupportsPreparedRayBatchCompaction")) ||
+            batching.contains(
               QStringLiteral("intersectionBackendSupportsResidentDirectLightBatches"))) {
           const bool supportsResidentFrontiers =
             batching.value(QStringLiteral("intersectionBackendSupportsResidentFrontiers")).toBool();
           const bool supportsGpuCompaction =
             batching.value(QStringLiteral("intersectionBackendSupportsGpuFrontierCompaction"))
               .toBool();
+          const bool supportsPreparedCompaction =
+            batching.value(QStringLiteral("intersectionBackendSupportsPreparedRayBatchCompaction"))
+              .toBool();
           const bool supportsResidentDirectLight =
             batching.value(QStringLiteral("intersectionBackendSupportsResidentDirectLightBatches"))
               .toBool();
           line +=
-            QStringLiteral(", resident support frontiers %1/compaction %2/direct-light %3")
+            QStringLiteral(", resident support frontiers %1/prepared-ray-compaction "
+                           "%2/frontier-compaction %3/direct-light %4")
               .arg(supportsResidentFrontiers ? QStringLiteral("yes") : QStringLiteral("no"))
+              .arg(supportsPreparedCompaction ? QStringLiteral("yes") : QStringLiteral("no"))
               .arg(supportsGpuCompaction ? QStringLiteral("yes") : QStringLiteral("no"))
               .arg(supportsResidentDirectLight ? QStringLiteral("yes") : QStringLiteral("no"));
         }

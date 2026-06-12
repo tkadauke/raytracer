@@ -193,10 +193,13 @@ boundary. The closest-hit and any-hit frontier residency labels record whether
 those backend-owned frontiers were host-backed or came from a future resident
 backend path.
 Backend capability flags separately state whether the selected backend already
-supports resident frontiers, GPU frontier compaction, or resident direct-light
-batches. The current hybrid backends report those as unsupported until a real
-Phase 8 scheduling path lands, so the estimates stay visibly separate from
-implemented behavior.
+supports resident frontiers, prepared ray-batch compaction, scheduler-level GPU
+frontier compaction, or resident direct-light batches. Prepared ray-batch
+compaction means an already uploaded platform ray buffer can be compacted, but
+the current hybrid scheduler still compacts `BatchPath` state on the host. The
+scheduler-level GPU compaction and resident direct-light flags stay unsupported
+until a real Phase 8 scheduling path lands, so the estimates stay visibly
+separate from implemented behavior.
 The path tracer also reports frontier compaction passes: the current CPU
 scheduler compacts the surviving path frontier after each depth, and the
 metrics expose the input, retained, removed, moved, removed-fraction sample
@@ -369,6 +372,7 @@ compact summary prints total `tiles`, `tile_grid`,
 `closest_hit_frontier_residency`, `any_hit_frontier_residency`,
 `resident_frontiers_supported`,
 `gpu_frontier_compaction_supported`,
+`prepared_ray_batch_compaction_supported`,
 `resident_direct_light_batches_supported`,
 `frontier_compaction_passes`,
 `frontier_compaction_input_samples`,

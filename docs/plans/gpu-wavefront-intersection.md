@@ -1019,6 +1019,10 @@ Progress:
   lower-level platform compaction primitive directly and publish the same
   input/retained/removed sample counters as the public frontier-compaction
   rows, while keeping public GPU frontier compaction marked unsupported.
+- Render metrics, rendercli compact summaries, convergence captures, and the
+  Modeler graph details now expose prepared ray-batch compaction as its own
+  capability flag. That keeps the new platform ray-buffer primitive visible
+  without conflating it with scheduler-owned GPU frontier compaction.
 - Metal GPU-intersection backends now create `metal_shared` closest-hit and
   any-hit frontiers when a prepared Metal scene is available. Those frontiers
   dispatch through their prepared ray batch and fall back to `packed_host`

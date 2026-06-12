@@ -298,6 +298,13 @@ namespace render {
       */
     virtual bool supportsGpuFrontierCompaction() const;
     /**
+      * True when the backend can compact an already prepared platform ray
+      * batch. This is lower-level than scheduler-owned frontier compaction:
+      * the current renderer can use this for diagnostics before `BatchPath`
+      * state itself becomes GPU-resident.
+      */
+    virtual bool supportsPreparedRayBatchCompaction() const;
+    /**
       * True only when next-event-estimation occlusion batches can stay resident
       * across shading/frontier phases. A platform any-hit frontier alone is not
       * enough because current shading still builds shadow rays on the host and
@@ -455,6 +462,7 @@ namespace render {
     bool prefersClosestHitBatch(std::uint64_t submittedRays) const override;
     bool prefersAnyHitBatch(std::uint64_t submittedRays) const override;
     bool supportsResidentFrontiers() const override;
+    bool supportsPreparedRayBatchCompaction() const override;
     WavefrontClosestHitResult
     intersectClosestResult(const Scene& scene, const Rayd& ray, State& state,
                            WavefrontIntersectionQueryTiming* timing = nullptr) const override;
@@ -551,6 +559,7 @@ namespace render {
     bool prefersClosestHitBatch(std::uint64_t submittedRays) const override;
     bool prefersAnyHitBatch(std::uint64_t submittedRays) const override;
     bool supportsResidentFrontiers() const override;
+    bool supportsPreparedRayBatchCompaction() const override;
     WavefrontClosestHitResult
     intersectClosestResult(const Scene& scene, const Rayd& ray, State& state,
                            WavefrontIntersectionQueryTiming* timing = nullptr) const override;

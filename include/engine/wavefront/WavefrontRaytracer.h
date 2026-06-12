@@ -122,6 +122,7 @@ namespace engine::wavefront {
       bool intersectionBackendPrefersAnyHitBatch = false;
       bool intersectionBackendSupportsResidentFrontiers = false;
       bool intersectionBackendSupportsGpuFrontierCompaction = false;
+      bool intersectionBackendSupportsPreparedRayBatchCompaction = false;
       bool intersectionBackendSupportsResidentDirectLightBatches = false;
       std::uint64_t activeSampleDepthsProcessed = 0;
       std::uint64_t compatibilityShadeSamples = 0;

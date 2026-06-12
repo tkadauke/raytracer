@@ -2719,6 +2719,7 @@ endif()
 foreach(resident_support_summary
         resident_frontiers_supported=
         gpu_frontier_compaction_supported=
+        prepared_ray_batch_compaction_supported=
         resident_direct_light_batches_supported=)
   if(NOT wavefront_metrics_stdout MATCHES "${resident_support_summary}")
     _rendercli_fail("rendercli wavefront metrics ${resident_support_summary}"
@@ -2836,6 +2837,7 @@ endif()
 foreach(resident_support_field
         intersectionBackendSupportsResidentFrontiers
         intersectionBackendSupportsGpuFrontierCompaction
+        intersectionBackendSupportsPreparedRayBatchCompaction
         intersectionBackendSupportsResidentDirectLightBatches)
   if(NOT wavefront_metrics_json MATCHES "\"${resident_support_field}\"")
     _rendercli_fail("rendercli wavefront metrics ${resident_support_field}"

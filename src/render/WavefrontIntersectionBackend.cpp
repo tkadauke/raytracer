@@ -1296,6 +1296,10 @@ namespace render {
     return false;
   }
 
+  bool WavefrontIntersectionBackend::supportsPreparedRayBatchCompaction() const {
+    return false;
+  }
+
   bool WavefrontIntersectionBackend::supportsResidentDirectLightBatches() const {
     return false;
   }
@@ -2190,6 +2194,10 @@ namespace render {
     return metalBasicHitAvailable();
   }
 
+  bool MetalWavefrontIntersectionBackend::supportsPreparedRayBatchCompaction() const {
+    return metalBasicHitAvailable();
+  }
+
   WavefrontClosestHitResult MetalWavefrontIntersectionBackend::intersectClosestResult(
     const Scene& scene, const Rayd& ray, State& state,
     WavefrontIntersectionQueryTiming* timing) const {
@@ -2564,6 +2572,10 @@ namespace render {
   }
 
   bool VulkanWavefrontIntersectionBackend::supportsResidentFrontiers() const {
+    return vulkanBasicHitAvailable();
+  }
+
+  bool VulkanWavefrontIntersectionBackend::supportsPreparedRayBatchCompaction() const {
     return vulkanBasicHitAvailable();
   }
 

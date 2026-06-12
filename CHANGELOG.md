@@ -64,6 +64,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Reported prepared ray-batch compaction support separately from scheduler-level
+  GPU frontier compaction in wavefront metrics, rendercli summaries, convergence
+  captures, benchmarks, and Modeler graph details. — GPT-5 Codex
 - Added wavefront intersection backend benchmark rows for frontier compaction,
   including input/retained/removed/moved sample counters and GPU-compaction
   support flags. — GPT-5 Codex

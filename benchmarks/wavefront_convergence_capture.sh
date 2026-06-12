@@ -290,6 +290,7 @@ def wavefront_metric_values(path)
     any_hit_frontier_packed_ray_bytes: [],
     resident_frontiers_supported: [],
     gpu_frontier_compaction_supported: [],
+    prepared_ray_batch_compaction_supported: [],
     resident_direct_light_batches_supported: [],
     frontier_mixed_query_depths: [],
     frontier_mixed_query_round_trips: [],
@@ -358,6 +359,7 @@ def wavefront_metric_values(path)
       any_hit_frontier_packed_ray_bytes: 0.0,
       resident_frontiers_supported: 0.0,
       gpu_frontier_compaction_supported: 0.0,
+      prepared_ray_batch_compaction_supported: 0.0,
       resident_direct_light_batches_supported: 0.0,
       frontier_mixed_query_depths: 0.0,
       frontier_mixed_query_round_trips: 0.0,
@@ -488,6 +490,9 @@ def wavefront_metric_values(path)
       end
       if batching.fetch("intersectionBackendSupportsGpuFrontierCompaction", false)
         run_values[:gpu_frontier_compaction_supported] = 1.0
+      end
+      if batching.fetch("intersectionBackendSupportsPreparedRayBatchCompaction", false)
+        run_values[:prepared_ray_batch_compaction_supported] = 1.0
       end
       if batching.fetch("intersectionBackendSupportsResidentDirectLightBatches", false)
         run_values[:resident_direct_light_batches_supported] = 1.0
@@ -650,6 +655,7 @@ end
    any_hit_frontier_packed_ray_bytes
    resident_frontiers_supported
    gpu_frontier_compaction_supported
+   prepared_ray_batch_compaction_supported
    resident_direct_light_batches_supported
    frontier_mixed_query_depths
    frontier_mixed_query_round_trips
@@ -800,6 +806,7 @@ def aggregate_run(run)
     any_hit_frontier_packed_ray_bytes: 0.0,
     resident_frontiers_supported: 0.0,
     gpu_frontier_compaction_supported: 0.0,
+    prepared_ray_batch_compaction_supported: 0.0,
     resident_direct_light_batches_supported: 0.0,
     mixed_query_depths: 0.0,
     mixed_query_round_trips: 0.0,
@@ -878,6 +885,9 @@ def aggregate_run(run)
     if batching.fetch("intersectionBackendSupportsGpuFrontierCompaction", false)
       values[:gpu_frontier_compaction_supported] = 1.0
     end
+    if batching.fetch("intersectionBackendSupportsPreparedRayBatchCompaction", false)
+      values[:prepared_ray_batch_compaction_supported] = 1.0
+    end
     if batching.fetch("intersectionBackendSupportsResidentDirectLightBatches", false)
       values[:resident_direct_light_batches_supported] = 1.0
     end
@@ -944,7 +954,7 @@ scene_dir = ARGV.fetch(0)
 queue_dirs = Dir.glob(File.join(scene_dir, "queue_*")).select { |path| File.directory?(path) }
 queue_dirs.sort_by! { |path| File.basename(path).delete_prefix("queue_").to_i }
 
-puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks closest_hit_batch_chunks closest_hit_batch_rays any_hit_batch_chunks any_hit_batch_rays frontier_round_trips resident_frontier_round_trips resident_frontier_savings closest_hit_frontier_residency any_hit_frontier_residency closest_hit_frontier_packed_ray_bytes any_hit_frontier_packed_ray_bytes resident_frontiers_supported gpu_frontier_compaction_supported resident_direct_light_batches_supported mixed_query_depths mixed_query_round_trips mixed_query_rays mixed_query_closest_hit_rays mixed_query_any_hit_rays packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays frontier_compaction_passes frontier_compaction_input_samples frontier_compaction_retained_samples frontier_compaction_removed_samples frontier_compaction_removed_fraction frontier_compaction_moved_samples compaction_execution sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
+puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks closest_hit_batch_chunks closest_hit_batch_rays any_hit_batch_chunks any_hit_batch_rays frontier_round_trips resident_frontier_round_trips resident_frontier_savings closest_hit_frontier_residency any_hit_frontier_residency closest_hit_frontier_packed_ray_bytes any_hit_frontier_packed_ray_bytes resident_frontiers_supported gpu_frontier_compaction_supported prepared_ray_batch_compaction_supported resident_direct_light_batches_supported mixed_query_depths mixed_query_round_trips mixed_query_rays mixed_query_closest_hit_rays mixed_query_any_hit_rays packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays frontier_compaction_passes frontier_compaction_input_samples frontier_compaction_retained_samples frontier_compaction_removed_samples frontier_compaction_removed_fraction frontier_compaction_moved_samples compaction_execution sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
 queue_dirs.each do |queue_dir|
   queue_size = File.basename(queue_dir).delete_prefix("queue_")
   Dir.glob(File.join(queue_dir, "wavefront_*.metrics.json")).sort.each do |metrics_path|
@@ -1001,6 +1011,7 @@ queue_dirs.each do |queue_dir|
       format("%.0f", median_for.call(:any_hit_frontier_packed_ray_bytes)),
       format("%.0f", median_for.call(:resident_frontiers_supported)),
       format("%.0f", median_for.call(:gpu_frontier_compaction_supported)),
+      format("%.0f", median_for.call(:prepared_ray_batch_compaction_supported)),
       format("%.0f", median_for.call(:resident_direct_light_batches_supported)),
       format("%.0f", median_for.call(:mixed_query_depths)),
       format("%.0f", median_for.call(:mixed_query_round_trips)),

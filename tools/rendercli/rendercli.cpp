@@ -377,6 +377,10 @@ namespace {
         << " gpu_frontier_compaction_supported="
         << (batching.value("intersectionBackendSupportsGpuFrontierCompaction").toBool() ? "true"
                                                                                         : "false")
+        << " prepared_ray_batch_compaction_supported="
+        << (batching.value("intersectionBackendSupportsPreparedRayBatchCompaction").toBool()
+              ? "true"
+              : "false")
         << " resident_direct_light_batches_supported="
         << (batching.value("intersectionBackendSupportsResidentDirectLightBatches").toBool()
               ? "true"
