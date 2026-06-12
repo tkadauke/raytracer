@@ -454,6 +454,14 @@ namespace render {
       return static_cast<std::uint64_t>(m_contributions.size()) * sizeof(Colord);
     }
 
+    void recordHostBytes(int bounce, IntegratorBatchMetrics* metrics) const {
+      if (!metrics) {
+        return;
+      }
+      metrics->recordDirectLightContributionHostBytes(
+        static_cast<std::uint64_t>(std::max(0, bounce)), hostBytes());
+    }
+
     [[nodiscard]] Colord at(std::size_t index) const {
       return index < m_contributions.size() ? m_contributions[index] : Colord::black();
     }
@@ -729,10 +737,7 @@ namespace render {
     const WavefrontIntersectionBackend& intersectionBackend,
     IntegratorBatchMetrics* metrics) const {
     DirectLightContributionBatch contributions(activeHits.size());
-    if (metrics) {
-      metrics->recordDirectLightContributionHostBytes(
-        static_cast<std::uint64_t>(std::max(0, bounce)), contributions.hostBytes());
-    }
+    contributions.recordHostBytes(bounce, metrics);
 
     DirectLightVisibilityBatch visibilityBatch(activeHits.size() *
                                                static_cast<std::size_t>(m_directLightSamples));

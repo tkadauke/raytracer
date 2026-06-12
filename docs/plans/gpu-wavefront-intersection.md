@@ -1249,6 +1249,9 @@ Progress:
   resolution for materialized batches: callers only distinguish empty versus
   non-empty batches, while the batch records its own selection bytes, occlusion
   bytes, any-hit chunks, and frontier residency.
+- Direct-light contribution batches now record their own host-byte footprint
+  when created, keeping resolved lighting payload accounting with the object
+  that owns that payload.
 - Direct-light visibility resolution now validates that backend any-hit
   frontiers return exactly one occlusion flag per light-selection record. That
   makes malformed resident-backend results fail loudly instead of silently
