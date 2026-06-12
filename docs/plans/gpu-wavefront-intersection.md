@@ -973,6 +973,10 @@ Progress:
   report input/retained/removed/moved samples plus GPU-compaction support. The
   current rows time the CPU behavior, and future GPU compaction kernels can
   override the same hook without changing the benchmark shape.
+- Frontier compaction results now expose their removed-path fraction directly,
+  so renderer metrics, benchmarks, and future GPU kernels can report the same
+  normalized compaction value without reimplementing the arithmetic at each
+  call site.
 - Wavefront intersection backend batch benchmarks now submit closest-hit and
   any-hit workloads through backend-owned frontier handles instead of bypassing
   the frontier contract with raw batch calls. That keeps benchmark evidence

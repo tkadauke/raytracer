@@ -342,9 +342,22 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(5u, compaction.inputPathCount());
     EXPECT_EQ(3u, compaction.retainedPathCount());
     EXPECT_EQ(2u, compaction.removedPathCount());
+    EXPECT_DOUBLE_EQ(2.0 / 5.0, compaction.removedPathFraction());
     EXPECT_EQ(2u, compaction.movedPathCount());
     EXPECT_EQ((std::vector<std::size_t>{0u, 2u, 4u}), compaction.retainedPathIndices());
     EXPECT_EQ("host", compaction.executionPath());
+  }
+
+  TEST(WavefrontFrontierCompaction, EmptyCompactionHasNoRemovedFraction) {
+    const WavefrontFrontierCompactionRequest request(0);
+
+    const WavefrontFrontierCompactionResult compaction =
+      WavefrontFrontierCompactionResult::hostCompaction(request);
+
+    EXPECT_EQ(0u, compaction.inputPathCount());
+    EXPECT_EQ(0u, compaction.retainedPathCount());
+    EXPECT_EQ(0u, compaction.removedPathCount());
+    EXPECT_DOUBLE_EQ(0.0, compaction.removedPathFraction());
   }
 
   TEST(WavefrontFrontierCompaction, RejectsOutOfRangeRetainedPaths) {

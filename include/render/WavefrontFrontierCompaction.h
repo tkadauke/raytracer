@@ -34,6 +34,7 @@ namespace render {
     [[nodiscard]] std::size_t inputPathCount() const;
     [[nodiscard]] std::size_t retainedPathCount() const;
     [[nodiscard]] std::size_t removedPathCount() const;
+    [[nodiscard]] double removedPathFraction() const;
     [[nodiscard]] std::size_t movedPathCount() const;
     [[nodiscard]] const std::vector<std::size_t>& retainedPathIndices() const;
     [[nodiscard]] const std::string& executionPath() const;

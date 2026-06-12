@@ -55,6 +55,13 @@ namespace render {
     return m_inputPathCount > retainedPathCount() ? m_inputPathCount - retainedPathCount() : 0;
   }
 
+  double WavefrontFrontierCompactionResult::removedPathFraction() const {
+    if (m_inputPathCount == 0) {
+      return 0.0;
+    }
+    return static_cast<double>(removedPathCount()) / static_cast<double>(m_inputPathCount);
+  }
+
   std::size_t WavefrontFrontierCompactionResult::movedPathCount() const {
     return m_movedPathCount;
   }

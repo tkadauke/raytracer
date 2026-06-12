@@ -55,10 +55,7 @@ namespace {
         static_cast<double>(result.removedPathCount());
       state.counters["frontier_compaction_moved_samples"] =
         static_cast<double>(result.movedPathCount());
-      state.counters["frontier_compaction_removed_fraction"] =
-        result.inputPathCount() == 0 ? 0.0
-                                     : static_cast<double>(result.removedPathCount()) /
-                                         static_cast<double>(result.inputPathCount());
+      state.counters["frontier_compaction_removed_fraction"] = result.removedPathFraction();
       state.counters["gpu_frontier_compaction_supported"] =
         backend.supportsGpuFrontierCompaction() ? 1.0 : 0.0;
     }
