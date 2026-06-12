@@ -173,6 +173,10 @@ namespace {
         batching.value("activeHostPathStateBytesPerDepth").toArray();
       const QJsonArray retainedHostPathStateBytes =
         batching.value("retainedHostPathStateBytesPerDepth").toArray();
+      const QJsonArray spawnedContinuations =
+        batching.value("spawnedContinuationSamplesPerDepth").toArray();
+      const QJsonArray spawnedContinuationHostPathStateBytes =
+        batching.value("spawnedContinuationHostPathStateBytesPerDepth").toArray();
       const QJsonArray frontierHits = batching.value("frontierRayHitsPerDepth").toArray();
       const QJsonArray frontierMisses = batching.value("frontierRayMissesPerDepth").toArray();
       const QJsonArray frontierPackets = batching.value("frontierPacketChunksPerDepth").toArray();
@@ -427,6 +431,9 @@ namespace {
         << " active_sample_depths=" << unsignedValue(batching, "activeSampleDepthsProcessed")
         << " active_host_path_state_bytes="
         << unsignedValue(batching, "activeHostPathStateBytesProcessed")
+        << " spawned_continuations=" << unsignedValue(batching, "spawnedContinuationSamples")
+        << " spawned_continuation_host_path_state_bytes="
+        << unsignedValue(batching, "spawnedContinuationHostPathStateBytes")
         << " frontier_compaction_execution="
         << compactTextValue(batching.value("frontierCompactionExecutionPath"), "none")
         << " frontier_compaction_passes=" << unsignedValue(batching, "frontierCompactionPasses")
@@ -458,6 +465,9 @@ namespace {
         << " last_retained_active=" << unsignedArrayBack(retainedActiveSamples)
         << " last_active_host_path_state_bytes=" << unsignedArrayBack(activeHostPathStateBytes)
         << " last_retained_host_path_state_bytes=" << unsignedArrayBack(retainedHostPathStateBytes)
+        << " last_spawned_continuations=" << unsignedArrayBack(spawnedContinuations)
+        << " last_spawned_continuation_host_path_state_bytes="
+        << unsignedArrayBack(spawnedContinuationHostPathStateBytes)
         << " frontier_compaction_candidate_depths="
         << unsignedValue(batching, "frontierCompactionCandidateDepths")
         << " frontier_compaction_candidate_samples="

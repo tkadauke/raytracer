@@ -240,6 +240,8 @@ namespace engine::wavefront {
     missRadianceLuminanceSum += metrics.missRadianceLuminanceSum;
     compatibilityShadeRadianceLuminanceSum += metrics.compatibilityShadeRadianceLuminanceSum;
     activeHostPathStateBytesProcessed += metrics.activeHostPathStateBytesProcessed;
+    spawnedContinuationSamples += metrics.spawnedContinuationSamples;
+    spawnedContinuationHostPathStateBytes += metrics.spawnedContinuationHostPathStateBytes;
 
     const auto addCounts = [](std::vector<std::uint64_t>& target,
                               const std::vector<std::uint64_t>& source) {
@@ -254,6 +256,9 @@ namespace engine::wavefront {
     addCounts(retainedActiveSamplesPerDepth, metrics.retainedActiveSamplesPerDepth);
     addCounts(activeHostPathStateBytesPerDepth, metrics.activeHostPathStateBytesPerDepth);
     addCounts(retainedHostPathStateBytesPerDepth, metrics.retainedHostPathStateBytesPerDepth);
+    addCounts(spawnedContinuationSamplesPerDepth, metrics.spawnedContinuationSamplesPerDepth);
+    addCounts(spawnedContinuationHostPathStateBytesPerDepth,
+              metrics.spawnedContinuationHostPathStateBytesPerDepth);
     addCounts(frontierRayHitsPerDepth, metrics.frontierRayHitsPerDepth);
     addCounts(frontierRayMissesPerDepth, metrics.frontierRayMissesPerDepth);
     addCounts(frontierPacketChunksPerDepth, metrics.frontierPacketChunksPerDepth);
@@ -612,6 +617,10 @@ namespace engine::wavefront {
       integerArray(batching.activeHostPathStateBytesPerDepth);
     const QJsonArray retainedHostPathStateBytesPerDepth =
       integerArray(batching.retainedHostPathStateBytesPerDepth);
+    const QJsonArray spawnedContinuationSamplesPerDepth =
+      integerArray(batching.spawnedContinuationSamplesPerDepth);
+    const QJsonArray spawnedContinuationHostPathStateBytesPerDepth =
+      integerArray(batching.spawnedContinuationHostPathStateBytesPerDepth);
     const QJsonArray frontierRayHitsPerDepth = integerArray(batching.frontierRayHitsPerDepth);
     const QJsonArray frontierRayMissesPerDepth = integerArray(batching.frontierRayMissesPerDepth);
     const QJsonArray frontierPacketChunksPerDepth =
@@ -866,6 +875,13 @@ namespace engine::wavefront {
     batchingJson["retainedActiveSamplesPerDepth"] = retainedActiveSamplesPerDepth;
     batchingJson["activeHostPathStateBytesPerDepth"] = activeHostPathStateBytesPerDepth;
     batchingJson["retainedHostPathStateBytesPerDepth"] = retainedHostPathStateBytesPerDepth;
+    batchingJson["spawnedContinuationSamples"] =
+      static_cast<double>(batching.spawnedContinuationSamples);
+    batchingJson["spawnedContinuationHostPathStateBytes"] =
+      static_cast<double>(batching.spawnedContinuationHostPathStateBytes);
+    batchingJson["spawnedContinuationSamplesPerDepth"] = spawnedContinuationSamplesPerDepth;
+    batchingJson["spawnedContinuationHostPathStateBytesPerDepth"] =
+      spawnedContinuationHostPathStateBytesPerDepth;
     batchingJson["frontierCompactionCandidateDepths"] =
       static_cast<double>(batching.compactionCandidateDepthCount());
     batchingJson["frontierCompactionCandidateSamples"] =

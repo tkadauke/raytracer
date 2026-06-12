@@ -2687,6 +2687,17 @@ if(NOT wavefront_metrics_json MATCHES "\"retainedActiveSamplesPerDepth\"")
                   "wavefront metrics report did not contain retained active sample counts"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
+foreach(spawned_field
+        spawnedContinuationSamples
+        spawnedContinuationHostPathStateBytes
+        spawnedContinuationSamplesPerDepth
+        spawnedContinuationHostPathStateBytesPerDepth)
+  if(NOT wavefront_metrics_json MATCHES "\"${spawned_field}\"")
+    _rendercli_fail("rendercli wavefront metrics ${spawned_field}"
+                    "wavefront metrics report did not contain ${spawned_field}"
+                    "" "" "${wavefront_metrics_json}" "")
+  endif()
+endforeach()
 foreach(compaction_field
         frontierCompactionExecutionPath
         frontierCompactionPasses
@@ -2738,6 +2749,28 @@ if(NOT wavefront_metrics_stdout MATCHES "last_retained_active=")
   _rendercli_fail("rendercli wavefront metrics retained active summary"
                   "wavefront metrics summary did not contain last_retained_active"
                   "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "spawned_continuations=")
+  _rendercli_fail("rendercli wavefront metrics spawned continuation summary"
+                  "wavefront metrics summary did not contain spawned_continuations"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "spawned_continuation_host_path_state_bytes=")
+  _rendercli_fail(
+    "rendercli wavefront metrics spawned continuation path-state byte summary"
+    "wavefront metrics summary did not contain spawned continuation host path-state bytes"
+    "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "last_spawned_continuations=")
+  _rendercli_fail("rendercli wavefront metrics last spawned continuation summary"
+                  "wavefront metrics summary did not contain last_spawned_continuations"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "last_spawned_continuation_host_path_state_bytes=")
+  _rendercli_fail(
+    "rendercli wavefront metrics last spawned continuation path-state byte summary"
+    "wavefront metrics summary did not contain last spawned continuation host path-state bytes"
+    "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_passes=")
   _rendercli_fail("rendercli wavefront metrics frontier compaction pass summary"

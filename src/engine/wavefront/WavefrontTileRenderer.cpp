@@ -213,6 +213,12 @@ namespace engine::wavefront::detail {
                       source.activeHostPathStateBytesPerDepth);
       addVectorValues(target.retainedHostPathStateBytesPerDepth,
                       source.retainedHostPathStateBytesPerDepth);
+      target.spawnedContinuationSamples += source.spawnedContinuationSamples;
+      target.spawnedContinuationHostPathStateBytes += source.spawnedContinuationHostPathStateBytes;
+      addVectorValues(target.spawnedContinuationSamplesPerDepth,
+                      source.spawnedContinuationSamplesPerDepth);
+      addVectorValues(target.spawnedContinuationHostPathStateBytesPerDepth,
+                      source.spawnedContinuationHostPathStateBytesPerDepth);
       addVectorValues(target.radianceDeltaSquaredSumPerDepth,
                       source.radianceDeltaSquaredSumPerDepth);
       if (target.maxRadianceDeltaPerDepth.size() < source.maxRadianceDeltaPerDepth.size()) {

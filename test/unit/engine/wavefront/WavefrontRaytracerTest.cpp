@@ -1198,6 +1198,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(
       activeHostPathStateBytes.at(0).toDouble(),
       json.value("batching").toObject().value("activeHostPathStateBytesProcessed").toDouble());
+    EXPECT_EQ(0.0,
+              json.value("batching").toObject().value("spawnedContinuationSamples").toDouble());
     const QJsonArray retainedHostPathStateBytes =
       json.value("batching").toObject().value("retainedHostPathStateBytesPerDepth").toArray();
     ASSERT_EQ(1, retainedHostPathStateBytes.size());
@@ -1222,20 +1224,18 @@ namespace WavefrontRaytracerTest {
                 .toObject()
                 .value("frontierCompactionCandidateHostPathStateBytes")
                 .toDouble());
-    EXPECT_EQ(activeHostPathStateBytes.at(0).toDouble(),
-              json.value("batching")
-                .toObject()
-                .value("frontierCompactionInputHostPathStateBytes")
-                .toDouble());
+    EXPECT_EQ(0.0, json.value("batching")
+                     .toObject()
+                     .value("frontierCompactionInputHostPathStateBytes")
+                     .toDouble());
     EXPECT_EQ(0.0, json.value("batching")
                      .toObject()
                      .value("frontierCompactionRetainedHostPathStateBytes")
                      .toDouble());
-    EXPECT_EQ(activeHostPathStateBytes.at(0).toDouble(),
-              json.value("batching")
-                .toObject()
-                .value("frontierCompactionRemovedHostPathStateBytes")
-                .toDouble());
+    EXPECT_EQ(0.0, json.value("batching")
+                     .toObject()
+                     .value("frontierCompactionRemovedHostPathStateBytes")
+                     .toDouble());
     EXPECT_DOUBLE_EQ(1.0, json.value("batching")
                             .toObject()
                             .value("frontierCompactionCandidateSampleFraction")
@@ -1905,6 +1905,7 @@ namespace WavefrontRaytracerTest {
                                    /*inputHostPathStateBytes=*/8u * 64u,
                                    /*retainedHostPathStateBytes=*/5u * 64u,
                                    /*removedHostPathStateBytes=*/3u * 64u);
+    batch.recordSpawnedContinuations(/*samples=*/3, /*hostPathStateBytes=*/3u * 64u);
     constexpr double redLuma = 0.299;
     constexpr double greenLuma = 0.587;
     constexpr double blueLuma = 0.114;
@@ -1938,6 +1939,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("host", metrics.batching.frontierCompactionExecutionPath);
     EXPECT_DOUBLE_EQ(3.0 / 8.0, metrics.batching.frontierCompactionRemovedSampleFraction());
     EXPECT_DOUBLE_EQ(2.0 / 5.0, metrics.batching.frontierCompactionMovedRetainedSampleFraction());
+    EXPECT_EQ(3u, metrics.batching.spawnedContinuationSamples);
+    EXPECT_EQ(3u * 64u, metrics.batching.spawnedContinuationHostPathStateBytes);
+    ASSERT_EQ(1u, metrics.batching.spawnedContinuationSamplesPerDepth.size());
+    EXPECT_EQ(3u, metrics.batching.spawnedContinuationSamplesPerDepth[0]);
+    ASSERT_EQ(1u, metrics.batching.spawnedContinuationHostPathStateBytesPerDepth.size());
+    EXPECT_EQ(3u * 64u, metrics.batching.spawnedContinuationHostPathStateBytesPerDepth[0]);
     EXPECT_DOUBLE_EQ(redLuma, metrics.batching.emittedRadianceLuminanceSum);
     EXPECT_DOUBLE_EQ(greenLuma + blueLuma, metrics.batching.directLightRadianceLuminanceSum);
     EXPECT_DOUBLE_EQ(greenLuma, metrics.batching.primaryDirectLightRadianceLuminanceSum);
@@ -1985,6 +1992,16 @@ namespace WavefrontRaytracerTest {
                      batching.value("frontierCompactionRemovedSampleFraction").toDouble());
     EXPECT_DOUBLE_EQ(2.0 / 5.0,
                      batching.value("frontierCompactionMovedRetainedSampleFraction").toDouble());
+    EXPECT_EQ(3.0, batching.value("spawnedContinuationSamples").toDouble());
+    EXPECT_EQ(3.0 * 64.0, batching.value("spawnedContinuationHostPathStateBytes").toDouble());
+    const QJsonArray spawnedContinuations =
+      batching.value("spawnedContinuationSamplesPerDepth").toArray();
+    ASSERT_EQ(1, spawnedContinuations.size());
+    EXPECT_EQ(3.0, spawnedContinuations.at(0).toDouble());
+    const QJsonArray spawnedContinuationHostPathStateBytes =
+      batching.value("spawnedContinuationHostPathStateBytesPerDepth").toArray();
+    ASSERT_EQ(1, spawnedContinuationHostPathStateBytes.size());
+    EXPECT_EQ(3.0 * 64.0, spawnedContinuationHostPathStateBytes.at(0).toDouble());
     EXPECT_DOUBLE_EQ(redLuma, batching.value("emittedRadianceLuminanceSum").toDouble());
     EXPECT_DOUBLE_EQ(greenLuma + blueLuma,
                      batching.value("directLightRadianceLuminanceSum").toDouble());

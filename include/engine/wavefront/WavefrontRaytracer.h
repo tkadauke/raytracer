@@ -157,6 +157,10 @@ namespace engine::wavefront {
       std::vector<std::uint64_t> activeHostPathStateBytesPerDepth;
       std::vector<std::uint64_t> retainedHostPathStateBytesPerDepth;
       std::uint64_t activeHostPathStateBytesProcessed = 0;
+      std::vector<std::uint64_t> spawnedContinuationSamplesPerDepth;
+      std::vector<std::uint64_t> spawnedContinuationHostPathStateBytesPerDepth;
+      std::uint64_t spawnedContinuationSamples = 0;
+      std::uint64_t spawnedContinuationHostPathStateBytes = 0;
       std::vector<std::uint64_t> frontierRayHitsPerDepth;
       std::vector<std::uint64_t> frontierRayMissesPerDepth;
       std::vector<std::uint64_t> frontierPacketChunksPerDepth;

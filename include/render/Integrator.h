@@ -151,6 +151,10 @@ namespace render {
     std::vector<std::uint64_t> activeHostPathStateBytesPerDepth;
     std::vector<std::uint64_t> retainedHostPathStateBytesPerDepth;
     std::uint64_t activeHostPathStateBytesProcessed{0};
+    std::vector<std::uint64_t> spawnedContinuationSamplesPerDepth;
+    std::vector<std::uint64_t> spawnedContinuationHostPathStateBytesPerDepth;
+    std::uint64_t spawnedContinuationSamples{0};
+    std::uint64_t spawnedContinuationHostPathStateBytes{0};
     std::uint64_t frontierCompactionPasses{0};
     std::uint64_t frontierCompactionInputSamples{0};
     std::uint64_t frontierCompactionRetainedSamples{0};
@@ -167,6 +171,7 @@ namespace render {
     void recordRetainedActiveDepth(std::uint64_t activeSamples);
     void recordActiveHostPathStateBytes(std::uint64_t bytes);
     void recordRetainedHostPathStateBytes(std::uint64_t bytes);
+    void recordSpawnedContinuations(std::uint64_t samples, std::uint64_t hostPathStateBytes);
     void recordFrontierCompaction(std::uint64_t inputSamples, std::uint64_t retainedSamples,
                                   std::uint64_t movedSamples, const std::string& executionPath,
                                   std::uint64_t retainedIndexBytes = 0,

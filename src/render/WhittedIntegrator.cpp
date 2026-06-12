@@ -818,6 +818,7 @@ namespace render {
         collectCurrentActiveSamples(current, activeSamples, activeSampleIndices);
       if (metrics) {
         metrics->recordActiveDepth(currentActiveSamples);
+        metrics->recordActiveHostPathStateBytes(current.size() * sizeof(QueuedRay));
       }
       if (trackRadianceDelta) {
         resultBeforeActiveSamples.clear();
@@ -878,7 +879,9 @@ namespace render {
       const std::uint64_t nextActiveSampleCount =
         countNextActiveSamples ? nextActiveSampleIndices.size() : next.size();
       if (metrics) {
+        metrics->recordSpawnedContinuations(0, 0);
         metrics->recordRetainedActiveDepth(nextActiveSampleCount);
+        metrics->recordRetainedHostPathStateBytes(next.size() * sizeof(QueuedRay));
       }
       IntegratorBatchFeedback feedback;
       if (settings.progressObserver) {

@@ -198,8 +198,14 @@ handle byte counters show the remaining per-ray `State*` association retained
 by packed or platform frontiers after the original query vector is gone.
 Compaction candidate byte counters apply the same split to inactive paths so
 the graph can show both ray payload and remaining state-handle footprint. Host
-path-state byte counters add the larger scheduler-owned `BatchPath` footprint
-that the CPU path tracer still compacts directly.
+path-state byte counters add the larger scheduler-owned queue footprint: the
+path tracer's `BatchPath` records or Whitted queued-ray records that the CPU
+scheduler still owns directly.
+Path-tracing spawned-continuation counters sit beside those host path-state
+metrics. They count exact-delta branches that append new path states after the
+current frontier is compacted, plus the host `BatchPath` bytes attached to
+those spawned states. That separates frontier growth from inactive-path
+removal when sizing future resident path-state work.
 Backend capability flags separately state whether the selected backend already
 supports resident frontiers, prepared ray-batch compaction, scheduler-level GPU
 frontier compaction, or resident direct-light batches. Prepared ray-batch
@@ -419,6 +425,8 @@ compact summary prints total `tiles`, `tile_grid`,
 `frontier_compaction_moved_samples`,
 `frontier_compaction_moved_retained_fraction`,
 `active_host_path_state_bytes`,
+`spawned_continuations`,
+`spawned_continuation_host_path_state_bytes`,
 `frontier_compaction_candidate_packed_ray_bytes`,
 `frontier_compaction_candidate_state_handle_bytes`,
 `frontier_compaction_candidate_host_path_state_bytes`,
@@ -474,6 +482,10 @@ batch preferences,
 `frontierPacketScalarFallbackRaysByReason` for the base packet-hit fallback
 breakdown and
 `frontierPacketRefinedRaysByMaterial` for the material-family breakdown.
+The JSON also keeps `spawnedContinuationSamplesPerDepth` and
+`spawnedContinuationHostPathStateBytesPerDepth`, which show where exact-delta
+branching appended new path states before the next frontier depth was
+intersected.
 Direct-light any-hit chunk arrays count visibility chunks: grouped backends
 record one chunk per submitted any-hit frontier, while scalar-loop backends
 record one chunk per shadow query. That keeps the resident-direct-light

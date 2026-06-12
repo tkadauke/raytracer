@@ -1899,6 +1899,14 @@ namespace PathTracingIntegratorTest {
               metrics.compactionCandidateHostPathStateBytes());
     EXPECT_EQ(metrics.activeHostPathStateBytesPerDepth[1],
               metrics.largestCompactionCandidateHostPathStateBytes());
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.spawnedContinuationSamplesPerDepth);
+    ASSERT_EQ(2u, metrics.spawnedContinuationHostPathStateBytesPerDepth.size());
+    EXPECT_EQ(metrics.activeHostPathStateBytesPerDepth[1],
+              metrics.spawnedContinuationHostPathStateBytesPerDepth[0]);
+    EXPECT_EQ(0u, metrics.spawnedContinuationHostPathStateBytesPerDepth[1]);
+    EXPECT_EQ(1u, metrics.spawnedContinuationSamples);
+    EXPECT_EQ(metrics.activeHostPathStateBytesPerDepth[1],
+              metrics.spawnedContinuationHostPathStateBytes);
     // Exact delta branches append spawned continuations after old frontier
     // slots are compacted, so these counters describe the host compaction
     // operation itself. retainedActiveSamplesPerDepth describes the next
@@ -1964,6 +1972,9 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 1u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.spawnedContinuationSamplesPerDepth);
+    EXPECT_EQ(1u, metrics.spawnedContinuationSamples);
+    EXPECT_GT(metrics.spawnedContinuationHostPathStateBytes, 0u);
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceSplitsTransparentDeltaBranches) {
@@ -1987,6 +1998,9 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 2u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(3u, metrics.activeSampleDepthsProcessed);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u, 0u}), metrics.spawnedContinuationSamplesPerDepth);
+    EXPECT_EQ(2u, metrics.spawnedContinuationSamples);
+    EXPECT_GT(metrics.spawnedContinuationHostPathStateBytes, 0u);
   }
 
   TEST(PathTracingIntegrator, ScalarRadianceSplitsTransparentDeltaBranches) {

@@ -1131,6 +1131,10 @@ Progress:
   estimates. That sizes the CPU-owned `BatchPath` frontier state separately
   from packed ray payloads and `State*` handles, making the remaining scheduler
   residency work measurable before the representation changes.
+- Path-tracing wavefront metrics now also report spawned-continuation counts
+  and host path-state bytes per depth. Exact-delta branches append those states
+  after the old frontier is compacted, so this separates frontier growth from
+  inactive-path removal when planning resident path state.
 - Frontier compaction requests and results now carry optional path-state bytes
   per path. The path tracer fills this with its `BatchPath` size, so the backend
   compaction contract can see the scheduler-owned state payload attached to the

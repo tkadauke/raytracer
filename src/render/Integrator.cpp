@@ -180,6 +180,10 @@ namespace render {
     activeHostPathStateBytesPerDepth.clear();
     retainedHostPathStateBytesPerDepth.clear();
     activeHostPathStateBytesProcessed = 0;
+    spawnedContinuationSamplesPerDepth.clear();
+    spawnedContinuationHostPathStateBytesPerDepth.clear();
+    spawnedContinuationSamples = 0;
+    spawnedContinuationHostPathStateBytes = 0;
     frontierCompactionPasses = 0;
     frontierCompactionInputSamples = 0;
     frontierCompactionRetainedSamples = 0;
@@ -208,6 +212,14 @@ namespace render {
 
   void IntegratorBatchMetrics::recordRetainedHostPathStateBytes(std::uint64_t bytes) {
     retainedHostPathStateBytesPerDepth.push_back(bytes);
+  }
+
+  void IntegratorBatchMetrics::recordSpawnedContinuations(std::uint64_t samples,
+                                                          std::uint64_t hostPathStateBytes) {
+    spawnedContinuationSamplesPerDepth.push_back(samples);
+    spawnedContinuationHostPathStateBytesPerDepth.push_back(hostPathStateBytes);
+    spawnedContinuationSamples += samples;
+    spawnedContinuationHostPathStateBytes += hostPathStateBytes;
   }
 
   void IntegratorBatchMetrics::recordFrontierCompaction(

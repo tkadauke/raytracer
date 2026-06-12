@@ -166,6 +166,13 @@ continuations into the depth-1 frontier. The same process repeats
 until every path terminates, convergence stops the batch, or the
 depth cap is reached.
 
+Some exact materials, such as transparent delta transport, can spawn
+more than one continuation from a single hit. The wavefront metrics
+therefore report spawned continuations separately from retained
+frontier samples. Retained samples describe the next depth's active
+frontier after spawned continuations are appended; spawned counts show
+how much exact-delta branching grew that frontier.
+
 <!-- widget: wavefront_path_tracing -->
 
 This explicit frontier gives the engine places to optimize and

@@ -1201,6 +1201,7 @@ namespace render {
       if (isCancelled()) {
         if (metrics) {
           metrics->recordRadianceDeltaDepth(0.0, 0.0);
+          metrics->recordSpawnedContinuations(0, 0);
           metrics->recordRetainedActiveDepth(0);
           metrics->recordRetainedHostPathStateBytes(0);
         }
@@ -1337,6 +1338,11 @@ namespace render {
       {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
                                               : nullptr);
+        const std::uint64_t spawnedPathCount = spawnedPaths.size();
+        const std::uint64_t spawnedHostPathStateBytes = spawnedPaths.hostPathStateBytes();
+        if (metrics) {
+          metrics->recordSpawnedContinuations(spawnedPathCount, spawnedHostPathStateBytes);
+        }
         paths.compactWith(intersectionBackend, frontierCompaction, metrics);
         paths.appendAll(spawnedPaths);
       }

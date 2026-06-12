@@ -687,6 +687,10 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("frontierMixedQueryClosestHitRays"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed query any-hit rays"), batching,
                               QStringLiteral("frontierMixedQueryAnyHitRays"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Spawned continuations"), batching,
+                              QStringLiteral("spawnedContinuationSamples"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Spawned continuation host path-state bytes"),
+                              batching, QStringLiteral("spawnedContinuationHostPathStateBytes"));
   addDetailStringMetadataRow(rows, QStringLiteral("Compaction execution"), batching,
                              QStringLiteral("frontierCompactionExecutionPath"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier compaction passes"), batching,
@@ -1162,6 +1166,15 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
           jsonIntegerValue(batching, QStringLiteral("frontierMixedQueryRoundTrips"));
         if (mixedQueryRoundTrips > 0) {
           line += QStringLiteral(", %1 mixed-depth round trips").arg(mixedQueryRoundTrips);
+        }
+        const qulonglong spawnedContinuations =
+          jsonIntegerValue(batching, QStringLiteral("spawnedContinuationSamples"));
+        if (spawnedContinuations > 0) {
+          const qulonglong spawnedHostPathStateBytes =
+            jsonIntegerValue(batching, QStringLiteral("spawnedContinuationHostPathStateBytes"));
+          line += QStringLiteral(", %1 spawned continuations/%2 host path-state bytes")
+                    .arg(spawnedContinuations)
+                    .arg(spawnedHostPathStateBytes);
         }
         const qulonglong compactionCandidateSamples =
           jsonIntegerValue(batching, QStringLiteral("frontierCompactionCandidateSamples"));
