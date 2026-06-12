@@ -20,6 +20,8 @@
 #include "test/helpers/ColorTestHelper.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
+#include <stdexcept>
+
 namespace WhittedIntegratorTest {
   using namespace ::testing;
   using namespace render;
@@ -188,7 +190,7 @@ namespace WhittedIntegratorTest {
       mutable int packet8HitCalls{0};
     };
 
-    class CountingIntersectionBackend final : public WavefrontIntersectionBackend {
+    class CountingIntersectionBackend : public WavefrontIntersectionBackend {
     public:
       const char* name() const override {
         return "counting_cpu";
@@ -248,6 +250,31 @@ namespace WhittedIntegratorTest {
       mutable int packet8Queries{0};
       mutable int anyQueries{0};
       bool preferClosestHitBatch{false};
+    };
+
+    class ShortClosestHitFrontierBackend final : public CountingIntersectionBackend {
+    public:
+      bool prefersClosestHitBatch(std::uint64_t submittedRays) const override {
+        return submittedRays > 1;
+      }
+
+      std::unique_ptr<WavefrontClosestHitFrontier>
+      createClosestHitFrontier(std::vector<WavefrontClosestHitQuery> queries) const override {
+        return WavefrontIntersectionBackend::createClosestHitFrontier(std::move(queries));
+      }
+
+      std::vector<WavefrontClosestHitResult>
+      intersectClosestFrontier(const Scene&, const WavefrontClosestHitFrontier& frontier,
+                               WavefrontIntersectionQueryTiming* = nullptr) const override {
+        requestedRayCounts.push_back(frontier.rayCount());
+        if (frontier.rayCount() == 0) {
+          return {};
+        }
+        return std::vector<WavefrontClosestHitResult>(
+          static_cast<std::size_t>(frontier.rayCount() - 1));
+      }
+
+      mutable std::vector<std::uint64_t> requestedRayCounts;
     };
 
     std::shared_ptr<NiceMock<MockPrimitive>> makeAlwaysHit(double distance = 1.0) {
@@ -485,6 +512,26 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ(5u, metrics.closestHitRaysSubmitted);
     EXPECT_EQ("host", metrics.intersectionBackendClosestHitFrontierResidency);
     EXPECT_EQ(0u, metrics.intersectionBackendClosestHitFrontierPackedRayBytes);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceRejectsMismatchedClosestHitResults) {
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    ShortClosestHitFrontierBackend backend;
+    IntegratorBatchSettings settings;
+    settings.intersectionBackend = &backend;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples;
+    for (std::size_t sample = 0; sample != 3; ++sample) {
+      samples.push_back(
+        IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr});
+    }
+
+    EXPECT_THROW(integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings),
+                 std::logic_error);
+    EXPECT_EQ((std::vector<std::uint64_t>{3u}), backend.requestedRayCounts);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceReportsSetupTiming) {

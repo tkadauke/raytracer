@@ -1242,6 +1242,9 @@ Progress:
   return exactly one hit record per submitted path ray. That gives future
   resident-frontier backends the same strict shape contract as direct-light
   visibility batches.
+- Whitted closest-hit frontier resolution now enforces the same one-hit-record
+  per queued ray contract, keeping Whitted and path-tracing backend-owned
+  frontiers aligned for future resident-frontier implementations.
 
 ---
 

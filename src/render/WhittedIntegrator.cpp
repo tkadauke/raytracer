@@ -591,6 +591,11 @@ namespace render {
       const std::unique_ptr<WavefrontClosestHitFrontier> frontier =
         intersectionBackend.createClosestHitFrontier(std::move(queries));
       hits = intersectionBackend.intersectClosestFrontier(scene, *frontier, &intersectionTiming);
+      if (hits.size() != traceableCount) {
+        throw std::logic_error(
+          "Whitted closest-hit frontier returned a hit count that does not match its queued-ray "
+          "count");
+      }
       if (metrics) {
         metrics->recordClosestHitFrontierResidency(
           frontier->residency(), frontier->packedRayBytes(), frontier->hostQueryBytes(),
@@ -608,7 +613,7 @@ namespace render {
         queued.state.recurseOut();
         continue;
       }
-      const bool hit = queuedIndex < hits.size() && hits[queuedIndex].hit();
+      const bool hit = hits[queuedIndex].hit();
       if (!hit) {
         recordQueuedRayMiss(scene, queued, result, depthMetrics);
         continue;
