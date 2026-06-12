@@ -30,6 +30,14 @@
 #include <utility>
 
 namespace render {
+  struct PathTracingIntegrator::PathContinuationState {
+    Colord throughput{Colord::white()};
+    bool backgroundVisible{true};
+    bool sampledFromBsdf{false};
+    double bsdfSamplePdf{0.0};
+    bool bsdfSampleDelta{false};
+  };
+
   struct PathTracingIntegrator::BatchPath {
     BatchPath(const IntegratorRaySample& sample, Colord& accumulated)
         : ray(sample.ray),
@@ -41,15 +49,14 @@ namespace render {
       state.sampleStream = sample.sampleStream();
     }
 
-    BatchPath(Rayd nextRay, Colord nextThroughput, bool nextBackgroundVisible, State nextState,
-              Colord& accumulated, bool nextSampledFromBsdf, double nextBsdfSamplePdf,
-              bool nextBsdfSampleDelta)
+    BatchPath(Rayd nextRay, PathContinuationState nextContinuation, State nextState,
+              Colord& accumulated)
         : ray(std::move(nextRay)),
-          throughput(nextThroughput),
-          backgroundVisible(nextBackgroundVisible),
-          sampledFromBsdf(nextSampledFromBsdf),
-          bsdfSamplePdf(nextBsdfSamplePdf),
-          bsdfSampleDelta(nextBsdfSampleDelta),
+          throughput(nextContinuation.throughput),
+          backgroundVisible(nextContinuation.backgroundVisible),
+          sampledFromBsdf(nextContinuation.sampledFromBsdf),
+          bsdfSamplePdf(nextContinuation.bsdfSamplePdf),
+          bsdfSampleDelta(nextContinuation.bsdfSampleDelta),
           state(std::move(nextState)),
           m_accumulated(&accumulated) {
     }
@@ -60,6 +67,19 @@ namespace render {
 
     const Colord& accumulated() const {
       return *m_accumulated;
+    }
+
+    [[nodiscard]] PathContinuationState continuationState() const {
+      return PathContinuationState{throughput, backgroundVisible, sampledFromBsdf, bsdfSamplePdf,
+                                   bsdfSampleDelta};
+    }
+
+    void applyContinuationState(const PathContinuationState& nextContinuation) {
+      throughput = nextContinuation.throughput;
+      backgroundVisible = nextContinuation.backgroundVisible;
+      sampledFromBsdf = nextContinuation.sampledFromBsdf;
+      bsdfSamplePdf = nextContinuation.bsdfSamplePdf;
+      bsdfSampleDelta = nextContinuation.bsdfSampleDelta;
     }
 
     Rayd ray;
@@ -105,12 +125,9 @@ namespace render {
       m_paths.emplace_back(sample, accumulated);
     }
 
-    void emplaceContinuation(Rayd nextRay, Colord nextThroughput, bool nextBackgroundVisible,
-                             State nextState, Colord& accumulated, bool nextSampledFromBsdf,
-                             double nextBsdfSamplePdf, bool nextBsdfSampleDelta) {
-      m_paths.emplace_back(std::move(nextRay), nextThroughput, nextBackgroundVisible,
-                           std::move(nextState), accumulated, nextSampledFromBsdf,
-                           nextBsdfSamplePdf, nextBsdfSampleDelta);
+    void emplaceContinuation(Rayd nextRay, PathContinuationState nextContinuation, State nextState,
+                             Colord& accumulated) {
+      m_paths.emplace_back(std::move(nextRay), nextContinuation, std::move(nextState), accumulated);
     }
 
     void appendAll(HostBatchPathFrontier& frontier) {
@@ -173,14 +190,13 @@ namespace render {
           state(&primaryState) {
     }
 
-    ScalarPath(Rayd nextRay, Colord nextThroughput, bool nextBackgroundVisible, State nextState,
-               bool nextSampledFromBsdf, double nextBsdfSamplePdf, bool nextBsdfSampleDelta)
+    ScalarPath(Rayd nextRay, PathContinuationState nextContinuation, State nextState)
         : ray(std::move(nextRay)),
-          throughput(nextThroughput),
-          backgroundVisible(nextBackgroundVisible),
-          sampledFromBsdf(nextSampledFromBsdf),
-          bsdfSamplePdf(nextBsdfSamplePdf),
-          bsdfSampleDelta(nextBsdfSampleDelta),
+          throughput(nextContinuation.throughput),
+          backgroundVisible(nextContinuation.backgroundVisible),
+          sampledFromBsdf(nextContinuation.sampledFromBsdf),
+          bsdfSamplePdf(nextContinuation.bsdfSamplePdf),
+          bsdfSampleDelta(nextContinuation.bsdfSampleDelta),
           ownedState(std::make_unique<State>(std::move(nextState))),
           state(ownedState.get()) {
     }
@@ -190,6 +206,11 @@ namespace render {
 
     State& pathState() {
       return *state;
+    }
+
+    [[nodiscard]] PathContinuationState continuationState() const {
+      return PathContinuationState{throughput, backgroundVisible, sampledFromBsdf, bsdfSamplePdf,
+                                   bsdfSampleDelta};
     }
 
     Rayd ray;
@@ -806,40 +827,42 @@ namespace render {
     return true;
   }
 
-  bool PathTracingIntegrator::prepareSampledContinuation(
-    const MaterialBsdfSample& sample, const HitPoint& hitPoint, Colord& throughput,
-    bool& backgroundVisible, bool& sampledFromBsdf, double& bsdfSamplePdf, bool& bsdfSampleDelta,
-    State& state, int bounce) const {
+  bool PathTracingIntegrator::prepareSampledContinuation(const MaterialBsdfSample& sample,
+                                                         const HitPoint& hitPoint,
+                                                         PathContinuationState& continuation,
+                                                         State& state, int bounce) const {
     if (!canContinueWithSample(sample, hitPoint)) {
       return false;
     }
 
-    throughput = continuedThroughput(throughput, sample, hitPoint);
+    continuation.throughput = continuedThroughput(continuation.throughput, sample, hitPoint);
     if (!sample.isDelta) {
-      backgroundVisible = false;
+      continuation.backgroundVisible = false;
     }
-    sampledFromBsdf = true;
-    bsdfSamplePdf = sample.pdf;
-    bsdfSampleDelta = sample.isDelta;
+    continuation.sampledFromBsdf = true;
+    continuation.bsdfSamplePdf = sample.pdf;
+    continuation.bsdfSampleDelta = sample.isDelta;
 
-    return survivesRussianRoulette(throughput, state, bounce);
+    return survivesRussianRoulette(continuation.throughput, state, bounce);
   }
 
   bool PathTracingIntegrator::prepareExactDeltaContinuation(const MaterialBsdfSample& sample,
                                                             const HitPoint& hitPoint,
-                                                            const Colord& throughput,
-                                                            Colord& nextThroughput,
+                                                            PathContinuationState& continuation,
                                                             State& state) const {
     if (!canContinueWithSample(sample, hitPoint)) {
       return false;
     }
 
-    nextThroughput = continuedThroughput(throughput, sample, hitPoint);
-    if (!continuesExactDeltaBranch(nextThroughput)) {
+    continuation.throughput = continuedThroughput(continuation.throughput, sample, hitPoint);
+    continuation.sampledFromBsdf = true;
+    continuation.bsdfSamplePdf = sample.pdf;
+    continuation.bsdfSampleDelta = true;
+    if (!continuesExactDeltaBranch(continuation.throughput)) {
       return false;
     }
 
-    setStateThroughput(state, nextThroughput);
+    setStateThroughput(state, continuation.throughput);
     return true;
   }
 
@@ -1253,15 +1276,12 @@ namespace render {
           State baseState = pathState.cloneForPathContinuation();
           for (const MaterialBsdfSample& sampled : deltaSamples) {
             State childState = baseState;
-            Colord nextThroughput = Colord::black();
-            if (!prepareExactDeltaContinuation(sampled, hitPoint, path.throughput, nextThroughput,
-                                               childState)) {
+            PathContinuationState nextContinuation = path.continuationState();
+            if (!prepareExactDeltaContinuation(sampled, hitPoint, nextContinuation, childState)) {
               continue;
             }
-            nextPaths.emplace_back(sampled.rayFrom(hitPoint), nextThroughput,
-                                   path.backgroundVisible, std::move(childState),
-                                   /*nextSampledFromBsdf=*/true, sampled.pdf,
-                                   /*nextBsdfSampleDelta=*/true);
+            nextPaths.emplace_back(sampled.rayFrom(hitPoint), nextContinuation,
+                                   std::move(childState));
           }
           pathState.recurseOut();
           continue;
@@ -1271,23 +1291,15 @@ namespace render {
         const Vector2d bsdfSample = pathState.sampleStream->sample2D(
           SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
         const MaterialBsdfSample sampled = transport.sampleBsdf(hitPoint, wi, bsdfSample);
-        Colord nextThroughput = path.throughput;
-        bool nextBackgroundVisible = path.backgroundVisible;
-        bool nextSampledFromBsdf = false;
-        double nextBsdfSamplePdf = 0.0;
-        bool nextBsdfSampleDelta = false;
-        if (!prepareSampledContinuation(sampled, hitPoint, nextThroughput, nextBackgroundVisible,
-                                        nextSampledFromBsdf, nextBsdfSamplePdf, nextBsdfSampleDelta,
-                                        pathState, bounce)) {
+        PathContinuationState nextContinuation = path.continuationState();
+        if (!prepareSampledContinuation(sampled, hitPoint, nextContinuation, pathState, bounce)) {
           pathState.recurseOut();
           continue;
         }
 
         State childState = pathState.cloneForPathContinuation();
         pathState.recurseOut();
-        nextPaths.emplace_back(sampled.rayFrom(hitPoint), nextThroughput, nextBackgroundVisible,
-                               std::move(childState), nextSampledFromBsdf, nextBsdfSamplePdf,
-                               nextBsdfSampleDelta);
+        nextPaths.emplace_back(sampled.rayFrom(hitPoint), nextContinuation, std::move(childState));
       }
 
       paths = std::move(nextPaths);
@@ -1351,15 +1363,12 @@ namespace render {
       State baseState = path.state.cloneForPathContinuation();
       for (const MaterialBsdfSample& sampled : deltaSamples) {
         State childState = baseState;
-        Colord nextThroughput = Colord::black();
-        if (!prepareExactDeltaContinuation(sampled, hit.hitPoint, path.throughput, nextThroughput,
-                                           childState)) {
+        PathContinuationState nextContinuation = path.continuationState();
+        if (!prepareExactDeltaContinuation(sampled, hit.hitPoint, nextContinuation, childState)) {
           continue;
         }
-        spawnedPaths.emplaceContinuation(sampled.rayFrom(hit.hitPoint), nextThroughput,
-                                         path.backgroundVisible, std::move(childState),
-                                         path.accumulated(), /*nextSampledFromBsdf=*/true,
-                                         sampled.pdf, /*nextBsdfSampleDelta=*/true);
+        spawnedPaths.emplaceContinuation(sampled.rayFrom(hit.hitPoint), nextContinuation,
+                                         std::move(childState), path.accumulated());
       }
       path.state.recurseOut();
       recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
@@ -1369,14 +1378,14 @@ namespace render {
     const Vector2d bsdfSample =
       path.state.sampleStream->sample2D(SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
     const MaterialBsdfSample sampled = transport.sampleBsdf(hit.hitPoint, wi, bsdfSample);
-    if (!prepareSampledContinuation(sampled, hit.hitPoint, path.throughput, path.backgroundVisible,
-                                    path.sampledFromBsdf, path.bsdfSamplePdf, path.bsdfSampleDelta,
-                                    path.state, bounce)) {
+    PathContinuationState nextContinuation = path.continuationState();
+    if (!prepareSampledContinuation(sampled, hit.hitPoint, nextContinuation, path.state, bounce)) {
       path.state.recurseOut();
       recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
       return false;
     }
 
+    path.applyContinuationState(nextContinuation);
     path.ray = sampled.rayFrom(hit.hitPoint);
     path.state.recurseOut();
     recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());

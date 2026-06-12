@@ -138,6 +138,7 @@ namespace render {
     struct DirectLightingSample;
     class DirectLightVisibilityBatch;
     class HostBatchPathFrontier;
+    struct PathContinuationState;
     struct ScalarPath;
 
     bool isCancelled() const;
@@ -175,12 +176,10 @@ namespace render {
                                        IntegratorBatchMetrics* metrics = nullptr) const;
     bool survivesRussianRoulette(Colord& throughput, State& state, int bounce) const;
     bool prepareSampledContinuation(const MaterialBsdfSample& sample, const HitPoint& hitPoint,
-                                    Colord& throughput, bool& backgroundVisible,
-                                    bool& sampledFromBsdf, double& bsdfSamplePdf,
-                                    bool& bsdfSampleDelta, State& state, int bounce) const;
+                                    PathContinuationState& continuation, State& state,
+                                    int bounce) const;
     bool prepareExactDeltaContinuation(const MaterialBsdfSample& sample, const HitPoint& hitPoint,
-                                       const Colord& throughput, Colord& nextThroughput,
-                                       State& state) const;
+                                       PathContinuationState& continuation, State& state) const;
     void recordDepthDelta(BatchDepthMetrics& depthMetrics, const Colord& before,
                           const Colord& after) const;
     void recordFrontierHit(std::size_t pathIndex, BatchPath& path, const Primitive& primitive,
