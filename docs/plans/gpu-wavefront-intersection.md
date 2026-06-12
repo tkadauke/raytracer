@@ -964,6 +964,11 @@ Progress:
   capability flags next to their resident-frontier round-trip estimates, so
   benchmark rows can be filtered by real support rather than only by estimated
   opportunity.
+- Wavefront intersection backend benchmarks now include frontier-compaction
+  rows that run through `WavefrontIntersectionBackend::compactFrontier` and
+  report input/retained/removed/moved samples plus GPU-compaction support. The
+  current rows time the CPU behavior, and future GPU compaction kernels can
+  override the same hook without changing the benchmark shape.
 - Wavefront intersection backend batch benchmarks now submit closest-hit and
   any-hit workloads through backend-owned frontier handles instead of bypassing
   the frontier contract with raw batch calls. That keeps benchmark evidence

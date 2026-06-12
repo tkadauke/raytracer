@@ -64,6 +64,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added wavefront intersection backend benchmark rows for frontier compaction,
+  including input/retained/removed/moved sample counters and GPU-compaction
+  support flags. — GPT-5 Codex
 - **Portal and mirror graph demos.** Added reusable rendercli/Modeler scenes
   plus textbook coverage for graph-synthesized portal and planar mirror
   branches. — GPT-5

@@ -41,6 +41,28 @@ namespace {
       return WavefrontIntersectionBackendChoice::automatic().createBackendForScene(*scene, context);
     }
 
+    void annotateBackendCompaction(benchmark::State& state,
+                                   const WavefrontIntersectionBackend& backend,
+                                   const WavefrontFrontierCompactionResult& result) const {
+      state.SetLabel(name + "/" + backend.requestedName() + "/" + backend.name() + "/" +
+                     result.executionPath());
+      state.counters["frontier_compaction_passes"] = 1.0;
+      state.counters["frontier_compaction_input_samples"] =
+        static_cast<double>(result.inputPathCount());
+      state.counters["frontier_compaction_retained_samples"] =
+        static_cast<double>(result.retainedPathCount());
+      state.counters["frontier_compaction_removed_samples"] =
+        static_cast<double>(result.removedPathCount());
+      state.counters["frontier_compaction_moved_samples"] =
+        static_cast<double>(result.movedPathCount());
+      state.counters["frontier_compaction_removed_fraction"] =
+        result.inputPathCount() == 0 ? 0.0
+                                     : static_cast<double>(result.removedPathCount()) /
+                                         static_cast<double>(result.inputPathCount());
+      state.counters["gpu_frontier_compaction_supported"] =
+        backend.supportsGpuFrontierCompaction() ? 1.0 : 0.0;
+    }
+
     void annotateBackendWorkload(benchmark::State& state,
                                  const WavefrontIntersectionBackend& backend,
                                  const WavefrontIntersectionQueryTiming& timing,
@@ -303,6 +325,14 @@ namespace {
     return packed;
   }
 
+  WavefrontFrontierCompactionRequest makeCompactionRequest(std::int64_t inputPathCount) {
+    WavefrontFrontierCompactionRequest request(static_cast<std::size_t>(inputPathCount));
+    for (std::int64_t index = 1; index < inputPathCount; index += 2) {
+      request.retain(static_cast<std::size_t>(index));
+    }
+    return request;
+  }
+
   void annotateQuery(benchmark::State& state, const Workload& workload,
                      const GpuIntersectionSceneBuffers& buffers, std::size_t rayCount,
                      std::size_t readbackRecordSize) {
@@ -504,6 +534,23 @@ namespace {
       static_cast<std::int64_t>(closestFrontier->rayCount() + anyFrontier->rayCount()));
   }
 
+  void bm_autoFrontierCompaction(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const WavefrontIntersectionBackendSelectionContext context = workload.selectionContext(
+      static_cast<std::size_t>(state.range(1)), static_cast<std::size_t>(state.range(1)));
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      workload.automaticBackend(context);
+    const WavefrontFrontierCompactionRequest request = makeCompactionRequest(state.range(1));
+    WavefrontFrontierCompactionResult result = backend->compactFrontier(request);
+    for (auto _ : state) {
+      result = backend->compactFrontier(request);
+      benchmark::DoNotOptimize(result.retainedPathCount());
+    }
+
+    workload.annotateBackendCompaction(state, *backend, result);
+    state.SetItemsProcessed(state.iterations() * state.range(1));
+  }
+
   void bm_requestedGpuUnsupportedMixedClosestAndAnyHitBatch(benchmark::State& state) {
     const Workload& workload = workloadFor(state);
     const std::shared_ptr<const WavefrontIntersectionBackend> backend =
@@ -649,6 +696,25 @@ namespace {
       state.iterations() *
       static_cast<std::int64_t>(closestFrontier->rayCount() + anyFrontier->rayCount()));
   }
+
+  void bm_requestedGpuFrontierCompaction(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      workload.requestedAvailableGpuBackend(state);
+    if (!backend) {
+      return;
+    }
+
+    const WavefrontFrontierCompactionRequest request = makeCompactionRequest(state.range(1));
+    WavefrontFrontierCompactionResult result = backend->compactFrontier(request);
+    for (auto _ : state) {
+      result = backend->compactFrontier(request);
+      benchmark::DoNotOptimize(result.retainedPathCount());
+    }
+
+    workload.annotateBackendCompaction(state, *backend, result);
+    state.SetItemsProcessed(state.iterations() * state.range(1));
+  }
 #endif
 
   void allWorkloads(benchmark::internal::Benchmark* benchmark) {
@@ -678,9 +744,11 @@ BENCHMARK(bm_packedAnyHit)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_autoClosestHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_autoAnyHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_autoMixedClosestAndAnyHitBatch)->Apply(supportedQueryWorkloads);
+BENCHMARK(bm_autoFrontierCompaction)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuUnsupportedMixedClosestAndAnyHitBatch)->Apply(unsupportedQueryWorkloads);
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 BENCHMARK(bm_requestedGpuClosestHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuAnyHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuMixedClosestAndAnyHitBatch)->Apply(supportedQueryWorkloads);
+BENCHMARK(bm_requestedGpuFrontierCompaction)->Apply(supportedQueryWorkloads);
 #endif
