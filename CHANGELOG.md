@@ -55,6 +55,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Routed Vulkan prepared closest-hit and any-hit frontier handles through
   `vulkan_host_coherent` prepared ray batches in Vulkan-enabled builds when a
   Vulkan wavefront scene is available. — GPT-5 Codex
+- Included platform frontier ray-preparation/upload time in Metal and Vulkan
+  wavefront intersection timing metrics so prepared-frontier diagnostics do not
+  undercount transfer work. — GPT-5 Codex
 
 ### Added
 

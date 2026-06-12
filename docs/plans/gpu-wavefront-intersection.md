@@ -987,6 +987,10 @@ Progress:
   Vulkan scene is available. Those frontiers dispatch through their prepared
   ray batch and fall back to `packed_host` behavior if Vulkan frontier
   preparation fails.
+- Metal and Vulkan prepared frontiers now carry ray-preparation/upload time
+  into the later intersection timing record, so render metrics and benchmark
+  rows include the transfer work moved from dispatch time to frontier-creation
+  time.
 - Backend-owned closest-hit and any-hit frontiers now report packed-ray byte
   counts through wavefront metrics, rendercli summaries, graph traces, and the
   Modeler pass details. Today only `packed_host` frontiers contribute nonzero

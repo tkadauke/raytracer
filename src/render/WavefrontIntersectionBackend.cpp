@@ -10,6 +10,9 @@
 #include "render/primitives/Scene.h"
 
 #include <algorithm>
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+#include <chrono>
+#endif
 #include <cctype>
 #include <limits>
 #include <stdexcept>
@@ -39,6 +42,13 @@ namespace render {
       }
       return packedRays;
     }
+
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    double secondsBetween(std::chrono::steady_clock::time_point start,
+                          std::chrono::steady_clock::time_point end) {
+      return std::chrono::duration<double>(end - start).count();
+    }
+#endif
 
     class PreparedPackedWavefrontClosestHitFrontier final : public WavefrontClosestHitFrontier {
     public:
@@ -118,7 +128,11 @@ namespace render {
             m_packedRays(packClosestHitQueries(m_queries)),
             m_preparedScene(std::move(preparedScene)) {
         if (m_preparedScene) {
+          const auto prepareStart = std::chrono::steady_clock::now();
           m_preparedRays = m_preparedScene->prepareRays(m_packedRays);
+          const auto prepareEnd = std::chrono::steady_clock::now();
+          m_prepareTiming.uploadSeconds = secondsBetween(prepareStart, prepareEnd);
+          m_prepareTiming.recordExecutionPath("metal");
         }
       }
 
@@ -155,6 +169,9 @@ namespace render {
                              WavefrontIntersectionQueryTiming* timing = nullptr) const override {
         if (!m_preparedScene || !m_preparedRays) {
           return WavefrontClosestHitFrontier::intersectPackedClosest(backend, timing);
+        }
+        if (timing) {
+          timing->add(m_prepareTiming);
         }
         try {
           const MetalWavefrontClosestHitKernelResult result =
@@ -178,6 +195,7 @@ namespace render {
       std::vector<GpuIntersectionRay> m_packedRays;
       std::shared_ptr<const MetalWavefrontPreparedScene> m_preparedScene;
       std::shared_ptr<const MetalWavefrontPreparedRayBatch> m_preparedRays;
+      WavefrontIntersectionQueryTiming m_prepareTiming;
     };
 
     class MetalPreparedPackedWavefrontAnyHitFrontier final : public WavefrontAnyHitFrontier {
@@ -189,7 +207,11 @@ namespace render {
             m_packedRays(packAnyHitQueries(m_queries)),
             m_preparedScene(std::move(preparedScene)) {
         if (m_preparedScene) {
+          const auto prepareStart = std::chrono::steady_clock::now();
           m_preparedRays = m_preparedScene->prepareRays(m_packedRays);
+          const auto prepareEnd = std::chrono::steady_clock::now();
+          m_prepareTiming.uploadSeconds = secondsBetween(prepareStart, prepareEnd);
+          m_prepareTiming.recordExecutionPath("metal");
         }
       }
 
@@ -227,6 +249,9 @@ namespace render {
         if (!m_preparedScene || !m_preparedRays) {
           return WavefrontAnyHitFrontier::intersectPackedAny(backend, timing);
         }
+        if (timing) {
+          timing->add(m_prepareTiming);
+        }
         try {
           const MetalWavefrontAnyHitKernelResult result =
             m_preparedScene->runTimedBasicAnyHitKernel(*m_preparedRays);
@@ -249,6 +274,7 @@ namespace render {
       std::vector<GpuIntersectionRay> m_packedRays;
       std::shared_ptr<const MetalWavefrontPreparedScene> m_preparedScene;
       std::shared_ptr<const MetalWavefrontPreparedRayBatch> m_preparedRays;
+      WavefrontIntersectionQueryTiming m_prepareTiming;
     };
 #endif
 
@@ -263,7 +289,11 @@ namespace render {
             m_packedRays(packClosestHitQueries(m_queries)),
             m_preparedScene(std::move(preparedScene)) {
         if (m_preparedScene) {
+          const auto prepareStart = std::chrono::steady_clock::now();
           m_preparedRays = m_preparedScene->prepareRays(m_packedRays);
+          const auto prepareEnd = std::chrono::steady_clock::now();
+          m_prepareTiming.uploadSeconds = secondsBetween(prepareStart, prepareEnd);
+          m_prepareTiming.recordExecutionPath("vulkan");
         }
       }
 
@@ -301,6 +331,9 @@ namespace render {
         if (!m_preparedScene || !m_preparedRays) {
           return WavefrontClosestHitFrontier::intersectPackedClosest(backend, timing);
         }
+        if (timing) {
+          timing->add(m_prepareTiming);
+        }
         try {
           const VulkanWavefrontClosestHitKernelResult result =
             m_preparedScene->runTimedBasicClosestHitKernel(*m_preparedRays);
@@ -323,6 +356,7 @@ namespace render {
       std::vector<GpuIntersectionRay> m_packedRays;
       std::shared_ptr<const VulkanWavefrontPreparedScene> m_preparedScene;
       std::shared_ptr<const VulkanWavefrontPreparedRayBatch> m_preparedRays;
+      WavefrontIntersectionQueryTiming m_prepareTiming;
     };
 
     class VulkanPreparedPackedWavefrontAnyHitFrontier final : public WavefrontAnyHitFrontier {
@@ -334,7 +368,11 @@ namespace render {
             m_packedRays(packAnyHitQueries(m_queries)),
             m_preparedScene(std::move(preparedScene)) {
         if (m_preparedScene) {
+          const auto prepareStart = std::chrono::steady_clock::now();
           m_preparedRays = m_preparedScene->prepareRays(m_packedRays);
+          const auto prepareEnd = std::chrono::steady_clock::now();
+          m_prepareTiming.uploadSeconds = secondsBetween(prepareStart, prepareEnd);
+          m_prepareTiming.recordExecutionPath("vulkan");
         }
       }
 
@@ -372,6 +410,9 @@ namespace render {
         if (!m_preparedScene || !m_preparedRays) {
           return WavefrontAnyHitFrontier::intersectPackedAny(backend, timing);
         }
+        if (timing) {
+          timing->add(m_prepareTiming);
+        }
         try {
           const VulkanWavefrontAnyHitKernelResult result =
             m_preparedScene->runTimedBasicAnyHitKernel(*m_preparedRays);
@@ -394,6 +435,7 @@ namespace render {
       std::vector<GpuIntersectionRay> m_packedRays;
       std::shared_ptr<const VulkanWavefrontPreparedScene> m_preparedScene;
       std::shared_ptr<const VulkanWavefrontPreparedRayBatch> m_preparedRays;
+      WavefrontIntersectionQueryTiming m_prepareTiming;
     };
 #endif
 
