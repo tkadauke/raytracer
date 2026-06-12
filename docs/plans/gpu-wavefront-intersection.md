@@ -1229,6 +1229,11 @@ Progress:
   batched execution still keep that state on the host, but the scheduler
   boundary no longer has to pass those fields as loose parameters when spawning
   or updating paths.
+- Direct-light visibility batches now retain their backend-owned any-hit
+  frontier handle while resolving occlusion instead of creating it as a local
+  temporary. Current results are still read back immediately, but resident
+  direct-light scheduling now has one batch object that owns selections,
+  frontier, and resolved visibility.
 
 ---
 

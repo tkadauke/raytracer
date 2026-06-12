@@ -320,23 +320,24 @@ namespace render {
                           IntegratorBatchMetrics* metrics) {
       WavefrontIntersectionQueryTiming intersectionTiming;
       m_occluded.clear();
+      m_frontier.reset();
       if (metrics) {
         metrics->recordDirectLightSelectionHostBytes(
           static_cast<std::uint64_t>(std::max(0, bounce)), hostSelectionBytes());
       }
       if (intersectionBackend.prefersAnyHitBatch(m_shadowQueries.size())) {
-        const std::unique_ptr<WavefrontAnyHitFrontier> frontier =
-          intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
+        m_frontier = intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
         m_occluded = intersectionBackend.intersectAnyFrontier(
-          scene, *frontier, metrics ? &intersectionTiming : nullptr);
+          scene, *m_frontier, metrics ? &intersectionTiming : nullptr);
         if (metrics) {
-          recordDirectLightChunks(bounce, /*batchChunks=*/1, frontier->rayCount(),
-                                  frontier->packedRayBytes(), frontier->hostQueryBytes(),
-                                  frontier->stateHandleBytes(), metrics);
-          metrics->recordAnyHitFrontierResidency(frontier->residency(), frontier->packedRayBytes(),
-                                                 frontier->hostQueryBytes(),
-                                                 frontier->stateHandleBytes());
-          metrics->recordAnyHitQuery(intersectionBackend, frontier->rayCount(), intersectionTiming);
+          recordDirectLightChunks(bounce, /*batchChunks=*/1, m_frontier->rayCount(),
+                                  m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
+                                  m_frontier->stateHandleBytes(), metrics);
+          metrics->recordAnyHitFrontierResidency(
+            m_frontier->residency(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
+            m_frontier->stateHandleBytes());
+          metrics->recordAnyHitQuery(intersectionBackend, m_frontier->rayCount(),
+                                     intersectionTiming);
           metrics->recordDirectLightOcclusionHostBytes(
             static_cast<std::uint64_t>(std::max(0, bounce)), hostOcclusionBytes());
         }
@@ -380,6 +381,7 @@ namespace render {
 
     std::vector<DirectLightingSelection> m_selections;
     std::vector<WavefrontAnyHitQuery> m_shadowQueries;
+    std::unique_ptr<WavefrontAnyHitFrontier> m_frontier;
     WavefrontOcclusionFlags m_occluded;
   };
 
