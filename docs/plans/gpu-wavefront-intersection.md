@@ -1214,6 +1214,10 @@ Progress:
   frontier compaction and spawned continuations, but its loop now expresses the
   Phase 8 boundary as intersect, resolve direct-light contributions, shade
   active hits, then compact retained path state.
+- Direct-light visibility batches now store resolved occlusion as explicit byte
+  flags instead of `std::vector<bool>` proxies. The backend-facing any-hit API
+  is unchanged, but the owner now has a concrete host payload shape for future
+  resident direct-light result storage.
 
 ---
 

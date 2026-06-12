@@ -304,7 +304,7 @@ namespace render {
     }
 
     [[nodiscard]] bool occluded(std::size_t index) const {
-      return index < m_occluded.size() && m_occluded[index];
+      return index < m_occluded.size() && m_occluded[index] != 0U;
     }
 
     [[nodiscard]] std::uint64_t hostSelectionBytes() const {
@@ -323,8 +323,9 @@ namespace render {
       if (intersectionBackend.prefersAnyHitBatch(m_shadowQueries.size())) {
         const std::unique_ptr<WavefrontAnyHitFrontier> frontier =
           intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
-        m_occluded = intersectionBackend.intersectAnyFrontier(
+        const std::vector<bool> occluded = intersectionBackend.intersectAnyFrontier(
           scene, *frontier, metrics ? &intersectionTiming : nullptr);
+        storeOcclusion(occluded);
         if (metrics) {
           recordDirectLightChunks(bounce, /*batchChunks=*/1, frontier->rayCount(),
                                   frontier->packedRayBytes(), frontier->hostQueryBytes(),
@@ -348,8 +349,9 @@ namespace render {
         WavefrontIntersectionQueryTiming queryTiming;
         State scratchState;
         State& queryState = query.state ? *query.state : scratchState;
-        m_occluded.push_back(intersectionBackend.intersectAny(
-          scene, query.ray, query.maxDistance, queryState, metrics ? &queryTiming : nullptr));
+        const bool occluded = intersectionBackend.intersectAny(
+          scene, query.ray, query.maxDistance, queryState, metrics ? &queryTiming : nullptr);
+        m_occluded.push_back(occluded ? 1U : 0U);
         if (metrics) {
           metrics->recordAnyHitQuery(intersectionBackend, 1, queryTiming);
         }
@@ -357,6 +359,13 @@ namespace render {
     }
 
   private:
+    void storeOcclusion(const std::vector<bool>& occluded) {
+      m_occluded.reserve(occluded.size());
+      for (bool value : occluded) {
+        m_occluded.push_back(value ? 1U : 0U);
+      }
+    }
+
     static void recordDirectLightChunks(int bounce, std::uint64_t batchChunks,
                                         std::uint64_t batchRays, std::uint64_t packedRayBytes,
                                         std::uint64_t hostQueryBytes,
@@ -369,7 +378,7 @@ namespace render {
 
     std::vector<DirectLightingSelection> m_selections;
     std::vector<WavefrontAnyHitQuery> m_shadowQueries;
-    std::vector<bool> m_occluded;
+    std::vector<unsigned char> m_occluded;
   };
 
   class PathTracingIntegrator::DirectLightContributionBatch {
