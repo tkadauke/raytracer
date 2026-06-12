@@ -165,6 +165,7 @@ namespace render {
     intersectionBackendGpuFrontierCompactionUnavailableReason.clear();
     intersectionBackendSupportsPreparedRayBatchCompaction = false;
     intersectionBackendSupportsResidentDirectLightBatches = false;
+    intersectionBackendResidentDirectLightBatchesUnavailableReason.clear();
     intersectionWorkerSeconds = 0.0;
     shadingWorkerSeconds = 0.0;
     pathSetupWorkerSeconds = 0.0;
@@ -491,6 +492,8 @@ namespace render {
     intersectionBackendSupportsResidentDirectLightBatches =
       intersectionBackendSupportsResidentDirectLightBatches ||
       backend.supportsResidentDirectLightBatches();
+    mergeLabel(intersectionBackendResidentDirectLightBatchesUnavailableReason,
+               nonEmptyLabel(backend.residentDirectLightBatchesUnavailableReason(), ""));
     const WavefrontIntersectionSceneDiagnostics diagnostics = backend.compiledSceneDiagnostics();
     intersectionSceneCompiled = intersectionSceneCompiled || diagnostics.compiled;
     intersectionSceneBvhNodes = std::max(intersectionSceneBvhNodes, diagnostics.bvhNodes);
@@ -731,6 +734,8 @@ namespace render {
     intersectionBackendSupportsResidentDirectLightBatches =
       intersectionBackendSupportsResidentDirectLightBatches ||
       source.intersectionBackendSupportsResidentDirectLightBatches;
+    mergeLabel(intersectionBackendResidentDirectLightBatchesUnavailableReason,
+               source.intersectionBackendResidentDirectLightBatchesUnavailableReason);
   }
 
   void IntegratorBatchMetrics::recordRadianceDeltaDepth(double squaredSum, double maxDelta) {

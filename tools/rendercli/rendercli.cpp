@@ -404,6 +404,10 @@ namespace {
         << (batching.value("intersectionBackendSupportsResidentDirectLightBatches").toBool()
               ? "true"
               : "false")
+        << " resident_direct_light_batches_unavailable_reason="
+        << compactTextValue(
+             batching.value("intersectionBackendResidentDirectLightBatchesUnavailableReason"),
+             "none")
         << " samples=" << unsignedValue(input, "primarySamples")
         << " tiles=" << unsignedValue(tiling, "tileCount")
         << " tile_grid=" << unsignedValue(tiling, "tileColumns") << "x"

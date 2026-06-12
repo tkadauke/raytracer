@@ -778,6 +778,9 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
     QStringLiteral("intersectionBackendGpuFrontierCompactionUnavailableReason"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Supports resident direct-light batches"), batching,
                            QStringLiteral("intersectionBackendSupportsResidentDirectLightBatches"));
+  addDetailStringMetadataRow(
+    rows, QStringLiteral("Resident direct-light batches unavailable reason"), batching,
+    QStringLiteral("intersectionBackendResidentDirectLightBatchesUnavailableReason"));
   addDetailMillisecondsMetadataRow(rows, QStringLiteral("Backend upload time"), batching,
                                    QStringLiteral("intersectionBackendUploadWorkerSeconds"));
   addDetailMillisecondsMetadataRow(rows, QStringLiteral("Backend kernel time"), batching,
@@ -1203,7 +1206,9 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
             batching.contains(
               QStringLiteral("intersectionBackendSupportsPreparedRayBatchCompaction")) ||
             batching.contains(
-              QStringLiteral("intersectionBackendSupportsResidentDirectLightBatches"))) {
+              QStringLiteral("intersectionBackendSupportsResidentDirectLightBatches")) ||
+            batching.contains(
+              QStringLiteral("intersectionBackendResidentDirectLightBatchesUnavailableReason"))) {
           const bool supportsResidentFrontiers =
             batching.value(QStringLiteral("intersectionBackendSupportsResidentFrontiers")).toBool();
           const bool supportsGpuCompaction =
@@ -1228,6 +1233,15 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
               .toString();
           if (!supportsGpuCompaction && !gpuCompactionUnavailableReason.isEmpty()) {
             line += QStringLiteral(" (%1)").arg(gpuCompactionUnavailableReason);
+          }
+          const QString residentDirectLightUnavailableReason =
+            batching
+              .value(
+                QStringLiteral("intersectionBackendResidentDirectLightBatchesUnavailableReason"))
+              .toString();
+          if (!supportsResidentDirectLight && !residentDirectLightUnavailableReason.isEmpty()) {
+            line += QStringLiteral(", direct-light not resident (%1)")
+                      .arg(residentDirectLightUnavailableReason);
           }
         }
         const double uploadMs =

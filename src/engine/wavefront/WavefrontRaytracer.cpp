@@ -199,6 +199,8 @@ namespace engine::wavefront {
     intersectionBackendSupportsResidentDirectLightBatches =
       intersectionBackendSupportsResidentDirectLightBatches ||
       metrics.intersectionBackendSupportsResidentDirectLightBatches;
+    mergeLabel(intersectionBackendResidentDirectLightBatchesUnavailableReason,
+               metrics.intersectionBackendResidentDirectLightBatchesUnavailableReason);
   }
 
   void WavefrontRenderMetrics::BatchSummary::addIntegratorMetrics(
@@ -729,6 +731,9 @@ namespace engine::wavefront {
       batching.intersectionBackendSupportsPreparedRayBatchCompaction;
     batchingJson["intersectionBackendSupportsResidentDirectLightBatches"] =
       batching.intersectionBackendSupportsResidentDirectLightBatches;
+    batchingJson["intersectionBackendResidentDirectLightBatchesUnavailableReason"] =
+      QString::fromStdString(
+        batching.intersectionBackendResidentDirectLightBatchesUnavailableReason);
     batchingJson["batches"] = static_cast<double>(batching.batches);
     batchingJson["samplesSubmitted"] = static_cast<double>(batching.samplesSubmitted);
     batchingJson["maxBatchSize"] = static_cast<double>(batching.maxBatchSize);

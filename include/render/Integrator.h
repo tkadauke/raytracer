@@ -135,6 +135,7 @@ namespace render {
     std::string intersectionBackendGpuFrontierCompactionUnavailableReason;
     bool intersectionBackendSupportsPreparedRayBatchCompaction{false};
     bool intersectionBackendSupportsResidentDirectLightBatches{false};
+    std::string intersectionBackendResidentDirectLightBatchesUnavailableReason;
     double intersectionWorkerSeconds{0.0};
     double shadingWorkerSeconds{0.0};
     double pathSetupWorkerSeconds{0.0};

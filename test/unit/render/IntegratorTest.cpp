@@ -187,6 +187,8 @@ namespace IntegratorTest {
               metrics.intersectionBackendGpuFrontierCompactionUnavailableReason);
     EXPECT_FALSE(metrics.intersectionBackendSupportsPreparedRayBatchCompaction);
     EXPECT_FALSE(metrics.intersectionBackendSupportsResidentDirectLightBatches);
+    EXPECT_EQ(backend->residentDirectLightBatchesUnavailableReason(),
+              metrics.intersectionBackendResidentDirectLightBatchesUnavailableReason);
     EXPECT_EQ(backend->estimatedClosestHitRayUploadBytes(4),
               metrics.intersectionEstimatedRayUploadBytes);
     EXPECT_EQ(backend->estimatedClosestHitRayUploadBytes(4),
@@ -241,6 +243,8 @@ namespace IntegratorTest {
               metrics.intersectionBackendSupportsPreparedRayBatchCompaction);
     EXPECT_EQ(backend->supportsResidentDirectLightBatches(),
               metrics.intersectionBackendSupportsResidentDirectLightBatches);
+    EXPECT_EQ(backend->residentDirectLightBatchesUnavailableReason(),
+              metrics.intersectionBackendResidentDirectLightBatchesUnavailableReason);
     EXPECT_EQ(backend->estimatedClosestHitRayUploadBytes(4) +
                 backend->estimatedAnyHitRayUploadBytes(1),
               metrics.intersectionEstimatedRayUploadBytes);

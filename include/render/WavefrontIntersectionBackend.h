@@ -321,6 +321,10 @@ namespace render {
       * reads occlusion results back immediately.
       */
     virtual bool supportsResidentDirectLightBatches() const;
+    /**
+      * Diagnostic reason when `supportsResidentDirectLightBatches()` is false.
+      */
+    virtual const char* residentDirectLightBatchesUnavailableReason() const;
     virtual WavefrontFrontierCompactionResult
     compactFrontier(const WavefrontFrontierCompactionRequest& request) const;
     virtual std::unique_ptr<WavefrontClosestHitFrontier>

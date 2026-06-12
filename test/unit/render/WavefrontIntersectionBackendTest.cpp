@@ -3107,6 +3107,10 @@ namespace WavefrontIntersectionBackendTest {
                    : "backend does not support prepared ray-batch compaction",
                  backend->gpuFrontierCompactionUnavailableReason());
     EXPECT_FALSE(backend->supportsResidentDirectLightBatches());
+    EXPECT_STREQ((backendName == "metal" || backendName == "vulkan")
+                   ? "shading creates direct-light rays on the host"
+                   : "backend does not support resident frontiers",
+                 backend->residentDirectLightBatchesUnavailableReason());
   }
 
   TEST(WavefrontIntersectionBackend, PreparedAnyHitFrontierCanOwnPackedExecution) {

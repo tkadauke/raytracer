@@ -702,9 +702,10 @@ separates backend upload/setup, kernel dispatch/wait, and readback time beside
 the total intersection worker time. CPU fallback paths keep those backend
 timing buckets at zero so graph diagnostics distinguish real platform dispatch
 from compiled or packed CPU parity work.
-Wavefront traces also carry a reason when scheduler-level GPU frontier
-compaction is unavailable, which keeps lower-level prepared ray-batch
-compaction diagnostics separate from the higher-level scheduler capability.
+Wavefront traces also carry reasons when scheduler-level GPU frontier
+compaction and resident direct-light batches are unavailable, which keeps
+lower-level prepared ray-batch compaction and platform any-hit frontier
+diagnostics separate from the higher-level scheduler capabilities.
 Selecting the `pathtracer` executor preference is the user-facing shortcut for
 path-traced rendering: the compiler emits a wavefront-backed beauty pass and
 forces the typed integrator state to `pathtracer`. The lower-level `wavefront`

@@ -1115,6 +1115,12 @@ Progress:
   unavailable reasons in reference/candidate comparisons and queue-sweep
   summaries, keeping offline Phase 8 captures aligned with render metrics and
   graph diagnostics.
+- Wavefront metrics also report why resident direct-light batches are
+  unavailable beside the capability flag. Current platform any-hit frontiers may
+  own occlusion rays, but shading still creates and consumes direct-light
+  batches on the host.
+- The convergence capture helper preserves resident direct-light unavailable
+  reasons in reference/candidate comparisons and queue-sweep summaries as well.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a

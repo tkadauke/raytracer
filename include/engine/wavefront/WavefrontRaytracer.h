@@ -133,6 +133,7 @@ namespace engine::wavefront {
       std::string intersectionBackendGpuFrontierCompactionUnavailableReason;
       bool intersectionBackendSupportsPreparedRayBatchCompaction = false;
       bool intersectionBackendSupportsResidentDirectLightBatches = false;
+      std::string intersectionBackendResidentDirectLightBatchesUnavailableReason;
       std::uint64_t activeSampleDepthsProcessed = 0;
       std::uint64_t compatibilityShadeSamples = 0;
       std::uint64_t unsupportedPathMaterialSamples = 0;

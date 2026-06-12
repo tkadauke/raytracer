@@ -56,6 +56,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   traces, and Modeler graph details. — GPT-5 Codex
 - Preserved GPU frontier-compaction unavailable reasons in wavefront convergence
   comparison and queue-sweep benchmark captures. — GPT-5 Codex
+- Reported and preserved why resident direct-light batches are unavailable
+  beside the existing wavefront backend capability flag in metrics, rendercli
+  summaries, graph traces, Modeler graph details, and convergence captures.
+  — GPT-5 Codex
 - Included `packed_host` frontier ray-packing time in wavefront backend
   preparation/upload timing diagnostics. — GPT-5 Codex
 - Preserved wavefront frontier residency labels in convergence comparison and

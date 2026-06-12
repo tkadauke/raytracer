@@ -1392,6 +1392,16 @@ namespace render {
     return false;
   }
 
+  const char* WavefrontIntersectionBackend::residentDirectLightBatchesUnavailableReason() const {
+    if (supportsResidentDirectLightBatches()) {
+      return "";
+    }
+    if (supportsResidentFrontiers()) {
+      return "shading creates direct-light rays on the host";
+    }
+    return "backend does not support resident frontiers";
+  }
+
   WavefrontFrontierCompactionResult WavefrontIntersectionBackend::compactFrontier(
     const WavefrontFrontierCompactionRequest& request) const {
     return WavefrontFrontierCompactionResult::hostCompaction(request);

@@ -979,6 +979,8 @@ namespace WavefrontRaytracerTest {
               metrics.batching.intersectionBackendFallbackReason.find("auto selected CPU"));
     EXPECT_EQ("backend does not support prepared ray-batch compaction",
               metrics.batching.intersectionBackendGpuFrontierCompactionUnavailableReason);
+    EXPECT_EQ("backend does not support resident frontiers",
+              metrics.batching.intersectionBackendResidentDirectLightBatchesUnavailableReason);
     expectPlatformGpuFallbackReason(metrics.batching.intersectionBackendFallbackReason);
     EXPECT_EQ("runtime_scene", metrics.batching.intersectionBackendExecutionPath);
     EXPECT_EQ(480u, metrics.batching.intersectionBackendExpectedRays);
@@ -1120,6 +1122,12 @@ namespace WavefrontRaytracerTest {
               json.value("batching")
                 .toObject()
                 .value("intersectionBackendGpuFrontierCompactionUnavailableReason")
+                .toString()
+                .toStdString());
+    EXPECT_EQ("backend does not support resident frontiers",
+              json.value("batching")
+                .toObject()
+                .value("intersectionBackendResidentDirectLightBatchesUnavailableReason")
                 .toString()
                 .toStdString());
     EXPECT_EQ("runtime_scene", json.value("batching")
