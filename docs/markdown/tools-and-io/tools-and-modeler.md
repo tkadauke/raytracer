@@ -491,9 +491,9 @@ batch preferences,
 breakdown and
 `frontierPacketRefinedRaysByMaterial` for the material-family breakdown.
 The JSON also keeps `spawnedContinuationSamplesPerDepth` and
-`spawnedContinuationHostPathStateBytesPerDepth`, which show where exact-delta
-branching appended new path states before the next frontier depth was
-intersected.
+`spawnedContinuationHostPathStateBytesPerDepth`, which show where path-tracing
+exact-delta branching or Whitted recursive continuations appended new path
+states before the next frontier depth was intersected.
 Direct-light any-hit chunk arrays count visibility chunks: grouped backends
 record one chunk per submitted any-hit frontier, while scalar-loop backends
 record one chunk per shadow query. That keeps the resident-direct-light

@@ -439,6 +439,12 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 1u}), metrics.frontierRayMissesPerDepth);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
     EXPECT_EQ(2u, metrics.radianceDeltaSquaredSumPerDepth.size());
+    EXPECT_EQ(1u, metrics.spawnedContinuationSamples);
+    EXPECT_GT(metrics.spawnedContinuationHostPathStateBytes, 0u);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.spawnedContinuationSamplesPerDepth);
+    ASSERT_EQ(2u, metrics.spawnedContinuationHostPathStateBytesPerDepth.size());
+    EXPECT_GT(metrics.spawnedContinuationHostPathStateBytesPerDepth[0], 0u);
+    EXPECT_EQ(0u, metrics.spawnedContinuationHostPathStateBytesPerDepth[1]);
     EXPECT_GT(metrics.intersectionWorkerSeconds, 0.0);
     EXPECT_GT(metrics.shadingWorkerSeconds, 0.0);
   }
@@ -674,6 +680,9 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 2u}), metrics.frontierRayMissesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u, 0u}), metrics.spawnedContinuationSamplesPerDepth);
+    EXPECT_EQ(2u, metrics.spawnedContinuationSamples);
+    EXPECT_GT(metrics.spawnedContinuationHostPathStateBytes, 0u);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
   }
 
@@ -700,6 +709,9 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.activeSamplesPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.frontierRayHitsPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.spawnedContinuationSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}),
+              metrics.spawnedContinuationHostPathStateBytesPerDepth);
     EXPECT_EQ(1u, metrics.activeSampleDepthsProcessed);
     ASSERT_EQ(1u, observer.completedDepths.size());
     EXPECT_EQ(1u, observer.completedDepths[0]);

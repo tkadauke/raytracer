@@ -1257,6 +1257,9 @@ Progress:
   centralizes reservation, insertion, iteration, and host-byte sizing. The
   scheduler still shades on the host, but it no longer treats the active-hit
   list as an unstructured vector at the depth loop boundary.
+- Whitted wavefront metrics now report spawned recursive continuation counts
+  and host path-state bytes per depth. That makes Whitted queue growth visible
+  in the same diagnostics already used for path-tracing exact-delta branches.
 
 ---
 

@@ -944,7 +944,7 @@ namespace render {
       const std::uint64_t nextActiveSampleCount =
         countNextActiveSamples ? nextActiveSampleIndices.size() : next.size();
       if (metrics) {
-        metrics->recordSpawnedContinuations(0, 0);
+        metrics->recordSpawnedContinuations(next.size(), next.size() * sizeof(QueuedRay));
         metrics->recordRetainedActiveDepth(nextActiveSampleCount);
         metrics->recordRetainedHostPathStateBytes(next.size() * sizeof(QueuedRay));
       }

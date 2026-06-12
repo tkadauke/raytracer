@@ -167,11 +167,12 @@ until every path terminates, convergence stops the batch, or the
 depth cap is reached.
 
 Some exact materials, such as transparent delta transport, can spawn
-more than one continuation from a single hit. The wavefront metrics
+more than one continuation from a single hit. Whitted materials can
+also enqueue recursive continuation rays. The wavefront metrics
 therefore report spawned continuations separately from retained
 frontier samples. Retained samples describe the next depth's active
 frontier after spawned continuations are appended; spawned counts show
-how much exact-delta branching grew that frontier.
+how much continuation branching grew that frontier.
 
 <!-- widget: wavefront_path_tracing -->
 

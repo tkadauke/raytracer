@@ -43,6 +43,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reported Whitted active-hit host byte counts in wavefront metrics,
   rendercli summaries, convergence captures, and Modeler pass details.
   — GPT-5 Codex
+- Reported Whitted spawned continuation sample counts and host path-state bytes
+  in wavefront metrics, rendercli summaries, convergence captures, and Modeler
+  pass details. — GPT-5 Codex
 - Reported direct-light contribution host byte counts in wavefront metrics,
   rendercli summaries, convergence captures, and Modeler pass details.
   — GPT-5 Codex
