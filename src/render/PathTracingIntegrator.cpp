@@ -329,6 +329,7 @@ namespace render {
         m_frontier = intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
         m_occluded = intersectionBackend.intersectAnyFrontier(
           scene, *m_frontier, metrics ? &intersectionTiming : nullptr);
+        validateResolvedOcclusionCount();
         if (metrics) {
           recordDirectLightChunks(bounce, /*batchChunks=*/1, m_frontier->rayCount(),
                                   m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
@@ -362,6 +363,7 @@ namespace render {
           metrics->recordAnyHitQuery(intersectionBackend, 1, queryTiming);
         }
       }
+      validateResolvedOcclusionCount();
       if (metrics) {
         metrics->recordDirectLightOcclusionHostBytes(
           static_cast<std::uint64_t>(std::max(0, bounce)), hostOcclusionBytes());
@@ -377,6 +379,13 @@ namespace render {
       metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, bounce)),
                                             batchChunks, batchRays, packedRayBytes, hostQueryBytes,
                                             stateHandleBytes);
+    }
+
+    void validateResolvedOcclusionCount() const {
+      if (m_occluded.size() != m_selections.size()) {
+        throw std::logic_error("direct-light visibility batch resolved an occlusion count that "
+                               "does not match its light-selection count");
+      }
     }
 
     std::vector<DirectLightingSelection> m_selections;

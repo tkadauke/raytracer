@@ -48,6 +48,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   — GPT-5 Codex
 - Changed wavefront any-hit batch/frontier APIs to return explicit byte
   occlusion flags instead of `std::vector<bool>` proxy results. — GPT-5 Codex
+- Changed path-tracing direct-light visibility to reject any-hit frontier
+  backends that return the wrong number of occlusion flags. — GPT-5 Codex
 - Reported state-handle byte estimates for wavefront compaction candidates in
   metrics, rendercli summaries, convergence captures, and Modeler graph
   details. — GPT-5 Codex

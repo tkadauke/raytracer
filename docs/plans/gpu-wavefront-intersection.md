@@ -1234,6 +1234,10 @@ Progress:
   temporary. Current results are still read back immediately, but resident
   direct-light scheduling now has one batch object that owns selections,
   frontier, and resolved visibility.
+- Direct-light visibility resolution now validates that backend any-hit
+  frontiers return exactly one occlusion flag per light-selection record. That
+  makes malformed resident-backend results fail loudly instead of silently
+  misaligning lighting contributions.
 
 ---
 
