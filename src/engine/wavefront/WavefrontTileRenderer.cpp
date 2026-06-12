@@ -21,7 +21,6 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
-#include <map>
 #include <utility>
 
 namespace engine::wavefront::detail {
@@ -29,19 +28,6 @@ namespace engine::wavefront::detail {
     using TileProgressTransform =
       std::function<std::vector<WavefrontTilePixel>(const std::vector<WavefrontTilePixel>&)>;
     using TileProgressPublisher = std::function<void(const std::vector<WavefrontTilePixel>&)>;
-
-    void mergeLabel(std::string& target, const std::string& source) {
-      if (source.empty()) {
-        return;
-      }
-      if (target.empty()) {
-        target = source;
-        return;
-      }
-      if (target != source) {
-        target = "mixed";
-      }
-    }
 
     class TileProgressFeedback {
     public:
@@ -160,137 +146,6 @@ namespace engine::wavefront::detail {
       return settings;
     }
 
-    template<typename T>
-    void addVectorValues(std::vector<T>& target, const std::vector<T>& source) {
-      if (target.size() < source.size()) {
-        target.resize(source.size(), T{});
-      }
-      for (std::size_t index = 0; index != source.size(); ++index) {
-        target[index] += source[index];
-      }
-    }
-
-    void addMapValues(std::map<std::string, std::uint64_t>& target,
-                      const std::map<std::string, std::uint64_t>& source) {
-      for (const auto& [key, value] : source) {
-        target[key] += value;
-      }
-    }
-
-    void addBatchMetrics(render::IntegratorBatchMetrics& target,
-                         const render::IntegratorBatchMetrics& source) {
-      target.usedScalarFallback = target.usedScalarFallback || source.usedScalarFallback;
-      target.mergeIntersectionBackendMetrics(source);
-      addVectorValues(target.activeSamplesPerDepth, source.activeSamplesPerDepth);
-      addVectorValues(target.frontierRayHitsPerDepth, source.frontierRayHitsPerDepth);
-      addVectorValues(target.frontierRayMissesPerDepth, source.frontierRayMissesPerDepth);
-      addVectorValues(target.frontierPacketChunksPerDepth, source.frontierPacketChunksPerDepth);
-      addVectorValues(target.frontierPacketRaysPerDepth, source.frontierPacketRaysPerDepth);
-      addVectorValues(target.frontierClosestHitBatchChunksPerDepth,
-                      source.frontierClosestHitBatchChunksPerDepth);
-      addVectorValues(target.frontierClosestHitBatchRaysPerDepth,
-                      source.frontierClosestHitBatchRaysPerDepth);
-      addVectorValues(target.directLightAnyHitBatchChunksPerDepth,
-                      source.directLightAnyHitBatchChunksPerDepth);
-      addVectorValues(target.directLightAnyHitBatchRaysPerDepth,
-                      source.directLightAnyHitBatchRaysPerDepth);
-      addVectorValues(target.directLightSelectionHostBytesPerDepth,
-                      source.directLightSelectionHostBytesPerDepth);
-      addVectorValues(target.directLightOcclusionHostBytesPerDepth,
-                      source.directLightOcclusionHostBytesPerDepth);
-      addVectorValues(target.directLightContributionHostBytesPerDepth,
-                      source.directLightContributionHostBytesPerDepth);
-      addVectorValues(target.frontierRay4PacketChunksPerDepth,
-                      source.frontierRay4PacketChunksPerDepth);
-      addVectorValues(target.frontierRay8PacketChunksPerDepth,
-                      source.frontierRay8PacketChunksPerDepth);
-      addVectorValues(target.frontierScalarRaysPerDepth, source.frontierScalarRaysPerDepth);
-      addVectorValues(target.frontierPacketScalarFallbackRaysPerDepth,
-                      source.frontierPacketScalarFallbackRaysPerDepth);
-      addMapValues(target.frontierPacketScalarFallbackRaysByReason,
-                   source.frontierPacketScalarFallbackRaysByReason);
-      addVectorValues(target.frontierPacketRefinedRaysPerDepth,
-                      source.frontierPacketRefinedRaysPerDepth);
-      addMapValues(target.frontierPacketRefinedRaysByMaterial,
-                   source.frontierPacketRefinedRaysByMaterial);
-      target.activeSampleDepthsProcessed += source.activeSampleDepthsProcessed;
-      target.activeHostPathStateBytesProcessed += source.activeHostPathStateBytesProcessed;
-      target.activeHitHostBytesProcessed += source.activeHitHostBytesProcessed;
-      addVectorValues(target.activeHostPathStateBytesPerDepth,
-                      source.activeHostPathStateBytesPerDepth);
-      addVectorValues(target.activeHitHostBytesPerDepth, source.activeHitHostBytesPerDepth);
-      addVectorValues(target.retainedHostPathStateBytesPerDepth,
-                      source.retainedHostPathStateBytesPerDepth);
-      target.spawnedContinuationSamples += source.spawnedContinuationSamples;
-      target.spawnedContinuationHostPathStateBytes += source.spawnedContinuationHostPathStateBytes;
-      addVectorValues(target.spawnedContinuationSamplesPerDepth,
-                      source.spawnedContinuationSamplesPerDepth);
-      addVectorValues(target.spawnedContinuationHostPathStateBytesPerDepth,
-                      source.spawnedContinuationHostPathStateBytesPerDepth);
-      addVectorValues(target.radianceDeltaSquaredSumPerDepth,
-                      source.radianceDeltaSquaredSumPerDepth);
-      if (target.maxRadianceDeltaPerDepth.size() < source.maxRadianceDeltaPerDepth.size()) {
-        target.maxRadianceDeltaPerDepth.resize(source.maxRadianceDeltaPerDepth.size(), 0.0);
-      }
-      for (std::size_t index = 0; index != source.maxRadianceDeltaPerDepth.size(); ++index) {
-        target.maxRadianceDeltaPerDepth[index] =
-          std::max(target.maxRadianceDeltaPerDepth[index], source.maxRadianceDeltaPerDepth[index]);
-      }
-      target.compatibilityShadeSamples += source.compatibilityShadeSamples;
-      target.unsupportedPathMaterialSamples += source.unsupportedPathMaterialSamples;
-      target.emitterHitSamples += source.emitterHitSamples;
-      target.primaryEmitterHitSamples += source.primaryEmitterHitSamples;
-      target.deltaEmitterHitSamples += source.deltaEmitterHitSamples;
-      target.bsdfEmitterHitSamples += source.bsdfEmitterHitSamples;
-      target.misWeightedEmitterHitSamples += source.misWeightedEmitterHitSamples;
-      target.directLightSamples += source.directLightSamples;
-      target.directLightContributingSamples += source.directLightContributingSamples;
-      target.directLightOccludedSamples += source.directLightOccludedSamples;
-      target.directLightSelectionHostBytes += source.directLightSelectionHostBytes;
-      target.directLightOcclusionHostBytes += source.directLightOcclusionHostBytes;
-      target.directLightContributionHostBytes += source.directLightContributionHostBytes;
-      target.emittedRadianceLuminanceSum += source.emittedRadianceLuminanceSum;
-      target.directLightRadianceLuminanceSum += source.directLightRadianceLuminanceSum;
-      target.primaryDirectLightRadianceLuminanceSum +=
-        source.primaryDirectLightRadianceLuminanceSum;
-      target.secondaryDirectLightRadianceLuminanceSum +=
-        source.secondaryDirectLightRadianceLuminanceSum;
-      target.ambientRadianceLuminanceSum += source.ambientRadianceLuminanceSum;
-      target.missRadianceLuminanceSum += source.missRadianceLuminanceSum;
-      target.compatibilityShadeRadianceLuminanceSum +=
-        source.compatibilityShadeRadianceLuminanceSum;
-      target.stoppedByConvergence = target.stoppedByConvergence || source.stoppedByConvergence;
-      target.stoppedAfterDepth = std::max(target.stoppedAfterDepth, source.stoppedAfterDepth);
-      target.intersectionWorkerSeconds += source.intersectionWorkerSeconds;
-      target.shadingWorkerSeconds += source.shadingWorkerSeconds;
-      target.pathSetupWorkerSeconds += source.pathSetupWorkerSeconds;
-      target.frontierPartitionWorkerSeconds += source.frontierPartitionWorkerSeconds;
-      target.frontierBookkeepingWorkerSeconds += source.frontierBookkeepingWorkerSeconds;
-      target.progressSnapshotWorkerSeconds += source.progressSnapshotWorkerSeconds;
-      target.convergenceTestWorkerSeconds += source.convergenceTestWorkerSeconds;
-      target.observerConvergenceFeedbackDepths += source.observerConvergenceFeedbackDepths;
-      addVectorValues(target.retainedActiveSamplesPerDepth, source.retainedActiveSamplesPerDepth);
-      target.directLightAnyHitFrontierPackedRayBytes +=
-        source.directLightAnyHitFrontierPackedRayBytes;
-      target.directLightAnyHitFrontierHostQueryBytes +=
-        source.directLightAnyHitFrontierHostQueryBytes;
-      target.directLightAnyHitFrontierStateHandleBytes +=
-        source.directLightAnyHitFrontierStateHandleBytes;
-      target.frontierCompactionPasses += source.frontierCompactionPasses;
-      target.frontierCompactionInputSamples += source.frontierCompactionInputSamples;
-      target.frontierCompactionRetainedSamples += source.frontierCompactionRetainedSamples;
-      target.frontierCompactionRemovedSamples += source.frontierCompactionRemovedSamples;
-      target.frontierCompactionMovedSamples += source.frontierCompactionMovedSamples;
-      target.frontierCompactionRetainedIndexBytes += source.frontierCompactionRetainedIndexBytes;
-      target.frontierCompactionInputHostPathStateBytes +=
-        source.frontierCompactionInputHostPathStateBytes;
-      target.frontierCompactionRetainedHostPathStateBytes +=
-        source.frontierCompactionRetainedHostPathStateBytes;
-      target.frontierCompactionRemovedHostPathStateBytes +=
-        source.frontierCompactionRemovedHostPathStateBytes;
-      mergeLabel(target.frontierCompactionExecutionPath, source.frontierCompactionExecutionPath);
-    }
-
     WavefrontTileTraceResult traceTile(
       const WavefrontTileRenderConfig& config, render::Camera& camera,
       const render::RayCaster& rayCaster, const render::Scene& scene, const Recti& actualRect,
@@ -400,7 +255,7 @@ namespace engine::wavefront::detail {
         scene, samples, rayCaster, config.metricsEnabled ? &initialBatchMetrics : nullptr,
         settings);
       if (config.metricsEnabled) {
-        addBatchMetrics(result.batchMetrics, initialBatchMetrics);
+        result.batchMetrics.mergeFrom(initialBatchMetrics);
       }
       result.integratorBatchWorkerSeconds =
         std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() - integratorBatchStart)
@@ -460,7 +315,7 @@ namespace engine::wavefront::detail {
             scene, extraSamples, rayCaster, config.metricsEnabled ? &extraBatchMetrics : nullptr,
             extraSettings);
           if (config.metricsEnabled) {
-            addBatchMetrics(result.batchMetrics, extraBatchMetrics);
+            result.batchMetrics.mergeFrom(extraBatchMetrics);
           }
           result.integratorBatchWorkerSeconds +=
             std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() - extraBatchStart)

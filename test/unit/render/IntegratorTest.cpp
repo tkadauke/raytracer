@@ -125,6 +125,59 @@ namespace IntegratorTest {
     EXPECT_DOUBLE_EQ(0.0, metrics.frontierPartitionWorkerSeconds);
   }
 
+  TEST(IntegratorBatchMetrics, MergeFromAccumulatesHostByteDiagnostics) {
+    IntegratorBatchMetrics target;
+    target.reset(/*scalarFallback=*/false);
+    target.recordActiveDepth(3);
+    target.recordActiveHitHostBytes(7);
+    target.recordDirectLightSelectionHostBytes(/*depth=*/0, /*bytes=*/2);
+    target.recordDirectLightOcclusionHostBytes(/*depth=*/0, /*bytes=*/4);
+    target.recordDirectLightContributionHostBytes(/*depth=*/0, /*bytes=*/6);
+    target.recordDirectLightAnyHitBatch(/*depth=*/0, /*batchChunks=*/1, /*batchRays=*/3,
+                                        /*packedRayBytes=*/30, /*hostQueryBytes=*/15,
+                                        /*stateHandleBytes=*/9);
+    target.recordRadianceDeltaDepth(/*squaredSum=*/4.0, /*maxDelta=*/2.0);
+
+    IntegratorBatchMetrics source;
+    source.reset(/*scalarFallback=*/true);
+    source.recordActiveDepth(5);
+    source.recordActiveHitHostBytes(11);
+    source.recordDirectLightSelectionHostBytes(/*depth=*/0, /*bytes=*/3);
+    source.recordDirectLightSelectionHostBytes(/*depth=*/1, /*bytes=*/5);
+    source.recordDirectLightOcclusionHostBytes(/*depth=*/0, /*bytes=*/7);
+    source.recordDirectLightOcclusionHostBytes(/*depth=*/1, /*bytes=*/13);
+    source.recordDirectLightContributionHostBytes(/*depth=*/0, /*bytes=*/17);
+    source.recordDirectLightContributionHostBytes(/*depth=*/1, /*bytes=*/19);
+    source.recordDirectLightAnyHitBatch(/*depth=*/0, /*batchChunks=*/2, /*batchRays=*/5,
+                                        /*packedRayBytes=*/50, /*hostQueryBytes=*/25,
+                                        /*stateHandleBytes=*/15);
+    source.recordDirectLightAnyHitBatch(/*depth=*/1, /*batchChunks=*/3, /*batchRays=*/7,
+                                        /*packedRayBytes=*/70, /*hostQueryBytes=*/35,
+                                        /*stateHandleBytes=*/21);
+    source.recordRadianceDeltaDepth(/*squaredSum=*/9.0, /*maxDelta=*/1.0);
+
+    target.mergeFrom(source);
+
+    EXPECT_TRUE(target.usedScalarFallback);
+    EXPECT_EQ((std::vector<std::uint64_t>{8u}), target.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{18u}), target.activeHitHostBytesPerDepth);
+    EXPECT_EQ(18u, target.activeHitHostBytesProcessed);
+    EXPECT_EQ((std::vector<std::uint64_t>{5u, 5u}), target.directLightSelectionHostBytesPerDepth);
+    EXPECT_EQ(10u, target.directLightSelectionHostBytes);
+    EXPECT_EQ((std::vector<std::uint64_t>{11u, 13u}), target.directLightOcclusionHostBytesPerDepth);
+    EXPECT_EQ(24u, target.directLightOcclusionHostBytes);
+    EXPECT_EQ((std::vector<std::uint64_t>{23u, 19u}),
+              target.directLightContributionHostBytesPerDepth);
+    EXPECT_EQ(42u, target.directLightContributionHostBytes);
+    EXPECT_EQ((std::vector<std::uint64_t>{3u, 3u}), target.directLightAnyHitBatchChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{8u, 7u}), target.directLightAnyHitBatchRaysPerDepth);
+    EXPECT_EQ(150u, target.directLightAnyHitFrontierPackedRayBytes);
+    EXPECT_EQ(75u, target.directLightAnyHitFrontierHostQueryBytes);
+    EXPECT_EQ(45u, target.directLightAnyHitFrontierStateHandleBytes);
+    EXPECT_EQ((std::vector<double>{13.0}), target.radianceDeltaSquaredSumPerDepth);
+    EXPECT_EQ((std::vector<double>{2.0}), target.maxRadianceDeltaPerDepth);
+  }
+
   TEST(Integrator, FrontierResidencyMetricsTrackFrontierPayloadBytes) {
     IntegratorBatchMetrics metrics;
     metrics.reset(/*scalarFallback=*/false);

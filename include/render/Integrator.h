@@ -175,6 +175,7 @@ namespace render {
     std::string frontierCompactionExecutionPath;
 
     void reset(bool scalarFallback);
+    void mergeFrom(const IntegratorBatchMetrics& source);
     void recordActiveDepth(std::uint64_t activeSamples);
     void recordRetainedActiveDepth(std::uint64_t activeSamples);
     void recordActiveHostPathStateBytes(std::uint64_t bytes);

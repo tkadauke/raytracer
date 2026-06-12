@@ -160,6 +160,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Fixed tiled wavefront renders so active-hit and direct-light host-byte totals
   and per-depth arrays are merged across all sample batches in a tile.
   — GPT-5 Codex
+- Fixed tiled wavefront renders so direct-light any-hit frontier payload byte
+  totals are not counted twice when tile sample batches are merged.
+  — GPT-5 Codex
 
 ### Added
 

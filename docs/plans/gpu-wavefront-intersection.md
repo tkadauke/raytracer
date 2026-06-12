@@ -1277,6 +1277,12 @@ Progress:
   plus per-depth arrays across every sample batch in a tile. Adaptive or
   multi-pass tile renders therefore expose the same resident-direct-light
   baselines as a single integrator batch.
+- `IntegratorBatchMetrics` now owns whole-batch merging through an instance
+  method, so tile rendering no longer has a second ad hoc metric-field merge
+  list that can drift when new resident-frontier diagnostics are added.
+- Direct-light any-hit frontier payload byte totals now merge only through the
+  whole-batch metric merge path, not the backend-label merge path. That removes
+  a double-count in tiled or adaptive renders.
 
 ---
 

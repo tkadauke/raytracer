@@ -36,6 +36,23 @@ namespace render {
         target[label] = std::max(target[label], count);
       }
     }
+
+    template<typename T>
+    void addVectorValues(std::vector<T>& target, const std::vector<T>& source) {
+      if (target.size() < source.size()) {
+        target.resize(source.size(), T{});
+      }
+      for (std::size_t index = 0; index != source.size(); ++index) {
+        target[index] += source[index];
+      }
+    }
+
+    void addMapValues(std::map<std::string, std::uint64_t>& target,
+                      const std::map<std::string, std::uint64_t>& source) {
+      for (const auto& [key, value] : source) {
+        target[key] += value;
+      }
+    }
   }
 
   const char* Integrator::diagnosticName() const {
@@ -202,6 +219,103 @@ namespace render {
     frontierCompactionRetainedHostPathStateBytes = 0;
     frontierCompactionRemovedHostPathStateBytes = 0;
     frontierCompactionExecutionPath.clear();
+  }
+
+  void IntegratorBatchMetrics::mergeFrom(const IntegratorBatchMetrics& source) {
+    usedScalarFallback = usedScalarFallback || source.usedScalarFallback;
+    mergeIntersectionBackendMetrics(source);
+    addVectorValues(activeSamplesPerDepth, source.activeSamplesPerDepth);
+    addVectorValues(frontierRayHitsPerDepth, source.frontierRayHitsPerDepth);
+    addVectorValues(frontierRayMissesPerDepth, source.frontierRayMissesPerDepth);
+    addVectorValues(frontierPacketChunksPerDepth, source.frontierPacketChunksPerDepth);
+    addVectorValues(frontierPacketRaysPerDepth, source.frontierPacketRaysPerDepth);
+    addVectorValues(frontierClosestHitBatchChunksPerDepth,
+                    source.frontierClosestHitBatchChunksPerDepth);
+    addVectorValues(frontierClosestHitBatchRaysPerDepth,
+                    source.frontierClosestHitBatchRaysPerDepth);
+    addVectorValues(directLightAnyHitBatchChunksPerDepth,
+                    source.directLightAnyHitBatchChunksPerDepth);
+    addVectorValues(directLightAnyHitBatchRaysPerDepth, source.directLightAnyHitBatchRaysPerDepth);
+    addVectorValues(directLightSelectionHostBytesPerDepth,
+                    source.directLightSelectionHostBytesPerDepth);
+    addVectorValues(directLightOcclusionHostBytesPerDepth,
+                    source.directLightOcclusionHostBytesPerDepth);
+    addVectorValues(directLightContributionHostBytesPerDepth,
+                    source.directLightContributionHostBytesPerDepth);
+    addVectorValues(frontierRay4PacketChunksPerDepth, source.frontierRay4PacketChunksPerDepth);
+    addVectorValues(frontierRay8PacketChunksPerDepth, source.frontierRay8PacketChunksPerDepth);
+    addVectorValues(frontierScalarRaysPerDepth, source.frontierScalarRaysPerDepth);
+    addVectorValues(frontierPacketScalarFallbackRaysPerDepth,
+                    source.frontierPacketScalarFallbackRaysPerDepth);
+    addMapValues(frontierPacketScalarFallbackRaysByReason,
+                 source.frontierPacketScalarFallbackRaysByReason);
+    addVectorValues(frontierPacketRefinedRaysPerDepth, source.frontierPacketRefinedRaysPerDepth);
+    addMapValues(frontierPacketRefinedRaysByMaterial, source.frontierPacketRefinedRaysByMaterial);
+    activeSampleDepthsProcessed += source.activeSampleDepthsProcessed;
+    activeHostPathStateBytesProcessed += source.activeHostPathStateBytesProcessed;
+    activeHitHostBytesProcessed += source.activeHitHostBytesProcessed;
+    addVectorValues(activeHostPathStateBytesPerDepth, source.activeHostPathStateBytesPerDepth);
+    addVectorValues(activeHitHostBytesPerDepth, source.activeHitHostBytesPerDepth);
+    addVectorValues(retainedHostPathStateBytesPerDepth, source.retainedHostPathStateBytesPerDepth);
+    spawnedContinuationSamples += source.spawnedContinuationSamples;
+    spawnedContinuationHostPathStateBytes += source.spawnedContinuationHostPathStateBytes;
+    addVectorValues(spawnedContinuationSamplesPerDepth, source.spawnedContinuationSamplesPerDepth);
+    addVectorValues(spawnedContinuationHostPathStateBytesPerDepth,
+                    source.spawnedContinuationHostPathStateBytesPerDepth);
+    addVectorValues(radianceDeltaSquaredSumPerDepth, source.radianceDeltaSquaredSumPerDepth);
+    if (maxRadianceDeltaPerDepth.size() < source.maxRadianceDeltaPerDepth.size()) {
+      maxRadianceDeltaPerDepth.resize(source.maxRadianceDeltaPerDepth.size(), 0.0);
+    }
+    for (std::size_t index = 0; index != source.maxRadianceDeltaPerDepth.size(); ++index) {
+      maxRadianceDeltaPerDepth[index] =
+        std::max(maxRadianceDeltaPerDepth[index], source.maxRadianceDeltaPerDepth[index]);
+    }
+    compatibilityShadeSamples += source.compatibilityShadeSamples;
+    unsupportedPathMaterialSamples += source.unsupportedPathMaterialSamples;
+    emitterHitSamples += source.emitterHitSamples;
+    primaryEmitterHitSamples += source.primaryEmitterHitSamples;
+    deltaEmitterHitSamples += source.deltaEmitterHitSamples;
+    bsdfEmitterHitSamples += source.bsdfEmitterHitSamples;
+    misWeightedEmitterHitSamples += source.misWeightedEmitterHitSamples;
+    directLightSamples += source.directLightSamples;
+    directLightContributingSamples += source.directLightContributingSamples;
+    directLightOccludedSamples += source.directLightOccludedSamples;
+    directLightSelectionHostBytes += source.directLightSelectionHostBytes;
+    directLightOcclusionHostBytes += source.directLightOcclusionHostBytes;
+    directLightContributionHostBytes += source.directLightContributionHostBytes;
+    emittedRadianceLuminanceSum += source.emittedRadianceLuminanceSum;
+    directLightRadianceLuminanceSum += source.directLightRadianceLuminanceSum;
+    primaryDirectLightRadianceLuminanceSum += source.primaryDirectLightRadianceLuminanceSum;
+    secondaryDirectLightRadianceLuminanceSum += source.secondaryDirectLightRadianceLuminanceSum;
+    ambientRadianceLuminanceSum += source.ambientRadianceLuminanceSum;
+    missRadianceLuminanceSum += source.missRadianceLuminanceSum;
+    compatibilityShadeRadianceLuminanceSum += source.compatibilityShadeRadianceLuminanceSum;
+    stoppedByConvergence = stoppedByConvergence || source.stoppedByConvergence;
+    stoppedAfterDepth = std::max(stoppedAfterDepth, source.stoppedAfterDepth);
+    intersectionWorkerSeconds += source.intersectionWorkerSeconds;
+    shadingWorkerSeconds += source.shadingWorkerSeconds;
+    pathSetupWorkerSeconds += source.pathSetupWorkerSeconds;
+    frontierPartitionWorkerSeconds += source.frontierPartitionWorkerSeconds;
+    frontierBookkeepingWorkerSeconds += source.frontierBookkeepingWorkerSeconds;
+    progressSnapshotWorkerSeconds += source.progressSnapshotWorkerSeconds;
+    convergenceTestWorkerSeconds += source.convergenceTestWorkerSeconds;
+    observerConvergenceFeedbackDepths += source.observerConvergenceFeedbackDepths;
+    addVectorValues(retainedActiveSamplesPerDepth, source.retainedActiveSamplesPerDepth);
+    directLightAnyHitFrontierPackedRayBytes += source.directLightAnyHitFrontierPackedRayBytes;
+    directLightAnyHitFrontierHostQueryBytes += source.directLightAnyHitFrontierHostQueryBytes;
+    directLightAnyHitFrontierStateHandleBytes += source.directLightAnyHitFrontierStateHandleBytes;
+    frontierCompactionPasses += source.frontierCompactionPasses;
+    frontierCompactionInputSamples += source.frontierCompactionInputSamples;
+    frontierCompactionRetainedSamples += source.frontierCompactionRetainedSamples;
+    frontierCompactionRemovedSamples += source.frontierCompactionRemovedSamples;
+    frontierCompactionMovedSamples += source.frontierCompactionMovedSamples;
+    frontierCompactionRetainedIndexBytes += source.frontierCompactionRetainedIndexBytes;
+    frontierCompactionInputHostPathStateBytes += source.frontierCompactionInputHostPathStateBytes;
+    frontierCompactionRetainedHostPathStateBytes +=
+      source.frontierCompactionRetainedHostPathStateBytes;
+    frontierCompactionRemovedHostPathStateBytes +=
+      source.frontierCompactionRemovedHostPathStateBytes;
+    mergeLabel(frontierCompactionExecutionPath, source.frontierCompactionExecutionPath);
   }
 
   void IntegratorBatchMetrics::recordActiveDepth(std::uint64_t activeSamples) {
@@ -757,9 +871,6 @@ namespace render {
                source.intersectionBackendClosestHitFrontierResidency);
     mergeLabel(intersectionBackendAnyHitFrontierResidency,
                source.intersectionBackendAnyHitFrontierResidency);
-    directLightAnyHitFrontierPackedRayBytes += source.directLightAnyHitFrontierPackedRayBytes;
-    directLightAnyHitFrontierHostQueryBytes += source.directLightAnyHitFrontierHostQueryBytes;
-    directLightAnyHitFrontierStateHandleBytes += source.directLightAnyHitFrontierStateHandleBytes;
     intersectionBackendClosestHitFrontierPackedRayBytes +=
       source.intersectionBackendClosestHitFrontierPackedRayBytes;
     intersectionBackendAnyHitFrontierPackedRayBytes +=
