@@ -1096,6 +1096,10 @@ Progress:
   by the current Metal/Vulkan prepared ray-batch compaction kernels, making the
   future retained-index transfer or residency cost visible beside input,
   retained, removed, moved, and execution-path counters.
+- Wavefront metrics now split estimated ray upload bytes by closest-hit and
+  any-hit query family, so resident-frontier planning can tell whether path
+  frontier intersections or direct-light visibility batches are driving the
+  current upload workload.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a

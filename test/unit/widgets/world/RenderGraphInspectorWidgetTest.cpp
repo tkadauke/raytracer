@@ -1130,6 +1130,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection scene primitives")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection scene BVH nodes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection scene upload bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit ray upload bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Any-hit ray upload bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection query transfer bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection query round trips")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Closest-hit query round trips")).isEmpty());

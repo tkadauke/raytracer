@@ -636,6 +636,10 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                                     QStringLiteral("intersectionSceneUnsupportedReasons"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene upload bytes"), batching,
                               QStringLiteral("intersectionSceneUploadBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Closest-hit ray upload bytes"), batching,
+                              QStringLiteral("intersectionEstimatedClosestHitRayUploadBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit ray upload bytes"), batching,
+                              QStringLiteral("intersectionEstimatedAnyHitRayUploadBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection query transfer bytes"), batching,
                               QStringLiteral("intersectionEstimatedQueryTransferBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection query round trips"), batching,
@@ -1040,6 +1044,15 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
           jsonIntegerValue(batching, QStringLiteral("intersectionEstimatedQueryTransferBytes"));
         if (queryTransferBytes > 0) {
           line += QStringLiteral(", ~%1 query transfer bytes").arg(queryTransferBytes);
+          const qulonglong closestHitUploadBytes = jsonIntegerValue(
+            batching, QStringLiteral("intersectionEstimatedClosestHitRayUploadBytes"));
+          const qulonglong anyHitUploadBytes =
+            jsonIntegerValue(batching, QStringLiteral("intersectionEstimatedAnyHitRayUploadBytes"));
+          if (closestHitUploadBytes > 0 || anyHitUploadBytes > 0) {
+            line += QStringLiteral(" (%1 closest-hit/%2 any-hit upload bytes)")
+                      .arg(closestHitUploadBytes)
+                      .arg(anyHitUploadBytes);
+          }
         }
         const qulonglong queryRoundTrips =
           jsonIntegerValue(batching, QStringLiteral("intersectionEstimatedQueryRoundTrips"));

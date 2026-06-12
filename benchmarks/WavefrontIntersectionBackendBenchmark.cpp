@@ -127,6 +127,9 @@ namespace {
         diagnostics.packedAnyHitKernelEligible ? 1.0 : 0.0;
       state.counters["ray_upload_bytes"] =
         static_cast<double>(closestHitRayUploadBytes + anyHitRayUploadBytes);
+      state.counters["closest_hit_ray_upload_bytes"] =
+        static_cast<double>(closestHitRayUploadBytes);
+      state.counters["any_hit_ray_upload_bytes"] = static_cast<double>(anyHitRayUploadBytes);
       state.counters["closest_hit_readback_bytes"] = static_cast<double>(closestHitReadbackBytes);
       state.counters["any_hit_readback_bytes"] = static_cast<double>(anyHitReadbackBytes);
       state.counters["readback_bytes"] =

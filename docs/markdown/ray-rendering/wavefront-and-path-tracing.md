@@ -336,6 +336,9 @@ platform backend. The same trace records submitted intersection rays per
 intersection-worker second and, when a platform kernel reports dispatch timing,
 backend-kernel rays per second. Those throughput numbers are the measured
 counterpart to the `auto` policy's expected-ray and transfer estimates.
+The transfer estimate is also split into closest-hit and any-hit ray upload
+bytes so resident-frontier experiments can see whether camera/path frontiers or
+next-event visibility batches dominate the upload pressure.
 
 The expected ray count used by `auto` is an estimate of intersection work, not
 just the number of primary camera samples. `WavefrontRaytracer` starts with

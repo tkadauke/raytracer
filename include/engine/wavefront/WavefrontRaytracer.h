@@ -104,6 +104,8 @@ namespace engine::wavefront {
       bool intersectionScenePackedClosestHitEligible = false;
       bool intersectionScenePackedAnyHitEligible = false;
       std::uint64_t intersectionEstimatedRayUploadBytes = 0;
+      std::uint64_t intersectionEstimatedClosestHitRayUploadBytes = 0;
+      std::uint64_t intersectionEstimatedAnyHitRayUploadBytes = 0;
       std::uint64_t intersectionEstimatedClosestHitReadbackBytes = 0;
       std::uint64_t intersectionEstimatedAnyHitReadbackBytes = 0;
       std::uint64_t intersectionEstimatedQueryTransferBytes = 0;

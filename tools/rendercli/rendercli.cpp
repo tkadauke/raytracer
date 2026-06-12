@@ -335,6 +335,10 @@ namespace {
         << (batching.value("intersectionScenePackedAnyHitEligible").toBool() ? "true" : "false")
         << " intersection_estimated_ray_upload_bytes="
         << unsignedValue(batching, "intersectionEstimatedRayUploadBytes")
+        << " intersection_estimated_closest_hit_ray_upload_bytes="
+        << unsignedValue(batching, "intersectionEstimatedClosestHitRayUploadBytes")
+        << " intersection_estimated_any_hit_ray_upload_bytes="
+        << unsignedValue(batching, "intersectionEstimatedAnyHitRayUploadBytes")
         << " intersection_estimated_closest_hit_readback_bytes="
         << unsignedValue(batching, "intersectionEstimatedClosestHitReadbackBytes")
         << " intersection_estimated_any_hit_readback_bytes="

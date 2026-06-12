@@ -140,6 +140,8 @@ namespace render {
     intersectionScenePackedClosestHitEligible = false;
     intersectionScenePackedAnyHitEligible = false;
     intersectionEstimatedRayUploadBytes = 0;
+    intersectionEstimatedClosestHitRayUploadBytes = 0;
+    intersectionEstimatedAnyHitRayUploadBytes = 0;
     intersectionEstimatedClosestHitReadbackBytes = 0;
     intersectionEstimatedAnyHitReadbackBytes = 0;
     intersectionEstimatedQueryTransferBytes = 0;
@@ -564,6 +566,7 @@ namespace render {
     mergeLabel(intersectionBackendClosestHitExecutionPath, executionPath);
     const std::uint64_t rayUploadBytes = backend.estimatedClosestHitRayUploadBytes(submittedRays);
     const std::uint64_t readbackBytes = backend.estimatedClosestHitReadbackBytes(submittedRays);
+    intersectionEstimatedClosestHitRayUploadBytes += rayUploadBytes;
     intersectionEstimatedClosestHitReadbackBytes += readbackBytes;
     if (recordIntersectionQueryTransfer(rayUploadBytes, readbackBytes)) {
       ++intersectionEstimatedClosestHitQueryRoundTrips;
@@ -590,6 +593,7 @@ namespace render {
     mergeLabel(intersectionBackendAnyHitExecutionPath, executionPath);
     const std::uint64_t rayUploadBytes = backend.estimatedAnyHitRayUploadBytes(submittedRays);
     const std::uint64_t readbackBytes = backend.estimatedAnyHitReadbackBytes(submittedRays);
+    intersectionEstimatedAnyHitRayUploadBytes += rayUploadBytes;
     intersectionEstimatedAnyHitReadbackBytes += readbackBytes;
     if (recordIntersectionQueryTransfer(rayUploadBytes, readbackBytes)) {
       ++intersectionEstimatedAnyHitQueryRoundTrips;
@@ -671,6 +675,9 @@ namespace render {
     intersectionScenePackedAnyHitEligible =
       intersectionScenePackedAnyHitEligible || source.intersectionScenePackedAnyHitEligible;
     intersectionEstimatedRayUploadBytes += source.intersectionEstimatedRayUploadBytes;
+    intersectionEstimatedClosestHitRayUploadBytes +=
+      source.intersectionEstimatedClosestHitRayUploadBytes;
+    intersectionEstimatedAnyHitRayUploadBytes += source.intersectionEstimatedAnyHitRayUploadBytes;
     intersectionEstimatedClosestHitReadbackBytes +=
       source.intersectionEstimatedClosestHitReadbackBytes;
     intersectionEstimatedAnyHitReadbackBytes += source.intersectionEstimatedAnyHitReadbackBytes;

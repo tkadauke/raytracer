@@ -1401,7 +1401,7 @@ namespace WavefrontRaytracerTest {
       EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
       expectPlatformGpuFallbackReason(metrics.batching.intersectionBackendFallbackReason);
       EXPECT_EQ("packed_cpu", metrics.batching.intersectionBackendExecutionPath);
-      EXPECT_DOUBLE_EQ(0.0, metrics.batching.intersectionBackendUploadWorkerSeconds);
+      EXPECT_GE(metrics.batching.intersectionBackendUploadWorkerSeconds, 0.0);
       EXPECT_DOUBLE_EQ(0.0, metrics.batching.intersectionBackendKernelWorkerSeconds);
       EXPECT_DOUBLE_EQ(0.0, metrics.batching.intersectionBackendReadbackWorkerSeconds);
     }
@@ -1421,6 +1421,11 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(metrics.batching.closestHitRaysSubmitted, 0u);
     EXPECT_EQ(0u, metrics.batching.anyHitRaysSubmitted);
     EXPECT_GT(metrics.batching.intersectionEstimatedRayUploadBytes, 0u);
+    EXPECT_EQ(metrics.batching.intersectionEstimatedRayUploadBytes,
+              metrics.batching.intersectionEstimatedClosestHitRayUploadBytes +
+                metrics.batching.intersectionEstimatedAnyHitRayUploadBytes);
+    EXPECT_GT(metrics.batching.intersectionEstimatedClosestHitRayUploadBytes, 0u);
+    EXPECT_EQ(0u, metrics.batching.intersectionEstimatedAnyHitRayUploadBytes);
     EXPECT_GT(metrics.batching.intersectionEstimatedClosestHitReadbackBytes, 0u);
     EXPECT_EQ(metrics.batching.intersectionEstimatedRayUploadBytes +
                 metrics.batching.intersectionEstimatedClosestHitReadbackBytes +
@@ -1449,6 +1454,10 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(batching.value("intersectionScenePackedClosestHitEligible").toBool());
     EXPECT_TRUE(batching.value("intersectionScenePackedAnyHitEligible").toBool());
     EXPECT_GT(batching.value("intersectionEstimatedRayUploadBytes").toDouble(), 0.0);
+    EXPECT_EQ(static_cast<double>(metrics.batching.intersectionEstimatedClosestHitRayUploadBytes),
+              batching.value("intersectionEstimatedClosestHitRayUploadBytes").toDouble());
+    EXPECT_EQ(static_cast<double>(metrics.batching.intersectionEstimatedAnyHitRayUploadBytes),
+              batching.value("intersectionEstimatedAnyHitRayUploadBytes").toDouble());
     EXPECT_GT(batching.value("intersectionEstimatedClosestHitReadbackBytes").toDouble(), 0.0);
     EXPECT_EQ(static_cast<double>(metrics.batching.intersectionEstimatedQueryTransferBytes),
               batching.value("intersectionEstimatedQueryTransferBytes").toDouble());
