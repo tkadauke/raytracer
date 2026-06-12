@@ -130,6 +130,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   queue-sweep benchmark capture summaries. — GPT-5 Codex
 - Preserved wavefront frontier packed-ray byte counts in convergence comparison
   and queue-sweep benchmark capture summaries. — GPT-5 Codex
+- Preserved last-depth direct-light any-hit frontier packed-ray, host-query,
+  and state-handle byte counts in convergence comparison and queue-sweep
+  benchmark capture summaries. — GPT-5 Codex
 - Reported wavefront frontier packed-ray byte counts in wavefront intersection
   backend benchmark counters. — GPT-5 Codex
 - Routed wavefront intersection backend batch benchmarks through backend-owned

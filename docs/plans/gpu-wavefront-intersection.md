@@ -1276,6 +1276,10 @@ Progress:
   metrics now also have per-depth arrays in addition to whole-render totals.
   This lets resident-direct-light analysis identify which bounce moved the
   occlusion frontier payload.
+- The convergence capture helper now preserves the last recorded depth row for
+  those direct-light any-hit frontier byte arrays in both reference/candidate
+  comparisons and queue-sweep summaries, so offline captures can compare the
+  final visibility frontier without expanding the full metrics JSON.
 - Path-tracing cancellation after a depth starts now records zero rows for the
   skipped frontier, active-hit, direct-light, spawned-continuation, retained,
   and radiance-delta diagnostics. That keeps cancelled renders comparable with

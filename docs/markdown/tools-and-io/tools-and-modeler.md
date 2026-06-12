@@ -510,6 +510,12 @@ before intersection, so per-depth arrays remain comparable in graph details and
 compact summaries. The any-hit frontier payload byte arrays expose the same
 depth-local view for packed rays, retained host queries, and per-ray state
 handles while the compact summary keeps the whole-render totals.
+The convergence capture helper also keeps the last recorded depth row from
+those payload arrays as
+`direct_light_any_hit_frontier_last_packed_ray_bytes`,
+`direct_light_any_hit_frontier_last_host_query_bytes`, and
+`direct_light_any_hit_frontier_last_state_handle_bytes`, so queue sweeps can
+compare the final visibility frontier without expanding the full JSON arrays.
 The JSON also includes `sampleVariancePixelArea`, `sampleRadianceStddevRms`, and
 `maxSampleRadianceStddev`, which measure disagreement between samples of the
 same pixel and complement the between-depth radiance-delta convergence fields.
