@@ -246,6 +246,10 @@ namespace render {
       m_hits.back().material = std::move(material);
     }
 
+    void retainPath(HostBatchPathFrontier::Compaction& compaction, std::size_t hitIndex) const {
+      compaction.retain(m_hits[hitIndex].pathIndex);
+    }
+
   private:
     std::vector<BatchHit> m_hits;
   };
@@ -1543,7 +1547,7 @@ namespace render {
       for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
         if (shadeActiveHit(scene, lightSampler, activeHits, hitIndex, paths, spawnedPaths,
                            directLightContributions, bounce, depthMetrics, metrics)) {
-          frontierCompaction.retain(activeHits[hitIndex].pathIndex);
+          activeHits.retainPath(frontierCompaction, hitIndex);
         }
       }
 
