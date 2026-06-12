@@ -50,6 +50,7 @@ namespace render {
 
   private:
     struct BatchDepthMetrics;
+    class ClosestHitQueuedRayFrontierBatch;
     struct QueuedHit;
     struct QueuedRay;
 

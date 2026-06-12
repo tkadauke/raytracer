@@ -98,6 +98,67 @@ namespace render {
     }
   };
 
+  class WhittedIntegrator::ClosestHitQueuedRayFrontierBatch {
+  public:
+    ClosestHitQueuedRayFrontierBatch(std::vector<QueuedRay>& current, std::size_t traceableCount,
+                                     BatchDepthMetrics& depthMetrics,
+                                     IntegratorBatchMetrics* metrics)
+        : m_expectedHitCount(traceableCount) {
+      m_queries.reserve(traceableCount);
+      {
+        core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
+                                              : nullptr);
+        if (depthMetrics.trackFrontierMetrics) {
+          ++depthMetrics.frontierClosestHitBatchChunks;
+          depthMetrics.frontierClosestHitBatchRays += traceableCount;
+        }
+        for (std::size_t queuedIndex = 0; queuedIndex != traceableCount; ++queuedIndex) {
+          QueuedRay& queued = current[queuedIndex];
+          queued.state.recurseIn();
+          m_queries.push_back(WavefrontClosestHitQuery{queued.ray, &queued.state});
+        }
+      }
+    }
+
+    void intersect(const Scene& scene, const WavefrontIntersectionBackend& intersectionBackend,
+                   IntegratorBatchMetrics* metrics) {
+      WavefrontIntersectionQueryTiming intersectionTiming;
+      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      m_frontier = intersectionBackend.createClosestHitFrontier(std::move(m_queries));
+      m_hits =
+        intersectionBackend.intersectClosestFrontier(scene, *m_frontier, &intersectionTiming);
+      validateHitCount();
+      if (metrics) {
+        metrics->recordClosestHitFrontierResidency(
+          m_frontier->residency(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
+          m_frontier->stateHandleBytes());
+        metrics->recordClosestHitQuery(intersectionBackend, m_frontier->rayCount(),
+                                       intersectionTiming);
+      }
+    }
+
+    [[nodiscard]] const WavefrontClosestHitResult* hit(std::size_t queuedIndex) const {
+      if (queuedIndex >= m_hits.size() || !m_hits[queuedIndex].hit()) {
+        return nullptr;
+      }
+      return &m_hits[queuedIndex];
+    }
+
+  private:
+    void validateHitCount() const {
+      if (m_hits.size() != m_expectedHitCount) {
+        throw std::logic_error(
+          "Whitted closest-hit frontier returned a hit count that does not match its queued-ray "
+          "count");
+      }
+    }
+
+    std::size_t m_expectedHitCount{0};
+    std::vector<WavefrontClosestHitQuery> m_queries;
+    std::unique_ptr<WavefrontClosestHitFrontier> m_frontier;
+    std::vector<WavefrontClosestHitResult> m_hits;
+  };
+
   Colord WhittedIntegrator::radiance(const Scene& scene, const Rayd& ray, State& state,
                                      const RayCaster& recursiveRayCaster) const {
     if (isCancelled()) {
@@ -569,41 +630,8 @@ namespace render {
     std::vector<QueuedRay>& current, std::size_t traceableCount, std::vector<QueuedHit>& activeHits,
     std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
-    std::vector<WavefrontClosestHitQuery> queries;
-    queries.reserve(traceableCount);
-    {
-      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-      if (depthMetrics.trackFrontierMetrics) {
-        ++depthMetrics.frontierClosestHitBatchChunks;
-        depthMetrics.frontierClosestHitBatchRays += traceableCount;
-      }
-      for (std::size_t queuedIndex = 0; queuedIndex != traceableCount; ++queuedIndex) {
-        auto& queued = current[queuedIndex];
-        queued.state.recurseIn();
-        queries.push_back(WavefrontClosestHitQuery{queued.ray, &queued.state});
-      }
-    }
-
-    std::vector<WavefrontClosestHitResult> hits;
-    {
-      WavefrontIntersectionQueryTiming intersectionTiming;
-      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      const std::unique_ptr<WavefrontClosestHitFrontier> frontier =
-        intersectionBackend.createClosestHitFrontier(std::move(queries));
-      hits = intersectionBackend.intersectClosestFrontier(scene, *frontier, &intersectionTiming);
-      if (hits.size() != traceableCount) {
-        throw std::logic_error(
-          "Whitted closest-hit frontier returned a hit count that does not match its queued-ray "
-          "count");
-      }
-      if (metrics) {
-        metrics->recordClosestHitFrontierResidency(
-          frontier->residency(), frontier->packedRayBytes(), frontier->hostQueryBytes(),
-          frontier->stateHandleBytes());
-        metrics->recordClosestHitQuery(intersectionBackend, frontier->rayCount(),
-                                       intersectionTiming);
-      }
-    }
+    ClosestHitQueuedRayFrontierBatch frontier(current, traceableCount, depthMetrics, metrics);
+    frontier.intersect(scene, intersectionBackend, metrics);
 
     core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
     for (std::size_t queuedIndex = 0; queuedIndex != traceableCount; ++queuedIndex) {
@@ -613,7 +641,7 @@ namespace render {
         queued.state.recurseOut();
         continue;
       }
-      const bool hit = hits[queuedIndex].hit();
+      const WavefrontClosestHitResult* hit = frontier.hit(queuedIndex);
       if (!hit) {
         recordQueuedRayMiss(scene, queued, result, depthMetrics);
         continue;
@@ -622,8 +650,7 @@ namespace render {
       if (depthMetrics.trackFrontierMetrics) {
         ++depthMetrics.frontierRayHits;
       }
-      activeHits.push_back(QueuedHit{queuedIndex, hits[queuedIndex].primitive,
-                                     hits[queuedIndex].material, hits[queuedIndex].hitPoint});
+      activeHits.push_back(QueuedHit{queuedIndex, hit->primitive, hit->material, hit->hitPoint});
     }
   }
 
