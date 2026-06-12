@@ -140,6 +140,24 @@ namespace render {
       return beginCompaction().request().inputPathStateBytes();
     }
 
+    void recordActiveHostPathStateBytes(IntegratorBatchMetrics* metrics) const {
+      if (metrics) {
+        metrics->recordActiveHostPathStateBytes(hostPathStateBytes());
+      }
+    }
+
+    void recordRetainedHostPathStateBytes(IntegratorBatchMetrics* metrics) const {
+      if (metrics) {
+        metrics->recordRetainedHostPathStateBytes(hostPathStateBytes());
+      }
+    }
+
+    void recordSpawnedContinuations(IntegratorBatchMetrics* metrics) const {
+      if (metrics) {
+        metrics->recordSpawnedContinuations(size(), hostPathStateBytes());
+      }
+    }
+
     [[nodiscard]] Compaction beginCompaction() const {
       return Compaction(m_paths.size(), sizeof(BatchPath));
     }
@@ -1510,7 +1528,7 @@ namespace render {
       HostBatchPathFrontier::Compaction frontierCompaction = paths.beginCompaction();
       if (metrics) {
         metrics->recordActiveDepth(activeCount);
-        metrics->recordActiveHostPathStateBytes(paths.hostPathStateBytes());
+        paths.recordActiveHostPathStateBytes(metrics);
       }
       if (isCancelled()) {
         if (metrics) {
@@ -1554,11 +1572,7 @@ namespace render {
       {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
                                               : nullptr);
-        const std::uint64_t spawnedPathCount = spawnedPaths.size();
-        const std::uint64_t spawnedHostPathStateBytes = spawnedPaths.hostPathStateBytes();
-        if (metrics) {
-          metrics->recordSpawnedContinuations(spawnedPathCount, spawnedHostPathStateBytes);
-        }
+        spawnedPaths.recordSpawnedContinuations(metrics);
         paths.compactWith(intersectionBackend, frontierCompaction, metrics);
         paths.appendAll(spawnedPaths);
       }
@@ -1568,7 +1582,7 @@ namespace render {
         metrics->recordRadianceDeltaDepth(depthMetrics.depthDeltaSquaredSum,
                                           depthMetrics.depthMaxDelta);
         metrics->recordRetainedActiveDepth(retainedPathCount);
-        metrics->recordRetainedHostPathStateBytes(paths.hostPathStateBytes());
+        paths.recordRetainedHostPathStateBytes(metrics);
       }
 
       IntegratorBatchFeedback feedback;

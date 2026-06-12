@@ -1195,6 +1195,10 @@ Progress:
   through the same frontier shape. Existing shading still consumes host path
   state, but the scheduler no longer performs compaction as an ad hoc vector
   edit inside `radianceBatch`.
+- The host path frontier now records its own active, retained, and spawned
+  host path-state byte metrics. The path-tracing scheduler asks the frontier
+  owner to report its footprint instead of recomputing those byte totals in the
+  main loop.
 - Path-tracing closest-hit batch execution now stages query construction,
   pre-depth radiance snapshots, backend frontier ownership, and returned hit
   records through a dedicated closest-hit frontier batch object. This keeps the
