@@ -78,7 +78,8 @@ load-balance summaries, frontier hit/miss summaries, packet width summaries,
 packet-fill and scalar-tail ratios, packet scalar-fallback reason breakdowns,
 packet-hit refinement material breakdowns, frontier residency labels,
 frontier packed-ray byte counts, resident-frontier capability and round-trip
-summaries, and frontier compaction summaries under the output directory.
+summaries, GPU frontier-compaction unavailable reasons, and frontier compaction
+summaries under the output directory.
 Queue sweeps also write a
 compact queue_sweep.summary.txt per scene. Use it to tune Phase 4 wavefront
 convergence defaults and to baseline Phase 7 scheduler/intersection work before
@@ -298,6 +299,7 @@ def wavefront_metric_values(path)
     any_hit_frontier_state_handle_bytes: [],
     resident_frontiers_supported: [],
     gpu_frontier_compaction_supported: [],
+    gpu_frontier_compaction_unavailable_reason: [],
     prepared_ray_batch_compaction_supported: [],
     resident_direct_light_batches_supported: [],
     frontier_mixed_query_depths: [],
@@ -381,6 +383,7 @@ def wavefront_metric_values(path)
       any_hit_frontier_state_handle_bytes: 0.0,
       resident_frontiers_supported: 0.0,
       gpu_frontier_compaction_supported: 0.0,
+      gpu_frontier_compaction_unavailable_reason: [],
       prepared_ray_batch_compaction_supported: 0.0,
       resident_direct_light_batches_supported: 0.0,
       frontier_mixed_query_depths: 0.0,
@@ -534,6 +537,12 @@ def wavefront_metric_values(path)
       end
       if batching.fetch("intersectionBackendSupportsGpuFrontierCompaction", false)
         run_values[:gpu_frontier_compaction_supported] = 1.0
+      end
+      gpu_compaction_unavailable_reason =
+        batching.fetch("intersectionBackendGpuFrontierCompactionUnavailableReason", "")
+      unless gpu_compaction_unavailable_reason.empty?
+        run_values[:gpu_frontier_compaction_unavailable_reason] <<
+          gpu_compaction_unavailable_reason
       end
       if batching.fetch("intersectionBackendSupportsPreparedRayBatchCompaction", false)
         run_values[:prepared_ray_batch_compaction_supported] = 1.0
@@ -741,7 +750,8 @@ end
 end
 
 %i[closest_hit_frontier_residency
-   any_hit_frontier_residency].each do |key|
+   any_hit_frontier_residency
+   gpu_frontier_compaction_unavailable_reason].each do |key|
   puts format("%s reference=%s candidate=%s",
               key, label_set(reference_values[key]), label_set(candidate_values[key]))
 end
@@ -886,6 +896,7 @@ def aggregate_run(run)
     any_hit_frontier_state_handle_bytes: 0.0,
     resident_frontiers_supported: 0.0,
     gpu_frontier_compaction_supported: 0.0,
+    gpu_frontier_compaction_unavailable_reasons: [],
     prepared_ray_batch_compaction_supported: 0.0,
     resident_direct_light_batches_supported: 0.0,
     mixed_query_depths: 0.0,
@@ -987,6 +998,11 @@ def aggregate_run(run)
     if batching.fetch("intersectionBackendSupportsGpuFrontierCompaction", false)
       values[:gpu_frontier_compaction_supported] = 1.0
     end
+    gpu_compaction_unavailable_reason =
+      batching.fetch("intersectionBackendGpuFrontierCompactionUnavailableReason", "")
+    unless gpu_compaction_unavailable_reason.empty?
+      values[:gpu_frontier_compaction_unavailable_reasons] << gpu_compaction_unavailable_reason
+    end
     if batching.fetch("intersectionBackendSupportsPreparedRayBatchCompaction", false)
       values[:prepared_ray_batch_compaction_supported] = 1.0
     end
@@ -1052,7 +1068,7 @@ def aggregate_run(run)
 end
 
 def label_set(values)
-  labels = values.flatten.compact.reject(&:empty?).uniq.sort
+  labels = values.flatten.compact.reject(&:empty?).map { |label| label.gsub(/\s+/, "_") }.uniq.sort
   labels.empty? ? "none" : labels.join("+")
 end
 
@@ -1070,7 +1086,7 @@ scene_dir = ARGV.fetch(0)
 queue_dirs = Dir.glob(File.join(scene_dir, "queue_*")).select { |path| File.directory?(path) }
 queue_dirs.sort_by! { |path| File.basename(path).delete_prefix("queue_").to_i }
 
-puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks closest_hit_batch_chunks closest_hit_batch_rays any_hit_batch_chunks any_hit_batch_rays frontier_round_trips resident_frontier_round_trips resident_frontier_savings closest_hit_ray_upload_bytes any_hit_ray_upload_bytes closest_hit_query_transfer_bytes any_hit_query_transfer_bytes closest_hit_frontier_residency any_hit_frontier_residency closest_hit_frontier_packed_ray_bytes any_hit_frontier_packed_ray_bytes closest_hit_frontier_host_query_bytes any_hit_frontier_host_query_bytes closest_hit_frontier_state_handle_bytes any_hit_frontier_state_handle_bytes resident_frontiers_supported gpu_frontier_compaction_supported prepared_ray_batch_compaction_supported resident_direct_light_batches_supported mixed_query_depths mixed_query_round_trips mixed_query_rays mixed_query_closest_hit_rays mixed_query_any_hit_rays packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays frontier_compaction_passes frontier_compaction_input_samples frontier_compaction_retained_samples frontier_compaction_removed_samples frontier_compaction_removed_fraction frontier_compaction_moved_samples frontier_compaction_moved_retained_fraction frontier_compaction_retained_index_bytes frontier_compaction_candidate_packed_ray_bytes frontier_compaction_candidate_state_handle_bytes frontier_largest_compaction_candidate_packed_ray_bytes frontier_largest_compaction_candidate_state_handle_bytes compaction_execution sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
+puts "queue_size variant render_ms primary_samples last_retained_active tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks closest_hit_batch_chunks closest_hit_batch_rays any_hit_batch_chunks any_hit_batch_rays frontier_round_trips resident_frontier_round_trips resident_frontier_savings closest_hit_ray_upload_bytes any_hit_ray_upload_bytes closest_hit_query_transfer_bytes any_hit_query_transfer_bytes closest_hit_frontier_residency any_hit_frontier_residency closest_hit_frontier_packed_ray_bytes any_hit_frontier_packed_ray_bytes closest_hit_frontier_host_query_bytes any_hit_frontier_host_query_bytes closest_hit_frontier_state_handle_bytes any_hit_frontier_state_handle_bytes resident_frontiers_supported gpu_frontier_compaction_supported gpu_frontier_compaction_unavailable_reason prepared_ray_batch_compaction_supported resident_direct_light_batches_supported mixed_query_depths mixed_query_round_trips mixed_query_rays mixed_query_closest_hit_rays mixed_query_any_hit_rays packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays frontier_compaction_passes frontier_compaction_input_samples frontier_compaction_retained_samples frontier_compaction_removed_samples frontier_compaction_removed_fraction frontier_compaction_moved_samples frontier_compaction_moved_retained_fraction frontier_compaction_retained_index_bytes frontier_compaction_candidate_packed_ray_bytes frontier_compaction_candidate_state_handle_bytes frontier_largest_compaction_candidate_packed_ray_bytes frontier_largest_compaction_candidate_state_handle_bytes compaction_execution sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
 queue_dirs.each do |queue_dir|
   queue_size = File.basename(queue_dir).delete_prefix("queue_")
   Dir.glob(File.join(queue_dir, "wavefront_*.metrics.json")).sort.each do |metrics_path|
@@ -1095,6 +1111,8 @@ queue_dirs.each do |queue_dir|
       label_set(runs.map { |run| run.fetch(:closest_hit_frontier_residencies) })
     any_hit_frontier_residency =
       label_set(runs.map { |run| run.fetch(:any_hit_frontier_residencies) })
+    gpu_compaction_unavailable_reason =
+      label_set(runs.map { |run| run.fetch(:gpu_frontier_compaction_unavailable_reasons) })
     compaction_paths = runs.flat_map { |run| run.fetch(:compaction_execution_paths) }.uniq.sort
     compaction_execution = compaction_paths.empty? ? "none" : compaction_paths.join("+")
     stdout_path = File.join(queue_dir, "#{variant}.stdout.txt")
@@ -1135,6 +1153,7 @@ queue_dirs.each do |queue_dir|
       format("%.0f", median_for.call(:any_hit_frontier_state_handle_bytes)),
       format("%.0f", median_for.call(:resident_frontiers_supported)),
       format("%.0f", median_for.call(:gpu_frontier_compaction_supported)),
+      gpu_compaction_unavailable_reason,
       format("%.0f", median_for.call(:prepared_ray_batch_compaction_supported)),
       format("%.0f", median_for.call(:resident_direct_light_batches_supported)),
       format("%.0f", median_for.call(:mixed_query_depths)),

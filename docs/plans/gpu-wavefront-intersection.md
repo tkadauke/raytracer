@@ -1111,6 +1111,10 @@ Progress:
   beside the capability flag. That makes the current boundary explicit:
   prepared platform ray batches can be compacted, but scheduler-owned active
   path state is still host-resident.
+- The convergence capture helper now preserves GPU frontier-compaction
+  unavailable reasons in reference/candidate comparisons and queue-sweep
+  summaries, keeping offline Phase 8 captures aligned with render metrics and
+  graph diagnostics.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a
