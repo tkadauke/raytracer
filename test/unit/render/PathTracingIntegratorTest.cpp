@@ -1860,13 +1860,13 @@ namespace PathTracingIntegratorTest {
     // slots are compacted, so these counters describe the host compaction
     // operation itself. retainedActiveSamplesPerDepth describes the next
     // frontier after spawned continuations are appended.
-    EXPECT_EQ(2u, metrics.frontierHostCompactionPasses);
-    EXPECT_EQ(3u, metrics.frontierHostCompactionInputSamples);
-    EXPECT_EQ(0u, metrics.frontierHostCompactionRetainedSamples);
-    EXPECT_EQ(3u, metrics.frontierHostCompactionRemovedSamples);
-    EXPECT_EQ(0u, metrics.frontierHostCompactionMovedSamples);
+    EXPECT_EQ(2u, metrics.frontierCompactionPasses);
+    EXPECT_EQ(3u, metrics.frontierCompactionInputSamples);
+    EXPECT_EQ(0u, metrics.frontierCompactionRetainedSamples);
+    EXPECT_EQ(3u, metrics.frontierCompactionRemovedSamples);
+    EXPECT_EQ(0u, metrics.frontierCompactionMovedSamples);
     EXPECT_EQ("host", metrics.frontierCompactionExecutionPath);
-    EXPECT_DOUBLE_EQ(1.0, metrics.hostFrontierCompactionRemovedSampleFraction());
+    EXPECT_DOUBLE_EQ(1.0, metrics.frontierCompactionRemovedSampleFraction());
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceKeepsSampleColorsWhenCompactingMovedPaths) {

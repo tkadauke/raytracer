@@ -248,11 +248,11 @@ namespace engine::wavefront::detail {
       target.convergenceTestWorkerSeconds += source.convergenceTestWorkerSeconds;
       target.observerConvergenceFeedbackDepths += source.observerConvergenceFeedbackDepths;
       addVectorValues(target.retainedActiveSamplesPerDepth, source.retainedActiveSamplesPerDepth);
-      target.frontierHostCompactionPasses += source.frontierHostCompactionPasses;
-      target.frontierHostCompactionInputSamples += source.frontierHostCompactionInputSamples;
-      target.frontierHostCompactionRetainedSamples += source.frontierHostCompactionRetainedSamples;
-      target.frontierHostCompactionRemovedSamples += source.frontierHostCompactionRemovedSamples;
-      target.frontierHostCompactionMovedSamples += source.frontierHostCompactionMovedSamples;
+      target.frontierCompactionPasses += source.frontierCompactionPasses;
+      target.frontierCompactionInputSamples += source.frontierCompactionInputSamples;
+      target.frontierCompactionRetainedSamples += source.frontierCompactionRetainedSamples;
+      target.frontierCompactionRemovedSamples += source.frontierCompactionRemovedSamples;
+      target.frontierCompactionMovedSamples += source.frontierCompactionMovedSamples;
       mergeLabel(target.frontierCompactionExecutionPath, source.frontierCompactionExecutionPath);
     }
 

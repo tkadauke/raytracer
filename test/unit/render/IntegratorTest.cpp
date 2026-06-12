@@ -285,23 +285,23 @@ namespace IntegratorTest {
     EXPECT_DOUBLE_EQ(5.0 / 7.0, metrics.largestCompactionCandidateSampleFraction());
   }
 
-  TEST(Integrator, BatchMetricsReportHostFrontierCompaction) {
+  TEST(Integrator, BatchMetricsReportFrontierCompaction) {
     IntegratorBatchMetrics metrics;
     metrics.reset(/*scalarFallback=*/false);
 
     metrics.recordFrontierCompaction(/*inputSamples=*/3, /*retainedSamples=*/2,
-                                     /*movedSamples=*/1, "host");
+                                     /*movedSamples=*/1, "vulkan");
     metrics.recordHostFrontierCompaction(/*inputSamples=*/10, /*retainedSamples=*/6,
                                          /*movedSamples=*/4);
     metrics.recordHostFrontierCompaction(/*inputSamples=*/4, /*retainedSamples=*/4,
                                          /*movedSamples=*/0);
 
-    EXPECT_EQ(3u, metrics.frontierHostCompactionPasses);
-    EXPECT_EQ(17u, metrics.frontierHostCompactionInputSamples);
-    EXPECT_EQ(12u, metrics.frontierHostCompactionRetainedSamples);
-    EXPECT_EQ(5u, metrics.frontierHostCompactionRemovedSamples);
-    EXPECT_EQ(5u, metrics.frontierHostCompactionMovedSamples);
-    EXPECT_EQ("host", metrics.frontierCompactionExecutionPath);
-    EXPECT_DOUBLE_EQ(5.0 / 17.0, metrics.hostFrontierCompactionRemovedSampleFraction());
+    EXPECT_EQ(3u, metrics.frontierCompactionPasses);
+    EXPECT_EQ(17u, metrics.frontierCompactionInputSamples);
+    EXPECT_EQ(12u, metrics.frontierCompactionRetainedSamples);
+    EXPECT_EQ(5u, metrics.frontierCompactionRemovedSamples);
+    EXPECT_EQ(5u, metrics.frontierCompactionMovedSamples);
+    EXPECT_EQ("mixed", metrics.frontierCompactionExecutionPath);
+    EXPECT_DOUBLE_EQ(5.0 / 17.0, metrics.frontierCompactionRemovedSampleFraction());
   }
 }

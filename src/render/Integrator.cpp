@@ -162,11 +162,11 @@ namespace render {
     progressSnapshotWorkerSeconds = 0.0;
     convergenceTestWorkerSeconds = 0.0;
     observerConvergenceFeedbackDepths = 0;
-    frontierHostCompactionPasses = 0;
-    frontierHostCompactionInputSamples = 0;
-    frontierHostCompactionRetainedSamples = 0;
-    frontierHostCompactionRemovedSamples = 0;
-    frontierHostCompactionMovedSamples = 0;
+    frontierCompactionPasses = 0;
+    frontierCompactionInputSamples = 0;
+    frontierCompactionRetainedSamples = 0;
+    frontierCompactionRemovedSamples = 0;
+    frontierCompactionMovedSamples = 0;
     frontierCompactionExecutionPath.clear();
   }
 
@@ -183,13 +183,13 @@ namespace render {
                                                         std::uint64_t retainedSamples,
                                                         std::uint64_t movedSamples,
                                                         const std::string& executionPath) {
-    ++frontierHostCompactionPasses;
+    ++frontierCompactionPasses;
     mergeLabel(frontierCompactionExecutionPath, executionPath.empty() ? "unknown" : executionPath);
-    frontierHostCompactionInputSamples += inputSamples;
-    frontierHostCompactionRetainedSamples += retainedSamples;
-    frontierHostCompactionRemovedSamples +=
+    frontierCompactionInputSamples += inputSamples;
+    frontierCompactionRetainedSamples += retainedSamples;
+    frontierCompactionRemovedSamples +=
       inputSamples > retainedSamples ? inputSamples - retainedSamples : 0;
-    frontierHostCompactionMovedSamples += movedSamples;
+    frontierCompactionMovedSamples += movedSamples;
   }
 
   void IntegratorBatchMetrics::recordHostFrontierCompaction(std::uint64_t inputSamples,
@@ -198,12 +198,12 @@ namespace render {
     recordFrontierCompaction(inputSamples, retainedSamples, movedSamples, "host");
   }
 
-  double IntegratorBatchMetrics::hostFrontierCompactionRemovedSampleFraction() const {
-    if (frontierHostCompactionInputSamples == 0) {
+  double IntegratorBatchMetrics::frontierCompactionRemovedSampleFraction() const {
+    if (frontierCompactionInputSamples == 0) {
       return 0.0;
     }
-    return static_cast<double>(frontierHostCompactionRemovedSamples) /
-           static_cast<double>(frontierHostCompactionInputSamples);
+    return static_cast<double>(frontierCompactionRemovedSamples) /
+           static_cast<double>(frontierCompactionInputSamples);
   }
 
   bool IntegratorBatchMetrics::hasCompactionCandidateDepth(std::size_t depth) const {

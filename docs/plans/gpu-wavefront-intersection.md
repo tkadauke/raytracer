@@ -903,6 +903,10 @@ Progress:
   removed inactive slots, moved live slots, removed fraction, and execution
   path. This is still CPU-side compaction, but it creates a concrete execution
   contract for a future GPU-side compaction kernel.
+- Integrator and wavefront summary compaction counters now use generic
+  frontier-compaction names internally, while the metrics JSON keeps the older
+  `frontierHostCompaction*` aliases. That keeps the API ready for Metal/Vulkan
+  compaction execution paths without breaking existing trace consumers.
 - Frontier compaction now goes through the resolved
   `WavefrontIntersectionBackend`: the path tracer builds a retained-frontier
   request, the backend returns a compaction result with an execution path, and

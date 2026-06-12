@@ -163,16 +163,16 @@ namespace engine::wavefront {
       std::uint64_t sampleVariancePixelArea = 0;
       double sampleRadianceVarianceSum = 0.0;
       double maxSampleRadianceStddev = 0.0;
-      std::uint64_t frontierHostCompactionPasses = 0;
-      std::uint64_t frontierHostCompactionInputSamples = 0;
-      std::uint64_t frontierHostCompactionRetainedSamples = 0;
-      std::uint64_t frontierHostCompactionRemovedSamples = 0;
-      std::uint64_t frontierHostCompactionMovedSamples = 0;
+      std::uint64_t frontierCompactionPasses = 0;
+      std::uint64_t frontierCompactionInputSamples = 0;
+      std::uint64_t frontierCompactionRetainedSamples = 0;
+      std::uint64_t frontierCompactionRemovedSamples = 0;
+      std::uint64_t frontierCompactionMovedSamples = 0;
       std::string frontierCompactionExecutionPath;
 
       void addIntegratorMetrics(const render::IntegratorBatchMetrics& metrics);
       void addIntersectionBackendMetrics(const render::IntegratorBatchMetrics& metrics);
-      [[nodiscard]] double hostFrontierCompactionRemovedSampleFraction() const;
+      [[nodiscard]] double frontierCompactionRemovedSampleFraction() const;
       [[nodiscard]] bool hasCompactionCandidateDepth(std::size_t depth) const;
       [[nodiscard]] std::uint64_t compactionCandidateSamplesAtDepth(std::size_t depth) const;
       [[nodiscard]] std::uint64_t compactionCandidateDepthCount() const;
