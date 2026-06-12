@@ -1223,11 +1223,12 @@ Progress:
   depth and in compact rendercli summaries. Resident direct-light planning can
   now size the visibility result payload separately from light selections,
   contribution colors, any-hit ray frontiers, and per-ray state handles.
-- Path-tracing sampled and exact-delta continuations now stage throughput,
-  background visibility, and emitter-MIS metadata through a dedicated
-  continuation-state value. Scalar and batched execution still keep that state
-  on the host, but the scheduler boundary no longer has to pass those fields as
-  loose parameters when spawning or updating paths.
+- Path-tracing sampled and exact-delta continuations now store throughput,
+  background visibility, and emitter-MIS metadata in a dedicated
+  continuation-state value on each scalar/batched path record. Scalar and
+  batched execution still keep that state on the host, but the scheduler
+  boundary no longer has to pass those fields as loose parameters when spawning
+  or updating paths.
 
 ---
 

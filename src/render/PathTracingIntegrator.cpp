@@ -52,11 +52,7 @@ namespace render {
     BatchPath(Rayd nextRay, PathContinuationState nextContinuation, State nextState,
               Colord& accumulated)
         : ray(std::move(nextRay)),
-          throughput(nextContinuation.throughput),
-          backgroundVisible(nextContinuation.backgroundVisible),
-          sampledFromBsdf(nextContinuation.sampledFromBsdf),
-          bsdfSamplePdf(nextContinuation.bsdfSamplePdf),
-          bsdfSampleDelta(nextContinuation.bsdfSampleDelta),
+          continuation(nextContinuation),
           state(std::move(nextState)),
           m_accumulated(&accumulated) {
     }
@@ -70,24 +66,15 @@ namespace render {
     }
 
     [[nodiscard]] PathContinuationState continuationState() const {
-      return PathContinuationState{throughput, backgroundVisible, sampledFromBsdf, bsdfSamplePdf,
-                                   bsdfSampleDelta};
+      return continuation;
     }
 
     void applyContinuationState(const PathContinuationState& nextContinuation) {
-      throughput = nextContinuation.throughput;
-      backgroundVisible = nextContinuation.backgroundVisible;
-      sampledFromBsdf = nextContinuation.sampledFromBsdf;
-      bsdfSamplePdf = nextContinuation.bsdfSamplePdf;
-      bsdfSampleDelta = nextContinuation.bsdfSampleDelta;
+      continuation = nextContinuation;
     }
 
     Rayd ray;
-    Colord throughput{Colord::white()};
-    bool backgroundVisible{true};
-    bool sampledFromBsdf{false};
-    double bsdfSamplePdf{0.0};
-    bool bsdfSampleDelta{false};
+    PathContinuationState continuation;
     State state;
 
   private:
@@ -192,11 +179,7 @@ namespace render {
 
     ScalarPath(Rayd nextRay, PathContinuationState nextContinuation, State nextState)
         : ray(std::move(nextRay)),
-          throughput(nextContinuation.throughput),
-          backgroundVisible(nextContinuation.backgroundVisible),
-          sampledFromBsdf(nextContinuation.sampledFromBsdf),
-          bsdfSamplePdf(nextContinuation.bsdfSamplePdf),
-          bsdfSampleDelta(nextContinuation.bsdfSampleDelta),
+          continuation(nextContinuation),
           ownedState(std::make_unique<State>(std::move(nextState))),
           state(ownedState.get()) {
     }
@@ -209,16 +192,11 @@ namespace render {
     }
 
     [[nodiscard]] PathContinuationState continuationState() const {
-      return PathContinuationState{throughput, backgroundVisible, sampledFromBsdf, bsdfSamplePdf,
-                                   bsdfSampleDelta};
+      return continuation;
     }
 
     Rayd ray;
-    Colord throughput{Colord::white()};
-    bool backgroundVisible{true};
-    bool sampledFromBsdf{false};
-    double bsdfSamplePdf{0.0};
-    bool bsdfSampleDelta{false};
+    PathContinuationState continuation;
     std::unique_ptr<State> ownedState;
     State* state{nullptr};
   };
@@ -899,7 +877,8 @@ namespace render {
     if (depthMetrics.trackFrontierMetrics()) {
       ++depthMetrics.frontierRayMisses;
     }
-    const Colord contribution = path.throughput * missRadiance(scene, path.backgroundVisible);
+    const Colord contribution =
+      path.continuation.throughput * missRadiance(scene, path.continuation.backgroundVisible);
     path.accumulated() += contribution;
     if (depthMetrics.metrics) {
       depthMetrics.metrics->recordMissRadiance(contribution);
@@ -1232,7 +1211,8 @@ namespace render {
         HitPointInterval hitPoints;
         const Primitive* primitive = scene.intersect(path.ray, hitPoints, pathState);
         if (!primitive) {
-          accumulated += path.throughput * missRadiance(scene, path.backgroundVisible);
+          accumulated +=
+            path.continuation.throughput * missRadiance(scene, path.continuation.backgroundVisible);
           pathState.recurseOut();
           continue;
         }
@@ -1249,9 +1229,11 @@ namespace render {
         }
         const PathMaterialTransport& transport = material->pathTransport();
 
-        accumulated += path.throughput * emittedRadiance(lightSampler, transport, path.ray,
-                                                         hitPoint, path.sampledFromBsdf,
-                                                         path.bsdfSamplePdf, path.bsdfSampleDelta);
+        accumulated +=
+          path.continuation.throughput *
+          emittedRadiance(lightSampler, transport, path.ray, hitPoint,
+                          path.continuation.sampledFromBsdf, path.continuation.bsdfSamplePdf,
+                          path.continuation.bsdfSampleDelta);
 
         // wi is the direction back along the incoming ray, pointing
         // AWAY from the surface — matches the BSDF convention.
@@ -1263,12 +1245,13 @@ namespace render {
           continue;
         }
 
-        accumulated += path.throughput * transport.ambientRadiance(scene, path.ray, hitPoint);
+        accumulated +=
+          path.continuation.throughput * transport.ambientRadiance(scene, path.ray, hitPoint);
 
         // Direct lighting via NEE.
-        accumulated +=
-          path.throughput * sampleDirectLighting(scene, lightSampler, hitPoint, transport, wi,
-                                                 pathState, bounce, nullptr);
+        accumulated += path.continuation.throughput *
+                       sampleDirectLighting(scene, lightSampler, hitPoint, transport, wi, pathState,
+                                            bounce, nullptr);
 
         const std::vector<MaterialBsdfSample> deltaSamples =
           transport.deltaBsdfSamples(hitPoint, wi);
@@ -1328,9 +1311,10 @@ namespace render {
     const PathMaterialTransport& transport = material->pathTransport();
 
     const Colord emittedContribution =
-      path.throughput * emittedRadiance(lightSampler, transport, path.ray, hit.hitPoint,
-                                        path.sampledFromBsdf, path.bsdfSamplePdf,
-                                        path.bsdfSampleDelta, metrics);
+      path.continuation.throughput *
+      emittedRadiance(lightSampler, transport, path.ray, hit.hitPoint,
+                      path.continuation.sampledFromBsdf, path.continuation.bsdfSamplePdf,
+                      path.continuation.bsdfSampleDelta, metrics);
     path.accumulated() += emittedContribution;
     if (metrics) {
       metrics->recordEmittedRadiance(emittedContribution);
@@ -1345,13 +1329,14 @@ namespace render {
     }
 
     const Colord ambientContribution =
-      path.throughput * transport.ambientRadiance(scene, path.ray, hit.hitPoint);
+      path.continuation.throughput * transport.ambientRadiance(scene, path.ray, hit.hitPoint);
     path.accumulated() += ambientContribution;
     if (metrics) {
       metrics->recordAmbientRadiance(ambientContribution);
     }
 
-    const Colord directLightContribution = path.throughput * directLightContributions.at(hitIndex);
+    const Colord directLightContribution =
+      path.continuation.throughput * directLightContributions.at(hitIndex);
     path.accumulated() += directLightContribution;
     if (metrics) {
       metrics->recordDirectLightRadiance(directLightContribution, bounce == 0);
