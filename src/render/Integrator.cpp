@@ -252,6 +252,10 @@ namespace render {
     return compactionCandidateSampleCount() * sizeof(GpuIntersectionRay);
   }
 
+  std::uint64_t IntegratorBatchMetrics::compactionCandidateStateHandleBytes() const {
+    return compactionCandidateSampleCount() * sizeof(State*);
+  }
+
   double IntegratorBatchMetrics::compactionCandidateSampleFraction() const {
     if (activeSampleDepthsProcessed == 0) {
       return 0.0;
@@ -287,6 +291,10 @@ namespace render {
 
   std::uint64_t IntegratorBatchMetrics::largestCompactionCandidatePackedRayBytes() const {
     return largestCompactionCandidateSampleCount() * sizeof(GpuIntersectionRay);
+  }
+
+  std::uint64_t IntegratorBatchMetrics::largestCompactionCandidateStateHandleBytes() const {
+    return largestCompactionCandidateSampleCount() * sizeof(State*);
   }
 
   double IntegratorBatchMetrics::largestCompactionCandidateSampleFraction() const {

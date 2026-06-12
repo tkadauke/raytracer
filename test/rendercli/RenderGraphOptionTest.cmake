@@ -2618,7 +2618,9 @@ foreach(compaction_field
         frontierCompactionMovedSamples
         frontierCompactionRemovedSampleFraction
         frontierCompactionCandidatePackedRayBytes
+        frontierCompactionCandidateStateHandleBytes
         frontierLargestCompactionCandidatePackedRayBytes
+        frontierLargestCompactionCandidateStateHandleBytes
         frontierHostCompactionPasses
         frontierHostCompactionInputSamples
         frontierHostCompactionRetainedSamples
@@ -2679,6 +2681,11 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_candidate_packed_ra
                   "wavefront metrics summary did not contain compaction candidate packed-ray bytes"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_candidate_state_handle_bytes=")
+  _rendercli_fail("rendercli wavefront metrics compaction candidate state-handle byte summary"
+                  "wavefront metrics summary did not contain compaction candidate state-handle bytes"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_candidate_fraction=")
   _rendercli_fail("rendercli wavefront metrics compaction candidate fraction summary"
                   "wavefront metrics summary did not contain compaction candidate fraction"
@@ -2697,6 +2704,11 @@ endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_largest_compaction_candidate_packed_ray_bytes=")
   _rendercli_fail("rendercli wavefront metrics largest compaction candidate packed-ray byte summary"
                   "wavefront metrics summary did not contain largest compaction candidate packed-ray bytes"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_largest_compaction_candidate_state_handle_bytes=")
+  _rendercli_fail("rendercli wavefront metrics largest compaction candidate state-handle byte summary"
+                  "wavefront metrics summary did not contain largest compaction candidate state-handle bytes"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_largest_compaction_candidate_fraction=")

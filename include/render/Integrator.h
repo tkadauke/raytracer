@@ -159,10 +159,12 @@ namespace render {
     [[nodiscard]] std::uint64_t compactionCandidateDepthCount() const;
     [[nodiscard]] std::uint64_t compactionCandidateSampleCount() const;
     [[nodiscard]] std::uint64_t compactionCandidatePackedRayBytes() const;
+    [[nodiscard]] std::uint64_t compactionCandidateStateHandleBytes() const;
     [[nodiscard]] double compactionCandidateSampleFraction() const;
     [[nodiscard]] std::uint64_t largestCompactionCandidateDepth() const;
     [[nodiscard]] std::uint64_t largestCompactionCandidateSampleCount() const;
     [[nodiscard]] std::uint64_t largestCompactionCandidatePackedRayBytes() const;
+    [[nodiscard]] std::uint64_t largestCompactionCandidateStateHandleBytes() const;
     [[nodiscard]] double largestCompactionCandidateSampleFraction() const;
     void recordFrontierIntersections(std::uint64_t hitRays, std::uint64_t missRays);
     void recordFrontierTraversal(std::uint64_t packetChunks, std::uint64_t packetRays,

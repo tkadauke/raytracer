@@ -196,6 +196,8 @@ intersection payload, while host-query byte counters show how much original
 CPU query-vector storage is still kept after a frontier is prepared. State
 handle byte counters show the remaining per-ray `State*` association retained
 by packed or platform frontiers after the original query vector is gone.
+Compaction candidate byte counters apply the same split to inactive paths so
+the graph can show both ray payload and remaining state-handle footprint.
 Backend capability flags separately state whether the selected backend already
 supports resident frontiers, prepared ray-batch compaction, scheduler-level GPU
 frontier compaction, or resident direct-light batches. Prepared ray-batch

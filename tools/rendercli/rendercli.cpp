@@ -431,6 +431,8 @@ namespace {
         << unsignedValue(batching, "frontierCompactionCandidateSamples")
         << " frontier_compaction_candidate_packed_ray_bytes="
         << unsignedValue(batching, "frontierCompactionCandidatePackedRayBytes")
+        << " frontier_compaction_candidate_state_handle_bytes="
+        << unsignedValue(batching, "frontierCompactionCandidateStateHandleBytes")
         << " frontier_compaction_candidate_fraction="
         << batching.value("frontierCompactionCandidateSampleFraction").toDouble()
         << " frontier_largest_compaction_candidate_depth="
@@ -439,6 +441,8 @@ namespace {
         << unsignedValue(batching, "frontierLargestCompactionCandidateSamples")
         << " frontier_largest_compaction_candidate_packed_ray_bytes="
         << unsignedValue(batching, "frontierLargestCompactionCandidatePackedRayBytes")
+        << " frontier_largest_compaction_candidate_state_handle_bytes="
+        << unsignedValue(batching, "frontierLargestCompactionCandidateStateHandleBytes")
         << " frontier_largest_compaction_candidate_fraction="
         << batching.value("frontierLargestCompactionCandidateSampleFraction").toDouble()
         << " frontier_hit_rays=" << unsignedArraySum(frontierHits)

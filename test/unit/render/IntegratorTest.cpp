@@ -292,10 +292,12 @@ namespace IntegratorTest {
     EXPECT_EQ(2u, metrics.compactionCandidateDepthCount());
     EXPECT_EQ(8u, metrics.compactionCandidateSampleCount());
     EXPECT_EQ(8u * sizeof(GpuIntersectionRay), metrics.compactionCandidatePackedRayBytes());
+    EXPECT_EQ(8u * sizeof(State*), metrics.compactionCandidateStateHandleBytes());
     EXPECT_DOUBLE_EQ(8.0 / 14.0, metrics.compactionCandidateSampleFraction());
     EXPECT_EQ(2u, metrics.largestCompactionCandidateDepth());
     EXPECT_EQ(5u, metrics.largestCompactionCandidateSampleCount());
     EXPECT_EQ(5u * sizeof(GpuIntersectionRay), metrics.largestCompactionCandidatePackedRayBytes());
+    EXPECT_EQ(5u * sizeof(State*), metrics.largestCompactionCandidateStateHandleBytes());
     EXPECT_DOUBLE_EQ(5.0 / 7.0, metrics.largestCompactionCandidateSampleFraction());
   }
 

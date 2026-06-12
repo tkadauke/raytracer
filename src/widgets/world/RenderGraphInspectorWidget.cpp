@@ -704,6 +704,9 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
   addDetailIntegerMetadataRow(rows, QStringLiteral("Compaction candidate packed-ray bytes"),
                               batching,
                               QStringLiteral("frontierCompactionCandidatePackedRayBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Compaction candidate state-handle bytes"),
+                              batching,
+                              QStringLiteral("frontierCompactionCandidateStateHandleBytes"));
   if (batching.contains(QStringLiteral("frontierCompactionCandidateSampleFraction"))) {
     addDetailRow(
       rows, QStringLiteral("Compaction candidate fraction"),
@@ -719,6 +722,9 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
   addDetailIntegerMetadataRow(rows, QStringLiteral("Largest compaction candidate packed-ray bytes"),
                               batching,
                               QStringLiteral("frontierLargestCompactionCandidatePackedRayBytes"));
+  addDetailIntegerMetadataRow(
+    rows, QStringLiteral("Largest compaction candidate state-handle bytes"), batching,
+    QStringLiteral("frontierLargestCompactionCandidateStateHandleBytes"));
   if (batching.contains(QStringLiteral("frontierLargestCompactionCandidateSampleFraction"))) {
     addDetailRow(
       rows, QStringLiteral("Largest compaction candidate fraction"),
@@ -1110,9 +1116,13 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         if (compactionCandidateSamples > 0) {
           const qulonglong compactionCandidatePackedBytes =
             jsonIntegerValue(batching, QStringLiteral("frontierCompactionCandidatePackedRayBytes"));
-          line += QStringLiteral(", %1 compaction candidate samples (%2 packed-ray bytes)")
-                    .arg(compactionCandidateSamples)
-                    .arg(compactionCandidatePackedBytes);
+          const qulonglong compactionCandidateStateBytes = jsonIntegerValue(
+            batching, QStringLiteral("frontierCompactionCandidateStateHandleBytes"));
+          line +=
+            QStringLiteral(", %1 compaction candidate samples (%2 packed-ray bytes/%3 state bytes)")
+              .arg(compactionCandidateSamples)
+              .arg(compactionCandidatePackedBytes)
+              .arg(compactionCandidateStateBytes);
         }
         const qulonglong largestCompactionCandidateSamples =
           jsonIntegerValue(batching, QStringLiteral("frontierLargestCompactionCandidateSamples"));
@@ -1128,6 +1138,12 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
           if (largestCompactionCandidatePackedBytes > 0) {
             largestCompactionCandidateText +=
               QStringLiteral(" (%1 packed-ray bytes)").arg(largestCompactionCandidatePackedBytes);
+          }
+          const qulonglong largestCompactionCandidateStateBytes = jsonIntegerValue(
+            batching, QStringLiteral("frontierLargestCompactionCandidateStateHandleBytes"));
+          if (largestCompactionCandidateStateBytes > 0) {
+            largestCompactionCandidateText +=
+              QStringLiteral(" (%1 state bytes)").arg(largestCompactionCandidateStateBytes);
           }
           const double largestCompactionCandidateFraction =
             batching.value(QStringLiteral("frontierLargestCompactionCandidateSampleFraction"))

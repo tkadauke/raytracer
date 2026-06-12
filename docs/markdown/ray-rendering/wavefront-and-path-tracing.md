@@ -301,7 +301,10 @@ backends can report lower-level prepared ray-batch compaction when an uploaded
 platform ray buffer can be compacted, but they still report that they do not
 yet support scheduler-level GPU frontier compaction or resident direct-light
 batches. Future backends can flip those higher-level flags only when they
-actually keep that state on device.
+actually keep that state on device. The compaction candidate diagnostics apply
+the same split to inactive paths: packed-ray bytes estimate the intersection
+payload that could be compacted, while state-handle bytes estimate the
+remaining CPU path-state association tied to those candidate rays.
 The path tracer also reports frontier compaction metrics for the operation it
 already performs between depths: input path slots, retained slots, removed
 inactive slots, moved live slots, removed fraction, and the compaction

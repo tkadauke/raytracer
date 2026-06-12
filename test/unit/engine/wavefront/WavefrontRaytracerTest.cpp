@@ -1014,11 +1014,14 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48u, metrics.batching.compactionCandidateSampleCount());
     EXPECT_EQ(48u * sizeof(render::GpuIntersectionRay),
               metrics.batching.compactionCandidatePackedRayBytes());
+    EXPECT_EQ(48u * sizeof(render::State*), metrics.batching.compactionCandidateStateHandleBytes());
     EXPECT_DOUBLE_EQ(1.0, metrics.batching.compactionCandidateSampleFraction());
     EXPECT_EQ(0u, metrics.batching.largestCompactionCandidateDepth());
     EXPECT_EQ(48u, metrics.batching.largestCompactionCandidateSampleCount());
     EXPECT_EQ(48u * sizeof(render::GpuIntersectionRay),
               metrics.batching.largestCompactionCandidatePackedRayBytes());
+    EXPECT_EQ(48u * sizeof(render::State*),
+              metrics.batching.largestCompactionCandidateStateHandleBytes());
     EXPECT_DOUBLE_EQ(1.0, metrics.batching.largestCompactionCandidateSampleFraction());
     ASSERT_EQ(1u, metrics.batching.frontierRayHitsPerDepth.size());
     ASSERT_EQ(1u, metrics.batching.frontierRayMissesPerDepth.size());
@@ -1182,6 +1185,11 @@ namespace WavefrontRaytracerTest {
                 .toObject()
                 .value("frontierCompactionCandidatePackedRayBytes")
                 .toDouble());
+    EXPECT_EQ(48.0 * static_cast<double>(sizeof(render::State*)),
+              json.value("batching")
+                .toObject()
+                .value("frontierCompactionCandidateStateHandleBytes")
+                .toDouble());
     EXPECT_DOUBLE_EQ(1.0, json.value("batching")
                             .toObject()
                             .value("frontierCompactionCandidateSampleFraction")
@@ -1198,6 +1206,11 @@ namespace WavefrontRaytracerTest {
               json.value("batching")
                 .toObject()
                 .value("frontierLargestCompactionCandidatePackedRayBytes")
+                .toDouble());
+    EXPECT_EQ(48.0 * static_cast<double>(sizeof(render::State*)),
+              json.value("batching")
+                .toObject()
+                .value("frontierLargestCompactionCandidateStateHandleBytes")
                 .toDouble());
     EXPECT_DOUBLE_EQ(1.0, json.value("batching")
                             .toObject()

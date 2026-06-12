@@ -1084,6 +1084,10 @@ Progress:
   for the whole render and the largest candidate depth. This keeps the Phase 8
   planning signal tied to the actual GPU-intersection ray payload, not only to
   path-state sample counts.
+- The compaction baseline now also reports candidate state-handle byte
+  estimates for the whole render and the largest candidate depth. This shows
+  the remaining per-path CPU state association that scheduler-owned GPU
+  compaction would still need to address.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a

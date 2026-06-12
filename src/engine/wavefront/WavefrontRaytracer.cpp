@@ -317,6 +317,10 @@ namespace engine::wavefront {
     return compactionCandidateSampleCount() * sizeof(render::GpuIntersectionRay);
   }
 
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::compactionCandidateStateHandleBytes() const {
+    return compactionCandidateSampleCount() * sizeof(render::State*);
+  }
+
   double WavefrontRenderMetrics::BatchSummary::compactionCandidateSampleFraction() const {
     if (activeSampleDepthsProcessed == 0) {
       return 0.0;
@@ -354,6 +358,11 @@ namespace engine::wavefront {
   std::uint64_t
   WavefrontRenderMetrics::BatchSummary::largestCompactionCandidatePackedRayBytes() const {
     return largestCompactionCandidateSampleCount() * sizeof(render::GpuIntersectionRay);
+  }
+
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::largestCompactionCandidateStateHandleBytes() const {
+    return largestCompactionCandidateSampleCount() * sizeof(render::State*);
   }
 
   double WavefrontRenderMetrics::BatchSummary::largestCompactionCandidateSampleFraction() const {
@@ -757,6 +766,8 @@ namespace engine::wavefront {
       static_cast<double>(batching.compactionCandidateSampleCount());
     batchingJson["frontierCompactionCandidatePackedRayBytes"] =
       static_cast<double>(batching.compactionCandidatePackedRayBytes());
+    batchingJson["frontierCompactionCandidateStateHandleBytes"] =
+      static_cast<double>(batching.compactionCandidateStateHandleBytes());
     batchingJson["frontierCompactionCandidateSampleFraction"] =
       batching.compactionCandidateSampleFraction();
     batchingJson["frontierLargestCompactionCandidateDepth"] =
@@ -765,6 +776,8 @@ namespace engine::wavefront {
       static_cast<double>(batching.largestCompactionCandidateSampleCount());
     batchingJson["frontierLargestCompactionCandidatePackedRayBytes"] =
       static_cast<double>(batching.largestCompactionCandidatePackedRayBytes());
+    batchingJson["frontierLargestCompactionCandidateStateHandleBytes"] =
+      static_cast<double>(batching.largestCompactionCandidateStateHandleBytes());
     batchingJson["frontierLargestCompactionCandidateSampleFraction"] =
       batching.largestCompactionCandidateSampleFraction();
     batchingJson["frontierRayHitsPerDepth"] = frontierRayHitsPerDepth;
