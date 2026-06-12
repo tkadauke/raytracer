@@ -213,6 +213,11 @@ namespace engine::wavefront {
     frontierCompactionRemovedSamples += metrics.frontierCompactionRemovedSamples;
     frontierCompactionMovedSamples += metrics.frontierCompactionMovedSamples;
     frontierCompactionRetainedIndexBytes += metrics.frontierCompactionRetainedIndexBytes;
+    frontierCompactionInputHostPathStateBytes += metrics.frontierCompactionInputHostPathStateBytes;
+    frontierCompactionRetainedHostPathStateBytes +=
+      metrics.frontierCompactionRetainedHostPathStateBytes;
+    frontierCompactionRemovedHostPathStateBytes +=
+      metrics.frontierCompactionRemovedHostPathStateBytes;
     mergeLabel(frontierCompactionExecutionPath, metrics.frontierCompactionExecutionPath);
     compatibilityShadeSamples += metrics.compatibilityShadeSamples;
     unsupportedPathMaterialSamples += metrics.unsupportedPathMaterialSamples;
@@ -796,6 +801,12 @@ namespace engine::wavefront {
       static_cast<double>(batching.frontierCompactionMovedSamples);
     batchingJson["frontierCompactionRetainedIndexBytes"] =
       static_cast<double>(batching.frontierCompactionRetainedIndexBytes);
+    batchingJson["frontierCompactionInputHostPathStateBytes"] =
+      static_cast<double>(batching.frontierCompactionInputHostPathStateBytes);
+    batchingJson["frontierCompactionRetainedHostPathStateBytes"] =
+      static_cast<double>(batching.frontierCompactionRetainedHostPathStateBytes);
+    batchingJson["frontierCompactionRemovedHostPathStateBytes"] =
+      static_cast<double>(batching.frontierCompactionRemovedHostPathStateBytes);
     batchingJson["frontierHostCompactionRemovedSampleFraction"] =
       batching.frontierCompactionRemovedSampleFraction();
     batchingJson["frontierCompactionRemovedSampleFraction"] =

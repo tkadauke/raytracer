@@ -154,6 +154,9 @@ namespace render {
     std::uint64_t frontierCompactionRemovedSamples{0};
     std::uint64_t frontierCompactionMovedSamples{0};
     std::uint64_t frontierCompactionRetainedIndexBytes{0};
+    std::uint64_t frontierCompactionInputHostPathStateBytes{0};
+    std::uint64_t frontierCompactionRetainedHostPathStateBytes{0};
+    std::uint64_t frontierCompactionRemovedHostPathStateBytes{0};
     std::string frontierCompactionExecutionPath;
 
     void reset(bool scalarFallback);
@@ -163,7 +166,10 @@ namespace render {
     void recordRetainedHostPathStateBytes(std::uint64_t bytes);
     void recordFrontierCompaction(std::uint64_t inputSamples, std::uint64_t retainedSamples,
                                   std::uint64_t movedSamples, const std::string& executionPath,
-                                  std::uint64_t retainedIndexBytes = 0);
+                                  std::uint64_t retainedIndexBytes = 0,
+                                  std::uint64_t inputHostPathStateBytes = 0,
+                                  std::uint64_t retainedHostPathStateBytes = 0,
+                                  std::uint64_t removedHostPathStateBytes = 0);
     void recordHostFrontierCompaction(std::uint64_t inputSamples, std::uint64_t retainedSamples,
                                       std::uint64_t movedSamples);
     [[nodiscard]] double frontierCompactionRemovedSampleFraction() const;

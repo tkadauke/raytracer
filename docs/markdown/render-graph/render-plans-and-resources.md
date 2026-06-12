@@ -765,7 +765,8 @@ integrator, whether batches used scalar fallback or depth-major path
 scheduling, primary sample totals, how many samples fell back to Whitted
 material compatibility shading, how many path-tracing samples hit unsupported
 materials, active sample counts and host path-state bytes per depth, batch sizes,
-frontier hit/miss and packet/scalar traversal counts, Ray4/Ray8 packet chunk
+executed compaction host path-state bytes, frontier hit/miss and packet/scalar
+traversal counts, Ray4/Ray8 packet chunk
 counts, packet scalar-fallback reason buckets, Whitted packet-refinement
 material buckets,
 sampled direct-light counts with contributing and shadow-occluded subsets,

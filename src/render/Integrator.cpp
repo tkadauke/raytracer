@@ -183,6 +183,9 @@ namespace render {
     frontierCompactionRemovedSamples = 0;
     frontierCompactionMovedSamples = 0;
     frontierCompactionRetainedIndexBytes = 0;
+    frontierCompactionInputHostPathStateBytes = 0;
+    frontierCompactionRetainedHostPathStateBytes = 0;
+    frontierCompactionRemovedHostPathStateBytes = 0;
     frontierCompactionExecutionPath.clear();
   }
 
@@ -204,11 +207,11 @@ namespace render {
     retainedHostPathStateBytesPerDepth.push_back(bytes);
   }
 
-  void IntegratorBatchMetrics::recordFrontierCompaction(std::uint64_t inputSamples,
-                                                        std::uint64_t retainedSamples,
-                                                        std::uint64_t movedSamples,
-                                                        const std::string& executionPath,
-                                                        std::uint64_t retainedIndexBytes) {
+  void IntegratorBatchMetrics::recordFrontierCompaction(
+    std::uint64_t inputSamples, std::uint64_t retainedSamples, std::uint64_t movedSamples,
+    const std::string& executionPath, std::uint64_t retainedIndexBytes,
+    std::uint64_t inputHostPathStateBytes, std::uint64_t retainedHostPathStateBytes,
+    std::uint64_t removedHostPathStateBytes) {
     ++frontierCompactionPasses;
     mergeLabel(frontierCompactionExecutionPath, executionPath.empty() ? "unknown" : executionPath);
     frontierCompactionInputSamples += inputSamples;
@@ -217,6 +220,9 @@ namespace render {
       inputSamples > retainedSamples ? inputSamples - retainedSamples : 0;
     frontierCompactionMovedSamples += movedSamples;
     frontierCompactionRetainedIndexBytes += retainedIndexBytes;
+    frontierCompactionInputHostPathStateBytes += inputHostPathStateBytes;
+    frontierCompactionRetainedHostPathStateBytes += retainedHostPathStateBytes;
+    frontierCompactionRemovedHostPathStateBytes += removedHostPathStateBytes;
   }
 
   void IntegratorBatchMetrics::recordHostFrontierCompaction(std::uint64_t inputSamples,

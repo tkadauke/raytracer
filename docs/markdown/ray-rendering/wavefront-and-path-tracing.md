@@ -327,6 +327,10 @@ compaction primitive.
 Today that execution path is `host` whenever a compaction pass runs. That makes
 the current CPU compaction contract explicit before any future kernel keeps the
 frontier resident on the GPU.
+Executed compaction also reports input, retained, and removed host path-state
+bytes. Those counters describe the CPU scheduler payload moved or discarded by
+the compaction pass itself, while the retained-index byte counter continues to
+describe the compact GPU-style index list.
 The same metrics compare active samples entering a depth with retained samples
 after that depth. The difference is reported as compaction candidate work: the
 samples a future GPU-side compaction pass would remove from the next frontier

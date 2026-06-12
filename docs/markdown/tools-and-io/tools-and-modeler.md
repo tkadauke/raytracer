@@ -230,6 +230,10 @@ depth, sample count, packed-ray bytes, and host path-state bytes point to the
 single depth where a future compaction pass would remove the most inactive path
 state, and its local fraction distinguishes a large depth from a mostly
 inactive one.
+Executed compaction also reports input, retained, and removed host path-state
+bytes beside retained-index bytes, so the summary separates the index list a GPU
+kernel would need from the CPU scheduler state that still has to become
+resident.
 When a platform kernel actually runs, the same summary separates backend
 upload/setup, kernel dispatch/wait, and readback time; CPU fallback paths keep
 those backend buckets at zero while total intersection worker time still

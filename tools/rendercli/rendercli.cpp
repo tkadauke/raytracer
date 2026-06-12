@@ -444,6 +444,12 @@ namespace {
         << batching.value("frontierCompactionMovedRetainedSampleFraction").toDouble()
         << " frontier_compaction_retained_index_bytes="
         << unsignedValue(batching, "frontierCompactionRetainedIndexBytes")
+        << " frontier_compaction_input_host_path_state_bytes="
+        << unsignedValue(batching, "frontierCompactionInputHostPathStateBytes")
+        << " frontier_compaction_retained_host_path_state_bytes="
+        << unsignedValue(batching, "frontierCompactionRetainedHostPathStateBytes")
+        << " frontier_compaction_removed_host_path_state_bytes="
+        << unsignedValue(batching, "frontierCompactionRemovedHostPathStateBytes")
         << " batches=" << unsignedValue(batching, "batches")
         << " avg_batch=" << batching.value("averageBatchSize").toDouble()
         << " max_batch=" << unsignedValue(batching, "maxBatchSize")

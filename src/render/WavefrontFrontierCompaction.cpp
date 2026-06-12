@@ -152,7 +152,8 @@ namespace render {
     }
     metrics->recordFrontierCompaction(
       static_cast<std::uint64_t>(m_inputPathCount), static_cast<std::uint64_t>(retainedPathCount()),
-      static_cast<std::uint64_t>(m_movedPathCount), m_executionPath, retainedIndexBytes());
+      static_cast<std::uint64_t>(m_movedPathCount), m_executionPath, retainedIndexBytes(),
+      inputPathStateBytes(), retainedPathStateBytes(), removedPathStateBytes());
   }
 
   WavefrontFrontierCompactionResult::WavefrontFrontierCompactionResult(

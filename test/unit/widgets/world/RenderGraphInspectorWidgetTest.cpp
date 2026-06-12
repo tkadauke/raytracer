@@ -1180,6 +1180,13 @@ namespace RenderGraphInspectorWidgetTest {
       rowValue(rows, QStringLiteral("Frontier compaction moved retained fraction")).isEmpty());
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Frontier compaction retained-index bytes")).isEmpty());
+    EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Frontier compaction input host path-state bytes")).isEmpty());
+    EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Frontier compaction retained host path-state bytes"))
+        .isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction removed host path-state bytes"))
+                   .isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Supports resident frontiers")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Supports GPU frontier compaction")).isEmpty());
     const QString gpuCompactionUnavailableReason =
@@ -1217,6 +1224,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, residentDirectLightUnavailableReason));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("host compaction removed")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("retained-index bytes")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("removed host path-state bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("compaction candidate samples")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("host path-state bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("largest compaction candidate")));

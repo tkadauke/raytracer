@@ -259,6 +259,12 @@ namespace engine::wavefront::detail {
       target.frontierCompactionRemovedSamples += source.frontierCompactionRemovedSamples;
       target.frontierCompactionMovedSamples += source.frontierCompactionMovedSamples;
       target.frontierCompactionRetainedIndexBytes += source.frontierCompactionRetainedIndexBytes;
+      target.frontierCompactionInputHostPathStateBytes +=
+        source.frontierCompactionInputHostPathStateBytes;
+      target.frontierCompactionRetainedHostPathStateBytes +=
+        source.frontierCompactionRetainedHostPathStateBytes;
+      target.frontierCompactionRemovedHostPathStateBytes +=
+        source.frontierCompactionRemovedHostPathStateBytes;
       mergeLabel(target.frontierCompactionExecutionPath, source.frontierCompactionExecutionPath);
     }
 

@@ -1885,6 +1885,11 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(3u, metrics.frontierCompactionRemovedSamples);
     EXPECT_EQ(0u, metrics.frontierCompactionMovedSamples);
     EXPECT_EQ(0u, metrics.frontierCompactionRetainedIndexBytes);
+    EXPECT_EQ(metrics.activeHostPathStateBytesProcessed,
+              metrics.frontierCompactionInputHostPathStateBytes);
+    EXPECT_EQ(0u, metrics.frontierCompactionRetainedHostPathStateBytes);
+    EXPECT_EQ(metrics.activeHostPathStateBytesProcessed,
+              metrics.frontierCompactionRemovedHostPathStateBytes);
     EXPECT_EQ("host", metrics.frontierCompactionExecutionPath);
     EXPECT_DOUBLE_EQ(1.0, metrics.frontierCompactionRemovedSampleFraction());
   }

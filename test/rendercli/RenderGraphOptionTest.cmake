@@ -2660,6 +2660,9 @@ foreach(compaction_field
         frontierCompactionRemovedSamples
         frontierCompactionMovedSamples
         frontierCompactionRetainedIndexBytes
+        frontierCompactionInputHostPathStateBytes
+        frontierCompactionRetainedHostPathStateBytes
+        frontierCompactionRemovedHostPathStateBytes
         frontierCompactionRemovedSampleFraction
         frontierCompactionMovedRetainedSampleFraction
         frontierCompactionCandidatePackedRayBytes
@@ -2720,6 +2723,21 @@ endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_retained_index_bytes=")
   _rendercli_fail("rendercli wavefront metrics frontier compaction retained-index byte summary"
                   "wavefront metrics summary did not contain frontier compaction retained-index bytes"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_input_host_path_state_bytes=")
+  _rendercli_fail("rendercli wavefront metrics frontier compaction input path-state byte summary"
+                  "wavefront metrics summary did not contain frontier compaction input host path-state bytes"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_retained_host_path_state_bytes=")
+  _rendercli_fail("rendercli wavefront metrics frontier compaction retained path-state byte summary"
+                  "wavefront metrics summary did not contain frontier compaction retained host path-state bytes"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_removed_host_path_state_bytes=")
+  _rendercli_fail("rendercli wavefront metrics frontier compaction removed path-state byte summary"
+                  "wavefront metrics summary did not contain frontier compaction removed host path-state bytes"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_candidate_depths=")

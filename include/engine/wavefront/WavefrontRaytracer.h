@@ -183,6 +183,9 @@ namespace engine::wavefront {
       std::uint64_t frontierCompactionRemovedSamples = 0;
       std::uint64_t frontierCompactionMovedSamples = 0;
       std::uint64_t frontierCompactionRetainedIndexBytes = 0;
+      std::uint64_t frontierCompactionInputHostPathStateBytes = 0;
+      std::uint64_t frontierCompactionRetainedHostPathStateBytes = 0;
+      std::uint64_t frontierCompactionRemovedHostPathStateBytes = 0;
       std::string frontierCompactionExecutionPath;
 
       void addIntegratorMetrics(const render::IntegratorBatchMetrics& metrics);

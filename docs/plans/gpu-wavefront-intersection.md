@@ -1135,6 +1135,10 @@ Progress:
   per path. The path tracer fills this with its `BatchPath` size, so the backend
   compaction contract can see the scheduler-owned state payload attached to the
   retained-index list even before that state becomes device-resident.
+- Executed frontier compaction metrics now report input, retained, and removed
+  host path-state byte counts beside retained-index bytes. That makes the
+  scheduler-owned `BatchPath` payload removed by current host compaction visible
+  before future GPU-resident path state changes the representation.
 - Wavefront metrics now also report submitted intersection rays per measured
   intersection-worker second and backend-kernel rays per second when platform
   kernels provide dispatch timing. This gives Phase 7/8 threshold tuning a
