@@ -471,11 +471,12 @@ platform backend can run the render-path intersection kernels,
 batch preferences,
 `frontierPacketScalarFallbackRaysByReason` for the base packet-hit fallback
 breakdown and
-`frontierPacketRefinedRaysByMaterial` for the material-family breakdown. It
-records direct-light any-hit batch arrays only when the selected intersection
-backend explicitly prefers grouped visibility queries; CPU fallback backends
-that scalar-loop visibility still report their any-hit query and submitted-ray
-counts without claiming a batch.
+`frontierPacketRefinedRaysByMaterial` for the material-family breakdown.
+Direct-light any-hit batch arrays count visibility chunks: grouped backends
+record one chunk per submitted any-hit frontier, while scalar-loop backends
+record one chunk per shadow query. That keeps the resident-direct-light
+round-trip estimate visible even when the selected backend does not prefer a
+grouped visibility frontier.
 also includes `sampleVariancePixelArea`, `sampleRadianceStddevRms`, and
 `maxSampleRadianceStddev`, which measure disagreement between samples of the
 same pixel and complement the between-depth radiance-delta convergence fields.

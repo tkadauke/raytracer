@@ -281,6 +281,13 @@ namespace render {
       }
 
       occluded.reserve(m_shadowQueries.size());
+      if (metrics) {
+        const std::uint64_t queryCount = static_cast<std::uint64_t>(m_shadowQueries.size());
+        metrics->recordDirectLightAnyHitBatch(
+          static_cast<std::uint64_t>(std::max(0, bounce)), queryCount, queryCount,
+          /*packedRayBytes=*/0, queryCount * sizeof(WavefrontAnyHitQuery),
+          /*stateHandleBytes=*/0);
+      }
       for (const WavefrontAnyHitQuery& query : m_shadowQueries) {
         WavefrontIntersectionQueryTiming queryTiming;
         State scratchState;

@@ -978,6 +978,12 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1u, metrics.directLightSamples);
     EXPECT_EQ(1u, metrics.directLightContributingSamples);
     EXPECT_EQ(0u, metrics.directLightOccludedSamples);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchRaysPerDepth);
+    EXPECT_EQ(1u, metrics.directLightAnyHitQueryRoundTrips());
+    EXPECT_EQ(0u, metrics.residentDirectLightBatchRoundTripsEstimate());
+    EXPECT_EQ(1u, metrics.residentDirectLightBatchRoundTripSavingsEstimate());
+    EXPECT_EQ(sizeof(WavefrontAnyHitQuery), metrics.directLightAnyHitFrontierHostQueryBytes);
     const double expectedLuminance = 0.125 * 0.299 + 0.625 * 0.587;
     EXPECT_NEAR(expectedLuminance, metrics.directLightRadianceLuminanceSum, 1e-12);
     EXPECT_NEAR(expectedLuminance, metrics.primaryDirectLightRadianceLuminanceSum, 1e-12);
@@ -1009,6 +1015,12 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(2u, metrics.directLightSamples);
     EXPECT_EQ(2u, metrics.directLightContributingSamples);
     EXPECT_EQ(0u, metrics.directLightOccludedSamples);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.directLightAnyHitBatchChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.directLightAnyHitBatchRaysPerDepth);
+    EXPECT_EQ(2u, metrics.directLightAnyHitQueryRoundTrips());
+    EXPECT_EQ(0u, metrics.residentDirectLightBatchRoundTripsEstimate());
+    EXPECT_EQ(2u, metrics.residentDirectLightBatchRoundTripSavingsEstimate());
+    EXPECT_EQ(2u * sizeof(WavefrontAnyHitQuery), metrics.directLightAnyHitFrontierHostQueryBytes);
     const double expectedLuminance = ((0.125 + 0.875) * 0.299 + (0.625 + 0.375) * 0.587) / 2.0;
     EXPECT_NEAR(expectedLuminance, metrics.directLightRadianceLuminanceSum, 1e-12);
   }

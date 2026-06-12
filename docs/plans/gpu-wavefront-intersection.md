@@ -1147,6 +1147,9 @@ Progress:
   round trips and a resident direct-light round-trip savings estimate. This
   makes the host readback boundary for next-event-estimation occlusion visible
   independently of the mixed-depth resident-frontier estimate.
+- Direct-light any-hit chunk metrics now also count scalar-loop visibility as
+  one chunk per shadow query. Resident direct-light estimates therefore cover
+  both grouped any-hit frontiers and non-grouped fallback visibility work.
 - Scalar and batched path-tracing direct-light visibility now stage light
   selections and shadow any-hit queries through a dedicated visibility batch
   object. It still executes on the current backend immediately, but
