@@ -194,6 +194,12 @@ namespace engine::wavefront::detail {
                       source.directLightAnyHitBatchChunksPerDepth);
       addVectorValues(target.directLightAnyHitBatchRaysPerDepth,
                       source.directLightAnyHitBatchRaysPerDepth);
+      addVectorValues(target.directLightSelectionHostBytesPerDepth,
+                      source.directLightSelectionHostBytesPerDepth);
+      addVectorValues(target.directLightOcclusionHostBytesPerDepth,
+                      source.directLightOcclusionHostBytesPerDepth);
+      addVectorValues(target.directLightContributionHostBytesPerDepth,
+                      source.directLightContributionHostBytesPerDepth);
       addVectorValues(target.frontierRay4PacketChunksPerDepth,
                       source.frontierRay4PacketChunksPerDepth);
       addVectorValues(target.frontierRay8PacketChunksPerDepth,
@@ -209,8 +215,10 @@ namespace engine::wavefront::detail {
                    source.frontierPacketRefinedRaysByMaterial);
       target.activeSampleDepthsProcessed += source.activeSampleDepthsProcessed;
       target.activeHostPathStateBytesProcessed += source.activeHostPathStateBytesProcessed;
+      target.activeHitHostBytesProcessed += source.activeHitHostBytesProcessed;
       addVectorValues(target.activeHostPathStateBytesPerDepth,
                       source.activeHostPathStateBytesPerDepth);
+      addVectorValues(target.activeHitHostBytesPerDepth, source.activeHitHostBytesPerDepth);
       addVectorValues(target.retainedHostPathStateBytesPerDepth,
                       source.retainedHostPathStateBytesPerDepth);
       target.spawnedContinuationSamples += source.spawnedContinuationSamples;
@@ -238,6 +246,9 @@ namespace engine::wavefront::detail {
       target.directLightSamples += source.directLightSamples;
       target.directLightContributingSamples += source.directLightContributingSamples;
       target.directLightOccludedSamples += source.directLightOccludedSamples;
+      target.directLightSelectionHostBytes += source.directLightSelectionHostBytes;
+      target.directLightOcclusionHostBytes += source.directLightOcclusionHostBytes;
+      target.directLightContributionHostBytes += source.directLightContributionHostBytes;
       target.emittedRadianceLuminanceSum += source.emittedRadianceLuminanceSum;
       target.directLightRadianceLuminanceSum += source.directLightRadianceLuminanceSum;
       target.primaryDirectLightRadianceLuminanceSum +=

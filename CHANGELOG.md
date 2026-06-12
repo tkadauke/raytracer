@@ -155,6 +155,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   wording to generic frontier-compaction wording while keeping the legacy JSON
   aliases for compatibility. — GPT-5 Codex
 
+### Fixed
+
+- Fixed tiled wavefront renders so active-hit and direct-light host-byte totals
+  and per-depth arrays are merged across all sample batches in a tile.
+  — GPT-5 Codex
+
 ### Added
 
 - Added `direct_light_any_hit_chunks`, `direct_light_any_hit_chunk_rays`, and

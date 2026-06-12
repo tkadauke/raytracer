@@ -1719,7 +1719,20 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(0u, renderCase.lastMetrics().batching.residentDirectLightBatchRoundTripsEstimate());
     EXPECT_GT(renderCase.lastMetrics().batching.residentDirectLightBatchRoundTripSavingsEstimate(),
               0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.activeHitHostBytesProcessed, 0u);
+    ASSERT_FALSE(renderCase.lastMetrics().batching.activeHitHostBytesPerDepth.empty());
+    EXPECT_GT(renderCase.lastMetrics().batching.activeHitHostBytesPerDepth.front(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.directLightSelectionHostBytes, 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.directLightOcclusionHostBytes, 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.directLightContributionHostBytes, 0u);
+    ASSERT_FALSE(renderCase.lastMetrics().batching.directLightSelectionHostBytesPerDepth.empty());
+    ASSERT_FALSE(renderCase.lastMetrics().batching.directLightOcclusionHostBytesPerDepth.empty());
+    ASSERT_FALSE(
+      renderCase.lastMetrics().batching.directLightContributionHostBytesPerDepth.empty());
+    EXPECT_GT(renderCase.lastMetrics().batching.directLightSelectionHostBytesPerDepth.front(), 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.directLightOcclusionHostBytesPerDepth.front(), 0u);
+    EXPECT_GT(renderCase.lastMetrics().batching.directLightContributionHostBytesPerDepth.front(),
+              0u);
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitFrontierPackedRayBytes, 0u);
     EXPECT_EQ(0u, renderCase.lastMetrics().batching.directLightAnyHitFrontierHostQueryBytes);
     EXPECT_GT(renderCase.lastMetrics().batching.directLightAnyHitFrontierStateHandleBytes, 0u);
@@ -1776,8 +1789,28 @@ namespace WavefrontRaytracerTest {
       static_cast<double>(
         renderCase.lastMetrics().batching.residentDirectLightBatchRoundTripSavingsEstimate()),
       batching.value("residentDirectLightBatchRoundTripSavingsEstimate").toDouble());
+    EXPECT_EQ(static_cast<double>(renderCase.lastMetrics().batching.activeHitHostBytesProcessed),
+              batching.value("activeHitHostBytesProcessed").toDouble());
+    EXPECT_EQ(
+      static_cast<double>(renderCase.lastMetrics().batching.activeHitHostBytesPerDepth.front()),
+      batching.value("activeHitHostBytesPerDepth").toArray().at(0).toDouble());
     EXPECT_EQ(static_cast<double>(renderCase.lastMetrics().batching.directLightSelectionHostBytes),
               batching.value("directLightSelectionHostBytes").toDouble());
+    EXPECT_EQ(static_cast<double>(renderCase.lastMetrics().batching.directLightOcclusionHostBytes),
+              batching.value("directLightOcclusionHostBytes").toDouble());
+    EXPECT_EQ(
+      static_cast<double>(renderCase.lastMetrics().batching.directLightContributionHostBytes),
+      batching.value("directLightContributionHostBytes").toDouble());
+    EXPECT_EQ(static_cast<double>(
+                renderCase.lastMetrics().batching.directLightSelectionHostBytesPerDepth.front()),
+              batching.value("directLightSelectionHostBytesPerDepth").toArray().at(0).toDouble());
+    EXPECT_EQ(static_cast<double>(
+                renderCase.lastMetrics().batching.directLightOcclusionHostBytesPerDepth.front()),
+              batching.value("directLightOcclusionHostBytesPerDepth").toArray().at(0).toDouble());
+    EXPECT_EQ(
+      static_cast<double>(
+        renderCase.lastMetrics().batching.directLightContributionHostBytesPerDepth.front()),
+      batching.value("directLightContributionHostBytesPerDepth").toArray().at(0).toDouble());
     EXPECT_EQ(static_cast<double>(
                 renderCase.lastMetrics().batching.directLightAnyHitFrontierPackedRayBytes),
               batching.value("directLightAnyHitFrontierPackedRayBytes").toDouble());

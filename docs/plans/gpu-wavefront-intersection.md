@@ -1272,6 +1272,11 @@ Progress:
   skipped frontier, active-hit, direct-light, spawned-continuation, retained,
   and radiance-delta diagnostics. That keeps cancelled renders comparable with
   completed depth rows when inspecting resident-frontier opportunities.
+- Wavefront tile metric merging now carries active-hit host bytes and
+  direct-light selection, occlusion-result, and contribution host-byte totals
+  plus per-depth arrays across every sample batch in a tile. Adaptive or
+  multi-pass tile renders therefore expose the same resident-direct-light
+  baselines as a single integrator batch.
 
 ---
 
