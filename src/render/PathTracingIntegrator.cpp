@@ -806,6 +806,25 @@ namespace render {
     return true;
   }
 
+  bool PathTracingIntegrator::prepareSampledContinuation(
+    const MaterialBsdfSample& sample, const HitPoint& hitPoint, Colord& throughput,
+    bool& backgroundVisible, bool& sampledFromBsdf, double& bsdfSamplePdf, bool& bsdfSampleDelta,
+    State& state, int bounce) const {
+    if (!canContinueWithSample(sample, hitPoint)) {
+      return false;
+    }
+
+    throughput = continuedThroughput(throughput, sample, hitPoint);
+    if (!sample.isDelta) {
+      backgroundVisible = false;
+    }
+    sampledFromBsdf = true;
+    bsdfSamplePdf = sample.pdf;
+    bsdfSampleDelta = sample.isDelta;
+
+    return survivesRussianRoulette(throughput, state, bounce);
+  }
+
   void PathTracingIntegrator::recordDepthDelta(BatchDepthMetrics& depthMetrics,
                                                const Colord& before, const Colord& after) const {
     if (!depthMetrics.trackRadianceDelta) {
@@ -1238,23 +1257,23 @@ namespace render {
         const Vector2d bsdfSample = pathState.sampleStream->sample2D(
           SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
         const MaterialBsdfSample sampled = transport.sampleBsdf(hitPoint, wi, bsdfSample);
-        if (!canContinueWithSample(sampled, hitPoint)) {
-          pathState.recurseOut();
-          continue;
-        }
-
-        Colord nextThroughput = continuedThroughput(path.throughput, sampled, hitPoint);
-        if (!survivesRussianRoulette(nextThroughput, pathState, bounce)) {
+        Colord nextThroughput = path.throughput;
+        bool nextBackgroundVisible = path.backgroundVisible;
+        bool nextSampledFromBsdf = false;
+        double nextBsdfSamplePdf = 0.0;
+        bool nextBsdfSampleDelta = false;
+        if (!prepareSampledContinuation(sampled, hitPoint, nextThroughput, nextBackgroundVisible,
+                                        nextSampledFromBsdf, nextBsdfSamplePdf, nextBsdfSampleDelta,
+                                        pathState, bounce)) {
           pathState.recurseOut();
           continue;
         }
 
         State childState = pathState.cloneForPathContinuation();
         pathState.recurseOut();
-        nextPaths.emplace_back(sampled.rayFrom(hitPoint), nextThroughput,
-                               sampled.isDelta ? path.backgroundVisible : false,
-                               std::move(childState), /*nextSampledFromBsdf=*/true, sampled.pdf,
-                               sampled.isDelta);
+        nextPaths.emplace_back(sampled.rayFrom(hitPoint), nextThroughput, nextBackgroundVisible,
+                               std::move(childState), nextSampledFromBsdf, nextBsdfSamplePdf,
+                               nextBsdfSampleDelta);
       }
 
       paths = std::move(nextPaths);
@@ -1340,21 +1359,9 @@ namespace render {
     const Vector2d bsdfSample =
       path.state.sampleStream->sample2D(SampleDimension::BSDF, static_cast<std::uint64_t>(bounce));
     const MaterialBsdfSample sampled = transport.sampleBsdf(hit.hitPoint, wi, bsdfSample);
-    if (!canContinueWithSample(sampled, hit.hitPoint)) {
-      path.state.recurseOut();
-      recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
-      return false;
-    }
-
-    path.throughput = continuedThroughput(path.throughput, sampled, hit.hitPoint);
-    if (!sampled.isDelta) {
-      path.backgroundVisible = false;
-    }
-    path.sampledFromBsdf = true;
-    path.bsdfSamplePdf = sampled.pdf;
-    path.bsdfSampleDelta = sampled.isDelta;
-
-    if (!survivesRussianRoulette(path.throughput, path.state, bounce)) {
+    if (!prepareSampledContinuation(sampled, hit.hitPoint, path.throughput, path.backgroundVisible,
+                                    path.sampledFromBsdf, path.bsdfSamplePdf, path.bsdfSampleDelta,
+                                    path.state, bounce)) {
       path.state.recurseOut();
       recordDepthDelta(depthMetrics, accumulatedBeforeDepth, path.accumulated());
       return false;

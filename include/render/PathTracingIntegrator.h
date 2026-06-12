@@ -174,6 +174,10 @@ namespace render {
     void recordUnsupportedPathMaterial(State& state,
                                        IntegratorBatchMetrics* metrics = nullptr) const;
     bool survivesRussianRoulette(Colord& throughput, State& state, int bounce) const;
+    bool prepareSampledContinuation(const MaterialBsdfSample& sample, const HitPoint& hitPoint,
+                                    Colord& throughput, bool& backgroundVisible,
+                                    bool& sampledFromBsdf, double& bsdfSamplePdf,
+                                    bool& bsdfSampleDelta, State& state, int bounce) const;
     void recordDepthDelta(BatchDepthMetrics& depthMetrics, const Colord& before,
                           const Colord& after) const;
     void recordFrontierHit(std::size_t pathIndex, BatchPath& path, const Primitive& primitive,
