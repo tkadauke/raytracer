@@ -209,6 +209,44 @@ namespace render {
     HitPoint hitPoint;
   };
 
+  class PathTracingIntegrator::ActivePathHits {
+  public:
+    void reserve(std::size_t count) {
+      m_hits.reserve(count);
+    }
+
+    void clear() {
+      m_hits.clear();
+    }
+
+    bool empty() const {
+      return m_hits.empty();
+    }
+
+    std::size_t size() const {
+      return m_hits.size();
+    }
+
+    BatchHit& operator[](std::size_t index) {
+      return m_hits[index];
+    }
+
+    const BatchHit& operator[](std::size_t index) const {
+      return m_hits[index];
+    }
+
+    void add(std::size_t pathIndex, const Primitive& primitive, const HitPoint& hitPoint) {
+      m_hits.push_back(BatchHit{pathIndex, &primitive, primitive.material(), hitPoint});
+    }
+
+    void setLastMaterial(std::shared_ptr<Material> material) {
+      m_hits.back().material = std::move(material);
+    }
+
+  private:
+    std::vector<BatchHit> m_hits;
+  };
+
   struct PathTracingIntegrator::DirectLightingCandidate {
     bool valid{false};
     Colord radiance{Colord::black()};
@@ -567,7 +605,7 @@ namespace render {
   }
 
   std::vector<Colord> PathTracingIntegrator::sampleDirectLightingBatch(
-    const Scene& scene, const LightSampler& lightSampler, const std::vector<BatchHit>& activeHits,
+    const Scene& scene, const LightSampler& lightSampler, const ActivePathHits& activeHits,
     HostBatchPathFrontier& paths, int bounce,
     const WavefrontIntersectionBackend& intersectionBackend,
     IntegratorBatchMetrics* metrics) const {
@@ -725,14 +763,14 @@ namespace render {
                                                 const Primitive& primitive,
                                                 const HitPoint& hitPoint, int bounce,
                                                 BatchDepthMetrics& depthMetrics,
-                                                std::vector<BatchHit>& activeHits) const {
+                                                ActivePathHits& activeHits) const {
     if (depthMetrics.trackFrontierMetrics()) {
       ++depthMetrics.frontierRayHits;
     }
     if (bounce == 0) {
       path.state.hitPoint = hitPoint;
     }
-    activeHits.push_back(BatchHit{pathIndex, &primitive, primitive.material(), hitPoint});
+    activeHits.add(pathIndex, primitive, hitPoint);
   }
 
   void PathTracingIntegrator::recordFrontierMiss(const Scene& scene, BatchPath& path,
@@ -752,8 +790,8 @@ namespace render {
 
   void PathTracingIntegrator::intersectActivePathScalar(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    std::size_t pathIndex, HostBatchPathFrontier& paths, std::vector<BatchHit>& activeHits,
-    int bounce, BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
+    std::size_t pathIndex, HostBatchPathFrontier& paths, ActivePathHits& activeHits, int bounce,
+    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     auto& path = paths[pathIndex];
     const Colord accumulatedBeforeDepth =
       depthMetrics.trackRadianceDelta ? path.accumulated() : Colord::black();
@@ -785,13 +823,13 @@ namespace render {
 
     recordFrontierHit(pathIndex, path, *hit.primitive, hit.hitPoint, bounce, depthMetrics,
                       activeHits);
-    activeHits.back().material = hit.material;
+    activeHits.setLastMaterial(hit.material);
   }
 
   void PathTracingIntegrator::intersectActivePathPacket(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
     std::size_t firstPathIndex, std::size_t laneCount, HostBatchPathFrontier& paths,
-    std::vector<BatchHit>& activeHits, int bounce, BatchDepthMetrics& depthMetrics,
+    ActivePathHits& activeHits, int bounce, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
     if (laneCount > Ray4::lanes) {
       throw std::logic_error("Ray4 path packet lane count exceeds packet width");
@@ -860,7 +898,7 @@ namespace render {
   void PathTracingIntegrator::intersectActivePathPacket8(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
     std::size_t firstPathIndex, std::size_t laneCount, HostBatchPathFrontier& paths,
-    std::vector<BatchHit>& activeHits, int bounce, BatchDepthMetrics& depthMetrics,
+    ActivePathHits& activeHits, int bounce, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
     if (laneCount > Ray8::lanes) {
       throw std::logic_error("Ray8 path packet lane count exceeds packet width");
@@ -929,7 +967,7 @@ namespace render {
 
   void PathTracingIntegrator::intersectActiveFrontierBatch(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    HostBatchPathFrontier& paths, std::vector<BatchHit>& activeHits, int bounce,
+    HostBatchPathFrontier& paths, ActivePathHits& activeHits, int bounce,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     ClosestHitPathFrontierBatch frontier(paths, depthMetrics, metrics);
     frontier.intersect(scene, intersectionBackend, metrics);
@@ -947,13 +985,13 @@ namespace render {
 
       recordFrontierHit(pathIndex, path, *hit->primitive, hit->hitPoint, bounce, depthMetrics,
                         activeHits);
-      activeHits.back().material = hit->material;
+      activeHits.setLastMaterial(hit->material);
     }
   }
 
   void PathTracingIntegrator::intersectActiveFrontier(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    HostBatchPathFrontier& paths, std::vector<BatchHit>& activeHits, int bounce,
+    HostBatchPathFrontier& paths, ActivePathHits& activeHits, int bounce,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     activeHits.clear();
     if (intersectionBackend.prefersClosestHitBatch(paths.size())) {
@@ -1197,7 +1235,7 @@ namespace render {
 
     const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
     const std::uint64_t totalSampleCount = sampleColors.size();
-    std::vector<BatchHit> activeHits;
+    ActivePathHits activeHits;
     activeHits.reserve(samples.size());
 
     for (int bounce = 0; bounce < m_maximumRecursionDepth; ++bounce) {

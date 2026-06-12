@@ -1192,6 +1192,10 @@ Progress:
   pre-depth radiance snapshots, backend frontier ownership, and returned hit
   records through a dedicated closest-hit frontier batch object. This keeps the
   remaining host query-vector assembly out of the main scheduler loop.
+- Path-tracing active closest-hit records now flow through a dedicated active-hit
+  owner between frontier intersection, direct-light sampling, and BSDF shading.
+  The records are still host-resident, but the scheduler no longer passes a raw
+  hit vector through every frontier path.
 
 ---
 

@@ -130,6 +130,7 @@ namespace render {
     struct BatchDepthMetrics;
     struct BatchHit;
     struct BatchPath;
+    class ActivePathHits;
     class ClosestHitPathFrontierBatch;
     struct DirectLightingCandidate;
     struct DirectLightingSelection;
@@ -150,7 +151,7 @@ namespace render {
                                 IntegratorBatchMetrics* metrics = nullptr) const;
     std::vector<Colord>
     sampleDirectLightingBatch(const Scene& scene, const LightSampler& lightSampler,
-                              const std::vector<BatchHit>& activeHits, HostBatchPathFrontier& paths,
+                              const ActivePathHits& activeHits, HostBatchPathFrontier& paths,
                               int bounce, const WavefrontIntersectionBackend& intersectionBackend,
                               IntegratorBatchMetrics* metrics = nullptr) const;
     Colord emittedRadiance(const LightSampler& lightSampler, const PathMaterialTransport& material,
@@ -176,34 +177,34 @@ namespace render {
                           const Colord& after) const;
     void recordFrontierHit(std::size_t pathIndex, BatchPath& path, const Primitive& primitive,
                            const HitPoint& hitPoint, int bounce, BatchDepthMetrics& depthMetrics,
-                           std::vector<BatchHit>& activeHits) const;
+                           ActivePathHits& activeHits) const;
     void recordFrontierMiss(const Scene& scene, BatchPath& path, BatchDepthMetrics& depthMetrics,
                             const Colord& accumulatedBeforeDepth) const;
     void intersectActivePathScalar(const WavefrontIntersectionBackend& intersectionBackend,
                                    const Scene& scene, std::size_t pathIndex,
-                                   HostBatchPathFrontier& paths, std::vector<BatchHit>& activeHits,
+                                   HostBatchPathFrontier& paths, ActivePathHits& activeHits,
                                    int bounce, BatchDepthMetrics& depthMetrics,
                                    IntegratorBatchMetrics* metrics) const;
     void intersectActivePathPacket(const WavefrontIntersectionBackend& intersectionBackend,
                                    const Scene& scene, std::size_t firstPathIndex,
                                    std::size_t laneCount, HostBatchPathFrontier& paths,
-                                   std::vector<BatchHit>& activeHits, int bounce,
+                                   ActivePathHits& activeHits, int bounce,
                                    BatchDepthMetrics& depthMetrics,
                                    IntegratorBatchMetrics* metrics) const;
     void intersectActivePathPacket8(const WavefrontIntersectionBackend& intersectionBackend,
                                     const Scene& scene, std::size_t firstPathIndex,
                                     std::size_t laneCount, HostBatchPathFrontier& paths,
-                                    std::vector<BatchHit>& activeHits, int bounce,
+                                    ActivePathHits& activeHits, int bounce,
                                     BatchDepthMetrics& depthMetrics,
                                     IntegratorBatchMetrics* metrics) const;
     void intersectActiveFrontierBatch(const WavefrontIntersectionBackend& intersectionBackend,
                                       const Scene& scene, HostBatchPathFrontier& paths,
-                                      std::vector<BatchHit>& activeHits, int bounce,
+                                      ActivePathHits& activeHits, int bounce,
                                       BatchDepthMetrics& depthMetrics,
                                       IntegratorBatchMetrics* metrics) const;
     void intersectActiveFrontier(const WavefrontIntersectionBackend& intersectionBackend,
                                  const Scene& scene, HostBatchPathFrontier& paths,
-                                 std::vector<BatchHit>& activeHits, int bounce,
+                                 ActivePathHits& activeHits, int bounce,
                                  BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;
 
