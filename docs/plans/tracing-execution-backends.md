@@ -1454,7 +1454,10 @@ GPU shading lands.
    - Depends on: job 2.
    - Output: optional-platform kernels with skip behavior when unavailable.
 
-4. **Add Vulkan clear/add/resolve kernels.**
+4. ~~**Add Vulkan clear/add/resolve kernels.**~~ ✅ **Done.** Optional
+   Vulkan compute kernels now clear accumulation planes, add synthetic
+   full-frame sample colors, and resolve to the LDR output plane, with CPU
+   reference parity tests that skip when Vulkan is disabled or unavailable.
    - Depends on: job 2.
    - Output: optional-platform kernels with skip behavior when unavailable.
 

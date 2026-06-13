@@ -29,6 +29,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Documented the current tracing execution metric fields across rendercli
   summaries, metrics JSON, graph traces, and Modeler metadata, including the
   compatibility aliases future capability records must preserve. — GPT-5 Codex
+- Added optional Vulkan tracing accumulation clear/add/resolve kernels with CPU
+  reference parity tests that skip cleanly when Vulkan is unavailable. — GPT-5
+  Codex
 - Defined the GPU tracing accumulation layout with separate HDR color-sum,
   sample-count, optional moment, and LDR resolve planes. — GPT-5 Codex
 - Routed path-tracing frontier compaction through the wavefront intersection
