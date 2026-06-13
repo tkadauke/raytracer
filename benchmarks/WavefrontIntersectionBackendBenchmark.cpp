@@ -549,10 +549,10 @@ namespace {
     WavefrontIntersectionQueryTiming timing;
     for (auto _ : state) {
       WavefrontIntersectionQueryTiming queryTiming;
-      const std::vector<bool> occluded =
+      const WavefrontOcclusionFlags occluded =
         backend->intersectAnyFrontier(*workload.scene, *frontier, &queryTiming);
       timing.add(queryTiming);
-      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), 1U));
     }
 
     workload.annotateBackendWorkload(state, *backend, timing, context, 0, frontier->rayCount(), 0,
@@ -582,12 +582,12 @@ namespace {
       timing.add(closestTiming);
 
       WavefrontIntersectionQueryTiming anyTiming;
-      const std::vector<bool> occluded =
+      const WavefrontOcclusionFlags occluded =
         backend->intersectAnyFrontier(*workload.scene, *anyFrontier, &anyTiming);
       timing.add(anyTiming);
 
       benchmark::DoNotOptimize(hits.size());
-      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), 1U));
     }
 
     workload.annotateBackendWorkload(
@@ -649,12 +649,12 @@ namespace {
       timing.add(closestTiming);
 
       WavefrontIntersectionQueryTiming anyTiming;
-      const std::vector<bool> occluded =
+      const WavefrontOcclusionFlags occluded =
         backend->intersectAnyFrontier(*workload.scene, *anyFrontier, &anyTiming);
       timing.add(anyTiming);
 
       benchmark::DoNotOptimize(hits.size());
-      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), 1U));
     }
 
     workload.annotateBackendWorkload(
@@ -714,10 +714,10 @@ namespace {
     WavefrontIntersectionQueryTiming timing;
     for (auto _ : state) {
       WavefrontIntersectionQueryTiming queryTiming;
-      const std::vector<bool> occluded =
+      const WavefrontOcclusionFlags occluded =
         backend->intersectAnyFrontier(*workload.scene, *frontier, &queryTiming);
       timing.add(queryTiming);
-      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), 1U));
     }
 
     workload.annotateBackendWorkload(state, *backend, timing, context, 0, frontier->rayCount(), 0,
@@ -751,12 +751,12 @@ namespace {
       timing.add(closestTiming);
 
       WavefrontIntersectionQueryTiming anyTiming;
-      const std::vector<bool> occluded =
+      const WavefrontOcclusionFlags occluded =
         backend->intersectAnyFrontier(*workload.scene, *anyFrontier, &anyTiming);
       timing.add(anyTiming);
 
       benchmark::DoNotOptimize(hits.size());
-      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), 1U));
     }
 
     workload.annotateBackendWorkload(
