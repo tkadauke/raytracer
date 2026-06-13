@@ -1510,6 +1510,47 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(2.0, batching.value("frontierCompactionMovedSamples").toDouble());
   }
 
+  TEST(WavefrontRaytracer, SerializesStableCpuTracingExecutionSummaryWithoutFallback) {
+    engine::wavefront::WavefrontRenderMetrics metrics;
+    metrics.batching.intersectionBackendRequest = "cpu";
+    metrics.batching.intersectionBackend = "cpu";
+    metrics.batching.intersectionBackendAvailability = "available";
+    metrics.batching.intersectionBackendExecutionPath = "runtime_scene";
+    metrics.batching.intersectionBackendClosestHitExecutionPath = "runtime_scene";
+
+    const auto capabilities = metrics.batching.tracingExecutionCapabilities();
+
+    EXPECT_FALSE(capabilities.hasFallback());
+    EXPECT_EQ(render::TracingCapabilitySupport::Supported,
+              capabilities.intersection.closestHit.support);
+    EXPECT_EQ(render::TracingExecutionDevice::CPU,
+              capabilities.intersection.closestHit.requestedDevice);
+    EXPECT_EQ(render::TracingExecutionDevice::CPU,
+              capabilities.intersection.closestHit.resolvedDevice);
+    EXPECT_EQ("runtime_scene", capabilities.intersection.closestHit.executionPath);
+
+    const QJsonObject batching = metrics.toJson().value("batching").toObject();
+    EXPECT_EQ("cpu", batching.value("tracingBackend").toString().toStdString());
+    EXPECT_EQ("wavefront_intersection",
+              batching.value("tracingBackendMode").toString().toStdString());
+
+    const QJsonArray tracingCapabilities = batching.value("tracingBackendCapabilities").toArray();
+    ASSERT_EQ(19, tracingCapabilities.size());
+    const QJsonObject closestHitCapability = tracingCapabilities.at(0).toObject();
+    EXPECT_EQ("geometry.closest_hit", closestHitCapability.value("name").toString().toStdString());
+    EXPECT_EQ("supported", closestHitCapability.value("support").toString().toStdString());
+    EXPECT_EQ("cpu", closestHitCapability.value("requestedDevice").toString().toStdString());
+    EXPECT_EQ("cpu", closestHitCapability.value("resolvedDevice").toString().toStdString());
+    EXPECT_EQ("runtime_scene",
+              closestHitCapability.value("executionPath").toString().toStdString());
+
+    const QJsonObject tracingFallback = batching.value("tracingBackendFallback").toObject();
+    EXPECT_FALSE(tracingFallback.value("active").toBool());
+    EXPECT_EQ("", tracingFallback.value("capability").toString().toStdString());
+    EXPECT_EQ("", tracingFallback.value("domain").toString().toStdString());
+    EXPECT_EQ("", tracingFallback.value("reason").toString().toStdString());
+  }
+
   TEST(WavefrontRaytracer, RecordsGpuIntersectionBackendFallbackMetrics) {
     auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
     renderer->setMaximumThreads(1);

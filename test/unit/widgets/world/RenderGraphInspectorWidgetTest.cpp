@@ -1156,6 +1156,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(tracingFallback.isEmpty());
     EXPECT_NE(QStringLiteral("none"), tracingFallback);
     EXPECT_THAT(tracingFallback.toStdString(), ::testing::HasSubstr("GPU -> CPU"));
+    EXPECT_THAT(tracingFallback.toStdString(),
+                ::testing::HasSubstr("wavefront intersection backend"));
     EXPECT_EQ(QStringLiteral("GPU"),
               rowValue(rows, QStringLiteral("Intersection backend request")));
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection backend")).isEmpty());
@@ -1314,6 +1316,12 @@ namespace RenderGraphInspectorWidgetTest {
     const QString reasonRow =
       rowValue(rows, QStringLiteral("Intersection scene unsupported reasons"));
     EXPECT_TRUE(reasonRow.contains(QStringLiteral("Primitive Is Not Supported")));
+    EXPECT_THAT(rowValue(rows, QStringLiteral("Tracing fallback")).toStdString(),
+                ::testing::HasSubstr("GPU -> CPU"));
+    EXPECT_THAT(rowValue(rows, QStringLiteral("Tracing fallback")).toStdString(),
+                ::testing::HasSubstr("GPU intersection scene unsupported"));
+    EXPECT_EQ(QStringLiteral("Runtime Scene"),
+              rowValue(rows, QStringLiteral("Intersection backend execution path")));
 
     auto* graph = widget.findChild<QGraphicsView*>(QStringLiteral("renderGraphView"));
     ASSERT_NE(nullptr, graph);
