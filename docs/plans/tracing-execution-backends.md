@@ -1335,7 +1335,9 @@ architecture on "intersection backend".
    - Output: C++ data structures for intersection, scene records, sampling,
      direct lighting, BSDF, path state, accumulation, and fallback status.
 
-3. **Serialize capabilities and preserve aliases.**
+3. **~~Serialize capabilities and preserve aliases.~~** ✅ **Done.** Wavefront
+   metrics now serialize tracing capability records and rendercli aliases while
+   preserving existing intersection backend fields.
    - Depends on: job 2.
    - Output: JSON/rendercli output with compatibility aliases for existing
      consumers.
