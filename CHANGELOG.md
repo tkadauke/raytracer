@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Added optional Vulkan tracing accumulation clear/add/resolve kernels with CPU
+  reference parity tests that skip cleanly when Vulkan is unavailable. — GPT-5
+  Codex
 - Defined the GPU tracing accumulation layout with separate HDR color-sum,
   sample-count, optional moment, and LDR resolve planes. — GPT-5 Codex
 - Routed path-tracing frontier compaction through the wavefront intersection
