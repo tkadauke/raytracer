@@ -3598,6 +3598,10 @@ rendercli_assert_image_nonempty("${wavefront_supported_backend_cpu_render}"
 rendercli_assert_exists("${wavefront_supported_backend_cpu_report}"
                         NAME "supported wavefront CPU backend metrics report exists")
 foreach(expectation
+        "tracing_backend=cpu"
+        "tracing_backend_mode=wavefront_intersection"
+        "tracing_backend_fallback=none"
+        "tracing_backend_capabilities=19"
         "intersection_backend_request=cpu"
         "intersection_backend=cpu"
         "intersection_backend_platform=none"
@@ -3883,6 +3887,10 @@ rendercli_assert_image_rms_at_most("${wavefront_glass_backend_cpu_render}"
                                    NAME
                                      "wavefront transparent GPU-request fallback matches CPU")
 foreach(expectation
+        "tracing_backend=cpu"
+        "tracing_backend_mode=wavefront_intersection"
+        "tracing_backend_fallback=GPU_intersection_scene_unsupported"
+        "tracing_backend_capabilities=19"
         "intersection_backend_request=gpu"
         "intersection_backend=cpu"
         "intersection_backend_availability=fallback"
