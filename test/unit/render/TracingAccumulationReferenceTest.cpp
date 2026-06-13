@@ -3,6 +3,9 @@
 #include "render/TracingAccumulationReference.h"
 #include "render/tonemap/ReinhardTonemap.h"
 #include "test/helpers/ColorTestHelper.h"
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+#include "render/MetalTracingAccumulationKernel.h"
+#endif
 
 #include <cstdint>
 #include <limits>
@@ -116,5 +119,76 @@ namespace TracingAccumulationReferenceTest {
 
     accumulation.sampleCount()[0][0] = std::numeric_limits<std::uint32_t>::max();
     EXPECT_THROW(accumulation.addSample(0, 0, Colord::white()), std::overflow_error);
+  }
+
+  TEST(MetalTracingAccumulationKernel, MatchesCpuReferenceOnSyntheticInputs) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    MetalTracingAccumulationKernel kernel;
+    if (!kernel.deviceAvailable()) {
+      GTEST_SKIP() << "No Metal device is available";
+    }
+    if (!kernel.accumulationPathAvailable()) {
+      GTEST_SKIP() << kernel.accumulationPathUnavailableReason();
+    }
+
+    TracingAccumulationLayout layout = TracingAccumulationLayout::image(2, 2);
+    layout.momentFormat = TracingAccumulationMomentFormat::RGBA32FloatSecondRawMoment;
+
+    Buffer<Colord> firstSamples(2, 2);
+    firstSamples[0][0] = Colord(0.25, 0.5, 0.75);
+    firstSamples[0][1] = Colord(1.0, 0.0, 0.25);
+    firstSamples[1][0] = Colord(0.0, 0.125, 0.5);
+    firstSamples[1][1] = Colord(1.5, 0.25, 0.0);
+
+    Buffer<Colord> secondSamples(2, 2);
+    secondSamples[0][0] = Colord(0.75, 0.25, 0.0);
+    secondSamples[0][1] = Colord(0.0, 0.5, 0.25);
+    secondSamples[1][0] = Colord(0.5, 0.375, 0.25);
+    secondSamples[1][1] = Colord(0.25, 0.75, 0.5);
+
+    TracingAccumulationBuffer expected(layout);
+    expected.addSamples(firstSamples);
+    expected.addSamples(secondSamples);
+
+    MetalTracingAccumulationBuffer metal(layout);
+    metal.addSamples(firstSamples);
+    metal.addSamples(secondSamples);
+
+    TracingAccumulationBuffer actual(layout);
+    metal.copyTo(actual);
+
+    for (int y = 0; y != layout.height; ++y) {
+      for (int x = 0; x != layout.width; ++x) {
+        EXPECT_EQ(expected.sampleCount()[y][x], actual.sampleCount()[y][x]);
+        ASSERT_COLOR_NEAR(expected.colorSum()[y][x], actual.colorSum()[y][x], 1e-6);
+        ASSERT_NE(nullptr, expected.secondMoment());
+        ASSERT_NE(nullptr, actual.secondMoment());
+        ASSERT_COLOR_NEAR((*expected.secondMoment())[y][x], (*actual.secondMoment())[y][x], 1e-6);
+      }
+    }
+
+    Buffer<unsigned int> expectedResolved(2, 2);
+    Buffer<unsigned int> actualResolved(2, 2);
+    expected.resolve(expectedResolved);
+    metal.resolve(actualResolved);
+    for (int y = 0; y != layout.height; ++y) {
+      for (int x = 0; x != layout.width; ++x) {
+        EXPECT_EQ(expectedResolved[y][x], actualResolved[y][x]);
+      }
+    }
+
+    metal.clear();
+    metal.copyTo(actual);
+    for (int y = 0; y != layout.height; ++y) {
+      for (int x = 0; x != layout.width; ++x) {
+        EXPECT_EQ(0u, actual.sampleCount()[y][x]);
+        EXPECT_EQ(Colord::black(), actual.colorSum()[y][x]);
+        ASSERT_NE(nullptr, actual.secondMoment());
+        EXPECT_EQ(Colord::black(), (*actual.secondMoment())[y][x]);
+      }
+    }
+#else
+    GTEST_SKIP() << "Metal tracing accumulation backend is disabled";
+#endif
   }
 }

@@ -46,6 +46,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   Codex
 - Defined the GPU tracing accumulation layout with separate HDR color-sum,
   sample-count, optional moment, and LDR resolve planes. — GPT-5 Codex
+- Added optional Metal tracing accumulation kernels for clear, sample-add,
+  optional second-moment accumulation, and LDR resolve, with CPU-reference
+  parity coverage on synthetic inputs when Metal is available. — GPT-5 Codex
 - Routed path-tracing frontier compaction through the wavefront intersection
   backend contract so future GPU backends can override the current host
   compaction path. — GPT-5 Codex
