@@ -33,6 +33,8 @@ Floating-point samples are produced by taking the high 24 bits of the hash and
 multiplying by `2^-24`, yielding a value in `[0, 1)`. That rule is intentional:
 it avoids platform `uniform_real_distribution` behavior, avoids CPU extended
 precision differences, and maps cleanly to `float` precision on GPU shaders.
+The CPU reference implementation lives in `render::GpuSampleStream` and is
+kept independent of the existing stratified sampler set path.
 
 ### Rationale
 
