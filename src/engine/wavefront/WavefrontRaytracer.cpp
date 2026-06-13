@@ -61,6 +61,61 @@ namespace engine::wavefront {
       const render::Scene& m_scene;
       const render::Integrator& m_integrator;
     };
+
+    render::TracingExecutionDevice executionDeviceForLabel(const std::string& label) {
+      if (label == "metal" || label == "vulkan" || label == "gpu") {
+        return render::TracingExecutionDevice::GPU;
+      }
+      if (label == "mixed" || label == "hybrid") {
+        return render::TracingExecutionDevice::Hybrid;
+      }
+      if (label == "cpu" || label == "runtime_scene" || label == "compiled_cpu" ||
+          label == "packed_cpu" || label == "host" || label == "host_cpu") {
+        return render::TracingExecutionDevice::CPU;
+      }
+      return render::TracingExecutionDevice::Unsupported;
+    }
+
+    render::TracingExecutionDevice requestedDeviceForLabel(const std::string& label) {
+      if (label == "gpu" || label == "metal" || label == "vulkan") {
+        return render::TracingExecutionDevice::GPU;
+      }
+      if (label == "mixed" || label == "hybrid") {
+        return render::TracingExecutionDevice::Hybrid;
+      }
+      if (label == "auto" || label == "cpu" || label.empty()) {
+        return render::TracingExecutionDevice::CPU;
+      }
+      return render::TracingExecutionDevice::Unsupported;
+    }
+
+    render::TracingCapabilityRecord tracingRecordFromExecutionLabels(
+      render::TracingExecutionDomain domain, std::string name, const std::string& request,
+      const std::string& backend, const std::string& platform, const std::string& availability,
+      const std::string& fallbackReason, const std::string& executionPath) {
+      const render::TracingExecutionDevice requested = requestedDeviceForLabel(request);
+      const render::TracingExecutionDevice resolved =
+        executionDeviceForLabel(executionPath.empty() ? backend : executionPath);
+      if (resolved == render::TracingExecutionDevice::Unsupported) {
+        return render::TracingCapabilityRecord::unsupported(
+          domain, std::move(name),
+          fallbackReason.empty() ? "no execution path was reported" : fallbackReason);
+      }
+      if (availability == "fallback" || !fallbackReason.empty()) {
+        auto record = render::TracingCapabilityRecord::fallbackRecord(
+          domain, std::move(name), requested, resolved, executionPath, fallbackReason);
+        record.platform = platform;
+        return record;
+      }
+      if (resolved == render::TracingExecutionDevice::GPU) {
+        return render::TracingCapabilityRecord::gpu(domain, std::move(name), platform,
+                                                    executionPath);
+      }
+      if (resolved == render::TracingExecutionDevice::Hybrid) {
+        return render::TracingCapabilityRecord::hybrid(domain, std::move(name), executionPath);
+      }
+      return render::TracingCapabilityRecord::cpu(domain, std::move(name), executionPath);
+    }
   }
 
   void WavefrontRenderMetrics::TimingSummary::recordIntegratorBatch(
@@ -570,6 +625,92 @@ namespace engine::wavefront {
       return 0.0;
     }
     return static_cast<double>(intersectionRaysSubmitted) / intersectionBackendKernelWorkerSeconds;
+  }
+
+  render::TracingExecutionCapabilityRecords
+  WavefrontRenderMetrics::BatchSummary::tracingExecutionCapabilities() const {
+    using Domain = render::TracingExecutionDomain;
+    using Device = render::TracingExecutionDevice;
+
+    render::TracingExecutionCapabilityRecords records;
+    records.intersection.closestHit = tracingRecordFromExecutionLabels(
+      Domain::Intersection, "geometry.closest_hit", intersectionBackendRequest,
+      intersectionBackend, intersectionBackendPlatform, intersectionBackendAvailability,
+      intersectionBackendFallbackReason, intersectionBackendClosestHitExecutionPath);
+    records.intersection.anyHit = tracingRecordFromExecutionLabels(
+      Domain::Intersection, "geometry.any_hit", intersectionBackendRequest, intersectionBackend,
+      intersectionBackendPlatform, intersectionBackendAvailability,
+      intersectionBackendFallbackReason, intersectionBackendAnyHitExecutionPath);
+
+    if (intersectionSceneCompiled) {
+      std::string reason = "compiled intersection subset";
+      if (intersectionSceneUnsupportedPrimitives != 0) {
+        reason = "compiled scene has unsupported primitives";
+      }
+      records.scene.geometryRecords = render::TracingCapabilityRecord::restricted(
+        Domain::SceneRecords, "scene.geometry_records",
+        executionDeviceForLabel(intersectionBackendExecutionPath), intersectionBackendExecutionPath,
+        reason);
+    } else {
+      records.scene.geometryRecords =
+        render::TracingCapabilityRecord::cpu(Domain::SceneRecords, "scene.geometry_records",
+                                             intersectionBackendExecutionPath.empty()
+                                               ? "runtime_scene"
+                                               : intersectionBackendExecutionPath);
+    }
+    records.scene.materialRecords =
+      render::TracingCapabilityRecord::cpu(Domain::SceneRecords, "scene.material_records");
+    records.scene.textureRecords =
+      render::TracingCapabilityRecord::cpu(Domain::SceneRecords, "scene.texture_records");
+    records.scene.lightRecords =
+      render::TracingCapabilityRecord::cpu(Domain::SceneRecords, "scene.light_records");
+
+    records.sampling.gpuRng = render::TracingCapabilityRecord::unsupported(
+      Domain::Sampling, "sampling.gpu_rng", "GPU sample stream is not implemented");
+    records.sampling.namedDimensions =
+      render::TracingCapabilityRecord::cpu(Domain::Sampling, "sampling.named_dimensions");
+
+    records.directLighting.lightSampling =
+      render::TracingCapabilityRecord::cpu(Domain::DirectLighting, "lighting.direct_light_sample");
+    records.directLighting.visibility = records.intersection.anyHit;
+    records.directLighting.visibility.domain = Domain::DirectLighting;
+    records.directLighting.visibility.name = "lighting.direct_light_visibility";
+    records.directLighting.contribution = render::TracingCapabilityRecord::cpu(
+      Domain::DirectLighting, "lighting.direct_light_contribution");
+
+    records.bsdf.eval = render::TracingCapabilityRecord::cpu(Domain::BSDF, "shading.bsdf_eval");
+    records.bsdf.sample =
+      render::TracingCapabilityRecord::cpu(Domain::BSDF, "shading.bsdf_sample");
+    records.bsdf.deltaBranches =
+      render::TracingCapabilityRecord::cpu(Domain::BSDF, "shading.delta_branches");
+
+    records.pathState.residency =
+      render::TracingCapabilityRecord::cpu(Domain::PathState, "state.path_state_residency");
+    const std::string compactionPath =
+      frontierCompactionExecutionPath.empty() ? "host" : frontierCompactionExecutionPath;
+    const Device compactionDevice = executionDeviceForLabel(compactionPath);
+    if (compactionDevice == Device::GPU) {
+      records.pathState.frontierCompaction =
+        render::TracingCapabilityRecord::gpu(Domain::PathState, "state.frontier_compaction",
+                                             intersectionBackendPlatform, compactionPath);
+    } else if (compactionDevice == Device::Hybrid) {
+      records.pathState.frontierCompaction =
+        render::TracingCapabilityRecord::hybrid(Domain::PathState, "state.frontier_compaction",
+                                                compactionPath);
+    } else {
+      records.pathState.frontierCompaction =
+        render::TracingCapabilityRecord::cpu(Domain::PathState, "state.frontier_compaction",
+                                             compactionPath);
+    }
+    records.pathState.spawnedContinuations =
+      render::TracingCapabilityRecord::cpu(Domain::PathState, "state.spawned_continuations");
+
+    records.accumulation.sampleAccumulation = render::TracingCapabilityRecord::cpu(
+      Domain::Accumulation, "accumulation.sample_accumulation");
+    records.accumulation.progressiveReadback = render::TracingCapabilityRecord::cpu(
+      Domain::Accumulation, "accumulation.progressive_readback");
+
+    return records;
   }
 
   void WavefrontRenderMetrics::TilingSummary::resetFromTilePlan(const render::TilePlan& tilePlan) {
