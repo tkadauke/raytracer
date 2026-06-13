@@ -16,8 +16,10 @@
 > materials publish compatible continuations/BSDF samples, convergence and
 > denoising settings flow through render intent, rendercli, and Modeler, and the
 > BVH-heavy wall-clock gate is now covered by current convergence-capture
-> evidence. Phase 7+ remains the future optimization lane for broader SoA/GPU
-> work and additional packet/layout tuning.
+> evidence. Phase 7+ remains the future optimization lane for broader SoA,
+> packet, and layout tuning. Full GPU tracing execution has moved to the parent
+> roadmap in `docs/plans/tracing-execution-backends.md`; this plan remains the
+> CPU schedule and path-tracing semantics reference.
 >
 > **Rule:** the wavefront engine is a **sibling** to the existing
 > `Raytracer`, not a replacement. Both ship; the user chooses through render
@@ -61,10 +63,11 @@ The natural progression continues past wavefront:
 
 5. **GPU offload.** Wavefront is the canonical GPU ray-tracing
    architecture (Laine, Karras & Aila 2013 introduced it for that
-   reason). The repository now has an OpenGL raster backend and graph
-   GPU/CPU resource-domain plumbing, but that is rasterization
-   infrastructure, not GPU ray tracing. CPU wavefront comes first;
-   GPU ray tracing remains a separate future plan.
+   reason). The repository now has an OpenGL raster backend, graph
+   GPU/CPU resource-domain plumbing, and a hybrid GPU-intersection
+   service, but those are not full GPU tracing by themselves. CPU
+   wavefront came first; full CPU/hybrid/GPU tracing execution is now
+   tracked in `docs/plans/tracing-execution-backends.md`.
 
 Each builds on the previous. This plan covers (2) in detail, (3) and
 (4) in sketch, and (5) as a future-work pointer.
@@ -1048,17 +1051,19 @@ The rendercli denoiser regression now also pins the stochastic seed for its
 reference, raw, and filtered renders, so the quality gate measures the denoiser
 instead of incidental sample-stream differences.
 
-### Phase 7+ — future SoA / GPU / packet traversal optimization
+### Phase 7+ — future SoA / packet traversal optimization
 
 Partially pre-landed. The SoA / Ray4 / Ray8 substrate from
 `complete/core-math-optimization.md` Phase 4 is already available: packet ray
 transport, primitive packet entry points, `BoundingBox::intersects4`, packet
 primitive kernels, and BVH Ray4/Ray8 active-mask traversal. Once the wavefront
 engine is stable and path-tracing semantics are locked in, this work plugs into
-the scheduler as a performance optimization. GPU offload remains a major lift;
-it is intentionally future work, not a CPU wavefront v1 blocker. The dedicated
-hybrid GPU-intersection follow-up is tracked in
-`docs/plans/gpu-wavefront-intersection.md`.
+the scheduler as a performance optimization. Full GPU tracing remains outside
+this CPU wavefront plan and is now tracked in
+`docs/plans/tracing-execution-backends.md`. The dedicated hybrid
+GPU-intersection service is tracked in
+`docs/plans/gpu-wavefront-intersection.md` as a child slice of that parent
+plan.
 
 The first handoff slice is now in place: primitives expose a four-wide
 `intersectPacketHits(...)` API that returns the closest hit primitive and

@@ -1,5 +1,13 @@
 # GPU-assisted wavefront intersection plan - June 2026
 
+> **Plan ownership update:** this is no longer the top-level GPU tracing goal.
+> It is the reusable closest-hit/any-hit intersection-service slice under
+> `docs/plans/tracing-execution-backends.md`. Keep this plan active for
+> platform intersection kernels, fallback behavior, parity tests, and hybrid
+> visibility use cases. Do not expand it into material evaluation, BSDF
+> sampling, path-state residency, accumulation, or full GPU path tracing; those
+> belong to the parent tracing execution backend plan.
+
 > **Scope:** add an optional GPU intersection backend for the wavefront/path
 > tracing engines. The first version is hybrid: wavefront scheduling, material
 > evaluation, BSDF sampling, direct lighting, denoising, tonemapping, and graph
@@ -29,14 +37,18 @@
 > rectangle, disk, OpenCylinder, and Torus scenes, including static transform
 > payloads. This is a
 > follow-up to
-> `docs/plans/wavefront-and-path-tracing.md` Phase 7+. It should not replace
-> the CPU wavefront renderer, and it should not attempt a full GPU path tracer
-> in the first slice.
+> `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice
+> of `docs/plans/tracing-execution-backends.md`. It should not replace the CPU
+> wavefront renderer, and it should not attempt a full GPU path tracer in this
+> slice.
 
 ---
 
 ## Goals
 
+- Preserve GPU intersection as a reusable service for wavefront tracing, hybrid
+  raster/tracing shadows, visibility queries, graph AOV/debug passes, and
+  future full GPU tracing backends.
 - Keep one renderer semantics path. CPU and GPU intersection backends should
   feed the same wavefront scheduler and the same CPU shading/integrator code.
 - Support macOS and Linux. macOS should use Metal; Linux should use Vulkan
@@ -64,7 +76,9 @@
   structures in v1. If a GPU backend cannot compile the scene, fall back to the
   CPU backend for the whole render.
 - Do not move materials, BSDF sampling, light sampling, or denoising to the GPU
-  in this plan.
+  in this plan. Those belong to `tracing-execution-backends.md` milestones for
+  compiled tracing scenes, GPU direct lighting, GPU BSDF/path transport, and
+  full GPU tracing.
 
 ---
 
