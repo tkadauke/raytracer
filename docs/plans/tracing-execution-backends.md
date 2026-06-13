@@ -1368,6 +1368,53 @@ GPU-readable records for geometry, materials, textures, and lights.
 **Purpose:** let CPU and GPU generate deterministic stochastic samples from the
 same seed/sample-index contract.
 
+The first GPU tracing sample generator is a stateless 32-bit PCG hash
+(`pcg_hash32`) evaluated from an explicit sample coordinate. The generator is a
+deterministic building block, not a new renderer:
+
+```cpp
+uint32_t pcg_hash32(uint32_t input) {
+  uint32_t state = input * 747796405u + 2891336453u;
+  uint32_t word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+  return (word >> 22u) ^ word;
+}
+```
+
+Each stochastic request is addressed by the same logical coordinate already
+reserved by `SampleStream`: `(seed, pixelIndex, primarySampleIndex, dimension,
+component)`. The dimension comes from `sampleDimensionIndex(name, slot)`.
+Pixel, time, and lens own dimensions 0, 1, and 2; path-tracing dimensions repeat
+in four-slot groups for BSDF, light-surface, direct-light selection, and
+Russian-roulette continuation. The coordinate is folded through fixed unsigned
+32-bit integer mixes before the final `pcg_hash32` call; future fixed-vector
+tests must pin the exact packing/mixing constants before production code
+depends on this stream.
+
+Floating-point samples are produced by taking the high 24 bits of the hash and
+multiplying by `2^-24`, yielding a value in `[0, 1)`. That rule avoids platform
+`uniform_real_distribution` behavior, avoids CPU extended precision differences,
+and maps cleanly to `float` precision on GPU shaders.
+
+The choice is intentionally limited:
+
+- It is schedule-independent: scalar CPU, wavefront CPU, and GPU queues can
+  request dimensions in different orders without changing the stream.
+- It is GPU-friendly: the hash uses only unsigned 32-bit multiply, add, xor, and
+  shift operations available in C++, GLSL, MSL, WGSL, and SPIR-V without relying
+  on 64-bit integer support.
+- It forbids hidden RNG state such as `std::random_device`, `std::mt19937`,
+  `std::uniform_real_distribution`, Qt random helpers, shader
+  `fract(sin(...))` tricks, hardware RNGs, or any per-thread/per-platform
+  generator for this stream.
+- It is a pseudorandom white-noise baseline, not a low-discrepancy sequence.
+  Sobol, Owen-scrambled Sobol, blue-noise tiles, and stratified reconstruction
+  remain future sampling-quality work.
+- It is not cryptographic and must not be used for secrets, randomized file
+  formats, or adversarial input handling.
+- The exact coordinate packing is part of the ABI once fixed-vector tests land;
+  changing it is a behavior change and must be versioned or intentionally
+  migrated.
+
 **Jobs:**
 
 1. **Define sample dimensions and indices.**
@@ -1375,7 +1422,9 @@ same seed/sample-index contract.
    - Output: pixel, lens/time, BSDF, light, Russian-roulette, and continuation
      dimensions with sample-index mapping.
 
-2. **Choose and document the first generator.**
+2. **~~Choose and document the first generator.~~** ✅ **Done.** The initial
+   parity stream is a stateless 32-bit PCG hash over explicit sample
+   coordinates, with platform RNGs excluded from the contract.
    - Depends on: job 1.
    - Output: deterministic generator choice with rationale and limits.
 
