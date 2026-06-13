@@ -29,6 +29,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Documented the current tracing execution metric fields across rendercli
   summaries, metrics JSON, graph traces, and Modeler metadata, including the
   compatibility aliases future capability records must preserve. — GPT-5 Codex
+- Added the CPU reference GPU sample stream that generates deterministic
+  named-dimension samples from explicit seed, pixel, primary-sample, dimension,
+  and component coordinates. — GPT-5 Codex
 - Defined the GPU tracing sample-dimension contract for pixel, time, lens,
   BSDF, light, light-selection, and continuation samples, with deterministic
   primary-sample/dimension coordinates. — GPT-5 Codex
