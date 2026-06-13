@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Added tracing execution capability records for intersection, scene records,
+  sampling, direct lighting, BSDF, path state, accumulation, and fallback
+  status while preserving existing wavefront metrics fields. — GPT-5 Codex
 - Documented the current tracing execution metric fields across rendercli
   summaries, metrics JSON, graph traces, and Modeler metadata, including the
   compatibility aliases future capability records must preserve. — GPT-5 Codex

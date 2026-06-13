@@ -1423,6 +1423,66 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(60.0, batching.value("intersectionBackendExpectedAnyHitRays").toDouble());
   }
 
+  TEST(WavefrontRaytracer, DerivesTracingExecutionCapabilitiesBesideLegacyMetrics) {
+    engine::wavefront::WavefrontRenderMetrics metrics;
+    metrics.batching.intersectionBackendRequest = "gpu";
+    metrics.batching.intersectionBackend = "cpu";
+    metrics.batching.intersectionBackendPlatform = "vulkan";
+    metrics.batching.intersectionBackendAvailability = "fallback";
+    metrics.batching.intersectionBackendFallbackReason = "GPU backend unavailable";
+    metrics.batching.intersectionBackendExecutionPath = "packed_cpu";
+    metrics.batching.intersectionBackendClosestHitExecutionPath = "packed_cpu";
+    metrics.batching.intersectionBackendAnyHitExecutionPath = "packed_cpu";
+    metrics.batching.intersectionSceneCompiled = true;
+    metrics.batching.intersectionSceneUnsupportedPrimitives = 2;
+    metrics.batching.frontierCompactionPasses = 1;
+    metrics.batching.frontierCompactionInputSamples = 8;
+    metrics.batching.frontierCompactionRetainedSamples = 5;
+    metrics.batching.frontierCompactionRemovedSamples = 3;
+    metrics.batching.frontierCompactionMovedSamples = 2;
+    metrics.batching.frontierCompactionExecutionPath = "host";
+
+    const auto capabilities = metrics.batching.tracingExecutionCapabilities();
+
+    EXPECT_TRUE(capabilities.hasFallback());
+    EXPECT_EQ(render::TracingCapabilitySupport::Fallback,
+              capabilities.intersection.closestHit.support);
+    EXPECT_EQ(render::TracingExecutionDevice::GPU,
+              capabilities.intersection.closestHit.requestedDevice);
+    EXPECT_EQ(render::TracingExecutionDevice::CPU,
+              capabilities.intersection.closestHit.resolvedDevice);
+    EXPECT_EQ("GPU backend unavailable", capabilities.intersection.closestHit.fallback.reason);
+    EXPECT_EQ(render::TracingCapabilitySupport::Restricted,
+              capabilities.scene.geometryRecords.support);
+    EXPECT_EQ("compiled scene has unsupported primitives",
+              capabilities.scene.geometryRecords.unsupportedReason);
+    EXPECT_EQ("lighting.direct_light_visibility", capabilities.directLighting.visibility.name);
+    EXPECT_EQ(render::TracingExecutionDevice::CPU,
+              capabilities.pathState.frontierCompaction.resolvedDevice);
+    EXPECT_EQ(render::TracingCapabilitySupport::Unsupported, capabilities.sampling.gpuRng.support);
+    EXPECT_EQ(render::TracingCapabilitySupport::Supported, capabilities.bsdf.eval.support);
+    EXPECT_EQ(render::TracingCapabilitySupport::Supported,
+              capabilities.accumulation.sampleAccumulation.support);
+
+    const QJsonObject batching = metrics.toJson().value("batching").toObject();
+    EXPECT_EQ("gpu", batching.value("intersectionBackendRequest").toString().toStdString());
+    EXPECT_EQ("cpu", batching.value("intersectionBackend").toString().toStdString());
+    EXPECT_EQ("fallback",
+              batching.value("intersectionBackendAvailability").toString().toStdString());
+    EXPECT_EQ("GPU backend unavailable",
+              batching.value("intersectionBackendFallbackReason").toString().toStdString());
+    EXPECT_EQ(1.0, batching.value("frontierHostCompactionPasses").toDouble());
+    EXPECT_EQ(1.0, batching.value("frontierCompactionPasses").toDouble());
+    EXPECT_EQ(8.0, batching.value("frontierHostCompactionInputSamples").toDouble());
+    EXPECT_EQ(8.0, batching.value("frontierCompactionInputSamples").toDouble());
+    EXPECT_EQ(5.0, batching.value("frontierHostCompactionRetainedSamples").toDouble());
+    EXPECT_EQ(5.0, batching.value("frontierCompactionRetainedSamples").toDouble());
+    EXPECT_EQ(3.0, batching.value("frontierHostCompactionRemovedSamples").toDouble());
+    EXPECT_EQ(3.0, batching.value("frontierCompactionRemovedSamples").toDouble());
+    EXPECT_EQ(2.0, batching.value("frontierHostCompactionMovedSamples").toDouble());
+    EXPECT_EQ(2.0, batching.value("frontierCompactionMovedSamples").toDouble());
+  }
+
   TEST(WavefrontRaytracer, RecordsGpuIntersectionBackendFallbackMetrics) {
     auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
     renderer->setMaximumThreads(1);
