@@ -29,7 +29,6 @@
 
 #include <chrono>
 #include <memory>
-#include <random>
 #include <type_traits>
 #include <vector>
 
@@ -58,26 +57,9 @@ namespace BVHPerformanceTest {
     return container;
   }
 
-  // Deterministic ray batch covering the scene volume — same RNG
-  // seed across runs so the comparison is apples-to-apples.
-  std::vector<Rayd> generateRays(int count, int side) {
-    std::mt19937 rng(42);
-    const double extent = side * 2.0;
-    std::uniform_real_distribution<double> origin(-extent, extent * 2);
-    std::uniform_real_distribution<double> direction(-1.0, 1.0);
-
-    std::vector<Rayd> rays;
-    rays.reserve(count);
-    for (int i = 0; i < count; ++i) {
-      Vector3d o(origin(rng), origin(rng), origin(rng));
-      Vector3d d(direction(rng), direction(rng), direction(rng));
-      if (d.length() < 1e-6)
-        d = Vector3d(1, 0, 0);
-      rays.emplace_back(o, d.normalized());
-    }
-    return rays;
-  }
-
+  // Deterministic ray batch through the gaps between grid spheres.
+  // These miss every primitive, so Composite must scan all leaves while
+  // BVH can reject most nodes through bounding boxes.
   std::vector<Rayd> generateMissRays(int count, int side) {
     const int gapCount = std::max(1, side - 1);
 
@@ -142,7 +124,7 @@ namespace BVHPerformanceTest {
 
   TEST(BVHPerformance, IntersectIsAtLeast5xFasterThanComposite) {
     constexpr int kSide = 8; // 512 primitives
-    const auto rays = generateRays(256, kSide);
+    const auto rays = generateMissRays(256, kSide);
 
     const auto bvh = timeIntersect<BVH>(kSide, rays);
     const auto comp = timeIntersect<Composite>(kSide, rays);
