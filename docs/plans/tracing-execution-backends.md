@@ -1406,11 +1406,16 @@ The choice is intentionally limited:
   `std::uniform_real_distribution`, Qt random helpers, shader
   `fract(sin(...))` tricks, hardware RNGs, or any per-thread/per-platform
   generator for this stream.
+- It is easy to parity test: fixed input coordinates produce fixed `uint32_t`
+  and `[0, 1)` values that can be checked in CPU unit tests and mirrored in
+  shader conformance tests.
 - It is a pseudorandom white-noise baseline, not a low-discrepancy sequence.
   Sobol, Owen-scrambled Sobol, blue-noise tiles, and stratified reconstruction
   remain future sampling-quality work.
 - It is not cryptographic and must not be used for secrets, randomized file
   formats, or adversarial input handling.
+- The initial 24-bit float mapping is sufficient for renderer sampling parity,
+  but not for APIs that require full 32-bit integer entropy as a float.
 - The exact coordinate packing is part of the ABI once fixed-vector tests land;
   changing it is a behavior change and must be versioned or intentionally
   migrated.
