@@ -41,6 +41,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Chose the initial CPU/GPU tracing sample generator as a stateless 32-bit PCG
   hash over explicit sample coordinates, with platform RNGs excluded from the
   parity contract. — GPT-5 Codex
+- Reported tracing accumulation residency, bytes, clear/add/resolve counts,
+  and readbacks in CPU reference diagnostics, optional Vulkan accumulation
+  results, wavefront metrics JSON, and rendercli summaries. — GPT-5 Codex
 - Added optional Vulkan tracing accumulation clear/add/resolve kernels with CPU
   reference parity tests that skip cleanly when Vulkan is unavailable. — GPT-5
   Codex

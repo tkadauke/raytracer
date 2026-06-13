@@ -2,6 +2,7 @@
 
 #include "core/math/Rect.h"
 #include "render/RenderEngine.h"
+#include "render/TracingAccumulationLayout.h"
 #include "render/TracingExecutionCapability.h"
 
 #include <cstddef>
@@ -265,6 +266,10 @@ namespace engine::wavefront {
       std::uint64_t skippedPrimarySamples = 0;
       double skippedPrimarySampleFraction = 0.0;
     } adaptiveSampling;
+
+    struct AccumulationSummary {
+      render::TracingAccumulationDiagnostics diagnostics;
+    } accumulation;
 
     struct DenoiseSummary {
       struct NumericParameter {

@@ -21,7 +21,9 @@ namespace render {
   TracingAccumulationBuffer::TracingAccumulationBuffer(const TracingAccumulationLayout& layout)
       : m_layout(validatedLayout(layout)),
         m_colorSum(m_layout.width, m_layout.height),
-        m_sampleCount(m_layout.width, m_layout.height) {
+        m_sampleCount(m_layout.width, m_layout.height),
+        m_diagnostics(TracingAccumulationDiagnostics::forLayout(m_layout, "cpu_reference",
+                                                                "cpu_host")) {
     if (m_layout.hasMomentBuffer()) {
       m_secondMoment = std::make_unique<Buffer<Colord>>(m_layout.width, m_layout.height);
     }
@@ -66,12 +68,17 @@ namespace render {
     return m_secondMoment.get();
   }
 
+  const TracingAccumulationDiagnostics& TracingAccumulationBuffer::diagnostics() const {
+    return m_diagnostics;
+  }
+
   void TracingAccumulationBuffer::clear() {
     m_colorSum.clear(Colord::black());
     m_sampleCount.clear(0u);
     if (m_secondMoment) {
       m_secondMoment->clear(Colord::black());
     }
+    m_diagnostics.recordClear();
   }
 
   void TracingAccumulationBuffer::addSample(int x, int y, const Colord& color) {
@@ -84,15 +91,25 @@ namespace render {
     if (m_secondMoment) {
       (*m_secondMoment)[y][x] += squared(color);
     }
+    m_diagnostics.recordAdd(1);
   }
 
   void TracingAccumulationBuffer::addSamples(const Buffer<Colord>& colors) {
     validateTargetShape(colors.width(), colors.height(), "sample color buffer");
     for (int y = 0; y != m_layout.height; ++y) {
       for (int x = 0; x != m_layout.width; ++x) {
-        addSample(x, y, colors[y][x]);
+        validatePixel(x, y);
+        if (m_sampleCount[y][x] == std::numeric_limits<std::uint32_t>::max()) {
+          throw std::overflow_error("tracing accumulation sample count overflows");
+        }
+        m_colorSum[y][x] += colors[y][x];
+        ++m_sampleCount[y][x];
+        if (m_secondMoment) {
+          (*m_secondMoment)[y][x] += squared(colors[y][x]);
+        }
       }
     }
+    m_diagnostics.recordAdd(m_layout.pixelCount());
   }
 
   Colord TracingAccumulationBuffer::resolvedColor(int x, int y) const {
@@ -113,6 +130,7 @@ namespace render {
         target[y][x] = (tonemap ? tonemap->apply(color) : color).rgb();
       }
     }
+    m_diagnostics.recordResolve();
   }
 
   void TracingAccumulationBuffer::validatePixel(int x, int y) const {

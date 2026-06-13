@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
+#include <string>
 
 namespace render {
   /**
@@ -81,6 +82,36 @@ namespace render {
     std::uint64_t totalBytes() const;
 
     void validate() const;
+  };
+
+  /**
+    * Runtime diagnostics for backend-owned tracing accumulation resources.
+    *
+    * `residentBytes` reports the storage kept live by the accumulation backend;
+    * `readbackBytes` reports bytes copied back to CPU-visible memory. Operation
+    * counters are intentionally backend-neutral: a CPU reference add can be a
+    * per-pixel call, while a GPU add can be one full-frame dispatch.
+    */
+  struct TracingAccumulationDiagnostics {
+    std::string backend;
+    std::string residency;
+    TracingAccumulationLayout layout;
+    std::uint64_t residentBytes{0};
+    std::uint64_t clearOperations{0};
+    std::uint64_t addOperations{0};
+    std::uint64_t addedSamples{0};
+    std::uint64_t resolveOperations{0};
+    std::uint64_t readbackOperations{0};
+    std::uint64_t readbackBytes{0};
+
+    static TracingAccumulationDiagnostics forLayout(const TracingAccumulationLayout& layout,
+                                                    const char* backend,
+                                                    const char* residency);
+
+    void recordClear(std::uint64_t operations = 1);
+    void recordAdd(std::uint64_t samples, std::uint64_t operations = 1);
+    void recordResolve(std::uint64_t operations = 1);
+    void recordReadback(std::uint64_t bytes, std::uint64_t operations = 1);
   };
 
   std::size_t bytesPerPixel(TracingAccumulationColorFormat format);
