@@ -17,6 +17,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added an intersection-only `render::IntersectionService` API for submitting
   closest-hit and any-hit work with explicit backend execution-path and
   fallback diagnostics. — GPT-5 Codex
+- Serialized tracing backend capability records and fallback summaries in
+  wavefront metrics JSON/rendercli output alongside the existing intersection
+  backend compatibility aliases. — GPT-5 Codex
 - Added tracing execution capability records for intersection, scene records,
   sampling, direct lighting, BSDF, path state, accumulation, and fallback
   status while preserving existing wavefront metrics fields. — GPT-5 Codex
