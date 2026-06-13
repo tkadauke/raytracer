@@ -522,6 +522,14 @@ namespace RenderGraphInspectorWidgetTest {
     return QString();
   }
 
+  int rowIndex(const RenderGraphInspectorWidget::DetailRows& rows, const QString& name) {
+    for (int index = 0; index != rows.size(); ++index) {
+      if (rows[index].first == name)
+        return index;
+    }
+    return -1;
+  }
+
   TEST_F(RenderGraphInspectorWidgetTest, ShouldInitialize) {
     RenderGraphInspectorWidget widget;
   }
@@ -1100,6 +1108,29 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("intersection rays")));
   }
 
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldGroupCpuTracingExecutionRowsForSelectedPass) {
+    auto trace = wavefrontCpuTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    const auto rows = widget.passDetailRows(QStringLiteral("wavefront_beauty"));
+
+    EXPECT_EQ(QStringLiteral("CPU"), rowValue(rows, QStringLiteral("Tracing backend")));
+    EXPECT_EQ(QStringLiteral("Wavefront Intersection"),
+              rowValue(rows, QStringLiteral("Tracing backend mode")));
+    const QString cpuExecution = rowValue(rows, QStringLiteral("CPU execution"));
+    EXPECT_THAT(cpuExecution.toStdString(), ::testing::HasSubstr("Geometry Closest Hit"));
+    EXPECT_THAT(cpuExecution.toStdString(), ::testing::HasSubstr("Shading BSDF Eval"));
+    EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("Hybrid execution")));
+    EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("GPU execution")));
+    EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("Tracing fallback")));
+    EXPECT_THAT(rowValue(rows, QStringLiteral("Unsupported capabilities")).toStdString(),
+                ::testing::HasSubstr("Sampling GPU RNG"));
+  }
+
   TEST_F(RenderGraphInspectorWidgetTest,
          ShouldExposeWavefrontIntersectionBackendRowsForSelectedPass) {
     auto trace = wavefrontGpuTrace();
@@ -1112,6 +1143,19 @@ namespace RenderGraphInspectorWidgetTest {
     const auto rows = widget.passDetailRows(QStringLiteral("wavefront_beauty"));
 
     EXPECT_EQ(QStringLiteral("Wavefront beauty"), rowValue(rows, QStringLiteral("Name")));
+    const int tracingBackendRow = rowIndex(rows, QStringLiteral("Tracing backend"));
+    const int intersectionBackendRequestRow =
+      rowIndex(rows, QStringLiteral("Intersection backend request"));
+    ASSERT_NE(-1, tracingBackendRow);
+    ASSERT_NE(-1, intersectionBackendRequestRow);
+    EXPECT_LT(tracingBackendRow, intersectionBackendRequestRow);
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("CPU execution")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Hybrid execution")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("GPU execution")).isEmpty());
+    const QString tracingFallback = rowValue(rows, QStringLiteral("Tracing fallback"));
+    EXPECT_FALSE(tracingFallback.isEmpty());
+    EXPECT_NE(QStringLiteral("none"), tracingFallback);
+    EXPECT_THAT(tracingFallback.toStdString(), ::testing::HasSubstr("GPU -> CPU"));
     EXPECT_EQ(QStringLiteral("GPU"),
               rowValue(rows, QStringLiteral("Intersection backend request")));
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection backend")).isEmpty());

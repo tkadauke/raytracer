@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Grouped Modeler selected-pass tracing execution metadata into CPU, hybrid,
+  GPU, fallback, and unsupported capability summaries before the legacy
+  intersection detail rows, closing roadmap §E6.4. — GPT-5 Codex
 - Serialized tracing backend capability records and fallback summaries in
   wavefront metrics JSON/rendercli output alongside the existing intersection
   backend compatibility aliases. — GPT-5 Codex
