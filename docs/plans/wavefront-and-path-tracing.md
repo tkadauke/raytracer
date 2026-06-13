@@ -156,10 +156,10 @@ already exist:
   deterministic coordinate pair as CPU streams: `(primarySampleIndex,
   sampleDimensionIndex(name, slot))`. The primary sample index is the per-pixel
   sample number; bounce, direct-light sample, and light index are folded into
-  the named dimension slot, not into the primary sample index. The initial
-  CPU/GPU parity generator choice is the stateless 32-bit PCG hash documented in
-  `docs/plans/tracing-execution-backends.md`; no platform RNG is part of that
-  contract.
+  the named dimension slot, not into the primary sample index.
+  The initial CPU/GPU parity generator choice is the stateless 32-bit PCG hash
+  documented in `docs/plans/tracing-execution-backends.md`; no platform RNG is
+  part of that contract.
 - `RenderRaytracerOptions` / `RaytracerBeautyPassState` carry graph-visible
   ray-family execution, sampling, view-plane, integrator selection, and
   wavefront convergence-threshold state.
