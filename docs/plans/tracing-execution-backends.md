@@ -672,7 +672,9 @@ Sobol, Owen-scrambled Sobol, blue-noise tiles, and stratified reconstruction
 remain future sampling-quality work. It is not cryptographic and must not be
 used for secrets, randomized file formats, or adversarial input handling. The
 initial 24-bit float mapping is sufficient for renderer sampling parity, but
-not for APIs that require full 32-bit integer entropy as a float.
+not for APIs that require full 32-bit integer entropy as a float. The exact
+coordinate packing is part of the ABI once fixed-vector tests land; changing it
+is a behavior change and must be versioned or intentionally migrated.
 
 **Deliverables:**
 
