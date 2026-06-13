@@ -191,14 +191,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
-<<<<<<< HEAD
 - Fixed GPU-requested wavefront intersection fallback summaries so grouped
   unsupported-scene reasons are emitted in deterministic order, with
   transparent-material fallback pinned in metrics JSON. — GPT-5 Codex
-=======
 - Fixed wavefront intersection benchmarks to consume byte occlusion flags from
   any-hit frontier batches. — GPT-5 Codex
->>>>>>> 66f572c7 (Define GPU tracing sample dimensions)
 - Fixed tiled wavefront renders so active-hit and direct-light host-byte totals
   and per-depth arrays are merged across all sample batches in a tile.
   — GPT-5 Codex
