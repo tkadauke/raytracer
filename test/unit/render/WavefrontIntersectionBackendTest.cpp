@@ -23,6 +23,7 @@
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
 #include "render/MetalWavefrontSmokeKernel.h"
 #endif
+#include "render/primitives/FlatMeshTriangle.h"
 #include "render/primitives/ClosedSolidUnion.h"
 #include "render/primitives/Curve.h"
 #include "render/primitives/Disk.h"
@@ -35,6 +36,8 @@
 #include "render/primitives/Torus.h"
 #include "render/primitives/Triangle.h"
 #include "render/textures/ConstantColorTexture.h"
+
+#include "core/geometry/Mesh.h"
 
 namespace WavefrontIntersectionBackendTest {
   using namespace render;
@@ -89,6 +92,15 @@ namespace WavefrontIntersectionBackendTest {
       diagnostics.packedClosestHitKernelEligible = true;
       diagnostics.packedAnyHitKernelEligible = true;
       return diagnostics;
+    }
+
+    std::unique_ptr<Mesh> triangleMeshAt(double xOffset, double z) {
+      auto mesh = std::make_unique<Mesh>();
+      mesh->addVertex(Vector3d(xOffset - 1, -1, z), Vector3d(0, 0, 1), Vector2d(0, 0));
+      mesh->addVertex(Vector3d(xOffset + 1, -1, z), Vector3d(0, 0, 1), Vector2d(1, 0));
+      mesh->addVertex(Vector3d(xOffset, 1, z), Vector3d(0, 0, 1), Vector2d(0, 1));
+      mesh->addFace({0, 1, 2});
+      return mesh;
     }
 
     bool hostPlatformIntersectionDeviceAvailable() {
@@ -969,6 +981,8 @@ namespace WavefrontIntersectionBackendTest {
       std::make_shared<Triangle>(Vector3d(-1, -1, 6), Vector3d(1, -1, 6), Vector3d(0, 1, 6)));
     scene.add(
       std::make_shared<Triangle>(Vector3d(-1, -1, 2), Vector3d(1, -1, 2), Vector3d(0, 1, 2)));
+    auto mesh = triangleMeshAt(4.0, 3.0);
+    scene.add(std::make_shared<FlatMeshTriangle>(mesh.get(), 0, 1, 2));
 
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
     const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
@@ -1011,6 +1025,8 @@ namespace WavefrontIntersectionBackendTest {
       std::make_shared<Triangle>(Vector3d(-1, -1, 6), Vector3d(1, -1, 6), Vector3d(0, 1, 6)));
     scene.add(
       std::make_shared<Triangle>(Vector3d(-1, -1, 2), Vector3d(1, -1, 2), Vector3d(0, 1, 2)));
+    auto mesh = triangleMeshAt(4.0, 3.0);
+    scene.add(std::make_shared<FlatMeshTriangle>(mesh.get(), 0, 1, 2));
 
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
     const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
@@ -1568,6 +1584,8 @@ namespace WavefrontIntersectionBackendTest {
       std::make_shared<Triangle>(Vector3d(-1, -1, 6), Vector3d(1, -1, 6), Vector3d(0, 1, 6)));
     scene.add(
       std::make_shared<Triangle>(Vector3d(-1, -1, 2), Vector3d(1, -1, 2), Vector3d(0, 1, 2)));
+    auto mesh = triangleMeshAt(4.0, 3.0);
+    scene.add(std::make_shared<FlatMeshTriangle>(mesh.get(), 0, 1, 2));
 
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
     const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
@@ -1606,6 +1624,8 @@ namespace WavefrontIntersectionBackendTest {
       std::make_shared<Triangle>(Vector3d(-1, -1, 6), Vector3d(1, -1, 6), Vector3d(0, 1, 6)));
     scene.add(
       std::make_shared<Triangle>(Vector3d(-1, -1, 2), Vector3d(1, -1, 2), Vector3d(0, 1, 2)));
+    auto mesh = triangleMeshAt(4.0, 3.0);
+    scene.add(std::make_shared<FlatMeshTriangle>(mesh.get(), 0, 1, 2));
 
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
     const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
@@ -1615,7 +1635,7 @@ namespace WavefrontIntersectionBackendTest {
       GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 7, 0.0,
                                            3.0),
       GpuIntersectionScenePacker().packRay(Rayd(Vector4d(4, 0, 0, 1), Vector3d(0, 0, 1)), 8, 0.0,
-                                           3.0),
+                                           4.0),
       GpuIntersectionScenePacker().packRay(Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 9, 0.0,
                                            1.0),
     };

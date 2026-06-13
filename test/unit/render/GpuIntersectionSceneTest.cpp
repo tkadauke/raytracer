@@ -140,6 +140,18 @@ namespace GpuIntersectionSceneTest {
 
       EXPECT_EQ(compiledHit, packedHit);
     }
+
+    void expectPackedClosestAndAnyHitMatchCompiled(const Scene& scene, const Rayd& ray,
+                                                   double occludedMaxDistance,
+                                                   double visibleMaxDistance,
+                                                   std::uint32_t rayIndex,
+                                                   bool expectedBasicHitKernelEligible = true,
+                                                   bool expectedTriangleHitKernelEligible = false) {
+      expectPackedClosestHitMatchesCompiled(scene, ray, rayIndex, expectedBasicHitKernelEligible,
+                                            expectedTriangleHitKernelEligible);
+      expectPackedAnyHitMatchesCompiled(scene, ray, occludedMaxDistance);
+      expectPackedAnyHitMatchesCompiled(scene, ray, visibleMaxDistance);
+    }
   }
 
   TEST(GpuIntersectionScene, PackedRecordsHaveStableKernelFriendlyLayout) {
@@ -492,6 +504,69 @@ namespace GpuIntersectionSceneTest {
     EXPECT_NEAR(static_cast<float>(compiledHit.barycentric.x()), packedHit.barycentric[0], 1e-5f);
     EXPECT_NEAR(static_cast<float>(compiledHit.barycentric.y()), packedHit.barycentric[1], 1e-5f);
     EXPECT_NEAR(static_cast<float>(compiledHit.barycentric.z()), packedHit.barycentric[2], 1e-5f);
+  }
+
+  TEST(GpuIntersectionScene, PackedSupportedPrimitiveSubsetMatchesCompiledClosestAndAnyHit) {
+    {
+      Scene scene;
+      scene.add(
+        std::make_shared<Triangle>(Vector3d(-1, -1, 3), Vector3d(1, -1, 3), Vector3d(0, 1, 3)));
+      expectPackedClosestAndAnyHitMatchCompiled(
+        scene, Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 4.0, 2.0, 101, true, true);
+    }
+    {
+      auto mesh = triangleMesh();
+      Scene scene;
+      scene.add(std::make_shared<FlatMeshTriangle>(mesh.get(), 0, 1, 2));
+      expectPackedClosestAndAnyHitMatchCompiled(
+        scene, Rayd(Vector4d(0.25, 0.25, -1, 1), Vector3d(0, 0, 1)), 2.0, 0.5, 102, true, true);
+    }
+    {
+      Scene scene;
+      scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0));
+      expectPackedClosestAndAnyHitMatchCompiled(
+        scene, Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 3.0, 1.0, 103);
+    }
+    {
+      Scene scene;
+      scene.add(std::make_shared<Plane>(Vector3d(0, 0, 1), -3.0));
+      expectPackedClosestAndAnyHitMatchCompiled(
+        scene, Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 4.0, 2.0, 104);
+    }
+    {
+      Scene scene;
+      scene.add(
+        std::make_shared<Rectangle>(Vector3d(-1, -1, 3), Vector3d(2, 0, 0), Vector3d(0, 2, 0)));
+      expectPackedClosestAndAnyHitMatchCompiled(
+        scene, Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 4.0, 2.0, 105);
+    }
+    {
+      Scene scene;
+      scene.add(std::make_shared<Disk>(Vector3d(0, 0, 3), Vector3d(0, 0, 1), 2.0));
+      expectPackedClosestAndAnyHitMatchCompiled(
+        scene, Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 4.0, 2.0, 106);
+    }
+    {
+      Scene scene;
+      scene.add(std::make_shared<OpenCylinder>(1.0, 2.0));
+      expectPackedClosestAndAnyHitMatchCompiled(
+        scene, Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 3.0, 1.0, 107);
+    }
+    {
+      Scene scene;
+      scene.add(std::make_shared<Torus>(2.0, 0.5));
+      expectPackedClosestAndAnyHitMatchCompiled(
+        scene, Rayd(Vector4d(0, 0, -4, 1), Vector3d(0, 0, 1)), 5.0, 1.0, 108);
+    }
+    {
+      auto disk = std::make_shared<Disk>(Vector3d(0, 0, 0), Vector3d(0, 0, 1), 2.0);
+      auto instance = std::make_shared<Instance>(disk);
+      instance->setMatrix(Matrix4d::translate(0, 0, 4));
+      Scene scene;
+      scene.add(instance);
+      expectPackedClosestAndAnyHitMatchCompiled(
+        scene, Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 5.0, 3.0, 109);
+    }
   }
 
   TEST(GpuIntersectionScene, PackedSmoothMeshTriangleInterpolatesNormalsAndUvsLikeCompiledScene) {

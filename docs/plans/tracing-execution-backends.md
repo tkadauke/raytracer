@@ -1240,7 +1240,11 @@ for tracing, shadows, visibility, and graph passes.
      supported primitive subset, fallback reasons, timing fields, and output
      records.
 
-2. **Close parity gaps for existing supported primitives.**
+2. ~~**Close parity gaps for existing supported primitives.**~~ ✅ **Done.**
+   Issue #570 adds explicit packed CPU closest-hit/any-hit parity coverage for
+   triangle, mesh triangle, sphere, plane, rectangle, disk, OpenCylinder, Torus,
+   and static transforms, and keeps mesh triangles represented in optional
+   Metal/Vulkan triangle smoke parity scenes.
    - Depends on: job 1.
    - Output: CPU runtime, packed CPU, Metal, and Vulkan closest-hit/any-hit
      parity tests for triangle, mesh triangle, sphere, plane, rectangle, disk,
