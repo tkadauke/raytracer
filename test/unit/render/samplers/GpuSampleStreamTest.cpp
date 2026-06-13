@@ -1,9 +1,25 @@
 #include <gtest/gtest.h>
 
+#include <cstdint>
+
 #include "render/samplers/GpuSampleStream.h"
 
 namespace GpuSampleStreamTest {
   using namespace render;
+
+  constexpr double kOneOverTwoTo24 = 1.0 / 16777216.0;
+
+  void expectSample2D(const char* label, const Vector2d& sample, std::uint32_t expectedX,
+                      std::uint32_t expectedY) {
+    SCOPED_TRACE(label);
+    EXPECT_DOUBLE_EQ(static_cast<double>(expectedX) * kOneOverTwoTo24, sample.x());
+    EXPECT_DOUBLE_EQ(static_cast<double>(expectedY) * kOneOverTwoTo24, sample.y());
+  }
+
+  void expectSample1D(const char* label, double sample, std::uint32_t expected) {
+    SCOPED_TRACE(label);
+    EXPECT_DOUBLE_EQ(static_cast<double>(expected) * kOneOverTwoTo24, sample);
+  }
 
   TEST(GpuSampleStream, PcgHash32MatchesReferenceAlgorithm) {
     EXPECT_EQ(129708002u, GpuSampleStream::pcgHash32(0u));
@@ -47,6 +63,57 @@ namespace GpuSampleStreamTest {
                        /*dimension=*/sampleDimensionIndex(SampleDimension::Continuation, 4),
                        /*component=*/0}),
                      stream.sample1D(SampleDimension::Continuation, 4));
+  }
+
+  TEST(GpuSampleStream, NamedDimensionsMatchFixedVectors) {
+    {
+      GpuSampleStream stream(/*seed=*/0, /*pixelIndex=*/0, /*primarySampleIndex=*/0);
+
+      expectSample2D("seed=0 pixel=0 primary=0 pixel", stream.sample2D(SampleDimension::Pixel),
+                     /*expectedX=*/9151356u, /*expectedY=*/11420491u);
+      expectSample2D("seed=0 pixel=0 primary=0 bsdf[0]", stream.sample2D(SampleDimension::BSDF),
+                     /*expectedX=*/14513316u, /*expectedY=*/5515632u);
+      expectSample2D("seed=0 pixel=0 primary=0 bsdf[2]", stream.sample2D(SampleDimension::BSDF, 2),
+                     /*expectedX=*/6124461u, /*expectedY=*/14798912u);
+      expectSample2D("seed=0 pixel=0 primary=0 light[0]", stream.sample2D(SampleDimension::Light),
+                     /*expectedX=*/8860795u, /*expectedY=*/15298400u);
+      expectSample2D(
+        "seed=0 pixel=0 primary=0 light[bounce=1 light=2]",
+        stream.sample2D(SampleDimension::Light, SampleStream::lightSampleIndex(/*bounce=*/1,
+                                                                               /*lightIndex=*/2)),
+        /*expectedX=*/8830170u, /*expectedY=*/13936716u);
+      expectSample1D("seed=0 pixel=0 primary=0 continuation[0]",
+                     stream.sample1D(SampleDimension::Continuation),
+                     /*expected=*/9784475u);
+      expectSample1D("seed=0 pixel=0 primary=0 continuation[3]",
+                     stream.sample1D(SampleDimension::Continuation, 3),
+                     /*expected=*/2244376u);
+    }
+
+    {
+      GpuSampleStream stream(/*seed=*/42, /*pixelIndex=*/19, /*primarySampleIndex=*/3);
+
+      expectSample2D("seed=42 pixel=19 primary=3 pixel", stream.sample2D(SampleDimension::Pixel),
+                     /*expectedX=*/2146489u, /*expectedY=*/3461617u);
+      expectSample2D("seed=42 pixel=19 primary=3 bsdf[0]", stream.sample2D(SampleDimension::BSDF),
+                     /*expectedX=*/3233765u, /*expectedY=*/11552210u);
+      expectSample2D("seed=42 pixel=19 primary=3 bsdf[2]",
+                     stream.sample2D(SampleDimension::BSDF, 2),
+                     /*expectedX=*/15755970u, /*expectedY=*/6611835u);
+      expectSample2D("seed=42 pixel=19 primary=3 light[0]", stream.sample2D(SampleDimension::Light),
+                     /*expectedX=*/3703532u, /*expectedY=*/12227597u);
+      expectSample2D(
+        "seed=42 pixel=19 primary=3 light[bounce=1 light=2]",
+        stream.sample2D(SampleDimension::Light, SampleStream::lightSampleIndex(/*bounce=*/1,
+                                                                               /*lightIndex=*/2)),
+        /*expectedX=*/1388577u, /*expectedY=*/5983127u);
+      expectSample1D("seed=42 pixel=19 primary=3 continuation[0]",
+                     stream.sample1D(SampleDimension::Continuation),
+                     /*expected=*/10884828u);
+      expectSample1D("seed=42 pixel=19 primary=3 continuation[3]",
+                     stream.sample1D(SampleDimension::Continuation, 3),
+                     /*expected=*/2768189u);
+    }
   }
 
   TEST(GpuSampleStream, SequentialReadsMatchPixelTimeLensDimensionOrder) {
