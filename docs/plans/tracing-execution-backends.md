@@ -1391,27 +1391,31 @@ tests must pin the exact packing/mixing constants before production code
 depends on this stream.
 
 Floating-point samples are produced by taking the high 24 bits of the hash and
-multiplying by `2^-24`, yielding a value in `[0, 1)`. That rule avoids platform
-`uniform_real_distribution` behavior, avoids CPU extended precision differences,
-and maps cleanly to `float` precision on GPU shaders.
+multiplying by `2^-24`, yielding a value in `[0, 1)`. That rule is intentional:
+it avoids platform `uniform_real_distribution` behavior, avoids CPU extended
+precision differences, and maps cleanly to `float` precision on GPU shaders.
 The CPU reference implementation lives in `render::GpuSampleStream` and is
 kept independent of the existing stratified sampler set path.
 
-The choice is intentionally limited:
+### Rationale
 
-- It is schedule-independent: scalar CPU, wavefront CPU, and GPU queues can
-  request dimensions in different orders without changing the stream.
-- It is GPU-friendly: the hash uses only unsigned 32-bit multiply, add, xor, and
-  shift operations available in C++, GLSL, MSL, WGSL, and SPIR-V without relying
-  on 64-bit integer support.
-- It forbids hidden RNG state such as `std::random_device`, `std::mt19937`,
-  `std::uniform_real_distribution`, Qt random helpers, shader
-  `fract(sin(...))` tricks, hardware RNGs, or any per-thread/per-platform
+- **Schedule-independent.** A sample is a pure function of its coordinate, so
+  scalar CPU, wavefront CPU, and GPU queues can request dimensions in different
+  orders without changing the stream.
+- **GPU-friendly.** The hash uses only unsigned 32-bit multiply, add, xor, and
+  shift operations. Those are widely available in C++, GLSL, MSL, WGSL, and
+  SPIR-V without relying on 64-bit integer support.
+- **No hidden RNG state.** The contract forbids `std::random_device`,
+  `std::mt19937`, `std::uniform_real_distribution`, Qt random helpers,
+  shader `fract(sin(...))` tricks, hardware RNGs, or any per-thread/per-platform
   generator for this stream.
-- It is easy to parity test: fixed input coordinates produce fixed `uint32_t`
-  and `[0, 1)` values that can be checked in CPU unit tests and mirrored in
+- **Easy parity testing.** Fixed input coordinates produce fixed `uint32_t` and
+  `[0, 1)` values that can be checked in ordinary unit tests and mirrored in
   shader conformance tests.
-- It is a pseudorandom white-noise baseline, not a low-discrepancy sequence.
+
+### Limitations
+
+- This is a pseudorandom white-noise baseline, not a low-discrepancy sequence.
   Sobol, Owen-scrambled Sobol, blue-noise tiles, and stratified reconstruction
   remain future sampling-quality work.
 - It is not cryptographic and must not be used for secrets, randomized file
