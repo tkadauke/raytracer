@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Defined the GPU tracing sample-dimension contract for pixel, time, lens,
+  BSDF, light, light-selection, and continuation samples, with deterministic
+  primary-sample/dimension coordinates. — GPT-5 Codex
 - Routed path-tracing frontier compaction through the wavefront intersection
   backend contract so future GPU backends can override the current host
   compaction path. — GPT-5 Codex
@@ -170,6 +173,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Fixed wavefront intersection benchmarks to consume byte occlusion flags from
+  any-hit frontier batches. — GPT-5 Codex
 - Fixed tiled wavefront renders so active-hit and direct-light host-byte totals
   and per-depth arrays are merged across all sample batches in a tile.
   — GPT-5 Codex
