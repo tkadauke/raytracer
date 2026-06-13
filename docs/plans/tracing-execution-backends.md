@@ -1370,7 +1370,11 @@ comparison logic.
 
 **Jobs:**
 
-1. **Define compiled tracing-scene sections.**
+1. ~~**Define compiled tracing-scene sections.**~~ ✅ **Done.**
+   `render::GpuTracingSceneSections` now defines version-1 geometry,
+   material, texture, light, environment, and debug-id sections for GPU
+   tracing scene data, with a separate shading work record from the
+   intersection hit record. Closes #579.
    - Depends on: none.
    - Output: geometry, material, texture, light, environment, and debug-id
      sections with versioned layout expectations.
