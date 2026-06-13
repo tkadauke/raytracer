@@ -1472,6 +1472,32 @@ namespace WavefrontRaytracerTest {
               batching.value("intersectionBackendAvailability").toString().toStdString());
     EXPECT_EQ("GPU backend unavailable",
               batching.value("intersectionBackendFallbackReason").toString().toStdString());
+    EXPECT_EQ("cpu", batching.value("tracingBackend").toString().toStdString());
+    EXPECT_EQ("wavefront_intersection",
+              batching.value("tracingBackendMode").toString().toStdString());
+    const QJsonArray tracingCapabilities =
+      batching.value("tracingBackendCapabilities").toArray();
+    EXPECT_EQ(19, tracingCapabilities.size());
+    const QJsonObject closestHitCapability = tracingCapabilities.at(0).toObject();
+    EXPECT_EQ("intersection", closestHitCapability.value("domain").toString().toStdString());
+    EXPECT_EQ("geometry.closest_hit", closestHitCapability.value("name").toString().toStdString());
+    EXPECT_EQ("fallback", closestHitCapability.value("support").toString().toStdString());
+    EXPECT_EQ("gpu", closestHitCapability.value("requestedDevice").toString().toStdString());
+    EXPECT_EQ("cpu", closestHitCapability.value("resolvedDevice").toString().toStdString());
+    EXPECT_EQ("packed_cpu",
+              closestHitCapability.value("executionPath").toString().toStdString());
+    EXPECT_EQ("GPU backend unavailable",
+              closestHitCapability.value("fallback")
+                .toObject()
+                .value("reason")
+                .toString()
+                .toStdString());
+    const QJsonObject tracingFallback = batching.value("tracingBackendFallback").toObject();
+    EXPECT_TRUE(tracingFallback.value("active").toBool());
+    EXPECT_EQ("geometry.closest_hit",
+              tracingFallback.value("capability").toString().toStdString());
+    EXPECT_EQ("GPU backend unavailable",
+              tracingFallback.value("reason").toString().toStdString());
     EXPECT_EQ(1.0, batching.value("frontierHostCompactionPasses").toDouble());
     EXPECT_EQ(1.0, batching.value("frontierCompactionPasses").toDouble());
     EXPECT_EQ(8.0, batching.value("frontierHostCompactionInputSamples").toDouble());
