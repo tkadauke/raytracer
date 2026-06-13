@@ -64,6 +64,9 @@ end state for GPU tracing.
   scene is eligible.
 - Direct-light visibility can be grouped into backend-owned any-hit batches in
   the wavefront path tracer.
+- `render::IntersectionService` exposes the intersection backend as a
+  standalone closest-hit/any-hit service with backend execution-path and
+  fallback diagnostics for non-renderer callers.
 - Closest-hit and any-hit frontiers are represented by backend-owned handles.
 - Metrics expose backend request, selected backend, platform availability,
   execution path, fallback reason, transfer estimates, query counts, frontier
@@ -1255,10 +1258,13 @@ for tracing, shadows, visibility, and graph passes.
    - Output: tests for transparent/glass and unsupported scene features proving
      they fall back before rendering or report why they cannot use the service.
 
-4. **Expose an intersection-only service entry point.**
+4. ~~**Expose an intersection-only service entry point.**~~
    - Depends on: jobs 1 and 2.
    - Output: API usable by graph visibility/AOV passes and future raster hybrid
-     shadows without pretending to run a full tracing algorithm on the GPU.
+     shadows without pretending to run a full tracing algorithm on the GPU. ✅
+     **Done.** `render::IntersectionService` prepares a selected backend for a
+     scene, submits closest-hit and any-hit queries, and retains execution-path
+     plus fallback diagnostics for callers.
 
 5. **Add service benchmarks and metrics capture.**
    - Depends on: jobs 2 and 4.
