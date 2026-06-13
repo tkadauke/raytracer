@@ -378,9 +378,10 @@ The resolve plane is separate from accumulation. Backends must not overwrite or
 reinterpret the HDR color sum as the display target, and callers must size
 memory from the individual plane byte counts rather than assuming one packed
 struct per pixel. `render::TracingAccumulationBuffer` is the CPU reference for
-clear, sample add, optional raw-second-moment accumulation, and LDR resolve;
-Metal kernels, Vulkan kernels, and resource diagnostics are follow-up jobs
-under the GPU accumulation-buffer epic.
+clear, sample add, optional raw-second-moment accumulation, and LDR resolve.
+Metal-enabled builds also expose optional clear, sample-add, and LDR resolve
+kernels through `render::MetalTracingAccumulationBuffer`; Vulkan kernels and
+resource diagnostics are follow-up jobs under the GPU accumulation-buffer epic.
 
 ---
 
@@ -1450,7 +1451,10 @@ GPU shading lands.
    - Depends on: job 1.
    - Output: deterministic reference implementation and tests.
 
-3. **Add Metal clear/add/resolve kernels.**
+3. ~~**Add Metal clear/add/resolve kernels.**~~ ✅ **Done.** Optional
+   `render::MetalTracingAccumulationBuffer` kernels clear/add/resolve the v1
+   accumulation planes and compare against the CPU reference on synthetic
+   inputs when Metal is enabled and available.
    - Depends on: job 2.
    - Output: optional-platform kernels with skip behavior when unavailable.
 
