@@ -258,6 +258,16 @@ GPU resources. That gives future OpenGL/Vulkan resource subclasses one
 execution hook for GPU-to-CPU transfer while keeping dependencies visible in
 text, DOT, JSON, and the Modeler graph view.
 
+Tracing accumulation has its own stable backend layout because one graph
+resource descriptor is not enough to describe progressive path-tracing storage.
+`TracingAccumulationLayout` records same-sized color-sum, sample-count,
+optional moment, and resolve planes. The accumulation planes use HDR linear
+formats (`rgba32_float` color sums, `uint32` counts, and optional
+`rgba32_float_second_raw_moment`), while the default resolve target is
+`rgba8_unorm_srgb` for existing LDR display paths. Future graph resources can
+refer to that layout without treating the resolved display snapshot as the
+accumulator itself.
+
 ## <a id="pass-nodes-declare-reads-and-writes"></a>Pass nodes declare reads and writes
 `RenderPassNode` is the declarative node in the graph:
 
