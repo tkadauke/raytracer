@@ -1,0 +1,78 @@
+{
+  "id": "tracing-parity-imported-mesh",
+  "name": "Tracing Parity Imported Mesh",
+  "ambient": [0.0, 0.0, 0.0],
+  "background": [0.02, 0.03, 0.04],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "pathtracer",
+    "defaultViewMode": "beauty",
+    "defaultCamera": {
+      "sceneCameraId": "camera"
+    },
+    "engineOptions": {
+      "raytracer": {
+        "execution": {
+          "maxRecursionDepth": 1
+        },
+        "sampling": {
+          "sampler": "Regular",
+          "samplesPerPixel": 1
+        }
+      }
+    }
+  },
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.0, -2.4],
+      "target": [0.35, 0.25, 0.0],
+      "distance": 2.4,
+      "zoom": 2.2,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "light",
+      "name": "Light",
+      "position": [-1.5, -2.0, -2.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 1.0,
+      "type": "PointLight",
+      "children": []
+    },
+    {
+      "id": "mesh-texture",
+      "name": "Mesh Texture",
+      "color": [0.25, 0.7, 0.95],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "mesh-material",
+      "name": "Mesh Matte",
+      "diffuseTexture": "mesh-texture",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "triangle-source",
+      "name": "Imported STL Triangle",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "mesh-material",
+      "sourcePath": "../stl/triangle_ascii.stl",
+      "format": "stl",
+      "type": "SourceAsset",
+      "children": []
+    }
+  ]
+}

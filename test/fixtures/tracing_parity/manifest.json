@@ -1,0 +1,30 @@
+{
+  "schema": "raytracer.tracing_parity_scenes.v1",
+  "scenes": [
+    {
+      "category": "matte_direct_light",
+      "path": "matte_direct_light.json",
+      "description": "Opaque analytic matte primitives under deterministic direct lighting."
+    },
+    {
+      "category": "indirect_bounce",
+      "path": "indirect_bounce.json",
+      "description": "Path-traced diffuse bounce from a colored wall onto neutral matte receivers."
+    },
+    {
+      "category": "imported_mesh",
+      "path": "imported_mesh.json",
+      "description": "SourceAsset-backed STL mesh import that compiles to triangle geometry."
+    },
+    {
+      "category": "transparent_fallback",
+      "path": "transparent_fallback.json",
+      "description": "Transparent material scene expected to fall back to runtime CPU intersection."
+    },
+    {
+      "category": "visibility_heavy",
+      "path": "visibility_heavy.json",
+      "description": "Area-light scene with many blockers for any-hit visibility batch parity."
+    }
+  ]
+}
