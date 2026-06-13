@@ -2,6 +2,7 @@
 
 #include "core/math/Rect.h"
 #include "render/RenderEngine.h"
+#include "render/TracingExecutionCapability.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -237,6 +238,7 @@ namespace engine::wavefront {
       [[nodiscard]] std::uint64_t mixedQueryDepthClosestHitRays() const;
       [[nodiscard]] std::uint64_t mixedQueryDepthAnyHitRays() const;
       [[nodiscard]] double intersectionBackendKernelRaysPerSecond() const;
+      [[nodiscard]] render::TracingExecutionCapabilityRecords tracingExecutionCapabilities() const;
     } batching;
 
     struct ConvergenceSummary {

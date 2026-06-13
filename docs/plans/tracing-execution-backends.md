@@ -1447,12 +1447,16 @@ architecture on "intersection backend".
    - Output: C++ data structures for intersection, scene records, sampling,
      direct lighting, BSDF, path state, accumulation, and fallback status.
 
-3. **Serialize capabilities and preserve aliases.**
+3. **~~Serialize capabilities and preserve aliases.~~** ✅ **Done.** Wavefront
+   metrics now serialize tracing capability records and rendercli aliases while
+   preserving existing intersection backend fields.
    - Depends on: job 2.
    - Output: JSON/rendercli output with compatibility aliases for existing
      consumers.
 
-4. **Group Modeler graph metadata.**
+4. **~~Group Modeler graph metadata.~~** ✅ **Done.** Modeler selected-pass
+   rows now summarize tracing execution as CPU, hybrid, GPU, fallback, and
+   unsupported capability groups before the legacy intersection detail aliases.
    - Depends on: job 3.
    - Output: selected-pass properties present execution capabilities as grouped
      CPU/hybrid/GPU state, not a flat dump of intersection fields.

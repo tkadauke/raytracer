@@ -274,6 +274,17 @@ namespace {
         << timings.value("integratorResidualWorkerSeconds").toDouble() * 1000.0
         << " integrator=" << batching.value("integrator").toString().toStdString()
         << " execution=" << batching.value("executionMode").toString().toStdString()
+        << " tracing_backend="
+        << compactTextValue(batching.value("tracingBackend"), "unknown")
+        << " tracing_backend_mode="
+        << compactTextValue(batching.value("tracingBackendMode"), "unknown")
+        << " tracing_backend_fallback="
+        << compactTextValue(batching.value("tracingBackendFallback")
+                              .toObject()
+                              .value("reason"),
+                            "none")
+        << " tracing_backend_capabilities="
+        << batching.value("tracingBackendCapabilities").toArray().size()
         << " intersection_backend_request="
         << batching.value("intersectionBackendRequest").toString().toStdString()
         << " intersection_backend="
