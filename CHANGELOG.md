@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Reported ray-family sample-stream mode diagnostics and configured sampling
+  seeds in rendercli graph state, wavefront metrics JSON, and compact metrics
+  summaries. — GPT-5 Codex
 - Added the CPU reference GPU sample stream that generates deterministic
   named-dimension samples from explicit seed, pixel, primary-sample, dimension,
   and component coordinates. — GPT-5 Codex

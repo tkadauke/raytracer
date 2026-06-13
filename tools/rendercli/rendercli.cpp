@@ -241,6 +241,8 @@ namespace {
         std::cout << " pass=" << passId.toStdString();
       }
       std::cout
+        << " sampling_seed=" << compactValue(input.value("samplingSeed"), "none")
+        << " sample_stream_mode=" << compactTextValue(input.value("sampleStreamMode"), "unknown")
         << " total_ms=" << timings.value("totalRenderSeconds").toDouble() * 1000.0
         << " sample_gen_worker_ms="
         << timings.value("sampleGenerationWorkerSeconds").toDouble() * 1000.0
@@ -690,6 +692,16 @@ namespace {
       std::replace_if(
         result.begin(), result.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }, '_');
       return result;
+    }
+
+    std::string compactValue(const QJsonValue& value, const std::string& empty) const {
+      if (value.isUndefined() || value.isNull()) {
+        return empty;
+      }
+      if (value.isDouble()) {
+        return std::to_string(static_cast<std::uint64_t>(value.toDouble()));
+      }
+      return compactTextValue(value, empty);
     }
 
     double doubleArrayBack(const QJsonArray& array) const {

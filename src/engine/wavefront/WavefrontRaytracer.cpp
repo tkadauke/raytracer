@@ -596,6 +596,10 @@ namespace engine::wavefront {
     inputJson["width"] = input.width;
     inputJson["height"] = input.height;
     inputJson["samplesPerPixel"] = input.samplesPerPixel;
+    if (input.samplingSeed) {
+      inputJson["samplingSeed"] = static_cast<double>(*input.samplingSeed);
+    }
+    inputJson["sampleStreamMode"] = QString::fromStdString(input.sampleStreamMode);
     inputJson["renderedPixels"] = static_cast<double>(input.renderedPixels);
     inputJson["primarySamples"] = static_cast<double>(input.primarySamples);
 
@@ -1370,6 +1374,7 @@ namespace engine::wavefront {
                        *p->integrator, p->denoiser.get(), expectedIntersectionRays,
                        expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays,
                        autoMinimumGpuIntersectionRays, autoEstimatedQueryTransferBytes,
+                       p->samplingSeed, "sampler",
                        p->convergenceEnabled, p->convergenceActiveSampleFractionThreshold,
                        p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
                        p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
@@ -1464,6 +1469,7 @@ namespace engine::wavefront {
                        *p->integrator, p->denoiser.get(), expectedIntersectionRays,
                        expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays,
                        autoMinimumGpuIntersectionRays, autoEstimatedQueryTransferBytes,
+                       p->samplingSeed, "sampler",
                        p->convergenceEnabled, p->convergenceActiveSampleFractionThreshold,
                        p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
                        p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
@@ -1554,6 +1560,7 @@ namespace engine::wavefront {
                        *p->integrator, p->denoiser.get(), expectedIntersectionRays,
                        expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays,
                        autoMinimumGpuIntersectionRays, autoEstimatedQueryTransferBytes,
+                       p->samplingSeed, "sampler",
                        p->convergenceEnabled, p->convergenceActiveSampleFractionThreshold,
                        p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
                        p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);

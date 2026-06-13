@@ -53,6 +53,7 @@ namespace engine::graph {
     void setSampler(std::string sampler);
     void setSamplesPerPixel(int samples);
     void setSamplingSeed(std::uint64_t seed);
+    void setSampleStreamMode(std::string mode);
     void setViewPlane(std::string viewPlane);
     void setConvergenceEnabled(bool enabled);
     void setConvergenceActiveSampleFractionThreshold(double fraction);
@@ -74,6 +75,7 @@ namespace engine::graph {
     std::optional<std::string> sampler() const;
     std::optional<int> samplesPerPixel() const;
     std::optional<std::uint64_t> samplingSeed() const;
+    std::optional<std::string> sampleStreamMode() const;
     std::optional<std::string> viewPlane() const;
     std::optional<bool> convergenceEnabled() const;
     std::optional<double> convergenceActiveSampleFractionThreshold() const;
@@ -96,6 +98,7 @@ namespace engine::graph {
     std::optional<std::string> m_sampler;
     std::optional<int> m_samplesPerPixel;
     std::optional<std::uint64_t> m_samplingSeed;
+    std::optional<std::string> m_sampleStreamMode;
     std::optional<std::string> m_viewPlane;
     std::optional<bool> m_convergenceEnabled;
     std::optional<double> m_convergenceActiveSampleFractionThreshold;
