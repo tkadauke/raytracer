@@ -1,0 +1,128 @@
+{
+  "id": "tracing-parity-transparent-fallback",
+  "name": "Tracing Parity Transparent Fallback",
+  "ambient": [0.15, 0.15, 0.15],
+  "background": [0.08, 0.12, 0.18],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "pathtracer",
+    "defaultViewMode": "beauty",
+    "defaultCamera": {
+      "sceneCameraId": "camera"
+    },
+    "engineOptions": {
+      "raytracer": {
+        "execution": {
+          "maxRecursionDepth": 4
+        },
+        "sampling": {
+          "sampler": "Regular",
+          "samplesPerPixel": 1
+        }
+      }
+    }
+  },
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.1, -5.25],
+      "target": [0.0, -0.1, 0.0],
+      "distance": 5.0,
+      "zoom": 1.4,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "key-light",
+      "name": "Key Light",
+      "position": [-3.0, -3.0, -3.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 0.9,
+      "type": "PointLight",
+      "children": []
+    },
+    {
+      "id": "glass-texture",
+      "name": "Glass Tint",
+      "color": [0.0, 0.18, 0.22],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "checker-white",
+      "name": "Checker White",
+      "color": [1.0, 1.0, 1.0],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "checker-dark",
+      "name": "Checker Dark",
+      "color": [0.06, 0.06, 0.06],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "checker-texture",
+      "name": "Checker Texture",
+      "brightTexture": "checker-white",
+      "darkTexture": "checker-dark",
+      "type": "CheckerBoardTexture",
+      "children": []
+    },
+    {
+      "id": "glass-material",
+      "name": "Glass",
+      "diffuseTexture": "glass-texture",
+      "ambientCoefficient": 0.05,
+      "diffuseCoefficient": 0.0,
+      "specularCoefficient": 0.5,
+      "specularExponent": 200,
+      "reflectionCoefficient": 0.1,
+      "transmissionCoefficient": 1.0,
+      "refractionIndex": 1.52,
+      "type": "TransparentMaterial",
+      "children": []
+    },
+    {
+      "id": "floor-material",
+      "name": "Checker Floor",
+      "diffuseTexture": "checker-texture",
+      "ambientCoefficient": 0.3,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "glass-sphere",
+      "name": "Glass Sphere",
+      "position": [0.0, -0.05, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "glass-material",
+      "radius": 0.9,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "floor",
+      "name": "Checker Floor",
+      "position": [-3.0, 1.15, -2.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "floor-material",
+      "size": [6.0, 0.1, 6.0],
+      "bevelRadius": 0.0,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Box",
+      "children": []
+    }
+  ]
+}
