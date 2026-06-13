@@ -630,6 +630,50 @@ tracing can be compared and debugged.
 
 **Dependencies:** Milestone 1. Can run in parallel with Milestone 4.
 
+**Sample stream contract:** the first GPU tracing sample generator is a
+stateless 32-bit PCG hash (`pcg_hash32`) evaluated from an explicit sample
+coordinate. The generator is a deterministic building block, not a new
+renderer:
+
+```cpp
+uint32_t pcg_hash32(uint32_t input) {
+  uint32_t state = input * 747796405u + 2891336453u;
+  uint32_t word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+  return (word >> 22u) ^ word;
+}
+```
+
+Each stochastic request is addressed by the same logical coordinate already
+reserved by `SampleStream`: `(seed, pixelIndex, primarySampleIndex, dimension,
+component)`. The dimension comes from `sampleDimensionIndex(name, slot)`.
+Pixel, time, and lens own dimensions 0, 1, and 2; path-tracing dimensions repeat
+in four-slot groups for BSDF, light-surface, direct-light selection, and
+Russian-roulette continuation. The coordinate is folded through fixed unsigned
+32-bit integer mixes before the final `pcg_hash32` call; future fixed-vector
+tests must pin the exact packing/mixing constants before production code
+depends on this stream.
+
+Floating-point samples are produced by taking the high 24 bits of the hash and
+multiplying by `2^-24`, yielding a value in `[0, 1)`. That rule is intentional:
+it avoids platform `uniform_real_distribution` behavior, avoids CPU extended
+precision differences, and maps cleanly to `float` precision on GPU shaders.
+
+The contract is schedule-independent because a sample is a pure function of its
+coordinate, so scalar CPU, wavefront CPU, and GPU queues can request dimensions
+in different orders without changing the stream. It is GPU-friendly because the
+hash uses only unsigned 32-bit multiply, add, xor, and shift operations. The
+stream forbids `std::random_device`, `std::mt19937`,
+`std::uniform_real_distribution`, Qt random helpers, shader `fract(sin(...))`
+tricks, hardware RNGs, and any per-thread/per-platform generator for this
+stream.
+
+This is a pseudorandom white-noise baseline, not a low-discrepancy sequence.
+Sobol, Owen-scrambled Sobol, blue-noise tiles, and stratified reconstruction
+remain future sampling-quality work. It is not cryptographic and must not be
+used for secrets, randomized file formats, or adversarial input handling. The
+initial 24-bit float mapping is sufficient for renderer sampling parity, but
+not for APIs that require full 32-bit integer entropy as a float.
+
 **Deliverables:**
 
 - Define GPU sample stream contract:
@@ -639,10 +683,7 @@ tracing can be compared and debugged.
   - light selection dimension;
   - Russian roulette dimension;
   - continuation dimensions.
-- Choose an initial RNG/sequence:
-  - deterministic hash-based generator;
-  - or PCG/Xoroshiro-style per-sample state;
-  - Halton/Sobol later if desired.
+- Use the initial deterministic PCG hash sample stream documented above.
 - Add CPU implementation of the exact same GPU sample stream for parity.
 - Add seed and sample-index mapping to compiled tracing execution settings.
 - Add debug AOV or metrics for generated samples if useful.
@@ -653,8 +694,7 @@ tracing can be compared and debugged.
 - Distribution smoke tests.
 - Rendercli option/trace records the seed and stream mode.
 
-**Syrus-ready:** yes, after RNG choice is agreed. This can be isolated from
-scene compilation.
+**Syrus-ready:** yes. This can be isolated from scene compilation.
 
 ---
 
