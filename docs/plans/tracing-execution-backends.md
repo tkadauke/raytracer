@@ -283,9 +283,10 @@ All planes are image-shaped with the same `width` and `height`:
 The resolve plane is separate from accumulation. Backends must not overwrite or
 reinterpret the HDR color sum as the display target, and callers must size
 memory from the individual plane byte counts rather than assuming one packed
-struct per pixel. CPU reference accumulation operations, Metal kernels, Vulkan
-kernels, and resource diagnostics are follow-up jobs under the GPU
-accumulation-buffer epic.
+struct per pixel. `render::TracingAccumulationBuffer` is the CPU reference for
+clear, sample add, optional raw-second-moment accumulation, and LDR resolve;
+Metal kernels, Vulkan kernels, and resource diagnostics are follow-up jobs
+under the GPU accumulation-buffer epic.
 
 ---
 
