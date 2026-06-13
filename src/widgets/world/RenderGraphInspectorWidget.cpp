@@ -121,6 +121,11 @@ struct RenderGraphInspectorWidget::Private {
   QString jsonIntegerObjectSummary(const QJsonObject& object) const;
   QString percentage(double numerator, double denominator) const;
   QString average(double numerator, double denominator) const;
+  QString capabilityNameText(const QJsonObject& capability) const;
+  QString tracingCapabilityDeviceSummary(const QJsonArray& capabilities,
+                                         const QString& resolvedDevice) const;
+  QString tracingCapabilityFallbackSummary(const QJsonObject& fallback) const;
+  QString tracingCapabilityUnsupportedSummary(const QJsonArray& capabilities) const;
   QString intersectionScenePayloadSummary(const QJsonObject& batching) const;
   QString passStateText(const RenderPassNode& pass) const;
   void addDetailRow(DetailRows& rows, const QString& name, const QString& value) const;
@@ -392,8 +397,10 @@ QString RenderGraphInspectorWidget::Private::metadataIdentifierText(QString valu
   QStringList words = value.split(QLatin1Char(' '), Qt::SkipEmptyParts);
   for (QString& word : words) {
     const QString lower = word.toLower();
-    if (lower == QStringLiteral("cpu") || lower == QStringLiteral("gpu") ||
-        lower == QStringLiteral("bvh")) {
+    if (lower == QStringLiteral("aov") || lower == QStringLiteral("bsdf") ||
+        lower == QStringLiteral("bvh") || lower == QStringLiteral("cpu") ||
+        lower == QStringLiteral("gpu") || lower == QStringLiteral("id") ||
+        lower == QStringLiteral("rng")) {
       word = lower.toUpper();
       continue;
     }
@@ -458,6 +465,68 @@ QString RenderGraphInspectorWidget::Private::percentage(double numerator,
 QString RenderGraphInspectorWidget::Private::average(double numerator, double denominator) const {
   const double ratio = denominator == 0.0 ? 0.0 : numerator / denominator;
   return QStringLiteral("%1").arg(ratio, 0, 'f', 2);
+}
+
+QString
+RenderGraphInspectorWidget::Private::capabilityNameText(const QJsonObject& capability) const {
+  QString name = capability.value(QStringLiteral("name")).toString();
+  name.replace(QLatin1Char('.'), QLatin1Char(' '));
+  return metadataIdentifierText(name);
+}
+
+QString RenderGraphInspectorWidget::Private::tracingCapabilityDeviceSummary(
+  const QJsonArray& capabilities, const QString& resolvedDevice) const {
+  QStringList names;
+  for (const QJsonValue& value : capabilities) {
+    const QJsonObject capability = value.toObject();
+    if (capability.value(QStringLiteral("resolvedDevice")).toString() != resolvedDevice)
+      continue;
+    if (capability.value(QStringLiteral("support")).toString() == QStringLiteral("unsupported"))
+      continue;
+    names << capabilityNameText(capability);
+  }
+
+  if (names.isEmpty())
+    return QStringLiteral("none");
+  return QStringLiteral("%1: %2").arg(names.size()).arg(names.join(QStringLiteral(", ")));
+}
+
+QString RenderGraphInspectorWidget::Private::tracingCapabilityFallbackSummary(
+  const QJsonObject& fallback) const {
+  if (fallback.isEmpty() || !fallback.value(QStringLiteral("active")).toBool())
+    return QStringLiteral("none");
+
+  QString capability = fallback.value(QStringLiteral("capability")).toString();
+  capability.replace(QLatin1Char('.'), QLatin1Char(' '));
+  const QString requested =
+    metadataIdentifierText(fallback.value(QStringLiteral("requestedDevice")).toString());
+  const QString resolved =
+    metadataIdentifierText(fallback.value(QStringLiteral("resolvedDevice")).toString());
+  const QString reason = fallback.value(QStringLiteral("reason")).toString();
+  QString summary = QStringLiteral("%1: %2 -> %3")
+                      .arg(metadataIdentifierText(capability), requested, resolved);
+  if (!reason.isEmpty())
+    summary += QStringLiteral(" (%1)").arg(reason);
+  return summary;
+}
+
+QString RenderGraphInspectorWidget::Private::tracingCapabilityUnsupportedSummary(
+  const QJsonArray& capabilities) const {
+  QStringList names;
+  for (const QJsonValue& value : capabilities) {
+    const QJsonObject capability = value.toObject();
+    if (capability.value(QStringLiteral("support")).toString() != QStringLiteral("unsupported"))
+      continue;
+    QString name = capabilityNameText(capability);
+    const QString reason = capability.value(QStringLiteral("unsupportedReason")).toString();
+    if (!reason.isEmpty())
+      name += QStringLiteral(" (%1)").arg(reason);
+    names << name;
+  }
+
+  if (names.isEmpty())
+    return QStringLiteral("none");
+  return QStringLiteral("%1: %2").arg(names.size()).arg(names.join(QStringLiteral(", ")));
 }
 
 QString RenderGraphInspectorWidget::Private::intersectionScenePayloadSummary(
@@ -566,6 +635,26 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
   DetailRows& rows, const QJsonObject& batching) const {
   if (batching.isEmpty())
     return;
+
+  const QJsonArray tracingCapabilities =
+    batching.value(QStringLiteral("tracingBackendCapabilities")).toArray();
+  if (!tracingCapabilities.isEmpty()) {
+    addDetailStringMetadataRow(rows, QStringLiteral("Tracing backend"), batching,
+                               QStringLiteral("tracingBackend"), true);
+    addDetailStringMetadataRow(rows, QStringLiteral("Tracing backend mode"), batching,
+                               QStringLiteral("tracingBackendMode"), true);
+    addDetailRow(rows, QStringLiteral("CPU execution"),
+                 tracingCapabilityDeviceSummary(tracingCapabilities, QStringLiteral("cpu")));
+    addDetailRow(rows, QStringLiteral("Hybrid execution"),
+                 tracingCapabilityDeviceSummary(tracingCapabilities, QStringLiteral("hybrid")));
+    addDetailRow(rows, QStringLiteral("GPU execution"),
+                 tracingCapabilityDeviceSummary(tracingCapabilities, QStringLiteral("gpu")));
+    addDetailRow(rows, QStringLiteral("Tracing fallback"),
+                 tracingCapabilityFallbackSummary(
+                   batching.value(QStringLiteral("tracingBackendFallback")).toObject()));
+    addDetailRow(rows, QStringLiteral("Unsupported capabilities"),
+                 tracingCapabilityUnsupportedSummary(tracingCapabilities));
+  }
 
   addDetailStringMetadataRow(rows, QStringLiteral("Intersection backend request"), batching,
                              QStringLiteral("intersectionBackendRequest"), true);
