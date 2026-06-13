@@ -116,6 +116,7 @@ namespace engine::wavefront {
       }
       return render::TracingCapabilityRecord::cpu(domain, std::move(name), executionPath);
     }
+
     QString tracingDomainLabel(render::TracingExecutionDomain domain) {
       switch (domain) {
         case render::TracingExecutionDomain::Intersection:
