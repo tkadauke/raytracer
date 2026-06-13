@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Added GPU tracing light record compilation for point, directional, and
+  rectangular area lights, with unsupported light reasons counted for the E3
+  tracing scene data roadmap. — GPT-5 Codex
 - Added `IntersectionService` benchmark rows for closest-hit, any-hit, and
   mixed query-family workloads over small, mesh-heavy, and visibility-heavy
   supported scenes. — GPT-5 Codex

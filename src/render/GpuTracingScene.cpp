@@ -1,5 +1,12 @@
 #include "render/GpuTracingScene.h"
 
+#include "render/lights/DirectionalLight.h"
+#include "render/lights/Light.h"
+#include "render/lights/PointLight.h"
+#include "render/lights/RectangularAreaLight.h"
+#include "render/primitives/Scene.h"
+
+#include <algorithm>
 #include <limits>
 #include <type_traits>
 
@@ -35,6 +42,22 @@ namespace {
     return value > std::numeric_limits<std::uint32_t>::max()
              ? std::numeric_limits<std::uint32_t>::max()
              : static_cast<std::uint32_t>(value);
+  }
+
+  std::array<float, 4> vector4(const Vector3d& vector, float w) {
+    return {static_cast<float>(vector.x()), static_cast<float>(vector.y()),
+            static_cast<float>(vector.z()), w};
+  }
+
+  std::array<float, 4> color4(const Colord& color) {
+    return {static_cast<float>(color.r()), static_cast<float>(color.g()),
+            static_cast<float>(color.b()), 1.0f};
+  }
+
+  void setUnsupportedReason(std::string* unsupportedReason, const char* reason) {
+    if (unsupportedReason) {
+      *unsupportedReason = reason;
+    }
   }
 }
 
@@ -85,7 +108,82 @@ std::size_t GpuTracingSceneSections::uploadByteCount() const {
 
 GpuTracingEnvironmentRecord render::makeGpuTracingConstantEnvironment(const Colord& color) {
   GpuTracingEnvironmentRecord record;
-  record.color = {static_cast<float>(color.r()), static_cast<float>(color.g()),
-                  static_cast<float>(color.b()), 1.0f};
+  record.color = color4(color);
   return record;
+}
+
+bool GpuTracingLightCompilation::supported() const {
+  return unsupportedLights.empty();
+}
+
+std::vector<GpuTracingUnsupportedReasonCount>
+GpuTracingLightCompilation::unsupportedReasonCounts() const {
+  std::vector<GpuTracingUnsupportedReasonCount> result;
+  for (const UnsupportedGpuTracingLight& unsupported : unsupportedLights) {
+    const auto existing = std::find_if(
+      result.begin(), result.end(), [&unsupported](const GpuTracingUnsupportedReasonCount& count) {
+        return count.reason == unsupported.reason;
+      });
+    if (existing != result.end()) {
+      ++existing->count;
+    } else {
+      result.push_back(GpuTracingUnsupportedReasonCount{unsupported.reason, 1});
+    }
+  }
+  return result;
+}
+
+std::optional<GpuTracingLightRecord>
+render::makeGpuTracingLightRecord(const Light& light, std::string* unsupportedReason) {
+  if (const auto* pointLight = dynamic_cast<const PointLight*>(&light)) {
+    GpuTracingLightRecord record;
+    record.kind = static_cast<std::uint32_t>(GpuTracingLightKind::Point);
+    record.positionOrDirection = vector4(pointLight->position(), 1.0f);
+    record.parameters = color4(pointLight->color());
+    return record;
+  }
+
+  if (const auto* directionalLight = dynamic_cast<const DirectionalLight*>(&light)) {
+    GpuTracingLightRecord record;
+    record.kind = static_cast<std::uint32_t>(GpuTracingLightKind::Directional);
+    record.positionOrDirection = vector4(directionalLight->direction(), 0.0f);
+    record.parameters = color4(directionalLight->color());
+    return record;
+  }
+
+  if (const auto* areaLight = dynamic_cast<const RectangularAreaLight*>(&light)) {
+    GpuTracingLightRecord record;
+    record.kind = static_cast<std::uint32_t>(GpuTracingLightKind::RectangularArea);
+    record.positionOrDirection = vector4(areaLight->center(), 1.0f);
+    record.u = vector4(areaLight->edgeU(), 0.0f);
+    record.v = vector4(areaLight->edgeV(), 0.0f);
+    record.parameters = color4(areaLight->color());
+    return record;
+  }
+
+  setUnsupportedReason(unsupportedReason,
+                       "light type is not supported by GPU tracing scene compiler");
+  return std::nullopt;
+}
+
+GpuTracingLightCompilation render::compileGpuTracingLights(const Scene& scene) {
+  GpuTracingLightCompilation compilation;
+
+  std::uint32_t lightIndex = 0;
+  for (const std::shared_ptr<render::Light>& light : scene.lights()) {
+    std::string unsupportedReason;
+    if (const std::optional<GpuTracingLightRecord> record =
+          makeGpuTracingLightRecord(*light, &unsupportedReason)) {
+      compilation.records.push_back(*record);
+    } else {
+      compilation.unsupportedLights.push_back(
+        UnsupportedGpuTracingLight{lightIndex, light->fingerprintType(), unsupportedReason});
+    }
+
+    if (lightIndex != std::numeric_limits<std::uint32_t>::max()) {
+      ++lightIndex;
+    }
+  }
+
+  return compilation;
 }

@@ -1347,7 +1347,10 @@ comparison logic.
    - Output: records for ConstantColor; optional CheckerBoard only if required
      coordinates are already represented; unsupported reasons otherwise.
 
-4. **Compile light records.**
+4. ~~**Compile light records.**~~ ✅ **Done.**
+   `render::GpuTracingLightCompilation` now packs PointLight,
+   DirectionalLight, and RectangularAreaLight into stable GPU tracing light
+   records and counts unsupported light types by reason. Closes #582.
    - Depends on: job 1.
    - Output: records for PointLight, DirectionalLight, and RectangularAreaLight;
      unsupported reasons for the rest.

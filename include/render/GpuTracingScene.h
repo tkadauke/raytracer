@@ -6,9 +6,14 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <string>
 #include <vector>
 
 namespace render {
+  class Light;
+  class Scene;
+
   inline constexpr std::uint32_t gpuTracingSceneLayoutVersion = 1u;
 
   enum class GpuTracingSceneSectionKind : std::uint32_t {
@@ -110,5 +115,27 @@ namespace render {
     [[nodiscard]] std::size_t uploadByteCount() const;
   };
 
+  struct UnsupportedGpuTracingLight {
+    std::uint32_t lightIndex{0};
+    std::string type;
+    std::string reason;
+  };
+
+  struct GpuTracingUnsupportedReasonCount {
+    std::string reason;
+    std::uint64_t count{0};
+  };
+
+  struct GpuTracingLightCompilation {
+    std::vector<GpuTracingLightRecord> records;
+    std::vector<UnsupportedGpuTracingLight> unsupportedLights;
+
+    [[nodiscard]] bool supported() const;
+    [[nodiscard]] std::vector<GpuTracingUnsupportedReasonCount> unsupportedReasonCounts() const;
+  };
+
   [[nodiscard]] GpuTracingEnvironmentRecord makeGpuTracingConstantEnvironment(const Colord& color);
+  [[nodiscard]] std::optional<GpuTracingLightRecord>
+  makeGpuTracingLightRecord(const Light& light, std::string* unsupportedReason = nullptr);
+  [[nodiscard]] GpuTracingLightCompilation compileGpuTracingLights(const Scene& scene);
 }

@@ -1,6 +1,11 @@
 #include <gtest/gtest.h>
 
 #include "render/GpuTracingScene.h"
+#include "render/lights/DirectionalLight.h"
+#include "render/lights/Light.h"
+#include "render/lights/PointLight.h"
+#include "render/lights/RectangularAreaLight.h"
+#include "render/primitives/Scene.h"
 
 #include <type_traits>
 
@@ -13,6 +18,35 @@ namespace GpuTracingSceneTest {
       EXPECT_TRUE(std::is_standard_layout_v<Record>);
       EXPECT_EQ(16u, alignof(Record));
       EXPECT_EQ(0u, sizeof(Record) % 16u);
+    }
+
+    class UnsupportedLight final : public Light {
+    public:
+      explicit UnsupportedLight(const char* type)
+          : m_type(type) {
+      }
+
+      Vector3d direction(const Vector3d&) const override {
+        return Vector3d(0.0, 1.0, 0.0);
+      }
+
+      Colord radiance() const override {
+        return Colord::white();
+      }
+
+      const char* fingerprintType() const override {
+        return m_type;
+      }
+
+    private:
+      const char* m_type;
+    };
+
+    void expectFloat4(const std::array<float, 4>& actual, float x, float y, float z, float w) {
+      EXPECT_FLOAT_EQ(x, actual[0]);
+      EXPECT_FLOAT_EQ(y, actual[1]);
+      EXPECT_FLOAT_EQ(z, actual[2]);
+      EXPECT_FLOAT_EQ(w, actual[3]);
     }
   }
 
@@ -109,5 +143,82 @@ namespace GpuTracingSceneTest {
     EXPECT_FLOAT_EQ(0.5f, environment.color[1]);
     EXPECT_FLOAT_EQ(0.75f, environment.color[2]);
     EXPECT_FLOAT_EQ(1.0f, environment.color[3]);
+  }
+
+  TEST(GpuTracingScene, PointLightPacksPositionAndColor) {
+    const PointLight light(Vector3d(1.0, 2.0, 3.0), Colord(0.25, 0.5, 0.75));
+
+    const std::optional<GpuTracingLightRecord> record = makeGpuTracingLightRecord(light);
+
+    ASSERT_TRUE(record.has_value());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingLightKind::Point), record->kind);
+    expectFloat4(record->positionOrDirection, 1.0f, 2.0f, 3.0f, 1.0f);
+    expectFloat4(record->u, 0.0f, 0.0f, 0.0f, 0.0f);
+    expectFloat4(record->v, 0.0f, 0.0f, 0.0f, 0.0f);
+    expectFloat4(record->parameters, 0.25f, 0.5f, 0.75f, 1.0f);
+  }
+
+  TEST(GpuTracingScene, DirectionalLightPacksDirectionAndColor) {
+    const DirectionalLight light(Vector3d(0.0, -2.0, 0.0), Colord(0.125, 0.25, 0.5));
+
+    const std::optional<GpuTracingLightRecord> record = makeGpuTracingLightRecord(light);
+
+    ASSERT_TRUE(record.has_value());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingLightKind::Directional), record->kind);
+    expectFloat4(record->positionOrDirection, 0.0f, -1.0f, 0.0f, 0.0f);
+    expectFloat4(record->parameters, 0.125f, 0.25f, 0.5f, 1.0f);
+  }
+
+  TEST(GpuTracingScene, RectangularAreaLightPacksCenterEdgesAndRadiance) {
+    const RectangularAreaLight light(Vector3d(1.0, 2.0, 3.0), Vector3d(4.0, 0.0, 0.0),
+                                     Vector3d(0.0, 0.0, 5.0), Colord(0.2, 0.4, 0.8));
+
+    const std::optional<GpuTracingLightRecord> record = makeGpuTracingLightRecord(light);
+
+    ASSERT_TRUE(record.has_value());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingLightKind::RectangularArea), record->kind);
+    expectFloat4(record->positionOrDirection, 1.0f, 2.0f, 3.0f, 1.0f);
+    expectFloat4(record->u, 4.0f, 0.0f, 0.0f, 0.0f);
+    expectFloat4(record->v, 0.0f, 0.0f, 5.0f, 0.0f);
+    expectFloat4(record->parameters, 0.2f, 0.4f, 0.8f, 1.0f);
+  }
+
+  TEST(GpuTracingScene, UnsupportedLightReportsStableReason) {
+    const UnsupportedLight light("UnsupportedLight");
+    std::string reason;
+
+    const std::optional<GpuTracingLightRecord> record = makeGpuTracingLightRecord(light, &reason);
+
+    EXPECT_FALSE(record.has_value());
+    EXPECT_EQ("light type is not supported by GPU tracing scene compiler", reason);
+  }
+
+  TEST(GpuTracingScene, CompilesSceneLightsAndCountsUnsupportedReasons) {
+    Scene scene;
+    scene.addLight(std::make_shared<PointLight>(Vector3d(1.0, 2.0, 3.0), Colord::white()));
+    scene.addLight(std::make_shared<UnsupportedLight>("UnsupportedA"));
+    scene.addLight(
+      std::make_shared<DirectionalLight>(Vector3d(0.0, -1.0, 0.0), Colord(0.25, 0.5, 0.75)));
+    scene.addLight(std::make_shared<UnsupportedLight>("UnsupportedB"));
+
+    const GpuTracingLightCompilation compilation = compileGpuTracingLights(scene);
+
+    EXPECT_FALSE(compilation.supported());
+    ASSERT_EQ(2u, compilation.records.size());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingLightKind::Point), compilation.records[0].kind);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingLightKind::Directional),
+              compilation.records[1].kind);
+
+    ASSERT_EQ(2u, compilation.unsupportedLights.size());
+    EXPECT_EQ(1u, compilation.unsupportedLights[0].lightIndex);
+    EXPECT_EQ("UnsupportedA", compilation.unsupportedLights[0].type);
+    EXPECT_EQ(3u, compilation.unsupportedLights[1].lightIndex);
+    EXPECT_EQ("UnsupportedB", compilation.unsupportedLights[1].type);
+
+    const std::vector<GpuTracingUnsupportedReasonCount> reasonCounts =
+      compilation.unsupportedReasonCounts();
+    ASSERT_EQ(1u, reasonCounts.size());
+    EXPECT_EQ("light type is not supported by GPU tracing scene compiler", reasonCounts[0].reason);
+    EXPECT_EQ(2u, reasonCounts[0].count);
   }
 }
