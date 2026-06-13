@@ -135,6 +135,10 @@ namespace SamplerTest {
   }
 
   TEST(SampleDimension, ShouldExposeStableDimensionIndices) {
+    static_assert(kPathSampleDimensionBase == 3, "path dimensions start after pixel/time/lens");
+    static_assert(kPathSampleDimensionStride == 4,
+                  "each path slot reserves bsdf/light/light-selection/continuation");
+
     ASSERT_EQ(0u, sampleDimensionIndex(SampleDimension::Pixel));
     ASSERT_EQ(1u, sampleDimensionIndex(SampleDimension::Time));
     ASSERT_EQ(2u, sampleDimensionIndex(SampleDimension::Lens));
@@ -147,6 +151,47 @@ namespace SamplerTest {
     ASSERT_EQ(8u, sampleDimensionIndex(SampleDimension::Light, 1));
     ASSERT_EQ(9u, sampleDimensionIndex(SampleDimension::LightSelection, 1));
     ASSERT_EQ(10u, sampleDimensionIndex(SampleDimension::Continuation, 1));
+  }
+
+  TEST(SampleDimension, ShouldExposeStableDimensionNames) {
+    ASSERT_STREQ("pixel", sampleDimensionName(SampleDimension::Pixel));
+    ASSERT_STREQ("time", sampleDimensionName(SampleDimension::Time));
+    ASSERT_STREQ("lens", sampleDimensionName(SampleDimension::Lens));
+    ASSERT_STREQ("bsdf", sampleDimensionName(SampleDimension::BSDF));
+    ASSERT_STREQ("light", sampleDimensionName(SampleDimension::Light));
+    ASSERT_STREQ("light_selection", sampleDimensionName(SampleDimension::LightSelection));
+    ASSERT_STREQ("continuation", sampleDimensionName(SampleDimension::Continuation));
+  }
+
+  TEST(SampleDimension, ShouldExposeStableGpuSampleCoordinates) {
+    static_assert(sampleCoordinate(7, SampleDimension::Pixel) == SampleCoordinate{7, 0},
+                  "primary sample index and dimension stay separate");
+    static_assert(sampleCoordinate(7, SampleDimension::Continuation, 3) == SampleCoordinate{7, 18},
+                  "bounce maps into the continuation dimension slot");
+
+    const auto pixel = sampleCoordinate(0, SampleDimension::Pixel);
+    EXPECT_EQ(0u, pixel.primarySampleIndex);
+    EXPECT_EQ(0u, pixel.dimension);
+
+    const auto time = sampleCoordinate(2, SampleDimension::Time);
+    EXPECT_EQ(2u, time.primarySampleIndex);
+    EXPECT_EQ(1u, time.dimension);
+
+    const auto lens = sampleCoordinate(2, SampleDimension::Lens);
+    EXPECT_EQ(2u, lens.primarySampleIndex);
+    EXPECT_EQ(2u, lens.dimension);
+
+    const auto firstBsdf = sampleCoordinate(5, SampleDimension::BSDF, 0);
+    EXPECT_EQ(5u, firstBsdf.primarySampleIndex);
+    EXPECT_EQ(3u, firstBsdf.dimension);
+
+    const auto secondBsdf = sampleCoordinate(5, SampleDimension::BSDF, 1);
+    EXPECT_EQ(5u, secondBsdf.primarySampleIndex);
+    EXPECT_EQ(7u, secondBsdf.dimension);
+
+    const auto secondContinuation = sampleCoordinate(5, SampleDimension::Continuation, 1);
+    EXPECT_EQ(5u, secondContinuation.primarySampleIndex);
+    EXPECT_EQ(10u, secondContinuation.dimension);
   }
 
   TEST(SampleDimension, ShouldExposeStablePerLightSampleIndices) {
@@ -172,6 +217,22 @@ namespace SamplerTest {
               sampleDimensionIndex(SampleDimension::Light, SampleStream::lightSampleIndex(1, 0)));
     ASSERT_EQ(20u,
               sampleDimensionIndex(SampleDimension::Light, SampleStream::lightSampleIndex(1, 1)));
+  }
+
+  TEST(SampleDimension, ShouldFoldLightAxesIntoGpuDimensionSlot) {
+    const auto selection =
+      sampleCoordinate(/*primarySampleIndex=*/3, SampleDimension::LightSelection,
+                       SampleStream::lightSelectionSampleIndex(/*bounce=*/1,
+                                                               /*directSampleIndex=*/1));
+    const auto light =
+      sampleCoordinate(/*primarySampleIndex=*/3, SampleDimension::Light,
+                       SampleStream::lightSampleIndex(/*bounce=*/1, /*lightIndex=*/1,
+                                                      /*directSampleIndex=*/1));
+
+    EXPECT_EQ(3u, selection.primarySampleIndex);
+    EXPECT_EQ(21u, selection.dimension);
+    EXPECT_EQ(3u, light.primarySampleIndex);
+    EXPECT_EQ(68u, light.dimension);
   }
 
   TEST(SamplerStream, DefaultStreamReturnsSamplesFromCorrectSet) {
