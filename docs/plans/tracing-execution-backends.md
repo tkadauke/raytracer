@@ -163,6 +163,97 @@ A reusable operation exposed by a backend:
 
 The current GPU-intersection work is one backend service.
 
+### Intersection Service Contract
+
+The current reusable intersection backend service is a backend service, not a
+full GPU tracing implementation. CPU integrators and schedules still own path
+state, material evaluation, BSDF sampling, light sampling, path continuation,
+sample accumulation, denoising, tonemapping, and render graph scheduling. The
+service answers ray-scene visibility questions for supported scene subsets and
+reports when that narrow service cannot run on the requested backend.
+
+The service exposes two query families:
+
+- **Closest hit.** Camera, path-continuation, reflection, refraction, probe, and
+  debug rays ask for the nearest positive surface intersection in the submitted
+  `t` interval. A closest-hit query returns either a miss or one materializable
+  hit record that CPU shading can consume.
+- **Any hit.** Shadow, occlusion, visibility, and direct-light queries ask
+  whether any supported primitive intersects the ray before `maxDistance`. An
+  any-hit query returns one byte-sized occlusion flag per submitted ray:
+  non-zero means occluded, zero means visible.
+
+The CPU runtime backend supports the full existing `render::Scene` traversal
+semantics. The compiled/packed and platform GPU service subset is deliberately
+smaller and all-or-nothing for a render or service call. The supported subset is:
+
+- triangle leaves and mesh triangles;
+- sphere;
+- plane;
+- rectangle;
+- disk;
+- `OpenCylinder`;
+- `Torus`;
+- static transforms / instances whose payloads can be represented by stable
+  compiled ids.
+
+Unsupported CSG/boolean composites, moving transforms, unsupported exact
+primitive payloads, and materials that require runtime-only continuation
+semantics such as transparent/glass Whitted recursion must keep the service on
+the runtime CPU path or produce an explicit fallback reason. Platform Metal and
+Vulkan backends may also reject a scene that the packed CPU service can compile
+until matching platform kernels exist.
+
+Closest-hit output records must preserve CPU intersection semantics for the
+supported subset:
+
+- hit/miss state;
+- primitive/object id and material lookup key;
+- hit distance `t`;
+- geometric hit point or enough data to reconstruct it;
+- normal in the same orientation convention as the CPU path;
+- UV, barycentric, or local coordinates when the primitive provides them;
+- per-ray `State` bookkeeping needed by the CPU shading path.
+
+Any-hit output records must preserve the CPU visibility contract:
+
+- one result per submitted ray, in submission order;
+- non-zero occlusion flag only when an intersection occurs before the query's
+  maximum distance according to the same light-distance rule as
+  `Scene::occludes(...)`;
+- no material shading, alpha blending, or transparent continuation unless a
+  future contract adds those semantics explicitly.
+
+Diagnostics are part of the contract. Every backend selection or execution path
+must expose:
+
+- requested backend, selected backend, platform name, and availability;
+- overall, closest-hit, and any-hit execution paths (`runtime_scene`,
+  `packed_cpu`, `metal`, `vulkan`, or future names);
+- compiled-scene counts: BVH nodes, primitive totals, supported primitive
+  totals, transform count, upload bytes, and unsupported counts by reason;
+- closest-hit and any-hit query counts, ray-upload byte estimates, readback byte
+  estimates, total query-transfer estimates, and estimated round trips;
+- frontier residency labels and frontier payload byte counts where frontier
+  handles are used;
+- observed upload/preparation, kernel/traversal, and readback worker seconds;
+- explicit fallback reason when a requested GPU or packed path cannot run.
+
+Fallback reasons should be stable enough for tests and diagnostics. The current
+families are:
+
+- user or auto policy selected CPU, including the auto-selected CPU threshold
+  case before scene compilation;
+- platform GPU device or render-path unavailable;
+- scene could not compile to the intersection subset;
+- scene compiled but is not eligible for the requested closest-hit or any-hit
+  packed/platform kernel;
+- unsupported primitive, transform, material, or runtime continuation
+  requirement, counted by reason;
+- platform preparation, dispatch, or kernel failure;
+- backend returned malformed results, such as a closest-hit or any-hit batch
+  whose result count differs from the submitted ray count.
+
 ---
 
 ## Target Architecture
@@ -1140,10 +1231,14 @@ for tracing, shadows, visibility, and graph passes.
 
 **Jobs:**
 
-1. **Write the service contract.**
+1. ~~**Write the service contract.**~~ ✅ **Done.** The Intersection Service
+   Contract section documents query families, supported primitive subset,
+   output records, timing diagnostics, fallback reasons, and the fact that this
+   is a backend service rather than full GPU tracing.
    - Depends on: none.
    - Output: document/code comments identifying supported query families,
-     supported primitive subset, fallback reasons, and output records.
+     supported primitive subset, fallback reasons, timing fields, and output
+     records.
 
 2. **Close parity gaps for existing supported primitives.**
    - Depends on: job 1.
