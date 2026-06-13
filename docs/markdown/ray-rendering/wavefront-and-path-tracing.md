@@ -526,6 +526,18 @@ directly. Frontier-compaction benchmark rows run through the backend's
 `compactFrontier()` hook and report input, retained, removed, moved, and
 GPU-compaction-support counters, so the current CPU compaction path has a
 baseline before a device-side compaction kernel exists.
+
+The GPU tracing accumulation layout is defined separately from the
+intersection-query layout. `TracingAccumulationLayout` describes four
+image-shaped planes that future accumulation backends must allocate with the
+same width and height: an `rgba32_float` HDR color-sum plane, a `uint32`
+sample-count plane, an optional `rgba32_float_second_raw_moment` plane for
+variance/adaptive sampling, and a resolved `rgba8_unorm_srgb` display plane.
+The resolve plane is deliberately not the accumulator. Backends add linear HDR
+sample radiance into the color sum, increment the count, optionally add squared
+linear RGB into the moment plane, then resolve by dividing and tonemapping into
+the LDR plane. This keeps HDR accumulation and LDR presentation separate while
+leaving CPU reference operations and Metal/Vulkan kernels as follow-up work.
 Direct-light diagnostics also report the host bytes used for sampled light
 selection records that pair each occlusion query with its eventual lighting
 contribution. Those bytes are separate from the any-hit ray frontier and show
@@ -637,6 +649,8 @@ choices become inspectable user-facing metadata.
 - `src/render/WavefrontIntersectionBackend.cpp`
 - `include/render/WavefrontFrontierCompaction.h`
 - `src/render/WavefrontFrontierCompaction.cpp`
+- `include/render/TracingAccumulationLayout.h`
+- `src/render/TracingAccumulationLayout.cpp`
 - `include/render/PathTracingIntegrator.h`
 - `src/render/PathTracingIntegrator.cpp`
 - `include/render/PathTermination.h`
@@ -656,6 +670,7 @@ choices become inspectable user-facing metadata.
 - `test/unit/render/IntersectionSceneCompilerTest.cpp`
 - `test/unit/render/GpuIntersectionSceneTest.cpp`
 - `test/unit/render/WavefrontIntersectionBackendTest.cpp`
+- `test/unit/render/TracingAccumulationLayoutTest.cpp`
 - `test/unit/render/PathTerminationTest.cpp`
 - `test/unit/render/StateTest.cpp`
 - `test/unit/engine/wavefront/WavefrontRaytracerTest.cpp`

@@ -29,6 +29,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Documented the current tracing execution metric fields across rendercli
   summaries, metrics JSON, graph traces, and Modeler metadata, including the
   compatibility aliases future capability records must preserve. — GPT-5 Codex
+- Defined the GPU tracing accumulation layout with separate HDR color-sum,
+  sample-count, optional moment, and LDR resolve planes. — GPT-5 Codex
 - Routed path-tracing frontier compaction through the wavefront intersection
   backend contract so future GPU backends can override the current host
   compaction path. — GPT-5 Codex

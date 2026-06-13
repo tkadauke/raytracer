@@ -673,6 +673,22 @@ colors.
   - sample count;
   - optional variance/stddev moments;
   - optional albedo/normal AOVs later.
+- Define `render::TracingAccumulationLayout` as the v1 backend accumulation
+  layout:
+  - all planes are image-shaped with the same width and height;
+  - `colorSum` is required `rgba32_float`; RGB stores the linear HDR radiance
+    sum, and alpha is reserved and written as zero;
+  - `sampleCount` is required `uint32`; one counter is stored per pixel;
+  - `moment` is optional `rgba32_float_second_raw_moment`; RGB stores the sum
+    of squared linear sample values for variance/adaptive sampling, and alpha
+    is reserved and written as zero;
+  - `resolve` is required `rgba8_unorm_srgb`; this is the LDR display/export
+    output produced after dividing by the sample count and applying the
+    selected resolve policy;
+  - the resolve plane remains separate from accumulation. Backends must not
+    overwrite or reinterpret the HDR color sum as the display target, and
+    callers must size memory from individual plane byte counts rather than
+    assuming one packed struct per pixel.
 - Add CPU reference implementation with the same layout.
 - Add Metal/Vulkan kernels for:
   - clear;
