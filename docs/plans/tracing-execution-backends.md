@@ -1246,10 +1246,13 @@ for tracing, shadows, visibility, and graph passes.
      parity tests for triangle, mesh triangle, sphere, plane, rectangle, disk,
      OpenCylinder, Torus, and static transforms.
 
-3. **Stabilize explicit fallback behavior.**
+3. ~~**Stabilize explicit fallback behavior.**~~ ✅ **Done.** Issue #571 pins
+   deterministic GPU-intersection unsupported-scene fallback reasons for
+   transparent/glass and generic unsupported scenes in backend and metrics tests.
    - Depends on: job 1.
-   - Output: tests for transparent/glass and unsupported scene features proving
-     they fall back before rendering or report why they cannot use the service.
+   - Output: ~~tests for transparent/glass and unsupported scene features
+     proving they fall back before rendering or report why they cannot use the
+     service.~~
 
 4. **Expose an intersection-only service entry point.**
    - Depends on: jobs 1 and 2.

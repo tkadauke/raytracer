@@ -2426,8 +2426,10 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(nullptr, backend->compiledScene());
     EXPECT_EQ(nullptr, backend->gpuIntersectionSceneBuffers());
     const std::string reason = backend->fallbackReason();
-    EXPECT_NE(std::string::npos, reason.find("unsupported"));
-    EXPECT_NE(std::string::npos, reason.find("glass sphere"));
+    EXPECT_EQ(
+      "GPU intersection scene unsupported: glass sphere: transparent material requires runtime "
+      "intersection for Whitted continuation precision",
+      reason);
 
     const WavefrontIntersectionSceneDiagnostics diagnostics = backend->compiledSceneDiagnostics();
     EXPECT_TRUE(diagnostics.compiled);
@@ -2505,14 +2507,12 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_STREQ("gpu", backend->requestedName());
     EXPECT_STREQ("cpu", backend->name());
     EXPECT_STREQ("fallback", backend->availability());
-    const std::string reason = backend->fallbackReason();
-    EXPECT_NE(std::string::npos, reason.find("first render curve"));
-    EXPECT_NE(std::string::npos, reason.find("3 unsupported leaves"));
-    EXPECT_NE(std::string::npos,
-              reason.find("2x primitive is not supported by GPU intersection scene compiler"));
-    EXPECT_NE(
-      std::string::npos,
-      reason.find("1x moving instances are not supported by GPU intersection scene compiler"));
+    EXPECT_EQ(
+      "GPU intersection scene unsupported: first render curve: primitive is not supported by GPU "
+      "intersection scene compiler (3 unsupported leaves; 1x moving instances are not supported "
+      "by GPU intersection scene compiler; 2x primitive is not supported by GPU intersection "
+      "scene compiler)",
+      std::string(backend->fallbackReason()));
 
     const WavefrontIntersectionSceneDiagnostics diagnostics = backend->compiledSceneDiagnostics();
     ASSERT_EQ(2u, diagnostics.unsupportedReasons.size());

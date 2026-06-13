@@ -170,6 +170,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Fixed GPU-requested wavefront intersection fallback summaries so grouped
+  unsupported-scene reasons are emitted in deterministic order, with
+  transparent-material fallback pinned in metrics JSON. — GPT-5 Codex
 - Fixed tiled wavefront renders so active-hit and direct-light host-byte totals
   and per-depth arrays are merged across all sample batches in a tile.
   — GPT-5 Codex
