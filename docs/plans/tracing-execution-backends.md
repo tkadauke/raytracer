@@ -1269,7 +1269,11 @@ for tracing, shadows, visibility, and graph passes.
      scene, submits closest-hit and any-hit queries, and retains execution-path
      plus fallback diagnostics for callers.
 
-5. **Add service benchmarks and metrics capture.**
+5. ~~**Add service benchmarks and metrics capture.**~~ ✅ **Done.** Issue #573
+   adds `IntersectionService` benchmark rows for closest-hit, any-hit, and
+   mixed query-family workloads over small supported, mesh-heavy supported, and
+   visibility-heavy supported scenes, with transfer, timing, execution-path,
+   and query-family counters.
    - Depends on: jobs 2 and 4.
    - Output: benchmarks for closest-hit and any-hit on supported small and large
      scenes, with upload/kernel/readback timing and query-family counts.
