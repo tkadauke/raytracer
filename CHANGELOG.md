@@ -188,6 +188,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added reusable tracing image comparison helpers for normalized RMS checks
+  across HDR and RGB buffers. — GPT-5 Codex
 - Added `direct_light_any_hit_chunks`, `direct_light_any_hit_chunk_rays`, and
   `direct_light_any_hit_chunk_avg` rendercli summary aliases for direct-light
   visibility chunk diagnostics while preserving the legacy `batch` keys.
