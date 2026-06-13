@@ -944,6 +944,7 @@ namespace WavefrontRaytracerTest {
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setMetricsEnabled(true);
+    renderer->setSamplingSeed(12345);
     renderer->setConvergenceEnabled(true);
     renderer->setConvergenceActiveSampleFractionThreshold(0.5);
     renderer->setConvergenceRadianceDeltaRmsThreshold(0.01);
@@ -955,6 +956,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(8, metrics.input.width);
     EXPECT_EQ(6, metrics.input.height);
     EXPECT_EQ(1, metrics.input.samplesPerPixel);
+    ASSERT_TRUE(metrics.input.samplingSeed.has_value());
+    EXPECT_EQ(12345u, *metrics.input.samplingSeed);
+    EXPECT_EQ("sampler", metrics.input.sampleStreamMode);
     EXPECT_EQ(48u, metrics.input.renderedPixels);
     EXPECT_EQ(48u, metrics.input.primarySamples);
     EXPECT_EQ(1u, metrics.tiling.tileCount);
@@ -1086,6 +1090,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(metrics.timings.totalRenderSeconds, 0.0);
 
     const QJsonObject json = metrics.toJson();
+    const QJsonObject input = json.value("input").toObject();
+    EXPECT_EQ(12345.0, input.value("samplingSeed").toDouble());
+    EXPECT_EQ("sampler", input.value("sampleStreamMode").toString().toStdString());
     const QJsonObject tiling = json.value("tiling").toObject();
     EXPECT_EQ(1.0, tiling.value("tileCount").toDouble());
     EXPECT_EQ(1.0, tiling.value("tileRows").toDouble());

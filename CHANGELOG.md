@@ -14,6 +14,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added `IntersectionService` benchmark rows for closest-hit, any-hit, and
   mixed query-family workloads over small, mesh-heavy, and visibility-heavy
   supported scenes. — GPT-5 Codex
+- Reported ray-family sample-stream mode diagnostics and configured sampling
+  seeds in rendercli graph state, wavefront metrics JSON, and compact metrics
+  summaries. — GPT-5 Codex
 - Added the CPU reference GPU sample stream that generates deterministic
   named-dimension samples from explicit seed, pixel, primary-sample, dimension,
   and component coordinates. — GPT-5 Codex

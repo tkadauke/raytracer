@@ -302,7 +302,8 @@ namespace engine::graph {
   bool RenderRaytracerOptions::empty() const {
     return !m_maximumRecursionDepth && !m_maximumThreads && !m_queueSize && !m_integrator &&
            !m_intersectionBackend && !m_russianRouletteDepth && !m_directLightSamples &&
-           !m_sampler && !m_samplesPerPixel && !m_samplingSeed && !m_viewPlane &&
+           !m_sampler && !m_samplesPerPixel && !m_samplingSeed && !m_sampleStreamMode &&
+           !m_viewPlane &&
            !m_convergenceEnabled && !m_convergenceActiveSampleFractionThreshold &&
            !m_convergenceRadianceDeltaRmsThreshold && !m_adaptiveSamplingEnabled &&
            !m_adaptiveMinimumSamples && !m_adaptiveStddevThreshold && !m_denoiser &&
@@ -337,6 +338,8 @@ namespace engine::graph {
       options.setSamplesPerPixel(*state.samplesPerPixel());
     if (state.samplingSeed())
       options.setSamplingSeed(*state.samplingSeed());
+    if (state.sampleStreamMode())
+      options.setSampleStreamMode(*state.sampleStreamMode());
     if (state.viewPlane())
       options.setViewPlane(*state.viewPlane());
     if (state.convergenceEnabled())
@@ -381,6 +384,8 @@ namespace engine::graph {
     result.m_samplesPerPixel =
       overrideOptional(result.m_samplesPerPixel, overrides.m_samplesPerPixel);
     result.m_samplingSeed = overrideOptional(result.m_samplingSeed, overrides.m_samplingSeed);
+    result.m_sampleStreamMode =
+      overrideOptional(result.m_sampleStreamMode, overrides.m_sampleStreamMode);
     result.m_viewPlane = overrideOptional(result.m_viewPlane, overrides.m_viewPlane);
     result.m_convergenceEnabled =
       overrideOptional(result.m_convergenceEnabled, overrides.m_convergenceEnabled);
@@ -425,6 +430,8 @@ namespace engine::graph {
       state.setSamplesPerPixel(*m_samplesPerPixel);
     if (m_samplingSeed)
       state.setSamplingSeed(*m_samplingSeed);
+    if (m_sampleStreamMode)
+      state.setSampleStreamMode(*m_sampleStreamMode);
     if (m_viewPlane)
       state.setViewPlane(*m_viewPlane);
     if (m_convergenceEnabled)
@@ -498,6 +505,12 @@ namespace engine::graph {
     RaytracerBeautyPassState state;
     state.setSamplingSeed(seed);
     m_samplingSeed = state.samplingSeed();
+  }
+
+  void RenderRaytracerOptions::setSampleStreamMode(std::string mode) {
+    RaytracerBeautyPassState state;
+    state.setSampleStreamMode(std::move(mode));
+    m_sampleStreamMode = state.sampleStreamMode();
   }
 
   void RenderRaytracerOptions::setViewPlane(std::string viewPlane) {
@@ -581,6 +594,10 @@ namespace engine::graph {
 
   std::optional<std::uint64_t> RenderRaytracerOptions::samplingSeed() const {
     return m_samplingSeed;
+  }
+
+  std::optional<std::string> RenderRaytracerOptions::sampleStreamMode() const {
+    return m_sampleStreamMode;
   }
 
   std::optional<std::string> RenderRaytracerOptions::viewPlane() const {

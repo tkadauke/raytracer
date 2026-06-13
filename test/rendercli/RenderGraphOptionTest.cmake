@@ -2210,10 +2210,10 @@ rendercli_run(
   NAME "rendercli writes graph wavefront metrics JSON and summary"
   OUTPUT_VARIABLE wavefront_metrics_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*pass=wavefront_beauty.*integrator=whitted.*execution=depth_major_whitted.*tracing_backend=cpu.*tracing_backend_mode=wavefront_intersection.*tracing_backend_fallback=.*wavefront_intersection_backend.*tracing_backend_capabilities=19.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=packed_cpu.*intersection_expected_rays=[1-9][0-9]*.*intersection_expected_closest_hit_rays=[1-9][0-9]*.*intersection_expected_any_hit_rays=0.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=0.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=[1-9][0-9]*.*intersection_estimated_query_transfer_bytes=[1-9][0-9]*.*intersection_estimated_query_round_trips=[1-9][0-9]*.*intersection_estimated_closest_hit_query_round_trips=[1-9][0-9]*.*intersection_estimated_any_hit_query_round_trips=0.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*intersection_rays=[0-9][0-9]*.*closest_hit_rays=[0-9][0-9]*.*any_hit_rays=[0-9][0-9]*.*closest_hit_queries=[0-9][0-9]*.*any_hit_queries=[0-9][0-9]*.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
+    "wavefront_metrics.*pass=wavefront_beauty.*sampling_seed=12345.*sample_stream_mode=sampler.*integrator=whitted.*execution=depth_major_whitted.*tracing_backend=cpu.*tracing_backend_mode=wavefront_intersection.*tracing_backend_fallback=.*wavefront_intersection_backend.*tracing_backend_capabilities=19.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=packed_cpu.*intersection_expected_rays=[1-9][0-9]*.*intersection_expected_closest_hit_rays=[1-9][0-9]*.*intersection_expected_any_hit_rays=0.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=0.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=[1-9][0-9]*.*intersection_estimated_query_transfer_bytes=[1-9][0-9]*.*intersection_estimated_query_round_trips=[1-9][0-9]*.*intersection_estimated_closest_hit_query_round_trips=[1-9][0-9]*.*intersection_estimated_any_hit_query_round_trips=0.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*intersection_rays=[0-9][0-9]*.*closest_hit_rays=[0-9][0-9]*.*any_hit_rays=[0-9][0-9]*.*closest_hit_queries=[0-9][0-9]*.*any_hit_queries=[0-9][0-9]*.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
   COMMAND
     "${RENDERCLI}" --engine wavefront --width 16 --height 16
-    --wavefront_intersection_backend gpu
+    --wavefront_intersection_backend gpu --sampling_seed 12345
     --wavefront_denoiser box --wavefront_denoise_radius 2
     --wavefront_metrics_out "${wavefront_metrics_report}" --wavefront_metrics_summary
     "${static_scene}" "${wavefront_metrics_render}"
@@ -2558,6 +2558,16 @@ endif()
 if(NOT wavefront_metrics_json MATCHES "\"activeSamplesPerDepth\"")
   _rendercli_fail("rendercli wavefront metrics batching"
                   "wavefront metrics report did not contain batch counters"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"samplingSeed\"[ \r\n]*:[ \r\n]*12345")
+  _rendercli_fail("rendercli wavefront metrics sampling seed"
+                  "wavefront metrics report did not contain sampling seed"
+                  "" "" "${wavefront_metrics_json}" "")
+endif()
+if(NOT wavefront_metrics_json MATCHES "\"sampleStreamMode\"[ \r\n]*:[ \r\n]*\"sampler\"")
+  _rendercli_fail("rendercli wavefront metrics sample stream mode"
+                  "wavefront metrics report did not contain sample stream mode"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\"")
@@ -5491,6 +5501,10 @@ if(NOT raytracer_state_graph MATCHES "Jittered")
 endif()
 if(NOT raytracer_state_graph MATCHES "\"seed\"[ \r\n]*:[ \r\n]*12345")
   message(FATAL_ERROR "raytracer state graph did not contain sampling seed: ${raytracer_state_graph}")
+endif()
+if(NOT raytracer_state_graph MATCHES "\"streamMode\"[ \r\n]*:[ \r\n]*\"sampler\"")
+  message(FATAL_ERROR
+          "raytracer state graph did not contain sample stream mode: ${raytracer_state_graph}")
 endif()
 if(NOT raytracer_state_graph MATCHES "maxRecursionDepth")
   message(FATAL_ERROR "raytracer state graph did not contain recursion depth: ${raytracer_state_graph}")

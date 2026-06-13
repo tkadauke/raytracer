@@ -34,6 +34,8 @@ namespace engine::wavefront {
       int width = 0;
       int height = 0;
       int samplesPerPixel = 0;
+      std::optional<std::uint64_t> samplingSeed;
+      std::string sampleStreamMode;
       std::uint64_t renderedPixels = 0;
       std::uint64_t primarySamples = 0;
     } input;

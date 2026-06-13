@@ -31,6 +31,7 @@ namespace RaytracerPassStateTest {
     state.setSampler("Jittered");
     state.setSamplesPerPixel(16);
     state.setSamplingSeed(12345);
+    state.setSampleStreamMode("sampler");
     state.setViewPlane("TiledViewPlane");
     state.setConvergenceEnabled(true);
     state.setConvergenceActiveSampleFractionThreshold(0.125);
@@ -58,6 +59,8 @@ namespace RaytracerPassStateTest {
               json.value("sampling").toObject().value("sampler").toString().toStdString());
     EXPECT_EQ(16, json.value("sampling").toObject().value("samplesPerPixel").toInt());
     EXPECT_EQ(12345.0, json.value("sampling").toObject().value("seed").toDouble());
+    EXPECT_EQ("sampler",
+              json.value("sampling").toObject().value("streamMode").toString().toStdString());
     EXPECT_EQ("TiledViewPlane",
               json.value("viewPlane").toObject().value("type").toString().toStdString());
     EXPECT_TRUE(json.value("convergence").toObject().value("enabled").toBool());
@@ -85,6 +88,7 @@ namespace RaytracerPassStateTest {
     ASSERT_TRUE(decoded.sampler().has_value());
     ASSERT_TRUE(decoded.samplesPerPixel().has_value());
     ASSERT_TRUE(decoded.samplingSeed().has_value());
+    ASSERT_TRUE(decoded.sampleStreamMode().has_value());
     ASSERT_TRUE(decoded.viewPlane().has_value());
     ASSERT_TRUE(decoded.convergenceEnabled().has_value());
     ASSERT_TRUE(decoded.convergenceActiveSampleFractionThreshold().has_value());
@@ -105,6 +109,7 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ("Jittered", *decoded.sampler());
     EXPECT_EQ(16, *decoded.samplesPerPixel());
     EXPECT_EQ(12345u, *decoded.samplingSeed());
+    EXPECT_EQ("sampler", *decoded.sampleStreamMode());
     EXPECT_EQ("TiledViewPlane", *decoded.viewPlane());
     EXPECT_TRUE(*decoded.convergenceEnabled());
     EXPECT_DOUBLE_EQ(0.125, *decoded.convergenceActiveSampleFractionThreshold());
@@ -124,6 +129,20 @@ namespace RaytracerPassStateTest {
     json["sampling"] = sampling;
 
     EXPECT_THROW(RaytracerBeautyPassState::fromJson(json), std::runtime_error);
+  }
+
+  TEST(RaytracerBeautyPassState, NormalizesSampleStreamModeDiagnostics) {
+    RaytracerBeautyPassState state;
+    state.setSampleStreamMode("gpu-sample-stream");
+
+    const QJsonObject json = state.toJson();
+
+    EXPECT_EQ("gpu_sample_stream",
+              json.value("sampling").toObject().value("streamMode").toString().toStdString());
+
+    const RaytracerBeautyPassState decoded = RaytracerBeautyPassState::fromJson(json);
+    ASSERT_TRUE(decoded.sampleStreamMode().has_value());
+    EXPECT_EQ("gpu_sample_stream", *decoded.sampleStreamMode());
   }
 
   TEST(RaytracerBeautyPassState, AppliesPathTracingIntegratorToRaytracer) {
