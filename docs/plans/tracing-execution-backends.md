@@ -64,6 +64,9 @@ end state for GPU tracing.
   scene is eligible.
 - Direct-light visibility can be grouped into backend-owned any-hit batches in
   the wavefront path tracer.
+- `render::IntersectionService` exposes the intersection backend as a
+  standalone closest-hit/any-hit service with backend execution-path and
+  fallback diagnostics for non-renderer callers.
 - Closest-hit and any-hit frontiers are represented by backend-owned handles.
 - Metrics expose backend request, selected backend, platform availability,
   execution path, fallback reason, transfer estimates, query counts, frontier
@@ -162,6 +165,97 @@ A reusable operation exposed by a backend:
 - AOV production.
 
 The current GPU-intersection work is one backend service.
+
+### Intersection Service Contract
+
+The current reusable intersection backend service is a backend service, not a
+full GPU tracing implementation. CPU integrators and schedules still own path
+state, material evaluation, BSDF sampling, light sampling, path continuation,
+sample accumulation, denoising, tonemapping, and render graph scheduling. The
+service answers ray-scene visibility questions for supported scene subsets and
+reports when that narrow service cannot run on the requested backend.
+
+The service exposes two query families:
+
+- **Closest hit.** Camera, path-continuation, reflection, refraction, probe, and
+  debug rays ask for the nearest positive surface intersection in the submitted
+  `t` interval. A closest-hit query returns either a miss or one materializable
+  hit record that CPU shading can consume.
+- **Any hit.** Shadow, occlusion, visibility, and direct-light queries ask
+  whether any supported primitive intersects the ray before `maxDistance`. An
+  any-hit query returns one byte-sized occlusion flag per submitted ray:
+  non-zero means occluded, zero means visible.
+
+The CPU runtime backend supports the full existing `render::Scene` traversal
+semantics. The compiled/packed and platform GPU service subset is deliberately
+smaller and all-or-nothing for a render or service call. The supported subset is:
+
+- triangle leaves and mesh triangles;
+- sphere;
+- plane;
+- rectangle;
+- disk;
+- `OpenCylinder`;
+- `Torus`;
+- static transforms / instances whose payloads can be represented by stable
+  compiled ids.
+
+Unsupported CSG/boolean composites, moving transforms, unsupported exact
+primitive payloads, and materials that require runtime-only continuation
+semantics such as transparent/glass Whitted recursion must keep the service on
+the runtime CPU path or produce an explicit fallback reason. Platform Metal and
+Vulkan backends may also reject a scene that the packed CPU service can compile
+until matching platform kernels exist.
+
+Closest-hit output records must preserve CPU intersection semantics for the
+supported subset:
+
+- hit/miss state;
+- primitive/object id and material lookup key;
+- hit distance `t`;
+- geometric hit point or enough data to reconstruct it;
+- normal in the same orientation convention as the CPU path;
+- UV, barycentric, or local coordinates when the primitive provides them;
+- per-ray `State` bookkeeping needed by the CPU shading path.
+
+Any-hit output records must preserve the CPU visibility contract:
+
+- one result per submitted ray, in submission order;
+- non-zero occlusion flag only when an intersection occurs before the query's
+  maximum distance according to the same light-distance rule as
+  `Scene::occludes(...)`;
+- no material shading, alpha blending, or transparent continuation unless a
+  future contract adds those semantics explicitly.
+
+Diagnostics are part of the contract. Every backend selection or execution path
+must expose:
+
+- requested backend, selected backend, platform name, and availability;
+- overall, closest-hit, and any-hit execution paths (`runtime_scene`,
+  `packed_cpu`, `metal`, `vulkan`, or future names);
+- compiled-scene counts: BVH nodes, primitive totals, supported primitive
+  totals, transform count, upload bytes, and unsupported counts by reason;
+- closest-hit and any-hit query counts, ray-upload byte estimates, readback byte
+  estimates, total query-transfer estimates, and estimated round trips;
+- frontier residency labels and frontier payload byte counts where frontier
+  handles are used;
+- observed upload/preparation, kernel/traversal, and readback worker seconds;
+- explicit fallback reason when a requested GPU or packed path cannot run.
+
+Fallback reasons should be stable enough for tests and diagnostics. The current
+families are:
+
+- user or auto policy selected CPU, including the auto-selected CPU threshold
+  case before scene compilation;
+- platform GPU device or render-path unavailable;
+- scene could not compile to the intersection subset;
+- scene compiled but is not eligible for the requested closest-hit or any-hit
+  packed/platform kernel;
+- unsupported primitive, transform, material, or runtime continuation
+  requirement, counted by reason;
+- platform preparation, dispatch, or kernel failure;
+- backend returned malformed results, such as a closest-hit or any-hit batch
+  whose result count differs from the submitted ray count.
 
 ---
 
@@ -1140,28 +1234,46 @@ for tracing, shadows, visibility, and graph passes.
 
 **Jobs:**
 
-1. **Write the service contract.**
+1. ~~**Write the service contract.**~~ ✅ **Done.** The Intersection Service
+   Contract section documents query families, supported primitive subset,
+   output records, timing diagnostics, fallback reasons, and the fact that this
+   is a backend service rather than full GPU tracing.
    - Depends on: none.
    - Output: document/code comments identifying supported query families,
-     supported primitive subset, fallback reasons, and output records.
+     supported primitive subset, fallback reasons, timing fields, and output
+     records.
 
-2. **Close parity gaps for existing supported primitives.**
+2. ~~**Close parity gaps for existing supported primitives.**~~ ✅ **Done.**
+   Issue #570 adds explicit packed CPU closest-hit/any-hit parity coverage for
+   triangle, mesh triangle, sphere, plane, rectangle, disk, OpenCylinder, Torus,
+   and static transforms, and keeps mesh triangles represented in optional
+   Metal/Vulkan triangle smoke parity scenes.
    - Depends on: job 1.
    - Output: CPU runtime, packed CPU, Metal, and Vulkan closest-hit/any-hit
      parity tests for triangle, mesh triangle, sphere, plane, rectangle, disk,
      OpenCylinder, Torus, and static transforms.
 
-3. **Stabilize explicit fallback behavior.**
+3. ~~**Stabilize explicit fallback behavior.**~~ ✅ **Done.** Issue #571 pins
+   deterministic GPU-intersection unsupported-scene fallback reasons for
+   transparent/glass and generic unsupported scenes in backend and metrics tests.
    - Depends on: job 1.
-   - Output: tests for transparent/glass and unsupported scene features proving
-     they fall back before rendering or report why they cannot use the service.
+   - Output: ~~tests for transparent/glass and unsupported scene features
+     proving they fall back before rendering or report why they cannot use the
+     service.~~
 
-4. **Expose an intersection-only service entry point.**
+4. ~~**Expose an intersection-only service entry point.**~~
    - Depends on: jobs 1 and 2.
    - Output: API usable by graph visibility/AOV passes and future raster hybrid
-     shadows without pretending to run a full tracing algorithm on the GPU.
+     shadows without pretending to run a full tracing algorithm on the GPU. ✅
+     **Done.** `render::IntersectionService` prepares a selected backend for a
+     scene, submits closest-hit and any-hit queries, and retains execution-path
+     plus fallback diagnostics for callers.
 
-5. **Add service benchmarks and metrics capture.**
+5. ~~**Add service benchmarks and metrics capture.**~~ ✅ **Done.** Issue #573
+   adds `IntersectionService` benchmark rows for closest-hit, any-hit, and
+   mixed query-family workloads over small supported, mesh-heavy supported, and
+   visibility-heavy supported scenes, with transfer, timing, execution-path,
+   and query-family counters.
    - Depends on: jobs 2 and 4.
    - Output: benchmarks for closest-hit and any-hit on supported small and large
      scenes, with upload/kernel/readback timing and query-family counts.

@@ -1176,14 +1176,20 @@ namespace render {
       const std::vector<UnsupportedIntersectionReasonCount> reasonCounts =
         scene.unsupportedReasonCounts();
       if (!reasonCounts.empty()) {
+        std::vector<UnsupportedIntersectionReasonCount> sortedReasonCounts = reasonCounts;
+        std::sort(sortedReasonCounts.begin(), sortedReasonCounts.end(),
+                  [](const UnsupportedIntersectionReasonCount& lhs,
+                     const UnsupportedIntersectionReasonCount& rhs) {
+                    return lhs.reason < rhs.reason;
+                  });
         result += "; ";
-        for (std::size_t index = 0; index != reasonCounts.size(); ++index) {
+        for (std::size_t index = 0; index != sortedReasonCounts.size(); ++index) {
           if (index != 0) {
             result += "; ";
           }
-          result += std::to_string(reasonCounts[index].count);
+          result += std::to_string(sortedReasonCounts[index].count);
           result += "x ";
-          result += reasonCounts[index].reason;
+          result += sortedReasonCounts[index].reason;
         }
       }
       result += ")";

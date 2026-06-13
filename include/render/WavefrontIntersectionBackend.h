@@ -268,11 +268,16 @@ namespace render {
   };
 
   /**
-    * @brief Ray-scene intersection boundary used by wavefront batch integrators.
+    * @brief Reusable ray-scene intersection service used by tracing schedules.
     *
-    * Wavefront scheduling and shading stay in the integrators. This backend
-    * answers the narrower question those schedulers need before each shading
-    * depth: what did this ray, or this packet of rays, hit?
+    * This is not a full GPU tracing backend. Integrators and render graph
+    * passes own scheduling, path state, material evaluation, light sampling,
+    * continuation, accumulation, denoising, and tonemapping. The service owns
+    * only closest-hit and any-hit/occlusion queries over the runtime CPU scene
+    * or the restricted compiled intersection subset. Requested GPU or packed
+    * paths must report explicit availability, execution-path, timing, and
+    * fallback diagnostics when a scene or platform cannot satisfy that narrow
+    * contract.
     */
   class WavefrontIntersectionBackend {
   public:

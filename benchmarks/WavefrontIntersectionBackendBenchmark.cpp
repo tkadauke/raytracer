@@ -3,6 +3,7 @@
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 #include "render/GpuIntersectionScene.h"
+#include "render/IntersectionService.h"
 #include "render/IntersectionSceneCompiler.h"
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
 #include "render/MetalWavefrontSmokeKernel.h"
@@ -12,6 +13,7 @@
 #include "render/VulkanWavefrontSmokeKernel.h"
 #endif
 #include "render/WavefrontIntersectionBackend.h"
+#include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Torus.h"
@@ -104,6 +106,10 @@ namespace {
       state.SetLabel(name + "/" + backend.requestedName() + "/" + backend.name() + "/" +
                      executionPath);
       state.counters["rays"] = static_cast<double>(totalRayCount);
+      state.counters["queries"] =
+        static_cast<double>((closestHitRayCount > 0 ? 1u : 0u) + (anyHitRayCount > 0 ? 1u : 0u));
+      state.counters["closest_hit_queries"] = closestHitRayCount > 0 ? 1.0 : 0.0;
+      state.counters["any_hit_queries"] = anyHitRayCount > 0 ? 1.0 : 0.0;
       state.counters["closest_hit_rays"] = static_cast<double>(closestHitRayCount);
       state.counters["any_hit_rays"] = static_cast<double>(anyHitRayCount);
       state.counters["expected_rays"] = static_cast<double>(context.effectiveExpectedRayCount());
@@ -120,6 +126,9 @@ namespace {
       state.counters["scene_unsupported"] = static_cast<double>(diagnostics.unsupportedPrimitives);
       annotateUnsupportedReasons(state, diagnostics.unsupportedReasons);
       state.counters["scene_upload_bytes"] = static_cast<double>(diagnostics.uploadBytes);
+      state.counters["upload_seconds"] = timing.uploadSeconds;
+      state.counters["kernel_seconds"] = timing.kernelSeconds;
+      state.counters["readback_seconds"] = timing.readbackSeconds;
       state.counters["packed_closest_hit_eligible"] =
         diagnostics.packedClosestHitKernelEligible ? 1.0 : 0.0;
       state.counters["packed_any_hit_eligible"] =
@@ -330,6 +339,25 @@ namespace {
     return scene;
   }
 
+  std::shared_ptr<Scene> makeVisibilityHeavySupportedScene() {
+    auto scene = std::make_shared<Scene>();
+
+    constexpr int occluderRows = 24;
+    constexpr int occluderColumns = 18;
+    for (int row = 0; row != occluderRows; ++row) {
+      for (int column = 0; column != occluderColumns; ++column) {
+        const double x = (column - occluderColumns / 2) * 0.7 + ((row % 2) == 0 ? 0.0 : 0.25);
+        const double y = -1.0 + (row % 6) * 0.38;
+        const double z = 3.0 + row * 0.62;
+        scene->add(std::make_shared<Sphere>(Vector3d(x, y, z), 0.22));
+      }
+    }
+
+    scene->add(std::make_shared<Rectangle>(Vector3d(-8.0, -1.35, 18.5), Vector3d::right() * 16.0,
+                                           Vector3d::up() * 5.0));
+    return scene;
+  }
+
   std::shared_ptr<Scene> makeUnsupportedMixedScene() {
     auto scene = makeMeshHeavySupportedScene();
     scene->add(std::make_shared<Torus>(0.85, 0.2));
@@ -340,6 +368,7 @@ namespace {
     static const std::vector<Workload> all{
       {"small_supported", makeSmallSupportedScene()},
       {"mesh_heavy_supported", makeMeshHeavySupportedScene()},
+      {"visibility_heavy_supported", makeVisibilityHeavySupportedScene()},
       {"unsupported_mixed", makeUnsupportedMixedScene()},
     };
     return all;
@@ -549,10 +578,10 @@ namespace {
     WavefrontIntersectionQueryTiming timing;
     for (auto _ : state) {
       WavefrontIntersectionQueryTiming queryTiming;
-      const std::vector<bool> occluded =
+      const WavefrontOcclusionFlags occluded =
         backend->intersectAnyFrontier(*workload.scene, *frontier, &queryTiming);
       timing.add(queryTiming);
-      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), 1U));
     }
 
     workload.annotateBackendWorkload(state, *backend, timing, context, 0, frontier->rayCount(), 0,
@@ -582,12 +611,12 @@ namespace {
       timing.add(closestTiming);
 
       WavefrontIntersectionQueryTiming anyTiming;
-      const std::vector<bool> occluded =
+      const WavefrontOcclusionFlags occluded =
         backend->intersectAnyFrontier(*workload.scene, *anyFrontier, &anyTiming);
       timing.add(anyTiming);
 
       benchmark::DoNotOptimize(hits.size());
-      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), 1U));
     }
 
     workload.annotateBackendWorkload(
@@ -598,6 +627,89 @@ namespace {
     state.SetItemsProcessed(
       state.iterations() *
       static_cast<std::int64_t>(closestFrontier->rayCount() + anyFrontier->rayCount()));
+  }
+
+  void bm_intersectionServiceClosestHitBatch(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const std::vector<Rayd> rays = generateRays(state.range(1));
+    const WavefrontIntersectionBackendSelectionContext context =
+      workload.selectionContext(rays.size(), 0);
+    IntersectionService service(*workload.scene, WavefrontIntersectionBackendChoice::automatic(),
+                                context);
+    ClosestQueryBatch batch(rays);
+    WavefrontIntersectionQueryTiming timing;
+    for (auto _ : state) {
+      const std::vector<WavefrontClosestHitResult> hits = service.closestHits(batch.queries);
+      timing.add(service.diagnostics().lastClosestHitTiming);
+      benchmark::DoNotOptimize(hits.size());
+    }
+
+    workload.annotateBackendWorkload(state, service.backend(), timing, context,
+                                     batch.queries.size(), 0, 0, 0,
+                                     batch.queries.size() * sizeof(WavefrontClosestHitQuery), 0,
+                                     batch.states.size() * sizeof(State), 0);
+    state.SetLabel(
+      workload.name + "/intersection_service/" + service.diagnostics().requestedBackend + "/" +
+      service.diagnostics().selectedBackend + "/" + service.diagnostics().closestHitExecutionPath);
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(batch.queries.size()));
+  }
+
+  void bm_intersectionServiceAnyHitBatch(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const std::vector<Rayd> rays = generateRays(state.range(1));
+    const WavefrontIntersectionBackendSelectionContext context =
+      workload.selectionContext(0, rays.size());
+    IntersectionService service(*workload.scene, WavefrontIntersectionBackendChoice::automatic(),
+                                context);
+    AnyQueryBatch batch(rays, 40.0);
+    WavefrontIntersectionQueryTiming timing;
+    for (auto _ : state) {
+      const WavefrontOcclusionFlags occluded = service.anyHits(batch.queries);
+      timing.add(service.diagnostics().lastAnyHitTiming);
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), 1U));
+    }
+
+    workload.annotateBackendWorkload(
+      state, service.backend(), timing, context, 0, batch.queries.size(), 0, 0, 0,
+      batch.queries.size() * sizeof(WavefrontAnyHitQuery), 0, batch.states.size() * sizeof(State));
+    state.SetLabel(
+      workload.name + "/intersection_service/" + service.diagnostics().requestedBackend + "/" +
+      service.diagnostics().selectedBackend + "/" + service.diagnostics().anyHitExecutionPath);
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(batch.queries.size()));
+  }
+
+  void bm_intersectionServiceMixedClosestAndAnyHitBatch(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const std::vector<Rayd> rays = generateRays(state.range(1));
+    const WavefrontIntersectionBackendSelectionContext context =
+      workload.selectionContext(rays.size(), rays.size());
+    IntersectionService service(*workload.scene, WavefrontIntersectionBackendChoice::automatic(),
+                                context);
+    ClosestQueryBatch closestBatch(rays);
+    AnyQueryBatch anyBatch(rays, 40.0);
+    WavefrontIntersectionQueryTiming timing;
+    for (auto _ : state) {
+      const std::vector<WavefrontClosestHitResult> hits = service.closestHits(closestBatch.queries);
+      timing.add(service.diagnostics().lastClosestHitTiming);
+
+      const WavefrontOcclusionFlags occluded = service.anyHits(anyBatch.queries);
+      timing.add(service.diagnostics().lastAnyHitTiming);
+
+      benchmark::DoNotOptimize(hits.size());
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), 1U));
+    }
+
+    workload.annotateBackendWorkload(
+      state, service.backend(), timing, context, closestBatch.queries.size(),
+      anyBatch.queries.size(), 0, 0, closestBatch.queries.size() * sizeof(WavefrontClosestHitQuery),
+      anyBatch.queries.size() * sizeof(WavefrontAnyHitQuery),
+      closestBatch.states.size() * sizeof(State), anyBatch.states.size() * sizeof(State));
+    state.SetLabel(
+      workload.name + "/intersection_service/" + service.diagnostics().requestedBackend + "/" +
+      service.diagnostics().selectedBackend + "/" + service.diagnostics().executionPath);
+    state.SetItemsProcessed(
+      state.iterations() *
+      static_cast<std::int64_t>(closestBatch.queries.size() + anyBatch.queries.size()));
   }
 
   void bm_autoFrontierCompaction(benchmark::State& state) {
@@ -649,12 +761,12 @@ namespace {
       timing.add(closestTiming);
 
       WavefrontIntersectionQueryTiming anyTiming;
-      const std::vector<bool> occluded =
+      const WavefrontOcclusionFlags occluded =
         backend->intersectAnyFrontier(*workload.scene, *anyFrontier, &anyTiming);
       timing.add(anyTiming);
 
       benchmark::DoNotOptimize(hits.size());
-      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), 1U));
     }
 
     workload.annotateBackendWorkload(
@@ -714,10 +826,10 @@ namespace {
     WavefrontIntersectionQueryTiming timing;
     for (auto _ : state) {
       WavefrontIntersectionQueryTiming queryTiming;
-      const std::vector<bool> occluded =
+      const WavefrontOcclusionFlags occluded =
         backend->intersectAnyFrontier(*workload.scene, *frontier, &queryTiming);
       timing.add(queryTiming);
-      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), 1U));
     }
 
     workload.annotateBackendWorkload(state, *backend, timing, context, 0, frontier->rayCount(), 0,
@@ -751,12 +863,12 @@ namespace {
       timing.add(closestTiming);
 
       WavefrontIntersectionQueryTiming anyTiming;
-      const std::vector<bool> occluded =
+      const WavefrontOcclusionFlags occluded =
         backend->intersectAnyFrontier(*workload.scene, *anyFrontier, &anyTiming);
       timing.add(anyTiming);
 
       benchmark::DoNotOptimize(hits.size());
-      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), true));
+      benchmark::DoNotOptimize(std::count(occluded.begin(), occluded.end(), 1U));
     }
 
     workload.annotateBackendWorkload(
@@ -894,21 +1006,21 @@ namespace {
 #endif
 
   void allWorkloads(benchmark::internal::Benchmark* benchmark) {
-    for (int workload = 0; workload != 3; ++workload) {
+    for (int workload = 0; workload != 4; ++workload) {
       benchmark->Arg(workload);
     }
   }
 
   void supportedQueryWorkloads(benchmark::internal::Benchmark* benchmark) {
-    for (int workload = 0; workload != 2; ++workload) {
+    for (int workload = 0; workload != 3; ++workload) {
       benchmark->Args({workload, 256});
       benchmark->Args({workload, 65536});
     }
   }
 
   void unsupportedQueryWorkloads(benchmark::internal::Benchmark* benchmark) {
-    benchmark->Args({2, 256});
-    benchmark->Args({2, 65536});
+    benchmark->Args({3, 256});
+    benchmark->Args({3, 65536});
   }
 }
 
@@ -920,6 +1032,9 @@ BENCHMARK(bm_packedAnyHit)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_autoClosestHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_autoAnyHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_autoMixedClosestAndAnyHitBatch)->Apply(supportedQueryWorkloads);
+BENCHMARK(bm_intersectionServiceClosestHitBatch)->Apply(supportedQueryWorkloads);
+BENCHMARK(bm_intersectionServiceAnyHitBatch)->Apply(supportedQueryWorkloads);
+BENCHMARK(bm_intersectionServiceMixedClosestAndAnyHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_autoFrontierCompaction)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuUnsupportedMixedClosestAndAnyHitBatch)->Apply(unsupportedQueryWorkloads);
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)

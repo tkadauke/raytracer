@@ -11,6 +11,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Added `IntersectionService` benchmark rows for closest-hit, any-hit, and
+  mixed query-family workloads over small, mesh-heavy, and visibility-heavy
+  supported scenes. — GPT-5 Codex
+- Added an intersection-only `render::IntersectionService` API for submitting
+  closest-hit and any-hit work with explicit backend execution-path and
+  fallback diagnostics. — GPT-5 Codex
 - Routed path-tracing frontier compaction through the wavefront intersection
   backend contract so future GPU backends can override the current host
   compaction path. — GPT-5 Codex
@@ -170,6 +176,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Fixed GPU-requested wavefront intersection fallback summaries so grouped
+  unsupported-scene reasons are emitted in deterministic order, with
+  transparent-material fallback pinned in metrics JSON. — GPT-5 Codex
 - Fixed tiled wavefront renders so active-hit and direct-light host-byte totals
   and per-depth arrays are merged across all sample batches in a tile.
   — GPT-5 Codex
