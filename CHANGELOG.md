@@ -14,6 +14,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added `IntersectionService` benchmark rows for closest-hit, any-hit, and
   mixed query-family workloads over small, mesh-heavy, and visibility-heavy
   supported scenes. — GPT-5 Codex
+- Added the CPU reference GPU sample stream that generates deterministic
+  named-dimension samples from explicit seed, pixel, primary-sample, dimension,
+  and component coordinates. — GPT-5 Codex
 - Added an intersection-only `render::IntersectionService` API for submitting
   closest-hit and any-hit work with explicit backend execution-path and
   fallback diagnostics. — GPT-5 Codex

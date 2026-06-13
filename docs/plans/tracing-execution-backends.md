@@ -1394,6 +1394,8 @@ Floating-point samples are produced by taking the high 24 bits of the hash and
 multiplying by `2^-24`, yielding a value in `[0, 1)`. That rule avoids platform
 `uniform_real_distribution` behavior, avoids CPU extended precision differences,
 and maps cleanly to `float` precision on GPU shaders.
+The CPU reference implementation lives in `render::GpuSampleStream` and is
+kept independent of the existing stratified sampler set path.
 
 The choice is intentionally limited:
 
@@ -1433,7 +1435,9 @@ The choice is intentionally limited:
    - Depends on: job 1.
    - Output: deterministic generator choice with rationale and limits.
 
-3. **Add CPU reference implementation.**
+3. **~~Add CPU reference implementation.~~** ✅ **Done.** `render::GpuSampleStream`
+   provides the CPU reference generator with explicit seed, pixel,
+   primary-sample, dimension, and component coordinates.
    - Depends on: job 2.
    - Output: generator callable from tests and future GPU parity code.
 
